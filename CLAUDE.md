@@ -33,7 +33,13 @@ The live site is GitHub Pages, built into `docs/`.
   from Natural Earth, Köppen climate and terrain tiles (`npm run fetch:tiles` first, raw data is
   gitignored). `src/data/geo/geodesic.js` is the grid math, `tiles.js` the loader, `tileGeometry.js`
   turns ownership into GeoJSON territories, borders and the hex mesh, `src/data/scenarios.js` the
-  starts (Dawn: one city per nation). The coast follows the hexes (every hex all land or all water, corners softened): `src/data/geo/hexCoast.js`, built into `hexLand.json` by `node scripts/geo/build-hex-coast.mjs` (run after build:tiles, before build:raster and build:pyramid); the flat map, globe and close view clip and mask with it. `npm run build:raster` renders the realistic Earth
+  starts (Dawn: one city per nation). Terrain data (phase F): `scripts/geo/build-tile-terrain.mjs`
+  (in the build:tiles chain, or `npm run build:terrain`) adds river sizes per hex edge, mountain
+  ranges, ridges and passes to tiles.json; read them through `src/data/geo/terrainData.js`
+  (renderer integration notes: plans/phase-f-terrain-data.md). `npm run build:raster-detail`
+  (after `node scripts/geo/fetch-tiles-raw.mjs --detail`) adds land-only level 6 tiles and land
+  cover tiles (`src/data/geo/rasterDetail.js`); per-tile footprints in local km (town, fields,
+  road and river bands): `src/data/geo/footprints.js`. The coast follows the hexes (every hex all land or all water, corners softened): `src/data/geo/hexCoast.js`, built into `hexLand.json` by `node scripts/geo/build-hex-coast.mjs` (run after build:tiles, before build:raster and build:pyramid); the flat map, globe and close view clip and mask with it. `npm run build:raster` renders the realistic Earth
   (`public/map/world-*.webp`), the globe texture and flat map background. `/?tileViewer` is the
   prototype of the new map. The look is decided: real Earth, hexes only as a faint overlay.
   The engine now runs on it: `state.regions` holds one city record per city (`src/engine/world/
@@ -64,12 +70,22 @@ The live site is GitHub Pages, built into `docs/`.
   src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
   Independent cities (phase W1, one-city `kind: 'independent'` nations of a peoples world): src/engine/independents.js
   over src/data/independents.js; who may fight whom (`canFight`, `canAttack`: no war needed against an
-  independent): src/engine/hostility.js. Use it instead of a bare war check in new combat code.
+  independent): src/engine/hostility.js. Use it instead of a bare war check in new combat code. Their AI (W2):
+  raids, sacks and tribute in src/engine/raids.js (the raid battle R3 replaces: raidBattle.js `fightRaidBattle`),
+  grudges.js, mercenaries.js. No captives: units lost are gone (master plan decision 37). Majors and
+  independents (W3): src/engine/indepPolicy.js (AI campaigns, `nation.indepGoal`, siege force `unit.indepOp`
+  marched by aiOperations.js; joining by attitude; trade; tribute to majors; the player's actions) and
+  razing.js (one size a turn, `city.razing`).
   City manifest (phase B): src/data/townLayout.js (from src/data/townLayouts.json, `npm run
   build:town-layouts` after town art), src/engine/cityManifest.js (from the city record; damage in
   region.cityDamage, the 50% rule, free repairs), battle: src/battle/setup/cityBattle.js and
   src/battle/render/cityLayer.js, map: src/components/map/closeView/townDamage.js.
   Progress and open balance items: plan section J3.
+  Phase F rendering (WebGL map): rivers, bridges, mountain chains and passes in
+  src/components/map/gl/terrainModel.js (drawn in GLMapView's terrain pass, under the fog);
+  level 6 raster and land cover streamed by glLayers.createRasterLayer; the close view's towns and
+  field plots from footprints, 3D ridges and river bands in closeView/terrainPlacement.js and
+  mountainModels.js (`createCloseScene(..., { footprintOf })` is the hook for phase B's manifest).
 - Peoples (phase W0): new games use scenario mode `peoples`: majors drawn from the 150-people
   pool (src/data/peoples.js, built facts in src/data/geo/peopleCapitals.json via
   `npm run build:peoples`), world sizes in src/data/worldSizes.js, the pick in

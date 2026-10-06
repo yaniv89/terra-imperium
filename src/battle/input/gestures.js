@@ -7,6 +7,9 @@
 // Touch:  tap · one-finger drag = pan · drag starting on a selected squad = formation line ·
 //         double-tap then drag = lasso select · long-press = context (ground: attack-move;
 //         selected squad: radial) · two fingers = pinch-zoom + pan
+//         Select mode (the HUD's Select button, `h.isSelectMode()`): a one-finger drag draws the
+//         lasso instead of panning; a completed lasso calls `h.selectModeDone()` (the HUD turns
+//         the mode off). Two fingers still pinch and pan.
 // Mouse:  left click = select/tap · left drag = box select · left drag from a selected squad =
 //         formation line · right click = order · right/middle drag = pan · wheel = zoom
 export const TAP_MS = 260;
@@ -22,6 +25,7 @@ export const createGestureRecognizer = (el, h) => {
   let longTimer = null;
   let lastTapAt = -1000;
   let pinch = null;
+  let fromSelectMode = false; // this lasso was drawn in select mode (not a double-tap)
 
   const pos = (e) => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   const clearLong = () => { if (longTimer) { clearTimeout(longTimer); longTimer = null; } };
@@ -49,7 +53,8 @@ export const createGestureRecognizer = (el, h) => {
       mode = e.button === 2 || e.button === 1 ? 'mouse-right' : onSelected ? 'press-selected' : 'mouse-left';
       return;
     }
-    mode = e.timeStamp - lastTapAt < DOUBLE_TAP_MS ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
+    fromSelectMode = !!h.isSelectMode?.();
+    mode = fromSelectMode || e.timeStamp - lastTapAt < DOUBLE_TAP_MS ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
     longTimer = setTimeout(() => {
       longTimer = null;
       if (mode === 'press-selected') { mode = 'radial'; h.radial?.(start); }
@@ -95,7 +100,7 @@ export const createGestureRecognizer = (el, h) => {
     else if (mode === 'mouse-left' || (mode === 'press-selected' && !start.touch)) h.tap?.(p);
     else if (mode === 'mouse-right') h.order?.(p);
     else if (mode === 'formation') h.formationEnd?.(start, p);
-    else if (mode === 'lasso') h.lassoEnd?.(start, p);
+    else if (mode === 'lasso') { h.lassoEnd?.(start, p); if (fromSelectMode) h.selectModeDone?.(); }
     else if (mode === 'radial') h.radialSelect?.(p);
     mode = 'idle'; start = null;
   };

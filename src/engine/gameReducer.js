@@ -45,7 +45,12 @@ import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { canAttack } from './hostility';
-import { isIndependent } from '../data/independents';
+import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
+import { addGrudge } from './grudges';
+import { hireMercenaryForPlayer } from './mercenaries';
+import { answerTributeDemand } from './raids';
+import { giftIndependent, proposeJoining, answerJoinOffer, demandIndependentTribute, proposeIndependentTrade, razeCityForPlayer } from './indepPolicy';
+import { canRaze, stopRazing } from './razing';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
 import { addNationModifier } from './modifiers/timed';
@@ -2770,6 +2775,48 @@ const reduceAction = (state, action) => {
       const me = state.nations[state.playerNationId];
       return { ...state, nations: { ...state.nations, [state.playerNationId]: saveTemplate(me, template, state.turnNumber) } };
     }
+    case ActionTypes.HIRE_MERCENARY: {
+      // A band from a mercantile or raiders independent (mercenaries.js, phase W2).
+      const r = hireMercenaryForPlayer(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.ANSWER_TRIBUTE_DEMAND: {
+      // Pay an independent's tribute (no raids from it meanwhile) or refuse it (raids.js, phase W2).
+      const { id, pay } = action.payload || {};
+      return answerTributeDemand(state, id, !!pay);
+    }
+    // Phase W3 (indepPolicy.js, razing.js): influence, joining, tribute, trade and razing.
+    case ActionTypes.GIFT_INDEPENDENT: {
+      const r = giftIndependent(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.PROPOSE_JOINING: {
+      const r = proposeJoining(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.ANSWER_JOIN_OFFER: {
+      const { id, accept } = action.payload || {};
+      return answerJoinOffer(state, id, !!accept);
+    }
+    case ActionTypes.DEMAND_INDEPENDENT_TRIBUTE: {
+      const r = demandIndependentTribute(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.PROPOSE_INDEPENDENT_TRADE: {
+      const r = proposeIndependentTrade(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.RAZE_CITY: {
+      const why = canRaze(state, state.playerNationId, action.payload?.regionId);
+      if (!why.ok) return reject(state, why.reason);
+      const r = razeCityForPlayer(state, action.payload.regionId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.STOP_RAZING: {
+      const regions = stopRazing(state, state.playerNationId, action.payload?.regionId);
+      if (!regions) return state;
+      return { ...state, regions, logs: [...state.logs, { year: state.year, message: `You stop the burning of ${regions[action.payload.regionId].name}.`, type: LogTypes.ACTION }] };
+    }
     case ActionTypes.PILLAGE_TILE: {
       // The army sheet's pillage order (plan D6): a stack halted on an enemy tile with an
       // improvement burns it (threat.js pillageTile: the raid's gold, doubled by Chieftaincy) and
@@ -2779,6 +2826,10 @@ const reduceAction = (state, action) => {
       if (!mine.length || !mine.some((u) => (u.movesLeft ?? 0) > 0)) return state;
       const tile = unitTile(state, mine[0]);
       const enemies = new Set([REBEL_OWNER_ID, ...(state.wars || []).filter((w) => w.active && (w.aggressor === state.playerNationId || w.enemy === state.playerNationId)).map((w) => (w.aggressor === state.playerNationId ? w.enemy : w.aggressor))]);
+      // An independent's land may be pillaged without a war; it holds a grudge (phase W2, grudges.js).
+      const landOwner = tile == null ? null : state.regions[state.world?.tileOwner?.[tile]]?.owner;
+      const independentLand = isIndependentNation(state.nations[landOwner]) && canAttack(state, state.playerNationId, landOwner);
+      if (independentLand) enemies.add(landOwner);
       const raid = tile == null ? null : pillageTile(state, state.playerNationId, tile, enemies);
       if (!raid) return state;
       const units = { ...state.units };
@@ -2786,6 +2837,7 @@ const reduceAction = (state, action) => {
       return {
         ...state,
         units,
+        nations: independentLand ? addGrudge(state.nations, landOwner, state.playerNationId, GRUDGE_ATTACKED) : state.nations,
         world: { ...state.world, tileState: raid.tileState },
         resources: { ...state.resources, gold: (state.resources.gold || 0) + raid.gold },
         logs: [...state.logs, { year: state.year, message: `Your army pillages ${getTiles().names[tile] || 'the land'} of ${state.regions[raid.cityId]?.name || 'the enemy'}: +${raid.gold} gold.`, type: LogTypes.COMBAT }]

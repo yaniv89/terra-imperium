@@ -62,7 +62,16 @@ const decorate = (raw) => {
     polygonOf: (id) => cellPolygon(centres, neighbors, id).map(toLatLon),
     nearest: (lat, lon, count = 1) => index.nearest(lat, lon, count),
     // True when the edge from `id` to its neighbour `other` carries a river.
-    riverBetween: (id, other) => { const k = neighbors[id].indexOf(other); return k >= 0 && (raw.rivers[id] & (1 << k)) !== 0; }
+    riverBetween: (id, other) => { const k = neighbors[id].indexOf(other); return k >= 0 && (raw.rivers[id] & (1 << k)) !== 0; },
+    // The size class of the river on that edge (terrainData.js RIVER_SIZE): 0 none, 1 stream,
+    // 2 river, 3 great river. A grid without the riverSize column calls every river a stream.
+    riverSizeBetween: (id, other) => {
+      const k = neighbors[id].indexOf(other);
+      if (k < 0 || (raw.rivers[id] & (1 << k)) === 0) return 0;
+      return raw.riverSize ? ((raw.riverSize[id] >> (2 * k)) & 3) || 1 : 1;
+    },
+    // A mountain pass (scripts/geo/build-tile-terrain.mjs): crossed at the hills cost.
+    isPass: (id) => !!raw.pass && raw.pass[id] === 1
   };
 };
 

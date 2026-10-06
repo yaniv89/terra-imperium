@@ -48,9 +48,10 @@ import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
 import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit } from './mapView';
 import {
-  citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes,
+  citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
 } from './sceneModel';
+import { riverChains, riverLines, riverBand } from './terrainModel';
 
 const OCEAN_COLOR = '#0f172a';
 const ZOOM_MAX = 200;
@@ -123,15 +124,16 @@ const GLMapView = ({
     }
     renderer.setClearColor(OCEAN_COLOR, 1);
     renderer.info.autoReset = false;
-    // drawn in this order: the Earth, the territories (cached while panning), lines and ground
-    // sprites, the close view's models, the badges, banners and markers
-    const ground = new Scene(); const base = new Scene(); const close = new Scene(); const top = new Scene();
+    // drawn in this order: the Earth, the terrain (rivers, mountain chains, passes: under the fog),
+    // the territories (cached while panning), lines and ground sprites, the close view's models,
+    // the badges, banners and markers
+    const ground = new Scene(); const terrain = new Scene(); const base = new Scene(); const close = new Scene(); const top = new Scene();
     const closeRoot = new Group();
     close.add(closeRoot);
     const camera = new OrthographicCamera(0, 1, 0, -1, -1, 1);
     const atlas = createAtlas();
     const g = {
-      renderer, camera, ground, base, close, top, closeRoot, atlas, raf: 0, dirty: true, closeActive: false, closeLayout: null,
+      renderer, camera, ground, terrain, base, close, top, closeRoot, atlas, raf: 0, dirty: true, closeActive: false, closeLayout: null,
       groups: {}, hits: [], frames: 0
     };
     g.frame = () => { g.raf = 0; };
@@ -139,6 +141,8 @@ const GLMapView = ({
     g.raster = createRasterLayer(ground, { request: g.request, onReady: () => g.request() });
     g.territory = createTerritoryLayer(new Scene(), tileGpuData(getTiles()));
     g.territoryCache = createTerritoryCache(g.territory);
+    g.riverLines = createLineLayer(terrain, 5);
+    g.terrainSprites = createSpriteLayer(terrain, atlas, 6);
     g.lowLines = createLineLayer(base, 20);
     g.groundSprites = createSpriteLayer(base, atlas, 30);
     g.marchLines = createLineLayer(base, 40);
@@ -151,7 +155,7 @@ const GLMapView = ({
     return () => {
       g.disposed = true;
       cancelAnimationFrame(g.raf);
-      [g.raster, g.territory, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
+      [g.raster, g.territory, g.riverLines, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
       renderer.dispose();
       gl.current = null;
     };
@@ -176,7 +180,7 @@ const GLMapView = ({
       uHex: v.k >= HEX_FROM_ZOOM ? 1 : 0, uCityDetail: v.k >= CITY_DETAIL_ZOOM ? 1 : 0, uNationHalf: v.k < 3 ? 0.55 : 0.45,
       uSelTile: s.selectedTile ?? -1, uTintOn: s.tintOn ? 1 : 0, uFogOn: s.fogOn ? 1 : 0
     };
-    [g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
+    [g.riverLines, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
     // the world camera (the raster quads and the close view's models)
     camera.left = v.worldLeft; camera.right = v.worldLeft + width / v.k;
     camera.top = -v.worldTop; camera.bottom = -(v.worldTop + height / v.k);
@@ -187,6 +191,7 @@ const GLMapView = ({
     renderer.autoClear = true;
     renderer.render(g.ground, camera);
     renderer.autoClear = false;
+    renderer.render(g.terrain, camera);
     // the territories: one texture while panning, the live shader while a zoom is under way
     g.lastTerritory = g.territoryCache.draw(renderer, camera, v, territoryOpts, v.k === settledRef.current.k);
     renderer.render(g.base, camera);
@@ -360,12 +365,24 @@ const GLMapView = ({
   const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr }) : null), [state, projection, k, fog, dpr]);
   const march = useMemo(() => (projection ? marchShapes({ marchLines, projection, k, selectedArmy, dpr }) : null), [marchLines, projection, k, selectedArmy, dpr]);
 
+  // the terrain pass: rivers (one static list per band of zoom) and the mountain chains' sprites
+  const riverK = riverBand(k);
+  useEffect(() => {
+    const g = gl.current;
+    if (!g || !projection) return;
+    g.riverLines.set(riverK ? riverLines(riverChains(projection), k) : []);
+    g.request();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, projection, riverK]);
+  const terrainOut = useMemo(() => (projection ? terrainSprites({ projection, k, near: settledView ? nearView(settledView) : null, dpr }) : null), [projection, k, settledView, dpr]);
+
   const [atlasTick, setAtlasTick] = useState(0);
   useEffect(() => onImageLoad(() => { const g = gl.current; if (g && g.atlas.dropPending()) setAtlasTick((n) => n + 1); }), []);
   useEffect(() => {
     const g = gl.current;
-    if (!g || !cities || !markerOut || !landOut || !settlers || !march) return;
+    if (!g || !cities || !markerOut || !landOut || !settlers || !march || !terrainOut) return;
     const groups = {
+      terrain: terrainOut,
       ground: [...(lensOut?.sprites || []), ...landOut.sprites, ...marks],
       upper: [...march.sprites, ...settlers.sprites],
       top: [...cities.sprites, ...cities.names, ...markerOut.sprites]
@@ -386,6 +403,7 @@ const GLMapView = ({
     let placed = resolve();
     if (!placed) { g.atlas.reset(); placed = resolve(); }
     if (!placed) { console.warn('map sprites: the atlas is too small for this view'); return; }
+    g.terrainSprites.set(placed.terrain);
     g.groundSprites.set(placed.ground);
     g.upperSprites.set(placed.upper);
     g.topSprites.set(placed.top);
@@ -393,7 +411,7 @@ const GLMapView = ({
     g.marchLines.set(march.lines);
     g.hits = [...settlers.hits, ...cities.hits, ...markerOut.hits];
     g.request();
-  }, [ready, cities, markerOut, landOut, marks, settlers, march, lensOut, atlasTick]);
+  }, [ready, cities, markerOut, landOut, marks, settlers, march, lensOut, terrainOut, atlasTick]);
 
   // ---------------------------------------------------------------- the close view
   const [land, setLand] = useState(null);
@@ -535,7 +553,10 @@ const GLMapView = ({
       pickAt: (x, y) => { const p = tapAtRef.current(x, y); return p ? { kind: p.kind, id: p.id ?? null, tile: p.tile ?? null, land: p.land ?? null, explored: p.explored ?? null, via: p.via ?? null, marker: p.marker?.kind ?? null, own: p.marker?.own ?? null } : null; },
       transform: () => ({ ...transformRef.current })
     };
-    window.__glMap = { info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory }), renderer: gl.current?.renderer };
+    window.__glMap = {
+      info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), rivers: gl.current.riverLines.mesh.geometry.instanceCount, terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount }),
+      renderer: gl.current?.renderer
+    };
     return () => { delete window.__map2DTest; delete window.__glMap; };
   }, [hudOffset, projection, state, selectedRegion, focusOnLatLng, view, ready]);
 

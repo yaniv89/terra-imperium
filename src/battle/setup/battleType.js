@@ -29,6 +29,11 @@ export const LANDING_ATTACK_MULT = 0.75;  // wading ashore (the old amphibious p
 export const SALLY_ATTACK_MULT = 1;       // the sally must burn engines or the camp: no edge in the quick battle (parity harness)
 export const AUTO_ATTACK_MULT = { field: 1, river: RIVER_ATTACK_MULT, ambush: AMBUSH_ATTACK_MULT, assault: 1, sally: SALLY_ATTACK_MULT, landing: LANDING_ATTACK_MULT };
 export const autoAttackerMult = (type) => AUTO_ATTACK_MULT[type] ?? 1;
+// The river's size changes the crossing (mapgen.js: a stream is narrow with three fords, a great
+// river wide with one), so the quick battle scales the river odds by size too, measured with the
+// battle-lab parity harness (RIVER_SIZES=1,2,3): index = size class (1 stream, 2 river, 3 great).
+export const RIVER_SIZE_ATTACK_ADJUST = [1, 1.12, 1, 0.94];
+export const riverAttackAdjust = (size) => RIVER_SIZE_ATTACK_ADJUST[size] ?? 1;
 
 export const BATTLE_TYPES = {
   field: { label: 'Field battle', attacker: `Rout the enemy or destroy ${Math.round(LOSS_DECISIVE * 100)}% of its strength`, defender: 'Rout them, or hold to the clock with more strength left', limitTicks: FIELD_BATTLE_TICKS },

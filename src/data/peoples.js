@@ -10,8 +10,8 @@
 // ISO code: "in modern Iraq" and the culture-group lookups), `theme` (art theme: palaces and theme
 // units, src/data/architecture.js), `weight` (A: cradles and great powers, B, C: how likely the
 // picker makes it a major), `region`, `arrives` (late arrivals only: the year the land was
-// settled; never drawn as a major), `pinned` (the Kingdom of Israel: always in the world,
-// roadmap decision 13, with no other advantage).
+// settled; never drawn as a major), `pinned` (the Kingdom of Israel: tried first after the player,
+// roadmap decision 13, but it keeps the 612 km gap like everyone; no other advantage).
 // Built facts (capital tile, colour, the legacy id table) come from src/data/geo/peopleCapitals.json
 // (npm run build:peoples). City names: src/data/peopleCities.json (20 a people, capital first).
 import CITY_NAMES from './peopleCities.json';

@@ -19,6 +19,8 @@ import { isCoastal, isReachableBySea } from '../../data/navalReach';
 import { isAtWarWithPlayer, hasCasusBelli, isInTruce } from '../../engine/diplomacy';
 import { canAttack } from '../../engine/hostility';
 import { isIndependentNation, PERSONALITIES } from '../../data/independents';
+import IndependentStatus from './IndependentStatus';
+import RazeControl from './RazeControl';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getCategoryTierName, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
@@ -362,6 +364,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </div>
       )}
 
+      {/* Keep or raze a city taken by force (phase W3, razing.js). */}
+      {isPlayerOwned && (regionState.conquest || regionState.razing) && <div className="mb-2"><RazeControl state={state} dispatch={dispatch} city={regionState} /></div>}
+
       {/* Foreign relations */}
       {!isPlayerOwned && ownerNation && (
         <div className="mb-2 space-y-1">
@@ -374,6 +379,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             {isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">⚔ At War</span>}
             {ownerIsIndependent && <span className="px-1.5 py-0.5 bg-slate-500/20 text-slate-200 rounded text-[10px]" data-testid="independent-badge" title="Independent city: one city that never expands. You may attack it without a war.">Independent, {PERSONALITIES[ownerNation.indep?.personality]?.name || 'Tribal'}</span>}
           </div>
+          {ownerIsIndependent && <IndependentStatus state={state} dispatch={dispatch} nation={ownerNation} />}
         </div>
       )}
 

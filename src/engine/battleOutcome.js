@@ -52,6 +52,8 @@ import { hasMeleeUnitDeployed, isGarrisonBroken, resolveSiegeControlDamage, SIEG
 import { findTilePath, passableTile, placeInCity, regionForTile, unitTile, nearestHeldCity } from './armies';
 import { isAir } from './airPower';
 import { battleNameOf } from './battleName';
+import { addGrudge } from './grudges';
+import { isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { seaPassable, fleetAge, enemyFleetAt } from './fleets';
 import { mapEffectsFor } from './techMapEffects';
 
@@ -572,6 +574,10 @@ export const applyBattleOutcome = (state, o) => {
 
   // row 15: each nation's battle record (research boosts read it)
   s = { ...s, nations: recordStats(s.nations, out, placed.captured) };
+  // An independent remembers who attacked it (grudges.js, phase W2): any assault on its city, any
+  // other battle in which it lost men.
+  const lostMen = sum(out.defenderUnits) < out.defenderUnits.reduce((x, u) => x + startStrength(state, out, u), 0);
+  if (isIndependentNation(s.nations[out.defenderNationId]) && (o.kind === 'invasion' || o.kind === 'landing' || lostMen)) s = { ...s, nations: addGrudge(s.nations, out.defenderNationId, out.attackerNationId, GRUDGE_ATTACKED) };
 
   // row 14: the player's report, named, and the log
   const involved = viewerId === out.attackerNationId || viewerId === out.defenderNationId;

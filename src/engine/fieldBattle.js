@@ -30,7 +30,7 @@ import { passableTile, regionForTile, unitTile } from './armies';
 import { isUnitInBattle } from './invasion';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf, BATTLE_MARK_TURNS } from './battleOutcome';
 import { isSettler } from './settlers';
-import { battleTypeOf, RIVER_ATTACK_MULT } from '../battle/setup/battleType';
+import { battleTypeOf, RIVER_ATTACK_MULT, riverAttackAdjust } from '../battle/setup/battleType';
 import { tileContextOf } from '../battle/setup/tileContext';
 import { ringsForKm } from '../data/geo/gridScale';
 
@@ -86,7 +86,7 @@ export const getFieldBattleContext = (state, v) => {
     generals: state.hiredCommanders,
     attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
     defenderAgeId: v.defenderNationId === REBEL_OWNER_ID ? state.age : getEffectiveAgeId(state.age, getTechAgeId(state, v.defenderNationId)),
-    attackerPenaltyMultiplier: 1,
+    attackerPenaltyMultiplier: battleType === 'river' ? riverAttackAdjust(tiles.riverSizeBetween(v.fromTile, v.tile)) : 1, // the river's size (battleType.js)
     defenderDamageReductionMultiplier: (fort ? FORT_REDUCTION : 1) * (v.defenderUnits.length && v.defenderUnits.every((u) => isFortified(u, state.turnNumber)) ? FORTIFY_REDUCTION : 1)
   };
 };

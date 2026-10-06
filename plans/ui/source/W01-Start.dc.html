@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>W01 Start</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral+SC:wght@500;700&amp;family=Figtree:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#ECE5D3;text-decoration:none}a:hover{color:#D8A444}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; box-sizing: border-box; overflow: hidden; position: relative; background: #10141A; color: #ECE5D3; font-family: Figtree, sans-serif">
+
+  <div style="height: 36px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid #33404F; background: #1A212B">
+    <button aria-label="Back" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid #33404F; background: #232C38; color: #ECE5D3; display: flex; align-items: center; justify-content: center; padding: 0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6l-6 6 6 6"></path></svg>
+    </button>
+    <div style="font-family: 'Spectral SC', serif; font-weight: 700; font-size: 17px; color: #ECE5D3">New game</div>
+    <div style="font-size: 12px; color: #B9B19F">Dawn, 2000 BCE</div>
+    <div style="flex: 1"></div>
+    <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">SEED</div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #232C38; border: 1px solid #33404F; border-radius: 999px; padding: 3px 10px">48213</div>
+    <button aria-label="New random seed" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid #33404F; background: #232C38; color: #B9B19F; display: flex; align-items: center; justify-content: center; padding: 0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"></path><path d="M20 4v5h-5"></path><path d="M20 12a8 8 0 0 1-14 5.3L4 15"></path><path d="M4 20v-5h5"></path></svg>
+    </button>
+  </div>
+
+  <div style="display: flex; gap: 10px; padding: 10px 12px; height: 354px; box-sizing: border-box">
+
+    <div style="width: 168px; display: flex; flex-direction: column; gap: 6px">
+      <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F; font-weight: 600">WORLD SIZE</div>
+      <sc-for list="{{sizes}}" as="s" hint-placeholder-count="3">
+        <button role="radio" aria-checked="{{s.checked}}" onClick="{{s.pick}}" style="text-align: left; height: 62px; border-radius: 10px; border: 1px solid #33404F; outline: 2px solid {{s.ring}}; outline-offset: -2px; background: {{s.bg}}; color: #ECE5D3; padding: 8px 10px; display: flex; align-items: center; gap: 10px; font-family: Figtree, sans-serif">
+          <div style="width: 16px; height: 16px; border-radius: 999px; border: 2px solid {{s.radio}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center">
+            <div style="width: 6px; height: 6px; border-radius: 999px; background: {{s.dot}}"></div>
+          </div>
+          <div style="flex: 1">
+            <div style="font-size: 14px; font-weight: 700">{{s.name}}</div>
+            <div style="font-size: 11px; color: #B9B19F">{{s.note}}</div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #ECE5D3">{{s.count}}</div>
+        </button>
+      </sc-for>
+      <div style="font-size: 11px; color: #B9B19F; line-height: 1.4; margin-top: 2px">Peoples alive at the start. Others rise later as free cities split away.</div>
+    </div>
+
+    <div style="width: 290px; display: flex; flex-direction: column; gap: 6px; background: #1A212B; border: 1px solid #33404F; border-radius: 10px; padding: 8px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F; font-weight: 600">CHOOSE YOUR PEOPLE</div>
+        <button style="height: 26px; border-radius: 999px; border: 1px solid #33404F; background: #232C38; color: #B9B19F; font-size: 11px; padding: 0 10px; font-family: Figtree, sans-serif">Random</button>
+      </div>
+      <label style="display: flex; align-items: center; gap: 6px; height: 32px; border-radius: 8px; border: 1px solid #33404F; background: #10141A; padding: 0 8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B9B19F" stroke-width="1.8"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg>
+        <input type="search" placeholder="Search peoples or cities" aria-label="Search peoples" style="flex: 1; background: transparent; border: 0; outline: none; color: #ECE5D3; font-family: Figtree, sans-serif; font-size: 13px" />
+      </label>
+      <div style="display: flex; gap: 4px; flex-wrap: nowrap; overflow: hidden">
+        <sc-for list="{{regions}}" as="r" hint-placeholder-count="5">
+          <button onClick="{{r.pick}}" style="height: 26px; border-radius: 999px; border: 1px solid #33404F; outline: 2px solid {{r.border}}; outline-offset: -2px; background: {{r.bg}}; color: {{r.color}}; font-size: 11px; font-weight: 600; padding: 0 8px; white-space: nowrap; font-family: Figtree, sans-serif">{{r.name}}</button>
+        </sc-for>
+      </div>
+      <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 3px">
+        <sc-for list="{{peoples}}" as="p" hint-placeholder-count="6">
+          <button onClick="{{p.pick}}" style="height: 34px; flex: none; border-radius: 8px; border: 1px solid transparent; outline: 2px solid {{p.border}}; outline-offset: -2px; background: {{p.bg}}; color: #ECE5D3; display: flex; align-items: center; gap: 8px; padding: 0 8px; text-align: left; font-family: Figtree, sans-serif">
+            <div style="width: 14px; height: 16px; background: {{p.color}}; clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%)"></div>
+            <div style="flex: 1; font-size: 13px; font-weight: 600">{{p.name}}</div>
+            <div style="font-size: 11px; color: #B9B19F">{{p.where}}</div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0">
+      <div style="background: #1A212B; border: 1px solid #33404F; border-radius: 10px; padding: 10px; display: flex; gap: 10px">
+        <div style="width: 46px; height: 54px; flex: none; background: {{cur.color}}; clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%); display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; box-sizing: border-box">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10141A" stroke-width="1.8"><path d="M12 3l2.5 6H21l-5 4 2 7-6-4-6 4 2-7-5-4h6.5z"></path></svg>
+        </div>
+        <div style="min-width: 0">
+          <div style="font-family: 'Spectral SC', serif; font-weight: 700; font-size: 18px; line-height: 1.1">{{cur.title}}</div>
+          <div style="font-size: 12px; color: #B9B19F; margin-top: 2px">Capital <span style="color: #ECE5D3; font-weight: 600">{{cur.capital}}</span>, in modern {{cur.modern}}</div>
+          <div style="font-size: 12px; color: #ECE5D3; margin-top: 4px">{{cur.theme}}</div>
+          <div style="font-size: 11px; color: #B9B19F; margin-top: 4px">{{worldLine}}</div>
+        </div>
+      </div>
+
+      <div style="background: #1A212B; border: 1px solid #33404F; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F; font-weight: 600">OPTIONS</div>
+        <button role="switch" aria-checked="{{explored}}" onClick="{{toggleExplored}}" style="display: flex; align-items: center; gap: 10px; background: transparent; border: 0; color: #ECE5D3; padding: 0; text-align: left; font-family: Figtree, sans-serif">
+          <div style="flex: 1">
+            <div style="font-size: 13px; font-weight: 600">Explored world</div>
+            <div style="font-size: 11px; color: #B9B19F">{{exploredNote}}</div>
+          </div>
+          <div style="width: 38px; height: 22px; border-radius: 999px; background: {{switchBg}}; position: relative; flex: none">
+            <div style="position: absolute; top: 3px; left: {{knobLeft}}; width: 16px; height: 16px; border-radius: 999px; background: #ECE5D3"></div>
+          </div>
+        </button>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <div style="flex: 1">
+            <div style="font-size: 13px; font-weight: 600">Battle size</div>
+            <div style="font-size: 11px; color: #B9B19F">Units a side</div>
+          </div>
+          <sc-for list="{{battleSizes}}" as="b" hint-placeholder-count="3">
+            <button onClick="{{b.pick}}" style="height: 32px; min-width: 46px; border-radius: 999px; border: 1px solid #33404F; outline: 2px solid {{b.border}}; outline-offset: -2px; background: {{b.bg}}; color: {{b.color}}; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 0 8px">{{b.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex: 1"></div>
+      <button style="height: 50px; border-radius: 8px; border: 0; background: #D8A444; color: #10141A; font-family: 'Spectral SC', serif; font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 8px">
+        Begin as {{cur.short}}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+      </button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":844,"height":390}}'>
+class Component extends DCLogic {
+  state = { size: 'standard', people: 'akkad', region: 'near', explored: false, battle: 300 };
+  renderVals() {
+    const st = this.state || {};
+    const size = st.size ?? 'standard';
+    const people = st.people ?? 'akkad';
+    const region = st.region ?? 'near';
+    const explored = st.explored ?? false;
+    const battle = st.battle ?? 300;
+    const SIZES = [
+      { id: 'small', name: 'Small', note: 'Quick, close rivals', count: 24 },
+      { id: 'standard', name: 'Standard', note: 'The intended game', count: 36 },
+      { id: 'large', name: 'Large', note: 'Crowded and long', count: 42 }
+    ];
+    const PEOPLES = [
+      { id: 'akkad', name: 'Akkad', short: 'Akkad', where: 'Iraq', region: 'near', title: 'Kingdom of Akkad', capital: 'Kish', modern: 'Iraq', theme: 'Conquest and written law', color: '#5B9BF0' },
+      { id: 'elam', name: 'Elam', short: 'Elam', where: 'Iran', region: 'near', title: 'Kingdom of Elam', capital: 'Susa', modern: 'Iran', theme: 'Mountain archers and trade', color: '#EE8A3A' },
+      { id: 'assyria', name: 'Assyria', short: 'Assyria', where: 'Iraq', region: 'near', title: 'City of Assur', capital: 'Assur', modern: 'Iraq', theme: 'Merchants, then iron armies', color: '#B5634F' },
+      { id: 'mitanni', name: 'Mitanni', short: 'Mitanni', where: 'Syria', region: 'near', title: 'Hurrians of Mitanni', capital: 'Washukanni', modern: 'Syria', theme: 'Chariots and horse breeding', color: '#8FA36A' },
+      { id: 'hatti', name: 'Hatti', short: 'Hatti', where: 'Turkey', region: 'near', title: 'Land of Hatti', capital: 'Hattusa', modern: 'Turkey', theme: 'Highland forts and treaties', color: '#C27BA0' },
+      { id: 'israel', name: 'Israel', short: 'Israel', where: 'Israel', region: 'near', title: 'Tribes of Israel', capital: 'Shiloh', modern: 'Israel', theme: 'Faith and hill defense', color: '#6FA3C8' },
+      { id: 'kemet', name: 'Kemet', short: 'Kemet', where: 'Egypt', region: 'africa', title: 'Kingdom of Kemet', capital: 'Memphis', modern: 'Egypt', theme: 'River harvests and monuments', color: '#CDB27A' }
+    ];
+    const REGIONS = [
+      { id: 'all', name: 'All' }, { id: 'near', name: 'Near East' }, { id: 'africa', name: 'Africa' },
+      { id: 'europe', name: 'Europe' }, { id: 'asia', name: 'Asia' }
+    ];
+    const sizeObj = SIZES.find(s => s.id === size) || SIZES[1];
+    const cur = PEOPLES.find(p => p.id === people) || PEOPLES[0];
+    const shown = PEOPLES.filter(p => region === 'all' || p.region === region);
+    return {
+      sizes: SIZES.map(s => {
+        const on = s.id === size;
+        return { ...s, checked: on ? 'true' : 'false', ring: on ? '#ECE5D3' : 'transparent', radio: on ? '#ECE5D3' : '#33404F', bg: on ? '#232C38' : '#1A212B', dot: on ? '#ECE5D3' : 'transparent', pick: () => this.setState({ size: s.id }) };
+      }),
+      regions: REGIONS.map(r => {
+        const on = r.id === region;
+        return { ...r, border: on ? '#ECE5D3' : 'transparent', bg: on ? '#232C38' : '#1A212B', color: on ? '#ECE5D3' : '#B9B19F', pick: () => this.setState({ region: r.id }) };
+      }),
+      peoples: shown.map(p => {
+        const on = p.id === people;
+        return { ...p, border: on ? '#ECE5D3' : 'transparent', bg: on ? '#232C38' : 'transparent', pick: () => this.setState({ people: p.id }) };
+      }),
+      cur,
+      worldLine: sizeObj.name + ' world: you and ' + (sizeObj.count - 1) + ' other peoples',
+      explored: explored ? 'true' : 'false',
+      exploredNote: explored ? 'Whole map visible, peoples still unmet' : 'Off: start in the dark, explore to see',
+      switchBg: explored ? '#6CC28A' : '#33404F',
+      knobLeft: explored ? '19px' : '3px',
+      toggleExplored: () => this.setState({ explored: !explored }),
+      battleSizes: [300, 500, 1000].map(n => {
+        const on = n === battle;
+        return { label: n === 1000 ? '1,000' : String(n), border: on ? '#ECE5D3' : 'transparent', bg: on ? '#232C38' : '#1A212B', color: on ? '#ECE5D3' : '#B9B19F', pick: () => this.setState({ battle: n }) };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

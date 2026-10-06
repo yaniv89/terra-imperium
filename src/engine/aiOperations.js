@@ -28,6 +28,8 @@ import { getTotalDev } from './development';
 import { getDefenseLevelDamageReductionMultiplier } from './siege';
 import { getCapital } from '../data/regions';
 import { ringsForKm } from '../data/geo/gridScale';
+import { isIndependentNation } from '../data/independents';
+import { canAttack } from './hostility';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -145,6 +147,7 @@ export const processAIOperations = (state, rng) => {
   let next = { ...state, units: { ...state.units }, aiOperations: {}, pendingDefenses: [...(state.pendingDefenses || [])] };
   const committed = new Set();
   let unitsByRegion = null; let unitsByRegionFor = null;
+  const raidTiles = raidPartyTiles(state);
   for (const nationId of Object.keys(state.nations).sort()) {
     if (nationId === state.playerNationId || state.nations[nationId].isEliminated) continue;
     if (state.scenario?.mode === 'emergent') {
@@ -155,6 +158,12 @@ export const processAIOperations = (state, rng) => {
         const target = neutral.find(id => !next.regions[id].colony && validateColony(next,id,nationId,{quick:true}).ok);
         if(target) next=foundColony(next,target,(next.regions[target].neutral?.resistance||0)>=45?'coexist':'driveOut',nationId);
       }
+    }
+    // Phase W3: raiders on its land are hunted, and a campaign against an independent marches,
+    // besieges and assaults (indepPolicy.js tags the siege force).
+    if (!isIndependentNation(next.nations[nationId])) {
+      if (raidTiles.size) next = aiHuntRaiders(next, nationId, raidTiles, rng);
+      if (next.nations[nationId]?.indepGoal?.kind === 'conquer') next = processIndependentOps(next, nationId, rng);
     }
     const wars = next.wars.filter(w => w.active && (w.aggressor === nationId || w.enemy === nationId));
     if (!wars.length) continue;
@@ -171,7 +180,7 @@ export const processAIOperations = (state, rng) => {
     const tiles = getTiles();
     const stacks = new Map();
     for (const u of Object.values(next.units)) {
-      if (u.ownerId !== nationId || u.domain !== 'land' || u.classId === 'settler' || u.embarkedOn || u.strength <= 0 || isUnitInBattle(next, u.id)) continue;
+      if (u.ownerId !== nationId || u.domain !== 'land' || u.classId === 'settler' || u.embarkedOn || u.strength <= 0 || u.indepOp || isUnitInBattle(next, u.id)) continue;
       // Stacks by tile: an army on the road stands apart from the garrison of its base.
       const key = `${u.regionId}|${unitTile(next, u)}`;
       const stack = stacks.get(key) || []; stack.push(u); stacks.set(key, stack);
@@ -271,7 +280,8 @@ export const processAIOperations = (state, rng) => {
         }
         if (target == null) continue;
         if (failed && failed.goal === goalKey && failed.until > state.turnNumber) continue; // searched lately, nothing found
-        const path = findTilePath(actor, at, target, nationId, { maxSteps: AI_MARCH_STEPS });
+        // planned with the nation's own techs (roads, bridges, mountain craft), as its march will pay
+        const path = findTilePath(actor, at, target, nationId, { maxSteps: AI_MARCH_STEPS, researched: getResearched(state, nationId) });
         if (!path.path) { stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: goalKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
         const pace = stackPace(stack, getResearched(state, nationId));
         stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
@@ -290,6 +300,108 @@ const marchAiArmies = (next, nationId) => {
   const units = { ...next.units };
   advanceMarches(actor, units, { year: next.year });
   return { ...next, units };
+};
+
+// ---------------------------------------------------------------------------------------------
+// Phase W3 (plans/independent-cities.md 5): majors and independents.
+
+/** Tiles where an independent's raid party stands (raids.js `unit.raidOf`): Set of tiles. */
+export const raidPartyTiles = (state) => {
+  const out = new Set();
+  Object.values(state.units).forEach((u) => { if (u.raidOf && u.strength > 0 && !u.embarkedOn) { const t = unitTile(state, u); if (t != null) out.add(t); } });
+  return out;
+};
+
+/**
+ * The hunt (independents 5, "AI majors garrison their borders against raiders"): a raid party on
+ * this nation's land (not a city centre) is attacked by its stack on a tile next to it when the
+ * estimate gives RELIEF_MIN_P. One battle per party a turn.
+ */
+export const aiHuntRaiders = (state, nationId, raidTiles, rng) => {
+  const tiles = getTiles();
+  const tileOwner = state.world?.tileOwner || {};
+  const mine = [...raidTiles].filter((t) => { const c = state.regions[tileOwner[t]]; return c?.owner === nationId && c.tile !== t; }).sort((a, b) => a - b);
+  if (!mine.length) return state;
+  let next = state;
+  for (const t of mine) {
+    const byTile = landUnitsByTile(next);
+    const party = (byTile.get(t) || []).filter((u) => u.raidOf);
+    if (!party.length || !canAttack(next, nationId, party[0].ownerId)) continue;
+    const bases = new Set();
+    tiles.neighbors[t].forEach((n) => (byTile.get(n) || []).forEach((u) => { if (u.ownerId === nationId && (u.movesLeft ?? 1) > 0 && !isUnitInBattle(next, u.id)) bases.add(u.regionId); }));
+    for (const from of [...bases].sort()) {
+      if (next.regions[from]?.owner !== nationId) continue;
+      const actor = { ...next, playerNationId: nationId, resources: getPool(next, nationId), techAgeId: getTechAgeId(next, nationId) };
+      const v = validateFieldAttack(actor, from, t, { ignoreCost: true });
+      if (!v.ok) continue;
+      const ctx = getFieldBattleContext(actor, v);
+      if (estimateBattle(getFieldResolveArgs(v, ctx)).pWin < RELIEF_MIN_P) continue;
+      const battle = resolveAutoBattle(actor, getFieldResolveArgs(v, ctx), { kind: 'field', fromRegionId: v.fromRegionId }, rng);
+      const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId, viewerId: state.playerNationId });
+      next = { ...next, units: r.units, regions: r.regions, nations: { ...r.nations, [nationId]: { ...r.nations[nationId], economy: next.nations[nationId]?.economy } }, hiredCommanders: r.hiredCommanders, appliedBattleIds: r.appliedBattleIds, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport };
+      break;
+    }
+  }
+  return next;
+};
+
+/**
+ * A campaign against an independent (indepPolicy.js `nation.indepGoal`, kind 'conquer'): the tagged
+ * siege force (`unit.indepOp`) marches on tiles to its city, halts beside it (the siege, sieges.js)
+ * and assaults when the walls are down to ASSAULT_HP or the estimate gives ASSAULT_MIN_P; a fallen
+ * siege takes the city through sieges.js. No war: the assault is an invasion with `war` null.
+ */
+export const processIndependentOps = (state, nationId, rng) => {
+  const goal = state.nations[nationId]?.indepGoal;
+  const city = goal ? state.regions[goal.cityId] : null;
+  if (!goal || goal.kind !== 'conquer' || !city || city.owner !== goal.id || city.tile == null) return state;
+  if (state.wars.some((w) => w.active && (w.aggressor === nationId || w.enemy === nationId))) return state;
+  const tiles = getTiles();
+  let next = { ...state, units: { ...state.units } };
+  const groups = new Map();
+  Object.values(next.units).forEach((u) => {
+    if (u.ownerId !== nationId || u.indepOp !== goal.id || u.domain !== 'land' || u.embarkedOn || !(u.strength > 0) || isUnitInBattle(next, u.id)) return;
+    const key = `${u.regionId}|${unitTile(next, u)}`;
+    const l = groups.get(key); if (l) l.push(u); else groups.set(key, [u]);
+  });
+  let marching = false;
+  const failKey = `indep:${goal.id}`;
+  for (const [key, stack] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
+    const from = key.split('|')[0];
+    if (next.regions[from]?.owner !== nationId) continue;
+    const at = unitTile(next, stack[0]);
+    const beside = at != null && touchesCity(next, tiles, at, city.id);
+    if (!beside && stack.some((u) => u.route?.length)) { marching = true; continue; }
+    if (!stack.every((u) => (u.movesLeft ?? 1) > 0)) continue;
+    if (beside) {
+      stack.forEach((u) => { if (u.route) next.units[u.id] = { ...next.units[u.id], route: null, routeHalt: null }; });
+      const cur = next.regions[city.id];
+      if (cur.owner !== goal.id) break;
+      const pool = getPool(next, nationId);
+      const actor = { ...next, playerNationId: nationId, resources: pool, techAgeId: getTechAgeId(next, nationId) };
+      const v = validateInvasion(actor, from, city.id);
+      if (!v.ok) continue;
+      const wallsDown = !!cur.siege && cur.siege.hp < ASSAULT_HP * siegeMaxHp(cur, next.greatProjects);
+      const ctx = getInvasionBattleContext(actor, v);
+      // Not worth an assault yet: the force holds its tile, which keeps the siege on.
+      if (!wallsDown && v.defenderUnits.length && estimateBattle(getResolveBattleArgs(v, ctx)).pWin < ASSAULT_MIN_P) continue;
+      const battle = resolveAutoBattle(actor, getResolveBattleArgs(v, ctx), { kind: 'invasion', cityId: city.id, fromRegionId: from }, rng);
+      const result = applyInvasionResult(actor, { ...v, fromRegionId: from, targetRegionId: city.id, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), viewerId: state.playerNationId, militia: battle.inputs.militia });
+      next = { ...next, regions: result.regions, units: { ...result.units }, wars: result.wars, hiredCommanders: result.hiredCommanders, appliedBattleIds: result.appliedBattleIds, world: result.world || next.world,
+        nations: { ...result.nations, [nationId]: { ...result.nations[nationId], economy: applyCosts(pool, ACTION_COSTS.launchInvasion) } } };
+      if (next.regions[city.id].owner === nationId) break;
+      continue;
+    }
+    const failed = stack[0].routeFailed;
+    if (failed && failed.goal === failKey && failed.until > state.turnNumber) continue;
+    const path = findTilePath({ ...next, playerNationId: nationId }, at, city.tile, nationId, { maxSteps: AI_MARCH_STEPS });
+    if (!path.path) { stack.forEach((u) => { next.units[u.id] = { ...next.units[u.id], routeFailed: { goal: failKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
+    const pace = stackPace(stack, getResearched(state, nationId));
+    stack.forEach((u) => { next.units[u.id] = { ...next.units[u.id], route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
+    marching = true;
+  }
+  if (marching) next = marchAiArmies(next, nationId);
+  return next;
 };
 
 // Island fronts need real paid transports and cargo. Shared actions retain interception,

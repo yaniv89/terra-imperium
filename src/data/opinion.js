@@ -34,3 +34,14 @@ export const VASSAL_OF_YOU = -10;            // a vassal resents its overlord a 
 export const WAR_ROLL_OPINION_CEILING = 20;  // no AI war roll at this opinion or above
 export const WAR_ROLL_OPINION_SPAN = 60;     // full roll at ceiling - span
 export const CASUS_BELLI_OPINION = -40;      // this low, a war on them needs no claim
+export const RAIDED_US = -15;                // an independent raided or sacked us; fades 1 a turn (raids.js)
+export const PAYS_US_TRIBUTE = 10;           // an independent's view of a nation paying it tribute
+// Phase W3 (indepPolicy.js, razing.js): an independent's attitude to a major adds these to the
+// reasons above (opinion.js). Its grudge counts against it; favour is bought with gifts.
+export const INDEP_FAVOUR_PER_POINT = 1;     // per point of favour (gifts, capped by FAVOUR_MAX)
+export const INDEP_KIN = 10;                 // the major's people share its art theme (its kin)
+export const INDEP_CULTURE_SCALE = 60;       // x the major's culture share in its city
+export const INDEP_GRUDGE_PER_POINT = -0.5;  // per point of its grudge against the major
+export const TRADES_WITH_US = 10;            // a trade deal with the major (mercantile)
+export const TRIBUTARY = 15;                 // it pays the major tribute: used to its rule
+export const RAZED_OUR_KIN = -40;            // a major razed a city of its people's kin; fades 1 a turn

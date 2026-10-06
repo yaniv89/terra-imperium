@@ -20,6 +20,7 @@ says what to build, in what order, and what must not be forgotten.
 | `plans/terra-imperium-rts-plan.md` | the RTS battle design (economy, ledgers, outcome, saves, tests) | current, amended by section 6 here |
 | `plans/terra-imperium-world-art-and-city-destruction-plan.md` | terrain, footprints, city manifest, destructible houses | current, on the single WebGL map (section 5) |
 | `plans/rts-world-review.md` | the review: measurements, speed plan, globe | current |
+| `plans/UI-DESIGN.md` | the UI and UX design: the look, five rules, 25 screens (world and RTS) mapped to phases; sketches in `plans/ui/` | current |
 
 The roadmap's code branch `claude/ancient-world` holds the settle-rules prototype and the age
 registry; the art and everything else is on `claude/bronze-towns`. **Before phase W0 starts,
@@ -54,10 +55,11 @@ Decisions of 2026-10-06, second round:
 34. **Forts start battles** against enemies that come near, and **armies cross rivers** (section 6.9).
 35. **Three battle resources**: food, materials, gold.
 36. **Full base-building in field battles too**, not a light camp.
-37. **Fewer systems**: prisoners have two outcomes only (ransom or release); **succession and
-    the noble estates are removed** from the game (phase X in section 7).
-38. Lead's calls on the rest: mercenaries and captives come with the independents work (W2);
-    no weather or seasons in battles.
+37. **Fewer systems**: **no prisoners** (units lost in a battle, raid or sack are simply gone;
+    decided 2026-10-06, replacing "ransom or release"); **succession and the noble estates are
+    removed** from the game (phase X in section 7).
+38. Lead's calls on the rest: mercenaries come with the independents work (W2); no captives
+    (decision 37); no weather or seasons in battles.
 
 ## 3. Contradictions between the plans, resolved
 
@@ -148,6 +150,16 @@ software WebGL (no GPU, the worst case) the phone pans at 28-35 fps at k 1 to 12
 the close view stays slow (5 fps; 3 before). Left: delete the globe and the SVG map after one release; the world map window
 (MapModal) and the minimap still draw SVG; the art of batch 08 (map sprites) has placeholders
 (paths in `gl/mapSprites.js`).
+
+Phase F rendering (branch `claude/phase-f2-terrain-render`, on A2 plus the F data branch): rivers
+from the grid's river edges (width by size, rounded, joined at shared corners, from k 1.8 / 2.6 / 4
+for great rivers / rivers / streams, under the fog), bridges where roads cross them, mountain chains
+along the ridges with pass gaps and pass marks (sprites to the close zoom, 3D ridges and foothills
+in the close view), level 6 raster and land cover streamed per view over level 5, close-view towns
+and field plots from the tile footprints. Pan with the phone profile (CPU x4, real GPU) 103 to 144
+fps at k 1 to 100, desktop 86 to 144; level 6 adds about 220 kB (67 files) on arriving at the close
+zoom. Screenshots before and after: `plans/phase-f2/`. Also fixed: the line layer culled every
+segment drawn left to right (roads and march routes were half missing).
 
 ## 6. Battles: the combined design
 
@@ -302,9 +314,6 @@ Each one a battle must read or write; each gets a test in the outcome service:
 | 22 | Intel and odds | intel.js, battleOdds.js | the pre-battle screen keeps odds or the scouts' guess |
 
 Mechanisms nobody has yet, needed by the plans:
-- **Prisoners**: the RTS plan has "captured" surrenders; no module exists. One `captives` ledger
-  with two outcomes only (decision 37): **ransom** (the owner pays gold to get them back as
-  strength) or **release** (opinion +). Unransomed captives are released after 10 turns.
 - **Mercenaries**: independents sell them (independents 4.6); no module exists. Hired units with
   upkeep and a contract length, in battles as any unit.
 - **Multiple battles in one turn**: a queue in the order of movement; each pauses the turn.
@@ -370,6 +379,7 @@ Four tracks run side by side. Each phase is one branch, merged when the user say
 | 14 | Map | **F** terrain, mountains, rivers, footprints on the WebGL map | world plan 3 to 6 | A2 | ongoing |
 | 15 | Art | towns, buildings, wonders, icons (in progress), then RTS prefabs and units per age and theme | RTS 14, eras 13 | per phase | ongoing |
 | 16 | All | **Balance**: balance-sim with battles on Auto; parity per age pair; pacing playtests | RTS 17 | R4 | ongoing |
+| 17 | UI | **U** UI pass: restyle every screen to `plans/UI-DESIGN.md` (look, top bars, brass only for the primary action, reasons on tap); new screens peace deal, attacked interrupt, raid and tribute, battle reports, nation overview | UI-DESIGN | per screen, after the phase that owns its system; most after R2 | ongoing |
 | later | Rules | **Nine ages** (Age of Cities, Neolithic and Origins, Information, Future, robots): after their art exists (decision 32) | eras 16 | all above | 13 to 16 |
 
 Start now, in parallel: **S**, **X**, **A**, **C**. **C** decides whether 300 a side holds on a phone;
@@ -380,6 +390,6 @@ if not, the battle size or the device floor is revisited before R1, never silent
 None blocking. Interpretations of the 2026-10-06 answers to confirm in passing:
 - "Forts initiate battle": read as a manned fort stopping enemies that come next to it (6.9).
 - "Can cross rivers": read as armies crossing rivers on the map, with river battles (6.9).
-- "Fewer" prisoners: ransom or release only (6.7).
+- Prisoners: dropped (decision 37); the RTS plan's "captured" surrenders count as losses.
 - "Dropping succession noble stuff": succession, heirs, pretenders and the estates are removed;
   rulers, governments and governors stay (phase X).

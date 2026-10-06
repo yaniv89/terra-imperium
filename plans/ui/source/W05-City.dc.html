@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>W05 City sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral+SC:wght@500;700&amp;family=Figtree:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#ECE5D3;text-decoration:none}a:hover{color:#D8A444}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; box-sizing: border-box; overflow: hidden; position: relative; background: #10141A; color: #ECE5D3; font-family: Figtree, sans-serif">
+
+  <svg width="844" height="390" viewBox="0 0 844 390" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+    <defs>
+      <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="4" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="46" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap><feGaussianBlur stdDeviation="7"></feGaussianBlur></filter>
+      <filter id="rough" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="4" seed="9" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="30" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter>
+      <filter id="relief" x="-15%" y="-15%" width="130%" height="130%"><feTurbulence type="fractalNoise" baseFrequency="0.011 0.026" numOctaves="5" seed="8" result="t"></feTurbulence><feDiffuseLighting in="t" surfaceScale="8" lighting-color="#FFF6E2" result="l"><feDistantLight azimuth="225" elevation="38"></feDistantLight></feDiffuseLighting><feGaussianBlur in="SourceAlpha" stdDeviation="30" result="m"></feGaussianBlur><feComposite in="l" in2="m" operator="in"></feComposite></filter>
+      <filter id="blur3"><feGaussianBlur stdDeviation="3"></feGaussianBlur></filter>
+      <filter id="mottle" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="4" seed="2"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0.16 0 0 0 0 0.17 0 0 0 0 0.08 1.1 0 0 0 -0.42"></feColorMatrix></filter>
+      <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="5"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 0 0.08 0.5 0 0 0 -0.16"></feColorMatrix></filter>
+      <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2C4D69"></stop><stop offset="1" stop-color="#1D3650"></stop></linearGradient>
+      <clipPath id="gulfClip"><path d="M1500 200L1080 240C990 268 925 300 885 330C850 356 830 372 815 395C795 425 770 445 750 490C728 540 704 590 694 720V900H1500Z" transform="translate(-255.5 -70) scale(1.1)"></path></clipPath>
+      <pattern id="hx" width="24" height="42" patternUnits="userSpaceOnUse" patternTransform="translate(0 0)"><path d="M12 0L24 7V21L12 28L0 21V7Z M12 28V42" fill="none" stroke="#F4EEDC" stroke-opacity="0.075" stroke-width="1"></path></pattern>
+    </defs>
+    <g transform="translate(-255.5 -70) scale(1.1)">
+      <rect x="-300" y="-300" width="1600" height="1200" fill="#A49C6C"></rect>
+      <g filter="url(#soft)">
+        <ellipse cx="230" cy="40" rx="360" ry="150" fill="#8C9C60"></ellipse>
+        <ellipse cx="560" cy="80" rx="190" ry="70" fill="#B3A578"></ellipse>
+        <path d="M-300 250C60 290 230 410 400 470C500 505 560 600 560 900H-300Z" fill="#D0B884"></path>
+        <ellipse cx="140" cy="480" rx="170" ry="70" fill="#DDC897"></ellipse>
+        <ellipse cx="60" cy="350" rx="110" ry="45" fill="#BEA474"></ellipse>
+        <ellipse cx="300" cy="560" rx="160" ry="50" fill="#C9AE7A"></ellipse>
+        <path d="M540 -80C640 50 720 140 820 225C880 285 950 315 1100 330V-80Z" fill="#8F8672"></path>
+        <path d="M600 -80C690 40 770 120 870 200C920 240 990 270 1100 280V-80Z" fill="#7C7464"></path>
+        <ellipse cx="990" cy="40" rx="120" ry="60" fill="#B5A580"></ellipse>
+        <ellipse cx="840" cy="335" rx="110" ry="50" fill="#93A062"></ellipse>
+      </g>
+      <g filter="url(#soft)" fill="none" stroke-linecap="round">
+        <path d="M60 -60C80 20 130 60 170 110C210 160 250 175 290 210C330 245 350 240 380 270C420 310 440 340 470 365C510 400 520 430 560 445C600 460 650 468 700 478C722 482 736 490 752 502" stroke="#6E8C4B" stroke-width="44"></path>
+        <path d="M380 -60C390 0 430 40 450 90C470 140 510 150 505 195C500 240 545 255 560 290C575 325 600 345 620 370C645 400 660 440 700 478" stroke="#6E8C4B" stroke-width="40"></path>
+        <path d="M330 240C420 300 500 380 560 430" stroke="#7E9757" stroke-width="70" stroke-opacity="0.8"></path>
+      </g>
+      <g filter="url(#soft)">
+        <ellipse cx="690" cy="445" rx="95" ry="42" fill="#4E6C47"></ellipse>
+        <ellipse cx="770" cy="420" rx="50" ry="26" fill="#56744C"></ellipse>
+        <ellipse cx="660" cy="70" rx="46" ry="18" transform="rotate(40 660 70)" fill="#4F6A42"></ellipse>
+        <ellipse cx="735" cy="150" rx="52" ry="20" transform="rotate(40 735 150)" fill="#4A653E"></ellipse>
+        <ellipse cx="820" cy="215" rx="44" ry="17" transform="rotate(35 820 215)" fill="#506B43"></ellipse>
+        <ellipse cx="900" cy="150" rx="40" ry="16" transform="rotate(35 900 150)" fill="#4F6A42"></ellipse>
+      </g>
+      <g style="mix-blend-mode: multiply" opacity="0.85"><ellipse cx="830" cy="120" rx="360" ry="125" transform="rotate(40 830 120)" fill="#fff" filter="url(#relief)"></ellipse><ellipse cx="1000" cy="40" rx="200" ry="90" fill="#fff" filter="url(#relief)" opacity="0.7"></ellipse></g>
+      <rect x="-300" y="-300" width="1600" height="1200" filter="url(#mottle)"></rect>
+      <g filter="url(#rough)"><path d="M1500 200L1080 240C990 268 925 300 885 330C850 356 830 372 815 395C795 425 770 445 750 490C728 540 704 590 694 720V900H1500Z" fill="url(#sea)"></path></g>
+    </g>
+    <g clip-path="url(#gulfClip)"><path d="M1500 200L1080 240C990 268 925 300 885 330C850 356 830 372 815 395C795 425 770 445 750 490C728 540 704 590 694 720V900H1500Z" transform="translate(-255.5 -70) scale(1.1)" fill="none" stroke="#4B7E9B" stroke-width="30" stroke-opacity="0.75" filter="url(#blur3)"></path></g>
+    <g transform="translate(-255.5 -70) scale(1.1)" fill="none" stroke-linecap="round">
+      <path d="M730 80C660 135 585 160 506 198" stroke="#5F93BA" stroke-width="1.6"></path><path d="M870 210C850 260 845 300 826 340C812 370 805 390 800 410" stroke="#5F93BA" stroke-width="1.6"></path><path d="M960 200C930 240 900 280 880 335" stroke="#5F93BA" stroke-width="1.6"></path><path d="M520 -60C540 20 560 60 610 110" stroke="#5F93BA" stroke-width="1.6"></path>
+      <path d="M60 -60C80 20 130 60 170 110C210 160 250 175 290 210C330 245 350 240 380 270C420 310 440 340 470 365C510 400 520 430 560 445C600 460 650 468 700 478C722 482 736 490 752 502" stroke="#4F86B0" stroke-width="5.5"></path><path d="M60 -60C80 20 130 60 170 110C210 160 250 175 290 210C330 245 350 240 380 270C420 310 440 340 470 365C510 400 520 430 560 445C600 460 650 468 700 478C722 482 736 490 752 502" stroke="#86B6D6" stroke-width="2"></path>
+      <path d="M380 -60C390 0 430 40 450 90C470 140 510 150 505 195C500 240 545 255 560 290C575 325 600 345 620 370C645 400 660 440 700 478" stroke="#4F86B0" stroke-width="6"></path><path d="M380 -60C390 0 430 40 450 90C470 140 510 150 505 195C500 240 545 255 560 290C575 325 600 345 620 370C645 400 660 440 700 478" stroke="#86B6D6" stroke-width="2.2"></path>
+      <path d="M296 200Q300 190 312.5 183.1Q324.9 176.2 339.5 179.1Q354.2 181.9 367.1 177Q380 172 395 175.4Q410 178.7 425.9 178.1Q441.7 177.5 455.9 184.8Q470 192 477.4 203.9Q484.7 215.7 497.4 221.5Q510 227.3 520 236.2Q530 245 540.8 256.3Q551.6 267.6 555.9 283.7Q560.2 299.7 572.6 309.9Q585 320 586.4 333.8Q587.8 347.6 595 360Q602.2 372.4 603.6 386.2Q605 400 604.6 412.3Q604.1 424.5 594.4 433.2Q584.6 441.9 582.3 453.5Q580 465 570 468.9Q560 472.7 551.5 480.3Q542.9 487.8 531.5 487.9Q520 488 510.9 479.4Q501.7 470.7 489.2 469.4Q476.7 468 465.9 463Q455 458 444.4 448.8Q433.7 439.6 429.1 425.2Q424.4 410.7 412.2 402.9Q400 395 393.4 381.4Q386.7 367.8 375 357.5Q363.3 347.2 356.7 333.6Q350 320 338.4 310.7Q326.8 301.3 323.4 286.2Q319.9 271 310 260.5Q300 250 300 240Q300 230 296 220Q292 210 296 200Z" fill="#5B9BF0" fill-opacity="0.15" stroke="#5B9BF0" stroke-width="2" vector-effect="non-scaling-stroke"></path><path d="M617.9 202.3Q612 192 622.7 186.1Q633.3 180.1 645.7 184Q658 187.9 669 184Q680 180 693.4 185Q706.7 190 721.4 191.3Q736.1 192.5 748.1 201.3Q760 210 772 218.5Q784 226.9 798.7 227.8Q813.3 228.7 826.7 233.4Q840 238 851.6 240.1Q863.1 242.2 871.9 251.9Q880.6 261.5 892.8 261.8Q905 262 899 270.9Q893 279.8 892.5 291Q892 302.2 886 311.1Q880 320 876.8 330.5Q873.6 341 862.6 345.3Q851.5 349.5 846.8 358.8Q842 368 833.4 373Q824.7 378 818 386.5Q811.3 394.9 800.7 396.5Q790 398 783 391.3Q776 384.5 766.4 385.3Q756.7 386 748.4 383Q740 380 728.6 371.4Q717.2 362.8 711.5 348.6Q705.7 334.3 692.9 327.2Q680 320 674.3 308.5Q668.6 297 658 289Q647.4 281 641.7 269.5Q636 258 628.3 248.4Q620.5 238.7 622.2 225.7Q623.8 212.6 617.9 202.3Z" fill="#EE8A3A" fill-opacity="0.15" stroke="#EE8A3A" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+    </g>
+    <rect width="844" height="390" fill="url(#hx)"></rect>
+    <rect width="844" height="390" filter="url(#grain)"></rect>
+  </svg>
+  <svg width="844" height="390" viewBox="0 0 844 390" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+    <rect x="0" y="0" width="432" height="390" fill="#10141A" fill-opacity="0.22"></rect>
+    <path d="M190 175L215.98 190V220L190 235L164.02 220V190Z" fill="#ECE5D3" fill-opacity="0.08" stroke="#ECE5D3" stroke-width="2"></path>
+  </svg>
+
+  <div style="position: absolute; left: 190px; top: 205px; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px 0 3px; border-radius: 999px; background: #232C38; border: 2px solid #ECE5D3">
+    <div style="width: 18px; height: 18px; border-radius: 999px; background: #5B9BF0; color: #10141A; font-family: 'JetBrains Mono', monospace; font-size: 11px; display: flex; align-items: center; justify-content: center">4</div>
+    <div style="font-family: 'Spectral SC', serif; font-weight: 700; font-size: 13px">Kish</div>
+  </div>
+
+  <div style="position: absolute; left: 0; top: 0; width: 844px; height: 36px; box-sizing: border-box; background: rgba(26,33,43,0.94); border-bottom: 1px solid #33404F; display: flex; align-items: center; gap: 14px; padding: 0 12px">
+    <div style="display: flex; align-items: center; gap: 6px">
+      <div style="width: 14px; height: 16px; background: #5B9BF0; clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%)"></div>
+      <div style="font-family: 'Spectral SC', serif; font-weight: 700; font-size: 14px">Akkad</div>
+    </div>
+    <button aria-label="Gold 142, plus 6 a turn" style="display: flex; align-items: center; gap: 4px; background: transparent; border: 0; color: #ECE5D3; padding: 0; height: 32px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D8A444" stroke-width="1.8"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v8M9.5 10.5h5"></path></svg>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">142</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6CC28A">+6</span>
+    </button>
+    <button aria-label="Food 38, plus 4 a turn" style="display: flex; align-items: center; gap: 4px; background: transparent; border: 0; color: #ECE5D3; padding: 0; height: 32px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8FA36A" stroke-width="1.8"><path d="M12 21V8M12 8c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-3-2-5-5-5 0 3 2 5 5 5zM12 16c0-3 2-5 5-5 0 3-2 5-5 5z"></path></svg>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">38</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6CC28A">+4</span>
+    </button>
+    <button aria-label="Science 9 a turn, Bronze Working in 3 turns" style="display: flex; align-items: center; gap: 4px; background: transparent; border: 0; color: #ECE5D3; padding: 0; height: 32px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6FA3C8" stroke-width="1.8"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"></path></svg>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">9</span><span style="font-size: 11px; color: #B9B19F">Bronze Working 3t</span>
+    </button>
+    <button aria-label="Culture 4 a turn" style="display: flex; align-items: center; gap: 4px; background: transparent; border: 0; color: #ECE5D3; padding: 0; height: 32px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C8FD0" stroke-width="1.8"><path d="M4 20h16M6 20V10M10 20V10M14 20V10M18 20V10M3 10l9-6 9 6z"></path></svg>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">4</span>
+    </button>
+    <div style="flex: 1"></div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px">1984 BCE</div>
+    <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">TURN <span style="font-family: 'JetBrains Mono', monospace; color: #ECE5D3; font-size: 12px">17</span></div>
+  </div>
+
+  <div role="dialog" aria-label="Kish" style="position: absolute; left: 432px; top: 36px; width: 360px; height: 354px; box-sizing: border-box; background: rgba(26,33,43,0.97); border-left: 1px solid #33404F; display: flex; flex-direction: column">
+    <div style="padding: 9px 10px 6px 12px; display: flex; align-items: center; gap: 8px">
+      <div style="width: 30px; height: 30px; border-radius: 999px; background: #5B9BF0; color: #10141A; font-family: 'JetBrains Mono', monospace; font-size: 14px; display: flex; align-items: center; justify-content: center">4</div>
+      <div style="flex: 1; min-width: 0">
+        <div style="display: flex; align-items: baseline; gap: 6px">
+          <div style="font-family: 'Spectral SC', serif; font-weight: 700; font-size: 19px; line-height: 1">Kish</div>
+          <div style="font-size: 11px; color: #B9B19F">Capital, grows in 3 turns</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px">
+          <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">LOYALTY</div>
+          <div style="width: 90px; height: 5px; border-radius: 999px; background: #33404F"><div style="width: 82%; height: 5px; border-radius: 999px; background: #6CC28A"></div></div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6CC28A">82</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #B9B19F">+2</div>
+        </div>
+      </div>
+      <button aria-label="Close city" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #33404F; background: #232C38; color: #B9B19F; display: flex; align-items: center; justify-content: center; padding: 0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+
+    <div role="tablist" style="display: flex; gap: 2px; padding: 0 10px; border-bottom: 1px solid #33404F">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+        <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="flex: 1; height: 36px; background: {{t.bg}}; border: 0; border-radius: 8px 8px 0 0; border-bottom: 2px solid {{t.line}}; color: {{t.color}}; font-family: Figtree, sans-serif; font-size: 13px; font-weight: 600; padding: 0; display: flex; align-items: center; justify-content: center; gap: 4px">
+          {{t.name}}
+          <div style="width: 6px; height: 6px; border-radius: 999px; background: {{t.dot}}"></div>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="flex: 1; overflow: hidden; padding: 9px 12px; display: flex; flex-direction: column; gap: 8px">
+      <sc-if value="{{isOverview}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; gap: 6px">
+          <sc-for list="{{yields}}" as="y" hint-placeholder-count="4">
+            <div style="flex: 1; background: #232C38; border: 1px solid #33404F; border-radius: 8px; padding: 4px 0; text-align: center">
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: {{y.color}}">{{y.v}}</div>
+              <div style="font-size: 10px; color: #B9B19F">{{y.k}}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background: #232C38; border: 1px solid #33404F; border-radius: 10px; padding: 7px 9px">
+          <div style="display: flex; align-items: center; justify-content: space-between">
+            <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F; font-weight: 600">BUILDING NOW</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px">3 turns</div>
+          </div>
+          <div style="font-size: 14px; font-weight: 700; margin-top: 2px">Mud-brick Walls</div>
+          <div style="height: 5px; border-radius: 999px; background: #33404F; margin-top: 4px"><div style="width: 58%; height: 5px; border-radius: 999px; background: #CDB27A"></div></div>
+          <div style="font-size: 11px; color: #B9B19F; margin-top: 4px">Then: Spearmen, Granary</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; background: rgba(229,96,77,0.12); border: 1px solid #E5604D; border-radius: 10px; padding: 6px 9px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E5604D" stroke-width="1.8"><path d="M3 20h18M5 20V11l7-5 7 5v9M10 20v-5h4v5"></path><path d="M14 4l3 3"></path></svg>
+          <div style="flex: 1; font-size: 12px">3 houses ruined, repaired in 5 turns</div>
+          <button style="height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid #33404F; background: #232C38; color: #ECE5D3; font-size: 12px; font-family: Figtree, sans-serif" onClick="{{goDefense}}">Details</button>
+        </div>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap">
+          <sc-for list="{{buildings}}" as="b" hint-placeholder-count="5">
+            <div style="height: 24px; display: flex; align-items: center; padding: 0 8px; border-radius: 999px; background: #232C38; border: 1px solid #33404F; font-size: 11px">{{b}}</div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isBuild}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F; font-weight: 600">QUEUE</div>
+          <div style="font-size: 11px; color: #B9B19F">Production <span style="font-family: 'JetBrains Mono', monospace; color: #CDB27A">+5</span></div>
+        </div>
+        <sc-for list="{{queue}}" as="q" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 8px; height: 34px; background: #232C38; border: 1px solid {{q.border}}; border-radius: 8px; padding: 0 8px">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #B9B19F; width: 12px">{{q.n}}</div>
+            <div style="flex: 1; font-size: 13px; font-weight: 600">{{q.name}}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{q.turns}}</div>
+          </div>
+        </sc-for>
+        <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F; font-weight: 600; margin-top: 2px">ADD</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px">
+          <sc-for list="{{options}}" as="o" hint-placeholder-count="4">
+            <button style="height: 44px; text-align: left; background: #1A212B; border: 1px solid #33404F; border-radius: 8px; color: #ECE5D3; padding: 0 8px; font-family: Figtree, sans-serif">
+              <div style="font-size: 12px; font-weight: 600">{{o.name}}</div>
+              <div style="font-size: 10px; color: #B9B19F"><span style="font-family: 'JetBrains Mono', monospace">{{o.cost}}</span> {{o.why}}</div>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isCitizens}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F; font-weight: 600">4 CITIZENS WORK</div>
+          <div style="font-size: 11px; color: #B9B19F">Focus</div>
+        </div>
+        <div style="display: flex; gap: 4px">
+          <sc-for list="{{focus}}" as="f" hint-placeholder-count="3">
+            <button style="flex: 1; height: 32px; border-radius: 999px; border: 1px solid #33404F; background: {{f.bg}}; color: {{f.color}}; outline: 2px solid {{f.border}}; outline-offset: -2px; font-family: Figtree, sans-serif; font-size: 12px; font-weight: 600">{{f.name}}</button>
+          </sc-for>
+        </div>
+        <sc-for list="{{worked}}" as="w" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 8px; height: 30px; border-bottom: 1px solid #33404F">
+            <div style="width: 16px; height: 18px; background: {{w.c}}; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%)"></div>
+            <div style="flex: 1; font-size: 13px">{{w.name}}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #B9B19F">{{w.y}}</div>
+          </div>
+        </sc-for>
+        <div style="font-size: 12px; color: #B9B19F">Food surplus <span style="font-family: 'JetBrains Mono', monospace; color: #6CC28A">+3</span>, size 5 in 3 turns</div>
+      </sc-if>
+
+      <sc-if value="{{isDefense}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; gap: 6px">
+          <div style="flex: 1; background: #232C38; border: 1px solid #33404F; border-radius: 10px; padding: 6px 9px">
+            <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">HOUSES</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px">18 <span style="font-size: 12px; color: #B9B19F">hold 90</span></div>
+          </div>
+          <div style="flex: 1.4; background: #232C38; border: 1px solid #33404F; border-radius: 10px; padding: 6px 9px">
+            <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">BATTLE HOUSING</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; color: #5B9BF0">110</div>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #B9B19F; line-height: 1.4">18 houses, 5 each <span style="font-family: 'JetBrains Mono', monospace; color: #ECE5D3">+90</span>, town hall <span style="font-family: 'JetBrains Mono', monospace; color: #ECE5D3">+20</span>. Defenders of Kish can field up to 110 in a battle here.</div>
+        <div style="background: rgba(229,96,77,0.12); border: 1px solid #E5604D; border-radius: 10px; padding: 7px 9px">
+          <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700"><span>3 houses ruined</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 500">5 turns</span></div>
+          <div style="display: flex; gap: 3px; margin-top: 5px">
+            <sc-for list="{{houses}}" as="h" hint-placeholder-count="18">
+              <div style="flex: 1; height: 10px; border-radius: 2px; background: {{h}}"></div>
+            </sc-for>
+          </div>
+          <div style="font-size: 11px; color: #B9B19F; margin-top: 4px">15 of 18 standing, from the Gutian raid on Kish, T15. Repairs use 1 production a turn.</div>
+        </div>
+        <div style="display: flex; gap: 6px; font-size: 12px">
+          <div style="flex: 1; height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: #232C38; border: 1px solid #33404F; border-radius: 8px">Walls <span style="color: #B9B19F">building</span></div>
+          <div style="flex: 1; height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: #232C38; border: 1px solid #33404F; border-radius: 8px">Garrison <span style="font-family: 'JetBrains Mono', monospace">2</span></div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="position: absolute; right: 0; top: 36px; width: 52px; height: 354px; background: rgba(26,33,43,0.97); border-left: 1px solid #33404F; display: flex; flex-direction: column">
+    <sc-for list="{{rail}}" as="t" hint-placeholder-count="6">
+      <button aria-label="{{t.name}}" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: {{t.bg}}; border: 0; border-bottom: 1px solid #33404F; color: {{t.color}}; outline: 2px solid {{t.ring}}; outline-offset: -2px; font-family: Figtree, sans-serif; font-size: 10px; font-weight: 600; padding: 0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="{{t.icon}}"></path></svg>
+        {{t.name}}
+      </button>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":844,"height":390}}'>
+class Component extends DCLogic {
+  state = { tab: 'Overview' };
+  renderVals() {
+    const tab = this.state?.tab ?? 'Overview';
+    const names = ['Overview', 'Build', 'Citizens', 'Defense'];
+    const ruined = 3, total = 18;
+    return {
+      tabs: names.map(n => ({
+        name: n, sel: n === tab ? 'true' : 'false',
+        line: n === tab ? '#ECE5D3' : 'transparent', bg: n === tab ? '#232C38' : 'transparent', color: n === tab ? '#ECE5D3' : '#B9B19F',
+        dot: n === 'Defense' ? '#E5604D' : 'transparent',
+        pick: () => this.setState({ tab: n })
+      })),
+      isOverview: tab === 'Overview', isBuild: tab === 'Build', isCitizens: tab === 'Citizens', isDefense: tab === 'Defense',
+      goDefense: () => this.setState({ tab: 'Defense' }),
+      yields: [
+        { k: 'Food', v: '+3', color: '#8FA36A' }, { k: 'Production', v: '+5', color: '#CDB27A' },
+        { k: 'Gold', v: '+4', color: '#D8A444' }, { k: 'Science', v: '+3', color: '#6FA3C8' }
+      ],
+      buildings: ['Palace', 'Granary', 'Shrine of Zababa', 'Canal', 'Barracks'],
+      queue: [
+        { n: '1', name: 'Mud-brick Walls', turns: '3t', border: '#ECE5D3' },
+        { n: '2', name: 'Spearmen', turns: '5t', border: '#33404F' },
+        { n: '3', name: 'Granary', turns: '9t', border: '#33404F' }
+      ],
+      options: [
+        { name: 'Settlers', cost: '6t', why: 'site ready east' },
+        { name: 'Archers', cost: '4t', why: 'counters raiders' },
+        { name: 'Market', cost: '8t', why: '+2 gold' },
+        { name: 'Ziggurat', cost: '14t', why: '+2 culture' }
+      ],
+      focus: ['Balanced', 'Food', 'Production'].map(n => ({ name: n, border: n === 'Balanced' ? '#ECE5D3' : 'transparent', bg: n === 'Balanced' ? '#232C38' : '#1A212B', color: n === 'Balanced' ? '#ECE5D3' : '#B9B19F' })),
+      worked: [
+        { name: 'Irrigated grassland, river', y: '3F 1P', c: '#8FA36A' },
+        { name: 'Irrigated grassland', y: '3F 0P', c: '#8FA36A' },
+        { name: 'Marsh reeds', y: '1F 2P', c: '#5E7A4A' },
+        { name: 'Clay pits', y: '0F 3P 1G', c: '#CDB27A' }
+      ],
+      houses: Array.from({ length: total }, (_, i) => i >= total - ruined ? '#E5604D' : '#5B9BF0'),
+      rail: [
+        { name: 'City', icon: 'M4 20V10l4-3v13M8 20V5l5-2v17M13 20V9l7 3v8M3 20h18' },
+        { name: 'Army', icon: 'M5 19L19 5M15 5h4v4M5 5l14 14M9 19H5v-4' },
+        { name: 'Research', icon: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3' },
+        { name: 'Diplomacy', icon: 'M3 12l4-4 4 3 3-3 4 1 3 3-6 6-3-2-3 2zM7 8l4 4' },
+        { name: 'Lenses', icon: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5' },
+        { name: 'Menu', icon: 'M4 7h16M4 12h16M4 17h16' }
+      ].map(t => ({ ...t, bg: t.name === 'City' ? '#232C38' : 'transparent', color: t.name === 'City' ? '#ECE5D3' : '#B9B19F', ring: t.name === 'City' ? '#ECE5D3' : 'transparent' }))
+    };
+  }
+}
+</script>
+</body>
+</html>
