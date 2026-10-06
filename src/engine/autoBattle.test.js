@@ -4,9 +4,10 @@
 // the decisive field rule, and a small parity guardrail against the real-time battle with the
 // economy on (the full matrix: .claude/skills/battle-lab/parityEco.sim.js).
 import { describe, it, expect } from 'vitest';
-import { autoFromInputs, auxiliariesFor, autoCityDamage, WALLS_NO_SIEGE_MULT } from './autoBattle';
+import { autoFromInputs, auxiliariesFor, autoCityDamage, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF, AUTO_TUNE } from './autoBattle';
 import { militiaFor } from './battleInputs';
 import { createRng } from '../utils/rng';
+import { getDefenseLevelDamageReductionMultiplier } from './siege';
 import { buildTownManifest, manifestHousing } from '../data/townLayout';
 import { buildSetupFromArmies } from '../battle/setup/buildBattleSetup';
 import { runHeadless } from '../battle/sim/headless';
@@ -79,4 +80,37 @@ describe('the honest auto-resolve', () => {
       expect(ratio, `${type}: tactical / auto exchange`).toBeLessThan(3.5);
     });
   }, 120000);
+
+  it('walls ease an older attacker\'s age gap: bronze against classical walls stays inside the parity guardrail', () => {
+    // Real-time numbers (parityEco, 32 seeds, medium city, fort level 2): attacker losses over defender
+    // losses 2.07 (no siege) and 1.56 (with siege) for bronze against classical walls. Before the
+    // relief Auto gave 5.5 and 3.6 (0.38x and 0.44x, outside [auto / 2, auto x 3.5]).
+    const cases = [[['infantry', 'infantry', 'ranged'], ['infantry', 'infantry', 'ranged'], 2.07], [['infantry', 'infantry', 'cavalry', 'ranged', 'siege'], ['infantry', 'infantry', 'ranged'], 1.561]];
+    cases.forEach(([att, def, tactical]) => {
+      const exchange = (relief) => {
+        let a = 0; let d = 0;
+        for (let seed = 1; seed <= 32; seed++) {
+          const manifest = buildTownManifest({ cityId: `walls-${seed}`, ageId: 'classical', tierId: 'medium', style: 'europe', seed, defenseTier: 1 });
+          const militia = militiaFor({ ownerId: 'defender', cityId: `walls-${seed}`, housing: manifestHousing(manifest) });
+          const attackers = mk('a', att); const defenders = [...mk('d', def), ...militia];
+          const i = ins(attackers, defenders, { walled: true, housing: manifestHousing(manifest), militia });
+          const r = autoFromInputs(args({ attackerAgeId: 'bronze', defenderAgeId: 'classical', isAttackingFortification: true, battleType: 'assault', defenderDamageReductionMultiplier: getDefenseLevelDamageReductionMultiplier(2) }), i, 'invasion', createRng(seed * 97), { ...AUTO_TUNE, WALLS_AGE_RELIEF: relief });
+          a += sum(attackers) - sum(r.attackerUnits); d += sum(defenders) - sum(r.defenderUnits);
+        }
+        return a / Math.max(1, d);
+      };
+      const without = exchange(0); const withRelief = exchange(WALLS_AGE_RELIEF);
+      expect(tactical / without).toBeLessThan(0.5); // the bug: Auto too harsh on the attacker
+      expect(tactical / withRelief).toBeGreaterThanOrEqual(0.5);
+      expect(tactical / withRelief).toBeLessThanOrEqual(3.5);
+    });
+  });
+
+  it('the age relief only helps an older attacker behind walls', () => {
+    const run = (att, def, extra, walled) => autoFromInputs(args({ attackerAgeId: att, defenderAgeId: def, ...extra }), ins(mk('a', ['infantry', 'infantry']), mk('d', ['infantry', 'infantry']), { walled }), walled ? 'invasion' : 'field', createRng(5)).report.ageRelief;
+    expect(run('bronze', 'classical', { isAttackingFortification: true }, true)).toBeGreaterThan(1);
+    expect(run('classical', 'bronze', { isAttackingFortification: true }, true)).toBe(1);
+    expect(run('classical', 'classical', { isAttackingFortification: true }, true)).toBe(1);
+    expect(run('bronze', 'classical', {}, false)).toBe(1);
+  });
 });
