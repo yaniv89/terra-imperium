@@ -29,7 +29,7 @@ import { LANDING_ATTACK_MULT } from '../battle/setup/battleType';
 // second fight until it resolves.
 export const isUnitInBattle = (state, unitId) => {
   // A garrison with an assault queued against it (src/engine/defense.js) is committed too.
-  if ((state.pendingDefenses || []).some((d) => (d.defenderUnitIds.includes(unitId) || d.attackerUnitIds.includes(unitId)))) return true;
+  if ((state.pendingDefenses || []).some((d) => (d.defenderUnitIds.includes(unitId) || d.attackerUnitIds.includes(unitId) || d.navalUnitId === unitId))) return true;
   const pb = state.pendingBattle;
   if (!pb) return false;
   if (pb.navalUnitId === unitId) return true; // the fleet carrying a commanded landing
@@ -202,7 +202,8 @@ export const getAmphibiousBattleContext = (state, v, defenderLandUnits) => {
 
 // Everything that follows the land battle of a landing, through the outcome service. `state.units`
 // already reflects any naval interception. Survivors go ashore only once the region is taken.
-export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targetRegionId, war, targetRegion, isDefended }, battle, { rngSeed, decisive = false, xpBonusById = null, id = null, viewerId = undefined, mode = undefined, militia = null } = {}) => {
-  const meta = { kind: 'landing', mode, warId: war?.id ?? null, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner, viewerId, navalUnitId, fromRegionId, regionId: targetRegionId, tile: targetRegion.tile ?? null, isDefended, decisive, xpBonusById, rngSeed, militia };
+// `attackerNationId` defaults to the player; an AI landing on the player's coast (aiLanding.js) passes its own, with the queued record's `defenseId`.
+export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targetRegionId, war, targetRegion, isDefended }, battle, { rngSeed, decisive = false, xpBonusById = null, id = null, viewerId = undefined, mode = undefined, militia = null, attackerNationId = state.playerNationId, defenseId = null } = {}) => {
+  const meta = { kind: 'landing', mode, defenseId, warId: war?.id ?? null, attackerNationId, defenderNationId: targetRegion.owner, viewerId, navalUnitId, fromRegionId, regionId: targetRegionId, tile: targetRegion.tile ?? null, isDefended, decisive, xpBonusById, rngSeed, militia };
   return applyBattleOutcome(state, makeBattleOutcome({ ...meta, id: id || battleIdOf(state, { ...meta, seed: rngSeed ?? state.rngSeed }) }, battle));
 };

@@ -50,6 +50,7 @@ import { addGrudge } from './grudges';
 import { hireMercenaryForPlayer } from './mercenaries';
 import { answerTributeDemand, resolveRaidBattle } from './raids';
 import { isRaidKind, queuedRaidArmies } from './raidBattle';
+import { interceptArmies, landingArmies, resolveInterceptQueued, resolveLandingQueued } from './aiLanding';
 import { giftIndependent, proposeJoining, answerJoinOffer, demandIndependentTribute, proposeIndependentTrade, offerIndependentTribute, razeCityForPlayer } from './indepPolicy';
 import { canRaze, stopRazing } from './razing';
 
@@ -1572,6 +1573,14 @@ const reduceAction = (state, action) => {
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'command' };
       // A field or sea battle the AI started (battleQueue.js): the gate is the aggressor's, the
       // operation id the queued record's (so its Auto can never also land).
+      // An AI landing on the player's coast (aiLanding.js): the interception at sea, then the landing.
+      if (pb.defenseId && (pb.kind === 'intercept' || (pb.kind === 'amphibious' && pb.playerSide === 'defender'))) {
+        const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
+        if (!def) return cleared;
+        const safe = sanitizeTacticalResult(state, pb, result);
+        const opts = { mode: 'command', decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById };
+        return pb.kind === 'intercept' ? resolveInterceptQueued(cleared, def, safe, opts) : resolveLandingQueued(cleared, def, safe, opts);
+      }
       // A raid or a sack against the player (raidBattle.js): the queued record's id, then the raid carries on (raids.js).
       if (pb.defenseId && isRaidKind(pb.kind)) {
         const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
@@ -1729,6 +1738,23 @@ const reduceAction = (state, action) => {
       if (!def) return state;
       const counter = (state.battleCounter || 0) + 1;
       const kind = queuedKind(def);
+      if (kind === 'intercept' || kind === 'landing') {
+        // An AI landing on the player's coast: the player's fleets intercept, then the garrison holds the beach.
+        const armies = kind === 'intercept' ? interceptArmies(state, def) : landingArmies(state, def);
+        if (!armies || (kind === 'landing' && !armies.defenderUnits.length && !(def.militia || []).length)) return resolveQueuedAuto(state, def.id);
+        return {
+          ...state,
+          battleCounter: counter,
+          pendingBattle: {
+            id: `b_${state.turnNumber}_${counter}`, kind: kind === 'intercept' ? 'intercept' : 'amphibious', defenseId: def.id,
+            navalUnitId: def.navalUnitId, fromRegionId: def.fromRegionId, targetRegionId: def.regionId, warId: def.warId, hasBeachhead: def.hasBeachhead,
+            attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: 'defender',
+            attackerUnitIds: armies.attackerUnits.map((u) => u.id), defenderUnitIds: armies.defenderUnits.map((u) => u.id), attackerReinforcements: [],
+            defenderReinforcements: kind === 'landing' ? reinforcementSources(state, def.regionId, state.playerNationId, def.aggressorId) : [], militia: kind === 'landing' ? def.militia || [] : []
+          },
+          logs: [...state.logs, { year: state.year, message: kind === 'intercept' ? `Your fleet sails out against ${state.nations[def.aggressorId]?.name || 'the enemy'}'s invasion fleet.` : `You take command of the defense of ${REGIONS_DATA[def.regionId]?.name} against the landing.`, type: LogTypes.COMBAT }]
+        };
+      }
       if (isRaidKind(kind)) {
         // Raiders against the player's troops or town: the player defends (raidBattle.js).
         const armies = queuedRaidArmies(state, def);

@@ -28,6 +28,7 @@ import { buildEconomySetup } from './economySetup';
 import { battleInputs } from '../../engine/battleInputs';
 import { getTechAgeId } from '../../engine/nationState';
 import { isRaidKind, queuedRaidArmies, raidSpecOf, raidBattleContext } from '../../engine/raidBattle';
+import { interceptArmies, interceptArgs } from '../../engine/aiLanding';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
@@ -288,16 +289,25 @@ const buildDefenseSetup = (state, pb) => {
   });
 };
 
+// A field or sea battle an AI started against the player (battleQueue.js) is gated as the
+// aggressor's attack: the same gate, from its side.
+const gateOf = (state, pb) => (pb.attackerNationId && pb.attackerNationId !== state.playerNationId
+  ? { ...state, playerNationId: pb.attackerNationId, techAgeId: getTechAgeId(state, pb.attackerNationId) }
+  : state);
+
 // A commanded amphibious landing (T9): the invaders come ashore on a beach at the west edge, with
 // their fleet's guns (two Naval Bombardment salvos) covering the shore half of the field. Their
 // own reinforcements can't follow by sea; the defender's neighbours can still march in.
 const buildAmphibiousSetup = (state, pb) => {
-  const v = validateAmphibious(state, pb.navalUnitId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
+  // An AI landing on the player's coast (src/engine/aiLanding.js) is gated as the aggressor's.
+  const gate = gateOf(state, pb);
+  const aiLands = gate !== state;
+  const v = validateAmphibious(gate, pb.navalUnitId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
   if (!v.ok) return null;
   const attackerUnits = v.embarkedLandUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
   const defenderUnits = v.defenderLandUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
   if (!attackerUnits.length || !defenderUnits.length) return null;
-  const ctx = getAmphibiousBattleContext(state, { ...v, hasBeachhead: pb.hasBeachhead ?? v.hasBeachhead }, defenderUnits);
+  const ctx = getAmphibiousBattleContext(gate, { ...v, hasBeachhead: pb.hasBeachhead ?? v.hasBeachhead }, defenderUnits);
   const ins = battleInputs(state, { attackerUnits, defenderUnits, cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia || [] });
   const regionData = REGIONS_DATA[pb.targetRegionId] || {};
   const fortLevel = (v.targetRegion.defenseLevel || 0) + getRegionModifier(state, pb.targetRegionId, 'local.fortLevel').total;
@@ -318,16 +328,16 @@ const buildAmphibiousSetup = (state, pb) => {
     defenseReduction: ctx.defenderDamageReductionMultiplier,
     isAttackingFortification: ctx.isAttackingFortification,
     attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier,
-    attackerNationId: state.playerNationId,
+    attackerNationId: gate.playerNationId,
     defenderNationId: v.targetRegion.owner,
-    controllers: ['player', 'ai'],
+    controllers: aiLands ? ['ai', 'player'] : ['player', 'ai'],
     difficultyId: state.difficultyId || 'prince',
     powers: [
-      [...getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: true }), { id: 'navalBombardment', uses: 2 }],
-      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits, { allowNuclear: false })
+      [...getBattlePowers(state, gate.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: !aiLands }), { id: 'navalBombardment', uses: 2 }],
+      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits, { allowNuclear: aiLands })
     ],
     reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
-    intel: { attackerSeesDefender: canSeeRegionDetails(state, pb.targetRegionId) },
+    intel: { attackerSeesDefender: aiLands ? false : canSeeRegionDetails(state, pb.targetRegionId) },
     landing: true,
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
@@ -336,12 +346,6 @@ const buildAmphibiousSetup = (state, pb) => {
     economyInputs: ins.economyInputs
   });
 };
-
-// A field or sea battle an AI started against the player (battleQueue.js) is gated as the
-// aggressor's attack: the same gate, from its side.
-const gateOf = (state, pb) => (pb.attackerNationId && pb.attackerNationId !== state.playerNationId
-  ? { ...state, playerNationId: pb.attackerNationId, techAgeId: getTechAgeId(state, pb.attackerNationId) }
-  : state);
 
 // A field battle (fieldBattle.js): two stacks on open ground. The defender's camp stands for the
 // keep (an unfortified town fires nothing); the tile and its neighbours shape the field.
@@ -459,8 +463,29 @@ const buildRaidSetup = (state, pb) => {
   });
 };
 
+// The interception of an AI landing (src/engine/aiLanding.js): the player's fleets in the city's
+// waters against the transport, a sea battle.
+const buildInterceptSetup = (state, pb) => {
+  const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
+  const armies = def ? interceptArmies(state, def) : null;
+  if (!armies) return null;
+  const args = interceptArgs(state, def, armies);
+  const city = state.regions[def.regionId];
+  return buildSetupFromArmies({
+    // On the city's waters: its first sea tile.
+    tileContext: tileContextOf(state, city?.tile != null ? (getTiles().neighbors[city.tile].find((t) => getTiles().land[t] !== 1) ?? city.tile) : null, {}),
+    battleType: 'naval', regionId: def.regionId, terrain: args.terrain, seed: pb.seed,
+    attackerUnits: armies.attackerUnits, defenderUnits: armies.defenderUnits,
+    attackerAgeId: args.attackerAgeId, defenderAgeId: args.defenderAgeId, generals: args.generals || {},
+    fortLevel: 0, isCapital: false, infrastructure: 0, deposits: [], defenseReduction: 1, isAttackingFortification: false, attackerPenaltyMultiplier: 1,
+    attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, controllers: ['ai', 'player'], difficultyId: state.difficultyId || 'prince',
+    powers: [[], []], reinforcements: [[], []], intel: { attackerSeesDefender: true }, regionBuildings: []
+  });
+};
+
 export const buildInvasionSetup = (state, pendingBattle) => {
   if (isRaidKind(pendingBattle?.kind)) return buildRaidSetup(state, pendingBattle);
+  if (pendingBattle?.kind === 'intercept') return buildInterceptSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'naval') return buildNavalSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'defense') return buildDefenseSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'field') return buildFieldSetup(state, pendingBattle);

@@ -19,7 +19,7 @@ import { getWithdrawalTarget } from '../../engine/defense';
 import { queuedBattleView, battleQueueBlocked } from '../../engine/battleQueue';
 
 const pct = (v) => `${Math.round(v * 100)}%`;
-const OURS = { defense: 'Your garrison', field: 'Your army', naval: 'Your fleet', raid: 'Your troops', sack: 'Your town' };
+const OURS = { defense: 'Your garrison', field: 'Your army', naval: 'Your fleet', raid: 'Your troops', sack: 'Your town', intercept: 'Your fleet', landing: 'Your garrison' };
 
 const forceSummary = (units, ageId = 'bronze') => {
   const counts = {};

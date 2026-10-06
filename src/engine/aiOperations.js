@@ -6,7 +6,8 @@ import { coloniesOf, colonySlots, foundColony, foundingCost, validateColony } fr
 // Persistent front objectives and real, one-hop army orders. All combat uses invasion aftermath.
 import { getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getPool, getTechAgeId } from './nationState';
-import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult } from './invasion';
+import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, validateAmphibious } from './invasion';
+import { landingRecords } from './aiLanding';
 import { resolveAutoBattle } from './autoBattle';
 import { fieldDefenseRecord } from './battleQueue';
 import { isUnitInBattle } from './invasion';
@@ -466,6 +467,16 @@ export const processAINavalOperations = state => {
       const embarked=Object.values(next.units).filter(u=>u.embarkedOn===fleet.id);
       const defenders=Object.values(next.units).filter(u=>u.regionId===target&&u.domain==='land');
       if(!embarked.length || (defenders.length && estimateBattle({attackerUnits:embarked,defenderUnits:defenders,battleType:'landing',attackerAgeId:getTechAgeId(next,id),defenderAgeId:getTechAgeId(next,next.regions[target]?.owner)}).pWin<LANDING_MIN_P))continue;
+      // On the player's coast the landing (and the player's fleets' interception) waits in the
+      // battle queue for their Command or Auto (aiLanding.js); elsewhere it is fought at once.
+      if(next.regions[target]?.owner===state.playerNationId){
+        const v=validateAmphibious(actor(),fleet.id,target);
+        if(!v.ok)continue;
+        const units={...next.units};
+        [fleet,...v.embarkedLandUnits].forEach(u=>{units[u.id]={...units[u.id],movesLeft:0};});
+        next={...next,units,nations:{...next.nations,[id]:{...next.nations[id],economy:applyCosts(getPool(next,id),ACTION_COSTS.amphibiousAssault)}},pendingDefenses:[...(next.pendingDefenses||[]),...landingRecords(next,v,id)]};
+        continue;
+      }
       apply({type:ActionTypes.AMPHIBIOUS_ASSAULT,payload:{navalUnitId:fleet.id,targetRegionId:target}});
     }
   }

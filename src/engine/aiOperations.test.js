@@ -7,6 +7,7 @@ import { addCity } from './testWorld';
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
 import { processAINavalOperations, processAIOperations } from './aiOperations';
+import { resolveAllQueuedAuto } from './battleQueue';
 // The Dawn world gives Germany one city (its capital, which borders Paris), so the fixture founds
 // a German interior city beside it that borders no French city.
 const setup=()=>{
@@ -104,10 +105,14 @@ describe('operational AI',()=>{
     expect(target).toBeDefined();s.wars=[{id:'island',aggressor:'gb',enemy:'fr',active:true,startYear:s.year}];
     s.nations.gb={...s.nations.gb,isAtWar:true,economy:{gold:1000,hr:1000,mil:100,adm:100},tech:{ageId:'modern',researched:[]}};
     s.nations.fr={...s.nations.fr,isAtWar:true};s.units={fleet:{id:'fleet',ownerId:'gb',regionId:port,domain:'naval',classId:'naval',strength:1000,maxStrength:1000,morale:100,movesLeft:1,transportCapacity:2,promotions:[]},army:{id:'army',ownerId:'gb',regionId:port,homeRegionId:port,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0}};
-    const next=processAINavalOperations(s);expect(Object.keys(next.units)).toHaveLength(2);
-    expect(next.units.army.embarkedOn).toBeNull();expect(next.units.army.movesLeft).toBe(0);
-    expect(next.regions[next.units.army.regionId].owner).toBe('gb');expect(next.units.fleet.movesLeft).toBe(0);
-    expect(next.nations.gb.economy.mil).toBeLessThan(100);
+    // On the player's coast the landing waits in the battle queue (aiLanding.js), paid and moved.
+    const queued=processAINavalOperations(s);expect(Object.keys(queued.units)).toHaveLength(2);
+    expect(queued.pendingDefenses.map(d=>d.kind)).toEqual(['landing']);
+    expect(queued.units.army.embarkedOn).toBe('fleet');expect(queued.units.army.movesLeft).toBe(0);expect(queued.units.fleet.movesLeft).toBe(0);
+    expect(queued.nations.gb.economy.mil).toBeLessThan(100);
+    const next=resolveAllQueuedAuto(queued);expect(next.pendingDefenses).toHaveLength(0);
+    expect(Object.keys(next.units).length).toBeLessThanOrEqual(2);
+    if(next.units.army){expect(next.units.army.embarkedOn===null?next.regions[next.units.army.regionId].owner==='gb':next.units.army.embarkedOn==='fleet').toBe(true);}
   });
   it('cannot teleport across neutral or hostile territory or create troops',()=>{
     const {s,interior}=setup();for(const id of getNeighborIds(interior))s.regions[id]={...s.regions[id],owner:'it'};
