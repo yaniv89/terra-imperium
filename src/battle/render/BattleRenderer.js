@@ -26,6 +26,7 @@ import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
+import { VegetationProps } from '../art/vegetationProps';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -457,7 +458,8 @@ export class BattleRenderer {
     // Instanced by spatial chunk (PROP_CHUNK tiles square): each chunk has its own bounds, so
     // three.js leaves out the chunks off screen (and outside the sun's shadow box). One mesh for
     // the whole field had bounds covering everything and drew every tree every frame.
-    const place = (list, geo, { color = '#ffffff', shadow = true, scaleFn = (s0) => [s0, s0, s0], tint = 0.25 } = {}) => {
+    const propMeshes = {}; // kind -> its chunk meshes (the vegetation kit swaps their geometry in)
+    const place = (list, geo, { color = '#ffffff', shadow = true, scaleFn = (s0) => [s0, s0, s0], tint = 0.25, kind = null } = {}) => {
       if (!list.length) return;
       this.track(geo);
       const mat = this.track(new MeshLambertMaterial({ color, vertexColors: !!geo.attributes.color }));
@@ -486,6 +488,7 @@ export class BattleRenderer {
         mesh.computeBoundingSphere(); mesh.computeBoundingBox();
         mesh.castShadow = shadow && !beyond; mesh.receiveShadow = true;
         this.scene.add(mesh);
+        if (kind) (propMeshes[kind] ||= []).push(mesh);
       });
     };
     // Vertex-coloured multi-part props, merged: one draw call per kind.
@@ -511,16 +514,19 @@ export class BattleRenderer {
       painted(new IcosahedronGeometry(0.38, 0).translate(-0.25, 0.9, -0.2), dry ? '#83903f' : '#5a9440')
     ]);
     pine.computeVertexNormals(); oak.computeVertexNormals();
-    place(pines, pine, { scaleFn: (s0) => [s0, s0 * (1.1 + (s0 % 0.2)), s0] });
-    place(oaks, oak, { scaleFn: (s0) => [s0 * 1.1, s0, s0 * 1.1] });
-    place(rocks, new DodecahedronGeometry(0.5, 0).translate(0, 0.18, 0), { color: winter ? '#a3a7a8' : '#7d7a70', scaleFn: (s0, i) => [s0, s0 * (0.5 + hash01(i) * 0.4), s0 * (0.8 + hash01(i * 3) * 0.4)] });
+    place(pines, pine, { scaleFn: (s0) => [s0, s0 * (1.1 + (s0 % 0.2)), s0], kind: 'pine' });
+    place(oaks, oak, { scaleFn: (s0) => [s0 * 1.1, s0, s0 * 1.1], kind: 'oak' });
+    place(rocks, new DodecahedronGeometry(0.5, 0).translate(0, 0.18, 0), { color: winter ? '#a3a7a8' : '#7d7a70', scaleFn: (s0, i) => [s0, s0 * (0.5 + hash01(i) * 0.4), s0 * (0.8 + hash01(i * 3) * 0.4)], kind: 'rock' });
     const tuft = mergeGeometries([
       painted(new ConeGeometry(0.035, 0.2, 3, 1, true).rotateZ(0.25).translate(0.04, 0.09, 0), dry ? '#b3aa6a' : '#7da347'),
       painted(new ConeGeometry(0.035, 0.24, 3, 1, true).rotateX(-0.2).translate(-0.03, 0.11, 0.02), dry ? '#a19a5c' : '#8cb054'),
       painted(new ConeGeometry(0.03, 0.17, 3, 1, true).rotateZ(-0.3).translate(-0.05, 0.08, -0.04), dry ? '#c0b67a' : '#6f9a3f')
     ]);
     tuft.computeVertexNormals();
-    place(tufts, tuft, { shadow: false, tint: 0.35 });
+    place(tufts, tuft, { shadow: false, tint: 0.35, kind: 'tuft' });
+    // The vegetation kit (src/assets/battle/nature/vegetation-<kit>.glb) takes the place of the
+    // trees, rocks and tufts once it is in: same chunks, same instances, its geometry (vegetation.js).
+    this.vegetation = new VegetationProps(this, propMeshes);
     // Houses: whitewashed or stone walls under a pitched roof, age-appropriate colours.
     const modern = this.setup.sides[1].ageId === 'modern';
     const house = mergeGeometries([
@@ -1001,6 +1007,7 @@ export class BattleRenderer {
     this.fitShadows();
     if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.copy(this.skyColor).lerp(new Color('#ffffff'), this.flash); }
     this.updateCamera();
+    this.vegetation?.update(this.camera.zoom);
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
     if (cur) this.cityLayer.update(cur);
@@ -1339,6 +1346,8 @@ export class BattleRenderer {
   dispose() {
     this.soldierLayers.forEach((l) => l.levels.forEach((m) => m.dispose()));
     this.cityLayer?.dispose();
+    this.ecoLayer?.dispose();
+    this.vegetation?.dispose();
     this.disposables.forEach((d) => d.dispose?.());
     disposeSoldierCache();
     this.renderer.dispose();

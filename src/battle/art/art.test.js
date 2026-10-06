@@ -129,3 +129,37 @@ describe('kit files', () => {
     expect(parent.children.length).toBe(0);
   });
 });
+
+describe('vegetation kits on the battlefield', async () => {
+  const { VegetationProps, vegetationLodForZoom } = await import('./vegetationProps');
+  const { kitForClimate, vegetationKitFor } = await import('./vegetation');
+  const { InstancedMesh, BoxGeometry, MeshBasicMaterial } = await import('three');
+
+  it('picks the kit from the climate, the terrain or the setup', () => {
+    expect(['Af', 'BWh', 'BSk', 'Csa', 'Cfb', 'Dfc', 'Dfb', 'ET'].map(kitForClimate)).toEqual(['tropical', 'desert', 'steppe', 'mediterranean', 'temperate', 'conifer', 'temperate', 'cold']);
+    expect(vegetationKitFor({ terrain: 'desert' }, null)).toBe('desert');
+    expect(vegetationKitFor({ terrain: 'plains', vegetation: 'steppe' }, null)).toBe('steppe');
+    const tiles = { climate: [9, 6], climateNames: ['Af', 'Am', 'As', 'Aw', 'BSh', 'BSk', 'BWh', 'BWk', 'Cfa', 'Cfb'] };
+    expect(vegetationKitFor({ terrain: 'desert', tile: 0 }, tiles)).toBe('temperate');
+    expect(vegetationKitFor({ terrain: 'plains', tile: 1 }, tiles)).toBe('desert');
+  });
+
+  it('swaps a dropped-in kit into the instanced chunks and follows the zoom; no kit, no change', async () => {
+    const mesh = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 4);
+    const procedural = mesh.geometry;
+    const r = { track: (x) => x, camera: { zoom: 1 }, setup: { terrain: 'plains' } };
+    const kit = parseKit((await parseGlbBytes(kitGlb([{ name: 'tree-l', size: 0.4 }, { name: 'rock-m', size: 0.2 }]))).scene);
+    const v = new VegetationProps(r, { pine: [mesh], tuft: [] }, { ref: { url: 'test://veg' }, load: async () => kit });
+    await v.ready;
+    expect(mesh.geometry).not.toBe(procedural);
+    expect(mesh.count).toBe(4); // the instances stay
+    const lod1 = mesh.geometry;
+    v.update(3); expect(vegetationLodForZoom(3)).toBe(0);
+    expect(mesh.geometry).not.toBe(lod1);
+    const other = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 2);
+    const before = other.geometry;
+    const none = new VegetationProps(r, { pine: [other] }, { ref: null });
+    none.update(3);
+    expect(other.geometry).toBe(before);
+  });
+});
