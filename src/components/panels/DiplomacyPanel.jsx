@@ -128,6 +128,18 @@ const DiplomacyPanel = () => {
           </div>
         </div>
       )}
+      {/* Independents' tribute demands (phase W2, raids.js): pay for peace or refuse and expect raiders. */}
+      {(state.tributeDemands || []).filter((d) => state.nations[d.indepId] && !state.nations[d.indepId].isEliminated).map((d) => (
+        <div key={d.id} className="p-2 rounded bg-amber-900/30 border border-amber-600/50 flex flex-wrap items-center justify-between gap-2" data-testid="tribute-demand">
+          <div className="text-xs text-amber-100 min-w-0">
+            <span className="font-semibold">{state.nations[d.indepId].name}</span> demand {d.gold} gold a turn for {d.turns} turns, or they raid you (answer by turn {d.expires}; paying also keeps you from attacking them meanwhile).
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <button type="button" className="min-h-[44px] px-3 rounded bg-amber-700 hover:bg-amber-600 text-xs font-semibold text-white" onClick={() => dispatch({ type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: d.id, pay: true } })}>Pay</button>
+            <button type="button" className="min-h-[44px] px-3 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-100" onClick={() => dispatch({ type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: d.id, pay: false } })}>Refuse</button>
+          </div>
+        </div>
+      ))}
       {playerNation?.vassalOf && (
         // Plan §M12/§M15: a vassal's own path out of subjection — liberty desire rises the
         // stronger the vassal grows relative to its overlord (resolveTurn.js), and clears the

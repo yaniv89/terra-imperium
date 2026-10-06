@@ -358,6 +358,49 @@ neutral until raids exist. Balance items: civil wars among majors roughly double
 is Tier 1 (seen with and without independents); ms per turn rises about 30 ms at Standard
 (110 more cities) against the W0 world.
 
+## 12c. Status of W2 (2026-10-06, branch claude/phase-w2-independents-ai, on W1 e17aa098)
+
+Scope as decided on 2026-10-06 (master plan decisions 37 and 38): the independents' own AI with
+raids, sacks, grudges and tribute demands, plus mercenaries; **no captives** (dropped by the user:
+units lost are gone); battles through the auto-resolve until R3.
+
+Done:
+- `src/engine/raids.js`: one cheap pass in resolveTurn after the majors' operations. Treasury
+  (`indep.gold`: the city's gold, x2 mercantile, capped 400); think every 3 turns, staggered;
+  the 4.3 loop (threat and recall, recovery, a raid from a ring scan with the plan's score and
+  roll, else a tribute demand); raids walk tile routes (one A* at the start and one home) for at
+  most 8 turns, fight an army in the way only when 1.2x stronger, and abort when beaten down, when
+  home is threatened or when the target is gone. Targets: improvements (pillaged), the player's
+  trade-route tiles (loot from the victim, the route cut while the party stands there), settlers
+  (killed), outposts (burned: progress lost) and weak cities (sack). Warnings and log lines for the
+  player; `raidedBy` for the "raided us" opinion reason.
+- Sack (4.4, master plan 6.5 and 6.8): 3 turns of the city's gold (at least 15), one size and one
+  building tier, never more than half of either, never a capture (`sackedCity`).
+- `src/engine/raidBattle.js` `fightRaidBattle`: the one function R3 replaces (RaidBattleOutcome).
+- `src/engine/grudges.js`: grudges 0..100, -2 a turn; +20 when a nation kills its units (raid
+  battles, field battles, assaults) or pillages its land, +40 to kin (same art theme) when a nation
+  takes an independent's city, +20 for a refused or missed tribute.
+- Tribute (4.5): raiders and tribal demand 2 + age rank gold a turn for 20 turns from a neighbour
+  they hate or outweigh; AI majors pay when outweighed and able; the player answers in Relations
+  (pay or refuse; silence for 3 turns is a refusal). Paying is a truce both ways (hostility.js).
+- `src/engine/mercenaries.js`: mercantile and raiders sell bands (stock 2, one more every 10
+  turns): price 60 + 25 x age rank, upkeep 3 + age rank a turn to the seller, 20-turn contract,
+  gone when unpaid; raiders sell cavalry, mercantile infantry. The player hires from the city panel;
+  AI majors at war or raided lately hire with 2x the price in gold; a threatened mercantile city
+  hires a defender. The queue keeps RAID_RESERVE units above the garrison (raiders 2, tribal and
+  fortress 1, mercantile 0); raiders train cavalry for them.
+- Placeholder UI: tribute demands with Pay / Refuse (44 px) in Relations; the city panel of an
+  independent shows mood, grudge, tribute, a raid against you and the mercenary market.
+- Saves: optional fields only (`indep.gold`, `mood`, `raid`, `grudges`, `lastRaidTurn`,
+  `recoverUntil`, `tributeFrom`, `truceWith`, `demandedTurn`, `mercStock`, `mercTurn`;
+  `nation.raidedBy`; unit `raidOf`, `mercenary`; city `sackedTurn`, `burnedTurn`;
+  `state.tributeDemands`, `state.indepStats`): no version bump.
+
+Left for later: R3 (the RTS raid and sack battles: swap `fightRaidBattle`); the tribal league
+(neighbours sending a unit in a siege, 4.3 step 1) and spending surplus gold on walls (4.3 step 5);
+the map's raid markers and the independent sheet (W4); AI majors defending against raiders and
+conquering independents, trade, peaceful joining, razing (W3).
+
 ## 13. Decisions (from the user, 2026-10-03)
 
 1. **Default world size: Standard, 35 major nations.**
