@@ -88,3 +88,40 @@ the target in full sight; otherwise the scouts' range.
 - Wider sheets for Research and Pre-battle; Pre-battle and Settings hide the tab rail.
 - Missing screens still to sketch: fleets and landings, tutorial for the first five minutes, desktop versions
   of the map and the battle, save and load, game over.
+
+## U1b status: the war screens (branch claude/phase-u1b-ui-war)
+
+Screenshots at 844x390 and 1280x800 in `plans/ui/u1b/` (`node scripts/ui/u1b-shots.mjs`, `node
+scripts/ui/u1b-battle-shots.mjs` with a dev server). Shared pieces: `src/components/battle/warModel.js`
+(men and lines, where odds come from, the scouts' range, 300 a side and waves, walls, houses and the 50%
+rule) and `warAtlas.jsx` (force cards, Command / Auto / Withdraw cards, the explain box, the odds bar).
+
+- W14 You are attacked: done (DefenseSheet.jsx, defenseSheetModel.js). Gap: no "your nearest army, N turns
+  away" line (needs a relief estimate); Withdraw is offered for cities only, as the engine allows.
+- W11 Pre-battle: done (PreBattleModal.jsx, preBattleModel.js). Gaps: "300 a side and waves" counts
+  regiments against the ground's front width (combatWidth): the regiment-to-representatives mapping (RTS
+  plan 5.1) is not in the sim yet; the 500 / 1,000 presets wait for W12 and R3; the fog keeps no "last
+  seen T27" turn for a garrison; the scouts' range is the real strength plus or minus a fifth (UI only).
+- W16 Battle reports: done (BattleReportSheet.jsx, battleReportsModel.js). Gaps: reports keep no event
+  timeline ("5:30 East wall breached"), no city damage, XP or general's fate; commanded battles keep no
+  replay; raids are not reported until R3 swaps raidBattle.js.
+- W13 Peace deal: done (PeaceDealSheet.jsx, peaceDealModel.js; PeaceOfferSheet.jsx restyled). Notes: "the
+  most they give" is the engine's own ledger filled cheapest first (the AI makes no counter-offer of its
+  own); the ledger's "War situation" reads the war score stored each turn, so it can lag the live parts
+  shown on the left until the turn ends.
+- W15 Raiders and tribute: done (TributeDemandSheet.jsx on the right so the raid stays in view; raid chips
+  on the flat map restyled). The WebGL map's raid marks belong to the world map (U1 step 3).
+- B01 Battle HUD: done (BattleHud.jsx, battleHudModel.js): one battle top bar, regiment cards, labelled
+  commands and ability cards. Gaps: regiment cards group by kind (the sim has no regiment names such as
+  "Kish Spears"); no minimap; Stop moved to the long-press ring.
+- B05 City assault: done (housing as houses burn, the 50% line, gate, towers and keep, the target of the
+  selection). Gap: "Spare houses" needs a sim order (no rule exists).
+- B06 Alerts and pause: done (two alerts with Go, older ones folded into a count; the pause sheet with
+  Resume, speed, time left, Switch to Auto and Retreat apart, sound, powers; "Give orders" sets it aside).
+  Gaps: alerts are read from frame differences in the UI (no sim event stream); older ones cannot ping a
+  minimap that does not exist.
+- B08 Result: done (BattleResultScreen.jsx; autoCompare.js): losses, XP by the outcome service's formula,
+  the general's fate by the same roll as aftermath.js, the city under the 50% rule, loot, Auto's odds for
+  the same battle. Gaps: the war score change is only known after Continue (the outcome service applies
+  it); loot is the battle economy's gold only.
+- W06 Army move and B07 Field battle: not done, they need phase R3.
