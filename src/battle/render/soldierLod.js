@@ -126,15 +126,20 @@ export const soldierLodGeometries = (geo) => {
 // many soldiers are drawn this frame per layer and `tris[level]` their triangles per level, as
 // [{ figures, tris: [t0, t1, t2] }]; `budget` the triangles the figures may use (level 0 counts
 // twice: it also draws into the shadow map). `prev` is last frame's level, for hysteresis.
-export const pickSoldierTier = ({ px, layers, budget, prev = 2 }) => {
+// `bias` (adaptive detail, BattleRenderer.adaptDetail): that many levels finer than the size on
+// screen asks for; with a bias the budget is lifted 3x a level (the frame time is then the judge;
+// the plain budget is the floor for slow devices).
+export const pickSoldierTier = ({ px, layers, budget, prev = 2, bias = 0 }) => {
   const levels = TIER_TRIS.length;
   let tier = levels - 1;
   for (let k = 0; k < levels - 1; k++) {
     const need = TIER_PX[k] * (prev <= k ? 1 - TIER_HYSTERESIS : 1 + TIER_HYSTERESIS); // stay on a level until clearly past it
     if (px >= need) { tier = k; break; }
   }
+  tier = Math.max(0, tier - bias);
+  const lifted = budget * 3 ** bias;
   const cost = (k) => layers.reduce((s, l) => s + l.figures * l.tris[k] * (k === 0 ? 2 : 1), 0);
   // Coarser while over the budget; a finer level than last frame only with some room to spare.
-  while (tier < levels - 1 && cost(tier) > budget * (tier < prev ? 0.85 : 1)) tier += 1;
+  while (tier < levels - 1 && cost(tier) > lifted * (tier < prev ? 0.85 : 1)) tier += 1;
   return tier;
 };
