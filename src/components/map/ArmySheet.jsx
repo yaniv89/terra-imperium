@@ -12,6 +12,7 @@ import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
 import { startMarch } from './marchEvents';
 import { armySheetModel } from './armySheetModel';
+import { UnitIcon } from '../ui/icons';
 
 const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
   const { state, dispatch } = useGame();
@@ -57,6 +58,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
             {g.units.map((u) => (
               <li key={u.id} className="flex items-center gap-2 rounded-lg px-2 min-h-[40px] text-xs bg-slate-800/60 border border-slate-700/60">
                 {model.unitIds.length > 1 && !model.route && <input type="checkbox" aria-label={`March ${u.name}`} checked={!picked || picked.has(u.id)} onChange={() => togglePick(u.id)} className="w-5 h-5 shrink-0" data-testid="army-pick" />}
+                <UnitIcon classId={u.classId} navalLine={u.navalLine} ageId={state.age} size={28} />
                 <div className="min-w-0 flex-1">
                   <div className="text-slate-100 truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? ` · ${u.promotions} promotion${u.promotions === 1 ? '' : 's'}` : ''}</div>
                   <div className="text-slate-400">{u.strength}/{u.maxStrength} · morale {u.morale}{model.naval ? ` · aboard ${u.cargo}` : ` · supply ${u.supply}/${u.supplyMax}`} · moves {u.moves}/{u.movePoints}</div>

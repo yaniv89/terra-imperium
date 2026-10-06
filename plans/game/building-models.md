@@ -10,15 +10,18 @@ ground round it: first near the town's rim on the back (north) side, away from i
 town, then just outside the wall ring between its fields. They take the town's scale (the hex and
 room capped one), tilt, level of detail and Team colour, and never stand on water or on anything
 else (other towns, works, fields, other landmarks). No file means nothing is drawn and the town
-stays exactly as before. Today no building file is in the repo, so the game looks unchanged until
-the art session's `*-israelite.glb` files land.
+stays exactly as before. The ten Israelite landmarks (barracks, copper_mine, granary, harbor,
+irrigation, library, market, scriptorium, shrine, workshop; from claude/bronze-towns) are the
+first files; other lands draw nothing until their files arrive.
 
-![Jerusalem at k 120 with three placeholder landmarks](building-models/desktop-k120.png)
+![Jerusalem at k 120 with its Israelite landmarks](building-models/desktop-k120.png)
 
-The boxes with a blue flag are placeholder GLBs from the test fixture (`glbFixture.js`), written
-locally for the screenshot only and not committed: the real Israelite models were not on
-`origin/art/maghreb-westafrica` yet. Two stand on the back rim of the town, one outside the wall
-to the north; the fields keep their places east and west.
+Jerusalem was given a Shrine, Granary, Barracks, Palisade and a Copper Mine. As a medium town it shows
+three: the fortress sanctuary (shrine) and the chariot stables (barracks) on the back rim, the
+Megiddo silo (granary) just outside the wall to the north; the copper mine is fourth and left out.
+The fields keep their places east and west.
+
+![close up](building-models/jerusalem-crop.png)
 
 | Desktop, k 60 | Phone landscape 844x390, k 120 |
 |---|---|
@@ -26,6 +29,9 @@ to the north; the fields keep their places east and west.
 
 On the phone Jerusalem is squeezed by Ramallah next door (`townGapUnits`), so the spot outside its
 wall is taken by Ramallah's ground and only the rim spots are used.
+
+Note: the Israelite town and its landmarks render dark grey in this check (software GL), while the
+Levant town next door is sandy; worth a look on a real GPU in case the Israelite atlas is too dark.
 
 ## Files
 
@@ -58,6 +64,10 @@ wall is taken by Ramallah's ground and only the rim spots are used.
 
 ## Performance
 
+The delivered landmarks are 15 to 18 m by 10 to 14 m (1.5 to 1.8 by 1.0 to 1.4 units), so
+`BUILDING_DISC` is 0.8 units. Each file's root is named after the file (`granary-israelite`):
+`buildingRoot` picks that object, then the bare id, then the file's only object.
+
 Draw calls grow with the kinds of landmark on screen, not with the towns: a model with Town and
 Team parts costs 2 draw calls whatever the number of towns showing it. The check above measured 6
 extra draw calls for three different models. Per frame the work is a few `landAt` lookups and
@@ -69,16 +79,15 @@ matrix products per town with landmarks; the picks and spots are cached.
   the cap; zero files draw nothing; inner spots on the back rim inside the ground and clear of the
   palace; outer spots outside the wall, never at the gate, clear of fields; greedy assignment; and a
   generated GLB parsed by GLTFLoader through `loadAssetObjects` into the instanced layer (40 towns,
-  2 draw calls, Team tinted per town).
-- Browser: Playwright with `/opt/pw-browsers/chromium`, `npx vite`, Israel's capital given seven
+  2 draw calls, Team tinted per town), plus the delivered granary-israelite.glb (meshopt) read into
+  Town and Team parts for each LOD.
+- Browser: Playwright with `/opt/pw-browsers/chromium`, `npx vite`, Israel's capital given five
   buildings through `window.__game`, `window.__map2DTest.focus` at k 16 to 120, desktop and phone.
   No page errors; the only console notices were the software GL driver's ReadPixels stalls.
 
 ## Open
 
-- Recheck with the real Israelite models once `origin/art/maghreb-westafrica` has
-  `src/assets/map/buildings/*-israelite.glb`: copy them in locally, run the same check, look at
-  scale (the code assumes the files use the town files' units, 1 unit = 10 m).
-- The naval line could prefer a spot on the coast side; today it takes the first free land spot.
+- Done on art/wonders-buildings: naval landmarks stand only on the shore, their quay facing the water
+  (plans/art-pilot/wonders-buildings/README.md). The 25 base landmarks are in.
 - `cathedral-a` / `cathedral-b` (spec section 4) would read as style `a` / `b`: if both are
   delivered, name them `cathedral.glb` and `cathedral-<style>.glb` or add a variant rule.

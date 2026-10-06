@@ -1,0 +1,182 @@
+{
+  "file": "atomic_research_center.glb",
+  "kind": "wonder",
+  "bytes": 5639584,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "tier1": {
+      "lods": {
+        "LOD0": {
+          "triangles": 6256,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 2.68,
+          "depth": 2.08,
+          "height": 1.385,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 6256,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 2.68,
+          "depth": 2.08,
+          "height": 1.385,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 1455,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 2.68,
+          "depth": 2.08,
+          "height": 1.385,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 2.68
+    },
+    "tier2": {
+      "lods": {
+        "LOD0": {
+          "triangles": 8605,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 5.796,
+          "depth": 3.08,
+          "height": 3,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 8605,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 5.796,
+          "depth": 3.08,
+          "height": 3,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 1455,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 5.775,
+          "depth": 3.045,
+          "height": 2.86,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 5.796
+    },
+    "tier3": {
+      "lods": {
+        "LOD0": {
+          "triangles": 14619,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 9.414,
+          "depth": 8.207,
+          "height": 3.1,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 9700,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 9.414,
+          "depth": 8.207,
+          "height": 3.1,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 1455,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 9.4,
+          "depth": 8.2,
+          "height": 3.1,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 9.414
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "basecolor",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 127572
+    },
+    {
+      "name": "surface-properties",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 8144
+    }
+  ],
+  "passed": true
+}

@@ -10,6 +10,7 @@ import { cityLatLon } from '../../data/geo/cityFeatures';
 import { getNationColor } from '../../data/nationColors';
 import { loyaltyOf } from '../../engine/loyalty';
 import { OUTPOST_DONE } from '../../engine/settlers';
+import { markerIconUrl } from '../../data/icons';
 import { townTier } from './closeView/townTiers';
 import { townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE } from './closeView/scale';
 import { getTiles } from '../../data/geo/tiles';
@@ -59,10 +60,10 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
       >
         <span className="city-banner-size">{outpost != null ? '⛺' : city.size || 1}</span>
         <span className="city-banner-name">
-          {city.isCapital && <span className="city-banner-star" aria-hidden="true">★</span>}
+          {city.isCapital && (markerIconUrl('capital') ? <img src={markerIconUrl('capital')} alt="" className="city-banner-star city-banner-icon" width={14} height={14} draggable={false} /> : <span className="city-banner-star" aria-hidden="true">★</span>)}
           {city.name}
           {disloyal && <span className="city-banner-warn" title="Loyalty is low" data-loyalty-warning={city.id}>!</span>}
-          {city.siege && <span className="city-banner-siege" title="Under siege" data-siege-badge={city.id}>⚔</span>}
+          {city.siege && <span className="city-banner-siege" title="Under siege" data-siege-badge={city.id}>{markerIconUrl('battle') ? <img src={markerIconUrl('battle')} alt="" className="city-banner-icon" width={14} height={14} draggable={false} /> : '⚔'}</span>}
         </span>
         {(siege != null || outpost != null) && (
           <span className="city-banner-bar" aria-hidden="true">

@@ -4,8 +4,8 @@
 // one a region builds (granary-israelite.glb); each holds one root object named after the id with
 // LOD0..LOD2 children, the format of the shared files. A town shows its highest tiers that have a
 // file, at most a few, on free spots of its ground: near the rim on the back (north) side, away
-// from its banner, or just outside its wall ring between its fields. With no file nothing is drawn
-// and the town stays as it is. Pure (no three.js); unit tested. Drawn by buildingLayer.js.
+// from its banner, or just outside its wall ring between its fields; a naval landmark only on the
+// shore, facing the water. With no file nothing is drawn and the town stays as it is. Pure (no three.js); unit tested. Drawn by buildingLayer.js.
 import { styleChain } from '../../../data/architecture';
 import { getAgeIndex } from '../../../data/ages';
 import { BUILDING_CATEGORIES } from '../../../data/buildings';
@@ -38,6 +38,13 @@ export const indexBuildingFiles = (files) => {
 };
 const FILES = import.meta.glob('../../../assets/map/buildings/*.glb', { query: '?url', import: 'default', eager: true });
 const BY_ID = indexBuildingFiles(FILES);
+
+/** The object to draw from a loaded file: the one named after the file (granary-israelite), the
+ * bare id (granary), or the file's only object. */
+export const buildingRoot = (objs, id, url) => {
+  const file = (url || '').match(/\/([a-z_]+(?:-[a-z]+)?)(?:-[\w]{6,})?\.glb/)?.[1];
+  return (file && objs[file]) || objs[id] || Object.values(objs)[0];
+};
 
 /** The file for a building model on land of this style: its style chain first, then the base
  * file, or null (nothing is drawn). */
@@ -86,8 +93,9 @@ export const pickBuildingModels = (region, style = null, tierId = 'small', index
 };
 
 // ---- placement -----------------------------------------------------------------------------------
-// Model units (10 m): a landmark is 10 to 20 m across, the disc round it BUILDING_DISC.
-export const BUILDING_DISC = 0.7;
+// Model units (10 m): a landmark is 10 to 20 m across (the Israelite ones 15 to 18 m by 10 to 14),
+// the disc round it BUILDING_DISC.
+export const BUILDING_DISC = 0.8;
 // The town's square ground reaches TOWN_HALF each way; the wall ring's outer edge WALL_OUTER (the
 // shared files' walls-small, -medium and -big; the same ring with or without walls, so a town
 // that builds its walls later keeps its landmarks where they stood).
@@ -102,15 +110,17 @@ const OUTER_STEP = 20;
 const GATE = [245, 295];
 const ARMY = [-60, -10];
 const FIELD_HALF = 0.8; // a field's half length along the ring (townAssets fieldsAround)
+const SHORE_OUT = 0.2; // a shore spot's centre beyond the edge of the town's ground
 
 const inArc = (deg, [a, b]) => { const d = ((deg % 360) + 360) % 360; const lo = ((a % 360) + 360) % 360; const hi = ((b % 360) + 360) % 360; return lo <= hi ? d >= lo && d <= hi : d >= lo || d <= hi; };
 const angleGap = (a, b) => { const d = Math.abs((((a - b) % 360) + 360) % 360); return Math.min(d, 360 - d); };
 
 /**
  * Where a town's landmarks may stand, in its model space (glTF: x east, z south), most wanted
- * first: [{ x, z, yaw, inner }]. Inner spots lie on the town's ground (only other landmarks can
- * be in the way); outer spots lie just outside the wall ring, clear of the town's own `fields`
- * ([{ x, z }] from fieldsAround), and must still find free land on the map (occupancy.js).
+ * first: [{ x, z, yaw, inner, shore? }]. Inner spots lie on the town's ground (only other
+ * landmarks can be in the way); outer spots lie just outside the wall ring, clear of the town's
+ * own `fields` ([{ x, z }] from fieldsAround), and must still find free land on the map
+ * (occupancy.js); shore spots, last, on the ground's edge all round, are for naval landmarks only.
  */
 export const buildingSpots = (tierId, seed = 0, fields = []) => {
   const half = TOWN_HALF[tierId] || TOWN_HALF.small;
@@ -120,7 +130,7 @@ export const buildingSpots = (tierId, seed = 0, fields = []) => {
     const a = (deg * Math.PI) / 180;
     return { x: r * Math.cos(a), z: -r * Math.sin(a), yaw: 0, inner, deg };
   };
-  const inner = (INNER_ANGLES[tierId] || INNER_ANGLES.small).map((d) => spot(d + shift, half - BUILDING_DISC - 0.05, true));
+  const inner = (INNER_ANGLES[tierId] || INNER_ANGLES.small).map((d) => spot(d + shift, half - BUILDING_DISC + 0.05, true));
   const rOut = wall + 0.1 + BUILDING_DISC;
   const fieldAngles = fields.map((f) => (Math.atan2(-f.z, f.x) * 180) / Math.PI);
   const fieldR = fields.length ? Math.hypot(fields[0].x, fields[0].z) : 0;
@@ -134,23 +144,48 @@ export const buildingSpots = (tierId, seed = 0, fields = []) => {
     outer.push(spot(deg, rOut, false));
   }
   outer.sort((a, b) => angleGap(a.deg, 90) - angleGap(b.deg, 90) || a.deg - b.deg);
-  return [...inner, ...outer].map(({ deg: _deg, ...s }) => s);
+  // Shore spots, for naval landmarks only: on the edge of the town's ground all round (bar the
+  // gate and the army). A coastal town's ground reaches almost to the water (its room is capped
+  // by the coast), so the ring outside the wall is mostly sea and the shore runs along this edge.
+  const shore = [];
+  for (let d = 0; d < 360; d += OUTER_STEP) {
+    const deg = d + shift;
+    if (inArc(deg, GATE) || inArc(deg, ARMY)) continue;
+    if (fieldAngles.some((fa) => angleGap(fa, deg) < clear)) continue;
+    shore.push({ ...spot(deg, half + SHORE_OUT, false), shore: true });
+  }
+  return [...inner, ...outer, ...shore].map(({ deg: _deg, ...s }) => s);
 };
+
+// Naval landmarks (harbor, shipyard and the later naval tiers) stand on the shore: the file's
+// front (+z, south) is the quay and the open water before it. They take only a shore spot or an
+// outer one, turned so the front faces away from the town, and only where the map finds water in
+// front (the accept callback); a town with no such spot shows none rather than a harbor on dry land.
+const COASTAL_IDS = new Set(BUILDING_MODEL_IDS.naval);
+/** Whether a landmark must stand on the shore with its front to the water. */
+export const needsCoast = (id) => COASTAL_IDS.has(id);
+/** A spot turned so the model's front (+z) faces straight away from the town's centre. */
+export const facingOut = (spot) => ({ ...spot, yaw: Math.atan2(spot.x, spot.z) });
 
 /**
  * Give each landmark (most important first) the first spot that is clear of the landmarks
- * already placed and that `accept(spot)` allows (on land, and for an outer spot free on the
- * map). Returns [{ model, spot }] for the landmarks that found one; the rest are not drawn.
+ * already placed and that `accept(spot, model)` allows (on land, for an outer spot free on the
+ * map, for a naval one water in front). A naval landmark tries only outer spots, facing out.
+ * Returns [{ model, spot }] for the landmarks that found one; the rest are not drawn.
  */
 export const assignSpots = (models, spots, accept = () => true) => {
   const out = [];
   const used = new Set();
   models.forEach((model) => {
-    for (let i = 0; i < spots.length; i++) {
+    const coastal = needsCoast(model.id);
+    // a naval landmark tries the shore of the town's ground first, then the ring outside the wall
+    const order = coastal ? [...spots.keys()].filter((i) => spots[i].shore).concat([...spots.keys()].filter((i) => !spots[i].shore)) : spots.keys();
+    for (const i of order) {
       if (used.has(i)) continue;
-      const s = spots[i];
+      if (coastal ? spots[i].inner : spots[i].shore) continue;
+      const s = coastal ? facingOut(spots[i]) : spots[i];
       if (out.some((o) => (o.spot.x - s.x) ** 2 + (o.spot.z - s.z) ** 2 < (2 * BUILDING_DISC) ** 2)) continue;
-      if (!accept(s)) continue;
+      if (!accept(s, model)) continue;
       used.add(i);
       out.push({ model, spot: s });
       return;

@@ -1,7 +1,7 @@
 {
   "file": "copper_mine-israelite.glb",
   "kind": "landmark",
-  "bytes": 347204,
+  "bytes": 347192,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,7 +19,7 @@
     "file_size": true
   },
   "objects": {
-    "copper_mine-israelite": {
+    "copper_mine": {
       "lods": {
         "LOD0": {
           "triangles": 1255,

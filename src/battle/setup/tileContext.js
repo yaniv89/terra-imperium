@@ -45,7 +45,7 @@ export const tileContextOf = (state, tile, { fromTile = null, city = null } = {}
     sectors,
     coastal: sectors.some((s) => s.water && !s.lake),
     walls: city ? wallsOf(city) : 0,
-    hpRatio: city ? Math.max(0, Math.min(1, siegeHpOf(city) / Math.max(1, siegeMaxHp(city)))) : 1,
+    hpRatio: city ? Math.max(0, Math.min(1, siegeHpOf(city, state?.greatProjects) / Math.max(1, siegeMaxHp(city, state?.greatProjects)))) : 1,
     roads: (!!tileState[tile]?.road && !tileState[tile]?.pillaged ? 1 : 0) + sectors.filter((s) => s.road).length
   };
 };

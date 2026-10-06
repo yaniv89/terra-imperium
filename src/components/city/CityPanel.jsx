@@ -26,7 +26,8 @@ import {
 import { templatesOf, nextTemplateUnit, templateProgress, templateSize } from '../../engine/armyTemplates';
 import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
 import { wonderOptions, wonderItem } from '../../engine/wonders';
-import { GREAT_PROJECTS } from '../../data/greatProjects';
+import { GREAT_PROJECTS, cityWonderTotal } from '../../data/greatProjects';
+import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } from '../ui/icons';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
 
@@ -48,6 +49,25 @@ const itemLabel = (item, tiles, ageId = 'bronze') => {
   return item.kind;
 };
 
+// The icon of a production item (build list and queue): the delivered art, fixed size.
+const ItemIcon = ({ item, ageId, size = 28 }) => {
+  if (item.kind === 'unit') return <UnitIcon classId={item.classId} navalLine={item.navalLine} ageId={ageId} size={size} />;
+  if (item.kind === 'settler') return <UnitIcon classId="settler" ageId={ageId} size={size} />;
+  if (item.kind === 'army') return <UnitIcon classId={nextTemplateUnit(item) || Object.keys(item.composition || {})[0] || 'infantry'} ageId={ageId} size={size} />;
+  if (item.kind === 'building') return <BuildingIcon category={item.category} tier={item.tier} size={size} />;
+  if (item.kind === 'wonder') return <WonderIcon projectId={item.projectId} size={size} />;
+  if (item.kind === 'improvement') return <ImprovementIcon improvementId={item.improvement} size={size} />;
+  return <span className="inline-block shrink-0" style={{ width: size, height: size }} />;
+};
+
+// A tile's resource and improvement as small icons ahead of its description.
+const TileMarks = ({ facts }) => (facts.resource || facts.improvement ? (
+  <span className="inline-flex items-center gap-0.5 mr-1 align-middle">
+    {facts.resource && <ResourceIcon resourceId={facts.resource} size={16} />}
+    {facts.improvement && <ImprovementIcon improvementId={facts.improvement} size={16} />}
+  </span>
+) : null);
+
 const Yield = ({ icon: Icon, value, title, className = '' }) => (
   <span className={`inline-flex items-center gap-0.5 ${className}`} title={title}><Icon className="w-3 h-3" />{value}</span>
 );
@@ -65,8 +85,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const live = useMemo(() => {
     if (!city) return null;
     const worked = allocateTiles(city, tiles, world, researched);
-    return { worked, yields: cityYields(city, tiles, world, worked, researched, { luxuries: (city.lastYields?.luxuries || []).length }) };
-  }, [city, tiles, world, researched]);
+    return { worked, yields: cityYields(city, tiles, world, worked, researched, { luxuries: (city.lastYields?.luxuries || []).length, cultureBonus: cityWonderTotal(state.greatProjects, city.id, 'local.culture') }) };
+  }, [city, tiles, world, researched, state.greatProjects]);
   const yields = live?.yields || { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
   const housing = city ? housingOf(city, researched) : 0;
   const amen = city ? amenitiesOf(city, { luxuries: (city.lastYields?.luxuries || []).length }) : { need: 0, supply: 0, net: 0 };
@@ -141,7 +161,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           {tileRows.map(({ tile, facts, y, worked, locked, centre }) => (
             <li key={tile} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs ${worked ? 'bg-emerald-900/30 border border-emerald-700/40' : 'bg-slate-800/60 border border-slate-700/60'}`}>
               <div className="min-w-0 flex-1">
-                <div className="text-slate-100 truncate capitalize">{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${DISTRICTS[facts.district]?.name || facts.district}${facts.pillaged ? ' (pillaged)' : ''}` : ''}</div>
+                <div className="text-slate-100 truncate capitalize"><TileMarks facts={facts} />{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${DISTRICTS[facts.district]?.name || facts.district}${facts.pillaged ? ' (pillaged)' : ''}` : ''}</div>
                 <div className="text-slate-400 flex gap-2">
                   <Yield icon={Wheat} value={y.food} title="Food" className="text-emerald-300" />
                   <Yield icon={Hammer} value={y.production} title="Production" className="text-amber-300" />
@@ -169,7 +189,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                 return (
                   <li key={c.tile} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs bg-slate-800/60 border border-slate-700/60">
                     <div className="min-w-0 flex-1">
-                      <div className="text-slate-100 truncate capitalize">{describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''} <span className="text-slate-500">ring {c.ring}</span></div>
+                      <div className="text-slate-100 truncate capitalize"><TileMarks facts={facts} />{describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''} <span className="text-slate-500">ring {c.ring}</span></div>
                       <div className="text-slate-400 flex gap-2">
                         <Yield icon={Wheat} value={y.food} title="Food" className="text-emerald-300" />
                         <Yield icon={Hammer} value={y.production} title="Production" className="text-amber-300" />
@@ -237,6 +257,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
               const progress = i === 0 ? city.production.progress : 0;
               return (
                 <li key={`${JSON.stringify(item)}-${i}`} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs bg-slate-800/60 border border-slate-700/60">
+                  <ItemIcon item={item} ageId={ageId} />
                   <div className="min-w-0 flex-1">
                     <div className="text-slate-100 truncate">{i === 0 ? '' : `${i + 1}. `}{itemLabel(item, tiles, ageId)}</div>
                     <div className="text-slate-400">{i === 0 ? `${Math.round(progress)}/${cost} · ` : `${cost} · `}{turnsFor(item, progress)} turn{turnsFor(item, progress) === 1 ? '' : 's'}</div>
@@ -265,8 +286,10 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                 const cost = productionCost(o.item, costCtx);
                 return (
                   <li key={JSON.stringify(o.item)} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs border ${o.ok ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-900/60 border-slate-800 opacity-70'}`}>
+                    <ItemIcon item={o.item} ageId={ageId} />
                     <div className="min-w-0 flex-1">
                       <div className="text-slate-100 truncate">{itemLabel(o.item, tiles, ageId)}</div>
+                      {o.item.kind === 'wonder' && <div className="text-slate-500 text-[10px] leading-snug" data-testid="wonder-description">{GREAT_PROJECTS[o.item.projectId]?.description}</div>}
                       <div className="text-slate-400">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } })} className="underline text-sky-300 min-h-[24px]" data-testid="research-for-item">Research it</button></> : o.reason}</div>
                     </div>
                     <button type="button" disabled={!o.ok} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-emerald-700/70 text-white disabled:opacity-40" aria-label={`Build ${itemLabel(o.item, tiles, ageId)}`} data-testid="queue-item">
@@ -312,7 +335,7 @@ const ArmyTemplateEditor = ({ state, dispatch, ageId }) => {
           <div className="grid grid-cols-2 gap-1">
             {classes.map((c) => (
               <div key={c} className="flex items-center justify-between rounded bg-slate-800/60 px-2 min-h-[36px]">
-                <span className="text-slate-200" title={unitClassLabel(c)}>{unitDisplayName(ageId, c)}</span>
+                <span className="text-slate-200 inline-flex items-center gap-1 min-w-0" title={unitClassLabel(c)}><UnitIcon classId={c} ageId={ageId} size={18} /><span className="truncate">{unitDisplayName(ageId, c)}</span></span>
                 <span className="flex items-center gap-1">
                   <button type="button" onClick={() => bump(c, -1)} className="min-w-[32px] min-h-[32px] rounded bg-slate-700 text-white" aria-label={`Fewer ${c}`}>-</button>
                   <span className="w-5 text-center text-white">{draft.composition[c] | 0}</span>

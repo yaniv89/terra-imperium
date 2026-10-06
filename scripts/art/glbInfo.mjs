@@ -23,6 +23,6 @@ export const readGlbJson = (path) => {
 export const isPacked = (json) => (json.extensionsUsed || []).includes('EXT_meshopt_compression');
 
 /** The close view's map model folders. */
-export const MAP_MODEL_DIRS = ['src/assets/map/towns', 'src/assets/map/shared', 'src/assets/map/buildings', 'src/assets/map/wonders'];
+export const MAP_MODEL_DIRS = ['src/assets/map/towns', 'src/assets/map/shared', 'src/assets/map/buildings', 'src/assets/map/wonders', 'src/assets/map/improvements'];
 /** Every map model file, as paths from the repository root. */
 export const mapModelFiles = () => MAP_MODEL_DIRS.flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.glb')).map((f) => join(d, f)));

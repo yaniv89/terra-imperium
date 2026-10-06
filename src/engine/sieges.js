@@ -26,6 +26,7 @@ import { unitTile } from './armies';
 import { isBlockaded, isFleet, portWaters } from './fleets';
 import { NAVAL_BOMBARD, navalBombards } from '../data/navalLines';
 import { isSettler } from './settlers';
+import { cityWonderTotal } from '../data/greatProjects';
 
 export const SIEGE_HP_BASE = 200;
 export const SIEGE_STRENGTH_SIEGE = 40;
@@ -40,8 +41,10 @@ export const MAX_WALLS = 3;
 
 /** Walls from the Defense building line: none 0, Palisade 1, Stone Walls 2, Star Fort and up 3. */
 export const wallsOf = (city) => Math.min(MAX_WALLS, (city.buildings?.categories?.defense ?? -1) + 1);
-export const siegeMaxHp = (city) => Math.round(SIEGE_HP_BASE * (1 + wallsOf(city)) * (1 + (city.size || 1) / 10));
-export const siegeHpOf = (city) => (city.siege ? city.siege.hp : siegeMaxHp(city));
+// `greatProjects` (state.greatProjects): a national fortress wonder in the city (Masada,
+// greatProjects.js cityEffects 'local.wallHp') raises the walls' HP by its share.
+export const siegeMaxHp = (city, greatProjects = null) => Math.round(SIEGE_HP_BASE * (1 + wallsOf(city)) * (1 + (city.size || 1) / 10) * (1 + cityWonderTotal(greatProjects, city.id, 'local.wallHp')));
+export const siegeHpOf = (city, greatProjects = null) => (city.siege ? city.siege.hp : siegeMaxHp(city, greatProjects));
 
 const hostile = (state, nationId, ownerId) => ownerId === REBEL_OWNER_ID || (state.wars || []).some((w) => w.active && isWarBetween(w, nationId, ownerId));
 
@@ -113,8 +116,9 @@ export const processSieges = (state, regions, units, { turn }) => {
     const by = besiegersOf(view, city, units, byTile);
     if (!by.size) {
       if (city.siege) {
-        const hp = Math.min(siegeMaxHp(city), city.siege.hp + Math.round(siegeMaxHp(city) * SIEGE_HEAL));
-        regions[id] = hp >= siegeMaxHp(city) ? { ...city, siege: null } : { ...city, siege: { ...city.siege, hp, by: null, encircled: false } };
+        const full = siegeMaxHp(city, state.greatProjects);
+        const hp = Math.min(full, city.siege.hp + Math.round(full * SIEGE_HEAL));
+        regions[id] = hp >= full ? { ...city, siege: null } : { ...city, siege: { ...city.siege, hp, by: null, encircled: false } };
       }
       return;
     }
@@ -126,7 +130,7 @@ export const processSieges = (state, regions, units, { turn }) => {
     const encircled = isEncircled(view, city, leader, units, byTile);
     const regen = encircled ? 0 : WALL_REGEN * wallsOf(city);
     const damage = Math.max(0, Math.round((strength - regen) * (encircled ? ENCIRCLE_MULT : 1)));
-    const maxHp = siegeMaxHp(city);
+    const maxHp = siegeMaxHp(city, state.greatProjects);
     const prev = city.siege || { hp: maxHp, startedTurn: turn, starving: 0 };
     const hp = Math.max(0, Math.min(maxHp, prev.hp) - damage);
     let size = city.size;

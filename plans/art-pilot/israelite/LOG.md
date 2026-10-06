@@ -68,8 +68,10 @@ still bake such faces as Town, so their output is unchanged).
   value 0.355 to 0.395, saturation about 0.315), and the camp's Town (the tents) is lifted to at
   least 0.28 before the bake. Result after the bake: Ground value 0.361 to 0.386, saturation
   0.312 to 0.322; camp Town 0.27 (base camp 0.32). The pattern (rows, trees, terraces, tents) is
-  unchanged and stays Town. The field crops stay as delivered (Town value 0.09 to 0.14, the base
-  fields 0.23 to 0.38). Any later shared file with a delivered Ground gets the same rule.
+  unchanged and stays Town. The field crops (Town, delivered at value 0.09 to 0.14) are lifted the
+  same way to the middle of the base fields' 0.23 to 0.38: 0.27 to 0.31 after the bake (Ground then
+  0.371 to 0.395). Any later shared file with a delivered Ground gets the same rule; RETONE_TOWN
+  in assemble_kit_towns.py holds the per-object Town floors and their measured bake losses.
 - The camp is 17 m across against the base camp's 20 m, and the fields 14.5 by 12 m; kept as
   delivered (the brief's field size is 14 to 16 by 10 to 12 m).
 - The small towns' landmarks are scaled to about 0.55; house counts sit at the low end (small 7,
@@ -117,12 +119,13 @@ Converted with `scripts/blender/import_model.py` from `plans/art/buildings/*-isr
 the game yet (the lead does that).
 
 ```
-python scripts/blender/import_model.py <buildings>/<id>/model.glb src/assets/map/buildings/<id>.glb <id> landmark
+python scripts/blender/import_model.py <buildings>/<id>-israelite/model.glb src/assets/map/buildings/<id>-israelite.glb <id> landmark
 python scripts/blender/import_model.py <wonders>/<id>/model.glb src/assets/map/wonders/<id>.glb tier1,tier2,tier3 wonder
 ```
 
-- Buildings: `src/assets/map/buildings/<id>.glb`, one root named as the file (for example
-  `granary-israelite`) with LOD0 to LOD2, kind landmark (15,000 / 3,000 / 500).
+- Buildings: `src/assets/map/buildings/<id>-israelite.glb`, one root named after the bare id (for
+  example `granary` in `granary-israelite.glb`, as buildingModels.js expects) with LOD0 to LOD2,
+  kind landmark (15,000 / 3,000 / 500).
 - Wonders: `src/assets/map/wonders/<id>.glb` with the roots `tier1`, `tier2`, `tier3`, each with
   LOD0 to LOD2 (Blender names the later tiers' LODs LOD0.001 and so on, as in the shared files), one
   shared atlas, kind wonder (60,000 / 10,000 / 1,500). The tiers share one frame: their joint

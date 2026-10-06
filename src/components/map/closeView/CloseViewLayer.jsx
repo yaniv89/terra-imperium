@@ -5,14 +5,17 @@
 // type and age, the very models and walk cycle of the tactical battles (soldierFactory.js),
 // walking while they march. Trees stand in forest and jungle hexes and a small work on every
 // improved tile (landscape.js); a city's buildings stand round its town as landmark models
-// (buildingModels.js, drawn instanced by buildingLayer.js); the ground under it all is CloseTerrainLayer. Zoomed out, the banners and icons take over again (Map2DMarkersOverlay).
+// (buildingModels.js, drawn instanced by buildingLayer.js); a built wonder stands on its own tile
+// as its tier's model (wonderAssets.js); an improved tile shows its improvement's artist model
+// for the owner's age and the land's style when a file exists (improvementModels.js, drawn
+// instanced like the landmarks), else its procedural work; the ground under it all is CloseTerrainLayer. Zoomed out, the banners and icons take over again (Map2DMarkersOverlay).
 // The camera is orthographic in screen pixels, so a model sits exactly over its province as the
 // map pans; models are tilted toward the viewer for a three-quarter look. Loaded lazily: three.js
 // only arrives the first time the player zooms this close.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   WebGLRenderer, Scene, OrthographicCamera, HemisphereLight, DirectionalLight, Mesh, MeshLambertMaterial, InstancedMesh,
-  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4
+  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4, Box3
 } from 'three';
 import { useGame } from '../../../context/GameContext';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
@@ -31,8 +34,10 @@ import { loadGroundData, isLandAt, sampleLandColour, groundTint, tintKey } from 
 import { createOccupancy } from './occupancy';
 import { worldRasterUrl } from '../../../data/geo/worldRaster';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
-import { pickBuildingModels, buildingSpots, assignSpots, BUILDING_DISC } from './buildingModels';
+import { pickBuildingModels, buildingSpots, assignSpots, buildingRoot, needsCoast, BUILDING_DISC } from './buildingModels';
 import { createBuildingLayer } from './buildingLayer';
+import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
+import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
 const MAX_WORKS = 400;
@@ -91,14 +96,16 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     const trees = new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)]));
     const works = new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)]));
     const buildings = createBuildingLayer(scene);
-    three.current = { renderer, scene, camera, sky, sun, townMaterial, soldierMaterial, towns: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(), trees, works, buildings, dirty: true, moving: false };
+    const improvements = createBuildingLayer(scene);
+    three.current = { renderer, scene, camera, sky, sun, townMaterial, soldierMaterial, towns: new Map(), wonders: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(), trees, works, buildings, improvements, dirty: true, moving: false };
     if (import.meta.env.DEV) window.__closeView = three.current; // for browser checks
     return () => {
       const t = three.current;
       t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
-      t.towns.forEach((m) => scene.remove(m)); t.fieldWorks.forEach((g) => scene.remove(g));
+      t.towns.forEach((m) => scene.remove(m)); t.wonders.forEach((m) => scene.remove(m)); t.fieldWorks.forEach((g) => scene.remove(g));
       t.layers.forEach((l) => { l.mesh.geometry.dispose(); });
       t.buildings.dispose();
+      t.improvements.dispose();
       townMaterial.dispose(); soldierMaterial.dispose();
       renderer.dispose();
       three.current = null;
@@ -164,7 +171,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       if (t.buildings.hasModel(url)) return true;
       if (!t.assets.has(url)) {
         t.assets.set(url, null);
-        loadAssetObjects(url).then((objs) => { t.buildings.setModel(url, objs[id] || Object.values(objs)[0]); setAssetsTick((n) => n + 1); })
+        loadAssetObjects(url).then((objs) => { t.buildings.setModel(url, buildingRoot(objs, id, url)); setAssetsTick((n) => n + 1); })
           .catch((e) => { console.warn('building model failed, the town stands without it:', e.message); });
       }
       return false;
@@ -174,6 +181,9 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     const seen = new Set();
     // town tiles, so no town grows into its neighbour (townGapUnits)
     const townTiles = new Set(Object.values(state.regions).filter((r) => (r.owner || r.colony) && r.tile != null).map((r) => r.tile));
+    // a wonder with a model counts too: a town and the wonder beside it never grow into each other
+    const wonders = wonderPlacements(state, getTiles()).filter((w) => wonderAssetUrl(w.projectId));
+    wonders.forEach((w) => townTiles.add(w.tile));
     const isTown = (t) => townTiles.has(t);
     Object.keys(REGION_COORDINATES).forEach((id) => {
       const region = state.regions[id];
@@ -251,15 +261,67 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     });
     t.towns.forEach((mesh, id) => { if (!seen.has(id)) mesh.visible = false; });
 
+    // Wonders on their own tiles (wonderAssets.js): the built tier's model at the towns' scale,
+    // in the owner's colour, on land only. Without a file the banner and the star stay alone.
+    const seenWonders = new Set();
+    wonders.forEach((w) => {
+      const url = wonderAssetUrl(w.projectId);
+      if (!t.assets.has(url)) {
+        t.assets.set(url, null);
+        loadAssetObjects(url).then((objs) => { t.assets.set(url, objs); setAssetsTick((n) => n + 1); })
+          .catch((e) => { console.warn('wonder model failed, the wonder keeps its banner:', e.message); });
+      }
+      const root = wonderTierObject(t.assets.get(url), w.tier);
+      if (!root) return;
+      const { lat, lon } = getTiles().latLonOf(w.tile);
+      const at = toScreenLatLng({ lat, lng: lon });
+      if (!at || !landAt(at.x, at.y)) return;
+      const teamColor = w.ownerId === state.playerNationId ? PLAYER_COLOR : (getNationColor(w.ownerId) || '#64748b');
+      const tint = tintAt(lat, lon);
+      const key = `${root.uuid}|${teamColor}|${tintKey(tint)}`;
+      let mesh = t.wonders.get(w.tile);
+      if (!mesh || mesh.userData.key !== key) {
+        if (mesh) scene.remove(mesh);
+        mesh = instanceTownAsset(root, teamColor, tint);
+        // its ground radius from the model itself (up to 120 m across), measured untransformed
+        const box = new Box3().setFromObject(mesh);
+        const r = box.isEmpty() ? WONDER_RADIUS : Math.max(Math.abs(box.min.x), Math.abs(box.max.x), Math.abs(box.min.z), Math.abs(box.max.z));
+        mesh.userData.radius = Math.max(1, Math.min(WONDER_RADIUS * 1.5, r || WONDER_RADIUS));
+        mesh.userData.key = key;
+        mesh.frustumCulled = false;
+        t.wonders.set(w.tile, mesh);
+        scene.add(mesh);
+      }
+      showLod(mesh, lodForZoom(k));
+      const radius = mesh.userData.radius;
+      const room = Math.min(townRoomUnits(projection, getTiles(), w.tile), townGapUnits(projection, getTiles(), w.tile, isTown));
+      const ws = townUnitPx(k, radius, room * k);
+      occ.claim(at.x, at.y, radius * ws);
+      mesh.position.set(at.x, -at.y, at.y * 0.05);
+      mesh.rotation.set(TILT, 0, 0);
+      mesh.scale.setScalar(ws);
+      mesh.visible = true;
+      seenWonders.add(w.tile);
+    });
+    t.wonders.forEach((mesh, tile) => { if (!seenWonders.has(tile)) mesh.visible = false; });
+
     // Landmarks: each on the first free spot round its town (on land, and outside the wall only
-    // where nothing else stands), with the town's scale, tilt and level of detail.
+    // where nothing else stands; a naval one on the shore, its quay to the water), with the town's
+    // scale, tilt and level of detail.
     t.buildings.begin(lodForZoom(k));
     const spotMatrix = new Matrix4(); const placed = new Matrix4();
     townBuildings.forEach(({ mesh, at, s: ts, picks, teamColor, tint }) => {
       mesh.updateMatrix();
-      const accept = (spot) => {
+      const accept = (spot, model) => {
         const sx = at.x + spot.x * ts; const sy = at.y + spot.z * ts * lean;
         const r = BUILDING_DISC * ts * 0.8;
+        if (needsCoast(model.id)) {
+          // a naval landmark: land under it and behind it, open water just in front of its quay
+          const fx = Math.sin(spot.yaw) * ts; const fy = Math.cos(spot.yaw) * ts * lean;
+          const onLand = (d) => landAt(sx + fx * d, sy + fy * d);
+          if (!onLand(0) || !onLand(-BUILDING_DISC * 0.8) || onLand(BUILDING_DISC * 1.3) || onLand(BUILDING_DISC * 2)) return false;
+          return occ.take(sx, sy, BUILDING_DISC * ts);
+        }
         if (![[0, 0], [r, 0], [-r, 0], [0, r * lean], [0, -r * lean]].every(([dx, dy]) => landAt(sx + dx, sy + dy))) return false;
         return spot.inner || occ.take(sx, sy, BUILDING_DISC * ts);
       };
@@ -322,7 +384,52 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       seenFields.add(w.tile);
       return true;
     };
+    // Improvement models (improvementModels.js): the owner's age and the land's style pick the
+    // file; boats on a water tile beside the coast, their shoreline toward the land, the rest on
+    // land; the towns' scale capped by the coast and the next town; nothing overlapping. Returns
+    // false when the tile has no model (its procedural work or fields stay), true when handled.
+    t.improvements.begin(lodForZoom(k));
+    const tilesNow = getTiles();
+    const impMatrix = new Object3D();
+    const improvementWork = (w) => {
+      const owner = state.regions[state.world?.tileOwner?.[w.tile]]?.owner;
+      if (!owner || !modelAllowedOnTile(tilesNow, w.tile, w.kind)) return false;
+      const ageId = ageOf(state, owner);
+      const model = improvementModel(w.kind, ageId, styleOfLand(tilesNow.countryOf(w.tile) || owner, ageId));
+      if (!model) return false;
+      if (!t.improvements.hasModel(model.url)) {
+        if (!t.assets.has(model.url)) {
+          t.assets.set(model.url, null);
+          loadAssetObjects(model.url).then((objs) => { t.improvements.setModel(model.url, improvementRoot(objs, model.name)); setAssetsTick((n) => n + 1); })
+            .catch((e) => { console.warn('improvement model failed, the tile keeps its work:', e.message); });
+        }
+        return false;
+      }
+      const info = t.improvements.info(model.url);
+      const boats = w.kind === 'fishing_boats';
+      const ll = boats ? boatsSpot(tilesNow, w.tile) : tilesNow.latLonOf(w.tile);
+      const centre = ll && project(ll.lat, ll.lon);
+      const coast = boats && ll ? project(ll.toLat, ll.toLon) : null;
+      if (!centre || (boats && !coast)) return true;
+      const radius = Math.max(0.5, info.radius * IMPROVEMENT_SCALE);
+      const room = boats ? Infinity : Math.min(townRoomUnits(projection, tilesNow, w.tile), townGapUnits(projection, tilesNow, w.tile, isTown));
+      const px = townUnitPx(k, radius, Number.isFinite(room) ? room * k : 0) * IMPROVEMENT_SCALE;
+      // boats: the shoreline turned toward the land and laid on the coast
+      const yaw = boats && info.ground ? yawToward(info.ground[0], info.ground[1], coast.x - centre.x, coast.y - centre.y, lean) : w.turn * 0.15;
+      const shore = boats ? coastShare(centre, coast, landAt) : null;
+      const at = boats ? shoreAnchor(centre, coast, info.ground, px, lean, shore ? Math.max(0.1, shore - SHORE_BACK) : undefined) : centre;
+      if (!fitImprovement({ boats, at, r: info.radius * px, landAt, occ, lean })) return true;
+      const teamColor = owner === state.playerNationId ? PLAYER_COLOR : (getNationColor(owner) || '#64748b');
+      const tint = boats ? tintAt(ll.toLat, ll.toLon) : tintAt(ll.lat, ll.lon);
+      impMatrix.position.set(at.x, -at.y, at.y * 0.05);
+      impMatrix.rotation.set(TILT, yaw, 0, 'XYZ');
+      impMatrix.scale.setScalar(px);
+      impMatrix.updateMatrix();
+      t.improvements.add(model.url, impMatrix.matrix, teamColor, tint, w.pillaged ? 0.45 : 1);
+      return true;
+    };
     land.works.forEach((w) => {
+      if (improvementWork(w)) return;
       // a work set off its tile centre must still stand on land (fishing boats belong at sea)
       const wx = w.x + s * WORK_OFFSET.x; const wy = w.y + s * WORK_OFFSET.y;
       if (w.kind !== 'fishing_boats' && !landAt(wx, wy)) return;
@@ -335,6 +442,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       if (mesh && mesh.count < MAX_WORKS) put(mesh, w.x + s * WORK_OFFSET.x, w.y + s * WORK_OFFSET.y, s * 1.2, w.turn * 0.15, w.pillaged ? 0.45 : 1);
     });
     t.fieldWorks.forEach((g, tile) => { if (!seenFields.has(tile)) g.visible = false; });
+    t.improvements.end();
     // The fields round towns: shown where they are on land and clear of everything placed so far
     // (the ring is in model units, so where it falls on the Earth changes with the zoom).
     // (the fields are children of the town, so they share its hex-capped scale `ts`)

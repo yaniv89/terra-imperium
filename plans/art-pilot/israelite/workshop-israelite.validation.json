@@ -1,7 +1,7 @@
 {
   "file": "workshop-israelite.glb",
   "kind": "landmark",
-  "bytes": 291212,
+  "bytes": 291204,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,7 +19,7 @@
     "file_size": true
   },
   "objects": {
-    "workshop-israelite": {
+    "workshop": {
       "lods": {
         "LOD0": {
           "triangles": 1028,

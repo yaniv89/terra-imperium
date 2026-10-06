@@ -76,6 +76,7 @@ export const getMapMarkers = (state) => {
         units: g.units.map((u) => u.id),
         men: Math.round(strength * MEN_PER_STRENGTH),
         mainClass: mainClass(g.units),
+        navalLine: g.domain === 'naval' ? (g.units[0].navalLine || 'warship') : null,
         morale: Math.round(g.units.reduce((s, u) => s + (u.morale ?? 100), 0) / g.units.length),
         canMove: g.units.some((u) => (u.movesLeft ?? 1) > 0),
         supply: Math.round(g.units.reduce((s, u) => s + supplyOf(u), 0) / g.units.length),

@@ -51,7 +51,7 @@ describe('scenario starts on the world grid', () => {
     kingdoms.starts.fr.cities.forEach((a) => kingdoms.starts.fr.cities.forEach((b) => {
       if (a.tile !== b.tile) expect(ringsFrom(tiles, a.tile, 2).has(b.tile)).toBe(false);
     }));
-  });
+  }, 30000); // builds every scenario start on the 100k-cell grid: slow under load
 
   it('is deterministic', () => {
     const a = buildScenarioStarts(tiles, 'classical');

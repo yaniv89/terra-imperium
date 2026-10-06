@@ -1,8 +1,8 @@
 {
   "barracks-israelite.glb": {
-    "bytes": 474160,
+    "bytes": 474152,
     "objects": {
-      "barracks-israelite": {
+      "barracks": {
         "LOD0": {
           "triangles": 2038,
           "width": 1.825,
@@ -43,9 +43,9 @@
     ]
   },
   "copper_mine-israelite.glb": {
-    "bytes": 347204,
+    "bytes": 347192,
     "objects": {
-      "copper_mine-israelite": {
+      "copper_mine": {
         "LOD0": {
           "triangles": 1255,
           "width": 1.7,
@@ -86,9 +86,9 @@
     ]
   },
   "granary-israelite.glb": {
-    "bytes": 336820,
+    "bytes": 336808,
     "objects": {
-      "granary-israelite": {
+      "granary": {
         "LOD0": {
           "triangles": 1261,
           "width": 1.47,
@@ -129,9 +129,9 @@
     ]
   },
   "harbor-israelite.glb": {
-    "bytes": 266816,
+    "bytes": 266804,
     "objects": {
-      "harbor-israelite": {
+      "harbor": {
         "LOD0": {
           "triangles": 697,
           "width": 1.628,
@@ -172,9 +172,9 @@
     ]
   },
   "irrigation-israelite.glb": {
-    "bytes": 155688,
+    "bytes": 155680,
     "objects": {
-      "irrigation-israelite": {
+      "irrigation": {
         "LOD0": {
           "triangles": 426,
           "width": 1.605,
@@ -215,9 +215,9 @@
     ]
   },
   "library-israelite.glb": {
-    "bytes": 500252,
+    "bytes": 500244,
     "objects": {
-      "library-israelite": {
+      "library": {
         "LOD0": {
           "triangles": 2172,
           "width": 1.825,
@@ -258,9 +258,9 @@
     ]
   },
   "market-israelite.glb": {
-    "bytes": 284912,
+    "bytes": 284904,
     "objects": {
-      "market-israelite": {
+      "market": {
         "LOD0": {
           "triangles": 948,
           "width": 1.7,
@@ -301,9 +301,9 @@
     ]
   },
   "scriptorium-israelite.glb": {
-    "bytes": 494740,
+    "bytes": 494732,
     "objects": {
-      "scriptorium-israelite": {
+      "scriptorium": {
         "LOD0": {
           "triangles": 2172,
           "width": 1.825,
@@ -344,9 +344,9 @@
     ]
   },
   "shrine-israelite.glb": {
-    "bytes": 240348,
+    "bytes": 240336,
     "objects": {
-      "shrine-israelite": {
+      "shrine": {
         "LOD0": {
           "triangles": 728,
           "width": 1.465,
@@ -387,9 +387,9 @@
     ]
   },
   "workshop-israelite.glb": {
-    "bytes": 291212,
+    "bytes": 291204,
     "objects": {
-      "workshop-israelite": {
+      "workshop": {
         "LOD0": {
           "triangles": 1028,
           "width": 1.725,

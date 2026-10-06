@@ -5,6 +5,8 @@ import React from 'react';
 import { Coins, Users, Beaker, Swords, Hammer, Flame, Fuel, Gem, Atom, ScrollText, Landmark, Package } from 'lucide-react';
 import { formatNumber } from '../../utils/helpers';
 import Tooltip from './Tooltip';
+import GameIcon from './GameIcon';
+import { resourceIconUrl } from '../../data/icons';
 
 const RESOURCE_CONFIG = {
   gold: {
@@ -140,8 +142,10 @@ const ResourceBadge = ({
           disabled:cursor-default
         `}
       >
-        <span className={config.color}>
-          <Icon size={iconSizes[size]} />
+        {/* Gold and the metals have delivered art (src/data/icons.js); the abstract pools keep lucide.
+            The art draws a little larger than the glyph so it reads at phone size. */}
+        <span className={`${config.color} inline-flex`}>
+          <GameIcon url={resourceIconUrl(type)} size={iconSizes[size] + 4} title={config.label} fallback={<Icon size={iconSizes[size]} />} />
         </span>
         <span className="font-mono font-bold text-white">
           {displayValue}

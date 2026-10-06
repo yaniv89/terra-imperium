@@ -56,6 +56,7 @@ export const armySheetModel = (state, tile) => {
     name: naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId,
     cargo: naval ? Object.values(state.units).filter((c) => c.embarkedOn === u.id).length : 0,
     classId: u.classId,
+    navalLine: naval ? navalLineOf(u) : null,
     army: u.army?.name || null,
     armyId: u.army?.id || null,
     strength: u.strength, maxStrength: u.maxStrength || u.strength,
@@ -185,7 +186,7 @@ export const siegePressed = (state, tile, units) => {
     if (!city || city.tile !== n || city.owner === me) continue;
     const mine = besiegersOf(state, city).get(me);
     if (!mine?.length) continue;
-    return { regionId: cityId, name: city.name, hp: Math.round(siegeHpOf(city)), maxHp: siegeMaxHp(city), walls: wallsOf(city), encircled: isEncircled(state, city, me), strength: Math.round(siegeStrength(state, me, mine)) };
+    return { regionId: cityId, name: city.name, hp: Math.round(siegeHpOf(city, state.greatProjects)), maxHp: siegeMaxHp(city, state.greatProjects), walls: wallsOf(city), encircled: isEncircled(state, city, me), strength: Math.round(siegeStrength(state, me, mine)) };
   }
   return null;
 };

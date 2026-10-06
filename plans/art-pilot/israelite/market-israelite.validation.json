@@ -1,7 +1,7 @@
 {
   "file": "market-israelite.glb",
   "kind": "landmark",
-  "bytes": 284912,
+  "bytes": 284904,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,7 +19,7 @@
     "file_size": true
   },
   "objects": {
-    "market-israelite": {
+    "market": {
       "lods": {
         "LOD0": {
           "triangles": 948,

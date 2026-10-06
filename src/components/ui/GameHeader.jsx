@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SAVE_PROBLEM_TEXT } from '../../engine/saveMigrations';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { Beaker, Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, CloudOff, CloudCog, WifiOff, AlertTriangle, MoreVertical } from 'lucide-react';
+import GameIcon from './GameIcon';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
 import { AGES } from '../../data/ages';
@@ -243,7 +244,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
           {playerNation?.name}
         </div>
         <div className="shrink-0 bg-slate-800 px-2 py-0.5 rounded-md flex items-center gap-1 border border-slate-700" title={ageName}>
-          <Calendar className="w-3 h-3 text-slate-400" />
+          <GameIcon group="ages" id={state.age} size={16} title={ageName} fallback={<Calendar className="w-3 h-3 text-slate-400" />} />
           <span className="font-mono text-xs font-bold text-white">{yearLabel}</span>
         </div>
         <ResearchPill state={state} compact />
@@ -283,7 +284,8 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
             {playerNation?.name}
           </div>
 
-          <div className="hidden md:block px-2 py-0.5 rounded border text-xs font-semibold whitespace-nowrap bg-slate-700/50 text-slate-300 border-slate-600">
+          <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-semibold whitespace-nowrap bg-slate-700/50 text-slate-300 border-slate-600" data-testid="age-badge">
+            <GameIcon group="ages" id={state.age} size={18} />
             {ageName}
           </div>
           <ResearchPill state={state} />

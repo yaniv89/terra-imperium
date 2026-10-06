@@ -20,12 +20,11 @@ import { isAtWarWithPlayer, hasCasusBelli, isInTruce } from '../../engine/diplom
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getCategoryTierName, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
-import { getBuildingIconPath, getExtractionIconPath } from '../../data/buildingIcons';
-import { getUnitIconPath } from '../../data/unitIcons';
 import { UNIT_CLASSES } from '../../data/unitClasses';
 import { getRankForXp } from '../../data/promotions';
 import { getDepositsFor } from '../../data/deposits';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
+import { BuildingIcon, ExtractionIcon, ResourceIcon, UnitIcon, WonderIcon } from '../ui/icons';
 import { getTotalDev } from '../../engine/development';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
 import { describeAttackBlock } from '../../utils/attackAvailability';
@@ -480,7 +479,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 <ProgressBar value={loyalty} color="dynamic" size="small" />
                 <div className="text-[10px] text-slate-500 mt-0.5">
                   {culture.map(([id, v]) => `${state.nations[id]?.name || id} ${Math.round(v * 100)}%`).join(' · ')}
-                  {` · people ${t.fromShare}`}{t.garrison ? ` · garrison +${t.garrison}` : ''}{t.amenities ? ` · amenities ${t.amenities > 0 ? '+' : ''}${t.amenities}` : ''}{t.conquered ? ` · conquered ${t.conquered}` : ''}{t.capitalLost ? ` · capital lost ${t.capitalLost}` : ''}{t.governor ? ` · governor ${t.governor > 0 ? '+' : ''}${t.governor}` : ''}{t.law ? ` · laws ${t.law > 0 ? '+' : ''}${t.law}` : ''}
+                  {` · people ${t.fromShare}`}{t.garrison ? ` · garrison +${t.garrison}` : ''}{t.amenities ? ` · amenities ${t.amenities > 0 ? '+' : ''}${t.amenities}` : ''}{t.conquered ? ` · conquered ${t.conquered}` : ''}{t.capitalLost ? ` · capital lost ${t.capitalLost}` : ''}{t.governor ? ` · governor ${t.governor > 0 ? '+' : ''}${t.governor}` : ''}{t.law ? ` · laws ${t.law > 0 ? '+' : ''}${t.law}` : ''}{t.wonder ? ` · wonder +${t.wonder}` : ''}
                 </div>
               </div>
             );
@@ -592,10 +591,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         <div className="space-y-1">
           {builtCategories.map(({ categoryId, tier }) => {
             const category = BUILDING_CATEGORIES[categoryId];
-            const tierAge = category.tiers[tier]?.age;
             return (
               <div key={categoryId} className="flex items-center gap-2 bg-slate-800/60 rounded px-2 py-1.5">
-                <GameIcon path={getBuildingIconPath(categoryId, tierAge)} className="w-5 h-5 text-amber-300 shrink-0" />
+                <BuildingIcon category={categoryId} tier={tier} size={24} />
                 <div className="min-w-0 flex-1">
                   <div className="text-slate-100 font-semibold truncate">{getCategoryTierName(categoryId, tier)}</div>
                   <div className="text-slate-500 text-[10px]">{category.label}</div>
@@ -612,7 +610,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           <div className="space-y-1">
             {projectsHere.map(({ projectId, tier }) => (
               <div key={projectId} className="flex items-center justify-between bg-slate-800/60 rounded px-2 py-1.5">
-                <span className="text-yellow-200 font-semibold truncate">{GREAT_PROJECTS[projectId]?.name || projectId}</span>
+                <span className="text-yellow-200 font-semibold truncate inline-flex items-center gap-1.5"><WonderIcon projectId={projectId} size={20} />{GREAT_PROJECTS[projectId]?.name || projectId}</span>
                 <TierPips filled={tier} total={GREAT_PROJECTS[projectId]?.tiers?.length || 3} />
               </div>
             ))}
@@ -627,7 +625,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             const developed = !!regionState.buildings?.extraction?.[resId];
             return (
               <div key={resId} className={`flex items-center gap-1.5 rounded px-2 py-1 border ${developed ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300' : 'border-slate-700 bg-slate-800/60 text-slate-400'}`}>
-                <GameIcon path={getExtractionIconPath(resId)} className="w-4 h-4 shrink-0" />
+                {developed ? <ExtractionIcon resourceId={resId} size={18} /> : <ResourceIcon resourceId={resId} size={18} />}
                 <span className="capitalize">{resId}</span>
                 <span className="text-[10px] opacity-80">{developed ? EXTRACTION_BUILDINGS[resId]?.name : 'undeveloped'}</span>
               </div>
@@ -703,17 +701,13 @@ const TierPips = ({ filled, total }) => (
   </div>
 );
 
-// A game-icons.net silhouette (0..512 viewBox), recoloured through currentColor.
-const GameIcon = ({ path, className }) => (path
-  ? <svg viewBox="0 0 512 512" className={className} fill="currentColor" aria-hidden="true"><path d={path} /></svg>
-  : <span className={className} />);
 
 const UnitLine = ({ unit, age, commander }) => {
   const cls = UNIT_CLASSES[unit.classId];
   const strengthPct = unit.maxStrength ? Math.round((unit.strength / unit.maxStrength) * 100) : 100;
   return (
     <div className="flex items-center gap-2 bg-slate-800/60 rounded px-2 py-1.5">
-      <GameIcon path={getUnitIconPath(age, unit.classId)} className="w-5 h-5 text-slate-200 shrink-0" />
+      <UnitIcon classId={unit.classId} navalLine={unit.navalLine} ageId={age} size={24} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="text-slate-100 font-semibold truncate">{cls?.name || unit.classId}</span>
