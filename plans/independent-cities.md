@@ -387,7 +387,8 @@ Done:
 - `src/engine/mercenaries.js`: mercantile and raiders sell bands (stock 2, one more every 10
   turns): price 60 + 25 x age rank, upkeep 3 + age rank a turn to the seller, 20-turn contract,
   gone when unpaid; raiders sell cavalry, mercantile infantry. The player hires from the city panel;
-  AI majors at war or raided lately hire with 2x the price in gold; a threatened mercantile city
+  AI majors at war hire with 2x the price in gold (not at peace: that tipped AI wars on weak
+  neighbours in the balance-sim); a threatened mercantile city
   hires a defender. The queue keeps RAID_RESERVE units above the garrison (raiders 2, tribal and
   fortress 1, mercantile 0); raiders train cavalry for them.
 - Placeholder UI: tribute demands with Pay / Refuse (44 px) in Relations; the city panel of an
@@ -397,7 +398,18 @@ Done:
   `nation.raidedBy`; unit `raidOf`, `mercenary`; city `sackedTurn`, `burnedTurn`;
   `state.tributeDemands`, `state.indepStats`): no version bump.
 
-Left for later: R3 (the RTS raid and sack battles: swap `fightRaidBattle`); the tribal league
+Balance-sim (compare.sh, Standard, passive Akkad, 8 seeds x 150 turns, base = W1 with the
+2026-10-06 majors rule, 5e2e826f): per run 204 raids started, 162 that took loot (43 pillages,
+54 outposts burned, 1.5 settlers killed, 64 sacks), 10 raid battles, 3,415 gold of loot; 133
+tribute demands, 66 deals, 2,733 gold paid; 5.6 mercenary bands hired (AI majors at war only).
+About one raid per major every 33 turns on average. Against the base: major cities 243 (-3.3,
+-1.3%, significant), average unrest 22.9 (+2.6, not significant, inside the W0/W1 band of 15 to
+29), civil wars started 44.3 (+2.6, not significant). The passive player is never raided: it
+builds no improvements and keeps its garrison, so the "raid on the player every 8 to 15 turns"
+target needs a playtest or an active-player sim. The independents phase costs 3.7 to 5.8 ms a turn.
+
+Left for later: R3 (the RTS raid and sack battles: swap `fightRaidBattle`); sea raids (raiders
+with fleets: today raids stay on the raider's landmass); the tribal league
 (neighbours sending a unit in a siege, 4.3 step 1) and spending surplus gold on walls (4.3 step 5);
 the map's raid markers and the independent sheet (W4); AI majors defending against raiders and
 conquering independents, trade, peaceful joining, razing (W3).

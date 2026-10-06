@@ -46,6 +46,7 @@
 // Deterministic: every roll is hashRoll(`${id}|${turn}|<what>`) or an rng seeded from one.
 // Cheap: a ring scan per thinker, one A* per raid start or return; measured in the balance-sim.
 import { getTiles } from '../data/geo/tiles';
+import { landmassOf } from '../data/geo/citySpacing';
 import { kmPerRing, ringsForKm } from '../data/geo/gridScale';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { LogTypes } from '../data/types';
@@ -71,6 +72,8 @@ const KIND_STAT = { pillage: 'pillages', route: 'routesCut', settler: 'settlersK
 
 /** Enemy armies within this distance of an independent's city put it under threat (the plan's 2 rings). */
 export const THREAT_KM = 204;
+/** A target no land path reached is skipped this many turns. */
+export const NO_PATH_TURNS = 10;
 
 /** Does independent `id` think on `turn`? About one in THINK_PERIOD a turn, staggered by id. */
 export const thinksOn = (id, turn) => (Math.floor(hashRoll(`${id}|think`) * THINK_PERIOD) + turn) % THINK_PERIOD === 0;
@@ -111,7 +114,7 @@ const victimOk = (w, id, owner) => !!owner && owner !== id && owner !== REBEL_OW
   && !isIndependentNation(w.nations[owner]) && canFight(w.view, id, owner);
 
 /** Armed units of nations that may fight `id` (independents left out: they never attack each other) on `tile`. */
-const hostileArmiesAt = (w, id, tile) => (indexOf(w).armed.get(tile) || []).filter((u) => u.ownerId !== id && !isIndependentNation(w.nations[u.ownerId]) && canFight(w.view, id, u.ownerId));
+const hostileArmiesAt = (w, id, tile) => (indexOf(w).armed.get(tile) || []).map((u) => w.units[u.id]).filter((u) => u && u.strength > 0 && u.ownerId !== id && !isIndependentNation(w.nations[u.ownerId]) && canFight(w.view, id, u.ownerId));
 
 /** Is the independent's city under threat: besieged, or a hostile army within THREAT_KM? */
 export const homeThreatened = (w, id, city) => {
@@ -149,6 +152,8 @@ export const scanTargets = (w, id, city, partyStrength) => {
   const era = RAID_ERA_FACTOR[w.age] ?? 1;
   const routes = w.routeTiles();
   let best = null;
+  const okCache = new Map(); // one victim check per nation per scan, not per tile
+  const okVictim = (o) => { if (!okCache.has(o)) okCache.set(o, victimOk(w, id, o)); return okCache.get(o); };
   const defendersNear = (owner, t, centreOnly) => {
     let s = sumStrength((index.armed.get(t) || []).filter((u) => u.ownerId === owner));
     if (!centreOnly) tiles.neighbors[t].forEach((x) => { s += sumStrength((index.armed.get(x) || []).filter((u) => u.ownerId === owner)); });
@@ -161,16 +166,21 @@ export const scanTargets = (w, id, city, partyStrength) => {
     const score = loot * (1 + grudge / 50) * era / (1 + defence / Math.max(1, partyStrength)) - RAID_RING_PENALTY * d * kmRing / RAID_RING_PENALTY_KM;
     if (!best || score > best.score + 1e-9 || (Math.abs(score - best.score) <= 1e-9 && t < best.tile)) best = { kind, tile: t, victim, loot, score, rings: d, ...extra };
   };
+  // Raids go by land (sea raids need fleets: later): only the city's own landmass, and no tile
+  // a path search failed to reach lately.
+  const land = landmassOf(tiles);
+  const home = land[city.tile];
+  const noPath = n.indep?.noPath || {};
   ringsAround(tiles, city.tile, rings).forEach((d, t) => {
-    if (d === 0) return;
+    if (d === 0 || land[t] !== home || noPath[t] > w.turn) return;
     (index.armed.get(t) || []).forEach((u) => { if (u.ownerId !== id && !isIndependentNation(w.nations[u.ownerId])) nearArmies.set(u.ownerId, (nearArmies.get(u.ownerId) || 0) + u.strength); });
-    (index.settlers.get(t) || []).forEach((u) => { if (victimOk(w, id, u.ownerId)) offer('settler', t, d, u.ownerId, SETTLER_LOOT, { unitId: u.id }); });
-    if (routes && routes.has(t) && victimOk(w, id, w.playerId)) offer('route', t, d, w.playerId, ROUTE_LOOT);
+    (index.settlers.get(t) || []).forEach((u) => { if (okVictim(u.ownerId)) offer('settler', t, d, u.ownerId, SETTLER_LOOT, { unitId: u.id }); });
+    if (routes && routes.has(t) && okVictim(w.playerId)) offer('route', t, d, w.playerId, ROUTE_LOOT);
     const cityId = tileOwner[t];
     const c = cityId != null ? w.regions[cityId] : null;
     const owner = c?.owner;
     if (owner && owner !== id && !isIndependentNation(w.nations[owner])) nearOwners.add(owner);
-    if (!victimOk(w, id, owner)) return;
+    if (!okVictim(owner)) return;
     if (c.tile === t) {
       // A city sacked, or an outpost burned, lately is left alone (RAID_SPARE_TURNS).
       if (Math.max(c.sackedTurn ?? -Infinity, c.burnedTurn ?? -Infinity) > w.turn - RAID_SPARE_TURNS) return;
@@ -188,10 +198,10 @@ export const scanTargets = (w, id, city, partyStrength) => {
 // ---------------------------------------------------------------------------------------------
 // Moving a party
 
-const partyOf = (w, id) => (indexOf(w).parties.get(id) || []).filter((u) => w.units[u.id] && u.strength > 0);
+// The parties' members come from the index (rebuilt when a raid starts or ends); their state is read live.
+const partyOf = (w, id) => (indexOf(w).parties.get(id) || []).map((u) => w.units[u.id]).filter((u) => u && u.strength > 0 && u.raidOf === id);
 const moveParty = (w, party, tile) => {
-  party.forEach((u) => { w.units[u.id] = { ...w.units[u.id], tile }; });
-  touchUnits(w);
+  party.forEach((u) => { w.units[u.id] = { ...w.units[u.id], tile }; }); // no index rebuild: a party's place is read live
 };
 
 /**
@@ -222,7 +232,7 @@ const walk = (w, id, party, route) => {
 
 const sendHome = (w, id, party, raid, why = null) => {
   const city = w.regions[w.nations[id].capitalRegionId];
-  const at = unitTile(w.view, party[0]);
+  const at = unitTile(w.view, w.units[party[0].id] || party[0]); // live: the party may have walked this turn
   if (!city || at == null || at === city.tile) { endRaid(w, id, party); return; }
   const path = findTilePath(w.view, at, city.tile, id, { maxSteps: 80 });
   if (!path.path) { moveParty(w, party, city.tile); endRaid(w, id, party); return; }
@@ -336,7 +346,7 @@ const resolveAtTarget = (w, id, party, raid) => {
     what = `kill a settler party at ${placeOf(w, t)}`;
     moveParty(w, party, t);
   } else if (raid.kind === 'outpost') {
-    w.regions[city.id] = { ...city, outpost: { ...city.outpost, progress: Math.round(city.outpost.progress * (1 - OUTPOST_BURN_LOSS) * 10) / 10 }, burnedTurn: w.turn };
+    w.regions[city.id] = { ...city, outpost: { ...city.outpost, progress: Math.round(city.outpost.progress * (1 - OUTPOST_BURN_LOSS) * 10) / 10 }, burnedTurn: w.turn }; w.regionsChanged = true;
     loot = OUTPOST_LOOT;
     what = `burn the outpost of ${city.name}`;
   } else if (raid.kind === 'sack') {
@@ -344,7 +354,7 @@ const resolveAtTarget = (w, id, party, raid) => {
     takeGold(w, victim, gold);
     loot = gold;
     const s = sackedCity(city, w.turn);
-    w.regions[city.id] = s.city;
+    w.regions[city.id] = s.city; w.regionsChanged = true;
     w.stats.sacks += 1;
     what = `sack ${city.name}: ${gold} gold taken${s.lostSize ? ', the city shrinks to ' + s.city.size : ''}${s.lostBuilding ? `, a ${s.lostBuilding} building damaged` : ''}`;
   }
@@ -520,11 +530,17 @@ const think = (w, id, city) => {
   const partyStrength = sumStrength(party);
   const last = w.nations[id].indep.lastRaidTurn;
   const cooled = last == null || w.turn - last >= RAID_COOLDOWN[p];
+  // The rolls first (the same rolls the decisions use): most thinkers skip the ring scan. The raid
+  // roll is checked against its highest possible chance (grudge 100 doubles it) before the scan.
+  const raidRoll = hashRoll(`${id}|${w.turn}|raid`);
+  const mayRaid = party.length > 0 && cooled && (RAID_CHANCE[p] || 0) > 0 && raidRoll < Math.min(1, RAID_CHANCE[p] * Math.max(1, w.difficulty || 1) * 2);
+  const mayDemand = ['raiders', 'tribal'].includes(p) && hashRoll(`${id}|${w.turn}|tribute`) < TRIBUTE_DEMAND_CHANCE;
+  if (!mayRaid && !mayDemand) return;
   const { best, nearArmies, nearOwners } = scanTargets(w, id, city, Math.max(1, partyStrength || myStrength));
-  if (party.length && cooled && best && best.score >= RAID_THRESHOLD) {
+  if (mayRaid && best && best.score >= RAID_THRESHOLD) {
     const grudge = grudgeOf(w.nations[id], best.victim);
     const chance = Math.min(1, (RAID_CHANCE[p] || 0) * (best.victim === w.playerId ? (w.difficulty || 1) : 1) * (1 + grudge / 100));
-    if (hashRoll(`${id}|${w.turn}|raid`) < chance) {
+    if (raidRoll < chance) {
       const path = findTilePath(w.view, city.tile, best.tile, id, { maxSteps: Math.max(4, best.rings * 3) });
       if (path.path) {
         let route = path.path.slice(1);
@@ -536,24 +552,28 @@ const think = (w, id, city) => {
         if (best.victim === w.playerId) w.stats.raidsAtPlayer += 1;
         return;
       }
+      // No way there by land (a closed border): the scan skips that tile for a while.
+      const kept = Object.entries(w.nations[id].indep.noPath || {}).filter(([, until]) => until > w.turn);
+      setIndep(w, id, { noPath: { ...Object.fromEntries(kept), [best.tile]: w.turn + NO_PATH_TURNS } });
     }
   }
   // 4. Tribute.
-  demandTribute(w, id, city, myStrength, nearArmies, nearOwners);
+  if (mayDemand) demandTribute(w, id, city, myStrength, nearArmies, nearOwners);
 };
 
 /**
  * The independents' phase of resolveTurn. `input`: the turn's state ({ regions, units, nations,
  * resources, world, turnNumber (the new turn), year, age, playerNationId, rngSeed, difficultyMultiplier,
  * tributeDemands, indepStats }). Returns { regions, units, nations, resources, world, tributeDemands,
- * indepStats, logs }: new maps (the input's are never written).
+ * indepStats, logs }: new maps (the input's are never written), or with `inPlace` (resolveTurn) the
+ * turn's own working regions, units and resources written in place (no copy of every unit a turn).
  */
-export const processIndependents = (input) => {
+export const processIndependents = (input, { inPlace = false } = {}) => {
   const ids = Object.keys(input.nations || {}).filter((id) => isIndependentNation(input.nations[id])).sort();
   if (!ids.length) return null;
   const w = {
     turn: input.turnNumber, year: input.year, age: input.age, seed: input.rngSeed || 0, playerId: input.playerNationId, difficulty: input.difficultyMultiplier || 1,
-    regions: { ...input.regions }, units: { ...input.units }, nations: { ...input.nations }, resources: { ...input.resources },
+    regions: inPlace ? input.regions : { ...input.regions }, units: inPlace ? input.units : { ...input.units }, nations: { ...input.nations }, resources: inPlace ? input.resources : { ...input.resources },
     tributeDemands: [...(input.tributeDemands || [])], logs: [], unitsVersion: 0, index: null,
     stats: { raidsStarted: 0, raidsAtPlayer: 0, raidsHit: 0, raidsOnPlayer: 0, raidBattles: 0, sacks: 0, loot: 0, tributeDemands: 0, tributeDeals: 0, tributeGold: 0, mercsHired: 0, ...(input.indepStats || {}) }
   };
@@ -594,7 +614,7 @@ export const processIndependents = (input) => {
     if (thinksOn(id, w.turn)) think(w, id, city);
   });
   processMercenaries(w);
-  return { regions: w.regions, units: w.units, nations: w.nations, resources: w.resources, world: w.view.world, tributeDemands: w.tributeDemands, indepStats: w.stats, logs: w.logs };
+  return { regionsChanged: !!w.regionsChanged, regions: w.regions, units: w.units, nations: w.nations, resources: w.resources, world: w.view.world, tributeDemands: w.tributeDemands, indepStats: w.stats, logs: w.logs };
 };
 
 /** The player's answer to a tribute demand (gameReducer ANSWER_TRIBUTE_DEMAND). Returns a new state. */

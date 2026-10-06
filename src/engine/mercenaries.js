@@ -10,7 +10,7 @@
 //              other (moves, fights, garrisons, joins battles).
 //   contract   every turn the buyer pays mercUpkeep(age) gold to the seller; unpaid, the band
 //              leaves at once; after MERC_CONTRACT_TURNS it leaves anyway.
-//   AI         a major at war (or raided lately) with MERC_AI_GOLD_MULT x the price hires one band
+//   AI         a major at war with MERC_AI_GOLD_MULT x the price in its treasury hires one band
 //              from the nearest seller (at most MERC_AI_MAX at once, thinking every MERC_AI_PERIOD
 //              turns). A mercantile independent under threat hires a defender from its own market
 //              (raids.js).
@@ -23,7 +23,7 @@ import { LogTypes } from '../data/types';
 import { getAvailableClasses } from '../data/unitClasses';
 import {
   isIndependentNation, INDEPENDENT_GOLD_CAP, MERC_SELLERS, MERC_STOCK, MERC_RESTOCK_TURNS, MERC_CONTRACT_TURNS, MERC_KM, MERC_MAX_GRUDGE,
-  mercPrice, mercUpkeep, MERC_AI_GOLD_MULT, MERC_AI_MAX, MERC_AI_PERIOD, MERC_AI_RAIDED_TURNS
+  mercPrice, mercUpkeep, MERC_AI_GOLD_MULT, MERC_AI_MAX, MERC_AI_PERIOD
 } from '../data/independents';
 import { ringsAround } from './world/cities';
 import { hashRoll } from './aftermath';
@@ -66,7 +66,7 @@ const classFor = (personality, ageId) => {
  * reason }. A mercantile independent may buy from itself (cityId: its own city). Gold is not
  * checked here (the caller pays).
  */
-export const mercOffer = (state, sellerId, buyerId) => {
+export const mercOffer = (state, sellerId, buyerId, { buyerCities = null } = {}) => {
   const seller = state.nations?.[sellerId];
   if (!isIndependentNation(seller) || seller.isEliminated) return { ok: false, reason: 'Not an independent city.' };
   const personality = seller.indep?.personality;
@@ -84,7 +84,7 @@ export const mercOffer = (state, sellerId, buyerId) => {
   if (seller.indep?.raid?.targetNationId === buyerId) return { ok: false, reason: 'They are raiding you.' };
   const near = ringsAround(getTiles(), home.tile, ringsForKm(MERC_KM));
   let best = null;
-  Object.values(state.regions || {}).forEach((c) => {
+  (buyerCities || Object.values(state.regions || {})).forEach((c) => {
     if (c.owner !== buyerId || c.outpost || c.tile == null) return;
     const d = near.get(c.tile);
     if (d == null) return;
@@ -169,8 +169,6 @@ export const processMercenaries = (w) => {
   if (!sellers.length) return;
   const atWar = new Set();
   (w.view.wars || []).forEach((war) => { if (war.active) { atWar.add(war.aggressor); atWar.add(war.enemy); } });
-  // Raided lately: it wants defenders too.
-  Object.keys(w.nations).forEach((id) => { const r = w.nations[id].raidedBy; if (r && Object.values(r).some((t) => w.turn - t <= MERC_AI_RAIDED_TURNS)) atWar.add(id); });
   const price = mercPrice(w.view.age || 'bronze');
   [...atWar].sort().forEach((id) => {
     const n = w.nations[id];
@@ -178,7 +176,8 @@ export const processMercenaries = (w) => {
     if ((Math.floor(hashRoll(`${id}|merc`) * MERC_AI_PERIOD) + w.turn) % MERC_AI_PERIOD !== 0) return;
     if ((countBy.get(id) || 0) >= MERC_AI_MAX || goldIn(w, id) < price * MERC_AI_GOLD_MULT) return;
     let best = null;
-    sellers.forEach((s) => { const o = mercOffer(w.view, s, id); if (o.ok && (!best || o.rings < best.offer.rings)) best = { seller: s, offer: o }; });
+    const buyerCities = Object.values(w.view.regions).filter((c) => c.owner === id);
+    sellers.forEach((s) => { const o = mercOffer(w.view, s, id, { buyerCities }); if (o.ok && (!best || o.rings < best.offer.rings)) best = { seller: s, offer: o }; });
     if (!best) return;
     const hired = hireMercenary(w.view, best.seller, id, { offer: best.offer });
     if (!hired.ok) return;
