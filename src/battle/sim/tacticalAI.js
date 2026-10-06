@@ -121,7 +121,7 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
   const group = [];
   idle.forEach((q) => {
     if (q.stats.structureBonus) {
-      const tower = w.structures.find((s) => s.alive && s.kind === 'tower');
+      const tower = w.structures.find((s) => s.alive && s.kind === 'tower' && s.damage > 0); // an armed one
       const s = tower || (keep.alive ? keep : null);
       if (s) { orders.push({ side, type: 'attack', squads: [q.idx], target: { kind: 'structure', index: w.structures.indexOf(s) } }); return; }
     }

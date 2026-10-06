@@ -8,6 +8,13 @@ import { buildSetupFromArmies } from '../../../src/battle/setup/buildBattleSetup
 import { runHeadless } from '../../../src/battle/sim/headless';
 import { resolveBattle } from '../../../src/engine/battle';
 import { createRng } from '../../../src/utils/rng';
+import { buildTownManifest } from '../../../src/data/townLayout';
+
+// TYPES=assault: a siege assault on a walled town (fortLevel 2); CITY=1 loads a real city from its
+// manifest (src/battle/setup/cityBattle.js: houses, the wall ring and gate, towers), TIER=small|
+// medium|big its size. CITY=0 is the old abstract keep.
+const CITY = process.env.CITY === '1';
+const TIER = process.env.TIER || 'medium';
 
 const N = Number(process.env.N || 16);
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId: classId.startsWith('naval') ? 'naval' : classId, navalLine: classId.startsWith('naval:') ? classId.slice(6) : undefined, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: classId.startsWith('naval') ? 'naval' : 'land' }));
@@ -33,9 +40,11 @@ it('parity', () => {
   TYPES.forEach((battleType) => (battleType === 'naval' ? NAVAL_MATCHUPS : MATCHUPS).forEach(([att, def]) => AGES.forEach((ageId) => {
     let tA = 0; let tD = 0; let aA = 0; let aD = 0; let wins = 0; let autoWins = 0; const reasons = {};
     for (let seed = 1; seed <= N; seed++) {
-      const { result } = runHeadless(buildSetupFromArmies({ regionId: `parity-${seed}`, terrain: battleType === 'naval' ? 'sea' : 'mixed', seed, attackerUnits: mk('a', att), defenderUnits: mk('d', def), attackerAgeId: ageId, defenderAgeId: ageId, controllers: ['ai', 'ai'], deposits: [], powers: [[], []], battleType, landing: battleType === 'landing', sally: battleType === 'sally' }));
+      const assault = battleType === 'assault';
+      const cityManifest = assault && CITY ? buildTownManifest({ cityId: `parity-${seed}`, ageId, tierId: TIER, style: 'europe', seed, defenseTier: 1 }) : null;
+      const { result } = runHeadless(buildSetupFromArmies({ regionId: `parity-${seed}`, terrain: battleType === 'naval' ? 'sea' : 'mixed', seed, attackerUnits: mk('a', att), defenderUnits: mk('d', def), attackerAgeId: ageId, defenderAgeId: ageId, controllers: ['ai', 'ai'], deposits: [], powers: [[], []], battleType, landing: battleType === 'landing', sally: battleType === 'sally', ...(assault ? { fortLevel: 2, isAttackingFortification: true, cityManifest } : {}) }));
       tA += lost(result.attackerUnits, mk('a', att)); tD += lost(result.defenderUnits, mk('d', def)); if (result.outcome === 'attacker') wins += 1; const rk = `${result.outcome}:${result.report.tactical.reason}`; reasons[rk] = (reasons[rk] || 0) + 1;
-      const auto = resolveBattle({ attackerUnits: mk('a', att), defenderUnits: mk('d', def), terrain: battleType === 'naval' ? 'sea' : 'mixed', isAttackingFortification: false, battleType, attackerAgeId: ageId, defenderAgeId: ageId, rng: createRng(seed * 97) });
+      const auto = resolveBattle({ attackerUnits: mk('a', att), defenderUnits: mk('d', def), terrain: battleType === 'naval' ? 'sea' : 'mixed', isAttackingFortification: battleType === 'assault', battleType, attackerAgeId: ageId, defenderAgeId: ageId, rng: createRng(seed * 97) });
       aA += lost(auto.attackerUnits, mk('a', att)); aD += lost(auto.defenderUnits, mk('d', def)); if (auto.outcome === 'attacker') autoWins += 1;
     }
     const tactical = tA / Math.max(1, tD); const auto = aA / Math.max(1, aD);

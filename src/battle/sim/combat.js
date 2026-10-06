@@ -227,7 +227,9 @@ export const acquireTarget = (w, q, radius) => {
 const structureTargetIndex = (w, q, radius) => {
   let best = -1; let bestD = Infinity;
   w.structures.forEach((s, i) => {
-    if (!s.alive || s.passive) return; // houses are taken down only on an explicit order (cityStructures.js)
+    // houses, walls, the gate and unarmed towers are taken down only on an explicit order (the
+    // ring is passed through its gate; cityStructures.js); the keep, armed towers and buildings by anyone
+    if (!s.alive || s.passive || !(s.kind === 'keep' || s.kind === 'building' || s.damage > 0)) return;
     const d = distSq(q.x, q.y, s.x, s.y) - s.radius * s.radius;
     const limit = (radius + s.radius) * (radius + s.radius);
     if (d > limit) return;
