@@ -24,11 +24,10 @@ const PROFILE = {
 };
 
 const startGame = async (page) => {
+  await page.getByTestId('begin-game').waitFor({ timeout: 120000 });
   if (EXPLORED) await page.getByTestId('explored-world').dispatchEvent('click');
-  await page.fill('input[placeholder="Search 240 nations..."]', 'France');
-  const buttons = page.locator('section', { has: page.getByRole('heading', { name: 'Choose Your Nation' }) }).locator('button');
-  await buttons.first().dispatchEvent('click');
-  await page.getByRole('button', { name: /^Begin as/ }).dispatchEvent('click');
+  // the start screen (peoples): the default people, then Begin
+  await page.getByTestId('begin-game').dispatchEvent('click');
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
   if (await skip.isVisible().catch(() => false)) await skip.dispatchEvent('click');
@@ -58,7 +57,7 @@ for (const name of PROFILES) {
     await page.evaluate(({ lat, lng, k }) => window.__map2DTest.focus(lat, lng, k), v);
     await page.waitForTimeout(3500);
     await page.screenshot({ path: `${OUT}/${v.name}-${EXPLORED ? 'explored-' : ''}${name}-k${v.k}.png` });
-    const info = await page.evaluate(() => { const i = window.__glMap?.info(); return i && { calls: i.calls, raster: i.raster, rivers: i.rivers, terrainSprites: i.terrainSprites }; });
+    const info = await page.evaluate(() => { const i = window.__glMap?.info(); return i && { calls: i.calls, raster: i.raster, terrainSprites: i.terrainSprites }; });
     console.log(name, v.name, v.k, JSON.stringify(info));
   }
   console.log(`${name}: ${errors.length ? errors.slice(0, 5).join(' | ') : 'no page errors'}`);

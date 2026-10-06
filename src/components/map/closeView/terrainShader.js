@@ -80,7 +80,7 @@ uniform vec4 uGeo;       // lon0, lat0 (top edge), lon span, lat span (degrees)
 uniform float uPxPerKm;  // device pixels per kilometre
 uniform sampler2D uCover;  // land cover classes (red channel, LAND_COVER order)
 uniform float uCoverOn;
-uniform float uRiverOff;  // 1: the map draws the rivers from the grid (gl/terrainModel.js), the raster's go
+uniform float uRiverOff;  // 1: hide the raster's own rivers (off: the map shows only the raster's rivers)
 varying vec2 vUv;
 
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }

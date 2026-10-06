@@ -151,7 +151,7 @@ let noCover = null; // a 1x1 'water' texel for terrain materials without a land 
 const emptyCover = () => (noCover ||= dataTexture(new Uint8Array(4), 1, 1, RGBAFormat, UnsignedByteType));
 const terrainMaterial = (texture, size, geo) => new ShaderMaterial({
   vertexShader: TERRAIN_VERTEX, fragmentShader: TERRAIN_FRAGMENT,
-  uniforms: { uMap: { value: texture }, uSize: { value: new Vector2(size[0], size[1]) }, uGeo: { value: new Vector4(...geo) }, uPxPerKm: { value: 1 }, uCover: { value: emptyCover() }, uCoverOn: { value: 0 }, uRiverOff: { value: 1 } },
+  uniforms: { uMap: { value: texture }, uSize: { value: new Vector2(size[0], size[1]) }, uGeo: { value: new Vector4(...geo) }, uPxPerKm: { value: 1 }, uCover: { value: emptyCover() }, uCoverOn: { value: 0 }, uRiverOff: { value: 0 } },
   depthTest: false, depthWrite: false
 });
 // A land cover tile (rasterDetail.js): one class byte a pixel in the red channel, read nearest.
