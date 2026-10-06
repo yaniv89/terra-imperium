@@ -3,8 +3,9 @@
 // model file, level of detail and material, shared by every town on screen, so the draw calls grow
 // with the kinds of landmark in view and not with the number of towns (a phone sees a dozen towns
 // at once). A model's Team cloth takes each town's colour and its Ground the town's ground tint
-// through the instance colour, as instanceTownAsset does for a cloned town.
-import { BufferGeometry, Color, InstancedBufferAttribute, InstancedMesh, Matrix4, DynamicDrawUsage } from 'three';
+// through the instance colour, as instanceTownAsset does for a cloned town. The improvement
+// models (improvementModels.js) use a second layer of the same kind.
+import { BufferGeometry, Color, InstancedBufferAttribute, InstancedMesh, Matrix4, Vector3, DynamicDrawUsage } from 'three';
 
 const LOD_NAME = /^LOD(\d)/;
 const lodOf = (o) => { const m = LOD_NAME.exec(o.name || ''); return m ? Number(m[1]) : null; };
@@ -51,6 +52,30 @@ export const prepareBuildingModel = (root) => {
 
 const START = 16;
 
+/**
+ * Sizes of a prepared model at LOD0 in its root's ground plane (glTF: x east, z south): `radius`
+ * the farthest vertex from the origin, `ground` the mean [x, z] of its Ground faces' vertices
+ * (null without Ground), so a caller can turn a shoreline toward the coast.
+ */
+export const modelInfo = (lods) => {
+  let radius = 0; let gx = 0; let gz = 0; let gn = 0;
+  const v = new Vector3();
+  (lods[0] || []).forEach((part) => {
+    const pos = part.geometry.attributes.position;
+    if (!pos) return;
+    const index = part.geometry.index;
+    const total = index ? index.count : pos.count;
+    const start = part.geometry.drawRange.start;
+    const end = Math.min(total, start + part.geometry.drawRange.count);
+    for (let i = start; i < end; i++) {
+      v.fromBufferAttribute(pos, index ? index.getX(i) : i).applyMatrix4(part.local);
+      radius = Math.max(radius, Math.hypot(v.x, v.z));
+      if (part.kind === 'ground') { gx += v.x; gz += v.z; gn += 1; }
+    }
+  });
+  return { radius, ground: gn ? [gx / gn, gz / gn] : null };
+};
+
 /** The layer: begin() each layout, add() each placed landmark, end() to upload. */
 export const createBuildingLayer = (scene) => {
   const models = new Map(); // url -> { lods, meshes: [[InstancedMesh per part]] }
@@ -85,14 +110,22 @@ export const createBuildingLayer = (scene) => {
     /** Register a loaded model file (its root object). */
     setModel: (url, root) => { if (!models.has(url)) models.set(url, { lods: prepareBuildingModel(root), meshes: [] }); },
     hasModel: (url) => models.has(url),
+    /** The model's radius and Ground centre (modelInfo), measured once. */
+    info: (url) => {
+      const entry = models.get(url);
+      if (!entry) return null;
+      entry.info ||= modelInfo(entry.lods);
+      return entry.info;
+    },
     /** Start a layout drawn at this level of detail: every count goes back to 0. */
     begin: (level) => {
       lod = level;
       models.forEach((e) => e.meshes.forEach((ms) => ms?.forEach((m) => { m.count = 0; })));
       touched.clear();
     },
-    /** Draw a model with this world matrix, Team cloth colour and ground tint ([r, g, b] or null). */
-    add: (url, matrix, teamColor, tint = null) => {
+    /** Draw a model with this world matrix, Team cloth colour and ground tint ([r, g, b] or null);
+     * `shade` darkens the whole model (a pillaged work). */
+    add: (url, matrix, teamColor, tint = null, shade = 1) => {
       const entry = models.get(url);
       if (!entry) return false;
       const l = entry.lods[lod]?.length ? lod : entry.lods.findIndex((p) => p.length);
@@ -104,6 +137,7 @@ export const createBuildingLayer = (scene) => {
         if (part.kind === 'team') colour.set(teamColor).multiplyScalar(1.3);
         else if (part.kind === 'ground') { if (tint) colour.setRGB(tint[0], tint[1], tint[2]); else colour.copy(part.base); }
         else colour.setRGB(1, 1, 1);
+        if (shade !== 1) colour.multiplyScalar(shade);
         mesh.setColorAt(n, colour);
         mesh.count = n + 1;
         touched.add(mesh);

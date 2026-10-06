@@ -1,0 +1,98 @@
+{
+  "file": "fort-bronze-israelite.glb",
+  "kind": "improvement",
+  "bytes": 455208,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "fort-bronze-israelite": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1245,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.756,
+          "depth": 4.77,
+          "height": 0.68,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1011,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.706,
+          "depth": 4.716,
+          "height": 0.68,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 290,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.374,
+          "depth": 4.43,
+          "height": 0.68,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 4.77
+    }
+  },
+  "materials": [
+    "Ground",
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "basecolor",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 216478
+    },
+    {
+      "name": "surface-properties",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 7930
+    }
+  ],
+  "passed": true
+}
