@@ -5,7 +5,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronRight, Lightbulb, BookOpen } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
-import { nextPrompts } from './nextPrompt';
+import { nextPrompts } from './nextPromptModel';
 import { openPanelTab, OPEN_SECTION } from '../panels/panelEvents';
 import { selectArmy, selectTile } from '../map/marchEvents';
 

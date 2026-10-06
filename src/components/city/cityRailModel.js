@@ -11,7 +11,7 @@ import { IMPROVEMENTS } from '../../data/tileYields';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { NAVAL_LINES } from '../../data/navalLines';
 import { growthThreshold, productionCost, MAX_SIZE } from '../../engine/world/cities';
-import { UNREST_PROMPT } from '../ui/nextPrompt';
+import { UNREST_PROMPT } from '../ui/nextPromptModel';
 
 export const RAIL_STORAGE_KEY = 'terra-imperium-city-rail-collapsed';
 
