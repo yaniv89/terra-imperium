@@ -12,6 +12,8 @@ import { titleFor } from '../data/nationTitles';
 import { PEOPLES } from '../data/peoples';
 import { regimentKind } from '../data/regimentNames';
 import { isSettler } from './settlers';
+import { isIndependentNation } from '../data/independents';
+import { independentNameOf } from './independents';
 
 export const refreshPeopleNames = (state, prev = null) => {
   if (state?.scenario?.mode !== 'peoples') return state;
@@ -22,7 +24,7 @@ export const refreshPeopleNames = (state, prev = null) => {
     Object.entries(state.nations).forEach(([id, n]) => {
       const people = PEOPLES[n.people];
       if (!people) return;
-      const title = titleFor(people, n.government?.type || 'tribal', cities[id] || 0);
+      const title = isIndependentNation(n) ? independentNameOf(state, n) : titleFor(people, n.government?.type || 'tribal', cities[id] || 0); // independents: their own forms (W1)
       if (title !== n.name) { nations ||= { ...state.nations }; nations[id] = { ...n, name: title }; }
     });
   }

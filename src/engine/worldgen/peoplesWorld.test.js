@@ -43,7 +43,8 @@ describe('the peoples world: who becomes a major (phase W0)', () => {
 });
 
 describe('a new game in a peoples world', () => {
-  const state = createInitialState({ playerNationId: 'akkad', rngSeed: 21, scenario: { mode: 'peoples', size: 'small', seed: 21 } });
+  // Majors only (independents: false): the independents of phase W1 are tested in independents.test.js.
+  const state = createInitialState({ playerNationId: 'akkad', rngSeed: 21, scenario: { mode: 'peoples', size: 'small', seed: 21, independents: false } });
 
   it('has the drawn majors as its nations, each with one equal city and one regiment', () => {
     expect(state.scenario).toMatchObject({ mode: 'peoples', start: 'dawn', worldSize: 'small', seed: 21, nationCount: 24 });

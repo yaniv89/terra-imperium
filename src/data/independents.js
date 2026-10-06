@@ -59,6 +59,9 @@ export const PERSONALITIES = {
 /** The mix the plan aims for at Dawn (checked by a test over the peoples pool, loosely). */
 export const PERSONALITY_MIX_TARGET = { raiders: 0.25, mercantile: 0.2, fortress: 0.15, tribal: 0.4 };
 
+// Tuned on the 150-people pool to the plan's mix: 60 tribal, 38 raiders, 30 mercantile, 22 fortress.
+const FORTRESS_MOUNTAINS_NEAR = 5; // a high city with this many mountain neighbours is a stronghold (the grid marks much of the uplands as mountains)
+const MERCANTILE_HARBOUR_SHARE = 0.25; // the share of plain coasts and rivers that trade
 const DRY = new Set(['BSh', 'BSk', 'BWh', 'BWk']);
 const COLD = new Set(['Dfc', 'Dfd', 'Dsc', 'Dsd', 'Dwc', 'Dwd', 'ET', 'EF']);
 
@@ -72,8 +75,8 @@ const roll = (key) => {
 /**
  * The personality of an independent whose city stands on `tile` (`tiles`: the grid, data/geo/tiles.js).
  * Reads the city tile and its neighbours, first match wins:
- *   fortress    the city on mountains, or on hills with half its neighbours hills or mountains,
- *               or on forested hills
+ *   fortress    the city on hills or mountains with FORTRESS_MOUNTAINS_NEAR mountain neighbours,
+ *               or on forested high ground ringed by hills and mountains
  *   raiders     a dry climate (steppe or desert: B climates), or a cold coast
  *   mercantile  an oasis, or a coast or river (a river mouth: both) with a seeded roll for a plain
  *               coast or a plain river, so not every harbour is a trading city
@@ -84,15 +87,16 @@ export const personalityFor = (tiles, tile, key = '') => {
   if (tile == null || tile < 0) return 'tribal';
   const relief = tiles.reliefOf(tile);
   const ring = tiles.neighbors[tile] || [];
-  const highRing = ring.filter((n) => { const r = tiles.reliefOf(n); return r === 'hills' || r === 'mountains'; }).length;
-  if (relief === 'mountains' || (relief === 'hills' && (highRing * 2 >= ring.length || tiles.featureOf(tile) === 'forest'))) return 'fortress';
+  const mountainRing = ring.filter((n) => tiles.reliefOf(n) === 'mountains').length;
+  const highRing = mountainRing + ring.filter((n) => tiles.reliefOf(n) === 'hills').length;
+  if ((relief === 'mountains' || relief === 'hills') && (mountainRing >= FORTRESS_MOUNTAINS_NEAR || (highRing === ring.length && tiles.featureOf(tile) === 'forest'))) return 'fortress';
   const climate = tiles.climateNames?.[tiles.climate?.[tile]];
   const coastal = tiles.coastal?.[tile] === 1 || ring.some((n) => tiles.land[n] !== 1 && tiles.terrainOf(n) !== 'lake');
   if (DRY.has(climate) || (coastal && COLD.has(climate))) return 'raiders';
   const river = ring.some((n) => tiles.riverBetween(tile, n));
   if (tiles.featureOf(tile) === 'oasis') return 'mercantile';
   if (coastal && river) return 'mercantile';
-  if ((coastal || river) && roll(`${key}|mercantile`) < 0.45) return 'mercantile';
+  if ((coastal || river) && roll(`${key}|mercantile`) < MERCANTILE_HARBOUR_SHARE) return 'mercantile';
   return 'tribal';
 };
 

@@ -34,6 +34,7 @@ import { WORLD_NATIONS, peopleNationRecord } from '../data/worldNations';
 import { peopleForNationId } from '../data/peoples';
 import { DEFAULT_WORLD_SIZE } from '../data/worldSizes';
 import { pickMajors } from './worldgen/peoplesWorld';
+import { pickIndependents, asIndependentSource, finalizeIndependents } from './independents';
 import { refreshPeopleNames } from './peopleNames';
 import { TECH_TREE } from '../data/techTree';
 import {
@@ -164,8 +165,15 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     playerNationId = mapped;
   }
   const worldSeed = peoplesMode ? (scenario?.seed ?? baseSeed) : (scenario?.seed ?? rngSeed ?? 1);
+  const majorIds = peoplesMode ? pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() }) : null;
+  // Every other people of the pool is an independent city (phase W1, src/engine/independents.js);
+  // `independents: false` in the scenario leaves them out (majors only, as phase W0 built it).
+  const independentPick = peoplesMode && scenario.independents !== false ? pickIndependents(majorIds, scenario.size || DEFAULT_WORLD_SIZE, worldSeed) : { ids: [], late: [] };
   const nationSource = peoplesMode
-    ? Object.fromEntries(pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() }).sort().map((id) => [id, peopleNationRecord(id)]))
+    ? Object.fromEntries([
+      ...majorIds.sort().map((id) => [id, peopleNationRecord(id)]),
+      ...independentPick.ids.map((id) => [id, asIndependentSource(peopleNationRecord(id))])
+    ])
     : WORLD_NATIONS;
 
   // Plan §M4: overextension is measured relative to each nation's OWN starting size, so a 50-region
@@ -321,7 +329,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // moving the player onto this shape too would touch every existing test and UI component that
       // reads state.resources directly, for zero present benefit). tech.ageId starts equal to the
       // calendar age, mirroring state.techAgeId's own seeding.
-      ...(id !== playerNationId ? { economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, tech: { researched: [], ageId: age } } : {})
+      ...(id !== playerNationId ? { economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, tech: { researched: [], ageId: age } } : {}),
+      ...(data.kind ? { kind: data.kind } : {}) // an independent (phase W1, independents.js finalizes it)
     };
   });
 
@@ -469,7 +478,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       { year, message: `${formatYear(year)}: Your nation's story begins.`, type: LogTypes.MILESTONE }
     ]
   };
-  const started = refreshPeopleNames(syncWorldRegistry(applyScenario(initial, { ...scenario, seed: worldSeed })));
+  const started = refreshPeopleNames(syncWorldRegistry(finalizeIndependents(applyScenario(initial, { ...scenario, seed: worldSeed }), { late: independentPick.late })));
   // The guided start (src/engine/tutorial.js): ten turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
