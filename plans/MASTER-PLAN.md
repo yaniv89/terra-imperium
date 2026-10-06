@@ -54,10 +54,11 @@ Decisions of 2026-10-06, second round:
 34. **Forts start battles** against enemies that come near, and **armies cross rivers** (section 6.9).
 35. **Three battle resources**: food, materials, gold.
 36. **Full base-building in field battles too**, not a light camp.
-37. **Fewer systems**: prisoners have two outcomes only (ransom or release); **succession and
-    the noble estates are removed** from the game (phase X in section 7).
-38. Lead's calls on the rest: mercenaries and captives come with the independents work (W2);
-    no weather or seasons in battles.
+37. **Fewer systems**: **no prisoners** (units lost in a battle, raid or sack are simply gone;
+    decided 2026-10-06, replacing "ransom or release"); **succession and the noble estates are
+    removed** from the game (phase X in section 7).
+38. Lead's calls on the rest: mercenaries come with the independents work (W2); no captives
+    (decision 37); no weather or seasons in battles.
 
 ## 3. Contradictions between the plans, resolved
 
@@ -238,9 +239,6 @@ Each one a battle must read or write; each gets a test in the outcome service:
 | 22 | Intel and odds | intel.js, battleOdds.js | the pre-battle screen keeps odds or the scouts' guess |
 
 Mechanisms nobody has yet, needed by the plans:
-- **Prisoners**: the RTS plan has "captured" surrenders; no module exists. One `captives` ledger
-  with two outcomes only (decision 37): **ransom** (the owner pays gold to get them back as
-  strength) or **release** (opinion +). Unransomed captives are released after 10 turns.
 - **Mercenaries**: independents sell them (independents 4.6); no module exists. Hired units with
   upkeep and a contract length, in battles as any unit.
 - **Multiple battles in one turn**: a queue in the order of movement; each pauses the turn.
@@ -303,6 +301,6 @@ if not, the battle size or the device floor is revisited before R1, never silent
 None blocking. Interpretations of the 2026-10-06 answers to confirm in passing:
 - "Forts initiate battle": read as a manned fort stopping enemies that come next to it (6.9).
 - "Can cross rivers": read as armies crossing rivers on the map, with river battles (6.9).
-- "Fewer" prisoners: ransom or release only (6.7).
+- Prisoners: dropped (decision 37); the RTS plan's "captured" surrenders count as losses.
 - "Dropping succession noble stuff": succession, heirs, pretenders and the estates are removed;
   rulers, governments and governors stay (phase X).
