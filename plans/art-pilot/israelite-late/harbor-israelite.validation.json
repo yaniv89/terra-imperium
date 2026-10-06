@@ -1,0 +1,92 @@
+{
+  "file": "harbor-israelite.glb",
+  "kind": "landmark",
+  "bytes": 351448,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "harbor": {
+      "lods": {
+        "LOD0": {
+          "triangles": 675,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.628,
+          "depth": 1.336,
+          "height": 0.9,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 675,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.628,
+          "depth": 1.336,
+          "height": 0.9,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 484,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.628,
+          "depth": 1.336,
+          "height": 0.9,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.628
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "basecolor",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 170780
+    },
+    {
+      "name": "surface-properties",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 7966
+    }
+  ],
+  "passed": true
+}

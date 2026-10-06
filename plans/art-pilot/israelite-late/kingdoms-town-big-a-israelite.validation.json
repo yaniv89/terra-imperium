@@ -1,0 +1,107 @@
+{
+  "file": "kingdoms-town-big-a-israelite.glb",
+  "kind": "town",
+  "bytes": 5648968,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-big-a": {
+      "lods": {
+        "LOD0": {
+          "triangles": 34787,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.884,
+          "depth": 7.959,
+          "height": 2.3,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 7645,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.884,
+          "depth": 7.959,
+          "height": 2.3,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 735,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.884,
+          "depth": 7.959,
+          "height": 1.916,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 7.959
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "kingdoms-town-big-a-israelite_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 11124
+    },
+    {
+      "name": "kingdoms-town-big-a-israelite_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 668094
+    },
+    {
+      "name": "kingdoms-town-big-a-israelite_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 513410
+    }
+  ],
+  "passed": true
+}

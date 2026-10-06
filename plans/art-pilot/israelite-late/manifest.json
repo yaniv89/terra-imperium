@@ -1,0 +1,2674 @@
+{
+  "barracks-israelite.glb": {
+    "bytes": 565396,
+    "objects": {
+      "barracks": {
+        "LOD0": {
+          "triangles": 1912,
+          "width": 1.825,
+          "depth": 1.225,
+          "height": 0.85,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1912,
+          "width": 1.825,
+          "depth": 1.225,
+          "height": 0.85,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 485,
+          "width": 1.825,
+          "depth": 1.225,
+          "height": 0.85,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "copper_mine-israelite.glb": {
+    "bytes": 429136,
+    "objects": {
+      "copper_mine": {
+        "LOD0": {
+          "triangles": 1247,
+          "width": 1.7,
+          "depth": 1.086,
+          "height": 0.7,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1247,
+          "width": 1.7,
+          "depth": 1.086,
+          "height": 0.7,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 485,
+          "width": 1.7,
+          "depth": 1.08,
+          "height": 0.7,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "granary-israelite.glb": {
+    "bytes": 425796,
+    "objects": {
+      "granary": {
+        "LOD0": {
+          "triangles": 1212,
+          "width": 1.47,
+          "depth": 1.435,
+          "height": 0.71,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1212,
+          "width": 1.47,
+          "depth": 1.435,
+          "height": 0.71,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 485,
+          "width": 1.47,
+          "depth": 1.437,
+          "height": 0.71,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "harbor-israelite.glb": {
+    "bytes": 351448,
+    "objects": {
+      "harbor": {
+        "LOD0": {
+          "triangles": 675,
+          "width": 1.628,
+          "depth": 1.336,
+          "height": 0.9,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 675,
+          "width": 1.628,
+          "depth": 1.336,
+          "height": 0.9,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 484,
+          "width": 1.628,
+          "depth": 1.336,
+          "height": 0.9,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "irrigation-israelite.glb": {
+    "bytes": 198384,
+    "objects": {
+      "irrigation": {
+        "LOD0": {
+          "triangles": 426,
+          "width": 1.605,
+          "depth": 1.08,
+          "height": 0.4,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 426,
+          "width": 1.605,
+          "depth": 1.08,
+          "height": 0.4,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 426,
+          "width": 1.605,
+          "depth": 1.08,
+          "height": 0.4,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "library-israelite.glb": {
+    "bytes": 740840,
+    "objects": {
+      "library": {
+        "LOD0": {
+          "triangles": 2840,
+          "width": 1.885,
+          "depth": 1.305,
+          "height": 0.632,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2840,
+          "width": 1.885,
+          "depth": 1.305,
+          "height": 0.632,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 485,
+          "width": 1.884,
+          "depth": 1.305,
+          "height": 0.623,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "market-israelite.glb": {
+    "bytes": 352452,
+    "objects": {
+      "market": {
+        "LOD0": {
+          "triangles": 948,
+          "width": 1.7,
+          "depth": 1.05,
+          "height": 0.56,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 948,
+          "width": 1.7,
+          "depth": 1.05,
+          "height": 0.56,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 484,
+          "width": 1.7,
+          "depth": 1.05,
+          "height": 0.56,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "scriptorium-israelite.glb": {
+    "bytes": 990296,
+    "objects": {
+      "scriptorium": {
+        "LOD0": {
+          "triangles": 5024,
+          "width": 1.865,
+          "depth": 1.335,
+          "height": 0.884,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2910,
+          "width": 1.865,
+          "depth": 1.335,
+          "height": 0.884,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 485,
+          "width": 1.868,
+          "depth": 1.333,
+          "height": 0.875,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "shrine-israelite.glb": {
+    "bytes": 336196,
+    "objects": {
+      "shrine": {
+        "LOD0": {
+          "triangles": 720,
+          "width": 1.465,
+          "depth": 1.102,
+          "height": 0.697,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 720,
+          "width": 1.465,
+          "depth": 1.102,
+          "height": 0.697,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 485,
+          "width": 1.465,
+          "depth": 1.102,
+          "height": 0.697,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "workshop-israelite.glb": {
+    "bytes": 380588,
+    "objects": {
+      "workshop": {
+        "LOD0": {
+          "triangles": 1014,
+          "width": 1.725,
+          "depth": 1.125,
+          "height": 0.601,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1014,
+          "width": 1.725,
+          "depth": 1.125,
+          "height": 0.601,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 485,
+          "width": 1.725,
+          "depth": 1.125,
+          "height": 0.601,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-big-a-israelite.glb": {
+    "bytes": 5641440,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 34586,
+          "width": 7.936,
+          "depth": 8.04,
+          "height": 1.25,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7603,
+          "width": 7.936,
+          "depth": 8.04,
+          "height": 1.25,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 735,
+          "width": 7.936,
+          "depth": 8.04,
+          "height": 0.987,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-big-b-israelite.glb": {
+    "bytes": 5603076,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 34282,
+          "width": 7.95,
+          "depth": 7.89,
+          "height": 1.25,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7603,
+          "width": 7.95,
+          "depth": 7.89,
+          "height": 1.25,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 735,
+          "width": 7.95,
+          "depth": 7.89,
+          "height": 0.987,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-medium-a-israelite.glb": {
+    "bytes": 3562420,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 19132,
+          "width": 5.994,
+          "depth": 5.913,
+          "height": 1.078,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4963,
+          "width": 5.994,
+          "depth": 5.913,
+          "height": 1.078,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 625,
+          "width": 5.994,
+          "depth": 5.913,
+          "height": 0.987,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-medium-b-israelite.glb": {
+    "bytes": 3549232,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 19116,
+          "width": 5.91,
+          "depth": 6.046,
+          "height": 1.078,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4963,
+          "width": 5.91,
+          "depth": 6.046,
+          "height": 1.078,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 625,
+          "width": 5.91,
+          "depth": 6.046,
+          "height": 0.987,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-small-a-israelite.glb": {
+    "bytes": 2369008,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 11080,
+          "width": 3.976,
+          "depth": 3.943,
+          "height": 0.674,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 3012,
+          "width": 3.976,
+          "depth": 3.943,
+          "height": 0.674,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 466,
+          "width": 3.976,
+          "depth": 3.943,
+          "height": 0.636,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-small-b-israelite.glb": {
+    "bytes": 2297304,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 10384,
+          "width": 4.012,
+          "depth": 3.949,
+          "height": 0.636,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2963,
+          "width": 4.012,
+          "depth": 3.949,
+          "height": 0.559,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 465,
+          "width": 4.012,
+          "depth": 3.949,
+          "height": 0.636,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-big-a-israelite.glb": {
+    "bytes": 5920428,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 35171,
+          "width": 7.906,
+          "depth": 7.923,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7533,
+          "width": 7.906,
+          "depth": 7.923,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 736,
+          "width": 7.906,
+          "depth": 7.923,
+          "height": 1.916,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-big-b-israelite.glb": {
+    "bytes": 6023064,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 35825,
+          "width": 7.942,
+          "depth": 7.919,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7533,
+          "width": 7.942,
+          "depth": 7.919,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 736,
+          "width": 7.942,
+          "depth": 7.919,
+          "height": 1.916,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-medium-a-israelite.glb": {
+    "bytes": 3680780,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 19761,
+          "width": 5.933,
+          "depth": 5.943,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4893,
+          "width": 5.933,
+          "depth": 5.943,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 5.933,
+          "depth": 5.943,
+          "height": 1.916,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-medium-b-israelite.glb": {
+    "bytes": 3626916,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 19617,
+          "width": 5.93,
+          "depth": 5.932,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4893,
+          "width": 5.93,
+          "depth": 5.932,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 5.93,
+          "depth": 5.932,
+          "height": 1.916,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-small-a-israelite.glb": {
+    "bytes": 2463208,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 11493,
+          "width": 3.977,
+          "depth": 4.01,
+          "height": 0.636,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 3012,
+          "width": 3.977,
+          "depth": 4.01,
+          "height": 0.584,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 466,
+          "width": 3.977,
+          "depth": 4.01,
+          "height": 0.636,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-small-b-israelite.glb": {
+    "bytes": 2371968,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 10160,
+          "width": 3.946,
+          "depth": 3.982,
+          "height": 1.6,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2893,
+          "width": 3.946,
+          "depth": 3.982,
+          "height": 1.6,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 466,
+          "width": 3.946,
+          "depth": 3.982,
+          "height": 1.333,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-big-a-israelite.glb": {
+    "bytes": 5648968,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 34787,
+          "width": 7.884,
+          "depth": 7.959,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7645,
+          "width": 7.884,
+          "depth": 7.959,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 735,
+          "width": 7.884,
+          "depth": 7.959,
+          "height": 1.916,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-big-b-israelite.glb": {
+    "bytes": 5941384,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 35689,
+          "width": 7.999,
+          "depth": 7.882,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7645,
+          "width": 7.999,
+          "depth": 7.882,
+          "height": 2.3,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 735,
+          "width": 7.999,
+          "depth": 7.882,
+          "height": 1.916,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-medium-a-israelite.glb": {
+    "bytes": 3670012,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 20129,
+          "width": 6.05,
+          "depth": 5.933,
+          "height": 2.286,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 5005,
+          "width": 6.05,
+          "depth": 5.933,
+          "height": 2.286,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 625,
+          "width": 6.05,
+          "depth": 5.933,
+          "height": 1.904,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-medium-b-israelite.glb": {
+    "bytes": 3547792,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 19091,
+          "width": 5.971,
+          "depth": 6.006,
+          "height": 2.286,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 5005,
+          "width": 5.971,
+          "depth": 6.006,
+          "height": 2.286,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 625,
+          "width": 5.971,
+          "depth": 6.006,
+          "height": 1.904,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-small-a-israelite.glb": {
+    "bytes": 2444784,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 11781,
+          "width": 4.033,
+          "depth": 3.955,
+          "height": 0.636,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 3012,
+          "width": 4.033,
+          "depth": 3.955,
+          "height": 0.584,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 465,
+          "width": 4.033,
+          "depth": 3.955,
+          "height": 0.636,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-small-b-israelite.glb": {
+    "bytes": 2246032,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 9346,
+          "width": 4.031,
+          "depth": 3.971,
+          "height": 1.429,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 3005,
+          "width": 4.031,
+          "depth": 3.971,
+          "height": 1.429,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 466,
+          "width": 4.031,
+          "depth": 3.971,
+          "height": 1.19,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-big-a-israelite.glb": {
+    "bytes": 6056196,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 36481,
+          "width": 7.903,
+          "depth": 8.01,
+          "height": 2.319,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7412,
+          "width": 7.903,
+          "depth": 8.01,
+          "height": 2.319,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 726,
+          "width": 7.903,
+          "depth": 8.01,
+          "height": 1.392,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-big-b-israelite.glb": {
+    "bytes": 6202980,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 37774,
+          "width": 7.906,
+          "depth": 7.954,
+          "height": 2.319,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7412,
+          "width": 7.906,
+          "depth": 7.954,
+          "height": 2.319,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 726,
+          "width": 7.906,
+          "depth": 7.954,
+          "height": 1.392,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-medium-a-israelite.glb": {
+    "bytes": 4027680,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 23066,
+          "width": 6.04,
+          "depth": 5.916,
+          "height": 1.953,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 5012,
+          "width": 6.04,
+          "depth": 5.916,
+          "height": 1.953,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 6.04,
+          "depth": 5.916,
+          "height": 1.361,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-medium-b-israelite.glb": {
+    "bytes": 4044488,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 23274,
+          "width": 6.051,
+          "depth": 5.932,
+          "height": 1.953,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 5012,
+          "width": 6.051,
+          "depth": 5.932,
+          "height": 1.953,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 6.051,
+          "depth": 5.932,
+          "height": 1.361,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-small-a-israelite.glb": {
+    "bytes": 2489140,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 12152,
+          "width": 3.967,
+          "depth": 3.981,
+          "height": 1.221,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2772,
+          "width": 3.967,
+          "depth": 3.981,
+          "height": 1.221,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 456,
+          "width": 3.967,
+          "depth": 3.981,
+          "height": 0.933,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-small-b-israelite.glb": {
+    "bytes": 2663092,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 13003,
+          "width": 4.025,
+          "depth": 3.974,
+          "height": 0.933,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 3012,
+          "width": 4.025,
+          "depth": 3.974,
+          "height": 0.913,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 466,
+          "width": 4.025,
+          "depth": 3.974,
+          "height": 0.933,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "modern-town-big-a-israelite.glb": {
+    "bytes": 4985420,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 28484,
+          "width": 7.942,
+          "depth": 8.018,
+          "height": 3.851,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7151,
+          "width": 7.942,
+          "depth": 8.018,
+          "height": 3.851,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 726,
+          "width": 7.942,
+          "depth": 8.018,
+          "height": 3.591,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "modern-town-big-b-israelite.glb": {
+    "bytes": 4833260,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 27598,
+          "width": 7.885,
+          "depth": 8.045,
+          "height": 3.851,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7151,
+          "width": 7.885,
+          "depth": 8.045,
+          "height": 3.851,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 726,
+          "width": 7.885,
+          "depth": 8.045,
+          "height": 3.591,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "modern-town-medium-a-israelite.glb": {
+    "bytes": 3274084,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 16584,
+          "width": 5.973,
+          "depth": 5.938,
+          "height": 2.4,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4751,
+          "width": 5.973,
+          "depth": 5.938,
+          "height": 2.4,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 5.973,
+          "depth": 5.938,
+          "height": 2.238,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "modern-town-medium-b-israelite.glb": {
+    "bytes": 3267356,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 16584,
+          "width": 5.98,
+          "depth": 5.949,
+          "height": 2.4,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4751,
+          "width": 5.98,
+          "depth": 5.949,
+          "height": 2.4,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 5.98,
+          "depth": 5.949,
+          "height": 2.238,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "modern-town-small-a-israelite.glb": {
+    "bytes": 2152492,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 9168,
+          "width": 3.993,
+          "depth": 3.958,
+          "height": 1.865,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2720,
+          "width": 3.993,
+          "depth": 3.958,
+          "height": 1.724,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 456,
+          "width": 3.993,
+          "depth": 3.958,
+          "height": 1.865,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "modern-town-small-b-israelite.glb": {
+    "bytes": 1758360,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 6174,
+          "width": 3.985,
+          "depth": 4.004,
+          "height": 1.479,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2511,
+          "width": 3.985,
+          "depth": 4.004,
+          "height": 1.479,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 456,
+          "width": 3.985,
+          "depth": 4.004,
+          "height": 1.215,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "shared-bronze-israelite.glb": {
+    "bytes": 5701276,
+    "objects": {
+      "palace-small": {
+        "LOD0": {
+          "triangles": 838,
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.79,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 838,
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.79,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 400,
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.79,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "palace": {
+        "LOD0": {
+          "triangles": 904,
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.36,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 904,
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.36,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 400,
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.36,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "walls-medium": {
+        "LOD0": {
+          "triangles": 6400,
+          "width": 6.8,
+          "depth": 6.755,
+          "height": 0.767,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2183,
+          "width": 6.8,
+          "depth": 6.755,
+          "height": 0.767,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 378,
+          "width": 6.794,
+          "depth": 6.629,
+          "height": 0.676,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "colony-camp": {
+        "LOD0": {
+          "triangles": 968,
+          "width": 1.733,
+          "depth": 1.475,
+          "height": 0.4,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 968,
+          "width": 1.733,
+          "depth": 1.475,
+          "height": 0.4,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 480,
+          "width": 1.733,
+          "depth": 1.475,
+          "height": 0.4,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "field-1": {
+        "LOD0": {
+          "triangles": 5270,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1377,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 290,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "field-2": {
+        "LOD0": {
+          "triangles": 2874,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1377,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 290,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "field-3": {
+        "LOD0": {
+          "triangles": 3965,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.32,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1377,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.32,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 290,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.32,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "field-4": {
+        "LOD0": {
+          "triangles": 1138,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.365,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1138,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.365,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 290,
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.365,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "shared-classical-israelite.glb": {
+    "bytes": 2507380,
+    "objects": {
+      "palace-small": {
+        "LOD0": {
+          "triangles": 1002,
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.785,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1002,
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.785,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 400,
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.785,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "palace": {
+        "LOD0": {
+          "triangles": 1324,
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.44,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1324,
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.44,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 400,
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.44,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "walls-medium": {
+        "LOD0": {
+          "triangles": 3580,
+          "width": 6.8,
+          "depth": 6.755,
+          "height": 0.767,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2184,
+          "width": 6.8,
+          "depth": 6.755,
+          "height": 0.767,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 378,
+          "width": 6.794,
+          "depth": 6.743,
+          "height": 0.702,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "shared-kingdoms-israelite.glb": {
+    "bytes": 1277068,
+    "objects": {
+      "palace-small": {
+        "LOD0": {
+          "triangles": 1002,
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.785,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1002,
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.785,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 400,
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.785,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "palace": {
+        "LOD0": {
+          "triangles": 1068,
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.385,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1068,
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.385,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 400,
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.385,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "shared-gunpowder-israelite.glb": {
+    "bytes": 1852192,
+    "objects": {
+      "walls-medium": {
+        "LOD0": {
+          "triangles": 3580,
+          "width": 6.8,
+          "depth": 6.755,
+          "height": 0.767,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2184,
+          "width": 6.8,
+          "depth": 6.755,
+          "height": 0.767,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 378,
+          "width": 6.794,
+          "depth": 6.743,
+          "height": 0.702,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "shared-modern-israelite.glb": {
+    "bytes": 1681704,
+    "objects": {
+      "colony-camp": {
+        "LOD0": {
+          "triangles": 2371,
+          "width": 1.733,
+          "depth": 1.475,
+          "height": 1.03,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2371,
+          "width": 1.733,
+          "depth": 1.475,
+          "height": 1.03,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 480,
+          "width": 1.733,
+          "depth": 1.475,
+          "height": 1.03,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  }
+}

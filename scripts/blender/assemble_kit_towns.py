@@ -579,7 +579,7 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
             parts, images = load_kit(paths, lod1_ratio, lod2_tris, lod2_box=('house-poor', 'house-common', 'house-rich'))
             for key, img in images.items():
                 kit_material('nl_%s_town' % key, img)
-                kit_material('nl_%s_team' % key, img)
+                kit_material('nl_%s_team' % key, team_retoned(img, parts, key) or img)
             colours = swatch_colours(street) if os.path.exists(street) else tt.EARTH
             tm.mat_earth('nl_street', colors=colours)
             tm.mat_earth('nl_street_fringe', colors=colours)
@@ -654,7 +654,7 @@ def build_shared(kit_dir, style, out_dir, atlas=2048):
                                  lambda p: budgets[p.key][1] * p.tris / total(p.key))
         for key, img in images.items():
             kit_material('nl_%s_town' % key, img)
-            kit_material('nl_%s_team' % key, img)
+            kit_material('nl_%s_team' % key, team_retoned(img, parts, key) or img)
         state['parts'] = parts
 
     tris_by_key = {}
@@ -789,6 +789,27 @@ def retoned(image, bms, value, sat=None, floor_only=False):
     return img
 
 
+# Team cloth: the game multiplies it by the nation colour (x1.3, townAssets.js), so it must come out
+# of the bake as light as the base and regional files' (Levant towns 0.34 to 0.43). The delivered
+# mid-grey cloth (value about 0.52) bakes to about 0.28 (the bake keeps about 0.55 of it, measured
+# on the Israelite Bronze town), so a darker Team is lifted to TEAM_TONE[0] / TEAM_TONE[1] first.
+TEAM_TONE = (0.37, 0.55)
+
+
+def team_retoned(image, parts, key, loss=TEAM_TONE[1]):
+    """A copy of the kit image for the Team faces of `key`, lifted to the TEAM_TONE floor (None when
+    already that light or without Team faces)."""
+    bms = [p.lod0['team'] for p in parts.values() if p.key == key and 'team' in p.lod0]
+    return retoned(image, bms, TEAM_TONE[0] / loss, floor_only=True) if bms else None
+
+
+# Bake losses measured on one age's object where they differ from the defaults above: the Modern
+# colony camp (tall tents and vehicles) kept Ground 0.264 (target 0.375), Team 0.248 and Town
+# 0.262 with the Bronze camp's numbers, so its losses are those scaled by what it kept.
+RETONE_AGE = {('modern', 'colonycamp'): dict(ground_loss=AO_LOSS * 0.70, team_loss=TEAM_TONE[1] * 0.67,
+                                             town=(0.30, RETONE_TOWN['colonycamp'][1] * 0.87))}
+
+
 def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
     """shared-<age>-<style>.glb from <towns_dir>/<name>-<style>/model.glb for each object present.
     Camps and fields keep their delivered ground (material role 'ground', exported as Ground)."""
@@ -816,12 +837,14 @@ def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
                                  lambda p: budgets[p.key][1] * p.tris / tris_by_key[p.key])
         for key, img in images.items():
             mine = [p for p in parts.values() if p.key == key]
+            ov = RETONE_AGE.get((age, key), {})
             ground = retoned(img, [p.lod0['ground'] for p in mine if 'ground' in p.lod0],
-                             GROUND_TONE[0] / AO_LOSS, GROUND_TONE[1] / SAT_GAIN)
-            town = retoned(img, [p.lod0['town'] for p in mine if 'town' in p.lod0], RETONE_TOWN[key][0] / RETONE_TOWN[key][1],
-                           floor_only=True) if key in RETONE_TOWN else None
+                             GROUND_TONE[0] / ov.get('ground_loss', AO_LOSS), GROUND_TONE[1] / SAT_GAIN)
+            floor = ov.get('town', RETONE_TOWN.get(key))
+            town = retoned(img, [p.lod0['town'] for p in mine if 'town' in p.lod0], floor[0] / floor[1],
+                           floor_only=True) if floor else None
             kit_material('nl_%s_town' % key, town or img)
-            kit_material('nl_%s_team' % key, img)
+            kit_material('nl_%s_team' % key, team_retoned(img, parts, key, ov.get('team_loss', TEAM_TONE[1])) or img)
             kit_material('nl_%s_ground' % key, ground or img)
         state['parts'] = parts
     keys = list(paths)
