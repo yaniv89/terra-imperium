@@ -164,6 +164,21 @@ stands. These sections amend it.
   as population frees up (deaths, retreats), in the order the player sets.
 - Control by **regiment** (box select regiments, regiment cards, formations); single units
   remain selectable. 300 single-unit orders are not playable on a 844x390 screen.
+- **Phase C result (2026-10-06, branch claude/phase-c-battle-kernel).** `node scripts/battle-bench.mjs`:
+  AI against AI, a full army mix, everyone on the field, 2,400 ticks; i7-12650H, one core pinned;
+  phone = x4 (review section 5); budget p95 <= 10 ms, p99 <= 20 ms (RTS plan 13.1).
+
+  | Sim entities a side | Before: mean / p95 ms | After: mean / p95 / p99 ms | Phone p95 after (x4) |
+  |---|---|---|---|
+  | 300 | 2.41 / 3.81 | 0.80 / 1.19 / 1.51 | 4.8: **go** |
+  | 500 | 5.26 / 8.90 | 1.42 / 2.13 / 2.78 | 8.5: go, little margin |
+  | 1,000 | 29.9 / 39.0 | 5.65 / 9.98 / 14.2 | about 25 to 40: **no** |
+
+  Same world hash before and after on every scenario (a pure speed change). The renderer is now
+  the limit: at 300 squads a side (about 10 figures each, 6,000 figures) a frame is 14 to 19
+  million triangles at zoom 1 and 3.6 million zoomed out (phone budget 0.5 million); the sim is
+  not. Before R1: frustum culling and a distance LOD for soldier layers, shadows off for the mass,
+  fewer figures per entity at scale, and packed transferable frames (13.3).
 
 ### 6.3 Village houses and population (decisions 26, 30)
 As in Age of Empires, every unit needs housing:
