@@ -326,6 +326,38 @@ Age of Cities designs build on independents. W4 can follow or run alongside.
 
 ---
 
+## 12b. Status of W1 (2026-10-06, branch claude/phase-w1-independents, on W0 2c59997b)
+
+Done:
+- `src/data/independents.js` (kind, size cap 4 + age rank, border 204 km, garrison target,
+  personalities from the land tuned on the pool to 60 tribal / 38 raiders / 30 mercantile / 22
+  fortress, names of 14.2 and free cities, map placeholder colours, the art paths) and
+  `src/engine/hostility.js` (`canFight`, `canAttack`, `warBetween`, the fog hook `hasMet` /
+  `metOnlyBySight`).
+- `src/engine/independents.js`: who is independent (Standard and Large all the rest, Small the 96
+  best by weight x a seeded roll), finalizing the records (no economy pool, ruler or estates),
+  late peoples arriving as independents in their year, breakaway cities as new independents
+  (`free_<cityId>`), the city context (its own cheap logic: a garrison through the city queue,
+  never settlers or wonders).
+- canFight wired into armies (land access, zone of control), sieges, field and naval battles,
+  fleets, plunder, invasions and landings (no war needed; `war` is null, no war score), missile
+  strikes, the commanded-battle result. Independents never enter `state.wars` (declareWar refuses),
+  pacts, accords or the diplomacy actions (refused with a reason). Conquest costs half the AE; no
+  elimination reward; no civil wars; no loyalty flips to an independent.
+- AI: independents have no tier; every major is Tier 1 in a world with independents
+  (`everyMajorThinks`). The AI does not attack independents yet (W3).
+- Map: muted, dashed border band; muted banner with a personality dot; "Independent, <personality>"
+  in the city panel; independents left out of the diplomacy list.
+- Saves: additive fields only (`nation.kind`, `nation.indep`, `scenario.independents`,
+  `independentIds`, `lateArrivals`, `independentTemplate`): old saves load unchanged, no version bump.
+
+Left for later phases: raids, sacks, grudges, tribute, mercenaries (W2); AI majors conquering
+independents, peaceful joining, razing (W3); the independent sheet and list, raid markers, the
+real shield and dressing art (W4). trade routes (tradeRoutes.js) still treat independents as
+neutral until raids exist. Balance items: civil wars among majors roughly double once every major
+is Tier 1 (seen with and without independents); ms per turn rises about 30 ms at Standard
+(110 more cities) against the W0 world.
+
 ## 13. Decisions (from the user, 2026-10-03)
 
 1. **Default world size: Standard, 35 major nations.**

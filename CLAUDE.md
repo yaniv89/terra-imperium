@@ -55,6 +55,9 @@ The live site is GitHub Pages, built into `docs/`.
   city (flips, free cities): src/engine/loyalty.js. AI fronts (attacks from touching tiles,
   tile marches, sieges and assaults): src/engine/aiOperations.js. Research boosts from map facts:
   src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
+  Independent cities (phase W1, one-city `kind: 'independent'` nations of a peoples world): src/engine/independents.js
+  over src/data/independents.js; who may fight whom (`canFight`, `canAttack`: no war needed against an
+  independent): src/engine/hostility.js. Use it instead of a bare war check in new combat code.
   Progress and open balance items: plan section J3.
 - Peoples (phase W0): new games use scenario mode `peoples`: majors drawn from the 150-people
   pool (src/data/peoples.js, built facts in src/data/geo/peopleCapitals.json via
