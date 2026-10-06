@@ -54,7 +54,10 @@ import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { canAttack } from './hostility';
-import { isIndependent } from '../data/independents';
+import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
+import { addGrudge } from './grudges';
+import { hireMercenaryForPlayer } from './mercenaries';
+import { answerTributeDemand } from './raids';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
 import { addNationModifier } from './modifiers/timed';
@@ -3082,6 +3085,16 @@ const reduceAction = (state, action) => {
       const me = state.nations[state.playerNationId];
       return { ...state, nations: { ...state.nations, [state.playerNationId]: saveTemplate(me, template, state.turnNumber) } };
     }
+    case ActionTypes.HIRE_MERCENARY: {
+      // A band from a mercantile or raiders independent (mercenaries.js, phase W2).
+      const r = hireMercenaryForPlayer(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.ANSWER_TRIBUTE_DEMAND: {
+      // Pay an independent's tribute (no raids from it meanwhile) or refuse it (raids.js, phase W2).
+      const { id, pay } = action.payload || {};
+      return answerTributeDemand(state, id, !!pay);
+    }
     case ActionTypes.PILLAGE_TILE: {
       // The army sheet's pillage order (plan D6): a stack halted on an enemy tile with an
       // improvement burns it (threat.js pillageTile: the raid's gold, doubled by Chieftaincy) and
@@ -3091,6 +3104,10 @@ const reduceAction = (state, action) => {
       if (!mine.length || !mine.some((u) => (u.movesLeft ?? 0) > 0)) return state;
       const tile = unitTile(state, mine[0]);
       const enemies = new Set([REBEL_OWNER_ID, ...(state.wars || []).filter((w) => w.active && (w.aggressor === state.playerNationId || w.enemy === state.playerNationId)).map((w) => (w.aggressor === state.playerNationId ? w.enemy : w.aggressor))]);
+      // An independent's land may be pillaged without a war; it holds a grudge (phase W2, grudges.js).
+      const landOwner = tile == null ? null : state.regions[state.world?.tileOwner?.[tile]]?.owner;
+      const independentLand = isIndependentNation(state.nations[landOwner]) && canAttack(state, state.playerNationId, landOwner);
+      if (independentLand) enemies.add(landOwner);
       const raid = tile == null ? null : pillageTile(state, state.playerNationId, tile, enemies);
       if (!raid) return state;
       const units = { ...state.units };
@@ -3098,6 +3115,7 @@ const reduceAction = (state, action) => {
       return {
         ...state,
         units,
+        nations: independentLand ? addGrudge(state.nations, landOwner, state.playerNationId, GRUDGE_ATTACKED) : state.nations,
         world: { ...state.world, tileState: raid.tileState },
         resources: { ...state.resources, gold: (state.resources.gold || 0) + raid.gold },
         logs: [...state.logs, { year: state.year, message: `Your army pillages ${getTiles().names[tile] || 'the land'} of ${state.regions[raid.cityId]?.name || 'the enemy'}: +${raid.gold} gold.`, type: LogTypes.COMBAT }]

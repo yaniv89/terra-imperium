@@ -19,6 +19,7 @@ import { clampStability } from './nationalPower';
 import { getCapital } from '../data/regions';
 import { CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY } from '../data/actionCosts';
 import { isIndependentNation, INDEPENDENT_CONQUEST_AE_MULT } from '../data/independents';
+import { grudgeForKinCity } from './grudges';
 
 export const CONQUEST_CONTROL = 25;
 export const CONQUEST_MIN_UNREST = 50;
@@ -57,6 +58,8 @@ export const conquerRegion = ({ regions, nations, turnNumber }, regionId, conque
   let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId, aeMultFor({ nations, regions }, conquerorId, region) * indepMult);
   // The claim the city was taken for is settled.
   if (nextNations[conquerorId]?.claims?.includes(regionId)) nextNations = { ...nextNations, [conquerorId]: { ...nextNations[conquerorId], claims: nextNations[conquerorId].claims.filter((id) => id !== regionId) } };
+  // Its kin among the independents remember (grudges.js, phase W2).
+  if (isIndependentNation(nations[loserId])) nextNations = grudgeForKinCity(nextNations, loserId, conquerorId);
   nextNations = relocateLostCapital(nextNations, nextRegions, loserId);
   return { regions: nextRegions, nations: nextNations, loserId, capitalTaken: loserCapital === regionId };
 };

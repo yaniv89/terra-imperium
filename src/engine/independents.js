@@ -16,9 +16,11 @@
 //   builds; it never settles or builds wonders, grows to independentSizeCap and claims land only
 //   within INDEPENDENT_BORDER_KM. It has no economy pool, ruler, estates or research: every heavy
 //   per-nation phase skips it (no `economy`, `ruler: null`, `estates: null`, no AI tier).
-// - It is passive (W1): it declares no wars, raids nothing, besieges nothing (hostility.js
-//   canAttack). Anyone may attack it without a war; taking its city costs half the usual AE and is
-//   no war (no war score, no peace). Its city never flips to it by loyalty either.
+// - It declares no wars and besieges nothing (hostility.js canAttack). Since phase W2 it raids,
+//   sacks, holds grudges, demands tribute and sells mercenaries (raids.js, mercenaries.js); its
+//   queue keeps RAID_RESERVE units above the garrison for raiding. Anyone may attack it without a
+//   war; taking its city costs half the usual AE and is no war (no war score, no peace). Its city
+//   never flips to it by loyalty either.
 // - A city whose loyalty hits 0 with nobody to join becomes a NEW independent ("the free city of
 //   X", independents 14.4) in a world with independents; the legacy worlds keep ownerless free cities.
 // Pure and deterministic (seeded rolls, fixed orders).
@@ -29,7 +31,7 @@ import { WORLD_SIZES, DEFAULT_WORLD_SIZE, EQUAL_START_SIZE } from '../data/world
 import { createRng } from '../utils/rng';
 import {
   INDEPENDENT_KIND, INDEPENDENT_BORDER_KM, isIndependentNation, independentSizeCap, garrisonTarget,
-  personalityFor, independentTitle
+  personalityFor, independentTitle, RAID_RESERVE
 } from '../data/independents';
 import { canFoundCity, foundCity, sizeToPeople } from './world/cities';
 
@@ -117,6 +119,8 @@ export const independentCityCtx = (state, nationId, ageId) => {
     maxSize: independentSizeCap(ageId),
     maxBorderRing: ringsForKm(INDEPENDENT_BORDER_KM),
     garrisonTarget: garrisonTarget(capital?.size || 1, n?.indep?.personality),
+    raidReserve: RAID_RESERVE[n?.indep?.personality] || 0, // the raid party (phase W2, raids.js)
+    personality: n?.indep?.personality || 'tribal',
     wonders: false
   };
 };

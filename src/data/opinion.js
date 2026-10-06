@@ -34,3 +34,5 @@ export const VASSAL_OF_YOU = -10;            // a vassal resents its overlord a 
 export const WAR_ROLL_OPINION_CEILING = 20;  // no AI war roll at this opinion or above
 export const WAR_ROLL_OPINION_SPAN = 60;     // full roll at ceiling - span
 export const CASUS_BELLI_OPINION = -40;      // this low, a war on them needs no claim
+export const RAIDED_US = -15;                // an independent raided or sacked us; fades 1 a turn (raids.js)
+export const PAYS_US_TRIBUTE = 10;           // an independent's view of a nation paying it tribute

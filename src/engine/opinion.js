@@ -24,7 +24,7 @@ import { ringsForKm, kmPerRing } from '../data/geo/gridScale';
 import {
   OPINION_MIN, OPINION_MAX, OPINION_BASELINE, GRUDGE_PER_HOSTILITY, BORDER_FREE_TILES, BORDER_PER_TILE, BORDER_MAX, BORDER_TILE_KM, SETTLED_NEAR_KM, SETTLED_NEAR,
   HOLDS_MY_CULTURE, CLAIM_ON_MY_CITY, TRADE_ROUTE, TRADE_MAX, ALLIANCE, OPEN_BORDERS, DEFENSIVE_PACT, ROYAL_MARRIAGE, SAME_IDENTITY_AXIS, BROKEN_TRUCE, AE_FREE, AE_PER_POINT, RIVAL, VASSAL_OF_YOU,
-  WAR_ROLL_OPINION_CEILING, WAR_ROLL_OPINION_SPAN, CASUS_BELLI_OPINION
+  WAR_ROLL_OPINION_CEILING, WAR_ROLL_OPINION_SPAN, CASUS_BELLI_OPINION, RAIDED_US, PAYS_US_TRIBUTE
 } from '../data/opinion';
 
 const clamp = (v) => Math.max(OPINION_MIN, Math.min(OPINION_MAX, Math.round(v)));
@@ -147,6 +147,10 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   if ((B.rivals || []).includes(a)) out.push({ id: 'rival', label: 'Rival', value: RIVAL });
   if (b === state.playerNationId && (A.hostilityFloor || 0) >= 40) out.push({ id: 'truce', label: 'Broke a truce', value: BROKEN_TRUCE });
   if (A.vassalOf === b) out.push({ id: 'vassal', label: 'My overlord', value: VASSAL_OF_YOU });
+  // Independents (phase W2, raids.js): raids fade one point a turn; tribute warms its receiver.
+  const raided = A.raidedBy?.[b];
+  if (raided != null && RAIDED_US + ((state.turnNumber || 0) - raided) < 0) out.push({ id: 'raidedUs', label: 'Raided us', value: RAIDED_US + ((state.turnNumber || 0) - raided) });
+  if (A.indep?.tributeFrom?.[b]) out.push({ id: 'paysTribute', label: 'Pays us tribute', value: PAYS_US_TRIBUTE });
   return out.map((r) => ({ ...r, value: Math.round(r.value * 10) / 10 }));
 };
 

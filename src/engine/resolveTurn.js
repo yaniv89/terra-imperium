@@ -6,6 +6,7 @@ import { processEmergence } from './emergence';
 import { processLateArrivals, independentCityCtx } from './independents';
 import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
+import { processIndependents } from './raids';
 import { reconcileTerritory } from './worldLifecycle';
 import { invalidateRegionsCache } from '../data/regions';
 // src/engine/resolveTurn.js
@@ -960,7 +961,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   plunderedRoutes({ ...state, regions, units, nations }).forEach((p) => {
     const gold = plunderGoldFor(state, p.by);
     const raider = nations[p.by];
-    if (raider) nations[p.by] = { ...raider, economy: { ...(raider.economy || {}), gold: ((raider.economy || {}).gold || 0) + gold } };
+    // An independent's raid party took its loot already (raids.js ROUTE_LOOT): the route is only cut.
+    if (raider && !isIndependentNation(raider)) nations[p.by] = { ...raider, economy: { ...(raider.economy || {}), gold: ((raider.economy || {}).gold || 0) + gold } };
     logs.push({ year: newYear, message: `${raider?.name || 'Rebels'} plunder your ${p.kind} trade route to ${nations[p.partnerId]?.name || p.partnerId} (${getTiles().names[p.tile] || 'a tile'}): no trade this turn.`, type: LogTypes.COMBAT });
   });
   // Nations that fear the same conqueror band together in defensive pacts (src/engine/pacts.js).
@@ -1140,6 +1142,24 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // Elimination also closes wars; surviving opponents must stop paying war exhaustion.
   nationsAfterWars = refreshWarFlags(nationsAfterWars, wars, [...eliminationWarParticipants]);
   mark('elimination');
+
+  // --- independents (phase W2, raids.js): their treasuries, grudges, tribute, raids and sacks,
+  // and every mercenary contract (mercenaries.js). After the majors' operations, so a raid meets
+  // the armies where they now stand.
+  {
+    const indep = processIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, age: newAge, regions, units, nations: nationsAfterWars, resources, wars });
+    if (indep) {
+      Object.keys(units).forEach((id) => { if (!indep.units[id]) delete units[id]; });
+      Object.assign(units, indep.units);
+      Object.assign(regions, indep.regions);
+      Object.assign(resources, indep.resources);
+      nationsAfterWars = indep.nations;
+      state = { ...state, world: indep.world, tributeDemands: indep.tributeDemands, indepStats: indep.indepStats };
+      indep.logs.forEach((l) => logs.push(l));
+      invalidateRegionsCache(regions);
+    }
+  }
+  mark('independents');
 
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this

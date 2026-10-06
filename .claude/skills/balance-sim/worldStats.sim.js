@@ -83,6 +83,16 @@ const snapshot = (s, t, counters, ms, lives) => {
     // Independents (phase W1): how many still stand, and the majors' cities (the expansion check).
     independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
     majorCities: regs.filter((r) => r.owner && s.nations[r.owner]?.kind !== 'independent').length,
+    // Independents' AI (phase W2, raids.js, cumulative): raids started (and at the player), raids
+    // that took their loot (and on the player), raid battles, sacks, loot, tribute demands and deals,
+    // tribute gold paid, mercenary bands hired; and now: raids out, tribute deals running, bands in service.
+    raidsStarted: s.indepStats?.raidsStarted || 0, raidsAtPlayer: s.indepStats?.raidsAtPlayer || 0, raidsHit: s.indepStats?.raidsHit || 0,
+    raidsOnPlayer: s.indepStats?.raidsOnPlayer || 0, raidBattles: s.indepStats?.raidBattles || 0, sacks: s.indepStats?.sacks || 0,
+    raidLoot: s.indepStats?.loot || 0, tributeDemands: s.indepStats?.tributeDemands || 0, tributeDeals: s.indepStats?.tributeDeals || 0,
+    tributeGold: s.indepStats?.tributeGold || 0, mercsHired: s.indepStats?.mercsHired || 0,
+    raidsOut: nations.filter((n) => n.indep?.raid && !n.isEliminated).length,
+    tributeRunning: nations.reduce((k, n) => k + Object.keys(n.indep?.tributeFrom || {}).length, 0),
+    mercsActive: Object.values(s.units).filter((u) => u.mercenary).length,
     nonFinite, auditViolations: auditCount(s), msPerTurn: +ms.toFixed(1)
   };
 };

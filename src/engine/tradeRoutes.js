@@ -27,7 +27,8 @@ export const enemyTilesOf = (state, nationId = state.playerNationId) => {
   const hostile = new Set([REBEL_OWNER_ID, ...(state.wars || []).filter((w) => w.active && (w.aggressor === nationId || w.enemy === nationId) && isWarBetween(w, nationId, w.aggressor === nationId ? w.enemy : w.aggressor)).map((w) => (w.aggressor === nationId ? w.enemy : w.aggressor))]);
   const tiles = new Set();
   Object.values(units).forEach((u) => {
-    if (u.domain === 'naval' || u.embarkedOn || u.classId === 'settler' || !(u.strength > 0) || u.ownerId === nationId || !hostile.has(u.ownerId)) return;
+    // An independent's raid party (raids.js `raidOf`) blocks caravans like an enemy army.
+    if (u.domain === 'naval' || u.embarkedOn || u.classId === 'settler' || !(u.strength > 0) || u.ownerId === nationId || !(hostile.has(u.ownerId) || u.raidOf)) return;
     const t = unitTile(state, u);
     if (t != null) tiles.add(t);
   });

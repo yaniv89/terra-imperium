@@ -168,9 +168,12 @@ export const chooseProduction = (state, city, ctx) => {
       if (costOf(item) / production <= MAX_WONDER_TURNS * (ctx.speedMult || 1)) offer(item, WONDER_UTILITY * (likedPick ? LIKED_WONDER_MULT : 1));
     }
   }
-  const unitCap = independent ? ctx.garrisonTarget : ctx.citiesOwned * UNITS_PER_CITY;
+  // An independent also keeps its raid reserve (phase W2, independents.js independentCityCtx);
+  // raiders ride (cavalry when the age has it).
+  const unitCap = independent ? ctx.garrisonTarget + (ctx.raidReserve || 0) : ctx.citiesOwned * UNITS_PER_CITY;
   if (counts.landUnits < unitCap && getAvailableClasses(ctx.ageId).includes('infantry')) {
-    const item = { kind: 'unit', classId: 'infantry' };
+    const mounted = independent && ctx.personality === 'raiders' && counts.landUnits >= ctx.garrisonTarget && getAvailableClasses(ctx.ageId).includes('cavalry');
+    const item = { kind: 'unit', classId: mounted ? 'cavalry' : 'infantry' };
     const score = independent ? GARRISON_UNIT_UTILITY : sit.atWar ? WAR_UNIT_UTILITY : sit.arming ? ARMING_UNIT_UTILITY : UNIT_UTILITY;
     if (score > bestScore && canQueue(city, tiles, world, item, ctx).ok && affordable(item)) offer(item, score);
   }

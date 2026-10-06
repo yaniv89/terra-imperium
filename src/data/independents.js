@@ -5,8 +5,8 @@
 // An independent is a nation record with `kind: 'independent'`: one city of a people that is not
 // one of the world's major nations. It holds its city and a small border, grows up to a size cap,
 // keeps a garrison, and never settles, expands, declares wars or joins pacts. Anyone may attack it
-// without a war (src/engine/hostility.js canFight). Phase W1 keeps it passive: no raids, no
-// tribute, no mercenaries (those are W2 and W3).
+// without a war (src/engine/hostility.js canFight). Phase W2 gives it its own AI: raids, sacks,
+// grudges, tribute and mercenaries (src/engine/raids.js, mercenaries.js, grudges.js; numbers below).
 //
 // Pure data and small pure functions: no engine imports, so diplomacy.js, aiLogic.js and the map
 // can all read `isIndependent` without an import cycle.
@@ -47,7 +47,7 @@ export const INDEPENDENT_CONQUEST_AE_MULT = 0.5;
 
 // ---------------------------------------------------------------------------------------------
 // Personalities (independents 3.3). Assigned once, from the land around the city: W1 stores and
-// shows them; their behaviour (raids, walls, trade) comes with W2 and W3.
+// shows them; W2 reads them (raid reach, chance, reserve, tribute, mercenaries); trade comes with W3.
 
 export const PERSONALITY_IDS = ['raiders', 'mercantile', 'fortress', 'tribal'];
 export const PERSONALITIES = {
@@ -148,3 +148,95 @@ export const INDEPENDENT_ART = {
   /** Town dressings, S13 map attachments: `independents/<band>/<personality>-dressing`. */
   townDressing: (personality, band = 'early') => `src/assets/map/independents/${band}/${personality}-dressing.glb`
 };
+
+// ---------------------------------------------------------------------------------------------
+// Phase W2: the independents' own AI (independents 4, master plan 6.5 and decision 38).
+// The engine is src/engine/raids.js (the AI, raids, sacks, tribute), src/engine/mercenaries.js
+// and src/engine/grudges.js. Every number here is one table to tune with the balance-sim.
+
+/** Each independent thinks every THINK_PERIOD turns, staggered by its id (independents 4.1). */
+export const THINK_PERIOD = 3;
+
+/** How far it raids, in km (the plan's rings at frequency 75: raiders 6 to 8, tribal 4 to 5,
+ * fortress 3; a mercantile city never raids). */
+export const RAID_KM = { raiders: 714, tribal: 459, fortress: 306, mercantile: 0 };
+/** Turns between two raids (fortress: only in revenge, a grudge of FORTRESS_REVENGE_GRUDGE). */
+export const RAID_COOLDOWN = { raiders: 6, tribal: 10, fortress: 10, mercantile: Infinity };
+/** The chance a raid starts once a target clears RAID_THRESHOLD (x the difficulty against the
+ * player, x (1 + grudge / 100)). */
+export const RAID_CHANCE = { raiders: 0.6, tribal: 0.35, fortress: 0.5, mercantile: 0 };
+export const FORTRESS_REVENGE_GRUDGE = 40;
+/** Land units it keeps above its garrison target for raiding (the raid party). */
+export const RAID_RESERVE = { raiders: 2, tribal: 1, fortress: 1, mercantile: 0 };
+/** score = loot x (1 + grudge / 50) x era / (1 + defenders near / party) - RAID_RING_PENALTY per
+ * RAID_RING_PENALTY_KM of distance; a raid needs RAID_THRESHOLD. */
+export const RAID_THRESHOLD = 6;
+export const RAID_RING_PENALTY = 2;
+export const RAID_RING_PENALTY_KM = 102;
+/** A raid that has not reached its target in this many turns goes home. */
+export const RAID_MAX_TURNS = 8;
+/** After a lost battle or a raid gone wrong: no raids for this long (mood 'recovering'). */
+export const RAID_RECOVER_TURNS = 5;
+/** A party that meets an enemy army on its way fights it only when this much stronger, else goes home. */
+export const RAID_FIGHT_RATIO = 1.2;
+/** Late ages raid less (independents 3.4): insurgents and militias. */
+export const RAID_ERA_FACTOR = { bronze: 1, classical: 1, kingdoms: 1, gunpowder: 0.8, modern: 0.5 };
+
+/** Loot, in gold (independents 4.3). An improvement: the threat.js RAID_GOLD of a pillage. A trade
+ * route tile: PLUNDER_GOLD x 2 (plunder.js), taken from the victim, and the route is cut while the
+ * party stands on it. A settler is killed (no captives, decision 37). An outpost is burned (its
+ * progress is lost). */
+export const ROUTE_LOOT = 30;
+export const SETTLER_LOOT = 20;
+export const OUTPOST_LOOT = 20;
+/** Sack (independents 4.4, master plan 6.5 and 6.8): raiders that beat a city whose garrison is
+ * under SACK_GARRISON_RATIO x the party take SACK_INCOME_TURNS turns of its gold (at least
+ * SACK_MIN_GOLD), and the city loses one size and one building tier, never more than half of
+ * either (the 50% rule). The city is never captured. */
+export const SACK_GARRISON_RATIO = 0.5;
+export const SACK_INCOME_TURNS = 3;
+export const SACK_MIN_GOLD = 15;
+
+/** Its treasury: its city's gold yield a turn (x MERCANTILE_GOLD_MULT for a mercantile city),
+ * capped. Loot, tribute and mercenary pay go in; the mercenaries it hires come out. */
+export const INDEPENDENT_GOLD_CAP = 400;
+export const MERCANTILE_GOLD_MULT = 2;
+
+/** Grudges (independents 4.5): 0..GRUDGE_MAX per nation, -GRUDGE_DECAY a turn. */
+export const GRUDGE_MAX = 100;
+export const GRUDGE_DECAY = 2;
+export const GRUDGE_ATTACKED = 20;      // they killed its units or pillaged its land
+export const GRUDGE_KIN_CITY = 40;      // they took the city of an independent of the same art theme (its kin)
+export const GRUDGE_REFUSED = 20;       // they refused its tribute, or stopped paying
+
+/** Tribute (independents 4.5): raiders and tribal demand gold from a neighbour they outweigh or
+ * hate: tributeGold a turn (2 + the age's rank) for TRIBUTE_TURNS turns; the payer is never raided
+ * meanwhile (a truce both ways, hostility.js). */
+export const TRIBUTE_TURNS = 20;
+export const TRIBUTE_DEMAND_GRUDGE = 40;
+export const TRIBUTE_STRENGTH_RATIO = 1.5;
+export const TRIBUTE_DEMAND_CHANCE = 0.15;
+export const TRIBUTE_DEMAND_COOLDOWN = 20;  // turns between two demands to the same nation
+export const TRIBUTE_ANSWER_TURNS = 3;      // the player's answer; silence is a refusal
+export const tributeGold = (ageId = 'bronze') => 2 + Math.max(0, AGE_ORDER.indexOf(ageId));
+
+/** Mercenaries (independents 5, master plan 6.7): mercantile and raiders independents sell bands
+ * of one unit, MERC_STOCK at most, one more every MERC_RESTOCK_TURNS. A band costs mercPrice at
+ * once and mercUpkeep every turn (paid to the seller), and leaves after MERC_CONTRACT_TURNS, or at
+ * once when the upkeep goes unpaid. A buyer needs a city within MERC_KM of the seller and a grudge
+ * under MERC_MAX_GRUDGE. */
+export const MERC_SELLERS = ['mercantile', 'raiders'];
+export const MERC_STOCK = 2;
+export const MERC_RESTOCK_TURNS = 10;
+export const MERC_CONTRACT_TURNS = 20;
+export const MERC_KM = 1224;
+export const MERC_MAX_GRUDGE = 50;
+export const mercPrice = (ageId = 'bronze') => 60 + 25 * Math.max(0, AGE_ORDER.indexOf(ageId));
+export const mercUpkeep = (ageId = 'bronze') => 3 + Math.max(0, AGE_ORDER.indexOf(ageId));
+/** The AI: a major at war (or raided in the last MERC_AI_RAIDED_TURNS turns) with MERC_AI_GOLD_MULT x
+ * the price in gold hires a band, at most
+ * MERC_AI_MAX at once, thinking every MERC_AI_PERIOD turns. */
+export const MERC_AI_GOLD_MULT = 2;
+export const MERC_AI_RAIDED_TURNS = 10; // a major raided this recently hires too, at peace
+export const MERC_AI_MAX = 2;
+export const MERC_AI_PERIOD = 5;

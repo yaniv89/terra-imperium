@@ -9,7 +9,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { isWarBetween } from './diplomacy';
-import { canAttack } from './hostility';
+import { canAttack, canFight } from './hostility';
 import { unitTile } from './armies';
 import { getTradeRoute, findCaravanPath, enemyTilesOf } from './tradeRoutes';
 import { getCapital } from '../data/regions';
@@ -31,7 +31,8 @@ const raidsMe = (state, me, ownerId) => canAttack(state, ownerId, me);
 const enemyLandByTile = (state, me) => {
   const map = new Map();
   Object.values(state.units || {}).forEach((u) => {
-    if (u.domain === 'naval' || u.embarkedOn || u.classId === 'settler' || !(u.strength > 0) || u.ownerId === me || !raidsMe(state, me, u.ownerId)) return;
+    // An independent's raid party (raids.js `raidOf`) cuts the routes it stands on.
+    if (u.domain === 'naval' || u.embarkedOn || u.classId === 'settler' || !(u.strength > 0) || u.ownerId === me || !(raidsMe(state, me, u.ownerId) || (u.raidOf && canFight(state, me, u.ownerId)))) return;
     const t = unitTile(state, u);
     if (t == null) return;
     const cur = map.get(t);
