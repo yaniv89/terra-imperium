@@ -9,7 +9,10 @@ import { tileFacts } from '../data/tileYields';
 import { getTiles } from '../data/geo/tiles';
 import { isSettler } from './settlers';
 
-export const TUTORIAL_NATION = 'eg';
+// The guided start plays Kemet (the people of the Nile, phase W0) in a Standard peoples world; the
+// guide reads only the player's own state, so it works in a legacy world too (as Egypt).
+export const TUTORIAL_NATION = 'kemet';
+export const TUTORIAL_WORLD_SIZE = 'standard';
 export const TUTORIAL_TURNS = 10;
 export const TUTORIAL_TECH = 'infrastructure_irrigation_canals';
 
@@ -26,7 +29,7 @@ const floodplainFarm = (state) => {
 };
 
 export const TUTORIAL_STEPS = [
-  { id: 'settle', label: 'Send your settlers along the Nile and found a second city', hint: 'Tap the settlers, pick a river tile a few hexes away, and they walk there and settle.', target: 'settler',
+  { id: 'settle', label: 'Train settlers and found a second city along the Nile', hint: 'Every people starts with one city: queue Settlers in your capital (City tab), then tap them, pick a river tile a few hexes away, and they walk there and settle.', target: 'settler',
     done: (state) => mine(state).length >= 2 || Object.values(state.units || {}).some((u) => u.ownerId === state.playerNationId && isSettler(u) && u.target != null) },
   { id: 'farm', label: 'Build a farm on a floodplain of your capital', hint: 'Open the capital, Tiles tab: a floodplain farm feeds a growing city.', target: 'capital',
     done: floodplainFarm },

@@ -14,6 +14,7 @@
 // ActionButton call site's effect-hint keys across ~10 panel files for a purely cosmetic change —
 // not an M17-sized edit, so it's deferred rather than force-fit here.
 import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
+import { PEOPLES } from '../data/peoples';
 import { REGIONS_DATA } from '../data/regions';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { getLaw } from '../data/laws';
@@ -21,7 +22,7 @@ import { TRAITS } from '../data/traits';
 import { ESTATE_LABELS } from '../data/estates';
 import { formatMoney, formatNumber } from '../utils/helpers';
 
-const nationName = (id) => NATIONS_DATA[id]?.name || id;
+const nationName = (id) => NATIONS_DATA[id]?.name || PEOPLES[id]?.name || id;
 const regionName = (id) => REGIONS_DATA[id]?.name || id;
 const joinNations = (value) => (Array.isArray(value) ? value : [value]).map(nationName).join(', ');
 const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;

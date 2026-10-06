@@ -1,8 +1,10 @@
 // src/engine/worldgen/emergentWorld.js
-// World scenarios on the tile grid (plans/civ-map-rework.md, B6). Every scenario builds cities from
-// src/data/scenarios.js's starts: the full world is all 240 peoples with one city each at the
-// Dawn start; an emergent world is a subset of `nationCount` peoples chosen for geographic
-// spread (the player always included), the rest dormant until emergence (emergence.js).
+// World scenarios on the tile grid (plans/civ-map-rework.md, B6). Mode 'peoples' (new games, phase
+// W0) builds its cities from peoplesWorld.js: the majors drawn from the 150-people pool, one equal
+// city each at the Dawn start. The legacy modes build from src/data/scenarios.js's starts: the
+// full world is all 240 countries with one city each at the Dawn start; an emergent world is a
+// subset of `nationCount` of them chosen for geographic spread (the player always included), the
+// rest dormant until emergence (emergence.js). Old saves keep their legacy mode.
 // Deterministic: the spread pick uses the seeded rng only for tie-breaks.
 import { getTiles } from '../../data/geo/tiles';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID, SCENARIOS } from '../../data/scenarios';
@@ -10,6 +12,8 @@ import { foundCity, emptyWorld, sizeToPeople } from '../world/cities';
 import { makeSettler } from '../settlers';
 import { createRng } from '../../utils/rng';
 import { distanceKm } from '../../data/geo/geodesic';
+import { buildPeoplesStarts } from './peoplesWorld';
+import { DEFAULT_WORLD_SIZE } from '../../data/worldSizes';
 
 export const NATION_COUNTS = [15, 30, 45, 60, 75];
 export const GENERATION_VERSION = 2;
@@ -41,11 +45,9 @@ export const generateStarts = (playerNationId, nationCount, seed) => {
 
 // Turns scenario starts into the city world: regions (one record per city, with the fields the
 // rest of the engine reads), world.tileOwner, nations' capitals, and one starting army each.
-const buildCityWorld = (initial, scenarioId, nationIds) => {
+// `starts`: scenarios.js buildScenarioStarts' shape (the legacy worlds) or peoplesWorld.js's.
+const buildCityWorld = (initial, starts) => {
   const tiles = getTiles();
-  // The player's nation is placed first on its real capital (scenarios.js spreadCapitals); a nation
-  // with no room at the start (the legacy full world's crowded small lands) is absent.
-  const { starts } = buildScenarioStarts(tiles, scenarioId, nationIds, { priority: initial.playerNationId });
   let world = emptyWorld();
   const nations = { ...initial.nations };
   const units = {};
@@ -108,12 +110,33 @@ const buildCityWorld = (initial, scenarioId, nationIds) => {
   return { regions, nations, units, world: { tileOwner, tileState: world.tileState }, activeNationIds: Object.keys(founded).sort() };
 };
 
-export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed = 1, start = DEFAULT_SCENARIO_ID } = {}) => {
+// The peoples world (peoplesWorld.js): `initial.nations` already holds the drawn majors only.
+const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, start = DEFAULT_SCENARIO_ID }) => {
+  if (start !== 'dawn') throw new Error('The peoples world starts at Dawn only');
+  const ids = Object.keys(initial.nations).sort();
+  const built = buildCityWorld(initial, buildPeoplesStarts(ids));
+  const starts = {};
+  built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
+  return {
+    ...initial,
+    nations: built.nations,
+    regions: built.regions,
+    units: built.units,
+    world: built.world,
+    resources: { ...initial.resources, supplies: 20 },
+    scenario: { mode: 'peoples', start, generationVersion: GENERATION_VERSION, seed, worldSize: size, nationCount: ids.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds: [] }
+  };
+};
+
+export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed = 1, start = DEFAULT_SCENARIO_ID, size } = {}) => {
   if (!SCENARIOS[start]) throw new Error(`Unsupported start ${start}`);
+  if (mode === 'peoples') return applyPeoplesScenario(initial, { size, seed, start });
   if (mode !== 'full' && mode !== 'emergent') throw new Error('Unsupported world mode');
   const allIds = Object.keys(initial.nations);
   const nationIds = mode === 'emergent' ? Object.keys(generateStarts(initial.playerNationId, nationCount, seed).starts) : allIds;
-  const built = buildCityWorld(initial, start, nationIds);
+  // The player's nation is placed first on its real capital (scenarios.js spreadCapitals); a nation
+  // with no room at the start (the legacy full world's crowded small lands) is absent.
+  const built = buildCityWorld(initial, buildScenarioStarts(getTiles(), start, nationIds, { priority: initial.playerNationId }).starts);
   const dormantNationIds = allIds.filter((id) => !built.activeNationIds.includes(id));
   // An emergent world carries only its active peoples; the dormant ones return through emergence.
   // The full world leaves out the nations with no room at the start (settle-rules R4, option A):

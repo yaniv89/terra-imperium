@@ -13,6 +13,7 @@
 // what a stable color identity must NOT do.
 import COUNTRY_ADJACENCY from './geo/countries-adjacency.json';
 import countriesMeta from './geo/countries-meta.json';
+import { PEOPLES } from './peoples';
 
 // Deliberately excludes the hues the rest of the globe already uses for something else: green/
 // lime/yellow/orange/red (the player's own 5-band control gradient, GlobeView.jsx's fillColorFor)
@@ -79,4 +80,5 @@ const assignNationColors = () => {
 
 export const NATION_COLORS = assignNationColors();
 
-export const getNationColor = (nationId) => NATION_COLORS[nationId] || UNKNOWN_NATION_COLOR;
+// A people of the pool has its own colour (build-peoples.mjs: neighbours far apart).
+export const getNationColor = (nationId) => NATION_COLORS[nationId] || PEOPLES[nationId]?.color || UNKNOWN_NATION_COLOR;

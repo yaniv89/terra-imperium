@@ -173,7 +173,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
         if (isWarBetween(wars[i], playerNationId, nId)) wars[i] = { ...wars[i], active: false };
       }
       invasions = invasions.filter(inv => !(inv.attackerNation === nId && inv.attackerNation !== playerNationId));
-      logs.push({ year: next.year, message: `PEACE signed with ${NATIONS_DATA[nId]?.name}!`, type: LogTypes.MILESTONE });
+      logs.push({ year: next.year, message: `PEACE signed with ${next.nations[nId]?.name || NATIONS_DATA[nId]?.name || nId}!`, type: LogTypes.MILESTONE });
     });
     // Anyone still fighting a different war stays at war.
     next.nations = refreshWarFlags(nations, wars, [playerNationId, ...ids]);
@@ -192,7 +192,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
         hostility: Math.max(0, nations[nId].hostility - 10),
         relationStatus: RelationStatus.FRIENDLY
       };
-      logs.push({ year: next.year, message: `Trade agreement with ${NATIONS_DATA[nId]?.name}!`, type: LogTypes.DIPLOMACY });
+      logs.push({ year: next.year, message: `Trade agreement with ${next.nations[nId]?.name || NATIONS_DATA[nId]?.name || nId}!`, type: LogTypes.DIPLOMACY });
     });
     next.nations = nations;
   }
@@ -202,7 +202,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
     ids.forEach(nId => {
       if (!next.nations[nId] || isAtWarWithPlayer(next, nId)) return;
       next = declareWar(next, nId, { aggressor: playerNationId });
-      logs.push({ year: next.year, message: `WAR declared on ${NATIONS_DATA[nId]?.name}!`, type: LogTypes.CRISIS });
+      logs.push({ year: next.year, message: `WAR declared on ${next.nations[nId]?.name || NATIONS_DATA[nId]?.name || nId}!`, type: LogTypes.CRISIS });
     });
   }
 
