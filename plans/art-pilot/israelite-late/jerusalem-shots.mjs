@@ -23,11 +23,11 @@ for (const [view, w, h] of VIEWS) {
   await page.getByRole('button', { name: 'Israel', exact: true }).dispatchEvent('click');
   await page.getByRole('button', { name: 'Begin as Israel' }).dispatchEvent('click');
   await page.getByRole('button', { name: 'Skip', exact: true }).click();
-  await page.getByTitle('Flat map view').click();
-  await page.waitForFunction(() => window.__map2DTest?.features?.length > 0, null, { timeout: 90000 });
-  // the research picker and the city list cover part of the map: close them
-  await page.getByRole('button', { name: 'Let my advisor choose' }).click().catch(() => {});
+  // the research picker covers part of the map (and on a phone the map toggle): let the advisor pick
+  await page.getByRole('button', { name: 'Let my advisor choose' }).click({ timeout: 10000 }).catch(() => {});
   await page.waitForTimeout(500);
+  await page.getByTitle('Flat map view').dispatchEvent('click');
+  await page.waitForFunction(() => window.__map2DTest?.features?.length > 0, null, { timeout: 90000 });
   const ids = await page.evaluate(() => ({ il: window.__game.state.nations.il.capitalRegionId }));
   // frame a city: centre the visible map on a point just above its banner (where the town stands)
   const frame = async (id, k) => {

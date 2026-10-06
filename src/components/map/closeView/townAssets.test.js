@@ -173,8 +173,6 @@ describe('architecture regions', () => {
     expect(styleOfLand('il', 'bronze')).toBe('israelite');
     expect(styleOfLand('il', 'modern')).toBe('israelite');
     expect(styleChain('israelite')).toEqual(['israelite', 'levant']);
-    // until Israelite Kingdoms towns exist, Israel builds the Levant's
-    expect(townAssetUrl('kingdoms', 'small', 0, 'israelite')).toMatch(/kingdoms-town-small-a-levant/);
     expect(styleOfLand('es', 'gunpowder')).toBe('europe');
     expect(styleOfLand('pt', 'classical')).toBe('europe');
     expect(styleChain('easteurope')).toEqual(['easteurope', 'europe']);
@@ -183,5 +181,22 @@ describe('architecture regions', () => {
     // the base shared file always comes last; an age without one has none
     expect(sharedAssetUrls('bronze', 'europe').slice(-1)[0]).toMatch(/shared-bronze\.glb|shared-bronze-/);
     expect(sharedAssetUrls('future')).toEqual([]);
+  });
+
+  it('builds Israel in its own kit in every age, the Levant and then the base filling what it lacks', () => {
+    for (const age of ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern']) {
+      expect(styleOfLand('il', age)).toBe('israelite');
+      for (const size of ['small', 'medium', 'big']) {
+        expect(townAssetUrl(age, size, 0, 'israelite')).toMatch(new RegExp(`${age}-town-${size}-a-israelite`));
+        expect(townAssetUrl(age, size, 1, 'israelite')).toMatch(new RegExp(`${age}-town-${size}-b-israelite`));
+      }
+      // its own shared file first (palaces, walls or camp), then the Levant's where one exists, the base last
+      const shared = sharedAssetUrls(age, 'israelite');
+      expect(shared[0]).toMatch(new RegExp(`shared-${age}-israelite`));
+      expect(shared.slice(-1)[0]).toMatch(new RegExp(`shared-${age}[.-]`));
+      expect(shared.slice(-1)[0]).not.toMatch(/israelite|levant/);
+    }
+    expect(sharedAssetUrls('kingdoms', 'israelite').map((u) => u.match(/shared-kingdoms(-[a-z]+)?/)[0]))
+      .toEqual(['shared-kingdoms-israelite', 'shared-kingdoms-levant', 'shared-kingdoms']);
   });
 });
