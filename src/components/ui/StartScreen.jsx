@@ -1,5 +1,7 @@
 import { NATION_COUNTS, generateStarts } from '../../engine/worldgen/emergentWorld';
 import { REGIONS_DATA } from '../../data/regions';
+import { getTiles } from '../../data/geo/tiles';
+import { startPlacementNote } from '../../data/scenarios';
 // src/components/ui/StartScreen.jsx
 // Country-select + difficulty + game-speed start screen (plan §1/§3/§8.6). Shown for a
 // brand-new player and whenever a new game is started — picking a nation is the single
@@ -31,6 +33,8 @@ const StartScreen = ({ onStart }) => {
   const preview = useMemo(() => mode === 'emergent' ? generateStarts(selectedNationId, nationCount, seed) : null, [mode, selectedNationId, nationCount, seed]);
   const relocation = preview?.relocations.find(r => r.nationId === selectedNationId);
   const selectedNation = WORLD_NATIONS[selectedNationId];
+  // A crowded small land in the full world (settle-rules R4 and R6): where it starts when not played.
+  const placementNote = useMemo(() => (mode === 'full' ? startPlacementNote(getTiles(), selectedNationId) : null), [mode, selectedNationId]);
 
   return (
     <div className="h-[100dvh] w-full bg-slate-950 text-slate-100 flex flex-col items-center overflow-y-auto p-4 sm:p-8">
@@ -87,6 +91,7 @@ const StartScreen = ({ onStart }) => {
               <div className="col-span-full text-center text-slate-500 text-xs py-4">No nations match your search.</div>
             )}
           </div>
+          {placementNote && <p className="mt-2 text-xs text-amber-200" data-testid="start-placement-note">{placementNote}</p>}
         </section>
 
         {/* Game speed */}

@@ -7,7 +7,7 @@
 import { geoPath } from 'd3-geo';
 import { getTiles } from '../../data/geo/tiles';
 import { cellFeature } from '../../data/geo/tileGeometry';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover } from '../map/lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover, settleTints } from '../map/lenses';
 
 const pointOf = (tiles, projection, id) => {
   const ll = tiles.latLonOf(id);
@@ -68,6 +68,8 @@ export const drawLensLayer = (ctx, { state, lens, projection, width }) => {
       fillTile(t.tile, t.colour);
       const [x, y] = at(t.tile); ctx.fillStyle = '#fff7ed'; ctx.fillText(t.crest, x, y); drawn++;
     });
+  } else if (lens === 'settle') {
+    settleTints(state).forEach((t) => { fillTile(t.tile, t.colour); drawn++; });
   } else if (lens === 'trade') {
     tradeLines(state).forEach((r) => {
       if (!r.tiles.length) return;

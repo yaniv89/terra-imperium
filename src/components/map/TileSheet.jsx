@@ -108,6 +108,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
       {ownerCity ? (
         <button type="button" onClick={() => onSelectRegion?.(ownerCity.id)} className="w-full text-left text-xs rounded-lg bg-slate-800/60 border border-slate-700 px-2 py-2 min-h-[40px]">
           Land of <span className="text-white font-semibold">{ownerCity.name}</span> <span className="text-slate-400">({ownerNation?.name || ownerCity.owner})</span>
+          {settlers.length > 0 && ownerCity.owner !== me && <span className="block text-[11px] text-red-300" data-testid="settle-reason">No city here: it belongs to {ownerNation?.name || ownerCity.owner}.</span>}
         </button>
       ) : (
         <div className="space-y-2">
