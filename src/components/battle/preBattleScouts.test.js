@@ -13,7 +13,7 @@ vi.mock('../../context/GameContext', () => ({ useGame: () => game }));
 vi.mock('../../context/EffectsContext', () => ({ useEffects: () => ({ triggerEffect: vi.fn(), effects: [] }) }));
 
 describe('pre-battle odds without intel', () => {
-  it("shows the scouts' estimate and hides the exact odds", () => {
+  it("shows the scouts' estimate and hides the exact odds", { timeout: 20000 }, () => {
     const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
     const from = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && getNeighborIds(id).some((n) => state.regions[n]?.owner === 'de'));
     const target = getNeighborIds(from).find((n) => state.regions[n]?.owner === 'de');

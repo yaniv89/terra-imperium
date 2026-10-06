@@ -38,7 +38,7 @@ const startGame = async (page, people = 'Akkad') => {
   if (await skip.isVisible().catch(() => false)) await click(skip);
   await page.getByTestId('world-top-bar').waitFor({ timeout: 60000 });
   await wait(2500);
-  const later = page.getByRole('button', { name: /Later|Not now/ });
+  const later = page.getByRole('button', { name: /Later|Not now|Let my advisor choose/ });
   if (await later.first().isVisible().catch(() => false)) await click(later.first());
 };
 
@@ -80,6 +80,34 @@ const shot = async (page, name, vp) => {
 };
 
 const SCREENS = {
+  W11: async (page, vp) => {
+    await startGame(page);
+    await patch(page, `${WAR_SETUP}
+      const w = s.wars.at(-1);
+      s = { ...s, wars: [...s.wars.slice(0, -1), { ...w, aggressor: s.playerNationId, enemy: window.__u1b.foe }] };
+      s = { ...s, units: { ...s.units, g4: { ...s.units.g1, id: 'g4', classId: 'cavalry', strength: 40 }, g5: { ...s.units.g1, id: 'g5', classId: 'siege', strength: 30 } } };
+      // a city of theirs beside yours, with walls and a garrison (the Dawn world has none close)
+      const r = m.addCity(s, window.__u1b.foe, { near: window.__u1b.capId });
+      s = r.state; window.__u1b.target = r.cityId;
+      const c = s.regions[r.cityId];
+      s = { ...s, regions: { ...s.regions, [r.cityId]: { ...c, size: 4, buildings: { ...(c.buildings || {}), categories: { ...(c.buildings?.categories || {}), defense: 0 } } } } };
+      const e = (id, classId, strength) => ({ ...s.units.e1, id, classId, strength, regionId: r.cityId, homeRegionId: r.cityId, tile: c.tile });
+      s = { ...s, units: { ...s.units, t1: e('t1', 'infantry', 80), t2: e('t2', 'ranged', 60) } };
+      return s;`, ['engine/testWorld.js']);
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:select-region', { detail: window.__u1b.target })));
+    await wait(1500);
+    const invade = page.getByRole('button', { name: /Invade from|Attack from|Attack/ }).first();
+    await click(invade);
+    await page.getByTestId('pre-battle').waitFor({ timeout: 15000 });
+    await shot(page, 'W11-prebattle-scouts', vp);
+    await click(page.getByLabel(/^Call off the attack/));
+    await patch(page, 'return { ...s, intel: { ...(s.intel || {}), [window.__u1b.foe]: s.turnNumber + 5 } };');
+    await wait(800);
+    await click(page.getByRole('button', { name: /Invade from|Attack from|Attack/ }).first());
+    await page.getByTestId('pre-battle').waitFor({ timeout: 15000 });
+    await click(page.getByTestId('battle-choice-auto'));
+    await shot(page, 'W11-prebattle-spy', vp);
+  },
   W14: async (page, vp) => {
     await startGame(page);
     await patch(page, `${WAR_SETUP}

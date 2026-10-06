@@ -72,11 +72,11 @@ export const ModeExplain = ({ title, right, children, className, compact = false
 );
 
 /** A win / lose bar: your share in blue from the left, theirs in orange. */
-export const OddsBar = ({ mine, labelLeft = 'they win', labelMid = 'even', labelRight = 'you win', band = null, compact = false }) => (
+export const OddsBar = ({ mine, labelLeft = 'they win', labelMid = 'even', labelRight = 'you win', band = null, bandColor = 'var(--fa-good)', compact = false }) => (
   <div aria-label={`${labelLeft} to ${labelRight}`}>
     <div className="relative h-2 rounded-full bg-fa-ink border border-fa-line overflow-hidden">
       {band
-        ? <span className="absolute inset-y-0 rounded-full bg-fa-good" style={{ left: `${band[0] * 100}%`, width: `${Math.max(4, (band[1] - band[0]) * 100)}%` }} />
+        ? <span className="absolute inset-y-0 rounded-full" style={{ background: bandColor, left: `${band[0] * 100}%`, width: `${Math.max(4, (band[1] - band[0]) * 100)}%` }} />
         : <span className="absolute inset-y-0 left-0 bg-fa-you" style={{ width: `${Math.round(mine * 100)}%` }} />}
       <span className="absolute inset-y-[-2px] left-1/2 w-px bg-fa-text/70" />
     </div>

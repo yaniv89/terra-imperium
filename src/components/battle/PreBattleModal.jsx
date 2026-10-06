@@ -1,110 +1,54 @@
 // src/components/battle/PreBattleModal.jsx
-// The pre-battle interception (Tactical Battles plan §2, §10.2). EVERY attack you launch — on a
-// garrisoned province or an empty one — stops here first — it is never skipped by a remembered setting (that used to
-// happen: one shared "auto" switch silently auto-resolved everything, so the manual battle seemed
-// to vanish). It shows both armies, their commanders, the ground and the walls, the real
-// auto-resolve odds and why, and asks how to fight:
-//   Fight manually — the real-time tactical battle, with exactly these armies, terrain and walls
-//   Auto-resolve   — the same rules resolved instantly
-//   Call off       — no attack; nothing is spent and the army keeps its move
-// With `navalUnitId` it's an amphibious landing by the troops aboard that fleet.
-// A bottom sheet on phones, a centred card on desktop.
+// W11 Pre-battle (plans/UI-DESIGN.md; Tactical Battles plan 2 and 10.2). EVERY attack you launch,
+// on a garrisoned city or an empty one, stops here first; a remembered setting never skips it.
+// Three columns at 844x390 and on the desktop (stacked on a phone held upright):
+//   yours   your army by kind with its men and generals
+//   middle  the odds with where they come from (exact: a spy report or both armies in sight;
+//           otherwise the scouts' guess, a band), the walls and the houses (battle housing and the
+//           50% rule), and 300 a side with the waves
+//   theirs  their garrison or army (a range of men and "?" without intel)
+// Then the way to fight as two cards (Command, Auto), what it means, and the one brass button.
+// Call off is the close button: nothing is spent and the army keeps its move. With `navalUnitId`
+// it is a landing by the troops aboard that fleet; with `tile` a field battle; with `fromTile`
+// too a sea battle. All the numbers come from preBattleModel.js.
 import React, { useMemo, useState } from 'react';
-import { Zap, Swords, Undo2, X, Mountain, Castle, Crown, Star } from 'lucide-react';
+import { Castle, Home, Users, Mountain } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA } from '../../data/regions';
-import { getRegionTerrain } from '../../data/terrain';
-import { unitDisplayName } from '../../data/unitNames';
-import { getEffectiveAgeId } from '../../data/ages';
-import { getTechAgeId } from '../../engine/nationState';
-import { ACTION_COSTS } from '../../data/actionCosts';
-import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
-import { scoutsEstimate } from './battleReportView';
-import { battleName } from '../../engine/battleNames';
-import { validateInvasion, validateAmphibious } from '../../engine/invasion';
-import { validateFieldAttack } from '../../engine/fieldBattle';
-import { validateFleetAttack } from '../../engine/navalBattle';
-import { legacyTerrainOf } from '../../engine/world/registry';
-import { getTiles } from '../../data/geo/tiles';
-import { describeAttackBlock } from '../../utils/attackAvailability';
-import { getRegionModifier } from '../../engine/modifiers/sheet';
-import { canSeeRegionDetails } from '../../engine/intel';
-import { canAfford } from '../../utils/helpers';
+import { Button, CloseButton, Switch } from '../ui/atlas';
+import { openSettings } from '../ui/uiEvents';
+import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
+import { preBattleModel } from './preBattleModel';
 
 const pct = (v) => `${Math.round(v * 100)}%`;
 
-// "3 Pikemen · 1 Knights" and the total strength, for one side.
-export const summarizeArmy = (units, hiredCommanders = {}, ageId = 'bronze') => {
-  const byClass = {};
-  units.forEach((u) => { byClass[u.classId] = (byClass[u.classId] || 0) + 1; });
-  const commanders = [...new Set(units.map((u) => u.commanderId).filter(Boolean))].map((id) => hiredCommanders[id]?.name || 'A general');
-  return {
-    lines: Object.entries(byClass).map(([classId, n]) => ({ classId, n, name: unitDisplayName(ageId, classId, units.find((u) => u.classId === classId)?.navalLine) })),
-    strength: units.reduce((s, u) => s + Math.max(0, u.strength), 0),
-    commanders
-  };
-};
-
-const ArmyColumn = ({ title, tone, army, hidden }) => (
-  <div className={`rounded-lg border p-2 ${tone === 'you' ? 'border-blue-500/40 bg-blue-500/5' : 'border-orange-500/40 bg-orange-500/5'}`}>
-    <div className={`text-[11px] font-semibold mb-1 ${tone === 'you' ? 'text-blue-300' : 'text-orange-300'}`}>{title}</div>
-    {hidden ? (
-      <div className="text-[11px] text-slate-400">Unknown — espionage against them reveals their forces.</div>
-    ) : (
-      <>
-        <div className="text-[11px] text-slate-200 leading-snug">{army.lines.map((l) => `${l.n} ${l.name}`).join(' · ') || 'none'}</div>
-        <div className="text-[10px] text-slate-400 mt-0.5">Strength {army.strength.toLocaleString()}</div>
-        {army.commanders.length > 0 && (
-          <div className="text-[10px] text-amber-200 mt-0.5 flex items-center gap-1"><Crown className="w-3 h-3" /> {army.commanders.join(', ')}</div>
-        )}
-      </>
-    )}
+const Tile = ({ icon: Icon, label, title, children, testId }) => (
+  <div className="fa-card px-2.5 py-1.5 min-w-0" data-testid={testId}>
+    <div className="fa-label flex items-center gap-1">{Icon && <Icon className="w-3 h-3" aria-hidden="true" />}{label}</div>
+    <div className="text-[12.5px] font-semibold leading-tight mt-0.5">{title}</div>
+    {children && <div className="text-[11px] text-fa-muted leading-snug mt-0.5">{children}</div>}
   </div>
 );
 
-// With `tile` it's a field battle (fieldBattle.js) against the enemy stack on that tile; with
-// `fromTile` too it's a sea battle (navalBattle.js) between the fleets on the two tiles.
 const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = null, tile = null, fromTile = null, onClose }) => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
-  const landing = !!navalUnitId;
-  const fleet = tile != null && fromTile != null;
-  const field = tile != null;
-  const origin = landing ? state.units[navalUnitId]?.regionId : fromRegionId;
-  const preferred = state.battleSettings?.defaultMode === 'command' ? 'command' : state.battleSettings?.defaultMode === 'auto' ? 'auto' : null;
+  const m = useMemo(() => preBattleModel(state, { fromRegionId, targetRegionId, navalUnitId, tile, fromTile }),
+    [state, fromRegionId, targetRegionId, navalUnitId, tile, fromTile]);
+  const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
+  const [mode, setMode] = useState(preferred);
   const [prefer, setPrefer] = useState(false);
+  const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty } = m;
+  const chosen = knownEmpty || blockedAtSea ? 'auto' : mode;
 
-  const v = landing ? validateAmphibious(state, navalUnitId, targetRegionId)
-    : fleet ? validateFleetAttack(state, fromTile, tile)
-    : field ? validateFieldAttack(state, fromRegionId, tile)
-    : validateInvasion(state, fromRegionId, targetRegionId);
-  const blockedReason = describeAttackBlock(v);
-  const odds = useMemo(() => v.ok ? (landing ? estimateLandingOdds(state, navalUnitId, targetRegionId, 200) : fleet ? estimateFleetOdds(state, fromTile, tile, 200) : field ? estimateFieldOdds(state, fromRegionId, tile, 200) : estimateInvasionOdds(state, fromRegionId, targetRegionId, 200)) : null,
-    [state, landing, fleet, field, tile, fromTile, navalUnitId, fromRegionId, targetRegionId, v.ok]);
-  const affordable = canAfford(state.resources, landing ? ACTION_COSTS.amphibiousAssault : fleet ? ACTION_COSTS.navalEngagement : ACTION_COSTS.launchInvasion);
-  // An enemy fleet off the beach must be fought at sea first, which is always auto-resolved.
-  const blockedAtSea = landing && Object.values(state.units).some((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
-  // The enemy garrison and the odds computed from it are intelligence: no intel, no numbers.
-  const hasIntel = field ? true : canSeeRegionDetails(state, targetRegionId);
-
-  const region = field ? null : state.regions[targetRegionId];
-  const terrain = fleet ? 'open water' : field ? legacyTerrainOf(getTiles(), tile) : getRegionTerrain(targetRegionId, REGIONS_DATA);
-  const fortTier = field ? 0 : (region?.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
-  const mine = summarizeArmy(v?.ok ? (landing ? v.embarkedLandUnits : v.attackerUnits) : [], state.hiredCommanders, getEffectiveAgeId(state.age, state.techAgeId));
-  const theirs = summarizeArmy(v?.ok ? (landing ? v.defenderLandUnits : v.defenderUnits) : [], state.hiredCommanders, v?.ok && v.defenderNationId && v.defenderNationId !== 'rebels' ? getEffectiveAgeId(state.age, getTechAgeId(state, v.defenderNationId)) : state.age);
-  const enemyName = field ? (v?.ok && v.defenderNationId !== 'rebels' ? state.nations[v.defenderNationId]?.name : 'the rebels') || 'the enemy' : state.nations[region?.owner]?.name || 'the enemy';
-  // Known to be empty (you have intel): there's no battle to fight, the army just marches in.
-  const knownEmpty = !field && hasIntel && v?.ok && (landing ? v.defenderLandUnits : v.defenderUnits).length === 0;
-
-  const remember = (mode) => { if (prefer) dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: mode } }); };
+  const remember = (choice) => { if (prefer) dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: choice } }); };
   const auto = () => {
     if (blockedReason) return addLog(blockedReason, 'action');
     if (!affordable) return addLog('Not enough resources', 'action');
     remember('auto');
     if (landing) {
-      triggerEffect('amphibious_assault', { from: origin, to: targetRegionId });
+      triggerEffect('amphibious_assault', { from: m.origin, to: targetRegionId });
       dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId } });
     } else if (fleet) {
       dispatch({ type: ActionTypes.ATTACK_FLEET, payload: { fromTile, tile } });
@@ -114,7 +58,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
       triggerEffect('ground_invasion', { from: fromRegionId, to: targetRegionId });
       dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } });
     }
-    onClose();
+    return onClose();
   };
   const command = () => {
     if (blockedReason || blockedAtSea) return addLog(blockedReason || 'Defeat the defending fleet first.', 'action');
@@ -123,105 +67,115 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     dispatch(landing
       ? { type: ActionTypes.BEGIN_AMPHIBIOUS_BATTLE, payload: { navalUnitId, targetRegionId } }
       : { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: fleet ? { fromTile, tile, naval: true } : field ? { fromRegionId, tile } : { fromRegionId, targetRegionId } });
-    onClose();
+    return onClose();
   };
-  const ring = (mode) => (preferred === mode ? ' ring-2 ring-amber-300/70' : '');
+  const disabled = !!blockedReason || !affordable;
+  const options = knownEmpty ? [] : [
+    { id: 'command', sub: 'Play the battle in real time', disabled: disabled || blockedAtSea, testId: 'battle-choice-command', title: blockedAtSea ? 'An enemy fleet guards the coast: fight it at sea first' : undefined },
+    { id: 'auto', sub: 'Instant result, same rules', disabled, testId: 'battle-choice-auto' }
+  ];
+  const c = m.chance;
+  const w = m.walls;
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center sheet-backdrop" onClick={onClose} data-testid="battle-choice">
-      <div onClick={(e) => e.stopPropagation()} className="sheet-panel w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-slate-200 shadow-2xl space-y-3" data-testid="pre-battle">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="text-base font-bold text-white">{fleet ? `Attack the fleet at sea` : field ? `Attack the army near ${getTiles().names[tile] || REGIONS_DATA[origin]?.name || 'the field'}` : `${landing ? 'Land on' : 'Attack'} ${REGIONS_DATA[targetRegionId]?.name}`}</div>
-            <div className="text-xs font-semibold text-amber-200" data-testid="battle-name">{battleName(state, { kind: landing ? 'amphibious' : fleet ? 'naval' : field ? 'field' : 'invasion', targetRegionId, tile })}</div>
-            <div className="text-xs text-slate-400">{fleet ? `your fleet beside it · ${enemyName}'s fleet` : <>{landing ? 'by sea from' : 'from'} {REGIONS_DATA[origin]?.name} · {field ? `${enemyName}'s army` : `held by ${enemyName}`}</>}</div>
+    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center" onClick={onClose} data-testid="battle-choice">
+      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="pre-battle-title" data-testid="pre-battle"
+        className="fa-panel !bg-fa-panel shadow-2xl w-full sm:w-[min(56rem,calc(100vw-1rem))] max-h-[94dvh] sm:max-h-[calc(100dvh-1rem)] flex flex-col rounded-b-none sm:rounded-[10px]">
+        <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
+          <Castle className="w-5 h-5 text-fa-muted shrink-0" aria-hidden="true" />
+          <div className="min-w-0 flex-1 flex items-baseline gap-x-3 flex-wrap">
+            <h2 id="pre-battle-title" className="fa-heading text-[19px] pl:text-[17px] leading-tight" data-testid="battle-name">{m.name}</h2>
+            <span className="text-[12px] text-fa-muted truncate">{m.subtitle} · T{m.turn}</span>
           </div>
-          <button type="button" onClick={onClose} className="p-2 -m-2 text-slate-400" aria-label="Close"><X className="w-5 h-5" /></button>
+          <CloseButton onClick={onClose} label="Call off the attack: nothing is spent, your army keeps its move" className="shrink-0" />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <ArmyColumn title="Your army" tone="you" army={mine} />
-          <ArmyColumn title="Their garrison" tone="them" army={theirs} hidden={!hasIntel} />
-        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto p-2.5 pl:p-2 grid gap-2 grid-cols-1 sm:grid-cols-[1fr_1.35fr_1fr]">
+          <ForceCard tone="you" tag="YOURS" name={m.yours.title} total={m.yours.men} lines={m.yours.lines.slice(0, 5)} testId="pre-battle-yours"
+            footer={<>
+              <GeneralsLine generals={m.yours.generals} />
+              <span className="flex items-center gap-1.5 mt-1 text-[12px] text-fa-text" data-testid="pre-battle-size">
+                <Users className="w-3.5 h-3.5 text-fa-muted shrink-0" aria-hidden="true" />
+                <span className="flex-1 min-w-0"><b className="fa-num">{m.size.cap} a side</b>{m.size.waves ? ` · ${m.size.waves} more join in a second wave` : ` · all ${m.yours.regiments} at once`}</span>
+                <button type="button" onClick={openSettings} className="underline text-fa-muted hover:text-fa-text shrink-0 min-h-[32px]">Settings</button>
+              </span>
+            </>} />
 
-        <div className="flex flex-wrap gap-1.5 text-[11px]">
-          <span className="px-2 py-1 rounded-md bg-slate-800 border border-slate-700 flex items-center gap-1 capitalize"><Mountain className="w-3.5 h-3.5 text-emerald-300" /> {terrain}</span>
-          <span className="px-2 py-1 rounded-md bg-slate-800 border border-slate-700 flex items-center gap-1" data-testid="pre-battle-fort"><Castle className="w-3.5 h-3.5 text-slate-300" /> {fortTier > 0 ? `Fortifications tier ${fortTier}` : 'No fortifications'}</span>
-          {landing && <span className="px-2 py-1 rounded-md bg-slate-800 border border-slate-700">{v?.hasBeachhead ? 'Beachhead next door' : 'No foothold: landing penalty'}</span>}
-        </div>
-
-        {odds && !odds.undefended && hasIntel && (
-          <div className="space-y-2 rounded-lg bg-slate-800/60 p-3" data-testid="battle-odds">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div><div className="text-lg font-bold text-blue-300">{pct(odds.attacker)}</div><div className="text-[10px] text-slate-400">you win</div></div>
-              <div><div className="text-lg font-bold text-emerald-300" data-testid="battle-odds-capture">{pct(odds.capture)}</div><div className="text-[10px] text-slate-400">{field ? 'drive them off' : 'take the region'}</div></div>
-              <div><div className="text-lg font-bold text-orange-300">{pct(odds.defender)}</div><div className="text-[10px] text-slate-400">they hold</div></div>
-            </div>
-            {/* Balance of power: your strength against theirs, as the auto-resolve weighs it. */}
-            <div className="flex h-2 rounded-full overflow-hidden bg-slate-900" title="Win / draw / loss">
-              <div className="bg-blue-500" style={{ width: pct(odds.attacker) }} />
-              <div className="bg-slate-500" style={{ width: pct(odds.stalemate) }} />
-              <div className="bg-orange-500" style={{ width: pct(odds.defender) }} />
-            </div>
-            <div className="text-[11px] text-slate-400">Expected losses: yours {pct(odds.attackerLossShare)} · theirs {pct(odds.defenderLossShare)}{!odds.hasMelee ? ' · you need infantry or cavalry to take the region' : ''}</div>
-            <div className="flex flex-wrap gap-1" data-testid="battle-odds-factors">
-              {odds.factors.filter((f) => Math.abs(f.value - 1) >= 0.02).map((f) => (
-                <span key={f.id} className={`px-1.5 py-0.5 rounded text-[10px] border ${f.value > 1 ? 'border-emerald-500/50 text-emerald-300' : 'border-red-500/50 text-red-300'}`} title={f.detail || ''}>
-                  {f.label} ×{f.value.toFixed(2)}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {odds && !hasIntel && (() => {
-          const band = scoutsEstimate(odds.attacker);
-          return (
-            <div className="rounded-lg bg-slate-800/60 p-3 space-y-1" data-testid="battle-odds-scouts">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[11px] text-slate-400">Scouts&apos; estimate</span>
-                <span className={`text-base font-bold ${band.tone}`}>{band.label}</span>
+          <div className="space-y-2 min-w-0 order-last sm:order-none">
+            {c && c.exact && (
+              <div className="fa-card px-2.5 py-1.5" data-testid="battle-odds">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="fa-label truncate">{c.source}</span>
+                  <span className={`text-[13px] font-bold ${c.win >= 0.5 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{c.verdict}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1 mt-0.5 text-center">
+                  <div><div className="fa-num text-[15px] font-semibold text-fa-you">{pct(c.win)}</div><div className="text-[10.5px] text-fa-muted leading-tight">you win</div></div>
+                  <div><div className="fa-num text-[15px] font-semibold text-fa-good" data-testid="battle-odds-capture">{pct(c.take)}</div><div className="text-[10.5px] text-fa-muted leading-tight">{field || fleet ? 'drive them off' : 'take it'}</div></div>
+                  <div><div className="fa-num text-[15px] font-semibold text-fa-enemy">{pct(c.lose)}</div><div className="text-[10.5px] text-fa-muted leading-tight">they hold</div></div>
+                </div>
+                <div className="mt-1"><OddsBar mine={c.win} compact /></div>
+                <div className="text-[11px] text-fa-muted leading-snug pl:hidden">{c.losses}{m.v?.ok && !c.take && !field ? ' You need infantry or cavalry to take a city.' : ''}</div>
+                {c.factors.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1" data-testid="battle-odds-factors">
+                    {c.factors.map((f) => (
+                      <span key={f.id} title={f.detail || ''} className={`fa-chip !min-h-[22px] !px-1.5 !text-[10.5px] ${f.value > 1 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{f.label} x{f.value.toFixed(2)}</span>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="text-[11px] text-slate-400">{band.hint} Spy on {enemyName} (Diplomacy) for exact odds.</div>
+            )}
+            {c && !c.exact && (
+              <div className="fa-card px-2.5 py-1.5" data-testid="battle-odds-scouts">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="fa-label">Scouts&apos; guess</span>
+                  <span className={`text-[13px] font-bold ${c.bandId === 'likely' ? 'text-fa-good' : c.bandId === 'unlikely' ? 'text-fa-danger-text' : 'text-fa-brass'}`}>{c.verdict}</span>
+                </div>
+                <div className="mt-1"><OddsBar band={c.band} bandColor={c.bandId === 'likely' ? 'var(--fa-good)' : c.bandId === 'unlikely' ? 'var(--fa-enemy)' : 'var(--fa-brass)'} compact /></div>
+                <div className="text-[11px] text-fa-muted leading-snug">{c.hint}<span className="pl:hidden"> A range, not a number: a spy report gives exact odds.</span></div>
+              </div>
+            )}
+            {knownEmpty && (
+              <div className="fa-card px-2.5 py-1.5 text-[12.5px] text-fa-good" data-testid="pre-battle-undefended">No garrison: the city falls as soon as your army marches in.</div>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              {w ? (
+                <>
+                  <Tile icon={Castle} label="Walls" title={w.level ? w.name : 'No walls'} testId="pre-battle-fort">{w.level ? w.hpText : 'An open town'}{m.fortTier > 0 ? ` · fort level ${m.fortTier}` : ''}</Tile>
+                  <Tile icon={Home} label="Houses" title={`${w.houses} houses, housing ${w.housing}`} testId="pre-battle-houses">At most {w.maxLost} can be lost (the 50% rule).</Tile>
+                </>
+              ) : (
+                <>
+                  <Tile icon={Mountain} label="Ground" title={<span className="capitalize">{m.terrain === 'sea' ? 'Open water' : m.terrain}</span>} testId="pre-battle-fort">{fleet ? 'Ships against ships' : 'No walls on open ground'}</Tile>
+                  <Tile icon={Castle} label="After it" title={field ? 'Decisive' : 'At sea'}>{field ? 'Units still on the field at the end are lost; those that leave by an exit survive.' : 'Sunk ships are gone for good.'}</Tile>
+                </>
+              )}
             </div>
-          );
-        })()}
+            {landing && <div className="text-[11.5px] text-fa-muted">{m.v?.hasBeachhead ? 'A beachhead next door: no landing penalty.' : 'No foothold: your troops land under the landing penalty.'}</div>}
+          </div>
 
-        {landing && blockedAtSea && (
-          <div className="text-[11px] text-slate-400 rounded-lg bg-slate-800/60 px-3 py-2">An enemy fleet guards the coast: it has to be fought at sea first, so this landing can only be auto-resolved.</div>
+          <ForceCard tone="enemy" tag="THEIRS" name={m.hasIntel ? m.theirs.title : ''} total={m.theirs.total} lines={m.theirs.lines.slice(0, 5)} unknownLines={!m.hasIntel} testId="pre-battle-theirs"
+            footer={m.theirs.note} />
+        </div>
+
+        {blockedReason && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-brass rounded-[8px] border border-fa-brass/50 px-2.5 py-1.5" data-testid="battle-blocked-reason">{blockedReason}</div>}
+        {!blockedReason && !affordable && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-danger-text">Not enough resources to launch this attack.</div>}
+        {landing && blockedAtSea && <div className="mx-2.5 mb-1.5 text-[11.5px] text-fa-muted">An enemy fleet guards the coast: it has to be fought at sea first, so this landing can only be fought on Auto.</div>}
+
+        <div className="px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] border-t border-fa-line grid gap-2 grid-cols-1 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_auto] items-stretch">
+          {options.length > 0 ? <ModeCards options={options} value={chosen} onChange={setMode} compact /> : <div />}
+          <ModeExplain title={chosen === 'command' ? 'Command' : knownEmpty ? 'March in' : 'Auto'} compact>{chosen === 'command' ? m.command : m.auto}</ModeExplain>
+          <div className="flex flex-col gap-1 justify-center">
+            <Button variant="primary" hero disabled={disabled || (chosen === 'command' && blockedAtSea)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 w-full">
+              {knownEmpty ? 'March in' : chosen === 'command' ? 'Begin battle' : 'Fight on Auto'}
+            </Button>
+            <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">Call off the attack</button>
+          </div>
+        </div>
+        {!knownEmpty && (
+          <div className="px-3 pb-2 -mt-1 pl:hidden">
+            <Switch label="Highlight my choice next time" hint="You will still be asked every time." checked={prefer} onChange={setPrefer} />
+          </div>
         )}
-
-        {knownEmpty && (
-          <div className="text-[11px] text-emerald-200 rounded-lg bg-emerald-900/30 border border-emerald-700/40 px-3 py-2" data-testid="pre-battle-undefended">No garrison: the province falls as soon as your army marches in.</div>
-        )}
-
-        {blockedReason && <div role="status" className="text-sm text-amber-200 rounded-lg border border-amber-500/40 p-3" data-testid="battle-blocked-reason">{blockedReason}</div>}
-
-        {!knownEmpty && <button type="button" onClick={command} disabled={!!blockedReason || !affordable || blockedAtSea} className={`w-full min-h-[64px] p-3 rounded-xl bg-blue-600/90 border border-blue-400 flex items-center gap-3 text-left disabled:opacity-50${ring('command')}`} data-testid="battle-choice-command">
-          <Swords className="w-6 h-6 text-white shrink-0" />
-          <span>
-            <span className="block font-semibold text-white">Fight manually {preferred === 'command' && <Star className="inline w-3.5 h-3.5 text-amber-300" />}</span>
-            <span className="block text-xs text-blue-100">Command it in real time with exactly these armies, this ground and these walls.</span>
-          </span>
-        </button>}
-        <button type="button" onClick={auto} disabled={!!blockedReason || !affordable} className={`w-full min-h-[64px] p-3 rounded-xl bg-slate-800 border border-slate-600 flex items-center gap-3 text-left disabled:opacity-50${ring('auto')}`} data-testid="battle-choice-auto">
-          <Zap className="w-6 h-6 text-amber-300 shrink-0" />
-          <span>
-            <span className="block font-semibold text-white">{knownEmpty ? 'March in' : 'Auto-resolve'} {!knownEmpty && preferred === 'auto' && <Star className="inline w-3.5 h-3.5 text-amber-300" />}</span>
-            <span className="block text-xs text-slate-400">{knownEmpty ? 'Take the province now.' : `${odds && !odds.undefended && hasIntel ? 'Instant, by the odds above.' : 'Instant, by the same rules (your scouts\' estimate above).'} Break their whole garrison and the region is yours.`}</span>
-          </span>
-        </button>
-        <button type="button" onClick={onClose} className="w-full min-h-[48px] p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center gap-3 text-left" data-testid="battle-choice-calloff">
-          <Undo2 className="w-5 h-5 text-slate-300 shrink-0" />
-          <span>
-            <span className="block font-semibold text-slate-200 text-sm">Call off the attack</span>
-            <span className="block text-[11px] text-slate-500">Nothing is spent; your army keeps its move.</span>
-          </span>
-        </button>
-
-        {!knownEmpty && <label className="flex items-center gap-2 text-xs text-slate-400">
-          <input type="checkbox" checked={prefer} onChange={(e) => setPrefer(e.target.checked)} /> Highlight my choice next time (you&apos;ll still be asked)
-        </label>}
       </div>
     </div>
   );
