@@ -9,7 +9,13 @@ import { ACTION_COSTS } from '../../data/actionCosts';
 import { cityBuildingsModel, cityDevelopmentModel } from './cityPoliticsModel';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionButton } from '../ui';
-import { TrendingUp, Gem } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
+import { BuildingIcon, ExtractionIcon } from '../ui/icons';
+
+// ActionButton takes an icon component; this one draws the deposit's extraction building.
+const depositIcons = {};
+const depositIcon = (resourceId) => (depositIcons[resourceId] ||= Object.assign(
+  () => <ExtractionIcon resourceId={resourceId} size={18} />, { displayName: `DepositIcon(${resourceId})` }));
 
 const CityBuildings = ({ cityId }) => {
   const { state, dispatch, addLog } = useGame();
@@ -33,6 +39,8 @@ const CityBuildings = ({ cityId }) => {
     <ul className="space-y-1" data-testid="city-buildings">
       {rows.map((r) => (
         <li key={r.category} className="flex items-center gap-2 rounded-lg px-2 py-1.5 min-h-[44px] text-xs bg-slate-800/60 border border-slate-700/60">
+          {/* The next tier's icon (what the button queues); a finished line shows its top tier. */}
+          <BuildingIcon category={r.category} tier={r.next ? r.built.length : r.built.length - 1} size={28} />
           <div className="min-w-0 flex-1">
             <div className="text-slate-100">{r.label}</div>
             <div className="text-slate-400 truncate">{r.built.length ? r.built.join(', ') : 'nothing yet'}{r.next ? ` · next ${r.next.name} (${r.next.cost})` : ' · complete'}{r.next?.needs ? ` · needs ${r.next.needs}` : ''}{r.next?.needsTech && mine && <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: r.next.needsTech } })} className="ml-1 underline text-sky-300 min-h-[24px]" data-testid="research-for-building">Research it</button>}</div>
@@ -47,7 +55,7 @@ const CityBuildings = ({ cityId }) => {
       <div className="space-y-1" data-testid="city-development">
         <div className="text-xs font-semibold text-slate-300">Development (total {dev.totalDev})</div>
         {dev.rows.map((r) => <ActionButton key={r.id} icon={TrendingUp} label={r.label} description={r.description} costs={r.costs} onClick={() => invest(r)} disabled={!r.enabled} resources={state.resources} size="small" />)}
-        {dev.deposits.map((d) => <ActionButton key={d.resourceId} icon={Gem} label={`${d.name}${d.built ? ' (built)' : ''}`} description={`Develop this land's ${d.resourceId} deposit`} costs={d.built ? null : ACTION_COSTS.developResourceSite} onClick={() => developSite(d)} disabled={!d.enabled} resources={state.resources} size="small" />)}
+        {dev.deposits.map((d) => <ActionButton key={d.resourceId} icon={depositIcon(d.resourceId)} label={`${d.name}${d.built ? ' (built)' : ''}`} description={`Develop this land's ${d.resourceId} deposit`} costs={d.built ? null : ACTION_COSTS.developResourceSite} onClick={() => developSite(d)} disabled={!d.enabled} resources={state.resources} size="small" />)}
       </div>
     )}
     </div>

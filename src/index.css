@@ -410,6 +410,7 @@ svg path {
 .city-banner-star { color: #fde68a; font-size: 11px; }
 .city-banner-warn { margin-left: 2px; padding: 0 4px; border-radius: 6px; background: #ef4444; color: #fff; font-size: 10px; line-height: 13px; }
 .city-banner-siege { margin-left: 2px; color: #fb923c; }
+.city-banner-icon { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; object-fit: contain; }
 .city-banner-bar {
   position: absolute;
   left: 12px;
@@ -497,3 +498,8 @@ svg path {
 }
 .map-banner-cluster.own { background: #2563eb; border-color: #e2e8f0; }
 .map-banner-anchor { position: relative; width: 0; height: 0; }
+
+/* Delivered 2D icons (src/components/ui/GameIcon.jsx): the art's dark outline vanishes on the dark
+   panels, so a faint light rim keeps the silhouette readable at phone sizes. */
+.game-icon { display: inline-block; object-fit: contain; vertical-align: middle; }
+.game-icon-halo { filter: drop-shadow(0 0 1px rgba(241, 245, 249, 0.55)); }

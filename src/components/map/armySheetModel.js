@@ -56,6 +56,7 @@ export const armySheetModel = (state, tile) => {
     name: naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId,
     cargo: naval ? Object.values(state.units).filter((c) => c.embarkedOn === u.id).length : 0,
     classId: u.classId,
+    navalLine: naval ? navalLineOf(u) : null,
     army: u.army?.name || null,
     armyId: u.army?.id || null,
     strength: u.strength, maxStrength: u.maxStrength || u.strength,

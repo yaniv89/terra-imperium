@@ -6,6 +6,7 @@
 // after what's already planned. Fund Scholars and Research Focus feed the same science.
 import React, { useState } from 'react';
 import { Beaker, BookOpen, GraduationCap, Check, Lock, X, ListPlus, Sparkles } from 'lucide-react';
+import { ageIconUrl } from '../../data/icons';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes, TechCategories } from '../../data/types';
@@ -145,6 +146,7 @@ const TechPanel = () => {
           <div className="overflow-x-auto rounded-lg border border-slate-700 bg-slate-900/60" data-testid="research-web">
             <svg width={g.width + 16} height={g.height + 36} viewBox={`-8 -28 ${g.width + 16} ${g.height + 36}`} role="img" aria-label="The research web">
               {g.ages.map((a) => <text key={a.ageId} x={a.x + a.width / 2} y={-12} textAnchor="middle" fontSize="11" fill="#94a3b8">{a.name}</text>)}
+              {g.ages.map((a) => ageIconUrl(a.ageId) && <image key={`i${a.ageId}`} href={ageIconUrl(a.ageId)} x={a.x} y={-27} width={20} height={20} data-testid={`web-age-${a.ageId}`} />)}
               {g.ages.map((a, i) => i > 0 && <line key={`v${a.ageId}`} x1={a.x - 9} y1={-24} x2={a.x - 9} y2={g.height} stroke="#1e293b" strokeDasharray="3 3" />)}
               {g.edges.map((e) => <path key={`${e.from}-${e.to}`} d={`M ${e.x1} ${e.y1} C ${e.x1 + 24} ${e.y1}, ${e.x2 - 24} ${e.y2}, ${e.x2} ${e.y2}`} fill="none" stroke={e.cross ? '#f59e0b' : '#475569'} strokeWidth={e.cross ? 1.5 : 1} opacity={0.9} />)}
               {g.nodes.map((n) => (

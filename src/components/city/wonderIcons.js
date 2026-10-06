@@ -1,6 +1,7 @@
 // src/components/city/wonderIcons.js
-// One lucide glyph per wonder (src/data/greatProjects.js), for the city build list, the province
-// card and the Great Projects list. A wonder without an entry falls back to Landmark.
+// One lucide glyph per wonder (src/data/greatProjects.js): the fallback of WonderIcon
+// (src/components/ui/icons.jsx) for a wonder with no delivered art (solomons_temple, masada).
+// A wonder without an entry falls back to Landmark.
 import {
   Triangle, Flower2, Mountain, Library, CircleDot, Lamp, Store, Church, Crown, Orbit, Anchor, Gem, Rocket, Building2, Atom, Landmark, Castle
 } from 'lucide-react';
