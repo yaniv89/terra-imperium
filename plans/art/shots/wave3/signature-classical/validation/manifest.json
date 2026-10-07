@@ -1,0 +1,833 @@
+{
+  "aghvank.glb": {
+    "bytes": 183100,
+    "objects": {
+      "aghvank": {
+        "LOD0": {
+          "triangles": 1182,
+          "width": 0.17,
+          "depth": 0.02,
+          "height": 0.77,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "nabataea.glb": {
+    "bytes": 154452,
+    "objects": {
+      "nabataea": {
+        "LOD0": {
+          "triangles": 1041,
+          "width": 0.196,
+          "depth": 0.14,
+          "height": 0.534,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "mauretania.glb": {
+    "bytes": 167028,
+    "objects": {
+      "mauretania": {
+        "LOD0": {
+          "triangles": 1104,
+          "width": 0.196,
+          "depth": 0.14,
+          "height": 0.534,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "rasenna.glb": {
+    "bytes": 215420,
+    "objects": {
+      "rasenna": {
+        "LOD0": {
+          "triangles": 1384,
+          "width": 0.03,
+          "depth": 0.012,
+          "height": 0.49,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "belgae.glb": {
+    "bytes": 190516,
+    "objects": {
+      "belgae": {
+        "LOD0": {
+          "triangles": 1240,
+          "width": 0.136,
+          "depth": 0.122,
+          "height": 1.04,
+          "materials": [
+            "Emblem",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "cherusci.glb": {
+    "bytes": 166952,
+    "objects": {
+      "cherusci": {
+        "LOD0": {
+          "triangles": 1084,
+          "width": 0.34,
+          "depth": 0.13,
+          "height": 0.795,
+          "materials": [
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "durotriges.glb": {
+    "bytes": 159040,
+    "objects": {
+      "durotriges": {
+        "LOD0": {
+          "triangles": 1042,
+          "width": 0.111,
+          "depth": 0.116,
+          "height": 1.01,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "kroraina.glb": {
+    "bytes": 172240,
+    "objects": {
+      "kroraina": {
+        "LOD0": {
+          "triangles": 1144,
+          "width": 0.196,
+          "depth": 0.14,
+          "height": 0.534,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "kosala.glb": {
+    "bytes": 178360,
+    "objects": {
+      "kosala": {
+        "LOD0": {
+          "triangles": 1196,
+          "width": 0.078,
+          "depth": 0.086,
+          "height": 0.748,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "chu.glb": {
+    "bytes": 185652,
+    "objects": {
+      "chu": {
+        "LOD0": {
+          "triangles": 1188,
+          "width": 0.03,
+          "depth": 0.012,
+          "height": 0.5,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "qi.glb": {
+    "bytes": 167984,
+    "objects": {
+      "qi": {
+        "LOD0": {
+          "triangles": 1108,
+          "width": 0.024,
+          "depth": 0.03,
+          "height": 0.551,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "yue.glb": {
+    "bytes": 170600,
+    "objects": {
+      "yue": {
+        "LOD0": {
+          "triangles": 1134,
+          "width": 0.078,
+          "depth": 0.086,
+          "height": 0.748,
+          "materials": [
+            "Emblem",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "nanyue.glb": {
+    "bytes": 160240,
+    "objects": {
+      "nanyue": {
+        "LOD0": {
+          "triangles": 1048,
+          "width": 0.024,
+          "depth": 0.03,
+          "height": 0.551,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "yamatai.glb": {
+    "bytes": 167320,
+    "objects": {
+      "yamatai": {
+        "LOD0": {
+          "triangles": 1120,
+          "width": 0.136,
+          "depth": 0.122,
+          "height": 1.001,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "nok.glb": {
+    "bytes": 180696,
+    "objects": {
+      "nok": {
+        "LOD0": {
+          "triangles": 1216,
+          "width": 0.078,
+          "depth": 0.086,
+          "height": 0.748,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "teotihuacan.glb": {
+    "bytes": 174548,
+    "objects": {
+      "teotihuacan": {
+        "LOD0": {
+          "triangles": 1136,
+          "width": 0.024,
+          "depth": 0.101,
+          "height": 1.007,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "zapotec.glb": {
+    "bytes": 169500,
+    "objects": {
+      "zapotec": {
+        "LOD0": {
+          "triangles": 1096,
+          "width": 0.035,
+          "depth": 0.01,
+          "height": 1.1,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "hopewell.glb": {
+    "bytes": 159624,
+    "objects": {
+      "hopewell": {
+        "LOD0": {
+          "triangles": 1040,
+          "width": 0.022,
+          "depth": 0.14,
+          "height": 1.007,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "media.glb": {
+    "bytes": 271144,
+    "objects": {
+      "media": {
+        "LOD0": {
+          "triangles": 1710,
+          "width": 0.268,
+          "depth": 0.952,
+          "height": 0.743,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "lydia.glb": {
+    "bytes": 254028,
+    "objects": {
+      "lydia": {
+        "LOD0": {
+          "triangles": 1598,
+          "width": 0.268,
+          "depth": 0.952,
+          "height": 0.743,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "cyrene.glb": {
+    "bytes": 253340,
+    "objects": {
+      "cyrene": {
+        "LOD0": {
+          "triangles": 1604,
+          "width": 0.268,
+          "depth": 0.952,
+          "height": 0.743,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "numidia.glb": {
+    "bytes": 239700,
+    "objects": {
+      "numidia": {
+        "LOD0": {
+          "triangles": 1498,
+          "width": 0.095,
+          "depth": 0.09,
+          "height": 0.997,
+          "materials": [
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "arverni.glb": {
+    "bytes": 262484,
+    "objects": {
+      "arverni": {
+        "LOD0": {
+          "triangles": 1638,
+          "width": 0.268,
+          "depth": 0.952,
+          "height": 0.743,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "parthava.glb": {
+    "bytes": 262044,
+    "objects": {
+      "parthava": {
+        "LOD0": {
+          "triangles": 1638,
+          "width": 0.268,
+          "depth": 0.952,
+          "height": 0.743,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "bactria.glb": {
+    "bytes": 265836,
+    "objects": {
+      "bactria": {
+        "LOD0": {
+          "triangles": 1664,
+          "width": 0.06,
+          "depth": 0.1,
+          "height": 0.94,
+          "materials": [
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "wusun.glb": {
+    "bytes": 280956,
+    "objects": {
+      "wusun": {
+        "LOD0": {
+          "triangles": 1766,
+          "width": 0.268,
+          "depth": 0.952,
+          "height": 0.743,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "xianbei.glb": {
+    "bytes": 247208,
+    "objects": {
+      "xianbei": {
+        "LOD0": {
+          "triangles": 1568,
+          "width": 0.22,
+          "depth": 0.03,
+          "height": 0.7,
+          "materials": [
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "avanti.glb": {
+    "bytes": 262936,
+    "objects": {
+      "avanti": {
+        "LOD0": {
+          "triangles": 1668,
+          "width": 0.32,
+          "depth": 0.779,
+          "height": 0.802,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "satavahana.glb": {
+    "bytes": 253408,
+    "objects": {
+      "satavahana": {
+        "LOD0": {
+          "triangles": 1606,
+          "width": 0.008,
+          "depth": 0.3,
+          "height": 0.65,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "dian.glb": {
+    "bytes": 252152,
+    "objects": {
+      "dian": {
+        "LOD0": {
+          "triangles": 1586,
+          "width": 0.042,
+          "depth": 0.048,
+          "height": 0.76,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "buyeo.glb": {
+    "bytes": 273800,
+    "objects": {
+      "buyeo": {
+        "LOD0": {
+          "triangles": 1736,
+          "width": 0.32,
+          "depth": 0.779,
+          "height": 0.802,
+          "materials": [
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "pontus.glb": {
+    "bytes": 489204,
+    "objects": {
+      "pontus": {
+        "LOD0": {
+          "triangles": 2875,
+          "width": 0.82,
+          "depth": 0.04,
+          "height": 0.29,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "brigantes.glb": {
+    "bytes": 393440,
+    "objects": {
+      "brigantes": {
+        "LOD0": {
+          "triangles": 2326,
+          "width": 0.82,
+          "depth": 0.04,
+          "height": 0.29,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "saba.glb": {
+    "bytes": 279048,
+    "objects": {
+      "saba": {
+        "LOD0": {
+          "triangles": 1778,
+          "width": 0.38,
+          "depth": 0.916,
+          "height": 1.139,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "qedar.glb": {
+    "bytes": 278204,
+    "objects": {
+      "qedar": {
+        "LOD0": {
+          "triangles": 1758,
+          "width": 0.38,
+          "depth": 0.916,
+          "height": 1.139,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "magadha.glb": {
+    "bytes": 474212,
+    "objects": {
+      "magadha": {
+        "LOD0": {
+          "triangles": 2970,
+          "width": 0.024,
+          "depth": 0.088,
+          "height": 4.607,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "kalinga.glb": {
+    "bytes": 459320,
+    "objects": {
+      "kalinga": {
+        "LOD0": {
+          "triangles": 2886,
+          "width": 0.482,
+          "depth": 0.186,
+          "height": 4.61,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "bosporan-kingdom.glb": {
+    "bytes": 397672,
+    "objects": {
+      "bosporan-kingdom": {
+        "LOD0": {
+          "triangles": 2467,
+          "width": 0.186,
+          "depth": 0.482,
+          "height": 1,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  }
+}

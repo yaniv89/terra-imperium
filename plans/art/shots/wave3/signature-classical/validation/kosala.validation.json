@@ -1,0 +1,92 @@
+{
+  "file": "kosala.glb",
+  "kind": "unit",
+  "bytes": 178360,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "unit_flat_colours": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "kosala": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1196,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ],
+          "width": 0.078,
+          "depth": 0.086,
+          "height": 0.748,
+          "min_height": 0.6963
+        }
+      },
+      "children": [
+        "kosala",
+        "SignatureRig",
+        "Armlet_L",
+        "Armlet_R",
+        "Bow",
+        "BowString",
+        "Dhoti",
+        "Quiver",
+        "QuiverArrows",
+        "SignatureBody",
+        "Turban0",
+        "Turban1",
+        "Turban2",
+        "TurbanTop",
+        "Root",
+        "Hips",
+        "Leg_L",
+        "Shin_L",
+        "Foot_L",
+        "Leg_R",
+        "Shin_R",
+        "Foot_R",
+        "Spine",
+        "Chest",
+        "Arm_L",
+        "Forearm_L",
+        "Hand_L",
+        "Prop_L",
+        "Arm_R",
+        "Forearm_R",
+        "Hand_R",
+        "Prop_R",
+        "Neck",
+        "Head",
+        "Prop_Back"
+      ],
+      "missing_lods": [],
+      "over_target": false,
+      "over_budget": [],
+      "footprint": 0.086
+    }
+  },
+  "materials": [
+    "Metal",
+    "Wood",
+    "Cloth",
+    "Team",
+    "Leather",
+    "Skin"
+  ],
+  "reserved_word_names": [],
+  "images": [],
+  "passed": true
+}
