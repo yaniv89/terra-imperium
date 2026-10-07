@@ -2778,13 +2778,14 @@
       "section": "battle-city",
       "description": "Kingdoms ruin library: Kingdoms rubble in the age's materials: house rubble small and large, landmark rubble (12 to 25 m), broken beams, scorch decal, fire and smoke attachment points; used for every building without its own ruin",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/kingdoms/ruin-library",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave4 checkpoint-23, 2026-10-08 (plans/art/downloads/wave4/checkpoint-23)"
     },
     {
       "path": "plans/art/battle-city/gunpowder/ruin-library",
@@ -2845,13 +2846,14 @@
       "section": "battle-city",
       "description": "Kingdoms wall kit: Kingdoms wall segment kit cut from the existing wall rings: straight, corner, tower, gate (open, closed), each intact, damaged and breached",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/kingdoms/wall-kit",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7",
+      "delivered": "wave4 checkpoint-23, 2026-10-08 (plans/art/downloads/wave4/checkpoint-23)"
     },
     {
       "path": "plans/art/battle-city/gunpowder/wall-kit",
@@ -5701,13 +5703,14 @@
       "section": "battle-city",
       "description": "Kingdoms fort (battle): Kingdoms fort on the battle map, built from the map's fort-kingdoms improvement and the age's wall kit: walls, towers, gate, garrison house; intact, damaged, breached",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/kingdoms/fort",
       "phase": "R3",
       "batch": "M13",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7",
+      "delivered": "wave4 checkpoint-23, 2026-10-08 (plans/art/downloads/wave4/checkpoint-23)"
     },
     {
       "path": "plans/art/battle-city/gunpowder/fort",
@@ -11433,6 +11436,20 @@
       "delivery_status": "in_game_awaiting_review",
       "delivered": "wave4 checkpoint-21, 2026-10-08 (plans/art/downloads/wave4/checkpoint-21)",
       "id": "units/signature/saudeleur",
+      "phase": "B",
+      "priority": "P1",
+      "placeholder_ok": true
+    },
+    {
+      "path": "plans/art/battle-city/kingdoms/civic",
+      "section": "battle-city",
+      "description": "Kingdoms civic hall (keep, keep-damaged, keep-ruined): the half-timbered guildhall in its walled court, src/assets/battle/city/civic-kingdoms.glb",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "spec": "plans/ART-MODELS-PLAN.md section 5 (town-hall) and 6",
+      "batch": "W4",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave4 checkpoint-23, 2026-10-08 (plans/art/downloads/wave4/checkpoint-23)",
+      "id": "battle-city/kingdoms/civic",
       "phase": "B",
       "priority": "P1",
       "placeholder_ok": true

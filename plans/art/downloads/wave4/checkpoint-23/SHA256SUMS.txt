@@ -1,0 +1,12 @@
+ea01487760cb7cd92376ace42fe271bbf3ead5f6bb0ebe3ddbd85c520cc1b0a9  plans/art/downloads/wave4/checkpoint-23/contact.png
+4d903bb5d90d1e3f3e27936b0ef2c798395ecf65e915dccd46af9c8df492f2c6  plans/art/production-queue.json
+2d36e2e8a57f74b6151635a5015dfa5456ce4008de87098dc474352509726fd9  plans/art/shots/wave4/city-kingdoms/city-europe-844x390.png
+7002f3f8ce900659239b2067fe8dd4444517b391f95d197d6bde25b30d7deb09  plans/art/shots/wave4/city-kingdoms/civic-kingdoms.png
+79ae12f872801a793da5a2c1a030d7c28b0be97d7fb5ccd133de39453294ca92  plans/art/shots/wave4/city-kingdoms/fort-kingdoms.png
+231027ed0fd621fbe5e41d5fd5d8a63af7fa10464b75c594c957e097596eed55  plans/art/shots/wave4/city-kingdoms/ruined-europe-844x390.png
+96ab36dcb640a25a40b02b81e3d2073039c35b17c97bfc5765982185f32bc93f  plans/art/shots/wave4/city-kingdoms/ruins-kingdoms.png
+08e7a2a9dcd1f203a150b6d25b1774e57fb1c7e47ffd8968d60dacea868a72a6  plans/art/shots/wave4/city-kingdoms/walls-kingdoms.png
+4e9f7b3b52826a8796c67dbeecc88ea90ff0860ddddf4352f1a66c8626402ba2  src/assets/battle/city/civic-kingdoms.glb
+1f907bcad495e0e0ce682a454eed020f914c3fb33c731b1fb8558e1ef6a4e1a0  src/assets/battle/city/fort-kingdoms.glb
+82eb305fe13e8f8d3ec70d7f150343be5acd8c2fb99f3e14c381af974a93ed0b  src/assets/battle/city/ruins-kingdoms.glb
+83920ed29420d51f57090f5e9262201f8931765fa381ab1b50f14e2729883d06  src/assets/battle/city/walls-kingdoms.glb
