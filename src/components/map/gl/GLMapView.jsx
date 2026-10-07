@@ -22,7 +22,6 @@ import { useGame } from '../../../context/GameContext';
 import { useEffects } from '../../../context/EffectsContext';
 import { useMapInsets } from '../../../context/MapInsetsContext';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
-import { REGION_COORDINATES } from '../../../data/regionCoordinates';
 import { loadLandFeatures } from '../../../data/geo/loadWorldFeatures';
 import { getCityFeatures, tileAtLatLon } from '../../../data/geo/cityFeatures';
 import { getTiles } from '../../../data/geo/tiles';
@@ -47,7 +46,8 @@ import { indexCities, buildFogStates, buildTileTexels, buildCityTexels, buildTin
 import { createTerritoryLayer, createTerritoryCache, createRasterLayer, createSpriteLayer, createLineLayer } from './glLayers';
 import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
-import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor } from './mapView';
+import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform } from './mapView';
+import { cleanLatLng, latLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera } from '../mapCamera';
 import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
@@ -82,6 +82,9 @@ const GLMapView = ({
   onSelectArmy = null, selectedArmy = null, lens = 'political', onFail = null
 }) => {
   const { state: gameState } = useGame();
+  const gameStateRef = useRef(gameState);
+  gameStateRef.current = gameState;
+  const camKey = cameraKey(gameState);
   const fog = useMemo(() => fogView(gameState), [gameState]);
   const state = fog.state;
   // One of your settlers on the selected tile shows the settle tints round it (settle-rules R6).
@@ -153,9 +156,18 @@ const GLMapView = ({
     g.topSprites = createSpriteLayer(top, atlas, 50);
     g.closeScene = createCloseScene(close, closeRoot, { onAssets: () => setAssetsTick((n) => n + 1) });
     gl.current = g;
+    // A phone may drop the map's WebGL context while the battle's renderer runs (or the app sits in
+    // the background): three.js rebuilds it on restore, the map has to draw again (and its cached
+    // territory picture is gone).
+    const redraw = () => { g.territoryCache.invalidate(); g.request(); };
+    const onVisible = () => { if (document.visibilityState === 'visible') redraw(); };
+    canvas.addEventListener('webglcontextrestored', redraw);
+    document.addEventListener('visibilitychange', onVisible);
     if (import.meta.env.DEV) window.__closeView = Object.assign(g.closeScene.state, { renderer });
     setReady(true);
     return () => {
+      canvas.removeEventListener('webglcontextrestored', redraw);
+      document.removeEventListener('visibilitychange', onVisible);
       g.disposed = true;
       cancelAnimationFrame(g.raf);
       [g.raster, g.territory, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
@@ -238,9 +250,20 @@ const GLMapView = ({
   }, []);
   useEffect(() => () => clearTimeout(settleTimer.current), []);
 
+  // The screen size the current transform was made for: a resize rescales the world (fitSize), so
+  // the view is carried over to keep the same place at the centre (carryTransform).
+  const geomRef = useRef(null);
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || !ready || width <= 0 || height <= 0) return undefined;
+    if (!el || !ready || width <= 0 || height <= 0 || !projection) return undefined;
+    const prev = geomRef.current;
+    if (prev && prev.projection !== projection) {
+      select(el).interrupt(); // a fly-to under way was aimed in the old world units
+      const carried = carryTransform({ transform: transformRef.current, from: prev, to: { projection, width, height }, minK, maxK: ZOOM_MAX });
+      if (carried) transformRef.current = zoomIdentity.translate(carried.x, carried.y).scale(carried.k);
+    }
+    geomRef.current = { projection, width, height };
+    if (!isSaneTransform(transformRef.current)) transformRef.current = zoomIdentity.scale(minK);
     const behavior = d3zoom()
       .interpolate(linearViewInterpolate)
       .scaleExtent([minK, ZOOM_MAX])
@@ -253,29 +276,46 @@ const GLMapView = ({
     // keep the current view (a resize rebuilds the behaviour)
     selection.call(behavior.transform, transformRef.current.k < minK ? zoomIdentity.scale(minK) : transformRef.current);
     return () => { selection.on('.zoom', null); };
-  }, [ready, width, height, minK, onZoom]);
+  }, [ready, width, height, minK, onZoom, projection]);
 
-  const focusOnLatLng = useCallback((lat, lng, k = INITIAL_FOCUS_ZOOM, animate = false) => {
+  // Never to an undefined, NaN or off-world point: a bad target leaves the camera where it is.
+  // `useInsets` false centres on the whole screen (a remembered camera), not the part the HUD leaves.
+  const focusOnLatLng = useCallback((lat, lng, k = INITIAL_FOCUS_ZOOM, animate = false, useInsets = true) => {
     if (!projection || !zoomBehaviorRef.current || !containerRef.current) return false;
+    const ll = cleanLatLng({ lat, lng });
+    if (!ll || !Number.isFinite(k) || k <= 0) return false;
+    const kk = Math.min(ZOOM_MAX, Math.max(minK, k));
+    const p = projection([ll.lng, ll.lat]);
+    if (!p || !Number.isFinite(p[0]) || !Number.isFinite(p[1])) return false;
     const v = view();
-    const [px0, py] = projection([lng, lat]);
-    const px = v ? wrapNear(px0, (width / 2 - transformRef.current.x) / transformRef.current.k, v.worldW) : px0;
-    const vcx = insets.left + (width - insets.left - insets.right) / 2;
-    const vcy = insets.top + (height - insets.top - insets.bottom) / 2;
-    const desired = zoomIdentity.translate(vcx - px * k, vcy - py * k).scale(k);
+    const t = transformRef.current;
+    const px = v && isSaneTransform(t) ? wrapNear(p[0], (width / 2 - t.x) / t.k, v.worldW) : p[0];
+    const ins = useInsets ? { left: insets.left, right: insets.right, top: insets.top, bottom: insets.bottom } : { left: 0, right: 0, top: 0, bottom: 0 };
+    // the middle of the part of the screen the HUD leaves, unless the HUD covers nearly all of it
+    const freeW = width - ins.left - ins.right; const freeH = height - ins.top - ins.bottom;
+    const vcx = freeW > 40 ? ins.left + freeW / 2 : width / 2;
+    const vcy = freeH > 40 ? ins.top + freeH / 2 : height / 2;
+    const desired = zoomIdentity.translate(vcx - px * kk, vcy - p[1] * kk).scale(kk);
+    if (!isSaneTransform(desired)) return false;
     const selection = select(containerRef.current);
     (animate ? selection.transition().duration(450) : selection).call(zoomBehaviorRef.current.transform, desired);
     return true;
-  }, [projection, view, width, height, insets.left, insets.right, insets.top, insets.bottom]);
+  }, [projection, view, width, height, minK, insets.left, insets.right, insets.top, insets.bottom]);
+  // A city's place (its registry coordinates, else its tile); a city that is gone is no target.
   const focusOnRegionId = useCallback((id, k = INITIAL_FOCUS_ZOOM, animate = false) => {
-    const c = REGION_COORDINATES[id];
+    const c = latLngOfCity(gameStateRef.current, id);
     return c ? focusOnLatLng(c.lat, c.lng, k, animate) : false;
   }, [focusOnLatLng]);
 
+  // The first view: where this game's map was before it was unmounted (its box had no size, the
+  // globe was shown), else the capital, else the selected army; never a default corner of the world.
   useEffect(() => {
-    if (appliedInitialFocusRef.current || !initialFocusRegionId || !ready) return;
-    if (focusOnRegionId(initialFocusRegionId)) appliedInitialFocusRef.current = true;
-  }, [initialFocusRegionId, focusOnRegionId, ready]);
+    if (appliedInitialFocusRef.current || !ready || !projection) return;
+    const mem = recallCamera(camKey);
+    if (mem && focusOnLatLng(mem.lat, mem.lng, mem.scaleK / projection.scale(), false, false)) { appliedInitialFocusRef.current = true; return; }
+    const t = cameraTarget(gameStateRef.current, [{ regionId: initialFocusRegionId }], { selectedArmyTile: selectedArmy });
+    if (t && focusOnLatLng(t.lat, t.lng)) appliedInitialFocusRef.current = true;
+  }, [initialFocusRegionId, focusOnLatLng, ready, projection, camKey, selectedArmy]);
 
   // A new action effect: pan to it (keeping a deeper zoom) and keep it centred while it plays.
   const lastEffectIdRef = useRef(effects.length ? effects[effects.length - 1].id : null);
@@ -284,7 +324,7 @@ const GLMapView = ({
     const latest = effects[effects.length - 1];
     if (!latest || latest.id === lastEffectIdRef.current) return;
     lastEffectIdRef.current = latest.id;
-    const target = REGION_COORDINATES[latest.toRegionId];
+    const target = latLngOfCity(gameStateRef.current, latest.toRegionId);
     if (!target) return;
     const k = Math.max(transformRef.current.k, INITIAL_FOCUS_ZOOM);
     followRef.current = { lat: target.lat, lng: target.lng, k, until: Date.now() + getEffectPeekDuration(latest.actionType) };
@@ -307,9 +347,11 @@ const GLMapView = ({
     const v = view();
     const centre = projection.invert(screenToWorld(v, width / 2, height / 2));
     if (!centre) return;
+    // remembered for a remount, once the first view is in place
+    if (appliedInitialFocusRef.current) rememberCamera(camKey, { lat: centre[1], lng: centre[0], scaleK: projection.scale() * v.k });
     const degPerPx = 360 / (v.worldW * v.k);
     onViewportChange({ centerLng: centre[0], centerLat: centre[1], halfWidthDeg: (width / 2) * degPerPx, halfHeightDeg: (height / 2) * degPerPx });
-  }, [settled, onViewportChange, projection, view, width, height]);
+  }, [settled, onViewportChange, projection, view, width, height, camKey]);
 
   const zoomBy = useCallback((factor) => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).transition().duration(200).call(zoomBehaviorRef.current.scaleBy, factor); }, []);
   const resetZoom = useCallback(() => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).transition().duration(200).call(zoomBehaviorRef.current.transform, zoomIdentity.scale(minK)); }, [minK]);
@@ -474,7 +516,7 @@ const GLMapView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onAmbiguousTap, onSelectRegion, selectedRegion]);
   const zoomToRegion = useCallback((regionId) => {
-    const c = REGION_COORDINATES[regionId];
+    const c = latLngOfCity(gameStateRef.current, regionId);
     if (c) focusOnLatLng(c.lat, c.lng, Math.min(ZOOM_MAX, Math.max(transformRef.current.k * 2.5, INITIAL_FOCUS_ZOOM)), true);
   }, [focusOnLatLng]);
   // What a tap at a screen point picks, top first: a marker or cluster, a settler, a city's badge,

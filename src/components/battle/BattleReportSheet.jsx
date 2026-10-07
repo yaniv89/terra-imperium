@@ -17,6 +17,8 @@ import { getEffectiveAgeId } from '../../data/ages';
 import { getTechAgeId } from '../../engine/nationState';
 import { Button, Chip, CloseButton } from '../ui/atlas';
 import { REPORT_FILTERS, fateRows, filterReports, reportDetail, reportRow } from './battleReportsModel';
+import { focusPlace } from '../map/marchEvents';
+import { battlePlaces } from '../map/mapCamera';
 
 const OURS = 'var(--fa-you)';
 const THEIRS = 'var(--fa-enemy)';
@@ -185,8 +187,8 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
               </div>
             </div>
             <div className="px-3 py-2 border-t border-fa-line flex items-center gap-2">
-              {d.targetRegionId && onShowRegion && (
-                <Button onClick={() => { onShowRegion(d.targetRegionId); onClose(); }} className="shrink-0"><MapPin className="w-4 h-4" aria-hidden="true" /> Show on map</Button>
+              {(d.targetRegionId || current.tile != null) && (
+                <Button onClick={() => { if (onShowRegion && state.regions?.[d.targetRegionId]) onShowRegion(d.targetRegionId); focusPlace(battlePlaces(current)); onClose(); }} className="shrink-0" data-testid="battle-report-show"><MapPin className="w-4 h-4" aria-hidden="true" /> Show on map</Button>
               )}
               <span className="flex-1 text-[11px] text-fa-muted leading-tight">{d.canReplay ? 'Auto battles keep their rounds.' : 'Commanded battles keep no replay yet.'}</span>
               {d.canReplay && onReplay && (

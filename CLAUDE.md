@@ -113,7 +113,7 @@ The live site is GitHub Pages, built into `docs/`.
   (territoryShader.js over the data textures of tileGpuData.js and territoryData.js); badges,
   banners, markers and glyphs are instanced sprites from a canvas atlas (sceneModel.js,
   spriteArt.js); the close view's models come from closeView/closeViewScene.js in the same scene.
-  The world wraps east-west (mapView.js). The old SVG map (Map2DView.jsx) and the globe stay behind
+  The world wraps east-west (mapView.js; a resize keeps the place at the centre: carryTransform). Camera moves from outside the map (after a battle, Show on map, prompts, the turn report) go through src/components/map/mapCamera.js (`cameraTarget`: the place, else the selected army, else the capital, never a default spot; `focusPlace` in marchEvents.js). The old SVG map (Map2DView.jsx) and the globe stay behind
   settings (map/mapPrefs.js) for one release. Map speed: `node scripts/perf/map-pan.mjs --gpu`.
 - Layout: `src/hooks/useLayoutMode.js` picks desktop / tablet / phone-landscape / phone-portrait and
   sets `<html data-layout>`. Phones play landscape (slim top bar, tab rail on the right, side

@@ -19,6 +19,10 @@ export const selectRegion = (regionId) => window.dispatchEvent(new CustomEvent(S
 // Centre the map on a city while something about it is open (the event sheet); null releases it.
 export const FOCUS_REGION = 'ti:focus-region';
 export const focusRegion = (regionId) => window.dispatchEvent(new CustomEvent(FOCUS_REGION, { detail: regionId }));
+// Fly the map to a place: `places` is one { tile, regionId } or a list, best first (mapCamera.js
+// cameraTarget: the first that still exists, else the selected army, else the capital).
+export const FOCUS_PLACE = 'ti:focus-place';
+export const focusPlace = (places) => window.dispatchEvent(new CustomEvent(FOCUS_PLACE, { detail: places }));
 // Open a city's management sheet on one of its tabs ('build' for End Turn's "Choose production"),
 // selecting the city and centring the map on it.
 export const MANAGE_CITY = 'ti:manage-city';

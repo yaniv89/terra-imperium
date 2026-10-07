@@ -114,6 +114,8 @@ export const createTerritoryCache = (territory) => {
     return v.worldLeft >= left && v.worldLeft + v.width / v.k <= left + cache.w && v.worldTop >= cache.top && v.worldTop + v.height / v.k <= cache.top + cache.h;
   };
   return {
+    /** Forget the cached picture (a lost and restored WebGL context emptied it). */
+    invalidate: () => { cache = null; },
     /** Draws the territories for view `v` (the shader's `opts`): from the cache when it fits, else live; caches when `settled`. */
     draw: (renderer, camera, v, opts, settled) => {
       const key = `${territory.version}|${JSON.stringify(opts)}|${v.width}x${v.height}@${v.dpr}`;

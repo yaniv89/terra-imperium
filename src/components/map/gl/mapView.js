@@ -66,6 +66,27 @@ export const pickHit = (view, hits, sx, sy) => {
 };
 
 /**
+ * The view after the screen changed size. d3's `fitSize` rescales the world to the new screen, so
+ * the old { x, y, k } would point at another place, far away at a close zoom (an iPhone's Safari
+ * toolbar showing or hiding moved the camera to the fog or the open sea). This keeps the place at
+ * the screen's centre and the ground's scale (pixels per degree): `from` and `to` are
+ * { projection, width, height }. null when the old view has no real centre.
+ */
+export const carryTransform = ({ transform, from, to, minK = 1, maxK = Infinity }) => {
+  if (!transform || !from?.projection || !to?.projection || !(transform.k > 0)) return null;
+  const cx = (from.width / 2 - transform.x) / transform.k; const cy = (from.height / 2 - transform.y) / transform.k;
+  const ll = from.projection.invert([cx, cy]);
+  if (!ll || !Number.isFinite(ll[0]) || !Number.isFinite(ll[1])) return null;
+  const k = Math.min(maxK, Math.max(minK, (transform.k * from.projection.scale()) / to.projection.scale()));
+  const p = to.projection([ll[0], Math.max(-90, Math.min(90, ll[1]))]);
+  if (!p || !Number.isFinite(p[0]) || !Number.isFinite(p[1]) || !Number.isFinite(k)) return null;
+  return { k, x: to.width / 2 - p[0] * k, y: to.height / 2 - p[1] * k };
+};
+
+/** A transform the camera may take: finite numbers and a positive zoom. */
+export const isSaneTransform = (t) => !!t && Number.isFinite(t.x) && Number.isFinite(t.y) && Number.isFinite(t.k) && t.k > 0;
+
+/**
  * The zoom to centre a city at when its sheet opens (Manage, an event's city): the zoom the player
  * already chose, never pulled out below `minFocusK` (a sensible "this city and its land" zoom) nor
  * past `maxK`. Opening a city used to reset the zoom to `minFocusK` every time, a big zoom out on a
