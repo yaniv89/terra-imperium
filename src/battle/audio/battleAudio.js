@@ -21,6 +21,7 @@
 import { BATTLE_SOUNDS, battleFilesFor, createSoundRng, pickVariant } from '../../audio/soundRegistry';
 import { getAudioSettings, setAudioSettings, subscribeAudioSettings } from '../../audio/audioSettings';
 import { audibility, ambienceTarget, easeLevel } from '../../audio/spatial';
+import { isPageAudible, subscribePageAudio } from '../../audio/pageLifecycle';
 import { getAgeIndex } from '../../data/ages';
 import { getSquadDisplayName } from '../data/battleStats';
 
@@ -119,7 +120,8 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
   let fightGain = 0; let lastFrameAt = 0; let ambLevel = 0; let lastTicker = 0;
   const loops = {}; // 'battle-ambience' | 'war-drums' -> { src, gain }
   const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
-  const docHidden = () => typeof document !== 'undefined' && !!document.hidden;
+  // Hidden tab, locked phone, app in the background, phone window blurred (pageLifecycle.js).
+  const docHidden = () => !isPageAudible();
 
   const busLevel = () => (enabled && visible && !docHidden() ? MASTER * settings.effects : 0);
   const applyBus = () => { if (master && ctx) master.gain.setTargetAtTime?.(busLevel(), ctx.currentTime, 0.05); };
@@ -137,7 +139,7 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
       let seed = 12345;
       for (let i = 0; i < data.length; i++) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; data[i] = (seed / 0x3fffffff) - 1; }
     }
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state !== 'running' && !docHidden()) ctx.resume?.();
     return ctx;
   };
 
@@ -306,8 +308,14 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
   };
 
   const unsubscribe = subscribeAudioSettings((s) => { settings = s; enabled = effectsWanted(s); if (!enabled) ctx?.suspend?.(); else if (ctx) ensure(); applyBus(); });
-  const onVisibility = () => applyBus();
-  if (typeof document !== 'undefined') document.addEventListener?.('visibilitychange', onVisibility);
+  // The page away: suspend the whole context at once (a gain ramp would not stop a locked iPhone);
+  // back on screen with sound still wanted: resume it.
+  const onVisibility = () => {
+    if (docHidden()) ctx?.suspend?.();
+    else if (enabled && ctx) ensure();
+    applyBus();
+  };
+  const unsubscribePage = subscribePageAudio(onVisibility);
 
   return {
     // Call from any user gesture (tap on Start, an order...) so the browser allows audio.
@@ -360,7 +368,7 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
     voiceStats: () => ({ pool: channels.length, busy: ctx ? channels.filter((k) => k.busyUntil > ctx.currentTime).length : 0, ambience: ambLevel }),
     dispose() {
       unsubscribe();
-      if (typeof document !== 'undefined') document.removeEventListener?.('visibilitychange', onVisibility);
+      unsubscribePage();
       try { ctx?.close?.(); } catch { /* already closed */ }
       ctx = null;
     }
