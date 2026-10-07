@@ -192,3 +192,8 @@ The frame:
   the scripts that set a switch before Begin keep working (`explored-world`, `guided-start`,
   `[data-people]`, `begin-game`, `Begin as`); new test ids: `start-step-<id>`, `start-next`,
   `start-back`, `data-step` on `start-screen`.
+
+Built (StartScreen.jsx, StartScreen.test.js). Checks: lint, the full vitest run, and the e2e start flows
+(guidedStart, playability, landscape upright and tablet pass; landscape "phone held sideways" and the two
+webglMap tests fail the same way on the base commit: the year does not advance after End Turn, and the
+map pick finds no city, unrelated to the start screen).
