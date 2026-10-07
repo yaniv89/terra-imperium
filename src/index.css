@@ -46,11 +46,42 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+/* The visible area (iOS Safari, plans/ui/safari): src/utils/appViewport.js keeps --app-height
+   (and --app-vh, one hundredth of it) on <html> from visualViewport, so Safari's address bar, tab
+   bar and the keyboard never hide the top bar, End Turn or a sheet's bottom. Every vh and dvh in
+   the CSS is rewritten to var(--app-vh) at build time (postcss.config.js). The body is pinned to
+   that area and is the containing block of every fixed overlay (contain: layout), portals
+   included, so `fixed inset-0` / `bottom-0` mean the visible area too. The page itself never
+   scrolls or bounces behind the game. */
+:root {
+  --app-vh: 1vh;
+}
+@supports (height: 1dvh) {
+  :root { --app-vh: 1dvh; }
+}
+html {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--app-height, 100%);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  contain: layout;
+}
+#root {
+  height: 100%;
+  width: 100%;
   overflow: hidden;
 }
 
