@@ -40,6 +40,7 @@ import { getNationColor } from '../../data/nationColors';
 import { isIndependent, mutedIndependentColour, INDEPENDENT_BAND_DASH } from '../../data/independents';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
+import { focusZoomFor } from './gl/mapView';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
 import RaidMarkersOverlay from '../independents/RaidMarkersOverlay';
 import CityBanners from './CityBanners';
@@ -317,7 +318,10 @@ const Map2DView = ({
       focusOnLatLng(follow.lat, follow.lng, follow.k, true);
       return;
     }
-    if (focusRegionId) focusOnRegionId(focusRegionId, INITIAL_FOCUS_ZOOM, true);
+    // keep the player's zoom: only pan, or zoom in to the city (gl/mapView.js focusZoomFor)
+    if (focusRegionId) focusOnRegionId(focusRegionId, focusZoomFor(transform.k, INITIAL_FOCUS_ZOOM, ZOOM_EXTENT[1]), true);
+    // transform.k intentionally omitted: the zoom is read when the city opens, not followed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interactive, focusRegionId, focusOnRegionId, focusOnLatLng]);
 
   // MiniMap.jsx's "click/drag to navigate" request — a raw lat/lng rather than a region, and (per

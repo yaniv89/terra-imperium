@@ -150,7 +150,9 @@ const GlobeView = ({ onAmbiguousTap = null,
     if (!focusRegionId || !globeRef.current) return;
     const target = REGION_COORDINATES[focusRegionId];
     if (!target) return;
-    globeRef.current.pointOfView({ lat: target.lat, lng: target.lng, altitude: 1.0 }, 500);
+    // keep a closer altitude the player already chose (opening a city never zooms out)
+    const altitude = Math.min(1.0, globeRef.current.pointOfView?.()?.altitude || 1.0);
+    globeRef.current.pointOfView({ lat: target.lat, lng: target.lng, altitude }, 500);
   }, [focusRegionId]);
 
   // MiniMap.jsx's "click/drag to navigate" request — see Map2DView.jsx's own navigateTarget effect
