@@ -1,0 +1,129 @@
+{
+  "mode": "sandbox",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave5\\units-gunpowder\\sandbox-gunpowder-wide.png",
+    "plans\\art\\shots\\wave5\\units-gunpowder\\sandbox-gunpowder-infantry.png",
+    "plans\\art\\shots\\wave5\\units-gunpowder\\sandbox-gunpowder-general.png",
+    "plans\\art\\shots\\wave5\\units-gunpowder\\sandbox-gunpowder-ranged.png",
+    "plans\\art\\shots\\wave5\\units-gunpowder\\sandbox-gunpowder-cavalry.png",
+    "plans\\art\\shots\\wave5\\units-gunpowder\\sandbox-gunpowder-siege.png",
+    "plans\\art\\shots\\wave5\\units-gunpowder\\sandbox-gunpowder-support.png"
+  ],
+  "layers": [
+    {
+      "key": "gunpowder:infantry",
+      "triangles": [
+        1382,
+        271,
+        53
+      ]
+    },
+    {
+      "key": "gunpowder:general",
+      "triangles": [
+        2279,
+        290,
+        62
+      ]
+    },
+    {
+      "key": "gunpowder:ranged",
+      "triangles": [
+        1396,
+        341,
+        56
+      ]
+    },
+    {
+      "key": "gunpowder:cavalry",
+      "triangles": [
+        1794,
+        327,
+        46
+      ]
+    },
+    {
+      "key": "gunpowder:siege",
+      "triangles": [
+        2385,
+        353,
+        62
+      ]
+    },
+    {
+      "key": "gunpowder:support",
+      "triangles": [
+        1446,
+        351,
+        48
+      ]
+    }
+  ],
+  "unitLog": [],
+  "errors": [
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+  ],
+  "setupUnits": [
+    "infantry,ranged,infantry,cavalry,infantry,ranged,siege,infantry,cavalry,ranged,infantry,cavalry,infantry,ranged,siege,infantry,cavalry,ranged,infantry,support",
+    "infantry,ranged,infantry,cavalry,infantry,ranged,siege,infantry,cavalry,ranged,infantry,cavalry,infantry,ranged,siege,infantry,cavalry,ranged,infantry,support"
+  ],
+  "squads": [
+    "0:infantry",
+    "0:ranged",
+    "0:infantry",
+    "0:cavalry",
+    "0:infantry",
+    "0:ranged",
+    "0:siege",
+    "0:infantry",
+    "0:cavalry",
+    "0:ranged",
+    "0:infantry",
+    "0:cavalry",
+    "0:infantry",
+    "0:ranged",
+    "0:siege",
+    "0:infantry",
+    "0:cavalry",
+    "0:ranged",
+    "0:infantry",
+    "0:support",
+    "1:infantry",
+    "1:ranged",
+    "1:infantry",
+    "1:cavalry",
+    "1:infantry",
+    "1:ranged",
+    "1:siege",
+    "1:infantry",
+    "1:cavalry",
+    "1:ranged",
+    "1:infantry",
+    "1:cavalry",
+    "1:infantry",
+    "1:ranged",
+    "1:siege",
+    "1:infantry",
+    "1:cavalry",
+    "1:ranged",
+    "1:infantry",
+    "1:support",
+    "0:cavalry",
+    "1:cavalry"
+  ]
+}

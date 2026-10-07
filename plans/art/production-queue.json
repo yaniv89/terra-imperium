@@ -2034,32 +2034,47 @@
     {
       "path": "plans/art/units/gunpowder-infantry",
       "section": "units",
-      "description": "1700s line infantry: a tricorne, a long coat with turnbacks (team colour facings), a flintlock musket 1.5 m with a bayonet, a cartridge box, gaiters",
-      "delivery_status": "pending"
+      "description": "Gunpowder infantry (base unit), src/assets/units/gunpowder-infantry.glb (build_units_gunpowder.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W5",
+      "delivered": "wave5 checkpoint-26, 2026-10-08 (plans/art/downloads/wave5/checkpoint-26)"
     },
     {
       "path": "plans/art/units/gunpowder-cavalry",
       "section": "units",
-      "description": "1700s dragoons: a tricorne or a helmet with a crest, a coat (team facings), a carbine on a sling, a sabre, a horse with a saddle roll",
-      "delivery_status": "pending"
+      "description": "Gunpowder cavalry (base unit), src/assets/units/gunpowder-cavalry.glb (build_units_gunpowder.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W5",
+      "delivered": "wave5 checkpoint-26, 2026-10-08 (plans/art/downloads/wave5/checkpoint-26)"
     },
     {
       "path": "plans/art/units/gunpowder-ranged",
       "section": "units",
-      "description": "1800s riflemen: a shako or a forage cap, a short dark green or grey jacket, a rifle 1.2 m, a powder horn, a sword bayonet",
-      "delivery_status": "pending"
+      "description": "Gunpowder ranged (base unit), src/assets/units/gunpowder-ranged.glb (build_units_gunpowder.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W5",
+      "delivered": "wave5 checkpoint-26, 2026-10-08 (plans/art/downloads/wave5/checkpoint-26)"
     },
     {
       "path": "plans/art/units/gunpowder-siege",
       "section": "units",
-      "description": "a 12-pounder field gun on a two-wheel carriage with a limber, 1.5 m high, three crew with a rammer and a linstock",
-      "delivery_status": "pending"
+      "description": "Gunpowder siege (base unit), src/assets/units/gunpowder-siege.glb (build_units_gunpowder.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W5",
+      "delivered": "wave5 checkpoint-26, 2026-10-08 (plans/art/downloads/wave5/checkpoint-26)"
     },
     {
       "path": "plans/art/units/gunpowder-support",
       "section": "units",
-      "description": "1700s sappers: a leather cap, an apron, a pick and shovel, a gabion, a powder keg",
-      "delivery_status": "pending"
+      "description": "Gunpowder support (base unit), src/assets/units/gunpowder-support.glb (build_units_gunpowder.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W5",
+      "delivered": "wave5 checkpoint-26, 2026-10-08 (plans/art/downloads/wave5/checkpoint-26)"
     },
     {
       "path": "plans/art/units/modern-infantry",
@@ -4941,15 +4956,16 @@
     {
       "path": "plans/art/units/gunpowder-general",
       "section": "units",
-      "description": "Gunpowder general: Gunpowder mounted commander with a standard bearer (Modern: a command car); aura ring is drawn by code",
+      "description": "Gunpowder general (base unit), src/assets/units/gunpowder-general.glb (build_units_gunpowder.py)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/gunpowder-general",
       "phase": "R2",
-      "batch": "M11",
+      "batch": "W5",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "delivered": "wave5 checkpoint-26, 2026-10-08 (plans/art/downloads/wave5/checkpoint-26)"
     },
     {
       "path": "plans/art/units/modern-general",
@@ -7055,15 +7071,16 @@
     {
       "path": "plans/art/units/gunpowder-worker",
       "section": "units",
-      "description": "Gunpowder worker: Gunpowder: labourer with basket and tool; clips idle, walk, carry, chop, mine, harvest, build, repair, deposit, death",
+      "description": "Gunpowder worker (base unit), src/assets/units/gunpowder-worker.glb (build_units_gunpowder.py)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/gunpowder-worker",
       "phase": "R4",
-      "batch": "M20",
+      "batch": "W5",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "delivered": "wave5 checkpoint-26, 2026-10-08 (plans/art/downloads/wave5/checkpoint-26)"
     },
     {
       "path": "plans/art/rts/gunpowder/town-hall",

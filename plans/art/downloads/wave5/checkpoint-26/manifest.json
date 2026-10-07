@@ -1,0 +1,149 @@
+{
+  "checkpoint": "wave5-26",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 7,
+  "packed_bytes_added": 694616,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave5/checkpoint-26/contact.png",
+      "bytes": 269864,
+      "sha256": "cc20e3667fbfd62ab2a96b52d515a1a7b4285f76f4fb4385d1d16f29c17ec230"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 504199,
+      "sha256": "f408756ec09fbb703e54483ef4e8ef63c6c15901b7ca2f316072194f83c8fd56"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/lineup-report.json",
+      "bytes": 2308,
+      "sha256": "331c7ebcae913a05e8424d91a9d4f7037b419aacd513b536347b80e9a0a2ad92"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/lineup-standing.png",
+      "bytes": 48187,
+      "sha256": "dbf83eacf83e46f148a42b249a4e71d32d51c94cb21f9111a706fa5fbc174461"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/lineup-walking.png",
+      "bytes": 51644,
+      "sha256": "85bd22a176222af2fdd16a83d022debec72d67cfb5ee75d76be68893bf0322e6"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/sandbox-gunpowder-cavalry.png",
+      "bytes": 481339,
+      "sha256": "39b874256b1b38c01690ccf694461bf9539b507b855c71db605ba5e5a4f74bd1"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/sandbox-gunpowder-general.png",
+      "bytes": 499770,
+      "sha256": "ac06eab1badec970339d20a95b7769f65c9b3114d99dad1a4cc7109c381afcd2"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/sandbox-gunpowder-infantry.png",
+      "bytes": 485475,
+      "sha256": "a4a2e32b3edb0d637fa62327e7fd986355f852551195edeb660c12590ff2c4b9"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/sandbox-gunpowder-ranged.png",
+      "bytes": 499246,
+      "sha256": "86a932be716b647268e0164ec691a82c0074fd333f2763dfbc2e105d70a31b69"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/sandbox-gunpowder-siege.png",
+      "bytes": 497828,
+      "sha256": "93ca08f2d29fdcc0ea3cc3c440d496507cff3d00af94dac4d6d4c686e3294871"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/sandbox-gunpowder-support.png",
+      "bytes": 441863,
+      "sha256": "a394866897bf8ad80623558c401e10c396170c05db7882b24a01121b591b1a98"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/sandbox-gunpowder-wide.png",
+      "bytes": 302398,
+      "sha256": "86daf572b6fd904f916d7289959a189557fd830c6d82f05db30ea73a0ddc9fc2"
+    },
+    {
+      "file": "plans/art/shots/wave5/units-gunpowder/sandbox-report.json",
+      "bytes": 3485,
+      "sha256": "235420c6da04c00ed0f34d1e4346b8becf5d40d55285f1d68cfa92836b6ace9b"
+    },
+    {
+      "file": "scripts/blender/build_units_gunpowder.py",
+      "bytes": 21796,
+      "sha256": "6b56e556721bc1a3555c6c8102a498e0bb228124b9966df77737025508191809"
+    },
+    {
+      "file": "src/assets/units/gunpowder-cavalry.glb",
+      "bytes": 105340,
+      "sha256": "a11ceb57ec8480e81019b7c966d4e0fea75e58610d87a74063937b3b100c4156"
+    },
+    {
+      "file": "src/assets/units/gunpowder-cavalry.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/gunpowder-general.glb",
+      "bytes": 138440,
+      "sha256": "bb35594ed302f9512715e2ef3dbd973c91a0a56814d807dcc9d5a24073c2e0e9"
+    },
+    {
+      "file": "src/assets/units/gunpowder-general.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/gunpowder-infantry.glb",
+      "bytes": 78656,
+      "sha256": "2b81c82ca7421e1e013f3ff61581dec5e0938f08c608f0b515921c33077b74ce"
+    },
+    {
+      "file": "src/assets/units/gunpowder-infantry.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/gunpowder-ranged.glb",
+      "bytes": 76944,
+      "sha256": "efc764da39635060112d21961649ae9a136c5a875d52efaec36320de4d75ffa8"
+    },
+    {
+      "file": "src/assets/units/gunpowder-ranged.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/gunpowder-siege.glb",
+      "bytes": 141740,
+      "sha256": "dcb932dcaff1ea265f0cacf3c366985e5867f772eba1e27b2a2d23e52fd1b5ac"
+    },
+    {
+      "file": "src/assets/units/gunpowder-siege.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/gunpowder-support.glb",
+      "bytes": 77956,
+      "sha256": "82e2f33c5ffafa279d693e23ed8ed6e53470e32cbab21f740129f17e4ed49a49"
+    },
+    {
+      "file": "src/assets/units/gunpowder-support.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/gunpowder-worker.glb",
+      "bytes": 75540,
+      "sha256": "c06f052a9ad78a80d5b4c63d1301c5adf354e8145d5834c124c55a4a2e564526"
+    },
+    {
+      "file": "src/assets/units/gunpowder-worker.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    }
+  ]
+}

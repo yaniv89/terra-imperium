@@ -36,6 +36,13 @@ flag; model imports still require a visual and licensing review.
 | `classical-mercenary.glb` | Mercenary: crested helmet with cheek pieces, mail shirt with shoulder capes, Team tunic, a neutral sash with a coin pouch, greaves, an oval Emblem shield with spine and boss, a curved single-edged sword | 1,392 | `build_units_classical_irregular.py` (Claude) |
 | `kingdoms-raider.glb` | Raider: a light horseman on a sheepskin, loot sacks on both flanks, a rolled bundle, a looted iron pot and a church candlestick on the croup; padded Team jack, hood, a raised torch, a short spear slung on the back | 1,968 | `build_units_kingdoms_irregular.py` (Claude) |
 | `kingdoms-mercenary.glb` | Mercenary: pointed bascinet with a mail aventail, riveted brigandine over Team sleeves and skirt, greaves, a striped sash with a coin pouch, a round Emblem buckler, a falchion | 1,408 | `build_units_kingdoms_irregular.py` (Claude) |
+| `gunpowder-infantry.glb` | Line infantry: long Team coat with turnbacks, white cross belts, tricorne, gaiters, musket with a fixed bayonet | 1,388 | `build_units_gunpowder.py` (Claude) |
+| `gunpowder-ranged.glb` | Riflemen: short Team jacket, round hat with a turned-up brim, rifle at the ready, powder horn, pouch | 1,396 | `build_units_gunpowder.py` (Claude) |
+| `gunpowder-cavalry.glb` | Dragoons: brass helmet with a horsehair crest, Team coat, high boots, sabre drawn, carbine slung, horse with a Team saddle cloth and holsters | 1,796 | `build_units_gunpowder.py` (Claude) |
+| `gunpowder-siege.glb` | Field cannon: bronze gun on a two-wheeled carriage with a trail (its own Hull and wheel rig), rammer, ball pile, three crew | 2,385 | `build_units_gunpowder.py` (Claude) |
+| `gunpowder-support.glb` | Sappers: wicker gabion on the back, shovel, fuse coil, leather apron, cap | 1,446 | `build_units_gunpowder.py` (Claude) |
+| `gunpowder-worker.glb` | Laborer: shirt and Team waistcoat, broad hat, shovel, wheelbarrow | 1,390 | `build_units_gunpowder.py` (Claude) |
+| `gunpowder-general.glb` | General: plumed bicorne, Team coat with epaulettes and sash, Team cloak, sabre; a colour bearer with the Emblem colour | 2,297 | `build_units_gunpowder.py` (Claude) |
 
 Built by `scripts/blender/build_units_classical.py` (Claude) on the same rig, body and part library
 (`build_units_bronze_signature.py`); rest pose only. Culture-neutral.

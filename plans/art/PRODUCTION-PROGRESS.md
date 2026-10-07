@@ -81,3 +81,5 @@ Wave 4 [checkpoint 23](downloads/wave4/checkpoint-23/README.md), 2026-10-08 (Cla
 Wave 4 [checkpoint 24](downloads/wave4/checkpoint-24/README.md), 2026-10-08 (Claude): the Kingdoms remainder: the 13 damaged-and-ruined house files, the palace damage set, the raider and mercenary, the projectiles, the twelve props, the 12 culture skins of the battle buildings and the map's Kingdoms fort, 31 queue items `in_game_awaiting_review`. 17.96 MB added. The Kingdoms age is done.
 
 Wave 4 [checkpoint 25](downloads/wave4/checkpoint-25/README.md), 2026-10-08 (Claude): `scripts/art/improvement-shots.mjs` works with the peoples start screen again (four steps, Begin on Ready), and the close-view shots of the map's Classical and Kingdoms forts at 844x390. 0 MB.
+
+Wave 5 [checkpoint 26](downloads/wave5/checkpoint-26/README.md), 2026-10-08 (Claude): the Gunpowder base units and general (line infantry, riflemen, dragoons, a field cannon on its own carriage rig, sappers, laborer, general; `build_units_gunpowder.py`), 7 queue items `in_game_awaiting_review`; every Gunpowder side now fields GLB units. 0.69 MB added.
