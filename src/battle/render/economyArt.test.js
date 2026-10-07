@@ -3,7 +3,7 @@
 // and construction objects, the node states by what is left; no file keeps the greyboxes.
 import { describe, it, expect } from 'vitest';
 import { Group } from 'three';
-import { EconomyLayer, nodeStateNames, groveNames, constructionStage, kitLodForZoom } from './economyLayer';
+import { EconomyLayer, nodeStateNames, groveNames, constructionStage, kitLodForZoom, sideTheme, SKIN_ROLES } from './economyLayer';
 import { createArtIndex } from '../art/artIndex';
 import { parseKit } from '../art/kitLoader';
 import { kitGlb, parseGlbBytes } from '../../components/map/closeView/glbFixture';
@@ -12,7 +12,9 @@ import { Q } from '../sim/constants';
 const FILES = {
   'battle/rts/rts-bronze.glb': [{ name: 'barracks', size: 1.2 }, { name: 'barracks-damaged', size: 1.2 }, { name: 'construction-stage-1', size: 1.2 }, { name: 'tower', size: 0.8 }],
   'battle/nature/stone-outcrop.glb': [{ name: 'full', size: 0.6 }, { name: 'half', size: 0.5 }, { name: 'depleted', size: 0.4 }],
-  'battle/nature/herd-cattle.glb': [{ name: 'animal', size: 0.25 }]
+  'battle/nature/herd-cattle.glb': [{ name: 'animal', size: 0.25 }],
+  // a culture skin: the Shang (sinic) barracks, larger so its geometry is told apart
+  'battle/rts/rts-bronze-sinic.glb': [{ name: 'barracks', size: 1.5 }, { name: 'barracks-damaged', size: 1.5 }]
 };
 const loader = async (url) => parseKit((await parseGlbBytes(kitGlb(FILES[url.replace('test://', '')]))).scene);
 const fakeRenderer = () => ({
@@ -55,6 +57,32 @@ describe('battle economy art', () => {
     expect(new Set(objs).size).toBe(4);
     // the stable has no object in the file and gold no file: both stay greyboxes
     expect(greyboxes(layer)).toBeGreaterThan(0);
+    layer.dispose();
+  });
+
+  it('a side builds the culture skin of its people where one exists, the shared building elsewhere', async () => {
+    expect(sideTheme({ nationId: 'shang', ageId: 'bronze' })).toBe('sinic');
+    expect([...SKIN_ROLES].sort()).toEqual(['barracks', 'tower', 'trade-post']);
+    const art = createArtIndex(Object.fromEntries(Object.keys(FILES).map((k) => [`assets/${k}`, `test://${k}`])));
+    expect(art.rtsSkin('bronze', 'korea').style).toBe('sinic'); // the style chain
+    expect(art.rtsSkin('bronze', 'nile')).toBeNull();
+    const r = fakeRenderer();
+    const sides = [{ ageId: 'bronze', nationId: 'shang', color: '#dc2626' }, { ageId: 'bronze', nationId: 'kemet', color: '#2563eb' }];
+    const layer = new EconomyLayer({ ...r, setup: { ...r.setup, sides, economy: {} } }, { art, load: loader });
+    layer.build();
+    await Promise.all(layer.ready);
+    const skin = layer.kit(layer.skinRef[0]);
+    expect(skin).toBeTruthy();
+    expect(layer.skinRef[1]).toBeNull();
+    const v = view();
+    v.eco.buildings.push({ idx: 3, alive: true, side: 1, type: 'barracks', size: 3, x: 25 * Q, y: 5 * Q, built: true, hp: 1200, maxHp: 1200, progress: 100 });
+    layer.update(v, () => true);
+    const drawn = new Set([...layer.kits.meshes.keys()].map((b) => b.geometry.uuid));
+    // side 0's damaged barracks from the skin, side 1's barracks from the shared file
+    expect(drawn.has(skin.objects['barracks-damaged'].lods[0].geometry.uuid)).toBe(true);
+    const shared = layer.kit({ url: 'test://battle/rts/rts-bronze.glb' });
+    expect(drawn.has(shared.objects.barracks.lods[0].geometry.uuid)).toBe(true);
+    expect(drawn.has(shared.objects['barracks-damaged'].lods[0].geometry.uuid)).toBe(false);
     layer.dispose();
   });
 

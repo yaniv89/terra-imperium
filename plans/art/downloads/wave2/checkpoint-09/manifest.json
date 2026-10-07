@@ -1,0 +1,454 @@
+{
+  "checkpoint": "wave2-09",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 38,
+  "packed_bytes_added": 2926512,
+  "files": [
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 420210,
+      "sha256": "edf88495599db922d4f0bbd048fee6f3a19f855fe2ce570d041fbd1854c59a60"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-keftiu-kemet/sandbox-bronze-cavalry.png",
+      "bytes": 481581,
+      "sha256": "981bc5d443aff17d3fcd91eeceef15cf238ef3c5e828ccaa451cb2a3ba9b5c84"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-keftiu-kemet/sandbox-bronze-general.png",
+      "bytes": 481720,
+      "sha256": "7d2d5e459c5edf9873a750c55e14c251cecd9ede534c7d6b5897503c3931160b"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-keftiu-kemet/sandbox-bronze-infantry-keftiu.png",
+      "bytes": 470914,
+      "sha256": "1fc0f605515aeaaa208893d77e2af4970507d0e3777b0e59808bc59bb37f750e"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-keftiu-kemet/sandbox-bronze-ranged.png",
+      "bytes": 496419,
+      "sha256": "9da219971ea57fb261b45f69771cb1c5cd27d2b80fb6f369419791f4ee7d7e34"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-keftiu-kemet/sandbox-bronze-side1.png",
+      "bytes": 488732,
+      "sha256": "290b9f9067e36c9886926dd65b3359d95f2e97cf4ae6e113e2aa525a44783313"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-keftiu-kemet/sandbox-bronze-wide.png",
+      "bytes": 392444,
+      "sha256": "6f3592e028ea593c0d28c455c93f8d4d5dfdb4953c5ec6632f851ef43110bb3f"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-keftiu-kemet/sandbox-bronze-worker.png",
+      "bytes": 455718,
+      "sha256": "36cb782e6aa73cbb88a87e58f51eb23f9abd38041aea0f1813968283835dc093"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-keftiu-kemet/sandbox-report.json",
+      "bytes": 3294,
+      "sha256": "8548e6daa28b391976761916f9d4c8f635ceb9464d031dd0a98333b16da2a44d"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-zhou-elam/sandbox-bronze-cavalry-zhou.png",
+      "bytes": 478828,
+      "sha256": "145de7762b9f504a45d5d57bb4db70dd983cbd2a880ee1cc7ff08607958751a5"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-zhou-elam/sandbox-bronze-general.png",
+      "bytes": 480008,
+      "sha256": "734ee2ec81a252aba461acdf8acfc5ef57cd223dc10932f6beb1115bdd632186"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-zhou-elam/sandbox-bronze-infantry.png",
+      "bytes": 471061,
+      "sha256": "9c674d3e0ca25bf143aa07b851462527407ef952c173e8b0ea69fa75af3d2c19"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-zhou-elam/sandbox-bronze-ranged.png",
+      "bytes": 489770,
+      "sha256": "4228588bbfbbd7c4a79d3c7a836d41f8a3ce65e5607b5afef855c9b4b792c57b"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-zhou-elam/sandbox-bronze-side0.png",
+      "bytes": 510089,
+      "sha256": "fd35efef903a507d9099ebed7dcde78b775cdb0baab3af954525e046dc805c85"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-zhou-elam/sandbox-bronze-wide.png",
+      "bytes": 392581,
+      "sha256": "f7dbcc29d125640c8e0737d23e99f5cc15f11bd6bec5cda55c88d8c038f0c4f0"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-zhou-elam/sandbox-bronze-worker.png",
+      "bytes": 456914,
+      "sha256": "e8d04a8668fabe0990b24965c59174d1d53c6e652512ac8434820beccabaf09a"
+    },
+    {
+      "file": "plans/art/shots/wave2/sandbox-zhou-elam/sandbox-report.json",
+      "bytes": 3151,
+      "sha256": "834122450f8b2e18fdec37b576b8a209549ef4efe3a09e7ce62b822f19220740"
+    },
+    {
+      "file": "plans/art/shots/wave2/signature-bronze-proofs.png",
+      "bytes": 106123,
+      "sha256": "2df294066f347e6c27361a39827d9f1d9c42075cb649b2af1f9e6799bfafdcb6"
+    },
+    {
+      "file": "scripts/blender/build_units_bronze_signature.py",
+      "bytes": 40509,
+      "sha256": "63e80c0ed0a24131c21508e6551c9e20995ae95ad8395641e786567336fde3ef"
+    },
+    {
+      "file": "scripts/blender/ti_mounts.py",
+      "bytes": 7911,
+      "sha256": "be4dc543dfc7e91c919f21eed3887d8971ea22b7ff8bef6c9b1fdf4959657d12"
+    },
+    {
+      "file": "src/assets/units/signature/README.md",
+      "bytes": 2405,
+      "sha256": "bf23a496dc195e9be2370ee07ca653351376d6a18420bbf52fcb084abf18d87d"
+    },
+    {
+      "file": "src/assets/units/signature/ahhiyawa.glb",
+      "bytes": 68100,
+      "sha256": "44230ac3b6a0ac1441e61cf18ee431ebdf19ceba3242f0a4fd7564489ab7c4a0"
+    },
+    {
+      "file": "src/assets/units/signature/ahhiyawa.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/akkad.glb",
+      "bytes": 73116,
+      "sha256": "0e2b192bda83c53c57b38099d42c5f2b92437aede62f457e2e84566055ceef59"
+    },
+    {
+      "file": "src/assets/units/signature/akkad.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/andronovo.glb",
+      "bytes": 153784,
+      "sha256": "a49a915be073188a1364ceb45d6818974a3df316bfb9e0187ee2a04957e6fc3e"
+    },
+    {
+      "file": "src/assets/units/signature/andronovo.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/botai.glb",
+      "bytes": 62572,
+      "sha256": "06f1a9061d772fe7261734e342f18ae544cd31f383bc0b648d887f91f51bb861"
+    },
+    {
+      "file": "src/assets/units/signature/botai.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/caral.glb",
+      "bytes": 55220,
+      "sha256": "7562fbbfb479607f5bbd7e5cd4df031ab4990d3b2d2aaeae043e923d0564dc21"
+    },
+    {
+      "file": "src/assets/units/signature/caral.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/colchis.glb",
+      "bytes": 58116,
+      "sha256": "c687d2019bfa18091a50c1b5d22eaf9eb3987c897c06c0eb8c018b74f149de6b"
+    },
+    {
+      "file": "src/assets/units/signature/colchis.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/cucuteni.glb",
+      "bytes": 55272,
+      "sha256": "e4b7fb59a1ae850d4593f8381d8924ef462a35d1504e8e44b3c3fd0f344ab937"
+    },
+    {
+      "file": "src/assets/units/signature/cucuteni.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/dilmun.glb",
+      "bytes": 59392,
+      "sha256": "46d190da137f6c004fffcb00317b6e011d6dbd4433f15eeb942d5437c75c5707"
+    },
+    {
+      "file": "src/assets/units/signature/dilmun.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/elam.glb",
+      "bytes": 63076,
+      "sha256": "2c30223490a56678105491688c54bc61f22f885ea661c8f071a0ee549a470295"
+    },
+    {
+      "file": "src/assets/units/signature/elam.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/garamantes.glb",
+      "bytes": 215500,
+      "sha256": "a5a318093a4ea5892fe763a7f30d051f693ab7bf2207cb5c92898426bc9be723"
+    },
+    {
+      "file": "src/assets/units/signature/garamantes.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/gojoseon.glb",
+      "bytes": 57920,
+      "sha256": "97222dbbfb180594205b9fab792b2ea07e971fe8620900593871436716b9d552"
+    },
+    {
+      "file": "src/assets/units/signature/gojoseon.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/kanesh.glb",
+      "bytes": 60572,
+      "sha256": "69825bc83f1d8f6d21379b541a647730c496318e2525abb8ce2cfb5da650958d"
+    },
+    {
+      "file": "src/assets/units/signature/kanesh.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/keftiu.glb",
+      "bytes": 69104,
+      "sha256": "7d850420815f8d871fb86a6a8ea0fb52d741c1312668f76d8db3557d4c045386"
+    },
+    {
+      "file": "src/assets/units/signature/keftiu.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/kemet.glb",
+      "bytes": 153704,
+      "sha256": "11a30d17df7c1f21e23817f3a5203d57e862800bf0297de07f17ea38fb48ad3f"
+    },
+    {
+      "file": "src/assets/units/signature/kemet.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/kerma.glb",
+      "bytes": 61292,
+      "sha256": "a716b6e9a64bc20fa3084c20a1ce2327a99679c1cf01c783a7355cf464a29063"
+    },
+    {
+      "file": "src/assets/units/signature/kerma.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/kuru.glb",
+      "bytes": 154140,
+      "sha256": "eb582c80d0d7c3495375ae9f9b2a85c83795b3c308b000b151bbf1814413a854"
+    },
+    {
+      "file": "src/assets/units/signature/kuru.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/lapita.glb",
+      "bytes": 57504,
+      "sha256": "1c4f79db2b794e07cf62a92789c7a11da093b558e08783b60d33f34ba4cb5747"
+    },
+    {
+      "file": "src/assets/units/signature/lapita.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/libu.glb",
+      "bytes": 56044,
+      "sha256": "c3dc8e4010cbda788a22334693527ae670116e428634e75125635dceb8fedb36"
+    },
+    {
+      "file": "src/assets/units/signature/libu.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/magan.glb",
+      "bytes": 57732,
+      "sha256": "bc2f3ab77eafccd74bd4a3a65ce482ba741e221fe8f9c1b7b654c97c64acafbd"
+    },
+    {
+      "file": "src/assets/units/signature/magan.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/mari.glb",
+      "bytes": 65952,
+      "sha256": "b995200951b6ee6b830137bf0e89e7da797a48583a265260d467e2ab98020ca2"
+    },
+    {
+      "file": "src/assets/units/signature/mari.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/meluhha.glb",
+      "bytes": 63864,
+      "sha256": "844996f6100902c9ac1bc290b74c89fe1c1635b183080374c834930dfe51e070"
+    },
+    {
+      "file": "src/assets/units/signature/meluhha.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/oxus.glb",
+      "bytes": 147528,
+      "sha256": "4da967b4f02720431ab2cc7a61d993e3a613600ce13ddcc0489759e0123aef12"
+    },
+    {
+      "file": "src/assets/units/signature/oxus.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/phrygia.glb",
+      "bytes": 66336,
+      "sha256": "d100fc3d01ff8175140608a041564e5391cd2b273d4f77c779de5631876b8d93"
+    },
+    {
+      "file": "src/assets/units/signature/phrygia.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/punt.glb",
+      "bytes": 60376,
+      "sha256": "365c181757301edc74a9b2d472a08d0e3fe4d1ae33bac5aea4388565b75515a8"
+    },
+    {
+      "file": "src/assets/units/signature/punt.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/saurashtra.glb",
+      "bytes": 62784,
+      "sha256": "dec00a5d6938d6e78c30ea7ba406a1cf8a746e3dffc21dd40c96faeb24a4b3f6"
+    },
+    {
+      "file": "src/assets/units/signature/saurashtra.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/shang.glb",
+      "bytes": 55784,
+      "sha256": "5bf28998493c4d22efd5202e76d77e91197d7bb2d5cd36c5f342805c141e5de0"
+    },
+    {
+      "file": "src/assets/units/signature/shang.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/shu.glb",
+      "bytes": 57732,
+      "sha256": "b820966aacb73a4976db0397e5a42e7cb7db8ab2574934a4bf8dbaabb9cc3fef"
+    },
+    {
+      "file": "src/assets/units/signature/shu.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/tartessos.glb",
+      "bytes": 63396,
+      "sha256": "8ba3d277ee5f80d93201f815103cd1597059af68d96f5b0a559d6f9aba1c2250"
+    },
+    {
+      "file": "src/assets/units/signature/tartessos.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/tichitt.glb",
+      "bytes": 54952,
+      "sha256": "70940fc6585a105464aa1a6f95e2a6b212e63872a4550fe52b4610fef74aa97b"
+    },
+    {
+      "file": "src/assets/units/signature/tichitt.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/ugarit.glb",
+      "bytes": 196376,
+      "sha256": "8cc1d02bdb8d555b319600ca34144a94df25af67fefbb053d55fa37046b771e0"
+    },
+    {
+      "file": "src/assets/units/signature/ugarit.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/urartu.glb",
+      "bytes": 63660,
+      "sha256": "ec07c9711c77bb924f8c16926495993e887f6b0b2ffb0a3b58b13b3576201c36"
+    },
+    {
+      "file": "src/assets/units/signature/urartu.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/van-lang.glb",
+      "bytes": 65676,
+      "sha256": "13a594f0872389fa4022ddf51fa37fc9f0ba1c2a6a2ab2fcce786df7d6be16dd"
+    },
+    {
+      "file": "src/assets/units/signature/van-lang.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/wahgi.glb",
+      "bytes": 62164,
+      "sha256": "6bcba889b0ff49627593636195bb5fc2035ad2f61772f560b51efce96414d586"
+    },
+    {
+      "file": "src/assets/units/signature/wahgi.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/zhou.glb",
+      "bytes": 247772,
+      "sha256": "8ffc2e34a01b7af5f6813b4d920bbff1db281e7bd53be4b7dba1bee7f2ad8547"
+    },
+    {
+      "file": "src/assets/units/signature/zhou.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    }
+  ]
+}

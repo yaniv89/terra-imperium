@@ -24,3 +24,11 @@ options (`rotateY`, `restClip`, `tags`, `quadruped`, `"enabled": false` to switc
 - Check: `python3 scripts/blender/validate_model.py <file> <out> unit` (or `unit-mounted`,
   `unit-machine`), `npm run pack:models` (packed without quantization), `/?battleSandbox` with
   that people in that age.
+
+## Delivered
+The 34 Bronze signature units (2026-10-07, wave2 checkpoint 09,
+`scripts/blender/build_units_bronze_signature.py`): 27 on foot (person rig, 1,026 to 1,318
+triangles) and 7 chariots (Ugarit, Kemet, Garamantes, Oxus, Andronovo, Kuru on the light chariot,
+Zhou on the heavy chariot; 2,266 to 3,765 triangles), each with its `<model>.json`. Rigs:
+`scripts/blender/ti_mounts.py` (horse, ox, light and heavy chariot). Check in battle:
+`?battleSandbox&age=bronze&people=keftiu&enemy=kemet`.

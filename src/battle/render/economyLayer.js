@@ -16,6 +16,10 @@
 //     stable, siege-workshop, aid-post, tower), fitted to the footprint; `<role>-damaged` under 70%
 //     HP; while building, `construction-stage-0` (foundation) to `-3` by progress, else the role
 //     rising out of the ground. Team parts take the side's colour.
+//   culture skins -> src/assets/battle/rts/rts-<age>-<theme>.glb (SKIN_ROLES: barracks, tower,
+//     trade-post and their -damaged): a side's buildings in its people's theme (themeOfNation,
+//     else the land's style), the same age as the shared file it would use; any role or theme
+//     without a skin keeps the shared building. (The town hall's skin is the civic hall the keep draws.)
 //   nodes -> src/assets/battle/nature/<id>.glb (stone-outcrop, ore-outcrop, gold-vein, fish-shoal:
 //     objects full, half, depleted; herd-sheep-goat, herd-cattle: an `animal` object placed a few
 //     times), groves -> the battle's vegetation kit (tree-l, tree-m, felled, stump by what is
@@ -30,6 +34,12 @@ import { KitInstances, kitLodForZoom } from '../art/kitInstances';
 
 export { kitLodForZoom };
 import { vegetationKitFor } from '../art/vegetation';
+import { themeOfNation, styleOfLand } from '../../data/architecture';
+
+/** The roles that take a culture skin (plans/ART-MODELS-PLAN.md 5). */
+export const SKIN_ROLES = new Set(['barracks', 'tower', 'trade-post']);
+/** A battle side's building theme: its people's, else its land's. */
+export const sideTheme = (sd) => (sd ? themeOfNation(sd.nationId) || styleOfLand(sd.nationId, sd.ageId) : null);
 
 const PRIMS = ['box', 'roof', 'cyl', 'cone', 'rock', 'flat'];
 const CAPACITY = 3072;
@@ -126,7 +136,9 @@ export class EconomyLayer {
       const b = buildingArt(type, ageId, (a) => art.rts(a)?.ageId === a);
       return b ? art.rts(b.ageId).url : null;
     };
-    r.setup.sides.forEach((sd) => want(art.rts(sd.ageId)));
+    // each side's culture skin, for the age of the shared file it uses
+    this.skinRef = r.setup.sides.map((sd) => { const base = art.rts(sd.ageId); return base && art.rtsSkin ? art.rtsSkin(base.ageId, sideTheme(sd)) : null; });
+    r.setup.sides.forEach((sd, i) => { want(art.rts(sd.ageId)); want(this.skinRef[i]); });
     this.nodeRef = {};
     Object.entries(NODE_KINDS).forEach(([kind, k]) => { this.nodeRef[kind] = k.art === 'vegetation' ? art.vegetation(vegetationKitFor(r.setup)) : art.nature(k.art); });
     const kinds = new Set((r.setup.economy?.nodes || []).map((n) => n.kind));
@@ -165,7 +177,9 @@ export class EconomyLayer {
     const kit = url ? this.loaded.get(url) : null;
     if (!kit) return false;
     const role = BUILDINGS[b.type]?.art;
-    const whole = kitObject(kit, role);
+    const skin = SKIN_ROLES.has(role) ? this.kit(this.skinRef?.[b.side]) : null;
+    const own = skin && kitObject(skin, role) ? skin : kit; // the side's theme, else the shared file
+    const whole = kitObject(own, role);
     if (!whole) return false;
     const fit = (obj) => (b.size * 0.95) / Math.max(0.05, objectSize(obj).footprint);
     const y = this.r.heightAt(x, z);
@@ -177,7 +191,7 @@ export class EconomyLayer {
       this.kits.add(whole, lod, M.makeScale(s, s * grow, s).setPosition(x, y, z), tmpColor);
       return true;
     }
-    const obj = (b.hp < b.maxHp * 0.7 && kitObject(kit, `${role}-damaged`)) || whole;
+    const obj = (b.hp < b.maxHp * 0.7 && kitObject(own, `${role}-damaged`)) || whole;
     const s = fit(whole);
     this.kits.add(obj, lod, M.makeScale(s, s, s).setPosition(x, y, z), tmpColor);
     return true;

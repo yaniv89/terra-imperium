@@ -969,7 +969,7 @@ export class BattleRenderer {
     const eco = this.ecoLayer.pick(g, view, Math.max(0.5, 16 * this.worldPerPixel()));
     if (eco) return { ...eco, ground: g };
     (view?.structures || []).forEach((s, index) => {
-      if (!s.alive) return;
+      if (!s.alive || this.setup.structures[index]?.underHall) return; // a house under the town hall is the hall's
       const r = s.radius / Q + 0.6;
       if ((s.x / Q - g.x) ** 2 + (s.y / Q - g.z) ** 2 <= r * r) best = { kind: 'structure', index };
     });

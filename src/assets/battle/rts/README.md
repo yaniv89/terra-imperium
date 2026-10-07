@@ -41,6 +41,16 @@ building rising out of the ground.
 day (wave1 checkpoint-02). No `house` or farm growth stages yet. Until later ages have files, their
 battles fall back to it.
 
+## Culture skins: `rts-<age>-<theme>.glb`
+Per-theme `barracks`, `tower`, `trade-post` (and their `-damaged`, same sockets) for the 12
+Bronze themes (`rts-bronze-<theme>.glb`, 2026-10-07, wave1 checkpoint 08,
+`scripts/blender/build_rts_skins_bronze.py`: the theme's own house kit fitted into each role, a tower
+body of the theme's building stuff, the role props of the shared file; 1024 atlas). economyLayer.js
+draws a side's buildings in its people's theme (`themeOfNation`, else the land's style, along the
+style chain) for the same age as the shared file it uses; any other role, theme or age keeps the
+shared building. The town hall's skin is the theme's civic hall (`battle/city/civic-<age>-<theme>.glb`),
+which the keep draws. Proofs: `node scripts/art/building-shots.mjs <outDir> <themes>`.
+
 ## Check
 `python3 scripts/blender/validate_model.py <file> <out> auto` (kind `prefab`), then
 `npm run pack:models`, then `/?battleSandbox` with an economy battle.

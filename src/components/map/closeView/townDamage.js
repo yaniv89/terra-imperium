@@ -11,7 +11,7 @@
 // `<house>-ruined` piece stands in its place; other ruins take the age's ruin library
 // (src/assets/battle/city/ruins-<age>.glb: rubble-s, -m, -l by size). Without the files the
 // darkened house and the grey mound stay (the placeholders).
-import { Matrix4, Vector4, Mesh, MeshLambertMaterial, BoxGeometry, DodecahedronGeometry, Group } from 'three';
+import { Matrix4, Vector4, Mesh, MeshLambertMaterial, MeshDepthMaterial, RGBADepthPacking, BoxGeometry, DodecahedronGeometry, Group } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ART } from '../../../battle/art/artFiles';
 import { loadKit, kitObject } from '../../../battle/art/kitLoader';
@@ -53,11 +53,13 @@ for (int i = 0; i < ${MAX_RECTS}; i++) { if (i >= uDmgN) break; vec4 r = uDmg[i]
 
 /**
  * Give a town instance (instanceTownAsset) its own damage-aware building materials, once. Returns
- * the materials made (for the caller to dispose).
+ * the materials made (for the caller to dispose). The meshes also get a shadow depth material with
+ * the same cut-outs, so a ruined (or hidden) house casts no shadow either.
  */
 export const enableTownDamage = (root) => {
   if (root.userData.townDamage) return [];
   const made = new Map();
+  let depth = null;
   root.traverse((o) => {
     if (!o.isMesh) return;
     const swap = (m) => {
@@ -66,9 +68,96 @@ export const enableTownDamage = (root) => {
       return made.get(m);
     };
     o.material = Array.isArray(o.material) ? o.material.map(swap) : swap(o.material);
+    if (!depth) depth = patch(new MeshDepthMaterial({ depthPacking: RGBADepthPacking }));
+    o.customDepthMaterial = depth;
   });
-  root.userData.townDamage = [...made.values()];
+  root.userData.townDamage = [...made.values(), ...(depth ? [depth] : [])];
   return root.userData.townDamage;
+};
+
+// The ground under houses that are cut out for good (the battle's town hall stands over them,
+// src/battle/setup/cityBattle.js underHall): the town file's Ground carries their baked occlusion
+// (a dark footprint), so inside these rectangles its occlusion is dropped and its colour lifted to
+// the ground's own brightness (uClearLuma, measured from the ground's texels, enableGroundClear).
+const CLEAR_PAD = 0.12;
+const patchGround = (mat, luma) => {
+  const u = { uTownInv: { value: new Matrix4() }, uClear: { value: Array.from({ length: MAX_RECTS }, () => new Vector4()) }, uClearN: { value: 0 }, uClearLuma: { value: luma } };
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, u);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform mat4 uTownInv;\nvarying vec3 vTownPos;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvTownPos = (uTownInv * modelMatrix * vec4(transformed, 1.0)).xyz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vTownPos;
+uniform vec4 uClear[${MAX_RECTS}];
+uniform int uClearN;
+uniform float uClearLuma;`)
+      .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+bool inClear = false;
+for (int i = 0; i < ${MAX_RECTS}; i++) { if (i >= uClearN) break; vec4 r = uClear[i];
+  if (vTownPos.x > r.x && vTownPos.x < r.z && vTownPos.z > r.y && vTownPos.z < r.w) { inClear = true; break; } }`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+if (inClear && uClearLuma > 0.0) { float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)); if (l < uClearLuma) diffuseColor.rgb *= min(4.0, uClearLuma / max(l, 0.004)); }`)
+      .replace('#include <aomap_fragment>', 'if (!inClear) {\n#include <aomap_fragment>\n}');
+  };
+  mat.customProgramCacheKey = () => 'townGroundClear';
+  mat.userData.groundClear = u;
+  return mat;
+};
+
+/** The ground's typical brightness (linear luma, the 60th percentile of the texels at its
+ * triangles' centres; the atlas padding's black left out), or 0. */
+export const groundLuma = (mesh, mat) => {
+  try {
+    const img = mat.map?.image; const uv = mesh.geometry?.attributes?.uv;
+    if (!img || !uv || typeof document === 'undefined') return 0;
+    const N = 256; const c = document.createElement('canvas'); c.width = N; c.height = N;
+    const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, N, N);
+    const px = g.getImageData(0, 0, N, N).data;
+    mat.map.updateMatrix(); const e = mat.map.matrix.elements;
+    const lin = (v) => { const s = v / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+    const index = mesh.geometry.index; const tris = index ? index.count / 3 : uv.count / 3;
+    const corner = (t, c) => (index ? index.getX(t * 3 + c) : t * 3 + c);
+    const step = Math.max(1, Math.floor(tris / 800)); const ls = [];
+    for (let t = 0; t < tris; t += step) {
+      const a = corner(t, 0); const b = corner(t, 1); const d = corner(t, 2);
+      const u0 = (uv.getX(a) + uv.getX(b) + uv.getX(d)) / 3; const v0 = (uv.getY(a) + uv.getY(b) + uv.getY(d)) / 3;
+      const x = Math.min(N - 1, Math.max(0, Math.floor((e[0] * u0 + e[3] * v0 + e[6]) * N)));
+      const y = Math.min(N - 1, Math.max(0, Math.floor((e[1] * u0 + e[4] * v0 + e[7]) * N)));
+      const k = (y * N + x) * 4;
+      const l = 0.2126 * lin(px[k]) + 0.7152 * lin(px[k + 1]) + 0.0722 * lin(px[k + 2]);
+      if (l > 0.01) ls.push(l);
+    }
+    ls.sort((a, b) => a - b);
+    return ls.length ? ls[Math.floor(ls.length * 0.6)] * (mat.color ? 0.2126 * mat.color.r + 0.7152 * mat.color.g + 0.0722 * mat.color.b : 1) : 0;
+  } catch (e) { return 0; }
+};
+
+/**
+ * Let a town instance clear the ground under houses cut out for good (setGroundClear), once.
+ * Returns the materials made (for the caller to dispose).
+ */
+export const enableGroundClear = (root) => {
+  if (root.userData.groundClear) return [];
+  const made = new Map();
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const swap = (m) => {
+      if (!m || m.name !== 'Ground') return m;
+      if (!made.has(m)) made.set(m, patchGround(m.clone(), groundLuma(o, m)));
+      return made.get(m);
+    };
+    o.material = Array.isArray(o.material) ? o.material.map(swap) : swap(o.material);
+  });
+  root.userData.groundClear = [...made.values()];
+  return root.userData.groundClear;
+};
+
+/** The ground rectangles to clear (manifest-space { x, z, w, d }); call syncTownDamage after a move. */
+export const setGroundClear = (root, rects = []) => {
+  const r = rects.slice(0, MAX_RECTS).map((s) => new Vector4(s.x - s.w / 2 - CLEAR_PAD, s.z - s.d / 2 - CLEAR_PAD, s.x + s.w / 2 + CLEAR_PAD, s.z + s.d / 2 + CLEAR_PAD));
+  (root.userData.groundClear || []).forEach((m) => { const u = m.userData.groundClear; fill(u.uClear.value, r); u.uClearN.value = r.length; });
 };
 
 /** Set which structures are ruined and damaged: lists of manifest-space { x, z, w, d }. */
@@ -83,11 +172,12 @@ export const setTownDamage = (root, ruined = [], damaged = []) => {
 
 /** Keep the shader's town space in step with the instance (call after it moves). */
 export const syncTownDamage = (root) => {
-  const mats = root.userData.townDamage;
-  if (!mats?.length) return;
+  const mats = root.userData.townDamage || []; const ground = root.userData.groundClear || [];
+  if (!mats.length && !ground.length) return;
   root.updateMatrixWorld();
-  const inv = mats[0].userData.townDamage.uTownInv.value.copy(root.matrixWorld).invert();
+  const inv = new Matrix4().copy(root.matrixWorld).invert();
   mats.forEach((m) => m.userData.townDamage.uTownInv.value.copy(inv));
+  ground.forEach((m) => m.userData.groundClear.uTownInv.value.copy(inv));
 };
 
 let mound = null;

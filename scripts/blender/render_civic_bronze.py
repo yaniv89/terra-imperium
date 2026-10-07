@@ -25,8 +25,14 @@ for theme in [] if contacts_only else themes:
  for r in roots:r.location=(0,0,0)
  bpy.context.view_layer.update()
  geometry=[c for r in roots for c in r.children if c.type=='MESH']
- points=[c.matrix_world@v.co for c in geometry if c.name.split('.')[0]=='LOD0' for v in c.data.vertices]
- low=Vector(tuple(min(v[k] for v in points) for k in range(3)));high=Vector(tuple(max(v[k] for v in points) for k in range(3)));target=(low+high)/2
+ # Framing (2026-10-07 fix): the sinic, eastafrica and israelite sources keep loose geometry about
+ # 24 units out along +X inside the intact keep's LOD0 (not exported: the shipped GLBs measure
+ # 1.9 x 1.7 units), which stretched the box and left the hall tiny in a corner. Each state is now
+ # framed on its own LOD0 vertices within 3 units (30 m) of its root, re-centred before its renders.
+ def lod0_points(r):
+  o=r.matrix_world.translation;pts=[c.matrix_world@v.co for c in r.children if c.type=='MESH' and c.name.split('.')[0]=='LOD0' for v in c.data.vertices]
+  near=[p for p in pts if (p-o).length<=3.0];return near or pts
+ points=lod0_points(roots[0]);low=Vector(tuple(min(v[k] for v in points) for k in range(3)));high=Vector(tuple(max(v[k] for v in points) for k in range(3)));target=(low+high)/2
  scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.samples=12;scene.render.threads_mode='FIXED';scene.render.threads=8
  prefs=bpy.context.preferences.addons['cycles'].preferences;prefs.compute_device_type='OPTIX';prefs.get_devices()
  for device in prefs.devices:device.use=device.type=='OPTIX'
@@ -34,8 +40,15 @@ for theme in [] if contacts_only else themes:
  for loc,power,size in [((3,-4,6),600,5),((-4,-1,3),400,4)]:
   bpy.ops.object.light_add(type='AREA',location=loc);bpy.context.object.data.energy=power;bpy.context.object.data.size=size
  bpy.ops.object.camera_add(location=target+Vector((2.6,-3.8,2.7)));cam=bpy.context.object;cam.rotation_euler=(target-cam.location).to_track_quat('-Z','Y').to_euler();cam.data.type='ORTHO';scene.camera=cam
- rotation=cam.rotation_euler.to_matrix();right=rotation@Vector((1,0,0));up=rotation@Vector((0,1,0));xp=[(p-target).dot(right) for p in points];yp=[(p-target).dot(up) for p in points];aspect=844/390
- cam.data.ortho_scale=max(max(xp)-min(xp),(max(yp)-min(yp))*aspect)*1.24
+ rotation=cam.rotation_euler.to_matrix();right=rotation@Vector((1,0,0));up=rotation@Vector((0,1,0));aspect=844/390;offset=cam.location-target
+ def frame(points):
+  # centre the ortho camera on these points' projected box, scaled to fit with a margin
+  xs=[p.dot(right) for p in points];ys=[p.dot(up) for p in points];fwd=rotation@Vector((0,0,-1))
+  x0,x1,y0,y1=min(xs),max(xs),min(ys),max(ys)
+  centre=right*((x0+x1)/2)+up*((y0+y1)/2)+fwd*(sum(p.dot(fwd) for p in points)/len(points))
+  cam.location=centre+offset;cam.data.ortho_scale=max(x1-x0,(y1-y0)*aspect)*1.24
+  return centre
+ target=frame(points)
  # Camera-facing label, outside source geometry and excluded from all deliveries.
  bpy.ops.object.text_add();label=bpy.context.object;label.data.align_x='LEFT';label.data.size=cam.data.ortho_scale*.022;label.rotation_euler=cam.rotation_euler
  label.location=target+right*(-cam.data.ortho_scale*.47)+up*(-cam.data.ortho_scale/aspect*.46)
@@ -44,6 +57,8 @@ for theme in [] if contacts_only else themes:
  out=os.path.join(OUT,theme,'roof-precheck' if roof_only else 'delivery');os.makedirs(out,exist_ok=True);proofs=[];counts={}
  for r in roots[:1] if roof_only else roots:
   counts[r.name]={}
+  target=frame(lod0_points(r));label.data.size=cam.data.ortho_scale*.022
+  label.location=target+right*(-cam.data.ortho_scale*.47)+up*(-cam.data.ortho_scale/aspect*.46)
   for lod in (0,2) if roof_only else range(3):
    for c in geometry:c.hide_render=c.parent!=r or c.name.split('.')[0]!='LOD'+str(lod)
    ob=next(c for c in r.children if c.name.split('.')[0]=='LOD'+str(lod));counts[r.name]['LOD'+str(lod)]=tm.triangles(ob)

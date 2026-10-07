@@ -33,7 +33,7 @@ import { KitInstances, kitLodForZoom } from '../art/kitInstances';
 import { houseTypes, pickHouse, pickRubble, wallPiece, pieceLength, wonderPiece } from '../art/cityArt';
 import { wonderAssetUrl } from '../../components/map/closeView/wonderAssets';
 import { townUrlByName, loadTownAsset, instanceTownAsset, showLod, sharedAssetUrls } from '../../components/map/closeView/townAssets';
-import { enableTownDamage, setTownDamage, syncTownDamage, moundGeometry } from '../../components/map/closeView/townDamage';
+import { enableTownDamage, setTownDamage, syncTownDamage, moundGeometry, enableGroundClear, setGroundClear } from '../../components/map/closeView/townDamage';
 
 const PASSIVE_KINDS = new Set(['house', 'landmark', 'palace', 'wonder']);
 /** The structure kinds this layer draws (BattleRenderer leaves them out). */
@@ -118,6 +118,9 @@ export class CityLayer {
         showLod(inst, 0);
         inst.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
         enableTownDamage(inst).forEach((m) => this.r.track(m));
+        // the ground under the houses the town hall replaced loses their baked footprints
+        enableGroundClear(inst).forEach((m) => this.r.track(m));
+        setGroundClear(inst, this.items.filter(({ s }) => s.underHall && s.model).map(({ s: { model: [x, z, w, d] } }) => ({ x, z, w, d })));
         this.root.add(inst);
         this.town = inst;
         syncTownDamage(inst);
@@ -139,7 +142,8 @@ export class CityLayer {
     });
     if (!changed) return;
     let nw = 0; let nb = 0; let nr = 0;
-    const ruined = []; const damaged = [];
+    // the town model's houses under the town hall are always cut out (cityBattle.js underHall)
+    const ruined = this.items.filter(({ s }) => s.underHall && s.model).map(({ s }) => s.model); const damaged = [];
     const { walls: wallKit, ruins: ruinKit, houses: houseKit } = this.kits;
     const S = this.city.scale;
     const team = tint.set(this.r.setup.sides[1].color).clone();
@@ -163,6 +167,7 @@ export class CityLayer {
     const centralArt = central && this.palaceKits.some((kit) => kitObject(kit, palaceName(central.s, this.city)));
     this.items.forEach(({ index, s }) => {
       let state = this.last.get(index);
+      if (s.underHall) return; // drawn by the hall itself
       if (centralArt && index === keep.index) {
         const group = this.r.structureMeshes?.get(s.id);
         if (group) group.visible = false; // its objective HP bar is drawn independently
@@ -179,7 +184,13 @@ export class CityLayer {
         const group = s.kind === 'keep' ? this.r.structureMeshes?.get(s.id) : null;
         if (group) group.visible = !(piece && intact) && state !== 2;
         if (piece && intact) {
-          this.pieces.add(piece, lod, structureMatrix(intact, Math.max(s.w || 0, s.d || 0) || 3, x, y, z), team);
+          // the town hall at its drawn size (cityBattle.js hallSize); a capital's palace on the
+          // keep stands at least that large, as the city's main building
+          const own = Math.max(s.w || 0, s.d || 0) || 3;
+          const fit = s.kind === 'keep' ? s.hall || own : central && index === central.index ? Math.max(own, keep.s.hall || 0) : own;
+          const m = structureMatrix(intact, fit, x, y, z);
+          if (s.kind === 'keep' && s.hallLift > 1) m.multiply(M.makeScale(1, s.hallLift, 1));
+          this.pieces.add(piece, lod, m, team);
           return;
         }
         // Missing art preserves the keep's own model, or the palace box/mound below.
