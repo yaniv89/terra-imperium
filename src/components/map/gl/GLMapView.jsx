@@ -27,6 +27,8 @@ import { getCityFeatures, tileAtLatLon } from '../../../data/geo/cityFeatures';
 import { getTiles } from '../../../data/geo/tiles';
 import { worldRasterUrl, worldRasterSizeFor } from '../../../data/geo/worldRaster';
 import { baseRasterZoom } from '../../../data/geo/rasterTiles';
+import { proceduralRaster, worldPicture } from '../../../data/geo/worldPictures';
+import { createProceduralSource } from './proceduralPaint';
 import { getMapMarkers } from '../../../utils/mapMarkers';
 import { getAtWarNationIds } from '../../../utils/mapRegionStyle';
 import { tapCandidates, tapRingPoints } from '../../../utils/regionClickAssist';
@@ -148,7 +150,9 @@ const GLMapView = ({
     };
     g.frame = () => { g.raf = 0; };
     g.request = () => { if (!g.raf && !g.disposed) g.raf = requestAnimationFrame((now) => g.frame(now)); };
-    g.raster = createRasterLayer(ground, { request: g.request, onReady: () => g.request() });
+    // a generated world paints its close levels on the GPU (proceduralPaint.js); Earth downloads them
+    const source = proceduralRaster() ? createProceduralSource(renderer, getTiles(), { seed: getTiles().world?.seed || 0 }) : null;
+    g.raster = createRasterLayer(ground, { request: g.request, onReady: () => g.request(), source });
     g.territory = createTerritoryLayer(new Scene(), tileGpuData(getTiles()));
     g.territoryCache = createTerritoryCache(g.territory);
     g.terrainSprites = createSpriteLayer(terrain, atlas, 6);
@@ -183,7 +187,8 @@ const GLMapView = ({
   // ---------------------------------------------------------------- one frame
   // Reads the live transform (a ref), so panning draws without React.
   const settings = useRef({});
-  settings.current = { selectedTile, lens, tintOn, fogOn: fog.on, worldUrl: worldRasterUrl(worldRasterSizeFor(width, height)), worldSize: worldRasterSizeFor(width, height), baseZ: baseRasterZoom(worldRasterSizeFor(width, height)) };
+  const worldSize = worldPicture()?.size || worldRasterSizeFor(width, height); // a generated world has one painted size
+  settings.current = { selectedTile, lens, tintOn, fogOn: fog.on, worldUrl: worldRasterUrl(worldSize), worldSize, baseZ: baseRasterZoom(worldSize) };
   const frame = useCallback((now) => {
     const g = gl.current;
     if (!g) return;
@@ -613,7 +618,9 @@ const GLMapView = ({
       hitAt: (x, y) => { const h = pickHit(view(), gl.current?.hits || [], x, y); return h ? { kind: h.kind, id: h.id ?? h.marker?.regionId ?? null } : null; },
       // what a tap there does: { kind: marker | cluster | settler | city | tile, id, tile, land, via }
       pickAt: (x, y) => { const p = tapAtRef.current(x, y); return p ? { kind: p.kind, id: p.id ?? null, tile: p.tile ?? null, land: p.land ?? null, explored: p.explored ?? null, via: p.via ?? null, marker: p.marker?.kind ?? null, own: p.marker?.own ?? null } : null; },
-      transform: () => ({ ...transformRef.current })
+      transform: () => ({ ...transformRef.current }),
+      // jump to a transform (clamped by the zoom behaviour), for look screenshots
+      setTransform: ({ x, y, k: kk }) => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).call(zoomBehaviorRef.current.transform, zoomIdentity.translate(x, y).scale(kk)); }
     };
     window.__glMap = {
       info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount }),
