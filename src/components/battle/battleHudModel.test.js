@@ -32,15 +32,17 @@ describe('battle HUD model', () => {
     expect(cityAssaultView(hud, { ...setup, city: null })).toBeNull();
   });
 
-  it('alerts: a gate breached, a regiment routed; two shown at most', () => {
-    const prev = { tick: 100, structures: [st('keep'), st('gate')], squads: [sq(0), sq(1)] };
-    const cur = { tick: 120, structures: [st('keep', { hp: 40 }), st('gate', { alive: false })], squads: [sq(0, { routed: true }), sq(1)] };
+  it('alerts: a gate breached, a regiment shaken (never "routed"), enemy squads broke; two shown at most', () => {
+    const prev = { tick: 100, structures: [st('keep'), st('gate')], squads: [sq(0), sq(1), sq(2, { side: 1 }), sq(3, { side: 1 })] };
+    const cur = { tick: 120, structures: [st('keep', { hp: 40 }), st('gate', { alive: false })], squads: [sq(0, { morale: 15 }), sq(1, { routed: true }), sq(2, { side: 1, routed: true }), sq(3, { side: 1, routed: true })] };
     const a = nextAlerts(prev, cur, 0, {});
-    expect(a.map((x) => x.kind).sort()).toEqual(['gate', 'keep', 'routed']);
+    expect(a.map((x) => x.kind).sort()).toEqual(['broke', 'gate', 'keep', 'shaken']);
+    expect(a.find((x) => x.kind === 'shaken').squad).toBe(0);
+    expect(a.find((x) => x.kind === 'broke').title).toBe('2 enemy squads broke');
     expect(a.find((x) => x.kind === 'gate').tone).toBe('good');
     const v = visibleAlerts(a, 130);
     expect(v.shown).toHaveLength(2);
-    expect(v.older).toBe(1);
+    expect(v.older).toBe(2);
     expect(visibleAlerts(a, 120 + 20 * 20 + 1).shown).toHaveLength(0);
     expect(minutesLeft(1800, 1)).toBe(30);
     expect(minutesLeft(1800, 3)).toBe(10);

@@ -397,3 +397,71 @@ describe('morale, routing and hit arcs', () => {
     expect(hitArc(at(180), target)).toBe(2);
   });
 });
+
+// The user's rule (2026-10-07): in a commanded battle the player's side never routs; its beaten
+// squads are Shaken (weaker) instead. The AI side and every headless battle rout as before.
+describe('who may rout (sides[s].canRout)', () => {
+  it('commandedSetup marks only the player side', async () => {
+    const { commandedSetup } = await import('../setup/buildBattleSetup');
+    const s = commandedSetup(setup({ controllers: ['player', 'ai'] }));
+    expect(s.sides.map((sd) => sd.canRout)).toEqual([false, true]);
+    const spectate = setup({ controllers: ['ai', 'ai'] });
+    expect(commandedSetup(spectate)).toBe(spectate);
+  });
+
+  it('a side that cannot rout is Shaken instead, deals less and takes more; the other side still routs', async () => {
+    const { updateMorale, isShaken, SHAKEN_DAMAGE_DEALT } = await import('./morale');
+    const s = setup();
+    s.sides[0].canRout = false;
+    const w = createWorld(s);
+    const mine = w.squads.find((q) => q.side === 0 && q.onField);
+    const foe = w.squads.find((q) => q.side === 1 && q.onField);
+    mine.morale = 5; foe.morale = 5;
+    updateMorale(w);
+    expect(mine.routed).toBe(false);
+    expect(isShaken(w, mine)).toBe(true);
+    expect(foe.routed).toBe(true);
+    expect(isShaken(w, foe)).toBe(false);
+    expect(SHAKEN_DAMAGE_DEALT).toBeLessThan(1);
+  });
+
+  it('a side that cannot rout fights on after its losses turn decisive: no forced rout, no running for the edge', () => {
+    const s = setup({ attackerUnits: mk('a', ['infantry', 'infantry'], 300), defenderUnits: mk('d', ['infantry', 'infantry', 'infantry', 'cavalry']) });
+    s.sides[0].canRout = false;
+    const { world, result } = runHeadless(s);
+    expect(world.squads.filter((q) => q.side === 0).some((q) => q.routed || (q.fled && !q.retreating))).toBe(false);
+    expect(result.outcome).toBe('defender');
+  });
+
+  it('without the flag every battle hashes as before (canRout defaults to true)', () => {
+    const a = runHeadless(setup()).world.hashChain;
+    const s = setup(); s.sides[0].canRout = true; s.sides[1].canRout = true;
+    expect(runHeadless(s).world.hashChain).toEqual(a);
+  });
+});
+
+// AoE-style construction: a site starts at 1 HP and its HP rises with the work, full when done.
+describe('construction HP', () => {
+  it('rises with build progress from 1 to max', async () => {
+    const { BUILDINGS } = await import('../data/economy');
+    const w = createWorld(setup({ economy: true }));
+    const camp = w.eco.buildings.find((b) => b.type === 'camp');
+    const workers = w.squads.filter((q) => q.side === 0 && q.worker).map((q) => q.idx);
+    let placed = null;
+    for (let dy = -8; dy <= 8 && !placed; dy += 2) {
+      for (let dx = 4; dx <= 10 && !placed; dx += 2) {
+        step(w, [{ side: 0, type: 'build', squads: workers, building: 'house', tx: Math.floor(camp.x / Q) + dx, ty: Math.floor(camp.y / Q) + dy }]);
+        placed = w.eco.buildings.find((b) => b.type === 'house');
+      }
+    }
+    expect(placed).toBeTruthy();
+    expect(placed.hp).toBeLessThanOrEqual(2);
+    const seen = [];
+    for (let t = 0; t < 3000 && !placed.built; t++) { step(w, []); if (t % 50 === 0) seen.push([placed.progress / placed.need, placed.hp]); }
+    expect(placed.built).toBe(true);
+    expect(placed.hp).toBe(BUILDINGS.house.hp);
+    // HP follows the progress all the way up (never ahead of it, never far behind).
+    seen.forEach(([p, hp]) => { expect(hp).toBeLessThanOrEqual(Math.ceil(p * placed.maxHp) + 1); expect(hp).toBeGreaterThanOrEqual(Math.floor(p * placed.maxHp) - 2); });
+    expect(seen.filter(([, hp]) => hp > 1 && hp < placed.maxHp).length).toBeGreaterThan(2);
+  });
+});

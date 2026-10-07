@@ -9,7 +9,7 @@ import { advanceHashChain } from './hash';
 import { acquireTargets, enterReserves, moveSquads, separateSquads } from './movement';
 import { isFighting, resolveAttacks } from './combat';
 import { resolveStructureFire, updateAssimilation, updateCapturePoints, updateSupply, updateGarrisons, ASSIMILATION_TICKS } from './objectives';
-import { updateMorale } from './morale';
+import { updateMorale, canRout } from './morale';
 import { updateFog } from './fog';
 import { updateEffects, processImpacts } from './effects';
 import { applySupplyAndAttrition } from './support';
@@ -95,7 +95,9 @@ const checkEnd = (w) => {
   [SIDE_ATTACKER, SIDE_DEFENDER].forEach((side) => {
     if (!lossRule || w.spent[side] || brokenShare(w, side) < LOSS_DECISIVE) return;
     w.spent[side] = true;
-    w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled && !q.routed && !(q.inside >= 0)) { q.routed = true; q.morale = 0; w.events.push({ t: w.tick, type: 'routed', id: q.idx }); } });
+    // A side that cannot rout (the player's, in a commanded battle: morale.js canRout) fights on: it
+    // ends by losses (destroyed), the clock, or the player's own Retreat.
+    if (canRout(w, side)) w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled && !q.routed && !(q.inside >= 0)) { q.routed = true; q.morale = 0; w.events.push({ t: w.tick, type: 'routed', id: q.idx }); } });
     w.events.push({ t: w.tick, type: 'sideSpent', side });
   });
   const attackerBroken = isBroken(w, SIDE_ATTACKER);

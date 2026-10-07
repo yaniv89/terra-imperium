@@ -16,6 +16,7 @@ import { razeBuilding } from './buildings';
 import { collapseFootprint } from './cityStructures';
 import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from './effects';
 import { moraleFromLosses } from './moraleMath';
+import { isShaken, SHAKEN_DAMAGE_DEALT, SHAKEN_DAMAGE_TAKEN } from './morale';
 import { destroyEcoBuilding, ecoTargetIndex } from './economy';
 
 // The structure a squad is going for: a fixed one (the keep, a tower, a city building) or one the
@@ -138,6 +139,9 @@ export const attackSquad = (w, a, t) => {
   if (a.stats.charge && a.movedSinceAttack >= CHARGE_DISTANCE) mult *= CHARGE_BONUS_MULT;
   if (t.routed) mult *= 1 + PURSUIT_EXTRA_LOSS_MULT;
   mult *= damageDealtMult(w, a) * damageTakenMult(w, t, arc);
+  // Shaken (a side that cannot rout, morale.js): weaker blows, more hurt taken.
+  if (isShaken(w, a)) mult *= SHAKEN_DAMAGE_DEALT;
+  if (isShaken(w, t)) mult *= SHAKEN_DAMAGE_TAKEN;
   if (!a.stats.flying && !t.stats.flying) mult *= elevationMult(w, a, t);
   // Shooting gives your position away (and breaks an ambush).
   a.hiddenUntil = 0;
@@ -165,6 +169,7 @@ export const attackStructure = (w, a, s) => {
   if (a.stats.structureBonus) mult = applySapperToSiegeMultiplier(view(a), true, getSiegeMultiplier(true));
   if (s.kind === 'keep' && s.walls && s.hp > s.maxHp / 2) mult *= WALLS_MULT;
   if (s.loot && a.side === SIDE_ATTACKER) mult *= LOOT_BURN_MULT;
+  if (isShaken(w, a)) mult *= SHAKEN_DAMAGE_DEALT;
   const variance = 1 + (nextRandom(w) * 2 - 1) * RNG_VARIANCE;
   const damage = Math.max(0, Math.round(a.strength * perHitFraction(a.stats) * mult * variance * 3));
   a.engaged = true;

@@ -564,3 +564,15 @@ export const setupKeyOf = (setup) => (setup
   : null);
 
 export const PLAYER_SIDE_INDEX =(pendingBattle) => (pendingBattle?.playerSide === 'defender' ? 1 : SIDE_ATTACKER);
+
+/**
+ * The setup as a commanded battle fights it (the user's rule, 2026-10-07): the player's side never
+ * routs (sides[s].canRout = false; src/battle/sim/morale.js makes its beaten squads Shaken instead),
+ * the AI's side does. Headless battles and auto-resolve never pass through here: everyone routs.
+ * Returns the same object when there is no player side.
+ */
+export const commandedSetup = (setup) => {
+  const controllers = setup?.controllers || [];
+  if (!setup?.sides || !controllers.includes('player')) return setup;
+  return { ...setup, sides: setup.sides.map((s, i) => ({ ...s, canRout: controllers[i] !== 'player' })) };
+};
