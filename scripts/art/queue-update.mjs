@@ -12,7 +12,7 @@ const items = JSON.parse(readFileSync(itemsFile, 'utf8'));
 let updated = 0; let added = 0;
 items.forEach(({ id, ...fields }) => {
   const done = { delivery_status: 'in_game_awaiting_review', delivered: label };
-  const old = q.items.find((i) => i.id === id);
+  const old = q.items.find((i) => i.id === id || (!i.id && i.path === (fields.path || `plans/art/${id}`)));
   if (old) { Object.assign(old, fields, done); updated += 1; return; }
   q.items.push({
     path: `plans/art/${id}`, section: id.split('/')[0], description: '', source: 'plans/ART-MODELS-PLAN.md',

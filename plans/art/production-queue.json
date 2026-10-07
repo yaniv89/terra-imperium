@@ -1998,31 +1998,36 @@
       "path": "plans/art/units/kingdoms-infantry",
       "section": "units",
       "description": "Swiss or Flemish pikemen of the 1300s: a kettle hat, a padded gambeson or brigandine, a 4.5 m pike held at the slope, a short sword, hose",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave4 checkpoint-20, 2026-10-08 (plans/art/downloads/wave4/checkpoint-20)"
     },
     {
       "path": "plans/art/units/kingdoms-cavalry",
       "section": "units",
       "description": "a mid 1300s knight: a bascinet with a visor, mail and plate, a heater shield (team), a 3.5 m lance with a pennon (team), a caparisoned horse (team cloth)",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave4 checkpoint-20, 2026-10-08 (plans/art/downloads/wave4/checkpoint-20)"
     },
     {
       "path": "plans/art/units/kingdoms-ranged",
       "section": "units",
       "description": "English longbowmen: a 1.9 m yew bow, arrows pushed through the belt, a padded jack, a kettle hat or a hood, a buckler and a sword",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave4 checkpoint-20, 2026-10-08 (plans/art/downloads/wave4/checkpoint-20)"
     },
     {
       "path": "plans/art/units/kingdoms-siege",
       "section": "units",
       "description": "a counterweight trebuchet 4.5 m high with the arm down, a sling, a counterweight box, a timber frame, three crew",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave4 checkpoint-20, 2026-10-08 (plans/art/downloads/wave4/checkpoint-20)"
     },
     {
       "path": "plans/art/units/kingdoms-support",
       "section": "units",
       "description": "medieval pioneers: a hood, a leather apron, a mattock, a wicker gabion, a bundle of fascines",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave4 checkpoint-20, 2026-10-08 (plans/art/downloads/wave4/checkpoint-20)"
     },
     {
       "path": "plans/art/units/gunpowder-infantry",
@@ -4920,13 +4925,14 @@
       "section": "units",
       "description": "Kingdoms general: Kingdoms mounted commander with a standard bearer (Modern: a command car); aura ring is drawn by code",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/kingdoms-general",
       "phase": "R2",
       "batch": "M11",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave4 checkpoint-20, 2026-10-08 (plans/art/downloads/wave4/checkpoint-20)"
     },
     {
       "path": "plans/art/units/gunpowder-general",
@@ -6313,13 +6319,14 @@
       "section": "units",
       "description": "Kingdoms worker: Kingdoms: labourer with basket and tool; clips idle, walk, carry, chop, mine, harvest, build, repair, deposit, death",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/kingdoms-worker",
       "phase": "R4",
       "batch": "M17",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave4 checkpoint-20, 2026-10-08 (plans/art/downloads/wave4/checkpoint-20)"
     },
     {
       "path": "plans/art/rts/kingdoms/town-hall",

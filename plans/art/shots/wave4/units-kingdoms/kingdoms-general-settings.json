@@ -1,0 +1,10 @@
+{
+  "resolution": [
+    844,
+    390
+  ],
+  "engine": "Cycles",
+  "device": "GPU",
+  "source": "kingdoms-general.blend",
+  "view": "front"
+}

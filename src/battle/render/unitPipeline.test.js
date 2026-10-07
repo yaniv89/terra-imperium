@@ -97,9 +97,9 @@ describe('unit model registry', () => {
     expect(battleModelPairs(setup).map((p) => p.join(':')).sort()).toEqual(['bronze:cavalry', 'bronze:infantry', 'bronze:ranged', 'kingdoms:infantry']);
   });
 
-  it('resolves the Bronze and Classical sets to their delivered GLBs and every other age to the procedural model (the old recipes stay disabled)', () => {
-    // Waves 1 and 3 (plans/ART-MODELS-PLAN.md): src/assets/units/<age>-<class>.glb with an enabling JSON
-    ['bronze', 'classical'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege', 'support', 'worker'].forEach((cls) => {
+  it('resolves the Bronze, Classical and Kingdoms sets to their delivered GLBs and every other age to the procedural model (the old recipes stay disabled)', () => {
+    // Waves 1, 3 and 4 (plans/ART-MODELS-PLAN.md): src/assets/units/<age>-<class>.glb with an enabling JSON
+    ['bronze', 'classical', 'kingdoms'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege', 'support', 'worker'].forEach((cls) => {
       const m = findUnitModel(age, cls);
       expect(m?.name, `${age}-${cls}`).toBe(`${age}-${cls}`);
       expect(m.recipe).toBeUndefined();
@@ -109,7 +109,8 @@ describe('unit model registry', () => {
     expect(findUnitModel('bronze', 'support').options.quadruped).toBe(true);
     expect(findUnitModel('classical', 'cavalry').options.quadruped).toBe(true);
     expect(findUnitModel('classical', 'support').options.quadruped).toBe(false);
-    ['kingdoms', 'gunpowder', 'modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege'].forEach((cls) => {
+    expect(findUnitModel('kingdoms', 'cavalry').options.quadruped).toBe(true);
+    ['gunpowder', 'modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege'].forEach((cls) => {
       expect(findUnitModel(age, cls), `${age}-${cls}`).toBeNull();
     }));
     expect(findUnitModel('bronze', 'naval')).toBeNull();
@@ -118,7 +119,7 @@ describe('unit model registry', () => {
   it('composes each recipe once per age, registers it, and keeps the procedural model on failure', async () => {
     const pairs = battleModelPairs(setup);
     expect(needsUnitModels(setup)).toBe(true); // the Bronze GLBs ship
-    expect(needsUnitModels({ sides: [setup.sides[1]] })).toBe(false); // Kingdoms has none yet
+    expect(needsUnitModels({ sides: [setup.sides[1]] })).toBe(true); // Kingdoms ships too (Wave 4)
     const calls = [];
     const compose = async (recipe, { ageId }) => {
       calls.push(`${recipe.base}@${ageId}`);
