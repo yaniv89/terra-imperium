@@ -23,10 +23,13 @@ describe('town layouts (the city manifest source)', () => {
       expect(townAssetUrl(age, tier, seed, style)).toContain(key);
     });
     expect(townFileKey('future', 'small')).toBeNull();
-    // no Roman big town file yet: the procedural town, and the manifest's procedural houses
-    expect(townFileKey('classical', 'big', 0, 'europe')).toBeNull();
-    expect(townAssetUrl('classical', 'big', 0, 'europe')).toBeNull();
-    expect(buildTownManifest({ cityId: 'x', ageId: 'classical', tierId: 'big', style: 'europe' }).structures.filter((s) => s.kind === 'house').length).toBeGreaterThan(10);
+    // no Roman big town of its own: the classical base big town, and the manifest lists its houses
+    expect(townFileKey('classical', 'big', 0, 'europe')).toMatch(/^classical-town-big-[ab]$/);
+    expect(townAssetUrl('classical', 'big', 0, 'europe')).toContain(townFileKey('classical', 'big', 0, 'europe'));
+    const roman = buildTownManifest({ cityId: 'x', ageId: 'classical', tierId: 'big', style: 'europe' });
+    expect(roman.townKey).toMatch(/^classical-town-big-[ab]$/);
+    expect(roman.structures.filter((s) => s.kind === 'house').length).toBe(townLayout(roman.townKey).houses.length);
+    expect(roman.structures.filter((s) => s.kind === 'house').length).toBeGreaterThan(10);
   });
 });
 

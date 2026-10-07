@@ -2,12 +2,12 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 260,
-  "quality_accepted": 260,
+  "uploaded_and_download_verified": 285,
+  "quality_accepted": 285,
   "uploaded_requiring_quality_revision": 0,
-  "remaining_to_finish": 90,
-  "built_awaiting_upload": 25,
-  "remaining_to_upload": 90,
+  "remaining_to_finish": 65,
+  "built_awaiting_upload": 0,
+  "remaining_to_upload": 65,
   "completed_checkpoints": [
     "01",
     "02",
@@ -1628,121 +1628,141 @@
       "path": "plans/art/buildings/naval_base",
       "section": "buildings",
       "description": "a dry dock, a sea wall with cannon, a signal mast",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/buildings/carrier_dock",
       "section": "buildings",
       "description": "a concrete pier with cranes and a radar tower",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/buildings/road_post",
       "section": "buildings",
       "description": "a waystation: a courtyard, stables, a cistern",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/buildings/highway",
       "section": "buildings",
       "description": "a paved road segment with a milestone and a stone bridge",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/buildings/rail_depot",
       "section": "buildings",
       "description": "a railway station with a platform canopy and a goods shed",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/buildings/copper_mine",
       "section": "buildings",
       "description": "an open pit with ladders, a smelting hearth, ore baskets",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/buildings/iron_foundry",
       "section": "buildings",
       "description": "a bloomery furnace with bellows and a charcoal pile",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/farm",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/modern/farm",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/mine",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/modern/mine",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/fishing_boats",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/modern/fishing_boats",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/road",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/modern/road",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/pasture",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/camp",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/quarry",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/lumber_camp",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/plantation",
       "section": "improvements",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/improvements/ancient/oil_well",
@@ -1785,7 +1805,8 @@
       "section": "towns",
       "description": "classical / town-big (city)",
       "source": "ITEMS.md Part B",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/kits/steppe/modern/houses",
@@ -1820,7 +1841,8 @@
       "section": "buildings",
       "description": "cathedral (Cathedral / Mosque, kingdoms): two sheets: `cathedral-a` a Gothic cathedral with a spire, `cathedral-b` a mosque with a dome and two minarets",
       "source": "ITEMS.md Part B",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/buildings/oil_well",
@@ -2092,19 +2114,22 @@
       "path": "plans/art/ships/warship-bronze",
       "section": "ships",
       "description": "an Egyptian or Minoan war galley: 25 m, one bank of oars, a square sail, a raised fighting platform, a ram",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/ships/warship-classical",
       "section": "ships",
       "description": "an Athenian trireme: 37 m, three banks of oars, a bronze ram, eyes on the bow, two steering oars",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/ships/warship-kingdoms",
       "section": "ships",
       "description": "a 1300s cog: 24 m, a single square sail, high fore and stern castles, a stern rudder, clinker planking",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "in_game_quality_accepted",
+      "imported": "2026-10-07, branch claude/import-local-art (from plans/art/local-transfer-2026-10-07)"
     },
     {
       "path": "plans/art/ships/warship-gunpowder",

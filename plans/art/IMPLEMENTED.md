@@ -8,36 +8,35 @@ with variants a and b counts once). Give this file to GPT with each batch so its
 
 | Section of the spec | In the spec | In the game | Left |
 |---|---|---|---|
-| 3. Base towns and their parts (13 ids per age x 5 ages) | 65 | 64 | 1 |
+| 3. Base towns and their parts (13 ids per age x 5 ages) | 65 | 65 | 0 |
 | 3b. Regional kits (6 items per region and age: houses, street, roofscape, materials, landmark-1, landmark-2; 11 regions x 5 ages) | 330 | 330 | 0 |
 | 3b. Sub-landmarks (extra regional variants) | 7 | 7 | 0 |
 | 3b.5 Kingdoms palaces and walls per region (palace-small, palace, walls-medium x 11) | 33 | 33 | 0 |
-| 4. Buildings | 34 | 25 | 9 |
+| 4. Buildings | 34 | 33 | 1 |
 | 5. Wonders (3 tiers each) | 15 | 15 | 0 |
-| 6. Tile improvements (sheets) | 19 | 0 | 19 |
-| 7. Units, settlers and ships | 45 | 0 | 45 |
+| 6. Tile improvements (sheets) | 19 | 13 | 6 |
+| 7. Units, settlers and ships | 45 | 3 | 42 |
 | 8. Icons | 130 | 129 | 1 |
-| **Spec total** | **678** | **603** | **75** |
+| **Spec total** | **678** | **628** | **50** |
 | Israelite theme (`plans/art/israelite-theme.md`) | 74 | 63 | 11 |
-| **With the Israelite theme** | **752** | **666** | **86** |
+| **With the Israelite theme** | **752** | **691** | **61** |
 
 The battles run on 21 placeholder unit models built from free CC0 packs; they are not the spec's
 units and are not counted.
 
-## 3. Base towns (64 of 65)
+## 3. Base towns (65 of 65)
 
 | Age | town-small | town-medium | town-big | palace-small | palace | walls-small | walls-medium | walls-big | colony-camp | field-1..4 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | bronze | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes (4) |
-| classical | yes | yes | **no** | yes | yes | yes | yes | yes | yes | yes (4) |
+| classical | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes (4) |
 | kingdoms | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes (4) |
 | gunpowder | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes (4) |
 | modern | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes (4) |
 
-Missing: classical `town-big` (a and b); the art agent built it but has not uploaded it (it is in
-no ZIP under `plans/art/downloads`, checked 2026-10-07). Because the base classical big layout is
-missing, the Classical big towns of the base style, Europe, Levant, Sinic and Indic are not built
-either (their kits are complete; they show the medium town until it exists).
+Classical `town-big` (a and b) was imported on 2026-10-07 (see "Imported 2026-10-07"). The
+Classical big towns of Europe, Levant, Sinic and Indic are still not assembled from their kits:
+until they are, those lands show the base Classical big town.
 
 ## 3b. Regional kits (330 of 330: 55 of 55 region and age kits)
 
@@ -120,10 +119,38 @@ and `rajput-palace`, are superseded by the Indic Modern and Gunpowder kits). The
 longer the only copy of any art the game needs; they are the only copy of the editable sources
 (.blend, the delivered model.glb, build.py), so keep them outside git before purging them.
 
-The 25 items marked `built_awaiting_validation_upload` in `production-queue.json` (naval_base,
-carrier_dock, road_post, highway, rail_depot, copper_mine, iron_foundry, cathedral, the 13 base
-tile improvements, classical town-big, warship bronze, classical and kingdoms) are in no ZIP and
-in no branch: they cannot be imported until the art agent uploads them.
+The 25 items then marked `built_awaiting_validation_upload` were imported the same day from the
+transfer archives in `plans/art/local-transfer-2026-10-07` (next section).
+
+## Imported 2026-10-07: the 25 built items
+
+Taken from the uncompressed GLBs in `plans/art/local-transfer-2026-10-07` (pending-20-part-1 to 4,
+pending-cathedral-town, pending-ships), checked with `scripts/blender/validate_model.py` (all
+pass), packed with `npm run pack:models`; `production-queue.json` status `in_game_quality_accepted`.
+Close-view screenshots: `plans/art/shots/import-2026-10-07/`.
+
+- **Section 4 buildings (8, now 33 of 34)**: cathedral (Gothic, `cathedral.glb`) and its mosque
+  variant (`cathedral-levant.glb`: Levant, Israelite and Andalus land), naval_base, carrier_dock,
+  road_post, highway, rail_depot, copper_mine, iron_foundry. Fixed on import: the eight battle
+  socket empties (`socket-banner`, `socket-door`, `socket-fire-1` to `-4` ...) were dropped from
+  each root, which must hold only LOD0 to LOD2, and the mosque's root was renamed `cathedral` (the
+  bare id). Only oil_well is left.
+- **Section 6 tile improvements (13 of 19)**: `<kind>-<age>.glb` for farm, mine and fishing_boats
+  (bronze and modern), road (bronze and modern), pasture, camp, quarry, lumber_camp and plantation
+  (bronze). Fixed on import: the Ground texels were brightened to the warm earth the land tint
+  assumes (the rule of `import_improvement.py`, one gain for all channels: luminance about 0.25 up
+  to 0.58), so the patches no longer read as dark discs on the land. A later age's base file beats
+  an earlier regional one (a Modern Israelite farm is `farm-modern`). The road models are bundled
+  but not drawn: roads are drawn as the road network, not as tile works.
+- **Section 3 classical town-big a and b** (`classical-town-big-a.glb`, `-b.glb`); `townLayouts.json`
+  rebuilt. Tone (Town / Team): a 0.47 / 0.29, b 0.24 / 0.25, a little darker than the Classical
+  medium town (0.27 / 0.38). Their Ground has no alpha (a round patch with a hard edge), tinted
+  to the land like every town ground.
+- **Section 7 warships (3 of 45)**: `src/assets/map/ships/warship-bronze`, `-classical`, `-kingdoms`.
+  Now drawn: a fleet in the close view shows one to three warships of its owner's age
+  (`src/components/map/closeView/shipModels.js`; the latest age with a file, so gunpowder and
+  modern fleets use the kingdoms ship until their own exist). The swell animation (morph targets)
+  is not played: the hull stands at rest.
 
 ## Not started (as of 2026-10-04; see "Added 2026-10-06" above)
 
