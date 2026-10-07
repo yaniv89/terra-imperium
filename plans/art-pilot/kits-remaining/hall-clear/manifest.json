@@ -1,0 +1,218 @@
+{
+  "bronze-town-medium-a-levant.glb": {
+    "bytes": 3501020,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 21594,
+          "width": 5.926,
+          "depth": 5.967,
+          "height": 1.136,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4960,
+          "width": 5.926,
+          "depth": 5.967,
+          "height": 1.136,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 636,
+          "width": 5.926,
+          "depth": 5.967,
+          "height": 0.984,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-medium-b-levant.glb": {
+    "bytes": 3466276,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 20838,
+          "width": 5.97,
+          "depth": 5.921,
+          "height": 1.08,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4960,
+          "width": 5.97,
+          "depth": 5.921,
+          "height": 1.08,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 636,
+          "width": 5.97,
+          "depth": 5.921,
+          "height": 0.984,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-big-a-levant.glb": {
+    "bytes": 5049984,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 33960,
+          "width": 7.938,
+          "depth": 7.904,
+          "height": 1.196,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7360,
+          "width": 7.938,
+          "depth": 7.904,
+          "height": 1.196,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 736,
+          "width": 7.938,
+          "depth": 7.904,
+          "height": 0.984,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-big-b-levant.glb": {
+    "bytes": 4905504,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 32888,
+          "width": 7.95,
+          "depth": 8.011,
+          "height": 1.196,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7120,
+          "width": 7.95,
+          "depth": 8.011,
+          "height": 1.196,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 726,
+          "width": 7.95,
+          "depth": 8.011,
+          "height": 0.984,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  }
+}

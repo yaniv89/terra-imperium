@@ -1,0 +1,94 @@
+{
+  "checkpoint": "wave3-10",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 1,
+  "packed_bytes_added": 116312,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave3/checkpoint-10/contact.png",
+      "bytes": 218858,
+      "sha256": "eb3496590b3c54c15642a3f60c9b7b79370b2042001c8fef5a94748501fd9662"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 420920,
+      "sha256": "550a9514f0253621d7286e5f7427ff48359b9397de44e9919eda9907266ef729"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/bronze-hall-big-levant-844x390.png",
+      "bytes": 489093,
+      "sha256": "31325916ad64e91871f184f8a4949be3b0e69ca5dfd4a5a95ec97559b2510c50"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/bronze-hall-medium-levant-844x390.png",
+      "bytes": 479525,
+      "sha256": "b44911bbf6fe3f4667db68a2637eecbe6e3d2794c042b174eefa729a77656f3e"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/model-big-a-after.png",
+      "bytes": 492192,
+      "sha256": "2eeee326d096d6ae59a24d40d339cd83e47916b6df68dcfdb82c43ba204155f3"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/model-big-a-before.png",
+      "bytes": 493304,
+      "sha256": "79d42c088fa6eca7131a9b0aa73ae77fffbb603909c6d9b55b4057578dcda106"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/model-big-b-after.png",
+      "bytes": 491133,
+      "sha256": "985f309e5de321c5ce1e1588a343087ce01b83403a06c8bc1a2bd0457fc6af30"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/model-big-b-before.png",
+      "bytes": 495160,
+      "sha256": "ba5f2689b1d160bc2658950032c55a6bc71946a56e4bb8ff984d1d3c333238b1"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/model-medium-a-after.png",
+      "bytes": 478864,
+      "sha256": "8bbdc6202c01cf6dbb6ed96e517e4c9c1ec503c74b2b4eb0c3ee8dab60a19a8c"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/model-medium-a-before.png",
+      "bytes": 480124,
+      "sha256": "935460ca0916b3e37971c12f92e39efa2fe465e723e65af812f65da7c7bca82f"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/model-medium-b-after.png",
+      "bytes": 485744,
+      "sha256": "f362cbc87bdeab3c02400ce7918f753d96d715d1365682e08483cda53cef5e0d"
+    },
+    {
+      "file": "plans/art/shots/wave3/levant-hall/model-medium-b-before.png",
+      "bytes": 481040,
+      "sha256": "503ba7eb23a50308608ba0529420a1572192d66b97f9ee616f8056366d03928f"
+    },
+    {
+      "file": "src/assets/map/towns/bronze-town-big-a-levant.glb",
+      "bytes": 1831132,
+      "sha256": "382e3fd688e6d60d88a5d8c3c835378dc912259b8d6191048f9b8dd1fff2b1d9"
+    },
+    {
+      "file": "src/assets/map/towns/bronze-town-big-b-levant.glb",
+      "bytes": 1802572,
+      "sha256": "40819f9098e9bd39765a5241df99833f9928d6da2439b23e2ec723d98ba2f6fb"
+    },
+    {
+      "file": "src/assets/map/towns/bronze-town-medium-a-levant.glb",
+      "bytes": 1447400,
+      "sha256": "21272f53036a07955d8941f83a089e5ebbe39e9b07c053431f485eef80beb541"
+    },
+    {
+      "file": "src/assets/map/towns/bronze-town-medium-b-levant.glb",
+      "bytes": 1453784,
+      "sha256": "d304732a4caa6ae829d0252160e875bcd8e9edb4869c6d61781181936dfe4448"
+    },
+    {
+      "file": "src/data/townLayouts.json",
+      "bytes": 144698,
+      "sha256": "44758ac671901dcf12935a28e2048dc4b21d22e1f587ef79b3ed9cabd687ab09"
+    }
+  ]
+}

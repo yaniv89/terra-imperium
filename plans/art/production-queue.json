@@ -10045,6 +10045,20 @@
       "placeholder_ok": true,
       "spec": "plans/ART-MODELS-PLAN.md section 4.5, track E",
       "delivered": "wave2 checkpoint-09, 2026-10-07"
+    },
+    {
+      "path": "plans/art/towns/bronze/levant/hall-clear",
+      "section": "towns",
+      "description": "Levant Bronze towns medium a/b and big a/b rebuilt so the landmarks keep out of the square: the battle town hall gets its full 20 m (5.5 tiles) and is the largest building (assemble_kit_towns.py HALL_CLEAR); townLayouts.json rebuilt",
+      "source": "user request 2026-10-07",
+      "delivery_status": "in_game_awaiting_review",
+      "id": "towns/bronze/levant/hall-clear",
+      "phase": "B",
+      "batch": "W3",
+      "priority": "P1",
+      "placeholder_ok": false,
+      "spec": "plans/ART-MODELS-PLAN.md 5 (town-hall 20 x 20 m)",
+      "delivered": "wave3 checkpoint-10, 2026-10-07"
     }
   ],
   "note": "Delivery status is separate from game integration. ITEMS.md Part A assets are excluded; source in-game counts are unchanged.",

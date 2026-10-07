@@ -1,0 +1,107 @@
+{
+  "file": "bronze-town-medium-b-levant.glb",
+  "kind": "town",
+  "bytes": 3466276,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-medium-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 20838,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.97,
+          "depth": 5.921,
+          "height": 1.08,
+          "min_height": -0.0
+        },
+        "LOD1": {
+          "triangles": 4960,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.97,
+          "depth": 5.921,
+          "height": 1.08,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 636,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.97,
+          "depth": 5.921,
+          "height": 0.984,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 5.97
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "bronze-town-medium-b-levant_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 78482
+    },
+    {
+      "name": "bronze-town-medium-b-levant_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 500874
+    },
+    {
+      "name": "bronze-town-medium-b-levant_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 391022
+    }
+  ],
+  "passed": true
+}
