@@ -6,6 +6,7 @@
 // { type: 'error', message } so the battle screen can say so and offer the way back.
 import { createBattleLoop } from './battleLoop';
 import { createViewDecoder } from '../render/packedView';
+import { worldMessage } from '../../worldgen/worldLoader';
 
 const errorMessage = (stage, err) => ({ type: 'error', stage, message: err?.message || String(err || 'unknown error'), stack: err?.stack || null });
 
@@ -36,6 +37,7 @@ const createInlineBackend = (onMessage) => {
 
 const createWorkerBackend = (onMessage) => {
   const worker = new Worker(new URL('./battle.worker.js', import.meta.url), { type: 'module' });
+  worker.postMessage(worldMessage()); // the world to load first (one world per page)
   worker.onmessage = ({ data }) => onMessage(data);
   // A module that fails to load, an uncaught exception, a message that cannot be read.
   worker.onerror = (e) => { e.preventDefault?.(); onMessage({ type: 'error', stage: 'worker', message: e.message || 'The battle worker stopped.' }); };

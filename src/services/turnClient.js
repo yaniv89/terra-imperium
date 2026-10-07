@@ -3,6 +3,7 @@
 // state, or null when workers are unavailable or the worker failed (the caller then runs the turn
 // on the main thread, exactly as before). One worker for the session, created on first use.
 import { reviveFog } from '../engine/fog';
+import { worldMessage } from '../worldgen/worldLoader';
 
 let worker = null;
 let failed = false;
@@ -15,6 +16,7 @@ const getWorker = () => {
   if (worker || !turnWorkerAvailable()) return worker;
   try {
     worker = new Worker(new URL('../engine/worker/turn.worker.js', import.meta.url), { type: 'module' });
+    worker.postMessage(worldMessage()); // the world to load first (one world per page)
   } catch {
     failed = true;
     return null;

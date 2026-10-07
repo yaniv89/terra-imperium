@@ -84,8 +84,10 @@ const round = (ring) => {
 const WORLD = [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]];
 const shift = (multi, dx) => multi.map((poly) => poly.map((ring) => ring.map(([x, y]) => [x + dx, y])));
 const splitAtAntimeridian = (multi) => {
-  const lons = multi.flat(2).map((p) => p[0]);
-  if (Math.min(...lons) >= -180 && Math.max(...lons) <= 180) return multi;
+  // A loop, not Math.min(...lons): a whole world's rings overflow the stack of a browser worker.
+  let lo = Infinity; let hi = -Infinity;
+  multi.forEach((poly) => poly.forEach((ring) => ring.forEach((p) => { if (p[0] < lo) lo = p[0]; if (p[0] > hi) hi = p[0]; })));
+  if (lo >= -180 && hi <= 180) return multi;
   return [...polygonClipping.intersection(multi, WORLD), ...polygonClipping.intersection(shift(multi, -360), WORLD), ...polygonClipping.intersection(shift(multi, 360), WORLD)];
 };
 
@@ -120,7 +122,7 @@ const pointInRing = (ring, x, y) => {
 const POLAR_CAP_LAT = -85;
 
 /** The land as GeoJSON features (one per landmass piece), coast along hex edges, softened. */
-export const buildHexLand = (tiles, { passes = SMOOTH_PASSES, wobbleDeg = WOBBLE_DEG } = {}) => {
+export const buildHexLand = (tiles, { passes = SMOOTH_PASSES, wobbleDeg = WOBBLE_DEG, chunked = true } = {}) => {
   const isLand = (i) => tiles.land[i] === 1 || tiles.latLonOf(i).lat < POLAR_CAP_LAT;
   const segments = boundaryEdges(tiles, (i) => (isLand(i) ? 'land' : null)).filter((e) => e.owner === 'land');
   const exteriors = []; const holes = [];
@@ -149,6 +151,9 @@ export const buildHexLand = (tiles, { passes = SMOOTH_PASSES, wobbleDeg = WOBBLE
     if (idx >= 0) polygons[idx].push(hole);
   });
   // Cut into CHUNK_DEG squares, so clipping a territory (cityFeatures.js) only meets small pieces.
-  const pieces = splitAtAntimeridian(polygons).flatMap((poly) => chunk(poly));
+  // `chunked: false` (generated worlds, built at load time): whole landmasses, which skips most of
+  // the clipping cost (seconds); only the legacy SVG map clips territories against them.
+  const split = splitAtAntimeridian(polygons);
+  const pieces = chunked ? split.flatMap((poly) => chunk(poly)) : split;
   return pieces.map((poly, i) => ({ type: 'Feature', id: `land-${i}`, properties: {}, geometry: { type: 'Polygon', coordinates: d3Winding(poly.map(round)) } }));
 };

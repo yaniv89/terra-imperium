@@ -3,6 +3,8 @@
 // scripts/geo/build-world-raster.mjs into public/map/. Equirectangular, so one file serves as
 // the flat map background and as the globe texture. Phones get the 2048 version (a 4096 texture
 // is over the limit of some mobile GPUs and four times the download).
+import { worldPicture } from './worldPictures';
+
 export const WORLD_RASTER_SIZES = [2048, 4096];
 
 const baseUrl = () => {
@@ -10,7 +12,8 @@ const baseUrl = () => {
   return base.endsWith('/') ? base : `${base}/`;
 };
 
-export const worldRasterUrl = (size = 4096) => `${baseUrl()}map/world-${WORLD_RASTER_SIZES.includes(size) ? size : 4096}.webp`;
+// A generated world's painted picture (worldPictures.js) stands in for the baked Earth.
+export const worldRasterUrl = (size = 4096) => worldPicture()?.url || `${baseUrl()}map/world-${WORLD_RASTER_SIZES.includes(size) ? size : 4096}.webp`;
 
 // Phones and small tablets take the small texture; everything else the big one.
 export const worldRasterSizeFor = (width, height) => (Math.max(width || 0, height || 0) <= 1100 ? 2048 : 4096);

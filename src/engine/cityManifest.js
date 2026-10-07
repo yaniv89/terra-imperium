@@ -31,7 +31,7 @@ import { buildTownManifest, citySeed, manifestHousing, isCivic } from '../data/t
 import { townTier } from '../data/townTiers';
 import { styleOfLand } from '../data/architecture';
 import { getEffectiveAgeId } from '../data/ages';
-import { getTiles } from '../data/geo/tiles';
+import { landOf } from './world/cultureZones';
 
 export const REPAIR_TURNS = 3;
 export const RUIN_TURNS = 8;
@@ -52,7 +52,7 @@ export const cityManifestInput = (state, cityId) => {
   const owner = region.owner || region.colony?.ownerId || null;
   const ageId = cityAgeOf(state, owner) || 'bronze';
   let landNation = null;
-  if (region.tile != null) { try { landNation = getTiles().countryOf(region.tile); } catch { landNation = null; } }
+  if (region.tile != null) { try { landNation = landOf(region.tile, state.scenario?.sites); } catch { landNation = null; } }
   const tileOwner = state.world?.tileOwner || {};
   const wonders = Object.entries(state.greatProjects || {})
     .filter(([, e]) => e?.tier && e.tile != null && (e.tile === region.tile || tileOwner[e.tile] === cityId))

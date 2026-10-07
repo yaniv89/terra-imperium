@@ -3,12 +3,13 @@
 // 6.3): tile ids bucketed by their centre into CELL_DEG x CELL_DEG lat/lon cells, land and water
 // apart, built once. A query visits only the cells that overlap the window, so the flat map's
 // glyphs and hex mesh and the close view's trees cost what is on screen, not 100,002 tiles.
-import { getTiles } from './tiles';
+import { getTiles, onWorldChange } from './tiles';
 
 export const CELL_DEG = 2;
 const ROWS = 180 / CELL_DEG; const COLS = 360 / CELL_DEG;
 
 let index = null;
+onWorldChange(() => { index = null; });
 const build = () => {
   const tiles = getTiles();
   const land = Array.from({ length: ROWS * COLS }, () => []);

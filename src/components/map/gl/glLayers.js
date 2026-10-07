@@ -22,6 +22,7 @@ import { CITY_W } from './territoryData';
 import { TERRAIN_VERTEX, TERRAIN_FRAGMENT, pxPerKm, closeGroundSetup } from '../closeView/terrainShader';
 import { rasterTileUrl, rasterZoomFor, RASTER_MAX_Z, RASTER_TILE } from '../../../data/geo/rasterTiles';
 import { loadDetailIndex, bestColourTile, coverTileUrl } from '../../../data/geo/rasterDetail';
+import { proceduralRaster } from '../../../data/geo/worldPictures';
 
 const dataTexture = (data, w, h, format, type) => {
   const t = new DataTexture(data, w, h, format, type);
@@ -187,7 +188,8 @@ export const createRasterLayer = (scene, { request, onReady }) => {
   const quad = new PlaneGeometry(1, 1).translate(0.5, -0.5, 0); // top-left corner at the origin
   const loader = new TextureLoader();
   const r = { world: null, tiles: new Map(), disposed: false, detail: null, stats: { level: 0, tiles: 0, fallback: 0 } };
-  loadDetailIndex().then((index) => { if (!r.disposed && index) { r.detail = index; request(); } });
+  // A generated world (MV4) has only its painted base picture: no Earth detail or pyramid tiles.
+  if (!proceduralRaster()) loadDetailIndex().then((index) => { if (!r.disposed && index) { r.detail = index; request(); } });
   const setWorld = (url, size) => {
     if (r.world?.url === url) return;
     loader.load(url, (texture) => {
@@ -250,7 +252,7 @@ export const createRasterLayer = (scene, { request, onReady }) => {
     // (a detail level only once level RASTER_MAX_Z would be magnified by DETAIL_FROM_MAG or more)
     const mag = (rr.width * v.k * v.dpr) / (RASTER_TILE * 2 ** (RASTER_MAX_Z + 1));
     const z = r.detail && need > RASTER_MAX_Z && mag >= DETAIL_FROM_MAG ? Math.min(r.detail.maxZ, need) : close ? RASTER_MAX_Z : rasterZoomFor(rr.width * v.k * v.dpr);
-    const tilesOn = close || z > baseZ;
+    const tilesOn = (close || z > baseZ) && !proceduralRaster();
     r.tiles.forEach((e) => { e.meshes.forEach((m) => { m.visible = false; }); });
     r.stats = { level: tilesOn ? z : 0, tiles: 0, fallback: 0 };
     if (tilesOn) {

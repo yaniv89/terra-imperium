@@ -11,8 +11,15 @@ import { HISTORICAL_EVENTS } from '../../../src/data/events';
 import { auditGameState } from '../../../src/engine/stateAudit';
 import { getTiles } from '../../../src/data/geo/tiles';
 import { worldHealth, kaplanMeier } from '../../../scripts/simStats.mjs';
+import { installGeneratedWorld } from '../../../src/worldgen/nodeWorld';
 
-const LAND_TILES = (() => { const t = getTiles(); let n = 0; for (let i = 0; i < t.count; i++) if (t.land[i] === 1) n += 1; return n; })();
+// Land tiles of the world in play (recounted when MAP=generated installs a world per seed).
+const countLand = () => { const t = getTiles(); let n = 0; for (let i = 0; i < t.count; i++) if (t.land[i] === 1) n += 1; return n; };
+let LAND_TILES = countLand();
+// MAP=generated plays each seed on a generated world (plans/MAP-VARIATIONS-PLAN.md 8.2): the map
+// seed is the game seed, LAND (default 30) the land share; it forces SCENARIO=peoples.
+const MAP = process.env.MAP || 'earth';
+const MAP_LAND = Number(process.env.LAND || 30);
 
 const TURNS = Number(process.env.TURNS || 150);
 const EVERY = Number(process.env.EVERY || 50);
@@ -82,6 +89,7 @@ const snapshot = (s, t, counters, ms, lives) => {
     plagueCitiesNow: regs.filter(isPlagued).length, plagueCitiesStruck: counters.plagued.size,
     // Independents (phase W1): how many still stand, and the majors' cities (the expansion check).
     independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
+    majorsAlive: nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_')).length,
     majorCities: regs.filter((r) => r.owner && s.nations[r.owner]?.kind !== 'independent').length,
     // Independents' AI (phase W2, raids.js, cumulative): raids started (and at the player), raids
     // that took their loot (and on the player), raid battles, sacks, loot, tribute demands and deals,
@@ -107,7 +115,10 @@ const snapshot = (s, t, counters, ms, lives) => {
 
 SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
-    const scenario = SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : SCENARIO === 'peoples' ? { scenario: { mode: 'peoples', size: SIZE, seed, ...(process.env.INDEPENDENTS === '0' ? { independents: false } : {}) } } : {};
+    let map = null; let mapReport = null;
+    if (MAP === 'generated') { const w = installGeneratedWorld({ seed, params: { land: MAP_LAND } }); map = w.spec; mapReport = w.report; LAND_TILES = countLand(); }
+    const scenario = SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : (SCENARIO === 'peoples' || map) ? { scenario: { mode: 'peoples', size: SIZE, seed, ...(map ? { map } : {}), ...(process.env.INDEPENDENTS === '0' ? { independents: false } : {}) } } : {};
+    if (mapReport) console.log(`MAP seed=${seed} hash=${mapReport.worldHash} continents=${mapReport.continents} startMin=${mapReport.startMin} startMedian=${mapReport.startMedian} startSpread=${mapReport.startSpread.toFixed(3)} repairs=${mapReport.startRepairs}`);
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
     const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set() };

@@ -20,7 +20,10 @@ export const loadSubregionTopology = async () => {
 // The land the map draws: the coast along hex edges, softened (hexCoast.js, built into
 // hexLand.json by scripts/geo/build-hex-coast.mjs), so every hex is all land or all water. The flat
 // map and the globe clip territories to it and the close view masks its art with it.
+// A generated world brings its own coast (src/worldgen/worldLoader.js builds it with buildHexLand
+// and hands it over here before the app loads), so Earth's hexLand.json is never fetched for it.
 let cachedLandFeatures = null;
+export const setLandFeatures = (features) => { cachedLandFeatures = features; };
 export const loadLandFeatures = async () => {
   if (cachedLandFeatures) return cachedLandFeatures;
   const { default: collection } = await import('./hexLand.json');

@@ -26,6 +26,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tilesFromRaw } from '../../src/data/geo/tiles.js';
+import { buildTerrainColumns, PASS_RULES } from '../../src/data/geo/terrainColumns.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAW = path.join(__dirname, '.raw');
@@ -34,14 +35,12 @@ const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const log = (...a) => console.log(...a);
 
 export const RIVER_CLASS_BY_SCALERANK = (rank) => (rank <= 2 ? 3 : rank <= 5 ? 2 : 1);
-export const PASS_RULES = { minLowlandGroups: 2, minHigherNeighbours: 2 };
+export { PASS_RULES };
 
 const raw = readJson(TILES);
 const tiles = tilesFromRaw(raw);
 const n = raw.count;
 const { neighbors } = tiles;
-const isMountain = (i) => raw.land[i] === 1 && raw.reliefNames[raw.relief[i]] === 'mountains';
-const passable = (i) => raw.land[i] === 1 && raw.terrainNames[raw.terrain[i]] !== 'snow' && raw.featureNames[raw.feature[i]] !== 'ice';
 
 // ---- rivers: the size class of every marked edge -----------------------------------------------
 const riverSize = new Uint16Array(n);
@@ -126,78 +125,8 @@ const nameAt = (i) => {
   }
   return null;
 };
-const comp = new Int32Array(n).fill(-1);
-const label = new Array(n).fill(null);
-const range = new Int16Array(n).fill(-1);
-const rangeTiles = []; const rangeNames = [];
-let comps = 0;
-for (let i = 0; i < n; i++) {
-  if (!isMountain(i) || comp[i] >= 0) continue;
-  const list = [i]; comp[i] = comps;
-  for (let q = 0; q < list.length; q++) for (const j of neighbors[list[q]]) if (isMountain(j) && comp[j] < 0) { comp[j] = comps; list.push(j); }
-  list.sort((x, y) => x - y);
-  let frontier = list.filter((t) => (label[t] = nameAt(t)) != null);
-  while (frontier.length) {
-    const next = [];
-    frontier.forEach((t) => neighbors[t].forEach((j) => { if (comp[j] === comps && label[j] == null && !next.includes(j)) { label[j] = label[t]; next.push(j); } }));
-    frontier = next.sort((x, y) => x - y);
-  }
-  const byName = new Map();
-  list.forEach((t) => { const key = label[t] ?? ''; if (!byName.has(key)) byName.set(key, []); byName.get(key).push(t); });
-  [...byName.keys()].sort().forEach((key) => {
-    const id = rangeTiles.length;
-    byName.get(key).forEach((t) => { range[t] = id; });
-    rangeTiles.push(byName.get(key)); rangeNames.push(key || null);
-  });
-  comps++;
-}
-if (rangeTiles.length > 32767) throw new Error('too many ranges for Int16');
-const rangeSizes = rangeTiles.map((l) => l.length);
-
-// ---- ridges: per range, the maximum spanning forest by the lower end's elevation (Kruskal) ------
-const ridge = new Uint8Array(n);
-const parent = new Int32Array(n).map((_, i) => i);
-const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
-const edges = [];
-for (let i = 0; i < n; i++) {
-  if (!isMountain(i)) continue;
-  for (const j of neighbors[i]) if (j > i && isMountain(j)) edges.push([Math.min(raw.elevation[i], raw.elevation[j]), i, j]);
-}
-edges.sort((a, b) => b[0] - a[0] || a[1] - b[1] || a[2] - b[2]);
-edges.forEach(([, i, j]) => {
-  const a = find(i); const b = find(j);
-  if (a === b) return;
-  parent[a] = b;
-  ridge[i] |= 1 << neighbors[i].indexOf(j); ridge[j] |= 1 << neighbors[j].indexOf(i);
-});
-
-// ---- passes ------------------------------------------------------------------------------------
-// A pass is a mountain tile that joins two lowlands across a chain: the passable non-mountain land
-// around it falls into two or more separate groups (going round its neighbours in order), and it
-// is a saddle, lower than at least two of its mountain neighbours. A range that has crossing
-// tiles but no saddle among them gets its lowest crossing tile as its one pass, so every chain
-// thin enough to cross in one tile has a way through.
-const pass = new Uint8Array(n);
-const lowlandGroups = (i) => {
-  const ns = neighbors[i];
-  const low = ns.map((j) => passable(j) && !isMountain(j));
-  if (low.every(Boolean)) return 1;
-  let groups = 0;
-  for (let k = 0; k < ns.length; k++) if (low[k] && !low[(k + ns.length - 1) % ns.length]) groups++;
-  return groups;
-};
-rangeTiles.forEach((list) => {
-  const crossings = list.filter((i) => passable(i) && lowlandGroups(i) >= PASS_RULES.minLowlandGroups);
-  let found = 0;
-  crossings.forEach((i) => {
-    const higher = neighbors[i].filter((j) => isMountain(j) && raw.elevation[j] > raw.elevation[i]).length;
-    if (higher >= PASS_RULES.minHigherNeighbours) { pass[i] = 1; found++; }
-  });
-  if (!found && crossings.length) {
-    const lowest = crossings.slice().sort((x, y) => raw.elevation[x] - raw.elevation[y] || x - y)[0];
-    pass[lowest] = 1;
-  }
-});
+// Ranges, ridges and passes: src/data/geo/terrainColumns.js (shared with the world generator).
+const { range, rangeNames, rangeSizes, rangeTiles, ridge, pass, masses: comps } = buildTerrainColumns(raw, neighbors, { nameAt });
 const passCount = pass.reduce((a, b) => a + b, 0);
 const mountainCount = rangeTiles.reduce((a, l) => a + l.length, 0);
 log(`mountains: ${mountainCount} tiles in ${comps} masses, ${rangeTiles.length} ranges (${rangeNames.filter(Boolean).length} named), ${passCount} passes`);

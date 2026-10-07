@@ -35,6 +35,7 @@ import { riverHalfPx } from '../gl/terrainModel';
 import { EARTH_RADIUS_KM } from '../../../data/geo/geodesic';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
+import { landOf } from '../../../engine/world/cultureZones';
 import { styleOfLand, themeOfNation } from '../../../data/architecture';
 import { isLandAt, sampleLandColour, groundTint, tintKey } from './groundBlend';
 import { createOccupancy } from './occupancy';
@@ -208,7 +209,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       const camp = isCamp(region);
       const seed = [...id].reduce((h, c) => h + c.charCodeAt(0), 0);
       // the land's architecture style (the tile's country), whoever owns the city (art spec 3b)
-      const landNation = region.tile != null ? getTiles().countryOf(region.tile) : null;
+      const landNation = region.tile != null ? landOf(region.tile, state.scenario?.sites) : null;
       const style = styleOfLand(landNation || owner, opts.ageId);
       const assetUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, seed, style);
       const asset = assetUrl ? t.assets.get(assetUrl) : null;
@@ -420,7 +421,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       const owner = state.regions[state.world?.tileOwner?.[w.tile]]?.owner;
       if (!owner || !modelAllowedOnTile(tilesNow, w.tile, w.kind)) return false;
       const ageId = ageOf(state, owner);
-      const model = improvementModel(w.kind, ageId, styleOfLand(tilesNow.countryOf(w.tile) || owner, ageId));
+      const model = improvementModel(w.kind, ageId, styleOfLand(landOf(w.tile, state.scenario?.sites) || owner, ageId));
       if (!model) return false;
       if (!t.improvements.hasModel(model.url)) {
         if (!t.assets.has(model.url)) {

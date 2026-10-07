@@ -11,7 +11,7 @@
 // clip path made of every coastline on Earth made each repaint of the flat map (and of the
 // minimap) pathologically slow.
 import polygonClipping from 'polygon-clipping';
-import { getTiles } from './tiles';
+import { getTiles, onWorldChange } from './tiles';
 import { buildTerritories, buildHexMesh, cellFeature } from './tileGeometry';
 import { tilesInWindow } from './tileSpatialIndex';
 
@@ -19,6 +19,7 @@ const territoryCache = new WeakMap(); // tileOwner -> Map(landKey -> [feature])
 const nationCache = new WeakMap();    // tileOwner -> Map(landKey|ownersKey -> [feature])
 const landBoxes = new WeakMap();      // land features -> [{ box, polygons }]
 let hexMesh = null;
+onWorldChange(() => { hexMesh = null; });
 
 // polygon-clipping returns GeoJSON winding (exterior anticlockwise); d3-geo reads an
 // anticlockwise exterior as "the whole sphere but this shape", so every ring is reversed.

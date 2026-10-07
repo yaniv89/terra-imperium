@@ -50,7 +50,7 @@
 // (sieges.js) and the region modifier sheet (local.fortLevel: assaults in invasion.js and
 // defense.js, the tactical keep). cityWonderLines below is the one reader.
 import { REGIONS_DATA } from './regions';
-import { getTiles } from './geo/tiles';
+import { onHomeland } from '../engine/world/cultureZones';
 import { isCoastal } from './navalReach';
 import { getTotalDev } from '../engine/development';
 
@@ -71,7 +71,8 @@ export const SITE_RULES = {
   stockExchange: (region) => buildingTier(region, 'economy') >= 3,
   factory: (region) => buildingTier(region, 'industry') >= 2,
   // a national wonder: the city's centre stands on its homeland (the tile's country)
-  homeland: (region, regionId, project) => !!project?.homeland && region?.tile != null && getTiles().countryOf(region.tile) === project.homeland
+  // (a culture zone on a generated world: src/engine/world/cultureZones.js)
+  homeland: (region, regionId, project) => !!project?.homeland && region?.tile != null && onHomeland(region.tile, project.homeland)
 };
 
 export const GREAT_PROJECTS = {

@@ -31,7 +31,7 @@
 //
 // Pure: copies on write (a nation's bitset is copied only when it gains a tile), deterministic
 // (fixed iteration orders, no randomness).
-import { getTiles } from '../data/geo/tiles';
+import { getTiles, onWorldChange } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
 import { SIGHT_LAND_KM, SIGHT_ARMY_KM, SIGHT_HILLS_BONUS_KM, SIGHT_FLEET_KM, visibleTiles } from './sight';
 import { unitTile } from './armies';
@@ -163,6 +163,7 @@ const unitRings = (tiles, u, t, extra) => ringsForKm(extra + (u.domain === 'nava
 // the turn rebuilds city records, the land rarely changes), so a quiet turn walks almost no land.
 const LAND_SIGHT_CACHE_MAX = 20000;
 const landSightCache = new Map(); // `${rings}|${tiles}` -> tile list
+onWorldChange(() => landSightCache.clear());
 const citySight = (tiles, c, rings, mark, stamp) => {
   const seeds = c.tiles || [c.tile];
   const key = `${rings}|${seeds.join(',')}`;

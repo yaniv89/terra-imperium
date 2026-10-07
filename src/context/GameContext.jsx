@@ -15,6 +15,8 @@ import { createInitialState, gameReducer } from '../engine/gameReducer';
 import { migrateSave, CURRENT_SAVE_VERSION, saveProblem } from '../engine/saveMigrations';
 import { runTurnInWorker, turnWorkerAvailable } from '../services/turnClient';
 import { soundsForTransition } from '../audio/worldSounds';
+import { isCurrentWorld, currentWorldSpec, rememberWorldSpec, PENDING_START_KEY } from '../worldgen/worldLoader';
+import { normalizeSpec, EARTH_SPEC } from '../worldgen/spec';
 import { playSounds } from '../audio/sfx';
 
 export { createInitialState, gameReducer };
@@ -42,19 +44,72 @@ export const getPendingSaveProblem = () => pendingSaveProblem;
 export const dismissSaveProblem = () => { pendingSaveProblem = null; try { localStorage.setItem(OLD_SAVE_NOTICE_KEY, 'seen'); } catch (e) { /* storage unavailable */ } };
 export const getOldSaveText = () => { try { return localStorage.getItem(OLD_SAVE_KEY); } catch (e) { return null; } };
 
+// One world per page load (src/worldgen/worldLoader.js): a game on another world than the one this
+// page booted into is never built here. The page remembers that world and reloads into it (once:
+// RELOAD_GUARD stops a loop), and a new game waits in PENDING_START_KEY meanwhile.
+const RELOAD_GUARD = 'terra-imperium-world-reload';
+export const reloadIntoWorld = (spec) => {
+  rememberWorldSpec(spec);
+  try {
+    if (sessionStorage.getItem(RELOAD_GUARD) === JSON.stringify(normalizeSpec(spec))) return false;
+    sessionStorage.setItem(RELOAD_GUARD, JSON.stringify(normalizeSpec(spec)));
+  } catch (e) { /* storage unavailable */ }
+  window.location.reload();
+  return true;
+};
+/** A new game waiting for this page's world (StartScreen chose another world and reloaded). */
+// Read once per page (React's StrictMode runs state initialisers twice in development).
+let pendingStartTaken;
+export const takePendingStart = () => {
+  if (pendingStartTaken !== undefined) return pendingStartTaken;
+  pendingStartTaken = readPendingStart();
+  return pendingStartTaken;
+};
+const readPendingStart = () => {
+  try {
+    const raw = localStorage.getItem(PENDING_START_KEY);
+    if (!raw) return null;
+    const options = JSON.parse(raw);
+    if (!isCurrentWorld(options?.scenario?.map)) return null;
+    localStorage.removeItem(PENDING_START_KEY);
+    return options;
+  } catch (e) { return null; }
+};
+// The state behind the start screen when there is no game to resume: a small game on this page's
+// world (the legacy Earth world on Earth, as before).
+const placeholderState = () => {
+  const spec = currentWorldSpec();
+  if (spec.kind !== 'generated') return createInitialState();
+  return createInitialState({ playerNationId: 'akkad', rngSeed: 1, scenario: { mode: 'peoples', size: 'small', seed: 1, map: spec } });
+};
+
 const loadOrCreateState = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createInitialState();
+    if (!raw) return placeholderState();
     const parsed = JSON.parse(raw);
     const migrated = migrateSave(parsed);
-    if (migrated) return migrated.state;
+    if (migrated) {
+      const map = migrated.state.scenario?.map || EARTH_SPEC;
+      if (!isCurrentWorld(map)) {
+        // The save is on another world: boot into it. A pending new game replaces it anyway.
+        if (!localStorage.getItem(PENDING_START_KEY)) reloadIntoWorld(map);
+        return placeholderState();
+      }
+      const hash = currentWorldSpec().worldHash;
+      if (map.kind === 'generated' && map.worldHash && hash && map.worldHash !== hash) {
+        if (localStorage.getItem(OLD_SAVE_NOTICE_KEY) !== 'seen') pendingSaveProblem = { reason: 'worldMismatch', raw };
+        if (!localStorage.getItem(OLD_SAVE_KEY)) localStorage.setItem(OLD_SAVE_KEY, raw);
+        return placeholderState();
+      }
+      return migrated.state;
+    }
     const reason = saveProblem(parsed) || 'corrupt';
     if (!localStorage.getItem(OLD_SAVE_KEY)) localStorage.setItem(OLD_SAVE_KEY, raw);
     if (localStorage.getItem(OLD_SAVE_NOTICE_KEY) !== 'seen') pendingSaveProblem = { reason, raw };
-    return createInitialState();
+    return placeholderState();
   } catch (e) {
-    return createInitialState();
+    return placeholderState();
   }
 };
 
@@ -65,6 +120,7 @@ export const hasExistingSave = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw === null) return false;
+    if (pendingSaveProblem?.reason === 'worldMismatch') return false;
     return saveProblem(JSON.parse(raw)) === null; // a save this build cannot read is no save to resume: pick a nation
   } catch (e) {
     return false;
@@ -214,6 +270,15 @@ export const GameProvider = ({ children }) => {
   // persisted starting doctrine and (if the start screen picked one) difficulty — see the
   // country-select + difficulty + speed start screen this feeds.
   const resetGame = useCallback((options = {}) => {
+    // A game on another world: remember it, keep the choices and reload into that world; the new
+    // page starts it (App.jsx, takePendingStart).
+    const map = options.scenario?.map || EARTH_SPEC;
+    if (!isCurrentWorld(map)) {
+      try { localStorage.setItem(PENDING_START_KEY, JSON.stringify(options)); } catch (e) { /* storage unavailable */ }
+      reloadIntoWorld(map);
+      return;
+    }
+    rememberWorldSpec(map);
     dispatch({
       type: ActionTypes.RESET_GAME,
       payload: {
@@ -239,6 +304,13 @@ export const GameProvider = ({ children }) => {
       const parsed = JSON.parse(jsonText);
       const migrated = migrateSave(parsed);
       if (!migrated) return saveProblem(parsed) || 'corrupt';
+      const map = migrated.state.scenario?.map || EARTH_SPEC;
+      if (!isCurrentWorld(map)) {
+        // Another world: store the save as the current game and boot into its world.
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state: migrated.state, savedAt: Date.now() }));
+        reloadIntoWorld(map);
+        return true;
+      }
       dispatch({ type: ActionTypes.LOAD_GAME, payload: migrated.state });
       return true;
     } catch (e) {

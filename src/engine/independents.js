@@ -146,7 +146,8 @@ export const processLateArrivals = (state) => {
   due.forEach((id) => {
     delete next.scenario.lateArrivals[id];
     const p = PEOPLES[id];
-    const tile = p?.tile;
+    // Its start site on a generated world (the scenario's site table), else its real capital.
+    const tile = next.scenario?.sites?.[id] ?? p?.tile;
     const tileOwner = next.world?.tileOwner || {};
     if (tile == null || tileOwner[tile] || next.nations[id] || tiles.neighbors[tile].some((x) => tileOwner[x])) return;
     const world = { cities: next.regions, tileOwner, tileState: next.world?.tileState || {} };

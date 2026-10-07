@@ -11,7 +11,7 @@
 //   +GOVERNOR_LOYALTY + skill loyalty (loyalty.js), unrest x GOVERNOR_UNREST_MULT a turn (resolveTurn)
 // A group without a governor costs its cities UNGOVERNED_LOYALTY loyalty. AI nations seat the best
 // candidate in every empty group on their economy think (aiEconomy.js autoGovern). Pure.
-import { getTiles } from '../data/geo/tiles';
+import { getTiles, onWorldChange } from '../data/geo/tiles';
 import { generateGivenName } from '../data/names';
 import { createRng } from '../utils/rng';
 import { ringsAround } from './world/cities';
@@ -38,6 +38,7 @@ const hash = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++)
 // Memoised on the nation's city set and capital (the turn replaces the regions object several
 // times, but a nation's cities change rarely): key -> { groups, byCity }. Bounded.
 const groupsMemo = new Map();
+onWorldChange(() => groupsMemo.clear());
 const GROUPS_MEMO_MAX = 4000;
 const entryByRegions = new WeakMap(); // regions object -> Map nationId -> entry (a turn asks per city; the key below costs a join per ask)
 const groupsEntry = (state, nationId) => {

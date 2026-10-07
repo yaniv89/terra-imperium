@@ -5,9 +5,12 @@
 // and goes back the same way; turnClient.js revives it again on the main thread.
 // The grid is fetched first (tiles.js) and the engine imported after it: its modules read the grid
 // as they load. Messages that arrive meanwhile wait for it.
-import { loadTiles } from '../../data/geo/tiles';
+import { loadWorld, WORLD_MESSAGE } from '../../worldgen/worldLoader';
 
-const engine = loadTiles().then(async () => {
+// The world this worker runs comes in the first message (worldLoader.js worldMessage): the page's.
+let setWorld;
+const world = new Promise((resolve) => { setWorld = resolve; });
+const engine = world.then((spec) => loadWorld(spec, { inline: true })).then(async () => {
   // gameReducer first, as the app loads it: the engine has import cycles whose order matters.
   const { gameReducer } = await import('../gameReducer');
   const { reviveFog } = await import('../fog');
@@ -15,6 +18,7 @@ const engine = loadTiles().then(async () => {
 });
 
 self.onmessage = async (e) => {
+  if (e.data?.type === WORLD_MESSAGE) { setWorld(e.data.spec); return; }
   const { id, state, action } = e.data || {};
   try {
     const { gameReducer, reviveFog } = await engine;

@@ -111,10 +111,10 @@ const buildCityWorld = (initial, starts) => {
 };
 
 // The peoples world (peoplesWorld.js): `initial.nations` already holds the drawn majors only.
-const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, start = DEFAULT_SCENARIO_ID }) => {
+const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, start = DEFAULT_SCENARIO_ID, map = { kind: 'earth' }, sites = null }) => {
   if (start !== 'dawn') throw new Error('The peoples world starts at Dawn only');
   const ids = Object.keys(initial.nations).sort();
-  const built = buildCityWorld(initial, buildPeoplesStarts(ids));
+  const built = buildCityWorld(initial, buildPeoplesStarts(ids, sites));
   const starts = {};
   built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
   return {
@@ -124,13 +124,13 @@ const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, st
     units: built.units,
     world: built.world,
     resources: { ...initial.resources, supplies: 20 },
-    scenario: { mode: 'peoples', start, generationVersion: GENERATION_VERSION, seed, worldSize: size, nationCount: ids.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds: [] }
+    scenario: { mode: 'peoples', start, generationVersion: GENERATION_VERSION, seed, worldSize: size, nationCount: ids.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds: [], map, ...(sites ? { sites } : {}) }
   };
 };
 
-export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed = 1, start = DEFAULT_SCENARIO_ID, size } = {}) => {
+export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed = 1, start = DEFAULT_SCENARIO_ID, size, map = { kind: 'earth' }, sites = null } = {}) => {
   if (!SCENARIOS[start]) throw new Error(`Unsupported start ${start}`);
-  if (mode === 'peoples') return applyPeoplesScenario(initial, { size, seed, start });
+  if (mode === 'peoples') return applyPeoplesScenario(initial, { size, seed, start, map, sites });
   if (mode !== 'full' && mode !== 'emergent') throw new Error('Unsupported world mode');
   const allIds = Object.keys(initial.nations);
   const nationIds = mode === 'emergent' ? Object.keys(generateStarts(initial.playerNationId, nationCount, seed).starts) : allIds;
@@ -151,6 +151,6 @@ export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed =
     units: built.units,
     world: built.world,
     resources: { ...initial.resources, supplies: 20 },
-    scenario: { mode, start, generationVersion: GENERATION_VERSION, seed, nationCount: mode === 'emergent' ? nationCount : allIds.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds }
+    scenario: { mode, start, generationVersion: GENERATION_VERSION, seed, nationCount: mode === 'emergent' ? nationCount : allIds.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds, map: { kind: 'earth' } }
   };
 };
