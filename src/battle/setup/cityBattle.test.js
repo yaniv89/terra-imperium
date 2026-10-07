@@ -214,4 +214,14 @@ describe('a city assault loads the real city (cityBattle.js)', () => {
     expect(hallPlacement({ tierId: 'big', structures: [{ kind: 'house', x: 0.3, z: 0, w: 1, d: 1 }] })).toEqual({ size: HALL_TILES.big, ox: 0, oy: 0 });
     expect(hallPlacement({ tierId: 'medium', structures: [{ kind: 'landmark', x: 3, z: 0, w: 1, d: 1 }] })).toEqual({ size: HALL_TILES.medium, ox: 0, oy: 0 });
   });
+
+  it('the Levant Bronze towns leave the square to a full-size hall, the largest building (assemble_kit_towns.py HALL_CLEAR)', () => {
+    ['small', 'medium', 'big'].forEach((tierId) => [0, 1].forEach((seed) => {
+      const manifest = buildTownManifest({ cityId: `levant-${tierId}-${seed}`, ageId: 'bronze', tierId, style: 'levant', seed });
+      expect(manifest.townKey).toMatch(/levant$/);
+      expect(hallPlacement(manifest)).toEqual({ size: HALL_TILES[tierId], ox: 0, oy: 0 });
+      const hallSide = HALL_TILES[tierId] / CITY_TILES_PER_UNIT;
+      manifest.structures.filter((st) => st.kind === 'landmark').forEach((st) => expect(Math.max(st.w, st.d)).toBeLessThan(hallSide));
+    }));
+  });
 });

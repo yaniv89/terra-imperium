@@ -1,0 +1,102 @@
+{
+  "file": "classical-support.glb",
+  "kind": "unit",
+  "bytes": 190324,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "unit_flat_colours": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "classical-support": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1223,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ],
+          "width": 0.196,
+          "depth": 0.14,
+          "height": 0.544,
+          "min_height": 0.516
+        }
+      },
+      "children": [
+        "classical-support",
+        "UnitRig",
+        "Belt",
+        "Hair",
+        "Headband",
+        "LadderRail1",
+        "LadderRail-1",
+        "LadderRung0",
+        "LadderRung1",
+        "LadderRung2",
+        "LadderRung3",
+        "LadderRung4",
+        "Mantlet",
+        "MantletBand0",
+        "MantletBand1",
+        "MantletBand2",
+        "MantletGrip",
+        "PickHaft",
+        "PickHead",
+        "Sandal_L",
+        "Sandal_R",
+        "Top",
+        "Tunic",
+        "UnitBody",
+        "Root",
+        "Hips",
+        "Leg_L",
+        "Shin_L",
+        "Foot_L",
+        "Leg_R",
+        "Shin_R",
+        "Foot_R",
+        "Spine",
+        "Chest",
+        "Arm_L",
+        "Forearm_L",
+        "Hand_L",
+        "Prop_L",
+        "Arm_R",
+        "Forearm_R",
+        "Hand_R",
+        "Prop_R",
+        "Neck",
+        "Head",
+        "Prop_Back"
+      ],
+      "missing_lods": [],
+      "over_target": false,
+      "over_budget": [],
+      "footprint": 0.196
+    }
+  },
+  "materials": [
+    "Leather",
+    "Wood",
+    "Cloth",
+    "Metal",
+    "Team",
+    "Skin"
+  ],
+  "reserved_word_names": [],
+  "images": [],
+  "passed": true
+}

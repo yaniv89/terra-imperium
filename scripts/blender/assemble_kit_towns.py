@@ -73,6 +73,12 @@ LANDMARKS = {
 }
 # Modern landmarks may stand up to 50 m in the big town (art spec 3b): its height cap is raised.
 MODERN_BIG_CAP = (1.9, 5.0)
+# Kits whose landmarks crowded the square so the battle's town hall (20 x 20 m, cityBattle.js
+# HALL_TILES, 5.5 battle tiles = 2.0 units) had to shrink: per (style, age), the half size of the
+# square the landmarks keep out of in medium and big towns (units, measured on the landmark's
+# axis-aligned bounds like scripts/art/townComponents.mjs) and their size cap there, so the hall
+# gets its full size and stays the town's largest building.
+HALL_CLEAR = {('levant', 'bronze'): dict(half=1.1, cap=(1.5, 1.2))}
 LOD1_BUDGET = 10000  # a whole town's LOD1 triangles (brief: 60,000 / 10,000 / 1,500)
 TOWNS = [(s, v) for s in ('small', 'medium', 'big') for v in ('a', 'b')]
 
@@ -189,9 +195,19 @@ def sweep(dims_of, types, ring, others, limit, free, gap, start):
     return out
 
 
-def place_landmarks(specs, dims_of, limit, free, cap, out=False):
+def clear_of_hall(b, half):
+    """True when the rectangle's axis-aligned bounds stay out of the square |x|, |y| < half."""
+    if half <= 0:
+        return True
+    xs = [p[0] for p in b.corners()]
+    ys = [p[1] for p in b.corners()]
+    return min(xs) >= half or max(xs) <= -half or min(ys) >= half or max(ys) <= -half
+
+
+def place_landmarks(specs, dims_of, limit, free, cap, out=False, hall=0.0):
     """Each landmark near its angle, as close to the square as it fits (or, with `out`, as far
-    out: a narrower slice of the ring, more room for houses), scaled to the size cap."""
+    out: a narrower slice of the ring, more room for houses), scaled to the size cap; with `hall`,
+    clear of the town hall's square (HALL_CLEAR)."""
     got = []
     for name, angle in specs:
         w, d, ox, oy, h = dims_of[name]
@@ -203,7 +219,7 @@ def place_landmarks(specs, dims_of, limit, free, cap, out=False):
             r = free + 0.12
             while r < limit and not done:
                 b = box_at(dims_of[name], r, ang, s)
-                if b.min_radius() >= free + 0.1 and not any(b.overlaps(p[1], 0.12) for p in got):
+                if b.min_radius() >= free + 0.1 and clear_of_hall(b, hall) and not any(b.overlaps(p[1], 0.12) for p in got):
                     if b.max_radius() <= limit:
                         done = (name, b, s)
                         while out:  # push it outward while it still fits
@@ -238,14 +254,14 @@ def landmark_specs(size, variant, single=False):
     return [('landmark-1', 90 if variant == 'a' else 100)] if single else specs
 
 
-def plan_town(size, variant, dims_of, seed, landmarks=True, single=False, cap=None):
+def plan_town(size, variant, dims_of, seed, landmarks=True, single=False, cap=None, hall=0.0):
     """The whole layout: landmarks [(name, Box, scale)], houses [(type, Box)], props [(kind, Box)]."""
     cfg = SIZES[size]
     rng = random.Random(seed)
     R = cfg['R'] * GROUND_SCALE
     limit = R * cfg.get('edge', EDGE)
     free = cfg['free']
-    lms = place_landmarks(landmark_specs(size, variant, single), dims_of, limit, free, cap or cfg['lm_cap'], out=cfg.get('lm_out', False)) if landmarks else []
+    lms = place_landmarks(landmark_specs(size, variant, single), dims_of, limit, free, cap or cfg['lm_cap'], out=cfg.get('lm_out', False), hall=hall) if landmarks else []
     placed = [b for _n, b, _s in lms] + [forecourt(b, free) for _n, b, _s in lms if cfg.get('lm_out')]
     lo, hi = cfg['count']
     best = []
@@ -266,7 +282,7 @@ def plan_town(size, variant, dims_of, seed, landmarks=True, single=False, cap=No
     if len(houses) < lo and lms and (cap or base_cap)[0] > base_cap[0] * 0.85:
         # still short: the landmarks a little smaller (at most twice, 10% each), then lay it out again
         c = cap or base_cap
-        return plan_town(size, variant, dims_of, seed, landmarks, single, (c[0] * 0.9, c[1] * 0.9))
+        return plan_town(size, variant, dims_of, seed, landmarks, single, (c[0] * 0.9, c[1] * 0.9), hall)
     if not (lo <= len(houses) <= hi):
         print('WARNING %s-%s: %d houses (wanted %d to %d)' % (size, variant, len(houses), lo, hi))
     return lms, houses, props_for(placed, houses, free, limit, rng)
@@ -608,8 +624,12 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
                 for k in ('landmark-1',) if single else ('landmark-1', 'landmark-2'):
                     p = next(p for p in parts.values() if p.key == k.replace('-', ''))
                     dims[k] = p.dims + (p.height,)
-            lms, houses, props = plan_town(size, variant, dims, seed, landmarks, single,
-                                           cap=MODERN_BIG_CAP if (age, size) == ('modern', 'big') else None)
+            clear = HALL_CLEAR.get((style, age)) if size != 'small' else None
+            cap = MODERN_BIG_CAP if (age, size) == ('modern', 'big') else None
+            if clear:
+                cap = tuple(min(a, b) for a, b in zip(clear['cap'], cap or SIZES[size]['lm_cap']))
+            lms, houses, props = plan_town(size, variant, dims, seed, landmarks, single, cap=cap,
+                                           hall=clear['half'] if clear else 0.0)
             for lname, b, s in lms:
                 part = next(p for p in parts.values() if p.key == lname.replace('-', ''))
                 add_part(ms, part, tm.house_frame(b.x, b.y, b.yaw), s)

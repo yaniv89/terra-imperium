@@ -21,6 +21,21 @@ flag; model imports still require a visual and licensing review.
 | `bronze-mercenary.glb` | Mercenary: feathered crown on a bronze band, banded corselet, Team kilt, greaves, a neutral sash with a coin pouch, round Emblem shield, long bronze sword. Drawn for hired bands' infantry squads (unit `mercenary`) | 1,410 | `build_units_bronze_irregular.py` (Claude) |
 | `bronze-general.glb` | General: mounted commander (Team cloak, saddle cloth, plume; bronze scale and helmet; mace) and a standard bearer whose banner is the squad's Emblem | 2,005 | `build_units_bronze.py` (Claude) |
 
+## Delivered: the Classical set (Wave 3 in the production order, 2026-10-07)
+
+| File | Unit | Triangles |
+|---|---|---:|
+| `classical-infantry.glb` | Swordsmen: bronze cuirass with leather pteruges, crested helmet with cheek pieces, large oval shield (Emblem), short sword, greaves | 1,488 |
+| `classical-ranged.glb` | Composite archers: recurve bow with bent tips, back quiver, leather corselet, felt cap | 1,216 |
+| `classical-cavalry.glb` | Heavy cavalry: scale coat, crested helmet, long spear, small round shield, horse with a Team saddle cloth, no stirrups | 1,682 |
+| `classical-siege.glb` | Ballista: torsion bolt thrower on the siege frame rig (`ti_mounts.frame`, `torsion_engine`), three crew | 2,103 |
+| `classical-support.glb` | Engineers: wicker mantlet, pick, short ladder on the back | 1,228 |
+| `classical-worker.glb` | Laborer: tunic, headcloth, pick, basket on the back | 1,102 |
+| `classical-general.glb` | General: muscled cuirass, transverse Team crest, Team cloak and saddle cloth, sword; a standard bearer with a cloth standard (Emblem) | 2,295 |
+
+Built by `scripts/blender/build_units_classical.py` (Claude) on the same rig, body and part library
+(`build_units_bronze_signature.py`); rest pose only. Culture-neutral.
+
 All share the rig and body of `scripts/blender/ti_units.py` (bones `Root`, `Hips`, `Spine`,
 `Chest`, `Neck`, `Head`, `Arm_*`, `Forearm_*`, `Hand_*`, `Leg_*`, `Shin_*`, `Foot_*`, `Prop_R`,
 `Prop_L`, `Prop_Back`; mounts `Mount_Spine`, `Mount_Neck`, `Mount_Head`, `Mount_Leg{Front,Hind}_{L,R}`,

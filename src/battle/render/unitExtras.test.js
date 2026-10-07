@@ -55,7 +55,8 @@ describe('extra battle models', () => {
     // the Bronze general ships (src/assets/units/bronze-general.glb); no signature files yet
     expect(battleExtraModels(setup).map((e) => `${e.ageId}:${e.key}:${e.classId}`)).toEqual(['bronze:general:cavalry']);
     expect(findGeneralModel('bronze')?.url).toMatch(/bronze-general.*\.glb/);
-    expect(findGeneralModel('classical')).toBeNull();
+    expect(findGeneralModel('classical')?.url).toMatch(/classical-general.*\.glb/); // Wave 3
+    expect(findGeneralModel('kingdoms')).toBeNull();
     expect(MODEL_SCALE.general).toBeGreaterThan(MODEL_SCALE.cavalry);
   });
 
