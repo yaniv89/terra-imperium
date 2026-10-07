@@ -27,7 +27,8 @@ const engine = world.then(loadWorldFromMessage).then(async () => {
   const { reviveFog } = await import('../fog');
   return { gameReducer, reviveFog };
 });
-engine.then(() => self.postMessage({ type: 'ready' }), (err) => self.postMessage({ type: 'fatal', error: `The turn engine could not load: ${errorText(err)}` }));
+const bornAt = performance.now();
+engine.then(() => self.postMessage({ type: 'ready', ms: Math.round(performance.now() - bornAt) }), (err) => self.postMessage({ type: 'fatal', error: `The turn engine could not load: ${errorText(err)}` }));
 
 self.addEventListener('error', (e) => { self.postMessage({ type: 'fatal', error: errorText(e?.error || e?.message) }); });
 self.addEventListener('unhandledrejection', (e) => { self.postMessage({ type: 'fatal', error: errorText(e?.reason) }); });
@@ -38,6 +39,7 @@ self.onmessage = async (e) => {
   if (data.type === 'ping') { self.postMessage({ type: 'pong', id: data.id }); return; }
   const { id, state, action } = data;
   let next;
+  const started = performance.now();
   try {
     const { gameReducer, reviveFog } = await engine;
     const input = state?.fog ? { ...state, fog: reviveFog(state.fog) } : state;
@@ -47,7 +49,7 @@ self.onmessage = async (e) => {
     return;
   }
   try {
-    self.postMessage({ id, state: next });
+    self.postMessage({ id, state: next, ms: Math.round(performance.now() - started) });
   } catch (err) {
     // A state that cannot be cloned back: say so, so the page runs the turn itself at once.
     self.postMessage({ id, error: `The turn could not be sent back: ${errorText(err)}` });

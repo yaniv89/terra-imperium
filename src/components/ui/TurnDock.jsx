@@ -17,7 +17,11 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { softHints, WARN_ARM_MS } from './nextPromptModel';
 import { endTurnButton, endTurnPress } from './endTurnModel';
 import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
-import { prewarmTurnWorker } from '../../services/turnClient';
+import { prewarmTurnWorker, abandonTurnInWorker } from '../../services/turnClient';
+
+// "The world moves" longer than this offers to run the turn on this thread instead (an iPhone has
+// been seen waiting on the turn worker for good; turnClient.js keeps a log of why).
+export const STILL_WORKING_MS = 8000;
 
 const KIND_ICON = { city: Hammer, research: FlaskConical, demand: Scroll, tribute: Coins, join: HeartHandshake, peace: Feather, defense: Shield, event: Bell, battle: Swords };
 
@@ -30,6 +34,12 @@ const TurnDock = () => {
   useEffect(() => { const t = setTimeout(prewarmTurnWorker, 1500); return () => clearTimeout(t); }, []);
   useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), WARN_ARM_MS); return () => clearTimeout(t); }, [armed]);
   const btn = endTurnButton(state, { turnPending, armed });
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!turnPending) { setSlow(false); return undefined; }
+    const t = setTimeout(() => setSlow(true), STILL_WORKING_MS);
+    return () => clearTimeout(t);
+  }, [turnPending]);
   const hints = useMemo(() => (armed ? softHints(state) : []), [armed, state]);
   // A blocker that turns up disarms the soft confirmation.
   useEffect(() => { if (btn.mode === 'blocker' && armed) setArmed(false); }, [btn.mode, armed]);
@@ -73,10 +83,15 @@ const TurnDock = () => {
       <div className="flex items-stretch gap-2 pointer-events-auto">
         {btn.mode === 'moving' ? (
           <div className="fa-panel h-[50px] pl:h-11 min-w-[11rem] px-4 flex flex-col justify-center shadow-xl" role="status" aria-live="polite" data-testid="world-moves">
-            <span className="text-[13px] font-semibold">The world moves…</span>
+            <span className="text-[13px] font-semibold">{slow ? 'Still working…' : 'The world moves…'}</span>
             <span className="fa-bar mt-1.5 relative" style={{ height: 4 }}><span className="absolute inset-y-0 w-1/3 bg-fa-text animate-[worldMoves_1.1s_ease-in-out_infinite]" /></span>
           </div>
-        ) : (
+        ) : null}
+        {btn.mode === 'moving' && slow ? (
+          <button type="button" onClick={() => abandonTurnInWorker()} className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl" data-testid="run-turn-here"
+            title="Stop waiting for the background worker and run the turn on this screen">Run it here</button>
+        ) : null}
+        {btn.mode === 'moving' ? null : (
           <button
             type="button"
             onClick={press}

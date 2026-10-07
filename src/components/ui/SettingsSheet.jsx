@@ -11,7 +11,7 @@
 //   Saves     export, import, the cloud saves and account (AccountModal), a new game
 // Not here yet (no engine for them; plans/UI-DESIGN.md W12): the 500 and 1,000 battle sizes and the
 // device check that measures them, a quality choice, a world-map overlay, a language choice.
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Settings2, Download, Upload, Cloud, RotateCcw } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -20,6 +20,23 @@ import { useMapPrefs, setMapPrefs } from '../map/mapPrefs';
 import { fogOn } from '../../engine/fog';
 import { Button, Label, SheetHeader, Segmented, Switch } from './atlas';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
+import { turnLogText } from '../../services/turnClient';
+
+// The turn worker's recent events (turnClient.js) for a bug report: copied, or shown to copy by hand.
+const TurnLogButton = () => {
+  const [state, setState] = useState(null); // null | 'copied' | text shown
+  const copy = async () => {
+    const text = turnLogText();
+    try { await navigator.clipboard.writeText(text); setState('copied'); } catch { setState(text); }
+  };
+  return (
+    <div className="space-y-1">
+      <Button onClick={copy} data-testid="settings-copy-turn-log">{state === 'copied' ? 'Turn log copied' : 'Copy turn log'}</Button>
+      <p className="text-[12px] text-fa-muted">For a bug report when End Turn hangs: what the turn worker did in the last turns.</p>
+      {state && state !== 'copied' && <textarea readOnly value={state} rows={6} className="w-full fa-num text-[11px] bg-fa-ink border border-fa-line rounded p-1" onFocus={(e) => e.target.select()} aria-label="Turn log" />}
+    </div>
+  );
+};
 
 // A 0..100% volume slider, saved as you drag (src/audio/audioSettings.js).
 const Volume = ({ label, hint, value, onChange, disabled, testId }) => (
@@ -122,6 +139,7 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
           <section className="space-y-1" aria-labelledby="settings-turns">
             <Label id="settings-turns">Turns</Label>
             <Switch label="Warn me before End Turn" hint="Armies and settlers that can still move: the first tap shows them, the second ends the turn" checked={bs.warnEndTurn === true} onChange={(v) => setBattle({ warnEndTurn: v })} testId="settings-warn-end-turn" />
+            <TurnLogButton />
           </section>
           <section className="space-y-2" aria-labelledby="settings-saves">
             <Label id="settings-saves">Saves</Label>

@@ -40,6 +40,7 @@ import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
 import { lazyWithReload } from './utils/lazyWithReload';
 import RotateOverlay from './components/ui/RotateOverlay';
 import InstallHint from './components/ui/InstallHint';
+import TurnDebugLog, { turnDebugOn } from './components/ui/TurnDebugLog';
 import CityRail from './components/city/CityRail';
 import IndependentsHost from './components/independents/IndependentsHost';
 
@@ -333,6 +334,7 @@ const App = () => {
     <>
     <RotateOverlay />
     <InstallHint />
+    {turnDebugOn() && <TurnDebugLog />}
     <GameProvider>
       <EffectsProvider>
         <MapInsetsProvider>

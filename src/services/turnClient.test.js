@@ -120,6 +120,35 @@ describe('turnClient', () => {
     expect(w2.sent.map((m) => m.type || 'turn')).toEqual(['__world', 'ping', 'turn']);
   });
 
+  it('"Run it here" settles a waiting turn with null and the next turn gets a fresh worker', async () => {
+    const stuck = fakeWorker({ silent: true });
+    const { client, made } = setup([stuck, fakeWorker()]);
+    const p = client.run({ turn: 1 }, {});
+    await Promise.resolve(); await Promise.resolve();
+    expect(client.abandon()).toBe(true);
+    expect(await p).toBeNull();
+    expect(stuck.terminated).toBe(true);
+    expect(client.available()).toBe(true);
+    expect(await client.run({ turn: 1 }, {})).toEqual({ turn: 2 });
+    expect(made).toHaveLength(2);
+    expect(client.abandon()).toBe(false); // nothing waiting
+  });
+
+  it('an answer that cannot be revived settles the turn (null) instead of hanging', async () => {
+    const { client } = setup([fakeWorker()], { revive: () => { throw new Error('bad fog'); } });
+    expect(await client.run({ turn: 1 }, {})).toBeNull();
+    expect(client.turnLog()).toMatch(/revive-failed/);
+  });
+
+  it('keeps a log of sent, answer and settled with the state size', async () => {
+    const { client } = setup([fakeWorker()]);
+    await client.run({ turn: 1, big: 'x'.repeat(100) }, { type: 'ADVANCE_TURN' });
+    const evs = client.events().map((e) => e.ev);
+    expect(evs).toEqual(['spawn', 'sent', 'answer', 'settled']);
+    expect(client.events()[1].bytes).toBeGreaterThan(100);
+    expect(client.turnLog()).toMatch(/sent .*ADVANCE_TURN/);
+  });
+
   it('a worker error event settles the waiting turn', async () => {
     const w = fakeWorker({ silent: true });
     const { client } = setup([w]);
