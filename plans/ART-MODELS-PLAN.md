@@ -526,8 +526,11 @@ Only the look line was adjusted on Chu, Dacia and Kindah (the edelweiss badge an
 
 
 ### 4.6 Signature unit rules (design phase, not art)
-Signature stats, costs, AI use and balance are a new master-plan phase (proposed "SU", after R4),
-with parity checks per age pair as in R2. The rules for one signature unit per people:
+Signature stats, costs, AI use and balance are master-plan phase SU (row 13a, after R4). **The
+technical plan is `plans/SIGNATURE-UNITS-PLAN.md`** (kits as stat steps and abilities over the
+base unit, a 10-point budget, recruitment and upkeep, the sim and Auto rules, parity for all 150,
+AI, UI); where it differs from the summary below, it wins. The rules for one signature unit per
+people:
 - A people has one signature unit, available only in its own age. In that age it replaces the base
   unit of its role for that people (the people trains it instead of the base unit of that role); in
   every other age the people has only the ordinary base units. The role may be ANY base role of
