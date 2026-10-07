@@ -28,6 +28,7 @@ const startGame = async (page) => {
   await page.locator('[data-people]').first().waitFor({ timeout: 90000 });
   await page.fill('input[aria-label="Search peoples"]', 'Akkad');
   await click(page.locator('[data-people]').first());
+  await page.getByTestId('start-step-ready').dispatchEvent('click'); // Begin is on Ready only
   await click(page.getByRole('button', { name: /^Begin as/ }));
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});

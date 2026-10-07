@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {beginGame} from './startHelpers';
 const interior = feature => {
   const groups=feature.geometry.type==='MultiPolygon'?feature.geometry.coordinates:[feature.geometry.coordinates];
   const rings=groups.reduce((a,b)=>b[0].length>a[0].length?b:a,groups[0]);
@@ -37,7 +38,7 @@ test('actual globe pointer hits preserve selected province at two zoom levels',a
   await page.goto('/');
   await page.getByPlaceholder('Search 240 nations...').fill('Israel');
   await page.getByRole('button',{name:'Israel',exact:true}).dispatchEvent('click');
-  await page.getByRole('button',{name:'Begin as Israel'}).dispatchEvent('click');
+  await beginGame(page,'Begin as Israel');
   await page.getByRole('button',{name:'Skip',exact:true}).click();
   await page.waitForFunction(()=>window.__mapTest?.features?.length>0,{timeout:90000});
   const sample=await page.evaluate(()=>window.__mapTest.features.filter(f=>f.properties.owner==='il').slice(0,3));
@@ -63,7 +64,7 @@ const flatMapSelects=async(page,renderer)=>{
   await page.goto('/');
   await page.getByPlaceholder('Search 240 nations...').fill('Israel');
   await page.getByRole('button',{name:'Israel',exact:true}).dispatchEvent('click');
-  await page.getByRole('button',{name:'Begin as Israel'}).dispatchEvent('click');
+  await beginGame(page,'Begin as Israel');
   await page.getByRole('button',{name:'Skip',exact:true}).click();
   if(renderer==='webgl')await expect(page.getByTestId('flat-map')).toHaveAttribute('data-renderer','webgl');
   await page.waitForFunction(()=>window.__map2DTest?.features?.length>0);

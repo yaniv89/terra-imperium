@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import StartScreen, { matchPeople, newWorldSeed, startKeyAction, START_STEPS } from './StartScreen';
 import { PEOPLES, PEOPLES_LIST } from '../../data/peoples';
 
-const render = () => renderToStaticMarkup(React.createElement(StartScreen, { onStart: vi.fn() }));
+const render = (props = {}) => renderToStaticMarkup(React.createElement(StartScreen, { onStart: vi.fn(), ...props }));
 // The markup of one step's panel (the panels are siblings, so the next panel or the footer ends it).
 const panel = (html, id) => {
   const at = html.indexOf(`data-step-panel="${id}"`);
@@ -27,18 +27,31 @@ describe('the start screen in steps (W01, plans/UI-DESIGN.md section 8)', () => 
     expect(html).not.toContain('Full world');
   });
 
-  it('keeps the fast path: Begin as the default people, and the guided start, on step 1', () => {
+  it('shows Begin only on the last step (Ready); steps 1 to 3 have Back and Next', () => {
     const html = render();
-    expect(html.match(/Begin as /g)).toHaveLength(1);
-    expect(html).toContain('Begin as Akkad');
+    expect(html).not.toContain('Begin as ');
+    expect(html).not.toContain('data-testid="begin-game"');
     expect(html).toContain('data-testid="start-next"');
     expect(html).not.toContain('data-testid="start-back"');
     const people = panel(html, 'people');
     expect(people).toContain('data-testid="guided-start"');
     expect(people).toContain('aria-label="Search peoples"');
     expect(people).toContain('Standard world, Normal speed, Prince.');
+    for (const step of [1, 2]) {
+      const mid = render({ initialStep: step });
+      expect(mid).toContain(`data-step="${START_STEPS[step].id}"`);
+      expect(mid).not.toContain('data-testid="begin-game"');
+      expect(mid).toContain('data-testid="start-next"');
+      expect(mid).toContain('data-testid="start-back"');
+    }
+    const ready = render({ initialStep: 3 });
+    expect(ready).toContain('data-step="ready"');
+    expect(ready.match(/Begin as /g)).toHaveLength(1);
+    expect(ready).toContain('Begin as Akkad');
+    expect(ready).not.toContain('data-testid="start-next"');
+    expect(ready).toContain('data-testid="start-back"');
     // Begin sits in the bar under the steps, never inside a scrolling step
-    expect(html.indexOf('data-testid="begin-game"')).toBeGreaterThan(html.indexOf('<footer'));
+    expect(ready.indexOf('data-testid="begin-game"')).toBeGreaterThan(ready.indexOf('<footer'));
   });
 
   it('puts the map and the world size in World, speed, difficulty and Explored world in Rules', () => {

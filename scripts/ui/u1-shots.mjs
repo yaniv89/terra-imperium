@@ -32,6 +32,7 @@ const startGame = async (page, people = 'Akkad', explored = false) => {
   if (explored) await click(page.getByTestId('explored-world'));
   await page.fill('input[aria-label="Search peoples"]', people);
   await click(page.locator('[data-people]').first());
+  await page.getByTestId('start-step-ready').dispatchEvent('click'); // Begin is on Ready only
   await click(page.getByRole('button', { name: /^Begin as/ }));
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});

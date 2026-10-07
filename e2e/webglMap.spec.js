@@ -4,13 +4,14 @@
 // city, a tile or a marker, and the world wraps east to west. A phone held sideways (844x390,
 // touch) is the reference screen.
 import { test, expect } from '@playwright/test';
+import { beginGame } from './startHelpers';
 
 const startGame = async (page, nation = 'Akkad') => {
   await page.addInitScript(() => { window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; window.__E2E_MAP_TEST__ = true; try { localStorage.setItem('terra-imperium-minimap-open', '0'); } catch { /* none */ } });
   await page.goto('/');
   await page.fill('input[aria-label="Search peoples"]', nation);
   await page.locator('[data-people]').first().dispatchEvent('click');
-  await page.getByRole('button', { name: /^Begin as/ }).dispatchEvent('click');
+  await beginGame(page);
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
   if (await skip.isVisible().catch(() => false)) await skip.dispatchEvent('click');
