@@ -65,3 +65,5 @@ Wave 3 [checkpoint 15](downloads/wave3/checkpoint-15/README.md), 2026-10-08 (Cla
 Wave 3 [checkpoint 16](downloads/wave3/checkpoint-16/README.md), 2026-10-08 (Claude): the 13 Classical damaged-and-ruined house files (base and 12 themes) and the Classical palace damage set, 14 queue items `in_game_awaiting_review`; Classical battles and the close view draw them. 6.98 MB added.
 
 Wave 3 [checkpoint 17](downloads/wave3/checkpoint-17/README.md), 2026-10-08 (Claude): the Classical raider and mercenary, the Classical projectiles (arrow, pilum, lead sling bullet, ballista bolt, stone) and the twelve Classical battlefield props, 4 queue items `in_game_awaiting_review`. 0.58 MB added.
+
+Wave 3 [checkpoint 18](downloads/wave3/checkpoint-18/README.md), 2026-10-08 (Claude): the 12 Classical culture skins of the battle buildings (barracks, tower, trade post with damaged states, `rts-classical-<theme>.glb`) and the map's Classical fort (`fort-classical.glb`), 13 queue items `in_game_awaiting_review`. 9.99 MB added. The Classical remainder is done.
