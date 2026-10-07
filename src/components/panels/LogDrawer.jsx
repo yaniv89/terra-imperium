@@ -17,19 +17,19 @@ const LogDrawer = ({ open, onClose }) => {
       <div
         className="relative w-full lg:w-96 h-[70vh] lg:h-full mt-auto lg:mt-0 rounded-t-2xl lg:rounded-none
                    pl:w-[min(400px,56vw)] pl:h-full pl:mt-0 pl:rounded-none pl:border-t-0 pl:border-l
-                   flex flex-col bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-800 shadow-2xl"
+                   flex flex-col bg-fa-ink border-t lg:border-t-0 lg:border-l border-fa-line shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 shrink-0 lg:hidden">
-          <span className="text-xs font-semibold text-slate-400">Event Log</span>
-          <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white" aria-label="Close log">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-fa-line shrink-0 lg:hidden">
+          <span className="text-xs font-semibold text-fa-muted">Event Log</span>
+          <button onClick={onClose} className="p-1 hover:bg-fa-raised rounded text-fa-muted hover:text-fa-text" aria-label="Close log">
             <X className="w-4 h-4" />
           </button>
         </div>
         <button
           onClick={onClose}
-          className="hidden lg:flex items-center justify-center absolute -left-9 top-2 p-1.5 bg-slate-950 border border-slate-800 rounded-lg
-                     text-slate-400 hover:text-white hover:bg-slate-800"
+          className="hidden lg:flex items-center justify-center absolute -left-9 top-2 p-1.5 bg-fa-ink border border-fa-line rounded-lg
+                     text-fa-muted hover:text-fa-text hover:bg-fa-raised"
           aria-label="Close log"
         >
           <X className="w-4 h-4" />

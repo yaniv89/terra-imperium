@@ -19,7 +19,7 @@ const NationEliminatedBanner = ({ nationName, onDismiss }) => {
         </div>
         <button
           onClick={onDismiss}
-          className="w-5 h-5 flex items-center justify-center rounded-full text-emerald-100/80 hover:text-white hover:bg-black/10 text-xs shrink-0"
+          className="w-5 h-5 flex items-center justify-center rounded-full text-emerald-100/80 hover:text-fa-text hover:bg-black/10 text-xs shrink-0"
           aria-label="Dismiss"
         >
           ✕

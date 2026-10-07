@@ -68,9 +68,9 @@ const isReachable = (fromRegionId, toRegionId, age) =>
 // so this card never renders underneath the fixed header.
 //
 // Bug fix (plan feedback: "region popup visibility... can't read shit"): this used to render its
-// actual text/stats directly on a translucent, blurred background (bg-slate-900/95 or /98) — fine
+// actual text/stats directly on a translucent, blurred background (bg-fa-panel/95 or /98) — fine
 // for a small "select a region" hint, much harder to read once it's a real content card sitting
-// over a busy map. It's plain solid bg-slate-900 now, matching every other content surface in the
+// over a busy map. It's plain solid bg-fa-panel now, matching every other content surface in the
 // game (ProvinceModal, LogDrawer, PanelDrawer's ActionPanel) — only small HUD chrome (the header,
 // the mode toggle) stays translucent.
 const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) => {
@@ -78,7 +78,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const { triggerEffect } = useEffects();
   const isMobile = useIsMobile();
   const isCornerCard = position === 'panel' || position === 'panel-hud';
-  const cornerTopClass = position === 'panel-hud' ? 'top-[calc(var(--header-height,4.5rem)+0.5rem)]' : 'top-2';
+  const cornerTopClass = position === 'panel-hud' ? 'top-[calc(var(--header-height,2.25rem)+0.5rem)]' : 'top-2';
   // Plan §5.1/§5.2: the mobile bottom sheet reports its height so the map centres things above it,
   // and shrinks to a peek while an invasion/settle animation fired from here plays.
   const sheetRef = useRef(null);
@@ -94,24 +94,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
   // would just be more of the same clutter this change is trying to reduce. Desktop keeps it,
   // since there it's a small, stationary corner hint, not a sheet competing for screen space.
-  if (!regionId) {
-    if (isMobile && isCornerCard) return null;
-    return (
-      <div className={`
-        ${isCornerCard
-          ? `absolute ${cornerTopClass} left-2 z-20 pl:hidden`
-          : 'relative'
-        }
-        bg-slate-900 p-3 rounded-lg text-xs min-w-[180px]
-        border border-slate-700 shadow-xl
-      `}>
-        <div className="text-slate-400 italic flex items-center gap-2">
-          <MapPin className="w-4 h-4" />
-          <span>Select a region on the map</span>
-        </div>
-      </div>
-    );
-  }
+  // No empty "select a region" hint: the map is the hint (plans/UI-DESIGN.md rule 3).
+  if (!regionId) return null;
 
   const regionData = REGIONS_DATA[regionId];
   const regionState = state.regions[regionId];
@@ -241,10 +225,10 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   return (
     <div ref={mobileSheet ? sheetRef : undefined} className={
       mobileSheet
-        ? `fixed inset-x-0 bottom-0 z-30 ${peeking ? 'max-h-[18vh]' : expanded ? 'max-h-[calc(100dvh-var(--header-height,4.5rem)-0.5rem)]' : 'max-h-[55vh]'} transition-[max-height] duration-300 ease-out overflow-y-auto overscroll-contain rounded-t-2xl bg-slate-900 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl`
-        : `${isCornerCard ? `absolute corner-card ${cornerTopClass} left-2 z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
-           bg-slate-900 p-3 rounded-lg text-xs w-[300px] max-w-[calc(100vw-1rem)]
-           border border-slate-700 shadow-xl`
+        ? `fixed inset-x-0 bottom-0 z-30 ${peeking ? 'max-h-[18vh]' : expanded ? 'max-h-[calc(100dvh-var(--header-height,4.5rem)-0.5rem)]' : 'max-h-[55vh]'} transition-[max-height] duration-300 ease-out overflow-y-auto overscroll-contain rounded-t-2xl fa-sheet p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-[13px] border-t shadow-2xl`
+        : `${isCornerCard ? `absolute corner-card ${cornerTopClass} left-[calc(var(--city-rail-w,0px)+0.5rem)] pl:left-[max(env(safe-area-inset-left),0.5rem)] z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
+           fa-sheet p-3 rounded-[10px] text-[13px] w-[310px] max-w-[calc(100vw-1rem)]
+           border border-fa-line shadow-xl`
     }>
       {mobileSheet && (
         // Tapping the grab handle toggles between the half-height sheet and a near-full-screen one
@@ -253,25 +237,25 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           type="button"
           aria-label={expanded ? 'Collapse region details' : 'Expand region details'}
           onClick={peeking ? cancelPeek : () => setExpanded((v) => !v)}
-          className="w-full flex flex-col items-center justify-center -mt-3 -mb-1 text-slate-500"
+          className="w-full flex flex-col items-center justify-center -mt-3 -mb-1 text-fa-muted"
         >
-          <div className="w-10 h-1 rounded-full bg-slate-700" />
+          <div className="w-10 h-1 rounded-full bg-fa-hover" />
           <ChevronUp className={`w-3.5 h-3.5 mt-0.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
         </button>
       )}
       {/* Header */}
-      <div className="flex justify-between items-start border-b border-slate-700 pb-2 mb-2">
+      <div className="flex justify-between items-start border-b border-fa-line pb-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <MapPin className="w-4 h-4 text-blue-400 shrink-0" />
+          <MapPin className="w-5 h-5 text-fa-muted shrink-0" aria-hidden="true" />
           <div className="min-w-0">
-            <div className="font-bold text-white truncate text-sm">{regionData.name}</div>
-            <div className="text-slate-500 text-[10px] capitalize flex flex-wrap gap-x-1.5">
+            <h2 className="fa-heading text-[17px] leading-tight truncate">{regionData.name}</h2>
+            <div className="text-fa-muted text-[12px] capitalize flex flex-wrap gap-x-1.5">
               <span>{regionData.terrain}</span>
               {coastal && <span>· Coastal</span>}
-              {regionData.isCapital && <span className="text-purple-400">· Capital</span>}
+              {regionData.isCapital && <span>· Capital</span>}
             </div>
             {regionState.size != null && (
-              <div className="text-slate-500 text-[10px] truncate">
+              <div className="text-fa-muted text-[12px] truncate">
                 Size {regionState.size} · {regionState.tiles?.length || 1} tile{(regionState.tiles?.length || 1) === 1 ? '' : 's'}
               </div>
             )}
@@ -280,7 +264,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         <button
           onClick={onClose}
           aria-label="Close"
-          className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors shrink-0"
+          className="fa-icon-btn"
         >
           <X className="w-4 h-4" />
         </button>
@@ -288,8 +272,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
       {/* Owner */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-slate-400">Owner:</span>
-        <span className={`font-semibold ${isPlayerOwned ? 'text-blue-400' : ''}`} style={{ color: !isPlayerOwned ? ownerNation?.color : undefined }}>
+        <span className="text-fa-muted">Owner:</span>
+        <span className={`font-semibold ${isPlayerOwned ? 'text-fa-you' : ''}`} style={{ color: !isPlayerOwned ? ownerNation?.color : undefined }}>
           {isPlayerOwned ? state.nations[state.playerNationId]?.name : ownerNation ? <button type="button" onClick={() => selectNation(ownerNation.id)} className="underline decoration-dotted min-h-[24px]" title="Open the nation sheet" data-testid="open-nation-sheet">{ownerNation.name}</button> : (isNeutralFrontier ? (regionState.colony ? `Free land, ${regionState.colony.ownerId === state.playerNationId ? 'your' : `${state.nations[regionState.colony.ownerId]?.name || 'a'}`} colony` : 'Free land') : 'Unknown')}
         </span>
       </div>
@@ -300,10 +284,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {onManage && isPlayerOwned && (
         <button
           onClick={onManage}
-          className="w-full flex items-center justify-center gap-1.5 mb-2 py-1.5 rounded bg-blue-600/80 hover:bg-blue-500 text-white text-xs font-semibold"
+          className="fa-btn fa-btn-primary w-full mb-2"
+          data-testid="open-city-sheet"
         >
-          <Settings2 className="w-3.5 h-3.5" />
-          Manage Region
+          <Settings2 className="w-4 h-4" aria-hidden="true" />
+          Open the city
         </button>
       )}
 
@@ -311,18 +296,18 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {(regionState.underInvasion || regionState.siege || regionState.occupiedBy || regionState.disaster || (revealed && rebelsHere.length > 0) || (isPlayerOwned && regionState.formerOwner)) && (
         <div className="mb-2 space-y-1">
           {regionState.disaster && (
-            <div className="rounded-lg border border-sky-400/50 bg-sky-500/10 p-2 text-[11px] text-sky-100" data-testid="disaster-note">{DISASTER_LABELS[regionState.disaster.kind] || regionState.disaster.kind}: {regionState.disaster.kind === 'flood' ? 'the fields yield less' : regionState.disaster.kind === 'fire' ? 'the workshops yield less' : regionState.plague?.i > 0 ? `${Math.round(regionState.plague.i * 100)}% of the people sick, no growth; it spreads to nearby cities, ports, trade partners and armies` : 'no growth'}{regionState.plague?.i > 0 ? '' : ` until turn ${regionState.disaster.until}`}.</div>
+            <div className="rounded-lg border border-fa-science/60 bg-fa-raised p-2 text-[12px]" data-testid="disaster-note">{DISASTER_LABELS[regionState.disaster.kind] || regionState.disaster.kind}: {regionState.disaster.kind === 'flood' ? 'the fields yield less' : regionState.disaster.kind === 'fire' ? 'the workshops yield less' : regionState.plague?.i > 0 ? `${Math.round(regionState.plague.i * 100)}% of the people sick, no growth; it spreads to nearby cities, ports, trade partners and armies` : 'no growth'}{regionState.plague?.i > 0 ? '' : ` until turn ${regionState.disaster.until}`}.</div>
           )}
           {regionState.underInvasion && (
-            <div className="flex items-center gap-1.5 text-orange-400 font-semibold animate-pulse">
+            <div className="flex items-center gap-1.5 text-fa-enemy font-semibold animate-pulse">
               <AlertTriangle className="w-3 h-3" /><span>Under Invasion!</span>
             </div>
           )}
           {regionState.siege && (
-            <div className="rounded-lg border border-orange-400/50 bg-orange-500/10 p-2 text-[11px] text-orange-100" data-testid="siege-note">
+            <div className="rounded-lg border border-fa-enemy/70 bg-fa-raised p-2 text-[12px]" data-testid="siege-note">
               <div className="font-semibold">{regionState.siege.by ? `Under siege by ${state.nations[regionState.siege.by]?.name || 'rebels'}` : 'Recovering from a siege'}{regionState.siege.encircled ? ', encircled' : ''}</div>
-              <div className="h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden"><div className="h-full bg-orange-400" style={{ width: `${Math.round(100 * regionState.siege.hp / Math.max(1, regionState.siege.maxHp))}%` }} /></div>
-              <div className="text-orange-200/80 mt-0.5">Walls {wallsOf(regionState)} · {regionState.siege.hp}/{regionState.siege.maxHp} HP · the city works its first ring only</div>
+              <div className="h-1.5 bg-fa-line rounded-full mt-1 overflow-hidden"><div className="h-full bg-fa-enemy" style={{ width: `${Math.round(100 * regionState.siege.hp / Math.max(1, regionState.siege.maxHp))}%` }} /></div>
+              <div className="text-fa-muted mt-0.5">Walls {wallsOf(regionState)} · {regionState.siege.hp}/{regionState.siege.maxHp} HP · the city works its first ring only</div>
             </div>
           )}
           {regionState.owner && (() => {
@@ -332,17 +317,17 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             const ruined = Object.keys(dmg.ruined).filter((id) => id.startsWith('house-')).length;
             const damaged = Object.keys(dmg.damaged).length;
             return (
-              <div className="text-[11px] text-slate-300" data-testid="city-battle-note">
+              <div className="text-[12px] text-fa-text" data-testid="city-battle-note">
                 In battle its houses shelter {cityHousingCap(state, regionId)} people (the town hall 20).
-                {ruined > 0 && <span className="text-amber-200"> {ruined} house{ruined > 1 ? 's' : ''} in ruins, rebuilt over the next turns.</span>}
-                {damaged > 0 && <span className="text-amber-200"> {damaged} damaged, repairing.</span>}
+                {ruined > 0 && <span className="text-fa-enemy"> {ruined} house{ruined > 1 ? 's' : ''} in ruins, rebuilt over the next turns.</span>}
+                {damaged > 0 && <span className="text-fa-enemy"> {damaged} damaged, repairing.</span>}
               </div>
             );
           })()}
           {regionState.occupiedBy === state.playerNationId && occupationWar && (
-            <div className="rounded-lg border border-cyan-400/50 bg-cyan-500/10 p-2 text-[11px] text-cyan-100 space-y-1.5" data-testid="occupation-note">
+            <div className="rounded-lg border border-fa-line bg-fa-raised p-2 text-[12px] space-y-1.5" data-testid="occupation-note">
               <div>Your army holds {regionData.name}, but it stays {ownerNation?.name || 'theirs'}&apos;s land until peace. Demand it in a peace deal to make it yours.</div>
-              <button type="button" onClick={() => setPeaceOpen(true)} className="w-full min-h-[40px] rounded-lg bg-cyan-600/80 border border-cyan-300 font-semibold text-white" data-testid="open-peace-deal">Negotiate peace…</button>
+              <button type="button" onClick={() => setPeaceOpen(true)} className="fa-btn fa-btn-secondary w-full" data-testid="open-peace-deal">Negotiate peace…</button>
             </div>
           )}
           {regionState.occupiedBy && (
@@ -351,7 +336,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             </div>
           )}
           {revealed && rebelsHere.length > 0 && (
-            <div className="flex items-center gap-1.5 text-red-400">
+            <div className="flex items-center gap-1.5 text-fa-danger-text">
               <Flame className="w-3 h-3" /><span>{rebelsHere.length} rebel unit{rebelsHere.length === 1 ? '' : 's'} in revolt here</span>
             </div>
           )}
@@ -371,13 +356,13 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {!isPlayerOwned && ownerNation && (
         <div className="mb-2 space-y-1">
           <StatLine label="Relation" value={ownerNation.relationStatus} valueStyle={{ color: getRelationColor(ownerNation.relationStatus) }} />
-          <StatLine icon={Swords} label="Nation's army" value={revealed ? formatNumber(getFieldedStrength(state, regionState.owner)) : 'Unknown'} valueClass={revealed ? 'text-red-400' : 'text-slate-500'} />
-          <StatLine label="Hostility" value={`${ownerNation.hostility}%`} valueClass="text-orange-400" />
+          <StatLine icon={Swords} label="Nation's army" value={revealed ? formatNumber(getFieldedStrength(state, regionState.owner)) : 'Unknown'} valueClass={revealed ? 'text-fa-danger-text' : 'text-fa-muted'} />
+          <StatLine label="Hostility" value={`${ownerNation.hostility}%`} valueClass="text-fa-enemy" />
           <div className="flex flex-wrap gap-1 pt-1">
-            {ownerNation.hasPeaceTreaty && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[10px]">✓ Peace Treaty</span>}
-            {ownerNation.hasTradeAgreement && <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px]">✓ Trade Agreement</span>}
-            {isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">⚔ At War</span>}
-            {ownerIsIndependent && <span className="px-1.5 py-0.5 bg-slate-500/20 text-slate-200 rounded text-[10px]" data-testid="independent-badge" title="Independent city: one city that never expands. You may attack it without a war.">Independent, {PERSONALITIES[ownerNation.indep?.personality]?.name || 'Tribal'}</span>}
+            {ownerNation.hasPeaceTreaty && <span className="px-1.5 py-0.5 bg-green-500/20 text-fa-good rounded text-[10px]">✓ Peace Treaty</span>}
+            {ownerNation.hasTradeAgreement && <span className="px-1.5 py-0.5 bg-blue-500/20 text-fa-you rounded text-[10px]">✓ Trade Agreement</span>}
+            {isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-red-500/20 text-fa-danger-text rounded text-[10px] animate-pulse">⚔ At War</span>}
+            {ownerIsIndependent && <span className="px-1.5 py-0.5 bg-slate-500/20 text-fa-text rounded text-[10px]" data-testid="independent-badge" title="Independent city: one city that never expands. You may attack it without a war.">Independent, {PERSONALITIES[ownerNation.indep?.personality]?.name || 'Tribal'}</span>}
           </div>
           {ownerIsIndependent && <IndependentCityCard state={state} nationId={ownerNation.id} />}
         </div>
@@ -387,17 +372,17 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           for land with no owner at all: a frontier region's only action, the expedition, lives here
           (it used to be hidden behind the owner check, so frontier land could never be claimed). */}
       {!isPlayerOwned && (ownerNation || isNeutralFrontier || canSettle) && (
-        <div className="mb-2 pt-2 border-t border-slate-700 space-y-1.5">
+        <div className="mb-2 pt-2 border-t border-fa-line space-y-1.5">
           {!hasMilitaryOption && !isNeutralFrontier && !canSettle && (
-            <div className="text-slate-500 text-[10px]">No actions available against this region right now.</div>
+            <div className="text-fa-muted text-[10px]">No actions available against this region right now.</div>
           )}
           {regionState.tile != null && (() => {
             const kind = claimOn(state, state.playerNationId, regionState);
             const pending = (state.nations[state.playerNationId]?.claimsInProgress || []).find((c) => c.cityId === regionId);
             const can = canFabricateClaim(state, state.playerNationId, regionId);
             return (
-              <div className="rounded-lg border border-slate-700 bg-slate-800/60 p-2 space-y-1" data-testid="claim-card">
-                <div className="text-[11px] text-slate-300">
+              <div className="rounded-lg border border-fa-line bg-fa-raised/60 p-2 space-y-1" data-testid="claim-card">
+                <div className="text-[11px] text-fa-text">
                   {kind === 'core' ? `A core of yours: ${ownerNation.name} holds a city of your people. A war for it is justified and costs no reputation.`
                     : kind === 'claim' ? 'You hold a claim on this city: a war for it is justified.'
                       : pending ? `Your agents are fabricating a claim here: ready in ${Math.max(0, pending.done - state.turnNumber)} turns.`
@@ -414,7 +399,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 space-y-1.5" data-testid="peace-gate">
               <div className="text-[11px] text-amber-200">
                 You&apos;re at peace with {ownerNation.name}.{hasMilitaryOption ? ' Invading means war: declare it first, then attack.' : ' To take this city, declare war and march an army to it.'}
-                {breaksTruce && <span className="block text-red-300 mt-0.5">This breaks your truce: stability, prestige and your neighbours&apos; trust will suffer.</span>}
+                {breaksTruce && <span className="block text-fa-danger-text mt-0.5">This breaks your truce: stability, prestige and your neighbours&apos; trust will suffer.</span>}
               </div>
               <ActionButton
                 icon={Swords}
@@ -429,7 +414,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             </div>
           )}
           {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">Integration continues until turn {regionState.integratingUntil}: control rises and unrest falls each turn.</p>}
-          {ownerNation?.hasTradeAgreement && <p className="text-xs text-slate-300">Trade route: {getTradeRoute(state,ownerNation.id).ok ? getTradeRoute(state,ownerNation.id).kind : getTradeRoute(state,ownerNation.id).reason}{(() => { const v = tradeRoutesValue(state).find((r) => r.partnerId === ownerNation.id); return v ? `, ${v.km} km: +${(v.mult * 100).toFixed(1)}% gold (bigger and nearer partners pay more)` : ''; })()}</p>}
+          {ownerNation?.hasTradeAgreement && <p className="text-xs text-fa-text">Trade route: {getTradeRoute(state,ownerNation.id).ok ? getTradeRoute(state,ownerNation.id).kind : getTradeRoute(state,ownerNation.id).reason}{(() => { const v = tradeRoutesValue(state).find((r) => r.partnerId === ownerNation.id); return v ? `, ${v.km} km: +${(v.mult * 100).toFixed(1)}% gold (bigger and nearer partners pay more)` : ''; })()}</p>}
           {isNeutralFrontier && <ColonyBlock regionId={regionId} />}
           {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason }) => (
             <ActionButton
@@ -488,7 +473,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           insides stay hidden until a successful espionage op against its owner (engine/intel.js). ---- */}
       {!revealed && (
         <Section icon={EyeOff} title="No intelligence">
-          <div className="text-slate-400 mb-2">
+          <div className="text-fa-muted mb-2">
             {ownerNation?.name || 'Its owner'} keeps its provinces closed to you. Population, garrisons, buildings,
             development and resources stay unknown until your agents get inside.
           </div>
@@ -499,11 +484,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             return (
               <div className="mb-2" data-testid="loyalty">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-slate-400">Loyalty</span>
-                  <span className={`font-mono font-bold ${loyalty <= 25 ? 'text-red-400' : loyalty < t.total ? 'text-amber-300' : 'text-emerald-300'}`}>{loyalty}{loyalty !== t.total ? ` → ${t.total}` : ''}</span>
+                  <span className="text-fa-muted">Loyalty</span>
+                  <span className={`font-mono font-bold ${loyalty <= 25 ? 'text-fa-danger-text' : loyalty < t.total ? 'text-amber-300' : 'text-fa-good'}`}>{loyalty}{loyalty !== t.total ? ` → ${t.total}` : ''}</span>
                 </div>
                 <ProgressBar value={loyalty} color="dynamic" size="small" />
-                <div className="text-[10px] text-slate-500 mt-0.5">
+                <div className="text-[10px] text-fa-muted mt-0.5">
                   {culture.map(([id, v]) => `${state.nations[id]?.name || id} ${Math.round(v * 100)}%`).join(' · ')}
                   {` · people ${t.fromShare}`}{t.garrison ? ` · garrison +${t.garrison}` : ''}{t.amenities ? ` · amenities ${t.amenities > 0 ? '+' : ''}${t.amenities}` : ''}{t.conquered ? ` · conquered ${t.conquered}` : ''}{t.capitalLost ? ` · capital lost ${t.capitalLost}` : ''}{t.governor ? ` · governor ${t.governor > 0 ? '+' : ''}${t.governor}` : ''}{t.law ? ` · laws ${t.law > 0 ? '+' : ''}${t.law}` : ''}{t.wonder ? ` · wonder +${t.wonder}` : ''}
                 </div>
@@ -513,7 +498,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {regionState.lastAttackedTurn != null && (
             <div className="mb-2">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-slate-400">Control (siege)</span>
+                <span className="text-fa-muted">Control (siege)</span>
                 <span className="font-mono font-bold" style={{ color: getControlColor(regionState.control) }}>{Math.round(regionState.control)}%</span>
               </div>
               <ProgressBar value={regionState.control} color="dynamic" size="small" />
@@ -535,14 +520,14 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       <Section icon={Target} title="Overview" aside={!isPlayerOwned && intelTurnsLeft !== null ? (intelTurnsLeft > 0 ? `Intel: ${intelTurnsLeft} turn${intelTurnsLeft === 1 ? '' : 's'} left` : 'Intel: last turn') : null}>
         <div className="mb-2">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-slate-400">Control</span>
+            <span className="text-fa-muted">Control</span>
             <span className="font-mono font-bold" style={{ color: getControlColor(regionState.control) }}>{Math.round(regionState.control)}%</span>
           </div>
           <ProgressBar value={regionState.control} color="dynamic" size="small" />
         </div>
         <div className="grid grid-cols-2 gap-1.5">
           <StatTile icon={Users} label="People" value={formatNumber(regionState.currentPopulation || getDisplayPopulation(regionState, regionData, state.year))} sub={regionState.size != null ? `size ${regionState.size}` : undefined} />
-          <StatTile icon={HeartPulse} label="Stability" value={`${Math.round(getStability(regionState))}%`} valueClass={getStability(regionState) < 50 ? 'text-red-400' : 'text-slate-100'} />
+          <StatTile icon={HeartPulse} label="Stability" value={`${Math.round(getStability(regionState))}%`} valueClass={getStability(regionState) < 50 ? 'text-fa-danger-text' : 'text-fa-text'} />
           <StatTile icon={Building} label="Infrastructure" value={`${regionState.currentInfrastructure || 0}/10`} sub={`Supply ${getSupplyCapacity(regionState.currentInfrastructure)}`} />
           <StatTile icon={Shield} label="Defenses" value={`Lv ${regionState.defenseLevel || 0}`} sub={`Terrain fort ${regionData.fortification}`} />
           <StatTile icon={Target} label="Strategic value" value={`${regionData.strategicValue}/10`} />
@@ -555,8 +540,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       <Section icon={TrendingUp} title="Development" aside={`${totalDev} total`}>
         <div className="grid grid-cols-3 gap-1.5">
           <StatTile label="Tax" value={regionState.dev?.tax || 0} valueClass="text-amber-300" />
-          <StatTile label="Production" value={regionState.dev?.production || 0} valueClass="text-sky-300" />
-          <StatTile label="Manpower" value={regionState.dev?.manpower || 0} valueClass="text-red-300" />
+          <StatTile label="Production" value={regionState.dev?.production || 0} valueClass="text-fa-you" />
+          <StatTile label="Manpower" value={regionState.dev?.manpower || 0} valueClass="text-fa-danger-text" />
         </div>
       </Section>
 
@@ -565,7 +550,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         <div className="space-y-1.5">
           {unitGroups.map(({ ownerId, units }) => (
             <div key={ownerId}>
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-1">
+              <div className="flex items-center gap-1.5 text-[10px] text-fa-muted mb-1">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ownerId === REBEL_OWNER_ID ? '#ef4444' : state.nations[ownerId]?.color || '#64748b' }} />
                 <span className="truncate">{ownerId === REBEL_OWNER_ID ? 'Rebels' : ownerId === state.playerNationId ? 'Your forces' : state.nations[ownerId]?.name || ownerId}</span>
                 <span className="ml-auto font-mono">{formatNumber(units.reduce((sum, u) => sum + (u.strength || 0), 0))} str</span>
@@ -580,11 +565,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 const dest = onRoute?.route[onRoute.route.length - 1];
                 return (
                   <div className="flex gap-1.5 mt-1.5">
-                    <button onClick={() => startMarch(regionId)} data-testid="march-start" className="flex-1 min-h-[36px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white text-[12px] font-semibold flex items-center justify-center gap-1.5">
+                    <button onClick={() => startMarch(regionId)} data-testid="march-start" className="flex-1 min-h-[36px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-fa-text text-[12px] font-semibold flex items-center justify-center gap-1.5">
                       <Flag className="w-3.5 h-3.5" /> March…
                     </button>
                     {onRoute && (
-                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { regionId } })} className="flex-1 min-h-[36px] rounded-lg bg-slate-700 hover:bg-slate-600 text-[12px] truncate px-2" title={`Marching to ${placeName(state, dest)}`}>
+                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { regionId } })} className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] truncate px-2" title={`Marching to ${placeName(state, dest)}`}>
                         Stop march to {placeName(state, dest)}
                       </button>
                     )}
@@ -596,11 +581,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 const dest = sailing?.route[sailing.route.length - 1];
                 return (
                   <div className="flex gap-1.5 mt-1.5">
-                    <button onClick={() => startMarch(regionId, { naval: true })} data-testid="sail-start" className="flex-1 min-h-[36px] rounded-lg bg-sky-700/80 hover:bg-sky-600 text-white text-[12px] font-semibold flex items-center justify-center gap-1.5">
+                    <button onClick={() => startMarch(regionId, { naval: true })} data-testid="sail-start" className="flex-1 min-h-[36px] rounded-lg bg-sky-700/80 hover:bg-sky-600 text-fa-text text-[12px] font-semibold flex items-center justify-center gap-1.5">
                       <Ship className="w-3.5 h-3.5" /> Sail…
                     </button>
                     {sailing && (
-                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: units.filter((u) => u.domain === 'naval').map((u) => u.id) } })} className="flex-1 min-h-[36px] rounded-lg bg-slate-700 hover:bg-slate-600 text-[12px] truncate px-2" title={`Sailing to ${placeName(state, dest)}`}>
+                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: units.filter((u) => u.domain === 'naval').map((u) => u.id) } })} className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] truncate px-2" title={`Sailing to ${placeName(state, dest)}`}>
                         Stop sailing to {placeName(state, dest)}
                       </button>
                     )}
@@ -618,11 +603,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {builtCategories.map(({ categoryId, tier }) => {
             const category = BUILDING_CATEGORIES[categoryId];
             return (
-              <div key={categoryId} className="flex items-center gap-2 bg-slate-800/60 rounded px-2 py-1.5">
+              <div key={categoryId} className="flex items-center gap-2 bg-fa-raised/60 rounded px-2 py-1.5">
                 <BuildingIcon category={categoryId} tier={tier} size={24} />
                 <div className="min-w-0 flex-1">
-                  <div className="text-slate-100 font-semibold truncate">{getCategoryTierName(categoryId, tier)}</div>
-                  <div className="text-slate-500 text-[10px]">{category.label}</div>
+                  <div className="text-fa-text font-semibold truncate">{getCategoryTierName(categoryId, tier)}</div>
+                  <div className="text-fa-muted text-[10px]">{category.label}</div>
                 </div>
                 <TierPips filled={tier + 1} total={category.tiers.length} />
               </div>
@@ -635,7 +620,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         <Section icon={Landmark} title="Great projects">
           <div className="space-y-1">
             {projectsHere.map(({ projectId, tier }) => (
-              <div key={projectId} className="flex items-center justify-between bg-slate-800/60 rounded px-2 py-1.5">
+              <div key={projectId} className="flex items-center justify-between bg-fa-raised/60 rounded px-2 py-1.5">
                 <span className="text-yellow-200 font-semibold truncate inline-flex items-center gap-1.5"><WonderIcon projectId={projectId} size={20} />{GREAT_PROJECTS[projectId]?.name || projectId}</span>
                 <TierPips filled={tier} total={GREAT_PROJECTS[projectId]?.tiers?.length || 3} />
               </div>
@@ -650,7 +635,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {deposits.map((resId) => {
             const developed = !!regionState.buildings?.extraction?.[resId];
             return (
-              <div key={resId} className={`flex items-center gap-1.5 rounded px-2 py-1 border ${developed ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300' : 'border-slate-700 bg-slate-800/60 text-slate-400'}`}>
+              <div key={resId} className={`flex items-center gap-1.5 rounded px-2 py-1 border ${developed ? 'border-emerald-500/50 bg-emerald-500/10 text-fa-good' : 'border-fa-line bg-fa-raised/60 text-fa-muted'}`}>
                 {developed ? <ExtractionIcon resourceId={resId} size={18} /> : <ResourceIcon resourceId={resId} size={18} />}
                 <span className="capitalize">{resId}</span>
                 <span className="text-[10px] opacity-80">{developed ? EXTRACTION_BUILDINGS[resId]?.name : 'undeveloped'}</span>
@@ -665,7 +650,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         {neighbors.length === 0 && <Empty>No land neighbours.</Empty>}
         <div className="flex flex-wrap gap-1">
           {neighbors.map(({ id, name, color, mine }) => (
-            <span key={id} className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${mine ? 'bg-blue-500/15 text-blue-200' : 'bg-slate-800/70 text-slate-300'}`}>
+            <span key={id} className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${mine ? 'bg-blue-500/15 text-blue-200' : 'bg-fa-raised/70 text-fa-text'}`}>
               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
               {name}
             </span>
@@ -681,7 +666,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
       {/* Description */}
       {regionData.description && (
-        <div className="mt-2 pt-2 border-t border-slate-700 text-slate-500 text-[10px] italic">
+        <div className="mt-2 pt-2 border-t border-fa-line text-fa-muted text-[10px] italic">
           {regionData.description}
         </div>
       )}
@@ -692,37 +677,37 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 // ---- small presentational pieces ------------------------------------------------------------
 
 const Section = ({ icon: Icon, title, aside, children }) => (
-  <div className="mt-2 pt-2 border-t border-slate-700">
-    <div className="flex items-center gap-1.5 mb-1.5 text-slate-300 font-semibold">
-      {Icon && <Icon className="w-3.5 h-3.5 text-slate-400" />}
+  <div className="mt-2 pt-2 border-t border-fa-line">
+    <div className="flex items-center gap-1.5 mb-1.5 text-fa-text font-semibold">
+      {Icon && <Icon className="w-3.5 h-3.5 text-fa-muted" />}
       <span>{title}</span>
-      {aside && <span className="ml-auto text-slate-500 font-normal text-[10px]">{aside}</span>}
+      {aside && <span className="ml-auto text-fa-muted font-normal text-[10px]">{aside}</span>}
     </div>
     {children}
   </div>
 );
 
-const Empty = ({ children }) => <div className="text-slate-500 text-[10px]">{children}</div>;
+const Empty = ({ children }) => <div className="text-fa-muted text-[10px]">{children}</div>;
 
-const StatLine = ({ icon: Icon, label, value, valueClass = 'text-slate-300', valueStyle }) => (
+const StatLine = ({ icon: Icon, label, value, valueClass = 'text-fa-text', valueStyle }) => (
   <div className="flex items-center justify-between">
-    <span className="text-slate-400 flex items-center gap-1">{Icon && <Icon className="w-3 h-3" />}{label}:</span>
+    <span className="text-fa-muted flex items-center gap-1">{Icon && <Icon className="w-3 h-3" />}{label}:</span>
     <span className={`font-semibold ${valueClass}`} style={valueStyle}>{value}</span>
   </div>
 );
 
-const StatTile = ({ icon: Icon, label, value, sub, valueClass = 'text-slate-100' }) => (
-  <div className="bg-slate-800/60 rounded px-2 py-1.5 min-w-0">
-    <div className="text-slate-500 text-[10px] flex items-center gap-1 truncate">{Icon && <Icon className="w-3 h-3 shrink-0" />}{label}</div>
+const StatTile = ({ icon: Icon, label, value, sub, valueClass = 'text-fa-text' }) => (
+  <div className="bg-fa-raised/60 rounded px-2 py-1.5 min-w-0">
+    <div className="text-fa-muted text-[10px] flex items-center gap-1 truncate">{Icon && <Icon className="w-3 h-3 shrink-0" />}{label}</div>
     <div className={`font-mono font-bold ${valueClass}`}>{value}</div>
-    {sub && <div className="text-slate-500 text-[10px] truncate">{sub}</div>}
+    {sub && <div className="text-fa-muted text-[12px] truncate">{sub}</div>}
   </div>
 );
 
 const TierPips = ({ filled, total }) => (
   <div className="flex gap-0.5 shrink-0" title={`Tier ${filled} of ${total}`}>
     {Array.from({ length: total }, (_, i) => (
-      <span key={i} className={`w-1.5 h-1.5 rounded-full ${i < filled ? 'bg-amber-400' : 'bg-slate-700'}`} />
+      <span key={i} className={`w-1.5 h-1.5 rounded-full ${i < filled ? 'bg-amber-400' : 'bg-fa-hover'}`} />
     ))}
   </div>
 );
@@ -732,23 +717,23 @@ const UnitLine = ({ unit, age, commander }) => {
   const cls = UNIT_CLASSES[unit.classId];
   const strengthPct = unit.maxStrength ? Math.round((unit.strength / unit.maxStrength) * 100) : 100;
   return (
-    <div className="flex items-center gap-2 bg-slate-800/60 rounded px-2 py-1.5">
+    <div className="flex items-center gap-2 bg-fa-raised/60 rounded px-2 py-1.5">
       <UnitIcon classId={unit.classId} navalLine={unit.navalLine} ageId={age} size={24} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-slate-100 font-semibold truncate">{cls?.name || unit.classId}</span>
-          <span className="text-slate-500 text-[10px] capitalize">{getRankForXp(unit.xp || 0)}</span>
-          {unit.embarkedOn && <Anchor className="w-3 h-3 text-sky-400" aria-label="Embarked" />}
+          <span className="text-fa-text font-semibold truncate">{cls?.name || unit.classId}</span>
+          <span className="text-fa-muted text-[10px] capitalize">{getRankForXp(unit.xp || 0)}</span>
+          {unit.embarkedOn && <Anchor className="w-3 h-3 text-fa-you" aria-label="Embarked" />}
         </div>
-        <div className="h-1 bg-slate-700 rounded-full mt-1 overflow-hidden">
+        <div className="h-1 bg-fa-hover rounded-full mt-1 overflow-hidden">
           <div className="h-full rounded-full" style={{ width: `${strengthPct}%`, background: strengthPct > 60 ? '#22c55e' : strengthPct > 30 ? '#f59e0b' : '#ef4444' }} />
         </div>
         {commander && <div className="text-[10px] text-purple-300 truncate mt-0.5">Led by {commander.name}</div>}
       </div>
-      <div className="text-right font-mono text-[10px] text-slate-400 shrink-0">
+      <div className="text-right font-mono text-[10px] text-fa-muted shrink-0">
         <div>{unit.strength}/{unit.maxStrength}</div>
         <div>MOR {unit.morale}</div>
-        {unit.domain !== 'naval' && <div className={supplyOf(unit) < 30 ? 'text-red-400' : ''} title="Supply">SUP {supplyOf(unit)}</div>}
+        {unit.domain !== 'naval' && <div className={supplyOf(unit) < 30 ? 'text-fa-danger-text' : ''} title="Supply">SUP {supplyOf(unit)}</div>}
       </div>
     </div>
   );

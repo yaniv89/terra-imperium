@@ -10,7 +10,7 @@ import { AGES } from '../../data/ages';
 // Log type styling configuration
 const LOG_STYLES = {
   [LogTypes.ACTION]: {
-    className: 'text-green-400',
+    className: 'text-fa-good',
     borderClass: '',
     bgClass: '',
     label: 'Action'
@@ -22,19 +22,19 @@ const LOG_STYLES = {
     label: 'Event'
   },
   [LogTypes.COMBAT]: {
-    className: 'text-orange-400',
+    className: 'text-fa-enemy',
     borderClass: 'border-l-2 border-orange-500 pl-2',
     bgClass: '',
     label: 'Combat'
   },
   [LogTypes.MILESTONE]: {
-    className: 'text-blue-400 font-semibold',
+    className: 'text-fa-you font-semibold',
     borderClass: 'border-l-2 border-blue-500 pl-2',
     bgClass: 'bg-blue-500/5',
     label: 'Milestone'
   },
   [LogTypes.CRISIS]: {
-    className: 'text-red-400 font-bold',
+    className: 'text-fa-danger-text font-bold',
     borderClass: 'border-l-2 border-red-500 pl-2',
     bgClass: 'bg-red-500/10',
     label: 'Crisis'
@@ -52,8 +52,8 @@ const LOG_STYLES = {
     label: 'Diplomacy'
   },
   [LogTypes.AI]: {
-    className: 'text-slate-400 italic',
-    borderClass: 'border-l-2 border-slate-500 pl-2',
+    className: 'text-fa-muted italic',
+    borderClass: 'border-l-2 border-fa-line pl-2',
     bgClass: '',
     label: 'World'
   }
@@ -70,11 +70,11 @@ const LogEntry = ({ log, showYear = true }) => {
         ${style.borderClass}
         ${style.bgClass}
         ${style.className}
-        hover:bg-slate-800/50
+        hover:bg-fa-raised/50
       `}
     >
       {showYear && (
-        <span className="text-slate-600 mr-2 font-mono text-[10px] inline-block align-top mt-0.5">
+        <span className="text-fa-muted mr-2 font-mono text-[10px] inline-block align-top mt-0.5">
           [{log.year}]
         </span>
       )}
@@ -94,8 +94,8 @@ const FilterButton = ({ type, label, isActive, onClick, count }) => {
       className={`
         px-1.5 py-0.5 rounded text-[9px] transition-all whitespace-nowrap
         ${isActive 
-          ? `${style.className} bg-slate-700` 
-          : 'text-slate-500 hover:text-slate-300'
+          ? `${style.className} bg-fa-hover` 
+          : 'text-fa-muted hover:text-fa-text'
         }
       `}
     >
@@ -169,13 +169,13 @@ const LogConsole = () => {
   const years = Object.keys(groupedByYear).sort((a, b) => Number(a) - Number(b));
 
   return (
-    <div className="bg-slate-950 rounded-lg border border-slate-800 flex flex-col h-full shadow-xl overflow-hidden">
+    <div className="bg-fa-ink rounded-lg border border-fa-line flex flex-col h-full shadow-xl overflow-hidden">
       {/* Header */}
-      <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950 z-10">
+      <div className="px-3 py-2 border-b border-fa-line flex items-center justify-between shrink-0 bg-fa-ink z-10">
         <div className="flex items-center gap-2 min-w-0">
-          <ScrollText className="w-4 h-4 text-slate-500 shrink-0" />
-          <span className="text-xs font-semibold text-slate-400">Event Log</span>
-          <span className="text-[10px] text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">
+          <ScrollText className="w-4 h-4 text-fa-muted shrink-0" />
+          <span className="text-xs font-semibold text-fa-muted">Event Log</span>
+          <span className="text-[10px] text-fa-muted bg-fa-raised px-1.5 py-0.5 rounded">
             {filteredLogs.length} / {state.logs.length}
           </span>
         </div>
@@ -189,7 +189,7 @@ const LogConsole = () => {
                 scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
               }
             }}
-            className="text-[9px] text-blue-400 hover:text-blue-300 px-1.5 py-0.5 bg-blue-500/20 rounded animate-pulse"
+            className="text-[9px] text-fa-you hover:text-fa-you px-1.5 py-0.5 bg-blue-500/20 rounded animate-pulse"
           >
             ↓ New
           </button>
@@ -197,8 +197,8 @@ const LogConsole = () => {
       </div>
 
       {/* Filters Row */}
-      <div className="px-2 py-1.5 border-b border-slate-800/50 flex flex-wrap gap-1 shrink-0 bg-slate-900/50">
-        <Filter className="w-3 h-3 text-slate-600 mr-1 mt-0.5" />
+      <div className="px-2 py-1.5 border-b border-fa-line/50 flex flex-wrap gap-1 shrink-0 bg-fa-panel/50">
+        <Filter className="w-3 h-3 text-fa-muted mr-1 mt-0.5" />
         {Object.entries(LOG_STYLES).map(([type, style]) => (
           <FilterButton
             key={type}
@@ -228,7 +228,7 @@ const LogConsole = () => {
         "
       >
         {filteredLogs.length === 0 ? (
-          <div className="text-slate-600 text-xs text-center py-4 italic">
+          <div className="text-fa-muted text-xs text-center py-4 italic">
             No logs match current filters
           </div>
         ) : (
@@ -237,8 +237,8 @@ const LogConsole = () => {
             <div key={year} className="mb-2">
               {/* Year separator for milestone years */}
               {(Number(year) % 10 === 0 || groupedByYear[year].some(l => l.type === LogTypes.MILESTONE)) && (
-                <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-1 mt-2
-                              border-t border-slate-800 pt-1 sticky top-0 bg-slate-950/90 backdrop-blur-sm z-10">
+                <div className="text-[9px] text-fa-muted uppercase tracking-wider mb-1 mt-2
+                              border-t border-fa-line pt-1 sticky top-0 bg-fa-ink/90 backdrop-blur-sm z-10">
                   — {year} —
                 </div>
               )}
@@ -258,8 +258,8 @@ const LogConsole = () => {
       </div>
 
       {/* Footer with turn info */}
-      <div className="px-2 py-1 border-t border-slate-800 text-[9px] text-slate-600
-                      flex justify-between items-center shrink-0 bg-slate-900/50">
+      <div className="px-2 py-1 border-t border-fa-line text-[9px] text-fa-muted
+                      flex justify-between items-center shrink-0 bg-fa-panel/50">
         <span>Turn {state.turnNumber} • Year {state.year}</span>
         <span className="flex items-center gap-2">
           {AGES[state.age]?.name || state.age}

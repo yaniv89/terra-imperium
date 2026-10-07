@@ -85,32 +85,32 @@ const SpacePanel = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-white font-bold text-lg">
+      <div className="flex items-center gap-2 text-fa-text font-bold text-lg">
         <Satellite size={20} className="text-cyan-400" />
         Space Race
       </div>
 
       {!launchable && (
-        <div className="text-slate-400 text-xs bg-slate-800/60 rounded-lg p-3">
+        <div className="text-fa-muted text-xs bg-fa-raised/60 rounded-lg p-3">
           Orbital launches require reaching the Modern Age and the year 1957 or later.
         </div>
       )}
 
-      <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
-        <div className="text-slate-400">Orbital Debris Level</div>
-        <div className="text-white font-semibold">{state.orbitalDebrisLevel || 0}/100 ({Math.round(effectivenessMult * 100)}% satellite effectiveness)</div>
-        <div className="text-[10px] text-slate-500 mt-0.5">Every ASAT strike raises this for everyone in orbit — it decays slowly at rest.</div>
+      <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
+        <div className="text-fa-muted">Orbital Debris Level</div>
+        <div className="text-fa-text font-semibold">{state.orbitalDebrisLevel || 0}/100 ({Math.round(effectivenessMult * 100)}% satellite effectiveness)</div>
+        <div className="text-[10px] text-fa-muted mt-0.5">Every ASAT strike raises this for everyone in orbit — it decays slowly at rest.</div>
       </div>
 
       <div className="space-y-2">
-        <div className="text-xs font-semibold text-slate-300">Your Satellites ({ownSatellites.length})</div>
-        {ownSatellites.length === 0 && <div className="text-[10px] text-slate-500">None in orbit yet.</div>}
+        <div className="text-xs font-semibold text-fa-text">Your Satellites ({ownSatellites.length})</div>
+        {ownSatellites.length === 0 && <div className="text-[10px] text-fa-muted">None in orbit yet.</div>}
         {ownSatellites.map(sat => (
-          <div key={sat.id} className="flex items-center gap-1.5 bg-slate-800/60 rounded-lg p-2 text-xs">
+          <div key={sat.id} className="flex items-center gap-1.5 bg-fa-raised/60 rounded-lg p-2 text-xs">
             <Radio size={14} className="text-cyan-400 shrink-0" />
             <div className="flex-1">
-              <div className="text-white">{SATELLITE_TYPES[sat.typeId]?.name}</div>
-              <div className="text-slate-500">{SATELLITE_TYPES[sat.typeId]?.description}</div>
+              <div className="text-fa-text">{SATELLITE_TYPES[sat.typeId]?.name}</div>
+              <div className="text-fa-muted">{SATELLITE_TYPES[sat.typeId]?.description}</div>
             </div>
           </div>
         ))}
@@ -130,11 +130,11 @@ const SpacePanel = () => {
 
       {enemySatellites.length > 0 && (
         <div className="space-y-2">
-          <div className="text-xs font-semibold text-slate-300">Anti-Satellite Strike</div>
+          <div className="text-xs font-semibold text-fa-text">Anti-Satellite Strike</div>
           <select
             value={selectedTargetId}
             onChange={(e) => setSelectedTargetId(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white"
+            className="w-full bg-fa-raised border border-fa-line rounded-lg p-2 text-xs text-fa-text"
           >
             <option value="">Select a target satellite...</option>
             {enemySatellites.map(sat => (
@@ -154,20 +154,20 @@ const SpacePanel = () => {
         </div>
       )}
 
-      <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-800">
+      <div className="text-[10px] text-fa-muted pt-2 border-t border-fa-line">
         World satellites in orbit: {formatNumber(Object.keys(state.satellites).length)}
       </div>
 
       {!missilesUnlocked && (
-        <div className="pt-2 border-t border-slate-800 text-xs text-slate-500">Missiles and ABM defense unlock in the Modern age.</div>
+        <div className="pt-2 border-t border-fa-line text-xs text-fa-muted">Missiles and ABM defense unlock in the Modern age.</div>
       )}
       {missilesUnlocked && (
-      <div className="space-y-2 pt-2 border-t border-slate-800">
-        <div className="text-xs font-semibold text-slate-300">Missile Stockpile</div>
-        <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] text-slate-400">
+      <div className="space-y-2 pt-2 border-t border-fa-line">
+        <div className="text-xs font-semibold text-fa-text">Missile Stockpile</div>
+        <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] text-fa-muted">
           {MISSILE_TIER_IDS.map(tierId => (
-            <div key={tierId} className="bg-slate-800/60 rounded-lg p-1.5">
-              <div className="text-white font-semibold">{playerNation?.missiles?.[tierId] || 0}</div>
+            <div key={tierId} className="bg-fa-raised/60 rounded-lg p-1.5">
+              <div className="text-fa-text font-semibold">{playerNation?.missiles?.[tierId] || 0}</div>
               <div>{MISSILE_TIERS[tierId].name}</div>
             </div>
           ))}
@@ -185,11 +185,11 @@ const SpacePanel = () => {
           />
         ))}
 
-        <div className="text-xs font-semibold text-slate-300 pt-1">Missile Strike</div>
+        <div className="text-xs font-semibold text-fa-text pt-1">Missile Strike</div>
         <select
           value={missileTierId}
           onChange={(e) => setMissileTierId(e.target.value)}
-          className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white"
+          className="w-full bg-fa-raised border border-fa-line rounded-lg p-2 text-xs text-fa-text"
         >
           {MISSILE_TIER_IDS.map(tierId => (
             <option key={tierId} value={tierId}>{MISSILE_TIERS[tierId].name} ({playerNation?.missiles?.[tierId] || 0} in stock)</option>
@@ -198,7 +198,7 @@ const SpacePanel = () => {
         <select
           value={missileTargetRegionId}
           onChange={(e) => setMissileTargetRegionId(e.target.value)}
-          className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white"
+          className="w-full bg-fa-raised border border-fa-line rounded-lg p-2 text-xs text-fa-text"
         >
           <option value="">{otherRegionIds.length ? 'Select a target region...' : 'No targets — you must be at war to strike'}</option>
           {otherRegionIds.map(id => (
@@ -226,8 +226,8 @@ const SpacePanel = () => {
       </div>
       )}
 
-      <div className="space-y-2 pt-2 border-t border-slate-800">
-        <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+      <div className="space-y-2 pt-2 border-t border-fa-line">
+        <div className="text-xs font-semibold text-fa-text flex items-center gap-1.5">
           <Milestone size={14} />
           Space Mission Ladder
         </div>

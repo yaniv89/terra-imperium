@@ -19,6 +19,8 @@ describe('city rail model', () => {
     expect(rows.map((r) => r.id)).toEqual([paris, added.cityId]);
     expect(rows[0]).toMatchObject({ capital: true, building: 'Granary', idle: false, starving: false, restless: false });
     expect(rows[0].buildTurns).toBeGreaterThan(0);
+    expect(rows[0].buildShare).toBe(0); // nothing built yet: an empty production bar
+    expect(rows[1].buildShare).toBeNull();
     expect(rows[0].growthTurns).toBeGreaterThan(0);
     expect(rows[1]).toMatchObject({ capital: false, idle: true, starving: true, restless: true, besieged: true, growthTurns: null });
     expect(cityRailModel({ ...s0, playerNationId: 'nope' })).toEqual([]);

@@ -13,6 +13,9 @@ export const selectTile = (tile) => window.dispatchEvent(new CustomEvent(SELECT_
 // Open the nation sheet for `nationId` (the region card's owner name, NationSheet.jsx).
 export const SELECT_NATION = 'ti:select-nation';
 export const selectNation = (nationId) => window.dispatchEvent(new CustomEvent(SELECT_NATION, { detail: nationId }));
+// Select a city (open its card) from anywhere: the city list, a "needs you" chip, the turn report.
+export const SELECT_REGION = 'ti:select-region';
+export const selectRegion = (regionId) => window.dispatchEvent(new CustomEvent(SELECT_REGION, { detail: regionId }));
 // Centre the map on a city while something about it is open (the event sheet); null releases it.
 export const FOCUS_REGION = 'ti:focus-region';
 export const focusRegion = (regionId) => window.dispatchEvent(new CustomEvent(FOCUS_REGION, { detail: regionId }));

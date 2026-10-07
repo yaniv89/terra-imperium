@@ -40,7 +40,7 @@ import { getTiles } from '../../data/geo/tiles';
 import MapModeToggle from './MapModeToggle';
 import MiniMap from './MiniMap';
 import MapModal from './MapModal';
-import MapLegend from '../globe/MapLegend';
+import MapLegend, { FogLegend } from '../globe/MapLegend';
 import { RegionInfoModal, ProvinceModal } from '../modals';
 import TileSheet from './TileSheet';
 import ArmySheet from './ArmySheet';
@@ -48,7 +48,7 @@ import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
 import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION } from './marchEvents';
-import { useIsMobile } from '../../hooks/useIsMobile';
+import { SET_MAP_LENS } from '../ui/uiEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
@@ -86,8 +86,10 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const setMini = (v) => { setMiniState(v); try { localStorage.setItem(MINIMAP_STORAGE_KEY, v ? '1' : '0'); } catch { /* storage off */ } };
   useEffect(() => {
     const onKey = (e) => { if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; const l = LENSES.find((x) => x.key === e.key); if (l) setLens(l.id); };
+    const onLens = (e) => { if (LENSES.some((x) => x.id === e.detail)) setLens(e.detail); };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener(SET_MAP_LENS, onLens);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener(SET_MAP_LENS, onLens); };
   }, []);
   // The next prompt opens an army sheet or a tile sheet from the header (marchEvents.js).
   useEffect(() => {
@@ -114,7 +116,6 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [eventFocus, setEventFocus] = useState(null); // the event sheet's city (marchEvents.js focusRegion)
-  const isMobile = useIsMobile();
   const [viewportBounds, setViewportBounds] = useState(null);
   const [navigateTarget, setNavigateTarget] = useState(null);
   // A touch tap that covered several provinces: which one did the player mean? (RegionChooser)
@@ -168,7 +169,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       {/* On a phone, Manage Region grows out of this same bottom sheet — keeping both mounted
           stacked a second sheet behind it that stayed visible (and kept covering the map) whenever
           Manage Region peeked during an animation. */}
-      {!(isMobile && manageOpen) && (
+      {!manageOpen && (
       <RegionInfoModal
         regionId={selectedRegion}
         onClose={() => { setManageOpen(false); onSelectRegion(null); }}
@@ -179,12 +180,14 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} />}
       {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
-      <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2 pl:bottom-2 pl:left-[max(env(safe-area-inset-left),0.5rem)]">
-        <LensStrip lens={lens} onChange={setLens} />
-        {miniOpen
-          ? <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label="Hide the mini map" data-testid="minimap-hide" className="absolute -top-2 -right-2 min-w-[28px] min-h-[28px] rounded-full bg-slate-900/95 border border-slate-700 text-slate-300 text-xs pointer-events-auto">×</button></div>
-          : <button type="button" onClick={() => setMini(true)} aria-label="Show the mini map" data-testid="minimap-show" className="min-h-[36px] px-2.5 rounded-full bg-slate-900/90 border border-slate-700 shadow-xl text-[11px] font-semibold text-slate-200 pointer-events-auto">World</button>}
+      <div className="absolute left-[calc(var(--city-rail-w,0px)+0.75rem)] z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)] lg:bottom-3 pl:bottom-3 pl:left-[max(env(safe-area-inset-left),0.75rem)]">
         {miniOpen && <MapLegend />}
+        {miniOpen && <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label="Hide the mini map" data-testid="minimap-hide" className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-fa-panel border border-fa-line text-fa-text text-sm pointer-events-auto">×</button></div>}
+        <div className="flex items-end gap-2">
+          <LensStrip lens={lens} onChange={setLens} />
+          {!miniOpen && <button type="button" onClick={() => setMini(true)} aria-label="Show the mini map" data-testid="minimap-show" className="min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">World</button>}
+        </div>
+        <FogLegend />
       </div>
       {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}
       <MarchBar onSelectRegion={selectRegion} />

@@ -5,15 +5,24 @@ import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react
 import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { MapInsetsProvider } from './context/MapInsetsContext';
-import { GameHeader, StartScreen } from './components/ui';
+import { StartScreen } from './components/ui';
+import WorldTopBar from './components/ui/WorldTopBar';
+import TurnDock from './components/ui/TurnDock';
+import NextPrompt from './components/ui/NextPrompt';
+import SettingsSheet from './components/ui/SettingsSheet';
+import TurnReportSheet from './components/ui/TurnReportSheet';
+import NationOverviewSheet from './components/ui/NationOverviewSheet';
+import { OPEN_SETTINGS } from './components/ui/uiEvents';
+import { SELECT_REGION } from './components/map/marchEvents';
+import FirstContactCard from './components/modals/FirstContactCard';
 import { MapContainer } from './components/map';
 import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
-import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner, OldSaveNotice } from './components/modals';
+import { EventModal, GameOverModal, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner, OldSaveNotice } from './components/modals';
 import AdminPage from './components/admin/AdminPage';
 
 // The commanded-battle screen (three.js + the sim worker) only downloads when a battle starts.
 const TacticalBattleHost = lazyWithReload(() => import('./components/battle/TacticalBattleHost'));
-import { GameStatus, LogTypes, ActionTypes } from './data/types';
+import { GameStatus, ActionTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
 import { AGES } from './data/ages';
@@ -128,18 +137,6 @@ const GameLayout = () => {
     return () => clearTimeout(timer);
   }, [state.playerEliminatedNationId, state.nations]);
 
-  // Post-turn battle summary (Phase 9) — surfaces newly-added combat/crisis log lines as a
-  // dismissible toast. prevLogCountRef starts at the CURRENT length so loading a save with an
-  // existing history never spuriously toasts on mount; only logs added after that count.
-  const prevLogCountRef = useRef(state.logs.length);
-  const [battleSummary, setBattleSummary] = useState(null);
-  useEffect(() => {
-    const newLogs = state.logs.slice(prevLogCountRef.current);
-    prevLogCountRef.current = state.logs.length;
-    const combatLogs = newLogs.filter(l => l.type === LogTypes.COMBAT || l.type === LogTypes.CRISIS);
-    if (combatLogs.length > 0) setBattleSummary(combatLogs);
-  }, [state.logs]);
-
   // Handle game reset. No confirmation needed once the run has already ended (Victory/Defeat) —
   // there's nothing left to lose. Routes back through the start screen so the player can pick a
   // new nation/speed/difficulty rather than silently restarting as whatever they last played.
@@ -148,7 +145,6 @@ const GameLayout = () => {
     if (alreadyOver || window.confirm('Reset game? All progress will be lost.')) {
       setShowStartScreen(true);
       setSelectedRegion(null);
-      setBattleSummary(null);
     }
   }, [state.gameStatus]);
 
@@ -168,6 +164,19 @@ const GameLayout = () => {
   const handleSelectRegion = useCallback((regionId) => {
     setSelectedRegion(regionId);
   }, []);
+  // Any part of the UI can open a city (the city list, a "needs you" chip, the turn report).
+  useEffect(() => {
+    const onSelect = (e) => handleSelectRegion(e.detail || null);
+    window.addEventListener(SELECT_REGION, onSelect);
+    return () => window.removeEventListener(SELECT_REGION, onSelect);
+  }, [handleSelectRegion]);
+  // Settings (W12) open from Menu on the tab rail.
+  const [showSettings, setShowSettings] = useState(false);
+  useEffect(() => {
+    const onOpen = () => setShowSettings(true);
+    window.addEventListener(OPEN_SETTINGS, onOpen);
+    return () => window.removeEventListener(OPEN_SETTINGS, onOpen);
+  }, []);
   // Dev builds only: open a province from the console / browser tests (the globe is hard to click).
   useEffect(() => {
     if (!import.meta.env.DEV) return undefined;
@@ -180,7 +189,7 @@ const GameLayout = () => {
   }
 
   return (
-    <div className="h-[100dvh] w-full bg-slate-950 text-slate-100 relative overflow-hidden">
+    <div className="h-[100dvh] w-full bg-fa-ink text-fa-text relative overflow-hidden">
       {/* Layer 0: the map is the entire game surface (plan feedback: "combine the map and the
           play panel into one surface" instead of two separate sections) — everything else below
           floats over it as a fixed/absolute overlay rather than claiming its own layout space. */}
@@ -191,8 +200,19 @@ const GameLayout = () => {
         />
       </div>
 
-      {/* Translucent HUD header, floating over the map's top edge. */}
-      <GameHeader onReset={handleReset} onOpenSettings={() => setShowAccount(true)} cloudStatus={client ? cloudSync.status : null} />
+      {/* The one world top bar (plans/UI-DESIGN.md section 2), floating over the map's top edge. */}
+      <WorldTopBar />
+
+      {/* "Needs you" chips under the top bar (W02): tap one to jump there. */}
+      <div className="fixed z-10 left-[calc(max(env(safe-area-inset-left),0.75rem)+var(--city-rail-w,0px))] top-[calc(var(--header-height,2.25rem)+0.625rem)] pointer-events-none needs-you">
+        {state.gameStatus === GameStatus.ACTIVE && <NextPrompt />}
+      </div>
+
+      {/* First contact with a people (W03). */}
+      <FirstContactCard />
+
+      {/* End Turn, bottom right (W02, W10). */}
+      <TurnDock />
 
       {/* Desktop: the city list rail on the left (plans/civ-map-rework.md E2). */}
       <CityRail onSelectRegion={handleSelectRegion} />
@@ -233,8 +253,12 @@ const GameLayout = () => {
         onContinue={handleContinueAfterVictory}
       />
 
-      {/* Post-turn battle summary (Phase 9) - non-blocking, dismissible toast */}
-      <BattleSummaryToast entries={battleSummary} onDismiss={() => setBattleSummary(null)} />
+      {/* The turn report (W10): what the turn brought, grouped, with a place on each line.
+          It replaces the old battle summary toast (battles are its first group). */}
+      <TurnReportSheet />
+
+      {/* The nation overview (W17), from the name on the top bar */}
+      <NationOverviewSheet />
 
       {/* Age Advance banner - non-blocking, auto-dismisses (plan §10.5's "showpiece") */}
       <AgeAdvanceBanner ageName={ageBanner} onDismiss={() => setAgeBanner(null)} />
@@ -245,7 +269,10 @@ const GameLayout = () => {
       {/* Event Log drawer - the log's actual content, opened on demand from LogTrigger above */}
       <LogDrawer open={logDrawerOpen} onClose={() => setLogDrawerOpen(false)} />
 
-      {/* Cloud saves + account (plan §M0.5) - opened from GameHeader's Cloud button */}
+      {/* Settings and saves (W12), from Menu on the tab rail */}
+      <SettingsSheet open={showSettings} onClose={() => setShowSettings(false)} onOpenAccount={() => { setShowSettings(false); setShowAccount(true); }} onReset={handleReset} cloudLabel={client ? (cloudSync.status === 'synced' ? 'Cloud saves: saved' : 'Cloud saves and account') : null} />
+
+      {/* Cloud saves + account (plan §M0.5) - opened from Settings */}
       <AccountModal
         open={showAccount}
         onClose={() => setShowAccount(false)}

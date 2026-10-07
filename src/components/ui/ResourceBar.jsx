@@ -10,7 +10,7 @@ import ResourceBadge from './ResourceBadge';
 import Breakdown from './Breakdown';
 import { POWER_POOL_CAP } from '../../data/actionCosts';
 
-const ResourceBar = () => {
+const ResourceBar = ({ wrap = false }) => {
   const { state } = useGame();
   const [expandedResource, setExpandedResource] = useState(null);
 
@@ -30,7 +30,7 @@ const ResourceBar = () => {
     // by wrapping into two full rows instead of letting the row scroll, which is what pushed all
     // of a phone's resource badges into a tall, always-visible block above the game content.
     // shrink-0 on every badge keeps each one at its natural width instead of being squeezed.
-    <div className="flex flex-nowrap gap-1.5 sm:gap-2 [&>*]:shrink-0">
+    <div className={`flex ${wrap ? 'flex-wrap' : 'flex-nowrap'} gap-1.5 sm:gap-2 [&>*]:shrink-0`}>
       {['adm', 'dip', 'mil'].map((pool) => (
         <ResourceBadge
           key={pool}

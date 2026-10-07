@@ -17,14 +17,17 @@ import { ABILITIES } from '../../battle/sim/effects';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
 import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
 import { createPerfMeter, formatPerf } from '../../battle/render/perfMeter';
+import { getMapPrefs } from '../map/mapPrefs';
 import { BuildMenu, BuildingPanel } from './EconomyHud';
 import { BUILDINGS } from '../../battle/data/economy';
 
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
 const HUD_INTERVAL_MS = 150;
-// `&perf` in the page URL shows the performance readout (works in a production build too).
-const PERF_ON = typeof location !== 'undefined' && new URLSearchParams(location.search).has('perf');
+// `&perf` in the page URL, or the Performance overlay setting (W12, mapPrefs.js), shows the
+// performance readout (works in a production build too). Read when the battle opens.
+const PERF_URL = typeof location !== 'undefined' && new URLSearchParams(location.search).has('perf');
+const perfOn = () => PERF_URL || !!getMapPrefs().perf;
 
 // One-time UI hints live in localStorage (per device, never in the save). Storage can be missing or
 // blocked (private mode): then the hint simply shows again next time.
@@ -62,6 +65,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const selectedBuildingRef = useRef(null);
   const [buildMenu, setBuildMenu] = useState(false);
   const perfRef = useRef(null);
+  const [showPerf] = useState(perfOn);
   // Touch box select (UI-DESIGN B04): while on, a one-finger drag draws the selection box.
   const [selectMode, setSelectMode] = useState(false);
   const selectModeRef = useRef(false);
@@ -108,7 +112,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     if (!resume) renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide); // the zone shows until Start (plan E7)
     if(window.__E2E_BATTLE_TEST__)window.__battleTest={diagnostics:()=>renderer.diagnostics(),tick:()=>frames.current.cur?.tick};
     // For debugging in the console, and for scripts/battle-phone-bench.mjs (which moves the camera) in a perf run.
-    if (import.meta.env.DEV || PERF_ON) { window.__battleRenderer = renderer; window.__battleView = () => frames.current.cur; }
+    if (import.meta.env.DEV || PERF_URL) { window.__battleRenderer = renderer; window.__battleView = () => frames.current.cur; }
     const audio = createBattleAudio({ ageIds: setup.sides.map((sd) => sd.ageId), playerSide });
     audioRef.current = audio;
     setSoundOn(audio.isEnabled());
@@ -146,7 +150,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
 
     let raf; let lastT = performance.now(); let lastHud = 0; let lastPerf = 0;
     // `&perf` in the URL: an on-screen readout (perfMeter.js), also left in window.__battlePerf.
-    const meter = PERF_ON ? createPerfMeter() : null;
+    const meter = perfOn() ? createPerfMeter() : null;
     const loop = (t) => {
       const rawMs = t - lastT;
       const dt = Math.min(0.1, rawMs / 1000); lastT = t;
@@ -452,7 +456,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           onRally={() => { armedRef.current = armedRef.current?.type === 'rally' ? null : { type: 'rally', building: ecoBuilding.idx, label: 'rally' }; setArmed(armedRef.current); }}
           onClose={() => selectBuilding(null)} />
       )}
-      {PERF_ON && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
+      {showPerf && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} onContinue={() => onFinish?.(ended)} />}
     </div>
   );

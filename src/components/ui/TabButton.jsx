@@ -20,8 +20,8 @@ const TabButton = ({
         flex-1 py-2 px-1.5 sm:px-2 text-xs font-semibold transition-all
         flex items-center justify-center gap-1 relative
         ${isActive 
-          ? 'text-blue-400 border-b-2 border-blue-400 bg-slate-800/50' 
-          : 'text-slate-500 hover:text-slate-300 border-b-2 border-transparent'
+          ? 'text-blue-400 border-b-2 border-blue-400 bg-fa-raised/50' 
+          : 'text-fa-muted hover:text-fa-text border-b-2 border-transparent'
         }
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
       `}
@@ -31,7 +31,7 @@ const TabButton = ({
       
       {/* Badge for notifications */}
       {badge !== null && badge > 0 && (
-        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-fa-text text-[10px] rounded-full flex items-center justify-center">
           {badge > 9 ? '9+' : badge}
         </span>
       )}

@@ -7,11 +7,11 @@ import { Globe2, Map as MapIcon } from 'lucide-react';
 const MapModeToggle = ({ mode, onChange }) => {
   const insets=useMapInsets();
   return (
-  <div style={{right:insets.right+8}} className="absolute top-[calc(var(--header-height,4.5rem)+0.5rem)] z-10 flex bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden">
+  <div style={{right:insets.right+8}} className="absolute top-[calc(var(--header-height,2.25rem)+0.5rem)] z-10 flex bg-fa-panel/90 backdrop-blur-sm rounded-lg border border-fa-line shadow-xl overflow-hidden">
     <button
       onClick={() => onChange('globe')}
-      className={`flex items-center gap-1 px-2 py-1.5 text-[10px] font-semibold transition-colors ${
-        mode === 'globe' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+      className={`flex items-center gap-1 px-2.5 min-h-[40px] text-[11px] font-semibold transition-colors ${
+        mode === 'globe' ? 'fa-selected' : 'text-fa-muted hover:text-fa-text hover:bg-fa-raised'
       }`}
       title="Globe view"
     >
@@ -20,8 +20,8 @@ const MapModeToggle = ({ mode, onChange }) => {
     </button>
     <button
       onClick={() => onChange('flat')}
-      className={`flex items-center gap-1 px-2 py-1.5 text-[10px] font-semibold transition-colors border-l border-slate-700 ${
-        mode === 'flat' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+      className={`flex items-center gap-1 px-2.5 min-h-[40px] text-[11px] font-semibold transition-colors border-l border-fa-line ${
+        mode === 'flat' ? 'fa-selected' : 'text-fa-muted hover:text-fa-text hover:bg-fa-raised'
       }`}
       title="Flat map view"
     >

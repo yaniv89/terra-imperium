@@ -19,7 +19,7 @@ const ColonyBlock = ({ regionId }) => {
   const colony = region.colony;
 
   if (colony && colony.ownerId !== me) {
-    return <div className="text-[11px] text-slate-400">{state.nations[colony.ownerId]?.name || 'Another nation'} is settling here ({Math.round(colony.progress)}%).</div>;
+    return <div className="text-[11px] text-fa-muted">{state.nations[colony.ownerId]?.name || 'Another nation'} is settling here ({Math.round(colony.progress)}%).</div>;
   }
 
   if (colony) {
@@ -28,13 +28,13 @@ const ColonyBlock = ({ regionId }) => {
     return (
       <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-2 space-y-1.5" data-testid="colony-progress">
         <div className="flex items-center gap-1.5 text-[12px] text-emerald-200 font-semibold"><Tent className="w-4 h-4" /> Your colony: {Math.round(colony.progress)}%</div>
-        <div className="h-1.5 rounded bg-slate-800 overflow-hidden"><div className="h-full bg-emerald-400" style={{ width: `${Math.min(100, colony.progress)}%` }} /></div>
-        <div className="text-[11px] text-slate-300">
+        <div className="h-1.5 rounded bg-fa-raised overflow-hidden"><div className="h-full bg-emerald-400" style={{ width: `${Math.min(100, colony.progress)}%` }} /></div>
+        <div className="text-[11px] text-fa-text">
           About {colonyTurnsLeft(state, regionId)} more turns at +{Math.round(colonyGrowth(state, regionId, me, colony.policy))} a turn.
           {' '}{colony.policy === 'driveOut' ? 'Driving out the people here.' : 'Living alongside the people here.'}
         </div>
-        <div className="text-[11px] text-slate-400">Upkeep {upkeep} gold and {UPKEEP_SUPPLIES} supply a turn. Raid risk {pct(raidChance(state, regionId, colony.policy, escorted))}{escorted ? '' : ' (no escort: doubled)'}{colony.raids ? `, ${colony.raids} raid${colony.raids > 1 ? 's' : ''} in a row` : ''}.</div>
-        <button onClick={() => dispatch({ type: ActionTypes.ABANDON_COLONY, payload: { regionId } })} className="min-h-[32px] px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300">Abandon colony</button>
+        <div className="text-[11px] text-fa-muted">Upkeep {upkeep} gold and {UPKEEP_SUPPLIES} supply a turn. Raid risk {pct(raidChance(state, regionId, colony.policy, escorted))}{escorted ? '' : ' (no escort: doubled)'}{colony.raids ? `, ${colony.raids} raid${colony.raids > 1 ? 's' : ''} in a row` : ''}.</div>
+        <button onClick={() => dispatch({ type: ActionTypes.ABANDON_COLONY, payload: { regionId } })} className="min-h-[32px] px-3 rounded-lg bg-fa-raised hover:bg-fa-hover text-[11px] text-fa-text">Abandon colony</button>
       </div>
     );
   }
@@ -44,19 +44,19 @@ const ColonyBlock = ({ regionId }) => {
   const found = (policy) => dispatch({ type: ActionTypes.FOUND_COLONY, payload: { regionId, policy } });
   const option = (policy, label, blurb) => (
     <button key={policy} onClick={() => found(policy)} disabled={!v.ok} data-testid={`found-colony-${policy}`}
-      className="flex-1 min-h-[52px] rounded-lg border border-slate-600 bg-slate-800/70 hover:border-emerald-400 disabled:opacity-40 disabled:hover:border-slate-600 p-2 text-left">
-      <div className="text-[12px] font-semibold text-white">{label}</div>
-      <div className="text-[10px] text-slate-400">{blurb}</div>
+      className="flex-1 min-h-[52px] rounded-lg border border-fa-line bg-fa-raised/70 hover:border-emerald-400 disabled:opacity-40 disabled:hover:border-fa-line p-2 text-left">
+      <div className="text-[12px] font-semibold text-fa-text">{label}</div>
+      <div className="text-[10px] text-fa-muted">{blurb}</div>
     </button>
   );
   return (
-    <div className="rounded-lg border border-slate-600 bg-slate-800/40 p-2 space-y-1.5" data-testid="colony-found">
-      <div className="flex items-center gap-1.5 text-[12px] text-slate-100 font-semibold"><Tent className="w-4 h-4 text-emerald-300" /> Found a colony</div>
-      <div className="text-[11px] text-slate-400">Free land, home to {(region.neutral.inhabitants || 0).toLocaleString('en-US')} people (resistance {resistance}). A colony grows over several turns and costs upkeep until it becomes a province.</div>
+    <div className="rounded-lg border border-fa-line bg-fa-raised/40 p-2 space-y-1.5" data-testid="colony-found">
+      <div className="flex items-center gap-1.5 text-[12px] text-fa-text font-semibold"><Tent className="w-4 h-4 text-fa-good" /> Found a colony</div>
+      <div className="text-[11px] text-fa-muted">Free land, home to {(region.neutral.inhabitants || 0).toLocaleString('en-US')} people (resistance {resistance}). A colony grows over several turns and costs upkeep until it becomes a province.</div>
       <ul className="space-y-0.5">
         {v.checks.map((c) => (
-          <li key={c.label} className={`flex items-center gap-1 text-[11px] ${c.ok ? 'text-slate-300' : 'text-red-300'}`}>
-            {c.ok ? <Check className="w-3 h-3 text-emerald-400 shrink-0" /> : <X className="w-3 h-3 shrink-0" />} {c.label}
+          <li key={c.label} className={`flex items-center gap-1 text-[11px] ${c.ok ? 'text-fa-text' : 'text-fa-danger-text'}`}>
+            {c.ok ? <Check className="w-3 h-3 text-fa-good shrink-0" /> : <X className="w-3 h-3 shrink-0" />} {c.label}
           </li>
         ))}
       </ul>

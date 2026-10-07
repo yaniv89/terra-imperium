@@ -117,7 +117,7 @@ const Tooltip = ({
       {isVisible && createPortal(
         <div
           ref={bubbleRef}
-          className="fixed z-[999] max-w-xs px-2.5 py-1.5 text-xs text-white bg-slate-800 rounded shadow-lg pointer-events-none whitespace-normal break-words"
+          className="fixed z-[999] max-w-xs px-2.5 py-1.5 text-xs text-fa-text bg-fa-raised rounded shadow-lg pointer-events-none whitespace-normal break-words"
           style={coords ? { top: coords.top, left: coords.left } : { top: -9999, left: -9999, visibility: 'hidden' }}
         >
           {content}

@@ -38,11 +38,14 @@ export const cityRailModel = (state) => {
     const food = c.lastYields?.food ?? 0; const production = c.lastYields?.production ?? 0;
     const growthTurns = c.outpost ? null : food > 0 && c.size < MAX_SIZE ? Math.max(1, Math.ceil(Math.max(0, growthThreshold(c.size, speedCostMult(state.gameSpeed, ageId)) - (c.food || 0)) / food)) : null;
     const item = c.production?.current || null;
-    const buildTurns = item ? Math.max(1, Math.ceil(Math.max(0, productionCost(item, costCtx) - (c.production?.progress || 0)) / Math.max(0.1, production))) : null;
+    const cost = item ? productionCost(item, costCtx) : 0;
+    const buildTurns = item ? Math.max(1, Math.ceil(Math.max(0, cost - (c.production?.progress || 0)) / Math.max(0.1, production))) : null;
     return {
       id: c.id, name: c.name, size: c.size, capital: c.id === capital, outpost: !!c.outpost,
       growthTurns, starving: food < 0,
       building: shortItemLabel(item, tiles, ageId), buildTurns, idle: !item && !c.outpost,
+      // the thin production bar under the city (W02): how far the current item is
+      buildShare: item && cost > 0 ? Math.min(1, (c.production?.progress || 0) / cost) : null,
       unrest: Math.round(c.unrest || 0), restless: (c.unrest || 0) >= UNREST_PROMPT,
       besieged: !!c.siege || !!c.underInvasion,
       loyalty: c.loyalty

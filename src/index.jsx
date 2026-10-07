@@ -9,6 +9,7 @@
 // modules read the grid as they load.
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
+import './fonts';
 import './index.css';
 import { lazyWithReload, installStaleChunkReload } from './utils/lazyWithReload';
 import { loadTiles } from './data/geo/tiles';

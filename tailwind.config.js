@@ -48,7 +48,37 @@ export default {
       colors: {
         slate: {
           950: '#020617',
+        },
+        // The "Field Atlas" look (plans/UI-DESIGN.md section 2). The same values are CSS variables
+        // (--fa-*) in index.css for inline styles and canvases. Brass is the one primary action on
+        // a screen and key numbers, never "selected" (selection = raised fill + light outline).
+        fa: {
+          ink: '#10141A',
+          panel: '#1A212B',
+          raised: '#232C38',
+          hover: '#2B3644',
+          line: '#33404F',
+          text: '#ECE5D3',
+          muted: '#B9B19F',
+          brass: '#D8A444',
+          'brass-hi': '#E6B65A',
+          you: '#5B9BF0',
+          enemy: '#EE8A3A',
+          indep: '#9C8FD0',
+          good: '#6CC28A',
+          danger: '#E5604D',
+          // danger as small text on a panel (#E5604D is 4.3:1 there, this is 5.6:1)
+          'danger-text': '#F2836F',
+          food: '#8FA36A',
+          science: '#6FA3C8'
         }
+      },
+      fontFamily: {
+        // Spectral SC for headings, Figtree for body, JetBrains Mono for numbers (bundled by
+        // @fontsource in src/fonts.js, so the Capacitor build works offline).
+        display: ['"Spectral SC"', 'Georgia', 'serif'],
+        sans: ['Figtree', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
       }
     },
   },

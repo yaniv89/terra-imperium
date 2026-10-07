@@ -135,9 +135,9 @@ const ResourceBadge = ({
         onClick={onClick}
         disabled={!onClick}
         className={`
-          flex items-center rounded-lg transition-all
+          flex items-center rounded-lg transition-all border
           ${sizeClasses[size]}
-          ${expanded ? 'bg-slate-700 ring-1 ring-blue-400' : 'bg-slate-800/60 hover:bg-slate-700/80'}
+          ${expanded ? 'bg-fa-raised border-transparent shadow-[inset_0_0_0_2px_#ECE5D3]' : 'bg-fa-raised border-fa-line hover:bg-fa-hover'}
           ${onClick ? 'cursor-pointer' : 'cursor-default'}
           disabled:cursor-default
         `}
@@ -147,14 +147,14 @@ const ResourceBadge = ({
         <span className={`${config.color} inline-flex`}>
           <GameIcon url={resourceIconUrl(type)} size={iconSizes[size] + 4} title={config.label} fallback={<Icon size={iconSizes[size]} />} />
         </span>
-        <span className="font-mono font-bold text-white">
+        <span className="font-mono font-semibold text-fa-text">
           {displayValue}
         </span>
         {perTurn !== null && (
-          <span className="font-mono text-[10px] text-emerald-400">+{perTurn}</span>
+          <span className="font-mono text-[10px] text-fa-good">+{perTurn}</span>
         )}
         {(expanded || showLabel) && (
-          <span className="text-slate-400 ml-1 text-xs">
+          <span className="text-fa-muted ml-1 text-xs">
             {config.label}
           </span>
         )}

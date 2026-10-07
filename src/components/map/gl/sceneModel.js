@@ -36,6 +36,7 @@ import {
 } from './spriteArt';
 import { ridgeSegments, mountainPeaks, passPoints, MOUNTAIN_SPRITES_FROM_K, PASS_MARK_FROM_K } from './terrainModel';
 import { PLAYER_BAND_COLOR } from './territoryData';
+import { cityRailModel } from '../../city/cityRailModel';
 
 // The zoom levels of the old map (Map2DView.jsx).
 export const HEX_FROM_ZOOM = 3 / hexSizeVsF75();
@@ -76,6 +77,8 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
   const capitalUrl = markerIconUrl('capital');
   const siegeUrl = markerIconUrl('siege') || markerIconUrl('battle');
   const sk = Math.sqrt(k);
+  // the thin production bar under your banners (W02): how far each of your cities is with its build
+  const builds = close ? new Map(cityRailModel(state).map((r) => [r.id, r.buildShare])) : null;
   Object.values(state.regions).forEach((city) => {
     const ll = cityLatLon(state, city.id);
     if (!ll) return;
@@ -101,7 +104,8 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
         name: city.name, size: city.size, colour: own ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8', selected: city.id === selectedRegion,
         capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25,
         siege: city.siege ? Math.max(0, Math.min(1, city.siege.hp / Math.max(1, city.siege.maxHp))) : null,
-        outpost: city.outpost ? Math.max(0, Math.min(1, (city.outpost.progress || 0) / OUTPOST_DONE)) : null
+        outpost: city.outpost ? Math.max(0, Math.min(1, (city.outpost.progress || 0) / OUTPOST_DONE)) : null,
+        build: own ? builds.get(city.id) ?? null : null
       }, dpr, bannerFont);
       const oy = below + art.css.h / 2 - art.css.pad;
       names.push({ art, anchor, offset: [0, oy, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });
@@ -125,7 +129,8 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
     sprites.push({ art, anchor, offset: [0, 0, 0, 0], size: [box, box], exp: [0.5, 0], color: fade(city.ghost ? 0.6 : 1) });
     hits.push({ kind: 'city', id: city.id, anchor, offset: [0, 0, 0, 0], size: [r0 * 2, r0 * 2], exp: [0.5, 0], round: true, pad: 0 });
     if (k >= CITY_DETAIL_ZOOM || (k >= NAME_EARLY_ZOOM && (city.isCapital || city.owner === state.playerNationId))) {
-      const label = labelArt(city.name, { size: 11, weight: 700 }, dpr);
+      // a remembered town (fog, W03) says when it was last seen
+      const label = labelArt(city.ghost && city.lastSeen ? `${city.name} · last seen T${city.lastSeen}` : city.name, { size: 11, weight: 700, fill: city.ghost ? '#B9B19F' : '#fff' }, dpr);
       // the baseline 2 px over the disc, as the SVG's text
       names.push({ art: label, anchor, offset: [0, -2 - label.css.baseline + label.css.h / 2, 0, -r0], size: [label.css.w, label.css.h], exp: [0, 0.5], color: fade(city.ghost ? 0.6 : 1) });
     }

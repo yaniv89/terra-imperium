@@ -24,14 +24,16 @@ const CollapsibleSection = ({ title, icon: Icon, summary, defaultOpen = false, i
     <div ref={ref} data-section={id || undefined}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-2 py-1 text-left"
+        type="button"
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-2 min-h-[44px] text-left"
       >
-        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-          {open ? <ChevronDown size={13} className="text-slate-500 shrink-0" /> : <ChevronRight size={13} className="text-slate-500 shrink-0" />}
-          {Icon && <Icon size={13} className="text-slate-400 shrink-0" />}
+        <span className="flex items-center gap-1.5 fa-heading text-[15px]">
+          {open ? <ChevronDown size={13} className="text-fa-muted shrink-0" /> : <ChevronRight size={13} className="text-fa-muted shrink-0" />}
+          {Icon && <Icon size={13} className="text-fa-muted shrink-0" />}
           {title}
         </span>
-        {summary && <span className="text-[10px] text-slate-500 truncate ml-2">{summary}</span>}
+        {summary && <span className="text-[12px] text-fa-muted truncate ml-2">{summary}</span>}
       </button>
       {open && <div className="space-y-2 pt-1">{children}</div>}
     </div>

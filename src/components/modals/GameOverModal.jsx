@@ -51,22 +51,22 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
       <div
-        className={`bg-slate-900 rounded-xl border-2 max-w-md w-full shadow-2xl p-6 text-center ${
+        className={`bg-fa-panel rounded-xl border-2 max-w-md w-full shadow-2xl p-6 text-center ${
           isVictory ? 'border-green-500' : isComplete ? 'border-amber-500' : 'border-red-500'
         }`}
       >
         {isVictory ? (
-          <Trophy className="w-14 h-14 mx-auto mb-3 text-green-400" />
+          <Trophy className="w-14 h-14 mx-auto mb-3 text-fa-good" />
         ) : isComplete ? (
           <FlagOff className="w-14 h-14 mx-auto mb-3 text-amber-400" />
         ) : (
-          <Skull className="w-14 h-14 mx-auto mb-3 text-red-400" />
+          <Skull className="w-14 h-14 mx-auto mb-3 text-fa-danger-text" />
         )}
 
-        <h2 className={`text-2xl font-bold mb-1 ${isVictory ? 'text-green-400' : isComplete ? 'text-amber-400' : 'text-red-400'}`}>
+        <h2 className={`text-2xl font-bold mb-1 ${isVictory ? 'text-fa-good' : isComplete ? 'text-amber-400' : 'text-fa-danger-text'}`}>
           {isVictory ? (victoryCondition?.name || 'Victory') : isComplete ? `Game Complete — Rank #${rank}` : 'Defeat'}
         </h2>
-        <p className="text-slate-400 text-sm mb-1">
+        <p className="text-fa-muted text-sm mb-1">
           {isVictory
             ? (victoryCondition?.description || `${playerNation?.name} has endured across the ages.`)
             : isComplete
@@ -90,9 +90,9 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
           <button
             onClick={handleCopySummary}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm
-                       bg-slate-700 hover:bg-slate-600 text-slate-200 transition-all active:scale-95"
+                       bg-fa-hover hover:bg-fa-line text-fa-text transition-all active:scale-95"
           >
-            {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-fa-good" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied!' : 'Copy Summary'}
           </button>
           {canContinue ? (
@@ -100,7 +100,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
               onClick={onContinue}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm
                          bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400
-                         text-white shadow-lg transition-all active:scale-95"
+                         text-fa-text shadow-lg transition-all active:scale-95"
             >
               <PlayCircle className="w-4 h-4" />
               Continue Playing
@@ -110,7 +110,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
               onClick={onReset}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm
                          bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400
-                         text-white shadow-lg transition-all active:scale-95"
+                         text-fa-text shadow-lg transition-all active:scale-95"
             >
               <RotateCcw className="w-4 h-4" />
               Start New Game
@@ -118,7 +118,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
           )}
         </div>
         {canContinue && (
-          <button onClick={onReset} className="mt-3 text-xs text-slate-500 hover:text-slate-300 underline transition-colors">
+          <button onClick={onReset} className="mt-3 text-xs text-fa-muted hover:text-fa-text underline transition-colors">
             Start a New Game instead
           </button>
         )}
@@ -128,9 +128,9 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
 };
 
 const Stat = ({ label, value }) => (
-  <div className="bg-slate-800/60 rounded-lg px-3 py-2 border border-slate-700">
-    <div className="text-[10px] text-slate-500 uppercase tracking-wide">{label}</div>
-    <div className="font-mono font-bold text-slate-200">{value}</div>
+  <div className="bg-fa-raised/60 rounded-lg px-3 py-2 border border-fa-line">
+    <div className="text-[10px] text-fa-muted uppercase tracking-wide">{label}</div>
+    <div className="font-mono font-bold text-fa-text">{value}</div>
   </div>
 );
 

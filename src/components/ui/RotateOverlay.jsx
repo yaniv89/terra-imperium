@@ -17,14 +17,14 @@ const RotateOverlay = () => {
     <div
       data-testid="rotate-hint"
       role="status"
-      className="fixed inset-x-2 z-[200] top-[calc(env(safe-area-inset-top)+0.5rem)] rounded-xl bg-slate-900/95 border border-blue-500/40 shadow-xl text-slate-100 flex items-center gap-3 px-3 py-2"
+      className="fixed inset-x-2 z-[200] top-[calc(env(safe-area-inset-top)+0.5rem)] rounded-xl bg-fa-panel/95 border border-blue-500/40 shadow-xl text-fa-text flex items-center gap-3 px-3 py-2"
     >
       <Smartphone className="w-6 h-6 text-blue-400 rotate-90 shrink-0 motion-safe:animate-pulse" />
       <div className="min-w-0 flex-1 text-xs">
         <div className="font-semibold">Turn your phone sideways for the full map</div>
-        <div className="text-slate-400">Upright works for running the empire; battles need landscape.</div>
+        <div className="text-fa-muted">Upright works for running the empire; battles need landscape.</div>
       </div>
-      <button type="button" onClick={dismissRotateHint} aria-label="Dismiss" className="shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"><X className="w-5 h-5" /></button>
+      <button type="button" onClick={dismissRotateHint} aria-label="Dismiss" className="shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-fa-muted hover:text-fa-text hover:bg-fa-raised"><X className="w-5 h-5" /></button>
     </div>
   );
 };
@@ -33,14 +33,14 @@ const RotateOverlay = () => {
 export const BattleRotateGate = () => {
   if (useLayoutMode() !== 'phone-portrait') return null;
   return (
-    <div data-testid="battle-rotate-gate" className="fixed inset-0 z-[210] bg-slate-950/95 text-slate-100 flex flex-col items-center justify-center gap-5 p-8 text-center">
+    <div data-testid="battle-rotate-gate" className="fixed inset-0 z-[210] bg-fa-ink/95 text-fa-text flex flex-col items-center justify-center gap-5 p-8 text-center">
       <div className="relative w-24 h-24 flex items-center justify-center">
         <Smartphone className="w-16 h-16 text-blue-400 rotate-90 motion-safe:animate-pulse" />
-        <RotateCw className="absolute -top-1 -right-1 w-8 h-8 text-slate-400" />
+        <RotateCw className="absolute -top-1 -right-1 w-8 h-8 text-fa-muted" />
       </div>
       <div className="space-y-2">
         <h2 className="text-xl font-bold">Rotate your phone to fight</h2>
-        <p className="text-sm text-slate-400 max-w-xs">The battlefield needs the wide view: the whole field, your squads and the orders wheel.</p>
+        <p className="text-sm text-fa-muted max-w-xs">The battlefield needs the wide view: the whole field, your squads and the orders wheel.</p>
       </div>
     </div>
   );

@@ -37,14 +37,16 @@ test.describe('phone held sideways', () => {
 
     expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-landscape');
 
-    // One slim header row, with End Turn inside the screen.
+    // One slim top bar (plans/UI-DESIGN.md: 36 px), End Turn bottom right in thumb reach, left of the rail.
     const header = page.locator('header');
     await expect(header).toBeVisible();
     expect((await box(header)).height).toBeLessThanOrEqual(52);
     const endTurn = page.getByRole('button', { name: 'End Turn' });
     const et = await box(endTurn);
-    expect(et.right).toBeLessThanOrEqual(844);
-    expect(et.bottom).toBeLessThanOrEqual(52);
+    expect(et.right).toBeLessThanOrEqual(844 - 52);
+    expect(et.bottom).toBeLessThanOrEqual(390);
+    expect(et.top).toBeGreaterThanOrEqual(390 / 2);
+    expect(et.height).toBeGreaterThanOrEqual(44);
 
     // The rail sits on the right edge; no bottom tab bar, no floating log button.
     const rail = page.getByTestId('landscape-rail');
@@ -85,7 +87,7 @@ test.describe('phone held upright', () => {
 
   test('plays upright with a soft rotate hint that stays dismissed', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Choose Your Nation' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Choose your people' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
     const hint = page.getByTestId('rotate-hint');
     await expect(hint).toBeVisible();
@@ -94,7 +96,7 @@ test.describe('phone held upright', () => {
     await expect(hint).toHaveCount(0);
     // A reload resumes the autosaved game (the shell shows, not the start screen); the hint stays away.
     await page.reload();
-    await expect(page.getByRole('button', { name: 'End Turn' }).or(page.getByRole('heading', { name: 'Choose Your Nation' })).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: 'End Turn' }).or(page.getByRole('heading', { name: 'Choose your people' })).first()).toBeVisible({ timeout: 15000 });
     await expect(page.getByTestId('rotate-hint')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
   });

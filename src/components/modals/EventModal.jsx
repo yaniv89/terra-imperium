@@ -18,9 +18,9 @@ import { getOptionShortfall } from '../../engine/applyEventEffects';
 // stability/legitimacy/prestige/victory even though that file long since applied them).
 const EffectBadge = ({ text, sign, tooltip }) => {
   const signStyles = {
-    positive: 'bg-green-500/20 text-green-400 border-green-500/30',
-    negative: 'bg-red-500/20 text-red-400 border-red-500/30',
-    neutral: 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+    positive: 'bg-green-500/20 text-fa-good border-green-500/30',
+    negative: 'bg-red-500/20 text-fa-danger-text border-red-500/30',
+    neutral: 'bg-slate-500/20 text-fa-muted border-fa-line/30'
   };
 
   const SignIcon = sign === 'positive' ? TrendingUp : sign === 'negative' ? TrendingDown : Minus;
@@ -47,17 +47,17 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
     <div className="fixed inset-x-0 bottom-0 top-[var(--header-height,4.5rem)] z-50 pointer-events-none" data-testid="event-sheet">
       <div
         className={isMobile
-          ? 'pointer-events-auto absolute inset-x-0 bottom-0 max-h-[60vh] rounded-t-2xl bg-slate-900 border-t-2 border-amber-500 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)] sheet-panel'
-          : 'pointer-events-auto absolute right-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(420px,48vw)] pl:pr-[env(safe-area-inset-right)] bg-slate-900 border-l-2 border-amber-500 shadow-2xl flex flex-col'}
+          ? 'pointer-events-auto absolute inset-x-0 bottom-0 max-h-[60vh] rounded-t-2xl bg-fa-panel border-t-2 border-amber-500 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)] sheet-panel'
+          : 'pointer-events-auto absolute right-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(420px,48vw)] pl:pr-[env(safe-area-inset-right)] bg-fa-panel border-l-2 border-amber-500 shadow-2xl flex flex-col'}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 border-b border-slate-700 shrink-0">
+        <div className="p-4 border-b border-fa-line shrink-0">
           <div className="flex items-center gap-2 text-amber-400 font-bold text-lg">
             <AlertTriangle className="w-5 h-5 shrink-0" />
             <span className="line-clamp-2">{event.title}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
+          <div className="flex items-center gap-1.5 text-xs text-fa-muted mt-1">
             {event.year != null && (
               <>
                 <Calendar className="w-3 h-3" />
@@ -78,7 +78,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
         {/* Content */}
         <div className="p-4 overflow-y-auto flex-1">
           {/* Description */}
-          <p className="text-slate-300 text-sm leading-relaxed mb-4">
+          <p className="text-fa-text text-sm leading-relaxed mb-4">
             {event.description}
           </p>
 
@@ -93,19 +93,19 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
                   key={index}
                   onClick={() => { if (!blocked) onResolve(index); }}
                   aria-disabled={blocked}
-                  className={`w-full p-4 rounded-lg text-left border transition-all group ${blocked ? 'bg-slate-900 border-slate-800 opacity-60 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700 border-slate-700 hover:border-amber-500/50'}`}
+                  className={`w-full p-4 rounded-lg text-left border transition-all group ${blocked ? 'bg-fa-panel border-fa-line opacity-60 cursor-not-allowed' : 'bg-fa-raised hover:bg-fa-hover border-fa-line hover:border-amber-500/50'}`}
                 >
                   {blocked && (
-                    <div className="text-[11px] text-red-400 mb-1">Can&apos;t afford: {shortfalls[index].map((id) => `${-option.effects[id]} ${id}`).join(', ')}</div>
+                    <div className="text-[11px] text-fa-danger-text mb-1">Can&apos;t afford: {shortfalls[index].map((id) => `${-option.effects[id]} ${id}`).join(', ')}</div>
                   )}
                   {/* Option Label */}
-                  <div className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">
+                  <div className="font-semibold text-sm text-fa-text group-hover:text-amber-300 transition-colors">
                     {option.label}
                   </div>
 
                   {/* Cost (if specified separately) */}
                   {option.cost && (
-                    <div className="text-xs text-red-400 mt-1 font-mono">
+                    <div className="text-xs text-fa-danger-text mt-1 font-mono">
                       Cost: {option.cost}
                     </div>
                   )}
@@ -125,7 +125,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
         </div>
 
         {/* Footer hint */}
-        <div className="px-4 py-2 border-t border-slate-700 text-xs text-slate-500 text-center shrink-0">
+        <div className="px-4 py-2 border-t border-fa-line text-xs text-fa-muted text-center shrink-0">
           Choose an option to go on: the turn waits for it. The map stays live behind.
         </div>
       </div>
