@@ -62,6 +62,7 @@ the master plan states them as rules.
 | W15 Raiders and tribute | raid party on the map, tribute demand with Pay / Refuse and the expected loss, mercenaries | W2 (done), W4 |
 | W16 Battle reports | named battles list, Command/Auto tag, detail with timeline and replay | R2 |
 | W17 Nation overview | ruler (no heirs), government and title, stability, era goals, victory progress, age | UI pass |
+| W18 Ruler | a new rail tab after Empire: portrait, title, level and renown bar, six attributes with reasons on tap and a `+` each, the five-branch Virtue tree by age rows with one brass "Take" action, deeds, the court (advisors); W17's ruler card opens it (`plans/RULER-PLAN.md` section 6; sketch board still to add) | RU3 |
 | B01 Battle HUD | clean markers, regiment cards bottom left, four commands bottom right, labelled abilities | R1 readability (done), UI pass |
 | B02 Economy | worker jobs, build menu with red unaffordable costs, placement ghost with a reason | R1 (done; the ghost reason is still to do) |
 | B03 Training and housing | population bar split army / workers / training, one-tap village house | R1 (done) |
