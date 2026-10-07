@@ -17,12 +17,18 @@ import { paintWorld } from './painter';
 // Any intended change to the output is a new generator version (src/worldgen/v2/...), never an edit.
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const GOLDEN_V1 = { 1: 'ee05f631', 2: 'f18154e8', 3: '9f9334cf' };
+// Frozen with generator version 2 (the look pass: no specks or small inland seas, narrower sea ice,
+// fewer lakes, a wandering dry belt; and the shapes and relief option), seed 1 to 3 per shape.
+export const GOLDEN_V2 = {
+  continents: ['c4f02f87', '51b3bbff', '82223216'], pangaea: ['b761cd90', '4db379ec', '8663c5b8'],
+  archipelago: ['75e116b1', 'b4f18497', 'a7bdfed3'], islands: ['6b0f5d38', 'e1cb450f', 'd6cb3395'], inland: ['02a7f2fc', '77ea0dea', '2aac12a2']
+};
 
 const worlds = {};
 let grid;
 beforeAll(() => {
   grid = gridOf(getTiles());
-  [1, 2, 3].forEach((seed) => { worlds[seed] = generateWorld({ kind: 'generated', seed, params: {} }, grid); });
+  [1, 2, 3].forEach((seed) => { worlds[seed] = generateWorld({ kind: 'generated', generatorVersion: 1, seed, params: {} }, grid); });
 }, 120000);
 
 describe('integer noise', () => {
@@ -42,7 +48,7 @@ describe('world generator v1', () => {
   });
 
   it('gives the same bytes for the same seed, and different worlds for different seeds', () => {
-    const again = generateWorld({ kind: 'generated', seed: 2, params: {} }, grid);
+    const again = generateWorld({ kind: 'generated', generatorVersion: 1, seed: 2, params: {} }, grid);
     expect(worldHashOf(again.raw)).toBe(worlds[2].report.worldHash);
     expect(Buffer.from(encodeTiles(again.raw))).toEqual(Buffer.from(encodeTiles(worlds[2].raw)));
     expect(new Set(Object.values(worlds).map((w) => w.report.worldHash)).size).toBe(3);
@@ -63,7 +69,7 @@ describe('world generator v1', () => {
   });
 
   it('honours the parameters: land share and continents', () => {
-    const dry = generateWorld({ kind: 'generated', seed: 9, params: { land: 40, continents: 2, climate: 'hot', rainfall: 'dry' } }, grid);
+    const dry = generateWorld({ kind: 'generated', generatorVersion: 1, seed: 9, params: { land: 40, continents: 2, climate: 'hot', rainfall: 'dry' } }, grid);
     let land = 0; for (let i = 0; i < dry.raw.count; i++) land += dry.raw.land[i];
     expect(Math.abs((land / dry.raw.count) * 100 - 40)).toBeLessThan(0.5);
     expect(dry.report.continents).toBeGreaterThanOrEqual(1);
@@ -135,6 +141,46 @@ describe('world generator v1', () => {
   }, 60000);
 });
 
+describe('world generator v2 (the look pass and the shapes)', () => {
+  it('matches the golden hashes of every shape (generator version 2 is frozen)', () => {
+    Object.entries(GOLDEN_V2).forEach(([shape, hashes]) => hashes.forEach((hash, k) => {
+      if (shape !== 'continents' && k > 0) return; // one seed a shape here; the bench checks the rest
+      const w = generateWorld({ kind: 'generated', generatorVersion: 2, seed: k + 1, params: { shape } }, grid);
+      expect(w.report.worldHash, `${shape} seed ${k + 1}`).toBe(hash);
+    }));
+  }, 240000);
+
+  it('has no land specks of up to six hexes and no small enclosed seas; the land share stays exact', () => {
+    const { raw, report } = generateWorld({ kind: 'generated', generatorVersion: 2, seed: 2, params: {} }, grid);
+    expect(qualityProblems(report, raw.world.params)).toEqual([]);
+    const nb = prepareGrid(grid).nb;
+    const comp = new Int32Array(raw.count).fill(-1); const sizes = [];
+    for (let s = 0; s < raw.count; s++) {
+      if (comp[s] >= 0) continue;
+      const q = [s]; comp[s] = sizes.length;
+      for (let h = 0; h < q.length; h++) for (const j of nb[q[h]]) if (comp[j] < 0 && raw.land[j] === raw.land[s]) { comp[j] = sizes.length; q.push(j); }
+      sizes.push({ land: raw.land[s], size: q.length });
+    }
+    const seas = sizes.filter((c) => !c.land).sort((a, b) => b.size - a.size);
+    expect(sizes.filter((c) => c.land && c.size <= 6)).toEqual([]);
+    // (a stray walled-in sea hex or two can remain; they paint like a lake)
+    expect(seas.slice(1).filter((c) => c.size < 250).reduce((a, c) => a + c.size, 0)).toBeLessThan(6);
+    let land = 0; for (let i = 0; i < raw.count; i++) land += raw.land[i];
+    expect(Math.abs((land / raw.count) * 100 - 30)).toBeLessThan(0.5);
+  }, 60000);
+
+  it('shapes: a pangaea is one landmass, islands are many small ones, the inland sea is enclosed', () => {
+    const pan = generateWorld({ kind: 'generated', generatorVersion: 2, seed: 1, params: { shape: 'pangaea' } }, grid).report;
+    const isl = generateWorld({ kind: 'generated', generatorVersion: 2, seed: 1, params: { shape: 'islands' } }, grid).report;
+    expect(pan.largestShare).toBeGreaterThan(0.9);
+    expect(isl.largestShare).toBeLessThan(0.35);
+    const inland = generateWorld({ kind: 'generated', generatorVersion: 2, seed: 1, params: { shape: 'inland' } }, grid).raw;
+    let deepInland = 0;
+    for (let i = 0; i < inland.count; i++) if (!inland.land[i] && inland.elevation[i] <= -1000) deepInland++;
+    expect(deepInland).toBeGreaterThan(100);
+  }, 120000);
+});
+
 describe('the painter (MV4, first CPU version)', () => {
   it('paints the base picture: land where the land is, sea elsewhere', () => {
     const tiles = tilesFromRaw(worlds[1].raw);
@@ -166,7 +212,13 @@ describe('the world descriptor', () => {
   it('map codes carry the whole spec', () => {
     const spec = normalizeSpec({ kind: 'generated', seed: 123456789, params: { land: 37, continents: 5, climate: 'cold', rainfall: 'wet' } });
     const code = mapCode(spec);
-    expect(code).toMatch(/^G1-37-5C-W-/);
+    expect(code).toMatch(/^G2-37-5C-W-/);
+    const old = normalizeSpec({ kind: 'generated', generatorVersion: 1, seed: 5, params: {} });
+    expect(parseMapCode(mapCode(old))).toEqual(old);
+    expect(specKey(old)).toBe('gen1:5:30:0:temperate:normal'); // version 1 cache keys unchanged
+    const shaped = normalizeSpec({ kind: 'generated', seed: 77, params: { shape: 'inland', relief: 'high' } });
+    expect(mapCode(shaped)).toMatch(/^G2-30-AT-NSH-/);
+    expect(parseMapCode(mapCode(shaped))).toEqual(shaped);
     expect(parseMapCode(code)).toEqual(spec);
     expect(specKey(parseMapCode(code))).toBe(specKey(spec));
     expect(parseMapCode('nonsense')).toBeNull();

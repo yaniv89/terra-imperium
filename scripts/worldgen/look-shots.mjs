@@ -74,7 +74,8 @@ try {
       };
       const hasSet = await page.evaluate(() => !!window.__map2DTest.setTransform);
       for (const [label, factor, wheel] of [['mid', 0.3, 4], ['world', 0, 14]]) {
-        if (hasSet) await zoomTo(factor ? t.k * factor : 0.01);
+        if (hasSet && factor) await zoomTo(t.k * factor);
+        else if (!factor && await page.evaluate(() => !!window.__map2DTest.worldView)) { await page.evaluate(() => window.__map2DTest.worldView()); await page.waitForTimeout(600); }
         else { await page.mouse.move(vp.width / 2, vp.height / 2); for (let k = 0; k < wheel; k++) { await page.mouse.wheel(0, 400); await page.waitForTimeout(120); } }
         await settle();
         await page.screenshot({ path: path.join(out, `${w.name}-${prof}-${label}.jpg`), type: 'jpeg', quality: 85, timeout: 120000 });

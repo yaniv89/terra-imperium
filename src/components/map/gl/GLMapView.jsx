@@ -620,14 +620,15 @@ const GLMapView = ({
       pickAt: (x, y) => { const p = tapAtRef.current(x, y); return p ? { kind: p.kind, id: p.id ?? null, tile: p.tile ?? null, land: p.land ?? null, explored: p.explored ?? null, via: p.via ?? null, marker: p.marker?.kind ?? null, own: p.marker?.own ?? null } : null; },
       transform: () => ({ ...transformRef.current }),
       // jump to a transform (clamped by the zoom behaviour), for look screenshots
-      setTransform: ({ x, y, k: kk }) => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).call(zoomBehaviorRef.current.transform, zoomIdentity.translate(x, y).scale(kk)); }
+      setTransform: ({ x, y, k: kk }) => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).call(zoomBehaviorRef.current.transform, zoomIdentity.translate(x, y).scale(kk)); },
+      worldView: () => resetZoom()
     };
     window.__glMap = {
       info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount }),
       renderer: gl.current?.renderer
     };
     return () => { delete window.__map2DTest; delete window.__glMap; };
-  }, [hudOffset, projection, state, selectedRegion, focusOnLatLng, view, ready]);
+  }, [hudOffset, projection, state, selectedRegion, focusOnLatLng, view, ready, resetZoom]);
 
   const kNow = settled.k;
   return (
