@@ -37,8 +37,9 @@ building rising out of the ground.
 
 ## Delivered
 `rts-bronze.glb` (2026-10-07, `scripts/blender/build_rts_bronze.py`, from the Bronze town kit): the
-13 roles above with their `-damaged` siblings and sockets; no `house`, construction stages or farm
-growth stages yet. Until later ages have files, their battles fall back to it.
+13 roles above with their `-damaged` siblings and sockets; `construction-stage-0`..`3` added the same
+day (wave1 checkpoint-02). No `house` or farm growth stages yet. Until later ages have files, their
+battles fall back to it.
 
 ## Check
 `python3 scripts/blender/validate_model.py <file> <out> auto` (kind `prefab`), then

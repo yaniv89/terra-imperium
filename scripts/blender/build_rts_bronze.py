@@ -326,6 +326,143 @@ def tower(ms, rng):
             'socket-fire-1': (0, 0, 1.15), 'socket-fire-2': (-0.15, -0.2, 0.6), 'socket-fire-3': (0.15, 0.2, 0.9), 'socket-fire-4': (0, -0.24, 0.3), 'socket-smoke-1': (0, 0, 1.3)}
 
 
+# ---- construction stages ----------------------------------------------------------------------------
+# `construction-stage-0` .. `-3` (src/assets/battle/rts/README.md): one square footprint (10 x 10 m
+# here; the game fits it to the building going up), drawn by build progress 0-24, 25-49, 50-74 and
+# 75-100%. A mud-brick house rising inside a pole scaffold, as the towns' houses are built.
+
+HALF = 0.42  # half the wall square; stakes and stacks reach out to about 0.5
+
+
+def _string_line(ms, p0, p1):
+    beam(ms, 'linen', (p0[0], p0[1], G + 0.05), (p1[0], p1[1], G + 0.05), r=0.0025, segs=3, lod=0)
+
+
+def _brick_stack(ms, x, y, rng, layers=4, yaw=0.0):
+    f = tm.house_frame(x, y, yaw)
+    for k in range(layers):
+        ms.box('mudwall_bare', (0.15, 0.1, 0.022), at=(0, 0, G + 0.022 * k), rot_z=rng.uniform(-4, 4), lod=0, frame=f)
+    ms.parts.append(_solid_stack(f, layers))
+
+
+def _solid_stack(f, layers):
+    """The stack as one block for LOD1 and LOD2."""
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bmesh.ops.translate(bm, vec=(0, 0, 0.5), verts=bm.verts)
+    bmesh.ops.scale(bm, vec=(0.15, 0.1, 0.022 * layers), verts=bm.verts)
+    bmesh.ops.transform(bm, matrix=f @ Matrix.Translation(Vector((0, 0, G))), verts=bm.verts)
+    return (bm, 'mudwall_bare', 2, (1, 2))
+
+
+def _mud_pit(ms, x, y):
+    ms.cyl('mud', 0.11, 0.1, 0.012, at=(x, y, G - 0.004), segs=10, lod=1)
+    beam(ms, 'timber', (x + 0.02, y, G + 0.004), (x + 0.16, y + 0.02, G + 0.03), r=0.006, segs=4, lod=0)
+
+
+def _walls(ms, h, door=True, lod=2):
+    """The four mud-brick walls of the rising house, `h` high, a door gap at the front."""
+    t = 0.05
+    if door:
+        for sx in (-1, 1):
+            ms.box('mudwall', (HALF - 0.08, t, h), at=(sx * (HALF + 0.08) / 2, -HALF + t / 2, G), lod=lod, bevel=0.003)
+    else:
+        ms.box('mudwall', (2 * HALF, t, h), at=(0, -HALF + t / 2, G), lod=lod, bevel=0.003)
+    ms.box('mudwall', (2 * HALF, t, h), at=(0, HALF - t / 2, G), lod=lod, bevel=0.003)
+    for sx in (-1, 1):
+        ms.box('mudwall', (t, 2 * HALF - 2 * t, h), at=(sx * (HALF - t / 2), 0, G), lod=lod, bevel=0.003)
+
+
+def _scaffold(ms, h, rng, decks=1):
+    """Poles at the corners and mid-sides, lashed ledgers, and reed-mat decks at `decks` levels."""
+    out = HALF + 0.07
+    posts = [(sx * out, sy * out) for sx in (-1, 1) for sy in (-1, 1)] + [(0, out), (out, 0), (-out, 0)]
+    for x, y in posts:
+        lean = rng.uniform(-2.5, 2.5)
+        beam(ms, 'timber', (x, y, G), (x + lean * 0.002, y, G + h), r=0.01, segs=5, lod=1)
+    for k in range(1, decks + 1):
+        z = G + h * k / (decks + 0.6)
+        for sy in (-1, 1):
+            beam(ms, 'timber', (-out, sy * out, z), (out, sy * out, z), r=0.007, segs=4, lod=1)
+        for sx in (-1, 1):
+            beam(ms, 'timber', (sx * out, -out, z), (sx * out, out, z), r=0.007, segs=4, lod=1)
+        ms.box('reed', (2 * out, 0.07, 0.008), at=(0, out - 0.035, z + 0.007), lod=1)
+        ms.box('reed', (0.07, 2 * out - 0.14, 0.008), at=(out - 0.035, 0, z + 0.007), lod=0)
+
+
+def construction_stage_0(ms, rng):
+    """Foundation: corner stakes and string lines, a dug footing trench, a mud pit, brick stacks."""
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            ms.cyl('timber', 0.008, 0.006, 0.07, at=(sx * HALF, sy * HALF, G - 0.005), segs=5, lod=1)
+    corners = [(-HALF, -HALF), (HALF, -HALF), (HALF, HALF), (-HALF, HALF), (-HALF, -HALF)]
+    for a, b in zip(corners, corners[1:]):
+        _string_line(ms, a, b)
+    t = 0.06
+    for sy in (-1, 1):
+        ms.box('mud', (2 * HALF, t, 0.012), at=(0, sy * (HALF - t / 2), G - 0.006), lod=2)
+    for sx in (-1, 1):
+        ms.box('mud', (t, 2 * HALF - 2 * t, 0.012), at=(sx * (HALF - t / 2), 0, G - 0.006), lod=2)
+    for sy in (-1, 1):  # the first course of stones in the trench
+        for k in range(7):
+            ms.box('stone', (0.1, 0.05, 0.03), at=(-HALF + 0.07 + 0.12 * k, sy * (HALF - t / 2), G), rot_z=rng.uniform(-6, 6), lod=0, bevel=0.003)
+    _mud_pit(ms, 0.1, 0.05)
+    _brick_stack(ms, -0.2, -0.15, rng, 4)
+    _brick_stack(ms, 0.25, -0.22, rng, 3, 20)
+    tt.basket(ms, WORLD, -0.05, -0.25, 1.2)
+    tt.jar(ms, WORLD, 0.32, 0.2, 1.2)
+
+
+def construction_stage_1(ms, rng):
+    """33%: knee-high walls, the door frame up, bricks drying in rows, the mud pit."""
+    _walls(ms, 0.12)
+    for sx in (-1, 1):
+        ms.box('timber', (0.025, 0.04, 0.26), at=(sx * 0.07, -HALF + 0.025, G), lod=1)
+    ms.box('timber', (0.2, 0.04, 0.025), at=(0, -HALF + 0.025, G + 0.26), lod=1)
+    for r in range(3):  # bricks drying flat inside
+        for k in range(4):
+            ms.box('mudwall_bare', (0.06, 0.04, 0.015), at=(-0.2 + 0.08 * k, 0.1 + 0.07 * r, G), lod=0)
+    _brick_stack(ms, 0.2, -0.05, rng, 4)
+    _mud_pit(ms, -0.2, -0.15)
+    tt.ladder(ms, WORLD, HALF + 0.05, 0.1, 0.18, yaw=90, lean=18)
+    tt.basket(ms, WORLD, -0.3, 0.3, 1.2)
+
+
+def construction_stage_2(ms, rng):
+    """66%: walls at full height inside a pole scaffold with one reed-mat deck and a ladder."""
+    h = 0.34
+    _walls(ms, h)
+    ms.box('timber', (0.2, 0.05, 0.03), at=(0, -HALF + 0.025, G + 0.27), lod=1)
+    _scaffold(ms, h + 0.1, rng, decks=1)
+    tt.ladder(ms, WORLD, -0.2, -HALF - 0.14, h * 0.8, yaw=0, lean=16)
+    _brick_stack(ms, 0.28, -0.6, rng, 4)
+    _mud_pit(ms, -0.4, -0.62)
+    tt.basket(ms, WORLD, 0.05, -0.62, 1.2)
+
+
+def construction_stage_3(ms, rng):
+    """Near complete: full walls, roof beams laid across with half the reed-and-mud roof on, the
+    scaffold with two decks, a parapet begun."""
+    h = 0.42
+    _walls(ms, h)
+    ms.box('timber', (0.2, 0.05, 0.03), at=(0, -HALF + 0.025, G + 0.27), lod=1)
+    ms.box('door', (0.13, 0.01, 0.24), at=(0, -HALF - 0.002, G), lod=1)
+    for k in range(9):  # roof beams, ends poking out of the front wall
+        x = -HALF + 0.05 + (2 * HALF - 0.1) * k / 8
+        beam(ms, 'timber', (x, -HALF - 0.03, G + h - 0.02), (x, HALF + 0.03, G + h - 0.02), r=0.012, segs=5, lod=1 if k % 2 == 0 else 0)
+    ms.box('reed', (2 * HALF - 0.04, HALF, 0.012), at=(0, HALF / 2 - 0.02, G + h - 0.008), lod=2)
+    ms.box('roof', (2 * HALF - 0.04, HALF * 0.7, 0.02), at=(0, HALF * 0.62, G + h + 0.004), lod=1)
+    ms.box('mudwall', (2 * HALF, 0.05, 0.05), at=(0, HALF - 0.025, G + h), lod=1)
+    _scaffold(ms, h + 0.12, rng, decks=2)
+    tt.ladder(ms, WORLD, 0.25, -HALF - 0.14, h, yaw=0, lean=16)
+    _brick_stack(ms, -0.32, -0.62, rng, 3)
+    tt.jar(ms, WORLD, 0.42, -0.6, 1.2)
+
+
+STAGES = [('construction-stage-0', construction_stage_0), ('construction-stage-1', construction_stage_1),
+          ('construction-stage-2', construction_stage_2), ('construction-stage-3', construction_stage_3)]
+
+
 ROLES = [('expedition-camp', expedition_camp), ('town-hall', town_hall), ('food-depot', food_depot), ('materials-yard', materials_yard),
          ('trade-post', trade_post), ('farm-plot', farm_plot), ('mine', mine), ('barracks', barracks), ('range', shooting_range),
          ('stable', stable), ('siege-workshop', siege_workshop), ('aid-post', aid_post), ('tower', tower)]
@@ -403,6 +540,8 @@ def main():
     for name, fn in ROLES:
         items.append((name, grounded(name, fn), None))
         items.append((name + '-damaged', grounded(name + '-damaged', damaged(fn)), None))
+    for name, fn in STAGES:
+        items.append((name, grounded(name, fn), None))
     counts = tt.build_file('rts-bronze', items, out_dir, atlas=atlas, seed=3100, write=False)
     scene = bpy.context.scene
     roots = [o for o in scene.objects if o.type == 'EMPTY' and o.name in {n for n, _, _ in items}]

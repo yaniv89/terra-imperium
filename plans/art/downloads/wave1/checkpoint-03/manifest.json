@@ -1,0 +1,704 @@
+{
+  "wave": "wave1",
+  "checkpoint": "03",
+  "date": "2026-10-07",
+  "logical_items": 29,
+  "status": "in the game, awaiting the user's visual review; ZIPs kept outside git",
+  "archives": [
+    {
+      "file": "part-1.zip",
+      "logical_items": [
+        "base-houses-damage",
+        "europe-houses-damage",
+        "americas-houses-damage",
+        "levant-houses-damage",
+        "steppe-houses-damage"
+      ],
+      "bytes": 53156397,
+      "sha256": "e08e09b9798e3017a8ff2029a3fa7f96697337c70e21fe24bb32ff40e57dcec4",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07-cp03\\part-1.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07-cp03/part-1.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    },
+    {
+      "file": "part-2.zip",
+      "logical_items": [
+        "indic-houses-damage",
+        "monsoon-houses-damage",
+        "eastafrica-houses-damage",
+        "maghreb-houses-damage"
+      ],
+      "bytes": 36432776,
+      "sha256": "32e6ee3dccae341f90041e5f094bf2171b1aaff646bb8926a86ab186047c38ac",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07-cp03\\part-2.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07-cp03/part-2.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    },
+    {
+      "file": "part-3.zip",
+      "logical_items": [
+        "sinic-houses-damage",
+        "nile-houses-damage",
+        "westafrica-houses-damage",
+        "israelite-houses-damage"
+      ],
+      "bytes": 39947737,
+      "sha256": "50061e534c08c1f49aaedabaa86447a957026f3a27cd163b38ff318fb022d205",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07-cp03\\part-3.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07-cp03/part-3.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    },
+    {
+      "file": "part-4.zip",
+      "logical_items": [
+        "ground-grass",
+        "ground-desert-sand",
+        "ground-rock",
+        "ground-steppe-grass",
+        "ground-snow",
+        "ground-wet-soil",
+        "ground-paving",
+        "ground-dry-soil",
+        "fx-impact-sparks",
+        "fx-explosion",
+        "fx-smoke",
+        "fx-fire-small",
+        "fx-fire-large",
+        "fx-debris",
+        "fx-muzzle-flash",
+        "fx-dust"
+      ],
+      "bytes": 47194482,
+      "sha256": "dcdfd5f477bd3d22a4c57d304ce857343b5087380705f3ff7155d490db6a4fc6",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07-cp03\\part-4.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07-cp03/part-4.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    }
+  ],
+  "items": [
+    {
+      "item": "plans/art/battle-city/bronze/base/houses-damage",
+      "id": "base-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        946,
+        152,
+        80
+      ],
+      "triangles_ruined": [
+        306,
+        78,
+        38
+      ],
+      "source": "procedural kit ti_town.house",
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "989ece40320f6819383a78434a3cd9959ec5da525c56a38e9021825ee27bd20a",
+      "game_bytes": 585668,
+      "uncompressed_sha256": "c8693adc50b69e921d8a25cbce8fdca01f739ed6b4edfcc67bc57e66b420a4a2"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/europe/houses-damage",
+      "id": "europe-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-europe-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        902,
+        174,
+        82
+      ],
+      "triangles_ruined": [
+        512,
+        143,
+        51
+      ],
+      "source": "procedural kit ti_europe_bronze.py",
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "c6f4c73d97bd33e8465c1a1f8d793500a341e3e0b93bdf272f9f0b9d4e4c27df",
+      "game_bytes": 726260,
+      "uncompressed_sha256": "52d1374807b120b662dfa8ac36b4ea4071bf1dbb9ce6f6aa1ef41e35cace4bec"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/americas/houses-damage",
+      "id": "americas-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-americas-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        461,
+        201,
+        62
+      ],
+      "triangles_ruined": [
+        311,
+        151,
+        36
+      ],
+      "source": "kit houses plans/art/kits/americas/bronze/houses/model.glb (delivery blender-next40)",
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "03906f89d7ff8bd4b72a6a10f380e801dc3008ee4848382374dc6c8e96e07305",
+      "game_bytes": 387328,
+      "uncompressed_sha256": "e1898df61b249715c71b85210048dbd44d44f80324a5c592d6d349fdd9f6467f"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/levant/houses-damage",
+      "id": "levant-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-levant-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        1478,
+        333,
+        62
+      ],
+      "triangles_ruined": [
+        482,
+        200,
+        36
+      ],
+      "source": "kit houses plans/art/kits/levant/bronze/houses/model.glb (delivery blender-remaining)",
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "4ea151a2b88d7d4151e6a19875df10c4a893a0c6480b5abd2e259a4528d2b6d9",
+      "game_bytes": 573372,
+      "uncompressed_sha256": "a4abfa679a30a6e30af7ec28644d0cde388fae61bc02a5aef0644cfb61e64c0f"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/steppe/houses-damage",
+      "id": "steppe-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-steppe-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        1921,
+        323,
+        62
+      ],
+      "triangles_ruined": [
+        582,
+        277,
+        36
+      ],
+      "source": "kit houses plans/art/kits/steppe/bronze/houses/model.glb (delivery blender-eastafrica-steppe40)",
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "7396907b0d9ef921a94c08b5a1de2319b1e023bf7eba907852fc2de63377fa9a",
+      "game_bytes": 504116,
+      "uncompressed_sha256": "3312233fc0746c5779efe288f023fa122d0d753c0028361dac1fa3ec1182267d"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/indic/houses-damage",
+      "id": "indic-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-indic-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        1630,
+        324,
+        80
+      ],
+      "triangles_ruined": [
+        687,
+        220,
+        38
+      ],
+      "source": "procedural kit ti_indic_bronze.py",
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "b8ad9fc308740fdefbbb1e4cd8c6dd3b1b13f7f66e91fb168f408789b0963a91",
+      "game_bytes": 641792,
+      "uncompressed_sha256": "927961a56fce510dd87a03fb6918e2ee0cd8a4a4936ba632426351aa46723780"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/monsoon/houses-damage",
+      "id": "monsoon-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-monsoon-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        763,
+        330,
+        62
+      ],
+      "triangles_ruined": [
+        525,
+        260,
+        36
+      ],
+      "source": "kit houses plans/art/kits/monsoon/bronze/houses/model.glb (delivery blender-next40)",
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "3dc60c6a0b7c2dcfea1e5986abedf8e040f23f722b3c0259d3bb39e1c8eb9d65",
+      "game_bytes": 399604,
+      "uncompressed_sha256": "ca0093485aa72882dd7f057ad79fa54f5aa6a801654c531bef748e9310b7fb51"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/eastafrica/houses-damage",
+      "id": "eastafrica-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-eastafrica-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        1367,
+        325,
+        62
+      ],
+      "triangles_ruined": [
+        807,
+        259,
+        36
+      ],
+      "source": "kit houses plans/art/kits/eastafrica/bronze/houses/model.glb (delivery blender-west-eastafrica40)",
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "28036d2f28062ac31f0e34be4104a300c3aecef9538ec396ea45cbad2691c844",
+      "game_bytes": 537516,
+      "uncompressed_sha256": "8b602967770947f4519cb04bfed80f5d565091ba8e54830ba4832b123930f8a0"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/maghreb/houses-damage",
+      "id": "maghreb-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-maghreb-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        618,
+        329,
+        62
+      ],
+      "triangles_ruined": [
+        308,
+        148,
+        36
+      ],
+      "source": "kit houses plans/art/kits/maghreb/bronze/houses/model.glb (delivery blender-monsoon-maghreb40)",
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "1ce6fac39eee49fe7675f01c44982d521b2c8130f26c7e68936332da0c33a569",
+      "game_bytes": 477580,
+      "uncompressed_sha256": "d6a8594d7e452b79bfa59674a6b994e6b119c4761c6eb0254e6147df483ede6c"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/sinic/houses-damage",
+      "id": "sinic-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-sinic-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        1832,
+        264,
+        84
+      ],
+      "triangles_ruined": [
+        1145,
+        282,
+        51
+      ],
+      "source": "procedural kit ti_sinic_bronze.py",
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "game_sha256": "89904d404171fd17f96e5da509a459503fd698d877be562c5b58e5a918a4e125",
+      "game_bytes": 823364,
+      "uncompressed_sha256": "c728e25dd5b76c3accc3d5b9f09d9d987cde92796ab42ff752a6e0d699847347"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/nile/houses-damage",
+      "id": "nile-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-nile-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        620,
+        310,
+        62
+      ],
+      "triangles_ruined": [
+        244,
+        84,
+        36
+      ],
+      "source": "kit houses plans/art/kits/nile/bronze/houses/model.glb (delivery blender-next30)",
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "game_sha256": "d6d60128536c0f1d1d3bf93bdf0bbc219d118d92a14a21aee14e3a448e3cb48d",
+      "game_bytes": 388140,
+      "uncompressed_sha256": "326db8527ff3e8c785fb601d6d0b21da9aa69d8f312b2a25194e5a85a79da6ea"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/westafrica/houses-damage",
+      "id": "westafrica-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-westafrica-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        766,
+        318,
+        62
+      ],
+      "triangles_ruined": [
+        308,
+        148,
+        36
+      ],
+      "source": "kit houses plans/art/kits/westafrica/bronze/houses/model.glb (delivery blender-maghreb-westafrica40)",
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "game_sha256": "8aed0be8218218e0a0611c3d6ded49ad0681c38010515316351e6b9ece011f4d",
+      "game_bytes": 456892,
+      "uncompressed_sha256": "c25ca1168b111bc7323e5247c8a5dfae63ad8d63d34a1a9f7176350cccc58319"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/israelite/houses-damage",
+      "id": "israelite-houses-damage",
+      "kind": "house-damage",
+      "target_path": "src/assets/battle/city/bronze-israelite-houses-damage.glb",
+      "object": "house-common-damaged",
+      "objects": [
+        "house-common-damaged",
+        "house-common-ruined",
+        "house-poor-damaged",
+        "house-poor-ruined",
+        "house-rich-damaged",
+        "house-rich-ruined"
+      ],
+      "validation_passed": true,
+      "triangles": [
+        1962,
+        322,
+        62
+      ],
+      "triangles_ruined": [
+        620,
+        249,
+        36
+      ],
+      "source": "kit houses plans/art/kits/israelite/bronze/houses/model.glb (delivery blender-remaining)",
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "game_sha256": "1e863b560c68c49ae92dbdbd9d8862a0103c8d88cf58570099dee48dfe8ad3c0",
+      "game_bytes": 622916,
+      "uncompressed_sha256": "604bc79a767e31c5bb57ee656d975ff7c3b58cbbc54cc807567eff9771229737"
+    },
+    {
+      "item": "plans/art/map-terrain/ground-grass",
+      "id": "ground-grass",
+      "kind": "ground-material",
+      "target_path": "src/assets/terrain/grass/color.webp",
+      "maps_in_zip": [
+        "color.png",
+        "normal.png",
+        "orm.png"
+      ],
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "0d774c7a2fe0c693bcf3905a612a838f532b6c2800a061997264bc661043fa29",
+      "game_bytes": 222040
+    },
+    {
+      "item": "plans/art/map-terrain/ground-desert-sand",
+      "id": "ground-desert-sand",
+      "kind": "ground-material",
+      "target_path": "src/assets/terrain/desert-sand/color.webp",
+      "maps_in_zip": [
+        "color.png",
+        "normal.png",
+        "orm.png"
+      ],
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "d77a6f88c1c4c9ba60c463e373859503d72c92db78d9f89fd48c6ad31310e224",
+      "game_bytes": 199832
+    },
+    {
+      "item": "plans/art/map-terrain/ground-rock",
+      "id": "ground-rock",
+      "kind": "ground-material",
+      "target_path": "src/assets/terrain/rock/color.webp",
+      "maps_in_zip": [
+        "color.png",
+        "normal.png",
+        "orm.png"
+      ],
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "bdb6514fdbcf5cc937931e27549c4e06bf56cd1280cf22b8d520d329ae0a6f15",
+      "game_bytes": 140350
+    },
+    {
+      "item": "plans/art/map-terrain/ground-dry-steppe",
+      "id": "ground-steppe-grass",
+      "kind": "ground-material",
+      "target_path": "src/assets/terrain/steppe-grass/color.webp",
+      "maps_in_zip": [
+        "color.png",
+        "normal.png",
+        "orm.png"
+      ],
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "7683b9a259e82af95cc33b20dfeb2696f25a7ec6d6d0c6533fc75e4cd43aa522",
+      "game_bytes": 275158
+    },
+    {
+      "item": "plans/art/map-terrain/ground-snow-ice",
+      "id": "ground-snow",
+      "kind": "ground-material",
+      "target_path": "src/assets/terrain/snow/color.webp",
+      "maps_in_zip": [
+        "color.png",
+        "normal.png",
+        "orm.png"
+      ],
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "11ed7a43192cb7a939e8a732dbfa36e56f590716bb89c17c38eaac78897569a5",
+      "game_bytes": 196756
+    },
+    {
+      "item": "plans/art/map-terrain/ground-wet-soil",
+      "id": "ground-wet-soil",
+      "kind": "ground-material",
+      "target_path": "src/assets/terrain/wet-soil/color.webp",
+      "maps_in_zip": [
+        "color.png",
+        "normal.png",
+        "orm.png"
+      ],
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "9be480768f787e7461a9d2bbe66dc831727e73f503537fed0f147513a111b088",
+      "game_bytes": 266900
+    },
+    {
+      "item": "plans/art/map-terrain/ground-paving",
+      "id": "ground-paving",
+      "kind": "ground-material",
+      "target_path": "src/assets/terrain/paving/color.webp",
+      "maps_in_zip": [
+        "color.png",
+        "normal.png",
+        "orm.png"
+      ],
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "64d88c347acccbe46e1d477f1d1c175c5b39707b32a426f9c33045bd26b7b61d",
+      "game_bytes": 181020
+    },
+    {
+      "item": "plans/art/map-terrain/ground-dry-soil",
+      "id": "ground-dry-soil",
+      "kind": "ground-material",
+      "target_path": "src/assets/terrain/dry-soil/color.webp",
+      "maps_in_zip": [
+        "color.png",
+        "normal.png",
+        "orm.png"
+      ],
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "213a39e6859b1b3162402de6f15350e7c43731e19ca57e0ce4938f7181a55adb",
+      "game_bytes": 184842
+    },
+    {
+      "item": "plans/art/fx/impact-sparks",
+      "id": "fx-impact-sparks",
+      "kind": "fx-sheet",
+      "target_path": "src/assets/fx/impact-sparks/sheet.json",
+      "frames": 8,
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "1104444c700e2692bcf3a69a0bda3d0e277391ac06790748629711e2e98fe9dc",
+      "game_bytes": 130
+    },
+    {
+      "item": "plans/art/fx/explosion",
+      "id": "fx-explosion",
+      "kind": "fx-sheet",
+      "target_path": "src/assets/fx/explosion/sheet.json",
+      "frames": 12,
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "712956a82306d31814bf5fbfae618b39d6b9b72140e18bf4c22cd48df94ec1ef",
+      "game_bytes": 133
+    },
+    {
+      "item": "plans/art/fx/smoke",
+      "id": "fx-smoke",
+      "kind": "fx-sheet",
+      "target_path": "src/assets/fx/smoke/sheet.json",
+      "frames": 12,
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "6a5bbcde0b1a6de1815b56b77fe6d4445323a797749be35885f4ce9072250c2f",
+      "game_bytes": 129
+    },
+    {
+      "item": "plans/art/fx/fire-small",
+      "id": "fx-fire-small",
+      "kind": "fx-sheet",
+      "target_path": "src/assets/fx/fire-small/sheet.json",
+      "frames": 12,
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "4bb7e965540ee15a4e943d26e0b34a3c8d0c2e7935cc0acf6f7f00ddc8ddb5ea",
+      "game_bytes": 133
+    },
+    {
+      "item": "plans/art/fx/fire-large",
+      "id": "fx-fire-large",
+      "kind": "fx-sheet",
+      "target_path": "src/assets/fx/fire-large/sheet.json",
+      "frames": 16,
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "2246638799d4e994c195784c2c3fac516e22779830ed74a3cd12bbe55406dc6e",
+      "game_bytes": 132
+    },
+    {
+      "item": "plans/art/fx/debris",
+      "id": "fx-debris",
+      "kind": "fx-sheet",
+      "target_path": "src/assets/fx/debris/sheet.json",
+      "frames": 10,
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "4f3d594506ab26d207be2d1037dceaaa37354350875cb1b8a60842e092a7e034",
+      "game_bytes": 130
+    },
+    {
+      "item": "plans/art/fx/muzzle-flash",
+      "id": "fx-muzzle-flash",
+      "kind": "fx-sheet",
+      "target_path": "src/assets/fx/muzzle-flash/sheet.json",
+      "frames": 8,
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "9915ed7369b9af099aadb058069824ace8a733da6b32f9b10054879cb0095049",
+      "game_bytes": 130
+    },
+    {
+      "item": "plans/art/fx/dust",
+      "id": "fx-dust",
+      "kind": "fx-sheet",
+      "target_path": "src/assets/fx/dust/sheet.json",
+      "frames": 12,
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "game_sha256": "ea55dcca1214832eed1c82ad2eb393d26ef4bb74c94e74dad466dc106d92ff9f",
+      "game_bytes": 130
+    }
+  ]
+}

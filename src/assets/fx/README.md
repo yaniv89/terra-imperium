@@ -23,3 +23,6 @@ holds the map's own effects and is not read here.)
 
 Each sheet is one instanced camera-facing mesh (up to 128 at once); effects count against the
 battle's effects cap (`BATTLE_GRAPHICS.effects`). A missing sheet keeps the code effects.
+
+## Delivered
+2026-10-07 (wave1 checkpoint-03, `scripts/blender/build_fx_sheets.py`): all eight sheets above.
