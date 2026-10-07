@@ -178,7 +178,7 @@ at 844x390 and 1280x800 in `plans/ui/battle-ux/before/` and `after/`.
 - **Construction HP (AoE style).** A site starts at 1 HP and its HP rises with the work, to full when
   it is done (the sim already did this: economy.js updateEconomy). The field bar and the card show HP,
   not the build percentage, so a site hit while it goes up shows the damage; the card adds "built N%".
-- **Build menu with pictures.** A grid of tiles (5 across on a phone, 72 px tall): the building's
+- **Build menu with pictures.** A grid of tiles (6 across, 64 px tall on a phone, 72 on a desktop): the building's
   picture (`src/assets/icons/battle/build-*.webp`, rendered from the battle's own models by
   `scripts/art/build-icons.mjs`), a short name, the cost with resource icons (wheat, timber, gold);
   a cost you cannot pay is red and the tile carries the shortfall ("+30"). Press and hold (hover with a
@@ -197,3 +197,16 @@ at 844x390 and 1280x800 in `plans/ui/battle-ux/before/` and `after/`.
   edge; auto-resolve keeps routing for both sides. A per-side flag in the setup (`sides[s].canRout`,
   set from `setup.controllers` when a commanded battle opens). No "your squad routed" alert; "enemy
   squad broke" stays.
+
+Status (done on claude/battle-ux): the info card for anything on the field (`inspectModel.js`,
+`EconomyHud.jsx` InfoCard, BattleRenderer `setInspected`: the bar even at full HP and a ring); site bars
+show HP (`economyLayer.js` bars); the build menu with the rendered pictures, shortfall badges and the
+press-and-hold / hover detail; the phone bars and the one top row (`BattleHud.jsx`); Shaken, Rally Cry
+on the selection pill and the shaken alert, Go selecting the squad. Shaken is x0.6 damage dealt and
+x1.3 taken (sim/morale.js), chosen with battle-lab parity: in the campaign field mirror (bronze,
+16 seeds) a no-rout attacker wins 7 of 16 against Auto's 6 (10 with a softer x0.75 / x1.15), exchange
+1.18 against Auto's 1.02 and 1.26 when everyone routs. Screens: `plans/ui/battle-ux/after/`
+(`node scripts/ui/battle-ux-shots.mjs`, `node .claude/skills/battle-lab/eco-shot.mjs`); the
+pictures again after new building art: `node scripts/art/build-icons.mjs`.
+Gaps: city wall segments and the gate have no rendered picture (a glyph); the region's buildings use
+the map's building icons; enemy squads still show "routed" when they break (their rule is unchanged).
