@@ -20,6 +20,9 @@ let LAND_TILES = countLand();
 // seed is the game seed, LAND (default 30) the land share; it forces SCENARIO=peoples.
 const MAP = process.env.MAP || 'earth';
 const MAP_LAND = Number(process.env.LAND || 30);
+// SHAPE (continents, pangaea, archipelago, islands, inland) and GENVER (the generator version, default the current one).
+const MAP_SHAPE = process.env.SHAPE || 'continents';
+const MAP_VERSION = process.env.GENVER ? Number(process.env.GENVER) : undefined;
 
 const TURNS = Number(process.env.TURNS || 150);
 const EVERY = Number(process.env.EVERY || 50);
@@ -116,7 +119,7 @@ const snapshot = (s, t, counters, ms, lives) => {
 SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
     let map = null; let mapReport = null;
-    if (MAP === 'generated') { const w = installGeneratedWorld({ seed, params: { land: MAP_LAND } }); map = w.spec; mapReport = w.report; LAND_TILES = countLand(); }
+    if (MAP === 'generated') { const w = installGeneratedWorld({ seed, generatorVersion: MAP_VERSION, params: { land: MAP_LAND, shape: MAP_SHAPE } }); map = w.spec; mapReport = w.report; LAND_TILES = countLand(); }
     const scenario = SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : (SCENARIO === 'peoples' || map) ? { scenario: { mode: 'peoples', size: SIZE, seed, ...(map ? { map } : {}), ...(process.env.INDEPENDENTS === '0' ? { independents: false } : {}) } } : {};
     if (mapReport) console.log(`MAP seed=${seed} hash=${mapReport.worldHash} continents=${mapReport.continents} startMin=${mapReport.startMin} startMedian=${mapReport.startMedian} startSpread=${mapReport.startSpread.toFixed(3)} repairs=${mapReport.startRepairs}`);
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };

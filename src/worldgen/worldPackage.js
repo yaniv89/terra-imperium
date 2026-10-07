@@ -9,9 +9,13 @@ import { tilesFromRaw } from '../data/geo/tiles';
 import { buildHexLand } from '../data/geo/hexCoast';
 import { paintWorld } from './painter';
 
+// The base picture's width: the world view, the minimap and the globe; the GPU painter
+// (components/map/gl/proceduralPaint.js) draws every level above it, so 1024 is enough and saves
+// about three quarters of the painting time (a phone's first boot).
+export const PAINT_WIDTH = 1024;
 // `paint`: also the painted base picture (painter.js), as RGBA bytes { width, height, rgba }; the
 // worker encodes it to WebP (paintedPicture below). Off in Node and in the turn and battle workers.
-export const buildWorldPackage = (spec, grid, { onProgress = () => {}, coast = true, paint = false, paintWidth = 2048 } = {}) => {
+export const buildWorldPackage = (spec, grid, { onProgress = () => {}, coast = true, paint = false, paintWidth = PAINT_WIDTH } = {}) => {
   const { raw, report } = generateWorld(spec, grid, { onProgress: (f, stage) => onProgress(f * (paint ? 0.5 : 0.85), stage) });
   const tiles = encodeTiles(raw);
   let land = null;
@@ -26,7 +30,7 @@ export const buildWorldPackage = (spec, grid, { onProgress = () => {}, coast = t
     painted = { width: paintWidth, height: paintWidth / 2, rgba: paintWorld(decorated, paintWidth, paintWidth / 2, { onProgress: (f) => onProgress(0.65 + f * 0.33, 'painting') }) };
   }
   onProgress(1, 'done');
-  return { tiles, land, report, worldHash: raw.world.worldHash, painted };
+  return { tiles, land, report, worldHash: raw.world.worldHash, painted, pictureSize: painted ? paintWidth : null };
 };
 
 /** The painted RGBA as a WebP blob (OffscreenCanvas; null where it is missing). */

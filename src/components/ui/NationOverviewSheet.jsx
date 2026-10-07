@@ -11,6 +11,7 @@ import { OPEN_NATION_OVERVIEW, setMapLens } from './uiEvents';
 import { openPanelTab } from '../panels/panelEvents';
 import { nationOverviewModel } from './nationOverviewModel';
 import { Button, Label, Meter, SheetHeader, Shield, signed } from './atlas';
+import MapCard from './MapCard';
 
 const Card = ({ children, className = '', testId }) => <section className={`fa-card p-3 space-y-2 ${className}`} data-testid={testId}>{children}</section>;
 
@@ -138,6 +139,7 @@ const NationOverviewSheet = () => {
             </div>
             {action && <Button className="w-full" onClick={() => { close(); action.go(); }}>{action.label}</Button>}
           </Card>
+          <Card testId="nation-map"><MapCard map={state.scenario?.map} /></Card>
         </div>
         <div className="px-4 py-2.5 border-t border-fa-line shrink-0" data-testid="nation-age-strip">
           <div className="flex items-baseline justify-between gap-2 mb-1.5">

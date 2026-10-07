@@ -22,7 +22,7 @@ import { TUTORIAL_NATION, TUTORIAL_WORLD_SIZE } from '../../engine/tutorial';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { PeopleEmblem, ThemeIcon, THEME_LABELS, startArt, regionIcon } from './peopleArt';
 import { Label } from './atlas';
-import MapPicker, { generatedWorldsEnabled } from './MapPicker';
+import MapPicker, { generatedWorldsEnabled, mapFromUrl } from './MapPicker';
 import { newWorldSeed } from './seeds';
 import HOMES from '../../data/geo/peopleHomes.json';
 import { currentWorldSpec } from '../../worldgen/worldLoader';
@@ -163,8 +163,9 @@ const StartScreen = ({ onStart, initialStep = 0 }) => {
   const [gameSpeed, setGameSpeed] = useState('normal');
   const [difficultyId, setDifficultyId] = useState('prince');
   const [exploredWorld, setExploredWorld] = useState(false);
-  // The map (MapPicker): the page's own world by default, so a generated world's next game stays on it.
-  const [mapSpec, setMapSpec] = useState(() => { const w = currentWorldSpec(); return w.kind === 'generated' ? { kind: 'generated', generatorVersion: w.generatorVersion, seed: w.seed, params: w.params } : { kind: 'earth' }; });
+  // The map (MapPicker): a shared `?map=CODE`, else the page's own world, so a generated world's
+  // next game stays on it.
+  const [mapSpec, setMapSpec] = useState(() => { const shared = mapFromUrl(); if (shared) return shared; const w = currentWorldSpec(); return w.kind === 'generated' ? { kind: 'generated', generatorVersion: w.generatorVersion, seed: w.seed, params: w.params } : { kind: 'earth' }; });
   const generatedMap = mapSpec.kind === 'generated';
   const mapChoice = generatedWorldsEnabled() || generatedMap;
 
