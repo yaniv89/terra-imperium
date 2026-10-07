@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createBattleAudio, isBattleAudioEnabled, setBattleAudioEnabled, soundForEvent, MAX_VOICES, MAX_NEW_PER_FRAME } from './battleAudio';
 import { setSoundFilesForTest } from '../../audio/soundRegistry';
 import { setPageStateForTest, resetPageStateForTest } from '../../audio/pageLifecycle';
+import { resetAudioContextForTest } from '../../audio/audioContext';
 
 // The suite runs in Node: a minimal window/localStorage stand-in is all this module touches.
 const store = new Map();
@@ -36,7 +37,7 @@ let clock = 1000;
 describe('battle audio', () => {
   beforeEach(() => {
     localStorage.clear(); setBattleAudioEnabled(true);
-    window.AudioContext = FakeAudioContext; resetCounts();
+    window.AudioContext = FakeAudioContext; resetCounts(); resetAudioContextForTest();
     clock += 10000; vi.spyOn(performance, 'now').mockImplementation(() => clock);
   });
   afterEach(() => { vi.restoreAllMocks(); setSoundFilesForTest(null); delete globalThis.document; });

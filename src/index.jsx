@@ -1,7 +1,7 @@
 // src/index.jsx
 // Application entry point. `?battleSandbox` opens the tactical battle sandbox instead of the game
 // and `?tileViewer` the world grid viewer (both lazy-loaded, so the normal game never downloads
-// them).
+// them). `?audiodebug` adds the audio readout (context state, what plays) over the game.
 
 //
 // The world grid is fetched first (src/data/geo/tiles.js, a 1.7 MB binary instead of an 8.2 MB
@@ -35,5 +35,12 @@ const start = async () => {
           : <App />}
     </React.StrictMode>
   );
+  // `?audiodebug`: the audio readout (src/components/AudioDebug.jsx) in its own root, over the game.
+  if (params.has('audiodebug')) {
+    const { default: AudioDebug } = await import('./components/AudioDebug');
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    ReactDOM.createRoot(el).render(<AudioDebug />);
+  }
 };
 start();

@@ -1,7 +1,7 @@
 // Sound stops whenever the page is away (hidden, put away, frozen, app paused, a phone's window
 // blurred) and comes back only when it returns and sound is still wanted.
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { pageAudible, isPageAudible, subscribePageAudio, setPageStateForTest, resetPageStateForTest, quietMediaSession } from './pageLifecycle';
+import { pageAudible, isPageAudible, subscribePageAudio, setPageStateForTest, resetPageStateForTest } from './pageLifecycle';
 import { musicWanted } from './music';
 
 describe('pageAudible (pure)', () => {
@@ -47,17 +47,5 @@ describe('page audio subscription', () => {
     setPageStateForTest({ appPaused: false, hidden: false });
     expect(fn).toHaveBeenLastCalledWith(true);
     off();
-  });
-  it('quiets the lock screen media session', () => {
-    const handlers = {};
-    const ms = { playbackState: 'playing', metadata: {}, setActionHandler: (a, h) => { handlers[a] = h; } };
-    vi.stubGlobal('navigator', { mediaSession: ms });
-    const onPlay = vi.fn();
-    quietMediaSession(onPlay);
-    expect(ms.playbackState).toBe('none');
-    expect(ms.metadata).toBe(null);
-    handlers.play();
-    expect(onPlay).toHaveBeenCalled();
-    vi.unstubAllGlobals();
   });
 });

@@ -22,6 +22,7 @@ import { BATTLE_SOUNDS, battleFilesFor, createSoundRng, pickVariant } from '../.
 import { getAudioSettings, setAudioSettings, subscribeAudioSettings } from '../../audio/audioSettings';
 import { audibility, ambienceTarget, easeLevel } from '../../audio/spatial';
 import { isPageAudible, subscribePageAudio } from '../../audio/pageLifecycle';
+import { getAudioContext, resumeAudio, registerAudioConsumer } from '../../audio/audioContext';
 import { getAgeIndex } from '../../data/ages';
 import { getSquadDisplayName } from '../data/battleStats';
 
@@ -154,7 +155,7 @@ export const frameAlerts = (prevEco, eco) => {
 };
 
 export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 0 } = {}) => {
-  let ctx = null; let master = null; let noise = null;
+  let ctx = null; let master = null; let noise = null; let unregister = null;
   let settings = getAudioSettings();
   let enabled = effectsWanted(settings);
   let visible = true;
@@ -173,22 +174,27 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
   const docHidden = () => !isPageAudible();
 
   const busLevel = () => (enabled && visible && !docHidden() ? MASTER * settings.effects : 0);
-  const applyBus = () => { if (master && ctx) master.gain.setTargetAtTime?.(busLevel(), ctx.currentTime, 0.05); };
+  const applyBus = () => {
+    if (!master || !ctx) return;
+    if (docHidden()) master.gain.setValueAtTime?.(0, ctx.currentTime); // away: silent now, no ramp
+    else master.gain.setTargetAtTime?.(busLevel(), ctx.currentTime, 0.05);
+  };
 
-  // Browsers only allow audio after a user gesture, so the context is created on the first one.
+  // Browsers only allow audio after a user gesture: the game's one context (audioContext.js) is
+  // created on the first one; this battle hangs its own bus on it.
   const ensure = () => {
     if (!enabled) return null;
     if (!ctx) {
-      const AC = typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext) : null;
-      if (!AC) return null;
-      ctx = new AC();
+      ctx = getAudioContext();
+      if (!ctx) return null;
       master = ctx.createGain(); master.gain.value = busLevel(); master.connect(ctx.destination);
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const data = noise.getChannelData(0);
       let seed = 12345;
       for (let i = 0; i < data.length; i++) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; data[i] = (seed / 0x3fffffff) - 1; }
+      unregister = registerAudioConsumer('battle', () => ({ bus: busLevel().toFixed(2), voices: channels.length, loops: Object.keys(loops) }));
     }
-    if (ctx.state !== 'running' && !docHidden()) ctx.resume?.();
+    if (ctx.state !== 'running') resumeAudio('battle'); // never while the page is away
     return ctx;
   };
 
@@ -356,14 +362,12 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
     play(id, a.gain, a.pan);
   };
 
-  const unsubscribe = subscribeAudioSettings((s) => { settings = s; enabled = effectsWanted(s); if (!enabled) ctx?.suspend?.(); else if (ctx) ensure(); applyBus(); });
-  // The page away: suspend the whole context at once (a gain ramp would not stop a locked iPhone);
-  // back on screen with sound still wanted: resume it.
-  const onVisibility = () => {
-    if (docHidden()) ctx?.suspend?.();
-    else if (enabled && ctx) ensure();
-    applyBus();
-  };
+  // The battle sounds switched off: the bus falls silent (the context is shared with the music and
+  // the interface, so it is not suspended for that).
+  const unsubscribe = subscribeAudioSettings((s) => { settings = s; enabled = effectsWanted(s); if (enabled && ctx) ensure(); applyBus(); });
+  // The page away: audioContext.js suspends the shared context at once (a gain ramp would not stop
+  // a locked iPhone) and resumes it when the page is back; here the bus follows.
+  const onVisibility = () => applyBus();
   const unsubscribePage = subscribePageAudio(onVisibility);
 
   return {
@@ -433,8 +437,12 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
     dispose() {
       unsubscribe();
       unsubscribePage();
-      try { ctx?.close?.(); } catch { /* already closed */ }
-      ctx = null;
+      unregister?.();
+      // The context is the game's (music and interface go on): only this battle's nodes go.
+      Object.values(loops).forEach((l) => { try { l.src.stop(); l.gain.disconnect(); } catch { /* already stopped */ } });
+      Object.keys(loops).forEach((k) => delete loops[k]);
+      try { master?.disconnect?.(); } catch { /* gone */ }
+      ctx = null; master = null; channels.length = 0;
     }
   };
 };

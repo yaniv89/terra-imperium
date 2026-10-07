@@ -3,9 +3,9 @@
 // the app shell gives when the player stops looking: the tab hidden (visibilitychange), the page
 // put away or frozen (pagehide, freeze), the window losing focus on a phone (blur: a locked
 // iPhone or the app switcher), and the Capacitor app going to the background (pause / resume).
-// iOS Safari does not reliably pause HTML audio on a locked screen, so map music (music.js) and
-// the battle (battleAudio.js) both follow this and stop at once, then resume only when the page
-// is visible again and sound is still wanted.
+// The shared Web Audio context (audioContext.js) is suspended while the page is away and resumed
+// when it is back; music.js and battleAudio.js also mute their buses. (Nothing plays as a media
+// element: iOS would keep that going on the lock screen whatever the page does.)
 
 /** Should sound be heard, given the page's state? (pure) Blur counts on phones only. */
 export const pageAudible = ({ hidden = false, pagehidden = false, frozen = false, blurred = false, appPaused = false, phone = false } = {}) =>
@@ -70,16 +70,3 @@ export const subscribePageAudio = (fn) => {
 /** Tests: drive the state by hand ({ hidden, blurred, ... }) and reset it. */
 export const setPageStateForTest = (patch) => set(patch);
 export const resetPageStateForTest = () => { Object.assign(state, { hidden: false, pagehidden: false, frozen: false, blurred: false, appPaused: false }); lastAudible = isPageAudible(); };
-
-/** iOS lock screen: say nothing is playing and keep its play button from restarting our audio. */
-export const quietMediaSession = (onPlayRequest) => {
-  try {
-    const ms = typeof navigator !== 'undefined' ? navigator.mediaSession : null;
-    if (!ms) return;
-    ms.metadata = null;
-    ms.playbackState = 'none';
-    // A handler (rather than none) stops the browser's default "resume the element" action.
-    ms.setActionHandler?.('play', () => { onPlayRequest?.(); });
-    ms.setActionHandler?.('pause', () => { ms.playbackState = 'none'; });
-  } catch { /* an action the browser does not know */ }
-};
