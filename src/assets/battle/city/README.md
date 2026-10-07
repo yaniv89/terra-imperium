@@ -38,3 +38,7 @@ renderer's towers, grey mounds for rubble, darkened and cut-out houses.
 ## Check
 `python3 scripts/blender/validate_model.py <file> <out> auto` (kinds `wall-kit`, `ruin`,
 `house-damage`, `improvement`), `npm run pack:models`, `/?battleSandbox&city=medium`.
+
+## Delivered
+2026-10-07 (wave1 checkpoint-02, `scripts/blender/build_city_bronze.py`): `walls-bronze.glb`,
+`ruins-bronze.glb`, `fort-bronze.glb`. No house damage files yet; later ages fall back to these.

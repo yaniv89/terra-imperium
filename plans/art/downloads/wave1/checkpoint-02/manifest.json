@@ -1,0 +1,313 @@
+{
+  "wave": "wave1",
+  "checkpoint": "02",
+  "date": "2026-10-07",
+  "logical_items": 14,
+  "status": "in the game, awaiting the user's visual review; ZIPs kept outside git",
+  "archives": [
+    {
+      "file": "part-1.zip",
+      "logical_items": [
+        "construction-set",
+        "wall-kit",
+        "ruin-library",
+        "fort",
+        "projectiles-bronze"
+      ],
+      "bytes": 109890622,
+      "sha256": "347690074fcbc928aa140f15c668de103247a13973c8ed8518f7227fda713ece",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07-cp02\\part-1.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07-cp02/part-1.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    },
+    {
+      "file": "part-2.zip",
+      "logical_items": [
+        "stone-outcrop",
+        "ore-outcrop",
+        "gold-vein",
+        "fish-shoal",
+        "herd-sheep-goat",
+        "herd-cattle"
+      ],
+      "bytes": 46890096,
+      "sha256": "ced413f91583339052104d97b767c206b82e3e39efbc7166438aca0c375f9192",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07-cp02\\part-2.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07-cp02/part-2.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    },
+    {
+      "file": "part-3.zip",
+      "logical_items": [
+        "vegetation-temperate",
+        "vegetation-mediterranean",
+        "vegetation-desert"
+      ],
+      "bytes": 41807091,
+      "sha256": "d5d68483952b086f6e028ff331e178a9d57e5aa956c6c34c1005852e38f93380",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07-cp02\\part-3.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07-cp02/part-3.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    }
+  ],
+  "items": [
+    {
+      "item": "plans/art/rts/bronze/construction-set",
+      "id": "construction-set",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "construction-stage-0",
+      "triangles": [
+        1060,
+        172,
+        72
+      ],
+      "validation_passed": true,
+      "objects": [
+        "construction-stage-0",
+        "construction-stage-1",
+        "construction-stage-2",
+        "construction-stage-3"
+      ],
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "899b730d8ef2966f2aa578bcd1044b521abaafad21d9eb0bf24ab6535f806276",
+      "game_bytes": 3983868,
+      "uncompressed_sha256": "03655c6e868cafc36076ada98d3a5828d5774d8bc11e11ff301075c6373b2be1"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/wall-kit",
+      "id": "wall-kit",
+      "kind": "wall-kit",
+      "target_path": "src/assets/battle/city/walls-bronze.glb",
+      "object": "wall-straight",
+      "triangles": [
+        360,
+        144,
+        12
+      ],
+      "validation_passed": true,
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "13db19a6878213085b1bd2fa7bc84c488e9d9aa9fa7099f0e5315c1b32bb9aa6",
+      "game_bytes": 915604,
+      "uncompressed_sha256": "f5fe87717e9ec0b823976be584a1cd8ad30c8996c715eb409d601cfb2e0cf8c2"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/ruin-library",
+      "id": "ruin-library",
+      "kind": "ruin",
+      "target_path": "src/assets/battle/city/ruins-bronze.glb",
+      "object": "rubble-m",
+      "triangles": [
+        700,
+        64,
+        28
+      ],
+      "validation_passed": true,
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "ee901f50711653ffff80a72ca5e209c8b4d6036e7b4f5accb4828e0ad5403938",
+      "game_bytes": 468824,
+      "uncompressed_sha256": "3136f8bf65f14c99779d3a9207ad7d0ed59c8f0aa65d086456792a397b4e1bb5"
+    },
+    {
+      "item": "plans/art/battle-city/bronze/fort",
+      "id": "fort",
+      "kind": "improvement",
+      "target_path": "src/assets/battle/city/fort-bronze.glb",
+      "object": "fort",
+      "triangles": [
+        6190,
+        990,
+        278
+      ],
+      "validation_passed": true,
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "061e3245a5b8d27b4911ae420cc815fbdceb96cf34885836eeca0b4bf87d9932",
+      "game_bytes": 970540,
+      "uncompressed_sha256": "e192a7258e5e851a19becdf0a81b43f21b9905066873ec3abe56b8bf4d7dcd17"
+    },
+    {
+      "item": "plans/art/fx/projectiles-bronze",
+      "id": "projectiles-bronze",
+      "kind": "projectile",
+      "target_path": "src/assets/battle/projectiles/bronze.glb",
+      "object": "arrow",
+      "triangles": [
+        18,
+        18,
+        18
+      ],
+      "validation_passed": true,
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "game_sha256": "da7cd0a4dc0b5c44f35a860d168c2709fc175a2f6f0d3a43395b20af6e273183",
+      "game_bytes": 21548,
+      "uncompressed_sha256": "bbbe93c323a58a00dcdd8a8a6b17da485e434cb9df00190eed3a75167307fbf9"
+    },
+    {
+      "item": "plans/art/nature/stone-outcrop",
+      "id": "stone-outcrop",
+      "kind": "node",
+      "target_path": "src/assets/battle/nature/stone-outcrop.glb",
+      "object": "full",
+      "triangles": [
+        628,
+        140,
+        56
+      ],
+      "validation_passed": true,
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "e25a949bde49ae7e39715ebb6f6ae08b9f6706b16644228c5673f30b1615e3c5",
+      "game_bytes": 270932,
+      "uncompressed_sha256": "6d6a47bbb146ff83be0215f4b9ca150b022ed4df4079469982204880f86ac391"
+    },
+    {
+      "item": "plans/art/nature/ore-outcrop",
+      "id": "ore-outcrop",
+      "kind": "node",
+      "target_path": "src/assets/battle/nature/ore-outcrop.glb",
+      "object": "full",
+      "triangles": [
+        852,
+        140,
+        56
+      ],
+      "validation_passed": true,
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "e73aadf8ed9ce9b4cc23ad625db568cc5ef1f57ecbfa2dc70a61ebdcf75043e6",
+      "game_bytes": 340768,
+      "uncompressed_sha256": "0e2992fb69c903064e19cf22f9e6d56c5a0647327ed69c9129e704b2bb31950d"
+    },
+    {
+      "item": "plans/art/nature/gold-vein",
+      "id": "gold-vein",
+      "kind": "node",
+      "target_path": "src/assets/battle/nature/gold-vein.glb",
+      "object": "full",
+      "triangles": [
+        1036,
+        140,
+        56
+      ],
+      "validation_passed": true,
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "308fe78cdaad4bf8b6365f255a7d43a78a8a1821213abdbeaddf5aa30e825a56",
+      "game_bytes": 385500,
+      "uncompressed_sha256": "8e6839d27250362b7378e4220967d60d2d2b461e42719b025975511be751d1ea"
+    },
+    {
+      "item": "plans/art/nature/fish-shoal",
+      "id": "fish-shoal",
+      "kind": "node",
+      "target_path": "src/assets/battle/nature/fish-shoal.glb",
+      "object": "full",
+      "triangles": [
+        410,
+        116,
+        32
+      ],
+      "validation_passed": true,
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "726f0f2b3b712d37958ba4f0eab3205dbe966bf5ca408192d99de216f1b3ece1",
+      "game_bytes": 76684,
+      "uncompressed_sha256": "b6a3ab3856be58e88bc1701cf1a532521eb3bedd6e0964b4e47dde43f59e5e48"
+    },
+    {
+      "item": "plans/art/nature/herd-sheep-goat",
+      "id": "herd-sheep-goat",
+      "kind": "herd",
+      "target_path": "src/assets/battle/nature/herd-sheep-goat.glb",
+      "object": "animal",
+      "triangles": [
+        276,
+        120,
+        52
+      ],
+      "validation_passed": true,
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "29ebb0b0ca475ba37127b9a874a284398546e025b7a3a1caf99f2e9eff513414",
+      "game_bytes": 110868,
+      "uncompressed_sha256": "0bba8a7b68ed40b1016d8b934dfea2aaead4beddff557c958635fcbe2ed0c509"
+    },
+    {
+      "item": "plans/art/nature/herd-cattle",
+      "id": "herd-cattle",
+      "kind": "herd",
+      "target_path": "src/assets/battle/nature/herd-cattle.glb",
+      "object": "animal",
+      "triangles": [
+        276,
+        120,
+        52
+      ],
+      "validation_passed": true,
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "game_sha256": "4c39fc46892daef37604f721dcdfbc4af6b15f19071b2f9c709c353b943d4fab",
+      "game_bytes": 76416,
+      "uncompressed_sha256": "699baa4702e9be12a2ab20cc32d107013cc917affae118f69a6a4450486f5339"
+    },
+    {
+      "item": "plans/art/nature/vegetation-temperate",
+      "id": "vegetation-temperate",
+      "kind": "tree",
+      "target_path": "src/assets/battle/nature/vegetation-temperate.glb",
+      "object": "tree-l",
+      "triangles": [
+        384,
+        48,
+        28
+      ],
+      "validation_passed": true,
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "game_sha256": "370efff720a16e76686e000bd49b147824502632b82c040adc93ee7163757d46",
+      "game_bytes": 418284,
+      "uncompressed_sha256": "a6d4aacfeb22aeb4e0223c6ef38df5dbd62683d25e7ecfdc582c01f5d2a8bf36"
+    },
+    {
+      "item": "plans/art/nature/vegetation-mediterranean",
+      "id": "vegetation-mediterranean",
+      "kind": "tree",
+      "target_path": "src/assets/battle/nature/vegetation-mediterranean.glb",
+      "object": "tree-l",
+      "triangles": [
+        96,
+        36,
+        36
+      ],
+      "validation_passed": true,
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "game_sha256": "c36902f245e05d4ae19d60a6735123d9c62611caffd698d53044b93f17c16797",
+      "game_bytes": 457816,
+      "uncompressed_sha256": "f96bd3517069abf56d68ee71ec4646224a0535e2196667a656965a2b190fa5a9"
+    },
+    {
+      "item": "plans/art/nature/vegetation-scrub",
+      "id": "vegetation-desert",
+      "kind": "tree",
+      "target_path": "src/assets/battle/nature/vegetation-desert.glb",
+      "object": "tree-l",
+      "triangles": [
+        272,
+        100,
+        80
+      ],
+      "validation_passed": true,
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "game_sha256": "98a4dbc64842bee5055f6550f142017a1f80fef702d3d2e92ad21cb27a5f3879",
+      "game_bytes": 622084,
+      "uncompressed_sha256": "6e7aa6aa6c6669b49457fe9264f4439283b75c0566deaec91f496ad13365ab27"
+    }
+  ]
+}

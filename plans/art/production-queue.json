@@ -2740,13 +2740,14 @@
       "section": "battle-city",
       "description": "Bronze ruin library: Bronze rubble in the age's materials: house rubble small and large, landmark rubble (12 to 25 m), broken beams, scorch decal, fire and smoke attachment points; used for every building without its own ruin",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/ruin-library",
       "phase": "B",
       "batch": "M03",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/battle-city/classical/ruin-library",
@@ -2805,13 +2806,14 @@
       "section": "battle-city",
       "description": "Bronze wall kit: Bronze wall segment kit cut from the existing wall rings: straight, corner, tower, gate (open, closed), each intact, damaged and breached",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/wall-kit",
       "phase": "B",
       "batch": "M03",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/battle-city/classical/wall-kit",
@@ -3081,13 +3083,14 @@
       "section": "rts-buildings",
       "description": "Bronze construction set: Bronze: foundation outlines for 3 footprint sizes and 3 scaffold stages in the age's material",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/construction-set",
       "phase": "R1",
       "batch": "M04",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/rts/bronze/food-depot",
@@ -3313,52 +3316,56 @@
       "section": "nature",
       "description": "Fish shoal node: fish node on water: ripples and jumping fish, full, half, empty",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/fish-shoal",
       "phase": "R1",
       "batch": "M05",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/nature/herd-sheep-goat",
       "section": "nature",
       "description": "Herd: sheep and goats: animated grazing flock, food node that walks; idle, walk, slaughtered",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/herd-sheep-goat",
       "phase": "R1",
       "batch": "M05",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/nature/herd-cattle",
       "section": "nature",
       "description": "Herd: cattle: animated cattle herd node, same clips; regional skins later (camel, llama, yak)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/herd-cattle",
       "phase": "R1",
       "batch": "M05",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/nature/vegetation-temperate",
       "section": "nature",
       "description": "Vegetation kit: temperate: oak, beech, birch: 3 tree sizes plus stump and felled states (wood node in battle), canopy impostor for the map (shared with phase F)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/vegetation-temperate",
       "phase": "R1",
       "batch": "M05",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/nature/vegetation-conifer",
@@ -3378,13 +3385,14 @@
       "section": "nature",
       "description": "Vegetation kit: mediterranean: olive, cypress, umbrella pine: 3 tree sizes plus stump and felled states (wood node in battle), canopy impostor for the map (shared with phase F)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/vegetation-mediterranean",
       "phase": "R1",
       "batch": "M05",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/nature/vegetation-tropical",
@@ -3404,13 +3412,14 @@
       "section": "nature",
       "description": "Vegetation kit: scrub: acacia, thorn bush, savanna: 3 tree sizes plus stump and felled states (wood node in battle), canopy impostor for the map (shared with phase F)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/vegetation-scrub",
       "phase": "R1",
       "batch": "M05",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02); delivered as vegetation-desert.glb (the loader's desert kit)"
     },
     {
       "path": "plans/art/nature/vegetation-cold",
@@ -3430,39 +3439,42 @@
       "section": "nature",
       "description": "stone outcrop: stone node: full, half, depleted",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/stone-outcrop",
       "phase": "R1",
       "batch": "M05",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/nature/ore-outcrop",
       "section": "nature",
       "description": "ore outcrop: copper or iron ore node with coloured streaks: full, half, depleted",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/ore-outcrop",
       "phase": "R1",
       "batch": "M05",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/nature/gold-vein",
       "section": "nature",
       "description": "gold vein: gold node: quartz rock with a glint: full, half, depleted",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/gold-vein",
       "phase": "R1",
       "batch": "M05",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/units/fishing-boat-ancient",
@@ -5628,13 +5640,14 @@
       "section": "battle-city",
       "description": "Bronze fort (battle): Bronze fort on the battle map, built from the map's fort-bronze improvement and the age's wall kit: walls, towers, gate, garrison house; intact, damaged, breached",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/fort",
       "phase": "R3",
       "batch": "M13",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/battle-city/classical/fort",
@@ -5849,13 +5862,14 @@
       "section": "fx",
       "description": "Bronze projectiles and hits: Bronze: the age's projectiles, muzzle and impact sprites (arrows and sling stones; bolts and javelins; arrows and stones; musket smoke and round shot; tracers and shells)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "fx/projectiles-bronze",
       "phase": "R4",
       "batch": "M14",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S12"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S12",
+      "delivered": "wave1 checkpoint-02, 2026-10-07 (plans/art/downloads/wave1/checkpoint-02)"
     },
     {
       "path": "plans/art/fx/projectiles-classical",

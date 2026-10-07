@@ -12,6 +12,8 @@ Wave 0 backlog repair 2026-10-07 (Codex, committed by Claude): the 13 base tile 
 
 Wave 1 (plans/ART-MODELS-PLAN.md) [checkpoint 01](downloads/wave1/checkpoint-01/README.md), 2026-10-07: the 7 Bronze base units and general (4 by Codex, 3 by Claude) and the 13 Bronze battle buildings with damaged states (`rts-bronze.glb`), 20 items in the game, status `in_game_awaiting_review` in production-queue.json; the 4 ZIPs are kept outside git (see that README).
 
+Wave 1 [checkpoint 02](downloads/wave1/checkpoint-02/README.md), 2026-10-07 (Claude, Blender 5.2 headless): the Bronze construction stages (in `rts-bronze.glb`), the Bronze wall kit, ruin library and fort, the Bronze projectiles, the four resource nodes, the two herds and the temperate, mediterranean and desert vegetation kits, 14 items in the game, status `in_game_awaiting_review`; the 3 ZIPs are kept outside git (see that README).
+
 **Quality review: 0 delivered items require revision; 285 accepted. 65 items remain to finish.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
 
 | Checkpoint | Items | ZIPs | Files and exact item list |

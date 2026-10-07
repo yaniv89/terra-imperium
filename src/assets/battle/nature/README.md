@@ -31,3 +31,9 @@ the code's trees, rocks and greybox nodes stay.
 ## Check
 `validate_model.py <file> <out> auto` (kinds `node`, `herd`, `tree`), `npm run pack:models`,
 `/?battleSandbox`.
+
+## Delivered
+2026-10-07 (wave1 checkpoint-02, `scripts/blender/build_nature.py` over `ti_nature.py`):
+`stone-outcrop`, `ore-outcrop`, `gold-vein`, `fish-shoal`, `herd-sheep-goat`, `herd-cattle`,
+`vegetation-temperate`, `vegetation-mediterranean`, `vegetation-desert`. The conifer, tropical, steppe
+and cold kits are still missing (cold and conifer fall back to temperate, steppe to temperate).
