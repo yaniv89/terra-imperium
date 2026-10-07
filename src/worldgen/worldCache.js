@@ -8,15 +8,23 @@ const DB = 'terra-imperium-worlds';
 const STORE = 'worlds';
 export const KEEP = 3;
 
+// Safari has been seen to leave indexedDB.open (and a transaction) hanging with no event at all:
+// past these the cache counts as missing (the world is regenerated), so a load never stalls on it.
+export const OPEN_TIMEOUT_MS = 4000;
+export const TX_TIMEOUT_MS = 8000;
+
 const open = () => new Promise((resolve) => {
+  let settled = false;
+  const finish = (db) => { if (settled) { try { db?.close(); } catch { /* closed */ } return; } settled = true; clearTimeout(timer); resolve(db); };
+  const timer = setTimeout(() => finish(null), OPEN_TIMEOUT_MS);
   try {
-    if (typeof indexedDB === 'undefined') { resolve(null); return; }
+    if (typeof indexedDB === 'undefined') { finish(null); return; }
     const req = indexedDB.open(DB, 1);
     req.onupgradeneeded = () => { req.result.createObjectStore(STORE); };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => resolve(null);
-    req.onblocked = () => resolve(null);
-  } catch { resolve(null); }
+    req.onsuccess = () => finish(req.result);
+    req.onerror = () => finish(null);
+    req.onblocked = () => finish(null);
+  } catch { finish(null); }
 });
 
 const run = async (mode, fn) => {
@@ -24,6 +32,7 @@ const run = async (mode, fn) => {
   if (!db) return null;
   try {
     return await new Promise((resolve) => {
+      setTimeout(() => resolve(null), TX_TIMEOUT_MS);
       const tx = db.transaction(STORE, mode);
       const store = tx.objectStore(STORE);
       let result = null;
