@@ -11,13 +11,15 @@ src, out = args[0], args[1]
 half = float(args[2]) if len(args) > 2 else None
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=src)
+# a file without LOD levels (a kit export) renders whole
+has_lods = any(o.name.startswith('LOD0') for o in bpy.context.scene.objects)
 for o in bpy.context.scene.objects:
     if o.type == 'MESH':
         chain = [o]
         while chain[-1].parent:
             chain.append(chain[-1].parent)
         keep = any(p.name.startswith('LOD0') for p in chain)
-        o.hide_render = not keep
+        o.hide_render = has_lods and not keep
 pts = [o.matrix_world @ Vector(c) for o in bpy.context.scene.objects if o.type == 'MESH' and not o.hide_render for c in o.bound_box]
 cx = (min(p.x for p in pts) + max(p.x for p in pts)) / 2
 cy = (min(p.y for p in pts) + max(p.y for p in pts)) / 2
