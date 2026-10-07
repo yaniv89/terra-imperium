@@ -78,9 +78,9 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const w = m.walls;
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center" onClick={onClose} data-testid="battle-choice">
+    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center pr-[var(--rail-inset,0px)]" onClick={onClose} data-testid="battle-choice">
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="pre-battle-title" data-testid="pre-battle"
-        className="fa-panel !bg-fa-panel shadow-2xl w-full sm:w-[min(56rem,calc(100vw-1rem))] max-h-[94dvh] sm:max-h-[calc(100dvh-1rem)] flex flex-col rounded-b-none sm:rounded-[10px]">
+        className="fa-panel !bg-fa-panel shadow-2xl w-full sm:w-[min(56rem,calc(100vw-1rem-var(--rail-inset,0px)))] max-h-[94dvh] sm:max-h-[calc(100dvh-1rem)] flex flex-col rounded-b-none sm:rounded-[10px]">
         <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
           <Castle className="w-5 h-5 text-fa-muted shrink-0" aria-hidden="true" />
           <div className="min-w-0 flex-1 flex items-baseline gap-x-3 flex-wrap">
