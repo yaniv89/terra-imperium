@@ -14,7 +14,7 @@ import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
 import { selectRegion, selectNation, focusRegion } from '../map/marchEvents';
 import { openPanelTab } from '../panels/panelEvents';
-import { OPEN_TURN_REPORT } from './uiEvents';
+import { OPEN_TURN_REPORT, setTurnReportShown } from './uiEvents';
 import { turnReportModel } from './turnReportModel';
 import { Button, Chip, Label, SheetHeader } from './atlas';
 
@@ -61,6 +61,9 @@ const TurnReportSheet = () => {
     window.addEventListener(OPEN_TURN_REPORT, onOpen);
     return () => window.removeEventListener(OPEN_TURN_REPORT, onOpen);
   }, [report]);
+
+  useEffect(() => { setTurnReportShown(open); }, [open]);
+  useEffect(() => () => setTurnReportShown(false), []);
 
   // Enter plays the next turn: it closes the report first (End Turn's own Enter must not fire).
   useEffect(() => {

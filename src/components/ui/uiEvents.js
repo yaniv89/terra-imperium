@@ -27,3 +27,9 @@ export const openResearchChoice = () => fire(OPEN_RESEARCH_CHOICE);
 export const showPeaceOffer = () => fire(SHOW_PEACE_OFFER);
 /** Untuck the attack interrupt (W14). */
 export const showDefense = () => fire(SHOW_DEFENSE);
+// Whether the turn report is on screen: prompts that would open over it (the march arrival) wait.
+export const TURN_REPORT_SHOWN = 'ti:turn-report-shown';
+let reportShown = false;
+/** TurnReportSheet tells the rest of the UI when it opens and closes. */
+export const setTurnReportShown = (shown) => { reportShown = !!shown; fire(TURN_REPORT_SHOWN, reportShown); };
+export const isTurnReportShown = () => reportShown;
