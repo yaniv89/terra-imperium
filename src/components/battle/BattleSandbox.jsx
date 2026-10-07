@@ -87,7 +87,7 @@ const BattleSandbox = () => {
   }, []);
   // `?battleSandbox&bench=300&autostart`: the kernel benchmark's battle (N squads a side, AI against
   // AI, everyone on the field; src/battle/bench/benchScenario.js), to see and time the renderer at scale.
-  const setup = useMemo(() => config.bench ? makeBenchSetup(config.bench, config.seed + runId, { economy: params.has('eco') }) : config.sea ? buildSetupFromArmies({
+  const setup = useMemo(() => config.bench ? makeBenchSetup(config.bench, config.seed + runId, { economy: params.has('eco'), ...(params.get('age') ? { ageId: config.ageId } : {}) }) : config.sea ? buildSetupFromArmies({
     tileContext: sampleTile != null ? tileContextOf(null, getTiles().neighbors[sampleTile].find((n) => getTiles().land[n] !== 1)) : null,
     regionId: `sandbox-sea-${config.seed}`, terrain: 'sea', battleType: 'naval', seed: config.seed + runId,
     attackerUnits: buildFleet('a', 'attacker', 1000, 'g_att'), defenderUnits: buildFleet('d', 'defender', 900, 'g_def'), generals: GENERALS,

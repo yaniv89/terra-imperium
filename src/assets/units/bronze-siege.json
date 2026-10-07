@@ -1,17 +1,12 @@
 {
-  "base": "character-soldier",
-  "teamFrom": "torso",
-  "restClip": "idle",
-  "engine": "siege",
-  "crew": [
-    [
-      -0.6,
-      -0.85
-    ],
-    [
-      0.6,
-      -0.85
-    ]
-  ],
-  "enabled": false
+  "enabled": true,
+  "restClip": "^Idle$",
+  "rotateY": 0,
+  "quadruped": false,
+  "triangleBudget": 3000,
+  "tags": {
+    "team": "^Team(?:\\s|$)",
+    "skin": "^Skin(?:\\s|$)",
+    "emblem": "^Emblem(?:\\s|$)"
+  }
 }

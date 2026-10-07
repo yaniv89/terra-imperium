@@ -25,3 +25,7 @@ supabase/functions/resolve-turn/_engine.bundle.js
 src/assets/raw-models/*
 !src/assets/raw-models/README.md
 !src/assets/raw-models/units.manifest.example.json
+
+# Blender unit builds (scripts/blender/ti_units.py out_dir): editable sources and uncompressed GLBs,
+# delivered as release ZIPs; only the packed game copy goes into src/assets/units.
+art-build/

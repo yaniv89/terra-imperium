@@ -10,6 +10,9 @@ describe('map and battle models', () => {
     expect(needsLods('src/assets/battle/rts/rts-bronze.glb')).toBe(true);
     expect(needsLods('src/assets/units/signature/israel.glb')).toBe(false);
     expect(packFlags('src/assets/units/signature/israel.glb')).toContain('-noq');
+    expect(needsLods('src/assets/units/bronze-infantry.glb')).toBe(false);
+    expect(packFlags('src/assets/units/bronze-infantry.glb')).toContain('-noq');
+    expect(packFlags('src\\assets\\units\\bronze-siege.glb')).toContain('-noq');
     expect(packFlags('src/assets/battle/city/walls-bronze.glb')).not.toContain('-noq');
   });
 
