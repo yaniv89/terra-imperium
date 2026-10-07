@@ -101,8 +101,10 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
           <section className="space-y-1" aria-labelledby="settings-sound">
             <Label id="settings-sound">Sound</Label>
             <Switch label="Sound" hint="Battle sounds, music and vibration; the speaker button in a battle is the same switch" checked={audio.sound} onChange={(v) => setAudioSettings({ sound: v })} testId="settings-sound" />
-            <Volume label="Effects volume" hint="Battle sounds, heard only where you look" value={audio.effects} disabled={!audio.sound} onChange={(v) => setAudioSettings({ effects: v })} testId="settings-effects-volume" />
-            <Volume label="Music volume" hint="Music and ambience on the map; off in battles" value={audio.music} disabled={!audio.sound} onChange={(v) => setAudioSettings({ music: v })} testId="settings-music-volume" />
+            <Switch label="Battle sounds" hint="Sounds in RTS battles; off mutes them only" checked={audio.effectsOn} disabled={!audio.sound} onChange={(v) => setAudioSettings({ effectsOn: v })} testId="settings-effects-on" />
+            <Switch label="Music" hint="Background music on the map; off mutes it only" checked={audio.musicOn} disabled={!audio.sound} onChange={(v) => setAudioSettings({ musicOn: v })} testId="settings-music-on" />
+            <Volume label="Effects volume" hint="Battle sounds, heard only where you look" value={audio.effects} disabled={!audio.sound || !audio.effectsOn} onChange={(v) => setAudioSettings({ effects: v })} testId="settings-effects-volume" />
+            <Volume label="Music volume" hint="Music and ambience on the map; off in battles" value={audio.music} disabled={!audio.sound || !audio.musicOn} onChange={(v) => setAudioSettings({ music: v })} testId="settings-music-volume" />
           </section>
           <section className="space-y-1" aria-labelledby="settings-perf">
             <Label id="settings-perf">Performance</Label>

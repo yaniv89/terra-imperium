@@ -31,7 +31,7 @@ const hidden = () => typeof document !== 'undefined' && !!document.hidden;
 const canPlay = () => typeof Audio !== 'undefined';
 const wanted = () => {
   const s = getAudioSettings();
-  return musicWanted({ started, sound: s.sound, volume: s.music, suppressed: suppressors.size > 0, hidden: hidden(), trackCount: musicTracks().length });
+  return musicWanted({ started, sound: s.sound && s.musicOn !== false, volume: s.music, suppressed: suppressors.size > 0, hidden: hidden(), trackCount: musicTracks().length });
 };
 
 // Every FADE_STEP_MS move each element's volume toward its target (el.dataset.target, 0..1).

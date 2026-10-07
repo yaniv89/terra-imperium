@@ -32,7 +32,8 @@ const TICKER_MS = 800; // how often the quiet work sounds (workers, hooves) are 
 const Q = 256;
 const FIGHT_EVENTS = new Set(['melee', 'shot', 'towerShot', 'impact', 'destroyed']);
 
-export const isBattleAudioEnabled = () => getAudioSettings().sound;
+const effectsWanted = (s) => s.sound && s.effectsOn !== false;
+export const isBattleAudioEnabled = () => effectsWanted(getAudioSettings());
 export const setBattleAudioEnabled = (on) => setAudioSettings({ sound: !!on });
 
 // Short vibrations: `tick` confirms an order, `thud` is a squad lost, `boom` a big explosion.
@@ -106,7 +107,7 @@ export const soundForEvent = (e, view, ageIds, playerSide, voices = new Map()) =
 export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 0 } = {}) => {
   let ctx = null; let master = null; let noise = null;
   let settings = getAudioSettings();
-  let enabled = settings.sound;
+  let enabled = effectsWanted(settings);
   let visible = true;
   let rect = null; // the camera's view of the ground (spatial.js), from setView
   const channels = []; // the voice pool: { gain, panner, busyUntil }
@@ -304,7 +305,7 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
     play(id, a.gain, a.pan);
   };
 
-  const unsubscribe = subscribeAudioSettings((s) => { settings = s; enabled = s.sound; if (!enabled) ctx?.suspend?.(); else if (ctx) ensure(); applyBus(); });
+  const unsubscribe = subscribeAudioSettings((s) => { settings = s; enabled = effectsWanted(s); if (!enabled) ctx?.suspend?.(); else if (ctx) ensure(); applyBus(); });
   const onVisibility = () => applyBus();
   if (typeof document !== 'undefined') document.addEventListener?.('visibilitychange', onVisibility);
 

@@ -5,6 +5,7 @@
 //            stays muted.
 //   effects  battle effects volume, 0..1
 //   music    music and map ambience volume, 0..1 (music plays on the map, never in a battle)
+//   musicOn  music switch (mute music only); effectsOn battle sounds switch (mute RTS sounds only)
 import { useSyncExternalStore } from 'react';
 
 const SOUND_KEY = 'terra-imperium-battle-audio'; // 'on' | 'off' (the battle's original switch)
@@ -16,22 +17,24 @@ const read = () => {
   let sound = true; let vol = {};
   try { sound = localStorage.getItem(SOUND_KEY) !== 'off'; } catch { /* storage blocked: defaults */ }
   try { vol = JSON.parse(localStorage.getItem(VOLUME_KEY) || '{}') || {}; } catch { vol = {}; }
-  return { sound, effects: clamp01(vol.effects, DEFAULT_VOLUMES.effects), music: clamp01(vol.music, DEFAULT_VOLUMES.music) };
+  return { sound, effects: clamp01(vol.effects, DEFAULT_VOLUMES.effects), music: clamp01(vol.music, DEFAULT_VOLUMES.music), musicOn: vol.musicOn !== false, effectsOn: vol.effectsOn !== false };
 };
 
 let current = null;
 const listeners = new Set();
 export const getAudioSettings = () => { current = current || read(); return current; };
-/** Change some settings ({ sound, effects, music }); saved at once, listeners told. */
+/** Change some settings ({ sound, effects, music, musicOn, effectsOn }); saved at once, listeners told. */
 export const setAudioSettings = (patch) => {
   const next = { ...getAudioSettings(), ...patch };
   next.effects = clamp01(next.effects, DEFAULT_VOLUMES.effects);
   next.music = clamp01(next.music, DEFAULT_VOLUMES.music);
   next.sound = next.sound !== false;
+  next.musicOn = next.musicOn !== false;
+  next.effectsOn = next.effectsOn !== false;
   current = next;
   try {
     localStorage.setItem(SOUND_KEY, next.sound ? 'on' : 'off');
-    localStorage.setItem(VOLUME_KEY, JSON.stringify({ effects: next.effects, music: next.music }));
+    localStorage.setItem(VOLUME_KEY, JSON.stringify({ effects: next.effects, music: next.music, musicOn: next.musicOn, effectsOn: next.effectsOn }));
   } catch { /* storage unavailable: just won't persist */ }
   listeners.forEach((fn) => fn(next));
 };
