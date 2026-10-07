@@ -24,8 +24,10 @@ import { voiceForOrders, voiceForSelection } from '../../battle/audio/voiceLines
 import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
 import { createPerfMeter, formatPerf } from '../../battle/render/perfMeter';
 import { getMapPrefs } from '../map/mapPrefs';
-import { BuildMenu, BuildingPanel } from './EconomyHud';
+import { BuildMenu, BuildingPanel, InfoCard } from './EconomyHud';
+import { inspectInfo } from './inspectModel';
 import { BUILDINGS } from '../../battle/data/economy';
+import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
@@ -78,6 +80,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const selectedBuildingRef = useRef(null);
   const [buildMenu, setBuildMenu] = useState(false);
+  // Anything else tapped on the field (UI-DESIGN B09): { kind: 'eco' | 'structure' | 'node', index }
+  // for the info card; never together with selected squads or your own selected building.
+  const [inspect, setInspect] = useState(null);
   const perfRef = useRef(null);
   const [showPerf] = useState(perfOn);
   // Touch box select (UI-DESIGN B04): while on, a one-finger drag draws the selection box.
@@ -102,13 +107,28 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     if (bark) playVoice(bark.classId, bark.kind);
     selectedRef.current = new Set(ids);
     setSelected([...selectedRef.current]);
-    if (ids.length) { selectedBuildingRef.current = null; setSelectedBuilding(null); }
+    if (ids.length) { selectedBuildingRef.current = null; setSelectedBuilding(null); setInspect(null); }
   }, []);
   const selectBuilding = useCallback((idx) => {
     selectedBuildingRef.current = idx;
     setSelectedBuilding(idx);
+    setInspect(null);
     if (idx !== null) { selectedRef.current = new Set(); setSelected([]); }
   }, []);
+  const inspectThing = useCallback((target) => {
+    selectedBuildingRef.current = null; setSelectedBuilding(null);
+    selectedRef.current = new Set(); setSelected([]);
+    setInspect(target);
+  }, []);
+  // The selected or inspected building shows its health bar and a ring on the field (renderer).
+  useEffect(() => {
+    const r = rendererRef.current; if (!r) return;
+    const own = selectedBuilding !== null ? frames.current.cur?.eco?.buildings.find((b) => b.idx === selectedBuilding) : null;
+    const eco = inspect?.kind === 'eco' ? frames.current.cur?.eco?.buildings.find((b) => b.idx === inspect.index) : null;
+    if (own) r.setInspected(own.proxy ? { kind: 'structure', index: 0 } : { kind: 'eco', index: own.idx });
+    else if (eco?.proxy) r.setInspected({ kind: 'structure', index: 0 });
+    else r.setInspected(inspect);
+  }, [selectedBuilding, inspect]);
   // The player's workers among the selection.
   const selectedWorkers = useCallback(() => {
     const cur = frames.current.cur;
@@ -271,6 +291,24 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     return pickOwnBuilding(g, cur, playerSide, { margin, keepHit });
   }, [playerSide]);
   const lastPickRef = useRef(null); // the last select click/tap, for cycling units -> building
+  // Any building, structure (ruins too) or resource node under a screen point, for the info card.
+  const inspectAt = useCallback((p) => {
+    const r = rendererRef.current; const cur = frames.current.cur;
+    if (!r || !cur) return null;
+    const g = r.screenToGround(p.x, p.y);
+    if (!g) return null;
+    const margin = Math.max(0.5, 16 * r.worldPerPixel());
+    const eco = r.ecoLayer.pick(g, cur, margin);
+    if (eco?.kind === 'eco') return { kind: 'eco', index: eco.index };
+    let best = null; let bestD = Infinity;
+    cur.structures.forEach((s, index) => {
+      const rr = s.radius / Q + 0.6 + margin * 0.5;
+      const d = ((s.x / Q - g.x) ** 2 + (s.y / Q - g.z) ** 2) / (rr * rr);
+      if (d <= 1 && d < bestD) { bestD = d; best = { kind: 'structure', index }; }
+    });
+    if (best) return best;
+    return eco?.kind === 'node' ? { kind: 'node', index: eco.index } : null;
+  }, []);
 
   const issueAt = useCallback((p, forceAttackMove = false) => {
     const r = rendererRef.current; const cur = frames.current.cur;
@@ -367,7 +405,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     return () => el.removeEventListener('pointermove', onMove);
   }, []);
 
-  const clearSelection = useCallback(() => { updateSelection([]); selectBuilding(null); setRadial(null); }, [updateSelection, selectBuilding]);
+  const clearSelection = useCallback(() => { updateSelection([]); selectBuilding(null); setInspect(null); setRadial(null); }, [updateSelection, selectBuilding]);
 
   // One click or tap on the battlefield: what it means is decided in selection.js.
   const pointer = useCallback((input, p, mods = {}) => {
@@ -387,6 +425,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     lastPickRef.current = act.do === 'select' && ownSquad !== null ? { x: p.x, y: p.y, t: now, squad: ownSquad } : null;
     switch (act.do) {
       case 'select': case 'selectBuilding': case 'deselect': {
+        // Nothing of yours there: whatever building, ruin or resource it is gets the info card.
+        const seen = act.do === 'deselect' ? inspectAt(p) : null;
+        if (seen) { inspectThing(seen); break; }
         const next = selectionAfter({ ids: sel, building: selectedBuildingRef.current }, act);
         if (next.building !== null) selectBuilding(next.building); else { updateSelection(next.ids); selectBuilding(null); }
         break;
@@ -400,7 +441,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       case 'armed': case 'order': if (!issueAt(p) && input === 'tap') clearSelection(); break;
       default:
     }
-  }, [ownSquadAt, ownBuildingAt, updateSelection, selectBuilding, clearSelection, issueAt, send]);
+  }, [ownSquadAt, ownBuildingAt, inspectAt, inspectThing, updateSelection, selectBuilding, clearSelection, issueAt, send]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -496,6 +537,24 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // The battle economy's actions.
   const pickBuilding = (id) => { setBuildMenu(false); armedRef.current = { type: 'place', building: id, label: id }; setArmed(armedRef.current); };
   const ecoBuilding = hud?.eco && selectedBuilding !== null ? hud.eco.buildings.find((b) => b.idx === selectedBuilding && b.alive) || null : null;
+  const ecoInfo = ecoBuilding ? inspectInfo(hud, setup, { kind: 'eco', index: ecoBuilding.idx }, playerSide) : null;
+  const seenInfo = !ecoBuilding && inspect ? inspectInfo(hud, setup, inspect, playerSide) : null;
+  // An alert's Go: the camera goes there; a squad of yours it is about is selected.
+  const alertGo = (a) => {
+    rendererRef.current?.centerOn(a.x / Q, a.y / Q);
+    const q = a.squad != null ? frames.current.cur?.squads[a.squad] : null;
+    if (q && q.side === playerSide && q.alive && q.onField && !q.fled) updateSelection([a.squad]);
+  };
+  const ageId = setup.sides[playerSide].ageId;
+  const leftCard = ecoBuilding ? (
+    <BuildingPanel building={ecoBuilding} info={ecoInfo} ageId={ageId} stock={hud.eco.stock} eco={hud.eco}
+      onBuildHouse={() => pickBuilding('house')}
+      onTrain={(role) => send([{ type: 'train', building: ecoBuilding.idx, role }])}
+      onCancel={(slot) => send([{ type: 'cancelTrain', building: ecoBuilding.idx, slot }])}
+      rallyArmed={armed?.type === 'rally'}
+      onRally={() => { armedRef.current = armedRef.current?.type === 'rally' ? null : { type: 'rally', building: ecoBuilding.idx, label: 'rally' }; setArmed(armedRef.current); }}
+      onClose={() => selectBuilding(null)} />
+  ) : seenInfo ? <InfoCard info={seenInfo} onClose={() => setInspect(null)} /> : null;
   const selectHq = () => {
     const hq = hud?.eco?.buildings.find((b) => b.side === playerSide && (b.type === 'camp' || b.type === 'hall') && b.alive);
     if (!hq) return;
@@ -549,18 +608,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         selectHint={selectHint}
         onFocus={(x, y) => rendererRef.current?.centerOn(x / Q, y / Q)}
         onClearSelection={clearSelection} mouse={MOUSE_POINTER}
+        onAlertGo={alertGo} leftCard={leftCard}
         ended={!!ended}
       />
-      {buildMenu && hud?.eco && <BuildMenu ageId={setup.sides[playerSide].ageId} stock={hud.eco.stock} onPick={pickBuilding} onClose={() => setBuildMenu(false)} />}
-      {ecoBuilding && (
-        <BuildingPanel building={ecoBuilding} ageId={setup.sides[playerSide].ageId} stock={hud.eco.stock} eco={hud.eco}
-          onBuildHouse={() => pickBuilding('house')}
-          onTrain={(role) => send([{ type: 'train', building: ecoBuilding.idx, role }])}
-          onCancel={(slot) => send([{ type: 'cancelTrain', building: ecoBuilding.idx, slot }])}
-          rallyArmed={armed?.type === 'rally'}
-          onRally={() => { armedRef.current = armedRef.current?.type === 'rally' ? null : { type: 'rally', building: ecoBuilding.idx, label: 'rally' }; setArmed(armedRef.current); }}
-          onClose={() => selectBuilding(null)} />
-      )}
+      {buildMenu && hud?.eco && <BuildMenu ageId={ageId} stock={hud.eco.stock} workers={hud.eco.workers} onPick={pickBuilding} onClose={() => setBuildMenu(false)} />}
       {showPerf && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} onContinue={() => onFinish?.(ended)} />}
       {failure && !ended && <BattleFailure title={failure.message} detail={failure.detail} onAuto={() => onAbandon?.('screen_error')} onRetry={onRetry} />}
@@ -572,6 +623,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
 // so the renderer builds its instanced layers from the final geometry. With no model files (the
 // default) there is nothing to wait for and the battle opens immediately.
 const TacticalBattleScreen = (props) => {
+  // The player's side never routs in a commanded battle (morale.js canRout); fixed for the battle.
+  const setup = useMemo(() => commandedSetup(props.setup), [props.setup]);
   const [ready, setReady] = useState(() => !needsUnitModels(props.setup));
   useEffect(() => {
     if (ready) return undefined;
@@ -586,7 +639,7 @@ const TacticalBattleScreen = (props) => {
       </div>
     );
   }
-  return <><TacticalBattleView {...props} /><BattleRotateGate /></>;
+  return <><TacticalBattleView {...props} setup={setup} /><BattleRotateGate /></>;
 };
 
 export default TacticalBattleScreen;

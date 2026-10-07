@@ -970,6 +970,10 @@ export class BattleRenderer {
 
   addMarker(x, z, color = '#a3e635') { this.markers.push({ x, z, t: 0, color }); }
 
+  /** The building the player inspects (UI-DESIGN B09): { kind: 'structure' | 'eco', index } or null.
+   *  It shows its health bar even at full HP, and a ring. */
+  setInspected(target) { this.inspected = target && (target.kind === 'structure' || target.kind === 'eco') ? { kind: target.kind, index: target.index } : null; }
+
   /** Squads sent at an object (orderTarget.js): target { kind, index } or null for a plain move. */
   setOrderTarget(squads, target, cmd) { recordOrderTarget(this.orderTargets, squads, target, cmd, this.time, this.lastView?.tick ?? null); }
 
@@ -1391,23 +1395,28 @@ export class BattleRenderer {
   drawStructures(cur) {
     let n = 0;
     const camQuat = this.camera.quaternion;
-    cur.structures.forEach((s) => {
+    const picked = this.inspected?.kind === 'structure' ? this.inspected.index : -1;
+    cur.structures.forEach((s, i) => {
       const g = this.structureMeshes.get(s.id);
-      if (!g) return;
+      if (!g && i !== picked) return; // the real city's pieces (cityLayer.js) show a bar only when inspected
       const frac = s.hp / Math.max(1, s.maxHp);
-      g.scale.y = s.alive ? 1 : 0.28;
-      g.children.forEach((c) => { if (c.material?.color && !s.alive) c.material.color.set('#57534e'); });
+      if (g) {
+        g.scale.y = s.alive ? 1 : 0.28;
+        g.children.forEach((c) => { if (c.material?.color && !s.alive) c.material.color.set('#57534e'); });
+      }
       if (!s.alive) return;
       const x = s.x / Q; const z = s.y / Q;
-      tmp.quaternion.copy(camQuat); tmp.position.set(x, this.heightAt(x, z) + (s.kind === 'keep' ? 4 : s.kind === 'building' ? 2.1 : 3.3), z); tmp.scale.set(s.kind === 'keep' ? 2.4 : 1.4, 1, 1); tmp.updateMatrix();
+      const lift = g ? (s.kind === 'keep' ? 4 : s.kind === 'building' ? 2.1 : 3.3) : Math.max(1.2, this.setup.structures[i]?.h || 1.5) + 1;
+      const bw = s.kind === 'keep' ? 2.4 : 1.4;
+      tmp.quaternion.copy(camQuat); tmp.position.set(x, this.heightAt(x, z) + lift, z); tmp.scale.set(bw, 1, 1); tmp.updateMatrix();
       this.structBarBg.setMatrixAt(n, tmp.matrix);
-      tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -(s.kind === 'keep' ? 1.2 : 0.7)); tmp.scale.set((s.kind === 'keep' ? 2.4 : 1.4) * frac, 1, 1); tmp.updateMatrix();
+      tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -bw / 2); tmp.scale.set(bw * frac, 1, 1); tmp.updateMatrix();
       this.structBarFill.setMatrixAt(n, tmp.matrix);
       this.structBarFill.setColorAt(n, tmpColor.setHSL(0.08 + 0.25 * frac, 0.8, 0.5));
       n += 1;
     });
     // The battle economy's damaged and unfinished buildings (economyLayer.js).
-    this.ecoLayer.bars(cur).forEach((b) => {
+    this.ecoLayer.bars(cur, this.inspected?.kind === 'eco' ? this.inspected.index : -1).forEach((b) => {
       tmp.quaternion.copy(camQuat); tmp.position.set(b.x, this.heightAt(b.x, b.z) + b.h, b.z); tmp.scale.set(b.w, 1, 1); tmp.updateMatrix();
       this.structBarBg.setMatrixAt(n, tmp.matrix);
       tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -b.w / 2); tmp.scale.set(b.w * b.frac, 1, 1); tmp.updateMatrix();
@@ -1497,6 +1506,13 @@ export class BattleRenderer {
       tmp.rotation.set(0, 0, 0); tmp.position.set(m.x, this.heightAt(m.x, m.z) + 0.08, m.z); const sc = 0.6 + k * 1.2; tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
       this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
     });
+    // The inspected building's ring (setInspected), a steady light ring round its footprint.
+    const ins = this.inspected && this.lastView ? (this.inspected.kind === 'eco' ? this.lastView.eco?.buildings.find((b) => b.idx === this.inspected.index) : this.lastView.structures[this.inspected.index]) : null;
+    if (ins && mn < this.markerRings.instanceMatrix.count) {
+      const x = ins.x / Q; const z = ins.y / Q; const sc = ((ins.size ? ins.size * 0.75 : ins.radius / Q) * 2 + 1.2) / 1.7 * (1 + 0.03 * Math.sin(this.time * 4));
+      tmp.rotation.set(0, 0, 0); tmp.position.set(x, this.heightAt(x, z) + 0.1, z); tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
+      this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf('#ece5d3')); mn += 1;
+    }
     [[this.tracers, tn], [this.sparks, sn], [this.markerRings, mn]].forEach(([m, n]) => { m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
   }
 
