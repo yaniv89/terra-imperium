@@ -258,7 +258,12 @@ export const syncWorldRegistry = (state) => {
   Object.assign(WORLD_REGISTRY.coordinates, built.coordinates);
   // Capitals are the original ones: keep an entry once set, so a moved or lost capital still
   // reports the nation's native home (getNationCapital's contract).
-  Object.entries(built.capitals).forEach(([nationId, cityId]) => { if (!WORLD_REGISTRY.capitals[nationId] || !WORLD_REGISTRY.regions[WORLD_REGISTRY.capitals[nationId]]) WORLD_REGISTRY.capitals[nationId] = cityId; });
+  // (an entry whose city now has another founder is from another game: on a generated world the
+  // start sites stay and the peoples move between them, so a city id can change hands that way)
+  Object.entries(built.capitals).forEach(([nationId, cityId]) => {
+    const old = WORLD_REGISTRY.capitals[nationId];
+    if (!old || !WORLD_REGISTRY.regions[old] || WORLD_REGISTRY.regions[old].startOwner !== nationId) WORLD_REGISTRY.capitals[nationId] = cityId;
+  });
   WORLD_REGISTRY.source = state.regions;
   return state;
 };

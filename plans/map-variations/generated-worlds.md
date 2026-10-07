@@ -90,3 +90,72 @@ Balance-sim, Standard, 100 turns, passive player Akkad (Earth peoples world for 
   balance-sim acceptance on 20 seeds per preset for 200 turns, e2e of a full game on a generated
   world, the edge-function decision, WebKit hash check (needs `npx playwright install webkit`
   or `/?worldLab` on the iPhone), resource counts within 25% of Earth's per land tile.
+
+## Second round (2026-10-08, branch `claude/mv-generated-2`)
+
+### Built
+
+- **GPU painter (MV4)**: `src/components/map/gl/proceduralPaint.js` over `src/worldgen/paintData.js`
+  (two float texels a tile: climate colour, elevation, flags, land cover base class, roughness,
+  river bits and sizes). A fragment shader paints 256-pixel tiles of the pyramid layout in the
+  map's own WebGL context, levels 2 to 6, and the land cover tiles for levels 5 and 6 that the
+  close view's terrain shader reads (tree crowns, ripples, plots, as on Earth). Per pixel: the tile
+  by the lookup and a walk, a Gaussian blend of it and its neighbours, relief under the hex scale
+  (fractal noise, ridged where rough, octaves down to two pixels) with the Earth build's hillshade,
+  colours and snow line, shores pushed off the hexagons by noise, rivers on the grid's edges with a
+  meander and a warp of the whole network (they leave the hex edges and stay connected), streams
+  thin without a bank, dry wadis in deserts. The raster layer (`glLayers.js`, `source`) paints at
+  most 4 tiles a frame and shows a painted ancestor meanwhile; `info().raster.pending`.
+- **Base picture** now 1024 wide (CPU painter), the GPU paints everything above it; a cached
+  2048 picture from before still loads (`pictureSize`).
+- **Generator v2** (gated inside the v1 pass, v1 still matches its golden hashes byte for byte):
+  no land specks of up to six hexes and no enclosed seas under 250 hexes (the quantile taken again
+  so the land share stays exact), lower ocean arcs and ridges, sea ice from about 80 degrees, fewer
+  lakes, a wandering dry belt, resources at Earth's counts per land tile; **shapes** continents,
+  pangaea, archipelago, islands, inland sea; **relief** low, normal, high. New games use v2.
+- **MV5 UI**: Shape chips, a More sheet (continents, rainfall, relief, paste a map code), map codes
+  carry shape and relief letters (`G2-30-AT-NP-...`; old codes parse), `?map=CODE` prefills the
+  start screen, `MapCard.jsx` in Settings (with Clear cached worlds and the space used) and in the
+  nation overview. The dev flag is gone: the World step offers Real Earth / Generated world to all.
+- **Fix**: the start camera went to another people's city on a generated world (the registry kept a
+  capital id from the previous game; start sites are reused between games there).
+- Tools: `scripts/worldgen/look-shots.mjs` (start, mid and world view, phone and desktop),
+  `bench.mjs --paint --version --shape`, `resources.mjs`, balance-sim `SHAPE` and `GENVER`,
+  e2e `generatedGame.spec.js`.
+
+### Measured
+
+| What | Result |
+|---|---|
+| Start view drawn after the game is up (desktop GPU, Edge) | 2 to 5 s (phone profile), 2 s (desktop) |
+| Browser worker hashes (seeds 1 to 3, v2) | equal to Node golden |
+| Generation in the worker, desktop | 1.7 to 2.0 s with the coast (machine loaded) |
+| Same, CPU slowed 4x, page thread | 7.0 to 8.1 s, measured while 6 balance games ran in parallel: not a clean number; the 1024 base picture saves about 1 s of it |
+| Resources per land tile, 5 standard worlds | every one within 25% of Earth (before: 32 of 35 outside) |
+
+Balance acceptance, 20 seeds each, Standard, 200 turns, passive Akkad, mean and 95% interval:
+
+| | Earth | continents | pangaea | archipelago | islands | inland sea |
+|---|---|---|---|---|---|---|
+| Gini of cities, turn 100 | 0.399 | 0.432 | 0.435 | 0.440 | 0.426 | 0.436 |
+| Gini of cities, turn 200 | 0.584 | 0.599 | 0.600 | 0.586 | 0.593 | 0.599 |
+| majors alive at 200 (of 36) | 36.0 | 36.0 | 35.9 | 36.0 | 36.0 | 35.9 |
+| major cities at 200 | 354 | 447 | 448 | 434 | 411 | 458 |
+| effective nations at 200 | 43.8 | 46.6 | 46.8 | 49.7 | 49.3 | 46.0 |
+| ms a turn at 200 (6 games in parallel) | 147 | 160 | 163 | 175 | 161 | 199 |
+| nonFinite, audit violations | 0, 0 | 0, 0 | 0, 0 | 0, 0 | 0, 0 | 0, 0 |
+
+Gini within 10% of Earth's at 100 and 3% at 200 (target 20%), eliminations equal (target 5
+points): accepted. Majors build 16 to 30% more cities on generated worlds (more open plains).
+
+### Left
+
+- Phone benchmarks on a real phone (the GPU paint time a tile on an A14 or Adreno 6xx; the
+  4x-throttled generation on an unloaded machine); WebKit hash check (`/?worldLab` on the iPhone).
+- Parity renders: the GPU painter fed with Earth's columns beside the baked pyramid (MV8 question).
+- Rivers still read as following hex edges at the mid zoom; a curve through the corners (tangents
+  from the neighbouring reaches) would finish them. Climate blobs (steppe in desert) show as dark
+  patches in the close view through the ground materials, as they would on Earth.
+- The start screen preview is the flat tile-colour picture; the painted look could replace it.
+- Jungle and oasis resources stay short on pangaea and islands worlds with few jungles.
+- The edge function decision (generated games stay local).

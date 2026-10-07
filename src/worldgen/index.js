@@ -4,7 +4,8 @@
 import { generateWorldV1 } from './v1/generate';
 import { normalizeSpec } from './spec';
 
-const GENERATORS = { 1: generateWorldV1 };
+// Version 2 is version 1's pass with the look changes of generate.js (gated on the version).
+const GENERATORS = { 1: (s, g, o) => generateWorldV1(s, g, o, 1), 2: (s, g, o) => generateWorldV1(s, g, o, 2) };
 
 /** { raw, report } for a generated spec on `grid` (Earth's grid columns: count, lat, lon, neighbors). */
 export const generateWorld = (spec, grid, options = {}) => {

@@ -149,6 +149,11 @@ export const createTerritoryCache = (territory) => {
 const TILE_CACHE = 160;
 // Level 6 is drawn once level 5's pixels would show this much larger than the screen's.
 export const DETAIL_FROM_MAG = 1.25;
+// A generated world's painted levels (proceduralPaint.js): to level 6 like Earth's detail, land
+// cover from level 5 (as Earth's cover tiles), at most PAINT_BUDGET tiles painted a frame.
+export const PROCEDURAL_MAX_Z = 6;
+export const PROCEDURAL_COVER_Z = 5;
+export const PAINT_BUDGET = 4;
 const prepare = (texture, mip) => {
   texture.magFilter = LinearFilter; texture.minFilter = mip ? LinearMipmapLinearFilter : LinearFilter; texture.generateMipmaps = !!mip;
   texture.wrapS = ClampToEdgeWrapping; texture.wrapT = ClampToEdgeWrapping;
@@ -186,10 +191,11 @@ const prepareCover = (texture) => {
  * drawn wherever a level 6 tile is missing (open sea, the poles) or still loading. In the close
  * view each tile also gets its land cover tile (same level and place) for the terrain shader.
  */
-export const createRasterLayer = (scene, { request, onReady }) => {
+export const createRasterLayer = (scene, { request, onReady, source = null }) => {
   const quad = new PlaneGeometry(1, 1).translate(0.5, -0.5, 0); // top-left corner at the origin
   const loader = new TextureLoader();
-  const r = { world: null, tiles: new Map(), disposed: false, detail: null, stats: { level: 0, tiles: 0, fallback: 0 } };
+  const r = { world: null, tiles: new Map(), disposed: false, detail: null, stats: { level: 0, tiles: 0, fallback: 0, pending: 0 } };
+  let budget = 0; // procedural tiles still allowed this frame
   // A generated world (MV4) has only its painted base picture: no Earth detail or pyramid tiles.
   if (!proceduralRaster()) loadDetailIndex().then((index) => { if (!r.disposed && index) { r.detail = index; request(); } });
   const setWorld = (url, size) => {
@@ -211,6 +217,7 @@ export const createRasterLayer = (scene, { request, onReady }) => {
     if (!e) {
       e = { key, z, x, y, texture: null, plain: null, terrain: null, cover: null, coverAsked: false, meshes: [], used: 0 };
       r.tiles.set(key, e);
+      if (source) return e; // painted on demand (paintTile), within the frame's budget
       loader.load(rasterTileUrl(z, x, y), (texture) => {
         if (r.disposed || !r.tiles.has(key)) { texture.dispose(); return; }
         e.texture = prepare(texture, false);
@@ -223,8 +230,30 @@ export const createRasterLayer = (scene, { request, onReady }) => {
     }
     return e;
   };
+  // A generated world's tile, painted now by the GPU painter (proceduralPaint.js) when the frame's
+  // budget allows; false while it waits.
+  const paintTile = (e) => {
+    if (e.texture) return true;
+    if (budget <= 0) return false;
+    budget -= 1;
+    const texture = source.colour(e.z, e.x, e.y);
+    e.texture = texture;
+    e.plain = plainMaterial(texture);
+    const cols = 2 ** (e.z + 1); const rows = 2 ** e.z;
+    e.terrain = terrainMaterial(texture, [RASTER_TILE, RASTER_TILE], [-180 + (e.x * 360) / cols, 90 - (e.y * 180) / rows, 360 / cols, 180 / rows]);
+    return true;
+  };
+  const release = (texture) => { if (!texture) return; if (source) source.release(texture); else texture.dispose(); };
   // The land cover of a tile, asked for once (the close view only); no cover tile = all water.
   const coverFor = (e) => {
+    if (source) {
+      if (e.coverAsked || e.z < PROCEDURAL_COVER_Z || budget <= 0) return;
+      budget -= 1;
+      e.coverAsked = true;
+      e.cover = source.cover(e.z, e.x, e.y);
+      if (e.terrain) { e.terrain.uniforms.uCover.value = e.cover; e.terrain.uniforms.uCoverOn.value = 1; }
+      return;
+    }
     if (e.coverAsked || !r.detail?.hasCover(e.z, e.x, e.y)) return;
     e.coverAsked = true;
     loader.load(coverTileUrl(e.z, e.x, e.y), (texture) => {
@@ -253,10 +282,13 @@ export const createRasterLayer = (scene, { request, onReady }) => {
     const need = Math.ceil(Math.log2(Math.max(1, rr.width * v.k * v.dpr) / (RASTER_TILE * 2)));
     // (a detail level only once level RASTER_MAX_Z would be magnified by DETAIL_FROM_MAG or more)
     const mag = (rr.width * v.k * v.dpr) / (RASTER_TILE * 2 ** (RASTER_MAX_Z + 1));
-    const z = r.detail && need > RASTER_MAX_Z && mag >= DETAIL_FROM_MAG ? Math.min(r.detail.maxZ, need) : close ? RASTER_MAX_Z : rasterZoomFor(rr.width * v.k * v.dpr);
-    const tilesOn = (close || z > baseZ) && !proceduralRaster();
+    const earthZ = r.detail && need > RASTER_MAX_Z && mag >= DETAIL_FROM_MAG ? Math.min(r.detail.maxZ, need) : close ? RASTER_MAX_Z : rasterZoomFor(rr.width * v.k * v.dpr);
+    // a generated world paints its own tiles up to PROCEDURAL_MAX_Z (none without a painter)
+    const z = source ? Math.max(0, Math.min(PROCEDURAL_MAX_Z, close ? Math.max(need, PROCEDURAL_COVER_Z) : need)) : earthZ;
+    const tilesOn = (close || z > baseZ) && (source ? true : !proceduralRaster());
+    budget = source ? PAINT_BUDGET : 0;
     r.tiles.forEach((e) => { e.meshes.forEach((m) => { m.visible = false; }); });
-    r.stats = { level: tilesOn ? z : 0, tiles: 0, fallback: 0 };
+    r.stats = { level: tilesOn ? z : 0, tiles: 0, fallback: 0, pending: 0 };
     if (tilesOn) {
       const cols = 2 ** (z + 1); const rows = 2 ** z;
       const tw = rr.width / cols; const th = rr.height / rows;
@@ -282,6 +314,22 @@ export const createRasterLayer = (scene, { request, onReady }) => {
         for (let tx = x0; tx <= x1; tx++) {
           const col = ((tx % cols) + cols) % cols;
           const copy = Math.floor(tx / cols);
+          if (source) {
+            const e = tileEntry(z, col, ty);
+            e.used = now;
+            if (paintTile(e)) { draw(e, copy, 2); continue; }
+            r.stats.pending += 1;
+            // meanwhile the nearest painted ancestor (else the base picture shows)
+            for (let up = 1; z - up > baseZ; up++) {
+              const a = r.tiles.get(`${z - up}/${col >> up}-${ty >> up}`);
+              if (!a?.texture) continue;
+              a.used = now;
+              const pk = `${a.key}@${copy}`;
+              if (!parents.has(pk)) { parents.add(pk); draw(a, copy, 1); r.stats.fallback += 1; }
+              break;
+            }
+            continue;
+          }
           if (z <= RASTER_MAX_Z) {
             const e = tileEntry(z, col, ty);
             e.used = now;
@@ -305,10 +353,12 @@ export const createRasterLayer = (scene, { request, onReady }) => {
     if (r.tiles.size > TILE_CACHE) {
       [...r.tiles.values()].filter((e) => !e.meshes.some((m) => m.visible)).sort((a, b) => a.used - b.used).slice(0, r.tiles.size - TILE_CACHE).forEach((e) => {
         e.meshes.forEach((m) => scene.remove(m));
-        e.texture?.dispose(); e.plain?.dispose(); e.terrain?.dispose(); e.cover?.dispose();
+        release(e.texture); e.plain?.dispose(); e.terrain?.dispose(); release(e.cover);
         r.tiles.delete(e.key);
       });
     }
+    // more to paint: another frame (the budget keeps each frame short)
+    if (r.stats.pending > 0 || (source && budget <= 0)) request();
   };
   return {
     update,
@@ -317,7 +367,8 @@ export const createRasterLayer = (scene, { request, onReady }) => {
     dispose: () => {
       r.disposed = true;
       if (r.world) { r.world.meshes.forEach((m) => scene.remove(m)); r.world.plain.dispose(); r.world.terrain.dispose(); r.world.texture.dispose(); }
-      r.tiles.forEach((e) => { e.meshes.forEach((m) => scene.remove(m)); e.texture?.dispose(); e.plain?.dispose(); e.terrain?.dispose(); e.cover?.dispose(); });
+      r.tiles.forEach((e) => { e.meshes.forEach((m) => scene.remove(m)); release(e.texture); e.plain?.dispose(); e.terrain?.dispose(); release(e.cover); });
+      source?.dispose();
       quad.dispose();
     }
   };

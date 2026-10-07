@@ -16,7 +16,9 @@ const url = arg('url', 'http://localhost:5199');
 const seeds = arg('seeds', '1,2,3');
 const shots = arg('shots', null);
 const browserName = arg('browser', 'msedge');
-const golden = JSON.parse(/GOLDEN_V1 = (\{[^}]*\})/.exec(readFileSync(path.join(root, 'src/worldgen/worldgen.test.js'), 'utf8'))[1].replace(/(\d+):/g, '"$1":').replace(/'/g, '"'));
+// the lab builds worlds of the current generator (2): its golden hashes of the default shape
+const goldenList = /continents: \[([^\]]*)\]/.exec(readFileSync(path.join(root, 'src/worldgen/worldgen.test.js'), 'utf8'))[1].split(',').map((s) => s.trim().replace(/'/g, ''));
+const golden = Object.fromEntries(goldenList.map((h, i) => [i + 1, h]));
 
 const launch = () => {
   if (browserName === 'webkit') return webkit.launch();

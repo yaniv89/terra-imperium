@@ -24,13 +24,21 @@ import { TERRAIN, RELIEF, FEATURE, classify, scatterResource } from '../../data/
 import { buildTerrainColumns } from '../../data/geo/terrainColumns';
 import { createRng } from '../../utils/rng';
 import { rangeName, riverName, placeName, PHONOLOGIES } from '../names';
-import { normalizeParams, worldHashOf, GENERATOR_VERSION } from '../spec';
+import { normalizeParams, worldHashOf } from '../spec';
 import { pickStartSites, MAX_MAJORS } from './startSites';
 
 export const VERSION = 1;
 export const CLIMATE_NAMES = ['Af', 'Am', 'As', 'Aw', 'BSh', 'BSk', 'BWh', 'BWk', 'Cfa', 'Cfb', 'Cfc', 'Csa', 'Csb', 'Csc', 'Cwa', 'Cwb', 'Dfa', 'Dfb', 'Dfc', 'Dfd', 'Dsa', 'Dsb', 'Dsc', 'Dsd', 'Dwa', 'Dwb', 'Dwc', 'Dwd', 'EF', 'ET'];
 export const RESOURCE_NAMES = ['bananas', 'cattle', 'coal', 'copper', 'cotton', 'dates', 'deer', 'dyes', 'fish', 'furs', 'gems', 'gold', 'honey', 'horses', 'incense', 'iron', 'oil', 'olives', 'papyrus', 'reeds', 'rice', 'rubber', 'salt', 'sheep', 'silk', 'silver', 'spices', 'stone', 'sugar', 'tea', 'timber', 'uranium', 'whales', 'wheat', 'wine'];
 export const MAX_ATTEMPTS = 4;
+// Generator 2: the real Earth's resources per 1,000 land tiles (tiles.bin, measured with
+// scripts/worldgen/resources.mjs on 2026-10-07); frozen with version 2.
+export const EARTH_RESOURCES_PER_1000 = Object.freeze({
+  bananas: 3.92, cattle: 15.11, coal: 19.48, copper: 34.15, cotton: 7.61, dates: 1.96, deer: 17.45, dyes: 2.41, fish: 35.7,
+  furs: 23.38, gems: 4.44, gold: 19.97, honey: 6.06, horses: 19.18, incense: 6.16, iron: 34.63, oil: 15.01, olives: 3.41,
+  papyrus: 0.96, reeds: 0.38, rice: 1.07, rubber: 1.41, salt: 15.59, sheep: 20.72, silk: 1.79, silver: 8.16, spices: 4.27,
+  stone: 29.47, sugar: 2.82, tea: 1.48, timber: 17.45, uranium: 2.58, whales: 8.71, wheat: 20.45, wine: 7.81
+});
 const RMAX = 8; // plate-edge distance tracked, in rings
 const STEP_UNITS = 198; // a quarter of the cell spacing (about 19 km) in ONE units
 const RIVER_TILE_SHARE = 0.36; // land tiles with a river edge (Earth 0.38)
@@ -140,8 +148,10 @@ const prepareCorners = (G) => {
 // ---- one attempt ----------------------------------------------------------------------------------
 const CLIMATE_OFFSET = { cold: -6, temperate: 0, hot: 4 };
 const RAIN_SCALE = { dry: 0.7, normal: 1, wet: 1.35 };
+const RELIEF_SCALE = { low: 0.6, normal: 1, high: 1.4 };
 
-const attemptWorld = (grid, seed, params, attempt, progress) => {
+const attemptWorld = (grid, seed, params, attempt, progress, version = 1) => {
+  const V2 = version >= 2; // generator 2: the look pass (see the header); version 1 stays byte for byte
   const G = prepareGrid(grid);
   const { n, nb, pos, vec, east, north, latDeg } = G;
   const s0 = hash1(seed, 0x51a7 + attempt * 7919);
@@ -150,7 +160,10 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
   const landTarget = Math.round((n * params.land) / 100);
 
   // ---- 1. plates ---------------------------------------------------------------------------------
-  const nP = 22 + Math.floor(rng.next() * 9);
+  // generator 2's shapes (spec.js): more, smaller plates for the archipelago and islands
+  const shape = V2 ? params.shape : 'continents';
+  const reliefScale = V2 ? RELIEF_SCALE[params.relief] ?? 1 : 1;
+  const nP = shape === 'archipelago' ? 34 + Math.floor(rng.next() * 8) : shape === 'islands' ? 44 + Math.floor(rng.next() * 8) : 22 + Math.floor(rng.next() * 9);
   const seeds = []; const vel = [];
   while (seeds.length < nP) {
     const x = rng.next() * 2 - 1; const y = rng.next() * 2 - 1; const z = rng.next() * 2 - 1;
@@ -184,7 +197,8 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
   for (let i = 0; i < n; i++) { area[plate[i]]++; for (const j of nb[i]) if (plate[j] !== plate[i]) border[plate[i]][plate[j]]++; }
 
   // ---- 2. continents: groups of plates -----------------------------------------------------------
-  const k = params.continents || (3 + (hash1(seed, 0xc0) % 4));
+  const autoK = shape === 'pangaea' || shape === 'inland' ? 1 : shape === 'archipelago' ? 9 + (hash1(seed, 0xc0) % 4) : shape === 'islands' ? 18 + (hash1(seed, 0xc0) % 6) : 3 + (hash1(seed, 0xc0) % 4);
+  const k = params.continents || autoK;
   const group = new Int16Array(nP).fill(-1);
   const gArea = new Array(k).fill(0);
   const contTarget = Math.round(landTarget * 1.08);
@@ -275,14 +289,17 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
       if (contOwn && otherCont) up = Math.min(5200, 3400 * c) * sm(d / 6.5);
       else if (contOwn) up = Math.min(4400, 3000 * c) * sm(Math.abs(d - 1.5) / 3.5);
       else if (otherCont) up = -1800 * c * sm(d / 2.5);
-      else up = own > other ? Math.min(4800, 3600 * c) * sm(Math.abs(d - 1.2) / 2) : -1500 * c * sm(d / 2);
+      else up = own > other ? (V2 ? Math.min(2500, 2000 * c) : Math.min(4800, 3600 * c)) * sm(Math.abs(d - 1.2) / 2) : -1500 * c * sm(d / 2);
     } else if (c < -0.15) {
       const a = -c;
       if (contOwn) up = otherCont ? -900 * a * sm(d / 2.5) : 0;
-      else up = 1400 * a * sm(d / 3.5);
+      else up = (V2 ? 900 : 1400) * a * sm(d / 3.5);
     }
     const px = pos[3 * i]; const py = pos[3 * i + 1]; const pz = pos[3 * i + 2];
-    e += up + (C1(px, py, pz) * 2300) / ONE + (C2(px, py, pz) * 900) / ONE + hotBoost[i];
+    up *= reliefScale;
+    // the archipelago and islands break their land up with stronger broad noise
+    const broad = shape === 'islands' ? 2 : shape === 'archipelago' ? 1.5 : 1;
+    e += up + (C1(px, py, pz) * 2300 * broad) / ONE + (C2(px, py, pz) * 900 * broad) / ONE + hotBoost[i];
     if (contOwn && d > 5) e += 120;
     coarse[i] = e;
     mountainF[i] = up > 150 ? clamp(up / 2600, 0, 1.3) : 0;
@@ -299,7 +316,7 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
   for (let i = 0; i < n; i++) {
     const e = coarse[i];
     if (e < provisional - 1100) { elevMean[i] = Math.round(e); elevMax[i] = Math.round(e); rough[i] = 25; continue; }
-    const hf = hillF[i]; const ad = 260 + 1700 * hf * hf; const ar = 3800 * mountainF[i];
+    const hf = hillF[i]; const ad = 260 + 1700 * hf * hf; const ar = 3800 * mountainF[i] * reliefScale;
     const px = pos[3 * i]; const py = pos[3 * i + 1]; const pz = pos[3 * i + 2];
     const ex = east[3 * i] * STEP_UNITS; const ey = east[3 * i + 1] * STEP_UNITS; const ez = east[3 * i + 2] * STEP_UNITS;
     const nx = north[3 * i] * STEP_UNITS; const ny = north[3 * i + 1] * STEP_UNITS; const nz = north[3 * i + 2] * STEP_UNITS;
@@ -322,11 +339,87 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
   ids.sort((a, b) => elevMean[b] - elevMean[a] || a - b);
   const land = new Uint8Array(n);
   for (let r = 0; r < landTarget; r++) land[ids[r]] = 1;
-  const seaLevel = elevMean[ids[landTarget - 1]];
+  let seaLevel = elevMean[ids[landTarget - 1]];
+  const carved = new Int16Array(n); // generator 2, the inland sea: its depth (m) plus one
+  if (V2) {
+    // Generator 2: no specks of up to six hexes (island arcs read as dotted lines) and no enclosed
+    // enclosed seas inside the continents (the shallow inland seas of version 1). The specks are
+    // drowned and the small seas filled, then the quantile is taken again over the rest so the
+    // land share stays exact; again while anything changes (a fill can join specks, a drowning open seas).
+    const force = new Int8Array(n); // 1 must be land, -1 must be sea
+    const comp = new Int32Array(n);
+    if (shape === 'inland') {
+      // The inland sea: about 6% of the land, carved round the land tile farthest from the sea
+      // (rings of land from it, a hashed half ring of wobble), deepest in the middle.
+      const ds = new Int16Array(n).fill(-1);
+      qh = 0; qt = 0;
+      for (let i = 0; i < n; i++) if (!land[i]) { ds[i] = 0; queue[qt++] = i; }
+      while (qh < qt) { const i = queue[qh++]; for (const j of nb[i]) if (ds[j] < 0) { ds[j] = ds[i] + 1; queue[qt++] = j; } }
+      let centre = 0; for (let i = 1; i < n; i++) if (ds[i] > ds[centre]) centre = i;
+      const ring = new Int16Array(n).fill(-1);
+      qh = 0; qt = 0; queue[qt++] = centre; ring[centre] = 0;
+      const want = Math.round(landTarget * 0.06);
+      while (qh < qt && qt < want * 2) { const i = queue[qh++]; for (const j of nb[i]) if (ring[j] < 0) { ring[j] = ring[i] + 1; queue[qt++] = j; } }
+      const order = Array.from(queue.subarray(0, qt)).sort((a, b) => (ring[a] + hashUnit(a, s0 ^ 0x5ea) * 1.5) - (ring[b] + hashUnit(b, s0 ^ 0x5ea) * 1.5) || a - b);
+      const rMax = Math.max(1, ring[order[Math.min(order.length, want) - 1]]);
+      for (let r = 0; r < want && r < order.length; r++) { const i = order[r]; force[i] = -1; carved[i] = 1 + Math.round(1800 * (1 - ring[i] / (rMax + 1))); }
+    }
+    for (let round = 0; round < 6; round++) {
+      comp.fill(-1);
+      const sizes = [];
+      let biggestSea = -1;
+      for (let s = 0; s < n; s++) {
+        if (comp[s] >= 0) continue;
+        const id = sizes.length; const kind = land[s];
+        qh = 0; qt = 0; queue[qt++] = s; comp[s] = id;
+        while (qh < qt) { const i = queue[qh++]; for (const j of nb[i]) if (comp[j] < 0 && land[j] === kind) { comp[j] = id; queue[qt++] = j; } }
+        sizes.push(qt);
+        if (!kind && (biggestSea < 0 || qt > sizes[biggestSea])) biggestSea = id;
+      }
+      let changed = 0;
+      for (let i = 0; i < n; i++) {
+        const c = comp[i];
+        if (land[i] && sizes[c] <= 6 && force[i] !== -1) { force[i] = -1; changed++; }
+        if (!land[i] && c !== biggestSea && sizes[c] < 250 && force[i] !== 1) { force[i] = 1; changed++; }
+      }
+      if (!changed) break;
+      const key = (i) => elevMean[i] + force[i] * 100000;
+      ids.sort((a, b) => key(b) - key(a) || a - b);
+      land.fill(0);
+      for (let r = 0; r < landTarget; r++) land[ids[r]] = 1;
+      // the sea level of the free tiles (a forced tile keeps its own height, held at the shore)
+      for (let r = landTarget - 1; r >= 0; r--) if (!force[ids[r]]) { seaLevel = elevMean[ids[r]]; break; }
+    }
+    // What the rounds left: drown the last specks and give their hexes to the highest sea hexes on
+    // the shores of the larger landmasses (one for one, so the share stays exact).
+    comp.fill(-1);
+    const sizes = [];
+    for (let s = 0; s < n; s++) {
+      if (comp[s] >= 0 || !land[s]) continue;
+      qh = 0; qt = 0; queue[qt++] = s; comp[s] = sizes.length;
+      while (qh < qt) { const i = queue[qh++]; for (const j of nb[i]) if (comp[j] < 0 && land[j]) { comp[j] = sizes.length; queue[qt++] = j; } }
+      sizes.push(qt);
+    }
+    let drowned = 0;
+    for (let i = 0; i < n; i++) if (land[i] && sizes[comp[i]] <= 6) { land[i] = 0; force[i] = -1; drowned++; }
+    if (drowned) {
+      const shore = [];
+      for (let i = 0; i < n; i++) if (!land[i] && force[i] !== -1 && nb[i].some((j) => land[j] && sizes[comp[j]] > 6)) shore.push(i);
+      shore.sort((a, b) => elevMean[b] - elevMean[a] || a - b);
+      // (never one that would leave a sea hex walled in by land)
+      const seaLeft = (j, but) => nb[j].some((x) => x !== but && !land[x]);
+      for (let r = 0; r < shore.length && drowned > 0; r++) {
+        const i = shore[r];
+        if (nb[i].some((j) => !land[j] && !seaLeft(j, i))) continue;
+        land[i] = 1; force[i] = 1; drowned--;
+      }
+    }
+  }
   const elevation = new Int16Array(n); const elevMaxS = new Int32Array(n);
   for (let i = 0; i < n; i++) {
     let e = elevMean[i] - seaLevel + (land[i] ? 1 : 0);
     e = land[i] ? Math.max(1, e) : Math.min(0, e);
+    if (carved[i]) e = Math.min(e, 1 - carved[i] - 200);
     elevation[i] = clamp(e, -11000, 9000); elevMaxS[i] = Math.max(elevation[i], elevMax[i] - seaLevel);
   }
   // Lakes are land hexes with terrain lake (as on Earth), made by the drainage pass below, so the
@@ -359,6 +452,7 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
   const upwind = new Int32Array(n);
   for (let i = 0; i < n; i++) upwind[i] = upwindStep(i);
   const K = 14;
+  const DRY = makeField(salt(9), 4, 2);
   const precip = new Float64Array(n); const drySummer = new Uint8Array(n); const dryWinter = new Uint8Array(n);
   const path = new Int32Array(K + 1);
   const rainScale = RAIN_SCALE[params.rainfall] ?? 1;
@@ -384,7 +478,9 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
     let P = m * 1500 + m * Math.min(1, rise / 1200) * 1600;
     const al = latDeg[i] < 0 ? -latDeg[i] : latDeg[i];
     if (al < 12) P = P * 1.15 + 900 * (1 - al / 12);
-    if (al > 16 && al < 36) P *= 0.4 + 0.6 * Math.min(1, Math.abs(al - 26) / 10);
+    // the dry subtropical belt (generator 2: its middle wanders by up to 7 degrees, no straight stripes)
+    const belt = V2 ? 26 + (DRY(pos[3 * i], pos[3 * i + 1], pos[3 * i + 2]) * 22) / ONE : 26;
+    if (al > belt - 10 && al < belt + 10) P *= 0.4 + 0.6 * Math.min(1, Math.abs(al - belt) / 10);
     P *= clamp((meanT[i] + 25) / 40, 0.3, 1);
     precip[i] = P * rainScale;
     if (al >= 30 && al <= 45 && seaNear <= 5) drySummer[i] = 1;
@@ -401,7 +497,7 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
     const T = meanT[i];
     const warmest = T + amp / 2; const coldest = T - amp / 2;
     warmestOf[i] = warmest;
-    if (!land[i]) { if (al > 76 && warmest < 2) glaciated[i] = 1; continue; }
+    if (!land[i]) { if ((V2 ? al > 80 + hashUnit(i, s0 ^ 0x1ce) * 3 : al > 76) && warmest < 2) glaciated[i] = 1; continue; }
     if (lake[i]) continue;
     const P = precip[i]; const s = drySummer[i]; const w = dryWinter[i];
     let kname;
@@ -414,7 +510,7 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
       else kname = `D${s ? 's' : w ? 'w' : 'f'}${warmest >= 22 ? 'a' : warmest >= 16 ? 'b' : coldest < -38 ? 'd' : 'c'}`;
     }
     climate[i] = climateCode(kname);
-    if (kname === 'EF' || (al > 72 && warmest < 4)) glaciated[i] = 1;
+    if (kname === 'EF' || ((V2 ? al > 75 : al > 72) && warmest < 4)) glaciated[i] = 1;
   }
   progress(0.62, 'climate');
 
@@ -451,14 +547,14 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
     }
     const cand = []; const seenL = new Uint8Array(n);
     for (let s = 0; s < n; s++) {
-      if (depth[s] < 110 || seenL[s]) continue;
+      if (depth[s] < (V2 ? 160 : 110) || seenL[s]) continue;
       const comp = []; qh = 0; qt = 0; queue[qt++] = s; seenL[s] = 1;
       while (qh < qt) { const i = queue[qh++]; comp.push(i); for (const j of nb[i]) if (!seenL[j] && depth[j] >= 110) { seenL[j] = 1; queue[qt++] = j; } }
       let tot = 0; comp.forEach((i) => { tot += depth[i]; });
       cand.push({ comp, tot, first: s });
     }
     cand.sort((a, b) => b.tot - a.tot || a.first - b.first);
-    let budget = Math.floor(landTarget * 0.012); let added = 0;
+    let budget = Math.floor(landTarget * (V2 ? 0.007 : 0.012)); let added = 0;
     cand.forEach(({ comp }) => { if (comp.length <= budget) { comp.forEach((i) => { lake[i] = 1; climate[i] = -1; }); budget -= comp.length; added += comp.length; } });
     if (added) F = flood(cornerWet);
   }
@@ -558,6 +654,42 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
     const r = scatterResource(i, { land: !!land[i] && !lake[i], t: TERRAIN[terrain[i]], rel: RELIEF[relief[i]], feat: FEATURE[feature[i]], near: coastal[i] }, hashS);
     if (r) resource[i] = RESOURCE_NAMES.indexOf(r);
   }
+  if (V2) {
+    // Generator 2: each resource near Earth's count per land tile (plan 4.3 step 9). A generated
+    // world has fewer hills, mountains and jungles and more open grassland than Earth, so the plain
+    // scatter gives twice the wheat and horses and half the metals. Deficits are filled first, on
+    // tiles that are empty or hold a resource still in surplus, with the scatter's own choice under
+    // other salts (so a resource only lands where its terrain allows it); the surplus left is cut.
+    const R = RESOURCE_NAMES.length;
+    let landN = 0; for (let i = 0; i < n; i++) if (land[i] && !lake[i]) landN++;
+    const target = RESOURCE_NAMES.map((name) => Math.round(((EARTH_RESOURCES_PER_1000[name] || 0) * landN) / 1000));
+    const count = new Int32Array(R);
+    for (let i = 0; i < n; i++) if (resource[i] >= 0) count[resource[i]]++;
+    const ctxOf = (i) => ({ land: !!land[i] && !lake[i], t: TERRAIN[terrain[i]], rel: RELIEF[relief[i]], feat: FEATURE[feature[i]], near: coastal[i] });
+    const order = new Int32Array(n); for (let i = 0; i < n; i++) order[i] = i;
+    const key = new Float64Array(n); for (let i = 0; i < n; i++) key[i] = hashS(i, 301);
+    order.sort((a, b) => key[a] - key[b] || a - b);
+    for (let salt = 1; salt <= 8; salt++) {
+      let open = 0; for (let r = 0; r < R; r++) if (count[r] < target[r]) open++;
+      if (!open) break;
+      const alt = (id, s) => hashS(id, s + 1000 * salt);
+      for (let o = 0; o < n; o++) {
+        const i = order[o];
+        const cur = resource[i];
+        if (cur >= 0 && count[cur] <= target[cur]) continue;
+        const pick = scatterResource(i, ctxOf(i), alt);
+        if (!pick) continue;
+        const r = RESOURCE_NAMES.indexOf(pick);
+        if (r === cur || count[r] >= target[r]) continue;
+        if (cur >= 0) count[cur]--;
+        resource[i] = r; count[r]++;
+      }
+    }
+    for (let o = 0; o < n; o++) {
+      const i = order[o]; const cur = resource[i];
+      if (cur >= 0 && count[cur] > target[cur]) { resource[i] = -1; count[cur]--; }
+    }
+  }
 
   // ---- 11. terrain columns and names -------------------------------------------------------------------
   const raw = {
@@ -623,7 +755,7 @@ const attemptWorld = (grid, seed, params, attempt, progress) => {
   }
   const big = massSizes.filter((s) => s >= 300).sort((a, b) => b - a);
   const report = {
-    attempt, plates: nP, continentTarget: k,
+    attempt, plates: nP, continentTarget: k, shape,
     landShare: (landTiles + lakes) / n, landTiles, lakes, lakeShare: lakes / Math.max(1, landTiles),
     continents: big.length, largestShare: (massSizes.length ? Math.max(...massSizes) : 0) / Math.max(1, landTiles),
     hillShare: hills / Math.max(1, landTiles), mountainShare: mountains / Math.max(1, landTiles), mountainsInRanges: inRanges / Math.max(1, mountains),
@@ -641,7 +773,11 @@ export const qualityProblems = (report, params) => {
   const coldWorld = params.climate === 'cold';
   if (Math.abs(report.landShare * 100 - params.land) > 0.5) out.push('land share');
   const k = report.continentTarget;
-  if (params.continents ? (report.continents < Math.max(1, k - 1) || report.continents > k + 2) : (report.continents < 2 || report.continents > 9)) out.push('continents');
+  const shape = report.shape || 'continents';
+  if (params.continents ? (report.continents < Math.max(1, k - 1) || report.continents > k + 2) : shape === 'continents' ? (report.continents < 2 || report.continents > 9) : false) out.push('continents');
+  if (!params.continents && (shape === 'pangaea' || shape === 'inland') && report.largestShare < 0.55) out.push('continents');
+  if (!params.continents && shape === 'islands' && report.largestShare > 0.35) out.push('continents');
+  if (!params.continents && shape === 'archipelago' && report.largestShare > 0.5) out.push('continents');
   if (report.mountainShare < 0.03 || report.mountainShare > 0.16) out.push('mountains');
   if (report.riverShare < 0.28 || report.riverShare > 0.47) out.push('rivers');
   if (report.lakeShare > 0.03) out.push('lakes');
@@ -657,13 +793,13 @@ export const qualityProblems = (report, params) => {
  * `world`, the descriptor with its hash); `grid` is Earth's grid (count, lat, lon, neighbors,
  * frequency, orientation). `onProgress(fraction, stage)` is called along the way.
  */
-export const generateWorldV1 = (spec, grid, { onProgress = () => {} } = {}) => {
+export const generateWorldV1 = (spec, grid, { onProgress = () => {} } = {}, version = 1) => {
   const seed = spec.seed >>> 0;
   const params = normalizeParams(spec.params);
   let best = null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const base = attempt / MAX_ATTEMPTS;
-    const res = attemptWorld(grid, seed, params, attempt, (f, stage) => onProgress(base + f / MAX_ATTEMPTS, stage));
+    const res = attemptWorld(grid, seed, params, attempt, (f, stage) => onProgress(base + f / MAX_ATTEMPTS, stage), version);
     const problems = qualityProblems(res.report, params);
     res.report.problems = problems;
     if (!best || problems.length < best.report.problems.length) best = res;
@@ -671,7 +807,7 @@ export const generateWorldV1 = (spec, grid, { onProgress = () => {} } = {}) => {
   }
   const { raw, report } = best;
   const worldHash = worldHashOf(raw);
-  raw.world = { kind: 'generated', generatorVersion: GENERATOR_VERSION, seed, params, attempt: report.attempt, worldHash };
+  raw.world = { kind: 'generated', generatorVersion: version, seed, params, attempt: report.attempt, worldHash };
   onProgress(1, 'done');
   return { raw, report: { ...report, worldHash } };
 };
