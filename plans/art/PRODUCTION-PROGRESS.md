@@ -67,3 +67,5 @@ Wave 3 [checkpoint 16](downloads/wave3/checkpoint-16/README.md), 2026-10-08 (Cla
 Wave 3 [checkpoint 17](downloads/wave3/checkpoint-17/README.md), 2026-10-08 (Claude): the Classical raider and mercenary, the Classical projectiles (arrow, pilum, lead sling bullet, ballista bolt, stone) and the twelve Classical battlefield props, 4 queue items `in_game_awaiting_review`. 0.58 MB added.
 
 Wave 3 [checkpoint 18](downloads/wave3/checkpoint-18/README.md), 2026-10-08 (Claude): the 12 Classical culture skins of the battle buildings (barracks, tower, trade post with damaged states, `rts-classical-<theme>.glb`) and the map's Classical fort (`fort-classical.glb`), 13 queue items `in_game_awaiting_review`. 9.99 MB added. The Classical remainder is done.
+
+Wave 3 [checkpoint 19](downloads/wave3/checkpoint-19/README.md), 2026-10-08 (Claude): the battle sandbox has a `siege` army preset (`&siege`, or the army menus), so siege models such as the Bosporan stone-thrower (`&people=bosporan_kingdom&age=classical`) can be checked live. 0 MB.

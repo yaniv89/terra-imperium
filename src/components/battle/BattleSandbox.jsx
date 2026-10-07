@@ -19,7 +19,10 @@ const PRESETS = {
   archers: ['ranged', 'ranged', 'ranged', 'infantry', 'infantry'],
   small: ['infantry', 'ranged'],
   // an independent's raid party (src/engine/raids.js): riders first, a few foot to carry torches
-  raiders: ['cavalry', 'cavalry', 'cavalry', 'infantry', 'infantry']
+  raiders: ['cavalry', 'cavalry', 'cavalry', 'infantry', 'infantry'],
+  // a siege train with its escort, to see the age's engines live (`&attacker=siege`, or `&siege`;
+  // with `&people=bosporan_kingdom&age=classical` the Bosporan stone-throwers)
+  siege: ['siege', 'siege', 'siege', 'infantry', 'ranged']
 };
 
 // `extra(unit)`: flags added to a unit (a raid party's `raidOf`, a hired band's `mercenary`), as
@@ -71,7 +74,7 @@ const BattleSandbox = () => {
   const [config, setConfig] = useState({
     terrain: params.get('terrain') || 'mixed',
     ageId: params.get('age') || 'kingdoms',
-    attacker: params.get('attacker') || 'balanced',
+    attacker: params.get('attacker') || (params.has('siege') ? 'siege' : 'balanced'),
     defender: params.get('defender') || 'balanced',
     fortLevel: Number(params.get('fort') || 2),
     seed: Number(params.get('seed') || 7),

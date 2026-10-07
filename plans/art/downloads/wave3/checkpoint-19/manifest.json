@@ -1,0 +1,59 @@
+{
+  "checkpoint": "wave3-19",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 0,
+  "packed_bytes_added": 0,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave3/checkpoint-19/contact.png",
+      "bytes": 97392,
+      "sha256": "dc39413e8d0db447d08bdd35bb73343940936ebc0882142f2db25be1fc9bc22b"
+    },
+    {
+      "file": "plans/art/shots/wave3/siege-sandbox/sandbox-classical-cavalry.png",
+      "bytes": 505638,
+      "sha256": "e740c447009104c57747e2b6eaf2aac350056356058b7e7505b217b5027d7e07"
+    },
+    {
+      "file": "plans/art/shots/wave3/siege-sandbox/sandbox-classical-general.png",
+      "bytes": 490566,
+      "sha256": "980c22ec989013bce20b69546ec1b5ca0c6e890c2855c5e94da0e3fe93b53bd2"
+    },
+    {
+      "file": "plans/art/shots/wave3/siege-sandbox/sandbox-classical-infantry.png",
+      "bytes": 497578,
+      "sha256": "22aebe087b0eeb8c91706fe28a25c272e89a58305b72e52a128995838b1162c4"
+    },
+    {
+      "file": "plans/art/shots/wave3/siege-sandbox/sandbox-classical-ranged.png",
+      "bytes": 476664,
+      "sha256": "32f7d1da85a48211e800987f2f971d2b94b8971e6b0b0ad29d2127cb792e45ef"
+    },
+    {
+      "file": "plans/art/shots/wave3/siege-sandbox/sandbox-classical-siege-bosporan_kingdom.png",
+      "bytes": 491426,
+      "sha256": "1dbc77baad9c048f18533c50cc8858ae685a7be1989eca544b5f006854041edb"
+    },
+    {
+      "file": "plans/art/shots/wave3/siege-sandbox/sandbox-classical-wide.png",
+      "bytes": 397344,
+      "sha256": "0c93da9021e4692e12a80482178dbaeeb6e3300ec0976b670bf90018d5c0c7fa"
+    },
+    {
+      "file": "plans/art/shots/wave3/siege-sandbox/sandbox-classical-worker.png",
+      "bytes": 472189,
+      "sha256": "1a1a4124b714799321c96abd4361b2eee04fa0b6263d52f3c38b97c9d761476a"
+    },
+    {
+      "file": "plans/art/shots/wave3/siege-sandbox/sandbox-report.json",
+      "bytes": 3104,
+      "sha256": "e1cc1d5ebdd400c46a4d5c64d533ec04d4c70f120d9f7f733318288d6c53f2b7"
+    },
+    {
+      "file": "src/components/battle/BattleSandbox.jsx",
+      "bytes": 14320,
+      "sha256": "d2da2403fab6fd11bcd9bbe6936facd5fe6956884ba42303abbd3898b8a99914"
+    }
+  ]
+}
