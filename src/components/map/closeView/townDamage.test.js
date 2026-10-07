@@ -14,7 +14,9 @@ describe('townDamage: a city\'s ruins drawn on its merged town model', () => {
   it('gives the instance its own building materials (the Ground stays shared), once', () => {
     const { root, town, ground } = makeTown();
     const made = enableTownDamage(root);
-    expect(made).toHaveLength(1);
+    expect(made).toHaveLength(2); // the building material and the shadow depth material
+    expect(root.children[0].customDepthMaterial).toBe(made[1]);
+    expect(root.children[1].customDepthMaterial).toBe(made[1]);
     expect(root.children[0].material[0]).not.toBe(town);
     expect(root.children[0].material[1]).toBe(ground);
     expect(root.children[1].material).toBe(root.children[0].material[0]);
@@ -28,6 +30,8 @@ describe('townDamage: a city\'s ruins drawn on its merged town model', () => {
     const u = root.userData.townDamage[0].userData.townDamage;
     expect(u.uRuinN.value).toBe(1);
     expect(u.uDmgN.value).toBe(2);
+    // the shadow pass cuts the same ruins
+    expect(root.userData.townDamage[1].userData.townDamage.uRuinN.value).toBe(1);
     expect(u.uRuin.value[0].x).toBeCloseTo(0.71);
     expect(u.uRuin.value).toHaveLength(MAX_RECTS);
     root.position.set(5, 0, 0); root.scale.setScalar(2);

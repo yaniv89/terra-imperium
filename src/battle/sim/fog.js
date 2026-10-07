@@ -25,7 +25,8 @@ const AMBUSH_SPOT_RADIUS = 3 * Q;
 export const initFog = (w) => {
   const n = w.map.w * w.map.h;
   w.fog = [new Uint8Array(n), new Uint8Array(n)];
-  w.revealUntil = [w.setup.modifiers.intel?.attackerSeesDefender ? INTEL_REVEAL_TICKS : -1, -1];
+  // `defenderSeesAttacker`: the battle sandbox's raid check (BattleSandbox.jsx), so the raiders show at once
+  w.revealUntil = [w.setup.modifiers.intel?.attackerSeesDefender ? INTEL_REVEAL_TICKS : -1, w.setup.modifiers.intel?.defenderSeesAttacker ? INTEL_REVEAL_TICKS : -1];
   // The defender knows every inch of its own land; the attacker only knows what intel told it.
   if (w.setup.modifiers.intel?.attackerSeesDefender) w.fog[0].fill(1);
   w.fog[1].fill(1);

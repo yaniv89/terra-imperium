@@ -17,12 +17,23 @@ const PRESETS = {
   balanced: ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'siege', 'infantry'],
   cavalry: ['cavalry', 'cavalry', 'cavalry', 'infantry', 'ranged'],
   archers: ['ranged', 'ranged', 'ranged', 'infantry', 'infantry'],
-  small: ['infantry', 'ranged']
+  small: ['infantry', 'ranged'],
+  // an independent's raid party (src/engine/raids.js): riders first, a few foot to carry torches
+  raiders: ['cavalry', 'cavalry', 'cavalry', 'infantry', 'infantry']
 };
 
-const buildArmy = (prefix, preset, ageId, strength, generalId = null) => PRESETS[preset]
+// `extra(unit)`: flags added to a unit (a raid party's `raidOf`, a hired band's `mercenary`), as
+// the campaign's units carry them (the battle draws their irregular looks, unitModels.js LOOK_CLASS).
+const buildArmy = (prefix, preset, ageId, strength, generalId = null, extra = () => null) => PRESETS[preset]
   .filter((c) => getAvailableClasses(ageId).includes(c))
-  .map((classId, i) => ({ id: `${prefix}${i}`, classId, strength, maxStrength: 1000, morale: 100, promotions: classId === 'ranged' && i === 3 ? ['volleyFire'] : [], commanderId: i === 0 ? generalId : null, domain: 'land', xp: 0 }));
+  .map((classId, i) => ({ id: `${prefix}${i}`, classId, strength, maxStrength: 1000, morale: 100, promotions: classId === 'ranged' && i === 3 ? ['volleyFire'] : [], commanderId: i === 0 ? generalId : null, domain: 'land', xp: 0, ...extra({ classId, i }) }));
+// `&raid=raid|sack` (or the Battle menu): an independent's raid party attacks and you defend, the
+// way the campaign queues raids against the player (src/engine/raidBattle.js); a sack needs a city
+// (`&city=`, medium when none is given). `&merc`: your infantry are a hired band (engine
+// `unit.mercenary`), drawn as the age's mercenary.
+const RAID_KINDS = ['none', 'raid', 'sack'];
+const RAID_PARTY = 'sandbox-raiders';
+const hiredBand = ({ classId }) => (classId === 'infantry' ? { mercenary: { from: 'sandbox', pay: 2 } } : null);
 // A sea battle (`?battleSandbox&sea`): fleets by naval line (navalLines.js) instead of armies.
 const FLEETS = { attacker: ['warship', 'warship', 'warship', 'raider', 'transport'], defender: ['warship', 'warship', 'raider', 'transport'] };
 const buildFleet = (prefix, side, strength, generalId = null) => FLEETS[side]
@@ -68,8 +79,12 @@ const BattleSandbox = () => {
     sea: params.has('sea'),
     bench: Math.max(0, Math.min(1000, Number(params.get('bench')) || 0)),
     city: ['small', 'medium', 'big'].includes(params.get('city')) ? params.get('city') : null,
-    economy: !params.has('noeco')
+    economy: !params.has('noeco'),
+    raid: RAID_KINDS.includes(params.get('raid')) ? params.get('raid') : 'none',
+    merc: params.has('merc')
   });
+  const raiding = config.raid !== 'none';
+  const playerSide = raiding ? 1 : 0;
   const [running, setRunning] = useState(params.has('autostart'));
   const [lastResult, setLastResult] = useState(null);
   const [runId, setRunId] = useState(0);
@@ -99,8 +114,10 @@ const BattleSandbox = () => {
     regionId: `sandbox-${config.terrain}-${config.seed}`,
     terrain: config.terrain,
     seed: config.seed + runId,
-    attackerUnits: buildArmy('a', config.attacker, config.ageId, 1000, 'g_att'),
-    defenderUnits: buildArmy('d', config.defender, config.ageId, 900, 'g_def'),
+    attackerUnits: raiding ? buildArmy('a', 'raiders', config.ageId, 800, null, () => ({ raidOf: RAID_PARTY }))
+      : buildArmy('a', config.attacker, config.ageId, 1000, 'g_att', config.merc ? hiredBand : () => null),
+    defenderUnits: buildArmy('d', config.defender, config.ageId, 900, raiding ? 'g_att' : 'g_def', raiding && config.merc ? hiredBand : () => null),
+    ...(raiding ? { battleType: config.raid, raid: true } : {}),
     generals: GENERALS,
     powers: [[...sandboxPowers(config.ageId, buildArmy('a', config.attacker, config.ageId, 1000)), ...(config.landing ? [{ id: 'navalBombardment', uses: 2 }] : [])], sandboxPowers(config.ageId, buildArmy('d', config.defender, config.ageId, 900)).filter((p) => p.id !== 'nuclearStrike')],
     landing: config.landing,
@@ -110,25 +127,25 @@ const BattleSandbox = () => {
       config.landing ? [] : [{ regionId: 'north', name: 'Northern March', edge: 'N', units: buildArmy('r', 'small', config.ageId, 800) }],
       [{ regionId: 'east', name: 'Eastern Garrison', edge: 'S', units: buildArmy('s', 'small', config.ageId, 700) }]
     ],
-    intel: { attackerSeesDefender: !config.fog },
+    intel: { attackerSeesDefender: !config.fog, ...(raiding && !config.fog ? { defenderSeesAttacker: true } : {}) },
     attackerAgeId: config.ageId,
     defenderAgeId: config.ageId,
     fortLevel: config.fortLevel,
     isCapital: config.fortLevel >= 4,
     infrastructure: 5,
     deposits: ['iron', 'copper'],
-    controllers: config.spectate ? ['ai', 'ai'] : ['player', 'ai'],
+    controllers: config.spectate ? ['ai', 'ai'] : raiding ? ['ai', 'player'] : ['player', 'ai'],
     economy: config.economy, // the battle economy (phase R1): workers, buildings, training; `&noeco` turns it off
-    ...sandboxCity(config)
-  }), [config, runId, sampleTile]);
+    ...sandboxCity(config.raid === 'sack' && !config.city ? { ...config, city: 'medium' } : config)
+  }), [config, runId, sampleTile, raiding]);
 
   if (running) {
     return (
       <TacticalBattleScreen
         key={runId}
         setup={setup}
-        playerSide={0}
-        title={`Sandbox · ${config.sea ? 'sea battle' : config.terrain}`}
+        playerSide={playerSide}
+        title={`Sandbox · ${config.sea ? 'sea battle' : raiding ? `${config.raid} (you defend)` : config.terrain}`}
         onFinish={(ended) => { setLastResult(ended.result); setRunning(false); }}
         onAbandon={() => setRunning(false)}
       />
@@ -138,7 +155,7 @@ const BattleSandbox = () => {
   const field = (label, key, options) => (
     <label className="flex flex-col gap-1 text-xs text-slate-300">
       {label}
-      <select value={config[key]} onChange={(e) => setConfig((c) => ({ ...c, [key]: key === 'fortLevel' ? Number(e.target.value) : e.target.value }))} className="h-11 rounded-lg bg-slate-800 border border-slate-600 px-2 text-slate-100">
+      <select value={config[key]} onChange={(e) => setConfig((c) => ({ ...c, [key]: key === 'fortLevel' ? Number(e.target.value) : e.target.value }))} data-testid={`sandbox-${key}`} className="h-11 rounded-lg bg-slate-800 border border-slate-600 px-2 text-slate-100">
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
     </label>
@@ -154,9 +171,11 @@ const BattleSandbox = () => {
           {field('Your army', 'attacker', Object.keys(PRESETS))}
           {field('Enemy army', 'defender', Object.keys(PRESETS))}
           {field('Fortifications', 'fortLevel', [0, 1, 2, 3, 4, 6])}
+          {field('Battle (raiders attack, you defend)', 'raid', RAID_KINDS)}
         </div>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.fog} onChange={(e) => setConfig((c) => ({ ...c, fog: e.target.checked }))} /> No intelligence (start blind in the fog)</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.economy} onChange={(e) => setConfig((c) => ({ ...c, economy: e.target.checked }))} /> Battle economy (workers, buildings, training)</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.merc} onChange={(e) => setConfig((c) => ({ ...c, merc: e.target.checked }))} /> Your infantry are a hired band (mercenaries)</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.spectate} onChange={(e) => setConfig((c) => ({ ...c, spectate: e.target.checked }))} /> Spectate (AI vs AI)</label>
         <button type="button" onClick={() => { setRunId((r) => r + 1); setRunning(true); }} className="w-full h-12 rounded-xl bg-blue-600 font-semibold">Fight</button>
         {lastResult && (

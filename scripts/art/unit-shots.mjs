@@ -53,13 +53,33 @@ if (mode === 'sandbox') {
   }, k);
   const zoom = (f) => page.evaluate((z) => { const r = window.__battleRenderer; r.zoomBy(z); r.updateCamera(); }, f);
   await zoom(0.001); await page.waitForTimeout(800);
+  // layers appear as squads come into sight (a raid's party shows once its reveal lands): wait for them
+  await page.waitForTimeout(3000);
   const keys = await page.evaluate(() => [...window.__battleRenderer.soldierLayers.keys()]);
-  for (const key of keys) {
-    await zoom(0.001); await page.waitForTimeout(700);
-    if (!(await frame(key))) continue;
-    await zoom(1000); await page.waitForTimeout(700);
-    await frame(key); await page.waitForTimeout(700);
-    await shoot(`sandbox-${key.replace(/[:~]/g, '-')}`);
+  const done = new Set();
+  const shootLayers = async (list) => {
+    for (const key of list) {
+      if (done.has(key)) continue;
+      await zoom(0.001); await page.waitForTimeout(700);
+      if (!(await frame(key))) continue;
+      await zoom(1000); await page.waitForTimeout(700);
+      await frame(key); await page.waitForTimeout(700);
+      await shoot(`sandbox-${key.replace(/[:~]/g, '-')}`); done.add(key);
+    }
+  };
+  await shootLayers(keys);
+  // a layer is made when its squads first come on screen while the camera moves: a second pass
+  await shootLayers(await page.evaluate(() => [...window.__battleRenderer.soldierLayers.keys()]));
+  // SIDE=0|1: one more close shot on that side's army on the field (the raiders of `raid=raid`)
+  if (process.env.SIDE) {
+    await page.evaluate((side) => {
+      const r = window.__battleRenderer; const qs = r.lastView.squads.filter((s) => s.side === side && s.onField && s.alive);
+      if (!qs.length) return;
+      r.camera.zoom = 2.6; r.camera.updateProjectionMatrix();
+      r.centerOn(qs.reduce((a, s) => a + s.x, 0) / qs.length / 256, qs.reduce((a, s) => a + s.y, 0) / qs.length / 256); r.updateCamera();
+    }, Number(process.env.SIDE));
+    await page.waitForTimeout(1500);
+    await shoot(`sandbox-${age}-side${process.env.SIDE}`);
   }
   report.layers = await page.evaluate(() => [...window.__battleRenderer.soldierLayers.entries()].map(([key, l]) => ({ key, triangles: l.tris })));
 } else {

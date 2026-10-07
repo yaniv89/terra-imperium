@@ -13,6 +13,17 @@
 // A main street three tiles wide runs from the gate to the keep and is never built over; the
 // town's ground inside its walls is cleared of wood and rock (water stays).
 //
+// The town hall reads as THE main building (art plan row town-hall, 20 x 20 m): `hallPlacement`
+// gives its drawn size in tiles by the town's size (small 4.2, medium and big 5.5), never into a
+// landmark or a region building: it may stand up to 3 tiles off the centre (east, behind, or to
+// a side; never toward the gate) to stay clear of them, and shrinks only when it must (never
+// under the old 3 tiles; a shrunk hall stands taller, `hallLift`, so it still towers over the
+// houses). A capital's hall stays centred (its palace stands there, drawn at least as large).
+// The keep structure stands at the hall's centre, blocks the cells under it (3 x 3, or 5 x 5 for
+// a 5-tile hall; the old 3 x 3 keep's cells outside it are opened) and reaches its walls (radius).
+// The town model's houses the hall overlaps are cut out of the drawing and its shadows (`underHall`)
+// and claim no ground; they stay in the manifest (housing, ids) as the hall's own quarters.
+//
 // Roles (world plan 8): houses, the town model's landmarks, the palace and wonders are passive
 // (HP and footprint only); the region's buildings keep their battle effects (sim/buildings.js);
 // the wall ring blocks the ground (its segments can be breached), the gate is open; towers fire.
@@ -34,6 +45,40 @@ export const gateHp = (fortLevel) => 800 + 300 * fortLevel;
 // The reach of the town in model units beyond its wall ring (the buildings outside it).
 const OUTSIDE_WALL = 2.9;
 const RING_HALF = 0.75; // half the wall band, tiles
+// The town hall's drawn size by town size (tiles; 5.5 tiles = 20 m) and the smallest it gets.
+export const HALL_TILES = { small: 4.2, medium: 5.5, big: 5.5 };
+const HALL_MIN = 3;
+
+const HALL_SHIFTS = [0, 0.5, 1, 1.5, 2, 2.5, 3];
+// A manifest rectangle in battle tiles about the keep's centre (the quarter turn: tile x = -z,
+// tile y = x; the sides swap).
+const tileRect = (st, S) => ({ cx: -st.z * S, cy: st.x * S, hx: (st.d * S) / 2, hy: (st.w * S) / 2 });
+
+/**
+ * Where the town hall stands and how big it is drawn, in battle tiles about the keep's centre:
+ * { size, ox, oy } (ox east along tile x, oy along tile y). The tier's size where it fits clear of
+ * the town's landmarks and the region's buildings (0.1 tile apart), centred when it can, else
+ * shifted up to 3 tiles (never west, toward the gate; a capital's never) and, failing that,
+ * shrunk. A shift must win at least 0.1 tile of size. Exact arithmetic on manifest numbers.
+ */
+export const hallPlacement = (manifest, S = CITY_TILES_PER_UNIT) => {
+  const want = HALL_TILES[manifest?.tierId] || HALL_TILES.small;
+  const obstacles = (manifest?.structures || []).filter((st) => st.kind === 'landmark' || st.kind === 'building').map((st) => tileRect(st, S));
+  let best = { size: HALL_MIN, ox: 0, oy: 0 }; let bestHalf = -1;
+  const offsets = [];
+  const shifts = manifest?.structures?.some((st) => st.kind === 'palace') ? [0] : HALL_SHIFTS;
+  shifts.forEach((ox) => shifts.forEach((ay) => [ay, -ay].forEach((oy, k) => { if (k === 0 || ay > 0) offsets.push([ox, oy]); })));
+  offsets.sort((a, b) => Math.max(a[0], Math.abs(a[1])) - Math.max(b[0], Math.abs(b[1])) || a[0] + Math.abs(a[1]) - b[0] - Math.abs(b[1]));
+  offsets.forEach(([ox, oy]) => {
+    const room = obstacles.reduce((m, o) => Math.min(m, Math.max(Math.abs(o.cx - ox) - o.hx, Math.abs(o.cy - oy) - o.hy) - 0.1), Infinity);
+    const half = Math.min(want / 2, room);
+    if (half < HALL_MIN / 2 || half < bestHalf + 0.05) return;
+    bestHalf = half; best = { size: Math.round(2 * half * 100) / 100, ox, oy };
+  });
+  return best;
+};
+/** The town hall's drawn size in battle tiles (hallPlacement). */
+export const hallSize = (manifest, S = CITY_TILES_PER_UNIT) => hallPlacement(manifest, S).size;
 
 /** How far in from the east edge the keep must stand so the whole town fits (tiles). */
 export const cityKeepInset = (manifest) => {
@@ -70,10 +115,29 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
     }
   }
   const street = (i, j) => Math.abs(j + 0.5 - ky) <= 1.6 && i + 0.5 <= kx && i + 0.5 >= kx - townR - 1;
-  const keepCell = (i, j) => Math.abs(i - keep.x) <= 1 && Math.abs(j - keep.y) <= 1;
+  // The town hall (see the header): where it stands, its drawn size, the cells it blocks, its reach.
+  const { size: hall, ox, oy } = hallPlacement(manifest, S);
+  const hx0 = kx + ox; const hy0 = ky + oy; const half = hall / 2;
+  const core = (i, j) => Math.abs(i - keep.x) <= 1 && Math.abs(j - keep.y) <= 1;
+  const keepCell = (i, j) => Math.abs(i + 0.5 - hx0) <= half - 0.3 && Math.abs(j + 0.5 - hy0) <= half - 0.3;
+  const underHall = (st) => { const r = tileRect(st, S); return Math.abs(r.cx - ox) < r.hx + half - 0.15 && Math.abs(r.cy - oy) < r.hy + half - 0.15; };
 
   const structures = [keepStructures[0]];
+  const want = HALL_TILES[manifest.tierId] || HALL_TILES.small;
+  const hallLift = hall < want ? Math.round(Math.min(1.45, Math.sqrt(want / hall)) * 100) / 100 : 1;
+  Object.assign(keepStructures[0], {
+    x: centre(hx0), y: centre(hy0), hall, hallLift, w: hall, d: hall,
+    radius: Math.max(keepStructures[0].radius, Math.round(half * Q))
+  });
   keepStructures[0].manifestId = 'townhall';
+  for (let j = Math.floor(hy0 - half); j <= Math.ceil(hy0 + half); j++) {
+    for (let i = Math.floor(hx0 - half); i <= Math.ceil(hx0 + half); i++) {
+      if (!inMap(i, j) || !keepCell(i, j) || tiles[j * w + i] === TILE.WATER) continue;
+      tiles[j * w + i] = TILE.BUILDING; owner[j * w + i] = 0;
+    }
+  }
+  // the map's own 3 x 3 keep (mapgen.js) where the hall stepped off it: open ground again
+  for (let j = keep.y - 1; j <= keep.y + 1; j++) for (let i = keep.x - 1; i <= keep.x + 1; i++) if (core(i, j) && !keepCell(i, j) && tiles[j * w + i] === TILE.BUILDING) tiles[j * w + i] = TILE.OPEN;
   // Housing in battle (master plan 6.3; the battle economy reads it, src/battle/sim/economy.js).
   keepStructures[0].housing = manifest.structures.find((st) => st.kind === 'townhall')?.housing || 0;
   const claim = (cells, si) => cells.filter((c) => owner[c] < 0 && tiles[c] !== TILE.WATER).map((c) => { owner[c] = si; return c; });
@@ -101,7 +165,8 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
       model: [st.x, st.z, st.w, st.d], // its ground in the town model's space (the renderer cuts ruins out of the town file)
       passive: !!st.passive, ...(st.housing ? { housing: st.housing } : {}), ...(st.category ? { category: st.category, tier: st.tier, name: st.name } : {}), ...(st.projectId ? { projectId: st.projectId } : {})
     };
-    s.footprint = st.kind === 'wall' || st.kind === 'gate' ? [] : claim(rectCells(tx, ty, hx, hy), structures.length);
+    if (st.kind === 'house' && underHall(st)) s.underHall = true;
+    s.footprint = st.kind === 'wall' || st.kind === 'gate' || s.underHall ? [] : claim(rectCells(tx, ty, hx, hy), structures.length);
     structures.push(s);
     return s;
   };
@@ -156,8 +221,9 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
   // The attacker can always reach the gate and the keep (a coast or a river may still close the
   // street): carve the street open if it is not.
   const midY = keep.y;
-  if (!reachable(tiles, w, h, 6, midY, keep.x - 2, keep.y)) {
-    for (let i = 1; i < keep.x - 1; i++) for (let j = midY - 1; j <= midY + 1; j++) if (!isPassable(tiles[j * w + i]) && owner[j * w + i] < 0) tiles[j * w + i] = TILE.OPEN;
+  const front = Math.min(keep.x - 1, Math.floor(hx0 - half + 0.3)); // the hall's first cell from the west
+  if (!reachable(tiles, w, h, 6, midY, front - 1, keep.y)) {
+    for (let i = 1; i < front; i++) for (let j = midY - 1; j <= midY + 1; j++) if (!isPassable(tiles[j * w + i]) && owner[j * w + i] < 0) tiles[j * w + i] = TILE.OPEN;
   }
   return {
     structures,

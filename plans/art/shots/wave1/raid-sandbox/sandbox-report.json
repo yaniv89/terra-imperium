@@ -1,0 +1,103 @@
+{
+  "mode": "sandbox",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave1\\raid-sandbox\\sandbox-bronze-wide.png",
+    "plans\\art\\shots\\wave1\\raid-sandbox\\sandbox-bronze-mercenary.png",
+    "plans\\art\\shots\\wave1\\raid-sandbox\\sandbox-bronze-general.png",
+    "plans\\art\\shots\\wave1\\raid-sandbox\\sandbox-bronze-cavalry.png",
+    "plans\\art\\shots\\wave1\\raid-sandbox\\sandbox-bronze-ranged.png",
+    "plans\\art\\shots\\wave1\\raid-sandbox\\sandbox-bronze-side0.png"
+  ],
+  "layers": [
+    {
+      "key": "bronze:mercenary",
+      "triangles": [
+        1410,
+        342,
+        52
+      ]
+    },
+    {
+      "key": "bronze:general",
+      "triangles": [
+        2005,
+        304,
+        39
+      ]
+    },
+    {
+      "key": "bronze:cavalry",
+      "triangles": [
+        2388,
+        329,
+        19
+      ]
+    },
+    {
+      "key": "bronze:ranged",
+      "triangles": [
+        1466,
+        263,
+        59
+      ]
+    },
+    {
+      "key": "bronze:raider",
+      "triangles": [
+        1694,
+        321,
+        42
+      ]
+    },
+    {
+      "key": "bronze:infantry",
+      "triangles": [
+        1508,
+        283,
+        57
+      ]
+    }
+  ],
+  "unitLog": [],
+  "errors": [
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+  ],
+  "setupUnits": [
+    "cavalry,cavalry,cavalry,infantry,infantry,",
+    "infantry,infantry,cavalry,ranged,ranged,siege,infantry,"
+  ],
+  "squads": [
+    "0:cavalry",
+    "0:cavalry",
+    "0:cavalry",
+    "0:infantry",
+    "0:infantry",
+    "0:infantry off-field",
+    "0:ranged off-field",
+    "1:infantry",
+    "1:infantry",
+    "1:cavalry",
+    "1:ranged",
+    "1:ranged",
+    "1:siege off-field",
+    "1:infantry off-field",
+    "1:infantry off-field",
+    "1:ranged off-field",
+    "1:cavalry"
+  ]
+}

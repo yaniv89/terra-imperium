@@ -5452,7 +5452,8 @@
       "priority": "P1",
       "placeholder_ok": true,
       "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
-      "delivered": "wave1 checkpoint-06, 2026-10-07 (plans/art/downloads/wave1/checkpoint-06), bronze-raider.glb 98 KB"
+      "delivered": "wave1 checkpoint-06, 2026-10-07 (plans/art/downloads/wave1/checkpoint-06), bronze-raider.glb 98 KB",
+      "note": "wave1 checkpoint-07: verified end to end (engine flag to drawn squad), sandbox ?battleSandbox&raid=raid&merc"
     },
     {
       "path": "plans/art/units/classical-raider",
@@ -5518,7 +5519,8 @@
       "priority": "P2",
       "placeholder_ok": true,
       "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
-      "delivered": "wave1 checkpoint-06, 2026-10-07 (plans/art/downloads/wave1/checkpoint-06), bronze-mercenary.glb 79 KB"
+      "delivered": "wave1 checkpoint-06, 2026-10-07 (plans/art/downloads/wave1/checkpoint-06), bronze-mercenary.glb 79 KB",
+      "note": "wave1 checkpoint-07: verified end to end (engine flag to drawn squad), sandbox ?battleSandbox&raid=raid&merc"
     },
     {
       "path": "plans/art/units/classical-mercenary",
@@ -9203,7 +9205,8 @@
       "description": "Base Bronze civic keep: intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-04, 2026-10-07"
+      "delivered": "wave1 checkpoint-04, 2026-10-07",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/americas/civic",
@@ -9212,7 +9215,8 @@
       "description": "Bronze americas civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/eastafrica/civic",
@@ -9221,7 +9225,8 @@
       "description": "Bronze eastafrica civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/europe/civic",
@@ -9230,7 +9235,8 @@
       "description": "Bronze europe civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/indic/civic",
@@ -9239,7 +9245,8 @@
       "description": "Bronze indic civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/israelite/civic",
@@ -9248,7 +9255,8 @@
       "description": "Bronze israelite civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/levant/civic",
@@ -9257,7 +9265,8 @@
       "description": "Bronze levant civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/maghreb/civic",
@@ -9266,7 +9275,8 @@
       "description": "Bronze maghreb civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/monsoon/civic",
@@ -9275,7 +9285,8 @@
       "description": "Bronze monsoon civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/nile/civic",
@@ -9284,7 +9295,8 @@
       "description": "Bronze nile civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/sinic/civic",
@@ -9293,7 +9305,8 @@
       "description": "Bronze sinic civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/steppe/civic",
@@ -9302,7 +9315,8 @@
       "description": "Bronze steppe civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/westafrica/civic",
@@ -9311,7 +9325,8 @@
       "description": "Bronze westafrica civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
-      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)",
+      "note": "wave1 checkpoint-07: drawn at the town-hall size in battle (20 m, cityBattle.js hallPlacement), framed proof renders"
     },
     {
       "id": "battle-city/bronze/palace-damage",

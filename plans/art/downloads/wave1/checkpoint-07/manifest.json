@@ -1,0 +1,194 @@
+{
+  "checkpoint": "wave1-07",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 0,
+  "queue_items_touched": [
+    "battle-city/bronze/*/civic (13): drawn at the town-hall size",
+    "units/bronze-raider, units/bronze-mercenary: verified end to end"
+  ],
+  "packed_bytes_added": 0,
+  "fixes": [
+    "town hall size and placement (cityBattle.js hallPlacement)",
+    "civic proof framing (render_civic_bronze.py)",
+    "raid and hired band sandbox options; irregular looks verified end to end",
+    "cut houses cast no shadows and leave no baked footprint"
+  ],
+  "files": [
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-big-americas-844x390.png",
+      "bytes": 475646,
+      "sha256": "a09b16eb9aa78585a2e49636806cc717559331f252a100309819e093be041646"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-big-monsoon-844x390.png",
+      "bytes": 484501,
+      "sha256": "a1ba1733ed34463575c2591fcfb085f48d3c46f750066e7e7b7fded90c149ef5"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-medium-eastafrica-844x390.png",
+      "bytes": 491901,
+      "sha256": "444acbbe955172c51a4b6237eba5c1c42d76ccb940279094a552fcaf2bccb86c"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-medium-europe-844x390.png",
+      "bytes": 536975,
+      "sha256": "fc9bb55742c9b72c800fb474d23634ba19bbb0dd0dcb8c955e78cbf4b6b7e2dc"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-medium-israelite-844x390.png",
+      "bytes": 535561,
+      "sha256": "cf6e95114c199b375dc7687a9193581f84e8ba085a3fc9f3444df86aacd0793b"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-medium-levant-844x390.png",
+      "bytes": 520263,
+      "sha256": "699c3b0e44c07f87a71e23a2e820d41db100810dd2645d921db64f20c3fff98e"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-medium-nile-844x390.png",
+      "bytes": 459054,
+      "sha256": "bc83bc45caf5b9b4a46f0aee52221dae01285e2281d6aa6fe42c8115b8c50912"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-medium-sinic-844x390.png",
+      "bytes": 515722,
+      "sha256": "22f2ddc537f3f2486df1c9040876c7942e4f5153e385a6c72461e8d7fd81c467"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-medium-steppe-844x390.png",
+      "bytes": 503033,
+      "sha256": "b992d966f1f488480721e53fc8cb8bcaff0eb5dcdcc2cdf1b5850717abdd8860"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-medium-westafrica-844x390.png",
+      "bytes": 497540,
+      "sha256": "d67c2c6149d2ed58c628fbe35cde4524b4ac044788c14ac54a639e2173700929"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-small-indic-844x390.png",
+      "bytes": 506777,
+      "sha256": "bfb766d52dd9ce13972ded15a13243c20ce4954c261d70d5ef1738efd74687fa"
+    },
+    {
+      "file": "plans/art/shots/wave1/bronze-hall-small-maghreb-844x390.png",
+      "bytes": 500679,
+      "sha256": "e3d7bb33d6212dcae135b344537df3a68cd5e760592ed074b2d8d8ea02661f67"
+    },
+    {
+      "file": "plans/art/shots/wave1/civic-proof/eastafrica-contact.png",
+      "bytes": 212951,
+      "sha256": "ab9aae01a6bea1b611b5643fe74f222363412b3df001b92f196c8031a9088fd5"
+    },
+    {
+      "file": "plans/art/shots/wave1/civic-proof/israelite-contact.png",
+      "bytes": 215118,
+      "sha256": "ac5bac897c4c39b27ffe8f043448a97dfa00ddeb0a223d8f2b0c3a4b4836f417"
+    },
+    {
+      "file": "plans/art/shots/wave1/civic-proof/sinic-contact.png",
+      "bytes": 207227,
+      "sha256": "27c377f47c13332940b978180408b189578dce0acf0cf8f269b05ef3c819fea4"
+    },
+    {
+      "file": "plans/art/shots/wave1/raid-sandbox/sandbox-bronze-cavalry.png",
+      "bytes": 482366,
+      "sha256": "479a1dd2017ea96c63253b0ee3944c79e1227bea59a893d2f7826ca1d9e736cf"
+    },
+    {
+      "file": "plans/art/shots/wave1/raid-sandbox/sandbox-bronze-general.png",
+      "bytes": 475044,
+      "sha256": "66d65fc9dafa011cb95d198084c332d0bf3564ea45b486d35ced9495d7e1e00d"
+    },
+    {
+      "file": "plans/art/shots/wave1/raid-sandbox/sandbox-bronze-mercenary.png",
+      "bytes": 475921,
+      "sha256": "aae7eae2d2c1ac652300f6c0e174c0a32f688f7119667ec7429ed00ef751449b"
+    },
+    {
+      "file": "plans/art/shots/wave1/raid-sandbox/sandbox-bronze-ranged.png",
+      "bytes": 477508,
+      "sha256": "73eb2956c0c90d191f159c151d8137568c9a94a7f88c0015e31c7b3772b4b5ee"
+    },
+    {
+      "file": "plans/art/shots/wave1/raid-sandbox/sandbox-bronze-side0.png",
+      "bytes": 494935,
+      "sha256": "a704cac5bced84388ee448d504ac47271088d0f49f9e98379bb1c395677976c6"
+    },
+    {
+      "file": "plans/art/shots/wave1/raid-sandbox/sandbox-bronze-wide.png",
+      "bytes": 362208,
+      "sha256": "eb8649c4a31953eb717e8fc318e9b7046259f62c2261035771012eecf4ae97f2"
+    },
+    {
+      "file": "plans/art/shots/wave1/raid-sandbox/sandbox-report.json",
+      "bytes": 2774,
+      "sha256": "1a291be0855802f472694038131b8beff813a51963d55681d5024fb7b88eec0a"
+    },
+    {
+      "file": "scripts/art/city-shots.mjs",
+      "bytes": 4397,
+      "sha256": "f6463085a1e494e0beae714956b2fc59bccd6b6107e2e3b5c0fe1704ef25a382"
+    },
+    {
+      "file": "scripts/art/contact-sheet.mjs",
+      "bytes": 836,
+      "sha256": "6bbe1297d08ac6a337394bdfe1aa81f8c39793a1ac5798c54840ba1254cb72ad"
+    },
+    {
+      "file": "scripts/art/unit-shots.mjs",
+      "bytes": 10287,
+      "sha256": "e76b6761ddfc4302359b3b001f3dc30c2b9ecb1ab3bfec68a66218a2b97147a7"
+    },
+    {
+      "file": "scripts/blender/render_civic_bronze.py",
+      "bytes": 7237,
+      "sha256": "c2b6d34e0394638e96151812b4c4a3e6de656c63a5b2274be098aec012038261"
+    },
+    {
+      "file": "src/battle/render/BattleRenderer.js",
+      "bytes": 99642,
+      "sha256": "9798c8c6f6f012180d7a0649c3cc1b8b2892fbc22b74df6ec03ccbba552eeabc"
+    },
+    {
+      "file": "src/battle/render/cityLayer.js",
+      "bytes": 16804,
+      "sha256": "609dab6af2db38946386aab2d85f69882dee654b419b59aacee5d76f0536fd18"
+    },
+    {
+      "file": "src/battle/render/irregularLooks.test.js",
+      "bytes": 2431,
+      "sha256": "4138ea4bbf4c232aaa62ea3fa31df942474066b90b40ac5953c020875d37b99b"
+    },
+    {
+      "file": "src/battle/setup/cityBattle.js",
+      "bytes": 15211,
+      "sha256": "821e8cbc1b5c7f0cf23e5c2623a8eac20a6e2a5c1766d42c3bc5f1746c7bf068"
+    },
+    {
+      "file": "src/battle/setup/cityBattle.test.js",
+      "bytes": 9264,
+      "sha256": "75e52ecd55e9b3e802591d0347afcde9a5d1a5c436b6828099259313d960736d"
+    },
+    {
+      "file": "src/battle/sim/fog.js",
+      "bytes": 4521,
+      "sha256": "0a8437fb8040d293e8930f3ed32fd2ee4efbdb59733abfb54ca220e34175ad3a"
+    },
+    {
+      "file": "src/components/battle/BattleSandbox.jsx",
+      "bytes": 13688,
+      "sha256": "7c4341e998449a78f8154b78178c9931a684a528c9e41998ce626e385b0702de"
+    },
+    {
+      "file": "src/components/map/closeView/townDamage.js",
+      "bytes": 15738,
+      "sha256": "75ad3ba9a08e33d4ff53513c705e03a2c7b5e8f5abdfaccb280fd0f2f530c7ed"
+    },
+    {
+      "file": "src/components/map/closeView/townDamage.test.js",
+      "bytes": 2275,
+      "sha256": "caf262432fe727054790a0dcfcc3e077e1edd5ca982bdaba1d2395fe40075c9e"
+    }
+  ]
+}
