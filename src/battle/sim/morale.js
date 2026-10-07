@@ -26,6 +26,19 @@ const RALLY_QUIET_TICKS = secondsToTicks(6);
 const REGEN_QUIET_TICKS = secondsToTicks(3);
 export const ROUTED_REGEN_PER_SEC = 3;
 
+// Who may rout (the user's rule, 2026-10-07; plans/UI-DESIGN.md section 8): a side whose setup says
+// `canRout: false` never breaks and runs. In a commanded battle that is the player's side
+// (TacticalBattleScreen.jsx sets it from setup.controllers): morale only makes its squads Shaken.
+// The AI's side still routs; auto-resolve keeps routing for both. Without the flag (every headless
+// battle, tests, parity, bench) everyone may rout, as before.
+export const canRout = (w, side) => w.setup.sides?.[side]?.canRout !== false;
+// Shaken: a squad of a side that cannot rout, at or under the rout threshold, fights worse until its
+// morale comes back (out of the fight, Rally Cry). Never for a side that routs instead.
+export const SHAKEN_MORALE = MORALE_ROUT_THRESHOLD;
+export const SHAKEN_DAMAGE_DEALT = 0.6;
+export const SHAKEN_DAMAGE_TAKEN = 1.3;
+export const isShaken = (w, q) => q.morale <= SHAKEN_MORALE && !q.worker && !canRout(w, q.side);
+
 export const updateMorale = (w) => {
   // Squads that broke or fell this tick shake their neighbours (applied before rout checks, so a
   // collapse can cascade along a line over the following ticks).
@@ -59,7 +72,7 @@ export const updateMorale = (w) => {
   }
   w.squads.forEach((q) => {
     if (!isFighting(q) || q.inside >= 0 || q.worker) return; // sheltered by its walls; workers never rout (economy.js)
-    if (!q.routed && q.morale <= MORALE_ROUT_THRESHOLD && q.strength > 0) {
+    if (!q.routed && q.morale <= MORALE_ROUT_THRESHOLD && q.strength > 0 && canRout(w, q.side)) {
       if (hasPerk(q, 'unbreakable') && !q.routImmunityUsed) {
         q.routImmunityUsed = true;
         q.morale = MORALE_ROUT_THRESHOLD + 1;

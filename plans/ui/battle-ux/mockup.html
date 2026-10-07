@@ -1,0 +1,95 @@
+<!doctype html>
+<!-- B09 battle UX pass: the design sketch at 844x390 (plans/UI-DESIGN.md section 8). Static: open it from disk. -->
+<html><head><meta charset="utf-8"><title>Battle UX sketch</title>
+<style>
+:root{--ink:#10141A;--panel:#1A212B;--raised:#232C38;--line:#33404F;--text:#ECE5D3;--muted:#B9B19F;--brass:#D8A444;--you:#5B9BF0;--enemy:#EE8A3A;--good:#6CC28A;--danger:#E5604D}
+*{box-sizing:border-box}body{margin:0;font:12px/1.25 system-ui,sans-serif;color:var(--text);background:#000}
+.screen{position:relative;width:844px;height:390px;overflow:hidden;background:radial-gradient(circle at 60% 55%,#6f8f45,#4f6b33 60%,#3e5629)}
+.num{font-family:ui-monospace,monospace;font-weight:600}
+.top{position:absolute;top:0;left:0;right:0;height:44px;background:rgba(16,20,26,.92);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 8px}
+.res{display:flex;align-items:center;gap:4px}.res img{width:18px;height:18px}
+.btn{width:44px;height:40px;border-radius:10px;background:var(--raised);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700}
+.card{background:rgba(26,33,43,.96);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.row{position:absolute;top:50px;left:8px;right:8px;display:flex;gap:8px;align-items:flex-start}
+.alert{width:220px;padding:6px 6px 6px 10px;display:flex;gap:8px;align-items:center;border-color:rgba(108,194,138,.7)}
+.pill{margin:0 auto;padding:6px 6px 6px 12px;border-radius:999px;display:flex;gap:8px;align-items:center}
+.tag{padding:1px 6px;border-radius:6px;background:rgba(216,164,68,.18);color:var(--brass);font-weight:700;font-size:11px}
+.go{height:36px;padding:0 12px;border-radius:10px;background:var(--raised);border:1px solid var(--line);display:flex;align-items:center;font-weight:600}
+.inspect{position:absolute;top:96px;left:8px;width:232px;padding:8px}
+.hp{height:8px;border-radius:4px;background:var(--ink);overflow:hidden;margin:4px 0}.hp>span{display:block;height:100%}
+.owner{padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700}
+.build{position:absolute;right:8px;bottom:62px;width:392px;padding:6px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.tile{position:relative;height:72px;border-radius:10px;background:var(--raised);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:2px}
+.tile img.th{width:44px;height:40px;object-fit:contain}
+.tile .nm{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;max-width:100%}
+.cost{display:flex;gap:4px;font-size:10px}.cost img{width:11px;height:11px;vertical-align:-1px}
+.tile.off{opacity:.55}.tile.off .why{position:absolute;top:2px;right:2px;font-size:9px;color:var(--danger);font-weight:700;background:rgba(16,20,26,.85);border-radius:4px;padding:0 3px}
+.tip{position:absolute;right:408px;bottom:150px;width:200px;padding:8px;font-size:11px}
+.bottom{position:absolute;left:6px;right:6px;bottom:6px;display:flex;justify-content:space-between;gap:6px}
+.cmd{width:52px;height:48px;border-radius:10px;background:rgba(26,33,43,.96);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10.5px;font-weight:600;gap:2px}
+.cmd.on{background:var(--raised);outline:2px solid var(--text);border-color:transparent}
+.reg{width:96px;height:48px;border-radius:10px;background:rgba(26,33,43,.96);border:1px solid var(--line);display:flex;gap:6px;align-items:center;padding:0 6px}
+.reg img{width:22px;height:22px}.bar{height:4px;border-radius:2px;background:var(--ink);margin-top:3px;overflow:hidden}.bar>span{display:block;height:100%}
+.note{position:absolute;font:600 10px system-ui;color:#111;background:#fde68a;border-radius:4px;padding:1px 4px}
+.house{position:absolute;left:420px;top:170px;width:70px;height:50px;border:2px solid var(--text);border-radius:8px}
+.fieldbar{position:absolute;left:418px;top:156px;width:74px;height:7px;background:var(--ink);border-radius:3px;overflow:hidden}.fieldbar>span{display:block;height:100%;width:38%;background:#e3a33a}
+</style></head><body>
+<div class="screen">
+  <div class="top">
+    <span style="font:700 15px Georgia,serif">Siege of Susa</span><span class="num" style="font-size:15px">24:12</span>
+    <span style="width:1px;height:20px;background:var(--line)"></span>
+    <span class="res"><img src="../../../src/assets/icons/resources/wheat.svg"><span class="num">373</span></span>
+    <span class="res"><img src="../../../src/assets/icons/resources/timber.webp"><span class="num">488</span></span>
+    <span class="res"><img src="../../../src/assets/icons/resources/gold.svg"><span class="num">208</span></span>
+    <span class="res">&#128101;<span class="num">11/90</span></span>
+    <span class="res" style="color:var(--enemy)">&#9876;<span class="num">21</span></span>
+    <span style="flex:1"></span><span class="btn num">2&times;</span><span class="btn">&#10074;&#10074;</span>
+  </div>
+  <div class="row">
+    <div class="card alert"><span style="color:var(--good)">&#9873;</span><span style="flex:1"><b>Enemy archers broke</b><br><span style="color:var(--muted);font-size:10.5px">running for their edge, 3 s ago</span></span><span class="go">Go</span></div>
+    <div class="card pill"><b>Spearmen</b><span style="color:var(--muted)">1 squad, <span class="num">159</span> men</span><span class="num" style="color:var(--danger)">16%</span><span class="tag">Shaken</span><span class="go">Rally Cry</span><span class="go" style="width:36px;justify-content:center">&#10005;</span></div>
+  </div>
+  <div class="card inspect">
+    <div style="display:flex;gap:8px;align-items:center">
+      <img src="../../../src/assets/icons/battle/build-barracks.webp" style="width:44px;height:44px;background:var(--raised);border-radius:8px">
+      <div style="flex:1;min-width:0"><b style="font-size:13px">Barracks</b><br><span class="owner" style="background:rgba(238,138,58,.2);color:var(--enemy)">Enemy</span> <span style="color:var(--muted)">trains spearmen</span></div>
+      <span class="go" style="width:36px;justify-content:center">&#10005;</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px"><span style="color:var(--muted)">HP</span><span class="num">456 / 1,200</span></div>
+    <div class="hp"><span style="width:38%;background:#e3a33a"></span></div>
+    <div style="color:var(--brass)">Under construction 38%: HP rises as it is built</div>
+  </div>
+  <div class="fieldbar"><span></span></div><div class="house"></div>
+  <div class="card tip"><b>Archery range</b> <span style="color:var(--muted)">3x3, 40 s</span><br>Trains archers. HP 1,100.<br><span style="color:var(--danger)">Needs 30 gold more.</span></div>
+  <div class="card build">
+    <div style="display:flex;justify-content:space-between;padding:0 2px 4px"><b>Build</b><span>&#10005;</span></div>
+    <div class="grid">
+      <div class="tile"><img class="th" src="../../../src/assets/icons/battle/build-house.webp"><span class="nm">House</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">30</span></span></div>
+      <div class="tile"><img class="th" src="../../../src/assets/icons/battle/build-food-depot.webp"><span class="nm">Food depot</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">60</span></span></div>
+      <div class="tile"><img class="th" src="../../../src/assets/icons/battle/build-materials-yard.webp"><span class="nm">Yard</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">60</span></span></div>
+      <div class="tile"><img class="th" src="../../../src/assets/icons/battle/build-farm-plot.webp"><span class="nm">Farm</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">50</span></span></div>
+      <div class="tile"><img class="th" src="../../../src/assets/icons/battle/build-mine.webp"><span class="nm">Mine</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">80</span></span></div>
+      <div class="tile"><img class="th" src="../../../src/assets/icons/battle/build-trade-post.webp"><span class="nm">Trade post</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">80</span><span><img src="../../../src/assets/icons/resources/gold.svg">20</span></span></div>
+      <div class="tile"><img class="th" src="../../../src/assets/icons/battle/build-barracks.webp"><span class="nm">Barracks</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">150</span></span></div>
+      <div class="tile off" style="outline:2px solid var(--text)"><span class="why">+30</span><img class="th" src="../../../src/assets/icons/battle/build-range.webp"><span class="nm">Range</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">150</span><span style="color:var(--danger)"><img src="../../../src/assets/icons/resources/gold.svg">30</span></span></div>
+      <div class="tile off"><span class="why">+60</span><img class="th" src="../../../src/assets/icons/battle/build-stable.webp"><span class="nm">Chariots</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">200</span><span style="color:var(--danger)"><img src="../../../src/assets/icons/resources/gold.svg">60</span></span></div>
+      <div class="tile"><img class="th" src="../../../src/assets/icons/battle/build-tower.webp"><span class="nm">Tower</span><span class="cost"><span><img src="../../../src/assets/icons/resources/timber.webp">120</span><span><img src="../../../src/assets/icons/resources/gold.svg">40</span></span></div>
+    </div>
+  </div>
+  <div class="bottom">
+    <div style="display:flex;gap:4px">
+      <div class="cmd">&#128101;<span>All 6</span></div><div class="cmd">&#11034;<span>Select</span></div><div class="cmd">&#9978;<span>Base</span></div>
+      <div class="reg"><img src="../../../src/assets/icons/units/infantry.svg"><div style="flex:1"><b>Spears</b> <span class="num">2</span><div class="bar"><span style="width:16%;background:var(--danger)"></span></div></div></div>
+      <div class="reg"><img src="../../../src/assets/icons/units/ranged.svg"><div style="flex:1"><b>Archers</b> <span class="num">2</span><div class="bar"><span style="width:90%;background:var(--good)"></span></div></div></div>
+    </div>
+    <div style="display:flex;gap:4px">
+      <div class="cmd on">&#9874;<span>Build</span></div><div class="cmd">&#8853;<span>Attack</span></div><div class="cmd">&#9995;<span>Hold</span></div><div class="cmd">&#9776;<span>Line</span></div><div class="cmd" style="color:var(--danger);border-color:var(--danger)">&#8630;<span>Retreat</span></div>
+    </div>
+  </div>
+  <span class="note" style="left:250px;top:100px">1 tap any building: info card</span>
+  <span class="note" style="left:500px;top:150px">bar rises while built</span>
+  <span class="note" style="left:248px;top:300px">press and hold: detail</span>
+  <span class="note" style="left:470px;top:48px">player squads: Shaken, never rout</span>
+</div>
+</body></html>

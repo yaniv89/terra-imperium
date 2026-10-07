@@ -23,6 +23,10 @@ import { getDefenseLevelDamageReductionMultiplier } from '../../../src/engine/si
 import { FORT_REDUCTION, FORT_BATTLE_LEVEL } from '../../../src/engine/fieldBattle';
 
 const N = Number(process.env.N || 32);
+// NOROUT=attacker|defender: that side never routs, as the player's side in a commanded battle
+// (buildBattleSetup.js commandedSetup): Command's edge over Auto.
+const NOROUT = process.env.NOROUT === 'attacker' ? 0 : process.env.NOROUT === 'defender' ? 1 : -1;
+const noRout = (setup) => { if (NOROUT >= 0) setup.sides[NOROUT].canRout = false; return setup; };
 const TIER = process.env.TIER || 'medium';
 const TYPES = (process.env.TYPES || 'field,assault').split(',');
 const AGE_PAIRS = (process.env.AGES || 'bronze:bronze,classical:classical,kingdoms:kingdoms,gunpowder:gunpowder,modern:modern').split(',').map((p) => p.split(':'));
@@ -68,13 +72,13 @@ it('parity with the battle economy', () => {
       const attackers = mk('a', att);
       const defenders = [...mk('d', def), ...militia];
       const reduction = walled ? getDefenseLevelDamageReductionMultiplier(FORT) : fort ? FORT_REDUCTION : 1;
-      const { result } = runHeadless(buildSetupFromArmies({
+      const { result } = runHeadless(noRout(buildSetupFromArmies({
         regionId: `parity-${seed}`, terrain: TERRAIN, seed, attackerUnits: attackers, defenderUnits: defenders, attackerAgeId: ageA, defenderAgeId: ageD,
         controllers: ['ai', 'ai'], deposits: [], powers: [[], []], battleType: assault || raid || sally || landing ? null : 'field', city: assault, raid, sally, landing,
         ...(assault ? { fortLevel: walled ? FORT : 0, isAttackingFortification: walled, cityManifest, defenseReduction: reduction } : {}),
         ...(fort ? { fortLevel: FORT_BATTLE_LEVEL, isAttackingFortification: true, defenseReduction: reduction } : {}),
         economy: true, economyInputs: { supply: [1, 1], development: [0.3, 0.3] }
-      }));
+      })));
       tA += sum(attackers) - sum(result.attackerUnits); tD += sum(defenders) - sum(result.defenderUnits);
       if (result.outcome === 'attacker') wins += 1;
       if (raid) kinds[`reason:${result.report.tactical.reason}`] = (kinds[`reason:${result.report.tactical.reason}`] || 0) + 1 / N;

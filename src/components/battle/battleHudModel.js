@@ -4,8 +4,9 @@
 //   regimentCards     your regiments on the field grouped by kind: name, squads, men, health
 //   selectionSummary  the top pill: "Spearmen  3 squads, 146 men  74%"
 //   cityAssaultView   the real city: houses standing and ruined, housing then and now, the 50% line
-//   nextAlerts        new alerts between two frames (gate breached, your regiments routed, workers
-//                     attacked, the keep at half, enemy reinforcements), at most two shown
+//   nextAlerts        new alerts between two frames (gate breached, a regiment of yours Shaken, enemy
+//                     squads broke, workers attacked, the keep at half, enemy reinforcements), at most
+//                     two shown; one about a squad carries its index (Go selects it)
 //   battleResultModel the result screen: losses, XP with its formula, the general's fate, what the
 //                     city keeps under the 50% rule, loot, and Auto's odds for comparison
 import { getSquadDisplayName } from '../../battle/data/battleStats';
@@ -15,6 +16,10 @@ import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN, XP_LOSE } from '../../engine/battleOutcome';
 import { TICK_HZ } from '../../battle/sim/constants';
 import { CITY_DAMAGE_CARRY_MAX } from './warModel';
+import { SHAKEN_MORALE } from '../../battle/sim/morale';
+
+/** A squad beaten down but not running: the player's side in a commanded battle (sim/morale.js). */
+export const isShakenView = (q) => !!q && q.alive && !q.routed && q.classId !== 'worker' && q.morale <= SHAKEN_MORALE;
 
 const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
 
@@ -24,8 +29,8 @@ export const regimentCards = (hud, playerSide) => {
   const by = new Map();
   hud.squads.forEach((q) => {
     if (q.side !== playerSide || !q.alive || q.fled || !q.onField || q.classId === 'worker') return;
-    const c = by.get(q.classId) || { classId: q.classId, name: getSquadDisplayName(q.classId, q.ageId), squads: 0, men: 0, max: 0, routed: 0 };
-    c.squads += 1; c.men += Math.max(0, q.strength); c.max += Math.max(1, q.maxStrength); if (q.routed) c.routed += 1;
+    const c = by.get(q.classId) || { classId: q.classId, name: getSquadDisplayName(q.classId, q.ageId), squads: 0, men: 0, max: 0, routed: 0, shaken: 0 };
+    c.squads += 1; c.men += Math.max(0, q.strength); c.max += Math.max(1, q.maxStrength); if (q.routed) c.routed += 1; if (isShakenView(q)) c.shaken += 1;
     by.set(q.classId, c);
   });
   return [...by.values()].map((c) => ({ ...c, share: c.max ? c.men / c.max : 0 })).sort((a, b) => b.men - a.men);
@@ -39,7 +44,7 @@ export const selectionSummary = (selected = []) => {
   const men = sum(selected, (q) => Math.max(0, q.strength));
   const max = sum(selected, (q) => Math.max(1, q.maxStrength));
   const morale = Math.round(sum(selected, (q) => q.morale) / selected.length);
-  return { name, squads: selected.length, men, share: max ? men / max : 0, morale, routed: selected.some((q) => q.routed) };
+  return { name, squads: selected.length, men, share: max ? men / max : 0, morale, routed: selected.some((q) => q.routed), shaken: selected.filter(isShakenView).length };
 };
 
 /**
@@ -94,11 +99,17 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
       out.push({ id: 'keep-half', kind: 'keep', title: attacking ? 'The keep is at half' : 'Your keep is at half', detail: `${Math.round(s.hp)} of ${s.maxHp} HP`, x: s.x, y: s.y, tick: cur.tick, tone: attacking ? 'good' : 'danger' });
     }
   });
+  // Your squads never rout in a commanded battle: one beaten down is Shaken (Go selects it, Rally Cry
+  // restores it). Enemy squads that break are told once per frame, grouped.
+  const broke = [];
   cur.squads.forEach((q, i) => {
     const p = prev.squads[i];
-    if (!p || q.side !== playerSide) return;
-    if (!p.routed && q.routed && q.alive) out.push({ id: `r${q.idx}`, kind: 'routed', title: `${getSquadDisplayName(q.classId, q.ageId)} routed`, detail: 'Running for the edge.', x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
+    if (!p) return;
+    if (q.side === playerSide) {
+      if (!isShakenView(p) && isShakenView(q) && q.onField) out.push({ id: `sh${q.idx}`, kind: 'shaken', squad: q.idx, title: `${getSquadDisplayName(q.classId, q.ageId)} shaken`, detail: 'Weaker until morale returns; Rally Cry helps.', x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
+    } else if (!p.routed && q.routed && q.alive && q.visible !== false) broke.push(q);
   });
+  if (broke.length) out.push({ id: `b${cur.tick}`, kind: 'broke', title: broke.length === 1 ? `Enemy ${getSquadDisplayName(broke[0].classId, broke[0].ageId).toLowerCase()} broke` : `${broke.length} enemy squads broke`, detail: 'Running for their edge.', x: broke[0].x, y: broke[0].y, tick: cur.tick, tone: 'good' });
   const hitWorkers = cur.squads.filter((q, i) => q.side === playerSide && q.classId === 'worker' && q.alive && prev.squads[i] && q.strength < prev.squads[i].strength);
   if (hitWorkers.length && cur.tick - (last.workers ?? -Infinity) >= WORKER_ALERT_GAP) {
     out.push({ id: `w${cur.tick}`, kind: 'workers', title: 'Workers under attack', detail: `${hitWorkers.length} squad${hitWorkers.length === 1 ? '' : 's'} hit.`, x: hitWorkers[0].x, y: hitWorkers[0].y, tick: cur.tick, tone: 'danger' });

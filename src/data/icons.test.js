@@ -10,6 +10,7 @@ import { GREAT_PROJECTS } from './greatProjects';
 import { UNIT_CLASS_IDS } from './unitClasses';
 import { NAVAL_LINE_IDS } from './navalLines';
 import { AGE_ORDER } from './ages';
+import { BUILDINGS as BATTLE_BUILDINGS } from '../battle/data/economy';
 import { WONDER_ICONS } from '../components/city/wonderIcons';
 import { BUILDING_MODEL_IDS } from '../components/map/closeView/buildingModels';
 
@@ -87,8 +88,15 @@ describe('icon index', () => {
       ships: NAVAL_LINE_IDS,
       cities: CITY_SIZES.flatMap((s) => AGE_ORDER.map((a) => `city-${s}-${a}`)),
       ages: AGE_ORDER,
-      markers: ['capital', 'wonder', 'event', 'battle']
+      markers: ['capital', 'wonder', 'event', 'battle'],
+      battle: Object.values(BATTLE_BUILDINGS).map((b) => b.icon)
     };
     ICON_GROUPS.forEach((g) => iconIds(g).forEach((id) => expect(used[g], `${g}/${id}`).toContain(id)));
+  });
+});
+
+describe('battle building icons', () => {
+  it('has an icon for every battle-economy building (scripts/art/build-icons.mjs)', () => {
+    Object.entries(BATTLE_BUILDINGS).forEach(([id, b]) => expect(iconUrl('battle', b.icon), id).toBeTruthy());
   });
 });

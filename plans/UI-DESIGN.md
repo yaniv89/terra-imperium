@@ -197,3 +197,54 @@ Built (StartScreen.jsx, StartScreen.test.js). Checks: lint, the full vitest run,
 (guidedStart, playability, landscape upright and tablet pass; landscape "phone held sideways" and the two
 webglMap tests fail the same way on the base commit: the year does not advance after End Turn, and the
 map pick finds no city, unrelated to the start screen).
+
+## 9. B09 Battle UX pass (branch claude/battle-ux, 2026-10-07)
+
+Sketch: `plans/ui/battle-ux/mockup.html` (rendered `mockup-844x390.png`); before and after screenshots
+at 844x390 and 1280x800 in `plans/ui/battle-ux/before/` and `after/`.
+
+![sketch](ui/battle-ux/mockup-844x390.png)
+
+- **Inspect anything.** One tap (left click) on any building or structure selects it: your own
+  economy buildings, the enemy's, the camp, the keep / town hall, towers, wall segments, the gate,
+  houses, the region's buildings, and resource nodes. A card top left (under the alerts) shows a picture
+  (the building's rendered icon), the name, an owner chip (You / Enemy / Neutral), HP current / max
+  with a bar, and one state line (under construction N%, ruined, garrison n / m, "trains spearmen",
+  "+10 housing", "drop-off for food"). A node shows what is left. Your own producers keep their
+  actions (train, queue, rally) below the same header. On the field the selected building shows its
+  health bar even at full HP, plus the selection ring; damaged buildings keep their bars as before.
+- **Construction HP (AoE style).** A site starts at 1 HP and its HP rises with the work, to full when
+  it is done (the sim already did this: economy.js updateEconomy). The field bar and the card show HP,
+  not the build percentage, so a site hit while it goes up shows the damage; the card adds "built N%".
+- **Build menu with pictures.** A grid of tiles (6 across, 64 px tall on a phone, 72 on a desktop): the building's
+  picture (`src/assets/icons/battle/build-*.webp`, rendered from the battle's own models by
+  `scripts/art/build-icons.mjs`), a short name, the cost with resource icons (wheat, timber, gold);
+  a cost you cannot pay is red and the tile carries the shortfall ("+30"). Press and hold (hover with a
+  mouse) opens the detail: what it does, HP, footprint, build time, and why it is disabled. A tap on a
+  disabled tile shows that detail instead of doing nothing.
+- **Phone bars (844x390).** Top bar: resource icons instead of FOOD / MAT / GOLD words, people and
+  swords icons for population and the enemy; speed and pause 44 px. Bottom: 52x48 command tiles with
+  an icon and one short word (Build, Attack, Hold, Line, Retreat); regiment cards with the class icon,
+  a short name, the count and the health bar.
+- **Alerts never cover the selection.** Alerts, the selection pill and the city card share one top row
+  (alerts left, selection in the middle, city right), so they cannot overlap. An alert's Go centres the
+  camera and selects the squad when it is yours.
+- **Morale for the player is soft (user decision 2026-10-07).** In a commanded battle the player's
+  squads never rout: at low morale they are **Shaken** (weaker blows, more hurt taken) and the regiment
+  card and selection pill say so; Rally Cry restores them. The AI side still routs and runs for its
+  edge; auto-resolve keeps routing for both sides. A per-side flag in the setup (`sides[s].canRout`,
+  set from `setup.controllers` when a commanded battle opens). No "your squad routed" alert; "enemy
+  squad broke" stays.
+
+Status (done on claude/battle-ux): the info card for anything on the field (`inspectModel.js`,
+`EconomyHud.jsx` InfoCard, BattleRenderer `setInspected`: the bar even at full HP and a ring); site bars
+show HP (`economyLayer.js` bars); the build menu with the rendered pictures, shortfall badges and the
+press-and-hold / hover detail; the phone bars and the one top row (`BattleHud.jsx`); Shaken, Rally Cry
+on the selection pill and the shaken alert, Go selecting the squad. Shaken is x0.6 damage dealt and
+x1.3 taken (sim/morale.js), chosen with battle-lab parity: in the campaign field mirror (bronze,
+16 seeds) a no-rout attacker wins 7 of 16 against Auto's 6 (10 with a softer x0.75 / x1.15), exchange
+1.18 against Auto's 1.02 and 1.26 when everyone routs. Screens: `plans/ui/battle-ux/after/`
+(`node scripts/ui/battle-ux-shots.mjs`, `node .claude/skills/battle-lab/eco-shot.mjs`); the
+pictures again after new building art: `node scripts/art/build-icons.mjs`.
+Gaps: city wall segments and the gate have no rendered picture (a glyph); the region's buildings use
+the map's building icons; enemy squads still show "routed" when they break (their rule is unchanged).
