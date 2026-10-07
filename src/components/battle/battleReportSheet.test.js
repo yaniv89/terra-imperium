@@ -26,7 +26,8 @@ describe('battle report sheet', () => {
     expect(html).toContain('View replay');
     expect(html).toContain('Strength each round');
     expect(html).toContain('20,000 → 18,500');
-    expect(html).toContain('(routed)');
+    expect(html).toContain('Broke and fled'); // an entry saved before fates: the loser's broken unit
+    expect(html).toContain('Held the field');
   });
 
   it('lists every battle with filters when given the history', () => {

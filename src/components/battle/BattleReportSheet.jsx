@@ -8,14 +8,15 @@
 // marker on the map or the replay's "Full report" (battleReportEvents.js). The list and the detail
 // side by side on a phone held sideways and on the desktop; one at a time on a phone held upright.
 import React, { useMemo, useState } from 'react';
-import { MapPin, Play, Castle, Swords, Ship, ChevronLeft } from 'lucide-react';
+import { MapPin, Play, Castle, Swords, Ship, ChevronLeft, ShieldCheck, Undo2, ArrowLeftFromLine, Footprints, Crosshair, Skull, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { formatMen, sidesFor, unitName } from './battleReportView';
+import { regimentName } from '../../data/regimentNames';
 import { MEN_PER_STRENGTH } from '../../engine/aftermath';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getTechAgeId } from '../../engine/nationState';
 import { Button, Chip, CloseButton } from '../ui/atlas';
-import { REPORT_FILTERS, filterReports, reportDetail, reportRow } from './battleReportsModel';
+import { REPORT_FILTERS, fateRows, filterReports, reportDetail, reportRow } from './battleReportsModel';
 
 const OURS = 'var(--fa-you)';
 const THEIRS = 'var(--fa-enemy)';
@@ -69,16 +70,29 @@ const StrengthChart = ({ entry }) => {
   );
 };
 
-const SideTable = ({ title, color, units, ageId = 'bronze' }) => (
-  <div className="space-y-0.5 min-w-0">
+// Each unit's fate (battleReportView.js FATE_VIEW): an icon and a colour per fate.
+const FATE_ICON = { held: ShieldCheck, pulledBack: Undo2, withdrew: ArrowLeftFromLine, escaped: Footprints, runDown: Crosshair, fellFighting: Skull, broke: Flag };
+const FATE_TONE = { good: 'text-fa-good', calm: 'text-fa-science', warn: 'text-fa-brass', bad: 'text-fa-danger-text' };
+
+const SideTable = ({ title, color, rows, nation, ageId = 'bronze' }) => (
+  <div className="space-y-1 min-w-0" data-testid="battle-report-units">
     <div className="flex items-center gap-1.5 text-[11px] font-semibold"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />{title}</div>
-    {units.length === 0 && <div className="text-[11px] text-fa-muted">No troops.</div>}
-    {units.map((u) => (
-      <div key={u.id} className="flex justify-between gap-2 text-[11.5px] text-fa-muted">
-        <span className="truncate">{unitName(u.classId, ageId, u.navalLine)}{u.after <= 0 ? ' (destroyed)' : u.routed ? ' (routed)' : ''}</span>
-        <span className="fa-num shrink-0">{formatMen(u.before * MEN_PER_STRENGTH)} → {formatMen(u.after * MEN_PER_STRENGTH)}</span>
-      </div>
-    ))}
+    {rows.length === 0 && <div className="text-[11px] text-fa-muted">No troops.</div>}
+    {rows.map((u) => {
+      const Icon = FATE_ICON[u.fate] || Flag;
+      return (
+        <div key={u.id} className="flex items-start gap-1.5 min-w-0" data-fate={u.fate}>
+          <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${FATE_TONE[u.tone]}`} aria-hidden="true" />
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="flex justify-between gap-2 text-[11.5px]">
+              <span className="truncate">{regimentName(nation, u, unitName(u.classId, ageId, u.navalLine))}</span>
+              <span className="fa-num shrink-0 text-fa-muted">{`${formatMen(u.menBefore)} → ${formatMen(u.menAfter)}`}</span>
+            </div>
+            <div className={`text-[11px] ${FATE_TONE[u.tone]}`}>{u.text}</div>
+          </div>
+        </div>
+      );
+    })}
   </div>
 );
 
@@ -166,8 +180,8 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
               <p className="text-[12.5px] leading-snug">{d.summary}</p>
               <div className="fa-card px-2.5 py-1.5"><StrengthChart entry={current} /></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <SideTable title="Your units" color={OURS} units={current.sides[mine]} ageId={ageOf(state.playerNationId)} />
-                <SideTable title="Their units" color={THEIRS} units={current.sides[theirs]} ageId={ageOf(current[`${theirs}NationId`])} />
+                <SideTable title="Your units" color={OURS} rows={fateRows(current, mine)} nation={state.nations?.[current[`${mine}NationId`]]} ageId={ageOf(state.playerNationId)} />
+                <SideTable title="Their units" color={THEIRS} rows={fateRows(current, theirs)} nation={state.nations?.[current[`${theirs}NationId`]]} ageId={ageOf(current[`${theirs}NationId`])} />
               </div>
             </div>
             <div className="px-3 py-2 border-t border-fa-line flex items-center gap-2">

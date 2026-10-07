@@ -5,7 +5,7 @@
 // Command or Auto, both sides in and lost, a plain summary and the strength timeline. Pure.
 import { MEN_PER_STRENGTH } from '../../engine/aftermath';
 import { playerWon } from '../../engine/battleReports';
-import { battleTitle, describeOutcome, nationName, regionName, sidesFor, timelineFor } from './battleReportView';
+import { FATE_VIEW, battleTitle, describeOutcome, fateOf, fateText, nationName, regionName, sidesFor, timelineFor } from './battleReportView';
 
 export const REPORT_FILTERS = [
   { id: 'all', label: 'All' },
@@ -59,6 +59,19 @@ export const reportRow = (state, e) => {
     losses: `-${men(e.fallen?.[mine])} / -${men(e.fallen?.[theirs])}`
   };
 };
+
+/**
+ * One side's units for the detail: men before and after and the fate in plain words
+ * (battleReportView.js FATE_VIEW). Works for older entries without fates.
+ */
+export const fateRows = (e, side) => (e?.sides?.[side] || []).map((u) => {
+  const fate = fateOf(e, side, u);
+  return {
+    id: u.id, classId: u.classId, navalLine: u.navalLine || null, regiment: u.regiment || null,
+    menBefore: men(u.before * MEN_PER_STRENGTH), menAfter: men(u.after * MEN_PER_STRENGTH),
+    fate, tone: FATE_VIEW[fate].tone, text: fateText(e, side, u), byCavalry: !!u.byCavalry
+  };
+});
 
 /** The detail of one battle. */
 export const reportDetail = (state, e) => {

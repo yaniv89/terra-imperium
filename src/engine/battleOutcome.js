@@ -522,6 +522,24 @@ const startStrength = (state, o, u) => {
   return listed?.strength ?? u.maxStrength ?? u.strength ?? 0;
 };
 
+// Kinds whose loser is destroyed when left on the field (6.9: field battles, raids and sacks).
+const DECISIVE_KINDS = new Set(['field', 'raid', 'sack']);
+
+// For the report's fates (battleReports.js): the units that lived through the fighting but not the
+// battle's result. A unit on the map is gone when the adapter removed it; one that lives on the
+// battle only (militia, auxiliaries, synthetic troops) when its side lost a decisive battle and it
+// was still on the field. Records what the adapters did; decides nothing.
+const goneAfter = (state, o, unitsAfter) => {
+  const gone = new Set();
+  const loser = o.outcome === 'attacker' ? 'defender' : o.outcome === 'defender' ? 'attacker' : null;
+  [['attacker', o.attackerUnits], ['defender', o.defenderUnits]].forEach(([side, list]) => (list || []).forEach((u) => {
+    if (!(u.strength > 0)) return;
+    if (state.units?.[u.id]) { if (!unitsAfter[u.id]) gone.add(u.id); return; }
+    if (side === loser && DECISIVE_KINDS.has(o.kind) && dispositionOf(u, true) === 'field') gone.add(u.id);
+  }));
+  return gone;
+};
+
 const recordStats = (nations, o, captured) => {
   const winnerId = o.outcome === 'attacker' ? o.attackerNationId : o.outcome === 'defender' ? o.defenderNationId : null;
   const loserId = winnerId === o.attackerNationId ? o.defenderNationId : winnerId ? o.attackerNationId : null;
@@ -624,7 +642,7 @@ export const applyBattleOutcome = (state, o) => {
       ...(placed.reportExtra || {}), ...(o.tile != null ? { tile: o.tile } : {}),
       fromRegionId: out.fromRegionId ?? null, targetRegionId: placed.aftermathRegionId ?? out.regionId ?? null,
       attackerNationId: out.attackerNationId, defenderNationId: out.defenderNationId, mode: out.mode
-    }, { attackers: out.attackerUnits, defenders: out.defenderUnits, beforeOf: (u) => startStrength(state, out, u) });
+    }, { attackers: out.attackerUnits, defenders: out.defenderUnits, beforeOf: (u) => startStrength(state, out, u), goneIds: goneAfter(state, out, placed.units) });
   }
   return {
     ...s,

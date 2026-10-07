@@ -5,7 +5,7 @@ import { createInitialState, gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNeighborIds } from '../data/regions';
 import { MEN_PER_STRENGTH } from './aftermath';
-import { recordBattleReport, BATTLE_REPORT_HISTORY } from './battleReports';
+import { recordBattleReport, BATTLE_REPORT_HISTORY, unitFate, FATES } from './battleReports';
 import { atGates } from './testWorld';
 
 const unit = (id, classId, strength) => ({ id, classId, strength, maxStrength: strength, morale: 100, domain: 'land' });
@@ -75,5 +75,45 @@ describe('battle report history', () => {
     for (let i = 0; i < BATTLE_REPORT_HISTORY + 5; i++) state = { ...state, ...recordBattleReport(state, report, { attackers: [], defenders: [] }) };
     expect(state.battleReports).toHaveLength(BATTLE_REPORT_HISTORY);
     expect(state.battleReports[0].id).toBe(`battle-${BATTLE_REPORT_HISTORY + 5}`);
+  });
+});
+
+describe('unit fates in the report', () => {
+  it('maps each unit to one fate', () => {
+    expect(unitFate({ strength: 0 }, { loser: false })).toBe('fellFighting');
+    expect(unitFate({ strength: -3 }, { loser: true, gone: true })).toBe('fellFighting');
+    expect(unitFate({ strength: 50 }, { loser: false })).toBe('held');
+    expect(unitFate({ strength: 50, routed: true }, { loser: false })).toBe('pulledBack');
+    expect(unitFate({ strength: 50 }, { loser: true })).toBe('withdrew');
+    expect(unitFate({ strength: 50, routed: true }, { loser: true })).toBe('escaped');
+    expect(unitFate({ strength: 50, routed: true }, { loser: true, gone: true })).toBe('runDown');
+    expect(unitFate({ strength: 50 }, { loser: true, gone: true })).toBe('runDown');
+    expect(FATES).toHaveLength(6);
+  });
+
+  it('records fates, men before and after, and cavalry pursuit', () => {
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const report = { outcome: 'attacker', attackerNationId: 'fr', defenderNationId: 'de' };
+    const attackers = [{ id: 'c', classId: 'cavalry', strength: 300 }, { id: 'i', classId: 'infantry', strength: 200, routed: true, regiment: 3 }];
+    const defenders = [
+      { id: 'd0', classId: 'infantry', strength: 0, disposition: 'dead' },
+      { id: 'd1', classId: 'infantry', strength: 120, routed: true, disposition: 'field' },
+      { id: 'd2', classId: 'ranged', strength: 90, routed: true, disposition: 'fled' },
+      { id: 'd3', classId: 'infantry', strength: 150, disposition: 'fled' }
+    ];
+    const before = { c: 400, i: 400, d0: 500, d1: 500, d2: 300, d3: 400 };
+    const out = recordBattleReport(state, report, { attackers, defenders, beforeOf: (u) => before[u.id], goneIds: new Set(['d1']) });
+    const e = out.battleReports[0];
+    expect(e.sides.attacker.map((u) => u.fate)).toEqual(['held', 'pulledBack']);
+    expect(e.sides.attacker[1]).toMatchObject({ regiment: 3, before: 400, after: 200 });
+    expect(e.sides.defender.map((u) => u.fate)).toEqual(['fellFighting', 'runDown', 'escaped', 'withdrew']);
+    expect(e.sides.defender[1].byCavalry).toBe(true);
+    expect(e.sides.defender[2].byCavalry).toBeUndefined();
+    // Without the outcome service's list, a loser still on the field counts as run down.
+    const plain = recordBattleReport(state, report, { attackers: attackers.slice(1), defenders, beforeOf: (u) => before[u.id] }).battleReports[0];
+    expect(plain.sides.defender[1]).toMatchObject({ fate: 'runDown', byCavalry: undefined });
+    // A stalemate has no loser: everyone held or pulled back.
+    const draw = recordBattleReport(state, { ...report, outcome: 'stalemate' }, { attackers, defenders, beforeOf: (u) => before[u.id] }).battleReports[0];
+    expect(draw.sides.defender.map((u) => u.fate)).toEqual(['fellFighting', 'pulledBack', 'pulledBack', 'held']);
   });
 });
