@@ -1,0 +1,69 @@
+{
+  "checkpoint": "wave5-29",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 4,
+  "packed_bytes_added": 2649108,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave5/checkpoint-29/contact.png",
+      "bytes": 152511,
+      "sha256": "b07cc29d1c89920003e6f08e304bce5525e9621d11d9bb78b8516796d8ed05c5"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 525781,
+      "sha256": "1e17dadbffc70f96b5b0b25dc5697d21f196bfc3ff4bc769b51c9c07ed0dd83e"
+    },
+    {
+      "file": "plans/art/shots/wave5/city-gunpowder/city-gunpowder-844x390.png",
+      "bytes": 552529,
+      "sha256": "90b9a56918306fb5e8fe8574e989249b823121eb350c84d6cb2bb88fbb8d8d25"
+    },
+    {
+      "file": "plans/art/shots/wave5/city-gunpowder/city-gunpowder-close-844x390.png",
+      "bytes": 596142,
+      "sha256": "3fe0d348de023fb37709037c0028ed729fb0f31ecddb7a97ce56b9efc114b931"
+    },
+    {
+      "file": "plans/art/shots/wave5/city-gunpowder/proof-civic-gunpowder.png",
+      "bytes": 42413,
+      "sha256": "9fb099b9b613c74e323811e842062a40ff4a95676d142bfd010adfe4dee29a50"
+    },
+    {
+      "file": "plans/art/shots/wave5/city-gunpowder/proof-fort-gunpowder.png",
+      "bytes": 20336,
+      "sha256": "beb7791c20c046ebb20d2d436f21180ae0dd38793580233df2c4b558a73456fc"
+    },
+    {
+      "file": "plans/art/shots/wave5/city-gunpowder/proof-walls-gunpowder.png",
+      "bytes": 182097,
+      "sha256": "ebf7b631f64f29e3407bd72d0f3dc7901f2231790d7711ff69d89ce2e6373521"
+    },
+    {
+      "file": "scripts/blender/build_city_gunpowder.py",
+      "bytes": 5936,
+      "sha256": "46d08770672781b591b36f9a958773698efff97380a53e3669c8618cc3091063"
+    },
+    {
+      "file": "src/assets/battle/city/civic-gunpowder.glb",
+      "bytes": 792592,
+      "sha256": "820c019130a1dae27cef8d2cfea5f2441906bf5c440809bfaedfd1f9ed24ead3"
+    },
+    {
+      "file": "src/assets/battle/city/fort-gunpowder.glb",
+      "bytes": 483944,
+      "sha256": "09810e2a1187b21206119d329eff7370442b9a49c4e18148a840dbff255fd8c9"
+    },
+    {
+      "file": "src/assets/battle/city/ruins-gunpowder.glb",
+      "bytes": 553060,
+      "sha256": "a7330d6d9a06f169af204db2620e15c6bea2d5de0184e3e0946ef66c72a569fc"
+    },
+    {
+      "file": "src/assets/battle/city/walls-gunpowder.glb",
+      "bytes": 819512,
+      "sha256": "3b805456a4a391900037c1323da7e4e913d7a87f3a83d563945b6d1dc31d37a2"
+    }
+  ]
+}

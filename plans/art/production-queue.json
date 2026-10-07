@@ -2809,13 +2809,14 @@
       "section": "battle-city",
       "description": "Gunpowder ruin library: Gunpowder rubble in the age's materials: house rubble small and large, landmark rubble (12 to 25 m), broken beams, scorch decal, fire and smoke attachment points; used for every building without its own ruin",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/gunpowder/ruin-library",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave5 checkpoint-29, 2026-10-08 (plans/art/downloads/wave5/checkpoint-29)"
     },
     {
       "path": "plans/art/battle-city/modern/ruin-library",
@@ -2877,13 +2878,14 @@
       "section": "battle-city",
       "description": "Gunpowder wall kit: Gunpowder wall segment kit cut from the existing wall rings: straight, corner, tower, gate (open, closed), each intact, damaged and breached",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/gunpowder/wall-kit",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7",
+      "delivered": "wave5 checkpoint-29, 2026-10-08 (plans/art/downloads/wave5/checkpoint-29)"
     },
     {
       "path": "plans/art/battle-city/modern/wall-kit",
@@ -5737,13 +5739,14 @@
       "section": "battle-city",
       "description": "Gunpowder fort (battle): Gunpowder fort on the battle map, built from the map's fort-gunpowder improvement and the age's wall kit: walls, towers, gate, garrison house; intact, damaged, breached",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/gunpowder/fort",
       "phase": "R3",
       "batch": "M13",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7",
+      "delivered": "wave5 checkpoint-29, 2026-10-08 (plans/art/downloads/wave5/checkpoint-29)"
     },
     {
       "path": "plans/art/battle-city/modern/fort",
@@ -12143,6 +12146,20 @@
       "delivery_status": "in_game_awaiting_review",
       "delivered": "wave5 checkpoint-27, 2026-10-08 (plans/art/downloads/wave5/checkpoint-27)",
       "id": "units/signature/tondo",
+      "phase": "B",
+      "priority": "P1",
+      "placeholder_ok": true
+    },
+    {
+      "path": "plans/art/battle-city/gunpowder/civic",
+      "section": "battle-city",
+      "description": "Gunpowder civic hall (keep, keep-damaged, keep-ruined): the brick town hall with its clock tower in a walled court, src/assets/battle/city/civic-gunpowder.glb",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "spec": "plans/ART-MODELS-PLAN.md section 5 (town-hall) and 6",
+      "batch": "W5",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave5 checkpoint-29, 2026-10-08 (plans/art/downloads/wave5/checkpoint-29)",
+      "id": "battle-city/gunpowder/civic",
       "phase": "B",
       "priority": "P1",
       "placeholder_ok": true
