@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Terra Imperium - A grand strategy country/army sim spanning 2000 BCE - 2300 CE on a real Earth globe. Play any of 240 nations." />
+    <meta name="theme-color" content="#020617" />
+    <title>Terra Imperium</title>
+    <style>
+      /* Critical CSS for initial load */
+      html, body, #root {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #020617;
+      }
+      
+      /* Loading spinner */
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        color: #94a3b8;
+        font-family: system-ui, sans-serif;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #334155;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+    <script type="module" crossorigin src="/terra-imperium/assets/index-1847dd45.js"></script>
+    <link rel="stylesheet" href="/terra-imperium/assets/index-912ce9d3.css">
+  </head>
+  <body>
+    <div id="root">
+      <div class="loading">
+        <div>
+          <div class="loading-spinner"></div>
+          <div style="margin-top: 16px; text-align: center;">Loading Terra Imperium...</div>
+        </div>
+      </div>
+    </div>
+    
+  </body>
+</html>
