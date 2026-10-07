@@ -159,3 +159,36 @@ rule) and `warAtlas.jsx` (force cards, Command / Auto / Withdraw cards, the expl
   the same battle. Gaps: the war score change is only known after Continue (the outcome service applies
   it); loot is the battle economy's gold only.
 - W06 Army move and B07 Field battle: not done, they need phase R3.
+
+## 8. W01 Start in steps (branch claude/start-steps, 2026-10-07)
+
+Players found the one-screen start overcrowded: world size, speed, difficulty, a 150-people list with
+search and region chips, the people card, Explored world, the guided start and now the Map block
+(Real Earth / Generated world) all fought for 844x390. The start is now four steps with one shared
+frame. Mockup: `plans/ui/start-steps/mockup.png` (source `mockup.html`); the built screens are the
+`after-*` shots in the same folder, the old one is `before-*` (`node scripts/ui/start-steps-shots.mjs
+[--before]` against `npx vite --port 5193`).
+
+| Step | What it holds | Why here |
+|---|---|---|
+| 1 People | search (`Search peoples`), Random, region chips, the list (two columns of rows on a desktop), the chosen people's card, a line naming the defaults in force, "New here? Play the guided start as Kemet" | the one choice every player makes; the guided start is a newcomer's fast path, so it sits on the first screen |
+| 2 World | the Map radio cards and the generated-world block (preview, map code, New map, land, continents, climate) when generated worlds are on; the three world-size cards | the shape of the world; without the flag it is world size alone, as three wide cards |
+| 3 Rules | game speed as three radio cards with the turn count, difficulty chips with the description, Explored world | how the game plays |
+| 4 Ready | the people card and one row per choice (map, world, speed, difficulty, explored), each with Change that jumps to its step | a last look before a long game |
+
+The frame:
+- Top: "New game" and the step indicator (four numbered buttons, `aria-current="step"`; done steps
+  show a filled number). Every step can be opened directly: every choice has a default, so no step
+  gates another.
+- Bottom bar, always in reach of the right thumb: Back (ghost, from step 2), Next with the next step's
+  name (secondary), and the one brass action, Begin as <people>, on every step. That is the fast path:
+  pick a people (Akkad is preselected) and Begin; defaults are Standard world, Real Earth (or the
+  page's own generated world), Normal speed, Prince, Explored world off.
+- Keys: Enter outside a field or button goes to the next step, and on Ready begins; Escape goes back (in
+  the search box it first clears the search); Enter in the search box picks the first match, as before.
+- 844x390: header 48 px, bottom bar 60 px, the step's content scrolls inside its own panel, never the
+  page and never sideways. Touch targets 44 px for the bar and the step buttons, 40 px rows in the list.
+- All steps stay mounted (hidden with the `hidden` attribute), so the choices, the generated preview and
+  the scripts that set a switch before Begin keep working (`explored-world`, `guided-start`,
+  `[data-people]`, `begin-game`, `Begin as`); new test ids: `start-step-<id>`, `start-next`,
+  `start-back`, `data-step` on `start-screen`.
