@@ -113,3 +113,27 @@ the trial boxes, on about 20 MB of tiles. No extra requests, no runtime work.
 - Mouths: rivers are clipped at the hex coast, so a mouth that ends one hex short of the sea
   stops at the coast of that hex; nothing is extended. The Nile delta branches reach the sea in the
   close shots; the other mouths were not inspected one by one.
+
+## Full world rebuild (branch claude/map-rivers-full)
+
+Adopted for the whole world. Steps run: `npm run fetch:tiles`, `fetch-tiles-raw.mjs --pyramid`,
+`--detail` (366 MB raw in scripts/geo/.raw, deleted afterwards), then `npm run build:raster`
+(11 s), `build:pyramid` (175 s), `build:raster-detail` (250 s, no --box). Only files under
+public/map changed (2,259: the two world webp, pyramid levels 0 to 5, level 6 tiles). tiles.json,
+hexLand.json, the level 6 cover and manifest and all gameplay data are unchanged.
+
+Size of public/map: 27,164,728 bytes before (trial boxes already in) to 27,532,998 after,
+**+0.37 MB** (+1.4 %), well under the 0.8 to 1.5 MB estimate.
+
+Gameplay river match (`check-river-match.mjs --box`, within 45 km):
+
+| region | edges matched | great edges | painted points near an edge |
+| --- | --- | --- | --- |
+| Levant, Mesopotamia, Nile (27,21,51,39) | 97.6 % | 97.5 % | 100 % |
+| Rhine, Danube (3,42,31,53) | 90.1 % | 98.5 % | 99.9 % |
+| Mississippi (-100,28,-85,45) | 97.2 % | 94.2 % | 99.9 % |
+| Yangtze (100,22,122,34) | 98.5 % | 99.1 % | 100 % |
+| Ganges, Indus (70,20,92,30) | 95.5 % | 87.5 % | 99.4 % |
+
+Screenshots in `full/` (Mississippi near St. Louis and the Yangtze near Wuhan, desktop 1600x900
+and phone 844x390, middle zoom k=12 and close k=40, explored world, jpg).
