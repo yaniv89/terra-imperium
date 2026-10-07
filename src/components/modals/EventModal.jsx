@@ -44,11 +44,13 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
   const anyAffordable = shortfalls.some((sf) => sf.length === 0);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[var(--header-height,4.5rem)] z-50 pointer-events-none" data-testid="event-sheet">
+    // Upright phones (the bottom-bar layout) get a bottom sheet; everywhere else a card centred on the
+    // map, clear of the tab rail.
+    <div className={`fixed inset-x-0 bottom-0 top-[var(--header-height,4.5rem)] z-50 ${isMobile ? 'pointer-events-none' : 'bg-black/40 flex items-center justify-center p-2 pr-[calc(var(--rail-inset,0px)+0.5rem)]'}`} data-testid="event-sheet">
       <div
         className={isMobile
           ? 'pointer-events-auto absolute inset-x-0 bottom-0 max-h-[60vh] rounded-t-2xl bg-fa-panel border-t-2 border-amber-500 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)] sheet-panel'
-          : 'pointer-events-auto absolute right-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(420px,48vw)] pl:pr-[env(safe-area-inset-right)] bg-fa-panel border-l-2 border-amber-500 shadow-2xl flex flex-col'}
+          : 'pointer-events-auto w-[min(34rem,calc(100vw-1rem-var(--rail-inset,0px)))] max-h-full rounded-xl bg-fa-panel border-2 border-amber-500 shadow-2xl flex flex-col'}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
