@@ -31,6 +31,7 @@ import { dressStructure, fortRef } from '../art/structureArt';
 import { BattleTerrainArt } from '../art/battleTerrain';
 import { ProjectileArt } from '../art/projectiles';
 import { FxSprites } from '../art/fxSheets';
+import { orderRingState, recordOrderTarget, ORDER_RING_COLOR, MAX_ORDER_TARGETS } from './orderTarget';
 import { getAgeIndex } from '../../data/ages';
 import { peopleForNationId } from '../../data/peoples';
 import { signatureKey, baseClassOf } from '../../data/signatureUnits';
@@ -68,6 +69,7 @@ const BANNER_HEIGHT = 0.62;  // of the old pole: standards above the men, not a 
 const BANNER_MIN_ZOOM = 0.6; // zoomed further out only generals and the selection carry one
 const BAR_MIN_ZOOM = 0.7;    // strength bars of fighting squads from this zoom in
 const tmp = new Object3D();
+const ORDER_DASHES = 48; // dashes per order target line at most
 const tmpColor = new Color();
 const GREY_ROUT = new Color('#9ca3af');
 const PALE_AMBUSH = new Color('#e2e8f0');
@@ -209,6 +211,8 @@ export class BattleRenderer {
     this.figureBudget = BATTLE_GRAPHICS.figureTriangles.desktop;
     this.fx = [];
     this.markers = [];
+    this.orderTargets = []; // orders at an object (orderTarget.js), drawn as a ring and a dashed line
+    this.orderScratch = {};
     this.time = 0;
 
     // Less flat fill than before, a stronger sun: shadows read as shadows and ground the troops.
@@ -776,6 +780,21 @@ export class BattleRenderer {
     this.sparks = new InstancedMesh(this.track(new DodecahedronGeometry(0.12, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff' })), 128);
     this.sparks.count = 0; this.sparks.frustumCulled = false; this.scene.add(this.sparks);
     this.markerRings = decal(1.7, this.track(makeRingDecal({ inner: 0.74, outer: 0.96, fill: 0.08 })), 0.9);
+    // The order target indicator (orderTarget.js): a brass-yellow ring over a dark halo (so it
+    // reads on sand as well as grass) around the object a group was sent at, and a dashed line to it.
+    const orderDecal = (map, color, max) => {
+      const mat = this.track(new MeshBasicMaterial({ color, alphaMap: map, transparent: true, opacity: 1, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+      const im = new InstancedMesh(this.track(new PlaneGeometry(2, 2).rotateX(-Math.PI / 2)), mat, max);
+      im.count = 0; im.frustumCulled = false; im.renderOrder = 2; this.scene.add(im);
+      return im;
+    };
+    // the halo is a thin dark outline just outside the yellow band (scaled 1.1x: 0.9..1.0 of it)
+    this.orderShade = orderDecal(this.track(makeRingDecal({ inner: 0.88, outer: 1, fill: 0 })), '#1c1405', MAX_ORDER_TARGETS);
+    this.orderRings = orderDecal(this.track(makeRingDecal({ inner: 0.76, outer: 0.96, fill: 0.1, sharp: true })), ORDER_RING_COLOR, MAX_ORDER_TARGETS);
+    this.orderRings.material.toneMapped = false; this.orderRings.material.fog = false; // the true brass yellow
+    const dashMat = this.track(new MeshBasicMaterial({ color: ORDER_RING_COLOR, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false, fog: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    this.orderDashes = new InstancedMesh(this.track(new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)), dashMat, MAX_ORDER_TARGETS * ORDER_DASHES);
+    this.orderDashes.count = 0; this.orderDashes.frustumCulled = false; this.orderDashes.renderOrder = 2; this.scene.add(this.orderDashes);
     // Effect sprite sheets (src/assets/fx/<id>/, fxSheets.js) where delivered; the sparks otherwise.
     this.fxSprites = new FxSprites(this.scene, { track: (x) => this.track(x) });
     // Blood: droplets that spray and fall when soldiers go down, and the pools they leave behind
@@ -951,6 +970,57 @@ export class BattleRenderer {
 
   addMarker(x, z, color = '#a3e635') { this.markers.push({ x, z, t: 0, color }); }
 
+  /** Squads sent at an object (orderTarget.js): target { kind, index } or null for a plain move. */
+  setOrderTarget(squads, target, cmd) { recordOrderTarget(this.orderTargets, squads, target, cmd, this.time, this.lastView?.tick ?? null); }
+
+  // The order target rings and dashed lines (orderTarget.js decides; nothing is allocated here).
+  drawOrderTargets(view, selected) {
+    const list = this.orderTargets;
+    const st = this.orderScratch;
+    const wpp = this.worldPerPixel();
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 7);
+    const spacing = Math.max(0.7, 16 * wpp); const dashLen = spacing * 0.55; const width = Math.max(0.07, 2.5 * wpp);
+    const march = (this.time * spacing * 1.5) % spacing;
+    const maxDash = this.orderDashes.instanceMatrix.count;
+    let rn = 0; let dn = 0; let alpha = 0;
+    for (let k = 0; k < list.length; k++) {
+      const s = orderRingState(list[k], view, selected, this.time, wpp, st);
+      if (!s) continue;
+      alpha = Math.max(alpha, s.alpha);
+      // An enemy squad: ring its whole block where it is drawn this frame (outside the figures).
+      const memo = list[k].target.kind === 'squad' ? this.soldierMemo.get(list[k].target.index) : null;
+      if (memo && memo.n > 0) {
+        // figures stand behind the squad's point in rows (drawSquads): centre on the block
+        const rows = Math.ceil(memo.n / Math.max(1, memo.cols)); const back = ((rows - 1) * memo.spacing) / 2;
+        s.x = memo.x - memo.fx * back; s.z = memo.z - memo.fz * back;
+        s.radius = Math.max(s.radius, Math.hypot(memo.cols * memo.spacing, rows * memo.spacing) / 2 + 0.6);
+      }
+      const y = this.heightAt(s.x, s.z) + 0.1;
+      const r = s.radius * (1 + 0.08 * pulse);
+      tmp.rotation.set(0, 0, 0); tmp.position.set(s.x, y, s.z);
+      tmp.scale.set(r * 1.1, 1, r * 1.1); tmp.updateMatrix(); this.orderShade.setMatrixAt(rn, tmp.matrix);
+      tmp.scale.set(r, 1, r); tmp.updateMatrix(); this.orderRings.setMatrixAt(rn, tmp.matrix);
+      rn += 1;
+      if (!s.hasFrom) continue;
+      const dx = s.x - s.fromX; const dz = s.z - s.fromZ;
+      const len = Math.hypot(dx, dz); const end = len - s.radius;
+      if (end <= 0.6) continue;
+      const ux = dx / len; const uz = dz / len;
+      tmp.rotation.set(0, Math.atan2(-uz, ux), 0); tmp.scale.set(dashLen, 1, width);
+      for (let d = 0.6 + march; d + dashLen <= end && dn < maxDash; d += spacing) {
+        const cx = s.fromX + ux * (d + dashLen / 2); const cz = s.fromZ + uz * (d + dashLen / 2);
+        tmp.position.set(cx, this.heightAt(cx, cz) + 0.12, cz); tmp.updateMatrix();
+        this.orderDashes.setMatrixAt(dn, tmp.matrix); dn += 1;
+      }
+    }
+    this.orderRings.material.opacity = alpha * (0.7 + 0.3 * pulse);
+    this.orderShade.material.opacity = alpha * 0.5;
+    this.orderDashes.material.opacity = alpha * 0.85;
+    this.orderRings.count = rn; this.orderShade.count = rn; this.orderDashes.count = dn;
+    if (rn) { this.orderRings.instanceMatrix.needsUpdate = true; this.orderShade.instanceMatrix.needsUpdate = true; }
+    if (dn) this.orderDashes.instanceMatrix.needsUpdate = true;
+  }
+
   // Turn sim events into short effects.
   pushEvents(events, view) {
     events.forEach((e) => {
@@ -1062,6 +1132,7 @@ export class BattleRenderer {
     if (cur) this.cityLayer.update(cur);
     if (cur) this.ecoLayer.update(cur, this.viewCuller());
     if (cur) this.drawPoints(cur);
+    if (cur) this.drawOrderTargets(cur, ui?.selected);
     this.drawFx(dt);
     this.renderer.render(this.scene, this.camera);
     this.frameTimes.push(dt*1000);
