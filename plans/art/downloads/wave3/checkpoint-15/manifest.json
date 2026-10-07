@@ -1,0 +1,124 @@
+{
+  "checkpoint": "wave3-15",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 1,
+  "packed_bytes_added": -611100,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave3/checkpoint-15/contact.png",
+      "bytes": 242011,
+      "sha256": "b065d41a3c22cec3250457c3eb2d60bff07cbe4dc85a6ded71d45b01fcb446a0"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 452427,
+      "sha256": "408f8065efaee259dbd47375db8cf4b7a303827f5d23998e0a8b4b113b5cb11a"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/bronze-big-wide-andalus-844x390.png",
+      "bytes": 529695,
+      "sha256": "a6a2380009e968480102fa97e29baa7f80374ab943e2273624b27d67e3404058"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/classical-big-europe-844x390.png",
+      "bytes": 431781,
+      "sha256": "96ac88c568f85d3546afcf9234d3a156caa8d2118eaa5b9fc6e0280d43b6b36c"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/classical-big-westafrica-844x390.png",
+      "bytes": 427015,
+      "sha256": "d470ace68e3d944190162043af5a5971d4f87cd0aa18b0dc157a2fc3b9329c35"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/classical-big-wide-europe-844x390.png",
+      "bytes": 528694,
+      "sha256": "947b6d05574aa7e1e6b1f1a3851165a88c1bc4429adb9cc38b6ae94cd5c7373e"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/classical-big-wide-westafrica-844x390.png",
+      "bytes": 494219,
+      "sha256": "d735163272ff982578537f8a94bcf1239cc94af7defa19fc242431edb2bd23bd"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/kingdoms-medium-maghreb-844x390.png",
+      "bytes": 392565,
+      "sha256": "3f75f410b8fc8b08a54edccbf159fdd66f69ede15a6393201505ebdbc1eba428"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/kingdoms-medium-nile-844x390.png",
+      "bytes": 396348,
+      "sha256": "14cf5ba01e416004d4e9df7660a1654cafa56ec84fdb0e772c0a2d8510d7dded"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-bronze-town-big-a-after.png",
+      "bytes": 441671,
+      "sha256": "4d5b6a07e5178011e9919e850f451c026ebe76c310124a84992a4903a5bf16e1"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-bronze-town-big-a-before.png",
+      "bytes": 456507,
+      "sha256": "fe8f75c460ce7afb57f913aac5f80d8299a0b75322d546d58dfca56c84397dd9"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-classical-town-big-a-after.png",
+      "bytes": 408158,
+      "sha256": "b824011f9ce11ef43d1b5059049a0a47c7eb506ff4da01ef3a545facee1ab07b"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-classical-town-big-a-before.png",
+      "bytes": 410040,
+      "sha256": "531430bcbcb09d38f209577bf4dc6919c0352a017d00afa6dba77cbd6714ff7d"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-classical-town-big-b-after.png",
+      "bytes": 412454,
+      "sha256": "5ce14eef5409083c57096a8d9d205fb705eb409b77569dcfb24a23a388c911bb"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-classical-town-big-b-before.png",
+      "bytes": 419402,
+      "sha256": "b1bf26f3a6ef1432d90965e01d75a15f5345f2dfc0f5c86b9d2e0716adf58fdd"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-classical-town-medium-b-monsoon-after.png",
+      "bytes": 410846,
+      "sha256": "764f1d76710173026801e7f92c8cb4a7402a8bcf33fe9ea271f8b746256263bf"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-classical-town-medium-b-monsoon-before.png",
+      "bytes": 420575,
+      "sha256": "298dbaf03731f852f0d3e17b4bf97297ccfc5cd444f0bed3e4d587d76fa1d288"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-kingdoms-town-medium-a-westafrica-after.png",
+      "bytes": 403680,
+      "sha256": "a6673ac71b465cbf2fcaf533c7068d7ab69328f8d54d300f88780a3de0497445"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-kingdoms-town-medium-a-westafrica-before.png",
+      "bytes": 404677,
+      "sha256": "28d13bebeef2771334af696b4e22ee9919587194e82d3958bb9384db945cc673"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-modern-town-big-a-steppe-after.png",
+      "bytes": 405266,
+      "sha256": "2539322a1943e3bdd3fd74c8df00bf1596ccc765e2b5a1860479b449b2e8a348"
+    },
+    {
+      "file": "plans/art/shots/wave3/hall-clear/model-modern-town-big-a-steppe-before.png",
+      "bytes": 405577,
+      "sha256": "6d0a1fc27c13664a1c6d1eb824363d5d393ffead6748a5b7cf2138cedfc5f2db"
+    },
+    {
+      "file": "scripts/art/hall-clear-towns.mjs",
+      "bytes": 15821,
+      "sha256": "715a286f62b43ea81a8264f6fe29ceff9806074f4db85ce7bca31159a503c86a"
+    },
+    {
+      "file": "src/data/townLayouts.json",
+      "bytes": 144457,
+      "sha256": "aa0e8675ee93a862ac2687500fd642652847bd81bedab21b1f86882c0161da43"
+    }
+  ]
+}

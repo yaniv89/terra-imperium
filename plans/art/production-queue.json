@@ -10671,6 +10671,20 @@
       "placeholder_ok": true,
       "spec": "plans/ART-MODELS-PLAN.md section 5 (town-hall) and 6",
       "delivered": "wave3 checkpoint-14, 2026-10-07 (plans/art/downloads/wave3/checkpoint-14)"
+    },
+    {
+      "path": "plans/art/towns/all/hall-clear",
+      "section": "towns",
+      "description": "Every town file (199 of 416 changed, every age and kit): the landmarks shrink about their far edge and step outward where the houses leave room, so the battle town hall is full size (5.5 tiles, 4.2 in small towns), centred and the largest building; scripts/art/hall-clear-towns.mjs, landmark hints in the files, townLayouts.json rebuilt",
+      "source": "user request 2026-10-07",
+      "spec": "plans/ART-MODELS-PLAN.md 5 (town-hall 20 x 20 m)",
+      "placeholder_ok": false,
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave3 checkpoint-15, 2026-10-08 (plans/art/downloads/wave3/checkpoint-15)",
+      "id": "towns/all/hall-clear",
+      "phase": "B",
+      "batch": "W3",
+      "priority": "P1"
     }
   ],
   "note": "Delivery status is separate from game integration. ITEMS.md Part A assets are excluded; source in-game counts are unchanged.",

@@ -78,7 +78,18 @@ MODERN_BIG_CAP = (1.9, 5.0)
 # square the landmarks keep out of in medium and big towns (units, measured on the landmark's
 # axis-aligned bounds like scripts/art/townComponents.mjs) and their size cap there, so the hall
 # gets its full size and stays the town's largest building.
+# Every kit since wave 3 checkpoint 15 (the shipped files were cleared by scripts/art/hall-clear-towns.mjs
+# with the same numbers; small towns: the 4.2-tile hall). Modern landmarks keep their height.
+HALL_CLEAR_DEFAULT = {'small': dict(half=0.84, cap=(1.15, 0.95)), 'medium': dict(half=1.1, cap=(1.5, 1.2)),
+                      'big': dict(half=1.1, cap=(1.5, 1.2))}
 HALL_CLEAR = {('levant', 'bronze'): dict(half=1.1, cap=(1.5, 1.2))}
+
+
+def hall_clear(style, age, size):
+    c = dict(HALL_CLEAR.get((style, age)) or HALL_CLEAR_DEFAULT[size])
+    if age == 'modern':
+        c['cap'] = (c['cap'][0], 5.0)
+    return c
 LOD1_BUDGET = 10000  # a whole town's LOD1 triangles (brief: 60,000 / 10,000 / 1,500)
 TOWNS = [(s, v) for s in ('small', 'medium', 'big') for v in ('a', 'b')]
 
@@ -624,7 +635,7 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
                 for k in ('landmark-1',) if single else ('landmark-1', 'landmark-2'):
                     p = next(p for p in parts.values() if p.key == k.replace('-', ''))
                     dims[k] = p.dims + (p.height,)
-            clear = HALL_CLEAR.get((style, age)) if size != 'small' else None
+            clear = hall_clear(style, age, size)
             cap = MODERN_BIG_CAP if (age, size) == ('modern', 'big') else None
             if clear:
                 cap = tuple(min(a, b) for a, b in zip(clear['cap'], cap or SIZES[size]['lm_cap']))

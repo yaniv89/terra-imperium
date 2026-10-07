@@ -154,6 +154,15 @@ export const enableGroundClear = (root) => {
   return root.userData.groundClear;
 };
 
+/** The ground rectangles a town file asks to clear: the old plots of the landmarks
+ * scripts/art/hall-clear-towns.mjs shrank or moved (their baked shade stayed on the ground), from
+ * the file's node extras `clearGround` ([x, z, w, d] in model units). */
+export const fileGroundClear = (root) => {
+  const out = [];
+  root.traverse((o) => { const r = o.userData?.clearGround; if (Array.isArray(r)) r.forEach(([x, z, w, d]) => out.push({ x, z, w, d })); });
+  return out;
+};
+
 /** The ground rectangles to clear (manifest-space { x, z, w, d }); call syncTownDamage after a move. */
 export const setGroundClear = (root, rects = []) => {
   const r = rects.slice(0, MAX_RECTS).map((s) => new Vector4(s.x - s.w / 2 - CLEAR_PAD, s.z - s.d / 2 - CLEAR_PAD, s.x + s.w / 2 + CLEAR_PAD, s.z + s.d / 2 + CLEAR_PAD));
