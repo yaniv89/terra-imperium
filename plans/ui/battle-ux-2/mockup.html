@@ -1,0 +1,96 @@
+<!doctype html>
+<!-- Battle UX pass 2: the context panel, the site's build bar, the placement ghost (plans/UI-DESIGN.md
+     section 10). Four 844x390 phone frames. Static: open it from disk; rendered to mockup-844x390.png. -->
+<html><head><meta charset="utf-8"><title>Battle context panel sketch</title>
+<style>
+:root{--ink:#10141A;--panel:#1A212B;--raised:#232C38;--line:#33404F;--text:#ECE5D3;--muted:#B9B19F;--brass:#D8A444;--you:#5B9BF0;--enemy:#EE8A3A;--good:#6CC28A;--danger:#E5604D}
+*{box-sizing:border-box}body{margin:0;padding:8px;font:12px/1.25 system-ui,sans-serif;color:var(--text);background:#0b0d10;display:grid;grid-template-columns:844px 844px;gap:10px}
+.screen{position:relative;width:844px;height:390px;overflow:hidden;background:radial-gradient(circle at 60% 55%,#6f8f45,#4f6b33 60%,#3e5629)}
+.cap{position:absolute;left:8px;bottom:-1px;transform:translateY(100%);font-weight:700}
+.top{position:absolute;top:0;left:0;right:0;height:44px;background:rgba(16,20,26,.92);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 8px}
+.num{font-family:ui-monospace,monospace;font-weight:600}
+.ib{width:44px;height:40px;border-radius:10px;background:var(--raised);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700}
+.panel{background:rgba(26,33,43,.96);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.cmd{min-width:52px;height:48px;padding:0 6px;border-radius:10px;background:rgba(26,33,43,.96);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:600;gap:2px}
+.cmd i{font-style:normal;font-size:15px;line-height:1}
+.cmd.d{border-color:var(--danger);color:#f3a191}.cmd.pw{border-color:var(--brass)}
+.ctx{position:absolute;right:6px;bottom:6px;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.row{display:flex;gap:4px}
+.lbl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.mini{position:absolute;left:6px;bottom:6px;display:flex;gap:4px}
+.pill{position:absolute;top:50px;left:50%;transform:translateX(-50%);padding:4px 4px 4px 10px;border-radius:999px;display:flex;gap:8px;align-items:center}
+.x{width:28px;height:28px;border-radius:50%;background:var(--raised);border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.sq{position:absolute;width:26px;height:18px;border-radius:4px;background:var(--you);opacity:.9}
+.sq.e{background:var(--enemy)}
+.sel{outline:2px solid #bef264;outline-offset:3px}
+.card{position:absolute;top:50px;left:8px;width:200px;padding:8px}
+.hp{height:7px;border-radius:4px;background:var(--ink);overflow:hidden;margin:3px 0}.hp>span{display:block;height:100%}
+.tile{width:64px;height:64px;border-radius:10px;background:var(--raised);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:2px;font-size:10px;font-weight:600}
+.tile b{font-size:22px;line-height:1.2}.tile .c{font-size:9.5px;color:var(--muted)}
+.ghost{position:absolute;border:2px dashed;border-radius:4px}
+.why{position:absolute;padding:2px 7px;border-radius:7px;background:rgba(16,20,26,.9);font-weight:700;font-size:11px}
+.site{position:absolute;width:60px;height:46px;background:repeating-linear-gradient(45deg,#8a6a3a 0 4px,#5c4526 4px 9px);opacity:.85;border-radius:3px}
+.bar{position:absolute;height:9px;background:rgba(15,23,42,.85);border-radius:2px;overflow:hidden}.bar>span{display:block;height:100%;background:#f2b53c}
+.chip{position:absolute;padding:1px 6px;border-radius:6px;background:rgba(16,20,26,.85);border:1px solid rgba(216,164,68,.7);color:var(--brass);font-weight:700;font-size:10.5px}
+.tree{position:absolute;width:22px;height:22px;border-radius:50%;background:#1f3d1c;box-shadow:0 0 0 2px #2d5427}
+</style></head><body>
+
+<!-- A: an army squad selected -->
+<div class="screen">
+  <div class="top"><span class="num">24:10</span><span>🌾 180 🪵 95 🪙 40 · 👥 14/20 · ⚔ 9</span><span style="flex:1"></span><span class="ib">2×</span><span class="ib">❚❚</span></div>
+  <div class="pill panel"><b>Spearmen</b><span class="num" style="color:var(--good)">82%</span><span class="x">✕</span></div>
+  <div class="sq sel" style="left:380px;top:200px"></div><div class="sq" style="left:420px;top:210px"></div><div class="sq e" style="left:560px;top:180px"></div>
+  <div class="mini"><div class="cmd"><i>👥</i>All 6</div><div class="cmd"><i>⛺</i>Base</div></div>
+  <div class="ctx">
+    <div class="row"><span class="lbl" style="align-self:center">Powers</span><div class="cmd pw" style="min-width:72px"><i>⚡</i>Rally Cry</div><div class="cmd pw" style="min-width:72px"><i>⚡</i>Arrow Storm</div></div>
+    <div class="row"><div class="cmd"><i>⌖</i>Attack</div><div class="cmd"><i>✋</i>Hold</div><div class="cmd"><i>☰</i>Line</div><div class="cmd d"><i>↶</i>Retreat</div></div>
+  </div>
+  <div class="cap">A. Army selected: only army commands, powers in their own group. No regiment bar.</div>
+</div>
+
+<!-- B: a laborer selected, placing a house on trees -->
+<div class="screen">
+  <div class="top"><span class="num">23:42</span><span>🌾 140 🪵 60 🪙 40 · 👥 14/20 · ⚔ 9</span><span style="flex:1"></span><span class="ib">2×</span><span class="ib">❚❚</span></div>
+  <div class="pill panel"><b>Laborers</b><span class="num" style="color:var(--good)">100%</span><span class="x">✕</span></div>
+  <div class="tree" style="left:300px;top:150px"></div><div class="tree" style="left:326px;top:162px"></div><div class="tree" style="left:310px;top:180px"></div>
+  <div class="ghost" style="left:296px;top:148px;width:56px;height:52px;border-color:#f87171;background:rgba(248,113,113,.35)"></div>
+  <div class="why" style="left:280px;top:122px;color:#f3a191">Blocked by trees</div>
+  <div class="ghost" style="left:420px;top:220px;width:56px;height:52px;border-color:#4ade80;background:rgba(74,222,128,.25);opacity:.5"></div>
+  <div class="sq sel" style="left:360px;top:250px;width:12px;height:12px;background:#e8d9a8"></div>
+  <div class="mini"><div class="cmd"><i>👥</i>All 6</div><div class="cmd"><i>⛺</i>Base</div></div>
+  <div class="ctx panel" style="padding:6px;align-items:stretch">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span><b>House</b> · drag to move, tap it to build</span></div>
+    <div style="color:#f3a191;font-weight:700">Blocked by trees</div>
+    <div class="row" style="justify-content:flex-end"><div class="cmd" style="opacity:.45"><i>✓</i>Build here</div><div class="cmd"><i>✕</i>Cancel</div></div>
+  </div>
+  <div class="cap">B. Laborer selected, placing: the ghost is red with the reason (green on good ground).</div>
+</div>
+
+<!-- C: a laborer selected: the build grid is the panel -->
+<div class="screen">
+  <div class="top"><span class="num">23:50</span><span>🌾 140 🪵 60 🪙 40 · 👥 14/20 · ⚔ 9</span><span style="flex:1"></span><span class="ib">2×</span><span class="ib">❚❚</span></div>
+  <div class="pill panel"><b>Laborers</b><span class="num">2</span><span class="x">✕</span></div>
+  <div class="sq sel" style="left:300px;top:250px;width:12px;height:12px;background:#e8d9a8"></div>
+  <div class="mini"><div class="cmd"><i>👥</i>All 6</div><div class="cmd"><i>⛺</i>Base</div><div class="cmd"><i>⚒</i>Idle 1</div></div>
+  <div class="ctx panel" style="padding:6px">
+    <div style="display:flex;justify-content:space-between;width:100%"><span class="lbl">Build · hold for details</span><span class="lbl">Stop</span></div>
+    <div class="row"><div class="tile"><b>🏠</b>House<span class="c">30 🪵</span></div><div class="tile"><b>🏯</b>Barracks<span class="c">90 🪵</span></div><div class="tile"><b>🏹</b>Range<span class="c">90 🪵</span></div><div class="tile"><b>🌾</b>Farm<span class="c">40 🪵</span></div><div class="tile"><b>📦</b>Depot<span class="c">50 🪵</span></div><div class="tile"><b>🗼</b>Tower<span class="c" style="color:var(--danger)">+40</span></div></div>
+  </div>
+  <div class="cap">C. Laborer selected: the build grid is the panel. Nothing else ever shows Build.</div>
+</div>
+
+<!-- D: the barracks selected, a site going up -->
+<div class="screen">
+  <div class="top"><span class="num">22:05</span><span>🌾 120 🪵 30 🪙 60 · 👥 15/20 · ⚔ 9</span><span style="flex:1"></span><span class="ib">2×</span><span class="ib">❚❚</span></div>
+  <div class="card panel"><div style="display:flex;gap:8px;align-items:center"><div class="ib" style="width:36px;height:36px">🏯</div><div style="flex:1"><b>Barracks</b><br><span style="font-size:10px;color:var(--you);font-weight:700">Yours</span></div><span class="x">✕</span></div>
+    <div style="display:flex;justify-content:space-between;margin-top:5px"><span style="color:var(--muted)">HP</span><span class="num">1,200 / 1,200</span></div><div class="hp"><span style="width:100%;background:var(--good)"></span></div>
+    <div style="color:var(--muted)">Training spearmen 40%</div></div>
+  <div class="site" style="left:470px;top:170px"></div><div class="bar" style="left:462px;top:152px;width:76px"><span style="width:43%"></span></div><div class="chip" style="left:470px;top:132px">Building 43%</div>
+  <div class="mini"><div class="cmd"><i>👥</i>All 6</div><div class="cmd"><i>⛺</i>Base</div></div>
+  <div class="ctx panel" style="padding:6px;align-items:stretch">
+    <div class="row"><span class="lbl">Train</span><span style="flex:1"></span><span class="lbl">Queue 1/5</span></div>
+    <div class="row"><div class="tile" style="width:96px;height:48px"><b style="font-size:16px">🛡</b>Spearmen<span class="c">30 🌾 10 🪙</span></div><div class="tile" style="width:96px;height:48px"><b style="font-size:16px">⚒</b>Laborer<span class="c">25 🌾</span></div><div class="cmd"><i>⚑</i>Rally</div></div>
+  </div>
+  <div class="cap">D. Barracks selected: the card stays small (top left); train and rally are the panel. A site shows a brass bar and "Building 43%" always.</div>
+</div>
+</body></html>

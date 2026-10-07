@@ -10,6 +10,8 @@
 //         Select mode (the HUD's Select button, `h.isSelectMode()`): a one-finger drag draws the
 //         lasso instead of panning; a completed lasso calls `h.selectModeDone()` (the HUD turns
 //         the mode off). Two fingers still pinch and pan.
+//         Placing a building (`h.isPlacing()`, B10): one finger drags the ghost (`h.placeDrag`), the
+//         lift ends it (`h.placeEnd(p, { moved, onGhost, quick })`: a still tap on the ghost builds).
 // Mouse:  left click = select (`h.click`, shift adds; empty ground deselects) · left drag = box
 //         select (shift adds) · right click = order (`h.order`) · right drag = formation line while
 //         something is selected (`h.hasSelection`), else pan · middle drag = pan · wheel = zoom.
@@ -54,6 +56,13 @@ export const createGestureRecognizer = (el, h) => {
       mode = e.button === 2 ? 'mouse-right' : e.button === 1 ? 'mouse-pan' : 'mouse-left';
       return;
     }
+    // Placing a building (B10): one finger moves the ghost; a tap on the ghost builds it.
+    if (h.isPlacing?.()) {
+      mode = 'place';
+      start.onGhost = !!h.isOnGhost?.(p);
+      if (!start.onGhost) h.placeDrag?.(p);
+      return;
+    }
     const onSelected = h.isOnSelectedSquad?.(p);
     fromSelectMode = !!h.isSelectMode?.();
     mode = fromSelectMode || e.timeStamp - lastTapAt < DOUBLE_TAP_MS ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
@@ -77,6 +86,7 @@ export const createGestureRecognizer = (el, h) => {
     }
     if (!start) return;
     const moved = Math.hypot(p.x - start.x, p.y - start.y) >= MOVE_PX;
+    if (mode === 'place') { if (moved) start.moved = true; if (start.moved) h.placeDrag?.(p); last = p; return; }
     if (!moved && ['press', 'press-selected', 'lasso-armed', 'mouse-left', 'mouse-right', 'mouse-pan'].includes(mode)) return;
     clearLong();
     if (mode === 'press' || mode === 'mouse-pan') mode = 'pan';
@@ -98,7 +108,8 @@ export const createGestureRecognizer = (el, h) => {
     if (mode === 'pinch') { if (pointers.size === 0) { mode = 'idle'; start = null; } return; }
     if (!start) return;
     const quick = e.timeStamp - start.t < TAP_MS;
-    if ((mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed') && quick) { h.tap?.(p); lastTapAt = e.timeStamp; }
+    if (mode === 'place') h.placeEnd?.(p, { moved: !!start.moved, onGhost: !!start.onGhost, quick });
+    else if ((mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed') && quick) { h.tap?.(p); lastTapAt = e.timeStamp; }
     else if (mode === 'mouse-left') (h.click || h.tap)?.(p, { shift: start.shift });
     else if (mode === 'mouse-right') h.order?.(p);
     else if (mode === 'formation') h.formationEnd?.(start, p);

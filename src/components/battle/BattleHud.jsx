@@ -3,10 +3,12 @@
 // Battles plan 11.1), phone first (844x390), the battlefield owns the screen:
 //   top bar      the battle's name and clock, food, materials, gold and population / housing (or
 //                Battle Supply without an economy), the enemy squads left, speed and pause
-//   bottom left  regiment cards: All, Select (box select), the base and idle workers, one card per
-//                kind with its men and a health bar (tap = select and bring into view), reserves
-//   bottom right labelled ability cards with their cooldown (powers, a general's abilities), then
-//                the commands: Build, Attack-move, Hold, Formation, Retreat
+//   bottom left  small buttons only (B10): All (the army), Base (the camp), Idle n (a laborer)
+//   bottom right the context panel (B10, AoE style): the actions of the selection only. Nothing
+//                selected: Select and Reserves; army: Attack, Hold, Formation, Retreat; laborers:
+//                the build grid (`panel`); your building: train, queue, rally (`panel`); placing: the
+//                spot's verdict, Build here, Cancel (`panel`). Powers in their own group above, for
+//                the army and for nothing selected
 //   top row      one row under the bar, so nothing in it can overlap (B09): alerts and the info card
 //                (left), the keep and the selection pill (centre: "Spearmen  3 squads, 146 men  74%",
 //                Shaken with Rally Cry, the target it strikes), the city card (right)
@@ -18,17 +20,14 @@
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords, Coins } from 'lucide-react';
-import GameIcon from '../ui/GameIcon';
-import { unitIconUrl } from '../../data/icons';
 import { ResIcon } from './EconomyHud';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { TICK_HZ } from '../../battle/sim/constants';
-import { ecoName } from '../../battle/data/economy';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
-import { regimentCards, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft } from './battleHudModel';
+import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft } from './battleHudModel';
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 const cx = (...p) => p.filter(Boolean).join(' ');
@@ -42,20 +41,6 @@ const Cmd = ({ icon: Icon, label, onClick, active, danger, disabled, testId, cla
       active ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text text-fa-text' : danger ? 'bg-fa-panel/95 border-fa-danger text-fa-danger-text' : 'bg-fa-panel/95 border-fa-line text-fa-text', className)}>
     {Icon && <Icon className="w-4 h-4" aria-hidden="true" />}
     <span className="leading-none whitespace-nowrap">{label}</span>
-  </button>
-);
-
-/** A regiment card: the class picture, name and men, a health bar; "shaken" when beaten down. */
-const RegimentCard = ({ title, sub, share, onClick, active, testId, tone, classId, shaken = 0 }) => (
-  <button type="button" onClick={onClick} data-testid={testId} aria-pressed={active || undefined}
-    className={cx('shrink-0 w-[104px] lg:w-[120px] h-12 pl-1 pr-1.5 py-1 rounded-[10px] text-left border shadow-lg flex items-center gap-1',
-      active ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'bg-fa-panel/95 border-fa-line')}>
-    {classId && <GameIcon group="units" id={classId} url={unitIconUrl(classId)} size={22} fallback={null} />}
-    <span className="min-w-0 flex-1 flex flex-col justify-center">
-      <span className="block text-[11.5px] font-semibold leading-tight truncate">{title}</span>
-      <span className={cx('block text-[10px] leading-tight truncate', shaken ? 'text-fa-brass font-semibold' : 'text-fa-muted')}>{shaken ? `${shaken} shaken` : sub}</span>
-      {share != null && <span className="block h-1 mt-0.5 rounded-full bg-fa-ink overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${Math.round(share * 100)}%`, background: tone || (share < 0.35 ? 'var(--fa-danger)' : 'var(--fa-good)') }} /></span>}
-    </span>
   </button>
 );
 
@@ -85,6 +70,7 @@ const BattleHud = ({
   onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCallReserve, onCommand, onRetreatAll, onFocusKeep, onAbandon,
   onPower, onOpenAbilities, hasAbilities, soundOn = true, onToggleSound,
   onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
+  context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
   selectMode = false, onToggleSelectMode, selectHint = false, // touch box select (UI-DESIGN B04)
   onFocus, // centre the camera on (x, y) in sim units: the alerts' Go
   onClearSelection, // the selection card's x: let go of every selected squad
@@ -117,15 +103,12 @@ const BattleHud = ({
   const mine = hud.squads.filter((q) => q.side === playerSide && q.alive && !q.fled);
   const onField = mine.filter((q) => q.onField);
   const eco = hud.eco || null;
-  const hasWorkers = selectedSquads.some((q) => q.classId === 'worker');
   const reserves = mine.filter((q) => q.reserve);
-  const cards = regimentCards(hud, playerSide);
   const keep = hud.structures[0];
   const supply = hud.supply[playerSide];
   const enemyLeft = hud.squads.filter((q) => q.side !== playerSide && q.alive && !q.fled).length;
   const ageId = setup.sides[playerSide].ageId;
   const sel = selectionSummary(selectedSquads);
-  const selClasses = new Set(selectedSquads.map((q) => q.classId));
   const target = selectedSquads.find((q) => q.targetKind === 'structure' && q.target >= 0);
   const targetSt = target ? hud.structures[target.target] : null;
   const city = cityAssaultView(hud, setup);
@@ -137,6 +120,10 @@ const BattleHud = ({
   // Rally Cry (a power the side brought): +30 morale for the whole army, the cure for Shaken.
   const rallyCry = powerCards.find((pw) => pw.id === 'rallyCry') || null;
   const rallyReady = !!rallyCry && rallyCry.readyIn <= 0 && rallyCry.usesLeft > 0 && supply >= rallyCry.cost;
+  // The context panel (B10): which group of actions shows.
+  const armyCtx = context === 'army' || context === 'mixed';
+  const idleCtx = context === 'none' || context === 'inspect';
+  const showPowers = armyCtx || idleCtx;
   const firePower = (pw) => (pw.id === 'nuclearStrike' && !(armed?.type === 'power' && armed.id === pw.id) ? setConfirmNuke(pw) : onPower(pw));
 
   return (
@@ -190,12 +177,12 @@ const BattleHud = ({
         <div className="min-w-0 flex-1 flex flex-col items-center gap-1">
           {/* Objective: the keep (any battle with one) */}
           {keep && !city && (
-            <button type="button" onClick={onFocusKeep} className="pointer-events-auto fa-chip !bg-fa-panel/95 !min-h-[30px] gap-1.5 max-w-full" data-testid="battle-keep">
+            <button type="button" onClick={onFocusKeep} className="pointer-events-auto fa-chip !bg-fa-panel/95 !min-h-[28px] !py-0.5 gap-1.5 max-w-full" data-testid="battle-keep">
               <Castle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               {keep.alive
-                ? <><span className="w-16 h-1.5 bg-fa-ink rounded-full overflow-hidden shrink-0"><span className="block h-full bg-fa-enemy" style={{ width: `${(keep.hp / keep.maxHp) * 100}%` }} /></span><span className="fa-num text-[10.5px]">{Math.round(keep.hp)}/{keep.maxHp}</span></>
+                ? <><span className="w-10 lg:w-16 h-1.5 bg-fa-ink rounded-full overflow-hidden shrink-0"><span className="block h-full bg-fa-enemy" style={{ width: `${(keep.hp / keep.maxHp) * 100}%` }} /></span><span className="fa-num text-[10.5px] lg:hidden">{Math.round((keep.hp / keep.maxHp) * 100)}%</span><span className="fa-num text-[10.5px] hidden lg:inline">{Math.round(keep.hp)}/{keep.maxHp}</span></>
                 : <span className="text-fa-good">Breached{hud.assimilation > 0 ? `, taking ${Math.round((hud.assimilation / ASSIMILATION_TICKS) * 100)}%` : ''}</span>}
-              {keep.alive && keep.garrisonSlots > 0 && <span className="text-fa-you truncate" title="Garrison: tap the keep with infantry or ranged selected">garrison {keep.garrison}/{keep.garrisonSlots}</span>}
+              {keep.alive && keep.garrisonSlots > 0 && <span className="text-fa-you truncate hidden lg:inline" title="Garrison: tap the keep with infantry or ranged selected">garrison {keep.garrison}/{keep.garrisonSlots}</span>}
             </button>
           )}
           {!started && (
@@ -223,12 +210,12 @@ const BattleHud = ({
           {/* The selection and its target (B01); Shaken with Rally Cry (B09) */}
           {sel && !pauseOpen && (
             <div className={cx('max-w-full pl-3 py-1 rounded-full bg-fa-panel/95 border border-fa-line text-[12px] shadow-xl pointer-events-auto flex items-center gap-2', onClearSelection ? 'pr-0' : 'pr-3')} data-testid="battle-selection">
-              <span className="font-semibold truncate min-w-[3rem]">{sel.name}</span>
-              <span className="text-fa-muted whitespace-nowrap hidden min-[700px]:inline">{sel.squads} squad{sel.squads === 1 ? '' : 's'}, <span className="fa-num">{sel.men}</span> men</span>
+              <span className="font-semibold truncate min-w-[3rem] max-w-[9rem] lg:max-w-none">{sel.name}</span>
+              <span className="text-fa-muted whitespace-nowrap hidden lg:inline">{sel.squads} squad{sel.squads === 1 ? '' : 's'}, <span className="fa-num">{sel.men}</span> men</span>
               <span className={cx('fa-num', sel.share < 0.35 ? 'text-fa-danger-text' : 'text-fa-good')}>{Math.round(sel.share * 100)}%</span>
               {sel.shaken > 0 && <span className="px-1.5 rounded-md bg-fa-brass/20 text-fa-brass text-[11px] font-bold whitespace-nowrap" title="Beaten down: weaker blows, more hurt taken, until morale returns. Your squads never run." data-testid="battle-selection-shaken">Shaken{sel.squads > 1 ? ` ${sel.shaken}` : ''}</span>}
               {sel.routed && <span className="text-fa-danger-text font-semibold">routed</span>}
-              {targetSt && <span className="text-fa-enemy whitespace-nowrap hidden min-[700px]:inline">Target: {STRUCTURE_WORD[targetSt.kind] || targetSt.kind} <span className="fa-num">{Math.round(targetSt.hp)}/{targetSt.maxHp}</span></span>}
+              {targetSt && <span className="text-fa-enemy whitespace-nowrap hidden lg:inline">Target: {STRUCTURE_WORD[targetSt.kind] || targetSt.kind} <span className="fa-num">{Math.round(targetSt.hp)}/{targetSt.maxHp}</span></span>}
               {sel.shaken > 0 && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[34px] !px-2.5 -my-1 shrink-0 text-[11px]" data-testid="battle-selection-rally" title={rallyReady ? 'Rally Cry: +30 morale for your whole army' : 'Rally Cry is not ready'}>Rally Cry</button>}
               {onClearSelection && (
                 <button type="button" onClick={onClearSelection} aria-label="Clear selection" title="Clear selection (Esc)" data-testid="battle-clear-selection"
@@ -280,48 +267,46 @@ const BattleHud = ({
           </div>
         </div>
       )}
-      {armed?.type === 'place' && (
-        <div className="absolute bottom-[calc(4rem+env(safe-area-inset-bottom))] inset-x-0 flex justify-center pointer-events-none">
-          <div className="px-3 py-1.5 rounded-full bg-fa-panel/95 border border-fa-good text-xs font-semibold shadow-xl">Tap the ground to place: {ecoName(armed.building, ageId)}{hasWorkers ? '' : ' (the nearest workers go)'}</div>
-        </div>
-      )}
       {armed?.type === 'power' && (
         <div className="absolute bottom-[calc(4rem+env(safe-area-inset-bottom))] inset-x-0 flex justify-center pointer-events-none">
           <div className="px-3 py-1.5 rounded-full bg-fa-panel/95 border border-fa-enemy text-xs font-semibold shadow-xl">Tap the battlefield to strike: {armed.label}</div>
         </div>
       )}
 
-      {/* Bottom: regiment cards (left), abilities and commands (right) */}
+      {/* Bottom (B10): small buttons (left), the context panel (right) */}
       {!pauseOpen && (
         <div className="absolute bottom-0 inset-x-0 p-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-end justify-between gap-2 pointer-events-none">
-          <div className="pointer-events-auto flex gap-1 min-w-0 max-w-[50%] overflow-x-auto scrollbar-none" data-testid="battle-chips">
-            <button type="button" onClick={() => onSelectClass('all')} data-testid="battle-select-all"
-              className="shrink-0 w-12 h-12 rounded-[10px] bg-fa-panel/95 border border-fa-line shadow-lg flex flex-col items-center justify-center">
-              <Users className="w-3.5 h-3.5 text-fa-muted" aria-hidden="true" /><span className="text-[11px] font-semibold leading-tight">All</span><span className="fa-num text-[11px] leading-none">{allCount}</span>
-            </button>
-            {onToggleSelectMode && <Cmd icon={BoxSelect} label="Select" onClick={onToggleSelectMode} active={selectMode} testId="battle-select-mode" />}
+          <div className="pointer-events-auto flex gap-1 shrink-0" data-testid="battle-quick">
+            <Cmd icon={Users} label={`All ${allCount}`} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" />
             {eco && <Cmd icon={Tent} label="Base" onClick={onSelectHq} testId="battle-hq" />}
             {eco && eco.idleWorkers.length > 0 && <Cmd icon={Hammer} label={`Idle ${eco.idleWorkers.length}`} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
-            {cards.map((c) => (
-              <RegimentCard key={c.classId} classId={c.classId} shaken={c.shaken} title={c.name} sub={`${c.squads} sq, ${c.men}${c.routed ? `, ${c.routed} routed` : ''}`} share={c.share}
-                active={selClasses.size === 1 && selClasses.has(c.classId)} onClick={() => onSelectClass(c.classId)} testId={`battle-regiment-${c.classId}`} />
-            ))}
-            {reserves.length > 0 && <Cmd icon={Flag} label={`Reserve ${reserves.length}`} onClick={() => setShowReserves((v) => !v)} active={showReserves} testId="battle-reserves" />}
           </div>
-          <div className="pointer-events-auto flex flex-col items-end gap-1 shrink-0 max-w-[50%]">
-            {(powerCards.length > 0 || hasAbilities) && (
-              <div className="flex gap-1 max-w-full overflow-x-auto scrollbar-none [&>*:first-child]:ml-auto" data-testid="battle-powers">
+          <div className="pointer-events-auto flex flex-col items-end gap-1 min-w-0" data-testid="battle-context" data-context={context}>
+            {showPowers && (powerCards.length > 0 || hasAbilities) && (
+              <div className="flex items-center gap-1 max-w-full overflow-x-auto scrollbar-none [&>*:first-child]:ml-auto" data-testid="battle-powers">
                 {hasAbilities && <Cmd icon={Sparkles} label="Abilities" onClick={onOpenAbilities} testId="battle-abilities" />}
                 {powerCards.map((pw) => <PowerCard key={pw.id} pw={pw} supply={supply} armed={armed?.type === 'power' && armed.id === pw.id} onClick={() => firePower(pw)} />)}
               </div>
             )}
-            <div className="flex gap-1 max-w-full overflow-x-auto scrollbar-none [&>*:first-child]:ml-auto" data-testid="battle-commands">
-              {eco && <Cmd icon={Hammer} label="Build" onClick={onOpenBuild} active={buildOpen || armed?.type === 'place'} disabled={!eco.workers} testId="battle-build" />}
-              <Cmd icon={Crosshair} label="Attack" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} disabled={!selectedSquads.length} testId="battle-attack-move" />
-              <Cmd icon={Hand} label="Hold" onClick={() => onCommand('hold')} disabled={!selectedSquads.length} testId="battle-hold" />
-              <Cmd icon={formation === 'line' ? Rows : Columns} label={formation === 'line' ? 'Line' : 'Column'} onClick={onFormation} testId="battle-formation" />
-              <Cmd icon={Undo2} label="Retreat" onClick={() => onCommand('retreat')} disabled={!selectedSquads.length} danger testId="battle-retreat-selected" />
-            </div>
+            {panel}
+            {(armyCtx || idleCtx) && (
+              <div className="flex gap-1 max-w-full overflow-x-auto scrollbar-none [&>*:first-child]:ml-auto" data-testid="battle-commands">
+                {armyCtx ? (
+                  <>
+                    {context === 'mixed' && eco && <Cmd icon={Hammer} label="Build" onClick={onOpenBuild} active={buildOpen} testId="battle-build" />}
+                    <Cmd icon={Crosshair} label="Attack" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} testId="battle-attack-move" />
+                    <Cmd icon={Hand} label="Hold" onClick={() => onCommand('hold')} testId="battle-hold" />
+                    <Cmd icon={formation === 'line' ? Rows : Columns} label={formation === 'line' ? 'Line' : 'Column'} onClick={onFormation} testId="battle-formation" />
+                    <Cmd icon={Undo2} label="Retreat" onClick={() => onCommand('retreat')} danger testId="battle-retreat-selected" />
+                  </>
+                ) : (
+                  <>
+                    {onToggleSelectMode && !mouse && <Cmd icon={BoxSelect} label="Select" onClick={onToggleSelectMode} active={selectMode} testId="battle-select-mode" />}
+                    {reserves.length > 0 && <Cmd icon={Flag} label={`Reserve ${reserves.length}`} onClick={() => setShowReserves((v) => !v)} active={showReserves} testId="battle-reserves" />}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -340,7 +325,7 @@ const BattleHud = ({
       )}
 
       {showReserves && !pauseOpen && (
-        <div className="absolute left-2 bottom-[calc(4.2rem+env(safe-area-inset-bottom))] w-64 max-w-[calc(100vw-1rem)] p-2 fa-panel !bg-fa-panel shadow-2xl text-xs space-y-1.5">
+        <div className="absolute right-2 bottom-[calc(4.2rem+env(safe-area-inset-bottom))] w-64 max-w-[calc(100vw-1rem)] p-2 fa-panel !bg-fa-panel shadow-2xl text-xs space-y-1.5">
           <div className="flex items-center justify-between"><span className="fa-label">Reserves and reinforcements</span><button type="button" onClick={() => setShowReserves(false)} aria-label="Close" className="p-1"><X className="w-4 h-4" /></button></div>
           {reserves.map((q) => (
             <button key={q.idx} type="button" disabled={q.enterTick >= 0 || supply < q.callCost}
@@ -384,7 +369,7 @@ const BattleHud = ({
       )}
 
       {started && paused && sheetHidden && (
-        <button type="button" onClick={() => setSheetHidden(false)} className="absolute left-1/2 -translate-x-1/2 bottom-[calc(7.4rem+env(safe-area-inset-bottom))] fa-chip !bg-fa-panel/95 !min-h-[36px] pointer-events-auto" data-testid="battle-paused-pill">Paused: menu</button>
+        <button type="button" onClick={() => setSheetHidden(false)} className="absolute left-2 bottom-[calc(3.9rem+env(safe-area-inset-bottom))] fa-chip !bg-fa-panel/95 !min-h-[36px] pointer-events-auto" data-testid="battle-paused-pill">Paused: menu</button>
       )}
 
       {confirmNuke && (

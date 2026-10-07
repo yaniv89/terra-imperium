@@ -24,7 +24,9 @@ const ecoInfo = (hud, setup, b, playerSide) => {
   const ageId = setup.sides[b.side]?.ageId;
   const owner = ownerOf(b.side, playerSide);
   const lines = [];
-  if (!b.built) lines.push(`Under construction, ${b.progress}% built: its HP rises as it goes up`);
+  if (!b.built) lines.push(`Building... ${b.progress}%`);
+  const q0 = owner === 'you' && b.built ? b.queue?.[0] : null;
+  if (q0) lines.push(q0.blocked === 'housing' ? 'Training waits for housing' : `Training ${(q0.role === 'worker' ? ecoName('worker', ageId) : getSquadDisplayName(q0.role, ageId)).toLowerCase()} ${q0.pct}%${b.queue.length > 1 ? `, ${b.queue.length - 1} more` : ''}`);
   if (def.trains?.length) lines.push(`Trains ${list(def.trains.map((r) => (r === 'worker' ? ecoName('worker', ageId) : getSquadDisplayName(r, ageId)).toLowerCase()))}`);
   if (def.housing) lines.push(`+${def.housing} housing`);
   if (def.dropoff && !def.hq) lines.push(`Takes ${list(def.dropoff.map((r) => RES_WORD[r]))}`);

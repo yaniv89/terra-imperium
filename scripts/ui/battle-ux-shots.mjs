@@ -125,7 +125,13 @@ if (only.includes('build') || only.includes('site')) {
   } else await pause(page);
   if (only.includes('build')) {
     await page.keyboard.press('Escape');
-    await page.getByTestId('battle-build').click({ force: true });
+    // B10: the build grid is a laborer's context panel: select one (Idle, else tap a laborer).
+    const idle = page.getByTestId('battle-idle-workers');
+    if (await idle.count()) await idle.click({ force: true });
+    else {
+      const wk = await page.evaluate(() => { const q = window.__battleView().squads.find((s) => s.side === 0 && s.alive && s.onField && s.classId === 'worker'); if (q) window.__battleRenderer.centerOn(q.x / 256, q.y / 256); return q ? { x: q.x, y: q.y } : null; });
+      if (wk) { await page.waitForTimeout(400); await tapWorld(page, wk.x, wk.y); }
+    }
     await page.waitForTimeout(400);
     await shot(page, 'build-menu');
     // Hold a tile for its detail (the first disabled one, else the tower).

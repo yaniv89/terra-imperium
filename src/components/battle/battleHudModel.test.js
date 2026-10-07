@@ -1,9 +1,9 @@
 // src/components/battle/battleHudModel.test.js
-// The battle screens' numbers: regiment cards by kind, the selection line, the city's housing and
+// The battle screens' numbers: the context panel's state, the selection line, the city's housing and
 // the 50% line, alerts between frames (at most two shown), and the result: XP by the campaign's
 // formula, the general's fate by the same roll, the city under the 50% rule, Auto's odds.
 import { describe, expect, it } from 'vitest';
-import { regimentCards, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel } from './battleHudModel';
+import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel } from './battleHudModel';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN } from '../../engine/battleOutcome';
 
@@ -11,11 +11,16 @@ const sq = (idx, o = {}) => ({ idx, side: 0, classId: 'infantry', ageId: 'bronze
 const st = (kind, o = {}) => ({ kind, hp: 100, maxHp: 100, alive: true, x: 0, y: 0, ...o });
 
 describe('battle HUD model', () => {
-  it('groups your regiments by kind, biggest first, workers apart', () => {
-    const hud = { squads: [sq(0), sq(1, { strength: 30 }), sq(2, { classId: 'ranged', strength: 100 }), sq(3, { classId: 'worker' }), sq(4, { side: 1 })] };
-    const cards = regimentCards(hud, 0);
-    expect(cards.map((c) => c.classId)).toEqual(['ranged', 'infantry']);
-    expect(cards[1]).toMatchObject({ squads: 2, men: 80, share: 0.4 });
+  it('the context panel follows the selection', () => {
+    expect(contextFor({})).toBe('none');
+    expect(contextFor({ selectedSquads: [sq(0)] })).toBe('army');
+    expect(contextFor({ selectedSquads: [sq(0, { classId: 'worker' })] })).toBe('workers');
+    expect(contextFor({ selectedSquads: [sq(0, { classId: 'worker' }), sq(1)] })).toBe('mixed');
+    expect(contextFor({ building: { built: true } })).toBe('building');
+    expect(contextFor({ building: { built: false } })).toBe('site');
+    expect(contextFor({ inspect: { kind: 'structure', index: 0 } })).toBe('inspect');
+    expect(contextFor({ selectedSquads: [sq(0, { classId: 'worker' })], armed: { type: 'place', building: 'house' } })).toBe('place');
+    expect(contextFor({ selectedSquads: [sq(0)], armed: 'attackMove' })).toBe('army');
   });
 
   it('sums the selection', () => {

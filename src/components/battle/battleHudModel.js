@@ -1,7 +1,7 @@
 // src/components/battle/battleHudModel.js
 // What the battle screens (U1b: B01 Battle HUD, B05 City assault, B06 Alerts and pause, B08
 // Result; plans/UI-DESIGN.md) show, from the HUD frame (render/view.js) and the setup. Pure.
-//   regimentCards     your regiments on the field grouped by kind: name, squads, men, health
+//   contextFor        what the bottom-right context panel shows for the selection (B10)
 //   selectionSummary  the top pill: "Spearmen  3 squads, 146 men  74%"
 //   cityAssaultView   the real city: houses standing and ruined, housing then and now, the 50% line
 //   nextAlerts        new alerts between two frames (gate breached, a regiment of yours Shaken, enemy
@@ -23,24 +23,27 @@ export const isShakenView = (q) => !!q && q.alive && !q.routed && q.classId !== 
 
 const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
 
-/** Your regiments on the field, grouped by kind, biggest first (workers apart). */
-export const regimentCards = (hud, playerSide) => {
-  if (!hud) return [];
-  const by = new Map();
-  hud.squads.forEach((q) => {
-    if (q.side !== playerSide || !q.alive || q.fled || !q.onField || q.classId === 'worker') return;
-    const c = by.get(q.classId) || { classId: q.classId, name: getSquadDisplayName(q.classId, q.ageId), squads: 0, men: 0, max: 0, routed: 0, shaken: 0 };
-    c.squads += 1; c.men += Math.max(0, q.strength); c.max += Math.max(1, q.maxStrength); if (q.routed) c.routed += 1; if (isShakenView(q)) c.shaken += 1;
-    by.set(q.classId, c);
-  });
-  return [...by.values()].map((c) => ({ ...c, share: c.max ? c.men / c.max : 0 })).sort((a, b) => b.men - a.men);
+/**
+ * The context panel's state (B10, AoE style: the actions of the selection only):
+ * 'place' (a building in hand) | 'building' (your finished building) | 'site' (your building going up)
+ * | 'workers' (laborers only: the build grid) | 'mixed' (laborers and troops) | 'army' | 'inspect'
+ * (something not yours) | 'none'.
+ */
+export const contextFor = ({ selectedSquads = [], building = null, inspect = null, armed = null } = {}) => {
+  if (armed && typeof armed === 'object' && armed.type === 'place') return 'place';
+  if (building) return building.built ? 'building' : 'site';
+  if (selectedSquads.length) {
+    const workers = selectedSquads.filter((q) => q.classId === 'worker').length;
+    return workers === selectedSquads.length ? 'workers' : workers ? 'mixed' : 'army';
+  }
+  return inspect ? 'inspect' : 'none';
 };
 
 /** The selected squads in one line, or null. */
 export const selectionSummary = (selected = []) => {
   if (!selected.length) return null;
   const kinds = [...new Set(selected.map((q) => q.classId))];
-  const name = kinds.length === 1 ? getSquadDisplayName(kinds[0], selected[0].ageId) : `${kinds.length} kinds`;
+  const name = kinds.length === 1 ? (kinds[0] === 'worker' ? 'Laborers' : getSquadDisplayName(kinds[0], selected[0].ageId)) : `${kinds.length} kinds`;
   const men = sum(selected, (q) => Math.max(0, q.strength));
   const max = sum(selected, (q) => Math.max(1, q.maxStrength));
   const morale = Math.round(sum(selected, (q) => q.morale) / selected.length);

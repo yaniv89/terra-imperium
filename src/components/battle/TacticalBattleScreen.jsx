@@ -24,9 +24,13 @@ import { voiceForOrders, voiceForSelection } from '../../battle/audio/voiceLines
 import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
 import { createPerfMeter, formatPerf } from '../../battle/render/perfMeter';
 import { getMapPrefs } from '../map/mapPrefs';
-import { BuildMenu, BuildingPanel, InfoCard } from './EconomyHud';
+import { Check, X as XIcon, Ban } from 'lucide-react';
+import { BuildMenu, BuildingActions, InfoCard } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
-import { BUILDINGS } from '../../battle/data/economy';
+import { contextFor } from './battleHudModel';
+import { updateSiteLabels } from './siteLabels';
+import { BUILDINGS, ecoName } from '../../battle/data/economy';
+import { placementCheck, footprintAt } from '../../battle/input/placement';
 import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
@@ -83,6 +87,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // Anything else tapped on the field (UI-DESIGN B09): { kind: 'eco' | 'structure' | 'node', index }
   // for the info card; never together with selected squads or your own selected building.
   const [inspect, setInspect] = useState(null);
+  // The placement ghost (B10): { building, size, tx, ty, ok, reason }, green or red with the reason.
+  const [ghost, setGhost] = useState(null);
+  const ghostRef = useRef(null);
+  const siteLabelsRef = useRef(null); // "Building 43%" over your sites (siteLabels.js)
+  const ghostLabelRef = useRef(null); // the reason over a red ghost
   const perfRef = useRef(null);
   const [showPerf] = useState(perfOn);
   // Touch box select (UI-DESIGN B04): while on, a one-finger drag draws the selection box.
@@ -129,11 +138,6 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     else if (eco?.proxy) r.setInspected({ kind: 'structure', index: 0 });
     else r.setInspected(inspect);
   }, [selectedBuilding, inspect]);
-  // The player's workers among the selection.
-  const selectedWorkers = useCallback(() => {
-    const cur = frames.current.cur;
-    return cur ? [...selectedRef.current].filter((i) => cur.squads[i]?.classId === 'worker') : [];
-  }, []);
 
   const send = useCallback((orders) => {
     audioRef.current?.orderConfirmed(orders);
@@ -243,6 +247,19 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           if (perfRef.current) perfRef.current.textContent = formatPerf(stats);
         }
       }
+      if (f.cur) {
+        try {
+          updateSiteLabels(siteLabelsRef.current, renderer, f.cur, playerSide);
+          const gl = ghostLabelRef.current; const gh = ghostRef.current;
+          if (gl) {
+            if (gh && !gh.ok) {
+              const sp = renderer.worldToScreen(gh.tx + gh.size / 2, gh.ty + gh.size / 2, 1.2);
+              gl.textContent = gh.reason; gl.style.display = 'block';
+              gl.style.transform = `translate(${Math.round(sp.x)}px, ${Math.round(sp.y)}px) translate(-50%, -100%)`;
+            } else gl.style.display = 'none';
+          }
+        } catch { /* labels are a nicety */ }
+      }
       if (t - lastHud > HUD_INTERVAL_MS && f.cur) { lastHud = t; setHud(f.cur); }
     };
     raf = requestAnimationFrame(loop);
@@ -310,6 +327,44 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     return eco?.kind === 'node' ? { kind: 'node', index: eco.index } : null;
   }, []);
 
+  // The placement ghost (B10): where the building would stand under a screen point, and whether it can.
+  const setGhostAt = useCallback((p) => {
+    const a = armedRef.current; const r = rendererRef.current; const cur = frames.current.cur;
+    if (!r || !cur || a?.type !== 'place') return null;
+    const g = r.screenToGround(p.x, p.y);
+    if (!g) return ghostRef.current;
+    const { size, tx, ty } = footprintAt(a.building, g.x, g.z);
+    const prev = ghostRef.current;
+    if (prev && prev.tx === tx && prev.ty === ty && prev.building === a.building && prev.tick === cur.tick) return prev;
+    const v = placementCheck({ view: cur, setup, side: playerSide, type: a.building, tx, ty, fog: r.lastFog || cur.fog || null });
+    const next = { building: a.building, size, tx, ty, ok: v.ok, reason: v.reason, tick: cur.tick };
+    ghostRef.current = next;
+    r.ecoLayer.setGhost({ size, tx, ty, ok: v.ok });
+    if (!prev || prev.ok !== next.ok || prev.reason !== next.reason || prev.building !== next.building) setGhost(next);
+    return next;
+  }, [setup, playerSide]);
+  const disarm = useCallback(() => {
+    rendererRef.current?.ecoLayer.setGhost(null);
+    ghostRef.current = null; setGhost(null);
+    armedRef.current = null; setArmed(null);
+  }, []);
+  // Build at the ghost when it is green: the selected laborers go, else idle ones, else the nearest.
+  const placeGhost = useCallback(() => {
+    const r = rendererRef.current; const cur = frames.current.cur; const gh = ghostRef.current;
+    if (!r || !cur || !gh) return false;
+    // Recheck now (things move); a red spot keeps the building in hand and says why.
+    const v = placementCheck({ view: cur, setup, side: playerSide, type: gh.building, tx: gh.tx, ty: gh.ty, fog: r.lastFog || cur.fog || null });
+    if (!v.ok) { const bad = { ...gh, ok: false, reason: v.reason }; ghostRef.current = bad; setGhost(bad); r.ecoLayer.setGhost({ size: gh.size, tx: gh.tx, ty: gh.ty, ok: false }); return false; }
+    const cx = gh.tx + gh.size / 2; const cz = gh.ty + gh.size / 2;
+    let workers = [...selectedRef.current].filter((i) => cur.squads[i]?.classId === 'worker');
+    if (!workers.length) workers = (cur.eco?.idleWorkers || []).slice(0, 2);
+    if (!workers.length) workers = cur.squads.filter((q) => q.side === playerSide && q.classId === 'worker' && q.alive && q.onField).sort((x, y) => ((x.x / Q - cx) ** 2 + (x.y / Q - cz) ** 2) - ((y.x / Q - cx) ** 2 + (y.y / Q - cz) ** 2)).slice(0, 2).map((q) => q.idx);
+    send([{ type: 'build', squads: workers, building: gh.building, tx: gh.tx, ty: gh.ty }]);
+    r.addMarker(cx, cz, '#a3e635');
+    disarm();
+    return true;
+  }, [setup, playerSide, send, disarm]);
+
   const issueAt = useCallback((p, forceAttackMove = false) => {
     const r = rendererRef.current; const cur = frames.current.cur;
     const sel = [...selectedRef.current];
@@ -317,14 +372,13 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     if (r && cur && (armedRef.current?.type === 'place' || armedRef.current?.type === 'rally')) {
       const g = r.screenToGround(p.x, p.y);
       const a = armedRef.current;
-      if (g && a.type === 'place') {
-        const size = BUILDINGS[a.building].size;
-        let workers = selectedWorkers();
-        if (!workers.length) workers = (cur.eco?.idleWorkers || []).slice(0, 2);
-        if (!workers.length) workers = cur.squads.filter((q) => q.side === playerSide && q.classId === 'worker' && q.alive && q.onField).sort((x, y) => ((x.x / Q - g.x) ** 2 + (x.y / Q - g.z) ** 2) - ((y.x / Q - g.x) ** 2 + (y.y / Q - g.z) ** 2)).slice(0, 2).map((q) => q.idx);
-        send([{ type: 'build', squads: workers, building: a.building, tx: Math.round(g.x - size / 2), ty: Math.round(g.z - size / 2) }]);
-        r.addMarker(g.x, g.z, '#a3e635');
-      } else if (g && a.type === 'rally') {
+      if (a.type === 'place') {
+        // A click (or a tap) on the ground: build there when the spot is good; a red spot keeps the
+        // building in hand and its reason shows (B10).
+        if (g) { setGhostAt(p); placeGhost(); }
+        return true;
+      }
+      if (g && a.type === 'rally') {
         send([{ type: 'rally', building: a.building, x: Math.round(g.x * Q), y: Math.round(g.z * Q) }]);
         r.addMarker(g.x, g.z, '#facc15');
       }
@@ -388,22 +442,20 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     }
     armedRef.current = null; setArmed(null);
     return true;
-  }, [playerSide, send, selectedWorkers]);
+  }, [playerSide, send, setGhostAt, placeGhost]);
 
-  // A building's footprint follows the pointer while one is being placed (desktop; a phone taps).
+  // A building's footprint follows the mouse while one is being placed (B10: green or red; a finger
+  // drags it, gestures.js 'place').
   useEffect(() => {
     const el = canvasRef.current;
     const onMove = (e) => {
-      const a = armedRef.current; const r = rendererRef.current;
-      if (!r || a?.type !== 'place') return;
+      if (e.pointerType !== 'mouse' || armedRef.current?.type !== 'place') return;
       const rect = el.getBoundingClientRect();
-      const g = r.screenToGround(e.clientX - rect.left, e.clientY - rect.top);
-      const size = BUILDINGS[a.building].size;
-      if (g) r.ecoLayer.setGhost({ size, tx: Math.round(g.x - size / 2), ty: Math.round(g.z - size / 2), ok: true });
+      setGhostAt({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     };
     el.addEventListener('pointermove', onMove);
     return () => el.removeEventListener('pointermove', onMove);
-  }, []);
+  }, [setGhostAt]);
 
   const clearSelection = useCallback(() => { updateSelection([]); selectBuilding(null); setInspect(null); setRadial(null); }, [updateSelection, selectBuilding]);
 
@@ -432,7 +484,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         if (next.building !== null) selectBuilding(next.building); else { updateSelection(next.ids); selectBuilding(null); }
         break;
       }
-      case 'cancelArmed': rendererRef.current?.ecoLayer.setGhost(null); armedRef.current = null; setArmed(null); break;
+      case 'cancelArmed': disarm(); break;
       case 'rally': {
         const r = rendererRef.current; const g = r?.screenToGround(p.x, p.y);
         if (g) { send([{ type: 'rally', building: selectedBuildingInfo.idx, x: Math.round(g.x * Q), y: Math.round(g.z * Q) }]); r.addMarker(g.x, g.z, '#facc15'); }
@@ -441,12 +493,20 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       case 'armed': case 'order': if (!issueAt(p) && input === 'tap') clearSelection(); break;
       default:
     }
-  }, [ownSquadAt, ownBuildingAt, inspectAt, inspectThing, updateSelection, selectBuilding, clearSelection, issueAt, send]);
+  }, [ownSquadAt, ownBuildingAt, inspectAt, inspectThing, updateSelection, selectBuilding, clearSelection, issueAt, send, disarm]);
 
   useEffect(() => {
     const el = canvasRef.current;
     return createGestureRecognizer(el, {
       isSelectMode: () => selectModeRef.current,
+      // Placing a building (B10): a finger drags the ghost; a still tap on it builds.
+      isPlacing: () => armedRef.current?.type === 'place',
+      isOnGhost: (p) => {
+        const gh = ghostRef.current; const g = rendererRef.current?.screenToGround(p.x, p.y);
+        return !!gh && !!g && g.x >= gh.tx - 0.5 && g.x <= gh.tx + gh.size + 0.5 && g.z >= gh.ty - 0.5 && g.z <= gh.ty + gh.size + 0.5;
+      },
+      placeDrag: (p) => setGhostAt(p),
+      placeEnd: (p, { moved, onGhost, quick }) => { if (onGhost && !moved && quick) placeGhost(); },
       selectModeDone: () => setSelectModeOn(false),
       isOnSelectedSquad: (p) => { const idx = ownSquadAt(p); return idx !== null && selectedRef.current.has(idx); },
       hasSelection: () => selectedRef.current.size > 0,
@@ -480,7 +540,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       },
       cancel: () => { setDragLine(null); setLasso(null); }
     });
-  }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn]);
+  }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn, setGhostAt, placeGhost]);
 
   // Keyboard (desktop): space pause, A attack-move, S stop, H hold, R retreat, Esc deselect.
   useEffect(() => {
@@ -492,7 +552,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       else if (e.key === 's' && sel.length) send([{ type: 'stop', squads: sel }]);
       else if (e.key === 'h' && sel.length) send([{ type: 'hold', squads: sel }]);
       else if (e.key === 'r' && sel.length) send([{ type: 'retreat', squads: sel }]);
-      else if (e.key === 'Escape') { if (armedRef.current) { rendererRef.current?.ecoLayer.setGhost(null); armedRef.current = null; setArmed(null); } else clearSelection(); }
+      else if (e.key === 'Escape') { if (armedRef.current) disarm(); else clearSelection(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -535,7 +595,13 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const retreatAll = () => send([{ type: 'retreatAll' }]);
   const focusKeep = () => { const k = setup.structures[0]; rendererRef.current?.centerOn(k.x / Q, k.y / Q); };
   // The battle economy's actions.
-  const pickBuilding = (id) => { setBuildMenu(false); armedRef.current = { type: 'place', building: id, label: id }; setArmed(armedRef.current); };
+  const pickBuilding = (id) => {
+    setBuildMenu(false);
+    armedRef.current = { type: 'place', building: id, label: id }; setArmed(armedRef.current);
+    ghostRef.current = null;
+    const w0 = wrapRef.current;
+    setGhostAt({ x: (w0?.clientWidth || 800) / 2, y: (w0?.clientHeight || 400) * 0.55 }); // seen at once, before any hover or drag
+  };
   const ecoBuilding = hud?.eco && selectedBuilding !== null ? hud.eco.buildings.find((b) => b.idx === selectedBuilding && b.alive) || null : null;
   const ecoInfo = ecoBuilding ? inspectInfo(hud, setup, { kind: 'eco', index: ecoBuilding.idx }, playerSide) : null;
   const seenInfo = !ecoBuilding && inspect ? inspectInfo(hud, setup, inspect, playerSide) : null;
@@ -546,15 +612,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     if (q && q.side === playerSide && q.alive && q.onField && !q.fled) updateSelection([a.squad]);
   };
   const ageId = setup.sides[playerSide].ageId;
-  const leftCard = ecoBuilding ? (
-    <BuildingPanel building={ecoBuilding} info={ecoInfo} ageId={ageId} stock={hud.eco.stock} eco={hud.eco}
-      onBuildHouse={() => pickBuilding('house')}
-      onTrain={(role) => send([{ type: 'train', building: ecoBuilding.idx, role }])}
-      onCancel={(slot) => send([{ type: 'cancelTrain', building: ecoBuilding.idx, slot }])}
-      rallyArmed={armed?.type === 'rally'}
-      onRally={() => { armedRef.current = armedRef.current?.type === 'rally' ? null : { type: 'rally', building: ecoBuilding.idx, label: 'rally' }; setArmed(armedRef.current); }}
-      onClose={() => selectBuilding(null)} />
-  ) : seenInfo ? <InfoCard info={seenInfo} onClose={() => setInspect(null)} /> : null;
+  const leftCard = ecoInfo ? <InfoCard info={ecoInfo} onClose={() => selectBuilding(null)} testId="battle-building-panel" />
+    : seenInfo ? <InfoCard info={seenInfo} onClose={() => setInspect(null)} /> : null;
   const selectHq = () => {
     const hq = hud?.eco?.buildings.find((b) => b.side === playerSide && (b.type === 'camp' || b.type === 'hall') && b.alive);
     if (!hq) return;
@@ -571,9 +630,48 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     return [...byId.values()];
   }, [selectedSquads]);
 
+  // The context panel (B10): the actions of the selection only.
+  const context = contextFor({ selectedSquads, building: ecoBuilding, inspect: seenInfo ? inspect : null, armed });
+  useEffect(() => { if (context !== 'mixed') setBuildMenu(false); }, [context]);
+  const stopWorkers = () => { const cur = frames.current.cur; const ids = [...selectedRef.current].filter((i) => cur?.squads[i]?.classId === 'worker'); if (ids.length) send([{ type: 'stop', squads: ids }]); };
+  let panel = null;
+  if (hud?.eco && context === 'place' && ghost) {
+    panel = (
+      <div className="w-[min(19rem,calc(100vw-11rem))] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl text-[11.5px]" data-testid="battle-place-panel">
+        <div className="px-1 leading-snug"><b>{ecoName(ghost.building, ageId)}</b><span className="text-fa-muted"> · {MOUSE_POINTER ? 'click the ground to build' : 'drag to move, tap it to build'}</span></div>
+        <div className={ghost.ok ? 'px-1 text-fa-good font-semibold' : 'px-1 text-fa-danger-text font-semibold'} data-testid="battle-place-reason">{ghost.ok ? 'Good spot' : ghost.reason}</div>
+        <div className="flex gap-1 justify-end mt-1">
+          <button type="button" onClick={placeGhost} disabled={!ghost.ok} data-testid="battle-place-confirm" className="min-w-[64px] h-12 px-2 rounded-[10px] bg-fa-raised border border-fa-good text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 disabled:opacity-40 disabled:border-fa-line"><Check className="w-4 h-4" aria-hidden="true" /><span className="leading-none">Build here</span></button>
+          <button type="button" onClick={disarm} data-testid="battle-place-cancel" className="min-w-[52px] h-12 px-2 rounded-[10px] bg-fa-panel border border-fa-line text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5"><XIcon className="w-4 h-4" aria-hidden="true" /><span className="leading-none">Cancel</span></button>
+        </div>
+      </div>
+    );
+  } else if (hud?.eco && (context === 'workers' || (context === 'mixed' && buildMenu))) {
+    panel = <BuildMenu ageId={ageId} stock={hud.eco.stock} workers={hud.eco.workers} onPick={pickBuilding}
+      onClose={context === 'mixed' ? () => setBuildMenu(false) : null}
+      extra={context === 'workers' ? <button type="button" onClick={stopWorkers} data-testid="battle-workers-stop" className="h-11 px-2 text-[11px] font-semibold text-fa-muted hover:text-fa-text">Stop</button> : null} />;
+  } else if (hud?.eco && context === 'building') {
+    panel = <BuildingActions building={ecoBuilding} ageId={ageId} stock={hud.eco.stock} eco={hud.eco}
+      onBuildHouse={() => pickBuilding('house')}
+      onTrain={(role) => send([{ type: 'train', building: ecoBuilding.idx, role }])}
+      onCancel={(slot) => send([{ type: 'cancelTrain', building: ecoBuilding.idx, slot }])}
+      rallyArmed={armed?.type === 'rally'}
+      onRally={() => { armedRef.current = armedRef.current?.type === 'rally' ? null : { type: 'rally', building: ecoBuilding.idx, label: 'rally' }; setArmed(armedRef.current); }} />;
+  } else if (hud?.eco && context === 'site') {
+    panel = (
+      <button type="button" onClick={() => { send([{ type: 'cancelBuild', building: ecoBuilding.idx }]); selectBuilding(null); }} data-testid="battle-cancel-build"
+        className="min-w-[64px] h-12 px-2 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-fa-danger-text text-[11px] font-semibold shadow-lg flex flex-col items-center justify-center gap-0.5">
+        <Ban className="w-4 h-4" aria-hidden="true" /><span className="leading-none">Cancel build</span>
+      </button>
+    );
+  }
+
   return (
     <div ref={wrapRef} className="fixed inset-0 z-[80] bg-fa-ink text-fa-text select-none" style={{ touchAction: 'none' }} data-testid="tactical-battle">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ touchAction: 'none' }} />
+      {/* B10: "Building 43%" over your sites and the reason over a red placement ghost, moved by the render loop */}
+      <div ref={siteLabelsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
+      <div ref={ghostLabelRef} className="absolute left-0 top-0 hidden px-2 py-0.5 rounded-md bg-fa-ink/90 border border-fa-danger text-fa-danger-text text-[11px] font-bold whitespace-nowrap pointer-events-none" data-testid="battle-ghost-reason" />
       {dragLine && (
         <svg className="absolute inset-0 pointer-events-none w-full h-full">
           <line x1={dragLine.x0} y1={dragLine.y0} x2={dragLine.x1} y2={dragLine.y1} stroke="#a3e635" strokeWidth="4" strokeDasharray="10 6" strokeLinecap="round" />
@@ -609,9 +707,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         onFocus={(x, y) => rendererRef.current?.centerOn(x / Q, y / Q)}
         onClearSelection={clearSelection} mouse={MOUSE_POINTER}
         onAlertGo={alertGo} leftCard={leftCard}
+        context={context} panel={panel}
         ended={!!ended}
       />
-      {buildMenu && hud?.eco && <BuildMenu ageId={ageId} stock={hud.eco.stock} workers={hud.eco.workers} onPick={pickBuilding} onClose={() => setBuildMenu(false)} />}
       {showPerf && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} onContinue={() => onFinish?.(ended)} />}
       {failure && !ended && <BattleFailure title={failure.message} detail={failure.detail} onAuto={() => onAbandon?.('screen_error')} onRetry={onRetry} />}
