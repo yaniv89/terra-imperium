@@ -1,15 +1,29 @@
 // src/battle/render/unitVariants.js
 // Per-instance variety for the battlefield's soldiers, all inside ONE draw call per (age, class).
 // Every soldier instance carries a vec4 `aVariant`:
-//   x — skin tone index into SKIN_TONES (vertices tagged aPart = 1: faces, hands)
+//   x — skin tone into SKIN_TONES (vertices tagged aPart = 1: faces, hands), fractional: the
+//       shader blends the two tones either side. Every soldier of a side wears its people's tone
+//       (skinToneFor), give or take SKIN_SPREAD / 2. (Picking each soldier's tone from the whole
+//       palette made one squad of Bronze spearmen look like two different models.)
 //   y — emblem cell 0..15 in the heraldry atlas (vertices tagged aPart = 2: shield faces, tabards)
 //   z — cloth jitter -1..1 (a ±9% brightness shift on untinted cloth/leather/steel)
 //   w — spare
 // The side's colour still comes from instanceColor (vertices tagged aTeam = 1). The atlas is one
 // small texture (4 × 4 cells) drawn procedurally on a canvas — no art files, one texture bind.
 import { CanvasTexture, DataTexture, RGBAFormat, SRGBColorSpace, Color, LinearMipmapLinearFilter, LinearFilter } from 'three';
+import { PEOPLES, peopleForNationId } from '../../data/peoples';
 
 export const SKIN_TONES = ['#f1cfae', '#e0ac82', '#c68b5f', '#a8714a', '#8d5a3b', '#5e3a24'];
+
+// A people's skin tone (a fractional index into SKIN_TONES) by its region in the peoples pool;
+// anyone else (legacy countries, independents, the sandbox) the middle of the palette.
+export const DEFAULT_SKIN_TONE = 2;
+export const SKIN_SPREAD = 0.7;
+const REGION_SKIN = {
+  europe: 0.6, eastasia: 1.1, centralasia: 1.4, neareast: 2, northafrica: 2.5, americas: 2.5,
+  southeastasia: 2.6, southasia: 3.1, oceania: 3.6, africa: 4.4
+};
+export const skinToneFor = (nationId) => REGION_SKIN[PEOPLES[peopleForNationId(nationId)]?.region] ?? DEFAULT_SKIN_TONE;
 export const EMBLEM_GRID = 4;             // 4 × 4 cells
 export const EMBLEM_CELLS = EMBLEM_GRID * EMBLEM_GRID;
 export const EMBLEM_INSET = 0.05;         // keep samples off the cell edges (mip bleeding)
@@ -30,10 +44,14 @@ export const emblemCellUv = (cell, u, v) => {
 // so the two armies read as two heraldic families while every squad still has its own device.
 export const emblemCellFor = (side, squadIdx) => ((side ? 1 : 0) * 8 + (Math.floor(hash01(squadIdx * 7717 + 3) * 8) % 8));
 
-// Fill `out` (a Float32Array / attribute array) at instance k with soldier i of squad s.
-export const writeSoldierVariant = (arr, k, squadIdx, side, i) => {
+// One soldier's tone: his people's `tone`, give or take SKIN_SPREAD / 2, inside the palette.
+export const soldierSkinTone = (tone, squadIdx, i) => Math.max(0, Math.min(SKIN_TONES.length - 1, tone + (hash01(squadIdx * 211 + i * 17 + 5) - 0.5) * SKIN_SPREAD));
+
+// Fill `out` (a Float32Array / attribute array) at instance k with soldier i of squad s, whose
+// people's skin tone is `tone` (skinToneFor).
+export const writeSoldierVariant = (arr, k, squadIdx, side, i, tone = DEFAULT_SKIN_TONE) => {
   const o = k * 4;
-  arr[o] = Math.floor(hash01(squadIdx * 211 + i * 17 + 5) * SKIN_TONES.length);
+  arr[o] = soldierSkinTone(tone, squadIdx, i);
   arr[o + 1] = emblemCellFor(side, squadIdx);
   arr[o + 2] = hash01(squadIdx * 389 + i * 31 + 11) * 2 - 1;
   arr[o + 3] = 0;

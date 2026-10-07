@@ -22,7 +22,10 @@ import {
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
 import { markerLatLng } from '../../../utils/markerPosition';
 import { getEffectiveAgeId } from '../../../data/ages';
-import { getSoldierGeometry, packForGPU, createSoldierMaterial, MODEL_SCALE } from '../../../battle/render/soldierFactory';
+import { getSoldierGeometry, hasSoldierOverride, packForGPU, createSoldierMaterial, MODEL_SCALE } from '../../../battle/render/soldierFactory';
+import { findUnitModel, preloadSoldierModel } from '../../../battle/render/unitModels';
+import { soldierLodGeometries, TIER_PX } from '../../../battle/render/soldierLod';
+import { skinToneFor, soldierSkinTone, emblemCellFor } from '../../../battle/render/unitVariants';
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
 import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
@@ -52,6 +55,9 @@ const TREE_KINDS = ['conifer', 'broad', 'palm'];
 const MAX_WORKS = 400;
 const SOLDIER_SIZE = 2.4; // soldiers are drawn larger than true scale so they read at map size
 const MAX_SOLDIERS = 240;
+// A standing army turns a little to its right, toward the viewer: the battle soldiers carry the
+// shield on the left arm, so this shows its face (team colour and device), not its back.
+const STAND_HEADING = -0.5;
 const EDGE = 80;
 const PLAYER_COLOR = '#2563eb';
 
@@ -108,13 +114,15 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     return mesh;
   };
   const t = {
-    sky, sun, townMaterial, soldierMaterial, towns: new Map(), wonders: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(),
+    sky, sun, townMaterial, soldierMaterial, towns: new Map(), wonders: new Map(), fieldWorks: new Map(), layers: new Map(), soldierLoads: new Set(), assets: new Map(),
     trees: new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)])),
     works: new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)])),
     buildings: createBuildingLayer(root), improvements: createBuildingLayer(root), ships: createBuildingLayer(root), moving: false,
     ridges: new Map(), hills: instanced(getHillGeometry(), 600)
   };
   for (let v = 0; v < RIDGE_VARIANTS; v++) [false, true].forEach((snow) => t.ridges.set(`${v}|${snow}`, instanced(getRidgeGeometry(v, snow), MAX_RIDGE_MESH)));
+  // an army layer built on a soldier model that has since been replaced (its GLB arrived)
+  const dropLayer = (l) => { l.levels.forEach((m) => { root.remove(m); m.geometry.dispose(); }); };
   dressCloseTerrain(t, onAssets); // the map terrain kits, where delivered (terrainKits.js)
   const plotMap = plotTexture();
   const plotMaterial = new MeshBasicMaterial({ map: plotMap, transparent: true, opacity: 0.88, depthWrite: false });
@@ -531,20 +539,37 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     [...t.trees.values(), ...t.works.values()].forEach((m) => { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; });
 
     // Armies: soldiers of the main unit type, beside the town, in the owner's colour.
-    t.layers.forEach((l) => { l.mesh.count = 0; });
+    t.layers.forEach((l) => { l.levels.forEach((m) => { m.count = 0; }); });
+    // The battle's own soldier: the artist's GLB where the unit has one (loaded once, then the
+    // layer is rebuilt on it; the procedural body meanwhile and if it fails), else the procedural
+    // model. Two levels of detail from the battle's LOD chain (soldierLod.js): the full model for
+    // figures at least TIER_PX[0] tall on screen, the clustered one below.
     const layerFor = (ageId, classId) => {
       const key = `${ageId}:${classId}`;
+      if (!t.soldierLoads.has(key) && !hasSoldierOverride(ageId, classId) && findUnitModel(ageId, classId)) {
+        t.soldierLoads.add(key);
+        preloadSoldierModel(ageId, classId).then((ok) => { if (ok) onAssets(); }).catch(() => {});
+      }
+      const source = getSoldierGeometry(ageId, classId);
       let l = t.layers.get(key);
+      if (l && l.source !== source) { dropLayer(l); l = null; }
       if (!l) {
-        const geo = packForGPU(getSoldierGeometry(ageId, classId).clone());
         const anim = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 3), 3).setUsage(DynamicDrawUsage);
         const variant = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 4), 4).setUsage(DynamicDrawUsage);
-        geo.setAttribute('aAnim', anim); geo.setAttribute('aVariant', variant);
-        const mesh = new InstancedMesh(geo, soldierMaterial, MAX_SOLDIERS);
-        mesh.instanceColor = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 3), 3).setUsage(DynamicDrawUsage);
-        mesh.count = 0; mesh.frustumCulled = false;
-        root.add(mesh);
-        l = { mesh, anim, variant };
+        const color = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 3), 3).setUsage(DynamicDrawUsage);
+        let matrix = null; // one instance buffer set, shared by both levels
+        const levels = soldierLodGeometries(source).slice(0, 2).map((g) => {
+          const geo = packForGPU(g.clone());
+          geo.setAttribute('aAnim', anim); geo.setAttribute('aVariant', variant);
+          const mesh = new InstancedMesh(geo, soldierMaterial, MAX_SOLDIERS);
+          if (matrix) mesh.instanceMatrix = matrix; else matrix = mesh.instanceMatrix.setUsage(DynamicDrawUsage);
+          mesh.instanceColor = color;
+          mesh.count = 0; mesh.frustumCulled = false;
+          root.add(mesh);
+          return mesh;
+        });
+        source.computeBoundingBox();
+        l = { source, levels, mesh: levels[0], anim, variant, color, height: source.boundingBox.max.y - source.boundingBox.min.y };
         t.layers.set(key, l);
       }
       return l;
@@ -562,10 +587,12 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       const next = lead?.route?.[0] ? toScreen(lead.route[0]) : null;
       const walking = !!next;
       if (walking) moving = true;
-      const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : 0.5;
+      const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING;
       const n = figuresFor(m.men);
       const scale = s * SOLDIER_SIZE * (MODEL_SCALE[classId] || 0.88);
       color.set(m.own ? PLAYER_COLOR : getNationColor(m.ownerId) || '#64748b');
+      l.px = scale * l.height;
+      const tone = skinToneFor(m.ownerId); const cell = emblemCellFor(m.own ? 0 : 1, mi);
       for (let i = 0; i < n && l.mesh.count < MAX_SOLDIERS; i++) {
         const k2 = l.mesh.count;
         const ox = (i - (n - 1) / 2) * s * 1.1 + s * ARMY_SPOT.x; const oy = s * ARMY_SPOT.y + (i % 2) * s * 0.4;
@@ -576,11 +603,18 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         l.mesh.setMatrixAt(k2, tmp.matrix);
         l.mesh.setColorAt(k2, color);
         l.anim.setXYZ(k2, (mi * 1.7 + i) % 6.28, walking ? 1 : 0, 0);
-        l.variant.setXYZW(k2, (mi + i) % 4, (mi * 3 + i) % 16, ((mi + i) % 5) / 5 - 0.4, 0);
+        // one people's skin tone and one device per army, as in battle (unitVariants.js)
+        l.variant.setXYZW(k2, soldierSkinTone(tone, mi, i), cell, ((mi + i) % 5) / 5 - 0.4, 0);
         l.mesh.count += 1;
       }
     });
-    t.layers.forEach((l) => { l.mesh.instanceMatrix.needsUpdate = true; l.mesh.instanceColor.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true; });
+    t.layers.forEach((l) => {
+      const [full, mid] = l.levels;
+      const n = full.count;
+      const tier = (l.px || 0) >= TIER_PX[0] ? 0 : 1;
+      full.count = tier === 0 ? n : 0; mid.count = tier === 1 ? n : 0;
+      full.instanceMatrix.needsUpdate = true; l.color.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true;
+    });
     t.moving = moving;
 
     // Fleets: 1 to 3 warships of the owner's age (shipModels.js) on their sea tile, turned toward
@@ -641,7 +675,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
       t.ridges.forEach((m) => m.dispose()); t.hills.dispose(); t.plots.dispose(); t.plots.geometry.dispose(); plotMaterial.dispose(); plotMap?.dispose();
       t.towns.forEach((m) => root.remove(m)); t.wonders.forEach((m) => root.remove(m)); t.fieldWorks.forEach((g) => root.remove(g));
-      t.layers.forEach((l) => { l.mesh.geometry.dispose(); });
+      t.layers.forEach(dropLayer);
       t.buildings.dispose();
       t.improvements.dispose();
       t.ships.dispose();

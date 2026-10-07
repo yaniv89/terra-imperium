@@ -145,3 +145,15 @@ export const preloadUnitModels = async (setup, { timeoutMs = 8000, load = loadUn
   }));
   return { loaded, failed };
 };
+
+/**
+ * The same for one (age, class) outside a battle: the map's close view draws an army with the
+ * battle's own soldier. Resolves true when the artist's model is registered (now or already),
+ * false when that unit keeps the procedural model (no file, or it failed to load).
+ */
+export const preloadSoldierModel = async (ageId, classId, deps = {}) => {
+  if (hasSoldierOverride(ageId, classId)) return true;
+  if (!(deps.find || findUnitModel)(ageId, classId)) return false;
+  const r = await preloadUnitModels({ sides: [{ ageId, units: [{ classId }] }] }, { extras: () => [], ...deps });
+  return r.loaded.length > 0;
+};

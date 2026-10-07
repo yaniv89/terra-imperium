@@ -461,7 +461,7 @@ attribute vec4 aLook;
 #define aSurface aLook.zw
 attribute vec2 aUv;
 varying vec2 vSurface;
-attribute vec4 aVariant; // x: skin tone, y: emblem cell, z: cloth jitter
+attribute vec4 aVariant; // x: skin tone (fractional: blends the two either side), y: emblem cell, z: cloth jitter
 uniform vec3 uSkin[${SKIN_N}];
 varying vec3 vEmblem;    // xy: atlas uv, z: 1 on emblem parts
 `;
@@ -489,8 +489,10 @@ const patchRig = (shader, withColor) => {
         base = color;
       #endif
       float isSkin = (aPart > 0.5 && aPart < 1.5) ? 1.0 : 0.0;
-      int tone = int(clamp(floor(aVariant.x + 0.5), 0.0, ${f(SKIN_N - 1)}));
-      base = mix(base * (1.0 + aVariant.z * 0.09 * (1.0 - aTeam)), uSkin[tone], isSkin);
+      float toneF = clamp(aVariant.x, 0.0, ${f(SKIN_N - 1)});
+      float tone0 = floor(toneF);
+      vec3 skinTone = mix(uSkin[int(tone0)], uSkin[int(min(tone0 + 1.0, ${f(SKIN_N - 1)}))], toneF - tone0);
+      base = mix(base * (1.0 + aVariant.z * 0.09 * (1.0 - aTeam)), skinTone, isSkin);
       #ifdef USE_INSTANCING_COLOR
         vColor.rgb = mix(base * mix(vec3(1.0), instanceColor.rgb, ${f(withColor.teamTint ?? 0.12)} * (1.0 - isSkin)), instanceColor.rgb, aTeam);
       #else

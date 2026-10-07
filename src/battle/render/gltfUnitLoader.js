@@ -140,6 +140,25 @@ const applyPose = (root, animations, restClip) => {
   root.updateMatrixWorld(true);
 };
 
+// An emblem surface without UVs (the Bronze spearman's ShieldFace) would print one texel of its
+// device over the whole face (every corner at uv 0, 0): a plain gold, white or blue shield picked
+// by the squad's device. Instead it is mapped flat across its own plane (the two widest axes of
+// its box), v up when the face stands upright. `pos` xyz and `uvs` uv per vertex, [first, end).
+export const planarEmblemUv = (pos, uvs, first, end) => {
+  if (end <= first) return;
+  const min = [Infinity, Infinity, Infinity]; const max = [-Infinity, -Infinity, -Infinity];
+  for (let i = first; i < end; i++) {
+    for (let a = 0; a < 3; a++) { const x = pos[i * 3 + a]; if (x < min[a]) min[a] = x; if (x > max[a]) max[a] = x; }
+  }
+  const size = [0, 1, 2].map((a) => max[a] - min[a]);
+  const thin = size.indexOf(Math.min(...size));
+  const [ua, va] = thin === 0 ? [2, 1] : thin === 1 ? [0, 2] : [0, 1];
+  for (let i = first; i < end; i++) {
+    uvs[i * 2] = size[ua] > 1e-9 ? (pos[i * 3 + ua] - min[ua]) / size[ua] : 0.5;
+    uvs[i * 2 + 1] = size[va] > 1e-9 ? (pos[i * 3 + va] - min[va]) / size[va] : 0.5;
+  }
+};
+
 /**
  * Bake a loaded glTF scene into one instancing-ready soldier geometry.
  * @param {Object3D} root            gltf.scene (or any Object3D)
@@ -178,6 +197,7 @@ export const extractUnitGeometry = (root, opts = {}) => {
   const stats = { meshes: 0, skinned: 0, triangles: 0, limbs: {}, namedLimbs: false, warnings: [] };
   const v = new Vector3(); const skinIdx = new Vector4(); const skinW = new Vector4();
   const c = new Color(); const texel = new Color(); const uvA = [0, 0]; const cornerUv = [[0, 0], [0, 0], [0, 0]];
+  const flatEmblems = []; // [first, end) vertex runs of emblem surfaces that came without UVs
 
   root.traverse((mesh) => {
     if (!mesh.isMesh || !mesh.geometry?.attributes?.position || mesh.visible === false) return;
@@ -208,6 +228,7 @@ export const extractUnitGeometry = (root, opts = {}) => {
       const metal = Math.max(0, Math.min(1, mat?.metalness ?? 0)); const rough = Math.max(0.05, Math.min(1, mat?.roughness ?? 0.85));
       const reader = uvAttr && mat?.map ? readerFor(mat.map) : null;
       const end = Math.min(count, grp.start + grp.count);
+      const firstVertex = pos.length / 3;
       for (let k = grp.start; k + 2 < end; k += 3) {
         // Flat colour per triangle: sample the texture once at the triangle's centre.
         for (let j = 0; j < 3; j++) {
@@ -243,8 +264,10 @@ export const extractUnitGeometry = (root, opts = {}) => {
           surf.push(metal, rough);
         }
       }
+      if (isEmblem && !uvAttr) flatEmblems.push([firstVertex, pos.length / 3]);
     });
   });
+  flatEmblems.forEach(([first, end]) => planarEmblemUv(pos, uvs, first, end));
 
   const n = pos.length / 3;
   if (!n) throw new Error('extractUnitGeometry: the model has no triangles');

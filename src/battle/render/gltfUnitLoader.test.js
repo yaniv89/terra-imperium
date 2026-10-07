@@ -207,3 +207,21 @@ describe('parseUnitModel', () => {
     expect(geometry.attributes.aTeam.getX(0)).toBe(1);
   });
 });
+
+describe('an emblem face without UVs', () => {
+  it('is mapped flat across its own plane, not printed with one texel of the device', () => {
+    // a thin upright shield face (no uv attribute) beside a body
+    const face = new BoxGeometry(0.5, 0.5, 0.02).toNonIndexed(); face.deleteAttribute('uv');
+    const shield = new Mesh(face, new MeshStandardMaterial({ name: 'Emblem' }));
+    shield.position.set(0.3, 0.6, 0.2);
+    const body = new Mesh(new BoxGeometry(0.3, 1, 0.2), new MeshStandardMaterial({ name: 'Cloth' }));
+    const root = new Group(); root.add(body, shield); root.updateMatrixWorld(true);
+    const { geometry } = extractUnitGeometry(root, { segment: 'none' });
+    const part = geometry.attributes.aPart; const uv = geometry.attributes.aUv;
+    const us = []; const vs = [];
+    for (let i = 0; i < part.count; i++) if (part.getX(i) === PART.EMBLEM) { us.push(uv.getX(i)); vs.push(uv.getY(i)); }
+    expect(us.length).toBeGreaterThan(0);
+    expect(Math.min(...us)).toBeCloseTo(0, 5); expect(Math.max(...us)).toBeCloseTo(1, 5);
+    expect(Math.min(...vs)).toBeCloseTo(0, 5); expect(Math.max(...vs)).toBeCloseTo(1, 5);
+  });
+});
