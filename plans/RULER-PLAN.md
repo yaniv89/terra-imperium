@@ -583,3 +583,9 @@ Risks:
 13. **The Dynasty achievement**: recommend keep the id, rename to "Living Legend" (ruler level 20).
 14. **Calendar age or the nation's own tech age for caps and tiers?** Recommend the calendar age (the
     same for everyone, simple); revisit if a fast researcher feels held back.
+
+## Decisions (user, 2026-10-07)
+All 14 recommendations above are accepted, with one change to question 12: the old 240-country
+world is no longer a game mode. The ruler system is built for the peoples world only; the legacy
+world stays only as far as tests and old saves need it (it gets fixed 3/3/3 rulers and no Ruler
+menu), and nothing in RU0 to RU4 is designed around it.
