@@ -1,0 +1,188 @@
+{
+  "file": "civic-classical.glb",
+  "kind": "landmark",
+  "bytes": 907104,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "keep": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1218,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.965,
+          "depth": 1.954,
+          "height": 1.114,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 634,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.965,
+          "depth": 1.95,
+          "height": 1.114,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 282,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.935,
+          "depth": 1.918,
+          "height": 1.112,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.965
+    },
+    "keep-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1672,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.965,
+          "depth": 1.964,
+          "height": 1.114,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 902,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.965,
+          "depth": 1.95,
+          "height": 1.114,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 282,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.935,
+          "depth": 1.918,
+          "height": 1.112,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.965
+    },
+    "keep-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1395,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.935,
+          "depth": 1.918,
+          "height": 0.16,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 667,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.935,
+          "depth": 1.918,
+          "height": 0.16,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 416,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.935,
+          "depth": 1.918,
+          "height": 0.16,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.935
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "civic-classical_normal",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 78552
+    },
+    {
+      "name": "civic-classical_base",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 213710
+    },
+    {
+      "name": "civic-classical_orm",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 121344
+    }
+  ],
+  "passed": true
+}

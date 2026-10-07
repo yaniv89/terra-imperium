@@ -57,3 +57,5 @@ Wave 3 [checkpoint 11](downloads/wave3/checkpoint-11/README.md), 2026-10-07 (Cla
 Wave 3 [checkpoint 12](downloads/wave3/checkpoint-12/README.md), 2026-10-07 (Claude): the 38 Classical signature units (18 on foot, 13 horsemen, 2 light chariots, 2 camels, 2 war elephants, the Bosporan stone-thrower; `build_units_classical_signature.py`), 38 queue items `in_game_awaiting_review`; each Classical people's signature unit shows in battle, camels and elephants drawn at their own height. 3.38 MB added.
 
 Wave 3 [checkpoint 13](downloads/wave3/checkpoint-13/README.md), 2026-10-07 (Claude): the Classical battle buildings (`rts-classical.glb`: 13 roles with damaged states, construction stages 0-3; `build_rts_classical.py`), 14 queue items `in_game_awaiting_review`; Classical economy battles draw them. 1.54 MB added.
+
+Wave 3 [checkpoint 14](downloads/wave3/checkpoint-14/README.md), 2026-10-07 (Claude): the Classical city kit for battle (walls, ruins, fort and the civic hall with damaged and ruined states; `build_city_classical.py`), 4 queue items `in_game_awaiting_review`; Classical sieges draw their own walls, hall and rubble. 2.42 MB added.

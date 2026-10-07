@@ -2757,15 +2757,16 @@
     {
       "path": "plans/art/battle-city/classical/ruin-library",
       "section": "battle-city",
-      "description": "Classical ruin library: Classical rubble in the age's materials: house rubble small and large, landmark rubble (12 to 25 m), broken beams, scorch decal, fire and smoke attachment points; used for every building without its own ruin",
+      "description": "Classical ruin library (rubble-s/-m/-l, beams, scorch) in ashlar, plaster and broken tile, src/assets/battle/city/ruins-classical.glb",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/classical/ruin-library",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave3 checkpoint-14, 2026-10-07 (plans/art/downloads/wave3/checkpoint-14)"
     },
     {
       "path": "plans/art/battle-city/kingdoms/ruin-library",
@@ -2823,15 +2824,16 @@
     {
       "path": "plans/art/battle-city/classical/wall-kit",
       "section": "battle-city",
-      "description": "Classical wall kit: Classical wall segment kit cut from the existing wall rings: straight, corner, tower, gate (open, closed), each intact, damaged and breached",
+      "description": "Classical wall kit (wall-straight, wall-corner, tower, gate-open, gate-closed; -damaged, -breached) in limestone ashlar, src/assets/battle/city/walls-classical.glb, scripts/blender/build_city_classical.py",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/classical/wall-kit",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7",
+      "delivered": "wave3 checkpoint-14, 2026-10-07 (plans/art/downloads/wave3/checkpoint-14)"
     },
     {
       "path": "plans/art/battle-city/kingdoms/wall-kit",
@@ -5675,15 +5677,16 @@
     {
       "path": "plans/art/battle-city/classical/fort",
       "section": "battle-city",
-      "description": "Classical fort (battle): Classical fort on the battle map, built from the map's fort-classical improvement and the age's wall kit: walls, towers, gate, garrison house; intact, damaged, breached",
+      "description": "Classical fort: a stone castellum in a 50 m circle, src/assets/battle/city/fort-classical.glb (battle; the map improvement file is still pending)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/classical/fort",
       "phase": "R3",
       "batch": "M13",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7",
+      "delivered": "wave3 checkpoint-14, 2026-10-07 (plans/art/downloads/wave3/checkpoint-14)"
     },
     {
       "path": "plans/art/battle-city/kingdoms/fort",
@@ -10654,6 +10657,20 @@
       "placeholder_ok": true,
       "spec": "plans/ART-MODELS-PLAN.md section 4.5",
       "delivered": "wave3 checkpoint-12, 2026-10-07 (plans/art/downloads/wave3/checkpoint-12)"
+    },
+    {
+      "path": "plans/art/battle-city/classical/civic",
+      "section": "battle-city",
+      "description": "Classical civic hall (keep, keep-damaged, keep-ruined): the basilica hall in its walled court, the city's hall in a Classical siege, src/assets/battle/city/civic-classical.glb",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "delivery_status": "in_game_awaiting_review",
+      "id": "battle-city/classical/civic",
+      "phase": "B",
+      "batch": "W3",
+      "priority": "P1",
+      "placeholder_ok": true,
+      "spec": "plans/ART-MODELS-PLAN.md section 5 (town-hall) and 6",
+      "delivered": "wave3 checkpoint-14, 2026-10-07 (plans/art/downloads/wave3/checkpoint-14)"
     }
   ],
   "note": "Delivery status is separate from game integration. ITEMS.md Part A assets are excluded; source in-game counts are unchanged.",
