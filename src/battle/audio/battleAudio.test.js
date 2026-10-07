@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createBattleAudio, isBattleAudioEnabled, setBattleAudioEnabled, soundForEvent, MAX_VOICES, MAX_NEW_PER_FRAME } from './battleAudio';
 import { setSoundFilesForTest } from '../../audio/soundRegistry';
+import { setPageStateForTest, resetPageStateForTest } from '../../audio/pageLifecycle';
 
 // The suite runs in Node: a minimal window/localStorage stand-in is all this module touches.
 const store = new Map();
@@ -89,6 +90,22 @@ describe('battle audio', () => {
     expect(FakeAudioContext.sources).toBe(0);
     audio.events([{ type: 'ended', outcome: 'attacker' }], view);
     expect(FakeAudioContext.sources).toBeGreaterThan(0);
+  });
+
+  it('a locked phone or backgrounded app suspends the context; back on screen resumes it', () => {
+    const audio = createBattleAudio();
+    audio.unlock();
+    const ctx = FakeAudioContext.last;
+    ctx.suspend = vi.fn(() => { ctx.state = 'suspended'; });
+    ctx.resume = vi.fn(() => { ctx.state = 'running'; });
+    setPageStateForTest({ appPaused: true });
+    expect(ctx.suspend).toHaveBeenCalled();
+    audio.unlock(); // a stray gesture while away must not wake it
+    expect(ctx.resume).not.toHaveBeenCalled();
+    setPageStateForTest({ appPaused: false });
+    expect(ctx.resume).toHaveBeenCalled();
+    resetPageStateForTest();
+    audio.dispose();
   });
 
   it('600 squads: a few new sounds a frame on a pool of at most 16 voices', () => {

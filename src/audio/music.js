@@ -3,11 +3,14 @@
 // musicTracks, in file name order), played one after another with a CROSSFADE_S crossfade, the
 // list looping; the map ambience beds (src/assets/audio/music/ambience/<id>/) loop under them.
 // Music plays in map mode only: a battle screen calls suppressMusic('battle') while it is open,
-// and the tab being hidden pauses it. The Music volume and the Sound switch come from
-// audioSettings.js. Browsers only start audio after a user gesture: App calls startMusic() on the
-// first one. With no files (today) all of this does nothing.
+// and the page not being on screen (pageLifecycle.js: hidden tab, locked phone, app in the
+// background, a phone window losing focus) stops it at once, without a fade: timers are throttled
+// in the background, so a fade would leave it playing on a locked iPhone. The Music volume and the
+// Sound switch come from audioSettings.js. Browsers only start audio after a user gesture: App
+// calls startMusic() on the first one. With no files all of this does nothing.
 import { musicTracks, AMBIENCE_SOUNDS, ambienceFilesFor, createSoundRng } from './soundRegistry';
 import { getAudioSettings, subscribeAudioSettings } from './audioSettings';
+import { isPageAudible, subscribePageAudio, quietMediaSession } from './pageLifecycle';
 
 export const CROSSFADE_S = 4;
 const FADE_STEP_MS = 50;
@@ -25,9 +28,10 @@ let cur = 0; let trackIdx = 0;
 let fadeTimer = null;
 let ambience = null; // [{ el, gain }]
 let unsubscribe = null;
+let unsubscribePage = null;
 const rng = createSoundRng();
 
-const hidden = () => typeof document !== 'undefined' && !!document.hidden;
+const hidden = () => !isPageAudible();
 const canPlay = () => typeof Audio !== 'undefined';
 const wanted = () => {
   const s = getAudioSettings();
@@ -57,11 +61,15 @@ const playTrack = (el, i) => {
   el.play()?.catch?.(() => { /* not allowed yet: the next gesture retries */ });
 };
 
+// The lock screen or a headset button can restart an element: while the page is away, stop it again.
+const guardPlay = (el) => el.addEventListener('play', () => { if (hidden()) el.pause(); });
+
 const ensurePlayers = () => {
   if (players || !canPlay()) return players;
   players = [new Audio(), new Audio()];
   players.forEach((el, k) => {
     el.preload = 'auto';
+    guardPlay(el);
     // Near a track's end the other player starts the next one: the crossfade.
     el.addEventListener('timeupdate', () => {
       if (k !== cur || !el.duration || el.dataset.target === '0') return;
@@ -82,15 +90,27 @@ const ensureAmbience = () => {
     const files = ambienceFilesFor(id);
     if (!files.length) return null;
     const el = new Audio(files[Math.floor(rng() * files.length)]);
+    guardPlay(el);
     el.loop = true; el.volume = 0; el.dataset.gain = String(def.gain); el.dataset.target = '0';
     return { id, el };
   }).filter(Boolean);
   return ambience;
 };
 
-/** Bring the music in line with the settings, the battle and the tab. */
+// Pause every element now (the page went away): no fade, the background throttles timers.
+const stopNow = () => {
+  if (fadeTimer) { clearInterval(fadeTimer); fadeTimer = null; }
+  [...(players || []), ...(ambience || []).map((a) => a.el)].forEach((el) => {
+    el.dataset.target = '0'; el.volume = 0;
+    if (!el.paused) el.pause();
+  });
+  quietMediaSession(() => refreshMusic());
+};
+
+/** Bring the music in line with the settings, the battle and the page. */
 export const refreshMusic = () => {
   if (!canPlay()) return;
+  if (hidden()) { stopNow(); return; }
   const on = wanted();
   const ps = on ? ensurePlayers() : players;
   if (ps) {
@@ -113,7 +133,8 @@ export const startMusic = () => {
   if (started) return;
   started = true;
   if (!unsubscribe) unsubscribe = subscribeAudioSettings(() => refreshMusic());
-  if (typeof document !== 'undefined') document.addEventListener?.('visibilitychange', refreshMusic);
+  if (!unsubscribePage) unsubscribePage = subscribePageAudio(() => refreshMusic());
+  quietMediaSession(() => refreshMusic());
   refreshMusic();
 };
 

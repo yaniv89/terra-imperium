@@ -264,34 +264,39 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       // Workers to a resource: gather it (the others just go there).
       if (workers.length) send([{ type: 'gather', squads: workers, node: hit.index }]);
       if (!onlyWorkers) send([{ type: 'move', squads: sel.filter((i) => !workers.includes(i)), x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
-      r.addMarker(hit.ground.x, hit.ground.z, '#fde047');
+      r.setOrderTarget(sel.filter((i) => !workers.includes(i)), null);
+      if (workers.length) r.setOrderTarget(workers, { kind: 'node', index: hit.index }, 'gather'); // the target ring (orderTarget.js)
+      if (!onlyWorkers) r.addMarker(hit.ground.x, hit.ground.z, '#fde047');
     } else if (hit.kind === 'eco' && hit.side === playerSide) {
       // Workers to one of your buildings: help build it, or repair it; the others walk there.
       if (workers.length) send([{ type: 'assist', squads: workers, target: { kind: 'eco', index: hit.index } }]);
       if (!onlyWorkers) send([{ type: startedRef.current ? 'move' : 'deploy', squads: sel.filter((i) => !workers.includes(i)), x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
-      r.addMarker(hit.ground.x, hit.ground.z, '#a3e635');
+      r.setOrderTarget(sel.filter((i) => !workers.includes(i)), null);
+      if (workers.length) r.setOrderTarget(workers, { kind: 'eco', index: hit.index }, 'assist');
+      if (!onlyWorkers) r.addMarker(hit.ground.x, hit.ground.z, '#a3e635');
     } else if (hit.kind === 'eco') {
       send([{ type: 'attack', squads: sel, target: { kind: 'eco', index: hit.index } }]);
-      r.addMarker(hit.ground.x, hit.ground.z, '#f87171');
+      r.setOrderTarget(sel, { kind: 'eco', index: hit.index }, 'attack');
     } else if (hit.kind === 'structure' && playerSide === 1 && onlyWorkers) {
       send([{ type: 'repair', squads: workers, target: { kind: 'structure', index: hit.index } }]); // mend your city
-      r.addMarker(hit.ground.x, hit.ground.z, '#a3e635');
+      r.setOrderTarget(workers, { kind: 'structure', index: hit.index }, 'repair');
     } else if (hit.kind === 'squad' && hit.side !== playerSide) {
       send([{ type: 'attack', squads: sel, target: { kind: 'squad', index: hit.idx } }]);
-      r.addMarker(hit.ground.x, hit.ground.z, '#f87171');
+      r.setOrderTarget(sel, { kind: 'squad', index: hit.idx }, 'attack');
     } else if (hit.kind === 'structure' && playerSide === 1) {
       // Defending: tap your keep or a tower to man it (infantry and ranged; fortified buildings only).
       const eligible = sel.filter((i) => ['infantry', 'ranged'].includes(cur.squads[i]?.classId));
       if (eligible.length) {
         send([{ type: 'garrison', squads: eligible, structure: hit.index }]);
-        r.addMarker(hit.ground.x, hit.ground.z, '#60a5fa');
+        r.setOrderTarget(eligible, { kind: 'structure', index: hit.index }, 'garrison');
       }
     } else if (hit.kind === 'structure' && playerSide === 0) {
       send([{ type: 'attack', squads: sel, target: { kind: 'structure', index: hit.index } }]);
-      r.addMarker(hit.ground.x, hit.ground.z, '#f87171');
+      r.setOrderTarget(sel, { kind: 'structure', index: hit.index }, 'attack');
     } else {
       const type = !startedRef.current ? 'deploy' : forceAttackMove || armedRef.current === 'attackMove' ? 'attackMove' : 'move'; // before Start the ground order places the squads (plan D5)
       send([{ type, squads: sel, x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
+      r.setOrderTarget(sel, null); // a plain move: the old target ring goes, the move marker shows
       r.addMarker(hit.ground.x, hit.ground.z, type === 'attackMove' ? '#fb923c' : '#a3e635');
     }
     armedRef.current = null; setArmed(null);
