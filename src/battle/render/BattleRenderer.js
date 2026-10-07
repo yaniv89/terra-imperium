@@ -27,7 +27,7 @@ import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
 import { VegetationProps } from '../art/vegetationProps';
-import { dressStructure, fortRef } from '../art/structureArt';
+import { dressStructure, fortRef, CivicStructures } from '../art/structureArt';
 import { BattleTerrainArt } from '../art/battleTerrain';
 import { ProjectileArt } from '../art/projectiles';
 import { FxSprites } from '../art/fxSheets';
@@ -557,6 +557,7 @@ export class BattleRenderer {
 
   buildStructures() {
     this.structureMeshes = new Map();
+    this.civicStructures = new CivicStructures(this);
     const modern = this.setup.sides[1].ageId === 'modern';
     const merlons = (g, mat, radius, y, count, size = 0.22) => {
       for (let i = 0; i < count; i++) {
@@ -626,6 +627,8 @@ export class BattleRenderer {
       // (src/assets/battle/city/fort-<age>.glb or the map's fort improvement; structureArt.js).
       if (s.kind === 'keep' && !this.setup.city && (s.walls || s.damage > 0)) {
         dressStructure(g, fortRef(this.setup.sides[1].ageId), { fitTiles: s.walls ? 8 : 4.5, teamColor: this.setup.sides[1].color, track: (m) => this.track(m), isLive: () => !this.disposed });
+      } else if (s.kind === 'keep' && !this.setup.city) {
+        this.civicStructures.add(g, s, this.setup.sides[1].ageId);
       }
     });
   }
@@ -1389,6 +1392,7 @@ export class BattleRenderer {
   }
 
   drawStructures(cur) {
+    this.civicStructures?.update(cur);
     let n = 0;
     const camQuat = this.camera.quaternion;
     cur.structures.forEach((s) => {
@@ -1504,6 +1508,7 @@ export class BattleRenderer {
     this.disposed = true;
     this.soldierLayers.forEach((l) => l.levels.forEach((m) => m.dispose()));
     this.cityLayer?.dispose();
+    this.civicStructures?.dispose();
     this.ecoLayer?.dispose();
     this.vegetation?.dispose();
     this.terrainArt?.dispose();

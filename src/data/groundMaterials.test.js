@@ -30,6 +30,12 @@ describe('ground materials', () => {
     expect(groundTextureUniform(null).value).toBe(whiteTexture());
   });
 
+  it('selects explicit tundra detail and falls back to rock until delivered', () => {
+    const idx = indexGroundMaterials({ ...files, '../assets/terrain/tundra/color.webp': 't.webp' });
+    expect(battleGroundSets('tundra', { index: idx }).base).toEqual({ id: 'tundra', color: 't.webp' });
+    expect(battleGroundSets('tundra', { index: indexGroundMaterials(files) }).base.id).toBe('rock');
+    expect(battleGroundSets('arctic', { index: idx }).base).toBeNull();
+  });
   it('compile into the battle ground shader only where a set exists', () => {
     const compile = (details) => {
       const m = patchGroundMaterial(new MeshLambertMaterial(), { mask: new Texture(), mapW: 10, mapH: 10, road: '#000', sand: '#000', rock: '#000', forest: '#000', details });

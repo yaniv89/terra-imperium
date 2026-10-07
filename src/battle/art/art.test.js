@@ -41,6 +41,18 @@ describe('art index', () => {
     expect(a.housesDamage('kingdoms', 'levant')).toBeNull();
   });
 
+  it('resolves civic halls and palace damage by style without borrowing another age', () => {
+    for (const kind of ['civic', 'palaceDamage']) {
+      const stem = kind === 'civic' ? 'civic' : 'palace-damage';
+      const a = idx(`battle/city/${stem}-bronze.glb`, `battle/city/${stem}-bronze-sinic.glb`, `battle/city/${stem}-classical-levant.glb`);
+      expect(a[kind]('bronze', 'korea').style).toBe('sinic');
+      expect(a[kind]('bronze', 'europe').style).toBe('base');
+      expect(a[kind]('classical', 'andalus').style).toBe('levant');
+      expect(a[kind]('kingdoms', 'sinic')).toBeNull();
+      expect(idx()[kind]('bronze', 'levant')).toBeNull();
+    }
+  });
+
   it('finds nodes, vegetation kits along their chain, terrain, bridges, signature units and map kits', () => {
     const a = idx('battle/nature/stone-outcrop.glb', 'battle/nature/vegetation-temperate.glb', 'battle/nature/vegetation-conifer.glb',
       'battle/terrain/ford.glb', 'battle/terrain/bridge-wood.glb', 'battle/terrain/bridge-stone.glb', 'units/signature/kingdom-of-israel.glb', 'map/terrain/hills.glb');
@@ -60,7 +72,7 @@ describe('art index', () => {
   });
 
   it('builds the game index from the asset folders (every key a known class)', () => {
-    ART.keys().forEach((k) => expect(k).toMatch(/^(battle\/(rts|city|nature|terrain|projectiles)|units\/signature|map\/terrain)\//));
+    ART.keys().forEach((k) => expect(k).toMatch(/^(battle\/(rts|city|nature|terrain|projectiles|props)|units\/signature|map\/terrain)\//));
   });
 });
 
