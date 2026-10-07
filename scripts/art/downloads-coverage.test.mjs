@@ -43,7 +43,9 @@ describe('art downloads coverage', () => {
       items: [
         { item: 'plans/art/buildings/a', target_path: 'package.json', archive_part: 'part-1.zip' },
         { logical_item: 'b', target_path: 'package.json', archive_part: 'part-1.zip' },
-        { logical_item: 'b', target_path: 'src/no-such-variant.glb', archive_part: 'part-1.zip' }
+        { logical_item: 'b', target_path: 'src/no-such-variant.glb', archive_part: 'part-1.zip' },
+        { logical_item: 'c', target_path: 'src/assets/units/bronze-infantry.glb', object: 'Head', archive_part: 'part-1.zip' },
+        { logical_item: 'd', target_path: 'src/assets/units/bronze-infantry.glb', object: 'no-such-root', archive_part: 'part-1.zip' }
       ]
     }));
     writeFileSync(`${dir}/SHA256SUMS.txt`, `${'a'.repeat(64)}  part-1.zip\n`);
@@ -51,7 +53,7 @@ describe('art downloads coverage', () => {
     expect(zip.zip).toBe(`${dir}/part-1.zip`);
     expect(zip.hosted).toBe('https://example.invalid/part-1.zip');
     expect(zip.sha256).toBe('a'.repeat(64));
-    expect(zip.items.map((i) => [i.item, notInGame(i)])).toEqual([['plans/art/buildings/a', false], ['b', true]]);
+    expect(zip.items.map((i) => [i.item, notInGame(i)])).toEqual([['plans/art/buildings/a', false], ['b', true], ['c', false], ['d', true]]);
   });
 
   it.skipIf(!existsSync(DOWNLOADS))('every delivered item is in the game', () => {

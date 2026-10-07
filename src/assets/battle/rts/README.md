@@ -35,6 +35,11 @@ only `rts-bronze.glb` draws the Bronze buildings), else the greyboxes. A role mi
 stays a greybox; a missing `-damaged` keeps the whole building; missing construction stages show the
 building rising out of the ground.
 
+## Delivered
+`rts-bronze.glb` (2026-10-07, `scripts/blender/build_rts_bronze.py`, from the Bronze town kit): the
+13 roles above with their `-damaged` siblings and sockets; no `house`, construction stages or farm
+growth stages yet. Until later ages have files, their battles fall back to it.
+
 ## Check
 `python3 scripts/blender/validate_model.py <file> <out> auto` (kind `prefab`), then
 `npm run pack:models`, then `/?battleSandbox` with an economy battle.

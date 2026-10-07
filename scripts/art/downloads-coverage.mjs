@@ -15,6 +15,7 @@
 // packed result only. Keep a copy of the ZIPs outside git if the towns may need rebuilding.
 import { closeSync, existsSync, fstatSync, openSync, readdirSync, readFileSync, readSync } from 'node:fs';
 import { posix } from 'node:path';
+import { readGlbJson } from './glbInfo.mjs';
 
 export const DOWNLOADS = 'plans/art/downloads';
 
@@ -163,12 +164,23 @@ export const manifestCoverage = (root = DOWNLOADS) => walkManifests(root).flatMa
     // Variants of one logical item (cathedral and cathedral-levant) count once, with every file.
     const item = i.item || i.logical_item || i.id;
     const items = byZip.get(zip);
-    if (!items.has(item)) items.set(item, { item, kind: i.kind || 'delivery', targets: [], files: [], models: [] });
+    if (!items.has(item)) items.set(item, { item, kind: i.kind || 'delivery', targets: [], objects: [], files: [], models: [] });
     items.get(item).targets.push(i.target_path);
+    // A kit file holds several items (rts-bronze.glb's roles): `object` names the item's root node.
+    if (i.object) items.get(item).objects.push([i.target_path, i.object]);
   });
+  const nodeNames = new Map();
+  const hasNode = (file, name) => {
+    if (!nodeNames.has(file)) nodeNames.set(file, new Set((readGlbJson(file).nodes || []).map((n) => n.name)));
+    return nodeNames.get(file).has(name);
+  };
   return [...byZip.entries()].map(([zip, items]) => {
     const meta = archives.get(zip) || {};
-    const list = [...items.values()].map((it) => ({ ...it, files: it.targets.filter((f) => existsSync(f)), missing: it.targets.filter((f) => !existsSync(f)) }));
+    const list = [...items.values()].map((it) => {
+      const missing = it.targets.filter((f) => !existsSync(f));
+      it.objects.forEach(([f, name]) => { if (existsSync(f) && !hasNode(f, name)) missing.push(`${f}#${name}`); });
+      return { ...it, files: it.targets.filter((f) => existsSync(f)), missing };
+    });
     return { zip: posix.join(dir, zip), hosted: meta.url || null, sha256: hashes[zip] || meta.sha256 || null, items: list };
   });
 });

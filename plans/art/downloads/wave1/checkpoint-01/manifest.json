@@ -1,0 +1,546 @@
+{
+  "wave": "wave1",
+  "checkpoint": "01",
+  "date": "2026-10-07",
+  "logical_items": 20,
+  "status": "in the game, awaiting the user's visual review; ZIPs kept outside git",
+  "archives": [
+    {
+      "file": "part-1.zip",
+      "logical_items": [
+        "bronze-infantry",
+        "bronze-ranged",
+        "bronze-cavalry",
+        "bronze-siege",
+        "bronze-support"
+      ],
+      "bytes": 13526127,
+      "sha256": "f33096abd12eaf251a8349032529d3495f34f5f1c4315459c2852b2b582ce4df",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07\\part-1.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07/part-1.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    },
+    {
+      "file": "part-2.zip",
+      "logical_items": [
+        "bronze-worker",
+        "bronze-general",
+        "expedition-camp",
+        "town-hall",
+        "food-depot"
+      ],
+      "bytes": 28352754,
+      "sha256": "3ce2846640e431ba9eddae1450f89a8dcd5ae25a7d7f18b3df2a6cc31197c0fc",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07\\part-2.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07/part-2.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    },
+    {
+      "file": "part-3.zip",
+      "logical_items": [
+        "materials-yard",
+        "trade-post",
+        "farm-plot",
+        "mine",
+        "barracks"
+      ],
+      "bytes": 27505241,
+      "sha256": "2f78a9a71ff85535d07367e50348854ad4faaacd71c958600082f9badbc844d1",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07\\part-3.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07/part-3.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    },
+    {
+      "file": "part-4.zip",
+      "logical_items": [
+        "range",
+        "stable",
+        "siege-workshop",
+        "aid-post",
+        "tower"
+      ],
+      "bytes": 27114524,
+      "sha256": "c126ad2b4290ebad37dc1eec93f33d478c771aa019dfe21b5eb2e02ce339677d",
+      "local_copy": "C:\\GitWotkspace\\art-deliveries\\wave1-2026-10-07\\part-4.zip",
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave1-2026-10-07/part-4.zip",
+      "remote": "not published: the GitHub CLI is not installed on this PC"
+    }
+  ],
+  "items": [
+    {
+      "item": "plans/art/units/bronze-infantry",
+      "id": "bronze-infantry",
+      "kind": "unit",
+      "target_path": "src/assets/units/bronze-infantry.glb",
+      "archive_part": "part-1.zip",
+      "author": "Codex",
+      "triangles": 1508,
+      "materials": [
+        "Skin",
+        "Metal",
+        "Leather",
+        "Team",
+        "Cloth",
+        "Emblem",
+        "Wood"
+      ],
+      "validation_passed": true,
+      "clips": "authored 20 fps clips (not played until the Wave 0b VAT bake)",
+      "uncompressed_sha256": "775847b0058071544ff759d781ea6635744a20668da016116d40f19fdc22413b",
+      "uncompressed_bytes": 567452,
+      "game_sha256": "ebb00e2d5f43956c207233bd9a4d2ece7f4db361c034a59c4050e593a1df946d",
+      "game_bytes": 122236
+    },
+    {
+      "item": "plans/art/units/bronze-ranged",
+      "id": "bronze-ranged",
+      "kind": "unit",
+      "target_path": "src/assets/units/bronze-ranged.glb",
+      "archive_part": "part-1.zip",
+      "author": "Codex (kilt made Team and rebuilt by Claude)",
+      "triangles": 1494,
+      "materials": [
+        "Cloth",
+        "Metal",
+        "Wood",
+        "Leather",
+        "Skin",
+        "Team"
+      ],
+      "validation_passed": true,
+      "clips": "authored 20 fps clips (not played until the Wave 0b VAT bake)",
+      "uncompressed_sha256": "1b58639524ed78861c83ea90a68185648cefc29e80a8ca2d4785d8d646b06e3d",
+      "uncompressed_bytes": 525524,
+      "game_sha256": "60d3d77c92850b943816964ed76794801c56912fa8edb02554b4605fb5dfb40c",
+      "game_bytes": 137020
+    },
+    {
+      "item": "plans/art/units/bronze-cavalry",
+      "id": "bronze-cavalry",
+      "kind": "unit-mounted",
+      "target_path": "src/assets/units/bronze-cavalry.glb",
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "triangles": 2388,
+      "materials": [
+        "Skin",
+        "Metal",
+        "Team",
+        "Cloth",
+        "Wood",
+        "Leather"
+      ],
+      "validation_passed": true,
+      "clips": "rest pose only",
+      "uncompressed_sha256": "00eddec72fa4787b637aaeb6440bd5b473b213b9395a4ed3090ebb366ea8574e",
+      "uncompressed_bytes": 402168,
+      "game_sha256": "9533b81ce63e10e33b7f41190fb60e1dd2273c8d1a37a5de494bdf14b9d7ad07",
+      "game_bytes": 156136
+    },
+    {
+      "item": "plans/art/units/bronze-siege",
+      "id": "bronze-siege",
+      "kind": "unit-machine",
+      "target_path": "src/assets/units/bronze-siege.glb",
+      "archive_part": "part-1.zip",
+      "author": "Codex",
+      "triangles": 2900,
+      "materials": [
+        "Skin",
+        "Cloth",
+        "Team",
+        "Wood",
+        "Leather",
+        "Metal"
+      ],
+      "validation_passed": true,
+      "clips": "authored 20 fps clips (not played until the Wave 0b VAT bake)",
+      "uncompressed_sha256": "09246265e67deb81f3993afb216865ada47bb5ee64074d133a1127e434776e3c",
+      "uncompressed_bytes": 691448,
+      "game_sha256": "f29eb4c604760153baa91cfa49951279759077754fbad235be0ea57881b8083d",
+      "game_bytes": 242012
+    },
+    {
+      "item": "plans/art/units/bronze-support",
+      "id": "bronze-support",
+      "kind": "unit-machine",
+      "target_path": "src/assets/units/bronze-support.glb",
+      "archive_part": "part-1.zip",
+      "author": "Claude",
+      "triangles": 2000,
+      "materials": [
+        "Wood",
+        "Metal",
+        "Team",
+        "Cloth",
+        "Leather",
+        "Skin"
+      ],
+      "validation_passed": true,
+      "clips": "rest pose only",
+      "uncompressed_sha256": "dec0902276e4fe5c5959eb8bbe58006e0f3744dc59e69b814593458c645e55fa",
+      "uncompressed_bytes": 306668,
+      "game_sha256": "093da0f3bfe6920c9041596ec6358c076b97a790d883aa2bbf14f3beeca62a8f",
+      "game_bytes": 112736
+    },
+    {
+      "item": "plans/art/units/bronze-worker",
+      "id": "bronze-worker",
+      "kind": "unit",
+      "target_path": "src/assets/units/bronze-worker.glb",
+      "archive_part": "part-2.zip",
+      "author": "Codex",
+      "triangles": 1348,
+      "materials": [
+        "Wood",
+        "Leather",
+        "Skin",
+        "Cloth",
+        "Team",
+        "Metal"
+      ],
+      "validation_passed": true,
+      "clips": "authored 20 fps clips (not played until the Wave 0b VAT bake)",
+      "uncompressed_sha256": "75bf2a14ecdc74db49c4eb7f7b2e4c94ea5d510fab4754f3199a0f8eda0d9c20",
+      "uncompressed_bytes": 589488,
+      "game_sha256": "5939efbc94a9bc5a73f5cfdc5c5c96703cf60263a1a2a5c1ba4866d294153ed6",
+      "game_bytes": 120416
+    },
+    {
+      "item": "plans/art/units/bronze-general",
+      "id": "bronze-general",
+      "kind": "unit-mounted",
+      "target_path": "src/assets/units/bronze-general.glb",
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "triangles": 2005,
+      "materials": [
+        "Skin",
+        "Cloth",
+        "Team",
+        "Metal",
+        "Emblem",
+        "Wood",
+        "Leather"
+      ],
+      "validation_passed": true,
+      "clips": "rest pose only",
+      "uncompressed_sha256": "ac0b33298c951a32fade9095e9e54db1caa63a000ea4ca1bf804dca29b43eaca",
+      "uncompressed_bytes": 324448,
+      "game_sha256": "7c175b0f1f484ca31b4b0d2a9fe4924e8eca321ce20067ec3dae096d51fcb3fe",
+      "game_bytes": 118660
+    },
+    {
+      "item": "plans/art/rts/bronze/expedition-camp",
+      "id": "expedition-camp",
+      "kind": "prefab-hq",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "expedition-camp",
+      "damaged_object": "expedition-camp-damaged",
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "triangles": [
+        2993,
+        685,
+        142
+      ],
+      "triangles_damaged": [
+        3295,
+        849,
+        62
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/town-hall",
+      "id": "town-hall",
+      "kind": "prefab-hq",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "town-hall",
+      "damaged_object": "town-hall-damaged",
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "triangles": [
+        3156,
+        584,
+        244
+      ],
+      "triangles_damaged": [
+        3146,
+        664,
+        152
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/food-depot",
+      "id": "food-depot",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "food-depot",
+      "damaged_object": "food-depot-damaged",
+      "archive_part": "part-2.zip",
+      "author": "Claude",
+      "triangles": [
+        1836,
+        456,
+        144
+      ],
+      "triangles_damaged": [
+        1970,
+        640,
+        144
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/materials-yard",
+      "id": "materials-yard",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "materials-yard",
+      "damaged_object": "materials-yard-damaged",
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "triangles": [
+        1424,
+        888,
+        48
+      ],
+      "triangles_damaged": [
+        1950,
+        1156,
+        48
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/trade-post",
+      "id": "trade-post",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "trade-post",
+      "damaged_object": "trade-post-damaged",
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "triangles": [
+        3084,
+        376,
+        124
+      ],
+      "triangles_damaged": [
+        3086,
+        540,
+        44
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/farm-plot",
+      "id": "farm-plot",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "farm-plot",
+      "damaged_object": "farm-plot-damaged",
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "triangles": [
+        1252,
+        892,
+        48
+      ],
+      "triangles_damaged": [
+        1742,
+        1112,
+        48
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/mine",
+      "id": "mine",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "mine",
+      "damaged_object": "mine-damaged",
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "triangles": [
+        865,
+        309,
+        81
+      ],
+      "triangles_damaged": [
+        1379,
+        565,
+        81
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/barracks",
+      "id": "barracks",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "barracks",
+      "damaged_object": "barracks-damaged",
+      "archive_part": "part-3.zip",
+      "author": "Claude",
+      "triangles": [
+        1524,
+        328,
+        124
+      ],
+      "triangles_damaged": [
+        1722,
+        516,
+        44
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/range",
+      "id": "range",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "range",
+      "damaged_object": "range-damaged",
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "triangles": [
+        690,
+        566,
+        150
+      ],
+      "triangles_damaged": [
+        1120,
+        726,
+        70
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/stable",
+      "id": "stable",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "stable",
+      "damaged_object": "stable-damaged",
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "triangles": [
+        1142,
+        1054,
+        148
+      ],
+      "triangles_damaged": [
+        1680,
+        1322,
+        148
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/siege-workshop",
+      "id": "siege-workshop",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "siege-workshop",
+      "damaged_object": "siege-workshop-damaged",
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "triangles": [
+        762,
+        602,
+        270
+      ],
+      "triangles_damaged": [
+        1300,
+        870,
+        270
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/aid-post",
+      "id": "aid-post",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "aid-post",
+      "damaged_object": "aid-post-damaged",
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "triangles": [
+        1023,
+        167,
+        106
+      ],
+      "triangles_damaged": [
+        1525,
+        435,
+        106
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    },
+    {
+      "item": "plans/art/rts/bronze/tower",
+      "id": "tower",
+      "kind": "prefab",
+      "target_path": "src/assets/battle/rts/rts-bronze.glb",
+      "object": "tower",
+      "damaged_object": "tower-damaged",
+      "archive_part": "part-4.zip",
+      "author": "Claude",
+      "triangles": [
+        900,
+        256,
+        112
+      ],
+      "triangles_damaged": [
+        1150,
+        384,
+        32
+      ],
+      "validation_passed": true,
+      "uncompressed_sha256": "c6b3bf0ae6178809a74b2381c209071a024a7cdb3e00df16ea6e45306afa22a6",
+      "game_sha256": "5b0761c16491e3c2fc2af5619cc1fa240a509e6aeea0b593aa7f702d709afccc",
+      "game_bytes": 3936120
+    }
+  ]
+}

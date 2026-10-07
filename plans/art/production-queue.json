@@ -1928,31 +1928,36 @@
       "path": "plans/art/units/bronze-infantry",
       "section": "units",
       "description": "Sumerian or New Kingdom Egyptian spearmen: a bronze or leather cap, a large hide or wicker shield, a bronze-tipped spear 2.2 m, a linen kilt, bare feet or sandals, a dagger",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/units/bronze-cavalry",
       "section": "units",
       "description": "an Egyptian or Hittite light chariot: two horses, a driver and an archer, a wicker cab on two six-spoke wheels, 2.2 m long. Draw the chariot, the team and the two crew as separate figures on `pose.png`",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/units/bronze-ranged",
       "section": "units",
       "description": "Egyptian archers: a self bow 1.5 m, a quiver on the back, a linen kilt, a headcloth, no armour",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/units/bronze-siege",
       "section": "units",
       "description": "an Assyrian wheeled ram: a timber frame with a hide roof, a beam with a bronze head, four wheels, about 6 m long and 2.2 m high, with three crew",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/units/bronze-support",
       "section": "units",
       "description": "a two-ox cart with sacks, jars and a tarpaulin, a drover with a staff",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/units/classical-infantry",
@@ -3034,39 +3039,42 @@
       "section": "units",
       "description": "Bronze worker: Bronze: labourer with basket and tool; clips idle, walk, carry, chop, mine, harvest, build, repair, deposit, death",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/bronze-worker",
       "phase": "R1",
       "batch": "M04",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/town-hall",
       "section": "rts-buildings",
       "description": "Bronze town hall (defender hq): Bronze: the defender's command building when the city has no palace on the map; trains workers; houses 20",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/town-hall",
       "phase": "R1",
       "batch": "M04",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/expedition-camp",
       "section": "rts-buildings",
       "description": "Bronze expedition camp (attacker hq): Bronze: adapted from colony-camp: command tent, supply carts, fence; trains workers; houses 20",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/expedition-camp",
       "phase": "R1",
       "batch": "M04",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/construction-set",
@@ -3086,143 +3094,154 @@
       "section": "rts-buildings",
       "description": "Bronze food depot: Bronze: granary or storehouse: food drop-off",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/food-depot",
       "phase": "R1",
       "batch": "M04",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/materials-yard",
       "section": "rts-buildings",
       "description": "Bronze materials yard: Bronze: timber, stone and ore drop-off",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/materials-yard",
       "phase": "R1",
       "batch": "M04",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/trade-post",
       "section": "rts-buildings",
       "description": "Bronze trade post: Bronze: gold drop-off and bounded exchange: stalls, scales, chests",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/trade-post",
       "phase": "R1",
       "batch": "M04",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/farm-plot",
       "section": "rts-buildings",
       "description": "Bronze farm plot states: Bronze: the age's field-1 adapted as a battle farm: sown, ripe, harvested, burnt",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/farm-plot",
       "phase": "R1",
       "batch": "M04",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/mine",
       "section": "rts-buildings",
       "description": "Bronze mine: Bronze: mine head over an ore or gold node: shaft, spoil heap, hoist",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/mine",
       "phase": "R1",
       "batch": "M04",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/barracks",
       "section": "rts-buildings",
       "description": "Bronze barracks: Bronze: basic infantry production",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/barracks",
       "phase": "R1",
       "batch": "M04",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/range",
       "section": "rts-buildings",
       "description": "Bronze range: Bronze: ranged production (archery butts, later a firing range)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/range",
       "phase": "R1",
       "batch": "M04",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/stable",
       "section": "rts-buildings",
       "description": "Bronze stable or vehicle works: Bronze: mobile production (chariot shed, stables, later a vehicle depot)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/stable",
       "phase": "R1",
       "batch": "M04",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/siege-workshop",
       "section": "rts-buildings",
       "description": "Bronze siege workshop: Bronze: siege production (rams, engines, cannon, artillery)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/siege-workshop",
       "phase": "R1",
       "batch": "M04",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/aid-post",
       "section": "rts-buildings",
       "description": "Bronze aid post: Bronze: heals troops; support equipment",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/aid-post",
       "phase": "R1",
       "batch": "M04",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/rts/bronze/tower",
       "section": "rts-buildings",
       "description": "Bronze tower: Bronze: buildable defence tower with the age's weapon slot",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "rts/bronze/tower",
       "phase": "R1",
       "batch": "M04",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/icons/battle/resource-food",
@@ -4841,13 +4860,14 @@
       "section": "units",
       "description": "Bronze general: Bronze mounted commander with a standard bearer (Modern: a command car); aura ring is drawn by code",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/bronze-general",
       "phase": "R2",
       "batch": "M11",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave1 checkpoint-01, 2026-10-07 (plans/art/downloads/wave1/checkpoint-01)"
     },
     {
       "path": "plans/art/units/classical-general",
