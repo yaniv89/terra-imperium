@@ -22,6 +22,7 @@ says what to build, in what order, and what must not be forgotten.
 | `plans/terra-imperium-world-art-and-city-destruction-plan.md` | terrain, footprints, city manifest, destructible houses | current, on the single WebGL map (section 5) |
 | `plans/rts-world-review.md` | the review: measurements, speed plan, globe | current |
 | `plans/UI-DESIGN.md` | the UI and UX design: the look, five rules, 25 screens (world and RTS) mapped to phases; sketches in `plans/ui/` | current |
+| `plans/RULER-PLAN.md` | the ruler (phase RU): one timeless ruler per nation, six attributes, renown and levels, a five-branch Virtue tree, the AI's picks, the Ruler tab, save v13, balance plan | current, not started |
 
 The roadmap's code branch `claude/ancient-world` holds the settle-rules prototype and the age
 registry; the art and everything else is on `claude/bronze-towns`. **Before phase W0 starts,
@@ -61,6 +62,12 @@ Decisions of 2026-10-06, second round:
     removed** from the game (phase X in section 7).
 38. Lead's calls on the rest: mercenaries come with the independents work (W2); no captives
     (decision 37); no weather or seasons in battles.
+
+Decision of 2026-10-07:
+
+39. **One ruler per nation, never changing**, developed by the player in a new **Ruler** menu
+    (attributes, costs and benefits): the design is `plans/RULER-PLAN.md` (phase RU), its open
+    questions in its section 10.
 
 ## 3. Contradictions between the plans, resolved
 
@@ -487,6 +494,7 @@ Four tracks run side by side. Each phase is one branch, merged when the user say
 | 12 | Rules | **X** remove succession and the noble estates (decision 37): `succession.js`, `estates.js`, `estateLand.js`, pretenders in `civilWar.js`, their events, UI (CityPolitics, ProvinceModal) and saves; balance-sim before and after | this 2 | none; before W0 if possible (fewer systems to re-key) | 1 to 2 |
 | 13 | Battle | **R4** the five ages' rosters, houses, walls, towers and weapons in battle | this 6.6 | R3 | 3 to 5 |
 | 13a | Battle, Rules | **SU** signature units' rules: one unit per people in its peak age, a 10-point kit over the base unit (stat steps and a closed list of abilities), recruitment, costs, upkeep, names, the sim and the honest Auto, parity for all 150, AI and balance-sim, UI | `SIGNATURE-UNITS-PLAN` | R4 for the calibration (SU0 to SU2 may start before), W0 | 8 to 11 |
+| 13b | Rules, UI | **RU** ruler: one ruler per nation for the whole game (no reigns), six attributes (ADM, DIP, MIL, Command, Learning, Majesty), renown from deeds and levels 1 to 30, the Virtue tree (Conqueror, Builder, Sage, Diplomat, Prophet), AI picks by doctrine, the Ruler tab, save v13; steps RU0 to RU4 | `RULER-PLAN` | W0 (peoples), X (done), U1 look (done) | 7 to 9 |
 | 14 | Map | **F** terrain, mountains, rivers, footprints on the WebGL map | world plan 3 to 6 | A2 | ongoing |
 | 15 | Art | towns, buildings, wonders, icons (in progress), then RTS prefabs and units per age and theme | RTS 14, eras 13 | per phase | ongoing |
 | 16 | All | **Balance**: balance-sim with battles on Auto; parity per age pair; pacing playtests | RTS 17 | R4 | ongoing |
