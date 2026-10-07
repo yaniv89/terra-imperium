@@ -16,7 +16,7 @@ import { geoEquirectangular } from 'd3-geo';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
 import { select } from 'd3-selection';
 import 'd3-transition';
-import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import MapZoomControls from '../MapZoomControls';
 import { WebGLRenderer, Scene, OrthographicCamera, Group } from 'three';
 import { useGame } from '../../../context/GameContext';
 import { useEffects } from '../../../context/EffectsContext';
@@ -589,17 +589,13 @@ const GLMapView = ({
         <canvas ref={canvasRef} data-testid="gl-map" style={{ width, height, display: 'block' }} />
       </div>
       {!prefersReducedMotion() && <EffectsLayer effects={effects} getProjector={getProjector} width={width} height={height} ageId={state.age} testId="map2d-effects" />}
-      <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-fa-panel/95 rounded-lg border border-fa-line shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,2.25rem)+0.625rem)]' : 'top-12'}`}>
-        <button onClick={() => zoomBy(ZOOM_STEP_SCALE)} disabled={kNow >= ZOOM_MAX} className="w-10 h-10 flex items-center justify-center text-fa-text hover:bg-fa-raised transition-colors disabled:opacity-30 disabled:hover:bg-transparent" title="Zoom in" aria-label="Zoom in">
-          <ZoomIn className="w-3.5 h-3.5" />
-        </button>
-        <button onClick={() => zoomBy(1 / ZOOM_STEP_SCALE)} disabled={kNow <= minK} className="w-10 h-10 flex items-center justify-center text-fa-text hover:bg-fa-raised transition-colors border-t border-fa-line disabled:opacity-30 disabled:hover:bg-transparent" title="Zoom out" aria-label="Zoom out">
-          <ZoomOut className="w-3.5 h-3.5" />
-        </button>
-        <button onClick={resetZoom} disabled={kNow <= minK} className="w-10 h-10 flex items-center justify-center text-fa-text hover:bg-fa-raised transition-colors border-t border-fa-line disabled:opacity-30 disabled:hover:bg-transparent" title="Reset view" aria-label="Reset view">
-          <Maximize className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      <MapZoomControls
+        style={{ right: insets.right + 8 }}
+        className={hudOffset ? 'top-[calc(var(--header-height,2.25rem)+0.625rem)]' : 'top-12'}
+        onZoomIn={() => zoomBy(ZOOM_STEP_SCALE)} canZoomIn={kNow < ZOOM_MAX}
+        onZoomOut={() => zoomBy(1 / ZOOM_STEP_SCALE)} canZoomOut={kNow > minK}
+        onReset={resetZoom} canReset={kNow > minK}
+      />
     </div>
   );
 };

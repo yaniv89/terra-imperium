@@ -41,7 +41,7 @@ import { getTiles } from '../../data/geo/tiles';
 import MapModeToggle from './MapModeToggle';
 import MiniMap from './MiniMap';
 import MapModal from './MapModal';
-import MapLegend, { FogLegend } from '../globe/MapLegend';
+import MapLegend from '../globe/MapLegend';
 import { RegionInfoModal, ProvinceModal } from '../modals';
 import TileSheet from './TileSheet';
 import ArmySheet from './ArmySheet';
@@ -192,7 +192,6 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
           <LensStrip lens={lens} onChange={setLens} onOpenChange={setLensOpen} />
           {!miniOpen && <button type="button" onClick={() => setMini(true)} aria-label="Show the mini map" data-testid="minimap-show" className="min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">World</button>}
         </div>
-        <FogLegend />
       </div>
       {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}
       <MarchBar onSelectRegion={selectRegion} />

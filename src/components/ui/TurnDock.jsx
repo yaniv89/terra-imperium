@@ -8,11 +8,10 @@
 //                   the "warn me" setting on, the first tap shows them and reads "End anyway? N
 //                   waiting", the second ends the turn (it disarms by itself)
 //   The world moves while the turn worker runs, a progress strip instead of the button
-// Fast forward sits beside it and is off while a blocker waits (it also stops at new ones). Enter
-// presses the button (the first blocker, or the end of the turn) when nothing is being typed.
+// Enter presses the button (the first blocker, or the end of the turn) when nothing is being typed.
 // Sits left of the tab rail (--rail-inset) and above the bottom bar of a phone held upright.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FastForward, Hammer, FlaskConical, Scroll, Shield, Feather, Bell, Swords, HeartHandshake, Coins } from 'lucide-react';
+import { Hammer, FlaskConical, Scroll, Shield, Feather, Bell, Swords, HeartHandshake, Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { softHints, WARN_ARM_MS } from './nextPromptModel';
@@ -22,7 +21,7 @@ import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
 const KIND_ICON = { city: Hammer, research: FlaskConical, demand: Scroll, tribute: Coins, join: HeartHandshake, peace: Feather, defense: Shield, event: Bell, battle: Swords };
 
 const TurnDock = () => {
-  const { state, advanceTurn, fastForward, turnPending } = useGame();
+  const { state, advanceTurn, turnPending } = useGame();
   const isMobile = useIsMobile();
   const [armed, setArmed] = useState(false);
   useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), WARN_ARM_MS); return () => clearTimeout(t); }, [armed]);
@@ -68,11 +67,6 @@ const TurnDock = () => {
         </div>
       )}
       <div className="flex items-stretch gap-2 pointer-events-auto">
-        <button type="button" onClick={fastForward} disabled={turnPending || blocking} aria-label="Fast forward until something happens"
-          title={blocking ? 'Answer what waits first' : 'Fast forward until something happens'}
-          className="fa-icon-btn !w-12 !h-[50px] pl:!w-11 pl:!h-11 shadow-xl disabled:opacity-45">
-          <FastForward className="w-5 h-5" aria-hidden="true" />
-        </button>
         {btn.mode === 'moving' ? (
           <div className="fa-panel h-[50px] pl:h-11 min-w-[11rem] px-4 flex flex-col justify-center shadow-xl" role="status" aria-live="polite" data-testid="world-moves">
             <span className="text-[13px] font-semibold">The world moves…</span>

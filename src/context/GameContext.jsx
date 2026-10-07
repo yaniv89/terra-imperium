@@ -260,7 +260,6 @@ export const GameProvider = ({ children }) => {
     else if (stateRef.current === from) dispatch({ type });
   }, [dispatch]);
   const advanceTurn = useCallback(() => runTurn(ActionTypes.ADVANCE_TURN), [runTurn]);
-  const fastForward = useCallback(() => runTurn(ActionTypes.FAST_FORWARD), [runTurn]);
 
   const resolveEvent = useCallback((optionIndex) => {
     dispatch({ type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex } });
@@ -323,7 +322,6 @@ export const GameProvider = ({ children }) => {
     dispatch,
     addLog,
     advanceTurn,
-    fastForward,
     turnPending,
     resolveEvent,
     resetGame,
@@ -333,7 +331,7 @@ export const GameProvider = ({ children }) => {
     selectDoctrine,
     selectDifficulty,
     completeOnboarding
-  }), [state, dispatch, addLog, advanceTurn, fastForward, turnPending, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
+  }), [state, dispatch, addLog, advanceTurn, turnPending, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
 
   return (
     <GameContext.Provider value={contextValue}>

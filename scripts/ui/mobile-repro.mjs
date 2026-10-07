@@ -94,6 +94,7 @@ for (const [w, h] of sizes) {
     if (await later.count()) await later.first().dispatchEvent('click');
     await page.waitForTimeout(500);
     // zoom in on the capital as a player would (the close view), then open its card and press Manage
+    await page.getByRole('button', { name: 'Map zoom controls' }).dispatchEvent('click'); // folded away by default
     const zin = page.getByRole('button', { name: 'Zoom in' });
     for (let i = 0; i < Number(arg('zoomins', '3')); i += 1) { await zin.dispatchEvent('click'); await page.waitForTimeout(300); }
     await page.waitForTimeout(1000);

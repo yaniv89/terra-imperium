@@ -17,7 +17,7 @@ import { select } from 'd3-selection';
 // below use for a smooth animated zoom on button click (d3-zoom's own drag/wheel handling doesn't
 // need this — only the button-driven `.call(behavior.scaleBy, ...)` path does).
 import 'd3-transition';
-import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import MapZoomControls from './MapZoomControls';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
@@ -808,32 +808,13 @@ const Map2DView = ({
       <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} onSelectTile={onSelectTile} onSelectArmy={onSelectArmy} close={transform.k >= CLOSE_ZOOM_K} />
       <RaidMarkersOverlay projection={projection} transform={transform} width={width} height={height} />
       <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
-      <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
-        <button
-          onClick={() => zoomBy(ZOOM_STEP_SCALE)}
-          disabled={transform.k >= (isTouchDevice() ? TOUCH_ZOOM_EXTENT : ZOOM_EXTENT)[1]}
-          className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-          title="Zoom in"
-        >
-          <ZoomIn className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={() => zoomBy(1 / ZOOM_STEP_SCALE)}
-          disabled={transform.k <= ZOOM_EXTENT[0]}
-          className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors border-t border-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
-          title="Zoom out"
-        >
-          <ZoomOut className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={resetZoom}
-          disabled={transform.k === 1 && transform.x === 0 && transform.y === 0}
-          className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors border-t border-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
-          title="Reset view"
-        >
-          <Maximize className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      <MapZoomControls
+        style={{ right: insets.right + 8 }}
+        className={hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}
+        onZoomIn={() => zoomBy(ZOOM_STEP_SCALE)} canZoomIn={transform.k < (isTouchDevice() ? TOUCH_ZOOM_EXTENT : ZOOM_EXTENT)[1]}
+        onZoomOut={() => zoomBy(1 / ZOOM_STEP_SCALE)} canZoomOut={transform.k > ZOOM_EXTENT[0]}
+        onReset={resetZoom} canReset={!(transform.k === 1 && transform.x === 0 && transform.y === 0)}
+      />
     </div>
   );
 };
