@@ -1,0 +1,142 @@
+{
+  "scope": "Actual resolver/loadAssetObjects/prepareBuildingModel/cloned and instanced Team, isolated renderer, not campaign.",
+  "rows": [
+    {
+      "id": "classical-town-big-a",
+      "url": "/terra-imperium/src/assets/map/towns/classical-town-big-a.glb",
+      "triangles": [
+        45821,
+        9700,
+        1445
+      ],
+      "teamParts": [
+        1,
+        1,
+        1
+      ],
+      "tint": [
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "classical-town-big-b",
+      "url": "/terra-imperium/src/assets/map/towns/classical-town-big-b.glb",
+      "triangles": [
+        50137,
+        9696,
+        1450
+      ],
+      "teamParts": [
+        1,
+        1,
+        1
+      ],
+      "tint": [
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ]
+      ]
+    }
+  ],
+  "renders": [
+    {
+      "width": 1280,
+      "height": 800,
+      "start": 0,
+      "lod": 0,
+      "ids": [
+        "classical-town-big-a",
+        "classical-town-big-b"
+      ],
+      "calls": 6,
+      "triangles": 191916
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "start": 0,
+      "lod": 1,
+      "ids": [
+        "classical-town-big-a",
+        "classical-town-big-b"
+      ],
+      "calls": 6,
+      "triangles": 38792
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "start": 0,
+      "lod": 2,
+      "ids": [
+        "classical-town-big-a",
+        "classical-town-big-b"
+      ],
+      "calls": 6,
+      "triangles": 5790
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "start": 0,
+      "lod": 0,
+      "ids": [
+        "classical-town-big-a",
+        "classical-town-big-b"
+      ],
+      "calls": 6,
+      "triangles": 191916
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "start": 0,
+      "lod": 1,
+      "ids": [
+        "classical-town-big-a",
+        "classical-town-big-b"
+      ],
+      "calls": 6,
+      "triangles": 38792
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "start": 0,
+      "lod": 2,
+      "ids": [
+        "classical-town-big-a",
+        "classical-town-big-b"
+      ],
+      "calls": 6,
+      "triangles": 5790
+    }
+  ],
+  "errors": []
+}

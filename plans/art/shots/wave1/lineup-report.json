@@ -1,0 +1,120 @@
+{
+  "mode": "lineup",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave1\\lineup-standing.png",
+    "plans\\art\\shots\\wave1\\lineup-walking.png"
+  ],
+  "layers": [
+    {
+      "id": "bronze-infantry",
+      "triangles": 1508,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 1626,
+        "1": 588,
+        "2": 588,
+        "3": 1056,
+        "4": 666
+      },
+      "warnings": [],
+      "teamVertices": 282,
+      "skinVertices": 2286
+    },
+    {
+      "id": "bronze-ranged",
+      "triangles": 1466,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 2184,
+        "1": 402,
+        "2": 402,
+        "3": 972,
+        "4": 438
+      },
+      "warnings": [],
+      "teamVertices": 222,
+      "skinVertices": 1692
+    },
+    {
+      "id": "bronze-cavalry",
+      "triangles": 2388,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 4482,
+        "3": 642,
+        "4": 312,
+        "5": 864,
+        "6": 864
+      },
+      "warnings": [],
+      "teamVertices": 252,
+      "skinVertices": 1914
+    },
+    {
+      "id": "bronze-siege",
+      "triangles": 2900,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 5940,
+        "1": 768,
+        "2": 744,
+        "3": 624,
+        "4": 624
+      },
+      "warnings": [],
+      "teamVertices": 432,
+      "skinVertices": 4632
+    },
+    {
+      "id": "bronze-support",
+      "triangles": 2000,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 4296,
+        "3": 396,
+        "4": 444,
+        "5": 432,
+        "6": 432
+      },
+      "warnings": [],
+      "teamVertices": 252,
+      "skinVertices": 2298
+    },
+    {
+      "id": "bronze-worker",
+      "triangles": 1348,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 1464,
+        "1": 564,
+        "2": 564,
+        "3": 876,
+        "4": 576
+      },
+      "warnings": [],
+      "teamVertices": 294,
+      "skinVertices": 2586
+    },
+    {
+      "id": "bronze-general",
+      "triangles": 2005,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 3813,
+        "3": 546,
+        "4": 792,
+        "5": 432,
+        "6": 432
+      },
+      "warnings": [],
+      "teamVertices": 294,
+      "skinVertices": 3243
+    }
+  ],
+  "unitLog": [],
+  "errors": []
+}

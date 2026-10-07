@@ -1,0 +1,2052 @@
+{
+  "wave": "wave0-backlog",
+  "checkpoint": "01",
+  "logical_items": 20,
+  "items": [
+    {
+      "item": "plans/art/buildings/naval_base",
+      "id": "naval_base",
+      "target_path": "src/assets/map/buildings/naval_base.glb",
+      "kind": "landmark",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3317,
+        2909,
+        428
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "2e5b1f20740eff7d93ce0a6cdd61711b1e6dc9e331e8a991b93628679e0b6d56",
+      "game_sha256": "4dc26174ad459a907977c810f2b9e3331a72eed15157c5df8e0fa052d9297c10",
+      "game_bytes": 1051384,
+      "archive_part": "part-1.zip",
+      "runtime_acceptance": "Current source validator and packed root contract checked; full campaign/scene performance pending",
+      "validation_report": "naval_base/naval_base.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "naval_base/basecolor.png",
+          "bytes": 5505653,
+          "sha256": "079db92fc15d1968256ba362fc231477ac344b270e3d6ed0b66f621d34209a8c"
+        },
+        "delivery.json": {
+          "path": "naval_base/delivery.json",
+          "bytes": 485,
+          "sha256": "9b786c8f662c4da0ac64db2cdf546941dee8332d08f38375a2fc3b9a22975e4e"
+        },
+        "local-root-alignment.json": {
+          "path": "naval_base/local-root-alignment.json",
+          "bytes": 230,
+          "sha256": "378b30ab2e60aa51732f900566e8485e3f3ea0dc9a47e13229098a61ac3cc585"
+        },
+        "manifest.json": {
+          "path": "naval_base/manifest.json",
+          "bytes": 935,
+          "sha256": "83aa727acbc8b5d133899d6cbd10eed02ebf7ec1a5c21f412b17edf43ac6391e"
+        },
+        "naval_base.blend": {
+          "path": "naval_base/naval_base.blend",
+          "bytes": 7503358,
+          "sha256": "2342097752d12754b4926541df910ef615353b6296b6fc9f527858e007db920e"
+        },
+        "naval_base.glb": {
+          "path": "naval_base/naval_base.glb",
+          "bytes": 1406576,
+          "sha256": "2e5b1f20740eff7d93ce0a6cdd61711b1e6dc9e331e8a991b93628679e0b6d56"
+        },
+        "naval_base.validation.json": {
+          "path": "naval_base/naval_base.validation.json",
+          "bytes": 2006,
+          "sha256": "b8c20fa995020a8594ad4b7f61c843fab099ae9ab70849b68e44b8569f164adb"
+        },
+        "normal.png": {
+          "path": "naval_base/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "naval_base/orm.png",
+          "bytes": 939454,
+          "sha256": "1e623536ebce6bc10f7759f629ac6bb580514b47ebdf80af5e7f4e22a3cdbdc4"
+        },
+        "preview.png": {
+          "path": "naval_base/preview.png",
+          "bytes": 245998,
+          "sha256": "1862ae28c727ca05fa4b1ed640ce9a2160aef3c1f11fd41591062eaba810cef6"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-1.zip"
+    },
+    {
+      "item": "plans/art/buildings/carrier_dock",
+      "id": "carrier_dock",
+      "target_path": "src/assets/map/buildings/carrier_dock.glb",
+      "kind": "landmark",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        2468,
+        2468,
+        443
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "415023a9da82a34f7ac724f34f20f4be5f55345f0d11f64148b1316d4416022f",
+      "game_sha256": "274916905b6de6890d9cf55ad8bc31c6eb4047ced05302185727df67e87e2676",
+      "game_bytes": 823684,
+      "archive_part": "part-1.zip",
+      "runtime_acceptance": "Current source validator and packed root contract checked; full campaign/scene performance pending",
+      "validation_report": "carrier_dock/carrier_dock.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "carrier_dock/basecolor.png",
+          "bytes": 4976717,
+          "sha256": "6e13ba61423fcedcf212691a83c75a324d6720d72d58a3686a4beea234a92448"
+        },
+        "carrier_dock.blend": {
+          "path": "carrier_dock/carrier_dock.blend",
+          "bytes": 6808476,
+          "sha256": "8d003a0512cf2e5bdc7e1b3926b3be833ba2eb231a6cb8c1d9d628410d37ae7f"
+        },
+        "carrier_dock.glb": {
+          "path": "carrier_dock/carrier_dock.glb",
+          "bytes": 1115676,
+          "sha256": "415023a9da82a34f7ac724f34f20f4be5f55345f0d11f64148b1316d4416022f"
+        },
+        "carrier_dock.validation.json": {
+          "path": "carrier_dock/carrier_dock.validation.json",
+          "bytes": 2009,
+          "sha256": "2f396bb7d88d5c171d27887118583f8f10b8a1947c7eaeced3637cc131d4d322"
+        },
+        "delivery.json": {
+          "path": "carrier_dock/delivery.json",
+          "bytes": 491,
+          "sha256": "fa5824db840ac979d470b228dc21141691678a3eae1dec1bfcb8f1a3634113e4"
+        },
+        "local-root-alignment.json": {
+          "path": "carrier_dock/local-root-alignment.json",
+          "bytes": 234,
+          "sha256": "674502ad28bc2161d403eaf0272e081a93546553f2a5bd0d51e1d388e16b08e8"
+        },
+        "manifest.json": {
+          "path": "carrier_dock/manifest.json",
+          "bytes": 938,
+          "sha256": "ab536c5b9b4721872cd8fe2bd601c2391dae52ab051f050f6ba762c30302ff28"
+        },
+        "normal.png": {
+          "path": "carrier_dock/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "carrier_dock/orm.png",
+          "bytes": 923845,
+          "sha256": "e1bee564dd85a4331264e266db11bdbbe9784f0cae1a8456a1144025d5a4aca8"
+        },
+        "preview.png": {
+          "path": "carrier_dock/preview.png",
+          "bytes": 231465,
+          "sha256": "2d33cd9dc92b7f455e521e1eb84e78e150517b77bcdb706a8fa141c78ad82f36"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-1.zip"
+    },
+    {
+      "item": "plans/art/buildings/road_post",
+      "id": "road_post",
+      "target_path": "src/assets/map/buildings/road_post.glb",
+      "kind": "landmark",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3206,
+        2910,
+        485
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "f62b2de655bc059a36bf1fd8ec406a8294cec6d91cb09c150ca3151c0a62b30e",
+      "game_sha256": "de7df7fd39e06874ad5e2d0978c369930dc6ac7d1de465581101d6798929b336",
+      "game_bytes": 1095304,
+      "archive_part": "part-1.zip",
+      "runtime_acceptance": "Current source validator and packed root contract checked; full campaign/scene performance pending",
+      "validation_report": "road_post/road_post.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "road_post/basecolor.png",
+          "bytes": 4945424,
+          "sha256": "5caf3c2e493514d00b6236aa86151cd048e89e55d634527a38c7358455cb11b5"
+        },
+        "delivery.json": {
+          "path": "road_post/delivery.json",
+          "bytes": 482,
+          "sha256": "26dded186058f88d93869bde64905be5b5e66f84ed3eb72158f04b39e0db3c3b"
+        },
+        "local-root-alignment.json": {
+          "path": "road_post/local-root-alignment.json",
+          "bytes": 228,
+          "sha256": "1548154c67a3a30163e361c53ba4a9432cb769993a770e121f9486a93431c9a0"
+        },
+        "manifest.json": {
+          "path": "road_post/manifest.json",
+          "bytes": 944,
+          "sha256": "f421af15a0d7c60744e57d06ff274cd0bc50c686ec8b8947631e31c991be3d28"
+        },
+        "normal.png": {
+          "path": "road_post/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "road_post/orm.png",
+          "bytes": 953109,
+          "sha256": "0ab2d046bb9f12e73431920e10fdb8d3bc459bdba093a1ac087a1559600b4636"
+        },
+        "preview.png": {
+          "path": "road_post/preview.png",
+          "bytes": 318005,
+          "sha256": "94dc3dd85bf6c40eec2894114c0da33899cbc81f95b69caf928ba2126185a740"
+        },
+        "road_post.blend": {
+          "path": "road_post/road_post.blend",
+          "bytes": 6944075,
+          "sha256": "393d1e0d7f7c06ae67a16c462d30aea4a2ecf1724d475b59f3f2a6fc0e709da1"
+        },
+        "road_post.glb": {
+          "path": "road_post/road_post.glb",
+          "bytes": 1437032,
+          "sha256": "f62b2de655bc059a36bf1fd8ec406a8294cec6d91cb09c150ca3151c0a62b30e"
+        },
+        "road_post.validation.json": {
+          "path": "road_post/road_post.validation.json",
+          "bytes": 2016,
+          "sha256": "af3b0921fa8959b0623b3bf4034b9eca9488351be3fe9bbe24a1a34407b79cbd"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-1.zip"
+    },
+    {
+      "item": "plans/art/buildings/highway",
+      "id": "highway",
+      "target_path": "src/assets/map/buildings/highway.glb",
+      "kind": "landmark",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        1244,
+        1244,
+        473
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "858dc64902412738acf1c0ec06d9135aeecd6f7c37b9024bd37c5ea49981b11d",
+      "game_sha256": "8a1614c2ee32a420592e7076dc0357388b5d0ba771263dad1a9a76c8e45128c6",
+      "game_bytes": 647844,
+      "archive_part": "part-1.zip",
+      "runtime_acceptance": "Current source validator and packed root contract checked; full campaign/scene performance pending",
+      "validation_report": "highway/highway.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "highway/basecolor.png",
+          "bytes": 4948676,
+          "sha256": "1a868888ca5318edc2207821c60118f59c3f8381d36dfe6bbd44d2b957060086"
+        },
+        "delivery.json": {
+          "path": "highway/delivery.json",
+          "bytes": 476,
+          "sha256": "1a7510a518a9195e06e8129b16c7c671cda73471175eaa83dcd24393e3705189"
+        },
+        "highway.blend": {
+          "path": "highway/highway.blend",
+          "bytes": 6372041,
+          "sha256": "9d7fbb25fb705e010c9f5d680408182bebc84e1f67d2c3b530977d5aeabadecb"
+        },
+        "highway.glb": {
+          "path": "highway/highway.glb",
+          "bytes": 801156,
+          "sha256": "858dc64902412738acf1c0ec06d9135aeecd6f7c37b9024bd37c5ea49981b11d"
+        },
+        "highway.validation.json": {
+          "path": "highway/highway.validation.json",
+          "bytes": 2005,
+          "sha256": "da42229e8dddaf6e9103fe1c7e11693d3630e84975c731a5b0556fa62b9cd63d"
+        },
+        "local-root-alignment.json": {
+          "path": "highway/local-root-alignment.json",
+          "bytes": 224,
+          "sha256": "9da2144b8224243fa6ad53d825c19e7c0982b2df219a015a3ee0bf9c270dcbc1"
+        },
+        "manifest.json": {
+          "path": "highway/manifest.json",
+          "bytes": 935,
+          "sha256": "695e986560e90777dbb05175b7eb8818164be7185d7fb1f34cf1ceed12304590"
+        },
+        "normal.png": {
+          "path": "highway/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "highway/orm.png",
+          "bytes": 635497,
+          "sha256": "b2ee162774bcdbd807ed8bbed90a336ed949896ae23a58fe5ae24e601e1137bc"
+        },
+        "preview.png": {
+          "path": "highway/preview.png",
+          "bytes": 259927,
+          "sha256": "f3c91eb0447b06fbbbc01ccc13c77dd1ca8066a8c65dbd2f5d751b1d57be6037"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-1.zip"
+    },
+    {
+      "item": "plans/art/buildings/rail_depot",
+      "id": "rail_depot",
+      "target_path": "src/assets/map/buildings/rail_depot.glb",
+      "kind": "landmark",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3067,
+        2909,
+        416
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "3e3c26aa8450f573b1b8a38b63fbab481a944d6b95fe48574f1d0cc225d5af7a",
+      "game_sha256": "31449b375af2220444b2e5db1aa4c320c7647d8d703cdea36ed119223e7c4d09",
+      "game_bytes": 984968,
+      "archive_part": "part-1.zip",
+      "runtime_acceptance": "Current source validator and packed root contract checked; full campaign/scene performance pending",
+      "validation_report": "rail_depot/rail_depot.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "rail_depot/basecolor.png",
+          "bytes": 4229978,
+          "sha256": "9274d101be3f33f0dae90ea0072c604debd908f401942910c5a447c48360e054"
+        },
+        "delivery.json": {
+          "path": "rail_depot/delivery.json",
+          "bytes": 485,
+          "sha256": "3719c4b6594d255368fc346dd9e716525986e05f58753d9984ceca903cf76610"
+        },
+        "local-root-alignment.json": {
+          "path": "rail_depot/local-root-alignment.json",
+          "bytes": 230,
+          "sha256": "aefb21785a41e5b3800b552d989ea89cdc852146eb8810d944cfed62ff366111"
+        },
+        "manifest.json": {
+          "path": "rail_depot/manifest.json",
+          "bytes": 941,
+          "sha256": "4c3835f1148f9e834162ecee13c1c18ae419ce9355f743c702ad451496b5e3ea"
+        },
+        "normal.png": {
+          "path": "rail_depot/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "rail_depot/orm.png",
+          "bytes": 971766,
+          "sha256": "483b487374ef6fea48fe31560371766ecdb3932a6716e816b5d77c71fde2ff28"
+        },
+        "preview.png": {
+          "path": "rail_depot/preview.png",
+          "bytes": 263523,
+          "sha256": "e0f20081484855a398bf025a788929f361a8c656f3c87751f80bb846e155a005"
+        },
+        "rail_depot.blend": {
+          "path": "rail_depot/rail_depot.blend",
+          "bytes": 6232006,
+          "sha256": "242010886af912dd57214a3a38e976c246957d175b315e4e93927facb4dcdc5a"
+        },
+        "rail_depot.glb": {
+          "path": "rail_depot/rail_depot.glb",
+          "bytes": 1310468,
+          "sha256": "3e3c26aa8450f573b1b8a38b63fbab481a944d6b95fe48574f1d0cc225d5af7a"
+        },
+        "rail_depot.validation.json": {
+          "path": "rail_depot/rail_depot.validation.json",
+          "bytes": 2015,
+          "sha256": "8902b6bb8517517a2a872c91b160d303fc0012e020335e72de0cf80a2a8fad7d"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-1.zip"
+    },
+    {
+      "item": "plans/art/buildings/copper_mine",
+      "id": "copper_mine",
+      "target_path": "src/assets/map/buildings/copper_mine.glb",
+      "kind": "landmark",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3236,
+        2909,
+        414
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "04f80d994265229221163c3d234c40be45e3b96905cf311b1354775e78e20cde",
+      "game_sha256": "aee9ccc96ebd722e0ad46513a0b725a3ab9ff48fb64de8d65593bd6408d2f35e",
+      "game_bytes": 679920,
+      "archive_part": "part-2.zip",
+      "runtime_acceptance": "Current source validator and packed root contract checked; full campaign/scene performance pending",
+      "validation_report": "copper_mine/copper_mine.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "copper_mine/basecolor.png",
+          "bytes": 4422808,
+          "sha256": "0881e4c694430aaf95eddfaabca46a255e83c0184527c9660aa4ca0476441169"
+        },
+        "copper_mine.blend": {
+          "path": "copper_mine/copper_mine.blend",
+          "bytes": 6439546,
+          "sha256": "b71bf9e7202225a5fa79665aaa4685d25858dfb60f0479682b1a2903140ff3d2"
+        },
+        "copper_mine.glb": {
+          "path": "copper_mine/copper_mine.glb",
+          "bytes": 1038108,
+          "sha256": "04f80d994265229221163c3d234c40be45e3b96905cf311b1354775e78e20cde"
+        },
+        "copper_mine.validation.json": {
+          "path": "copper_mine/copper_mine.validation.json",
+          "bytes": 2017,
+          "sha256": "d86be3c705da2bdf8fd852631e184eb1b9caa1e88c5fbf5bc08714181c1fb603"
+        },
+        "delivery.json": {
+          "path": "copper_mine/delivery.json",
+          "bytes": 488,
+          "sha256": "d8e833758242d59f7470b4dbf537bfb3a96d3101c938f891e6d843f879ac31eb"
+        },
+        "local-root-alignment.json": {
+          "path": "copper_mine/local-root-alignment.json",
+          "bytes": 232,
+          "sha256": "6b33644d0db71d483a6f28239a94f551125965185f01a62efa7b5782acf63f9e"
+        },
+        "manifest.json": {
+          "path": "copper_mine/manifest.json",
+          "bytes": 946,
+          "sha256": "d413b7d1ddce496d8940f8f76c7c63706207cf5421d64d5d8a9b2358272eb254"
+        },
+        "normal.png": {
+          "path": "copper_mine/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "copper_mine/orm.png",
+          "bytes": 961727,
+          "sha256": "0b1efe00370479076bf6c82c37ada5ad0f3f8bb7296cbfe591b80ba5073df3ec"
+        },
+        "preview.png": {
+          "path": "copper_mine/preview.png",
+          "bytes": 252964,
+          "sha256": "2480570cceea4cd84188ef59089d3d76b6b5db03775cae9394d17571e6953baa"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-2.zip"
+    },
+    {
+      "item": "plans/art/buildings/iron_foundry",
+      "id": "iron_foundry",
+      "target_path": "src/assets/map/buildings/iron_foundry.glb",
+      "kind": "landmark",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        1113,
+        1113,
+        471
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "tone_revision": "Town texture islands lifted 4x in linear light to meet integration tone floor; Team/alpha/normal/ORM unchanged.",
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "74e75064bf3d9331f5786b8a74a91f1c648b568a1dab96a483737f48beee2e21",
+      "game_sha256": "a3f9e08a257907f4e1578f1e362cfedf249b451977ce61bcb125a72600e7dda3",
+      "game_bytes": 615108,
+      "archive_part": "part-2.zip",
+      "runtime_acceptance": "Current source validator and packed root contract checked; full campaign/scene performance pending",
+      "validation_report": "iron_foundry/iron_foundry.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "iron_foundry/basecolor.png",
+          "bytes": 3191793,
+          "sha256": "c1629af895f5a928bd2682952b1d0a9fdd069143366314253171b1a345b8c559"
+        },
+        "delivery.json": {
+          "path": "iron_foundry/delivery.json",
+          "bytes": 625,
+          "sha256": "8d34ce8558766ed43cb0fbae8ea1ebf525b3ea3a5307bdf2cc532e85ceafaedd"
+        },
+        "iron_foundry.blend": {
+          "path": "iron_foundry/iron_foundry.blend",
+          "bytes": 4644416,
+          "sha256": "ecb2bc36b3bf351843dbae85c20b20b9810ad45bab1ef135fb5850bcdb851017"
+        },
+        "iron_foundry.glb": {
+          "path": "iron_foundry/iron_foundry.glb",
+          "bytes": 769524,
+          "sha256": "74e75064bf3d9331f5786b8a74a91f1c648b568a1dab96a483737f48beee2e21"
+        },
+        "iron_foundry.validation.json": {
+          "path": "iron_foundry/iron_foundry.validation.json",
+          "bytes": 2019,
+          "sha256": "4686fb86625279c80d7b02ba0ae9c4b2cd5926c83ef49cb047de1030a4f2f9d0"
+        },
+        "local-root-alignment.json": {
+          "path": "iron_foundry/local-root-alignment.json",
+          "bytes": 234,
+          "sha256": "00ba8069f72f33a63302d3209975a96efb3434e9caaad5aec7cecbae8a0d6766"
+        },
+        "manifest.json": {
+          "path": "iron_foundry/manifest.json",
+          "bytes": 947,
+          "sha256": "5815befc36c7861ad5532e8fff2c07342931922a2856d63a6cb5894abed50afc"
+        },
+        "normal.png": {
+          "path": "iron_foundry/normal.png",
+          "bytes": 66818,
+          "sha256": "6f853c37f6b2c13a6cc13d90052771237a5a86e714124f813548a3af132fb9aa"
+        },
+        "orm.png": {
+          "path": "iron_foundry/orm.png",
+          "bytes": 673663,
+          "sha256": "4bea30fcab77d97359c89d89711515f89601e2cd690a669d4ece2bde9536c802"
+        },
+        "preview.png": {
+          "path": "iron_foundry/preview.png",
+          "bytes": 259729,
+          "sha256": "4f2388f4f38ffcac17bf64c985673d22c407a452275624d750fbfdc97d807210"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-2.zip"
+    },
+    {
+      "item": "plans/art/improvements/ancient/farm",
+      "id": "farm-bronze",
+      "target_path": "src/assets/map/improvements/farm-bronze.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3284,
+        1055,
+        287
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "ground_readability_revision": "Existing field-strip crop rows/gold-green blocks and bright soil, Ground-only EMIT, original alpha/normal/ORM/AO preserved",
+      "phone_preview": [
+        211,
+        98
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "3ad1bd7fce5fa277826cbabbabcf371a7451bbf73604db422c5fd4942f3d9a83",
+      "game_sha256": "0094ebba4e901e40b1586729162daa2ed528608fb55bf9b2b20acee2eefc8b37",
+      "game_bytes": 1003360,
+      "archive_part": "part-2.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "farm-bronze/farm-bronze.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "farm-bronze/basecolor.png",
+          "bytes": 4246664,
+          "sha256": "35e41c6470c417090000803c29654713aa2e129e4ee7d578a38e0226eb2f634f"
+        },
+        "delivery.json": {
+          "path": "farm-bronze/delivery.json",
+          "bytes": 875,
+          "sha256": "13199b9e3b87caa30e61046bda74e4a85e256cc67820663ecac85d4f5ec2eac0"
+        },
+        "farm-bronze.blend": {
+          "path": "farm-bronze/farm-bronze.blend",
+          "bytes": 6239959,
+          "sha256": "4d5e5e7fb667daacdce0c485d250414d4609a43961e0a7b6a01297586441257e"
+        },
+        "farm-bronze.glb": {
+          "path": "farm-bronze/farm-bronze.glb",
+          "bytes": 1256124,
+          "sha256": "3ad1bd7fce5fa277826cbabbabcf371a7451bbf73604db422c5fd4942f3d9a83"
+        },
+        "farm-bronze.validation.json": {
+          "path": "farm-bronze/farm-bronze.validation.json",
+          "bytes": 2100,
+          "sha256": "5fd4d87d95652bd680fc64d7ad1a33df84640fcd05092315128853dc7813251d"
+        },
+        "farm-readability.json": {
+          "path": "farm-bronze/farm-readability.json",
+          "bytes": 3223,
+          "sha256": "63f11f41e806f57e65e1a24f8fdb73efead755b765de83236a82016aae4da759"
+        },
+        "lod-ground-repair.json": {
+          "path": "farm-bronze/lod-ground-repair.json",
+          "bytes": 1064,
+          "sha256": "669c9da556a9c6ce0ef59beaf761d6a68ebd67955d09725267dc365cbae618a4"
+        },
+        "manifest.json": {
+          "path": "farm-bronze/manifest.json",
+          "bytes": 1011,
+          "sha256": "32c957b350585ab09875257b8923afc5d63f9cbc6050bac0905404c9194df952"
+        },
+        "normal.png": {
+          "path": "farm-bronze/normal.png",
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "path": "farm-bronze/orm.png",
+          "bytes": 1043262,
+          "sha256": "3ce499d0951b8254dad19dd90d9eefc6da4c6e15c2e365b1d7bfef15d086bbdb"
+        },
+        "phone-lod2.png": {
+          "path": "farm-bronze/phone-lod2.png",
+          "bytes": 28836,
+          "sha256": "5c556e3d9fe63c245e06deadacde6e8ce5bbe8308d497d3aa9d84a70621345bf"
+        },
+        "phone.png": {
+          "path": "farm-bronze/phone.png",
+          "bytes": 21153,
+          "sha256": "9b215c3275e8a1a652af417898867fcaa4ea5c158d8eb6b0d35020314adddba2"
+        },
+        "preview-lod1.png": {
+          "path": "farm-bronze/preview-lod1.png",
+          "bytes": 403216,
+          "sha256": "89cbadb3214900317cf93823ec922b0b022d8bd92438321965876fbaa196e4b7"
+        },
+        "preview-lod2.png": {
+          "path": "farm-bronze/preview-lod2.png",
+          "bytes": 402572,
+          "sha256": "f2c7550de8bc176b222aecf96fcedac377fc2a5b3ae87b54a707d44a6c76e643"
+        },
+        "preview.png": {
+          "path": "farm-bronze/preview.png",
+          "bytes": 395654,
+          "sha256": "ceff09d48a73587ade8dbe9c5f36b294507c61546ce2cd01800196eada4a388a"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-2.zip"
+    },
+    {
+      "item": "plans/art/improvements/modern/farm",
+      "id": "farm-modern",
+      "target_path": "src/assets/map/improvements/farm-modern.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3571,
+        1076,
+        285
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "ground_readability_revision": "Existing field-strip crop rows/gold-green blocks and bright soil, Ground-only EMIT, original alpha/normal/ORM/AO preserved",
+      "phone_preview": [
+        211,
+        98
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "64d872207e1480062415b0cd96acf75607961b4c5f8a362fd6e2362f9e4cc497",
+      "game_sha256": "527e6eaf444edee67f2217c9d49c8c31d6720f813e400474597ea5b8694aa6d2",
+      "game_bytes": 926136,
+      "archive_part": "part-2.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "farm-modern/farm-modern.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "farm-modern/basecolor.png",
+          "bytes": 4093543,
+          "sha256": "6e8e4ee0678c59fb73e433248b9efcea17e36793a15ce84b418c6a5fffe3998b"
+        },
+        "delivery.json": {
+          "path": "farm-modern/delivery.json",
+          "bytes": 874,
+          "sha256": "048ef9c527ed21bcbd5d9ed18d69585ffd2837954d5677b72044a275487af048"
+        },
+        "farm-modern.blend": {
+          "path": "farm-modern/farm-modern.blend",
+          "bytes": 6131420,
+          "sha256": "40263bd590eb2ae996313205e049146b4d2dba4189d489264985fbe82d469a68"
+        },
+        "farm-modern.glb": {
+          "path": "farm-modern/farm-modern.glb",
+          "bytes": 1187676,
+          "sha256": "64d872207e1480062415b0cd96acf75607961b4c5f8a362fd6e2362f9e4cc497"
+        },
+        "farm-modern.validation.json": {
+          "path": "farm-modern/farm-modern.validation.json",
+          "bytes": 2099,
+          "sha256": "2399f230c065770d3c21f3a4ebeb054ffb81a8b721529e4932e21f18d9532969"
+        },
+        "farm-readability.json": {
+          "path": "farm-modern/farm-readability.json",
+          "bytes": 3223,
+          "sha256": "af0d32d5bf8382c34d7bc304962818258c21cd2f10d73e2f8782aa50eadc3a62"
+        },
+        "lod-ground-repair.json": {
+          "path": "farm-modern/lod-ground-repair.json",
+          "bytes": 1062,
+          "sha256": "68533bb1ae5945c1bba56b08cf7d67e0ee8bc30c6cdebae417d9da6d87f87a37"
+        },
+        "manifest.json": {
+          "path": "farm-modern/manifest.json",
+          "bytes": 1010,
+          "sha256": "eeaacc2b950c285361e359e5304c756440e622ccd1e6ccfb37e4215541ef722e"
+        },
+        "normal.png": {
+          "path": "farm-modern/normal.png",
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "path": "farm-modern/orm.png",
+          "bytes": 1077414,
+          "sha256": "536b0220adeb2e6e446ba234e82afb69aa6610e75a3a0c7f5e6b9c78306f0230"
+        },
+        "phone-lod2.png": {
+          "path": "farm-modern/phone-lod2.png",
+          "bytes": 25083,
+          "sha256": "6cf65af58a1edf1196c85a5a8b0f69d6f60b557aadcccd1ea2e45e0efac89655"
+        },
+        "phone.png": {
+          "path": "farm-modern/phone.png",
+          "bytes": 20111,
+          "sha256": "798688edc14abde0cca504728f687f9f869c799a0741a4da541848e96b485db1"
+        },
+        "preview-lod1.png": {
+          "path": "farm-modern/preview-lod1.png",
+          "bytes": 344407,
+          "sha256": "ce77082a9d377715aa47f420ba46f16c14629bfdbea3d59cef8238bd37a9ccac"
+        },
+        "preview-lod2.png": {
+          "path": "farm-modern/preview-lod2.png",
+          "bytes": 344648,
+          "sha256": "472490af7e870962f3ba36fbff50d4032e9dffa9bb6f5208cf2d40d66d5ce33e"
+        },
+        "preview.png": {
+          "path": "farm-modern/preview.png",
+          "bytes": 338656,
+          "sha256": "2e33755472bf3f8d2855e67feecf2f2423ef890300b4ad551dce59d0546c85b0"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-2.zip"
+    },
+    {
+      "item": "plans/art/improvements/ancient/mine",
+      "id": "mine-bronze",
+      "target_path": "src/assets/map/improvements/mine-bronze.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        4530,
+        1080,
+        283
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "50ada7dd3b0e3802e8ccdf5abd24632f0882f763391d5690fdd6fd6c8f55497b",
+      "game_sha256": "097b83996a19695c4bbfae677a646aa78e29239cc8fd15616aabaf94a21054f6",
+      "game_bytes": 1310664,
+      "archive_part": "part-2.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "mine-bronze/mine-bronze.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "mine-bronze/basecolor.png",
+          "bytes": 5181900,
+          "sha256": "a1e0f9b04a7a87355b8e959b5089ed88241d9f4a605f151e4631311eb93a113d"
+        },
+        "delivery.json": {
+          "path": "mine-bronze/delivery.json",
+          "bytes": 674,
+          "sha256": "b2694bd73668c20c9b1087cfaad8a46759e68418e09774801ad1dd9e0964215c"
+        },
+        "lod-ground-repair.json": {
+          "path": "mine-bronze/lod-ground-repair.json",
+          "bytes": 1063,
+          "sha256": "6e865edf9f004b93d5414f3f0f87eb9463eab1de23a8105915d41dee8afdc9b0"
+        },
+        "manifest.json": {
+          "path": "mine-bronze/manifest.json",
+          "bytes": 1011,
+          "sha256": "f993c57fdb796386dded9167eef00b0d464217ca55f5c1babb3c4ad92ec8d2b7"
+        },
+        "mine-bronze.blend": {
+          "path": "mine-bronze/mine-bronze.blend",
+          "bytes": 7292954,
+          "sha256": "56cb3ab9d14c3004829a9d219f00e8277f45dfeea711e8b0f1b9079bcd7064d5"
+        },
+        "mine-bronze.glb": {
+          "path": "mine-bronze/mine-bronze.glb",
+          "bytes": 1630424,
+          "sha256": "50ada7dd3b0e3802e8ccdf5abd24632f0882f763391d5690fdd6fd6c8f55497b"
+        },
+        "mine-bronze.validation.json": {
+          "path": "mine-bronze/mine-bronze.validation.json",
+          "bytes": 2100,
+          "sha256": "f0258454c491b9399064005cf9e17ef540e377fadcbf456eadaf848d52252aa5"
+        },
+        "normal.png": {
+          "path": "mine-bronze/normal.png",
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "path": "mine-bronze/orm.png",
+          "bytes": 1120261,
+          "sha256": "85387dc44130d7e0775e0d4da0057d5bedf6a9647ced3605e4a2a573770f5167"
+        },
+        "phone-lod2.png": {
+          "path": "mine-bronze/phone-lod2.png",
+          "bytes": 28289,
+          "sha256": "260e37aa0ffde46d71e934d52731323639ceadc0726f8f121715c08dff9d6efb"
+        },
+        "preview-lod1.png": {
+          "path": "mine-bronze/preview-lod1.png",
+          "bytes": 410993,
+          "sha256": "339466e2c66f60bc7c3e9ff6a5f5db272de3d6bec63bc4df8e20365893fe1148"
+        },
+        "preview-lod2.png": {
+          "path": "mine-bronze/preview-lod2.png",
+          "bytes": 411150,
+          "sha256": "c1dbadadfea148ac2531cdb0dd281705a36a6d9046e9c40dd8151f39d884380b"
+        },
+        "preview.png": {
+          "path": "mine-bronze/preview.png",
+          "bytes": 380976,
+          "sha256": "e06a93c07d5a6bdf0504c238f7750d657a10b2f0425e9decec9a3fb9be203300"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-2.zip"
+    },
+    {
+      "item": "plans/art/improvements/modern/mine",
+      "id": "mine-modern",
+      "target_path": "src/assets/map/improvements/mine-modern.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3250,
+        1118,
+        284
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "895b16a8e4c45e72ce8919c0e7730581559373a3e0a5f9d2c2d21700cc497185",
+      "game_sha256": "42d00c80f29d9064211dd7b980182b26b5918a644b8bba993104ec33a9a4dbf5",
+      "game_bytes": 1170648,
+      "archive_part": "part-3.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "mine-modern/mine-modern.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "mine-modern/basecolor.png",
+          "bytes": 5053534,
+          "sha256": "3304bb1a96621ee88ede77a71dae730132482f0fb352079264e1f659e0e5d2a2"
+        },
+        "delivery.json": {
+          "path": "mine-modern/delivery.json",
+          "bytes": 673,
+          "sha256": "3649fcdfb6d93b8670e1468aac7def83ab24441663de3ef8ddbc40dcebf2f444"
+        },
+        "lod-ground-repair.json": {
+          "path": "mine-modern/lod-ground-repair.json",
+          "bytes": 1063,
+          "sha256": "34fdcf2de2ac022ba71a307d579f6c6c1be24a8c96b7c6e106802c62cf9e2bb6"
+        },
+        "manifest.json": {
+          "path": "mine-modern/manifest.json",
+          "bytes": 1007,
+          "sha256": "6ce27969683e750e09fde2edf1e128268d56a16edfee52c482debaa061afecc7"
+        },
+        "mine-modern.blend": {
+          "path": "mine-modern/mine-modern.blend",
+          "bytes": 7088295,
+          "sha256": "f4a07390888d180e808c966c6bfd804ee9241131a4efade0d2e50f8a286a428f"
+        },
+        "mine-modern.glb": {
+          "path": "mine-modern/mine-modern.glb",
+          "bytes": 1408000,
+          "sha256": "895b16a8e4c45e72ce8919c0e7730581559373a3e0a5f9d2c2d21700cc497185"
+        },
+        "mine-modern.validation.json": {
+          "path": "mine-modern/mine-modern.validation.json",
+          "bytes": 2096,
+          "sha256": "7611eaa7864ff18b975027d714dc2ad0329ce38e8d01f68193161e4a1fe7a9e6"
+        },
+        "normal.png": {
+          "path": "mine-modern/normal.png",
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "path": "mine-modern/orm.png",
+          "bytes": 1115009,
+          "sha256": "0aca497da5d2d564280697a596985608a757630e1bc4c918eee3b00b50be32dc"
+        },
+        "phone-lod2.png": {
+          "path": "mine-modern/phone-lod2.png",
+          "bytes": 23028,
+          "sha256": "287bb3430341285af44936bb4f93ffb45911063726ffdfc1c879f69f78a915b5"
+        },
+        "preview-lod1.png": {
+          "path": "mine-modern/preview-lod1.png",
+          "bytes": 325540,
+          "sha256": "ea1020369535a14a254aeeb6bf7d0156f47d1f0bd1c539b3a9c2feafdd06c656"
+        },
+        "preview-lod2.png": {
+          "path": "mine-modern/preview-lod2.png",
+          "bytes": 322667,
+          "sha256": "01f7bfc52e17de79472e76d9e89a3bcbf891dc74a734042c94a94a64b3b762d7"
+        },
+        "preview.png": {
+          "path": "mine-modern/preview.png",
+          "bytes": 308329,
+          "sha256": "eb6fbe591026db5c6c6dd4b6e525a8927b3789ef6a55ea3f58b8c2fec64c654c"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-3.zip"
+    },
+    {
+      "item": "plans/art/improvements/ancient/fishing_boats",
+      "id": "fishing_boats-bronze",
+      "target_path": "src/assets/map/improvements/fishing_boats-bronze.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3925,
+        1310,
+        271
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "779bd29f5200cd0f38034a4205a306fead1346a3c592ed9e7380360fe833d325",
+      "game_sha256": "fa75c0b9982e1776cf89d6753554e7e1c6ce0c66331f5bb16dbe5d53dd028b1e",
+      "game_bytes": 1324360,
+      "archive_part": "part-3.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "fishing_boats-bronze/fishing_boats-bronze.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "fishing_boats-bronze/basecolor.png",
+          "bytes": 5288909,
+          "sha256": "bceb3725627f1bc95ce4179e6a925d40879205080875d398059c9724fd718faa"
+        },
+        "delivery.json": {
+          "path": "fishing_boats-bronze/delivery.json",
+          "bytes": 701,
+          "sha256": "288232e80c89e04c5172e51019110891fcd7d74f1e8ca8e1f58091cc45441f02"
+        },
+        "fishing_boats-bronze.blend": {
+          "path": "fishing_boats-bronze/fishing_boats-bronze.blend",
+          "bytes": 7307414,
+          "sha256": "208e435aadd00aeb6952e27c59b2da1362753ba5055f3ff6e13b6c00056a6ffd"
+        },
+        "fishing_boats-bronze.glb": {
+          "path": "fishing_boats-bronze/fishing_boats-bronze.glb",
+          "bytes": 1628096,
+          "sha256": "779bd29f5200cd0f38034a4205a306fead1346a3c592ed9e7380360fe833d325"
+        },
+        "fishing_boats-bronze.validation.json": {
+          "path": "fishing_boats-bronze/fishing_boats-bronze.validation.json",
+          "bytes": 2120,
+          "sha256": "96155599b00984ba63b656522fe5f3eb53c6ffb61ff405362b17f5da2cd7861c"
+        },
+        "lod-ground-repair.json": {
+          "path": "fishing_boats-bronze/lod-ground-repair.json",
+          "bytes": 1069,
+          "sha256": "2183b48e9c05330f4e82f559baa51a93f94d380df2d0ac2303def731a7a970bd"
+        },
+        "manifest.json": {
+          "path": "fishing_boats-bronze/manifest.json",
+          "bytes": 1030,
+          "sha256": "04bb8ff2f101033466fe4b01e916ca16c17d02cdcd6d4ace0d4d5cc7f24a0b54"
+        },
+        "normal.png": {
+          "path": "fishing_boats-bronze/normal.png",
+          "bytes": 75578,
+          "sha256": "442c5d0c9019e394f483c849b4f918909d4bebb5841211dcc270f67a55613f4f"
+        },
+        "orm.png": {
+          "path": "fishing_boats-bronze/orm.png",
+          "bytes": 1039168,
+          "sha256": "495ed186ae081b5986cbdf5eb275f9442f24ed62031b81f975200fe0f47eafb4"
+        },
+        "phone-lod2.png": {
+          "path": "fishing_boats-bronze/phone-lod2.png",
+          "bytes": 21961,
+          "sha256": "2f9324eaab19ae50e9df5dbf01bc43aac22f1810cd8b57054783120c3647d3b0"
+        },
+        "preview-lod1.png": {
+          "path": "fishing_boats-bronze/preview-lod1.png",
+          "bytes": 285343,
+          "sha256": "65c758680836c054c054a6609a520d26fcaa8003636f253b07b9fca395d047ed"
+        },
+        "preview-lod2.png": {
+          "path": "fishing_boats-bronze/preview-lod2.png",
+          "bytes": 282103,
+          "sha256": "41d694e4f4378534f8b9f7a246ef436da3cf6908b4f49e29afdd1a76cfb4df3e"
+        },
+        "preview.png": {
+          "path": "fishing_boats-bronze/preview.png",
+          "bytes": 269168,
+          "sha256": "170a52dbf569cbb700a3ab024f35e016f619f34b7f9d1362df52d446464a2379"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-3.zip"
+    },
+    {
+      "item": "plans/art/improvements/modern/fishing_boats",
+      "id": "fishing_boats-modern",
+      "target_path": "src/assets/map/improvements/fishing_boats-modern.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        6203,
+        1302,
+        263
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "c7ba6fc7cbe11827430f977609b5e7ed3da735a08c000ad86279578c3154a246",
+      "game_sha256": "f088627d5ba0a481a10b8d5d678079092d2ed18df4028e4b8e2a2346205fa16c",
+      "game_bytes": 1489976,
+      "archive_part": "part-3.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "fishing_boats-modern/fishing_boats-modern.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "fishing_boats-modern/basecolor.png",
+          "bytes": 4499167,
+          "sha256": "4248b8f4c571329282c956e9ecec6b094d0be81def9a92be02c7ff3dba4094a9"
+        },
+        "delivery.json": {
+          "path": "fishing_boats-modern/delivery.json",
+          "bytes": 700,
+          "sha256": "69ca5c355077c914fce1fcd4274993f9d0b43d0b8271e027c7b34657c85a843c"
+        },
+        "fishing_boats-modern.blend": {
+          "path": "fishing_boats-modern/fishing_boats-modern.blend",
+          "bytes": 6894494,
+          "sha256": "ea1a6c62c7651476673d625c54f048fb8bdc8559614ebbee2adff44b95eed397"
+        },
+        "fishing_boats-modern.glb": {
+          "path": "fishing_boats-modern/fishing_boats-modern.glb",
+          "bytes": 1905944,
+          "sha256": "c7ba6fc7cbe11827430f977609b5e7ed3da735a08c000ad86279578c3154a246"
+        },
+        "fishing_boats-modern.validation.json": {
+          "path": "fishing_boats-modern/fishing_boats-modern.validation.json",
+          "bytes": 2118,
+          "sha256": "fb11e4110e082cee9dd1fe299b62cfe0859c7950457e63b8f46d73c5b4984b74"
+        },
+        "lod-ground-repair.json": {
+          "path": "fishing_boats-modern/lod-ground-repair.json",
+          "bytes": 1068,
+          "sha256": "7d1420e27d0febe341055cca4a6c3c4121c16b2e072d141bb05175f5f5553381"
+        },
+        "manifest.json": {
+          "path": "fishing_boats-modern/manifest.json",
+          "bytes": 1028,
+          "sha256": "04ec3fe170d8599714bb456055a914b71eff3d2308936d433cda6ee401ee2d8c"
+        },
+        "normal.png": {
+          "path": "fishing_boats-modern/normal.png",
+          "bytes": 75736,
+          "sha256": "e923a722bae2da9a22318b03e1a65a3c60531d08cdc0f280ae6628a1cea2074a"
+        },
+        "orm.png": {
+          "path": "fishing_boats-modern/orm.png",
+          "bytes": 1299034,
+          "sha256": "23d81d72d534245e33f5fc781443caff92b85bce2bb01a50c257d9d08ecee6d8"
+        },
+        "phone-lod2.png": {
+          "path": "fishing_boats-modern/phone-lod2.png",
+          "bytes": 20970,
+          "sha256": "70512b72e966933b6f771cb999ef0046dad901c9f0108fcc96580517cb346eff"
+        },
+        "preview-lod1.png": {
+          "path": "fishing_boats-modern/preview-lod1.png",
+          "bytes": 264867,
+          "sha256": "05270fb68e487a723c4eeb1a315fa0d09976785a1747bf214fbd0fdf868355b8"
+        },
+        "preview-lod2.png": {
+          "path": "fishing_boats-modern/preview-lod2.png",
+          "bytes": 259794,
+          "sha256": "25160bdbcc3683df8b7f61c7f1b925f984872e91940c950fb3785be51c899568"
+        },
+        "preview.png": {
+          "path": "fishing_boats-modern/preview.png",
+          "bytes": 255106,
+          "sha256": "7bfe4d61f25be2ed450c9651cdf866d9abc402b42968d32616beae591becfc26"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-3.zip"
+    },
+    {
+      "item": "plans/art/improvements/ancient/road",
+      "id": "road-bronze",
+      "target_path": "src/assets/map/improvements/road-bronze.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        1439,
+        882,
+        258
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "d4e9c72ab18351d271bd6f593a7286596e27f789fa5fd07294c4aaf097555308",
+      "game_sha256": "993c5c021549a4a3d99ecc5acf437d23d240c3597fe7110866fee0abbfb304c8",
+      "game_bytes": 931544,
+      "archive_part": "part-3.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "road-bronze/road-bronze.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "road-bronze/basecolor.png",
+          "bytes": 4817965,
+          "sha256": "fb7fe29bb93211add7ee2ccc65b11fb987092d205e07bf7336d6051d78de8c47"
+        },
+        "delivery.json": {
+          "path": "road-bronze/delivery.json",
+          "bytes": 673,
+          "sha256": "05ce86febe1bb365f9e5a95c861bc97626a56216026e5ec1776affdb0b6bbef7"
+        },
+        "lod-ground-repair.json": {
+          "path": "road-bronze/lod-ground-repair.json",
+          "bytes": 893,
+          "sha256": "5ac03cbd9d5d728eb29fe75bd0e03ca4fd88e2dd053afafe1a858a97160859f3"
+        },
+        "manifest.json": {
+          "path": "road-bronze/manifest.json",
+          "bytes": 1007,
+          "sha256": "12376b092d3944f260ebb41f9a9497ff43ac7056cae8bd9de4116ba061365790"
+        },
+        "normal.png": {
+          "path": "road-bronze/normal.png",
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "path": "road-bronze/orm.png",
+          "bytes": 809637,
+          "sha256": "abfeaf157808625f51f85a5230235057619ffb7514647e032e49ce557fa6b073"
+        },
+        "phone-lod2.png": {
+          "path": "road-bronze/phone-lod2.png",
+          "bytes": 29717,
+          "sha256": "5df656311e6e88037a0c7fef58a3008db6cfc3f6e327ca31f3dbf9143a7fb209"
+        },
+        "preview-lod1.png": {
+          "path": "road-bronze/preview-lod1.png",
+          "bytes": 427540,
+          "sha256": "f6d00d64f951bd7861c0fa1dd6822f4167ce5235484d872071ceddff2ceba6fd"
+        },
+        "preview-lod2.png": {
+          "path": "road-bronze/preview-lod2.png",
+          "bytes": 426970,
+          "sha256": "94f91ada6f96891046363eb418c7e0e45ab01683d777528c1eb1bb6ec35a6f09"
+        },
+        "preview.png": {
+          "path": "road-bronze/preview.png",
+          "bytes": 400376,
+          "sha256": "3682ea0b63cf710360a599a15ce6b6829e4289df345bc23951bcd0cea4768187"
+        },
+        "road-bronze.blend": {
+          "path": "road-bronze/road-bronze.blend",
+          "bytes": 6450414,
+          "sha256": "e22dc60dfd995ef8e57585fbfb95fe1f30dd2d22be3f91e6aa097b2bb42cc46e"
+        },
+        "road-bronze.glb": {
+          "path": "road-bronze/road-bronze.glb",
+          "bytes": 1065248,
+          "sha256": "d4e9c72ab18351d271bd6f593a7286596e27f789fa5fd07294c4aaf097555308"
+        },
+        "road-bronze.validation.json": {
+          "path": "road-bronze/road-bronze.validation.json",
+          "bytes": 2096,
+          "sha256": "b3bf76c74fb50c9a4dc2a35ce2f7bf1a9bf4f0331df456671806aead3660ec35"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-3.zip"
+    },
+    {
+      "item": "plans/art/improvements/modern/road",
+      "id": "road-modern",
+      "target_path": "src/assets/map/improvements/road-modern.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        1607,
+        1036,
+        244
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "87a9f272a647bc7b86bf4291f43c0bd2fee5f23fc886d23256d6904d0e1c31e2",
+      "game_sha256": "df9110f502b62bc50d5630132c9742b0622842a615e8974f5df8a6610df0a04c",
+      "game_bytes": 887392,
+      "archive_part": "part-3.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "road-modern/road-modern.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "road-modern/basecolor.png",
+          "bytes": 4604989,
+          "sha256": "27caae635b4bd34e74cc31a7c8b9e5aac8f6445e546c04ac911b2041c92625e8"
+        },
+        "delivery.json": {
+          "path": "road-modern/delivery.json",
+          "bytes": 673,
+          "sha256": "befe604485a72d7022a8d6705ebef244e7649442294e69bbe24d4fe1c455a2de"
+        },
+        "lod-ground-repair.json": {
+          "path": "road-modern/lod-ground-repair.json",
+          "bytes": 894,
+          "sha256": "585b33568c49a4c2ca17939eb700452ed7bdbc885f486773e7085c7eceeaff53"
+        },
+        "manifest.json": {
+          "path": "road-modern/manifest.json",
+          "bytes": 1008,
+          "sha256": "ae13fd7bb180fb3345ab6c0edf72af2d26ab200bc046dc5a13a7653db36cf57a"
+        },
+        "normal.png": {
+          "path": "road-modern/normal.png",
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "path": "road-modern/orm.png",
+          "bytes": 838293,
+          "sha256": "79f8df11b684ed9dc60f78d491e12ed52141675c1f7d5604941f6a5aba8b5c3f"
+        },
+        "phone-lod2.png": {
+          "path": "road-modern/phone-lod2.png",
+          "bytes": 30006,
+          "sha256": "348da56f01a64a945e563d5379ea9aa7cc85a507ef8cc85f5830bfb4dce0edf6"
+        },
+        "preview-lod1.png": {
+          "path": "road-modern/preview-lod1.png",
+          "bytes": 427436,
+          "sha256": "76906183c9df201370fcf5ff6202ab4b9c0165b5ab33468ad8d059be5289534c"
+        },
+        "preview-lod2.png": {
+          "path": "road-modern/preview-lod2.png",
+          "bytes": 426063,
+          "sha256": "a93d44cc682d989814a28f28d09cfb54638c18091d6c9ba3b4dc65dbd0a92f4e"
+        },
+        "preview.png": {
+          "path": "road-modern/preview.png",
+          "bytes": 399784,
+          "sha256": "f885e189ba2d3f4e5ab7659830a60988a95679a68381c72db193fc982f34f99d"
+        },
+        "road-modern.blend": {
+          "path": "road-modern/road-modern.blend",
+          "bytes": 6308425,
+          "sha256": "eb280870457b79242e4305083b055e04f653f72a35773c4d81bc59b9cce0d8ec"
+        },
+        "road-modern.glb": {
+          "path": "road-modern/road-modern.glb",
+          "bytes": 1031828,
+          "sha256": "87a9f272a647bc7b86bf4291f43c0bd2fee5f23fc886d23256d6904d0e1c31e2"
+        },
+        "road-modern.validation.json": {
+          "path": "road-modern/road-modern.validation.json",
+          "bytes": 2097,
+          "sha256": "093e6dda5dd016581ab65bd02e17994457dc14c6aba002695c8abc12caaf32c5"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-3.zip"
+    },
+    {
+      "item": "plans/art/improvements/ancient/pasture",
+      "id": "pasture-bronze",
+      "target_path": "src/assets/map/improvements/pasture-bronze.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        4190,
+        1023,
+        283
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "2de611cd1db7e710e0fa79a7c890a2d9900f744638a9dd57807eac6607f4e5ab",
+      "game_sha256": "3c1f07a5002c51c78844ba09f2b7c294edc65e9ba785a51a725c1a609e7424e9",
+      "game_bytes": 1293144,
+      "archive_part": "part-4.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "pasture-bronze/pasture-bronze.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "pasture-bronze/basecolor.png",
+          "bytes": 5033704,
+          "sha256": "4b403fc75a25b441c24bcefbd4f49182e59c7cc0725d0a3b51a248821ab1963c"
+        },
+        "delivery.json": {
+          "path": "pasture-bronze/delivery.json",
+          "bytes": 683,
+          "sha256": "9cd43e4349861cf96432570c75180f79bf7c0d603549e74b4708fc2e43fdef05"
+        },
+        "lod-ground-repair.json": {
+          "path": "pasture-bronze/lod-ground-repair.json",
+          "bytes": 1066,
+          "sha256": "45ab44b9197f01920f5e1a6ed56576a9ad18f3f38636bde3bac8cd38914b02c6"
+        },
+        "manifest.json": {
+          "path": "pasture-bronze/manifest.json",
+          "bytes": 1017,
+          "sha256": "82aac882dfc0e16aca9ae745e4e6b4962a8796651419e76fa5e1cfff0c91b7e2"
+        },
+        "normal.png": {
+          "path": "pasture-bronze/normal.png",
+          "bytes": 74615,
+          "sha256": "f380cf9eb16f0216b5d78422ecb3ecebc3e2e9513b9c122f710b540d40572cf7"
+        },
+        "orm.png": {
+          "path": "pasture-bronze/orm.png",
+          "bytes": 1146672,
+          "sha256": "d006b3f4c1fcba4e179ec26853a20c2fed15288c4706a6ad4e811d3903d7b154"
+        },
+        "pasture-bronze.blend": {
+          "path": "pasture-bronze/pasture-bronze.blend",
+          "bytes": 7162532,
+          "sha256": "9e32f254c4c8e94a1eacd8651431bcb21db47b3f47b975a15903e69bc9b08088"
+        },
+        "pasture-bronze.glb": {
+          "path": "pasture-bronze/pasture-bronze.glb",
+          "bytes": 1592616,
+          "sha256": "2de611cd1db7e710e0fa79a7c890a2d9900f744638a9dd57807eac6607f4e5ab"
+        },
+        "pasture-bronze.validation.json": {
+          "path": "pasture-bronze/pasture-bronze.validation.json",
+          "bytes": 2106,
+          "sha256": "4ef5d3594adec36e46ce9e66154e016cf598f18c30e0100fd3677c07fa98b908"
+        },
+        "phone-lod2.png": {
+          "path": "pasture-bronze/phone-lod2.png",
+          "bytes": 27371,
+          "sha256": "a555f4462b3314b14421473abee7bb2f2adee0d7ae62cfedbfcb47fbf4dda668"
+        },
+        "preview-lod1.png": {
+          "path": "pasture-bronze/preview-lod1.png",
+          "bytes": 396169,
+          "sha256": "8170849d1044ac4372acf6a314b50aea1aeec00e600f4c87eba07b62beebdafa"
+        },
+        "preview-lod2.png": {
+          "path": "pasture-bronze/preview-lod2.png",
+          "bytes": 395234,
+          "sha256": "a7825698cc8f2ddac938107c681e9dd41b25809df37e716c9c77b1bac466a9de"
+        },
+        "preview.png": {
+          "path": "pasture-bronze/preview.png",
+          "bytes": 377177,
+          "sha256": "ace0bc87a0b4b8398bc4c49981cdf18d4f7f50c35fcf30c80339949210bfa628"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-4.zip"
+    },
+    {
+      "item": "plans/art/improvements/ancient/camp",
+      "id": "camp-bronze",
+      "target_path": "src/assets/map/improvements/camp-bronze.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3660,
+        1065,
+        283
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "46456bf15917791135d93d8a8fefb52ff2743ccf0372c3be332d56a6d011a622",
+      "game_sha256": "d8c8ba9201a3bb669a2e65cf50abacc212d9efc179496b5f023f885f759ffd9f",
+      "game_bytes": 1252996,
+      "archive_part": "part-4.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "camp-bronze/camp-bronze.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "camp-bronze/basecolor.png",
+          "bytes": 5114771,
+          "sha256": "b454a17ba9f7fb8cdddecc48e29fd1977ce464802e4721f0747dd0e559406c94"
+        },
+        "camp-bronze.blend": {
+          "path": "camp-bronze/camp-bronze.blend",
+          "bytes": 7166980,
+          "sha256": "7ab239bb8739133a58b157c29072fa3edc718f58a121a9eed6c92c8da4381a46"
+        },
+        "camp-bronze.glb": {
+          "path": "camp-bronze/camp-bronze.glb",
+          "bytes": 1518196,
+          "sha256": "46456bf15917791135d93d8a8fefb52ff2743ccf0372c3be332d56a6d011a622"
+        },
+        "camp-bronze.validation.json": {
+          "path": "camp-bronze/camp-bronze.validation.json",
+          "bytes": 2099,
+          "sha256": "53847780f6d3197b04482bc23f7860bbdccf39573e071508eb11bd66300a00c7"
+        },
+        "delivery.json": {
+          "path": "camp-bronze/delivery.json",
+          "bytes": 674,
+          "sha256": "1284f7346baa7d425b1a7544059d0b71c6823a7d6202004a5688abca7ed852a5"
+        },
+        "lod-ground-repair.json": {
+          "path": "camp-bronze/lod-ground-repair.json",
+          "bytes": 1063,
+          "sha256": "48f01b0e7623109d6d26574343284e968ac46e894f819bf988150cb560b9307b"
+        },
+        "manifest.json": {
+          "path": "camp-bronze/manifest.json",
+          "bytes": 1010,
+          "sha256": "7ccfd487303fe68ab2968396d3378fa1dc6bc3311f98b8782f5bac647d1d88dd"
+        },
+        "normal.png": {
+          "path": "camp-bronze/normal.png",
+          "bytes": 65770,
+          "sha256": "e7c5e9286f6c25ca4e7a88a2cfd363aa2d661376dd14eaf8a9ebf07c1f594554"
+        },
+        "orm.png": {
+          "path": "camp-bronze/orm.png",
+          "bytes": 1101891,
+          "sha256": "60788252b1433c930861f7708fad92434341278444224dcbeee4b32a4d9f6bd2"
+        },
+        "phone-lod2.png": {
+          "path": "camp-bronze/phone-lod2.png",
+          "bytes": 27215,
+          "sha256": "2dfb374b1dc4ce67c4ff10da0bf11fe4f5142511e62afe2cebb7e1d538365aa2"
+        },
+        "preview-lod1.png": {
+          "path": "camp-bronze/preview-lod1.png",
+          "bytes": 393081,
+          "sha256": "28b87d8361ec7eb95d1f9c6aeee7e4d21d30d9c56a79ca7ec847a94de7800f3b"
+        },
+        "preview-lod2.png": {
+          "path": "camp-bronze/preview-lod2.png",
+          "bytes": 392187,
+          "sha256": "8da1f18c510a81310be4a914f27a032917698bd1f0a756bf61e415983400c7e0"
+        },
+        "preview.png": {
+          "path": "camp-bronze/preview.png",
+          "bytes": 370410,
+          "sha256": "c59fdfbb2e74e1574a3edeb2bf165fe921050e3359d766331d931cd29977e488"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-4.zip"
+    },
+    {
+      "item": "plans/art/improvements/ancient/quarry",
+      "id": "quarry-bronze",
+      "target_path": "src/assets/map/improvements/quarry-bronze.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        2698,
+        1138,
+        283
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "64c06d55eff84efb53d670f6e9f2e115a0cdac7bf5d3a0f9656ac82deb5b6d32",
+      "game_sha256": "b04b3230ab3080ac765c2e6a8ec566a61c493a0b681188f59de4d562eed7c0ac",
+      "game_bytes": 1168308,
+      "archive_part": "part-4.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "quarry-bronze/quarry-bronze.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "quarry-bronze/basecolor.png",
+          "bytes": 5250814,
+          "sha256": "3f8237b10cd1692d8f59d233f862b51e73f7ce1c8e4b5db4b9754d1de70d5fb6"
+        },
+        "delivery.json": {
+          "path": "quarry-bronze/delivery.json",
+          "bytes": 680,
+          "sha256": "da073e68b525d787fe5381e5f0808e80234ea76108b284ae81716d62b43b4a20"
+        },
+        "lod-ground-repair.json": {
+          "path": "quarry-bronze/lod-ground-repair.json",
+          "bytes": 1065,
+          "sha256": "6bbc4c6f666087e5e73780b0493c97cbb959073ddb33c23c4722e1672a75cf9f"
+        },
+        "manifest.json": {
+          "path": "quarry-bronze/manifest.json",
+          "bytes": 1015,
+          "sha256": "fa3ebbdb93fa565b70b7c2eff992ee2dc6ba7d392871f41aa14d87549101b36e"
+        },
+        "normal.png": {
+          "path": "quarry-bronze/normal.png",
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "path": "quarry-bronze/orm.png",
+          "bytes": 1015996,
+          "sha256": "d55edd0b901fef60c602a012de90e7aba7ae9629f8ab09fbff7a1606eae90889"
+        },
+        "phone-lod2.png": {
+          "path": "quarry-bronze/phone-lod2.png",
+          "bytes": 24506,
+          "sha256": "3139cf33174da86b4b87e128d765662fd2b099b9eb7ed55f50ef630ab5680b93"
+        },
+        "preview-lod1.png": {
+          "path": "quarry-bronze/preview-lod1.png",
+          "bytes": 347677,
+          "sha256": "4f9447c1dab6bf4334ec38af9de2467d5a24fb2a5bd792a3cf8653f1e8595243"
+        },
+        "preview-lod2.png": {
+          "path": "quarry-bronze/preview-lod2.png",
+          "bytes": 348113,
+          "sha256": "32026fafa60253569ec82fee1b48c6acdd5c79e99aac16ef24f3eb8a59e6a743"
+        },
+        "preview.png": {
+          "path": "quarry-bronze/preview.png",
+          "bytes": 327230,
+          "sha256": "d6fa0bd9cc8229d9ceaf5a5e10fa2c1ec02d6ab4375dd19186a87f8256b0479a"
+        },
+        "quarry-bronze.blend": {
+          "path": "quarry-bronze/quarry-bronze.blend",
+          "bytes": 7159714,
+          "sha256": "561880a99942e49d5bcd4a3c2ee4f9c048843053f935b42fdd5f3bd60ef6556f"
+        },
+        "quarry-bronze.glb": {
+          "path": "quarry-bronze/quarry-bronze.glb",
+          "bytes": 1378532,
+          "sha256": "64c06d55eff84efb53d670f6e9f2e115a0cdac7bf5d3a0f9656ac82deb5b6d32"
+        },
+        "quarry-bronze.validation.json": {
+          "path": "quarry-bronze/quarry-bronze.validation.json",
+          "bytes": 2104,
+          "sha256": "76ba68ce6c918e33bb57f9dc03b9881867477ce51529f3944c8f6f899ded5938"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-4.zip"
+    },
+    {
+      "item": "plans/art/improvements/ancient/lumber_camp",
+      "id": "lumber_camp-bronze",
+      "target_path": "src/assets/map/improvements/lumber_camp-bronze.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        3457,
+        1095,
+        288
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "3108196b23bbaa927881f9a086a09541d0ac7df1cc577958f45f6b1fd237cac0",
+      "game_sha256": "e6a8c0b3d29c1fed285d3444c60c783b8b9aac5db0fafcf1777dd36d4cd4c989",
+      "game_bytes": 1244976,
+      "archive_part": "part-4.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "lumber_camp-bronze/lumber_camp-bronze.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "lumber_camp-bronze/basecolor.png",
+          "bytes": 5172454,
+          "sha256": "9ef055b7ae9f602a26ba494d1c5ac0cb993d85a4bda38d3110b57e1c694e22ec"
+        },
+        "delivery.json": {
+          "path": "lumber_camp-bronze/delivery.json",
+          "bytes": 695,
+          "sha256": "ba72eb1e76c6eafcdc1d8c056377e02addb82bfae1a808ab08f1d55d8efc597e"
+        },
+        "lod-ground-repair.json": {
+          "path": "lumber_camp-bronze/lod-ground-repair.json",
+          "bytes": 1069,
+          "sha256": "512201992c657d9fd2e4b1b4ddba92bfa0d6a3ac1d787f92c5e7794a24be3707"
+        },
+        "lumber_camp-bronze.blend": {
+          "path": "lumber_camp-bronze/lumber_camp-bronze.blend",
+          "bytes": 7221025,
+          "sha256": "c086cdc0b54e9ac1cd0a9484640eb002c553dde7af7e8df019609613e741262f"
+        },
+        "lumber_camp-bronze.glb": {
+          "path": "lumber_camp-bronze/lumber_camp-bronze.glb",
+          "bytes": 1499912,
+          "sha256": "3108196b23bbaa927881f9a086a09541d0ac7df1cc577958f45f6b1fd237cac0"
+        },
+        "lumber_camp-bronze.validation.json": {
+          "path": "lumber_camp-bronze/lumber_camp-bronze.validation.json",
+          "bytes": 2114,
+          "sha256": "a980aec6ec131a2fca78b6412dbc09c38cbb22743cad7dfb076edd9c034ad53c"
+        },
+        "manifest.json": {
+          "path": "lumber_camp-bronze/manifest.json",
+          "bytes": 1025,
+          "sha256": "f64274098a1cead3e2d1ff6c1d02876743e3ed4190e240dc83d753b947294ff9"
+        },
+        "normal.png": {
+          "path": "lumber_camp-bronze/normal.png",
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "path": "lumber_camp-bronze/orm.png",
+          "bytes": 1114978,
+          "sha256": "564a007d0252df6e977d631b73544cc481199d1cd6439251b09ba60913a61fd3"
+        },
+        "phone-lod2.png": {
+          "path": "lumber_camp-bronze/phone-lod2.png",
+          "bytes": 27264,
+          "sha256": "f6bb81ded14acd4af89d92735fc35e9b90200a47c3a1a863b6b7633a5e50e9fe"
+        },
+        "preview-lod1.png": {
+          "path": "lumber_camp-bronze/preview-lod1.png",
+          "bytes": 392445,
+          "sha256": "256f8940ab77e558522ca4ed0582e0d0c735e7c257a8d9f05626c1f3458ea8d7"
+        },
+        "preview-lod2.png": {
+          "path": "lumber_camp-bronze/preview-lod2.png",
+          "bytes": 391198,
+          "sha256": "27fd2491f3fca64607548229b3a3c2a93398f323d68180a0fd0a86681f69955f"
+        },
+        "preview.png": {
+          "path": "lumber_camp-bronze/preview.png",
+          "bytes": 369460,
+          "sha256": "25bd83581dda1729da62f343695db41a34e66bdad7a975d13ef12c625a4d51a9"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-4.zip"
+    },
+    {
+      "item": "plans/art/improvements/ancient/plantation",
+      "id": "plantation-bronze",
+      "target_path": "src/assets/map/improvements/plantation-bronze.glb",
+      "kind": "improvement",
+      "source": "Existing authored Blender model",
+      "atlas": [
+        2048,
+        2048
+      ],
+      "images": [
+        "basecolor",
+        "normal",
+        "orm"
+      ],
+      "ao": "Source actual Cycles per-corner AO baked into unique basecolour UVs once; vertex RGB removed",
+      "triangles": [
+        5777,
+        1015,
+        290
+      ],
+      "preview": [
+        844,
+        390
+      ],
+      "validation": true,
+      "validator": "scripts/blender/validate_model.py",
+      "uncompressed_sha256": "20a0e7b496ecf511b49988e1fd25f1f619e2ce138dc2697e419304ae2cb82d5d",
+      "game_sha256": "72f69607a2d0a2d9d114bd5114036b107848a4c5fdf4947f4a5024f8f130baba",
+      "game_bytes": 1428292,
+      "archive_part": "part-4.zip",
+      "runtime_acceptance": "Actual packed resolver/loaders, all LODs, cloned and instanced Team tint, isolated 1280x800/844x390 rendering passed; full campaign/scene performance pending",
+      "validation_report": "plantation-bronze/plantation-bronze.validation.json",
+      "files": {
+        "basecolor.png": {
+          "path": "plantation-bronze/basecolor.png",
+          "bytes": 5168129,
+          "sha256": "9a9082086fdef193ecc0827628f4e94075dd0cd0b52955475c91f3c9f9e770bd"
+        },
+        "delivery.json": {
+          "path": "plantation-bronze/delivery.json",
+          "bytes": 692,
+          "sha256": "37fb47cfdb470436f12227ec4813141431ac4eca5f31ace7e5276e5cce780ffb"
+        },
+        "lod-ground-repair.json": {
+          "path": "plantation-bronze/lod-ground-repair.json",
+          "bytes": 1069,
+          "sha256": "e2570ea8b29935c79dc25bf63be1613ab30a88b9d42f7eed861341530b572504"
+        },
+        "manifest.json": {
+          "path": "plantation-bronze/manifest.json",
+          "bytes": 1023,
+          "sha256": "66bfb4bb3c70405164fbe8977e60218fd6fc0ac352ddd9682edb8393b3012a23"
+        },
+        "normal.png": {
+          "path": "plantation-bronze/normal.png",
+          "bytes": 62696,
+          "sha256": "a975b1ed179c1881a0214a2efaa8d01bd7664ecd5c670c632be17982d840d6c7"
+        },
+        "orm.png": {
+          "path": "plantation-bronze/orm.png",
+          "bytes": 1206016,
+          "sha256": "3429b3429aa18d62b7522a6d2dc02be15e8ebd5029a1af4e3b104a967e5d73cf"
+        },
+        "phone-lod2.png": {
+          "path": "plantation-bronze/phone-lod2.png",
+          "bytes": 27469,
+          "sha256": "56173c03adb583ef736be86fbf5ce0399981645a10680336b12bbe67249662b2"
+        },
+        "plantation-bronze.blend": {
+          "path": "plantation-bronze/plantation-bronze.blend",
+          "bytes": 7435960,
+          "sha256": "30ae864f047dea02c0cddd713483bd7a9881d78b862d3a7e7a536dbece2159e4"
+        },
+        "plantation-bronze.glb": {
+          "path": "plantation-bronze/plantation-bronze.glb",
+          "bytes": 1805576,
+          "sha256": "20a0e7b496ecf511b49988e1fd25f1f619e2ce138dc2697e419304ae2cb82d5d"
+        },
+        "plantation-bronze.validation.json": {
+          "path": "plantation-bronze/plantation-bronze.validation.json",
+          "bytes": 2112,
+          "sha256": "a761ea2260614a4f7392dcd1ea637d65b6b636d4d37f77b24b16539deac11e4a"
+        },
+        "preview-lod1.png": {
+          "path": "plantation-bronze/preview-lod1.png",
+          "bytes": 394029,
+          "sha256": "d572c674055526787e2273f0a0e906919e521c8a95bc6bc877a0530e6509b26f"
+        },
+        "preview-lod2.png": {
+          "path": "plantation-bronze/preview-lod2.png",
+          "bytes": 393427,
+          "sha256": "b1f118a4d5e7bd19a0af854498ff29b3a8fa238321a95545a1d20411cf18a248"
+        },
+        "preview.png": {
+          "path": "plantation-bronze/preview.png",
+          "bytes": 370806,
+          "sha256": "603a99aa55157ad4a2b7fe3355a1e80e5dc50ddfb39dda5dfb5aa04903e457be"
+        }
+      },
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-4.zip"
+    }
+  ],
+  "status": "prepared locally; release upload and remote verification pending",
+  "source_transfer_commit": "72c2cd3e",
+  "history_base": "4f19f6587ad787ddaf2297a0533927efef3f218c",
+  "archives": [
+    {
+      "file": "part-1.zip",
+      "logical_items": [
+        "naval_base",
+        "carrier_dock",
+        "road_post",
+        "highway",
+        "rail_depot"
+      ],
+      "bytes": 65156204,
+      "sha256": "fa55656045fbe6ffd8ab5aae95d42a2a86de5fd0cdf23837419bd3ee1b356865",
+      "entries": 57,
+      "expanded_bytes_fully_read": 70618686,
+      "all_entry_sha256_match_source": true,
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-1.zip",
+      "remote_download_verification": "pending publication"
+    },
+    {
+      "file": "part-2.zip",
+      "logical_items": [
+        "copper_mine",
+        "iron_foundry",
+        "farm-bronze",
+        "farm-modern",
+        "mine-bronze"
+      ],
+      "bytes": 61584181,
+      "sha256": "d5abb0b55f91239bbca8ca688f673040072de5c2fca4ab32bac1911201b83cdd",
+      "entries": 70,
+      "expanded_bytes_fully_read": 67073818,
+      "all_entry_sha256_match_source": true,
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-2.zip",
+      "remote_download_verification": "pending publication"
+    },
+    {
+      "file": "part-3.zip",
+      "logical_items": [
+        "mine-modern",
+        "fishing_boats-bronze",
+        "fishing_boats-modern",
+        "road-bronze",
+        "road-modern"
+      ],
+      "bytes": 70590429,
+      "sha256": "8f33adb07d56a1237d0b4fe8c50707966711896bb701c214ed3860c2329844fe",
+      "entries": 72,
+      "expanded_bytes_fully_read": 76044428,
+      "all_entry_sha256_match_source": true,
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-3.zip",
+      "remote_download_verification": "pending publication"
+    },
+    {
+      "file": "part-4.zip",
+      "logical_items": [
+        "pasture-bronze",
+        "camp-bronze",
+        "quarry-bronze",
+        "lumber_camp-bronze",
+        "plantation-bronze"
+      ],
+      "bytes": 75726089,
+      "sha256": "c5bf4bb3aa2f66fecfa9ec79165915c7627c8175daa7b1e5de66802bff9b538e",
+      "entries": 72,
+      "expanded_bytes_fully_read": 81435297,
+      "all_entry_sha256_match_source": true,
+      "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/part-4.zip",
+      "remote_download_verification": "pending publication"
+    }
+  ],
+  "evidence": {
+    "lod_repairs": "lod-repair-manifest.json",
+    "correction_qa": "LOD-REPAIR-QA.md",
+    "runtime": "runtime-repaired-improvements.json",
+    "archive_verification": "archive-verification.json"
+  }
+}

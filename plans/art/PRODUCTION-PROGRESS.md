@@ -8,6 +8,10 @@ Built but not yet delivered: 0.
 
 Import check 2026-10-07: every item in every ZIP below is in the game (`node scripts/art/downloads-coverage.mjs`). The 25 items built in the cloud (8 buildings, 13 base tile improvements, classical town-big a and b, warships bronze, classical and kingdoms) came through the transfer archives in [local-transfer-2026-10-07](local-transfer-2026-10-07/README.md) and were validated, fixed where needed and imported the same day (details in [IMPLEMENTED.md](IMPLEMENTED.md), "Imported 2026-10-07").
 
+Wave 0 backlog repair 2026-10-07 (Codex, committed by Claude): the 13 base tile improvements got continuous Ground and readable distant LODs, the three warships and the Classical big towns A and B were re-exported and brightened; the cathedral and the 7 buildings are unchanged in the game. Checkpoints [01](downloads/wave0-backlog/checkpoint-01/README.md) (20 items, 4 ZIPs) and [02-final](downloads/wave0-backlog/checkpoint-02-final/README.md) (5 items, 1 ZIP); the ZIPs are kept outside git (see those READMEs).
+
+Wave 1 (plans/ART-MODELS-PLAN.md) [checkpoint 01](downloads/wave1/checkpoint-01/README.md), 2026-10-07: the 7 Bronze base units and general (4 by Codex, 3 by Claude) and the 13 Bronze battle buildings with damaged states (`rts-bronze.glb`), 20 items in the game, status `in_game_awaiting_review` in production-queue.json; the 4 ZIPs are kept outside git (see that README).
+
 **Quality review: 0 delivered items require revision; 285 accepted. 65 items remain to finish.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
 
 | Checkpoint | Items | ZIPs | Files and exact item list |

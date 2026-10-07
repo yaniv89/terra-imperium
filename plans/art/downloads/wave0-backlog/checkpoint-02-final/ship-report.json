@@ -1,0 +1,179 @@
+{
+  "scope": "Actual resolver/loadAssetObjects/prepareBuildingModel/cloned and instanced Team, isolated renderer, not campaign.",
+  "rows": [
+    {
+      "id": "warship-bronze",
+      "url": "/terra-imperium/src/assets/map/ships/warship-bronze.glb",
+      "triangles": [
+        1354,
+        1138,
+        288
+      ],
+      "teamParts": [
+        1,
+        1,
+        1
+      ],
+      "tint": [
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "warship-classical",
+      "url": "/terra-imperium/src/assets/map/ships/warship-classical.glb",
+      "triangles": [
+        1458,
+        1242,
+        352
+      ],
+      "teamParts": [
+        1,
+        1,
+        1
+      ],
+      "tint": [
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "warship-kingdoms",
+      "url": "/terra-imperium/src/assets/map/ships/warship-kingdoms.glb",
+      "triangles": [
+        1450,
+        1034,
+        242
+      ],
+      "teamParts": [
+        1,
+        1,
+        1
+      ],
+      "tint": [
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ],
+        [
+          1.3,
+          0,
+          0
+        ]
+      ]
+    }
+  ],
+  "renders": [
+    {
+      "width": 1280,
+      "height": 800,
+      "start": 0,
+      "lod": 0,
+      "ids": [
+        "warship-bronze",
+        "warship-classical",
+        "warship-kingdoms"
+      ],
+      "calls": 6,
+      "triangles": 8524
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "start": 0,
+      "lod": 1,
+      "ids": [
+        "warship-bronze",
+        "warship-classical",
+        "warship-kingdoms"
+      ],
+      "calls": 6,
+      "triangles": 6828
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "start": 0,
+      "lod": 2,
+      "ids": [
+        "warship-bronze",
+        "warship-classical",
+        "warship-kingdoms"
+      ],
+      "calls": 6,
+      "triangles": 1764
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "start": 0,
+      "lod": 0,
+      "ids": [
+        "warship-bronze",
+        "warship-classical",
+        "warship-kingdoms"
+      ],
+      "calls": 6,
+      "triangles": 8524
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "start": 0,
+      "lod": 1,
+      "ids": [
+        "warship-bronze",
+        "warship-classical",
+        "warship-kingdoms"
+      ],
+      "calls": 6,
+      "triangles": 6828
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "start": 0,
+      "lod": 2,
+      "ids": [
+        "warship-bronze",
+        "warship-classical",
+        "warship-kingdoms"
+      ],
+      "calls": 6,
+      "triangles": 1764
+    }
+  ],
+  "errors": []
+}

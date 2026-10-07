@@ -1,0 +1,1114 @@
+{
+  "wave": "wave0-backlog",
+  "checkpoint": "02-final",
+  "logical_items": 5,
+  "variant_files": 7,
+  "status": "prepared locally; release upload and remote verification pending",
+  "items": [
+    {
+      "id": "cathedral-a",
+      "logical_item": "cathedral",
+      "target_path": "src/assets/map/buildings/cathedral.glb",
+      "root": "cathedral",
+      "kind": "landmark",
+      "triangles": {
+        "LOD0": 12488,
+        "LOD1": 2886,
+        "LOD2": 476
+      },
+      "validation_passed": true,
+      "blend_audit_passed": true,
+      "glb_audit_passed": true,
+      "source": "/workspace/blender-delivery/all-remaining/plans/art/buildings/cathedral/model.blend",
+      "source_sha256": "e3d73922d160cea96dee3e9bd0a9811027d294f679a3b3ac62bd32e7b8c78bc6",
+      "lod_method": {
+        "LOD1": {
+          "method": "Closed hulls of approved source components; face colours sampled from original delivery atlas",
+          "source_components": 164,
+          "retained_components": 146,
+          "omitted_small_decorative_components": 18,
+          "structural_support_components_protected": 2
+        },
+        "LOD2": {
+          "method": "Closed hulls of approved source components; face colours sampled from original delivery atlas",
+          "source_components": 164,
+          "retained_components": 25,
+          "omitted_small_decorative_components": 139,
+          "structural_support_components_protected": 2
+        }
+      },
+      "files": {
+        "adapter-audit.json": {
+          "path": "cathedral-a/adapter-audit.json",
+          "bytes": 1717,
+          "sha256": "d7e77bd9d24f8d082aa0bb08fdc01daa3cac86258d46c3545eac173512d32996"
+        },
+        "basecolor.png": {
+          "path": "cathedral-a/basecolor.png",
+          "bytes": 4460211,
+          "sha256": "15d2d7ca1ab2385544e0673d547c74ef731940edf4a7178e0b5b9754143f0f4e"
+        },
+        "blend-audit.json": {
+          "path": "cathedral-a/blend-audit.json",
+          "bytes": 757,
+          "sha256": "e02b40ce83b4193e880238fb04bec70c16f0c7e417bf11c78364ef045502d242"
+        },
+        "cathedral.blend": {
+          "path": "cathedral-a/cathedral.blend",
+          "bytes": 10672542,
+          "sha256": "259c0ae69d85f164405e54dd6471aad4ec4fe3e6fcb2f4d5c94eebe35cc70a4b"
+        },
+        "cathedral.glb": {
+          "path": "cathedral-a/cathedral.glb",
+          "bytes": 2879244,
+          "sha256": "b69647be5f127d113be6efd30f8de66212912617797e49b65e28d9a5d20687ef"
+        },
+        "cathedral.validation.json": {
+          "path": "cathedral-a/cathedral.validation.json",
+          "bytes": 2098,
+          "sha256": "a04b1d5dba67ddc6fe9bb30b0b36e367bc0b3d4f31ab2fdcd6889c1511735df2"
+        },
+        "glb-audit.json": {
+          "path": "cathedral-a/glb-audit.json",
+          "bytes": 1012,
+          "sha256": "3a437ec0e4258e3ed1ee14bf3317437d4825a6745db592d525b3c0f88059565a"
+        },
+        "local-root-alignment.json": {
+          "path": "cathedral-a/local-root-alignment.json",
+          "bytes": 230,
+          "sha256": "f33ce7ea896bc82fd7a2b153d1e0bb7958fc25fff44ad6c142565b60763d5efc"
+        },
+        "manifest.json": {
+          "path": "cathedral-a/manifest.json",
+          "bytes": 1011,
+          "sha256": "d182e47cf5f35afe0e0b9d2b65be576627b6cab035c522ebd22934661443a892"
+        },
+        "normal.png": {
+          "path": "cathedral-a/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "cathedral-a/orm.png",
+          "bytes": 1953289,
+          "sha256": "80febfa721aadcb786d9ccd57a3b9806a7593e1fa0e5fd116f738d4da3e0873e"
+        },
+        "preview-lod2-settings.json": {
+          "path": "cathedral-a/preview-lod2-settings.json",
+          "bytes": 203,
+          "sha256": "d79f67db1bf0597d32dfd3a3fd1ef42d6e70f3b46c6ed056886825ff3ec12a27"
+        },
+        "preview-lod2.png": {
+          "path": "cathedral-a/preview-lod2.png",
+          "bytes": 220020,
+          "sha256": "6388a3409760cea320a4e7f0fb93d5dd65ac069f9544d867d7f238033dee4acb"
+        },
+        "preview-settings.json": {
+          "path": "cathedral-a/preview-settings.json",
+          "bytes": 203,
+          "sha256": "d79f67db1bf0597d32dfd3a3fd1ef42d6e70f3b46c6ed056886825ff3ec12a27"
+        },
+        "preview.png": {
+          "path": "cathedral-a/preview.png",
+          "bytes": 234254,
+          "sha256": "a2177fb4fd18f061bf7483985f1d2b9e80f26ff3a2e27f27f39950a219ad7f97"
+        }
+      },
+      "original_transfer_files": {
+        "cathedral.blend": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/cathedral.blend",
+          "bytes": 10668512,
+          "sha256": "c26ec718a6ac300a559660a6d27babd5386bd2b7d9d7999e305bf86ce4995dad"
+        },
+        "cathedral.glb": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/cathedral.glb",
+          "bytes": 2879932,
+          "sha256": "71b5422ee449c0a8f57a0c9e9657760a18c4683701bcd7aea8da41f60fdf64af"
+        },
+        "cathedral.validation.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/cathedral.validation.json",
+          "bytes": 2189,
+          "sha256": "3a6867e08cfb520b0219245ff621ca0ce56b429aab59ae13f1f0b6dda87518a0"
+        },
+        "preview.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/preview.png",
+          "bytes": 234254,
+          "sha256": "a2177fb4fd18f061bf7483985f1d2b9e80f26ff3a2e27f27f39950a219ad7f97"
+        },
+        "preview-lod2.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/preview-lod2.png",
+          "bytes": 220020,
+          "sha256": "6388a3409760cea320a4e7f0fb93d5dd65ac069f9544d867d7f238033dee4acb"
+        },
+        "adapter-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/adapter-audit.json",
+          "bytes": 1717,
+          "sha256": "d7e77bd9d24f8d082aa0bb08fdc01daa3cac86258d46c3545eac173512d32996"
+        },
+        "blend-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/blend-audit.json",
+          "bytes": 757,
+          "sha256": "e02b40ce83b4193e880238fb04bec70c16f0c7e417bf11c78364ef045502d242"
+        },
+        "glb-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/glb-audit.json",
+          "bytes": 1012,
+          "sha256": "3a437ec0e4258e3ed1ee14bf3317437d4825a6745db592d525b3c0f88059565a"
+        },
+        "basecolor.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/basecolor.png",
+          "bytes": 4460211,
+          "sha256": "15d2d7ca1ab2385544e0673d547c74ef731940edf4a7178e0b5b9754143f0f4e"
+        },
+        "normal.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-a/orm.png",
+          "bytes": 1953289,
+          "sha256": "80febfa721aadcb786d9ccd57a3b9806a7593e1fa0e5fd116f738d4da3e0873e"
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.652,
+          "effective": 0.652,
+          "sat": 0.096,
+          "samples": 48096
+        },
+        "Ground": {
+          "value": 0.392,
+          "effective": 0.392,
+          "sat": 0.24,
+          "samples": 288
+        },
+        "Team": {
+          "value": 0.423,
+          "effective": 0.423,
+          "sat": 0,
+          "samples": 1568
+        }
+      },
+      "art_review": "passed local preview/tone review",
+      "runtime_acceptance": "isolated browser loader and renderer evidence; full campaign acceptance pending",
+      "game_sha256": "2b340f81e2656c4726d87357ab518514821d7ab6cf4dc87ceb2b4e5e80c04a8a",
+      "game_bytes": 2034096,
+      "uncompressed_sha256": "b69647be5f127d113be6efd30f8de66212912617797e49b65e28d9a5d20687ef",
+      "archive_part": "final-five.zip",
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/final-five.zip",
+      "validator": "scripts/blender/validate_model.py",
+      "full_campaign_acceptance_pending": true
+    },
+    {
+      "id": "cathedral-b",
+      "logical_item": "cathedral",
+      "target_path": "src/assets/map/buildings/cathedral-levant.glb",
+      "root": "cathedral-levant",
+      "kind": "landmark",
+      "triangles": {
+        "LOD0": 12090,
+        "LOD1": 2896,
+        "LOD2": 474
+      },
+      "validation_passed": true,
+      "blend_audit_passed": true,
+      "glb_audit_passed": true,
+      "source": "/workspace/blender-delivery/all-remaining/plans/art/buildings/cathedral/model-b.blend",
+      "source_sha256": "e81c0b022efd82effbb4535ccc8e51bc49bd59b80c79b4df3c30ba02dfc12993",
+      "lod_method": {
+        "LOD1": {
+          "method": "Closed hulls of approved source components; face colours sampled from original delivery atlas",
+          "source_components": 277,
+          "retained_components": 190,
+          "omitted_small_decorative_components": 87,
+          "structural_support_components_protected": 2
+        },
+        "LOD2": {
+          "method": "Closed hulls of approved source components; face colours sampled from original delivery atlas",
+          "source_components": 277,
+          "retained_components": 22,
+          "omitted_small_decorative_components": 255,
+          "structural_support_components_protected": 2
+        }
+      },
+      "files": {
+        "adapter-audit.json": {
+          "path": "cathedral-b/adapter-audit.json",
+          "bytes": 1733,
+          "sha256": "0198cd25c9cae0d905cfbe5e7dc408c4fac860f1da0a584ee85cd344ae47accf"
+        },
+        "basecolor.png": {
+          "path": "cathedral-b/basecolor.png",
+          "bytes": 4912456,
+          "sha256": "946da417953396bdd98118f1d4956feb46b2d8c194ff31ee28fb57b75da67675"
+        },
+        "blend-audit.json": {
+          "path": "cathedral-b/blend-audit.json",
+          "bytes": 756,
+          "sha256": "909f105bf97bf4859da9b7e32e80ef63fd3c4283fdee80d5a8c18c63272486e0"
+        },
+        "cathedral-levant.blend": {
+          "path": "cathedral-b/cathedral-levant.blend",
+          "bytes": 11136783,
+          "sha256": "1b519e9fe35e5f9dac6ccb98736b76d48cbf5d91d00335cd92347c7c2b34e978"
+        },
+        "cathedral-levant.glb": {
+          "path": "cathedral-b/cathedral-levant.glb",
+          "bytes": 2876204,
+          "sha256": "2e79f5d136fca555d538ea104920b288a19856c2a1099a6216ae86ff4a615c10"
+        },
+        "cathedral-levant.validation.json": {
+          "path": "cathedral-b/cathedral-levant.validation.json",
+          "bytes": 2109,
+          "sha256": "52e3927058541961668440b5c097135c0211eb434088bf7a3b1660e877db40f9"
+        },
+        "glb-audit.json": {
+          "path": "cathedral-b/glb-audit.json",
+          "bytes": 1013,
+          "sha256": "8c6d4d71582ecde7f4dc6b4f916d0c24f690091cb5ecdd149ab7971118321342"
+        },
+        "local-root-alignment.json": {
+          "path": "cathedral-b/local-root-alignment.json",
+          "bytes": 230,
+          "sha256": "510e11d7547ef73f4a4c9130404c4cb73afb051952cd13b59986674e8062ce2a"
+        },
+        "manifest.json": {
+          "path": "cathedral-b/manifest.json",
+          "bytes": 1021,
+          "sha256": "92e46ed8ac347e60b3a9ef9eea0b6cda0f43a0c3140ca3488af608167c8d6b22"
+        },
+        "normal.png": {
+          "path": "cathedral-b/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "cathedral-b/orm.png",
+          "bytes": 2221340,
+          "sha256": "0330b866a18a93fd3ff8bf44f00c4d2105fbb0e96b76e80f2b12a0b10e21ff91"
+        },
+        "preview-lod2-settings.json": {
+          "path": "cathedral-b/preview-lod2-settings.json",
+          "bytes": 203,
+          "sha256": "d79f67db1bf0597d32dfd3a3fd1ef42d6e70f3b46c6ed056886825ff3ec12a27"
+        },
+        "preview-lod2.png": {
+          "path": "cathedral-b/preview-lod2.png",
+          "bytes": 236367,
+          "sha256": "c947dda5ea869c8c536b7948cbe94059002cae59f4bc35664aa254aa99c04d14"
+        },
+        "preview-settings.json": {
+          "path": "cathedral-b/preview-settings.json",
+          "bytes": 203,
+          "sha256": "d79f67db1bf0597d32dfd3a3fd1ef42d6e70f3b46c6ed056886825ff3ec12a27"
+        },
+        "preview.png": {
+          "path": "cathedral-b/preview.png",
+          "bytes": 249942,
+          "sha256": "78e21fb2939c1c3fd44c1f9d41a88fc9c8162fedc79a4f155459039daee3a7f0"
+        }
+      },
+      "original_transfer_files": {
+        "cathedral-levant.blend": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/cathedral-levant.blend",
+          "bytes": 11132748,
+          "sha256": "61bb31763e435e02c91aafbff9e0cab879613823ebb48f3060c89117c374cbd0"
+        },
+        "cathedral-levant.glb": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/cathedral-levant.glb",
+          "bytes": 2876892,
+          "sha256": "1c9492daa1b4b6b791eee85eaf7c7996b7a47a5e943b8d62e086024b5551434e"
+        },
+        "cathedral-levant.validation.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/cathedral-levant.validation.json",
+          "bytes": 2207,
+          "sha256": "922a00cf81bc099168c9472edad9bd2e5697ade6458df8b4a329c37a22535087"
+        },
+        "preview.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/preview.png",
+          "bytes": 249942,
+          "sha256": "78e21fb2939c1c3fd44c1f9d41a88fc9c8162fedc79a4f155459039daee3a7f0"
+        },
+        "preview-lod2.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/preview-lod2.png",
+          "bytes": 236367,
+          "sha256": "c947dda5ea869c8c536b7948cbe94059002cae59f4bc35664aa254aa99c04d14"
+        },
+        "adapter-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/adapter-audit.json",
+          "bytes": 1733,
+          "sha256": "0198cd25c9cae0d905cfbe5e7dc408c4fac860f1da0a584ee85cd344ae47accf"
+        },
+        "blend-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/blend-audit.json",
+          "bytes": 756,
+          "sha256": "909f105bf97bf4859da9b7e32e80ef63fd3c4283fdee80d5a8c18c63272486e0"
+        },
+        "glb-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/glb-audit.json",
+          "bytes": 1013,
+          "sha256": "8c6d4d71582ecde7f4dc6b4f916d0c24f690091cb5ecdd149ab7971118321342"
+        },
+        "basecolor.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/basecolor.png",
+          "bytes": 4912456,
+          "sha256": "946da417953396bdd98118f1d4956feb46b2d8c194ff31ee28fb57b75da67675"
+        },
+        "normal.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/normal.png",
+          "bytes": 59506,
+          "sha256": "b858c6eef8b1d761eac55c7aa4cf0e054919b74cb042fa5b0d6637303b3eb762"
+        },
+        "orm.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/cathedral-b/orm.png",
+          "bytes": 2221340,
+          "sha256": "0330b866a18a93fd3ff8bf44f00c4d2105fbb0e96b76e80f2b12a0b10e21ff91"
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.625,
+          "effective": 0.625,
+          "sat": 0.486,
+          "samples": 46504
+        },
+        "Ground": {
+          "value": 0.394,
+          "effective": 0.394,
+          "sat": 0.236,
+          "samples": 288
+        },
+        "Team": {
+          "value": 0.433,
+          "effective": 0.433,
+          "sat": 0.002,
+          "samples": 1568
+        }
+      },
+      "art_review": "passed local preview/tone review",
+      "runtime_acceptance": "isolated browser loader and renderer evidence; full campaign acceptance pending",
+      "game_sha256": "499194167eed152afe2a2cc97cabf1ac1b8682dcd8e4d97b35722c6574518ad1",
+      "game_bytes": 2042576,
+      "uncompressed_sha256": "2e79f5d136fca555d538ea104920b288a19856c2a1099a6216ae86ff4a615c10",
+      "archive_part": "final-five.zip",
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/final-five.zip",
+      "validator": "scripts/blender/validate_model.py",
+      "full_campaign_acceptance_pending": true
+    },
+    {
+      "id": "classical-town-big-a",
+      "logical_item": "classical-town-big",
+      "target_path": "src/assets/map/towns/classical-town-big-a.glb",
+      "root": "classical-town-big-a",
+      "kind": "town",
+      "triangles": {
+        "LOD0": 45821,
+        "LOD1": 9700,
+        "LOD2": 1445
+      },
+      "validation_passed": true,
+      "blend_audit_passed": true,
+      "glb_audit_passed": true,
+      "source": "/workspace/blender-delivery/all-remaining/plans/art/towns/classical/town-big/variant-a/layout.blend",
+      "source_sha256": "0155c5ae229b8c61e4fd5cade567b3b81d340958c85ac511f198de7843f39c0e",
+      "lod_method": {
+        "LOD1": {
+          "method": "Closed hulls of approved source components; face colours sampled from original delivery atlas",
+          "source_components": 1522,
+          "retained_components": 780,
+          "omitted_small_decorative_components": 742,
+          "structural_support_components_protected": 74
+        },
+        "LOD2": {
+          "method": "Closed hulls of approved source components; face colours sampled from original delivery atlas",
+          "source_components": 445,
+          "retained_components": 93,
+          "omitted_small_decorative_components": 352,
+          "structural_support_components_protected": 30
+        }
+      },
+      "files": {
+        "adapter-audit.json": {
+          "path": "classical-town-big-a/adapter-audit.json",
+          "bytes": 1605,
+          "sha256": "04acf87124a2ac58f556711edda3a68c7d97c8f68d646f45801991d0660e5fd6"
+        },
+        "basecolor.png": {
+          "path": "classical-town-big-a/basecolor.png",
+          "bytes": 3349660,
+          "sha256": "297ceca3b4f124c3a97b11d4aefbcdb287029a3af777bb299244e8763603b879"
+        },
+        "blend-audit.json": {
+          "path": "classical-town-big-a/blend-audit.json",
+          "bytes": 757,
+          "sha256": "ef13644b3e470f60c123b196794876f32b89ae1808508e4cea674e041566fc5c"
+        },
+        "classical-town-big-a.blend": {
+          "path": "classical-town-big-a/classical-town-big-a.blend",
+          "bytes": 23150767,
+          "sha256": "08e55ccb2b589194219251e2df670e495e5d6ab89369c7e70bd408c93855fa34"
+        },
+        "classical-town-big-a.glb": {
+          "path": "classical-town-big-a/classical-town-big-a.glb",
+          "bytes": 5921784,
+          "sha256": "f169cc80717bf0b290ca2317fb68f9e72d55e395685ec670444899ca5b4dcd38"
+        },
+        "classical-town-big-a.validation.json": {
+          "path": "classical-town-big-a/classical-town-big-a.validation.json",
+          "bytes": 2111,
+          "sha256": "388d9d26dc2c344abe3d7d547c4f54ad3d31c3c2a78031d35cb90a1313efec38"
+        },
+        "glb-audit.json": {
+          "path": "classical-town-big-a/glb-audit.json",
+          "bytes": 1013,
+          "sha256": "4c43f7e8d56b67343758c7c575433cf8c871a4091dad6f856ef6801526881c83"
+        },
+        "manifest.json": {
+          "path": "classical-town-big-a/manifest.json",
+          "bytes": 1028,
+          "sha256": "5d48536f07578b02fbd7937d963f024b59cff7ea76cafffc2cee8e266e40d9b6"
+        },
+        "normal.png": {
+          "path": "classical-town-big-a/normal.png",
+          "bytes": 67969,
+          "sha256": "a9d65807df78c6db12ccb5145ed0e566ffb6ee9a2a300bd99d952211c3a649c8"
+        },
+        "orm.png": {
+          "path": "classical-town-big-a/orm.png",
+          "bytes": 2264932,
+          "sha256": "b8afe60d21b506d910edfbb0ef1f3fe777b4f151d3c4a11c8315cf8e62d31677"
+        },
+        "preview-lod2-settings.json": {
+          "path": "classical-town-big-a/preview-lod2-settings.json",
+          "bytes": 234,
+          "sha256": "3d98ee05ee4b43d487d5cd5f42c1d77612a853e21cfbf7f048d564b72bafca99"
+        },
+        "preview-lod2.png": {
+          "path": "classical-town-big-a/preview-lod2.png",
+          "bytes": 197594,
+          "sha256": "c18ca77e1ae813698503b9214cb372d23a69666deb54725a34db019c0b223bbe"
+        },
+        "preview-settings.json": {
+          "path": "classical-town-big-a/preview-settings.json",
+          "bytes": 234,
+          "sha256": "3d98ee05ee4b43d487d5cd5f42c1d77612a853e21cfbf7f048d564b72bafca99"
+        },
+        "preview.png": {
+          "path": "classical-town-big-a/preview.png",
+          "bytes": 214750,
+          "sha256": "b8b1e4625e8682dd2405eca69e03154143e7e2aa69c1fbbbb6c70e31be8ecc35"
+        },
+        "tone-correction.json": {
+          "path": "classical-town-big-a/tone-correction.json",
+          "bytes": 631,
+          "sha256": "cadbe55f351527278a6e86198aa68ed400df553883ebb6ee9503dcf422a925db"
+        }
+      },
+      "original_transfer_files": {
+        "classical-town-big-a.blend": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/classical-town-big-a.blend",
+          "bytes": 23157352,
+          "sha256": "da7260bdd09e423e6be0a0f06bbb3d439573196c728a90e10d6969e99375cab7"
+        },
+        "classical-town-big-a.glb": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/classical-town-big-a.glb",
+          "bytes": 5892832,
+          "sha256": "a271deb1dc3e322e3a2627b1d7099b91fc09c76b3030a5ceb9cbfec0d260b757"
+        },
+        "classical-town-big-a.validation.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/classical-town-big-a.validation.json",
+          "bytes": 2007,
+          "sha256": "be1e6642fd0312666fb635b331d03cccd235831074d100f4ba3353bed19c1542"
+        },
+        "preview.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/preview.png",
+          "bytes": 285769,
+          "sha256": "b74e3009795e7224686a807288ce6b5b86dd19d6c7c688906118bfb99e54df6b"
+        },
+        "preview-lod2.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/preview-lod2.png",
+          "bytes": 266316,
+          "sha256": "03384fcf09697d4c27501af36756905122cb27fc661e2b4c5d8352c28a76e181"
+        },
+        "adapter-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/adapter-audit.json",
+          "bytes": 1605,
+          "sha256": "04acf87124a2ac58f556711edda3a68c7d97c8f68d646f45801991d0660e5fd6"
+        },
+        "blend-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/blend-audit.json",
+          "bytes": 757,
+          "sha256": "ef13644b3e470f60c123b196794876f32b89ae1808508e4cea674e041566fc5c"
+        },
+        "glb-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/glb-audit.json",
+          "bytes": 1013,
+          "sha256": "4c43f7e8d56b67343758c7c575433cf8c871a4091dad6f856ef6801526881c83"
+        },
+        "basecolor.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/basecolor.png",
+          "bytes": 3346211,
+          "sha256": "e9a61ceded36e9cd56ff60960e02da6542a6a9dbd67486286793776d474ab519"
+        },
+        "normal.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/normal.png",
+          "bytes": 67969,
+          "sha256": "a9d65807df78c6db12ccb5145ed0e566ffb6ee9a2a300bd99d952211c3a649c8"
+        },
+        "orm.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-a/orm.png",
+          "bytes": 2264932,
+          "sha256": "b8afe60d21b506d910edfbb0ef1f3fe777b4f151d3c4a11c8315cf8e62d31677"
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.474,
+          "effective": 0.474,
+          "sat": 0.221,
+          "samples": 162004
+        },
+        "Ground": {
+          "value": 0.395,
+          "effective": 0.395,
+          "sat": 0.243,
+          "samples": 288
+        },
+        "Team": {
+          "value": 0.307,
+          "effective": 0.307,
+          "sat": 0.011,
+          "samples": 20992
+        }
+      },
+      "art_review": "passed local preview/tone review",
+      "runtime_acceptance": "isolated browser loader and renderer evidence; full campaign acceptance pending",
+      "game_sha256": "1999886157c359047a339feea20e279dd076c8c514061c4b00e9628d8ee0e6ed",
+      "game_bytes": 2646204,
+      "uncompressed_sha256": "f169cc80717bf0b290ca2317fb68f9e72d55e395685ec670444899ca5b4dcd38",
+      "archive_part": "final-five.zip",
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/final-five.zip",
+      "validator": "scripts/blender/validate_model.py",
+      "full_campaign_acceptance_pending": true
+    },
+    {
+      "id": "classical-town-big-b",
+      "logical_item": "classical-town-big",
+      "target_path": "src/assets/map/towns/classical-town-big-b.glb",
+      "root": "classical-town-big-b",
+      "kind": "town",
+      "triangles": {
+        "LOD0": 50137,
+        "LOD1": 9696,
+        "LOD2": 1450
+      },
+      "validation_passed": true,
+      "blend_audit_passed": true,
+      "glb_audit_passed": true,
+      "source": "/workspace/blender-delivery/all-remaining/plans/art/towns/classical/town-big/variant-b/layout.blend",
+      "source_sha256": "817e2a1ec3c7474f57acfff0876f2948bd958b41372ed30e3cadd574c398ee21",
+      "lod_method": {
+        "LOD1": {
+          "method": "Closed hulls of approved source components; face colours sampled from original delivery atlas",
+          "source_components": 2354,
+          "retained_components": 825,
+          "omitted_small_decorative_components": 1529,
+          "structural_support_components_protected": 74
+        },
+        "LOD2": {
+          "method": "Closed hulls of approved source components; face colours sampled from original delivery atlas",
+          "source_components": 722,
+          "retained_components": 101,
+          "omitted_small_decorative_components": 621,
+          "structural_support_components_protected": 30
+        }
+      },
+      "files": {
+        "adapter-audit.json": {
+          "path": "classical-town-big-b/adapter-audit.json",
+          "bytes": 1607,
+          "sha256": "e35e6472fd15806b91ac011506e6d906a4ec483939daac8f4ec325a0bd274199"
+        },
+        "basecolor.png": {
+          "path": "classical-town-big-b/basecolor.png",
+          "bytes": 2426499,
+          "sha256": "1b4beca6664044e10e72d31d6c83ee8b6783a812ba3b24b0feb21614ded5e3e4"
+        },
+        "blend-audit.json": {
+          "path": "classical-town-big-b/blend-audit.json",
+          "bytes": 759,
+          "sha256": "c1e9790c8955c3bfa69fb85f4270c55cce5c042fd331387e494b666783b9fecc"
+        },
+        "classical-town-big-b.blend": {
+          "path": "classical-town-big-b/classical-town-big-b.blend",
+          "bytes": 22591102,
+          "sha256": "5f33e9ef243ebaf60d31ee7176965b57d4d1cffa930f25dd2d96548023e3f31e"
+        },
+        "classical-town-big-b.glb": {
+          "path": "classical-town-big-b/classical-town-big-b.glb",
+          "bytes": 5765016,
+          "sha256": "95bff9b01abaf02616ad5edc96030cb98cd4e1b515eaf137c5733344e934641a"
+        },
+        "classical-town-big-b.validation.json": {
+          "path": "classical-town-big-b/classical-town-big-b.validation.json",
+          "bytes": 2108,
+          "sha256": "e073683163cd654e84e780c1e454b8bbe28e2b0fb87cd9e82db1b9add8e07211"
+        },
+        "glb-audit.json": {
+          "path": "classical-town-big-b/glb-audit.json",
+          "bytes": 1013,
+          "sha256": "b48a006bc4b71aede7a2d1f7398c152dc400cde59fce97650058548a3315c161"
+        },
+        "manifest.json": {
+          "path": "classical-town-big-b/manifest.json",
+          "bytes": 1025,
+          "sha256": "572be167f7515ab4e61ad506744b78959e347cb41245d77d4ac6e24947e297d4"
+        },
+        "normal.png": {
+          "path": "classical-town-big-b/normal.png",
+          "bytes": 150831,
+          "sha256": "fa9e325f9b272a4dce076465eed10240e1d97564e4655b19167255166f16718c"
+        },
+        "orm.png": {
+          "path": "classical-town-big-b/orm.png",
+          "bytes": 1802994,
+          "sha256": "58acb07890c93a8c85ac65a8809278f42b2e36939347c24e7cc256641c3d1dd2"
+        },
+        "preview-lod2-settings.json": {
+          "path": "classical-town-big-b/preview-lod2-settings.json",
+          "bytes": 234,
+          "sha256": "3d98ee05ee4b43d487d5cd5f42c1d77612a853e21cfbf7f048d564b72bafca99"
+        },
+        "preview-lod2.png": {
+          "path": "classical-town-big-b/preview-lod2.png",
+          "bytes": 187547,
+          "sha256": "8296d31f7a9690640a33daf3f146bb77908c07608bec7e381ed8d27c183a5025"
+        },
+        "preview-settings.json": {
+          "path": "classical-town-big-b/preview-settings.json",
+          "bytes": 234,
+          "sha256": "3d98ee05ee4b43d487d5cd5f42c1d77612a853e21cfbf7f048d564b72bafca99"
+        },
+        "preview.png": {
+          "path": "classical-town-big-b/preview.png",
+          "bytes": 211291,
+          "sha256": "5b7d1149a3bd830e1ff427668122fa6fbda8e1c829c2653f9f59cd6fc9515598"
+        },
+        "tone-correction.json": {
+          "path": "classical-town-big-b/tone-correction.json",
+          "bytes": 631,
+          "sha256": "b02acfcbc27639067b4624ca8bc9836c9a7832b097e6649957cbe3676d6e4286"
+        }
+      },
+      "original_transfer_files": {
+        "classical-town-big-b.blend": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/classical-town-big-b.blend",
+          "bytes": 22543496,
+          "sha256": "ebb36c29d4c92b59904dc4c89af7e69e089073b1ed6c567023de27a6cd866f59"
+        },
+        "classical-town-big-b.glb": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/classical-town-big-b.glb",
+          "bytes": 5710228,
+          "sha256": "b9b0ce83716a25152bec77807298807f05c595bff7aba68448a94cb13c3f8724"
+        },
+        "classical-town-big-b.validation.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/classical-town-big-b.validation.json",
+          "bytes": 2004,
+          "sha256": "0c5d69b9a195f54c75b7767fb64f5f5c640d0b0af10a222905acecf8d296dad4"
+        },
+        "preview.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/preview.png",
+          "bytes": 274841,
+          "sha256": "8fa038a038a3c136e68ffff8a9e689517c010b9faaac69a2c00963c7d81e4d97"
+        },
+        "preview-lod2.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/preview-lod2.png",
+          "bytes": 256422,
+          "sha256": "65f1161161759a85f58846a6f84b70e97883f96c75a56890f06bbd18feef95b9"
+        },
+        "adapter-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/adapter-audit.json",
+          "bytes": 1607,
+          "sha256": "e35e6472fd15806b91ac011506e6d906a4ec483939daac8f4ec325a0bd274199"
+        },
+        "blend-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/blend-audit.json",
+          "bytes": 759,
+          "sha256": "c1e9790c8955c3bfa69fb85f4270c55cce5c042fd331387e494b666783b9fecc"
+        },
+        "glb-audit.json": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/glb-audit.json",
+          "bytes": 1013,
+          "sha256": "b48a006bc4b71aede7a2d1f7398c152dc400cde59fce97650058548a3315c161"
+        },
+        "basecolor.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/basecolor.png",
+          "bytes": 2368990,
+          "sha256": "1106bda4c50f2cb83486897ffe9852523738fd704f873155c8e06899ede8dca9"
+        },
+        "normal.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/normal.png",
+          "bytes": 150831,
+          "sha256": "fa9e325f9b272a4dce076465eed10240e1d97564e4655b19167255166f16718c"
+        },
+        "orm.png": {
+          "path": "/workspace/art-production/backlog-cathedral-town/deliveries/classical-town-big-b/orm.png",
+          "bytes": 1802994,
+          "sha256": "58acb07890c93a8c85ac65a8809278f42b2e36939347c24e7cc256641c3d1dd2"
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.33,
+          "effective": 0.33,
+          "sat": 0.163,
+          "samples": 180884
+        },
+        "Ground": {
+          "value": 0.395,
+          "effective": 0.395,
+          "sat": 0.247,
+          "samples": 288
+        },
+        "Team": {
+          "value": 0.431,
+          "effective": 0.431,
+          "sat": 0.005,
+          "samples": 19376
+        }
+      },
+      "art_review": "passed local preview/tone review",
+      "runtime_acceptance": "isolated browser loader and renderer evidence; full campaign acceptance pending",
+      "game_sha256": "d660eb0fe4105fdfc9ccf8368cbb6213d990cd5f77ebeb736b1ee13abab84ea5",
+      "game_bytes": 2217604,
+      "uncompressed_sha256": "95bff9b01abaf02616ad5edc96030cb98cd4e1b515eaf137c5733344e934641a",
+      "archive_part": "final-five.zip",
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/final-five.zip",
+      "validator": "scripts/blender/validate_model.py",
+      "full_campaign_acceptance_pending": true
+    },
+    {
+      "id": "warship-bronze",
+      "art_delivery_path": "src/assets/map/ships/warship-bronze.glb",
+      "runtime_integration_pending": false,
+      "Town_effective": 0.54,
+      "Team_effective": 0.666,
+      "tone_passed": true,
+      "preview_25_percent_passed": true,
+      "LOD2_water_preview_passed": true,
+      "glb_sha256": "0e6165365048b3cc4a3a774cad36545b84b0beee02c2fd2903159ce90d8239e7",
+      "blend_sha256": "15a512f950d55de94cbf21db47e9400cec476e219eef1cde832e2e6fd02d054e",
+      "validation_report": "/workspace/art-production/backlog-ships/warship-bronze/warship-bronze.validation.json",
+      "logical_item": "warship-bronze",
+      "target_path": "src/assets/map/ships/warship-bronze.glb",
+      "tone": {
+        "Town": {
+          "value": 0.54,
+          "effective": 0.54,
+          "sat": 0.449,
+          "samples": 4648
+        },
+        "Team": {
+          "value": 0.666,
+          "effective": 0.666,
+          "sat": 0.012,
+          "samples": 768
+        }
+      },
+      "runtime_acceptance": "isolated browser loader and renderer evidence; full campaign acceptance pending",
+      "game_sha256": "7d54e3790a9b98264abf828a04c779b77c969942697955b6359ab3158c970607",
+      "game_bytes": 705140,
+      "files": {
+        "basecolor.png": {
+          "path": "warship-bronze/basecolor.png",
+          "bytes": 3078446,
+          "sha256": "5d25ffbbaf16103de729e4f68ba7a1b8ecb21990c8df25850f432805f161f491"
+        },
+        "delivery.json": {
+          "path": "warship-bronze/delivery.json",
+          "bytes": 2446,
+          "sha256": "b62a03e5975fcc774a7591a9477cd7349c2c5a97c47006cf0ec1b9ca419798f5"
+        },
+        "manifest.json": {
+          "path": "warship-bronze/manifest.json",
+          "bytes": 896,
+          "sha256": "456d9770e07eab7adf9327691cc47223dbe9fac411c3a923d207ee7ce63a1aa9"
+        },
+        "normal.png": {
+          "path": "warship-bronze/normal.png",
+          "bytes": 168576,
+          "sha256": "d7fd4fe179639e425ac6ae6356875d4950efbc6b7dc3130c7d0f185e827af2fe"
+        },
+        "orm.png": {
+          "path": "warship-bronze/orm.png",
+          "bytes": 801670,
+          "sha256": "385372852dd3534821273114c4694e677018830a9bc65a9c7ca01e9fe001c359"
+        },
+        "preview.png": {
+          "path": "warship-bronze/preview.png",
+          "bytes": 286098,
+          "sha256": "c928a35fe327c49b78436a0422f86484220e32c5e676defdbfdf659ceb58364a"
+        },
+        "warship-bronze.blend": {
+          "path": "warship-bronze/warship-bronze.blend",
+          "bytes": 7680063,
+          "sha256": "15a512f950d55de94cbf21db47e9400cec476e219eef1cde832e2e6fd02d054e"
+        },
+        "warship-bronze.glb": {
+          "path": "warship-bronze/warship-bronze.glb",
+          "bytes": 1063352,
+          "sha256": "0e6165365048b3cc4a3a774cad36545b84b0beee02c2fd2903159ce90d8239e7"
+        },
+        "warship-bronze.validation.json": {
+          "path": "warship-bronze/warship-bronze.validation.json",
+          "bytes": 2001,
+          "sha256": "e8f3405144e1fbc17cffaaa179b28e0f90562d25e891d07bd3b4d19ef7a5fa2b"
+        }
+      },
+      "triangles": {
+        "LOD0": 1354,
+        "LOD1": 1138,
+        "LOD2": 288
+      },
+      "uncompressed_sha256": "0e6165365048b3cc4a3a774cad36545b84b0beee02c2fd2903159ce90d8239e7",
+      "archive_part": "final-five.zip",
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/final-five.zip",
+      "validator": "scripts/blender/validate_model.py",
+      "authored_animation_playback_pending": true,
+      "runtime_adapter": "Source animations preserved; game copies omit unused sail morphs to support instanced rendering.",
+      "full_campaign_acceptance_pending": true
+    },
+    {
+      "id": "warship-classical",
+      "art_delivery_path": "src/assets/map/ships/warship-classical.glb",
+      "runtime_integration_pending": false,
+      "Town_effective": 0.544,
+      "Team_effective": 0.631,
+      "tone_passed": true,
+      "preview_25_percent_passed": true,
+      "LOD2_water_preview_passed": true,
+      "glb_sha256": "3221b75a87700728dc68d9c0d4dcfe60377be24b6362cb1d83c0ead7cee1f55f",
+      "blend_sha256": "952e41cf0db74fc2ec13bbd9ee4f1c94b64878536ee8ee3d9e93e800829054ed",
+      "validation_report": "/workspace/art-production/backlog-ships/warship-classical/warship-classical.validation.json",
+      "logical_item": "warship-classical",
+      "target_path": "src/assets/map/ships/warship-classical.glb",
+      "tone": {
+        "Town": {
+          "value": 0.544,
+          "effective": 0.544,
+          "sat": 0.448,
+          "samples": 5064
+        },
+        "Team": {
+          "value": 0.631,
+          "effective": 0.631,
+          "sat": 0.009,
+          "samples": 768
+        }
+      },
+      "runtime_acceptance": "isolated browser loader and renderer evidence; full campaign acceptance pending",
+      "game_sha256": "40f5529822fe5fd6633d7f4cbad2d43018d0474a4e47f5e679645cbd51c880eb",
+      "game_bytes": 731284,
+      "files": {
+        "basecolor.png": {
+          "path": "warship-classical/basecolor.png",
+          "bytes": 3159871,
+          "sha256": "893d00edf722cd7feabfcdc7830bbb048a483da8f83a69c059cedd0bb07670e4"
+        },
+        "delivery.json": {
+          "path": "warship-classical/delivery.json",
+          "bytes": 2460,
+          "sha256": "f4d250b5cf1dc65c2faea918c2fd0b61954b39a763897149a8907f744f9c694c"
+        },
+        "manifest.json": {
+          "path": "warship-classical/manifest.json",
+          "bytes": 902,
+          "sha256": "6d51c4d29cdd2939cdb5c3a26b38abe26dc8bd8ed340ee454eb29c9608e9c807"
+        },
+        "normal.png": {
+          "path": "warship-classical/normal.png",
+          "bytes": 186502,
+          "sha256": "ea941f3a6e2fd8255c8128bd3ea0aeabef849a170f323925ab14821b7e302840"
+        },
+        "orm.png": {
+          "path": "warship-classical/orm.png",
+          "bytes": 803821,
+          "sha256": "9e4857df243fbaa482201264870bca57555af90a97536ae346d7af3eab693e86"
+        },
+        "preview.png": {
+          "path": "warship-classical/preview.png",
+          "bytes": 286038,
+          "sha256": "a04b4acc81279835f751041ffd70b5319a0d46f90ba5cede10ddbfef42e2cc4d"
+        },
+        "warship-classical.blend": {
+          "path": "warship-classical/warship-classical.blend",
+          "bytes": 8518367,
+          "sha256": "952e41cf0db74fc2ec13bbd9ee4f1c94b64878536ee8ee3d9e93e800829054ed"
+        },
+        "warship-classical.glb": {
+          "path": "warship-classical/warship-classical.glb",
+          "bytes": 1155408,
+          "sha256": "3221b75a87700728dc68d9c0d4dcfe60377be24b6362cb1d83c0ead7cee1f55f"
+        },
+        "warship-classical.validation.json": {
+          "path": "warship-classical/warship-classical.validation.json",
+          "bytes": 2007,
+          "sha256": "a3c2a616ea0e13f419232e1d36781c961f6f3fd6b629c50c57cf96a8c67a3b15"
+        }
+      },
+      "triangles": {
+        "LOD0": 1458,
+        "LOD1": 1242,
+        "LOD2": 352
+      },
+      "uncompressed_sha256": "3221b75a87700728dc68d9c0d4dcfe60377be24b6362cb1d83c0ead7cee1f55f",
+      "archive_part": "final-five.zip",
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/final-five.zip",
+      "validator": "scripts/blender/validate_model.py",
+      "authored_animation_playback_pending": true,
+      "runtime_adapter": "Source animations preserved; game copies omit unused sail morphs to support instanced rendering.",
+      "full_campaign_acceptance_pending": true
+    },
+    {
+      "id": "warship-kingdoms",
+      "art_delivery_path": "src/assets/map/ships/warship-kingdoms.glb",
+      "runtime_integration_pending": false,
+      "Town_effective": 0.517,
+      "Team_effective": 0.557,
+      "tone_passed": true,
+      "preview_25_percent_passed": true,
+      "LOD2_water_preview_passed": true,
+      "glb_sha256": "f27a02d7d170cacc5e744299add7aa6a11be994ceabd107302d1b528a332a654",
+      "blend_sha256": "2a714c5e2dc0736da6836ab0e51b40456f49a03def4b503735b3d98359832177",
+      "validation_report": "/workspace/art-production/backlog-ships/warship-kingdoms/warship-kingdoms.validation.json",
+      "logical_item": "warship-kingdoms",
+      "target_path": "src/assets/map/ships/warship-kingdoms.glb",
+      "tone": {
+        "Town": {
+          "value": 0.517,
+          "effective": 0.517,
+          "sat": 0.442,
+          "samples": 5032
+        },
+        "Team": {
+          "value": 0.557,
+          "effective": 0.557,
+          "sat": 0.011,
+          "samples": 768
+        }
+      },
+      "runtime_acceptance": "isolated browser loader and renderer evidence; full campaign acceptance pending",
+      "game_sha256": "2ed29d14235a6e9f13c07b350e85ffe04455fb812fb0a86e6e12b96347158bed",
+      "game_bytes": 608812,
+      "files": {
+        "basecolor.png": {
+          "path": "warship-kingdoms/basecolor.png",
+          "bytes": 2661557,
+          "sha256": "429c058ccf62abb433df5cfd681b8d4dee5d815fabab499bac4e880a9adbb510"
+        },
+        "delivery.json": {
+          "path": "warship-kingdoms/delivery.json",
+          "bytes": 2480,
+          "sha256": "401519e5d0039197afeecb72365a7b92ba4b13eafd950a67bdf7c121312cb75c"
+        },
+        "manifest.json": {
+          "path": "warship-kingdoms/manifest.json",
+          "bytes": 894,
+          "sha256": "41c2fcd96196034a4e12a793cefb17e99ff78a557d9e87df847a6ab48f968825"
+        },
+        "normal.png": {
+          "path": "warship-kingdoms/normal.png",
+          "bytes": 111358,
+          "sha256": "5ab1d76190ab0d29b9ed52d2b4880d8f823874625a4b0f55ed7917e69e14e602"
+        },
+        "orm.png": {
+          "path": "warship-kingdoms/orm.png",
+          "bytes": 719362,
+          "sha256": "5369867c2d313791cb8ca40ecc2bb9326f6e20a54498a22aea4cc8cf15afa277"
+        },
+        "preview.png": {
+          "path": "warship-kingdoms/preview.png",
+          "bytes": 270158,
+          "sha256": "71ba30f620239368660636c68da77f51b1ab4ef4d0af984f71f09e4530f463fe"
+        },
+        "warship-kingdoms.blend": {
+          "path": "warship-kingdoms/warship-kingdoms.blend",
+          "bytes": 6061491,
+          "sha256": "2a714c5e2dc0736da6836ab0e51b40456f49a03def4b503735b3d98359832177"
+        },
+        "warship-kingdoms.glb": {
+          "path": "warship-kingdoms/warship-kingdoms.glb",
+          "bytes": 892000,
+          "sha256": "f27a02d7d170cacc5e744299add7aa6a11be994ceabd107302d1b528a332a654"
+        },
+        "warship-kingdoms.validation.json": {
+          "path": "warship-kingdoms/warship-kingdoms.validation.json",
+          "bytes": 1999,
+          "sha256": "ab2f44105a0cc4e551e956381776c5bc3b8e3c0148a4b30fc75e6f1cd58f64a6"
+        }
+      },
+      "triangles": {
+        "LOD0": 1450,
+        "LOD1": 1034,
+        "LOD2": 242
+      },
+      "uncompressed_sha256": "f27a02d7d170cacc5e744299add7aa6a11be994ceabd107302d1b528a332a654",
+      "archive_part": "final-five.zip",
+      "download_url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/final-five.zip",
+      "validator": "scripts/blender/validate_model.py",
+      "authored_animation_playback_pending": true,
+      "runtime_adapter": "Source animations preserved; game copies omit unused sail morphs to support instanced rendering.",
+      "full_campaign_acceptance_pending": true
+    }
+  ],
+  "archive": {
+    "url": "https://github.com/yaniv89/terra-imperium/releases/download/wave0-backlog-2026-10-07/final-five.zip",
+    "hosting": "GitHub release asset",
+    "reason": "Complete single ZIP exceeds 100 MiB Git-file limit"
+  },
+  "history_base": "4f19f6587ad787ddaf2297a0533927efef3f218c",
+  "current_packed_town_tone": {
+    "src/assets/map/towns/classical-town-big-a.glb": {
+      "Town": {
+        "value": 0.471,
+        "effective": 0.471,
+        "sat": 0.23,
+        "samples": 199264
+      },
+      "Ground": {
+        "value": 0.394,
+        "effective": 0.394,
+        "sat": 0.241,
+        "samples": 576
+      },
+      "Team": {
+        "value": 0.36,
+        "effective": 0.36,
+        "sat": 0.011,
+        "samples": 27736
+      }
+    },
+    "src/assets/map/towns/classical-town-big-b.glb": {
+      "Town": {
+        "value": 0.326,
+        "effective": 0.326,
+        "sat": 0.17,
+        "samples": 216108
+      },
+      "Ground": {
+        "value": 0.394,
+        "effective": 0.394,
+        "sat": 0.246,
+        "samples": 576
+      },
+      "Team": {
+        "value": 0.386,
+        "effective": 0.386,
+        "sat": 0.005,
+        "samples": 28160
+      }
+    }
+  }
+}

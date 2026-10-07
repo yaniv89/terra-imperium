@@ -86,17 +86,26 @@ describe('unit model registry', () => {
     expect(battleModelPairs(setup).map((p) => p.join(':')).sort()).toEqual(['bronze:cavalry', 'bronze:infantry', 'bronze:ranged', 'classical:infantry']);
   });
 
-  it('resolves every land (age, class) to a shipped CC0 recipe — never the procedural stickman', () => {
-    ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege'].forEach((cls) => {
-      const m = findUnitModel(age, cls);
-      expect(m, `${age}-${cls}`).toBeNull();
+  it('resolves the Bronze set to its delivered GLBs and every other age to the procedural model (the old recipes stay disabled)', () => {
+    // Wave 1 (plans/ART-MODELS-PLAN.md): src/assets/units/bronze-<class>.glb with an enabling JSON
+    ['infantry', 'cavalry', 'ranged', 'siege', 'support', 'worker'].forEach((cls) => {
+      const m = findUnitModel('bronze', cls);
+      expect(m?.name, `bronze-${cls}`).toBe(`bronze-${cls}`);
+      expect(m.recipe).toBeUndefined();
+      expect(m.url).toMatch(/bronze-.*\.glb/);
+    });
+    expect(findUnitModel('bronze', 'cavalry').options.quadruped).toBe(true);
+    expect(findUnitModel('bronze', 'support').options.quadruped).toBe(true);
+    ['classical', 'kingdoms', 'gunpowder', 'modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege'].forEach((cls) => {
+      expect(findUnitModel(age, cls), `${age}-${cls}`).toBeNull();
     }));
     expect(findUnitModel('bronze', 'naval')).toBeNull();
   });
 
   it('composes each recipe once per age, registers it, and keeps the procedural model on failure', async () => {
     const pairs = battleModelPairs(setup);
-    expect(needsUnitModels(setup)).toBe(false);
+    expect(needsUnitModels(setup)).toBe(true); // the Bronze GLBs ship
+    expect(needsUnitModels({ sides: [setup.sides[1]] })).toBe(false); // Classical has none yet
     const calls = [];
     const compose = async (recipe, { ageId }) => {
       calls.push(`${recipe.base}@${ageId}`);

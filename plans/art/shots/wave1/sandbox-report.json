@@ -1,0 +1,116 @@
+{
+  "mode": "sandbox",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave1\\sandbox-bronze-wide.png",
+    "plans\\art\\shots\\wave1\\sandbox-bronze-infantry.png",
+    "plans\\art\\shots\\wave1\\sandbox-bronze-general.png",
+    "plans\\art\\shots\\wave1\\sandbox-bronze-ranged.png",
+    "plans\\art\\shots\\wave1\\sandbox-bronze-cavalry.png",
+    "plans\\art\\shots\\wave1\\sandbox-bronze-siege.png",
+    "plans\\art\\shots\\wave1\\sandbox-bronze-support.png"
+  ],
+  "layers": [
+    {
+      "key": "bronze:infantry",
+      "triangles": [
+        1508,
+        283,
+        57
+      ]
+    },
+    {
+      "key": "bronze:general",
+      "triangles": [
+        2005,
+        304,
+        39
+      ]
+    },
+    {
+      "key": "bronze:ranged",
+      "triangles": [
+        1466,
+        263,
+        59
+      ]
+    },
+    {
+      "key": "bronze:cavalry",
+      "triangles": [
+        2388,
+        329,
+        19
+      ]
+    },
+    {
+      "key": "bronze:siege",
+      "triangles": [
+        2900,
+        242,
+        59
+      ]
+    },
+    {
+      "key": "bronze:support",
+      "triangles": [
+        2000,
+        339,
+        62
+      ]
+    }
+  ],
+  "unitLog": [],
+  "errors": [],
+  "setupUnits": [
+    "infantry,ranged,infantry,cavalry,infantry,ranged,siege,infantry,cavalry,ranged,infantry,cavalry,infantry,ranged,siege,infantry,cavalry,ranged,infantry,support",
+    "infantry,ranged,infantry,cavalry,infantry,ranged,siege,infantry,cavalry,ranged,infantry,cavalry,infantry,ranged,siege,infantry,cavalry,ranged,infantry,support"
+  ],
+  "squads": [
+    "0:infantry",
+    "0:ranged",
+    "0:infantry",
+    "0:cavalry",
+    "0:infantry",
+    "0:ranged",
+    "0:siege",
+    "0:infantry",
+    "0:cavalry",
+    "0:ranged",
+    "0:infantry",
+    "0:cavalry",
+    "0:infantry",
+    "0:ranged",
+    "0:siege",
+    "0:infantry",
+    "0:cavalry",
+    "0:ranged",
+    "0:infantry",
+    "0:support",
+    "1:infantry",
+    "1:ranged",
+    "1:infantry",
+    "1:cavalry",
+    "1:infantry",
+    "1:ranged",
+    "1:siege",
+    "1:infantry",
+    "1:cavalry",
+    "1:ranged",
+    "1:infantry",
+    "1:cavalry",
+    "1:infantry",
+    "1:ranged",
+    "1:siege",
+    "1:infantry",
+    "1:cavalry",
+    "1:ranged",
+    "1:infantry",
+    "1:support",
+    "0:cavalry",
+    "1:cavalry"
+  ]
+}

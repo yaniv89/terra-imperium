@@ -1,0 +1,262 @@
+{
+ "plans/art/.local-production-2026-10-07/art-production/backlog/farm-bronze/farm-bronze.glb": {
+  "Town": {
+   "value": 0.401,
+   "effective": 0.401,
+   "sat": 0.511,
+   "samples": 9860
+  },
+  "Team": {
+   "value": 0.445,
+   "effective": 0.445,
+   "sat": 0.004,
+   "samples": 640
+  },
+  "Ground": {
+   "value": 0.684,
+   "effective": 0.684,
+   "sat": 0.608,
+   "samples": 2636
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/farm-modern/farm-modern.glb": {
+  "Town": {
+   "value": 0.266,
+   "effective": 0.266,
+   "sat": 0.516,
+   "samples": 11184
+  },
+  "Team": {
+   "value": 0.469,
+   "effective": 0.469,
+   "sat": 0.002,
+   "samples": 464
+  },
+  "Ground": {
+   "value": 0.7,
+   "effective": 0.7,
+   "sat": 0.613,
+   "samples": 2636
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/mine-bronze/mine-bronze.glb": {
+  "Town": {
+   "value": 0.413,
+   "effective": 0.413,
+   "sat": 0.521,
+   "samples": 15308
+  },
+  "Team": {
+   "value": 0.44,
+   "effective": 0.44,
+   "sat": 0.002,
+   "samples": 576
+  },
+  "Ground": {
+   "value": 0.619,
+   "effective": 0.619,
+   "sat": 0.357,
+   "samples": 2236
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/mine-modern/mine-modern.glb": {
+  "Town": {
+   "value": 0.31,
+   "effective": 0.31,
+   "sat": 0.339,
+   "samples": 10092
+  },
+  "Team": {
+   "value": 0.44,
+   "effective": 0.44,
+   "sat": 0.004,
+   "samples": 672
+  },
+  "Ground": {
+   "value": 0.613,
+   "effective": 0.613,
+   "sat": 0.365,
+   "samples": 2236
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/fishing_boats-bronze/fishing_boats-bronze.glb": {
+  "Town": {
+   "value": 0.305,
+   "effective": 0.305,
+   "sat": 0.646,
+   "samples": 14640
+  },
+  "Team": {
+   "value": 0.444,
+   "effective": 0.444,
+   "sat": 0.001,
+   "samples": 576
+  },
+  "Ground": {
+   "value": 0.645,
+   "effective": 0.645,
+   "sat": 0.363,
+   "samples": 484
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/fishing_boats-modern/fishing_boats-modern.glb": {
+  "Town": {
+   "value": 0.302,
+   "effective": 0.302,
+   "sat": 0.416,
+   "samples": 23304
+  },
+  "Team": {
+   "value": 0.444,
+   "effective": 0.444,
+   "sat": 0,
+   "samples": 1024
+  },
+  "Ground": {
+   "value": 0.643,
+   "effective": 0.643,
+   "sat": 0.36,
+   "samples": 484
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/road-bronze/road-bronze.glb": {
+  "Town": {
+   "value": 0.447,
+   "effective": 0.447,
+   "sat": 0.508,
+   "samples": 2464
+  },
+  "Team": {
+   "value": 0.465,
+   "effective": 0.465,
+   "sat": 0.002,
+   "samples": 1056
+  },
+  "Ground": {
+   "value": 0.616,
+   "effective": 0.616,
+   "sat": 0.359,
+   "samples": 2236
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/road-modern/road-modern.glb": {
+  "Town": {
+   "value": 0.345,
+   "effective": 0.345,
+   "sat": 0.094,
+   "samples": 3136
+  },
+  "Team": {
+   "value": 0.466,
+   "effective": 0.466,
+   "sat": 0.001,
+   "samples": 1056
+  },
+  "Ground": {
+   "value": 0.613,
+   "effective": 0.613,
+   "sat": 0.36,
+   "samples": 2236
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/pasture-bronze/pasture-bronze.glb": {
+  "Town": {
+   "value": 0.402,
+   "effective": 0.402,
+   "sat": 0.507,
+   "samples": 14172
+  },
+  "Team": {
+   "value": 0.452,
+   "effective": 0.452,
+   "sat": 0.001,
+   "samples": 352
+  },
+  "Ground": {
+   "value": 0.617,
+   "effective": 0.617,
+   "sat": 0.358,
+   "samples": 2236
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/camp-bronze/camp-bronze.glb": {
+  "Town": {
+   "value": 0.344,
+   "effective": 0.344,
+   "sat": 0.62,
+   "samples": 12052
+  },
+  "Team": {
+   "value": 0.452,
+   "effective": 0.452,
+   "sat": 0.002,
+   "samples": 352
+  },
+  "Ground": {
+   "value": 0.615,
+   "effective": 0.615,
+   "sat": 0.361,
+   "samples": 2236
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/quarry-bronze/quarry-bronze.glb": {
+  "Town": {
+   "value": 0.428,
+   "effective": 0.428,
+   "sat": 0.475,
+   "samples": 7980
+  },
+  "Team": {
+   "value": 0.446,
+   "effective": 0.446,
+   "sat": 0.003,
+   "samples": 576
+  },
+  "Ground": {
+   "value": 0.617,
+   "effective": 0.617,
+   "sat": 0.362,
+   "samples": 2236
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/lumber_camp-bronze/lumber_camp-bronze.glb": {
+  "Town": {
+   "value": 0.359,
+   "effective": 0.359,
+   "sat": 0.571,
+   "samples": 11112
+  },
+  "Team": {
+   "value": 0.438,
+   "effective": 0.438,
+   "sat": 0.003,
+   "samples": 480
+  },
+  "Ground": {
+   "value": 0.621,
+   "effective": 0.621,
+   "sat": 0.362,
+   "samples": 2236
+  }
+ },
+ "plans/art/.local-production-2026-10-07/art-production/backlog/plantation-bronze/plantation-bronze.glb": {
+  "Town": {
+   "value": 0.326,
+   "effective": 0.326,
+   "sat": 0.649,
+   "samples": 20424
+  },
+  "Team": {
+   "value": 0.452,
+   "effective": 0.452,
+   "sat": 0.002,
+   "samples": 448
+  },
+  "Ground": {
+   "value": 0.615,
+   "effective": 0.615,
+   "sat": 0.359,
+   "samples": 2236
+  }
+ }
+}
