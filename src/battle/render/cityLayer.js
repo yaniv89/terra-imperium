@@ -22,10 +22,11 @@
 import { InstancedMesh, MeshLambertMaterial, BoxGeometry, Object3D, Color, Group, Matrix4, Vector3 } from 'three';
 import { Q } from '../sim/constants';
 import { ART } from '../art/artFiles';
-import { loadKit } from '../art/kitLoader';
+import { loadKit, kitObject } from '../art/kitLoader';
+import { structureState, structurePiece, palaceName, structureMatrix } from '../art/structureArt';
 import { KitInstances, kitLodForZoom } from '../art/kitInstances';
 import { houseTypes, pickHouse, pickRubble, wallPiece, pieceLength } from '../art/cityArt';
-import { townUrlByName, loadTownAsset, instanceTownAsset, showLod } from '../../components/map/closeView/townAssets';
+import { townUrlByName, loadTownAsset, instanceTownAsset, showLod, sharedAssetUrls } from '../../components/map/closeView/townAssets';
 import { enableTownDamage, setTownDamage, syncTownDamage, moundGeometry } from '../../components/map/closeView/townDamage';
 
 const PASSIVE_KINDS = new Set(['house', 'landmark', 'palace', 'wonder']);
@@ -38,9 +39,9 @@ const M = new Matrix4(); const V = new Vector3();
 
 export class CityLayer {
   /** `art`, `load`: the art index and kit loader (tests pass their own). */
-  constructor(r, { art = ART, load = loadKit } = {}) {
+  constructor(r, { art = ART, load = loadKit, shared = sharedAssetUrls } = {}) {
     this.r = r; // the BattleRenderer: scene, setup, map, track(), heightAt()
-    this.art = art; this.loadKit = load;
+    this.art = art; this.loadKit = load; this.sharedUrls = shared; this.palaceKits = [];
     this.kits = {}; // walls, ruins, houses: loaded kit files
     this.ready = [];
     this.city = r.setup.city;
@@ -51,7 +52,7 @@ export class CityLayer {
   build() {
     if (!this.city || this.r.map.naval) return;
     const { setup, map } = this.r;
-    setup.structures.forEach((s, index) => { if (CITY_KINDS.has(s.kind) || s.kind === 'tower') this.items.push({ index, s }); });
+    setup.structures.forEach((s, index) => { if (CITY_KINDS.has(s.kind) || s.kind === 'tower' || s.kind === 'keep') this.items.push({ index, s }); });
     const stone = STONE[this.city.ageId] || STONE.kingdoms;
     const box = this.r.track(new BoxGeometry(1, 1, 1).translate(0, 0.5, 0));
     const mk = (n, color) => {
@@ -75,7 +76,16 @@ export class CityLayer {
     // The age's wall kit, ruin library and the theme's damaged houses, when their files exist.
     this.pieces = new KitInstances(this.r.scene, { track: (x) => this.r.track(x) });
     this.housePieces = new KitInstances(this.root, { track: (x) => this.r.track(x) });
-    const refs = { walls: this.art.walls(this.city.ageId), ruins: this.art.ruins(this.city.ageId), houses: this.art.housesDamage(this.city.ageId, this.city.style) };
+    const hasPalace = this.items.some(({ s }) => s.kind === 'palace');
+    const refs = { walls: this.art.walls(this.city.ageId), ruins: this.art.ruins(this.city.ageId), houses: this.art.housesDamage(this.city.ageId, this.city.style),
+      civic: this.art.civic(this.city.ageId, this.city.style),
+      palaceDamage: hasPalace ? this.art.palaceDamage(this.city.ageId, this.city.style) : null };
+    if (hasPalace) this.sharedUrls(this.city.ageId, this.city.style).forEach((url, i) => {
+      this.ready.push(this.loadKit(url).then((kit) => {
+        if (this.disposed) return;
+        this.palaceKits[i] = kit; this.last.clear();
+      }).catch((e) => console.warn(`[art] ${e.message}: keeping the palace placeholder`)));
+    });
     Object.entries(refs).forEach(([k, ref]) => {
       if (!ref) return;
       this.ready.push(this.loadKit(ref.url).then((kit) => {
@@ -109,7 +119,7 @@ export class CityLayer {
     if (lod !== this.lod) { this.lod = lod; changed = true; }
     this.items.forEach(({ index }) => {
       const v = view.structures[index];
-      const key = !v.alive ? 2 : v.hp < v.maxHp * 0.7 ? 1 : 0;
+      const key = structureState(v);
       if (this.last.get(index) !== key) { this.last.set(index, key); changed = true; }
     });
     if (!changed) return;
@@ -130,9 +140,36 @@ export class CityLayer {
       ruined.push(s.model);
       return true;
     };
+    // A capital places its palace on the objective: one central building serves both footprints.
+    const keep = this.items.find(({ s }) => s.kind === 'keep');
+    const central = keep && this.items.find(({ s }) => s.kind === 'palace'
+      && Math.abs(s.x - keep.s.x) / Q < ((s.w || 3) + (keep.s.w || 3)) / 2
+      && Math.abs(s.y - keep.s.y) / Q < ((s.d || 3) + (keep.s.d || 3)) / 2);
+    const centralArt = central && this.palaceKits.some((kit) => kitObject(kit, palaceName(central.s, this.city)));
     this.items.forEach(({ index, s }) => {
-      const state = this.last.get(index);
+      let state = this.last.get(index);
+      if (centralArt && index === keep.index) {
+        const group = this.r.structureMeshes?.get(s.id);
+        if (group) group.visible = false; // its objective HP bar is drawn independently
+        return;
+      }
+      if (centralArt && index === central.index) state = Math.max(state, this.last.get(keep.index));
       const [x, y, z] = at(s);
+      if (s.kind === 'keep' || s.kind === 'palace') {
+        const name = s.kind === 'keep' ? 'keep' : palaceName(s, this.city);
+        const intact = s.kind === 'keep' ? kitObject(this.kits.civic, name)
+          : this.palaceKits.map((kit) => kitObject(kit, name)).find(Boolean);
+        const piece = s.kind === 'keep' ? structurePiece(this.kits.civic, name, state)
+          : state === 0 ? intact : structurePiece(this.kits.palaceDamage, name, state) || (state === 1 ? intact : null);
+        const group = s.kind === 'keep' ? this.r.structureMeshes?.get(s.id) : null;
+        if (group) group.visible = !(piece && intact) && state !== 2;
+        if (piece && intact) {
+          this.pieces.add(piece, lod, structureMatrix(intact, Math.max(s.w || 0, s.d || 0) || 3, x, y, z), team);
+          return;
+        }
+        // Missing art preserves the keep's own model, or the palace box/mound below.
+        if (s.kind === 'keep' && state !== 2) return;
+      }
       const ring = s.kind === 'wall' || s.kind === 'gate' || s.kind === 'tower';
       // along the ring: the segment's long side is across the line to the keep
       const yaw = Math.atan2(z - (this.r.map.keep.y + 0.5), x - (this.r.map.keep.x + 0.5));
@@ -178,7 +215,7 @@ export class CityLayer {
         });
         return;
       }
-      // houses and landmarks come from the town model once it is in; the palace and wonders stay boxes
+      // Houses/landmarks come from the town; missing palace art and wonders keep their boxes.
       if (this.town && (s.kind === 'house' || s.kind === 'landmark')) return;
       tmp.position.set(x, y, z); tmp.rotation.set(0, 0, 0);
       tmp.scale.set(s.w * 0.9, Math.max(0.6, s.h), s.d * 0.9); tmp.updateMatrix();

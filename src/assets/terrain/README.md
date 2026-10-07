@@ -3,7 +3,7 @@
 Tileable 1024 px sets, read by `src/data/groundMaterials.js` with `import.meta.glob`. Spec:
 `plans/ART-PRODUCTION-PLAN.md` S10, `plans/ART-MODELS-PLAN.md` 8.1.
 
-Ids: `grass`, `dry-soil`, `desert-sand`, `rock`, `snow`, `wet-soil`, `paving`, `steppe-grass`.
+Ids: `grass`, `dry-soil`, `desert-sand`, `rock`, `snow`, `wet-soil`, `paving`, `steppe-grass`, `tundra`.
 Each folder holds:
 - `color.webp`: base colour with the ambient occlusion baked in (sRGB). Required.
 - `normal.png`: tangent-space normal map (indexed; drawn once the lit ground lands).
@@ -25,3 +25,9 @@ they were.
 2026-10-07 (wave1 checkpoint-03, `scripts/blender/build_ground_materials.py` then
 `node scripts/art/ground-webp.mjs`): `color.webp` for all eight ids. `normal.png` and `orm.png` are
 built with `--maps` and kept out of the game until the lit ground reads them (site size).
+
+Tundra: original CC0 procedural peat, cool grey stone, lichen and sparse grass. Built by
+`scripts/blender/build_tundra_ground.py`, color with AO only, 1024 square WebP q95 (`scripts/art/tundra-webp.mjs`).
+Explicit battle terrain `tundra` selects this detail and falls back to `rock` if absent.
+The current shader retains its terrain palette by dividing out average texture color.
+Campaign biome routing and a close-view tundra land class are not added by this asset delivery.

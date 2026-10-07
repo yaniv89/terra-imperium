@@ -61,6 +61,8 @@ export const createArtIndex = (files = {}) => {
     url,
     /** S5 battle buildings: battle/rts/rts-<age>.glb, one object per role. */
     rts: (ageId) => byAge(ageId, (a) => `battle/rts/rts-${a}.glb`),
+    /** Decorative prop kits; placement is supplied by a consumer. */
+    props: (ageId) => byAge(ageId, (a) => `battle/props/props-${a}.glb`),
     /** S7 wall kit: battle/city/walls-<age>.glb. */
     walls: (ageId) => byAge(ageId, (a) => `battle/city/walls-${a}.glb`),
     /** S6 ruin library: battle/city/ruins-<age>.glb. */
@@ -72,6 +74,21 @@ export const createArtIndex = (files = {}) => {
     housesDamage: (ageId, style = null) => {
       for (const s of [...styleChain(style), 'base']) {
         const key = s === 'base' ? `battle/city/${ageId}-houses-damage.glb` : `battle/city/${ageId}-${s}-houses-damage.glb`;
+        if (url(key)) return { url: url(key), ageId, style: s, key };
+      }
+      return null;
+    },
+    /** Civic halls and palace damage match the city's exact age and style, then its base. */
+    civic: (ageId, style = null) => {
+      for (const s of [...styleChain(style), 'base']) {
+        const key = s === 'base' ? `battle/city/civic-${ageId}.glb` : `battle/city/civic-${ageId}-${s}.glb`;
+        if (url(key)) return { url: url(key), ageId, style: s, key };
+      }
+      return null;
+    },
+    palaceDamage: (ageId, style = null) => {
+      for (const s of [...styleChain(style), 'base']) {
+        const key = s === 'base' ? `battle/city/palace-damage-${ageId}.glb` : `battle/city/palace-damage-${ageId}-${s}.glb`;
         if (url(key)) return { url: url(key), ageId, style: s, key };
       }
       return null;

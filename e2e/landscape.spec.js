@@ -87,20 +87,12 @@ test.describe('phone held sideways', () => {
 test.describe('phone held upright', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 
-  test('plays upright with a soft rotate hint that stays dismissed', async ({ page }) => {
+  test('asks to rotate on every screen, the map included', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Choose your people' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
-    const hint = page.getByTestId('rotate-hint');
-    await expect(hint).toBeVisible();
-    await expect(hint).toContainText('Turn your phone sideways');
-    await click(hint.getByRole('button', { name: 'Dismiss' }));
-    await expect(hint).toHaveCount(0);
-    // A reload resumes the autosaved game (the shell shows, not the start screen); the hint stays away.
-    await page.reload();
-    await expect(page.getByTestId('end-turn').or(page.getByRole('heading', { name: 'Choose your people' })).first()).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId('rotate-hint')).toHaveCount(0);
-    expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
+    const gate = page.getByTestId('rotate-gate');
+    await expect(gate).toBeVisible();
+    await expect(gate).toContainText('Rotate your phone to play');
   });
 });
 

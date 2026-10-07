@@ -1,0 +1,23 @@
+{
+  "checkpoint": "wave1-04",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "stage": "interim: base civic and tundra; cultural civic variants, palace damage and props follow",
+  "logical_deliveries": 2,
+  "model_states": 3,
+  "packed_bytes_added": 2274658,
+  "items": [
+    {
+      "file": "src/assets/battle/city/civic-bronze.glb",
+      "bytes": 2019580,
+      "sha256": "d1b76e9ca55e967ddbde35958903110c79c2fc975c1a1243e986c27e0e2c9e32",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/terrain/tundra/color.webp",
+      "bytes": 255078,
+      "sha256": "cfb2b4f31eb0fcafb8f2e6b8c823bf3c1c4f8992dd49543b3206f219bbe53dd9",
+      "status": "in_game_awaiting_review"
+    }
+  ]
+}
