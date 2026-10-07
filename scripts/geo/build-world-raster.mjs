@@ -17,6 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { loadElevation } from './build-tiles.mjs';
+import { CLIMATE_COLOR, DEFAULT_LAND } from '../../src/data/geo/rasterLook.js';
 import { loadRiverLines, riverSvg, RIVER_MAX_RANK } from './river-paint.mjs';
 
 const require = createRequire(import.meta.url);
@@ -31,17 +32,9 @@ const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 
 const W = 4096; const H = 2048;
 
-// ---- climate colours (sRGB, low elevation) ---------------------------------------------------
-export const CLIMATE_COLOR = {
-  Af: [36, 88, 40], Am: [44, 96, 44], Aw: [108, 128, 56], As: [118, 132, 62],
-  BWh: [218, 190, 134], BWk: [200, 182, 142], BSh: [176, 162, 98], BSk: [162, 152, 104],
-  Cfa: [84, 130, 60], Cwa: [92, 132, 60], Cfb: [78, 124, 66], Cfc: [92, 122, 86], Cwb: [86, 126, 70], Cwc: [96, 120, 86],
-  Csa: [142, 146, 82], Csb: [126, 138, 80], Csc: [120, 130, 90],
-  Dfa: [96, 126, 70], Dwa: [100, 124, 72], Dsa: [120, 128, 80], Dfb: [84, 116, 70], Dwb: [88, 114, 72], Dsb: [110, 120, 82],
-  Dfc: [78, 100, 74], Dwc: [82, 100, 76], Dsc: [100, 108, 84], Dfd: [100, 106, 88], Dwd: [104, 108, 90],
-  ET: [142, 136, 116], EF: [236, 239, 242]
-};
-const DEFAULT_LAND = [120, 130, 90];
+// ---- climate colours (sRGB, low elevation): src/data/geo/rasterLook.js, shared with the painter
+// of generated worlds (src/worldgen/painter.js) ------------------------------------------------
+export { CLIMATE_COLOR };
 
 export const climateColorGrid = () => {
   const lookup = KoppenLookup.getInstance();

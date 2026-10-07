@@ -58,7 +58,14 @@ export const reloadIntoWorld = (spec) => {
   return true;
 };
 /** A new game waiting for this page's world (StartScreen chose another world and reloaded). */
+// Read once per page (React's StrictMode runs state initialisers twice in development).
+let pendingStartTaken;
 export const takePendingStart = () => {
+  if (pendingStartTaken !== undefined) return pendingStartTaken;
+  pendingStartTaken = readPendingStart();
+  return pendingStartTaken;
+};
+const readPendingStart = () => {
   try {
     const raw = localStorage.getItem(PENDING_START_KEY);
     if (!raw) return null;

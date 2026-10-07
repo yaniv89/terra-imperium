@@ -53,10 +53,10 @@ const WorldLab = () => {
         try {
           const pkg = INLINE
             ? await import('../../worldgen/worldPackage').then(({ buildWorldPackage }) => { const t = performance.now(); const p = buildWorldPackage(spec, grid, { coast: true }); p.ms = performance.now() - t; return p; })
-            : await generateInWorker(spec, grid, { coast: true });
+            : await generateInWorker(spec, grid, { coast: true, paint: params.has('paint') });
           const ms = pkg.ms ?? performance.now() - t0; // measured inside the worker
           const tiles = tilesFromRaw(decodeTiles(pkg.tiles));
-          out.push({ seed, spec, hash: pkg.worldHash, ms, report: pkg.report, tiles, landFeatures: pkg.land?.length || 0 });
+          out.push({ seed, spec, hash: pkg.worldHash, ms, pictureMs: pkg.pictureMs ?? null, pictureBytes: pkg.picture?.size ?? null, report: pkg.report, tiles, landFeatures: pkg.land?.length || 0 });
         } catch (e) {
           out.push({ seed, spec, error: String(e?.message || e) });
         }

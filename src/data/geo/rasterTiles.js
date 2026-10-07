@@ -4,6 +4,8 @@
 // being 2^(z+1) x 2^z tiles. The flat map draws, over its base picture, only the tiles of the
 // level that matches the zoom and only those on screen, so the land stays sharp as you zoom in
 // and nothing off screen is fetched. Pure.
+import { proceduralRaster } from './worldPictures';
+
 export const RASTER_MAX_Z = 5;
 export const RASTER_TILE = 256;
 
@@ -27,7 +29,7 @@ export const baseRasterZoom = (baseSize) => Math.round(Math.log2(baseSize / (RAS
  * pixels per CSS pixel. `forceZ`: always this level (the close terrain layer reads level 5).
  */
 export const visibleRasterTiles = ({ raster, transform, width, height, dpr = 1, baseZ = 3, margin = 1, forceZ = null }) => {
-  if (!raster || !transform || width <= 0 || height <= 0) return [];
+  if (!raster || !transform || width <= 0 || height <= 0 || proceduralRaster()) return []; // a generated world: its base picture only (MV4)
   const z = forceZ ?? rasterZoomFor(raster.width * transform.k * dpr);
   if (forceZ == null && z <= baseZ) return [];
   const cols = 2 ** (z + 1); const rows = 2 ** z;

@@ -14,6 +14,7 @@
 import { loadTiles, fetchEarthRaw, setRawTiles, getTiles, loadedWorldSpec } from '../data/geo/tiles';
 import { decodeTiles } from '../data/geo/tilesCodec';
 import { setLandFeatures } from '../data/geo/loadWorldFeatures';
+import { setWorldPicture } from '../data/geo/worldPictures';
 import { EARTH_SPEC, normalizeSpec, specKey, sameWorld } from './spec';
 import { cacheGet, cachePut } from './worldCache';
 import { gridOf } from './index';
@@ -47,7 +48,7 @@ export const worldMessage = () => ({ type: WORLD_MESSAGE, spec: currentWorldSpec
 let worker = null; let nextId = 1;
 const pending = new Map();
 /** Runs the generator in the worldgen worker: a promise of { tiles, land, report, worldHash }. */
-export const generateInWorker = (spec, grid, { onProgress = () => {}, coast = true } = {}) => {
+export const generateInWorker = (spec, grid, { onProgress = () => {}, coast = true, paint = false } = {}) => {
   if (typeof Worker === 'undefined') return Promise.reject(new Error('no workers'));
   if (!worker) {
     worker = new Worker(new URL('./worldgen.worker.js', import.meta.url), { type: 'module' });
@@ -63,13 +64,15 @@ export const generateInWorker = (spec, grid, { onProgress = () => {}, coast = tr
   const id = nextId++;
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject, onProgress });
-    worker.postMessage({ id, spec, grid, coast });
+    worker.postMessage({ id, spec, grid, coast, paint });
   });
 };
 
-const install = (pkg) => {
+const install = (pkg, { picture = true } = {}) => {
   setRawTiles(decodeTiles(pkg.tiles));
   if (pkg.land) setLandFeatures(pkg.land);
+  // The painted base picture (MV4) instead of the baked Earth (the page only; workers draw nothing).
+  if (picture && pkg.picture && typeof URL !== 'undefined' && URL.createObjectURL) setWorldPicture(URL.createObjectURL(pkg.picture), 2048);
   return getTiles();
 };
 
@@ -83,17 +86,17 @@ export const loadWorld = async (spec, { inline = false, onProgress = () => {} } 
   if (s.kind !== 'generated') return loadTiles();
   const key = specKey(s);
   const hit = await cacheGet(key);
-  if (hit && (!s.worldHash || hit.worldHash === s.worldHash)) return install(hit);
+  if (hit && (inline || hit.picture) && (!s.worldHash || hit.worldHash === s.worldHash)) return install(hit, { picture: !inline });
   const grid = gridOf(await fetchEarthRaw());
   let pkg;
   if (inline) {
     const { buildWorldPackage } = await import('./worldPackage');
     pkg = buildWorldPackage(s, grid, { onProgress });
   } else {
-    pkg = await generateInWorker(s, grid, { onProgress });
+    pkg = await generateInWorker(s, grid, { onProgress, paint: true });
   }
-  await cachePut(key, pkg);
-  return install(pkg);
+  if (!inline || !hit) await cachePut(key, pkg);
+  return install(pkg, { picture: !inline });
 };
 
 /** Earth's grid columns for the start screen preview (no install). */

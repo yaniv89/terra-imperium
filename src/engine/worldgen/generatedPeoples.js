@@ -101,6 +101,7 @@ export const pickGeneratedMajors = (playerId, count, seed) => {
 };
 
 const NEXT_FREE = 60; // independents choose among this many free candidates, best score first
+const SPREAD_EXTRA_RINGS = 3; // independents first keep this many rings beyond the settling rule
 
 /**
  * Who stands where on a generated world: { majors, independents, late, sites }. `tiles` is the
@@ -129,15 +130,21 @@ export const placeGeneratedPeoples = (playerId, sizeId = DEFAULT_WORLD_SIZE, see
   const blocked = new Uint8Array(tiles.count);
   const mass = landmassOf(tiles);
   const reach = citySpacingRings(tiles) - 1;
+  // `crowded`: within SPREAD_RINGS of a placed city. Independents first look for free land away
+  // from everyone (so they spread over the world instead of filling the best region shoulder to
+  // shoulder), then take what the settling rule allows.
+  const crowded = new Uint8Array(tiles.count);
+  const spread = reach + SPREAD_EXTRA_RINGS;
   const block = (c) => {
-    blocked[c] = 1;
+    blocked[c] = 1; crowded[c] = 1;
     let frontier = [c]; const seen = new Set(frontier);
-    for (let d = 1; d <= reach; d++) {
+    for (let d = 1; d <= spread; d++) {
       const next = [];
       frontier.forEach((i) => tiles.neighbors[i].forEach((j) => {
         if (seen.has(j)) return;
         seen.add(j); next.push(j);
-        if (d < reach || mass[j] === mass[c]) blocked[j] = 1;
+        crowded[j] = 1;
+        if (d < reach || (d === reach && mass[j] === mass[c])) blocked[j] = 1;
       }));
       frontier = next;
     }
@@ -151,7 +158,8 @@ export const placeGeneratedPeoples = (playerId, sizeId = DEFAULT_WORLD_SIZE, see
   const cands = starts.candidates;
   const placeOne = (id) => {
     const free = [];
-    for (let i = cursor; i < cands.length && free.length < NEXT_FREE; i++) if (!blocked[cands[i]]) free.push(cands[i]);
+    for (let i = cursor; i < cands.length && free.length < NEXT_FREE; i++) if (!crowded[cands[i]]) free.push(cands[i]);
+    if (!free.length) for (let i = cursor; i < cands.length && free.length < NEXT_FREE; i++) if (!blocked[cands[i]]) free.push(cands[i]);
     while (cursor < cands.length && blocked[cands[cursor]]) cursor++;
     if (!free.length) return false;
     let t = free[0]; let a = -Infinity;

@@ -27,7 +27,7 @@ const launch = () => {
 
 const runLab = async (page, throttle) => {
   if (throttle) { const cdp = await page.context().newCDPSession(page); await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle }); }
-  await page.goto(`${url}/?worldLab&seeds=${seeds}${throttle ? '&inline' : ''}`);
+  await page.goto(`${url}/?worldLab&seeds=${seeds}${throttle ? '&inline' : arg('paint', null) ? '&paint' : ''}`);
   await page.waitForFunction(() => Array.isArray(window.__worldLab), null, { timeout: 240000 });
   return page.evaluate(() => window.__worldLab);
 };
@@ -41,7 +41,7 @@ try {
     const want = golden[r.seed];
     const match = want ? r.hash === want : null;
     if (match === false) ok = false;
-    console.log(`seed ${r.seed}: hash ${r.hash} ${want ? (match ? '= golden' : `!= golden ${want}`) : ''} ${Math.round(r.ms)} ms (worker, with the coast)${r.error ? ` ERROR ${r.error}` : ''}`);
+    console.log(`seed ${r.seed}: hash ${r.hash} ${want ? (match ? '= golden' : `!= golden ${want}`) : ''} ${Math.round(r.ms)} ms (worker, with the coast${r.pictureMs != null ? `, painted 2048 x 1024 included; WebP encode ${Math.round(r.pictureMs)} ms, ${Math.round(r.pictureBytes / 1024)} KB` : ''})${r.error ? ` ERROR ${r.error}` : ''}`);
   });
   if (shots) {
     mkdirSync(shots, { recursive: true });

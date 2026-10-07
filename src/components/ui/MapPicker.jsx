@@ -52,7 +52,18 @@ const Preview = ({ spec }) => {
   );
 };
 
+// Generated worlds ship with the full painted look (plan open question 5); until MV4 is done the
+// option shows in dev builds, with `?generatedWorlds` once, or when this page already runs one.
+export const generatedWorldsEnabled = () => {
+  try {
+    if (import.meta.env?.DEV) return true;
+    if (new URLSearchParams(window.location.search).has('generatedWorlds')) localStorage.setItem('terra-imperium-generated-worlds', '1');
+    return localStorage.getItem('terra-imperium-generated-worlds') === '1';
+  } catch { return false; }
+};
+
 const MapPicker = ({ value, onChange }) => {
+  if (!generatedWorldsEnabled() && value?.kind !== 'generated') return null;
   const generated = value?.kind === 'generated';
   const params = generated ? value.params : DEFAULT_PARAMS;
   const setParam = (key, v) => onChange(normalizeSpec({ ...value, params: { ...params, [key]: v } }));

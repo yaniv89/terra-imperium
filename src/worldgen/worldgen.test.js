@@ -11,6 +11,7 @@ import { prepareGrid, _internals, qualityProblems } from './v1/generate';
 import { gnoise, makeField, ONE } from './v1/noise';
 import { worldHashOf, mapCode, parseMapCode, normalizeSpec, specKey } from './spec';
 import { buildHexLand } from '../data/geo/hexCoast';
+import { paintWorld } from './painter';
 
 // Frozen with generator version 1: a change here means old saves would rebuild a different world.
 // Any intended change to the output is a new generator version (src/worldgen/v2/...), never an edit.
@@ -131,6 +132,24 @@ describe('world generator v1', () => {
     expect(back.starts.majors).toEqual(raw.starts.majors);
     const land = buildHexLand(tilesFromRaw(back), { chunked: false });
     expect(land.length).toBeGreaterThan(5);
+  }, 60000);
+});
+
+describe('the painter (MV4, first CPU version)', () => {
+  it('paints the base picture: land where the land is, sea elsewhere', () => {
+    const tiles = tilesFromRaw(worlds[1].raw);
+    const W = 256; const H = 128;
+    const rgba = paintWorld(tiles, W, H);
+    expect(rgba.length).toBe(W * H * 4);
+    // Pixels over land tiles are mostly not ocean blue, pixels over deep sea are.
+    let landOk = 0; let landN = 0; let seaOk = 0; let seaN = 0;
+    for (let y = 8; y < H - 8; y += 3) for (let x = 0; x < W; x += 3) {
+      const id = tiles.nearest(90 - ((y + 0.5) / H) * 180, ((x + 0.5) / W) * 360 - 180);
+      const o = (y * W + x) * 4; const blue = rgba[o + 2] > rgba[o] + 40 && rgba[o + 2] > rgba[o + 1];
+      if (tiles.land[id] === 1 && tiles.terrainOf(id) !== 'lake') { landN++; if (!blue) landOk++; } else if (tiles.elevation[id] < -1000) { seaN++; if (blue) seaOk++; }
+    }
+    expect(landOk / landN).toBeGreaterThan(0.8);
+    expect(seaOk / seaN).toBeGreaterThan(0.9);
   }, 60000);
 });
 
