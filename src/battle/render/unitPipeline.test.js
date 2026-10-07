@@ -3,7 +3,7 @@
 // registry that picks the models a battle needs.
 import { describe, it, expect, afterEach } from 'vitest';
 import { BoxGeometry } from 'three';
-import { emblemCellUv, emblemCellFor, writeSoldierVariant, SKIN_TONES, EMBLEM_CELLS, getEmblemAtlas } from './unitVariants';
+import { emblemCellUv, emblemCellFor, writeSoldierVariant, SKIN_TONES, EMBLEM_CELLS, getEmblemAtlas, skinToneFor, SKIN_SPREAD, DEFAULT_SKIN_TONE } from './unitVariants';
 import {
   getSoldierGeometry, getImposterGeometry, registerSoldierGeometry, unregisterSoldierGeometry, getProceduralSoldierGeometry,
   RIG_ATTRIBUTES, LIMB, PART
@@ -26,14 +26,25 @@ describe('instance variants', () => {
       expect(emblemCellFor(0, s)).toBeGreaterThanOrEqual(0); expect(emblemCellFor(0, s)).toBeLessThan(8);
       expect(emblemCellFor(1, s)).toBeGreaterThanOrEqual(8); expect(emblemCellFor(1, s)).toBeLessThan(16);
     }
-    const arr = new Float32Array(4 * 200); const tones = new Set();
+    const arr = new Float32Array(4 * 200); const tones = [];
     for (let i = 0; i < 200; i++) {
-      writeSoldierVariant(arr, i, 3, 1, i);
-      tones.add(arr[i * 4]);
+      writeSoldierVariant(arr, i, 3, 1, i, skinToneFor('akkad'));
+      tones.push(arr[i * 4]);
       expect(arr[i * 4 + 1]).toBe(emblemCellFor(1, 3)); // one device per squad
       expect(Math.abs(arr[i * 4 + 2])).toBeLessThanOrEqual(1);
     }
-    expect(tones.size).toBe(SKIN_TONES.length);
+    // One squad, one people: every soldier within SKIN_SPREAD of the others (never the whole
+    // palette, which made one squad look like two models), but not all identical.
+    expect(Math.max(...tones) - Math.min(...tones)).toBeLessThanOrEqual(SKIN_SPREAD);
+    expect(new Set(tones).size).toBeGreaterThan(10);
+    tones.forEach((t) => { expect(t).toBeGreaterThanOrEqual(0); expect(t).toBeLessThanOrEqual(SKIN_TONES.length - 1); });
+  });
+
+  it('gives each people its own skin tone and everyone else the middle of the palette', () => {
+    expect(skinToneFor('akkad')).toBe(skinToneFor('israel')); // both Near East
+    expect(skinToneFor('celtiberia')).toBeLessThan(skinToneFor('akkad')); // Europe paler
+    expect(skinToneFor(null)).toBe(DEFAULT_SKIN_TONE);
+    expect(skinToneFor('no-such-nation')).toBe(DEFAULT_SKIN_TONE);
   });
 
   it('falls back to a blank atlas where there is no canvas', () => {

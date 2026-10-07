@@ -19,7 +19,7 @@ import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/battleStats';
 import { soldierSlots, squadSlots, figureScale, scaledSoldiers } from './capacity';
 import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
-import { writeSoldierVariant } from './unitVariants';
+import { writeSoldierVariant, skinToneFor } from './unitVariants';
 import { soldierLodGeometries, pickSoldierTier, triangleCount } from './soldierLod';
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox } from './terrainSurface';
 import { Q } from '../sim/constants';
@@ -1173,7 +1173,8 @@ export class BattleRenderer {
       spacing: stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? 0.95 : s.classId === 'support' ? 1.05 : 0.52,
       scale: MODEL_SCALE[s.classId] || 0.62,
       organic: isOrganic(s.classId, s.ageId),
-      sideColor: this.sideColors[s.side]
+      sideColor: this.sideColors[s.side],
+      tone: skinToneFor(this.setup.sides[s.side]?.nationId) // one people, one skin tone (unitVariants.js)
     };
   }
 
@@ -1193,7 +1194,7 @@ export class BattleRenderer {
       const j = (hash01(s.idx * 7 + i) - 0.5) * 0.18;
       data[d + 2] = Math.cos(j); data[d + 3] = Math.sin(j);
       data[d + 4] = hash01(s.idx * 131 + i) * 6.283;
-      writeSoldierVariant(look, 0, s.idx, s.side, i);
+      writeSoldierVariant(look, 0, s.idx, s.side, i, info.tone);
       data.set(look, d + 5);
     }
     info.fig = { n, cols, spacing, data };
