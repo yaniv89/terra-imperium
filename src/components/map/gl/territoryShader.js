@@ -9,6 +9,9 @@
 // Every line is measured in screen pixels from the exact cell edge (the bisector of two centres
 // on the sphere, through its analytic screen gradient), so borders stay one crisp width at any
 // zoom and the world wraps east to west by itself (longitude is taken modulo 360 degrees).
+// The fog is the exception: its two edges (the dark mask, the grey wash) are soft and wander like
+// clouds, read from a blurred field baked per fog change (fogField.js) through world-space noise,
+// so they never show the hexes; every tile's centre still shows its own per-tile fog state.
 // GLSL ES 3.00 (WebGL2): texelFetch and integer indices.
 import { DATA_W, LOOKUP_W, LOOKUP_H, WALK_STEPS } from './tileGpuData';
 import { CITY_W, FLAG_ENEMY } from './territoryData';
@@ -21,6 +24,16 @@ export const SELECTED_HALF_PX = 0.75;
 export const OUTLINE_HALF_PX = 0.4;
 export const FAINT_HALF_PX = 0.25;
 export const MASK_COLOR = [11 / 255, 17 / 255, 32 / 255];
+// The soft fog edge (fogField.js): the field's band, its noise warp and the per-tile cores.
+export const FOG_DEEP = 0.002;     // below this the field is deep dark: the mask, no tile search
+export const FOG_LO = 0.22;        // the mask is full below this field value (after the warp)
+export const FOG_HI = 0.62;        // and gone above this one
+export const FOG_WARP_KM = 45;     // the noise moves the edge up to this far either way
+export const FOG_NOISE_FREQ = 16;  // noise cells per Earth radius: the base wave is about 400 km
+export const FOG_FINE = 0.6;       // the finer wisps (a wave of about 90 km), in field units
+export const FOG_CORE0_KM = 22;    // a tile's centre (this far from its edges and more) keeps its
+export const FOG_CORE1_KM = 36;    // own fog state whatever the blur says
+const EARTH_KM = 6371;
 
 export const TERRITORY_VERTEX = /* glsl */ `
 uniform vec4 uView;     // world x and y of the screen's top left, world units per CSS px, unused
@@ -43,7 +56,8 @@ uniform sampler2D uLookup;
 uniform sampler2D uTile;
 uniform sampler2D uCity;
 uniform sampler2D uTint;
-uniform vec3 uProj;       // projection: centre x, centre y (world px), world px per radian
+uniform sampler2D uFog;   // the soft fog field: r explored, g in sight, blurred (fogField.js)
+uniform vec3 uProj;      // projection: centre x, centre y (world px), world px per radian
 uniform float uK;         // zoom (CSS px per world px)
 uniform float uDpr;
 uniform float uHex;       // 1 from the hex zoom
@@ -68,6 +82,21 @@ void neighbours(int i, out int n[6]) {
   n[4] = int(floor(b.x + 0.5)); n[5] = int(floor(b.y + 0.5));
 }
 
+// Value noise on the unit sphere's 3D position: stable in world space and seamless east to west.
+float hash3(vec3 q) { q = fract(q * 0.3183099 + 0.1); q *= 17.0; return fract(q.x * q.y * q.z * (q.x + q.y + q.z)); }
+float vnoise(vec3 x) {
+  vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash3(i), hash3(i + vec3(1.0, 0.0, 0.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 0.0)), hash3(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+             mix(mix(hash3(i + vec3(0.0, 0.0, 1.0)), hash3(i + vec3(1.0, 0.0, 1.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 1.0)), hash3(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+}
+float fbm(vec3 x) {
+  float s = 0.0; float amp = 0.5;
+  for (int i = 0; i < 4; i++) { s += amp * vnoise(x); x = x * 2.03 + 17.1; amp *= 0.5; }
+  return s / 0.9375;
+}
+
+vec2 fogFieldAt(float lon, float lat) { return texture(uFog, vec2((lon + PI) / (2.0 * PI), (0.5 * PI - lat) / PI)).rg; }
+
 vec4 acc;
 void over(vec3 rgb, float a) { acc = vec4(rgb * a, a) + acc * (1.0 - a); }
 // A line of half width hw (CSS px) at distance d (CSS px) from the edge, one device pixel of AA.
@@ -87,6 +116,23 @@ void main() {
   int ix = clamp(int((lon + PI) / (2.0 * PI) * ${LOOKUP_W}.0), 0, ${LOOKUP_W - 1});
   int iy = clamp(int((0.5 * PI - lat) / PI * ${LOOKUP_H}.0), 0, ${LOOKUP_H - 1});
   int a = int(floor(texelFetch(uLookup, ivec2(ix, iy), 0).r + 0.5));
+  // The soft fog field (fogField.js). Deep in the unexplored dark (the field all but zero, no
+  // explored tile within reach) the mask alone, with no tile search.
+  // Near an edge the field is read through a world-space noise warp (a domain warp of up to
+  // FOG_WARP_KM), so the edge wanders like a cloud's instead of following the hexes; the deep
+  // checks are made before the warp, far enough out that the warp cannot reach an edge.
+  vec2 fogF = vec2(1.0); float warp = 0.0;
+  if (uFogOn > 0.5) {
+    fogF = fogFieldAt(lon, lat);
+    if (fogF.r < ${FOG_DEEP.toFixed(4)}) { fragColor = vec4(${MASK_COLOR.map((c) => c.toFixed(4)).join(', ')}, 1.0); return; }
+    if (fogF.r < 0.999 || fogF.g < 0.999) {
+      vec3 q = p * ${FOG_NOISE_FREQ.toFixed(1)};
+      float wx = fbm(q) - 0.5; float wy = fbm(q + vec3(31.7, 11.3, 5.9)) - 0.5;
+      warp = wx;
+      float amp = 2.0 * ${(FOG_WARP_KM / EARTH_KM).toFixed(6)};
+      fogF = fogFieldAt(lon + wx * amp / max(cl, 0.05), clamp(lat + wy * amp, -0.5 * PI, 0.5 * PI));
+    }
+  }
   int n[6];
   for (int it = 0; it < ${WALK_STEPS}; it++) {
     neighbours(a, n);
@@ -122,10 +168,28 @@ void main() {
   }
 
   acc = vec4(0.0);
+  // The fog, soft: how much of the dark mask and of the grey wash this pixel gets. The blurred
+  // field is warped by world-space noise inside its band, then every tile's centre is held on its
+  // own side (a lone explored tile stays open, a lone unexplored one dark): the rules stay per tile.
+  float maskA = 0.0; float washA = 0.0;
+  if (uFogOn > 0.5) {
+    // finer wisps inside the band: a second, smaller noise on the field value itself
+    // (weighted to nothing near 0 and 1, so the deep checks above stay exact)
+    vec2 inBand = smoothstep(vec2(0.08), vec2(0.3), fogF) * (1.0 - smoothstep(vec2(0.7), vec2(0.92), fogF));
+    float fine = inBand.r + inBand.g > 0.0 ? (fbm(p * ${(FOG_NOISE_FREQ * 4.3).toFixed(1)} + vec3(7.1, 3.3, 1.9)) - 0.5) * ${FOG_FINE.toFixed(2)} : 0.0;
+    maskA = 1.0 - smoothstep(${FOG_LO.toFixed(2)}, ${FOG_HI.toFixed(2)}, fogF.r + fine * inBand.r);
+    washA = 1.0 - smoothstep(${FOG_LO.toFixed(2)}, ${FOG_HI.toFixed(2)}, fogF.g + fine * inBand.g);
+    float dEdge = 1e6;
+    for (int k = 0; k < 6; k++) dEdge = min(dEdge, dist[k]);
+    float core = smoothstep(${FOG_CORE0_KM.toFixed(1)}, ${FOG_CORE1_KM.toFixed(1)}, dEdge / pxPerRad * ${EARTH_KM.toFixed(1)} + warp * 16.0);
+    maskA = fogA < 0.5 ? max(maskA, core) : min(maskA, 1.0 - core);
+    washA = fogA < 1.5 ? max(washA, core) : min(washA, 1.0 - core);
+  }
   if (uFogOn > 0.5 && fogA < 0.5) {
-    // Unexplored: the dark mask, with a faint rim along the explored land.
-    acc = vec4(${MASK_COLOR.map((c) => c.toFixed(4)).join(', ')}, 1.0);
-    for (int k = 0; k < 6; k++) if (n[k] >= 0 && tn[k].z > 0.5) over(vec3(0.58, 0.64, 0.72), 0.25 * line(dist[k], 0.4));
+    // Unexplored: no territory, only the edge of the wash and the mask over the Earth.
+    over(vec3(0.059, 0.09, 0.165), 0.55 * washA);
+    over(vec3(${MASK_COLOR.map((c) => c.toFixed(4)).join(', ')}), maskA);
+    if (acc.a <= 0.0) discard;
     fragColor = acc;
     return;
   }
@@ -179,7 +243,7 @@ void main() {
     for (int k = 0; k < 6; k++) if (n[k] >= 0 && (landA || landN[k])) over(vec3(1.0), 0.2 * line(dist[k], ${HEX_HALF_PX.toFixed(2)}));
   }
   // Explored, out of sight: the grey wash.
-  if (uFogOn > 0.5 && fogA < 1.5) over(vec3(0.059, 0.09, 0.165), 0.55);
+  if (washA > 0.0) over(vec3(0.059, 0.09, 0.165), 0.55 * washA);
   // The lens tints.
   if (uTintOn > 0.5) { vec4 t = texelFetch(uTint, at(a, ${DATA_W}), 0); if (t.a > 0.0) over(t.rgb, t.a); }
   // The selected tile.
@@ -192,8 +256,8 @@ void main() {
       for (int k = 0; k < 6; k++) if (n[k] == sel) over(vec3(1.0), line(dist[k], 0.8));
     }
   }
-  // Unexplored neighbours: the rim of the mask on this side.
-  if (uFogOn > 0.5) for (int k = 0; k < 6; k++) if (n[k] >= 0 && tn[k].z < 0.5) over(vec3(0.58, 0.64, 0.72), 0.25 * line(dist[k], 0.4));
+  // The soft edge of the unexplored dark, over everything.
+  if (maskA > 0.0) over(vec3(${MASK_COLOR.map((c) => c.toFixed(4)).join(', ')}), maskA);
   if (acc.a <= 0.0) discard;
   fragColor = acc;
 }

@@ -12,7 +12,7 @@
 // view's centre, which is the east-west wrap.
 import {
   Mesh, PlaneGeometry, ShaderMaterial, DataTexture, RGBAFormat, RedFormat, FloatType, UnsignedByteType,
-  NearestFilter, LinearFilter, LinearMipmapLinearFilter, ClampToEdgeWrapping, TextureLoader, CanvasTexture, GLSL3,
+  NearestFilter, LinearFilter, LinearMipmapLinearFilter, ClampToEdgeWrapping, RepeatWrapping, TextureLoader, CanvasTexture, GLSL3,
   InstancedBufferGeometry, InstancedBufferAttribute, DynamicDrawUsage, Vector2, Vector3, Vector4, Scene, WebGLRenderTarget, Color, DoubleSide
 } from 'three';
 import { wrapNear } from './mapView';
@@ -32,6 +32,11 @@ const dataTexture = (data, w, h, format, type) => {
 };
 
 // ------------------------------------------------------------------ territory
+const fogTexture = (data, w, h) => {
+  const t = dataTexture(data, w, h, RGBAFormat, UnsignedByteType);
+  t.minFilter = LinearFilter; t.magFilter = LinearFilter; t.wrapS = RepeatWrapping;
+  return t;
+};
 export const createTerritoryLayer = (scene, grid) => {
   const centres = dataTexture(grid.centres, DATA_W, grid.rows, RGBAFormat, FloatType);
   const neigh = dataTexture(grid.neighbours, DATA_W, grid.neighbourRows, RGBAFormat, FloatType);
@@ -39,7 +44,7 @@ export const createTerritoryLayer = (scene, grid) => {
   const empty = () => dataTexture(new Float32Array(4), 1, 1, RGBAFormat, FloatType);
   const uniforms = {
     uCentres: { value: centres }, uNeigh: { value: neigh }, uLookup: { value: lookup },
-    uTile: { value: empty() }, uCity: { value: empty() }, uTint: { value: dataTexture(new Uint8Array(4), 1, 1, RGBAFormat, UnsignedByteType) },
+    uTile: { value: empty() }, uCity: { value: empty() }, uFog: { value: fogTexture(new Uint8Array(4), 1, 1) }, uTint: { value: dataTexture(new Uint8Array(4), 1, 1, RGBAFormat, UnsignedByteType) },
     uView: { value: new Vector4() }, uViewport: { value: new Vector2(1, 1) }, uProj: { value: new Vector4() },
     uK: { value: 1 }, uDpr: { value: 1 }, uHex: { value: 0 }, uCityDetail: { value: 0 }, uNationHalf: { value: 0.55 },
     uSelTile: { value: -1 }, uTintOn: { value: 0 }, uFogOn: { value: 0 }
@@ -63,6 +68,12 @@ export const createTerritoryLayer = (scene, grid) => {
     setTiles: ({ data, rows }) => { swap('uTile', data, DATA_W, rows, RGBAFormat, FloatType); layer.version += 1; },
     setCities: ({ data, rows }) => { swap('uCity', data, CITY_W, rows, RGBAFormat, FloatType); layer.version += 1; },
     setTints: ({ data, rows }) => { swap('uTint', data, DATA_W, rows, RGBAFormat, UnsignedByteType); layer.version += 1; },
+    // the soft fog edge (fogField.js): sampled bilinearly, wrapping east to west
+    setFog: ({ data, width, height }) => {
+      const old = uniforms.uFog.value;
+      if (old.image?.width === width && old.image?.height === height) { old.image.data = data; old.needsUpdate = true; } else { uniforms.uFog.value = fogTexture(data, width, height); old.dispose(); }
+      layer.version += 1;
+    },
     update: (v, opts) => {
       uniforms.uView.value.set(v.worldLeft, v.worldTop, 1 / v.k, 0);
       uniforms.uViewport.value.set(v.width, v.height);
@@ -72,7 +83,7 @@ export const createTerritoryLayer = (scene, grid) => {
     },
     dispose: () => {
       scene.remove(mesh); mesh.geometry.dispose(); material.dispose();
-      [centres, neigh, lookup, uniforms.uTile.value, uniforms.uCity.value, uniforms.uTint.value].forEach((t) => t.dispose());
+      [centres, neigh, lookup, uniforms.uTile.value, uniforms.uCity.value, uniforms.uTint.value, uniforms.uFog.value].forEach((t) => t.dispose());
     }
   };
   return layer;

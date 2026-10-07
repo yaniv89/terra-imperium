@@ -33,27 +33,32 @@ export const indexCities = (regions) => {
   return { ids, cityIndex, nationIndex };
 };
 
+/** Every tile's fog state, Uint8Array(tileCount): 0 unexplored, 1 explored, 2 in sight. */
+export const buildFogStates = (tileCount, fog) => {
+  const out = new Uint8Array(tileCount);
+  if (!fog?.on) return out.fill(2);
+  const bytes = fog.explored?.bytes;
+  if (bytes) {
+    for (let b = 0; b < bytes.length; b++) {
+      const v = bytes[b];
+      if (!v) continue;
+      for (let k = 0; k < 8; k++) if ((v >> k) & 1) { const t = b * 8 + k; if (t < tileCount) out[t] = 1; }
+    }
+  }
+  fog.visible?.forEach((t) => { if (t < tileCount && bitsHas(fog.explored, t)) out[t] = 2; });
+  return out;
+};
+
 /**
  * The tile texture: Float32Array(DATA_W * rows * 4). `fog`: the fogView result (on, explored,
- * visible); `index`: indexCities(view regions).
+ * visible); `index`: indexCities(view regions); `fogStates`: buildFogStates, when already built.
  */
-export const buildTileTexels = ({ tileCount, tileOwner, regions, fog, index }) => {
+export const buildTileTexels = ({ tileCount, tileOwner, regions, fog, index, fogStates = null }) => {
   const rows = rowsFor(tileCount, DATA_W);
   const out = new Float32Array(DATA_W * rows * 4);
   const { cityIndex, nationIndex } = index;
-  if (!fog?.on) {
-    for (let t = 0; t < tileCount; t++) out[t * 4 + 2] = 2;
-  } else {
-    const bytes = fog.explored?.bytes;
-    if (bytes) {
-      for (let b = 0; b < bytes.length; b++) {
-        const v = bytes[b];
-        if (!v) continue;
-        for (let k = 0; k < 8; k++) if ((v >> k) & 1) { const t = b * 8 + k; if (t < tileCount) out[t * 4 + 2] = 1; }
-      }
-    }
-    fog.visible?.forEach((t) => { if (t < tileCount && bitsHas(fog.explored, t)) out[t * 4 + 2] = 2; });
-  }
+  const states = fogStates || buildFogStates(tileCount, fog);
+  for (let t = 0; t < tileCount; t++) out[t * 4 + 2] = states[t];
   Object.keys(tileOwner || {}).forEach((key) => {
     const t = Number(key);
     const id = tileOwner[key];
