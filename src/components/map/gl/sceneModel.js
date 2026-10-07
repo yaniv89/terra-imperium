@@ -22,9 +22,8 @@ import { RESOURCES_ON_TILES } from '../../../data/tileYields';
 import { resourceIconUrl, improvementIconUrl, wonderIconUrl, markerIconUrl, unitIconUrl, cityIconUrl } from '../../../data/icons';
 import { townTier } from '../closeView/townTiers';
 import { WORK_KINDS } from '../closeView/landscape';
-import { ARMY_SPOT, unitPx, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, ROOM_FILL } from '../closeView/scale';
-import { cachedFootprint, townDrawRadiusKm } from '../closeView/terrainPlacement';
-import { EARTH_RADIUS_KM } from '../../../data/geo/geodesic';
+import { ARMY_SPOT, unitPx, tiltFor, TIER_SCALE } from '../closeView/scale';
+import { hexTownPx } from '../closeView/cityHex';
 import { markerLatLng } from '../../../utils/markerPosition';
 import { clusterScreenMarkers, MARKER_OFFSET, markerItems } from '../mapBanners';
 import { bannerOffsetPx } from '../CityBanners';
@@ -93,11 +92,10 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
       const tier = city.owner && !city.outpost ? townTier(city) : null;
       const radius = tier ? tier.modelRadius : 1;
       const capRadius = radius + ((city.buildings?.categories?.defense ?? -1) >= 0 ? 0.3 : 0);
-      // the town's room as the close view draws it (the footprint's town radius, terrainPlacement.js)
-      const fp = city.tile != null ? cachedFootprint(city.tile, state) : null;
-      const roomPx = fp?.town ? (townDrawRadiusKm(fp) * projection.scale() * k) / EARTH_RADIUS_KM / ROOM_FILL
-        : Math.min(townRoomUnits(projection, getTiles(), city.tile), townGapUnits(projection, getTiles(), city.tile, isTown)) * k;
-      const below = bannerOffsetPx(radius, townUnitPx(k, capRadius, roomPx, tier ? TIER_SCALE[tier.id] || 1 : 1));
+      // the town's scale as the close view draws it: filling its hex (cityHex.js)
+      const lean = Math.sin(tiltFor(k));
+      const px = hexTownPx({ projection, tiles: getTiles(), tile: city.tile, k, radius: capRadius, lean, fill: !!tier, isTown, tierScale: tier ? TIER_SCALE[tier.id] || 1 : 1 });
+      const below = bannerOffsetPx(radius, px, lean);
       const owner = city.owner || city.colony?.ownerId;
       const own = owner === state.playerNationId;
       const art = cityBannerArt({

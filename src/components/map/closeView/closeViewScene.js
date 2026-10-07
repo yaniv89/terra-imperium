@@ -25,8 +25,9 @@ import { getSoldierGeometry, packForGPU, createSoldierMaterial, MODEL_SCALE } fr
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
 import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
-import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, ROOM_FILL } from './scale';
-import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen, townDrawRadiusKm } from './terrainPlacement';
+import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE } from './scale';
+import { cityHexOf, hexTownPx, insideHex } from './cityHex';
+import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen } from './terrainPlacement';
 import { getRidgeGeometry, getHillGeometry, RIDGE_VARIANTS } from './mountainModels';
 import { dressCloseTerrain } from './terrainKits';
 import { riverHalfPx } from '../gl/terrainModel';
@@ -261,20 +262,18 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         root.add(mesh);
       }
       if (mesh.userData.asset) showLod(mesh, lodForZoom(k));
-      // the town's ground (and its wall ring) is claimed first; its fields come after the works
-      // bigger towns drawn bigger, and no town reaching into the sea
-      const radius = (campRoot ? 1.0 : tier.modelRadius || 2) + (wallsRoot ? 0.3 : 0);
-      // never past the footprint's town disk (its plots start there), else the old room rule
-      const roomPx = fp?.town ? (townDrawRadiusKm(fp) * pxPerKmNorth) / ROOM_FILL
-        : Math.min(townRoomUnits(projection, getTiles(), region.tile), townGapUnits(projection, getTiles(), region.tile, isTown)) * k;
-      const ts = townUnitPx(k, radius, roomPx, campRoot ? 1 : TIER_SCALE[tier.id] || 1);
+      // the town's ground (and its wall ring) is claimed first; its fields come after the works.
+      // Every tier fills its own hex (cityHex.js, decision D10): the tier's art shows the city's
+      // size; never into a neighbouring hex or the sea. An outpost's camp keeps its natural size.
+      const radius = (camp ? 1.0 : tier.modelRadius || 2) + (opts.walls && !camp ? 0.3 : 0);
+      const ts = hexTownPx({ projection, tiles: getTiles(), tile: region.tile, k, radius, lean, fill: !camp, isTown, tierScale: TIER_SCALE[tier.id] || 1 });
       occ.claim(at.x, at.y, radius * ts);
       if (mesh.userData.fields?.length) ringFields.push({ mesh, at, s: ts });
       // the city's landmarks (its highest building tiers with a model file) round an artist town
       const picks = asset ? pickBuildingModels(region, style, tier.id).filter(buildingReady) : [];
       if (picks.length) {
         mesh.userData.spots ||= buildingSpots(tier.id, seed, fields);
-        townBuildings.push({ mesh, at, s: ts, picks, teamColor, tint });
+        townBuildings.push({ mesh, at, s: ts, picks, teamColor, tint, hex: cityHexOf(projection, getTiles(), region.tile) });
       }
       mesh.position.set(at.x, -at.y, at.y * 0.05);
       mesh.rotation.set(TILT, 0, 0);
@@ -333,11 +332,13 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     // scale, tilt and level of detail.
     t.buildings.begin(lodForZoom(k));
     const spotMatrix = new Matrix4(); const placed = new Matrix4();
-    townBuildings.forEach(({ mesh, at, s: ts, picks, teamColor, tint }) => {
+    townBuildings.forEach(({ mesh, at, s: ts, picks, teamColor, tint, hex }) => {
       mesh.updateMatrix();
       const accept = (spot, model) => {
         const sx = at.x + spot.x * ts; const sy = at.y + spot.z * ts * lean;
         const r = BUILDING_DISC * ts * 0.8;
+        // the town fills its hex: a landmark off its ground stays on that hex (a quay's centre on it)
+        if (!spot.inner && hex && !insideHex(hex, (sx - at.x) / k, (sy - at.y) / k, spot.shore ? 0 : r / k, lean, false)) return false;
         if (needsCoast(model.id)) {
           // a naval landmark: land under it and behind it, open water just in front of its quay
           const fx = Math.sin(spot.yaw) * ts; const fy = Math.cos(spot.yaw) * ts * lean;
