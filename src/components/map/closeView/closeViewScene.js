@@ -24,7 +24,7 @@ import { markerLatLng } from '../../../utils/markerPosition';
 import { getEffectiveAgeId } from '../../../data/ages';
 import { getSoldierGeometry, hasSoldierOverride, packForGPU, createSoldierMaterial, MODEL_SCALE } from '../../../battle/render/soldierFactory';
 import { findUnitModel, preloadSoldierModel } from '../../../battle/render/unitModels';
-import { soldierLodGeometries, TIER_PX } from '../../../battle/render/soldierLod';
+import { soldierLodGeometries, triangleCount } from '../../../battle/render/soldierLod';
 import { skinToneFor, soldierSkinTone, emblemCellFor } from '../../../battle/render/unitVariants';
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
@@ -55,9 +55,15 @@ const TREE_KINDS = ['conifer', 'broad', 'palm'];
 const MAX_WORKS = 400;
 const SOLDIER_SIZE = 2.4; // soldiers are drawn larger than true scale so they read at map size
 const MAX_SOLDIERS = 240;
-// A standing army turns a little to its right, toward the viewer: the battle soldiers carry the
-// shield on the left arm, so this shows its face (team colour and device), not its back.
-const STAND_HEADING = -0.5;
+// A standing army turns a little toward the viewer: body, kilt and spear show beside the shield's
+// face (team colour and device) on the left arm, not just the shield or its back.
+const STAND_HEADING = 0.15;
+// Army figures stand at least this tall (layout px, model height before the tilt; about 34 css px
+// on screen at mid zoom): smaller, the spear, shield and kilt of the battle model run together.
+const MIN_FIGURE_PX = 64;
+// The army figures' triangle budget at full detail (phones: about 100 Bronze spearmen of 1,500
+// triangles, a small share of the map's frame); past it every figure takes the clustered level.
+export const MAP_FIGURE_TRIS = 150000;
 const EDGE = 80;
 const PLAYER_COLOR = '#2563eb';
 
@@ -542,8 +548,8 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     t.layers.forEach((l) => { l.levels.forEach((m) => { m.count = 0; }); });
     // The battle's own soldier: the artist's GLB where the unit has one (loaded once, then the
     // layer is rebuilt on it; the procedural body meanwhile and if it fails), else the procedural
-    // model. Two levels of detail from the battle's LOD chain (soldierLod.js): the full model for
-    // figures at least TIER_PX[0] tall on screen, the clustered one below.
+    // model. The full model whenever the figures on screen fit MAP_FIGURE_TRIS (the clustered
+    // battle LOD, about 280 triangles, read as a blob at mid zoom), the clustered one only beyond.
     const layerFor = (ageId, classId) => {
       const key = `${ageId}:${classId}`;
       if (!t.soldierLoads.has(key) && !hasSoldierOverride(ageId, classId) && findUnitModel(ageId, classId)) {
@@ -569,7 +575,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
           return mesh;
         });
         source.computeBoundingBox();
-        l = { source, levels, mesh: levels[0], anim, variant, color, height: source.boundingBox.max.y - source.boundingBox.min.y };
+        l = { source, levels, mesh: levels[0], anim, variant, color, tris: triangleCount(levels[0].geometry), height: Math.max(0.1, source.boundingBox.max.y - source.boundingBox.min.y) };
         t.layers.set(key, l);
       }
       return l;
@@ -589,13 +595,15 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       if (walking) moving = true;
       const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING;
       const n = figuresFor(m.men);
-      const scale = s * SOLDIER_SIZE * (MODEL_SCALE[classId] || 0.88);
+      // never smaller than MIN_FIGURE_PX on screen (mid zoom), spaced to match
+      const trueScale = s * SOLDIER_SIZE * (MODEL_SCALE[classId] || 0.88);
+      const scale = Math.max(trueScale, MIN_FIGURE_PX / l.height);
+      const gap = s * (scale / trueScale);
       color.set(m.own ? PLAYER_COLOR : getNationColor(m.ownerId) || '#64748b');
-      l.px = scale * l.height;
       const tone = skinToneFor(m.ownerId); const cell = emblemCellFor(m.own ? 0 : 1, mi);
       for (let i = 0; i < n && l.mesh.count < MAX_SOLDIERS; i++) {
         const k2 = l.mesh.count;
-        const ox = (i - (n - 1) / 2) * s * 1.1 + s * ARMY_SPOT.x; const oy = s * ARMY_SPOT.y + (i % 2) * s * 0.4;
+        const ox = (i - (n - 1) / 2) * gap * 1.1 + gap * ARMY_SPOT.x; const oy = gap * ARMY_SPOT.y + (i % 2) * gap * 0.4;
         tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
         tmp.rotation.set(TILT, heading, 0, 'XYZ');
         tmp.scale.setScalar(scale);
@@ -608,10 +616,13 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         l.mesh.count += 1;
       }
     });
+    let figureTris = 0;
+    t.layers.forEach((l) => { figureTris += l.mesh.count * l.tris; });
+    const tier = figureTris <= MAP_FIGURE_TRIS ? 0 : 1;
+    t.figureTier = tier;
     t.layers.forEach((l) => {
       const [full, mid] = l.levels;
       const n = full.count;
-      const tier = (l.px || 0) >= TIER_PX[0] ? 0 : 1;
       full.count = tier === 0 ? n : 0; mid.count = tier === 1 ? n : 0;
       full.instanceMatrix.needsUpdate = true; l.color.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true;
     });
