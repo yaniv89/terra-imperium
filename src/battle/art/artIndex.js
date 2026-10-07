@@ -61,6 +61,15 @@ export const createArtIndex = (files = {}) => {
     url,
     /** S5 battle buildings: battle/rts/rts-<age>.glb, one object per role. */
     rts: (ageId) => byAge(ageId, (a) => `battle/rts/rts-${a}.glb`),
+    /** Culture skins of the battle buildings (barracks, tower, trade post): battle/rts/rts-<age>-<theme>.glb
+     * for this exact age along the style chain; null leaves the age's shared building. */
+    rtsSkin: (ageId, style = null) => {
+      for (const s of styleChain(style)) {
+        const key = `battle/rts/rts-${ageId}-${s}.glb`;
+        if (url(key)) return { url: url(key), ageId, style: s, key };
+      }
+      return null;
+    },
     /** Decorative prop kits; placement is supplied by a consumer. */
     props: (ageId) => byAge(ageId, (a) => `battle/props/props-${a}.glb`),
     /** S7 wall kit: battle/city/walls-<age>.glb. */

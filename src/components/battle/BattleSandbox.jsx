@@ -32,6 +32,8 @@ const buildArmy = (prefix, preset, ageId, strength, generalId = null, extra = ()
 // (`&city=`, medium when none is given). `&merc`: your infantry are a hired band (engine
 // `unit.mercenary`), drawn as the age's mercenary.
 const RAID_KINDS = ['none', 'raid', 'sack'];
+// `&people=shang&enemy=kemet`: the two sides' peoples (src/data/peoples.js), so their signature
+// units and their culture's battle buildings show (the sandbox's sides are nobody otherwise).
 const RAID_PARTY = 'sandbox-raiders';
 const hiredBand = ({ classId }) => (classId === 'infantry' ? { mercenary: { from: 'sandbox', pay: 2 } } : null);
 // A sea battle (`?battleSandbox&sea`): fleets by naval line (navalLines.js) instead of armies.
@@ -118,6 +120,8 @@ const BattleSandbox = () => {
       : buildArmy('a', config.attacker, config.ageId, 1000, 'g_att', config.merc ? hiredBand : () => null),
     defenderUnits: buildArmy('d', config.defender, config.ageId, 900, raiding ? 'g_att' : 'g_def', raiding && config.merc ? hiredBand : () => null),
     ...(raiding ? { battleType: config.raid, raid: true } : {}),
+    ...(params.get('people') ? { attackerNationId: params.get('people') } : {}),
+    ...(params.get('enemy') ? { defenderNationId: params.get('enemy') } : {}),
     generals: GENERALS,
     powers: [[...sandboxPowers(config.ageId, buildArmy('a', config.attacker, config.ageId, 1000)), ...(config.landing ? [{ id: 'navalBombardment', uses: 2 }] : [])], sandboxPowers(config.ageId, buildArmy('d', config.defender, config.ageId, 900)).filter((p) => p.id !== 'nuclearStrike')],
     landing: config.landing,
