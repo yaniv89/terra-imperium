@@ -273,7 +273,8 @@ void main() {
   float bits = TB[0].z; float sizes = TB[0].w;
   if (bits > 0.5 && isLand > 0.0) {
     int m = T[6] < 0 ? 5 : 6;
-    float bank = 0.0; float water = 0.0;
+    float bank = 0.0; float water = 0.0; float stream = 0.0;
+    bool dry = floor(TB[0].x / 8.0) == 3.0; // desert: a stream is a dry wadi, not blue water
     for (int k = 0; k < 6; k++) {
       if (k >= m) break;
       float size;
@@ -284,9 +285,13 @@ void main() {
       float vis = size < 1.5 ? smoothstep(0.22, 0.6, hw) : clamp(hw * 3.0, 0.5, 1.0);
       hw = max(hw, 0.45);
       float dp = d / uKmPx;
+      // a stream is a thin line without a bank (the grid has river edges on a third of the land:
+      // drawn like the rivers they would hide the land, Earth's picture shows only the larger ones)
+      if (size < 1.5) { stream = max(stream, clamp(hw * 0.75 - dp + 0.5, 0.0, 1.0) * vis); continue; }
       water = max(water, clamp(hw - dp + 0.5, 0.0, 1.0) * vis);
       bank = max(bank, clamp(hw + 0.9 - dp + 0.5, 0.0, 1.0) * vis);
     }
+    col = mix(col, dry ? col * vec3(0.78, 0.74, 0.7) : vec3(96.0, 150.0, 200.0) / 255.0, stream * (dry ? 0.5 : 0.7) * isLand);
     col = mix(col, vec3(58.0, 108.0, 168.0) / 255.0, bank * 0.6 * isLand);
     col = mix(col, vec3(112.0, 172.0, 228.0) / 255.0, water * 0.92 * isLand);
   }

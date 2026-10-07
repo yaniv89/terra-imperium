@@ -35,7 +35,7 @@ describe('the Hungarian assignment', () => {
 
 describe('a game on a generated world', () => {
   it('saves the world descriptor and the site table, not the map', () => {
-    expect(state.scenario.map).toEqual(expect.objectContaining({ kind: 'generated', generatorVersion: 1, seed: 2, worldHash: spec.worldHash }));
+    expect(state.scenario.map).toEqual(expect.objectContaining({ kind: 'generated', generatorVersion: 2, seed: 2, worldHash: spec.worldHash }));
     expect(Object.keys(state.scenario.sites).length).toBeGreaterThan(60);
     expect(JSON.stringify(state).length).toBeLessThan(5e6);
   });

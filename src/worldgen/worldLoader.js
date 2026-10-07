@@ -85,7 +85,7 @@ const install = (pkg, { picture = true } = {}) => {
   setRawTiles(decodeTiles(pkg.tiles));
   if (pkg.land) setLandFeatures(pkg.land);
   // The painted base picture (MV4) instead of the baked Earth (the page only; workers draw nothing).
-  if (picture && pkg.picture && typeof URL !== 'undefined' && URL.createObjectURL) setWorldPicture(URL.createObjectURL(pkg.picture), 2048);
+  if (picture && pkg.picture && typeof URL !== 'undefined' && URL.createObjectURL) setWorldPicture(URL.createObjectURL(pkg.picture), pkg.pictureSize || 2048); // (2048: a world cached before generator 2)
   return getTiles();
 };
 

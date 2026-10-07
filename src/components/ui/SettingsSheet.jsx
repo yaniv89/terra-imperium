@@ -1,6 +1,7 @@
 // src/components/ui/SettingsSheet.jsx
 // Settings (W12, plans/UI-DESIGN.md): "saved as you change them". Opened from Menu on the tab rail.
-//   Map       the globe view (hidden by default) and the old map drawing (mapPrefs.js, per browser)
+//   Map       the globe view (hidden by default) and the old map drawing (mapPrefs.js, per browser);
+//             the game's map (MapCard.jsx: the map code, Clear cached worlds)
 //   Battles   the default mode the pre-battle screen preselects (Command, Auto or ask each time),
 //             always Auto for defences, instant AI battles (state.battleSettings, per game)
 //             and the battle size (300 a side, the one size today)
@@ -21,6 +22,7 @@ import { fogOn } from '../../engine/fog';
 import { Button, Label, SheetHeader, Segmented, Switch } from './atlas';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
 import { turnLogText } from '../../services/turnClient';
+import MapCard from './MapCard';
 
 // The turn worker's recent events (turnClient.js) for a bug report: copied, or shown to copy by hand.
 const TurnLogButton = () => {
@@ -100,6 +102,7 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
             <Switch label="Globe view" hint="Hidden by default; the flat map is faster" checked={prefs.globe} onChange={(v) => setMapPrefs({ globe: v })} testId="map-show-globe" />
             <Switch label="Fog: explored world" hint={fogOn(state) ? 'Off: chosen when the game began' : 'On: chosen when the game began'} checked={!fogOn(state)} onChange={() => {}} disabled testId="settings-fog" />
             <Switch label="Old map drawing" hint="The previous, slower map; only if the new one shows something wrong here" checked={prefs.renderer === 'svg'} onChange={(v) => setMapPrefs({ renderer: v ? 'svg' : 'webgl' })} testId="map-old-renderer" />
+            <MapCard map={state.scenario?.map} withCache className="pt-2" />
           </section>
           <section className="space-y-2" aria-labelledby="settings-battles">
             <Label id="settings-battles">Battles, default mode</Label>

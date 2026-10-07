@@ -66,3 +66,13 @@ export const cachePut = (key, value) => run('readwrite', (store) => {
 
 /** Forgets every cached world (Settings: Clear cached worlds). */
 export const cacheClear = () => run('readwrite', (store) => { store.clear(); });
+
+const sizeOf = (v) => (v == null ? 0 : typeof v.byteLength === 'number' ? v.byteLength : typeof v.size === 'number' ? v.size : typeof v === 'string' ? v.length : 0);
+/** { count, bytes } of the cached worlds (Settings: the space they use), { count: 0, bytes: 0 } when none or unavailable. */
+export const cacheInfo = async () => (await run('readonly', (store, done) => {
+  const req = store.getAll();
+  req.onsuccess = () => {
+    const rows = req.result || [];
+    done({ count: rows.length, bytes: rows.reduce((a, r) => a + sizeOf(r?.tiles) + sizeOf(r?.picture) + (r?.land ? JSON.stringify(r.land).length : 0), 0) });
+  };
+})) || { count: 0, bytes: 0 };
