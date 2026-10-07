@@ -37,7 +37,7 @@ export const createTurnClient = ({
 }) => {
   let worker = null;
   let failed = false;
-  let answered = false; // the current worker answered a turn (its engine is loaded)
+  let answered = false; // the current worker loaded its engine ('ready') or answered a turn
   let respawns = 0;
   let seq = 0;
   const pending = new Map(); // id -> (state | null) => void
@@ -74,6 +74,7 @@ export const createTurnClient = ({
     w.onmessage = (e) => {
       if (w !== worker) return; // a dropped worker's late answer
       const data = e.data || {};
+      if (data.type === 'ready') { answered = true; return; }
       if (data.type === 'pong') { const done = pings.get(data.id); pings.delete(data.id); done?.(true); return; }
       if (data.type === 'fatal') { giveUp(`failed (${String(data.error).split('\n')[0]})`); return; }
       const done = pending.get(data.id);
@@ -102,6 +103,9 @@ export const createTurnClient = ({
   const liveWorker = async () => {
     if (!worker) return spawn();
     const w = worker;
+    // Still loading its engine (a prewarmed worker): a ping could wait behind the module loading,
+    // so the turn goes straight in with the first-turn timeout.
+    if (!answered) return w;
     if (await ping(w)) return w === worker ? w : null;
     if (w !== worker) return worker; // replaced meanwhile
     if (respawns >= maxRespawns) { giveUp('stopped answering'); return null; }
@@ -128,7 +132,10 @@ export const createTurnClient = ({
     });
   };
 
-  return { run, available, ping: () => (worker ? ping(worker) : Promise.resolve(false)), get worker() { return worker; } };
+  /** Starts the worker and its engine ahead of the first End Turn (the first turn is no slower). */
+  const prewarm = () => { if (available() && !worker) spawn(); };
+
+  return { run, prewarm, available, ping: () => (worker ? ping(worker) : Promise.resolve(false)), get worker() { return worker; } };
 };
 
 const browserSupported = () => typeof Worker !== 'undefined' && typeof window !== 'undefined';
@@ -142,6 +149,9 @@ const client = createTurnClient({
 });
 
 export const turnWorkerAvailable = () => client.available();
+
+/** Loads the turn worker and its engine now, so the first End Turn does not wait for it. */
+export const prewarmTurnWorker = () => client.prewarm();
 
 /** The state after `action` as the worker resolves it, or null (run it here instead). */
 export const runTurnInWorker = (state, action) => client.run(state, action);

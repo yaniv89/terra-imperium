@@ -77,7 +77,8 @@ test.describe('phone held sideways', () => {
     const before = await year.textContent();
     await answerBlockers(page); // End Turn names what must be answered first (endTurnHelpers.js)
     await click(endTurn);
-    await expect(year).not.toHaveText(before);
+    // The first turn may still wait for the turn worker to load its engine (prewarmed by TurnDock).
+    await expect(year).not.toHaveText(before, { timeout: 30000 });
 
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(844);
     expect(errors).toEqual([]);
@@ -89,7 +90,8 @@ test.describe('phone held upright', () => {
 
   test('asks to rotate on every screen, the map included', async ({ page }) => {
     await page.goto('/');
-    expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
+    // The layout is set once the app's code has loaded (after the world grid): wait for it.
+    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.layout), { timeout: 60000 }).toBe('phone-portrait');
     const gate = page.getByTestId('rotate-gate');
     await expect(gate).toBeVisible();
     await expect(gate).toContainText('Rotate your phone to play');

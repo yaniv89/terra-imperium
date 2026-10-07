@@ -14,6 +14,10 @@ const startGame = async (page, nation = 'Akkad') => {
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
   if (await skip.isVisible().catch(() => false)) await skip.dispatchEvent('click');
+  // the research choice opens over the map's right side: later
+  const later = page.locator('[data-testid="research-choice"] button[aria-label="Later"]');
+  await later.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
+  if (await later.isVisible().catch(() => false)) await later.dispatchEvent('click');
   await expect(page.getByTestId('flat-map')).toHaveAttribute('data-renderer', 'webgl', { timeout: 60000 });
   await page.waitForFunction(() => window.__map2DTest?.focus && window.__glMap, null, { timeout: 90000 });
 };
@@ -35,9 +39,15 @@ const findPick = (page, box, test, arg = null) => page.evaluate(({ w, h, bx, by,
   }
   return null;
 }, { w: box.width, h: box.height, bx: box.x, by: box.y, src: test.toString(), a: arg });
+// The player's capital (a peoples world: the map only shows peoples you have met, so the tests play
+// around their own city): its id and the middle of its territory.
 const capitalOf = (page, nation) => page.evaluate((n) => {
   const f = window.__map2DTest.features.find((x) => x.properties.owner === n && x.properties.gameRegionId);
-  return f ? f.properties.gameRegionId : null;
+  if (!f) return null;
+  // the outer ring of the first polygon (the territory may also carry copies across the antimeridian)
+  const pts = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates[0][0] : f.geometry.coordinates[0];
+  const lon = pts.reduce((a, q) => a + q[0], 0) / pts.length; const lat = pts.reduce((a, q) => a + q[1], 0) / pts.length;
+  return { id: f.properties.gameRegionId, lat, lon };
 }, nation);
 
 test.describe('the WebGL map on a desktop', () => {
@@ -56,20 +66,21 @@ test.describe('the WebGL map on a desktop', () => {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.wheel(0, -400);
     await expect.poll(() => page.evaluate(() => window.__map2DTest.transform().k)).toBeGreaterThan(k0 * 1.2);
-    // a tap on France's land selects its city
-    const paris = await capitalOf(page, 'fr');
-    expect(paris).toBeTruthy();
-    await page.evaluate(() => window.__map2DTest.focus(48.85, 2.35, 10));
+    // a tap on the capital's land selects the city
+    const cap = await capitalOf(page, 'akkad');
+    expect(cap).toBeTruthy();
+    const capital = cap.id;
+    await page.evaluate(({ lat, lon }) => window.__map2DTest.focus(lat, lon, 20), cap);
     await page.waitForTimeout(500);
     // a point of its land, away from the town's banner
-    const p = await findPick(page, box, (q, id) => q?.kind === 'city' && q.via === 'land' && q.id === id, paris);
+    const p = await findPick(page, box, (q, id) => q?.kind === 'city' && q.via === 'land' && q.id === id, capital);
     expect(p).not.toBeNull();
     await page.mouse.click(box.x + p.x, box.y + p.y);
-    await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBe(paris);
+    await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBe(capital);
     await page.getByRole('button', { name: 'Close', exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBeNull();
-    // open land nobody holds, near France: the tile sheet
-    await page.evaluate(() => window.__map2DTest.focus(47, 2.5, 6));
+    // open land nobody holds, near the capital: the tile sheet
+    await page.evaluate(({ lat, lon }) => window.__map2DTest.focus(lat, lon, 6), cap);
     await page.waitForTimeout(500);
     const free = await page.evaluate(({ w, h, bx, by }) => {
       for (let y = 80; y < h - 40; y += 23) for (let x = 300; x < w - 300; x += 23) { const p = window.__map2DTest.pickAt(x, y); if (p?.kind === 'tile' && p.land && p.explored && document.elementFromPoint(bx + x, by + y)?.dataset?.testid === 'gl-map') return { x, y, tile: p.tile }; }
@@ -110,7 +121,9 @@ test.describe('the WebGL map on a phone held sideways', () => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
     await startGame(page);
-    await page.evaluate(() => window.__map2DTest.focus(47.5, 2.5, 4));
+    const cap = await capitalOf(page, 'akkad');
+    const capital = cap.id;
+    await page.evaluate(({ lat, lon }) => window.__map2DTest.focus(lat, lon, 4), cap);
     await page.waitForTimeout(400);
     const box = await mapBox(page);
     const k0 = await page.evaluate(() => window.__map2DTest.transform().k);
@@ -122,23 +135,22 @@ test.describe('the WebGL map on a phone held sideways', () => {
     for (let d = 30; d <= 120; d += 10) await touch('touchMove', d);
     await touch('touchEnd', 0);
     await expect.poll(() => page.evaluate(() => window.__map2DTest.transform().k)).toBeGreaterThan(k0 * 2);
-    // a tap on the land of Paris
-    const paris = await capitalOf(page, 'fr');
-    await page.evaluate(() => window.__map2DTest.focus(48.85, 2.35, 14));
+    // a tap on the land of the capital
+    await page.evaluate(({ lat, lon }) => window.__map2DTest.focus(lat, lon, 24), cap);
     await page.waitForTimeout(500);
-    const p = await findPick(page, box, (q, id) => q?.kind === 'city' && q.via === 'land' && q.id === id, paris);
+    const p = await findPick(page, box, (q, id) => q?.kind === 'city' && q.via === 'land' && q.id === id, capital);
     expect(p).not.toBeNull();
     await page.touchscreen.tap(box.x + p.x, box.y + p.y);
-    await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBe(paris);
+    await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBe(capital);
     await page.getByRole('button', { name: 'Close', exact: true }).first().dispatchEvent('click');
     await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBeNull();
-    // your army banner over Paris: a garrison opens its city
-    await page.evaluate(() => window.__map2DTest.focus(48.85, 2.35, 6));
+    // your army banner over the capital: a garrison opens its city
+    await page.evaluate(({ lat, lon }) => window.__map2DTest.focus(lat, lon, 6), cap);
     await page.waitForTimeout(600);
     const army = await findPick(page, box, (q) => q?.kind === 'marker' && q.marker === 'army' && q.own);
     expect(army).not.toBeNull();
     await page.touchscreen.tap(box.x + army.x, box.y + army.y);
-    await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBe(paris);
+    await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBe(capital);
     expect(errors).toEqual([]);
   });
 });

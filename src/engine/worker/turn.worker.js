@@ -8,7 +8,7 @@
 // meanwhile wait for it.
 //
 // Protocol (turnClient.js):
-//   { type: '__world', spec, grid }  -> nothing (the world to install, always the first message)
+//   { type: '__world', spec, grid }  -> { type: 'ready' } once the world and the engine are loaded
 //   { type: 'ping', id }             -> { type: 'pong', id } at once, even while the world loads:
 //                                       the page checks the worker is alive before a turn
 //   { id, state, action }            -> { id, state } or { id, error }
@@ -27,7 +27,7 @@ const engine = world.then(loadWorldFromMessage).then(async () => {
   const { reviveFog } = await import('../fog');
   return { gameReducer, reviveFog };
 });
-engine.catch((err) => self.postMessage({ type: 'fatal', error: `The turn engine could not load: ${errorText(err)}` }));
+engine.then(() => self.postMessage({ type: 'ready' }), (err) => self.postMessage({ type: 'fatal', error: `The turn engine could not load: ${errorText(err)}` }));
 
 self.addEventListener('error', (e) => { self.postMessage({ type: 'fatal', error: errorText(e?.error || e?.message) }); });
 self.addEventListener('unhandledrejection', (e) => { self.postMessage({ type: 'fatal', error: errorText(e?.reason) }); });

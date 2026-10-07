@@ -105,6 +105,21 @@ describe('turnClient', () => {
     expect(client.available()).toBe(false);
   });
 
+  it('a prewarmed worker still loading gets the turn without a ping; once ready, turns are pinged first', async () => {
+    const w = fakeWorker();
+    const { client, made } = setup([w]);
+    client.prewarm();
+    expect(made).toHaveLength(1);
+    expect(await client.run({ turn: 1 }, {})).toEqual({ turn: 2 }); // not ready yet: no ping
+    expect(w.sent.map((m) => m.type || 'turn')).toEqual(['__world', 'turn']);
+    const w2 = fakeWorker();
+    const second = setup([w2]);
+    second.client.prewarm();
+    w2.onmessage({ data: { type: 'ready' } });
+    expect(await second.client.run({ turn: 1 }, {})).toEqual({ turn: 2 });
+    expect(w2.sent.map((m) => m.type || 'turn')).toEqual(['__world', 'ping', 'turn']);
+  });
+
   it('a worker error event settles the waiting turn', async () => {
     const w = fakeWorker({ silent: true });
     const { client } = setup([w]);

@@ -12,7 +12,7 @@ import { chromium } from '@playwright/test';
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
 const URL = arg('url', 'http://localhost:5201/');
 const OUT = arg('out', 'plans/ui/safari/shots');
-const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1';
+const UA = process.argv.includes('--desktop-ua') ? undefined : 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1';
 // '844x390-bars': the layout viewport stays 390 tall while Safari's bottom bar covers the last 50 px
 // (visualViewport.height 340, as on the phone): the bar is drawn as a red strip over the page.
 const SIZES = [{ name: '844x390', width: 844, height: 390 }, { name: '844x340', width: 844, height: 340 }, { name: '844x390-bars', width: 844, height: 390, bar: 50 }];

@@ -17,6 +17,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { softHints, WARN_ARM_MS } from './nextPromptModel';
 import { endTurnButton, endTurnPress } from './endTurnModel';
 import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
+import { prewarmTurnWorker } from '../../services/turnClient';
 
 const KIND_ICON = { city: Hammer, research: FlaskConical, demand: Scroll, tribute: Coins, join: HeartHandshake, peace: Feather, defense: Shield, event: Bell, battle: Swords };
 
@@ -24,6 +25,9 @@ const TurnDock = () => {
   const { state, advanceTurn, turnPending } = useGame();
   const isMobile = useIsMobile();
   const [armed, setArmed] = useState(false);
+  // The turn worker loads its engine while the player looks at the map, not on the first End Turn
+  // (seconds on a phone; turnClient.js).
+  useEffect(() => { const t = setTimeout(prewarmTurnWorker, 1500); return () => clearTimeout(t); }, []);
   useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), WARN_ARM_MS); return () => clearTimeout(t); }, [armed]);
   const btn = endTurnButton(state, { turnPending, armed });
   const hints = useMemo(() => (armed ? softHints(state) : []), [armed, state]);
