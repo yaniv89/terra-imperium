@@ -51,6 +51,15 @@ style chain) for the same age as the shared file it uses; any other role, theme 
 shared building. The town hall's skin is the theme's civic hall (`battle/city/civic-<age>-<theme>.glb`),
 which the keep draws. Proofs: `node scripts/art/building-shots.mjs <outDir> <themes>`.
 
+The Classical file (`rts-classical.glb`, 2026-10-07, wave3 checkpoint 13,
+`scripts/blender/build_rts_classical.py`): the 13 roles with their `-damaged` states and the four
+construction stages in the Classical town kit's stuff (cream plaster on cut stone, terracotta tile,
+marble columns; the town hall a two-storey basilica hall behind a portico in a walled court, the
+camp a stake-walled tent field, the trade post a stoa with stalls, the tower a square ashlar tower
+under a tiled roof). Same sockets and damage rules as the Bronze file; 1024 textures, 1.54 MB packed.
+Classical sides now draw it (`artIndex.rts(ageId)`); Classical culture skins are still to come (the
+Bronze themed files are for Bronze sides only).
+
 ## Check
 `python3 scripts/blender/validate_model.py <file> <out> auto` (kind `prefab`), then
 `npm run pack:models`, then `/?battleSandbox` with an economy battle.

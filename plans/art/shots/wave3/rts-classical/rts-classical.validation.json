@@ -1,0 +1,1575 @@
+{
+  "file": "rts-classical.glb",
+  "kind": "prefab",
+  "bytes": 7092652,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "aid-post": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1023,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.854,
+          "depth": 1.135,
+          "height": 0.6,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 167,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.83,
+          "depth": 1.1,
+          "height": 0.6,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 106,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.572,
+          "depth": 1.1,
+          "height": 0.6,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.022",
+        "LOD1.022",
+        "LOD2.022",
+        "socket-banner.014",
+        "socket-door.022",
+        "socket-fire-1.022",
+        "socket-fire-2.022",
+        "socket-fire-3.022",
+        "socket-fire-4.022",
+        "socket-rally.022",
+        "socket-smoke-1.022"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.135
+    },
+    "aid-post-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1501,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.896,
+          "depth": 1.135,
+          "height": 0.6,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 435,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.884,
+          "depth": 1.1,
+          "height": 0.6,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 106,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.572,
+          "depth": 1.1,
+          "height": 0.6,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.023",
+        "LOD1.023",
+        "LOD2.023",
+        "socket-banner.015",
+        "socket-door.023",
+        "socket-fire-1.023",
+        "socket-fire-2.023",
+        "socket-fire-3.023",
+        "socket-fire-4.023",
+        "socket-rally.023",
+        "socket-smoke-1.023"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.135
+    },
+    "barracks": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1086,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.522,
+          "depth": 1.145,
+          "height": 0.78,
+          "min_height": -0.0013
+        },
+        "LOD1": {
+          "triangles": 574,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.522,
+          "depth": 1.145,
+          "height": 0.78,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 150,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.517,
+          "depth": 1.145,
+          "height": 0.78,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.014",
+        "LOD1.014",
+        "LOD2.014",
+        "socket-banner.006",
+        "socket-door.014",
+        "socket-fire-1.014",
+        "socket-fire-2.014",
+        "socket-fire-3.014",
+        "socket-fire-4.014",
+        "socket-rally.014",
+        "socket-smoke-1.014"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.522
+    },
+    "barracks-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1576,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.522,
+          "depth": 1.145,
+          "height": 0.78,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 842,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.522,
+          "depth": 1.145,
+          "height": 0.78,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 150,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.517,
+          "depth": 1.145,
+          "height": 0.78,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.015",
+        "LOD1.015",
+        "LOD2.015",
+        "socket-banner.007",
+        "socket-door.015",
+        "socket-fire-1.015",
+        "socket-fire-2.015",
+        "socket-fire-3.015",
+        "socket-fire-4.015",
+        "socket-rally.015",
+        "socket-smoke-1.015"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.522
+    },
+    "construction-stage-0": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1060,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.855,
+          "depth": 0.854,
+          "height": 0.101,
+          "min_height": -0.006
+        },
+        "LOD1": {
+          "triangles": 172,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.855,
+          "depth": 0.854,
+          "height": 0.088,
+          "min_height": -0.006
+        },
+        "LOD2": {
+          "triangles": 72,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.84,
+          "depth": 0.84,
+          "height": 0.088,
+          "min_height": -0.006
+        }
+      },
+      "children": [
+        "LOD0.026",
+        "LOD1.026",
+        "LOD2.026"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.855
+    },
+    "construction-stage-1": {
+      "lods": {
+        "LOD0": {
+          "triangles": 584,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.896,
+          "depth": 0.84,
+          "height": 0.285,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 144,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.84,
+          "depth": 0.84,
+          "height": 0.285,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 72,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.84,
+          "depth": 0.84,
+          "height": 0.12,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.027",
+        "LOD1.027",
+        "LOD2.027"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.896
+    },
+    "construction-stage-2": {
+      "lods": {
+        "LOD0": {
+          "triangles": 624,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.005,
+          "depth": 1.23,
+          "height": 0.44,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 292,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.005,
+          "depth": 1.23,
+          "height": 0.44,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 72,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.84,
+          "depth": 1.07,
+          "height": 0.34,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.028",
+        "LOD1.028",
+        "LOD2.028"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.23
+    },
+    "construction-stage-3": {
+      "lods": {
+        "LOD0": {
+          "triangles": 964,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.0,
+          "depth": 1.174,
+          "height": 0.54,
+          "min_height": -0.0017
+        },
+        "LOD1": {
+          "triangles": 444,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.0,
+          "depth": 1.17,
+          "height": 0.54,
+          "min_height": -0.0001
+        },
+        "LOD2": {
+          "triangles": 84,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.84,
+          "depth": 1.09,
+          "height": 0.424,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.029",
+        "LOD1.029",
+        "LOD2.029"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.174
+    },
+    "expedition-camp": {
+      "lods": {
+        "LOD0": {
+          "triangles": 4279,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.987,
+          "depth": 1.988,
+          "height": 0.82,
+          "min_height": -0.0135
+        },
+        "LOD1": {
+          "triangles": 2079,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.987,
+          "depth": 1.988,
+          "height": 0.82,
+          "min_height": -0.0114
+        },
+        "LOD2": {
+          "triangles": 154,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.56,
+          "depth": 1.32,
+          "height": 0.82,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2",
+        "socket-banner",
+        "socket-door",
+        "socket-drop",
+        "socket-fire-1",
+        "socket-fire-2",
+        "socket-fire-3",
+        "socket-fire-4",
+        "socket-rally",
+        "socket-smoke-1"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.988
+    },
+    "expedition-camp-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 4487,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.991,
+          "depth": 1.977,
+          "height": 0.82,
+          "min_height": -0.0135
+        },
+        "LOD1": {
+          "triangles": 2233,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.991,
+          "depth": 1.977,
+          "height": 0.82,
+          "min_height": -0.0114
+        },
+        "LOD2": {
+          "triangles": 154,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.56,
+          "depth": 1.32,
+          "height": 0.82,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001",
+        "socket-banner.001",
+        "socket-door.001",
+        "socket-drop.001",
+        "socket-fire-1.001",
+        "socket-fire-2.001",
+        "socket-fire-3.001",
+        "socket-fire-4.001",
+        "socket-rally.001",
+        "socket-smoke-1.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.991
+    },
+    "farm-plot": {
+      "lods": {
+        "LOD0": {
+          "triangles": 698,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.44,
+          "depth": 1.44,
+          "height": 0.204,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 338,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.44,
+          "depth": 1.44,
+          "height": 0.204,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 120,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.41,
+          "depth": 1.41,
+          "height": 0.1,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.010",
+        "LOD1.010",
+        "LOD2.010",
+        "socket-door.010",
+        "socket-drop.010",
+        "socket-fire-1.010",
+        "socket-fire-2.010",
+        "socket-fire-3.010",
+        "socket-fire-4.010",
+        "socket-rally.010",
+        "socket-smoke-1.010"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.44
+    },
+    "farm-plot-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1224,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.493,
+          "depth": 1.44,
+          "height": 0.202,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 594,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.44,
+          "depth": 1.44,
+          "height": 0.202,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 120,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.41,
+          "depth": 1.41,
+          "height": 0.1,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.011",
+        "LOD1.011",
+        "LOD2.011",
+        "socket-door.011",
+        "socket-drop.011",
+        "socket-fire-1.011",
+        "socket-fire-2.011",
+        "socket-fire-3.011",
+        "socket-fire-4.011",
+        "socket-rally.011",
+        "socket-smoke-1.011"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.493
+    },
+    "food-depot": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1338,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.88,
+          "depth": 0.875,
+          "height": 0.554,
+          "min_height": -0.0123
+        },
+        "LOD1": {
+          "triangles": 146,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.88,
+          "depth": 0.875,
+          "height": 0.554,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 38,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.87,
+          "depth": 0.57,
+          "height": 0.552,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.004",
+        "LOD1.004",
+        "LOD2.004",
+        "socket-door.004",
+        "socket-drop.004",
+        "socket-fire-1.004",
+        "socket-fire-2.004",
+        "socket-fire-3.004",
+        "socket-fire-4.004",
+        "socket-rally.004",
+        "socket-smoke-1.004"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.88
+    },
+    "food-depot-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1876,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.926,
+          "depth": 0.875,
+          "height": 0.554,
+          "min_height": -0.0123
+        },
+        "LOD1": {
+          "triangles": 414,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.926,
+          "depth": 0.875,
+          "height": 0.554,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 38,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.87,
+          "depth": 0.57,
+          "height": 0.552,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.005",
+        "LOD1.005",
+        "LOD2.005",
+        "socket-door.005",
+        "socket-drop.005",
+        "socket-fire-1.005",
+        "socket-fire-2.005",
+        "socket-fire-3.005",
+        "socket-fire-4.005",
+        "socket-rally.005",
+        "socket-smoke-1.005"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.926
+    },
+    "materials-yard": {
+      "lods": {
+        "LOD0": {
+          "triangles": 928,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.025,
+          "depth": 1.025,
+          "height": 0.553,
+          "min_height": -0.0038
+        },
+        "LOD1": {
+          "triangles": 392,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.025,
+          "depth": 1.025,
+          "height": 0.553,
+          "min_height": -0.0038
+        },
+        "LOD2": {
+          "triangles": 108,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.995,
+          "depth": 0.995,
+          "height": 0.12,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.006",
+        "LOD1.006",
+        "LOD2.006",
+        "socket-door.006",
+        "socket-drop.006",
+        "socket-fire-1.006",
+        "socket-fire-2.006",
+        "socket-fire-3.006",
+        "socket-fire-4.006",
+        "socket-rally.006",
+        "socket-smoke-1.006"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.025
+    },
+    "materials-yard-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1466,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.08,
+          "depth": 1.065,
+          "height": 0.553,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 660,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.08,
+          "depth": 1.065,
+          "height": 0.553,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 108,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.995,
+          "depth": 0.995,
+          "height": 0.12,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.007",
+        "LOD1.007",
+        "LOD2.007",
+        "socket-door.007",
+        "socket-drop.007",
+        "socket-fire-1.007",
+        "socket-fire-2.007",
+        "socket-fire-3.007",
+        "socket-fire-4.007",
+        "socket-rally.007",
+        "socket-smoke-1.007"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.08
+    },
+    "mine": {
+      "lods": {
+        "LOD0": {
+          "triangles": 865,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.126,
+          "depth": 1.132,
+          "height": 0.463,
+          "min_height": -0.0352
+        },
+        "LOD1": {
+          "triangles": 309,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.126,
+          "depth": 1.132,
+          "height": 0.463,
+          "min_height": -0.02
+        },
+        "LOD2": {
+          "triangles": 81,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.111,
+          "depth": 1.132,
+          "height": 0.463,
+          "min_height": -0.02
+        }
+      },
+      "children": [
+        "LOD0.012",
+        "LOD1.012",
+        "LOD2.012",
+        "socket-door.012",
+        "socket-drop.012",
+        "socket-fire-1.012",
+        "socket-fire-2.012",
+        "socket-fire-3.012",
+        "socket-fire-4.012",
+        "socket-rally.012",
+        "socket-smoke-1.012"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.132
+    },
+    "mine-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1307,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.127,
+          "depth": 1.133,
+          "height": 0.463,
+          "min_height": -0.0327
+        },
+        "LOD1": {
+          "triangles": 553,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.127,
+          "depth": 1.133,
+          "height": 0.463,
+          "min_height": -0.02
+        },
+        "LOD2": {
+          "triangles": 81,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.111,
+          "depth": 1.132,
+          "height": 0.463,
+          "min_height": -0.02
+        }
+      },
+      "children": [
+        "LOD0.013",
+        "LOD1.013",
+        "LOD2.013",
+        "socket-door.013",
+        "socket-drop.013",
+        "socket-fire-1.013",
+        "socket-fire-2.013",
+        "socket-fire-3.013",
+        "socket-fire-4.013",
+        "socket-rally.013",
+        "socket-smoke-1.013"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.133
+    },
+    "range": {
+      "lods": {
+        "LOD0": {
+          "triangles": 730,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.61,
+          "depth": 1.16,
+          "height": 0.6,
+          "min_height": -0.0026
+        },
+        "LOD1": {
+          "triangles": 542,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.61,
+          "depth": 1.16,
+          "height": 0.6,
+          "min_height": -0.0026
+        },
+        "LOD2": {
+          "triangles": 150,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.6,
+          "depth": 1.145,
+          "height": 0.6,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.016",
+        "LOD1.016",
+        "LOD2.016",
+        "socket-banner.008",
+        "socket-door.016",
+        "socket-fire-1.016",
+        "socket-fire-2.016",
+        "socket-fire-3.016",
+        "socket-fire-4.016",
+        "socket-rally.016",
+        "socket-smoke-1.016"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.61
+    },
+    "range-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1092,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.61,
+          "depth": 1.136,
+          "height": 0.6,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 634,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.61,
+          "depth": 1.118,
+          "height": 0.6,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 70,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.6,
+          "depth": 1.069,
+          "height": 0.6,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.017",
+        "LOD1.017",
+        "LOD2.017",
+        "socket-banner.009",
+        "socket-door.017",
+        "socket-fire-1.017",
+        "socket-fire-2.017",
+        "socket-fire-3.017",
+        "socket-fire-4.017",
+        "socket-rally.017",
+        "socket-smoke-1.017"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.61
+    },
+    "siege-workshop": {
+      "lods": {
+        "LOD0": {
+          "triangles": 918,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.978,
+          "depth": 1.385,
+          "height": 1.07,
+          "min_height": -0.0
+        },
+        "LOD1": {
+          "triangles": 574,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.978,
+          "depth": 1.385,
+          "height": 1.07,
+          "min_height": -0.0
+        },
+        "LOD2": {
+          "triangles": 246,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.973,
+          "depth": 1.105,
+          "height": 1.07,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.020",
+        "LOD1.020",
+        "LOD2.020",
+        "socket-banner.012",
+        "socket-door.020",
+        "socket-fire-1.020",
+        "socket-fire-2.020",
+        "socket-fire-3.020",
+        "socket-fire-4.020",
+        "socket-rally.020",
+        "socket-smoke-1.020"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.978
+    },
+    "siege-workshop-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1456,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.978,
+          "depth": 1.385,
+          "height": 1.07,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 842,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.978,
+          "depth": 1.385,
+          "height": 1.07,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 246,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.973,
+          "depth": 1.105,
+          "height": 1.07,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.021",
+        "LOD1.021",
+        "LOD2.021",
+        "socket-banner.013",
+        "socket-door.021",
+        "socket-fire-1.021",
+        "socket-fire-2.021",
+        "socket-fire-3.021",
+        "socket-fire-4.021",
+        "socket-rally.021",
+        "socket-smoke-1.021"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.978
+    },
+    "stable": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1142,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 2.033,
+          "depth": 1.531,
+          "height": 0.62,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 1054,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 2.033,
+          "depth": 1.531,
+          "height": 0.62,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 148,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.913,
+          "depth": 1.528,
+          "height": 0.62,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.018",
+        "LOD1.018",
+        "LOD2.018",
+        "socket-banner.010",
+        "socket-door.018",
+        "socket-fire-1.018",
+        "socket-fire-2.018",
+        "socket-fire-3.018",
+        "socket-fire-4.018",
+        "socket-rally.018",
+        "socket-smoke-1.018"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 2.033
+    },
+    "stable-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1600,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.973,
+          "depth": 1.531,
+          "height": 0.62,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 1242,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.966,
+          "depth": 1.531,
+          "height": 0.62,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 68,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.732,
+          "depth": 1.453,
+          "height": 0.62,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.019",
+        "LOD1.019",
+        "LOD2.019",
+        "socket-banner.011",
+        "socket-door.019",
+        "socket-fire-1.019",
+        "socket-fire-2.019",
+        "socket-fire-3.019",
+        "socket-fire-4.019",
+        "socket-rally.019",
+        "socket-smoke-1.019"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.973
+    },
+    "tower": {
+      "lods": {
+        "LOD0": {
+          "triangles": 514,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.68,
+          "depth": 0.68,
+          "height": 1.62,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 354,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.68,
+          "depth": 0.68,
+          "height": 1.62,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 150,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.68,
+          "depth": 0.68,
+          "height": 1.62,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.024",
+        "LOD1.024",
+        "LOD2.024",
+        "socket-banner.016",
+        "socket-door.024",
+        "socket-fire-1.024",
+        "socket-fire-2.024",
+        "socket-fire-3.024",
+        "socket-fire-4.024",
+        "socket-rally.024",
+        "socket-smoke-1.024"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.68
+    },
+    "tower-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 840,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.752,
+          "depth": 0.687,
+          "height": 1.62,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 434,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.752,
+          "depth": 0.687,
+          "height": 1.62,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 70,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.68,
+          "depth": 0.68,
+          "height": 1.62,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.025",
+        "LOD1.025",
+        "LOD2.025",
+        "socket-banner.017",
+        "socket-door.025",
+        "socket-fire-1.025",
+        "socket-fire-2.025",
+        "socket-fire-3.025",
+        "socket-fire-4.025",
+        "socket-rally.025",
+        "socket-smoke-1.025"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.752
+    },
+    "town-hall": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1218,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.965,
+          "depth": 1.954,
+          "height": 1.114,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 634,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.965,
+          "depth": 1.95,
+          "height": 1.114,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 282,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.935,
+          "depth": 1.918,
+          "height": 1.112,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002",
+        "socket-banner.002",
+        "socket-door.002",
+        "socket-drop.002",
+        "socket-fire-1.002",
+        "socket-fire-2.002",
+        "socket-fire-3.002",
+        "socket-fire-4.002",
+        "socket-rally.002",
+        "socket-smoke-1.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.965
+    },
+    "town-hall-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1684,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.965,
+          "depth": 1.954,
+          "height": 1.114,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 878,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.965,
+          "depth": 1.933,
+          "height": 1.114,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 282,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.935,
+          "depth": 1.918,
+          "height": 1.112,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.003",
+        "LOD1.003",
+        "LOD2.003",
+        "socket-banner.003",
+        "socket-door.003",
+        "socket-drop.003",
+        "socket-fire-1.003",
+        "socket-fire-2.003",
+        "socket-fire-3.003",
+        "socket-fire-4.003",
+        "socket-rally.003",
+        "socket-smoke-1.003"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.965
+    },
+    "trade-post": {
+      "lods": {
+        "LOD0": {
+          "triangles": 2904,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.509,
+          "depth": 1.335,
+          "height": 0.7,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 560,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.493,
+          "depth": 1.317,
+          "height": 0.7,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 160,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.493,
+          "depth": 0.648,
+          "height": 0.7,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.008",
+        "LOD1.008",
+        "LOD2.008",
+        "socket-banner.004",
+        "socket-door.008",
+        "socket-drop.008",
+        "socket-fire-1.008",
+        "socket-fire-2.008",
+        "socket-fire-3.008",
+        "socket-fire-4.008",
+        "socket-rally.008",
+        "socket-smoke-1.008"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.509
+    },
+    "trade-post-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3146,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.513,
+          "depth": 1.363,
+          "height": 0.7,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 792,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.493,
+          "depth": 1.363,
+          "height": 0.7,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 160,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.493,
+          "depth": 0.648,
+          "height": 0.7,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.009",
+        "LOD1.009",
+        "LOD2.009",
+        "socket-banner.005",
+        "socket-door.009",
+        "socket-drop.009",
+        "socket-fire-1.009",
+        "socket-fire-2.009",
+        "socket-fire-3.009",
+        "socket-fire-4.009",
+        "socket-rally.009",
+        "socket-smoke-1.009"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.513
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "rts-classical_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 751716
+    },
+    {
+      "name": "rts-classical_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 1021978
+    },
+    {
+      "name": "rts-classical_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 696714
+    }
+  ],
+  "passed": true
+}
