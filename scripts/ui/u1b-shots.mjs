@@ -69,7 +69,7 @@ const WAR_SETUP = `
   window.__u1b = { foe: foe.id, capId, foeCapId: foe.capitalRegionId };
   const nations = { ...s.nations, [me]: { ...s.nations[me], isAtWar: true }, [foe.id]: { ...s.nations[foe.id], isAtWar: true } };
   const fog = s.fog ? { ...s.fog, met: { ...s.fog.met, [me]: { ...(s.fog.met?.[me] || {}), [foe.id]: 1 } } } : s.fog;
-  s = { ...s, units, nations, fog, wars: [...s.wars, war], turnNumber: Math.max(s.turnNumber, 12) };
+  s = { ...s, units, nations, fog, wars: [...s.wars, war] };
 `;
 
 const shot = async (page, name, vp) => {
