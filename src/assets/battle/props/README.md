@@ -24,3 +24,9 @@ pulley beam, a two-wheeled cart with spoked wheels, a haystack, a crate, an amph
 tile-roofed market stall, a vexillum standard (Team cloth under a bronze disc), a campfire, a small
 marble altar under a pedimented niche (`shrine`) and a milestone (`road-marker`). Classical battles
 draw them (artIndex.props: the age's file first).
+
+`props-kingdoms.glb` (2026-10-08, scripts/blender/build_props_kingdoms.py, CC0-1.0): the twelve names
+in medieval dress: a wattle hurdle, a dry-stone field wall with a coping, a stone well under a shingled
+roof with a windlass, a plank cart with iron-tyred wheels and sacks, a haystack, a crate, two staved
+barrels (`barrel`), a stall under a Team awning with a striped valance, a Team gonfanon under an iron
+cross (`standard`), a campfire, a wayside stone cross (`shrine`) and a waymark stone (`road-marker`).

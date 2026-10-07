@@ -31,3 +31,6 @@ tracer. Check: `validate_model.py <file> <out> auto` (kind `projectile`), `npm r
 - `classical.glb` (2026-10-08): arrow (iron head), javelin (a pilum with its long iron shank),
   sling-stone (a lead bullet), bolt (the ballista's, three wooden vanes), stone (a stone-thrower's
   round shot) (`scripts/blender/build_projectiles_classical.py`).
+- `kingdoms.glb` (2026-10-08): arrow (a longbow shaft with a bodkin), javelin (a leaf-headed throwing
+  spear), sling-stone (a pebble), bolt (a crossbow quarrel, two vanes), stone (the trebuchet's ball)
+  (`scripts/blender/build_projectiles_kingdoms.py`).

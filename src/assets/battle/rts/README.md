@@ -60,6 +60,10 @@ under a tiled roof). Same sockets and damage rules as the Bronze file; 1024 text
 Classical sides now draw it (`artIndex.rts(ageId)`); Classical culture skins are still to come (the
 Bronze themed files are for Bronze sides only).
 
+Kingdoms culture skins (2026-10-08, wave4 checkpoint 24, `scripts/blender/build_rts_skins_kingdoms.py`):
+`rts-kingdoms-<theme>.glb` for the 12 themes, barracks, tower and trade post with `-damaged`, built from
+the theme's Kingdoms houses (the same kits as its towns), the sockets of `rts-kingdoms.glb`.
+
 ## Check
 `python3 scripts/blender/validate_model.py <file> <out> auto` (kind `prefab`), then
 `npm run pack:models`, then `/?battleSandbox` with an economy battle.

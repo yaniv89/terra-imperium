@@ -77,3 +77,5 @@ Wave 4 [checkpoint 21](downloads/wave4/checkpoint-21/README.md), 2026-10-08 (Cla
 Wave 4 [checkpoint 22](downloads/wave4/checkpoint-22/README.md), 2026-10-08 (Claude): the Kingdoms battle buildings (`rts-kingdoms.glb`: 13 roles with damaged states, construction stages 0-3; `build_rts_kingdoms.py`), 14 queue items `in_game_awaiting_review`; Kingdoms economy battles draw them. 1.94 MB added.
 
 Wave 4 [checkpoint 23](downloads/wave4/checkpoint-23/README.md), 2026-10-08 (Claude): the Kingdoms city kit for battle (walls, ruins, fort and the civic hall with damaged and ruined states; `build_city_kingdoms.py`), 4 queue items `in_game_awaiting_review`; Kingdoms sieges draw their own walls, hall and rubble. 2.68 MB added.
+
+Wave 4 [checkpoint 24](downloads/wave4/checkpoint-24/README.md), 2026-10-08 (Claude): the Kingdoms remainder: the 13 damaged-and-ruined house files, the palace damage set, the raider and mercenary, the projectiles, the twelve props, the 12 culture skins of the battle buildings and the map's Kingdoms fort, 31 queue items `in_game_awaiting_review`. 17.96 MB added. The Kingdoms age is done.

@@ -1,0 +1,45 @@
+{
+  "mode": "lineup",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave4\\irregular-kingdoms\\lineup-standing.png",
+    "plans\\art\\shots\\wave4\\irregular-kingdoms\\lineup-walking.png"
+  ],
+  "layers": [
+    {
+      "id": "kingdoms-raider",
+      "triangles": 1966,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 4056,
+        "3": 390,
+        "4": 588,
+        "5": 432,
+        "6": 432
+      },
+      "warnings": [],
+      "teamVertices": 480,
+      "skinVertices": 2286
+    },
+    {
+      "id": "kingdoms-mercenary",
+      "triangles": 1394,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 2046,
+        "1": 528,
+        "2": 528,
+        "3": 564,
+        "4": 516
+      },
+      "warnings": [],
+      "teamVertices": 282,
+      "skinVertices": 2286
+    }
+  ],
+  "unitLog": [],
+  "errors": []
+}

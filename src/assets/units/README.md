@@ -34,6 +34,8 @@ flag; model imports still require a visual and licensing review.
 | `classical-general.glb` | General: muscled cuirass, transverse Team crest, Team cloak and saddle cloth, sword; a standard bearer with a cloth standard (Emblem) | 2,295 |
 | `classical-raider.glb` | Raider: a light horseman on a fleece, loot sacks on both flanks, a rolled bundle and a looted bronze cauldron on the croup; Team tunic, pinned cloak, felt cap, a raised torch (`Flame`), two javelins on the back | 1,764 | `build_units_classical_irregular.py` (Claude) |
 | `classical-mercenary.glb` | Mercenary: crested helmet with cheek pieces, mail shirt with shoulder capes, Team tunic, a neutral sash with a coin pouch, greaves, an oval Emblem shield with spine and boss, a curved single-edged sword | 1,392 | `build_units_classical_irregular.py` (Claude) |
+| `kingdoms-raider.glb` | Raider: a light horseman on a sheepskin, loot sacks on both flanks, a rolled bundle, a looted iron pot and a church candlestick on the croup; padded Team jack, hood, a raised torch, a short spear slung on the back | 1,968 | `build_units_kingdoms_irregular.py` (Claude) |
+| `kingdoms-mercenary.glb` | Mercenary: pointed bascinet with a mail aventail, riveted brigandine over Team sleeves and skirt, greaves, a striped sash with a coin pouch, a round Emblem buckler, a falchion | 1,408 | `build_units_kingdoms_irregular.py` (Claude) |
 
 Built by `scripts/blender/build_units_classical.py` (Claude) on the same rig, body and part library
 (`build_units_bronze_signature.py`); rest pose only. Culture-neutral.
