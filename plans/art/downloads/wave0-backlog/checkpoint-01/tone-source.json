@@ -1,0 +1,360 @@
+{
+ "/workspace/art-production/backlog/camp-bronze/camp-bronze.glb": {
+  "Town": {
+   "value": 0.344,
+   "effective": 0.344,
+   "sat": 0.62,
+   "samples": 12052
+  },
+  "Team": {
+   "value": 0.452,
+   "effective": 0.452,
+   "sat": 0.002,
+   "samples": 352
+  },
+  "Ground": {
+   "value": 0.264,
+   "effective": 0.264,
+   "sat": 0.369,
+   "samples": 2236
+  }
+ },
+ "/workspace/art-production/backlog/carrier_dock/carrier_dock.glb": {
+  "Town": {
+   "value": 0.311,
+   "effective": 0.311,
+   "sat": 0.177,
+   "samples": 9328
+  },
+  "Team": {
+   "value": 0.458,
+   "effective": 0.458,
+   "sat": 0,
+   "samples": 544
+  }
+ },
+ "/workspace/art-production/backlog/copper_mine/copper_mine.glb": {
+  "Town": {
+   "value": 0.302,
+   "effective": 0.302,
+   "sat": 0.779,
+   "samples": 12752
+  },
+  "Team": {
+   "value": 0.443,
+   "effective": 0.443,
+   "sat": 0.001,
+   "samples": 192
+  }
+ },
+ "/workspace/art-production/backlog/farm-bronze/farm-bronze.glb": {
+  "Town": {
+   "value": 0.401,
+   "effective": 0.401,
+   "sat": 0.513,
+   "samples": 9860
+  },
+  "Team": {
+   "value": 0.445,
+   "effective": 0.445,
+   "sat": 0.003,
+   "samples": 640
+  },
+  "Ground": {
+   "value": 0.268,
+   "effective": 0.268,
+   "sat": 0.635,
+   "samples": 2636
+  }
+ },
+ "/workspace/art-production/backlog/farm-modern/farm-modern.glb": {
+  "Town": {
+   "value": 0.266,
+   "effective": 0.266,
+   "sat": 0.516,
+   "samples": 11184
+  },
+  "Team": {
+   "value": 0.469,
+   "effective": 0.469,
+   "sat": 0.002,
+   "samples": 464
+  },
+  "Ground": {
+   "value": 0.283,
+   "effective": 0.283,
+   "sat": 0.655,
+   "samples": 2636
+  }
+ },
+ "/workspace/art-production/backlog/fishing_boats-bronze/fishing_boats-bronze.glb": {
+  "Town": {
+   "value": 0.305,
+   "effective": 0.305,
+   "sat": 0.646,
+   "samples": 14640
+  },
+  "Team": {
+   "value": 0.444,
+   "effective": 0.444,
+   "sat": 0,
+   "samples": 576
+  },
+  "Ground": {
+   "value": 0.316,
+   "effective": 0.316,
+   "sat": 0.361,
+   "samples": 484
+  }
+ },
+ "/workspace/art-production/backlog/fishing_boats-modern/fishing_boats-modern.glb": {
+  "Town": {
+   "value": 0.302,
+   "effective": 0.302,
+   "sat": 0.417,
+   "samples": 23304
+  },
+  "Team": {
+   "value": 0.443,
+   "effective": 0.443,
+   "sat": 0,
+   "samples": 1024
+  },
+  "Ground": {
+   "value": 0.311,
+   "effective": 0.311,
+   "sat": 0.361,
+   "samples": 484
+  }
+ },
+ "/workspace/art-production/backlog/highway/highway.glb": {
+  "Town": {
+   "value": 0.56,
+   "effective": 0.56,
+   "sat": 0.323,
+   "samples": 4752
+  },
+  "Team": {
+   "value": 0.457,
+   "effective": 0.457,
+   "sat": 0,
+   "samples": 224
+  }
+ },
+ "/workspace/art-production/backlog/iron_foundry/iron_foundry.glb": {
+  "Town": {
+   "value": 0.456,
+   "effective": 0.456,
+   "sat": 0.401,
+   "samples": 4356
+  },
+  "Team": {
+   "value": 0.451,
+   "effective": 0.451,
+   "sat": 0,
+   "samples": 96
+  }
+ },
+ "/workspace/art-production/backlog/lumber_camp-bronze/lumber_camp-bronze.glb": {
+  "Town": {
+   "value": 0.359,
+   "effective": 0.359,
+   "sat": 0.572,
+   "samples": 11112
+  },
+  "Team": {
+   "value": 0.438,
+   "effective": 0.438,
+   "sat": 0.003,
+   "samples": 480
+  },
+  "Ground": {
+   "value": 0.265,
+   "effective": 0.265,
+   "sat": 0.368,
+   "samples": 2236
+  }
+ },
+ "/workspace/art-production/backlog/mine-bronze/mine-bronze.glb": {
+  "Town": {
+   "value": 0.412,
+   "effective": 0.412,
+   "sat": 0.52,
+   "samples": 15308
+  },
+  "Team": {
+   "value": 0.441,
+   "effective": 0.441,
+   "sat": 0.003,
+   "samples": 576
+  },
+  "Ground": {
+   "value": 0.265,
+   "effective": 0.265,
+   "sat": 0.364,
+   "samples": 2236
+  }
+ },
+ "/workspace/art-production/backlog/mine-modern/mine-modern.glb": {
+  "Town": {
+   "value": 0.31,
+   "effective": 0.31,
+   "sat": 0.337,
+   "samples": 10092
+  },
+  "Team": {
+   "value": 0.44,
+   "effective": 0.44,
+   "sat": 0.009,
+   "samples": 672
+  },
+  "Ground": {
+   "value": 0.262,
+   "effective": 0.262,
+   "sat": 0.374,
+   "samples": 2236
+  }
+ },
+ "/workspace/art-production/backlog/naval_base/naval_base.glb": {
+  "Town": {
+   "value": 0.33,
+   "effective": 0.33,
+   "sat": 0.442,
+   "samples": 12660
+  },
+  "Team": {
+   "value": 0.452,
+   "effective": 0.452,
+   "sat": 0,
+   "samples": 608
+  }
+ },
+ "/workspace/art-production/backlog/pasture-bronze/pasture-bronze.glb": {
+  "Town": {
+   "value": 0.401,
+   "effective": 0.401,
+   "sat": 0.508,
+   "samples": 14172
+  },
+  "Team": {
+   "value": 0.452,
+   "effective": 0.452,
+   "sat": 0.001,
+   "samples": 352
+  },
+  "Ground": {
+   "value": 0.265,
+   "effective": 0.265,
+   "sat": 0.366,
+   "samples": 2236
+  }
+ },
+ "/workspace/art-production/backlog/plantation-bronze/plantation-bronze.glb": {
+  "Town": {
+   "value": 0.325,
+   "effective": 0.325,
+   "sat": 0.651,
+   "samples": 20424
+  },
+  "Team": {
+   "value": 0.452,
+   "effective": 0.452,
+   "sat": 0.003,
+   "samples": 448
+  },
+  "Ground": {
+   "value": 0.264,
+   "effective": 0.264,
+   "sat": 0.368,
+   "samples": 2236
+  }
+ },
+ "/workspace/art-production/backlog/quarry-bronze/quarry-bronze.glb": {
+  "Town": {
+   "value": 0.428,
+   "effective": 0.428,
+   "sat": 0.475,
+   "samples": 7980
+  },
+  "Team": {
+   "value": 0.446,
+   "effective": 0.446,
+   "sat": 0.003,
+   "samples": 576
+  },
+  "Ground": {
+   "value": 0.264,
+   "effective": 0.264,
+   "sat": 0.367,
+   "samples": 2236
+  }
+ },
+ "/workspace/art-production/backlog/rail_depot/rail_depot.glb": {
+  "Town": {
+   "value": 0.322,
+   "effective": 0.322,
+   "sat": 0.449,
+   "samples": 11736
+  },
+  "Team": {
+   "value": 0.462,
+   "effective": 0.462,
+   "sat": 0,
+   "samples": 532
+  }
+ },
+ "/workspace/art-production/backlog/road-bronze/road-bronze.glb": {
+  "Town": {
+   "value": 0.447,
+   "effective": 0.447,
+   "sat": 0.51,
+   "samples": 2464
+  },
+  "Team": {
+   "value": 0.465,
+   "effective": 0.465,
+   "sat": 0.003,
+   "samples": 1056
+  },
+  "Ground": {
+   "value": 0.264,
+   "effective": 0.264,
+   "sat": 0.369,
+   "samples": 2236
+  }
+ },
+ "/workspace/art-production/backlog/road-modern/road-modern.glb": {
+  "Town": {
+   "value": 0.345,
+   "effective": 0.345,
+   "sat": 0.094,
+   "samples": 3136
+  },
+  "Team": {
+   "value": 0.466,
+   "effective": 0.466,
+   "sat": 0.001,
+   "samples": 1056
+  },
+  "Ground": {
+   "value": 0.263,
+   "effective": 0.263,
+   "sat": 0.37,
+   "samples": 2236
+  }
+ },
+ "/workspace/art-production/backlog/road_post/road_post.glb": {
+  "Town": {
+   "value": 0.431,
+   "effective": 0.431,
+   "sat": 0.515,
+   "samples": 12184
+  },
+  "Team": {
+   "value": 0.446,
+   "effective": 0.446,
+   "sat": 0.001,
+   "samples": 640
+  }
+ }
+}

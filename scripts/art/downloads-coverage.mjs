@@ -1,6 +1,10 @@
 // scripts/art/downloads-coverage.mjs
 // Checks that every art item delivered in the ZIPs under plans/art/downloads is in the game, so the
-// ZIPs can be purged from git history without losing art the game needs. It reads only each ZIP's
+// ZIPs can be purged from git history without losing art the game needs. ZIPs are no longer kept
+// in git: a checkpoint folder (plans/art/downloads/<wave>/<checkpoint>/) holds a manifest.json whose
+// items name their game file and their archive, and a SHA256SUMS.txt for the archives, which are
+// GitHub release assets or a local copy outside the repository; those are checked from the
+// manifest (manifestCoverage). For ZIPs still stored here it reads only each ZIP's
 // file list (its central directory), maps every item folder inside (plans/art/kits/<style>/<age>/
 // <part>, towns/<age>/<id>, buildings/<id>, wonders/<id>, improvements/<age>/<id>, icons/<group>/
 // <id>) to the file the game ships, and lists the production-queue items marked built but not yet
@@ -119,8 +123,62 @@ const walkZips = (dir, out = []) => {
   return out.sort();
 };
 
-/** The coverage of every delivery ZIP: [{ zip, items: [{ item, kind, files, models }] }]. */
-export const downloadsCoverage = (root = DOWNLOADS) => {
+const walkManifests = (dir, out = []) => {
+  if (!existsSync(dir)) return out;
+  readdirSync(dir, { withFileTypes: true }).forEach((e) => {
+    const p = posix.join(dir, e.name);
+    if (e.isDirectory()) walkManifests(p, out);
+    else if (e.name === 'manifest.json') out.push(p);
+  });
+  return out.sort();
+};
+
+/** The SHA-256 a checkpoint folder records for each archive: SHA256SUMS.txt lines "<hash>  <file>". */
+const archiveHashes = (dir) => {
+  const sums = posix.join(dir, 'SHA256SUMS.txt');
+  if (!existsSync(sums)) return {};
+  return Object.fromEntries(readFileSync(sums, 'utf8').split(/\r?\n/).map((l) => l.trim().match(/^([0-9a-f]{64})\s+\*?(.+)$/)).filter(Boolean).map((m) => [m[2], m[1]]));
+};
+
+/**
+ * Checkpoint deliveries whose ZIPs are hosted outside git (GitHub release assets, or a local copy
+ * outside the repository): the checkpoint folder keeps a manifest.json whose items name their game
+ * file (`target_path`) and their archive (`archive_part`, or the manifest's single `archive`), and a
+ * SHA256SUMS.txt for the archives. Same shape as the ZIP coverage, plus each archive's hash and URL.
+ */
+export const manifestCoverage = (root = DOWNLOADS) => walkManifests(root).flatMap((file) => {
+  const manifest = JSON.parse(readFileSync(file, 'utf8'));
+  if (!Array.isArray(manifest.items) || !manifest.items.some((i) => i?.target_path)) return [];
+  const dir = posix.dirname(file);
+  const hashes = archiveHashes(dir);
+  const archives = new Map();
+  (manifest.archives || []).forEach((a) => archives.set(a.file, { url: a.url || null, sha256: a.sha256 || null }));
+  const single = manifest.archive?.url ? manifest.archive.url.split('/').pop() : null;
+  if (single && !archives.has(single)) archives.set(single, { url: manifest.archive.url, sha256: null });
+  const byZip = new Map();
+  manifest.items.forEach((i) => {
+    const zip = i.archive_part || single;
+    if (!zip || !i.target_path) return;
+    if (!byZip.has(zip)) byZip.set(zip, new Map());
+    // Variants of one logical item (cathedral and cathedral-levant) count once, with every file.
+    const item = i.item || i.logical_item || i.id;
+    const items = byZip.get(zip);
+    if (!items.has(item)) items.set(item, { item, kind: i.kind || 'delivery', targets: [], files: [], models: [] });
+    items.get(item).targets.push(i.target_path);
+  });
+  return [...byZip.entries()].map(([zip, items]) => {
+    const meta = archives.get(zip) || {};
+    const list = [...items.values()].map((it) => ({ ...it, files: it.targets.filter((f) => existsSync(f)), missing: it.targets.filter((f) => !existsSync(f)) }));
+    return { zip: posix.join(dir, zip), hosted: meta.url || null, sha256: hashes[zip] || meta.sha256 || null, items: list };
+  });
+});
+
+/** The coverage of every delivery: the ZIPs kept under plans/art/downloads and the checkpoint
+ * manifests of release-hosted ZIPs: [{ zip, items: [{ item, kind, files, models }] }]. */
+export const downloadsCoverage = (root = DOWNLOADS) => [...zipCoverage(root), ...manifestCoverage(root)];
+
+/** The coverage of every delivery ZIP stored under `root`. */
+export const zipCoverage = (root = DOWNLOADS) => {
   const cache = new Map();
   const list = (d) => { if (!cache.has(d)) cache.set(d, existsSync(d) ? readdirSync(d) : []); return cache.get(d); };
   return walkZips(root).map((zip) => {
@@ -136,6 +194,9 @@ export const downloadsCoverage = (root = DOWNLOADS) => {
   });
 };
 
+/** An item none of whose game files exists, or (a manifest item) one of whose named files is missing. */
+export const notInGame = (i) => !i.files.length || !!i.missing?.length;
+
 /** Production-queue items built by the art agent but never uploaded, and any ZIP that has them. */
 export const builtNotUploaded = (coverage, queuePath = 'plans/art/production-queue.json') => {
   const queue = JSON.parse(readFileSync(queuePath, 'utf8'));
@@ -147,10 +208,11 @@ if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('scripts/art
   const coverage = downloadsCoverage();
   const verbose = process.argv.includes('--items');
   let missing = 0, total = 0;
-  coverage.forEach(({ zip, items }) => {
-    const miss = items.filter((i) => !i.files.length);
+  coverage.forEach(({ zip, items, hosted, sha256 }) => {
+    const miss = items.filter(notInGame);
     missing += miss.length; total += items.length;
     console.log(`${miss.length ? 'MISSING' : 'ok     '} ${zip}: ${items.length} items${miss.length ? `, not in game: ${miss.map((i) => i.item).join(', ')}` : ''}`);
+    if (verbose && hosted !== undefined) console.log(`          archive ${sha256 ? sha256.slice(0, 12) : 'NO HASH'} ${hosted || 'no URL'}`);
     if (verbose) items.forEach((i) => console.log(`          ${i.item} [${i.kind}] -> ${i.files.length ? i.files.slice(0, 2).join(', ') + (i.files.length > 2 ? ` (+${i.files.length - 2})` : '') : 'NONE'}`));
   });
   const pending = builtNotUploaded(coverage);

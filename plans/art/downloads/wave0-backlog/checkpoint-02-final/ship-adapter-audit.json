@@ -1,0 +1,68 @@
+{
+  "purpose": "Static rest-pose runtime compatibility for createBuildingLayer instanced ships. Source BLEND and uncompressed animated GLB preserved. Runtime game copies omit sail-weight morph animation. Skeleton/node transform animation channels kept if present; instanced close-view does not play clips.",
+  "items": [
+    {
+      "id": "warship-bronze",
+      "source": "C:\\GitWotkspace\\terra-imperium\\plans\\art\\.local-production-2026-10-07\\art-production\\backlog-ships\\warship-bronze\\warship-bronze.glb",
+      "target": "src/assets/map/ships/warship-bronze.glb",
+      "sourceSha256": "0e6165365048b3cc4a3a774cad36545b84b0beee02c2fd2903159ce90d8239e7",
+      "previousGameSha256": "4e5a48f775c205222ee49128e49e967ef812416d010768b37c942fdaf5cda7da",
+      "adaptedSha256": "0d219c951ff065cbb7815d78ec65f7635009ecb74e3a49ce0f37853c24aec659",
+      "gameSha256": "7d54e3790a9b98264abf828a04c779b77c969942697955b6359ab3158c970607",
+      "gameBytes": 705140,
+      "removed": {
+        "targets": 28,
+        "meshWeights": 1,
+        "nodeWeights": 0,
+        "weightChannels": 2
+      },
+      "remainingAnimationChannels": [
+        "translation",
+        "translation"
+      ],
+      "sourcePreserved": true
+    },
+    {
+      "id": "warship-classical",
+      "source": "C:\\GitWotkspace\\terra-imperium\\plans\\art\\.local-production-2026-10-07\\art-production\\backlog-ships\\warship-classical\\warship-classical.glb",
+      "target": "src/assets/map/ships/warship-classical.glb",
+      "sourceSha256": "3221b75a87700728dc68d9c0d4dcfe60377be24b6362cb1d83c0ead7cee1f55f",
+      "previousGameSha256": "af6589a4b8ae5ba718b98db0862a65189aa3f4964503e472014b734292fce5df",
+      "adaptedSha256": "720e17f02fa2c088fb54282afe9e7d08a91a2fc736592fbda05c1ccbd45634f3",
+      "gameSha256": "40f5529822fe5fd6633d7f4cbad2d43018d0474a4e47f5e679645cbd51c880eb",
+      "gameBytes": 731284,
+      "removed": {
+        "targets": 28,
+        "meshWeights": 1,
+        "nodeWeights": 0,
+        "weightChannels": 2
+      },
+      "remainingAnimationChannels": [
+        "translation",
+        "translation"
+      ],
+      "sourcePreserved": true
+    },
+    {
+      "id": "warship-kingdoms",
+      "source": "C:\\GitWotkspace\\terra-imperium\\plans\\art\\.local-production-2026-10-07\\art-production\\backlog-ships\\warship-kingdoms\\warship-kingdoms.glb",
+      "target": "src/assets/map/ships/warship-kingdoms.glb",
+      "sourceSha256": "f27a02d7d170cacc5e744299add7aa6a11be994ceabd107302d1b528a332a654",
+      "previousGameSha256": "faac0e8218cb78ccb2cda0eea83a3dcdebded1db01d878a427f79664a1723dae",
+      "adaptedSha256": "bfbc4cba00fb054571990dce0f280bf5b3331fd5a9da90c6df03f0214bec6320",
+      "gameSha256": "2ed29d14235a6e9f13c07b350e85ffe04455fb812fb0a86e6e12b96347158bed",
+      "gameBytes": 608812,
+      "removed": {
+        "targets": 28,
+        "meshWeights": 1,
+        "nodeWeights": 0,
+        "weightChannels": 2
+      },
+      "remainingAnimationChannels": [
+        "translation",
+        "translation"
+      ],
+      "sourcePreserved": true
+    }
+  ]
+}

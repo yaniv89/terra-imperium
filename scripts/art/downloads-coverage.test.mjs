@@ -1,7 +1,9 @@
 // scripts/art/downloads-coverage.test.mjs
 import { describe, it, expect } from 'vitest';
-import { existsSync } from 'node:fs';
-import { DOWNLOADS, itemOf, gameTargets, downloadsCoverage, builtNotUploaded } from './downloads-coverage.mjs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { DOWNLOADS, itemOf, gameTargets, downloadsCoverage, manifestCoverage, notInGame, builtNotUploaded } from './downloads-coverage.mjs';
 
 const fakeList = (dir) => ({
   'src/assets/map/towns': ['kingdoms-town-small-a-japan.glb', 'bronze-town-big-b-nile.glb', 'bronze-town-big-b-nile.blend'],
@@ -32,10 +34,32 @@ describe('art downloads coverage', () => {
     expect(gameTargets('plans/art/icons/resources/horses', fakeList).files).toEqual(['src/assets/icons/resources/horses.webp']);
   });
 
+  it('reads a checkpoint manifest of release-hosted ZIPs', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ti-downloads-')).replace(/\\/g, '/');
+    const dir = `${root}/wave9/checkpoint-01`;
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(`${dir}/manifest.json`, JSON.stringify({
+      archives: [{ file: 'part-1.zip', url: 'https://example.invalid/part-1.zip' }],
+      items: [
+        { item: 'plans/art/buildings/a', target_path: 'package.json', archive_part: 'part-1.zip' },
+        { logical_item: 'b', target_path: 'package.json', archive_part: 'part-1.zip' },
+        { logical_item: 'b', target_path: 'src/no-such-variant.glb', archive_part: 'part-1.zip' }
+      ]
+    }));
+    writeFileSync(`${dir}/SHA256SUMS.txt`, `${'a'.repeat(64)}  part-1.zip\n`);
+    const [zip] = manifestCoverage(root);
+    expect(zip.zip).toBe(`${dir}/part-1.zip`);
+    expect(zip.hosted).toBe('https://example.invalid/part-1.zip');
+    expect(zip.sha256).toBe('a'.repeat(64));
+    expect(zip.items.map((i) => [i.item, notInGame(i)])).toEqual([['plans/art/buildings/a', false], ['b', true]]);
+  });
+
   it.skipIf(!existsSync(DOWNLOADS))('every delivered item is in the game', () => {
     const coverage = downloadsCoverage();
     expect(coverage.length).toBeGreaterThan(0);
-    const missing = coverage.flatMap((z) => z.items.filter((i) => !i.files.length).map((i) => `${z.zip}: ${i.item}`));
+    // Release-hosted archives must carry a recorded hash (the ZIP itself is not in git).
+    expect(coverage.filter((z) => z.hosted !== undefined && !z.sha256).map((z) => z.zip)).toEqual([]);
+    const missing = coverage.flatMap((z) => z.items.filter(notInGame).map((i) => `${z.zip}: ${i.item}`));
     expect(missing).toEqual([]);
     // An item built but not uploaded that shows up in a ZIP must be imported (and its status moved on).
     expect(builtNotUploaded(coverage).filter((p) => p.inZip)).toEqual([]);

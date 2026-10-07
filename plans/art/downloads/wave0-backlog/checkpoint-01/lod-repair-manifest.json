@@ -1,0 +1,853 @@
+{
+  "date": "2026-10-07",
+  "logical_items": 13,
+  "source": "Transferred originals; 13 concrete distant LOD repairs",
+  "limitations": "Blender source proofs and validator only; packed game files/browser acceptance supplied separately",
+  "items": [
+    {
+      "id": "farm-bronze",
+      "triangles": [
+        3284,
+        1055,
+        287
+      ],
+      "original_geometry_uv_sha256": "f7e19122b1080d8e2af7b24473310026d9882a80519935e1246ea72d9f852ea2",
+      "atlas": [
+        364,
+        100,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "farm-bronze.blend": {
+          "bytes": 6239959,
+          "sha256": "4d5e5e7fb667daacdce0c485d250414d4609a43961e0a7b6a01297586441257e"
+        },
+        "farm-bronze.glb": {
+          "bytes": 1256124,
+          "sha256": "3ad1bd7fce5fa277826cbabbabcf371a7451bbf73604db422c5fd4942f3d9a83"
+        },
+        "basecolor.png": {
+          "bytes": 4246664,
+          "sha256": "35e41c6470c417090000803c29654713aa2e129e4ee7d578a38e0226eb2f634f"
+        },
+        "normal.png": {
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "bytes": 1043262,
+          "sha256": "3ce499d0951b8254dad19dd90d9eefc6da4c6e15c2e365b1d7bfef15d086bbdb"
+        },
+        "preview.png": {
+          "bytes": 395654,
+          "sha256": "ceff09d48a73587ade8dbe9c5f36b294507c61546ce2cd01800196eada4a388a"
+        },
+        "preview-lod1.png": {
+          "bytes": 403216,
+          "sha256": "89cbadb3214900317cf93823ec922b0b022d8bd92438321965876fbaa196e4b7"
+        },
+        "preview-lod2.png": {
+          "bytes": 402572,
+          "sha256": "f2c7550de8bc176b222aecf96fcedac377fc2a5b3ae87b54a707d44a6c76e643"
+        },
+        "phone-lod2.png": {
+          "bytes": 28836,
+          "sha256": "5c556e3d9fe63c245e06deadacde6e8ce5bbe8308d497d3aa9d84a70621345bf"
+        },
+        "farm-bronze.validation.json": {
+          "bytes": 2100,
+          "sha256": "5fd4d87d95652bd680fc64d7ad1a33df84640fcd05092315128853dc7813251d"
+        },
+        "manifest.json": {
+          "bytes": 1011,
+          "sha256": "32c957b350585ab09875257b8923afc5d63f9cbc6050bac0905404c9194df952"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1064,
+          "sha256": "669c9da556a9c6ce0ef59beaf761d6a68ebd67955d09725267dc365cbae618a4"
+        }
+      }
+    },
+    {
+      "id": "farm-modern",
+      "triangles": [
+        3571,
+        1076,
+        285
+      ],
+      "original_geometry_uv_sha256": "d3d2f62dc5f62641c0ac07d862e1b234f1fc84646c333be6cea3933b9567bafd",
+      "atlas": [
+        428,
+        92,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "farm-modern.blend": {
+          "bytes": 6131420,
+          "sha256": "40263bd590eb2ae996313205e049146b4d2dba4189d489264985fbe82d469a68"
+        },
+        "farm-modern.glb": {
+          "bytes": 1187676,
+          "sha256": "64d872207e1480062415b0cd96acf75607961b4c5f8a362fd6e2362f9e4cc497"
+        },
+        "basecolor.png": {
+          "bytes": 4093543,
+          "sha256": "6e8e4ee0678c59fb73e433248b9efcea17e36793a15ce84b418c6a5fffe3998b"
+        },
+        "normal.png": {
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "bytes": 1077414,
+          "sha256": "536b0220adeb2e6e446ba234e82afb69aa6610e75a3a0c7f5e6b9c78306f0230"
+        },
+        "preview.png": {
+          "bytes": 338656,
+          "sha256": "2e33755472bf3f8d2855e67feecf2f2423ef890300b4ad551dce59d0546c85b0"
+        },
+        "preview-lod1.png": {
+          "bytes": 344407,
+          "sha256": "ce77082a9d377715aa47f420ba46f16c14629bfdbea3d59cef8238bd37a9ccac"
+        },
+        "preview-lod2.png": {
+          "bytes": 344648,
+          "sha256": "472490af7e870962f3ba36fbff50d4032e9dffa9bb6f5208cf2d40d66d5ce33e"
+        },
+        "phone-lod2.png": {
+          "bytes": 25083,
+          "sha256": "6cf65af58a1edf1196c85a5a8b0f69d6f60b557aadcccd1ea2e45e0efac89655"
+        },
+        "farm-modern.validation.json": {
+          "bytes": 2099,
+          "sha256": "2399f230c065770d3c21f3a4ebeb054ffb81a8b721529e4932e21f18d9532969"
+        },
+        "manifest.json": {
+          "bytes": 1010,
+          "sha256": "eeaacc2b950c285361e359e5304c756440e622ccd1e6ccfb37e4215541ef722e"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1062,
+          "sha256": "68533bb1ae5945c1bba56b08cf7d67e0ee8bc30c6cdebae417d9da6d87f87a37"
+        }
+      }
+    },
+    {
+      "id": "mine-bronze",
+      "triangles": [
+        4530,
+        1080,
+        283
+      ],
+      "original_geometry_uv_sha256": "4fcaa4d7892af78190a089a742639e193c5de7f9a22159e790f11bfd7cae3339",
+      "atlas": [
+        452,
+        100,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "mine-bronze.blend": {
+          "bytes": 7292954,
+          "sha256": "56cb3ab9d14c3004829a9d219f00e8277f45dfeea711e8b0f1b9079bcd7064d5"
+        },
+        "mine-bronze.glb": {
+          "bytes": 1630424,
+          "sha256": "50ada7dd3b0e3802e8ccdf5abd24632f0882f763391d5690fdd6fd6c8f55497b"
+        },
+        "basecolor.png": {
+          "bytes": 5181900,
+          "sha256": "a1e0f9b04a7a87355b8e959b5089ed88241d9f4a605f151e4631311eb93a113d"
+        },
+        "normal.png": {
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "bytes": 1120261,
+          "sha256": "85387dc44130d7e0775e0d4da0057d5bedf6a9647ced3605e4a2a573770f5167"
+        },
+        "preview.png": {
+          "bytes": 380976,
+          "sha256": "e06a93c07d5a6bdf0504c238f7750d657a10b2f0425e9decec9a3fb9be203300"
+        },
+        "preview-lod1.png": {
+          "bytes": 410993,
+          "sha256": "339466e2c66f60bc7c3e9ff6a5f5db272de3d6bec63bc4df8e20365893fe1148"
+        },
+        "preview-lod2.png": {
+          "bytes": 411150,
+          "sha256": "c1dbadadfea148ac2531cdb0dd281705a36a6d9046e9c40dd8151f39d884380b"
+        },
+        "phone-lod2.png": {
+          "bytes": 28289,
+          "sha256": "260e37aa0ffde46d71e934d52731323639ceadc0726f8f121715c08dff9d6efb"
+        },
+        "mine-bronze.validation.json": {
+          "bytes": 2100,
+          "sha256": "f0258454c491b9399064005cf9e17ef540e377fadcbf456eadaf848d52252aa5"
+        },
+        "manifest.json": {
+          "bytes": 1011,
+          "sha256": "f993c57fdb796386dded9167eef00b0d464217ca55f5c1babb3c4ad92ec8d2b7"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1063,
+          "sha256": "6e865edf9f004b93d5414f3f0f87eb9463eab1de23a8105915d41dee8afdc9b0"
+        }
+      }
+    },
+    {
+      "id": "mine-modern",
+      "triangles": [
+        3250,
+        1118,
+        284
+      ],
+      "original_geometry_uv_sha256": "8bf3959d3032cf2fbf0d454cc12d61a4b2f64c8c77208471dc359e685e7efc8f",
+      "atlas": [
+        420,
+        92,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "mine-modern.blend": {
+          "bytes": 7088295,
+          "sha256": "f4a07390888d180e808c966c6bfd804ee9241131a4efade0d2e50f8a286a428f"
+        },
+        "mine-modern.glb": {
+          "bytes": 1408000,
+          "sha256": "895b16a8e4c45e72ce8919c0e7730581559373a3e0a5f9d2c2d21700cc497185"
+        },
+        "basecolor.png": {
+          "bytes": 5053534,
+          "sha256": "3304bb1a96621ee88ede77a71dae730132482f0fb352079264e1f659e0e5d2a2"
+        },
+        "normal.png": {
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "bytes": 1115009,
+          "sha256": "0aca497da5d2d564280697a596985608a757630e1bc4c918eee3b00b50be32dc"
+        },
+        "preview.png": {
+          "bytes": 308329,
+          "sha256": "eb6fbe591026db5c6c6dd4b6e525a8927b3789ef6a55ea3f58b8c2fec64c654c"
+        },
+        "preview-lod1.png": {
+          "bytes": 325540,
+          "sha256": "ea1020369535a14a254aeeb6bf7d0156f47d1f0bd1c539b3a9c2feafdd06c656"
+        },
+        "preview-lod2.png": {
+          "bytes": 322667,
+          "sha256": "01f7bfc52e17de79472e76d9e89a3bcbf891dc74a734042c94a94a64b3b762d7"
+        },
+        "phone-lod2.png": {
+          "bytes": 23028,
+          "sha256": "287bb3430341285af44936bb4f93ffb45911063726ffdfc1c879f69f78a915b5"
+        },
+        "mine-modern.validation.json": {
+          "bytes": 2096,
+          "sha256": "7611eaa7864ff18b975027d714dc2ad0329ce38e8d01f68193161e4a1fe7a9e6"
+        },
+        "manifest.json": {
+          "bytes": 1007,
+          "sha256": "6ce27969683e750e09fde2edf1e128268d56a16edfee52c482debaa061afecc7"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1063,
+          "sha256": "34fdcf2de2ac022ba71a307d579f6c6c1be24a8c96b7c6e106802c62cf9e2bb6"
+        }
+      }
+    },
+    {
+      "id": "fishing_boats-bronze",
+      "triangles": [
+        3925,
+        1310,
+        271
+      ],
+      "original_geometry_uv_sha256": "c07b10f2fc32000b904febe0d168ee24e477d3de0502f845d2f97452f9ae46b8",
+      "atlas": [
+        604,
+        4,
+        128
+      ],
+      "validation_passed": true,
+      "files": {
+        "fishing_boats-bronze.blend": {
+          "bytes": 7307414,
+          "sha256": "208e435aadd00aeb6952e27c59b2da1362753ba5055f3ff6e13b6c00056a6ffd"
+        },
+        "fishing_boats-bronze.glb": {
+          "bytes": 1628096,
+          "sha256": "779bd29f5200cd0f38034a4205a306fead1346a3c592ed9e7380360fe833d325"
+        },
+        "basecolor.png": {
+          "bytes": 5288909,
+          "sha256": "bceb3725627f1bc95ce4179e6a925d40879205080875d398059c9724fd718faa"
+        },
+        "normal.png": {
+          "bytes": 75578,
+          "sha256": "442c5d0c9019e394f483c849b4f918909d4bebb5841211dcc270f67a55613f4f"
+        },
+        "orm.png": {
+          "bytes": 1039168,
+          "sha256": "495ed186ae081b5986cbdf5eb275f9442f24ed62031b81f975200fe0f47eafb4"
+        },
+        "preview.png": {
+          "bytes": 269168,
+          "sha256": "170a52dbf569cbb700a3ab024f35e016f619f34b7f9d1362df52d446464a2379"
+        },
+        "preview-lod1.png": {
+          "bytes": 285343,
+          "sha256": "65c758680836c054c054a6609a520d26fcaa8003636f253b07b9fca395d047ed"
+        },
+        "preview-lod2.png": {
+          "bytes": 282103,
+          "sha256": "41d694e4f4378534f8b9f7a246ef436da3cf6908b4f49e29afdd1a76cfb4df3e"
+        },
+        "phone-lod2.png": {
+          "bytes": 21961,
+          "sha256": "2f9324eaab19ae50e9df5dbf01bc43aac22f1810cd8b57054783120c3647d3b0"
+        },
+        "fishing_boats-bronze.validation.json": {
+          "bytes": 2120,
+          "sha256": "96155599b00984ba63b656522fe5f3eb53c6ffb61ff405362b17f5da2cd7861c"
+        },
+        "manifest.json": {
+          "bytes": 1030,
+          "sha256": "04bb8ff2f101033466fe4b01e916ca16c17d02cdcd6d4ace0d4d5cc7f24a0b54"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1069,
+          "sha256": "2183b48e9c05330f4e82f559baa51a93f94d380df2d0ac2303def731a7a970bd"
+        }
+      }
+    },
+    {
+      "id": "fishing_boats-modern",
+      "triangles": [
+        6203,
+        1302,
+        263
+      ],
+      "original_geometry_uv_sha256": "ad29f4983b9ce1276b64e28fbf598ad3a68cfc011aa070555dcd44b238fd246a",
+      "atlas": [
+        412,
+        4,
+        96
+      ],
+      "validation_passed": true,
+      "files": {
+        "fishing_boats-modern.blend": {
+          "bytes": 6894494,
+          "sha256": "ea1a6c62c7651476673d625c54f048fb8bdc8559614ebbee2adff44b95eed397"
+        },
+        "fishing_boats-modern.glb": {
+          "bytes": 1905944,
+          "sha256": "c7ba6fc7cbe11827430f977609b5e7ed3da735a08c000ad86279578c3154a246"
+        },
+        "basecolor.png": {
+          "bytes": 4499167,
+          "sha256": "4248b8f4c571329282c956e9ecec6b094d0be81def9a92be02c7ff3dba4094a9"
+        },
+        "normal.png": {
+          "bytes": 75736,
+          "sha256": "e923a722bae2da9a22318b03e1a65a3c60531d08cdc0f280ae6628a1cea2074a"
+        },
+        "orm.png": {
+          "bytes": 1299034,
+          "sha256": "23d81d72d534245e33f5fc781443caff92b85bce2bb01a50c257d9d08ecee6d8"
+        },
+        "preview.png": {
+          "bytes": 255106,
+          "sha256": "7bfe4d61f25be2ed450c9651cdf866d9abc402b42968d32616beae591becfc26"
+        },
+        "preview-lod1.png": {
+          "bytes": 264867,
+          "sha256": "05270fb68e487a723c4eeb1a315fa0d09976785a1747bf214fbd0fdf868355b8"
+        },
+        "preview-lod2.png": {
+          "bytes": 259794,
+          "sha256": "25160bdbcc3683df8b7f61c7f1b925f984872e91940c950fb3785be51c899568"
+        },
+        "phone-lod2.png": {
+          "bytes": 20970,
+          "sha256": "70512b72e966933b6f771cb999ef0046dad901c9f0108fcc96580517cb346eff"
+        },
+        "fishing_boats-modern.validation.json": {
+          "bytes": 2118,
+          "sha256": "fb11e4110e082cee9dd1fe299b62cfe0859c7950457e63b8f46d73c5b4984b74"
+        },
+        "manifest.json": {
+          "bytes": 1028,
+          "sha256": "04ec3fe170d8599714bb456055a914b71eff3d2308936d433cda6ee401ee2d8c"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1068,
+          "sha256": "7d1420e27d0febe341055cca4a6c3c4121c16b2e072d141bb05175f5f5553381"
+        }
+      }
+    },
+    {
+      "id": "road-bronze",
+      "triangles": [
+        1439,
+        882,
+        258
+      ],
+      "original_geometry_uv_sha256": "6ff6fc122f94a32a3141ffcbde4285f67a3a2ea332da619409cb360bac0f8d24",
+      "atlas": [
+        492,
+        84,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "road-bronze.blend": {
+          "bytes": 6450414,
+          "sha256": "e22dc60dfd995ef8e57585fbfb95fe1f30dd2d22be3f91e6aa097b2bb42cc46e"
+        },
+        "road-bronze.glb": {
+          "bytes": 1065248,
+          "sha256": "d4e9c72ab18351d271bd6f593a7286596e27f789fa5fd07294c4aaf097555308"
+        },
+        "basecolor.png": {
+          "bytes": 4817965,
+          "sha256": "fb7fe29bb93211add7ee2ccc65b11fb987092d205e07bf7336d6051d78de8c47"
+        },
+        "normal.png": {
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "bytes": 809637,
+          "sha256": "abfeaf157808625f51f85a5230235057619ffb7514647e032e49ce557fa6b073"
+        },
+        "preview.png": {
+          "bytes": 400376,
+          "sha256": "3682ea0b63cf710360a599a15ce6b6829e4289df345bc23951bcd0cea4768187"
+        },
+        "preview-lod1.png": {
+          "bytes": 427540,
+          "sha256": "f6d00d64f951bd7861c0fa1dd6822f4167ce5235484d872071ceddff2ceba6fd"
+        },
+        "preview-lod2.png": {
+          "bytes": 426970,
+          "sha256": "94f91ada6f96891046363eb418c7e0e45ab01683d777528c1eb1bb6ec35a6f09"
+        },
+        "phone-lod2.png": {
+          "bytes": 29717,
+          "sha256": "5df656311e6e88037a0c7fef58a3008db6cfc3f6e327ca31f3dbf9143a7fb209"
+        },
+        "road-bronze.validation.json": {
+          "bytes": 2096,
+          "sha256": "b3bf76c74fb50c9a4dc2a35ce2f7bf1a9bf4f0331df456671806aead3660ec35"
+        },
+        "manifest.json": {
+          "bytes": 1007,
+          "sha256": "12376b092d3944f260ebb41f9a9497ff43ac7056cae8bd9de4116ba061365790"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 893,
+          "sha256": "5ac03cbd9d5d728eb29fe75bd0e03ca4fd88e2dd053afafe1a858a97160859f3"
+        }
+      }
+    },
+    {
+      "id": "road-modern",
+      "triangles": [
+        1607,
+        1036,
+        244
+      ],
+      "original_geometry_uv_sha256": "2d64d9bc1deb4eba4afc600baebb72c100c03b54ac6288c70fe8bc2aec0b5256",
+      "atlas": [
+        492,
+        84,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "road-modern.blend": {
+          "bytes": 6308425,
+          "sha256": "eb280870457b79242e4305083b055e04f653f72a35773c4d81bc59b9cce0d8ec"
+        },
+        "road-modern.glb": {
+          "bytes": 1031828,
+          "sha256": "87a9f272a647bc7b86bf4291f43c0bd2fee5f23fc886d23256d6904d0e1c31e2"
+        },
+        "basecolor.png": {
+          "bytes": 4604989,
+          "sha256": "27caae635b4bd34e74cc31a7c8b9e5aac8f6445e546c04ac911b2041c92625e8"
+        },
+        "normal.png": {
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "bytes": 838293,
+          "sha256": "79f8df11b684ed9dc60f78d491e12ed52141675c1f7d5604941f6a5aba8b5c3f"
+        },
+        "preview.png": {
+          "bytes": 399784,
+          "sha256": "f885e189ba2d3f4e5ab7659830a60988a95679a68381c72db193fc982f34f99d"
+        },
+        "preview-lod1.png": {
+          "bytes": 427436,
+          "sha256": "76906183c9df201370fcf5ff6202ab4b9c0165b5ab33468ad8d059be5289534c"
+        },
+        "preview-lod2.png": {
+          "bytes": 426063,
+          "sha256": "a93d44cc682d989814a28f28d09cfb54638c18091d6c9ba3b4dc65dbd0a92f4e"
+        },
+        "phone-lod2.png": {
+          "bytes": 30006,
+          "sha256": "348da56f01a64a945e563d5379ea9aa7cc85a507ef8cc85f5830bfb4dce0edf6"
+        },
+        "road-modern.validation.json": {
+          "bytes": 2097,
+          "sha256": "093e6dda5dd016581ab65bd02e17994457dc14c6aba002695c8abc12caaf32c5"
+        },
+        "manifest.json": {
+          "bytes": 1008,
+          "sha256": "ae13fd7bb180fb3345ab6c0edf72af2d26ab200bc046dc5a13a7653db36cf57a"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 894,
+          "sha256": "585b33568c49a4c2ca17939eb700452ed7bdbc885f486773e7085c7eceeaff53"
+        }
+      }
+    },
+    {
+      "id": "pasture-bronze",
+      "triangles": [
+        4190,
+        1023,
+        283
+      ],
+      "original_geometry_uv_sha256": "593f1a6d53e7ab8e6261435d5804c33e1da900e40c4a790a53602fecc76fea22",
+      "atlas": [
+        444,
+        100,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "pasture-bronze.blend": {
+          "bytes": 7162532,
+          "sha256": "9e32f254c4c8e94a1eacd8651431bcb21db47b3f47b975a15903e69bc9b08088"
+        },
+        "pasture-bronze.glb": {
+          "bytes": 1592616,
+          "sha256": "2de611cd1db7e710e0fa79a7c890a2d9900f744638a9dd57807eac6607f4e5ab"
+        },
+        "basecolor.png": {
+          "bytes": 5033704,
+          "sha256": "4b403fc75a25b441c24bcefbd4f49182e59c7cc0725d0a3b51a248821ab1963c"
+        },
+        "normal.png": {
+          "bytes": 74615,
+          "sha256": "f380cf9eb16f0216b5d78422ecb3ecebc3e2e9513b9c122f710b540d40572cf7"
+        },
+        "orm.png": {
+          "bytes": 1146672,
+          "sha256": "d006b3f4c1fcba4e179ec26853a20c2fed15288c4706a6ad4e811d3903d7b154"
+        },
+        "preview.png": {
+          "bytes": 377177,
+          "sha256": "ace0bc87a0b4b8398bc4c49981cdf18d4f7f50c35fcf30c80339949210bfa628"
+        },
+        "preview-lod1.png": {
+          "bytes": 396169,
+          "sha256": "8170849d1044ac4372acf6a314b50aea1aeec00e600f4c87eba07b62beebdafa"
+        },
+        "preview-lod2.png": {
+          "bytes": 395234,
+          "sha256": "a7825698cc8f2ddac938107c681e9dd41b25809df37e716c9c77b1bac466a9de"
+        },
+        "phone-lod2.png": {
+          "bytes": 27371,
+          "sha256": "a555f4462b3314b14421473abee7bb2f2adee0d7ae62cfedbfcb47fbf4dda668"
+        },
+        "pasture-bronze.validation.json": {
+          "bytes": 2106,
+          "sha256": "4ef5d3594adec36e46ce9e66154e016cf598f18c30e0100fd3677c07fa98b908"
+        },
+        "manifest.json": {
+          "bytes": 1017,
+          "sha256": "82aac882dfc0e16aca9ae745e4e6b4962a8796651419e76fa5e1cfff0c91b7e2"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1066,
+          "sha256": "45ab44b9197f01920f5e1a6ed56576a9ad18f3f38636bde3bac8cd38914b02c6"
+        }
+      }
+    },
+    {
+      "id": "camp-bronze",
+      "triangles": [
+        3660,
+        1065,
+        283
+      ],
+      "original_geometry_uv_sha256": "43d974507fb8877922fef01e7fb7c3e49a9a37da25379cfb2df3c6a17006dec3",
+      "atlas": [
+        460,
+        100,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "camp-bronze.blend": {
+          "bytes": 7166980,
+          "sha256": "7ab239bb8739133a58b157c29072fa3edc718f58a121a9eed6c92c8da4381a46"
+        },
+        "camp-bronze.glb": {
+          "bytes": 1518196,
+          "sha256": "46456bf15917791135d93d8a8fefb52ff2743ccf0372c3be332d56a6d011a622"
+        },
+        "basecolor.png": {
+          "bytes": 5114771,
+          "sha256": "b454a17ba9f7fb8cdddecc48e29fd1977ce464802e4721f0747dd0e559406c94"
+        },
+        "normal.png": {
+          "bytes": 65770,
+          "sha256": "e7c5e9286f6c25ca4e7a88a2cfd363aa2d661376dd14eaf8a9ebf07c1f594554"
+        },
+        "orm.png": {
+          "bytes": 1101891,
+          "sha256": "60788252b1433c930861f7708fad92434341278444224dcbeee4b32a4d9f6bd2"
+        },
+        "preview.png": {
+          "bytes": 370410,
+          "sha256": "c59fdfbb2e74e1574a3edeb2bf165fe921050e3359d766331d931cd29977e488"
+        },
+        "preview-lod1.png": {
+          "bytes": 393081,
+          "sha256": "28b87d8361ec7eb95d1f9c6aeee7e4d21d30d9c56a79ca7ec847a94de7800f3b"
+        },
+        "preview-lod2.png": {
+          "bytes": 392187,
+          "sha256": "8da1f18c510a81310be4a914f27a032917698bd1f0a756bf61e415983400c7e0"
+        },
+        "phone-lod2.png": {
+          "bytes": 27215,
+          "sha256": "2dfb374b1dc4ce67c4ff10da0bf11fe4f5142511e62afe2cebb7e1d538365aa2"
+        },
+        "camp-bronze.validation.json": {
+          "bytes": 2099,
+          "sha256": "53847780f6d3197b04482bc23f7860bbdccf39573e071508eb11bd66300a00c7"
+        },
+        "manifest.json": {
+          "bytes": 1010,
+          "sha256": "7ccfd487303fe68ab2968396d3378fa1dc6bc3311f98b8782f5bac647d1d88dd"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1063,
+          "sha256": "48f01b0e7623109d6d26574343284e968ac46e894f819bf988150cb560b9307b"
+        }
+      }
+    },
+    {
+      "id": "quarry-bronze",
+      "triangles": [
+        2698,
+        1138,
+        283
+      ],
+      "original_geometry_uv_sha256": "dc5730f295ab5dde77f63f51b70c5c983257b737f72c78837ef3a3a556c929c2",
+      "atlas": [
+        444,
+        100,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "quarry-bronze.blend": {
+          "bytes": 7159714,
+          "sha256": "561880a99942e49d5bcd4a3c2ee4f9c048843053f935b42fdd5f3bd60ef6556f"
+        },
+        "quarry-bronze.glb": {
+          "bytes": 1378532,
+          "sha256": "64c06d55eff84efb53d670f6e9f2e115a0cdac7bf5d3a0f9656ac82deb5b6d32"
+        },
+        "basecolor.png": {
+          "bytes": 5250814,
+          "sha256": "3f8237b10cd1692d8f59d233f862b51e73f7ce1c8e4b5db4b9754d1de70d5fb6"
+        },
+        "normal.png": {
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "bytes": 1015996,
+          "sha256": "d55edd0b901fef60c602a012de90e7aba7ae9629f8ab09fbff7a1606eae90889"
+        },
+        "preview.png": {
+          "bytes": 327230,
+          "sha256": "d6fa0bd9cc8229d9ceaf5a5e10fa2c1ec02d6ab4375dd19186a87f8256b0479a"
+        },
+        "preview-lod1.png": {
+          "bytes": 347677,
+          "sha256": "4f9447c1dab6bf4334ec38af9de2467d5a24fb2a5bd792a3cf8653f1e8595243"
+        },
+        "preview-lod2.png": {
+          "bytes": 348113,
+          "sha256": "32026fafa60253569ec82fee1b48c6acdd5c79e99aac16ef24f3eb8a59e6a743"
+        },
+        "phone-lod2.png": {
+          "bytes": 24506,
+          "sha256": "3139cf33174da86b4b87e128d765662fd2b099b9eb7ed55f50ef630ab5680b93"
+        },
+        "quarry-bronze.validation.json": {
+          "bytes": 2104,
+          "sha256": "76ba68ce6c918e33bb57f9dc03b9881867477ce51529f3944c8f6f899ded5938"
+        },
+        "manifest.json": {
+          "bytes": 1015,
+          "sha256": "fa3ebbdb93fa565b70b7c2eff992ee2dc6ba7d392871f41aa14d87549101b36e"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1065,
+          "sha256": "6bbc4c6f666087e5e73780b0493c97cbb959073ddb33c23c4722e1672a75cf9f"
+        }
+      }
+    },
+    {
+      "id": "lumber_camp-bronze",
+      "triangles": [
+        3457,
+        1095,
+        288
+      ],
+      "original_geometry_uv_sha256": "8cd43b26e4e5140a4e1adef76b8f850db5bf3f4833d1d226ecff2b374dc8669c",
+      "atlas": [
+        420,
+        92,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "lumber_camp-bronze.blend": {
+          "bytes": 7221025,
+          "sha256": "c086cdc0b54e9ac1cd0a9484640eb002c553dde7af7e8df019609613e741262f"
+        },
+        "lumber_camp-bronze.glb": {
+          "bytes": 1499912,
+          "sha256": "3108196b23bbaa927881f9a086a09541d0ac7df1cc577958f45f6b1fd237cac0"
+        },
+        "basecolor.png": {
+          "bytes": 5172454,
+          "sha256": "9ef055b7ae9f602a26ba494d1c5ac0cb993d85a4bda38d3110b57e1c694e22ec"
+        },
+        "normal.png": {
+          "bytes": 59579,
+          "sha256": "123eadc1c58faf317e13bbb0a6e11d0526740a2f4c733c6b41d7f952a9f1c704"
+        },
+        "orm.png": {
+          "bytes": 1114978,
+          "sha256": "564a007d0252df6e977d631b73544cc481199d1cd6439251b09ba60913a61fd3"
+        },
+        "preview.png": {
+          "bytes": 369460,
+          "sha256": "25bd83581dda1729da62f343695db41a34e66bdad7a975d13ef12c625a4d51a9"
+        },
+        "preview-lod1.png": {
+          "bytes": 392445,
+          "sha256": "256f8940ab77e558522ca4ed0582e0d0c735e7c257a8d9f05626c1f3458ea8d7"
+        },
+        "preview-lod2.png": {
+          "bytes": 391198,
+          "sha256": "27fd2491f3fca64607548229b3a3c2a93398f323d68180a0fd0a86681f69955f"
+        },
+        "phone-lod2.png": {
+          "bytes": 27264,
+          "sha256": "f6bb81ded14acd4af89d92735fc35e9b90200a47c3a1a863b6b7633a5e50e9fe"
+        },
+        "lumber_camp-bronze.validation.json": {
+          "bytes": 2114,
+          "sha256": "a980aec6ec131a2fca78b6412dbc09c38cbb22743cad7dfb076edd9c034ad53c"
+        },
+        "manifest.json": {
+          "bytes": 1025,
+          "sha256": "f64274098a1cead3e2d1ff6c1d02876743e3ed4190e240dc83d753b947294ff9"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1069,
+          "sha256": "512201992c657d9fd2e4b1b4ddba92bfa0d6a3ac1d787f92c5e7794a24be3707"
+        }
+      }
+    },
+    {
+      "id": "plantation-bronze",
+      "triangles": [
+        5777,
+        1015,
+        290
+      ],
+      "original_geometry_uv_sha256": "7f2556d182810cf837556f5a2bb9abc8658551b68df66aa6c0cc078ede8a0174",
+      "atlas": [
+        356,
+        100,
+        256
+      ],
+      "validation_passed": true,
+      "files": {
+        "plantation-bronze.blend": {
+          "bytes": 7435960,
+          "sha256": "30ae864f047dea02c0cddd713483bd7a9881d78b862d3a7e7a536dbece2159e4"
+        },
+        "plantation-bronze.glb": {
+          "bytes": 1805576,
+          "sha256": "20a0e7b496ecf511b49988e1fd25f1f619e2ce138dc2697e419304ae2cb82d5d"
+        },
+        "basecolor.png": {
+          "bytes": 5168129,
+          "sha256": "9a9082086fdef193ecc0827628f4e94075dd0cd0b52955475c91f3c9f9e770bd"
+        },
+        "normal.png": {
+          "bytes": 62696,
+          "sha256": "a975b1ed179c1881a0214a2efaa8d01bd7664ecd5c670c632be17982d840d6c7"
+        },
+        "orm.png": {
+          "bytes": 1206016,
+          "sha256": "3429b3429aa18d62b7522a6d2dc02be15e8ebd5029a1af4e3b104a967e5d73cf"
+        },
+        "preview.png": {
+          "bytes": 370806,
+          "sha256": "603a99aa55157ad4a2b7fe3355a1e80e5dc50ddfb39dda5dfb5aa04903e457be"
+        },
+        "preview-lod1.png": {
+          "bytes": 394029,
+          "sha256": "d572c674055526787e2273f0a0e906919e521c8a95bc6bc877a0530e6509b26f"
+        },
+        "preview-lod2.png": {
+          "bytes": 393427,
+          "sha256": "b1f118a4d5e7bd19a0af854498ff29b3a8fa238321a95545a1d20411cf18a248"
+        },
+        "phone-lod2.png": {
+          "bytes": 27469,
+          "sha256": "56173c03adb583ef736be86fbf5ce0399981645a10680336b12bbe67249662b2"
+        },
+        "plantation-bronze.validation.json": {
+          "bytes": 2112,
+          "sha256": "a761ea2260614a4f7392dcd1ea637d65b6b636d4d37f77b24b16539deac11e4a"
+        },
+        "manifest.json": {
+          "bytes": 1023,
+          "sha256": "66bfb4bb3c70405164fbe8977e60218fd6fc0ac352ddd9682edb8393b3012a23"
+        },
+        "lod-ground-repair.json": {
+          "bytes": 1069,
+          "sha256": "e2570ea8b29935c79dc25bf63be1613ab30a88b9d42f7eed861341530b572504"
+        }
+      }
+    }
+  ]
+}

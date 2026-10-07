@@ -11,7 +11,7 @@ const FLOOR = { Town: 0.26, Team: 0.3 };
 describe('Israelite map models', () => {
   // towns, shared parts and buildings; tile improvements have no Levant set to compare with (their
   // Ground is lightened by scripts/blender/import_improvement.py; wood hulls and concrete stay dark)
-  const files = mapModelFiles().filter((f) => /-israelite\.glb$/.test(f) && !f.includes('/improvements/'));
+  const files = mapModelFiles().map((f) => f.replace(/\\/g, '/')).filter((f) => /-israelite\.glb$/.test(f) && !f.includes('/improvements/'));
 
   it('exist for every age', () => {
     for (const age of ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern']) {
