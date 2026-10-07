@@ -12,6 +12,8 @@
 //   {age}-general.glb   the age's general (a mounted commander; Modern: a command car), drawn
 //                       beside the standard of every squad with a commander (general.glb: every age);
 //                       without it a general is only the standard
+//   {age}-raider.glb, {age}-mercenary.glb  the irregulars' looks (LOOK_CLASS): a raid party's
+//                       cavalry squads and a hired band's infantry squads draw these instead
 //   signature/{model}.glb  a people's signature unit (data/signatureUnits.js: its age, role and
 //                       model id): replaces that people's base unit of the role in that age
 // Before a battle opens, preloadUnitModels() loads just the models that battle needs (in parallel,
@@ -55,6 +57,15 @@ export const findUnitModel = (ageId, classId) => {
   return null;
 };
 
+/** The irregular looks and the one class each replaces (plans/ART-MODELS-PLAN.md 4.3). */
+export const LOOK_CLASS = { raider: 'cavalry', mercenary: 'infantry' };
+/** A setup unit's (or a sim squad's) irregular look: 'mercenary', 'raider' or null. A raid or a sack's
+ * attackers are the raiders. */
+export const unitLookOf = (u, setup = null, side = -1) => (u?.mercenary ? 'mercenary'
+  : u?.raidOf || u?.raider || (side === 0 && (setup?.battleType === 'raid' || setup?.battleType === 'sack')) ? 'raider' : null);
+/** The soldier layer key of a look (null: none), registered under the age like the general. */
+export const lookKey = (look, classId) => (look && LOOK_CLASS[look] === classId ? look : null);
+
 /** A side's general model (`{age}-general.glb`, else `general.glb`), or null (the standard only). */
 export const findGeneralModel = (ageId) => findUnitModel(ageId, 'general');
 
@@ -84,12 +95,14 @@ export const battleModelPairs = (setup) => {
 // The extra models a battle draws beside its base units: the generals of sides with commanders and
 // the signature units of the sides' peoples. [{ ageId, key, classId, model }]: registered under
 // (ageId, key), baked as tall as the procedural `classId`.
-export const battleExtraModels = (setup, { findGeneral = findGeneralModel, findSignature = findSignatureModel } = {}) => {
+export const battleExtraModels = (setup, { findGeneral = findGeneralModel, findSignature = findSignatureModel, findLook = findUnitModel } = {}) => {
   const out = []; const seen = new Set();
   const push = (ageId, key, classId, model) => { if (model && !seen.has(`${ageId}:${key}`)) { seen.add(`${ageId}:${key}`); out.push({ ageId, key, classId, model }); } };
   (setup?.sides || []).forEach((sd) => {
     const units = [...(sd.units || []), ...(sd.reinforcements || [])];
     if (units.some((u) => u?.commanderId)) push(sd.ageId, 'general', 'cavalry', findGeneral(sd.ageId));
+    const side = setup.sides.indexOf(sd);
+    units.forEach((u) => { const key = lookKey(unitLookOf(u, setup, side), u?.classId); if (key) push(sd.ageId, key, u.classId, findLook(sd.ageId, key)); });
     const people = peopleForNationId(sd.nationId);
     if (!people) return;
     const classes = new Set(units.map((u) => u?.classId).filter(Boolean));

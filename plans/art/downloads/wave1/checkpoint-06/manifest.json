@@ -1,0 +1,41 @@
+{
+  "checkpoint": "wave1-06",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 2,
+  "queue_items": [
+    "units/bronze-raider",
+    "units/bronze-mercenary"
+  ],
+  "packed_bytes_added": 177345,
+  "items": [
+    {
+      "file": "src/assets/units/bronze-raider.glb",
+      "bytes": 98160,
+      "sha256": "b8f2f354a8904f39112d8af6e5832c6269f63d8c795d46a5620fd600fef2b260",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/units/bronze-mercenary.glb",
+      "bytes": 78792,
+      "sha256": "38767475efe140ca35f7b12d6fc3ac649096c92c0f542d9fafa3eedb3b65f3c8",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/units/bronze-raider.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/units/bronze-mercenary.json",
+      "bytes": 192,
+      "sha256": "b9394309d6bbab80702384f199c210c06d95602e992a67b129ddf302bb9700c2",
+      "status": "in_game_awaiting_review"
+    }
+  ],
+  "screenshots": [
+    "plans/art/shots/wave1/irregulars-bronze-lineup-standing.png",
+    "plans/art/shots/wave1/irregulars-bronze-lineup-walking.png"
+  ]
+}

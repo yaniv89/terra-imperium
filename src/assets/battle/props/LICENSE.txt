@@ -1,0 +1,3 @@
+Original mesh and procedural atlas synthesis by Terra Imperium contributors,2026-10-07.
+CC0-1.0: dedicated to the public domain; https://creativecommons.org/publicdomain/zero/1.0/.
+No imported geometry, photographs or external textures. Generated2D sheet is design reference only.

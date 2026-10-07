@@ -11,6 +11,10 @@ import { callCost } from '../sim/orders';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
 import { ecoView } from '../sim/economy';
 
+/** A squad's irregular look for the renderer (unitModels.js): 'mercenary' (a hired band, engine
+ * unit.mercenary), 'raider' (an independent's raid party, unit.raidOf), or null. */
+export const squadLookOf = (q) => (q.original?.mercenary ? 'mercenary' : q.original?.raidOf || q.original?.raider ? 'raider' : null);
+
 export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog = true) => ({
   tick: w.tick,
   playerSide,
@@ -26,7 +30,7 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
     return { id: p.id, label: POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: !!POWERS[p.id]?.impacts };
   }),
   squads: w.squads.map((q) => ({
-    idx: q.idx, side: q.side, unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null,
+    idx: q.idx, side: q.side, unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null, look: squadLookOf(q),
     x: q.x, y: q.y, facing: q.facing,
     strength: q.strength, maxStrength: q.maxStrength, startStrength: q.startStrength, morale: q.morale,
     alive: q.alive, onField: q.onField, fled: q.fled, routed: q.routed, retreating: q.retreating,

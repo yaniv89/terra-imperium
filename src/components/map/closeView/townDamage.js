@@ -14,7 +14,7 @@
 import { Matrix4, Vector4, Mesh, MeshLambertMaterial, BoxGeometry, DodecahedronGeometry, Group } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ART } from '../../../battle/art/artFiles';
-import { loadKit } from '../../../battle/art/kitLoader';
+import { loadKit, kitObject } from '../../../battle/art/kitLoader';
 import { houseTypes, pickHouse, pickRubble } from '../../../battle/art/cityArt';
 import { instanceTownAsset } from './townAssets';
 
@@ -131,15 +131,22 @@ const templateOf = (obj) => {
  * A town instance's damage (manifestStates: [{ kind, state, x, z, w, d }]): the shader cut-outs,
  * darkening and mounds at once, then the art pieces when the age's damage files exist. Resolves to
  * true when art was placed (and calls `onReady`), false when the placeholders stay.
+ * `palace`: { name: 'palace' | 'palace-small', style, node } when the town shows a capital's palace
+ * (node: its instance under root): a damaged or ruined palace state swaps it for the piece of
+ * palace-damage-<age>[-<theme>].glb (same origin as the shared file's palace); without the file
+ * the palace stands as it was.
  */
-export const applyTownDamage = (root, states, { ageId, style = null, teamColor = '#9ca3af', tint = null, onReady = () => {}, art = ART, load = loadKit } = {}) => {
+export const applyTownDamage = (root, allStates, { ageId, style = null, teamColor = '#9ca3af', tint = null, onReady = () => {}, art = ART, load = loadKit, palace = null } = {}) => {
+  const states = allStates.filter((s) => s.kind !== 'palace');
+  const palaceState = allStates.find((s) => s.kind === 'palace' && s.state !== 'intact');
+  const palaceDone = palace?.node && palaceState ? applyPalaceDamage(root, palace, palaceState.state, { ageId, teamColor, tint, art, load, onReady }) : null;
   const ruined = states.filter((s) => s.state === 'ruined'); const damaged = states.filter((s) => s.state === 'damaged');
   enableTownDamage(root);
   setTownDamage(root, ruined, damaged);
   const mounds = ruined.map((s) => { const m = ruinMound(s); root.add(m); return m; });
   const houseRef = damaged.length || ruined.length ? art.housesDamage(ageId, style) : null;
   const ruinRef = ruined.length ? art.ruins(ageId) : null;
-  if (!houseRef && !ruinRef) return Promise.resolve(false);
+  if (!houseRef && !ruinRef) return palaceDone || Promise.resolve(false);
   const get = (ref) => (ref ? load(ref.url).catch((e) => { console.warn(`[art] ${e.message}: keeping the damage placeholders`); return null; }) : null);
   return Promise.all([get(houseRef), get(ruinRef)]).then(([houses, ruins]) => {
     if (!houses && !ruins) return false;
@@ -167,5 +174,22 @@ export const applyTownDamage = (root, states, { ageId, style = null, teamColor =
     setTownDamage(root, cut, dark);
     if (placed) onReady();
     return placed > 0;
-  });
+  }).then((placed) => (palaceDone ? palaceDone.then((p) => p || placed) : placed));
+};
+
+/** The capital's palace in its damaged or ruined state (applyTownDamage's `palace`). */
+const applyPalaceDamage = (root, { name, style, node }, state, { ageId, teamColor, tint, art, load, onReady }) => {
+  const ref = art.palaceDamage(ageId, style);
+  if (!ref) return Promise.resolve(false);
+  return load(ref.url).then((kit) => {
+    const obj = kitObject(kit, `${name}-${state}`);
+    if (!obj || node.parent !== root) return false;
+    const inst = instanceTownAsset(templateOf(obj), teamColor, tint);
+    inst.position.copy(node.position); inst.rotation.copy(node.rotation); inst.scale.copy(node.scale);
+    inst.name = 'damage-art';
+    node.visible = false;
+    root.add(inst);
+    onReady();
+    return true;
+  }).catch((e) => { console.warn(`[art] ${e.message}: the palace keeps its intact model`); return false; });
 };

@@ -4,7 +4,7 @@ import { isPacked, modelFiles, mapModelFiles, readGlbJson, needsLods, packFlags,
 
 describe('map and battle models', () => {
   it('cover every art folder of the model plan', () => {
-    ['src/assets/map/terrain', 'src/assets/battle/rts', 'src/assets/battle/city', 'src/assets/battle/nature', 'src/assets/battle/terrain'].forEach((d) => expect(KIT_MODEL_DIRS).toContain(d));
+    ['src/assets/map/terrain', 'src/assets/battle/rts', 'src/assets/battle/city', 'src/assets/battle/nature', 'src/assets/battle/terrain', 'src/assets/battle/props'].forEach((d) => expect(KIT_MODEL_DIRS).toContain(d));
     ['src/assets/battle/projectiles', 'src/assets/units/signature'].forEach((d) => expect(SINGLE_LOD_DIRS).toContain(d));
     expect(mapModelFiles().every((f) => modelFiles().includes(f))).toBe(true);
     expect(needsLods('src/assets/battle/rts/rts-bronze.glb')).toBe(true);

@@ -35,7 +35,10 @@ import { orderRingState, recordOrderTarget, ORDER_RING_COLOR, MAX_ORDER_TARGETS 
 import { getAgeIndex } from '../../data/ages';
 import { peopleForNationId } from '../../data/peoples';
 import { signatureKey, baseClassOf } from '../../data/signatureUnits';
+import { lookKey, unitLookOf, LOOK_CLASS } from './unitModels';
 import { battleGroundSets, groundTextureUniform } from '../../data/groundMaterials';
+import { styleOfLand } from '../../data/architecture';
+import { BattleProps } from '../art/battleProps';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -254,6 +257,7 @@ export class BattleRenderer {
     this.cityLayer.build();
     this.ecoLayer = new EconomyLayer(this); // the battle economy's nodes and buildings (economyLayer.js)
     this.ecoLayer.build();
+    this.battleProps = new BattleProps(this); // wells, carts, stalls, standards (battle/art/battleProps.js)
     // Art files for the river banks, fords and bridges, and for projectiles (battle/art/).
     this.terrainArt = new BattleTerrainArt(this);
     this.projectileArt = new ProjectileArt(this);
@@ -628,7 +632,8 @@ export class BattleRenderer {
       if (s.kind === 'keep' && !this.setup.city && (s.walls || s.damage > 0)) {
         dressStructure(g, fortRef(this.setup.sides[1].ageId), { fitTiles: s.walls ? 8 : 4.5, teamColor: this.setup.sides[1].color, track: (m) => this.track(m), isLive: () => !this.disposed });
       } else if (s.kind === 'keep' && !this.setup.city) {
-        this.civicStructures.add(g, s, this.setup.sides[1].ageId);
+        // the defender's own hall: its people's theme, a legacy country's land style
+        this.civicStructures.add(g, s, this.setup.sides[1].ageId, styleOfLand(this.setup.sides[1].nationId, this.setup.sides[1].ageId));
       }
     });
   }
@@ -823,7 +828,7 @@ export class BattleRenderer {
     if (layer) return layer;
     // every soldier of this age and class (capacity.js); a signature unit's layer ('infantry~people')
     // as many as its base class, a general layer one a squad (the minimum pool)
-    const MAX = soldierSlots(this.setup, ageId, baseClassOf(classId));
+    const MAX = soldierSlots(this.setup, ageId, LOOK_CLASS[classId] || baseClassOf(classId));
     const buf = (size) => new InstancedBufferAttribute(new Float32Array(MAX * size), size).setUsage(DynamicDrawUsage);
     const matrix = buf(16); const color = buf(3); const anim = buf(3); const variant = buf(4);
     const make = (source, shadow, far) => {
@@ -1171,9 +1176,11 @@ export class BattleRenderer {
     // (data/signatureUnits.js, unitModels.js); without it the base unit's layer
     const people = this.sidePeople?.[s.side] ?? (this.sidePeople = this.setup.sides.map((sd) => peopleForNationId(sd.nationId)))[s.side];
     const sig = people ? signatureKey(s.classId, people) : null;
+    // a raid party's riders and a hired band's foot draw their irregular look when its model is in
+    const look = lookKey(s.look || unitLookOf(null, this.setup, s.side), s.classId);
     return {
       stats,
-      layer: this.soldierLayer(s.ageId, sig && hasSoldierOverride(s.ageId, sig) ? sig : s.classId),
+      layer: this.soldierLayer(s.ageId, sig && hasSoldierOverride(s.ageId, sig) ? sig : look && hasSoldierOverride(s.ageId, look) ? look : s.classId),
       general: hasSoldierOverride(s.ageId, 'general') ? this.soldierLayer(s.ageId, 'general') : null,
       drawn: this.figureScale < 1 ? { soldiers: scaledSoldiers(stats.soldiers, this.figureScale) } : stats,
       big: s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || !!stats.flying,
@@ -1397,6 +1404,7 @@ export class BattleRenderer {
 
   drawStructures(cur) {
     this.civicStructures?.update(cur);
+    this.battleProps?.update(cur);
     let n = 0;
     const camQuat = this.camera.quaternion;
     const picked = this.inspected?.kind === 'structure' ? this.inspected.index : -1;
@@ -1525,6 +1533,7 @@ export class BattleRenderer {
     this.soldierLayers.forEach((l) => l.levels.forEach((m) => m.dispose()));
     this.cityLayer?.dispose();
     this.civicStructures?.dispose();
+    this.battleProps?.dispose();
     this.ecoLayer?.dispose();
     this.vegetation?.dispose();
     this.terrainArt?.dispose();

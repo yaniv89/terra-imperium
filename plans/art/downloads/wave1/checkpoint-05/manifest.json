@@ -1,0 +1,146 @@
+{
+  "checkpoint": "wave1-05",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 14,
+  "packed_bytes_shipped": 5747312,
+  "items": [
+    {
+      "file": "src/assets/battle/city/civic-bronze-americas.glb",
+      "id": "battle-city/bronze/americas/civic",
+      "what": "Bronze americas civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 243348,
+      "sha256": "12ddc1cdd1c868da4856523538627510b462580f29117903bb95913b312a7b62",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-eastafrica.glb",
+      "id": "battle-city/bronze/eastafrica/civic",
+      "what": "Bronze eastafrica civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 394292,
+      "sha256": "602f43c72eaff54c88789fb3f9adaa6ca7b85b7e6bffaae37ca87ef9749f0425",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-europe.glb",
+      "id": "battle-city/bronze/europe/civic",
+      "what": "Bronze europe civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 486980,
+      "sha256": "a3a68fb7ccf493039fcc80a966acd49fdded55fa4c6ded4650a7b5edf309b5a8",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-indic.glb",
+      "id": "battle-city/bronze/indic/civic",
+      "what": "Bronze indic civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 448004,
+      "sha256": "b94e78b07ccbeb6d699b098a1463b97ba561dd443e521c850d96365f96d4de17",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-israelite.glb",
+      "id": "battle-city/bronze/israelite/civic",
+      "what": "Bronze israelite civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 469960,
+      "sha256": "dbbc51f5ae1511f18e7ee52301e448da2c67dbc09f052086b932d86b69100a81",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-levant.glb",
+      "id": "battle-city/bronze/levant/civic",
+      "what": "Bronze levant civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 431744,
+      "sha256": "78c7d69b52701250bad6eae3956eb3469b5feb4c47f3c876785945f98381268d",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-maghreb.glb",
+      "id": "battle-city/bronze/maghreb/civic",
+      "what": "Bronze maghreb civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 331916,
+      "sha256": "5f3702bbc7a35c6d9dd9a9729e81ba122b0580e98567e3a540c03c0edb4a9283",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-monsoon.glb",
+      "id": "battle-city/bronze/monsoon/civic",
+      "what": "Bronze monsoon civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 286820,
+      "sha256": "5b0987adb996a2e4d3b19bb910f7344d2eebd937112511be25fd7472f95e8adc",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-nile.glb",
+      "id": "battle-city/bronze/nile/civic",
+      "what": "Bronze nile civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 290840,
+      "sha256": "7968a9e734ef397c47c1ccc9d67a9f7058c54d8395c436f08891d57dd3cd8c3d",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-sinic.glb",
+      "id": "battle-city/bronze/sinic/civic",
+      "what": "Bronze sinic civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 505220,
+      "sha256": "da4376ea7cff668e5a091900b3ec6a5d14127c38fd66cc5a7802fa543a7597fa",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-steppe.glb",
+      "id": "battle-city/bronze/steppe/civic",
+      "what": "Bronze steppe civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 451012,
+      "sha256": "6651a68e7ac65bc4cb23fdbe4b6baba1b2c452b68e5b711fef7ec842718e9ec8",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze-westafrica.glb",
+      "id": "battle-city/bronze/westafrica/civic",
+      "what": "Bronze westafrica civic hall: keep, keep-damaged, keep-ruined",
+      "bytes": 325356,
+      "sha256": "dc89f7c21e71edb9518d889731ab7e5eb7d9d82a314de9f02acd7674522fe577",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/civic-bronze.glb",
+      "id": "battle-city/bronze/base/civic",
+      "what": "Base Bronze civic hall, re-shipped with 1024 atlases (was 2.02 MB unpacked)",
+      "bytes": 341700,
+      "sha256": "f05076f5a86baba436d91040cc7eacecf786fb60961d291c776694c8e6cffa0b",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/city/palace-damage-bronze.glb",
+      "id": "battle-city/bronze/palace-damage",
+      "what": "Bronze palace damage: palace-damaged, palace-ruined, palace-small-damaged, palace-small-ruined",
+      "bytes": 374936,
+      "sha256": "1bdb1776571a22e59b4bbb71bb318f251039599c058ec80642dc869347992282",
+      "status": "in_game_awaiting_review"
+    },
+    {
+      "file": "src/assets/battle/props/props-bronze.glb",
+      "id": "props/bronze",
+      "what": "Bronze battlefield props: fence-a, field-wall-a, well, cart, haystack, crate, barrel, market-stall, standard, campfire, shrine, road-marker",
+      "bytes": 365184,
+      "sha256": "0c8c40edf902ff20388673fd44f9f9b2fb2c69bcabca3a418af9b53c7bb9b8e0",
+      "status": "in_game_awaiting_review"
+    }
+  ],
+  "screenshots": [
+    "plans/art/shots/wave1/bronze-city-americas-844x390.png",
+    "plans/art/shots/wave1/bronze-city-europe-844x390.png",
+    "plans/art/shots/wave1/bronze-city-europe-keep-close-844x390.png",
+    "plans/art/shots/wave1/bronze-city-indic-844x390.png",
+    "plans/art/shots/wave1/bronze-city-indic-keep-close-844x390.png",
+    "plans/art/shots/wave1/bronze-city-levant-844x390.png",
+    "plans/art/shots/wave1/bronze-city-levant-keep-close-844x390.png",
+    "plans/art/shots/wave1/bronze-city-maghreb-capital-hud-844x390.png",
+    "plans/art/shots/wave1/bronze-city-nile-844x390.png",
+    "plans/art/shots/wave1/bronze-city-nile-keep-close-844x390.png",
+    "plans/art/shots/wave1/bronze-city-sinic-844x390.png",
+    "plans/art/shots/wave1/bronze-city-sinic-keep-close-844x390.png",
+    "plans/art/shots/wave1/bronze-city-steppe-844x390.png",
+    "plans/art/shots/wave1/bronze-city-steppe-keep-close-844x390.png",
+    "plans/art/shots/wave1/bronze-city-westafrica-844x390.png"
+  ]
+}

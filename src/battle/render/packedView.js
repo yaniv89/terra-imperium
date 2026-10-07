@@ -13,6 +13,7 @@ import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
 import { callCost } from '../sim/orders';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
 import { ecoView } from '../sim/economy';
+import { squadLookOf } from './view';
 
 // One squad's per-tick record. Nullable numbers travel as NaN.
 const FIELDS = ['x', 'y', 'facing', 'strength', 'morale', 'flags', 'enterTick', 'inside', 'order', 'orderX', 'orderY', 'target', 'targetKind'];
@@ -21,7 +22,7 @@ const F = Object.fromEntries(FIELDS.map((k, i) => [k, i]));
 const FLAGS = ['alive', 'onField', 'fled', 'routed', 'retreating', 'reserve', 'visible', 'hidden', 'striking'];
 // Fields that change rarely, sent with the slow part (checked every SLOW_EVERY ticks and when
 // paused, and only for the squads where something changed).
-const SLOW = ['unitId', 'classId', 'ageId', 'navalLine', 'maxStrength', 'startStrength', 'reinforcement', 'callCost', 'xp', 'promotions', 'commanderId', 'abilities'];
+const SLOW = ['unitId', 'classId', 'ageId', 'navalLine', 'look', 'maxStrength', 'startStrength', 'reinforcement', 'callCost', 'xp', 'promotions', 'commanderId', 'abilities'];
 export const SLOW_EVERY = 5;
 
 const num = (v) => (v === null || v === undefined ? NaN : v);
@@ -71,7 +72,7 @@ export const createViewPacker = () => {
       squads: f.buffer,
       // Squads born since the last frame (the battle economy trains them) always bring their slow part.
       slow: slow || n > slowKeys.length ? w.squads.map((q, i) => (!slow && i < slowKeys.length ? null : { i, side: q.side,
-        unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null,
+        unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null, look: squadLookOf(q),
         maxStrength: q.maxStrength, startStrength: q.startStrength,
         reinforcement: q.reinforcement ? { name: q.reinforcement.name, edge: q.reinforcement.edge } : null,
         callCost: callCost(q, w), xp: q.original.xp || 0, promotions: q.promotions, commanderId: q.commanderId,

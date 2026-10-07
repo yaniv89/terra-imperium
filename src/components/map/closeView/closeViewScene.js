@@ -259,11 +259,13 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         if (mesh) { root.remove(mesh); (mesh.userData.townDamage || []).forEach((m) => m.dispose()); }
         const model = campRoot || asset;
         mesh = model ? instanceTownAsset(model, teamColor, tint) : new Mesh(getTownGeometry(id, tier.id, opts), townMaterial);
-        if (asset && palaceRoot) mesh.add(instanceTownAsset(palaceRoot, teamColor, tint));
+        const palaceNode = asset && palaceRoot ? instanceTownAsset(palaceRoot, teamColor, tint) : null;
+        if (palaceNode) mesh.add(palaceNode);
         if (asset && wallsRoot) mesh.add(instanceTownAsset(wallsRoot, teamColor, tint));
         if (dmg) {
-          const states = manifestStates(cityManifestOf(state, id), dmg).filter((s) => s.kind === 'house' || s.kind === 'landmark');
-          applyTownDamage(mesh, states, { ageId: opts.ageId, style, teamColor, tint, onReady: onAssets });
+          const states = manifestStates(cityManifestOf(state, id), dmg).filter((s) => s.kind === 'house' || s.kind === 'landmark' || (palaceNode && s.kind === 'palace'));
+          const palace = palaceNode ? { name: palaceFor(tier.id), style: palaceShared === shared ? style : palaceStyle, node: palaceNode } : null;
+          applyTownDamage(mesh, states, { ageId: opts.ageId, style, teamColor, tint, onReady: onAssets, palace });
         }
         mesh.userData.fields = fields.map((f) => {
           const field = instanceTownAsset(shared[f.name], teamColor, tint);
