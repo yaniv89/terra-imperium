@@ -139,6 +139,20 @@ License for every file in this table: CC0 1.0.
 
 License for every file in this table: CC0 1.0.
 
+## Battle music (src/assets/audio/music/battle/)
+
+Each source page's license field was checked on 2026-10-07 and shows CC0 only.
+
+| File | Length | Source page | Author | Original file(s) |
+| --- | --- | --- | --- | --- |
+| 01-the-battlefield.ogg | 111.8 s | https://opengameart.org/content/the-battlefield | Umplix | the_battlefield.wav |
+| 02-medieval-battle.ogg | 74.1 s | https://opengameart.org/content/medieval-battle | RandomMind | battle_1.wav |
+| 03-to-battle.ogg | 90.5 s | https://opengameart.org/content/to-battle | Umplix | to_battle.wav |
+| 04-viking-march.ogg | 41.1 s | https://opengameart.org/content/viking-march | nightm4re | viking-march.ogg |
+| 05-march-of-devils-dome.ogg | 133.2 s | https://opengameart.org/content/the-march-of-devils-dome | Eldritch Grim | the_march_of_devils_dome.wav |
+
+License for every file in this table: CC0 1.0.
+
 ## Map ambience (src/assets/audio/ambience/)
 
 | File | Length | Source page | Author | Original file(s) |
@@ -157,6 +171,8 @@ Not required by CC0, but given with thanks:
 - bart (Free Firearm Sound Library project): https://opengameart.org/content/the-free-firearm-sound-library
 - Ben Jaszczak and Brian Nelson (Still North Media): https://opengameart.org/content/medieval-sound-effects-weapon-impacts, https://opengameart.org/content/medieval-sound-effects-weapon-textures
 - Centurion_of_war: https://opengameart.org/content/relics-of-past
+- Eldritch Grim: https://opengameart.org/content/the-march-of-devils-dome
+- nightm4re: https://opengameart.org/content/viking-march
 - CleytonKauffman: https://opengameart.org/content/mystical-enigmatic-background-music
 - HaelDB: https://opengameart.org/content/egyptian-meditation-music
 - Independent.nu: https://opengameart.org/content/35-wooden-crackshitsdestructions
@@ -166,12 +182,13 @@ Not required by CC0, but given with thanks:
 - Of Far Different Nature (composition by John Dowland, 1597, public domain): https://opengameart.org/content/historic-renaissance-music-from-1597-if-my-complaints-could-passions-move-by-john-dowland
 - PagDev: https://opengameart.org/content/fireplace-sound-loop
 - pyranostudios: https://opengameart.org/content/air-whoosh
-- RandomMind: https://opengameart.org/content/fantasy-rising-moon, https://opengameart.org/content/medieval-exploration, https://opengameart.org/content/medieval-harvest-season, https://opengameart.org/content/medieval-the-bards-tale
+- RandomMind: https://opengameart.org/content/fantasy-rising-moon, https://opengameart.org/content/medieval-battle, https://opengameart.org/content/medieval-exploration, https://opengameart.org/content/medieval-harvest-season, https://opengameart.org/content/medieval-the-bards-tale
 - rubberduck: https://opengameart.org/content/100-cc0-metal-and-wood-sfx, https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx
 - Spring Spring: https://opengameart.org/content/experimenting-with-greek-instrument-samples
 - StarNinjas: https://opengameart.org/content/cave-in, https://opengameart.org/content/crowd-shoutingspeaking-ambience
 - StumpyStrust: https://opengameart.org/content/their-coming-generic-horn-sound
 - Thimras: https://opengameart.org/content/battle-at-sea, https://opengameart.org/content/cannon-fire
+- Umplix: https://opengameart.org/content/the-battlefield, https://opengameart.org/content/to-battle
 - vitalezzz: https://opengameart.org/content/desert-settlement
 - William Hector: https://opengameart.org/content/horde-war-drums-loop
 

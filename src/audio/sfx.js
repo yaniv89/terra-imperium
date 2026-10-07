@@ -1,10 +1,10 @@
 // src/audio/sfx.js
 // The interface and world map sound player, and the unit voices (src/audio/ACTIONS.md lists every
-// id and when it plays). One small Web Audio graph, separate from the battle's (battleAudio.js):
+// id and when it plays). One small Web Audio graph on the game's shared context (audioContext.js):
 //   - ids come from soundRegistry.js (UI_SOUNDS, WORLD_SOUNDS, voiceFilesFor); an id without
 //     recordings stays silent, nothing is synthesized;
 //   - the Sound switch, the Effects volume and the Interface sounds / Unit voices switches
-//     (audioSettings.js) decide what is heard; a hidden tab hears nothing;
+//     (audioSettings.js) decide what is heard; a page that is away (pageLifecycle.js) hears nothing;
 //   - each id has a cooldown, at most MAX_CONCURRENT sounds ring at once, several sounds of one
 //     moment play one after another (planSequence), the loudest news first;
 //   - files are fetched and decoded on first use, then kept.
@@ -12,6 +12,8 @@
 // Web Audio (tests, headless runs, old browsers) every call is a no-op.
 import { UI_SOUNDS, WORLD_SOUNDS, uiFilesFor, worldFilesFor, voiceFilesFor, createSoundRng, pickVariant } from './soundRegistry';
 import { getAudioSettings } from './audioSettings';
+import { isPageAudible } from './pageLifecycle';
+import { audioAvailable, getAudioContext, unlockAudio, resumeAudio, registerAudioConsumer } from './audioContext';
 
 export const MASTER = 0.6; // the bus at full Effects volume (a phone speaker stays sane)
 export const MAX_CONCURRENT = 6;
@@ -70,21 +72,21 @@ export const SHEET_QUIET_MS = 600;
 const rng = createSoundRng();
 const barks = createBarkLimiter();
 const now = () => (typeof performance !== 'undefined' ? performance.now() : 0);
-const hidden = () => typeof document !== 'undefined' && !!document.hidden;
+const hidden = () => !isPageAudible();
 const timers = new Set();
 
-const audioContextClass = () => (typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext || null) : null);
 /** Can this environment play at all? (no in tests and headless runs) */
-export const sfxAvailable = () => !!audioContextClass();
+export const sfxAvailable = () => audioAvailable();
 
 const ensure = () => {
-  if (!ctx) {
-    const AC = audioContextClass();
-    if (!AC) return null;
-    try { ctx = new AC(); } catch { return null; }
+  const c = getAudioContext();
+  if (!c) return null;
+  if (c !== ctx) {
+    ctx = c; buffers.clear();
     bus = ctx.createGain(); bus.connect(ctx.destination);
+    registerAudioConsumer('sfx', () => ({ ringing: active, decoded: buffers.size }));
   }
-  if (ctx.state === 'suspended') ctx.resume?.()?.catch?.(() => {});
+  if (ctx.state !== 'running') resumeAudio('sound');
   bus.gain.value = MASTER * getAudioSettings().effects;
   return ctx;
 };
@@ -109,7 +111,7 @@ const start = (url, level) => {
 };
 
 /** Call from the first user gesture so the browser lets the context run. */
-export const unlockSfx = () => { if (sfxAvailable()) ensure(); };
+export const unlockSfx = () => { if (sfxAvailable()) { unlockAudio(); ensure(); } };
 
 /**
  * Play an interface or world sound now. Returns true when a sound was started (false: unknown id,

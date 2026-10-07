@@ -4,7 +4,7 @@
 //            button and Settings > Sound both flip it. Kept under its old key so a muted player
 //            stays muted.
 //   effects  battle effects volume, 0..1
-//   music    music and map ambience volume, 0..1 (music plays on the map, never in a battle)
+//   music    music and map ambience volume, 0..1 (the map playlist, and the battle playlist a little lower in a battle)
 //   musicOn  music switch (mute music only); effectsOn battle sounds switch (mute RTS sounds only)
 //   uiOn     interface sounds switch (taps, sheets and the world map's events, src/audio/sfx.js)
 //   voicesOn unit voices switch (the barks of selected and ordered units in a battle)
