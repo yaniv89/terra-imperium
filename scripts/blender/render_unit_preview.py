@@ -2,8 +2,9 @@
 # An 844x390 preview of a unit .blend on the standard light (plans/ART-MODELS-PLAN.md 2.4: sun
 # #FFE7C2, sky #E3EEF8, bounce #5A503F), orthographic from the battle camera's side, fitted to the
 # model; transparent background. Based on the Codex preview script of 2026-10-07.
-#   blender -b --factory-startup -P scripts/blender/render_unit_preview.py -- <unit.blend> [out.png] [front]
-# `front` turns the camera to look at the model's front three-quarter (default: the battle view).
+#   blender -b --factory-startup -P scripts/blender/render_unit_preview.py -- <unit.blend> [out.png] [front] [object=<root>]
+# `front` turns the camera to look at the model's front three-quarter (default: the battle view);
+# `object=` renders one object of a kit file (its LOD0).
 import bpy, sys, json
 from pathlib import Path
 from mathutils import Vector
@@ -12,8 +13,18 @@ args = sys.argv[sys.argv.index('--') + 1:]
 source = Path(args[0]).resolve()
 out = Path(args[1]).resolve() if len(args) > 1 else source.parent / 'preview.png'
 front = 'front' in args[2:]
+only = next((a.split('=', 1)[1] for a in args[2:] if a.startswith('object=')), None)
 bpy.ops.wm.open_mainfile(filepath=str(source))
 scene = bpy.context.scene
+if only:  # one object of a kit file (rts-bronze.glb's roles): its LOD0 only, moved to the origin
+    root = bpy.data.objects[only]
+    for o in scene.objects:
+        if o.type == 'MESH':
+            keep = o.parent == root and o.name.startswith('LOD0')
+            o.hide_render = not keep
+            o.hide_set(not keep)
+    root.location = (0, 0, 0)
+    bpy.context.view_layer.update()
 for a in bpy.data.objects:
     if a.type == 'ARMATURE' and a.animation_data:
         idle = bpy.data.actions.get('Idle')

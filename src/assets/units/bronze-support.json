@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "restClip": "^Idle$",
-  "triangleBudget": 3000,
+  "quadruped": true,
+  "triangleBudget": 5000,
   "tags": {
     "team": "(^|\\s)Team(\\s|$)",
     "skin": "(^|\\s)Skin(\\s|$)",

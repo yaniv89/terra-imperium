@@ -51,8 +51,10 @@ describe('extra battle models', () => {
   it('list a general for sides with commanders and the people\'s signature unit', () => {
     const extras = battleExtraModels(setup, { findGeneral, findSignature });
     expect(extras.map((e) => `${e.ageId}:${e.key}:${e.classId}`)).toEqual(['bronze:general:cavalry', 'bronze:infantry~israel:infantry']);
-    expect(battleExtraModels(setup)).toEqual([]); // no general or signature files yet
-    expect(findGeneralModel('bronze')).toBeNull();
+    // the Bronze general ships (src/assets/units/bronze-general.glb); no signature files yet
+    expect(battleExtraModels(setup).map((e) => `${e.ageId}:${e.key}:${e.classId}`)).toEqual(['bronze:general:cavalry']);
+    expect(findGeneralModel('bronze')?.url).toMatch(/bronze-general.*\.glb/);
+    expect(findGeneralModel('classical')).toBeNull();
     expect(MODEL_SCALE.general).toBeGreaterThan(MODEL_SCALE.cavalry);
   });
 
