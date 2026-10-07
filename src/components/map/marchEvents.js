@@ -19,3 +19,7 @@ export const selectRegion = (regionId) => window.dispatchEvent(new CustomEvent(S
 // Centre the map on a city while something about it is open (the event sheet); null releases it.
 export const FOCUS_REGION = 'ti:focus-region';
 export const focusRegion = (regionId) => window.dispatchEvent(new CustomEvent(FOCUS_REGION, { detail: regionId }));
+// Open a city's management sheet on one of its tabs ('build' for End Turn's "Choose production"),
+// selecting the city and centring the map on it.
+export const MANAGE_CITY = 'ti:manage-city';
+export const manageCity = (regionId, tab = 'overview') => window.dispatchEvent(new CustomEvent(MANAGE_CITY, { detail: { regionId, tab } }));

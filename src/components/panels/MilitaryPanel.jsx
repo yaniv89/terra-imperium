@@ -116,7 +116,7 @@ const MilitaryPanel = () => {
           <input type="checkbox" className="w-5 h-5" checked={state.battleSettings?.instantBattles === true} onChange={(e) => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { instantBattles: e.target.checked } })} data-testid="instant-battles" />
         </label>
         <label className="flex items-center justify-between gap-2 text-[12px] text-fa-text min-h-[40px]">
-          <span>Warn me before End Turn while something still wants a decision</span>
+          <span>Warn me before End Turn while armies or settlers can still move</span>
           <input type="checkbox" className="w-5 h-5" checked={state.battleSettings?.warnEndTurn === true} onChange={(e) => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { warnEndTurn: e.target.checked } })} data-testid="warn-end-turn" />
         </label>
       </div>

@@ -20,6 +20,7 @@
 // over a second per frame under this rendering path regardless of camera movement — so TURNS_TO_PLAY
 // stays conservative rather than assuming the flag alone makes a long run safe.
 import { test, expect } from '@playwright/test';
+import { endTurn } from './endTurnHelpers';
 
 const TURNS_TO_PLAY = 3;
 
@@ -32,7 +33,7 @@ const TURNS_TO_PLAY = 3;
 const click = (locator) => locator.dispatchEvent('click');
 
 // A scripted or procedural event can land on any turn, including the very first — its modal
-// disables End Turn until resolved (GameHeader.jsx), so a real playthrough (human or this test)
+// turns End Turn into "Answer the event" (TurnDock.jsx), so a real playthrough (human or this test)
 // has to clear it before advancing again. Always picks the first option; which one is irrelevant
 // here, only that play can continue.
 const resolveAnyPendingEvent = async (page) => {
@@ -74,11 +75,11 @@ test('a randomly chosen nation can play several turns with no console errors and
   await expect(yearLabel).toBeVisible();
   const initialYear = await yearLabel.textContent();
 
-  const endTurnButton = page.getByRole('button', { name: 'End Turn' });
+
   let finalYear = initialYear;
   for (let i = 0; i < TURNS_TO_PLAY; i++) {
     await resolveAnyPendingEvent(page);
-    await click(endTurnButton);
+    await endTurn(page); // answers what blocks End Turn first (endTurnHelpers.js)
     finalYear = await yearLabel.textContent();
   }
 

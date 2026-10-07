@@ -3,6 +3,7 @@
 // edge with docked panels beside it, the map kept usable in the middle. A phone held upright plays
 // the empire view (map on top, half sheets below) with a soft, dismissible hint to turn the phone.
 import { test, expect } from '@playwright/test';
+import { answerBlockers } from './endTurnHelpers';
 
 // See playability.spec.js: dispatchEvent avoids simulated pointer travel across the WebGL globe.
 const click = (locator) => locator.dispatchEvent('click');
@@ -41,7 +42,7 @@ test.describe('phone held sideways', () => {
     const header = page.locator('header');
     await expect(header).toBeVisible();
     expect((await box(header)).height).toBeLessThanOrEqual(52);
-    const endTurn = page.getByRole('button', { name: 'End Turn' });
+    const endTurn = page.getByTestId('end-turn');
     const et = await box(endTurn);
     expect(et.right).toBeLessThanOrEqual(844 - 52);
     expect(et.bottom).toBeLessThanOrEqual(390);
@@ -74,6 +75,7 @@ test.describe('phone held sideways', () => {
     // A turn still plays.
     const year = header.getByText(/^-?\d+ (BCE|CE)$/);
     const before = await year.textContent();
+    await answerBlockers(page); // End Turn names what must be answered first (endTurnHelpers.js)
     await click(endTurn);
     await expect(year).not.toHaveText(before);
 
@@ -96,7 +98,7 @@ test.describe('phone held upright', () => {
     await expect(hint).toHaveCount(0);
     // A reload resumes the autosaved game (the shell shows, not the start screen); the hint stays away.
     await page.reload();
-    await expect(page.getByRole('button', { name: 'End Turn' }).or(page.getByRole('heading', { name: 'Choose your people' })).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('end-turn').or(page.getByRole('heading', { name: 'Choose your people' })).first()).toBeVisible({ timeout: 15000 });
     await expect(page.getByTestId('rotate-hint')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
   });

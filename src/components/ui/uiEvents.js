@@ -16,3 +16,14 @@ export const openSettings = () => fire(OPEN_SETTINGS);
 export const openTurnReport = () => fire(OPEN_TURN_REPORT);
 /** Switch the map lens (lenses.js id), e.g. Research's Map button on a boost. */
 export const setMapLens = (lensId) => fire(SET_MAP_LENS, lensId);
+// The End Turn button's blockers (src/engine/turnBlockers.js) bring back a sheet the player closed
+// or tucked away: the research choice, the peace offer, the attack interrupt.
+export const OPEN_RESEARCH_CHOICE = 'ti:open-research-choice';
+export const SHOW_PEACE_OFFER = 'ti:show-peace-offer';
+export const SHOW_DEFENSE = 'ti:show-defense';
+/** The research choice sheet, even after "Later". */
+export const openResearchChoice = () => fire(OPEN_RESEARCH_CHOICE);
+/** Untuck the peace offer sheet. */
+export const showPeaceOffer = () => fire(SHOW_PEACE_OFFER);
+/** Untuck the attack interrupt (W14). */
+export const showDefense = () => fire(SHOW_DEFENSE);

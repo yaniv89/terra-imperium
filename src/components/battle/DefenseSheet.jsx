@@ -9,7 +9,7 @@
 // for defences" (battleSettings.autoDefend) fights every later one on Auto. While an event or a
 // peace offer is open the queue waits (the sheet hides). It can be tucked away to look at the map,
 // leaving a pill to bring it back. A panel on the left over the map, phone and desktop alike.
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Shield as ShieldIcon, ChevronDown } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -18,10 +18,17 @@ import { battleNameOf } from '../../engine/battleName';
 import { Button, IconButton } from '../ui/atlas';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { defenseSheetModel } from './defenseSheetModel';
+import { SHOW_DEFENSE } from '../ui/uiEvents';
 
 const DefenseSheet = () => {
   const { state, dispatch } = useGame();
   const [tucked, setTucked] = useState(false);
+  // End Turn's "Defend <city>: Command or Auto" (turnBlockers.js) untucks it.
+  useEffect(() => {
+    const onShow = () => setTucked(false);
+    window.addEventListener(SHOW_DEFENSE, onShow);
+    return () => window.removeEventListener(SHOW_DEFENSE, onShow);
+  }, []);
   const [mode, setMode] = useState(state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command');
   const defenses = state.pendingDefenses || [];
   const def = defenses[0] || null;

@@ -47,7 +47,7 @@ import ArmySheet from './ArmySheet';
 import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
-import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION } from './marchEvents';
+import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION, MANAGE_CITY } from './marchEvents';
 import { SET_MAP_LENS } from '../ui/uiEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
@@ -98,8 +98,10 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
     const onTile = (e) => { setSelectedTile(e.detail); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
     const onNation = (e) => { setSelectedNation(e.detail); setSelectedTile(null); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
     const onFocus = (e) => setEventFocus(e.detail || null);
-    window.addEventListener(SELECT_ARMY, onArmy); window.addEventListener(SELECT_TILE, onTile); window.addEventListener(SELECT_NATION, onNation); window.addEventListener(FOCUS_REGION, onFocus);
-    return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); window.removeEventListener(SELECT_NATION, onNation); window.removeEventListener(FOCUS_REGION, onFocus); };
+    // End Turn's "Choose production: <city>" (turnBlockers.js): the city's sheet on its Build tab, the map centred on it.
+    const onManage = (e) => { const { regionId, tab } = e.detail || {}; if (!regionId) return; setSelectedTile(null); setSelectedArmy(null); setSelectedNation(null); selectRegion(regionId); setTabRequest({ regionId, tab: tab || 'overview' }); setManageOpen(true); };
+    window.addEventListener(SELECT_ARMY, onArmy); window.addEventListener(SELECT_TILE, onTile); window.addEventListener(SELECT_NATION, onNation); window.addEventListener(FOCUS_REGION, onFocus); window.addEventListener(MANAGE_CITY, onManage);
+    return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); window.removeEventListener(SELECT_NATION, onNation); window.removeEventListener(FOCUS_REGION, onFocus); window.removeEventListener(MANAGE_CITY, onManage); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // the tile of one of your armies: its sheet (ArmySheet.jsx)
   // On a tablet the city card stays open under a tile or army sheet (E2: two sheets stacked).
@@ -116,6 +118,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const mode = globeAllowed ? storedMode : 'flat';
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [tabRequest, setTabRequest] = useState(null); // { regionId, tab }: the city sheet opens on this tab (MANAGE_CITY)
   const [eventFocus, setEventFocus] = useState(null); // the event sheet's city (marchEvents.js focusRegion)
   const [viewportBounds, setViewportBounds] = useState(null);
   const [navigateTarget, setNavigateTarget] = useState(null);
@@ -200,7 +203,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
         selectedRegion={selectedRegion}
         onSelectRegion={onSelectRegion}
       />
-      <ProvinceModal regionId={selectedRegion} open={manageOpen} onClose={() => setManageOpen(false)} />
+      <ProvinceModal regionId={selectedRegion} open={manageOpen} onClose={() => { setManageOpen(false); setTabRequest(null); }} tabRequest={tabRequest} />
     </div>
   );
 };

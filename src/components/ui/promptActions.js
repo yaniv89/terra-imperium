@@ -3,7 +3,9 @@
 // the tile of idle settlers, the Research or Peoples tab. Shared by the chips under the top bar and
 // the End Turn dock's warning list.
 import { openPanelTab, OPEN_SECTION } from '../panels/panelEvents';
-import { selectArmy, selectTile, selectRegion } from '../map/marchEvents';
+import { selectArmy, selectTile, selectRegion, manageCity, focusRegion } from '../map/marchEvents';
+import { openTributeDemand, openJoinOffer } from '../independents/independentEvents';
+import { openResearchChoice, showPeaceOffer, showDefense } from './uiEvents';
 
 export const goToPrompt = (state, p) => {
   if (!p) return;
@@ -19,6 +21,7 @@ export const goToPrompt = (state, p) => {
   if (p.tab) { openPanelTab(p.tab); if (p.section) window.dispatchEvent(new CustomEvent(OPEN_SECTION, { detail: p.section })); return; }
   if (p.kind === 'army' || p.kind === 'supply') { selectArmy(p.tile); return; }
   if (p.kind === 'settler') { selectTile(p.tile); return; }
+  if (p.kind === 'city') { manageCity(p.regionId, 'build'); return; }
   if (p.regionId) selectRegion(p.regionId);
 };
 
@@ -33,4 +36,26 @@ export const chipLabel = (state, p) => {
   if (p.kind === 'supply') return 'Army low on supply';
   if (p.kind === 'demand') return `${state.nations[state.pendingDemand?.from]?.name || 'A people'} demands`;
   return p.label;
+};
+
+/**
+ * Open the thing an End Turn blocker (src/engine/turnBlockers.js) is about: the city's Build tab
+ * (the map centred on it), the research choice sheet, the Peoples tab on a major's demand, the
+ * tribute or join sheet, the peace offer or attack interrupt (untucked). An event and a battle
+ * are already on screen; an event about a city centres the map on it.
+ */
+export const goToBlocker = (state, b) => {
+  if (!b) return;
+  const t = b.target || {};
+  switch (b.action) {
+    case 'city': manageCity(t.regionId, 'build'); return;
+    case 'research': openResearchChoice(); return;
+    case 'diplomacy': openPanelTab('diplomacy'); return;
+    case 'tribute': openTributeDemand(t.demandId); return;
+    case 'join': openJoinOffer(t.offerId); return;
+    case 'peace': showPeaceOffer(); return;
+    case 'defense': showDefense(); return;
+    case 'event': if (t.cityId) focusRegion(t.cityId); return;
+    default:
+  }
 };

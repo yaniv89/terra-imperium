@@ -2,8 +2,8 @@
 // The "needs you" chips (W02, plans/UI-DESIGN.md): under the top bar on the left, the first things
 // that want a decision this turn, numbered; tapping one jumps there (a city card, an army sheet,
 // the settlers' tile, the Research or Peoples tab). At most three show; a "+N" chip opens the next
-// ones. The guided start's step is always first. Hidden when nothing waits. End Turn shows the
-// count of what is left (TurnDock.jsx); End Turn is never blocked.
+// ones. The guided start's step is always first. Hidden when nothing waits. End Turn names the
+// first thing that must be answered (TurnDock.jsx, src/engine/turnBlockers.js).
 import React, { useMemo, useState } from 'react';
 import { ChevronRight, BookOpen } from 'lucide-react';
 import { useGame } from '../../context/GameContext';

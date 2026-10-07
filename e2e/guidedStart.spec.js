@@ -3,6 +3,7 @@
 // opens a game as Kemet whose next-prompt pill shows the guide's first step, and one turn later
 // the guide is still there (it ends after ten turns or when every step is done).
 import { test, expect } from '@playwright/test';
+import { endTurn } from './endTurnHelpers';
 
 const click = (locator) => locator.dispatchEvent('click');
 
@@ -19,7 +20,7 @@ test('the guided start plays as Kemet with the guide in the next prompt', async 
   await expect(prompt).toContainText('Guide 1/6');
   const firstOption = page.locator('.border-amber-500 button').first();
   while (await firstOption.isVisible().catch(() => false)) { await click(firstOption); await page.waitForTimeout(50); }
-  await click(page.getByRole('button', { name: 'End Turn' }));
+  await endTurn(page); // answers what blocks End Turn first (endTurnHelpers.js)
   await expect(prompt).toHaveAttribute('data-kind', 'guide');
   expect(errors).toEqual([]);
 });

@@ -5,7 +5,7 @@
 // from your side, their terms (or a white peace), the truce it starts; Accept is the brass action,
 // Keep fighting beside it. It can be tucked away to look at the map first. A panel on the left
 // over the map, like the attack interrupt (W14).
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Feather, ChevronDown } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -13,6 +13,7 @@ import { REGIONS_DATA } from '../../data/regions';
 import { TRUCE_DURATION_TURNS } from '../../data/actionCosts';
 import { computeWarScore } from '../../engine/diplomacy';
 import { Button, IconButton, Label } from '../ui/atlas';
+import { SHOW_PEACE_OFFER } from '../ui/uiEvents';
 
 export const describeTerm = (term, state) => {
   switch (term.type) {
@@ -29,8 +30,15 @@ const PeaceOfferSheet = () => {
   const { state, dispatch } = useGame();
   const [tucked, setTucked] = useState(false);
   const offer = state.pendingPeaceOffer;
-  // Battles and assaults come first; the offer waits behind them.
-  if (!offer || state.pendingBattle || state.pendingDefenses?.length) return null;
+  // End Turn's "Answer: X offers peace" (turnBlockers.js) untucks it.
+  useEffect(() => {
+    const onShow = () => setTucked(false);
+    window.addEventListener(SHOW_PEACE_OFFER, onShow);
+    return () => window.removeEventListener(SHOW_PEACE_OFFER, onShow);
+  }, []);
+  // A battle under way comes first. Queued assaults do not: the battle queue itself waits for the
+  // answer (battleQueue.js battleQueueBlocked), so hiding behind it left neither sheet on screen.
+  if (!offer || state.pendingBattle) return null;
   const from = state.nations[offer.from]?.name || offer.from;
   const war = (state.wars || []).find((w) => w.id === offer.warId);
   const terms = offer.terms || [];
