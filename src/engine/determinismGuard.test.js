@@ -45,7 +45,7 @@ const RENDER_ONLY = {
 const ALLOWED = [
   ['engine/resolveTurn.js', /performance\.now\(\)/, 'phase timing for the perf log, never read by game logic'],
   ['utils/aiLogic.js', /DEFAULT_RNG = \{ next: \(\) => Math\.random\(\) \}/, 'a default for direct test calls; resolveTurn always passes the seeded rng'],
-  ['engine/worker/turn.worker.js', /performance.now()/, 'the turn log timing a turn (turnClient diagnostics), never read by game logic'],
+  ['engine/worker/turn.worker.js', /performance\.now\(\)/, 'the turn log timing a turn (turnClient diagnostics), never read by game logic'],
   ['utils/rng.js', /export const randomSeed = /, 'the seed of a fresh game, chosen once before any game logic runs']
 ];
 
