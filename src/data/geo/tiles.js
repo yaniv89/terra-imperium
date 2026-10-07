@@ -27,6 +27,10 @@ export const onWorldChange = (fn) => { worldListeners.add(fn); return () => worl
 /** Hands the grid over (tiles.json's shape; plain or typed-array columns). */
 export const setRawTiles = (raw) => { rawTiles = columnsFromJson(raw); cached = null; worldListeners.forEach((fn) => fn()); };
 
+/** The loaded grid's raw columns (typed arrays), or null: the page hands them to its workers
+ * (worldLoader.js worldMessage) so they never fetch and unzip the grid a second time. */
+export const loadedRawTiles = () => rawTiles;
+
 /** The world descriptor of the loaded grid: a generated world's (raw.world) or the real Earth. */
 export const loadedWorldSpec = () => (rawTiles?.world ? rawTiles.world : { kind: 'earth' });
 

@@ -7,12 +7,13 @@
 // Any failure (the grid or the sim failing to load, an exception building or stepping the world)
 // is posted as { type: 'error', message }: the battle screen shows it with a way back to the map
 // instead of freezing on an empty field (battleClient.js may first retry on the main thread).
-import { loadWorld, WORLD_MESSAGE } from '../../worldgen/worldLoader';
+import { loadWorldFromMessage, WORLD_MESSAGE } from '../../worldgen/worldLoader';
 
-// The world this worker runs comes in the first message (worldLoader.js worldMessage): the page's.
+// The world this worker runs comes in the first message (worldLoader.js worldMessage): the page's
+// grid itself, installed as it is (no second fetch and unzip).
 let setWorld;
 const world = new Promise((resolve) => { setWorld = resolve; });
-const ready = world.then((spec) => loadWorld(spec, { inline: true })).then(() => import('./battleLoop'));
+const ready = world.then(loadWorldFromMessage).then(() => import('./battleLoop'));
 
 let loop = null;
 let timer = null;
@@ -51,6 +52,6 @@ const handle = (data, createBattleLoop) => {
 // A chain keeps the messages in their order while the first ones wait for the grid.
 let queue = Promise.resolve();
 self.onmessage = ({ data }) => {
-  if (data?.type === WORLD_MESSAGE) { setWorld(data.spec); return; }
+  if (data?.type === WORLD_MESSAGE) { setWorld(data); return; }
   queue = queue.then(() => ready).then(({ createBattleLoop }) => handle(data, createBattleLoop), (err) => { if (data.type === 'start') fail('load', err); });
 };

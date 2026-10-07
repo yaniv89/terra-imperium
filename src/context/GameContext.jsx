@@ -254,8 +254,10 @@ export const GameProvider = ({ children }) => {
     const from = stateRef.current;
     if (!turnWorkerAvailable()) { dispatch({ type }); return; }
     pendingRef.current = true; setTurnPending(true);
-    const resolved = await runTurnInWorker(from, { type });
-    pendingRef.current = false; setTurnPending(false);
+    let resolved = null;
+    // "The world moves" always clears, whatever the worker does (turnClient.js resolves null on any
+    // failure; this also covers a throw).
+    try { resolved = await runTurnInWorker(from, { type }); } catch (e) { resolved = null; } finally { pendingRef.current = false; setTurnPending(false); }
     if (resolved) dispatch({ type: ActionTypes.APPLY_TURN_RESULT, payload: { from, state: resolved } });
     else if (stateRef.current === from) dispatch({ type });
   }, [dispatch]);

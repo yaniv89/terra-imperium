@@ -11,7 +11,7 @@
 // generator in its worker (worldgen.worker.js) on Earth's grid columns, then cached. Workers get
 // the descriptor in their first message (worldMessage()), read the same cache, and regenerate inline
 // when it is empty (private windows), which gives the same bytes: the generator is deterministic.
-import { loadTiles, fetchEarthRaw, setRawTiles, getTiles, loadedWorldSpec } from '../data/geo/tiles';
+import { loadTiles, fetchEarthRaw, setRawTiles, getTiles, loadedWorldSpec, loadedRawTiles } from '../data/geo/tiles';
 import { decodeTiles } from '../data/geo/tilesCodec';
 import { setLandFeatures } from '../data/geo/loadWorldFeatures';
 import { setWorldPicture } from '../data/geo/worldPictures';
@@ -43,7 +43,20 @@ export const isCurrentWorld = (spec) => sameWorld(spec, currentWorldSpec());
 /** The first message to a turn or battle worker: the world it must load before anything else
  * (Vite needs the Worker options static, so the world cannot ride in the worker's name). */
 export const WORLD_MESSAGE = '__world';
-export const worldMessage = () => ({ type: WORLD_MESSAGE, spec: currentWorldSpec() });
+// The page's loaded grid rides along (its raw columns, ~5.5 MB copied once): the worker installs
+// it instead of fetching, unzipping (DecompressionStream) and decoding the grid again or reading
+// IndexedDB on its own. Less memory at the worker's start (iOS Safari) and no second network or
+// storage path that can stall inside a worker.
+export const worldMessage = () => {
+  const raw = loadedRawTiles();
+  return raw ? { type: WORLD_MESSAGE, spec: currentWorldSpec(), grid: raw } : { type: WORLD_MESSAGE, spec: currentWorldSpec() };
+};
+
+/** A worker's side of worldMessage: installs the grid it carries, else loads the world itself. */
+export const loadWorldFromMessage = async (data) => {
+  if (data?.grid) { setRawTiles(data.grid); return getTiles(); }
+  return loadWorld(data?.spec, { inline: true });
+};
 
 let worker = null; let nextId = 1;
 const pending = new Map();
