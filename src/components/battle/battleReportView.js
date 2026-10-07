@@ -53,6 +53,38 @@ export const timelineFor = (entry) => {
 
 export const formatMen = (n) => Math.round(n || 0).toLocaleString('en-US');
 
+// Each unit's fate in plain words (src/engine/battleReports.js unitFate), with a tone the sheet
+// colours and picks an icon by: 'good', 'calm', 'warn', 'bad'. 'broke' is only for reports saved
+// before fates were recorded: a broken unit of the losing side whose end was not written down.
+export const FATE_VIEW = {
+  held: { text: 'Held the field', tone: 'good' },
+  pulledBack: { text: 'Pulled back', tone: 'warn' },
+  withdrew: { text: 'Withdrew in good order', tone: 'calm' },
+  escaped: { text: 'Broke but escaped', tone: 'warn' },
+  runDown: { text: 'Caught and destroyed while fleeing', tone: 'bad' },
+  fellFighting: { text: 'Destroyed in the fight', tone: 'bad' },
+  broke: { text: 'Broke and fled', tone: 'warn' }
+};
+
+/** A unit's fate in a report entry: the recorded one, or the best reading of an older entry. */
+export const fateOf = (entry, side, u) => {
+  if (u.fate && FATE_VIEW[u.fate]) return u.fate;
+  if (!(u.after > 0)) return 'fellFighting';
+  const loser = entry.outcome === 'attacker' ? 'defender' : entry.outcome === 'defender' ? 'attacker' : null;
+  if (side !== loser) return u.routed ? 'pulledBack' : 'held';
+  return u.routed ? 'broke' : 'withdrew';
+};
+
+/** The plain words for a unit's fate. */
+export const fateText = (entry, side, u) => {
+  const fate = fateOf(entry, side, u);
+  if (fate === 'runDown') {
+    if (u.domain === 'naval' || u.classId === 'naval') return 'Sunk while falling back';
+    if (u.byCavalry) return 'Run down by cavalry while fleeing';
+  }
+  return FATE_VIEW[fate].text;
+};
+
 // Without intelligence on the target, the odds are a scouts' guess, not numbers (plan §6a): three
 // broad bands from the real auto-resolve chance, so the decision is never blind but intel still
 // matters.
