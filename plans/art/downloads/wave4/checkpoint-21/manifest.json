@@ -1,0 +1,789 @@
+{
+  "checkpoint": "wave4-21",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 36,
+  "packed_bytes_added": 2759288,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave4/checkpoint-21/contact.png",
+      "bytes": 90722,
+      "sha256": "7ca0810869bae8cee599d202b0b03aaf28c22b025597dcc1ad5064d7ee9cc0a5"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 488728,
+      "sha256": "f069f496e2c058d2759c42e91fb9bacc29c420c3f6a3f97781237534ede0a6e1"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/alodia-settings.json",
+      "bytes": 139,
+      "sha256": "76eb79b46055b8dcc2bd53b9348b7ae9d3794a0cc6b9f69b089a8abe91b0b4bd"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/alodia.png",
+      "bytes": 148443,
+      "sha256": "240f5f476f4cdf3e5f1c15f12a80e6d52780007764bbce27d4edd8372b85ceec"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/baekje-settings.json",
+      "bytes": 139,
+      "sha256": "0210f8a00f743febb9a1d2b680355afadcbe4f2fed68bf5427b179788be31c45"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/baekje.png",
+      "bytes": 147549,
+      "sha256": "f8461deb8a272b38cad93718a7d18c9f84834f56489bfe085cb450547b406a5e"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/butuan-settings.json",
+      "bytes": 139,
+      "sha256": "329f1b165eaa01c52818f3407945f3fbfeafab4dca38244f160c716d67d3246a"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/butuan.png",
+      "bytes": 148287,
+      "sha256": "7c9e1022ffd9ce5c2a2c95ea9ebf0d0d1b80d7126042cefaa4c94cdf2cb07f31"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/chaco-settings.json",
+      "bytes": 138,
+      "sha256": "b0f4a41e1065cfd5744b53d1e2641f56a1620480ae82cb2bec76a858e99884e1"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/chaco.png",
+      "bytes": 151731,
+      "sha256": "470814340190f6fa4296eac9a2160fa351c4dcc2fd260c12bb752876a096662d"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/champa-settings.json",
+      "bytes": 139,
+      "sha256": "cf67317d08ec80c230f996eded5ea23c86ed614df01673d57ce2941765a29112"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/champa.png",
+      "bytes": 170140,
+      "sha256": "ae67e766f7f1012a162631b59cea169c19033e80824d0b64988367db2bff1dab"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/djenne-djeno-settings.json",
+      "bytes": 145,
+      "sha256": "438928e4b1a328211db58fdd6a4e40414c3e6e237ede2b8a95a45197b9c74dc3"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/djenne-djeno.png",
+      "bytes": 142054,
+      "sha256": "5fd8d72cd009ad996cfdcfbe88af526cc9a60d953cc49458712174baa2ad6a55"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/dvaravati-settings.json",
+      "bytes": 142,
+      "sha256": "6a1883aff3ba4ada87b46a7060f116c3e30d1519c278e6818d12f747b71aba46"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/dvaravati.png",
+      "bytes": 148816,
+      "sha256": "fda5a7a3dad37cd8039e21735e780009582fd289764cc333db3c584330d58033"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/emishi-settings.json",
+      "bytes": 139,
+      "sha256": "267c9ca23ef632f7d4a2a6a0f94f5a63a7905206c4eb3940f8a5d104642fef4a"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/emishi.png",
+      "bytes": 165098,
+      "sha256": "2b70f3d862024a684f55089180a2ef54dd232e988a068458388853a8e93e711c"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/engaruka-settings.json",
+      "bytes": 141,
+      "sha256": "39e6e1aa0d0e01a84b3a2cc3fbd4e9cda448f446fa9f6ed3a3ea56efb26c3eca"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/engaruka.png",
+      "bytes": 142059,
+      "sha256": "8cc10594a9453ad92c72427ef2b15d9a3f4daf584548db45029ddbdd51d9add6"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/funan-settings.json",
+      "bytes": 138,
+      "sha256": "a7797bf73ccc4fa58988b58452d2f1d26a04488786650fe5299d2fa2009ed591"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/funan.png",
+      "bytes": 152172,
+      "sha256": "19fb11873a8043195d5dfd3b429a87ba1afb65bd7a5d3478367fe337af6a81a7"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/gokturk-settings.json",
+      "bytes": 140,
+      "sha256": "0291a16df16477d2eb7478d9a20a1ae1215e752746b4e7d7df9b1672e0dccc4b"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/gokturk.png",
+      "bytes": 158775,
+      "sha256": "b7bc498527f5b49b6c26a0976f063551c689af1b0c0516a486f724cc2f8f9162"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/hohokam-settings.json",
+      "bytes": 140,
+      "sha256": "4efcf0731a7ac4007173831d9b24e245b7c535da9f5e012ebf9a41c9f2079118"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/hohokam.png",
+      "bytes": 151108,
+      "sha256": "1501115d5ddc4d69a7e2d2fd48b0f90fca6443d8576a5255e66c501163b5d794"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/ife-settings.json",
+      "bytes": 136,
+      "sha256": "f4f4d213d368c860610936552f45722270775877909fd37d6b243f12d6ecda00"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/ife.png",
+      "bytes": 143478,
+      "sha256": "37b54d720ca2eb996bca48abf743cce125b425ab8cdc43eea82c52e9be40fa9d"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/kamarupa-settings.json",
+      "bytes": 141,
+      "sha256": "19019fcc048e7f11dbcfea23f8a7f9f522f7615027d4459f1aecb6ac703bfc25"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/kamarupa.png",
+      "bytes": 175661,
+      "sha256": "dbbb4baedbf79aa0b233809e452e628d15eee39f09ff84aa7c5e7c5ce2ec1f3a"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/khazaria-settings.json",
+      "bytes": 141,
+      "sha256": "a377572f6570d73e026276c465eb250ee91de32942d0db0f129562c4761e09b3"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/khazaria.png",
+      "bytes": 165664,
+      "sha256": "c9bf2279c842a1469faaef00a033f8671cec9003d028aaaa8305cd1b25f32e12"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/khotan-settings.json",
+      "bytes": 139,
+      "sha256": "5024e60f3361adc25cfc9274432f110855b2583983ea434ed23238ed983101c2"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/khotan.png",
+      "bytes": 142111,
+      "sha256": "f7cb0193e0bfc1a68005886d9fbdddce91cfe09311901372362c49497864ffd6"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/khwarazm-settings.json",
+      "bytes": 141,
+      "sha256": "a39f8fc24070ac0b067754cc8b28174be9d012a15f0766a76eb20333c8729417"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/khwarazm.png",
+      "bytes": 165292,
+      "sha256": "28430f6a50f1320d77102d0024f5daffecccd5aaa08f531ced109cdcecaf2de8"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/kitara-settings.json",
+      "bytes": 139,
+      "sha256": "72cd60c3bd84b5b49529311cbe9e8d7552364976e7a38c401879354668e9d92c"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/kitara.png",
+      "bytes": 175484,
+      "sha256": "ec74d287ca116ee4f720d2a230b9a3c9b5a47562fdc172830845a52fc278c14d"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/mapungubwe-settings.json",
+      "bytes": 143,
+      "sha256": "86aad4fea424339045d2f0ad46158120821dcb8e656d14df0e3a641138ec5432"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/mapungubwe.png",
+      "bytes": 151506,
+      "sha256": "ffa68da1bc8e1fe8485238b4c8abe3eb9d7a9a8a43b22357da42735b83b6b35b"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/marajoara-settings.json",
+      "bytes": 142,
+      "sha256": "4b1fbc18b844b826cdad56ced295da0a8a5cd946e34b57f8127dba532fb578ce"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/marajoara.png",
+      "bytes": 157076,
+      "sha256": "d51494400e3ed139d8e8a5146fadba30f874c1fb14cd440f46360e42bb8a3e64"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/moche-settings.json",
+      "bytes": 138,
+      "sha256": "c37534913187e10256271a5864b8bc51451605fb69c6c6b0ec994af99076e5fb"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/moche.png",
+      "bytes": 147439,
+      "sha256": "668b1d50eab7c7d53183494edda1f02d91577d293ed278007c9e4598053986b5"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/mutal-settings.json",
+      "bytes": 138,
+      "sha256": "3ef884f26aa59ab022a184420c4b9f7891f813cac7d37019beaacf6de4160991"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/mutal.png",
+      "bytes": 154699,
+      "sha256": "086f0db752493441d1e1fed3680e5578fb74a29f359e5ef1cbaf8605c6a678db"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/pandya-settings.json",
+      "bytes": 139,
+      "sha256": "77f74e6f89d11f9e010b5e2e4f1b9f8505951888038ba20d852dba2a322b907c"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/pandya.png",
+      "bytes": 137808,
+      "sha256": "16ba15d4ae0ffbd9bc45789ecb8b1fcfe1a56f29fadd6b2c52c5bd3366835373"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/proofs-1.png",
+      "bytes": 378566,
+      "sha256": "81048889d5c2bae750df15e872d1e36f22ae76bf61eb702fda5a9580a3bd2a43"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/proofs-2.png",
+      "bytes": 446457,
+      "sha256": "3d226e43651150a026dd48a1f2b5ca031eeb06590eda94dd16572a800f8d77ab"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/proofs-3.png",
+      "bytes": 462084,
+      "sha256": "dd00447d28b659ca55a895ada8deb3a047232c7efa75404584323a821500ee65"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/pyu-settings.json",
+      "bytes": 136,
+      "sha256": "c266c60b32bf6b0ee3d2923a884f5f02703a414921029032833ae8d856d6d2ce"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/pyu.png",
+      "bytes": 142133,
+      "sha256": "f13ef999577f2ebb1de2923e167bf2e4bb24797494b851b4e829320279e704b4"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/rajarata-settings.json",
+      "bytes": 141,
+      "sha256": "12450f2d305972e4f32c9caffd51ea763ddc12f3a7898715e8421c5fbfa1b68f"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/rajarata.png",
+      "bytes": 141268,
+      "sha256": "8d0c36794b87b9023b81e3110a8bbc0df74d8f120a54fb8a4e668a4ae42fabfe"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/san-settings.json",
+      "bytes": 136,
+      "sha256": "652b37fcb8d02a4ee6b41aef220e8dfacceff526c43bb5bf50d01d076397f601"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/san.png",
+      "bytes": 148710,
+      "sha256": "a708e8d80bbf3ea2f1a1a66499ea5dff3f48ab2e3414e880607e71a33c7462f5"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/sandbox-kingdoms-cavalry-kamarupa.png",
+      "bytes": 469423,
+      "sha256": "3458a17397158022fe51cf0224aec7260b136d30fc95d19bb239368895ea755d"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/sandbox-kingdoms-general.png",
+      "bytes": 480327,
+      "sha256": "6c209a101e22893a4cc692644b0addb579100fba7b2edfd67b90a563b946294d"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/sandbox-kingdoms-infantry.png",
+      "bytes": 477208,
+      "sha256": "e2fc5dc07794411e32607e3a22ac9b548548eb34a83df0a4214bdceb3fba3b05"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/sandbox-kingdoms-ranged.png",
+      "bytes": 484008,
+      "sha256": "34797a3a6baed148ec63d51f8a3ad38675b4b70170f2b9a75742c84779370374"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/sandbox-kingdoms-wide.png",
+      "bytes": 404911,
+      "sha256": "07edaea1e64c7343475078d306f300b00380db370c2ac7a76a232ca613653eb8"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/sandbox-kingdoms-worker.png",
+      "bytes": 477009,
+      "sha256": "917ec5cae3893ae79531bfa9eca55550cd91f10f1d7f58f7c1afaccd0415a9a7"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/sandbox-report.json",
+      "bytes": 3121,
+      "sha256": "0126137b3e11b490714dcc25653b7275f6cca939fda40ba6b585c5920b6f9b87"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/saudeleur-settings.json",
+      "bytes": 142,
+      "sha256": "5931d1433601227a448f61363ffb6c82cbe8e82db98abc37cb134ae50d6d54cf"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/saudeleur.png",
+      "bytes": 141857,
+      "sha256": "6cf8c2df08eb24a24440ba8f37ed44ca28733359063990556cd60d6dc8d9deb6"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/sogdia-settings.json",
+      "bytes": 139,
+      "sha256": "57792f77f0517ebe8f7380c220487cad356f96d40d8990c6da31264b92793a19"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/sogdia.png",
+      "bytes": 146908,
+      "sha256": "abaabdbd674639265381afdf06876186b5347b7899965dedb06f49f994116b1a"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/srivijaya-settings.json",
+      "bytes": 142,
+      "sha256": "f2482a2d126dc76aa818280350e6510eb1fe103822be2679756f17009b69bd53"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/srivijaya.png",
+      "bytes": 141172,
+      "sha256": "32f8a1e39f409fe5ffb699c73327a959fe20c9b6a48c9a3c6f3a2b1bb0bdc371"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/tarumanagara-settings.json",
+      "bytes": 145,
+      "sha256": "89352481062a355c4219578821eb8ca6f307ff2ac1bd04403f39b4b8dfdba0a2"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/tarumanagara.png",
+      "bytes": 142318,
+      "sha256": "43cab0850f52467962f3c61000031ec76f339f20e703f82c6ccbbcf05c57394c"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/tiwanaku-settings.json",
+      "bytes": 141,
+      "sha256": "12d2ede07daff84641c25bdba2efa0e31b8ec1ea4200f0c235eb6f143579ed3a"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/tiwanaku.png",
+      "bytes": 154536,
+      "sha256": "afc24e7c91a11910da356731a8ed64d3127372edfcaa5bd90b4ede586b971f75"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/vanga-settings.json",
+      "bytes": 138,
+      "sha256": "1f7c1f4f74e433e98a2f501b6082eaaa8d67fb404464b5d501e4a776dc5d3d0a"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/vanga.png",
+      "bytes": 152356,
+      "sha256": "d0c35a2e30429165e6d2e419884b74a416642ebecb753f87f713c43605de56bd"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/wagadu-settings.json",
+      "bytes": 139,
+      "sha256": "5ff082b522870ca062762b4b775770a66cb46e942bc56d525f738e149d3b2069"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/wagadu.png",
+      "bytes": 147528,
+      "sha256": "63d434f146d9793d8812926e0ef793f434756d919641486cce963f65356c4d14"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/wari-settings.json",
+      "bytes": 137,
+      "sha256": "b957f56e45a0e37269072a123f31fddd312a8bf41bfdceba10b379dd4656c96d"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/wari.png",
+      "bytes": 153348,
+      "sha256": "86fc3e4c657e9414d3b0c14aba485b01ac2a804f76e6c8c2907c8dcb96e7bd74"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/yarlung-settings.json",
+      "bytes": 140,
+      "sha256": "6f56f35b3c9333b2fe0496666dd970b875c54b214788fa478d9a96d0967faabe"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/yarlung.png",
+      "bytes": 145818,
+      "sha256": "58c2a10ed29b2910156206b67e5e4377859825e99c62d72ba4b4aef0411f8dfc"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/zhangzhung-settings.json",
+      "bytes": 143,
+      "sha256": "9bf7bdefef9434a3b571f843a48138c425bae7e32a1311646385a11210a09a0b"
+    },
+    {
+      "file": "plans/art/shots/wave4/signature-kingdoms/zhangzhung.png",
+      "bytes": 144447,
+      "sha256": "7974fc0647765ee4541d209d05ccb82458f495a7533f6fb02b6f4d07207881c1"
+    },
+    {
+      "file": "src/assets/units/signature/alodia.glb",
+      "bytes": 93068,
+      "sha256": "4945f0e5d9202ccac67f74d890d830f5fa61e02860c39bfd8aeac8051260a89b"
+    },
+    {
+      "file": "src/assets/units/signature/alodia.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/baekje.glb",
+      "bytes": 103240,
+      "sha256": "8f75667b8945a7a4f63e2f84c554c0daefe74196cd0ad104b55123598f492fbc"
+    },
+    {
+      "file": "src/assets/units/signature/baekje.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/butuan.glb",
+      "bytes": 59612,
+      "sha256": "aae638e8f1a01d8360cf0e7f8689856aeaa72329d502ab1373a65b8363536454"
+    },
+    {
+      "file": "src/assets/units/signature/butuan.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/chaco.glb",
+      "bytes": 61364,
+      "sha256": "1fe88aae8faac24058d5937bd964584fba1177c67a30304d381aa2dfcce09166"
+    },
+    {
+      "file": "src/assets/units/signature/chaco.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/champa.glb",
+      "bytes": 168976,
+      "sha256": "3ff437370112b652c674c187c705f9c91f742ff05a52f87b17f46f199f41bf3a"
+    },
+    {
+      "file": "src/assets/units/signature/champa.json",
+      "bytes": 221,
+      "sha256": "06512872688596ca1dc367ef599659a0630991b5899679a80a4dcac602aafcd3"
+    },
+    {
+      "file": "src/assets/units/signature/djenne-djeno.glb",
+      "bytes": 54852,
+      "sha256": "4a69551db7d2ac1da4bf34e1e5c73fbfeb353b062f007525a22c26a1a82ec962"
+    },
+    {
+      "file": "src/assets/units/signature/djenne-djeno.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/dvaravati.glb",
+      "bytes": 57848,
+      "sha256": "d1f07995aafb9d0799309b2960acd4a0e473ed51b20ad6319efe0eeaaacc00b2"
+    },
+    {
+      "file": "src/assets/units/signature/dvaravati.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/emishi.glb",
+      "bytes": 93336,
+      "sha256": "cc8678a341e38f5a53e7fc3b914c7e91508dc2c1a60784fcda5a4eea13991df3"
+    },
+    {
+      "file": "src/assets/units/signature/emishi.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/engaruka.glb",
+      "bytes": 51672,
+      "sha256": "89b22540f39e26e8bc7e493637b99463aff0df276473c900ce195907b70fab35"
+    },
+    {
+      "file": "src/assets/units/signature/engaruka.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/funan.glb",
+      "bytes": 58332,
+      "sha256": "d603a2553a4321a2a19a6c21677f5eefb3d0fb8893cbab32c802318d15d80746"
+    },
+    {
+      "file": "src/assets/units/signature/funan.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/gokturk.glb",
+      "bytes": 111048,
+      "sha256": "f31ecdccf11d442563a812a0c2dfc35b70d97bbdc9a55fbc6e0542170e448030"
+    },
+    {
+      "file": "src/assets/units/signature/gokturk.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/hohokam.glb",
+      "bytes": 61520,
+      "sha256": "f75d953ed40386e2dcc00a4c40950052562b818ad8198e248006b4d838f13bff"
+    },
+    {
+      "file": "src/assets/units/signature/hohokam.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/ife.glb",
+      "bytes": 61276,
+      "sha256": "1ecae7a6b4efd37f7b9b8f362894219650cc555a35132c811fd2a5f09628026d"
+    },
+    {
+      "file": "src/assets/units/signature/ife.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/kamarupa.glb",
+      "bytes": 170680,
+      "sha256": "aee5dd975e02e101efe4886ed9d355fe91a28de6180e261d780ba36d4df97110"
+    },
+    {
+      "file": "src/assets/units/signature/kamarupa.json",
+      "bytes": 221,
+      "sha256": "06512872688596ca1dc367ef599659a0630991b5899679a80a4dcac602aafcd3"
+    },
+    {
+      "file": "src/assets/units/signature/khazaria.glb",
+      "bytes": 105512,
+      "sha256": "8e42edd329497462465740181cac7d8df20e8ee053bdffc06a422d833a177e28"
+    },
+    {
+      "file": "src/assets/units/signature/khazaria.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/khotan.glb",
+      "bytes": 64784,
+      "sha256": "c3fe2e68b3142a0a6e2887e89ecf933dccde58f209c16a8ccddccc84688af9e2"
+    },
+    {
+      "file": "src/assets/units/signature/khotan.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/khwarazm.glb",
+      "bytes": 103996,
+      "sha256": "f2a1213d4faa40a37deb8379d54cc6c6c349b9be12d8df9ad31379f0a0561ecb"
+    },
+    {
+      "file": "src/assets/units/signature/khwarazm.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/kitara.glb",
+      "bytes": 88472,
+      "sha256": "36235d48f535b8d6da464e8a6043f51f3796e6a927ef377746a4078a9af10c0c"
+    },
+    {
+      "file": "src/assets/units/signature/kitara.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/mapungubwe.glb",
+      "bytes": 60632,
+      "sha256": "f0ead6027380d557521c6b37e842665c065463c93d6873f4ba5872b43ac4f8a4"
+    },
+    {
+      "file": "src/assets/units/signature/mapungubwe.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/marajoara.glb",
+      "bytes": 59964,
+      "sha256": "0df967b53776d193d1bb798c63b722cb340ff21c150a92cb6a236c7182ae427a"
+    },
+    {
+      "file": "src/assets/units/signature/marajoara.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/moche.glb",
+      "bytes": 55960,
+      "sha256": "70b87c86aa009a845d06f3202b1317f2fb4738c5bd4b8e4173e9949136f573b0"
+    },
+    {
+      "file": "src/assets/units/signature/moche.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/mutal.glb",
+      "bytes": 66164,
+      "sha256": "288d7460f8d5fff4fcf217b2e6fc46c8f4d294107a42671b617dbb893c81e25b"
+    },
+    {
+      "file": "src/assets/units/signature/mutal.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/pandya.glb",
+      "bytes": 62664,
+      "sha256": "3a02b3037dcdbc2d500fa294c8ca0e3502522f50cdc77f03bf5667f187fcdd12"
+    },
+    {
+      "file": "src/assets/units/signature/pandya.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/pyu.glb",
+      "bytes": 58872,
+      "sha256": "fa182050ccd4b4fa295aa4340ea3579d77740a347d1a18a4dadd32a9c756d57a"
+    },
+    {
+      "file": "src/assets/units/signature/pyu.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/rajarata.glb",
+      "bytes": 54056,
+      "sha256": "3ef53a831682cc3525db9fb1621c722be52980685178ec1d768cc229225e3653"
+    },
+    {
+      "file": "src/assets/units/signature/rajarata.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/san.glb",
+      "bytes": 61892,
+      "sha256": "0209a0aa411dd3e4b80d251932fcba715653deead73194176a7d719532dc8e86"
+    },
+    {
+      "file": "src/assets/units/signature/san.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/saudeleur.glb",
+      "bytes": 56492,
+      "sha256": "ed9891470bc009e4b9500ae8f3611690ba219150242e9552121006f1db5ff0ab"
+    },
+    {
+      "file": "src/assets/units/signature/saudeleur.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/sogdia.glb",
+      "bytes": 93632,
+      "sha256": "0f33e61185b37d6dd45f6cf6176505c43e547e41380444503b7a6334516faeec"
+    },
+    {
+      "file": "src/assets/units/signature/sogdia.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/srivijaya.glb",
+      "bytes": 53580,
+      "sha256": "1cbbf45bc8649c377230f12b2b763c808d696692fdab06045d56186df8647a36"
+    },
+    {
+      "file": "src/assets/units/signature/srivijaya.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/tarumanagara.glb",
+      "bytes": 59840,
+      "sha256": "a347797c1e20edb2e8a3b112922e4abaec2528962204b2a3d4706113031561ff"
+    },
+    {
+      "file": "src/assets/units/signature/tarumanagara.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/tiwanaku.glb",
+      "bytes": 60912,
+      "sha256": "9a509ce4871b48b94d98eb36c8a746a024b2143cad8d9c54f207efeb0c09b4d5"
+    },
+    {
+      "file": "src/assets/units/signature/tiwanaku.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/vanga.glb",
+      "bytes": 64808,
+      "sha256": "3c46e333bce2a7e851fa32c65be1cd776c70e6fddca8817640d00aeb48a7815c"
+    },
+    {
+      "file": "src/assets/units/signature/vanga.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/wagadu.glb",
+      "bytes": 92936,
+      "sha256": "5a7d46e19cfeff100f9028599a04e0de4c2911a6626d00ba1a83a39b905b815b"
+    },
+    {
+      "file": "src/assets/units/signature/wagadu.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/wari.glb",
+      "bytes": 64136,
+      "sha256": "a4b2c25eb3f8df6056b8244845799b0389a338d6224d863c34efecf77fb8e65f"
+    },
+    {
+      "file": "src/assets/units/signature/wari.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/yarlung.glb",
+      "bytes": 96020,
+      "sha256": "ae4cbadf0838b0aaa2447d44ec44061d2faddc11aab128eb8f49b1ce2e24fa70"
+    },
+    {
+      "file": "src/assets/units/signature/yarlung.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    },
+    {
+      "file": "src/assets/units/signature/zhangzhung.glb",
+      "bytes": 67140,
+      "sha256": "01eea63ef0d4ffee7081e42ebce370107fe19c759c0506bb44ca1a5395326c65"
+    },
+    {
+      "file": "src/assets/units/signature/zhangzhung.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    }
+  ]
+}
