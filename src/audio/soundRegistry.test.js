@@ -1,7 +1,7 @@
 // The sound registry: every battle sound the game names, files grouped by folder, variants picked
 // without repeating, and the music decision.
 import { describe, it, expect } from 'vitest';
-import { BATTLE_SOUNDS, BATTLE_SOUND_IDS, groupByFolder, pickVariant, createSoundRng, battleFilesFor, musicTracks } from './soundRegistry';
+import { BATTLE_SOUNDS, BATTLE_SOUND_IDS, groupByFolder, pickVariant, createSoundRng, battleFilesFor, musicTracks, ambienceFilesFor } from './soundRegistry';
 import { musicWanted, nextTrack } from './music';
 
 describe('sound registry', () => {
@@ -22,9 +22,15 @@ describe('sound registry', () => {
     expect(g).toEqual({ 'sword-clash': ['u1', 'u2'], explosion: ['u3'] });
   });
 
-  it('with no files yet, every id falls back (empty lists, empty playlist)', () => {
-    expect(battleFilesFor('sword-clash')).toEqual([]);
-    expect(musicTracks()).toEqual([]);
+  it('finds the shipped CC0 recordings: battle variants per id and the map playlist', () => {
+    expect(battleFilesFor('sword-clash').length).toBeGreaterThanOrEqual(2);
+    expect(battleFilesFor('cavalry-hooves').length).toBeGreaterThanOrEqual(2);
+    expect(musicTracks().length).toBeGreaterThanOrEqual(6);
+    expect(ambienceFilesFor('map-wind').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('an id with no files falls back to the synthesized sound (empty list)', () => {
+    expect(battleFilesFor('victory')).toEqual([]);
   });
 
   it('picks variants at random, never the same twice in a row', () => {
