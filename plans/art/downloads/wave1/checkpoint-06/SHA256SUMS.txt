@@ -1,0 +1,4 @@
+b8f2f354a8904f39112d8af6e5832c6269f63d8c795d46a5620fd600fef2b260  src/assets/units/bronze-raider.glb
+38767475efe140ca35f7b12d6fc3ac649096c92c0f542d9fafa3eedb3b65f3c8  src/assets/units/bronze-mercenary.glb
+e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017  src/assets/units/bronze-raider.json
+b9394309d6bbab80702384f199c210c06d95602e992a67b129ddf302bb9700c2  src/assets/units/bronze-mercenary.json

@@ -5445,13 +5445,14 @@
       "section": "units",
       "description": "Bronze raider: Bronze light raider, a kit variant of the age's mounted unit with loot sacks (Modern: militia in a pickup)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/bronze-raider",
       "phase": "R3",
       "batch": "M13",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave1 checkpoint-06, 2026-10-07 (plans/art/downloads/wave1/checkpoint-06), bronze-raider.glb 98 KB"
     },
     {
       "path": "plans/art/units/classical-raider",
@@ -5510,13 +5511,14 @@
       "section": "units",
       "description": "Bronze mercenary: Bronze mercenary, a kit variant of the age's infantry in foreign gear with a coin badge",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/bronze-mercenary",
       "phase": "R3",
       "batch": "M13",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave1 checkpoint-06, 2026-10-07 (plans/art/downloads/wave1/checkpoint-06), bronze-mercenary.glb 79 KB"
     },
     {
       "path": "plans/art/units/classical-mercenary",

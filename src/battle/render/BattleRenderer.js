@@ -35,6 +35,7 @@ import { orderRingState, recordOrderTarget, ORDER_RING_COLOR, MAX_ORDER_TARGETS 
 import { getAgeIndex } from '../../data/ages';
 import { peopleForNationId } from '../../data/peoples';
 import { signatureKey, baseClassOf } from '../../data/signatureUnits';
+import { lookKey, unitLookOf, LOOK_CLASS } from './unitModels';
 import { battleGroundSets, groundTextureUniform } from '../../data/groundMaterials';
 import { styleOfLand } from '../../data/architecture';
 import { BattleProps } from '../art/battleProps';
@@ -827,7 +828,7 @@ export class BattleRenderer {
     if (layer) return layer;
     // every soldier of this age and class (capacity.js); a signature unit's layer ('infantry~people')
     // as many as its base class, a general layer one a squad (the minimum pool)
-    const MAX = soldierSlots(this.setup, ageId, baseClassOf(classId));
+    const MAX = soldierSlots(this.setup, ageId, LOOK_CLASS[classId] || baseClassOf(classId));
     const buf = (size) => new InstancedBufferAttribute(new Float32Array(MAX * size), size).setUsage(DynamicDrawUsage);
     const matrix = buf(16); const color = buf(3); const anim = buf(3); const variant = buf(4);
     const make = (source, shadow, far) => {
@@ -1171,9 +1172,11 @@ export class BattleRenderer {
     // (data/signatureUnits.js, unitModels.js); without it the base unit's layer
     const people = this.sidePeople?.[s.side] ?? (this.sidePeople = this.setup.sides.map((sd) => peopleForNationId(sd.nationId)))[s.side];
     const sig = people ? signatureKey(s.classId, people) : null;
+    // a raid party's riders and a hired band's foot draw their irregular look when its model is in
+    const look = lookKey(s.look || unitLookOf(null, this.setup, s.side), s.classId);
     return {
       stats,
-      layer: this.soldierLayer(s.ageId, sig && hasSoldierOverride(s.ageId, sig) ? sig : s.classId),
+      layer: this.soldierLayer(s.ageId, sig && hasSoldierOverride(s.ageId, sig) ? sig : look && hasSoldierOverride(s.ageId, look) ? look : s.classId),
       general: hasSoldierOverride(s.ageId, 'general') ? this.soldierLayer(s.ageId, 'general') : null,
       drawn: this.figureScale < 1 ? { soldiers: scaledSoldiers(stats.soldiers, this.figureScale) } : stats,
       big: s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || !!stats.flying,

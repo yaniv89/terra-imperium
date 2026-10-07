@@ -3,7 +3,8 @@
 // (the standard alone, the base unit) when there is no file or no roster entry.
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry } from 'three';
-import { battleExtraModels, findSignatureModel, preloadUnitModels, findGeneralModel, preloadSoldierModel } from './unitModels';
+import { battleExtraModels, findSignatureModel, preloadUnitModels, findGeneralModel, preloadSoldierModel, unitLookOf, lookKey, findUnitModel } from './unitModels';
+import { squadLookOf } from './view';
 import { hasSoldierOverride, unregisterSoldierGeometry, MODEL_SCALE } from './soldierFactory';
 import { signatureUnitFor, signatureKey, baseClassOf, SIGNATURE_UNITS } from '../../data/signatureUnits';
 import { createArtIndex } from '../art/artIndex';
@@ -91,5 +92,33 @@ describe('one soldier outside a battle (the map close view)', () => {
     } finally {
       unregisterSoldierGeometry('kingdoms', 'infantry');
     }
+  });
+});
+
+describe('irregular looks (raiders, mercenaries)', () => {
+  it('mark a raid party, the attackers of a sack and hired bands', () => {
+    expect(unitLookOf({ classId: 'cavalry', raidOf: 'indep_1' })).toBe('raider');
+    expect(unitLookOf({ classId: 'infantry', mercenary: { pay: 3 } })).toBe('mercenary');
+    expect(unitLookOf({ classId: 'cavalry' }, { battleType: 'raid' }, 0)).toBe('raider');
+    expect(unitLookOf({ classId: 'cavalry' }, { battleType: 'sack' }, 1)).toBeNull();
+    expect(unitLookOf({ classId: 'cavalry' }, { battleType: 'field' }, 0)).toBeNull();
+    expect(squadLookOf({ original: { mercenary: { pay: 1 } } })).toBe('mercenary');
+    expect(squadLookOf({ original: {} })).toBeNull();
+    // a look replaces one class only: riders for raiders, foot for mercenaries
+    expect(lookKey('raider', 'cavalry')).toBe('raider');
+    expect(lookKey('raider', 'infantry')).toBeNull();
+    expect(lookKey('mercenary', 'infantry')).toBe('mercenary');
+  });
+
+  it('load the raider and mercenary models of the age for the battles that have them', () => {
+    const setup = { battleType: 'raid', sides: [
+      { nationId: 'xx', ageId: 'bronze', units: [{ classId: 'cavalry' }, { classId: 'infantry' }] },
+      { nationId: 'yy', ageId: 'bronze', units: [{ classId: 'infantry', mercenary: { pay: 2 } }, { classId: 'ranged' }] }
+    ] };
+    const keys = battleExtraModels(setup, { findGeneral: () => null, findSignature: () => null }).map((e) => `${e.ageId}:${e.key}:${e.classId}`);
+    expect(keys).toEqual(['bronze:raider:cavalry', 'bronze:mercenary:infantry']);
+    expect(findUnitModel('bronze', 'raider')?.url).toMatch(/bronze-raider.*.glb/);
+    expect(findUnitModel('bronze', 'mercenary')?.url).toMatch(/bronze-mercenary.*.glb/);
+    expect(battleExtraModels({ ...setup, battleType: 'field', sides: [setup.sides[0]] }, { findGeneral: () => null, findSignature: () => null })).toEqual([]);
   });
 });
