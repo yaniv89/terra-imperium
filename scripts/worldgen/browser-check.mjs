@@ -45,15 +45,15 @@ try {
   });
   if (shots) {
     mkdirSync(shots, { recursive: true });
-    await page.screenshot({ path: path.join(shots, 'worldlab-desktop.png'), fullPage: true });
+    await page.screenshot({ path: path.join(shots, 'worldlab-desktop.jpg'), type: 'jpeg', quality: 85, fullPage: true, timeout: 180000 });
     const phone = await browser.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2 });
     for (const seed of seeds.split(',')) {
       await phone.goto(`${url}/?worldLab&seeds=${seed}&big`);
       await phone.waitForFunction(() => Array.isArray(window.__worldLab), null, { timeout: 240000 });
-      await phone.screenshot({ path: path.join(shots, `seed-${seed}-844x390.png`) });
+      await phone.screenshot({ path: path.join(shots, `seed-${seed}-844x390.jpg`), type: 'jpeg', quality: 85, timeout: 180000 });
       await page.goto(`${url}/?worldLab&seeds=${seed}&big`);
       await page.waitForFunction(() => Array.isArray(window.__worldLab), null, { timeout: 240000 });
-      await page.screenshot({ path: path.join(shots, `seed-${seed}-desktop.png`) });
+      await page.screenshot({ path: path.join(shots, `seed-${seed}-desktop.jpg`), type: 'jpeg', quality: 85, timeout: 180000 });
     }
   }
   if (browserName !== 'webkit' && browserName !== 'firefox' && !arg('noThrottle', null)) {

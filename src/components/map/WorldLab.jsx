@@ -29,7 +29,7 @@ const WorldCard = ({ result }) => {
   const r = result.report || {};
   return (
     <figure className="fa-panel p-2 flex flex-col gap-1 min-w-0" data-testid="world-card" data-seed={result.seed} data-hash={result.hash || ''}>
-      <canvas ref={canvas} width={BIG ? 1024 : 512} height={BIG ? 512 : 256} className="w-full rounded" style={{ aspectRatio: '2 / 1' }} />
+      <canvas ref={canvas} width={BIG ? 1024 : 512} height={BIG ? 512 : 256} className="rounded mx-auto" style={{ aspectRatio: '2 / 1', width: '100%', maxWidth: BIG ? 'calc((100dvh - 96px) * 2)' : undefined }} />
       <figcaption className="text-[12px] leading-snug">
         <span className="fa-num">{mapCode(result.spec)}</span> · hash <span className="fa-num" data-testid="world-hash">{result.hash || '...'}</span>
         {result.ms != null && <> · {Math.round(result.ms)} ms</>}

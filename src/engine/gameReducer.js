@@ -32,6 +32,7 @@ import { WORLD_NATIONS, peopleNationRecord } from '../data/worldNations';
 import { peopleForNationId } from '../data/peoples';
 import { DEFAULT_WORLD_SIZE } from '../data/worldSizes';
 import { pickMajors } from './worldgen/peoplesWorld';
+import { placeGeneratedPeoples } from './worldgen/generatedPeoples';
 import { normalizeSpec, sameWorld } from '../worldgen/spec';
 import { pickIndependents, asIndependentSource, finalizeIndependents } from './independents';
 import { refreshPeopleNames } from './peopleNames';
@@ -179,8 +180,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     if (!sameWorld(loadedWorldSpec(), mapSpec)) throw new Error('This generated world is not the loaded one: boot into it first (src/worldgen/worldLoader.js)');
   }
   const mapRecord = generated ? { ...mapSpec, worldHash: loadedWorldSpec().worldHash } : { kind: 'earth' };
-  if (generated) throw new Error('Peoples on a generated world come with phase MV5');
-  const generatedPlacement = null;
+  const generatedPlacement = generated ? placeGeneratedPeoples(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, getTiles(), { independents: scenario.independents !== false }) : null;
   const majorIds = generatedPlacement ? generatedPlacement.majors.slice() : peoplesMode ? pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() }) : null;
   // Every other people of the pool is an independent city (phase W1, src/engine/independents.js);
   // `independents: false` in the scenario leaves them out (majors only, as phase W0 built it).

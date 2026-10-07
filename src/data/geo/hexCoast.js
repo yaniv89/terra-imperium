@@ -84,8 +84,10 @@ const round = (ring) => {
 const WORLD = [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]];
 const shift = (multi, dx) => multi.map((poly) => poly.map((ring) => ring.map(([x, y]) => [x + dx, y])));
 const splitAtAntimeridian = (multi) => {
-  const lons = multi.flat(2).map((p) => p[0]);
-  if (Math.min(...lons) >= -180 && Math.max(...lons) <= 180) return multi;
+  // A loop, not Math.min(...lons): a whole world's rings overflow the stack of a browser worker.
+  let lo = Infinity; let hi = -Infinity;
+  multi.forEach((poly) => poly.forEach((ring) => ring.forEach((p) => { if (p[0] < lo) lo = p[0]; if (p[0] > hi) hi = p[0]; })));
+  if (lo >= -180 && hi <= 180) return multi;
   return [...polygonClipping.intersection(multi, WORLD), ...polygonClipping.intersection(shift(multi, -360), WORLD), ...polygonClipping.intersection(shift(multi, 360), WORLD)];
 };
 
