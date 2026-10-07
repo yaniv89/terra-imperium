@@ -24,21 +24,25 @@ with variants a and b counts once). Give this file to GPT with each batch so its
 The battles run on 21 placeholder unit models built from free CC0 packs; they are not the spec's
 units and are not counted.
 
-## 3. Base towns (62 of 65)
+## 3. Base towns (64 of 65)
 
 | Age | town-small | town-medium | town-big | palace-small | palace | walls-small | walls-medium | walls-big | colony-camp | field-1..4 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | bronze | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes (4) |
-| classical | yes | yes | **no** | **no** | **no** | yes | yes | yes | yes | yes (4) |
+| classical | yes | yes | **no** | yes | yes | yes | yes | yes | yes | yes (4) |
 | kingdoms | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes (4) |
 | gunpowder | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes (4) |
 | modern | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes (4) |
 
-Missing: classical `town-big` (a and b), classical `palace-small`, classical `palace`. Because the
-base classical big layout is missing, the Classical big towns of Europe, Levant, Sinic and Indic
-are not built either (their kits are complete; they show the medium town until it exists).
+Missing: classical `town-big` (a and b); the art agent built it but has not uploaded it (it is in
+no ZIP under `plans/art/downloads`, checked 2026-10-07). Because the base classical big layout is
+missing, the Classical big towns of the base style, Europe, Levant, Sinic and Indic are not built
+either (their kits are complete; they show the medium town until it exists).
 
-## 3b. Regional kits (306 of 330: 51 of 55 region and age kits)
+## 3b. Regional kits (330 of 330: 55 of 55 region and age kits)
+
+The table and the list below are the state of 2026-10-04; the four missing kits were added on
+2026-10-06 (see "Added 2026-10-06").
 
 A kit counts as in the game when its towns are built from it (its houses, street, roofscape,
 materials and both landmarks).
@@ -75,7 +79,7 @@ Europe, kingdoms), `landmark-north` (Northern Europe, classical), `landmark-colo
 `palace-small`, `palace` and `walls-medium` for all 11 regions: europe, levant, nile, maghreb,
 westafrica, eastafrica, steppe, indic, sinic, monsoon, americas.
 
-## Israelite theme (14 of 74)
+## Israelite theme (14 of 74 on 2026-10-04; 63 of 74 now, see below)
 
 In the game (Bronze): the kit (houses, street, roofscape, materials, the six-chamber gate, the
 pillared storehouse), palace-small, palace, walls-medium, colony-camp and field-1 to field-4.
@@ -105,6 +109,21 @@ the 2 wonders (checkpoint 02). The full list is in `plans/art/ITEMS.md`.
 - **Israelite (63 of 74)**: plus the Kingdoms, Gunpowder and Modern kits (18), Kingdoms
   palace-small and palace, Gunpowder walls-medium and the Modern colony camp; every Israelite
   town rebuilt lighter from the corrected deliveries.
+
+## Checked 2026-10-07: the downloads folder is fully imported
+
+`node scripts/art/downloads-coverage.mjs` (and its test in scripts/art) reads the file list of every
+ZIP under `plans/art/downloads` and maps each delivered item to the file the game ships: 119 ZIPs,
+564 items, every one in the game (kits as their towns, palaces and walls in the shared files,
+buildings, wonders, improvements and icons by id; the two early prototypes, `indic-modern-five`
+and `rajput-palace`, are superseded by the Indic Modern and Gunpowder kits). The ZIPs are no
+longer the only copy of any art the game needs; they are the only copy of the editable sources
+(.blend, the delivered model.glb, build.py), so keep them outside git before purging them.
+
+The 25 items marked `built_awaiting_validation_upload` in `production-queue.json` (naval_base,
+carrier_dock, road_post, highway, rail_depot, copper_mine, iron_foundry, cathedral, the 13 base
+tile improvements, classical town-big, warship bronze, classical and kingdoms) are in no ZIP and
+in no branch: they cannot be imported until the art agent uploads them.
 
 ## Not started (as of 2026-10-04; see "Added 2026-10-06" above)
 
