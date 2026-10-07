@@ -1,7 +1,7 @@
 // The sound registry: every battle sound the game names, files grouped by folder, variants picked
 // without repeating, and the music decision.
 import { describe, it, expect } from 'vitest';
-import { BATTLE_SOUNDS, BATTLE_SOUND_IDS, groupByFolder, pickVariant, createSoundRng, battleFilesFor, musicTracks, ambienceFilesFor } from './soundRegistry';
+import { BATTLE_SOUNDS, BATTLE_SOUND_IDS, groupByFolder, pickVariant, createSoundRng, battleFilesFor, musicTracks, battleMusicTracks, ambienceFilesFor } from './soundRegistry';
 import { musicWanted, nextTrack } from './music';
 
 describe('sound registry', () => {
@@ -27,6 +27,13 @@ describe('sound registry', () => {
     expect(battleFilesFor('cavalry-hooves').length).toBeGreaterThanOrEqual(2);
     expect(musicTracks().length).toBeGreaterThanOrEqual(6);
     expect(ambienceFilesFor('map-wind').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('the battle playlist is its own folder, never part of the map playlist', () => {
+    const battle = battleMusicTracks();
+    expect(battle.length).toBeGreaterThanOrEqual(4);
+    expect(battle.every((u) => /music\/battle\//.test(u))).toBe(true);
+    expect(musicTracks().some((u) => /\/battle\/|\/ambience\//.test(u))).toBe(false);
   });
 
   it('an id with no files falls back to the synthesized sound (empty list)', () => {

@@ -17,7 +17,7 @@ import BattleResultScreen from './BattleResultScreen';
 import { ABILITIES } from '../../battle/sim/effects';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
-import { suppressMusic } from '../../audio/music';
+import { startBattleMusic } from '../../audio/music';
 import { playVoice } from '../../audio/sfx';
 import { voiceForOrders, voiceForSelection } from '../../battle/audio/voiceLines';
 import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
@@ -128,7 +128,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const audio = createBattleAudio({ ageIds: setup.sides.map((sd) => sd.ageId), playerSide });
     audioRef.current = audio;
     if (import.meta.env.DEV) window.__battleAudio = audio; // voiceStats() in the console
-    const releaseMusic = suppressMusic('battle'); // no music in a battle (src/audio/music.js)
+    const releaseMusic = startBattleMusic(); // the battle playlist instead of the map's (src/audio/music.js)
     // Browsers only start audio from a user gesture: the first touch anywhere unlocks it.
     const unlock = () => audio.unlock();
     wrap.addEventListener('pointerdown', unlock, { once: true });

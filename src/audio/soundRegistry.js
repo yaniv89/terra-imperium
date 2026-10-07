@@ -7,6 +7,7 @@
 //   battle effects   src/assets/audio/battle/<id>/*.ogg|mp3      (BATTLE_SOUNDS)
 //   map ambience     src/assets/audio/music/ambience/<id>/*.ogg|mp3  (AMBIENCE_SOUNDS, looped)
 //   music            src/assets/audio/music/*.ogg|mp3            (the map's playlist, crossfaded)
+//   battle music     src/assets/audio/music/battle/*.ogg|mp3     (the RTS battle's playlist)
 //   interface        src/assets/audio/ui/<id>/*.ogg              (UI_SOUNDS, sfx.js)
 //   world map        src/assets/audio/world/<id>/*.ogg           (WORLD_SOUNDS, sfx.js)
 //   unit voices      src/assets/audio/voice/<class>/<select|order|attack>/*.ogg (sfx.js playVoice)
@@ -142,7 +143,9 @@ const UI_FILES = import.meta.glob('../assets/audio/ui/*/*.{ogg,mp3}', { query: '
 const WORLD_FILES = import.meta.glob('../assets/audio/world/*/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
 const VOICE_FILES = import.meta.glob('../assets/audio/voice/*/*/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
 const AMBIENCE_FILES = import.meta.glob('../assets/audio/music/ambience/*/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
+// Only files directly in music/: the battle/ and ambience/ subfolders are not map tracks.
 const MUSIC_FILES = import.meta.glob('../assets/audio/music/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
+const BATTLE_MUSIC_FILES = import.meta.glob('../assets/audio/music/battle/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
 
 /** Group a glob map { '<path>/<id>/<file>': url } by its folder name: { id: [url, ...] } (sorted by file). */
 export const groupByFolder = (files) => {
@@ -205,9 +208,11 @@ export const soundCategory = (id) => (UI_SOUNDS[id] ? 'ui' : WORLD_SOUNDS[id] ? 
 
 /** The music playlist, in file name order (prefix names with 01-, 02- to set it). */
 export const musicTracks = () => fileOverride?.music || Object.keys(MUSIC_FILES).sort().map((k) => MUSIC_FILES[k]);
+/** The battle playlist (music/battle/), in file name order. */
+export const battleMusicTracks = () => fileOverride?.battleMusic || Object.keys(BATTLE_MUSIC_FILES).sort().map((k) => BATTLE_MUSIC_FILES[k]);
 
 /** Tests only: pretend these files exist ({ battle: { id: [url] }, ui, world, voice: { 'class/kind': [url] },
- *  ambience, music: [url] }); null resets. */
+ *  ambience, music: [url], battleMusic: [url] }); null resets. */
 export const setSoundFilesForTest = (files) => { fileOverride = files; };
 
 // A small RNG for picking variants: audio is outside the sim, so it must never touch the battle's

@@ -1,6 +1,6 @@
 # Music
 
-Tracks for the map (never in a battle). Every OGG or MP3 file directly in this folder is a track of
+Tracks for the map (a battle has its own playlist in battle/). Every OGG or MP3 file directly in this folder is a track of
 the playlist (`src/audio/soundRegistry.js` `musicTracks`, played by `src/audio/music.js`). They play
 in file name order, so prefix them `01-`, `02-` to set the order; the list loops, with a 4 second
 crossfade between tracks. The player sets the level with Settings > Sound > Music volume. Drop
