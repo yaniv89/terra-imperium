@@ -12,6 +12,7 @@
 // it is a landing by the troops aboard that fleet; with `tile` a field battle; with `fromTile`
 // too a sea battle. All the numbers come from preBattleModel.js.
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Castle, Home, Users, Mountain } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
@@ -77,7 +78,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const c = m.chance;
   const w = m.walls;
 
-  return (
+  // On the body: opened from the map (the march arrival), a transformed parent would clip it.
+  const card = (
     <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center pr-[var(--rail-inset,0px)]" onClick={onClose} data-testid="battle-choice">
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="pre-battle-title" data-testid="pre-battle"
         className="fa-panel !bg-fa-panel shadow-2xl w-full sm:w-[min(56rem,calc(100vw-1rem-var(--rail-inset,0px)))] max-h-[94dvh] sm:max-h-[calc(100dvh-1rem)] flex flex-col rounded-b-none sm:rounded-[10px]">
@@ -179,6 +181,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
       </div>
     </div>
   );
+  return typeof document === 'undefined' ? card : createPortal(card, document.body);
 };
 
 export default PreBattleModal;

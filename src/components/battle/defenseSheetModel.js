@@ -39,7 +39,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const walls = city ? cityWallsView(state, def.regionId) : null;
   const fallbackId = city ? getWithdrawalTarget(state, def.regionId) : null;
   const terrain = def.tile != null ? legacyTerrainOf(getTiles(), def.tile) : 'mixed';
-  const size = battleSize({ regiments: yours.regiments, terrain, kind: city && walls?.level > 0 ? 'defense' : 'field' }); // an open town: the field's clock
+  const size = battleSize({ regiments: yours.regiments, terrain, kind: city ? 'defense' : 'field' });
   // `hold` is always YOUR chance (a fort you attack: the defender holding is your loss).
   const hold = attacking ? 1 - (v.odds?.holdChance ?? 1) : (v.odds?.holdChance ?? 0);
   const pct = Math.round(hold * 100);

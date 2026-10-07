@@ -66,8 +66,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   const me = state.nations?.[state.playerNationId]?.name || 'You';
   const place = fleet ? 'the open sea' : field ? (getTiles().names?.[tile] || REGIONS_DATA[origin]?.name || 'the field') : (REGIONS_DATA[targetRegionId]?.name || region?.name || targetRegionId);
   const knownEmpty = !field && hasIntel && v?.ok && theirUnits.length === 0;
-  // Only a walled city is a siege assault with the long clock (battleType.js); an open town is fought on the field's.
-  const size = battleSize({ regiments: yours.regiments, terrain, kind: field || (!landing && fortTier <= 0) ? 'field' : 'assault' });
+  const size = battleSize({ regiments: yours.regiments, terrain, kind: field ? 'field' : 'assault' });
   const walls = !field && !fleet ? cityWallsView(state, targetRegionId) : null;
 
   let chance = null;
