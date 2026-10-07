@@ -57,19 +57,38 @@ describe('improvement models: files and lookup', () => {
     expect(improvementModelUrl('farm', 'bronze', 'israelite', {})).toBeNull();
   });
 
-  it('bundles the delivered Israelite set, named for real improvements and ages', () => {
+  it('bundles the delivered base and Israelite sets, named for real improvements and ages', () => {
     const files = fs.readdirSync('src/assets/map/improvements').filter((f) => f.endsWith('.glb'));
-    expect(files.sort()).toEqual(['farm-bronze-israelite.glb', 'fishing_boats-bronze-israelite.glb', 'fort-bronze-israelite.glb', 'fort-modern-israelite.glb', 'pasture-bronze-israelite.glb', 'plantation-bronze-israelite.glb']);
-    files.forEach((f) => expect(IMPROVEMENT_IDS).toContain(parseImprovementFile(f.replace('.glb', '')).kind));
-    // the bundled index (import.meta.glob)
+    // every file names a real improvement, a game age (written out: a file without one would read
+    // as bronze) and at most one style
+    files.forEach((f) => {
+      const name = f.replace('.glb', '');
+      const p = parseImprovementFile(name);
+      expect(p, f).toBeTruthy();
+      expect(IMPROVEMENT_IDS, f).toContain(p.kind);
+      expect(name.split('-')[1], f).toBe(p.age);
+    });
+    const base = files.filter((f) => parseImprovementFile(f.replace('.glb', '')).style === 'base').map((f) => f.replace('.glb', '')).sort();
+    expect(base).toEqual(['camp-bronze', 'farm-bronze', 'farm-modern', 'fishing_boats-bronze', 'fishing_boats-modern', 'lumber_camp-bronze', 'mine-bronze', 'mine-modern',
+      'pasture-bronze', 'plantation-bronze', 'quarry-bronze', 'road-bronze', 'road-modern']);
+    const israelite = files.filter((f) => f.endsWith('-israelite.glb')).sort();
+    expect(israelite).toEqual(['farm-bronze-israelite.glb', 'fishing_boats-bronze-israelite.glb', 'fort-bronze-israelite.glb', 'fort-modern-israelite.glb', 'pasture-bronze-israelite.glb', 'plantation-bronze-israelite.glb']);
+    // the bundled index (import.meta.glob): Israelite land takes its own set, every other land the base set
     ['farm', 'pasture', 'plantation', 'fishing_boats'].forEach((kind) => {
       expect(improvementModel(kind, 'bronze', 'israelite')?.name).toBe(`${kind}-bronze-israelite`);
-      expect(improvementModelUrl(kind, 'bronze', 'levant')).toBeNull();
-      expect(improvementModelUrl(kind, 'bronze', 'europe')).toBeNull();
+      expect(improvementModel(kind, 'bronze', 'levant')?.name).toBe(`${kind}-bronze`);
+      expect(improvementModel(kind, 'kingdoms', 'europe')?.name).toBe(`${kind}-bronze`);
     });
+    // a later age's base model beats an earlier regional one
+    expect(improvementModel('farm', 'modern', 'israelite').name).toBe('farm-modern');
+    expect(improvementModel('fishing_boats', 'modern', 'sinic').name).toBe('fishing_boats-modern');
+    expect(improvementModel('mine', 'gunpowder', 'europe').name).toBe('mine-bronze');
+    expect(improvementModel('mine', 'modern', 'israelite').name).toBe('mine-modern');
+    ['camp', 'quarry', 'lumber_camp'].forEach((kind) => expect(improvementModel(kind, 'modern', 'nile').name).toBe(`${kind}-bronze`));
     expect(improvementModel('fort', 'gunpowder', 'israelite').name).toBe('fort-bronze-israelite');
     expect(improvementModel('fort', 'modern', 'israelite').name).toBe('fort-modern-israelite');
-    expect(improvementModelUrl('mine', 'bronze', 'israelite')).toBeNull();
+    expect(improvementModelUrl('fort', 'bronze', 'europe')).toBeNull();
+    expect(improvementModelUrl('oil_well', 'modern', 'europe')).toBeNull();
     expect(improvementRoot({ 'farm-bronze-israelite': 1, x: 2 }, 'farm-bronze-israelite')).toBe(1);
     expect(improvementRoot({ x: 2 }, 'farm-bronze-israelite')).toBe(2);
     expect(improvementRoot(null, 'x')).toBeNull();

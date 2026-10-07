@@ -1,6 +1,6 @@
 // scripts/art/pack-map-models.mjs
 // Compresses the model files in place with gltfpack: the close-view map models (src/assets/map/
-// towns, shared, buildings, wonders, improvements, terrain) and the battle art (src/assets/battle/
+// towns, shared, buildings, wonders, improvements, ships, terrain) and the battle art (src/assets/battle/
 // rts, city, nature, terrain, projectiles; src/assets/units/signature, without quantization):
 // meshopt geometry compression and quantized vertices, the WebP textures as they are. Node names
 // (the objects and their LOD0..LOD2 children) and the Town / Ground / Team materials are kept, so
@@ -13,12 +13,14 @@ import { renameSync, statSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { isPacked, modelFiles, packFlags, readGlbJson } from './glbInfo.mjs';
 
-const GLTFPACK = join('node_modules', '.bin', 'gltfpack');
+// gltfpack's own cli.js run with this node (node_modules/.bin/gltfpack is a shell script that
+// Windows cannot spawn directly)
+const GLTFPACK = join('node_modules', 'gltfpack', 'cli.js');
 
 const pack = (file) => {
   const tmp = `${file}.packing.glb`;
   try {
-    execFileSync(GLTFPACK, ['-i', file, '-o', tmp, ...packFlags(file)], { stdio: ['ignore', 'ignore', 'pipe'] });
+    execFileSync(process.execPath, [GLTFPACK, '-i', file, '-o', tmp, ...packFlags(file)], { stdio: ['ignore', 'ignore', 'pipe'] });
     if (!isPacked(readGlbJson(tmp))) throw new Error('gltfpack wrote no meshopt data');
     const before = statSync(file).size;
     renameSync(tmp, file);
