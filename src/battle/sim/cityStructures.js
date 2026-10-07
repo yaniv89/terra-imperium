@@ -6,8 +6,9 @@
 //             nothing else. They are never picked automatically (no AI or attack-move wastes time
 //             on a shed; world plan 8: "victory does not require demolishing the city"); a
 //             player's explicit attack order or a bombardment can bring them down.
-//   walls     segments of the ring block the ground; the gate is open ground. A wall that falls
-//             is a breach.
+//   walls     segments of the ring block the ground; the gate (TILE.GATE) is shut to the attacker
+//             and open to the city's own side (movement.js, pathing.js). A wall that falls is a
+//             breach; a gate that falls is open to everyone.
 // When a structure with a footprint falls its tiles turn to RUBBLE (passable, slow), once, at the
 // tick it falls, and the flow fields are rebuilt: paths change through the breach or the ruin.
 // What the city lost is reported by manifest id (cityDamageReport) and carried to the map by
@@ -23,7 +24,7 @@ export const collapseFootprint = (w, s) => {
   if (!s.footprint?.length) return;
   const { tiles } = w.map;
   let changed = false;
-  s.footprint.forEach((i) => { if (tiles[i] === TILE.BUILDING) { tiles[i] = TILE.RUBBLE; changed = true; } });
+  s.footprint.forEach((i) => { if (tiles[i] === TILE.BUILDING || tiles[i] === TILE.GATE) { tiles[i] = TILE.RUBBLE; changed = true; } });
   if (!changed) return;
   invalidatePaths(w);
   w.events.push({ t: w.tick, type: 'collapsed', structure: s.id });

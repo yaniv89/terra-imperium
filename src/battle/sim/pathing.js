@@ -3,7 +3,8 @@
 // water and buildings (one integer Dijkstra per destination tile, shared by every squad heading
 // there and cached), a cheap straight-line walkability test so open-ground moves skip the field
 // entirely, and a spatial hash for neighbour queries.
-import { TILE_COST } from '../setup/mapgen';
+import { TILE, TILE_COST, GATE_COST_BARRED, GATE_COST_OPEN } from '../setup/mapgen';
+import { SIDE_DEFENDER } from './constants';
 import { Q } from './constants';
 import { makeGrid, rebuildGrid, sortInts } from './spatial';
 
@@ -21,9 +22,20 @@ export const tileOf = (map, x, y) => {
 
 export const tileCostAt = (map, x, y) => TILE_COST[map.tiles[tileOf(map, x, y)]];
 
-// Integer Dijkstra from the goal outward with a 64-bucket queue.
-export const buildFlowField = (map, goalIdx) => {
+// The cost table with the gate priced for one side (GATE_COST_OPEN / GATE_COST_BARRED).
+const GATE_TABLES = new Map();
+const costTable = (gateCost) => {
+  if (!gateCost) return TILE_COST;
+  let t = GATE_TABLES.get(gateCost);
+  if (!t) { t = TILE_COST.slice(); t[TILE.GATE] = gateCost; GATE_TABLES.set(gateCost, t); }
+  return t;
+};
+
+// Integer Dijkstra from the goal outward with a 64-bucket queue. `gateCost`: what a closed gate's
+// tile costs this side (0: impassable, the generic rule).
+export const buildFlowField = (map, goalIdx, gateCost = 0) => {
   const { w, h, tiles } = map;
+  const costs = costTable(gateCost);
   const cost = new Uint16Array(w * h).fill(UNREACHED);
   const buckets = Array.from({ length: 64 }, () => []);
   cost[goalIdx] = 0;
@@ -38,10 +50,10 @@ export const buildFlowField = (map, goalIdx) => {
         const nx = x + DX[k]; const ny = y + DY[k];
         if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
         const j = ny * w + nx;
-        const tc = TILE_COST[tiles[j]];
+        const tc = costs[tiles[j]];
         if (!tc) continue;
         // No corner-cutting between two impassable orthogonal neighbours.
-        if (k >= 4 && (!TILE_COST[tiles[y * w + nx]] || !TILE_COST[tiles[ny * w + x]])) continue;
+        if (k >= 4 && (!costs[tiles[y * w + nx]] || !costs[tiles[ny * w + x]])) continue;
         const c = cost[i] + ((STEP[k] * tc) >> 3);
         if (c < cost[j]) { cost[j] = c; buckets[c & 63].push(j); pending += 1; }
       }
@@ -75,13 +87,18 @@ export const walkableGoal = (map, goalIdx) => {
 
 // `key`/`limit`: the battle economy's workers keep their own, larger cache (economy.js), so their
 // trips between nodes and depots never push the army's fields out.
-export const getFlowField = (w, rawGoalIdx, key = 'flowCache', limit = CACHE_LIMIT) => {
+// `side`: on a map with a city gate (w.map.gated) each side walks on its own fields: the gate is
+// open ground to the defender and a barred, costly way in to the attacker (movement.js stops the
+// attacker at it, and its squads batter it). Maps without a gate keep the one shared cache.
+export const getFlowField = (w, rawGoalIdx, key = 'flowCache', limit = CACHE_LIMIT, side = -1) => {
   const goalIdx = walkableGoal(w.map, rawGoalIdx);
+  const gated = w.map.gated && side >= 0;
+  if (gated) key = `${key}${side === SIDE_DEFENDER ? 'D' : 'A'}`;
   if (!w[key]) w[key] = new Map();
   const cache = w[key];
   const cached = cache.get(goalIdx);
   if (cached) return cached;
-  const field = buildFlowField(w.map, goalIdx);
+  const field = buildFlowField(w.map, goalIdx, gated ? (side === SIDE_DEFENDER ? GATE_COST_OPEN : GATE_COST_BARRED) : 0);
   if (cache.size >= limit) cache.delete(cache.keys().next().value);
   cache.set(goalIdx, field);
   return field;
@@ -90,8 +107,7 @@ export const getFlowField = (w, rawGoalIdx, key = 'flowCache', limit = CACHE_LIM
 /** The ground changed (a structure fell, a building went up): forget blocked sums and every flow field. */
 export const invalidatePaths = (w) => {
   blockedSums.delete(w.map.tiles);
-  if (w.flowCache) w.flowCache.clear();
-  if (w.ecoFlowCache) w.ecoFlowCache.clear();
+  ['flowCache', 'ecoFlowCache', 'flowCacheA', 'flowCacheD', 'ecoFlowCacheA', 'ecoFlowCacheD'].forEach((k) => { if (w[k]) w[k].clear(); });
 };
 
 // The next waypoint (tile centre) from (x, y) toward the field's goal, or null if unreachable.

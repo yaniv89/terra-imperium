@@ -7,9 +7,17 @@ import { createRng } from '../../utils/rng';
 import { sectorAt } from './tileContext';
 
 // RUBBLE: a city structure's ground after it fell (src/battle/sim/cityStructures.js): passable, slow.
-export const TILE = { OPEN: 0, FOREST: 1, WATER: 2, ROCK: 3, ROAD: 4, SAND: 5, FORD: 6, BUILDING: 7, RUBBLE: 8 };
-// Movement cost per tile in eighths (8 = normal); 0 = impassable for ground units.
-export const TILE_COST = [8, 11, 0, 0, 6, 10, 13, 0, 13];
+// GATE: a walled city's closed gate (cityBattle.js): shut to the attacker until it falls (then
+// rubble), open to the city's own side (movement.js passableAt, pathing.js getFlowField).
+export const TILE = { OPEN: 0, FOREST: 1, WATER: 2, ROCK: 3, ROAD: 4, SAND: 5, FORD: 6, BUILDING: 7, RUBBLE: 8, GATE: 9 };
+// Movement cost per tile in eighths (8 = normal); 0 = impassable for ground units. The gate is
+// impassable here (every generic check); the sim opens it for the defender only.
+export const TILE_COST = [8, 11, 0, 0, 6, 10, 13, 0, 13, 0];
+// The gate in the flow fields: the defender walks through it as open ground; the attacker's fields
+// lead to it (at a high price, so a breach nearby is preferred) and its squads batter it there.
+// (A step must stay under the flow field's 64 buckets: 14 * 32 / 8 = 56.)
+export const GATE_COST_OPEN = 8;
+export const GATE_COST_BARRED = 32;
 export const isPassable = (tile) => TILE_COST[tile] > 0;
 
 export const hashString = (s) => {

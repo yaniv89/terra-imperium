@@ -15,7 +15,8 @@
 //
 // Roles (world plan 8): houses, the town model's landmarks, the palace and wonders are passive
 // (HP and footprint only); the region's buildings keep their battle effects (sim/buildings.js);
-// the wall ring blocks the ground (its segments can be breached), the gate is open; towers fire.
+// the wall ring blocks the ground (its segments can be breached), the gate is shut to the attacker
+// (TILE.GATE: open to the defender, battered down by the attacker); towers fire.
 import { TILE, isPassable, reachable } from './mapgen';
 import { manifestHousing } from '../../data/townLayout';
 import { Q, secondsToTicks } from '../sim/constants';
@@ -132,7 +133,7 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
         if (owner[c] >= 0 || tiles[c] === TILE.WATER) continue;
         const s = segIdx[best];
         owner[c] = structures.indexOf(s);
-        if (s.kind === 'wall') s.footprint.push(c); // the gate stays open ground
+        s.footprint.push(c); // walls block; the gate's tiles are TILE.GATE (below)
       }
     }
   }
@@ -150,7 +151,8 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
   structures.forEach((s) => {
     if (!s.manifestId || s.manifestId === 'townhall') return;
     const isRuin = !!ruined[s.manifestId];
-    (s.footprint || []).forEach((c) => { tiles[c] = isRuin ? TILE.RUBBLE : TILE.BUILDING; });
+    // the gate is closed after the street check below (it is the way in, not a wall)
+    if (s.kind !== 'gate') (s.footprint || []).forEach((c) => { tiles[c] = isRuin ? TILE.RUBBLE : TILE.BUILDING; });
     if (isRuin) { s.hp = 0; s.alive = false; s.ruinedAtStart = true; } else if (damaged[s.manifestId]) s.hp = Math.max(1, Math.round(s.maxHp / 2));
   });
   // The attacker can always reach the gate and the keep (a coast or a river may still close the
@@ -159,6 +161,11 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
   if (!reachable(tiles, w, h, 6, midY, keep.x - 2, keep.y)) {
     for (let i = 1; i < keep.x - 1; i++) for (let j = midY - 1; j <= midY + 1; j++) if (!isPassable(tiles[j * w + i]) && owner[j * w + i] < 0) tiles[j * w + i] = TILE.OPEN;
   }
+  // The gate is shut: closed to the attacker until it falls, open to the city's own side
+  // (TILE.GATE, src/battle/sim/movement.js); a gate ruined in an earlier battle is rubble.
+  structures.forEach((s) => {
+    if (s.kind === 'gate') s.footprint.forEach((c) => { tiles[c] = s.ruinedAtStart ? TILE.RUBBLE : TILE.GATE; });
+  });
   return {
     structures,
     city: {

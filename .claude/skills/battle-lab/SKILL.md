@@ -47,6 +47,17 @@ parityEco output and grid-searches the auto's constants (AUTO_TUNE: auxiliaries,
 gate, closeness); put the winners in autoBattle.js and rerun parityEco. Any change to the sim's
 economy or AI needs this rerun: Auto must stay honest (master plan 6.1).
 
+### Walls hold (city assaults)
+```bash
+N=12 AGE=bronze TIER=medium [ORDER=keep] [STRICT=1] \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/wallTrace
+node .claude/skills/battle-lab/wall-shot.mjs <out.png> [--until fallen]   # dev server first, 844x390
+```
+wallTrace counts the attacker's ground squads inside the wall ring while every wall segment, ring
+tower and the gate still stand (must be 0) and prints when the ring first broke. The ring's walls
+are TILE.BUILDING, the gate TILE.GATE: shut to the attacker (its squads batter it), open to the
+defender (movement.js passableAt, per-side flow fields in pathing.js getFlowField).
+
 ## 3. See it in a real browser
 ```bash
 npx vite --port 5199 --strictPort > /tmp/vite.log 2>&1 &

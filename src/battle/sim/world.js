@@ -88,6 +88,8 @@ export const createWorld = (setup) => {
     stats: { reservesCalled: [0, 0] },
     hashChain: HASH_CHAIN_SEED            // running checkpoint hash (hash.js advanceHashChain)
   };
+  // A walled city's closed gate: each side walks on its own flow fields (pathing.js getFlowField).
+  if (setup.city && w.structures.some((s) => s.kind === 'gate' && s.footprint?.length)) w.map.gated = true;
   spawnSides(w);
   if (setup.deployment === 'blocks') deployBlocks(w);
   initFog(w);

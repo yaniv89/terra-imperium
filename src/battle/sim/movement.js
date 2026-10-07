@@ -2,7 +2,7 @@
 // Where every squad wants to be this tick, and getting it there (Tactical Battles plan §8.2):
 // straight lines over open ground, flow fields around obstacles, the slowest member's pace for a
 // group moving in formation (RoN), terrain speed, and a separation pass so squads don't stack.
-import { TILE_COST } from '../setup/mapgen';
+import { TILE, TILE_COST } from '../setup/mapgen';
 import { angleBetween, distSq, isqrt, polarX, polarY, turnToward } from './fixed';
 import { buildTargetGrid, getFlowField, lineClear, nextWaypoint, tileOf, SPATIAL_CELL, SPATIAL_PER } from './pathing';
 import { sortInts } from './spatial';
@@ -10,16 +10,32 @@ import { acquireTarget, canAttack, inRangeOfSquad, inRangeOfStructure, isFightin
 import { canSeeSquad } from './fog';
 import { sideEdgeX } from './world';
 import { speedMult } from './effects';
-import { Q, SQUAD_RADIUS } from './constants';
+import { Q, SQUAD_RADIUS, SIDE_DEFENDER } from './constants';
 
 const ARRIVE = Math.round(0.3 * Q);
 const TURN_RATE = 24;
 const IDLE_LEASH = 6 * Q;
 
+// A closed city gate (TILE.GATE) opens for the city's own side only: the attacker stands at it
+// until it falls (cityStructures.js turns it to rubble).
 const passableAt = (w, q, x, y) => {
   if (q.stats.flying) return x >= 0 && y >= 0 && x < w.map.w * Q && y < w.map.h * Q;
   if (x < 0 || y < 0 || x >= w.map.w * Q || y >= w.map.h * Q) return false;
-  return TILE_COST[w.map.tiles[tileOf(w.map, x, y)]] > 0;
+  const t = w.map.tiles[tileOf(w.map, x, y)];
+  return TILE_COST[t] > 0 || (t === TILE.GATE && q.side === SIDE_DEFENDER);
+};
+
+// An attacker's way is barred by the closed gate at (x, y): a squad free to fight batters it
+// (it is the only way in short of a breach); one under a plain move order just stands there.
+const barredByGate = (w, q, x, y) => {
+  if (q.side === SIDE_DEFENDER || q.worker || !canAttack(q) || q.stats.airOnly || q.routed || q.retreating) return;
+  if (q.order.type !== 'idle' && q.order.type !== 'attackMove' && q.order.type !== 'attack') return;
+  const i = tileOf(w.map, x, y);
+  if (w.map.tiles[i] !== TILE.GATE) return;
+  if (q.targetKind === 'structure' && w.structures[q.target]?.kind === 'gate') return;
+  const gi = w.structures.findIndex((s) => s.kind === 'gate' && s.alive && s.footprint?.includes(i));
+  if (gi < 0) return;
+  q.target = gi; q.targetKind = 'structure';
 };
 
 // `cacheKey`: the economy's workers walk on their own flow-field cache (economy.js).
@@ -32,7 +48,7 @@ export const stepToward = (w, q, gx, gy, cacheKey = null) => {
   if (!q.stats.flying) {
     speed = Math.max(1, Math.trunc((speed * 8) / (TILE_COST[w.map.tiles[tileOf(w.map, q.x, q.y)]] || 8)));
     if (!lineClear(w.map, q.x, q.y, gx, gy)) {
-      const wp = nextWaypoint(w, cacheKey ? getFlowField(w, tileOf(w.map, gx, gy), cacheKey, 96) : getFlowField(w, tileOf(w.map, gx, gy)), q.x, q.y);
+      const wp = nextWaypoint(w, cacheKey ? getFlowField(w, tileOf(w.map, gx, gy), cacheKey, 96, q.side) : getFlowField(w, tileOf(w.map, gx, gy), undefined, undefined, q.side), q.x, q.y);
       if (!wp) return true; // unreachable: stop trying
       wx = wp.x; wy = wp.y;
     }
@@ -41,8 +57,11 @@ export const stepToward = (w, q, gx, gy, cacheKey = null) => {
   const len = Math.min(speed, remaining);
   const nx = q.x + polarX(heading, len); const ny = q.y + polarY(heading, len);
   if (passableAt(w, q, nx, ny)) { q.x = nx; q.y = ny; }
-  else if (passableAt(w, q, nx, q.y)) q.x = nx;
-  else if (passableAt(w, q, q.x, ny)) q.y = ny;
+  else {
+    if (w.map.gated) barredByGate(w, q, nx, ny);
+    if (passableAt(w, q, nx, q.y)) q.x = nx;
+    else if (passableAt(w, q, q.x, ny)) q.y = ny;
+  }
   q.facing = turnToward(q.facing, heading, TURN_RATE);
   q.movedSinceAttack += len;
   return false;
