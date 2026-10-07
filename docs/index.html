@@ -3,20 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Add to Home Screen runs full screen, without Safari's bars (src/components/ui/InstallHint.jsx). -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Terra Imperium" />
+    <link rel="manifest" href="/terra-imperium/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/terra-imperium/icons/apple-touch-icon.png" />
     <meta name="description" content="Terra Imperium - A grand strategy country/army sim spanning 2000 BCE - 2300 CE on a real Earth globe. Play any of 240 nations." />
     <meta name="theme-color" content="#020617" />
     <title>Terra Imperium</title>
     <style>
       /* Critical CSS for initial load */
-      html, body, #root {
-        height: 100%;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        background-color: #020617;
-      }
+      /* The page never scrolls or bounces behind the game (iOS Safari): the body is pinned to the
+         visible area (--app-height, src/utils/appViewport.js). */
+      html { height: 100%; overflow: hidden; overscroll-behavior: none; background-color: #020617; }
+      body { position: fixed; top: 0; left: 0; width: 100%; height: var(--app-height, 100%); margin: 0; padding: 0; overflow: hidden; overscroll-behavior: none; background-color: #020617; }
+      #root { height: 100%; width: 100%; overflow: hidden; }
       
       /* Loading spinner */
       .loading {
@@ -41,8 +45,8 @@
         to { transform: rotate(360deg); }
       }
     </style>
-    <script type="module" crossorigin src="/terra-imperium/assets/index-a073ec9d.js"></script>
-    <link rel="stylesheet" href="/terra-imperium/assets/index-6268f379.css">
+    <script type="module" crossorigin src="/terra-imperium/assets/index-edd6fe61.js"></script>
+    <link rel="stylesheet" href="/terra-imperium/assets/index-d821b69c.css">
   </head>
   <body>
     <div id="root">
