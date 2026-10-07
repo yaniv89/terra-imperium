@@ -5,11 +5,11 @@
 // whenever a game on another world starts or loads, followed by a reload.
 //
 //   boot (src/index.jsx):      await loadWorld(bootWorldSpec())    then import the app
-//   turn and battle workers:   await loadWorld(workerWorldSpec(), { inline: true })
+//   turn and battle workers:   await loadWorld(<the spec of their first message>, { inline: true })
 //
 // Earth: tiles.bin.gz as before. A generated world: the IndexedDB cache (worldCache.js), else the
 // generator in its worker (worldgen.worker.js) on Earth's grid columns, then cached. Workers get
-// the descriptor through their name (workerName()), read the same cache, and regenerate inline
+// the descriptor in their first message (worldMessage()), read the same cache, and regenerate inline
 // when it is empty (private windows), which gives the same bytes: the generator is deterministic.
 import { loadTiles, fetchEarthRaw, setRawTiles, getTiles, loadedWorldSpec } from '../data/geo/tiles';
 import { decodeTiles } from '../data/geo/tilesCodec';
@@ -39,15 +39,10 @@ export const rememberWorldSpec = (spec) => {
 export const currentWorldSpec = () => normalizeSpec(loadedWorldSpec());
 export const isCurrentWorld = (spec) => sameWorld(spec, currentWorldSpec());
 
-/** The name a turn or battle worker is created with: it carries the world descriptor. */
-export const workerName = () => `world:${JSON.stringify(currentWorldSpec())}`;
-/** Inside a worker: the descriptor its creator named it with (Earth when absent). */
-export const workerWorldSpec = () => {
-  try {
-    const name = globalThis.self?.name || '';
-    return name.startsWith('world:') ? normalizeSpec(JSON.parse(name.slice(6))) : EARTH_SPEC;
-  } catch { return EARTH_SPEC; }
-};
+/** The first message to a turn or battle worker: the world it must load before anything else
+ * (Vite needs the Worker options static, so the world cannot ride in the worker's name). */
+export const WORLD_MESSAGE = '__world';
+export const worldMessage = () => ({ type: WORLD_MESSAGE, spec: currentWorldSpec() });
 
 let worker = null; let nextId = 1;
 const pending = new Map();

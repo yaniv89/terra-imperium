@@ -17,9 +17,11 @@ import { loadWorld, bootWorldSpec } from './worldgen/worldLoader';
 installStaleChunkReload();
 const BattleSandbox = lazyWithReload(() => import('./components/battle/BattleSandbox'));
 const TileViewer = lazyWithReload(() => import('./components/map/TileViewer'));
+const WorldLab = lazyWithReload(() => import('./components/map/WorldLab'));
 const params = new URLSearchParams(window.location.search);
 const isSandbox = params.has('battleSandbox');
 const isTileViewer = params.has('tileViewer');
+const isWorldLab = params.has('worldLab'); // the world generator's debug page (WorldLab.jsx)
 
 // A generated world is built (or read from the IndexedDB cache) before the app loads, with a
 // plain progress line in the page meanwhile (plans/MAP-VARIATIONS-PLAN.md 3.1).
@@ -41,7 +43,9 @@ const start = async () => {
         ? <Suspense fallback={<div className="min-h-screen bg-slate-950" />}><BattleSandbox /></Suspense>
         : isTileViewer
           ? <Suspense fallback={<div className="min-h-screen bg-slate-950" />}><TileViewer /></Suspense>
-          : <App />}
+          : isWorldLab
+            ? <Suspense fallback={<div className="min-h-screen bg-slate-950" />}><WorldLab /></Suspense>
+            : <App />}
     </React.StrictMode>
   );
 };

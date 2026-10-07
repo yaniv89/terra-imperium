@@ -7,7 +7,9 @@ import { buildWorldPackage } from './worldPackage';
 self.onmessage = (e) => {
   const { id, spec, grid, coast = true } = e.data || {};
   try {
+    const t0 = performance.now();
     const result = buildWorldPackage(spec, grid, { coast, onProgress: (f, stage) => self.postMessage({ id, progress: f, stage }) });
+    result.ms = performance.now() - t0; // the generation time inside the worker (benchmarks)
     self.postMessage({ id, result }, [result.tiles.buffer]);
   } catch (err) {
     self.postMessage({ id, error: String(err?.stack || err) });

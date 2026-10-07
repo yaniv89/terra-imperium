@@ -4,10 +4,12 @@
 // time into fixed ticks, so timer jitter never changes the outcome.
 // The world grid is fetched first (src/data/geo/tiles.js) and the sim imported after it, since
 // modules in its graph read the grid as they load; messages are handled in order once it is in.
-import { loadWorld, workerWorldSpec } from '../../worldgen/worldLoader';
+import { loadWorld, WORLD_MESSAGE } from '../../worldgen/worldLoader';
 
-// The world this worker runs is in its name (worldLoader.js workerName): the same as the page's.
-const ready = loadWorld(workerWorldSpec(), { inline: true }).then(() => import('./battleLoop'));
+// The world this worker runs comes in the first message (worldLoader.js worldMessage): the page's.
+let setWorld;
+const world = new Promise((resolve) => { setWorld = resolve; });
+const ready = world.then((spec) => loadWorld(spec, { inline: true })).then(() => import('./battleLoop'));
 
 let loop = null;
 let timer = null;
@@ -38,5 +40,6 @@ const handle = (data, createBattleLoop) => {
 // A chain keeps the messages in their order while the first ones wait for the grid.
 let queue = Promise.resolve();
 self.onmessage = ({ data }) => {
+  if (data?.type === WORLD_MESSAGE) { setWorld(data.spec); return; }
   queue = queue.then(() => ready).then(({ createBattleLoop }) => handle(data, createBattleLoop));
 };

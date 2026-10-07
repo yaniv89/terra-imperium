@@ -9,14 +9,28 @@ const TERRAIN_RGB = {
 };
 const FEATURE_RGB = { forest: [60, 104, 54], jungle: [34, 96, 46], marsh: [86, 128, 104], floodplain: [126, 170, 82], oasis: [120, 160, 90], ice: [226, 236, 248] };
 
+// The tile under each pixel depends on the grid only (the same for every world): kept per size.
+const pixelTiles = new Map();
+const tilesOfPixels = (tiles, W, H) => {
+  const key = `${W}x${H}x${tiles.count}`;
+  let map = pixelTiles.get(key);
+  if (map) return map;
+  map = new Int32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const lat = 90 - ((y + 0.5) / H) * 180;
+    for (let x = 0; x < W; x++) map[y * W + x] = tiles.nearest(lat, ((x + 0.5) / W) * 360 - 180);
+  }
+  pixelTiles.set(key, map);
+  return map;
+};
+
 /** RGBA bytes (Uint8ClampedArray, W x H) of the world in `tiles` (a decorated grid). */
 export const worldPreviewRgba = (tiles, W, H, { rivers = true } = {}) => {
   const out = new Uint8ClampedArray(W * H * 4);
+  const under = tilesOfPixels(tiles, W, H);
   for (let y = 0; y < H; y++) {
-    const lat = 90 - ((y + 0.5) / H) * 180;
     for (let x = 0; x < W; x++) {
-      const lon = ((x + 0.5) / W) * 360 - 180;
-      const id = tiles.nearest(lat, lon);
+      const id = under[y * W + x];
       let c;
       const e = tiles.elevation[id];
       if (tiles.land[id] !== 1) {

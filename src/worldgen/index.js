@@ -1,10 +1,10 @@
 // src/worldgen/index.js
 // The generator by version (plans/MAP-VARIATIONS-PLAN.md 3.2: versions are frozen; an old save
 // names the version that built its world, and that version stays in the code).
-// MV0: no generator yet (version 1 comes with MV3).
+import { generateWorldV1 } from './v1/generate';
 import { normalizeSpec } from './spec';
 
-const GENERATORS = {};
+const GENERATORS = { 1: generateWorldV1 };
 
 /** { raw, report } for a generated spec on `grid` (Earth's grid columns: count, lat, lon, neighbors). */
 export const generateWorld = (spec, grid, options = {}) => {
