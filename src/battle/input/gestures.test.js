@@ -30,6 +30,20 @@ describe('battle gestures', () => {
   const move = (id, x, y, extra) => el.handlers.pointermove(ev(id, x, y, extra));
   const up = (id, x, y, extra) => el.handlers.pointerup(ev(id, x, y, extra));
 
+  it('placing a building: a finger drags the ghost instead of panning; a still tap on it builds', () => {
+    let onGhost = false;
+    Object.assign(h, { isPlacing: () => true, isOnGhost: () => onGhost, placeDrag: vi.fn(), placeEnd: vi.fn() });
+    down(1, 100, 100); clock += 60; move(1, 140, 100); move(1, 180, 120); clock += 300; up(1, 180, 120);
+    expect(h.pan).not.toHaveBeenCalled();
+    expect(h.tap).not.toHaveBeenCalled();
+    expect(h.placeDrag).toHaveBeenCalledTimes(3); // the touch, then each move
+    expect(h.placeEnd).toHaveBeenLastCalledWith(expect.anything(), { moved: true, onGhost: false, quick: false });
+    onGhost = true;
+    down(1, 180, 120); clock += 80; up(1, 181, 120);
+    expect(h.placeDrag).toHaveBeenCalledTimes(3); // a touch on the ghost does not move it
+    expect(h.placeEnd).toHaveBeenLastCalledWith(expect.anything(), { moved: false, onGhost: true, quick: true });
+  });
+
   it('a quick touch is a tap', () => {
     down(1, 100, 100); clock += 100; up(1, 102, 101);
     expect(h.tap).toHaveBeenCalledTimes(1);

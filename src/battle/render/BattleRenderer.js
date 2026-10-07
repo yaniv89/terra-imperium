@@ -77,6 +77,7 @@ const tmpColor = new Color();
 const GREY_ROUT = new Color('#9ca3af');
 const PALE_AMBUSH = new Color('#e2e8f0');
 const WHITE = new Color('#ffffff');
+const SITE_BAR = new Color('#f2b53c'); // a building site's progress bar (brass)
 const CAM_RIGHT = new Vector3();
 const CAM_BASIS = new Matrix4();
 const BAR_GREEN = new Color('#22c55e');
@@ -782,6 +783,15 @@ export class BattleRenderer {
     [this.bannerPoles, this.bannerFlags].forEach((m) => { m.count = 0; m.frustumCulled = false; m.castShadow = true; this.scene.add(m); });
     this.structBarBg = mk(new PlaneGeometry(1, 0.18), '#0f172a', 0.85);
     this.structBarFill = mk(new PlaneGeometry(1, 0.13).translate(0.5, 0, 0), '#ffffff');
+    // Drawn like the squads' bars: on top, no depth test, the fill after its track. (The track was a
+    // transparent plane in the same plane as the opaque fill: drawn after it, it covered the fill, so
+    // every building's bar looked empty and dark, worst on iPhone.) The colour buffer exists from the
+    // start, so the shader is built with per-instance colour.
+    [[this.structBarBg, 22], [this.structBarFill, 23]].forEach(([m, order]) => {
+      Object.assign(m.material, { depthTest: false, depthWrite: false, fog: false, transparent: true, toneMapped: false });
+      m.renderOrder = order;
+    });
+    instanceColors(this.structBarFill);
     this.tracers = mk(new BoxGeometry(1, 0.05, 0.05).translate(0.5, 0, 0), '#fde68a');
     this.sparks = mk(new DodecahedronGeometry(0.12, 0), '#fbbf24');
     this.sparks.dispose(); this.scene.remove(this.sparks);
@@ -938,8 +948,8 @@ export class BattleRenderer {
   }
 
   // Ground point (tiles) → screen pixel.
-  worldToScreen(x, z) {
-    const v = new Vector3(x, this.heightAt(x, z), z).project(this.camera);
+  worldToScreen(x, z, lift = 0) {
+    const v = new Vector3(x, this.heightAt(x, z) + lift, z).project(this.camera);
     return { x: ((v.x + 1) / 2) * this.width, y: ((1 - v.y) / 2) * this.height };
   }
 
@@ -1429,11 +1439,13 @@ export class BattleRenderer {
     });
     // The battle economy's damaged and unfinished buildings (economyLayer.js).
     this.ecoLayer.bars(cur, this.inspected?.kind === 'eco' ? this.inspected.index : -1).forEach((b) => {
-      tmp.quaternion.copy(camQuat); tmp.position.set(b.x, this.heightAt(b.x, b.z) + b.h, b.z); tmp.scale.set(b.w, 1, 1); tmp.updateMatrix();
+      const th = b.site ? 1.7 : 1; // a site's bar is thicker
+      tmp.quaternion.copy(camQuat); tmp.position.set(b.x, this.heightAt(b.x, b.z) + b.h, b.z); tmp.scale.set(b.w, th, 1); tmp.updateMatrix();
       this.structBarBg.setMatrixAt(n, tmp.matrix);
-      tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -b.w / 2); tmp.scale.set(b.w * b.frac, 1, 1); tmp.updateMatrix();
+      tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -b.w / 2); tmp.scale.set(Math.max(0.04, b.w * b.frac), th, 1); tmp.updateMatrix();
       this.structBarFill.setMatrixAt(n, tmp.matrix);
-      this.structBarFill.setColorAt(n, tmpColor.setHSL(0.08 + 0.25 * b.frac, 0.8, 0.5));
+      // A site fills in brass as it goes up (its HP rises with the work); a standing building by HP.
+      this.structBarFill.setColorAt(n, b.site ? tmpColor.set(SITE_BAR) : tmpColor.setHSL(0.08 + 0.25 * b.frac, 0.8, 0.5));
       n += 1;
     });
     [this.structBarBg, this.structBarFill].forEach((m) => { m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });

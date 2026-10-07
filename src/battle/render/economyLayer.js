@@ -117,9 +117,10 @@ export class EconomyLayer {
       r.scene.add(mesh);
       this.meshes[p] = mesh;
     });
-    const ghostMat = r.track(new MeshBasicMaterial({ color: '#4ade80', transparent: true, opacity: 0.45, depthWrite: false }));
+    // On top of trees and rocks (depthTest off), so a red spot in a wood is seen (B10).
+    const ghostMat = r.track(new MeshBasicMaterial({ color: '#4ade80', transparent: true, opacity: 0.5, depthWrite: false, depthTest: false }));
     this.ghostMesh = new InstancedMesh(r.track(new BoxGeometry(1, 1, 1).translate(0, 0.5, 0)), ghostMat, 1);
-    this.ghostMesh.count = 0; this.ghostMesh.frustumCulled = false; this.ghostMesh.renderOrder = 3;
+    this.ghostMesh.count = 0; this.ghostMesh.frustumCulled = false; this.ghostMesh.renderOrder = 19;
     r.scene.add(this.ghostMesh);
     // Art files (none: everything stays a greybox, nothing is loaded).
     this.kits = new KitInstances(r.scene, { track: (x) => r.track(x) });
@@ -262,7 +263,11 @@ export class EconomyLayer {
    *  A site's HP rises with the work (sim/economy.js), so its bar fills as it goes up (AoE style). */
   bars(cur, picked = -1) {
     if (!this.on || !cur?.eco) return [];
-    return cur.eco.buildings.filter((b) => b.alive && !b.proxy && (b.hp < b.maxHp || !b.built || b.idx === picked)).map((b) => ({ x: b.x / Q, z: b.y / Q, frac: b.hp / Math.max(1, b.maxHp), h: 1.6 + b.size * 0.3, w: 1 + b.size * 0.2 }));
+    // A site's bar is wider and brass (it is the build, not damage) and sits above its scaffold.
+    return cur.eco.buildings.filter((b) => b.alive && !b.proxy && (b.hp < b.maxHp || !b.built || b.idx === picked)).map((b) => ({
+      x: b.x / Q, z: b.y / Q, frac: b.hp / Math.max(1, b.maxHp), site: !b.built, progress: b.progress, side: b.side,
+      h: b.built ? 1.6 + b.size * 0.3 : 2.2 + b.size * 0.35, w: b.built ? 1 + b.size * 0.2 : 1.4 + b.size * 0.45
+    }));
   }
 
   /** What economy thing is under a ground point: a building { kind: 'eco', index, side } or a node { kind: 'node', index }.

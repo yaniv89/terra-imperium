@@ -1,6 +1,6 @@
 // src/components/battle/battleHud.test.js
-// B01 / B05 / B06: the HUD renders its top bar, regiment cards and labelled commands; commands
-// need a selection; the pause sheet replaces the bottom bar; the city card shows in a city assault;
+// B01 / B05 / B06 / B10: the HUD renders its top bar, the small All button (no regiment bar) and
+// the context panel: army commands only for army squads, Build only for laborers; the pause sheet replaces the bottom bar; the city card shows in a city assault;
 // once the battle has ended only the top bar stays.
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -15,16 +15,36 @@ const html = (props) => renderToStaticMarkup(React.createElement(BattleHud, { ..
 const btn = (h, id) => h.match(new RegExp(`<button[^>]*data-testid="${id}"[^>]*>`))?.[0] || '';
 
 describe('BattleHud', () => {
-  it('top bar, regiment cards, labelled commands that need a selection', () => {
+  it('top bar, All, and a context panel that shows the selection\'s actions only', () => {
     const h = html();
     expect(h).toContain('Siege of Susa');
     expect(h).toContain('25:00');
-    expect(h).toContain('data-testid="battle-regiment-infantry"');
-    expect(h).toContain('Rally Cry');
-    expect(btn(h, 'battle-attack-move')).toContain('disabled=""');
-    const sel = html({ selectedSquads: [hud.squads[0]] });
+    expect(h).not.toContain('battle-regiment-');
+    expect(btn(h, 'battle-select-all')).toBeTruthy();
+    expect(h).toContain('All 2');
+    expect(h).toContain('Rally Cry'); // powers with nothing selected
+    expect(h).not.toContain('data-testid="battle-attack-move"');
+    const sel = html({ selectedSquads: [hud.squads[0]], context: 'army' });
     expect(btn(sel, 'battle-attack-move')).not.toContain('disabled=""');
+    expect(sel).toContain('data-testid="battle-retreat-selected"');
+    expect(sel).not.toContain('data-testid="battle-build"');
     expect(sel).toContain('data-testid="battle-selection"');
+  });
+
+  it('Build shows only with laborers; a building or a placement brings its own panel', () => {
+    const eco = { stock: [100, 100, 100], pop: 5, cap: 10, workers: 2, idleWorkers: [3], buildings: [], nodes: [] };
+    const ecoHud = { ...hud, eco };
+    expect(html({ hud: ecoHud, selectedSquads: [hud.squads[0]], context: 'army' })).not.toContain('data-testid="battle-build"');
+    expect(html({ hud: ecoHud, context: 'mixed', selectedSquads: [hud.squads[0]] })).toContain('data-testid="battle-build"');
+    const w = html({ hud: ecoHud, context: 'workers', panel: React.createElement('div', { 'data-testid': 'battle-build-menu' }) });
+    expect(w).toContain('data-testid="battle-build-menu"');
+    expect(w).not.toContain('data-testid="battle-attack-move"');
+    expect(w).not.toContain('data-testid="battle-powers"');
+    expect(w).toContain('Idle 1');
+    expect(w).toContain('data-testid="battle-hq"');
+    const b = html({ hud: ecoHud, context: 'building', panel: React.createElement('div', { 'data-testid': 'battle-building-actions' }) });
+    expect(b).toContain('data-testid="battle-building-actions"');
+    expect(b).not.toContain('data-testid="battle-commands"');
   });
 
   it('the selection card has a labelled 44 px x that clears it; the hint speaks of taps or clicks', () => {

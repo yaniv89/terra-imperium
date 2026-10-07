@@ -58,7 +58,7 @@ const SCREENS = {
     await speedTo3(page);
     await centreOnFight(page);
     await wait(20000);
-    const card = page.locator('[data-testid^="battle-regiment-"]').first();
+    const card = page.getByTestId('battle-select-all'); // B10: the regiment bar is gone; All selects the army
     if (await card.count()) await click(card);
     await wait(800);
     await shot(page, 'B01-B05-assault', vp);

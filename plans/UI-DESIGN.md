@@ -248,3 +248,56 @@ x1.3 taken (sim/morale.js), chosen with battle-lab parity: in the campaign field
 pictures again after new building art: `node scripts/art/build-icons.mjs`.
 Gaps: city wall segments and the gate have no rendered picture (a glyph); the region's buildings use
 the map's building icons; enemy squads still show "routed" when they break (their rule is unchanged).
+
+## 10. B10 Battle UX pass 2: the context panel (branch claude/battle-ux-2, 2026-10-07)
+
+From the user's iPhone feedback on the live battle (Siege of Men-nefer, 844x390): the Barracks card
+covered the bottom bar, the regiment bar took the bottom left, Build showed for every selection, a
+site's bar never visibly filled, and placement gave no answer before the tap. Sketch:
+`plans/ui/battle-ux-2/mockup.html` (rendered `mockup-844x390.png`); before and after screenshots at
+844x390 and 1280x800 in `plans/ui/battle-ux-2/before/` and `after/` (`node scripts/ui/battle-ux-2-shots.mjs`).
+
+![sketch](ui/battle-ux-2/mockup-844x390.png)
+
+- **Auto-engage (AoE stances), already in the sim.** An idle squad picks up any enemy inside its sight
+  (infantry 7 tiles, cavalry 10, archers 9) and fights it, chasing up to 12 tiles from its post, and
+  any squad not under an order turns on whoever hits it. Hold fights whatever is in reach and never
+  steps off its spot. A plain move walks past enemies; Attack (attack-move) fights on the way.
+  Integer sim, orders only (movement.js acquireTargets, combat.js applyDamage). Locked by tests
+  (orders.test.js "auto-engage"); no sim change, so parity is unchanged.
+- **No regiment bar.** The bottom left keeps only small buttons: All (the whole army, with its count,
+  brought into view), Base (the camera to the camp, the camp selected) and Idle n (an idle laborer)
+  when there is one.
+- **The context panel (bottom right) shows the actions of the selection only** (AoE / StarCraft):
+  nothing selected: Select (box select on touch) and Reserves; army squads: Attack, Hold, Line /
+  Column, Retreat (and Abilities when the selection has one); laborers: the build grid itself (the
+  only place Build appears) and Stop; laborers with troops: the army commands plus Build, which opens
+  the grid; your building: Train tiles (picture, name, cost), the queue (tap to cancel), Rally, and the
+  "build a house" fix when training waits for housing; your site: Cancel build (refund by what is left);
+  placing: the building's name, the reason when the spot is bad, Build here and Cancel. Powers (Rally
+  Cry, Arrow Storm...) sit in their own small group above the commands for army and nothing selected.
+  Every control 44 to 48 px with an icon and a short word.
+- **The info card stays small** (top left, under the alerts): picture, name, owner, HP and two lines.
+  It never holds buttons, so it never reaches the bottom bar at 844x390.
+- **A site is unmistakable.** On the field: a thick brass bar above the scaffold that fills from low to
+  full as the laborers work (a site's HP rises with the work: economy.js), and a "Building 43%" chip over
+  every site of yours, always, not only when selected. The card says "Building... 43%" with the HP rising.
+- **Placement ghost.** The footprint follows the mouse (hover) or the finger (a touch drag; on touch a
+  tap moves the ghost, a tap on the ghost or Build here places it). Green where it can go, red where it
+  cannot, with a short reason under it and in the panel: "Blocked by trees", "Outside your camp area",
+  "Too close to another building", "Troops are standing here", "You cannot see this ground"... The rule
+  is the sim's (economy.js placementBlock) read from the screen's view (src/battle/input/placement.js,
+  kept equal by placement.test.js). A click on a red spot says why and keeps the building in hand.
+- **Building bars had no fill** (iPhone): the bar's dark track was a transparent plane in the same plane
+  as the fill and was drawn over it. Both now draw on top like the squads' bars, track first.
+- **Compact centre pills on phones**: the selection pill shows name, health and the x (squads and the
+  target only from 1024 px); the keep chip shows a short bar and a percentage.
+
+Status (done on claude/battle-ux-2): the context panel (`BattleHud.jsx` with `battleHudModel.js`
+contextFor; `EconomyHud.jsx` BuildMenu in the panel, BuildingActions; the place panel and the site's
+Cancel build in `TacticalBattleScreen.jsx`), the small card, All / Base / Idle, the site's brass bar and
+"Building 43%" chips (`economyLayer.js` bars, `siteLabels.js`), the placement ghost with its reason
+(`src/battle/input/placement.js`, gestures.js 'place' mode), the bar fix (BattleRenderer structBar
+materials), compact centre pills. Parity (no sim change, 16 seeds): campaign field mirror bronze
+tactical 1.258 vs auto 1.020 (1.23x, IN), 29 of 30 parityEco rows IN as before (the classical 5-vs-2
+assault row 3.60x OUT is the base's).

@@ -78,6 +78,67 @@ describe('player orders', () => {
   });
 });
 
+// Stances (AoE style, plans/UI-DESIGN.md section 10): an idle squad engages an enemy that comes
+// within its sight on its own; a holding squad fights whatever is in reach but never steps off its
+// spot; a squad under a plain move order is not distracted on the way.
+describe('auto-engage', () => {
+  // Both sides commanded, so nothing moves unless told to.
+  const duel = () => createWorld(buildSetupFromArmies({
+    regionId: 'orders-test', terrain: 'plains', seed: 42,
+    attackerUnits: mk('a', ['infantry', 'ranged']), defenderUnits: mk('d', ['infantry', 'infantry']),
+    controllers: ['player', 'player'], intel: { attackerSeesDefender: false }
+  }));
+  const place = (q, x, y) => { q.x = x; q.y = y; q.anchorX = x; q.anchorY = y; };
+
+  it('an idle squad attacks an enemy that marches past within its sight', () => {
+    const w = duel();
+    const mine = w.squads.find((s) => s.side === 0 && s.classId === 'infantry');
+    const [foe] = w.squads.filter((s) => s.side === 1);
+    place(mine, 50 * Q, 30 * Q); place(foe, 50 * Q + 4 * Q, 20 * Q);
+    w.squads.filter((s) => s !== mine && s !== foe).forEach((s, i) => place(s, (5 + i * 3) * Q, 5 * Q));
+    run(w, 300, [{ side: 1, type: 'move', squads: [foe.idx], x: 50 * Q + 4 * Q, y: 60 * Q }]);
+    expect(mine.damageDealt).toBeGreaterThan(0);
+    expect(mine.order.type).toBe('idle');
+  });
+
+  it('a holding squad fights in reach and stays on its spot', () => {
+    const w = duel();
+    const mine = w.squads.find((s) => s.side === 0 && s.classId === 'ranged');
+    const [foe] = w.squads.filter((s) => s.side === 1);
+    place(mine, 50 * Q, 30 * Q); place(foe, 50 * Q + 5 * Q, 30 * Q);
+    w.squads.filter((s) => s !== mine && s !== foe).forEach((s, i) => place(s, (5 + i * 3) * Q, 5 * Q));
+    step(w, [{ side: 0, type: 'hold', squads: [mine.idx] }]);
+    run(w, 200);
+    expect(mine.damageDealt).toBeGreaterThan(0);
+    expect(Math.abs(mine.x - 50 * Q)).toBeLessThan(Q);
+    expect(mine.order.type).toBe('hold');
+  });
+
+  it('a holding squad does not chase an enemy outside its reach', () => {
+    const w = duel();
+    const mine = w.squads.find((s) => s.side === 0 && s.classId === 'infantry');
+    const [foe] = w.squads.filter((s) => s.side === 1);
+    place(mine, 50 * Q, 30 * Q); place(foe, 50 * Q + 5 * Q, 30 * Q);
+    w.squads.filter((s) => s !== mine && s !== foe).forEach((s, i) => place(s, (5 + i * 3) * Q, 5 * Q));
+    step(w, [{ side: 0, type: 'hold', squads: [mine.idx] }, { side: 1, type: 'hold', squads: [foe.idx] }]);
+    run(w, 200);
+    expect(mine.damageDealt).toBe(0);
+    expect(Math.abs(mine.x - 50 * Q)).toBeLessThan(Q);
+  });
+
+  it('a squad under a plain move order walks past an enemy without stopping to fight', () => {
+    const w = duel();
+    const mine = w.squads.find((s) => s.side === 0 && s.classId === 'infantry');
+    const [foe] = w.squads.filter((s) => s.side === 1);
+    place(mine, 40 * Q, 30 * Q); place(foe, 50 * Q, 33 * Q);
+    w.squads.filter((s) => s !== mine && s !== foe).forEach((s, i) => place(s, (5 + i * 3) * Q, 5 * Q));
+    step(w, [{ side: 0, type: 'move', squads: [mine.idx], x: 60 * Q, y: 30 * Q }, { side: 1, type: 'hold', squads: [foe.idx] }]);
+    for (let i = 0; i < 60; i++) { step(w, []); expect(mine.target).toBe(-1); }
+    run(w, 300);
+    expect(Math.abs(mine.x - 60 * Q)).toBeLessThan(Q);
+  });
+});
+
 describe('ground and nerve', () => {
   it('striking down from higher ground hits harder, striking uphill softer, capped at 10%', async () => {
     const { elevationMult, ELEVATION_MAX_BONUS } = await import('./combat');

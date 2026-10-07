@@ -22,7 +22,7 @@ describe('the info card (B09)', () => {
   it('names any building with its owner, HP and state', () => {
     const site = inspectInfo(hud, setup, { kind: 'eco', index: 2 }, 0);
     expect(site).toMatchObject({ title: 'Barracks', owner: 'enemy', hp: 300, maxHp: 1200, built: false, progress: 25 });
-    expect(site.lines[0]).toMatch(/Under construction, 25% built/);
+    expect(site.lines[0]).toBe('Building... 25%');
     expect(site.icon).toEqual({ group: 'battle', id: 'build-barracks' });
     expect(inspectInfo(hud, setup, { kind: 'eco', index: 0 }, 0)).toMatchObject({ title: 'Expedition camp', owner: 'you' });
   });
