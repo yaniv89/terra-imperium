@@ -69,7 +69,7 @@ describe('improvement models: files and lookup', () => {
       expect(name.split('-')[1], f).toBe(p.age);
     });
     const base = files.filter((f) => parseImprovementFile(f.replace('.glb', '')).style === 'base').map((f) => f.replace('.glb', '')).sort();
-    expect(base).toEqual(['camp-bronze', 'farm-bronze', 'farm-modern', 'fishing_boats-bronze', 'fishing_boats-modern', 'lumber_camp-bronze', 'mine-bronze', 'mine-modern',
+    expect(base).toEqual(['camp-bronze', 'farm-bronze', 'farm-modern', 'fishing_boats-bronze', 'fishing_boats-modern', 'fort-classical', 'lumber_camp-bronze', 'mine-bronze', 'mine-modern',
       'pasture-bronze', 'plantation-bronze', 'quarry-bronze', 'road-bronze', 'road-modern']);
     const israelite = files.filter((f) => f.endsWith('-israelite.glb')).sort();
     expect(israelite).toEqual(['farm-bronze-israelite.glb', 'fishing_boats-bronze-israelite.glb', 'fort-bronze-israelite.glb', 'fort-modern-israelite.glb', 'pasture-bronze-israelite.glb', 'plantation-bronze-israelite.glb']);
@@ -85,7 +85,10 @@ describe('improvement models: files and lookup', () => {
     expect(improvementModel('mine', 'gunpowder', 'europe').name).toBe('mine-bronze');
     expect(improvementModel('mine', 'modern', 'israelite').name).toBe('mine-modern');
     ['camp', 'quarry', 'lumber_camp'].forEach((kind) => expect(improvementModel(kind, 'modern', 'nile').name).toBe(`${kind}-bronze`));
-    expect(improvementModel('fort', 'gunpowder', 'israelite').name).toBe('fort-bronze-israelite');
+    expect(improvementModel('fort', 'bronze', 'israelite').name).toBe('fort-bronze-israelite');
+    // the Classical castellum from the Classical Age on, everywhere (a later base beats the earlier Israelite fort)
+    expect(improvementModel('fort', 'classical', 'europe').name).toBe('fort-classical');
+    expect(improvementModel('fort', 'gunpowder', 'israelite').name).toBe('fort-classical');
     expect(improvementModel('fort', 'modern', 'israelite').name).toBe('fort-modern-israelite');
     expect(improvementModelUrl('fort', 'bronze', 'europe')).toBeNull();
     expect(improvementModelUrl('oil_well', 'modern', 'europe')).toBeNull();

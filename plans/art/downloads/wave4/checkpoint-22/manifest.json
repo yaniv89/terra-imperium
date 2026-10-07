@@ -1,0 +1,34 @@
+{
+  "checkpoint": "wave4-22",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 14,
+  "packed_bytes_added": 1935928,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave4/checkpoint-22/contact.png",
+      "bytes": 74173,
+      "sha256": "31e90ef2da7461ae1c552475c431d52f854886657776743b886bcd76b3194f14"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 490296,
+      "sha256": "637e08cf27e3cbd174047550fd45f9696648aa359afa0ef0409f6f8c71ee2980"
+    },
+    {
+      "file": "plans/art/shots/wave4/rts-kingdoms/eco-europe-844x390.png",
+      "bytes": 488491,
+      "sha256": "aa5dfe547a12056791bf385cc9839841100d2d10fbfb623c03c80af635012c34"
+    },
+    {
+      "file": "plans/art/shots/wave4/rts-kingdoms/proofs.png",
+      "bytes": 849433,
+      "sha256": "b59c8def97e7218cbf35b0123a585ece40b282b77873655b0fffb92d9b0092e2"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms.glb",
+      "bytes": 1935928,
+      "sha256": "71f8b7f827936a502ee0d4841803a0d8477388d2e20e630bfb87cb0ab1192e1e"
+    }
+  ]
+}

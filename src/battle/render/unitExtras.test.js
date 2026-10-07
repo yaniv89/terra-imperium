@@ -64,7 +64,8 @@ describe('extra battle models', () => {
     expect(battleExtraModels(setup).map((e) => `${e.ageId}:${e.key}:${e.classId}`)).toEqual(['bronze:general:cavalry']);
     expect(findGeneralModel('bronze')?.url).toMatch(/bronze-general.*\.glb/);
     expect(findGeneralModel('classical')?.url).toMatch(/classical-general.*\.glb/); // Wave 3
-    expect(findGeneralModel('kingdoms')).toBeNull();
+    expect(findGeneralModel('kingdoms')?.url).toMatch(/kingdoms-general.*.glb/); // Wave 4
+    expect(findGeneralModel('gunpowder')).toBeNull();
     expect(MODEL_SCALE.general).toBeGreaterThan(MODEL_SCALE.cavalry);
   });
 

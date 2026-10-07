@@ -9,7 +9,7 @@
 //   npm run pack:models            pack every unpacked file
 //   npm run pack:models -- <files> pack only these
 import { execFileSync } from 'node:child_process';
-import { renameSync, statSync, unlinkSync } from 'node:fs';
+import { copyFileSync, renameSync, statSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { isPacked, modelFiles, packFlags, readGlbJson } from './glbInfo.mjs';
 
@@ -23,7 +23,8 @@ const pack = (file) => {
     execFileSync(process.execPath, [GLTFPACK, '-i', file, '-o', tmp, ...packFlags(file)], { stdio: ['ignore', 'ignore', 'pipe'] });
     if (!isPacked(readGlbJson(tmp))) throw new Error('gltfpack wrote no meshopt data');
     const before = statSync(file).size;
-    renameSync(tmp, file);
+    // a virus scanner may hold the fresh file for a moment (EPERM): copy over instead
+    try { renameSync(tmp, file); } catch { copyFileSync(tmp, file); unlinkSync(tmp); }
     return [before, statSync(file).size];
   } catch (e) {
     try { unlinkSync(tmp); } catch { /* nothing to remove */ }

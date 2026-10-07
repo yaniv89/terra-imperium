@@ -46,7 +46,7 @@ import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
 import { pickBuildingModels, buildingSpots, assignSpots, buildingRoot, needsCoast, BUILDING_DISC } from './buildingModels';
 import { createBuildingLayer } from './buildingLayer';
 import { cityManifestOf, manifestStates } from '../../../engine/cityManifest';
-import { applyTownDamage, syncTownDamage } from './townDamage';
+import { applyTownDamage, syncTownDamage, enableGroundClear, setGroundClear, fileGroundClear } from './townDamage';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 import { shipModel, shipsFor, SHIP_SCALE } from './shipModels';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
@@ -256,12 +256,15 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       seen.add(id);
       let mesh = t.towns.get(id);
       if (!mesh || mesh.userData.key !== key) {
-        if (mesh) { root.remove(mesh); (mesh.userData.townDamage || []).forEach((m) => m.dispose()); }
+        if (mesh) { root.remove(mesh); [...(mesh.userData.townDamage || []), ...(mesh.userData.groundClear || [])].forEach((m) => m.dispose()); }
         const model = campRoot || asset;
         mesh = model ? instanceTownAsset(model, teamColor, tint) : new Mesh(getTownGeometry(id, tier.id, opts), townMaterial);
         const palaceNode = asset && palaceRoot ? instanceTownAsset(palaceRoot, teamColor, tint) : null;
         if (palaceNode) mesh.add(palaceNode);
         if (asset && wallsRoot) mesh.add(instanceTownAsset(wallsRoot, teamColor, tint));
+        // the old plots of landmarks the art moved off the square: their baked shade lifted
+        const plots = asset ? fileGroundClear(mesh) : [];
+        if (plots.length) { enableGroundClear(mesh); setGroundClear(mesh, plots); }
         if (dmg) {
           const states = manifestStates(cityManifestOf(state, id), dmg).filter((s) => s.kind === 'house' || s.kind === 'landmark' || (palaceNode && s.kind === 'palace'));
           const palace = palaceNode ? { name: palaceFor(tier.id), style: palaceShared === shared ? style : palaceStyle, node: palaceNode } : null;
@@ -298,7 +301,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       mesh.rotation.set(TILT, 0, 0);
       mesh.scale.setScalar(ts);
       mesh.visible = true;
-      if (mesh.userData.townDamage) syncTownDamage(mesh);
+      if (mesh.userData.townDamage || mesh.userData.groundClear) syncTownDamage(mesh);
     });
     t.towns.forEach((mesh, id) => { if (!seen.has(id)) mesh.visible = false; });
 

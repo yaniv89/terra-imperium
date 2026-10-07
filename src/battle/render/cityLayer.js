@@ -33,7 +33,7 @@ import { KitInstances, kitLodForZoom } from '../art/kitInstances';
 import { houseTypes, pickHouse, pickRubble, wallPiece, pieceLength, wonderPiece } from '../art/cityArt';
 import { wonderAssetUrl } from '../../components/map/closeView/wonderAssets';
 import { townUrlByName, loadTownAsset, instanceTownAsset, showLod, sharedAssetUrls } from '../../components/map/closeView/townAssets';
-import { enableTownDamage, setTownDamage, syncTownDamage, moundGeometry, enableGroundClear, setGroundClear } from '../../components/map/closeView/townDamage';
+import { enableTownDamage, setTownDamage, syncTownDamage, moundGeometry, enableGroundClear, setGroundClear, fileGroundClear } from '../../components/map/closeView/townDamage';
 
 const PASSIVE_KINDS = new Set(['house', 'landmark', 'palace', 'wonder']);
 /** The structure kinds this layer draws (BattleRenderer leaves them out). */
@@ -118,9 +118,10 @@ export class CityLayer {
         showLod(inst, 0);
         inst.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
         enableTownDamage(inst).forEach((m) => this.r.track(m));
-        // the ground under the houses the town hall replaced loses their baked footprints
+        // the ground under the houses the town hall replaced, and under the landmarks the art moved
+        // off the square, loses their baked footprints
         enableGroundClear(inst).forEach((m) => this.r.track(m));
-        setGroundClear(inst, this.items.filter(({ s }) => s.underHall && s.model).map(({ s: { model: [x, z, w, d] } }) => ({ x, z, w, d })));
+        setGroundClear(inst, [...fileGroundClear(inst), ...this.items.filter(({ s }) => s.underHall && s.model).map(({ s: { model: [x, z, w, d] } }) => ({ x, z, w, d }))]);
         this.root.add(inst);
         this.town = inst;
         syncTownDamage(inst);

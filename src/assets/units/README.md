@@ -32,6 +32,8 @@ flag; model imports still require a visual and licensing review.
 | `classical-support.glb` | Engineers: wicker mantlet, pick, short ladder on the back | 1,228 |
 | `classical-worker.glb` | Laborer: tunic, headcloth, pick, basket on the back | 1,102 |
 | `classical-general.glb` | General: muscled cuirass, transverse Team crest, Team cloak and saddle cloth, sword; a standard bearer with a cloth standard (Emblem) | 2,295 |
+| `classical-raider.glb` | Raider: a light horseman on a fleece, loot sacks on both flanks, a rolled bundle and a looted bronze cauldron on the croup; Team tunic, pinned cloak, felt cap, a raised torch (`Flame`), two javelins on the back | 1,764 | `build_units_classical_irregular.py` (Claude) |
+| `classical-mercenary.glb` | Mercenary: crested helmet with cheek pieces, mail shirt with shoulder capes, Team tunic, a neutral sash with a coin pouch, greaves, an oval Emblem shield with spine and boss, a curved single-edged sword | 1,392 | `build_units_classical_irregular.py` (Claude) |
 
 Built by `scripts/blender/build_units_classical.py` (Claude) on the same rig, body and part library
 (`build_units_bronze_signature.py`); rest pose only. Culture-neutral.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
-import { enableTownDamage, setTownDamage, syncTownDamage, ruinMound, MAX_RECTS } from './townDamage';
+import { enableTownDamage, setTownDamage, syncTownDamage, ruinMound, MAX_RECTS, fileGroundClear, enableGroundClear, setGroundClear } from './townDamage';
 
 const makeTown = () => {
   const root = new Group();
@@ -43,5 +43,16 @@ describe('townDamage: a city\'s ruins drawn on its merged town model', () => {
     const m = ruinMound({ x: 1, z: -1, w: 0.8, d: 0.6 });
     expect(m.position.x).toBe(1);
     expect(m.scale.x).toBeCloseTo(0.8);
+  });
+
+  it('reads the old landmark plots a town file asks to clear and lifts them on its ground', () => {
+    const { root, ground } = makeTown();
+    expect(fileGroundClear(root)).toEqual([]);
+    root.children[0].userData.clearGround = [[1, -2, 0.5, 0.4], [0, 1, 1, 1]];
+    expect(fileGroundClear(root)).toEqual([{ x: 1, z: -2, w: 0.5, d: 0.4 }, { x: 0, z: 1, w: 1, d: 1 }]);
+    const [m] = enableGroundClear(root);
+    expect(m.name).toBe(ground.name);
+    setGroundClear(root, fileGroundClear(root));
+    expect(m.userData.groundClear.uClearN.value).toBe(2);
   });
 });

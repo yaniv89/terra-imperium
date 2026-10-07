@@ -1,0 +1,45 @@
+{
+  "mode": "lineup",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave3\\irregular-classical\\lineup-standing.png",
+    "plans\\art\\shots\\wave3\\irregular-classical\\lineup-walking.png"
+  ],
+  "layers": [
+    {
+      "id": "classical-raider",
+      "triangles": 1762,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 3444,
+        "3": 390,
+        "4": 588,
+        "5": 432,
+        "6": 432
+      },
+      "warnings": [],
+      "teamVertices": 240,
+      "skinVertices": 2286
+    },
+    {
+      "id": "classical-mercenary",
+      "triangles": 1392,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 1998,
+        "1": 528,
+        "2": 528,
+        "3": 606,
+        "4": 516
+      },
+      "warnings": [],
+      "teamVertices": 288,
+      "skinVertices": 2286
+    }
+  ],
+  "unitLog": [],
+  "errors": []
+}

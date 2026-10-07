@@ -1,0 +1,120 @@
+{
+  "mode": "lineup",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave4\\units-kingdoms\\lineup-standing.png",
+    "plans\\art\\shots\\wave4\\units-kingdoms\\lineup-walking.png"
+  ],
+  "layers": [
+    {
+      "id": "kingdoms-infantry",
+      "triangles": 1234,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 1962,
+        "1": 420,
+        "2": 420,
+        "3": 390,
+        "4": 510
+      },
+      "warnings": [],
+      "teamVertices": 480,
+      "skinVertices": 2286
+    },
+    {
+      "id": "kingdoms-ranged",
+      "triangles": 1352,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 2214,
+        "1": 420,
+        "2": 420,
+        "3": 612,
+        "4": 390
+      },
+      "warnings": [],
+      "teamVertices": 480,
+      "skinVertices": 2286
+    },
+    {
+      "id": "kingdoms-cavalry",
+      "triangles": 1747,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 3420,
+        "3": 447,
+        "4": 510,
+        "5": 432,
+        "6": 432
+      },
+      "warnings": [],
+      "teamVertices": 741,
+      "skinVertices": 2286
+    },
+    {
+      "id": "kingdoms-siege",
+      "triangles": 1801,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 3477,
+        "1": 504,
+        "2": 486,
+        "3": 468,
+        "4": 468
+      },
+      "warnings": [],
+      "teamVertices": 324,
+      "skinVertices": 2871
+    },
+    {
+      "id": "kingdoms-support",
+      "triangles": 1207,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 1797,
+        "1": 420,
+        "2": 420,
+        "3": 510,
+        "4": 474
+      },
+      "warnings": [],
+      "teamVertices": 495,
+      "skinVertices": 2286
+    },
+    {
+      "id": "kingdoms-worker",
+      "triangles": 1198,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 1890,
+        "1": 420,
+        "2": 420,
+        "3": 390,
+        "4": 474
+      },
+      "warnings": [],
+      "teamVertices": 240,
+      "skinVertices": 2286
+    },
+    {
+      "id": "kingdoms-general",
+      "triangles": 2335,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 4761,
+        "3": 546,
+        "4": 834,
+        "5": 432,
+        "6": 432
+      },
+      "warnings": [],
+      "teamVertices": 1134,
+      "skinVertices": 3243
+    }
+  ],
+  "unitLog": [],
+  "errors": []
+}

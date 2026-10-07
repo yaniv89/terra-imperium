@@ -17,3 +17,10 @@ sim state); a prop under a new economy building hides. Scale: 2.75 battle tiles 
 The age's file, else an earlier age's, but never for a Modern battle.
 Campfire geometry is intentionally unlit logs; flames are a separate runtime effect.
 
+
+`props-classical.glb` (2026-10-08, scripts/blender/build_props_classical.py, CC0-1.0): the same twelve
+names in Classical dress: a post-and-rail fence, a dry ashlar field wall, a round ashlar well under a
+pulley beam, a two-wheeled cart with spoked wheels, a haystack, a crate, an amphora rack (`barrel`), a
+tile-roofed market stall, a vexillum standard (Team cloth under a bronze disc), a campfire, a small
+marble altar under a pedimented niche (`shrine`) and a milestone (`road-marker`). Classical battles
+draw them (artIndex.props: the age's file first).

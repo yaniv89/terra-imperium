@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { buildSetupFromArmies } from './buildBattleSetup';
 import { hallSize, hallPlacement, HALL_TILES, CITY_TILES_PER_UNIT } from './cityBattle';
 import { TILE, reachable, isPassable } from './mapgen';
-import { buildTownManifest, manifestHousing } from '../../data/townLayout';
+import { buildTownManifest, manifestHousing, townLayout } from '../../data/townLayout';
+import TOWN_LAYOUTS from '../../data/townLayouts.json';
 import { createWorld } from '../sim/world';
 import { step } from '../sim/step';
 import { runHeadless } from '../sim/headless';
@@ -223,5 +224,20 @@ describe('a city assault loads the real city (cityBattle.js)', () => {
       const hallSide = HALL_TILES[tierId] / CITY_TILES_PER_UNIT;
       manifest.structures.filter((st) => st.kind === 'landmark').forEach((st) => expect(Math.max(st.w, st.d)).toBeLessThan(hallSide));
     }));
+  });
+
+  it('every town file leaves the square to a full-size, centred hall, the largest building (scripts/art/hall-clear-towns.mjs)', () => {
+    Object.keys(TOWN_LAYOUTS.towns).forEach((key) => {
+      const tierId = key.match(/-(small|medium|big)-/)[1];
+      const { landmarks } = townLayout(key);
+      const structures = landmarks.map((b) => ({ kind: 'landmark', ...b }));
+      expect([key, hallPlacement({ tierId, structures })]).toEqual([key, { size: HALL_TILES[tierId], ox: 0, oy: 0 }]);
+      const side = HALL_TILES[tierId] / CITY_TILES_PER_UNIT;
+      // narrower than the hall; before the Modern Age no taller than about the hall either
+      landmarks.forEach((b) => {
+        expect([key, Math.max(b.w, b.d) < side]).toEqual([key, true]);
+        if (!key.startsWith('modern')) expect([key, b.h <= (tierId === 'small' ? 1.0 : 1.25)]).toEqual([key, true]);
+      });
+    });
   });
 });

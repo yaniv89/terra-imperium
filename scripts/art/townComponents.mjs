@@ -72,6 +72,8 @@ const centreIn = (p, b, pad = 0) => {
   return cx >= b.x0 - px && cx <= b.x1 + px && cz >= b.z0 - pz && cz <= b.z1 + pz;
 };
 const areaOf = (b) => (b.x1 - b.x0) * (b.z1 - b.z0);
+const inRect = (b, r, pad = 0.01) => Math.abs(b.x - r[0]) <= r[2] / 2 + pad && Math.abs(b.z - r[1]) <= r[3] / 2 + pad;
+
 
 /**
  * Group pieces into buildings: every base standing on the ground starts one (the larger first; a
@@ -80,21 +82,24 @@ const areaOf = (b) => (b.x1 - b.x0) * (b.z1 - b.z0);
  * over, raising its height (its footprint stays the base's). Pieces over no building are props.
  * Returns the buildings' boxes and the count of loose pieces.
  */
-export const joinBoxes = (boxes, floor = SEED_FLOOR) => {
-  const seeds = boxes.filter((b) => b.y0 < floor && areaOf(b) >= SEED_AREA && b.y1 - b.y0 >= SEED_HEIGHT)
+export const joinBoxes = (boxes, floor = SEED_FLOOR, hints = null) => {
+  // a landmark shrunk by hall-clear-towns.mjs may stand on a lower, smaller base: on a hinted plot
+  // a quarter of the usual base starts a building
+  const hinted = (b) => hints && hints.some((r) => inRect({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2 }, r));
+  const seeds = boxes.filter((b) => b.y0 < floor && ((areaOf(b) >= SEED_AREA && b.y1 - b.y0 >= SEED_HEIGHT) || (hinted(b) && areaOf(b) >= SEED_AREA / 4 && b.y1 - b.y0 >= SEED_HEIGHT / 4)))
     .sort((a, b) => areaOf(b) - areaOf(a) || a.x0 - b.x0 || a.z0 - b.z0);
   const out = [];
   seeds.forEach((b) => {
     const host = out.find((o) => centreIn(b, o));
-    if (host) host.y1 = Math.max(host.y1, b.y1);
-    else out.push({ ...b, y0: Math.max(0, b.y0) });
+    if (host) { host.y1 = Math.max(host.y1, b.y1); host.parts.push(b); }
+    else out.push({ ...b, y0: Math.max(0, b.y0), parts: [b] });
   });
   let loose = 0;
   boxes.forEach((b) => {
     if (seeds.includes(b)) return;
     let best = null;
     out.forEach((o) => { if (centreIn(b, o, 0.05) && (!best || areaOf(o) < areaOf(best))) best = o; });
-    if (best) best.y1 = Math.max(best.y1, b.y1); else loose += 1;
+    if (best) { best.y1 = Math.max(best.y1, b.y1); best.parts.push(b); } else loose += 1;
   });
   out.loose = loose;
   return out;
@@ -103,38 +108,63 @@ export const joinBoxes = (boxes, floor = SEED_FLOOR) => {
 const r2 = (v) => Math.round(v * 100) / 100;
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
 
+// Landmarks of one height repeated (within REPEAT_H, no taller than REPEAT_MAX) are a kit's house
+// type drawn large (the Monsoon and Pacific stilt houses, the Israelite courtyard houses): houses.
+export const REPEAT_H = 0.015;
+export const REPEAT_MAX = 1.2;
+
 /** Classify joined boxes: { houses: [[x, z, w, d, h]], landmarks: [...], props: n }. Houses and
  * landmarks in a stable order: by distance from the centre, then by angle (east first, counter-
- * clockwise seen from above with north up), so `house-0` is the house nearest the square. */
-export const classify = (boxes) => {
-  const items = boxes.map((b) => ({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2, w: b.x1 - b.x0, d: b.z1 - b.z0, h: b.y1 - Math.max(0, b.y0) }))
+ * clockwise seen from above with north up), so `house-0` is the house nearest the square.
+ * `hints`: the file's own landmark rectangles ([x, z, w, d, h], written by hall-clear-towns.mjs
+ * when it shrank them): then exactly the buildings on them are landmarks. */
+export const classify = (boxes, hints = null) => {
+  const items = boxes.map((b) => ({ x: (b.x0 + b.x1) / 2, z: (b.z0 + b.z1) / 2, w: b.x1 - b.x0, d: b.z1 - b.z0, h: b.y1 - Math.max(0, b.y0), parts: b.parts }))
     .filter((b) => b.h > 0.02);
   const areas = items.map((b) => b.w * b.d);
   const big = median(areas.filter((a) => a > 0.05));
   const tall = median(items.filter((b) => b.w * b.d > 0.05).map((b) => b.h));
-  const houses = []; const landmarks = []; let props = 0;
+  const houses = []; let props = 0;
+  const hinted = (hints || []).map((r) => ({ x: r[0], z: r[1], w: r[2], d: r[3], h: r[4], parts: [] }));
+  const landmarks = [...hinted];
   items.forEach((b) => {
     const a = b.w * b.d;
     if (a < big * PROP_AREA) { props += 1; return; }
-    if (a >= LANDMARK_MIN_AREA && (a >= big * LANDMARK_AREA || b.h >= tall * LANDMARK_HEIGHT)) landmarks.push(b);
+    if (hints) {
+      // the file says where its landmarks are: the buildings on those plots are parts of them
+      const i = hints.findIndex((q) => inRect(b, q));
+      if (i < 0) houses.push(b); else hinted[i].parts.push(...(b.parts || []));
+    } else if (a >= LANDMARK_MIN_AREA && (a >= big * LANDMARK_AREA || b.h >= tall * LANDMARK_HEIGHT)) landmarks.push(b);
     else houses.push(b);
   });
+  if (!hints) {
+    const repeated = landmarks.filter((b) => b.h <= REPEAT_MAX && landmarks.some((o) => o !== b && Math.abs(o.h - b.h) <= REPEAT_H));
+    repeated.forEach((b) => { landmarks.splice(landmarks.indexOf(b), 1); houses.push(b); });
+  }
   const order = (list) => list
     .map((b) => ({ b, r: Math.hypot(b.x, b.z), a: (Math.atan2(-b.z, b.x) + 2 * Math.PI) % (2 * Math.PI) }))
     .sort((p, q) => p.r - q.r || p.a - q.a)
     .map(({ b }) => [r2(b.x), r2(b.z), r2(b.w), r2(b.d), r2(b.h)]);
-  return { houses: order(houses), landmarks: order(landmarks), props: props + (boxes.loose || 0) };
+  // the pieces of each landmark, in the order of `landmarks` (hall-clear-towns.mjs moves exactly them)
+  const landmarkParts = landmarks
+    .map((b) => ({ b, r: Math.hypot(b.x, b.z), a: (Math.atan2(-b.z, b.x) + 2 * Math.PI) % (2 * Math.PI) }))
+    .sort((p, q) => p.r - q.r || p.a - q.a).map(({ b }) => b.parts || []);
+  return { houses: order(houses), landmarks: order(landmarks), props: props + (boxes.loose || 0), landmarkParts };
 };
+
+/** The landmark rectangles a town file carries in a node's extras (hall-clear-towns.mjs), or null. */
+export const landmarkHints = (json) => (json.nodes || []).find((n) => Array.isArray(n.extras?.landmarks))?.extras.landmarks || null;
 
 /** The buildings of one town file (its first object's LOD0). */
 export const townComponents = (path) => {
   const glb = readGlb(path);
+  const hints = landmarkHints(glb.json);
   const nodes = meshNodes(glb).filter((n) => n.names.some((s) => /^LOD0/.test(s)));
   const cache = new Map();
   const prims = nodes.flatMap((n) => nodeTriangles(glb, n, cache)).filter((p) => p.material !== 'Ground');
   const all = pieces(prims);
-  const town = classify(joinBoxes(all));
+  const town = classify(joinBoxes(all, SEED_FLOOR, hints), hints);
   // houses on stilts (the Monsoon and Pacific kits) have no base on the ground: their raised
   // floors start the buildings instead
-  return town.houses.length >= STILT_RETRY ? town : classify(joinBoxes(all, STILT_FLOOR));
+  return town.houses.length >= STILT_RETRY ? town : classify(joinBoxes(all, STILT_FLOOR, hints), hints);
 };
