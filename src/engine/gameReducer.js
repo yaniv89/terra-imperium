@@ -1,4 +1,5 @@
 import { orderMarch, cancelRoute, placeName } from './routes';
+import { orderMarchAttack } from './marchAttack';
 import { normalizeUnitTiles, regionForTile, tileAccess, passableTile, unitTile } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
@@ -479,6 +480,15 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
 // A player action the engine refuses still has to SAY why — a bare `return state` is invisible to
 // the player (the lesson of this codebase's diplomacy "buttons do nothing" bug). New guards use this;
 // older ones are migrated as they're touched (implementation plan §0.3).
+// Why a commanded battle was settled on Auto without being shown (ABANDON_TACTICAL_BATTLE `reason`).
+export const ABANDON_REASONS = {
+  no_setup: 'the armies are no longer where the battle was',
+  no_attackers: 'no attacking troops were left to command',
+  no_defenders: 'no defenders were left to fight',
+  setup_error: 'the battle could not be set up',
+  screen_error: 'the battle screen failed'
+};
+
 const reject = (state, message) => ({
   ...state,
   logs: [...state.logs, { year: state.year, message, type: LogTypes.ACTION }]
@@ -1362,7 +1372,20 @@ const reduceAction = (state, action) => {
     // units in `unitIds`) gets a route to `toRegionId`, walked at End Turn. Giving the order is free.
     case ActionTypes.SET_ROUTE: {
       // The target is a city id or a tile id (free land).
-      const { fromRegionId, toRegionId, toTile, unitIds = null, naval = false } = action.payload || {};
+      const { fromRegionId, toRegionId, toTile, unitIds = null, naval = false, attack = false } = action.payload || {};
+      // March to attack (marchAttack.js): the route to an enemy city the army does not border,
+      // with the intent to assault it on arrival.
+      if (attack && !naval && toRegionId != null && toTile == null) {
+        const order = orderMarchAttack(state, fromRegionId, toRegionId, unitIds);
+        if (!order.units) return reject(state, order.reason === 'no_war' ? 'Declare war on its owner before you march on this city.' : order.reason === 'adjacent' ? 'Your army already borders this city: attack it now.' : order.reason || 'That march is not possible.');
+        const p = order.plan;
+        const who = p.units.length > 1 ? `${p.units.length} units march` : 'An army marches';
+        return {
+          ...state,
+          units: order.units,
+          logs: [...state.logs, { year: state.year, message: `${who} on ${state.regions[toRegionId]?.name || placeName(state, p.path[p.path.length - 1])} to attack it: about ${p.turns} turn${p.turns > 1 ? 's' : ''}${p.stopsAt ? `, stopping first at ${state.regions[p.stopsAt]?.name || 'an enemy city'}` : ''}.`, type: LogTypes.ACTION }]
+        };
+      }
       const target = toTile != null ? toTile : toRegionId;
       const order = orderMarch(state, fromRegionId, target, unitIds, { naval });
       if (!order.units) return reject(state, order.reason || 'That march is not possible.');
@@ -1630,6 +1653,15 @@ const reduceAction = (state, action) => {
       // battle's id. The cost was already paid when it began, so it isn't charged again.
       const pb = state.pendingBattle;
       if (!pb) return state;
+      // A battle the screen could not show (TacticalBattleHost): settled the same way, with a log
+      // line saying why, so the player never wonders where the battle went.
+      const reason = action.payload?.reason;
+      if (reason) {
+        const settled = gameReducer(state, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
+        const place = state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name || 'the field';
+        const why = ABANDON_REASONS[reason] || 'the battle screen could not open';
+        return { ...settled, logs: [...settled.logs, { year: state.year, message: `The battle at ${place} was settled on Auto: ${why}.`, type: LogTypes.COMBAT }] };
+      }
       const cleared = { ...state, pendingBattle: null };
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'auto' };
       // A queued battle (a defence, or a field or sea battle the AI started): its own Auto.

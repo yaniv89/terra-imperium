@@ -35,6 +35,7 @@ import { GlobeContainer } from '../globe';
 import Map2DContainer from './Map2DContainer';
 import RegionChooser from './RegionChooser';
 import MarchBar from './MarchBar';
+import MarchAttackPrompt from './MarchAttackPrompt';
 import { MarchProvider, useMarch } from './MarchContext';
 import { getTiles } from '../../data/geo/tiles';
 import MapModeToggle from './MapModeToggle';
@@ -192,6 +193,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       </div>
       {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}
       <MarchBar onSelectRegion={selectRegion} />
+      <MarchAttackPrompt />
       <RegionChooser choice={tapChoice} onPick={(id) => { setTapChoice(null); onSelectRegion(id); }} onClose={() => setTapChoice(null)} />
 
       <MapModal
