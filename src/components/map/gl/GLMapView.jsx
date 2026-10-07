@@ -42,7 +42,8 @@ import { isSettler } from '../../../engine/settlers';
 import { loadGroundData } from '../closeView/groundBlend';
 import { createCloseScene, closeTowns } from '../closeView/closeViewScene';
 import { tileGpuData } from './tileGpuData';
-import { indexCities, buildTileTexels, buildCityTexels, buildTintTexels } from './territoryData';
+import { buildFogField } from './fogField';
+import { indexCities, buildFogStates, buildTileTexels, buildCityTexels, buildTintTexels } from './territoryData';
 import { createTerritoryLayer, createTerritoryCache, createRasterLayer, createSpriteLayer, createLineLayer } from './glLayers';
 import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
@@ -317,13 +318,22 @@ const GLMapView = ({
   const atWar = useMemo(() => getAtWarNationIds(state.wars, state.playerNationId), [state.wars, state.playerNationId]);
   const cityIndex = useMemo(() => indexCities(state.regions), [state.regions]);
   const tileOwner = state.world?.tileOwner;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fogStates = useMemo(() => buildFogStates(getTiles().count, fog), [fog.on, fog.explored, fog.visible]);
   useEffect(() => {
     const g = gl.current;
     if (!g) return;
-    g.territory.setTiles(buildTileTexels({ tileCount: getTiles().count, tileOwner, regions: state.regions, fog, index: cityIndex }));
+    g.territory.setTiles(buildTileTexels({ tileCount: getTiles().count, tileOwner, regions: state.regions, fog, index: cityIndex, fogStates }));
     g.request();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, tileOwner, fog.explored, fog.visible, cityIndex]);
+  }, [ready, tileOwner, fogStates, cityIndex]);
+  // The soft fog edge: baked when what is explored or in sight changes (fogField.js).
+  useEffect(() => {
+    const g = gl.current;
+    if (!g || !fog.on) return;
+    g.territory.setFog(buildFogField({ states: fogStates, lookup: tileGpuData(getTiles()).lookup }));
+    g.request();
+  }, [ready, fog.on, fogStates]);
   useEffect(() => {
     const g = gl.current;
     if (!g) return;

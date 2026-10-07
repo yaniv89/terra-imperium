@@ -15,6 +15,8 @@
 //        [--profiles desktop,phone] [--zooms 1,4,12,40] [--channel chrome] [--gpu] [--out file.json]
 //        [--explored]   start in the explored world (no fog: every nation on the map, the heavy case)
 //        [--shots dir]   screenshots of each profile at k 4 and 40
+//        [--at lat,lng]  where to pan (default Paris, all unexplored for the Akkad start; pass a
+//                        point on Akkad's fog edge to time the soft fog edge)
 // Builds the mobile bundle (npm run build:mobile, served from www/) unless --no-build. Uses the
 // installed Chrome (channel chrome) by default; --gpu asks it for the real GPU instead of
 // SwiftShader, which is what a phone has (software WebGL makes every WebGL number pessimistic).
@@ -33,6 +35,7 @@ const OUT = arg('out', null);
 const SHOTS = arg('shots', null);
 const EXPLORED = flag('explored'); // the explored world: no fog, every nation drawn (the heavy case)
 const STEPS = 24;
+const AT = arg('at', '48.85,2.35').split(',').map(Number); // where to pan: Paris, or the fog edge
 
 if (!flag('no-build')) execSync('npm run build:mobile', { stdio: 'inherit' });
 const server = spawn(process.execPath, ['scripts/preview.mjs', '--mobile', '--port', String(PORT)], { stdio: 'ignore' });
@@ -161,7 +164,7 @@ const run = async () => {
     if (prof.throttle > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: prof.throttle });
     for (const k of ZOOMS) {
       const bytes0 = mapBytes; const files0 = mapFiles;
-      await page.evaluate((zoom) => window.__map2DTest.focus(48.85, 2.35, zoom), k);
+      await page.evaluate(({ zoom, at }) => window.__map2DTest.focus(at[0], at[1], zoom), { zoom: k, at: AT });
       await page.waitForTimeout(2500); // settle, tiles, models
       const screenKB = round((mapBytes - bytes0) / 1024); const screenFiles = mapFiles - files0;
       if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${RENDERER}-${EXPLORED ? 'explored-' : ''}${name}-k${k}.png` }); }
