@@ -4,6 +4,9 @@
 // time into fixed ticks, so timer jitter never changes the outcome.
 // The world grid is fetched first (src/data/geo/tiles.js) and the sim imported after it, since
 // modules in its graph read the grid as they load; messages are handled in order once it is in.
+// Any failure (the grid or the sim failing to load, an exception building or stepping the world)
+// is posted as { type: 'error', message }: the battle screen shows it with a way back to the map
+// instead of freezing on an empty field (battleClient.js may first retry on the main thread).
 import { loadTiles } from '../../data/geo/tiles';
 
 const ready = loadTiles().then(() => import('./battleLoop'));
@@ -11,9 +14,15 @@ const ready = loadTiles().then(() => import('./battleLoop'));
 let loop = null;
 let timer = null;
 
+const fail = (stage, err) => {
+  clearTimeout(timer);
+  loop = null;
+  self.postMessage({ type: 'error', stage, message: err?.message || String(err), stack: err?.stack || null });
+};
+
 const pump = () => {
   if (!loop) return;
-  loop.frame(performance.now());
+  try { loop.frame(performance.now()); } catch (err) { fail('step', err); return; }
   timer = setTimeout(pump, 16);
 };
 
@@ -21,11 +30,13 @@ const handle = (data, createBattleLoop) => {
   switch (data.type) {
     case 'start':
       clearTimeout(timer);
-      loop = createBattleLoop({ setup: data.setup, resume: data.resume || null, post: (m, transfer) => self.postMessage(m, transfer || []) });
+      try {
+        loop = createBattleLoop({ setup: data.setup, resume: data.resume || null, post: (m, transfer) => self.postMessage(m, transfer || []) });
+      } catch (err) { fail('start', err); return; }
       if (data.paused) loop.setPaused(true);
       pump();
       break;
-    case 'orders': loop?.pushOrders(data.orders); break;
+    case 'orders': try { loop?.pushOrders(data.orders); } catch (err) { fail('orders', err); } break;
     case 'pause': loop?.setPaused(true); break;
     case 'resume': loop?.setPaused(false); break;
     case 'speed': loop?.setSpeed(data.speed); break;
@@ -37,5 +48,5 @@ const handle = (data, createBattleLoop) => {
 // A chain keeps the messages in their order while the first ones wait for the grid.
 let queue = Promise.resolve();
 self.onmessage = ({ data }) => {
-  queue = queue.then(() => ready).then(({ createBattleLoop }) => handle(data, createBattleLoop));
+  queue = queue.then(() => ready).then(({ createBattleLoop }) => handle(data, createBattleLoop), (err) => { if (data.type === 'start') fail('load', err); });
 };

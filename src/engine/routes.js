@@ -21,7 +21,8 @@
 //
 // Unit fields: `route` (the tiles still to go, in order), `routeBank` (banked points), `routePace`
 // (the stack's pace, fixed when ordered so the stack stays together), `routeHalt` ('attack' |
-// 'enemy' | null: why it waits), `marchedTurn` (the last turn it marched).
+// 'enemy' | null: why it waits), `marchedTurn` (the last turn it marched), `routeAttack` (a march to
+// attack: the city it goes to assault, marchAttack.js; dropped with the route).
 // Player armies only. AI armies keep their city-hopping operations (aiOperations.js) until the
 // front planner of workstream 9, so AI turns stay fast.
 import { getTiles } from '../data/geo/tiles';
@@ -128,7 +129,7 @@ export const orderMarch = (state, fromId, target, unitIds = null, { naval = fals
   return { units, plan };
 };
 
-const clearRoute = (u) => ({ ...u, route: null, routeBank: 0, routePace: null, routeHalt: null });
+const clearRoute = (u) => ({ ...u, route: null, routeBank: 0, routePace: null, routeHalt: null, ...(u.routeAttack ? { routeAttack: null } : {}) });
 export const cancelRoute = clearRoute;
 
 /** Where a marching unit is going, for the UI. */

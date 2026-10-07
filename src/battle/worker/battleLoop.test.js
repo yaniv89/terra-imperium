@@ -47,5 +47,31 @@ describe('battle loop', () => {
     const resumed = replayTo(createWorld(makeSetup()), cp.log, cp.tick);
     expect(resumed.tick).toBe(cp.tick);
     expect(worldHash(resumed)).toBe(cp.hash);
+    // The loop itself resumes it (no rejection) at the checkpoint's tick.
+    const posts = [];
+    const again = createBattleLoop({ setup: makeSetup(), resume: cp, post: (m) => posts.push(m) });
+    expect(posts.some((m) => m.type === 'resumeRejected')).toBe(false);
+    expect(again.world.tick).toBe(cp.tick);
+  });
+
+  // The frozen empty battle (phone playtest): battle ids repeat between games (b_<turn>_<counter>),
+  // so a checkpoint another battle left behind could be replayed into this one.
+  it('a checkpoint of another battle is rejected: the battle starts fresh at deployment', () => {
+    const messages = [];
+    const loop = createBattleLoop({ setup: makeSetup(), post: (m) => messages.push(m) });
+    let now = 0;
+    loop.frame(now);
+    loop.pushOrders([{ side: 0, type: 'attackMove', squads: [0, 1, 2], x: 70 * Q, y: 30 * Q }]);
+    while (!messages.some((m) => m.type === 'checkpoint')) { now += 16; loop.frame(now); }
+    const stale = messages.find((m) => m.type === 'checkpoint');
+    const other = buildSetupFromArmies({ regionId: 'another-city', terrain: 'plains', seed: 7, attackerUnits: mk('x', ['infantry']), defenderUnits: mk('y', ['infantry', 'ranged']), controllers: ['player', 'ai'] });
+    const posts = [];
+    const fresh = createBattleLoop({ setup: other, resume: stale, post: (m) => posts.push(m) });
+    expect(posts.find((m) => m.type === 'resumeRejected')).toMatchObject({ tick: stale.tick });
+    expect(fresh.world.tick).toBe(0);
+    expect(worldHash(fresh.world)).toBe(worldHash(createWorld(other)));
+    // and it plays on normally from there
+    fresh.frame(0); fresh.frame(200);
+    expect(posts.some((m) => m.type === 'frame')).toBe(true);
   });
 });

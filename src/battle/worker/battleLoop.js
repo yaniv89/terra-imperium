@@ -24,9 +24,19 @@ export const replayTo = (world, log, untilTick) => {
 };
 
 export const createBattleLoop = ({ setup, resume = null, post }) => {
-  const world = createWorld(setup);
-  const log = resume?.log ? [...resume.log] : [];
-  if (resume?.log) replayTo(world, log, resume.tick ?? Infinity);
+  let world = createWorld(setup);
+  let log = resume?.log ? [...resume.log] : [];
+  if (resume?.log) {
+    replayTo(world, log, resume.tick ?? Infinity);
+    // The replay must land on the checkpoint's own hash. Anything else is a checkpoint of another
+    // battle (battle ids repeat between games) or of other rules: start this battle fresh instead
+    // of playing on from a world that never happened. The UI goes back to deployment.
+    if (resume.hash != null && worldHash(world) !== resume.hash) {
+      world = createWorld(setup);
+      log = [];
+      post({ type: 'resumeRejected', tick: resume.tick ?? null });
+    }
+  }
   let pending = [];
   let seq = log.length;
   let paused = false;

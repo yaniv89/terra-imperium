@@ -53,7 +53,7 @@ The live site is GitHub Pages, built into `docs/`.
   src/data/techMapEffects.js are km too), movement is km a turn (armies.js MOVE_KM), a new city claims
   `foundingDisk` (the same land on any grid) and culture tile costs are per area. The one settling rule (306 km, one ring less across water) for founding, starts and the audit: `src/data/geo/citySpacing.js`. Settlers and outposts: `src/engine/settlers.js`; what AI cities
   build: `src/engine/aiProduction.js`. Armies on tiles (unit.tile, move points, tile costs, A*
-  routes, zone of control, `normalizeUnitTiles`): `src/engine/armies.js`; marches: routes.js;
+  routes, zone of control, `normalizeUnitTiles`): `src/engine/armies.js`; marches: routes.js (Attack on a city the army does not border is a march to attack: marchAttack.js);
   the supply meter: supplyMeter.js; tile sight (fog): sight.js; fleets on sea tiles: fleets.js; sieges (walls, HP,
   encirclement, falls): sieges.js. Battlefields come from the tile and its six
   neighbours: src/battle/setup/tileContext.js feeds mapgen.js. Field battles between stacks on
@@ -130,6 +130,7 @@ The live site is GitHub Pages, built into `docs/`.
   to run: compare against the base commit on the same machine (balance-sim compare.sh), never
   against an old number. Long full-game tests can time out under full-suite load; rerun alone.
 - Invariants: `auditGameState` / `assertGameState` in src/engine/stateAudit.js.
+- A commanded battle never opens with nobody on a side, and any set-up, worker or drawing error shows BattleFailure (Auto or Try again): src/components/battle/battleOpenGuard.js, TacticalBattleHost.jsx. Checkpoints resume only into the battle they were saved from (setupKeyOf; battle ids repeat between games).
 - Plans and audits live in `plans/` (stabilization audit, Civ-style research, unit art brief).
 - Tests that create a game must pass a fixed `rngSeed`; a fresh game gets a random one.
 - resolveTurn does nothing while an event, a `pendingPeaceOffer` or a pending defense battle is

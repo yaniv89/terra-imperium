@@ -31,6 +31,7 @@ import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { BuildingIcon, ExtractionIcon, ResourceIcon, UnitIcon, WonderIcon } from '../ui/icons';
 import { getTotalDev } from '../../engine/development';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
+import { attackReach, planMarchAttack } from '../../engine/marchAttack';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
@@ -111,11 +112,17 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const invasionSources = !isPlayerOwned
     ? getNeighborIds(regionId)
       .filter((nId) => state.regions[nId]?.owner === state.playerNationId)
-      .map((nId) => ({
-        regionId: nId,
-        unitCount: Object.values(state.units).filter((u) => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length,
-        blockedReason: describeAttackBlock(validateInvasion(state, nId, regionId))
-      }))
+      .map((nId) => {
+        // Only an army that borders the city invades at once; a far one marches there to attack
+        // it (marchAttack.js): the button shows the turns and gives the march order.
+        const far = attackReach(state, nId, regionId) === 'far';
+        return {
+          regionId: nId,
+          unitCount: Object.values(state.units).filter((u) => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length,
+          blockedReason: far ? null : describeAttackBlock(validateInvasion(state, nId, regionId)),
+          march: far ? planMarchAttack(state, nId, regionId) : null
+        };
+      })
       .filter((source) => source.unitCount > 0)
     : [];
   const amphibiousSources = (!isPlayerOwned && isCoastal(regionId))
@@ -416,7 +423,18 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">Integration continues until turn {regionState.integratingUntil}: control rises and unrest falls each turn.</p>}
           {ownerNation?.hasTradeAgreement && <p className="text-xs text-fa-text">Trade route: {getTradeRoute(state,ownerNation.id).ok ? getTradeRoute(state,ownerNation.id).kind : getTradeRoute(state,ownerNation.id).reason}{(() => { const v = tradeRoutesValue(state).find((r) => r.partnerId === ownerNation.id); return v ? `, ${v.km} km: +${(v.mult * 100).toFixed(1)}% gold (bigger and nearer partners pay more)` : ''; })()}</p>}
           {isNeutralFrontier && <ColonyBlock regionId={regionId} />}
-          {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason }) => (
+          {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason, march }) => (march ? (
+            <ActionButton
+              key={srcId}
+              icon={Swords}
+              label={`March on ${regionState.name} from ${REGIONS_DATA[srcId]?.name}`}
+              description={march.ok ? `${march.turns} turn${march.turns === 1 ? '' : 's'} to arrive${march.stopsAt ? `, stops at ${state.regions[march.stopsAt]?.name || 'an enemy city'} first` : ''}, then the assault` : march.reason}
+              onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: srcId, toRegionId: regionId, attack: true } })}
+              disabled={!march.ok}
+              variant="danger"
+              size="small"
+            />
+          ) : (
             <ActionButton
               key={srcId}
               icon={Flag}
@@ -428,7 +446,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               variant="danger"
               size="small"
             />
-          ))}
+          )))}
           {atWarWithOwner && amphibiousSources.map(({ unit, cargoCount, blockedReason }) => (
             <ActionButton
               key={unit.id}
