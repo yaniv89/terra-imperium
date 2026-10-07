@@ -33,6 +33,8 @@ import ResearchChoiceSheet from './components/modals/ResearchChoiceSheet';
 import PeaceOfferSheet from './components/battle/PeaceOfferSheet';
 import { useCloudSync } from './hooks/useCloudSync';
 import { startMusic } from './audio/music';
+import { unlockSfx } from './audio/sfx';
+import { installUiSounds } from './audio/uiSounds';
 import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseClient';
 import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
 import { lazyWithReload } from './utils/lazyWithReload';
@@ -314,11 +316,13 @@ const GameLayout = () => {
 const App = () => {
   // Music (map mode only, src/audio/music.js) may start after the first user gesture.
   useEffect(() => {
-    const go = () => startMusic();
+    const go = () => { startMusic(); unlockSfx(); };
     window.addEventListener('pointerdown', go, { once: true });
     window.addEventListener('keydown', go, { once: true });
     return () => { window.removeEventListener('pointerdown', go); window.removeEventListener('keydown', go); };
   }, []);
+  // Taps, tabs, toggles and sheets sound from one place (src/audio/uiSounds.js).
+  useEffect(() => installUiSounds(), []);
   return (
     <>
     <RotateOverlay />
