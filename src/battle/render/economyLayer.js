@@ -40,7 +40,7 @@ const SCAFFOLD = new Color('#c8a165');
 // A building's parts in tiles from its centre: [prim, dx, y0, dz, sx, sy, sz, colour ('side' = the
 // side's colour)]. Sizes are fractions of the footprint so the footprint stays the truth.
 const BODY = '#b8a888'; const WOOD = '#8a6a43'; const DARK = '#5b5148'; const STONE = '#a39c8c'; const FIELD = '#b9b061';
-const PARTS = {
+export const PARTS = { // exported for the build menu icons (scripts/art/build-icons.mjs)
   camp: [['cone', -0.8, 0, -0.8, 1.3, 1.4, 1.3, '#d9cfb8'], ['cone', 0.8, 0, -0.8, 1.3, 1.4, 1.3, '#d9cfb8'], ['cone', -0.8, 0, 0.8, 1.3, 1.4, 1.3, '#d9cfb8'], ['cone', 0.9, 0, 0.9, 1.6, 1.9, 1.6, 'side'], ['cyl', 0, 0, 0, 0.06, 2.6, 0.06, WOOD], ['box', 0, 2.2, 0.25, 0.04, 0.35, 0.5, 'side']],
   hall: [],
   house: [['box', 0, 0, 0, 1.3, 0.9, 1.1, BODY], ['roof', 0, 0.9, 0, 1.5, 0.6, 1.3, 'side']],

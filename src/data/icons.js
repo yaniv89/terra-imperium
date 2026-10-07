@@ -16,7 +16,9 @@ for (const [file, url] of Object.entries(files)) {
   (URLS[m[1]] ||= {})[m[2]] = url;
 }
 
-export const ICON_GROUPS = ['resources', 'improvements', 'buildings', 'wonders', 'units', 'ships', 'cities', 'ages', 'markers'];
+export const ICON_GROUPS = ['resources', 'improvements', 'buildings', 'wonders', 'units', 'ships', 'cities', 'ages', 'markers', 'battle'];
+// battle: the battle economy's building icons (build-house ...), rendered from the battle's own models by
+// scripts/art/build-icons.mjs; data/economy.js BUILDINGS[*].icon names them.
 
 /** URL of a delivered icon, or null (the caller then falls back to its old glyph). */
 export const iconUrl = (group, id) => (id && URLS[group]?.[id]) || null;
