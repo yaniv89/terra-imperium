@@ -23,7 +23,7 @@ export const readGlbJson = (path) => {
 export const isPacked = (json) => (json.extensionsUsed || []).includes('EXT_meshopt_compression');
 
 /** The close view's map model folders. */
-export const MAP_MODEL_DIRS = ['src/assets/map/towns', 'src/assets/map/shared', 'src/assets/map/buildings', 'src/assets/map/wonders', 'src/assets/map/improvements'];
+export const MAP_MODEL_DIRS = ['src/assets/map/towns', 'src/assets/map/shared', 'src/assets/map/buildings', 'src/assets/map/wonders', 'src/assets/map/improvements', 'src/assets/map/ships'];
 /** The Wave 0 art folders (plans/ART-MODELS-PLAN.md; each has a README.md): kit files with LOD0..LOD2
  * objects, packed the same way. */
 export const KIT_MODEL_DIRS = ['src/assets/map/terrain', 'src/assets/battle/rts', 'src/assets/battle/city', 'src/assets/battle/nature', 'src/assets/battle/terrain'];

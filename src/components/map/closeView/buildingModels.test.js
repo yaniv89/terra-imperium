@@ -81,7 +81,8 @@ describe('building models: picking', () => {
     const base = new Set(SHIPPED.filter((f) => !f.includes('-')).map((f) => f.replace('.glb', '')));
     ['granary', 'irrigation', 'farm_estate', 'crop_rotation_farm', 'mechanized_farm', 'market', 'bazaar', 'bank', 'stock_exchange',
       'barracks', 'drill_yard', 'military_academy', 'war_college', 'library', 'scriptorium', 'university', 'research_lab',
-      'workshop', 'manufactory', 'factory', 'shrine', 'temple', 'civic_center', 'harbor', 'shipyard'].forEach((id) => expect(base.has(id), id).toBe(true));
+      'workshop', 'manufactory', 'factory', 'shrine', 'temple', 'cathedral', 'civic_center', 'harbor', 'shipyard', 'naval_base', 'carrier_dock',
+      'road_post', 'highway', 'rail_depot', 'copper_mine', 'iron_foundry'].forEach((id) => expect(base.has(id), id).toBe(true));
     // any land without its own file draws the base landmark
     const region = { buildings: cats({ economy: 2, industry: 2, culture: 1 }) };
     expect(pickBuildingModels(region, 'europe', 'big').map((p) => p.id)).toEqual(['factory', 'bank', 'temple']);

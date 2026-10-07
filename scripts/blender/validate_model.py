@@ -57,7 +57,7 @@ def infer_kind(path):
     name = os.path.splitext(os.path.basename(p))[0]
     rules = [
         ('/battle/rts/', 'prefab'), ('/battle/projectiles/', 'projectile'), ('/battle/terrain/', 'terrain-kit'),
-        ('/map/terrain/', 'terrain-kit'), ('/map/improvements/', 'improvement'),
+        ('/map/terrain/', 'terrain-kit'), ('/map/improvements/', 'improvement'), ('/map/ships/', 'ship'),
     ]
     if '/battle/city/' in p:
         if name.endswith('-houses-damage'):

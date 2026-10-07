@@ -250,10 +250,11 @@ export class EconomyLayer {
     return cur.eco.buildings.filter((b) => b.alive && !b.proxy && (b.hp < b.maxHp || !b.built)).map((b) => ({ x: b.x / Q, z: b.y / Q, frac: b.built ? b.hp / Math.max(1, b.maxHp) : b.progress / 100, h: 1.6 + b.size * 0.3, w: 1 + b.size * 0.2 }));
   }
 
-  /** What economy thing is under a ground point: a building { kind: 'eco', index, side } or a node { kind: 'node', index }. */
-  pick(g, view) {
+  /** What economy thing is under a ground point: a building { kind: 'eco', index, side } or a node { kind: 'node', index }.
+   *  `margin` (tiles) grows each footprint so a building is an easy target. */
+  pick(g, view, margin = 0.2) {
     if (!this.on || !view?.eco) return null;
-    const b = view.eco.buildings.find((e) => e.alive && !e.proxy && Math.abs(e.x / Q - g.x) <= e.size / 2 + 0.2 && Math.abs(e.y / Q - g.z) <= e.size / 2 + 0.2);
+    const b = view.eco.buildings.find((e) => e.alive && !e.proxy && Math.abs(e.x / Q - g.x) <= e.size / 2 + margin && Math.abs(e.y / Q - g.z) <= e.size / 2 + margin);
     if (b) return { kind: 'eco', index: b.idx, side: b.side };
     let best = null; let bestD = 1.0;
     view.eco.nodes.forEach((n) => { const d = (n.x / Q - g.x) ** 2 + (n.y / Q - g.z) ** 2; if (d < bestD) { bestD = d; best = { kind: 'node', index: n.i, res: n.res }; } });

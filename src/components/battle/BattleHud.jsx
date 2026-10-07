@@ -75,6 +75,8 @@ const BattleHud = ({
   onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
   selectMode = false, onToggleSelectMode, selectHint = false, // touch box select (UI-DESIGN B04)
   onFocus, // centre the camera on (x, y) in sim units: the alerts' Go
+  onClearSelection, // the selection card's x: let go of every selected squad
+  mouse = false, // a mouse is the main pointer: the hints speak of clicks
   ended = false // the battle is over: only the top bar stays (the result screen, B08, owns the rest)
 }) => {
   const [showReserves, setShowReserves] = useState(false);
@@ -160,12 +162,18 @@ const BattleHud = ({
 
       {/* The selection and its target (B01) */}
       {sel && !pauseOpen && (
-        <div className={cx('absolute left-1/2 -translate-x-1/2 max-w-[60vw] px-3 py-1 rounded-full bg-fa-panel/95 border border-fa-line text-[12px] shadow-xl pointer-events-none flex items-center gap-2', keep && !city ? 'top-[5.4rem]' : 'top-[3.25rem]')} data-testid="battle-selection">
+        <div className={cx('absolute z-10 left-1/2 -translate-x-1/2 max-w-[60vw] pl-3 py-1 rounded-full bg-fa-panel/95 border border-fa-line text-[12px] shadow-xl pointer-events-none flex items-center gap-2', onClearSelection ? 'pr-0' : 'pr-3', keep && !city ? 'top-[5.4rem]' : 'top-[3.25rem]')} data-testid="battle-selection">
           <span className="font-semibold truncate">{sel.name}</span>
           <span className="text-fa-muted whitespace-nowrap">{sel.squads} squad{sel.squads === 1 ? '' : 's'}, <span className="fa-num">{sel.men}</span> men</span>
           <span className={cx('fa-num', sel.share < 0.35 ? 'text-fa-danger-text' : 'text-fa-good')}>{Math.round(sel.share * 100)}%</span>
           {sel.routed && <span className="text-fa-danger-text font-semibold">routed</span>}
           {targetSt && <span className="text-fa-enemy whitespace-nowrap">Target: {STRUCTURE_WORD[targetSt.kind] || targetSt.kind} <span className="fa-num">{Math.round(targetSt.hp)}/{targetSt.maxHp}</span></span>}
+          {onClearSelection && (
+            <button type="button" onClick={onClearSelection} aria-label="Clear selection" title="Clear selection (Esc)" data-testid="battle-clear-selection"
+              className="pointer-events-auto shrink-0 w-11 h-11 -my-2.5 flex items-center justify-center rounded-full text-fa-muted hover:text-fa-text">
+              <span className="w-7 h-7 rounded-full bg-fa-raised border border-fa-line flex items-center justify-center"><X className="w-4 h-4" aria-hidden="true" /></span>
+            </button>
+          )}
         </div>
       )}
 
@@ -229,7 +237,10 @@ const BattleHud = ({
         <div className="absolute top-[3.5rem] inset-x-0 flex justify-center pointer-events-none px-4">
           <div className="max-w-md text-center px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] shadow-xl">
             <div className="fa-heading text-[15px] mb-0.5">Deploy your army</div>
-            Tap a regiment card or a squad, then tap the ground inside your zone to place it. Tap an enemy to attack, drag from a selected squad to draw a battle line. The fight starts when you press <b>Start</b>.
+            {mouse
+              ? 'Click a regiment card or a squad, then right click the ground inside your zone to place it. Right click an enemy to attack, right drag to draw a battle line. '
+              : 'Tap a regiment card or a squad, then tap the ground inside your zone to place it. Tap an enemy to attack, drag from a selected squad to draw a battle line. '}
+            The fight starts when you press <b>Start</b>.
             {setup.structures.some((st) => st.kind === 'building') && (
               <div className="mt-1 text-fa-you" data-testid="battle-buildings">
                 {playerSide === 1 ? 'Your buildings here help you while they stand: ' : "The enemy's buildings help them; raze them for plunder: "}
@@ -299,7 +310,9 @@ const BattleHud = ({
       )}
       {selectHint && !selectMode && !pauseOpen && (
         <div className="absolute left-2 bottom-[calc(3.9rem+env(safe-area-inset-bottom))] max-w-[250px] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-xs font-semibold shadow-xl pointer-events-none" data-testid="battle-select-hint">
-          Drag a box to select: tap Select, or double-tap and drag.
+          {mouse
+            ? 'Left click selects (shift adds), click the ground to let go, drag a box. Right click orders; right drag draws a battle line.'
+            : 'Tap a unit or building to select, tap it again to let go. Drag a box: tap Select, or double-tap and drag.'}
         </div>
       )}
 

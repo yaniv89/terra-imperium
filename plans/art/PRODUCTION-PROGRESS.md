@@ -2,13 +2,13 @@
 
 Authoritative scope: `plans/art/ITEMS.md`, Part B (276) and Part C (74): **350 logical items**. Part A’s 402 in-game items are excluded. A/B variants stay together as one logical item.
 
-**Uploaded and download-verified: 260 / 350. Remaining to upload: 90.**
+**Delivered and in the game: 285 / 350. Remaining: 65.** (260 uploaded in the checkpoints below, plus the 25 of the local transfer.)
 
-Built but not yet uploaded: 25. These are not marked complete. Delivery is separate from importing into the game; ITEMS.md’s in-game count is unchanged.
+Built but not yet delivered: 0.
 
-Import check 2026-10-07: every item in every ZIP below is in the game (`node scripts/art/downloads-coverage.mjs`). The 25 built items are in no ZIP, so nothing of them could be imported: upload them as a new checkpoint (8 buildings, 13 base tile improvements, classical town-big a and b, warships bronze, classical and kingdoms).
+Import check 2026-10-07: every item in every ZIP below is in the game (`node scripts/art/downloads-coverage.mjs`). The 25 items built in the cloud (8 buildings, 13 base tile improvements, classical town-big a and b, warships bronze, classical and kingdoms) came through the transfer archives in [local-transfer-2026-10-07](local-transfer-2026-10-07/README.md) and were validated, fixed where needed and imported the same day (details in [IMPLEMENTED.md](IMPLEMENTED.md), "Imported 2026-10-07").
 
-**Quality review: 0 uploaded items require revision; 260 accepted. 90 items remain to finish.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
+**Quality review: 0 delivered items require revision; 285 accepted. 65 items remain to finish.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
 
 | Checkpoint | Items | ZIPs | Files and exact item list |
 |---|---:|---:|---|

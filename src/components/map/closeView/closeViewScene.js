@@ -4,7 +4,8 @@
 // round its town (buildingModels.js, instanced by buildingLayer.js), improvement models
 // (improvementModels.js), procedural works and fields, trees in the woods (landscape.js), and
 // armies as 1 to 3 soldiers of their main unit type and age, the battle's own models and walk
-// cycle (soldierFactory.js), walking while they march.
+// cycle (soldierFactory.js), walking while they march; fleets as 1 to 3 warships of their
+// owner's age (shipModels.js).
 // `createCloseScene(scene, root)` puts the lights in `scene` and every model under `root`;
 // `layout(...)` places them in screen pixels for a view (x right, y up = -screen y, z toward the
 // viewer), models tilted toward the viewer for a three-quarter look. Used by CloseViewLayer.jsx
@@ -16,7 +17,7 @@
 // grows in a river's band.
 import {
   HemisphereLight, DirectionalLight, Mesh, MeshLambertMaterial, MeshBasicMaterial, InstancedMesh, PlaneGeometry, CanvasTexture, SRGBColorSpace,
-  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4, Box3
+  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4, Box3, BufferGeometry
 } from 'three';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
 import { markerLatLng } from '../../../utils/markerPosition';
@@ -43,6 +44,7 @@ import { createBuildingLayer } from './buildingLayer';
 import { cityManifestOf, manifestStates } from '../../../engine/cityManifest';
 import { applyTownDamage, syncTownDamage } from './townDamage';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
+import { shipModel, shipsFor, SHIP_SCALE } from './shipModels';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
@@ -108,7 +110,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     sky, sun, townMaterial, soldierMaterial, towns: new Map(), wonders: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(),
     trees: new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)])),
     works: new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)])),
-    buildings: createBuildingLayer(root), improvements: createBuildingLayer(root), moving: false,
+    buildings: createBuildingLayer(root), improvements: createBuildingLayer(root), ships: createBuildingLayer(root), moving: false,
     ridges: new Map(), hills: instanced(getHillGeometry(), 600)
   };
   for (let v = 0; v < RIDGE_VARIANTS; v++) [false, true].forEach((snow) => t.ridges.set(`${v}|${snow}`, instanced(getRidgeGeometry(v, snow), MAX_RIDGE_MESH)));
@@ -579,6 +581,55 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     });
     t.layers.forEach((l) => { l.mesh.instanceMatrix.needsUpdate = true; l.mesh.instanceColor.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true; });
     t.moving = moving;
+
+    // Fleets: 1 to 3 warships of the owner's age (shipModels.js) on their sea tile, turned toward
+    // the next step of their route. With no ship file for the age only the banner stands.
+    t.ships.begin(lodForZoom(k));
+    markers.fleets.forEach((m, mi) => {
+      const model = shipModel(ageOf(state, m.ownerId));
+      if (!model) return;
+      if (!t.ships.hasModel(model.url)) {
+        if (!t.assets.has(model.url)) {
+          t.assets.set(model.url, null);
+          loadAssetObjects(model.url).then((objs) => {
+            const ship = objs[model.name] || Object.values(objs)[0];
+            // the file's swell (morph targets, for a later animated pass) is not drawn: the
+            // instanced layer shows the hull at rest
+            ship.traverse((o) => {
+              if (!o.isMesh || !Object.keys(o.geometry.morphAttributes || {}).length) return;
+              const g = new BufferGeometry();
+              Object.entries(o.geometry.attributes).forEach(([n, a]) => g.setAttribute(n, a));
+              if (o.geometry.index) g.setIndex(o.geometry.index);
+              o.geometry.groups.forEach((gr) => g.addGroup(gr.start, gr.count, gr.materialIndex));
+              o.geometry = g;
+              o.morphTargetInfluences = undefined; o.morphTargetDictionary = undefined;
+            });
+            t.ships.setModel(model.url, ship); onAssets();
+          })
+            .catch((e) => { console.warn('ship model failed, the fleet keeps its banner:', e.message); });
+        }
+        return;
+      }
+      const at = toScreenLatLng(markerLatLng(m));
+      if (!at) return;
+      const lead = m.own ? state.units[m.units?.[0]] : null;
+      const step = lead?.route?.[0];
+      const stepLL = step != null && step >= 0 ? getTiles().latLonOf(step) : null;
+      const next = stepLL ? project(stepLL.lat, stepLL.lon) : null;
+      const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : 0.5 + mi * 0.7;
+      const px = s * SHIP_SCALE;
+      const n = shipsFor(m.units?.length || 1);
+      const teamColor = m.own ? PLAYER_COLOR : (getNationColor(m.ownerId) || '#64748b');
+      for (let i = 0; i < n; i++) {
+        const ox = (i - (n - 1) / 2) * px * 2.2; const oy = (i % 2) * px * 1.2;
+        tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
+        tmp.rotation.set(TILT, heading, 0, 'XYZ');
+        tmp.scale.setScalar(px);
+        tmp.updateMatrix();
+        t.ships.add(model.url, tmp.matrix, teamColor);
+      }
+    });
+    t.ships.end();
   };
 
   return {
@@ -592,6 +643,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       t.layers.forEach((l) => { l.mesh.geometry.dispose(); });
       t.buildings.dispose();
       t.improvements.dispose();
+      t.ships.dispose();
       townMaterial.dispose(); soldierMaterial.dispose();
       scene.remove(sky, sun);
     }

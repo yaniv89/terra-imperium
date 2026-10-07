@@ -4,6 +4,7 @@
 //   Battles   the default mode the pre-battle screen preselects (Command, Auto or ask each time),
 //             always Auto for defences, instant AI battles (state.battleSettings, per game)
 //             and the battle size (300 a side, the one size today)
+//   Sound     the Sound switch, effects volume, music volume (src/audio/audioSettings.js, per device)
 //   Performance  the battle's performance overlay (mapPrefs.js perf, per browser) and the quality
 //             (Auto: the battle adapts soldier detail to the frame time)
 //   Turns     warn me before End Turn while something waits
@@ -18,6 +19,19 @@ import { SAVE_PROBLEM_TEXT } from '../../engine/saveMigrations';
 import { useMapPrefs, setMapPrefs } from '../map/mapPrefs';
 import { fogOn } from '../../engine/fog';
 import { Button, Label, SheetHeader, Segmented, Switch } from './atlas';
+import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
+
+// A 0..100% volume slider, saved as you drag (src/audio/audioSettings.js).
+const Volume = ({ label, hint, value, onChange, disabled, testId }) => (
+  <label className={`flex items-center justify-between gap-3 min-h-[44px] ${disabled ? 'opacity-50' : ''}`}>
+    <span className="min-w-0">
+      <span className="block text-[14px] font-semibold leading-tight">{label}</span>
+      <span className="block text-[12px] text-fa-muted leading-snug">{hint}</span>
+    </span>
+    <input type="range" min="0" max="100" step="5" value={Math.round(value * 100)} disabled={disabled} aria-label={label} data-testid={testId}
+      onChange={(e) => onChange(Number(e.target.value) / 100)} className="w-32 shrink-0 accent-[var(--fa-good)]" />
+  </label>
+);
 
 const MODES = [
   { id: 'command', label: 'Command', testId: 'battle-mode-command' },
@@ -28,6 +42,7 @@ const MODES = [
 const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) => {
   const { state, dispatch, exportSave, importSave } = useGame();
   const prefs = useMapPrefs();
+  const audio = useAudioSettings();
   const fileRef = useRef(null);
   if (!open) return null;
   const bs = state.battleSettings || {};
@@ -82,6 +97,14 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
               </div>
               <span className="fa-chip shrink-0" aria-pressed="true"><span className="fa-num">300</span> a side</span>
             </div>
+          </section>
+          <section className="space-y-1" aria-labelledby="settings-sound">
+            <Label id="settings-sound">Sound</Label>
+            <Switch label="Sound" hint="Battle sounds, music and vibration; the speaker button in a battle is the same switch" checked={audio.sound} onChange={(v) => setAudioSettings({ sound: v })} testId="settings-sound" />
+            <Switch label="Battle sounds" hint="Sounds in RTS battles; off mutes them only" checked={audio.effectsOn} disabled={!audio.sound} onChange={(v) => setAudioSettings({ effectsOn: v })} testId="settings-effects-on" />
+            <Switch label="Music" hint="Background music on the map; off mutes it only" checked={audio.musicOn} disabled={!audio.sound} onChange={(v) => setAudioSettings({ musicOn: v })} testId="settings-music-on" />
+            <Volume label="Effects volume" hint="Battle sounds, heard only where you look" value={audio.effects} disabled={!audio.sound || !audio.effectsOn} onChange={(v) => setAudioSettings({ effects: v })} testId="settings-effects-volume" />
+            <Volume label="Music volume" hint="Music and ambience on the map; off in battles" value={audio.music} disabled={!audio.sound || !audio.musicOn} onChange={(v) => setAudioSettings({ music: v })} testId="settings-music-volume" />
           </section>
           <section className="space-y-1" aria-labelledby="settings-perf">
             <Label id="settings-perf">Performance</Label>

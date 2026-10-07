@@ -185,9 +185,9 @@ const StartScreen = ({ onStart }) => {
           </div>
           <button type="button" role="switch" aria-checked={exploredWorld} aria-label="Explored world" onClick={() => setExploredWorld((v) => !v)} className="fa-switch" data-testid="explored-world" />
         </div>
-        <button type="button" onClick={guided} data-testid="guided-start" className="fa-btn fa-btn-ghost w-full mt-1 !justify-start !px-1"
+        <button type="button" onClick={guided} data-testid="guided-start" className="fa-btn fa-btn-ghost w-full mt-1 !justify-start !px-1 !h-auto !py-2 !whitespace-normal text-left leading-snug"
           title="Ten turns of prompts on the Nile: settle, farm, build, research, meet a neighbour, fight.">
-          <BookOpen className="w-4 h-4" aria-hidden="true" /> New here? Play the guided start as Kemet
+          <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" /> <span className="min-w-0">New here? Play the guided start as Kemet</span>
         </button>
       </div>
       </div>

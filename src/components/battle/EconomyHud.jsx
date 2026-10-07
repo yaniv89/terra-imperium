@@ -66,7 +66,7 @@ export const BuildingPanel = ({ building, ageId, stock, eco = null, onTrain, onC
   const name = ecoName(building.type, ageId);
   return (
     <div className="absolute left-[84px] top-[calc(3.5rem+env(safe-area-inset-top))] z-20 w-[230px] max-w-[60vw] p-2 rounded-xl bg-slate-900/95 border border-slate-600 shadow-2xl text-[11px] text-slate-200 pointer-events-auto" data-testid="battle-building-panel">
-      <div className="flex items-center justify-between font-semibold text-white text-xs"><span className="truncate">{name}</span><button type="button" onClick={onClose} className="p-1"><X className="w-4 h-4" /></button></div>
+      <div className="flex items-center justify-between font-semibold text-white text-xs"><span className="truncate">{name}</span><button type="button" onClick={onClose} aria-label="Clear selection" title="Clear selection (Esc)" data-testid="battle-building-close" className="-my-2.5 -mr-2 w-11 h-11 shrink-0 flex items-center justify-center"><X className="w-4 h-4" /></button></div>
       <div className="h-1.5 my-1 bg-slate-700 rounded-full overflow-hidden"><span className="block h-full bg-emerald-400" style={{ width: `${building.built ? (building.hp / Math.max(1, building.maxHp)) * 100 : building.progress}%` }} /></div>
       {!building.built && <div className="text-amber-200">Under construction · {building.progress}%</div>}
       {building.built && building.queue.length > 0 && (
