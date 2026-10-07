@@ -96,3 +96,19 @@ export const focusZoomFor = (currentK, minFocusK, maxK = Infinity) => {
   const k = Number.isFinite(currentK) && currentK > 0 ? currentK : minFocusK;
   return Math.min(maxK, Math.max(minFocusK, k));
 };
+
+/** Earth's mean radius in km: d3's equirectangular scale is pixels per radian at zoom 1. */
+export const EARTH_RADIUS_KM = 6371;
+
+/**
+ * The first view of a game (a new game, a loaded one with no camera remembered, plans/ui/start-zoom):
+ * close on the capital, `viewKm` of ground over the screen's height (about twice the city's land,
+ * so it fills about half the screen), never short of `minK` (the close view, where the town shows)
+ * nor past `maxK`. The same ground on a phone and a desktop, whatever the screen size. null for no
+ * real screen or projection.
+ */
+export const startZoomFor = ({ height, scale, viewKm, minK = 1, maxK = Infinity }) => {
+  if (!(height > 0) || !(scale > 0) || !(viewKm > 0)) return null;
+  const k = ((height / viewKm) * EARTH_RADIUS_KM) / scale;
+  return Math.min(maxK, Math.max(minK, k));
+};

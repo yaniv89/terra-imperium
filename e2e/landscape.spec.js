@@ -4,6 +4,7 @@
 // the empire view (map on top, half sheets below) with a soft, dismissible hint to turn the phone.
 import { test, expect } from '@playwright/test';
 import { answerBlockers } from './endTurnHelpers';
+import { beginGame } from './startHelpers';
 
 // See playability.spec.js: dispatchEvent avoids simulated pointer travel across the WebGL globe.
 const click = (locator) => locator.dispatchEvent('click');
@@ -12,7 +13,7 @@ const startGame = async (page, nation = 'Akkad') => {
   await page.fill('input[aria-label="Search peoples"]', nation);
   const nationButtons = page.locator('[data-people]');
   await click(nationButtons.first());
-  await click(page.getByRole('button', { name: /^Begin as/ }));
+  await beginGame(page);
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   if (await skip.isVisible().catch(() => false)) await click(skip);

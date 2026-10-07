@@ -4,8 +4,8 @@
 // chosen people's card, the guided start), 2 World (the Map block when generated worlds are on, the
 // world size), 3 Rules (speed, difficulty, Explored world), 4 Ready (a summary, each row with
 // Change). The step indicator on top opens any step (every choice has a default); the bottom bar
-// holds Back, Next and the one brass action, Begin as <people>, on every step: the fast path is pick
-// a people and Begin. Enter outside a field goes on (and begins on Ready), Escape goes back. Every
+// holds Back and Next; the one brass action, Begin as <people>, is on the last step (Ready) only:
+// the fast path is pick a people, Next (or the Ready step button) to Ready, then Begin. Enter outside a field goes on (and begins on Ready), Escape goes back. Every
 // step stays mounted (hidden), so choices, the generated preview and scripts that flip a switch
 // before Begin keep working. Field Atlas look; 844x390 landscape is the reference screen.
 //
@@ -149,12 +149,13 @@ const StepPanel = ({ id, active, title, fill, children }) => (
   </section>
 );
 
-const StartScreen = ({ onStart }) => {
+// `initialStep`: the step it opens on (tests; a player always starts on People).
+const StartScreen = ({ onStart, initialStep = 0 }) => {
   const layout = useLayoutMode();
   const wide = layout === 'desktop';
   const phone = layout === 'phone-landscape' || layout === 'phone-portrait';
   const twoCols = layout !== 'phone-portrait' && layout !== 'tablet-portrait';
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => Math.max(0, Math.min(START_STEPS.length - 1, initialStep | 0)));
   const [worldSize, setWorldSize] = useState(DEFAULT_WORLD_SIZE);
   const [search, setSearch] = useState('');
   const [region, setRegion] = useState('all');
@@ -256,7 +257,7 @@ const StartScreen = ({ onStart }) => {
       <section className={`${scrollBox} flex flex-col gap-2.5`} aria-label="Your people" data-testid="start-details">
         {peopleCard}
         <p className="text-[12px] text-fa-muted leading-snug px-1" data-testid="start-defaults">
-          {choicesLine} Begin now, or go on to change the world and the rules.
+          {choicesLine} Go on to change the world and the rules, then begin on Ready.
         </p>
         <button type="button" onClick={guided} data-testid="guided-start" className="fa-btn fa-btn-ghost w-full mt-auto !justify-start !px-2 !h-auto !py-2 !whitespace-normal text-left leading-snug shrink-0"
           title="Ten turns of prompts on the Nile: settle, farm, build, research, meet a neighbour, fight.">
@@ -370,13 +371,15 @@ const StartScreen = ({ onStart }) => {
         )}
         <span className="flex-1" />
         {next && (
-          <button type="button" onClick={() => go(step + 1)} className="fa-btn fa-btn-secondary shrink-0" data-testid="start-next">
+          <button type="button" onClick={() => go(step + 1)} className="fa-btn fa-btn-secondary shrink-0 !min-h-[48px]" data-testid="start-next">
             Next: {next.name}<ArrowRight className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
-        <button type="button" onClick={begin} data-testid="begin-game" className={`fa-btn fa-btn-primary fa-btn-hero min-w-0 !min-h-[48px] ${twoCols ? 'max-w-[55%]' : 'flex-1'}`}>
-          <span className="truncate">Begin as {selected?.name}</span><ArrowRight className="w-5 h-5 shrink-0" aria-hidden="true" />
-        </button>
+        {step === last && (
+          <button type="button" onClick={begin} data-testid="begin-game" className={`fa-btn fa-btn-primary fa-btn-hero min-w-0 !min-h-[48px] ${twoCols ? 'max-w-[55%]' : 'flex-1'}`}>
+            <span className="truncate">Begin as {selected?.name}</span><ArrowRight className="w-5 h-5 shrink-0" aria-hidden="true" />
+          </button>
+        )}
       </footer>
     </div>
   );

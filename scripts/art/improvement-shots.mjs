@@ -24,6 +24,7 @@ await page.addInitScript(() => { window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true;
 await page.goto(process.env.URL || 'http://localhost:5199/terra-imperium/');
 await page.getByPlaceholder('Search 240 nations...').fill('Israel');
 await page.getByRole('button', { name: 'Israel', exact: true }).dispatchEvent('click');
+await page.getByTestId('start-step-ready').dispatchEvent('click'); // Begin is on Ready only
 await page.getByRole('button', { name: 'Begin as Israel' }).dispatchEvent('click');
 await page.getByRole('button', { name: 'Skip', exact: true }).dispatchEvent('click');
 await page.getByTitle('Flat map view').dispatchEvent('click');

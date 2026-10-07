@@ -53,11 +53,12 @@ const PROFILE = {
 };
 
 const startGame = async (page) => {
-  await page.getByTestId('begin-game').waitFor({ timeout: 120000 });
+  await page.getByTestId('start-next').waitFor({ timeout: 120000 });
   if (EXPLORED) await page.getByTestId('explored-world').dispatchEvent('click');
   await page.fill('input[aria-label="Search peoples"]', 'Akkad');
   const buttons = page.locator('[data-people]');
   await buttons.first().dispatchEvent('click');
+  await page.getByTestId('start-step-ready').dispatchEvent('click'); // Begin is on Ready only
   await page.getByRole('button', { name: /^Begin as/ }).dispatchEvent('click');
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});

@@ -27,9 +27,10 @@ await page.addInitScript(() => {
   };
 });
 await page.goto(`${URL}?turndebug`);
-await page.getByTestId('begin-game').waitFor({ timeout: 120000 });
+await page.getByTestId('start-next').waitFor({ timeout: 120000 });
 await page.fill('input[aria-label="Search peoples"]', 'Akkad');
 await page.locator('[data-people]').first().dispatchEvent('click');
+await page.getByTestId('start-step-ready').dispatchEvent('click'); // Begin is on Ready only
 await page.getByRole('button', { name: /^Begin as/ }).dispatchEvent('click');
 const skip = page.getByRole('button', { name: 'Skip' });
 await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});

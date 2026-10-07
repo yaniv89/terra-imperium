@@ -44,14 +44,17 @@ for (const [w, h] of sizes) {
   page.on('pageerror', (e) => { row.errors = [...(row.errors || []), String(e).slice(0, 200)]; });
   await page.addInitScript(() => { window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; });
   await page.goto(url);
+  // Begin is on the last step (Ready) only: the start bar's Next is measured on step 1
+  const next = page.getByTestId('start-next');
   const begin = page.getByTestId('begin-game');
-  await begin.waitFor({ state: 'attached', timeout: 60000 });
+  await next.waitFor({ state: 'attached', timeout: 60000 });
   await page.waitForTimeout(500);
   row.layout = await page.evaluate(() => document.documentElement.dataset.layout);
-  row.begin = { ...(await rect(begin)), reachable: await reachable(begin) };
+  row.next = { ...(await rect(next)), reachable: await reachable(next) };
   if (only.includes('start')) await page.screenshot({ path: join(out, `${tag}-start-${w}x${h}.png`) });
   if (only.includes('lens') || only.includes('manage')) {
-    // start the game the way a player would: scroll Begin into view if it must, then tap it
+    // start the game the way a player would: Next to Ready, scroll Begin into view if it must, then tap it
+    for (let i = 0; i < 3; i++) await next.tap({ timeout: 5000 }).catch(() => next.dispatchEvent('click'));
     await begin.scrollIntoViewIfNeeded().catch(() => {});
     await begin.tap({ timeout: 5000 }).catch(async () => { row.beginTapFailed = true; await begin.dispatchEvent('click'); });
     const skip = page.getByRole('button', { name: 'Skip' });

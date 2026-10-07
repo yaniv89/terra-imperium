@@ -23,9 +23,10 @@ const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : { ch
 mkdirSync(OUT, { recursive: true });
 
 const startGame = async (page) => {
-  await page.getByTestId('begin-game').waitFor({ timeout: 120000 });
+  await page.getByTestId('start-next').waitFor({ timeout: 120000 });
   await page.fill('input[aria-label="Search peoples"]', 'Akkad');
   await page.locator('[data-people]').first().dispatchEvent('click');
+  await page.getByTestId('start-step-ready').dispatchEvent('click'); // Begin is on Ready only
   await page.getByRole('button', { name: /^Begin as/ }).dispatchEvent('click');
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
@@ -97,7 +98,7 @@ for (const size of SIZES) {
   const insets = await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: INSETS }).then(() => 'emulated', (e) => `not available (${e.message.split('\n')[0]})`);
   console.log(`${size.name}: safe-area insets ${insets}`);
   await page.goto(URL, { timeout: 240000 });
-  await page.getByTestId('begin-game').waitFor({ timeout: 120000 });
+  await page.getByTestId('start-next').waitFor({ timeout: 120000 });
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${OUT}/${size.name}-1-start.png` });
   await startGame(page);

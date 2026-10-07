@@ -21,6 +21,7 @@ for (const [view, w, h] of VIEWS) {
   await page.goto(BASE);
   await page.getByPlaceholder('Search 240 nations...').fill('Israel');
   await page.getByRole('button', { name: 'Israel', exact: true }).dispatchEvent('click');
+  await page.getByTestId('start-step-ready').dispatchEvent('click'); // Begin is on Ready only
   await page.getByRole('button', { name: 'Begin as Israel' }).dispatchEvent('click');
   await page.getByRole('button', { name: 'Skip', exact: true }).click();
   // the research picker covers part of the map (and on a phone the map toggle): let the advisor pick

@@ -90,6 +90,7 @@ for (const mode of MODES) {
   if (!cities) {
     await page.getByPlaceholder('Search 240 nations...').fill('Egypt');
     await page.getByRole('button', { name: 'Egypt', exact: true }).dispatchEvent('click');
+    await page.getByTestId('start-step-ready').dispatchEvent('click'); // Begin is on Ready only
     await page.getByRole('button', { name: 'Begin as Egypt' }).dispatchEvent('click');
     await page.getByRole('button', { name: 'Skip', exact: true }).click();
     await page.waitForFunction(() => window.__game?.state, null, { timeout: 90000 });

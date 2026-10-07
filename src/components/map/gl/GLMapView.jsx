@@ -46,7 +46,7 @@ import { indexCities, buildFogStates, buildTileTexels, buildCityTexels, buildTin
 import { createTerritoryLayer, createTerritoryCache, createRasterLayer, createSpriteLayer, createLineLayer } from './glLayers';
 import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
-import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform } from './mapView';
+import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor } from './mapView';
 import { cleanLatLng, latLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera } from '../mapCamera';
 import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites,
@@ -62,6 +62,9 @@ const ZOOM_STEP_SCALE = 1.6;
 const ZOOM_SETTLE_MS = 150;
 const ZOOM_JUMP = 1.8;
 const INITIAL_FOCUS_ZOOM = 5;
+// The first view of a game: this much ground (km) over the screen's height, centred on the capital
+// (its land fills about half the screen, the town model shows: plans/ui/start-zoom).
+const START_VIEW_KM = 650;
 // The close view's models are laid out over the screen plus this share of it on every side.
 const CLOSE_MARGIN = 0.35;
 const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -308,14 +311,18 @@ const GLMapView = ({
   }, [focusOnLatLng]);
 
   // The first view: where this game's map was before it was unmounted (its box had no size, the
-  // globe was shown), else the capital, else the selected army; never a default corner of the world.
+  // globe was shown), else close on the capital (startZoomFor), else the selected army; never a
+  // default corner of the world. Again for another game on the same map (a new game, a load).
+  const initialKeyRef = useRef(null);
   useEffect(() => {
+    if (initialKeyRef.current !== camKey) { initialKeyRef.current = camKey; appliedInitialFocusRef.current = false; }
     if (appliedInitialFocusRef.current || !ready || !projection) return;
     const mem = recallCamera(camKey);
     if (mem && focusOnLatLng(mem.lat, mem.lng, mem.scaleK / projection.scale(), false, false)) { appliedInitialFocusRef.current = true; return; }
     const t = cameraTarget(gameStateRef.current, [{ regionId: initialFocusRegionId }], { selectedArmyTile: selectedArmy });
-    if (t && focusOnLatLng(t.lat, t.lng)) appliedInitialFocusRef.current = true;
-  }, [initialFocusRegionId, focusOnLatLng, ready, projection, camKey, selectedArmy]);
+    const k = startZoomFor({ height, scale: projection.scale(), viewKm: START_VIEW_KM, minK: CLOSE_ZOOM_K * 1.05, maxK: ZOOM_MAX }) ?? INITIAL_FOCUS_ZOOM;
+    if (t && focusOnLatLng(t.lat, t.lng, k)) appliedInitialFocusRef.current = true;
+  }, [initialFocusRegionId, focusOnLatLng, ready, projection, camKey, selectedArmy, height]);
 
   // A new action effect: pan to it (keeping a deeper zoom) and keep it centred while it plays.
   const lastEffectIdRef = useRef(effects.length ? effects[effects.length - 1].id : null);

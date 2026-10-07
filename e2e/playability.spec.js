@@ -21,6 +21,7 @@
 // stays conservative rather than assuming the flag alone makes a long run safe.
 import { test, expect } from '@playwright/test';
 import { endTurn } from './endTurnHelpers';
+import { beginGame } from './startHelpers';
 
 const TURNS_TO_PLAY = 3;
 
@@ -69,7 +70,7 @@ test('a randomly chosen nation can play several turns with no console errors and
   const nationButton = nationButtons.nth(Math.floor(Math.random() * nationCount));
   const nationName = await nationButton.getAttribute('data-people-name');
   await click(nationButton);
-  await click(page.getByRole('button', { name: `Begin as ${nationName}` }));
+  await beginGame(page, `Begin as ${nationName}`);
 
   const yearLabel = page.locator('header').getByText(/^-?\d+ (BCE|CE)$/);
   await expect(yearLabel).toBeVisible();
