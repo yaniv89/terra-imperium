@@ -18,10 +18,10 @@ import { paintWorld } from './painter';
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const GOLDEN_V1 = { 1: 'ee05f631', 2: 'f18154e8', 3: '9f9334cf' };
 // Frozen with generator version 2 (the look pass: no specks or small inland seas, narrower sea ice,
-// fewer lakes, a wandering dry belt; and the shapes and relief option), seed 1 to 3 per shape.
+// fewer lakes, a wandering dry belt, resources at Earth's counts per land tile; the shapes and relief), seed 1 to 3 per shape.
 export const GOLDEN_V2 = {
-  continents: ['c4f02f87', '51b3bbff', '82223216'], pangaea: ['b761cd90', '4db379ec', '8663c5b8'],
-  archipelago: ['75e116b1', 'b4f18497', 'a7bdfed3'], islands: ['6b0f5d38', 'e1cb450f', 'd6cb3395'], inland: ['02a7f2fc', '77ea0dea', '2aac12a2']
+  continents: ['a04b1c87', '3a7e4c31', '20cfec21'], pangaea: ['0677f801', '37a584ca', 'b0084a62'],
+  archipelago: ['57846a9a', 'd23d39c6', '549503ed'], islands: ['15a31f4a', 'c0c0b6cd', '592178ef'], inland: ['713dbb9a', 'ff5e8fd7', 'cf8f2eda']
 };
 
 const worlds = {};
@@ -225,4 +225,20 @@ describe('the world descriptor', () => {
     expect(mapCode({ kind: 'earth' })).toBe('EARTH');
     expect(normalizeSpec(undefined)).toEqual({ kind: 'earth' });
   });
+});
+
+describe('generator v2 resources', () => {
+  // (the rare jungle and oasis ones follow the jungles and oases a world has; the bench reports them)
+  it('keeps the common resources within 25% of the real Earth per land tile', async () => {
+    const { EARTH_RESOURCES_PER_1000 } = await import('./v1/generate');
+    const { raw } = generateWorld({ kind: 'generated', generatorVersion: 2, seed: 4, params: {} }, gridOf(getTiles()));
+    const lake = raw.terrainNames.indexOf('lake');
+    let land = 0; const c = {};
+    for (let i = 0; i < raw.count; i++) {
+      if (raw.land[i] === 1 && raw.terrain[i] !== lake) land++;
+      if (raw.resource[i] >= 0) { const r = raw.resourceNames[raw.resource[i]]; c[r] = (c[r] || 0) + 1; }
+    }
+    const off = Object.entries(EARTH_RESOURCES_PER_1000).filter(([r, rate]) => rate >= 5 && Math.abs((c[r] || 0) / land * 1000 / rate - 1) > 0.25).map(([r]) => r);
+    expect(off).toEqual([]);
+  }, 60000);
 });

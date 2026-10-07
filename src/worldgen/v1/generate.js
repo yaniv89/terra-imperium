@@ -31,6 +31,14 @@ export const VERSION = 1;
 export const CLIMATE_NAMES = ['Af', 'Am', 'As', 'Aw', 'BSh', 'BSk', 'BWh', 'BWk', 'Cfa', 'Cfb', 'Cfc', 'Csa', 'Csb', 'Csc', 'Cwa', 'Cwb', 'Dfa', 'Dfb', 'Dfc', 'Dfd', 'Dsa', 'Dsb', 'Dsc', 'Dsd', 'Dwa', 'Dwb', 'Dwc', 'Dwd', 'EF', 'ET'];
 export const RESOURCE_NAMES = ['bananas', 'cattle', 'coal', 'copper', 'cotton', 'dates', 'deer', 'dyes', 'fish', 'furs', 'gems', 'gold', 'honey', 'horses', 'incense', 'iron', 'oil', 'olives', 'papyrus', 'reeds', 'rice', 'rubber', 'salt', 'sheep', 'silk', 'silver', 'spices', 'stone', 'sugar', 'tea', 'timber', 'uranium', 'whales', 'wheat', 'wine'];
 export const MAX_ATTEMPTS = 4;
+// Generator 2: the real Earth's resources per 1,000 land tiles (tiles.bin, measured with
+// scripts/worldgen/resources.mjs on 2026-10-07); frozen with version 2.
+export const EARTH_RESOURCES_PER_1000 = Object.freeze({
+  bananas: 3.92, cattle: 15.11, coal: 19.48, copper: 34.15, cotton: 7.61, dates: 1.96, deer: 17.45, dyes: 2.41, fish: 35.7,
+  furs: 23.38, gems: 4.44, gold: 19.97, honey: 6.06, horses: 19.18, incense: 6.16, iron: 34.63, oil: 15.01, olives: 3.41,
+  papyrus: 0.96, reeds: 0.38, rice: 1.07, rubber: 1.41, salt: 15.59, sheep: 20.72, silk: 1.79, silver: 8.16, spices: 4.27,
+  stone: 29.47, sugar: 2.82, tea: 1.48, timber: 17.45, uranium: 2.58, whales: 8.71, wheat: 20.45, wine: 7.81
+});
 const RMAX = 8; // plate-edge distance tracked, in rings
 const STEP_UNITS = 198; // a quarter of the cell spacing (about 19 km) in ONE units
 const RIVER_TILE_SHARE = 0.36; // land tiles with a river edge (Earth 0.38)
@@ -645,6 +653,42 @@ const attemptWorld = (grid, seed, params, attempt, progress, version = 1) => {
   for (let i = 0; i < n; i++) {
     const r = scatterResource(i, { land: !!land[i] && !lake[i], t: TERRAIN[terrain[i]], rel: RELIEF[relief[i]], feat: FEATURE[feature[i]], near: coastal[i] }, hashS);
     if (r) resource[i] = RESOURCE_NAMES.indexOf(r);
+  }
+  if (V2) {
+    // Generator 2: each resource near Earth's count per land tile (plan 4.3 step 9). A generated
+    // world has fewer hills, mountains and jungles and more open grassland than Earth, so the plain
+    // scatter gives twice the wheat and horses and half the metals. Deficits are filled first, on
+    // tiles that are empty or hold a resource still in surplus, with the scatter's own choice under
+    // other salts (so a resource only lands where its terrain allows it); the surplus left is cut.
+    const R = RESOURCE_NAMES.length;
+    let landN = 0; for (let i = 0; i < n; i++) if (land[i] && !lake[i]) landN++;
+    const target = RESOURCE_NAMES.map((name) => Math.round(((EARTH_RESOURCES_PER_1000[name] || 0) * landN) / 1000));
+    const count = new Int32Array(R);
+    for (let i = 0; i < n; i++) if (resource[i] >= 0) count[resource[i]]++;
+    const ctxOf = (i) => ({ land: !!land[i] && !lake[i], t: TERRAIN[terrain[i]], rel: RELIEF[relief[i]], feat: FEATURE[feature[i]], near: coastal[i] });
+    const order = new Int32Array(n); for (let i = 0; i < n; i++) order[i] = i;
+    const key = new Float64Array(n); for (let i = 0; i < n; i++) key[i] = hashS(i, 301);
+    order.sort((a, b) => key[a] - key[b] || a - b);
+    for (let salt = 1; salt <= 8; salt++) {
+      let open = 0; for (let r = 0; r < R; r++) if (count[r] < target[r]) open++;
+      if (!open) break;
+      const alt = (id, s) => hashS(id, s + 1000 * salt);
+      for (let o = 0; o < n; o++) {
+        const i = order[o];
+        const cur = resource[i];
+        if (cur >= 0 && count[cur] <= target[cur]) continue;
+        const pick = scatterResource(i, ctxOf(i), alt);
+        if (!pick) continue;
+        const r = RESOURCE_NAMES.indexOf(pick);
+        if (r === cur || count[r] >= target[r]) continue;
+        if (cur >= 0) count[cur]--;
+        resource[i] = r; count[r]++;
+      }
+    }
+    for (let o = 0; o < n; o++) {
+      const i = order[o]; const cur = resource[i];
+      if (cur >= 0 && count[cur] > target[cur]) { resource[i] = -1; count[cur]--; }
+    }
   }
 
   // ---- 11. terrain columns and names -------------------------------------------------------------------
