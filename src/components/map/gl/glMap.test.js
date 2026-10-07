@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
-import { worldRect, wrapNear, viewFor, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor } from './mapView';
+import { worldRect, wrapNear, viewFor, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, startZoomFor, EARTH_RADIUS_KM } from './mapView';
 import { cssColor } from './cssColor';
 import { packShelf, ATLAS_SIZE } from './spriteAtlas';
 import { indexCities, buildTileTexels, buildCityTexels, buildTintTexels, FLAG_ENEMY, FLAG_OWN, PLAYER_BAND_COLOR } from './territoryData';
@@ -143,5 +143,26 @@ describe('opening a city keeps the zoom (plans/ui/fix-mobile, bug 3)', () => {
     expect(focusZoomFor(500, 5, 200)).toBe(200);
     expect(focusZoomFor(undefined, 5, 200)).toBe(5);
     expect(focusZoomFor(NaN, 5)).toBe(5);
+  });
+});
+
+describe('the first view of a game (plans/ui/start-zoom)', () => {
+  const desktop = geoEquirectangular().fitSize([1280, 800], { type: 'Sphere' });
+  // screen pixels a km of ground (north-south) takes at zoom k
+  const pxPerKm = (proj, k) => (proj.scale() * k) / EARTH_RADIUS_KM;
+  it('shows the same ground over the screen height on a phone and a desktop', () => {
+    const phoneK = startZoomFor({ height: 390, scale: projection.scale(), viewKm: 650 });
+    const deskK = startZoomFor({ height: 800, scale: desktop.scale(), viewKm: 650 });
+    expect(390 / pxPerKm(projection, phoneK)).toBeCloseTo(650, 5);
+    expect(800 / pxPerKm(desktop, deskK)).toBeCloseTo(650, 5);
+    expect(phoneK).toBeGreaterThan(25); // far closer than the old zoom 5 (the whole region tiny in the middle)
+  });
+  it('never opens short of the close view nor past the zoom limit', () => {
+    expect(startZoomFor({ height: 390, scale: projection.scale(), viewKm: 50000, minK: 14, maxK: 200 })).toBe(14);
+    expect(startZoomFor({ height: 390, scale: projection.scale(), viewKm: 1, minK: 14, maxK: 200 })).toBe(200);
+  });
+  it('is null without a real screen', () => {
+    expect(startZoomFor({ height: 0, scale: projection.scale(), viewKm: 650 })).toBe(null);
+    expect(startZoomFor({ height: 390, scale: NaN, viewKm: 650 })).toBe(null);
   });
 });
