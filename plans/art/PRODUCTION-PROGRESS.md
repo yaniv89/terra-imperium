@@ -73,3 +73,5 @@ Wave 3 [checkpoint 19](downloads/wave3/checkpoint-19/README.md), 2026-10-08 (Cla
 Wave 4 [checkpoint 20](downloads/wave4/checkpoint-20/README.md), 2026-10-08 (Claude): the Kingdoms (medieval) base units and general (pikemen, longbowmen, knights, trebuchet, pioneers, villager, general; `build_units_kingdoms.py`), 7 queue items `in_game_awaiting_review`; every Kingdoms side now fields GLB units. 0.62 MB added.
 
 Wave 4 [checkpoint 21](downloads/wave4/checkpoint-21/README.md), 2026-10-08 (Claude): the 36 Kingdoms signature units (24 on foot, 9 horsemen, 2 war elephants, Kitara's cattle guard with an ox; `build_units_kingdoms_signature.py`), 36 queue items `in_game_awaiting_review`; each Kingdoms people's signature unit shows in battle. 2.76 MB added.
+
+Wave 4 [checkpoint 22](downloads/wave4/checkpoint-22/README.md), 2026-10-08 (Claude): the Kingdoms battle buildings (`rts-kingdoms.glb`: 13 roles with damaged states, construction stages 0-3; `build_rts_kingdoms.py`), 14 queue items `in_game_awaiting_review`; Kingdoms economy battles draw them. 1.94 MB added.
