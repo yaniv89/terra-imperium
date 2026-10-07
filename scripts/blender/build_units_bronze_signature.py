@@ -13,7 +13,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ti_units as u  # noqa: E402
 import ti_mounts as tm  # noqa: E402
 
-os.environ.setdefault('TI_UNITS_OUT', str(u.REPO / 'art-build' / 'units' / 'signature'))
+if __name__ == '__main__':
+    os.environ.setdefault('TI_UNITS_OUT', str(u.REPO / 'art-build' / 'units' / 'signature'))
 PERSON_BUDGET, MOUNTED_BUDGET = 1500, 3900
 
 
@@ -578,8 +579,9 @@ def build(model):
 
 
 ALL = list(FOOT) + list(CHARIOTS)
-ids = [a for a in (sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []) if a] or ALL
-for m in ids:
-    build(m)
-sys.stdout.flush()
-os._exit(0)
+if __name__ == '__main__':  # the part library above is imported by the later ages' unit builders
+    ids = [a for a in (sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []) if a] or ALL
+    for m in ids:
+        build(m)
+    sys.stdout.flush()
+    os._exit(0)

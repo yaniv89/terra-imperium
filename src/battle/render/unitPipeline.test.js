@@ -90,24 +90,26 @@ describe('imposters and overrides', () => {
 describe('unit model registry', () => {
   const setup = { sides: [
     { ageId: 'bronze', units: [{ classId: 'infantry' }, { classId: 'ranged' }, { classId: 'infantry' }], reinforcements: [{ classId: 'cavalry' }] },
-    { ageId: 'classical', units: [{ classId: 'infantry' }, { classId: 'naval' }] }
+    { ageId: 'kingdoms', units: [{ classId: 'infantry' }, { classId: 'naval' }] }
   ] };
 
   it('lists each (age, class) a battle fields once, reinforcements included, ships excluded', () => {
-    expect(battleModelPairs(setup).map((p) => p.join(':')).sort()).toEqual(['bronze:cavalry', 'bronze:infantry', 'bronze:ranged', 'classical:infantry']);
+    expect(battleModelPairs(setup).map((p) => p.join(':')).sort()).toEqual(['bronze:cavalry', 'bronze:infantry', 'bronze:ranged', 'kingdoms:infantry']);
   });
 
-  it('resolves the Bronze set to its delivered GLBs and every other age to the procedural model (the old recipes stay disabled)', () => {
-    // Wave 1 (plans/ART-MODELS-PLAN.md): src/assets/units/bronze-<class>.glb with an enabling JSON
-    ['infantry', 'cavalry', 'ranged', 'siege', 'support', 'worker'].forEach((cls) => {
-      const m = findUnitModel('bronze', cls);
-      expect(m?.name, `bronze-${cls}`).toBe(`bronze-${cls}`);
+  it('resolves the Bronze and Classical sets to their delivered GLBs and every other age to the procedural model (the old recipes stay disabled)', () => {
+    // Waves 1 and 3 (plans/ART-MODELS-PLAN.md): src/assets/units/<age>-<class>.glb with an enabling JSON
+    ['bronze', 'classical'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege', 'support', 'worker'].forEach((cls) => {
+      const m = findUnitModel(age, cls);
+      expect(m?.name, `${age}-${cls}`).toBe(`${age}-${cls}`);
       expect(m.recipe).toBeUndefined();
-      expect(m.url).toMatch(/bronze-.*\.glb/);
-    });
+      expect(m.url).toMatch(new RegExp(`${age}-.*\\.glb`));
+    }));
     expect(findUnitModel('bronze', 'cavalry').options.quadruped).toBe(true);
     expect(findUnitModel('bronze', 'support').options.quadruped).toBe(true);
-    ['classical', 'kingdoms', 'gunpowder', 'modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege'].forEach((cls) => {
+    expect(findUnitModel('classical', 'cavalry').options.quadruped).toBe(true);
+    expect(findUnitModel('classical', 'support').options.quadruped).toBe(false);
+    ['kingdoms', 'gunpowder', 'modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege'].forEach((cls) => {
       expect(findUnitModel(age, cls), `${age}-${cls}`).toBeNull();
     }));
     expect(findUnitModel('bronze', 'naval')).toBeNull();
@@ -116,21 +118,21 @@ describe('unit model registry', () => {
   it('composes each recipe once per age, registers it, and keeps the procedural model on failure', async () => {
     const pairs = battleModelPairs(setup);
     expect(needsUnitModels(setup)).toBe(true); // the Bronze GLBs ship
-    expect(needsUnitModels({ sides: [setup.sides[1]] })).toBe(false); // Classical has none yet
+    expect(needsUnitModels({ sides: [setup.sides[1]] })).toBe(false); // Kingdoms has none yet
     const calls = [];
     const compose = async (recipe, { ageId }) => {
       calls.push(`${recipe.base}@${ageId}`);
-      if (ageId === 'classical') throw new Error('boom');
+      if (ageId === 'kingdoms') throw new Error('boom');
       return { geometry: new BoxGeometry(0.4, 1, 0.3).toNonIndexed() };
     };
     const warn = console.warn; console.warn = () => {};
     try {
       const r = await preloadUnitModels(setup, { compose, find:(age,cls)=>({name:age+'-'+cls,url:'recipe:test-'+age+'-'+cls,recipe:{base:'test'}}) });
       expect(r.loaded.sort()).toEqual(['bronze-cavalry', 'bronze-infantry', 'bronze-ranged']);
-      expect(r.failed.map((f) => f.name)).toEqual(['classical-infantry']);
+      expect(r.failed.map((f) => f.name)).toEqual(['kingdoms-infantry']);
       expect(calls.length).toBe(pairs.length);
       expect(needsUnitModels({ sides: [setup.sides[0]] })).toBe(false); // bronze is now baked
-      expect(getSoldierGeometry('classical', 'infantry')).toBe(getProceduralSoldierGeometry('classical', 'infantry'));
+      expect(getSoldierGeometry('kingdoms', 'infantry')).toBe(getProceduralSoldierGeometry('kingdoms', 'infantry'));
     } finally {
       console.warn = warn;
       ['infantry', 'ranged', 'cavalry'].forEach((c) => unregisterSoldierGeometry('bronze', c));

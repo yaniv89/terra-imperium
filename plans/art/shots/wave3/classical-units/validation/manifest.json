@@ -1,0 +1,156 @@
+{
+  "classical-infantry.glb": {
+    "bytes": 235736,
+    "objects": {
+      "classical-infantry": {
+        "LOD0": {
+          "triangles": 1472,
+          "width": 0.196,
+          "depth": 0.14,
+          "height": 0.544,
+          "materials": [
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "classical-ranged.glb": {
+    "bytes": 184412,
+    "objects": {
+      "classical-ranged": {
+        "LOD0": {
+          "triangles": 1216,
+          "width": 0.024,
+          "depth": 0.03,
+          "height": 0.551,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "classical-support.glb": {
+    "bytes": 190324,
+    "objects": {
+      "classical-support": {
+        "LOD0": {
+          "triangles": 1223,
+          "width": 0.196,
+          "depth": 0.14,
+          "height": 0.544,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "classical-worker.glb": {
+    "bytes": 165468,
+    "objects": {
+      "classical-worker": {
+        "LOD0": {
+          "triangles": 1102,
+          "width": 0.24,
+          "depth": 0.174,
+          "height": 0.764,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "classical-cavalry.glb": {
+    "bytes": 266084,
+    "objects": {
+      "classical-cavalry": {
+        "LOD0": {
+          "triangles": 1666,
+          "width": 0.268,
+          "depth": 0.952,
+          "height": 0.743,
+          "materials": [
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "classical-general.glb": {
+    "bytes": 372808,
+    "objects": {
+      "classical-general": {
+        "LOD0": {
+          "triangles": 2283,
+          "width": 0.482,
+          "depth": 0.186,
+          "height": 1,
+          "materials": [
+            "Cloth",
+            "Emblem",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  },
+  "classical-siege.glb": {
+    "bytes": 344056,
+    "objects": {
+      "classical-siege": {
+        "LOD0": {
+          "triangles": 2103,
+          "width": 0.186,
+          "depth": 0.482,
+          "height": 1,
+          "materials": [
+            "Cloth",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ]
+        }
+      }
+    },
+    "atlas": []
+  }
+}

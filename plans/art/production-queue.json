@@ -1962,32 +1962,37 @@
     {
       "path": "plans/art/units/classical-infantry",
       "section": "units",
-      "description": "Roman legionaries of the Principate: lorica segmentata, a Gallic helmet, a curved rectangular scutum (team colour face), a gladius, a pilum beside the figure",
-      "delivery_status": "pending"
+      "description": "Classical swordsmen (src/assets/units/classical-infantry.glb, 1,488 triangles), build_units_classical.py",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
     },
     {
       "path": "plans/art/units/classical-cavalry",
       "section": "units",
-      "description": "Companion or Roman auxiliary cavalry: a horseman in a muscle cuirass or mail, a Boeotian helmet, a long lance (xyston) 3.5 m, a round shield, a saddle cloth, no stirrups",
-      "delivery_status": "pending"
+      "description": "Classical heavy cavalry (classical-cavalry.glb, 1,682 triangles), build_units_classical.py",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
     },
     {
       "path": "plans/art/units/classical-ranged",
       "section": "units",
-      "description": "Scythian or Cretan archers: a composite recurve bow 1.2 m, a gorytos quiver on the hip, a pointed cap, a tunic and trousers",
-      "delivery_status": "pending"
+      "description": "Classical composite archers (classical-ranged.glb, 1,216 triangles), build_units_classical.py",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
     },
     {
       "path": "plans/art/units/classical-siege",
       "section": "units",
-      "description": "a Roman torsion ballista on a stand, 1.9 m high, two torsion springs, a winch, a bolt, two crew",
-      "delivery_status": "pending"
+      "description": "Classical ballista on the siege frame, three crew (classical-siege.glb, 2,103 triangles), build_units_classical.py",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
     },
     {
       "path": "plans/art/units/classical-support",
       "section": "units",
-      "description": "Roman engineers: a tunic, a dolabra pick, a pack with stakes and a basket, a measuring rod",
-      "delivery_status": "pending"
+      "description": "Classical engineers: mantlet, pick, ladder (classical-support.glb, 1,228 triangles), build_units_classical.py",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
     },
     {
       "path": "plans/art/units/kingdoms-infantry",
@@ -4897,15 +4902,16 @@
     {
       "path": "plans/art/units/classical-general",
       "section": "units",
-      "description": "Classical general: Classical mounted commander with a standard bearer (Modern: a command car); aura ring is drawn by code",
+      "description": "Classical general and standard bearer (classical-general.glb, 2,295 triangles), build_units_classical.py",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/classical-general",
       "phase": "R2",
       "batch": "M11",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
     },
     {
       "path": "plans/art/units/kingdoms-general",
@@ -5907,15 +5913,16 @@
     {
       "path": "plans/art/units/classical-worker",
       "section": "units",
-      "description": "Classical worker: Classical: labourer with basket and tool; clips idle, walk, carry, chop, mine, harvest, build, repair, deposit, death",
+      "description": "Classical laborer: pick and basket (classical-worker.glb, 1,102 triangles), build_units_classical.py",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/classical-worker",
       "phase": "R4",
       "batch": "M15",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
     },
     {
       "path": "plans/art/rts/classical/town-hall",
@@ -10059,6 +10066,48 @@
       "placeholder_ok": false,
       "spec": "plans/ART-MODELS-PLAN.md 5 (town-hall 20 x 20 m)",
       "delivered": "wave3 checkpoint-10, 2026-10-07"
+    },
+    {
+      "path": "plans/art/units/rigs/camel",
+      "section": "units",
+      "description": "Mount rig: camel (track E), scripts/blender/ti_mounts.py camel(); reference files art-build/units/rigs (not shipped: the units carry their rigs)",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "delivery_status": "in_game_awaiting_review",
+      "id": "units/rigs/camel",
+      "phase": "SU",
+      "batch": "W3",
+      "priority": "P2",
+      "placeholder_ok": true,
+      "spec": "plans/ART-MODELS-PLAN.md section 4.5, track E",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
+    },
+    {
+      "path": "plans/art/units/rigs/elephant",
+      "section": "units",
+      "description": "Mount rig: war elephant with howdah helper (track E), scripts/blender/ti_mounts.py elephant(), howdah(); reference files art-build/units/rigs",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "delivery_status": "in_game_awaiting_review",
+      "id": "units/rigs/elephant",
+      "phase": "SU",
+      "batch": "W3",
+      "priority": "P2",
+      "placeholder_ok": true,
+      "spec": "plans/ART-MODELS-PLAN.md section 4.5, track E",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
+    },
+    {
+      "path": "plans/art/units/rigs/frame",
+      "section": "units",
+      "description": "Siege frame rig: wheeled carriage, deck, three crew spots, torsion engine (track E), scripts/blender/ti_mounts.py frame(), torsion_engine(); the base classical siege and the Bosporan signature use it",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "delivery_status": "in_game_awaiting_review",
+      "id": "units/rigs/frame",
+      "phase": "SU",
+      "batch": "W3",
+      "priority": "P2",
+      "placeholder_ok": true,
+      "spec": "plans/ART-MODELS-PLAN.md section 4.5, track E",
+      "delivered": "wave3 checkpoint-11, 2026-10-07"
     }
   ],
   "note": "Delivery status is separate from game integration. ITEMS.md Part A assets are excluded; source in-game counts are unchanged.",
