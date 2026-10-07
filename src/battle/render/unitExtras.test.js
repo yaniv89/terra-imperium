@@ -3,7 +3,7 @@
 // (the standard alone, the base unit) when there is no file or no roster entry.
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry } from 'three';
-import { battleExtraModels, findSignatureModel, preloadUnitModels, findGeneralModel } from './unitModels';
+import { battleExtraModels, findSignatureModel, preloadUnitModels, findGeneralModel, preloadSoldierModel } from './unitModels';
 import { hasSoldierOverride, unregisterSoldierGeometry, MODEL_SCALE } from './soldierFactory';
 import { signatureUnitFor, signatureKey, baseClassOf, SIGNATURE_UNITS } from '../../data/signatureUnits';
 import { createArtIndex } from '../art/artIndex';
@@ -70,6 +70,26 @@ describe('extra battle models', () => {
       expect(hasSoldierOverride('bronze', 'infantry')).toBe(false);
     } finally {
       unregisterSoldierGeometry('bronze', 'general'); unregisterSoldierGeometry('bronze', 'infantry~israel');
+    }
+  });
+});
+
+describe('one soldier outside a battle (the map close view)', () => {
+  it("loads and registers the unit's GLB once, and says when the unit keeps the procedural body", async () => {
+    const loads = [];
+    const load = async (url) => { loads.push(url); return { geometry: new BoxGeometry(0.4, 1, 0.3).toNonIndexed() }; };
+    const find = (age, cls) => (cls === 'infantry' ? { name: `${age}-${cls}`, url: 'test://spear', options: {} } : null);
+    try {
+      expect(await preloadSoldierModel('kingdoms', 'infantry', { load, find })).toBe(true);
+      expect(hasSoldierOverride('kingdoms', 'infantry')).toBe(true);
+      expect(await preloadSoldierModel('kingdoms', 'infantry', { load, find })).toBe(true); // already in
+      expect(loads).toEqual(['test://spear']);
+      expect(await preloadSoldierModel('kingdoms', 'ranged', { load, find })).toBe(false); // no file
+      const broken = async () => { throw new Error('bad file'); };
+      expect(await preloadSoldierModel('kingdoms', 'siege', { load: broken, find: () => ({ name: 'x', url: 'test://bad', options: {} }) })).toBe(false);
+      expect(hasSoldierOverride('kingdoms', 'siege')).toBe(false);
+    } finally {
+      unregisterSoldierGeometry('kingdoms', 'infantry');
     }
   });
 });
