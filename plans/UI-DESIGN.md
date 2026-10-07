@@ -159,3 +159,41 @@ rule) and `warAtlas.jsx` (force cards, Command / Auto / Withdraw cards, the expl
   the same battle. Gaps: the war score change is only known after Continue (the outcome service applies
   it); loot is the battle economy's gold only.
 - W06 Army move and B07 Field battle: not done, they need phase R3.
+
+## 8. B09 Battle UX pass (branch claude/battle-ux, 2026-10-07)
+
+Sketch: `plans/ui/battle-ux/mockup.html` (rendered `mockup-844x390.png`); before and after screenshots
+at 844x390 and 1280x800 in `plans/ui/battle-ux/before/` and `after/`.
+
+![sketch](ui/battle-ux/mockup-844x390.png)
+
+- **Inspect anything.** One tap (left click) on any building or structure selects it: your own
+  economy buildings, the enemy's, the camp, the keep / town hall, towers, wall segments, the gate,
+  houses, the region's buildings, and resource nodes. A card top left (under the alerts) shows a picture
+  (the building's rendered icon), the name, an owner chip (You / Enemy / Neutral), HP current / max
+  with a bar, and one state line (under construction N%, ruined, garrison n / m, "trains spearmen",
+  "+10 housing", "drop-off for food"). A node shows what is left. Your own producers keep their
+  actions (train, queue, rally) below the same header. On the field the selected building shows its
+  health bar even at full HP, plus the selection ring; damaged buildings keep their bars as before.
+- **Construction HP (AoE style).** A site starts at 1 HP and its HP rises with the work, to full when
+  it is done (the sim already did this: economy.js updateEconomy). The field bar and the card show HP,
+  not the build percentage, so a site hit while it goes up shows the damage; the card adds "built N%".
+- **Build menu with pictures.** A grid of tiles (5 across on a phone, 72 px tall): the building's
+  picture (`src/assets/icons/battle/build-*.webp`, rendered from the battle's own models by
+  `scripts/art/build-icons.mjs`), a short name, the cost with resource icons (wheat, timber, gold);
+  a cost you cannot pay is red and the tile carries the shortfall ("+30"). Press and hold (hover with a
+  mouse) opens the detail: what it does, HP, footprint, build time, and why it is disabled. A tap on a
+  disabled tile shows that detail instead of doing nothing.
+- **Phone bars (844x390).** Top bar: resource icons instead of FOOD / MAT / GOLD words, people and
+  swords icons for population and the enemy; speed and pause 44 px. Bottom: 52x48 command tiles with
+  an icon and one short word (Build, Attack, Hold, Line, Retreat); regiment cards with the class icon,
+  a short name, the count and the health bar.
+- **Alerts never cover the selection.** Alerts, the selection pill and the city card share one top row
+  (alerts left, selection in the middle, city right), so they cannot overlap. An alert's Go centres the
+  camera and selects the squad when it is yours.
+- **Morale for the player is soft (user decision 2026-10-07).** In a commanded battle the player's
+  squads never rout: at low morale they are **Shaken** (weaker blows, more hurt taken) and the regiment
+  card and selection pill say so; Rally Cry restores them. The AI side still routs and runs for its
+  edge; auto-resolve keeps routing for both sides. A per-side flag in the setup (`sides[s].canRout`,
+  set from `setup.controllers` when a commanded battle opens). No "your squad routed" alert; "enemy
+  squad broke" stays.
