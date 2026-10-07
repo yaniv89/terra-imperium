@@ -1,0 +1,95 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>W01 Start in steps</title>
+<style>
+  :root { --ink:#10141A; --panel:#1A212B; --raised:#232C38; --line:#33404F; --text:#ECE5D3; --muted:#B9B19F; --brass:#D8A444; --you:#5B9BF0; }
+  body { margin:0; padding:24px; background:#0b0e12; color:var(--text); font:14px/1.3 system-ui, sans-serif; display:grid; grid-template-columns:repeat(2, 844px); gap:28px; }
+  h3 { margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
+  .frame { width:844px; height:390px; background:var(--ink); border:1px solid var(--line); display:flex; flex-direction:column; box-sizing:border-box; }
+  header { display:flex; align-items:center; gap:14px; padding:8px 12px; }
+  header b { font-family:Georgia, serif; font-size:18px; }
+  .steps { display:flex; gap:4px; margin-left:auto; }
+  .step { height:36px; padding:0 10px; border-radius:18px; display:flex; align-items:center; gap:6px; color:var(--muted); border:1px solid transparent; }
+  .step i { width:20px; height:20px; border-radius:50%; border:1px solid var(--muted); font-style:normal; font-size:11px; display:grid; place-items:center; }
+  .step.on { background:var(--raised); color:var(--text); border-color:var(--text); }
+  .step.done i { background:var(--muted); color:var(--ink); }
+  main { flex:1; min-height:0; display:grid; gap:10px; padding:0 12px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px; display:flex; flex-direction:column; gap:6px; min-height:0; overflow:hidden; }
+  .label { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .input { height:38px; border:1px solid var(--line); border-radius:6px; padding:0 10px; display:flex; align-items:center; color:var(--muted); }
+  .chips { display:flex; gap:5px; } .chip { height:32px; padding:0 10px; border-radius:16px; border:1px solid var(--line); display:flex; align-items:center; font-size:13px; }
+  .chip.on { background:var(--raised); border-color:var(--text); }
+  .row { height:38px; display:flex; align-items:center; gap:8px; padding:0 8px; border-radius:6px; }
+  .row.on { background:var(--raised); outline:2px solid var(--text); }
+  .row span:last-child { margin-left:auto; color:var(--muted); font-size:12px; }
+  .shield { width:16px; height:18px; border-radius:3px 3px 8px 8px; background:var(--you); display:inline-block; }
+  .big { width:56px; height:64px; }
+  .card { min-height:52px; border:1px solid var(--line); border-radius:8px; padding:6px 10px; display:flex; align-items:center; gap:10px; }
+  .card.on { background:var(--raised); outline:2px solid var(--text); }
+  .card small { display:block; color:var(--muted); font-size:12px; }
+  .card .n { margin-left:auto; font:600 18px ui-monospace, monospace; }
+  footer { display:flex; align-items:center; gap:8px; padding:8px 12px; border-top:1px solid var(--line); }
+  .btn { height:44px; padding:0 14px; border-radius:8px; display:flex; align-items:center; border:1px solid var(--line); background:var(--raised); }
+  .ghost { background:transparent; border-color:transparent; color:var(--muted); }
+  .brass { background:var(--brass); color:var(--ink); font-family:Georgia, serif; font-weight:700; font-size:16px; border:none; padding:0 20px; }
+  .muted { color:var(--muted); font-size:12px; }
+  .note { margin-right:auto; color:var(--muted); font-size:12px; }
+  .sum { display:flex; justify-content:space-between; align-items:center; height:44px; border-bottom:1px solid var(--line); }
+  .sum a { color:var(--text); text-decoration:underline; font-size:13px; }
+  .switch { width:44px; height:24px; border-radius:12px; background:var(--raised); border:1px solid var(--line); }
+</style></head><body>
+
+<div><h3>Step 1 People (the fast path: Begin is already there)</h3>
+<div class="frame">
+  <header><b>New game</b><div class="steps"><div class="step on"><i>1</i>People</div><div class="step"><i>2</i>World</div><div class="step"><i>3</i>Rules</div><div class="step"><i>4</i>Ready</div></div></header>
+  <main style="grid-template-columns:1.25fr 1fr">
+    <div class="panel"><div style="display:flex;gap:6px"><div class="input" style="flex:1">Search peoples, capitals or lands</div><div class="chip">Random</div></div>
+      <div class="chips"><div class="chip on">All</div><div class="chip">Near East</div><div class="chip">Europe</div><div class="chip">Africa</div><div class="chip">Asia</div></div>
+      <div class="row"><i class="shield"></i><b>Aghvank</b><span>Azerbaijan</span></div>
+      <div class="row"><i class="shield"></i><b>Ahhiyawa</b><span>Greece</span></div>
+      <div class="row on"><i class="shield"></i><b>Akkad</b><span>Iraq</span></div>
+      <div class="row"><i class="shield"></i><b>Amorites</b><span>Syria</span></div>
+    </div>
+    <div class="panel" style="gap:8px"><div style="display:flex;gap:10px"><i class="shield big"></i><div><b style="font:700 22px Georgia">Akkad</b><div>Capital <b>Kish</b>, in modern Iraq</div><div class="muted">Levant art</div></div></div>
+      <div class="muted">Standard world, Normal speed, Prince. Begin now, or Next to change the world and the rules.</div>
+      <div class="btn ghost" style="margin-top:auto">New here? Play the guided start as Kemet</div></div>
+  </main>
+  <footer><span class="note">Enter: next</span><div class="btn">Next: World</div><div class="btn brass">Begin as Akkad &rarr;</div></footer>
+</div></div>
+
+<div><h3>Step 2 World (Map shows only with the generated-worlds flag)</h3>
+<div class="frame">
+  <header><b>New game</b><div class="steps"><div class="step done"><i>1</i>People</div><div class="step on"><i>2</i>World</div><div class="step"><i>3</i>Rules</div><div class="step"><i>4</i>Ready</div></div></header>
+  <main style="grid-template-columns:1fr 1fr">
+    <div class="panel"><div class="label">Map</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="card on"><div>Real Earth<small>Peoples at their real homes</small></div></div><div class="card"><div>Generated world<small>A new planet from a seed</small></div></div></div>
+      <div class="muted">Generated: preview, map code, New map, land, continents, climate appear here and scroll.</div></div>
+    <div class="panel"><div class="label">World size</div>
+      <div class="card"><div>Small<small>Big empires, room to settle</small></div><span class="n">24</span></div>
+      <div class="card on"><div>Standard<small>Recommended</small></div><span class="n">36</span></div>
+      <div class="card"><div>Large<small>Crowded, more diplomacy</small></div><span class="n">42</span></div></div>
+  </main>
+  <footer><div class="btn ghost">&larr; Back</div><span class="note"></span><div class="btn">Next: Rules</div><div class="btn brass">Begin as Akkad &rarr;</div></footer>
+</div></div>
+
+<div><h3>Step 3 Rules</h3>
+<div class="frame">
+  <header><b>New game</b><div class="steps"><div class="step done"><i>1</i>People</div><div class="step done"><i>2</i>World</div><div class="step on"><i>3</i>Rules</div><div class="step"><i>4</i>Ready</div></div></header>
+  <main style="grid-template-columns:1fr 1fr">
+    <div class="panel"><div class="label">Game speed</div>
+      <div class="card"><div>Fast<small>About 440 turns</small></div></div><div class="card on"><div>Normal<small>About 920 turns</small></div></div><div class="card"><div>Marathon<small>About 1,500 turns</small></div></div></div>
+    <div class="panel"><div class="label">Difficulty</div><div class="chips" style="flex-wrap:wrap"><div class="chip">Settler</div><div class="chip">Chieftain</div><div class="chip on">Prince</div><div class="chip">King</div><div class="chip">Emperor</div></div>
+      <div class="muted">Fully symmetrical, the fair fight.</div>
+      <div class="sum" style="border:none"><div>Explored world<div class="muted">Off: start in the dark, explore to see</div></div><div class="switch"></div></div></div>
+  </main>
+  <footer><div class="btn ghost">&larr; Back</div><span class="note"></span><div class="btn">Next: Ready</div><div class="btn brass">Begin as Akkad &rarr;</div></footer>
+</div></div>
+
+<div><h3>Step 4 Ready (summary, every row has Change)</h3>
+<div class="frame">
+  <header><b>New game</b><div class="steps"><div class="step done"><i>1</i>People</div><div class="step done"><i>2</i>World</div><div class="step done"><i>3</i>Rules</div><div class="step on"><i>4</i>Ready</div></div></header>
+  <main style="grid-template-columns:1fr 1.3fr">
+    <div class="panel"><div style="display:flex;gap:10px"><i class="shield big"></i><div><b style="font:700 22px Georgia">Akkad</b><div>Capital <b>Kish</b>, in modern Iraq</div></div></div><div class="muted">Dawn, 2000 BCE. One city each.</div></div>
+    <div class="panel" style="gap:0"><div class="sum"><span>Map: Real Earth</span><a>Change</a></div><div class="sum"><span>World: Standard, you and 35 peoples</span><a>Change</a></div><div class="sum"><span>Speed: Normal</span><a>Change</a></div><div class="sum"><span>Difficulty: Prince</span><a>Change</a></div><div class="sum"><span>Explored world: Off</span><a>Change</a></div></div>
+  </main>
+  <footer><div class="btn ghost">&larr; Back</div><span class="note">Enter: begin. Esc: back</span><div class="btn brass">Begin as Akkad &rarr;</div></footer>
+</div></div>
+</body></html>
