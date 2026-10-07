@@ -18,6 +18,7 @@ says what to build, in what order, and what must not be forgotten.
 | `plans/eras-origins-and-future.md` | nine ages, units, robots, powers, governments | **later** (decision 32): five ages now |
 | `plans/settle-rules.md` | one Civ-style spacing rule (R1, R2, R5 to R7) | current; R3 and R4 only for the legacy 240-nation world |
 | `plans/terra-imperium-rts-plan.md` | the RTS battle design (economy, ledgers, outcome, saves, tests) | current, amended by section 6 here |
+| `plans/SIGNATURE-UNITS-PLAN.md` | signature units' rules (phase SU): kits over the base unit, a points budget, macro rules, sim and Auto, parity per unit, AI, UI | current, not started |
 | `plans/terra-imperium-world-art-and-city-destruction-plan.md` | terrain, footprints, city manifest, destructible houses | current, on the single WebGL map (section 5) |
 | `plans/rts-world-review.md` | the review: measurements, speed plan, globe | current |
 | `plans/UI-DESIGN.md` | the UI and UX design: the look, five rules, 25 screens (world and RTS) mapped to phases; sketches in `plans/ui/` | current |
@@ -485,6 +486,7 @@ Four tracks run side by side. Each phase is one branch, merged when the user say
 | 11 | Battle | **R3** every battle kind: field, raid, sack, sally, landing; independents in battle | this 6.1, 6.5 | R2, W2 | 3 to 4 |
 | 12 | Rules | **X** remove succession and the noble estates (decision 37): `succession.js`, `estates.js`, `estateLand.js`, pretenders in `civilWar.js`, their events, UI (CityPolitics, ProvinceModal) and saves; balance-sim before and after | this 2 | none; before W0 if possible (fewer systems to re-key) | 1 to 2 |
 | 13 | Battle | **R4** the five ages' rosters, houses, walls, towers and weapons in battle | this 6.6 | R3 | 3 to 5 |
+| 13a | Battle, Rules | **SU** signature units' rules: one unit per people in its peak age, a 10-point kit over the base unit (stat steps and a closed list of abilities), recruitment, costs, upkeep, names, the sim and the honest Auto, parity for all 150, AI and balance-sim, UI | `SIGNATURE-UNITS-PLAN` | R4 for the calibration (SU0 to SU2 may start before), W0 | 8 to 11 |
 | 14 | Map | **F** terrain, mountains, rivers, footprints on the WebGL map | world plan 3 to 6 | A2 | ongoing |
 | 15 | Art | towns, buildings, wonders, icons (in progress), then RTS prefabs and units per age and theme | RTS 14, eras 13 | per phase | ongoing |
 | 16 | All | **Balance**: balance-sim with battles on Auto; parity per age pair; pacing playtests | RTS 17 | R4 | ongoing |
