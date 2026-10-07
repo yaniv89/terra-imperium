@@ -500,6 +500,8 @@ export const buildInvasionSetup = (state, pendingBattle) => {
   const defenderIds = new Set(pendingBattle.defenderUnitIds || v.defenderUnits.map((u) => u.id));
   const attackerUnits = v.attackerUnits.filter((u) => attackerIds.has(u.id));
   const defenderUnits = v.defenderUnits.filter((u) => defenderIds.has(u.id));
+  // Like every other kind: no attacker left (moved, disbanded, beaten elsewhere) is no battle to show.
+  if (!attackerUnits.length) return null;
   const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits });
   const ins = battleInputs(state, { attackerUnits, defenderUnits, cityId: targetRegionId, fromRegionId, militia: pendingBattle.militia || [] });
   const regionData = REGIONS_DATA[targetRegionId] || {};
@@ -541,4 +543,23 @@ export const buildInvasionSetup = (state, pendingBattle) => {
   });
 };
 
-export const PLAYER_SIDE_INDEX = (pendingBattle) => (pendingBattle?.playerSide === 'defender' ? 1 : SIDE_ATTACKER);
+/**
+ * How many units each side brings onto the field (strength above 0, reinforcements waiting at the
+ * edge not counted): [attacker, defender]. A battle with 0 on either side is never opened
+ * (TacticalBattleHost settles it on Auto through the outcome service): it would show an empty
+ * field with nothing to command.
+ */
+export const setupSideCounts = (setup) => (setup?.sides || []).slice(0, 2).map((s) => (s?.units || []).filter((u) => u && u.strength > 0).length);
+export const setupHasBothSides = (setup) => { const [a = 0, d = 0] = setupSideCounts(setup); return a > 0 && d > 0; };
+
+/**
+ * A key for "this exact battle": the seed, the place and every unit on each side. A mid-battle
+ * checkpoint (battleStore.js) is only resumed into the battle with the same key: battle ids
+ * (`b_<turn>_<counter>`) repeat from one game to the next, so a checkpoint left by another game's
+ * battle must never be replayed into this one.
+ */
+export const setupKeyOf = (setup) => (setup
+  ? `${setup.version}|${setup.seed}|${setup.regionId}|${setup.battleType}|${(setup.sides || []).map((s) => (s.units || []).map((u) => `${u.id}:${u.strength}`).join(',')).join('/')}`
+  : null);
+
+export const PLAYER_SIDE_INDEX =(pendingBattle) => (pendingBattle?.playerSide === 'defender' ? 1 : SIDE_ATTACKER);

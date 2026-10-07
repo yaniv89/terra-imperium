@@ -14,6 +14,7 @@ import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
 import BattleHud from './BattleHud';
 import { BattleRotateGate } from '../ui/RotateOverlay';
 import BattleResultScreen from './BattleResultScreen';
+import BattleFailure from './BattleFailure';
 import { ABILITIES } from '../../battle/sim/effects';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
@@ -29,6 +30,11 @@ import { BUILDINGS } from '../../battle/data/economy';
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
 const HUD_INTERVAL_MS = 150;
+// The sim answers within a second or two; a resumed battle replays its log first (well under a
+// second for 6 minutes on a laptop, a few on a slow phone). Past this, the battle failed to start.
+export const FIRST_FRAME_TIMEOUT_MS = 25000;
+// A frame that throws is skipped; this many in a row means the battlefield cannot be drawn.
+const RENDER_ERRORS_TO_FAIL = 3;
 // `&perf` in the page URL, or the Performance overlay setting (W12, mapPrefs.js), shows the
 // performance readout (works in a production build too). Read when the battle opens.
 const PERF_URL = typeof location !== 'undefined' && new URLSearchParams(location.search).has('perf');
@@ -43,7 +49,7 @@ const markHintSeen = (key) => { try { localStorage.setItem(key, '1'); } catch { 
 // A mouse is the main pointer (desktop): the hints speak of clicks instead of taps.
 const MOUSE_POINTER = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: fine)').matches;
 
-const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, getCampaign = null }) => {
+const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onRetry = null, getCampaign = null }) => {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
@@ -67,6 +73,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [lasso, setLasso] = useState(null);
   const [radial, setRadial] = useState(null);
   const [ended, setEnded] = useState(null);
+  const [failure, setFailure] = useState(null); // { message, detail }: BattleFailure
   // The battle economy (EconomyHud.jsx): the selected building, the build menu.
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const selectedBuildingRef = useRef(null);
@@ -116,10 +123,20 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   }, [playerSide]);
 
   // --- mount: renderer + sim client + render loop ------------------------------------------
+  // Anything that goes wrong here (no WebGL, the sim failing to start or crashing, the drawing
+  // throwing every frame) ends in `failure`: a readable message with the way back to the map
+  // (BattleFailure below), never a frozen field without troops or buttons.
   useEffect(() => {
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
-    const renderer = new BattleRenderer(canvas, setup, { playerSide });
+    let renderer;
+    try {
+      renderer = new BattleRenderer(canvas, setup, { playerSide });
+    } catch (err) {
+      console.error('[battle] the battlefield could not be drawn', err);
+      setFailure({ message: 'This device could not draw the battlefield.', detail: err?.message || String(err) });
+      return undefined;
+    }
     rendererRef.current = renderer;
     if (!resume) renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide); // the zone shows until Start (plan E7)
     if(window.__E2E_BATTLE_TEST__)window.__battleTest={diagnostics:()=>renderer.diagnostics(),tick:()=>frames.current.cur?.tick};
@@ -150,27 +167,53 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
             if (own.length) renderer.centerOn(own.reduce((a, q) => a + q.x, 0) / own.length / Q, own.reduce((a, q) => a + q.y, 0) / own.length / Q);
             f.centered = true;
           }
-          if (m.events?.length) renderer.pushEvents(m.events, m.view);
-          // Sound only where the camera looks (every frame: the ambience follows the fighting on screen).
-          audio.setView(renderer.audioView());
-          audio.events(m.events, m.view);
+          try {
+            if (m.events?.length) renderer.pushEvents(m.events, m.view);
+            // Sound only where the camera looks (every frame: the ambience follows the fighting on screen).
+            audio.setView(renderer.audioView());
+            audio.events(m.events, m.view);
+          } catch (err) { if (!f.fxWarned) { f.fxWarned = true; console.error('[battle] effects or sound failed', err); } }
         } else if (m.type === 'checkpoint') onCheckpoint?.(m);
         else if (m.type === 'ended') setEnded(m);
+        else if (m.type === 'resumeRejected') {
+          // The saved checkpoint was not this battle's: it starts fresh, at deployment.
+          startedRef.current = false; setStarted(false); setPaused(true);
+          renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide);
+        } else if (m.type === 'error') {
+          console.error(`[battle] the battle stopped (${m.stage || 'sim'}): ${m.message}`, m.stack || '');
+          setFailure({ message: frames.current.cur ? 'The battle stopped unexpectedly.' : 'The battle could not start.', detail: m.message });
+        }
       }
     });
     clientRef.current = client;
     if (import.meta.env.DEV) window.__battleOrders = (orders) => client.sendOrders(orders); // console / visual-test driving
 
     let raf; let lastT = performance.now(); let lastHud = 0; let lastPerf = 0;
+    let renderErrors = 0;
+    const openedAt = performance.now();
     // `&perf` in the URL: an on-screen readout (perfMeter.js), also left in window.__battlePerf.
     const meter = perfOn() ? createPerfMeter() : null;
     const loop = (t) => {
+      raf = requestAnimationFrame(loop); // first: one bad frame never stops the loop
       const rawMs = t - lastT;
       const dt = Math.min(0.1, rawMs / 1000); lastT = t;
       const f = frames.current;
+      // No first frame from the sim in time: say so rather than show an empty field forever.
+      if (!f.cur && t - openedAt > FIRST_FRAME_TIMEOUT_MS && !f.timedOut) {
+        f.timedOut = true;
+        console.error('[battle] no frame from the battle sim');
+        setFailure({ message: 'The battle could not start.', detail: `No answer from the battle after ${Math.round(FIRST_FRAME_TIMEOUT_MS / 1000)} seconds.` });
+      }
       const alpha = f.prev ? Math.min(1, ((t - f.arrival) * speedRef.current) / (1000 / TICK_HZ)) : 1;
       const r0 = meter ? performance.now() : 0;
-      renderer.render(f.prev, f.cur, alpha, { selected: selectedRef.current }, dt);
+      try {
+        renderer.render(f.prev, f.cur, alpha, { selected: selectedRef.current }, dt);
+        renderErrors = 0;
+      } catch (err) {
+        renderErrors += 1;
+        if (renderErrors === 1) console.error('[battle] drawing the battlefield failed', err);
+        if (renderErrors === RENDER_ERRORS_TO_FAIL) setFailure({ message: 'The battlefield could not be drawn.', detail: err?.message || String(err) });
+      }
       if (meter) {
         meter.push(rawMs, performance.now() - r0);
         if (t - lastPerf > 250) {
@@ -181,7 +224,6 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         }
       }
       if (t - lastHud > HUD_INTERVAL_MS && f.cur) { lastHud = t; setHud(f.cur); }
-      raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
 
@@ -521,6 +563,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       )}
       {showPerf && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} onContinue={() => onFinish?.(ended)} />}
+      {failure && !ended && <BattleFailure title={failure.message} detail={failure.detail} onAuto={() => onAbandon?.('screen_error')} onRetry={onRetry} />}
     </div>
   );
 };

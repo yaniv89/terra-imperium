@@ -26,7 +26,8 @@ const withStore = async (mode, fn) => {
 };
 
 export const saveBattleCheckpoint = async (battleId, checkpoint) => {
-  const record = { tick: checkpoint.tick, hash: checkpoint.hash, log: checkpoint.log, setupVersion: checkpoint.setupVersion, savedAt: checkpoint.savedAt };
+  // setupKey: which battle it belongs to (buildBattleSetup.js setupKeyOf); ids repeat between games.
+  const record = { tick: checkpoint.tick, hash: checkpoint.hash, log: checkpoint.log, setupVersion: checkpoint.setupVersion, setupKey: checkpoint.setupKey ?? null, savedAt: checkpoint.savedAt };
   try { await withStore('readwrite', (s) => s.put(record, battleId)); } catch {
     try { localStorage.setItem(LS_PREFIX + battleId, JSON.stringify(record)); } catch { /* storage full or blocked */ }
   }
