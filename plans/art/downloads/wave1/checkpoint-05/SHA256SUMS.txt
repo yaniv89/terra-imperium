@@ -1,0 +1,15 @@
+12ddc1cdd1c868da4856523538627510b462580f29117903bb95913b312a7b62  src/assets/battle/city/civic-bronze-americas.glb
+602f43c72eaff54c88789fb3f9adaa6ca7b85b7e6bffaae37ca87ef9749f0425  src/assets/battle/city/civic-bronze-eastafrica.glb
+a3a68fb7ccf493039fcc80a966acd49fdded55fa4c6ded4650a7b5edf309b5a8  src/assets/battle/city/civic-bronze-europe.glb
+b94e78b07ccbeb6d699b098a1463b97ba561dd443e521c850d96365f96d4de17  src/assets/battle/city/civic-bronze-indic.glb
+dbbc51f5ae1511f18e7ee52301e448da2c67dbc09f052086b932d86b69100a81  src/assets/battle/city/civic-bronze-israelite.glb
+78c7d69b52701250bad6eae3956eb3469b5feb4c47f3c876785945f98381268d  src/assets/battle/city/civic-bronze-levant.glb
+5f3702bbc7a35c6d9dd9a9729e81ba122b0580e98567e3a540c03c0edb4a9283  src/assets/battle/city/civic-bronze-maghreb.glb
+5b0987adb996a2e4d3b19bb910f7344d2eebd937112511be25fd7472f95e8adc  src/assets/battle/city/civic-bronze-monsoon.glb
+7968a9e734ef397c47c1ccc9d67a9f7058c54d8395c436f08891d57dd3cd8c3d  src/assets/battle/city/civic-bronze-nile.glb
+da4376ea7cff668e5a091900b3ec6a5d14127c38fd66cc5a7802fa543a7597fa  src/assets/battle/city/civic-bronze-sinic.glb
+6651a68e7ac65bc4cb23fdbe4b6baba1b2c452b68e5b711fef7ec842718e9ec8  src/assets/battle/city/civic-bronze-steppe.glb
+dc89f7c21e71edb9518d889731ab7e5eb7d9d82a314de9f02acd7674522fe577  src/assets/battle/city/civic-bronze-westafrica.glb
+f05076f5a86baba436d91040cc7eacecf786fb60961d291c776694c8e6cffa0b  src/assets/battle/city/civic-bronze.glb
+1bdb1776571a22e59b4bbb71bb318f251039599c058ec80642dc869347992282  src/assets/battle/city/palace-damage-bronze.glb
+0c8c40edf902ff20388673fd44f9f9b2fb2c69bcabca3a418af9b53c7bb9b8e0  src/assets/battle/props/props-bronze.glb

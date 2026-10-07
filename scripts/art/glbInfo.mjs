@@ -26,7 +26,7 @@ export const isPacked = (json) => (json.extensionsUsed || []).includes('EXT_mesh
 export const MAP_MODEL_DIRS = ['src/assets/map/towns', 'src/assets/map/shared', 'src/assets/map/buildings', 'src/assets/map/wonders', 'src/assets/map/improvements', 'src/assets/map/ships'];
 /** The Wave 0 art folders (plans/ART-MODELS-PLAN.md; each has a README.md): kit files with LOD0..LOD2
  * objects, packed the same way. */
-export const KIT_MODEL_DIRS = ['src/assets/map/terrain', 'src/assets/battle/rts', 'src/assets/battle/city', 'src/assets/battle/nature', 'src/assets/battle/terrain'];
+export const KIT_MODEL_DIRS = ['src/assets/map/terrain', 'src/assets/battle/rts', 'src/assets/battle/city', 'src/assets/battle/nature', 'src/assets/battle/terrain', 'src/assets/battle/props'];
 /** Folders whose objects need not have LOD levels: projectiles (one level), the base units and
  * generals (src/assets/units/<age>-<class>.glb) and signature units (the runtime builds a unit's
  * levels, plan D1). Units are packed WITHOUT quantization (the unit bake reads exact positions and

@@ -17,7 +17,12 @@
 //     (<house>-damaged, <house>-ruined, the theme along styleChain, then <age>-houses-damage.glb):
 //     the house is cut out of the town file and the piece stands in its place; placeholder: the
 //     shader darkening (damaged) and the cut-out with a mound (ruined);
-//   the palace and wonder boxes -> the shared file's palace and the wonder models (later);
+//   the palace -> the shared file's palace (the city's theme), damaged and ruined from
+//     src/assets/battle/city/palace-damage-<age>[-<theme>].glb; placeholder: a box;
+//   the civic hall (the keep, the objective) -> civic-<age>[-<theme>].glb (keep, -damaged, -ruined);
+//   wonders -> the map's own wonder model (src/assets/map/wonders/<id>.glb, its highest tier; an
+//     object `ruin` when the file has one), rubble when it falls; placeholder: a box;
+//   decorative props (wells, carts, stalls ...) -> props-<age>.glb, placed by battle/art/battleProps.js;
 //   boxes for every house while the town file loads, or when the age and size has none.
 import { InstancedMesh, MeshLambertMaterial, BoxGeometry, Object3D, Color, Group, Matrix4, Vector3 } from 'three';
 import { Q } from '../sim/constants';
@@ -25,7 +30,8 @@ import { ART } from '../art/artFiles';
 import { loadKit, kitObject } from '../art/kitLoader';
 import { structureState, structurePiece, palaceName, structureMatrix } from '../art/structureArt';
 import { KitInstances, kitLodForZoom } from '../art/kitInstances';
-import { houseTypes, pickHouse, pickRubble, wallPiece, pieceLength } from '../art/cityArt';
+import { houseTypes, pickHouse, pickRubble, wallPiece, pieceLength, wonderPiece } from '../art/cityArt';
+import { wonderAssetUrl } from '../../components/map/closeView/wonderAssets';
 import { townUrlByName, loadTownAsset, instanceTownAsset, showLod, sharedAssetUrls } from '../../components/map/closeView/townAssets';
 import { enableTownDamage, setTownDamage, syncTownDamage, moundGeometry } from '../../components/map/closeView/townDamage';
 
@@ -39,9 +45,10 @@ const M = new Matrix4(); const V = new Vector3();
 
 export class CityLayer {
   /** `art`, `load`: the art index and kit loader (tests pass their own). */
-  constructor(r, { art = ART, load = loadKit, shared = sharedAssetUrls } = {}) {
+  constructor(r, { art = ART, load = loadKit, shared = sharedAssetUrls, wonderUrl = wonderAssetUrl } = {}) {
     this.r = r; // the BattleRenderer: scene, setup, map, track(), heightAt()
-    this.art = art; this.loadKit = load; this.sharedUrls = shared; this.palaceKits = [];
+    this.art = art; this.loadKit = load; this.sharedUrls = shared; this.wonderUrl = wonderUrl; this.palaceKits = [];
+    this.wonderKits = {}; // projectId -> the wonder's map model read as a kit
     this.kits = {}; // walls, ruins, houses: loaded kit files
     this.ready = [];
     this.city = r.setup.city;
@@ -85,6 +92,14 @@ export class CityLayer {
         if (this.disposed) return;
         this.palaceKits[i] = kit; this.last.clear();
       }).catch((e) => console.warn(`[art] ${e.message}: keeping the palace placeholder`)));
+    });
+    new Set(this.items.filter(({ s }) => s.kind === 'wonder' && s.projectId).map(({ s }) => s.projectId)).forEach((id) => {
+      const wurl = this.wonderUrl(id);
+      if (!wurl) return;
+      this.ready.push(this.loadKit(wurl).then((kit) => {
+        if (this.disposed) return;
+        this.wonderKits[id] = kit; this.last.clear();
+      }).catch((e) => console.warn(`[art] ${e.message}: keeping the wonder placeholder`)));
     });
     Object.entries(refs).forEach(([k, ref]) => {
       if (!ref) return;
@@ -169,6 +184,13 @@ export class CityLayer {
         }
         // Missing art preserves the keep's own model, or the palace box/mound below.
         if (s.kind === 'keep' && state !== 2) return;
+      }
+      if (s.kind === 'wonder') {
+        const w = wonderPiece(this.wonderKits[s.projectId], state);
+        if (w) {
+          this.pieces.add(w.piece, lod, structureMatrix(w.intact, Math.max(s.w || 0, s.d || 0) || 4, x, y, z), team);
+          return;
+        }
       }
       const ring = s.kind === 'wall' || s.kind === 'gate' || s.kind === 'tower';
       // along the ring: the segment's long side is across the line to the keep

@@ -67,3 +67,13 @@ export const wallPiece = (kit, kind, state, gateOpen = true) => {
 };
 /** The model length of a wall piece along its run (model x). */
 export const pieceLength = (obj) => Math.max(0.05, sizeOf(obj).x);
+
+/** A wonder's map model (objects tier1..tier3) in a battle state: the highest tier stands whole or
+ * damaged; destroyed shows its `ruin` object when the file has one, else null (the rubble).
+ * Returns { piece, intact } or null. */
+export const wonderPiece = (kit, state) => {
+  const intact = kitObject(kit, ['tier3', 'tier2', 'tier1']);
+  if (!intact) return null;
+  const piece = state === 2 ? kitObject(kit, ['ruin', 'tier3-ruined', 'ruined']) : intact;
+  return piece ? { piece, intact } : null;
+};

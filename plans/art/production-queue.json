@@ -9202,6 +9202,132 @@
       "source": "2026-10-07 local production handoff",
       "delivery_status": "in_game_awaiting_review",
       "delivered": "wave1 checkpoint-04, 2026-10-07"
+    },
+    {
+      "id": "battle-city/bronze/americas/civic",
+      "path": "plans/art/battle-city/bronze/americas/civic",
+      "section": "battle-city",
+      "description": "Bronze americas civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/eastafrica/civic",
+      "path": "plans/art/battle-city/bronze/eastafrica/civic",
+      "section": "battle-city",
+      "description": "Bronze eastafrica civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/europe/civic",
+      "path": "plans/art/battle-city/bronze/europe/civic",
+      "section": "battle-city",
+      "description": "Bronze europe civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/indic/civic",
+      "path": "plans/art/battle-city/bronze/indic/civic",
+      "section": "battle-city",
+      "description": "Bronze indic civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/israelite/civic",
+      "path": "plans/art/battle-city/bronze/israelite/civic",
+      "section": "battle-city",
+      "description": "Bronze israelite civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/levant/civic",
+      "path": "plans/art/battle-city/bronze/levant/civic",
+      "section": "battle-city",
+      "description": "Bronze levant civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/maghreb/civic",
+      "path": "plans/art/battle-city/bronze/maghreb/civic",
+      "section": "battle-city",
+      "description": "Bronze maghreb civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/monsoon/civic",
+      "path": "plans/art/battle-city/bronze/monsoon/civic",
+      "section": "battle-city",
+      "description": "Bronze monsoon civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/nile/civic",
+      "path": "plans/art/battle-city/bronze/nile/civic",
+      "section": "battle-city",
+      "description": "Bronze nile civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/sinic/civic",
+      "path": "plans/art/battle-city/bronze/sinic/civic",
+      "section": "battle-city",
+      "description": "Bronze sinic civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/steppe/civic",
+      "path": "plans/art/battle-city/bronze/steppe/civic",
+      "section": "battle-city",
+      "description": "Bronze steppe civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/westafrica/civic",
+      "path": "plans/art/battle-city/bronze/westafrica/civic",
+      "section": "battle-city",
+      "description": "Bronze westafrica civic hall (battle keep): intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "battle-city/bronze/palace-damage",
+      "path": "plans/art/battle-city/bronze/palace-damage",
+      "section": "battle-city",
+      "description": "Bronze palace damage: palace and palace-small, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
+    },
+    {
+      "id": "props/bronze",
+      "path": "plans/art/props/bronze",
+      "section": "props",
+      "description": "Bronze battlefield props (12): fences, field wall, well, cart, haystack, crate, barrel, market stall, standard, campfire, shrine, road marker; placed in battle by battleProps.js",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-05, 2026-10-07 (plans/art/downloads/wave1/checkpoint-05)"
     }
   ],
   "note": "Delivery status is separate from game integration. ITEMS.md Part A assets are excluded; source in-game counts are unchanged.",

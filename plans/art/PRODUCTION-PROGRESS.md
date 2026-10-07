@@ -39,3 +39,5 @@ Wave 1 [checkpoint 03](downloads/wave1/checkpoint-03/README.md), 2026-10-07: the
 The machine-readable checklist is [production-queue.json](production-queue.json). It lists every item and its delivery status.
 
 Wave 1 [checkpoint 04](downloads/wave1/checkpoint-04/README.md), 2026-10-07 (interim): base Bronze civic keep in three states and tundra ground delivered, `in_game_awaiting_review`. Twelve themed civic variants, four palace damage states and the twelve-piece Bronze props kit are being verified for the follow-up. The original Part B/C counters above are unchanged; civic is added handoff scope.
+
+Wave 1 [checkpoint 05](downloads/wave1/checkpoint-05/README.md), 2026-10-07 (Claude): the twelve Bronze theme civic halls (keep, damaged, ruined), the Bronze palace damage set and the twelve-piece Bronze props kit, 14 queue items `in_game_awaiting_review`; wired in battle (civic by theme, palace damage, wonders as their map models, props placed by battleProps.js) and in the close view (a damaged capital's palace). Shipped atlases at 1024: 5.75 MB for the 15 files, about 3.7 MB net added.
