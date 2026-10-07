@@ -6,6 +6,8 @@ Authoritative scope: `plans/art/ITEMS.md`, Part B (276) and Part C (74): **350 l
 
 Built but not yet uploaded: 25. These are not marked complete. Delivery is separate from importing into the game; ITEMS.md’s in-game count is unchanged.
 
+Import check 2026-10-07: every item in every ZIP below is in the game (`node scripts/art/downloads-coverage.mjs`). The 25 built items are in no ZIP, so nothing of them could be imported: upload them as a new checkpoint (8 buildings, 13 base tile improvements, classical town-big a and b, warships bronze, classical and kingdoms).
+
 **Quality review: 0 uploaded items require revision; 260 accepted. 90 items remain to finish.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
 
 | Checkpoint | Items | ZIPs | Files and exact item list |
