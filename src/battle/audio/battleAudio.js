@@ -104,6 +104,54 @@ export const soundForEvent = (e, view, ageIds, playerSide, voices = new Map()) =
   }
 };
 
+/**
+ * The player's cue for one sim event (src/audio/ACTIONS.md, battle): a non-positional id heard
+ * wherever the camera is, or null. Separate from soundForEvent (the positional sound of the same
+ * event, which still plays where it happens).
+ */
+export const cueForEvent = (e, view, playerSide) => {
+  const sq = (i) => view?.squads?.[i];
+  const structure = (id) => view?.structures?.find((s) => s.id === id);
+  switch (e.type) {
+    case 'trained': return e.side === playerSide ? 'squad-trained' : null;
+    case 'built': return e.side === playerSide ? (e.kind === 'house' ? 'house-built' : 'building-finished') : null;
+    case 'keepBreached': return 'gate-breached';
+    case 'structureDestroyed': {
+      const k = structure(e.structure)?.kind;
+      return k === 'gate' ? 'gate-breached' : k === 'wall' || k === 'tower' ? 'wall-destroyed' : null;
+    }
+    case 'power': return e.power === 'rallyCry' ? 'rally-cry' : 'power-used';
+    case 'destroyed': return String(sq(e.id)?.unitId || '').startsWith('gen_') ? 'general-killed' : null;
+    default: return null;
+  }
+};
+
+/** The sound a batch of the player's orders makes ('order-click' when nothing more fitting). */
+export const orderSound = (orders) => {
+  const types = new Set((orders || []).map((o) => o?.type));
+  if (types.has('retreat') || types.has('retreatAll')) return 'retreat-horn';
+  if (types.has('attack') || types.has('attackMove') || types.has('charge')) return 'order-attack';
+  if (types.has('build')) return 'building-placed';
+  if (types.has('gather') || types.has('assist') || types.has('repair')) return 'worker-task';
+  if (types.has('move') || types.has('deploy') || types.has('formationLine')) return 'order-move';
+  return 'order-click';
+};
+
+/** One frame's alerts from comparing it with the frame before (pure): ids for the player. */
+export const UNDER_ATTACK_EVENTS = new Set(['melee', 'shot', 'towerShot']);
+export const frameAlerts = (prevEco, eco) => {
+  const out = [];
+  if (!eco) return out;
+  const blocked = (e) => (e?.buildings || []).some((b) => (b.queue || []).some((it) => it.blocked === 'housing'));
+  if (blocked(eco) && !blocked(prevEco)) out.push('housing-full');
+  if (prevEco?.nodes) {
+    const now = new Set((eco.nodes || []).map((n) => n.i));
+    // A node that was running low and is now gone was worked out (not just hidden by the fog).
+    if (prevEco.nodes.some((n) => !now.has(n.i) && n.amount >= 0 && n.max > 0 && n.amount <= Math.max(5, n.max * 0.2))) out.push('node-depleted');
+  }
+  return out;
+};
+
 export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 0 } = {}) => {
   let ctx = null; let master = null; let noise = null;
   let settings = getAudioSettings();
@@ -117,6 +165,7 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
   const voices = new Map();
   const rng = createSoundRng();
   let fightGain = 0; let lastFrameAt = 0; let ambLevel = 0; let lastTicker = 0;
+  let prevEco = null; // the last frame's economy, for frameAlerts
   const loops = {}; // 'battle-ambience' | 'war-drums' -> { src, gain }
   const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   const docHidden = () => typeof document !== 'undefined' && !!document.hidden;
@@ -318,7 +367,8 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
     setVisible(on) { visible = !!on; applyBus(); },
     /** The camera's view of the ground ({ cx, cz, ax, az, bx, bz } in tiles, BattleRenderer.audioView). */
     setView(r) { rect = r || null; },
-    orderConfirmed() { play('order-click'); haptic('tick'); },
+    /** The player sent `orders` (optional): the order's sound and a haptic tick. */
+    orderConfirmed(orders) { const id = orderSound(orders); if (!play(id) && id !== 'order-click') play('order-click'); haptic('tick'); },
     // One view frame's events (call it for every frame, with or without events: the ambience
     // follows it). Sounds are gated by the view set with setView.
     events(events, view) {
@@ -327,8 +377,20 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
       lastFrameAt = t0;
       if (!enabled || docHidden()) { fightGain = 0; ambLevel = 0; setLoop('battle-ambience', 0); setLoop('war-drums', 0); return; }
       const best = new Map();
+      const cues = new Set(frameAlerts(prevEco, view?.eco));
+      prevEco = view?.eco || prevEco;
       let arrows = 0; let frameFight = 0;
       (events || []).forEach((e) => {
+        const cue = cueForEvent(e, view, playerSide);
+        if (cue) cues.add(cue);
+        // Your troops or your walls hit where you are not looking: the alarm horn.
+        if (UNDER_ATTACK_EVENTS.has(e.type) && !cues.has('under-attack')) {
+          const target = e.to !== undefined ? view?.squads?.[e.to] : null;
+          const by = e.from !== undefined ? view?.squads?.[e.from] : null;
+          const ownHit = (!by || by.side !== playerSide) && (target ? target.side === playerSide : playerSide === 1 && e.type !== 'towerShot' && e.structure !== undefined);
+          const where = target || (e.structure !== undefined ? view?.structures?.find((st) => st.id === e.structure) : null);
+          if (ownHit && where && !audibility(where.x / Q, where.y / Q, rect).inside) cues.add('under-attack');
+        }
         const s = soundForEvent(e, view, ageIds, playerSide, voices);
         if (!s) return;
         const def = BATTLE_SOUNDS[s.id];
@@ -347,6 +409,8 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
       if (arrows >= VOLLEY_MIN && best.has('arrow-release')) best.set('arrow-volley', best.get('arrow-release'));
       [...best.entries()].sort((x, y) => y[1].gain - x[1].gain).slice(0, MAX_NEW_PER_FRAME)
         .forEach(([id, a]) => play(id, a.gain, a.pan, a.big));
+      // The player's cues: heard wherever the camera is (each id has its own cooldown).
+      if (visible) cues.forEach((id) => play(id));
       // The ambience: fight sounds a second on screen, eased.
       if (dt > 0) {
         fightGain = easeLevel(fightGain, frameFight / dt, dt, 0.6);

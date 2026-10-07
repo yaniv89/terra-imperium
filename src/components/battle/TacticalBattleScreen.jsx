@@ -18,6 +18,8 @@ import { ABILITIES } from '../../battle/sim/effects';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
 import { suppressMusic } from '../../audio/music';
+import { playVoice } from '../../audio/sfx';
+import { voiceForOrders, voiceForSelection } from '../../battle/audio/voiceLines';
 import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
 import { createPerfMeter, formatPerf } from '../../battle/render/perfMeter';
 import { getMapPrefs } from '../map/mapPrefs';
@@ -88,6 +90,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   }, [selectHint, hudUp]);
 
   const updateSelection = useCallback((ids) => {
+    // A unit answers a new selection now and then (src/audio/sfx.js rate-limits the barks).
+    const bark = voiceForSelection(ids, [...selectedRef.current], frames.current.cur?.squads);
+    if (bark) playVoice(bark.classId, bark.kind);
     selectedRef.current = new Set(ids);
     setSelected([...selectedRef.current]);
     if (ids.length) { selectedBuildingRef.current = null; setSelectedBuilding(null); }
@@ -104,7 +109,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   }, []);
 
   const send = useCallback((orders) => {
-    audioRef.current?.orderConfirmed();
+    audioRef.current?.orderConfirmed(orders);
+    const bark = voiceForOrders(orders, frames.current.cur?.squads);
+    if (bark) playVoice(bark.classId, bark.kind);
     clientRef.current?.sendOrders(orders.map((o) => ({ side: playerSide, ...o })));
   }, [playerSide]);
 

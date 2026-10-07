@@ -100,10 +100,12 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
           </section>
           <section className="space-y-1" aria-labelledby="settings-sound">
             <Label id="settings-sound">Sound</Label>
-            <Switch label="Sound" hint="Battle sounds, music and vibration; the speaker button in a battle is the same switch" checked={audio.sound} onChange={(v) => setAudioSettings({ sound: v })} testId="settings-sound" />
+            <Switch label="Sound" hint="All sound (battle, interface, voices, music) and vibration; the speaker button in a battle is the same switch" checked={audio.sound} onChange={(v) => setAudioSettings({ sound: v })} testId="settings-sound" />
             <Switch label="Battle sounds" hint="Sounds in RTS battles; off mutes them only" checked={audio.effectsOn} disabled={!audio.sound} onChange={(v) => setAudioSettings({ effectsOn: v })} testId="settings-effects-on" />
             <Switch label="Music" hint="Background music on the map; off mutes it only" checked={audio.musicOn} disabled={!audio.sound} onChange={(v) => setAudioSettings({ musicOn: v })} testId="settings-music-on" />
-            <Volume label="Effects volume" hint="Battle sounds, heard only where you look" value={audio.effects} disabled={!audio.sound || !audio.effectsOn} onChange={(v) => setAudioSettings({ effects: v })} testId="settings-effects-volume" />
+            <Switch label="Interface sounds" hint="Taps, panels and the news of the world map (a city founded, war declared)" checked={audio.uiOn} disabled={!audio.sound} onChange={(v) => setAudioSettings({ uiOn: v })} testId="settings-ui-on" />
+            <Switch label="Unit voices" hint="A short shout when you select or order troops in a battle" checked={audio.voicesOn} disabled={!audio.sound} onChange={(v) => setAudioSettings({ voicesOn: v })} testId="settings-voices-on" />
+            <Volume label="Effects volume" hint="Battle sounds, interface sounds and unit voices" value={audio.effects} disabled={!audio.sound || (!audio.effectsOn && !audio.uiOn && !audio.voicesOn)} onChange={(v) => setAudioSettings({ effects: v })} testId="settings-effects-volume" />
             <Volume label="Music volume" hint="Music and ambience on the map; off in battles" value={audio.music} disabled={!audio.sound || !audio.musicOn} onChange={(v) => setAudioSettings({ music: v })} testId="settings-music-volume" />
           </section>
           <section className="space-y-1" aria-labelledby="settings-perf">

@@ -14,6 +14,8 @@ import { loadMeta, saveMeta } from '../utils/metaProgression';
 import { createInitialState, gameReducer } from '../engine/gameReducer';
 import { migrateSave, CURRENT_SAVE_VERSION, saveProblem } from '../engine/saveMigrations';
 import { runTurnInWorker, turnWorkerAvailable } from '../services/turnClient';
+import { soundsForTransition } from '../audio/worldSounds';
+import { playSounds } from '../audio/sfx';
 
 export { createInitialState, gameReducer };
 
@@ -82,15 +84,27 @@ export const useGame = () => {
 
 // ============ PROVIDER ============
 export const GameProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(gameReducer, null, loadOrCreateState);
+  const [state, reducerDispatch] = useReducer(gameReducer, null, loadOrCreateState);
   const stateRef = useRef(state); // the latest state, for the autosave and the turn worker
   stateRef.current = state;
+  // Sound (src/audio/ACTIONS.md): every dispatch goes through here so the change it makes can be
+  // heard. The sounds are chosen from the state before and after (worldSounds.js, pure) and played
+  // by sfx.js after the render; the reducer and the game logic never wait on them.
+  const lastActionRef = useRef(null);
+  const soundPrevRef = useRef(state);
+  const dispatch = useCallback((action) => { lastActionRef.current = action; reducerDispatch(action); }, []);
+  useEffect(() => {
+    const prev = soundPrevRef.current; soundPrevRef.current = state;
+    const action = lastActionRef.current; lastActionRef.current = null;
+    if (prev === state || !action) return;
+    try { playSounds(soundsForTransition(prev, state, action)); } catch (e) { /* sound never breaks the game */ }
+  }, [state]);
   // Dev builds only: read the state and dispatch from the console or a browser check.
   useEffect(() => {
     if (!import.meta.env.DEV) return undefined;
     window.__game = { state, dispatch };
     return () => { delete window.__game; };
-  }, [state]);
+  }, [state, dispatch]);
   // Meta-progression (achievements + selected starting doctrine/difficulty) lives in its OWN
   // localStorage key, deliberately separate from the per-save game state — see
   // src/utils/metaProgression.js. Lazy-init reads storage once on mount, matching
@@ -137,7 +151,7 @@ export const GameProvider = ({ children }) => {
     setMeta(updatedMeta);
     saveMeta(updatedMeta);
     newlyUnlocked.forEach(id => {
-      dispatch({
+      reducerDispatch({
         type: ActionTypes.ADD_LOG,
         payload: { message: `Achievement unlocked: ${ACHIEVEMENTS[id].name}`, type: LogTypes.MILESTONE }
       });
@@ -169,7 +183,7 @@ export const GameProvider = ({ children }) => {
   }, []);
 
   const addLog = useCallback((message, type = LogTypes.ACTION) => {
-    dispatch({ type: ActionTypes.ADD_LOG, payload: { message, type } });
+    reducerDispatch({ type: ActionTypes.ADD_LOG, payload: { message, type } });
   }, []);
 
   // The turn runs in a Web Worker (src/services/turnClient.js, plans/rts-world-review.md 6.4), so
@@ -180,6 +194,7 @@ export const GameProvider = ({ children }) => {
   const [turnPending, setTurnPending] = useState(false);
   const runTurn = useCallback(async (type) => {
     if (pendingRef.current) return;
+    playSounds(['turn-end']);
     const from = stateRef.current;
     if (!turnWorkerAvailable()) { dispatch({ type }); return; }
     pendingRef.current = true; setTurnPending(true);
@@ -187,13 +202,13 @@ export const GameProvider = ({ children }) => {
     pendingRef.current = false; setTurnPending(false);
     if (resolved) dispatch({ type: ActionTypes.APPLY_TURN_RESULT, payload: { from, state: resolved } });
     else if (stateRef.current === from) dispatch({ type });
-  }, []);
+  }, [dispatch]);
   const advanceTurn = useCallback(() => runTurn(ActionTypes.ADVANCE_TURN), [runTurn]);
   const fastForward = useCallback(() => runTurn(ActionTypes.FAST_FORWARD), [runTurn]);
 
   const resolveEvent = useCallback((optionIndex) => {
     dispatch({ type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex } });
-  }, []);
+  }, [dispatch]);
 
   // Starts a new game as `playerNationId` at the chosen `gameSpeed`, layering in the player's
   // persisted starting doctrine and (if the start screen picked one) difficulty — see the
@@ -212,7 +227,7 @@ export const GameProvider = ({ children }) => {
         difficultyId: options.difficultyId || meta.difficulty
       }
     });
-  }, [meta.selectedDoctrine, meta.difficulty]);
+  }, [meta.selectedDoctrine, meta.difficulty, dispatch]);
 
   const exportSave = useCallback(() => {
     return JSON.stringify({ version: SAVE_VERSION, state, savedAt: Date.now() }, null, 2);
@@ -229,7 +244,7 @@ export const GameProvider = ({ children }) => {
     } catch (e) {
       return 'corrupt';
     }
-  }, []);
+  }, [dispatch]);
 
   const contextValue = useMemo(() => ({
     state,
@@ -246,7 +261,7 @@ export const GameProvider = ({ children }) => {
     selectDoctrine,
     selectDifficulty,
     completeOnboarding
-  }), [state, addLog, advanceTurn, fastForward, turnPending, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
+  }), [state, dispatch, addLog, advanceTurn, fastForward, turnPending, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
 
   return (
     <GameContext.Provider value={contextValue}>
