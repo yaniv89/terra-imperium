@@ -8546,13 +8546,14 @@
       "section": "map-terrain",
       "description": "Ground material: tundra: tileable 1024 texture set (colour with AO, normal, roughness) for tundra, shared by the close map and the battle",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "map-terrain/ground-tundra",
       "phase": "F",
       "batch": "M27",
       "priority": "P2",
       "placeholder_ok": false,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10",
+      "delivered": "wave1 checkpoint-04, 2026-10-07; explicit tundra detail selector, campaign routing pending"
     },
     {
       "path": "plans/art/map-terrain/ground-wet-soil",
@@ -9192,6 +9193,15 @@
       "priority": "P3",
       "placeholder_ok": true,
       "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S2"
+    },
+    {
+      "id": "battle-city/bronze/base/civic",
+      "path": "plans/art/battle-city/bronze/base/civic",
+      "section": "battle-city",
+      "description": "Base Bronze civic keep: intact, damaged and ruined; 3 LODs each",
+      "source": "2026-10-07 local production handoff",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave1 checkpoint-04, 2026-10-07"
     }
   ],
   "note": "Delivery status is separate from game integration. ITEMS.md Part A assets are excluded; source in-game counts are unchanged.",

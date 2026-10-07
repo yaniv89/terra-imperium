@@ -157,3 +157,7 @@ Close-view screenshots: `plans/art/shots/import-2026-10-07/`.
 Section 4 buildings (34), section 5 wonders (15, three tiers each), section 6 tile improvements
 (19 sheets), section 7 units, settlers and ships (45), section 8 icons (130).
 (The spec's own estimates said 20, 41 and 133; the counts here are from its tables.)
+
+## Added 2026-10-07: civic keeps and tundra (checkpoint 04 interim)
+
+Base civic keep replaces the castle/cone placeholder in unfortified Bronze battles and non-palace city centers, with intact/damaged/ruined states. Capitals reuse the existing palace and avoid overlapping civic copies. Tundra color/AO detail supports an explicit terrain selector; campaign routing remains pending. See [checkpoint 04](downloads/wave1/checkpoint-04/README.md) for sources, validation, phone screenshots and the follow-up scope.

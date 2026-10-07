@@ -37,3 +37,5 @@ Wave 1 [checkpoint 03](downloads/wave1/checkpoint-03/README.md), 2026-10-07: the
 [Five-item quality correction](downloads/blender-remaining/quality-revision-01/README.md) supersedes the original versions of those five items. Current quality status for all archives is listed above.
 
 The machine-readable checklist is [production-queue.json](production-queue.json). It lists every item and its delivery status.
+
+Wave 1 [checkpoint 04](downloads/wave1/checkpoint-04/README.md), 2026-10-07 (interim): base Bronze civic keep in three states and tundra ground delivered, `in_game_awaiting_review`. Twelve themed civic variants, four palace damage states and the twelve-piece Bronze props kit are being verified for the follow-up. The original Part B/C counters above are unchanged; civic is added handoff scope.

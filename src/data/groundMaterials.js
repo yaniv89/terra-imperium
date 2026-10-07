@@ -15,9 +15,9 @@
 // No files: neither shader compiles the detail in (the same programs as before).
 import { DataTexture, RGBAFormat, RepeatWrapping, SRGBColorSpace, LinearMipmapLinearFilter, TextureLoader } from 'three';
 
-export const GROUND_MATERIAL_IDS = ['grass', 'dry-soil', 'desert-sand', 'rock', 'snow', 'wet-soil', 'paving', 'steppe-grass'];
+export const GROUND_MATERIAL_IDS = ['grass', 'dry-soil', 'desert-sand', 'rock', 'snow', 'wet-soil', 'paving', 'steppe-grass', 'tundra'];
 // A set and the sets standing in for it while it is missing.
-export const GROUND_FALLBACK = { 'steppe-grass': 'grass', 'dry-soil': 'desert-sand', paving: 'rock', 'wet-soil': 'dry-soil', snow: null };
+export const GROUND_FALLBACK = { 'steppe-grass': 'grass', 'dry-soil': 'desert-sand', paving: 'rock', 'wet-soil': 'dry-soil', snow: null, tundra: 'rock' };
 export const BATTLE_TILE_TILES = 4; // battle tiles per repeat (14 m)
 export const CLOSE_TILE_KM = 0.6;   // km per repeat in the close view
 
@@ -41,7 +41,7 @@ export const groundMaterial = (id, index = GROUND_MATERIALS) => {
 };
 
 // The battle ground's layers by battle terrain: the open ground's set, then roads, sand, rock, forest floor.
-const BATTLE_BASE = { arctic: 'snow', desert: 'desert-sand', plains: 'steppe-grass', urban: 'grass' };
+const BATTLE_BASE = { arctic: 'snow', tundra: 'tundra', desert: 'desert-sand', plains: 'steppe-grass', urban: 'grass' };
 /** { base, road, sand, rock, forest } -> a set or null each, for a battle terrain. */
 export const battleGroundSets = (terrain, { urban = false, index = GROUND_MATERIALS } = {}) => ({
   base: groundMaterial(BATTLE_BASE[terrain] || 'grass', index),

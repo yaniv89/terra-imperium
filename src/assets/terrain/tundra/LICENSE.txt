@@ -1,0 +1,7 @@
+Tundra ground color + baked ambient occlusion
+Original procedural synthesis by Terra Imperium art contributors, 2026-10-07.
+License: CC0-1.0 (dedicated to the public domain, https://creativecommons.org/publicdomain/zero/1.0/).
+No external textures, photographs, generated reference images, or third-party source assets.
+Rebuild: Blender 5.2, scripts/blender/build_tundra_ground.py; scripts/art/tundra-webp.mjs.
+Only 1024x1024 color.webp is shipped. No normal/ORM maps or separate AO texture.
+
