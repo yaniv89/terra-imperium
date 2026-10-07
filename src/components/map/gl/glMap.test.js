@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
-import { worldRect, wrapNear, viewFor, screenToWorld, worldToScreen, minZoomFor, pickHit } from './mapView';
+import { worldRect, wrapNear, viewFor, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor } from './mapView';
 import { cssColor } from './cssColor';
 import { packShelf, ATLAS_SIZE } from './spriteAtlas';
 import { indexCities, buildTileTexels, buildCityTexels, buildTintTexels, FLAG_ENEMY, FLAG_OWN, PLAYER_BAND_COLOR } from './territoryData';
@@ -130,5 +130,18 @@ describe('helpers', () => {
     expect(near(projection([0, 0]))).toBe(false);
     const wide = nearView(view({ k: 1.1, x: 0, y: 0 }));
     expect(wide(projection([0, 0]))).toBe(true);
+  });
+});
+
+describe('opening a city keeps the zoom (plans/ui/fix-mobile, bug 3)', () => {
+  it('keeps a closer zoom the player chose instead of pulling out to the focus zoom', () => {
+    expect(focusZoomFor(20.48, 5, 200)).toBe(20.48); // a phone in the close view stays there
+    expect(focusZoomFor(84, 5, 200)).toBe(84);
+  });
+  it('zooms in to the focus zoom from the world view, and stays inside the zoom limits', () => {
+    expect(focusZoomFor(1.08, 5, 200)).toBe(5);
+    expect(focusZoomFor(500, 5, 200)).toBe(200);
+    expect(focusZoomFor(undefined, 5, 200)).toBe(5);
+    expect(focusZoomFor(NaN, 5)).toBe(5);
   });
 });

@@ -164,7 +164,10 @@ const StartScreen = ({ onStart }) => {
 
   const chosen = selected && (
     <section className="min-h-0 flex flex-col gap-2.5" aria-label="Your people and the options">
-      <div className="fa-panel p-3 flex gap-3" data-testid="selected-people">
+      {/* The people and the options scroll on their own; Begin stays pinned under them, so on a
+          short screen (a phone held sideways with Safari's bars) it is never below the fold. */}
+      <div className="flex-1 min-h-0 flex flex-col gap-2.5 sm:overflow-y-auto overscroll-contain scrollbar-thin" data-testid="start-details">
+      <div className="fa-panel p-3 flex gap-3 shrink-0" data-testid="selected-people">
         <PeopleEmblem slug={selected.id} color={selected.color} size={wide ? 52 : 44} />
         <div className="min-w-0">
           <div className="fa-heading text-[20px] leading-tight truncate">{selected.name}</div>
@@ -173,7 +176,7 @@ const StartScreen = ({ onStart }) => {
           <div className="text-[12px] text-fa-muted leading-snug mt-0.5">{size.name} world: you and {size.majors - 1} other peoples</div>
         </div>
       </div>
-      <div className="fa-panel p-3">
+      <div className="fa-panel p-3 shrink-0">
         <Label className="mb-1">Options</Label>
         <div className="flex items-center justify-between gap-3 min-h-[44px]">
           <div className="min-w-0">
@@ -187,7 +190,8 @@ const StartScreen = ({ onStart }) => {
           <BookOpen className="w-4 h-4" aria-hidden="true" /> New here? Play the guided start as Kemet
         </button>
       </div>
-      <button type="button" onClick={begin} data-testid="begin-game" className="fa-btn fa-btn-primary fa-btn-hero w-full !min-h-[52px] mt-auto">
+      </div>
+      <button type="button" onClick={begin} data-testid="begin-game" className="fa-btn fa-btn-primary fa-btn-hero w-full !min-h-[52px] shrink-0">
         <span className="truncate">Begin as {selected.name}</span><ArrowRight className="w-5 h-5 shrink-0" aria-hidden="true" />
       </button>
     </section>
@@ -200,7 +204,7 @@ const StartScreen = ({ onStart }) => {
         <span className="text-[13px] text-fa-muted">Dawn, 2000 BCE. One city each. Terra Imperium</span>
       </header>
       <div className={`flex-1 min-h-0 grid gap-3 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]
-        grid-cols-1 sm:grid-cols-[minmax(0,0.78fr)_minmax(0,1.2fr)_minmax(0,1.25fr)] ${wide ? 'max-w-[1240px] w-full mx-auto sm:gap-5 sm:pb-6' : ''}`}>
+        grid-cols-1 sm:grid-rows-[minmax(0,1fr)] sm:grid-cols-[minmax(0,0.78fr)_minmax(0,1.2fr)_minmax(0,1.25fr)] ${wide ? 'max-w-[1240px] w-full mx-auto sm:gap-5 sm:pb-6' : ''}`}>
         {sizeColumn}
         {picker}
         {chosen}

@@ -46,7 +46,7 @@ import { indexCities, buildTileTexels, buildCityTexels, buildTintTexels } from '
 import { createTerritoryLayer, createTerritoryCache, createRasterLayer, createSpriteLayer, createLineLayer } from './glLayers';
 import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
-import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit } from './mapView';
+import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor } from './mapView';
 import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
@@ -292,7 +292,8 @@ const GLMapView = ({
   useEffect(() => {
     const follow = followRef.current;
     if (follow && Date.now() < follow.until) { focusOnLatLng(follow.lat, follow.lng, follow.k, true); return; }
-    if (focusRegionId) focusOnRegionId(focusRegionId, INITIAL_FOCUS_ZOOM, true);
+    // keep the player's zoom (a phone sits in the close view): only pan, or zoom in to the city
+    if (focusRegionId) focusOnRegionId(focusRegionId, focusZoomFor(transformRef.current.k, INITIAL_FOCUS_ZOOM, ZOOM_MAX), true);
   }, [focusRegionId, focusOnRegionId, focusOnLatLng]);
   useEffect(() => {
     if (!navigateTarget) return;

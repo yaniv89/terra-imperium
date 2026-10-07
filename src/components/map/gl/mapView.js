@@ -64,3 +64,14 @@ export const pickHit = (view, hits, sx, sy) => {
   }
   return null;
 };
+
+/**
+ * The zoom to centre a city at when its sheet opens (Manage, an event's city): the zoom the player
+ * already chose, never pulled out below `minFocusK` (a sensible "this city and its land" zoom) nor
+ * past `maxK`. Opening a city used to reset the zoom to `minFocusK` every time, a big zoom out on a
+ * phone where players sit in the close view (plans/ui/fix-mobile).
+ */
+export const focusZoomFor = (currentK, minFocusK, maxK = Infinity) => {
+  const k = Number.isFinite(currentK) && currentK > 0 ? currentK : minFocusK;
+  return Math.min(maxK, Math.max(minFocusK, k));
+};

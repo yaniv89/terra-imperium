@@ -80,7 +80,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const [selectedTile, setSelectedTile] = useState(null);
   const [selectedArmy, setSelectedArmy] = useState(null);
   const [selectedNation, setSelectedNation] = useState(null); // the nation sheet (NationSheet.jsx)
-  const [lens, setLens] = useState('political'); // lenses.js; keys 1 to 5 on a keyboard
+  const [lens, setLens] = useState('political'); // lenses.js; keys 1 to 7 on a keyboard
+  const [lensOpen, setLensOpen] = useState(false); // the open lens list sits over the needs-you chips
   // The mini map folds behind a small button (plans/playtest-1.md P1.5), closed by default on a phone.
   const [miniOpen, setMiniState] = useState(() => { try { const v = localStorage.getItem(MINIMAP_STORAGE_KEY); if (v != null) return v === '1'; } catch { /* storage off */ } return typeof window === 'undefined' ? true : window.innerWidth >= 1024; });
   const setMini = (v) => { setMiniState(v); try { localStorage.setItem(MINIMAP_STORAGE_KEY, v ? '1' : '0'); } catch { /* storage off */ } };
@@ -180,11 +181,11 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} />}
       {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
-      <div className="absolute left-[calc(var(--city-rail-w,0px)+0.75rem)] z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)] lg:bottom-3 pl:bottom-3 pl:left-[max(env(safe-area-inset-left),0.75rem)]">
+      <div className={`absolute left-[calc(var(--city-rail-w,0px)+0.75rem)] ${lensOpen ? 'z-20' : 'z-10'} flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)] lg:bottom-3 pl:bottom-3 pl:left-[max(env(safe-area-inset-left),0.75rem)]`}>
         {miniOpen && <MapLegend />}
         {miniOpen && <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label="Hide the mini map" data-testid="minimap-hide" className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-fa-panel border border-fa-line text-fa-text text-sm pointer-events-auto">×</button></div>}
         <div className="flex items-end gap-2">
-          <LensStrip lens={lens} onChange={setLens} />
+          <LensStrip lens={lens} onChange={setLens} onOpenChange={setLensOpen} />
           {!miniOpen && <button type="button" onClick={() => setMini(true)} aria-label="Show the mini map" data-testid="minimap-show" className="min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">World</button>}
         </div>
         <FogLegend />
