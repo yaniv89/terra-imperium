@@ -1,0 +1,48 @@
+name: Deploy to Cloudflare Pages
+
+# The live site without GitHub Pages' 1 GB cap: every push to main builds the app at the root
+# (VITE_BASE=/) into dist/ and uploads it to the Cloudflare Pages project terra-imperium
+# (terra-imperium.pages.dev). Secrets: CLOUDFLARE_API_TOKEN (Cloudflare Pages: Edit) and
+# CLOUDFLARE_ACCOUNT_ID. GitHub Pages (docs/) keeps running until the switch is confirmed.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-cloudflare
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (Cloudflare Pages target, site at the root)
+        run: npx vite build --outDir dist --emptyOutDir
+        env:
+          VITE_BASE: /
+          NODE_OPTIONS: --max-old-space-size=12288
+
+      - name: Create the Pages project (first run only)
+        run: npx wrangler@3 pages project create terra-imperium --production-branch main || true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy
+        run: npx wrangler@3 pages deploy dist --project-name terra-imperium --branch main --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

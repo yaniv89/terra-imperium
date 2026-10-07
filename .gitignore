@@ -29,3 +29,4 @@ src/assets/raw-models/*
 # Blender unit builds (scripts/blender/ti_units.py out_dir): editable sources and uncompressed GLBs,
 # delivered as release ZIPs; only the packed game copy goes into src/assets/units.
 art-build/
+dist/
