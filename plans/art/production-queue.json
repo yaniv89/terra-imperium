@@ -5468,13 +5468,14 @@
       "section": "units",
       "description": "Classical raider: Classical light raider, a kit variant of the age's mounted unit with loot sacks (Modern: militia in a pickup)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/classical-raider",
       "phase": "R3",
       "batch": "M13",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave3 checkpoint-17, 2026-10-08 (plans/art/downloads/wave3/checkpoint-17)"
     },
     {
       "path": "plans/art/units/kingdoms-raider",
@@ -5535,13 +5536,14 @@
       "section": "units",
       "description": "Classical mercenary: Classical mercenary, a kit variant of the age's infantry in foreign gear with a coin badge",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/classical-mercenary",
       "phase": "R3",
       "batch": "M13",
       "priority": "P3",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave3 checkpoint-17, 2026-10-08 (plans/art/downloads/wave3/checkpoint-17)"
     },
     {
       "path": "plans/art/units/kingdoms-mercenary",
@@ -5905,13 +5907,14 @@
       "section": "fx",
       "description": "Classical projectiles and hits: Classical: the age's projectiles, muzzle and impact sprites (arrows and sling stones; bolts and javelins; arrows and stones; musket smoke and round shot; tracers and shells)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "fx/projectiles-classical",
       "phase": "R4",
       "batch": "M14",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S12"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S12",
+      "delivered": "wave3 checkpoint-17, 2026-10-08 (plans/art/downloads/wave3/checkpoint-17)"
     },
     {
       "path": "plans/art/units/classical-worker",
@@ -10708,6 +10711,20 @@
       "delivery_status": "in_game_awaiting_review",
       "delivered": "wave3 checkpoint-16, 2026-10-08 (plans/art/downloads/wave3/checkpoint-16)",
       "id": "battle-city/classical/palace-damage",
+      "phase": "B",
+      "batch": "W3",
+      "priority": "P1",
+      "placeholder_ok": true
+    },
+    {
+      "path": "plans/art/props/classical",
+      "section": "props",
+      "description": "Classical decorative battlefield props (the twelve names of props-bronze), src/assets/battle/props/props-classical.glb (build_props_classical.py)",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "spec": "plans/ART-MODELS-PLAN.md 8.2",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave3 checkpoint-17, 2026-10-08 (plans/art/downloads/wave3/checkpoint-17)",
+      "id": "props/classical",
       "phase": "B",
       "batch": "W3",
       "priority": "P1",

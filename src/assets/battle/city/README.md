@@ -56,3 +56,6 @@ Checkpoint-04/05: `civic-bronze.glb` and the 12 theme civic halls (`build_civic_
 `finish_civic_bronze.py`), `palace-damage-bronze.glb` (`build_palace_damage_bronze.py`,
 `finish_palace_damage_bronze.py`); atlases shipped at 1024 (`node scripts/art/shrink-glb-textures.mjs
 1024 <file>` before packing; the 2048 sources stay in the editable deliveries).
+Wave 3 checkpoint 16 (2026-10-08): `classical[-<theme>]-houses-damage.glb` for the base kit and 12
+themes (`build_houses_damage_classical.py`) and `palace-damage-classical.glb` from the shared Classical
+palaces (`build_palace_damage_classical.py`), 1024 atlases.

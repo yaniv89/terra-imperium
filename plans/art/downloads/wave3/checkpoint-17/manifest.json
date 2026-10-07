@@ -1,0 +1,104 @@
+{
+  "checkpoint": "wave3-17",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 4,
+  "packed_bytes_added": 575000,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave3/checkpoint-17/contact.png",
+      "bytes": 85213,
+      "sha256": "3235f59133d795832a17330646c160455d32ef06e1fcd9abb46854425f59c9bd"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 455574,
+      "sha256": "a9195d0f9a6a42617b9dbf3c01d4d935826cdc5c7cc3d6881044a7df19a90744"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/classical-mercenary-settings.json",
+      "bytes": 152,
+      "sha256": "564cb11daa8ba57ab8802e1b692292bb1f95ed12cb5afe6e94f2b1cf0d622f7c"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/classical-mercenary.png",
+      "bytes": 155549,
+      "sha256": "a213bbd9f28466f437b731f603624449f47da5e213cd59ae3affc0abc4d7e8c1"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/classical-raider-settings.json",
+      "bytes": 149,
+      "sha256": "ca46fdf2ad1982564d0543ff6c469e859dee2c5fbb73dcb7b961055cbfba44e0"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/classical-raider.png",
+      "bytes": 175584,
+      "sha256": "81bc2acdf2bdf33e57a486acbfc40910f2db3f97f25948005bd8d399ab299ef0"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/lineup-report.json",
+      "bytes": 855,
+      "sha256": "cd006bbd738ce6bf4d985c6ee3df4e3d58b24f28f2a602fcd50f9c07488a1656"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/lineup-standing.png",
+      "bytes": 53740,
+      "sha256": "8c8cf1c3b3566642ee82db60b20347049a79d84434a77db4c9d7a8976a62dfa5"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/lineup-walking.png",
+      "bytes": 56258,
+      "sha256": "4f9fdb9fa6d075e001610186e5afa0055f0cc6dca0c3c8b103a5c95e7d5f0493"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/projectiles-classical-proofs.png",
+      "bytes": 60550,
+      "sha256": "20e0b3bae7a3ac0ffefacdbff7f2a78fe5672329a83aedf00461aa69afd54efb"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/proofs.png",
+      "bytes": 160866,
+      "sha256": "296ca3a1ebfb21ef5e398ba5436f9c302a4ec4c489cbfa04732fdd8755d7442e"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/props-classical-proofs.png",
+      "bytes": 374655,
+      "sha256": "decf5d28e7a655765ba8466b8d83c79add281f09d77933767ccd1f01599ffc44"
+    },
+    {
+      "file": "plans/art/shots/wave3/irregular-classical/raid-europe-844x390.png",
+      "bytes": 501126,
+      "sha256": "33a753169e654c2241b77bd90a49b661c1c1e1f99c701a5f823f735ef8e290e3"
+    },
+    {
+      "file": "src/assets/battle/projectiles/classical.glb",
+      "bytes": 33812,
+      "sha256": "125990ed77089c6d18bfcd7f619c6e8bfedf1dc422e7c25fed843c68ad6a48a6"
+    },
+    {
+      "file": "src/assets/battle/props/props-classical.glb",
+      "bytes": 362056,
+      "sha256": "843f0574e98a008d464c57b5f086f24fa4ef15d4001b3b9597dafa6abea357b5"
+    },
+    {
+      "file": "src/assets/units/classical-mercenary.glb",
+      "bytes": 77492,
+      "sha256": "f0b19fd78184376c73b0c5a4e9b83afcd13744afb201551f1881edfa6757e330"
+    },
+    {
+      "file": "src/assets/units/classical-mercenary.json",
+      "bytes": 192,
+      "sha256": "b9394309d6bbab80702384f199c210c06d95602e992a67b129ddf302bb9700c2"
+    },
+    {
+      "file": "src/assets/units/classical-raider.glb",
+      "bytes": 101640,
+      "sha256": "ffa5d3499f8c50184ad3f1625e1f5ab8a08ccb7927fe24cae7df71d4ded1704d"
+    },
+    {
+      "file": "src/assets/units/classical-raider.json",
+      "bytes": 201,
+      "sha256": "e79c4f2ee1d62b16edac374a5fa04d002a387b0ac280ac5c69ebae6373f48017"
+    }
+  ]
+}

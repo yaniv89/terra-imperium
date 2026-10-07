@@ -25,3 +25,9 @@ tracer. Check: `validate_model.py <file> <out> auto` (kind `projectile`), `npm r
 ## Delivered
 2026-10-07 (wave1 checkpoint-02, `scripts/blender/build_projectiles_bronze.py`): `bronze.glb` with
 `arrow`, `javelin`, `sling-stone`; later ages fall back to it for arrows and javelins.
+
+## Files
+- `bronze.glb`: arrow, javelin, sling-stone (`scripts/blender/build_projectiles_bronze.py`).
+- `classical.glb` (2026-10-08): arrow (iron head), javelin (a pilum with its long iron shank),
+  sling-stone (a lead bullet), bolt (the ballista's, three wooden vanes), stone (a stone-thrower's
+  round shot) (`scripts/blender/build_projectiles_classical.py`).

@@ -63,3 +63,5 @@ Wave 3 [checkpoint 14](downloads/wave3/checkpoint-14/README.md), 2026-10-07 (Cla
 Wave 3 [checkpoint 15](downloads/wave3/checkpoint-15/README.md), 2026-10-08 (Claude): the town hall is the largest building in every town: 199 of 416 town files have their landmarks shrunk off the square (`scripts/art/hall-clear-towns.mjs`, the HALL_CLEAR rule on the shipped files; the old plots' baked shade lifted in game), townLayouts.json rebuilt, 1 queue item `in_game_awaiting_review`; the hall is 5.5 tiles (4.2 small), centred, in every town. -0.61 MB.
 
 Wave 3 [checkpoint 16](downloads/wave3/checkpoint-16/README.md), 2026-10-08 (Claude): the 13 Classical damaged-and-ruined house files (base and 12 themes) and the Classical palace damage set, 14 queue items `in_game_awaiting_review`; Classical battles and the close view draw them. 6.98 MB added.
+
+Wave 3 [checkpoint 17](downloads/wave3/checkpoint-17/README.md), 2026-10-08 (Claude): the Classical raider and mercenary, the Classical projectiles (arrow, pilum, lead sling bullet, ballista bolt, stone) and the twelve Classical battlefield props, 4 queue items `in_game_awaiting_review`. 0.58 MB added.
