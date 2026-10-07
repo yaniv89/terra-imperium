@@ -22,6 +22,7 @@ says what to build, in what order, and what must not be forgotten.
 | `plans/terra-imperium-world-art-and-city-destruction-plan.md` | terrain, footprints, city manifest, destructible houses | current, on the single WebGL map (section 5) |
 | `plans/rts-world-review.md` | the review: measurements, speed plan, globe | current |
 | `plans/UI-DESIGN.md` | the UI and UX design: the look, five rules, 25 screens (world and RTS) mapped to phases; sketches in `plans/ui/` | current |
+| `plans/MAP-VARIATIONS-PLAN.md` | map variations (phase MV): Historical, Shuffled, mirrored and south-up, low-seas and green-Sahara and regional Earth; generated worlds on the same grid as formulas plus one global pass per seed in a worker (integer noise, cached in IndexedDB, only the seed and parameters saved); the procedural GPU look; fair starts by affinity; map code; budgets; rollout MV0 to MV8 | current, not started |
 | `plans/RULER-PLAN.md` | the ruler (phase RU): one timeless ruler per nation, six attributes, renown and levels, a five-branch Virtue tree, the AI's picks, the Ruler tab, save v13, balance plan | current, not started |
 
 The roadmap's code branch `claude/ancient-world` holds the settle-rules prototype and the age
@@ -495,6 +496,7 @@ Four tracks run side by side. Each phase is one branch, merged when the user say
 | 13 | Battle | **R4** the five ages' rosters, houses, walls, towers and weapons in battle | this 6.6 | R3 | 3 to 5 |
 | 13a | Battle, Rules | **SU** signature units' rules: one unit per people in its peak age, a 10-point kit over the base unit (stat steps and a closed list of abilities), recruitment, costs, upkeep, names, the sim and the honest Auto, parity for all 150, AI and balance-sim, UI | `SIGNATURE-UNITS-PLAN` | R4 for the calibration (SU0 to SU2 may start before), W0 | 8 to 11 |
 | 13b | Rules, UI | **RU** ruler: one ruler per nation for the whole game (no reigns), six attributes (ADM, DIP, MIL, Command, Learning, Majesty), renown from deeds and levels 1 to 30, the Virtue tree (Conqueror, Builder, Sage, Diplomat, Prophet), AI picks by doctrine, the Ruler tab, save v13; steps RU0 to RU4 | `RULER-PLAN` | W0 (peoples), X (done), U1 look (done) | 7 to 9 |
+| 13c | Map, Rules | **MV** map variations: MV0 foundations (map spec, save v14, one world per page load, shared pure modules, raster source), MV1 Shuffled Earth (fair sites, affinity, culture zones), MV2 mirror and south-up, MV3 generator core, MV4 procedural look, MV5 generated worlds shipped, MV6 low seas and green Sahara, MV7 regional maps, MV8 optional procedural Earth detail | `MAP-VARIATIONS-PLAN` | W0, W1 (peoples, independents), A2 (WebGL map), F (terrain columns); MV3 may run beside MV1 | 20 to 29 (generated worlds after 13 to 20; Shuffled Earth after 4 to 5) |
 | 14 | Map | **F** terrain, mountains, rivers, footprints on the WebGL map | world plan 3 to 6 | A2 | ongoing |
 | 15 | Art | towns, buildings, wonders, icons (in progress), then RTS prefabs and units per age and theme | RTS 14, eras 13 | per phase | ongoing |
 | 16 | All | **Balance**: balance-sim with battles on Auto; parity per age pair; pacing playtests | RTS 17 | R4 | ongoing |
