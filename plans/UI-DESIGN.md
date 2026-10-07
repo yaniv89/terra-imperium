@@ -46,6 +46,7 @@ the master plan states them as rules.
 | Screen | What it proposes | Built in |
 |---|---|---|
 | W01 Start | world size cards, people picker with search and regions, live preview, Explored world, battle size, seed | W0 (done: StartScreen), restyle in a UI pass |
+| W01 Map options | a Map row of radio cards above World size: Earth, Shuffled Earth (Climate matched / Anywhere), later Generated (preview thumbnail from the worker, shape chips, Land slider, Climate chips, New map, map code; More sheet), Region, Earth variants; "in modern X" hidden off Historical Earth; map card with Copy map code in W12 and W17 (`plans/MAP-VARIATIONS-PLAN.md` section 7) | MV1, MV5, MV7 |
 | W02 Map HUD | "needs you" chips under the top bar, End Turn with a count, production bars on city banners | A2 map (done), UI pass |
 | W03 Fog and contact | three fog states, ghost towns "last seen", "Unknown people", first-contact card | A (done), A2 |
 | W04 Settle lens | green and red hexes with the reason on tap, Found City here / Go and found | S (done), UI pass |
