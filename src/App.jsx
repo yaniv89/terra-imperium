@@ -2,7 +2,7 @@
 // Main application component - Terra Imperium
 
 import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react';
-import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
+import { GameProvider, useGame, hasExistingSave, takePendingStart } from './context/GameContext';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { MapInsetsProvider } from './context/MapInsetsContext';
 import { StartScreen } from './components/ui';
@@ -98,7 +98,10 @@ const GameLayout = () => {
   }, [state.turnNumber, cloudSync, getPayload]);
   // A brand-new player (no save yet) sees the country-select/difficulty/speed start screen
   // before anything else; an existing save skips straight to the loaded game.
-  const [showStartScreen, setShowStartScreen] = useState(() => !hasExistingSave());
+  // A new game chosen on another world before the reload into it (GameContext resetGame) starts
+  // as soon as this page, booted into that world, is up.
+  const [pendingStart] = useState(() => takePendingStart());
+  const [showStartScreen, setShowStartScreen] = useState(() => !pendingStart && !hasExistingSave());
 
   // Age Advance banner + globe pulse (plan §10.5's "showpiece", previously never built — the
   // calendar age used to change with zero on-screen feedback). prevAgeRef starts at the CURRENT
@@ -155,6 +158,8 @@ const GameLayout = () => {
     resetGame(options);
     setShowStartScreen(false);
   }, [resetGame]);
+  const pendingStarted = useRef(false);
+  useEffect(() => { if (pendingStart && !pendingStarted.current) { pendingStarted.current = true; handleStart(pendingStart); } }, [pendingStart, handleStart]);
 
   // Plan §M18: "Continue playing after victory" — an ambition win before END_YEAR isn't forced to
   // end the run; dismissing GameOverModal this way resumes play instead of resetting to the start

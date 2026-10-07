@@ -11,7 +11,7 @@ import { queueItem, dequeueItem, setFocus, toggleLock, canQueue, claimCandidates
 import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
-import { getTiles } from '../data/geo/tiles';
+import { getTiles, loadedWorldSpec } from '../data/geo/tiles';
 import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 // src/engine/gameReducer.js
 // The pure reducer + initial-state factory, extracted from src/context/GameContext.jsx (Phase F,
@@ -32,6 +32,7 @@ import { WORLD_NATIONS, peopleNationRecord } from '../data/worldNations';
 import { peopleForNationId } from '../data/peoples';
 import { DEFAULT_WORLD_SIZE } from '../data/worldSizes';
 import { pickMajors } from './worldgen/peoplesWorld';
+import { normalizeSpec, sameWorld } from '../worldgen/spec';
 import { pickIndependents, asIndependentSource, finalizeIndependents } from './independents';
 import { refreshPeopleNames } from './peopleNames';
 import { TECH_TREE } from '../data/techTree';
@@ -168,10 +169,23 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     playerNationId = mapped;
   }
   const worldSeed = peoplesMode ? (scenario?.seed ?? baseSeed) : (scenario?.seed ?? rngSeed ?? 1);
-  const majorIds = peoplesMode ? pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() }) : null;
+  // The world (plans/MAP-VARIATIONS-PLAN.md 3.2): the real Earth, or a generated world, which must
+  // be the one this page (or test) has loaded; peoples then stand on its fair sites by affinity
+  // (generatedPeoples.js) instead of their real capitals, and the site table is saved.
+  const mapSpec = normalizeSpec(scenario?.map);
+  const generated = mapSpec.kind === 'generated';
+  if (generated) {
+    if (!peoplesMode) throw new Error('A generated world needs the peoples mode');
+    if (!sameWorld(loadedWorldSpec(), mapSpec)) throw new Error('This generated world is not the loaded one: boot into it first (src/worldgen/worldLoader.js)');
+  }
+  const mapRecord = generated ? { ...mapSpec, worldHash: loadedWorldSpec().worldHash } : { kind: 'earth' };
+  if (generated) throw new Error('Peoples on a generated world come with phase MV5');
+  const generatedPlacement = null;
+  const majorIds = generatedPlacement ? generatedPlacement.majors.slice() : peoplesMode ? pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() }) : null;
   // Every other people of the pool is an independent city (phase W1, src/engine/independents.js);
   // `independents: false` in the scenario leaves them out (majors only, as phase W0 built it).
-  const independentPick = peoplesMode && scenario.independents !== false ? pickIndependents(majorIds, scenario.size || DEFAULT_WORLD_SIZE, worldSeed) : { ids: [], late: [] };
+  const independentPick = generatedPlacement ? { ids: generatedPlacement.independents, late: generatedPlacement.late }
+    : peoplesMode && scenario.independents !== false ? pickIndependents(majorIds, scenario.size || DEFAULT_WORLD_SIZE, worldSeed) : { ids: [], late: [] };
   const nationSource = peoplesMode
     ? Object.fromEntries([
       ...majorIds.sort().map((id) => [id, peopleNationRecord(id)]),
@@ -471,7 +485,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     ]
   };
   // Fog of war (fog.js): each people knows its homeland; `fog: false` is the "explored world" option.
-  const started = initFog(refreshPeopleNames(syncWorldRegistry(finalizeIndependents(applyScenario(initial, { ...scenario, seed: worldSeed }), { late: independentPick.late }))), { on: fog });
+  const started = initFog(refreshPeopleNames(syncWorldRegistry(finalizeIndependents(applyScenario(initial, { ...scenario, seed: worldSeed, map: mapRecord, ...(generatedPlacement ? { sites: generatedPlacement.sites } : {}) }), { late: independentPick.late }))), { on: fog });
   // The guided start (src/engine/tutorial.js): ten turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };

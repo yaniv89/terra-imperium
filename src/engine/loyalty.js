@@ -30,7 +30,7 @@
 // Control stays the siege and battle ground (siege.js); loyalty is how integrated a city is.
 // Ripples: conquest at distance costs garrisons (anti-snowball), culture feeds the "my people"
 // opinion reason (opinion.js), free cities are land to settle. Pure of randomness.
-import { getTiles } from '../data/geo/tiles';
+import { getTiles, onWorldChange } from '../data/geo/tiles';
 import { ringsApart, ringsForKm, kmPerRing } from '../data/geo/gridScale';
 import { buildRadiusIndex } from './world/registry';
 import { settlesThisTurn } from './world/lod';
@@ -80,6 +80,7 @@ export const cultureOf = (city) => city.culture || { [city.founderId || city.own
 // only instead of a radius search per city.
 const neighbourLists = new Map(); // tile -> [{ tile, weight }]
 let knownTiles = new Set();
+onWorldChange(() => { neighbourLists.clear(); knownTiles = new Set(); });
 const pressureNeighbours = (tiles, cities, index) => {
   const current = new Set(cities.map((c) => c.tile));
   const added = cities.filter((c) => !knownTiles.has(c.tile));

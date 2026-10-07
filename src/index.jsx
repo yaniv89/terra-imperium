@@ -12,7 +12,7 @@ import ReactDOM from 'react-dom/client';
 import './fonts';
 import './index.css';
 import { lazyWithReload, installStaleChunkReload } from './utils/lazyWithReload';
-import { loadTiles } from './data/geo/tiles';
+import { loadWorld, bootWorldSpec } from './worldgen/worldLoader';
 
 installStaleChunkReload();
 const BattleSandbox = lazyWithReload(() => import('./components/battle/BattleSandbox'));
@@ -21,8 +21,17 @@ const params = new URLSearchParams(window.location.search);
 const isSandbox = params.has('battleSandbox');
 const isTileViewer = params.has('tileViewer');
 
+// A generated world is built (or read from the IndexedDB cache) before the app loads, with a
+// plain progress line in the page meanwhile (plans/MAP-VARIATIONS-PLAN.md 3.1).
+const showProgress = (f, stage) => {
+  const el = document.getElementById('root');
+  if (el && !el.dataset.app) el.innerHTML = `<div style="min-height:100dvh;display:flex;align-items:center;justify-content:center;background:#10141a;color:#c9c2b0;font:14px system-ui" data-testid="world-progress">Building the world: ${stage} ${Math.round(f * 100)}%</div>`;
+};
+
 const start = async () => {
-  await loadTiles();
+  await loadWorld(bootWorldSpec(), { onProgress: showProgress });
+  const rootEl = document.getElementById('root');
+  if (rootEl) { rootEl.dataset.app = '1'; rootEl.innerHTML = ''; }
   const { default: App } = await import('./App');
   // Create root and render app
   const root = ReactDOM.createRoot(document.getElementById('root'));

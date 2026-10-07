@@ -32,7 +32,7 @@ import { initFog, reviveFog } from './fog';
 // migrate10to11). Version 12 adds fog of war (src/engine/fog.js: explored maps, contacts, the
 // last-seen picture, arrays saved run-length encoded); a save from before it loads and starts its
 // fog from where its cities stand now (migrate11to12). A version 10 save runs both steps.
-export const CURRENT_SAVE_VERSION = 12;
+export const CURRENT_SAVE_VERSION = 13;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -298,9 +298,14 @@ const migrate10to11 = (state) => {
 // as they stand: each people knows its homeland and its sight, nothing more.
 const migrate11to12 = (state) => (state.fog ? state : initFog(state));
 
+// v13: the world descriptor (plans/MAP-VARIATIONS-PLAN.md 3.2). Every game before it was played on
+// the real Earth: its scenario says so (`scenario.map = { kind: 'earth' }`), and a generated world's
+// save carries its seed, parameters, generator version and hash there instead of any map data.
+const migrate12to13 = (state) => (state.scenario?.map ? state : { ...state, scenario: { ...(state.scenario || {}), map: { kind: 'earth' } } });
+
 // Versions 6 to 9 are never migrated (an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12 };
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.
@@ -408,7 +413,8 @@ export const SAVE_PROBLEM_TEXT = {
   tooOld: 'This save is from the old province map. The tile world is a clean break, so it cannot be loaded here.',
   oldGrid: 'This save is from the earlier map with fewer, larger hexes. The map now has about 100,000 smaller hexes and every tile changed, so the save cannot be converted.',
   tooNew: 'This save is from a newer build than this one. Update the game to load it.',
-  corrupt: 'This file is not a Terra Imperium save, or it is damaged.'
+  corrupt: 'This file is not a Terra Imperium save, or it is damaged.',
+  worldMismatch: 'This save is on a generated world that this build makes differently (its map hash does not match), so it cannot be loaded here.'
 };
 
 export const migrateSave = (payload) => {

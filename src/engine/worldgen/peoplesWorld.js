@@ -50,12 +50,14 @@ export const pickMajors = (playerId, sizeId = DEFAULT_WORLD_SIZE, seed = 1, { ti
 };
 
 /** Start specs in the shape of scenarios.js buildScenarioStarts: one equal city per people, named
- * after its real capital (the first of its 20 city names). */
-export const buildPeoplesStarts = (ids) => {
+ * after its real capital (the first of its 20 city names). `sites`: the game's site table on a
+ * generated world (generatedPeoples.js), else each people's real capital tile. */
+export const buildPeoplesStarts = (ids, sites = null) => {
   const starts = {};
   ids.forEach((id) => {
     const p = PEOPLES[id];
-    starts[id] = { capital: p.tile, size: EQUAL_START_SIZE, cities: [{ tile: p.tile, size: EQUAL_START_SIZE, name: p.capital.name }], tiles: [p.tile], settlers: 0, hardStart: false };
+    const tile = sites?.[id] ?? p.tile;
+    starts[id] = { capital: tile, size: EQUAL_START_SIZE, cities: [{ tile, size: EQUAL_START_SIZE, name: p.capital.name }], tiles: [tile], settlers: 0, hardStart: false };
   });
   return starts;
 };

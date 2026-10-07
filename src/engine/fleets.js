@@ -17,7 +17,7 @@
 //              owner there, blockades it: its sea trade stops (tradeRoutes.js); siege regen is
 //              workstream 6's.
 // Pure; ties in the path search break on tile id.
-import { getTiles } from '../data/geo/tiles';
+import { getTiles, onWorldChange } from '../data/geo/tiles';
 import { ringsForKm, cellsForAreaKm2, minStepsBetween } from '../data/geo/gridScale';
 import { getEffectiveAgeId } from '../data/ages';
 import { canAttack, canFight } from './hostility';
@@ -48,6 +48,7 @@ export const shelfOk = (ageId, shelfTech = false) => shelfTech || SHELF_OK_FROM.
 /** The depth class of a water tile: 'lake', 'coast' (the coast terrain), 'shelf' (ocean beside
  * the coast), 'deep' (the open ocean); null on land. Memoised per tile. */
 const depthMemo = new Map();
+onWorldChange(() => depthMemo.clear());
 export const seaDepth = (tiles, tile) => {
   if (tile == null || tile < 0 || tiles.land[tile] === 1) return null;
   let d = depthMemo.get(tile);

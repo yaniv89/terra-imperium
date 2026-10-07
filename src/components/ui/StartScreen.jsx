@@ -18,19 +18,25 @@ import { TUTORIAL_NATION, TUTORIAL_WORLD_SIZE } from '../../engine/tutorial';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { PeopleEmblem, ThemeIcon, THEME_LABELS, startArt, regionIcon } from './peopleArt';
 import { Label } from './atlas';
+import MapPicker from './MapPicker';
+import { newWorldSeed } from './seeds';
+import HOMES from '../../data/geo/peopleHomes.json';
+import { currentWorldSpec } from '../../worldgen/worldLoader';
+
+// "Home: a hot dry river land" from the people's home profile (plans/MAP-VARIATIONS-PLAN.md 6.5),
+// shown instead of the real capital off the real Earth.
+const CLIMATE_WORDS = { A: 'hot wet', B: 'dry', C: 'mild', D: 'cold-winter', E: 'polar' };
+export const homeLine = (peopleId) => {
+  const h = HOMES[peopleId];
+  if (!h) return null;
+  const hot = h.k[0] === 'B' ? (h.k[2] === 'h' ? 'hot ' : 'cool ') : '';
+  return `Home: a ${hot}${CLIMATE_WORDS[h.k[0]] || 'mild'} ${h.v ? 'river ' : ''}${h.c ? 'coast' : 'land'}; it starts on the site that suits it best`;
+};
 
 const DEFAULT_PEOPLE_ID = 'akkad';
 
-/** A fresh world seed for a new game, drawn in the UI (never in the engine). */
-export const newWorldSeed = () => {
-  try {
-    const a = new Uint32Array(1);
-    globalThis.crypto.getRandomValues(a);
-    return a[0] || 1;
-  } catch {
-    return (Date.now() >>> 0) || 1;
-  }
-};
+/** A fresh world seed for a new game, drawn in the UI (never in the engine): seeds.js. */
+export { newWorldSeed };
 
 /** Search over the people's name, adjective, capital and modern land ("iraq" finds Akkad). */
 export const matchPeople = (people, query) => {
@@ -100,6 +106,9 @@ const StartScreen = ({ onStart }) => {
   const [gameSpeed, setGameSpeed] = useState('normal');
   const [difficultyId, setDifficultyId] = useState('prince');
   const [exploredWorld, setExploredWorld] = useState(false);
+  // The map (MapPicker): the page's own world by default, so a generated world's next game stays on it.
+  const [mapSpec, setMapSpec] = useState(() => { const w = currentWorldSpec(); return w.kind === 'generated' ? { kind: 'generated', generatorVersion: w.generatorVersion, seed: w.seed, params: w.params } : { kind: 'earth' }; });
+  const generatedMap = mapSpec.kind === 'generated';
 
   const peoples = useMemo(() => PEOPLES_LIST
     .filter((p) => (region === 'all' || p.regionGroup === region) && matchPeople(p, search))
@@ -107,15 +116,17 @@ const StartScreen = ({ onStart }) => {
   const selected = PEOPLES[selectedId];
   const size = WORLD_SIZES[worldSize];
 
-  const begin = () => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, seed: newWorldSeed() }, exploredWorld });
-  const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed() }, guided: true, exploredWorld });
+  const begin = () => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, seed: newWorldSeed(), map: mapSpec }, exploredWorld });
+  // The guided start teaches on the Nile: always the real Earth.
+  const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed(), map: { kind: 'earth' } }, guided: true, exploredWorld });
   const random = () => { const pool = peoples.length ? peoples : PEOPLES_LIST; setSelectedId(pool[Math.floor(Math.random() * pool.length)].id); };
   const background = startArt(wide ? 'background-wide' : 'background-phone') || startArt('background-wide');
   const backdrop = { backgroundImage: background ? `linear-gradient(rgba(16,20,26,0.84), rgba(16,20,26,0.94)), url(${background})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' };
 
   const sizeColumn = (
     <section className="min-h-0 flex flex-col gap-2 sm:overflow-y-auto scrollbar-none" aria-labelledby="world-size-title">
-      <Label id="world-size-title">World size</Label>
+      <MapPicker value={mapSpec} onChange={setMapSpec} />
+      <Label id="world-size-title" className="mt-1">World size</Label>
       <WorldSizeCards value={worldSize} onChange={setWorldSize} />
       <p className="text-[12px] text-fa-muted leading-snug">Peoples alive at the start. Others rise later as free cities split away.</p>
       <Label className="mt-1">Game speed</Label>
@@ -171,7 +182,9 @@ const StartScreen = ({ onStart }) => {
         <PeopleEmblem slug={selected.id} color={selected.color} size={wide ? 52 : 44} />
         <div className="min-w-0">
           <div className="fa-heading text-[20px] leading-tight truncate">{selected.name}</div>
-          <div className="text-[13px] leading-snug">Capital <span className="font-semibold">{selected.capital.name}</span>, in modern {selected.landName}</div>
+          {generatedMap
+            ? <div className="text-[13px] leading-snug" data-testid="home-line">{homeLine(selected.id)}</div>
+            : <div className="text-[13px] leading-snug">Capital <span className="font-semibold">{selected.capital.name}</span>, in modern {selected.landName}</div>}
           <div className="text-[13px] text-fa-muted leading-snug flex items-center gap-1"><ThemeIcon theme={selected.theme} className="w-3.5 h-3.5" />{THEME_LABELS[selected.theme] || selected.theme} art{selected.arrives != null ? ' · a late people, playable from the start' : ''}</div>
           <div className="text-[12px] text-fa-muted leading-snug mt-0.5">{size.name} world: you and {size.majors - 1} other peoples</div>
         </div>

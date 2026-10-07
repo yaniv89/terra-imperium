@@ -10,6 +10,7 @@
 // The city rules of greatProjects.js (a capital, a building) still gate who may start one. A
 // national wonder (a project with a `homeland`) also takes its tile on that country's land. Pure.
 import { getTiles } from '../data/geo/tiles';
+import { onHomeland } from './world/cultureZones';
 import { tileFacts } from '../data/tileYields';
 import { getAgeIndex } from '../data/ages';
 import { GREAT_PROJECTS, GREAT_PROJECT_TIER_COST, meetsSiteRule } from '../data/greatProjects';
@@ -39,7 +40,7 @@ export const wonderSites = (state, city, projectId) => {
   const rule = wonderTileRule(projectId);
   const homeland = GREAT_PROJECTS[projectId]?.homeland;
   const tileState = state.world?.tileState || {};
-  return (city.tiles || []).filter((t) => t !== city.tile && tiles.land[t] === 1 && !tileState[t]?.wonder && (!homeland || tiles.countryOf(t) === homeland) && rule.ok(tileFacts(tiles, t, tileState[t]))).sort((a, b) => a - b);
+  return (city.tiles || []).filter((t) => t !== city.tile && tiles.land[t] === 1 && !tileState[t]?.wonder && (!homeland || onHomeland(t, homeland, state.scenario?.sites)) && rule.ok(tileFacts(tiles, t, tileState[t]))).sort((a, b) => a - b);
 };
 
 /** Can `city` queue tier `tier` of `projectId` now? { ok, reason, tile }. */

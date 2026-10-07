@@ -59,7 +59,9 @@ const peopleCityName = (regions, tiles, tile, peopleId, used) => {
   const inWorld = new Set();
   Object.values(regions || {}).forEach((c) => { if (c?.owner) inWorld.add(c.owner); if (c?.founderId) inWorld.add(c.founderId); });
   const at = tiles.centres[tile];
-  const neighbours = PEOPLES_LIST.filter((p) => !inWorld.has(p.id) && p.tile != null)
+  // On a generated world a people's real capital means nothing here: its own names, then made-up
+  // ones from them (city names stay with the people, plans/MAP-VARIATIONS-PLAN.md 6.5).
+  const neighbours = tiles.world?.kind === 'generated' ? [] : PEOPLES_LIST.filter((p) => !inWorld.has(p.id) && p.tile != null)
     .map((p) => ({ p, km: distanceKm(at, tiles.centres[p.tile]) }))
     .sort((a, b) => a.km - b.km || (a.p.id < b.p.id ? -1 : 1))
     .slice(0, CITY_NAME_NEIGHBOURS);

@@ -4,9 +4,10 @@
 // time into fixed ticks, so timer jitter never changes the outcome.
 // The world grid is fetched first (src/data/geo/tiles.js) and the sim imported after it, since
 // modules in its graph read the grid as they load; messages are handled in order once it is in.
-import { loadTiles } from '../../data/geo/tiles';
+import { loadWorld, workerWorldSpec } from '../../worldgen/worldLoader';
 
-const ready = loadTiles().then(() => import('./battleLoop'));
+// The world this worker runs is in its name (worldLoader.js workerName): the same as the page's.
+const ready = loadWorld(workerWorldSpec(), { inline: true }).then(() => import('./battleLoop'));
 
 let loop = null;
 let timer = null;

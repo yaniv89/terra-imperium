@@ -8,7 +8,8 @@ describe('the start screen (phase W0)', () => {
   it('renders the three world sizes as a radio group, Standard checked, and all 150 peoples', () => {
     const html = renderToStaticMarkup(React.createElement(StartScreen, { onStart: vi.fn() }));
     expect(html).toContain('role="radiogroup"');
-    expect(html.match(/role="radio"/g)).toHaveLength(3);
+    expect(html.match(/role="radio"/g)).toHaveLength(5); // the map (Real Earth, Generated world) and the three world sizes
+    expect(html).toContain('data-testid="map-earth"');
     expect(html).toMatch(/aria-checked="true"[^>]*data-testid="world-size-standard"/);
     expect(html.match(/data-people="/g)).toHaveLength(150);
     expect(html).toContain('Begin as Akkad');

@@ -1,0 +1,15 @@
+// src/worldgen/worldgen.worker.js
+// The world generator off the main thread (plans/MAP-VARIATIONS-PLAN.md 4.3): the start screen's
+// preview and the boot into a generated world post { id, spec, grid, coast } and get back progress
+// messages and then { id, result } (the tiles binary transferred, not copied), or { id, error }.
+import { buildWorldPackage } from './worldPackage';
+
+self.onmessage = (e) => {
+  const { id, spec, grid, coast = true } = e.data || {};
+  try {
+    const result = buildWorldPackage(spec, grid, { coast, onProgress: (f, stage) => self.postMessage({ id, progress: f, stage }) });
+    self.postMessage({ id, result }, [result.tiles.buffer]);
+  } catch (err) {
+    self.postMessage({ id, error: String(err?.stack || err) });
+  }
+};

@@ -17,8 +17,18 @@ import { columnsFromJson, decodeTiles } from './tilesCodec.js';
 let cached = null;
 let rawTiles = null;
 
+// One world per page load (plans/MAP-VARIATIONS-PLAN.md 3.1): the browser boots into a world and
+// never switches. Node (tests, scripts) may switch with setRawTiles; modules that keep caches by
+// tile id register here and are cleared on every switch.
+const worldListeners = new Set();
+/** Calls `fn` whenever the grid's columns are replaced (a module-level cache keyed by tile id). */
+export const onWorldChange = (fn) => { worldListeners.add(fn); return () => worldListeners.delete(fn); };
+
 /** Hands the grid over (tiles.json's shape; plain or typed-array columns). */
-export const setRawTiles = (raw) => { rawTiles = columnsFromJson(raw); cached = null; };
+export const setRawTiles = (raw) => { rawTiles = columnsFromJson(raw); cached = null; worldListeners.forEach((fn) => fn()); };
+
+/** The world descriptor of the loaded grid: a generated world's (raw.world) or the real Earth. */
+export const loadedWorldSpec = () => (rawTiles?.world ? rawTiles.world : { kind: 'earth' });
 
 // Node only: tiles.json from the working tree (tests and scripts run from the repo root).
 const readFromDisk = () => {
@@ -103,11 +113,13 @@ const gunzip = async (response) => {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 };
 
-let loading = null;
-/** Loads the grid once (fetch and decode the binary; the JSON chunk where gzip streams are missing). */
-export const loadTiles = async () => {
-  if (rawTiles || readFromDiskOnce()) return getTiles();
-  loading ||= (async () => {
+let earthLoading = null;
+/** Earth's grid as a raw (typed-array columns), fetched and decoded once, without installing it:
+ * the world generator builds on its lat, lon and neighbours. */
+export const fetchEarthRaw = () => {
+  earthLoading ||= (async () => {
+    const disk = readFromDisk();
+    if (disk) return disk;
     let bytes = null;
     try {
       const res = await fetch(binaryUrl());
@@ -115,9 +127,16 @@ export const loadTiles = async () => {
     } catch { /* offline or blocked: the JSON below */ }
     let decoded = null;
     try { decoded = bytes ? decodeTiles(bytes) : null; } catch { /* not the binary: the JSON below */ }
-    if (decoded) setRawTiles(decoded);
-    else setRawTiles((await import('./tiles.json')).default);
+    return decoded || columnsFromJson((await import('./tiles.json')).default);
   })();
+  return earthLoading;
+};
+
+let loading = null;
+/** Loads Earth's grid once (fetch and decode the binary; the JSON chunk where gzip streams are missing). */
+export const loadTiles = async () => {
+  if (rawTiles || readFromDiskOnce()) return getTiles();
+  loading ||= fetchEarthRaw().then((raw) => { if (!rawTiles) setRawTiles(raw); });
   await loading;
   return getTiles();
 };
@@ -128,6 +147,14 @@ const readFromDiskOnce = () => {
   const r = readFromDisk();
   if (r) rawTiles = r;
   return !!r;
+};
+
+let earthDisk = null;
+/** Node only: back to the real Earth from disk (tests that switched to a generated world). */
+export const installEarthFromDisk = () => {
+  earthDisk ||= readFromDisk();
+  if (!earthDisk) throw new Error('tiles.json is not on disk');
+  setRawTiles(earthDisk);
 };
 
 // For tests and scripts that already hold a raw JSON of their own.

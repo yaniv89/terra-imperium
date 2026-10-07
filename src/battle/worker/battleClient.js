@@ -3,6 +3,7 @@
 // old WebView where module workers fail). Both run the exact same battleLoop, so results agree.
 import { createBattleLoop } from './battleLoop';
 import { createViewDecoder } from '../render/packedView';
+import { workerName } from '../../worldgen/worldLoader';
 
 const createInlineBackend = (onMessage) => {
   let loop = null; let raf = null;
@@ -22,7 +23,7 @@ const createInlineBackend = (onMessage) => {
 };
 
 const createWorkerBackend = (onMessage) => {
-  const worker = new Worker(new URL('./battle.worker.js', import.meta.url), { type: 'module' });
+  const worker = new Worker(new URL('./battle.worker.js', import.meta.url), { type: 'module', name: workerName() });
   worker.onmessage = ({ data }) => onMessage(data);
   return {
     start: (payload) => worker.postMessage({ type: 'start', ...payload }),

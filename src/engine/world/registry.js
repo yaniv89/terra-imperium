@@ -12,7 +12,8 @@
 // grid, so two sessions with the same state build the same registry. Never read it for a state
 // that was not the last one synced; callers that build states by hand in tests call
 // syncWorldRegistry themselves.
-import { getTiles } from '../../data/geo/tiles';
+import { getTiles, onWorldChange } from '../../data/geo/tiles';
+import { noteZoneSites } from './cultureZones';
 import { sizeToPeople, foundCity, emptyWorld } from './cities';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID } from '../../data/scenarios';
 import COUNTRY_ADJACENCY from '../../data/geo/countries-adjacency.json';
@@ -246,6 +247,7 @@ export const buildRegistry = (regions) => {
 // Rebuilds the registry in place when `state.regions` is a different object than last time.
 export const syncWorldRegistry = (state) => {
   if (!state || !state.regions) return state;
+  noteZoneSites(state.scenario?.sites); // culture zones of a generated world (cultureZones.js)
   if (WORLD_REGISTRY.source === state.regions) return state;
   const built = buildRegistry(state.regions);
   // Mutate in place: the exported objects are shared by reference with src/data/regions.js and
@@ -296,3 +298,5 @@ export const resetWorldRegistry = () => {
 };
 
 ensureDefaultWorld();
+// A new world (Node tests switching worlds): forget the old one and seed the new default.
+onWorldChange(() => { resetWorldRegistry(); seeded = false; staticFor = null; ensureDefaultWorld(); });
