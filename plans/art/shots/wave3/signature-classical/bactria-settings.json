@@ -1,0 +1,10 @@
+{
+  "resolution": [
+    844,
+    390
+  ],
+  "engine": "Cycles",
+  "device": "GPU",
+  "source": "bactria.blend",
+  "view": "front"
+}

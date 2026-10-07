@@ -32,3 +32,14 @@ triangles) and 7 chariots (Ugarit, Kemet, Garamantes, Oxus, Andronovo, Kuru on t
 Zhou on the heavy chariot; 2,266 to 3,765 triangles), each with its `<model>.json`. Rigs:
 `scripts/blender/ti_mounts.py` (horse, ox, light and heavy chariot). Check in battle:
 `?battleSandbox&age=bronze&people=keftiu&enemy=kemet`.
+
+The 38 Classical signature units (2026-10-07, wave3 checkpoint 12,
+`scripts/blender/build_units_classical_signature.py`): 18 on foot (1,041 to 1,398 triangles), 13
+horsemen (1,514 to 1,768), 2 light chariots (Pontus with axle scythes, Brigantes; 2,887 and 2,346),
+2 camels (Saba's ranged camel archers, Qedar; about 1,770), 2 war elephants with a howdah crew
+(Magadha, Kalinga; about 2,900) and the Bosporan stone-thrower on the siege frame (2,467). Rigs:
+`ti_mounts.py` camel, elephant, frame. Camel and elephant files carry `"height"` in their JSON (the
+loader's target height, see the builder's header) so they stand taller than a horseman; elephants
+are drawn at 0.8 of their true size so a squad's eight figures still stand apart. Check in battle:
+`?battleSandbox&age=classical&people=magadha&enemy=pontus&attacker=cavalry` and
+`&people=saba&enemy=magadha&attacker=archers`.

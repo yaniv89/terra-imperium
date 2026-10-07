@@ -1,0 +1,936 @@
+{
+  "rts-classical.glb": {
+    "bytes": 7092652,
+    "objects": {
+      "aid-post": {
+        "LOD0": {
+          "triangles": 1023,
+          "width": 0.854,
+          "depth": 1.135,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 167,
+          "width": 0.83,
+          "depth": 1.1,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 106,
+          "width": 0.572,
+          "depth": 1.1,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "aid-post-damaged": {
+        "LOD0": {
+          "triangles": 1501,
+          "width": 0.896,
+          "depth": 1.135,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 435,
+          "width": 0.884,
+          "depth": 1.1,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 106,
+          "width": 0.572,
+          "depth": 1.1,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "barracks": {
+        "LOD0": {
+          "triangles": 1086,
+          "width": 1.522,
+          "depth": 1.145,
+          "height": 0.78,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 574,
+          "width": 1.522,
+          "depth": 1.145,
+          "height": 0.78,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 150,
+          "width": 1.517,
+          "depth": 1.145,
+          "height": 0.78,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "barracks-damaged": {
+        "LOD0": {
+          "triangles": 1576,
+          "width": 1.522,
+          "depth": 1.145,
+          "height": 0.78,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 842,
+          "width": 1.522,
+          "depth": 1.145,
+          "height": 0.78,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 150,
+          "width": 1.517,
+          "depth": 1.145,
+          "height": 0.78,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "construction-stage-0": {
+        "LOD0": {
+          "triangles": 1060,
+          "width": 0.855,
+          "depth": 0.854,
+          "height": 0.101,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 172,
+          "width": 0.855,
+          "depth": 0.854,
+          "height": 0.088,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 72,
+          "width": 0.84,
+          "depth": 0.84,
+          "height": 0.088,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "construction-stage-1": {
+        "LOD0": {
+          "triangles": 584,
+          "width": 0.896,
+          "depth": 0.84,
+          "height": 0.285,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 144,
+          "width": 0.84,
+          "depth": 0.84,
+          "height": 0.285,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 72,
+          "width": 0.84,
+          "depth": 0.84,
+          "height": 0.12,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "construction-stage-2": {
+        "LOD0": {
+          "triangles": 624,
+          "width": 1.005,
+          "depth": 1.23,
+          "height": 0.44,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 292,
+          "width": 1.005,
+          "depth": 1.23,
+          "height": 0.44,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 72,
+          "width": 0.84,
+          "depth": 1.07,
+          "height": 0.34,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "construction-stage-3": {
+        "LOD0": {
+          "triangles": 964,
+          "width": 1.0,
+          "depth": 1.174,
+          "height": 0.54,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 444,
+          "width": 1.0,
+          "depth": 1.17,
+          "height": 0.54,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 84,
+          "width": 0.84,
+          "depth": 1.09,
+          "height": 0.424,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "expedition-camp": {
+        "LOD0": {
+          "triangles": 4279,
+          "width": 1.987,
+          "depth": 1.988,
+          "height": 0.82,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2079,
+          "width": 1.987,
+          "depth": 1.988,
+          "height": 0.82,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 154,
+          "width": 1.56,
+          "depth": 1.32,
+          "height": 0.82,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "expedition-camp-damaged": {
+        "LOD0": {
+          "triangles": 4487,
+          "width": 1.991,
+          "depth": 1.977,
+          "height": 0.82,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2233,
+          "width": 1.991,
+          "depth": 1.977,
+          "height": 0.82,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 154,
+          "width": 1.56,
+          "depth": 1.32,
+          "height": 0.82,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "farm-plot": {
+        "LOD0": {
+          "triangles": 698,
+          "width": 1.44,
+          "depth": 1.44,
+          "height": 0.204,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 338,
+          "width": 1.44,
+          "depth": 1.44,
+          "height": 0.204,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 120,
+          "width": 1.41,
+          "depth": 1.41,
+          "height": 0.1,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "farm-plot-damaged": {
+        "LOD0": {
+          "triangles": 1224,
+          "width": 1.493,
+          "depth": 1.44,
+          "height": 0.202,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 594,
+          "width": 1.44,
+          "depth": 1.44,
+          "height": 0.202,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 120,
+          "width": 1.41,
+          "depth": 1.41,
+          "height": 0.1,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "food-depot": {
+        "LOD0": {
+          "triangles": 1338,
+          "width": 0.88,
+          "depth": 0.875,
+          "height": 0.554,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 146,
+          "width": 0.88,
+          "depth": 0.875,
+          "height": 0.554,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 38,
+          "width": 0.87,
+          "depth": 0.57,
+          "height": 0.552,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "food-depot-damaged": {
+        "LOD0": {
+          "triangles": 1876,
+          "width": 0.926,
+          "depth": 0.875,
+          "height": 0.554,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 414,
+          "width": 0.926,
+          "depth": 0.875,
+          "height": 0.554,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 38,
+          "width": 0.87,
+          "depth": 0.57,
+          "height": 0.552,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "materials-yard": {
+        "LOD0": {
+          "triangles": 928,
+          "width": 1.025,
+          "depth": 1.025,
+          "height": 0.553,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 392,
+          "width": 1.025,
+          "depth": 1.025,
+          "height": 0.553,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 108,
+          "width": 0.995,
+          "depth": 0.995,
+          "height": 0.12,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "materials-yard-damaged": {
+        "LOD0": {
+          "triangles": 1466,
+          "width": 1.08,
+          "depth": 1.065,
+          "height": 0.553,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 660,
+          "width": 1.08,
+          "depth": 1.065,
+          "height": 0.553,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 108,
+          "width": 0.995,
+          "depth": 0.995,
+          "height": 0.12,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "mine": {
+        "LOD0": {
+          "triangles": 865,
+          "width": 1.126,
+          "depth": 1.132,
+          "height": 0.463,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 309,
+          "width": 1.126,
+          "depth": 1.132,
+          "height": 0.463,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 81,
+          "width": 1.111,
+          "depth": 1.132,
+          "height": 0.463,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "mine-damaged": {
+        "LOD0": {
+          "triangles": 1307,
+          "width": 1.127,
+          "depth": 1.133,
+          "height": 0.463,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 553,
+          "width": 1.127,
+          "depth": 1.133,
+          "height": 0.463,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 81,
+          "width": 1.111,
+          "depth": 1.132,
+          "height": 0.463,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "range": {
+        "LOD0": {
+          "triangles": 730,
+          "width": 1.61,
+          "depth": 1.16,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 542,
+          "width": 1.61,
+          "depth": 1.16,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 150,
+          "width": 1.6,
+          "depth": 1.145,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "range-damaged": {
+        "LOD0": {
+          "triangles": 1092,
+          "width": 1.61,
+          "depth": 1.136,
+          "height": 0.6,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 634,
+          "width": 1.61,
+          "depth": 1.118,
+          "height": 0.6,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 70,
+          "width": 1.6,
+          "depth": 1.069,
+          "height": 0.6,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "siege-workshop": {
+        "LOD0": {
+          "triangles": 918,
+          "width": 1.978,
+          "depth": 1.385,
+          "height": 1.07,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 574,
+          "width": 1.978,
+          "depth": 1.385,
+          "height": 1.07,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 246,
+          "width": 1.973,
+          "depth": 1.105,
+          "height": 1.07,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "siege-workshop-damaged": {
+        "LOD0": {
+          "triangles": 1456,
+          "width": 1.978,
+          "depth": 1.385,
+          "height": 1.07,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 842,
+          "width": 1.978,
+          "depth": 1.385,
+          "height": 1.07,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 246,
+          "width": 1.973,
+          "depth": 1.105,
+          "height": 1.07,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "stable": {
+        "LOD0": {
+          "triangles": 1142,
+          "width": 2.033,
+          "depth": 1.531,
+          "height": 0.62,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1054,
+          "width": 2.033,
+          "depth": 1.531,
+          "height": 0.62,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 148,
+          "width": 1.913,
+          "depth": 1.528,
+          "height": 0.62,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "stable-damaged": {
+        "LOD0": {
+          "triangles": 1600,
+          "width": 1.973,
+          "depth": 1.531,
+          "height": 0.62,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1242,
+          "width": 1.966,
+          "depth": 1.531,
+          "height": 0.62,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 68,
+          "width": 1.732,
+          "depth": 1.453,
+          "height": 0.62,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "tower": {
+        "LOD0": {
+          "triangles": 514,
+          "width": 0.68,
+          "depth": 0.68,
+          "height": 1.62,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 354,
+          "width": 0.68,
+          "depth": 0.68,
+          "height": 1.62,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 150,
+          "width": 0.68,
+          "depth": 0.68,
+          "height": 1.62,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "tower-damaged": {
+        "LOD0": {
+          "triangles": 840,
+          "width": 0.752,
+          "depth": 0.687,
+          "height": 1.62,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 434,
+          "width": 0.752,
+          "depth": 0.687,
+          "height": 1.62,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 70,
+          "width": 0.68,
+          "depth": 0.68,
+          "height": 1.62,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "town-hall": {
+        "LOD0": {
+          "triangles": 1218,
+          "width": 1.965,
+          "depth": 1.954,
+          "height": 1.114,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 634,
+          "width": 1.965,
+          "depth": 1.95,
+          "height": 1.114,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 282,
+          "width": 1.935,
+          "depth": 1.918,
+          "height": 1.112,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "town-hall-damaged": {
+        "LOD0": {
+          "triangles": 1684,
+          "width": 1.965,
+          "depth": 1.954,
+          "height": 1.114,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 878,
+          "width": 1.965,
+          "depth": 1.933,
+          "height": 1.114,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 282,
+          "width": 1.935,
+          "depth": 1.918,
+          "height": 1.112,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "trade-post": {
+        "LOD0": {
+          "triangles": 2904,
+          "width": 1.509,
+          "depth": 1.335,
+          "height": 0.7,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 560,
+          "width": 1.493,
+          "depth": 1.317,
+          "height": 0.7,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 160,
+          "width": 1.493,
+          "depth": 0.648,
+          "height": 0.7,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "trade-post-damaged": {
+        "LOD0": {
+          "triangles": 3146,
+          "width": 1.513,
+          "depth": 1.363,
+          "height": 0.7,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 792,
+          "width": 1.493,
+          "depth": 1.363,
+          "height": 0.7,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 160,
+          "width": 1.493,
+          "depth": 0.648,
+          "height": 0.7,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  }
+}

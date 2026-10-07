@@ -1,0 +1,124 @@
+{
+  "checkpoint": "wave3-14",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 4,
+  "packed_bytes_added": 2417188,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave3/checkpoint-14/contact.png",
+      "bytes": 163484,
+      "sha256": "1675e108f1d41b11463297699f35b2a156fa520a79b9c8f3ecea3b6c43ca62a1"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 451591,
+      "sha256": "396f97eb6216274ec27665f476243a9f8d5b22af21169d2698960cbc79abb6b2"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical-ingame/classical-city-europe-844x390.png",
+      "bytes": 568438,
+      "sha256": "214b996745c273928538e9fca65426d6990f1ec22d8467ce7df2023a30e2eb20"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical-ingame/classical-city-levant-844x390.png",
+      "bytes": 558147,
+      "sha256": "481d69d4aae946d96212ffc03df68331429d9d0d406923eeaa24afd54c89430f"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical-ingame/classical-city-wide-europe-844x390.png",
+      "bytes": 520169,
+      "sha256": "8d08d6185e1fdc406b1c6e22ac2e8474452747e79c0d3d913adbecb66c697753"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical-proofs.png",
+      "bytes": 701832,
+      "sha256": "40b807362e7930c994a08fb38bcfcff7d67f04002a052800754c17ca45496b66"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/civic-keep-damaged.png",
+      "bytes": 248167,
+      "sha256": "66e92848029c12eb8b3057aa01205636463019ccdb9bcb538763b08be6c5d923"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/civic-keep-ruined.png",
+      "bytes": 247117,
+      "sha256": "bdc0bba41569cacc4a335292bf9383f10ec839be06ca3383e761de93e541816a"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/civic-keep.png",
+      "bytes": 245187,
+      "sha256": "29d22ab9e1220ac0261c0325646fe0c0531d0393bdded19befcd8ab1aa985004"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/fort-fort.png",
+      "bytes": 244370,
+      "sha256": "443b06ede62fcd7478796911a02f3801d7edcafa272dc935a4bf06a024e0e6a2"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/ruins-rubble-l.png",
+      "bytes": 180879,
+      "sha256": "7c969b63b8855d141bee9754f3f0c630acd4d0c412d738b964646e2fb476888c"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/ruins-rubble-m.png",
+      "bytes": 195094,
+      "sha256": "bb164e0a9d2cbbf39b41b885b48293d509a3532e618fdeaaabb7fb50f966fa9a"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/walls-gate-closed.png",
+      "bytes": 242490,
+      "sha256": "d74610d84ffb6eb410e6f713fed85166e49cf283838b4826541511577d770cdc"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/walls-gate-open-breached.png",
+      "bytes": 203960,
+      "sha256": "075f93b546ced889ee263cfc1c6fd01ba3900c13f17c20bc0a93213ae80c4ec0"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/walls-tower.png",
+      "bytes": 195724,
+      "sha256": "e02b2e230c388f6102f9236e8bda1ca4a5ebf2ee7b2481bc23f0e337bb6d291f"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/walls-wall-straight-breached.png",
+      "bytes": 184553,
+      "sha256": "dc376573a48a89a09acf262f4fb88bead58e453989dbd6a7636e2a585d9dfc3f"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/walls-wall-straight-damaged.png",
+      "bytes": 207870,
+      "sha256": "e59964eec3ea5220c414083d0c371fefa3f52e8e28fff82eebbae9463dc0bf9d"
+    },
+    {
+      "file": "plans/art/shots/wave3/city-classical/walls-wall-straight.png",
+      "bytes": 227023,
+      "sha256": "57edbf031a3671a464b65b321d464c9f932081207657f114f89e2c3ab40cfef5"
+    },
+    {
+      "file": "scripts/blender/build_city_classical.py",
+      "bytes": 8688,
+      "sha256": "758f92fd1a25b1247abf96975e6105fbe67db21355f270724dd4eb27367681d8"
+    },
+    {
+      "file": "src/assets/battle/city/civic-classical.glb",
+      "bytes": 591360,
+      "sha256": "9b4a8aa1754dc02f7565d94fb2a599c76c0031d2bd67055aaff16d78f3a56896"
+    },
+    {
+      "file": "src/assets/battle/city/fort-classical.glb",
+      "bytes": 650232,
+      "sha256": "311338475120d3f96b209802e693ad50743f0ec0c1cfe417578f0d91a7412212"
+    },
+    {
+      "file": "src/assets/battle/city/ruins-classical.glb",
+      "bytes": 406332,
+      "sha256": "5afd1080678b20c87e186962df56f31bd5bdda53d00c327e14310cfb94f408a0"
+    },
+    {
+      "file": "src/assets/battle/city/walls-classical.glb",
+      "bytes": 769264,
+      "sha256": "40922a80ea1e42b6b52d60ec343c0a39a8ede447107d9e0f9d142eb369882a8b"
+    }
+  ]
+}

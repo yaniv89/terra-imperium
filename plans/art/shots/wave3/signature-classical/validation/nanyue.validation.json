@@ -1,0 +1,89 @@
+{
+  "file": "nanyue.glb",
+  "kind": "unit",
+  "bytes": 160240,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "unit_flat_colours": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "nanyue": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1048,
+          "materials": [
+            "Cloth",
+            "Leather",
+            "Metal",
+            "Skin",
+            "Team",
+            "Wood"
+          ],
+          "width": 0.024,
+          "depth": 0.03,
+          "height": 0.551,
+          "min_height": 0.4
+        }
+      },
+      "children": [
+        "nanyue",
+        "SignatureRig",
+        "BeltDagger",
+        "CrossbowBow",
+        "CrossbowStock",
+        "CrossbowString",
+        "Headcloth",
+        "Magazine",
+        "SignatureBody",
+        "Top",
+        "Tunic",
+        "Root",
+        "Hips",
+        "Leg_L",
+        "Shin_L",
+        "Foot_L",
+        "Leg_R",
+        "Shin_R",
+        "Foot_R",
+        "Spine",
+        "Chest",
+        "Arm_L",
+        "Forearm_L",
+        "Hand_L",
+        "Prop_L",
+        "Arm_R",
+        "Forearm_R",
+        "Hand_R",
+        "Prop_R",
+        "Neck",
+        "Head",
+        "Prop_Back"
+      ],
+      "missing_lods": [],
+      "over_target": false,
+      "over_budget": [],
+      "footprint": 0.03
+    }
+  },
+  "materials": [
+    "Metal",
+    "Wood",
+    "Cloth",
+    "Skin",
+    "Leather",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [],
+  "passed": true
+}

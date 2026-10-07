@@ -38,6 +38,14 @@ describe('signature units', () => {
     expect(findSignatureModel('israel', 'bronze', 'infantry', { table: TABLE, art: createArtIndex({}), options: {} })).toBeNull();
     expect(findSignatureModel('israel', 'bronze', 'infantry', { table: TABLE, art, options: { 'israel-spear': { enabled: false } } })).toBeNull();
     expect(findSignatureModel('israel', 'modern', 'cavalry')).toBeNull(); // no file in the game yet
+    // Waves 2 and 3: every Bronze and Classical people's file ships and resolves for its age and role;
+    // camels and elephants carry their own drawn height (taller than a horseman)
+    Object.entries(SIGNATURE_UNITS).filter(([, e]) => e.ageId === 'bronze' || e.ageId === 'classical').forEach(([id, e]) => {
+      const m = findSignatureModel(id, e.ageId, e.classId);
+      expect(m?.url, id).toMatch(new RegExp(`${e.model}.*\\.glb`));
+      expect(m.options.quadruped, id).toBe(e.rig !== 'person' && e.rig !== 'frame');
+      if (e.rig === 'camel' || e.rig === 'elephant') expect(m.options.height, id).toBeGreaterThan(2);
+    });
   });
 });
 
