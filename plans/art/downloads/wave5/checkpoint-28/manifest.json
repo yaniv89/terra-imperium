@@ -1,0 +1,49 @@
+{
+  "checkpoint": "wave5-28",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 14,
+  "packed_bytes_added": 1978412,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave5/checkpoint-28/contact.png",
+      "bytes": 164126,
+      "sha256": "97d890160011e81fdd00e02894bf965343fbcf147f1f4d609f0f212f922fdeb0"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 524763,
+      "sha256": "f6dbdd4e3cc9735a8f8e1b31dfcc38d7cbce93f9077cbc187f3d83466bd76ab8"
+    },
+    {
+      "file": "plans/art/shots/wave5/rts-gunpowder/base-844x390.png",
+      "bytes": 501377,
+      "sha256": "1634a9ee2e97d96f48ebb27633cbb86c7bc0aa924ebdeaedbb97ddab77ae5ca0"
+    },
+    {
+      "file": "plans/art/shots/wave5/rts-gunpowder/hud-844x390.png",
+      "bytes": 424960,
+      "sha256": "d204c9d0c425bec4f92ef64676f49bc9ecb687310867ba2514b6599e7bdfb684"
+    },
+    {
+      "file": "plans/art/shots/wave5/rts-gunpowder/proof-rts-gunpowder.png",
+      "bytes": 263948,
+      "sha256": "0fe89579066ccae26a6006947cc64901c942697798a5da55b46b51c292862050"
+    },
+    {
+      "file": "plans/art/shots/wave5/rts-gunpowder/town-844x390.png",
+      "bytes": 530084,
+      "sha256": "e7a9793496b82cc527c560a910abb5c5c0f6daaa48c8947dd8f0adbb9af79831"
+    },
+    {
+      "file": "scripts/blender/build_rts_gunpowder.py",
+      "bytes": 12486,
+      "sha256": "3e10ea0555b9d9666cab74bb9a876fdfb265123035893e76860b73cebc53209c"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-gunpowder.glb",
+      "bytes": 1978412,
+      "sha256": "9652895b5c79564a95702176b6f3499b85ff39857031c93b260a7576c0bdc05d"
+    }
+  ]
+}

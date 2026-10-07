@@ -85,3 +85,5 @@ Wave 4 [checkpoint 25](downloads/wave4/checkpoint-25/README.md), 2026-10-08 (Cla
 Wave 5 [checkpoint 26](downloads/wave5/checkpoint-26/README.md), 2026-10-08 (Claude): the Gunpowder base units and general (line infantry, riflemen, dragoons, a field cannon on its own carriage rig, sappers, laborer, general; `build_units_gunpowder.py`), 7 queue items `in_game_awaiting_review`; every Gunpowder side now fields GLB units. 0.69 MB added.
 
 Wave 5 [checkpoint 27](downloads/wave5/checkpoint-27/README.md), 2026-10-08 (Claude): the 32 Gunpowder signature units (26 on foot, 4 horsemen, the Khoekhoe ox rider, the Tondo lantaka crew; `build_units_gunpowder_signature.py`), 32 queue items `in_game_awaiting_review`; each Gunpowder people's signature unit shows in battle. 2.30 MB added.
+
+Wave 5 [checkpoint 28](downloads/wave5/checkpoint-28/README.md), 2026-10-08 (Claude): the Gunpowder battle buildings (`rts-gunpowder.glb`: 13 roles with damaged states, construction stages 0-3, a clock-tower town hall, a bastion gun platform, a gun foundry; `build_rts_gunpowder.py`), 14 queue items `in_game_awaiting_review`; Gunpowder economy battles draw them. 1.98 MB added.

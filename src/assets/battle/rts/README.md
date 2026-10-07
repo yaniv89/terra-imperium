@@ -64,6 +64,13 @@ Kingdoms culture skins (2026-10-08, wave4 checkpoint 24, `scripts/blender/build_
 `rts-kingdoms-<theme>.glb` for the 12 themes, barracks, tower and trade post with `-damaged`, built from
 the theme's Kingdoms houses (the same kits as its towns), the sockets of `rts-kingdoms.glb`.
 
+The Gunpowder file (`rts-gunpowder.glb`, 2026-10-08, wave5 checkpoint 28,
+`scripts/blender/build_rts_gunpowder.py`): the 13 roles with `-damaged` and the four construction
+stages in the Gunpowder kit's brick, stucco, sandstone and tile; the town hall a brick hall with a clock
+tower in its walled court, the tower a bastion gun platform with a cannon, the siege workshop a gun
+foundry with a furnace chimney, gabions at the camp, a headframe at the mine, an earth butt at the range.
+1024 textures, 1.98 MB packed.
+
 ## Check
 `python3 scripts/blender/validate_model.py <file> <out> auto` (kind `prefab`), then
 `npm run pack:models`, then `/?battleSandbox` with an economy battle.
