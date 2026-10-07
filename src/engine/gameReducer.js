@@ -123,6 +123,7 @@ import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '
 import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
 import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS } from './accords';
+import { turnBlockers } from './turnBlockers';
 import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
@@ -621,6 +622,9 @@ const reduceAction = (state, action) => {
       // doesn't need to loop across async re-renders. Stops the moment there's a decision worth
       // the player's attention — an event becomes active, a war starts or ends, the game ends —
       // or a turn cap is hit, so a single click can't silently skip to the end of the game.
+      // It is the player's button only, so it also stops at (and never starts over) the End Turn
+      // blockers (turnBlockers.js): a city with nothing to build, no research, a demand to answer.
+      if (turnBlockers(state).length) return state;
       const MAX_TURNS = 20;
       // Which wars are live (a nation can fight several, so count wars, not belligerents).
       const warKey = (s) => (s.wars || []).filter(w => w.active).map(w => w.id).join('|');
@@ -633,6 +637,7 @@ const reduceAction = (state, action) => {
         if (current.gameStatus !== GameStatus.ACTIVE) break;
         if (current.activeEventId || current.activeProceduralEvent || current.pendingPeaceOffer || current.pendingDefenses?.length) break;
         if (warKey(current) !== startingWars) break;
+        if (turnBlockers(current).length) break;
       }
       return current;
     }

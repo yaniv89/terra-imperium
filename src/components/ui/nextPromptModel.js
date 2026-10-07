@@ -1,6 +1,8 @@
 // src/components/ui/nextPromptModel.js
 // The "next" prompt (plans/civ-map-rework.md E3): one pill above End Turn that cycles through what
-// still wants a decision this turn. End Turn is never blocked. Pure: a list of prompts in order.
+// still wants a decision this turn. Pure: a list of prompts in order. Some of them (research, an
+// idle city, a demand, a peace offer) are also End Turn's blockers (src/engine/turnBlockers.js);
+// the SOFT_KINDS below never block.
 //   peace     a peace offer waits for an answer
 //   research  nothing is being researched and the advisor is not choosing
 //   city      a city with an empty build queue
@@ -19,8 +21,13 @@ import { getTiles } from '../../data/geo/tiles';
 export const UNREST_PROMPT = 50;
 export const WARN_ARM_MS = 4000;
 
-/** With the "warn me" setting on: how many prompts (the guide aside) still wait before End Turn; 0 otherwise. */
-export const endTurnWarnings = (state) => (state.battleSettings?.warnEndTurn ? nextPrompts(state).filter((p) => p.kind !== 'guide').length : 0);
+// The prompts that never block End Turn (the rest are End Turn's blockers, src/engine/turnBlockers.js):
+// units that can still move or wait for orders, a restless city, an army low on supply.
+export const SOFT_KINDS = new Set(['army', 'settler', 'unrest', 'supply']);
+/** The soft hints that still wait (the "warn me" setting's list). */
+export const softHints = (state) => nextPrompts(state).filter((p) => SOFT_KINDS.has(p.kind));
+/** With the "warn me" setting on: how many soft hints still wait before End Turn; 0 otherwise. */
+export const endTurnWarnings = (state) => (state.battleSettings?.warnEndTurn ? softHints(state).length : 0);
 
 export const nextPrompts = (state) => {
   const me = state.playerNationId;

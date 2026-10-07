@@ -1,9 +1,10 @@
 // src/components/modals/ResearchChoiceSheet.jsx
 // "Choose your research" (plan §2): opens at the start of a game and whenever a tech is finished
 // with nothing queued after it. Three suggestions for this nation's doctrine, "let my advisor
-// choose" (the advisor then picks whenever the queue runs out), or the full Research tab. It never
-// blocks the turn: "Later" closes it for this turn and science banks meanwhile.
-import React, { useState } from 'react';
+// choose" (the advisor then picks whenever the queue runs out), or the full Research tab. "Later"
+// closes it for this turn, but End Turn then reads "Choose research"
+// (src/engine/turnBlockers.js) and a tap on it brings the sheet back.
+import React, { useEffect, useState } from 'react';
 import { Beaker, Sparkles, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -13,6 +14,7 @@ import { suggestTechs } from '../../engine/research';
 import { describeTech, formatTurns, getSciencePerTurn, techInfo } from '../panels/researchView';
 import { CATEGORY_LABELS } from '../panels/TechPanel';
 import { openPanelTab } from '../panels/panelEvents';
+import { OPEN_RESEARCH_CHOICE } from '../ui/uiEvents';
 
 // Whether the sheet should be up (pure, for tests): nothing being researched, nothing queued, no
 // advisor, something available, and no other decision on screen.
@@ -26,7 +28,15 @@ export const needsResearchChoice = (state) => {
 const ResearchChoiceSheet = ({ hidden }) => {
   const { state, dispatch } = useGame();
   const [laterTurn, setLaterTurn] = useState(null);
-  if (hidden || laterTurn === state.turnNumber || !needsResearchChoice(state)) return null;
+  // End Turn's "Choose research" (turnBlockers.js) brings it back after "Later", and shows it even
+  // while it would wait for the onboarding (the player asked for it).
+  const [asked, setAsked] = useState(false);
+  useEffect(() => {
+    const onOpen = () => { setLaterTurn(null); setAsked(true); };
+    window.addEventListener(OPEN_RESEARCH_CHOICE, onOpen);
+    return () => window.removeEventListener(OPEN_RESEARCH_CHOICE, onOpen);
+  }, []);
+  if ((hidden && !asked) || laterTurn === state.turnNumber || !needsResearchChoice(state)) return null;
 
   const science = getSciencePerTurn(state);
   const options = suggestTechs(state, state.playerNationId, 3).map((id) => techInfo(state, id, science));

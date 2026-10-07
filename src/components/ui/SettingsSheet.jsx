@@ -7,7 +7,7 @@
 //   Sound     the Sound switch, effects volume, music volume (src/audio/audioSettings.js, per device)
 //   Performance  the battle's performance overlay (mapPrefs.js perf, per browser) and the quality
 //             (Auto: the battle adapts soldier detail to the frame time)
-//   Turns     warn me before End Turn while something waits
+//   Turns     warn me before End Turn while armies or settlers can still move
 //   Saves     export, import, the cloud saves and account (AccountModal), a new game
 // Not here yet (no engine for them; plans/UI-DESIGN.md W12): the 500 and 1,000 battle sizes and the
 // device check that measures them, a quality choice, a world-map overlay, a language choice.
@@ -121,7 +121,7 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
           </section>
           <section className="space-y-1" aria-labelledby="settings-turns">
             <Label id="settings-turns">Turns</Label>
-            <Switch label="Warn me before End Turn" hint="The first tap shows what still waits; the second ends the turn" checked={bs.warnEndTurn === true} onChange={(v) => setBattle({ warnEndTurn: v })} testId="settings-warn-end-turn" />
+            <Switch label="Warn me before End Turn" hint="Armies and settlers that can still move: the first tap shows them, the second ends the turn" checked={bs.warnEndTurn === true} onChange={(v) => setBattle({ warnEndTurn: v })} testId="settings-warn-end-turn" />
           </section>
           <section className="space-y-2" aria-labelledby="settings-saves">
             <Label id="settings-saves">Saves</Label>

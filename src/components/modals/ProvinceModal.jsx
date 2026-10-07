@@ -59,7 +59,7 @@ const CityDefense = ({ model }) => (
   </div>
 );
 
-const ProvinceModal = ({ regionId, open, onClose }) => {
+const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
   const { state } = useGame();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState('overview');
@@ -73,7 +73,8 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
   // Opening the tab panel beside it closes this one when both wouldn't leave room for the map.
   useExclusivePanel('province', isShown && !isMobile, (tucked) => { if (tucked) onClose(); });
 
-  useEffect(() => { setTab('overview'); }, [regionId]);
+  // A new city opens on its overview, unless End Turn asked for a tab (marchEvents.js manageCity).
+  useEffect(() => { setTab(tabRequest?.regionId === regionId ? tabRequest.tab : 'overview'); }, [regionId, tabRequest]);
   const defense = useMemo(() => (isShown ? cityDefenseModel(state, regionId) : null), [state, regionId, isShown]);
   const row = useMemo(() => (isShown ? cityRailModel(state).find((r) => r.id === regionId) : null), [state, regionId, isShown]);
 

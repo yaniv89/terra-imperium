@@ -55,7 +55,7 @@ the master plan states them as rules.
 | W07 Diplomacy | met peoples, opinion reasons, "would refuse" shown before trying, unmet count | A (contact), UI pass |
 | W08 Independent | personality, attitude, grudges, tribute card, mercenaries, honest action names | W1, W2 (done), W4 sheet |
 | W09 Research | boost shown as part of the progress bar, map-fact boosts with a Map button, age strip, era goal | UI pass |
-| W10 End turn | the button's three states, "The world moves..." progress, grouped turn report, quiet turns skip it | A (turn worker done), UI pass |
+| W10 End turn | a call to action: it names the first thing to answer (src/engine/turnBlockers.js, "+N" for the rest) or reads End Turn; "The world moves..." progress, grouped turn report, quiet turns skip it | A (turn worker done), UI pass |
 | W11 Pre-battle | scouts' range or exact odds with source, walls and houses, 300 a side and waves, Command or Auto | R2 |
 | W12 Settings | globe off, battle default mode, battle size measured on this device, quality, device check | A2 (map settings done), R2 |
 | W13 Peace deal | war-score demands with live accept or refuse and the shortfall, counter-offer, white peace | R2 or a diplomacy pass |
