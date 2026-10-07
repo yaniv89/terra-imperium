@@ -14,6 +14,8 @@ Wave 1 (plans/ART-MODELS-PLAN.md) [checkpoint 01](downloads/wave1/checkpoint-01/
 
 Wave 1 [checkpoint 02](downloads/wave1/checkpoint-02/README.md), 2026-10-07 (Claude, Blender 5.2 headless): the Bronze construction stages (in `rts-bronze.glb`), the Bronze wall kit, ruin library and fort, the Bronze projectiles, the four resource nodes, the two herds and the temperate, mediterranean and desert vegetation kits, 14 items in the game, status `in_game_awaiting_review`; the 3 ZIPs are kept outside git (see that README).
 
+Wave 1 [checkpoint 03](downloads/wave1/checkpoint-03/README.md), 2026-10-07: the 13 Bronze damaged-and-ruined house files (base and 12 themes), the 8 ground materials (colour in the game) and the 8 core battle effect sheets; 20 queue items `in_game_awaiting_review` (the effect sheets have no queue items); the 4 ZIPs are kept outside git.
+
 **Quality review: 0 delivered items require revision; 285 accepted. 65 items remain to finish.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
 
 | Checkpoint | Items | ZIPs | Files and exact item list |

@@ -20,3 +20,8 @@ average colour, so the game's palette stays and the material adds its grain.
 Fallback: `steppe-grass` to `grass`, `dry-soil` to `desert-sand`, `paving` to `rock`, `wet-soil` to
 `dry-soil`. A layer without a set compiles without detail; no sets at all leaves both shaders as
 they were.
+
+## Delivered
+2026-10-07 (wave1 checkpoint-03, `scripts/blender/build_ground_materials.py` then
+`node scripts/art/ground-webp.mjs`): `color.webp` for all eight ids. `normal.png` and `orm.png` are
+built with `--maps` and kept out of the game until the lit ground reads them (site size).

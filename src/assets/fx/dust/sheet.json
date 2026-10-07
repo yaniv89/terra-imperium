@@ -1,0 +1,11 @@
+{
+  "frame": [
+    128,
+    128
+  ],
+  "fps": 10,
+  "blend": "alpha",
+  "size": 2.0,
+  "loop": false,
+  "frames": 12
+}

@@ -2872,169 +2872,182 @@
       "section": "battle-city",
       "description": "Bronze base houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze base kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/base/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/europe/houses-damage",
       "section": "battle-city",
       "description": "Bronze europe houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze europe kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/europe/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/americas/houses-damage",
       "section": "battle-city",
       "description": "Bronze americas houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze americas kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/americas/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/levant/houses-damage",
       "section": "battle-city",
       "description": "Bronze levant houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze levant kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/levant/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/steppe/houses-damage",
       "section": "battle-city",
       "description": "Bronze steppe houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze steppe kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/steppe/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/indic/houses-damage",
       "section": "battle-city",
       "description": "Bronze indic houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze indic kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/indic/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/monsoon/houses-damage",
       "section": "battle-city",
       "description": "Bronze monsoon houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze monsoon kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/monsoon/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/eastafrica/houses-damage",
       "section": "battle-city",
       "description": "Bronze eastafrica houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze eastafrica kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/eastafrica/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/maghreb/houses-damage",
       "section": "battle-city",
       "description": "Bronze maghreb houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze maghreb kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/maghreb/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/sinic/houses-damage",
       "section": "battle-city",
       "description": "Bronze sinic houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze sinic kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/sinic/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/nile/houses-damage",
       "section": "battle-city",
       "description": "Bronze nile houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze nile kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/nile/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/westafrica/houses-damage",
       "section": "battle-city",
       "description": "Bronze westafrica houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze westafrica kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/westafrica/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/battle-city/bronze/israelite/houses-damage",
       "section": "battle-city",
       "description": "Bronze israelite houses, damaged and ruined: house-poor, house-common, house-rich of the Bronze israelite kit in damaged and ruined states (6 objects), scripted from the kit's build script where it exists",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/bronze/israelite/houses-damage",
       "phase": "B",
       "batch": "M03",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03)"
     },
     {
       "path": "plans/art/units/bronze-worker",
@@ -5771,39 +5784,42 @@
       "section": "map-terrain",
       "description": "Ground material: grass: tileable 1024 texture set (colour with AO, normal, roughness) for grass, shared by the close map and the battle",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "map-terrain/ground-grass",
       "phase": "F",
       "batch": "M14",
       "priority": "P1",
       "placeholder_ok": false,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03); color.webp in the game, normal and orm in the delivery ZIP"
     },
     {
       "path": "plans/art/map-terrain/ground-desert-sand",
       "section": "map-terrain",
       "description": "Ground material: desert-sand: tileable 1024 texture set (colour with AO, normal, roughness) for desert-sand, shared by the close map and the battle",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "map-terrain/ground-desert-sand",
       "phase": "F",
       "batch": "M14",
       "priority": "P1",
       "placeholder_ok": false,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03); color.webp in the game, normal and orm in the delivery ZIP"
     },
     {
       "path": "plans/art/map-terrain/ground-rock",
       "section": "map-terrain",
       "description": "Ground material: rock: tileable 1024 texture set (colour with AO, normal, roughness) for rock, shared by the close map and the battle",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "map-terrain/ground-rock",
       "phase": "F",
       "batch": "M14",
       "priority": "P1",
       "placeholder_ok": false,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03); color.webp in the game, normal and orm in the delivery ZIP"
     },
     {
       "path": "plans/art/map-terrain/mountain-ridges",
@@ -8502,26 +8518,28 @@
       "section": "map-terrain",
       "description": "Ground material: dry-steppe: tileable 1024 texture set (colour with AO, normal, roughness) for dry-steppe, shared by the close map and the battle",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "map-terrain/ground-dry-steppe",
       "phase": "F",
       "batch": "M27",
       "priority": "P2",
       "placeholder_ok": false,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03); color.webp in the game, normal and orm in the delivery ZIP"
     },
     {
       "path": "plans/art/map-terrain/ground-snow-ice",
       "section": "map-terrain",
       "description": "Ground material: snow-ice: tileable 1024 texture set (colour with AO, normal, roughness) for snow-ice, shared by the close map and the battle",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "map-terrain/ground-snow-ice",
       "phase": "F",
       "batch": "M27",
       "priority": "P2",
       "placeholder_ok": false,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03); color.webp in the game, normal and orm in the delivery ZIP"
     },
     {
       "path": "plans/art/map-terrain/ground-tundra",
@@ -8541,26 +8559,28 @@
       "section": "map-terrain",
       "description": "Ground material: wet-soil: tileable 1024 texture set (colour with AO, normal, roughness) for wet-soil, shared by the close map and the battle",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "map-terrain/ground-wet-soil",
       "phase": "F",
       "batch": "M27",
       "priority": "P2",
       "placeholder_ok": false,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03); color.webp in the game, normal and orm in the delivery ZIP"
     },
     {
       "path": "plans/art/map-terrain/ground-paving",
       "section": "map-terrain",
       "description": "Ground material: paving: tileable 1024 texture set (colour with AO, normal, roughness) for paving, shared by the close map and the battle",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "map-terrain/ground-paving",
       "phase": "F",
       "batch": "M27",
       "priority": "P2",
       "placeholder_ok": false,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S10",
+      "delivered": "wave1 checkpoint-03, 2026-10-07 (plans/art/downloads/wave1/checkpoint-03); color.webp in the game, normal and orm in the delivery ZIP"
     },
     {
       "path": "plans/art/map-terrain/hills",
