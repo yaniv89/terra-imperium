@@ -27,6 +27,16 @@ describe('BattleHud', () => {
     expect(sel).toContain('data-testid="battle-selection"');
   });
 
+  it('the selection card has a labelled 44 px x that clears it; the hint speaks of taps or clicks', () => {
+    const h = html({ selectedSquads: [hud.squads[0]], onClearSelection: vi.fn(), selectHint: true });
+    const x = btn(h, 'battle-clear-selection');
+    expect(x).toContain('aria-label="Clear selection"');
+    expect(x).toContain('w-11 h-11');
+    expect(h).toContain('tap it again to let go');
+    expect(html({ selectHint: true, mouse: true })).toContain('Right click orders');
+    expect(html({ selectedSquads: [] , onClearSelection: vi.fn() })).not.toContain('battle-clear-selection');
+  });
+
   it('paused: the sheet with Resume, speed, Switch to Auto and Retreat apart; no bottom bar', () => {
     const h = html({ paused: true, onAbandon: vi.fn() });
     expect(h).toContain('data-testid="battle-pause-sheet"');

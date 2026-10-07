@@ -938,7 +938,8 @@ export class BattleRenderer {
     if (foe && (enemyFirst || !own || foeD < ownD)) best = foe;
     else if (own) best = own;
     if (best) return { ...best, ground: g };
-    const eco = this.ecoLayer.pick(g, view); // a building of the battle economy, or a resource node
+    // A building of the battle economy (a generous footprint: at least ~16 px around it), or a resource node.
+    const eco = this.ecoLayer.pick(g, view, Math.max(0.5, 16 * this.worldPerPixel()));
     if (eco) return { ...eco, ground: g };
     (view?.structures || []).forEach((s, index) => {
       if (!s.alive) return;
@@ -1030,6 +1031,19 @@ export class BattleRenderer {
     this.tmpPan = this.tmpPan || new Vector3();
     this.tmpPan.set(x / Q, 0, y / Q).project(this.camera);
     return Math.max(-1, Math.min(1, this.tmpPan.x));
+  }
+
+  // The camera's view of the ground for positional sound (src/audio/spatial.js): its centre and the
+  // half-extent vectors to the middle of the right and top screen edges, in tiles. null before
+  // the first resize.
+  audioView() {
+    if (!this.width || !this.height) return null;
+    this.updateCamera();
+    const c = this.screenToGround(this.width / 2, this.height / 2);
+    const r = this.screenToGround(this.width, this.height / 2);
+    const t = this.screenToGround(this.width / 2, 0);
+    if (!c || !r || !t) return null;
+    return { cx: c.x, cz: c.z, ax: r.x - c.x, az: r.z - c.z, bx: t.x - c.x, bz: t.z - c.z };
   }
 
   render(prev, cur, alpha, ui, dt) {

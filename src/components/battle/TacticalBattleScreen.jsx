@@ -9,12 +9,15 @@ import { deployZone } from '../../battle/sim/world';
 import { BattleRenderer } from '../../battle/render/BattleRenderer';
 import { createBattleClient } from '../../battle/worker/battleClient';
 import { createGestureRecognizer } from '../../battle/input/gestures';
+import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX } from '../../battle/input/selection';
 import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
 import BattleHud from './BattleHud';
 import { BattleRotateGate } from '../ui/RotateOverlay';
 import BattleResultScreen from './BattleResultScreen';
 import { ABILITIES } from '../../battle/sim/effects';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
+import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
+import { suppressMusic } from '../../audio/music';
 import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
 import { createPerfMeter, formatPerf } from '../../battle/render/perfMeter';
 import { getMapPrefs } from '../map/mapPrefs';
@@ -31,10 +34,12 @@ const perfOn = () => PERF_URL || !!getMapPrefs().perf;
 
 // One-time UI hints live in localStorage (per device, never in the save). Storage can be missing or
 // blocked (private mode): then the hint simply shows again next time.
-const SELECT_HINT_KEY = 'ti.hint.boxSelect';
+const SELECT_HINT_KEY = 'ti.hint.battleControls'; // was ti.hint.boxSelect: the controls changed, show it once more
 const SELECT_HINT_MS = 9000;
 const hintSeen = (key) => { try { return localStorage.getItem(key) === '1'; } catch { return false; } };
 const markHintSeen = (key) => { try { localStorage.setItem(key, '1'); } catch { /* storage blocked */ } };
+// A mouse is the main pointer (desktop): the hints speak of clicks instead of taps.
+const MOUSE_POINTER = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: fine)').matches;
 
 const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, getCampaign = null }) => {
   const wrapRef = useRef(null);
@@ -42,7 +47,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const rendererRef = useRef(null);
   const clientRef = useRef(null);
   const audioRef = useRef(null);
-  const [soundOn, setSoundOn] = useState(true);
+  const soundOn = useAudioSettings().sound; // the one Sound switch (also in Settings)
   const frames = useRef({ prev: null, cur: null, arrival: 0 });
   const selectedRef = useRef(new Set());
   const armedRef = useRef(null); // 'attackMove' — the next ground order becomes an attack-move
@@ -115,7 +120,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     if (import.meta.env.DEV || PERF_URL) { window.__battleRenderer = renderer; window.__battleView = () => frames.current.cur; }
     const audio = createBattleAudio({ ageIds: setup.sides.map((sd) => sd.ageId), playerSide });
     audioRef.current = audio;
-    setSoundOn(audio.isEnabled());
+    if (import.meta.env.DEV) window.__battleAudio = audio; // voiceStats() in the console
+    const releaseMusic = suppressMusic('battle'); // no music in a battle (src/audio/music.js)
     // Browsers only start audio from a user gesture: the first touch anywhere unlocks it.
     const unlock = () => audio.unlock();
     wrap.addEventListener('pointerdown', unlock, { once: true });
@@ -137,10 +143,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
             if (own.length) renderer.centerOn(own.reduce((a, q) => a + q.x, 0) / own.length / Q, own.reduce((a, q) => a + q.y, 0) / own.length / Q);
             f.centered = true;
           }
-          if (m.events?.length) {
-            renderer.pushEvents(m.events, m.view);
-            audio.events(m.events, m.view, (x, y) => renderer.screenPan(x, y));
-          }
+          if (m.events?.length) renderer.pushEvents(m.events, m.view);
+          // Sound only where the camera looks (every frame: the ambience follows the fighting on screen).
+          audio.setView(renderer.audioView());
+          audio.events(m.events, m.view);
         } else if (m.type === 'checkpoint') onCheckpoint?.(m);
         else if (m.type === 'ended') setEnded(m);
       }
@@ -184,6 +190,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       if(window.__E2E_BATTLE_TEST__)delete window.__battleTest;
       wrap.removeEventListener('pointerdown', unlock);
       audio.dispose();
+      releaseMusic();
       audioRef.current = null;
       rendererRef.current = null; clientRef.current = null;
     };
@@ -191,13 +198,30 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The result screen covers the battlefield: its sounds stop (the victory or defeat sting has played).
+  useEffect(() => { audioRef.current?.setVisible(!ended); }, [ended]);
+
   // --- input --------------------------------------------------------------------------------
-  const ownSquadAt = useCallback((p) => {
+  // `enemyFirst` (a tap with troops selected): a visible enemy beside your squad wins, so a tap
+  // meant as "attack that" never turns into "select this". A mouse left click only ever selects.
+  const ownSquadAt = useCallback((p, enemyFirst = selectedRef.current.size > 0) => {
     const r = rendererRef.current; const cur = frames.current.cur;
     if (!r || !cur) return null;
-    const hit = r.pick(p.x, p.y, cur, 1.1, { enemyFirst: selectedRef.current.size > 0 });
+    const hit = r.pick(p.x, p.y, cur, 1.1, { enemyFirst });
     return hit?.kind === 'squad' && hit.side === playerSide ? hit.idx : null;
   }, [playerSide]);
+  // Your own building under a screen point, with a generous margin (selection.js).
+  const ownBuildingAt = useCallback((p) => {
+    const r = rendererRef.current; const cur = frames.current.cur;
+    if (!r || !cur?.eco) return null;
+    const g = r.screenToGround(p.x, p.y);
+    if (!g) return null;
+    const margin = Math.max(BUILDING_PICK_TILES, BUILDING_PICK_PX * r.worldPerPixel());
+    const k = cur.structures[0];
+    const keepHit = !!k?.alive && (k.x / Q - g.x) ** 2 + (k.y / Q - g.z) ** 2 <= (k.radius / Q + 0.6 + margin) ** 2;
+    return pickOwnBuilding(g, cur, playerSide, { margin, keepHit });
+  }, [playerSide]);
+  const lastPickRef = useRef(null); // the last select click/tap, for cycling units -> building
 
   const issueAt = useCallback((p, forceAttackMove = false) => {
     const r = rendererRef.current; const cur = frames.current.cur;
@@ -242,8 +266,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       if (!onlyWorkers) send([{ type: 'move', squads: sel.filter((i) => !workers.includes(i)), x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
       r.addMarker(hit.ground.x, hit.ground.z, '#fde047');
     } else if (hit.kind === 'eco' && hit.side === playerSide) {
-      // Workers to one of your buildings: help build it, or repair it.
+      // Workers to one of your buildings: help build it, or repair it; the others walk there.
       if (workers.length) send([{ type: 'assist', squads: workers, target: { kind: 'eco', index: hit.index } }]);
+      if (!onlyWorkers) send([{ type: startedRef.current ? 'move' : 'deploy', squads: sel.filter((i) => !workers.includes(i)), x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
       r.addMarker(hit.ground.x, hit.ground.z, '#a3e635');
     } else if (hit.kind === 'eco') {
       send([{ type: 'attack', squads: sel, target: { kind: 'eco', index: hit.index } }]);
@@ -288,28 +313,51 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     return () => el.removeEventListener('pointermove', onMove);
   }, []);
 
+  const clearSelection = useCallback(() => { updateSelection([]); selectBuilding(null); setRadial(null); }, [updateSelection, selectBuilding]);
+
+  // One click or tap on the battlefield: what it means is decided in selection.js.
+  const pointer = useCallback((input, p, mods = {}) => {
+    setRadial(null);
+    const cur = frames.current.cur;
+    const sel = [...selectedRef.current];
+    const ownSquad = ownSquadAt(p, input === 'tap' && sel.length > 0);
+    const building = ownBuildingAt(p);
+    const now = performance.now();
+    const cycle = isCycleClick(lastPickRef.current, p, now, ownSquad, sel);
+    const bRow = selectedBuildingRef.current !== null ? cur?.eco?.buildings.find((b) => b.idx === selectedBuildingRef.current) : null;
+    const selectedBuildingInfo = bRow ? { idx: bRow.idx, trains: !!bRow.built && (BUILDINGS[bRow.type]?.trains || []).length > 0 } : null;
+    const act = decidePointer({
+      input, shift: !!mods.shift, ownSquad, building, cycle, armed: armedRef.current, selectedBuilding: selectedBuildingInfo,
+      selection: sel.map((i) => ({ idx: i, classId: cur?.squads[i]?.classId }))
+    });
+    lastPickRef.current = act.do === 'select' && ownSquad !== null ? { x: p.x, y: p.y, t: now, squad: ownSquad } : null;
+    switch (act.do) {
+      case 'select': case 'selectBuilding': case 'deselect': {
+        const next = selectionAfter({ ids: sel, building: selectedBuildingRef.current }, act);
+        if (next.building !== null) selectBuilding(next.building); else { updateSelection(next.ids); selectBuilding(null); }
+        break;
+      }
+      case 'cancelArmed': rendererRef.current?.ecoLayer.setGhost(null); armedRef.current = null; setArmed(null); break;
+      case 'rally': {
+        const r = rendererRef.current; const g = r?.screenToGround(p.x, p.y);
+        if (g) { send([{ type: 'rally', building: selectedBuildingInfo.idx, x: Math.round(g.x * Q), y: Math.round(g.z * Q) }]); r.addMarker(g.x, g.z, '#facc15'); }
+        break;
+      }
+      case 'armed': case 'order': if (!issueAt(p) && input === 'tap') clearSelection(); break;
+      default:
+    }
+  }, [ownSquadAt, ownBuildingAt, updateSelection, selectBuilding, clearSelection, issueAt, send]);
+
   useEffect(() => {
     const el = canvasRef.current;
     return createGestureRecognizer(el, {
       isSelectMode: () => selectModeRef.current,
       selectModeDone: () => setSelectModeOn(false),
       isOnSelectedSquad: (p) => { const idx = ownSquadAt(p); return idx !== null && selectedRef.current.has(idx); },
-      tap: (p) => {
-        setRadial(null);
-        const own = ownSquadAt(p);
-        if (own !== null && !armedRef.current) { updateSelection([own]); return; }
-        if (armedRef.current?.type && armedRef.current.type !== 'attackMove') { issueAt(p); return; }
-        // Nothing selected: a tap on one of your buildings selects it (your keep: the town hall).
-        if (!selectedRef.current.size) {
-          const r = rendererRef.current; const cur = frames.current.cur;
-          const hit = r && cur ? r.pick(p.x, p.y, cur, 1.1) : null;
-          if (hit?.kind === 'eco' && hit.side === playerSide) { selectBuilding(hit.index); return; }
-          const hall = cur?.eco?.buildings.find((b) => b.proxy && b.side === playerSide);
-          if (hit?.kind === 'structure' && hit.index === 0 && hall) { selectBuilding(hall.idx); return; }
-        }
-        if (!issueAt(p)) { updateSelection([]); selectBuilding(null); }
-      },
-      order: (p) => { setRadial(null); issueAt(p); },
+      hasSelection: () => selectedRef.current.size > 0,
+      tap: (p) => pointer('tap', p),
+      click: (p, mods) => pointer('left', p, mods),
+      order: (p) => pointer('right', p),
       longPress: (p) => { if (selectedRef.current.size) issueAt(p, true); },
       radial: (p) => setRadial({ x: p.x, y: p.y }),
       pan: (dx, dy) => rendererRef.current?.pan(dx, dy),
@@ -324,7 +372,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         r.addMarker(a.x, a.z); r.addMarker(b.x, b.z);
       },
       lassoDrag: (s, p) => setLasso({ x0: Math.min(s.x, p.x), y0: Math.min(s.y, p.y), x1: Math.max(s.x, p.x), y1: Math.max(s.y, p.y) }),
-      lassoEnd: (s, p) => {
+      lassoEnd: (s, p, mods) => {
         setLasso(null);
         const r = rendererRef.current; const cur = frames.current.cur;
         if (!r || !cur) return;
@@ -333,11 +381,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           const sp = r.worldToScreen(q.x / Q, q.y / Q);
           return sp.x >= x0 && sp.x <= x1 && sp.y >= y0 && sp.y <= y1;
         }).map((q) => q.idx);
-        updateSelection(ids);
+        updateSelection(mods?.shift ? [...new Set([...selectedRef.current, ...ids])] : ids);
       },
       cancel: () => { setDragLine(null); setLasso(null); }
     });
-  }, [issueAt, ownSquadAt, playerSide, send, updateSelection, selectBuilding, setSelectModeOn]);
+  }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn]);
 
   // Keyboard (desktop): space pause, A attack-move, S stop, H hold, R retreat, Esc deselect.
   useEffect(() => {
@@ -349,7 +397,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       else if (e.key === 's' && sel.length) send([{ type: 'stop', squads: sel }]);
       else if (e.key === 'h' && sel.length) send([{ type: 'hold', squads: sel }]);
       else if (e.key === 'r' && sel.length) send([{ type: 'retreat', squads: sel }]);
-      else if (e.key === 'Escape') updateSelection([]);
+      else if (e.key === 'Escape') { if (armedRef.current) { rendererRef.current?.ecoLayer.setGhost(null); armedRef.current = null; setArmed(null); } else clearSelection(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -361,7 +409,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); c.resume(); return; } // deployment → battle
     setPaused((p) => { if (p) c.resume(); else c.pause(); return !p; });
   };
-  const toggleSound = () => { const on = !soundOn; audioRef.current?.setEnabled(on); setSoundOn(on); };
+  const toggleSound = () => setAudioSettings({ sound: !soundOn });
   const changeSpeed = (s) => { speedRef.current = s; setSpeed(s); clientRef.current?.setSpeed(s); };
   const arm = (mode) => { armedRef.current = armedRef.current === mode ? null : mode; setArmed(armedRef.current); };
   // Commander powers: instant ones fire now; targeted ones arm a crosshair for the next tap.
@@ -446,6 +494,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         selectMode={selectMode} onToggleSelectMode={() => { setSelectModeOn(!selectModeRef.current); setSelectHint(false); }}
         selectHint={selectHint}
         onFocus={(x, y) => rendererRef.current?.centerOn(x / Q, y / Q)}
+        onClearSelection={clearSelection} mouse={MOUSE_POINTER}
         ended={!!ended}
       />
       {buildMenu && hud?.eco && <BuildMenu ageId={setup.sides[playerSide].ageId} stock={hud.eco.stock} onPick={pickBuilding} onClose={() => setBuildMenu(false)} />}

@@ -10,8 +10,10 @@
 //         Select mode (the HUD's Select button, `h.isSelectMode()`): a one-finger drag draws the
 //         lasso instead of panning; a completed lasso calls `h.selectModeDone()` (the HUD turns
 //         the mode off). Two fingers still pinch and pan.
-// Mouse:  left click = select/tap · left drag = box select · left drag from a selected squad =
-//         formation line · right click = order · right/middle drag = pan · wheel = zoom
+// Mouse:  left click = select (`h.click`, shift adds; empty ground deselects) · left drag = box
+//         select (shift adds) · right click = order (`h.order`) · right drag = formation line while
+//         something is selected (`h.hasSelection`), else pan · middle drag = pan · wheel = zoom.
+//         The browser's context menu never opens on the battlefield.
 export const TAP_MS = 260;
 export const LONG_MS = 380;
 export const MOVE_PX = 10;
@@ -46,13 +48,13 @@ export const createGestureRecognizer = (el, h) => {
       return;
     }
     if (pointers.size > 2) return;
-    start = { ...p, t: e.timeStamp, button: e.button, touch: e.pointerType === 'touch' };
+    start = { ...p, t: e.timeStamp, button: e.button, touch: e.pointerType === 'touch', shift: !!e.shiftKey };
     last = p;
-    const onSelected = h.isOnSelectedSquad?.(p);
     if (!start.touch) {
-      mode = e.button === 2 || e.button === 1 ? 'mouse-right' : onSelected ? 'press-selected' : 'mouse-left';
+      mode = e.button === 2 ? 'mouse-right' : e.button === 1 ? 'mouse-pan' : 'mouse-left';
       return;
     }
+    const onSelected = h.isOnSelectedSquad?.(p);
     fromSelectMode = !!h.isSelectMode?.();
     mode = fromSelectMode || e.timeStamp - lastTapAt < DOUBLE_TAP_MS ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
     longTimer = setTimeout(() => {
@@ -75,12 +77,12 @@ export const createGestureRecognizer = (el, h) => {
     }
     if (!start) return;
     const moved = Math.hypot(p.x - start.x, p.y - start.y) >= MOVE_PX;
-    if (!moved && ['press', 'press-selected', 'lasso-armed', 'mouse-left', 'mouse-right'].includes(mode)) return;
+    if (!moved && ['press', 'press-selected', 'lasso-armed', 'mouse-left', 'mouse-right', 'mouse-pan'].includes(mode)) return;
     clearLong();
-    if (mode === 'press') mode = 'pan';
+    if (mode === 'press' || mode === 'mouse-pan') mode = 'pan';
     else if (mode === 'press-selected') mode = 'formation';
     else if (mode === 'lasso-armed' || mode === 'mouse-left') mode = 'lasso';
-    else if (mode === 'mouse-right') mode = 'pan';
+    else if (mode === 'mouse-right') mode = h.hasSelection?.() ? 'formation' : 'pan';
     if (mode === 'pan') h.pan?.(p.x - last.x, p.y - last.y);
     else if (mode === 'formation') h.formationDrag?.(start, p);
     else if (mode === 'lasso') h.lassoDrag?.(start, p);
@@ -97,10 +99,10 @@ export const createGestureRecognizer = (el, h) => {
     if (!start) return;
     const quick = e.timeStamp - start.t < TAP_MS;
     if ((mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed') && quick) { h.tap?.(p); lastTapAt = e.timeStamp; }
-    else if (mode === 'mouse-left' || (mode === 'press-selected' && !start.touch)) h.tap?.(p);
+    else if (mode === 'mouse-left') (h.click || h.tap)?.(p, { shift: start.shift });
     else if (mode === 'mouse-right') h.order?.(p);
     else if (mode === 'formation') h.formationEnd?.(start, p);
-    else if (mode === 'lasso') { h.lassoEnd?.(start, p); if (fromSelectMode) h.selectModeDone?.(); }
+    else if (mode === 'lasso') { h.lassoEnd?.(start, p, { shift: start.shift }); if (fromSelectMode && start.touch) h.selectModeDone?.(); }
     else if (mode === 'radial') h.radialSelect?.(p);
     mode = 'idle'; start = null;
   };
