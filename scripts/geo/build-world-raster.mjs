@@ -6,7 +6,7 @@
 // public/map/world-2048.webp (phones).
 //
 // Inputs (scripts/geo/.raw, see fetch-tiles-raw.mjs): terrarium elevation tiles (zoom 4), the
-// hex coast (src/data/geo/hexLand.json, build-hex-coast.mjs), Natural Earth glaciers and rivers, Köppen climate at 0.5°. Everything is derived
+// hex coast (src/data/geo/hexLand.json, build-hex-coast.mjs), Natural Earth glaciers and rivers (river-paint.mjs: smooth lines that widen downstream), Köppen climate at 0.5°. Everything is derived
 // per pixel: a climate colour (bilinear across the 0.5° cells, so no blocks), hypsometric tints
 // and a snow line with elevation, hillshade from the elevation gradient, bathymetry in the sea,
 // rivers drawn on top. Deterministic.
@@ -17,6 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { loadElevation } from './build-tiles.mjs';
+import { loadRiverLines, riverSvg, RIVER_MAX_RANK } from './river-paint.mjs';
 
 const require = createRequire(import.meta.url);
 const sharp = require('sharp');
@@ -123,19 +124,9 @@ const rasterMask = async (pathData) => {
   for (let i = 0; i < W * H; i++) mask[i] = data[i * 4] > 127 ? 1 : 0;
   return mask;
 };
-const riverOverlay = async (features) => {
-  const strokes = [];
-  features.forEach((f) => {
-    const rank = f.properties.scalerank ?? 12;
-    if (rank > 8 || /lake/i.test(f.properties.featurecla || '')) return;
-    const width = rank <= 3 ? 2.0 : rank <= 6 ? 1.2 : 0.7;
-    const lines = f.geometry.type === 'LineString' ? [f.geometry.coordinates] : f.geometry.type === 'MultiLineString' ? f.geometry.coordinates : [];
-    lines.forEach((line) => {
-      const d = line.map(([lon, lat], i) => `${i ? 'L' : 'M'}${(((lon + 180) / 360) * W).toFixed(1)} ${(((90 - lat) / 180) * H).toFixed(1)}`).join('');
-      strokes.push(`<path d="${d}" stroke="rgb(96,156,214)" stroke-opacity="0.7" stroke-width="${width}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
-    });
-  });
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${strokes.join('')}</svg>`;
+const riverOverlay = async (lines) => {
+  const strokes = riverSvg(lines, { W, H, kmPx: (180 / H) * 111, minPx: 0.8 });
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${strokes}</svg>`;
   return sharp(Buffer.from(svg)).png().toBuffer();
 };
 
@@ -152,7 +143,7 @@ export const buildWorldRaster = async ({ log = console.log } = {}) => {
   // lakes too are whole water hexes and the land is the game's own hexLand.json.
   const landFc = readJson(path.join(__dirname, '../../src/data/geo/hexLand.json'));
   const glacierFc = readJson(path.join(RAW, 'ne', 'ne_10m_glaciated_areas.geojson'));
-  const riversFc = readJson(path.join(RAW, 'ne', 'ne_10m_rivers_lake_centerlines.geojson'));
+  const riverLines = loadRiverLines(RAW, { maxRank: RIVER_MAX_RANK.world });
   const [land, glacier] = await Promise.all([
     rasterMask(geoToSvgPaths(landFc.features)),
     rasterMask(geoToSvgPaths(glacierFc.features))
@@ -229,7 +220,7 @@ export const buildWorldRaster = async ({ log = console.log } = {}) => {
   }
   log(`terrain rendered (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
   // Rivers only on land: the hex coast leaves some river mouths in the sea.
-  const riverPng = await riverOverlay(riversFc.features);
+  const riverPng = await riverOverlay(riverLines);
   const { data: riverRgba } = await sharp(riverPng).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   for (let i = 0; i < W * H; i++) if (!land[i]) riverRgba[i * 4 + 3] = 0;
   const rivers = await sharp(riverRgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
