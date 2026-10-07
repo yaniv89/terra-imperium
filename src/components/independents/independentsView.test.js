@@ -169,12 +169,16 @@ describe('W4 raid outcome', () => {
     const nations = { ...s.nations, [raider.id]: { ...raider, indep: { ...raider.indep, raid: { kind: f.kind, targetTile: f.tile, targetCityId: f.cityId, targetNationId: me, phase: 'out', route: [], startedTurn: T, startStrength: 2000, warned: true } } } };
     const st = { ...s, units, nations, turnNumber: T + 1 };
     const out = processIndependents(st);
-    const rec = out.nations[raider.id].indep.lastRaidOnPlayer;
-    expect(rec).toMatchObject({ turn: T + 1, kind: f.kind, won: true });
-    expect(rec.text).toMatch(/^They /);
-    const after = { ...st, nations: out.nations, units: out.units, regions: out.regions };
-    expect(independentSheetModel(after, raider.id).deals.lastRaid).toMatchObject({ won: true, ago: 0 });
-    expect(independentSummary(after, raider.id).lines[0].text).toMatch(`Turn ${T + 1}: They `);
+    // A battle against the player (a sack, or troops on the target) waits in the battle queue for
+    // Command or Auto (phase R3); fought on Auto here.
+    const { resolveAllQueuedAuto } = await import('../../engine/battleQueue');
+    const after = resolveAllQueuedAuto({ ...st, nations: out.nations, units: out.units, regions: out.regions, resources: out.resources, world: out.world, pendingDefenses: out.queued });
+    const rec = after.nations[raider.id].indep.lastRaidOnPlayer;
+    expect(rec).toMatchObject({ turn: T + 1, kind: f.kind });
+    expect(after.nations[raider.id].indep.raid?.phase ?? 'home').not.toBe('battle');
+    expect(rec.text).toMatch(rec.won ? /^They / : /drove off/);
+    expect(independentSheetModel(after, raider.id).deals.lastRaid).toMatchObject({ won: rec.won, ago: 0 });
+    if (rec.won) expect(independentSummary(after, raider.id).lines[0].text).toMatch(`Turn ${T + 1}: They `);
   });
 });
 

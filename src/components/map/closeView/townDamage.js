@@ -5,11 +5,18 @@
 // a small shader patch that drops every fragment standing inside a ruined structure's ground
 // rectangle (the manifest's footprint, in the town's own model space) and darkens the ones inside
 // a damaged structure's. A rubble mound (ruinMounds) stands where a ruin is.
-// PLACEHOLDERS until the art plan's batch M03 arrives: the darkened house stands in for
-// src/assets/battle/city/<age>-<theme>-houses-damage.glb (<name>-damaged), the grey mound for its
-// <name>-ruined and for src/assets/battle/city/ruins-<age>.glb (rubble-s, -m, -l).
-import { Matrix4, Vector4, Mesh, MeshLambertMaterial, BoxGeometry, DodecahedronGeometry } from 'three';
+// ART (applyTownDamage; battle/art/cityArt.js): when the age's damaged-house kit exists
+// (src/assets/battle/city/<age>-<theme>-houses-damage.glb, the theme along styleChain, then
+// <age>-houses-damage.glb) a damaged or ruined house is cut out and its `<house>-damaged` or
+// `<house>-ruined` piece stands in its place; other ruins take the age's ruin library
+// (src/assets/battle/city/ruins-<age>.glb: rubble-s, -m, -l by size). Without the files the
+// darkened house and the grey mound stay (the placeholders).
+import { Matrix4, Vector4, Mesh, MeshLambertMaterial, BoxGeometry, DodecahedronGeometry, Group } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { ART } from '../../../battle/art/artFiles';
+import { loadKit } from '../../../battle/art/kitLoader';
+import { houseTypes, pickHouse, pickRubble } from '../../../battle/art/cityArt';
+import { instanceTownAsset } from './townAssets';
 
 export const MAX_RECTS = 64;
 const RUBBLE_COLOR = '#8b8073';
@@ -103,4 +110,62 @@ export const ruinMound = (s) => {
   m.scale.set(Math.max(0.3, s.w), Math.max(0.5, Math.min(s.w, s.d)), Math.max(0.3, s.d));
   m.name = 'ruin';
   return m;
+};
+
+// A kit object as a town-file-like root (LOD0..LOD2 meshes), so showLod and instanceTownAsset work.
+const templates = new Map(); // kit object -> root
+const templateOf = (obj) => {
+  if (!templates.has(obj)) {
+    const root = new Group(); root.name = obj.name;
+    obj.lods.forEach((b, l) => {
+      const m = new Mesh(b.geometry, b.materials.length === 1 ? b.materials[0] : b.materials);
+      m.name = `LOD${l}`; m.frustumCulled = false;
+      root.add(m);
+    });
+    templates.set(obj, root);
+  }
+  return templates.get(obj);
+};
+
+/**
+ * A town instance's damage (manifestStates: [{ kind, state, x, z, w, d }]): the shader cut-outs,
+ * darkening and mounds at once, then the art pieces when the age's damage files exist. Resolves to
+ * true when art was placed (and calls `onReady`), false when the placeholders stay.
+ */
+export const applyTownDamage = (root, states, { ageId, style = null, teamColor = '#9ca3af', tint = null, onReady = () => {}, art = ART, load = loadKit } = {}) => {
+  const ruined = states.filter((s) => s.state === 'ruined'); const damaged = states.filter((s) => s.state === 'damaged');
+  enableTownDamage(root);
+  setTownDamage(root, ruined, damaged);
+  const mounds = ruined.map((s) => { const m = ruinMound(s); root.add(m); return m; });
+  const houseRef = damaged.length || ruined.length ? art.housesDamage(ageId, style) : null;
+  const ruinRef = ruined.length ? art.ruins(ageId) : null;
+  if (!houseRef && !ruinRef) return Promise.resolve(false);
+  const get = (ref) => (ref ? load(ref.url).catch((e) => { console.warn(`[art] ${e.message}: keeping the damage placeholders`); return null; }) : null);
+  return Promise.all([get(houseRef), get(ruinRef)]).then(([houses, ruins]) => {
+    if (!houses && !ruins) return false;
+    const types = houseTypes(houses);
+    const cut = [...ruined]; const dark = [];
+    let placed = 0;
+    const put = (obj, s, yaw, sx, sy, sz) => {
+      const inst = instanceTownAsset(templateOf(obj), teamColor, tint);
+      inst.position.set(s.x, 0, s.z); inst.rotation.y = yaw; inst.scale.set(sx, sy, sz);
+      inst.name = 'damage-art';
+      root.add(inst);
+      placed += 1;
+    };
+    damaged.forEach((s) => {
+      const p = houses && s.kind === 'house' ? pickHouse(houses, s.w, s.d, 'damaged', types) : null;
+      if (p) { put(p.obj, s, p.yaw, p.lx, 1, p.lz); cut.push(s); } else dark.push(s);
+    });
+    ruined.forEach((s, i) => {
+      const p = houses && s.kind === 'house' ? pickHouse(houses, s.w, s.d, 'ruined', types) : null;
+      const r = p ? null : pickRubble(ruins, Math.max(s.w, s.d));
+      if (!p && !r) return;
+      root.remove(mounds[i]);
+      if (p) put(p.obj, s, p.yaw, p.lx, 1, p.lz); else put(r.obj, s, 0, r.scale, r.scale, r.scale);
+    });
+    setTownDamage(root, cut, dark);
+    if (placed) onReady();
+    return placed > 0;
+  });
 };

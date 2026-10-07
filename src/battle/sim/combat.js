@@ -30,6 +30,9 @@ export const REAR_BONUS_MULT = 1.5;          // RoN: rear hits +50% (flank uses 
 export const CHARGE_BONUS_MULT = 1.25;
 export const CHARGE_DISTANCE = 4 * Q;
 export const NON_SIEGE_STRUCTURE_MULT = 0.15; // only siege really cracks walls
+// Raiders torch what they came to loot (battleType.js raid and sack): a depot or a house burns,
+// it need not be battered down.
+export const LOOT_BURN_MULT = 4;
 const WALLS_MULT = 0.6;                       // keep with intact walls (fortLevel ≥ 2, above half HP)
 
 export const perHitFraction = (stats) => (BASE_DAMAGE_RATE * (stats.attackTicks / TICK_HZ)) / EXCHANGE_SECONDS;
@@ -161,6 +164,7 @@ export const attackStructure = (w, a, s) => {
   let mult = NON_SIEGE_STRUCTURE_MULT;
   if (a.stats.structureBonus) mult = applySapperToSiegeMultiplier(view(a), true, getSiegeMultiplier(true));
   if (s.kind === 'keep' && s.walls && s.hp > s.maxHp / 2) mult *= WALLS_MULT;
+  if (s.loot && a.side === SIDE_ATTACKER) mult *= LOOT_BURN_MULT;
   const variance = 1 + (nextRandom(w) * 2 - 1) * RNG_VARIANCE;
   const damage = Math.max(0, Math.round(a.strength * perHitFraction(a.stats) * mult * variance * 3));
   a.engaged = true;

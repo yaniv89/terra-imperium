@@ -8,6 +8,11 @@
 //   kind 'field'              an AI stack attacks a player stack on a tile (a relief or a sally,
 //                             aiOperations.js), fought as a field battle (fieldBattle.js)
 //   kind 'naval'              an AI fleet attacks a player fleet (navalBattle.js)
+//   kind 'raid' or 'sack'     an independent's raid party fights the player's troops on a tile, or
+//                             sacks a player's town (raidBattle.js; settled by raids.js). Raids are
+//                             not wars: these records carry no war id
+//   kind 'intercept', 'landing'  an AI landing on the player's coast (aiLanding.js): the player's
+//                             fleets there meet the transport first, then the landing itself
 // AI against AI is always Auto (aiOperations.js fights it at once and never queues it).
 // The queue waits, like resolveTurn, while an event or a peace offer is open: nothing in it is
 // fought (Auto or Command) until the player answers; a peace signed meanwhile drops the battles of
@@ -20,8 +25,14 @@ import { battleNameOf } from './battleName';
 import { resolveAutoBattle } from './autoBattle';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
 import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs, applyFleetResult } from './navalBattle';
+import { isRaidKind, queuedRaidArmies, raidSpecOf, fightRaidAuto } from './raidBattle';
+import { resolveRaidBattle } from './raids';
+import { isLandingKind, resolveInterceptQueued, resolveLandingQueued, landingHoldChance } from './aiLanding';
 
-export const QUEUE_KINDS = ['defense', 'field', 'naval'];
+export const QUEUE_KINDS = ['defense', 'field', 'naval', 'raid', 'sack', 'intercept', 'landing'];
+
+/** Does a queued battle still stand? A war's battle while its war is active; a raid while its raiders live. */
+export const keepQueued = (d, wars, nations) => (d.warId ? wars.some((w) => w.id === d.warId && w.active) : isRaidKind(d.kind) && !!nations?.[d.aggressorId] && !nations[d.aggressorId].isEliminated);
 
 /** Is the queue waiting for the player to answer an event or a peace offer first? */
 export const battleQueueBlocked = (state) => !!(state.activeEventId || state.activeProceduralEvent || state.pendingPeaceOffer);
@@ -57,6 +68,9 @@ export const resolveQueuedAuto = (state, defId) => {
   if (!def) return state;
   const kind = queuedKind(def);
   if (kind === 'defense') return resolveDefenseAuto(state, defId);
+  if (isRaidKind(kind)) return resolveRaidBattle(state, def, null, { mode: 'auto' });
+  if (kind === 'intercept') return resolveInterceptQueued(state, def);
+  if (kind === 'landing') return resolveLandingQueued(state, def);
   const armies = queuedArmies(state, def);
   if (!armies) return drop(state, defId); // the armies moved, died or made peace: no battle
   const { actor, v } = armies;
@@ -89,6 +103,17 @@ export const queuedBattleView = (state, def, samples = 30) => {
   if (kind === 'defense') {
     const armies = getDefenseArmies(state, def);
     return { kind, name: battleNameOf(state, { kind: 'defense', regionId: def.regionId }), attackerUnits: armies.attackerUnits, defenderUnits: armies.defenderUnits, odds: estimateDefenseOdds(state, def, samples) };
+  }
+  if (isLandingKind(kind)) {
+    const { armies, holdChance } = landingHoldChance(state, def, samples);
+    return { kind, name: battleNameOf(state, { kind: kind === 'intercept' ? 'lane' : 'landing', regionId: def.regionId }), attackerUnits: armies?.attackerUnits || [], defenderUnits: [...(armies?.defenderUnits || []), ...(kind === 'landing' ? def.militia || [] : [])], odds: { holdChance } };
+  }
+  if (isRaidKind(kind)) {
+    const armies = queuedRaidArmies(state, def);
+    const spec = raidSpecOf(state, def, armies);
+    let held = 0;
+    for (let i = 0; i < samples; i++) if (fightRaidAuto(state, spec, createRng((def.seed + i * 0x9e3779b1) >>> 0)).outcome !== 'attacker') held += 1;
+    return { kind, name: battleNameOf(state, { kind, tile: def.tile, regionId: def.regionId }), attackerUnits: armies.attackerUnits, defenderUnits: [...armies.defenderUnits, ...(def.militia || [])], odds: { holdChance: armies.attackerUnits.length ? held / samples : 1 } };
   }
   const armies = queuedArmies(state, def);
   const name = battleNameOf(state, { kind, tile: def.tile, regionId: def.regionId });

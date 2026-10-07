@@ -24,7 +24,8 @@ The live site is GitHub Pages, built into `docs/`.
   (wars, war progress, `declareWar`), peace.js, invasion.js / defense.js (battle results),
   aftermath.js (war costs), vassals.js, pacts.js, techDiffusion.js, supplies.js, expansion.js (AE),
   aiEconomy.js, research.js (Civ-style science: a current tech, a queue, overflow; player and AI),
-  battleReports.js (the player's last 30 battles), stateAudit.js (invariant checks), plus src/utils/aiLogic.js (AI recruitment and
+  battleReports.js (the player's last 30 battles), raidBattle.js (raids and sacks as battles),
+  aiLanding.js (AI landings on the player's coast, queued), forts.js (manned forts start battles), stateAudit.js (invariant checks), plus src/utils/aiLogic.js (AI recruitment and
   war decisions). Balance harness: scripts/simulate.mjs.
 - Modifiers: src/engine/modifiers/ (`getModifier` = full sheet; `getNationBonusTotal` = static only).
 - `src/data/`: static game data (2,028 balanced regions, nations, techTree, buildings, resources).

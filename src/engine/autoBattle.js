@@ -15,7 +15,8 @@
 //                defender of a city at most its housing over its garrison. A city with no garrison
 //                (its militia alone) fights no economy and holds no gate: it is walked into. Their losses are not
 //                campaign losses; they are taken out of the result.
-//   walls        a walled city (fort level WALLS_FORT_LEVEL or more) without a siege engine in the
+//   walls        a walled city (fort level WALLS_FORT_LEVEL or more), or a manned fort in a field
+//                battle (forts.js), without a siege engine in the
 //                attacking army holds its gate: the attacker's blows count WALLS_NO_SIEGE_MULT,
 //                fading as a siege battered the walls (hpRatio), as the real-time walls block an
 //                army that has nothing to breach them with
@@ -35,6 +36,8 @@ import { resolveBattle, MAX_BATTLE_ROUNDS } from './battle';
 import { battleInputs, batteredReduction } from './battleInputs';
 import { stockMult, TRAIN_STRENGTH } from '../battle/data/economy';
 import { cityManifestOf } from './cityManifest';
+import { getRosterCombatMultiplier } from '../data/unitClasses';
+import { powExact } from '../utils/exactMath';
 
 export const AUX_UNIT = 1000;
 export const AUX_EFFECT = 1.6;
@@ -45,7 +48,33 @@ export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (th
 export const WALLS_FORT_LEVEL = 2;
 export const WALLS_NO_SIEGE_MULT = 0.7;
 export const AUX_CLOSENESS = 1.5; // the auxiliaries x min(1, this x weaker / stronger army); 0 = off
-export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, AUX_CLOSENESS };
+// Raids and sacks (measured with parityEco TYPES=raid,sack): raiders do not fight for the field,
+// they burn and run. In a raid their blows count RAID_MULT x min(1, defenders / raiders) (the more
+// they outnumber the defenders, the more of them are busy looting while a few hold the defenders
+// off); in a sack, where the garrison must be broken first, SACK_MULT. Beaten in a raid's fight,
+// they still burned the loot and got away RAID_SLIP_BASE of the time plus RAID_SLIP times the share
+// of cavalry in the party (fast riders slip past to the targets): a raid is hard to stop (the
+// real-time raiders win 15 or 16 of 16 against the AI). A sack must break the garrison: no slip.
+export const RAID_MULT = 0.4;
+export const SACK_MULT = 0.4;
+export const RAID_SLIP_BASE = 0.7;
+export const RAID_SLIP = 0.5;
+
+// Behind walls the real-time battle barely feels an older attacker's age gap (a bronze army against
+// classical walls loses what it loses against bronze walls: the fight is the gate, not the weapons),
+// while the round-based exchange multiplies the whole roster gap. The attacker gets back this share
+// (as an exponent) of the defender's roster advantage on a walled assault; 0 = off.
+export const WALLS_AGE_RELIEF = 0.7;
+export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
+
+/** The raiders' damage multiplier in an auto-resolved raid or sack (see RAID_MULT). */
+export const raidMult = (kind, ins, tune = AUTO_TUNE) => {
+  if (kind === 'sack') return tune.SACK_MULT ?? SACK_MULT;
+  if (kind !== 'raid') return 1;
+  const own = (list) => (list || []).reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
+  const a = own(ins.attackerUnits); const d = own(ins.defenderUnits);
+  return (tune.RAID_MULT ?? RAID_MULT) * (a > 0 ? Math.min(1, d / a) : 1);
+};
 export const CITY_TOWER_REPELLED = 0.5;
 export const CITY_HALL_REPELLED = 0.3;
 
@@ -65,6 +94,8 @@ export const autoCityDamage = (manifest, battle, defenderLossShare, rng) => {
 };
 
 const ASSAULT_KINDS = new Set(['invasion', 'landing', 'defense', 'assault']);
+// Raids and sacks (raidBattle.js): the one light battle, no battle economy, no gate held.
+export const RAID_KINDS = new Set(['raid', 'sack']);
 
 /** The auxiliaries a side brings into an auto-resolved battle: reserve units, never campaign units. */
 export const auxiliariesFor = (kind, side, ins, tune = AUTO_TUNE) => {
@@ -88,8 +119,8 @@ export const auxiliariesFor = (kind, side, ins, tune = AUTO_TUNE) => {
   return out;
 };
 
-export const AUTO_ESCAPE_CHANCE = 0.6;
-export const AUTO_ESCAPE_PURSUED = 0.4;
+export const AUTO_ESCAPE_CHANCE = 0.5;
+export const AUTO_ESCAPE_PURSUED = 0.3;
 
 /** Dispositions for a field battle's units (6.9), from the auto-resolve's result. */
 export const autoDispositions = (battle, rng) => {
@@ -135,14 +166,18 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
   const contested = !ASSAULT_KINDS.has(kind) || ins.defenderUnits.some((u) => !u.militia && u.strength > 0);
   const auxA = contested ? auxiliariesFor(kind, 0, ins, tune) : [];
   const auxD = contested ? auxiliariesFor(kind, 1, ins, tune) : [];
-  const walled = contested && ASSAULT_KINDS.has(kind) && (ins.walled ?? (args.fortLevel ?? 0) >= WALLS_FORT_LEVEL);
+  // A field battle against a manned fort (forts.js: a walled keep on the battle map) holds its gate too.
+  const walled = contested && ((ASSAULT_KINDS.has(kind) && (ins.walled ?? (args.fortLevel ?? 0) >= WALLS_FORT_LEVEL)) || (kind === 'field' && !!args.isAttackingFortification));
   const noSiege = walled && !ins.attackerUnits.some((u) => u.classId === 'siege' && u.strength > 0);
   const wallsMult = noSiege ? 1 - (1 - tune.WALLS_NO_SIEGE_MULT) * Math.max(0, Math.min(1, ins.hpRatio ?? 1)) : 1;
+  // The attacker's roster disadvantage is eased behind walls (WALLS_AGE_RELIEF).
+  const ageGap = walled ? getRosterCombatMultiplier(args.defenderAgeId ?? 'bronze', args.attackerAgeId ?? 'bronze') : 1;
+  const ageRelief = ageGap > 1 ? powExact(ageGap, tune.WALLS_AGE_RELIEF ?? WALLS_AGE_RELIEF) : 1;
   let battle = resolveBattle({
     ...args,
     attackerUnits: [...ins.attackerUnits, ...auxA],
     defenderUnits: [...ins.defenderUnits, ...auxD],
-    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult,
+    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult * ageRelief * raidMult(kind, ins, tune),
     maxRounds: MAX_BATTLE_ROUNDS + Math.max(auxA.length, auxD.length) * (tune.AUX_ROUNDS ?? AUX_ROUNDS),
     defenderDamageReductionMultiplier: batteredReduction(args.defenderDamageReductionMultiplier ?? 1, ins.hpRatio),
     rng
@@ -155,8 +190,16 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
     ...battle,
     attackerUnits: strip(battle.attackerUnits),
     defenderUnits: strip(battle.defenderUnits),
-    report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult }
+    report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult, ageRelief }
   };
-  if (kind === 'field') battle = autoDispositions(battle, rng);
+  // Raiders beaten in the fight may still have burned the loot and got away (the raid's objective).
+  if (kind === 'raid' && battle.outcome !== 'attacker') {
+    const alive = battle.attackerUnits.filter((u) => u.strength > 0);
+    const cav = alive.length ? alive.filter((u) => u.classId === 'cavalry').length / alive.length : 0;
+    if (alive.length && rng.next() < (tune.RAID_SLIP_BASE ?? RAID_SLIP_BASE) + (tune.RAID_SLIP ?? RAID_SLIP) * cav) battle = { ...battle, outcome: 'attacker', report: { ...battle.report, outcome: 'attacker', slipped: true } };
+  }
+  // Decisive field battles (6.9); a raid's beaten raiders are run down the same way unless they get
+  // away (battleOutcome.js raidAdapter destroys only the raiders still on the field).
+  if (kind === 'field' || RAID_KINDS.has(kind)) battle = autoDispositions(battle, rng);
   return { ...battle, report: { ...battle.report, mode: 'auto' }, inputs: ins };
 };

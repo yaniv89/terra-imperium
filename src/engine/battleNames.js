@@ -42,6 +42,7 @@ export const battleName = (state, { kind, targetRegionId = null, tile = null } =
   const city = state.regions?.[targetRegionId]?.name || null;
   switch (kind) {
     case 'field': return `Battle of ${battlePlace(state, tile, targetRegionId)}`;
+    case 'intercept':
     case 'naval': return `Sea battle off ${battlePlace(state, tile ?? state.regions?.[targetRegionId]?.tile, targetRegionId)}`;
     case 'amphibious':
     case 'landing': return `Landing at ${city || battlePlace(state, tile)}`;

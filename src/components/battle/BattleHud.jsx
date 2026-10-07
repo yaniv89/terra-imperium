@@ -14,7 +14,7 @@
 //   city (B05)   in a city assault: the defender's housing as houses burn and the 50% rule's line
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Swords, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp } from 'lucide-react';
+import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp } from 'lucide-react';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
@@ -237,9 +237,11 @@ const BattleHud = ({
               </div>
             )}
             <div className="mt-1 text-fa-brass">
-              {fmtTime(timeLeft)} on the clock: {playerSide === 1
-                ? 'hold out until it runs out and the defence is yours.'
-                : 'take the keep or break the defenders before it runs out, or the defender holds.'}
+              {fmtTime(timeLeft)} on the clock: {setup.battleType === 'raid' || setup.battleType === 'sack'
+                ? `${BATTLE_TYPES[setup.battleType][playerSide === 1 ? 'defender' : 'attacker']}.`
+                : playerSide === 1
+                  ? 'hold out until it runs out and the defence is yours.'
+                  : 'take the keep or break the defenders before it runs out, or the defender holds.'}
             </div>
           </div>
         </div>

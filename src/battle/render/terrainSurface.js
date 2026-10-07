@@ -15,6 +15,7 @@
 // melt everything into the sky.
 import { DataTexture, RGBAFormat, LinearFilter, ClampToEdgeWrapping, BufferGeometry, Float32BufferAttribute, Color } from 'three';
 import { TILE } from '../setup/mapgen';
+import { BATTLE_TILE_TILES, GROUND_DETAIL_GLSL } from '../../data/groundMaterials';
 
 export const SKIRT = 40; // tiles of land beyond each edge of the map
 
@@ -132,20 +133,30 @@ float tNoise(vec2 p) {
 
 // Patch a Lambert/Standard material so it paints roads, sand, rock and forest floor per pixel from
 // the tile mask, with noisy, feathered edges. Works for the map and its skirt alike (world XZ).
-export const patchGroundMaterial = (material, { mask, mapW, mapH, road, sand, rock, forest }) => {
+// `details` ({ base, road, sand, rock, forest }: texture uniforms, data/groundMaterials.js): the
+// ground material sets over each layer as detail; a layer without one compiles without it.
+export const DETAIL_LAYERS = ['base', 'road', 'sand', 'rock', 'forest'];
+export const patchGroundMaterial = (material, { mask, mapW, mapH, road, sand, rock, forest, details = {} }) => {
   const uniforms = {
     uTileMask: { value: mask },
     uMapSize: { value: [mapW, mapH] },
     uRoad: { value: new Color(road) }, uSand: { value: new Color(sand) },
-    uRock: { value: new Color(rock) }, uForest: { value: new Color(forest) }
+    uRock: { value: new Color(rock) }, uForest: { value: new Color(forest) },
+    uDetailRepeat: { value: 1 / BATTLE_TILE_TILES }
   };
+  const layers = DETAIL_LAYERS.filter((l) => details[l]);
+  layers.forEach((l) => { uniforms[`uGd_${l}`] = details[l]; });
+  const defs = layers.map((l) => `#define GD_${l.toUpperCase()}\nuniform sampler2D uGd_${l};`).join('\n');
+  const detail = (l) => `d_${l} = groundDetail(uGd_${l}, p * uDetailRepeat);`;
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = 'varying vec2 vGroundXZ;\n' + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       vGroundXZ = (modelMatrix * vec4(transformed, 1.0)).xz;`);
     shader.fragmentShader = `varying vec2 vGroundXZ;
 uniform sampler2D uTileMask; uniform vec2 uMapSize;
-uniform vec3 uRoad; uniform vec3 uSand; uniform vec3 uRock; uniform vec3 uForest;
+uniform vec3 uRoad; uniform vec3 uSand; uniform vec3 uRock; uniform vec3 uForest; uniform float uDetailRepeat;
+${defs}
+${layers.length ? GROUND_DETAIL_GLSL : ''}
 ${NOISE_GLSL}` + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
       {
         vec2 p = vGroundXZ;
@@ -161,16 +172,18 @@ ${NOISE_GLSL}` + shader.fragmentShader.replace('#include <color_fragment>', `#in
         float sandA = smoothstep(0.30, 0.66, m.g + edgeJitter);
         float rockA = smoothstep(0.32, 0.68, m.b + edgeJitter);
         float forestA = smoothstep(0.20, 0.80, m.a + edgeJitter * 0.6);
-        vec3 g = diffuseColor.rgb;
-        g = mix(g, uForest * (0.9 + 0.2 * grain), forestA * 0.6);
-        g = mix(g, uSand * (0.92 + 0.16 * grain), sandA * 0.85);
-        g = mix(g, uRock * (0.85 + 0.3 * grain), rockA * 0.85);
+        vec3 d_base = vec3(1.0); vec3 d_road = vec3(1.0); vec3 d_sand = vec3(1.0); vec3 d_rock = vec3(1.0); vec3 d_forest = vec3(1.0);
+        ${layers.map(detail).join('\n')}
+        vec3 g = diffuseColor.rgb * d_base;
+        g = mix(g, uForest * (0.9 + 0.2 * grain) * d_forest, forestA * 0.6);
+        g = mix(g, uSand * (0.92 + 0.16 * grain) * d_sand, sandA * 0.85);
+        g = mix(g, uRock * (0.85 + 0.3 * grain) * d_rock, rockA * 0.85);
         // Wheel ruts: roads are a touch darker along their middle.
-        g = mix(g, uRoad * (0.88 + 0.24 * grain) * (1.0 - 0.08 * smoothstep(0.75, 1.0, m.r)), roadA * 0.9);
+        g = mix(g, uRoad * (0.88 + 0.24 * grain) * (1.0 - 0.08 * smoothstep(0.75, 1.0, m.r)) * d_road, roadA * 0.9);
         diffuseColor.rgb = g;
       }`);
   };
-  material.customProgramCacheKey = () => 'battle-ground';
+  material.customProgramCacheKey = () => `battle-ground|${layers.join(',')}`;
   return material;
 };
 

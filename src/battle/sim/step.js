@@ -19,12 +19,16 @@ import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER, Q, secondsToTicks } fro
 import { LOSS_DECISIVE, RIVER_HOLD_SHARE, AMBUSH_SECONDS, AMBUSH_LOSS, LANDING_HOLD_SECONDS, SALLY_ENGINES } from '../setup/battleType';
 
 const AMBUSH_TICKS = secondsToTicks(AMBUSH_SECONDS);
+// The pursuit after a field battle is decided (decision 33).
+export const PURSUIT_SECONDS = 90;
+export const PURSUIT_TICKS = secondsToTicks(PURSUIT_SECONDS);
+const PURSUIT_TYPES = new Set(['field', 'river', 'ambush', 'sally']); // the campaign's 'field' kind (a sally is one)
 const LANDING_HOLD_TICKS = secondsToTicks(LANDING_HOLD_SECONDS);
 
 // A side with no squads left on the field sends its whole remaining reserve in, once (last stand).
 const lastStand = (w, side) => {
   if (w.lastStandUsed[side]) return;
-  const fighting = w.squads.some((q) => q.side === side && !q.worker && isFighting(q) && !q.routed && !q.retreating);
+  const fighting = w.squads.some((q) => q.side === side && !q.worker && !q.isGeneral && isFighting(q) && !q.routed && !q.retreating);
   const entering = w.squads.some((q) => q.side === side && q.alive && q.enterTick >= 0);
   if (fighting || entering) return;
   const waiting = w.squads.filter((q) => q.side === side && q.alive && q.reserve && !q.fled);
@@ -34,30 +38,48 @@ const lastStand = (w, side) => {
   w.events.push({ t: w.tick, type: 'lastStand', side });
 };
 
-// Workers (the battle economy) never keep a side in the fight: an army of laborers is a broken one.
-const isBroken = (w, side) => !w.squads.some((q) => q.side === side && !q.worker && q.alive && !q.fled && (
+// Workers (the battle economy) never keep a side in the fight: an army of laborers is a broken one;
+// nor do generals (world.js): a general with no army left has lost.
+const isBroken = (w, side) => !w.squads.some((q) => q.side === side && !q.worker && !q.isGeneral && q.alive && !q.fled && (
   (q.onField && !q.routed && !q.retreating) || q.enterTick >= 0 || (q.reserve && !w.lastStandUsed[side] && !w.retreatOrdered?.[side])
 ));
 
 // The strength a side still fields (alive, not fled, not routed; reserves count) against what it
 // brought: the battle types' loss rules read this (battleType.js).
 const startStrength = (w, side) => (w.setup.sides?.[side]?.units || []).reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
-const sideStrength = (w, side) => w.squads.reduce((s, q) => s + (q.side === side && !q.worker && q.alive && !q.fled && !q.routed ? q.strength : 0), 0);
+const sideStrength = (w, side) => w.squads.reduce((s, q) => s + (q.side === side && !q.worker && !q.isGeneral && q.alive && !q.fled && !q.routed ? q.strength : 0), 0);
 const lossShare = (w, side) => { const start = startStrength(w, side); return start > 0 ? 1 - sideStrength(w, side) / start : 0; };
 // The share of a side's squads destroyed or fled the field: "rout or destroy 60%" counts squads
 // gone for good, so a side breaks only once most of its line has left (a strength share would end
 // even fights early for the side that trades worse).
 const brokenShare = (w, side) => { // a routed squad may still rally: only the dead and the fled count
   let mine = 0; let gone = 0;
-  for (let i = 0; i < w.squads.length; i++) { const q = w.squads[i]; if (q.side !== side || q.worker) continue; mine += 1; if (!q.alive || q.fled) gone += 1; }
+  for (let i = 0; i < w.squads.length; i++) { const q = w.squads[i]; if (q.side !== side || q.worker || q.isGeneral) continue; mine += 1; if (!q.alive || q.fled) gone += 1; }
   return mine ? gone / mine : 0;
 };
 // The attacker's strength standing on the far bank (the defender's half of the field).
 const farBankStrength = (w) => { const midX = Math.floor(w.map.w / 2) * Q; return w.squads.reduce((s, q) => s + (q.side === SIDE_ATTACKER && q.alive && !q.fled && !q.routed && q.onField && q.x >= midX ? q.strength : 0), 0); };
+// A raid or a sack (battleType.js): the loot targets burned so far.
+export const lootBurned = (w) => { let n = 0; for (let i = 0; i < w.structures.length; i++) { const s = w.structures[i]; if (s.loot && !s.alive) n += 1; } return n; };
+const raidEnd = (w) => {
+  const needed = w.setup.raid?.needed ?? 2;
+  if (!w.looted && lootBurned(w) >= needed) { w.looted = true; w.events.push({ t: w.tick, type: 'looted', side: SIDE_ATTACKER }); }
+  const defenderBroken = isBroken(w, SIDE_DEFENDER);
+  // With the loot the raiders run for their edge: the battle lasts until the last of them is off
+  // the field (escaped by the exit) or dead. Driven off or killed before they burned enough: the
+  // defender's. Nobody left to stop them: theirs. At the clock the loot decides.
+  const raidersGone = !w.squads.some((q) => q.side === SIDE_ATTACKER && !q.worker && q.alive && !q.fled && (q.onField || q.enterTick >= 0));
+  if (w.looted && raidersGone) w.ended = { outcome: 'attacker', reason: 'escaped', tick: w.tick };
+  else if (!w.looted && isBroken(w, SIDE_ATTACKER)) w.ended = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : 'raidersDriven', tick: w.tick };
+  else if (defenderBroken) w.ended = { outcome: 'attacker', reason: 'defendersBroken', tick: w.tick };
+  else if (w.tick >= battleLimitTicks(w.setup)) w.ended = w.looted ? { outcome: 'attacker', reason: 'looted', tick: w.tick } : { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
+  if (w.ended) w.events.push({ t: w.tick, type: 'ended', outcome: w.ended.outcome, reason: w.ended.reason });
+};
 const campBurned = (w) => { const razed = w.razed || []; return razed.filter((c) => c === 'engine').length >= SALLY_ENGINES || razed.includes('camp'); };
 
 const checkEnd = (w) => {
   const type = w.setup.battleType || 'field';
+  if (type === 'raid' || type === 'sack') { raidEnd(w); return; }
   if (w.assimilation >= ASSIMILATION_TICKS) { w.ended = { outcome: 'attacker', reason: 'keepTaken', decisive: true, tick: w.tick }; return; }
   if (type === 'sally' && campBurned(w)) { w.ended = { outcome: 'attacker', reason: 'campBurned', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'attacker', reason: 'campBurned' }); return; }
   if (type === 'landing') {
@@ -78,15 +100,30 @@ const checkEnd = (w) => {
   });
   const attackerBroken = isBroken(w, SIDE_ATTACKER);
   const defenderBroken = isBroken(w, SIDE_DEFENDER);
-  if (attackerBroken && defenderBroken) w.ended = { outcome: 'stalemate', reason: 'mutualDestruction', tick: w.tick };
-  else if (defenderBroken) w.ended = { outcome: 'attacker', reason: w.spent[SIDE_DEFENDER] ? 'lossesDecisive' : 'defendersBroken', decisive: !!w.spent[SIDE_DEFENDER], tick: w.tick };
-  else if (attackerBroken) w.ended = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : w.spent[SIDE_ATTACKER] ? 'lossesDecisive' : 'attackersBroken', tick: w.tick };
+  let verdict = null;
+  if (attackerBroken && defenderBroken) verdict = { outcome: 'stalemate', reason: 'mutualDestruction', tick: w.tick };
+  else if (defenderBroken) verdict = { outcome: 'attacker', reason: w.spent[SIDE_DEFENDER] ? 'lossesDecisive' : 'defendersBroken', decisive: !!w.spent[SIDE_DEFENDER], tick: w.tick };
+  else if (attackerBroken) verdict = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : w.spent[SIDE_ATTACKER] ? 'lossesDecisive' : 'attackersBroken', tick: w.tick };
+  // Decisive field battles (master plan 6.9, decision 33): a broken side runs for its edge and the
+  // winner pursues; the battle ends once the last of the losers is off the field (or dead), or after
+  // PURSUIT_TICKS. The ones still on the field then are lost; the ones that got out live.
+  if (verdict && verdict.outcome !== 'stalemate' && PURSUIT_TYPES.has(type)) {
+    const loser = verdict.outcome === 'attacker' ? SIDE_DEFENDER : SIDE_ATTACKER;
+    if (!w.pursuit) {
+      w.pursuit = { side: loser, until: w.tick + PURSUIT_TICKS };
+      w.squads.forEach((q) => { if (q.side === loser && q.alive && !q.fled && q.onField && !q.routed && !q.eco && !(q.inside >= 0)) { q.retreating = true; q.target = -1; q.targetKind = null; q.order = { type: 'retreat' }; } });
+      w.events.push({ t: w.tick, type: 'pursuit', side: loser });
+    }
+    const left = w.squads.some((q) => q.side === loser && !q.eco && q.alive && !q.fled && q.onField);
+    if (!left || w.tick >= w.pursuit.until || w.tick >= battleLimitTicks(w.setup)) w.ended = { ...verdict, tick: w.tick };
+  } else if (verdict) w.ended = verdict;
   else if (w.tick >= battleLimitTicks(w.setup)) {
     // At the clock: a river crossing is won by the far bank; a field battle by the strength left.
     if (type === 'river' && farBankStrength(w) >= RIVER_HOLD_SHARE * startStrength(w, SIDE_ATTACKER)) w.ended = { outcome: 'attacker', reason: 'farBankHeld', decisive: true, tick: w.tick };
     else if ((type === 'field' || type === 'naval') && sideStrength(w, SIDE_ATTACKER) > sideStrength(w, SIDE_DEFENDER) * 1.5) w.ended = { outcome: 'attacker', reason: 'fieldHeld', decisive: false, tick: w.tick };
     else w.ended = { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
   }
+  if (!verdict && w.pursuit) w.pursuit = null; // the beaten side turned and fights on
   if (w.ended) w.events.push({ t: w.tick, type: 'ended', outcome: w.ended.outcome, reason: w.ended.reason });
 };
 

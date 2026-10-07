@@ -14,15 +14,18 @@ import {
   WebGLRenderer, Scene, OrthographicCamera, Mesh, PlaneGeometry, ShaderMaterial, TextureLoader, LinearFilter,
   ClampToEdgeWrapping, Vector2, Vector4
 } from 'three';
-import { TERRAIN_VERTEX, TERRAIN_FRAGMENT, pxPerKm } from './terrainShader';
+import { TERRAIN_VERTEX, TERRAIN_FRAGMENT, pxPerKm, closeGroundSetup } from './terrainShader';
 import { visibleRasterTiles, rasterTileUrl, RASTER_MAX_Z, RASTER_TILE } from '../../../data/geo/rasterTiles';
 
 const TILE_CACHE = 96;
 
+const GROUND = closeGroundSetup(); // ground material sets as detail, where delivered (terrainShader.js)
 const makeMaterial = (texture, size, geo) => new ShaderMaterial({
   vertexShader: TERRAIN_VERTEX,
   fragmentShader: TERRAIN_FRAGMENT,
+  defines: { ...GROUND.defines },
   uniforms: {
+    ...GROUND.uniforms,
     uMap: { value: texture },
     uSize: { value: new Vector2(size[0], size[1]) },
     uGeo: { value: new Vector4(geo[0], geo[1], geo[2], geo[3]) },

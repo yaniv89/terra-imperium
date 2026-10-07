@@ -12,5 +12,6 @@ export const staticSquads = (w, key, pick) => {
   return byKey[key] || (byKey[key] = w.squads.filter(pick));
 };
 
-export const generalsOf = (w) => staticSquads(w, 'generals', (q) => !!q.commanderId);
+// The generals on the field: their own guard squads (world.js spawnGenerals; master plan 6.7 row 5).
+export const generalsOf = (w) => staticSquads(w, 'generals', (q) => !!q.isGeneral);
 export const cavalryOf = (w) => staticSquads(w, 'cavalry', (q) => q.classId === 'cavalry');

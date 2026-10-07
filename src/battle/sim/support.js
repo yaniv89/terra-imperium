@@ -15,10 +15,10 @@ const REST_TICKS = secondsToTicks(10);
 const HEAL_PER_SEC = 0.005; // of max strength
 const CADRE_HEAL_PER_SEC = 0.0025;
 
-const isSupplier = (o) => isFighting(o) && !o.routed && (o.stats.supplyAura || o.commanderId);
+const isSupplier = (o) => isFighting(o) && !o.routed && (o.stats.supplyAura || o.isGeneral);
 const nearSupply = (suppliers, q) => suppliers.some((o) => o.side === q.side && (
   (o.stats.supplyAura && distSq(o.x, o.y, q.x, q.y) <= o.stats.supplyAura * o.stats.supplyAura)
-  || (o.commanderId && distSq(o.x, o.y, q.x, q.y) <= GENERAL_SUPPLY_RADIUS * GENERAL_SUPPLY_RADIUS)
+  || (o.isGeneral && distSq(o.x, o.y, q.x, q.y) <= GENERAL_SUPPLY_RADIUS * GENERAL_SUPPLY_RADIUS)
 ));
 
 const inDefenderTerritory = (w, q) => {

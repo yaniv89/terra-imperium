@@ -52,7 +52,7 @@ const DefenseSheet = () => {
     ...(m.withdraw ? [{ id: 'withdraw', sub: m.withdraw.ok ? `Give up ${m.place}, keep the men` : 'Nowhere to go', disabled: !m.withdraw.ok, title: m.withdraw.text, testId: 'defense-withdraw' }] : [])
   ];
   const explain = chosen === 'auto' ? m.auto : chosen === 'withdraw' ? m.withdraw.text : m.command;
-  const action = chosen === 'auto' ? 'Fight on Auto' : chosen === 'withdraw' ? 'Withdraw' : 'Begin defence';
+  const action = chosen === 'auto' ? 'Fight on Auto' : chosen === 'withdraw' ? 'Withdraw' : m.attacking ? 'Begin battle' : 'Begin defence';
   const w = m.walls;
   const autoDefend = state.battleSettings?.autoDefend === true;
 
@@ -83,8 +83,8 @@ const DefenseSheet = () => {
         </div>
         {!m.odds.undefended && (
           <div className="flex items-center gap-3 px-0.5" data-testid="defense-odds" title={m.auto}>
-            <div className="shrink-0 text-[12px] leading-tight"><span className="text-fa-muted">Auto holds </span><span className={m.odds.hold >= 0.5 ? 'text-fa-good font-semibold' : 'text-fa-danger-text font-semibold'}><span className="fa-num">{Math.round(m.odds.hold * 100)}%</span> · {m.odds.verdict}</span></div>
-            <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft="they take it" labelRight="you hold" /></div>
+            <div className="shrink-0 text-[12px] leading-tight"><span className="text-fa-muted">Auto {m.attacking ? 'wins' : 'holds'} </span><span className={m.odds.hold >= 0.5 ? 'text-fa-good font-semibold' : 'text-fa-danger-text font-semibold'}><span className="fa-num">{Math.round(m.odds.hold * 100)}%</span> · {m.odds.verdict}</span></div>
+            <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft={m.attacking ? 'they hold' : 'they take it'} labelRight={m.attacking ? 'you win' : 'you hold'} /></div>
           </div>
         )}
         <ModeCards options={options} value={chosen} onChange={setMode} compact />

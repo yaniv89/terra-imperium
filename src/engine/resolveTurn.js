@@ -7,6 +7,8 @@ import { processLateArrivals, independentCityCtx } from './independents';
 import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
 import { processIndependents } from './raids';
+import { keepQueued } from './battleQueue';
+import { processFortBattles } from './forts';
 import { processMajorsAndIndependents } from './indepPolicy';
 import { reconcileTerritory } from './worldLifecycle';
 import { invalidateRegionsCache } from '../data/regions';
@@ -244,6 +246,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- marches (routes.js): armies on a route walk this turn's steps first, so the supplies, the
   // upkeep and every phase below see where they now stand.
   let marchLogs = [];
+  const startUnits = state.units; // who moved this turn (forts.js: a manned fort stops and fights them)
   if (Object.values(state.units).some((u) => u.route?.length)) {
     const marchedUnits = { ...state.units };
     marchLogs = advanceMarches(state, marchedUnits, { year: state.year }).logs;
@@ -1100,6 +1103,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   nationsAfterWars = refreshWarFlags(nationsAfterWars, wars, [...eliminationWarParticipants]);
   mark('elimination');
 
+  let raidBattles = [];
   // --- independents (phase W2, raids.js): their treasuries, grudges, tribute, raids and sacks,
   // and every mercenary contract (mercenaries.js). After the majors' operations, so a raid meets
   // the armies where they now stand.
@@ -1108,8 +1112,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const indep = processIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, age: newAge, regions, units, nations: nationsAfterWars, resources, wars }, { inPlace: true });
     if (indep) {
       nationsAfterWars = indep.nations;
-      state = { ...state, world: indep.world, tributeDemands: indep.tributeDemands, indepStats: indep.indepStats };
+      state = { ...state, world: indep.world, tributeDemands: indep.tributeDemands, indepStats: indep.indepStats, ...(indep.appliedBattleIds ? { appliedBattleIds: indep.appliedBattleIds } : {}) };
       indep.logs.forEach((l) => logs.push(l));
+      // Raid battles against the player wait in the battle queue for Command or Auto (raidBattle.js).
+      raidBattles = indep.queued;
       if (indep.regionsChanged) invalidateRegionsCache(regions); // a sack or a burned outpost; no city changes hands here
     }
   }
@@ -1229,7 +1235,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // dropped if their war ended this same turn.
     nextUnitSeq: operations.nextUnitSeq,
     aiOperations: operations.aiOperations,
-    pendingDefenses: [...operations.pendingDefenses, ...(warProgress.pendingDefenses || [])].filter((d) => wars.some((w) => w.id === d.warId && w.active)),
+    // Raids are not wars: their battles carry no war id and stay (battleQueue.js keepQueued).
+    pendingDefenses: [...operations.pendingDefenses, ...(warProgress.pendingDefenses || []), ...raidBattles].filter((d) => keepQueued(d, wars, nationsAfterWars)),
     regionModifiers,
     orbitalDebrisLevel,
     spaceMissionProgress,
@@ -1248,6 +1255,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
   // The battle queue (battleQueue.js): with autoDefend the battles are fought on Auto now, unless an
   // event or a peace offer opened this turn (then they wait for the answer, gameReducer's drain).
+  // Manned forts stop and fight the enemy armies that came next to them this turn (forts.js).
+  next = processFortBattles(next, startUnits);
   if (next.pendingDefenses.length) next = drainAutoBattles(next);
   if (next.tutorial) next = advanceTutorial(next);
   mark('assembleNextState');

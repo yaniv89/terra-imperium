@@ -11,11 +11,11 @@ import { getRosterCombatMultiplier } from '../../data/unitClasses';
 import { getDepositsFor } from '../../data/deposits';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { validateInvasion, getInvasionBattleContext, getBattlePowers, validateAmphibious, getAmphibiousBattleContext } from '../../engine/invasion';
-import { validateFieldAttack, getFieldBattleContext } from '../../engine/fieldBattle';
+import { validateFieldAttack, getFieldBattleContext, FORT_BATTLE_LEVEL } from '../../engine/fieldBattle';
 import { validateFleetAttack, getFleetBattleContext } from '../../engine/navalBattle';
 import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense';
 import { generateMap, TILE, LANDING_SEA_COLS } from './mapgen';
-import { BATTLE_TYPES, battleTypeOf } from './battleType';
+import { BATTLE_TYPES, battleTypeOf, RAID_TYPES, RAID_LOOT_NEEDED, RAID_LOOT_TARGETS, SACK_BURN_NEEDED } from './battleType';
 import { getTiles } from '../../data/geo/tiles';
 import { tileContextOf } from './tileContext';
 import { unitTile } from '../../engine/armies';
@@ -27,12 +27,15 @@ import { cityManifestOf, cityDamageOf } from '../../engine/cityManifest';
 import { buildEconomySetup } from './economySetup';
 import { battleInputs } from '../../engine/battleInputs';
 import { getTechAgeId } from '../../engine/nationState';
+import { isRaidKind, queuedRaidArmies, raidSpecOf, raidBattleContext } from '../../engine/raidBattle';
+import { interceptArmies, interceptArgs } from '../../engine/aiLanding';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
 // under different rules (v2: garrisons, v3: the region's buildings on the battlefield, v4: the real
-// city from its manifest, cityBattle.js; v5: the battle economy, economySetup.js).
-export const SETUP_VERSION = 5;
+// city from its manifest, cityBattle.js; v5: the battle economy, economySetup.js; v6: phase R3, the
+// raid and sack types, the pursuit after a field battle, forts and generals on the field).
+export const SETUP_VERSION = 6;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
@@ -80,6 +83,23 @@ const placeCamp = (map) => {
   });
 };
 
+// A raid's loot (battleType.js): a depot, the fields' stores and a trade post on the defender's
+// side of the field, razable 'building' structures flagged `loot` the raiders must burn.
+export const LOOT_TARGETS = [['depot', 'Depot', 300], ['fields', 'Fields and stores', 260], ['tradepost', 'Trade post', 280]];
+// Spread across the defender's front (north, centre, south), ahead of its line: one force cannot
+// cover them all, so the defender must come out and the raiders must get through.
+const placeLoot = (map) => {
+  const { w, h, tiles, keep } = map;
+  const spread = Math.max(4, Math.floor(h * 0.3));
+  const spots = [[-17, -spread], [-13, 0], [-17, spread]];
+  return LOOT_TARGETS.slice(0, RAID_LOOT_TARGETS).map(([category, name, hp], i) => {
+    let tx = Math.max(2, Math.min(w - 3, keep.x + spots[i][0])); const ty = Math.max(2, Math.min(h - 3, keep.y + spots[i][1]));
+    for (let k = 0; k < 12 && tiles[ty * w + tx] !== TILE.OPEN && tiles[ty * w + tx] !== TILE.SAND; k++) tx = Math.min(w - 3, tx + 1);
+    tiles[ty * w + tx] = TILE.BUILDING;
+    return { id: `loot_${category}`, kind: 'building', category, name, tier: 1, loot: true, x: centre(tx), y: centre(ty), radius: Math.round(0.9 * Q), maxHp: hp, hp, range: 0, attackTicks: secondsToTicks(1.5), damage: 0, cooldown: 0, alive: true };
+  });
+};
+
 const placeBuildings = (map, list) => {
   if (!list.length) return [];
   const { w, h, tiles, keep } = map;
@@ -113,6 +133,7 @@ export const buildSetupFromArmies = ({
   controllers = ['player', 'ai'], difficultyId = 'prince',
   powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true },
   landing = false, regionBuildings = [], tileContext = null, sally = false, city = fortLevel > 0 || isCapital, fromTile = null, battleType = null,
+  raid = false, // raiders come for loot (battleType.js raid, or sack on a city): the one light battle
   cityManifest = null, cityDamage = null, // the real city (src/engine/cityManifest.js): its houses, walls and landmarks stand on the field
   combatWidth: combatWidthOverride = null, // a bigger field for the large-battle presets and the benchmark (src/battle/bench/benchScenario.js)
   // The battle economy (phase R1, economySetup.js): workers, resources, buildings and training. The
@@ -122,8 +143,9 @@ export const buildSetupFromArmies = ({
 }) => {
   const combatWidth = combatWidthOverride || getCombatWidth(terrain);
   const naval = battleType === 'naval';
-  const type = battleType || battleTypeOf({ landing, sally, city, fortLevel, tileContext, fromTile });
-  const realCity = !naval && type !== 'sally' && cityManifest?.structures?.length ? cityManifest : null;
+  const type = battleType || battleTypeOf({ raid, landing, sally, city, fortLevel, tileContext, fromTile });
+  const raiding = RAID_TYPES.has(type);
+  const realCity = !naval && type !== 'sally' && type !== 'raid' && cityManifest?.structures?.length ? cityManifest : null;
   const map = generateMap({ regionId, terrain, combatWidth, pointCount: naval ? 0 : deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext, naval, ...(realCity ? { keepInset: cityKeepInset(realCity) } : {}) });
   // A siege in progress (sieges.js) has already battered the walls: the keep starts at that HP.
   // A sea battle has one structure: the defender's anchorage, an unwalled keep the AI steers for and the renderer leaves out.
@@ -135,9 +157,12 @@ export const buildSetupFromArmies = ({
     const placed = placeCity({ map, manifest: realCity, damage: cityDamage, fortLevel, keepStructures });
     structures = placed.structures;
     cityInfo = placed.city;
-  } else structures = [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings), ...(type === 'sally' ? placeCamp(map) : [])];
-  // Every land battle but a raid has full base-building (decision 36); raids arrive with R3.
-  const ecoSetup = economy && !naval ? buildEconomySetup({
+  } else if (type === 'raid') structures = [...buildStructures({ keepTile: map.keep, fortLevel: 0, isCapital: false }), ...placeLoot(map)];
+  else structures = [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings), ...(type === 'sally' ? placeCamp(map) : []), ...(type === 'sack' ? placeLoot(map) : [])];
+  // A sack burns the town: its buildings and houses are the loot (a town without a manifest gets the raid's targets).
+  if (type === 'sack' && realCity) structures.forEach((st) => { if ((st.kind === 'building' || st.kind === 'house') && !st.ruinedAtStart && st.alive) st.loot = true; });
+  // Every land battle but a raid has full base-building (decision 36): raiders come to plunder, not to stay.
+  const ecoSetup = economy && !naval && !raiding ? buildEconomySetup({
     map, terrain, tileContext, regionKey: regionId, structures, city: cityInfo, inputs: economyInputs,
     sides: [{ units: attackerUnits }, { units: defenderUnits }], ageIds: [attackerAgeId, defenderAgeId]
   }) : null;
@@ -154,7 +179,10 @@ export const buildSetupFromArmies = ({
     // The clock by battle type (battleType.js): a field battle is fast, a siege gives the engines time.
     battleType: type,
     // With an economy the clocks are the master plan's (6.1): a city assault 30 minutes, the rest 15.
-    limitTicks: ecoSetup ? (type === 'assault' ? ECONOMY_SIEGE_TICKS : ECONOMY_FIELD_TICKS) : BATTLE_TYPES[type].limitTicks,
+    // A landing is fought as a city assault (6.1): the 30-minute clock; a sally the field's 15.
+    limitTicks: ecoSetup ? (type === 'assault' || type === 'landing' ? ECONOMY_SIEGE_TICKS : ECONOMY_FIELD_TICKS) : BATTLE_TYPES[type].limitTicks,
+    // What the raiders must burn before they get away (battleType.js).
+    ...(raiding ? { raid: { needed: type === 'sack' ? SACK_BURN_NEEDED : RAID_LOOT_NEEDED } } : {}),
     map,
     tile: tileContext?.tile ?? null,
     structures,
@@ -263,16 +291,25 @@ const buildDefenseSetup = (state, pb) => {
   });
 };
 
+// A field or sea battle an AI started against the player (battleQueue.js) is gated as the
+// aggressor's attack: the same gate, from its side.
+const gateOf = (state, pb) => (pb.attackerNationId && pb.attackerNationId !== state.playerNationId
+  ? { ...state, playerNationId: pb.attackerNationId, techAgeId: getTechAgeId(state, pb.attackerNationId) }
+  : state);
+
 // A commanded amphibious landing (T9): the invaders come ashore on a beach at the west edge, with
 // their fleet's guns (two Naval Bombardment salvos) covering the shore half of the field. Their
 // own reinforcements can't follow by sea; the defender's neighbours can still march in.
 const buildAmphibiousSetup = (state, pb) => {
-  const v = validateAmphibious(state, pb.navalUnitId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
+  // An AI landing on the player's coast (src/engine/aiLanding.js) is gated as the aggressor's.
+  const gate = gateOf(state, pb);
+  const aiLands = gate !== state;
+  const v = validateAmphibious(gate, pb.navalUnitId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
   if (!v.ok) return null;
   const attackerUnits = v.embarkedLandUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
   const defenderUnits = v.defenderLandUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
   if (!attackerUnits.length || !defenderUnits.length) return null;
-  const ctx = getAmphibiousBattleContext(state, { ...v, hasBeachhead: pb.hasBeachhead ?? v.hasBeachhead }, defenderUnits);
+  const ctx = getAmphibiousBattleContext(gate, { ...v, hasBeachhead: pb.hasBeachhead ?? v.hasBeachhead }, defenderUnits);
   const ins = battleInputs(state, { attackerUnits, defenderUnits, cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia || [] });
   const regionData = REGIONS_DATA[pb.targetRegionId] || {};
   const fortLevel = (v.targetRegion.defenseLevel || 0) + getRegionModifier(state, pb.targetRegionId, 'local.fortLevel').total;
@@ -293,16 +330,16 @@ const buildAmphibiousSetup = (state, pb) => {
     defenseReduction: ctx.defenderDamageReductionMultiplier,
     isAttackingFortification: ctx.isAttackingFortification,
     attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier,
-    attackerNationId: state.playerNationId,
+    attackerNationId: gate.playerNationId,
     defenderNationId: v.targetRegion.owner,
-    controllers: ['player', 'ai'],
+    controllers: aiLands ? ['ai', 'player'] : ['player', 'ai'],
     difficultyId: state.difficultyId || 'prince',
     powers: [
-      [...getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: true }), { id: 'navalBombardment', uses: 2 }],
-      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits, { allowNuclear: false })
+      [...getBattlePowers(state, gate.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: !aiLands }), { id: 'navalBombardment', uses: 2 }],
+      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits, { allowNuclear: aiLands })
     ],
     reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
-    intel: { attackerSeesDefender: canSeeRegionDetails(state, pb.targetRegionId) },
+    intel: { attackerSeesDefender: aiLands ? false : canSeeRegionDetails(state, pb.targetRegionId) },
     landing: true,
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
@@ -311,12 +348,6 @@ const buildAmphibiousSetup = (state, pb) => {
     economyInputs: ins.economyInputs
   });
 };
-
-// A field or sea battle an AI started against the player (battleQueue.js) is gated as the
-// aggressor's attack: the same gate, from its side.
-const gateOf = (state, pb) => (pb.attackerNationId && pb.attackerNationId !== state.playerNationId
-  ? { ...state, playerNationId: pb.attackerNationId, techAgeId: getTechAgeId(state, pb.attackerNationId) }
-  : state);
 
 // A field battle (fieldBattle.js): two stacks on open ground. The defender's camp stands for the
 // keep (an unfortified town fires nothing); the tile and its neighbours shape the field.
@@ -343,12 +374,13 @@ const buildFieldSetup = (state, pb) => {
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals || {},
-    fortLevel: 0,
+    // A Fort on the tile stands on the field as a walled keep with a tower; the garrison may man it (decision 34).
+    fortLevel: ctx.isAttackingFortification ? FORT_BATTLE_LEVEL : 0,
     isCapital: false,
     infrastructure: 0,
     deposits: [],
     defenseReduction: ctx.defenderDamageReductionMultiplier,
-    isAttackingFortification: false,
+    isAttackingFortification: ctx.isAttackingFortification,
     attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier,
     attackerNationId: gate.playerNationId,
     defenderNationId: v.defenderNationId,
@@ -389,7 +421,74 @@ const buildNavalSetup = (state, pb) => {
   });
 };
 
+// A raid or a sack against the player (src/engine/raidBattle.js): the raiders' party on the tile (or
+// before the town) against the player's troops there; the light battle, no base-building. A sack
+// stands the real town (its buildings and houses are the loot) with its militia.
+const buildRaidSetup = (state, pb) => {
+  const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
+  if (!def) return null;
+  const armies = queuedRaidArmies(state, { ...def, attackerUnitIds: pb.attackerUnitIds, defenderUnitIds: pb.defenderUnitIds });
+  const spec = raidSpecOf(state, def, armies);
+  if (!spec.attackerUnits.length) return null;
+  const sack = def.kind === 'sack';
+  const city = sack ? state.regions[def.cityId] : null;
+  const ctx = raidBattleContext(state, spec);
+  const ins = battleInputs(state, { attackerUnits: spec.attackerUnits, defenderUnits: spec.defenderUnits, cityId: sack ? def.cityId : null, militia: pb.militia || def.militia || [] });
+  if (!ins.defenderUnits.length) return null;
+  const tile = sack ? city?.tile ?? def.tile : def.tile;
+  return buildSetupFromArmies({
+    tileContext: tileContextOf(state, tile, { fromTile: def.fromTile ?? null, city: sack ? city : null }),
+    fromTile: def.fromTile ?? null, raid: true, city: sack,
+    regionId: def.regionId ?? `t${tile}`,
+    terrain: ctx.terrain,
+    seed: pb.seed,
+    attackerUnits: ins.attackerUnits,
+    defenderUnits: ins.defenderUnits,
+    attackerAgeId: ctx.attackerAgeId,
+    defenderAgeId: ctx.defenderAgeId,
+    generals: ctx.generals || {},
+    fortLevel: sack ? Math.max(0, Math.round(city?.defenseLevel || 0)) : 0,
+    isCapital: false,
+    infrastructure: 0,
+    deposits: [],
+    defenseReduction: ctx.defenderDamageReductionMultiplier,
+    isAttackingFortification: ctx.isAttackingFortification,
+    attackerNationId: def.aggressorId,
+    defenderNationId: state.playerNationId,
+    controllers: ['ai', 'player'],
+    difficultyId: state.difficultyId || 'prince',
+    powers: [[], getBattlePowers(state, state.playerNationId, ctx.defenderAgeId, spec.defenderUnits, { allowNuclear: false })],
+    reinforcements: [[], []],
+    intel: { attackerSeesDefender: false },
+    regionBuildings: sack ? getRegionBattleBuildings(city) : [],
+    cityManifest: sack ? cityManifestOf(state, def.cityId) : null,
+    cityDamage: sack ? cityDamageOf(city) : null
+  });
+};
+
+// The interception of an AI landing (src/engine/aiLanding.js): the player's fleets in the city's
+// waters against the transport, a sea battle.
+const buildInterceptSetup = (state, pb) => {
+  const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
+  const armies = def ? interceptArmies(state, def) : null;
+  if (!armies) return null;
+  const args = interceptArgs(state, def, armies);
+  const city = state.regions[def.regionId];
+  return buildSetupFromArmies({
+    // On the city's waters: its first sea tile.
+    tileContext: tileContextOf(state, city?.tile != null ? (getTiles().neighbors[city.tile].find((t) => getTiles().land[t] !== 1) ?? city.tile) : null, {}),
+    battleType: 'naval', regionId: def.regionId, terrain: args.terrain, seed: pb.seed,
+    attackerUnits: armies.attackerUnits, defenderUnits: armies.defenderUnits,
+    attackerAgeId: args.attackerAgeId, defenderAgeId: args.defenderAgeId, generals: args.generals || {},
+    fortLevel: 0, isCapital: false, infrastructure: 0, deposits: [], defenseReduction: 1, isAttackingFortification: false, attackerPenaltyMultiplier: 1,
+    attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, controllers: ['ai', 'player'], difficultyId: state.difficultyId || 'prince',
+    powers: [[], []], reinforcements: [[], []], intel: { attackerSeesDefender: true }, regionBuildings: []
+  });
+};
+
 export const buildInvasionSetup = (state, pendingBattle) => {
+  if (isRaidKind(pendingBattle?.kind)) return buildRaidSetup(state, pendingBattle);
+  if (pendingBattle?.kind === 'intercept') return buildInterceptSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'naval') return buildNavalSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'defense') return buildDefenseSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'field') return buildFieldSetup(state, pendingBattle);

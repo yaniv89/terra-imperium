@@ -20,9 +20,24 @@
 //                             in forest and rainforest, ripples on desert, crags on rock, dry
 //                             speckle on steppe, a patchwork of plots on irrigated land, pools in
 //                             wetland. The class is read nearest, at a point warped by the noise,
-//                             so its edges never show the pixel grid. Placeholder for the ground
-//                             materials of ART-PRODUCTION-PLAN batch 14 (public/terrain/<id>/).
+//                             so its edges never show the pixel grid.
+//   Ground materials          where the sets of src/assets/terrain/<id>/ are delivered
+//                             (data/groundMaterials.js), each land class (grass, steppe, desert,
+//                             rock, wetland, snow) takes its set as detail, one repeat every
+//                             CLOSE_TILE_KM, fading in as it grows on screen. closeGroundSetup()
+//                             gives the defines and uniforms; without sets nothing compiles in.
 // Kept free of React; the shader strings and the small helpers are pure and unit tested.
+import { GROUND_MATERIALS, CLOSE_CLASSES, CLOSE_TILE_KM, GROUND_DETAIL_GLSL, groundMaterial, groundTextureUniform } from '../../../data/groundMaterials';
+
+/** The terrain material's ground material defines and uniforms ({} and {} without sets). */
+export const closeGroundSetup = (index = GROUND_MATERIALS, uniformOf = groundTextureUniform) => {
+  const sets = Object.entries(CLOSE_CLASSES).map(([cls, id]) => [cls, groundMaterial(id, index)]).filter(([, set]) => set);
+  if (!sets.length) return { defines: {}, uniforms: {} };
+  return {
+    defines: { GROUND_MATERIALS: 1, ...Object.fromEntries(sets.map(([cls]) => [`GM_${cls.toUpperCase()}`, 1])) },
+    uniforms: Object.fromEntries(sets.map(([cls, set]) => [`uGm${cls}`, uniformOf(set.color)]))
+  };
+};
 export const EARTH_KM = 40075;
 // The noise scales, kilometres: broad patches, fields and copses, single crags and ripples.
 export const DETAIL_SCALES_KM = [24, 6, 1.5];
@@ -82,6 +97,10 @@ uniform sampler2D uCover;  // land cover classes (red channel, LAND_COVER order)
 uniform float uCoverOn;
 uniform float uRiverOff;  // 1: hide the raster's own rivers (off: the map shows only the raster's rivers)
 varying vec2 vUv;
+#ifdef GROUND_MATERIALS
+${Object.keys(CLOSE_CLASSES).map((c) => `#ifdef GM_${c.toUpperCase()}\nuniform sampler2D uGm${c};\n#endif`).join('\n')}
+${GROUND_DETAIL_GLSL}
+#endif
 
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vnoise(vec2 p) {
@@ -206,6 +225,31 @@ void main() {
     land = mix(land, vec3(0.2, 0.33, 0.36), cWet * w3 * pool * 0.7);
   }
 
+#ifdef GROUND_MATERIALS
+  {
+    vec2 gp = km / ${CLOSE_TILE_KM.toFixed(2)};
+    vec3 gd = vec3(1.0);
+#ifdef GM_GRASS
+    gd = groundDetail(uGmGrass, gp);
+#endif
+#ifdef GM_STEPPE
+    gd = mix(gd, groundDetail(uGmSteppe, gp), cSteppe);
+#endif
+#ifdef GM_DESERT
+    gd = mix(gd, groundDetail(uGmDesert, gp), clamp(sand, 0.0, 1.0));
+#endif
+#ifdef GM_ROCK
+    gd = mix(gd, groundDetail(uGmRock, gp), clamp(rock, 0.0, 1.0));
+#endif
+#ifdef GM_WET
+    gd = mix(gd, groundDetail(uGmWet, gp), cWet);
+#endif
+#ifdef GM_SNOW
+    gd = mix(gd, groundDetail(uGmSnow, gp), sWide);
+#endif
+    land *= mix(vec3(1.0), gd, weight(${CLOSE_TILE_KM.toFixed(2)}) * 0.7);
+  }
+#endif
   // Water: slow swells and a light rim along the shore.
   float wave = (vnoise(km / 3.0 + vec2(0.0, n1 * 3.0)) - 0.5) * 0.06 * w2 + (vnoise(km * vec2(1.4, 0.5)) - 0.5) * 0.05 * w3;
   float rim = smoothstep(0.5, 0.56, m) * (1.0 - smoothstep(0.56, 0.7, m));

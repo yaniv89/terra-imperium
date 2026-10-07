@@ -48,7 +48,9 @@ import { canAttack } from './hostility';
 import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { addGrudge } from './grudges';
 import { hireMercenaryForPlayer } from './mercenaries';
-import { answerTributeDemand } from './raids';
+import { answerTributeDemand, resolveRaidBattle } from './raids';
+import { isRaidKind, queuedRaidArmies } from './raidBattle';
+import { interceptArmies, landingArmies, resolveInterceptQueued, resolveLandingQueued } from './aiLanding';
 import { giftIndependent, proposeJoining, answerJoinOffer, demandIndependentTribute, proposeIndependentTrade, offerIndependentTribute, razeCityForPlayer } from './indepPolicy';
 import { canRaze, stopRazing } from './razing';
 
@@ -586,6 +588,9 @@ export const sanitizeTacticalResult = (state, pb, result) => {
         decisive: !!report.tactical?.decisive,
         xpBonusById: bonus,
         powersUsed: sanitizePowersUsed(report.tactical?.powersUsed),
+        // Generals on the field (row 5): only commanders of the battle's own units.
+        generalsFielded: onlyIds(report.tactical?.generalsFielded, [...attackerUnits, ...defenderUnits].map((u) => u.commanderId).filter(Boolean)),
+        generalsStruck: onlyIds(report.tactical?.generalsStruck, [...attackerUnits, ...defenderUnits].map((u) => u.commanderId).filter(Boolean)),
         razed: Array.isArray(report.tactical?.razed) ? report.tactical.razed.filter((c) => BUILDING_CATEGORIES[c] && c !== 'defense').slice(0, 12) : [],
         ...(report.tactical?.cityDamage ? { cityDamage: { destroyed: cleanIds(report.tactical.cityDamage.destroyed), damaged: cleanIds(report.tactical.cityDamage.damaged) } } : {})
       }
@@ -1571,6 +1576,21 @@ const reduceAction = (state, action) => {
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'command' };
       // A field or sea battle the AI started (battleQueue.js): the gate is the aggressor's, the
       // operation id the queued record's (so its Auto can never also land).
+      // An AI landing on the player's coast (aiLanding.js): the interception at sea, then the landing.
+      if (pb.defenseId && (pb.kind === 'intercept' || (pb.kind === 'amphibious' && pb.playerSide === 'defender'))) {
+        const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
+        if (!def) return cleared;
+        const safe = sanitizeTacticalResult(state, pb, result);
+        const opts = { mode: 'command', decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById };
+        return pb.kind === 'intercept' ? resolveInterceptQueued(cleared, def, safe, opts) : resolveLandingQueued(cleared, def, safe, opts);
+      }
+      // A raid or a sack against the player (raidBattle.js): the queued record's id, then the raid carries on (raids.js).
+      if (pb.defenseId && isRaidKind(pb.kind)) {
+        const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
+        if (!def) return cleared;
+        const safe = sanitizeTacticalResult(state, pb, result);
+        return resolveRaidBattle(cleared, def, safe, { mode: 'command', xpBonusById: safe.report.tactical.xpBonusById });
+      }
       const aiStarted = !!pb.defenseId && (pb.kind === 'field' || pb.kind === 'naval');
       const gateState = aiStarted ? aggressorView(cleared, pb.attackerNationId) : cleared;
       const sideOpts = aiStarted ? { ...opts, id: pb.defenseId, defenseId: pb.defenseId, attackerNationId: pb.attackerNationId, viewerId: state.playerNationId } : opts;
@@ -1721,20 +1741,56 @@ const reduceAction = (state, action) => {
       if (!def) return state;
       const counter = (state.battleCounter || 0) + 1;
       const kind = queuedKind(def);
-      if (kind !== 'defense') {
-        // A field or sea battle the AI started against the player's stack: the player defends it.
-        const armies = queuedArmies(state, def);
-        if (!armies) return resolveQueuedAuto(state, def.id);
+      if (kind === 'intercept' || kind === 'landing') {
+        // An AI landing on the player's coast: the player's fleets intercept, then the garrison holds the beach.
+        const armies = kind === 'intercept' ? interceptArmies(state, def) : landingArmies(state, def);
+        if (!armies || (kind === 'landing' && !armies.defenderUnits.length && !(def.militia || []).length)) return resolveQueuedAuto(state, def.id);
         return {
           ...state,
           battleCounter: counter,
           pendingBattle: {
-            id: `b_${state.turnNumber}_${counter}`, kind, defenseId: def.id,
-            fromRegionId: def.fromRegionId, fromTile: def.fromTile ?? null, tile: def.tile, targetRegionId: state.world?.tileOwner?.[def.tile] ?? def.regionId, warId: def.warId,
+            id: `b_${state.turnNumber}_${counter}`, kind: kind === 'intercept' ? 'intercept' : 'amphibious', defenseId: def.id,
+            navalUnitId: def.navalUnitId, fromRegionId: def.fromRegionId, targetRegionId: def.regionId, warId: def.warId, hasBeachhead: def.hasBeachhead,
             attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: 'defender',
+            attackerUnitIds: armies.attackerUnits.map((u) => u.id), defenderUnitIds: armies.defenderUnits.map((u) => u.id), attackerReinforcements: [],
+            defenderReinforcements: kind === 'landing' ? reinforcementSources(state, def.regionId, state.playerNationId, def.aggressorId) : [], militia: kind === 'landing' ? def.militia || [] : []
+          },
+          logs: [...state.logs, { year: state.year, message: kind === 'intercept' ? `Your fleet sails out against ${state.nations[def.aggressorId]?.name || 'the enemy'}'s invasion fleet.` : `You take command of the defense of ${REGIONS_DATA[def.regionId]?.name} against the landing.`, type: LogTypes.COMBAT }]
+        };
+      }
+      if (isRaidKind(kind)) {
+        // Raiders against the player's troops or town: the player defends (raidBattle.js).
+        const armies = queuedRaidArmies(state, def);
+        if (!armies.attackerUnits.length || (!armies.defenderUnits.length && kind !== 'sack')) return resolveQueuedAuto(state, def.id);
+        return {
+          ...state,
+          battleCounter: counter,
+          pendingBattle: {
+            id: `b_${state.turnNumber}_${counter}`, kind, defenseId: def.id, raidKind: def.raidKind,
+            fromRegionId: null, fromTile: def.fromTile ?? null, tile: def.tile, targetRegionId: def.regionId, cityId: def.cityId ?? null, warId: null,
+            attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: 'defender',
+            attackerUnitIds: armies.attackerUnits.map((u) => u.id), defenderUnitIds: armies.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: [], militia: def.militia || []
+          },
+          logs: [...state.logs, { year: state.year, message: `You take command against ${state.nations[def.aggressorId]?.name || 'the raiders'}.`, type: LogTypes.COMBAT }]
+        };
+      }
+      if (kind !== 'defense') {
+        // A field or sea battle the AI started against the player's stack: the player defends it.
+        // A fort that stopped the player's army (forts.js): the player attacks it.
+        const armies = queuedArmies(state, def);
+        if (!armies) return resolveQueuedAuto(state, def.id);
+        const attacking = def.aggressorId === state.playerNationId;
+        const foe = attacking ? armies.v.defenderNationId : def.aggressorId;
+        return {
+          ...state,
+          battleCounter: counter,
+          pendingBattle: {
+            id: `b_${state.turnNumber}_${counter}`, kind, defenseId: def.id, fort: !!def.fort,
+            fromRegionId: def.fromRegionId, fromTile: def.fromTile ?? null, tile: def.tile, targetRegionId: state.world?.tileOwner?.[def.tile] ?? def.regionId, warId: def.warId,
+            attackerNationId: def.aggressorId, defenderNationId: attacking ? foe : state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: attacking ? 'attacker' : 'defender',
             attackerUnitIds: armies.v.attackerUnits.map((u) => u.id), defenderUnitIds: armies.v.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
           },
-          logs: [...state.logs, { year: state.year, message: `You take command of your ${kind === 'naval' ? 'fleet' : 'army'} against ${state.nations[def.aggressorId]?.name || def.aggressorId}.`, type: LogTypes.COMBAT }]
+          logs: [...state.logs, { year: state.year, message: attacking ? `You take command of the attack on the fort of ${state.nations[foe]?.name || foe}.` : `You take command of your ${kind === 'naval' ? 'fleet' : 'army'} against ${state.nations[def.aggressorId]?.name || def.aggressorId}.`, type: LogTypes.COMBAT }]
         };
       }
       const armies = getDefenseArmies(state, def);
