@@ -4,7 +4,8 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // GitHub Pages serves the site under /terra-imperium/; Cloudflare Pages at the root (deploy-cloudflare.yml sets VITE_BASE=/).
+  // Cloudflare Pages serves the site at the root (deploy-cloudflare.yml sets VITE_BASE=/); dev servers,
+  // e2e and the screenshot scripts keep /terra-imperium/.
   base: process.env.VITE_BASE || '/terra-imperium/',
   // The turn and battle workers load the world grid first and the engine after it (dynamic imports),
   // which needs ES module workers (they are created with { type: 'module' }).
@@ -21,7 +22,7 @@ export default defineConfig({
     // The 2D icons (src/assets/icons, ~130 files of 1-4 KB) stay separate files: inlined they would
     // add ~190 KB of base64 to the main bundle; as files only the icons on screen load, cached.
     assetsInlineLimit: 0,
-    outDir: 'docs',  
+    outDir: 'dist',  
     sourcemap: true,
     emptyOutDir: true 
   }

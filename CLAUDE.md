@@ -2,10 +2,10 @@
 
 A grand-strategy game on a real Earth globe, 2000 BCE to 2300 CE, any of 240 nations, with
 real-time tactical battles. React 18 + Vite, three.js, Vitest, Playwright, Capacitor for mobile.
-The live site is GitHub Pages, built into `docs/`.
+The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and deployed by .github/workflows/deploy-cloudflare.yml on every push to main. docs/ only holds a redirect from the old GitHub Pages address.
 
 ## Working rules (from the user)
-- Big features on a side branch. Merge to `main` only when the user asks; then rebuild `docs/`.
+- Big features on a side branch. Merge to `main` only when the user asks; the push deploys the site.
 - Mobile-friendly always: phones play in landscape (844x390 is the reference screen).
 - Automate rather than hand the user manual work.
 - Plain English in messages to the user, no em dashes.
@@ -121,7 +121,7 @@ The live site is GitHub Pages, built into `docs/`.
   `.sheet-backdrop` / `.sheet-panel` classes (index.css). `useIsMobile` = the bottom-bar layout only.
 
 ## Commands
-- `npm run lint` (zero warnings allowed), `npx vitest run`, `npm run build` (writes docs/).
+- `npm run lint` (zero warnings allowed), `npx vitest run`, `npm run build` (writes dist/, gitignored).
 - e2e: `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test`.
 - Battle sandbox in the browser: `npx vite`, then open `/?battleSandbox`.
 

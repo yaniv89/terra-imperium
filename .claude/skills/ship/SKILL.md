@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Terra Imperium's delivery workflow and the user's standing rules for branches, commits, merging to main, rebuilding the GitHub Pages site in docs/, and the end-of-task summary. Use whenever committing, pushing, merging, "ship it", "merge to main", rebuilding docs, or wrapping up a task for the user.
+description: Terra Imperium's delivery workflow and the user's standing rules for branches, commits, merging to main, deploying the site (Cloudflare Pages), and the end-of-task summary. Use whenever committing, pushing, merging, "ship it", "merge to main", rebuilding docs, or wrapping up a task for the user.
 ---
 
 # Shipping Terra Imperium
@@ -8,7 +8,7 @@ description: Terra Imperium's delivery workflow and the user's standing rules fo
 ## Standing rules (from the user)
 - Big features go on a side branch (the session's designated `claude/...` branch).
 - Merge to `main` only when the user asks. Never on your own.
-- After every merge to main, rebuild `docs/` (the live GitHub Pages site) and commit it.
+- A push to main deploys the live site (Cloudflare Pages, .github/workflows/deploy-cloudflare.yml, about 10 minutes). docs/ is no longer built or committed; it only redirects the old GitHub Pages address.
 - Keep everything mobile-friendly: phone width first, bottom sheets, 44-48 px touch targets.
 - Automate rather than hand the user manual work.
 
@@ -30,9 +30,7 @@ measured before/after). One commit per coherent wave; push after each.
 git fetch origin main
 git checkout -B main origin/main
 git merge --ff-only <feature-branch>      # if main moved: merge it into the branch first and re-test
-npm run build                             # writes docs/ (vite.config.js: outDir docs, base /terra-imperium/)
-git status --short | grep -v ' docs/'     # must print nothing: the build only touches docs/
-git add -A docs && git commit -m "Rebuild docs: <what shipped>"
+npm run build                             # a local check that the site builds (writes dist/, gitignored)
 git push origin main
 git checkout <feature-branch> && git merge --ff-only main && git push origin <feature-branch>
 ```
