@@ -3,7 +3,7 @@
 // profile (the phase F look checks: rivers, mountain chains, level 6 raster, towns and fields).
 // Runs against a dev server you start yourself (npx vite --port 5199) or any URL:
 //   node scripts/perf/map-shots.mjs --url http://localhost:5199/ --out plans/phase-f2/after
-//        [--profiles desktop,phone] [--explored] [--gpu]
+//        [--profiles desktop,phone] [--explored] [--gpu] [--no-rivers]
 //        [--views "alps:46.3,8.5,1|alps:46.3,8.5,4|..."]   name:lat,lng,k (several per name allowed)
 import { mkdirSync } from 'node:fs';
 import { chromium } from '@playwright/test';
@@ -14,6 +14,7 @@ const URL = arg('url', 'http://localhost:5199/');
 const OUT = arg('out', 'plans/phase-f2/shots');
 const PROFILES = arg('profiles', 'desktop,phone').split(',');
 const EXPLORED = flag('explored');
+const NO_RIVERS = flag('no-rivers'); // the river lines off (as before plans/game/map-river-lines)
 const VIEWS = arg('views', 'paris:48.85,2.35,1|paris:48.85,2.35,4|paris:48.85,2.35,12|paris:48.85,2.35,40').split('|').map((s) => {
   const [name, rest] = s.split(':'); const [lat, lng, k] = rest.split(',').map(Number);
   return { name, lat, lng, k };
@@ -49,10 +50,11 @@ for (const name of PROFILES) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await page.addInitScript(() => {
+  await page.addInitScript((noRivers) => {
     window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; window.__E2E_MAP_TEST__ = true;
     try { localStorage.setItem('terra-imperium-map-mode', 'flat'); localStorage.setItem('terra-imperium-map-renderer', 'webgl'); localStorage.setItem('terra-imperium-minimap-open', '0'); } catch { /* none */ }
-  });
+    try { localStorage.setItem('terra-imperium-river-lines', noRivers ? '0' : '1'); } catch { /* none */ }
+  }, NO_RIVERS);
   await page.goto(URL, { timeout: 240000 }); // a dev server's first load bundles on demand
   await startGame(page);
   await page.waitForFunction(() => window.__map2DTest?.focus, null, { timeout: 120000 });
@@ -62,7 +64,7 @@ for (const name of PROFILES) {
     // level 5 and 6 tiles stream in over the network: give them time, so shots compare like for like
     await page.waitForTimeout(Number(arg('settle', 3500)));
     await page.screenshot({ path: `${OUT}/${v.name}-${EXPLORED ? 'explored-' : ''}${name}-k${v.k}.png`, timeout: 180000 });
-    const info = await page.evaluate(() => { const i = window.__glMap?.info(); return i && { calls: i.calls, raster: i.raster, terrainSprites: i.terrainSprites }; });
+    const info = await page.evaluate(() => { const i = window.__glMap?.info(); return i && { calls: i.calls, raster: i.raster, terrainSprites: i.terrainSprites, rivers: i.rivers }; });
     console.log(name, v.name, v.k, JSON.stringify(info));
   }
   console.log(`${name}: ${errors.length ? errors.slice(0, 5).join(' | ') : 'no page errors'}`);
