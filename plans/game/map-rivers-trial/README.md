@@ -137,3 +137,8 @@ Gameplay river match (`check-river-match.mjs --box`, within 45 km):
 
 Screenshots in `full/` (Mississippi near St. Louis and the Yangtze near Wuhan, desktop 1600x900
 and phone 844x390, middle zoom k=12 and close k=40, explored world, jpg).
+
+## Superseded (branch claude/map-river-lines)
+
+The painting is switched off (`river-paint.mjs` `PAINT_RIVERS = false`) and the raster rebuilt
+without rivers: the map now draws rivers as vector lines (plans/game/map-river-lines/README.md).
