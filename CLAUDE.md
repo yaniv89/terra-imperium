@@ -82,8 +82,10 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   region.cityDamage, the 50% rule, free repairs), battle: src/battle/setup/cityBattle.js and
   src/battle/render/cityLayer.js, map: src/components/map/closeView/townDamage.js.
   Progress and open balance items: plan section J3.
-  Phase F rendering (WebGL map): rivers, bridges, mountain chains and passes in
-  src/components/map/gl/terrainModel.js (drawn in GLMapView's terrain pass, under the fog);
+  Phase F rendering (WebGL map): rivers are vector lines from Natural Earth (`npm run build:rivers`
+  writes public/map/rivers.bin.gz; src/data/geo/riverLines.js, gl/riverModel.js and riverLayer.js;
+  the raster has no painted rivers, river-paint.mjs PAINT_RIVERS = false); bridges, mountain chains
+  and passes in src/components/map/gl/terrainModel.js (drawn in GLMapView's terrain pass, under the fog);
   level 6 raster and land cover streamed by glLayers.createRasterLayer; the close view's towns and
   field plots from footprints, 3D ridges and river bands in closeView/terrainPlacement.js and
   mountainModels.js (`createCloseScene(..., { footprintOf })` is the hook for phase B's manifest).
