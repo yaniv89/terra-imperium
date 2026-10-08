@@ -3,6 +3,11 @@
 // Shared by build-world-raster.mjs, build-raster-pyramid.mjs and build-raster-detail.mjs, so the
 // three levels draw the same rivers.
 //
+// OFF since the map draws its rivers as vector lines (plans/game/map-river-lines/README.md:
+// scripts/geo/build-river-lines.mjs, src/components/map/gl/riverLayer.js): PAINT_RIVERS false
+// makes riverSvg empty, so the rasters carry no rivers and the map never shows two. The loader
+// stays for check-river-match.mjs and a trial that wants the painted look back.
+//
 // Source: Natural Earth 1:10M "rivers_lake_centerlines_scale_rank" (public domain). Every river is
 // cut into reaches and each reach carries `strokeweig`, a width that grows downstream (the Nile
 // goes 0.2 near its source to 2.0 at the delta), plus a `scalerank` (0 largest). The gameplay
@@ -18,6 +23,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 export const RIVER_FILE = 'ne_10m_rivers_lake_centerlines_scale_rank.geojson';
+export const PAINT_RIVERS = false;
 
 // Ground width in km from the reach weight: a trickle is about 2 km, the Nile at the sea 10 km.
 // (Wider than real so a river reads at map scale; a hex is 77 km across.)
@@ -68,6 +74,7 @@ export const loadRiverLines = (rawDir, { maxRank = 10 } = {}) => {
  * optional filter on a line (a bounding box test for tiles).
  */
 export const riverSvg = (lines, { W, H, kmPx, minPx = 0.7, keep = () => true }) => {
+  if (!PAINT_RIVERS) return '';
   const bank = []; const water = [];
   lines.forEach((l) => {
     if (!keep(l)) return;

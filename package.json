@@ -26,6 +26,7 @@
     "build:raster": "node scripts/geo/build-world-raster.mjs",
     "build:pyramid": "node scripts/geo/build-raster-pyramid.mjs",
     "build:raster-detail": "node scripts/geo/build-raster-detail.mjs",
+    "build:rivers": "node scripts/geo/build-river-lines.mjs",
     "build:capitals": "node scripts/geo/build-country-capitals.mjs",
     "build:peoples": "node scripts/peoples/build-peoples.mjs && node scripts/peoples/build-people-homes.mjs",
     "build:world-regions": "node scripts/geo/build-country-capitals.mjs && node scripts/geo/build-world-regions.mjs",

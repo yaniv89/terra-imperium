@@ -36,7 +36,6 @@ import { cityHexOf, hexTownPx, insideHex } from './cityHex';
 import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen } from './terrainPlacement';
 import { getRidgeGeometry, getHillGeometry, RIDGE_VARIANTS } from './mountainModels';
 import { dressCloseTerrain } from './terrainKits';
-import { riverHalfPx } from '../gl/terrainModel';
 import { EARTH_RADIUS_KM } from '../../../data/geo/geodesic';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
@@ -497,6 +496,9 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     });
     t.fieldWorks.forEach((g, tile) => { if (!seenFields.has(tile)) g.visible = false; });
     t.improvements.end();
+    // Rivers keep their band clear (the map's river lines, gl/riverModel.js): no field or tree
+    // stands in the water.
+    riverDiscsOnScreen({ project, width, height, area: screenWindow, k, pxPerKm: pxPerKmNorth }).forEach((d) => occ.claim(d.x, d.y, d.r));
     // The fields of towns and farms: the footprint's plots (local km, so they never move with the
     // zoom), flat on the map, on land and clear of everything placed so far.
     t.plots.count = 0;
@@ -542,8 +544,6 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     });
     relief.hills.forEach((h) => { if (landAt(h.x, h.y) && occ.take(h.x, h.y, h.sx * 0.8)) reliefPut(t.hills, h); });
     [...t.ridges.values(), t.hills].forEach((m) => { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; });
-    // Rivers keep their band clear: no tree stands in the water.
-    riverDiscsOnScreen({ project, width, height, area: screenWindow, pxPerKm: pxPerKmNorth, halfPx: (size) => riverHalfPx(size, k) }).forEach((d) => occ.claim(d.x, d.y, d.r));
     // Trees last, on free land only.
     land.trees.forEach((tr) => {
       const mesh = t.trees.get(tr.kind);

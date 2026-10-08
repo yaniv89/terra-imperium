@@ -46,6 +46,9 @@ import { tileGpuData } from './tileGpuData';
 import { buildFogField } from './fogField';
 import { indexCities, buildFogStates, buildTileTexels, buildCityTexels, buildTintTexels } from './territoryData';
 import { createTerritoryLayer, createTerritoryCache, createRasterLayer, createSpriteLayer, createLineLayer } from './glLayers';
+import { createRiverLayer } from './riverLayer';
+import { riverStrips, riverBandAt, riverRankCap, RIVER_BANDS } from './riverModel';
+import { loadRiverLines } from '../../../data/geo/riverLines';
 import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
 import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor } from './mapView';
@@ -135,8 +138,8 @@ const GLMapView = ({
     }
     renderer.setClearColor(OCEAN_COLOR, 1);
     renderer.info.autoReset = false;
-    // drawn in this order: the Earth (its rivers are part of the picture), the terrain (mountain
-    // chains, passes: under the fog),
+    // drawn in this order: the Earth, the terrain (the river lines, mountain chains, passes:
+    // under the fog),
     // the territories (cached while panning), lines and ground sprites, the close view's models,
     // the badges, banners and markers
     const ground = new Scene(); const terrain = new Scene(); const base = new Scene(); const close = new Scene(); const top = new Scene();
@@ -155,6 +158,7 @@ const GLMapView = ({
     g.raster = createRasterLayer(ground, { request: g.request, onReady: () => g.request(), source });
     g.territory = createTerritoryLayer(new Scene(), tileGpuData(getTiles()));
     g.territoryCache = createTerritoryCache(g.territory);
+    g.rivers = createRiverLayer(terrain, 1);
     g.terrainSprites = createSpriteLayer(terrain, atlas, 6);
     g.lowLines = createLineLayer(base, 20);
     g.groundSprites = createSpriteLayer(base, atlas, 30);
@@ -177,7 +181,7 @@ const GLMapView = ({
       document.removeEventListener('visibilitychange', onVisible);
       g.disposed = true;
       cancelAnimationFrame(g.raf);
-      [g.raster, g.territory, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
+      [g.raster, g.territory, g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
       renderer.dispose();
       gl.current = null;
     };
@@ -203,7 +207,7 @@ const GLMapView = ({
       uHex: v.k >= HEX_FROM_ZOOM ? 1 : 0, uCityDetail: v.k >= CITY_DETAIL_ZOOM ? 1 : 0, uNationHalf: v.k < 3 ? 0.55 : 0.45,
       uSelTile: s.selectedTile ?? -1, uTintOn: s.tintOn ? 1 : 0, uFogOn: s.fogOn ? 1 : 0
     };
-    [g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
+    [g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
     // the world camera (the raster quads and the close view's models)
     camera.left = v.worldLeft; camera.right = v.worldLeft + width / v.k;
     camera.top = -v.worldTop; camera.bottom = -(v.worldTop + height / v.k);
@@ -211,6 +215,8 @@ const GLMapView = ({
     const depth = 8000 / Math.min(v.k, lay?.k || v.k);
     camera.near = -depth; camera.far = depth;
     camera.updateProjectionMatrix();
+    // (the autoClear also clears the depth buffer, which the river lines then use for their
+    // overlaps: riverLayer.js; nothing on the ground writes depth)
     renderer.autoClear = true;
     renderer.render(g.ground, camera);
     renderer.autoClear = false;
@@ -437,8 +443,40 @@ const GLMapView = ({
     [gameState.units, gameState.nations, gameState.regions, gameState.world, gameState.turnNumber, gameState.playerNationId]);
   const raids = useMemo(() => (projection ? raidShapes({ model: raidModel, projection, k, dpr }) : null), [raidModel, projection, k, dpr]);
 
-  // the terrain pass: the mountain chains' sprites. No river lines: the Earth raster's own rivers
-  // are the map's rivers (the grid's river edges are rules only, terrainData.js).
+  // the terrain pass: the river lines (riverLayer.js; drawing only, the river rules are the grid's
+  // river edges, terrainData.js) and the mountain chains' sprites.
+  const [riverData, setRiverData] = useState(null);
+  useEffect(() => {
+    if (proceduralRaster()) return undefined; // a generated world has no river file
+    // off for a speed comparison (scripts/perf/map-pan.mjs --no-rivers)
+    try { if (localStorage.getItem('terra-imperium-river-lines') === '0') return undefined; } catch { /* no storage */ }
+    let cancelled = false;
+    loadRiverLines().then((r) => { if (!cancelled) setRiverData(r); });
+    return () => { cancelled = true; };
+  }, []);
+  const riverBand = riverBandAt(k);
+  const riverCap = riverRankCap(k);
+  // the closer bands are built for the settled view plus half a screen round it, in 5 degree steps
+  const riverWindow = useMemo(() => {
+    if (!projection || !RIVER_BANDS[riverBand].windowed) return null;
+    const v = viewFor({ transform: { k: settled.k, x: settled.x, y: settled.y }, width, height, dpr, projection, raster });
+    const a = projection.invert(screenToWorld(v, -width * 0.5, -height * 0.5)); const b = projection.invert(screenToWorld(v, width * 1.5, height * 1.5));
+    if (!a || !b) return null;
+    const west = Math.floor(a[0] / 5) * 5; let east = Math.ceil(b[0] / 5) * 5;
+    if (east <= west) east += 360;
+    return `${west},${east},${Math.max(-90, Math.floor(b[1] / 5) * 5)},${Math.min(90, Math.ceil(a[1] / 5) * 5)}`;
+  }, [projection, raster, settled, riverBand, width, height, dpr]);
+  const riverStripData = useMemo(() => {
+    if (!riverData?.length) return null;
+    const w = riverWindow ? riverWindow.split(',').map(Number) : null;
+    return riverStrips(riverData, riverBand, w && { west: w[0], east: w[1], south: w[2], north: w[3] }, riverCap);
+  }, [riverData, riverBand, riverWindow, riverCap]);
+  useEffect(() => {
+    const g = gl.current;
+    if (!g || !riverStripData) return;
+    g.rivers.set(riverStripData);
+    g.request();
+  }, [ready, riverStripData]);
   const terrainOut = useMemo(() => (projection ? terrainSprites({ projection, k, near: settledView ? nearView(settledView) : null, dpr }) : null), [projection, k, settledView, dpr]);
 
   const [atlasTick, setAtlasTick] = useState(0);
@@ -624,8 +662,23 @@ const GLMapView = ({
       worldView: () => resetZoom()
     };
     window.__glMap = {
-      info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount }),
-      renderer: gl.current?.renderer
+      info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount, rivers: gl.current.rivers.count() }),
+      renderer: gl.current?.renderer,
+      // ms a frame over `n` frames drawn back to back (GPU finished), with the river lines on or
+      // off: what the lines cost on this machine (scripts/perf/river-cost.mjs)
+      timeFrames: (n = 30, rivers = true) => {
+        const g = gl.current;
+        g.rivers.hidden = !rivers;
+        const ctx = g.renderer.getContext(); const px = new Uint8Array(4);
+        const sync = () => ctx.readPixels(0, 0, 1, 1, ctx.RGBA, ctx.UNSIGNED_BYTE, px); // waits for the GPU (finish() does not)
+        g.frame(); sync();
+        const t0 = performance.now();
+        for (let i = 0; i < n; i++) { g.frame(); sync(); }
+        const ms = (performance.now() - t0) / n;
+        g.rivers.hidden = false;
+        g.request();
+        return ms;
+      }
     };
     return () => { delete window.__map2DTest; delete window.__glMap; };
   }, [hudOffset, projection, state, selectedRegion, focusOnLatLng, view, ready, resetZoom]);

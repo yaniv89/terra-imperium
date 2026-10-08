@@ -6,12 +6,14 @@
 //   ridges      the mountain chains on screen: ridge meshes (mountainModels.js) spaced along every
 //               ridge edge of the grid in view, turned along it, overlapping into one chain, lower
 //               toward a pass and none in its saddle; foothills on hills tiles beside a range.
-//   rivers      the river bands to keep clear (trees never stand in a river), as screen discs.
+//   rivers      the river bands to keep clear (trees and fields never stand in a river), as screen
+//               discs along the map's river lines (gl/riverModel.js), not the grid's hex edges.
 // Hook for phase B (the city manifest, another branch): `createCloseScene(..., { footprintOf })`
 // takes any function (tile, state) -> footprint of this shape; the default is `cachedFootprint`.
 import { getTiles } from '../../../data/geo/tiles';
-import { tileFootprint, localFrame, insideDistance, RIVER_BAND_KM } from '../../../data/geo/footprints';
-import { riverEdgesOf, edgeCorners } from '../../../data/geo/terrainData';
+import { tileFootprint, localFrame, insideDistance } from '../../../data/geo/footprints';
+import { riverLinesNow } from '../../../data/geo/riverLines';
+import { riverDiscs, riverWidthPx } from '../gl/riverModel';
 import { tilesInWindow } from '../../../data/geo/tileSpatialIndex';
 import { toLatLon } from '../../../data/geo/geodesic';
 import { hash01 } from './landscape';
@@ -166,29 +168,10 @@ export const reliefOnScreen = ({ project, width, height, area, lean, isExplored 
 
 // ------------------------------------------------------------------ rivers
 /**
- * The river bands on screen as discs { x, y, r } (screen px) along every river edge in view: the
- * footprint's band (RIVER_BAND_KM by size) or the drawn river, whichever is wider. `halfPx(size)`:
- * the drawn river's half width.
+ * The river bands on screen as discs { x, y, r } (screen px) along the river lines the map draws
+ * (gl/riverModel.js, the same course and width), so no tree or field stands in a river.
+ * `reaches`: the river file (riverLines.js; none loaded yet: no discs).
  */
-export const riverDiscsOnScreen = ({ project, width, height, area, pxPerKm, halfPx, tiles = getTiles(), margin = 40 }) => {
-  const out = [];
-  if (!area) return out;
-  const seen = new Set();
-  for (const t of tilesInWindow(area)) {
-    if (!tiles.rivers[t]) continue;
-    for (const { k, neighbour, size } of riverEdgesOf(t, tiles)) {
-      const key = t < neighbour ? `${t}-${neighbour}` : `${neighbour}-${t}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const c = edgeCorners(t, k, tiles);
-      const a = project(c.from.lat, c.from.lon); const b = project(c.to.lat, c.to.lon);
-      if (!a || !b || Math.abs(b.x - a.x) > width) continue;
-      if ((a.x < -margin && b.x < -margin) || (a.y < -margin && b.y < -margin) || (a.x > width + margin && b.x > width + margin) || (a.y > height + margin && b.y > height + margin)) continue;
-      const r = Math.max(halfPx(size) + 1, RIVER_BAND_KM[size] * pxPerKm);
-      const len = Math.hypot(b.x - a.x, b.y - a.y);
-      const steps = Math.max(1, Math.ceil(len / Math.max(2, r)));
-      for (let i = 0; i <= steps; i++) out.push({ x: a.x + ((b.x - a.x) * i) / steps, y: a.y + ((b.y - a.y) * i) / steps, r });
-    }
-  }
-  return out;
-};
+export const riverDiscsOnScreen = ({ project, width, height, area, k, pxPerKm, reaches = riverLinesNow(), margin = 40 }) => riverDiscs({
+  reaches, project, width, height, area, k, margin, widthPx: (sw) => riverWidthPx(sw, k, pxPerKm)
+});

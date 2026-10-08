@@ -70,13 +70,16 @@ describe('mountain chains in the close view', () => {
 });
 
 describe('river bands in the close view', () => {
-  it('claims discs along river edges, so trees stay out of the water', () => {
-    const t = [...Array(tiles.count).keys()].find((i) => tiles.rivers[i] && tiles.land[i] === 1);
+  it('claims discs along the map\'s river lines, so trees and fields stay out of the water', () => {
+    const t = tiles.nearest(30.05, 31.25); // Cairo, on the Nile
     const v = viewAt(t);
-    const discs = riverDiscsOnScreen({ ...v, halfPx: () => 2 });
+    const discs = riverDiscsOnScreen({ ...v, k: 40 });
     expect(discs.length).toBeGreaterThan(2);
+    // the Nile runs through the middle of the view
+    expect(discs.some((d) => Math.hypot(d.x - v.width / 2, d.y - v.height / 2) < 30)).toBe(true);
     const occ = createOccupancy(0.58);
     discs.forEach((d) => occ.claim(d.x, d.y, d.r));
     expect(occ.free(discs[0].x, discs[0].y, 1)).toBe(false);
+    expect(riverDiscsOnScreen({ ...v, k: 40, reaches: [] })).toEqual([]);
   });
 });
