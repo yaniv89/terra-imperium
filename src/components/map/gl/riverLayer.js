@@ -15,7 +15,7 @@
 // zoom only changes uniforms; each reach is drawn at the copy of the world nearest the view's
 // centre (by its first point: the east-west wrap). The width and fade follow riverModel.js.
 import {
-  BufferGeometry, BufferAttribute, ShaderMaterial, Mesh, GLSL3, Vector4, Vector3, LessDepth, DoubleSide
+  BufferGeometry, BufferAttribute, ShaderMaterial, Mesh, GLSL3, Vector4, Vector3, Sphere, LessDepth, DoubleSide
 } from 'three';
 import { RIVER_WIDTH, RIVER_FADE_K, RIVER_INK, riverFade } from './riverModel';
 
@@ -129,6 +129,9 @@ export const createRiverLayer = (scene, renderOrder) => {
       // three.js counts vertices by a position: the point itself (the shader does not read it)
       g.setAttribute('position', new BufferAttribute(cur, 2));
       g.setIndex(new BufferAttribute(index, 1));
+      // three.js sorts transparent objects by their bounds: give it one, the 2D positions would
+      // compute a NaN radius (the mesh is never culled)
+      g.boundingSphere = new Sphere(new Vector3(), Infinity);
       mesh.geometry = g;
       geometry.dispose();
       geometry = g;
