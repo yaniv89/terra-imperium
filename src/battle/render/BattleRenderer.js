@@ -34,7 +34,7 @@ import { FxSprites } from '../art/fxSheets';
 import { orderRingState, recordOrderTarget, ORDER_RING_COLOR, MAX_ORDER_TARGETS } from './orderTarget';
 import { getAgeIndex } from '../../data/ages';
 import { peopleForNationId } from '../../data/peoples';
-import { signatureKey, baseClassOf } from '../../data/signatureUnits';
+import { signatureKey, baseClassOf, signatureUnitFor, rigFiguresOf } from '../../data/signatureUnits';
 import { lookKey, unitLookOf, LOOK_CLASS } from './unitModels';
 import { battleGroundSets, groundTextureUniform } from '../../data/groundMaterials';
 import { styleOfLand } from '../../data/architecture';
@@ -1188,14 +1188,20 @@ export class BattleRenderer {
     const sig = people ? signatureKey(s.classId, people) : null;
     // a raid party's riders and a hired band's foot draw their irregular look when its model is in
     const look = lookKey(s.look || unitLookOf(null, this.setup, s.side), s.classId);
+    const useSig = !!sig && hasSoldierOverride(s.ageId, sig);
+    // a rig drawn with its own few full-size figures (war elephants: two a squad, RIG_FIGURES in
+    // data/signatureUnits.js); drawing only, the squad's strength and combat stay the role's
+    const rigFig = useSig ? rigFiguresOf(signatureUnitFor(people, s.ageId, s.classId)) : null;
+    const figures = rigFig ? rigFig.figures : stats.soldiers;
     return {
       stats,
-      layer: this.soldierLayer(s.ageId, sig && hasSoldierOverride(s.ageId, sig) ? sig : look && hasSoldierOverride(s.ageId, look) ? look : s.classId),
+      layer: this.soldierLayer(s.ageId, useSig ? sig : look && hasSoldierOverride(s.ageId, look) ? look : s.classId),
       general: hasSoldierOverride(s.ageId, 'general') ? this.soldierLayer(s.ageId, 'general') : null,
-      drawn: this.figureScale < 1 ? { soldiers: scaledSoldiers(stats.soldiers, this.figureScale) } : stats,
+      drawn: this.figureScale < 1 || rigFig ? { soldiers: this.figureScale < 1 ? scaledSoldiers(figures, this.figureScale) : figures } : stats,
       big: s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || !!stats.flying,
       // Modern tanks and AA trucks are wider than horses and carts: spread them so they do not overlap
-      spacing: stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? (s.ageId === 'modern' ? 1.3 : 0.95) : s.classId === 'support' ? (s.ageId === 'modern' ? 1.4 : 1.05) : 0.52,
+      rigFig,
+      spacing: rigFig ? rigFig.spacing : stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? (s.ageId === 'modern' ? 1.3 : 0.95) : s.classId === 'support' ? (s.ageId === 'modern' ? 1.4 : 1.05) : 0.52,
       scale: MODEL_SCALE[s.classId] || 0.62,
       organic: isOrganic(s.classId, s.ageId),
       sideColor: this.sideColors[s.side],
@@ -1323,7 +1329,8 @@ export class BattleRenderer {
       // Ground ring, selection ring, standard-bearer banner, strength bar (written straight into
       // their instance buffers: three.js's Object3D compose and colour parsing cost more than
       // the soldiers themselves at 600 squads).
-      const r = 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
+      // (a few wide figures, the war elephants: round the whole line abreast)
+      const r = info.rigFig ? (Math.min(n, cols) - 1) * spacing / 2 + 1.1 : 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
       // Readable at 300 to 500 a side (phase R1 readability): rings only under the selection, one
       // short standard per few squads (and every general), shown from mid zoom in, and a strength
       // bar only on the selection and on squads losing men in a fight.

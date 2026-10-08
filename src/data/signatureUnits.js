@@ -169,6 +169,13 @@ export const SIGNATURE_UNITS = Object.freeze({
 /** Rigs whose figure is carried by four legs (the battle shader's trot). */
 export const QUADRUPED_RIGS = ['horse', 'camel', 'elephant', 'chariot-light', 'chariot-heavy', 'ox'];
 
+/** Rigs drawn with fewer, full-size figures than the role's squad. Drawing only: the squad's
+ * strength, HP and combat numbers stay the role's. War elephants: two beasts a squad, side by side,
+ * `spacing` battle tiles apart (BattleRenderer squadLook). */
+export const RIG_FIGURES = Object.freeze({ elephant: Object.freeze({ figures: 2, spacing: 2.1 }) });
+/** How a signature unit's squad is drawn when its rig says so ({ figures, spacing }), else null. */
+export const rigFiguresOf = (entry) => (entry ? RIG_FIGURES[entry.rig] || null : null);
+
 /** The people's signature unit when it is this age and role, else null. */
 export const signatureUnitFor = (peopleId, ageId, classId, table = SIGNATURE_UNITS) => {
   const e = peopleId ? table[peopleId] : null;

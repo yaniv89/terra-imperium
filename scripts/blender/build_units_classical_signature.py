@@ -28,9 +28,9 @@ GOLD = ('D4A84A', .35, .8)
 # world units per model unit of a mounted base unit: the procedural Classical cavalry (1.884) over the
 # measured classical-cavalry.glb (1.467, attachments excluded): soldierFactory and gltfUnitLoader
 MOUNTED_SCALE = 1.884 / 1.467
-# An elephant squad draws as many figures as a horse squad (8, battleStats.js): drawn at 0.8 of its
-# true size beside the riders so the eight still stand apart (2.9 world units with the howdah crew).
-ELEPHANT_DRAWN = .8
+# An elephant squad draws two beasts at full size (RIG_FIGURES in src/data/signatureUnits.js; the
+# squad's strength stays the role's), 3.6 world units tall with the howdah crew. Was 0.8 to fit eight.
+ELEPHANT_DRAWN = 1
 WIDE_SEAT = {'r': {'Leg_L': (-62, -42, 0), 'Leg_R': (-62, 42, 0), 'Shin_L': (72, 0, 0), 'Shin_R': (72, 0, 0)}}
 P = lib.person
 
