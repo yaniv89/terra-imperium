@@ -23,7 +23,9 @@ import { REGION_COORDINATES } from '../../../data/regionCoordinates';
 import { markerLatLng } from '../../../utils/markerPosition';
 import { getEffectiveAgeId } from '../../../data/ages';
 import { getSoldierGeometry, hasSoldierOverride, packForGPU, createSoldierMaterial, MODEL_SCALE } from '../../../battle/render/soldierFactory';
-import { findUnitModel, preloadSoldierModel } from '../../../battle/render/unitModels';
+import { findUnitModel, preloadSoldierModel, preloadSignatureModel } from '../../../battle/render/unitModels';
+import { signatureUnitFor, signatureKey, rigFiguresOf } from '../../../data/signatureUnits';
+import { peopleForNationId } from '../../../data/peoples';
 import { soldierLodGeometries, triangleCount } from '../../../battle/render/soldierLod';
 import { skinToneFor, soldierSkinTone, emblemCellFor } from '../../../battle/render/unitVariants';
 import { getNationColor } from '../../../data/nationColors';
@@ -555,13 +557,28 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     // layer is rebuilt on it; the procedural body meanwhile and if it fails), else the procedural
     // model. The full model whenever the figures on screen fit MAP_FIGURE_TRIS (the clustered
     // battle LOD, about 280 triangles, read as a blob at mid zoom), the clustered one only beyond.
-    const layerFor = (ageId, classId) => {
-      const key = `${ageId}:${classId}`;
-      if (!t.soldierLoads.has(key) && !hasSoldierOverride(ageId, classId) && findUnitModel(ageId, classId)) {
+    // A people's war elephants (the rigs with their own few figures, RIG_FIGURES) draw under their
+    // signature key once the model is in; until then the base unit of the role. Other signature
+    // units keep the base unit on the map for now.
+    const signatureLayerKey = (peopleId, ageId, classId) => {
+      const entry = peopleId ? signatureUnitFor(peopleId, ageId, classId) : null;
+      if (!rigFiguresOf(entry)) return null;
+      const key = signatureKey(classId, peopleId);
+      if (hasSoldierOverride(ageId, key)) return key;
+      const loadKey = `${ageId}:${key}`;
+      if (!t.soldierLoads.has(loadKey)) {
+        t.soldierLoads.add(loadKey);
+        preloadSignatureModel(peopleId, ageId, classId).then((ok) => { if (ok) onAssets(); }).catch(() => {});
+      }
+      return null;
+    };
+    const layerFor = (ageId, classId, sigKey = null) => {
+      const key = `${ageId}:${sigKey || classId}`;
+      if (!sigKey && !t.soldierLoads.has(key) && !hasSoldierOverride(ageId, classId) && findUnitModel(ageId, classId)) {
         t.soldierLoads.add(key);
         preloadSoldierModel(ageId, classId).then((ok) => { if (ok) onAssets(); }).catch(() => {});
       }
-      const source = getSoldierGeometry(ageId, classId);
+      const source = getSoldierGeometry(ageId, sigKey || classId);
       let l = t.layers.get(key);
       if (l && l.source !== source) { dropLayer(l); l = null; }
       if (!l) {
@@ -592,23 +609,28 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       if (!at) return;
       const classId = m.own && m.mainClass && m.mainClass !== 'mixed' ? m.mainClass : 'infantry';
       const ageId = ageOf(state, m.ownerId);
-      const l = layerFor(ageId, classId);
+      const peopleId = m.ownerId ? peopleForNationId(m.ownerId) : null;
+      const sigKey = signatureLayerKey(peopleId, ageId, classId);
+      // war elephants: at most two full-size figures, wider apart
+      const rigFig = sigKey ? rigFiguresOf(signatureUnitFor(peopleId, ageId, classId)) : null;
+      const l = layerFor(ageId, classId, sigKey);
       // Marching: face the next step and walk.
       const lead = m.own ? state.units[m.units?.[0]] : null;
       const next = lead?.route?.[0] ? toScreen(lead.route[0]) : null;
       const walking = !!next;
       if (walking) moving = true;
       const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING;
-      const n = figuresFor(m.men);
+      const n = rigFig ? Math.min(rigFig.figures, figuresFor(m.men)) : figuresFor(m.men);
       // never smaller than MIN_FIGURE_PX on screen (mid zoom), spaced to match
       const trueScale = s * SOLDIER_SIZE * (MODEL_SCALE[classId] || 0.88);
       const scale = Math.max(trueScale, MIN_FIGURE_PX / l.height);
       const gap = s * (scale / trueScale);
       color.set(m.own ? PLAYER_COLOR : getNationColor(m.ownerId) || '#64748b');
       const tone = skinToneFor(m.ownerId); const cell = emblemCellFor(m.own ? 0 : 1, mi);
+      const side = rigFig ? 2.8 : 1.1; // elephants stand wider apart than men and horses, as in battle
       for (let i = 0; i < n && l.mesh.count < MAX_SOLDIERS; i++) {
         const k2 = l.mesh.count;
-        const ox = (i - (n - 1) / 2) * gap * 1.1 + gap * ARMY_SPOT.x; const oy = gap * ARMY_SPOT.y + (i % 2) * gap * 0.4;
+        const ox = (i - (n - 1) / 2) * gap * side + gap * ARMY_SPOT.x; const oy = gap * ARMY_SPOT.y + (i % 2) * gap * 0.4;
         tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
         tmp.rotation.set(TILT, heading, 0, 'XYZ');
         tmp.scale.setScalar(scale);

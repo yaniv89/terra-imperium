@@ -3,10 +3,10 @@
 // (the standard alone, the base unit) when there is no file or no roster entry.
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry } from 'three';
-import { battleExtraModels, findSignatureModel, preloadUnitModels, findGeneralModel, preloadSoldierModel, unitLookOf, lookKey, findUnitModel } from './unitModels';
+import { battleExtraModels, findSignatureModel, preloadUnitModels, findGeneralModel, preloadSoldierModel, preloadSignatureModel, unitLookOf, lookKey, findUnitModel } from './unitModels';
 import { squadLookOf } from './view';
 import { hasSoldierOverride, unregisterSoldierGeometry, MODEL_SCALE } from './soldierFactory';
-import { signatureUnitFor, signatureKey, baseClassOf, SIGNATURE_UNITS } from '../../data/signatureUnits';
+import { signatureUnitFor, signatureKey, baseClassOf, SIGNATURE_UNITS, RIG_FIGURES, rigFiguresOf } from '../../data/signatureUnits';
 import { createArtIndex } from '../art/artIndex';
 import { PEOPLES } from '../../data/peoples';
 import { AGE_ORDER } from '../../data/ages';
@@ -47,6 +47,33 @@ describe('signature units', () => {
       if (e.rig === 'camel' || e.rig === 'elephant') expect(m.options.height, id).toBeGreaterThan(2);
       if (e.rig === 'tank') expect(m.options.height, id).toBeGreaterThan(.5);
     });
+  });
+
+  it('war elephants draw two full-size figures a squad; camels, horses and tanks the role\'s count', () => {
+    const elephants = Object.entries(SIGNATURE_UNITS).filter(([, e]) => e.rig === 'elephant').map(([id]) => id);
+    expect(elephants.sort()).toEqual(['champa', 'kalinga', 'kamarupa', 'magadha']);
+    elephants.forEach((id) => {
+      const e = SIGNATURE_UNITS[id];
+      expect(rigFiguresOf(e), id).toEqual({ figures: 2, spacing: expect.any(Number) });
+      expect(rigFiguresOf(e).spacing, id).toBeGreaterThan(1.5); // a beast is far wider than a horse
+      // full size (3.6), no longer the 0.8 that squeezed eight a squad
+      expect(findSignatureModel(id, e.ageId, e.classId).options.height, id).toBeCloseTo(3.618, 3);
+    });
+    Object.values(SIGNATURE_UNITS).filter((e) => e.rig !== 'elephant').forEach((e) => expect(rigFiguresOf(e), e.model).toBeNull());
+    expect(RIG_FIGURES.camel).toBeUndefined(); expect(RIG_FIGURES.tank).toBeUndefined();
+    expect(rigFiguresOf(null)).toBeNull();
+  });
+
+  it('a signature soldier loads for the map close view under its key, and nothing without one', async () => {
+    const geo = new BoxGeometry(1, 1, 1);
+    const load = async () => ({ geometry: geo });
+    const findSignature = (p, age, c) => (p === 'magadha' && age === 'classical' && c === 'cavalry' ? { name: 'signature/magadha', url: 'test://magadha.glb', options: { height: 3.618 } } : null);
+    const key = signatureKey('cavalry', 'magadha');
+    try {
+      expect(await preloadSignatureModel('magadha', 'classical', 'cavalry', { load, findSignature })).toBe(true);
+      expect(hasSoldierOverride('classical', key)).toBe(true);
+      expect(await preloadSignatureModel('magadha', 'bronze', 'cavalry', { load, findSignature })).toBe(false);
+    } finally { unregisterSoldierGeometry('classical', key); }
   });
 });
 

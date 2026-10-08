@@ -170,3 +170,17 @@ export const preloadSoldierModel = async (ageId, classId, deps = {}) => {
   const r = await preloadUnitModels({ sides: [{ ageId, units: [{ classId }] }] }, { extras: () => [], ...deps });
   return r.loaded.length > 0;
 };
+
+/**
+ * A people's signature soldier outside a battle (the map's close view), registered under
+ * signatureKey(classId, peopleId). Resolves true when registered, false when the people has none
+ * for this age and role (or it failed: the base unit draws).
+ */
+export const preloadSignatureModel = async (peopleId, ageId, classId, deps = {}) => {
+  const key = signatureKey(classId, peopleId);
+  if (hasSoldierOverride(ageId, key)) return true;
+  const model = (deps.findSignature || findSignatureModel)(peopleId, ageId, classId);
+  if (!model) return false;
+  const r = await preloadUnitModels({ sides: [] }, { extras: () => [{ ageId, key, classId, model }], ...deps });
+  return r.loaded.length > 0;
+};
