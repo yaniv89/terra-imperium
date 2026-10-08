@@ -3,120 +3,140 @@
 // The battlefield camera is orthographic, so every soldier on screen is the same size: "distance"
 // is the zoom, and one detail level per frame serves the whole field. Three levels per (age, class):
 //   0 full    the model as authored (procedural or GLB), and the only level that casts shadows
-//   1 mid     the same model clustered down to a few hundred triangles
-//   2 far     clustered down to a silhouette of about 60 triangles
+//   1 mid     the same model simplified (edge collapse) within about a pixel of error
+//   2 far     simplified further, a few hundred triangles that keep the class's silhouette
 // The lower levels keep every rig attribute (limb, pivot, team, part, emblem uv, surface), so the
 // same material animates and colours them, and they share the full level's per-instance buffers.
 // pickSoldierTier() picks the finest level the soldiers' size on screen calls for that still fits
 // the triangle budget for the figures in view.
-import { BufferGeometry, BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute } from 'three';
+import { BufferGeometry, BufferAttribute } from 'three';
+import { MeshoptSimplifier } from 'three/examples/jsm/libs/meshopt_simplifier.module.js';
 
 // Soldier height on screen (css px) at which a finer level is worth drawing.
 export const TIER_PX = [44, 18];
 export const TIER_HYSTERESIS = 0.12;
-// Target triangles per level (the cap the clustering aims under).
-export const TIER_TRIS = [Infinity, 360, 64];
+// Target triangles per level: a cap the simplifier aims under while it stays within TIER_ERROR.
+export const TIER_TRIS = [Infinity, 550, 220];
+// The largest shape error a level may make, in model units (a soldier stands about 1 tall). One
+// css px is about 2% of a soldier's height at 44 px (the mid level's top) and 5% at 18 px (the far
+// level's top): the levels stay under a pixel or two, so a squad never changes shape at a switch.
+export const TIER_ERROR = [0, 0.015, 0.03];
 
-// Vertex clustering: snap vertices to a grid (separately per rig limb, team and part flag, so arms
-// still swing and tunics still take the side's colour), merge each cell to one vertex (mean
-// position, mean normal, the first vertex's other attributes) and drop the triangles that
-// collapse. Deterministic, attribute-agnostic and fast enough to run once per battle.
-const clusterOnce = (geo, cells) => {
+// Simplification (meshoptimizer, the quadric edge-collapse simplifier three ships as WASM). The old
+// vertex clustering snapped a whole figure to a 3 or 4 cell grid at the far level: bodies, legs,
+// horses and spears collapsed to nothing and only the team-coloured cloth (clustered on a finer
+// grid) was left, so squads read as rows of blue arrows. Edge collapse keeps the silhouette: it
+// removes the triangles that change the shape least first and stops at the error bound.
+let simplifierReady = false;
+const readyPromise = MeshoptSimplifier.ready.then(() => { simplifierReady = true; }, () => { simplifierReady = false; });
+/** Resolves once the simplifier can build detail levels (a few ms of WASM set-up at start). */
+export const soldierLodReady = () => readyPromise;
+export const isSoldierLodReady = () => simplifierReady;
+
+// Weld the flat-shaded soup (every triangle its own three vertices) into an indexed mesh: corners
+// that share a position AND every rig and look attribute (limb, pivot, team, part, colour, emblem
+// uv, surface) become one vertex. Parts of another colour or limb stay their own islands, so a
+// swinging arm never stretches into the body and the tunic keeps its edge.
+const weld = (geo) => {
+  const names = Object.keys(geo.attributes).filter((n) => n !== 'normal');
+  const attrs = names.map((n) => geo.attributes[n]);
   const pos = geo.attributes.position;
-  const idx = geo.index;
   const n = pos.count;
-  geo.computeBoundingBox();
-  const { min, max } = geo.boundingBox;
-  const size = Math.max(max.x - min.x, max.y - min.y, max.z - min.z) || 1;
-  const cell = size / cells;
-  const limb = geo.attributes.aLimb; const team = geo.attributes.aTeam; const part = geo.attributes.aPart;
-  const look = geo.attributes.aLook; // packed team/part (packForGPU)
+  const remap = new Uint32Array(n);
+  const firsts = [];
   const keyOf = new Map();
-  const clusterOf = new Int32Array(n);
-  const members = [];
   for (let i = 0; i < n; i++) {
-    const l = limb ? limb.getX(i) : 0;
-    const t = team ? team.getX(i) : look ? look.getX(i) : 0;
-    // The side's colour (tunic, shield) is what tells two tiny armies apart: a finer grid there.
-    const g = t > 0.5 ? cell / 2 : cell;
-    const ix = Math.floor((pos.getX(i) - min.x) / g); const iy = Math.floor((pos.getY(i) - min.y) / g); const iz = Math.floor((pos.getZ(i) - min.z) / g);
-    const p = part ? part.getX(i) : look ? look.getY(i) : 0;
-    const key = `${ix},${iy},${iz},${l},${t > 0.5 ? 1 : 0},${Math.round(p)}`;
-    let c = keyOf.get(key);
-    if (c === undefined) { c = members.length; keyOf.set(key, c); members.push([]); }
-    clusterOf[i] = c;
-    members[c].push(i);
+    let key = '';
+    for (let a = 0; a < attrs.length; a++) {
+      const at = attrs[a]; const q = at === pos ? 1e4 : 1e3;
+      for (let k = 0; k < at.itemSize; k++) key += `${Math.round(at.getComponent(i, k) * q)},`;
+    }
+    let v = keyOf.get(key);
+    if (v === undefined) { v = firsts.length; keyOf.set(key, v); firsts.push(i); }
+    remap[i] = v;
   }
-  const triCount = idx ? idx.count / 3 : n / 3;
-  const tris = [];
-  const seen = new Set();
-  for (let t = 0; t < triCount; t++) {
-    const a = clusterOf[idx ? idx.getX(t * 3) : t * 3];
-    const b = clusterOf[idx ? idx.getX(t * 3 + 1) : t * 3 + 1];
-    const c = clusterOf[idx ? idx.getX(t * 3 + 2) : t * 3 + 2];
-    if (a === b || b === c || a === c) continue;
-    const key = [a, b, c].sort((x, y) => x - y).join(',');
-    if (seen.has(key)) continue;
-    seen.add(key);
-    tris.push(a, b, c);
-  }
-  return { members, tris };
+  const idx = geo.index;
+  const count = idx ? idx.count : n;
+  const indices = new Uint32Array(count);
+  for (let k = 0; k < count; k++) indices[k] = remap[idx ? idx.getX(k) : k];
+  const positions = new Float32Array(firsts.length * 3);
+  firsts.forEach((i, v) => { positions[v * 3] = pos.getX(i); positions[v * 3 + 1] = pos.getY(i); positions[v * 3 + 2] = pos.getZ(i); });
+  return { names, indices, positions, firsts };
 };
 
-const buildClustered = (geo, { members, tris }) => {
-  // Only the clusters some triangle still uses become vertices.
-  const used = new Int32Array(members.length).fill(-1);
-  const order = [];
-  tris.forEach((c) => { if (used[c] < 0) { used[c] = order.length; order.push(c); } });
+// Back to a flat-shaded soup (one face normal per triangle, the low-poly look of the full model).
+const unweld = (geo, names, firsts, indices) => {
   const out = new BufferGeometry();
-  Object.entries(geo.attributes).forEach(([name, attr]) => {
-    const size = attr.itemSize;
-    const arr = new Float32Array(order.length * size);
-    order.forEach((c, v) => {
-      const ms = members[c];
-      if (name === 'position' || name === 'normal') {
-        for (let k = 0; k < size; k++) { let s = 0; ms.forEach((i) => { s += attr.getComponent(i, k); }); arr[v * size + k] = s / ms.length; }
-        if (name === 'normal') {
-          const len = Math.hypot(arr[v * 3], arr[v * 3 + 1], arr[v * 3 + 2]);
-          if (len > 1e-3) for (let k = 0; k < 3; k++) arr[v * 3 + k] /= len;
-          else for (let k = 0; k < 3; k++) arr[v * 3 + k] = attr.getComponent(ms[0], k); // opposite faces cancelled out
-        }
-      } else {
-        for (let k = 0; k < size; k++) arr[v * size + k] = attr.getComponent(ms[0], k);
-      }
-    });
+  names.forEach((name) => {
+    const attr = geo.attributes[name]; const size = attr.itemSize;
+    const arr = new Float32Array(indices.length * size);
+    for (let k = 0; k < indices.length; k++) {
+      const src = firsts[indices[k]];
+      for (let c = 0; c < size; c++) arr[k * size + c] = attr.getComponent(src, c);
+    }
     out.setAttribute(name, new BufferAttribute(arr, size));
   });
-  const index = tris.map((c) => used[c]);
-  out.setIndex(order.length > 65535 ? new Uint32BufferAttribute(index, 1) : new Uint16BufferAttribute(index, 1));
+  out.computeVertexNormals();
   out.computeBoundingSphere(); out.computeBoundingBox();
   return out;
 };
 
+// Spears, pikes, lances, bows and poles are thin: collapsing one to nothing moves it by less than its
+// radius, far under the error bound, so the far level lost every spear and lance. They are what
+// tells a spearman from a swordsman at a glance, and cost a few dozen triangles: any island (a
+// connected part) long and thin against the error bound keeps all of its vertices.
+const lockShafts = (indices, positions, maxError) => {
+  const nv = positions.length / 3;
+  const parent = new Int32Array(nv).map((_, i) => i);
+  const find = (a) => { while (parent[a] !== a) { parent[a] = parent[parent[a]]; a = parent[a]; } return a; };
+  for (let k = 0; k < indices.length; k += 3) {
+    const a = find(indices[k]); const b = find(indices[k + 1]); const c = find(indices[k + 2]);
+    parent[b] = a; parent[find(c)] = a;
+  }
+  const box = new Map();
+  for (let v = 0; v < nv; v++) {
+    const r = find(v); let b = box.get(r);
+    if (!b) { b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]; box.set(r, b); }
+    for (let a = 0; a < 3; a++) { const x = positions[v * 3 + a]; if (x < b[a]) b[a] = x; if (x > b[a + 3]) b[a + 3] = x; }
+  }
+  const shaft = new Set();
+  box.forEach((b, r) => {
+    const ext = [b[3] - b[0], b[4] - b[1], b[5] - b[2]].sort((x, y) => x - y);
+    if (ext[2] > 0.25 && ext[1] < Math.max(0.06, maxError * 2)) shaft.add(r);
+  });
+  const lock = new Uint8Array(nv);
+  if (shaft.size) for (let v = 0; v < nv; v++) if (shaft.has(find(v))) lock[v] = 1;
+  return lock;
+};
+
 const triangles = (geo) => (geo.index ? geo.index.count : geo.attributes.position.count) / 3;
 
-// A copy of `geo` with at most `maxTris` triangles (or `geo` itself when it already fits): the
-// finest clustering grid that comes in under the cap.
-export const simplifyRigged = (geo, maxTris) => {
-  if (triangles(geo) <= maxTris) return geo;
-  let lo = 2; let hi = 96; let best = null;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    const r = clusterOnce(geo, mid);
-    if (r.tris.length / 3 <= maxTris) { best = r; lo = mid + 1; } else hi = mid - 1;
-  }
-  return buildClustered(geo, best || clusterOnce(geo, 2));
+// A copy of `geo` with at most `maxTris` triangles where the shape allows it within `maxError`
+// (model units), or `geo` itself when it already fits. Thin parts that carry a figure's class (a
+// spear, a bow, a horse's legs) are long, so they outlast the error bound; only details smaller
+// than it (buckles, fingers, rivets) are pruned.
+export const simplifyRigged = (geo, maxTris, maxError = TIER_ERROR[TIER_ERROR.length - 1]) => {
+  if (triangles(geo) <= maxTris || !simplifierReady) return geo;
+  const { names, indices, positions, firsts } = weld(geo);
+  const target = Math.min(indices.length, Math.max(3, Math.floor(maxTris) * 3));
+  const lock = lockShafts(indices, positions, maxError);
+  const [out] = MeshoptSimplifier.simplifyWithAttributes(indices, positions, 3, new Float32Array(0), 0, [], lock, target, maxError, ['ErrorAbsolute', 'Prune']);
+  if (!out.length || out.length >= indices.length) return geo;
+  return unweld(geo, names, firsts, out);
 };
 
 export const triangleCount = triangles;
 
 // [full, mid, far] for one soldier geometry, built once per geometry (GLB overrides outlive a
-// battle, so the cache is keyed by the geometry object itself).
+// battle, so the cache is keyed by the geometry object itself). Before the simplifier is ready
+// every level is the full model (never a broken one), and nothing is cached.
 const lodCache = new WeakMap();
 export const soldierLodGeometries = (geo) => {
   let lods = lodCache.get(geo);
   if (!lods) {
-    lods = [geo, simplifyRigged(geo, TIER_TRIS[1]), simplifyRigged(geo, TIER_TRIS[2])];
+    if (!simplifierReady) return [geo, geo, geo];
+    const mid = simplifyRigged(geo, TIER_TRIS[1], TIER_ERROR[1]);
+    lods = [geo, mid, simplifyRigged(mid, TIER_TRIS[2], TIER_ERROR[2])];
     lodCache.set(geo, lods);
   }
   return lods;

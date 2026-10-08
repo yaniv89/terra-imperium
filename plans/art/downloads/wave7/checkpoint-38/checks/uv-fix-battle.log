@@ -1,0 +1,11 @@
+10:46:05 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+10:46:05 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.10 /workspace/terra-remaining
+
+
+ Test Files  38 passed (38)
+      Tests  331 passed | 1 skipped (332)
+   Start at  10:46:05
+   Duration  139.99s (transform 11.46s, setup 0ms, import 72.70s, tests 59.58s, environment 4ms)

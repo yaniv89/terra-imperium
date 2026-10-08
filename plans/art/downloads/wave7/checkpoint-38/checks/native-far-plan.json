@@ -1,0 +1,41 @@
+{
+  "status": "prepared-not-captured",
+  "source": "/workspace/terra-remaining/scripts/art/capture-battle-art.mjs",
+  "repo": "/workspace/terra-remaining",
+  "out": "/workspace/remaining-production/checks/battle-art-far-reviewed",
+  "sourceSha256": "0e460b85a886ad5fa1f83180423fa78dbbb4528e29fbaaa004af243249666e1a",
+  "includeSha256": [
+    "fd08d771f86639bf4254c0f11e5d66c18037e1cee8f82327441c40a0dbbd91b1",
+    "f992baf90b0a9f0b6febc54faaa4f5fe73ca3a878c57a35d0b0df25a299ed2cb"
+  ],
+  "nativeZooms": {
+    "terrain": [
+      {
+        "zoom": 0.5,
+        "LOD": 1
+      },
+      {
+        "zoom": 0.45,
+        "LOD": 2
+      }
+    ],
+    "conifer": [
+      {
+        "zoom": 1,
+        "LOD": 1
+      },
+      {
+        "zoom": 0.5,
+        "LOD": 2
+      }
+    ]
+  },
+  "sourceSnapshots": {
+    "kitInstances": "358b9597f681f295a45f5f51e581503ac9ff75029673cf318a25c5a944989c78",
+    "vegetationProps": "7e57e963158d742ccc33d491894aedce6941f0b800569385aa1639d8f8510cfd",
+    "BattleRenderer": "7846365b00205c10210d621f669fcb8243045fdf9db2516672d2171001b6d4b9"
+  },
+  "defaultFrames": 8,
+  "scope": "Bronze terrain and conifer, two native LODs, phone and desktop; other river ages optional.",
+  "limitation": "Parent visual review required. Compare live UVs to preservation-only parse; independent packed-file audit remains separate. No forced LOD or synthetic sim state."
+}

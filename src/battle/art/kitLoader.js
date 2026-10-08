@@ -11,6 +11,7 @@
 import { Matrix4, Vector3, BufferGeometry, BufferAttribute, Box3 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { loadGltf } from '../render/gltfUnitLoader';
+import { ART } from './artFiles';
 
 const LOD_NAME = /^LOD(\d)/;
 export const lodOf = (o) => { const m = LOD_NAME.exec(o?.name || ''); return m ? Number(m[1]) : null; };
@@ -71,11 +72,81 @@ export const bakeBundle = (nodes, toRoot) => {
   return { geometry, materials, team: materials.map(isTeamMaterial), triangles: geometry.index.count / 3 };
 };
 
+// Texture space per uv unit of a bundle (a packed file scales its quantized uvs by the material's
+// texture transform, which three puts on the map's repeat).
+const uvScale = (bundle) => {
+  const r = bundle.materials.find((m) => m?.map)?.map?.repeat;
+  return r ? Math.max(Math.abs(r.x), Math.abs(r.y), 1e-6) : 1;
+};
+const faceGroups = (geo) => (geo.groups.length ? geo.groups : [{ start: 0, count: geo.index.count, materialIndex: 0 }]);
+const centroid = (pos, idx, t, out) => {
+  out[0] = 0; out[1] = 0; out[2] = 0;
+  for (let j = 0; j < 3; j++) { const v = idx.getX(t + j); out[0] += pos.getX(v) / 3; out[1] += pos.getY(v) / 3; out[2] += pos.getZ(v) / 3; }
+  return out;
+};
+
+// How far (texture space) a lower LOD's uvs sit from the full model's at the same places: about 0
+// for a sound decimation; the temperate vegetation kit's LOD1 and LOD2 trees came out of the
+// decimator with scrambled uvs (about 0.5: bark, leaves and ground from all over the atlas), which
+// drew a forest of dark camouflage blobs at every zoom but the closest.
+export const lodUvMismatch = (low, full) => {
+  const p = low.geometry.attributes.position; const u = low.geometry.attributes.uv;
+  const p0 = full.geometry.attributes.position; const u0 = full.geometry.attributes.uv;
+  if (!u || !u0 || !p.count) return 0;
+  let sum = 0;
+  for (let i = 0; i < p.count; i++) {
+    let best = Infinity; let bj = 0;
+    for (let j = 0; j < p0.count; j++) {
+      const d = (p.getX(i) - p0.getX(j)) ** 2 + (p.getY(i) - p0.getY(j)) ** 2 + (p.getZ(i) - p0.getZ(j)) ** 2;
+      if (d < best) { best = d; bj = j; }
+    }
+    sum += Math.hypot(u.getX(i) - u0.getX(bj), u.getY(i) - u0.getY(bj));
+  }
+  return (sum / p.count) * uvScale(full);
+};
+export const LOD_UV_TOLERANCE = 0.15;
+
+// Repair: every face of the lower LOD takes the uv at the centre of the nearest face of the full
+// model with the same material (flat colour per face, the low-poly look), so the far trees wear
+// the same bark and leaves as the near ones.
+export const transferLodUvs = (low, full) => {
+  const src = low.geometry.toNonIndexed();
+  const n = src.attributes.position.count;
+  src.setIndex(Array.from({ length: n }, (_, i) => i));
+  const pos = src.attributes.position; const idx = src.index;
+  const p0 = full.geometry.attributes.position; const i0 = full.geometry.index; const u0 = full.geometry.attributes.uv;
+  const refs = []; // per material index of the low bundle: [cx, cy, cz, u, v] of the full model's faces
+  const c = [0, 0, 0];
+  faceGroups(full.geometry).forEach((g) => {
+    const mi = low.materials.indexOf(full.materials[g.materialIndex]);
+    const list = refs[mi] || (refs[mi] = []);
+    for (let t = g.start; t < g.start + g.count; t += 3) {
+      centroid(p0, i0, t, c);
+      let uu = 0; let vv = 0;
+      for (let j = 0; j < 3; j++) { uu += u0.getX(i0.getX(t + j)) / 3; vv += u0.getY(i0.getX(t + j)) / 3; }
+      list.push([c[0], c[1], c[2], uu, vv]);
+    }
+  });
+  const uv = new Float32Array(n * 2);
+  faceGroups(src).forEach((g) => {
+    const list = refs[g.materialIndex] || refs.find(Boolean) || [];
+    for (let t = g.start; t < g.start + g.count; t += 3) {
+      centroid(pos, idx, t, c);
+      let best = Infinity; let pick = null;
+      list.forEach((r) => { const d = (r[0] - c[0]) ** 2 + (r[1] - c[1]) ** 2 + (r[2] - c[2]) ** 2; if (d < best) { best = d; pick = r; } });
+      if (pick) for (let j = 0; j < 3; j++) { uv[(t + j) * 2] = pick[3]; uv[(t + j) * 2 + 1] = pick[4]; }
+    }
+  });
+  src.setAttribute('uv', new BufferAttribute(uv, 2));
+  src.computeBoundingBox(); src.computeBoundingSphere();
+  return { ...low, geometry: src };
+};
+
 /**
  * Parse a loaded glTF scene into { objects: { name: { lods: [bundle, bundle, bundle], sockets:
  * { name: Vector3 }, box: Box3 } } } (positions in the object's own space, glTF axes).
  */
-export const parseKit = (scene) => {
+export const parseKit = (scene, { repairLodUvs = false } = {}) => {
   scene.updateMatrixWorld(true);
   const lodRoots = [];
   scene.traverse((o) => { if (lodOf(o) === null && o.children.some((c) => lodOf(c) === 0)) lodRoots.push(o); });
@@ -92,6 +163,9 @@ export const parseKit = (scene) => {
     const lods = [];
     lodNodes.forEach((list, l) => { lods[l] = (list.length ? bakeBundle(list, toRoot) : null) || lods[l - 1] || null; });
     if (!lods[0]) return;
+    for (let l = 1; repairLodUvs && l < lods.length; l++) {
+      if (lods[l] && lods[l] !== lods[0] && lods[l] !== lods[l - 1] && lodUvMismatch(lods[l], lods[0]) > LOD_UV_TOLERANCE) lods[l] = transferLodUvs(lods[l], lods[0]);
+    }
     const sockets = {};
     root.traverse((o) => { if (isSocket(o)) sockets[o.name] = new Vector3().setFromMatrixPosition(o.matrixWorld).applyMatrix4(toRoot); });
     objects[root.name] = { name: root.name, lods, sockets, box: new Box3().copy(lods[0].geometry.boundingBox) };
@@ -100,14 +174,15 @@ export const parseKit = (scene) => {
   return { objects };
 };
 
-const kits = new Map(); // url -> Promise<kit>
-/** Load a kit file once (url -> Promise of parseKit's result); a failed load can be retried. */
-export const loadKit = (url, { load = loadGltf } = {}) => {
+const kits = new Map(); // [url, repair policy] -> Promise<kit>
+/** Preserve authored UV charts except for the exact known legacy kit, or an explicit opt-in. */
+export const loadKit = (url, { load = loadGltf, repairLodUvs = url === ART.url('battle/nature/vegetation-temperate.glb') } = {}) => {
   if (!url) return Promise.resolve(null);
-  if (!kits.has(url)) {
-    kits.set(url, Promise.resolve().then(() => load(url)).then((gltf) => parseKit(gltf.scene)).catch((e) => { kits.delete(url); throw new Error(`${url}: ${e.message}`); }));
+  const key = JSON.stringify([url, !!repairLodUvs]);
+  if (!kits.has(key)) {
+    kits.set(key, Promise.resolve().then(() => load(url)).then((gltf) => parseKit(gltf.scene, { repairLodUvs })).catch((e) => { kits.delete(key); throw new Error(`${url}: ${e.message}`); }));
   }
-  return kits.get(url);
+  return kits.get(key);
 };
 /** The first object of `names` the kit has (a fallback list: 'barracks-damaged', 'barracks'). */
 export const kitObject = (kit, ...names) => {

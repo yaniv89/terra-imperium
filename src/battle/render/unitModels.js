@@ -21,8 +21,10 @@
 // to the procedural model, so a bad or missing file can never block a battle.
 import { loadUnitModel } from './gltfUnitLoader';
 import { composeUnitModel } from './unitComposer';
-import { registerSoldierGeometry, hasSoldierOverride, getProceduralSoldierGeometry } from './soldierFactory';
+import { registerSoldierGeometry, hasSoldierOverride, getProceduralSoldierGeometry, MODEL_SCALE } from './soldierFactory';
+import { soldierLodReady } from './soldierLod';
 import { trainableRoles } from '../data/economy';
+import { UNIT_ROSTER } from '../../data/unitClasses';
 import { ART } from '../art/artFiles';
 import { signatureUnitFor, signatureKey, SIGNATURE_UNITS, QUADRUPED_RIGS } from '../../data/signatureUnits';
 import { peopleForNationId } from '../../data/peoples';
@@ -116,7 +118,37 @@ export const battleExtraModels = (setup, { findGeneral = findGeneralModel, findS
 export const needsUnitModels = (setup, extras = battleExtraModels) => battleModelPairs(setup).some(([a, c]) => findUnitModel(a, c) && !hasSoldierOverride(a, c))
   || extras(setup).some((e) => !hasSoldierOverride(e.ageId, e.key));
 
-const inflight = new Map(); // `${url}@${height}` → Promise<geometry>
+// The art set (src/assets/units, signature/) is built on one rig at one scale: a person stands
+// about 1 unit, a horse's back about 0.75 and its rider's head about 1.37. Every figure is drawn at
+// that scale (ART_UNIT_WORLD tiles per unit, after the renderer's MODEL_SCALE for its class), so a
+// man stands shoulder-high to a horse's back in every age. Fitting each model to the procedural
+// model's height instead (which counts a pike, a lance or a banner) blew the Kingdoms spearman up
+// to twice a horseman's size. Machines (siege, air, naval) and files whose JSON gives a `height`
+// keep that fit: their layouts are spaced for it.
+export const ART_UNIT_WORLD = 0.95;
+const FIT_TO_HEIGHT = new Set(['siege', 'air', 'naval']);
+export const POLEARM_M = { spear: 2.5, pike: 5, lance: 3.5 };
+/** Bake options for a model registered under `regKey` (a class, 'general', a look or signature key). */
+export const bakeOptionsFor = (ageId, regKey, classId, model) => {
+  const opts = { quadruped: classId === 'cavalry', ...model.options };
+  if (opts.height == null) {
+    const proc = getProceduralSoldierGeometry(ageId, classId);
+    opts.height = Math.round((proc.boundingBox.max.y - proc.boundingBox.min.y) * 1000) / 1000;
+    if (!FIT_TO_HEIGHT.has(classId) && model.options.scale == null) {
+      const drawn = (regKey === 'general' ? MODEL_SCALE.general : MODEL_SCALE[classId]) || 0.62;
+      opts.scale = Math.round((ART_UNIT_WORLD / drawn) * 1e4) / 1e4;
+    }
+  }
+  // The base line's polearms at true length against a 1.8 m man: a spear 2.5 m, the Pikemen's pike
+  // 5 m, a horseman's lance 3.5 m (a signature unit keeps its own weapon).
+  if (opts.polearm == null && regKey === classId) {
+    if (classId === 'infantry') opts.polearm = /pike/i.test(UNIT_ROSTER[ageId]?.infantry?.name || '') ? POLEARM_M.pike : POLEARM_M.spear;
+    else if (classId === 'cavalry') opts.polearm = POLEARM_M.lance;
+  }
+  return opts;
+};
+
+const inflight = new Map(); // `${url}@${height or scale}` → Promise<geometry>
 const withTimeout = (p, ms) => new Promise((resolve, reject) => {
   const t = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms);
   p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
@@ -139,11 +171,10 @@ export const preloadUnitModels = async (setup, { timeoutMs = 8000, load = loadUn
     if (model.recipe) {
       if (!inflight.has(key)) inflight.set(key, compose(model.recipe, { resolve: resolveSource, ageId }).then((r) => r.geometry));
     } else {
-      // Stand exactly as tall as the procedural model it replaces, so squads keep their spacing.
-      const proc = getProceduralSoldierGeometry(ageId, classId);
-      const height = model.options.height ?? Math.round((proc.boundingBox.max.y - proc.boundingBox.min.y) * 1000) / 1000;
-      model.key = `${model.url}@${height}`;
-      if (!inflight.has(model.key)) inflight.set(model.key, load(model.url, { quadruped: classId === 'cavalry', ...model.options, height }).then((r) => r.geometry));
+      // People and mounts at the art set's own scale; machines as tall as the procedural model.
+      const opts = bakeOptionsFor(ageId, regKey, classId, model);
+      model.key = `${model.url}@${opts.scale ? `x${opts.scale}` : opts.height}`;
+      if (!inflight.has(model.key)) inflight.set(model.key, load(model.url, opts).then((r) => r.geometry));
     }
     const k = key || model.key;
     try {
@@ -156,6 +187,7 @@ export const preloadUnitModels = async (setup, { timeoutMs = 8000, load = loadUn
       console.warn(`[units] ${model.name}: ${error?.message || error} — using the procedural model`);
     }
   }));
+  await soldierLodReady(); // the detail levels are built from these when the battlefield opens
   return { loaded, failed };
 };
 

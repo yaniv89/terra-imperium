@@ -6,7 +6,8 @@ coherent battle-art checkpoint; no unit, rig, battle-simulation or game-rule cha
 
 **Delivered on `gpt/art-remaining`, awaiting review.** This checkpoint records
 14 new models, not quality acceptance. Integration is owned by the lead session;
-the UV compatibility issue below must be resolved before merge.
+the UV compatibility issue below is resolved on `gpt/art-remaining` after
+merging integration `5605511a`; quality review and lead delivery remain pending.
 
 ## Models
 
@@ -135,15 +136,61 @@ The desktop map photo used the legacy close view; the phone photo used WebGL
 
 ## Integration compatibility
 
-Remote integration advanced to `5605511a` during production. Its kit loader is
-identical to the `4a0533ed` loader used in the exact compatibility comparison. Its generic LOD UV
-repair rewrites **100 of these files' 112 lower LODs**, even though their separate
-atlas charts were deliberately authored and baked. The checkpoint's base loader
-preserves them. This is a confirmed buffer compatibility issue, not a rendered
-FPS measurement. Before merge, the lead must restrict the legacy repair or
-bypass it for independently baked charts. Exact affected roots, asset hashes
-and metrics are in [the compatibility note](checks/integration-compatibility.md)
-and [packed-buffer comparison](checks/integration-lod-uv-risk.json).
+The unmodified integration loader at `5605511ad63829724fc2ed83b41bd4c7da35b2f3`
+was identical to the `4a0533ed` loader measured in the historical compatibility
+comparison: its generic UV repair rewrote **100 of 112 lower LODs**, despite
+their deliberately authored and baked atlas charts. The original measurements
+remain in [the compatibility note](checks/integration-compatibility.md) and
+[packed-buffer comparison](checks/integration-lod-uv-risk.json).
+
+**Resolved on `gpt/art-remaining` after merging integration `5605511a`.**
+`parseKit` preserves authored charts by default. `loadKit` enables the legacy
+repair only for the exact indexed `vegetation-temperate.glb` URL, or an explicit
+opt-in; its cache separates repair policies. The [final packed-buffer proof](checks/checkpoint38-lod-uvs-final.json)
+checks the actual loader and Meshopt-decoded assets: **14 models, 56 roots and
+112 lower LODs; zero UV, index or triangle changes; all 168 LOD position,
+normal and material-group buffers match the authored baseline; all 14 packed
+asset hashes are unchanged.** This closes the loader compatibility blocker,
+without new models or a quality-acceptance claim. The Node image stub checks
+texture dimensions, not rendered pixels, alpha or shaders; native coverage
+limits above remain in effect.
+
+Post-integration validation is recorded separately from the earlier checkpoint
+runs: [targeted UV/policy tests](checks/kit-lod-uv-targeted.log) passed 31 tests
+in three files; the [battle subset](checks/uv-fix-battle.log) passed 38 files and
+331 tests, with one test skipped, in 139.99 seconds. [Repository lint](checks/uv-fix-lint.log)
+and [explicit checker/capture MJS lint](checks/uv-fix-mjs-lint.log) passed with
+zero warnings.
+
+The [post-integration full Vitest run](checks/uv-fix-full-vitest.log) finished in
+1644.52 seconds: **321 files passed, one failed and two skipped (324 total);
+3119 tests passed, four failed and 17 skipped (3140 total)**. Its only failed
+file was `src/components/map/gl/riverModel.test.js`: the tracked fixture
+`public/map/rivers.bin.gz` was absent from the sparse checkout. The parent
+restored that exact fixture from integration
+`5605511ad63829724fc2ed83b41bd4c7da35b2f3`, without changing source or fixture
+contents. The [isolated rerun](checks/uv-fix-river-fixture.log) passed **7/7**
+tests in **2.69 seconds**; [restoration provenance](checks/uv-fix-river-fixture.json)
+records the exact Git blob and fixture hash. All failures from this full run
+are resolved by that isolated rerun; this is **not one clean full-suite pass**.
+
+## UV follow-up build and native views
+
+The post-integration [mobile build](checks/uv-fix-build.log) passed: 3,985 modules,
+2m35s. All 14 [browser cases](checks/uv-fix-playwright.log) passed against that
+fresh build in 10.3 minutes.
+
+Four corrected native cases produced eight screenshots: Bronze river terrain
+and conifer, each at LOD1/LOD2, at 844×390 and 1600×900. The [runtime audit](checks/native-far-final.json)
+confirms distinct native LODs, live geometry and preserved UVs, without forced
+LOD or synthetic simulation state. All eight published screenshots were visually
+inspected for [UV compatibility](checks/native-far-review.json): wood decks,
+banks, fords and conifer foliage remain coherent. The first capture's phone bridge
+framing was rejected; its [diagnostic](checks/native-far-framing-diagnostic.json)
+is historical evidence. Published PNGs come from the corrected camera-order run.
+This adds eight views to the original fourteen, without new models or quality
+acceptance. Standalone tropical/cold climates and the other previously uncaptured
+states remain outside this visual scope. No hardware-FPS acceptance is claimed.
 
 ## Limits and other queue work
 

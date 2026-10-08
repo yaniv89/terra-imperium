@@ -71,6 +71,15 @@ screenshot and lists console errors. Look at the image with the Read tool. "GPU 
 ReadPixels" warnings come from SwiftShader, not the game. It relies on the DEV-only hooks
 `window.__battleRenderer` and `window.__battleOrders`.
 
+### Soldiers at every zoom (phone, iPad, desktop)
+```bash
+node .claude/skills/battle-lab/zoom-shots.mjs <outDir> [prefix]   # dev server on 5199 first
+SIZES=phone:874x402@3 ZOOMS=near:2,far:1,farther:0.6 TIER=2 node .claude/skills/battle-lab/zoom-shots.mjs <outDir> t2
+```
+Starts the sandbox (kingdoms, mixed, the defaults), fights 12 s at 3x, pauses, centres on your army
+and saves one jpg per size and zoom with the detail level picked (TIER forces one; `URL=...&age=bronze`
+for another age). Look at every level at the user's zoom: troops must read as soldiers and riders.
+
 ## 4. Scale: ms per tick at 300 / 500 / 1,000 squads a side
 ```bash
 node scripts/battle-bench.mjs                       # this checkout
@@ -103,8 +112,11 @@ adds milliseconds to every HUD update.
 Real phone on the same Wi-Fi: `npx vite --host` (prints the Network URL, e.g.
 http://192.168.1.22:5173/terra-imperium/), allow Node through the Windows firewall for private
 networks, then open `<Network URL>?battleSandbox&bench=300&autostart&perf` on the phone in landscape.
-Renderer rules: soldiers draw through soldierLod.js (full / about 360 / about 60 triangles, one level
-a frame by size on screen within BATTLE_GRAPHICS.figureTriangles); only squads in view are written;
+Renderer rules: soldiers draw through soldierLod.js (full, then meshoptimizer edge collapse to about
+550 and 220 triangles within 1.5% and 3% error, thin shafts locked; one level a frame by size on screen
+within BATTLE_GRAPHICS.figureTriangles; never vertex clustering, which left only team cloth as blue
+arrows); GLB people and mounts are drawn at the art set's own scale (unitModels.js ART_UNIT_WORLD,
+unitScale.test.js checks man, horse and rider heights); only squads in view are written;
 figures per squad shrink past 80 squads a side (capacity.js figureScale); props are instanced per
 48-tile chunk so three culls them; worker frames are packed (packedView.js, keep it equal to view.js).
 Any change to the sim must keep `kernel.test.js` (grids equal the full scan, hash chain) green; a

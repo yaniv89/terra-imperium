@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "cause": "Tracked public/map/rivers.bin.gz absent in sparse checkout; no source or fixture contents changed",
+  "restored_from_integration": "5605511ad63829724fc2ed83b41bd4c7da35b2f3",
+  "path": "public/map/rivers.bin.gz",
+  "git_blob": "14af78b70e0fa0ff521cc1eff42083ec801882bf",
+  "bytes": 385890,
+  "sha256": "f2dfec341ac84fbb9d3a0de6d2066b864637ace1c08898de845ed8d0fc0fbe4d",
+  "rerun": "uv-fix-river-fixture.log",
+  "tests_passed": 7,
+  "tests_failed": 0
+}

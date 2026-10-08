@@ -241,10 +241,12 @@ export class BattleRenderer {
     // one-time, tiny prefiltered room environment gives metal something to reflect (without one,
     // metallic surfaces render nearly black); it lights only the Standard materials (troops, water)
     // and costs one ~256px PMREM texture, generated once per battle.
-    this.soldierMaterial = this.track(createSoldierMaterial({ standard: true }));
-    // The far level (soldierLod.js) takes only a little more of the side's colour than the near ones:
-    // a strong tint turned armies into solid orange and blue carpets; the banners carry the colour.
-    this.farSoldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0.18 }));
+    // The side's colour sits on the team parts only (tabard, shield, plume, banner; gltfUnitLoader.js
+    // dyes sleeves, kilts and caparisons only lightly): skin, leather, metal and wood stay natural.
+    // The far level takes a faint tint so two tiny armies still read apart; a strong one turned
+    // armies into solid orange and blue carpets.
+    this.soldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0 }));
+    this.farSoldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0.06 }));
     const pmrem = new PMREMGenerator(this.renderer);
     this.envMap = this.track(pmrem.fromScene(new RoomEnvironment(), 0.04).texture);
     pmrem.dispose();
@@ -1375,6 +1377,7 @@ export class BattleRenderer {
     // calls for, coarser while the figures in view would pass the triangle budget.
     const layers = [...this.soldierLayers.values()];
     this.soldierTier = pickSoldierTier({ px: this.soldierPx(), layers: layers.map((l) => ({ figures: l.count, tris: l.tris })), budget: this.figureBudget, prev: this.soldierTier ?? 2, bias: this.detail.bias });
+    if (this.forceTier != null) this.soldierTier = this.forceTier; // a fixed level (battle-lab zoom-shots.mjs TIER=)
     layers.forEach((l) => {
       l.levels.forEach((m, k) => { m.count = l.count; m.visible = k === this.soldierTier && l.count > 0; });
       if (!l.count) return;

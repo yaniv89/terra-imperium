@@ -4,6 +4,8 @@ The world grid (`src/data/geo/tiles.json`, built by `scripts/geo/build-tiles.mjs
 
 - **Natural Earth** (public domain): land, lakes, rivers, glaciated areas, named physical regions,
   populated places, countries and provinces. https://www.naturalearthdata.com/
+  The map's river lines (`public/map/rivers.bin.gz`, `scripts/geo/build-river-lines.mjs`) are
+  Natural Earth's 1:10M rivers_lake_centerlines_scale_rank.
 - **Köppen-Geiger climate classification** at 0.5 degrees, via the `koppen-climate-lookup` npm
   package (Beck et al. 2018, CC BY 4.0).
 - **Elevation** from the Mapzen / Tilezen terrain tiles (zoom 4), used at build time to classify

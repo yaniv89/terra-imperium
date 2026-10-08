@@ -15,6 +15,7 @@
 //        [--profiles desktop,phone] [--zooms 1,4,12,40] [--channel chrome] [--gpu] [--out file.json]
 //        [--explored]   start in the explored world (no fog: every nation on the map, the heavy case)
 //        [--shots dir]   screenshots of each profile at k 4 and 40
+//        [--no-rivers]   the river lines off (riverLayer.js), to time what they cost on the same build
 //        [--at lat,lng]  where to pan (default Paris, all unexplored for the Akkad start; pass a
 //                        point on Akkad's fog edge to time the soft fog edge)
 // Builds the mobile bundle (npm run build:mobile, served from www/) unless --no-build. Uses the
@@ -133,7 +134,9 @@ const round = (v) => Math.round(v * 10) / 10;
 const run = async () => {
   await waitForServer();
   const args = flag('gpu') ? ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--enable-webgl'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'];
-  const browser = await chromium.launch({ channel: CHANNEL, headless: true, args });
+  // PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH (the sandbox's Chromium) wins over --channel
+  const exe = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : { channel: CHANNEL }), headless: true, args });
   const results = [];
   for (const name of PROFILES) {
     const prof = PROFILE[name];
@@ -141,10 +144,11 @@ const run = async () => {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
-    await page.addInitScript((renderer) => {
+    await page.addInitScript(({ renderer, noRivers }) => {
       window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; window.__E2E_MAP_TEST__ = true;
       try { localStorage.setItem('terra-imperium-map-mode', 'flat'); localStorage.setItem('terra-imperium-map-renderer', renderer); localStorage.setItem('terra-imperium-minimap-open', '0'); } catch { /* none */ }
-    }, RENDERER);
+      try { localStorage.setItem('terra-imperium-river-lines', noRivers ? '0' : '1'); } catch { /* none */ }
+    }, { renderer: RENDERER, noRivers: flag('no-rivers') });
     // the map's own downloads (raster tiles, land cover, detail manifest): bytes per zoom step
     let mapBytes = 0; let mapFiles = 0;
     page.on('response', async (res) => {

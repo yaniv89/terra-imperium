@@ -2,9 +2,9 @@
 
 Initial read-only inspection against exact remote `4a0533ed28b59a368c58d9ce7d33878b5bf26825` (`4a0533ed`), seven commits after `1586070d90888dd7828869be64735035361a3a74`. No unit source, rig, GLB or future helper was changed. A scratch Node compatibility check decoded the current packed assets; no bake, render, browser or test suite was run.
 
-Final remote recheck: integration HEAD `5605511ad63829724fc2ed83b41bd4c7da35b2f3` retains kitLoader blob `679498402936f5a7be01ff4334178b0c987d8703`, identical to the measured code. The 100/112 lower-LOD rewrites still apply.
+Final remote recheck: integration HEAD `5605511ad63829724fc2ed83b41bd4c7da35b2f3` retains kitLoader blob `679498402936f5a7be01ff4334178b0c987d8703`, identical to the measured code. The 100/112 lower-LOD rewrites applied to that unmodified remote loader. The current work-tree resolution is recorded below.
 
-## LOD UV repair risk: lead merge action required
+## Historical LOD UV repair risk and lead merge action
 
 Remote [`src/battle/art/kitLoader.js`](https://github.com/yaniv89/terra-imperium/blob/4a0533ed28b59a368c58d9ce7d33878b5bf26825/src/battle/art/kitLoader.js#L91) computes `lodUvMismatch(low, full)` by comparing each low vertex's UV with its nearest LOD0 vertex's UV, then scaling the mean difference by the texture repeat. Line106 sets `LOD_UV_TOLERANCE = 0.15`. In `parseKit`, line166 applies:
 
@@ -68,7 +68,7 @@ Additional affected roots, both LOD1/2 in each case:
 
 Exact per-root metrics, before/after UV vertex counts, observed rewrites, asset SHA256s and post-repair metrics are recorded in [integration-lod-uv-risk.json](integration-lod-uv-risk.json). The decoded-buffer comparison used the exact remote loader linked above; its scratch runner and downloaded snapshot are not production artifacts.
 
-**Lead merge action:** restrict the repair to known broken assets, or explicitly bypass independently baked LOD atlases. Add a targeted regression proving checkpoint38's authored UV buffers survive parsing, and rerun the kit-loader compatibility check on the integrated code. Use the next planned capture to check far terrain appearance. This recommendation follows100 measured UV rewrites; it does not request a new full-suite run for a speculative concern. The current remote UV test uses matching UV semantics between LODs and does not cover independent baked islands.
+**Lead merge action recommended at the historical inspection:** restrict the repair to known broken assets, or explicitly bypass independently baked LOD atlases. Add a targeted regression proving checkpoint38's authored UV buffers survive parsing, and rerun the kit-loader compatibility check on the integrated code. Use the next planned capture to check far terrain appearance. This recommendation follows100 measured UV rewrites; it does not request a new full-suite run for a speculative concern. The current remote UV test uses matching UV semantics between LODs and does not cover independent baked islands.
 
 ## Overlap and unit-branch freeze
 
@@ -77,3 +77,52 @@ Remote `BattleRenderer.js` changes soldier Team tint and adds forced-tier QA. Lo
 At the initial inspection, remote comparisons confirmed both `claude/integration` and `claude/battle-unit-zoom-look` resolve to exact `4a0533ed` (identical comparisons). Thus the unit branch is already included in remote integration and the prompt's conditional instruction, “Do not change any unit GLB, rig or unit render code until that branch is merged; then follow its rules,” has its integration condition satisfied. This checkpoint contains no unit changes. Standing authorization for pending work remains in effect; future unit work must follow the merged rules. The prompt's separate instruction to skip the impostor task for now remains unchanged.
 
 The incorporated rules use Meshoptimizer edge collapse (550/220 triangle targets,0.015/0.03 error), protect thin weapon shafts, preserve native people/mount scale, and require zoom inspection on phone/iPad/desktop. Checkpoint38 integration remains the lead's responsibility. All future geology builds/bakes remain held.
+
+## Resolution after integration 5605511
+
+Resolved in the `gpt/art-remaining` branch after merging integration
+`5605511ad63829724fc2ed83b41bd4c7da35b2f3`. `parseKit` now preserves authored
+LOD UV charts by default. `loadKit` applies repair only to the exact URL indexed
+as `battle/nature/vegetation-temperate.glb`, or an explicit `repairLodUvs: true`
+opt-in. Cached kits are separated by URL and repair policy. The historical
+100/112 result above remains evidence of the pre-fix loader, not the current one.
+
+[checkpoint38-lod-uvs-final.json](checkpoint38-lod-uvs-final.json) records the
+actual checked-out loader, `GLTFLoader` and `MeshoptDecoder` against all 14
+unchanged packed models: 56 roots, 112 lower LODs, zero UV rewrites, zero index
+changes and zero triangle changes. All 168 LOD position/normal attributes and
+material groups match the authored baseline; all 14 packed asset hashes remain
+unchanged. The checker is `scripts/art/checkpoint38-lod-uvs.mjs`; policy coverage
+is in `src/battle/art/kitLodUv.test.js`.
+
+The measured loader SHA256 is
+`4beb2ed872957adf51ceb3fec9af97c23347406feae3f6d201dabc5541471ac6`.
+This resolves the compatibility blocker in the work branch; it does not
+record delivery into `claude/integration` or `main`, quality acceptance, new
+models, or new native visual coverage. The proof uses an image-bitmap dimension
+stub and provides no pixel, alpha or shader acceptance. Final logs, native
+evidence and checksum publication remain parent-owned.
+
+The [targeted UV/policy test log](kit-lod-uv-targeted.log) records 31 passing
+tests in three files. The separate [battle subset](uv-fix-battle.log) records
+38 passing files, 331 passing tests and one skipped test in 139.99 seconds.
+[Repository lint](uv-fix-lint.log) and [explicit checker/capture MJS lint](uv-fix-mjs-lint.log)
+passed with zero warnings. These are the parent-provided post-integration
+results; final checksums remain parent-owned.
+
+The [post-integration full run](uv-fix-full-vitest.log) took 1644.52 seconds:
+321 passing files, one failed file and two skipped files (324 total); 3119
+passing tests, four failed tests and 17 skipped tests (3140 total). The only
+failed file, `src/components/map/gl/riverModel.test.js`, lacked the tracked
+`public/map/rivers.bin.gz` fixture in the sparse checkout. The parent restored
+its exact integration `5605511ad63829724fc2ed83b41bd4c7da35b2f3` contents,
+without source or data-content changes. The [isolated river rerun](uv-fix-river-fixture.log)
+passed all seven tests in 2.69 seconds; [fixture provenance](uv-fix-river-fixture.json)
+records the restored blob and hash. The initial full-run failures are resolved
+by this isolated rerun, not relabelled as one clean full-suite pass.
+
+The post-integration mobile build and all 14 browser cases passed. The corrected
+[native far audit](native-far-final.json) passed four cases and eight views, all
+[visually reviewed for UV compatibility](native-far-review.json). The capture
+camera order was corrected after rejecting the first phone framing; the game
+loader and all 14 model files were unchanged during this capture correction.

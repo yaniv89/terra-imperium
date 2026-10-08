@@ -22,6 +22,7 @@ import { startBattleMusic } from '../../audio/music';
 import { playVoice } from '../../audio/sfx';
 import { voiceForOrders, voiceForSelection } from '../../battle/audio/voiceLines';
 import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
+import { isSoldierLodReady } from '../../battle/render/soldierLod';
 import { createPerfMeter, formatPerf } from '../../battle/render/perfMeter';
 import { getMapPrefs } from '../map/mapPrefs';
 import { Check, X as XIcon, Ban } from 'lucide-react';
@@ -723,7 +724,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
 const TacticalBattleScreen = (props) => {
   // The player's side never routs in a commanded battle (morale.js canRout); fixed for the battle.
   const setup = useMemo(() => commandedSetup(props.setup), [props.setup]);
-  const [ready, setReady] = useState(() => !needsUnitModels(props.setup));
+  const [ready, setReady] = useState(() => !needsUnitModels(props.setup) && isSoldierLodReady());
   useEffect(() => {
     if (ready) return undefined;
     let live = true;
