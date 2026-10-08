@@ -1,0 +1,32 @@
+{
+  "sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/raid-landing-props.png",
+  "sheet_sha256": "fee691efc4534e790e5de1b01984d4cceb3a7f66100fe4534a9c3ccde4da6792",
+  "visually_reviewed": true,
+  "written_queue_governs": true,
+  "items": {
+    "loot-sack": {
+      "design": "Faceted tied canvas sacks and clay amphora with handles; original procedural surfaces",
+      "dimensions_m": "main sack 0.65 high x 0.55 wide; amphora 0.60 high x 0.40 wide"
+    },
+    "exit-marker": {
+      "design": "Neutral Team flag, timber pole and mounted arrow; arrow points Blender -Y",
+      "dimensions_m": "pole 2.5 high; footprint constrained; no letters/emblems"
+    },
+    "burnt-field-overlay": {
+      "design": "Thin irregular scorch patch with ash and burnt stalks; Ground alpha cutout",
+      "dimensions_m": "4 x 4 authored footprint; runtime fitted within actual field bounds"
+    },
+    "landing-ancient": {
+      "design": "18m beached galley, gangplank, oars, mast and furled canvas yard; no concept water/ground embedded",
+      "dimensions_m": "18m hull x 3m beam; folded sail permitted by written brief"
+    },
+    "landing-middle": {
+      "design": "Two 5m ships boats with gangplanks; 30m carrack behind them offshore, three masts, canvas sails, neutral pennant",
+      "dimensions_m": "30m carrack; 5m boats; no embedded water or ground"
+    },
+    "landing-modern": {
+      "design": "10m open-bow metal landing craft with ramp down, stern wheelhouse, ribs, matte grey/olive steel",
+      "dimensions_m": "10m hull x 3m beam; no pontoons or ground"
+    }
+  }
+}

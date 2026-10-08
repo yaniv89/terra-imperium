@@ -1,0 +1,746 @@
+{
+  "status": "passed",
+  "count": 14,
+  "loader": "Actual GLTFLoader with MeshoptDecoder and current parseKit",
+  "textureLimit": "Node image bitmap mock preserves actual dimensions; native browser screenshots separately verify texture rendering",
+  "items": [
+    {
+      "game_path": "src/assets/battle/terrain/river-kit.glb",
+      "bytes": 181412,
+      "objects": {
+        "bank": {
+          "triangles": [
+            187,
+            40,
+            16
+          ],
+          "sockets": []
+        },
+        "straight": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "bend": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "junction": {
+          "triangles": [
+            24,
+            24,
+            24
+          ],
+          "sockets": []
+        },
+        "end": {
+          "triangles": [
+            271,
+            135,
+            67
+          ],
+          "sockets": []
+        },
+        "straight-5": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "bend-5": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "junction-5": {
+          "triangles": [
+            24,
+            24,
+            24
+          ],
+          "sockets": []
+        },
+        "end-5": {
+          "triangles": [
+            271,
+            135,
+            67
+          ],
+          "sockets": []
+        },
+        "straight-8": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "bend-8": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "junction-8": {
+          "triangles": [
+            24,
+            24,
+            24
+          ],
+          "sockets": []
+        },
+        "end-8": {
+          "triangles": [
+            271,
+            135,
+            67
+          ],
+          "sockets": []
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.591,
+          "effective": 0.591,
+          "sat": 0.117,
+          "samples": 320
+        },
+        "Ground": {
+          "value": 0.455,
+          "effective": 0.455,
+          "sat": 0.219,
+          "samples": 16600
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/terrain/ford.glb",
+      "bytes": 164120,
+      "objects": {
+        "ford": {
+          "triangles": [
+            290,
+            138,
+            102
+          ],
+          "sockets": []
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.644,
+          "effective": 0.644,
+          "sat": 0.136,
+          "samples": 1472
+        },
+        "Ground": {
+          "value": 0.56,
+          "effective": 0.56,
+          "sat": 0.263,
+          "samples": 648
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-wood.glb",
+      "bytes": 661056,
+      "objects": {
+        "bridge-wood": {
+          "triangles": [
+            704,
+            464,
+            184
+          ],
+          "sockets": [
+            "socket-end-a",
+            "socket-end-b"
+          ]
+        },
+        "bridge-wood-damaged": {
+          "triangles": [
+            660,
+            416,
+            152
+          ],
+          "sockets": [
+            "socket-end-a_1",
+            "socket-end-b_1"
+          ]
+        },
+        "bridge-wood-destroyed": {
+          "triangles": [
+            500,
+            380,
+            128
+          ],
+          "sockets": [
+            "socket-end-a_2",
+            "socket-end-b_2"
+          ]
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.506,
+          "effective": 0.506,
+          "sat": 0.464,
+          "samples": 14064
+        },
+        "Ground": {
+          "value": 0.406,
+          "effective": 0.406,
+          "sat": 0.343,
+          "samples": 288
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-stone.glb",
+      "bytes": 490304,
+      "objects": {
+        "bridge-stone": {
+          "triangles": [
+            800,
+            408,
+            168
+          ],
+          "sockets": [
+            "socket-end-a",
+            "socket-end-b"
+          ]
+        },
+        "bridge-stone-damaged": {
+          "triangles": [
+            744,
+            348,
+            108
+          ],
+          "sockets": [
+            "socket-end-a_1",
+            "socket-end-b_1"
+          ]
+        },
+        "bridge-stone-destroyed": {
+          "triangles": [
+            520,
+            272,
+            72
+          ],
+          "sockets": [
+            "socket-end-a_2",
+            "socket-end-b_2"
+          ]
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.454,
+          "effective": 0.454,
+          "sat": 0.114,
+          "samples": 13472
+        },
+        "Ground": {
+          "value": 0.376,
+          "effective": 0.376,
+          "sat": 0.342,
+          "samples": 288
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-steel.glb",
+      "bytes": 450312,
+      "objects": {
+        "bridge-steel": {
+          "triangles": [
+            1560,
+            344,
+            152
+          ],
+          "sockets": [
+            "socket-end-a",
+            "socket-end-b"
+          ]
+        },
+        "bridge-steel-damaged": {
+          "triangles": [
+            1496,
+            308,
+            120
+          ],
+          "sockets": [
+            "socket-end-a_1",
+            "socket-end-b_1"
+          ]
+        },
+        "bridge-steel-destroyed": {
+          "triangles": [
+            1084,
+            284,
+            128
+          ],
+          "sockets": [
+            "socket-end-a_2",
+            "socket-end-b_2"
+          ]
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.394,
+          "effective": 0.394,
+          "sat": 0.149,
+          "samples": 21616
+        },
+        "Ground": {
+          "value": 0.421,
+          "effective": 0.421,
+          "sat": 0.337,
+          "samples": 288
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-conifer.glb",
+      "bytes": 437940,
+      "objects": {
+        "tree-s": {
+          "triangles": [
+            246,
+            54,
+            54
+          ],
+          "sockets": []
+        },
+        "tree-m": {
+          "triangles": [
+            246,
+            54,
+            54
+          ],
+          "sockets": []
+        },
+        "tree-l": {
+          "triangles": [
+            246,
+            54,
+            54
+          ],
+          "sockets": []
+        },
+        "stump": {
+          "triangles": [
+            84,
+            16,
+            16
+          ],
+          "sockets": []
+        },
+        "felled": {
+          "triangles": [
+            172,
+            44,
+            16
+          ],
+          "sockets": []
+        },
+        "bush": {
+          "triangles": [
+            96,
+            28,
+            28
+          ],
+          "sockets": []
+        },
+        "rock-s": {
+          "triangles": [
+            68,
+            28,
+            28
+          ],
+          "sockets": []
+        },
+        "rock-m": {
+          "triangles": [
+            96,
+            56,
+            56
+          ],
+          "sockets": []
+        },
+        "grass-tuft": {
+          "triangles": [
+            27,
+            9,
+            9
+          ],
+          "sockets": []
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.432,
+          "effective": 0.432,
+          "sat": 0.37,
+          "samples": 7208
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-tropical.glb",
+      "bytes": 423612,
+      "objects": {
+        "tree-s": {
+          "triangles": [
+            387,
+            48,
+            28
+          ],
+          "sockets": []
+        },
+        "tree-m": {
+          "triangles": [
+            94,
+            44,
+            40
+          ],
+          "sockets": []
+        },
+        "tree-l": {
+          "triangles": [
+            517,
+            76,
+            76
+          ],
+          "sockets": []
+        },
+        "stump": {
+          "triangles": [
+            84,
+            16,
+            16
+          ],
+          "sockets": []
+        },
+        "felled": {
+          "triangles": [
+            232,
+            44,
+            16
+          ],
+          "sockets": []
+        },
+        "bush": {
+          "triangles": [
+            36,
+            24,
+            20
+          ],
+          "sockets": []
+        },
+        "rock-s": {
+          "triangles": [
+            68,
+            28,
+            28
+          ],
+          "sockets": []
+        },
+        "rock-m": {
+          "triangles": [
+            96,
+            56,
+            56
+          ],
+          "sockets": []
+        },
+        "grass-tuft": {
+          "triangles": [
+            27,
+            9,
+            9
+          ],
+          "sockets": []
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.472,
+          "effective": 0.472,
+          "sat": 0.37,
+          "samples": 8264
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-cold.glb",
+      "bytes": 490164,
+      "objects": {
+        "tree-s": {
+          "triangles": [
+            340,
+            96,
+            96
+          ],
+          "sockets": []
+        },
+        "tree-m": {
+          "triangles": [
+            340,
+            96,
+            96
+          ],
+          "sockets": []
+        },
+        "tree-l": {
+          "triangles": [
+            340,
+            96,
+            96
+          ],
+          "sockets": []
+        },
+        "stump": {
+          "triangles": [
+            84,
+            16,
+            16
+          ],
+          "sockets": []
+        },
+        "felled": {
+          "triangles": [
+            252,
+            44,
+            16
+          ],
+          "sockets": []
+        },
+        "bush": {
+          "triangles": [
+            96,
+            24,
+            18
+          ],
+          "sockets": []
+        },
+        "rock-s": {
+          "triangles": [
+            68,
+            28,
+            28
+          ],
+          "sockets": []
+        },
+        "rock-m": {
+          "triangles": [
+            96,
+            56,
+            56
+          ],
+          "sockets": []
+        },
+        "grass-tuft": {
+          "triangles": [
+            27,
+            9,
+            9
+          ],
+          "sockets": []
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.523,
+          "effective": 0.523,
+          "sat": 0.22,
+          "samples": 9720
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/props/loot-sack.glb",
+      "bytes": 329276,
+      "objects": {
+        "loot-sack": {
+          "triangles": [
+            460,
+            294,
+            76
+          ],
+          "sockets": []
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.745,
+          "effective": 0.745,
+          "sat": 0.314,
+          "samples": 3320
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/props/exit-marker.glb",
+      "bytes": 182064,
+      "objects": {
+        "exit-marker": {
+          "triangles": [
+            200,
+            144,
+            68
+          ],
+          "sockets": []
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.742,
+          "effective": 0.742,
+          "sat": 0.264,
+          "samples": 1456
+        },
+        "Team": {
+          "value": 0.77,
+          "effective": 0.77,
+          "sat": 0,
+          "samples": 128
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/props/burnt-field-overlay.glb",
+      "bytes": 399492,
+      "objects": {
+        "burnt-field-overlay": {
+          "triangles": [
+            576,
+            238,
+            72
+          ],
+          "sockets": []
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.432,
+          "effective": 0.432,
+          "sat": 0.206,
+          "samples": 2896
+        },
+        "Ground": {
+          "value": 0.326,
+          "effective": 0.326,
+          "sat": 0.224,
+          "samples": 648
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-ancient.glb",
+      "bytes": 415592,
+      "objects": {
+        "landing-ancient": {
+          "triangles": [
+            784,
+            440,
+            124
+          ],
+          "sockets": [
+            "socket-door"
+          ]
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.71,
+          "effective": 0.71,
+          "sat": 0.328,
+          "samples": 5248
+        },
+        "Team": {
+          "value": 0.744,
+          "effective": 0.744,
+          "sat": 0.001,
+          "samples": 96
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-middle.glb",
+      "bytes": 548952,
+      "objects": {
+        "landing-middle": {
+          "triangles": [
+            1008,
+            780,
+            288
+          ],
+          "sockets": [
+            "socket-door"
+          ]
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.67,
+          "effective": 0.67,
+          "sat": 0.317,
+          "samples": 8160
+        },
+        "Team": {
+          "value": 0.578,
+          "effective": 0.578,
+          "sat": 0,
+          "samples": 96
+        }
+      }
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-modern.glb",
+      "bytes": 323752,
+      "objects": {
+        "landing-modern": {
+          "triangles": [
+            564,
+            316,
+            68
+          ],
+          "sockets": [
+            "socket-door"
+          ]
+        }
+      },
+      "tone": {
+        "Town": {
+          "value": 0.69,
+          "effective": 0.69,
+          "sat": 0.09,
+          "samples": 3648
+        },
+        "Team": {
+          "value": 0.591,
+          "effective": 0.591,
+          "sat": 0,
+          "samples": 96
+        }
+      }
+    }
+  ],
+  "packed_bytes": 5498048
+}

@@ -12,6 +12,7 @@ import { getTiles } from '../../data/geo/tiles';
 import { AGE_ORDER } from '../../data/ages';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { makeBenchSetup } from '../../battle/bench/benchScenario';
+import { sandboxTileOptions } from './sandboxTile';
 
 const PRESETS = {
   balanced: ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'siege', 'infantry'],
@@ -96,15 +97,9 @@ const BattleSandbox = () => {
 
   // The sandbox fights on a real tile of the world (a river mouth on a coast), so the battlefield
   // shows the six neighbours' ground, the river and the sea exactly as a game battle would.
-  const sampleTile = useMemo(() => {
-    const t = getTiles();
-    for (let i = 0; i < t.count; i++) {
-      if (t.land[i] !== 1) continue;
-      const ns = t.neighbors[i];
-      if (ns.some((n) => t.land[n] !== 1 && t.terrainOf(n) !== 'lake') && ns.some((n) => t.land[n] === 1 && t.riverBetween(i, n)) && ns.some((n) => t.land[n] === 1 && t.reliefOf(n) === 'hills')) return i;
-    }
-    return null;
-  }, []);
+  // Optional QA URLs: &tile=<real land id>, &artRoads. No campaign-state mutation,
+  // visible controls or default setup change. Bench scenarios still bypass these inputs.
+  const { tile: sampleTile, state: previewState } = useMemo(() => sandboxTileOptions(getTiles(), params), []);
   // `?battleSandbox&bench=300&autostart`: the kernel benchmark's battle (N squads a side, AI against
   // AI, everyone on the field; src/battle/bench/benchScenario.js), to see and time the renderer at scale.
   const setup = useMemo(() => config.bench ? makeBenchSetup(config.bench, config.seed + runId, { economy: params.has('eco'), ...(params.get('age') ? { ageId: config.ageId } : {}) }) : config.sea ? buildSetupFromArmies({
@@ -115,7 +110,7 @@ const BattleSandbox = () => {
     attackerAgeId: config.ageId, defenderAgeId: config.ageId, fortLevel: 0, isCapital: false, infrastructure: 0, deposits: [],
     controllers: config.spectate ? ['ai', 'ai'] : ['player', 'ai']
   }) : buildSetupFromArmies({
-    tileContext: sampleTile != null ? tileContextOf(null, sampleTile) : null,
+    tileContext: sampleTile != null ? tileContextOf(previewState, sampleTile) : null,
     regionId: `sandbox-${config.terrain}-${config.seed}`,
     terrain: config.terrain,
     seed: config.seed + runId,
@@ -144,7 +139,7 @@ const BattleSandbox = () => {
     controllers: config.spectate ? ['ai', 'ai'] : raiding ? ['ai', 'player'] : ['player', 'ai'],
     economy: config.economy, // the battle economy (phase R1): workers, buildings, training; `&noeco` turns it off
     ...sandboxCity(config.raid === 'sack' && !config.city ? { ...config, city: 'medium' } : config)
-  }), [config, runId, sampleTile, raiding]);
+  }), [config, runId, sampleTile, previewState, raiding]);
 
   if (running) {
     return (

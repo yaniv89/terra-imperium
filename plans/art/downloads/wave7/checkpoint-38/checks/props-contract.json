@@ -1,0 +1,100 @@
+{
+  "status": "passed",
+  "source": "createWorld + step + applyEcoOrder + destroyEcoBuilding + makeRenderView + packed view decoder",
+  "carry_tick": 13,
+  "carrying": [
+    3
+  ],
+  "visible_carriers": [
+    {
+      "idx": 3,
+      "x": 2132,
+      "y": 7052,
+      "facing": 27,
+      "onField": true,
+      "visible": true,
+      "inside": -1
+    }
+  ],
+  "destroyed_farm": {
+    "idx": 2,
+    "id": "e2",
+    "type": "farm",
+    "side": 0,
+    "x": 2432,
+    "y": 6528,
+    "tx": 8,
+    "ty": 24,
+    "size": 3,
+    "radius": 448,
+    "hp": 0,
+    "maxHp": 300,
+    "alive": false,
+    "built": true,
+    "progress": 100,
+    "proxy": false,
+    "queue": [],
+    "rally": null
+  },
+  "scorch": {
+    "id": "burnt-field-overlay",
+    "x": 9.5,
+    "z": 25.5,
+    "yaw": 0,
+    "side": -1,
+    "fieldSize": 3
+  },
+  "packed_plain_placements_equal": true,
+  "field_metadata": {
+    "id": "loot_fields",
+    "kind": "building",
+    "category": "fields",
+    "name": "Fields and stores",
+    "tier": 1,
+    "loot": true,
+    "x": 24704,
+    "y": 9344,
+    "radius": 230,
+    "maxHp": 260,
+    "hp": 260,
+    "range": 0,
+    "attackTicks": 30,
+    "damage": 0,
+    "cooldown": 0,
+    "alive": true
+  },
+  "actual_structure_snapshot": {
+    "id": "loot_fields",
+    "kind": "building",
+    "x": 24704,
+    "y": 9344,
+    "hp": 260,
+    "maxHp": 260,
+    "alive": true,
+    "radius": 230,
+    "garrison": 0,
+    "garrisonSlots": 0
+  },
+  "destroyed_raid_snapshot": {
+    "id": "loot_fields",
+    "kind": "building",
+    "x": 24704,
+    "y": 9344,
+    "hp": 0,
+    "maxHp": 260,
+    "alive": false,
+    "radius": 230,
+    "garrison": 0,
+    "garrisonSlots": 0
+  },
+  "raid_scorch": {
+    "id": "burnt-field-overlay",
+    "x": 96.5,
+    "z": 36.5,
+    "yaw": 0,
+    "side": -1,
+    "fieldSize": 1
+  },
+  "raid_economy": null,
+  "no_sim_or_view_source_edits": true
+}

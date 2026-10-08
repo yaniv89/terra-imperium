@@ -1780,7 +1780,12 @@
       "path": "plans/art/improvements/classical/fort-classical",
       "section": "improvements",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave3 checkpoint-18, 2026-10-08 (plans/art/downloads/wave3/checkpoint-18)",
+      "alias_of": "plans/art/improvements/classical/fort",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json",
+      "reconciliation_note": "Legacy alias of the existing delivered map fort; no new model or quality acceptance."
     },
     {
       "path": "plans/art/improvements/kingdoms/fort-kingdoms",
@@ -1802,7 +1807,12 @@
       "path": "plans/art/improvements/modern/fort-modern",
       "section": "improvements",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave6 checkpoint-35, 2026-10-08 (plans/art/downloads/wave6/checkpoint-35)",
+      "alias_of": "plans/art/improvements/modern/fort",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json",
+      "reconciliation_note": "Legacy alias of the existing delivered map fort; no new model or quality acceptance."
     },
     {
       "path": "plans/art/towns/classical/town-big",
@@ -1866,67 +1876,122 @@
       "path": "plans/art/units/bronze-infantry-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/bronze-ranged-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/bronze-cavalry-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/classical-infantry-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/classical-ranged-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/classical-cavalry-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/classical-siege-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/modern-infantry-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/modern-cavalry-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/settler-bronze-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/settler-modern-israelite",
       "section": "units",
       "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
-      "delivery_status": "pending"
+      "delivery_status": "superseded",
+      "superseded_by": "plans/art/units/signature/kingdom-of-israel",
+      "supersession_spec": "plans/ART-MODELS-PLAN.md section 4.4",
+      "supersession_note": "Eleven Israelite theme-unit rows replaced by the single delivered Merkava signature unit. This row is not a delivered asset.",
+      "reconciled_in": "plans/art/downloads/wave7/checkpoint-38",
+      "reconciliation_provenance": "plans/art/downloads/wave7/checkpoint-38/checks/queue-reconciliation.json"
     },
     {
       "path": "plans/art/units/bronze-infantry",
@@ -3440,13 +3505,28 @@
       "section": "nature",
       "description": "Vegetation kit: conifer: pine, spruce, fir: 3 tree sizes plus stump and felled states (wood node in battle), canopy impostor for the map (shared with phase F)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/vegetation-conifer",
       "phase": "R1",
       "batch": "M05",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/nature/vegetation-conifer.glb",
+        "packed_game_sha256": "3e8f62642faa9099fa38a0317028ebd301cf30194de8caf60dd22dc6dd7bd8f1",
+        "packed_game_bytes": 437940,
+        "uncompressed_source_sha256": "7c930e464ab9e899fa46dd8bd7622ad90fc7b5f53d3b65812c0fe5bf98533e5e",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.zip",
+        "source_archive_sha256": "6c33c31a0739e35ba9bef8ac5834ed451447cd1d79cd6a62104b72c3f8b9dd51",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.files.txt"
+      },
+      "delivery_scope_note": "Battle vegetation roots delivered; map canopy impostors remain outside this checkpoint.",
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/nature/vegetation-mediterranean",
@@ -3467,13 +3547,28 @@
       "section": "nature",
       "description": "Vegetation kit: tropical: palms, broadleaf rainforest: 3 tree sizes plus stump and felled states (wood node in battle), canopy impostor for the map (shared with phase F)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/vegetation-tropical",
       "phase": "R1",
       "batch": "M05",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/nature/vegetation-tropical.glb",
+        "packed_game_sha256": "202f14f0cee224039be57258f6bb7c1576dab6da09c5d3dfdd2e8d28a03ecd6d",
+        "packed_game_bytes": 423612,
+        "uncompressed_source_sha256": "be13bfb9243fdf055b7626d51187252c1d1f45ad9b0f6bf370d149ff7499f935",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.zip",
+        "source_archive_sha256": "6c33c31a0739e35ba9bef8ac5834ed451447cd1d79cd6a62104b72c3f8b9dd51",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.files.txt"
+      },
+      "delivery_scope_note": "Battle vegetation roots delivered; map canopy impostors remain outside this checkpoint.",
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/nature/vegetation-scrub",
@@ -3494,13 +3589,28 @@
       "section": "nature",
       "description": "Vegetation kit: cold: larch, dwarf birch, tundra shrubs: 3 tree sizes plus stump and felled states (wood node in battle), canopy impostor for the map (shared with phase F)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "nature/vegetation-cold",
       "phase": "R1",
       "batch": "M05",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S9",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/nature/vegetation-cold.glb",
+        "packed_game_sha256": "073be8c85915e539020f93c53b6e27fc2ab60777fbe173816f2c638da504e91b",
+        "packed_game_bytes": 490164,
+        "uncompressed_source_sha256": "9a80ad1072f22fb76d1d1c29c06b7259b47ac097983248fd507192c59b75aee2",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.zip",
+        "source_archive_sha256": "6c33c31a0739e35ba9bef8ac5834ed451447cd1d79cd6a62104b72c3f8b9dd51",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.files.txt"
+      },
+      "delivery_scope_note": "Battle vegetation roots delivered; map canopy impostors remain outside this checkpoint.",
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/nature/stone-outcrop",
@@ -5646,78 +5756,162 @@
       "section": "props",
       "description": "Loot carry prop: sacks and an amphora a raider or worker carries; shared by every age",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "props/loot-sack",
       "phase": "R3",
       "batch": "M13",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/props/loot-sack.glb",
+        "packed_game_sha256": "2847ea345fe421458c7e4161635086fd64202bc75503970fd8565a8840ebf187",
+        "packed_game_bytes": 329276,
+        "uncompressed_source_sha256": "29b258a38e992ed74a4099460fcd130de92b92be912238ddd1c223230ad7df3e",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.zip",
+        "source_archive_sha256": "6c33c31a0739e35ba9bef8ac5834ed451447cd1d79cd6a62104b72c3f8b9dd51",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.files.txt"
+      },
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/props/exit-marker",
       "section": "props",
       "description": "Map exit marker: banner and arrow at a battle map exit where raiders and retreating units leave",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "props/exit-marker",
       "phase": "R3",
       "batch": "M13",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S4"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S4",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/props/exit-marker.glb",
+        "packed_game_sha256": "24dd3703cdd0de7e304cfd105013058a9d2cc486d1e77dad4207c56cdf08c00d",
+        "packed_game_bytes": 182064,
+        "uncompressed_source_sha256": "ef7e9f21a05c7f2fab253d9c8cda0678439c994a96860a5a911b59c580a7ace3",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.zip",
+        "source_archive_sha256": "6c33c31a0739e35ba9bef8ac5834ed451447cd1d79cd6a62104b72c3f8b9dd51",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/nature3-props2.files.txt"
+      },
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/props/burnt-field-overlay",
       "section": "props",
       "description": "Burnt field overlay: scorched overlay for any field or farm plot (pillaged)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "props/burnt-field-overlay",
       "phase": "R3",
       "batch": "M13",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/props/burnt-field-overlay.glb",
+        "packed_game_sha256": "5d07899b742664b1b2b08b9e0b0ad324a1fe392700e626fc57f6f5c73d15f921",
+        "packed_game_bytes": 399492,
+        "uncompressed_source_sha256": "050667529d18d523fe20104a4f99c4c8d41039e5258762be5c05f44f14a373d3",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/props4.zip",
+        "source_archive_sha256": "4af7212e83089fbb396e9dc33ab8cb7d05829c8c9f9c70d232fbdcb281bd9b1c",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/props4.files.txt"
+      },
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/props/landing-ancient",
       "section": "props",
       "description": "Landing boats: ancient: landing battle spawn point: beached galleys with gangplanks",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "props/landing-ancient",
       "phase": "R3",
       "batch": "M13",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/props/landing-ancient.glb",
+        "packed_game_sha256": "8b7995aa3fed6f2996de95386d28caaf4486af4426c4964c076f7288f807e5e7",
+        "packed_game_bytes": 415592,
+        "uncompressed_source_sha256": "21fce05b3387fc3f64cdc999ca039f8d052db4cabdfabdc9c68fdafb24d092bd",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/props4.zip",
+        "source_archive_sha256": "4af7212e83089fbb396e9dc33ab8cb7d05829c8c9f9c70d232fbdcb281bd9b1c",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/props4.files.txt"
+      },
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/props/landing-middle",
       "section": "props",
       "description": "Landing boats: middle: landing battle spawn point: ship's boats and a carrack offshore",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "props/landing-middle",
       "phase": "R3",
       "batch": "M13",
       "priority": "P3",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/props/landing-middle.glb",
+        "packed_game_sha256": "50eab83668e4762398addbde21761683fb9a43cc49a3927de43b5fdf2688608b",
+        "packed_game_bytes": 548952,
+        "uncompressed_source_sha256": "33510bab4509052bb7f93227c090712dea8d4486cf25b6fae9881bdb12d28800",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/props4.zip",
+        "source_archive_sha256": "4af7212e83089fbb396e9dc33ab8cb7d05829c8c9f9c70d232fbdcb281bd9b1c",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/props4.files.txt"
+      },
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/props/landing-modern",
       "section": "props",
       "description": "Landing boats: modern: landing battle spawn point: landing craft with ramps down",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "props/landing-modern",
       "phase": "R3",
       "batch": "M13",
       "priority": "P3",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S5",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/props/landing-modern.glb",
+        "packed_game_sha256": "7262ed51d993460843032bfa3a4ae713de28fc158aae24db35c6a2083bf79c67",
+        "packed_game_bytes": 323752,
+        "uncompressed_source_sha256": "cb6f0ebcb69563e10f050647c348a2397d3f8478f8242c184d5713b14963983e",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/props4.zip",
+        "source_archive_sha256": "4af7212e83089fbb396e9dc33ab8cb7d05829c8c9f9c70d232fbdcb281bd9b1c",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/props4.files.txt"
+      },
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/battle-city/bronze/fort",
@@ -5794,65 +5988,139 @@
       "section": "battle-terrain",
       "description": "Battle river kit: banks, shallow and deep water, reeds; matches the map river edges of the tile",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-terrain/river-kit",
       "phase": "R4",
       "batch": "M14",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/terrain/river-kit.glb",
+        "packed_game_sha256": "98b4b8d31de41b9d105d7f40782820985bfa553d82684d162e5b0b87da22e85a",
+        "packed_game_bytes": 181412,
+        "uncompressed_source_sha256": "3efe3a681982ffe0018b49fbec4296c91721b59ad7a2297d0a117ea1a74164f7",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.zip",
+        "source_archive_sha256": "ac21ef47e9f849495bfc57996778c9dda3a48b8b3ed15ed5722802537770dab7",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.files.txt"
+      },
+      "delivery_scope_note": "Banks and full river modules delivered; current battle renderer selects banks. Map river redraw remains separate scope.",
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/battle-terrain/ford",
       "section": "battle-terrain",
       "description": "Ford: shallow crossing: gravel bar, stepping stones, churned mud; a chokepoint",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-terrain/ford",
       "phase": "R4",
       "batch": "M14",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/terrain/ford.glb",
+        "packed_game_sha256": "9da93d98cdfe5f64dd514cd6157d83786d11bec4dccfc020319c89dcb61b2119",
+        "packed_game_bytes": 164120,
+        "uncompressed_source_sha256": "7a3b28514cb26e82490e8367fb545ca059905ec818ef5d19ca3a11e3cbff6265",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.zip",
+        "source_archive_sha256": "ac21ef47e9f849495bfc57996778c9dda3a48b8b3ed15ed5722802537770dab7",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.files.txt"
+      },
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/battle-terrain/bridge-wood",
       "section": "battle-terrain",
       "description": "Bridge: wood: Bronze to Kingdoms: timber trestle bridge, intact, damaged, destroyed (gap)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-terrain/bridge-wood",
       "phase": "R4",
       "batch": "M14",
       "priority": "P1",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/terrain/bridge-wood.glb",
+        "packed_game_sha256": "36b5b768a5d7ea0d288011591e50e5c2b9be7de3e32d184900e8bb5eecdb0812",
+        "packed_game_bytes": 661056,
+        "uncompressed_source_sha256": "1d6e29678811a97d09209179db366471b053444b9ed450f51944333e365fd19c",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.zip",
+        "source_archive_sha256": "ac21ef47e9f849495bfc57996778c9dda3a48b8b3ed15ed5722802537770dab7",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.files.txt"
+      },
+      "delivery_scope_note": "Intact bridge wired; damaged/destroyed roots and sockets authored but unused until simulation bridge state exists.",
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/battle-terrain/bridge-stone",
       "section": "battle-terrain",
       "description": "Bridge: stone: Classical to Gunpowder: stone arch bridge, intact, damaged, destroyed (gap)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-terrain/bridge-stone",
       "phase": "R4",
       "batch": "M14",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/terrain/bridge-stone.glb",
+        "packed_game_sha256": "35665c949376f7e91830a0f7d2fe40d84ca31d9e2f3f245927b386e348adb6c7",
+        "packed_game_bytes": 490304,
+        "uncompressed_source_sha256": "82b819680bd666e56204210a9c1f11b56bd5ebf55c8e6144070ca8e79d173bc5",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.zip",
+        "source_archive_sha256": "ac21ef47e9f849495bfc57996778c9dda3a48b8b3ed15ed5722802537770dab7",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.files.txt"
+      },
+      "delivery_scope_note": "Intact bridge wired; damaged/destroyed roots and sockets authored but unused until simulation bridge state exists.",
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/battle-terrain/bridge-steel",
       "section": "battle-terrain",
       "description": "Bridge: steel: Modern: steel truss or concrete bridge, intact, damaged, destroyed (gap)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-terrain/bridge-steel",
       "phase": "R4",
       "batch": "M14",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11"
+      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S11",
+      "delivered": "wave7 checkpoint-38, 2026-10-08 (plans/art/downloads/wave7/checkpoint-38)",
+      "delivery_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+      "delivery_provenance": {
+        "game_path": "src/assets/battle/terrain/bridge-steel.glb",
+        "packed_game_sha256": "5612757d0a00241fa8f1e5ed1d29f0dced27c6dc43dab94a680534d5d2a5cd1c",
+        "packed_game_bytes": 450312,
+        "uncompressed_source_sha256": "0295b17cd90ed28de2b560331fd5f9ccc93f12bb632ded5c57eccfbbd350707b",
+        "source_archive": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.zip",
+        "source_archive_sha256": "ac21ef47e9f849495bfc57996778c9dda3a48b8b3ed15ed5722802537770dab7",
+        "source_validation": "plans/art/downloads/wave7/checkpoint-38/checks/source-validator.json",
+        "packed_loader_tone": "plans/art/downloads/wave7/checkpoint-38/checks/packed-loader-tone.json",
+        "source_inventory": "plans/art/downloads/wave7/checkpoint-38/sources/terrain5.files.txt"
+      },
+      "delivery_scope_note": "Intact bridge wired; damaged/destroyed roots and sockets authored but unused until simulation bridge state exists.",
+      "integration_gap": "Before lead merge, preserve independently baked LOD UVs; see plans/art/downloads/wave7/checkpoint-38/checks/integration-compatibility.md"
     },
     {
       "path": "plans/art/map-terrain/ground-grass",
@@ -12843,5 +13111,16 @@
   ],
   "note": "Delivery status is separate from game integration. ITEMS.md Part A assets are excluded; source in-game counts are unchanged.",
   "master_plan_items": 534,
-  "master_plan_note": "Items with source plans/ART-PRODUCTION-PLAN.md were appended 2026-10-06 for the master plan phases; batches M01 onward. The counters above still cover ITEMS.md Part B and C only."
+  "master_plan_note": "Items with source plans/ART-PRODUCTION-PLAN.md were appended 2026-10-06 for the master plan phases; batches M01 onward. The counters above still cover ITEMS.md Part B and C only.",
+  "legacy_aggregate_scope": "Existing target_items=350, quality_accepted=285, remaining_to_finish/remaining_to_upload=65 and original checkpoint counters describe ITEMS.md Part B/C only. Preserved historical aggregates; they are not counts for the expanded item array. Part A remains excluded.",
+  "current_item_array_counts": {
+    "scope": "All 1135 queue rows, including two legacy fort aliases; row counts are not unique model counts. Superseded rows are non-delivery records.",
+    "total_rows": 1135,
+    "quality_accepted": 285,
+    "in_game_awaiting_review": 490,
+    "pending": 349,
+    "superseded": 11,
+    "reconciled_checkpoint": "plans/art/downloads/wave7/checkpoint-38",
+    "date": "2026-10-08"
+  }
 }

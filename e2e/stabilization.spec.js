@@ -1,5 +1,21 @@
 import {test,expect} from '@playwright/test';
 import {beginGame} from './startHelpers';
+const startIsrael=async(page)=>{
+  await page.goto('/');
+  await page.getByRole('textbox',{name:'Search peoples',exact:true}).fill('Israel');
+  const people=page.locator('button[data-people="israel"]');
+  const ownerId=await people.getAttribute('data-people');
+  expect(ownerId).toBe('israel');
+  await people.dispatchEvent('click');
+  await beginGame(page);
+  const skip=page.getByRole('button',{name:'Skip',exact:true});
+  await skip.waitFor({state:'visible',timeout:20000}).catch(()=>{});
+  if(await skip.isVisible().catch(()=>false))await skip.dispatchEvent('click');
+  const later=page.locator('[data-testid="research-choice"] button[aria-label="Later"]');
+  await later.waitFor({state:'visible',timeout:8000}).catch(()=>{});
+  if(await later.isVisible().catch(()=>false))await later.dispatchEvent('click');
+  return ownerId;
+};
 const interior = feature => {
   const groups=feature.geometry.type==='MultiPolygon'?feature.geometry.coordinates:[feature.geometry.coordinates];
   const rings=groups.reduce((a,b)=>b[0].length>a[0].length?b:a,groups[0]);
@@ -35,13 +51,9 @@ test('actual globe pointer hits preserve selected province at two zoom levels',a
   test.setTimeout(240000);
   // the globe is hidden behind a setting for one release (plans/MASTER-PLAN.md decision 28)
   await page.addInitScript(()=>{window.__E2E_DISABLE_GLOBE_AUTOROTATE__=true;window.__E2E_MAP_TEST__=true;localStorage.setItem('terra-imperium-show-globe','1');localStorage.setItem('terra-imperium-map-mode','globe');});
-  await page.goto('/');
-  await page.getByPlaceholder('Search 240 nations...').fill('Israel');
-  await page.getByRole('button',{name:'Israel',exact:true}).dispatchEvent('click');
-  await beginGame(page,'Begin as Israel');
-  await page.getByRole('button',{name:'Skip',exact:true}).click();
-  await page.waitForFunction(()=>window.__mapTest?.features?.length>0,{timeout:90000});
-  const sample=await page.evaluate(()=>window.__mapTest.features.filter(f=>f.properties.owner==='il').slice(0,3));
+  const ownerId=await startIsrael(page);
+  await page.waitForFunction(()=>window.__mapTest?.features?.length>0,null,{timeout:90000});
+  const sample=await page.evaluate(owner=>window.__mapTest.features.filter(f=>f.properties.owner===owner).slice(0,3),ownerId);
   expect(sample.length).toBeGreaterThan(0);
   for(const feature of sample){
     const point=interior(feature)[0],id=feature.properties.gameRegionId;
@@ -60,15 +72,12 @@ test('actual globe pointer hits preserve selected province at two zoom levels',a
   }
 });
 const flatMapSelects=async(page,renderer)=>{
-  await page.addInitScript((r)=>{window.__E2E_DISABLE_GLOBE_AUTOROTATE__=true;window.__E2E_MAP_TEST__=true;localStorage.setItem('terra-imperium-map-renderer',r);},renderer);
-  await page.goto('/');
-  await page.getByPlaceholder('Search 240 nations...').fill('Israel');
-  await page.getByRole('button',{name:'Israel',exact:true}).dispatchEvent('click');
-  await beginGame(page,'Begin as Israel');
-  await page.getByRole('button',{name:'Skip',exact:true}).click();
+  await page.addInitScript((r)=>{window.__E2E_DISABLE_GLOBE_AUTOROTATE__=true;window.__E2E_MAP_TEST__=true;localStorage.setItem('terra-imperium-map-renderer',r);localStorage.setItem('terra-imperium-map-mode','flat');},renderer);
+  const ownerId=await startIsrael(page);
   if(renderer==='webgl')await expect(page.getByTestId('flat-map')).toHaveAttribute('data-renderer','webgl');
   await page.waitForFunction(()=>window.__map2DTest?.features?.length>0);
-  const features=await page.evaluate(()=>window.__map2DTest.features.filter(f=>f.properties.owner==='il').slice(0,3));
+  const features=await page.evaluate(owner=>window.__map2DTest.features.filter(f=>f.properties.owner===owner).slice(0,3),ownerId);
+  expect(features.length).toBeGreaterThan(0);
   for(const feature of features)for(const zoom of [10,30]){
     const id=feature.properties.gameRegionId,deepest=interior(feature)[0];
     await page.evaluate(({point,zoom})=>window.__map2DTest.focus(point.lat,point.lng,zoom),{point:deepest,zoom});

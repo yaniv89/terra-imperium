@@ -1,0 +1,504 @@
+{
+  "bundle": "nature3-props2",
+  "logical_assets": [
+    "vegetation-conifer",
+    "vegetation-tropical",
+    "vegetation-cold",
+    "loot-sack",
+    "exit-marker"
+  ],
+  "asset_count": 5,
+  "native_editable_packed_blends": true,
+  "geometry_in_GLBS_uncompressed": true,
+  "frozen_uncompressed_assets": [
+    {
+      "game_path": "src/assets/battle/nature/vegetation-conifer.glb",
+      "sha256": "7c930e464ab9e899fa46dd8bd7622ad90fc7b5f53d3b65812c0fe5bf98533e5e",
+      "bytes": 548736,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/nature/vegetation-conifer.glb"
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-tropical.glb",
+      "sha256": "be13bfb9243fdf055b7626d51187252c1d1f45ad9b0f6bf370d149ff7499f935",
+      "bytes": 565604,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/nature/vegetation-tropical.glb"
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-cold.glb",
+      "sha256": "9a80ad1072f22fb76d1d1c29c06b7259b47ac097983248fd507192c59b75aee2",
+      "bytes": 654540,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/nature/vegetation-cold.glb"
+    },
+    {
+      "game_path": "src/assets/battle/props/loot-sack.glb",
+      "sha256": "29b258a38e992ed74a4099460fcd130de92b92be912238ddd1c223230ad7df3e",
+      "bytes": 371056,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/loot-sack.glb"
+    },
+    {
+      "game_path": "src/assets/battle/props/exit-marker.glb",
+      "sha256": "ef7e9f21a05c7f2fab253d9c8cda0678439c994a96860a5a911b59c580a7ace3",
+      "bytes": 204008,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/exit-marker.glb"
+    }
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 1194,
+      "sha256": "662e71fabd9b9294990bde83c4463d03385d65937df0d099db29f5e3f5425017",
+      "original_source": "generated bundle metadata"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/manifest.json",
+      "bytes": 5605,
+      "sha256": "297c515140eb0345403083a991c83ea9ee12f5dd8c7265c0450eed565a4314bb",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/manifest.json"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/phone.png",
+      "bytes": 12709,
+      "sha256": "022322fccc30a5398ae03b7368c30879b7f571d49d15cc339aac0b44446ba359",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/phone.png"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/preview.png",
+      "bytes": 143555,
+      "sha256": "4942878f93b8abcb0d1fd4111f8fea3a6dc9166a42044195829cfc1f12a2cb82",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/preview.png"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/report.json",
+      "bytes": 12357,
+      "sha256": "726697d867650e0aac6f61dabe8be701f377299009297373804c37f31d5e8dfb",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/report.json"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/tone.json",
+      "bytes": 102,
+      "sha256": "aa3fbee985811ad1a42d61c6db54729f4274c6da0ccc24e252be268f470a535e",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/tone.json"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/vegetation-cold.blend",
+      "bytes": 3234105,
+      "sha256": "ac15d4cdf909120fe542deea6c35ec8129e25fbb4b3631295c9fd119f6f97846",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/vegetation-cold.blend"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/vegetation-cold.glb",
+      "bytes": 654540,
+      "sha256": "9a80ad1072f22fb76d1d1c29c06b7259b47ac097983248fd507192c59b75aee2",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/nature/vegetation-cold.glb"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/vegetation-cold.validation.json",
+      "bytes": 8783,
+      "sha256": "26d6652c55d4a897946dbe2e99c71684e73fb1a7f3379add8f054b6d23c7cfaa",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/vegetation-cold.validation.json"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/vegetation-cold_base.png",
+      "bytes": 1427758,
+      "sha256": "69defd315b5375309ec0395ff77cc2ac39599749ce81da8bc11a246a2d5008bc",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/vegetation-cold_base.png"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/vegetation-cold_normal.png",
+      "bytes": 957642,
+      "sha256": "45199ce8f923228342210094bbbaf307b4fbc44300713e569284440f53b74c37",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/vegetation-cold_normal.png"
+    },
+    {
+      "path": "assets/nature/vegetation-cold/vegetation-cold_orm.png",
+      "bytes": 701630,
+      "sha256": "b9a4b3108504bbe34d5845dc5bf2e6d1f0c00fca9edb3cdabb68459e809d3d1b",
+      "original_source": "/workspace/remaining-production/nature/vegetation-cold/vegetation-cold_orm.png"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/manifest.json",
+      "bytes": 5604,
+      "sha256": "4119da7d31fd3aa4f4de1a2faae2270bdf6a72dac6ba648a9971db2012e7aa71",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/manifest.json"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/phone.png",
+      "bytes": 12541,
+      "sha256": "a2c825afc20ebce0f762f4ddc0a38482673e24cd951b56698245029cd15eae8c",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/phone.png"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/preview.png",
+      "bytes": 144214,
+      "sha256": "34b417d43d785a865631bd28482ad5c533b0f37dde149fefb876e3e0f8655bd7",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/preview.png"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/report.json",
+      "bytes": 12423,
+      "sha256": "243649e67f4ec117aa3d0b65e666876e374583a990c76452a05bcb5380a5d2d2",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/report.json"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/tone.json",
+      "bytes": 102,
+      "sha256": "e4733e02453d35f4e09bcb5e08ee2281e1b44569422c04db04598a1af6644266",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/tone.json"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/vegetation-conifer.blend",
+      "bytes": 2826992,
+      "sha256": "1993c7b2001ee4568a2712c20a4f2e505413fde8f03abe44d10e86f5e5e40d04",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/vegetation-conifer.blend"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/vegetation-conifer.glb",
+      "bytes": 548736,
+      "sha256": "7c930e464ab9e899fa46dd8bd7622ad90fc7b5f53d3b65812c0fe5bf98533e5e",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/nature/vegetation-conifer.glb"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/vegetation-conifer.validation.json",
+      "bytes": 8793,
+      "sha256": "7de73e0b7502721ff3316b06c2a07a12491c1a0c6294bdf330b4caf2112f3547",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/vegetation-conifer.validation.json"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/vegetation-conifer_base.png",
+      "bytes": 1245874,
+      "sha256": "cf0fc2626071ea951c0470de4a5e27584b5d2e59a2e7df82af876d139ebd35fc",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/vegetation-conifer_base.png"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/vegetation-conifer_normal.png",
+      "bytes": 854063,
+      "sha256": "ecf8ca6182fec961f8fbe9b6f767b16aa163f2b800ecc5d1bd0ee09debf3a8ce",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/vegetation-conifer_normal.png"
+    },
+    {
+      "path": "assets/nature/vegetation-conifer/vegetation-conifer_orm.png",
+      "bytes": 597430,
+      "sha256": "e0150a4e1c0f707e85e3efcef21151da4f377bce742a73122e265331f24c386d",
+      "original_source": "/workspace/remaining-production/nature/vegetation-conifer/vegetation-conifer_orm.png"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/manifest.json",
+      "bytes": 5611,
+      "sha256": "1586479586565957d479b02968685b560c3bc2e792388b60f58df29143231c41",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/manifest.json"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/phone.png",
+      "bytes": 14706,
+      "sha256": "8795e0d7d695418ea1dd60d3f5a6c48f107337b66b4e8f0ac1c7f8d42504d268",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/phone.png"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/preview.png",
+      "bytes": 163224,
+      "sha256": "9af719df7f9975f18d0fb534c6d7573991e89c6bc0b076dfd7df9602160aeb0c",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/preview.png"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/report.json",
+      "bytes": 12496,
+      "sha256": "fcb9c8e1d278232b0293b8e80b014d568c9b96018ce1ddd270c31530b78debec",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/report.json"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/tone.json",
+      "bytes": 100,
+      "sha256": "c232b4738ef33d8968feb6393c0412d3c79e7b0b3affa0fb14a1dc947bc3cf45",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/tone.json"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/vegetation-tropical.blend",
+      "bytes": 2986022,
+      "sha256": "825abc34b4c88c89e7916413485dd13a89aca3c7ec06533cc5992cb991d74675",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/vegetation-tropical.blend"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/vegetation-tropical.glb",
+      "bytes": 565604,
+      "sha256": "be13bfb9243fdf055b7626d51187252c1d1f45ad9b0f6bf370d149ff7499f935",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/nature/vegetation-tropical.glb"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/vegetation-tropical.validation.json",
+      "bytes": 8801,
+      "sha256": "84ba0cc1707271a92e6eae3a1d4514c2c6c83f539b7c4c791ed2250db074245d",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/vegetation-tropical.validation.json"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/vegetation-tropical_base.png",
+      "bytes": 1348301,
+      "sha256": "8e304f4a126666b25a41b95840b0250714f159e7171f118bf04e5f7007a3d3e4",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/vegetation-tropical_base.png"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/vegetation-tropical_normal.png",
+      "bytes": 884577,
+      "sha256": "d84ddefd56f10f94fd15e5fad1a5c99c9150de2cfe23f701316515e79fa08c2b",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/vegetation-tropical_normal.png"
+    },
+    {
+      "path": "assets/nature/vegetation-tropical/vegetation-tropical_orm.png",
+      "bytes": 604043,
+      "sha256": "857e426e3e0320e729a7b7ace99ac9cfc746738f3871f58b5b11b1cd4f5c8c3a",
+      "original_source": "/workspace/remaining-production/nature/vegetation-tropical/vegetation-tropical_orm.png"
+    },
+    {
+      "path": "assets/props/exit-marker/basecolor.png",
+      "bytes": 746391,
+      "sha256": "f04392b963f28bc2b16b6d13d8c2612aefbf6b6f8d37d321be542bdfbe2796da",
+      "original_source": "/workspace/remaining-production/props/exit-marker/basecolor.png"
+    },
+    {
+      "path": "assets/props/exit-marker/build_raid_landing_props.py",
+      "bytes": 10196,
+      "sha256": "acb08e8c3ccd258c7d65b4c417c7400cc9fd0a25812927dfdbcec8fe147e5a33",
+      "original_source": "/workspace/remaining-production/props/exit-marker/build_raid_landing_props.py"
+    },
+    {
+      "path": "assets/props/exit-marker/exit-marker.blend",
+      "bytes": 1863997,
+      "sha256": "0198868e9f33f2ef7f8a5427d813fd08ce3f3354d6d0675d42600efece0a9e96",
+      "original_source": "/workspace/remaining-production/props/exit-marker/exit-marker.blend"
+    },
+    {
+      "path": "assets/props/exit-marker/exit-marker.glb",
+      "bytes": 204008,
+      "sha256": "ef7e9f21a05c7f2fab253d9c8cda0678439c994a96860a5a911b59c580a7ace3",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/props/exit-marker.glb"
+    },
+    {
+      "path": "assets/props/exit-marker/exit-marker.validation.json",
+      "bytes": 1909,
+      "sha256": "3bd3c80fc56c7dd971cc0ae4fb404638f521426464b1b26d17911856b7c2ba92",
+      "original_source": "/workspace/remaining-production/props/exit-marker/exit-marker.validation.json"
+    },
+    {
+      "path": "assets/props/exit-marker/manifest.json",
+      "bytes": 889,
+      "sha256": "8afb7346f21616340b9531a13cb13c7a4ea5f2142f2b58b22555fae75e78febb",
+      "original_source": "/workspace/remaining-production/props/exit-marker/manifest.json"
+    },
+    {
+      "path": "assets/props/exit-marker/normal.png",
+      "bytes": 493501,
+      "sha256": "5cda1c86035427c69c8a68e37297395fb7a96a0aa2ef94999151d2f6bb8c8677",
+      "original_source": "/workspace/remaining-production/props/exit-marker/normal.png"
+    },
+    {
+      "path": "assets/props/exit-marker/orm.png",
+      "bytes": 511325,
+      "sha256": "98838b8bc455f0e02d6af3f2ff1a089f25560e5eb6efc055162dc8eafd67a65e",
+      "original_source": "/workspace/remaining-production/props/exit-marker/orm.png"
+    },
+    {
+      "path": "assets/props/exit-marker/preview.png",
+      "bytes": 116628,
+      "sha256": "f0e35c3c07af53e18ea7e9e5c1f9a65115910cbc0e8aec5c4c22fa6855791206",
+      "original_source": "/workspace/remaining-production/props/exit-marker/preview.png"
+    },
+    {
+      "path": "assets/props/exit-marker/raid_landing_support.py",
+      "bytes": 20614,
+      "sha256": "17d72f656c6a11e40daf1317cae0fe04bc64a630640a46641fb530d5d13e3cca",
+      "original_source": "/workspace/remaining-production/props/exit-marker/raid_landing_support.py"
+    },
+    {
+      "path": "assets/props/exit-marker/source-audit.json",
+      "bytes": 2267,
+      "sha256": "521df61e3d304b9d0e01409c06b6cfe37100a68fcb642799b1faf40b15f7f46a",
+      "original_source": "/workspace/remaining-production/props/exit-marker/source-audit.json"
+    },
+    {
+      "path": "assets/props/exit-marker/ti_map.py",
+      "bytes": 21859,
+      "sha256": "48f5eb5148ce243685229f08fc3b0a6a3cf0da6696f5a2802a4053d1640e2602",
+      "original_source": "/workspace/remaining-production/props/exit-marker/ti_map.py"
+    },
+    {
+      "path": "assets/props/exit-marker/tone.json",
+      "bytes": 192,
+      "sha256": "ee3ac19c52c8369a430c151c31678330911ee346e2a22f4fe87bccc264b9c1fb",
+      "original_source": "/workspace/remaining-production/props/exit-marker/tone.json"
+    },
+    {
+      "path": "assets/props/exit-marker/validate_model.py",
+      "bytes": 15249,
+      "sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+      "original_source": "/workspace/remaining-production/props/exit-marker/validate_model.py"
+    },
+    {
+      "path": "assets/props/loot-sack/basecolor.png",
+      "bytes": 959236,
+      "sha256": "61b7f97d42bc90af26d7e2f928202b64053fc2264f5752c36af31b64e55d4275",
+      "original_source": "/workspace/remaining-production/props/loot-sack/basecolor.png"
+    },
+    {
+      "path": "assets/props/loot-sack/build_raid_landing_props.py",
+      "bytes": 10196,
+      "sha256": "acb08e8c3ccd258c7d65b4c417c7400cc9fd0a25812927dfdbcec8fe147e5a33",
+      "original_source": "/workspace/remaining-production/props/loot-sack/build_raid_landing_props.py"
+    },
+    {
+      "path": "assets/props/loot-sack/loot-sack.blend",
+      "bytes": 2165814,
+      "sha256": "d0d46c0f8efba01c1188f46b74c620b81faeffd3bc2460858781ad6e0717ce88",
+      "original_source": "/workspace/remaining-production/props/loot-sack/loot-sack.blend"
+    },
+    {
+      "path": "assets/props/loot-sack/loot-sack.glb",
+      "bytes": 371056,
+      "sha256": "29b258a38e992ed74a4099460fcd130de92b92be912238ddd1c223230ad7df3e",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/props/loot-sack.glb"
+    },
+    {
+      "path": "assets/props/loot-sack/loot-sack.validation.json",
+      "bytes": 1835,
+      "sha256": "bf83a3bd43953747736151fadd41c8232557bba7123ac975c71165f130ad32b7",
+      "original_source": "/workspace/remaining-production/props/loot-sack/loot-sack.validation.json"
+    },
+    {
+      "path": "assets/props/loot-sack/manifest.json",
+      "bytes": 827,
+      "sha256": "a96f802194d90f060be53ae9152bd45285733d8a0f07f31abc6517b0b0f1c72b",
+      "original_source": "/workspace/remaining-production/props/loot-sack/manifest.json"
+    },
+    {
+      "path": "assets/props/loot-sack/normal.png",
+      "bytes": 496547,
+      "sha256": "644b23f8072f080084aeb432aff6aa1d4d93347f86bd19f4e760b601a3e86843",
+      "original_source": "/workspace/remaining-production/props/loot-sack/normal.png"
+    },
+    {
+      "path": "assets/props/loot-sack/orm.png",
+      "bytes": 595079,
+      "sha256": "007b845cfbba14b6978031b322162a694ba9d848e385ed750c8c59cd6496a7c3",
+      "original_source": "/workspace/remaining-production/props/loot-sack/orm.png"
+    },
+    {
+      "path": "assets/props/loot-sack/preview.png",
+      "bytes": 155353,
+      "sha256": "3f01b2978719f87d7d39b77b6e04ba52fc09ab9b7df23fd54f2a5ca87029c9d0",
+      "original_source": "/workspace/remaining-production/props/loot-sack/preview.png"
+    },
+    {
+      "path": "assets/props/loot-sack/raid_landing_support.py",
+      "bytes": 20614,
+      "sha256": "17d72f656c6a11e40daf1317cae0fe04bc64a630640a46641fb530d5d13e3cca",
+      "original_source": "/workspace/remaining-production/props/loot-sack/raid_landing_support.py"
+    },
+    {
+      "path": "assets/props/loot-sack/source-audit.json",
+      "bytes": 2176,
+      "sha256": "13505b18e1b49967ee5070b1f24e58d2fea6e35a37112899ffd2e083acbcd7f2",
+      "original_source": "/workspace/remaining-production/props/loot-sack/source-audit.json"
+    },
+    {
+      "path": "assets/props/loot-sack/ti_map.py",
+      "bytes": 21859,
+      "sha256": "48f5eb5148ce243685229f08fc3b0a6a3cf0da6696f5a2802a4053d1640e2602",
+      "original_source": "/workspace/remaining-production/props/loot-sack/ti_map.py"
+    },
+    {
+      "path": "assets/props/loot-sack/tone.json",
+      "bytes": 101,
+      "sha256": "2c5061a13fb5128c301474038abd7d4f6e1f49b643371fc3508f9c07551d794d",
+      "original_source": "/workspace/remaining-production/props/loot-sack/tone.json"
+    },
+    {
+      "path": "assets/props/loot-sack/validate_model.py",
+      "bytes": 15249,
+      "sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+      "original_source": "/workspace/remaining-production/props/loot-sack/validate_model.py"
+    },
+    {
+      "path": "audits/frozen-validation.json",
+      "bytes": 7373,
+      "sha256": "f05dc7776bc709f9e74df3cc2542694fef1fff3bbc9257765f309f6050a96c82",
+      "original_source": "generated bundle metadata"
+    },
+    {
+      "path": "audits/nature/HANDOFF.md",
+      "bytes": 4386,
+      "sha256": "c10e42a7782ec92cce430be0cdd3c80e34bf819832b8367c9d52a4c8a40c1315",
+      "original_source": "/workspace/remaining-production/nature/HANDOFF.md"
+    },
+    {
+      "path": "audits/nature/final-checks.json",
+      "bytes": 508,
+      "sha256": "aed1df56aeb7c29daa95f54e659b3d56c008e7aec5b36c00f2d5464b563d8a2c",
+      "original_source": "/workspace/remaining-production/nature/final-checks.json"
+    },
+    {
+      "path": "audits/packed-blend-images.json",
+      "bytes": 4240,
+      "sha256": "c9bac7f726632bcec5a380acff0ba7a5d99300070e9b3570ffef37e42e10042e",
+      "original_source": "generated bundle metadata"
+    },
+    {
+      "path": "audits/props/DELIVERY.md",
+      "bytes": 2127,
+      "sha256": "191ffc991729ddcab61b301d0ec9da1e370e8fa037a3410c550323fd6651e64e",
+      "original_source": "/workspace/remaining-production/props/DELIVERY.md"
+    },
+    {
+      "path": "concepts/raid-landing-props.png",
+      "bytes": 2356567,
+      "sha256": "fee691efc4534e790e5de1b01984d4cceb3a7f66100fe4534a9c3ccde4da6792",
+      "original_source": "/workspace/terra-remaining/plans/art/concepts/wave7/raid-landing-props.png"
+    },
+    {
+      "path": "concepts/vegetation.png",
+      "bytes": 1935240,
+      "sha256": "431832bf6129654d2d31e80b2036fac69f0dc9da98d1cd19feef214af8bfdf17",
+      "original_source": "/workspace/terra-remaining/plans/art/concepts/wave7/vegetation.png"
+    },
+    {
+      "path": "scripts/blender/build_vegetation_remaining.py",
+      "bytes": 14842,
+      "sha256": "f4976d4336c33fe5a31896dda0982fc0fcf73d3ac4e826d492d4f74e406ec92b",
+      "original_source": "/workspace/terra-remaining/scripts/blender/build_vegetation_remaining.py"
+    },
+    {
+      "path": "scripts/blender/ti_blender.py",
+      "bytes": 16649,
+      "sha256": "832ce0f07d82ba4af3a86244314bc132b4bfc2006e59e02eedf131e69dc92574",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_blender.py"
+    },
+    {
+      "path": "scripts/blender/ti_map.py",
+      "bytes": 21859,
+      "sha256": "48f5eb5148ce243685229f08fc3b0a6a3cf0da6696f5a2802a4053d1640e2602",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_map.py"
+    },
+    {
+      "path": "scripts/blender/ti_nature.py",
+      "bytes": 18583,
+      "sha256": "04e97ebc6d5f400eaf792741a360e42b989bc9f6d9ea456ee53da645cfb88e5d",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_nature.py"
+    },
+    {
+      "path": "scripts/blender/ti_town.py",
+      "bytes": 27827,
+      "sha256": "12f3693882ac771dc815a99e0888a818b2a31e2a585744d4ceb941dd05f3307d",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_town.py"
+    },
+    {
+      "path": "scripts/blender/ti_vegetation_remaining.py",
+      "bytes": 11708,
+      "sha256": "20d2fe287e9e1ef6d76624f3ad03a9a9b4ebd27652c252dd8ac9429d7396b4e6",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_vegetation_remaining.py"
+    },
+    {
+      "path": "scripts/blender/validate_model.py",
+      "bytes": 15249,
+      "sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+      "original_source": "/workspace/terra-remaining/scripts/blender/validate_model.py"
+    }
+  ],
+  "no_source_changes": true
+}

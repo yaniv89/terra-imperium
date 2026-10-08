@@ -1,0 +1,19 @@
+
+Running 14 tests using 1 worker
+
+(node:21465) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/generatedGame.spec.js:14:1 › a generated world: chosen on the start screen, played for turns, saved and reloaded (2.5m)
+  ✘   2 [chromium] › e2e/guidedStart.spec.js:10:1 › the guided start plays as Kemet with the guide in the next prompt (1.0m)
+(node:21752) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   3 [chromium] › e2e/landscape.spec.js:30:3 › phone held sideways › slim top bar, tab rail and docked panels leave the map usable (22.5s)
+  ✓   4 [chromium] › e2e/landscape.spec.js:92:3 › phone held upright › asks to rotate on every screen, the map included (38.9s)
+  ✓   5 [chromium] › e2e/landscape.spec.js:105:3 › tablet held sideways › the landscape shell with a wider dock (19.0s)
+  ✓   6 [chromium] › e2e/playability.spec.js:48:1 › a randomly chosen nation can play several turns with no console errors and visible progress (2.0m)
+  ✘   7 [chromium] › e2e/stabilization.spec.js:34:1 › actual globe pointer hits preserve selected province at two zoom levels (4.0m)
+(node:22215) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 [chromium] › e2e/stabilization.spec.js:84:1 › 2D province fills select their own region at two zoom levels (3.0m)
+(node:22348) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -39,6 +39,7 @@ import { lookKey, unitLookOf, LOOK_CLASS } from './unitModels';
 import { battleGroundSets, groundTextureUniform } from '../../data/groundMaterials';
 import { styleOfLand } from '../../data/architecture';
 import { BattleProps } from '../art/battleProps';
+import { RaidLandingProps } from '../art/raidLandingProps';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -259,6 +260,7 @@ export class BattleRenderer {
     this.ecoLayer = new EconomyLayer(this); // the battle economy's nodes and buildings (economyLayer.js)
     this.ecoLayer.build();
     this.battleProps = new BattleProps(this); // wells, carts, stalls, standards (battle/art/battleProps.js)
+    this.raidLandingProps = new RaidLandingProps(this);
     // Art files for the river banks, fords and bridges, and for projectiles (battle/art/).
     this.terrainArt = new BattleTerrainArt(this);
     this.projectileArt = new ProjectileArt(this);
@@ -1423,6 +1425,7 @@ export class BattleRenderer {
   drawStructures(cur) {
     this.civicStructures?.update(cur);
     this.battleProps?.update(cur);
+    this.raidLandingProps?.update(cur);
     let n = 0;
     const camQuat = this.camera.quaternion;
     const picked = this.inspected?.kind === 'structure' ? this.inspected.index : -1;
@@ -1554,6 +1557,7 @@ export class BattleRenderer {
     this.cityLayer?.dispose();
     this.civicStructures?.dispose();
     this.battleProps?.dispose();
+    this.raidLandingProps?.dispose();
     this.ecoLayer?.dispose();
     this.vegetation?.dispose();
     this.terrainArt?.dispose();

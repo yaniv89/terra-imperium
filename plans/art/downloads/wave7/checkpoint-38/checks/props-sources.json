@@ -1,0 +1,248 @@
+{
+  "status": "six_deliveries_ready_for_parent_runtime_review",
+  "new_assets_count": 6,
+  "reconciliation_rows_counted_here": 0,
+  "parent_checkpoint_accounting": "Parent owns 14 newly built assets and 13 separate reconciled rows; this module contributes six new props only.",
+  "assets": [
+    {
+      "id": "loot-sack",
+      "target": "/workspace/terra-remaining/src/assets/battle/props/loot-sack.glb",
+      "blend": "/workspace/remaining-production/props/loot-sack/loot-sack.blend",
+      "preview": "/workspace/remaining-production/props/loot-sack/preview.png",
+      "report": "/workspace/remaining-production/props/loot-sack/source-audit.json",
+      "validator_report": "/workspace/remaining-production/props/loot-sack/loot-sack.validation.json",
+      "tone_report": "/workspace/remaining-production/props/loot-sack/tone.json",
+      "counts": {
+        "LOD0": 460,
+        "LOD1": 294,
+        "LOD2": 76
+      },
+      "tone": {
+        "Town": {
+          "value": 0.744,
+          "effective": 0.744,
+          "sat": 0.308,
+          "samples": 1840
+        }
+      },
+      "bytes": 371056,
+      "sha256": "29b258a38e992ed74a4099460fcd130de92b92be912238ddd1c223230ad7df3e",
+      "installed_hash_verified": true,
+      "packed_editable_images": true,
+      "atlas": 1024,
+      "agent_preview_reviewed": true,
+      "preview_notes": "Tied sacks and hollow-neck amphora, faceted muted canvas/clay."
+    },
+    {
+      "id": "exit-marker",
+      "target": "/workspace/terra-remaining/src/assets/battle/props/exit-marker.glb",
+      "blend": "/workspace/remaining-production/props/exit-marker/exit-marker.blend",
+      "preview": "/workspace/remaining-production/props/exit-marker/preview.png",
+      "report": "/workspace/remaining-production/props/exit-marker/source-audit.json",
+      "validator_report": "/workspace/remaining-production/props/exit-marker/exit-marker.validation.json",
+      "tone_report": "/workspace/remaining-production/props/exit-marker/tone.json",
+      "counts": {
+        "LOD0": 200,
+        "LOD1": 144,
+        "LOD2": 68
+      },
+      "tone": {
+        "Town": {
+          "value": 0.733,
+          "effective": 0.733,
+          "sat": 0.27,
+          "samples": 736
+        },
+        "Team": {
+          "value": 0.769,
+          "effective": 0.769,
+          "sat": 0,
+          "samples": 64
+        }
+      },
+      "bytes": 204008,
+      "sha256": "ef7e9f21a05c7f2fab253d9c8cda0678439c994a96860a5a911b59c580a7ace3",
+      "installed_hash_verified": true,
+      "packed_editable_images": true,
+      "atlas": 1024,
+      "agent_preview_reviewed": true,
+      "preview_notes": "Neutral swallowtail flag, upright arrow, angular stone footing."
+    },
+    {
+      "id": "burnt-field-overlay",
+      "target": "/workspace/terra-remaining/src/assets/battle/props/burnt-field-overlay.glb",
+      "blend": "/workspace/remaining-production/props/burnt-field-overlay/burnt-field-overlay.blend",
+      "preview": "/workspace/remaining-production/props/burnt-field-overlay/preview.png",
+      "report": "/workspace/remaining-production/props/burnt-field-overlay/source-audit.json",
+      "validator_report": "/workspace/remaining-production/props/burnt-field-overlay/burnt-field-overlay.validation.json",
+      "tone_report": "/workspace/remaining-production/props/burnt-field-overlay/tone.json",
+      "counts": {
+        "LOD0": 576,
+        "LOD1": 238,
+        "LOD2": 72
+      },
+      "tone": {
+        "Town": {
+          "value": 0.436,
+          "effective": 0.436,
+          "sat": 0.202,
+          "samples": 2016
+        },
+        "Ground": {
+          "value": 0.328,
+          "effective": 0.328,
+          "sat": 0.224,
+          "samples": 288
+        }
+      },
+      "bytes": 452540,
+      "sha256": "050667529d18d523fe20104a4f99c4c8d41039e5258762be5c05f44f14a373d3",
+      "installed_hash_verified": true,
+      "packed_editable_images": true,
+      "atlas": 1024,
+      "agent_preview_reviewed": true,
+      "preview_notes": "Charcoal irregular patch with ash rows/stubble; boundary alpha fixed; details inside patch."
+    },
+    {
+      "id": "landing-ancient",
+      "target": "/workspace/terra-remaining/src/assets/battle/props/landing-ancient.glb",
+      "blend": "/workspace/remaining-production/props/landing-ancient/landing-ancient.blend",
+      "preview": "/workspace/remaining-production/props/landing-ancient/preview.png",
+      "report": "/workspace/remaining-production/props/landing-ancient/source-audit.json",
+      "validator_report": "/workspace/remaining-production/props/landing-ancient/landing-ancient.validation.json",
+      "tone_report": "/workspace/remaining-production/props/landing-ancient/tone.json",
+      "counts": {
+        "LOD0": 784,
+        "LOD1": 440,
+        "LOD2": 124
+      },
+      "tone": {
+        "Town": {
+          "value": 0.716,
+          "effective": 0.716,
+          "sat": 0.322,
+          "samples": 3088
+        },
+        "Team": {
+          "value": 0.74,
+          "effective": 0.74,
+          "sat": 0.002,
+          "samples": 48
+        }
+      },
+      "bytes": 483452,
+      "sha256": "21fce05b3387fc3f64cdc999ca039f8d052db4cabdfabdc9c68fdafb24d092bd",
+      "installed_hash_verified": true,
+      "packed_editable_images": true,
+      "atlas": 1024,
+      "agent_preview_reviewed": true,
+      "preview_notes": "Long beached galley, paired oars, gangplank, mast/furled yard."
+    },
+    {
+      "id": "landing-middle",
+      "target": "/workspace/terra-remaining/src/assets/battle/props/landing-middle.glb",
+      "blend": "/workspace/remaining-production/props/landing-middle/landing-middle.blend",
+      "preview": "/workspace/remaining-production/props/landing-middle/preview.png",
+      "report": "/workspace/remaining-production/props/landing-middle/source-audit.json",
+      "validator_report": "/workspace/remaining-production/props/landing-middle/landing-middle.validation.json",
+      "tone_report": "/workspace/remaining-production/props/landing-middle/tone.json",
+      "counts": {
+        "LOD0": 1008,
+        "LOD1": 780,
+        "LOD2": 288
+      },
+      "tone": {
+        "Town": {
+          "value": 0.668,
+          "effective": 0.668,
+          "sat": 0.308,
+          "samples": 3984
+        },
+        "Team": {
+          "value": 0.577,
+          "effective": 0.577,
+          "sat": 0,
+          "samples": 48
+        }
+      },
+      "bytes": 660352,
+      "sha256": "33510bab4509052bb7f93227c090712dea8d4486cf25b6fae9881bdb12d28800",
+      "installed_hash_verified": true,
+      "packed_editable_images": true,
+      "atlas": 1024,
+      "agent_preview_reviewed": true,
+      "preview_notes": "Two separate small boats in front of a three-masted offshore carrack."
+    },
+    {
+      "id": "landing-modern",
+      "target": "/workspace/terra-remaining/src/assets/battle/props/landing-modern.glb",
+      "blend": "/workspace/remaining-production/props/landing-modern/landing-modern.blend",
+      "preview": "/workspace/remaining-production/props/landing-modern/preview.png",
+      "report": "/workspace/remaining-production/props/landing-modern/source-audit.json",
+      "validator_report": "/workspace/remaining-production/props/landing-modern/landing-modern.validation.json",
+      "tone_report": "/workspace/remaining-production/props/landing-modern/tone.json",
+      "counts": {
+        "LOD0": 564,
+        "LOD1": 316,
+        "LOD2": 68
+      },
+      "tone": {
+        "Town": {
+          "value": 0.699,
+          "effective": 0.699,
+          "sat": 0.094,
+          "samples": 2208
+        },
+        "Team": {
+          "value": 0.591,
+          "effective": 0.591,
+          "sat": 0.001,
+          "samples": 48
+        }
+      },
+      "bytes": 373876,
+      "sha256": "cb6f0ebcb69563e10f050647c348a2397d3f8478f8242c184d5713b14963983e",
+      "installed_hash_verified": true,
+      "packed_editable_images": true,
+      "atlas": 1024,
+      "agent_preview_reviewed": true,
+      "preview_notes": "Open-bow matte metal craft, ribs, stern cabin, ramp down."
+    }
+  ],
+  "checks": {
+    "current_validator": "6 passed",
+    "actual_tone_checker": "6 passed; Town >= 0.26; present Team >= 0.30; nonempty samples",
+    "png_maps": "three 1024 PNGs each",
+    "warm_previews": "six 844x390 PNGs, agent inspected",
+    "installed_hashes": "all match audited exports",
+    "renderer_tests": "14 passed in 2 files, one worker",
+    "eslint": "zero warnings",
+    "python_compile": "passed",
+    "actual_snapshot_audit": "/workspace/remaining-production/props/actual-snapshot-audit.json"
+  },
+  "cpu": {
+    "final_bakes_scene_threads": 1,
+    "one_blender_process_at_a_time": true,
+    "final_builds_complete": true
+  },
+  "renderer_load_gate": "Default ordinary land setup loads exit-marker only. Goods/scorch load only for actual economy object, loot metadata, raid/sack type. Matching landing file only for landing maps. Naval maps fetch none.",
+  "placement_contract": "Goods follow visible actual eco.carrying; destroyed farms use their actual size/centre; raid fields use recorded footprint cells or the recorded target cell. Scorch bounding boxes fit those cells, never a default-size disk beyond them. Source snapshots are read only.",
+  "remaining_parent_gates": [
+    "Live raid, farm-destruction and landing screenshots at 844x390",
+    "Review ramp/shore placement, terrain height and overlay z fighting on live terrain",
+    "Serial performance/full-suite checks under available resources; no native GPU performance claim from this module"
+  ],
+  "known_limit": "Raid render views expose no per-raider loot inventory; this module does not fabricate it. Raid setups disable economy; actual carriers/farms are verified in an economy-enabled field setup.",
+  "source_generator": "/workspace/terra-remaining/scripts/blender/build_raid_landing_props.py",
+  "unique_helper": "/workspace/terra-remaining/scripts/blender/raid_landing_support.py",
+  "owned_renderer_files": [
+    "/workspace/terra-remaining/src/battle/art/raidLandingProps.js",
+    "/workspace/terra-remaining/src/battle/art/raidLandingProps.test.js",
+    "/workspace/terra-remaining/src/battle/render/BattleRenderer.js",
+    "/workspace/terra-remaining/src/assets/battle/props/README.md"
+  ],
+  "rebuild_command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /tmp/bpyenv/bin/python -u scripts/blender/build_raid_landing_props.py /workspace/remaining-production/props --sheet plans/art/concepts/wave7/raid-landing-props.png --sheet-review /workspace/remaining-production/props/sheet-review.json --threads 1 --install",
+  "license": "Original geometry/procedural textures CC0-1.0; generated sheet is design reference only, never sampled.",
+  "no_sim_unit_shared_helper_changes": true,
+  "no_queue_progress_commits_pushes": true
+}

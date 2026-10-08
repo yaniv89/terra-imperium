@@ -1,10 +1,12 @@
 # Art production progress
 
-Authoritative scope: `plans/art/ITEMS.md`, Part B (276) and Part C (74): **350 logical items**. Part A’s 402 in-game items are excluded. A/B variants stay together as one logical item.
+Legacy Part B/C scope: `plans/art/ITEMS.md`, Part B (276) and Part C (74): **350 logical items**. Part A’s 402 in-game items are excluded. A/B variants stay together as one logical item.
 
-**Delivered and in the game: 285 / 350. Remaining: 65.** (260 uploaded in the checkpoints below, plus the 25 of the local transfer.)
+**Legacy Part B/C at the 2026-10-07 import: delivered and in the game: 285 / 350. Remaining: 65.** (260 uploaded in the checkpoints below, plus the 25 of the local transfer.)
 
-Built but not yet delivered: 0.
+Legacy Part B/C built but not yet delivered: 0.
+
+**Expanded queue after Wave 7 checkpoint 38: 1,135 rows — 285 accepted, 490 in game awaiting review, 349 pending, 11 superseded.** These are item-array status counts, including two legacy fort aliases; they are not unique model counts. Superseded rows are not deliveries. The 350-item legacy aggregates above remain separate historical scope.
 
 Import check 2026-10-07: every item in every ZIP below is in the game (`node scripts/art/downloads-coverage.mjs`). The 25 items built in the cloud (8 buildings, 13 base tile improvements, classical town-big a and b, warships bronze, classical and kingdoms) came through the transfer archives in [local-transfer-2026-10-07](local-transfer-2026-10-07/README.md) and were validated, fixed where needed and imported the same day (details in [IMPLEMENTED.md](IMPLEMENTED.md), "Imported 2026-10-07").
 
@@ -16,7 +18,7 @@ Wave 1 [checkpoint 02](downloads/wave1/checkpoint-02/README.md), 2026-10-07 (Cla
 
 Wave 1 [checkpoint 03](downloads/wave1/checkpoint-03/README.md), 2026-10-07: the 13 Bronze damaged-and-ruined house files (base and 12 themes), the 8 ground materials (colour in the game) and the 8 core battle effect sheets; 20 queue items `in_game_awaiting_review` (the effect sheets have no queue items); the 4 ZIPs are kept outside git.
 
-**Quality review: 0 delivered items require revision; 285 accepted. 65 items remain to finish.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
+**Legacy Part B/C quality review at the 2026-10-07 import: 0 delivered items require revision; 285 accepted. 65 items remain to finish in that scope.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
 
 | Checkpoint | Items | ZIPs | Files and exact item list |
 |---|---:|---:|---|
@@ -105,3 +107,7 @@ Wave 6 [checkpoint 35](downloads/wave6/checkpoint-35/README.md), 2026-10-08 (Cla
 Wave 6 [checkpoint 36](downloads/wave6/checkpoint-36/README.md), 2026-10-08 (Claude): a known gap closed: the standing walls of ruined houses get a lit plaster inner face (no more dark interiors at the cut) in 51 house-damage files of the Classical, Kingdoms, Gunpowder and Modern ages (`build_houses_damage_bronze.py` `INTERIOR`); no new queue items. +0.99 MB net (files replaced, none added).
 
 Wave 6 [checkpoint 37](downloads/wave6/checkpoint-37/README.md), 2026-10-08 (Claude): a known gap closed: the Gunpowder battle walls are a bastion trace (turf-topped battered scarp curtains, an arrow-head bastion with a cannon, a sentry-box corner, the sandstone gatehouse; `build_walls_bastion_gunpowder.py`), the queue item `battle-city/gunpowder/wall-kit` re-delivered. -0.15 MB (the file replaced).
+
+Wave 7 [checkpoint 38](downloads/wave7/checkpoint-38/README.md), 2026-10-08 (Codex, `gpt/art-remaining`): 14 new battle models: river-kit, ford, wood/stone/steel bridges; conifer/tropical/cold vegetation; loot-sack, exit-marker, burnt-field-overlay and ancient/middle/modern landings — are `in_game_awaiting_review`. Packed game models total 5.50 MB; three editable source ZIPs total 90.11 MB, with at most five assets per ZIP. Queue rows link their packed game hashes, uncompressed source hashes, source inventories and [source validation](downloads/wave7/checkpoint-38/checks/source-validator.json)/[actual loader and tone checks](downloads/wave7/checkpoint-38/checks/packed-loader-tone.json). Source/loader checks, lint, the final 31-test regression set and 14 browser cases passed; native terrain, Middle landing and map views were inspected at both sizes. This records delivery on the work branch, not quality acceptance or lead integration. The newer integration loader must preserve the authored LOD UVs before merge; see the checkpoint compatibility note. Intact bridges are wired; damaged/destroyed variants remain unused without bridge HP. Map canopy impostors and map river redraw are separate scope.
+
+Checkpoint 38 [reconciliation](downloads/wave7/checkpoint-38/checks/queue-reconciliation.json): two legacy Classical/Modern map-fort rows alias the existing checkpoint-18/checkpoint-35 deliveries and inherit their awaiting-review status; no models were rebuilt for them. Eleven obsolete Israelite unit rows are `superseded` by `plans/ART-MODELS-PLAN.md` section 4.4 and the delivered Merkava signature row. They remain auditable non-delivery records. Net queue change: 16 rows pending → awaiting review, 11 rows pending → superseded; accepted stays 285.

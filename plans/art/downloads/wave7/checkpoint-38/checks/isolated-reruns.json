@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "results": [
+    {
+      "name": "resolve-identical",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "src/engine/resolveTurn.test.js",
+        "--maxWorkers=1",
+        "--testTimeout=30000",
+        "--reporter=verbose",
+        "-t",
+        "produces identical output for identical input"
+      ],
+      "exit_code": 0,
+      "log": "resolve-identical.log"
+    },
+    {
+      "name": "resolve-replay",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "src/engine/resolveTurn.test.js",
+        "--maxWorkers=1",
+        "--testTimeout=30000",
+        "--reporter=verbose",
+        "-t",
+        "replaying an identical sequence"
+      ],
+      "exit_code": 0,
+      "log": "resolve-replay.log"
+    },
+    {
+      "name": "resolve-year",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "src/engine/resolveTurn.test.js",
+        "--maxWorkers=1",
+        "--testTimeout=30000",
+        "--reporter=verbose",
+        "-t",
+        "advances the year by the age/speed years-per-turn table"
+      ],
+      "exit_code": 0,
+      "log": "resolve-year.log"
+    },
+    {
+      "name": "restored-map-fixtures",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "src/data/geo/rasterDetail.test.js",
+        "src/data/geo/rasterTiles.test.js",
+        "--maxWorkers=1",
+        "--testTimeout=30000",
+        "--reporter=verbose"
+      ],
+      "exit_code": 0,
+      "log": "restored-map-fixtures.log"
+    }
+  ]
+}

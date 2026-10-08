@@ -1,0 +1,1860 @@
+{
+  "schema_version": 1,
+  "checkpoint": "38",
+  "scope": "Wave 7 checkpoint 38: fourteen new battle-art model files",
+  "status": "in_game_awaiting_review_on_work_branch",
+  "accounting": {
+    "logical_new_models": 14,
+    "source_zip_count": 3,
+    "reconciled_rows_separate": 13,
+    "reconciled_rows_are_new_models": false
+  },
+  "sizes": {
+    "game_bytes": 5498048,
+    "game_MB_decimal": 5.498048,
+    "source_zip_bytes": 90105367,
+    "source_MB_decimal": 90.105367
+  },
+  "provenance": {
+    "base_branch": "claude/integration",
+    "base_commit": "1586070d90888dd7828869be64735035361a3a74",
+    "work_branch": "gpt/art-remaining",
+    "geometry_and_procedural_textures_license": "CC0-1.0",
+    "design_references": "Generated and reviewed sheets; not sampled texture atlases",
+    "build_environment": "Python 3.11 / Blender bpy 5.0.1",
+    "authority": "Written art specifications govern dimensions and scene contracts"
+  },
+  "models": [
+    {
+      "id": "river-kit",
+      "game_path": "src/assets/battle/terrain/river-kit.glb",
+      "bytes": 181412,
+      "sha256": "98b4b8d31de41b9d105d7f40782820985bfa553d82684d162e5b0b87da22e85a",
+      "source_archive": "sources/terrain5.zip",
+      "uncompressed_source_sha256": "3efe3a681982ffe0018b49fbec4296c91721b59ad7a2297d0a117ea1a74164f7",
+      "loader_objects": {
+        "bank": {
+          "triangles": [
+            187,
+            40,
+            16
+          ],
+          "sockets": []
+        },
+        "straight": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "bend": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "junction": {
+          "triangles": [
+            24,
+            24,
+            24
+          ],
+          "sockets": []
+        },
+        "end": {
+          "triangles": [
+            271,
+            135,
+            67
+          ],
+          "sockets": []
+        },
+        "straight-5": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "bend-5": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "junction-5": {
+          "triangles": [
+            24,
+            24,
+            24
+          ],
+          "sockets": []
+        },
+        "end-5": {
+          "triangles": [
+            271,
+            135,
+            67
+          ],
+          "sockets": []
+        },
+        "straight-8": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "bend-8": {
+          "triangles": [
+            224,
+            112,
+            56
+          ],
+          "sockets": []
+        },
+        "junction-8": {
+          "triangles": [
+            24,
+            24,
+            24
+          ],
+          "sockets": []
+        },
+        "end-8": {
+          "triangles": [
+            271,
+            135,
+            67
+          ],
+          "sockets": []
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.591,
+          "effective": 0.591,
+          "sat": 0.117,
+          "samples": 320
+        },
+        "Ground": {
+          "value": 0.455,
+          "effective": 0.455,
+          "sat": 0.219,
+          "samples": 16600
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "terrain-kit",
+        "caps_per_root_lod012": [
+          4000,
+          1000,
+          200
+        ],
+        "props_fallback": false
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {}
+    },
+    {
+      "id": "ford",
+      "game_path": "src/assets/battle/terrain/ford.glb",
+      "bytes": 164120,
+      "sha256": "9da93d98cdfe5f64dd514cd6157d83786d11bec4dccfc020319c89dcb61b2119",
+      "source_archive": "sources/terrain5.zip",
+      "uncompressed_source_sha256": "7a3b28514cb26e82490e8367fb545ca059905ec818ef5d19ca3a11e3cbff6265",
+      "loader_objects": {
+        "ford": {
+          "triangles": [
+            290,
+            138,
+            102
+          ],
+          "sockets": []
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.644,
+          "effective": 0.644,
+          "sat": 0.136,
+          "samples": 1472
+        },
+        "Ground": {
+          "value": 0.56,
+          "effective": 0.56,
+          "sat": 0.263,
+          "samples": 648
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "terrain-kit",
+        "caps_per_root_lod012": [
+          4000,
+          1000,
+          200
+        ],
+        "props_fallback": false
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {}
+    },
+    {
+      "id": "bridge-wood",
+      "game_path": "src/assets/battle/terrain/bridge-wood.glb",
+      "bytes": 661056,
+      "sha256": "36b5b768a5d7ea0d288011591e50e5c2b9be7de3e32d184900e8bb5eecdb0812",
+      "source_archive": "sources/terrain5.zip",
+      "uncompressed_source_sha256": "1d6e29678811a97d09209179db366471b053444b9ed450f51944333e365fd19c",
+      "loader_objects": {
+        "bridge-wood": {
+          "triangles": [
+            704,
+            464,
+            184
+          ],
+          "sockets": [
+            "socket-end-a",
+            "socket-end-b"
+          ]
+        },
+        "bridge-wood-damaged": {
+          "triangles": [
+            660,
+            416,
+            152
+          ],
+          "sockets": [
+            "socket-end-a_1",
+            "socket-end-b_1"
+          ]
+        },
+        "bridge-wood-destroyed": {
+          "triangles": [
+            500,
+            380,
+            128
+          ],
+          "sockets": [
+            "socket-end-a_2",
+            "socket-end-b_2"
+          ]
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.506,
+          "effective": 0.506,
+          "sat": 0.464,
+          "samples": 14064
+        },
+        "Ground": {
+          "value": 0.406,
+          "effective": 0.406,
+          "sat": 0.343,
+          "samples": 288
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "terrain-kit",
+        "caps_per_root_lod012": [
+          4000,
+          1000,
+          200
+        ],
+        "props_fallback": false
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {}
+    },
+    {
+      "id": "bridge-stone",
+      "game_path": "src/assets/battle/terrain/bridge-stone.glb",
+      "bytes": 490304,
+      "sha256": "35665c949376f7e91830a0f7d2fe40d84ca31d9e2f3f245927b386e348adb6c7",
+      "source_archive": "sources/terrain5.zip",
+      "uncompressed_source_sha256": "82b819680bd666e56204210a9c1f11b56bd5ebf55c8e6144070ca8e79d173bc5",
+      "loader_objects": {
+        "bridge-stone": {
+          "triangles": [
+            800,
+            408,
+            168
+          ],
+          "sockets": [
+            "socket-end-a",
+            "socket-end-b"
+          ]
+        },
+        "bridge-stone-damaged": {
+          "triangles": [
+            744,
+            348,
+            108
+          ],
+          "sockets": [
+            "socket-end-a_1",
+            "socket-end-b_1"
+          ]
+        },
+        "bridge-stone-destroyed": {
+          "triangles": [
+            520,
+            272,
+            72
+          ],
+          "sockets": [
+            "socket-end-a_2",
+            "socket-end-b_2"
+          ]
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.454,
+          "effective": 0.454,
+          "sat": 0.114,
+          "samples": 13472
+        },
+        "Ground": {
+          "value": 0.376,
+          "effective": 0.376,
+          "sat": 0.342,
+          "samples": 288
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "terrain-kit",
+        "caps_per_root_lod012": [
+          4000,
+          1000,
+          200
+        ],
+        "props_fallback": false
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {}
+    },
+    {
+      "id": "bridge-steel",
+      "game_path": "src/assets/battle/terrain/bridge-steel.glb",
+      "bytes": 450312,
+      "sha256": "5612757d0a00241fa8f1e5ed1d29f0dced27c6dc43dab94a680534d5d2a5cd1c",
+      "source_archive": "sources/terrain5.zip",
+      "uncompressed_source_sha256": "0295b17cd90ed28de2b560331fd5f9ccc93f12bb632ded5c57eccfbbd350707b",
+      "loader_objects": {
+        "bridge-steel": {
+          "triangles": [
+            1560,
+            344,
+            152
+          ],
+          "sockets": [
+            "socket-end-a",
+            "socket-end-b"
+          ]
+        },
+        "bridge-steel-damaged": {
+          "triangles": [
+            1496,
+            308,
+            120
+          ],
+          "sockets": [
+            "socket-end-a_1",
+            "socket-end-b_1"
+          ]
+        },
+        "bridge-steel-destroyed": {
+          "triangles": [
+            1084,
+            284,
+            128
+          ],
+          "sockets": [
+            "socket-end-a_2",
+            "socket-end-b_2"
+          ]
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.394,
+          "effective": 0.394,
+          "sat": 0.149,
+          "samples": 21616
+        },
+        "Ground": {
+          "value": 0.421,
+          "effective": 0.421,
+          "sat": 0.337,
+          "samples": 288
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "terrain-kit",
+        "caps_per_root_lod012": [
+          4000,
+          1000,
+          200
+        ],
+        "props_fallback": false
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {}
+    },
+    {
+      "id": "vegetation-conifer",
+      "game_path": "src/assets/battle/nature/vegetation-conifer.glb",
+      "bytes": 437940,
+      "sha256": "3e8f62642faa9099fa38a0317028ebd301cf30194de8caf60dd22dc6dd7bd8f1",
+      "source_archive": "sources/nature3-props2.zip",
+      "uncompressed_source_sha256": "7c930e464ab9e899fa46dd8bd7622ad90fc7b5f53d3b65812c0fe5bf98533e5e",
+      "loader_objects": {
+        "tree-s": {
+          "triangles": [
+            246,
+            54,
+            54
+          ],
+          "sockets": []
+        },
+        "tree-m": {
+          "triangles": [
+            246,
+            54,
+            54
+          ],
+          "sockets": []
+        },
+        "tree-l": {
+          "triangles": [
+            246,
+            54,
+            54
+          ],
+          "sockets": []
+        },
+        "stump": {
+          "triangles": [
+            84,
+            16,
+            16
+          ],
+          "sockets": []
+        },
+        "felled": {
+          "triangles": [
+            172,
+            44,
+            16
+          ],
+          "sockets": []
+        },
+        "bush": {
+          "triangles": [
+            96,
+            28,
+            28
+          ],
+          "sockets": []
+        },
+        "rock-s": {
+          "triangles": [
+            68,
+            28,
+            28
+          ],
+          "sockets": []
+        },
+        "rock-m": {
+          "triangles": [
+            96,
+            56,
+            56
+          ],
+          "sockets": []
+        },
+        "grass-tuft": {
+          "triangles": [
+            27,
+            9,
+            9
+          ],
+          "sockets": []
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.432,
+          "effective": 0.432,
+          "sat": 0.37,
+          "samples": 7208
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "tree",
+        "caps_per_root_lod012": [
+          600,
+          150,
+          150
+        ],
+        "props_fallback": false
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {}
+    },
+    {
+      "id": "vegetation-tropical",
+      "game_path": "src/assets/battle/nature/vegetation-tropical.glb",
+      "bytes": 423612,
+      "sha256": "202f14f0cee224039be57258f6bb7c1576dab6da09c5d3dfdd2e8d28a03ecd6d",
+      "source_archive": "sources/nature3-props2.zip",
+      "uncompressed_source_sha256": "be13bfb9243fdf055b7626d51187252c1d1f45ad9b0f6bf370d149ff7499f935",
+      "loader_objects": {
+        "tree-s": {
+          "triangles": [
+            387,
+            48,
+            28
+          ],
+          "sockets": []
+        },
+        "tree-m": {
+          "triangles": [
+            94,
+            44,
+            40
+          ],
+          "sockets": []
+        },
+        "tree-l": {
+          "triangles": [
+            517,
+            76,
+            76
+          ],
+          "sockets": []
+        },
+        "stump": {
+          "triangles": [
+            84,
+            16,
+            16
+          ],
+          "sockets": []
+        },
+        "felled": {
+          "triangles": [
+            232,
+            44,
+            16
+          ],
+          "sockets": []
+        },
+        "bush": {
+          "triangles": [
+            36,
+            24,
+            20
+          ],
+          "sockets": []
+        },
+        "rock-s": {
+          "triangles": [
+            68,
+            28,
+            28
+          ],
+          "sockets": []
+        },
+        "rock-m": {
+          "triangles": [
+            96,
+            56,
+            56
+          ],
+          "sockets": []
+        },
+        "grass-tuft": {
+          "triangles": [
+            27,
+            9,
+            9
+          ],
+          "sockets": []
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.472,
+          "effective": 0.472,
+          "sat": 0.37,
+          "samples": 8264
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "tree",
+        "caps_per_root_lod012": [
+          600,
+          150,
+          150
+        ],
+        "props_fallback": false
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {}
+    },
+    {
+      "id": "vegetation-cold",
+      "game_path": "src/assets/battle/nature/vegetation-cold.glb",
+      "bytes": 490164,
+      "sha256": "073be8c85915e539020f93c53b6e27fc2ab60777fbe173816f2c638da504e91b",
+      "source_archive": "sources/nature3-props2.zip",
+      "uncompressed_source_sha256": "9a80ad1072f22fb76d1d1c29c06b7259b47ac097983248fd507192c59b75aee2",
+      "loader_objects": {
+        "tree-s": {
+          "triangles": [
+            340,
+            96,
+            96
+          ],
+          "sockets": []
+        },
+        "tree-m": {
+          "triangles": [
+            340,
+            96,
+            96
+          ],
+          "sockets": []
+        },
+        "tree-l": {
+          "triangles": [
+            340,
+            96,
+            96
+          ],
+          "sockets": []
+        },
+        "stump": {
+          "triangles": [
+            84,
+            16,
+            16
+          ],
+          "sockets": []
+        },
+        "felled": {
+          "triangles": [
+            252,
+            44,
+            16
+          ],
+          "sockets": []
+        },
+        "bush": {
+          "triangles": [
+            96,
+            24,
+            18
+          ],
+          "sockets": []
+        },
+        "rock-s": {
+          "triangles": [
+            68,
+            28,
+            28
+          ],
+          "sockets": []
+        },
+        "rock-m": {
+          "triangles": [
+            96,
+            56,
+            56
+          ],
+          "sockets": []
+        },
+        "grass-tuft": {
+          "triangles": [
+            27,
+            9,
+            9
+          ],
+          "sockets": []
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.523,
+          "effective": 0.523,
+          "sat": 0.22,
+          "samples": 9720
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "tree",
+        "caps_per_root_lod012": [
+          600,
+          150,
+          150
+        ],
+        "props_fallback": false
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {}
+    },
+    {
+      "id": "loot-sack",
+      "game_path": "src/assets/battle/props/loot-sack.glb",
+      "bytes": 329276,
+      "sha256": "2847ea345fe421458c7e4161635086fd64202bc75503970fd8565a8840ebf187",
+      "source_archive": "sources/nature3-props2.zip",
+      "uncompressed_source_sha256": "29b258a38e992ed74a4099460fcd130de92b92be912238ddd1c223230ad7df3e",
+      "loader_objects": {
+        "loot-sack": {
+          "triangles": [
+            460,
+            294,
+            76
+          ],
+          "sockets": []
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.745,
+          "effective": 0.745,
+          "sat": 0.314,
+          "samples": 3320
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "landmark",
+        "caps_per_root_lod012": [
+          15000,
+          3000,
+          500
+        ],
+        "props_fallback": true
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {
+        "stricter_props_budget": {
+          "explicit_validator_kind": "node",
+          "explicit_validator_caps_lod012": [
+            1500,
+            300,
+            80
+          ],
+          "explicit_validation_passed": true,
+          "local_caps_lod012": [
+            800,
+            300,
+            80
+          ],
+          "actual_triangles_lod012": [
+            460,
+            294,
+            76
+          ],
+          "local_caps_passed": true,
+          "report": "/workspace/remaining-production/props/loot-sack/loot-sack.validation.json"
+        }
+      }
+    },
+    {
+      "id": "exit-marker",
+      "game_path": "src/assets/battle/props/exit-marker.glb",
+      "bytes": 182064,
+      "sha256": "24dd3703cdd0de7e304cfd105013058a9d2cc486d1e77dad4207c56cdf08c00d",
+      "source_archive": "sources/nature3-props2.zip",
+      "uncompressed_source_sha256": "ef7e9f21a05c7f2fab253d9c8cda0678439c994a96860a5a911b59c580a7ace3",
+      "loader_objects": {
+        "exit-marker": {
+          "triangles": [
+            200,
+            144,
+            68
+          ],
+          "sockets": []
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.742,
+          "effective": 0.742,
+          "sat": 0.264,
+          "samples": 1456
+        },
+        "Team": {
+          "value": 0.77,
+          "effective": 0.77,
+          "sat": 0,
+          "samples": 128
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "landmark",
+        "caps_per_root_lod012": [
+          15000,
+          3000,
+          500
+        ],
+        "props_fallback": true
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {
+        "stricter_props_budget": {
+          "explicit_validator_kind": "node",
+          "explicit_validator_caps_lod012": [
+            1500,
+            300,
+            80
+          ],
+          "explicit_validation_passed": true,
+          "local_caps_lod012": [
+            800,
+            300,
+            80
+          ],
+          "actual_triangles_lod012": [
+            200,
+            144,
+            68
+          ],
+          "local_caps_passed": true,
+          "report": "/workspace/remaining-production/props/exit-marker/exit-marker.validation.json"
+        }
+      }
+    },
+    {
+      "id": "burnt-field-overlay",
+      "game_path": "src/assets/battle/props/burnt-field-overlay.glb",
+      "bytes": 399492,
+      "sha256": "5d07899b742664b1b2b08b9e0b0ad324a1fe392700e626fc57f6f5c73d15f921",
+      "source_archive": "sources/props4.zip",
+      "uncompressed_source_sha256": "050667529d18d523fe20104a4f99c4c8d41039e5258762be5c05f44f14a373d3",
+      "loader_objects": {
+        "burnt-field-overlay": {
+          "triangles": [
+            576,
+            238,
+            72
+          ],
+          "sockets": []
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.432,
+          "effective": 0.432,
+          "sat": 0.206,
+          "samples": 2896
+        },
+        "Ground": {
+          "value": 0.326,
+          "effective": 0.326,
+          "sat": 0.224,
+          "samples": 648
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "landmark",
+        "caps_per_root_lod012": [
+          15000,
+          3000,
+          500
+        ],
+        "props_fallback": true
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {
+        "stricter_props_budget": {
+          "explicit_validator_kind": "terrain-kit",
+          "explicit_validator_caps_lod012": [
+            4000,
+            1000,
+            200
+          ],
+          "explicit_validation_passed": true,
+          "local_caps_lod012": [
+            800,
+            300,
+            80
+          ],
+          "actual_triangles_lod012": [
+            576,
+            238,
+            72
+          ],
+          "local_caps_passed": true,
+          "report": "/workspace/remaining-production/props/burnt-field-overlay/burnt-field-overlay.validation.json"
+        }
+      }
+    },
+    {
+      "id": "landing-ancient",
+      "game_path": "src/assets/battle/props/landing-ancient.glb",
+      "bytes": 415592,
+      "sha256": "8b7995aa3fed6f2996de95386d28caaf4486af4426c4964c076f7288f807e5e7",
+      "source_archive": "sources/props4.zip",
+      "uncompressed_source_sha256": "21fce05b3387fc3f64cdc999ca039f8d052db4cabdfabdc9c68fdafb24d092bd",
+      "loader_objects": {
+        "landing-ancient": {
+          "triangles": [
+            784,
+            440,
+            124
+          ],
+          "sockets": [
+            "socket-door"
+          ]
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.71,
+          "effective": 0.71,
+          "sat": 0.328,
+          "samples": 5248
+        },
+        "Team": {
+          "value": 0.744,
+          "effective": 0.744,
+          "sat": 0.001,
+          "samples": 96
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "landmark",
+        "caps_per_root_lod012": [
+          15000,
+          3000,
+          500
+        ],
+        "props_fallback": true
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {
+        "stricter_props_budget": {
+          "explicit_validator_kind": "prefab",
+          "explicit_validator_caps_lod012": [
+            8000,
+            2000,
+            400
+          ],
+          "explicit_validation_passed": true,
+          "local_caps_lod012": [
+            8000,
+            2000,
+            400
+          ],
+          "actual_triangles_lod012": [
+            784,
+            440,
+            124
+          ],
+          "local_caps_passed": true,
+          "report": "/workspace/remaining-production/props/landing-ancient/landing-ancient.validation.json"
+        }
+      }
+    },
+    {
+      "id": "landing-middle",
+      "game_path": "src/assets/battle/props/landing-middle.glb",
+      "bytes": 548952,
+      "sha256": "50eab83668e4762398addbde21761683fb9a43cc49a3927de43b5fdf2688608b",
+      "source_archive": "sources/props4.zip",
+      "uncompressed_source_sha256": "33510bab4509052bb7f93227c090712dea8d4486cf25b6fae9881bdb12d28800",
+      "loader_objects": {
+        "landing-middle": {
+          "triangles": [
+            1008,
+            780,
+            288
+          ],
+          "sockets": [
+            "socket-door"
+          ]
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.67,
+          "effective": 0.67,
+          "sat": 0.317,
+          "samples": 8160
+        },
+        "Team": {
+          "value": 0.578,
+          "effective": 0.578,
+          "sat": 0,
+          "samples": 96
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "landmark",
+        "caps_per_root_lod012": [
+          15000,
+          3000,
+          500
+        ],
+        "props_fallback": true
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {
+        "stricter_props_budget": {
+          "explicit_validator_kind": "prefab",
+          "explicit_validator_caps_lod012": [
+            8000,
+            2000,
+            400
+          ],
+          "explicit_validation_passed": true,
+          "local_caps_lod012": [
+            8000,
+            2000,
+            400
+          ],
+          "actual_triangles_lod012": [
+            1008,
+            780,
+            288
+          ],
+          "local_caps_passed": true,
+          "report": "/workspace/remaining-production/props/landing-middle/landing-middle.validation.json"
+        }
+      }
+    },
+    {
+      "id": "landing-modern",
+      "game_path": "src/assets/battle/props/landing-modern.glb",
+      "bytes": 323752,
+      "sha256": "7262ed51d993460843032bfa3a4ae713de28fc158aae24db35c6a2083bf79c67",
+      "source_archive": "sources/props4.zip",
+      "uncompressed_source_sha256": "cb6f0ebcb69563e10f050647c348a2397d3f8478f8242c184d5713b14963983e",
+      "loader_objects": {
+        "landing-modern": {
+          "triangles": [
+            564,
+            316,
+            68
+          ],
+          "sockets": [
+            "socket-door"
+          ]
+        }
+      },
+      "packed_tone_measurements": {
+        "Town": {
+          "value": 0.69,
+          "effective": 0.69,
+          "sat": 0.09,
+          "samples": 3648
+        },
+        "Team": {
+          "value": 0.591,
+          "effective": 0.591,
+          "sat": 0,
+          "samples": 96
+        }
+      },
+      "source_auto_validation": {
+        "passed": true,
+        "kind": "landmark",
+        "caps_per_root_lod012": [
+          15000,
+          3000,
+          500
+        ],
+        "props_fallback": true
+      },
+      "source_atlas": {
+        "embedded_images": 3,
+        "sizes": [
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ],
+          [
+            1024,
+            1024
+          ]
+        ],
+        "all_1024": true,
+        "one_atlas_set_passed": true,
+        "uncompressed_geometry_passed": true
+      },
+      "source_budget_details": {
+        "stricter_props_budget": {
+          "explicit_validator_kind": "prefab",
+          "explicit_validator_caps_lod012": [
+            8000,
+            2000,
+            400
+          ],
+          "explicit_validation_passed": true,
+          "local_caps_lod012": [
+            8000,
+            2000,
+            400
+          ],
+          "actual_triangles_lod012": [
+            564,
+            316,
+            68
+          ],
+          "local_caps_passed": true,
+          "report": "/workspace/remaining-production/props/landing-modern/landing-modern.validation.json"
+        }
+      }
+    }
+  ],
+  "source_archives": [
+    {
+      "zip": "sources/terrain5.zip",
+      "bytes": 32502660,
+      "MiB": 30.997,
+      "sha256": "ac21ef47e9f849495bfc57996778c9dda3a48b8b3ed15ed5722802537770dab7",
+      "assets": [
+        "river-kit",
+        "ford",
+        "bridge-wood",
+        "bridge-stone",
+        "bridge-steel"
+      ],
+      "file_count": 110,
+      "file_list": "sources/terrain5.files.txt",
+      "manifest": "sources/terrain5.manifest.json",
+      "editable_blends": [
+        "assets/terrain/bridge-steel/bridge-steel.blend",
+        "assets/terrain/bridge-stone/bridge-stone.blend",
+        "assets/terrain/bridge-wood/bridge-wood.blend",
+        "assets/terrain/ford/ford.blend",
+        "assets/terrain/river-kit/river-kit.blend"
+      ],
+      "uncompressed_glbs": [
+        "assets/terrain/bridge-steel/bridge-steel.glb",
+        "assets/terrain/bridge-stone/bridge-stone.glb",
+        "assets/terrain/bridge-wood/bridge-wood.glb",
+        "assets/terrain/ford/ford.glb",
+        "assets/terrain/river-kit/river-kit.glb"
+      ],
+      "builders_and_dependencies": [
+        "scripts/blender/build_battle_terrain_remaining.py",
+        "scripts/blender/ti_battle_terrain_remaining.py",
+        "scripts/blender/ti_map.py",
+        "scripts/blender/ti_town.py",
+        "scripts/blender/validate_model.py"
+      ]
+    },
+    {
+      "zip": "sources/nature3-props2.zip",
+      "bytes": 32228092,
+      "MiB": 30.735,
+      "sha256": "6c33c31a0739e35ba9bef8ac5834ed451447cd1d79cd6a62104b72c3f8b9dd51",
+      "assets": [
+        "vegetation-conifer",
+        "vegetation-tropical",
+        "vegetation-cold",
+        "loot-sack",
+        "exit-marker"
+      ],
+      "file_count": 77,
+      "file_list": "sources/nature3-props2.files.txt",
+      "manifest": "sources/nature3-props2.manifest.json",
+      "editable_blends": [
+        "assets/nature/vegetation-cold/vegetation-cold.blend",
+        "assets/nature/vegetation-conifer/vegetation-conifer.blend",
+        "assets/nature/vegetation-tropical/vegetation-tropical.blend",
+        "assets/props/exit-marker/exit-marker.blend",
+        "assets/props/loot-sack/loot-sack.blend"
+      ],
+      "uncompressed_glbs": [
+        "assets/nature/vegetation-cold/vegetation-cold.glb",
+        "assets/nature/vegetation-conifer/vegetation-conifer.glb",
+        "assets/nature/vegetation-tropical/vegetation-tropical.glb",
+        "assets/props/exit-marker/exit-marker.glb",
+        "assets/props/loot-sack/loot-sack.glb"
+      ],
+      "builders_and_dependencies": [
+        "assets/props/exit-marker/build_raid_landing_props.py",
+        "assets/props/exit-marker/raid_landing_support.py",
+        "assets/props/exit-marker/ti_map.py",
+        "assets/props/exit-marker/validate_model.py",
+        "assets/props/loot-sack/build_raid_landing_props.py",
+        "assets/props/loot-sack/raid_landing_support.py",
+        "assets/props/loot-sack/ti_map.py",
+        "assets/props/loot-sack/validate_model.py",
+        "scripts/blender/build_vegetation_remaining.py",
+        "scripts/blender/ti_blender.py",
+        "scripts/blender/ti_map.py",
+        "scripts/blender/ti_nature.py",
+        "scripts/blender/ti_town.py",
+        "scripts/blender/ti_vegetation_remaining.py",
+        "scripts/blender/validate_model.py"
+      ]
+    },
+    {
+      "zip": "sources/props4.zip",
+      "bytes": 25374615,
+      "MiB": 24.199,
+      "sha256": "4af7212e83089fbb396e9dc33ab8cb7d05829c8c9f9c70d232fbdcb281bd9b1c",
+      "assets": [
+        "burnt-field-overlay",
+        "landing-ancient",
+        "landing-middle",
+        "landing-modern"
+      ],
+      "file_count": 65,
+      "file_list": "sources/props4.files.txt",
+      "manifest": "sources/props4.manifest.json",
+      "editable_blends": [
+        "assets/props/burnt-field-overlay/burnt-field-overlay.blend",
+        "assets/props/landing-ancient/landing-ancient.blend",
+        "assets/props/landing-middle/landing-middle.blend",
+        "assets/props/landing-modern/landing-modern.blend"
+      ],
+      "uncompressed_glbs": [
+        "assets/props/burnt-field-overlay/burnt-field-overlay.glb",
+        "assets/props/landing-ancient/landing-ancient.glb",
+        "assets/props/landing-middle/landing-middle.glb",
+        "assets/props/landing-modern/landing-modern.glb"
+      ],
+      "builders_and_dependencies": [
+        "assets/props/burnt-field-overlay/build_raid_landing_props.py",
+        "assets/props/burnt-field-overlay/raid_landing_support.py",
+        "assets/props/burnt-field-overlay/ti_map.py",
+        "assets/props/burnt-field-overlay/validate_model.py",
+        "assets/props/landing-ancient/build_raid_landing_props.py",
+        "assets/props/landing-ancient/raid_landing_support.py",
+        "assets/props/landing-ancient/ti_map.py",
+        "assets/props/landing-ancient/validate_model.py",
+        "assets/props/landing-middle/build_raid_landing_props.py",
+        "assets/props/landing-middle/raid_landing_support.py",
+        "assets/props/landing-middle/ti_map.py",
+        "assets/props/landing-middle/validate_model.py",
+        "assets/props/landing-modern/build_raid_landing_props.py",
+        "assets/props/landing-modern/raid_landing_support.py",
+        "assets/props/landing-modern/ti_map.py",
+        "assets/props/landing-modern/validate_model.py",
+        "scripts/blender/ti_map.py",
+        "scripts/blender/ti_town.py",
+        "scripts/blender/validate_model.py"
+      ]
+    }
+  ],
+  "builders": [
+    {
+      "path": "scripts/blender/build_battle_terrain_remaining.py",
+      "archive_locations": [
+        {
+          "archive": "sources/terrain5.zip",
+          "member": "scripts/blender/build_battle_terrain_remaining.py"
+        }
+      ],
+      "bytes": 2943,
+      "sha256": "87cd6723db2056965fe58976f551a4e3925e30dc4e41d456b9115b2830a5bea5"
+    },
+    {
+      "path": "scripts/blender/ti_battle_terrain_remaining.py",
+      "archive_locations": [
+        {
+          "archive": "sources/terrain5.zip",
+          "member": "scripts/blender/ti_battle_terrain_remaining.py"
+        }
+      ],
+      "bytes": 38788,
+      "sha256": "2609a88ba98e4f06998f7c7585757f7f82d88139967635d2957d2f5eb5687a4c"
+    },
+    {
+      "path": "scripts/blender/build_vegetation_remaining.py",
+      "archive_locations": [
+        {
+          "archive": "sources/nature3-props2.zip",
+          "member": "scripts/blender/build_vegetation_remaining.py"
+        }
+      ],
+      "bytes": 14842,
+      "sha256": "f4976d4336c33fe5a31896dda0982fc0fcf73d3ac4e826d492d4f74e406ec92b"
+    },
+    {
+      "path": "scripts/blender/ti_vegetation_remaining.py",
+      "archive_locations": [
+        {
+          "archive": "sources/nature3-props2.zip",
+          "member": "scripts/blender/ti_vegetation_remaining.py"
+        }
+      ],
+      "bytes": 11708,
+      "sha256": "20d2fe287e9e1ef6d76624f3ad03a9a9b4ebd27652c252dd8ac9429d7396b4e6"
+    },
+    {
+      "path": "scripts/blender/build_raid_landing_props.py",
+      "archive_locations": [
+        {
+          "archive": "sources/nature3-props2.zip",
+          "member": "assets/props/exit-marker/build_raid_landing_props.py"
+        },
+        {
+          "archive": "sources/nature3-props2.zip",
+          "member": "assets/props/loot-sack/build_raid_landing_props.py"
+        },
+        {
+          "archive": "sources/props4.zip",
+          "member": "assets/props/burnt-field-overlay/build_raid_landing_props.py"
+        },
+        {
+          "archive": "sources/props4.zip",
+          "member": "assets/props/landing-ancient/build_raid_landing_props.py"
+        },
+        {
+          "archive": "sources/props4.zip",
+          "member": "assets/props/landing-middle/build_raid_landing_props.py"
+        },
+        {
+          "archive": "sources/props4.zip",
+          "member": "assets/props/landing-modern/build_raid_landing_props.py"
+        }
+      ],
+      "bytes": 10600,
+      "sha256": "05d4b33cea35abc7e221364029a2370ab9a94712831eec1f480e58944a50bd80"
+    },
+    {
+      "path": "scripts/blender/raid_landing_support.py",
+      "archive_locations": [
+        {
+          "archive": "sources/nature3-props2.zip",
+          "member": "assets/props/exit-marker/raid_landing_support.py"
+        },
+        {
+          "archive": "sources/nature3-props2.zip",
+          "member": "assets/props/loot-sack/raid_landing_support.py"
+        },
+        {
+          "archive": "sources/props4.zip",
+          "member": "assets/props/burnt-field-overlay/raid_landing_support.py"
+        },
+        {
+          "archive": "sources/props4.zip",
+          "member": "assets/props/landing-ancient/raid_landing_support.py"
+        },
+        {
+          "archive": "sources/props4.zip",
+          "member": "assets/props/landing-middle/raid_landing_support.py"
+        },
+        {
+          "archive": "sources/props4.zip",
+          "member": "assets/props/landing-modern/raid_landing_support.py"
+        }
+      ],
+      "bytes": 21042,
+      "sha256": "703b5856514de24085b893dfe45ea11210ea83e58b439a159c390a2098a42a22"
+    }
+  ],
+  "design_sheets": [
+    {
+      "path": "plans/art/concepts/wave7/battle-terrain.png",
+      "bytes": 2490938,
+      "sha256": "df2a68a991efba7d86acabb2a246ac0a856fa7b907e287edac9b16f46f655292"
+    },
+    {
+      "path": "plans/art/concepts/wave7/vegetation.png",
+      "bytes": 1935240,
+      "sha256": "431832bf6129654d2d31e80b2036fac69f0dc9da98d1cd19feef214af8bfdf17"
+    },
+    {
+      "path": "plans/art/concepts/wave7/raid-landing-props.png",
+      "bytes": 2356567,
+      "sha256": "fee691efc4534e790e5de1b01984d4cceb3a7f66100fe4534a9c3ccde4da6792"
+    }
+  ],
+  "validation_summary": {
+    "source_validator": {
+      "installed_passed": 14,
+      "copies_passed": 14,
+      "exact_uncompressed_copies": 14,
+      "unchanged_sources": 14,
+      "same_kind_inference": 14
+    },
+    "source_tone_atlas": {
+      "assets": 14,
+      "auto_validation_passed": 14,
+      "source_report_hashes_match": 14,
+      "three_1024_atlases": 14,
+      "source_packed_1024_maps_reported": 14,
+      "uncompressed_geometry": 14,
+      "town_team_reported_floor_checks_passed": true,
+      "stricter_props_budget_passed": 6,
+      "uncompressed_backup_hashes_match": 14
+    },
+    "props_budget_note": "Props auto uses landmark fallback (15000/3000/500), which is separate from their explicit node/terrain-kit/prefab validators and stricter local caps. These stricter checks are reported separately for all six props.",
+    "tone_coverage_note": "Only existing measured LODs are summarized. Town floor 0.26, present Team floor 0.30; samples must be nonempty. Ground has no assigned floor. No unmeasured LOD1 or per-root tone pass is inferred.",
+    "packed_editable_blends": {
+      "passed": true,
+      "count": 14
+    },
+    "packed_loader": {
+      "status": "passed",
+      "count": 14,
+      "loader": "Actual GLTFLoader with MeshoptDecoder and current parseKit",
+      "texture_limit": "Node image bitmap mock preserves actual dimensions; native browser screenshots separately verify texture rendering"
+    },
+    "evidence_directory": "checks/",
+    "reports_are_existing_evidence_not_new_test_runs": true,
+    "automated_checks": {
+      "lint": "passed_zero_warnings",
+      "vitest": "full_run_plus_isolated_reruns_resolved_every_initial_failure",
+      "final_regressions": {
+        "files": 3,
+        "passed": 31
+      },
+      "playwright": {
+        "passed_cases_across_runs": 14,
+        "initial_passes": 5,
+        "remaining_retry_passes": 8,
+        "worldgen_passes": 1
+      },
+      "mobile_build": "passed_after_freeing_owned_preview_servers_and_using_4480_MiB_heap"
+    }
+  },
+  "limits": [
+    "Awaiting quality review; not merged into integration or main.",
+    "Confirmed newer-integration LOD UV policy must be corrected before lead merge.",
+    "No hardware-GPU FPS acceptance measurement on this cloud.",
+    "Selected native cases reviewed; standalone climates, other landing eras, goods/scorch and all bridge variants have not all been natively captured.",
+    "Damaged/destroyed bridge variants lack simulation HP wiring.",
+    "Source auto landmark fallback is separate from stricter props budget checks.",
+    "Measured tone coverage only; no inferred unmeasured LOD tone results."
+  ],
+  "checksum_convention": "SHA256SUMS.txt paths are relative to repository root; checksum file excludes itself.",
+  "checkpoint_files": [
+    "README.md",
+    "checks/battle-art-final-diagnostic.json",
+    "checks/battle-art-middle-final-diagnostic.json",
+    "checks/build-final.log",
+    "checks/build-rebuild-oom.log",
+    "checks/checkpoint38-regressions.log",
+    "checks/hardware-gpu-attempt.json",
+    "checks/integration-compatibility.md",
+    "checks/integration-lod-uv-risk.json",
+    "checks/isolated-reruns.json",
+    "checks/lint-final.log",
+    "checks/native-diagnostic-stop.json",
+    "checks/native-landing-phone-diagnostic.json",
+    "checks/native-landing-phone.json",
+    "checks/native-map.log",
+    "checks/native-terrain.json",
+    "checks/packed-blend-images.json",
+    "checks/packed-loader-tone.json",
+    "checks/playwright-initial-stop.json",
+    "checks/playwright-initial.log",
+    "checks/playwright-remaining.log",
+    "checks/playwright-worldgen.log",
+    "checks/props-contract.json",
+    "checks/props-sources.json",
+    "checks/queue-reconciliation.json",
+    "checks/resolve-identical.log",
+    "checks/resolve-replay.log",
+    "checks/resolve-year.log",
+    "checks/restored-map-fixtures.log",
+    "checks/source-validator.json",
+    "checks/terrain-far-tone.json",
+    "checks/terrain-source.json",
+    "checks/tone-atlas-source-summary.json",
+    "checks/visual-review.json",
+    "checks/vitest-final.log",
+    "contact.png",
+    "sources/nature3-props2.files.txt",
+    "sources/nature3-props2.manifest.json",
+    "sources/nature3-props2.zip",
+    "sources/props4.files.txt",
+    "sources/props4.manifest.json",
+    "sources/props4.zip",
+    "sources/terrain5.files.txt",
+    "sources/terrain5.manifest.json",
+    "sources/terrain5.zip"
+  ],
+  "native_visual_review": "checks/visual-review.json",
+  "integration_compatibility": {
+    "remote_commit": "4a0533ed28b59a368c58d9ce7d33878b5bf26825",
+    "lower_lods_rewritten_by_remote_loader": 100,
+    "lower_lods_total": 112,
+    "merge_blocker": "Restrict legacy UV repair or preserve independently baked LOD atlases",
+    "note": "checks/integration-compatibility.md",
+    "metrics": "checks/integration-lod-uv-risk.json",
+    "merged": false,
+    "latest_inspected_remote_commit": "5605511ad63829724fc2ed83b41bd4c7da35b2f3",
+    "unchanged_kit_loader_git_blob": "679498402936f5a7be01ff4334178b0c987d8703"
+  },
+  "runtime_files": [
+    "src/battle/art/raidLandingProps.js",
+    "src/battle/art/raidLandingProps.test.js",
+    "src/battle/art/battleTerrain.js",
+    "src/battle/art/battleFx.test.js",
+    "src/battle/render/BattleRenderer.js",
+    "src/components/battle/BattleSandbox.jsx",
+    "src/components/battle/sandboxTile.js",
+    "src/components/battle/sandboxTile.test.js",
+    "e2e/stabilization.spec.js",
+    "src/assets/battle/props/README.md",
+    "scripts/art/capture-battle-art.mjs"
+  ],
+  "queue_summary": {
+    "total": 1135,
+    "accepted": 285,
+    "in_game_awaiting_review": 490,
+    "pending": 349,
+    "superseded": 11,
+    "counts_are_rows_not_unique_models": true,
+    "new_models_this_checkpoint": 14,
+    "reconciliations_separate": 13
+  },
+  "native_screenshots": [
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/akkad-desktop-k40.png",
+      "bytes": 1440287,
+      "sha256": "5f7893d14a069765f0e066cac9a3c006f88bbfb16d3eaf711a5fe6df76ca0d8e"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/akkad-phone-k40.png",
+      "bytes": 374346,
+      "sha256": "86d2e9db7d60d901c71fcbdd9844b00a0549dceee0acbed7b2a88578a2922382"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/landing-middle-1600x900-detail-landing-middle.png",
+      "bytes": 1274440,
+      "sha256": "8c5fb890ddfb703970c0dc120f9b33f2cdefdc22657338ab2564f41d0859d593"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/landing-middle-1600x900-wide.png",
+      "bytes": 1842074,
+      "sha256": "b3c8de95d6e966dc76c363c1b895cede9b52d2a9ed8e5c0b58071b4931adceee"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/landing-middle-844x390-detail-landing-middle.png",
+      "bytes": 311617,
+      "sha256": "ce20b4a489791307ecf53f95d855f63e01455192a2aab3d109270bf0610c7a8f"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/landing-middle-844x390-wide.png",
+      "bytes": 402968,
+      "sha256": "e2acd9e8a5e2d092b093816f04a86e3a8be4584c19894a92c3b5dee0f1f8cd02"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/river-classical-1600x900-detail-bank.png",
+      "bytes": 1266712,
+      "sha256": "1e6c68238f7ba4e43accf268da44b6a065a81e162ae9d9f9883cb7a7ca418f74"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/river-classical-1600x900-detail-bridge-stone.png",
+      "bytes": 2063459,
+      "sha256": "7985cbed37db6ebd632db7501e1437b264f710bee3b1d4a087797f4b90857f0a"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/river-classical-1600x900-detail-ford.png",
+      "bytes": 1757570,
+      "sha256": "a5e5497e6737e62e62a1832b1d7e7fdc0f5f339f140b3a9ce8aca731f9a803da"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/river-classical-1600x900-wide.png",
+      "bytes": 2226092,
+      "sha256": "5e0c1c605ac1cd1567d73c97e2da6e3c5c7001be9a7030062731dc50de7fb62e"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/river-classical-844x390-detail-bank.png",
+      "bytes": 277776,
+      "sha256": "670b443238afafd63b74d4953c1894c7f12b3d3c28a5e5d4e647f7569fb2259c"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/river-classical-844x390-detail-bridge-stone.png",
+      "bytes": 472868,
+      "sha256": "cd65c86f668e92786af6a7de350b799f43c31bb8b1f2fe5712884aeba45077f7"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/river-classical-844x390-detail-ford.png",
+      "bytes": 372395,
+      "sha256": "87b3367564295c63c94640b3810a2017587814a18cfafb17692ef8b9d9fe1859"
+    },
+    {
+      "path": "plans/art/shots/wave7/checkpoint-38/river-classical-844x390-wide.png",
+      "bytes": 487765,
+      "sha256": "5db6b077fe061f437c4ba8c2564d1c28d4f9dac803092e27f63de8bab181cc06"
+    }
+  ]
+}

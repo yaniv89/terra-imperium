@@ -1,0 +1,42 @@
+8:56:45 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+8:56:45 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.10 /workspace/terra-remaining
+
+ ✓ src/battle/art/raidLandingProps.test.js > raid and landing delivery wiring > resolves the exact six target files without cross-age substitution 3ms
+ ✓ src/battle/art/raidLandingProps.test.js > raid and landing delivery wiring > reads real destroyed field state and goods without changing snapshots 14ms
+ ✓ src/battle/art/raidLandingProps.test.js > raid and landing delivery wiring > keeps scorch geometry inside real field footprints on BUILDING tiles 90ms
+ ✓ src/battle/art/raidLandingProps.test.js > raid and landing delivery wiring > shows only actual visible carriers and never fabricates raider inventory 1ms
+ ✓ src/battle/art/raidLandingProps.test.js > raid and landing delivery wiring > aligns landing at the actual sea edge and skips naval maps 1ms
+ ✓ src/battle/art/raidLandingProps.test.js > raid and landing delivery wiring > instances three LODs, pins the shore socket and clears removed overlays 23ms
+ ✓ src/battle/art/raidLandingProps.test.js > raid and landing delivery wiring > uses actual sim-generated plain and decoded snapshots for carriers and destroyed farms 165ms
+ ✓ src/battle/art/raidLandingProps.test.js > raid and landing delivery wiring > loads only exits in actual ordinary no-economy setups, and gates goods and landing textures 20ms
+ ✓ src/battle/art/raidLandingProps.test.js > raid and landing delivery wiring > preserves missing-file fallback and does not resurrect after disposal 3ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > keeps the existing sample and null state when no QA params are provided 3ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > accepts a real land id without implicitly adding roads 0ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > falls back for tile= 4ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > falls back for tile=-1 0ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > falls back for tile=1.5 0ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > falls back for tile=1e2 0ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > falls back for tile=NaN 0ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > falls back for tile=junk 0ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > falls back for tile=100002 0ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > falls back for tile=0 0ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > handles worlds without an eligible sample 0ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > puts preview roads only on the selected land tile and real land river neighbours 5ms
+ ✓ src/components/battle/sandboxTile.test.js > sandbox real tile and preview roads > retains the same default setup and battle hash after real simulation ticks 195ms
+ ✓ src/battle/art/battleFx.test.js > battle terrain crossings > finds fords, banks and bridges on the map 36ms
+ ✓ src/battle/art/battleFx.test.js > battle terrain crossings > rejects coastal road candidates whose end socket leaves any map edge 5ms
+ ✓ src/battle/art/battleFx.test.js > battle terrain crossings > rejects water or ford landings at either end while keeping another valid crossing 5ms
+ ✓ src/battle/art/battleFx.test.js > battle terrain crossings > spans a bridge by its end sockets 37ms
+ ✓ src/battle/art/battleFx.test.js > battle terrain crossings > places the dropped-in kits, and loads nothing without files 14ms
+ ✓ src/battle/art/battleFx.test.js > projectiles > picks a projectile by class and age, null for guns (the tracer) 1ms
+ ✓ src/battle/art/battleFx.test.js > projectiles > draws the age file (an earlier age standing in) and keeps the tracer without one 3ms
+ ✓ src/battle/art/battleFx.test.js > effect sheets > index sheets with their frames, skipping the map folder and empty sheets 1ms
+ ✓ src/battle/art/battleFx.test.js > effect sheets > draws a delivered sheet as instanced billboards; nothing without one 3ms
+
+ Test Files  3 passed (3)
+      Tests  31 passed (31)
+   Start at  08:56:45
+   Duration  24.39s (transform 6.91s, setup 0ms, import 20.57s, tests 724ms, environment 1ms)

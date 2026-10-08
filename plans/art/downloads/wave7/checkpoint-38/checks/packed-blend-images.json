@@ -1,0 +1,497 @@
+{
+  "passed": true,
+  "count": 14,
+  "no_source_saves_bakes_or_renders": true,
+  "sources": [
+    {
+      "id": "river-kit",
+      "source": "/workspace/remaining-production/terrain/river-kit/river-kit.blend",
+      "sha256": "7bfb2b197febb5a92e1fb62238ad76163515502fa933ca9231b50b62992eaf18",
+      "packed_images": [
+        {
+          "name": "river-kit_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "river-kit_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "river-kit_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "ford",
+      "source": "/workspace/remaining-production/terrain/ford/ford.blend",
+      "sha256": "63440be884d5d87f802b786d781de2df3372a3ad88ac0b9e511b0f8e788ee54f",
+      "packed_images": [
+        {
+          "name": "ford_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "ford_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "ford_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "bridge-wood",
+      "source": "/workspace/remaining-production/terrain/bridge-wood/bridge-wood.blend",
+      "sha256": "9d7eec7062030f9431dcdf05e343f3b46ad64ccfa7a489d13071dbb65d163690",
+      "packed_images": [
+        {
+          "name": "bridge-wood_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "bridge-wood_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "bridge-wood_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "bridge-stone",
+      "source": "/workspace/remaining-production/terrain/bridge-stone/bridge-stone.blend",
+      "sha256": "1617121691cd0b850f24556147eee3f3c5bbd318c01ed252eb9bc29596767826",
+      "packed_images": [
+        {
+          "name": "bridge-stone_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "bridge-stone_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "bridge-stone_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "bridge-steel",
+      "source": "/workspace/remaining-production/terrain/bridge-steel/bridge-steel.blend",
+      "sha256": "196ce096119e5cafd2940e7c72866449e3b340ce94cc7eed08a9f328598a617d",
+      "packed_images": [
+        {
+          "name": "bridge-steel_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "bridge-steel_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "bridge-steel_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "vegetation-conifer",
+      "source": "/workspace/remaining-production/nature/vegetation-conifer/vegetation-conifer.blend",
+      "sha256": "1993c7b2001ee4568a2712c20a4f2e505413fde8f03abe44d10e86f5e5e40d04",
+      "packed_images": [
+        {
+          "name": "vegetation-conifer_base",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "vegetation-conifer_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "vegetation-conifer_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "vegetation-tropical",
+      "source": "/workspace/remaining-production/nature/vegetation-tropical/vegetation-tropical.blend",
+      "sha256": "825abc34b4c88c89e7916413485dd13a89aca3c7ec06533cc5992cb991d74675",
+      "packed_images": [
+        {
+          "name": "vegetation-tropical_base",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "vegetation-tropical_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "vegetation-tropical_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "vegetation-cold",
+      "source": "/workspace/remaining-production/nature/vegetation-cold/vegetation-cold.blend",
+      "sha256": "ac15d4cdf909120fe542deea6c35ec8129e25fbb4b3631295c9fd119f6f97846",
+      "packed_images": [
+        {
+          "name": "vegetation-cold_base",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "vegetation-cold_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "vegetation-cold_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "loot-sack",
+      "source": "/workspace/remaining-production/props/loot-sack/loot-sack.blend",
+      "sha256": "d0d46c0f8efba01c1188f46b74c620b81faeffd3bc2460858781ad6e0717ce88",
+      "packed_images": [
+        {
+          "name": "loot-sack_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "loot-sack_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "loot-sack_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "exit-marker",
+      "source": "/workspace/remaining-production/props/exit-marker/exit-marker.blend",
+      "sha256": "0198868e9f33f2ef7f8a5427d813fd08ce3f3354d6d0675d42600efece0a9e96",
+      "packed_images": [
+        {
+          "name": "exit-marker_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "exit-marker_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "exit-marker_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "burnt-field-overlay",
+      "source": "/workspace/remaining-production/props/burnt-field-overlay/burnt-field-overlay.blend",
+      "sha256": "92ac0f0b652786a0f0a129bd477176bd7b974b361d0aa72b0c87509e7eb460d8",
+      "packed_images": [
+        {
+          "name": "burnt-field-overlay_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "burnt-field-overlay_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "burnt-field-overlay_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "landing-ancient",
+      "source": "/workspace/remaining-production/props/landing-ancient/landing-ancient.blend",
+      "sha256": "cd6adca3083ff3ad8d4b0eb215d0e34359e6e46f2c33bc931b8963cc07bd2354",
+      "packed_images": [
+        {
+          "name": "landing-ancient_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "landing-ancient_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "landing-ancient_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "landing-middle",
+      "source": "/workspace/remaining-production/props/landing-middle/landing-middle.blend",
+      "sha256": "9ad27c81c97ef05ac1dae4598d1c8337972c54a983e3016f31338c49d0eca3f3",
+      "packed_images": [
+        {
+          "name": "landing-middle_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "landing-middle_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "landing-middle_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    },
+    {
+      "id": "landing-modern",
+      "source": "/workspace/remaining-production/props/landing-modern/landing-modern.blend",
+      "sha256": "7dc5601f0eb62595c4ff5174f1f14d40150286722f43fdca84692b6823dc114d",
+      "packed_images": [
+        {
+          "name": "landing-modern_basecolor",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "landing-modern_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        },
+        {
+          "name": "landing-modern_orm",
+          "size": [
+            1024,
+            1024
+          ],
+          "packed": true,
+          "format": "PNG"
+        }
+      ],
+      "read_only": true
+    }
+  ]
+}

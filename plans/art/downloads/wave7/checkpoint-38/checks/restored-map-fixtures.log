@@ -1,0 +1,17 @@
+7:48:35 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+7:48:35 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.10 /workspace/terra-remaining
+
+ ✓ src/data/geo/rasterTiles.test.js > the raster pyramid (plans/playtest-1.md P1.2) > picks the level whose pixels match the screen, capped at the full resolution 3ms
+ ✓ src/data/geo/rasterTiles.test.js > the raster pyramid (plans/playtest-1.md P1.2) > draws nothing while the base picture is sharp enough, and only the tiles on screen when zoomed in 12ms
+ ✓ src/data/geo/rasterDetail.test.js > raster detail manifest > names the same land cover classes as the build 3ms
+ ✓ src/data/geo/rasterDetail.test.js > raster detail manifest > lists level 6 land tiles that exist on disk, and cover for levels 5 and 6 1ms
+ ✓ src/data/geo/rasterDetail.test.js > choosing the tile to draw > draws a level 6 land tile itself, and falls back to level 5 at sea 1ms
+ ✓ src/data/geo/rasterDetail.test.js > choosing the tile to draw > asks for the deepest stored level when zoomed past it 0ms
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  07:48:35
+   Duration  727ms (transform 81ms, setup 0ms, import 115ms, tests 24ms, environment 0ms)
