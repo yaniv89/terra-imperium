@@ -77,3 +77,17 @@ Wave 4 [checkpoint 21](downloads/wave4/checkpoint-21/README.md), 2026-10-08 (Cla
 Wave 4 [checkpoint 22](downloads/wave4/checkpoint-22/README.md), 2026-10-08 (Claude): the Kingdoms battle buildings (`rts-kingdoms.glb`: 13 roles with damaged states, construction stages 0-3; `build_rts_kingdoms.py`), 14 queue items `in_game_awaiting_review`; Kingdoms economy battles draw them. 1.94 MB added.
 
 Wave 4 [checkpoint 23](downloads/wave4/checkpoint-23/README.md), 2026-10-08 (Claude): the Kingdoms city kit for battle (walls, ruins, fort and the civic hall with damaged and ruined states; `build_city_kingdoms.py`), 4 queue items `in_game_awaiting_review`; Kingdoms sieges draw their own walls, hall and rubble. 2.68 MB added.
+
+Wave 4 [checkpoint 24](downloads/wave4/checkpoint-24/README.md), 2026-10-08 (Claude): the Kingdoms remainder: the 13 damaged-and-ruined house files, the palace damage set, the raider and mercenary, the projectiles, the twelve props, the 12 culture skins of the battle buildings and the map's Kingdoms fort, 31 queue items `in_game_awaiting_review`. 17.96 MB added. The Kingdoms age is done.
+
+Wave 4 [checkpoint 25](downloads/wave4/checkpoint-25/README.md), 2026-10-08 (Claude): `scripts/art/improvement-shots.mjs` works with the peoples start screen again (four steps, Begin on Ready), and the close-view shots of the map's Classical and Kingdoms forts at 844x390. 0 MB.
+
+Wave 5 [checkpoint 26](downloads/wave5/checkpoint-26/README.md), 2026-10-08 (Claude): the Gunpowder base units and general (line infantry, riflemen, dragoons, a field cannon on its own carriage rig, sappers, laborer, general; `build_units_gunpowder.py`), 7 queue items `in_game_awaiting_review`; every Gunpowder side now fields GLB units. 0.69 MB added.
+
+Wave 5 [checkpoint 27](downloads/wave5/checkpoint-27/README.md), 2026-10-08 (Claude): the 32 Gunpowder signature units (26 on foot, 4 horsemen, the Khoekhoe ox rider, the Tondo lantaka crew; `build_units_gunpowder_signature.py`), 32 queue items `in_game_awaiting_review`; each Gunpowder people's signature unit shows in battle. 2.30 MB added.
+
+Wave 5 [checkpoint 28](downloads/wave5/checkpoint-28/README.md), 2026-10-08 (Claude): the Gunpowder battle buildings (`rts-gunpowder.glb`: 13 roles with damaged states, construction stages 0-3, a clock-tower town hall, a bastion gun platform, a gun foundry; `build_rts_gunpowder.py`), 14 queue items `in_game_awaiting_review`; Gunpowder economy battles draw them. 1.98 MB added.
+
+Wave 5 [checkpoint 29](downloads/wave5/checkpoint-29/README.md), 2026-10-08 (Claude): the Gunpowder city kit for battle (walls, ruins, a star fort and the clock-tower civic hall with damaged and ruined states; `build_city_gunpowder.py`), 4 queue items `in_game_awaiting_review`; Gunpowder sieges draw their own walls, hall and rubble. 2.65 MB added.
+
+Wave 5 [checkpoint 30](downloads/wave5/checkpoint-30/README.md), 2026-10-08 (Claude): the Gunpowder remainder: the 13 damaged-and-ruined house files, the palace damage set, the raider and mercenary, the projectiles (cannonball), the twelve props, the 12 culture skins of the battle buildings and the map's star fort, 31 queue items `in_game_awaiting_review`. 18.03 MB added. The Gunpowder age is done.

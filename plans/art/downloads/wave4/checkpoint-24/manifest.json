@@ -1,0 +1,409 @@
+{
+  "checkpoint": "wave4-24",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 31,
+  "packed_bytes_added": 17959320,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave4/checkpoint-24/contact.png",
+      "bytes": 301191,
+      "sha256": "fa56c61dc05935362cbdec21a71a107cd8d26bbf99641b0db2d5ae1e98563efa"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 503261,
+      "sha256": "03aa0653a80617c1323c0ceb85ee648b4ae2f99b882561a93a66e599c4146afa"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/dmg-europe-844x390.png",
+      "bytes": 526277,
+      "sha256": "422fabc831f04ef636de43a14feaae37f5b6fa4bcbc3a3d4ca4659270a292c41"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/dmg-europe-close-844x390.png",
+      "bytes": 526286,
+      "sha256": "5479a46abafd33826c8fbe7c15971363f218faf448f73d211b6861f88140e2d4"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/dmg-nile-844x390.png",
+      "bytes": 458239,
+      "sha256": "2f9e2620346db11bb668deead1c4da0cf90219b42df5fb8d8ddba6bb833bcd3a"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/dmg-sinic-844x390.png",
+      "bytes": 528941,
+      "sha256": "584895e3a35835b21f1278989a157dfe19aac4d24d0c2811b79da82029b58d78"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-americas-houses-damage.png",
+      "bytes": 159906,
+      "sha256": "6c95965d433332c84fd3f4fc3052a5a5f72fb015808e6a85b38e3e5d223f63b8"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-eastafrica-houses-damage.png",
+      "bytes": 163871,
+      "sha256": "3dd5747449b6310fc0ab8a47c6ffbb1eea28b6016656659b812e05a08722701f"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-europe-houses-damage.png",
+      "bytes": 159818,
+      "sha256": "042b2b5ec9ca36f3728083e8afc06e50266377a67d017dc238fd22578c445c32"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-houses-damage.png",
+      "bytes": 167308,
+      "sha256": "62b411a558ed1e96214eefd46c7a2033e0352d24b665aa15950d7b2d7c31b686"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-indic-houses-damage.png",
+      "bytes": 152547,
+      "sha256": "70c8f193b8b22d6a2f064425acb9295d63c0aa6e9f84de4dfa3f2e837d1b60af"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-israelite-houses-damage.png",
+      "bytes": 159277,
+      "sha256": "79a1180947cf2ad0681d7b56d2f6515eb1956f1bdd40fd966bcd4876b56c9f7f"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-levant-houses-damage.png",
+      "bytes": 158934,
+      "sha256": "9a43793af31b1785ddba31aa5c19be698925bfca65b574d53db5a6712f00fd3f"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-maghreb-houses-damage.png",
+      "bytes": 157050,
+      "sha256": "26b034c52847856b0d21a9f4464bab911de7e4ed74fc63b5769594f5cb9689fb"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-monsoon-houses-damage.png",
+      "bytes": 160518,
+      "sha256": "1660b70abb4e2cc24ba3bc98289fa2d157318564747bdaab45a4b8d650abd658"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-nile-houses-damage.png",
+      "bytes": 143424,
+      "sha256": "cd5d5ad3247a6bbb85d1d22400c9696737b30bcf706fa7910ba376c041e1d745"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-sinic-houses-damage.png",
+      "bytes": 158438,
+      "sha256": "f5b66996cc85a4ec03f6a6da49436d98cc979c50015d9b125552e101d167cab3"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-steppe-houses-damage.png",
+      "bytes": 158978,
+      "sha256": "334fd9fe2f153829e57cc66f600d8fd8a50fc397a8ca543c0f0533cab195c488"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-kingdoms-westafrica-houses-damage.png",
+      "bytes": 143519,
+      "sha256": "1f6417f1e4c1711bbdc1ec0d1b025032b0fd27d1891c008d1a786ff4d689d3f8"
+    },
+    {
+      "file": "plans/art/shots/wave4/damage-kingdoms/proof-palace-damage-kingdoms.png",
+      "bytes": 233937,
+      "sha256": "f33a59150679aa55eae422a31172ad56eb89e2053e44dbded44066a8f36c6380"
+    },
+    {
+      "file": "plans/art/shots/wave4/irregular-kingdoms/lineup-report.json",
+      "bytes": 851,
+      "sha256": "8957789f89584b61a5424de4f2dfe03ac26e806b2b35c703512f836fd78367aa"
+    },
+    {
+      "file": "plans/art/shots/wave4/irregular-kingdoms/lineup-standing.png",
+      "bytes": 55883,
+      "sha256": "16545a652f6a08a20ff550d97caad736094ddfbc95cb792eca247ce45fa68d34"
+    },
+    {
+      "file": "plans/art/shots/wave4/irregular-kingdoms/lineup-walking.png",
+      "bytes": 56998,
+      "sha256": "bdd72bcd7cc86b41f61d211032894e682823ad8c8d24c6d788673e2a92156da7"
+    },
+    {
+      "file": "plans/art/shots/wave4/irregular-kingdoms/projectiles-kingdoms-proofs.png",
+      "bytes": 22567,
+      "sha256": "24831ff62ad12f1308eaf32623ae004554f3534809b0b970ed64c0f657cc3f10"
+    },
+    {
+      "file": "plans/art/shots/wave4/irregular-kingdoms/props-kingdoms-proofs.png",
+      "bytes": 128672,
+      "sha256": "916ef71400b512fee27c431578b25e2ae3b28d82c8abefff4592ee548c527fb7"
+    },
+    {
+      "file": "plans/art/shots/wave4/irregular-kingdoms/sack-kingdoms-844x390.png",
+      "bytes": 481664,
+      "sha256": "02ab3e481cd8c7c172fd3095457add266c68e6c6663a1773fa50236054aae7ba"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/base-eco-skins-844x390.png",
+      "bytes": 490476,
+      "sha256": "412a464c060d99c92b556fb71633a62f1d0c1d2b78839c973a3e7c737433bc89"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/hud-eco-skins-844x390.png",
+      "bytes": 418573,
+      "sha256": "9a972c861e7ceaee44d9a233c2e1ffd031bfc346541145edf64da7d5d4a0f747"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/proof-map-fort-kingdoms.png",
+      "bytes": 150380,
+      "sha256": "e373d062e3a4a1dd83c6397c185e17097c78212f095c207ef73fcbbe2982cbd2"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-americas.png",
+      "bytes": 136262,
+      "sha256": "2bee25e9ef04bf9a8366d408bfb2a6ec96c5c480c57293fc24e96ccb91cae864"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-eastafrica.png",
+      "bytes": 140406,
+      "sha256": "4d3caaab20c1979663883794021108ade18f8cf6b29f056c3fb2a316b64b6762"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-europe.png",
+      "bytes": 141172,
+      "sha256": "32705fcfae832b25deee2c18f754f176b37f7c9d5d3506b9e38f3ed7e75cd003"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-indic.png",
+      "bytes": 141244,
+      "sha256": "9ff44050f133abe78ffd7d3ff50a7decab11def586b783a2e2a225274a0e3c9a"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-israelite.png",
+      "bytes": 142186,
+      "sha256": "4bc77cdfa199ff0d5e14db99dcf97120d96c2dec1a1b8fc0e17c232ff7751ef9"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-levant.png",
+      "bytes": 139513,
+      "sha256": "b51b501ffce932ddbcfe9ea05b3422325a29e74ec07f63916b4249861ea2506c"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-maghreb.png",
+      "bytes": 137362,
+      "sha256": "b1d6083429f4b962371bb74bdb4e28d1e5507f58af55d13ef323d21161772e98"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-monsoon.png",
+      "bytes": 136981,
+      "sha256": "54f4fb63e69d560678497d71989f24ca1f438573cf16450b16bfbf34e9858b80"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-nile.png",
+      "bytes": 131602,
+      "sha256": "cb333ff9f336baef7df665e8bcb03e10bf7ee743eb2b06134dd78b64c18147de"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-sinic.png",
+      "bytes": 134155,
+      "sha256": "c5751e006653bb7fc3861042e4e43ce4dae249fee589f6f46644d9bcd380d987"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-steppe.png",
+      "bytes": 136113,
+      "sha256": "3c87b325589e6155b7d5401da632f18d915e43afeb7a79eda3d00bc700814239"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/rts-kingdoms-westafrica.png",
+      "bytes": 132464,
+      "sha256": "e6118eb9b2a5c889332cb31ea7807c132fe8d7354c49740ff1952f5d5a9f8ba7"
+    },
+    {
+      "file": "plans/art/shots/wave4/skins-kingdoms/town-eco-skins-844x390.png",
+      "bytes": 513371,
+      "sha256": "69c216ab789b080b9e61219837cab86ee1d1f2a5d83d47959401a9b3aa62f1c2"
+    },
+    {
+      "file": "scripts/blender/build_houses_damage_kingdoms.py",
+      "bytes": 5460,
+      "sha256": "c1cbdd4908747defa4cecbe64c714600fe285dce4d9f2259251d80368cf43a5b"
+    },
+    {
+      "file": "scripts/blender/build_improvement_fort_kingdoms.py",
+      "bytes": 1606,
+      "sha256": "32745cd30dff388d96448f13ff64858d65f99aebec546cb1de432d1f63372099"
+    },
+    {
+      "file": "scripts/blender/build_palace_damage_kingdoms.py",
+      "bytes": 4332,
+      "sha256": "8075e8b64ec9098041d7e70b7dcc87497c148aa3cdc33b5d03ac3f41f480ab6c"
+    },
+    {
+      "file": "scripts/blender/build_projectiles_kingdoms.py",
+      "bytes": 3023,
+      "sha256": "92946dedaa4d2317f0bb75078072dfcf09a08d6fa1a198ee79dbdff791b8ec2d"
+    },
+    {
+      "file": "scripts/blender/build_props_kingdoms.py",
+      "bytes": 8136,
+      "sha256": "d660aabeb1060989b3f40ebc5f7866cbcb0b0bfa8a6ecd3984dcf5dfa1e096fe"
+    },
+    {
+      "file": "scripts/blender/build_rts_skins_kingdoms.py",
+      "bytes": 12550,
+      "sha256": "290a038c8a8655c74a9655ed8fae340c1cf9cde4458332d3e49af791c67c3d66"
+    },
+    {
+      "file": "scripts/blender/build_units_kingdoms_irregular.py",
+      "bytes": 8565,
+      "sha256": "2344e0f1891f10039221b6baa583243433b874bfb4d6e2445469b4c3f4166e89"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-americas-houses-damage.glb",
+      "bytes": 372104,
+      "sha256": "466560778c12197454d0f3dd8fb6f38b9d5646b2dd3231302616471015e328a6"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-eastafrica-houses-damage.glb",
+      "bytes": 526948,
+      "sha256": "c56f010e957248eeac1f8a7617fda4b498dc485765fec9327adc77509bba74fe"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-europe-houses-damage.glb",
+      "bytes": 687244,
+      "sha256": "f7a2b2f14f60213767badf31770d83472d271ca61eae9f375a2ca99f8deae9ab"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-houses-damage.glb",
+      "bytes": 622700,
+      "sha256": "06ce6168ce61fbd76ead7b8d8be0c7ed9fdacccca7ca83b47dfbb35e72e411b8"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-indic-houses-damage.glb",
+      "bytes": 687964,
+      "sha256": "257395a6bc0c409cd69baf5e9a9e9a3042e0c4c841c2272de5a83aa48da377ed"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-israelite-houses-damage.glb",
+      "bytes": 628508,
+      "sha256": "7e74b8d9b9366472fd2be6d7456f9031461984992ef2e576885d4f06dc26186f"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-levant-houses-damage.glb",
+      "bytes": 575436,
+      "sha256": "a3cb39cb08822bd3387da42ec02827af721ac5bf23179e767d3845d98a4e4ee1"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-maghreb-houses-damage.glb",
+      "bytes": 394184,
+      "sha256": "743873bad6d14ccc5b9e090db96745e05c10f83cae835f74287b6f909aa9245d"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-monsoon-houses-damage.glb",
+      "bytes": 374252,
+      "sha256": "167b73f3f8969272281dd1760eefb9b7fcb7c1d28cf7cc6566f9e3cca46555fb"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-nile-houses-damage.glb",
+      "bytes": 407252,
+      "sha256": "314e6c74f2c08b267846f29e92857d927333f9621eda4c00a33011961c2d81d5"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-sinic-houses-damage.glb",
+      "bytes": 676312,
+      "sha256": "ccfd62d14f1d48312bd28bd15fb12882229f60ddbe3f1f1e7eb5e42a8fe2dd8c"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-steppe-houses-damage.glb",
+      "bytes": 520236,
+      "sha256": "e26ce33cfe58e5446034fd5a215d19c3b74223a37ff63c5407adb0a6276ac97f"
+    },
+    {
+      "file": "src/assets/battle/city/kingdoms-westafrica-houses-damage.glb",
+      "bytes": 392416,
+      "sha256": "b232bce841bb1f4e157c06651afaf4a1b1f04bf734322ef57cf248dae0a4858e"
+    },
+    {
+      "file": "src/assets/battle/city/palace-damage-kingdoms.glb",
+      "bytes": 471588,
+      "sha256": "de8e22d7b9aa8e5b915aea72917bd32e1b3724bcd26f3551fbccf0c861a3dec7"
+    },
+    {
+      "file": "src/assets/battle/projectiles/kingdoms.glb",
+      "bytes": 30108,
+      "sha256": "d86e1e8276fccfadc651ca15cf052ba3070546cd7e5a327b384542422bc4f25e"
+    },
+    {
+      "file": "src/assets/battle/props/props-kingdoms.glb",
+      "bytes": 334064,
+      "sha256": "303b2e802fc4fb9908f06655a263a57ec39be7edf9a431ef2218cbf257ae2dba"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-americas.glb",
+      "bytes": 592964,
+      "sha256": "07db8564ce65e15825c70adc9fff3f2550584d7fd4bd1e39bfd7b8f888755f5e"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-eastafrica.glb",
+      "bytes": 818632,
+      "sha256": "7534612623bb84837f31206f9c2f3a2e6e0ff2d9371049c65f13cf4c5b2a6c26"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-europe.glb",
+      "bytes": 883584,
+      "sha256": "2a5ed65db5b6042f808ad6d08d6223596e517038b5cf11103e07b6a1263d7c4b"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-indic.glb",
+      "bytes": 886180,
+      "sha256": "799fc04808b77d9d8de9f6836e0e789fc2810eda406d526679b65e674ad6ccd3"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-israelite.glb",
+      "bytes": 935484,
+      "sha256": "eeee97d9fac943375db4d1109de2114991f332c36585abbc9bee474cdfef451a"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-levant.glb",
+      "bytes": 793596,
+      "sha256": "864c37f64ef0098155357f38ece951cb04a55070b03bf25a9452ee59e0842eb4"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-maghreb.glb",
+      "bytes": 665824,
+      "sha256": "ae5665a37fdcb6ffbf14f289e022da275c8bb3b711086a1fbd0449e8f8b8a36d"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-monsoon.glb",
+      "bytes": 658908,
+      "sha256": "fa5b5e46a6a97ff9e02eea6ae73947259939b940f1b1d63077de5cb0d3c73736"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-nile.glb",
+      "bytes": 728372,
+      "sha256": "a01b123648b06b596668e38dcabfaa57f1edc36ce42bcc187a7654b25cd0fa1e"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-sinic.glb",
+      "bytes": 955840,
+      "sha256": "d7459b7a6ead2cd16f0173555958a4109a96a808a2dfe29fee891f16ba0bae05"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-steppe.glb",
+      "bytes": 938152,
+      "sha256": "1ec4f4b58bd290a5138de150a94f89d0b52a46899505493a53647e2a6d153043"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-kingdoms-westafrica.glb",
+      "bytes": 609900,
+      "sha256": "822b0ba179ad0087f34495c67ff94f819f9afc815e987849f67f1ff11ababbee"
+    },
+    {
+      "file": "src/assets/map/improvements/fort-kingdoms.glb",
+      "bytes": 602676,
+      "sha256": "ba7d79b65a585885fab3f897e4fd7c090cdfe8c48c9f95bb63d303fadc3d8e17"
+    },
+    {
+      "file": "src/assets/units/kingdoms-mercenary.glb",
+      "bytes": 78064,
+      "sha256": "ea9912bb9b7e55de6e9d16e4dba431eabb9dcff10946500f5d798bb2949d6f63"
+    },
+    {
+      "file": "src/assets/units/kingdoms-raider.glb",
+      "bytes": 109828,
+      "sha256": "a6e21af9576a5317c79f3a838f619c245562739d28cf1e9e4c7e95b9a9506694"
+    }
+  ]
+}

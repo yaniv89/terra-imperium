@@ -1,0 +1,39 @@
+{
+  "checkpoint": "wave4-25",
+  "date": "2026-10-07",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 0,
+  "packed_bytes_added": 0,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave4/checkpoint-25/contact.png",
+      "bytes": 120946,
+      "sha256": "d1e748b2a8eeeb8f355b6b667771c22632e897af3d85d7d631c27376254ee374"
+    },
+    {
+      "file": "plans/art/shots/wave4/map-forts/fort-classical-close.png",
+      "bytes": 493815,
+      "sha256": "8e422d779d8248378204fad41d5567117c016617c83f10e465682f3b82dc199b"
+    },
+    {
+      "file": "plans/art/shots/wave4/map-forts/fort-classical.png",
+      "bytes": 550236,
+      "sha256": "175791067bcdac9f3518a42e5ec9f66e6b8eaf2e39b22b7f0a470d8a9e9b6243"
+    },
+    {
+      "file": "plans/art/shots/wave4/map-forts/fort-kingdoms-close.png",
+      "bytes": 501192,
+      "sha256": "861f6d40ac470ab496a757d2246e5acf4a6556eb896455a800eac1f99e98db61"
+    },
+    {
+      "file": "plans/art/shots/wave4/map-forts/fort-kingdoms.png",
+      "bytes": 559456,
+      "sha256": "88d78ba367419aedbae2f08cfe5af0f168ab2bd67a3841043ea31bcc774d7f03"
+    },
+    {
+      "file": "scripts/art/improvement-shots.mjs",
+      "bytes": 5095,
+      "sha256": "1024d839425ed32e422694683be22ed1f4f2be8712a0865627d0c207d43c483b"
+    }
+  ]
+}

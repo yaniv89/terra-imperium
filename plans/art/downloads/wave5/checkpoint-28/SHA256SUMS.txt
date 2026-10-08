@@ -1,0 +1,8 @@
+97d890160011e81fdd00e02894bf965343fbcf147f1f4d609f0f212f922fdeb0  plans/art/downloads/wave5/checkpoint-28/contact.png
+f6dbdd4e3cc9735a8f8e1b31dfcc38d7cbce93f9077cbc187f3d83466bd76ab8  plans/art/production-queue.json
+1634a9ee2e97d96f48ebb27633cbb86c7bc0aa924ebdeaedbb97ddab77ae5ca0  plans/art/shots/wave5/rts-gunpowder/base-844x390.png
+d204c9d0c425bec4f92ef64676f49bc9ecb687310867ba2514b6599e7bdfb684  plans/art/shots/wave5/rts-gunpowder/hud-844x390.png
+0fe89579066ccae26a6006947cc64901c942697798a5da55b46b51c292862050  plans/art/shots/wave5/rts-gunpowder/proof-rts-gunpowder.png
+e7a9793496b82cc527c560a910abb5c5c0f6daaa48c8947dd8f0adbb9af79831  plans/art/shots/wave5/rts-gunpowder/town-844x390.png
+3e10ea0555b9d9666cab74bb9a876fdfb265123035893e76860b73cebc53209c  scripts/blender/build_rts_gunpowder.py
+9652895b5c79564a95702176b6f3499b85ff39857031c93b260a7576c0bdc05d  src/assets/battle/rts/rts-gunpowder.glb

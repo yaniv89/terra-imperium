@@ -1,0 +1,121 @@
+{
+  "mode": "lineup",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave5\\units-gunpowder\\lineup-standing.png",
+    "plans\\art\\shots\\wave5\\units-gunpowder\\lineup-walking.png"
+  ],
+  "layers": [
+    {
+      "id": "gunpowder-infantry",
+      "triangles": 1382,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 1932,
+        "1": 600,
+        "2": 600,
+        "3": 390,
+        "4": 624
+      },
+      "warnings": [],
+      "teamVertices": 576,
+      "skinVertices": 2286
+    },
+    {
+      "id": "gunpowder-ranged",
+      "triangles": 1396,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 1914,
+        "1": 672,
+        "2": 672,
+        "3": 390,
+        "4": 540
+      },
+      "warnings": [],
+      "teamVertices": 384,
+      "skinVertices": 2286
+    },
+    {
+      "id": "gunpowder-cavalry",
+      "triangles": 1794,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 3612,
+        "3": 390,
+        "4": 516,
+        "5": 432,
+        "6": 432
+      },
+      "warnings": [],
+      "teamVertices": 612,
+      "skinVertices": 2286
+    },
+    {
+      "id": "gunpowder-siege",
+      "triangles": 2385,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 2457,
+        "1": 774,
+        "2": 756,
+        "3": 468,
+        "4": 684,
+        "7": 2016
+      },
+      "warnings": [],
+      "teamVertices": 1080,
+      "skinVertices": 2871
+    },
+    {
+      "id": "gunpowder-support",
+      "triangles": 1446,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 2130,
+        "1": 672,
+        "2": 672,
+        "3": 390,
+        "4": 474
+      },
+      "warnings": [],
+      "teamVertices": 384,
+      "skinVertices": 2286
+    },
+    {
+      "id": "gunpowder-worker",
+      "triangles": 1390,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 1506,
+        "1": 672,
+        "2": 672,
+        "3": 474,
+        "4": 846
+      },
+      "warnings": [],
+      "teamVertices": 192,
+      "skinVertices": 2286
+    },
+    {
+      "id": "gunpowder-general",
+      "triangles": 2279,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 4593,
+        "3": 546,
+        "4": 834,
+        "5": 432,
+        "6": 432
+      },
+      "warnings": [],
+      "teamVertices": 786,
+      "skinVertices": 3243
+    }
+  ],
+  "unitLog": [],
+  "errors": []
+}
