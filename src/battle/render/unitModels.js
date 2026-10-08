@@ -24,6 +24,7 @@ import { composeUnitModel } from './unitComposer';
 import { registerSoldierGeometry, hasSoldierOverride, getProceduralSoldierGeometry, MODEL_SCALE } from './soldierFactory';
 import { soldierLodReady } from './soldierLod';
 import { trainableRoles } from '../data/economy';
+import { UNIT_ROSTER } from '../../data/unitClasses';
 import { ART } from '../art/artFiles';
 import { signatureUnitFor, signatureKey, SIGNATURE_UNITS, QUADRUPED_RIGS } from '../../data/signatureUnits';
 import { peopleForNationId } from '../../data/peoples';
@@ -126,6 +127,7 @@ export const needsUnitModels = (setup, extras = battleExtraModels) => battleMode
 // keep that fit: their layouts are spaced for it.
 export const ART_UNIT_WORLD = 0.95;
 const FIT_TO_HEIGHT = new Set(['siege', 'air', 'naval']);
+export const POLEARM_M = { spear: 2.5, pike: 5, lance: 3.5 };
 /** Bake options for a model registered under `regKey` (a class, 'general', a look or signature key). */
 export const bakeOptionsFor = (ageId, regKey, classId, model) => {
   const opts = { quadruped: classId === 'cavalry', ...model.options };
@@ -136,6 +138,12 @@ export const bakeOptionsFor = (ageId, regKey, classId, model) => {
       const drawn = (regKey === 'general' ? MODEL_SCALE.general : MODEL_SCALE[classId]) || 0.62;
       opts.scale = Math.round((ART_UNIT_WORLD / drawn) * 1e4) / 1e4;
     }
+  }
+  // The base line's polearms at true length against a 1.8 m man: a spear 2.5 m, the Pikemen's pike
+  // 5 m, a horseman's lance 3.5 m (a signature unit keeps its own weapon).
+  if (opts.polearm == null && regKey === classId) {
+    if (classId === 'infantry') opts.polearm = /pike/i.test(UNIT_ROSTER[ageId]?.infantry?.name || '') ? POLEARM_M.pike : POLEARM_M.spear;
+    else if (classId === 'cavalry') opts.polearm = POLEARM_M.lance;
   }
   return opts;
 };

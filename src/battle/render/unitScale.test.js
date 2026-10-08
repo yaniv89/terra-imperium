@@ -78,4 +78,47 @@ describe('figure scale: men, horses and riders at true size', () => {
     // the same man in every age (a crest or a tall hat aside): within 12% of each other
     expect(Math.max(...men) / Math.min(...men)).toBeLessThan(1.12);
   }, 60000);
+
+  it('polearms at true length: a spear 2.5 m, a pike 5 m, a lance 3.5 m', async () => {
+    const metresOf = async (ageId, key, classId) => {
+      const model = findUnitModel(ageId, key);
+      const { geometry } = await parseUnitModel(bytes(`${ageId}-${key}`), bakeOptionsFor(ageId, key, classId, model));
+      geometry.computeBoundingBox();
+      const man = (await rigHeights(`${ageId}-infantry`)).head * (await drawnScale(ageId, 'infantry', 'infantry'));
+      return (geometry.boundingBox.max.y * (key === 'general' ? MODEL_SCALE.general : MODEL_SCALE[classId]) * 1.8) / man;
+    };
+    // a spear or pike stands on the ground beside the man: its top is its length
+    expect(await metresOf('bronze', 'infantry', 'infantry')).toBeCloseTo(2.5, 0);
+    expect(Math.abs((await metresOf('kingdoms', 'infantry', 'infantry')) - 5)).toBeLessThan(0.3);
+    // a lance is held from the rider's hand, about 1 to 1.4 m up
+    for (const ageId of ['classical', 'kingdoms']) {
+      const top = await metresOf(ageId, 'cavalry', 'cavalry');
+      expect(top, `${ageId} lance top ${top.toFixed(2)} m`).toBeGreaterThan(3.5 + 0.8);
+      expect(top, `${ageId} lance top ${top.toFixed(2)} m`).toBeLessThan(3.5 + 1.5);
+    }
+  }, 60000);
+
+  it('the side colour is an accent: under a quarter of a figure, never the mount', async () => {
+    const shareOf = (g) => {
+      const p = g.attributes.position; const t = g.attributes.aTeam; const l = g.attributes.aLimb;
+      const a = new Vector3(); const b = new Vector3(); const c = new Vector3();
+      let team = 0; let all = 0; let horseTeam = 0;
+      for (let k = 0; k < p.count; k += 3) {
+        a.fromBufferAttribute(p, k); b.fromBufferAttribute(p, k + 1); c.fromBufferAttribute(p, k + 2);
+        const area = b.sub(a).cross(c.sub(a)).length() / 2;
+        all += area;
+        if (t.getX(k) > 0.5) { team += area; if (l.getX(k) >= 5 && l.getX(k) <= 6) horseTeam += area; }
+      }
+      return { share: team / all, horseTeam };
+    };
+    for (const ageId of AGES) {
+      for (const [key, classId] of [['infantry', 'infantry'], ['ranged', 'ranged'], ['cavalry', 'cavalry']]) {
+        if (ageId === 'modern' && key === 'cavalry') continue; // a tank: its skirts and turret band
+        const { geometry } = await parseUnitModel(bytes(`${ageId}-${key}`), bakeOptionsFor(ageId, key, classId, findUnitModel(ageId, key)));
+        const { share, horseTeam } = shareOf(geometry);
+        expect(share, `${ageId}-${key} team share ${share.toFixed(2)}`).toBeLessThan(0.25);
+        expect(horseTeam, `${ageId}-${key} team on the horse`).toBe(0);
+      }
+    }
+  }, 60000);
 });

@@ -24,8 +24,56 @@ export const DEFAULT_TRIANGLE_BUDGET = 8000; // per soldier at full detail (plan
 // A model drawn at its own scale (opts.scale) must measure like the art set (a person about 1, a
 // horse and rider about 1.4, an elephant about 2.8); anything else came in other units.
 export const NATIVE_HEIGHT_RANGE = [0.5, 3.5];
-// How much of the side's colour a mount's team cloth takes (opts.mountTeam; 1 = all of it).
-export const MOUNT_TEAM_SHARE = 0.7;
+// How much of the side's colour team cloth takes on a mount (opts.mountTeam) and on the arms, hips
+// and legs (opts.garmentTeam; 1 = all of it, as on the chest, the head and the shield).
+// (Mixed in, the side's colour and an earthy cloth meet as grey: the blue caparisons went lilac. The
+// lower garments and mount cloth are plain cloth instead.)
+export const MOUNT_TEAM_SHARE = 0;
+export const GARMENT_TEAM_SHARE = 0;
+const LOWER_GARMENT = /^(hips|pelvis|leg|shin|foot|arm|forearm|hand|upper_?arm|thigh)/i;
+// The undyed cloth those parts are made of: linen for sleeves, kilts and coat skirts, a darker wool
+// for a mount's caparison or saddle cloth.
+export const NATURAL_CLOTH = new Color('#c2ae88');
+export const MOUNT_CLOTH = new Color('#7b5a3c');
+// The art set's scale: a man (about 1.8 m to the top of his head) stands about 1 unit tall.
+export const ART_METRES_PER_UNIT = 1.8;
+const POLEARM = /spear|pike|lance|halberd/i;
+const NOT_POLEARM = /slung|javelin|throw/i;
+const POLE_HEAD = /head|socket|tip|point|blade/i;
+
+// Stretch or shrink a polearm (vertices with pole > 0) to `length` (model units) along its longest
+// axis, keeping the butt where the hands hold it from: the shaft scales, the head moves rigidly.
+export const fitPolearm = (pos, pole, length) => {
+  const min = [Infinity, Infinity, Infinity]; const max = [-Infinity, -Infinity, -Infinity];
+  const headSum = [0, 0, 0]; let heads = 0; let any = false;
+  for (let i = 0; i < pole.length; i++) {
+    if (!pole[i]) continue;
+    any = true;
+    for (let a = 0; a < 3; a++) { const x = pos[i * 3 + a]; if (x < min[a]) min[a] = x; if (x > max[a]) max[a] = x; }
+    if (pole[i] === 1) { heads += 1; for (let a = 0; a < 3; a++) headSum[a] += pos[i * 3 + a]; }
+  }
+  if (!any) return;
+  const ext = [0, 1, 2].map((a) => max[a] - min[a]);
+  const ax = ext.indexOf(Math.max(...ext));
+  const len = ext[ax];
+  if (len < 1e-6) return;
+  // the tip is the end with the head (else the upper or the far end)
+  const up = heads ? headSum[ax] / heads >= (min[ax] + max[ax]) / 2 : true;
+  const butt = up ? min[ax] : max[ax]; const dir = up ? 1 : -1;
+  let headLen = 0;
+  if (heads) {
+    let hMin = Infinity; let hMax = -Infinity;
+    for (let i = 0; i < pole.length; i++) if (pole[i] === 1) { const x = pos[i * 3 + ax]; if (x < hMin) hMin = x; if (x > hMax) hMax = x; }
+    headLen = hMax - hMin;
+  }
+  const shaftLen = Math.max(1e-6, len - headLen);
+  const k = Math.max(0.2, (length - headLen) / shaftLen);
+  const shift = (k - 1) * shaftLen * dir;
+  for (let i = 0; i < pole.length; i++) {
+    if (pole[i] === 2) pos[i * 3 + ax] = butt + (pos[i * 3 + ax] - butt) * k;
+    else if (pole[i] === 1) pos[i * 3 + ax] += shift;
+  }
+};
 
 const DEFAULT_TAGS = {
   team: /team|tabard|tunic|surcoat|banner|flag|faction|cloak|cape|livery|plume/i,
@@ -190,19 +238,23 @@ export const planarEmblemUv = (pos, uvs, first, end) => {
  * @param {boolean} [opts.staticLegs=false]  a seated rider: legs don't march
  * @param {number}  [opts.mountTeam]  share of the side's colour on team cloth hung from mount bones
  *                                   (default MOUNT_TEAM_SHARE for a quadruped, else 1)
+ * @param {number}  [opts.garmentTeam=GARMENT_TEAM_SHARE]  the same for team cloth on arms, hips, legs
+ * @param {number}  [opts.polearm]   a spear, pike or lance attachment's true length in metres
  * @returns {{ geometry: BufferGeometry, stats: object }}
  */
 export const extractUnitGeometry = (root, opts = {}) => {
   const {
     animations = [], restClip = /idle/i, height = 1, rotateY = 0, quadruped = false, segment = 'auto',
     triangleBudget = DEFAULT_TRIANGLE_BUDGET, teamFrom = null, skinFrom = null, staticLegs = false, scale = null,
-    mountTeam = quadruped ? MOUNT_TEAM_SHARE : 1
+    mountTeam = quadruped ? MOUNT_TEAM_SHARE : 1, garmentTeam = GARMENT_TEAM_SHARE, polearm = 0
   } = opts;
   const tags = { ...DEFAULT_TAGS, ...(opts.tags || {}) };
   const limbOpts = { quadruped };
   applyPose(root, animations, restClip);
 
   const pos = []; const col = []; const limb = []; const team = []; const partId = []; const uvs = []; const surf = [];
+  const bone = []; // per vertex: the name of its dominant bone (or its node)
+  const pole = []; // per vertex: polearm part (see polePart)
   const hinge = []; // per vertex: the Object3D (a limb chain's top joint) it pivots about, or null
   const source = []; // per vertex: the bone / node name it hangs from (for teamFrom)
   const measured = []; // per vertex: counts toward the model's size (attachments like a long spear don't)
@@ -227,6 +279,8 @@ export const extractUnitGeometry = (root, opts = {}) => {
     const withHinge = (cl) => (cl.node ? { ...cl, hinge: chainRoot(cl.node, cl.limb, limbOpts, root.parent) } : { ...cl, hinge: null });
     const nodeLimb = skinned ? null : withHinge(classify(mesh, limbOpts, root.parent));
     const attached = isAttachment(mesh);
+    // a polearm's parts (opts.polearm): 2 the shaft, 1 its head or socket, 0 anything else
+    const polePart = attached && POLEARM.test(mesh.name || '') && !NOT_POLEARM.test(mesh.name || '') ? (POLE_HEAD.test(mesh.name || '') ? 1 : 2) : 0;
     const boneLimb = skinned ? mesh.skeleton.bones.map((b) => withHinge(classify(b, limbOpts, root.parent))) : null;
     if (nodeLimb?.node || boneLimb?.some((bl) => bl.node)) stats.namedLimbs = true;
 
@@ -261,12 +315,16 @@ export const extractUnitGeometry = (root, opts = {}) => {
           if (tex) c.multiply(tex);
           col.push(c.r, c.g, c.b);
           let rig = nodeLimb;
+          let boneName = mesh.name || mesh.parent?.name || '';
           if (skinned) {
             skinIdx.fromBufferAttribute(geo.attributes.skinIndex, vi); skinW.fromBufferAttribute(geo.attributes.skinWeight, vi);
             let best = 0;
             for (let q = 1; q < 4; q++) if (skinW.getComponent(q) > skinW.getComponent(best)) best = q;
             rig = boneLimb[skinIdx.getComponent(best)];
+            boneName = mesh.skeleton.bones[skinIdx.getComponent(best)]?.name || '';
           }
+          bone.push(boneName);
+          pole.push(polePart);
           limb.push(rig ? rig.limb : LIMB.BODY);
           hinge.push(rig?.hinge || null);
           measured.push(!attached);
@@ -323,7 +381,22 @@ export const extractUnitGeometry = (root, opts = {}) => {
   // A mount's team cloth (a caparison, a saddle cloth) takes only part of the side's colour: on a
   // knight's horse it covers most of the animal, and in full colour the whole squad read as one
   // flat team-blue shape. The rider's tabard, shield and banner keep the full colour.
-  if (mountTeam < 1) for (let i = 0; i < n; i++) if (team[i] && partId[i] !== PART.EMBLEM && /^mount/i.test(source[i])) team[i] = mountTeam;
+  // The side's colour is an accent: the tabard or tunic over the chest, the shield face, a plume or
+  // a helmet band, the banner. Team cloth on the arms, the hips and legs (sleeves, kilts, coat
+  // skirts) and on a mount (a caparison, a saddle cloth) is natural cloth, so a squad reads as men
+  // and horses, not a solid team-coloured block.
+  for (let i = 0; i < n; i++) {
+    if (!team[i] || partId[i] === PART.EMBLEM) continue;
+    const onMount = /^mount/i.test(bone[i]);
+    const share = onMount ? mountTeam : LOWER_GARMENT.test(bone[i]) ? garmentTeam : 1;
+    if (share >= 1) continue;
+    const cloth = onMount ? MOUNT_CLOTH : NATURAL_CLOTH;
+    team[i] = share;
+    col[i * 3] = cloth.r; col[i * 3 + 1] = cloth.g; col[i * 3 + 2] = cloth.b;
+  }
+  // Polearms at their true length (opts.polearm, metres): the shaft stretches or shrinks along its
+  // own axis from the butt, the head moves with the tip.
+  if (polearm > 0) fitPolearm(pos, pole, polearm / ART_METRES_PER_UNIT);
   if (staticLegs) for (let i = 0; i < n; i++) if (limb[i] === LIMB.LEG_L || limb[i] === LIMB.LEG_R) { limb[i] = LIMB.BODY; hinge[i] = null; }
 
   // Normalise: yaw to face +Z, feet on the ground, centred, scaled to `height`.
