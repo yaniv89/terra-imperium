@@ -4,7 +4,8 @@
 // (Mapzen/Tilezen, see CREDITS.md). Run once: node scripts/geo/fetch-tiles-raw.mjs
 // With --pyramid it also fetches what build-raster-pyramid.mjs needs: the 1:10M land and the
 // 1,024 zoom-5 elevation tiles (about 75 MB).
-// River lines for the raster (river-paint.mjs) come from ne_10m_rivers_lake_centerlines_scale_rank.
+// The map's river lines (build-river-lines.mjs, npm run build:rivers) come from
+// ne_10m_rivers_lake_centerlines_scale_rank.
 import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
