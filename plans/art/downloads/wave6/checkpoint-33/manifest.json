@@ -1,0 +1,59 @@
+{
+  "checkpoint": "wave6-33",
+  "date": "2026-10-08",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 17,
+  "packed_bytes_added": 1973256,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave6/checkpoint-33/contact.png",
+      "bytes": 112498,
+      "sha256": "bfbf48c00ef4f2a96daeeb3e634a916fbf856004bcab8ffbe623b52a22c904a2"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 548817,
+      "sha256": "e6590058045bbb74b899947d010cc7d305baeface65ea5f9a827578e1b6772b0"
+    },
+    {
+      "file": "plans/art/shots/wave6/rts-modern/base-844x390.png",
+      "bytes": 482479,
+      "sha256": "87ee1be52cc5ddbd80c80700eb84eedae9062ded53388c51f770434f9039ca33"
+    },
+    {
+      "file": "plans/art/shots/wave6/rts-modern/hud-844x390.png",
+      "bytes": 402968,
+      "sha256": "cab3cc57b9d02ae53459666d48eb8cc2bd0e28f623921867edf0234374f5ddf2"
+    },
+    {
+      "file": "plans/art/shots/wave6/rts-modern/proof-rts-modern.png",
+      "bytes": 297830,
+      "sha256": "5a30affba6108b638cef01a54c6d25b4ebf1f311d48070ed715c3ceacc9426fe"
+    },
+    {
+      "file": "plans/art/shots/wave6/rts-modern/town-844x390.png",
+      "bytes": 404276,
+      "sha256": "8ffe269c0155e808ea32afeae8959f99a556cf21cb2fe1755cf598d54acf9445"
+    },
+    {
+      "file": "plans/art/shots/wave6/rts-modern/validation/rts-modern.validation.json",
+      "bytes": 43368,
+      "sha256": "ea243b0101d5502f234d79bc6da288ba4b1551eeb5a126e68a262c01ad6192c7"
+    },
+    {
+      "file": "scripts/blender/build_rts_modern.py",
+      "bytes": 23670,
+      "sha256": "14893e20b10b6165b46afef9e4f7e32051b7938ca136d9b9b40186b52840d5ba"
+    },
+    {
+      "file": "scripts/blender/ti_modern_battle.py",
+      "bytes": 13283,
+      "sha256": "1b650211f01bf7ddda21166fdb63d9473d4c4654c0ee6021c951c0e515bbd522"
+    },
+    {
+      "file": "src/assets/battle/rts/rts-modern.glb",
+      "bytes": 1973256,
+      "sha256": "37aae63f95a1614e2f994ddcb61f8b3a12dbeda7cd9a12b400e5042cd77d1f92"
+    }
+  ]
+}
