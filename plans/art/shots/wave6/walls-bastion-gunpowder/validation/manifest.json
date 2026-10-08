@@ -1,0 +1,460 @@
+{
+  "walls-gunpowder.glb": {
+    "bytes": 1158228,
+    "objects": {
+      "gate-closed": {
+        "LOD0": {
+          "triangles": 420,
+          "width": 1.0,
+          "depth": 0.83,
+          "height": 0.87,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 254,
+          "width": 1.0,
+          "depth": 0.695,
+          "height": 0.87,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.0,
+          "depth": 0.3,
+          "height": 0.49,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "gate-closed-breached": {
+        "LOD0": {
+          "triangles": 380,
+          "width": 1.0,
+          "depth": 0.577,
+          "height": 0.322,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 152,
+          "width": 1.0,
+          "depth": 0.52,
+          "height": 0.322,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 48,
+          "width": 1.0,
+          "depth": 0.28,
+          "height": 0.315,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "gate-closed-damaged": {
+        "LOD0": {
+          "triangles": 508,
+          "width": 1.0,
+          "depth": 0.83,
+          "height": 0.545,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 182,
+          "width": 1.0,
+          "depth": 0.695,
+          "height": 0.505,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.0,
+          "depth": 0.3,
+          "height": 0.49,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "gate-open": {
+        "LOD0": {
+          "triangles": 420,
+          "width": 1.0,
+          "depth": 0.83,
+          "height": 0.87,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 254,
+          "width": 1.0,
+          "depth": 0.695,
+          "height": 0.87,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.0,
+          "depth": 0.3,
+          "height": 0.49,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "gate-open-breached": {
+        "LOD0": {
+          "triangles": 380,
+          "width": 1.0,
+          "depth": 0.584,
+          "height": 0.322,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 152,
+          "width": 1.0,
+          "depth": 0.52,
+          "height": 0.322,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 48,
+          "width": 1.0,
+          "depth": 0.28,
+          "height": 0.315,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "gate-open-damaged": {
+        "LOD0": {
+          "triangles": 500,
+          "width": 1.0,
+          "depth": 0.83,
+          "height": 0.505,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 182,
+          "width": 1.0,
+          "depth": 0.695,
+          "height": 0.505,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.0,
+          "depth": 0.3,
+          "height": 0.49,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "tower": {
+        "LOD0": {
+          "triangles": 147,
+          "width": 0.6,
+          "depth": 0.72,
+          "height": 0.545,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 91,
+          "width": 0.6,
+          "depth": 0.72,
+          "height": 0.545,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 32,
+          "width": 0.6,
+          "depth": 0.72,
+          "height": 0.47,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "tower-breached": {
+        "LOD0": {
+          "triangles": 320,
+          "width": 0.709,
+          "depth": 0.949,
+          "height": 0.23,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 104,
+          "width": 0.6,
+          "depth": 0.913,
+          "height": 0.21,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 32,
+          "width": 0.6,
+          "depth": 0.72,
+          "height": 0.21,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "tower-damaged": {
+        "LOD0": {
+          "triangles": 355,
+          "width": 0.629,
+          "depth": 0.896,
+          "height": 0.474,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 119,
+          "width": 0.6,
+          "depth": 0.837,
+          "height": 0.474,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 32,
+          "width": 0.6,
+          "depth": 0.72,
+          "height": 0.399,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "wall-corner": {
+        "LOD0": {
+          "triangles": 170,
+          "width": 0.695,
+          "depth": 0.695,
+          "height": 0.63,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 158,
+          "width": 0.695,
+          "depth": 0.695,
+          "height": 0.63,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 24,
+          "width": 0.64,
+          "depth": 0.64,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "wall-corner-breached": {
+        "LOD0": {
+          "triangles": 928,
+          "width": 0.918,
+          "depth": 0.906,
+          "height": 0.336,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 316,
+          "width": 0.811,
+          "depth": 0.8,
+          "height": 0.336,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 48,
+          "width": 0.64,
+          "depth": 0.64,
+          "height": 0.336,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "wall-corner-damaged": {
+        "LOD0": {
+          "triangles": 784,
+          "width": 0.941,
+          "depth": 0.868,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 376,
+          "width": 0.827,
+          "depth": 0.817,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 72,
+          "width": 0.64,
+          "depth": 0.64,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "wall-straight": {
+        "LOD0": {
+          "triangles": 44,
+          "width": 1.0,
+          "depth": 0.28,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 44,
+          "width": 1.0,
+          "depth": 0.28,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 12,
+          "width": 1.0,
+          "depth": 0.28,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "wall-straight-breached": {
+        "LOD0": {
+          "triangles": 376,
+          "width": 1.0,
+          "depth": 0.651,
+          "height": 0.336,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 144,
+          "width": 1.0,
+          "depth": 0.565,
+          "height": 0.336,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 24,
+          "width": 1.0,
+          "depth": 0.28,
+          "height": 0.336,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "wall-straight-damaged": {
+        "LOD0": {
+          "triangles": 364,
+          "width": 1.0,
+          "depth": 0.531,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 160,
+          "width": 1.0,
+          "depth": 0.462,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.0,
+          "depth": 0.28,
+          "height": 0.42,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  }
+}

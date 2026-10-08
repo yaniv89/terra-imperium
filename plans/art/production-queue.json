@@ -2897,7 +2897,7 @@
     {
       "path": "plans/art/battle-city/gunpowder/wall-kit",
       "section": "battle-city",
-      "description": "Gunpowder wall kit: Gunpowder wall segment kit cut from the existing wall rings: straight, corner, tower, gate (open, closed), each intact, damaged and breached",
+      "description": "Gunpowder wall kit as a bastion trace (curtains of scarp, cordon and turf, an arrow-head bastion, a sentry-box corner, the sandstone gatehouse; -damaged, -breached), src/assets/battle/city/walls-gunpowder.glb (build_walls_bastion_gunpowder.py)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
       "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/gunpowder/wall-kit",
@@ -2906,7 +2906,7 @@
       "priority": "P2",
       "placeholder_ok": true,
       "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7",
-      "delivered": "wave5 checkpoint-29, 2026-10-08 (plans/art/downloads/wave5/checkpoint-29)"
+      "delivered": "wave6 checkpoint-37, 2026-10-08 (plans/art/downloads/wave6/checkpoint-37)"
     },
     {
       "path": "plans/art/battle-city/modern/wall-kit",

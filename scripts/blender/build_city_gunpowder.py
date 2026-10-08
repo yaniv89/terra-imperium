@@ -2,9 +2,9 @@
 # The Gunpowder city kit for the battle (plans/ART-MODELS-PLAN.md section 6; src/assets/battle/city/
 # README.md), four files in the Gunpowder town kit's stuff so a besieged city of the age matches its
 # town on the map:
-#   walls-gunpowder.glb  the wall kit of build_city_bronze.py (wall-straight, wall-corner, tower,
-#                        gate-open, gate-closed; each -damaged and -breached) as low battered grey stone
-#                        scarps with a sandstone cordon (the bastion trace's stuff, ti_gunpowder.py)
+#   walls-gunpowder.glb  the wall kit as a bastion trace (build_walls_bastion_gunpowder.py: wall-straight,
+#                        wall-corner, tower, gate-open, gate-closed; each -damaged and -breached): curtains
+#                        of scarp, cordon and turf, an arrow-head bastion, the sandstone gatehouse
 #   ruins-gunpowder.glb  rubble-s, rubble-m, rubble-l (brick, stucco, roof tile), beams, scorch
 #   fort-gunpowder.glb   fort: a star fort in the 50 m circle: ti_gunpowder's bastioned trace (four
 #                        angled bastions with cannon, turf on stone scarps, a sandstone gatehouse) round
@@ -37,7 +37,8 @@ def remat(layout, mapping=None):
     return rc.remat(layout, mapping or rg.MATS)
 
 
-def wall_items():
+def wall_items_shared():
+    """Checkpoint 29's kit: the shared crenellated pieces in the age's stone (kept for comparison)."""
     return [(n, remat(fn, WALL_MATS if 'wall' in n or 'gate' in n or 'tower' in n else RUIN_MATS), g) for n, fn, g in cb.wall_items()]
 
 
@@ -76,7 +77,7 @@ def hall_for_ruin(ms, rng):
 
 
 FILES = {
-    'walls-gunpowder': wall_items,
+    'walls-gunpowder': lambda: __import__('build_walls_bastion_gunpowder').wall_items(),
     'ruins-gunpowder': lambda: [('rubble-s', remat(cb.rubble(0.8), RUIN_MATS), None), ('rubble-m', remat(cb.rubble(1.4), RUIN_MATS), None),
                                 ('rubble-l', remat(cb.rubble(2.4), RUIN_MATS), None), ('beams', remat(cb.beams, RUIN_MATS), None), ('scorch', cb.scorch, None)],
     'fort-gunpowder': lambda: [('fort', cc.shifted(remat(fort_budgeted)), None)],
