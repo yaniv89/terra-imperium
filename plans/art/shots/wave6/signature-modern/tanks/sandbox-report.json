@@ -1,0 +1,103 @@
+{
+  "mode": "sandbox",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave6\\signature-modern\\tanks\\sandbox-modern-wide.png",
+    "plans\\art\\shots\\wave6\\signature-modern\\tanks\\sandbox-modern-infantry.png",
+    "plans\\art\\shots\\wave6\\signature-modern\\tanks\\sandbox-modern-general.png",
+    "plans\\art\\shots\\wave6\\signature-modern\\tanks\\sandbox-modern-cavalry-israel.png",
+    "plans\\art\\shots\\wave6\\signature-modern\\tanks\\sandbox-modern-ranged.png",
+    "plans\\art\\shots\\wave6\\signature-modern\\tanks\\sandbox-modern-worker.png"
+  ],
+  "layers": [
+    {
+      "key": "modern:infantry",
+      "triangles": [
+        1493,
+        339,
+        34
+      ]
+    },
+    {
+      "key": "modern:general",
+      "triangles": [
+        2947,
+        326,
+        39
+      ]
+    },
+    {
+      "key": "modern:cavalry~israel",
+      "triangles": [
+        1448,
+        307,
+        64
+      ]
+    },
+    {
+      "key": "modern:ranged",
+      "triangles": [
+        2998,
+        266,
+        56
+      ]
+    },
+    {
+      "key": "modern:worker",
+      "triangles": [
+        1403,
+        350,
+        37
+      ]
+    },
+    {
+      "key": "modern:cavalry~marcomannia",
+      "triangles": [
+        1332,
+        326,
+        46
+      ]
+    }
+  ],
+  "unitLog": [],
+  "errors": [],
+  "setupUnits": [
+    "infantry,infantry,cavalry,ranged,ranged,siege,infantry,",
+    "infantry,infantry,cavalry,ranged,ranged,siege,infantry,"
+  ],
+  "squads": [
+    "0:infantry",
+    "0:infantry",
+    "0:cavalry",
+    "0:ranged",
+    "0:ranged",
+    "0:siege off-field",
+    "0:infantry off-field",
+    "0:infantry off-field",
+    "0:ranged off-field",
+    "1:infantry",
+    "1:infantry inside",
+    "1:cavalry",
+    "1:ranged inside",
+    "1:ranged inside",
+    "1:siege off-field",
+    "1:infantry off-field",
+    "1:infantry off-field",
+    "1:ranged off-field",
+    "0:cavalry",
+    "1:cavalry",
+    "0:worker",
+    "0:worker",
+    "0:worker",
+    "0:worker",
+    "0:worker",
+    "1:worker",
+    "1:worker",
+    "1:worker",
+    "1:worker",
+    "1:worker"
+  ]
+}

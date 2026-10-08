@@ -1,0 +1,174 @@
+{
+  "checkpoint": "wave6-32",
+  "date": "2026-10-08",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 10,
+  "packed_bytes_added": 792141,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave6/checkpoint-32/contact.png",
+      "bytes": 206588,
+      "sha256": "56304daa208455fd3439ad7745674d6accac70a1f1cc8187c89fac717d483419"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 546792,
+      "sha256": "4c1e756cc3eebe1b88b19bb3732778e0f63167426e69c47edc1b9ed20f4fe5f0"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/dorset/sandbox-modern-ranged-dorset.png",
+      "bytes": 476847,
+      "sha256": "9e0469f221afaab713c00d282a48a3ab1ff3204cef0922f46784b43ea7275d3f"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/dorset/sandbox-modern-wide.png",
+      "bytes": 402404,
+      "sha256": "21215027bed231b8d583133829971d4214ff5bad902156ff5636ee00717e8212"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/dorset/sandbox-report.json",
+      "bytes": 2202,
+      "sha256": "d8474225f8ae7fb163d86a0b1aab4505db304e2e754972744a53561b03447d63"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/foot/sandbox-modern-infantry-dacia.png",
+      "bytes": 493262,
+      "sha256": "61fc0c6bd6d7cf66c35f7e0e8998bbdecc1c18c6f1299dcd4f08b6fbb5cbb725"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/foot/sandbox-modern-wide.png",
+      "bytes": 403745,
+      "sha256": "97d64af03370a0a6b7f43bab6ee12213a23b7dae1f57fa25f41ccb4b2afcc8a2"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/foot/sandbox-report.json",
+      "bytes": 2080,
+      "sha256": "9fe461a65d4508a83520686dde6729c51cfced754caef268bbb6201787cb6a62"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/proofs-modern-signature.png",
+      "bytes": 422863,
+      "sha256": "5105de20aed06a32a35684501d8306980b642faa417d4849ba7849fab46b5a04"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/tanks/sandbox-modern-cavalry-israel.png",
+      "bytes": 448042,
+      "sha256": "18971d82a52a8cd8fffaf4678f867337f607587eca8ee0425b1a395f51268c6b"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/tanks/sandbox-modern-wide.png",
+      "bytes": 403641,
+      "sha256": "5ce51314c33118218fbed86b1c9b52fc70506c641e4d078d292237ce2203b353"
+    },
+    {
+      "file": "plans/art/shots/wave6/signature-modern/tanks/sandbox-report.json",
+      "bytes": 2092,
+      "sha256": "f334364a446b796aff43123cd5608d6ce8557afca238966ad87e1640a1dab927"
+    },
+    {
+      "file": "scripts/blender/build_units_modern_signature.py",
+      "bytes": 19527,
+      "sha256": "a92621e10eefe35fb20ec562b979602a93f8303a700d077ce4ad2e3ba46426c0"
+    },
+    {
+      "file": "src/assets/units/signature/d-mt.glb",
+      "bytes": 62504,
+      "sha256": "4876370b68f3adfbd2add3a0ed2d1c2d3090669641e60cbe01e31d4b5efc0ae5"
+    },
+    {
+      "file": "src/assets/units/signature/d-mt.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/dacia.glb",
+      "bytes": 76848,
+      "sha256": "acf1e665a59b0f46296cbda148c283b09c624fb2e8bcb5625249e409457d7653"
+    },
+    {
+      "file": "src/assets/units/signature/dacia.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/dorset.glb",
+      "bytes": 72632,
+      "sha256": "22013139f9c9be6c4da2fa371f4755dae8db02bc96bb8aa08c18e13a749ba407"
+    },
+    {
+      "file": "src/assets/units/signature/dorset.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/illyria.glb",
+      "bytes": 82776,
+      "sha256": "946bf88a57b0fef9a06b195c96432e6a37d16cd919f81856f65a677b50ab3e19"
+    },
+    {
+      "file": "src/assets/units/signature/illyria.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/kindah.glb",
+      "bytes": 104664,
+      "sha256": "75d002b34ba19a1eff40314b4abc4f20303137bdf00df44ee8291ab069df5d5c"
+    },
+    {
+      "file": "src/assets/units/signature/kindah.json",
+      "bytes": 221,
+      "sha256": "eb28de1e0abe870f00c06689da303b0105b375e104e6af5010c40a5672f1d591"
+    },
+    {
+      "file": "src/assets/units/signature/kingdom-of-israel.glb",
+      "bytes": 72936,
+      "sha256": "091fe3c040ae94a1936249d75f46d2abdc0f50ce7f84ce2206093ec9c16ca14c"
+    },
+    {
+      "file": "src/assets/units/signature/kingdom-of-israel.json",
+      "bytes": 221,
+      "sha256": "3684b92ce615abf7c488bf38c38ab8249277ddf2d067301942613184d3760bb9"
+    },
+    {
+      "file": "src/assets/units/signature/marcomannia.glb",
+      "bytes": 71544,
+      "sha256": "20ca647953deb671eadd85a21e273abb5cefce5a53f77db5273d12eab3ab43c3"
+    },
+    {
+      "file": "src/assets/units/signature/marcomannia.json",
+      "bytes": 221,
+      "sha256": "88ca901dd4f36b5fc5c9a0fc06b6ba1cc146440d1ac2a5376afb93506d75e696"
+    },
+    {
+      "file": "src/assets/units/signature/noricum.glb",
+      "bytes": 86176,
+      "sha256": "f2b6290f11ade46356f23b7e807bfb00905ac95b3ca6d386553df6db661cf8d0"
+    },
+    {
+      "file": "src/assets/units/signature/noricum.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/nuragi.glb",
+      "bytes": 82652,
+      "sha256": "ee315514ed6cdcfe2b24376365b59b59c19cfd53dc3954f2fecb5a585194bae7"
+    },
+    {
+      "file": "src/assets/units/signature/nuragi.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/signature/rygir.glb",
+      "bytes": 77332,
+      "sha256": "2ffba37f468cb8f9919912257fea895b36e6bfefc68cb88335ae3229d8033e00"
+    },
+    {
+      "file": "src/assets/units/signature/rygir.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    }
+  ]
+}

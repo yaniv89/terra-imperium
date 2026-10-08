@@ -356,6 +356,9 @@ def tank(prefix='Tank', hull_len=1.50, hull_w=.80, track_w=.24, hull_z=(.12, .36
             side_profile(f'{prefix}Skirt{sx}', [(-hl + .1, z1 - .17), (hl - .04, z1 - .17), (hl, z1 - .04), (hl, deck - .005), (-hl + .02, deck - .005), (-hl + .02, z1 - .1)],
                          min(xo, xo + sx * .024), max(xo, xo + sx * .024), hull, 'Hull', rig)
             u.box(f'{prefix}SkirtStripe{sx}', (sx * (deck_w / 2 + .026), 0, z1 - .05), (.008, hull_len * .82, .05), team, 'Hull', rig)
+    else:  # no skirts: the team stripe runs along the deck's edge
+        for sx in (-1, 1):
+            u.box(f'{prefix}SideStripe{sx}', (sx * (deck_w / 2 + .004), 0, deck - .03), (.008, hull_len * .7, .04), team, 'Hull', rig)
     for sx in (-1, 1):  # headlights at the front, exhausts at the back
         u.box(f'{prefix}Light{sx}', (sx * (deck_w / 2 - .08), -hl + glacis * .5, deck - .02), (.05, .04, .04), metal, 'Hull', rig)
         u.box(f'{prefix}Exhaust{sx}', (sx * .2, hl + .015, z1 - .06), (.12, .03, .05), track, 'Hull', rig)
