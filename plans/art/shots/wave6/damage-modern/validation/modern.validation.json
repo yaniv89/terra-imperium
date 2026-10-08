@@ -1,0 +1,181 @@
+{
+  "file": "modern.glb",
+  "kind": "projectile",
+  "bytes": 50960,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "cannonball": {
+      "lods": {
+        "LOD0": {
+          "triangles": 20,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.011,
+          "depth": 0.01,
+          "height": 0.006,
+          "min_height": -0.006
+        },
+        "LOD1": {
+          "triangles": 20,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.011,
+          "depth": 0.01,
+          "height": 0.006,
+          "min_height": -0.006
+        },
+        "LOD2": {
+          "triangles": 20,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.011,
+          "depth": 0.01,
+          "height": 0.006,
+          "min_height": -0.006
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.011
+    },
+    "missile": {
+      "lods": {
+        "LOD0": {
+          "triangles": 48,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.024,
+          "depth": 0.12,
+          "height": 0.012,
+          "min_height": -0.012
+        },
+        "LOD1": {
+          "triangles": 48,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.024,
+          "depth": 0.12,
+          "height": 0.012,
+          "min_height": -0.012
+        },
+        "LOD2": {
+          "triangles": 48,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.024,
+          "depth": 0.12,
+          "height": 0.012,
+          "min_height": -0.012
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.12
+    },
+    "shell": {
+      "lods": {
+        "LOD0": {
+          "triangles": 54,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.015,
+          "depth": 0.07,
+          "height": 0.008,
+          "min_height": -0.0084
+        },
+        "LOD1": {
+          "triangles": 54,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.015,
+          "depth": 0.07,
+          "height": 0.008,
+          "min_height": -0.0084
+        },
+        "LOD2": {
+          "triangles": 54,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.015,
+          "depth": 0.07,
+          "height": 0.008,
+          "min_height": -0.0084
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.07
+    }
+  },
+  "materials": [
+    "Town"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "modern_normal",
+      "mime": "image/webp",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 300
+    },
+    {
+      "name": "modern_base",
+      "mime": "image/webp",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 7116
+    },
+    {
+      "name": "modern_orm",
+      "mime": "image/webp",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 9758
+    }
+  ],
+  "passed": true
+}

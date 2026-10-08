@@ -1,0 +1,3241 @@
+{
+  "modern-americas-houses-damage.glb": {
+    "bytes": 624048,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 535,
+          "width": 1.02,
+          "depth": 0.877,
+          "height": 0.984,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 275,
+          "width": 1.02,
+          "depth": 0.877,
+          "height": 0.941,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.02,
+          "depth": 0.877,
+          "height": 0.988,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 302,
+          "width": 1.0,
+          "depth": 0.868,
+          "height": 0.407,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 142,
+          "width": 1.0,
+          "depth": 0.868,
+          "height": 0.407,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.02,
+          "depth": 0.877,
+          "height": 0.411,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 708,
+          "width": 0.76,
+          "depth": 0.668,
+          "height": 0.596,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 348,
+          "width": 0.76,
+          "depth": 0.668,
+          "height": 0.551,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.76,
+          "depth": 0.668,
+          "height": 0.572,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 244,
+          "width": 0.74,
+          "depth": 0.653,
+          "height": 0.211,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 84,
+          "width": 0.74,
+          "depth": 0.653,
+          "height": 0.211,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.76,
+          "depth": 0.668,
+          "height": 0.212,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 610,
+          "width": 1.34,
+          "depth": 1.067,
+          "height": 0.982,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 312,
+          "width": 1.34,
+          "depth": 1.067,
+          "height": 0.936,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.34,
+          "depth": 1.067,
+          "height": 0.988,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 352,
+          "width": 1.32,
+          "depth": 1.058,
+          "height": 0.32,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 172,
+          "width": 1.32,
+          "depth": 1.058,
+          "height": 0.32,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.34,
+          "depth": 1.067,
+          "height": 0.322,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-eastafrica-houses-damage.glb": {
+    "bytes": 1178080,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 1608,
+          "width": 1.062,
+          "depth": 0.977,
+          "height": 0.919,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 333,
+          "width": 1.05,
+          "depth": 0.965,
+          "height": 0.913,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.062,
+          "depth": 0.977,
+          "height": 0.913,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 572,
+          "width": 0.995,
+          "depth": 0.926,
+          "height": 0.317,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 194,
+          "width": 0.988,
+          "depth": 0.853,
+          "height": 0.317,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.062,
+          "depth": 0.977,
+          "height": 0.333,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 1426,
+          "width": 0.822,
+          "depth": 0.777,
+          "height": 0.637,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 341,
+          "width": 0.81,
+          "depth": 0.765,
+          "height": 0.635,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.822,
+          "depth": 0.777,
+          "height": 0.633,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 475,
+          "width": 0.755,
+          "depth": 0.728,
+          "height": 0.32,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 175,
+          "width": 0.748,
+          "depth": 0.653,
+          "height": 0.32,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.822,
+          "depth": 0.777,
+          "height": 0.33,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 2333,
+          "width": 1.352,
+          "depth": 1.092,
+          "height": 1.144,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 328,
+          "width": 1.34,
+          "depth": 1.08,
+          "height": 1.1,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.352,
+          "depth": 1.092,
+          "height": 1.144,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 656,
+          "width": 1.285,
+          "depth": 1.039,
+          "height": 0.351,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 213,
+          "width": 1.278,
+          "depth": 1.033,
+          "height": 0.35,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.352,
+          "depth": 1.092,
+          "height": 0.359,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-europe-houses-damage.glb": {
+    "bytes": 1107688,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 1673,
+          "width": 0.996,
+          "depth": 0.889,
+          "height": 1.013,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 332,
+          "width": 0.988,
+          "depth": 0.853,
+          "height": 0.949,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.996,
+          "depth": 0.889,
+          "height": 1.027,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 500,
+          "width": 0.995,
+          "depth": 0.874,
+          "height": 0.299,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 189,
+          "width": 0.988,
+          "depth": 0.853,
+          "height": 0.299,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.996,
+          "depth": 0.889,
+          "height": 0.304,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 1261,
+          "width": 0.822,
+          "depth": 0.712,
+          "height": 0.759,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 329,
+          "width": 0.81,
+          "depth": 0.7,
+          "height": 0.702,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.822,
+          "depth": 0.712,
+          "height": 0.741,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 499,
+          "width": 0.755,
+          "depth": 0.665,
+          "height": 0.245,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 167,
+          "width": 0.748,
+          "depth": 0.653,
+          "height": 0.245,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.822,
+          "depth": 0.712,
+          "height": 0.251,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 1804,
+          "width": 1.286,
+          "depth": 1.069,
+          "height": 1.027,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 321,
+          "width": 1.278,
+          "depth": 1.033,
+          "height": 0.975,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.286,
+          "depth": 1.069,
+          "height": 1.027,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 549,
+          "width": 1.285,
+          "depth": 1.053,
+          "height": 0.379,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 185,
+          "width": 1.278,
+          "depth": 1.033,
+          "height": 0.378,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.286,
+          "depth": 1.069,
+          "height": 0.382,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-houses-damage.glb": {
+    "bytes": 669108,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 381,
+          "width": 0.72,
+          "depth": 0.682,
+          "height": 0.897,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 109,
+          "width": 0.72,
+          "depth": 0.682,
+          "height": 0.89,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 61,
+          "width": 0.72,
+          "depth": 0.608,
+          "height": 0.84,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 234,
+          "width": 0.72,
+          "depth": 0.621,
+          "height": 0.302,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 74,
+          "width": 0.72,
+          "depth": 0.57,
+          "height": 0.302,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.72,
+          "depth": 0.56,
+          "height": 0.302,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 436,
+          "width": 0.665,
+          "depth": 0.586,
+          "height": 0.9,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 124,
+          "width": 0.665,
+          "depth": 0.562,
+          "height": 0.9,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 88,
+          "width": 0.66,
+          "depth": 0.562,
+          "height": 0.83,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 260,
+          "width": 0.6,
+          "depth": 0.545,
+          "height": 0.251,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 76,
+          "width": 0.6,
+          "depth": 0.49,
+          "height": 0.251,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.6,
+          "depth": 0.48,
+          "height": 0.251,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 486,
+          "width": 0.8,
+          "depth": 0.685,
+          "height": 1.34,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 102,
+          "width": 0.8,
+          "depth": 0.63,
+          "height": 1.34,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 60,
+          "width": 0.8,
+          "depth": 0.62,
+          "height": 1.26,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 260,
+          "width": 0.8,
+          "depth": 0.685,
+          "height": 0.304,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 76,
+          "width": 0.8,
+          "depth": 0.63,
+          "height": 0.304,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.8,
+          "depth": 0.62,
+          "height": 0.304,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-indic-houses-damage.glb": {
+    "bytes": 1192648,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 1653,
+          "width": 0.996,
+          "depth": 0.913,
+          "height": 1.037,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 327,
+          "width": 0.988,
+          "depth": 0.853,
+          "height": 0.991,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.996,
+          "depth": 0.913,
+          "height": 1.04,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 508,
+          "width": 0.995,
+          "depth": 0.874,
+          "height": 0.412,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 187,
+          "width": 0.988,
+          "depth": 0.853,
+          "height": 0.412,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.996,
+          "depth": 0.913,
+          "height": 0.417,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 1311,
+          "width": 0.756,
+          "depth": 0.713,
+          "height": 0.641,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 335,
+          "width": 0.756,
+          "depth": 0.713,
+          "height": 0.6,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.756,
+          "depth": 0.713,
+          "height": 0.624,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 504,
+          "width": 0.755,
+          "depth": 0.674,
+          "height": 0.289,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 175,
+          "width": 0.748,
+          "depth": 0.653,
+          "height": 0.289,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.756,
+          "depth": 0.713,
+          "height": 0.292,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 2093,
+          "width": 1.286,
+          "depth": 1.093,
+          "height": 1.04,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 326,
+          "width": 1.278,
+          "depth": 1.039,
+          "height": 1.036,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.286,
+          "depth": 1.093,
+          "height": 1.04,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 570,
+          "width": 1.285,
+          "depth": 1.045,
+          "height": 0.319,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 211,
+          "width": 1.278,
+          "depth": 1.039,
+          "height": 0.319,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.286,
+          "depth": 1.093,
+          "height": 0.321,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-israelite-houses-damage.glb": {
+    "bytes": 1131064,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 1779,
+          "width": 1.005,
+          "depth": 0.933,
+          "height": 1.806,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 308,
+          "width": 0.998,
+          "depth": 0.866,
+          "height": 1.724,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.005,
+          "depth": 0.933,
+          "height": 1.865,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 444,
+          "width": 1.005,
+          "depth": 0.886,
+          "height": 0.281,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 165,
+          "width": 0.998,
+          "depth": 0.866,
+          "height": 0.281,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.005,
+          "depth": 0.933,
+          "height": 0.296,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 1057,
+          "width": 0.822,
+          "depth": 0.699,
+          "height": 0.624,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 331,
+          "width": 0.81,
+          "depth": 0.693,
+          "height": 0.604,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.822,
+          "depth": 0.699,
+          "height": 0.604,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 498,
+          "width": 0.755,
+          "depth": 0.665,
+          "height": 0.288,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 179,
+          "width": 0.748,
+          "depth": 0.658,
+          "height": 0.288,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.822,
+          "depth": 0.699,
+          "height": 0.296,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 1898,
+          "width": 1.305,
+          "depth": 1.045,
+          "height": 1.008,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 325,
+          "width": 1.298,
+          "depth": 1.022,
+          "height": 1.002,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.305,
+          "depth": 1.045,
+          "height": 1.008,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 352,
+          "width": 1.305,
+          "depth": 1.045,
+          "height": 0.222,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 96,
+          "width": 1.298,
+          "depth": 0.992,
+          "height": 0.189,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.305,
+          "depth": 1.045,
+          "height": 0.305,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-levant-houses-damage.glb": {
+    "bytes": 654952,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 720,
+          "width": 0.72,
+          "depth": 0.62,
+          "height": 1.029,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 228,
+          "width": 0.72,
+          "depth": 0.616,
+          "height": 1.029,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 61,
+          "width": 0.72,
+          "depth": 0.56,
+          "height": 0.929,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 300,
+          "width": 0.72,
+          "depth": 0.616,
+          "height": 0.347,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 108,
+          "width": 0.72,
+          "depth": 0.616,
+          "height": 0.347,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.72,
+          "depth": 0.56,
+          "height": 0.347,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 569,
+          "width": 0.6,
+          "depth": 0.491,
+          "height": 0.523,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 161,
+          "width": 0.6,
+          "depth": 0.491,
+          "height": 0.482,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 61,
+          "width": 0.6,
+          "depth": 0.48,
+          "height": 0.479,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 328,
+          "width": 0.6,
+          "depth": 0.491,
+          "height": 0.265,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 100,
+          "width": 0.6,
+          "depth": 0.491,
+          "height": 0.265,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.6,
+          "depth": 0.48,
+          "height": 0.266,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 679,
+          "width": 0.815,
+          "depth": 0.676,
+          "height": 1.392,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 227,
+          "width": 0.8,
+          "depth": 0.676,
+          "height": 1.392,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 60,
+          "width": 0.8,
+          "depth": 0.62,
+          "height": 1.264,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 282,
+          "width": 0.8,
+          "depth": 0.676,
+          "height": 0.266,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 110,
+          "width": 0.8,
+          "depth": 0.676,
+          "height": 0.266,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.8,
+          "depth": 0.62,
+          "height": 0.266,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-maghreb-houses-damage.glb": {
+    "bytes": 623012,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 562,
+          "width": 1.06,
+          "depth": 0.908,
+          "height": 0.969,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 302,
+          "width": 1.06,
+          "depth": 0.908,
+          "height": 0.969,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.06,
+          "depth": 0.908,
+          "height": 0.969,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 253,
+          "width": 1.04,
+          "depth": 0.893,
+          "height": 0.218,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 93,
+          "width": 1.04,
+          "depth": 0.893,
+          "height": 0.218,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.06,
+          "depth": 0.908,
+          "height": 0.219,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 529,
+          "width": 0.79,
+          "depth": 0.697,
+          "height": 0.578,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 269,
+          "width": 0.79,
+          "depth": 0.697,
+          "height": 0.553,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.79,
+          "depth": 0.697,
+          "height": 0.553,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 312,
+          "width": 0.77,
+          "depth": 0.688,
+          "height": 0.309,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 152,
+          "width": 0.77,
+          "depth": 0.688,
+          "height": 0.295,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.79,
+          "depth": 0.697,
+          "height": 0.296,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 1012,
+          "width": 1.42,
+          "depth": 1.128,
+          "height": 0.969,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 322,
+          "width": 1.42,
+          "depth": 1.128,
+          "height": 0.969,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.42,
+          "depth": 1.128,
+          "height": 0.969,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 566,
+          "width": 1.4,
+          "depth": 1.113,
+          "height": 0.325,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 210,
+          "width": 1.4,
+          "depth": 1.113,
+          "height": 0.325,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.42,
+          "depth": 1.128,
+          "height": 0.326,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-monsoon-houses-damage.glb": {
+    "bytes": 708328,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 1275,
+          "width": 1.02,
+          "depth": 0.877,
+          "height": 1.131,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 338,
+          "width": 1.02,
+          "depth": 0.877,
+          "height": 1.083,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.02,
+          "depth": 0.877,
+          "height": 1.131,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 312,
+          "width": 1.0,
+          "depth": 0.868,
+          "height": 0.301,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 104,
+          "width": 1.0,
+          "depth": 0.868,
+          "height": 0.301,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.02,
+          "depth": 0.877,
+          "height": 0.302,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 723,
+          "width": 0.795,
+          "depth": 0.695,
+          "height": 0.553,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 353,
+          "width": 0.795,
+          "depth": 0.695,
+          "height": 0.526,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.795,
+          "depth": 0.695,
+          "height": 0.526,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 303,
+          "width": 0.75,
+          "depth": 0.663,
+          "height": 0.283,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 131,
+          "width": 0.75,
+          "depth": 0.663,
+          "height": 0.283,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.795,
+          "depth": 0.695,
+          "height": 0.285,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 991,
+          "width": 1.34,
+          "depth": 1.067,
+          "height": 1.131,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 283,
+          "width": 1.34,
+          "depth": 1.067,
+          "height": 1.083,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.34,
+          "depth": 1.067,
+          "height": 1.131,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 244,
+          "width": 1.32,
+          "depth": 1.053,
+          "height": 0.319,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 76,
+          "width": 1.32,
+          "depth": 1.053,
+          "height": 0.319,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.34,
+          "depth": 1.067,
+          "height": 0.321,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-nile-houses-damage.glb": {
+    "bytes": 674884,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 895,
+          "width": 1.078,
+          "depth": 0.941,
+          "height": 1.028,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 329,
+          "width": 1.078,
+          "depth": 0.941,
+          "height": 1.028,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.078,
+          "depth": 0.941,
+          "height": 1.028,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 333,
+          "width": 1.05,
+          "depth": 0.926,
+          "height": 0.357,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 107,
+          "width": 1.05,
+          "depth": 0.926,
+          "height": 0.357,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.078,
+          "depth": 0.941,
+          "height": 0.36,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 840,
+          "width": 0.828,
+          "depth": 0.74,
+          "height": 0.636,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 338,
+          "width": 0.828,
+          "depth": 0.74,
+          "height": 0.612,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.828,
+          "depth": 0.74,
+          "height": 0.612,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 339,
+          "width": 0.8,
+          "depth": 0.726,
+          "height": 0.267,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 126,
+          "width": 0.8,
+          "depth": 0.726,
+          "height": 0.267,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.828,
+          "depth": 0.74,
+          "height": 0.272,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 935,
+          "width": 1.428,
+          "depth": 1.141,
+          "height": 1.031,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 321,
+          "width": 1.428,
+          "depth": 1.141,
+          "height": 1.028,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.428,
+          "depth": 1.141,
+          "height": 1.028,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 314,
+          "width": 1.4,
+          "depth": 1.116,
+          "height": 0.248,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 130,
+          "width": 1.4,
+          "depth": 1.116,
+          "height": 0.248,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.428,
+          "depth": 1.141,
+          "height": 0.248,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-sinic-houses-damage.glb": {
+    "bytes": 758056,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 604,
+          "width": 0.742,
+          "depth": 0.66,
+          "height": 1.36,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 128,
+          "width": 0.72,
+          "depth": 0.616,
+          "height": 1.36,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 60,
+          "width": 0.72,
+          "depth": 0.56,
+          "height": 1.26,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 292,
+          "width": 0.72,
+          "depth": 0.628,
+          "height": 0.219,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 84,
+          "width": 0.72,
+          "depth": 0.616,
+          "height": 0.219,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.72,
+          "depth": 0.56,
+          "height": 0.219,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 910,
+          "width": 0.655,
+          "depth": 0.533,
+          "height": 0.554,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 234,
+          "width": 0.655,
+          "depth": 0.525,
+          "height": 0.554,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 70,
+          "width": 0.64,
+          "depth": 0.4,
+          "height": 0.54,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 556,
+          "width": 0.61,
+          "depth": 0.493,
+          "height": 0.205,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 159,
+          "width": 0.6,
+          "depth": 0.485,
+          "height": 0.205,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.6,
+          "depth": 0.396,
+          "height": 0.206,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 625,
+          "width": 0.822,
+          "depth": 0.606,
+          "height": 2.181,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 161,
+          "width": 0.6,
+          "depth": 0.559,
+          "height": 2.133,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 59,
+          "width": 0.582,
+          "depth": 0.53,
+          "height": 2.1,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 406,
+          "width": 0.8,
+          "depth": 0.603,
+          "height": 0.303,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 150,
+          "width": 0.597,
+          "depth": 0.557,
+          "height": 0.303,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.547,
+          "depth": 0.463,
+          "height": 0.302,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-steppe-houses-damage.glb": {
+    "bytes": 1227724,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 1865,
+          "width": 0.995,
+          "depth": 0.943,
+          "height": 0.88,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 337,
+          "width": 0.988,
+          "depth": 0.934,
+          "height": 0.868,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.995,
+          "depth": 0.943,
+          "height": 0.868,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 509,
+          "width": 0.995,
+          "depth": 0.926,
+          "height": 0.321,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 184,
+          "width": 0.988,
+          "depth": 0.853,
+          "height": 0.321,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.995,
+          "depth": 0.943,
+          "height": 0.322,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 1647,
+          "width": 0.755,
+          "depth": 0.743,
+          "height": 0.665,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 333,
+          "width": 0.748,
+          "depth": 0.734,
+          "height": 0.66,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.755,
+          "depth": 0.743,
+          "height": 0.66,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 534,
+          "width": 0.755,
+          "depth": 0.728,
+          "height": 0.331,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 200,
+          "width": 0.748,
+          "depth": 0.653,
+          "height": 0.331,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.755,
+          "depth": 0.743,
+          "height": 0.332,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 2494,
+          "width": 1.285,
+          "depth": 1.066,
+          "height": 1.074,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 340,
+          "width": 1.269,
+          "depth": 1.033,
+          "height": 1.074,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.285,
+          "depth": 1.066,
+          "height": 1.074,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 570,
+          "width": 1.285,
+          "depth": 1.038,
+          "height": 0.224,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 205,
+          "width": 1.269,
+          "depth": 1.033,
+          "height": 0.221,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.285,
+          "depth": 1.066,
+          "height": 0.228,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern-westafrica-houses-damage.glb": {
+    "bytes": 1158816,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 1573,
+          "width": 1.062,
+          "depth": 0.977,
+          "height": 0.918,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 325,
+          "width": 1.05,
+          "depth": 0.965,
+          "height": 0.913,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.062,
+          "depth": 0.977,
+          "height": 0.913,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 616,
+          "width": 0.995,
+          "depth": 0.933,
+          "height": 0.368,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 197,
+          "width": 0.988,
+          "depth": 0.853,
+          "height": 0.367,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.062,
+          "depth": 0.977,
+          "height": 0.376,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 1433,
+          "width": 0.822,
+          "depth": 0.777,
+          "height": 0.633,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 335,
+          "width": 0.81,
+          "depth": 0.765,
+          "height": 0.635,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 0.822,
+          "depth": 0.777,
+          "height": 0.633,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 450,
+          "width": 0.755,
+          "depth": 0.728,
+          "height": 0.226,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 163,
+          "width": 0.748,
+          "depth": 0.653,
+          "height": 0.226,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.822,
+          "depth": 0.777,
+          "height": 0.231,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 2333,
+          "width": 1.352,
+          "depth": 1.092,
+          "height": 1.144,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 328,
+          "width": 1.34,
+          "depth": 1.08,
+          "height": 1.105,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.352,
+          "depth": 1.092,
+          "height": 1.144,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 630,
+          "width": 1.285,
+          "depth": 1.039,
+          "height": 0.369,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 213,
+          "width": 1.278,
+          "depth": 1.033,
+          "height": 0.368,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.352,
+          "depth": 1.092,
+          "height": 0.38,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "palace-damage-modern.glb": {
+    "bytes": 828308,
+    "objects": {
+      "palace-damaged": {
+        "LOD0": {
+          "triangles": 2771,
+          "width": 1.224,
+          "depth": 1.036,
+          "height": 1.214,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 394,
+          "width": 1.224,
+          "depth": 0.94,
+          "height": 1.167,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.224,
+          "depth": 1.036,
+          "height": 1.214,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "palace-ruined": {
+        "LOD0": {
+          "triangles": 1200,
+          "width": 1.224,
+          "depth": 1.036,
+          "height": 0.209,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 198,
+          "width": 1.224,
+          "depth": 0.94,
+          "height": 0.209,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.224,
+          "depth": 1.036,
+          "height": 0.264,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "palace-small-damaged": {
+        "LOD0": {
+          "triangles": 1190,
+          "width": 1.173,
+          "depth": 0.933,
+          "height": 0.87,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 403,
+          "width": 1.173,
+          "depth": 0.874,
+          "height": 0.859,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 62,
+          "width": 1.173,
+          "depth": 0.933,
+          "height": 0.859,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "palace-small-ruined": {
+        "LOD0": {
+          "triangles": 741,
+          "width": 1.173,
+          "depth": 0.933,
+          "height": 0.259,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 283,
+          "width": 1.173,
+          "depth": 0.874,
+          "height": 0.226,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.173,
+          "depth": 0.933,
+          "height": 0.238,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "modern.glb": {
+    "bytes": 50960,
+    "objects": {
+      "cannonball": {
+        "LOD0": {
+          "triangles": 20,
+          "width": 0.011,
+          "depth": 0.01,
+          "height": 0.006,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 20,
+          "width": 0.011,
+          "depth": 0.01,
+          "height": 0.006,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 20,
+          "width": 0.011,
+          "depth": 0.01,
+          "height": 0.006,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "missile": {
+        "LOD0": {
+          "triangles": 48,
+          "width": 0.024,
+          "depth": 0.12,
+          "height": 0.012,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 48,
+          "width": 0.024,
+          "depth": 0.12,
+          "height": 0.012,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 48,
+          "width": 0.024,
+          "depth": 0.12,
+          "height": 0.012,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "shell": {
+        "LOD0": {
+          "triangles": 54,
+          "width": 0.015,
+          "depth": 0.07,
+          "height": 0.008,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 54,
+          "width": 0.015,
+          "depth": 0.07,
+          "height": 0.008,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 54,
+          "width": 0.015,
+          "depth": 0.07,
+          "height": 0.008,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        256,
+        256
+      ],
+      [
+        256,
+        256
+      ],
+      [
+        256,
+        256
+      ]
+    ]
+  },
+  "props-modern.glb": {
+    "bytes": 421700,
+    "objects": {
+      "barrel": {
+        "LOD0": {
+          "triangles": 252,
+          "width": 0.103,
+          "depth": 0.174,
+          "height": 0.065,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 144,
+          "width": 0.102,
+          "depth": 0.174,
+          "height": 0.065,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 108,
+          "width": 0.102,
+          "depth": 0.094,
+          "height": 0.065,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "campfire": {
+        "LOD0": {
+          "triangles": 220,
+          "width": 0.16,
+          "depth": 0.163,
+          "height": 0.063,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 220,
+          "width": 0.16,
+          "depth": 0.163,
+          "height": 0.063,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 180,
+          "width": 0.15,
+          "depth": 0.135,
+          "height": 0.063,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "cart": {
+        "LOD0": {
+          "triangles": 312,
+          "width": 0.17,
+          "depth": 0.351,
+          "height": 0.145,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 116,
+          "width": 0.17,
+          "depth": 0.316,
+          "height": 0.143,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 32,
+          "width": 0.12,
+          "depth": 0.316,
+          "height": 0.061,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "crate": {
+        "LOD0": {
+          "triangles": 224,
+          "width": 0.145,
+          "depth": 0.097,
+          "height": 0.08,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 24,
+          "width": 0.145,
+          "depth": 0.045,
+          "height": 0.04,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 24,
+          "width": 0.145,
+          "depth": 0.045,
+          "height": 0.04,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "fence-a": {
+        "LOD0": {
+          "triangles": 132,
+          "width": 0.27,
+          "depth": 0.012,
+          "height": 0.187,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 72,
+          "width": 0.27,
+          "depth": 0.012,
+          "height": 0.16,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 52,
+          "width": 0.27,
+          "depth": 0.012,
+          "height": 0.16,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "field-wall-a": {
+        "LOD0": {
+          "triangles": 52,
+          "width": 0.3,
+          "depth": 0.08,
+          "height": 0.085,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 28,
+          "width": 0.3,
+          "depth": 0.08,
+          "height": 0.085,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 28,
+          "width": 0.3,
+          "depth": 0.08,
+          "height": 0.085,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "haystack": {
+        "LOD0": {
+          "triangles": 108,
+          "width": 0.19,
+          "depth": 0.22,
+          "height": 0.095,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 108,
+          "width": 0.19,
+          "depth": 0.22,
+          "height": 0.095,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 72,
+          "width": 0.19,
+          "depth": 0.12,
+          "height": 0.095,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "market-stall": {
+        "LOD0": {
+          "triangles": 98,
+          "width": 0.312,
+          "depth": 0.312,
+          "height": 0.285,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 54,
+          "width": 0.305,
+          "depth": 0.305,
+          "height": 0.285,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 18,
+          "width": 0.32,
+          "depth": 0.32,
+          "height": 0.285,
+          "materials": [
+            "Team"
+          ]
+        }
+      },
+      "road-marker": {
+        "LOD0": {
+          "triangles": 76,
+          "width": 0.09,
+          "depth": 0.012,
+          "height": 0.17,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 32,
+          "width": 0.09,
+          "depth": 0.01,
+          "height": 0.17,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 20,
+          "width": 0.007,
+          "depth": 0.008,
+          "height": 0.17,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "shrine": {
+        "LOD0": {
+          "triangles": 172,
+          "width": 0.12,
+          "depth": 0.088,
+          "height": 0.19,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 36,
+          "width": 0.12,
+          "depth": 0.08,
+          "height": 0.19,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 24,
+          "width": 0.12,
+          "depth": 0.08,
+          "height": 0.19,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "standard": {
+        "LOD0": {
+          "triangles": 64,
+          "width": 0.157,
+          "depth": 0.05,
+          "height": 0.368,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 44,
+          "width": 0.157,
+          "depth": 0.05,
+          "height": 0.36,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 32,
+          "width": 0.135,
+          "depth": 0.008,
+          "height": 0.36,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "well": {
+        "LOD0": {
+          "triangles": 192,
+          "width": 0.163,
+          "depth": 0.175,
+          "height": 0.14,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 116,
+          "width": 0.163,
+          "depth": 0.175,
+          "height": 0.14,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 12,
+          "width": 0.16,
+          "depth": 0.16,
+          "height": 0.02,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "fort-modern.glb": {
+    "bytes": 842984,
+    "objects": {
+      "fort-modern": {
+        "LOD0": {
+          "triangles": 6712,
+          "width": 5.012,
+          "depth": 5.025,
+          "height": 0.96,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1374,
+          "width": 5.014,
+          "depth": 5.029,
+          "height": 0.93,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 297,
+          "width": 5.012,
+          "depth": 5.029,
+          "height": 0.825,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  }
+}

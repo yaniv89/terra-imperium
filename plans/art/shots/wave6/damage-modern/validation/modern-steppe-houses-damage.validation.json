@@ -1,0 +1,312 @@
+{
+  "file": "modern-steppe-houses-damage.glb",
+  "kind": "house-damage",
+  "bytes": 1227724,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "house-common-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1865,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.995,
+          "depth": 0.943,
+          "height": 0.88,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 337,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.988,
+          "depth": 0.934,
+          "height": 0.868,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 62,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.995,
+          "depth": 0.943,
+          "height": 0.868,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.995
+    },
+    "house-common-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 509,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.995,
+          "depth": 0.926,
+          "height": 0.321,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 184,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.988,
+          "depth": 0.853,
+          "height": 0.321,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 36,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.995,
+          "depth": 0.943,
+          "height": 0.322,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.003",
+        "LOD1.003",
+        "LOD2.003"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.995
+    },
+    "house-poor-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1647,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.755,
+          "depth": 0.743,
+          "height": 0.665,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 333,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.748,
+          "depth": 0.734,
+          "height": 0.66,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 62,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.755,
+          "depth": 0.743,
+          "height": 0.66,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.755
+    },
+    "house-poor-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 534,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.755,
+          "depth": 0.728,
+          "height": 0.331,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 200,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.748,
+          "depth": 0.653,
+          "height": 0.331,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 36,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.755,
+          "depth": 0.743,
+          "height": 0.332,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.755
+    },
+    "house-rich-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 2494,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.285,
+          "depth": 1.066,
+          "height": 1.074,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 340,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.269,
+          "depth": 1.033,
+          "height": 1.074,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 62,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.285,
+          "depth": 1.066,
+          "height": 1.074,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.004",
+        "LOD1.004",
+        "LOD2.004"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.285
+    },
+    "house-rich-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 570,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.285,
+          "depth": 1.038,
+          "height": 0.224,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 205,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.269,
+          "depth": 1.033,
+          "height": 0.221,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 36,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.285,
+          "depth": 1.066,
+          "height": 0.228,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.005",
+        "LOD1.005",
+        "LOD2.005"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.285
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "modern-steppe-houses-damage_normal",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 15072
+    },
+    {
+      "name": "modern-steppe-houses-damage_base",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 148654
+    },
+    {
+      "name": "modern-steppe-houses-damage_orm",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 160386
+    }
+  ],
+  "passed": true
+}

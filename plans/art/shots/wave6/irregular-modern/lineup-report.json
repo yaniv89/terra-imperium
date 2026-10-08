@@ -1,0 +1,46 @@
+{
+  "mode": "lineup",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave6\\irregular-modern\\lineup-standing.png",
+    "plans\\art\\shots\\wave6\\irregular-modern\\lineup-walking.png"
+  ],
+  "layers": [
+    {
+      "id": "modern-raider",
+      "triangles": 2108,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 3654,
+        "1": 540,
+        "2": 540,
+        "3": 570,
+        "4": 768,
+        "7": 252
+      },
+      "warnings": [],
+      "teamVertices": 852,
+      "skinVertices": 1950
+    },
+    {
+      "id": "modern-mercenary",
+      "triangles": 1409,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 2142,
+        "1": 540,
+        "2": 540,
+        "3": 390,
+        "4": 615
+      },
+      "warnings": [],
+      "teamVertices": 192,
+      "skinVertices": 1593
+    }
+  ],
+  "unitLog": [],
+  "errors": []
+}

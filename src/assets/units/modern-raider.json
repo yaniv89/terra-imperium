@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "quadruped": false,
+  "triangleBudget": 3000,
+  "tags": {
+    "team": "(^|\\s)Team(\\s|$)",
+    "skin": "(^|\\s)Skin(\\s|$)",
+    "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "height": 1.346
+}

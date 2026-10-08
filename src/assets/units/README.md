@@ -52,6 +52,8 @@ flag; model imports still require a visual and licensing review.
 | `modern-support.glb` | Anti-air battery: three-axle truck (wheeled rig) with a twin AA gun mount and radar panel, Team doors, a gunner | 1,827 | `build_units_modern.py` (Claude) |
 | `modern-worker.glb` | Engineer: overalls, Team high-visibility vest, Team hard hat, tool bag, sledgehammer | 1,403 | `build_units_modern.py` (Claude) |
 | `modern-general.glb` | General: open command car (wheeled rig) with a whip mast and an Emblem pennant, a driver, the general standing in a peaked cap | 2,948 | `build_units_modern.py` (Claude) |
+| `modern-raider.glb` | Raider: a technical on the wheeled rig, a machine gun on a pintle (Turret, Barrel), loot in the bed, Team tailgate and doors, a gunner in a headscarf with a raised torch | 2,108 | `build_units_modern_irregular.py` (Claude) |
+| `modern-mercenary.glb` | Mercenary: ball cap and headset, tan shirt, Team chest rig, cargo trousers, striped sash and coin pouch, beard, carbine | 1,409 | `build_units_modern_irregular.py` (Claude) |
 | `modern-air.glb` | Fighter jet (`air` squads): twin-tail multirole fighter, gear up, Team fins, emblem roundels, two missiles (one Hull bone; `segment: false`) | 556 | `build_units_modern.py` (Claude) |
 
 The Modern vehicles' JSON carries `height` (their true height, a person = 1), so a tank, a gun crew

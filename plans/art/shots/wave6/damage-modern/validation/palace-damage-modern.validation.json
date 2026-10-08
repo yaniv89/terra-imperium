@@ -1,0 +1,228 @@
+{
+  "file": "palace-damage-modern.glb",
+  "kind": "landmark",
+  "bytes": 828308,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "palace-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 2771,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.224,
+          "depth": 1.036,
+          "height": 1.214,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 394,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.224,
+          "depth": 0.94,
+          "height": 1.167,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 62,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.224,
+          "depth": 1.036,
+          "height": 1.214,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.224
+    },
+    "palace-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1200,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.224,
+          "depth": 1.036,
+          "height": 0.209,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 198,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.224,
+          "depth": 0.94,
+          "height": 0.209,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 36,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.224,
+          "depth": 1.036,
+          "height": 0.264,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.224
+    },
+    "palace-small-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1190,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.173,
+          "depth": 0.933,
+          "height": 0.87,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 403,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.173,
+          "depth": 0.874,
+          "height": 0.859,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 62,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.173,
+          "depth": 0.933,
+          "height": 0.859,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.173
+    },
+    "palace-small-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 741,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.173,
+          "depth": 0.933,
+          "height": 0.259,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 283,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.173,
+          "depth": 0.874,
+          "height": 0.226,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 36,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.173,
+          "depth": 0.933,
+          "height": 0.238,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.003",
+        "LOD1.003",
+        "LOD2.003"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.173
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "palace-damage-modern_normal",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 2292
+    },
+    {
+      "name": "palace-damage-modern_base",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 129712
+    },
+    {
+      "name": "palace-damage-modern_orm",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 134886
+    }
+  ],
+  "passed": true
+}

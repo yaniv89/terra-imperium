@@ -1,0 +1,373 @@
+{
+  "file": "rts-modern-europe.glb",
+  "kind": "prefab",
+  "bytes": 2587520,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "barracks": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3432,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.502,
+          "depth": 1.13,
+          "height": 0.75,
+          "min_height": -0.0013
+        },
+        "LOD1": {
+          "triangles": 824,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.499,
+          "depth": 1.127,
+          "height": 0.75,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 120,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.502,
+          "depth": 1.13,
+          "height": 0.75,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2",
+        "socket-banner",
+        "socket-door",
+        "socket-fire-1",
+        "socket-fire-2",
+        "socket-fire-3",
+        "socket-fire-4",
+        "socket-rally",
+        "socket-smoke-1"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.502
+    },
+    "barracks-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3639,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.513,
+          "depth": 1.134,
+          "height": 0.5,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 983,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.499,
+          "depth": 1.131,
+          "height": 0.5,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 38,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.502,
+          "depth": 1.054,
+          "height": 0.5,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001",
+        "socket-banner.001",
+        "socket-door.001",
+        "socket-fire-1.001",
+        "socket-fire-2.001",
+        "socket-fire-3.001",
+        "socket-fire-4.001",
+        "socket-rally.001",
+        "socket-smoke-1.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.513
+    },
+    "tower": {
+      "lods": {
+        "LOD0": {
+          "triangles": 2233,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.618,
+          "depth": 0.634,
+          "height": 1.48,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 418,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.62,
+          "depth": 0.635,
+          "height": 1.48,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 146,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.62,
+          "depth": 0.62,
+          "height": 1.48,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002",
+        "socket-banner.002",
+        "socket-door.002",
+        "socket-fire-1.002",
+        "socket-fire-2.002",
+        "socket-fire-3.002",
+        "socket-fire-4.002",
+        "socket-rally.002",
+        "socket-smoke-1.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.634
+    },
+    "tower-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1276,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.638,
+          "depth": 0.76,
+          "height": 1.107,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 567,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.639,
+          "depth": 0.76,
+          "height": 1.194,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 63,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.62,
+          "depth": 0.62,
+          "height": 1.26,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.003",
+        "LOD1.003",
+        "LOD2.003",
+        "socket-banner.003",
+        "socket-door.003",
+        "socket-fire-1.003",
+        "socket-fire-2.003",
+        "socket-fire-3.003",
+        "socket-fire-4.003",
+        "socket-rally.003",
+        "socket-smoke-1.003"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.76
+    },
+    "trade-post": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3692,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.449,
+          "depth": 1.356,
+          "height": 0.66,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 562,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.449,
+          "depth": 1.354,
+          "height": 0.66,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 110,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.243,
+          "depth": 0.46,
+          "height": 0.66,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.004",
+        "LOD1.004",
+        "LOD2.004",
+        "socket-banner.004",
+        "socket-door.004",
+        "socket-drop",
+        "socket-fire-1.004",
+        "socket-fire-2.004",
+        "socket-fire-3.004",
+        "socket-fire-4.004",
+        "socket-rally.004",
+        "socket-smoke-1.004"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.449
+    },
+    "trade-post-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3701,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.433,
+          "depth": 1.356,
+          "height": 0.66,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 797,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.433,
+          "depth": 1.354,
+          "height": 0.66,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 112,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.243,
+          "depth": 0.46,
+          "height": 0.66,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.005",
+        "LOD1.005",
+        "LOD2.005",
+        "socket-banner.005",
+        "socket-door.005",
+        "socket-drop.001",
+        "socket-fire-1.005",
+        "socket-fire-2.005",
+        "socket-fire-3.005",
+        "socket-fire-4.005",
+        "socket-rally.005",
+        "socket-smoke-1.005"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.433
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "rts-modern-europe_normal",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 71428
+    },
+    {
+      "name": "rts-modern-europe_base",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 241190
+    },
+    {
+      "name": "rts-modern-europe_orm",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 179990
+    }
+  ],
+  "passed": true
+}
