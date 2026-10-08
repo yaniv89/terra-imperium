@@ -30,3 +30,8 @@ in medieval dress: a wattle hurdle, a dry-stone field wall with a coping, a ston
 roof with a windlass, a plank cart with iron-tyred wheels and sacks, a haystack, a crate, two staved
 barrels (`barrel`), a stall under a Team awning with a striped valance, a Team gonfanon under an iron
 cross (`standard`), a campfire, a wayside stone cross (`shrine`) and a waymark stone (`road-marker`).
+
+`props-gunpowder.glb` (2026-10-08, scripts/blender/build_props_gunpowder.py, CC0-1.0): a picket fence, a
+brick field wall with a sandstone coping, a brick well under a tile roof, an ammunition cart with powder
+barrels, a haystack, a crate, powder barrels (`barrel`), the kit's stall under a Team awning, a regimental
+colour on a pike (`standard`), a campfire, a sandstone wayside shrine and a milestone.

@@ -43,6 +43,8 @@ flag; model imports still require a visual and licensing review.
 | `gunpowder-support.glb` | Sappers: wicker gabion on the back, shovel, fuse coil, leather apron, cap | 1,446 | `build_units_gunpowder.py` (Claude) |
 | `gunpowder-worker.glb` | Laborer: shirt and Team waistcoat, broad hat, shovel, wheelbarrow | 1,390 | `build_units_gunpowder.py` (Claude) |
 | `gunpowder-general.glb` | General: plumed bicorne, Team coat with epaulettes and sash, Team cloak, sabre; a colour bearer with the Emblem colour | 2,297 | `build_units_gunpowder.py` (Claude) |
+| `gunpowder-raider.glb` | Raider: a horseman on a blanket with loot sacks, a brass kettle and a clock on the croup; loose Team coat, slouch hat, bandolier, raised torch, carbine slung | 2,028 | `build_units_gunpowder_irregular.py` (Claude) |
+| `gunpowder-mercenary.glb` | Mercenary: buff leather coat over a Team waistcoat, broad plumed hat, bandolier of powder chargers, striped sash and coin pouch, boots, matchlock, short sword | 1,442 | `build_units_gunpowder_irregular.py` (Claude) |
 
 Built by `scripts/blender/build_units_classical.py` (Claude) on the same rig, body and part library
 (`build_units_bronze_signature.py`); rest pose only. Culture-neutral.

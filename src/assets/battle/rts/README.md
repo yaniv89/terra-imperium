@@ -71,6 +71,10 @@ tower in its walled court, the tower a bastion gun platform with a cannon, the s
 foundry with a furnace chimney, gabions at the camp, a headframe at the mine, an earth butt at the range.
 1024 textures, 1.98 MB packed.
 
+Gunpowder culture skins (2026-10-08, wave5 checkpoint 30, `scripts/blender/build_rts_skins_gunpowder.py`):
+`rts-gunpowder-<theme>.glb` for the 12 themes, barracks, tower and trade post with `-damaged`, from the
+theme's Gunpowder houses, the sockets of `rts-gunpowder.glb`.
+
 ## Check
 `python3 scripts/blender/validate_model.py <file> <out> auto` (kind `prefab`), then
 `npm run pack:models`, then `/?battleSandbox` with an economy battle.

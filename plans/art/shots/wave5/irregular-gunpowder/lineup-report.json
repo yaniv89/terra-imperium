@@ -1,0 +1,45 @@
+{
+  "mode": "lineup",
+  "viewport": [
+    844,
+    390
+  ],
+  "shots": [
+    "plans\\art\\shots\\wave5\\irregular-gunpowder\\lineup-standing.png",
+    "plans\\art\\shots\\wave5\\irregular-gunpowder\\lineup-walking.png"
+  ],
+  "layers": [
+    {
+      "id": "gunpowder-raider",
+      "triangles": 2026,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 4236,
+        "3": 390,
+        "4": 588,
+        "5": 432,
+        "6": 432
+      },
+      "warnings": [],
+      "teamVertices": 576,
+      "skinVertices": 2286
+    },
+    {
+      "id": "gunpowder-mercenary",
+      "triangles": 1442,
+      "namedLimbs": true,
+      "limbs": {
+        "0": 2016,
+        "1": 672,
+        "2": 672,
+        "3": 390,
+        "4": 576
+      },
+      "warnings": [],
+      "teamVertices": 36,
+      "skinVertices": 2286
+    }
+  ],
+  "unitLog": [],
+  "errors": []
+}

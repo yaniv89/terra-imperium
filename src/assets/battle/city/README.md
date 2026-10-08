@@ -62,3 +62,7 @@ palaces (`build_palace_damage_classical.py`), 1024 atlases.
 Wave 4 checkpoint 24 (2026-10-08): `kingdoms[-<theme>]-houses-damage.glb` for the base kit and 12
 themes (`build_houses_damage_kingdoms.py`) and `palace-damage-kingdoms.glb` from the shared Kingdoms
 palaces (`build_palace_damage_kingdoms.py`; the motte's ruin keeps its mound), 1024 atlases.
+Wave 5 checkpoint 29 (2026-10-08): `walls-gunpowder.glb`, `ruins-gunpowder.glb`, `fort-gunpowder.glb` (a
+star fort) and `civic-gunpowder.glb` (`build_city_gunpowder.py`). Checkpoint 30:
+`gunpowder[-<theme>]-houses-damage.glb` for the base kit and 12 themes (`build_houses_damage_gunpowder.py`)
+and `palace-damage-gunpowder.glb` (`build_palace_damage_gunpowder.py`), 1024 atlases.
