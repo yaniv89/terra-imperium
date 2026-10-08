@@ -16,11 +16,11 @@ import { MeshoptSimplifier } from 'three/examples/jsm/libs/meshopt_simplifier.mo
 export const TIER_PX = [44, 18];
 export const TIER_HYSTERESIS = 0.12;
 // Target triangles per level: a cap the simplifier aims under while it stays within TIER_ERROR.
-export const TIER_TRIS = [Infinity, 700, 260];
+export const TIER_TRIS = [Infinity, 550, 220];
 // The largest shape error a level may make, in model units (a soldier stands about 1 tall). One
 // css px is about 2% of a soldier's height at 44 px (the mid level's top) and 5% at 18 px (the far
 // level's top): the levels stay under a pixel or two, so a squad never changes shape at a switch.
-export const TIER_ERROR = [0, 0.012, 0.03];
+export const TIER_ERROR = [0, 0.015, 0.03];
 
 // Simplification (meshoptimizer, the quadric edge-collapse simplifier three ships as WASM). The old
 // vertex clustering snapped a whole figure to a 3 or 4 cell grid at the far level: bodies, legs,
