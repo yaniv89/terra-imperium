@@ -1373,6 +1373,7 @@ export class BattleRenderer {
     // calls for, coarser while the figures in view would pass the triangle budget.
     const layers = [...this.soldierLayers.values()];
     this.soldierTier = pickSoldierTier({ px: this.soldierPx(), layers: layers.map((l) => ({ figures: l.count, tris: l.tris })), budget: this.figureBudget, prev: this.soldierTier ?? 2, bias: this.detail.bias });
+    if (this.forceTier != null) this.soldierTier = this.forceTier; // a fixed level (battle-lab zoom-shots.mjs TIER=)
     layers.forEach((l) => {
       l.levels.forEach((m, k) => { m.count = l.count; m.visible = k === this.soldierTier && l.count > 0; });
       if (!l.count) return;
