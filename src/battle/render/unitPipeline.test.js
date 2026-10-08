@@ -97,9 +97,9 @@ describe('unit model registry', () => {
     expect(battleModelPairs(setup).map((p) => p.join(':')).sort()).toEqual(['bronze:cavalry', 'bronze:infantry', 'bronze:ranged', 'kingdoms:infantry']);
   });
 
-  it('resolves the Bronze, Classical, Kingdoms and Gunpowder sets to their delivered GLBs and every other age to the procedural model (the old recipes stay disabled)', () => {
-    // Waves 1, 3, 4 and 5 (plans/ART-MODELS-PLAN.md): src/assets/units/<age>-<class>.glb with an enabling JSON
-    ['bronze', 'classical', 'kingdoms', 'gunpowder'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege', 'support', 'worker'].forEach((cls) => {
+  it('resolves every age\'s set (Bronze to Modern) to its delivered GLBs, the Modern jet included (the old recipes stay disabled)', () => {
+    // Waves 1, 3, 4, 5 and 6 (plans/ART-MODELS-PLAN.md): src/assets/units/<age>-<class>.glb with an enabling JSON
+    ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege', 'support', 'worker'].forEach((cls) => {
       const m = findUnitModel(age, cls);
       expect(m?.name, `${age}-${cls}`).toBe(`${age}-${cls}`);
       expect(m.recipe).toBeUndefined();
@@ -112,9 +112,14 @@ describe('unit model registry', () => {
     expect(findUnitModel('kingdoms', 'cavalry').options.quadruped).toBe(true);
     expect(findUnitModel('gunpowder', 'cavalry').options.quadruped).toBe(true);
     expect(findUnitModel('gunpowder', 'siege').options.quadruped).toBe(false);
-    ['modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege'].forEach((cls) => {
-      expect(findUnitModel(age, cls), `${age}-${cls}`).toBeNull();
-    }));
+    // Modern vehicles are rigid (no trotting legs) and carry their true height, so crews keep the people's scale
+    ['cavalry', 'siege', 'support', 'air'].forEach((cls) => {
+      const m = findUnitModel('modern', cls);
+      expect(m?.url, `modern-${cls}`).toMatch(/modern-.*\.glb/);
+      expect(m.options.quadruped).toBe(false);
+      expect(m.options.height).toBeGreaterThan(0.4);
+    });
+    expect(findUnitModel('modern', 'infantry').options.height).toBeUndefined();
     expect(findUnitModel('bronze', 'naval')).toBeNull();
   });
 

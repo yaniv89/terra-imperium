@@ -2081,38 +2081,56 @@
     {
       "path": "plans/art/units/modern-infantry",
       "section": "units",
-      "description": "present-day infantry: a helmet with cover, a plate carrier and pouches, camouflage (the team colour on a shoulder patch and the helmet band), an assault rifle 0.9 m, boots",
-      "delivery_status": "pending"
+      "description": "Modern infantry (base unit), src/assets/units/modern-infantry.glb (build_units_modern.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W6",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)"
     },
     {
       "path": "plans/art/units/modern-cavalry",
       "section": "units",
-      "description": "a present-day main battle tank: 2.5 m high, about 10 m long with the gun, a turret with a 120 mm gun, tracks, side skirts, a commander's hatch (team colour as a turret stripe)",
-      "delivery_status": "pending"
+      "description": "Modern cavalry (base unit), src/assets/units/modern-cavalry.glb (build_units_modern.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W6",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)"
     },
     {
       "path": "plans/art/units/modern-ranged",
       "section": "units",
-      "description": "a two-man anti-tank team: a tripod-mounted guided missile launcher, the gunner kneeling, the loader with a missile tube",
-      "delivery_status": "pending"
+      "description": "Modern ranged (base unit), src/assets/units/modern-ranged.glb (build_units_modern.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W6",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)"
     },
     {
       "path": "plans/art/units/modern-siege",
       "section": "units",
-      "description": "a towed 155 mm howitzer in the firing position, 2.6 m high, split trails, a muzzle brake, three crew",
-      "delivery_status": "pending"
+      "description": "Modern siege (base unit), src/assets/units/modern-siege.glb (build_units_modern.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W6",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)"
     },
     {
       "path": "plans/art/units/modern-support",
       "section": "units",
-      "description": "a towed twin 35 mm anti-aircraft gun on a four-wheel carriage, with a radar trailer, three crew",
-      "delivery_status": "pending"
+      "description": "Modern support (base unit), src/assets/units/modern-support.glb (build_units_modern.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W6",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)"
     },
     {
       "path": "plans/art/units/modern-air",
       "section": "units",
-      "description": "a present-day multirole fighter (a generic twin-tail delta or swept wing, no real type), 16 m long, 10 m wingspan, two missiles under the wings, drawn also with the landing gear up",
-      "delivery_status": "pending"
+      "description": "Modern air (base unit), src/assets/units/modern-air.glb (build_units_modern.py)",
+      "delivery_status": "in_game_awaiting_review",
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "batch": "W6",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)"
     },
     {
       "path": "plans/art/units/settler-bronze",
@@ -4974,15 +4992,16 @@
     {
       "path": "plans/art/units/modern-general",
       "section": "units",
-      "description": "Modern general: Modern mounted commander with a standard bearer (Modern: a command car); aura ring is drawn by code",
+      "description": "Modern general (base unit), src/assets/units/modern-general.glb (build_units_modern.py)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/modern-general",
       "phase": "R2",
-      "batch": "M11",
+      "batch": "W6",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)"
     },
     {
       "path": "plans/art/ui/battle/header-bronze",
@@ -7809,15 +7828,16 @@
     {
       "path": "plans/art/units/modern-worker",
       "section": "units",
-      "description": "Modern worker: Modern: labourer with basket and tool; clips idle, walk, carry, chop, mine, harvest, build, repair, deposit, death",
+      "description": "Modern worker (base unit), src/assets/units/modern-worker.glb (build_units_modern.py)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "units/modern-worker",
       "phase": "R4",
-      "batch": "M23",
+      "batch": "W6",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S8"
+      "spec": "plans/ART-MODELS-PLAN.md 4.2, 4.3",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)"
     },
     {
       "path": "plans/art/rts/modern/town-hall",
@@ -12374,6 +12394,48 @@
       "delivery_status": "in_game_awaiting_review",
       "delivered": "wave5 checkpoint-30, 2026-10-08 (plans/art/downloads/wave5/checkpoint-30)",
       "id": "rts/gunpowder/skins/westafrica",
+      "phase": "B",
+      "priority": "P1",
+      "placeholder_ok": true
+    },
+    {
+      "path": "plans/art/units/rigs/tank",
+      "section": "units",
+      "description": "The tank rig (ti_mounts.py tank(): Hull, Track_L/R, Turret, Barrel), carried by the Modern units; bare reference file art-build/units/rigs/tank.glb",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "spec": "plans/ART-MODELS-PLAN.md 4.1",
+      "batch": "W6",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)",
+      "id": "units/rigs/tank",
+      "phase": "B",
+      "priority": "P1",
+      "placeholder_ok": true
+    },
+    {
+      "path": "plans/art/units/rigs/wheeled",
+      "section": "units",
+      "description": "The wheeled rig (ti_mounts.py wheeled(): Hull, Wheel_<axle>_L/R, optional Turret and Barrel), carried by the Modern units; bare reference file art-build/units/rigs/wheeled.glb",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "spec": "plans/ART-MODELS-PLAN.md 4.1",
+      "batch": "W6",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)",
+      "id": "units/rigs/wheeled",
+      "phase": "B",
+      "priority": "P1",
+      "placeholder_ok": true
+    },
+    {
+      "path": "plans/art/units/rigs/jet",
+      "section": "units",
+      "description": "The jet rig (ti_mounts.py jet(): Hull), carried by the Modern units; bare reference file art-build/units/rigs/jet.glb",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "spec": "plans/ART-MODELS-PLAN.md 4.1",
+      "batch": "W6",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave6 checkpoint-31, 2026-10-08 (plans/art/downloads/wave6/checkpoint-31)",
+      "id": "units/rigs/jet",
       "phase": "B",
       "priority": "P1",
       "placeholder_ok": true

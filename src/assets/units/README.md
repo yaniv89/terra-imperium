@@ -45,6 +45,18 @@ flag; model imports still require a visual and licensing review.
 | `gunpowder-general.glb` | General: plumed bicorne, Team coat with epaulettes and sash, Team cloak, sabre; a colour bearer with the Emblem colour | 2,297 | `build_units_gunpowder.py` (Claude) |
 | `gunpowder-raider.glb` | Raider: a horseman on a blanket with loot sacks, a brass kettle and a clock on the croup; loose Team coat, slouch hat, bandolier, raised torch, carbine slung | 2,028 | `build_units_gunpowder_irregular.py` (Claude) |
 | `gunpowder-mercenary.glb` | Mercenary: buff leather coat over a Team waistcoat, broad plumed hat, bandolier of powder chargers, striped sash and coin pouch, boots, matchlock, short sword | 1,442 | `build_units_gunpowder_irregular.py` (Claude) |
+| `modern-infantry.glb` | Rifle infantry: helmet with a Team band, Team plate carrier with pouches, olive uniform with sleeves, knee pads, boots, assault rifle at the ready | 1,493 | `build_units_modern.py` (Claude) |
+| `modern-ranged.glb` | ATGM team: the gunner kneeling behind a tripod missile launcher, the loader with a spare missile tube | 2,998 | `build_units_modern.py` (Claude) |
+| `modern-cavalry.glb` | Tank: tracked rig (Hull, Track_L/R, Turret, Barrel), side skirts and turret band in Team, cupola, loader's MG, stowage basket | 1,340 | `build_units_modern.py` (Claude) |
+| `modern-siege.glb` | Towed 155 mm howitzer in the firing position (wheeled rig with Turret and Barrel), split trails, muzzle brake, three crew in Team vests | 2,973 | `build_units_modern.py` (Claude) |
+| `modern-support.glb` | Anti-air battery: three-axle truck (wheeled rig) with a twin AA gun mount and radar panel, Team doors, a gunner | 1,827 | `build_units_modern.py` (Claude) |
+| `modern-worker.glb` | Engineer: overalls, Team high-visibility vest, Team hard hat, tool bag, sledgehammer | 1,403 | `build_units_modern.py` (Claude) |
+| `modern-general.glb` | General: open command car (wheeled rig) with a whip mast and an Emblem pennant, a driver, the general standing in a peaked cap | 2,948 | `build_units_modern.py` (Claude) |
+| `modern-air.glb` | Fighter jet (`air` squads): twin-tail multirole fighter, gear up, Team fins, emblem roundels, two missiles (one Hull bone; `segment: false`) | 556 | `build_units_modern.py` (Claude) |
+
+The Modern vehicles' JSON carries `height` (their true height, a person = 1), so a tank, a gun crew
+or a command car keeps the people's scale; the renderer spreads Modern tanks and AA trucks wider
+(BattleRenderer.js `spacing`).
 
 Built by `scripts/blender/build_units_classical.py` (Claude) on the same rig, body and part library
 (`build_units_bronze_signature.py`); rest pose only. Culture-neutral.

@@ -1194,7 +1194,8 @@ export class BattleRenderer {
       general: hasSoldierOverride(s.ageId, 'general') ? this.soldierLayer(s.ageId, 'general') : null,
       drawn: this.figureScale < 1 ? { soldiers: scaledSoldiers(stats.soldiers, this.figureScale) } : stats,
       big: s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || !!stats.flying,
-      spacing: stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? 0.95 : s.classId === 'support' ? 1.05 : 0.52,
+      // Modern tanks and AA trucks are wider than horses and carts: spread them so they do not overlap
+      spacing: stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? (s.ageId === 'modern' ? 1.3 : 0.95) : s.classId === 'support' ? (s.ageId === 'modern' ? 1.4 : 1.05) : 0.52,
       scale: MODEL_SCALE[s.classId] || 0.62,
       organic: isOrganic(s.classId, s.ageId),
       sideColor: this.sideColors[s.side],

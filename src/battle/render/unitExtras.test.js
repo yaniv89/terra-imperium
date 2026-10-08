@@ -66,7 +66,8 @@ describe('extra battle models', () => {
     expect(findGeneralModel('classical')?.url).toMatch(/classical-general.*\.glb/); // Wave 3
     expect(findGeneralModel('kingdoms')?.url).toMatch(/kingdoms-general.*.glb/); // Wave 4
     expect(findGeneralModel('gunpowder')?.url).toMatch(/gunpowder-general.*.glb/); // Wave 5
-    expect(findGeneralModel('modern')).toBeNull();
+    expect(findGeneralModel('modern')?.url).toMatch(/modern-general.*.glb/); // Wave 6: the command car
+    expect(findGeneralModel('modern').options.height).toBeGreaterThan(1);
     expect(MODEL_SCALE.general).toBeGreaterThan(MODEL_SCALE.cavalry);
   });
 

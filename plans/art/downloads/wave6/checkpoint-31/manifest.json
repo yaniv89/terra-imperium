@@ -1,0 +1,169 @@
+{
+  "checkpoint": "wave6-31",
+  "date": "2026-10-08",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 11,
+  "packed_bytes_added": 857192,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave6/checkpoint-31/contact.png",
+      "bytes": 227209,
+      "sha256": "1132cf6cf016c65511000a5623d3416e7cee8cc7ebb8da18718d97a2719067d5"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 540584,
+      "sha256": "08b0523114b78662696d5c94460174264acd469982f7fe0a85c34b72994e15d9"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/lineup-report.json",
+      "bytes": 2453,
+      "sha256": "2b13811a68eaff1a147d999a9203256b6871e58bd8fc2d785568d027e13dd25f"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/lineup-standing.png",
+      "bytes": 37071,
+      "sha256": "cb5077ceb8aba053324aa18c48ec200b30b1957ab3a9a6d6098f7e3e55167756"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/lineup-walking.png",
+      "bytes": 37598,
+      "sha256": "32cdc6128f121aeccfe6da9cb143e4c86d6faf417e5721d5842fd5fe99ad6ff2"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/proofs-modern-rigs.png",
+      "bytes": 146852,
+      "sha256": "6e2eb7f8b4c6a0c65f8edba1352f657ed815f69bdee670a4523ba21bafa793a9"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/proofs-modern-units.png",
+      "bytes": 451144,
+      "sha256": "00b6419a90052412b4d68a907ee082b615b453f1db343c86127ef70b68c2764f"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/sandbox-modern-cavalry.png",
+      "bytes": 410418,
+      "sha256": "36d4903187d083c5c10be01e27c398d3ef4bdfb9092d1c25dac1fd62733207b8"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/sandbox-modern-general.png",
+      "bytes": 475104,
+      "sha256": "6e458309b28fd4ee87a18facfec9619c753836fe6bcee7555209bb91ba60630a"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/sandbox-modern-infantry.png",
+      "bytes": 472310,
+      "sha256": "5b5b27aa18c1008fad9c7add047d6b3e0a2d2de1b5e0bbb7046990521a321d96"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/sandbox-modern-ranged.png",
+      "bytes": 478325,
+      "sha256": "5841911cbb96decb4118273de449749cc559832fbf304348829ccdfd21194573"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/sandbox-modern-siege.png",
+      "bytes": 477352,
+      "sha256": "09040e089103ee7df5b4d76f6bcfe0009113e32d30678e3577a3505abba12a93"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/sandbox-modern-wide.png",
+      "bytes": 312242,
+      "sha256": "9d378ffcb8076b8646fa8211ba9c357c9c0243664b09ac8257c560b385dc52a7"
+    },
+    {
+      "file": "plans/art/shots/wave6/units-modern/sandbox-report.json",
+      "bytes": 2391,
+      "sha256": "e4e2a7e47f8c22dca076b9d865e8e1a0e606d90ac01d0b5586d79751e989f51e"
+    },
+    {
+      "file": "scripts/blender/build_units_modern.py",
+      "bytes": 27467,
+      "sha256": "108553f8561f7397a158ec84100609411d23433ada73dc59db9ac088af64a781"
+    },
+    {
+      "file": "scripts/blender/ti_mounts.py",
+      "bytes": 34270,
+      "sha256": "61ed56d0d3aad82ae13fdb00e05f61f7b58ecd33d6f70e7d68eab52430bb7ebe"
+    },
+    {
+      "file": "src/assets/units/modern-air.glb",
+      "bytes": 33172,
+      "sha256": "a613f2d339f9f5a25f9b6e8a8ee0c1915c479165ce0dc6606f9ca8efb5c0c2a6"
+    },
+    {
+      "file": "src/assets/units/modern-air.json",
+      "bytes": 241,
+      "sha256": "c7b49c4d7f9e9357571f61df14f2cc3d8b5ee60c29ddba7d8f6921d555468393"
+    },
+    {
+      "file": "src/assets/units/modern-cavalry.glb",
+      "bytes": 64820,
+      "sha256": "80d7dc2bba781aff179d80bb3eb1da6ec82eb52638a077c7ed7ea225c9774e35"
+    },
+    {
+      "file": "src/assets/units/modern-cavalry.json",
+      "bytes": 221,
+      "sha256": "71899e376edf60c142b2209757676960efd121d8a1a76d73fca3dfb0dc4f3041"
+    },
+    {
+      "file": "src/assets/units/modern-general.glb",
+      "bytes": 160544,
+      "sha256": "afaf6753719dcaeac704169c9a18588ab47e910b178a8e7bbc8ce93028d6fafe"
+    },
+    {
+      "file": "src/assets/units/modern-general.json",
+      "bytes": 221,
+      "sha256": "13877db298a28853d3f7856fe1154a9e9c197d2bc007dd346d4d1f74178b55df"
+    },
+    {
+      "file": "src/assets/units/modern-infantry.glb",
+      "bytes": 83684,
+      "sha256": "c62394302be4731c3d7d7b1e08e67e89eb65a2b693f5eb1dffa355bdf260be26"
+    },
+    {
+      "file": "src/assets/units/modern-infantry.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/modern-ranged.glb",
+      "bytes": 162184,
+      "sha256": "756f5671f430eaa008ca5e85e78fbafa9df3b5673f909486caf4f9ae630c36a3"
+    },
+    {
+      "file": "src/assets/units/modern-ranged.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    },
+    {
+      "file": "src/assets/units/modern-siege.glb",
+      "bytes": 170036,
+      "sha256": "376c71d4827b5ed76baf3fe77b88f8733310b96de1f6e08b624ae4e6dd4a8558"
+    },
+    {
+      "file": "src/assets/units/modern-siege.json",
+      "bytes": 222,
+      "sha256": "79e5c5334ed38fcfda741424c5d3515d36bb60ae67c03849698f55564735427f"
+    },
+    {
+      "file": "src/assets/units/modern-support.glb",
+      "bytes": 104872,
+      "sha256": "d27cf6f794cc27d3129c8d3113f136c96e90f486b136b9aafd738c443161c473"
+    },
+    {
+      "file": "src/assets/units/modern-support.json",
+      "bytes": 221,
+      "sha256": "bac39ad97fc30cc1b1885b66e99d717dca5def071e31ff113db723b7b5655b57"
+    },
+    {
+      "file": "src/assets/units/modern-worker.glb",
+      "bytes": 76148,
+      "sha256": "bc50218fa6b7099c8da40ddde26cdbb1e88d31067204c499569f1b2107694dbd"
+    },
+    {
+      "file": "src/assets/units/modern-worker.json",
+      "bytes": 202,
+      "sha256": "70a44b237a24187277ad0d88974557db9f217e952bda41d6a82a062519d75737"
+    }
+  ]
+}

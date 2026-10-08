@@ -1,18 +1,10 @@
 {
-  "base": "character-soldier",
-  "teamFrom": "torso",
-  "restClip": "idle",
-  "attach": [
-    {
-      "prop": "launcher",
-      "hand": "right",
-      "at": [
-        0,
-        0.14,
-        0
-      ],
-      "scale": 0.7
-    }
-  ],
-  "enabled": false
+  "enabled": true,
+  "quadruped": false,
+  "triangleBudget": 3000,
+  "tags": {
+    "team": "(^|\\s)Team(\\s|$)",
+    "skin": "(^|\\s)Skin(\\s|$)",
+    "emblem": "(^|\\s)Emblem(\\s|$)"
+  }
 }

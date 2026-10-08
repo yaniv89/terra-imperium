@@ -1,18 +1,11 @@
 {
-  "base": "vehicle-truck-green",
-  "teamFrom": "body",
-  "height": 0.85,
-  "attach": [
-    {
-      "prop": "turret",
-      "to": "root",
-      "at": [
-        0,
-        0.5,
-        -0.1
-      ],
-      "scale": 1.1
-    }
-  ],
-  "enabled": false
+  "enabled": true,
+  "quadruped": false,
+  "triangleBudget": 3000,
+  "tags": {
+    "team": "(^|\\s)Team(\\s|$)",
+    "skin": "(^|\\s)Skin(\\s|$)",
+    "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "height": 0.92
 }
