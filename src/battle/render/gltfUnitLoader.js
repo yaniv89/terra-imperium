@@ -21,6 +21,12 @@ import { LIMB, PART } from './soldierFactory';
 
 export const DEFAULT_TRIANGLE_BUDGET = 8000; // per soldier at full detail (plans/model-brief-for-claude.md section 2): the battle draws the nearest squads at this and the rest as LOD1 and imposters
 
+// A model drawn at its own scale (opts.scale) must measure like the art set (a person about 1, a
+// horse and rider about 1.4, an elephant about 2.8); anything else came in other units.
+export const NATIVE_HEIGHT_RANGE = [0.5, 3.5];
+// How much of the side's colour a mount's team cloth takes (opts.mountTeam; 1 = all of it).
+export const MOUNT_TEAM_SHARE = 0.7;
+
 const DEFAULT_TAGS = {
   team: /team|tabard|tunic|surcoat|banner|flag|faction|cloak|cape|livery|plume/i,
   skin: /(^|[^a-z])(skin|flesh|face)/i,
@@ -167,6 +173,10 @@ export const planarEmblemUv = (pos, uvs, first, end) => {
  * @param {RegExp|string|Array|'bind'} [opts.restClip=/idle/i]  pose to bake: a clip's first frame (the
  *                                   first of a list that exists), or 'bind'
  * @param {number}  [opts.height=1]  target height (world units; a person in the procedural set ≈ 1)
+ * @param {number}  [opts.scale]     a fixed scale instead of `height` (the art set's own units: a person
+ *                                   about 1 tall, a horse and rider about 1.4), so foot and mounted figures
+ *                                   keep their true sizes against each other; ignored when the model's
+ *                                   measured height is far off that range (another pack's units)
  * @param {number}  [opts.rotateY=0]  extra yaw so the model faces +Z
  * @param {boolean} [opts.quadruped=false]  a mount: front/hind legs drive the horse bones
  * @param {'auto'|false} [opts.segment='auto']  static (unskinned, unnamed) humanoids: split limbs by position
@@ -178,12 +188,15 @@ export const planarEmblemUv = (pos, uvs, first, end) => {
  * @param {string}  [opts.skinFrom]  a bone/node name (e.g. 'head'): its dominant skin-like colour is
  *                                   the skin (tinted per soldier) everywhere — the same trick for skin
  * @param {boolean} [opts.staticLegs=false]  a seated rider: legs don't march
+ * @param {number}  [opts.mountTeam]  share of the side's colour on team cloth hung from mount bones
+ *                                   (default MOUNT_TEAM_SHARE for a quadruped, else 1)
  * @returns {{ geometry: BufferGeometry, stats: object }}
  */
 export const extractUnitGeometry = (root, opts = {}) => {
   const {
     animations = [], restClip = /idle/i, height = 1, rotateY = 0, quadruped = false, segment = 'auto',
-    triangleBudget = DEFAULT_TRIANGLE_BUDGET, teamFrom = null, skinFrom = null, staticLegs = false
+    triangleBudget = DEFAULT_TRIANGLE_BUDGET, teamFrom = null, skinFrom = null, staticLegs = false, scale = null,
+    mountTeam = quadruped ? MOUNT_TEAM_SHARE : 1
   } = opts;
   const tags = { ...DEFAULT_TAGS, ...(opts.tags || {}) };
   const limbOpts = { quadruped };
@@ -307,6 +320,10 @@ export const extractUnitGeometry = (root, opts = {}) => {
       }
     }
   }
+  // A mount's team cloth (a caparison, a saddle cloth) takes only part of the side's colour: on a
+  // knight's horse it covers most of the animal, and in full colour the whole squad read as one
+  // flat team-blue shape. The rider's tabard, shield and banner keep the full colour.
+  if (mountTeam < 1) for (let i = 0; i < n; i++) if (team[i] && partId[i] !== PART.EMBLEM && /^mount/i.test(source[i])) team[i] = mountTeam;
   if (staticLegs) for (let i = 0; i < n; i++) if (limb[i] === LIMB.LEG_L || limb[i] === LIMB.LEG_R) { limb[i] = LIMB.BODY; hinge[i] = null; }
 
   // Normalise: yaw to face +Z, feet on the ground, centred, scaled to `height`.
@@ -314,7 +331,10 @@ export const extractUnitGeometry = (root, opts = {}) => {
   const bb = new Box3();
   const anyMeasured = measured.some(Boolean);
   for (let i = 0; i < n; i++) if (measured[i] || !anyMeasured) bb.expandByPoint(v.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).applyMatrix4(norm));
-  const s = height / Math.max(1e-6, bb.max.y - bb.min.y);
+  const measuredH = Math.max(1e-6, bb.max.y - bb.min.y);
+  const native = scale > 0 && measuredH >= NATIVE_HEIGHT_RANGE[0] && measuredH <= NATIVE_HEIGHT_RANGE[1];
+  const s = native ? scale : height / measuredH;
+  stats.scale = s; stats.measuredHeight = measuredH; stats.nativeScale = native;
   norm.premultiply(new Matrix4().makeTranslation(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2)).premultiply(new Matrix4().makeScale(s, s, s));
   for (let i = 0; i < n; i++) {
     v.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).applyMatrix4(norm);
