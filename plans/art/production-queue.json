@@ -2841,15 +2841,16 @@
     {
       "path": "plans/art/battle-city/modern/ruin-library",
       "section": "battle-city",
-      "description": "Modern ruin library: Modern rubble in the age's materials: house rubble small and large, landmark rubble (12 to 25 m), broken beams, scorch decal, fire and smoke attachment points; used for every building without its own ruin",
+      "description": "Modern ruin library (rubble-s/m/l, beams, scorch), src/assets/battle/city/ruins-modern.glb (build_city_modern.py)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/modern/ruin-library",
       "phase": "B",
-      "batch": "M03",
+      "batch": "W6",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S6"
+      "spec": "plans/ART-MODELS-PLAN.md section 6",
+      "delivered": "wave6 checkpoint-34, 2026-10-08 (plans/art/downloads/wave6/checkpoint-34)"
     },
     {
       "path": "plans/art/battle-city/bronze/wall-kit",
@@ -2910,15 +2911,16 @@
     {
       "path": "plans/art/battle-city/modern/wall-kit",
       "section": "battle-city",
-      "description": "Modern wall kit: Modern wall segment kit cut from the existing wall rings: straight, corner, tower, gate (open, closed), each intact, damaged and breached",
+      "description": "Modern wall kit (concrete T-wall slabs and wire, guard tower, pillbox gateway; -damaged, -breached), src/assets/battle/city/walls-modern.glb (build_city_modern.py)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/modern/wall-kit",
       "phase": "B",
-      "batch": "M03",
+      "batch": "W6",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-MODELS-PLAN.md section 6",
+      "delivered": "wave6 checkpoint-34, 2026-10-08 (plans/art/downloads/wave6/checkpoint-34)"
     },
     {
       "path": "plans/art/battle-city/bronze/base/houses-damage",
@@ -5774,15 +5776,16 @@
     {
       "path": "plans/art/battle-city/modern/fort",
       "section": "battle-city",
-      "description": "Modern fort (battle): Modern fort on the battle map, built from the map's fort-modern improvement and the age's wall kit: walls, towers, gate, garrison house; intact, damaged, breached",
+      "description": "Modern fort: a bunker line in the 50 m circle, src/assets/battle/city/fort-modern.glb (build_city_modern.py)",
       "source": "plans/ART-PRODUCTION-PLAN.md",
-      "delivery_status": "pending",
+      "delivery_status": "in_game_awaiting_review",
       "id": "battle-city/modern/fort",
       "phase": "R3",
-      "batch": "M13",
+      "batch": "W6",
       "priority": "P2",
       "placeholder_ok": true,
-      "spec": "plans/ART-PRODUCTION-PLAN.md section 4, S7"
+      "spec": "plans/ART-MODELS-PLAN.md section 6",
+      "delivered": "wave6 checkpoint-34, 2026-10-08 (plans/art/downloads/wave6/checkpoint-34)"
     },
     {
       "path": "plans/art/battle-terrain/river-kit",
@@ -12593,6 +12596,20 @@
       "delivery_status": "in_game_awaiting_review",
       "delivered": "wave6 checkpoint-32, 2026-10-08 (plans/art/downloads/wave6/checkpoint-32)",
       "id": "units/signature/dorset",
+      "phase": "B",
+      "priority": "P1",
+      "placeholder_ok": true
+    },
+    {
+      "path": "plans/art/battle-city/modern/civic",
+      "section": "battle-city",
+      "description": "Modern civic hall (keep, keep-damaged, keep-ruined): the headquarters block, src/assets/battle/city/civic-modern.glb (build_city_modern.py)",
+      "source": "plans/ART-MODELS-PLAN.md",
+      "spec": "plans/ART-MODELS-PLAN.md section 6",
+      "batch": "W6",
+      "delivery_status": "in_game_awaiting_review",
+      "delivered": "wave6 checkpoint-34, 2026-10-08 (plans/art/downloads/wave6/checkpoint-34)",
+      "id": "battle-city/modern/civic",
       "phase": "B",
       "priority": "P1",
       "placeholder_ok": true

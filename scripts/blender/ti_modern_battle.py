@@ -45,15 +45,15 @@ def F(x, y, yaw=0.0, frame=None):
 
 # ---- sandbags ------------------------------------------------------------------------------------
 
-def sandbag_wall(ms, x0, y0, x1, y1, h=0.06, t=0.06, lod=1, frame=None):
+def sandbag_wall(ms, x0, y0, x1, y1, h=0.06, t=0.06, lod=1, frame=None, z=G):
     """A sandbag wall: two courses of bags as a long low block with a rounded top course (LOD0)."""
     length = math.hypot(x1 - x0, y1 - y0)
     yaw = math.degrees(math.atan2(y1 - y0, x1 - x0))
     f = F((x0 + x1) / 2, (y0 + y1) / 2, yaw, frame)
-    ms.box('md_sandbag', (length, t, h * 0.6), at=(0, 0, G), lod=lod, frame=f, bevel=0.006)
+    ms.box('md_sandbag', (length, t, h * 0.6), at=(0, 0, z), lod=lod, frame=f, bevel=0.006)
     n = max(1, int(length / 0.07))
     for k in range(n):
-        ms.box('md_sandbag', (length / n - 0.006, t * 0.85, h * 0.42), at=(-length / 2 + (k + 0.5) * length / n, 0, G + h * 0.58), lod=0, frame=f, bevel=0.008)
+        ms.box('md_sandbag', (length / n - 0.006, t * 0.85, h * 0.42), at=(-length / 2 + (k + 0.5) * length / n, 0, z + h * 0.58), lod=0, frame=f, bevel=0.008)
 
 
 def sandbag_ring(ms, x, y, r, h=0.07, gap=60.0, gap_at=90.0, n=10, lod=1, frame=None):

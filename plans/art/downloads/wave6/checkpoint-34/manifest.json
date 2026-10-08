@@ -1,0 +1,104 @@
+{
+  "checkpoint": "wave6-34",
+  "date": "2026-10-08",
+  "branch": "claude/bronze-towns",
+  "logical_deliveries": 4,
+  "packed_bytes_added": 2036396,
+  "files": [
+    {
+      "file": "plans/art/downloads/wave6/checkpoint-34/contact.png",
+      "bytes": 186802,
+      "sha256": "a600cb5801dc069776640b73cdee2001e973f9249195c17c8078f403466beb08"
+    },
+    {
+      "file": "plans/art/production-queue.json",
+      "bytes": 549586,
+      "sha256": "e19e62c44d9dc2e9bde9c61872b47e9ed800da24c88a6b958cd3cac35cd40f66"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/modern-city-europe-844x390.png",
+      "bytes": 435093,
+      "sha256": "61370eaa3d345e3067a49b73fc035c111ccc3a39532c1aca74311840b1267e46"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/modern-city-levant-844x390.png",
+      "bytes": 515815,
+      "sha256": "abfe412e1ee56a307f9058d270bf35710fe5d28adce5e576898cf5e26b0a233d"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/proof-civic-modern.png",
+      "bytes": 151107,
+      "sha256": "31ecfc524c457483f14c0e2d6fb6d6a29adab834be051c36f80bf2f4a9ebc028"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/proof-fort-modern.png",
+      "bytes": 133641,
+      "sha256": "25da29b983d35da532618c645eebd8a1788e3f82dd99090cd42e6c52bebab01e"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/proof-ruins-modern.png",
+      "bytes": 75506,
+      "sha256": "632ea37c378f2dedafafbb4e706f3e258a03d3ae7acb48592e46b5f4b2c0cf16"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/proof-walls-modern.png",
+      "bytes": 163985,
+      "sha256": "a51a5814084e66ab2cfb9686a75521008d23e748e1dce97301a1900722214d09"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/validation/civic-modern.validation.json",
+      "bytes": 4092,
+      "sha256": "0781bede41d1c0dd2432a3c7c9cce5d71e2de5f238b71e973bc02fbbcd0e7436"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/validation/fort-modern.validation.json",
+      "bytes": 2097,
+      "sha256": "dfdb08d6d899b8ff528d8ea3fa1d099799db03ac4b5fd41ecb603345cdad1953"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/validation/manifest.json",
+      "bytes": 16624,
+      "sha256": "809fbbbfc3ba3791b910565ca9b73256330b907dc5fd3074e747fca8dbd69623"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/validation/ruins-modern.validation.json",
+      "bytes": 5661,
+      "sha256": "b80256330574a5b5fa82f95aac31e4ae63ffe5d2c5ccffb6a4ef644e8a0a34a4"
+    },
+    {
+      "file": "plans/art/shots/wave6/city-modern/validation/walls-modern.validation.json",
+      "bytes": 14998,
+      "sha256": "fad72ebc0bddf30d01cc6a405b0e5cedab72fcd804b75a0431e00f5e5a1bff16"
+    },
+    {
+      "file": "scripts/blender/build_city_modern.py",
+      "bytes": 17276,
+      "sha256": "0cf6a2c8533a6573256d944a9bb793532cd14ab88fdd1dea3b4603ac5ab4400f"
+    },
+    {
+      "file": "scripts/blender/ti_modern_battle.py",
+      "bytes": 13288,
+      "sha256": "1800a00b820a69c81ca88869b939099fe215668a63ec94c66b8b9cd2488e9fd3"
+    },
+    {
+      "file": "src/assets/battle/city/civic-modern.glb",
+      "bytes": 533480,
+      "sha256": "f3f46f3b2433d980bb1d35576888b4d203d0284531a1a0e6ebb15f4511d11149"
+    },
+    {
+      "file": "src/assets/battle/city/fort-modern.glb",
+      "bytes": 518016,
+      "sha256": "6a61c0544013483d22d9b470054911d03da47ec2261e9c4308f8595435235bbd"
+    },
+    {
+      "file": "src/assets/battle/city/ruins-modern.glb",
+      "bytes": 349044,
+      "sha256": "16c09d05ab019895443dd4a1c07ff16d52b3936c88fae677fc058471e949200b"
+    },
+    {
+      "file": "src/assets/battle/city/walls-modern.glb",
+      "bytes": 635856,
+      "sha256": "79a147d5e14b092fc7b1e5daf37fa43af252d74c71543320f2de3deb79e3b517"
+    }
+  ]
+}

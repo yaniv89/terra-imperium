@@ -1,0 +1,104 @@
+{
+  "file": "fort-modern.glb",
+  "kind": "improvement",
+  "bytes": 955256,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "fort": {
+      "lods": {
+        "LOD0": {
+          "triangles": 6514,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.86,
+          "depth": 4.9,
+          "height": 0.93,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1414,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.86,
+          "depth": 4.9,
+          "height": 0.9,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 236,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 4.693,
+          "depth": 4.687,
+          "height": 0.795,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 4.9
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "fort-modern_normal",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 45290
+    },
+    {
+      "name": "fort-modern_base",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 182386
+    },
+    {
+      "name": "fort-modern_orm",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 164732
+    }
+  ],
+  "passed": true
+}

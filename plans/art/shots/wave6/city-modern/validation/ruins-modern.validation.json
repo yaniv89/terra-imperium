@@ -1,0 +1,265 @@
+{
+  "file": "ruins-modern.glb",
+  "kind": "ruin",
+  "bytes": 501560,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "beams": {
+      "lods": {
+        "LOD0": {
+          "triangles": 148,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.649,
+          "depth": 0.537,
+          "height": 0.054,
+          "min_height": -0.007
+        },
+        "LOD1": {
+          "triangles": 24,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.491,
+          "depth": 0.34,
+          "height": 0.025,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 12,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.491,
+          "depth": 0.158,
+          "height": 0.025,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.003",
+        "LOD1.003",
+        "LOD2.003"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.649
+    },
+    "rubble-l": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1004,
+          "materials": [
+            "Town"
+          ],
+          "width": 2.086,
+          "depth": 2.076,
+          "height": 0.245,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 64,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.665,
+          "depth": 1.437,
+          "height": 0.17,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 28,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.294,
+          "depth": 0.942,
+          "height": 0.17,
+          "min_height": -0.005
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 2.086
+    },
+    "rubble-m": {
+      "lods": {
+        "LOD0": {
+          "triangles": 700,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.267,
+          "depth": 1.031,
+          "height": 0.128,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 64,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.076,
+          "depth": 0.908,
+          "height": 0.128,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 28,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.757,
+          "depth": 0.524,
+          "height": 0.122,
+          "min_height": -0.005
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.267
+    },
+    "rubble-s": {
+      "lods": {
+        "LOD0": {
+          "triangles": 576,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.692,
+          "depth": 0.609,
+          "height": 0.118,
+          "min_height": -0.005
+        },
+        "LOD1": {
+          "triangles": 64,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.498,
+          "depth": 0.563,
+          "height": 0.118,
+          "min_height": -0.005
+        },
+        "LOD2": {
+          "triangles": 28,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.425,
+          "depth": 0.325,
+          "height": 0.108,
+          "min_height": -0.005
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.692
+    },
+    "scorch": {
+      "lods": {
+        "LOD0": {
+          "triangles": 62,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.964,
+          "depth": 0.862,
+          "height": 0.022,
+          "min_height": 0.0003
+        },
+        "LOD1": {
+          "triangles": 7,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.964,
+          "depth": 0.862,
+          "height": 0.002,
+          "min_height": 0.002
+        },
+        "LOD2": {
+          "triangles": 7,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.964,
+          "depth": 0.862,
+          "height": 0.002,
+          "min_height": 0.002
+        }
+      },
+      "children": [
+        "LOD0.004",
+        "LOD1.004",
+        "LOD2.004"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.964
+    }
+  },
+  "materials": [
+    "Town"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "ruins-modern_normal",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 19306
+    },
+    {
+      "name": "ruins-modern_base",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 159322
+    },
+    {
+      "name": "ruins-modern_orm",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 114948
+    }
+  ],
+  "passed": true
+}
