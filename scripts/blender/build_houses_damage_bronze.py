@@ -153,6 +153,43 @@ def damaged(intact, theme):
     return build
 
 
+# The plaster lining of a ruin's standing walls (None: none, the Bronze files as delivered). A cut-open
+# house shows the inner side of its walls, which are the outer faces seen from behind: they light dark
+# (the "dark interiors at the cut"). The later ages' builders set this to 'plaster' so the stubs read as
+# walls with a lit inner face. Only LOD0 is lined (the ruin budget leaves no room at LOD1, seen from afar).
+INTERIOR = None
+LINING = 0.012  # how far inside the outer face the lining stands (12 cm)
+LINING_CAP = 880  # the ruin's LOD0 triangles the lining may fill up to
+
+
+def line_interior(ms, mat):
+    """Add an inward-facing copy of every standing wall face (|normal.z| small) of the parts shown at
+    LOD0, pushed LINING inward and flipped, in `mat`. The biggest faces first, while the ruin's LOD0 stays
+    under LINING_CAP triangles (the rubble that follows keeps it in the 1,200 ruin budget)."""
+    def at_lod0(lod, only):
+        return (only is None and lod >= 0) or (only is not None and 0 in (only if isinstance(only, tuple) else (only,)))
+    shown = [p for p in ms.parts if at_lod0(p[2], p[3])]
+    room = LINING_CAP - sum(sum(max(0, len(f.verts) - 2) for f in p[0].faces) for p in shown)
+    cands = []
+    for k, (bm, _mat, lod, only) in enumerate(shown):
+        bm.normal_update()
+        cands += [(f.calc_area(), k, f) for f in bm.faces if abs(f.normal.z) < 0.35 and f.calc_area() > 1e-5]
+    cands.sort(key=lambda c: -c[0])
+    per = {}
+    for _a, k, f in cands:
+        n = len(f.verts) - 2
+        if n > room:
+            continue
+        room -= n
+        per.setdefault(k, []).append(f)
+    for k, faces in per.items():
+        nb = bmesh.new()
+        for f in faces:
+            off = -f.normal * LINING
+            nb.faces.new([nb.verts.new(v.co + off) for v in reversed(f.verts)])
+        ms.parts.append((nb, mat, 0, (0,)))
+
+
 def ruined(intact, theme):
     def build(ms, rng):
         intact(ms, rng)
@@ -166,6 +203,8 @@ def ruined(intact, theme):
             lo, hi = bounds([(bm, None, 0, None)])
             return max(hi.x - lo.x, hi.y - lo.y, hi.z - lo.z) < 0.1
         ms.parts[:] = [p for p in ms.parts if not (p[2] == 0 and p[3] is None and small(p[0]) and rng.random() < 0.65)]
+        if INTERIOR:
+            line_interior(ms, INTERIOR)
         heap(ms, rng, main, 0, 0, w * 0.36, d * 0.34, zc * 0.9)  # the fallen walls and roof inside
         r = max(w * 0.2, d * 0.18)  # a smaller heap of roof stuff, LOD0 and LOD1 only
         hx, hy = rng.uniform(-0.15, 0.15) * w, rng.uniform(-0.15, 0.15) * d

@@ -79,6 +79,7 @@ def main():
     kit_root = argv[2] if len(argv) > 2 else os.path.join('art-build', 'kitsrc', 'plans', 'art', 'kits')
     light = os.environ.get('LIGHT', '') == '1'
     hb.RUBBLE.update(RUBBLE)  # damaged() and ruined() read the rubble by theme
+    hb.INTERIOR = 'plaster'  # the ruins' standing walls get a lit inner face (no dark interiors at the cut)
     state = {}
     ak = None
     if theme in KIT_THEMES:
