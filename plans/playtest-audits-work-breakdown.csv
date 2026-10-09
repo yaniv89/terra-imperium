@@ -236,3 +236,4 @@ U10,Later request,Remove manual reserve and deploy full starting roster,Code,Cha
 U11,Later request,Units retaliate appropriately when attacked,Code,Fix,Major,None,See implementation plan §12,
 U12,Later request,Show numeric Battle Supply in all battle modes,Code,Addition,Small,Art,See implementation plan §12,
 U13,Later request,Hide build sheet for placement and reopen after success,Code,Addition,Medium,Art,See implementation plan §12,
+U14,Later request,"Village house raises housing/population capacity by 10, never 100",Code,Investigation,Small,None,"W05,W06",Current catalog and sim already specify +10; reproduce reported +100 before changing rules
