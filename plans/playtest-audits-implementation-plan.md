@@ -8,6 +8,8 @@ Prepared 8 October 2026. Baseline: `yaniv89/terra-imperium`, `claude/integration
 
 **Authoritative item inventory:** [All 224 items, evidence and completion checks](playtest-audits-item-inventory.md), with [sortable item CSV](playtest-audits-item-inventory.csv). The earlier broad W00–W16 mapping is now supplemented by individual I001–I224 IDs. Mark completion at item level, not merely by finishing an umbrella package or ticking off an audit heading.
 
+**Work breakdown:** [Code versus art, fixes versus additions/changes, and major to small scope](playtest-audits-work-breakdown.md), with [all 237 gameplay/request rows](playtest-audits-work-breakdown.csv) and [all 54 overlapping visual rows](playtest-audits-visual-work-breakdown.csv). These are planning classifications, not additional items or completed work.
+
 **Reading guide:** [Source findings](#2-important-corrections-and-source-findings), [design decisions](#3-product-decisions-and-recommended-defaults), [17 work packages](#5-work-packages), [22 additional risks](#6-additional-loopholes-and-design-safeguards), [delivery sequence](#7-sequencing-dependencies-and-reviewable-implementation-slices), [validation](#8-validation-strategy-and-measurable-completion), [original 42-label subset](#9-traceability-original-42-label-subset), [complete test-log ledger](#11-complete-raw-test-log-ledger), and [13 later player requests](#12-player-follow-up-rts-and-iphone-layout).
 
 Companion: [coverage CSV with all 165 original test observations](playtest-audits-coverage.csv).

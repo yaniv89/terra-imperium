@@ -1,0 +1,55 @@
+id,visual_task,primary,size,support,audit_refs,reuse_status
+AN01,"Interpolate army position and heading along accepted routes; handle route change, arrival, interruption, zoom and map wrap",Code,Small,Art,I070; P2 §4,Inventory and reuse/repair decision pending
+AN02,"Settler walk, pack animal gait and wheel rotation for the chosen caravan assembly",Art,Medium,Code,I095; I099,Inventory and reuse/repair decision pending
+AN03,Founding: supplies/unpacking and camp reveal,Code,Small,Art,I054; I055; I056,Deferred polish after core acceptance
+AN04,Camp to village growth,Code,Small,Art,I054; I055,Deferred polish after core acceptance
+AN05,"Idle/alternate idle, Walk, Run; Charge only where the state exists",Art,Major,Code,I219; P2 §8; U07,Inventory and reuse/repair decision pending
+AN06,"Melee anticipation, strike and recovery; second strike/block where supported",Art,Major,Code,I219,Inventory and reuse/repair decision pending
+AN07,Bow draw/aim/release/nock; rapid/volley/aim-hold variants only for supported use,Art,Major,Code,I219,Inventory and reuse/repair decision pending
+AN08,Gun aim/fire/recoil/reload; musket ramrod versus later mechanisms; kneel/bayonet only where useful,Art,Major,Code,I219; R144–157,Inventory and reuse/repair decision pending
+AN09,"Horse/rider idle, walk/trot/gallop, charge, rider attack, hit, death and rout",Art,Major,Code,I192; I219,Inventory and reuse/repair decision pending
+AN10,"Chariot gait, wheels, driver, archer/spearman, hit and wreck",Art,Major,Code,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+AN11,Hit reaction and terminal death/wreck for each applicable anatomy,Art,Major,Code,I195; I219,Inventory and reuse/repair decision pending
+AN12,Routed run versus ordered withdrawal,Art,Medium,Code,I012; I013; I188; I191,Inventory and reuse/repair decision pending
+AN13,"Hold/guard, shaken and rally readability",Art,Medium,Code,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+AN14,Victory reaction,Art,Small,Code,I001; I219,Deferred polish after core acceptance
+AN15,"Food collection into a barrow/handcart; axe Chop at trees; pickaxe Mine at stone, ore and gold; supported generic gather cycles for other real jobs",Art,Major,Code,I219; U06,Inventory and reuse/repair decision pending
+AN16,"Empty outbound trip, loaded wheelbarrow return and Deposit at the actual drop-off",Art,Major,Code,See audit checklist and plan; supporting recommendation where no direct finding is named; U06,Inventory and reuse/repair decision pending
+AN17,Build and Repair with transitions,Art,Medium,Code,I182; I184; I219,Inventory and reuse/repair decision pending
+AN18,Move/push/haul and stationary deployment pose,Art,Medium,Code,I213; I219,Inventory and reuse/repair decision pending
+AN19,Ram swing; ballista tension/fire/reload; trebuchet arm/sling/reset; cannon aim/recoil/reload,Art,Major,Code,I211; I213; R150–157,Inventory and reuse/repair decision pending
+AN20,Machine hit/destroyed and crew terminal response,Art,Medium,Code,I219,Inventory and reuse/repair decision pending
+AN21,Scaffold/progress/completion,Code,Medium,Art,P2 §7,Inventory and reuse/repair decision pending
+AN22,Intact/damaged/ruined/breached and repair restoration,Code,Medium,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+AN23,Gate state readability and optional hinge/slide,Code,Small,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Validate current gate state; motion conditional on supported gameplay transition
+AN24,Ownership material/banner change; optional flag raise,Code,Small,Art,I130; I209,Inventory and reuse/repair decision pending
+AN25,"Accepted/rejected order pulse, placement footprint, selection",Code,Small,Art,I173; I191,Inventory and reuse/repair decision pending
+AN26,Full/half/depleted and tree/felled/stump transitions,Code,Medium,Art,I175,Inventory and reuse/repair decision pending
+AX01,Herd idle/graze and any supported movement/flee/death,Art,Small,Code,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+AX02,"Projectile socket/release, muzzle flash, dust/smoke/impact synchronization",Code,Medium,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+MD01,"Civilian traveler, baggage and chosen wagon/pack animal. Reuse worker/body, Bronze support ox/cart and props where suitable. New design sheet must distinguish settler from soldier and raider.",Art,Major,Code,I095; I099; P2 §4,No named settler model found; select reusable assembly and resolver at G1
+MD02,Existing `colony-camp` shelter/supplies and small-town village silhouette; growth uses existing layout.,Art,Medium,Code,I054; I055,Inventory and reuse/repair decision pending
+MD03,Bronze Mesopotamian town assembly: inspect base/Levant Bronze assets and actual culture/era resolver; match house damage variants.,Art,Major,Code,I215,Inventory and reuse/repair decision pending
+MD04,"Nile/Nubian town, field and vegetation assignments; preserve Nile farming and terrain data.",Art,Major,Code,I216,Inventory and reuse/repair decision pending
+MD05,"Seven climate kits with `tree-s/m/l`, `stump`, `felled`, `bush`, `rock-s/m`, `grass-tuft`; use current three kits as baseline, four new kit files.",Art,Major,Code,I217,Four dedicated climate files confirmed absent; inspect three existing kits
+MD06,Ore/stone/gold/fish full/half/depleted plus sheep/goat/cattle and wood-grove pieces. Reuse six present node/herd files.,Art,Major,Code,I175,Inventory and reuse/repair decision pending
+MD07,"Tool and load inventory: axe, pickaxe, hammer, mattock/hoe/shovel where used; wheelbarrow/handcart, basket/sack and distinct food/log/stone/ore/gold contents. Inventory embedded props first.",Art,Major,Code,See audit checklist and plan; supporting recommendation where no direct finding is named; U06,Inventory and reuse/repair decision pending
+MD08,"Team banners/pennants, ownership sockets and persistent silhouette marker. Reuse existing Team surfaces and emblems.",Art,Medium,Code,I209,Inventory and reuse/repair decision pending
+MD09,"Repair existing soldier, mount, shield, weapon, cannon, tank, artillery and crew silhouettes; verify camera, class scaling, height metadata and auto-LOD first.",Art,Major,Code,I218; U08,Inventory and reuse/repair decision pending
+MD10,"Separate/rig existing wheels, launcher parts, ram beam, cannon/artillery barrel, tank tracks/turret and crew attachments; maintain machine footprint.",Art,Major,Code,I213; I219; U08,Inventory and reuse/repair decision pending
+MD11,"Existing house, wall, gate, civic/palace and rubble states. Preserve checkpoint 36 lit ruin interiors and checkpoint 37 Gunpowder bastions.",Art,Major,Code,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+MD12,Four construction stages and scalable scaffold adapters around changed structures.,Art,Major,Code,P2 §7,Inventory and reuse/repair decision pending
+UI01,"Wheat/cotton/papyrus registration, visibility, contrast and scale; redraw only if necessary",Code,Small,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+UI02,"Settler glyph and 3D handover, destination/route distinction",Code,Medium,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+UI03,Major/independent/outpost/raid-party badges,Code,Small,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+UI04,Friendly/enemy/selected building outline/base marker,Code,Small,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+UI05,"Build-menu preload, placeholder and thumbnail consistency",Code,Small,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+UI06,Legal/illegal/blocked/fog placement footprint and field boundary,Code,Medium,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+UI07,Move/attack/Hold/retreat/route accepted and rejected markers,Code,Medium,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+UI08,"Full starting-roster and genuine later reinforcement status, Idle N, find army/base/keep and minimap controls",Code,Medium,Art,See audit checklist and plan; supporting recommendation where no direct finding is named; U10,Inventory and reuse/repair decision pending
+UI09,Conquest/loyalty/supply/trade warning icon reuse,Code,Small,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+UI10,"Settlement legality, selected improvement tile and known recommended sites",Code,Medium,Art,See audit checklist and plan; supporting recommendation where no direct finding is named,Inventory and reuse/repair decision pending
+UI11,Worker-only circular hammer launcher; compact wand launcher for abilities/powers; icon-only cancel/deselect and build-sheet X; sheet closes for placement and reopens after success,Code,Major,Art,U02; U05; U09; U13,Design and integration pending
+UI12,iPhone Dynamic Island/notch and landscape safe-zone layout; sheets adapt to available left/right width,Code,Major,Art,U03,Design and integration pending
+UI13,"Selectable harvestable tree/grove node ring, resource name/remaining amount and touch target matched to the rendered tree",Code,Medium,Art,U04,Design and integration pending
+UI14,"Distinct Food, Materials, Stone and Gold stocks plus numeric current/cap Battle Supply at the top",Code,Major,Art,U01; U12,Design and integration pending
