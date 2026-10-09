@@ -2,6 +2,8 @@
 
 Planning only. No assets or game changes are produced by this document.
 
+**Scope clarification and production detail:** this is an audit-scoped checklist, including overlap with previously planned work, not the complete pre-audit backlog. Read the [detailed art production plan](playtest-audits-art-production-plan.md) and [50-row production manifest](playtest-audits-art-production-manifest.csv) for reconciled specifications, production batches, acceptance gates and backlog boundaries. The plan preserves AN01–AN26 / MD01–MD12 / UI01–UI10 and explicitly adds two supporting checks for herd motion and projectile/FX synchronization. Its source-authority decisions supersede conflicting technical guidance below.
+
 Sources: the three playtest reports and their [224-item inventory](playtest-audits-item-inventory.md), plus the repository's existing unit art brief and asset/rendering source at `0c08cf853f0fbfc350367b4e7f8c2fa3f7ccf091`.
 
 ## 1. What actually needs production
@@ -37,7 +39,7 @@ The animation/model budgets in older art status documents are broader than these
 
 ### 2.2 Shared unit motion and state readability
 
-Use the existing art brief's names where applicable. It specifies 30-fps in-place authoring, neutral `Idle` frame 1, no root motion, seamless loops and fixed contact/release timing. Authored animation must follow the deterministic simulation, not drive damage or movement.
+Use the current model plan and delivered rig: **20-fps** in-place authoring, neutral `Idle` frame 1, seamless loops and event-aligned contact/release timing. The older unit brief's 30-fps specification is superseded by `ART-MODELS-PLAN.md` section 4.1 and `ti_units.py`; do not copy its frame numbers unchanged. Preserve its movement-quality principles. Authored animation must follow the deterministic simulation, not drive damage or movement. Clip-name aliases and root displacement for terminal poses are resolved in the detailed production plan.
 
 | ID | Animation family | Clips / motions to deliver or validate | Production status | Priority / evidence |
 |---|---|---|---|---|
@@ -58,7 +60,7 @@ Do not require new root-motion turning, start/stop, climbing, mount/dismount, or
 
 | ID | Animation family | Clips / motions to deliver or validate | Production status | Priority / evidence |
 |---|---|---|---|---|
-| AN15 | Gathering work | Chop wood; mine ore/stone; harvest food; appropriate generic gather action for supported jobs. | Existing worker `Attack` is the work-cycle convention. Add job-specific variants only with actual job-to-animation mapping; do not invent unsupported jobs. | A; I219, working RTS economy |
+| AN15 | Gathering work | Chop wood; mine ore/stone; harvest food; appropriate generic gather action for supported jobs. | Inspect current worker `Chop`, `Mine`, `Harvest`, `Build`, `Repair` and related exported actions first. Retain `Attack` only as a compatibility alias where required by the consumer; map supported jobs explicitly. | A; I219, working RTS economy |
 | AN16 | Carrying and delivery | Walk carrying a sack/bundle/tool; short unload/deposit motion when the sim actually delivers. | Share locomotion; attach interchangeable props. Avoid depicting delivery before inventory changes. | B; economy feedback recommendation |
 | AN17 | Construction and repair labor | Hammer/build loop; repair loop; worker start/stop/idle transitions. | Existing worker mesh/rig and work clip can be reused; distinguish repair with tool/target context before commissioning extra clips. | A; I182/I184/I219 |
 | AN18 | Siege-machine travel | Crew pushing/hauling, wheel rotation, rest/settle. | Validate existing siege GLBs/rigs; crew and chassis must remain synchronized. | A for relevant machines; I213/I219 |
@@ -73,7 +75,7 @@ Workers already have GLBs for the audited eras. A separate new worker body per t
 |---|---|---|---|---|
 | AN21 | Construction progress/completion | Scaffold and rising walls, then finished building. | Preserve the working effect. Extend only to assets that fail to participate correctly. | A regression check; P2 §7/8 |
 | AN22 | Building damage, breach and repair | Intact → damaged → ruined/breached; repaired state restored when actual HP recovers. Optional short collapse transition. | Reuse existing damaged-house/wall kits and procedural dust/debris; no mandatory full destruction simulation. | A state correctness, B transition; W06/W12 |
-| AN23 | Gate opening/closing | Appropriate gate transition when the sim permits passage; clear open/closed/breached states. | Existing gate variants; procedural hinge/slide where supported. Never alter passability solely for an animation. | B; siege/retreat readability |
+| AN23 | Gate opening/closing | Correct open/breached presentation; open/close motion only if the sim supports that transition. Current city README says gates remain open in battle. | Existing gate variants; procedural hinge/slide where supported. Never alter passability solely for an animation. | B; siege/retreat readability |
 | AN24 | Ownership/capture cue | Visible banner/owner change, optional short flag raise. | Team material/badge update is sufficient for A; authored flag raise is optional. | A identity, C motion; I130/I209 |
 | AN25 | Order and placement feedback | Accepted-target pulse, move/attack marker, valid/invalid footprint response, selected-building outline. | UI/shader effects. Not exported character animations or new building meshes. | A; I173–I191 |
 | AN26 | Resource depletion | Full → half → depleted node; felled/stump grove state; optional small change transition. | Existing model-state contract; validate readability and correct state selection. | A; I175 |
@@ -154,11 +156,11 @@ For each authored item deliver:
 - Editable source, game-ready GLB and required textures/options; retain the repository's existing rig/material/object-name conventions.
 - For clips: name, loop flag, intended state, frame rate/duration, contact/release events and root-motion policy. Use the exact existing unit brief conventions where already defined.
 - For props/buildings: pivot, attachment/footprint dimensions, ownership material channel, intact/damaged states and compatible near/mid/far representations.
-- Mobile-scale preview at the actual battle/world camera, including 844×340 and multiple zooms; cold-cache loading and renderer-fallback verification.
+- Mobile-scale preview at the actual battle/world camera, including the standard 844×390 and audited 844×340 viewports and multiple zooms; cold-cache loading and renderer-fallback verification.
 - No simulation effects triggered by render frame timing. Keep true game movement, damage, resource delivery and capture authoritative.
 - Instancing-compatible animation/baking. Do not add one heavyweight animation mixer per visible soldier without measuring the architecture change.
 - Reduced-motion handling for UI/camera transitions and no needless motion for stationary Hold/idle states.
 
-Use the current [unit art brief](https://github.com/yaniv89/terra-imperium/blob/0c08cf853f0fbfc350367b4e7f8c2fa3f7ccf091/plans/unit-art-brief.md) and [Blender delivery specification](https://github.com/yaniv89/terra-imperium/blob/0c08cf853f0fbfc350367b4e7f8c2fa3f7ccf091/plans/art/blender-delivery-spec.md) for detailed skeleton, orientation and export requirements. Reconcile older delivery requirements with the active renderer before commissioning optional high-detail sprite-only assets.
+Use the [ART-MODELS-PLAN.md](ART-MODELS-PLAN.md) and the detailed production plan as the governing current 3D/animation contract. Use the older [unit art brief](https://github.com/yaniv89/terra-imperium/blob/0c08cf853f0fbfc350367b4e7f8c2fa3f7ccf091/plans/unit-art-brief.md) and [Blender delivery specification](https://github.com/yaniv89/terra-imperium/blob/0c08cf853f0fbfc350367b4e7f8c2fa3f7ccf091/plans/art/blender-delivery-spec.md) for detailed skeleton, orientation and export requirements. Reconcile older delivery requirements with the active renderer before commissioning optional high-detail sprite-only assets.
 
 **Checklist totals:** 26 animation/motion/effect families, 12 model/prop work packages, and 10 icon/overlay groups. These totals include reuse, repair, integration and optional polish. They are not counts of new unique meshes or authored animation clips.

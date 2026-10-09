@@ -12,7 +12,7 @@ Prepared 8 October 2026. Baseline: `yaniv89/terra-imperium`, `claude/integration
 
 Companion: [coverage CSV with all 165 original test observations](playtest-audits-coverage.csv).
 
-Art-production companion: [animation, model, prop and icon checklist](playtest-audits-animation-model-brief.md). It distinguishes existing assets that need integration/repair from candidate new production, with 26 motion/effect families, 12 model/prop packages and 10 icon/overlay groups.
+Art-production companion: [animation, model, prop and icon checklist](playtest-audits-animation-model-brief.md). It distinguishes existing assets that need integration/repair from candidate new production, with 26 motion/effect families, 12 model/prop packages and 10 icon/overlay groups. The [detailed art production plan](playtest-audits-art-production-plan.md) reconciles branch specifications and pre-audit backlog overlap, defines production batches and acceptance, and adds two explicit supporting checks (herd motion and projectile/FX synchronization); its [manifest](playtest-audits-art-production-manifest.csv) tracks 50 requirements, not 50 new assets.
 
 ## 1. Scope, evidence, and intended outcome
 
@@ -33,7 +33,7 @@ Evidence labels:
 
 Source was inspected through GitHub. A runnable checkout, historical saves, and original battle command logs were not available for this planning pass; no gameplay tests or balance simulations were run. Reproduction and measurement are implementation tasks. The report's statement that localhost matched production is historical audit context, not a fresh deployment comparison.
 
-This is a multi-stage program, not a promise that all findings are a week of wiring. The original audit's one-week P0 estimate should be replaced with evidence-based estimates after reproduction. No push, merge, deployment, or gameplay implementation is part of the current deliverable.
+This is a multi-stage program, not a promise that all findings are a week of wiring. The original audit's one-week P0 estimate should be replaced with evidence-based estimates after reproduction. This is a planning deliverable; committing its documents does not authorize asset production, gameplay implementation, merging to main or deployment.
 
 ## 2. Important corrections and source findings
 
