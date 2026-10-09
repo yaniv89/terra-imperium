@@ -2,6 +2,8 @@
 
 Planning only. This classifies the 224 source-audit gameplay items (I001–I224), the 14 later player requests (U01–U14), and the 54 *overlapping* visual production requirements (AN/AX/MD/UI). It does not authorize or record implementation. The individual titles and classifications are in [the 238-row gameplay CSV](playtest-audits-work-breakdown.csv) and [the 54-row visual CSV](playtest-audits-visual-work-breakdown.csv); the full behavior and acceptance criteria remain in the [item inventory](playtest-audits-item-inventory.md), [implementation plan](playtest-audits-implementation-plan.md), and [art plan](playtest-audits-art-production-plan.md).
 
+For scheduling shared file changes, use the [21-batch code-touch map](playtest-audits-code-batches.md) and its [238-row ID map](playtest-audits-code-batches.csv). Batch IDs group the same items and do not increase the task count.
+
 ## Counting rules
 
 - **Primary Code or Art** means the discipline that must deliver the central result. The `support` column names the other discipline when the item needs both. This is an ownership view, not a count of people or source files.

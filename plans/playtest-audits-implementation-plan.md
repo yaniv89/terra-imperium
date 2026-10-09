@@ -10,6 +10,8 @@ Prepared 8 October 2026. Baseline: `yaniv89/terra-imperium`, `claude/integration
 
 **Work breakdown:** [Code versus art, fixes versus additions/changes, and major to small scope](playtest-audits-work-breakdown.md), with [all 238 gameplay/request rows](playtest-audits-work-breakdown.csv) and [all 54 overlapping visual rows](playtest-audits-visual-work-breakdown.csv). These are planning classifications, not additional items or completed work.
 
+**Shared-code batching:** [21 code-touch batches, cross-batch dependencies and reviewable slices](playtest-audits-code-batches.md), with [one primary batch and likely shared paths for every I/U item](playtest-audits-code-batches.csv). These group the existing 238 items; they are not 21 new tasks or proof of a shared root cause.
+
 **Reading guide:** [Source findings](#2-important-corrections-and-source-findings), [design decisions](#3-product-decisions-and-recommended-defaults), [17 work packages](#5-work-packages), [22 additional risks](#6-additional-loopholes-and-design-safeguards), [delivery sequence](#7-sequencing-dependencies-and-reviewable-implementation-slices), [validation](#8-validation-strategy-and-measurable-completion), [original 42-label subset](#9-traceability-original-42-label-subset), [complete test-log ledger](#11-complete-raw-test-log-ledger), and [14 later player requests](#12-player-follow-up-rts-and-iphone-layout).
 
 Companion: [coverage CSV with all 165 original test observations](playtest-audits-coverage.csv).

@@ -1,0 +1,239 @@
+id,task,primary_batch,secondary_batches,likely_shared_code,primary_discipline,work_kind,size
+I001,Victory becomes campaign defeat,CB01,CB02,src/battle/sim/replay.js; src/battle/sim/orders.js; src/battle/worker/battleLoop.js; src/battle/setup/buildBattleSetup.js,Code,Fix,Major
+I002,Casualty totals disagree between battle and report,CB02,CB01,src/engine/battleOutcome.js; src/engine/battleInputs.js; src/battle/sim/result.js; src/components/battle/TacticalBattleHost.jsx; src/components/battle/BattleResultScreen.jsx,Code,Fix,Major
+I003,Dead regiments survive or surviving regiments regain strength,CB02,CB03,src/engine/battleOutcome.js; src/engine/battleInputs.js; src/battle/sim/result.js; src/components/battle/TacticalBattleHost.jsx; src/components/battle/BattleResultScreen.jsx,Code,Fix,Major
+I004,Zero-supply army persists without observed attrition,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Investigation,Major
+I005,Supply explanation contradicts an empty supply meter,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Small
+I006,Successful sack reported as city held with damaged nonexistent walls,CB02,,src/engine/battleOutcome.js; src/engine/battleInputs.js; src/battle/sim/result.js; src/components/battle/TacticalBattleHost.jsx; src/components/battle/BattleResultScreen.jsx,Code,Fix,Major
+I007,Command silently falls back to Auto for an empty garrison,CB01,CB02,src/battle/sim/replay.js; src/battle/sim/orders.js; src/battle/worker/battleLoop.js; src/battle/setup/buildBattleSetup.js,Code,Fix,Major
+I008,Pre-battle force estimates disagree with actual battle participants,CB01,CB18,src/battle/sim/replay.js; src/battle/sim/orders.js; src/battle/worker/battleLoop.js; src/battle/setup/buildBattleSetup.js,Code,Fix,Major
+I009,"Wall descriptions disagree between army, independent and pre-battle views",CB18,,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
+I010,Numerical Auto odds appear only after battle,CB18,,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
+I011,Hopeless defense starts without adequate warning,CB18,,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Medium
+I012,Retreat orders whole-battle forfeiture instead of selected withdrawal,CB02,CB17,src/engine/battleOutcome.js; src/engine/battleInputs.js; src/battle/sim/result.js; src/components/battle/TacticalBattleHost.jsx; src/components/battle/BattleResultScreen.jsx,Code,Fix,Major
+I013,Whole-army withdrawal has no confirmation,CB18,,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
+I014,Army elimination ends an economy battle despite surviving buildings,CB02,CB18,src/engine/battleOutcome.js; src/engine/battleInputs.js; src/battle/sim/result.js; src/components/battle/TacticalBattleHost.jsx; src/components/battle/BattleResultScreen.jsx,Code,Change,Major
+I015,Battle-trained auxiliaries disappear without adequate explanation,CB02,CB18,src/engine/battleOutcome.js; src/engine/battleInputs.js; src/battle/sim/result.js; src/components/battle/TacticalBattleHost.jsx; src/components/battle/BattleResultScreen.jsx,Code,Fix,Small
+I016,One-round Auto replay provides little useful information,CB02,,src/engine/battleOutcome.js; src/engine/battleInputs.js; src/battle/sim/result.js; src/components/battle/TacticalBattleHost.jsx; src/components/battle/BattleResultScreen.jsx,Code,Investigation,Medium
+I017,Gold accumulates without worthwhile spending,CB04,CB05,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I018,ADM/DIP/MIL accumulate while actions remain trivial,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I019,No gold purchase or hurry-production action,CB04,CB05,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Addition,Major
+I020,Existing spending options are difficult to discover,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Fix,Small
+I021,Infrastructure and defense costs/effects become negligible,CB04,CB05,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I022,Balanced focus produces disproportionately poor early output,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I023,Focus changes at small city sizes show no effect or reason,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Fix,Small
+I024,Marathon timing creates excessive waits across systems,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I025,Settler costs escalate too sharply with city count,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I026,New cities take 80–170 turns to build useful infrastructure,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I027,No warning or alternative for extremely long builds,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Fix,Small
+I028,Early versus late production costs have inconsistent pacing,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I029,Long early and late stretches contain no meaningful decisions,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I030,Research advances while other campaign systems stagnate,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Change,Major
+I031,Purchased development is overwritten on later turns,CB04,CB05,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Fix,Major
+I032,Invest in growth produces no visible size/progress effect,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Investigation,Medium
+I033,Advisor hire prices differ without explanation,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Fix,Small
+I034,Power-point purpose and balances are hidden,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Fix,Small
+I035,Unlimited expansion may need administrative pressure,CB04,,src/engine/development.js; src/engine/resolveTurn.js; src/engine/aiProduction.js,Code,Addition,Major
+I036,Buy-land quote is lower than the charged price,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Major
+I037,Bought iron tile apparently remains in the purchase list,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Investigation,Medium
+I038,Buying resource land does not explain extraction requirements,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Small
+I039,Inland river/oasis cities offer seagoing ships,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Major
+I040,Coast-required harbor remains queueable inland,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Major
+I041,Improvement rows are indistinguishable duplicates,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Small
+I042,Improvement choice lacks a map highlight,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Small
+I043,Building and upgrade effects are absent,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Small
+I044,Building/catalog row taps are inert and action arrows are too small,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Medium
+I045,Build-list reflow queues wrong items or loses repeated taps,CB05,CB13,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Major
+I046,Production queue cannot be reordered or moved to front,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Addition,Major
+I047,Removing or switching production silently loses progress,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Medium
+I048,Queue additions lack feedback and queue is offscreen,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Small
+I049,City panel leaves only about three build rows visible,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Medium
+I050,Quick-build buttons appear available but do nothing,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Small
+I051,Focus row is below the fold despite its importance,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Small
+I052,City rail ETA differs drastically from queue ETA,CB05,CB04,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Major
+I053,City Defense tab provides no actionable path,CB05,,src/components/city/CityPanel.jsx; src/engine/development.js; src/engine/gameReducer.js,Code,Fix,Small
+I054,Founding promises a city but creates an unexplained outpost,CB06,CB20,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Medium
+I055,New settlement only shows an unexplained tent,CB06,CB20,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Medium
+I056,Founded name differs from the previewed site name,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Small
+I057,Settlers are displayed as combat recruits with morale/strength,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Small
+I058,Army location and march origin use a stale home city,CB03,CB07,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Major
+I059,City Armies here lists physically distant units,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Major
+I060,City movement controls cannot split or select individual units,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Addition,Major
+I061,Marching and besieging armies are incorrectly idle,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Major
+I062,Map has no explicit Hold order suppressing idle alerts,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Addition,Major
+I063,Attack prompt claims adjacency when target is several turns away,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Major
+I064,City-card invasion bypasses travel distance,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Major
+I065,Move now arrives sooner than its route ETA predicts,CB03,CB07,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Major
+I066,Ordinary marches wait until End Turn without clear timing,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Small
+I067,No clear attack action for moving raid parties,CB03,CB08,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Major
+I068,Attack routes omit the supply estimate shown on ordinary routes,CB03,,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Small
+I069,Early supply depletion shuts down exploration,CB03,CB09,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Change,Major
+I070,Map unit movement jumps between tiles,CB07,CB20,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Medium
+I071,March preview/order lines are overly thick and noisy,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Small
+I072,Camera jumps to an old target when sheets resize or close,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Medium
+I073,Opening a city from Cities does not center it,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Small
+I074,Strategic city icons ignore taps in march mode,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Medium
+I075,One world-map wheel step zooms excessively,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Small
+I076,Army banner on a city selects the city instead,CB07,CB03,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Medium
+I077,Owned-terrain taps force city opening instead of tile inspection,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Medium
+I078,Fogged borders form a disconnected closed ring,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Major
+I079,Globe may reveal unexplored political territories,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Investigation,Major
+I080,World-zoom labels and raid names overlap,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Small
+I081,HUD buttons hide map city labels,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Small
+I082,Independent cities look like major cities,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Small
+I083,March instruction banner covers the route preview,CB07,,src/components/map/; src/engine/sight.js; src/hooks/useExclusivePanel.js,Code,Fix,Small
+I084,Supply lens prevents entering settlement mode,CB06,CB13,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Major
+I085,Research boost Map action moves/switches lens without useful feedback,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Small
+I086,Settlement lens disappears after invalid tap or closing sheet,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Major
+I087,Settlement mode does not center on the chosen settler,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Small
+I088,Nearest legal/good sites are undiscoverable or behind sheets,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Medium
+I089,Green/red settlement eligibility is faint at strategic zoom,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Small
+I090,Found-city button is clipped or below the usable footer,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Small
+I091,Zero-yield or growth-locked sites have no warning,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Medium
+I092,Advisor keeps suggesting settlers after viable land is exhausted,CB06,CB09,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Change,Major
+I093,Extra settlers cannot be disbanded and monopolize helpers,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Addition,Major
+I094,Spacing distance display does not explain water/grid exceptions,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Small
+I095,Settler route is not rendered,CB06,CB20,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Medium
+I096,Future Oil resources appear in ancient site cards,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Fix,Small
+I097,"Wheat, cotton and papyrus lack map icons",CB06,CB20,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Art,Code integration + fix,Small
+I098,Resource density may undermine scarcity and site choice,CB06,,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Code,Change,Major
+I099,Settler and resource icons are too small/inconsistent,CB06,CB20,src/engine/settlers.js; src/components/map/; src/components/city/CityPanel.jsx,Art,Code integration + fix,Small
+I100,Tribute demands recur excessively,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Change,Major
+I101,Demand amount scales mechanically with saved treasury,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Change,Major
+I102,Friendly trade partners still make coercive demands,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Change,Major
+I103,Paying protection does not prevent same-turn war,CB08,CB13,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Major
+I104,Paying tribute has no visible promised opinion benefit,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Investigation,Small
+I105,Peace treaty chip remains beside AT WAR for the same pair,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Small
+I106,Independent refusal threatens raids when none are reachable,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Small
+I107,Delayed independent raids arrive in overwhelming synchronized waves,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Change,Major
+I108,Recurring tribute offers near-total safety for a trivial price,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Change,Major
+I109,Remote majors demand tribute without credible local pressure,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Change,Major
+I110,Defending against a sack is blamed as offensive soldier killing,CB08,CB02,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Major
+I111,Warm attitude conflicts with active raiding,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Small
+I112,Opinion Why shows only unexplained Standing,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Small
+I113,Trade route stays unprofitable from perpetual plunder,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Change,Major
+I114,Blocked trade offers no visible cause or recovery action,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Small
+I115,Plunder repeats as an identical log line every turn,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Small
+I116,Map/intelligence trading is missing,CB08,CB07,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Addition,Major
+I117,War declaration is easily missed,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Small
+I118,First-contact narrative credits scouts that do not exist,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Small
+I119,Scheduled independent emergence is described as expansion,CB08,,src/engine/indepPolicy.js; src/engine/tradeRoutes.js; src/engine/grudges.js; src/engine/hostility.js,Code,Fix,Small
+I120,Major armies stage or pile up without pursuing war goals,CB09,CB03,src/engine/aiOperations.js; src/engine/aiProduction.js; src/engine/resolveTurn.js,Code,Change,Major
+I121,White peace claims exhaustion after a war with no activity,CB09,,src/engine/aiOperations.js; src/engine/aiProduction.js; src/engine/resolveTurn.js,Code,Investigation,Small
+I122,AI has no effective peacetime exploration and contact remains sparse,CB09,CB07,src/engine/aiOperations.js; src/engine/aiProduction.js; src/engine/resolveTurn.js,Code,Change,Major
+I123,Early AI expansion looks weak in one speed but strong in another,CB09,,src/engine/aiOperations.js; src/engine/aiProduction.js; src/engine/resolveTurn.js,Code,Investigation,Major
+I124,AI bankruptcy causes repeated civil-war/rebellion cycles,CB09,CB11,src/engine/aiOperations.js; src/engine/aiProduction.js; src/engine/resolveTurn.js,Code,Change,Major
+I125,Tactical defenders rarely sally or counterattack intelligently,CB10,CB17,src/battle/sim/tacticalAI.js; src/battle/sim/orders.js,Code,Change,Major
+I126,Conquered cities rapidly rebel despite attempted occupation measures,CB11,CB13,src/engine/conquest.js; src/engine/loyalty.js; src/engine/razing.js; src/engine/battleOutcome.js,Code,Change,Major
+I127,Loyalty/rebellion danger is only visible in the log,CB11,,src/engine/conquest.js; src/engine/loyalty.js; src/engine/razing.js; src/engine/battleOutcome.js,Code,Fix,Small
+I128,Capture or surrender changes ownership without a noticeable receipt,CB11,CB02,src/engine/conquest.js; src/engine/loyalty.js; src/engine/razing.js; src/engine/battleOutcome.js,Code,Fix,Small
+I129,No Conquer/Raze/Tributary/Free decision after capture,CB11,CB13,src/engine/conquest.js; src/engine/loyalty.js; src/engine/razing.js; src/engine/battleOutcome.js,Code,Addition,Major
+I130,Adjacent armies automatically begin sieges without an order,CB03,CB11,src/engine/armies.js; src/engine/supplyMeter.js; src/engine/resolveTurn.js; src/engine/sieges.js,Code,Fix,Major
+I131,Healthy garrison surrenders at zero siege HP without meaningful cost,CB11,CB18,src/engine/conquest.js; src/engine/loyalty.js; src/engine/razing.js; src/engine/battleOutcome.js,Code,Change,Major
+I132,Repeated surrender and rebellion recreates the same conquest loop,CB11,CB08,src/engine/conquest.js; src/engine/loyalty.js; src/engine/razing.js; src/engine/battleOutcome.js,Code,Change,Major
+I133,Research ETA ignores historical availability gates,CB12,CB04,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Major
+I134,Advisor mode fails to explain waiting when all technologies are gated,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I135,Choose research prompt appears while research is active,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I136,Empire says nothing researched despite active progress,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I137,Research panel shows an apparently wrong current age,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I138,Fund Scholars hides its expected benefit,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I139,Government change hides authority loss and law lockout,CB12,CB13,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Major
+I140,Government change applies immediately without informed confirmation,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I141,Government switch silently chooses reforms,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Medium
+I142,Laws show cost but not effects or comparisons,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I143,Empire collapsible headers are not accessible buttons,CB12,CB13,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I144,Authority appears twice without distinct purpose,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I145,Advisor names repeat ambiguously,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I146,Rulers change too quickly to develop strategic significance,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Change,Major
+I147,Ruler successions are absent from history,CB12,CB14,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I148,Military unit names are anachronistic for the shown era/date,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I149,Era goals are buried instead of guiding play,CB12,CB13,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Medium
+I150,Achievements lack progress bars or measurable progress,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Addition,Small
+I151,Multiple panels obscure most of the world map,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Medium
+I152,Decision cards squeeze to narrow one-word columns,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Medium
+I153,Mandatory decisions disappear when another decision opens/closes,CB13,CB02,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Major
+I154,Closed pre-battle card is difficult to rediscover,CB13,CB18,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Medium
+I155,Closing a city panel reveals an underlying card requiring another close,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Medium
+I156,End Turn and helper chips move when sheets open,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Major
+I157,Several idle notifications crowd the screen,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Change,Small
+I158,Primary CTA truncates the city into an ambiguous name,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Small
+I159,Event options are below the fold or difficult to reach,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Medium
+I160,Sheets assume full height and are clipped by Safari bars,CB13,CB19,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Major
+I161,Era banner covers resource/research controls for many turns,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Medium
+I162,Resource popover remains open over other sheets,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Medium
+I163,Stored-resource icons have unlabeled numbers,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Small
+I164,Settings duplicates Map section headings,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Small
+I165,No in-game local save/load slots,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Addition,Major
+I166,New Game uses a native browser confirmation,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Small
+I167,Start search promises capital names but misses modern aliases,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Small
+I168,Start region chips overflow without a scroll hint,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Small
+I169,Log shows only about four lines on the phone,CB13,,src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css,Code,Fix,Small
+I170,Per-turn Upkeep floods the Action log,CB14,CB13,src/engine/resolveTurn.js; src/components/; event data and turn-report models,Code,Fix,Small
+I171,News about unmet foreign rebellions dominates turn reports,CB14,CB13,src/engine/resolveTurn.js; src/components/; event data and turn-report models,Code,Fix,Medium
+I172,Sack shrinkage then same-turn growth looks contradictory,CB14,CB02,src/engine/resolveTurn.js; src/components/; event data and turn-report models,Code,Fix,Small
+I173,Placement gives no visible legal buildable area,CB15,CB16,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Addition,Medium
+I174,Playable field boundary is not drawn,CB15,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Addition,Small
+I175,Resources and obstacles hide their blocking footprints,CB15,CB20,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Medium
+I176,Generated battle start offers almost no valid construction space,CB15,CB16,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Investigation,Major
+I177,Valid placement commits immediately without a clear confirmation step,CB15,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Medium
+I178,Build menu reopens beneath the confirming finger,CB15,CB19,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Medium
+I179,Placement error text remains after successful construction,CB15,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Small
+I180,Placement ghost stays stuck at the camp despite taps,CB15,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Medium
+I181,Build here is disabled without explaining why,CB15,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Small
+I182,Stop is mistaken for close-menu and halts construction,CB15,CB19,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Medium
+I183,Cancel placement triggers a newly exposed Tower/build tile,CB15,CB19,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Medium
+I184,Assigning a worker to construction is unclear on touch,CB15,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Medium
+I185,Training cost timing/queue feedback appears inconsistent,CB16,CB15,src/battle/data/economy.js; src/battle/sim/economy.js; src/battle/setup/economySetup.js; src/components/battle/EconomyHud.jsx,Code,Investigation,Major
+I186,Battle build icons are blank on first open,CB15,CB20,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Small
+I187,Build details are hidden behind poorly signposted long-press,CB15,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Fix,Small
+I188,All N selection unexpectedly moves the camera,CB17,,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Fix,Small
+I189,Attack then structure tap silently fails,CB17,CB20,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Fix,Major
+I190,Pullback move leaves squads idle under towers,CB17,CB18,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Fix,Major
+I191,Squads go idle after their target is destroyed,CB17,,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Fix,Major
+I192,Mixed-speed attack sends cavalry alone ahead of infantry,CB17,CB20,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Change,Major
+I193,Reserve/second-wave control appears only intermittently,CB18,CB01;CB02,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Major
+I194,No prompt reminds the player that reserves remain available,CB18,CB19,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
+I195,Squad count drops without casualty/retreat explanation,CB18,CB02,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
+I196,Player cannot find the enemy objective or navigate via minimap,CB19,CB18,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Addition,Major
+I197,Keep focus action is broken or slow to become available,CB19,CB18,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Investigation,Major
+I198,Desktop lacks accessible keyboard/edge panning,CB19,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Addition,Medium
+I199,Camera never follows a marching battle formation,CB19,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Addition,Medium
+I200,Battle zoom ignores the pointer location,CB19,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Fix,Medium
+I201,Battle HUD leaves only a narrow field strip,CB19,CB13,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Fix,Major
+I202,Defender housing collapse control fails or stays open by default,CB18,CB13,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
+I203,Battle alerts accumulate and obscure the field,CB19,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Fix,Small
+I204,"Deploy help is oversized, clipped and gives desktop-only instructions",CB19,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Fix,Small
+I205,Performance overlay covers deployment help,CB19,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Fix,Small
+I206,Speed and Pause controls shift under the finger,CB19,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Fix,Small
+I207,Pause sheet takes excessive space on phone,CB19,,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Fix,Small
+I208,Camp naming changes without explanation,CB18,,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
+I209,Friendly and enemy buildings are visually indistinguishable,CB20,CB18,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Art,Code integration + fix,Medium
+I210,50 percent housing-loss rule text is unwanted on three screens,CB18,CB02,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Change,Small
+I211,Auxiliary squads feel too fragile relative to their investment,CB18,CB16;CB10,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Change,Major
+I212,Towers and repair throughput may overwhelm viable assaults,CB18,CB10;CB16,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Investigation,Major
+I213,Pre-battle UI gives no warning to bring siege tools,CB18,CB19,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
+I214,Battle lighting is too dark on phone,CB20,CB19,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Code,Fix,Medium
+I215,Battle towns use an inappropriate era/cultural style,CB20,CB18,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Art,Code integration + fix,Medium
+I216,Nubian battlefield farmland may not fit the location,CB20,,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Code,Investigation,Small
+I217,Trees are repetitive dark blobs that read as noise,CB20,CB06,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Art,Code integration + fix,Medium
+I218,Soldiers are too tiny to identify or select on phone,CB20,CB19,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Code,Fix,Medium
+I219,Animation set is limited and the bake pipeline is not built,CB20,CB17,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Code,Addition,Major
+I220,Battle loading varies from roughly 5 to 20 seconds,CB21,CB20,src/battle/worker/battleLoop.js; src/battle/setup/buildBattleSetup.js; src/battle/render/,Code,Investigation,Major
+I221,Events repeat too frequently,CB14,,src/engine/resolveTurn.js; src/components/; event data and turn-report models,Code,Change,Major
+I222,"Events refer to inappropriate climate, coast or nonexistent buildings",CB14,,src/engine/resolveTurn.js; src/components/; event data and turn-report models,Code,Fix,Medium
+I223,Bronze Age Collapse triggers too early for a one-city start,CB14,,src/engine/resolveTurn.js; src/components/; event data and turn-report models,Code,Change,Major
+I224,"Messages contain grammar, pluralization and doubled battle names",CB14,,src/engine/resolveTurn.js; src/components/; event data and turn-report models,Code,Fix,Small
+U01,"Separate stone stock, useful stone spending and top bar",CB16,CB01;CB15;CB18;CB19,src/battle/data/economy.js; src/battle/sim/economy.js; src/battle/setup/economySetup.js; src/components/battle/EconomyHud.jsx,Code,Addition,Major
+U02,Worker-only circular hammer opens hidden build menu,CB15,CB19,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Addition,Medium
+U03,Dynamic Island and side-sheet safe layout,CB19,CB13,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Change,Major
+U04,Improve and make harvestable trees selectable,CB20,CB15,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Code,Addition,Major
+U05,Icon-only deselect/cancel button,CB15,CB19,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Addition,Small
+U06,"Tool-specific harvesting, barrow loading and return",CB20,CB16,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Art,Code integration + addition,Major
+U07,Verify and differentiate unit-class movement speeds,CB17,CB20,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Change,Medium
+U08,"Increase cannon, tank and artillery visual size",CB20,CB19,src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest,Art,Code integration + change,Medium
+U09,Pack abilities behind a circular wand launcher,CB19,CB15,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Addition,Medium
+U10,Remove manual reserve and deploy full starting roster,CB18,CB01;CB02;CB10;CB19,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Change,Major
+U11,Units retaliate appropriately when attacked,CB17,CB10,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Fix,Major
+U12,Show numeric Battle Supply in all battle modes,CB19,CB16,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Addition,Small
+U13,Hide build sheet for placement and reopen after success,CB15,CB16;CB19,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js,Code,Addition,Medium
+U14,"Village house raises housing/population capacity by 10, never 100",CB16,CB15;CB18,src/battle/data/economy.js; src/battle/sim/economy.js; src/battle/setup/economySetup.js; src/components/battle/EconomyHud.jsx,Code,Investigation,Small
