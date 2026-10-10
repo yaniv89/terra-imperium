@@ -1,25 +1,25 @@
 # Audit work breakdown: code, art, and scope
 
-Planning only. This classifies the 224 source-audit gameplay items (I001–I224), the 14 later player requests (U01–U14), and the 54 *overlapping* visual production requirements (AN/AX/MD/UI). It does not authorize or record implementation. The individual titles and classifications are in [the 238-row gameplay CSV](playtest-audits-work-breakdown.csv) and [the 54-row visual CSV](playtest-audits-visual-work-breakdown.csv); the full behavior and acceptance criteria remain in the [item inventory](playtest-audits-item-inventory.md), [implementation plan](playtest-audits-implementation-plan.md), and [art plan](playtest-audits-art-production-plan.md).
+Planning only. This classifies the 224 source-audit gameplay items (I001–I224), the 13 later player requests (U01–U13), and the 54 *overlapping* visual production requirements (AN/AX/MD/UI). It does not authorize or record implementation. The individual titles and classifications are in [the 237-row gameplay CSV](playtest-audits-work-breakdown.csv) and [the 54-row visual CSV](playtest-audits-visual-work-breakdown.csv); the full behavior and acceptance criteria remain in the [item inventory](playtest-audits-item-inventory.md), [implementation plan](playtest-audits-implementation-plan.md), and [art plan](playtest-audits-art-production-plan.md).
 
-For scheduling shared file changes, use the [21-batch code-touch map](playtest-audits-code-batches.md) and its [238-row ID map](playtest-audits-code-batches.csv). Batch IDs group the same items and do not increase the task count.
+For scheduling shared file changes, use the [21-batch code-touch map](playtest-audits-code-batches.md) and its [237-row ID map](playtest-audits-code-batches.csv). Batch IDs group the same items and do not increase the task count.
 
 ## Counting rules
 
 - **Primary Code or Art** means the discipline that must deliver the central result. The `support` column names the other discipline when the item needs both. This is an ownership view, not a count of people or source files.
 - **Fix** corrects observed or reported behavior or existing presentation. **Addition** adds a missing capability/control. **Change** deliberately changes a working rule, balance parameter or design. **Investigation** is an unresolved observation; it is not counted as a proven bug until reproduced.
 - **Major** crosses multiple systems, needs versioned rules/data, broad AI/replay/balance coverage, or a substantial asset pipeline/package. **Medium** changes one feature with multiple states or assets. **Small** is localized once its dependency is ready. These are *item impact* labels, not a promise that each row equals one commit or session. A small interface item may be blocked by a major rule change.
-- The 54 visual rows refine or support the 238 gameplay items. **Do not add 54 to 238.** Some visual rows also cover pre-audit art backlog. The 8 product ideas, 9 untested areas and 22 self-identified risks remain separate, as in the baseline plan.
+- The 54 visual rows refine or support the 237 gameplay items. **Do not add 54 to 237.** Some visual rows also cover pre-audit art backlog. The 8 product ideas, 9 untested areas and 22 self-identified risks remain separate, as in the baseline plan.
 
 ## Gameplay/request primary ownership and size
 
 | Primary owner | Major | Medium | Small | Total |
 |---|---:|---:|---:|---:|
-| Code | 93 | 45 | 93 | 231 |
+| Code | 93 | 45 | 92 | 230 |
 | Art | 1 | 4 | 2 | 7 |
-| **All 238** | **94** | **49** | **95** | **238** |
+| **All 237** | **94** | **49** | **94** | **237** |
 
-Of the 231 code-primary rows, **155 are fixes, 23 additions, 38 changes, and 15 investigations**. Of the 7 art-primary rows, 6 are visual asset/legibility work and U06 is a new tool-and-barrow animation package with code integration. Thirty-one code-primary gameplay rows explicitly need art support; all seven art-primary rows need code integration or runtime selection. The support count identifies interfaces, not a second set of 38 independent gameplay tasks.
+Of the 230 code-primary rows, **155 are fixes, 23 additions, 38 changes, and 14 investigations**. Of the 7 art-primary rows, 6 are visual asset/legibility work and U06 is a new tool-and-barrow animation package with code integration. Thirty-one code-primary gameplay rows explicitly need art support; all seven art-primary rows need code integration or runtime selection. The support count identifies interfaces, not a second set of 38 independent gameplay tasks.
 
 ### Code: fixes, additions, changes, investigations
 
@@ -28,9 +28,9 @@ Of the 231 code-primary rows, **155 are fixes, 23 additions, 38 changes, and 15 
 | Fix | 155 | Outcome/casualty mismatch (I001–I003), wrong build tap (I045), unresponsive units after target loss (I191) |
 | Addition | 23 | Gold hurry action (I019), queue reorder (I046), stone account and spend path (U01), compact launchers (U02/U09) |
 | Change | 38 | Campaign pacing (I024), AI pressure (I120), class-speed presentation (U07), full starting roster without Reserve (U10) |
-| Investigation | 15 | Zero-supply persistence (I004), land tile remaining in purchase list (I037), battle load variance (I220), reported +100 village-house gain despite +10 catalog (U14) |
+| Investigation | 14 | Zero-supply persistence (I004), land tile remaining in purchase list (I037), battle load variance (I220) |
 
-The 15 investigation rows need a reproduction/trace before committing to a fix. Some additions and changes share implementation with fixes; for example U02/U13 and I178/I183 should ship as one build-sheet state machine. U14 is a small investigation because the current rule already says +10 housing; if a +100 display or sim change is reproduced, reclassify its actual fix after tracing it.
+The 14 investigation rows need a reproduction/trace before committing to a fix. Some additions and changes share implementation with fixes; for example U02/U13 and I178/I183 should ship as one build-sheet state machine.
 
 ### Art-primary gameplay requests
 

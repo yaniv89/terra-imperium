@@ -17,7 +17,7 @@ Counting rule: one item for a separately testable behavior or decision; merge re
 | Investigations | 14 | Probable/ambiguous observations or conflicting evidence requiring diagnosis. |
 | **Gameplay total** | **224** | Excludes the separate lists below. |
 
-Also tracked separately: **8 commercial/product entries**, **9 explicitly untested areas**, and the plan's **22 additional analysis risks** (A01–A22). These are not added to the gameplay total. Passing checks and the retracted missing-Cyrene-report allegation are not counted as defects. **Fourteen later player requests**, U01–U14, are now tracked in [implementation plan §12](playtest-audits-implementation-plan.md#12-player-follow-up-rts-and-iphone-layout). They came after the source audits and do not change the 224-item audit baseline.
+Also tracked separately: **8 commercial/product entries**, **9 explicitly untested areas**, and the plan's **22 additional analysis risks** (A01–A22). These are not added to the gameplay total. Passing checks and the retracted missing-Cyrene-report allegation are not counted as defects. **Thirteen later player requests**, U01–U13, are now tracked in [implementation plan §12](playtest-audits-implementation-plan.md#12-player-follow-up-rts-and-iphone-layout). They came after the source audits and do not change the 224-item audit baseline.
 
 Links: [implementation plan](playtest-audits-implementation-plan.md), [item CSV](playtest-audits-item-inventory.csv), [original test-log coverage CSV](playtest-audits-coverage.csv). Each CSV source reference can be checked against [Playtest 2](playtest-2-report.md), [Playtest 3 audit](playtest-3-audit.md), or [raw log](playtest-3-test-log.md).
 

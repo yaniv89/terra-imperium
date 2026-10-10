@@ -2,7 +2,7 @@
 
 Planning only. No models, animations, images, game code or production-queue statuses are changed by this document.
 
-Prepared 2026-10-09 against `claude/integration` at [`f135336418d86021325a399d92dbf65024ed630f`](https://github.com/yaniv89/terra-imperium/tree/f135336418d86021325a399d92dbf65024ed630f). Audit evidence is the [three-report implementation plan](playtest-audits-implementation-plan.md), [224-item inventory](playtest-audits-item-inventory.md) and [original visual checklist](playtest-audits-animation-model-brief.md). The [production manifest](playtest-audits-art-production-manifest.csv) provides one trackable row per requirement below. The later U01–U14 player requests are specified in [implementation plan §12](playtest-audits-implementation-plan.md#12-player-follow-up-rts-and-iphone-layout); they are distinct from the original audits. U14 is a housing-rule/display investigation and adds no visual production row.
+Prepared 2026-10-09 against `claude/integration` at [`f135336418d86021325a399d92dbf65024ed630f`](https://github.com/yaniv89/terra-imperium/tree/f135336418d86021325a399d92dbf65024ed630f). Audit evidence is the [three-report implementation plan](playtest-audits-implementation-plan.md), [224-item inventory](playtest-audits-item-inventory.md) and [original visual checklist](playtest-audits-animation-model-brief.md). The [production manifest](playtest-audits-art-production-manifest.csv) provides one trackable row per requirement below. The later U01–U13 player requests are specified in [implementation plan §12](playtest-audits-implementation-plan.md#12-player-follow-up-rts-and-iphone-layout); they are distinct from the original audits.
 
 ## 1. Answer about scope
 

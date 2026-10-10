@@ -1,6 +1,6 @@
 # Code-touch batching map for audit and follow-up requests
 
-**Planning only.** This map covers all 238 gameplay/request IDs (I001–I224 and U01–U14), including art-primary items that need runtime integration. It complements the [implementation plan](playtest-audits-implementation-plan.md), [item-level work breakdown](playtest-audits-work-breakdown.md), [art production plan](playtest-audits-art-production-plan.md), and [238-row batch CSV](playtest-audits-code-batches.csv). The separate 54 visual requirement rows overlap these requests and are not added to the count.
+**Planning only.** This map covers all 237 gameplay/request IDs (I001–I224 and U01–U13), including art-primary items that need runtime integration. It complements the [implementation plan](playtest-audits-implementation-plan.md), [item-level work breakdown](playtest-audits-work-breakdown.md), [art production plan](playtest-audits-art-production-plan.md), and [237-row batch CSV](playtest-audits-code-batches.csv). The separate 54 visual requirement rows overlap these requests and are not added to the count.
 
 ## How to read this map
 
@@ -28,14 +28,14 @@
 | **CB13 Campaign panels and phone controls** | 19 | I151-I169 | `src/hooks/useExclusivePanel.js; src/components/panels/; src/index.css` | One active panel/decision queue, stable controls and safe-height layout |
 | **CB14 Events, history and turn reports** | 7 | I170-I172 I221-I224 | `src/engine/resolveTurn.js; src/components/; event data and turn-report models` | Context prerequisites, cooldowns, concise news and correct text |
 | **CB15 Battle build placement and worker UI** | 17 | I173-I184 I186-I187 U02 U05 U13 | `src/components/battle/TacticalBattleScreen.jsx; src/components/battle/EconomyHud.jsx; src/battle/sim/economy.js; src/components/battle/inspectModel.js` | One build-sheet/ghost/cancel state machine with sim-backed legality |
-| **CB16 Battle resources, housing and training** | 3 | I185 U01 U14 | `src/battle/data/economy.js; src/battle/sim/economy.js; src/battle/setup/economySetup.js; src/components/battle/EconomyHud.jsx` | Stone stock and costs; trace village-house +100 report against existing +10 cap |
+| **CB16 Battle resources and training** | 2 | I185 U01 | `src/battle/data/economy.js; src/battle/sim/economy.js; src/battle/setup/economySetup.js; src/components/battle/EconomyHud.jsx` | Stone stock and costs; training cost and queue feedback |
 | **CB17 Battle targeting, movement and speed** | 7 | I188-I192 U07 U11 | `src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx` | One stance/threat-response contract; measure class and grouped travel |
 | **CB18 Battle roster, objectives and siege rules** | 14 | I009-I011 I013 I193-I195 I202 I208 I210-I213 U10 | `src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx` | Full starting roster, objective truth, auxiliaries and siege balance |
 | **CB19 Battle HUD, camera and cutout layout** | 14 | I196-I201 I203-I207 U03 U09 U12 | `src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer` | Space-safe HUD, compact ability sheet, navigation and visible supply |
 | **CB20 Battle art and runtime presentation** | 10 | I209 I214-I219 U04 U06 U08 | `src/battle/render/; src/assets/battle/; src/components/battle/; art production manifest` | Asset repair/selection plus renderer integration, picking and animation state |
 | **CB21 Battle load and startup performance** | 1 | I220 | `src/battle/worker/battleLoop.js; src/battle/setup/buildBattleSetup.js; src/battle/render/` | Profile cold/warm setup, asset load and worker start before optimization |
 
-**Coverage:** 238 unique IDs in 21 primary batches. 94 IDs also list a secondary batch; these links are useful for scheduling and regression checks, not additional tasks.
+**Coverage:** 237 unique IDs in 21 primary batches. 93 IDs also list a secondary batch; these links are useful for scheduling and regression checks, not additional tasks.
 
 ## Highest-collision code areas
 
@@ -43,7 +43,7 @@
 |---|---|---|
 | `src/components/battle/TacticalBattleScreen.jsx` | CB15, CB17, CB19, CB20 | Selection, build ghost, order target, camera and model picking share input state. Land one interaction-state contract before stacking UI controls. |
 | `src/components/battle/BattleHud.jsx` and `EconomyHud.jsx` | CB15, CB16, CB18, CB19 | Build launcher, resource/housing numbers, starting roster and ability/supply controls compete for the same 844×340 layout. Test the full HUD after each slice. |
-| `src/battle/sim/economy.js` and `src/battle/data/economy.js` | CB15, CB16, CB18, CB20 | Placement, gathering, stone prices, housing cap, worker cargo and renderer events share catalog/state fields. Version resource/setup changes; U14 is diagnosis first because the rule already says +10. |
+| `src/battle/sim/economy.js` and `src/battle/data/economy.js` | CB15, CB16, CB18, CB20 | Placement, gathering, stone prices, training, worker cargo and renderer events share catalog/state fields. Version resource/setup changes. |
 | `src/battle/sim/orders.js`, movement and tactical AI | CB01, CB10, CB17 | Admission, replay, stance, threat response and AI commands must share legal order semantics. A new external order needs verifier coverage in the same change. |
 | `src/battle/setup/buildBattleSetup.js`, objectives and result | CB01, CB02, CB18, CB21 | Full initial roster and objective/siege changes alter the setup identity, result ledger, replay and load performance. Coordinate rule versions and parity. |
 | `src/engine/battleOutcome.js` | CB02, CB11 | A victory receipt and pending capture choice must commit once; conquest must not independently repeat battle rewards or ownership effects. |
@@ -56,7 +56,7 @@
 ## Proposed implementation slices
 
 1. **Freeze evidence and contracts.** W00 fixtures first. CB01 command/setup schema, CB02 receipt/participant ledger and CB18 starting roster/objectives must agree before a new battle rules version is committed. U10 crosses all three, plus CB19 HUD and CB10 AI.
-2. **Stabilize battle interaction.** CB15 owns the worker build sheet, placement ghost and cancel precedence (I173–I184, U02/U05/U13). CB16 owns stock/housing/training (I185, U01, U14); connect them through one catalog/state API. CB17 owns order/stance response (I188–I192, U07/U11). CB19 lays out the combined HUD after these contracts exist.
+2. **Stabilize battle interaction.** CB15 owns the worker build sheet, placement ghost and cancel precedence (I173–I184, U02/U05/U13). CB16 owns stock and training (I185, U01); connect them through one catalog/state API. CB17 owns order/stance response (I188–I192, U07/U11). CB19 lays out the combined HUD after these contracts exist.
 3. **Integrate visual work and performance.** CB20 consumes the art plan for tree picking/graphics, worker cargo/tools and heavy-unit silhouettes. CB21 profiles startup before and after asset changes. Art-only source revisions and gameplay renderer changes may be reviewed separately, but their acceptance scene is shared.
 4. **Stabilize campaign selectors and panels.** CB03 fixes physical army position/movement; CB07 and CB06 reuse it for picking and settlement. CB13 supplies the one-active-panel/mandatory-decision pattern used by CB05 city, CB11 conquest, CB12 research and CB14 event UI.
 5. **Tune connected rules with seeded baselines.** CB04 economy pacing and CB05 quotes/queues share measures; CB08 diplomacy, CB09 strategic AI and CB11 occupation share reachability and historical consequences. Run the W15 save/replay, phone, fog and long-run gates on the affected slices.
@@ -65,6 +65,5 @@
 
 - **U01 stone:** CB16 owns the distinct account and spending; CB15 build quotes, CB18 setup/AI, CB19 top bar and CB01 replay/schema must change together under a versioned contract. Do not ship a stone icon before stock accounting is authoritative.
 - **U10 no manual reserves:** CB18 owns full initial deployment, while CB01 records/replays it, CB02 conserves survivors, CB10/CB17 update AI/order assumptions and CB19 removes the old control. Legacy replays retain their old rules version.
-- **U14 house +10:** CB16 first measures the sim and HUD before/after one house. Existing `HOUSE_HOUSING = 10`, building housing and build detail already say +10. If the observed +100 comes from a city manifest or duplicate registration, fix that owner and keep the displayed cap and training rule synchronized.
 - **I001–I003 battle mismatch:** CB01 proves commands/setup; CB02 owns the committed receipt. Passing only a UI screenshot or only a replay hash is insufficient.
 - **I126–I132 conquest loops:** CB11 owns the capture/loyalty transaction, with CB02 battle outcome and CB13 decision persistence as required interfaces; do not paper over recurring ownership/reward loops with notification changes.
