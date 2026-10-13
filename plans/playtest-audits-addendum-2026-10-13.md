@@ -123,3 +123,24 @@ Art branches in progress (local Blender, not pushed): `claude/art-md13-ruined-bu
 | X28 | The economy view must carry each loaded worker's resource type (wood, stone, gold, food), not only "loaded", so `worker-loads.glb` (MD07) can show the right load. | CB16 / CB20 |
 | X29 | Retire the ore key with the four-resource change (Q1): `ore-outcrop.glb` stays until then; ore outcrops become stone or gold nodes per age (the art LOG will carry the per-age plan). | CB16 |
 | X30 | Siege crews shrink with their machine today (ballista and cannon crews about half infantry size). Crews are drawn at the people's scale, machines at true size or a little over (Q7); check picking radius and formation spacing after the change. | CB20 |
+
+## 10. Art decisions of 13 October (user, in the art session) and what they ask of the code
+
+- **Ore becomes stone in every age** (one rule, no per-age gold table). X29 is therefore:
+  `NODE_KINDS.ore.art = 'stone-outcrop'` now, and ore spots become stone nodes when the key is
+  retired with the four-resource change (CB16).
+- **Machines are capped at two thirds of real size**, one or two per squad; elephant and camel
+  riders are fixed too. No deployment spacing change in the sim (X30 stays a render change).
+- **Wrecks stay for the whole battle**; the 60 culture skins get the stronger damaged state, the
+  wreck stays generic.
+- **The log pile beside every grove stays** (it marks a harvestable grove).
+- Icons: the new battle Food and Gold icons stay; Free is the open gate; the existing close glyph
+  stays; the tributary and map Hold icons are being redrawn.
+
+| ID | Code change | Joins |
+|---|---|---|
+| X27 | Done on the art branch (merged): destroyed, finished buildings draw their wreck (`economyLayer.js` `buildingStateName`, `ruinCovered`). Left: fire and smoke on the kept sockets, and "a destroyed building no longer counts as base". | CB18 / CB20 |
+| X28 | In `ecoView` (`src/battle/sim/economy.js` about line 645) carry `{ idx, res, kind }` per carrying worker, then draw `loadObjectName(res, { nodeKind })` at `workerLoadPlacement(...)` from `ART.workerLoads()` (`src/battle/art/workerLoads.js`), picking the load set by age (a Modern set is coming). | CB16 / CB20 |
+| X31 | A spent node is dropped from the view, so the `stump` state never shows: keep spent groves visible. | CB16 / CB20 |
+| X32 | When a worker uses a barrow is a rules decision (art only today): decide with the four-resource change. | CB16 |
+| X33 | After the two texture changes (the LOD UV transfer in the rts building files, and `kitLoader` keeping authored LOD UVs except for the temperate kit), check buildings and trees together at far zoom, and measure UV mismatch on the desert, mediterranean, rts and city kits. | CB20 |

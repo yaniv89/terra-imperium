@@ -63,7 +63,12 @@ export const findCrossings = ({ w, h, tiles }) => {
     const axis = votes.x >= votes.z ? 'x' : 'z';
     const xs = cells.map((c) => c % w); const zs = cells.map((c) => Math.floor(c / w));
     const span = axis === 'x' ? Math.max(...xs) - Math.min(...xs) : Math.max(...zs) - Math.min(...zs);
-    bridges.push({ x: xs.reduce((a, b) => a + b, 0) / cells.length + 0.5, z: zs.reduce((a, b) => a + b, 0) / cells.length + 0.5, axis, length: span + 2 });
+    const bridge = { x: xs.reduce((a, b) => a + b, 0) / cells.length + 0.5, z: zs.reduce((a, b) => a + b, 0) / cells.length + 0.5, axis, length: span + 2 };
+    const half = bridge.length / 2;
+    const ends = axis === 'x' ? [[bridge.x - half, bridge.z], [bridge.x + half, bridge.z]] : [[bridge.x, bridge.z - half], [bridge.x, bridge.z + half]];
+    // Lateral water also occurs beside coastal roads and partial crossings. Both
+    // rendered end sockets must land on dry cells inside the battlefield.
+    if (ends.every(([x, z]) => { const t = at(Math.floor(x), Math.floor(z)); return t >= 0 && !isWet(t); })) bridges.push(bridge);
   });
   return { fords, banks, bridges };
 };

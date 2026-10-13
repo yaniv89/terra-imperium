@@ -107,9 +107,10 @@ export const UI = {
     + `<path d="M128,98C144,120 160,134 156,160C154,180 142,192 128,192C112,192 100,180 100,160C100,138 120,124 128,98Z" fill="#F6D77A" stroke-width="5"/>`
     + `<path d="M18,236L18,166L52,166L52,188L82,188L96,214L112,194L128,228L146,200L160,216L174,188L204,188L204,166L238,166L238,236Z" fill="${STONE_DARK}"/>`),
   'capture-tributary': icon(
-    `<rect x="30" y="14" width="16" height="150" fill="${WOOD_DARK}"/><path d="M46,18L128,52L46,88Z" fill="${BLUE}"/>`
-    + `<circle cx="160" cy="112" r="56" fill="${GOLD}"/><circle cx="160" cy="112" r="28" fill="${GOLD_LIGHT}" stroke-width="5"/>`
-    + `<rect x="22" y="160" width="212" height="78" rx="8" fill="${WOOD}"/><rect x="108" y="160" width="40" height="78" fill="${WHEAT}" stroke-width="5"/>`),
+    // One idea: a big coin dropping into an open hand.
+    `<circle cx="116" cy="72" r="64" fill="${GOLD}"/><circle cx="116" cy="72" r="32" fill="${GOLD_LIGHT}" stroke-width="5"/>`
+    + `<path d="M12,170C12,150 32,142 46,152L70,168L160,168L184,138C198,122 224,134 214,154L204,176L244,176L244,242L72,242C36,242 12,212 12,170Z" fill="${CREAM}"/>`
+    + `<rect x="196" y="168" width="48" height="76" rx="6" fill="${BLUE}"/>`),
   'capture-free': icon(
     `<path d="${WALL(62)}" fill="${STONE}"/><path d="M76,236L76,164C76,104 180,104 180,164L180,236Z" fill="${WHEAT_LIGHT}"/>`
     + `<path d="M76,150L40,168L40,244L76,236Z" fill="${WOOD_DARK}"/><path d="M180,150L216,168L216,244L180,236Z" fill="${WOOD_DARK}"/>`),
@@ -123,9 +124,9 @@ export const UI = {
 
   // UI07: a campaign unit that holds its ground: a planted spear and shield.
   'hold-map': icon(
-    `<rect x="120" y="46" width="16" height="40" fill="${WOOD}"/><path d="M128,6L150,48L128,64L106,48Z" fill="${STONE_LIGHT}"/>`
-    + `<path d="M52,76L204,76L204,138C204,186 166,206 128,222C90,206 52,186 52,138Z" fill="${BLUE}"/><path d="M128,76L204,76L204,138C204,186 166,206 128,222Z" fill="${CREAM}" stroke-width="5"/><circle cx="128" cy="136" r="22" fill="${WHEAT}" stroke-width="5"/>`
-    + `<rect x="22" y="214" width="212" height="26" rx="10" fill="${WOOD_DARK}"/>`)
+    `<path d="M36,216L36,140L60,108L84,140L84,216Z" fill="${WOOD}"/><path d="M172,216L172,140L196,108L220,140L220,216Z" fill="${WOOD}"/>`
+    + `<rect x="111" y="84" width="34" height="132" fill="${WOOD}"/><path d="M128,2L172,74L128,102L84,74Z" fill="${STONE_LIGHT}"/><rect x="98" y="100" width="60" height="28" rx="6" fill="${BLUE}"/>`
+    + `<rect x="12" y="206" width="232" height="36" rx="12" fill="${WOOD_DARK}"/>`)
 };
 
 const write = () => {

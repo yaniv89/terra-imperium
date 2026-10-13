@@ -11,6 +11,7 @@
 import { Matrix4, Vector3, BufferGeometry, BufferAttribute, Box3 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { loadGltf } from '../render/gltfUnitLoader';
+import { ART } from './artFiles';
 
 const LOD_NAME = /^LOD(\d)/;
 export const lodOf = (o) => { const m = LOD_NAME.exec(o?.name || ''); return m ? Number(m[1]) : null; };
@@ -145,7 +146,7 @@ export const transferLodUvs = (low, full) => {
  * Parse a loaded glTF scene into { objects: { name: { lods: [bundle, bundle, bundle], sockets:
  * { name: Vector3 }, box: Box3 } } } (positions in the object's own space, glTF axes).
  */
-export const parseKit = (scene) => {
+export const parseKit = (scene, { repairLodUvs = false } = {}) => {
   scene.updateMatrixWorld(true);
   const lodRoots = [];
   scene.traverse((o) => { if (lodOf(o) === null && o.children.some((c) => lodOf(c) === 0)) lodRoots.push(o); });
@@ -162,7 +163,7 @@ export const parseKit = (scene) => {
     const lods = [];
     lodNodes.forEach((list, l) => { lods[l] = (list.length ? bakeBundle(list, toRoot) : null) || lods[l - 1] || null; });
     if (!lods[0]) return;
-    for (let l = 1; l < lods.length; l++) {
+    for (let l = 1; repairLodUvs && l < lods.length; l++) {
       if (lods[l] && lods[l] !== lods[0] && lods[l] !== lods[l - 1] && lodUvMismatch(lods[l], lods[0]) > LOD_UV_TOLERANCE) lods[l] = transferLodUvs(lods[l], lods[0]);
     }
     const sockets = {};
@@ -173,14 +174,15 @@ export const parseKit = (scene) => {
   return { objects };
 };
 
-const kits = new Map(); // url -> Promise<kit>
-/** Load a kit file once (url -> Promise of parseKit's result); a failed load can be retried. */
-export const loadKit = (url, { load = loadGltf } = {}) => {
+const kits = new Map(); // [url, repair policy] -> Promise<kit>
+/** Preserve authored UV charts except for the exact known legacy kit, or an explicit opt-in. */
+export const loadKit = (url, { load = loadGltf, repairLodUvs = url === ART.url('battle/nature/vegetation-temperate.glb') } = {}) => {
   if (!url) return Promise.resolve(null);
-  if (!kits.has(url)) {
-    kits.set(url, Promise.resolve().then(() => load(url)).then((gltf) => parseKit(gltf.scene)).catch((e) => { kits.delete(url); throw new Error(`${url}: ${e.message}`); }));
+  const key = JSON.stringify([url, !!repairLodUvs]);
+  if (!kits.has(key)) {
+    kits.set(key, Promise.resolve().then(() => load(url)).then((gltf) => parseKit(gltf.scene, { repairLodUvs })).catch((e) => { kits.delete(key); throw new Error(`${url}: ${e.message}`); }));
   }
-  return kits.get(url);
+  return kits.get(key);
 };
 /** The first object of `names` the kit has (a fallback list: 'barracks-damaged', 'barracks'). */
 export const kitObject = (kit, ...names) => {

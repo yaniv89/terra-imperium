@@ -48,6 +48,7 @@ import TileSheet from './TileSheet';
 import ArmySheet from './ArmySheet';
 import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
+import MapGoals from './MapGoals';
 import { LENSES } from './lenses';
 import SettleBar from './SettleBar';
 import { settleModeFor, settleModeOver, settleSites, settleUnit, nextSite, settleBarModel, idleSettlerOn, firstIdleSettler } from './settleMode';
@@ -92,10 +93,6 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   // Settling is a mode (settleMode.js): it forces the settle view round its settler whatever
   // `lens` holds, and gives that lens back when it ends.
   const [settle, setSettle] = useState(null);
-  // A lens another screen switched on (a research boost's Map button): its name and what it shows,
-  // for a few seconds, so the switch is never silent (playtest audit I085).
-  const [lensNote, setLensNote] = useState(null);
-  useEffect(() => { if (!lensNote) return undefined; const t = setTimeout(() => setLensNote(null), 6000); return () => clearTimeout(t); }, [lensNote]);
   // The camera's moves from outside the map (plans/ui/map-camera/): only to a place that exists
   // (mapCamera.js), never to an undefined or empty spot.
   const stateRef = useRef(state);
@@ -107,14 +104,16 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const startSettle = (unit) => {
     if (!unit) return false;
     marchCtx?.cancel?.();
+    settleStartedRef.current = Date.now();
     setSettle(settleModeFor(unit)); setSelectedTile(unit.tile); setSelectedArmy(null); setSelectedNation(null); setManageOpen(false); selectRegion(null);
     flyTo(latLngOfTile(unit.tile));
     return true;
   };
+  const settleStartedRef = useRef(0);
   const startSettleRef = useRef(startSettle);
   startSettleRef.current = startSettle;
   // The player picks a lens: any tool mode over it ends.
-  const pickLens = (id) => { setSettle(null); setLensNote(null); setLens(id); };
+  const pickLens = (id) => { setSettle(null); setLens(id); };
   useEffect(() => {
     const onKey = (e) => { if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; const l = LENSES.find((x) => x.key === e.key); if (l) { setSettle(null); setLens(l.id); } };
     const onLens = (e) => {
@@ -123,7 +122,6 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       // "Show good sites" with settlers waiting is the settle mode for the first of them
       if (l.id === 'settle' && startSettleRef.current(firstIdleSettler(stateRef.current))) return;
       setSettle(null); setLens(l.id);
-      if (l.id !== 'political') setLensNote({ id: l.id, label: l.label, hint: l.hint });
     };
     window.addEventListener('keydown', onKey);
     window.addEventListener(SET_MAP_LENS, onLens);
@@ -148,7 +146,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
     const onArmy = (e) => { setSelectedArmy(e.detail); setSelectedTile(null); setManageOpen(false); selectRegion(null); flyTo(latLngOfTile(e.detail)); };
     // (the tile of settlers that wait, the "Idle" chip: the settle mode for them)
     const onTile = (e) => { if (startSettleRef.current(idleSettlerOn(stateRef.current, e.detail))) return; setSelectedTile(e.detail); setSelectedArmy(null); setManageOpen(false); selectRegion(null); flyTo(latLngOfTile(e.detail)); };
-    const onPlace = (e) => flyToPlaces(e.detail);
+    // (a "go home" fly that comes with the settle mode, Research's Map button, does not pull the map off the settler)
+    const onPlace = (e) => { if ((!e.detail || (Array.isArray(e.detail) && !e.detail.length)) && Date.now() - settleStartedRef.current < 400) return; flyToPlaces(e.detail); };
     const onNation = (e) => { setSelectedNation(e.detail); setSelectedTile(null); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
     const onFocus = (e) => setEventFocus(e.detail || null);
     // End Turn's "Choose production: <city>" (turnBlockers.js): the city's sheet on its Build tab, the map centred on it.
@@ -253,6 +252,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
         position="panel-hud"
       />
       )}
+      <MapGoals />
       {/* Closing the site sheet keeps the settle mode (its bar stays): I086. */}
       {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} settleUnitId={settleUnitNow?.id || null} onSettle={startSettle} />}
       {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
@@ -260,11 +260,6 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       <div className={`absolute left-[calc(var(--city-rail-w,0px)+0.75rem)] ${lensOpen ? 'z-20' : 'z-10'} flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)] lg:bottom-3 pl:bottom-3 pl:left-[max(env(safe-area-inset-left),0.75rem)]`}>
         {miniOpen && <MapLegend />}
         {miniOpen && <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label="Hide the mini map" data-testid="minimap-hide" className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-fa-panel border border-fa-line text-fa-text text-sm pointer-events-auto">×</button></div>}
-        {lensNote && lensNote.id === shownLens && (
-          <div role="status" data-testid="lens-note" className="max-w-[min(340px,calc(100vw-6rem))] px-3 py-1.5 rounded-lg bg-fa-panel/95 border border-fa-line shadow-lg text-[12px] text-fa-text pointer-events-auto">
-            <b>{lensNote.label} lens is on.</b> {lensNote.hint}. The round button beside it goes back.
-          </div>
-        )}
         <div className="flex items-end gap-2">
           <LensStrip lens={shownLens} onChange={pickLens} onOpenChange={setLensOpen} />
           {!miniOpen && <button type="button" onClick={() => setMini(true)} aria-label="Show the mini map" data-testid="minimap-show" className="min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">World</button>}

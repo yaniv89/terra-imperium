@@ -1,0 +1,65 @@
+// src/components/map/MapGoals.jsx
+// Two small things in the map's top-left corner (playtest audit I149 and the Research Map button):
+//   the hint    "what to do here", set by showMapHint (uiEvents.js) when a Research boost sends you
+//               to the map, with a way back to Research and a Done button
+//   the tracker the era goals as one chip ("Goals 1/2"); open, each goal has its bar, the legacy it
+//               gives and what to do next (data/eraGoals.js). Closed by default so the map stays clear.
+import React, { useEffect, useMemo, useState } from 'react';
+import { Target, X } from 'lucide-react';
+import { useGame } from '../../context/GameContext';
+import { eraGoalProgress } from '../../engine/eraGoals';
+import { PLAYSTYLES, GOAL_NEXT_ACTION, ERA_LEGACY_TURNS } from '../../data/eraGoals';
+import { AGES } from '../../data/ages';
+import { MAP_HINT } from '../ui/uiEvents';
+import { openPanelTab } from '../panels/panelEvents';
+import { Meter } from '../ui/atlas';
+
+const MapGoals = () => {
+  const { state } = useGame();
+  const [open, setOpen] = useState(false);
+  const [hint, setHint] = useState(null);
+  useEffect(() => {
+    const on = (e) => setHint(e.detail || null);
+    window.addEventListener(MAP_HINT, on);
+    return () => window.removeEventListener(MAP_HINT, on);
+  }, []);
+  const era = useMemo(() => eraGoalProgress(state), [state]);
+  return (
+    <div className="absolute z-10 left-[calc(var(--city-rail-w,0px)+0.75rem)] pl:left-[max(env(safe-area-inset-left),0.75rem)] top-[calc(var(--header-height,2.5rem)+0.5rem)] w-[min(19rem,calc(100vw-1.5rem-var(--rail-inset,0px)))] flex flex-col items-start gap-1.5 pointer-events-none" data-testid="map-goals">
+      {hint && (
+        <div role="status" className="pointer-events-auto fa-panel !bg-fa-panel shadow-xl p-2 w-full text-[12px] space-y-1.5" data-testid="map-hint">
+          <div className="font-semibold leading-tight">{hint.title}</div>
+          <div className="text-fa-muted leading-snug">{hint.text}</div>
+          <div className="flex gap-2">
+            {hint.back && <button type="button" onClick={() => { setHint(null); openPanelTab(hint.back); }} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-back">Back to Research</button>}
+            <button type="button" onClick={() => setHint(null)} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-done">Done</button>
+          </div>
+        </div>
+      )}
+      <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} data-testid="goal-tracker-chip"
+        className="pointer-events-auto min-h-[36px] inline-flex items-center gap-1.5 px-2.5 rounded-full bg-fa-panel/90 border border-fa-line text-[12px] text-fa-text">
+        <Target size={14} aria-hidden="true" />Goals <span className="fa-num">{era.met}/{era.needed}</span>
+      </button>
+      {open && (
+        <div className="pointer-events-auto fa-panel !bg-fa-panel shadow-xl p-2 w-full max-h-[calc(100dvh-8rem)] overflow-y-auto space-y-1.5" data-testid="goal-tracker">
+          <div className="flex items-start justify-between gap-2">
+            <div className="text-[12px] text-fa-muted leading-snug">{AGES[era.ageId]?.name || era.ageId} goals: meet {era.needed} for a legacy that lasts {ERA_LEGACY_TURNS} turns.</div>
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close the goals" className="w-8 h-8 shrink-0 flex items-center justify-center rounded hover:bg-fa-raised"><X size={14} aria-hidden="true" /></button>
+          </div>
+          {era.goals.map((g) => (
+            <div key={g.id} data-testid={`goal-${g.id}`}>
+              <div className="flex items-baseline justify-between gap-2 text-[12px]">
+                <span className="font-semibold">{g.label} <span className="font-normal text-fa-muted">{g.unit}</span></span>
+                <span className={`fa-num ${g.done ? 'text-fa-good' : 'text-fa-muted'}`}>{Math.min(g.value, g.target)} / {g.target}</span>
+              </div>
+              <Meter value={g.value} max={g.target} color={g.done ? 'var(--fa-good)' : 'var(--fa-you)'} height={4} />
+              <div className="text-[11px] text-fa-muted leading-snug">{g.done ? 'Done.' : GOAL_NEXT_ACTION[g.id]} Legacy: {PLAYSTYLES[g.id].bonusLabel}.</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MapGoals;

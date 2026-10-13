@@ -11,6 +11,8 @@ import { STARTING_DOCTRINES } from '../../data/startingDoctrines';
 import { DIFFICULTIES } from '../../data/difficulty';
 import { AGES } from '../../data/ages';
 import { eraGoalProgress } from '../../engine/eraGoals';
+import { achievementProgress } from '../../data/achievementProgress';
+import { Meter } from '../ui/atlas';
 import { PLAYSTYLES } from '../../data/eraGoals';
 
 const LegacyPanel = () => {
@@ -67,6 +69,16 @@ const LegacyPanel = () => {
                 {inProgress && <span className="text-[9px] text-amber-400 font-normal">(earned this run — unlocks on save)</span>}
               </div>
               <div className="text-fa-muted text-[10px] mt-0.5">{a.description}</div>
+              {(() => {
+                const p = unlocked ? null : achievementProgress(state, a.id);
+                if (!p) return <div className="text-[10px] mt-0.5 text-fa-muted" data-testid={`ach-status-${a.id}`}>{unlocked ? 'Earned' : 'Not yet'}</div>;
+                return (
+                  <div className="mt-1" data-testid={`ach-progress-${a.id}`}>
+                    <div className="flex justify-between text-[10px] text-fa-muted"><span>{p.unit}</span><span className="font-mono">{p.value} / {p.target}</span></div>
+                    <Meter value={p.value} max={p.target} height={4} />
+                  </div>
+                );
+              })()}
             </div>
           );
         })}

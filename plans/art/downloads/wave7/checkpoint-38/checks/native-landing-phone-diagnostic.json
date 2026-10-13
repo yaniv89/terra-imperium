@@ -1,0 +1,686 @@
+{
+  "base": "http://127.0.0.1:3010/terra-imperium/",
+  "profiles": [
+    "phone"
+  ],
+  "resolutions": [
+    {
+      "width": 844,
+      "height": 390
+    }
+  ],
+  "nativeTileSelection": true,
+  "coverage": {
+    "checkpointAssetCount": 14,
+    "all14NativelyVerified": false,
+    "mapCapturedByThisHarness": false,
+    "parentVisualReviewRequired": true,
+    "scope": "Selected native battle cases only; source/parse audits and external map captures are separate evidence.",
+    "unrequestedCases": [
+      {
+        "id": "river-bronze",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-bronze",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "river-classical",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-classical",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "river-modern",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-modern",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-conifer",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-conifer",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-tropical",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-tropical",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-cold",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-cold",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "raid",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "raid",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-ancient",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-ancient",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-middle",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-modern",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-modern",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "raid-delayed",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "raid-delayed",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    ],
+    "checkpointAssetKeys": [
+      "battle/terrain/river-kit.glb",
+      "battle/terrain/ford.glb",
+      "battle/terrain/bridge-wood.glb",
+      "battle/terrain/bridge-stone.glb",
+      "battle/terrain/bridge-steel.glb",
+      "battle/nature/vegetation-conifer.glb",
+      "battle/nature/vegetation-tropical.glb",
+      "battle/nature/vegetation-cold.glb",
+      "battle/props/loot-sack.glb",
+      "battle/props/exit-marker.glb",
+      "battle/props/landing-ancient.glb",
+      "battle/props/landing-middle.glb",
+      "battle/props/landing-modern.glb",
+      "battle/props/burnt-field-overlay.glb"
+    ],
+    "runtimeLoadAndPlacementVerifiedKeys": [],
+    "notRuntimeVerifiedAssetKeys": [
+      "battle/terrain/river-kit.glb",
+      "battle/terrain/ford.glb",
+      "battle/terrain/bridge-wood.glb",
+      "battle/terrain/bridge-stone.glb",
+      "battle/terrain/bridge-steel.glb",
+      "battle/nature/vegetation-conifer.glb",
+      "battle/nature/vegetation-tropical.glb",
+      "battle/nature/vegetation-cold.glb",
+      "battle/props/loot-sack.glb",
+      "battle/props/exit-marker.glb",
+      "battle/props/landing-ancient.glb",
+      "battle/props/landing-middle.glb",
+      "battle/props/landing-modern.glb",
+      "battle/props/burnt-field-overlay.glb"
+    ],
+    "uncapturedOrFailedCases": [
+      {
+        "id": "river-bronze",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-bronze",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "river-classical",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-classical",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "river-modern",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-modern",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-conifer",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-conifer",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-tropical",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-tropical",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-cold",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-cold",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "raid",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "raid",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-ancient",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-ancient",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-middle",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-middle",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-modern",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-modern",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "raid-delayed",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "raid-delayed",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    ]
+  },
+  "screenshotTiming": {
+    "rafIntervalMs": 200,
+    "maxRenderFPS": 5,
+    "performanceBenchmark": false,
+    "realClock": true,
+    "workerTimersUnmodified": true,
+    "firstFrameGateQAOnly": true
+  },
+  "scenarios": [
+    {
+      "id": "landing-middle",
+      "query": {
+        "terrain": "island",
+        "age": "kingdoms",
+        "landing": ""
+      },
+      "keys": [
+        "battle/props/landing-middle.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=island&age=kingdoms&landing="
+    }
+  ],
+  "limitations": [
+    "--plan leaves tile IDs unresolved; --run discovers actual loaded geo tiles.",
+    "artRoads supplies QA preview road state only; campaign state remains untouched.",
+    "Delayed loot/scorch requires real field destruction and can time out; opening raid is separate.",
+    "No bridge damage HP hook; intact placement only. Parent must visually inspect screenshots."
+  ],
+  "startedAt": "2026-10-08T08:56:14.999Z",
+  "smokeOnly": false,
+  "parentVisualReviewRequired": true,
+  "rendererBackendRequested": "ANGLE SwiftShader",
+  "hardwarePerformanceEvidence": false,
+  "results": [
+    {
+      "id": "landing-middle",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=island&age=kingdoms&landing=",
+      "errors": [
+        "Harness: page.screenshot: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m    - disabled all CSS animations\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n"
+      ],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/kingdoms-infantry.glb",
+          "status": 200,
+          "bytes": 65148,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/kingdoms-ranged.glb",
+          "status": 200,
+          "bytes": 72412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/kingdoms-general.glb",
+          "status": 200,
+          "bytes": 137052,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-temperate.glb",
+          "status": 200,
+          "bytes": 418284,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-kingdoms.glb",
+          "status": 200,
+          "bytes": 691828,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-kingdoms.glb",
+          "status": 200,
+          "bytes": 334064,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/kingdoms.glb",
+          "status": 200,
+          "bytes": 30108,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/landing-middle.glb",
+          "status": 200,
+          "bytes": 548952,
+          "validGLB": true
+        }
+      ],
+      "shots": [],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=island&age=kingdoms&landing=",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 8,
+      "audit": {
+        "screenshotTiming": {
+          "rafIntervalMs": 200,
+          "performanceBenchmark": false,
+          "firstFrameGateQAOnly": true,
+          "gateChecks": 32,
+          "gateStartedAtMs": 13203.5,
+          "firstFrameAtMs": 20570.39999999106,
+          "gateDurationMs": 7366.899999991059
+        },
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 84,
+          "triangles": 490789,
+          "geometries": 56,
+          "textures": 39,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "landing",
+        "actualTile": 373,
+        "simTick": 8,
+        "canvas": {
+          "width": 844,
+          "height": 390,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "temperate",
+        "assets": [
+          {
+            "key": "battle/props/landing-middle.glb",
+            "url": "/terra-imperium/src/assets/battle/props/landing-middle.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 1,
+            "objects": [
+              "landing-middle"
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "landing-middle",
+            "x": -0.1699998378753662,
+            "z": 32.50014514476061,
+            "worldCorners": [
+              {
+                "x": -5.3399999886751175,
+                "y": 0,
+                "z": 33.64124997705221
+              },
+              {
+                "x": 5.000000312924385,
+                "y": 0,
+                "z": 33.64124997705221
+              },
+              {
+                "x": -5.3399999886751175,
+                "y": 3.355151206254959,
+                "z": 33.64124997705221
+              },
+              {
+                "x": 5.000000312924385,
+                "y": 3.355151206254959,
+                "z": 33.64124997705221
+              },
+              {
+                "x": -5.3399999886751175,
+                "y": 0,
+                "z": 31.359040312469006
+              },
+              {
+                "x": 5.000000312924385,
+                "y": 0,
+                "z": 31.359040312469006
+              },
+              {
+                "x": -5.3399999886751175,
+                "y": 3.355151206254959,
+                "z": 31.359040312469006
+              },
+              {
+                "x": 5.000000312924385,
+                "y": 3.355151206254959,
+                "z": 31.359040312469006
+              }
+            ],
+            "height": 3.355151206254959,
+            "copies": 1
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 107,
+          "banks": 499,
+          "bridges": 0
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 5.5,
+              "z": 32.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 94.5,
+              "z": 32.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            },
+            {
+              "id": "landing-middle",
+              "x": 5,
+              "z": 32.5,
+              "yaw": 1.5707963267948966,
+              "side": 0,
+              "shore": true
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker",
+            "landing-middle"
+          ],
+          "instances": {
+            "copies": 3,
+            "draws": 4
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "screenshotTiming": {
+        "rafIntervalMs": 200,
+        "performanceBenchmark": false,
+        "firstFrameGateQAOnly": true,
+        "gateChecks": 32,
+        "gateStartedAtMs": 13203.5,
+        "firstFrameAtMs": 20570.39999999106,
+        "gateDurationMs": 7366.899999991059
+      },
+      "ok": false,
+      "proofStatus": "diagnostic-not-acceptance-proof"
+    }
+  ],
+  "finishedAt": "2026-10-08T08:57:44.625Z"
+}

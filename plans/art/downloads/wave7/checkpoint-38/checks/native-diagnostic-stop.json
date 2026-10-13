@@ -1,0 +1,16 @@
+{
+  "reason": "Replace diagnostic run with first-native-frame scheduling guard and corrected bridge placement; retain all previous reports without acceptance claims",
+  "owned_processes": [
+    24768,
+    24780,
+    24784,
+    24785,
+    24805,
+    24818,
+    24827,
+    25019,
+    25332,
+    25340,
+    25343
+  ]
+}
