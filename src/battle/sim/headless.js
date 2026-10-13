@@ -3,6 +3,7 @@
 // (later) server-side replay. `orders` is a recorded log of { tick, ... } orders to replay.
 import { createWorld } from './world';
 import { step } from './step';
+import { applyDeployment } from './orders';
 import { toStrategicResult } from './result';
 import { worldHash } from './hash';
 import { battleLimitTicks } from './constants';
@@ -10,7 +11,8 @@ import { battleLimitTicks } from './constants';
 export const runHeadless = (setup, { orders = [], maxTicks = battleLimitTicks(setup) + 20, checkpointEvery = 0 } = {}) => {
   const w = createWorld(setup);
   const byTick = new Map();
-  orders.forEach((o) => { const list = byTick.get(o.tick) || []; list.push(o); byTick.set(o.tick, list); });
+  // Deployment orders (before the first tick) are set down first, as the live battle does.
+  applyDeployment(w, orders).forEach((o) => { const list = byTick.get(o.tick) || []; list.push(o); byTick.set(o.tick, list); });
   const checkpoints = [];
   while (!w.ended && w.tick < maxTicks) {
     step(w, byTick.get(w.tick) || []);

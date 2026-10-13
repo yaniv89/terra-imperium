@@ -74,4 +74,47 @@ describe('battle loop', () => {
     fresh.frame(0); fresh.frame(200);
     expect(posts.some((m) => m.type === 'frame')).toBe(true);
   });
+
+  // Playtest audit CB01: the live loop admits orders through the schema the replay uses
+  // (sim/orderSchema.js), so the log holds exactly what was applied and nothing else.
+  it('admits orders through the shared schema: junk is refused and told, the side is forced, the log is what ran', () => {
+    const messages = [];
+    const loop = createBattleLoop({ setup: makeSetup(), post: (m) => messages.push(m) });
+    loop.frame(0);
+    loop.pushOrders([
+      { side: 1, type: 'retreatAll' },                                      // the enemy's side: becomes the player's own
+      { side: 0, type: 'teleport', squads: [0] },                           // unknown
+      { side: 0, type: 'move', squads: [0], x: NaN, y: 3 },                 // not a number
+      { side: 0, type: 'attack', squads: [0], target: { kind: 'node', index: 0 } }, // no such target kind
+      { side: 0, type: 'hold', squads: [0, 1], secret: 'x' }
+    ]);
+    expect(messages.find((m) => m.type === 'ordersRefused')).toMatchObject({ count: 3, full: false });
+    const logged = (m) => m.type === 'checkpoint' || m.type === 'ended';
+    for (let t = 16; t < 600000 && !messages.some(logged); t += 16) loop.frame(t);
+    const cp = messages.find(logged);
+    expect(cp.log).toEqual([
+      { type: 'retreatAll', side: 0, tick: 0, seq: 0 },
+      { type: 'hold', side: 0, squads: [0, 1], tick: 0, seq: 1 }
+    ]);
+    // the player's own retreat was applied: the attackers are leaving
+    expect(loop.world.retreatOrdered?.[0]).toBe(true);
+  });
+
+  it('a deployment before Start is set down at once, and the log replays to the same world', () => {
+    const messages = [];
+    const loop = createBattleLoop({ setup: makeSetup(), post: (m) => messages.push(m) });
+    loop.setPaused(true);
+    loop.frame(0);
+    const before = loop.world.squads[0].y;
+    loop.pushOrders([{ side: 0, type: 'stop', squads: [1] }, { side: 0, type: 'deploy', squads: [0, 1], x: 3 * Q, y: 12 * Q, formation: 'line' }]);
+    expect(loop.world.tick).toBe(0);
+    expect(loop.world.squads[0].y).not.toBe(before);
+    loop.setPaused(false);
+    let now = 0;
+    while (!messages.some((m) => m.type === 'checkpoint')) { now += 16; loop.frame(now); }
+    const cp = messages.find((m) => m.type === 'checkpoint');
+    expect(cp.log.map((o) => o.type)).toEqual(['stop', 'deploy']);
+    expect(worldHash(replayTo(createWorld(makeSetup()), cp.log, cp.tick))).toBe(cp.hash);
+    expect(runHeadless(makeSetup(), { orders: cp.log, maxTicks: cp.tick }).hash).toBe(cp.hash);
+  });
 });

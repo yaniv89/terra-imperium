@@ -126,6 +126,10 @@ pure speed change should leave every world hash unchanged (compare `runHeadless(
 - Integer Q8 fixed point (1 tile = 256), integer ticks, `nextRandom(w)` only. Replays and the
   replay-verification tests (replay.test.js) must stay exact. Round damage immediately.
 - Anything outside the sim influences it only through orders.
+- A new player order needs its row in `src/battle/sim/orderSchema.js` in the same change: the live
+  loop and the verified replay both admit orders through it (orderSchema.test.js fails otherwise).
+  The campaign verifies a commanded battle on `buildCommandedSetup` (src/engine/battleVerify.js);
+  a rule change that moves hashes bumps `SETUP_VERSION` once.
 - New per-squad fields go in `makeSquad` (world.js); new view fields in view.js.
 - Neighbour queries go through the packed grids (spatial.js, pathing.js `queryRadius`,
   `buildTargetGrid`), never a scan of every squad per squad. `classId`, `commanderId` and `side`

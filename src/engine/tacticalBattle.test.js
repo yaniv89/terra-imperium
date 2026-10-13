@@ -7,8 +7,12 @@ import { REGIONS_DATA } from '../data/regions';
 import { describe, it, expect } from 'vitest';
 import { gameReducer, createInitialState, sanitizeTacticalResult } from './gameReducer';
 import { ActionTypes } from '../data/types';
-import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
+import { buildInvasionSetup, buildCommandedSetup, setupKeyOf, SETUP_VERSION } from '../battle/setup/buildBattleSetup';
 import { runHeadless } from '../battle/sim/headless';
+import { replayBattle } from '../battle/sim/replay';
+import { playCommandedBattle } from '../battle/sim/__fixtures__/recordBattles';
+import { safeBattleSetup } from '../components/battle/battleOpenGuard';
+import { fieldedUnitIds } from './battleVerify';
 import { estimateInvasionOdds } from './battleOdds';
 import { getNationCapital, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
@@ -100,7 +104,10 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
 
   it('with the command log, the battle is replayed and a forged result is ignored (server-verified)', () => {
     const started = begin(withArmies());
-    const setup = buildInvasionSetup(started, started.pendingBattle);
+    // The truth is the battle as the screen fights it: THE commanded setup (the player's side never
+    // routs). It was computed on the bare setup, which is the bug this test then shared (X03, X06).
+    const setup = buildCommandedSetup(started, started.pendingBattle);
+    expect(setup.sides.map((s) => s.canRout)).toEqual([false, true]);
     const log = [{ side: 0, type: 'attackMove', squads: [0, 1, 2], x: 60 * 256, y: 30 * 256, tick: 0, seq: 0 }];
     const truth = runHeadless(setup, { orders: log });
     const forged = { outcome: 'attacker', attackerUnits: [], defenderUnits: [], report: { tactical: { decisive: true } } };
@@ -109,6 +116,123 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     expect(next.lastBattleReport.tactical.verified).toBe(true);
     expect(next.lastBattleReport.tactical.hash).toBe(truth.hash);
     truth.result.defenderUnits.forEach((u) => { if (u.strength > 0 && !next.lastBattleReport.captured) expect(next.units[u.id].strength).toBe(u.strength); });
+  });
+
+  // Playtest audit CB01 (I001: Victory on the screen, a defeat in the campaign): a battle played
+  // live through the real loop on the screen's setup, with a deployment, the economy's orders and
+  // the army's, then handed to the reducer exactly as TacticalBattleHost does.
+  describe('the verified replay is the battle the player saw', () => {
+    const played = (() => {
+      let memo = null;
+      return () => {
+        if (memo) return memo;
+        const started = begin(withArmies());
+        const pb = started.pendingBattle;
+        const setup = safeBattleSetup(started, pb).setup; // what the battle screen is given
+        const live = playCommandedBattle(setup, 3, { retreatAt: 6000 });
+        const payload = { battleId: pb.id, result: live.ended.result, log: live.ended.log, hash: live.ended.hash, chain: live.ended.chain, tick: live.ended.tick, setupVersion: SETUP_VERSION, setupKey: setupKeyOf(setup) };
+        memo = { started, pb, setup, ...live, payload };
+        return memo;
+      };
+    })();
+
+    it('the screen and the reducer build the same setup with one function, the player\'s side never routing', () => {
+      const { started, pb, setup } = played();
+      expect(setup).toEqual(buildCommandedSetup(started, pb));
+      expect(setupKeyOf(setup)).toBe(setupKeyOf(buildCommandedSetup(started, pb)));
+      expect(setup.sides.map((s) => s.canRout)).toEqual([false, true]);
+      expect(setup.version).toBe(SETUP_VERSION);
+      expect(setupKeyOf(setup)).not.toBe(setupKeyOf(buildInvasionSetup(started, pb)));
+    }, 120000); // plays the shared battle once (slow on a loaded machine)
+
+    it('a commanded economy battle (deploy, build, train) ends in the campaign as it ended on the screen', () => {
+      const { started, pb, ended, used, refused, payload } = played();
+      expect(refused).toBe(0);
+      expect(used).toEqual(expect.arrayContaining(['deploy', 'gather', 'build', 'train', 'retreatAll']));
+      expect(ended.result.report.tactical.economy[0].buildingsBuilt).toBeGreaterThan(0);
+      const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload });
+      const report = next.lastBattleReport;
+      expect(next.pendingBattle).toBeNull();
+      expect(report.tactical.verification).toMatchObject({ status: 'verified', hash: ended.hash, clientHash: ended.hash, tick: ended.tick, dropped: 0, truncated: false, setupVersion: SETUP_VERSION });
+      expect(report.tactical).toMatchObject({ verified: true, hash: ended.hash, missingUnitIds: [] });
+      expect(report.outcome).toBe(ended.result.outcome);
+      expect(report.tactical.reason).toBe(ended.result.report.tactical.reason);
+      expect(report.tactical.economy).toEqual(ended.result.report.tactical.economy);
+      // every regiment stands on the map as the result screen showed it
+      ended.result.attackerUnits.forEach((u) => { if (u.strength > 0) expect(next.units[u.id].strength, u.id).toBe(u.strength); else expect(next.units[u.id], u.id).toBeUndefined(); });
+      expect(pb.attackerUnitIds.slice().sort()).toEqual(ended.result.attackerUnits.map((u) => u.id).sort());
+      // The old verification (the bare setup, an order list without deploy or the economy) told
+      // another battle from this very log.
+      const old = replayBattle(buildInvasionSetup(started, pb), ended.log.filter((o) => ['move', 'attackMove', 'formationLine', 'attack', 'stop', 'hold', 'retreat', 'retreatAll', 'callReserve', 'ability', 'power', 'garrison'].includes(o.type)));
+      expect(old.hash).not.toBe(ended.hash);
+    });
+
+    it('a forged result changes nothing, and a forged world hash is caught as a desync', () => {
+      const { started, ended, payload } = played();
+      const honest = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload });
+      const forged = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { ...payload, result: { outcome: 'attacker', attackerUnits: [], defenderUnits: [], report: { tactical: { decisive: true, verified: true } } }, hash: 12345 } });
+      expect(forged.units).toEqual(honest.units);
+      expect(forged.regions).toEqual(honest.regions);
+      expect(forged.lastBattleReport.outcome).toBe(ended.result.outcome);
+      expect(forged.lastBattleReport.tactical.verified).toBe(false);
+      expect(forged.lastBattleReport.tactical.verification).toMatchObject({ status: 'desync', hash: ended.hash, clientHash: 12345 });
+    });
+
+    it('a log with junk in it is replayed without the junk and never called verified', () => {
+      const { started, payload } = played();
+      const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { ...payload, log: [...payload.log, { type: 'teleport', tick: 3, seq: 99999 }, { type: 'move', squads: [0], x: NaN, y: 0, tick: 4, seq: 99998 }] } });
+      expect(next.pendingBattle).toBeNull();
+      expect(next.lastBattleReport.tactical.verified).toBe(false);
+      expect(next.lastBattleReport.tactical.verification).toMatchObject({ status: 'cut', dropped: 2 });
+    });
+
+    it('a log of another setup version is not replayed under these rules: the reported result, sanitized, the evidence kept', () => {
+      const { started, pb, ended, payload } = played();
+      const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { ...payload, setupVersion: SETUP_VERSION - 1 } });
+      expect(next.pendingBattle).toBeNull();
+      expect(next.lastBattleReport.outcome).toBe(ended.result.outcome);
+      expect(next.lastBattleReport.tactical.verified).toBe(false);
+      expect(next.lastBattleReport.tactical.hash).toBeUndefined();
+      expect(next.lastBattleReport.tactical.verification).toMatchObject({ status: 'version', setupVersion: SETUP_VERSION, clientSetupVersion: SETUP_VERSION - 1, clientHash: ended.hash, logOrders: ended.log.length });
+      Object.values(next.units).forEach((u) => { if (pb.attackerUnitIds.includes(u.id)) expect(u.strength).toBeLessThanOrEqual(started.units[u.id].strength); });
+      expect(gameReducer(next, { type: ActionTypes.ADVANCE_TURN }).turnNumber).toBe(next.turnNumber + 1);
+    });
+  });
+
+  // Addendum X04 (the ghost cavalry: 355 in the battle, 1,000 on the map): a unit that took the
+  // field and is missing from the result was handed back at full strength.
+  describe('a unit that took the field and is missing from the result', () => {
+    it('is not handed back whole: it is lost in the battle and the breach is on the record', () => {
+      const started = begin(withArmies());
+      const pb = started.pendingBattle;
+      const fielded = fieldedUnitIds(buildCommandedSetup(started, pb));
+      expect(fielded[0]).toEqual(expect.arrayContaining(['a1', 'a2', 'a3']));
+      const result = { outcome: 'defender', attackerUnits: [{ ...started.units.a1, strength: 400, disposition: 'fled' }, { ...started.units.a3, strength: 900, disposition: 'fled' }], defenderUnits: pb.defenderUnitIds.map((id) => ({ ...started.units[id] })), report: { tactical: { missingUnitIds: ['a1'] } } };
+      const safe = sanitizeTacticalResult(started, pb, result, { fielded });
+      expect(safe.attackerUnits.find((u) => u.id === 'a2')).toMatchObject({ strength: 0, disposition: 'dead' });
+      expect(safe.attackerUnits.find((u) => u.id === 'a1').strength).toBe(400);
+      expect(safe.report.tactical.missingUnitIds).toEqual(expect.arrayContaining(['a2']));
+      expect(safe.report.tactical.missingUnitIds).not.toContain('a1'); // the list is ours, not the client's
+      // through the reducer: the cavalry does not stand whole on the map
+      const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
+      expect(next.units.a2).toBeUndefined();
+      expect(next.units.a1.strength).toBe(400);
+      expect(next.lastBattleReport.tactical.missingUnitIds).toEqual(expect.arrayContaining(['a2']));
+    });
+
+    it('a unit that never took the field is left as it was', () => {
+      const started = begin(withArmies());
+      const pb = started.pendingBattle;
+      const result = { outcome: 'defender', attackerUnits: [{ ...started.units.a1, strength: 400 }], defenderUnits: [], report: { tactical: {} } };
+      // Who took the field is unknown (no setup): nothing is assumed lost.
+      const blind = sanitizeTacticalResult(started, pb, result);
+      expect(blind.attackerUnits.find((u) => u.id === 'a2').strength).toBe(1000);
+      expect(blind.report.tactical.missingUnitIds).toEqual([]);
+      // Locked for the battle but not on the field (it had no strength left when the battle was set up).
+      const safe = sanitizeTacticalResult(started, pb, result, { fielded: [['a1', 'a3'], []] });
+      expect(safe.attackerUnits.find((u) => u.id === 'a2').strength).toBe(1000);
+      expect(safe.report.tactical.missingUnitIds).toEqual(['a3']);
+    });
   });
 
   it('the real city stands on the battlefield; its losses carry to the map under the 50% rule', () => {
