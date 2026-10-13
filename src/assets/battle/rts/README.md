@@ -11,7 +11,8 @@ Spec: `plans/ART-MODELS-PLAN.md` section 5, `plans/ART-PRODUCTION-PLAN.md` S5.
 | `food-depot`, `materials-yard`, `trade-post`, `farm-plot`, `mine`, `barracks`, `range`, `stable`, `siege-workshop`, `aid-post`, `tower` | the roles |
 | `house` | optional: the village house (a greybox without it) |
 | `generator`, `airfield`, `radar-aa` | Modern extras (read once the sim has them) |
-| `<role>-damaged` | drawn under 70% HP, same origin and footprint |
+| `<role>-damaged` | drawn under 70% HP, same origin and footprint: one corner collapsed, soot on the walls, heaps and a scorch mark |
+| `<role>-ruined` | drawn once the building is destroyed, same origin and footprint: stumps at knee to waist height, charred, no Team material, on a scorch mark; only `socket-fire-*` and `socket-smoke-1` (budget 1,200 / 300 / 80) |
 | `construction-stage-0` .. `construction-stage-3` | foundation, then scaffold stages, by build progress (0-24, 25-49, 50-74, 75-100%); fitted to the footprint of the building going up |
 
 Each root holds `LOD0`, `LOD1`, `LOD2` children (a second object's are `LOD0.001` and so on, that is
@@ -32,8 +33,16 @@ fine) and optional empties: `socket-door` (on the -Y side, where trained units c
 ## Fallback
 A side's age uses its own file, else the nearest EARLIER age with a file (a Gunpowder battle with
 only `rts-bronze.glb` draws the Bronze buildings), else the greyboxes. A role missing from the file
-stays a greybox; a missing `-damaged` keeps the whole building; missing construction stages show the
-building rising out of the ground.
+stays a greybox; a missing `-damaged` keeps the whole building; a missing `-ruined` leaves nothing
+where the building stood (a culture skin without one takes the shared file's wreck); missing
+construction stages show the building rising out of the ground.
+
+## The three states (manifest row MD13, 2026-10-13)
+Every role of the five shared files has `<role>`, `<role>-damaged` and `<role>-ruined`
+(`src/battle/render/rtsStates.test.js` checks it). The wreck is made by script from the role's own
+parts (`build_rts_bronze.py` `ruined`, used by all five builders), so it stays in its age's stuff.
+The culture skins (`rts-<age>-<theme>.glb`) have no `-ruined` yet and keep their older, milder
+`-damaged`. Review sheets: `plans/art-pilot/md13-ruined-buildings/` (`scripts/blender/render_rts_states.py`).
 
 ## Delivered
 `rts-bronze.glb` (2026-10-07, `scripts/blender/build_rts_bronze.py`, from the Bronze town kit): the
