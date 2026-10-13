@@ -28,7 +28,7 @@ import {
 import { grudgeOf, grudgeCausesOf, GRUDGE_CAUSES } from '../../engine/grudges';
 import { canAttack } from '../../engine/hostility';
 import { attitudeOf, mayJoin, joinCheck, demandTributeCheck, tradeCheck, offerTributeCheck } from '../../engine/indepPolicy';
-import { opinionReasons } from '../../engine/opinion';
+import { opinionBreakdown } from '../../engine/opinion';
 import { mercOffer, mercStockOf } from '../../engine/mercenaries';
 import { raidEta } from '../../engine/raids';
 import { wallsOf } from '../../engine/sieges';
@@ -39,6 +39,25 @@ import { shieldUrl, shieldColour } from './independentArt';
 export const attitudeWord = (v) => (v >= JOIN_OPINION ? 'Devoted' : v >= JOIN_STRENGTH_OPINION ? 'Friendly' : v >= 10 ? 'Warm' : v > -20 ? 'Wary' : v > -50 ? 'Unfriendly' : 'Hostile');
 /** good / neutral / bad for an attitude. */
 export const attitudeTone = (v) => (v >= JOIN_STRENGTH_OPINION ? 'good' : v > -20 ? 'neutral' : 'bad');
+
+/**
+ * The attitude word and tone that match what they are doing (CB08, I111). Warmth from kin and
+ * culture stays in the number, but while a party of theirs is out against you, or one hit you in
+ * the last LAST_RAID_TURNS turns, the label says so instead of a plain "Warm".
+ * Returns { word, tone, raiding: 'now' | 'lately' | null }.
+ */
+export const attitudeLabel = (state, n, me, value) => {
+  const ind = n?.indep;
+  const raid = ind?.raid;
+  const now = !!raid && raid.targetNationId === me && raid.phase !== 'home';
+  const last = ind?.lastRaidOnPlayer;
+  const lately = !now && !!last && (state.turnNumber || 0) - last.turn <= LAST_RAID_TURNS;
+  const base = attitudeWord(value);
+  if (!now && !lately) return { word: base, tone: attitudeTone(value), raiding: null };
+  const tail = now ? 'raiding you' : 'raided you lately';
+  const word = value > -20 ? `${base} but ${tail}` : `${base}, ${tail}`;
+  return { word, tone: 'bad', raiding: now ? 'now' : 'lately' };
+};
 
 /** Grudge bands of the W15 meter: [from, word]. */
 export const GRUDGE_BANDS = [[0, 'Calm'], [25, 'Wary'], [50, 'Hostile'], [75, 'Blood feud']];
@@ -111,8 +130,16 @@ export const independentSheetModel = (state, indepId) => {
 
   // Attitude.
   const attitude = attitudeOf(state, indepId, me);
-  const reasons = opinionReasons(state, indepId, me).filter((r) => r.id !== 'baseline' && r.value !== 0)
-    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 6).map((r) => ({ id: r.id, label: r.label, value: Math.round(r.value) }));
+  // Why: every part, the starting point first, then the rest by size, and a line for what rounding
+  // or the end of the scale takes, so the lines add up to the number shown (CB08, I112).
+  const bd = opinionBreakdown(state, indepId, me);
+  const reasons = [
+    ...bd.rows.filter((r) => r.id === 'baseline'),
+    ...bd.rows.filter((r) => r.id !== 'baseline' && r.value !== 0).sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+  ].map((r) => ({ id: r.id, label: r.label, value: r.value }));
+  if (bd.rounding !== 0) reasons.push({ id: 'rounding', label: 'Rounding', value: bd.rounding });
+  if (bd.clamped) reasons.push({ id: 'scaleEnd', label: 'End of the scale', value: Math.round((bd.total - bd.sum) * 10) / 10 });
+  const attitudeShown = attitudeLabel(state, n, me, attitude);
   const joinable = mayJoin(n);
   const join = alive ? joinCheck(state, indepId, me) : { ok: false, reason: 'Their city is gone.' };
   const joinRule = !joinable
@@ -237,7 +264,7 @@ export const independentSheetModel = (state, indepId) => {
     city: city ? { id: city.id, name: city.name, tile: city.tile, size: city.size || 1, garrisonTarget: garrisonTarget(city.size, p) } : null,
     facts,
     km: alive ? kmFromNearest(state, me, city.tile) : Infinity,
-    attitude: { value: Math.round(attitude), word: attitudeWord(attitude), tone: attitudeTone(attitude), reasons, joinable, joinRule, join: { ok: join.ok, reason: join.ok ? null : join.reason } },
+    attitude: { value: Math.round(attitude), word: attitudeShown.word, tone: attitudeShown.tone, raiding: attitudeShown.raiding, reasons, joinable, joinRule, join: { ok: join.ok, reason: join.ok ? null : join.reason } },
     grudge,
     deals,
     mercs,
