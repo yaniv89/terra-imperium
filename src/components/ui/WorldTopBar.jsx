@@ -18,6 +18,7 @@ import { openNationOverview, openTurnReport } from './uiEvents';
 import { topBarModel } from './topBarModel';
 import { Shield, signed } from './atlas';
 import ResourceBar from './ResourceBar';
+import { CULTURE_HELP } from '../../data/powerPools';
 
 const GoldIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-brass)" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v8M9.5 10.5h5" /></svg>;
 const FoodIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-food)" strokeWidth="1.8" aria-hidden="true"><path d="M12 21V8M12 8c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-3-2-5-5-5 0 3 2 5 5 5zM12 16c0-3 2-5 5-5 0 3-2 5-5 5z" /></svg>;
@@ -130,7 +131,7 @@ const WorldTopBar = () => {
       {open === 'food' && <Reasons title="Food a turn, by city" rows={m.food.reasons} total={m.food.perTurn} unit="" onClose={close}
         footer={<p className="mt-2 text-[11px] text-fa-muted">The surplus after the people eat. It fills each city&apos;s bank ({m.food.value} in all) until the city grows.</p>} />}
       {open === 'culture' && <Reasons title="Culture a turn, by city" rows={m.culture.reasons} total={m.culture.perTurn} unit="" onClose={close}
-        footer={<p className="mt-2 text-[11px] text-fa-muted">Culture claims new tiles for each city and holds its people loyal.</p>} />}
+        footer={<p className="mt-2 text-[11px] text-fa-muted">Culture claims new tiles for each city and holds its people loyal. {CULTURE_HELP.earns} {CULTURE_HELP.spends}</p>} />}
     </header>
   );
 };

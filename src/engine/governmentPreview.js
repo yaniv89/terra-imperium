@@ -3,11 +3,12 @@
 // real reducer on a copy of the state and compares, so it cannot drift from what happens: the -2
 // stability, the authority it costs (8 per stability point), the Authority 25 line under which no
 // law can be enacted, and the reform package that gets picked for you (the first choice of each
-// age tier). Pure. The confirm dialog is next wave; the existing card text reads this.
+// age tier). Pure. The confirm dialog (GovernmentChangeDialog.jsx) and the card text read this.
 import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { ACTION_COSTS } from '../data/actionCosts';
-import { GOVERNMENT_TYPES, canChangeGovernmentType, getActiveReforms } from '../data/government';
+import { GOVERNMENT_TYPES, canChangeGovernmentType, getActiveReforms, reformSlotsForType } from '../data/government';
+import { AGES } from '../data/ages';
 import { authorityOf, canEnactLaws, AUTHORITY_NO_LAWS } from './authority';
 
 const snapshot = (state, me) => {
@@ -23,7 +24,7 @@ const snapshot = (state, me) => {
  * `lines` is the plain-English list for the card. `ok` says the rules allow the change (it can
  * still be unaffordable: `affordable`).
  */
-export const previewGovernmentChange = (state, typeId) => {
+export const previewGovernmentChange = (state, typeId, picks = null) => {
   const me = state.playerNationId;
   const nation = state.nations?.[me];
   const type = GOVERNMENT_TYPES[typeId];
@@ -34,7 +35,7 @@ export const previewGovernmentChange = (state, typeId) => {
   const affordable = Object.entries(cost).every(([k, v]) => (state.resources?.[k] || 0) >= v);
   // Run the real action with the cost covered, so the preview works even when it is not affordable yet.
   const funded = { ...state, resources: { ...state.resources, ...Object.fromEntries(Object.entries(cost).map(([k, v]) => [k, Math.max(state.resources?.[k] || 0, v)])) } };
-  const next = gameReducer(funded, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId } });
+  const next = gameReducer(funded, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId, reforms: picks || undefined } });
   if (next === funded) return { ok: false, reason: 'The change is not allowed', typeName: type.name, cost, lines: [] };
 
   const before = snapshot(state, me);
@@ -48,7 +49,9 @@ export const previewGovernmentChange = (state, typeId) => {
   if (authorityChange) lines.push(`Authority ${before.authority} to ${after.authority}.`);
   if (locksLaws) lines.push(`Authority falls under ${AUTHORITY_NO_LAWS}: you cannot enact laws until it recovers.`);
   else if (!after.canEnactLaws) lines.push(`Authority stays under ${AUTHORITY_NO_LAWS}: laws stay locked.`);
-  if (after.reforms.length) lines.push(`Reforms are picked for you: ${after.reforms.join(', ')}.`);
+  if (after.reforms.length) lines.push(`Reforms for the new government (you choose): ${after.reforms.join(', ')}.`);
   if (before.reforms.length) lines.push(`You lose: ${before.reforms.join(', ')}.`);
-  return { ok: true, affordable, reason: null, typeName: type.name, cost, before, after, stabilityChange, authorityChange, locksLaws, lawsAlreadyLocked: !before.canEnactLaws, reformsLost: before.reforms, reformsChosen: after.reforms, lines };
+  const chosenIds = next.nations[me].government?.reforms || {};
+  const reformSlots = reformSlotsForType(typeId, state.age).map((slot) => ({ ageId: slot.ageId, ageName: AGES[slot.ageId]?.name || slot.ageId, options: slot.options, chosen: chosenIds[slot.ageId] || slot.options[0].id }));
+  return { ok: true, affordable, reason: null, typeName: type.name, cost, before, after, stabilityChange, authorityChange, locksLaws, lawsAlreadyLocked: !before.canEnactLaws, reformsLost: before.reforms, reformsChosen: after.reforms, reformSlots, lines };
 };

@@ -112,7 +112,7 @@ import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { initFog, updateFog, fogOn, hasMet } from './fog';
-import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './rulers';
+import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, courtNames } from './rulers';
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
 import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
@@ -466,7 +466,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // Advisor candidates (plan §M3) — only the player's own is ever generated/read today (AI
     // nations don't hire advisors until M16 gives them a real economy to hire with), keyed by
     // nation id the same way state.satellites is, in case that changes later.
-    advisorPool: { [playerNationId]: generateAdvisorCandidates(playerNationId, rulerRng) },
+    advisorPool: { [playerNationId]: generateAdvisorCandidates(playerNationId, rulerRng, [nations[playerNationId]?.ruler?.name]) },
 
     // Space Race mission ladder (plan §10.4 Layer 3, src/data/spaceMissions.js) — a mission in
     // progress lives in spaceMissionProgress keyed by id with turns remaining; completing it moves
@@ -812,7 +812,7 @@ const reduceAction = (state, action) => {
       const rng = createRng(state.rngSeed);
       const refreshedCandidates = { ...state.advisorPool[state.playerNationId] };
       refreshedCandidates[pool] = [0, 1, 2].map((i) => (i === candidateIndex
-        ? generateAdvisorCandidates(state.playerNationId, rng)[pool][0] // a fresh face fills the now-hired slot
+        ? generateAdvisorCandidates(state.playerNationId, rng, [...courtNames(nation, state.advisorPool[state.playerNationId]), candidate.name])[pool][0] // a fresh face (a name nobody at court has) fills the now-hired slot
         : refreshedCandidates[pool][i]));
 
       return {
@@ -2096,7 +2096,7 @@ const reduceAction = (state, action) => {
     }
 
     case ActionTypes.CHANGE_GOVERNMENT_TYPE: {
-      const { typeId } = action.payload;
+      const { typeId, reforms: pickedReforms } = action.payload; // reforms: optional { [ageId]: reformId } the player chose (I140)
       const type = GOVERNMENT_TYPES[typeId];
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.changeGovernmentType;
@@ -2109,7 +2109,7 @@ const reduceAction = (state, action) => {
           ...state.nations,
           [state.playerNationId]: {
             ...nation,
-            government: { type: typeId, reforms: resetReformsForType(typeId, state.age) },
+            government: { type: typeId, reforms: resetReformsForType(typeId, state.age, pickedReforms) },
             stability: clampStability((nation.stability || 0) - 2)
           }
         },

@@ -151,10 +151,19 @@ export const canEnactReform = (nation, ageId, reformId, calendarAgeId) => {
 // actually offers reforms for is filled with that type's first choice (plan: "Earlier-tier slots
 // are filled with the first choice") — ages beyond the calendar stay unset, to be picked later via
 // ENACT_GOVERNMENT_REFORM as the nation actually reaches them.
-export const resetReformsForType = (newTypeId, calendarAgeId) => {
+// `picks` ({ [ageId]: reformId }, optional, I140): the player's own choice for a tier, used when it
+// names a real reform of that tier; anything else falls back to the first choice.
+export const resetReformsForType = (newTypeId, calendarAgeId, picks = null) => {
   const reforms = {};
   Object.entries(GOVERNMENT_REFORMS[newTypeId] || {}).forEach(([ageId, choices]) => {
-    if (getAgeIndex(ageId) <= getAgeIndex(calendarAgeId) && choices.length) reforms[ageId] = choices[0].id;
+    if (getAgeIndex(ageId) <= getAgeIndex(calendarAgeId) && choices.length) {
+      reforms[ageId] = choices.some((c) => c.id === picks?.[ageId]) ? picks[ageId] : choices[0].id;
+    }
   });
   return reforms;
 };
+
+/** The reform tiers a switch to `newTypeId` fills now: [{ ageId, options }] (I140: the player picks). */
+export const reformSlotsForType = (newTypeId, calendarAgeId) => Object.entries(GOVERNMENT_REFORMS[newTypeId] || {})
+  .filter(([ageId, choices]) => getAgeIndex(ageId) <= getAgeIndex(calendarAgeId) && choices.length)
+  .map(([ageId, options]) => ({ ageId, options }));

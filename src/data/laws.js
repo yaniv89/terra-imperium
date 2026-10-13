@@ -46,11 +46,11 @@ export const LAW_CATEGORIES = {
   land: [
     { id: 'communal', name: 'Communal', tier: 1, requiresTech: null, description: '+0.1% pop growth.', effects: { popGrowthBonus: 0.001 } },
     { id: 'manorialism', name: 'Manorialism', tier: 2, requiresTech: 'governance_feudal_charters', description: '-5% income; +1 loyalty in every city.', effects: { goldMult: -0.05 }, rules: { loyaltyBonus: 1 } },
-    { id: 'private_property', name: 'Private Property', tier: 3, requiresTech: 'economy_joint_stock_companies', description: '+0.1% pop growth; +15% production.', effects: { popGrowthBonus: 0.001, goldMult: 0.15 } },
+    { id: 'private_property', name: 'Private Property', tier: 3, requiresTech: 'economy_joint_stock_companies', description: '+0.1% pop growth; +15% gold income.', effects: { popGrowthBonus: 0.001, goldMult: 0.15 } },
     // "+2 unrest for 10 turns after enacting" is a real timed nation.modifiers[] entry — see the
     // COLLECTIVIZATION_UNREST_MODIFIER/COLLECTIVIZATION_UNREST_TURNS constants below and
     // gameReducer.js's CHANGE_LAW case, which is what actually pushes it.
-    { id: 'collectivization', name: 'Collectivization', tier: 4, requiresTech: 'economy_industrial_capital', description: '-0.1% pop growth; +25% production; +2 unrest for 10 turns after enacting.', effects: { popGrowthBonus: -0.001, goldMult: 0.25 } }
+    { id: 'collectivization', name: 'Collectivization', tier: 4, requiresTech: 'economy_industrial_capital', description: '-0.1% pop growth; +25% gold income; +2 unrest for 10 turns after enacting.', effects: { popGrowthBonus: -0.001, goldMult: 0.25 } }
   ],
   justice: [
     { id: 'customary_law', name: 'Customary Law', tier: 1, requiresTech: null, description: 'The baseline courts.', effects: {} },
