@@ -11,6 +11,7 @@ import { getWithdrawalTarget, WITHDRAW_MORALE_LOSS, WITHDRAW_STRENGTH_LOSS } fro
 import { cityMilitia } from '../../engine/battleInputs';
 import { legacyTerrainOf } from '../../engine/world/registry';
 import { getTiles } from '../../data/geo/tiles';
+import { plainPlace } from '../../engine/grammar';
 import { armyView, battleSize, cityWallsView } from './warModel';
 
 const OURS = { defense: 'garrison', field: 'army', naval: 'fleet', raid: 'troops', sack: 'town', intercept: 'fleet', landing: 'garrison' };
@@ -29,7 +30,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const foeId = attacking ? v.defenderUnits?.[0]?.ownerId : def.aggressorId;
   const enemy = state.nations?.[foeId]?.name || foeId || 'The enemy';
   const enemyShort = enemy.replace(/^The /, '').replace(/^(Kingdom|Empire|Republic|Tribes?|Chiefdom|City-state|Confederation) of /i, '');
-  const place = city ? region?.name || def.regionId : (v.name || '').replace(/^(Battle|Siege) (of|near|off) /, '');
+  const place = city ? region?.name || def.regionId : plainPlace(v.name);
   const myAge = getEffectiveAgeId(state.age, state.techAgeId);
   const theirAge = foeId && state.nations?.[foeId] ? getEffectiveAgeId(state.age, getTechAgeId(state, foeId)) : myAge;
   const militia = city ? cityMilitia(state, def.regionId) : [];

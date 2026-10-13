@@ -74,6 +74,7 @@ import { cityManifestOf } from './cityManifest';
 import { withGrudge, grudgeOf, decayGrudges } from './grudges';
 import { isUnitInBattle } from './invasion';
 import { hireMercenary, mercOffer, processMercenaries, goldIn, addGoldIn } from './mercenaries';
+import { agree, subjectVerb } from './grammar';
 
 const KIND_STAT = { pillage: 'pillages', route: 'routesCut', settler: 'settlersKilled', outpost: 'outpostsBurned' };
 
@@ -420,7 +421,7 @@ const takeLoot = (w, id, raid) => {
   if (KIND_STAT[raid.kind]) w.stats[KIND_STAT[raid.kind]] = (w.stats[KIND_STAT[raid.kind]] || 0) + 1;
   w.stats.loot += loot;
   markRaided(w, victim, id);
-  if (toPlayer) { w.stats.raidsOnPlayer += 1; log(w, `${name} ${what}.`); noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot, text: `They ${what}.` }); }
+  if (toPlayer) { w.stats.raidsOnPlayer += 1; { const [verb, ...rest] = what.split(" "); log(w, `${subjectVerb(name, verb, rest.join(" "))}.`); } noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot, text: `They ${what}.` }); }
   const out = { ...raid, phase: 'out', battleId: undefined, sizeBefore: undefined };
   if (raid.kind === 'route') { setIndep(w, id, { raid: { ...out, phase: 'hold', holdUntil: w.turn + 1 } }); return; }
   sendHome(w, id, party, out);
@@ -429,7 +430,7 @@ const takeLoot = (w, id, raid) => {
 /** After a battle with an army on the road: through it (it falls back to its city) or beaten home. */
 const afterIntercept = (w, id, raid, tile, owner, raidersWon) => {
   if (owner === w.playerId) {
-    const text = raidersWon ? `${raiderName(w, id)} cut through your army near ${placeOf(w, tile)}.` : `Your army near ${placeOf(w, tile)} stopped ${raiderName(w, id)}.`;
+    const text = raidersWon ? `${subjectVerb(raiderName(w, id), 'cut')} through your army near ${placeOf(w, tile)}.` : `Your army near ${placeOf(w, tile)} stopped ${raiderName(w, id)}.`;
     log(w, text);
     if (!raidersWon) noteOutcome(w, id, owner, { kind: 'intercept', won: false, loot: 0, text });
   }
@@ -655,7 +656,7 @@ const demandTribute = (w, id, city, myStrength, nearArmies, nearOwners) => {
   w.stats.tributeDemands += 1;
   if (target === w.playerId) {
     w.tributeDemands.push({ id: `trib_${id}_${w.turn}`, indepId: id, gold, turns: TRIBUTE_TURNS, turn: w.turn, expires: w.turn + TRIBUTE_ANSWER_TURNS });
-    log(w, `${raiderName(w, id)} demand ${gold} gold a turn for ${TRIBUTE_TURNS} turns, or they will raid you. Answer under Relations on the Empire tab within ${TRIBUTE_ANSWER_TURNS} turns.`, LogTypes.DIPLOMACY);
+    log(w, `${subjectVerb(raiderName(w, id), 'demand')} ${gold} gold a turn for ${TRIBUTE_TURNS} turns, or they will raid you. Answer under Relations on the Empire tab within ${TRIBUTE_ANSWER_TURNS} turns.`, LogTypes.DIPLOMACY);
     return true;
   }
   // An AI major pays when the independent outweighs its army there and it can afford the deal.
@@ -807,6 +808,6 @@ export const answerTributeDemand = (state, demandId, pay) => {
   }
   return {
     ...state, tributeDemands: rest, nations: refuseTribute(state.nations, d.indepId, state.playerNationId, state.turnNumber),
-    logs: [...state.logs, { year: state.year, message: `You refuse the tribute ${indep.name} demand. Expect raiders.`, type: LogTypes.DIPLOMACY }]
+    logs: [...state.logs, { year: state.year, message: `You refuse the tribute that ${indep.name} ${agree(indep.name, 'demand')}. Expect raiders.`, type: LogTypes.DIPLOMACY }]
   };
 };

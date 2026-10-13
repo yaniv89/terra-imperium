@@ -14,6 +14,7 @@
 // "Alt-history tolerant": every event here only ever touches the player's own generic stats, so
 // it still makes sense no matter how unrecognizable the map has become by the year it fires.
 import { getNationCapital } from './regions';
+import { getTiles } from './geo/tiles';
 export const HISTORICAL_EVENTS = {
   // ---- Bronze Age (-2000 to -800) ----
   great_flood_myth: {
@@ -49,19 +50,24 @@ export const HISTORICAL_EVENTS = {
   bronze_age_collapse: {
     id: 'bronze_age_collapse',
     year: -1200,
+    // Not a one-city start's event: it waits for a realm big enough to have a palace economy to lose
+    // (3 cities), and fires on the calendar's own edge of the age (-800) for a small realm.
+    requires: { minCities: 3, orByYear: -800 },
     title: 'The Bronze Age Collapse',
     description: 'A cascade of invasions, crop failures and broken trade routes brings the great palace economies to their knees. Kingdoms that seemed eternal crumble within a generation.',
     options: [
       { label: 'Hoard grain and retreat behind your walls', effects: { hr: 40, controlPenalty: 10 } },
       { label: 'Push through the chaos and modernize', effects: { gold: -150, techPoints: 30, stability: -1 } },
+      { label: 'Open your stores and trade for grain with neighbours', effects: { gold: -60, hr: 20, controlPenalty: 4, dip: 5 } },
       { label: 'Ride it out and hope for the best', effects: { controlPenalty: 20 } }
     ]
   },
   sea_peoples_invasions: {
     id: 'sea_peoples_invasions',
     year: -1180,
+    requires: { coastal: true },
     title: 'Raiders From Across the Sea',
-    description: 'A confederation of seaborne raiders strikes coastal settlements throughout the region, burning granaries and scattering garrisons wherever they land.',
+    description: 'A confederation of seaborne raiders strikes coastal settlements throughout the region, burning stores and scattering garrisons wherever they land.',
     options: [
       { label: 'Fortify the coastline', effects: { gold: -100, defenseBonus: 0.1 } },
       { label: 'Pay tribute and let them pass', effects: { gold: -80, hr: 20, legitimacy: -5 } }
@@ -134,6 +140,7 @@ export const HISTORICAL_EVENTS = {
   viking_raids: {
     id: 'viking_raids',
     year: 850,
+    requires: { coastal: true },
     title: 'Raiders From the North',
     description: 'Shallow-drafted longships appear without warning off undefended coasts and up navigable rivers, striking monasteries and towns before any garrison can respond.',
     options: [
@@ -479,6 +486,24 @@ export const HISTORICAL_EVENTS = {
 // existing (world/generic) call site can omit them safely since event.nationId is undefined for
 // those. pickNextEvent() below fires at most one due event per turn, in year order, so
 // simultaneous-year events queue up and fire on consecutive turns instead of colliding.
+// Context prerequisites of a scripted event (playtest audit I222, I223): `requires` is checked
+// against the player's own realm so a sea raid never hits a landlocked player and the Bronze Age
+// Collapse waits for a realm with something to lose.
+//   coastal    the player holds a coastal city
+//   minCities  the player holds at least this many cities (outposts do not count)
+//   orByYear   ...unless the calendar has reached this year (a small realm still meets the event)
+// Without regions (a caller that cannot see the map) nothing is gated.
+export const meetsRequirements = (requires, year, playerNationId, regions) => {
+  if (!regions || !playerNationId) return true;
+  const mine = Object.values(regions).filter((c) => c.owner === playerNationId && !c.outpost);
+  if (requires.coastal) {
+    const coastal = getTiles().coastal;
+    if (!mine.some((c) => c.tile != null && coastal[c.tile] === 1)) return false;
+  }
+  if (requires.minCities && mine.length < requires.minCities && !(requires.orByYear != null && year >= requires.orByYear)) return false;
+  return true;
+};
+
 export const shouldEventFire = (event, year, nations, firedEvents, playerNationId, regions) => {
   if (firedEvents[event.id]) return false;
   if (event.year > year) return false;
@@ -486,6 +511,7 @@ export const shouldEventFire = (event, year, nations, firedEvents, playerNationI
     const anyAtWar = event.requiresNoWar.some(nId => nations[nId]?.isAtWar);
     if (anyAtWar) return false;
   }
+  if (event.requires && !meetsRequirements(event.requires, year, playerNationId, regions)) return false;
   if (event.nationId) {
     if (event.nationId !== playerNationId) return false;
     // "Still holds its homeland" — a nation now spans many provinces, so this checks its capital
