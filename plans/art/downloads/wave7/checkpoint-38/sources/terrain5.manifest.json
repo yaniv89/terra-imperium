@@ -1,0 +1,702 @@
+{
+  "bundle": "terrain5",
+  "logical_assets": [
+    "river-kit",
+    "ford",
+    "bridge-wood",
+    "bridge-stone",
+    "bridge-steel"
+  ],
+  "asset_count": 5,
+  "native_editable_packed_blends": true,
+  "geometry_in_GLBS_uncompressed": true,
+  "frozen_uncompressed_assets": [
+    {
+      "game_path": "src/assets/battle/terrain/river-kit.glb",
+      "sha256": "3efe3a681982ffe0018b49fbec4296c91721b59ad7a2297d0a117ea1a74164f7",
+      "bytes": 345504,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/river-kit.glb"
+    },
+    {
+      "game_path": "src/assets/battle/terrain/ford.glb",
+      "sha256": "7a3b28514cb26e82490e8367fb545ca059905ec818ef5d19ca3a11e3cbff6265",
+      "bytes": 188324,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/ford.glb"
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-wood.glb",
+      "sha256": "1d6e29678811a97d09209179db366471b053444b9ed450f51944333e365fd19c",
+      "bytes": 854700,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/bridge-wood.glb"
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-stone.glb",
+      "sha256": "82b819680bd666e56204210a9c1f11b56bd5ebf55c8e6144070ca8e79d173bc5",
+      "bytes": 675084,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/bridge-stone.glb"
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-steel.glb",
+      "sha256": "0295b17cd90ed28de2b560331fd5f9ccc93f12bb632ded5c57eccfbbd350707b",
+      "bytes": 729740,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/bridge-steel.glb"
+    }
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 1164,
+      "sha256": "bce9767723b3cbe0749b2e020fbe34e8054a4bd6c33996f0eb8ddd7ea3df0713",
+      "original_source": "generated bundle metadata"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/basecolor.png",
+      "bytes": 1091168,
+      "sha256": "7bacf418320e49e5c8f78387f2940dbbc541cf630427e70f474fcb146f2d45df",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/basecolor.png"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/bridge-steel-damaged-lod0.png",
+      "bytes": 194252,
+      "sha256": "8d92c58dfbad80d8ed812f75d8840958b42bfcf3c78f3441142787f6e760df30",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/bridge-steel-damaged-lod0.png"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/bridge-steel-damaged-lod2.png",
+      "bytes": 164287,
+      "sha256": "e772eb8fab30e29fe4a12d619a20e60cd22a3b4a61446a7dca3728ae8b627827",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/bridge-steel-damaged-lod2.png"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/bridge-steel-destroyed-lod0.png",
+      "bytes": 154444,
+      "sha256": "9b60d57df92fe1ea8a5ea617a7f063773a8668bf9115b1e3b21d6566c6980a2f",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/bridge-steel-destroyed-lod0.png"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/bridge-steel-destroyed-lod2.png",
+      "bytes": 145988,
+      "sha256": "6d34e64981d3b6c30c718820aaaf1d4ca4ba87bfb68943416a91de65408cce47",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/bridge-steel-destroyed-lod2.png"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/bridge-steel-lod0.png",
+      "bytes": 196868,
+      "sha256": "b61d3a57b15829ef2d4a7c06cff9e7496d12b76cfa3b6fec277c02422ebcd7ea",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/bridge-steel-lod0.png"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/bridge-steel-lod2.png",
+      "bytes": 185870,
+      "sha256": "3b0b2c27ffa40c2cc3478eebb041ee0d1a1a20e2ab28a31e286f28a7edfd7b6a",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/bridge-steel-lod2.png"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/bridge-steel.blend",
+      "bytes": 2698871,
+      "sha256": "196ce096119e5cafd2940e7c72866449e3b340ce94cc7eed08a9f328598a617d",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/bridge-steel.blend"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/bridge-steel.glb",
+      "bytes": 729740,
+      "sha256": "0295b17cd90ed28de2b560331fd5f9ccc93f12bb632ded5c57eccfbbd350707b",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/bridge-steel.glb"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/bridge-steel.validation.json",
+      "bytes": 3960,
+      "sha256": "45280f89760fc7eaf051580563b411b2d23e3949bdd15c2735cc372e8f583abe",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/bridge-steel.validation.json"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/delivery.json",
+      "bytes": 3906,
+      "sha256": "bb373bff947900b3b477d34b5c414e4127513bafedb9ac58350fc175c22e5cc3",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/delivery.json"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/manifest.json",
+      "bytes": 2255,
+      "sha256": "1d0a5c6c4685d5cdb5ffcf3440401cefcc4b36bdb9c14fc55a4c50300fb2e90a",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/manifest.json"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/normal.png",
+      "bytes": 732693,
+      "sha256": "11e4a2cbd0134bdd2553e3a652fa666a154b9c3bf879f55d35f22b2b4ed53510",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/normal.png"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/orm.png",
+      "bytes": 562319,
+      "sha256": "d98ed1224f48a27e59899d8d77d43224be0d855d1d9814b5abe4f311ecb3226c",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/orm.png"
+    },
+    {
+      "path": "assets/terrain/bridge-steel/tone-lod0.json",
+      "bytes": 307,
+      "sha256": "f7780f90847a466d436e04173612a5d7c6862718e4063bcecaec63d6b4f001d7",
+      "original_source": "/workspace/remaining-production/terrain/bridge-steel/tone-lod0.json"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/basecolor.png",
+      "bytes": 877095,
+      "sha256": "58b62d067a57f21531e73a37265f143b7390bc09f59dce7b19b29d0c30350941",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/basecolor.png"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/bridge-stone-damaged-lod0.png",
+      "bytes": 202642,
+      "sha256": "459f29fa7a61d17ec6841a8b78bb1a4753946294634e27993b9e5781481ed6ab",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/bridge-stone-damaged-lod0.png"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/bridge-stone-damaged-lod2.png",
+      "bytes": 179002,
+      "sha256": "7b74b0f6fb3a6eb7bd8e3a7b415f014548c02708ccfac9db497c74b5e97586b7",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/bridge-stone-damaged-lod2.png"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/bridge-stone-destroyed-lod0.png",
+      "bytes": 177846,
+      "sha256": "2ab2bc312eb37c2129695638719bedd0f4456b75f70f78a95226788b08944900",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/bridge-stone-destroyed-lod0.png"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/bridge-stone-destroyed-lod2.png",
+      "bytes": 152804,
+      "sha256": "20a8ff179ac3d17588e3abcddbcea878ed0d9bff462152c7dfa9b60ecf524348",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/bridge-stone-destroyed-lod2.png"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/bridge-stone-lod0.png",
+      "bytes": 206714,
+      "sha256": "646f426938817d445f46fc995d8038caaf24e717d3d71445a9cc0608a7d0dedf",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/bridge-stone-lod0.png"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/bridge-stone-lod2.png",
+      "bytes": 192295,
+      "sha256": "20a4309b4b0501cf989cd2148bc540c059a804e05fdda544c0c71faceab1fef6",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/bridge-stone-lod2.png"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/bridge-stone.blend",
+      "bytes": 1911127,
+      "sha256": "1617121691cd0b850f24556147eee3f3c5bbd318c01ed252eb9bc29596767826",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/bridge-stone.blend"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/bridge-stone.glb",
+      "bytes": 675084,
+      "sha256": "82b819680bd666e56204210a9c1f11b56bd5ebf55c8e6144070ca8e79d173bc5",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/bridge-stone.glb"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/bridge-stone.validation.json",
+      "bytes": 3966,
+      "sha256": "93341e1ab0aa08d104757fa0d4ebbc3e864da91b18b8b1c85a3d8df0b522c0ce",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/bridge-stone.validation.json"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/delivery.json",
+      "bytes": 3632,
+      "sha256": "d386857e630b78c6080c21d626a402b3012aebbf375029eb5d041c262f1f155a",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/delivery.json"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/manifest.json",
+      "bytes": 2264,
+      "sha256": "aa899ec0e603e5573d9b7159b2240ed61f5e8489a26c2f7c69818ced7a7252a7",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/manifest.json"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/normal.png",
+      "bytes": 255433,
+      "sha256": "613cd63ecbdf3897d598f318229ea99de8967da277cb5a58b8ff1e60020deaa8",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/normal.png"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/orm.png",
+      "bytes": 492244,
+      "sha256": "48b90a8bcc72e17fa4dde074421d9a81eb8883b9d2ec1722ba7de032556f9d96",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/orm.png"
+    },
+    {
+      "path": "assets/terrain/bridge-stone/tone-lod0.json",
+      "bytes": 306,
+      "sha256": "f0006d047a629754f748520b72eee103862a1430a9ff6b1f489ccccd1ce92b9d",
+      "original_source": "/workspace/remaining-production/terrain/bridge-stone/tone-lod0.json"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/basecolor.png",
+      "bytes": 1218037,
+      "sha256": "5d4b310640d250210119ab63db3ee9f40a2af479edd4b02a1cff733b00ef59bc",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/basecolor.png"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/bridge-wood-damaged-lod0.png",
+      "bytes": 201527,
+      "sha256": "000a7d9d32acad040db5c94f142d8a504fde136f0c44014500e6461f127cf262",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/bridge-wood-damaged-lod0.png"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/bridge-wood-damaged-lod2.png",
+      "bytes": 162318,
+      "sha256": "2b5cc8647db8f51b73e3e42ae5ede7a52c163ceb413d8cdd4a5085f804b6942f",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/bridge-wood-damaged-lod2.png"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/bridge-wood-destroyed-lod0.png",
+      "bytes": 174062,
+      "sha256": "43a9bf314cbeb90c482611e51f5864495329825738dd4f1718d5b3a161c6dec7",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/bridge-wood-destroyed-lod0.png"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/bridge-wood-destroyed-lod2.png",
+      "bytes": 146966,
+      "sha256": "c3268a960796bdda666fb84e14ca6e67cdb6f3f6eeddbc818e960bcee8a9d8e5",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/bridge-wood-destroyed-lod2.png"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/bridge-wood-lod0.png",
+      "bytes": 205251,
+      "sha256": "094a5d7a4ac598cdfe108c266b0c8d4604917b40f58052cf277238224f2c9200",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/bridge-wood-lod0.png"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/bridge-wood-lod2.png",
+      "bytes": 184637,
+      "sha256": "fb6800a765ed97d6975b6dd49b749cbbd39187689634dc681603df326e5c8ad5",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/bridge-wood-lod2.png"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/bridge-wood.blend",
+      "bytes": 3489659,
+      "sha256": "9d7eec7062030f9431dcdf05e343f3b46ad64ccfa7a489d13071dbb65d163690",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/bridge-wood.blend"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/bridge-wood.glb",
+      "bytes": 854700,
+      "sha256": "1d6e29678811a97d09209179db366471b053444b9ed450f51944333e365fd19c",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/bridge-wood.glb"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/bridge-wood.validation.json",
+      "bytes": 3960,
+      "sha256": "508fb186c344695ad67e435603778383a6845e8e7634c3a2e83343953c2fac9f",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/bridge-wood.validation.json"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/delivery.json",
+      "bytes": 3708,
+      "sha256": "39d4172a0f420030cbbd6a17034d6b8cd74d96054a2201fb09f729c4aa46c151",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/delivery.json"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/manifest.json",
+      "bytes": 2245,
+      "sha256": "b457a07a48c01c54a47c449f4162359b367af68c9fac816fabd23e21c6f200a1",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/manifest.json"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/normal.png",
+      "bytes": 1311623,
+      "sha256": "048146f5bb8025dc596376a1211bdf4a2eadf1a3ab256a673f9990ab40a6eb96",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/normal.png"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/orm.png",
+      "bytes": 679168,
+      "sha256": "2c2dbde309178d8c76aaa1e47c4d6c6998e9369ada6a6c73ab21afe4dd9e378b",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/orm.png"
+    },
+    {
+      "path": "assets/terrain/bridge-wood/tone-lod0.json",
+      "bytes": 304,
+      "sha256": "19aec839666e2224d558c6f0b31e93b6fa65d5f99844b495e6d3f681aa4be917",
+      "original_source": "/workspace/remaining-production/terrain/bridge-wood/tone-lod0.json"
+    },
+    {
+      "path": "assets/terrain/ford/basecolor.png",
+      "bytes": 481635,
+      "sha256": "dfb15c2aad30bbe26da1a4c2cceb26297d26928c30118edd82e4dccb4ce536d2",
+      "original_source": "/workspace/remaining-production/terrain/ford/basecolor.png"
+    },
+    {
+      "path": "assets/terrain/ford/delivery.json",
+      "bytes": 1886,
+      "sha256": "99f0c6fcf8fa09c41b9ac7bcd074437d26011c3f1fd2c706df8ce9b08b2332d7",
+      "original_source": "/workspace/remaining-production/terrain/ford/delivery.json"
+    },
+    {
+      "path": "assets/terrain/ford/ford-lod0.png",
+      "bytes": 221221,
+      "sha256": "f59e07822fb65b893173ec8bf5f40e56738bf4d1ba426f14b3c2cc8ff2fa316f",
+      "original_source": "/workspace/remaining-production/terrain/ford/ford-lod0.png"
+    },
+    {
+      "path": "assets/terrain/ford/ford-lod2.png",
+      "bytes": 211243,
+      "sha256": "6154aae3e91fa29d5ba4b093583a70b50934ce21668066699042fd1d6f6716d2",
+      "original_source": "/workspace/remaining-production/terrain/ford/ford-lod2.png"
+    },
+    {
+      "path": "assets/terrain/ford/ford.blend",
+      "bytes": 1147269,
+      "sha256": "63440be884d5d87f802b786d781de2df3372a3ad88ac0b9e511b0f8e788ee54f",
+      "original_source": "/workspace/remaining-production/terrain/ford/ford.blend"
+    },
+    {
+      "path": "assets/terrain/ford/ford.glb",
+      "bytes": 188324,
+      "sha256": "7a3b28514cb26e82490e8367fb545ca059905ec818ef5d19ca3a11e3cbff6265",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/ford.glb"
+    },
+    {
+      "path": "assets/terrain/ford/ford.validation.json",
+      "bytes": 1905,
+      "sha256": "fa94212416f8c42064876b68ef1502362e3c47f4a6f19ec4bd192e3b1c6bdc3c",
+      "original_source": "/workspace/remaining-production/terrain/ford/ford.validation.json"
+    },
+    {
+      "path": "assets/terrain/ford/manifest.json",
+      "bytes": 879,
+      "sha256": "c72044f0c4895e4fc7fea528249f5d70f999168cdda753130d3b10f065764a9e",
+      "original_source": "/workspace/remaining-production/terrain/ford/manifest.json"
+    },
+    {
+      "path": "assets/terrain/ford/normal.png",
+      "bytes": 205868,
+      "sha256": "ebeedaf73496773d15d1b935c9434f6f66759b882745431eb478ba25bb59f95f",
+      "original_source": "/workspace/remaining-production/terrain/ford/normal.png"
+    },
+    {
+      "path": "assets/terrain/ford/orm.png",
+      "bytes": 233149,
+      "sha256": "070611ed047e072969e59b614b3aef4723721634d7843c9fef15bf12b8648015",
+      "original_source": "/workspace/remaining-production/terrain/ford/orm.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/bank-lod0.png",
+      "bytes": 200923,
+      "sha256": "d6aa8322046e1a7bc8cc9622f48e7ffe6c6b5ddcd0efd49cd821619589e28027",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/bank-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/bank-lod2.png",
+      "bytes": 177955,
+      "sha256": "2a677656b7c6838dfa24c9723c74b8ac000a7adf4929bc4e182d461aad0bfdb4",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/bank-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/basecolor.png",
+      "bytes": 308552,
+      "sha256": "619ac3f1f354d038d689f10fd589ce4fdf68e4b5138b18812098b9b8220179e7",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/basecolor.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/bend-5-lod0.png",
+      "bytes": 255520,
+      "sha256": "90377c636effe718d0b527e233a4f718831b674522db64226cec7504ce688bce",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/bend-5-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/bend-5-lod2.png",
+      "bytes": 273271,
+      "sha256": "c566d580a65a8e7583a9f1e29b99e7607f0ff3918d24095cfeec614628933ced",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/bend-5-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/bend-8-lod0.png",
+      "bytes": 252258,
+      "sha256": "3114406d0e3a0c3cef3881e4af533c40e9bcdb8a6aa275c1036242526faab638",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/bend-8-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/bend-8-lod2.png",
+      "bytes": 270340,
+      "sha256": "1745b0982a907aa111ab8770ce2ae1c990dfbf0ead407cbc9190882713aebc12",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/bend-8-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/bend-lod0.png",
+      "bytes": 260160,
+      "sha256": "ce2d19207fb756b1ce037442258476475bae65d977ed76690fdcebfdc992e906",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/bend-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/bend-lod2.png",
+      "bytes": 283098,
+      "sha256": "86c6d7d7adf71e6478b0dc1cf9ded04313ff4baa1f5e63381fa992a4463b1047",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/bend-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/delivery.json",
+      "bytes": 12224,
+      "sha256": "74b9bfd7a7e06a391ffd31a6761b824437227729921980b131bdfc5d88c93e86",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/delivery.json"
+    },
+    {
+      "path": "assets/terrain/river-kit/end-5-lod0.png",
+      "bytes": 209256,
+      "sha256": "18860d14745493cbac235bf87bb4097bddeab541d35037177e7f664299453acc",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/end-5-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/end-5-lod2.png",
+      "bytes": 200940,
+      "sha256": "d82971f82a86ad628f3003ced3ce1e9b58fb4384bb3ca1bb7d78fd227165edd0",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/end-5-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/end-8-lod0.png",
+      "bytes": 205819,
+      "sha256": "84c5f9dd249baf4c5f7d116b95bea1edc23d4a8454e182ec0b43202cd4f1a8ef",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/end-8-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/end-8-lod2.png",
+      "bytes": 198926,
+      "sha256": "8a0becfaa6d2b271c43404b0d150caea0807e4f294695b651aafd597b88e4abc",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/end-8-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/end-lod0.png",
+      "bytes": 211815,
+      "sha256": "cc5e00b80d87b558543b2dae460c57fbec9713461c363a1baefcc245a0789b2c",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/end-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/end-lod2.png",
+      "bytes": 204330,
+      "sha256": "2229ceca56a39becd02d68f55c3e35306efbae9a7afd6dc64fd92a2ed982af8c",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/end-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/junction-5-lod0.png",
+      "bytes": 212793,
+      "sha256": "b86d08e647ada06e93c454f7531799c6e367ce1a39e3a8e10567a38854d97c96",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/junction-5-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/junction-5-lod2.png",
+      "bytes": 131307,
+      "sha256": "4381e9674b65c1faefeaa460f60403e2b074914b699e716db487c8e44fc7fc93",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/junction-5-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/junction-8-lod0.png",
+      "bytes": 211717,
+      "sha256": "871e551015cb64d5a24838bd8e9b9f6e6d2de16d127a00287c46e105fd8c8cb7",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/junction-8-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/junction-8-lod2.png",
+      "bytes": 128683,
+      "sha256": "b29fbfa19232f1797df984a2b76410f0bfe15670afc9095138bee3b5e7ef8a4c",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/junction-8-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/junction-lod0.png",
+      "bytes": 212739,
+      "sha256": "1c2ffaee0827333bf3feb05d7c8802d85465e983b07c336ed019b8181102dc22",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/junction-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/junction-lod2.png",
+      "bytes": 132634,
+      "sha256": "8e7905abdcfd0720def5504d132ce8240af84cbf91f39d09ab76d47ac959a9db",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/junction-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/manifest.json",
+      "bytes": 8107,
+      "sha256": "f1bf99b57a0dd97ab9b7aa0c9f87fcf068a55bafcdca774b4fd490cffc5e6d77",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/manifest.json"
+    },
+    {
+      "path": "assets/terrain/river-kit/normal.png",
+      "bytes": 71185,
+      "sha256": "13aaad9a551f0f600fc68b74d0f887044a1b3d15ccf73f9cf6480837865ee647",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/normal.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/orm.png",
+      "bytes": 124690,
+      "sha256": "618629f7d5aaa816cd15e2e9a34451e4af1d29283dea0d5f0897ad27b74aa6a8",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/orm.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/river-kit.blend",
+      "bytes": 779280,
+      "sha256": "7bfb2b197febb5a92e1fb62238ad76163515502fa933ca9231b50b62992eaf18",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/river-kit.blend"
+    },
+    {
+      "path": "assets/terrain/river-kit/river-kit.glb",
+      "bytes": 345504,
+      "sha256": "3efe3a681982ffe0018b49fbec4296c91721b59ad7a2297d0a117ea1a74164f7",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/river-kit.glb"
+    },
+    {
+      "path": "assets/terrain/river-kit/river-kit.validation.json",
+      "bytes": 12330,
+      "sha256": "ee2670c71f4b2f633f5d5fe82181702288985330d60d4ba44635816f9019686d",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/river-kit.validation.json"
+    },
+    {
+      "path": "assets/terrain/river-kit/straight-5-lod0.png",
+      "bytes": 199252,
+      "sha256": "9b56c79547e13e57d0802e8c442c5da0f57cb1d31f678295cea97b5201ff531b",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/straight-5-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/straight-5-lod2.png",
+      "bytes": 198142,
+      "sha256": "c80734f8d28dc701c08faa35f6d0ed0a68f7126be89b45858d099dd95c5b3ff6",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/straight-5-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/straight-8-lod0.png",
+      "bytes": 199285,
+      "sha256": "aaae5266e93b795ef1d3b52529ccc772387b63e68efce388d4c3ad86478ec656",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/straight-8-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/straight-8-lod2.png",
+      "bytes": 195480,
+      "sha256": "4f67791e35869d0a71ecc8e747777faffddaed9c55300db224025c69a3ed5fe0",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/straight-8-lod2.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/straight-lod0.png",
+      "bytes": 200916,
+      "sha256": "1b38c89e37bd2e500e9499a2edead8ae653de227fee0747de74b3ec83cc140e3",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/straight-lod0.png"
+    },
+    {
+      "path": "assets/terrain/river-kit/straight-lod2.png",
+      "bytes": 199822,
+      "sha256": "cb855ea883b2359b3d39b72a8714100f47c76ec68b7201deb3a2503605814366",
+      "original_source": "/workspace/remaining-production/terrain/river-kit/straight-lod2.png"
+    },
+    {
+      "path": "audits/frozen-validation.json",
+      "bytes": 7379,
+      "sha256": "b458f0f2c7d23dcbff4891a9b367f5b667a5e593a83e6d5e4d8240d4e857330f",
+      "original_source": "generated bundle metadata"
+    },
+    {
+      "path": "audits/packed-blend-images.json",
+      "bytes": 4118,
+      "sha256": "892118b90b39a85b2ab8d21bf6499c643a44bbc2102aa39cf0500456794645f5",
+      "original_source": "generated bundle metadata"
+    },
+    {
+      "path": "audits/terrain/FINAL-HANDOFF.json",
+      "bytes": 31957,
+      "sha256": "4bb55de9cd153a2dda89d8406f31334f3f8ea84e6f9892d9c9cecfaad533dc40",
+      "original_source": "/workspace/remaining-production/terrain/FINAL-HANDOFF.json"
+    },
+    {
+      "path": "audits/terrain/README.md",
+      "bytes": 6807,
+      "sha256": "29364de1394b5c5b0753d5dcb93b3e1b8f8d1d9588e5ef9524ab6c30b552ca08",
+      "original_source": "/workspace/remaining-production/terrain/README.md"
+    },
+    {
+      "path": "audits/terrain/bridge-states-contact.png",
+      "bytes": 128726,
+      "sha256": "520431b63d92dbb12dea5094a59bbe165c0b4a6c94472acf1deb79b2f2f17117",
+      "original_source": "/workspace/remaining-production/terrain/bridge-states-contact.png"
+    },
+    {
+      "path": "audits/terrain/contact-25pct.png",
+      "bytes": 98503,
+      "sha256": "5fb1615b6e2c9b2ae2966eb1268c415163c3d954c7ec130d36fe0350203aabef",
+      "original_source": "/workspace/remaining-production/terrain/contact-25pct.png"
+    },
+    {
+      "path": "audits/terrain/contact.png",
+      "bytes": 299371,
+      "sha256": "a00a62562464f0c15f66fdaa4326ea185d9b3fd1623a1f902a3afffa00f0ec78",
+      "original_source": "/workspace/remaining-production/terrain/contact.png"
+    },
+    {
+      "path": "audits/terrain/loader-checks.json",
+      "bytes": 6491,
+      "sha256": "5ab2626e7e7b66986e99e838f1c2e31f3bcafdb0c4cb6ed343b2606b3c310ed2",
+      "original_source": "/workspace/remaining-production/terrain/loader-checks.json"
+    },
+    {
+      "path": "audits/terrain/source-audit.json",
+      "bytes": 13192,
+      "sha256": "a209fa65234da86e5450216b42b1a65f377276522ae2a06c08b5535a9200a6dd",
+      "original_source": "/workspace/remaining-production/terrain/source-audit.json"
+    },
+    {
+      "path": "audits/terrain/tone-all5.json",
+      "bytes": 1506,
+      "sha256": "1ab8a6f9cc7c78cfb366e892e3af61a1cd70abc58836ee2a1d17eba160bf1ea2",
+      "original_source": "/workspace/remaining-production/terrain/tone-all5.json"
+    },
+    {
+      "path": "audits/terrain/tone-lod2-all5.json",
+      "bytes": 1392,
+      "sha256": "8c697763e1d224e1eab74f91e7c2628fb46b740364a84a626805daf383bd7561",
+      "original_source": "/workspace/remaining-production/terrain/tone-lod2-all5.json"
+    },
+    {
+      "path": "audits/terrain/tone-per-root.json",
+      "bytes": 10493,
+      "sha256": "1de0b1ba7107e8f6fd94c21f316be2404a5c81084993a3675e1e955520e0b18c",
+      "original_source": "/workspace/remaining-production/terrain/tone-per-root.json"
+    },
+    {
+      "path": "concepts/battle-terrain.png",
+      "bytes": 2490938,
+      "sha256": "df2a68a991efba7d86acabb2a246ac0a856fa7b907e287edac9b16f46f655292",
+      "original_source": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png"
+    },
+    {
+      "path": "scripts/art/town-tone.mjs",
+      "bytes": 7248,
+      "sha256": "db6390b0119e463911e2365d45b39709eb428de73fe996241c0897156a386357",
+      "original_source": "/workspace/terra-remaining/scripts/art/town-tone.mjs"
+    },
+    {
+      "path": "scripts/blender/build_battle_terrain_remaining.py",
+      "bytes": 2943,
+      "sha256": "87cd6723db2056965fe58976f551a4e3925e30dc4e41d456b9115b2830a5bea5",
+      "original_source": "/workspace/terra-remaining/scripts/blender/build_battle_terrain_remaining.py"
+    },
+    {
+      "path": "scripts/blender/ti_battle_terrain_remaining.py",
+      "bytes": 38788,
+      "sha256": "2609a88ba98e4f06998f7c7585757f7f82d88139967635d2957d2f5eb5687a4c",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_battle_terrain_remaining.py"
+    },
+    {
+      "path": "scripts/blender/ti_map.py",
+      "bytes": 21859,
+      "sha256": "48f5eb5148ce243685229f08fc3b0a6a3cf0da6696f5a2802a4053d1640e2602",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_map.py"
+    },
+    {
+      "path": "scripts/blender/ti_town.py",
+      "bytes": 27827,
+      "sha256": "12f3693882ac771dc815a99e0888a818b2a31e2a585744d4ceb941dd05f3307d",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_town.py"
+    },
+    {
+      "path": "scripts/blender/validate_model.py",
+      "bytes": 15249,
+      "sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+      "original_source": "/workspace/terra-remaining/scripts/blender/validate_model.py"
+    }
+  ],
+  "no_source_changes": true
+}

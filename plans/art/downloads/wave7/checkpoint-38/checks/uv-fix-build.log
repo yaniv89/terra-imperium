@@ -1,0 +1,1509 @@
+vite v4.5.14 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 3985 modules transformed.
+rendering chunks...
+computing gzip size...
+www/assets/muzzle-flash-7-d3adfb27.png                                   0.13 kB
+www/assets/dust-11-d64c8cd2.png                                          0.14 kB
+www/assets/muzzle-flash-6-3199b339.png                                   0.21 kB
+www/assets/muzzle-flash-5-d347601d.png                                   0.24 kB
+www/assets/impact-sparks-7-53884b2c.png                                  0.24 kB
+www/assets/muzzle-flash-4-ea74eac1.png                                   0.27 kB
+www/assets/muzzle-flash-3-685df5a2.png                                   0.31 kB
+www/assets/dust-0-22b7b9bc.png                                           0.34 kB
+www/assets/muzzle-flash-2-98a19e30.png                                   0.35 kB
+www/assets/debris-0-2d80ed8d.png                                         0.37 kB
+www/assets/impact-sparks-6-3de4460b.png                                  0.39 kB
+www/assets/impact-sparks-0-f27a2802.png                                  0.40 kB
+www/assets/muzzle-flash-1-6f4771bc.png                                   0.40 kB
+www/assets/impact-sparks-5-279e383b.png                                  0.40 kB
+www/assets/impact-sparks-4-af7d704d.png                                  0.40 kB
+www/assets/impact-sparks-1-b567438c.png                                  0.41 kB
+www/assets/impact-sparks-3-ea038946.png                                  0.41 kB
+www/assets/impact-sparks-2-408a0be9.png                                  0.42 kB
+www/assets/muzzle-flash-0-ab361b4f.png                                   0.43 kB
+www/assets/capital-84078f85.svg                                          0.44 kB │ gzip:     0.30 kB
+www/assets/wonder-58b70653.svg                                           0.53 kB │ gzip:     0.31 kB
+www/assets/oil-520d51e1.svg                                              0.55 kB │ gzip:     0.37 kB
+www/assets/silver-889a74e9.svg                                           0.56 kB │ gzip:     0.31 kB
+www/assets/smoke-0-75c2089b.png                                          0.57 kB
+www/assets/kingdoms-fadc6eb9.svg                                         0.59 kB │ gzip:     0.36 kB
+www/assets/bronze-c50e8f5e.svg                                           0.60 kB │ gzip:     0.37 kB
+www/assets/debris-1-12865fec.png                                         0.63 kB
+www/assets/dust-10-abf27c8e.png                                          0.65 kB
+www/assets/city-small-kingdoms-4b46066d.svg                              0.66 kB │ gzip:     0.35 kB
+www/assets/air-4c854fa9.svg                                              0.67 kB │ gzip:     0.40 kB
+www/assets/modern-08244c0e.svg                                           0.69 kB │ gzip:     0.38 kB
+www/assets/dust-1-dd805116.png                                           0.69 kB
+www/assets/support-7d346a8f.svg                                          0.71 kB │ gzip:     0.39 kB
+www/assets/city-small-gunpowder-e0def8d6.svg                             0.71 kB │ gzip:     0.38 kB
+www/assets/fishing_boats-4d4683b0.svg                                    0.75 kB │ gzip:     0.41 kB
+www/assets/ranged-6781060e.svg                                           0.75 kB │ gzip:     0.43 kB
+www/assets/city-small-modern-0b6e26c3.svg                                0.75 kB │ gzip:     0.36 kB
+www/assets/raider-6cf919e8.svg                                           0.76 kB │ gzip:     0.42 kB
+www/assets/quarry-691cf92e.svg                                           0.77 kB │ gzip:     0.40 kB
+www/assets/battle-3717d5ac.svg                                           0.78 kB │ gzip:     0.41 kB
+www/assets/event-971d2726.svg                                            0.78 kB │ gzip:     0.44 kB
+www/assets/road-7fd35e63.svg                                             0.79 kB │ gzip:     0.49 kB
+www/assets/scriptorium-b556cac7.svg                                      0.79 kB │ gzip:     0.42 kB
+www/assets/great_pyramids-9f44b3b0.svg                                   0.79 kB │ gzip:     0.39 kB
+www/assets/warship-7993f6fd.svg                                          0.80 kB │ gzip:     0.43 kB
+www/assets/debris-8-2e4d7711.png                                         0.80 kB
+www/assets/debris-2-18c40e90.png                                         0.81 kB
+www/assets/city-small-bronze-799b8648.svg                                0.81 kB │ gzip:     0.39 kB
+www/assets/shrine-5f4c436d.svg                                           0.81 kB │ gzip:     0.42 kB
+www/assets/factory-c0b1ecfc.svg                                          0.82 kB │ gzip:     0.42 kB
+www/assets/bank-dab96e3a.svg                                             0.83 kB │ gzip:     0.41 kB
+www/assets/carrier-ee3b8728.svg                                          0.83 kB │ gzip:     0.43 kB
+www/assets/stock_exchange-d59922dc.svg                                   0.84 kB │ gzip:     0.43 kB
+www/assets/city-small-classical-14ddc885.svg                             0.85 kB │ gzip:     0.41 kB
+www/assets/oil_well-eeadc5d4.svg                                         0.85 kB │ gzip:     0.42 kB
+www/assets/infantry-012d2291.svg                                         0.85 kB │ gzip:     0.47 kB
+www/assets/wine-42c979e6.svg                                             0.85 kB │ gzip:     0.46 kB
+www/assets/research_lab-b8a14c01.svg                                     0.86 kB │ gzip:     0.42 kB
+www/assets/bazaar-d02f1ba5.svg                                           0.86 kB │ gzip:     0.44 kB
+www/assets/temple-e00bde82.svg                                           0.88 kB │ gzip:     0.44 kB
+www/assets/gunpowder-0a0b1078.svg                                        0.89 kB │ gzip:     0.47 kB
+www/assets/highway-8d024469.svg                                          0.90 kB │ gzip:     0.45 kB
+www/assets/city-medium-kingdoms-ae3ff0f5.svg                             0.90 kB │ gzip:     0.42 kB
+www/assets/transport-f4ece665.svg                                        0.91 kB │ gzip:     0.47 kB
+www/assets/tea-30ce44bb.svg                                              0.91 kB │ gzip:     0.48 kB
+www/assets/incense-9d3131d0.svg                                          0.92 kB │ gzip:     0.48 kB
+www/assets/sugar-2bc2318f.svg                                            0.92 kB │ gzip:     0.43 kB
+www/assets/civic_center-fff0ba25.svg                                     0.92 kB │ gzip:     0.45 kB
+www/assets/city-medium-classical-1a872a54.svg                            0.93 kB │ gzip:     0.43 kB
+www/assets/irrigation-7fe61ae3.svg                                       0.93 kB │ gzip:     0.47 kB
+www/assets/barracks-2a2f3f9f.svg                                         0.93 kB │ gzip:     0.45 kB
+www/assets/crop_rotation_farm-a38cef76.svg                               0.94 kB │ gzip:     0.47 kB
+www/assets/farm_estate-21f0b0ca.svg                                      0.94 kB │ gzip:     0.44 kB
+www/assets/harbor-31093827.svg                                           0.94 kB │ gzip:     0.46 kB
+www/assets/iron-e3b7cef4.svg                                             0.94 kB │ gzip:     0.46 kB
+www/assets/explosion-0-1a50713c.png                                      0.95 kB
+www/assets/university-ae2e6ec1.svg                                       0.95 kB │ gzip:     0.45 kB
+www/assets/library-746e43a2.svg                                          0.95 kB │ gzip:     0.46 kB
+www/assets/silk-00b2af69.svg                                             0.95 kB │ gzip:     0.54 kB
+www/assets/city-medium-bronze-c2bedb38.svg                               0.96 kB │ gzip:     0.47 kB
+www/assets/dyes-43cb87c0.svg                                             0.96 kB │ gzip:     0.52 kB
+www/assets/fort-d06986a4.svg                                             0.96 kB │ gzip:     0.46 kB
+www/assets/fish-4dcb2eec.svg                                             0.97 kB │ gzip:     0.53 kB
+www/assets/workshop-ae440310.svg                                         0.98 kB │ gzip:     0.48 kB
+www/assets/naval_base-42555a1f.svg                                       0.98 kB │ gzip:     0.46 kB
+www/assets/cotton-70642171.svg                                           0.98 kB │ gzip:     0.55 kB
+www/assets/granary-f921d1a9.svg                                          0.98 kB │ gzip:     0.49 kB
+www/assets/debris-7-253a9ae7.png                                         0.98 kB
+www/assets/farm-41800184.svg                                             0.99 kB │ gzip:     0.51 kB
+www/assets/dust-9-4d5def4d.png                                           0.99 kB
+www/assets/great_library-8d9f9eba.svg                                    0.99 kB │ gzip:     0.46 kB
+www/assets/city-big-modern-10c35414.svg                                  0.99 kB │ gzip:     0.48 kB
+www/assets/uranium-91d42797.svg                                          0.99 kB │ gzip:     0.46 kB
+www/assets/mechanized_farm-e390d71d.svg                                  0.99 kB │ gzip:     0.47 kB
+www/assets/road_post-fb571ecb.svg                                        1.00 kB │ gzip:     0.49 kB
+www/assets/international_exchange-d1d82772.svg                           1.00 kB │ gzip:     0.44 kB
+www/assets/drill_yard-46db9ec6.svg                                       1.00 kB │ gzip:     0.47 kB
+www/assets/gold-26153921.svg                                             1.01 kB │ gzip:     0.46 kB
+www/assets/rail_depot-848f2f1a.svg                                       1.01 kB │ gzip:     0.47 kB
+www/assets/fire-small-11-991ea6f3.png                                    1.02 kB
+www/assets/great_wall-c8539a5d.svg                                       1.02 kB │ gzip:     0.54 kB
+www/assets/city-medium-gunpowder-3bab432d.svg                            1.02 kB │ gzip:     0.47 kB
+www/assets/papyrus-9bbc103c.svg                                          1.03 kB │ gzip:     0.53 kB
+www/assets/market-747f4c72.svg                                           1.03 kB │ gzip:     0.48 kB
+www/assets/lighthouse-1bd4b1d3.svg                                       1.03 kB │ gzip:     0.46 kB
+www/assets/debris-3-9fed7b34.png                                         1.04 kB
+www/assets/furs-abcdc180.svg                                             1.04 kB │ gzip:     0.60 kB
+www/assets/grand_bazaar-5f28f04d.svg                                     1.05 kB │ gzip:     0.51 kB
+www/assets/manufactory-647e79fc.svg                                      1.05 kB │ gzip:     0.52 kB
+www/assets/coal-731d86dc.svg                                             1.05 kB │ gzip:     0.46 kB
+www/assets/classical-6304574b.svg                                        1.06 kB │ gzip:     0.46 kB
+www/assets/great_cathedral-9bba4c0f.svg                                  1.06 kB │ gzip:     0.49 kB
+www/assets/lumber_camp-63ab4a49.svg                                      1.07 kB │ gzip:     0.53 kB
+www/assets/shipyard-2ae0f27e.svg                                         1.07 kB │ gzip:     0.51 kB
+www/assets/cavalry-e2b03573.svg                                          1.07 kB │ gzip:     0.57 kB
+www/assets/honey-2d9f561b.svg                                            1.07 kB │ gzip:     0.57 kB
+www/assets/whales-ab8d534b.svg                                           1.07 kB │ gzip:     0.58 kB
+www/assets/rubber-9ef07e06.svg                                           1.08 kB │ gzip:     0.53 kB
+www/assets/mine-af1eedf8.svg                                             1.08 kB │ gzip:     0.53 kB
+www/assets/war_college-df926e97.svg                                      1.08 kB │ gzip:     0.47 kB
+www/assets/space_program-3fa36696.svg                                    1.09 kB │ gzip:     0.49 kB
+www/assets/pasture-0524f3d9.svg                                          1.10 kB │ gzip:     0.52 kB
+www/assets/salt-13eaf017.svg                                             1.10 kB │ gzip:     0.49 kB
+www/assets/dust-2-00f2fc8f.png                                           1.10 kB
+www/assets/city-medium-modern-3f9d157d.svg                               1.11 kB │ gzip:     0.47 kB
+www/assets/settler-9b46344b.svg                                          1.12 kB │ gzip:     0.54 kB
+www/assets/iron_foundry-98c19201.svg                                     1.12 kB │ gzip:     0.52 kB
+www/assets/siege-2e60a438.svg                                            1.13 kB │ gzip:     0.54 kB
+www/assets/city-big-bronze-a3046b08.svg                                  1.13 kB │ gzip:     0.50 kB
+www/assets/camp-6e45dba8.svg                                             1.13 kB │ gzip:     0.54 kB
+www/assets/atomic_research_center-b6f2dd24.svg                           1.14 kB │ gzip:     0.53 kB
+www/assets/royal_observatory-ab6b712c.svg                                1.14 kB │ gzip:     0.49 kB
+www/assets/city-big-classical-8a59571d.svg                               1.16 kB │ gzip:     0.50 kB
+www/assets/smoke-10-32ea478a.png                                         1.17 kB
+www/assets/carrier_dock-da929fbc.svg                                     1.17 kB │ gzip:     0.48 kB
+www/assets/debris-6-9b43808d.png                                         1.17 kB
+www/assets/plantation-cfdcdb80.svg                                       1.18 kB │ gzip:     0.58 kB
+www/assets/hanging_gardens-fc972b17.svg                                  1.19 kB │ gzip:     0.60 kB
+www/assets/reeds-961f1e86.svg                                            1.19 kB │ gzip:     0.63 kB
+www/assets/sheep-4bab64a7.svg                                            1.20 kB │ gzip:     0.62 kB
+www/assets/city-big-kingdoms-06e55afb.svg                                1.21 kB │ gzip:     0.53 kB
+www/assets/debris-4-49da7aab.png                                         1.21 kB
+www/assets/copper_mine-36d2f209.svg                                      1.21 kB │ gzip:     0.59 kB
+www/assets/olives-4cb53af5.svg                                           1.22 kB │ gzip:     0.59 kB
+www/assets/palace_of_versailles-607ad9d4.svg                             1.24 kB │ gzip:     0.54 kB
+www/assets/smoke-1-cf7ec704.png                                          1.25 kB
+www/assets/dust-3-bcf9a5eb.png                                           1.26 kB
+www/assets/forbidden_city-f2baac39.svg                                   1.30 kB │ gzip:     0.58 kB
+www/assets/arsenal-7b6ab6c7.svg                                          1.31 kB │ gzip:     0.59 kB
+www/assets/dates-6c2bd581.svg                                            1.32 kB │ gzip:     0.63 kB
+www/assets/bananas-092c64f4.svg                                          1.33 kB │ gzip:     0.67 kB
+www/assets/spices-297d2b7d.svg                                           1.37 kB │ gzip:     0.69 kB
+www/assets/city-big-gunpowder-6c7fee49.svg                               1.40 kB │ gzip:     0.62 kB
+www/assets/dust-8-2288cd36.png                                           1.40 kB
+www/assets/debris-5-20479da1.png                                         1.40 kB
+www/assets/military_academy-5235c416.svg                                 1.40 kB │ gzip:     0.61 kB
+www/assets/deer-769bb4c6.svg                                             1.41 kB │ gzip:     0.69 kB
+www/assets/explosion-1-e29f5523.png                                      1.42 kB
+www/assets/cattle-1b56bc19.svg                                           1.47 kB │ gzip:     0.64 kB
+www/assets/dust-4-e12846e1.png                                           1.53 kB
+www/assets/fire-small-0-85b41614.png                                     1.54 kB
+www/assets/fire-small-10-1ebf2ccc.png                                    1.60 kB
+www/assets/dust-7-6a2e6f39.png                                           1.65 kB
+www/assets/smoke-2-f1123b0b.png                                          1.71 kB
+www/assets/dust-5-f42e51cf.png                                           1.74 kB
+www/assets/dust-6-a035c079.png                                           1.83 kB
+www/assets/explosion-2-384013f4.png                                      1.86 kB
+www/assets/smoke-9-83a8e83c.png                                          1.87 kB
+www/assets/build-house-526d3828.webp                                     1.92 kB
+www/assets/explosion-10-0364b454.png                                     2.10 kB
+www/assets/rice-85a8e57f.svg                                             2.18 kB │ gzip:     0.62 kB
+www/assets/fire-small-9-93c6d534.png                                     2.21 kB
+www/assets/smoke-3-76ac100f.png                                          2.24 kB
+www/assets/colosseum-98f32c62.svg                                        2.24 kB │ gzip:     0.80 kB
+www/assets/fire-small-1-0dd2a754.png                                     2.24 kB
+www/assets/smoke-8-9efc2688.png                                          2.31 kB
+www/assets/explosion-3-11736917.png                                      2.41 kB
+www/assets/smoke-4-dbd61e55.png                                          2.56 kB
+www/assets/fire-small-8-6b82c306.png                                     2.65 kB
+www/assets/explosion-4-af59fd66.png                                      2.65 kB
+www/assets/fire-small-3-f7434301.png                                     2.68 kB
+www/assets/fire-small-4-d74c0035.png                                     2.69 kB
+www/assets/fire-small-7-e55c2737.png                                     2.71 kB
+www/assets/fire-small-5-fed91976.png                                     2.71 kB
+www/index.html                                                           2.73 kB │ gzip:     1.23 kB
+www/assets/explosion-5-91b16e16.png                                      2.74 kB
+www/assets/fire-small-2-4b9b86ab.png                                     2.79 kB
+www/assets/build-tower-c943ca47.webp                                     2.79 kB
+www/assets/fire-large-4-3e3103d5.png                                     2.80 kB
+www/assets/fire-large-10-d326cb37.png                                    2.82 kB
+www/assets/fire-large-13-85e88c8f.png                                    2.83 kB
+www/assets/fire-large-2-097c4e01.png                                     2.83 kB
+www/assets/fire-large-3-2f561276.png                                     2.84 kB
+www/assets/fire-large-12-f9b199da.png                                    2.84 kB
+www/assets/fire-large-0-3801e196.png                                     2.84 kB
+www/assets/fire-small-6-3175f996.png                                     2.85 kB
+www/assets/fire-large-14-35db7dfe.png                                    2.85 kB
+www/assets/fire-large-6-d13a01fd.png                                     2.86 kB
+www/assets/fire-large-11-237024f9.png                                    2.87 kB
+www/assets/fire-large-5-4e09b57b.png                                     2.87 kB
+www/assets/fire-large-15-d68ba177.png                                    2.88 kB
+www/assets/fire-large-1-b743853a.png                                     2.89 kB
+www/assets/build-mine-d4d9dbac.webp                                      2.90 kB
+www/assets/smoke-5-f78af3dc.png                                          2.90 kB
+www/assets/smoke-7-79cf6c3e.png                                          2.91 kB
+www/assets/build-range-5027e448.webp                                     2.92 kB
+www/assets/fire-large-9-781c587d.png                                     2.94 kB
+www/assets/fire-large-8-82d743a1.png                                     2.94 kB
+www/assets/explosion-6-2ec099ed.png                                      2.99 kB
+www/assets/explosion-9-362d900d.png                                      3.01 kB
+www/assets/fire-large-7-5a580483.png                                     3.02 kB
+www/assets/smoke-6-f71f243d.png                                          3.07 kB
+www/assets/explosion-7-2909f96b.png                                      3.08 kB
+www/assets/wheat-fc534a57.svg                                            3.28 kB │ gzip:     0.67 kB
+www/assets/explosion-8-8f1ebf29.png                                      3.29 kB
+www/assets/build-aid-post-600ed811.webp                                  3.38 kB
+www/assets/build-siege-workshop-347b6be3.webp                            3.46 kB
+www/assets/build-expedition-camp-759a8767.webp                           3.63 kB
+www/assets/build-trade-post-b0c55d40.webp                                3.66 kB
+www/assets/build-stable-d7ce6f24.webp                                    3.67 kB
+www/assets/housing-full-1-5ff6530a.ogg                                   3.95 kB
+www/assets/ui-tab-1-4bf3d717.ogg                                         3.95 kB
+www/assets/ui-tab-2-4fa1e629.ogg                                         3.96 kB
+www/assets/order-click-from-ui-click-2-f6c7607b.ogg                      3.96 kB
+www/assets/ui-click-1-7bfe88cd.ogg                                       4.00 kB
+www/assets/stone-21c58b90.webp                                           4.03 kB
+www/assets/arrow-hit-5-d4c8037d.ogg                                      4.07 kB
+www/assets/arrow-hit-1-609e7e3e.ogg                                      4.12 kB
+www/assets/shield-block-1-0880b807.ogg                                   4.13 kB
+www/assets/build-barracks-c7a41cb1.webp                                  4.13 kB
+www/assets/shield-block-2-3c78f0ab.ogg                                   4.13 kB
+www/assets/shield-block-3-bf69b0ed.ogg                                   4.14 kB
+www/assets/copper-74e3c56d.webp                                          4.16 kB
+www/assets/build-food-depot-8844e22d.webp                                4.20 kB
+www/assets/ui-click-2-ca9f5ac8.ogg                                       4.26 kB
+www/assets/order-click-from-ui-click-1-8cee33df.ogg                      4.27 kB
+www/assets/order-click-from-ui-click-3-074ec5ed.ogg                      4.28 kB
+www/assets/ui-click-3-45760886.ogg                                       4.28 kB
+www/assets/ui-toggle-1-75194e97.ogg                                      4.28 kB
+www/assets/worker-build-2-49e59b2d.ogg                                   4.29 kB
+www/assets/ui-toggle-2-e21b98ef.ogg                                      4.32 kB
+www/assets/ui-confirm-1-44a86bd6.ogg                                     4.36 kB
+www/assets/ui-error-1-5df169cf.ogg                                       4.46 kB
+www/assets/build-materials-yard-17db8b29.webp                            4.49 kB
+www/assets/worker-chop-3-7ff54743.ogg                                    4.53 kB
+www/assets/timber-fc1d15a3.webp                                          4.64 kB
+www/assets/build-farm-plot-5dfc7856.webp                                 4.68 kB
+www/assets/gems-6e5d0581.webp                                            4.70 kB
+www/assets/arrow-hit-2-6b1e5dd6.ogg                                      4.78 kB
+www/assets/ui-close-1-cd4211ba.ogg                                       4.81 kB
+www/assets/ui-open-1-921a590c.ogg                                        4.90 kB
+www/assets/horses-36fa9d12.webp                                          4.94 kB
+www/assets/arrow-hit-4-a6a919a1.ogg                                      4.94 kB
+www/assets/build-town-hall-359130de.webp                                 4.98 kB
+www/assets/shield-block-5-c23be04b.ogg                                   5.09 kB
+www/assets/worker-build-4-60762f31.ogg                                   5.11 kB
+www/assets/arrow-hit-3-de68e171.ogg                                      5.12 kB
+www/assets/arrow-release-5-a37359e9.ogg                                  5.18 kB
+www/assets/sword-clash-6-704a43e1.ogg                                    5.20 kB
+www/assets/sword-clash-5-a12307fa.ogg                                    5.36 kB
+www/assets/siege-select-1-42d0763a.ogg                                   5.37 kB
+www/assets/worker-select-1-fecd7233.ogg                                  5.37 kB
+www/assets/ui-error-2-e86c6a2a.ogg                                       5.38 kB
+www/assets/worker-build-3-8b2640d1.ogg                                   5.38 kB
+www/assets/shield-block-4-71ea659f.ogg                                   5.39 kB
+www/assets/sword-clash-1-28f55e37.ogg                                    5.52 kB
+www/assets/worker-chop-4-05d67121.ogg                                    5.52 kB
+www/assets/worker-mine-3-71e11079.ogg                                    5.67 kB
+www/assets/worker-mine-2-0384c2b6.ogg                                    5.76 kB
+www/assets/worker-select-2-c2f43f62.ogg                                  5.80 kB
+www/assets/worker-mine-1-5c1b79c8.ogg                                    5.84 kB
+www/assets/ui-confirm-2-00eb7542.ogg                                     5.92 kB
+www/assets/ranged-select-1-0f07eec6.ogg                                  5.92 kB
+www/assets/arrow-release-1-c270fd98.ogg                                  6.01 kB
+www/assets/worker-mine-4-1613183a.ogg                                    6.04 kB
+www/assets/building-placed-2-dce59dfd.ogg                                6.07 kB
+www/assets/worker-select-3-ddd8f501.ogg                                  6.08 kB
+www/assets/gold-received-3-c2edd5a9.ogg                                  6.19 kB
+www/assets/siege-select-3-dfd74664.ogg                                   6.19 kB
+www/assets/ui-open-2-35138911.ogg                                        6.20 kB
+www/assets/ui-close-2-9975e002.ogg                                       6.20 kB
+www/assets/housing-full-2-8d2828ae.ogg                                   6.25 kB
+www/assets/arrow-release-4-c1640499.ogg                                  6.32 kB
+www/assets/building-placed-1-a37cf666.ogg                                6.41 kB
+www/assets/city-razed-2-ab7d619d.ogg                                     6.45 kB
+www/assets/sword-clash-3-b3600302.ogg                                    6.49 kB
+www/assets/rifle-fire-from-rifle-shot-2-eb8dcce5.ogg                     6.50 kB
+www/assets/cavalry-select-1-7fda852d.ogg                                 6.51 kB
+www/assets/order-move-2-96485733.ogg                                     6.52 kB
+www/assets/siege-select-2-f45193de.ogg                                   6.59 kB
+www/assets/ranged-select-2-35ad8701.ogg                                  6.59 kB
+www/assets/gold-received-2-bc3fbdbd.ogg                                  6.75 kB
+www/assets/building-queued-1-b24119c0.ogg                                6.77 kB
+www/assets/arrow-release-3-b9717421.ogg                                  6.94 kB
+www/assets/worker-build-1-c5182603.ogg                                   6.94 kB
+www/assets/infantry-select-3-b354b96b.ogg                                6.96 kB
+www/assets/worker-task-2-df28f49a.ogg                                    7.04 kB
+www/assets/order-move-1-1784d5c8.ogg                                     7.08 kB
+www/assets/ranged-order-2-806d719f.ogg                                   7.11 kB
+www/assets/ranged-order-1-9658ce5d.ogg                                   7.11 kB
+www/assets/infantry-select-1-fbcca3ee.ogg                                7.13 kB
+www/assets/arrow-whoosh-4-d1a63178.ogg                                   7.31 kB
+www/assets/order-attack-2-142b48b0.ogg                                   7.34 kB
+www/assets/ranged-attack-3-84ab1ec7.ogg                                  7.41 kB
+www/assets/worker-order-3-94c09841.ogg                                   7.42 kB
+www/assets/infantry-select-2-8cebc353.ogg                                7.49 kB
+www/assets/ranged-select-3-ff4c76b6.ogg                                  7.52 kB
+www/assets/ram-impact-4-4cfae19a.ogg                                     7.53 kB
+www/assets/cavalry-select-2-a24e602b.ogg                                 7.56 kB
+www/assets/sword-clash-4-13fdcac9.ogg                                    7.60 kB
+www/assets/cavalry-select-3-237eaefc.ogg                                 7.60 kB
+www/assets/arrow-release-2-976ab514.ogg                                  7.65 kB
+www/assets/ram-impact-1-1fe1f38c.ogg                                     7.66 kB
+www/assets/ram-impact-3-1f49867f.ogg                                     7.78 kB
+www/assets/wall-destroyed-1-18df01fc.ogg                                 7.78 kB
+www/assets/worker-task-1-8dd7007b.ogg                                    7.80 kB
+www/assets/ram-impact-2-a0c30361.ogg                                     7.86 kB
+www/assets/ranged-order-3-5ad81f13.ogg                                   7.88 kB
+www/assets/arrow-whoosh-1-148c3889.ogg                                   8.02 kB
+www/assets/death-cry-from-death-soft-1-627a5f8e.ogg                      8.23 kB
+www/assets/worker-order-2-6bfebb15.ogg                                   8.25 kB
+www/assets/node-depleted-2-1525e7c8.ogg                                  8.27 kB
+www/assets/event-appeared-2-d2df5c26.ogg                                 8.28 kB
+www/assets/city-grows-2-5eb15af4.ogg                                     8.31 kB
+www/assets/cavalry-order-2-3ad8b5ff.ogg                                  8.31 kB
+www/assets/turn-end-2-6896fc51.ogg                                       8.38 kB
+www/assets/turn-end-1-81f63ef0.ogg                                       8.39 kB
+www/assets/arrow-whoosh-3-8a854de4.ogg                                   8.43 kB
+www/assets/worker-order-1-d079e18f.ogg                                   8.49 kB
+www/assets/cavalry-order-1-23ab63a7.ogg                                  8.53 kB
+www/assets/cavalry-order-3-38c98592.ogg                                  8.58 kB
+www/assets/death-cry-from-death-soft-3-b4ebf7b3.ogg                      8.60 kB
+www/assets/siege-order-1-bb290c8a.ogg                                    8.63 kB
+www/assets/rifle-fire-from-rifle-shot-4-2923ae6a.ogg                     8.66 kB
+www/assets/house-built-1-fb12a05e.ogg                                    8.66 kB
+www/assets/event-appeared-1-e0d4c887.ogg                                 8.66 kB
+www/assets/ballista-release-1-a788521c.ogg                               8.67 kB
+www/assets/stone-impact-3-71d04f9c.ogg                                   8.75 kB
+www/assets/ranged-attack-2-c1a7196b.ogg                                  8.81 kB
+www/assets/infantry-order-2-7983aed5.ogg                                 8.83 kB
+www/assets/node-depleted-1-79ec0801.ogg                                  8.86 kB
+www/assets/infantry-order-3-dc6aa034.ogg                                 8.86 kB
+www/assets/siege-order-3-324ad199.ogg                                    8.88 kB
+www/assets/siege-order-2-9ff8606d.ogg                                    9.02 kB
+www/assets/building-queued-2-1d004812.ogg                                9.05 kB
+www/assets/stone-impact-1-babdf912.ogg                                   9.10 kB
+www/assets/city-grows-1-8508ff79.ogg                                     9.12 kB
+www/assets/tribute-paid-2-b8daeee0.ogg                                   9.25 kB
+www/assets/house-built-2-08254af3.ogg                                    9.34 kB
+www/assets/stone-impact-4-b9fef734.ogg                                   9.38 kB
+www/assets/infantry-order-1-689fdec9.ogg                                 9.46 kB
+www/assets/ballista-release-2-28ae438b.ogg                               9.53 kB
+www/assets/ranged-attack-1-d04c7cd6.ogg                                  9.54 kB
+www/assets/sword-clash-2-5108f40d.ogg                                    9.55 kB
+www/assets/tech-selected-1-538de603.ogg                                  9.73 kB
+www/assets/gold-received-1-d4c187a3.ogg                                  9.79 kB
+www/assets/tech-selected-2-c1fe95c3.ogg                                  9.92 kB
+www/assets/siege-attack-3-0ffbf275.ogg                                   9.94 kB
+www/assets/cavalry-attack-1-4e1fcbca.ogg                                 9.94 kB
+www/assets/rifle-fire-from-rifle-shot-1-2b5a5e3a.ogg                     9.97 kB
+www/assets/tech-complete-1-fd3e090d.ogg                                 10.22 kB
+www/assets/spear-thrust-1-c06f789a.ogg                                  10.47 kB
+www/assets/death-cry-from-death-soft-2-d404786a.ogg                     10.51 kB
+www/assets/siege-attack-2-2d85cad5.ogg                                  10.53 kB
+www/assets/ballista-release-3-f15fba30.ogg                              10.69 kB
+www/assets/cannon-fire-2-6a618b2b.ogg                                   10.82 kB
+www/assets/order-attack-1-45f006ff.ogg                                  10.92 kB
+www/assets/rifle-fire-from-rifle-shot-3-dc068a43.ogg                    11.09 kB
+www/assets/worker-chop-1-519cf201.ogg                                   11.27 kB
+www/assets/cavalry-attack-3-2927db7a.ogg                                11.33 kB
+www/assets/figtree-latin-700-normal-7ec4f08d.woff2                      11.38 kB
+www/assets/figtree-latin-400-normal-8f98dd64.woff2                      11.38 kB
+www/assets/figtree-latin-500-normal-953a6a42.woff2                      11.43 kB
+www/assets/tech-complete-2-601d84cd.ogg                                 11.48 kB
+www/assets/settler-moving-2-4d90887e.ogg                                11.49 kB
+www/assets/figtree-latin-600-normal-367d7132.woff2                      11.54 kB
+www/assets/worker-chop-2-a58f1f27.ogg                                   11.76 kB
+www/assets/stone-impact-2-780d91e7.ogg                                  11.77 kB
+www/assets/spear-thrust-3-230dd41c.ogg                                  11.81 kB
+www/assets/spear-thrust-4-577abdf1.ogg                                  11.87 kB
+www/assets/arrow-whoosh-2-5ca15831.ogg                                  11.95 kB
+www/assets/squad-trained-2-e85ffe76.ogg                                 11.96 kB
+www/assets/squad-trained-1-4b56fcdf.ogg                                 12.05 kB
+www/assets/settler-moving-1-1f5a87a7.ogg                                12.07 kB
+www/assets/infantry-attack-1-61431d09.ogg                               12.15 kB
+www/assets/infantry-attack-3-c606977d.ogg                               12.22 kB
+www/assets/cannon-fire-3-b5067e41.ogg                                   12.28 kB
+www/assets/unit-trained-2-71ad308d.ogg                                  12.70 kB
+www/assets/cavalry-attack-2-520d6cb5.ogg                                12.78 kB
+www/assets/explosion-1-87984ed6.ogg                                     12.91 kB
+www/assets/unit-trained-1-a69ecc28.ogg                                  12.95 kB
+www/assets/siege-attack-1-f328f178.ogg                                  12.99 kB
+www/assets/infantry-attack-2-9ad6a21f.ogg                               13.27 kB
+www/assets/building-complete-1-b3530afc.ogg                             13.29 kB
+www/assets/power-used-2-6474487c.ogg                                    13.75 kB
+www/assets/spear-thrust-2-598c86ca.ogg                                  14.03 kB
+www/assets/turn-begin-1-4d097158.ogg                                    14.13 kB
+www/assets/death-cry-from-death-soft-4-b84928f1.ogg                     14.15 kB
+www/assets/first-contact-1-961ae959.ogg                                 14.23 kB
+www/assets/horn-order-from-horn-signal-1-3a4b3345.ogg                   14.29 kB
+www/assets/tribute-paid-1-5ea83987.ogg                                  14.32 kB
+www/assets/building-complete-2-cc460e6d.ogg                             14.41 kB
+www/assets/turn-begin-2-950c9780.ogg                                    14.79 kB
+www/assets/first-contact-2-e2ba2676.ogg                                 14.81 kB
+www/assets/building-finished-2-c4fa1cc9.ogg                             14.89 kB
+www/assets/cannon-fire-1-fa8da051.ogg                                   14.92 kB
+www/assets/figtree-latin-400-normal-e75c125a.woff                       15.04 kB
+www/assets/figtree-latin-500-normal-19f92490.woff                       15.04 kB
+www/assets/building-finished-1-3b7e7acd.ogg                             15.06 kB
+www/assets/figtree-latin-700-normal-6463c3f0.woff                       15.16 kB
+www/assets/figtree-latin-600-normal-868dd010.woff                       15.21 kB
+www/assets/power-used-1-3919b513.ogg                                    15.58 kB
+www/assets/city-razed-1-38dac387.ogg                                    15.79 kB
+www/assets/retreat-horn-2-66b28b1f.ogg                                  15.84 kB
+www/assets/arrow-volley-2-c2a32a40.ogg                                  15.97 kB
+www/assets/horn-order-from-horn-signal-2-ca717655.ogg                   16.00 kB
+www/assets/arrow-volley-3-ddc24e59.ogg                                  16.25 kB
+www/assets/under-attack-2-7424ba38.ogg                                  16.84 kB
+www/assets/trebuchet-release-2-abe3bb64.ogg                             16.98 kB
+www/assets/arrow-volley-1-9af0852e.ogg                                  17.27 kB
+www/assets/weapon-spear-e42d41c5.glb                                    17.48 kB
+www/assets/explosion-2-baee549f.ogg                                     17.73 kB
+www/assets/musket-volley-1-4be431ad.ogg                                 17.84 kB
+www/assets/trebuchet-release-1-e285ec10.ogg                             18.36 kB
+www/assets/musket-volley-3-09d34808.ogg                                 18.62 kB
+www/assets/under-attack-1-e8a36e14.ogg                                  18.87 kB
+www/assets/rally-cry-2-b6cb7f9a.ogg                                     19.65 kB
+www/assets/weapon-sword-4ea55e13.glb                                    19.69 kB
+www/assets/rally-cry-1-6b7c359d.ogg                                     19.77 kB
+www/assets/musket-volley-2-8c6b15ab.ogg                                 20.14 kB
+www/assets/army-moved-2-9b1dc36f.ogg                                    20.30 kB
+www/assets/army-moved-1-88e6b9a9.ogg                                    20.96 kB
+www/assets/retreat-horn-1-f720b097.ogg                                  21.03 kB
+www/assets/wall-destroyed-2-921c0820.ogg                                21.11 kB
+www/assets/battle-won-1-d9988870.ogg                                    21.13 kB
+www/assets/jetbrains-mono-latin-400-normal-14425ba9.woff2               21.17 kB
+www/assets/bronze-da7cd0a4.glb                                          21.55 kB
+www/assets/raid-warning-2-a2038c11.ogg                                  21.69 kB
+www/assets/jetbrains-mono-latin-600-normal-400c6bfd.woff2               21.86 kB
+www/assets/city-founded-2-a216e497.ogg                                  22.09 kB
+www/assets/trade-route-2-7b5b88ee.ogg                                   22.19 kB
+www/assets/battle-lost-1-2343b533.ogg                                   22.97 kB
+www/assets/raid-warning-1-7bc87f96.ogg                                  23.01 kB
+www/assets/gate-breached-1-49088326.ogg                                 23.05 kB
+www/assets/gate-breached-2-3b64bb68.ogg                                 23.27 kB
+www/assets/city-captured-2-925c0bdd.ogg                                 23.73 kB
+www/assets/general-killed-1-b9f58ee6.ogg                                24.03 kB
+www/assets/horn-order-from-horn-signal-3-5e5b9a77.ogg                   24.11 kB
+www/assets/trade-route-1-23beb4ba.ogg                                   24.16 kB
+www/assets/city-captured-1-2beef209.ogg                                 24.21 kB
+www/assets/city-lost-1-b250a0d0.ogg                                     24.40 kB
+www/assets/spectral-sc-latin-600-normal-0eb92668.woff                   24.79 kB
+www/assets/spectral-sc-latin-700-normal-98805652.woff                   24.82 kB
+www/assets/city-besieged-1-b6ba1621.ogg                                 25.14 kB
+www/assets/rebellion-1-f6d5bfa0.ogg                                     25.23 kB
+www/assets/rebellion-2-349bb01e.ogg                                     25.47 kB
+www/assets/city-besieged-2-b1601050.ogg                                 25.92 kB
+www/assets/city-lost-2-01a3760d.ogg                                     25.97 kB
+www/assets/independent-joined-2-7f3fb16f.ogg                            26.46 kB
+www/assets/city-founded-1-b77aa9aa.ogg                                  26.71 kB
+www/assets/building-collapse-3-7fddd4c7.ogg                             27.13 kB
+www/assets/jetbrains-mono-latin-400-normal-658b9ee0.woff                27.50 kB
+www/assets/jetbrains-mono-latin-600-normal-3f4ad068.woff                28.18 kB
+www/assets/general-killed-2-3938bc99.ogg                                28.51 kB
+www/assets/modern-f94b7c06.glb                                          28.96 kB
+www/assets/pact-signed-2-a085e5b2.ogg                                   29.10 kB
+www/assets/pact-signed-1-01116988.ogg                                   29.14 kB
+www/assets/spectral-sc-latin-600-normal-d0df8b5d.woff2                  29.16 kB
+www/assets/spectral-sc-latin-700-normal-3f0df9a8.woff2                  29.34 kB
+www/assets/kingdoms-d86e1e82.glb                                        30.11 kB
+www/assets/independent-joined-1-85fa9132.ogg                            30.13 kB
+www/assets/peace-signed-1-7f473ac0.ogg                                  31.63 kB
+www/assets/explosion-3-6bea78a7.ogg                                     31.90 kB
+www/assets/peace-signed-2-076a48d0.ogg                                  32.81 kB
+www/assets/gunpowder-53b52584.glb                                       33.04 kB
+www/assets/modern-air-a613f2d3.glb                                      33.17 kB
+www/assets/building-collapse-2-a3833640.ogg                             33.25 kB
+www/assets/wonder-started-1-9e06d681.ogg                                33.38 kB
+www/assets/classical-125990ed.glb                                       33.81 kB
+www/assets/worldPackage-137f0102.js                                     35.43 kB
+www/assets/worldPackage-fb6d167d.js                                     35.43 kB
+www/assets/horn-order-from-horn-signal-5-84d9c3cd.ogg                   35.93 kB
+www/assets/horn-order-from-horn-signal-4-19309f34.ogg                   36.32 kB
+www/assets/war-drums-from-war-drums-loop-2-87be857f.ogg                 44.08 kB
+www/assets/era-advanced-2-9ad90c60.ogg                                  50.38 kB
+www/assets/engaruka-89b22540.glb                                        51.67 kB
+www/assets/battle.worker-0f77f3f9.js                                    52.24 kB
+www/assets/srivijaya-1cbbf45b.glb                                       53.58 kB
+www/assets/nabataea-345d2f61.glb                                        54.02 kB
+www/assets/rajarata-3ef53a83.glb                                        54.06 kB
+www/assets/turn.worker-9f5d1b4c.js                                      54.23 kB
+www/assets/djenne-djeno-4a69551d.glb                                    54.85 kB
+www/assets/chariot-rumble-2-e3ffe7fe.ogg                                54.89 kB
+www/assets/tichitt-70940fc6.glb                                         54.95 kB
+www/assets/caral-7562fbbf.glb                                           55.22 kB
+www/assets/cucuteni-e4b7fb59.glb                                        55.27 kB
+www/assets/shang-5bf28998.glb                                           55.78 kB
+www/assets/latte-chiefs-55b452b2.glb                                    55.96 kB
+www/assets/moche-70b87c86.glb                                           55.96 kB
+www/assets/libu-c3dc8e40.glb                                            56.04 kB
+www/assets/saudeleur-ed989147.glb                                       56.49 kB
+www/assets/durotriges-a53ef98c.glb                                      56.52 kB
+www/assets/gunditjmara-8fff0226.glb                                     56.54 kB
+www/assets/nanyue-d7683833.glb                                          56.66 kB
+www/assets/hopewell-3c2b4e8c.glb                                        57.09 kB
+www/assets/lapita-1c4f79db.glb                                          57.50 kB
+www/assets/mutapa-04114a21.glb                                          57.56 kB
+www/assets/diaguita-08922344.glb                                        57.68 kB
+www/assets/magan-bc2f3ab7.glb                                           57.73 kB
+www/assets/shu-b820966a.glb                                             57.73 kB
+www/assets/dvaravati-d1f07995.glb                                       57.85 kB
+www/assets/yamatai-4bf9efab.glb                                         57.91 kB
+www/assets/gojoseon-97222dbb.glb                                        57.92 kB
+www/assets/colchis-c687d201.glb                                         58.12 kB
+www/assets/calusa-6d611911.glb                                          58.31 kB
+www/assets/funan-d603a255.glb                                           58.33 kB
+www/assets/classical-worker-3f685106.glb                                58.44 kB
+www/assets/draco_wasm_wrapper-8bb2952d.js                               58.46 kB
+www/assets/kutai-220302a7.glb                                           58.48 kB
+www/assets/draco_wasm_wrapper-e8049906.js                               58.76 kB
+www/assets/pyu-fa182050.glb                                             58.87 kB
+www/assets/bono-03d35af9.glb                                            59.26 kB
+www/assets/dilmun-46d190da.glb                                          59.39 kB
+www/assets/mauretania-8d778d9b.glb                                      59.50 kB
+www/assets/kroraina-731612ac.glb                                        59.58 kB
+www/assets/qi-0844276c.glb                                              59.60 kB
+www/assets/butuan-aae638e8.glb                                          59.61 kB
+www/assets/cherusci-df1456f3.glb                                        59.68 kB
+www/assets/tarumanagara-a347797c.glb                                    59.84 kB
+www/assets/marajoara-0df967b5.glb                                       59.96 kB
+www/assets/punt-365c1817.glb                                            60.38 kB
+www/assets/medang-70d6fb09.glb                                          60.54 kB
+www/assets/kanesh-69825bc8.glb                                          60.57 kB
+www/assets/mapungubwe-f0ead602.glb                                      60.63 kB
+www/assets/zapotec-df6f9c5d.glb                                         60.65 kB
+www/assets/tupinamba-bff9d4f1.glb                                       60.66 kB
+www/assets/yue-8963cf44.glb                                             60.84 kB
+www/assets/tiwanaku-9a509ce4.glb                                        60.91 kB
+www/assets/kilwa-090de85f.glb                                           61.18 kB
+www/assets/ife-1ecae7a6.glb                                             61.28 kB
+www/assets/kerma-a716b6e9.glb                                           61.29 kB
+www/assets/jaragua-343cdc56.glb                                         61.34 kB
+www/assets/chaco-1fe88aae.glb                                           61.36 kB
+www/assets/hohokam-f75d953e.glb                                         61.52 kB
+www/assets/era-advanced-1-56d9945b.ogg                                  61.62 kB
+www/assets/bau-30b6828f.glb                                             61.65 kB
+www/assets/san-0209a0aa.glb                                             61.89 kB
+www/assets/wahgi-6bcba889.glb                                           62.16 kB
+www/assets/war-declared-2-6e3cdaa4.ogg                                  62.23 kB
+www/assets/d-mt-4876370b.glb                                            62.50 kB
+www/assets/luba-6a0f5970.glb                                            62.53 kB
+www/assets/botai-06f1a906.glb                                           62.57 kB
+www/assets/pandya-3a02b303.glb                                          62.66 kB
+www/assets/saurashtra-dec00a5d.glb                                      62.78 kB
+www/assets/kosala-06427649.glb                                          62.85 kB
+www/assets/teotihuacan-8769b5fe.glb                                     62.93 kB
+www/assets/elam-2c302234.glb                                            63.08 kB
+www/assets/muisca-e714498e.glb                                          63.23 kB
+www/assets/kingdoms-worker-cd279b7e.glb                                 63.38 kB
+www/assets/tartessos-8ba3d277.glb                                       63.40 kB
+www/assets/urartu-ec07c971.glb                                          63.66 kB
+www/assets/kalinago-72b18e4f.glb                                        63.81 kB
+www/assets/meluhha-844996f6.glb                                         63.86 kB
+www/assets/merina-8da902f9.glb                                          63.90 kB
+www/assets/wari-a4b2c25e.glb                                            64.14 kB
+www/assets/cavalry-hooves-from-hooves-gallop-1-67491d1f.ogg             64.19 kB
+www/assets/nok-0e8382ef.glb                                             64.51 kB
+www/assets/khotan-c3fe2e68.glb                                          64.78 kB
+www/assets/chariot-rumble-1-332ddf37.ogg                                64.79 kB
+www/assets/vanga-3c46e333.glb                                           64.81 kB
+www/assets/modern-cavalry-80d7dc2b.glb                                  64.82 kB
+www/assets/cavalry-hooves-from-hooves-gallop-2-6c3290d5.ogg             64.95 kB
+www/assets/classical-ranged-46d1da35.glb                                65.06 kB
+www/assets/kingdoms-infantry-9f5e9289.glb                               65.15 kB
+www/assets/haida-af5adda3.glb                                           65.35 kB
+www/assets/kingdoms-support-01737e17.glb                                65.67 kB
+www/assets/van-lang-13a594f0.glb                                        65.68 kB
+www/assets/mari-b9952009.glb                                            65.95 kB
+www/assets/mutal-288d7460.glb                                           66.16 kB
+www/assets/phrygia-d100fc3d.glb                                         66.34 kB
+www/assets/aghvank-55402bee.glb                                         66.40 kB
+www/assets/zhangzhung-01eea63e.glb                                      67.14 kB
+www/assets/chu-087c5a54.glb                                             67.37 kB
+www/assets/belgae-1e37e429.glb                                          67.47 kB
+www/assets/ndongo-3aa5cfcd.glb                                          67.71 kB
+www/assets/ahhiyawa-44230ac3.glb                                        68.10 kB
+www/assets/fortriu-fac199bc.glb                                         68.22 kB
+www/assets/classical-support-6903a8f5.glb                               69.03 kB
+www/assets/building-collapse-1-8b34673c.ogg                             69.09 kB
+www/assets/keftiu-7d850420.glb                                          69.10 kB
+www/assets/gandhara-a5f030cb.glb                                        70.21 kB
+www/assets/lunda-250a02ec.glb                                           70.42 kB
+www/assets/ulaid-c499c9e2.glb                                           71.39 kB
+www/assets/marcomannia-20ca6479.glb                                     71.54 kB
+www/assets/war-declared-1-f9d4fbec.ogg                                  72.04 kB
+www/assets/kingdoms-ranged-09cd1160.glb                                 72.41 kB
+www/assets/celtiberia-e839da4e.glb                                      72.48 kB
+www/assets/dorset-22013139.glb                                          72.63 kB
+www/assets/kingdom-of-israel-091fe3c0.glb                               72.94 kB
+www/assets/akkad-0e2b192b.glb                                           73.12 kB
+www/assets/lusitania-302220ec.glb                                       75.12 kB
+www/assets/gunpowder-worker-c06f052a.glb                                75.54 kB
+www/assets/blaster-repeater-24c5bbe2.glb                                75.56 kB
+www/assets/wonder-complete-1-f08b4fbb.ogg                               75.87 kB
+www/assets/modern-worker-bc50218f.glb                                   76.15 kB
+www/assets/odrysia-7e64ec5e.glb                                         76.18 kB
+www/assets/geats-68eb3267.glb                                           76.34 kB
+www/assets/herd-cattle-4c39fc46.glb                                     76.42 kB
+www/assets/fish-shoal-726f0f2b.glb                                      76.68 kB
+www/assets/dacia-acf1e665.glb                                           76.85 kB
+www/assets/cavalry-hooves-from-hooves-walk-2-8c7bbbcb.ogg               76.87 kB
+www/assets/gunpowder-ranged-efc764da.glb                                76.94 kB
+www/assets/rygir-2ffba37f.glb                                           77.33 kB
+www/assets/classical-mercenary-f0b19fd7.glb                             77.49 kB
+www/assets/rasenna-4d0181fc.glb                                         77.53 kB
+www/assets/gunpowder-support-82e2f33c.glb                               77.96 kB
+www/assets/kingdoms-mercenary-ea9912bb.glb                              78.06 kB
+www/assets/gunpowder-infantry-2b81c82c.glb                              78.66 kB
+www/assets/bronze-mercenary-38767475.glb                                78.79 kB
+www/assets/modern-mercenary-d8c38ebd.glb                                79.61 kB
+www/assets/gunpowder-mercenary-a283d6c7.glb                             79.77 kB
+www/assets/cavalry-charge-2-d6205682.ogg                                81.90 kB
+www/assets/worldgen.worker-3e579fba.js                                  82.23 kB
+www/assets/nuragi-ee315514.glb                                          82.65 kB
+www/assets/illyria-946bf88a.glb                                         82.78 kB
+www/assets/modern-infantry-c6239430.glb                                 83.68 kB
+www/assets/classical-infantry-1930d172.glb                              85.86 kB
+www/assets/noricum-f2b6290f.glb                                         86.18 kB
+www/assets/khoekhoe-2c51fa70.glb                                        88.15 kB
+www/assets/numidia-e250868b.glb                                         88.16 kB
+www/assets/kitara-36235d48.glb                                          88.47 kB
+www/assets/xianbei-e5b1981d.glb                                         89.14 kB
+www/assets/irrigation-israelite-8dc3d0af.glb                            90.56 kB
+www/assets/lydia-b1ce2841.glb                                           91.98 kB
+www/assets/cyrene-35773ae5.glb                                          92.40 kB
+www/assets/ajuran-fbc445a9.glb                                          92.52 kB
+www/assets/wagadu-5a7d46e1.glb                                          92.94 kB
+www/assets/alodia-4945f0e5.glb                                          93.07 kB
+www/assets/dian-e272e477.glb                                            93.25 kB
+www/assets/satavahana-7c7dc2d1.glb                                      93.28 kB
+www/assets/emishi-cc8678a3.glb                                          93.34 kB
+www/assets/cavalry-charge-1-2528b5e3.ogg                                93.55 kB
+www/assets/sogdia-0f33e611.glb                                          93.63 kB
+www/assets/game-victory-1-9b8371c1.ogg                                  93.83 kB
+www/assets/parthava-2448849c.glb                                        94.79 kB
+www/assets/arverni-a628710e.glb                                         95.28 kB
+www/assets/avanti-9886e974.glb                                          95.47 kB
+www/assets/yarlung-ae4cbadf.glb                                         96.02 kB
+www/assets/bactria-15b6774b.glb                                         96.48 kB
+www/assets/classical-cavalry-5960f6ae.glb                               96.50 kB
+www/assets/kanem-15441ece.glb                                           96.55 kB
+www/assets/media-c7ed229c.glb                                           97.16 kB
+www/assets/bronze-raider-b8f2f354.glb                                   98.16 kB
+www/assets/buyeo-f61dd70d.glb                                           98.42 kB
+www/assets/cavalry-hooves-from-hooves-walk-1-ea1ddb49.ogg               99.95 kB
+www/assets/kingdoms-cavalry-1224d044.glb                               100.02 kB
+www/assets/wusun-0bc96ba4.glb                                          100.59 kB
+www/assets/qedar-24240572.glb                                          100.66 kB
+www/assets/saba-e55c9e40.glb                                           101.18 kB
+www/assets/classical-raider-ffa5d349.glb                               101.64 kB
+www/assets/game-defeat-1-0a128d28.ogg                                  101.86 kB
+www/assets/baekje-8f75667b.glb                                         103.24 kB
+www/assets/khwarazm-f2a1213d.glb                                       104.00 kB
+www/assets/kindah-75d002b3.glb                                         104.66 kB
+www/assets/modern-support-d27cf6f7.glb                                 104.87 kB
+www/assets/gunpowder-cavalry-a11ceb57.glb                              105.34 kB
+www/assets/khazaria-8e42edd3.glb                                       105.51 kB
+www/assets/kingdoms-raider-a6e21af9.glb                                109.83 kB
+www/assets/herd-sheep-goat-29ebb0b0.glb                                110.87 kB
+www/assets/gokturk-f31ecdcc.glb                                        111.05 kB
+www/assets/avaria-e4b134b1.glb                                         111.07 kB
+www/assets/bronze-support-093da0f3.glb                                 112.74 kB
+www/assets/war-drums-from-war-drums-loop-1-1b6d0d91.ogg                113.08 kB
+www/assets/kingdoms-siege-23060bd8.glb                                 113.54 kB
+www/assets/vehicle-truck-green-2c637f78.glb                            114.32 kB
+www/assets/fire-crackle-from-fire-loop-2-797b7466.ogg                  115.12 kB
+www/assets/wonder-complete-2-5c65d750.ogg                              115.21 kB
+www/assets/modern-raider-36614ddc.glb                                  115.75 kB
+www/assets/gunpowder-raider-64810c90.glb                               116.22 kB
+www/assets/sarmatians-36566b10.glb                                     116.64 kB
+www/assets/bronze-general-7c175b0f.glb                                 118.66 kB
+www/assets/bronze-worker-5939efbc.glb                                  120.42 kB
+www/assets/bronze-infantry-ebb00e2d.glb                                122.24 kB
+www/assets/tondo-96695d5e.glb                                          122.84 kB
+www/assets/classical-siege-b6ae8b94.glb                                130.37 kB
+www/assets/fire-crackle-from-fire-loop-1-43567a8f.ogg                  135.61 kB
+www/assets/classical-general-74f24a67.glb                              136.90 kB
+www/assets/bronze-ranged-60d3d77c.glb                                  137.02 kB
+www/assets/kingdoms-general-23f13070.glb                               137.05 kB
+www/assets/gunpowder-general-bb35594e.glb                              138.44 kB
+www/assets/color-bdb6514f.webp                                         140.35 kB
+www/assets/gunpowder-siege-dcb932dc.glb                                141.74 kB
+www/assets/oxus-4da967b4.glb                                           147.53 kB
+www/assets/bosporan-kingdom-49972b2e.glb                               148.68 kB
+www/assets/kemet-11a30d17.glb                                          153.70 kB
+www/assets/andronovo-a49a915b.glb                                      153.78 kB
+www/assets/kuru-eb582c80.glb                                           154.14 kB
+www/assets/brigantes-72f6e808.glb                                      154.88 kB
+www/assets/bronze-cavalry-9533b81c.glb                                 156.14 kB
+www/assets/modern-general-afaf6753.glb                                 160.54 kB
+www/assets/battle-ambience-from-battle-ambience-loop-1-ebd2c427.ogg    162.05 kB
+www/assets/modern-ranged-756f5671.glb                                  162.18 kB
+www/assets/market-israelite-ac5f925a.glb                               162.24 kB
+www/assets/granary-684e0eb3.glb                                        162.90 kB
+www/assets/ford-9da93d98.glb                                           164.12 kB
+www/assets/kalinga-503c7efc.glb                                        167.20 kB
+www/assets/champa-3ff43737.glb                                         168.98 kB
+www/assets/modern-siege-376c71d4.glb                                   170.04 kB
+www/assets/kamarupa-aee5dd97.glb                                       170.68 kB
+www/assets/magadha-d955afe1.glb                                        170.68 kB
+www/assets/shrine-israelite-bedc8825.glb                               180.26 kB
+www/assets/color-64d88c34.webp                                         181.02 kB
+www/assets/river-kit-98b4b8d3.glb                                      181.41 kB
+www/assets/exit-marker-24dd3703.glb                                    182.06 kB
+www/assets/color-213a39e6.webp                                         184.84 kB
+www/assets/copper_mine-israelite-c5a7dfca.glb                          185.77 kB
+www/assets/workshop-israelite-fefc7c75.glb                             191.97 kB
+www/assets/draco_decoder-a680d927.wasm                                 192.42 kB
+www/assets/shrine-acf0cdd2.glb                                         193.48 kB
+www/assets/pontus-336525b5.glb                                         194.66 kB
+www/assets/ugarit-8cc1d02b.glb                                         196.38 kB
+www/assets/color-11ed7a43.webp                                         196.76 kB
+www/assets/color-d77a6f88.webp                                         199.83 kB
+www/assets/granary-israelite-35993e59.glb                              204.79 kB
+www/assets/factory-2737b5fe.glb                                        206.78 kB
+www/assets/harbor-israelite-4f79d470.glb                               208.38 kB
+www/assets/garamantes-a5a31809.glb                                     215.50 kB
+www/assets/barracks-israelite-d0789d0d.glb                             221.30 kB
+www/assets/color-0d774c7a.webp                                         222.04 kB
+www/assets/character-soldier-3842621e.glb                              223.77 kB
+www/assets/props-modern-322d19e0.glb                                   229.33 kB
+www/assets/research_lab-0a2b40af.glb                                   235.23 kB
+www/assets/civic_center-22b7ffe5.glb                                   238.04 kB
+www/assets/bronze-siege-f29eb4c6.glb                                   242.01 kB
+www/assets/civic-bronze-americas-12ddc1cd.glb                          243.35 kB
+www/assets/zhou-8ffc2e34.glb                                           247.77 kB
+www/assets/library-israelite-618a32d5.glb                              250.42 kB
+www/assets/color-cfb2b4f3.webp                                         255.08 kB
+www/assets/fort-bronze-israelite-e6ddd38b.glb                          258.99 kB
+www/assets/color-9be48076.webp                                         266.90 kB
+www/assets/shipyard-d4fb697d.glb                                       270.56 kB
+www/assets/stone-outcrop-e25a949b.glb                                  270.93 kB
+www/assets/color-7683b9a2.webp                                         275.16 kB
+www/assets/irrigation-d38c5a99.glb                                     281.48 kB
+www/assets/farm_estate-dc7def5c.glb                                    283.04 kB
+www/assets/market-c4dbfb01.glb                                         284.50 kB
+www/assets/draco_decoder-c55a594e.wasm                                 285.75 kB
+www/assets/civic-bronze-monsoon-5b0987ad.glb                           286.82 kB
+www/assets/harbor-ed2eede6.glb                                         288.03 kB
+www/assets/civic-bronze-nile-7968a9e7.glb                              290.84 kB
+www/assets/drill_yard-59f0e6cd.glb                                     291.09 kB
+www/assets/temple-fcc014d7.glb                                         291.56 kB
+www/assets/workshop-9100187e.glb                                       291.98 kB
+www/assets/bank-a987b03d.glb                                           292.92 kB
+www/assets/manufactory-e350db51.glb                                    303.02 kB
+www/assets/bazaar-1607f62f.glb                                         312.02 kB
+www/assets/crop_rotation_farm-830bd3c0.glb                             318.06 kB
+www/assets/scriptorium-33480731.glb                                    318.77 kB
+www/assets/stock_exchange-a61ed922.glb                                 322.74 kB
+www/assets/landing-modern-7262ed51.glb                                 323.75 kB
+www/assets/fishing_boats-bronze-israelite-0765ba70.glb                 323.86 kB
+www/assets/civic-bronze-westafrica-dc89f7c2.glb                        325.36 kB
+www/assets/loot-sack-2847ea34.glb                                      329.28 kB
+www/assets/war_college-f1fcced5.glb                                    330.93 kB
+www/assets/civic-bronze-maghreb-5f3702bb.glb                           331.92 kB
+www/assets/props-kingdoms-303b2e80.glb                                 334.06 kB
+www/assets/fort-modern-israelite-2258338e.glb                          337.68 kB
+www/assets/university-bae70f78.glb                                     337.73 kB
+www/assets/ore-outcrop-e73aadf8.glb                                    340.77 kB
+www/assets/civic-bronze-f05076f5.glb                                   341.70 kB
+www/assets/ruins-modern-16c09d05.glb                                   349.04 kB
+www/assets/scriptorium-israelite-131e9401.glb                          361.56 kB
+www/assets/props-classical-843f0574.glb                                362.06 kB
+www/assets/props-bronze-0c8c40ed.glb                                   365.18 kB
+www/assets/battleLoop-b55dca85.js                                      365.29 kB
+www/assets/mechanized_farm-8c2b8302.glb                                371.48 kB
+www/assets/props-gunpowder-0c7bd4f1.glb                                374.11 kB
+www/assets/palace-damage-bronze-1bdb1776.glb                           374.94 kB
+www/assets/gold-vein-308fe78c.glb                                      385.50 kB
+www/assets/bronze-americas-houses-damage-03906f89.glb                  387.33 kB
+www/assets/bronze-nile-houses-damage-d6d60128.glb                      388.14 kB
+www/assets/barracks-00ca01b7.glb                                       389.36 kB
+www/assets/classical-westafrica-houses-damage-55089d9a.glb             392.30 kB
+www/assets/civic-bronze-eastafrica-602f43c7.glb                        394.29 kB
+www/assets/fort-modern-970d10e2.glb                                    394.79 kB
+www/assets/kingdoms-monsoon-houses-damage-5bb9da0e.glb                 396.58 kB
+www/assets/library-7dd0e46d.glb                                        397.92 kB
+www/assets/burnt-field-overlay-5d07899b.glb                            399.49 kB
+www/assets/bronze-monsoon-houses-damage-3dc60c6a.glb                   399.60 kB
+www/assets/gameReducer-a790b38c.js                                     400.54 kB
+www/assets/palace-damage-modern-10b1629b.glb                           400.54 kB
+www/assets/classical-monsoon-houses-damage-20abf296.glb                401.80 kB
+www/assets/modern-maghreb-houses-damage-dd764724.glb                   402.30 kB
+www/assets/ruins-classical-5afd1080.glb                                406.33 kB
+www/assets/kingdoms-americas-houses-damage-3445b877.glb                406.50 kB
+www/assets/classical-americas-houses-damage-a7d7c4bc.glb               408.64 kB
+www/assets/modern-americas-houses-damage-265b3823.glb                  411.05 kB
+www/assets/landing-ancient-8b7995aa.glb                                415.59 kB
+www/assets/modern-nile-houses-damage-86257e1a.glb                      415.64 kB
+www/assets/modern-monsoon-houses-damage-76fe34a5.glb                   415.71 kB
+www/assets/ruins-kingdoms-82eb305f.glb                                 417.17 kB
+www/assets/vegetation-temperate-370efff7.glb                           418.28 kB
+www/assets/fort-gunpowder-09866872.glb                                 419.04 kB
+www/assets/great_pyramids-7de52289.glb                                 419.23 kB
+www/assets/gunpowder-americas-houses-damage-0b6495d6.glb               421.84 kB
+www/assets/classical-maghreb-houses-damage-4ac79d26.glb                423.10 kB
+www/assets/vegetation-tropical-202f14f0.glb                            423.61 kB
+www/assets/military_academy-e2b2204a.glb                               425.57 kB
+www/assets/kingdoms-maghreb-houses-damage-f7021ad5.glb                 429.84 kB
+www/assets/wind-loop-3ea9fc6e.ogg                                      430.26 kB
+www/assets/civic-bronze-levant-78c7d69b.glb                            431.74 kB
+www/assets/kingdoms-westafrica-houses-damage-0582e93c.glb              434.25 kB
+www/assets/palace-damage-classical-4edf09d6.glb                        436.80 kB
+www/assets/vegetation-conifer-3e8f6264.glb                             437.94 kB
+www/assets/modern-levant-houses-damage-febe15af.glb                    438.95 kB
+www/assets/pasture-bronze-israelite-fadf362e.glb                       440.44 kB
+www/assets/gunpowder-maghreb-houses-damage-2e9ae1af.glb                441.18 kB
+www/assets/gunpowder-nile-houses-damage-14ead8bf.glb                   442.80 kB
+www/assets/countryside-loop-1678c342.ogg                               443.66 kB
+www/assets/kingdoms-nile-houses-damage-bdd0b9b0.glb                    445.19 kB
+www/assets/civic-bronze-indic-b94e78b0.glb                             448.00 kB
+www/assets/bridge-steel-5612757d.glb                                   450.31 kB
+www/assets/civic-bronze-steppe-6651a68e.glb                            451.01 kB
+www/assets/classical-nile-houses-damage-dcf57889.glb                   456.36 kB
+www/assets/bronze-westafrica-houses-damage-8aed0be8.glb                456.89 kB
+www/assets/vegetation-mediterranean-c36902f2.glb                       457.82 kB
+www/assets/04-viking-march-4e466571.ogg                                460.17 kB
+www/assets/classical-houses-damage-34e1a81f.glb                        460.36 kB
+www/assets/birds-loop-f54c52de.ogg                                     460.78 kB
+www/assets/ruins-bronze-ee901f50.glb                                   468.82 kB
+www/assets/civic-bronze-israelite-dbbc51f5.glb                         469.96 kB
+www/assets/palace-damage-kingdoms-de8e22d7.glb                         471.59 kB
+www/assets/bronze-maghreb-houses-damage-1ce6fac3.glb                   477.58 kB
+www/assets/great_wall-6c600dd1.glb                                     481.84 kB
+www/assets/fort-gunpowder-09810e2a.glb                                 483.94 kB
+www/assets/gunpowder-monsoon-houses-damage-2fbfbd78.glb                485.53 kB
+www/assets/modern-houses-damage-94f420a7.glb                           486.62 kB
+www/assets/civic-bronze-europe-a3a68fb7.glb                            486.98 kB
+www/assets/vegetation-cold-073be8c8.glb                                490.16 kB
+www/assets/bridge-stone-35665c94.glb                                   490.30 kB
+www/assets/bronze-steppe-houses-damage-7396907b.glb                    504.12 kB
+www/assets/civic-bronze-sinic-da4376ea.glb                             505.22 kB
+www/assets/palace-damage-gunpowder-ebc97503.glb                        511.14 kB
+www/assets/modern-sinic-houses-damage-5f904175.glb                     513.04 kB
+www/assets/fort-modern-6a61c054.glb                                    518.02 kB
+www/assets/kingdoms-steppe-houses-damage-e26ce33c.glb                  520.24 kB
+www/assets/gunpowder-levant-houses-damage-f856894d.glb                 530.34 kB
+www/assets/farm-bronze-israelite-bd3e7535.glb                          530.73 kB
+www/assets/gunpowder-westafrica-houses-damage-c777cdbd.glb             531.64 kB
+www/assets/plantation-bronze-israelite-177d8d67.glb                    531.68 kB
+www/assets/modern-europe-houses-damage-bb0f3d3e.glb                    531.96 kB
+www/assets/modern-westafrica-houses-damage-31d327e7.glb                532.60 kB
+www/assets/civic-modern-f3f46f3b.glb                                   533.48 kB
+www/assets/bronze-eastafrica-houses-damage-28036d2f.glb                537.52 kB
+www/assets/modern-eastafrica-houses-damage-1acc958f.glb                539.74 kB
+www/assets/landing-middle-50eab836.glb                                 548.95 kB
+www/assets/classical-eastafrica-houses-damage-8acd5791.glb             548.96 kB
+www/assets/gunpowder-steppe-houses-damage-c7bd4819.glb                 549.67 kB
+www/assets/modern-steppe-houses-damage-de469bca.glb                    550.56 kB
+www/assets/ruins-gunpowder-a7330d6d.glb                                553.06 kB
+www/assets/gunpowder-eastafrica-houses-damage-e34a88f2.glb             553.95 kB
+www/assets/classical-steppe-houses-damage-fea0d33b.glb                 555.30 kB
+www/assets/kingdoms-eastafrica-houses-damage-378e5321.glb              562.60 kB
+www/assets/classical-europe-houses-damage-72798da2.glb                 563.27 kB
+www/assets/bronze-levant-houses-damage-4ea151a2.glb                    573.37 kB
+www/assets/modern-indic-houses-damage-38445f96.glb                     577.34 kB
+www/assets/modern-israelite-houses-damage-5fbd5f04.glb                 578.69 kB
+www/assets/kingdoms-levant-houses-damage-9f1b7f30.glb                  580.26 kB
+www/assets/bronze-houses-damage-989ece40.glb                           585.67 kB
+www/assets/fort-classical-63dcde94.glb                                 589.33 kB
+www/assets/civic-classical-9b4a8aa1.glb                                591.36 kB
+www/assets/rts-classical-westafrica-77b502de.glb                       591.40 kB
+www/assets/routes-90b65365.js                                          591.75 kB
+www/assets/rts-kingdoms-americas-07db8564.glb                          592.96 kB
+www/assets/classical-sinic-houses-damage-0c56b322.glb                  599.67 kB
+www/assets/fort-kingdoms-ba7d79b6.glb                                  602.68 kB
+www/assets/kingdoms-houses-damage-a5b56b1e.glb                         605.14 kB
+www/assets/gunpowder-israelite-houses-damage-e90dac38.glb              608.56 kB
+www/assets/warship-kingdoms-2ed29d14.glb                               608.81 kB
+www/assets/gunpowder-indic-houses-damage-9005ec99.glb                  609.36 kB
+www/assets/rts-kingdoms-westafrica-822b0ba1.glb                        609.90 kB
+www/assets/rts-classical-americas-75a11ebf.glb                         614.56 kB
+www/assets/iron_foundry-a3f9e08a.glb                                   615.11 kB
+www/assets/rts-bronze-americas-ec7ce790.glb                            618.82 kB
+www/assets/vegetation-desert-98a4dbc6.glb                              622.08 kB
+www/assets/bronze-israelite-houses-damage-1e863b56.glb                 622.92 kB
+www/assets/gunpowder-houses-damage-abd86d8b.glb                        623.94 kB
+www/assets/walls-modern-79a147d5.glb                                   635.86 kB
+www/assets/kingdoms-israelite-houses-damage-9957256f.glb               635.97 kB
+www/assets/gunpowder-sinic-houses-damage-e5cd353f.glb                  638.51 kB
+www/assets/classical-indic-houses-damage-8cdef1c8.glb                  638.76 kB
+www/assets/rts-classical-maghreb-f44fd76a.glb                          638.93 kB
+www/assets/classical-israelite-houses-damage-852e57a9.glb              640.75 kB
+www/assets/bronze-indic-houses-damage-b8ad9fc3.glb                     641.79 kB
+www/assets/rts-gunpowder-maghreb-b3174b4e.glb                          642.95 kB
+www/assets/rts-gunpowder-americas-5d06dd5c.glb                         644.05 kB
+www/assets/rts-modern-americas-303a954d.glb                            645.22 kB
+www/assets/highway-8a1614c2.glb                                        647.84 kB
+www/assets/rts-modern-maghreb-71e95749.glb                             649.89 kB
+www/assets/fort-classical-31133847.glb                                 650.23 kB
+www/assets/shared-kingdoms-americas-c793d29d.glb                       652.72 kB
+www/assets/kingdoms-sinic-houses-damage-27852b1a.glb                   655.40 kB
+www/assets/rts-bronze-nile-bbcb6ad3.glb                                657.46 kB
+www/assets/rts-kingdoms-monsoon-fa5b5e46.glb                           658.91 kB
+www/assets/gunpowder-europe-houses-damage-8a1c1ce9.glb                 660.08 kB
+www/assets/bridge-wood-36b5b768.glb                                    661.06 kB
+www/assets/rts-modern-nile-d4ec7023.glb                                662.71 kB
+www/assets/modern-town-small-b-monsoon-ac44d2fe.glb                    664.92 kB
+www/assets/rts-kingdoms-maghreb-ae5665a3.glb                           665.82 kB
+www/assets/rts-classical-monsoon-96b939d9.glb                          667.02 kB
+www/assets/walls-gunpowder-14234552.glb                                668.53 kB
+www/assets/classical-levant-houses-damage-ea67839f.glb                 669.18 kB
+www/assets/rts-classical-nile-40a29100.glb                             675.52 kB
+www/assets/kingdoms-indic-houses-damage-3da5858f.glb                   676.30 kB
+www/assets/copper_mine-aee9ccc9.glb                                    679.92 kB
+www/assets/rts-modern-monsoon-e77ef962.glb                             686.70 kB
+www/assets/rts-gunpowder-nile-b2902edf.glb                             689.37 kB
+www/assets/civic-kingdoms-4e9f7b3b.glb                                 691.83 kB
+www/assets/rts-bronze-monsoon-3599fe3c.glb                             702.86 kB
+www/assets/kingdoms-europe-houses-damage-d397e108.glb                  703.09 kB
+www/assets/warship-bronze-7d54e379.glb                                 705.14 kB
+www/assets/rts-modern-levant-3c375c38.glb                              710.67 kB
+www/assets/rts-bronze-westafrica-490bf203.glb                          713.18 kB
+www/assets/shared-kingdoms-monsoon-fe4d2131.glb                        718.26 kB
+www/assets/fort-kingdoms-1f907bca.glb                                  719.12 kB
+www/assets/draco_decoder-30e4d486.js                                   719.41 kB
+www/assets/bronze-europe-houses-damage-c6f4c73d.glb                    726.26 kB
+www/assets/rts-kingdoms-nile-a01b1236.glb                              728.37 kB
+www/assets/warship-classical-40f55298.glb                              731.28 kB
+www/assets/rts-gunpowder-monsoon-31dd0b1e.glb                          741.26 kB
+www/assets/rts-bronze-maghreb-07fdca35.glb                             741.57 kB
+www/assets/modern-town-small-b-maghreb-2065ca48.glb                    746.76 kB
+www/assets/modern-town-small-a-maghreb-cab2e632.glb                    748.23 kB
+www/assets/classical-town-small-b-westafrica-5354c806.glb              757.91 kB
+www/assets/kingdoms-town-small-a-americas-7b38e38f.glb                 761.52 kB
+www/assets/walls-classical-40922a80.glb                                769.26 kB
+www/assets/rts-modern-sinic-f7247d40.glb                               771.28 kB
+www/assets/bronze-town-small-b-nile-c1c793c9.glb                       777.36 kB
+www/assets/rts-gunpowder-westafrica-82efb0ad.glb                       780.17 kB
+www/assets/classical-town-small-a-monsoon-59dc084b.glb                 780.82 kB
+www/assets/rts-gunpowder-levant-359eea91.glb                           781.11 kB
+www/assets/kingdoms-town-small-b-americas-88d46818.glb                 786.59 kB
+www/assets/civic-gunpowder-820c0191.glb                                792.59 kB
+www/assets/10-temple-relics-6992830b.ogg                               793.46 kB
+www/assets/rts-kingdoms-levant-864c37f6.glb                            793.60 kB
+www/assets/classical-town-small-a-americas-200072d0.glb                805.63 kB
+www/assets/classical-town-small-b-nile-9b881167.glb                    807.88 kB
+www/assets/rts-classical-europe-973429c5.glb                           809.06 kB
+www/assets/gunpowder-town-small-b-monsoon-31aaed60.glb                 810.48 kB
+www/assets/classical-town-small-b-americas-8458db6b.glb                815.77 kB
+www/assets/kingdoms-town-small-b-nile-c8e4f4ac.glb                     816.22 kB
+www/assets/kingdoms-town-medium-a-americas-45b1c89c.glb                817.14 kB
+www/assets/rts-kingdoms-eastafrica-75346126.glb                        818.63 kB
+www/assets/rts-bronze-eastafrica-0cf16693.glb                          819.11 kB
+www/assets/bronze-sinic-houses-damage-89904d40.glb                     823.36 kB
+www/assets/kingdoms-town-medium-b-americas-dbabacb6.glb                823.45 kB
+www/assets/carrier_dock-27491690.glb                                   823.68 kB
+www/assets/bronze-town-small-b-monsoon-ae58d7e0.glb                    823.87 kB
+www/assets/modern-town-medium-a-maghreb-ff98d0d4.glb                   826.06 kB
+www/assets/bronze-town-small-b-americas-18c59100.glb                   826.21 kB
+www/assets/bronze-town-small-a-pacific-b34de8aa.glb                    826.44 kB
+www/assets/modern-town-medium-b-maghreb-6a8557d9.glb                   827.83 kB
+www/assets/bronze-town-small-a-nile-cb8104df.glb                       828.61 kB
+www/assets/classical-town-medium-b-americas-070960a8.glb               829.90 kB
+www/assets/classical-town-small-b-maghreb-0b045265.glb                 831.31 kB
+www/assets/modern-town-small-b-eastafrica-52a99e60.glb                 833.21 kB
+www/assets/modern-town-small-b-nile-4a661a24.glb                       834.54 kB
+www/assets/gunpowder-town-small-a-maghreb-1ce52cce.glb                 836.41 kB
+www/assets/classical-town-medium-a-americas-521921ea.glb               840.64 kB
+www/assets/kingdoms-town-small-a-maghreb-db68492c.glb                  841.76 kB
+www/assets/royal_observatory-b76d3c6f.glb                              842.10 kB
+www/assets/kingdoms-town-small-a-westafrica-88554afd.glb               844.56 kB
+www/assets/gunpowder-town-small-a-nile-a57f3034.glb                    845.37 kB
+www/assets/kingdoms-town-small-a-monsoon-9f80349e.glb                  846.64 kB
+www/assets/bronze-town-small-a-monsoon-2a5ba71b.glb                    849.67 kB
+www/assets/walls-kingdoms-83920ed2.glb                                 852.28 kB
+www/assets/bronze-town-small-a-americas-114c6e32.glb                   852.41 kB
+www/assets/rts-classical-eastafrica-0a0f0a9d.glb                       855.20 kB
+www/assets/rts-classical-sinic-9882279c.glb                            855.78 kB
+www/assets/bronze-town-small-b-pacific-d312301a.glb                    856.51 kB
+www/assets/rts-gunpowder-eastafrica-2be29cf4.glb                       859.73 kB
+www/assets/kingdoms-town-small-b-maghreb-02779a63.glb                  863.30 kB
+www/assets/classical-town-small-a-westafrica-6c6771b0.glb              865.86 kB
+www/assets/rts-modern-eastafrica-2a8fec2d.glb                          866.64 kB
+www/assets/shared-kingdoms-israelite-f5ec4671.glb                      867.23 kB
+www/assets/modern-town-small-b-europe-dbf016c8.glb                     867.92 kB
+www/assets/kingdoms-town-big-b-americas-0ca0a1a9.glb                   868.12 kB
+www/assets/04-egyptian-meditation-85647027.ogg                         869.38 kB
+www/assets/bronze-town-medium-a-nile-e0d76b8b.glb                      870.20 kB
+www/assets/kingdoms-town-small-b-westafrica-1ecdac34.glb               870.31 kB
+www/assets/rts-modern-westafrica-33443877.glb                          870.78 kB
+www/assets/02-medieval-battle-300a15ac.ogg                             870.90 kB
+www/assets/kingdoms-town-big-a-americas-cf8bdf5b.glb                   871.00 kB
+www/assets/kingdoms-town-small-b-monsoon-60111e2c.glb                  872.84 kB
+www/assets/rts-gunpowder-sinic-85f247f9.glb                            876.61 kB
+www/assets/rts-modern-indic-52c5e0ae.glb                               876.75 kB
+www/assets/rts-bronze-levant-cb1babeb.glb                              878.52 kB
+www/assets/bronze-town-medium-b-nile-5f10649c.glb                      878.72 kB
+www/assets/rts-modern-europe-4ea3bdcc.glb                              881.17 kB
+www/assets/rts-kingdoms-europe-2a5ed65d.glb                            883.58 kB
+www/assets/rts-modern-steppe-bffb7b49.glb                              884.72 kB
+www/assets/shared-kingdoms-westafrica-8817846a.glb                     885.08 kB
+www/assets/rts-kingdoms-indic-799fc048.glb                             886.18 kB
+www/assets/gunpowder-town-small-b-americas-856ffd34.glb                887.21 kB
+www/assets/road-modern-df9110f5.glb                                    887.39 kB
+www/assets/rts-gunpowder-israelite-fa665da1.glb                        888.68 kB
+www/assets/kingdoms-town-small-a-nile-844117aa.glb                     889.19 kB
+www/assets/classical-town-big-b-americas-853883a4.glb                  889.80 kB
+www/assets/classical-town-small-b-monsoon-0c8ca4eb.glb                 892.69 kB
+www/assets/rts-bronze-indic-3db41912.glb                               893.75 kB
+www/assets/gunpowder-town-small-a-americas-fdc0b55d.glb                893.95 kB
+www/assets/kingdoms-town-medium-b-westafrica-0bd41478.glb              897.30 kB
+www/assets/gunpowder-town-small-b-maghreb-ea7fd616.glb                 897.72 kB
+www/assets/bronze-town-medium-b-pacific-d7204399.glb                   898.18 kB
+www/assets/shared-kingdoms-maghreb-e6b3051b.glb                        900.42 kB
+www/assets/rts-classical-indic-cb05359c.glb                            900.98 kB
+www/assets/bronze-town-medium-a-pacific-6be769b7.glb                   901.81 kB
+www/assets/gunpowder-town-small-b-westafrica-8b695909.glb              902.42 kB
+www/assets/classical-town-medium-a-westafrica-bee3eefc.glb             903.78 kB
+www/assets/modern-town-small-a-americas-45879a3d.glb                   903.91 kB
+www/assets/gunpowder-town-small-a-westafrica-f7a6ed8a.glb              904.07 kB
+www/assets/classical-town-big-a-americas-b3acb7cb.glb                  904.77 kB
+www/assets/modern-town-small-b-americas-48a7b770.glb                   904.79 kB
+www/assets/kingdoms-town-medium-a-westafrica-bbbbd183.glb              908.41 kB
+www/assets/gunpowder-town-small-b-nile-9c595f95.glb                    909.32 kB
+www/assets/gunpowder-town-medium-a-monsoon-11b783f4.glb                912.81 kB
+www/assets/rts-gunpowder-indic-97ba499e.glb                            913.05 kB
+www/assets/rts-classical-steppe-b067577b.glb                           915.26 kB
+www/assets/walls-bronze-13db19a6.glb                                   915.60 kB
+www/assets/gunpowder-town-small-a-monsoon-b1b52894.glb                 916.48 kB
+www/assets/rts-bronze-europe-0038c490.glb                              916.83 kB
+www/assets/03-to-battle-d80bc103.ogg                                   917.30 kB
+www/assets/classical-town-medium-b-westafrica-35c13896.glb             917.50 kB
+www/assets/gunpowder-town-medium-b-americas-0f373746.glb               918.80 kB
+www/assets/modern-town-big-a-maghreb-63c99d4a.glb                      920.30 kB
+www/assets/atomic_research_center-137669a0.glb                         920.53 kB
+www/assets/classical-town-medium-a-monsoon-e316c0b9.glb                921.82 kB
+www/assets/bronze-town-medium-b-americas-df49fc96.glb                  924.04 kB
+www/assets/shared-kingdoms-nile-04eb3221.glb                           924.90 kB
+www/assets/classical-town-small-a-nile-622bec32.glb                    925.15 kB
+www/assets/farm-modern-527e6eaf.glb                                    926.14 kB
+www/assets/rts-gunpowder-steppe-940d41ff.glb                           927.37 kB
+www/assets/gunpowder-town-medium-a-americas-94ea7257.glb               927.76 kB
+www/assets/gunpowder-town-medium-b-monsoon-1e1bd965.glb                928.69 kB
+www/assets/bronze-town-medium-b-monsoon-38f0b371.glb                   929.12 kB
+www/assets/bronze-town-medium-a-monsoon-20214575.glb                   929.92 kB
+www/assets/modern-town-small-a-westafrica-2e1d4980.glb                 930.16 kB
+www/assets/modern-town-big-b-maghreb-ca0eff73.glb                      930.54 kB
+www/assets/rts-bronze-israelite-64726b97.glb                           931.24 kB
+www/assets/road-bronze-993c5c02.glb                                    931.54 kB
+www/assets/gunpowder-town-small-b-eastafrica-4c5a3eef.glb              932.07 kB
+www/assets/rts-gunpowder-europe-5006f085.glb                           932.12 kB
+www/assets/rts-kingdoms-israelite-eeee97d9.glb                         935.48 kB
+www/assets/rts-classical-levant-6c293729.glb                           935.86 kB
+www/assets/bronze-town-medium-a-americas-5defdb1f.glb                  936.73 kB
+www/assets/rts-kingdoms-steppe-1ec4f4b5.glb                            938.15 kB
+www/assets/rts-modern-israelite-4fca7627.glb                           942.17 kB
+www/assets/gunpowder-town-small-a-steppe-8dc3214b.glb                  942.18 kB
+www/assets/rts-classical-israelite-7e38249f.glb                        944.36 kB
+www/assets/kingdoms-town-small-b-steppe-f6330a5c.glb                   944.57 kB
+www/assets/modern-town-small-a-eastafrica-827555fb.glb                 945.84 kB
+www/assets/rts-bronze-steppe-cdb7139d.glb                              948.51 kB
+www/assets/shared-kingdoms-eastafrica-27bf0165.glb                     953.48 kB
+www/assets/modern-town-small-a-monsoon-dc3fcc01.glb                    954.83 kB
+www/assets/modern-town-small-b-steppe-ed150b61.glb                     955.28 kB
+www/assets/classical-town-medium-b-monsoon-e46addfb.glb                955.34 kB
+www/assets/rts-kingdoms-sinic-d7459b7a.glb                             955.84 kB
+www/assets/kingdoms-town-medium-a-nile-dcfead1f.glb                    958.17 kB
+www/assets/kingdoms-town-small-b-eastafrica-507c5ed4.glb               960.70 kB
+www/assets/modern-town-small-a-steppe-7ee3fe8e.glb                     962.49 kB
+www/assets/classical-town-big-b-westafrica-c27a43b4.glb                963.80 kB
+www/assets/bronze-town-big-b-nile-855f94d0.glb                         965.00 kB
+www/assets/classical-town-big-a-westafrica-13bb327c.glb                967.16 kB
+www/assets/gunpowder-town-small-a-eastafrica-e601dc57.glb              967.77 kB
+www/assets/bronze-town-small-b-maghreb-c46ef551.glb                    968.21 kB
+www/assets/kingdoms-town-medium-b-nile-468cd9b2.glb                    969.69 kB
+www/assets/classical-town-medium-a-nile-8aa7c063.glb                   969.83 kB
+www/assets/fort-bronze-061e3245.glb                                    970.54 kB
+www/assets/gunpowder-town-big-b-americas-8446d961.glb                  971.24 kB
+www/assets/bronze-town-small-a-steppe-bf2f5a83.glb                     971.30 kB
+www/assets/bronze-town-big-a-americas-9fe864a4.glb                     971.44 kB
+www/assets/bronze-town-big-b-americas-ccf1f7e4.glb                     971.60 kB
+www/assets/bronze-town-small-b-eastafrica-229c344a.glb                 972.04 kB
+www/assets/gunpowder-town-medium-b-maghreb-ce36d5d4.glb                975.86 kB
+www/assets/classical-town-small-a-steppe-42185c46.glb                  978.06 kB
+www/assets/modern-town-small-b-westafrica-6d722c21.glb                 979.14 kB
+www/assets/gunpowder-town-big-a-americas-90831e76.glb                  980.88 kB
+www/assets/modern-town-small-a-europe-400a3201.glb                     982.40 kB
+www/assets/bronze-town-big-a-nile-10805f54.glb                         983.25 kB
+www/assets/gunpowder-town-medium-a-maghreb-4397f237.glb                984.48 kB
+www/assets/rail_depot-31449b37.glb                                     984.97 kB
+www/assets/bronze-town-small-b-steppe-01e32104.glb                     993.84 kB
+www/assets/modern-town-small-b-israelite-bf65d37a.glb                  997.00 kB
+www/assets/gunpowder-town-big-b-monsoon-6d8464eb.glb                   999.36 kB
+www/assets/bronze-town-big-a-monsoon-f42f3102.glb                    1,002.46 kB
+www/assets/farm-bronze-0094ebba.glb                                  1,003.36 kB
+www/assets/classical-town-small-b-steppe-e00bd26f.glb                1,005.60 kB
+www/assets/classical-town-small-a-eastafrica-fd650456.glb            1,006.40 kB
+www/assets/classical-town-small-b-eastafrica-5be1e02f.glb            1,007.01 kB
+www/assets/bronze-town-small-a-eastafrica-40cbd5b5.glb               1,009.02 kB
+www/assets/modern-town-medium-a-monsoon-0b28fd23.glb                 1,010.62 kB
+www/assets/kingdoms-town-medium-b-monsoon-a8e481fe.glb               1,014.09 kB
+www/assets/rts-bronze-sinic-6da95fa2.glb                             1,017.80 kB
+www/assets/kingdoms-town-big-a-westafrica-82a2b380.glb               1,018.49 kB
+www/assets/kingdoms-town-big-b-westafrica-d82ef761.glb               1,019.32 kB
+www/assets/classical-town-small-a-maghreb-f2cb6ae6.glb               1,019.38 kB
+www/assets/gunpowder-town-big-a-monsoon-6c41f168.glb                 1,019.67 kB
+www/assets/kingdoms-town-small-a-steppe-7a9d3169.glb                 1,020.90 kB
+www/assets/gunpowder-town-medium-a-nile-207f0c84.glb                 1,022.15 kB
+www/assets/classical-town-medium-b-nile-89b36104.glb                 1,022.87 kB
+www/assets/gunpowder-town-medium-b-nile-150f97e9.glb                 1,023.71 kB
+www/assets/classical-town-big-a-monsoon-c940514d.glb                 1,028.13 kB
+www/assets/modern-town-medium-b-monsoon-3974291f.glb                 1,032.60 kB
+www/assets/kingdoms-town-medium-a-monsoon-e183da62.glb               1,032.91 kB
+www/assets/bronze-town-big-b-monsoon-6595fbb9.glb                    1,033.10 kB
+www/assets/shared-kingdoms-steppe-fecdab3e.glb                       1,033.27 kB
+www/assets/modern-town-medium-b-americas-4794dd51.glb                1,033.82 kB
+www/assets/bronze-town-small-a-levant-ced9a5de.glb                   1,033.88 kB
+www/assets/01-the-battlefield-6e672d58.ogg                           1,035.00 kB
+www/assets/gunpowder-town-big-b-maghreb-d10cf2c8.glb                 1,041.25 kB
+www/assets/kingdoms-town-medium-a-maghreb-efc24e66.glb               1,042.63 kB
+www/assets/kingdoms-town-medium-b-maghreb-2efc47ac.glb               1,042.66 kB
+www/assets/modern-town-medium-a-americas-ed346c4c.glb                1,043.39 kB
+www/assets/modern-town-small-b-indic-c5570705.glb                    1,045.51 kB
+www/assets/classical-town-big-b-monsoon-4b304dec.glb                 1,049.22 kB
+www/assets/naval_base-4dc26174.glb                                   1,051.38 kB
+www/assets/kingdoms-town-small-a-eastafrica-44ad6805.glb             1,053.16 kB
+www/assets/gunpowder-town-small-b-steppe-778ca25b.glb                1,057.00 kB
+www/assets/gunpowder-town-big-a-maghreb-8d1071bf.glb                 1,059.91 kB
+www/assets/kingdoms-town-big-a-maghreb-682165ea.glb                  1,061.16 kB
+www/assets/kingdoms-town-big-b-maghreb-71fcf33f.glb                  1,067.82 kB
+www/assets/modern-town-small-a-indic-2342f30d.glb                    1,071.20 kB
+www/assets/bronze-town-medium-a-maghreb-6e4d9eae.glb                 1,072.42 kB
+www/assets/classical-town-big-b-nile-5791bf7c.glb                    1,072.49 kB
+www/assets/bronze-town-small-a-maghreb-7c853fce.glb                  1,073.24 kB
+www/assets/classical-town-big-a-nile-add6d2fa.glb                    1,077.91 kB
+www/assets/modern-town-small-a-nile-a2c3cbe4.glb                     1,081.06 kB
+www/assets/kingdoms-town-big-b-nile-0cd7938e.glb                     1,083.94 kB
+www/assets/arsenal-f4a9df37.glb                                      1,085.48 kB
+www/assets/bronze-town-small-b-levant-a70a4e6f.glb                   1,088.28 kB
+www/assets/bronze-town-small-a-westafrica-5c270d5d.glb               1,088.62 kB
+www/assets/road_post-de7df7fd.glb                                    1,095.30 kB
+www/assets/bronze-town-small-b-westafrica-ff2cdad4.glb               1,097.59 kB
+www/assets/modern-town-big-a-americas-42d3aa17.glb                   1,098.91 kB
+www/assets/modern-town-big-b-americas-c1fb7153.glb                   1,107.52 kB
+www/assets/bronze-town-medium-b-maghreb-f32fcfb3.glb                 1,108.27 kB
+www/assets/kingdoms-town-big-b-monsoon-0c2b28a0.glb                  1,108.54 kB
+www/assets/kingdoms-town-big-a-nile-832f044b.glb                     1,110.09 kB
+www/assets/kingdoms-town-big-a-monsoon-cace0598.glb                  1,111.39 kB
+www/assets/classical-town-medium-b-maghreb-7dc14d85.glb              1,112.50 kB
+www/assets/modern-town-small-a-israelite-ebb32616.glb                1,121.19 kB
+www/assets/classical-town-medium-a-maghreb-774b27f2.glb              1,124.53 kB
+www/assets/gunpowder-town-small-b-indic-b0ce98f5.glb                 1,125.32 kB
+www/assets/gunpowder-town-big-a-nile-67d83dfd.glb                    1,146.11 kB
+www/assets/bronze-town-small-b-israelite-0db5dd30.glb                1,147.50 kB
+www/assets/gunpowder-town-small-a-indic-46b641da.glb                 1,148.17 kB
+www/assets/bronze-town-small-a-israelite-c2e0ba16.glb                1,156.67 kB
+www/assets/gunpowder-town-big-b-nile-2f112452.glb                    1,159.34 kB
+www/assets/classical-town-big-b-maghreb-cba1deb3.glb                 1,161.63 kB
+www/assets/bronze-town-big-b-maghreb-460cd257.glb                    1,164.38 kB
+www/assets/great_library-35a9e12a.glb                                1,164.60 kB
+www/assets/classical-town-big-a-maghreb-ed3a9a9e.glb                 1,167.81 kB
+www/assets/quarry-bronze-b04b3230.glb                                1,168.31 kB
+www/assets/kingdoms-town-small-a-israelite-a5ba59f8.glb              1,168.42 kB
+www/assets/modern-town-medium-b-nile-46364e6b.glb                    1,168.64 kB
+www/assets/mine-modern-42d00c80.glb                                  1,170.65 kB
+www/assets/gunpowder-town-medium-a-westafrica-a78026c0.glb           1,173.98 kB
+www/assets/kingdoms-town-small-b-israelite-91987618.glb              1,179.56 kB
+www/assets/shared-modern-israelite-57f0e0d1.glb                      1,183.39 kB
+www/assets/international_exchange-744d913b.glb                       1,184.04 kB
+www/assets/bronze-town-medium-a-eastafrica-42bcf2ca.glb              1,186.94 kB
+www/assets/bronze-town-big-a-maghreb-490ba046.glb                    1,188.08 kB
+www/assets/modern-town-medium-a-nile-e03da238.glb                    1,188.24 kB
+www/assets/modern-town-big-b-monsoon-b72644c4.glb                    1,190.90 kB
+www/assets/gunpowder-town-medium-b-westafrica-db06bd52.glb           1,191.00 kB
+www/assets/classical-town-small-a-israelite-1e566bba.glb             1,194.88 kB
+www/assets/modern-town-medium-a-europe-a4923d74.glb                  1,197.55 kB
+www/assets/bronze-town-medium-b-eastafrica-3e9023a6.glb              1,198.52 kB
+www/assets/bronze-town-medium-a-steppe-f75e4dcc.glb                  1,200.37 kB
+www/assets/modern-town-medium-b-europe-3ca84f76.glb                  1,200.94 kB
+www/assets/bronze-town-medium-a-westafrica-e16a1b43.glb              1,201.46 kB
+www/assets/gunpowder-town-small-a-israelite-bfb8469f.glb             1,202.79 kB
+www/assets/modern-town-medium-b-eastafrica-02e04afe.glb              1,212.62 kB
+www/assets/bronze-town-medium-b-westafrica-7702ca00.glb              1,213.61 kB
+www/assets/modern-town-big-a-monsoon-2eb3b4e4.glb                    1,214.14 kB
+www/assets/bronze-town-medium-b-steppe-bed44e10.glb                  1,215.62 kB
+www/assets/modern-town-medium-a-eastafrica-b21d9510.glb              1,232.27 kB
+www/assets/classical-town-small-b-israelite-41576626.glb             1,241.34 kB
+www/assets/lumber_camp-bronze-e6a8c0b3.glb                           1,244.98 kB
+www/assets/gunpowder-town-medium-a-eastafrica-95ff124d.glb           1,246.82 kB
+www/assets/camp-bronze-d8c8ba92.glb                                  1,253.00 kB
+www/assets/gunpowder-town-medium-b-eastafrica-d3ad50cb.glb           1,257.42 kB
+www/assets/lighthouse-aa7b7834.glb                                   1,257.55 kB
+www/assets/gunpowder-town-small-b-israelite-ce2f7651.glb             1,274.92 kB
+www/assets/modern-town-medium-a-westafrica-2eb18e75.glb              1,285.16 kB
+www/assets/modern-town-medium-a-steppe-fec016a6.glb                  1,290.77 kB
+www/assets/pasture-bronze-3c1f07a5.glb                               1,293.14 kB
+www/assets/bronze-town-big-a-westafrica-fb0930ad.glb                 1,303.42 kB
+www/assets/mine-bronze-097b8399.glb                                  1,310.66 kB
+www/assets/06-greek-instruments-269a8ac3.ogg                         1,312.16 kB
+www/assets/classical-town-medium-b-steppe-8b002697.glb               1,318.11 kB
+www/assets/modern-town-medium-b-westafrica-2acee725.glb              1,323.37 kB
+www/assets/fishing_boats-bronze-fa75c0b9.glb                         1,324.36 kB
+www/assets/shared-gunpowder-israelite-2c9a4770.glb                   1,324.98 kB
+www/assets/modern-town-big-b-nile-307af4bd.glb                       1,328.22 kB
+www/assets/bronze-town-big-b-westafrica-d28c5a47.glb                 1,329.66 kB
+www/assets/modern-town-big-a-nile-bf1db6e4.glb                       1,333.35 kB
+www/assets/classical-town-medium-a-steppe-f9018c8f.glb               1,333.56 kB
+www/assets/kingdoms-town-medium-a-steppe-02905733.glb                1,336.93 kB
+www/assets/modern-town-medium-a-indic-ae4bbf04.glb                   1,337.28 kB
+www/assets/modern-town-medium-b-steppe-fe8e078b.glb                  1,338.66 kB
+www/assets/kingdoms-town-medium-b-eastafrica-d8d6e1f7.glb            1,344.46 kB
+www/assets/gunpowder-town-medium-b-steppe-57e74d7d.glb               1,354.14 kB
+www/assets/modern-town-medium-b-indic-c0d520dc.glb                   1,361.74 kB
+www/assets/kingdoms-town-medium-b-steppe-77c8887a.glb                1,364.72 kB
+www/assets/kingdoms-town-medium-a-eastafrica-6192b2eb.glb            1,365.91 kB
+www/assets/08-mystic-bazaar-35cbae33.ogg                             1,367.93 kB
+www/assets/classical-town-medium-b-eastafrica-8f8a3bf2.glb           1,378.62 kB
+www/assets/gunpowder-town-medium-a-steppe-17c70a0d.glb               1,392.42 kB
+www/assets/modern-town-medium-b-israelite-1da74aa0.glb               1,401.64 kB
+www/assets/classical-town-medium-a-eastafrica-c3a30f1a.glb           1,404.71 kB
+www/assets/gunpowder-town-medium-b-indic-6c01e8aa.glb                1,419.87 kB
+www/assets/gunpowder-town-medium-a-indic-1e9b1fbb.glb                1,420.58 kB
+www/assets/modern-town-medium-a-israelite-d517c815.glb               1,421.40 kB
+www/assets/solomons_temple-5c603d70.glb                              1,422.39 kB
+www/assets/modern-town-small-b-levant-2b8d8714.glb                   1,425.48 kB
+www/assets/plantation-bronze-72f69607.glb                            1,428.29 kB
+www/assets/bronze-town-medium-a-israelite-1891f0d2.glb               1,437.36 kB
+www/assets/bronze-town-medium-a-levant-8db031a2.glb                  1,443.64 kB
+www/assets/bronze-town-medium-b-levant-75611627.glb                  1,450.11 kB
+www/assets/kingdoms-town-medium-b-israelite-b1a6518e.glb             1,453.72 kB
+www/assets/modern-town-small-a-levant-4314b318.glb                   1,464.76 kB
+www/assets/bronze-town-medium-b-israelite-d47275a2.glb               1,467.28 kB
+www/assets/kingdoms-town-medium-a-israelite-45bf58e4.glb             1,484.84 kB
+www/assets/fishing_boats-modern-f088627d.glb                         1,489.98 kB
+www/assets/classical-town-medium-b-israelite-83595375.glb            1,494.86 kB
+www/assets/bronze-town-big-b-eastafrica-385c711d.glb                 1,504.28 kB
+www/assets/bronze-town-big-a-eastafrica-d691dbf5.glb                 1,507.96 kB
+www/assets/classical-town-medium-a-israelite-ea1e0e8c.glb            1,513.32 kB
+www/assets/05-march-of-devils-dome-d7411b9b.ogg                      1,525.38 kB
+www/assets/kingdoms-town-small-b-levant-538219e7.glb                 1,526.07 kB
+www/assets/shared-classical-israelite-8cd5ccc2.glb                   1,526.13 kB
+www/assets/kingdoms-town-small-a-levant-e233189e.glb                 1,528.20 kB
+www/assets/rts-classical-63ff4f63.glb                                1,538.77 kB
+www/assets/bronze-town-big-a-steppe-97761d74.glb                     1,550.04 kB
+www/assets/bronze-town-big-b-steppe-9e204797.glb                     1,554.90 kB
+www/assets/modern-town-small-a-8dfee1fa.glb                          1,555.47 kB
+www/assets/bronze-town-small-a-7e9cc76d.glb                          1,561.80 kB
+www/assets/gunpowder-town-small-b-japan-802a08e7.glb                 1,564.69 kB
+www/assets/kingdoms-town-small-b-9eef4700.glb                        1,568.77 kB
+www/assets/bronze-town-small-b-25ab4123.glb                          1,574.39 kB
+www/assets/gunpowder-town-big-b-westafrica-f2d652c5.glb              1,580.62 kB
+www/assets/modern-town-big-b-europe-ad1898a5.glb                     1,587.50 kB
+www/assets/classical-town-small-a-edad41d6.glb                       1,588.16 kB
+www/assets/gunpowder-town-medium-a-israelite-2f53aaaf.glb            1,591.31 kB
+www/assets/modern-town-small-b-cac2e32e.glb                          1,594.43 kB
+www/assets/gunpowder-town-big-a-westafrica-cbde1235.glb              1,595.48 kB
+www/assets/space_program-716621c2.glb                                1,600.03 kB
+www/assets/gunpowder-town-medium-b-israelite-53ddcfaf.glb            1,605.91 kB
+www/assets/modern-town-big-b-eastafrica-1c265324.glb                 1,612.93 kB
+www/assets/modern-town-big-a-eastafrica-9ebbe2fd.glb                 1,622.01 kB
+www/assets/classical-town-small-b-504c339a.glb                       1,623.42 kB
+www/assets/gunpowder-town-small-a-japan-f7eae073.glb                 1,625.30 kB
+www/assets/bronze-town-small-a-indic-1fb712cc.glb                    1,626.02 kB
+www/assets/modern-town-medium-b-ef2ebd94.glb                         1,630.06 kB
+www/assets/modern-town-big-b-westafrica-040b8b2f.glb                 1,631.72 kB
+www/assets/bronze-town-small-b-europe-149d144f.glb                   1,642.49 kB
+www/assets/modern-town-big-a-europe-6a2f23ec.glb                     1,642.50 kB
+www/assets/modern-town-big-a-westafrica-7e038859.glb                 1,649.86 kB
+www/assets/09-bards-tale-108e1e8b.ogg                                1,650.33 kB
+www/assets/classical-town-small-a-europe-f5f625d2.glb                1,651.82 kB
+www/assets/modern-town-medium-a-f24e03a3.glb                         1,676.59 kB
+www/assets/classical-town-small-b-europe-27488f14.glb                1,678.68 kB
+www/assets/classical-town-small-b-sinic-c9638920.glb                 1,689.26 kB
+www/assets/bronze-town-small-a-europe-7eaaae4f.glb                   1,719.77 kB
+www/assets/masada-0b0a6ee0.glb                                       1,720.05 kB
+www/assets/modern-town-medium-b-levant-a8569e2e.glb                  1,721.67 kB
+www/assets/classical-town-small-b-europenorth-ec75d0e4.glb           1,722.25 kB
+www/assets/bronze-town-medium-b-47a0750e.glb                         1,728.04 kB
+www/assets/modern-town-big-a-steppe-26268c75.glb                     1,729.08 kB
+www/assets/classical-town-small-a-europenorth-1dabddf1.glb           1,729.38 kB
+www/assets/gunpowder-town-big-b-eastafrica-065ed7ef.glb              1,729.47 kB
+www/assets/modern-town-medium-a-levant-bdb8861d.glb                  1,736.17 kB
+www/assets/gunpowder-town-big-a-eastafrica-4d534839.glb              1,738.46 kB
+www/assets/bronze-town-medium-a-b434ddfb.glb                         1,739.31 kB
+www/assets/modern-town-small-a-sinic-f5fc6a44.glb                    1,742.14 kB
+www/assets/gunpowder-town-medium-b-japan-3f3a91c1.glb                1,749.16 kB
+www/assets/modern-town-big-b-a37b67a6.glb                            1,750.18 kB
+www/assets/bronze-town-medium-b-europe-bdeed647.glb                  1,756.20 kB
+www/assets/classical-town-big-a-steppe-92205fe9.glb                  1,763.60 kB
+www/assets/modern-town-big-b-indic-9883f4dd.glb                      1,764.06 kB
+www/assets/kingdoms-town-big-a-steppe-dc652db7.glb                   1,771.66 kB
+www/assets/classical-town-big-b-eastafrica-eb080ba9.glb              1,772.03 kB
+www/assets/kingdoms-town-big-b-eastafrica-3c69f3d6.glb               1,774.04 kB
+www/assets/modern-town-big-b-steppe-21d7c508.glb                     1,779.28 kB
+www/assets/bronze-town-small-b-indic-ccc04bcc.glb                    1,783.57 kB
+www/assets/classical-town-big-a-eastafrica-d26f9485.glb              1,784.03 kB
+www/assets/classical-town-small-a-sinic-a1ae4744.glb                 1,788.44 kB
+www/assets/classical-town-small-a-levant-3988bf2d.glb                1,789.58 kB
+www/assets/classical-town-medium-a-38c7ab79.glb                      1,790.70 kB
+www/assets/bronze-town-big-b-levant-a5db981f.glb                     1,797.70 kB
+www/assets/classical-town-big-b-steppe-0e55d112.glb                  1,799.57 kB
+www/assets/gunpowder-town-medium-a-japan-2f5f64eb.glb                1,801.05 kB
+www/assets/modern-town-big-a-indic-db426801.glb                      1,801.21 kB
+www/assets/kingdoms-town-big-a-eastafrica-4372608e.glb               1,803.33 kB
+www/assets/modern-town-big-a-190ea629.glb                            1,804.35 kB
+www/assets/gunpowder-town-big-b-indic-5cc391b1.glb                   1,807.46 kB
+www/assets/modern-town-big-b-israelite-0bca917e.glb                  1,808.78 kB
+www/assets/gunpowder-town-big-a-steppe-6898481a.glb                  1,812.77 kB
+www/assets/bronze-town-medium-a-europe-3b189fcc.glb                  1,813.66 kB
+www/assets/kingdoms-town-big-b-steppe-1ed487a1.glb                   1,818.42 kB
+www/assets/gunpowder-town-big-b-steppe-896b59f5.glb                  1,823.31 kB
+www/assets/bronze-town-big-a-levant-82aba461.glb                     1,823.54 kB
+www/assets/kingdoms-town-medium-b-310df162.glb                       1,851.66 kB
+www/assets/kingdoms-town-small-a-indic-9fbbc14f.glb                  1,862.10 kB
+www/assets/modern-town-small-b-sinic-47dbcfdc.glb                    1,866.78 kB
+www/assets/kingdoms-town-medium-a-levant-2d61a83f.glb                1,868.29 kB
+www/assets/gunpowder-town-big-a-indic-11da1db1.glb                   1,881.07 kB
+www/assets/modern-town-big-a-israelite-9f5c53b6.glb                  1,885.34 kB
+www/assets/classical-town-small-b-levant-3aa6bfe8.glb                1,919.48 kB
+www/assets/classical-town-medium-b-8b65d292.glb                      1,920.48 kB
+www/assets/bronze-town-big-b-e5789a87.glb                            1,924.59 kB
+www/assets/bronze-town-small-a-sinic-fef6a1fd.glb                    1,925.07 kB
+www/assets/kingdoms-town-medium-a-indic-5fa29491.glb                 1,934.46 kB
+www/assets/rts-kingdoms-71f8b7f8.glb                                 1,935.93 kB
+www/assets/modern-town-big-a-levant-b7a85731.glb                     1,937.95 kB
+www/assets/hanging_gardens-321146ae.glb                              1,939.47 kB
+www/assets/gunpowder-town-big-b-japan-bf5ff85a.glb                   1,941.89 kB
+www/assets/kingdoms-town-small-a-korea-19a5df9a.glb                  1,944.42 kB
+www/assets/bronze-town-big-b-israelite-363ab429.glb                  1,960.68 kB
+www/assets/kingdoms-town-big-a-israelite-4e33f805.glb                1,971.76 kB
+www/assets/shared-modern-f6e22fa7.glb                                1,972.01 kB
+www/assets/rts-modern-37aae63f.glb                                   1,973.26 kB
+www/assets/kingdoms-town-medium-b-levant-386ccde2.glb                1,974.34 kB
+www/assets/bronze-town-big-a-israelite-6c5f79d7.glb                  1,976.54 kB
+www/assets/rts-gunpowder-9652895b.glb                                1,978.41 kB
+www/assets/classical-town-big-a-israelite-4344c32a.glb               1,979.81 kB
+www/assets/bronze-town-medium-a-indic-104253a5.glb                   1,985.53 kB
+www/assets/gunpowder-town-small-b-levant-6111125d.glb                1,985.92 kB
+www/assets/kingdoms-town-big-b-israelite-d0880867.glb                1,994.02 kB
+www/assets/classical-town-medium-a-europe-24ba481a.glb               2,006.62 kB
+www/assets/gunpowder-town-big-a-japan-edfdb4b6.glb                   2,008.23 kB
+www/assets/classical-town-medium-b-europe-0c023aff.glb               2,010.93 kB
+www/assets/bronze-town-big-a-europe-1c551b17.glb                     2,012.07 kB
+www/assets/bronze-town-big-b-europe-6df714ca.glb                     2,016.98 kB
+www/assets/modern-town-medium-b-sinic-07170d99.glb                   2,021.58 kB
+www/assets/classical-town-big-b-israelite-1965e443.glb               2,027.28 kB
+www/assets/kingdoms-town-small-a-b3088007.glb                        2,029.15 kB
+www/assets/cathedral-2b340f81.glb                                    2,034.10 kB
+www/assets/05-lute-dowland-621b39ea.ogg                              2,035.38 kB
+www/assets/gunpowder-town-small-b-sinic-303d43f2.glb                 2,036.43 kB
+www/assets/grand_bazaar-e0dd658e.glb                                 2,037.14 kB
+www/assets/gunpowder-town-big-a-israelite-0dfbf6a6.glb               2,038.54 kB
+www/assets/kingdoms-town-small-a-easteurope-2488f156.glb             2,040.20 kB
+www/assets/cathedral-levant-49919416.glb                             2,042.58 kB
+www/assets/kingdoms-town-big-b-f559f74b.glb                          2,046.72 kB
+www/assets/modern-town-big-b-levant-53a311a0.glb                     2,047.12 kB
+www/assets/gunpowder-town-small-a-sinic-e23af13c.glb                 2,052.33 kB
+www/assets/bronze-town-small-b-sinic-2a064aa1.glb                    2,053.42 kB
+www/assets/gunpowder-town-big-b-israelite-9a79067c.glb               2,058.89 kB
+www/assets/kingdoms-town-small-a-japan-e7fbb01c.glb                  2,062.96 kB
+www/assets/bronze-town-medium-b-indic-6387ebcf.glb                   2,066.42 kB
+www/assets/bronze-town-big-a-f6d75483.glb                            2,066.78 kB
+www/assets/kingdoms-town-small-b-japan-8e320e88.glb                  2,067.60 kB
+www/assets/kingdoms-town-small-b-korea-0526baf9.glb                  2,077.72 kB
+www/assets/kingdoms-town-big-b-levant-3e77e431.glb                   2,080.34 kB
+www/assets/bronze-town-medium-a-sinic-a7d26df9.glb                   2,087.46 kB
+www/assets/kingdoms-town-small-b-indic-e2895a15.glb                  2,095.22 kB
+www/assets/gunpowder-town-small-a-levant-080dfb94.glb                2,098.20 kB
+www/assets/kingdoms-town-small-a-sinic-75479c3d.glb                  2,105.40 kB
+www/assets/modern-town-medium-a-sinic-aa449954.glb                   2,113.70 kB
+www/assets/kingdoms-town-small-a-europe-e243b0cf.glb                 2,120.70 kB
+www/assets/shared-kingdoms-levant-9e59a825.glb                       2,129.94 kB
+www/assets/classical-town-small-b-indic-af2899b7.glb                 2,131.14 kB
+www/assets/gunpowder-town-small-b-colonies-eb41c1c0.glb              2,132.48 kB
+www/assets/forbidden_city-7ab17dfb.glb                               2,134.14 kB
+www/assets/kingdoms-town-small-b-sinic-35954215.glb                  2,136.80 kB
+www/assets/bronze-town-medium-b-sinic-30a17ec9.glb                   2,157.04 kB
+www/assets/modern-town-big-a-sinic-173fa370.glb                      2,158.15 kB
+www/assets/palace_of_versailles-32c20f8d.glb                         2,169.26 kB
+www/assets/shared-gunpowder-ec47cd04.glb                             2,169.96 kB
+www/assets/gunpowder-town-small-b-d5af6715.glb                       2,192.06 kB
+www/assets/classical-town-small-a-indic-29a592bb.glb                 2,192.85 kB
+www/assets/classical-town-big-b-7b42b428.glb                         2,194.10 kB
+www/assets/kingdoms-town-medium-b-indic-f31d61ec.glb                 2,198.75 kB
+www/assets/gunpowder-town-medium-a-levant-206d4610.glb               2,216.40 kB
+www/assets/07-rising-moon-2a415561.ogg                               2,217.83 kB
+www/assets/classical-town-medium-b-sinic-5bec5923.glb                2,221.03 kB
+www/assets/shared-bronze-israelite-a6d7d565.glb                      2,238.38 kB
+www/assets/kingdoms-town-medium-a-korea-25e3dfa8.glb                 2,242.22 kB
+www/assets/03-harvest-season-0714e238.ogg                            2,244.56 kB
+www/assets/gunpowder-town-small-b-europe-affe00be.glb                2,246.96 kB
+www/assets/gunpowder-town-medium-a-sinic-0fd108da.glb                2,247.25 kB
+www/assets/gunpowder-town-medium-b-levant-35d96657.glb               2,249.30 kB
+www/assets/modern-town-big-b-sinic-24a7c307.glb                      2,254.27 kB
+www/assets/gunpowder-town-small-a-colonies-3414211a.glb              2,256.40 kB
+www/assets/gunpowder-town-medium-b-sinic-fd394e3c.glb                2,257.02 kB
+www/assets/gunpowder-town-big-b-levant-8dd3fd14.glb                  2,263.36 kB
+www/assets/kingdoms-town-medium-a-japan-deddf831.glb                 2,289.45 kB
+www/assets/kingdoms-town-small-b-easteurope-c7c7720d.glb             2,291.37 kB
+www/assets/kingdoms-town-big-b-indic-3d72c4fc.glb                    2,326.61 kB
+www/assets/kingdoms-town-small-b-europe-acb158a5.glb                 2,333.77 kB
+www/assets/kingdoms-town-big-a-levant-59e35519.glb                   2,335.10 kB
+www/assets/classical-town-medium-b-indic-4f68e9e9.glb                2,337.09 kB
+www/assets/kingdoms-town-medium-a-easteurope-f6a40b46.glb            2,339.47 kB
+www/assets/classical-town-medium-a-sinic-1ae95f87.glb                2,358.44 kB
+www/assets/kingdoms-town-medium-a-europe-9ee1932f.glb                2,369.04 kB
+www/assets/gunpowder-town-big-a-levant-5c251d4e.glb                  2,375.13 kB
+www/assets/kingdoms-town-medium-a-901de921.glb                       2,383.12 kB
+www/assets/kingdoms-town-medium-b-japan-f7208bb7.glb                 2,399.63 kB
+www/assets/shared-kingdoms-europe-fdf16666.glb                       2,402.68 kB
+www/assets/bronze-town-big-a-indic-bead2d32.glb                      2,403.52 kB
+www/assets/kingdoms-town-medium-a-sinic-3eb07068.glb                 2,404.10 kB
+www/assets/kingdoms-town-medium-b-korea-67a6073e.glb                 2,408.32 kB
+www/assets/gunpowder-town-small-a-europe-6c7c0101.glb                2,420.25 kB
+www/assets/classical-town-medium-b-levant-763f58b7.glb               2,423.29 kB
+www/assets/bronze-town-big-b-indic-68c905a8.glb                      2,425.36 kB
+www/assets/gunpowder-town-small-a-578674db.glb                       2,431.86 kB
+www/assets/bronze-town-big-a-sinic-ac4b265b.glb                      2,434.13 kB
+www/assets/kingdoms-town-medium-b-easteurope-a2440bd6.glb            2,445.66 kB
+www/assets/kingdoms-town-big-a-indic-ef62affd.glb                    2,451.89 kB
+www/assets/kingdoms-town-medium-b-europe-6eb5cb06.glb                2,461.47 kB
+www/assets/classical-town-medium-a-indic-8922bce0.glb                2,469.36 kB
+www/assets/kingdoms-town-medium-b-sinic-a4430a0b.glb                 2,473.26 kB
+www/assets/bronze-town-big-b-sinic-07414e18.glb                      2,489.59 kB
+www/assets/kingdoms-town-big-b-japan-bb1057a1.glb                    2,502.46 kB
+www/assets/gunpowder-town-big-b-sinic-32b5efbd.glb                   2,502.68 kB
+www/assets/shared-kingdoms-sinic-5bd9da7d.glb                        2,514.66 kB
+www/assets/gunpowder-town-medium-a-colonies-ac064972.glb             2,518.33 kB
+www/assets/colosseum-6f854c40.glb                                    2,529.45 kB
+www/assets/01-exploration-a71659e8.ogg                               2,546.94 kB
+www/assets/gunpowder-town-medium-b-colonies-03cdc26e.glb             2,547.64 kB
+www/assets/kingdoms-town-big-b-easteurope-6d5b4e07.glb               2,562.37 kB
+www/assets/kingdoms-town-big-b-europe-82480071.glb                   2,563.05 kB
+www/assets/classical-town-medium-a-levant-271b264c.glb               2,569.07 kB
+www/assets/great_cathedral-fadf3815.glb                              2,573.18 kB
+www/assets/kingdoms-town-big-b-sinic-8636a63b.glb                    2,608.59 kB
+www/assets/gunpowder-town-big-a-sinic-17428572.glb                   2,609.74 kB
+www/assets/gunpowder-town-medium-a-74e1c738.glb                      2,620.22 kB
+www/assets/classical-town-big-a-b1a901fc.glb                         2,622.44 kB
+www/assets/shared-kingdoms-indic-6f51fc4f.glb                        2,657.42 kB
+www/assets/kingdoms-town-big-a-17b9611b.glb                          2,657.80 kB
+www/assets/gunpowder-town-medium-a-europe-21060d05.glb               2,660.98 kB
+www/assets/gunpowder-town-big-b-colonies-d66ae3e1.glb                2,670.85 kB
+www/assets/kingdoms-town-big-a-easteurope-3a02d8d6.glb               2,673.71 kB
+www/assets/kingdoms-town-big-a-europe-7b1fb0d9.glb                   2,701.74 kB
+www/assets/gunpowder-town-medium-b-01133184.glb                      2,724.58 kB
+www/assets/gunpowder-town-medium-b-europe-59494c58.glb               2,747.34 kB
+www/assets/kingdoms-town-big-a-japan-8057f6d2.glb                    2,759.02 kB
+www/assets/kingdoms-town-big-a-sinic-8967fde4.glb                    2,848.60 kB
+www/assets/gunpowder-town-big-b-1397a1a7.glb                         2,848.62 kB
+www/assets/gunpowder-town-big-a-colonies-f0285805.glb                2,848.89 kB
+www/assets/gunpowder-town-big-b-europe-ae8ca361.glb                  2,870.91 kB
+www/assets/gunpowder-town-big-a-f0ddf4fd.glb                         2,874.74 kB
+www/assets/shared-classical-7e00b399.glb                             2,880.01 kB
+www/assets/shared-bronze-f6110cd1.glb                                2,911.37 kB
+www/assets/shared-kingdoms-b176cdbd.glb                              2,958.20 kB
+www/assets/gunpowder-town-big-a-europe-bd47bd77.glb                  3,046.43 kB
+www/assets/02-desert-settlement-fcba6036.ogg                         3,360.95 kB
+www/assets/rts-bronze-899b730d.glb                                   3,983.87 kB
+www/assets/tiles-49615621.js                                         9,076.67 kB
+www/assets/index-a8727818.css                                           83.79 kB │ gzip:    16.78 kB
+www/assets/rasterLook-de22fccd.js                                        0.59 kB │ gzip:     0.37 kB │ map:     2.20 kB
+www/assets/preview-58841130.js                                           1.33 kB │ gzip:     0.81 kB │ map:     5.22 kB
+www/assets/AudioDebug-81879f78.js                                        1.37 kB │ gzip:     0.85 kB │ map:     3.81 kB
+www/assets/groundMaterials-f908a2b6.js                                   2.33 kB │ gzip:     1.19 kB │ map:     8.76 kB
+www/assets/CloseViewLayer-d023f26a.js                                    2.40 kB │ gzip:     1.27 kB │ map:     8.26 kB
+www/assets/tileGeometry-8b1a1a5e.js                                      2.70 kB │ gzip:     1.34 kB │ map:    13.69 kB
+www/assets/WorldLab-79d824d6.js                                          3.31 kB │ gzip:     1.63 kB │ map:     8.39 kB
+www/assets/TacticalBattleHost-957538cf.js                                3.96 kB │ gzip:     1.93 kB │ map:    16.69 kB
+www/assets/SkeletonUtils-51371712.js                                     4.10 kB │ gzip:     1.60 kB │ map:    18.62 kB
+www/assets/CloseTerrainLayer-fe4520a6.js                                 4.34 kB │ gzip:     2.07 kB │ map:    14.11 kB
+www/assets/audioContext-60a60510.js                                      4.60 kB │ gzip:     1.94 kB │ map:    19.07 kB
+www/assets/TileViewer-5e2b5199.js                                        6.05 kB │ gzip:     2.69 kB │ map:    18.93 kB
+www/assets/DRACOLoader-0782f941.js                                       7.45 kB │ gzip:     3.10 kB │ map:    30.39 kB
+www/assets/worldPackage-c4bfea75.js                                      8.36 kB │ gzip:     4.08 kB │ map:    39.99 kB
+www/assets/BattleSandbox-ac23238f.js                                     9.97 kB │ gzip:     4.00 kB │ map:    32.98 kB
+www/assets/terrainShader-d728682b.js                                    10.38 kB │ gzip:     3.93 kB │ map:    18.81 kB
+www/assets/BufferGeometryUtils-5dff834c.js                              13.53 kB │ gzip:     4.70 kB │ map:    61.98 kB
+www/assets/polygon-clipping.esm-6fdcc057.js                             25.93 kB │ gzip:     8.19 kB │ map:   120.32 kB
+www/assets/meshopt_decoder.module-85e3f87a.js                           26.55 kB │ gzip:     7.30 kB │ map:    35.08 kB
+www/assets/GLTFLoader-ad9ecbbe.js                                       44.69 kB │ gzip:    13.52 kB │ map:   188.68 kB
+www/assets/closeViewScene-cdf6a223.js                                   53.24 kB │ gzip:    22.37 kB │ map:   230.80 kB
+www/assets/worldRaster-60c13cda.js                                      70.34 kB │ gzip:    25.19 kB │ map:   309.86 kB
+www/assets/GLMapView-15f55023.js                                       105.24 kB │ gzip:    39.23 kB │ map:   350.83 kB
+www/assets/nations-1c38c8b4.js                                         110.44 kB │ gzip:    41.79 kB │ map:   140.07 kB
+www/assets/index-73aca3a9.js                                           205.52 kB │ gzip:    70.99 kB │ map:   602.37 kB
+www/assets/TacticalBattleScreen-e9b3ace5.js                            224.50 kB │ gzip:    77.94 kB │ map:   737.92 kB
+www/assets/unitModels-b6601114.js                                      261.53 kB │ gzip:    70.73 kB │ map:   516.66 kB
+www/assets/hexLand-76d41ecc.js                                         657.53 kB │ gzip:   184.89 kB │ map:     0.10 kB
+www/assets/three.module-934c39c3.js                                    657.54 kB │ gzip:   167.71 kB │ map: 3,024.24 kB
+www/assets/buildBattleSetup-d886562a.js                                683.01 kB │ gzip:   231.05 kB │ map: 2,249.32 kB
+www/assets/GlobeView-f8104f9a.js                                     1,322.31 kB │ gzip:   390.84 kB │ map: 5,945.49 kB
+www/assets/App-964e59fb.js                                           1,394.30 kB │ gzip:   454.39 kB │ map: 4,635.20 kB
+www/assets/tiles-550197c6.js                                         9,076.67 kB │ gzip: 1,965.71 kB │ map:     0.10 kB
+
+(!) Some chunks are larger than 500 kBs after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2m 35s

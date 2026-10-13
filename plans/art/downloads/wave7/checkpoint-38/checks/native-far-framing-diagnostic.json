@@ -1,0 +1,5484 @@
+{
+  "base": "http://127.0.0.1:3010/terra-imperium/",
+  "profiles": [
+    "phone",
+    "desktop"
+  ],
+  "resolutions": [
+    {
+      "width": 844,
+      "height": 390
+    },
+    {
+      "width": 1600,
+      "height": 900
+    }
+  ],
+  "nativeTileSelection": true,
+  "coverage": {
+    "checkpointAssetCount": 14,
+    "all14NativelyVerified": false,
+    "mapCapturedByThisHarness": false,
+    "parentVisualReviewRequired": true,
+    "scope": "Selected native battle cases only; source/parse audits and external map captures are separate evidence.",
+    "unrequestedCases": [
+      {
+        "id": "river-classical",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-classical",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "river-modern",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-modern",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-tropical",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-tropical",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-cold",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-cold",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "raid",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "raid",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-ancient",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-ancient",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-middle",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-middle",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-modern",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-modern",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "raid-delayed",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "raid-delayed",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    ],
+    "checkpointAssetKeys": [
+      "battle/terrain/river-kit.glb",
+      "battle/terrain/ford.glb",
+      "battle/terrain/bridge-wood.glb",
+      "battle/terrain/bridge-stone.glb",
+      "battle/terrain/bridge-steel.glb",
+      "battle/nature/vegetation-conifer.glb",
+      "battle/nature/vegetation-tropical.glb",
+      "battle/nature/vegetation-cold.glb",
+      "battle/props/loot-sack.glb",
+      "battle/props/exit-marker.glb",
+      "battle/props/landing-ancient.glb",
+      "battle/props/landing-middle.glb",
+      "battle/props/landing-modern.glb",
+      "battle/props/burnt-field-overlay.glb"
+    ],
+    "runtimeLoadAndPlacementVerifiedKeys": [
+      "battle/terrain/river-kit.glb",
+      "battle/terrain/ford.glb",
+      "battle/terrain/bridge-wood.glb",
+      "battle/nature/vegetation-conifer.glb"
+    ],
+    "notRuntimeVerifiedAssetKeys": [
+      "battle/terrain/bridge-stone.glb",
+      "battle/terrain/bridge-steel.glb",
+      "battle/nature/vegetation-tropical.glb",
+      "battle/nature/vegetation-cold.glb",
+      "battle/props/loot-sack.glb",
+      "battle/props/exit-marker.glb",
+      "battle/props/landing-ancient.glb",
+      "battle/props/landing-middle.glb",
+      "battle/props/landing-modern.glb",
+      "battle/props/burnt-field-overlay.glb"
+    ],
+    "uncapturedOrFailedCases": [
+      {
+        "id": "river-classical",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-classical",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "river-modern",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "river-modern",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-tropical",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-tropical",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "nature-cold",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "nature-cold",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "raid",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "raid",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-ancient",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-ancient",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-middle",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-middle",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "landing-modern",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "landing-modern",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      },
+      {
+        "id": "raid-delayed",
+        "profile": "phone",
+        "viewport": {
+          "width": 844,
+          "height": 390
+        }
+      },
+      {
+        "id": "raid-delayed",
+        "profile": "desktop",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        }
+      }
+    ]
+  },
+  "screenshotTiming": {
+    "rafIntervalMs": 200,
+    "maxRenderFPS": 5,
+    "performanceBenchmark": false,
+    "realClock": true,
+    "workerTimersUnmodified": true,
+    "firstFrameGateQAOnly": true
+  },
+  "scenarios": [
+    {
+      "id": "river-bronze",
+      "query": {
+        "terrain": "mixed",
+        "age": "bronze",
+        "tile": "29",
+        "artRoads": ""
+      },
+      "crossing": "wood",
+      "keys": [
+        "battle/terrain/river-kit.glb",
+        "battle/terrain/ford.glb",
+        "battle/terrain/bridge-wood.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads="
+    },
+    {
+      "id": "nature-conifer",
+      "query": {
+        "terrain": "forest",
+        "age": "bronze",
+        "tile": "1374"
+      },
+      "vegetation": "conifer",
+      "keys": [
+        "battle/nature/vegetation-conifer.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=forest&age=bronze&tile=1374"
+    }
+  ],
+  "limitations": [
+    "--plan leaves tile IDs unresolved; --run discovers actual loaded geo tiles.",
+    "artRoads supplies QA preview road state only; campaign state remains untouched.",
+    "Delayed loot/scorch requires real field destruction and can time out; opening raid is separate.",
+    "No bridge damage HP hook; intact placement only. Parent must visually inspect screenshots."
+  ],
+  "startedAt": "2026-10-08T11:34:32.308Z",
+  "smokeOnly": false,
+  "parentVisualReviewRequired": true,
+  "rendererBackendRequested": "ANGLE SwiftShader",
+  "hardwarePerformanceEvidence": false,
+  "results": [
+    {
+      "id": "river-bronze",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads=",
+      "errors": [],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-ranged.glb",
+          "status": 200,
+          "bytes": 137020,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-general.glb",
+          "status": 200,
+          "bytes": 118660,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-infantry.glb",
+          "status": 200,
+          "bytes": 122236,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+          "status": 200,
+          "bytes": 661056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-bronze.glb",
+          "status": 200,
+          "bytes": 341700,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-bronze.glb",
+          "status": 200,
+          "bytes": 365184,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/bronze.glb",
+          "status": 200,
+          "bytes": 21548,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        }
+      ],
+      "shots": [
+        "river-bronze-844x390-far-LOD1-zoom0.5-bridge-wood.png",
+        "river-bronze-844x390-far-LOD2-zoom0.45-bridge-wood.png"
+      ],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads=",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 99,
+      "audit": {
+        "screenshotTiming": {
+          "rafIntervalMs": 200,
+          "performanceBenchmark": false,
+          "firstFrameGateQAOnly": true,
+          "gateChecks": 27,
+          "gateStartedAtMs": 10786.70000000298,
+          "firstFrameAtMs": 16702.20000000298,
+          "gateDurationMs": 5915.5
+        },
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 83,
+          "triangles": 648947,
+          "geometries": 53,
+          "textures": 39,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "field",
+        "actualTile": 29,
+        "simTick": 99,
+        "canvas": {
+          "width": 844,
+          "height": 390,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "conifer",
+        "assets": [
+          {
+            "key": "battle/terrain/river-kit.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 557,
+            "objects": [
+              "bank",
+              "straight",
+              "bend",
+              "junction",
+              "end",
+              "straight-5",
+              "bend-5",
+              "junction-5",
+              "end-5",
+              "straight-8",
+              "bend-8",
+              "junction-8",
+              "end-8"
+            ]
+          },
+          {
+            "key": "battle/terrain/ford.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 170,
+            "objects": [
+              "ford"
+            ]
+          },
+          {
+            "key": "battle/terrain/bridge-wood.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 3,
+            "objects": [
+              "bridge-wood",
+              "bridge-wood-damaged",
+              "bridge-wood-destroyed"
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "bank",
+            "x": 1.4999898988753557,
+            "z": 1.000000194646418,
+            "worldCorners": [
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              }
+            ],
+            "height": 0.18691258318722248,
+            "copies": 557
+          },
+          {
+            "name": "ford",
+            "x": 47.4999999795109,
+            "z": 0.500000799074769,
+            "worldCorners": [
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              }
+            ],
+            "height": 0.18974577449262142,
+            "copies": 170
+          },
+          {
+            "name": "bridge-wood",
+            "x": 45,
+            "z": 24.500001618638635,
+            "worldCorners": [
+              {
+                "x": 43.44791668653488,
+                "y": -0.1067913448496256,
+                "z": 24.912504196166992
+              },
+              {
+                "x": 46.55208331346512,
+                "y": -0.1067913448496256,
+                "z": 24.912504196166992
+              },
+              {
+                "x": 43.44791668653488,
+                "y": 0.48165441676974297,
+                "z": 24.912504196166992
+              },
+              {
+                "x": 46.55208331346512,
+                "y": 0.48165441676974297,
+                "z": 24.912504196166992
+              },
+              {
+                "x": 43.44791668653488,
+                "y": -0.1067913448496256,
+                "z": 24.087499041110277
+              },
+              {
+                "x": 46.55208331346512,
+                "y": -0.1067913448496256,
+                "z": 24.087499041110277
+              },
+              {
+                "x": 43.44791668653488,
+                "y": 0.48165441676974297,
+                "z": 24.087499041110277
+              },
+              {
+                "x": 46.55208331346512,
+                "y": 0.48165441676974297,
+                "z": 24.087499041110277
+              }
+            ],
+            "height": 0.5884457616193686,
+            "copies": 3
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 170,
+          "banks": 557,
+          "bridges": 3
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 1.5,
+              "z": 34.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 102.5,
+              "z": 34.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker"
+          ],
+          "instances": {
+            "copies": 2,
+            "draws": 2
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "farAudit": [
+        {
+          "target": "bridge-wood",
+          "requestedZoom": 0.5,
+          "actualZoom": 0.5,
+          "expectedLOD": 1,
+          "selectedLOD": 1,
+          "roots": [
+            {
+              "kind": "bank",
+              "rootName": "bank",
+              "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                1
+              ],
+              "copies": 557,
+              "triangles": 40,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "bank",
+                  "btr_asset": "river-kit",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "ford",
+              "rootName": "ford",
+              "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                1
+              ],
+              "copies": 170,
+              "triangles": 138,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "ford",
+                  "btr_asset": "ford",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "bridge",
+              "rootName": "bridge-wood",
+              "url": "/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                1
+              ],
+              "copies": 3,
+              "triangles": 464,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "bridge-wood",
+                  "btr_asset": "bridge-wood",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10,
+                  "socket_span_metres": 10
+                },
+                "geometryMetadata": {}
+              }
+            }
+          ],
+          "projectedTargetBounds": {
+            "left": 788.6900767707056,
+            "right": 818.788803561845,
+            "top": 331.4631647747461,
+            "bottom": 356.17299312263185
+          },
+          "actualTile": 29,
+          "simTick": 99,
+          "diagnostics": {
+            "dpr": 1,
+            "p50": 100,
+            "p95": 100,
+            "drawCalls": 90,
+            "triangles": 331469,
+            "geometries": 73,
+            "textures": 39,
+            "figures": 32,
+            "tier": 1,
+            "bias": 1,
+            "zoom": 0.5
+          },
+          "syntheticState": false,
+          "forcedLOD": false,
+          "gaps": []
+        },
+        {
+          "target": "bridge-wood",
+          "requestedZoom": 0.45,
+          "actualZoom": 0.45,
+          "expectedLOD": 2,
+          "selectedLOD": 2,
+          "roots": [
+            {
+              "kind": "bank",
+              "rootName": "bank",
+              "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                2
+              ],
+              "copies": 557,
+              "triangles": 16,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "bank",
+                  "btr_asset": "river-kit",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "ford",
+              "rootName": "ford",
+              "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                2
+              ],
+              "copies": 170,
+              "triangles": 102,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "ford",
+                  "btr_asset": "ford",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "bridge",
+              "rootName": "bridge-wood",
+              "url": "/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                2
+              ],
+              "copies": 3,
+              "triangles": 184,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "bridge-wood",
+                  "btr_asset": "bridge-wood",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10,
+                  "socket_span_metres": 10
+                },
+                "geometryMetadata": {}
+              }
+            }
+          ],
+          "projectedTargetBounds": {
+            "left": 752.0210690936351,
+            "right": 779.1099232056607,
+            "top": 317.14719684689084,
+            "bottom": 339.1373507400165
+          },
+          "actualTile": 29,
+          "simTick": 99,
+          "diagnostics": {
+            "dpr": 1,
+            "p50": 100,
+            "p95": 100,
+            "drawCalls": 94,
+            "triangles": 284365,
+            "geometries": 89,
+            "textures": 39,
+            "figures": 32,
+            "tier": 1,
+            "bias": 1,
+            "zoom": 0.45
+          },
+          "syntheticState": false,
+          "forcedLOD": false,
+          "gaps": []
+        }
+      ],
+      "ok": true,
+      "proofStatus": "automated-load-and-placement-pass-needs-visual-review"
+    },
+    {
+      "id": "river-bronze",
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads=",
+      "errors": [],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-infantry.glb",
+          "status": 200,
+          "bytes": 122236,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-general.glb",
+          "status": 200,
+          "bytes": 118660,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-ranged.glb",
+          "status": 200,
+          "bytes": 137020,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-bronze.glb",
+          "status": 200,
+          "bytes": 341700,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+          "status": 200,
+          "bytes": 661056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-bronze.glb",
+          "status": 200,
+          "bytes": 365184,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/bronze.glb",
+          "status": 200,
+          "bytes": 21548,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        }
+      ],
+      "shots": [
+        "river-bronze-1600x900-far-LOD1-zoom0.5-bridge-wood.png",
+        "river-bronze-1600x900-far-LOD2-zoom0.45-bridge-wood.png"
+      ],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads=",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 338,
+      "audit": {
+        "screenshotTiming": {
+          "rafIntervalMs": 200,
+          "performanceBenchmark": false,
+          "firstFrameGateQAOnly": true,
+          "gateChecks": 26,
+          "gateStartedAtMs": 10082.10000000894,
+          "firstFrameAtMs": 15774,
+          "gateDurationMs": 5691.899999991059
+        },
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 94,
+          "triangles": 685575,
+          "geometries": 49,
+          "textures": 39,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "field",
+        "actualTile": 29,
+        "simTick": 338,
+        "canvas": {
+          "width": 1600,
+          "height": 900,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "conifer",
+        "assets": [
+          {
+            "key": "battle/terrain/river-kit.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 557,
+            "objects": [
+              "bank",
+              "straight",
+              "bend",
+              "junction",
+              "end",
+              "straight-5",
+              "bend-5",
+              "junction-5",
+              "end-5",
+              "straight-8",
+              "bend-8",
+              "junction-8",
+              "end-8"
+            ]
+          },
+          {
+            "key": "battle/terrain/ford.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 170,
+            "objects": [
+              "ford"
+            ]
+          },
+          {
+            "key": "battle/terrain/bridge-wood.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 3,
+            "objects": [
+              "bridge-wood",
+              "bridge-wood-damaged",
+              "bridge-wood-destroyed"
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "bank",
+            "x": 1.4999898988753557,
+            "z": 1.000000194646418,
+            "worldCorners": [
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              }
+            ],
+            "height": 0.18691258318722248,
+            "copies": 557
+          },
+          {
+            "name": "ford",
+            "x": 47.4999999795109,
+            "z": 0.500000799074769,
+            "worldCorners": [
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              }
+            ],
+            "height": 0.18974577449262142,
+            "copies": 170
+          },
+          {
+            "name": "bridge-wood",
+            "x": 45,
+            "z": 24.500001618638635,
+            "worldCorners": [
+              {
+                "x": 43.44791668653488,
+                "y": -0.1067913448496256,
+                "z": 24.912504196166992
+              },
+              {
+                "x": 46.55208331346512,
+                "y": -0.1067913448496256,
+                "z": 24.912504196166992
+              },
+              {
+                "x": 43.44791668653488,
+                "y": 0.48165441676974297,
+                "z": 24.912504196166992
+              },
+              {
+                "x": 46.55208331346512,
+                "y": 0.48165441676974297,
+                "z": 24.912504196166992
+              },
+              {
+                "x": 43.44791668653488,
+                "y": -0.1067913448496256,
+                "z": 24.087499041110277
+              },
+              {
+                "x": 46.55208331346512,
+                "y": -0.1067913448496256,
+                "z": 24.087499041110277
+              },
+              {
+                "x": 43.44791668653488,
+                "y": 0.48165441676974297,
+                "z": 24.087499041110277
+              },
+              {
+                "x": 46.55208331346512,
+                "y": 0.48165441676974297,
+                "z": 24.087499041110277
+              }
+            ],
+            "height": 0.5884457616193686,
+            "copies": 3
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 170,
+          "banks": 557,
+          "bridges": 3
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 1.5,
+              "z": 34.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 102.5,
+              "z": 34.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker"
+          ],
+          "instances": {
+            "copies": 2,
+            "draws": 2
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "farAudit": [
+        {
+          "target": "bridge-wood",
+          "requestedZoom": 0.5,
+          "actualZoom": 0.5,
+          "expectedLOD": 1,
+          "selectedLOD": 1,
+          "roots": [
+            {
+              "kind": "bank",
+              "rootName": "bank",
+              "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                1
+              ],
+              "copies": 557,
+              "triangles": 40,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "bank",
+                  "btr_asset": "river-kit",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "ford",
+              "rootName": "ford",
+              "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                1
+              ],
+              "copies": 170,
+              "triangles": 138,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "ford",
+                  "btr_asset": "ford",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "bridge",
+              "rootName": "bridge-wood",
+              "url": "/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                1
+              ],
+              "copies": 3,
+              "triangles": 464,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "bridge-wood",
+                  "btr_asset": "bridge-wood",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10,
+                  "socket_span_metres": 10
+                },
+                "geometryMetadata": {}
+              }
+            }
+          ],
+          "projectedTargetBounds": {
+            "left": 1307.7247216825153,
+            "right": 1349.3998818548625,
+            "top": 638.9489973804177,
+            "bottom": 673.1626058621056
+          },
+          "actualTile": 29,
+          "simTick": 338,
+          "diagnostics": {
+            "dpr": 1,
+            "p50": 100,
+            "p95": 100,
+            "drawCalls": 123,
+            "triangles": 337215,
+            "geometries": 94,
+            "textures": 39,
+            "figures": 32,
+            "tier": 1,
+            "bias": 1,
+            "zoom": 0.5
+          },
+          "syntheticState": false,
+          "forcedLOD": false,
+          "gaps": []
+        },
+        {
+          "target": "bridge-wood",
+          "requestedZoom": 0.45,
+          "actualZoom": 0.45,
+          "expectedLOD": 2,
+          "selectedLOD": 2,
+          "roots": [
+            {
+              "kind": "bank",
+              "rootName": "bank",
+              "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                2
+              ],
+              "copies": 557,
+              "triangles": 16,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "bank",
+                  "btr_asset": "river-kit",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "ford",
+              "rootName": "ford",
+              "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                2
+              ],
+              "copies": 170,
+              "triangles": 102,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "ford",
+                  "btr_asset": "ford",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "bridge",
+              "rootName": "bridge-wood",
+              "url": "/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "active": true,
+              "activeLevels": [
+                2
+              ],
+              "copies": 3,
+              "triangles": 184,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "bridge-wood",
+                  "btr_asset": "bridge-wood",
+                  "concept_sheet": "/workspace/terra-remaining/plans/art/concepts/wave7/battle-terrain.png",
+                  "metres_per_unit": 10,
+                  "socket_span_metres": 10
+                },
+                "geometryMetadata": {}
+              }
+            }
+          ],
+          "projectedTargetBounds": {
+            "left": 1256.952249514264,
+            "right": 1294.4598936693762,
+            "top": 619.1268879418488,
+            "bottom": 649.5747933323304
+          },
+          "actualTile": 29,
+          "simTick": 338,
+          "diagnostics": {
+            "dpr": 1,
+            "p50": 100,
+            "p95": 100,
+            "drawCalls": 125,
+            "triangles": 291675,
+            "geometries": 110,
+            "textures": 39,
+            "figures": 32,
+            "tier": 1,
+            "bias": 1,
+            "zoom": 0.45
+          },
+          "syntheticState": false,
+          "forcedLOD": false,
+          "gaps": []
+        }
+      ],
+      "ok": true,
+      "proofStatus": "automated-load-and-placement-pass-needs-visual-review"
+    },
+    {
+      "id": "nature-conifer",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=forest&age=bronze&tile=1374",
+      "errors": [],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-infantry.glb",
+          "status": 200,
+          "bytes": 122236,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-ranged.glb",
+          "status": 200,
+          "bytes": 137020,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-general.glb",
+          "status": 200,
+          "bytes": 118660,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/bronze.glb",
+          "status": 200,
+          "bytes": 21548,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-bronze.glb",
+          "status": 200,
+          "bytes": 365184,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-bronze.glb",
+          "status": 200,
+          "bytes": 341700,
+          "validGLB": true
+        }
+      ],
+      "shots": [
+        "nature-conifer-844x390-far-LOD1-zoom1-conifer.png",
+        "nature-conifer-844x390-far-LOD2-zoom0.5-conifer.png"
+      ],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=forest&age=bronze&tile=1374",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 102,
+      "audit": {
+        "screenshotTiming": {
+          "rafIntervalMs": 200,
+          "performanceBenchmark": false,
+          "firstFrameGateQAOnly": true,
+          "gateChecks": 22,
+          "gateStartedAtMs": 9493.10000000894,
+          "firstFrameAtMs": 14008.300000011921,
+          "gateDurationMs": 4515.20000000298
+        },
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 78,
+          "triangles": 547353,
+          "geometries": 49,
+          "textures": 30,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "ambush",
+        "actualTile": 1374,
+        "simTick": 102,
+        "canvas": {
+          "width": 844,
+          "height": 390,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "conifer",
+        "assets": [
+          {
+            "key": "battle/nature/vegetation-conifer.glb",
+            "url": "/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 6380,
+            "objects": [
+              "tree-s",
+              "tree-m",
+              "tree-l",
+              "stump",
+              "felled",
+              "bush",
+              "rock-s",
+              "rock-m",
+              "grass-tuft"
+            ],
+            "matchedKinds": [
+              {
+                "kind": "pine",
+                "copies": 2781
+              },
+              {
+                "kind": "oak",
+                "copies": 2357
+              },
+              {
+                "kind": "rock",
+                "copies": 136
+              },
+              {
+                "kind": "tuft",
+                "copies": 1106
+              }
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "vegetation-conifer",
+            "x": 0.2533488492926921,
+            "z": 0.3390567835740943,
+            "worldCorners": [
+              {
+                "x": 0.5615923981235218,
+                "y": 0.06015624850988388,
+                "z": 0.814551310295303
+              },
+              {
+                "x": 0.7256983322486201,
+                "y": 0.06015624850988388,
+                "z": 0.02601509898733223
+              },
+              {
+                "x": 0.5615923981235218,
+                "y": 2.1047193836258344,
+                "z": 0.814551310295303
+              },
+              {
+                "x": 0.7256983322486201,
+                "y": 2.1047193836258344,
+                "z": 0.02601509898733223
+              },
+              {
+                "x": -0.21900063366323597,
+                "y": 0.06015624850988388,
+                "z": 0.6520984681608564
+              },
+              {
+                "x": -0.05489469953813764,
+                "y": 0.06015624850988388,
+                "z": -0.13643774314711443
+              },
+              {
+                "x": -0.21900063366323597,
+                "y": 2.1047193836258344,
+                "z": 0.6520984681608564
+              },
+              {
+                "x": -0.05489469953813764,
+                "y": 2.1047193836258344,
+                "z": -0.13643774314711443
+              }
+            ],
+            "height": 2.0445631351159506,
+            "copies": 424
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 48.62402845086332,
+            "z": 0.37465867074846015,
+            "worldCorners": [
+              {
+                "x": 49.14079180026103,
+                "y": -0.05256318673491478,
+                "z": 0.9291452882580573
+              },
+              {
+                "x": 49.173254910208456,
+                "y": -0.05256318673491478,
+                "z": -0.14769184818798764
+              },
+              {
+                "x": 49.14079180026103,
+                "y": 2.795903342861294,
+                "z": 0.9291452882580573
+              },
+              {
+                "x": 49.173254910208456,
+                "y": 2.795903342861294,
+                "z": -0.14769184818798764
+              },
+              {
+                "x": 48.074801991518186,
+                "y": -0.05256318673491478,
+                "z": 0.897009189684908
+              },
+              {
+                "x": 48.107265101465615,
+                "y": -0.05256318673491478,
+                "z": -0.179827946761137
+              },
+              {
+                "x": 48.074801991518186,
+                "y": 2.795903342861294,
+                "z": 0.897009189684908
+              },
+              {
+                "x": 48.107265101465615,
+                "y": 2.795903342861294,
+                "z": -0.179827946761137
+              }
+            ],
+            "height": 2.848466529596209,
+            "copies": 593
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 17.346080141799764,
+            "z": 48.25504120746385,
+            "worldCorners": [
+              {
+                "x": 17.790309557126896,
+                "y": 0.007644088007509708,
+                "z": 47.83831343439806
+              },
+              {
+                "x": 16.92487632247866,
+                "y": 0.007644088007509708,
+                "z": 47.81505353391427
+              },
+              {
+                "x": 17.790309557126896,
+                "y": 1.9510592712355503,
+                "z": 47.83831343439806
+              },
+              {
+                "x": 16.92487632247866,
+                "y": 1.9510592712355503,
+                "z": 47.81505353391427
+              },
+              {
+                "x": 17.767283961120867,
+                "y": 0.007644088007509708,
+                "z": 48.695028881013414
+              },
+              {
+                "x": 16.90185072647263,
+                "y": 0.007644088007509708,
+                "z": 48.67176898052963
+              },
+              {
+                "x": 17.767283961120867,
+                "y": 1.9510592712355503,
+                "z": 48.695028881013414
+              },
+              {
+                "x": 16.90185072647263,
+                "y": 1.9510592712355503,
+                "z": 48.67176898052963
+              }
+            ],
+            "height": 1.9434151832280406,
+            "copies": 222
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 61.46520445379466,
+            "z": 48.4157121698651,
+            "worldCorners": [
+              {
+                "x": 61.358353920800894,
+                "y": -0.04003950208425522,
+                "z": 47.8891793651829
+              },
+              {
+                "x": 60.93978039444451,
+                "y": -0.04003950208425522,
+                "z": 48.527887874291594
+              },
+              {
+                "x": 61.358353920800894,
+                "y": 1.8382354323869379,
+                "z": 47.8891793651829
+              },
+              {
+                "x": 60.93978039444451,
+                "y": 1.8382354323869379,
+                "z": 48.527887874291594
+              },
+              {
+                "x": 61.99062851314481,
+                "y": -0.04003950208425522,
+                "z": 48.30353646543861
+              },
+              {
+                "x": 61.57205498678843,
+                "y": -0.04003950208425522,
+                "z": 48.94224497454732
+              },
+              {
+                "x": 61.99062851314481,
+                "y": 1.8382354323869379,
+                "z": 48.30353646543861
+              },
+              {
+                "x": 61.57205498678843,
+                "y": 1.8382354323869379,
+                "z": 48.94224497454732
+              }
+            ],
+            "height": 1.878274934471193,
+            "copies": 314
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 10.213170434972485,
+            "z": -38.5851420304885,
+            "worldCorners": [
+              {
+                "x": 9.765772910347009,
+                "y": -0.09722483903169632,
+                "z": -39.097024102643175
+              },
+              {
+                "x": 9.705844074039709,
+                "y": -0.09722483903169632,
+                "z": -38.132585112148845
+              },
+              {
+                "x": 9.765772910347009,
+                "y": 2.2552494961288687,
+                "z": -39.097024102643175
+              },
+              {
+                "x": 9.705844074039709,
+                "y": 2.2552494961288687,
+                "z": -38.132585112148845
+              },
+              {
+                "x": 10.72049679590526,
+                "y": -0.09722483903169632,
+                "z": -39.037698948828144
+              },
+              {
+                "x": 10.66056795959796,
+                "y": -0.09722483903169632,
+                "z": -38.073259958333814
+              },
+              {
+                "x": 10.72049679590526,
+                "y": 2.2552494961288687,
+                "z": -39.037698948828144
+              },
+              {
+                "x": 10.66056795959796,
+                "y": 2.2552494961288687,
+                "z": -38.073259958333814
+              }
+            ],
+            "height": 2.352474335160565,
+            "copies": 115
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 60.508665278866744,
+            "z": -38.50909684234132,
+            "worldCorners": [
+              {
+                "x": 59.91877207597499,
+                "y": -0.08017858117818832,
+                "z": -38.30610576276304
+              },
+              {
+                "x": 60.71761806692118,
+                "y": -0.08017858117818832,
+                "z": -37.92128896422933
+              },
+              {
+                "x": 59.91877207597499,
+                "y": 1.9453376270265181,
+                "z": -38.30610576276304
+              },
+              {
+                "x": 60.71761806692118,
+                "y": 1.9453376270265181,
+                "z": -37.92128896422933
+              },
+              {
+                "x": 60.29971249081231,
+                "y": -0.08017858117818832,
+                "z": -39.09690472045332
+              },
+              {
+                "x": 61.0985584817585,
+                "y": -0.08017858117818832,
+                "z": -38.71208792191961
+              },
+              {
+                "x": 60.29971249081231,
+                "y": 1.9453376270265181,
+                "z": -39.09690472045332
+              },
+              {
+                "x": 61.0985584817585,
+                "y": 1.9453376270265181,
+                "z": -38.71208792191961
+              }
+            ],
+            "height": 2.0255162082047065,
+            "copies": 215
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 111.05966205017425,
+            "z": -38.631570224512984,
+            "worldCorners": [
+              {
+                "x": 111.18953469392186,
+                "y": -0.08193331211805344,
+                "z": -39.333734465049055
+              },
+              {
+                "x": 110.35621895736313,
+                "y": -0.08193331211805344,
+                "z": -38.75432746241735
+              },
+              {
+                "x": 111.18953469392186,
+                "y": 2.4821621213792753,
+                "z": -39.333734465049055
+              },
+              {
+                "x": 110.35621895736313,
+                "y": 2.4821621213792753,
+                "z": -38.75432746241735
+              },
+              {
+                "x": 111.76310514298538,
+                "y": -0.08193331211805344,
+                "z": -38.50881298660862
+              },
+              {
+                "x": 110.92978940642665,
+                "y": -0.08193331211805344,
+                "z": -37.92940598397692
+              },
+              {
+                "x": 111.76310514298538,
+                "y": 2.4821621213792753,
+                "z": -38.50881298660862
+              },
+              {
+                "x": 110.92978940642665,
+                "y": 2.4821621213792753,
+                "z": -37.92940598397692
+              }
+            ],
+            "height": 2.5640954334973287,
+            "copies": 101
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -22.188882285686706,
+            "z": -37.02538288471731,
+            "worldCorners": [
+              {
+                "x": -22.543995284968464,
+                "y": 0.12092642486095428,
+                "z": -36.57432785187549
+              },
+              {
+                "x": -21.73425518541225,
+                "y": 0.12092642486095428,
+                "z": -36.674854591127676
+              },
+              {
+                "x": -22.543995284968464,
+                "y": 2.20840992385655,
+                "z": -36.57432785187549
+              },
+              {
+                "x": -21.73425518541225,
+                "y": 2.20840992385655,
+                "z": -36.674854591127676
+              },
+              {
+                "x": -22.64350938596116,
+                "y": 0.12092642486095428,
+                "z": -37.37591117830694
+              },
+              {
+                "x": -21.833769286404944,
+                "y": 0.12092642486095428,
+                "z": -37.476437917559124
+              },
+              {
+                "x": -22.64350938596116,
+                "y": 2.20840992385655,
+                "z": -37.37591117830694
+              },
+              {
+                "x": -21.833769286404944,
+                "y": 2.20840992385655,
+                "z": -37.476437917559124
+              }
+            ],
+            "height": 2.0874834989955957,
+            "copies": 135
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -38.795698906136714,
+            "z": 0.5748692656737573,
+            "worldCorners": [
+              {
+                "x": -38.155379635344666,
+                "y": -0.08214638382196426,
+                "z": 0.8546270523275457
+              },
+              {
+                "x": -38.52243808495225,
+                "y": -0.08214638382196426,
+                "z": -0.06824947246616198
+              },
+              {
+                "x": -38.155379635344666,
+                "y": 2.3862030072558866,
+                "z": 0.8546270523275457
+              },
+              {
+                "x": -38.52243808495225,
+                "y": 2.3862030072558866,
+                "z": -0.06824947246616198
+              },
+              {
+                "x": -39.06895972732118,
+                "y": -0.08214638382196426,
+                "z": 1.2179880038136766
+              },
+              {
+                "x": -39.43601817692876,
+                "y": -0.08214638382196426,
+                "z": 0.2951114790199689
+              },
+              {
+                "x": -39.06895972732118,
+                "y": 2.3862030072558866,
+                "z": 1.2179880038136766
+              },
+              {
+                "x": -39.43601817692876,
+                "y": 2.3862030072558866,
+                "z": 0.2951114790199689
+              }
+            ],
+            "height": 2.468349391077851,
+            "copies": 215
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 99.75603565675323,
+            "z": 0.6687061418751448,
+            "worldCorners": [
+              {
+                "x": 99.92122180568086,
+                "y": -0.012396637350320816,
+                "z": 0.033692573933539194
+              },
+              {
+                "x": 99.11938227919809,
+                "y": -0.012396637350320816,
+                "z": 0.5099573714386274
+              },
+              {
+                "x": 99.92122180568086,
+                "y": 2.198806914184928,
+                "z": 0.033692573933539194
+              },
+              {
+                "x": 99.11938227919809,
+                "y": 2.198806914184928,
+                "z": 0.5099573714386274
+              },
+              {
+                "x": 100.39268903430836,
+                "y": -0.012396637350320816,
+                "z": 0.8274549123116621
+              },
+              {
+                "x": 99.5908495078256,
+                "y": -0.012396637350320816,
+                "z": 1.3037197098167503
+              },
+              {
+                "x": 100.39268903430836,
+                "y": 2.198806914184928,
+                "z": 0.8274549123116621
+              },
+              {
+                "x": 99.5908495078256,
+                "y": 2.198806914184928,
+                "z": 1.3037197098167503
+              }
+            ],
+            "height": 2.211203551535249,
+            "copies": 126
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -24.873311174265808,
+            "z": 48.294677358425574,
+            "worldCorners": [
+              {
+                "x": -24.61384913669422,
+                "y": 0.059136781841516495,
+                "z": 47.708166391599434
+              },
+              {
+                "x": -25.46241889079655,
+                "y": 0.059136781841516495,
+                "z": 48.04116648790507
+              },
+              {
+                "x": -24.61384913669422,
+                "y": 2.184236165002787,
+                "z": 47.708166391599434
+              },
+              {
+                "x": -25.46241889079655,
+                "y": 2.184236165002787,
+                "z": 48.04116648790507
+              },
+              {
+                "x": -24.284203457735064,
+                "y": 0.059136781841516495,
+                "z": 48.548188228946074
+              },
+              {
+                "x": -25.132773211837392,
+                "y": 0.059136781841516495,
+                "z": 48.88118832525171
+              },
+              {
+                "x": -24.284203457735064,
+                "y": 2.184236165002787,
+                "z": 48.548188228946074
+              },
+              {
+                "x": -25.132773211837392,
+                "y": 2.184236165002787,
+                "z": 48.88118832525171
+              }
+            ],
+            "height": 2.1250993831612703,
+            "copies": 80
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 98.49583218113678,
+            "z": 48.10439675287791,
+            "worldCorners": [
+              {
+                "x": 97.80135924057991,
+                "y": -0.005104514304548502,
+                "z": 48.32594351185507
+              },
+              {
+                "x": 98.72439846871548,
+                "y": -0.005104514304548502,
+                "z": 48.79659115025589
+              },
+              {
+                "x": 97.80135924057991,
+                "y": 2.6537778751733185,
+                "z": 48.32594351185507
+              },
+              {
+                "x": 98.72439846871548,
+                "y": 2.6537778751733185,
+                "z": 48.79659115025589
+              },
+              {
+                "x": 98.26726589355808,
+                "y": -0.005104514304548502,
+                "z": 47.41220235549993
+              },
+              {
+                "x": 99.19030512169364,
+                "y": -0.005104514304548502,
+                "z": 47.88284999390075
+              },
+              {
+                "x": 98.26726589355808,
+                "y": 2.6537778751733185,
+                "z": 47.41220235549993
+              },
+              {
+                "x": 99.19030512169364,
+                "y": 2.6537778751733185,
+                "z": 47.88284999390075
+              }
+            ],
+            "height": 2.658882389477867,
+            "copies": 133
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -24.875422873867073,
+            "z": 97.30367569321668,
+            "worldCorners": [
+              {
+                "x": -25.013076984453804,
+                "y": 0.051619432866573334,
+                "z": 96.68532941395209
+              },
+              {
+                "x": -25.49234384526161,
+                "y": 0.051619432866573334,
+                "z": 97.4475829213027
+              },
+              {
+                "x": -25.013076984453804,
+                "y": 2.1317174155354053,
+                "z": 96.68532941395209
+              },
+              {
+                "x": -25.49234384526161,
+                "y": 2.1317174155354053,
+                "z": 97.4475829213027
+              },
+              {
+                "x": -24.258501902472545,
+                "y": 0.051619432866573334,
+                "z": 97.15976846513064
+              },
+              {
+                "x": -24.737768763280343,
+                "y": 0.051619432866573334,
+                "z": 97.92202197248125
+              },
+              {
+                "x": -24.258501902472545,
+                "y": 2.1317174155354053,
+                "z": 97.15976846513064
+              },
+              {
+                "x": -24.737768763280343,
+                "y": 2.1317174155354053,
+                "z": 97.92202197248125
+              }
+            ],
+            "height": 2.080097982668832,
+            "copies": 21
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 32.63134308899909,
+            "z": 97.1978837223615,
+            "worldCorners": [
+              {
+                "x": 32.21365133948719,
+                "y": 0.004474236164242029,
+                "z": 96.64821156071716
+              },
+              {
+                "x": 32.085927832378566,
+                "y": 0.004474236164242029,
+                "z": 97.62111897696896
+              },
+              {
+                "x": 32.21365133948719,
+                "y": 2.4210515800307917,
+                "z": 96.64821156071716
+              },
+              {
+                "x": 32.085927832378566,
+                "y": 2.4210515800307917,
+                "z": 97.62111897696896
+              },
+              {
+                "x": 33.176758345619604,
+                "y": 0.004474236164242029,
+                "z": 96.77464846775405
+              },
+              {
+                "x": 33.04903483851098,
+                "y": 0.004474236164242029,
+                "z": 97.74755588400585
+              },
+              {
+                "x": 33.176758345619604,
+                "y": 2.4210515800307917,
+                "z": 96.77464846775405
+              },
+              {
+                "x": 33.04903483851098,
+                "y": 2.4210515800307917,
+                "z": 97.74755588400585
+              }
+            ],
+            "height": 2.4165773438665497,
+            "copies": 21
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 74.52971922513854,
+            "z": 97.254660982827,
+            "worldCorners": [
+              {
+                "x": 74.1265495543918,
+                "y": 0.6199156045913696,
+                "z": 97.7533261729672
+              },
+              {
+                "x": 75.03244057113321,
+                "y": 0.6199156045913696,
+                "z": 97.65276147711063
+              },
+              {
+                "x": 74.1265495543918,
+                "y": 2.744553147113052,
+                "z": 97.7533261729672
+              },
+              {
+                "x": 75.03244057113321,
+                "y": 2.744553147113052,
+                "z": 97.65276147711063
+              },
+              {
+                "x": 74.02699787914385,
+                "y": 0.6199156045913696,
+                "z": 96.85656048854338
+              },
+              {
+                "x": 74.93288889588526,
+                "y": 0.6199156045913696,
+                "z": 96.7559957926868
+              },
+              {
+                "x": 74.02699787914385,
+                "y": 2.744553147113052,
+                "z": 96.85656048854338
+              },
+              {
+                "x": 74.93288889588526,
+                "y": 2.744553147113052,
+                "z": 96.7559957926868
+              }
+            ],
+            "height": 2.1246375425216826,
+            "copies": 25
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 122.2196073265657,
+            "z": 97.19018791112339,
+            "worldCorners": [
+              {
+                "x": 122.78435404316923,
+                "y": -0.08213658630847931,
+                "z": 96.77557673307864
+              },
+              {
+                "x": 121.7992998699124,
+                "y": -0.08213658630847931,
+                "z": 96.62966768423077
+              },
+              {
+                "x": 122.78435404316923,
+                "y": 2.397596481545037,
+                "z": 96.77557673307864
+              },
+              {
+                "x": 121.7992998699124,
+                "y": 2.397596481545037,
+                "z": 96.62966768423077
+              },
+              {
+                "x": 122.63991478321898,
+                "y": -0.08213658630847931,
+                "z": 97.75070813801602
+              },
+              {
+                "x": 121.65486060996216,
+                "y": -0.08213658630847931,
+                "z": 97.60479908916815
+              },
+              {
+                "x": 122.63991478321898,
+                "y": 2.397596481545037,
+                "z": 97.75070813801602
+              },
+              {
+                "x": 121.65486060996216,
+                "y": 2.397596481545037,
+                "z": 97.60479908916815
+              }
+            ],
+            "height": 2.479733067853516,
+            "copies": 41
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 1.3555529277546317,
+            "z": 0.5217280316836488,
+            "worldCorners": [
+              {
+                "x": 1.6067786497393262,
+                "y": 0.048935845494270325,
+                "z": 0.9231881256611261
+              },
+              {
+                "x": 1.7460825763981869,
+                "y": 0.048935845494270325,
+                "z": 0.25382662449533777
+              },
+              {
+                "x": 1.6067786497393262,
+                "y": 1.1471300817284984,
+                "z": 0.9231881256611261
+              },
+              {
+                "x": 1.7460825763981869,
+                "y": 1.1471300817284984,
+                "z": 0.25382662449533777
+              },
+              {
+                "x": 0.9650232791110764,
+                "y": 0.048935845494270325,
+                "z": 0.7896294388719598
+              },
+              {
+                "x": 1.1043272057699371,
+                "y": 0.048935845494270325,
+                "z": 0.1202679377061715
+              },
+              {
+                "x": 0.9650232791110764,
+                "y": 1.1471300817284984,
+                "z": 0.7896294388719598
+              },
+              {
+                "x": 1.1043272057699371,
+                "y": 1.1471300817284984,
+                "z": 0.1202679377061715
+              }
+            ],
+            "height": 1.098194236234228,
+            "copies": 504
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 48.651952938969316,
+            "z": 0.39889843800141556,
+            "worldCorners": [
+              {
+                "x": 48.97956594652255,
+                "y": -0.0525844506919384,
+                "z": 0.5240316819000554
+              },
+              {
+                "x": 48.763185328610376,
+                "y": -0.0525844506919384,
+                "z": 0.0663086502125978
+              },
+              {
+                "x": 48.97956594652255,
+                "y": 0.7606428004861456,
+                "z": 0.5240316819000554
+              },
+              {
+                "x": 48.763185328610376,
+                "y": 0.7606428004861456,
+                "z": 0.0663086502125978
+              },
+              {
+                "x": 48.540720549328256,
+                "y": -0.0525844506919384,
+                "z": 0.7314882257902333
+              },
+              {
+                "x": 48.32433993141608,
+                "y": -0.0525844506919384,
+                "z": 0.27376519410277567
+              },
+              {
+                "x": 48.540720549328256,
+                "y": 0.7606428004861456,
+                "z": 0.7314882257902333
+              },
+              {
+                "x": 48.32433993141608,
+                "y": 0.7606428004861456,
+                "z": 0.27376519410277567
+              }
+            ],
+            "height": 0.813227251178084,
+            "copies": 639
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 18.62519865375632,
+            "z": 48.399528535124425,
+            "worldCorners": [
+              {
+                "x": 18.663794089685183,
+                "y": 0.018066320568323135,
+                "z": 48.04455408728158
+              },
+              {
+                "x": 18.26891424207331,
+                "y": 0.018066320568323135,
+                "z": 48.37590896087842
+              },
+              {
+                "x": 18.663794089685183,
+                "y": 0.8460628822513669,
+                "z": 48.04455408728158
+              },
+              {
+                "x": 18.26891424207331,
+                "y": 0.8460628822513669,
+                "z": 48.37590896087842
+              },
+              {
+                "x": 18.981483065439328,
+                "y": 0.018066320568323135,
+                "z": 48.42314810937042
+              },
+              {
+                "x": 18.58660321782746,
+                "y": 0.018066320568323135,
+                "z": 48.75450298296727
+              },
+              {
+                "x": 18.981483065439328,
+                "y": 0.8460628822513669,
+                "z": 48.42314810937042
+              },
+              {
+                "x": 18.58660321782746,
+                "y": 0.8460628822513669,
+                "z": 48.75450298296727
+              }
+            ],
+            "height": 0.8279965616830438,
+            "copies": 228
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 61.639793280124714,
+            "z": 48.62098400174155,
+            "worldCorners": [
+              {
+                "x": 61.065827921919755,
+                "y": -0.04121068865060806,
+                "z": 48.477898186652105
+              },
+              {
+                "x": 61.52099374271249,
+                "y": -0.04121068865060806,
+                "z": 49.2004634688582
+              },
+              {
+                "x": 61.065827921919755,
+                "y": 1.330484189248054,
+                "z": 48.477898186652105
+              },
+              {
+                "x": 61.52099374271249,
+                "y": 1.330484189248054,
+                "z": 49.2004634688582
+              },
+              {
+                "x": 61.758592817536936,
+                "y": -0.04121068865060806,
+                "z": 48.0415045346249
+              },
+              {
+                "x": 62.21375863832967,
+                "y": -0.04121068865060806,
+                "z": 48.76406981683099
+              },
+              {
+                "x": 61.758592817536936,
+                "y": 1.330484189248054,
+                "z": 48.0415045346249
+              },
+              {
+                "x": 62.21375863832967,
+                "y": 1.330484189248054,
+                "z": 48.76406981683099
+              }
+            ],
+            "height": 1.371694877898662,
+            "copies": 315
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 8.931971790907504,
+            "z": -38.74477330808587,
+            "worldCorners": [
+              {
+                "x": 9.219380363842362,
+                "y": -0.09798698127269745,
+                "z": -39.26506251474461
+              },
+              {
+                "x": 8.400046041305892,
+                "y": -0.09798698127269745,
+                "z": -39.01002704184432
+              },
+              {
+                "x": 9.219380363842362,
+                "y": 1.2803457926710422,
+                "z": -39.26506251474461
+              },
+              {
+                "x": 8.400046041305892,
+                "y": 1.2803457926710422,
+                "z": -39.01002704184432
+              },
+              {
+                "x": 9.463897540509114,
+                "y": -0.09798698127269745,
+                "z": -38.47951957432742
+              },
+              {
+                "x": 8.644563217972644,
+                "y": -0.09798698127269745,
+                "z": -38.22448410142713
+              },
+              {
+                "x": 9.463897540509114,
+                "y": 1.2803457926710422,
+                "z": -38.47951957432742
+              },
+              {
+                "x": 8.644563217972644,
+                "y": 1.2803457926710422,
+                "z": -38.22448410142713
+              }
+            ],
+            "height": 1.3783327739437397,
+            "copies": 64
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 69.1833092207743,
+            "z": -38.79634481788919,
+            "worldCorners": [
+              {
+                "x": 69.11961282297092,
+                "y": -0.09397803246974945,
+                "z": -39.41214179361984
+              },
+              {
+                "x": 68.57073912863696,
+                "y": -0.09397803246974945,
+                "z": -38.70678462231683
+              },
+              {
+                "x": 69.11961282297092,
+                "y": 1.3416039313779038,
+                "z": -39.41214179361984
+              },
+              {
+                "x": 68.57073912863696,
+                "y": 1.3416039313779038,
+                "z": -38.70678462231683
+              },
+              {
+                "x": 69.79587931291167,
+                "y": -0.09397803246974945,
+                "z": -38.88590501346156
+              },
+              {
+                "x": 69.2470056185777,
+                "y": -0.09397803246974945,
+                "z": -38.18054784215855
+              },
+              {
+                "x": 69.79587931291167,
+                "y": 1.3416039313779038,
+                "z": -38.88590501346156
+              },
+              {
+                "x": 69.2470056185777,
+                "y": 1.3416039313779038,
+                "z": -38.18054784215855
+              }
+            ],
+            "height": 1.4355819638476532,
+            "copies": 129
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 105.59003196435872,
+            "z": -38.77972123307013,
+            "worldCorners": [
+              {
+                "x": 105.08259734257253,
+                "y": -0.07445984333753586,
+                "z": -38.42715031640257
+              },
+              {
+                "x": 105.96364944818446,
+                "y": -0.07445984333753586,
+                "z": -38.2875768208832
+              },
+              {
+                "x": 105.08259734257253,
+                "y": 1.358371928951513,
+                "z": -38.42715031640257
+              },
+              {
+                "x": 105.96364944818446,
+                "y": 1.358371928951513,
+                "z": -38.2875768208832
+              },
+              {
+                "x": 105.21641448053296,
+                "y": -0.07445984333753586,
+                "z": -39.27186564525705
+              },
+              {
+                "x": 106.0974665861449,
+                "y": -0.07445984333753586,
+                "z": -39.13229214973768
+              },
+              {
+                "x": 105.21641448053296,
+                "y": 1.358371928951513,
+                "z": -39.27186564525705
+              },
+              {
+                "x": 106.0974665861449,
+                "y": 1.358371928951513,
+                "z": -39.13229214973768
+              }
+            ],
+            "height": 1.432831772289049,
+            "copies": 63
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -23.22033185444264,
+            "z": -37.367404157461884,
+            "worldCorners": [
+              {
+                "x": -23.09189857498427,
+                "y": 0.07222715020179749,
+                "z": -36.771589861799335
+              },
+              {
+                "x": -22.63045165015521,
+                "y": 0.07222715020179749,
+                "z": -37.52080274538927
+              },
+              {
+                "x": -23.09189857498427,
+                "y": 1.4855874547993295,
+                "z": -36.771589861799335
+              },
+              {
+                "x": -22.63045165015521,
+                "y": 1.4855874547993295,
+                "z": -37.52080274538927
+              },
+              {
+                "x": -23.810212058730073,
+                "y": 0.07222715020179749,
+                "z": -37.21400556953451
+              },
+              {
+                "x": -23.34876513390101,
+                "y": 0.07222715020179749,
+                "z": -37.96321845312444
+              },
+              {
+                "x": -23.810212058730073,
+                "y": 1.4855874547993295,
+                "z": -37.21400556953451
+              },
+              {
+                "x": -23.34876513390101,
+                "y": 1.4855874547993295,
+                "z": -37.96321845312444
+              }
+            ],
+            "height": 1.413360304597532,
+            "copies": 69
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 101.33579814927661,
+            "z": 0.4534705606128284,
+            "worldCorners": [
+              {
+                "x": 101.78909373494122,
+                "y": -0.03298896923661232,
+                "z": 0.06854957248406146
+              },
+              {
+                "x": 100.93213809604686,
+                "y": -0.03298896923661232,
+                "z": 0.01677888847835396
+              },
+              {
+                "x": 101.78909373494122,
+                "y": 1.3460000873819382,
+                "z": 0.06854957248406146
+              },
+              {
+                "x": 100.93213809604686,
+                "y": 1.3460000873819382,
+                "z": 0.01677888847835396
+              },
+              {
+                "x": 101.73945820250636,
+                "y": -0.03298896923661232,
+                "z": 0.8901622327473029
+              },
+              {
+                "x": 100.882502563612,
+                "y": -0.03298896923661232,
+                "z": 0.8383915487415954
+              },
+              {
+                "x": 101.73945820250636,
+                "y": 1.3460000873819382,
+                "z": 0.8901622327473029
+              },
+              {
+                "x": 100.882502563612,
+                "y": 1.3460000873819382,
+                "z": 0.8383915487415954
+              }
+            ],
+            "height": 1.3789890566185505,
+            "copies": 60
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -13.468100185360482,
+            "z": 4.680135517964513,
+            "worldCorners": [
+              {
+                "x": -13.364574309532498,
+                "y": 0.7437291741371155,
+                "z": 5.25940510047643
+              },
+              {
+                "x": -12.893701623715993,
+                "y": 0.7437291741371155,
+                "z": 4.5523186623850425
+              },
+              {
+                "x": -13.364574309532498,
+                "y": 2.108272800012301,
+                "z": 5.25940510047643
+              },
+              {
+                "x": -12.893701623715993,
+                "y": 2.108272800012301,
+                "z": 4.5523186623850425
+              },
+              {
+                "x": -14.042498747004972,
+                "y": 0.7437291741371155,
+                "z": 4.8079523735439835
+              },
+              {
+                "x": -13.571626061188466,
+                "y": 0.7437291741371155,
+                "z": 4.100865935452596
+              },
+              {
+                "x": -14.042498747004972,
+                "y": 2.108272800012301,
+                "z": 4.8079523735439835
+              },
+              {
+                "x": -13.571626061188466,
+                "y": 2.108272800012301,
+                "z": 4.100865935452596
+              }
+            ],
+            "height": 1.3645436258751857,
+            "copies": 104
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -14.87914256518724,
+            "z": 48.07011203769208,
+            "worldCorners": [
+              {
+                "x": -14.370334077230684,
+                "y": -0.10000000149011612,
+                "z": 47.776833675280365
+              },
+              {
+                "x": -15.193577872985475,
+                "y": -0.10000000149011612,
+                "z": 47.57409922285222
+              },
+              {
+                "x": -14.370334077230684,
+                "y": 1.2618365403048557,
+                "z": 47.776833675280365
+              },
+              {
+                "x": -15.193577872985475,
+                "y": 1.2618365403048557,
+                "z": 47.57409922285222
+              },
+              {
+                "x": -14.564707257389005,
+                "y": -0.10000000149011612,
+                "z": 48.566124852531935
+              },
+              {
+                "x": -15.387951053143796,
+                "y": -0.10000000149011612,
+                "z": 48.36339040010379
+              },
+              {
+                "x": -14.564707257389005,
+                "y": 1.2618365403048557,
+                "z": 48.566124852531935
+              },
+              {
+                "x": -15.387951053143796,
+                "y": 1.2618365403048557,
+                "z": 48.36339040010379
+              }
+            ],
+            "height": 1.3618365417949718,
+            "copies": 44
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 112.55823089397282,
+            "z": 53.6290807681435,
+            "worldCorners": [
+              {
+                "x": 112.48066456345192,
+                "y": 1.2357370853424072,
+                "z": 53.026144162310125
+              },
+              {
+                "x": 111.95909358997282,
+                "y": 1.2357370853424072,
+                "z": 53.73195728266441
+              },
+              {
+                "x": 112.48066456345192,
+                "y": 2.645400800737889,
+                "z": 53.026144162310125
+              },
+              {
+                "x": 111.95909358997282,
+                "y": 2.645400800737889,
+                "z": 53.73195728266441
+              },
+              {
+                "x": 113.1573681979728,
+                "y": 1.2357370853424072,
+                "z": 53.526204253622595
+              },
+              {
+                "x": 112.63579722449371,
+                "y": 1.2357370853424072,
+                "z": 54.23201737397688
+              },
+              {
+                "x": 113.1573681979728,
+                "y": 2.645400800737889,
+                "z": 53.526204253622595
+              },
+              {
+                "x": 112.63579722449371,
+                "y": 2.645400800737889,
+                "z": 54.23201737397688
+              }
+            ],
+            "height": 1.4096637153954816,
+            "copies": 80
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -23.223488071061873,
+            "z": 97.03646349705456,
+            "worldCorners": [
+              {
+                "x": -23.540929543846396,
+                "y": 0.025396069511771202,
+                "z": 97.55756557653453
+              },
+              {
+                "x": -22.68948601821306,
+                "y": 0.025396069511771202,
+                "z": 97.33168929781596
+              },
+              {
+                "x": -23.540929543846396,
+                "y": 1.4403280760495534,
+                "z": 97.55756557653453
+              },
+              {
+                "x": -22.68948601821306,
+                "y": 1.4403280760495534,
+                "z": 97.33168929781596
+              },
+              {
+                "x": -23.757490123910685,
+                "y": 0.025396069511771202,
+                "z": 96.74123769629315
+              },
+              {
+                "x": -22.90604659827735,
+                "y": 0.025396069511771202,
+                "z": 96.5153614175746
+              },
+              {
+                "x": -23.757490123910685,
+                "y": 1.4403280760495534,
+                "z": 96.74123769629315
+              },
+              {
+                "x": -22.90604659827735,
+                "y": 1.4403280760495534,
+                "z": 96.5153614175746
+              }
+            ],
+            "height": 1.4149320065377822,
+            "copies": 13
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 0.5625408224521147,
+            "z": 97.05087011381778,
+            "worldCorners": [
+              {
+                "x": 0.4705679950945356,
+                "y": 0.5821676254272461,
+                "z": 97.6465031131074
+              },
+              {
+                "x": 1.1615172691439728,
+                "y": 0.5821676254272461,
+                "z": 97.11768992467728
+              },
+              {
+                "x": 0.4705679950945356,
+                "y": 1.9797419058754997,
+                "z": 97.6465031131074
+              },
+              {
+                "x": 1.1615172691439728,
+                "y": 1.9797419058754997,
+                "z": 97.11768992467728
+              },
+              {
+                "x": -0.03643562423974345,
+                "y": 0.5821676254272461,
+                "z": 96.98405030295828
+              },
+              {
+                "x": 0.6545136498096937,
+                "y": 0.5821676254272461,
+                "z": 96.45523711452815
+              },
+              {
+                "x": -0.03643562423974345,
+                "y": 1.9797419058754997,
+                "z": 96.98405030295828
+              },
+              {
+                "x": 0.6545136498096937,
+                "y": 1.9797419058754997,
+                "z": 96.45523711452815
+              }
+            ],
+            "height": 1.3975742804482536,
+            "copies": 12
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 83.2051751712446,
+            "z": 97.00265989757537,
+            "worldCorners": [
+              {
+                "x": 83.62081774414914,
+                "y": 0.7983204126358032,
+                "z": 97.46350984945785
+              },
+              {
+                "x": 83.6481213752787,
+                "y": 0.7983204126358032,
+                "z": 96.5679875072714
+              },
+              {
+                "x": 83.62081774414914,
+                "y": 2.237415881832419,
+                "z": 97.46350984945785
+              },
+              {
+                "x": 83.6481213752787,
+                "y": 2.237415881832419,
+                "z": 96.5679875072714
+              },
+              {
+                "x": 82.7622289672105,
+                "y": 0.7983204126358032,
+                "z": 97.43733228787934
+              },
+              {
+                "x": 82.78953259834006,
+                "y": 0.7983204126358032,
+                "z": 96.54180994569289
+              },
+              {
+                "x": 82.7622289672105,
+                "y": 2.237415881832419,
+                "z": 97.43733228787934
+              },
+              {
+                "x": 82.78953259834006,
+                "y": 2.237415881832419,
+                "z": 96.54180994569289
+              }
+            ],
+            "height": 1.4390954691966158,
+            "copies": 11
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 119.55411548618314,
+            "z": 97.03836242983682,
+            "worldCorners": [
+              {
+                "x": 119.14281405789013,
+                "y": 0.04141433537006378,
+                "z": 96.59283342593915
+              },
+              {
+                "x": 119.12629392331559,
+                "y": 0.04141433537006378,
+                "z": 97.46805263053434
+              },
+              {
+                "x": 119.14281405789013,
+                "y": 1.4474799695274214,
+                "z": 96.59283342593915
+              },
+              {
+                "x": 119.12629392331559,
+                "y": 1.4474799695274214,
+                "z": 97.46805263053434
+              },
+              {
+                "x": 119.98193704905069,
+                "y": 0.04141433537006378,
+                "z": 96.6086722291393
+              },
+              {
+                "x": 119.96541691447614,
+                "y": 0.04141433537006378,
+                "z": 97.4838914337345
+              },
+              {
+                "x": 119.98193704905069,
+                "y": 1.4474799695274214,
+                "z": 96.6086722291393
+              },
+              {
+                "x": 119.96541691447614,
+                "y": 1.4474799695274214,
+                "z": 97.4838914337345
+              }
+            ],
+            "height": 1.4060656341573576,
+            "copies": 22
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 0,
+          "banks": 0,
+          "bridges": 0
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 1.5,
+              "z": 32.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 94.5,
+              "z": 32.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker"
+          ],
+          "instances": {
+            "copies": 2,
+            "draws": 2
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "farAudit": [
+        {
+          "requestedZoom": 1,
+          "actualZoom": 1,
+          "expectedLOD": 1,
+          "selectedLOD": 1,
+          "roots": [
+            {
+              "kind": "pine",
+              "rootName": "tree-l",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "activeLevels": [
+                1
+              ],
+              "copies": 2781,
+              "exclusivelySelected": true,
+              "triangles": 54,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "tree-l"
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "oak",
+              "rootName": "tree-m",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "activeLevels": [
+                1
+              ],
+              "copies": 2357,
+              "exclusivelySelected": true,
+              "triangles": 54,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "tree-m"
+                },
+                "geometryMetadata": {}
+              }
+            }
+          ],
+          "actualTile": 1374,
+          "simTick": 102,
+          "diagnostics": {
+            "dpr": 1,
+            "p50": 100,
+            "p95": 100,
+            "drawCalls": 78,
+            "triangles": 547353,
+            "geometries": 49,
+            "textures": 30,
+            "figures": 32,
+            "tier": 0,
+            "bias": 1,
+            "zoom": 1
+          },
+          "syntheticState": false,
+          "forcedLOD": false,
+          "gaps": []
+        },
+        {
+          "requestedZoom": 0.5,
+          "actualZoom": 0.5,
+          "expectedLOD": 2,
+          "selectedLOD": 2,
+          "roots": [
+            {
+              "kind": "pine",
+              "rootName": "tree-l",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "activeLevels": [
+                2
+              ],
+              "copies": 2781,
+              "exclusivelySelected": true,
+              "triangles": 54,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "tree-l"
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "oak",
+              "rootName": "tree-m",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "activeLevels": [
+                2
+              ],
+              "copies": 2357,
+              "exclusivelySelected": true,
+              "triangles": 54,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "tree-m"
+                },
+                "geometryMetadata": {}
+              }
+            }
+          ],
+          "actualTile": 1374,
+          "simTick": 102,
+          "diagnostics": {
+            "dpr": 1,
+            "p50": 100,
+            "p95": 100,
+            "drawCalls": 90,
+            "triangles": 504234,
+            "geometries": 69,
+            "textures": 30,
+            "figures": 32,
+            "tier": 1,
+            "bias": 1,
+            "zoom": 0.5
+          },
+          "syntheticState": false,
+          "forcedLOD": false,
+          "gaps": []
+        }
+      ],
+      "ok": true,
+      "proofStatus": "automated-load-and-placement-pass-needs-visual-review"
+    },
+    {
+      "id": "nature-conifer",
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=forest&age=bronze&tile=1374",
+      "errors": [],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-infantry.glb",
+          "status": 200,
+          "bytes": 122236,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-ranged.glb",
+          "status": 200,
+          "bytes": 137020,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-general.glb",
+          "status": 200,
+          "bytes": 118660,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/bronze.glb",
+          "status": 200,
+          "bytes": 21548,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-bronze.glb",
+          "status": 200,
+          "bytes": 341700,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-bronze.glb",
+          "status": 200,
+          "bytes": 365184,
+          "validGLB": true
+        }
+      ],
+      "shots": [
+        "nature-conifer-1600x900-far-LOD1-zoom1-conifer.png",
+        "nature-conifer-1600x900-far-LOD2-zoom0.5-conifer.png"
+      ],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=forest&age=bronze&tile=1374",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 329,
+      "audit": {
+        "screenshotTiming": {
+          "rafIntervalMs": 200,
+          "performanceBenchmark": false,
+          "firstFrameGateQAOnly": true,
+          "gateChecks": 15,
+          "gateStartedAtMs": 9628.39999999106,
+          "firstFrameAtMs": 12767.29999999702,
+          "gateDurationMs": 3138.9000000059605
+        },
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 89,
+          "triangles": 687314,
+          "geometries": 45,
+          "textures": 30,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "ambush",
+        "actualTile": 1374,
+        "simTick": 329,
+        "canvas": {
+          "width": 1600,
+          "height": 900,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "conifer",
+        "assets": [
+          {
+            "key": "battle/nature/vegetation-conifer.glb",
+            "url": "/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 6380,
+            "objects": [
+              "tree-s",
+              "tree-m",
+              "tree-l",
+              "stump",
+              "felled",
+              "bush",
+              "rock-s",
+              "rock-m",
+              "grass-tuft"
+            ],
+            "matchedKinds": [
+              {
+                "kind": "pine",
+                "copies": 2781
+              },
+              {
+                "kind": "oak",
+                "copies": 2357
+              },
+              {
+                "kind": "rock",
+                "copies": 136
+              },
+              {
+                "kind": "tuft",
+                "copies": 1106
+              }
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "vegetation-conifer",
+            "x": 0.2533488492926921,
+            "z": 0.3390567835740943,
+            "worldCorners": [
+              {
+                "x": 0.5615923981235218,
+                "y": 0.06015624850988388,
+                "z": 0.814551310295303
+              },
+              {
+                "x": 0.7256983322486201,
+                "y": 0.06015624850988388,
+                "z": 0.02601509898733223
+              },
+              {
+                "x": 0.5615923981235218,
+                "y": 2.1047193836258344,
+                "z": 0.814551310295303
+              },
+              {
+                "x": 0.7256983322486201,
+                "y": 2.1047193836258344,
+                "z": 0.02601509898733223
+              },
+              {
+                "x": -0.21900063366323597,
+                "y": 0.06015624850988388,
+                "z": 0.6520984681608564
+              },
+              {
+                "x": -0.05489469953813764,
+                "y": 0.06015624850988388,
+                "z": -0.13643774314711443
+              },
+              {
+                "x": -0.21900063366323597,
+                "y": 2.1047193836258344,
+                "z": 0.6520984681608564
+              },
+              {
+                "x": -0.05489469953813764,
+                "y": 2.1047193836258344,
+                "z": -0.13643774314711443
+              }
+            ],
+            "height": 2.0445631351159506,
+            "copies": 424
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 48.62402845086332,
+            "z": 0.37465867074846015,
+            "worldCorners": [
+              {
+                "x": 49.14079180026103,
+                "y": -0.05256318673491478,
+                "z": 0.9291452882580573
+              },
+              {
+                "x": 49.173254910208456,
+                "y": -0.05256318673491478,
+                "z": -0.14769184818798764
+              },
+              {
+                "x": 49.14079180026103,
+                "y": 2.795903342861294,
+                "z": 0.9291452882580573
+              },
+              {
+                "x": 49.173254910208456,
+                "y": 2.795903342861294,
+                "z": -0.14769184818798764
+              },
+              {
+                "x": 48.074801991518186,
+                "y": -0.05256318673491478,
+                "z": 0.897009189684908
+              },
+              {
+                "x": 48.107265101465615,
+                "y": -0.05256318673491478,
+                "z": -0.179827946761137
+              },
+              {
+                "x": 48.074801991518186,
+                "y": 2.795903342861294,
+                "z": 0.897009189684908
+              },
+              {
+                "x": 48.107265101465615,
+                "y": 2.795903342861294,
+                "z": -0.179827946761137
+              }
+            ],
+            "height": 2.848466529596209,
+            "copies": 593
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 17.346080141799764,
+            "z": 48.25504120746385,
+            "worldCorners": [
+              {
+                "x": 17.790309557126896,
+                "y": 0.007644088007509708,
+                "z": 47.83831343439806
+              },
+              {
+                "x": 16.92487632247866,
+                "y": 0.007644088007509708,
+                "z": 47.81505353391427
+              },
+              {
+                "x": 17.790309557126896,
+                "y": 1.9510592712355503,
+                "z": 47.83831343439806
+              },
+              {
+                "x": 16.92487632247866,
+                "y": 1.9510592712355503,
+                "z": 47.81505353391427
+              },
+              {
+                "x": 17.767283961120867,
+                "y": 0.007644088007509708,
+                "z": 48.695028881013414
+              },
+              {
+                "x": 16.90185072647263,
+                "y": 0.007644088007509708,
+                "z": 48.67176898052963
+              },
+              {
+                "x": 17.767283961120867,
+                "y": 1.9510592712355503,
+                "z": 48.695028881013414
+              },
+              {
+                "x": 16.90185072647263,
+                "y": 1.9510592712355503,
+                "z": 48.67176898052963
+              }
+            ],
+            "height": 1.9434151832280406,
+            "copies": 222
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 61.46520445379466,
+            "z": 48.4157121698651,
+            "worldCorners": [
+              {
+                "x": 61.358353920800894,
+                "y": -0.04003950208425522,
+                "z": 47.8891793651829
+              },
+              {
+                "x": 60.93978039444451,
+                "y": -0.04003950208425522,
+                "z": 48.527887874291594
+              },
+              {
+                "x": 61.358353920800894,
+                "y": 1.8382354323869379,
+                "z": 47.8891793651829
+              },
+              {
+                "x": 60.93978039444451,
+                "y": 1.8382354323869379,
+                "z": 48.527887874291594
+              },
+              {
+                "x": 61.99062851314481,
+                "y": -0.04003950208425522,
+                "z": 48.30353646543861
+              },
+              {
+                "x": 61.57205498678843,
+                "y": -0.04003950208425522,
+                "z": 48.94224497454732
+              },
+              {
+                "x": 61.99062851314481,
+                "y": 1.8382354323869379,
+                "z": 48.30353646543861
+              },
+              {
+                "x": 61.57205498678843,
+                "y": 1.8382354323869379,
+                "z": 48.94224497454732
+              }
+            ],
+            "height": 1.878274934471193,
+            "copies": 314
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 10.213170434972485,
+            "z": -38.5851420304885,
+            "worldCorners": [
+              {
+                "x": 9.765772910347009,
+                "y": -0.09722483903169632,
+                "z": -39.097024102643175
+              },
+              {
+                "x": 9.705844074039709,
+                "y": -0.09722483903169632,
+                "z": -38.132585112148845
+              },
+              {
+                "x": 9.765772910347009,
+                "y": 2.2552494961288687,
+                "z": -39.097024102643175
+              },
+              {
+                "x": 9.705844074039709,
+                "y": 2.2552494961288687,
+                "z": -38.132585112148845
+              },
+              {
+                "x": 10.72049679590526,
+                "y": -0.09722483903169632,
+                "z": -39.037698948828144
+              },
+              {
+                "x": 10.66056795959796,
+                "y": -0.09722483903169632,
+                "z": -38.073259958333814
+              },
+              {
+                "x": 10.72049679590526,
+                "y": 2.2552494961288687,
+                "z": -39.037698948828144
+              },
+              {
+                "x": 10.66056795959796,
+                "y": 2.2552494961288687,
+                "z": -38.073259958333814
+              }
+            ],
+            "height": 2.352474335160565,
+            "copies": 115
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 60.508665278866744,
+            "z": -38.50909684234132,
+            "worldCorners": [
+              {
+                "x": 59.91877207597499,
+                "y": -0.08017858117818832,
+                "z": -38.30610576276304
+              },
+              {
+                "x": 60.71761806692118,
+                "y": -0.08017858117818832,
+                "z": -37.92128896422933
+              },
+              {
+                "x": 59.91877207597499,
+                "y": 1.9453376270265181,
+                "z": -38.30610576276304
+              },
+              {
+                "x": 60.71761806692118,
+                "y": 1.9453376270265181,
+                "z": -37.92128896422933
+              },
+              {
+                "x": 60.29971249081231,
+                "y": -0.08017858117818832,
+                "z": -39.09690472045332
+              },
+              {
+                "x": 61.0985584817585,
+                "y": -0.08017858117818832,
+                "z": -38.71208792191961
+              },
+              {
+                "x": 60.29971249081231,
+                "y": 1.9453376270265181,
+                "z": -39.09690472045332
+              },
+              {
+                "x": 61.0985584817585,
+                "y": 1.9453376270265181,
+                "z": -38.71208792191961
+              }
+            ],
+            "height": 2.0255162082047065,
+            "copies": 215
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 111.05966205017425,
+            "z": -38.631570224512984,
+            "worldCorners": [
+              {
+                "x": 111.18953469392186,
+                "y": -0.08193331211805344,
+                "z": -39.333734465049055
+              },
+              {
+                "x": 110.35621895736313,
+                "y": -0.08193331211805344,
+                "z": -38.75432746241735
+              },
+              {
+                "x": 111.18953469392186,
+                "y": 2.4821621213792753,
+                "z": -39.333734465049055
+              },
+              {
+                "x": 110.35621895736313,
+                "y": 2.4821621213792753,
+                "z": -38.75432746241735
+              },
+              {
+                "x": 111.76310514298538,
+                "y": -0.08193331211805344,
+                "z": -38.50881298660862
+              },
+              {
+                "x": 110.92978940642665,
+                "y": -0.08193331211805344,
+                "z": -37.92940598397692
+              },
+              {
+                "x": 111.76310514298538,
+                "y": 2.4821621213792753,
+                "z": -38.50881298660862
+              },
+              {
+                "x": 110.92978940642665,
+                "y": 2.4821621213792753,
+                "z": -37.92940598397692
+              }
+            ],
+            "height": 2.5640954334973287,
+            "copies": 101
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -22.188882285686706,
+            "z": -37.02538288471731,
+            "worldCorners": [
+              {
+                "x": -22.543995284968464,
+                "y": 0.12092642486095428,
+                "z": -36.57432785187549
+              },
+              {
+                "x": -21.73425518541225,
+                "y": 0.12092642486095428,
+                "z": -36.674854591127676
+              },
+              {
+                "x": -22.543995284968464,
+                "y": 2.20840992385655,
+                "z": -36.57432785187549
+              },
+              {
+                "x": -21.73425518541225,
+                "y": 2.20840992385655,
+                "z": -36.674854591127676
+              },
+              {
+                "x": -22.64350938596116,
+                "y": 0.12092642486095428,
+                "z": -37.37591117830694
+              },
+              {
+                "x": -21.833769286404944,
+                "y": 0.12092642486095428,
+                "z": -37.476437917559124
+              },
+              {
+                "x": -22.64350938596116,
+                "y": 2.20840992385655,
+                "z": -37.37591117830694
+              },
+              {
+                "x": -21.833769286404944,
+                "y": 2.20840992385655,
+                "z": -37.476437917559124
+              }
+            ],
+            "height": 2.0874834989955957,
+            "copies": 135
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -38.795698906136714,
+            "z": 0.5748692656737573,
+            "worldCorners": [
+              {
+                "x": -38.155379635344666,
+                "y": -0.08214638382196426,
+                "z": 0.8546270523275457
+              },
+              {
+                "x": -38.52243808495225,
+                "y": -0.08214638382196426,
+                "z": -0.06824947246616198
+              },
+              {
+                "x": -38.155379635344666,
+                "y": 2.3862030072558866,
+                "z": 0.8546270523275457
+              },
+              {
+                "x": -38.52243808495225,
+                "y": 2.3862030072558866,
+                "z": -0.06824947246616198
+              },
+              {
+                "x": -39.06895972732118,
+                "y": -0.08214638382196426,
+                "z": 1.2179880038136766
+              },
+              {
+                "x": -39.43601817692876,
+                "y": -0.08214638382196426,
+                "z": 0.2951114790199689
+              },
+              {
+                "x": -39.06895972732118,
+                "y": 2.3862030072558866,
+                "z": 1.2179880038136766
+              },
+              {
+                "x": -39.43601817692876,
+                "y": 2.3862030072558866,
+                "z": 0.2951114790199689
+              }
+            ],
+            "height": 2.468349391077851,
+            "copies": 215
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 99.75603565675323,
+            "z": 0.6687061418751448,
+            "worldCorners": [
+              {
+                "x": 99.92122180568086,
+                "y": -0.012396637350320816,
+                "z": 0.033692573933539194
+              },
+              {
+                "x": 99.11938227919809,
+                "y": -0.012396637350320816,
+                "z": 0.5099573714386274
+              },
+              {
+                "x": 99.92122180568086,
+                "y": 2.198806914184928,
+                "z": 0.033692573933539194
+              },
+              {
+                "x": 99.11938227919809,
+                "y": 2.198806914184928,
+                "z": 0.5099573714386274
+              },
+              {
+                "x": 100.39268903430836,
+                "y": -0.012396637350320816,
+                "z": 0.8274549123116621
+              },
+              {
+                "x": 99.5908495078256,
+                "y": -0.012396637350320816,
+                "z": 1.3037197098167503
+              },
+              {
+                "x": 100.39268903430836,
+                "y": 2.198806914184928,
+                "z": 0.8274549123116621
+              },
+              {
+                "x": 99.5908495078256,
+                "y": 2.198806914184928,
+                "z": 1.3037197098167503
+              }
+            ],
+            "height": 2.211203551535249,
+            "copies": 126
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -24.873311174265808,
+            "z": 48.294677358425574,
+            "worldCorners": [
+              {
+                "x": -24.61384913669422,
+                "y": 0.059136781841516495,
+                "z": 47.708166391599434
+              },
+              {
+                "x": -25.46241889079655,
+                "y": 0.059136781841516495,
+                "z": 48.04116648790507
+              },
+              {
+                "x": -24.61384913669422,
+                "y": 2.184236165002787,
+                "z": 47.708166391599434
+              },
+              {
+                "x": -25.46241889079655,
+                "y": 2.184236165002787,
+                "z": 48.04116648790507
+              },
+              {
+                "x": -24.284203457735064,
+                "y": 0.059136781841516495,
+                "z": 48.548188228946074
+              },
+              {
+                "x": -25.132773211837392,
+                "y": 0.059136781841516495,
+                "z": 48.88118832525171
+              },
+              {
+                "x": -24.284203457735064,
+                "y": 2.184236165002787,
+                "z": 48.548188228946074
+              },
+              {
+                "x": -25.132773211837392,
+                "y": 2.184236165002787,
+                "z": 48.88118832525171
+              }
+            ],
+            "height": 2.1250993831612703,
+            "copies": 80
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 98.49583218113678,
+            "z": 48.10439675287791,
+            "worldCorners": [
+              {
+                "x": 97.80135924057991,
+                "y": -0.005104514304548502,
+                "z": 48.32594351185507
+              },
+              {
+                "x": 98.72439846871548,
+                "y": -0.005104514304548502,
+                "z": 48.79659115025589
+              },
+              {
+                "x": 97.80135924057991,
+                "y": 2.6537778751733185,
+                "z": 48.32594351185507
+              },
+              {
+                "x": 98.72439846871548,
+                "y": 2.6537778751733185,
+                "z": 48.79659115025589
+              },
+              {
+                "x": 98.26726589355808,
+                "y": -0.005104514304548502,
+                "z": 47.41220235549993
+              },
+              {
+                "x": 99.19030512169364,
+                "y": -0.005104514304548502,
+                "z": 47.88284999390075
+              },
+              {
+                "x": 98.26726589355808,
+                "y": 2.6537778751733185,
+                "z": 47.41220235549993
+              },
+              {
+                "x": 99.19030512169364,
+                "y": 2.6537778751733185,
+                "z": 47.88284999390075
+              }
+            ],
+            "height": 2.658882389477867,
+            "copies": 133
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -24.875422873867073,
+            "z": 97.30367569321668,
+            "worldCorners": [
+              {
+                "x": -25.013076984453804,
+                "y": 0.051619432866573334,
+                "z": 96.68532941395209
+              },
+              {
+                "x": -25.49234384526161,
+                "y": 0.051619432866573334,
+                "z": 97.4475829213027
+              },
+              {
+                "x": -25.013076984453804,
+                "y": 2.1317174155354053,
+                "z": 96.68532941395209
+              },
+              {
+                "x": -25.49234384526161,
+                "y": 2.1317174155354053,
+                "z": 97.4475829213027
+              },
+              {
+                "x": -24.258501902472545,
+                "y": 0.051619432866573334,
+                "z": 97.15976846513064
+              },
+              {
+                "x": -24.737768763280343,
+                "y": 0.051619432866573334,
+                "z": 97.92202197248125
+              },
+              {
+                "x": -24.258501902472545,
+                "y": 2.1317174155354053,
+                "z": 97.15976846513064
+              },
+              {
+                "x": -24.737768763280343,
+                "y": 2.1317174155354053,
+                "z": 97.92202197248125
+              }
+            ],
+            "height": 2.080097982668832,
+            "copies": 21
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 32.63134308899909,
+            "z": 97.1978837223615,
+            "worldCorners": [
+              {
+                "x": 32.21365133948719,
+                "y": 0.004474236164242029,
+                "z": 96.64821156071716
+              },
+              {
+                "x": 32.085927832378566,
+                "y": 0.004474236164242029,
+                "z": 97.62111897696896
+              },
+              {
+                "x": 32.21365133948719,
+                "y": 2.4210515800307917,
+                "z": 96.64821156071716
+              },
+              {
+                "x": 32.085927832378566,
+                "y": 2.4210515800307917,
+                "z": 97.62111897696896
+              },
+              {
+                "x": 33.176758345619604,
+                "y": 0.004474236164242029,
+                "z": 96.77464846775405
+              },
+              {
+                "x": 33.04903483851098,
+                "y": 0.004474236164242029,
+                "z": 97.74755588400585
+              },
+              {
+                "x": 33.176758345619604,
+                "y": 2.4210515800307917,
+                "z": 96.77464846775405
+              },
+              {
+                "x": 33.04903483851098,
+                "y": 2.4210515800307917,
+                "z": 97.74755588400585
+              }
+            ],
+            "height": 2.4165773438665497,
+            "copies": 21
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 74.52971922513854,
+            "z": 97.254660982827,
+            "worldCorners": [
+              {
+                "x": 74.1265495543918,
+                "y": 0.6199156045913696,
+                "z": 97.7533261729672
+              },
+              {
+                "x": 75.03244057113321,
+                "y": 0.6199156045913696,
+                "z": 97.65276147711063
+              },
+              {
+                "x": 74.1265495543918,
+                "y": 2.744553147113052,
+                "z": 97.7533261729672
+              },
+              {
+                "x": 75.03244057113321,
+                "y": 2.744553147113052,
+                "z": 97.65276147711063
+              },
+              {
+                "x": 74.02699787914385,
+                "y": 0.6199156045913696,
+                "z": 96.85656048854338
+              },
+              {
+                "x": 74.93288889588526,
+                "y": 0.6199156045913696,
+                "z": 96.7559957926868
+              },
+              {
+                "x": 74.02699787914385,
+                "y": 2.744553147113052,
+                "z": 96.85656048854338
+              },
+              {
+                "x": 74.93288889588526,
+                "y": 2.744553147113052,
+                "z": 96.7559957926868
+              }
+            ],
+            "height": 2.1246375425216826,
+            "copies": 25
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 122.2196073265657,
+            "z": 97.19018791112339,
+            "worldCorners": [
+              {
+                "x": 122.78435404316923,
+                "y": -0.08213658630847931,
+                "z": 96.77557673307864
+              },
+              {
+                "x": 121.7992998699124,
+                "y": -0.08213658630847931,
+                "z": 96.62966768423077
+              },
+              {
+                "x": 122.78435404316923,
+                "y": 2.397596481545037,
+                "z": 96.77557673307864
+              },
+              {
+                "x": 121.7992998699124,
+                "y": 2.397596481545037,
+                "z": 96.62966768423077
+              },
+              {
+                "x": 122.63991478321898,
+                "y": -0.08213658630847931,
+                "z": 97.75070813801602
+              },
+              {
+                "x": 121.65486060996216,
+                "y": -0.08213658630847931,
+                "z": 97.60479908916815
+              },
+              {
+                "x": 122.63991478321898,
+                "y": 2.397596481545037,
+                "z": 97.75070813801602
+              },
+              {
+                "x": 121.65486060996216,
+                "y": 2.397596481545037,
+                "z": 97.60479908916815
+              }
+            ],
+            "height": 2.479733067853516,
+            "copies": 41
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 1.3555529277546317,
+            "z": 0.5217280316836488,
+            "worldCorners": [
+              {
+                "x": 1.6067786497393262,
+                "y": 0.048935845494270325,
+                "z": 0.9231881256611261
+              },
+              {
+                "x": 1.7460825763981869,
+                "y": 0.048935845494270325,
+                "z": 0.25382662449533777
+              },
+              {
+                "x": 1.6067786497393262,
+                "y": 1.1471300817284984,
+                "z": 0.9231881256611261
+              },
+              {
+                "x": 1.7460825763981869,
+                "y": 1.1471300817284984,
+                "z": 0.25382662449533777
+              },
+              {
+                "x": 0.9650232791110764,
+                "y": 0.048935845494270325,
+                "z": 0.7896294388719598
+              },
+              {
+                "x": 1.1043272057699371,
+                "y": 0.048935845494270325,
+                "z": 0.1202679377061715
+              },
+              {
+                "x": 0.9650232791110764,
+                "y": 1.1471300817284984,
+                "z": 0.7896294388719598
+              },
+              {
+                "x": 1.1043272057699371,
+                "y": 1.1471300817284984,
+                "z": 0.1202679377061715
+              }
+            ],
+            "height": 1.098194236234228,
+            "copies": 504
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 48.651952938969316,
+            "z": 0.39889843800141556,
+            "worldCorners": [
+              {
+                "x": 48.97956594652255,
+                "y": -0.0525844506919384,
+                "z": 0.5240316819000554
+              },
+              {
+                "x": 48.763185328610376,
+                "y": -0.0525844506919384,
+                "z": 0.0663086502125978
+              },
+              {
+                "x": 48.97956594652255,
+                "y": 0.7606428004861456,
+                "z": 0.5240316819000554
+              },
+              {
+                "x": 48.763185328610376,
+                "y": 0.7606428004861456,
+                "z": 0.0663086502125978
+              },
+              {
+                "x": 48.540720549328256,
+                "y": -0.0525844506919384,
+                "z": 0.7314882257902333
+              },
+              {
+                "x": 48.32433993141608,
+                "y": -0.0525844506919384,
+                "z": 0.27376519410277567
+              },
+              {
+                "x": 48.540720549328256,
+                "y": 0.7606428004861456,
+                "z": 0.7314882257902333
+              },
+              {
+                "x": 48.32433993141608,
+                "y": 0.7606428004861456,
+                "z": 0.27376519410277567
+              }
+            ],
+            "height": 0.813227251178084,
+            "copies": 639
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 18.62519865375632,
+            "z": 48.399528535124425,
+            "worldCorners": [
+              {
+                "x": 18.663794089685183,
+                "y": 0.018066320568323135,
+                "z": 48.04455408728158
+              },
+              {
+                "x": 18.26891424207331,
+                "y": 0.018066320568323135,
+                "z": 48.37590896087842
+              },
+              {
+                "x": 18.663794089685183,
+                "y": 0.8460628822513669,
+                "z": 48.04455408728158
+              },
+              {
+                "x": 18.26891424207331,
+                "y": 0.8460628822513669,
+                "z": 48.37590896087842
+              },
+              {
+                "x": 18.981483065439328,
+                "y": 0.018066320568323135,
+                "z": 48.42314810937042
+              },
+              {
+                "x": 18.58660321782746,
+                "y": 0.018066320568323135,
+                "z": 48.75450298296727
+              },
+              {
+                "x": 18.981483065439328,
+                "y": 0.8460628822513669,
+                "z": 48.42314810937042
+              },
+              {
+                "x": 18.58660321782746,
+                "y": 0.8460628822513669,
+                "z": 48.75450298296727
+              }
+            ],
+            "height": 0.8279965616830438,
+            "copies": 228
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 61.639793280124714,
+            "z": 48.62098400174155,
+            "worldCorners": [
+              {
+                "x": 61.065827921919755,
+                "y": -0.04121068865060806,
+                "z": 48.477898186652105
+              },
+              {
+                "x": 61.52099374271249,
+                "y": -0.04121068865060806,
+                "z": 49.2004634688582
+              },
+              {
+                "x": 61.065827921919755,
+                "y": 1.330484189248054,
+                "z": 48.477898186652105
+              },
+              {
+                "x": 61.52099374271249,
+                "y": 1.330484189248054,
+                "z": 49.2004634688582
+              },
+              {
+                "x": 61.758592817536936,
+                "y": -0.04121068865060806,
+                "z": 48.0415045346249
+              },
+              {
+                "x": 62.21375863832967,
+                "y": -0.04121068865060806,
+                "z": 48.76406981683099
+              },
+              {
+                "x": 61.758592817536936,
+                "y": 1.330484189248054,
+                "z": 48.0415045346249
+              },
+              {
+                "x": 62.21375863832967,
+                "y": 1.330484189248054,
+                "z": 48.76406981683099
+              }
+            ],
+            "height": 1.371694877898662,
+            "copies": 315
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 8.931971790907504,
+            "z": -38.74477330808587,
+            "worldCorners": [
+              {
+                "x": 9.219380363842362,
+                "y": -0.09798698127269745,
+                "z": -39.26506251474461
+              },
+              {
+                "x": 8.400046041305892,
+                "y": -0.09798698127269745,
+                "z": -39.01002704184432
+              },
+              {
+                "x": 9.219380363842362,
+                "y": 1.2803457926710422,
+                "z": -39.26506251474461
+              },
+              {
+                "x": 8.400046041305892,
+                "y": 1.2803457926710422,
+                "z": -39.01002704184432
+              },
+              {
+                "x": 9.463897540509114,
+                "y": -0.09798698127269745,
+                "z": -38.47951957432742
+              },
+              {
+                "x": 8.644563217972644,
+                "y": -0.09798698127269745,
+                "z": -38.22448410142713
+              },
+              {
+                "x": 9.463897540509114,
+                "y": 1.2803457926710422,
+                "z": -38.47951957432742
+              },
+              {
+                "x": 8.644563217972644,
+                "y": 1.2803457926710422,
+                "z": -38.22448410142713
+              }
+            ],
+            "height": 1.3783327739437397,
+            "copies": 64
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 69.1833092207743,
+            "z": -38.79634481788919,
+            "worldCorners": [
+              {
+                "x": 69.11961282297092,
+                "y": -0.09397803246974945,
+                "z": -39.41214179361984
+              },
+              {
+                "x": 68.57073912863696,
+                "y": -0.09397803246974945,
+                "z": -38.70678462231683
+              },
+              {
+                "x": 69.11961282297092,
+                "y": 1.3416039313779038,
+                "z": -39.41214179361984
+              },
+              {
+                "x": 68.57073912863696,
+                "y": 1.3416039313779038,
+                "z": -38.70678462231683
+              },
+              {
+                "x": 69.79587931291167,
+                "y": -0.09397803246974945,
+                "z": -38.88590501346156
+              },
+              {
+                "x": 69.2470056185777,
+                "y": -0.09397803246974945,
+                "z": -38.18054784215855
+              },
+              {
+                "x": 69.79587931291167,
+                "y": 1.3416039313779038,
+                "z": -38.88590501346156
+              },
+              {
+                "x": 69.2470056185777,
+                "y": 1.3416039313779038,
+                "z": -38.18054784215855
+              }
+            ],
+            "height": 1.4355819638476532,
+            "copies": 129
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 105.59003196435872,
+            "z": -38.77972123307013,
+            "worldCorners": [
+              {
+                "x": 105.08259734257253,
+                "y": -0.07445984333753586,
+                "z": -38.42715031640257
+              },
+              {
+                "x": 105.96364944818446,
+                "y": -0.07445984333753586,
+                "z": -38.2875768208832
+              },
+              {
+                "x": 105.08259734257253,
+                "y": 1.358371928951513,
+                "z": -38.42715031640257
+              },
+              {
+                "x": 105.96364944818446,
+                "y": 1.358371928951513,
+                "z": -38.2875768208832
+              },
+              {
+                "x": 105.21641448053296,
+                "y": -0.07445984333753586,
+                "z": -39.27186564525705
+              },
+              {
+                "x": 106.0974665861449,
+                "y": -0.07445984333753586,
+                "z": -39.13229214973768
+              },
+              {
+                "x": 105.21641448053296,
+                "y": 1.358371928951513,
+                "z": -39.27186564525705
+              },
+              {
+                "x": 106.0974665861449,
+                "y": 1.358371928951513,
+                "z": -39.13229214973768
+              }
+            ],
+            "height": 1.432831772289049,
+            "copies": 63
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -23.22033185444264,
+            "z": -37.367404157461884,
+            "worldCorners": [
+              {
+                "x": -23.09189857498427,
+                "y": 0.07222715020179749,
+                "z": -36.771589861799335
+              },
+              {
+                "x": -22.63045165015521,
+                "y": 0.07222715020179749,
+                "z": -37.52080274538927
+              },
+              {
+                "x": -23.09189857498427,
+                "y": 1.4855874547993295,
+                "z": -36.771589861799335
+              },
+              {
+                "x": -22.63045165015521,
+                "y": 1.4855874547993295,
+                "z": -37.52080274538927
+              },
+              {
+                "x": -23.810212058730073,
+                "y": 0.07222715020179749,
+                "z": -37.21400556953451
+              },
+              {
+                "x": -23.34876513390101,
+                "y": 0.07222715020179749,
+                "z": -37.96321845312444
+              },
+              {
+                "x": -23.810212058730073,
+                "y": 1.4855874547993295,
+                "z": -37.21400556953451
+              },
+              {
+                "x": -23.34876513390101,
+                "y": 1.4855874547993295,
+                "z": -37.96321845312444
+              }
+            ],
+            "height": 1.413360304597532,
+            "copies": 69
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 101.33579814927661,
+            "z": 0.4534705606128284,
+            "worldCorners": [
+              {
+                "x": 101.78909373494122,
+                "y": -0.03298896923661232,
+                "z": 0.06854957248406146
+              },
+              {
+                "x": 100.93213809604686,
+                "y": -0.03298896923661232,
+                "z": 0.01677888847835396
+              },
+              {
+                "x": 101.78909373494122,
+                "y": 1.3460000873819382,
+                "z": 0.06854957248406146
+              },
+              {
+                "x": 100.93213809604686,
+                "y": 1.3460000873819382,
+                "z": 0.01677888847835396
+              },
+              {
+                "x": 101.73945820250636,
+                "y": -0.03298896923661232,
+                "z": 0.8901622327473029
+              },
+              {
+                "x": 100.882502563612,
+                "y": -0.03298896923661232,
+                "z": 0.8383915487415954
+              },
+              {
+                "x": 101.73945820250636,
+                "y": 1.3460000873819382,
+                "z": 0.8901622327473029
+              },
+              {
+                "x": 100.882502563612,
+                "y": 1.3460000873819382,
+                "z": 0.8383915487415954
+              }
+            ],
+            "height": 1.3789890566185505,
+            "copies": 60
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -13.468100185360482,
+            "z": 4.680135517964513,
+            "worldCorners": [
+              {
+                "x": -13.364574309532498,
+                "y": 0.7437291741371155,
+                "z": 5.25940510047643
+              },
+              {
+                "x": -12.893701623715993,
+                "y": 0.7437291741371155,
+                "z": 4.5523186623850425
+              },
+              {
+                "x": -13.364574309532498,
+                "y": 2.108272800012301,
+                "z": 5.25940510047643
+              },
+              {
+                "x": -12.893701623715993,
+                "y": 2.108272800012301,
+                "z": 4.5523186623850425
+              },
+              {
+                "x": -14.042498747004972,
+                "y": 0.7437291741371155,
+                "z": 4.8079523735439835
+              },
+              {
+                "x": -13.571626061188466,
+                "y": 0.7437291741371155,
+                "z": 4.100865935452596
+              },
+              {
+                "x": -14.042498747004972,
+                "y": 2.108272800012301,
+                "z": 4.8079523735439835
+              },
+              {
+                "x": -13.571626061188466,
+                "y": 2.108272800012301,
+                "z": 4.100865935452596
+              }
+            ],
+            "height": 1.3645436258751857,
+            "copies": 104
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -14.87914256518724,
+            "z": 48.07011203769208,
+            "worldCorners": [
+              {
+                "x": -14.370334077230684,
+                "y": -0.10000000149011612,
+                "z": 47.776833675280365
+              },
+              {
+                "x": -15.193577872985475,
+                "y": -0.10000000149011612,
+                "z": 47.57409922285222
+              },
+              {
+                "x": -14.370334077230684,
+                "y": 1.2618365403048557,
+                "z": 47.776833675280365
+              },
+              {
+                "x": -15.193577872985475,
+                "y": 1.2618365403048557,
+                "z": 47.57409922285222
+              },
+              {
+                "x": -14.564707257389005,
+                "y": -0.10000000149011612,
+                "z": 48.566124852531935
+              },
+              {
+                "x": -15.387951053143796,
+                "y": -0.10000000149011612,
+                "z": 48.36339040010379
+              },
+              {
+                "x": -14.564707257389005,
+                "y": 1.2618365403048557,
+                "z": 48.566124852531935
+              },
+              {
+                "x": -15.387951053143796,
+                "y": 1.2618365403048557,
+                "z": 48.36339040010379
+              }
+            ],
+            "height": 1.3618365417949718,
+            "copies": 44
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 112.55823089397282,
+            "z": 53.6290807681435,
+            "worldCorners": [
+              {
+                "x": 112.48066456345192,
+                "y": 1.2357370853424072,
+                "z": 53.026144162310125
+              },
+              {
+                "x": 111.95909358997282,
+                "y": 1.2357370853424072,
+                "z": 53.73195728266441
+              },
+              {
+                "x": 112.48066456345192,
+                "y": 2.645400800737889,
+                "z": 53.026144162310125
+              },
+              {
+                "x": 111.95909358997282,
+                "y": 2.645400800737889,
+                "z": 53.73195728266441
+              },
+              {
+                "x": 113.1573681979728,
+                "y": 1.2357370853424072,
+                "z": 53.526204253622595
+              },
+              {
+                "x": 112.63579722449371,
+                "y": 1.2357370853424072,
+                "z": 54.23201737397688
+              },
+              {
+                "x": 113.1573681979728,
+                "y": 2.645400800737889,
+                "z": 53.526204253622595
+              },
+              {
+                "x": 112.63579722449371,
+                "y": 2.645400800737889,
+                "z": 54.23201737397688
+              }
+            ],
+            "height": 1.4096637153954816,
+            "copies": 80
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": -23.223488071061873,
+            "z": 97.03646349705456,
+            "worldCorners": [
+              {
+                "x": -23.540929543846396,
+                "y": 0.025396069511771202,
+                "z": 97.55756557653453
+              },
+              {
+                "x": -22.68948601821306,
+                "y": 0.025396069511771202,
+                "z": 97.33168929781596
+              },
+              {
+                "x": -23.540929543846396,
+                "y": 1.4403280760495534,
+                "z": 97.55756557653453
+              },
+              {
+                "x": -22.68948601821306,
+                "y": 1.4403280760495534,
+                "z": 97.33168929781596
+              },
+              {
+                "x": -23.757490123910685,
+                "y": 0.025396069511771202,
+                "z": 96.74123769629315
+              },
+              {
+                "x": -22.90604659827735,
+                "y": 0.025396069511771202,
+                "z": 96.5153614175746
+              },
+              {
+                "x": -23.757490123910685,
+                "y": 1.4403280760495534,
+                "z": 96.74123769629315
+              },
+              {
+                "x": -22.90604659827735,
+                "y": 1.4403280760495534,
+                "z": 96.5153614175746
+              }
+            ],
+            "height": 1.4149320065377822,
+            "copies": 13
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 0.5625408224521147,
+            "z": 97.05087011381778,
+            "worldCorners": [
+              {
+                "x": 0.4705679950945356,
+                "y": 0.5821676254272461,
+                "z": 97.6465031131074
+              },
+              {
+                "x": 1.1615172691439728,
+                "y": 0.5821676254272461,
+                "z": 97.11768992467728
+              },
+              {
+                "x": 0.4705679950945356,
+                "y": 1.9797419058754997,
+                "z": 97.6465031131074
+              },
+              {
+                "x": 1.1615172691439728,
+                "y": 1.9797419058754997,
+                "z": 97.11768992467728
+              },
+              {
+                "x": -0.03643562423974345,
+                "y": 0.5821676254272461,
+                "z": 96.98405030295828
+              },
+              {
+                "x": 0.6545136498096937,
+                "y": 0.5821676254272461,
+                "z": 96.45523711452815
+              },
+              {
+                "x": -0.03643562423974345,
+                "y": 1.9797419058754997,
+                "z": 96.98405030295828
+              },
+              {
+                "x": 0.6545136498096937,
+                "y": 1.9797419058754997,
+                "z": 96.45523711452815
+              }
+            ],
+            "height": 1.3975742804482536,
+            "copies": 12
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 83.2051751712446,
+            "z": 97.00265989757537,
+            "worldCorners": [
+              {
+                "x": 83.62081774414914,
+                "y": 0.7983204126358032,
+                "z": 97.46350984945785
+              },
+              {
+                "x": 83.6481213752787,
+                "y": 0.7983204126358032,
+                "z": 96.5679875072714
+              },
+              {
+                "x": 83.62081774414914,
+                "y": 2.237415881832419,
+                "z": 97.46350984945785
+              },
+              {
+                "x": 83.6481213752787,
+                "y": 2.237415881832419,
+                "z": 96.5679875072714
+              },
+              {
+                "x": 82.7622289672105,
+                "y": 0.7983204126358032,
+                "z": 97.43733228787934
+              },
+              {
+                "x": 82.78953259834006,
+                "y": 0.7983204126358032,
+                "z": 96.54180994569289
+              },
+              {
+                "x": 82.7622289672105,
+                "y": 2.237415881832419,
+                "z": 97.43733228787934
+              },
+              {
+                "x": 82.78953259834006,
+                "y": 2.237415881832419,
+                "z": 96.54180994569289
+              }
+            ],
+            "height": 1.4390954691966158,
+            "copies": 11
+          },
+          {
+            "name": "vegetation-conifer",
+            "x": 119.55411548618314,
+            "z": 97.03836242983682,
+            "worldCorners": [
+              {
+                "x": 119.14281405789013,
+                "y": 0.04141433537006378,
+                "z": 96.59283342593915
+              },
+              {
+                "x": 119.12629392331559,
+                "y": 0.04141433537006378,
+                "z": 97.46805263053434
+              },
+              {
+                "x": 119.14281405789013,
+                "y": 1.4474799695274214,
+                "z": 96.59283342593915
+              },
+              {
+                "x": 119.12629392331559,
+                "y": 1.4474799695274214,
+                "z": 97.46805263053434
+              },
+              {
+                "x": 119.98193704905069,
+                "y": 0.04141433537006378,
+                "z": 96.6086722291393
+              },
+              {
+                "x": 119.96541691447614,
+                "y": 0.04141433537006378,
+                "z": 97.4838914337345
+              },
+              {
+                "x": 119.98193704905069,
+                "y": 1.4474799695274214,
+                "z": 96.6086722291393
+              },
+              {
+                "x": 119.96541691447614,
+                "y": 1.4474799695274214,
+                "z": 97.4838914337345
+              }
+            ],
+            "height": 1.4060656341573576,
+            "copies": 22
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 0,
+          "banks": 0,
+          "bridges": 0
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 1.5,
+              "z": 32.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 94.5,
+              "z": 32.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker"
+          ],
+          "instances": {
+            "copies": 2,
+            "draws": 2
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "farAudit": [
+        {
+          "requestedZoom": 1,
+          "actualZoom": 1,
+          "expectedLOD": 1,
+          "selectedLOD": 1,
+          "roots": [
+            {
+              "kind": "pine",
+              "rootName": "tree-l",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "activeLevels": [
+                1
+              ],
+              "copies": 2781,
+              "exclusivelySelected": true,
+              "triangles": 54,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "tree-l"
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "oak",
+              "rootName": "tree-m",
+              "requestedLOD": 1,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "activeLevels": [
+                1
+              ],
+              "copies": 2357,
+              "exclusivelySelected": true,
+              "triangles": 54,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "tree-m"
+                },
+                "geometryMetadata": {}
+              }
+            }
+          ],
+          "actualTile": 1374,
+          "simTick": 329,
+          "diagnostics": {
+            "dpr": 1,
+            "p50": 100,
+            "p95": 100,
+            "drawCalls": 89,
+            "triangles": 687314,
+            "geometries": 45,
+            "textures": 30,
+            "figures": 32,
+            "tier": 0,
+            "bias": 1,
+            "zoom": 1
+          },
+          "syntheticState": false,
+          "forcedLOD": false,
+          "gaps": []
+        },
+        {
+          "requestedZoom": 0.5,
+          "actualZoom": 0.5,
+          "expectedLOD": 2,
+          "selectedLOD": 2,
+          "roots": [
+            {
+              "kind": "pine",
+              "rootName": "tree-l",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "activeLevels": [
+                2
+              ],
+              "copies": 2781,
+              "exclusivelySelected": true,
+              "triangles": 54,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "tree-l"
+                },
+                "geometryMetadata": {}
+              }
+            },
+            {
+              "kind": "oak",
+              "rootName": "tree-m",
+              "requestedLOD": 2,
+              "nativeLodChild": true,
+              "inheritedBundle": false,
+              "activeLevels": [
+                2
+              ],
+              "copies": 2357,
+              "exclusivelySelected": true,
+              "triangles": 54,
+              "uvFlags": {
+                "attributePresent": true,
+                "finite": true,
+                "sameAsPreservationOnlyParse": true,
+                "repairFlagExposed": false,
+                "repairFlag": null,
+                "sourceRootExtras": {
+                  "name": "tree-m"
+                },
+                "geometryMetadata": {}
+              }
+            }
+          ],
+          "actualTile": 1374,
+          "simTick": 329,
+          "diagnostics": {
+            "dpr": 1,
+            "p50": 100,
+            "p95": 100,
+            "drawCalls": 118,
+            "triangles": 558990,
+            "geometries": 87,
+            "textures": 30,
+            "figures": 32,
+            "tier": 1,
+            "bias": 1,
+            "zoom": 0.5
+          },
+          "syntheticState": false,
+          "forcedLOD": false,
+          "gaps": []
+        }
+      ],
+      "ok": true,
+      "proofStatus": "automated-load-and-placement-pass-needs-visual-review"
+    }
+  ],
+  "realTiles": {
+    "vegetation": {
+      "conifer": {
+        "tile": 1374,
+        "terrain": "forest",
+        "forestSectors": 6,
+        "score": 220,
+        "climate": "Dwc",
+        "kit": "conifer",
+        "forestCells": 2556
+      },
+      "tropical": {
+        "tile": 7670,
+        "terrain": "forest",
+        "forestSectors": 6,
+        "score": 220,
+        "climate": "Aw",
+        "kit": "tropical",
+        "forestCells": 2280
+      },
+      "cold": {
+        "tile": 23653,
+        "terrain": "arctic",
+        "forestSectors": 4,
+        "score": 78,
+        "climate": "ET",
+        "kit": "cold",
+        "forestCells": 1005
+      }
+    },
+    "vegetationSearch": {
+      "conifer": {
+        "candidates": 3498,
+        "checked": 1,
+        "zeroForestRejected": 0
+      },
+      "tropical": {
+        "candidates": 5627,
+        "checked": 1,
+        "zeroForestRejected": 0
+      },
+      "cold": {
+        "candidates": 4558,
+        "checked": 1,
+        "zeroForestRejected": 0
+      }
+    },
+    "river": {
+      "tile": 29,
+      "crossings": {
+        "fords": 170,
+        "banks": 557,
+        "bridges": 3
+      }
+    }
+  },
+  "finishedAt": "2026-10-08T11:41:06.926Z",
+  "parent_review_status": "framing_rejected_pending_recapture",
+  "parent_review_reason": "Phone wooden bridge lies behind lower-right controls. centerOn before zoomBy was cancelled by native zoom anchor compensation; capture camera order corrected before final acceptance."
+}

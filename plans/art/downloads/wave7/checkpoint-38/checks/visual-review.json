@@ -1,0 +1,41 @@
+{
+  "status": "sources_and_selected_native_views_reviewed_awaiting_lead_review",
+  "quality_accepted": false,
+  "all14_natively_verified": false,
+  "source_previews": "contact.png",
+  "native_viewports": [
+    {
+      "width": 844,
+      "height": 390
+    },
+    {
+      "width": 1600,
+      "height": 900
+    }
+  ],
+  "native_cases": [
+    "river-classical:bank,ford,stone bridge,new conifer kit",
+    "landing-middle:whole vessel and shore boats",
+    "campaign map close view"
+  ],
+  "notes": [
+    "Bridge connects both banks after endpoint fix.",
+    "Middle-age hull, sails and boats are visible against native blue sea.",
+    "No deployment panel obscures accepted native photos.",
+    "Source contact covers all 14 source previews."
+  ],
+  "uncaptured_native_cases": [
+    "standalone tropical/cold",
+    "wood/steel after endpoint fix",
+    "Ancient/Modern landing",
+    "worker-carried goods",
+    "destroyed field",
+    "damaged/destroyed bridges have no HP source"
+  ],
+  "map_renderer": {
+    "desktop": "legacy close view",
+    "phone": "WebGL close view"
+  },
+  "hardware_gpu_performance_pass": false,
+  "integration_uv_rewrites_before_merge_fix": 100
+}

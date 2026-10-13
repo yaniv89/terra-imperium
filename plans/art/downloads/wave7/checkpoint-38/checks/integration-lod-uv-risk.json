@@ -1,0 +1,2204 @@
+{
+  "remote_commit": "4a0533ed28b59a368c58d9ce7d33878b5bf26825",
+  "remote_kitLoader_git_blob": "679498402936f5a7be01ff4334178b0c987d8703",
+  "current_kitLoader_sha256": "f71a138e81f33b82dec4cc12c4385afffbdc8a639002ba3a1a1af1f889b003d6",
+  "threshold": 0.15,
+  "method": "Actual packed buffers decoded with GLTFLoader+MeshoptDecoder; current parseKit supplies original bundles; exact remote lodUvMismatch computes metrics; exact remote parseKit confirms UV rewrites in memory",
+  "texture_limit": "ImageBitmap mock preserves texture dimensions and transforms; no texture rasterization/browser evaluation",
+  "items": [
+    {
+      "game_path": "src/assets/battle/terrain/river-kit.glb",
+      "sha256": "98b4b8d31de41b9d105d7f40782820985bfa553d82684d162e5b0b87da22e85a",
+      "roots": [
+        {
+          "root": "bank",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.07227152180974807,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 68,
+              "remote_uv_vertices": 68,
+              "post_repair_mismatch": 0.07227152180974807,
+              "original_triangles": 40,
+              "remote_triangles": 40
+            },
+            {
+              "level": 2,
+              "mismatch": 0.09399210046236357,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 24,
+              "remote_uv_vertices": 24,
+              "post_repair_mismatch": 0.09399210046236357,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            }
+          ]
+        },
+        {
+          "root": "straight",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.46981925359531806,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 126,
+              "remote_uv_vertices": 336,
+              "post_repair_mismatch": 0.04370042598181666,
+              "original_triangles": 112,
+              "remote_triangles": 112
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6834621536702514,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 70,
+              "remote_uv_vertices": 168,
+              "post_repair_mismatch": 0.04629107050188167,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            }
+          ]
+        },
+        {
+          "root": "bend",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.467733939130992,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 210,
+              "remote_uv_vertices": 336,
+              "post_repair_mismatch": 0.04474262229115782,
+              "original_triangles": 112,
+              "remote_triangles": 112
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6793912924405242,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 106,
+              "remote_uv_vertices": 168,
+              "post_repair_mismatch": 0.045573833804738464,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            }
+          ]
+        },
+        {
+          "root": "junction",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.4686211933072108,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 48,
+              "remote_uv_vertices": 72,
+              "post_repair_mismatch": 0.04695949269012612,
+              "original_triangles": 24,
+              "remote_triangles": 24
+            },
+            {
+              "level": 2,
+              "mismatch": 0.674581456399417,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 48,
+              "remote_uv_vertices": 72,
+              "post_repair_mismatch": 0.04695949269012612,
+              "original_triangles": 24,
+              "remote_triangles": 24
+            }
+          ]
+        },
+        {
+          "root": "end",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.4044002284698966,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 167,
+              "remote_uv_vertices": 405,
+              "post_repair_mismatch": 0.0387559052067508,
+              "original_triangles": 135,
+              "remote_triangles": 135
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6241585421431876,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 91,
+              "remote_uv_vertices": 201,
+              "post_repair_mismatch": 0.04010495505323642,
+              "original_triangles": 67,
+              "remote_triangles": 67
+            }
+          ]
+        },
+        {
+          "root": "straight-5",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3997276810874128,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 126,
+              "remote_uv_vertices": 336,
+              "post_repair_mismatch": 0.03989292556201727,
+              "original_triangles": 112,
+              "remote_triangles": 112
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6197443279746786,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 70,
+              "remote_uv_vertices": 168,
+              "post_repair_mismatch": 0.04233056972188074,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            }
+          ]
+        },
+        {
+          "root": "bend-5",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.39717809022725215,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 210,
+              "remote_uv_vertices": 336,
+              "post_repair_mismatch": 0.04425945386826531,
+              "original_triangles": 112,
+              "remote_triangles": 112
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6147293316363627,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 106,
+              "remote_uv_vertices": 168,
+              "post_repair_mismatch": 0.04883232484506642,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            }
+          ]
+        },
+        {
+          "root": "junction-5",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3957616919891992,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 48,
+              "remote_uv_vertices": 72,
+              "post_repair_mismatch": 0.05003640269235809,
+              "original_triangles": 24,
+              "remote_triangles": 24
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6042570108205472,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 48,
+              "remote_uv_vertices": 72,
+              "post_repair_mismatch": 0.05003640269235809,
+              "original_triangles": 24,
+              "remote_triangles": 24
+            }
+          ]
+        },
+        {
+          "root": "end-5",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3428491968432799,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 167,
+              "remote_uv_vertices": 405,
+              "post_repair_mismatch": 0.039885123014520574,
+              "original_triangles": 135,
+              "remote_triangles": 135
+            },
+            {
+              "level": 2,
+              "mismatch": 0.5605785977473159,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 91,
+              "remote_uv_vertices": 201,
+              "post_repair_mismatch": 0.042898037577092145,
+              "original_triangles": 67,
+              "remote_triangles": 67
+            }
+          ]
+        },
+        {
+          "root": "straight-8",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3363166385051797,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 126,
+              "remote_uv_vertices": 336,
+              "post_repair_mismatch": 0.032410431409118264,
+              "original_triangles": 112,
+              "remote_triangles": 112
+            },
+            {
+              "level": 2,
+              "mismatch": 0.5584930985837513,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 70,
+              "remote_uv_vertices": 168,
+              "post_repair_mismatch": 0.034922557481479856,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            }
+          ]
+        },
+        {
+          "root": "bend-8",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3292733828140325,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 210,
+              "remote_uv_vertices": 336,
+              "post_repair_mismatch": 0.03611716509752101,
+              "original_triangles": 112,
+              "remote_triangles": 112
+            },
+            {
+              "level": 2,
+              "mismatch": 0.5530173210931751,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 106,
+              "remote_uv_vertices": 168,
+              "post_repair_mismatch": 0.055020485424357814,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            }
+          ]
+        },
+        {
+          "root": "junction-8",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.32685954299345593,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 48,
+              "remote_uv_vertices": 72,
+              "post_repair_mismatch": 0.050816714396311816,
+              "original_triangles": 24,
+              "remote_triangles": 24
+            },
+            {
+              "level": 2,
+              "mismatch": 0.5380906976553026,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 48,
+              "remote_uv_vertices": 72,
+              "post_repair_mismatch": 0.050816714396311816,
+              "original_triangles": 24,
+              "remote_triangles": 24
+            }
+          ]
+        },
+        {
+          "root": "end-8",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.271971272313368,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 167,
+              "remote_uv_vertices": 405,
+              "post_repair_mismatch": 0.03840562544067035,
+              "original_triangles": 135,
+              "remote_triangles": 135
+            },
+            {
+              "level": 2,
+              "mismatch": 0.4974016245320453,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 91,
+              "remote_uv_vertices": 201,
+              "post_repair_mismatch": 0.03970293813589751,
+              "original_triangles": 67,
+              "remote_triangles": 67
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/terrain/ford.glb",
+      "sha256": "9da93d98cdfe5f64dd514cd6157d83786d11bec4dccfc020319c89dcb61b2119",
+      "roots": [
+        {
+          "root": "ford",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.510168961218371,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 232,
+              "remote_uv_vertices": 414,
+              "post_repair_mismatch": 0.18863360354067088,
+              "original_triangles": 138,
+              "remote_triangles": 138
+            },
+            {
+              "level": 2,
+              "mismatch": 0.7158787318218822,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 182,
+              "remote_uv_vertices": 306,
+              "post_repair_mismatch": 0.1425337770331532,
+              "original_triangles": 102,
+              "remote_triangles": 102
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-wood.glb",
+      "sha256": "36b5b768a5d7ea0d288011591e50e5c2b9be7de3e32d184900e8bb5eecdb0812",
+      "roots": [
+        {
+          "root": "bridge-wood",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.394588002291699,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 924,
+              "remote_uv_vertices": 1392,
+              "post_repair_mismatch": 0.1432047036586027,
+              "original_triangles": 464,
+              "remote_triangles": 464
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6803954179424934,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 396,
+              "remote_uv_vertices": 552,
+              "post_repair_mismatch": 0.13461167478332653,
+              "original_triangles": 184,
+              "remote_triangles": 184
+            }
+          ]
+        },
+        {
+          "root": "bridge-wood-damaged",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.4756983512687439,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 828,
+              "remote_uv_vertices": 1248,
+              "post_repair_mismatch": 0.15071232828379247,
+              "original_triangles": 416,
+              "remote_triangles": 416
+            },
+            {
+              "level": 2,
+              "mismatch": 0.7619561629092102,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 330,
+              "remote_uv_vertices": 456,
+              "post_repair_mismatch": 0.13336949100136716,
+              "original_triangles": 152,
+              "remote_triangles": 152
+            }
+          ]
+        },
+        {
+          "root": "bridge-wood-destroyed",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.43106246806568943,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 756,
+              "remote_uv_vertices": 1140,
+              "post_repair_mismatch": 0.11435414237030664,
+              "original_triangles": 380,
+              "remote_triangles": 380
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6269083182819882,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 276,
+              "remote_uv_vertices": 384,
+              "post_repair_mismatch": 0.11150658788800542,
+              "original_triangles": 128,
+              "remote_triangles": 128
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-stone.glb",
+      "sha256": "35665c949376f7e91830a0f7d2fe40d84ca31d9e2f3f245927b386e348adb6c7",
+      "roots": [
+        {
+          "root": "bridge-stone",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3862879581460382,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 816,
+              "remote_uv_vertices": 1224,
+              "post_repair_mismatch": 0.20323341699260963,
+              "original_triangles": 408,
+              "remote_triangles": 408
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6087234078280546,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 336,
+              "remote_uv_vertices": 504,
+              "post_repair_mismatch": 0.20490177925249525,
+              "original_triangles": 168,
+              "remote_triangles": 168
+            }
+          ]
+        },
+        {
+          "root": "bridge-stone-damaged",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.4243560861118219,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 696,
+              "remote_uv_vertices": 1044,
+              "post_repair_mismatch": 0.1768725283067962,
+              "original_triangles": 348,
+              "remote_triangles": 348
+            },
+            {
+              "level": 2,
+              "mismatch": 0.627873429834878,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 216,
+              "remote_uv_vertices": 324,
+              "post_repair_mismatch": 0.17607422215568494,
+              "original_triangles": 108,
+              "remote_triangles": 108
+            }
+          ]
+        },
+        {
+          "root": "bridge-stone-destroyed",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.399049242042636,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 534,
+              "remote_uv_vertices": 816,
+              "post_repair_mismatch": 0.17963808317286517,
+              "original_triangles": 272,
+              "remote_triangles": 272
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6571481704834244,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 144,
+              "remote_uv_vertices": 216,
+              "post_repair_mismatch": 0.17956064261728477,
+              "original_triangles": 72,
+              "remote_triangles": 72
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-steel.glb",
+      "sha256": "5612757d0a00241fa8f1e5ed1d29f0dced27c6dc43dab94a680534d5d2a5cd1c",
+      "roots": [
+        {
+          "root": "bridge-steel",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.36373296167825375,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 684,
+              "remote_uv_vertices": 1032,
+              "post_repair_mismatch": 0.1611324221192561,
+              "original_triangles": 344,
+              "remote_triangles": 344
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6763623837483093,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 324,
+              "remote_uv_vertices": 456,
+              "post_repair_mismatch": 0.19688441474431198,
+              "original_triangles": 152,
+              "remote_triangles": 152
+            }
+          ]
+        },
+        {
+          "root": "bridge-steel-damaged",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.4325160677940384,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 612,
+              "remote_uv_vertices": 924,
+              "post_repair_mismatch": 0.1755758293564279,
+              "original_triangles": 308,
+              "remote_triangles": 308
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6671188789802812,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 258,
+              "remote_uv_vertices": 360,
+              "post_repair_mismatch": 0.19194250204319827,
+              "original_triangles": 120,
+              "remote_triangles": 120
+            }
+          ]
+        },
+        {
+          "root": "bridge-steel-destroyed",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.34503312238793865,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 564,
+              "remote_uv_vertices": 852,
+              "post_repair_mismatch": 0.13270021796641784,
+              "original_triangles": 284,
+              "remote_triangles": 284
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6503200015371584,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 276,
+              "remote_uv_vertices": 384,
+              "post_repair_mismatch": 0.12605216720504783,
+              "original_triangles": 128,
+              "remote_triangles": 128
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-conifer.glb",
+      "sha256": "3e8f62642faa9099fa38a0317028ebd301cf30194de8caf60dd22dc6dd7bd8f1",
+      "roots": [
+        {
+          "root": "tree-s",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.5851155450306418,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 162,
+              "post_repair_mismatch": 0.4659096905704115,
+              "original_triangles": 54,
+              "remote_triangles": 54
+            },
+            {
+              "level": 2,
+              "mismatch": 0.5903117128769828,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 162,
+              "post_repair_mismatch": 0.4718771550112219,
+              "original_triangles": 54,
+              "remote_triangles": 54
+            }
+          ]
+        },
+        {
+          "root": "tree-m",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.50839780169782,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 162,
+              "post_repair_mismatch": 0.40735094382582393,
+              "original_triangles": 54,
+              "remote_triangles": 54
+            },
+            {
+              "level": 2,
+              "mismatch": 0.5062683266516119,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 162,
+              "post_repair_mismatch": 0.40918020855848847,
+              "original_triangles": 54,
+              "remote_triangles": 54
+            }
+          ]
+        },
+        {
+          "root": "tree-l",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.38579277631225495,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 162,
+              "post_repair_mismatch": 0.3211274383582162,
+              "original_triangles": 54,
+              "remote_triangles": 54
+            },
+            {
+              "level": 2,
+              "mismatch": 0.3681574231281797,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 162,
+              "post_repair_mismatch": 0.320446608400903,
+              "original_triangles": 54,
+              "remote_triangles": 54
+            }
+          ]
+        },
+        {
+          "root": "stump",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.2676672562836805,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 30,
+              "remote_uv_vertices": 48,
+              "post_repair_mismatch": 0.31066462926467264,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            },
+            {
+              "level": 2,
+              "mismatch": 0.2676672562836805,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 30,
+              "remote_uv_vertices": 48,
+              "post_repair_mismatch": 0.31066462926467264,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            }
+          ]
+        },
+        {
+          "root": "felled",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.2923795027653787,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 90,
+              "remote_uv_vertices": 132,
+              "post_repair_mismatch": 0.34957959989061127,
+              "original_triangles": 44,
+              "remote_triangles": 44
+            },
+            {
+              "level": 2,
+              "mismatch": 0.5431919833266214,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 30,
+              "remote_uv_vertices": 48,
+              "post_repair_mismatch": 0.5482013199759858,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            }
+          ]
+        },
+        {
+          "root": "bush",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.4248565910557285,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 60,
+              "remote_uv_vertices": 84,
+              "post_repair_mismatch": 0.34338462409653053,
+              "original_triangles": 28,
+              "remote_triangles": 28
+            },
+            {
+              "level": 2,
+              "mismatch": 0.4248565910557285,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 60,
+              "remote_uv_vertices": 84,
+              "post_repair_mismatch": 0.34338462409653053,
+              "original_triangles": 28,
+              "remote_triangles": 28
+            }
+          ]
+        },
+        {
+          "root": "rock-s",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.09258265704934568,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 58,
+              "remote_uv_vertices": 58,
+              "post_repair_mismatch": 0.09258265704934568,
+              "original_triangles": 28,
+              "remote_triangles": 28
+            },
+            {
+              "level": 2,
+              "mismatch": 0.09258265704934568,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 58,
+              "remote_uv_vertices": 58,
+              "post_repair_mismatch": 0.09258265704934568,
+              "original_triangles": 28,
+              "remote_triangles": 28
+            }
+          ]
+        },
+        {
+          "root": "rock-m",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.24290641576420477,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 168,
+              "post_repair_mismatch": 0.31054366770608566,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            },
+            {
+              "level": 2,
+              "mismatch": 0.24290641576420477,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 168,
+              "post_repair_mismatch": 0.31054366770608566,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            }
+          ]
+        },
+        {
+          "root": "grass-tuft",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.35624479160871547,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 27,
+              "remote_uv_vertices": 27,
+              "post_repair_mismatch": 0.3208626489942406,
+              "original_triangles": 9,
+              "remote_triangles": 9
+            },
+            {
+              "level": 2,
+              "mismatch": 0.35624479160871547,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 27,
+              "remote_uv_vertices": 27,
+              "post_repair_mismatch": 0.3208626489942406,
+              "original_triangles": 9,
+              "remote_triangles": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-tropical.glb",
+      "sha256": "202f14f0cee224039be57258f6bb7c1576dab6da09c5d3dfdd2e8d28a03ecd6d",
+      "roots": [
+        {
+          "root": "tree-s",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.40526507123831024,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 136,
+              "remote_uv_vertices": 144,
+              "post_repair_mismatch": 0.3805099995433871,
+              "original_triangles": 48,
+              "remote_triangles": 48
+            },
+            {
+              "level": 2,
+              "mismatch": 0.43141039489811933,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 76,
+              "remote_uv_vertices": 84,
+              "post_repair_mismatch": 0.3902883335376365,
+              "original_triangles": 28,
+              "remote_triangles": 28
+            }
+          ]
+        },
+        {
+          "root": "tree-m",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.1217846529608745,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 90,
+              "remote_uv_vertices": 90,
+              "post_repair_mismatch": 0.1217846529608745,
+              "original_triangles": 44,
+              "remote_triangles": 44
+            },
+            {
+              "level": 2,
+              "mismatch": 0.12202643670071185,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 82,
+              "remote_uv_vertices": 82,
+              "post_repair_mismatch": 0.12202643670071185,
+              "original_triangles": 40,
+              "remote_triangles": 40
+            }
+          ]
+        },
+        {
+          "root": "tree-l",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3138220533254927,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 210,
+              "remote_uv_vertices": 228,
+              "post_repair_mismatch": 0.295849756183295,
+              "original_triangles": 76,
+              "remote_triangles": 76
+            },
+            {
+              "level": 2,
+              "mismatch": 0.335437551971409,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 210,
+              "remote_uv_vertices": 228,
+              "post_repair_mismatch": 0.2850867778592562,
+              "original_triangles": 76,
+              "remote_triangles": 76
+            }
+          ]
+        },
+        {
+          "root": "stump",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.2747802103331873,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 30,
+              "remote_uv_vertices": 48,
+              "post_repair_mismatch": 0.37701414447951825,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            },
+            {
+              "level": 2,
+              "mismatch": 0.2747802103331873,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 30,
+              "remote_uv_vertices": 48,
+              "post_repair_mismatch": 0.37701414447951825,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            }
+          ]
+        },
+        {
+          "root": "felled",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.40240623295963857,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 90,
+              "remote_uv_vertices": 132,
+              "post_repair_mismatch": 0.4615407954309625,
+              "original_triangles": 44,
+              "remote_triangles": 44
+            },
+            {
+              "level": 2,
+              "mismatch": 0.5997762377240429,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 30,
+              "remote_uv_vertices": 48,
+              "post_repair_mismatch": 0.5339792280388641,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            }
+          ]
+        },
+        {
+          "root": "bush",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.26689276120027244,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 52,
+              "remote_uv_vertices": 72,
+              "post_repair_mismatch": 0.2977487779247613,
+              "original_triangles": 24,
+              "remote_triangles": 24
+            },
+            {
+              "level": 2,
+              "mismatch": 0.2712425125930395,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 42,
+              "remote_uv_vertices": 60,
+              "post_repair_mismatch": 0.315462412018632,
+              "original_triangles": 20,
+              "remote_triangles": 20
+            }
+          ]
+        },
+        {
+          "root": "rock-s",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.0958468358919854,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 60,
+              "remote_uv_vertices": 60,
+              "post_repair_mismatch": 0.0958468358919854,
+              "original_triangles": 28,
+              "remote_triangles": 28
+            },
+            {
+              "level": 2,
+              "mismatch": 0.0958468358919854,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 60,
+              "remote_uv_vertices": 60,
+              "post_repair_mismatch": 0.0958468358919854,
+              "original_triangles": 28,
+              "remote_triangles": 28
+            }
+          ]
+        },
+        {
+          "root": "rock-m",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.1254697966500109,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 120,
+              "post_repair_mismatch": 0.1254697966500109,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            },
+            {
+              "level": 2,
+              "mismatch": 0.1254697966500109,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 120,
+              "post_repair_mismatch": 0.1254697966500109,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            }
+          ]
+        },
+        {
+          "root": "grass-tuft",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.6833942959518604,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 27,
+              "remote_uv_vertices": 27,
+              "post_repair_mismatch": 0.48481371205467966,
+              "original_triangles": 9,
+              "remote_triangles": 9
+            },
+            {
+              "level": 2,
+              "mismatch": 0.6833942959518604,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 27,
+              "remote_uv_vertices": 27,
+              "post_repair_mismatch": 0.48481371205467966,
+              "original_triangles": 9,
+              "remote_triangles": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-cold.glb",
+      "sha256": "073be8c85915e539020f93c53b6e27fc2ab60777fbe173816f2c638da504e91b",
+      "roots": [
+        {
+          "root": "tree-s",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3127063982038153,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 276,
+              "remote_uv_vertices": 288,
+              "post_repair_mismatch": 0.3891941307107644,
+              "original_triangles": 96,
+              "remote_triangles": 96
+            },
+            {
+              "level": 2,
+              "mismatch": 0.27801922210928776,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 276,
+              "remote_uv_vertices": 288,
+              "post_repair_mismatch": 0.40716846173490284,
+              "original_triangles": 96,
+              "remote_triangles": 96
+            }
+          ]
+        },
+        {
+          "root": "tree-m",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3757396662850518,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 276,
+              "remote_uv_vertices": 288,
+              "post_repair_mismatch": 0.33526719851942216,
+              "original_triangles": 96,
+              "remote_triangles": 96
+            },
+            {
+              "level": 2,
+              "mismatch": 0.32995384518880116,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 276,
+              "remote_uv_vertices": 288,
+              "post_repair_mismatch": 0.32363457587477745,
+              "original_triangles": 96,
+              "remote_triangles": 96
+            }
+          ]
+        },
+        {
+          "root": "tree-l",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3378161177432527,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 276,
+              "remote_uv_vertices": 288,
+              "post_repair_mismatch": 0.4107101367286829,
+              "original_triangles": 96,
+              "remote_triangles": 96
+            },
+            {
+              "level": 2,
+              "mismatch": 0.3594266471054438,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 276,
+              "remote_uv_vertices": 288,
+              "post_repair_mismatch": 0.40992870862209585,
+              "original_triangles": 96,
+              "remote_triangles": 96
+            }
+          ]
+        },
+        {
+          "root": "stump",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.2691646596000282,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 30,
+              "remote_uv_vertices": 48,
+              "post_repair_mismatch": 0.22386119130340587,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            },
+            {
+              "level": 2,
+              "mismatch": 0.2691646596000282,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 30,
+              "remote_uv_vertices": 48,
+              "post_repair_mismatch": 0.22386119130340587,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            }
+          ]
+        },
+        {
+          "root": "felled",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3179900160530792,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 90,
+              "remote_uv_vertices": 132,
+              "post_repair_mismatch": 0.3502296906620251,
+              "original_triangles": 44,
+              "remote_triangles": 44
+            },
+            {
+              "level": 2,
+              "mismatch": 0.587090169431574,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 30,
+              "remote_uv_vertices": 48,
+              "post_repair_mismatch": 0.6025534723072565,
+              "original_triangles": 16,
+              "remote_triangles": 16
+            }
+          ]
+        },
+        {
+          "root": "bush",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.2284661545245948,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 48,
+              "remote_uv_vertices": 72,
+              "post_repair_mismatch": 0.23379955045659231,
+              "original_triangles": 24,
+              "remote_triangles": 24
+            },
+            {
+              "level": 2,
+              "mismatch": 0.45473021059496055,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 36,
+              "remote_uv_vertices": 54,
+              "post_repair_mismatch": 0.23820407992444864,
+              "original_triangles": 18,
+              "remote_triangles": 18
+            }
+          ]
+        },
+        {
+          "root": "rock-s",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.17564088979952783,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 60,
+              "remote_uv_vertices": 84,
+              "post_repair_mismatch": 0.19502243498924363,
+              "original_triangles": 28,
+              "remote_triangles": 28
+            },
+            {
+              "level": 2,
+              "mismatch": 0.17564088979952783,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 60,
+              "remote_uv_vertices": 84,
+              "post_repair_mismatch": 0.19502243498924363,
+              "original_triangles": 28,
+              "remote_triangles": 28
+            }
+          ]
+        },
+        {
+          "root": "rock-m",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.1390554827291698,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 120,
+              "post_repair_mismatch": 0.1390554827291698,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            },
+            {
+              "level": 2,
+              "mismatch": 0.1390554827291698,
+              "above_threshold": false,
+              "uv_rewritten": false,
+              "original_uv_vertices": 120,
+              "remote_uv_vertices": 120,
+              "post_repair_mismatch": 0.1390554827291698,
+              "original_triangles": 56,
+              "remote_triangles": 56
+            }
+          ]
+        },
+        {
+          "root": "grass-tuft",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.22637473083820514,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 27,
+              "remote_uv_vertices": 27,
+              "post_repair_mismatch": 0.27345693815719924,
+              "original_triangles": 9,
+              "remote_triangles": 9
+            },
+            {
+              "level": 2,
+              "mismatch": 0.22637473083820514,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 27,
+              "remote_uv_vertices": 27,
+              "post_repair_mismatch": 0.27345693815719924,
+              "original_triangles": 9,
+              "remote_triangles": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/loot-sack.glb",
+      "sha256": "2847ea345fe421458c7e4161635086fd64202bc75503970fd8565a8840ebf187",
+      "roots": [
+        {
+          "root": "loot-sack",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.30485204550107814,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 574,
+              "remote_uv_vertices": 882,
+              "post_repair_mismatch": 0.31632674633967295,
+              "original_triangles": 294,
+              "remote_triangles": 294
+            },
+            {
+              "level": 2,
+              "mismatch": 0.3898573310347472,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 152,
+              "remote_uv_vertices": 228,
+              "post_repair_mismatch": 0.3761498174760095,
+              "original_triangles": 76,
+              "remote_triangles": 76
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/exit-marker.glb",
+      "sha256": "24dd3703cdd0de7e304cfd105013058a9d2cc486d1e77dad4207c56cdf08c00d",
+      "roots": [
+        {
+          "root": "exit-marker",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.38345872121506563,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 288,
+              "remote_uv_vertices": 432,
+              "post_repair_mismatch": 0.3761939390124844,
+              "original_triangles": 144,
+              "remote_triangles": 144
+            },
+            {
+              "level": 2,
+              "mismatch": 0.5091911777349095,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 136,
+              "remote_uv_vertices": 204,
+              "post_repair_mismatch": 0.4909609123849941,
+              "original_triangles": 68,
+              "remote_triangles": 68
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/burnt-field-overlay.glb",
+      "sha256": "5d07899b742664b1b2b08b9e0b0ad324a1fe392700e626fc57f6f5c73d15f921",
+      "roots": [
+        {
+          "root": "burnt-field-overlay",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.35037758492715254,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 526,
+              "remote_uv_vertices": 714,
+              "post_repair_mismatch": 0.3078924467840691,
+              "original_triangles": 238,
+              "remote_triangles": 238
+            },
+            {
+              "level": 2,
+              "mismatch": 0.2908676307410184,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 156,
+              "remote_uv_vertices": 216,
+              "post_repair_mismatch": 0.2820496003705351,
+              "original_triangles": 72,
+              "remote_triangles": 72
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-ancient.glb",
+      "sha256": "8b7995aa3fed6f2996de95386d28caaf4486af4426c4964c076f7288f807e5e7",
+      "roots": [
+        {
+          "root": "landing-ancient",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.3320744602005977,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 812,
+              "remote_uv_vertices": 1320,
+              "post_repair_mismatch": 0.3272404739974581,
+              "original_triangles": 440,
+              "remote_triangles": 440
+            },
+            {
+              "level": 2,
+              "mismatch": 0.3581315322009008,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 248,
+              "remote_uv_vertices": 372,
+              "post_repair_mismatch": 0.35139368167150203,
+              "original_triangles": 124,
+              "remote_triangles": 124
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-middle.glb",
+      "sha256": "50eab83668e4762398addbde21761683fb9a43cc49a3927de43b5fdf2688608b",
+      "roots": [
+        {
+          "root": "landing-middle",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.2999613794383649,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 1476,
+              "remote_uv_vertices": 2340,
+              "post_repair_mismatch": 0.3063058361829372,
+              "original_triangles": 780,
+              "remote_triangles": 780
+            },
+            {
+              "level": 2,
+              "mismatch": 0.36079570924152854,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 576,
+              "remote_uv_vertices": 864,
+              "post_repair_mismatch": 0.3549884680344456,
+              "original_triangles": 288,
+              "remote_triangles": 288
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-modern.glb",
+      "sha256": "7262ed51d993460843032bfa3a4ae713de28fc158aae24db35c6a2083bf79c67",
+      "roots": [
+        {
+          "root": "landing-modern",
+          "lods": [
+            {
+              "level": 1,
+              "mismatch": 0.34763844945557665,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 592,
+              "remote_uv_vertices": 948,
+              "post_repair_mismatch": 0.36246954561171074,
+              "original_triangles": 316,
+              "remote_triangles": 316
+            },
+            {
+              "level": 2,
+              "mismatch": 0.45353339657214614,
+              "above_threshold": true,
+              "uv_rewritten": true,
+              "original_uv_vertices": 136,
+              "remote_uv_vertices": 204,
+              "post_repair_mismatch": 0.4509155059177063,
+              "original_triangles": 68,
+              "remote_triangles": 68
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "files": 14,
+    "roots": 56,
+    "lower_lods": 112,
+    "above_threshold": 100,
+    "uv_rewritten": 100,
+    "min": 0.07227152180974807,
+    "max": 0.7619561629092102,
+    "affected_roots": [
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "straight",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "bend",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "junction",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "end",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "straight-5",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "bend-5",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "junction-5",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "end-5",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "straight-8",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "bend-8",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "junction-8",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "end-8",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/ford.glb",
+        "root": "ford",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-wood.glb",
+        "root": "bridge-wood",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-wood.glb",
+        "root": "bridge-wood-damaged",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-wood.glb",
+        "root": "bridge-wood-destroyed",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-stone.glb",
+        "root": "bridge-stone",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-stone.glb",
+        "root": "bridge-stone-damaged",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-stone.glb",
+        "root": "bridge-stone-destroyed",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-steel.glb",
+        "root": "bridge-steel",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-steel.glb",
+        "root": "bridge-steel-damaged",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-steel.glb",
+        "root": "bridge-steel-destroyed",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-conifer.glb",
+        "root": "tree-s",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-conifer.glb",
+        "root": "tree-m",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-conifer.glb",
+        "root": "tree-l",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-conifer.glb",
+        "root": "stump",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-conifer.glb",
+        "root": "felled",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-conifer.glb",
+        "root": "bush",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-conifer.glb",
+        "root": "rock-m",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-conifer.glb",
+        "root": "grass-tuft",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-tropical.glb",
+        "root": "tree-s",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-tropical.glb",
+        "root": "tree-l",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-tropical.glb",
+        "root": "stump",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-tropical.glb",
+        "root": "felled",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-tropical.glb",
+        "root": "bush",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-tropical.glb",
+        "root": "grass-tuft",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-cold.glb",
+        "root": "tree-s",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-cold.glb",
+        "root": "tree-m",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-cold.glb",
+        "root": "tree-l",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-cold.glb",
+        "root": "stump",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-cold.glb",
+        "root": "felled",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-cold.glb",
+        "root": "bush",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-cold.glb",
+        "root": "rock-s",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/nature/vegetation-cold.glb",
+        "root": "grass-tuft",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/props/loot-sack.glb",
+        "root": "loot-sack",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/props/exit-marker.glb",
+        "root": "exit-marker",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/props/burnt-field-overlay.glb",
+        "root": "burnt-field-overlay",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/props/landing-ancient.glb",
+        "root": "landing-ancient",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/props/landing-middle.glb",
+        "root": "landing-middle",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/props/landing-modern.glb",
+        "root": "landing-modern",
+        "lods": [
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "terrain_summary": {
+    "files": 5,
+    "roots": 23,
+    "lower_lods": 46,
+    "above_threshold": 44,
+    "uv_rewritten": 44,
+    "min": 0.07227152180974807,
+    "max": 0.7619561629092102,
+    "affected_roots": [
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "straight",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "bend",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "junction",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "end",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "straight-5",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "bend-5",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "junction-5",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "end-5",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "straight-8",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "bend-8",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "junction-8",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/river-kit.glb",
+        "root": "end-8",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/ford.glb",
+        "root": "ford",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-wood.glb",
+        "root": "bridge-wood",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-wood.glb",
+        "root": "bridge-wood-damaged",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-wood.glb",
+        "root": "bridge-wood-destroyed",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-stone.glb",
+        "root": "bridge-stone",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-stone.glb",
+        "root": "bridge-stone-damaged",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-stone.glb",
+        "root": "bridge-stone-destroyed",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-steel.glb",
+        "root": "bridge-steel",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-steel.glb",
+        "root": "bridge-steel-damaged",
+        "lods": [
+          1,
+          2
+        ]
+      },
+      {
+        "file": "src/assets/battle/terrain/bridge-steel.glb",
+        "root": "bridge-steel-destroyed",
+        "lods": [
+          1,
+          2
+        ]
+      }
+    ]
+  }
+}
