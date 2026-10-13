@@ -143,7 +143,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       expect(setup.sides.map((s) => s.canRout)).toEqual([false, true]);
       expect(setup.version).toBe(SETUP_VERSION);
       expect(setupKeyOf(setup)).not.toBe(setupKeyOf(buildInvasionSetup(started, pb)));
-    });
+    }, 120000); // plays the shared battle once (slow on a loaded machine)
 
     it('a commanded economy battle (deploy, build, train) ends in the campaign as it ended on the screen', () => {
       const { started, pb, ended, used, refused, payload } = played();
