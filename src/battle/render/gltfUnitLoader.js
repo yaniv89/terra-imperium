@@ -331,7 +331,11 @@ export const extractUnitGeometry = (root, opts = {}) => {
           source.push(skinned ? (mesh.skeleton.bones[skinIdx.getComponent(0)]?.name || '') : (mesh.name || mesh.parent?.name || ''));
           team.push(isTeam ? 1 : 0);
           partId.push(isEmblem ? PART.EMBLEM : isSkin ? PART.SKIN : PART.PLAIN);
-          uvs.push(isEmblem ? cornerUv[j][0] : 0, isEmblem ? cornerUv[j][1] : 0);
+          // Off the emblem aUv.x carries the model's baked shade (COLOR_0, ambient occlusion): the
+          // shader replaces the colour of Team cloth and skin, so their shade has to travel apart
+          // from it (0 = no baked shade, drawn as 1).
+          const shade = colorAttr ? Math.max(0.02, Math.min(1, (colorAttr.getX(vi) + colorAttr.getY(vi) + colorAttr.getZ(vi)) / 3)) : 0;
+          uvs.push(isEmblem ? cornerUv[j][0] : shade, isEmblem ? cornerUv[j][1] : 0);
           surf.push(metal, rough);
         }
       }
