@@ -39,13 +39,14 @@ describe('signature units', () => {
     expect(findSignatureModel('israel', 'bronze', 'infantry', { table: TABLE, art, options: { 'israel-spear': { enabled: false } } })).toBeNull();
     expect(findSignatureModel('israel', 'modern', 'cavalry')?.url).toMatch(/kingdom-of-israel.*.glb/); // Wave 6: the Merkava
     // Waves 2 to 6: every people's file ships and resolves for its age and role; camels and elephants
-    // carry their own drawn height (taller than a horseman), tanks their true height and no trotting legs
+    // carry their own drawn height (taller than a horseman); tanks have no trotting legs, no fitted
+    // height and their footprint instead (true size at the people's scale, MD09)
     Object.entries(SIGNATURE_UNITS).forEach(([id, e]) => {
       const m = findSignatureModel(id, e.ageId, e.classId);
       expect(m?.url, id).toMatch(new RegExp(`${e.model}.*\\.glb`));
       expect(m.options.quadruped, id).toBe(e.rig !== 'person' && e.rig !== 'frame' && e.rig !== 'tank');
       if (e.rig === 'camel' || e.rig === 'elephant') expect(m.options.height, id).toBeGreaterThan(2);
-      if (e.rig === 'tank') expect(m.options.height, id).toBeGreaterThan(.5);
+      if (e.rig === 'tank') { expect(m.options.height, id).toBeUndefined(); expect(m.options.footprint[1], id).toBeGreaterThan(2.5); } // over 4.5 m long
     });
   });
 
@@ -95,7 +96,9 @@ describe('extra battle models', () => {
     expect(findGeneralModel('kingdoms')?.url).toMatch(/kingdoms-general.*.glb/); // Wave 4
     expect(findGeneralModel('gunpowder')?.url).toMatch(/gunpowder-general.*.glb/); // Wave 5
     expect(findGeneralModel('modern')?.url).toMatch(/modern-general.*.glb/); // Wave 6: the command car
-    expect(findGeneralModel('modern').options.height).toBeGreaterThan(1);
+    // a machine at its true size beside its crew (MD09): no fitted height, a footprint instead
+    expect(findGeneralModel('modern').options.height).toBeUndefined();
+    expect(findGeneralModel('modern').options.footprint[1]).toBeGreaterThan(1.8); // a car over 3.2 m long
     expect(MODEL_SCALE.general).toBeGreaterThan(MODEL_SCALE.cavalry);
   });
 

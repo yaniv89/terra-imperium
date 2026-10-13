@@ -188,11 +188,14 @@ def k_cavalry():
 def k_siege():
     parts, info = tm.frame('Frame', wheels=False, deck_z=.22, length=1.3, width=.56)
     trebuchet(info)
-    for i, (x, y, z, yaw) in enumerate(info['crew']):
+    # True size (MD09): a counterweight trebuchet about 9 m to the tip of its beam on a frame about
+    # 4 m long; the crew stays at 1.0, two beside the frame and one at the trough.
+    tm.enlarge(info['rig'], 2.95)
+    for i, (x, y, z, yaw) in enumerate([(-1.15, 1.1, 0, 90), (1.15, 1.1, 0, -90), (-.62, 2.25, 0, 90)]):
         c, _ = u.crew(f'Crew{i}', (x, y, z), lite=True, head='cap', yaw=yaw)
         parts.append(c)
     return parts, {'Skin': 'C99472', 'Cloth': 'C9BB98', 'Leather': '6B4630', 'Metal': IRON, 'Wood': '8A6646'}, \
-        'Trebuchet: a counterweight engine on a skid frame (A-frame uprights, axle, the beam cocked with its sling down, the counterweight box, a stone in the sling), three crew in caps', dict(budget=3200, mounted=False)
+        'Trebuchet: a counterweight engine on a skid frame (A-frame uprights, axle, the beam cocked with its sling down, the counterweight box, a stone in the sling), three crew in caps', dict(budget=3200, mounted=False, machine=True)
 
 
 def k_support():
@@ -229,6 +232,8 @@ def build(uid):
     lib.reset()
     parts, colors, look, opts = BUILDERS[uid]()
     lib.finish(uid, parts, colors, {'role': uid.split('-')[1], 'look': look}, opts['budget'], opts['mounted'])
+    if opts.get('machine'):
+        tm.mark_machine(uid)
 
 
 if __name__ == '__main__':

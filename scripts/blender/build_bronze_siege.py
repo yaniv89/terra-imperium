@@ -5,7 +5,7 @@
 import bpy,sys,math,json
 from mathutils import Vector
 from pathlib import Path
-sys.path.insert(0,str(Path(__file__).resolve().parent));import ti_units as unit
+sys.path.insert(0,str(Path(__file__).resolve().parent));import ti_units as unit;import ti_mounts as tm
 OUT=unit.out_dir('bronze-siege')
 bpy.ops.wm.open_mainfile(filepath=str(OUT/'machinery.blend'))
 machinery=bpy.data.objects['RamRig'];root=bpy.data.objects['bronze-siege'];lod=bpy.data.objects['LOD0']
@@ -16,7 +16,9 @@ for name in clips:
  track=machinery.animation_data.nla_tracks.new();track.name=name;track.strips.new(name,1,action);track.mute=True
 machinery.animation_data.action=None
 crew=[]
-for index,(x,y) in enumerate([(-.70,-.415),(-.70,.625),(.70,-.415),(.70,.625)],1):
+# The crew at 1.0 (MD09: only the machine is bigger), each a step behind a push handle of the
+# enlarged machinery (handles at y = -.884 and .884, reaching out to x = 1.29).
+for index,(x,y) in enumerate([(-1.02,-.779),(-1.02,.989),(1.02,-.779),(1.02,.989)],1):
  arm,body=unit.build_body(ready=True,lite=True,modest=False);arm.name=f'Crew{index}Rig';body.name=f'Crew{index}Body';arm.parent=lod;arm.location=(x,y,0)
  clothes=[]
  clothes.append(unit.tube(f'Crew{index}Kilt',[(0,0,.34),(0,0,.45),(0,0,.515)],[(.13,.087),(.111,.078),(.093,.067)],'Team',['Hips']*3,6,arm))
@@ -66,4 +68,7 @@ for o in bpy.context.scene.objects:
 bpy.context.view_layer.objects.active=machinery
 bpy.ops.export_scene.gltf(filepath=str(OUT/'bronze-siege.glb'),export_format='GLB',use_selection=True,export_yup=True,export_skins=True,export_animations=True,export_animation_mode='NLA_TRACKS',export_force_sampling=True,export_frame_range=False,export_cameras=False,export_lights=False,export_extras=True,export_materials='EXPORT',export_image_format='NONE')
 (OUT/'assembly-report.json').write_text(json.dumps({'triangles':tri,'cap':3000,'crew':4,'wheels':4,'fps':20,'clips':clips,'floor_correction_maximum_by_clip':floor_corrections,'textures':0,'source_body':'scripts/blender/ti_units.py build_body lite derivative','human_height':1,'limitations':['VAT integration pending; authored animation not played by current battle renderer']},indent=2))
-print('RAM_ASSEMBLY_AUTHORED',tri,flush=True)
+# The unit's bake options: drawn at the people's scale, spaced by its footprint (unitModels.js).
+footprint,size=tm.machine_size()
+(OUT/'bronze-siege.json').write_text(json.dumps({'enabled':True,'restClip':'^Idle$','rotateY':0,'quadruped':False,'triangleBudget':6000,'tags':{'team':'^Team(?:\\s|$)','skin':'^Skin(?:\\s|$)','emblem':'^Emblem(?:\\s|$)'},'footprint':footprint},indent=2)+'\n')
+print('RAM_ASSEMBLY_AUTHORED',tri,'footprint',footprint,'metres',[round(v*1.8,2) for v in size],flush=True)

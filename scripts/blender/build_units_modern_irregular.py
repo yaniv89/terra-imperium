@@ -64,10 +64,13 @@ def m_raider():
         u.box(f'Jerrycan{k}', (-.3 + .07 * k, .72, .36), (.05, .07, .09), 'Cloth', 'Hull', rig)
     gunner = cl.person([(lib.top, 'Team', {'name': 'Shirt'}), (md.sleeves, 'Team'), (md.yoke, 'Team'),
                         (md.cargo_trousers, 'Cloth', {'pads': None}), md.combat_boots, headscarf, ki.torch], name='Gunner')
-    gunner.location = (0, .58, .28)
+    # True size (MD09): a pickup about 5 m long and 1.8 m wide; the gunner stays at 1.0 and stands
+    # in the bed behind the pintle.
+    tm.enlarge(rig, (1.5, 1.9))
+    gunner.location = (0, 1.16, .57)
     return [*parts, gunner], {'Skin': 'B9805C', 'Cloth': 'C8B48A', 'Leather': '2A2826', 'Metal': ('5A5C5E', .45, .6), 'Wood': '8A6A44'}, \
         'Modern raider: a technical, a pickup with a machine gun on a pintle in its bed, loot (sacks, a crate, a television, jerrycans) in the back, a Team tailgate and doors; a gunner in a headscarf and a Team shirt, holding up a torch', \
-        dict(budget=3000, mounted=False, vehicle=True)
+        dict(budget=3000, mounted=False, machine=True)
 
 
 def m_mercenary():

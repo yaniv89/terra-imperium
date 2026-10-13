@@ -342,25 +342,33 @@ def m_ranged():
 
 
 def m_cavalry():
-    parts, info = tm.tank('Tank')
+    # True size (MD09): a main battle tank with a hull about 7 m long, 3.7 m wide and 2.4 m to the
+    # turret roof (the rig is game-sized: enlarged, wider less than longer so the tracks stay round).
+    parts, info = tm.tank('Tank', hull_len=1.72, gun_len=1.05, wheels=7)
+    tm.enlarge(info['rig'], (1.6, 2.25))
     return parts, {'Skin': 'C99472', 'Cloth': OLIVE, 'Leather': '2A2A28', 'Metal': GUNMETAL, 'Wood': '4A4038'}, \
-        'Tank: a main battle tank on the tracked rig: tracks with six road wheels, side skirts with a Team stripe, a low angular turret with a Team band, a long gun with a fume extractor, the commander\'s cupola and open hatch, the loader\'s machine gun, a stowage basket', dict(budget=3000, mounted=False, vehicle=True)
+        'Tank: a main battle tank on the tracked rig: tracks with six road wheels, side skirts with a Team stripe, a low angular turret with a Team band, a long gun with a fume extractor, the commander\'s cupola and open hatch, the loader\'s machine gun, a stowage basket', dict(budget=3000, mounted=False, machine=True)
 
 
 def m_siege():
     parts, info = howitzer()
-    for i, ((x, y, z, yaw), tool) in enumerate(zip(info['crew'], ('shell', 'binoculars', 'rammer'))):
+    # True size (MD09): a 155 mm howitzer about 8 m from muzzle to spades; the crew stays at 1.0.
+    tm.enlarge(info['rig'], 2.1)
+    for i, ((x, y, z, yaw), tool) in enumerate(zip([(-1.12, .3, 0, 90), (1.05, .1, 0, -90), (-.2, 1.5, 0, 180)], ('shell', 'binoculars', 'rammer'))):
         parts.append(crewman(f'Crew{i}', (x, y, z), yaw, tool))
     return parts, {'Skin': 'C99472', 'Cloth': OLIVE, 'Leather': '2A2A28', 'Metal': GUNMETAL, 'Wood': '6E5236', 'Emblem': 'C8A040'}, \
-        'Artillery: a towed 155 mm howitzer in the firing position (split trails spread to their spades, a long barrel raised with a muzzle brake, a small shield, ready rounds), three crew in helmets and Team vests with a shell, binoculars and a rammer', dict(budget=3200, mounted=False, vehicle=True)
+        'Artillery: a towed 155 mm howitzer in the firing position (split trails spread to their spades, a long barrel raised with a muzzle brake, a small shield, ready rounds), three crew in helmets and Team vests with a shell, binoculars and a rammer', dict(budget=3200, mounted=False, machine=True)
 
 
 def m_support():
     parts, info = aa_truck()
-    gunner = crewman('Gunner', (0, .52, .28), 180)
+    # True size (MD09): a heavy three-axle truck about 7 m long and 2.5 m wide; the gunner stays at
+    # 1.0 and stands on the bed behind the gun mount.
+    tm.enlarge(info['rig'], (1.8, 2.3))
+    gunner = crewman('Gunner', (0, 1.32, .92), 180)
     parts.append(gunner)
     return parts, {'Skin': 'C99472', 'Cloth': OLIVE, 'Leather': '2A2A28', 'Metal': GUNMETAL, 'Wood': '4A4038'}, \
-        'Anti-air battery: a three-axle truck (Team doors and tailboard) with a twin 35 mm anti-aircraft gun mount on its bed, the guns raised, a radar panel, stabiliser legs out, a gunner at the mount', dict(budget=3000, mounted=False, vehicle=True)
+        'Anti-air battery: a three-axle truck (Team doors and tailboard) with a twin 35 mm anti-aircraft gun mount on its bed, the guns raised, a radar panel, stabiliser legs out, a gunner at the mount', dict(budget=3000, mounted=False, machine=True)
 
 
 def m_worker():
@@ -371,22 +379,26 @@ def m_worker():
 
 def m_general():
     parts, info = command_car()
-    fz = info['floor'] - .12
-    dx, dy = info['driver']
-    driver = cl.rider([combat_shirt, (cargo_trousers, 'Cloth', {'pads': None}), combat_boots, (beret, 'Leather')], [], at=(dx, dy, fz - .14), name='Driver')
-    ox_, oy = info['officer']
+    # True size (MD09): an open car about 3.5 m long; the driver and the general stay at 1.0, on the
+    # enlarged seat and floor.
+    S = 1.4
+    tm.enlarge(info['rig'], S)
+    fz = info['floor'] * S - .12
+    dx, dy = (v * S for v in info['driver'])
+    driver = cl.rider([combat_shirt, (cargo_trousers, 'Cloth', {'pads': None}), combat_boots, (beret, 'Leather')], [], at=(dx, dy, .54 * S - .34), name='Driver')
+    ox_, oy = (v * S for v in info['officer'])
     officer = cl.person([service_jacket, (cargo_trousers, 'Cloth', {'pads': None}), combat_boots, (lib.belt, 'Leather', .52), peaked_cap], name='Commander')
     w = lib.hand(officer)
     u.box('MapCase', (w.x, w.y - .02, w.z), (.03, .14, .1), 'Leather', 'Prop_R', officer, True)
     officer.location = (ox_, oy, fz)
     return [*parts, driver, officer], {'Skin': 'C99472', 'Cloth': OLIVE, 'Leather': '2A2A28', 'Metal': GUNMETAL, 'Wood': '4A4038'}, \
-        'Modern general: an open command car (Team door marks) with a radio set and a tall whip mast flying the squad emblem colour, a driver in a beret and the general standing in a peaked cap and service jacket with Team epaulettes', dict(budget=2950, mounted=False, vehicle=True)
+        'Modern general: an open command car (Team door marks) with a radio set and a tall whip mast flying the squad emblem colour, a driver in a beret and the general standing in a peaked cap and service jacket with Team epaulettes', dict(budget=2950, mounted=False, machine=True)
 
 
 def m_air():
     parts, info = tm.jet('Jet')
     return parts, {'Skin': 'C99472', 'Cloth': '8C939A', 'Leather': '2C3036', 'Metal': ('B8BCC0', .35, .7), 'Wood': '4A4038'}, \
-        'Fighter jet: a generic twin-tail multirole fighter, gear up: a pointed radome, a tinted bubble canopy, side intakes, swept wings with emblem roundels and a missile under each, twin canted fins in Team colour, two nozzles', dict(budget=3000, mounted=False, vehicle=True, json={'segment': False})
+        'Fighter jet: a generic twin-tail multirole fighter, gear up: a pointed radome, a tinted bubble canopy, side intakes, swept wings with emblem roundels and a missile under each, twin canted fins in Team colour, two nozzles', dict(budget=3000, mounted=False, fit_height=True, json={'segment': False})
 
 
 BUILDERS = {'modern-infantry': m_infantry, 'modern-ranged': m_ranged, 'modern-cavalry': m_cavalry, 'modern-siege': m_siege,
@@ -408,9 +420,12 @@ def true_height():
 
 
 def finish(uid, parts, colors, notes, opts):
-    """lib.finish, then a vehicle's JSON gets its true height (so its crew keeps the people's scale)."""
-    h = round(true_height() * opts.get('scale', 1), 3) if opts.get('vehicle') else None
+    """lib.finish; a land machine's JSON then gets its footprint and no height (tm.mark_machine: the
+    battle draws it at the people's scale, MD09); the jet's JSON gets its height (aircraft are fitted)."""
+    h = round(true_height() * opts.get('scale', 1), 3) if opts.get('fit_height') else None
     lib.finish(uid, parts, colors, notes, opts['budget'], opts['mounted'])
+    if opts.get('machine'):
+        tm.mark_machine(uid)
     if h:
         out = u.out_dir(uid) / f'{uid}.json'
         o = json.loads(out.read_text())

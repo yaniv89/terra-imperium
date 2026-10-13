@@ -251,6 +251,7 @@ def build_merkava():
     u.box('SlatRail', (0, ty + .16, tz + .2), (.66, .014, .014), 'Leather', 'Turret', rig)
     u.box('SlatRailLow', (0, ty + .16, tz + .02), (.66, .014, .014), 'Leather', 'Turret', rig)
     u.box('RearDoor', (0, .82, .26), (.22, .02, .14), 'Metal', 'Hull', rig)
+    tm.enlarge(rig, (1.6, 2.4))  # true size (MD09): a hull about 7 m long, 3.7 m wide
     return parts
 
 
@@ -266,6 +267,7 @@ def build_ltvz38():
     u.tube('HullMG', [(.12, -.52, .44), (.12, -.66, .44)], [.014, .012], 'Leather', ['Hull'] * 2, 5, rig)
     for k in range(6):
         u.box(f'TurretRivet{k}', (-.2 + .08 * k, -.27, .58), (.018, .012, .018), 'Metal', 'Turret', rig)
+    tm.enlarge(rig, (1.45, 2.15))  # true size (MD09): a light tank about 4.6 m long, 2.1 m wide
     return parts
 
 
@@ -293,13 +295,11 @@ def build(model):
         opts = json.loads(path.read_text()); opts['height'] = height
         path.write_text(json.dumps(opts, indent=2) + '\n')
         return
+    # A tank: at its true size, drawn at the people's scale and spaced by its footprint (MD09).
     spec = TANKS[model]
     parts = spec['build']()
-    height = md.true_height()
-    lib.finish(model, parts, spec['colors'], {'name': spec['name'], 'role': 'cavalry', 'rig': 'tank', 'look': spec['look'], 'height': height}, 3000, False)
-    path = u.out_dir(model) / f'{model}.json'
-    opts = json.loads(path.read_text()); opts['height'] = height
-    path.write_text(json.dumps(opts, indent=2) + '\n')
+    lib.finish(model, parts, spec['colors'], {'name': spec['name'], 'role': 'cavalry', 'rig': 'tank', 'look': spec['look']}, 3000, False)
+    tm.mark_machine(model)
 
 
 ALL = list(TANKS) + ['kindah'] + list(FOOT)

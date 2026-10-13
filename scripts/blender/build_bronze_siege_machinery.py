@@ -10,6 +10,11 @@ sys.path.insert(0,str(Path(__file__).resolve().parent));import ti_units
 OUT=ti_units.out_dir('bronze-siege')
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 bpy.context.scene.render.fps=20
+# True size (manifest MD09): the machinery below is laid out at about 0.6 of its real size; K brings
+# it to a covered ram about 6 m long and 2.9 m to the roof ridge against a 1.8 m person (H = 1).
+# Only the machine is scaled: the crew (build_bronze_siege.py) stays at 1.0, and the push handles
+# are placed afterwards at the crew's hand height.
+K=1.7
 def material(name,hexcolor):
  srgb=[int(hexcolor[i:i+2],16)/255 for i in (0,2,4)]
  linear=tuple(v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4 for v in srgb)
@@ -26,7 +31,7 @@ spec={'Root':((0,0,0),(0,0,.1),None),'Hull':((0,0,.3),(0,0,.6),'Root'),'Beam':((
 for side,x in [('L',-.435),('R',.435)]:
  for end,y in [('F',-.52),('B',.52)]:spec[f'Wheel_{side}{end}']=((x,y,.145),(x+.08,y,.145),'Hull')
 for n,(head,tail,parent) in spec.items():
- b=arm.edit_bones.new(n);b.head=head;b.tail=tail
+ b=arm.edit_bones.new(n);b.head=tuple(K*v for v in head);b.tail=tuple(K*v for v in tail)
  if parent:b.parent=arm.edit_bones[parent]
 bpy.ops.object.mode_set(mode='OBJECT');rig.select_set(False)
 parts=[]
@@ -62,12 +67,18 @@ for side in (-1,1):
   a=Vector((0,y,.93));b=Vector((side*.415,y,.79));mid=(a+b)/2
   o=box('Roof rib',mid,(.036,.045,(b-a).length),'Wood');o.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler()
  for y in (-.40,.40):box('Partial linen side curtain',(side*.365,y,.66),(.012,.59,.23),'Cloth')
- for y in (-.52,.52):box('Crew push handle',(side*.70,y,.605),(.48,.055,.055),'DarkWood')
 cylinder('Suspended ram beam',(0,-.3,.49),.105,1.55,'Wood','Beam','Y',vertices=10)
 cylinder('Plain bronze ram cap',(0,-1.125,.49),.112,.1,'Metal','Beam','Y',vertices=10)
 for y in (-.47,.43):
  box('Beam suspension strap',(0,y,.67),(.06,.055,.34),'Leather','Beam')
  cylinder('Beam strap collar',(0,y,.49),.109,.06,'Leather','Beam','Y',vertices=10)
+# The machine at its true size: every part scaled about the ground point under the rig.
+from mathutils import Matrix
+for o in parts:
+ o.location=o.location*K;o.data.transform(Matrix.Scale(K,4));o.data.update()
+# The push handles last, at the crew's hand height (.605 H) whatever the machine's size.
+for side in (-1,1):
+ for y in (-.52*K,.52*K):box('Crew push handle',(side*(.36*K+.34),y,.605),(.68,.055,.055),'DarkWood')
 # All moving parts are separate rigidly weighted meshes. Crew is appended after shared-body authoring.
 clips={'Idle':40,'Move':20,'Deploy':20,'Aim':20,'Fire':20,'Reload':24,'Destroyed':30}
 rig.animation_data_create()
@@ -82,7 +93,7 @@ for clip,frames in clips.items():
    for n in spec:
     if n.startswith('Wheel_'):rig.pose.bones[n].rotation_euler.y=t*2*math.pi
   if clip in ('Fire','Reload'):
-   displacement=(math.sin(t*math.pi)**2 if clip=='Fire' else 1-t)*.18
+   displacement=(math.sin(t*math.pi)**2 if clip=='Fire' else 1-t)*.18*K
    rig.pose.bones['Beam'].location=arm.bones['Beam'].matrix_local.to_3x3().inverted()@Vector((0,-displacement,0))
   if clip=='Deploy':rig.pose.bones['Hull'].location.z=.018*(1-t)
   if clip=='Aim':rig.pose.bones['Beam'].rotation_euler.x=.025*math.sin(t*math.pi)
@@ -95,5 +106,5 @@ rig.animation_data.action=bpy.data.actions['Idle'];bpy.context.scene.frame_set(1
 tri=sum(sum(len(p.vertices)-2 for p in o.data.polygons) for o in parts)
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'machinery.blend'))
-(OUT/'machinery-report.json').write_text(json.dumps({'triangles':tri,'fps':20,'clips':clips,'wheels':4,'crew_pending':4,'textures':0,'height':.95,'separate_beam':True,'separate_wheels':True},indent=2))
+(OUT/'machinery-report.json').write_text(json.dumps({'triangles':tri,'fps':20,'clips':clips,'wheels':4,'crew_pending':4,'textures':0,'height':round(.95*K,3),'scale':K,'separate_beam':True,'separate_wheels':True},indent=2))
 print('RAM_MACHINERY_AUTHORED',tri,flush=True)

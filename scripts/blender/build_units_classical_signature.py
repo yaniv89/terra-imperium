@@ -385,11 +385,13 @@ def build_elephant(model, spec):
 def build_bosporan(model, spec):
     parts, info = tm.frame('Frame', length=1.1, width=.52)
     tm.torsion_engine(info, stone=True, scale=1.1)
-    for i, (x, y, z, yaw) in enumerate(info['crew']):
+    stone_pile(info['rig'], (.62, .55))
+    # True size (MD09): a stone-thrower about 3.8 m long; the crew stays at 1.0.
+    tm.enlarge(info['rig'], 1.9)
+    for i, (x, y, z, yaw) in enumerate([(-.96, .53, 0, 90), (.96, .53, 0, -90), (0, 1.38, 0, 180)]):
         c, _ = u.crew(f'Crew{i}', (x, y, z), lite=True, head='cap', yaw=yaw)
         lib.top(c, 'Cloth', name=f'Crew{i}Linen')
         parts.append(c)
-    stone_pile(info['rig'], (.62, .55))
     return parts
 
 
@@ -434,6 +436,8 @@ def build(model):
         path = u.out_dir(model) / f'{model}.json'
         opts = json.loads(path.read_text()); opts['triangleBudget'] = 5000
         path.write_text(json.dumps(opts, indent=2) + '\n')
+    if model == 'bosporan-kingdom':  # a machine at its true size, spaced by its footprint (MD09)
+        tm.mark_machine(model)
 
 
 ALL = list(FOOT) + list(HORSE) + list(CHARIOTS) + list(CAMELS) + list(ELEPHANTS) + list(SPECIAL)

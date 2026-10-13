@@ -56,9 +56,17 @@ flag; model imports still require a visual and licensing review.
 | `modern-mercenary.glb` | Mercenary: ball cap and headset, tan shirt, Team chest rig, cargo trousers, striped sash and coin pouch, beard, carbine | 1,409 | `build_units_modern_irregular.py` (Claude) |
 | `modern-air.glb` | Fighter jet (`air` squads): twin-tail multirole fighter, gear up, Team fins, emblem roundels, two missiles (one Hull bone; `segment: false`) | 556 | `build_units_modern.py` (Claude) |
 
-The Modern vehicles' JSON carries `height` (their true height, a person = 1), so a tank, a gun crew
-or a command car keeps the people's scale; the renderer spreads Modern tanks and AA trucks wider
-(BattleRenderer.js `spacing`).
+Machines at true size (manifest MD09, MD10: only machines get bigger, never their crews). A land
+machine's file (siege engines, guns, tanks, trucks, the command car, the technical) is drawn at the
+same scale as the infantry beside it (unitModels.js `ART_UNIT_WORLD`), so it is authored at its
+real size against a 1.8 m person (a person = 1 unit) with its crew at 1.0: the builders make the
+machine on the game-sized rigs and then `ti_mounts.enlarge` it, and place the crew afterwards. Its
+JSON carries `footprint` ([width, length] in units, crew included, written by
+`ti_mounts.mark_machine`) and no `height`: a fitted height would shrink the crew with the machine.
+The renderer spaces a squad's machines by the footprint and draws only as many as fit the squad's
+ground (unitModels.js `machineLayout`: one ram, trebuchet, howitzer or tank, two guns or
+ballistas). Only aircraft keep `height`. `unitScale.test.js` checks every machine file: crew the
+infantryman's size within 3%, the machine's length and height in metres.
 
 Built by `scripts/blender/build_units_classical.py` (Claude) on the same rig, body and part library
 (`build_units_bronze_signature.py`); rest pose only. Culture-neutral.
