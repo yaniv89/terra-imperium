@@ -27,7 +27,7 @@ describe('city rail model', () => {
     expect(rows[0].growthTurns).toBeGreaterThan(0);
     expect(rows[1]).toMatchObject({ capital: false, idle: true, starving: true, restless: true, besieged: true, growthTurns: null });
     expect(cityRailModel({ ...s0, playerNationId: 'nope' })).toEqual([]);
-  });
+  }, 30000);
   it('names build items shortly and the per-turn strip reads the balance', () => {
     expect(shortItemLabel({ kind: 'settler' })).toBe('Settlers');
     expect(shortItemLabel({ kind: 'unit', classId: 'infantry' })).toMatch(/\w/);

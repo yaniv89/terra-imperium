@@ -31,7 +31,7 @@ import { logisticGrowthMult } from './population';
 import { nextTemplateUnit, templateProgress } from './armyTemplates';
 import {
   FOCUS, MAX_SIZE, FOOD_PER_CITIZEN, allocateTiles, cityYields, housingOf, amenitiesOf, growthThreshold, productionCost,
-  claimCandidates, buyTileCost, itemProgress, itemKey
+  claimCandidates, buyTileCost, itemProgress, itemKey, addPeople, sizeToPeople
 } from './world/cities';
 
 export const worldOf = (state) => ({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} });
@@ -112,6 +112,15 @@ export const growthView = (state, cityId, live = cityLive(state, cityId)) => {
   else if (speed <= 0) status = 'full';
   const turns = status === 'growing' ? Math.max(1, Math.ceil(Math.max(0, threshold - bank) / (yields.food * speed))) : null;
   return { bank, threshold, housing, speed, turns, state: status };
+};
+
+/** The city after Invest in growth (POPULATION_POLICY, I032): `rate` of its people banked as food
+ * toward the next citizen, at this game's growth threshold (the speed table). The same object
+ * when the bank is already full. The reducer and the button's preview both call this. */
+export const investInGrowth = (state, cityId, rate) => {
+  const city = state.regions?.[cityId];
+  if (!city || city.size == null) return city;
+  return addPeople(city, (city.currentPopulation || sizeToPeople(city.size)) * rate, { speedMult: cityCtx(state, city).speedMult || 1 });
 };
 
 // An army order is built piece by piece: what is left of it costs the sum of its missing pieces.

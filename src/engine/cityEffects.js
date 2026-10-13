@@ -109,7 +109,7 @@ const IMPROVEMENT_NOTES = {
 /** What building `item` (an improvement on a tile of the city) changes: the tile's yields with
  * and without it by the yield rules themselves (tileYields.js), the resource it starts to supply,
  * whether a citizen works the tile now, and what it replaces. */
-export const improvementEffect = (state, cityId, item) => {
+export const improvementEffect = (state, cityId, item, live = null) => {
   const city = state.regions?.[cityId];
   if (!city || item?.kind !== 'improvement') return null;
   const tiles = getTiles();
@@ -127,7 +127,7 @@ export const improvementEffect = (state, cityId, item) => {
   const luxury = res?.kind === 'luxury' && res.improvement === item.improvement && !(before.improvement === item.improvement && !before.pillaged) ? after.resource : null;
   const repair = before.improvement === item.improvement && before.pillaged;
   const replaces = before.improvement && before.improvement !== item.improvement ? IMPROVEMENTS[before.improvement]?.name || before.improvement : null;
-  const worked = (city.worked || []).includes(item.tile) || cityLive(state, cityId).worked.includes(item.tile);
+  const worked = (live || cityLive(state, cityId)).worked.includes(item.tile);
   const parts = effectParts(deltas);
   if (supply) parts.push({ key: 'supply', value: supply.amount, text: `supplies ${supply.amount} ${supply.resource} a turn` });
   if (luxury) parts.push({ key: 'luxury', value: 1, text: `${luxury} becomes a luxury (amenities)` });

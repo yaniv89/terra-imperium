@@ -6,49 +6,32 @@
 // through the reducer's city cases (QUEUE_PRODUCTION, DEQUEUE_PRODUCTION, SET_CITY_FOCUS,
 // TOGGLE_TILE_LOCK, BUY_TILE), so the rules live in src/engine/world/cities.js, not here.
 // Phone first: 44 px rows, one column, nothing that needs a hover.
-import { TECH_TREE } from '../../data/techTree';
+// Playtest audits, lane L3 (CB05): every number here is an engine selector's (src/engine/
+// cityEconomy.js, cityEffects.js, through cityBuildModel.js), so the price on a button is the
+// price charged and the turns are the turn's. The Build tab keeps a one-line queue bar pinned at
+// the top and never removes a row while it is open, so a second tap lands on the same row (I045).
 import { unitDisplayName, unitClassLabel } from '../../data/unitNames';
-import React, { useMemo } from 'react';
-import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp, ArrowUpToLine, ChevronDown, ChevronUp, MapPin, AlertTriangle, Check } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId, speedCostMult } from '../../data/ages';
+import { getEffectiveAgeId } from '../../data/ages';
 import { getResearched } from '../../engine/nationState';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
-import { IMPROVEMENTS, tileFacts, tileYields, canImprove } from '../../data/tileYields';
+import { IMPROVEMENTS, tileFacts, tileYields } from '../../data/tileYields';
 import { DISTRICTS } from '../../engine/districts';
-import { logisticGrowthMult } from '../../engine/population';
-import {
-  FOCUS, growthThreshold, housingOf, amenitiesOf, productionCost, canQueue, claimCandidates, buyTileCost, MAX_SIZE, allocateTiles, cityYields
-} from '../../engine/world/cities';
-import { templatesOf, nextTemplateUnit, templateProgress, templateSize } from '../../engine/armyTemplates';
-import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
-import { wonderOptions, wonderItem } from '../../engine/wonders';
-import { GREAT_PROJECTS, cityWonderTotal } from '../../data/greatProjects';
+import { templatesOf, nextTemplateUnit, templateSize } from '../../engine/armyTemplates';
+import { GREAT_PROJECTS } from '../../data/greatProjects';
+import { cityLive, growthView, landQuotes, focusPreview } from '../../engine/cityEconomy';
+import { GROUPS, describeTile, tileBearing, buildOptions, buildQueue, focusHint, turnsText } from './cityBuildModel';
+import { focusPlace } from '../map/marchEvents';
 import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } from '../ui/icons';
 import { Meter, Stat } from '../ui/atlas';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
-
-const describeTile = (facts) => {
-  const parts = [facts.terrain];
-  if (facts.relief !== 'flat') parts.push(facts.relief);
-  if (facts.feature !== 'none') parts.push(facts.feature);
-  if (facts.river) parts.push('river');
-  return parts.join(', ');
-};
-
-const itemLabel = (item, tiles, ageId = 'bronze') => {
-  if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${NAVAL_LINES[item.navalLine || 'warship'].role})` : unitDisplayName(ageId, item.classId);
-  if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || `${item.category} ${item.tier + 1}`;
-  if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement} on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}`;
-  if (item.kind === 'settler') return 'Settlers (takes one citizen, founds a city)';
-  if (item.kind === 'wonder') return `${GREAT_PROJECTS[item.projectId]?.name || item.projectId} (tier ${item.tier})${item.tile != null ? ` on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}` : ''}`;
-  if (item.kind === 'army') { const next = nextTemplateUnit(item); const p = templateProgress(item); return next ? `${item.name}: ${unitDisplayName(ageId, next)} (${p.done + 1} of ${p.total})` : `${item.name} (${p.total} units)`; }
-  return item.kind;
-};
+const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 
 // The icon of a production item (build list and queue): the delivered art, fixed size.
 const ItemIcon = ({ item, ageId, size = 28 }) => {
@@ -73,84 +56,66 @@ const Yield = ({ icon: Icon, value, title, className = '' }) => (
   <span className={`inline-flex items-center gap-0.5 ${className}`} title={title}><Icon className="w-3 h-3" />{value}</span>
 );
 
+const FLASH_MS = 2600;
+const GROUP_FILTERS = ['All', ...GROUPS];
+
 const CityPanel = ({ cityId, view = 'city' }) => {
   const { state, dispatch } = useGame();
   const city = state.regions[cityId];
   const tiles = getTiles();
   const ageId = getEffectiveAgeId(state.age, state.techAgeId);
+  const mine = !!city && city.owner === state.playerNationId;
+  const showOverview = view === 'overview' || view === 'city';
+  const showBuild = view === 'build' || view === 'city';
   const researched = useMemo(() => getResearched(state, state.playerNationId), [state]);
-  const world = useMemo(() => ({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }), [state.regions, state.world]);
-  const citiesOwned = useMemo(() => Object.values(state.regions).filter((c) => c.owner === state.playerNationId).length, [state.regions, state.playerNationId]);
-
-  // Live yields for the current focus and locks (the engine's own allocation), not last turn's.
-  const live = useMemo(() => {
-    if (!city) return null;
-    const worked = allocateTiles(city, tiles, world, researched);
-    return { worked, yields: cityYields(city, tiles, world, worked, researched, { luxuries: (city.lastYields?.luxuries || []).length, cultureBonus: cityWonderTotal(state.greatProjects, city.id, 'local.culture') }) };
-  }, [city, tiles, world, researched, state.greatProjects]);
-  const yields = live?.yields || { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
-  const housing = city ? housingOf(city, researched) : 0;
-  const amen = city ? amenitiesOf(city, { luxuries: (city.lastYields?.luxuries || []).length }) : { need: 0, supply: 0, net: 0 };
-  const threshold = city ? growthThreshold(city.size, speedCostMult(state.gameSpeed, ageId)) : 0;
-  // The housing soft cap (population.js logisticGrowthMult) slows growth as the city fills up.
-  const growthSpeed = city ? logisticGrowthMult(city.size, housing) : 1;
-  const growthTurns = city && yields.food > 0 && growthSpeed > 0 && city.size < MAX_SIZE ? Math.ceil(Math.max(0, threshold - city.food) / (yields.food * growthSpeed)) : null;
-  const costCtx = { ageId, citiesOwned, speedMult: speedCostMult(state.gameSpeed, ageId) };
-  const turnsFor = (item, progress = 0) => Math.max(1, Math.ceil(Math.max(0, productionCost(item, costCtx) - progress) / Math.max(0.1, yields.production)));
-
-  const options = useMemo(() => {
-    if (!city) return [];
-    const out = [];
-    const check = (item) => canQueue(city, tiles, world, item, { researched, ageId });
-    const settler = { kind: 'settler' };
-    out.push({ item: settler, group: 'Units', ...check(settler) });
-    getAvailableClasses(ageId).forEach((classId) => {
-      if (classId === 'naval') { navalLinesFor(ageId).forEach((navalLine) => { const item = { kind: 'unit', classId, navalLine }; out.push({ item, group: 'Units', ...check(item) }); }); return; }
-      const item = { kind: 'unit', classId };
-      out.push({ item, group: 'Units', ...check(item) });
-    });
-    // Armies (armyTemplates.js): one order per template, built piece by piece.
-    templatesOf(state.nations[state.playerNationId]).forEach((t) => {
-      const item = { kind: 'army', templateId: t.id, name: t.name, composition: t.composition, built: {} };
-      out.push({ item, group: 'Armies', ...check(item) });
-    });
-    // Wonders (wonders.js): a tile of the border that fits, built from production.
-    wonderOptions(state, city).forEach((w) => { out.push({ item: wonderItem(w.projectId, w.tier, w.tile), group: 'Wonders', ok: true }); });
-    Object.keys(BUILDING_CATEGORIES).forEach((category) => {
-      const tier = (city.buildings?.categories?.[category] ?? -1) + 1;
-      if (!BUILDING_CATEGORIES[category].tiers[tier]) return;
-      const item = { kind: 'building', category, tier };
-      const c = check(item);
-      const need = BUILDING_CATEGORIES[category].tiers[tier].requiresTech;
-      out.push({ item, group: 'Buildings', ...c, needsTech: !c.ok && need && !researched.includes(need) ? need : null, needsName: !c.ok && need && !researched.includes(need) ? TECH_TREE[need]?.name : null });
-    });
-    city.tiles.forEach((t) => {
-      if (t === city.tile) return;
-      const facts = tileFacts(tiles, t, world.tileState[t]);
-      Object.keys(IMPROVEMENTS).forEach((improvement) => {
-        if (!canImprove(facts, improvement, researched) || (facts.improvement === improvement && !facts.pillaged)) return;
-        const item = { kind: 'improvement', improvement, tile: t };
-        out.push({ item, group: 'Improvements', ok: true });
-      });
-    });
-    // Queued improvements are not offered twice.
-    const queued = new Set([city.production.current, ...city.production.queue].filter(Boolean).map((i) => JSON.stringify(i)));
-    return out.filter((o) => !queued.has(JSON.stringify(o.item)));
-  }, [city, tiles, world, researched, ageId, state]);
+  // The city as the next turn will work it (cityEconomy.js): one source for every number below.
+  const live = useMemo(() => (state.regions[cityId] ? cityLive(state, cityId) : null), [state, cityId]);
+  const growth = useMemo(() => (live ? growthView(state, cityId, live) : null), [state, cityId, live]);
+  const queue = useMemo(() => (live ? buildQueue(state, cityId, live) : []), [state, cityId, live]);
+  const options = useMemo(() => (live && showBuild && mine ? buildOptions(state, cityId, live) : []), [state, cityId, live, showBuild, mine]);
+  const hint = useMemo(() => (options.length ? focusHint(state, cityId, options, live) : null), [state, cityId, options, live]);
+  const focus = useMemo(() => (live && mine && showOverview ? focusPreview(state, cityId) : null), [state, cityId, live, mine, showOverview]);
+  const land = useMemo(() => (live && view === 'tiles' ? landQuotes(state, cityId).slice(0, 6) : []), [state, cityId, live, view]);
 
   const tileRows = useMemo(() => {
-    if (!city) return [];
-    const worked = new Set(live?.worked || city.worked || []);
+    if (!city || !live) return [];
+    const worked = new Set(live.worked);
+    const tileState = state.world?.tileState || {};
     return city.tiles.map((t) => {
-      const facts = tileFacts(tiles, t, world.tileState[t]);
+      const facts = tileFacts(tiles, t, tileState[t]);
       return { tile: t, facts, y: tileYields(facts, researched), worked: t === city.tile || worked.has(t), locked: city.locked.includes(t), centre: t === city.tile };
     }).sort((a, b) => (b.centre - a.centre) || (b.worked - a.worked) || a.tile - b.tile);
-  }, [city, tiles, world, researched, live]);
-  const candidates = useMemo(() => (city ? claimCandidates(city, tiles, world, { ageId, researched }).slice(0, 6) : []), [city, tiles, world, ageId, researched]);
+  }, [city, tiles, state.world, researched, live]);
 
-  if (!city) return null;
-  const mine = city.owner === state.playerNationId;
-  const queue = [city.production.current, ...city.production.queue].filter(Boolean);
+  // Build tab state: the open queue, the group shown, the row opened for its details, and the
+  // last tap (what the confirmation line under the queue bar reports).
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [group, setGroup] = useState('All');
+  const [openRow, setOpenRow] = useState(null);
+  const [tap, setTap] = useState(null);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  if (!city || !live) return null;
+  const yields = live.yields;
+  const housing = live.housing;
+  const amen = live.amenities;
+
+  const queueNow = (o) => {
+    // What was there before the tap: the line then says what the reducer really did with it.
+    setTap({ cityId, label: o.label, before: queue.length, logs: state.logs.length });
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setTap(null), FLASH_MS);
+    dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } });
+  };
+  // Accepted when the queue grew; refused when the reducer logged a reason instead.
+  const flash = tap && tap.cityId === cityId
+    ? (queue.length > tap.before
+      ? { ok: true, text: `Added: ${tap.label}. ${queue.length} in the queue.` }
+      : state.logs.length > tap.logs ? { ok: false, text: `Not added: ${state.logs[state.logs.length - 1].message}` } : null)
+    : null;
+  const openTile = (tile) => { if (tile != null) focusPlace([{ tile }, { regionId: cityId }]); };
+  const toggleRow = (o) => { setOpenRow((id) => (id === o.id ? null : o.id)); openTile(o.tile); };
 
   if (view === 'tiles') {
     return (
@@ -162,7 +127,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           {tileRows.map(({ tile, facts, y, worked, locked, centre }) => (
             <li key={tile} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs ${worked ? 'bg-fa-raised border border-fa-good/50' : 'bg-transparent border border-fa-line'}`}>
               <div className="min-w-0 flex-1">
-                <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${DISTRICTS[facts.district]?.name || facts.district}${facts.pillaged ? ' (pillaged)' : ''}` : ''}</div>
+                <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${DISTRICTS[facts.district]?.name || facts.district}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{centre ? '' : <span className="text-fa-muted normal-case"> · {tileBearing(tiles, city.tile, tile).text}</span>}</div>
                 <div className="text-fa-muted flex gap-2">
                   <Yield icon={Wheat} value={y.food} title="Food" className="text-fa-good" />
                   <Yield icon={Hammer} value={y.production} title="Production" className="text-fa-text" />
@@ -178,31 +143,26 @@ const CityPanel = ({ cityId, view = 'city' }) => {
             </li>
           ))}
         </ul>
-        {mine && candidates.length > 0 && (
+        {mine && land.length > 0 && (
           <div>
             <div className="text-[11px] font-semibold text-fa-text mb-1">Buy land ({city.cultureBank != null ? `${Math.round(city.cultureBank)} culture banked` : 'culture claims the best tile on its own'})</div>
-            <ul className="space-y-1">
-              {candidates.map((c) => {
-                const facts = tileFacts(tiles, c.tile, world.tileState[c.tile]);
-                const y = tileYields(facts, researched);
-                const cost = buyTileCost(city, c);
-                const can = (state.resources.gold || 0) >= cost;
-                return (
-                  <li key={c.tile} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs fa-card">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''} <span className="text-fa-muted">ring {c.ring}</span></div>
-                      <div className="text-fa-muted flex gap-2">
-                        <Yield icon={Wheat} value={y.food} title="Food" className="text-fa-good" />
-                        <Yield icon={Hammer} value={y.production} title="Production" className="text-fa-text" />
-                        <Yield icon={Coins} value={y.gold} title="Gold" className="text-fa-brass" />
-                      </div>
+            <ul className="space-y-1" data-testid="buy-land">
+              {land.map((q) => (
+                <li key={q.tile} className="flex items-center gap-2 rounded-lg px-2 py-1 min-h-[44px] text-xs fa-card">
+                  <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => openTile(q.tile)} onKeyDown={(e) => { if (e.key === 'Enter') openTile(q.tile); }} title="Show this tile on the map">
+                    <div className="text-fa-text capitalize"><TileMarks facts={q.facts} />{describeTile(q.facts)}{q.facts.resource ? ` · ${q.facts.resource}` : ''} <span className="text-fa-muted normal-case">· {tileBearing(tiles, city.tile, q.tile).text}</span></div>
+                    <div className="text-fa-muted flex gap-2">
+                      <Yield icon={Wheat} value={q.yields.food} title="Food" className="text-fa-good" />
+                      <Yield icon={Hammer} value={q.yields.production} title="Production" className="text-fa-text" />
+                      <Yield icon={Coins} value={q.yields.gold} title="Gold" className="text-fa-brass" />
                     </div>
-                    <button type="button" disabled={!can} onClick={() => dispatch({ type: ActionTypes.BUY_TILE, payload: { cityId, tile: c.tile } })} className="fa-btn fa-btn-secondary fa-num disabled:opacity-40" data-testid="buy-tile">
-                      {cost}g
-                    </button>
-                  </li>
-                );
-              })}
+                    {q.need && !q.need.built && <div className="text-[11px] leading-snug text-fa-muted" data-testid="land-resource-need">{q.need.text}</div>}
+                  </div>
+                  <button type="button" disabled={!q.affordable} onClick={() => dispatch({ type: ActionTypes.BUY_TILE, payload: { cityId, tile: q.tile } })} className="fa-btn fa-btn-secondary fa-num disabled:opacity-40 min-h-[44px]" data-testid="buy-tile" title={q.affordable ? `Buy for ${q.cost} gold` : `Needs ${q.cost} gold`} aria-label={`Buy this tile for ${q.cost} gold`}>
+                    {q.cost}g
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         )}
@@ -210,36 +170,54 @@ const CityPanel = ({ cityId, view = 'city' }) => {
     );
   }
 
-  // W05 (plans/UI-DESIGN.md): the Overview tab is the city at a glance (yields, size and housing,
-  // what it builds with its bar, the damage alert, the buildings); Build holds the queue and the
+  // W05 (plans/UI-DESIGN.md): the Overview tab is the city at a glance (focus first, then yields,
+  // size and housing, what it builds with its bar, the buildings); Build holds the queue and the
   // build lists. `view="city"` (older callers) shows both.
   const current = queue[0] || null;
-  const currentCost = current ? productionCost(current, costCtx) : 0;
-  const currentTurns = current ? turnsFor(current, city.production.progress) : null;
   const built = Object.entries(city.buildings?.categories || {}).filter(([, tier]) => tier >= 0)
     .map(([category, tier]) => ({ id: category, name: BUILDING_CATEGORIES[category]?.tiers[tier]?.name || category }));
   const wondersHere = Object.entries(state.greatProjects || {}).filter(([, e]) => e?.regionId === cityId).map(([id]) => ({ id, name: GREAT_PROJECTS[id]?.name || id }));
-  const showOverview = view === 'overview' || view === 'city';
-  const showBuild = view === 'build' || view === 'city';
+  const growthLine = growth.state === 'growing' ? `grows in ${growth.turns} turn${growth.turns === 1 ? '' : 's'}`
+    : growth.state === 'starving' ? 'starving' : growth.state === 'full' ? 'housing full: no growth' : growth.state === 'max' ? 'as large as it can be' : growth.state === 'outpost' ? 'an outpost' : 'not growing';
+  const currentTurns = current ? current.pieceTurns ?? current.turns : null;
 
   const overview = (
     <>
+      {focus && (
+        <div className="fa-card p-2" data-testid="city-focus">
+          <div className="flex items-baseline justify-between gap-2 mb-1">
+            <span className="fa-label">Focus</span>
+            <span className="text-[11px] text-fa-muted">food surplus, production, gold a turn</span>
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            {focus.rows.map((r) => (
+              <button key={r.focus} type="button" onClick={() => dispatch({ type: ActionTypes.SET_CITY_FOCUS, payload: { cityId, focus: r.focus } })} aria-pressed={r.current} data-testid={`city-focus-${r.focus}`}
+                className={`rounded-lg border px-1 py-1 min-h-[44px] text-[12px] leading-tight ${r.current ? 'border-fa-brass bg-fa-raised text-fa-text' : 'border-fa-line text-fa-muted'}`}>
+                <span className="block font-semibold">{FOCUS_LABEL[r.focus]}</span>
+                <span className="block fa-num text-[11px]">{signed(r.food)} · {r.production} · {r.gold}</span>
+              </button>
+            ))}
+          </div>
+          {focus.reason && <div className="text-[12px] leading-snug text-fa-muted mt-1.5" data-testid="city-focus-reason">Focus changes nothing here yet. {focus.reason}</div>}
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-1.5" data-testid="city-yields">
-        <Stat value={`${yields.food >= 0 ? '+' : ''}${yields.food}`} label="Food" color="var(--fa-good)" title={`Food surplus after ${city.size * 2} eaten; ${Math.round(city.food)}/${threshold} banked`} />
+        <Stat value={`${yields.food >= 0 ? '+' : ''}${yields.food}`} label="Food" color="var(--fa-good)" title={`Food surplus after ${city.size * 2} eaten; ${Math.round(growth.bank)}/${growth.threshold} banked`} />
         <Stat value={`+${yields.production}`} label="Production" title="Production a turn" />
         <Stat value={`+${yields.gold}`} label="Gold" color="var(--fa-brass)" title="Gold a turn" />
         <Stat value={`+${yields.science}`} label="Science" color="var(--fa-science)" title={`Science a turn; culture +${yields.culture}`} />
       </div>
       <div className="grid grid-cols-3 gap-1.5 text-[12px]">
-        <div className="fa-card px-2 py-1.5">
+        <div className="fa-card px-2 py-1.5" data-testid="city-size">
           <div className="text-fa-muted">Size</div>
           <div className="fa-num text-[15px] font-semibold">{city.size}</div>
-          <div className="text-fa-muted text-[11px] leading-tight">{growthTurns == null ? (yields.food < 0 ? 'starving' : 'not growing') : `grows in ${growthTurns} turn${growthTurns === 1 ? '' : 's'}`}</div>
+          <div className="text-fa-muted text-[11px] leading-tight">{growthLine}</div>
+          {growth.threshold > 0 && <div className="text-fa-muted text-[11px] leading-tight fa-num" title="Food banked toward the next citizen">food {Math.floor(growth.bank)}/{growth.threshold}</div>}
         </div>
         <div className="fa-card px-2 py-1.5">
           <div className="text-fa-muted flex items-center gap-1"><Home className="w-3 h-3" aria-hidden="true" />Housing</div>
           <div className={`fa-num text-[15px] font-semibold ${city.size >= housing ? 'text-fa-enemy' : ''}`}>{city.size}/{housing}</div>
-          <div className="text-fa-muted text-[11px] leading-tight">{growthSpeed <= 0 ? 'full: no growth' : growthSpeed < 0.95 ? `growth at ${Math.round(growthSpeed * 100)}%` : 'room to grow'}{city.marketHousing ? ` · market +${city.marketHousing}` : ''}</div>
+          <div className="text-fa-muted text-[11px] leading-tight">{growth.speed <= 0 ? 'full: no growth' : growth.speed < 0.95 ? `growth at ${Math.round(growth.speed * 100)}%` : 'room to grow'}{city.marketHousing ? ` · market +${city.marketHousing}` : ''}</div>
         </div>
         <div className="fa-card px-2 py-1.5">
           <div className="text-fa-muted flex items-center gap-1"><Smile className="w-3 h-3" aria-hidden="true" />Amenities</div>
@@ -250,26 +228,16 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       <div className="fa-card p-2.5" data-testid="city-building-now">
         <div className="flex items-center justify-between gap-2">
           <span className="fa-label">Building now</span>
-          {current && <span className="fa-num text-[13px] font-semibold">{currentTurns} turn{currentTurns === 1 ? '' : 's'}</span>}
+          {current && <span className="fa-num text-[13px] font-semibold">{turnsText(currentTurns)}</span>}
         </div>
         {current ? (
           <>
-            <div className="text-[15px] font-semibold mt-0.5 truncate">{itemLabel(current, tiles, ageId)}</div>
-            <Meter value={city.production.progress} max={Math.max(1, currentCost)} color="#CDB27A" className="mt-1.5" label={`${itemLabel(current, tiles, ageId)}: ${Math.round(city.production.progress)} of ${currentCost}`} />
-            {queue.length > 1 && <div className="text-[12px] text-fa-muted mt-1 truncate">Then: {queue.slice(1).map((q) => itemLabel(q, tiles, ageId)).join(', ')}</div>}
+            <div className="text-[15px] font-semibold mt-0.5 truncate">{current.label}</div>
+            <Meter value={current.progress} max={Math.max(1, current.cost)} color="#CDB27A" className="mt-1.5" label={`${current.label}: ${Math.round(current.progress)} of ${current.cost}`} />
+            {queue.length > 1 && <div className="text-[12px] text-fa-muted mt-1 truncate">Then: {queue.slice(1).map((q) => q.label).join(', ')}</div>}
           </>
         ) : <div className="text-[13px] text-fa-muted mt-0.5">Nothing in production. Open Build to choose.</div>}
       </div>
-      {mine && (
-        <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
-          <span className="fa-label mr-1">Focus</span>
-          {FOCUS.map((f) => (
-            <button key={f} type="button" onClick={() => dispatch({ type: ActionTypes.SET_CITY_FOCUS, payload: { cityId, focus: f } })} aria-pressed={city.focus === f} className="fa-chip">
-              {FOCUS_LABEL[f]}
-            </button>
-          ))}
-        </div>
-      )}
       {(built.length > 0 || wondersHere.length > 0) && (
         <div className="flex flex-wrap gap-1.5" data-testid="city-built">
           {built.map((b) => <span key={b.id} className="fa-chip">{b.name}</span>)}
@@ -279,56 +247,109 @@ const CityPanel = ({ cityId, view = 'city' }) => {
     </>
   );
 
+  const shownGroups = group === 'All' ? GROUPS : [group];
   const build = (
     <>
-      <div>
-        <div className="fa-label mb-1">Queue</div>
-        {queue.length === 0 ? (
-          <div className="text-[13px] text-fa-muted rounded-lg border border-dashed border-fa-line p-3">Nothing in production. Pick something below.</div>
-        ) : (
-          <ol className="space-y-1" data-testid="city-queue">
-            {queue.map((item, i) => {
-              const cost = productionCost(item, costCtx);
-              const progress = i === 0 ? city.production.progress : 0;
-              return (
-                <li key={`${JSON.stringify(item)}-${i}`} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-[13px] fa-card">
-                  <ItemIcon item={item} ageId={ageId} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate">{i === 0 ? '' : `${i + 1}. `}{itemLabel(item, tiles, ageId)}</div>
-                    <div className="text-fa-muted text-[12px]"><span className="fa-num">{i === 0 ? `${Math.round(progress)}/${cost}` : cost}</span> · {turnsFor(item, progress)} turn{turnsFor(item, progress) === 1 ? '' : 's'}</div>
-                    {i === 0 && <Meter value={progress} max={Math.max(1, cost)} color="#CDB27A" height={4} className="mt-1" />}
+      {/* The queue bar: pinned, always the same height, so adding to the queue moves nothing below it. */}
+      <div className={`sticky top-0 z-10 -mx-3 ${showOverview ? '' : '-mt-3'} px-3 pt-2 pb-1.5 bg-fa-panel border-b border-fa-line`} data-testid="city-queue-bar">
+        <div className="flex items-center gap-2 min-h-[44px]">
+          {current ? <ItemIcon item={current.item} ageId={ageId} /> : null}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-semibold">{current ? current.label : 'Nothing in production'}</div>
+            <div className={`truncate text-[12px] h-[18px] ${flash ? (flash.ok ? 'text-fa-good' : 'text-fa-danger-text') : 'text-fa-muted'}`} aria-live="polite" data-testid="city-queue-status">
+              {flash ? <>{flash.ok && <Check className="inline w-3.5 h-3.5 mr-0.5 -mt-0.5" aria-hidden="true" />}{flash.text}</>
+                : current ? <><span className="fa-num">{Math.round(current.progress)}/{current.cost}</span> · {turnsText(currentTurns)}{queue.length > 1 ? ` · ${queue.length - 1} more queued` : ''}</>
+                  : 'Pick something below.'}
+            </div>
+          </div>
+          <button type="button" onClick={() => setQueueOpen((v) => !v)} disabled={!queue.length} aria-expanded={queueOpen} data-testid="city-queue-toggle"
+            className="fa-btn fa-btn-secondary min-h-[44px] px-2.5 disabled:opacity-40 shrink-0" aria-label={queueOpen ? 'Hide the queue' : `Show the queue (${queue.length})`}>
+            <span className="fa-num mr-1">{queue.length}</span>{queueOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        </div>
+        {/* Always there, so the bar is the same height with and without something in production. */}
+        <div className="mt-0.5 h-1">{current && <Meter value={current.progress} max={Math.max(1, current.cost)} color="#CDB27A" height={4} />}</div>
+        {queueOpen && queue.length > 0 && (
+          <div className="mt-1.5 max-h-[42vh] overflow-y-auto">
+            <ol className="space-y-1" data-testid="city-queue">
+              {queue.map((q) => (
+                <li key={`${q.key}-${q.index}`} className="flex items-center gap-1 rounded-lg pl-2 min-h-[44px] text-[13px] fa-card">
+                  <ItemIcon item={q.item} ageId={ageId} size={24} />
+                  <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => openTile(q.tile)} onKeyDown={(e) => { if (e.key === 'Enter') openTile(q.tile); }}>
+                    <div className="truncate">{q.index === 0 ? '' : `${q.index + 1}. `}{q.label}</div>
+                    <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.turns == null ? 'no production' : `done in ${turnsText(q.turns)}`}</div>
                   </div>
+                  {mine && q.index > 0 && (
+                    <button type="button" onClick={() => dispatch({ type: ActionTypes.MOVE_PRODUCTION, payload: { cityId, index: q.index, to: 0 } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Build ${q.label} first`} title="Move to the front" data-testid="queue-front">
+                      <ArrowUpToLine className="w-4 h-4" />
+                    </button>
+                  )}
+                  {mine && q.index > 1 && (
+                    <button type="button" onClick={() => dispatch({ type: ActionTypes.MOVE_PRODUCTION, payload: { cityId, index: q.index, to: q.index - 1 } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Move ${q.label} up`} title="Move up" data-testid="queue-up">
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                  )}
                   {mine && (
-                    <button type="button" onClick={() => dispatch({ type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId, index: i } })} className="fa-icon-btn" aria-label="Remove from queue">
+                    <button type="button" onClick={() => dispatch({ type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId, index: q.index } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Remove ${q.label} from the queue`} title="Remove" data-testid="queue-remove">
                       <X className="w-4 h-4" />
                     </button>
                   )}
                 </li>
-              );
-            })}
-          </ol>
+              ))}
+            </ol>
+            <div className="text-[11px] text-fa-muted mt-1">Moving or removing an item never loses its progress: it is kept for that item and picked up when it is built again.</div>
+          </div>
         )}
       </div>
 
-      {mine && ['Units', 'Armies', 'Buildings', 'Wonders', 'Improvements'].map((group) => {
-        const rows = options.filter((o) => o.group === group);
+      {mine && hint && (
+        <div className="flex items-start gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-2 text-[12px] leading-snug" data-testid="long-build-hint">
+          <AlertTriangle className="w-4 h-4 text-fa-brass shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="min-w-0 flex-1">{hint.text}</div>
+          {hint.better && (
+            <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_CITY_FOCUS, payload: { cityId, focus: hint.better.focus } })} className="fa-btn fa-btn-secondary fa-btn-sm min-h-[44px] shrink-0" data-testid="long-build-focus">Production focus</button>
+          )}
+        </div>
+      )}
+
+      {mine && options.length > 0 && (
+        <div className="flex gap-1 overflow-x-auto -mx-1 px-1 [scrollbar-width:none]" role="tablist" aria-label="Build lists">
+          {GROUP_FILTERS.filter((g) => g === 'All' || options.some((o) => o.group === g)).map((g) => (
+            <button key={g} type="button" role="tab" aria-selected={group === g} onClick={() => setGroup(g)} data-testid={`build-group-${g.toLowerCase()}`}
+              className={`shrink-0 rounded-full border px-3 min-h-[36px] text-[12px] ${group === g ? 'border-fa-brass bg-fa-raised text-fa-text' : 'border-fa-line text-fa-muted'}`}>{g}</button>
+          ))}
+        </div>
+      )}
+
+      {mine && shownGroups.map((g) => {
+        const rows = options.filter((o) => o.group === g);
         if (!rows.length) return null;
         return (
-          <div key={group}>
-            <div className="fa-label mb-1">{group}</div>
+          <div key={g}>
+            <div className="fa-label mb-1">{g}</div>
             <ul className="space-y-1">
               {rows.map((o) => {
-                const cost = productionCost(o.item, costCtx);
+                const open = openRow === o.id;
+                const clip = open ? '' : 'truncate';
                 return (
-                  <li key={JSON.stringify(o.item)} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-fa-line/60 opacity-80'}`}>
-                    <ItemIcon item={o.item} ageId={ageId} />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate">{itemLabel(o.item, tiles, ageId)}</div>
-                      {o.item.kind === 'wonder' && <div className="text-fa-muted text-[11px] leading-snug" data-testid="wonder-description">{GREAT_PROJECTS[o.item.projectId]?.description}</div>}
-                      <div className="text-fa-muted text-[12px]">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } })} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">Research it</button></> : o.reason}</div>
+                  <li key={o.id} className={`flex items-center gap-2 rounded-lg pl-2 pr-1 py-1 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-fa-line/60'}`} data-testid="build-row">
+                    <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} aria-expanded={open} onClick={() => toggleRow(o)} onKeyDown={(e) => { if (e.key === 'Enter') toggleRow(o); }} title={o.tile != null ? 'Show the tile on the map and the details' : 'Show the details'}>
+                      <ItemIcon item={o.item} ageId={ageId} />
+                      <div className="min-w-0 flex-1">
+                        <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 mr-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.label}</div>
+                        {o.detail && <div className={`text-[12px] leading-snug text-fa-text/80 ${clip}`} data-testid="build-effect">{o.detail}</div>}
+                        {open && o.note && <div className="text-[12px] leading-snug text-fa-muted">{o.note}.</div>}
+                        <div className="text-fa-muted text-[12px]">
+                          {o.queued > 0 && <span className="text-fa-good mr-1">{o.queued > 1 ? `${o.queued} in the queue` : 'In the queue'}{o.ok ? ' ·' : ''}</span>}
+                          {o.ok ? <><span className="fa-num">{o.cost}</span> production · {turnsText(o.turns)}{o.stored > 0 ? ` · ${Math.round(o.stored)} already done` : ''}{o.long && <span className="text-fa-brass"> · slow here</span>}</>
+                            : o.queued ? null
+                              : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">Research it</button></>
+                                : o.note || o.reason}
+                        </div>
+                      </div>
                     </div>
-                    <button type="button" disabled={!o.ok} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } })} className="fa-icon-btn disabled:opacity-40" aria-label={`Build ${itemLabel(o.item, tiles, ageId)}`} data-testid="queue-item">
-                      {queue.length ? <Plus className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
+                    <button type="button" disabled={!o.ok} onClick={() => queueNow(o)} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0 disabled:opacity-40" aria-label={o.ok ? `Build ${o.label}` : `${o.label}: ${o.queued ? 'already in the queue' : o.needsName ? `needs ${o.needsName}` : o.reason}`} data-testid="queue-item">
+                      {o.queued && !o.ok ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                     </button>
                   </li>
                 );

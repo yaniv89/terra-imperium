@@ -8,8 +8,8 @@ import { abandonColony, foundColony, validateColony } from './colonies';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
-import { queueItem, dequeueItem, moveQueueItem, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
-import { quoteBuyTile } from './cityEconomy';
+import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
+import { quoteBuyTile, investInGrowth } from './cityEconomy';
 import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
@@ -993,7 +993,7 @@ const reduceAction = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
       // A city banks the new people as food toward its next size (population.js, one model).
       const nextRegion = region.size != null
-        ? addPeople(region, (region.currentPopulation || sizeToPeople(region.size)) * POPULATION_POLICY_GROWTH_RATE)
+        ? investInGrowth(state, regionId, POPULATION_POLICY_GROWTH_RATE) // at this game's growth threshold (cityEconomy.js)
         : { ...region, currentPopulation: Math.round((region.currentPopulation || 1) * (1 + POPULATION_POLICY_GROWTH_RATE)) };
       // Nothing to buy: the food bank is already full (I032). No charge for no effect.
       if (nextRegion === region) return reject(state, `${REGIONS_DATA[regionId]?.name}'s food bank is full: it grows as soon as it has housing and a food surplus.`);
@@ -3011,6 +3011,9 @@ const reduceAction = (state, action) => {
       const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
       const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: getEffectiveAgeId(state.age, state.techAgeId) });
       if (!ok.ok) return reject(state, ok.reason);
+      // One order per building tier and per tile improvement: a second tap says so instead of
+      // paying for the same thing twice (playtest audits I045).
+      if ((item.kind === 'building' || item.kind === 'improvement') && [city.production.current, ...city.production.queue].some((q) => q && itemKey(q) === itemKey(item))) return reject(state, 'Already in the queue.');
       return { ...state, regions: { ...state.regions, [id]: queueItem(city, item) } };
     }
     case ActionTypes.SET_SETTLER_TARGET: {

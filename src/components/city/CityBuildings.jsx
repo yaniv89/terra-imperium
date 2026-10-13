@@ -43,9 +43,18 @@ const CityBuildings = ({ cityId }) => {
           <BuildingIcon category={r.category} tier={r.next ? r.built.length : r.built.length - 1} size={28} />
           <div className="min-w-0 flex-1">
             <div className="text-fa-text">{r.label}</div>
-            <div className="text-fa-muted truncate">{r.built.length ? r.built.join(', ') : 'nothing yet'}{r.next ? ` · next ${r.next.name} (${r.next.cost})` : ' · complete'}{r.next?.needs ? ` · needs ${r.next.needs}` : ''}{r.next?.needsTech && mine && <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: r.next.needsTech } })} className="ml-1 underline text-fa-you min-h-[24px]" data-testid="research-for-building">Research it</button>}</div>
+            {/* Effect lines are measured on this city (cityEffects.js), not read from a table (I043). */}
+            <div className="text-fa-muted leading-snug" data-testid="building-standing">{r.built.length ? <>{r.built[r.built.length - 1]}: <span className="text-fa-text/80">{r.standing}</span></> : 'Nothing built yet'}{r.next ? '' : ' · complete'}</div>
+            {r.next && (
+              <div className="text-fa-muted leading-snug" data-testid="building-next">
+                Next, {r.next.name}: <span className="text-fa-text/80">{r.next.effect}</span>
+                <span className="fa-num"> · {r.next.cost}</span> production{r.next.turns != null ? `, ${r.next.turns} turn${r.next.turns === 1 ? '' : 's'}` : ''}
+                {r.next.needs ? ` · needs ${r.next.needs}` : ''}
+                {r.next.needsTech && mine && <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: r.next.needsTech } })} className="ml-1 underline text-fa-you min-h-[24px]" data-testid="research-for-building">Research it</button>}
+              </div>
+            )}
           </div>
-          {r.next && mine && (r.next.queued
+          {r.next && mine && !r.next.blocked && (r.next.queued
             ? <span className="text-fa-good flex items-center gap-1"><Check className="w-3.5 h-3.5" /> queued</span>
             : <button type="button" disabled={!r.next.canBuild} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: { kind: 'building', category: r.category, tier: r.built.length } } })} aria-label={`Queue ${r.next.name}`} className="min-w-[44px] min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-fa-text flex items-center justify-center"><Plus className="w-4 h-4" /></button>)}
         </li>
