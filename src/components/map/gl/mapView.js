@@ -49,9 +49,15 @@ export const minZoomFor = (width, raster) => Math.max(1, width / raster.width);
 /**
  * The hit a screen point picks among `hits` (sceneModel.js), last first, or null. A hit's box is
  * centred at its anchor's screen point plus its offset; `round` hits are discs.
+ * A round hit may ask for a finger-sized disc with `minR` (CSS px: its radius is never smaller,
+ * whatever the zoom) and for `nearest`: among the `nearest` hits a point falls in, the one whose
+ * centre is closest wins, not the last drawn (city badges at the strategic zoom are a few pixels
+ * across and stand close together: playtest audit I074). A hit that is not `nearest` still wins
+ * over every hit before it in the list, as before.
  */
 export const pickHit = (view, hits, sx, sy) => {
   const k = view.k;
+  let best = null; let bestD = Infinity;
   for (let i = hits.length - 1; i >= 0; i--) {
     const h = hits[i];
     const [ax, ay] = worldToScreen(view, h.anchor[0], h.anchor[1]);
@@ -59,10 +65,30 @@ export const pickHit = (view, hits, sx, sy) => {
     const cx = ax + o[0] + o[2] * k ** e[1]; const cy = ay + o[1] + o[3] * k ** e[1];
     const w = h.size[0] * k ** e[0]; const hh = h.size[1] * k ** e[0];
     const [px, py] = Array.isArray(h.pad) ? h.pad : [h.pad || 0, h.pad || 0];
-    if (h.round) { if (Math.hypot(sx - cx, sy - cy) <= w / 2 + px) return h; continue; }
-    if (Math.abs(sx - cx) <= w / 2 + px && Math.abs(sy - cy) <= hh / 2 + py) return h;
+    if (h.round) {
+      const d = Math.hypot(sx - cx, sy - cy);
+      if (d > Math.max(w / 2 + px, h.minR || 0)) continue;
+      if (!h.nearest) return best || h;
+      if (d < bestD) { best = h; bestD = d; }
+      continue;
+    }
+    if (Math.abs(sx - cx) <= w / 2 + px && Math.abs(sy - cy) <= hh / 2 + py) return best || h;
   }
-  return null;
+  return best;
+};
+
+/**
+ * How far one wheel event zooms, as d3-zoom's wheelDelta (the zoom is multiplied by 2^delta).
+ * d3's own rule is -deltaY x 0.002 (x 10 for a pinch on a trackpad, which arrives as ctrl+wheel),
+ * with no upper limit: one notch of a fast wheel, or one "scroll" of a remote tool, could send
+ * 500 or more and zoom several times over (playtest audit I075). Here one event never changes the
+ * zoom by more than `maxStep` (2^0.3 = 1.23 times), so the place under the cursor stays there.
+ */
+export const WHEEL_MAX_STEP = 0.3;
+export const wheelZoomDelta = (event, maxStep = WHEEL_MAX_STEP) => {
+  const raw = -event.deltaY * (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002) * (event.ctrlKey ? 10 : 1);
+  if (!Number.isFinite(raw)) return 0;
+  return Math.max(-maxStep, Math.min(maxStep, raw));
 };
 
 /**

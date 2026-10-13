@@ -10,7 +10,8 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Landmark, Wheat, Heart, Crosshair, Package, Coins, Tent, Layers, X } from 'lucide-react';
 import { LENSES } from './lenses';
-import { CITY_SPACING_KM, citySpacingRings } from '../../data/geo/citySpacing';
+import { citySpacingRings } from '../../data/geo/citySpacing';
+import { spacingRule } from './settleSiteModel';
 import { getTiles } from '../../data/geo/tiles';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 
@@ -19,8 +20,10 @@ export const ICONS = { political: Landmark, yields: Wheat, loyalty: Heart, threa
 const SettleLegend = () => (
   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 min-h-[32px] rounded-full bg-fa-panel/95 border border-fa-line text-[12px] text-fa-text pointer-events-auto shadow-lg" data-testid="settle-legend">
     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fa-good/80" aria-hidden="true" />Can found</span>
-    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fa-danger/80" aria-hidden="true" />Blocked, tap for why</span>
-    <span className="font-semibold">Cities <span className="fa-num">{citySpacingRings(getTiles())}</span> tiles apart (about <span className="fa-num">{CITY_SPACING_KM}</span> km)</span>
+    {/* blocked land is hatched on the map too (territoryShader.js): told apart without colour */}
+    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fa-danger/80" style={{ backgroundImage: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.45) 0 2px, transparent 2px 5px)' }} aria-hidden="true" />Blocked (striped), tap for why</span>
+    {/* the rule in tiles, one less across water: its km depend on the direction (settleSiteModel.spacingRule, I094) */}
+    <span className="font-semibold" title={spacingRule(getTiles()).text}>Cities <span className="fa-num">{citySpacingRings(getTiles())}</span> tiles apart, <span className="fa-num">{citySpacingRings(getTiles()) - 1}</span> across water</span>
   </div>
 );
 

@@ -40,7 +40,8 @@ import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
 import TopLayer from '../ui/TopLayer';
 import PreBattleModal from '../battle/PreBattleModal';
-import { startMarch, selectNation, selectArmy } from '../map/marchEvents';
+import { startMarch, selectNation, selectArmy, selectTile } from '../map/marchEvents';
+import { settlerStatus } from '../map/settleRoutes';
 import { placeName } from '../../engine/routes';
 import { unitsStationedIn, fieldUnitsOf, whereLabel } from '../../engine/unitLocation';
 import { unitTile } from '../../engine/armies';
@@ -585,7 +586,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               <div className="flex items-center gap-1.5 text-[10px] text-fa-muted mb-1">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ownerId === REBEL_OWNER_ID ? '#ef4444' : state.nations[ownerId]?.color || '#64748b' }} />
                 <span className="truncate">{ownerId === REBEL_OWNER_ID ? 'Rebels' : ownerId === state.playerNationId ? 'Your forces' : state.nations[ownerId]?.name || ownerId}</span>
-                <span className="ml-auto font-mono">{formatNumber(units.reduce((sum, u) => sum + (u.strength || 0), 0))} str</span>
+                <span className="ml-auto font-mono">{formatNumber(units.reduce((sum, u) => sum + (u.classId === 'settler' ? 0 : u.strength || 0), 0))} str</span>
               </div>
               <div className="space-y-1">
                 {units.map((unit) => (
@@ -754,7 +755,30 @@ const TierPips = ({ filled, total }) => (
 );
 
 
+// Settlers are no soldiers: no rank, strength, morale or supply, but what they are doing and the
+// way to give them a site (playtest audit I057). Foreign settlers only say who they are.
+const SettlerLine = ({ unit, age }) => {
+  const { state } = useGame();
+  const own = unit.ownerId === state.playerNationId;
+  const status = own ? settlerStatus(state, unit) : null;
+  return (
+    <div className="flex items-center gap-2 bg-fa-raised/60 rounded px-2 py-1.5" data-testid="settler-line">
+      <UnitIcon classId="settler" ageId={age} size={24} />
+      <div className="min-w-0 flex-1">
+        <div className="text-fa-text font-semibold truncate">Settlers</div>
+        <div className="text-[10px] text-fa-muted leading-tight">{status ? status.text : 'Looking for land to found a city'}</div>
+      </div>
+      {own && unit.tile != null && (
+        <button type="button" onClick={() => selectTile(unit.tile)} data-testid="settler-choose-site" className="shrink-0 min-h-[36px] px-2.5 rounded-lg bg-fa-hover hover:bg-fa-line text-[11px] font-semibold">
+          {status.state === 'travelling' ? 'Show' : 'Choose a site'}
+        </button>
+      )}
+    </div>
+  );
+};
+
 const UnitLine = ({ unit, age, commander }) => {
+  if (unit.classId === 'settler') return <SettlerLine unit={unit} age={age} />;
   const cls = UNIT_CLASSES[unit.classId];
   const strengthPct = unit.maxStrength ? Math.round((unit.strength / unit.maxStrength) * 100) : 100;
   return (

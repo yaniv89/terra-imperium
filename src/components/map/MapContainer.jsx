@@ -30,7 +30,7 @@
 // draws that as a real "you are here" rectangle. Clicking/dragging the minimap calls
 // `handleMiniMapNavigate`, which sets `navigateTarget` — a fresh `{lat,lng}` object every time —
 // and both views know how to fly/pan there (only the active one is actually mounted).
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { cameraTarget, battlePlaces, freshBattleReport, latLngOfTile } from './mapCamera';
 import { GlobeContainer } from '../globe';
 import Map2DContainer from './Map2DContainer';
@@ -50,6 +50,8 @@ import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
 import MapGoals from './MapGoals';
 import { LENSES } from './lenses';
+import SettleBar from './SettleBar';
+import { settleModeFor, settleModeOver, settleSites, settleUnit, nextSite, settleBarModel, idleSettlerOn, firstIdleSettler } from './settleMode';
 import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION, MANAGE_CITY, FOCUS_PLACE } from './marchEvents';
 import { SET_MAP_LENS } from '../ui/uiEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
@@ -88,13 +90,9 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   // The mini map folds behind a small button (plans/playtest-1.md P1.5), closed by default on a phone.
   const [miniOpen, setMiniState] = useState(() => { try { const v = localStorage.getItem(MINIMAP_STORAGE_KEY); if (v != null) return v === '1'; } catch { /* storage off */ } return typeof window === 'undefined' ? true : window.innerWidth >= 1024; });
   const setMini = (v) => { setMiniState(v); try { localStorage.setItem(MINIMAP_STORAGE_KEY, v ? '1' : '0'); } catch { /* storage off */ } };
-  useEffect(() => {
-    const onKey = (e) => { if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; const l = LENSES.find((x) => x.key === e.key); if (l) setLens(l.id); };
-    const onLens = (e) => { if (LENSES.some((x) => x.id === e.detail)) setLens(e.detail); };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener(SET_MAP_LENS, onLens);
-    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener(SET_MAP_LENS, onLens); };
-  }, []);
+  // Settling is a mode (settleMode.js): it forces the settle view round its settler whatever
+  // `lens` holds, and gives that lens back when it ends.
+  const [settle, setSettle] = useState(null);
   // The camera's moves from outside the map (plans/ui/map-camera/): only to a place that exists
   // (mapCamera.js), never to an undefined or empty spot.
   const stateRef = useRef(state);
@@ -102,6 +100,33 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const selectedArmyRef = useRef(selectedArmy);
   selectedArmyRef.current = selectedArmy;
   const flyTo = (ll) => { if (ll) setNavigateTarget({ lat: ll.lat, lng: ll.lng }); };
+  // Turn to a settler: the mode is on, its tile is selected (the site sheet), the map centres on it.
+  const startSettle = (unit) => {
+    if (!unit) return false;
+    marchCtx?.cancel?.();
+    settleStartedRef.current = Date.now();
+    setSettle(settleModeFor(unit)); setSelectedTile(unit.tile); setSelectedArmy(null); setSelectedNation(null); setManageOpen(false); selectRegion(null);
+    flyTo(latLngOfTile(unit.tile));
+    return true;
+  };
+  const settleStartedRef = useRef(0);
+  const startSettleRef = useRef(startSettle);
+  startSettleRef.current = startSettle;
+  // The player picks a lens: any tool mode over it ends.
+  const pickLens = (id) => { setSettle(null); setLens(id); };
+  useEffect(() => {
+    const onKey = (e) => { if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; const l = LENSES.find((x) => x.key === e.key); if (l) { setSettle(null); setLens(l.id); } };
+    const onLens = (e) => {
+      const l = LENSES.find((x) => x.id === e.detail);
+      if (!l) return;
+      // "Show good sites" with settlers waiting is the settle mode for the first of them
+      if (l.id === 'settle' && startSettleRef.current(firstIdleSettler(stateRef.current))) return;
+      setSettle(null); setLens(l.id);
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener(SET_MAP_LENS, onLens);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener(SET_MAP_LENS, onLens); };
+  }, []);
   const flyToPlaces = (places) => flyTo(cameraTarget(stateRef.current, places, { selectedArmyTile: selectedArmyRef.current }));
   // After a battle the player fought (Command, Auto, an attack answered), the map centres on it:
   // its tile, the city fought for, else the selected army, else the capital.
@@ -119,8 +144,10 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   // centred on it.
   useEffect(() => {
     const onArmy = (e) => { setSelectedArmy(e.detail); setSelectedTile(null); setManageOpen(false); selectRegion(null); flyTo(latLngOfTile(e.detail)); };
-    const onTile = (e) => { setSelectedTile(e.detail); setSelectedArmy(null); setManageOpen(false); selectRegion(null); flyTo(latLngOfTile(e.detail)); };
-    const onPlace = (e) => flyToPlaces(e.detail);
+    // (the tile of settlers that wait, the "Idle" chip: the settle mode for them)
+    const onTile = (e) => { if (startSettleRef.current(idleSettlerOn(stateRef.current, e.detail))) return; setSelectedTile(e.detail); setSelectedArmy(null); setManageOpen(false); selectRegion(null); flyTo(latLngOfTile(e.detail)); };
+    // (a "go home" fly that comes with the settle mode, Research's Map button, does not pull the map off the settler)
+    const onPlace = (e) => { if ((!e.detail || (Array.isArray(e.detail) && !e.detail.length)) && Date.now() - settleStartedRef.current < 400) return; flyToPlaces(e.detail); };
     const onNation = (e) => { setSelectedNation(e.detail); setSelectedTile(null); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
     const onFocus = (e) => setEventFocus(e.detail || null);
     // End Turn's "Choose production: <city>" (turnBlockers.js): the city's sheet on its Build tab, the map centred on it.
@@ -135,7 +162,25 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const onSelectArmy = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } setSelectedArmy(tile); setSelectedTile(null); setManageOpen(false); if (!stacking) selectRegion(null); };
   const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else { if (id) { setSelectedTile(null); setSelectedArmy(null); setSelectedNation(null); } selectRegion(id); } };
   // In march mode any tile (sea included, for a fleet) is the target; otherwise only land opens the tile sheet.
-  const onSelectTile = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } const land = tile != null && getTiles().land[tile] === 1 ? tile : null; setSelectedTile(land); if (land != null) { setManageOpen(false); setSelectedArmy(null); if (!stacking) selectRegion(null); } };
+  const onSelectTile = (tile) => {
+    if (marching) { if (tile != null) marchCtx.aimAt(tile); return; }
+    const land = tile != null && getTiles().land[tile] === 1 ? tile : null;
+    // One of your settlers that waits, tapped on the map: the settle mode for it. While the mode
+    // is on, every tap is a site to look at and the mode stays (I086).
+    const waiting = land != null ? idleSettlerOn(state, land) : null;
+    if (waiting && waiting.id !== settle?.unitId && startSettle(waiting)) return;
+    if (settle && land == null) return; // the sea, or the same tile again: the site sheet stays
+    setSelectedTile(land);
+    if (land != null) { setManageOpen(false); setSelectedArmy(null); if (!stacking || settle) selectRegion(null); }
+  };
+  // The mode ends by itself when its settler has a destination, founded, or is gone; a march ends it too.
+  const settleOver = settleModeOver(state, settle);
+  useEffect(() => { if (settleOver) setSettle(null); }, [settleOver]);
+  const sites = useMemo(() => (settle ? settleSites(state, settle) : []), [settle, state]);
+  const settleUnitNow = settleUnit(state, settle);
+  const settleView = useMemo(() => (settleUnitNow ? { tile: settleUnitNow.tile, sites: sites.map((s) => ({ tile: s.tile, poor: s.warnings.length > 0 })) } : null), [settleUnitNow, sites]);
+  const goNextSite = () => { const s = nextSite(sites, selectedTile); if (!s) return; setSelectedTile(s.tile); setSelectedArmy(null); setManageOpen(false); selectRegion(null); flyTo(latLngOfTile(s.tile)); };
+  const shownLens = settleView ? 'settle' : lens;
   const stacked = stacking && !!selectedRegion && (selectedTile != null || selectedArmy != null);
   const [storedMode, setMode] = useState(readStoredMode);
   // The globe is hidden behind a setting for one release (decision 28): off, the flat map is the map.
@@ -151,7 +196,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const [tapChoice, setTapChoice] = useState(null);
   // Starting a march closes the region card, so the map is free to pick the target.
   const marchFrom = marchCtx?.march?.from;
-  useEffect(() => { if (marchFrom) { setManageOpen(false); selectRegion(null); } }, [marchFrom, selectRegion]);
+  useEffect(() => { if (marchFrom) { setManageOpen(false); setSettle(null); selectRegion(null); } }, [marchFrom, selectRegion]);
   const playerCapitalId = getNationCapital(state.playerNationId);
   const focusRegionId = manageOpen ? selectedRegion : eventFocus;
   const handleMiniMapNavigate = (lat, lng) => setNavigateTarget({ lat, lng });
@@ -174,7 +219,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
             onViewportChange={setViewportBounds}
             onSelectTile={onSelectTile}
             onSelectArmy={onSelectArmy}
-            lens={lens}
+            lens={shownLens}
           />
         )
         : (
@@ -191,7 +236,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
             onSelectTile={onSelectTile}
             onSelectArmy={onSelectArmy}
             selectedArmy={selectedArmy}
-            lens={lens}
+            lens={shownLens}
+            settle={settleView}
           />
         )}
 
@@ -207,19 +253,21 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       />
       )}
       <MapGoals />
-      {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} />}
+      {/* Closing the site sheet keeps the settle mode (its bar stays): I086. */}
+      {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} settleUnitId={settleUnitNow?.id || null} onSettle={startSettle} />}
       {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
       <div className={`absolute left-[calc(var(--city-rail-w,0px)+0.75rem)] ${lensOpen ? 'z-20' : 'z-10'} flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)] lg:bottom-3 pl:bottom-3 pl:left-[max(env(safe-area-inset-left),0.75rem)]`}>
         {miniOpen && <MapLegend />}
         {miniOpen && <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label="Hide the mini map" data-testid="minimap-hide" className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-fa-panel border border-fa-line text-fa-text text-sm pointer-events-auto">×</button></div>}
         <div className="flex items-end gap-2">
-          <LensStrip lens={lens} onChange={setLens} onOpenChange={setLensOpen} />
+          <LensStrip lens={shownLens} onChange={pickLens} onOpenChange={setLensOpen} />
           {!miniOpen && <button type="button" onClick={() => setMini(true)} aria-label="Show the mini map" data-testid="minimap-show" className="min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">World</button>}
         </div>
       </div>
       {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}
       <MarchBar onSelectRegion={selectRegion} />
+      {settleView && !marching && <SettleBar model={settleBarModel(state, settle, sites, selectedTile)} onNext={goNextSite} onCancel={() => setSettle(null)} />}
       <MarchAttackPrompt />
       <RegionChooser choice={tapChoice} onPick={(id) => { setTapChoice(null); onSelectRegion(id); }} onClose={() => setTapChoice(null)} />
 

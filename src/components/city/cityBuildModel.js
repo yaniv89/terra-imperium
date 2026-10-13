@@ -25,6 +25,7 @@ import { templatesOf, nextTemplateUnit, templateProgress } from '../../engine/ar
 import { wonderOptions, wonderItem } from '../../engine/wonders';
 import { cityLive, queueView, buildQuote, worldOf, isLongBuild, longBuildTurns, focusPreview } from '../../engine/cityEconomy';
 import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
+import { settlingOutlook } from '../../engine/settlers';
 
 export const GROUPS = ['Units', 'Armies', 'Buildings', 'Wonders', 'Improvements'];
 
@@ -96,7 +97,9 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     });
   };
 
-  add({ kind: 'settler' }, 'Units', { fields: { detail: 'Founds a new city. Takes one citizen from this one.', note: city.size < SETTLER_MIN_SIZE ? `The city must reach size ${SETTLER_MIN_SIZE} first` : null } });
+  // No site worth a city in reach (settlers.js settlingOutlook: legal, explored): the row says so (I092).
+  const noSite = !settlingOutlook(state, city.owner, city.tile, ageId).ok;
+  add({ kind: 'settler' }, 'Units', { fields: { noSite, detail: noSite ? 'No good site is known within reach: these settlers would have nowhere worth going. Explore first.' : 'Founds a new city. Takes one citizen from this one.', note: city.size < SETTLER_MIN_SIZE ? `The city must reach size ${SETTLER_MIN_SIZE} first` : null } });
   const coast = hasSeaCoast(tiles, city);
   getAvailableClasses(ageId).forEach((classId) => {
     if (classId === 'naval') {

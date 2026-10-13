@@ -135,6 +135,9 @@ const R_STEPS = [6, 8, 10, 12, 16, 20, 24, 32, 40, 48];
 export const badgeRadiusStep = (rDevice) => R_STEPS.find((s) => s >= rDevice) || R_STEPS[R_STEPS.length - 1];
 /** The badge's box in units of its radius: the capital mark, arcs and the siege mark reach past the disc. */
 export const BADGE_BOX_R = 1.9;
+/** An independent city's badge: the diamond's points, in units of the disc's radius, and its colour. */
+export const INDEP_DIAMOND_R = 1.55;
+export const INDEP_BADGE_COLOUR = '#9C8FD0';
 
 /**
  * A city badge (Map2DView's badge: a disc with the skyline of the owner's age, the capital mark,
@@ -147,7 +150,7 @@ export const badgeArt = (b, rPx) => {
   const pending = waiting(iconUrl) || waiting(capitalUrl) || waiting(siegeUrl);
   const q = (v) => (v == null ? '' : Math.round(v * 20));
   return {
-    key: `badge|${rPx}|${Math.round(r0 * 10)}|${iconUrl || ''}|${capitalUrl || ''}|${colour}|${fill}|${q(outpost)}|${q(siege)}|${walls ? 1 : 0}|${disloyal ? 1 : 0}|${disaster || ''}|${size ?? ''}`,
+    key: `badge|${rPx}|${Math.round(r0 * 10)}|${iconUrl || ''}|${capitalUrl || ''}|${colour}|${fill}|${b.indep ? 'i' : ''}|${q(outpost)}|${q(siege)}|${walls ? 1 : 0}|${disloyal ? 1 : 0}|${disaster || ''}|${size ?? ''}`,
     w: box, h: box, pending,
     draw: (ctx) => {
       const r = rPx; const c = box / 2;
@@ -158,6 +161,13 @@ export const badgeArt = (b, rPx) => {
         ctx.beginPath(); ctx.arc(0, 0, radius, -Math.PI / 2, -Math.PI / 2 + a);
         ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.stroke();
       };
+      // An independent city: a violet diamond behind the disc, its four points showing past it
+      // (a shape of its own, not only a colour: playtest audit I082).
+      if (b.indep) {
+        const d = r * INDEP_DIAMOND_R;
+        ctx.beginPath(); ctx.moveTo(0, -d); ctx.lineTo(d, 0); ctx.lineTo(0, d); ctx.lineTo(-d, 0); ctx.closePath();
+        ctx.fillStyle = INDEP_BADGE_COLOUR; ctx.fill(); ctx.strokeStyle = '#1e1b4b'; ctx.lineWidth = sw * 0.5; ctx.stroke();
+      }
       ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fillStyle = fill; ctx.fill();
       if (outpost != null) ctx.setLineDash([(2 / r0) * r, (2 / r0) * r]);
@@ -435,7 +445,7 @@ export const cityBannerArt = (c, dpr, font = 12) => {
   const pad = 6; const cw = w + pad * 2; const ch = h + pad * 2 + 5;
   const q = (v) => (v == null ? '' : Math.round(v * 20));
   return {
-    key: `cityBanner|${c.name}|${sizeText}|${c.colour}|${c.selected ? 1 : 0}|${c.capital ? 1 : 0}|${c.disloyal ? 1 : 0}|${q(c.siege)}|${q(c.outpost)}|${q(c.build)}|${font}|${display ? 1 : 0}|${dpr}`,
+    key: `cityBanner|${c.name}|${sizeText}|${c.colour}|${c.indep ? 'i' : ''}${c.selected ? 1 : 0}|${c.capital ? 1 : 0}|${c.disloyal ? 1 : 0}|${q(c.siege)}|${q(c.outpost)}|${q(c.build)}|${font}|${display ? 1 : 0}|${dpr}`,
     w: Math.ceil(cw * dpr), h: Math.ceil(ch * dpr), pending: waiting(c.capital ? star : null) || waiting(c.siege != null ? siegeIcon : null),
     css: { w: Math.ceil(cw * dpr) / dpr, h: Math.ceil(ch * dpr) / dpr, pillW: w, pillH: h, pad },
     draw: (ctx) => {
@@ -444,8 +454,10 @@ export const cityBannerArt = (c, dpr, font = 12) => {
       ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
       pill(); ctx.fillStyle = 'rgba(26,33,43,0.92)'; ctx.fill();
       ctx.shadowColor = 'transparent';
-      // the size disc
-      ctx.beginPath(); ctx.arc(3 + disc / 2, h / 2, disc / 2, 0, Math.PI * 2); ctx.fillStyle = c.colour; ctx.fill();
+      // the size disc; a diamond for an independent city (a shape, not only a colour: I082)
+      ctx.beginPath();
+      if (c.indep) { const cx = 3 + disc / 2; const hd = disc / 2 + 1; ctx.moveTo(cx, h / 2 - hd); ctx.lineTo(cx + hd, h / 2); ctx.lineTo(cx, h / 2 + hd); ctx.lineTo(cx - hd, h / 2); ctx.closePath(); } else ctx.arc(3 + disc / 2, h / 2, disc / 2, 0, Math.PI * 2);
+      ctx.fillStyle = c.colour; ctx.fill();
       ctx.font = sizeFont; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#10141A';
       ctx.fillText(sizeText, 3 + disc / 2, h / 2 + 0.5);
       // the name and its marks

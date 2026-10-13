@@ -10,7 +10,7 @@ import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
 import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
 import { quoteBuyTile, investInGrowth } from './cityEconomy';
-import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES } from './settlers';
+import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES, setSettlerHold, disbandSettlers } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
 import { getTiles, loadedWorldSpec } from '../data/geo/tiles';
@@ -3038,7 +3038,7 @@ const reduceAction = (state, action) => {
       const path = settlerPath(state, unit.tile, tile, state.playerNationId);
       if (!path) return reject(state, 'No way there over land.');
       const turns = Math.ceil(path.length / SETTLER_MOVES);
-      return { ...state, units: { ...state.units, [unitId]: { ...unit, target: tile } }, logs: [...state.logs, { year: state.year, message: `Settlers set out for ${getTiles().names[tile] || 'new land'}: ${turns} turn${turns === 1 ? '' : 's'}.`, type: 'action' }] };
+      return { ...state, units: { ...state.units, [unitId]: { ...unit, target: tile, ...(unit.hold ? { hold: false } : {}) } }, logs: [...state.logs, { year: state.year, message: `Settlers set out for ${getTiles().names[tile] || 'new land'}: ${turns} turn${turns === 1 ? '' : 's'}.`, type: 'action' }] };
     }
     case ActionTypes.FOUND_CITY: {
       const { unitId } = action.payload || {};
@@ -3150,6 +3150,22 @@ const reduceAction = (state, action) => {
       }
       const units = setSiege(state, unitIds, null);
       return units ? { ...state, units, logs: [...state.logs, { year: state.year, message: 'Your army lifts its siege.', type: LogTypes.COMBAT }] } : state;
+    }
+
+    case ActionTypes.SET_SETTLER_HOLD: {
+      // Settlers wait where they are and leave the idle list (settlers.js setSettlerHold, I093).
+      const { unitId, hold = true } = action.payload || {};
+      const units = setSettlerHold(state, unitId, hold);
+      return units ? { ...state, units } : state;
+    }
+
+    case ActionTypes.DISBAND_SETTLERS: {
+      // The settlers go home (settlers.js disbandSettlers, I093): the unit is gone, its one
+      // citizen joins the nearest own city. No HR, no military strength: they were never soldiers.
+      const out = disbandSettlers(state, (action.payload || {}).unitId);
+      if (!out) return reject(state, 'Not your settlers.');
+      const message = out.city ? `The settlers go home: ${out.city.name} grows by one citizen.` : 'The settlers disband.';
+      return syncWorldRegistry({ ...state, units: out.units, regions: out.regions, logs: [...state.logs, { year: state.year, message, type: LogTypes.ACTION }] });
     }
 
     default:

@@ -44,10 +44,12 @@ export const raidShapes = ({ model, projection, k, dpr }) => {
   const lines = []; const sprites = []; const hits = [];
   if (!model || !projection) return { lines, sprites, hits };
   const half = projection.scale() * Math.PI;
-  const label = (text, colour, anchor, dy, id) => {
+  // `prio`: the label's rank where labels would overlap (declutter.js): a raid against you ranks
+  // over foreign city names, under your own.
+  const label = (text, colour, anchor, dy, id, prio = 50) => {
     const art = labelArt(text, { size: 10, weight: 700, fill: colour, stroke: 'rgba(15,23,42,0.92)', strokeW: 3 }, dpr);
     const offset = [0, dy - art.css.h / 2, 0, 0];
-    sprites.push({ art, anchor, offset, size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });
+    sprites.push({ art, anchor, offset, size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE, label: true, prio });
     if (id) hits.push({ kind: 'indep', id, anchor, offset, size: [Math.max(44, art.css.w), Math.max(28, art.css.h)], exp: [0, 0], pad: 4 });
   };
   // Routes: dark under, coloured dashes over (the march line style).
@@ -75,7 +77,7 @@ export const raidShapes = ({ model, projection, k, dpr }) => {
     const party = model.parties.find((p) => p.id === w.id);
     const pp = party ? pointOf(projection, party.tile) : null;
     if (k < RAID_LABEL_ZOOM || (pp && Math.hypot(pp[0] - at[0], pp[1] - at[1]) * k < 60)) return;
-    label(`Raid target: ${w.target}${w.eta != null ? ` · ${w.eta}t` : ''}`, '#fecaca', at, -r * k - 8, w.id);
+    label(`Raid target: ${w.target}${w.eta != null ? ` · ${w.eta}t` : ''}`, '#fecaca', at, -r * k - 8, w.id, 300);
   });
   // Parties: an icon (or disc) and a label.
   const torch = actionIconUrl('raid');
@@ -85,7 +87,7 @@ export const raidShapes = ({ model, projection, k, dpr }) => {
     const c = cssColor(p.againstYou ? RED : VIOLET);
     const icon = torch ? iconArt(torch, 16, dpr) : discArt(32);
     sprites.push({ art: icon, anchor: at, offset: [0, -18, 0, 0], size: torch ? [icon.css.w, icon.css.h] : [10, 10], exp: [0, 0], color: torch ? WHITE : [c[0], c[1], c[2], 1] });
-    label(`Raid party${p.phase === 'home' ? ', going home' : p.eta != null ? ` · ${p.eta}t` : ''}`, p.againstYou ? '#fecaca' : '#e9e5fb', at, -30, p.id);
+    label(`Raid party${p.phase === 'home' ? ', going home' : p.eta != null ? ` · ${p.eta}t` : ''}`, p.againstYou ? '#fecaca' : '#e9e5fb', at, -30, p.id, p.againstYou ? 300 : 50);
   });
   // Sieges of independents by others, and burning cities.
   model.sieges.forEach((s) => {

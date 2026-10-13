@@ -12,13 +12,14 @@ import { getTiles } from '../../../data/geo/tiles';
 import { cityLatLon, landTilesWithin } from '../../../data/geo/cityFeatures';
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
 import { getNationColor } from '../../../data/nationColors';
+import { isIndependent } from '../../../data/independents';
 import { getEffectiveAgeId } from '../../../data/ages';
 import { getTechAgeId } from '../../../engine/nationState';
 import { wallsOf } from '../../../engine/sieges';
 import { loyaltyOf } from '../../../engine/loyalty';
-import { OUTPOST_DONE, isSettler } from '../../../engine/settlers';
+import { OUTPOST_DONE, isSettler, MAX_SETTLE_KM } from '../../../engine/settlers';
 import { DISTRICTS } from '../../../engine/districts';
-import { RESOURCES_ON_TILES } from '../../../data/tileYields';
+import { RESOURCES_ON_TILES, resourceKnown } from '../../../data/tileYields';
 import { resourceIconUrl, improvementIconUrl, wonderIconUrl, markerIconUrl, unitIconUrl, cityIconUrl } from '../../../data/icons';
 import { townTier } from '../closeView/townTiers';
 import { WORK_KINDS } from '../closeView/landscape';
@@ -29,6 +30,7 @@ import { clusterScreenMarkers, MARKER_OFFSET, markerItems } from '../mapBanners'
 import { bannerOffsetPx } from '../CityBanners';
 import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, tradeLines, airCover, settleTints } from '../lenses';
 import { cssColor } from './cssColor';
+import { cityLabelPrio } from './declutter';
 import {
   labelArt, discArt, badgeArt, badgeRadiusStep, BADGE_BOX_R, armyArt, fleetArt, battleArt, colonyArt, wonderArt, eventArt,
   clusterArt, glyphArt, iconArt, groundBattleArt, settlerArt, cityBannerArt, peakArt, passArt, PEAK_LIFT
@@ -44,6 +46,8 @@ export const CITY_DETAIL_ZOOM = 2.5;
 export const NAME_EARLY_ZOOM = 1.5;
 export const CLOSE_ZOOM_K = 10 / hexSizeVsF75();
 export const FOREIGN_MIN_ZOOM = 2;
+/** The least radius (CSS px) of a city badge's tap target below the hex zoom. */
+export const CITY_TAP_MIN_R = 14;
 const CLUSTER_RADIUS_PX = 22;
 const IMPROVEMENT_GLYPH = { farm: 'F', pasture: 'P', camp: 'H', mine: 'M', quarry: 'Q', lumber_camp: 'L', fishing_boats: 'B', plantation: 'N', oil_well: 'O', fort: 'W' };
 const WHITE = [1, 1, 1, 1];
@@ -100,19 +104,19 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
       const own = owner === state.playerNationId;
       const art = cityBannerArt({
         name: city.name, size: city.size, colour: own ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8', selected: city.id === selectedRegion,
-        capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25,
+        capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25, indep: isIndependent(state.nations, owner),
         siege: city.siege ? Math.max(0, Math.min(1, city.siege.hp / Math.max(1, city.siege.maxHp))) : null,
         outpost: city.outpost ? Math.max(0, Math.min(1, (city.outpost.progress || 0) / OUTPOST_DONE)) : null,
         build: own ? builds.get(city.id) ?? null : null
       }, dpr, bannerFont);
       const oy = below + art.css.h / 2 - art.css.pad;
-      names.push({ art, anchor, offset: [0, oy, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });
+      names.push({ art, anchor, offset: [0, oy, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE, prio: cityLabelPrio(city, { selected: city.id === selectedRegion, own }) });
       hits.push({ kind: 'banner', id: city.id, anchor, offset: [0, below + art.css.pillH / 2, 0, 0], size: [art.css.pillW, art.css.pillH], exp: [0, 0], pad: [4, 9] });
       return;
     }
     const rCss = r0 * sk;
     const art = badgeArt({
-      r0, colour, capital: !!city.isCapital,
+      r0, colour, capital: !!city.isCapital, indep: isIndependent(state.nations, city.owner),
       fill: city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc',
       iconUrl: city.outpost ? null : cityIconUrl(townTier(city)?.id, ageOf(city.owner)),
       capitalUrl: city.isCapital ? capitalUrl : null,
@@ -125,12 +129,15 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
     }, badgeRadiusStep(rCss * dpr));
     const box = r0 * BADGE_BOX_R * 2;
     sprites.push({ art, anchor, offset: [0, 0, 0, 0], size: [box, box], exp: [0.5, 0], color: fade(city.ghost ? 0.6 : 1) });
-    hits.push({ kind: 'city', id: city.id, anchor, offset: [0, 0, 0, 0], size: [r0 * 2, r0 * 2], exp: [0.5, 0], round: true, pad: 0 });
+    // The whole badge is the target, never smaller than a fingertip while the hexes are too small
+    // to pick (the strategic zoom, where a badge is a few pixels and covers several tiles), and
+    // the nearest badge wins where they stand close together (playtest audit I074).
+    hits.push({ kind: 'city', id: city.id, anchor, offset: [0, 0, 0, 0], size: [r0 * 2, r0 * 2], exp: [0.5, 0], round: true, pad: 2, minR: k < HEX_FROM_ZOOM ? CITY_TAP_MIN_R : 0, nearest: true });
     if (k >= CITY_DETAIL_ZOOM || (k >= NAME_EARLY_ZOOM && (city.isCapital || city.owner === state.playerNationId))) {
       // a remembered town (fog, W03) says when it was last seen
-      const label = labelArt(city.ghost && city.lastSeen ? `${city.name} · last seen T${city.lastSeen}` : city.name, { size: 11, weight: 700, fill: city.ghost ? '#B9B19F' : '#fff' }, dpr);
+      const label = labelArt(city.ghost && city.lastSeen ? `${city.name} · last seen T${city.lastSeen}` : city.name, { size: 11, weight: 700, fill: city.ghost ? '#B9B19F' : isIndependent(state.nations, city.owner) ? '#DCD5F7' : '#fff' }, dpr);
       // the baseline 2 px over the disc, as the SVG's text
-      names.push({ art: label, anchor, offset: [0, -2 - label.css.baseline + label.css.h / 2, 0, -r0], size: [label.css.w, label.css.h], exp: [0, 0.5], color: fade(city.ghost ? 0.6 : 1) });
+      names.push({ art: label, anchor, offset: [0, -2 - label.css.baseline + label.css.h / 2, 0, -r0], size: [label.css.w, label.css.h], exp: [0, 0.5], color: fade(city.ghost ? 0.6 : 1), prio: cityLabelPrio(city, { selected: city.id === selectedRegion, own: city.owner === state.playerNationId }) });
     }
   });
   return { sprites, names, hits };
@@ -165,6 +172,11 @@ export const markerSprites = ({ markers, projection, k, atWar, dpr, waterTile })
 };
 
 // ------------------------------------------------------------------ the land: glyphs and roads
+/** How much larger than their base size (about 13 px) the tile glyphs are drawn at zoom `k`: 1 at
+ * the resource zoom, up to GLYPH_MAX_SCALE in the close view, in steps of 0.25. */
+export const GLYPH_MAX_SCALE = 1.75;
+export const glyphScale = (k) => Math.max(1, Math.min(GLYPH_MAX_SCALE, Math.round(Math.sqrt(k / RESOURCE_GLYPH_ZOOM) * 4) / 4));
+
 /**
  * Improvements, districts and resources as glyphs, and the roads, on the explored tiles of a
  * window of the world (from the hex zoom). `window`: { west, east, south, north } degrees.
@@ -194,20 +206,37 @@ export const landSprites = ({ state, projection, k, window, isExplored, lens, cl
       lines.push({ a, b: [bx, b[1]], half: 0.8, exp: 0, color: [road[0], road[1], road[2], 0.85] });
     });
   });
+  // Glyphs grow with the zoom (they were one 13 px size, lost beside the close view's towns:
+  // playtest audit I099), in steps so the atlas keeps a few sizes.
+  const gs = glyphScale(k);
+  const gdpr = dpr * gs;
+  const sized = (art) => [art.w / dpr, art.h / dpr];
+  const ageId = getEffectiveAgeId(state.age, getTechAgeId(state, state.playerNationId));
   within.forEach((t) => {
     const e = ts[t];
+    // A resource nobody knows of yet is not drawn (oil in the Bronze Age: tileYields.resourceKnown, I096).
     const resId = resources && tiles.resourceOf ? tiles.resourceOf(t) : null;
-    const res = resId && RESOURCES_ON_TILES[resId]?.kind !== 'bonus' && (lens === 'yields' || owner[t] != null || tiles.neighbors[t].some((n) => owner[n] != null)) ? resId : null;
+    const known = resId && resourceKnown(resId, ageId) ? resId : null;
+    const nearLand = lens === 'yields' || lens === 'settle' || owner[t] != null || tiles.neighbors[t].some((n) => owner[n] != null);
+    // Strategic and luxury resources from the resource zoom; the food and production ones
+    // (wheat, cattle, stone: every third tile has one) from the close view, or with the yields or
+    // settle view on, so the far map is not covered in them (I097).
+    const res = known && nearLand && (RESOURCES_ON_TILES[known]?.kind !== 'bonus' || closeGround || lens === 'yields' || lens === 'settle') ? known : null;
     if (!e?.improvement && !e?.district && !res) return;
     const anchor = pointOf(projection, t);
     const dim = e?.pillaged ? 0.45 : 1;
     let art = null;
-    if (e?.district && DISTRICTS[e.district]) art = glyphArt({ kind: 'district', letter: DISTRICTS[e.district].glyph }, dpr);
+    if (e?.district && DISTRICTS[e.district]) art = glyphArt({ kind: 'district', letter: DISTRICTS[e.district].glyph }, gdpr);
     else if (e?.improvement && e.improvement !== 'road' && !(closeGround && WORK_KINDS.includes(e.improvement))) {
-      art = glyphArt({ kind: 'improvement', iconUrl: improvementIconUrl(e.improvement), letter: IMPROVEMENT_GLYPH[e.improvement] || '•', own: owner[t] && state.regions[owner[t]]?.owner === state.playerNationId }, dpr);
+      art = glyphArt({ kind: 'improvement', iconUrl: improvementIconUrl(e.improvement), letter: IMPROVEMENT_GLYPH[e.improvement] || '•', own: owner[t] && state.regions[owner[t]]?.owner === state.playerNationId }, gdpr);
     }
-    if (art) sprites.push({ art, anchor, size: [art.css.w, art.css.h], color: fade(dim) });
-    if (res && !e?.improvement && !e?.district) { const ra = glyphArt({ kind: 'resource', iconUrl: resourceIconUrl(res) }, dpr); sprites.push({ art: ra, anchor, size: [ra.css.w, ra.css.h], color: WHITE }); }
+    if (art) sprites.push({ art, anchor, size: sized(art), color: fade(dim) });
+    if (res) {
+      // beside the improvement or district that stands on it (it used to hide under them), else on the tile
+      const ra = glyphArt({ kind: 'resource', iconUrl: resourceIconUrl(res) }, art ? gdpr * 0.8 : gdpr);
+      const size = art ? [ra.w / dpr, ra.h / dpr] : sized(ra);
+      sprites.push({ art: ra, anchor, offset: art ? [size[0] * 0.62, -size[1] * 0.5, 0, 0] : [0, 0, 0, 0], size, color: WHITE });
+    }
   });
   return { sprites, lines };
 };
@@ -250,6 +279,8 @@ export const groundMarks = ({ state, projection, k, dpr }) => {
   return sprites;
 };
 
+export const SETTLER_MIN_R = 6;
+export const SETTLER_MAX_R = 13;
 /** Settlers on their tiles: yours, and foreign ones in sight from zoom 2. */
 export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
   const sprites = []; const hits = [];
@@ -259,7 +290,9 @@ export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
     const own = u.ownerId === state.playerNationId;
     if (!own && !(k >= 2 && isVisible(u.tile))) return;
     const anchor = pointOf(projection, u.tile);
-    const rCss = close ? Math.min(5 * Math.sqrt(k), 6) : 5 * Math.sqrt(k);
+    // One readable size from the strategic zoom to the close view (it shrank to a 6 px dot beside
+    // the 3D towns: playtest audit I099). No settler model exists yet: this wagon disc is the unit.
+    const rCss = Math.max(SETTLER_MIN_R, Math.min(5 * Math.sqrt(k), SETTLER_MAX_R));
     const art = settlerArt({ own, idle: own && u.target == null && !close, iconUrl: unitIconUrl('settler') }, rCss, dpr);
     sprites.push({ art, anchor, size: [art.css.w, art.css.h], color: WHITE });
     hits.push({ kind: 'settler', tile: u.tile, anchor, offset: [0, 0, 0, 0], size: [rCss * 2.3, rCss * 2.3], exp: [0, 0], round: true, pad: 4 });
@@ -268,6 +301,8 @@ export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
 };
 
 // ------------------------------------------------------------------ march routes
+/** Half the width of a march line, CSS px, at every zoom. */
+export const MARCH_LINE_PX = 1.3;
 /** The marches under way and the one being planned (MarchContext lines). */
 export const marchShapes = ({ marchLines, projection, k, selectedArmy, dpr }) => {
   const lines = []; const sprites = [];
@@ -284,24 +319,28 @@ export const marchShapes = ({ marchLines, projection, k, selectedArmy, dpr }) =>
     });
     if (pts.length < 2) return;
     const preview = l.kind === 'preview';
-    const colour = cssColor(preview ? '#fde68a' : l.halted ? '#f87171' : '#34d399');
+    const settlers = l.kind === 'settlers'; // settlers on their way to a site (settleRoutes.js)
+    const colour = cssColor(preview || settlers ? '#fde68a' : l.halted ? '#f87171' : '#34d399');
     const faint = !preview && selectedArmy != null && l.points[0] !== selectedArmy;
     const op = faint ? 0.5 : 1;
-    const w = 2.2; // CSS px times sqrt(k): the SVG's 2.2 / sqrt(k) world units
-    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: w * 0.9, exp: 0.5, color: [15 / 255, 23 / 255, 42 / 255, 0.55 * op] });
-    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: w * 0.45, dash: preview ? w * 3 : 0, gap: preview ? w * 2 : 0, exp: 0.5, color: [colour[0], colour[1], colour[2], op] });
+    // A thin line of the same width on screen at every zoom (it used to grow with the zoom, to
+    // 14 px in the close view, and hid the land it crossed: playtest audit I071).
+    const w = settlers ? MARCH_LINE_PX * 0.85 : MARCH_LINE_PX;
+    const dashed = preview || settlers;
+    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: w + 0.9, exp: 0, color: [15 / 255, 23 / 255, 42 / 255, 0.5 * op] });
+    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: w, dash: dashed ? 7 : 0, gap: dashed ? 4 : 0, exp: 0, color: [colour[0], colour[1], colour[2], op] });
     // the arrowhead: two short strokes back from the end
     const end = pts[pts.length - 1]; const prev = pts[pts.length - 2];
     const ang = Math.atan2(end[1] - prev[1], end[0] - prev[0]);
-    const ah = (5 * sk) / k; // world units
-    [2.5, -2.5].forEach((da) => lines.push({ a: end, b: [end[0] + Math.cos(ang + da) * ah, end[1] + Math.sin(ang + da) * ah], half: w * 0.5, exp: 0.5, color: [colour[0], colour[1], colour[2], op] }));
-    if (preview) l.marks.slice(0, -1).forEach((m) => { const p = pts[m.index]; if (!p) return; const d = discArt(16); sprites.push({ art: d, anchor: p, size: [3.2, 3.2], exp: [0.5, 0], color: [colour[0], colour[1], colour[2], 1] }); });
+    const ah = Math.min(5 * sk, 9) / k; // world units: at most 9 px on screen
+    [2.5, -2.5].forEach((da) => lines.push({ a: end, b: [end[0] + Math.cos(ang + da) * ah, end[1] + Math.sin(ang + da) * ah], half: w, exp: 0, color: [colour[0], colour[1], colour[2], op] }));
+    if (preview) l.marks.slice(0, -1).forEach((m) => { const p = pts[m.index]; if (!p) return; const d = discArt(16); sprites.push({ art: d, anchor: p, size: [5, 5], exp: [0, 0], color: [colour[0], colour[1], colour[2], 1] }); });
     if (!faint) {
       const turns = l.marks.length ? l.marks[l.marks.length - 1].turn : null;
       const text = l.halted ? 'halted' : turns != null ? `${turns} turn${turns === 1 ? '' : 's'}` : '';
       if (text) {
         const art = labelArt(text, { size: 10, weight: 700, fill: l.halted ? '#fecaca' : '#fff', stroke: 'rgba(15,23,42,0.85)', strokeW: 2.2 }, dpr);
-        sprites.push({ art, anchor: end, offset: [0, -art.css.baseline + art.css.h / 2, 0, -9], size: [art.css.w, art.css.h], exp: [0, 0.5], color: WHITE });
+        sprites.push({ art, anchor: end, offset: [0, -12 - art.css.baseline + art.css.h / 2, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });
       }
     }
   });
@@ -318,13 +357,35 @@ const circleLines = (centre, rWorld, style) => {
   return out;
 };
 
+/** A ranked site's mark, CSS px across, and how far round a settler the settle mode tints. */
+export const SITE_MARK_PX = 20;
+export const SETTLE_MODE_KM = MAX_SETTLE_KM;
 /** The lens layer: tile tints (for the territory shader), and its sprites and lines. */
-export const lensShapes = ({ state, projection, k, lens, dpr, settlerTile = null }) => {
+export const lensShapes = ({ state, projection, k, lens, dpr, settlerTile = null, sites = null }) => {
   const out = { tints: null, sprites: [], lines: [] };
-  // One of your settlers selected: the settle tints round it, whatever the lens (settle-rules R6).
-  if (settlerTile != null && (!lens || lens === 'political')) return { ...out, tints: settleTints(state, [settlerTile]) };
   if (!lens || lens === 'political') return out;
   const at = (t) => pointOf(projection, t);
+  if (lens === 'settle' && settlerTile != null) {
+    // The settle mode (settleMode.js): the land this settler can reach, and the ranked sites as
+    // numbered marks that keep their size at every zoom (a ring for a sound site, a dashed ring
+    // for a poor one), so the good land is found from the strategic zoom too (I088, I089).
+    out.tints = settleTints(state, [settlerTile], { km: SETTLE_MODE_KM });
+    const placed = [];
+    (sites || []).forEach((s, i) => {
+      const p = at(s.tile);
+      if (!p) return;
+      // far out the sites stand within a few pixels of each other: the better one keeps its mark
+      // (the bar still walks through all of them)
+      if (placed.some((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) * k < SITE_MARK_PX * 0.9)) return;
+      placed.push(p);
+      const c = cssColor(s.poor ? '#fbbf24' : '#fde68a');
+      out.sprites.push({ art: discArt(48), anchor: p, size: [SITE_MARK_PX, SITE_MARK_PX], exp: [0, 0], color: [15 / 255, 23 / 255, 42 / 255, 0.78] });
+      out.sprites.push({ art: discArt(48, { ring: 5, dash: s.poor ? [7, 5] : null }), anchor: p, size: [SITE_MARK_PX + 2, SITE_MARK_PX + 2], exp: [0, 0], color: [c[0], c[1], c[2], 1] });
+      const art = labelArt(String(i + 1), { size: 11, weight: 800, fill: s.poor ? '#fbbf24' : '#fde68a', stroke: null, strokeW: 0 }, dpr);
+      out.sprites.push({ art, anchor: p, offset: [0, -art.css.baseline + art.css.h / 2 + 4, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });
+    });
+    return out;
+  }
   if (lens === 'yields') {
     if (k < HEX_FROM_ZOOM) return out;
     yieldLabels(state).forEach((y) => {

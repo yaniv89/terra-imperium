@@ -39,7 +39,6 @@ import { clamp } from '../../../effects/engine';
 import { openBattleReport } from '../../battle/battleReportEvents';
 import { useMarch } from '../MarchContext';
 import { fogView } from '../fogView';
-import { isSettler } from '../../../engine/settlers';
 import { loadGroundData } from '../closeView/groundBlend';
 import { createCloseScene, closeTowns } from '../closeView/closeViewScene';
 import { tileGpuData } from './tileGpuData';
@@ -51,13 +50,15 @@ import { riverStrips, riverBandAt, riverRankCap, RIVER_BANDS } from './riverMode
 import { loadRiverLines } from '../../../data/geo/riverLines';
 import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
-import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor } from './mapView';
-import { cleanLatLng, latLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera } from '../mapCamera';
+import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta } from './mapView';
+import { cleanLatLng, latLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS } from '../mapCamera';
 import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
 } from './sceneModel';
 import { raidShapes } from './raidShapes';
+import { declutterLabels } from './declutter';
+import { settlerLines } from '../settleRoutes';
 import { raidMapModel } from '../../independents/raidMapModel';
 import { openIndependent } from '../../independents/independentEvents';
 
@@ -87,7 +88,7 @@ export const canRunGLMap = () => {
 const GLMapView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, hudOffset = false,
   initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null,
-  onSelectArmy = null, selectedArmy = null, lens = 'political', onFail = null
+  onSelectArmy = null, selectedArmy = null, lens = 'political', onFail = null, settle = null
 }) => {
   const { state: gameState } = useGame();
   const gameStateRef = useRef(gameState);
@@ -95,16 +96,24 @@ const GLMapView = ({
   const camKey = cameraKey(gameState);
   const fog = useMemo(() => fogView(gameState), [gameState]);
   const state = fog.state;
-  // One of your settlers on the selected tile shows the settle tints round it (settle-rules R6).
-  const settlerTile = useMemo(() => (selectedTile != null && Object.values(gameState.units).some((u) => isSettler(u) && u.ownerId === gameState.playerNationId && u.tile === selectedTile) ? selectedTile : null),
-    [selectedTile, gameState.units, gameState.playerNationId]);
-  const tintOn = lens === 'supply' || lens === 'settle' || (settlerTile != null && lens === 'political');
+  // The settle mode (settleMode.js, MapContainer): `settle` is { tile, sites } for its settler and
+  // the lens is then 'settle' whatever the player had on; the tints are drawn round that settler
+  // and stay while other tiles are tapped and their sheet is closed (playtest audit I084, I086).
+  const settlerTile = settle?.tile ?? null;
+  const settleSiteList = settle?.sites;
+  // 2: the settle view (stronger at the strategic zoom, blocked land hatched: territoryShader.js)
+  const tintOn = lens === 'settle' ? 2 : lens === 'supply' ? 1 : 0;
   const { effects } = useEffects();
   const rawInsets = useMapInsets();
   const insets = hudOffset ? rawInsets : { top: 0, bottom: 0, left: 0, right: 0 };
   const layoutMode = useLayoutMode();
   const marchCtx = useMarch();
   const marchLines = marchCtx?.lines;
+  // a march's target is being picked (the taps below read it)
+  const marchingRef = useRef(false);
+  marchingRef.current = !!marchCtx?.march && !marchCtx.march.dragging;
+  const settleRef = useRef(false);
+  settleRef.current = !!settle;
 
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -205,7 +214,7 @@ const GLMapView = ({
     g.raster.update(v, { closeK: CLOSE_ZOOM_K, baseZ: s.baseZ, worldUrl: s.worldUrl, worldSize: s.worldSize });
     const territoryOpts = {
       uHex: v.k >= HEX_FROM_ZOOM ? 1 : 0, uCityDetail: v.k >= CITY_DETAIL_ZOOM ? 1 : 0, uNationHalf: v.k < 3 ? 0.55 : 0.45,
-      uSelTile: s.selectedTile ?? -1, uTintOn: s.tintOn ? 1 : 0, uFogOn: s.fogOn ? 1 : 0
+      uSelTile: s.selectedTile ?? -1, uTintOn: s.tintOn || 0, uFogOn: s.fogOn ? 1 : 0
     };
     [g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
     // the world camera (the raster quads and the close view's models)
@@ -258,9 +267,9 @@ const GLMapView = ({
     clearTimeout(settleTimer.current);
     const prevK = settledRef.current.k;
     const ratio = t.k / prevK;
-    const settle = () => setSettled({ k: t.k, x: t.x, y: t.y, n: Date.now() });
-    if (ratio > ZOOM_JUMP || ratio < 1 / ZOOM_JUMP) settle();
-    else settleTimer.current = setTimeout(settle, ZOOM_SETTLE_MS);
+    const settleNow = () => setSettled({ k: t.k, x: t.x, y: t.y, n: Date.now() });
+    if (ratio > ZOOM_JUMP || ratio < 1 / ZOOM_JUMP) settleNow();
+    else settleTimer.current = setTimeout(settleNow, ZOOM_SETTLE_MS);
   }, []);
   useEffect(() => () => clearTimeout(settleTimer.current), []);
 
@@ -281,6 +290,8 @@ const GLMapView = ({
     const behavior = d3zoom()
       .interpolate(linearViewInterpolate)
       .scaleExtent([minK, ZOOM_MAX])
+      // one wheel event is one small step (mapView.wheelZoomDelta, playtest audit I075)
+      .wheelDelta(wheelZoomDelta)
       // east and west are free (the world wraps), north and south stop at the poles
       .translateExtent([[-Infinity, 0], [Infinity, height]])
       .on('zoom', (event) => onZoom(event.transform));
@@ -292,6 +303,11 @@ const GLMapView = ({
     return () => { selection.on('.zoom', null); };
   }, [ready, width, height, minK, onZoom, projection]);
 
+  // The free part of the screen is read when the camera moves, through a ref: a sheet that opens or
+  // closes changes the insets but must not rebuild the fly-to callbacks, or every effect that
+  // depends on them would fly to its last target again (playtest audit I072).
+  const insetsRef = useRef(insets);
+  insetsRef.current = insets;
   // Never to an undefined, NaN or off-world point: a bad target leaves the camera where it is.
   // `useInsets` false centres on the whole screen (a remembered camera), not the part the HUD leaves.
   const focusOnLatLng = useCallback((lat, lng, k = INITIAL_FOCUS_ZOOM, animate = false, useInsets = true) => {
@@ -304,7 +320,8 @@ const GLMapView = ({
     const v = view();
     const t = transformRef.current;
     const px = v && isSaneTransform(t) ? wrapNear(p[0], (width / 2 - t.x) / t.k, v.worldW) : p[0];
-    const ins = useInsets ? { left: insets.left, right: insets.right, top: insets.top, bottom: insets.bottom } : { left: 0, right: 0, top: 0, bottom: 0 };
+    const now = insetsRef.current;
+    const ins = useInsets ? { left: now.left, right: now.right, top: now.top, bottom: now.bottom } : { left: 0, right: 0, top: 0, bottom: 0 };
     // the middle of the part of the screen the HUD leaves, unless the HUD covers nearly all of it
     const freeW = width - ins.left - ins.right; const freeH = height - ins.top - ins.bottom;
     const vcx = freeW > 40 ? ins.left + freeW / 2 : width / 2;
@@ -314,12 +331,7 @@ const GLMapView = ({
     const selection = select(containerRef.current);
     (animate ? selection.transition().duration(450) : selection).call(zoomBehaviorRef.current.transform, desired);
     return true;
-  }, [projection, view, width, height, minK, insets.left, insets.right, insets.top, insets.bottom]);
-  // A city's place (its registry coordinates, else its tile); a city that is gone is no target.
-  const focusOnRegionId = useCallback((id, k = INITIAL_FOCUS_ZOOM, animate = false) => {
-    const c = latLngOfCity(gameStateRef.current, id);
-    return c ? focusOnLatLng(c.lat, c.lng, k, animate) : false;
-  }, [focusOnLatLng]);
+  }, [projection, view, width, height, minK]);
 
   // The first view: where this game's map was before it was unmounted (its box had no size, the
   // globe was shown), else close on the capital (startZoomFor), else the selected army; never a
@@ -348,16 +360,36 @@ const GLMapView = ({
     followRef.current = { lat: target.lat, lng: target.lng, k, until: Date.now() + getEffectPeekDuration(latest.actionType) };
     focusOnLatLng(target.lat, target.lng, k, true);
   }, [effects, focusOnLatLng]);
+  // Camera intents are applied ONCE each (mapCamera.createIntentGate): the managed or event city
+  // when it changes, a fly-to target (`navigateTarget`, a fresh object per request) when it
+  // arrives. A resize or a sheet that opens or closes rebuilds the callbacks below but is no new
+  // intent, so the camera stays where the player left it (playtest audit I072). `lastFly` is the
+  // last intent's own move, repeated only while the sheet that came with it is still opening (it
+  // changes the insets a moment later: the place is then centred in the room that is left).
+  const focusGate = useRef(null);
+  const navGate = useRef(null);
+  if (!focusGate.current) { focusGate.current = createIntentGate(); navGate.current = createIntentGate(); }
+  const lastFly = useRef(null);
+  const fly = useCallback((lat, lng, zoom) => { lastFly.current = { lat, lng, zoom, at: Date.now() }; return focusOnLatLng(lat, lng, zoom, true); }, [focusOnLatLng]);
   useEffect(() => {
     const follow = followRef.current;
     if (follow && Date.now() < follow.until) { focusOnLatLng(follow.lat, follow.lng, follow.k, true); return; }
+    if (!focusRegionId) { focusGate.current.clear(); return; }
+    if (!focusGate.current.take(focusRegionId)) return;
     // keep the player's zoom (a phone sits in the close view): only pan, or zoom in to the city
-    if (focusRegionId) focusOnRegionId(focusRegionId, focusZoomFor(transformRef.current.k, INITIAL_FOCUS_ZOOM, ZOOM_MAX), true);
-  }, [focusRegionId, focusOnRegionId, focusOnLatLng]);
+    const c = latLngOfCity(gameStateRef.current, focusRegionId);
+    if (c) fly(c.lat, c.lng, focusZoomFor(transformRef.current.k, INITIAL_FOCUS_ZOOM, ZOOM_MAX));
+  }, [focusRegionId, fly, focusOnLatLng]);
   useEffect(() => {
-    if (!navigateTarget) return;
-    focusOnLatLng(navigateTarget.lat, navigateTarget.lng, Math.max(transformRef.current.k, INITIAL_FOCUS_ZOOM), true);
-  }, [navigateTarget, focusOnLatLng]);
+    if (!navGate.current.take(navigateTarget)) return;
+    // a target may ask for a closer zoom of its own (`minK`: at least this close)
+    fly(navigateTarget.lat, navigateTarget.lng, Math.max(transformRef.current.k, navigateTarget.minK || INITIAL_FOCUS_ZOOM));
+  }, [navigateTarget, fly]);
+  useEffect(() => {
+    const f = lastFly.current;
+    if (f && Date.now() - f.at <= INTENT_SETTLE_MS) focusOnLatLng(f.lat, f.lng, f.zoom, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insets.left, insets.right, insets.top, insets.bottom]);
 
   // The minimap's "you are here" box, once the view settles.
   useEffect(() => {
@@ -400,7 +432,7 @@ const GLMapView = ({
     g.territory.setCities(buildCityTexels({ regions: state.regions, index: cityIndex, playerNationId: state.playerNationId, selectedRegion, atWarNationIds: atWar, nations: state.nations }));
     g.request();
   }, [ready, state.regions, state.nations, cityIndex, state.playerNationId, selectedRegion, atWar]);
-  const lensOut = useMemo(() => (projection ? lensShapes({ state, projection, k: settled.k, lens, dpr, settlerTile }) : null), [state, projection, settled.k, lens, dpr, settlerTile]);
+  const lensOut = useMemo(() => (projection ? lensShapes({ state, projection, k: settled.k, lens, dpr, settlerTile, sites: settleSiteList }) : null), [state, projection, settled.k, lens, dpr, settlerTile, settleSiteList]);
   useEffect(() => {
     const g = gl.current;
     if (!g) return;
@@ -436,7 +468,11 @@ const GLMapView = ({
     [state, projection, k, landKey, fog, lens, closeGround, dpr]);
   const marks = useMemo(() => (projection ? groundMarks({ state, projection, k, dpr }) : []), [state, projection, k, dpr]);
   const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr }) : null), [state, projection, k, fog, dpr]);
-  const march = useMemo(() => (projection ? marchShapes({ marchLines, projection, k, selectedArmy, dpr }) : null), [marchLines, projection, k, selectedArmy, dpr]);
+  // settlers on their way draw their road like a march (settleRoutes.js, I095)
+  const settlerRoads = useMemo(() => settlerLines(gameState),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gameState.units, gameState.world?.tileOwner, gameState.wars, gameState.playerNationId]);
+  const march = useMemo(() => (projection ? marchShapes({ marchLines: [...(marchLines || []), ...settlerRoads], projection, k, selectedArmy, dpr }) : null), [marchLines, settlerRoads, projection, k, selectedArmy, dpr]);
   // The independents' raid parties, warnings, sieges and fires in sight (phase W4).
   const raidModel = useMemo(() => raidMapModel(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -486,9 +522,11 @@ const GLMapView = ({
     if (!g || !cities || !markerOut || !landOut || !settlers || !march || !terrainOut || !raids) return;
     const groups = {
       terrain: terrainOut,
-      ground: [...(lensOut?.sprites || []), ...landOut.sprites, ...marks],
+      // the lens's own marks (the settle mode's numbered sites) over the tile glyphs
+      ground: [...landOut.sprites, ...marks, ...(lensOut?.sprites || [])],
       upper: [...march.sprites, ...settlers.sprites],
-      top: [...cities.sprites, ...cities.names, ...markerOut.sprites, ...raids.sprites]
+      // names, banners and the raids' labels never stand on each other (declutter.js, I080)
+      top: [...cities.sprites, ...declutterLabels([...cities.names, ...raids.sprites.filter((s) => s.label)], k), ...markerOut.sprites, ...raids.sprites.filter((s) => !s.label)]
     };
     const resolve = () => {
       const out = {};
@@ -514,7 +552,7 @@ const GLMapView = ({
     g.marchLines.set([...march.lines, ...raids.lines]);
     g.hits = [...raids.hits, ...settlers.hits, ...cities.hits, ...markerOut.hits];
     g.request();
-  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick]);
+  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k]);
 
   // ---------------------------------------------------------------- the close view
   const [land, setLand] = useState(null);
@@ -583,8 +621,13 @@ const GLMapView = ({
     if (!ll) return null;
     const tile = tileAtLatLon(ll[1], ll[0]);
     const city = tile != null && tile >= 0 ? state.world?.tileOwner?.[tile] : null;
-    if (city && state.regions[city]) return { kind: 'city', id: city, via: 'land', tile };
-    return { kind: 'tile', tile, land: tile != null && tile >= 0 && getTiles().land[tile] === 1, explored: tile != null && tile >= 0 && fog.isExplored(tile) };
+    // A city's land picks the city while the hexes are too small to tell apart, and its centre
+    // tile always does. From the hex zoom a tile of its land is the tile itself (its sheet names
+    // the city and opens it): the player can inspect the land inside a border (playtest audit
+    // I077). A march keeps aiming at the city whose land was tapped, and so does settling.
+    const hexPick = (v.k >= HEX_FROM_ZOOM || settleRef.current) && !marchingRef.current;
+    if (city && state.regions[city] && (!hexPick || state.regions[city].tile === tile)) return { kind: 'city', id: city, via: 'land', tile };
+    return { kind: 'tile', tile, land: tile != null && tile >= 0 && getTiles().land[tile] === 1, explored: tile != null && tile >= 0 && fog.isExplored(tile), cityId: city && state.regions[city] ? city : null };
   };
   const tapAtRef = useRef(tapAt);
   tapAtRef.current = tapAt;
@@ -597,7 +640,7 @@ const GLMapView = ({
     hoverRef.current = now;
     const rect = containerRef.current.getBoundingClientRect();
     const pick = tapAt(e.clientX - rect.left, e.clientY - rect.top);
-    const name = pick?.kind === 'city' ? state.regions[pick.id]?.name || '' : '';
+    const name = state.regions[pick?.kind === 'city' ? pick.id : pick?.cityId]?.name || '';
     if (containerRef.current.title !== name) containerRef.current.title = name;
   };
   const tapRef = useRef(null);
@@ -616,8 +659,14 @@ const GLMapView = ({
       const c = pick.marker;
       if (c.kind === 'battle') openBattleReport(c.id);
       else if (!c.own && c.kind === 'army' && c.tile != null && onSelectTile) onSelectTile(c.tile);
-      else if (c.own && (c.kind === 'army' || c.kind === 'fleet') && c.tile != null && onSelectArmy && gameState.regions[gameState.world?.tileOwner?.[c.tile]]?.tile !== c.tile) onSelectArmy(c.tile);
-      else onSelectRegion?.(c.regionId);
+      else if (c.own && (c.kind === 'army' || c.kind === 'fleet') && c.tile != null && onSelectArmy) {
+        // Your army's banner is your army, also when it stands on a city (the city has its own
+        // badge, banner and town to tap: playtest audit I076). A fleet in port is reached through
+        // its city, and a march aimed at a banner on a city aims at the city.
+        const onCity = gameState.regions[gameState.world?.tileOwner?.[c.tile]]?.tile === c.tile;
+        if (onCity && (c.kind === 'fleet' || marchingRef.current)) onSelectRegion?.(c.regionId);
+        else onSelectArmy(c.tile);
+      } else onSelectRegion?.(c.regionId);
       return;
     }
     if (pick.kind === 'indep') { openIndependent(pick.id); return; }
