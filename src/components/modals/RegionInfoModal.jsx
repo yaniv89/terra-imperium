@@ -1,5 +1,4 @@
-import { getTradeRoute } from '../../engine/tradeRoutes';
-import { tradeRoutesValue } from '../../engine/tradeValue';
+import { tradeRouteStatus } from '../../engine/tradeDisruptions';
 import ColonyBlock from './ColonyBlock';
 // src/components/modals/RegionInfoModal.jsx
 // Region information modal/panel with close button
@@ -373,7 +372,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           <StatLine icon={Swords} label="Nation's army" value={revealed ? formatNumber(getFieldedStrength(state, regionState.owner)) : 'Unknown'} valueClass={revealed ? 'text-fa-danger-text' : 'text-fa-muted'} />
           <StatLine label="Hostility" value={`${ownerNation.hostility}%`} valueClass="text-fa-enemy" />
           <div className="flex flex-wrap gap-1 pt-1">
-            {ownerNation.hasPeaceTreaty && <span className="px-1.5 py-0.5 bg-green-500/20 text-fa-good rounded text-[10px]">✓ Peace Treaty</span>}
+            {ownerNation.hasPeaceTreaty && !isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-green-500/20 text-fa-good rounded text-[10px]">✓ Peace Treaty</span>}
             {ownerNation.hasTradeAgreement && <span className="px-1.5 py-0.5 bg-blue-500/20 text-fa-you rounded text-[10px]">✓ Trade Agreement</span>}
             {isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-red-500/20 text-fa-danger-text rounded text-[10px] animate-pulse">⚔ At War</span>}
             {ownerIsIndependent && <span className="px-1.5 py-0.5 bg-slate-500/20 text-fa-text rounded text-[10px]" data-testid="independent-badge" title="Independent city: one city that never expands. You may attack it without a war.">Independent, {PERSONALITIES[ownerNation.indep?.personality]?.name || 'Tribal'}</span>}
@@ -418,7 +417,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               <ActionButton
                 icon={Swords}
                 label={`Declare war on ${ownerNation.name}${warJustified ? '' : ' (unjustified)'}`}
-                description={warBlockedReason || (warJustified ? 'You have a casus belli' : 'No casus belli — costs more and angers the world')}
+                description={warBlockedReason || (warJustified ? 'You have a cause for war' : 'No cause for war: costs more and angers the world')}
                 costs={declareWarCosts}
                 onClick={handleDeclareWar}
                 disabled={!!warBlockedReason || !canAfford(state.resources, declareWarCosts)}
@@ -428,7 +427,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             </div>
           )}
           {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">Integration continues until turn {regionState.integratingUntil}: control rises and unrest falls each turn.</p>}
-          {ownerNation?.hasTradeAgreement && <p className="text-xs text-fa-text">Trade route: {getTradeRoute(state,ownerNation.id).ok ? getTradeRoute(state,ownerNation.id).kind : getTradeRoute(state,ownerNation.id).reason}{(() => { const v = tradeRoutesValue(state).find((r) => r.partnerId === ownerNation.id); return v ? `, ${v.km} km: +${(v.mult * 100).toFixed(1)}% gold (bigger and nearer partners pay more)` : ''; })()}</p>}
+          {ownerNation?.hasTradeAgreement && (() => { const t = tradeRouteStatus(state, ownerNation.id); return t ? <p className={`text-xs ${t.pays ? 'text-fa-text' : 'text-fa-danger-text'}`} data-testid="trade-route-status">Trade route: {t.text}{t.pays ? ' Bigger and nearer partners pay more.' : ''}{t.advice ? ` ${t.advice}` : ''}</p> : null; })()}
           {isNeutralFrontier && <ColonyBlock regionId={regionId} />}
           {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason, march }) => (march ? (
             <ActionButton

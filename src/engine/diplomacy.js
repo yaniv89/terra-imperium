@@ -222,6 +222,17 @@ const declareWarOnly = (state, nationId, { aggressor, goal = null } = {}) => {
       relationStatus: RelationStatus.WAR
     };
   }
+  // One relationship state for the pair (playtest audit I105): the war ends any truce between
+  // the two, and a peace treaty with the player is over (the "Peace treaty" chip sat beside AT WAR).
+  [[nationId, aggressor], [aggressor, nationId]].forEach(([x, y]) => {
+    const n = nextNations[x];
+    if (!n) return;
+    const hadTruce = n.truces?.[y] != null;
+    const treatyWithPlayer = y === state.playerNationId && n.hasPeaceTreaty;
+    if (!hadTruce && !treatyWithPlayer) return;
+    const truces = { ...(n.truces || {}) }; delete truces[y];
+    nextNations[x] = { ...n, truces, ...(treatyWithPlayer ? { hasPeaceTreaty: false } : {}) };
+  });
   // Unique even when two nations declare on the same target in the same year.
   const baseId = `war_${nationId}_${state.year}`;
   const taken = new Set(state.wars.map((w) => w.id));

@@ -13,6 +13,7 @@ import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { getGreatProjectOwner, GREAT_PROJECTS } from '../../data/greatProjects';
 import { warContagionMult } from '../../engine/warContagion';
 import { hasMet } from '../../engine/fog';
+import { tradeRouteStatus } from '../../engine/tradeDisruptions';
 
 export const nationSheetModel = (state, nationId) => {
   const nation = state.nations?.[nationId];
@@ -28,7 +29,8 @@ export const nationSheetModel = (state, nationId) => {
   if (war) relations.push({ id: 'war', label: 'At war with you', tone: 'bad' });
   if (!war && isInTruce(state, me, nationId)) relations.push({ id: 'truce', label: `Truce until turn ${state.nations[me]?.truces?.[nationId]}`, tone: 'neutral' });
   if (nation.hasMilitaryPact) relations.push({ id: 'alliance', label: 'Your ally', tone: 'good' });
-  if (nation.hasTradeAgreement) relations.push({ id: 'trade', label: 'Trade pact', tone: 'good' });
+  // The trade pact says when it pays nothing, and why (tradeDisruptions.js tradeRouteStatus; I113, I114).
+  if (nation.hasTradeAgreement) { const trade = tradeRouteStatus(state, nationId); relations.push(trade && !trade.pays ? { id: 'trade', label: trade.phase === 'cut' ? 'Trade pact: route cut, pays nothing' : 'Trade pact: pays nothing', tone: 'bad', detail: trade.text, tile: trade.tile } : { id: 'trade', label: 'Trade pact', tone: 'good', detail: trade?.text || null }); }
   if (hasOpenBorders(state, me, nationId)) relations.push({ id: 'openBorders', label: 'Open borders', tone: 'good' });
   if (nation.vassalOf === me) relations.push({ id: 'vassal', label: 'Your vassal', tone: 'good' });
   if (state.nations[me]?.vassalOf === nationId) relations.push({ id: 'overlord', label: 'Your overlord', tone: 'neutral' });

@@ -92,6 +92,8 @@ export const tradeRoutesValue = (state, nationId = state.playerNationId) => {
     if (!n?.hasTradeAgreement || n.isEliminated || id === nationId) return;
     const route = state.scenario ? getTradeRoute(state, id) : null;
     if (state.scenario && !route?.ok) return;
+    // A route that is cut pays nothing while the cut lasts (tradeDisruptions.js), by land or by sea.
+    if (state.tradeDisruptions?.[id]?.phase === 'cut') return;
     const km = routeKm(state, nationId, id, route);
     const mult = gravityMult(yMe, sizes.get(id) || 0, km);
     if (mult > 0) out.push({ partnerId: id, name: n.name || id, km: Math.round(km), kind: route?.kind || 'direct', mult });

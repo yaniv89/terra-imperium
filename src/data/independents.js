@@ -198,6 +198,10 @@ export const SACK_INCOME_TURNS = 3;
 export const SACK_MIN_GOLD = 15;
 /** A sacked city or a burned outpost is left alone this many turns (no raid twice on the same ashes). */
 export const RAID_SPARE_TURNS = 20;
+/** At most this many raid parties are out against one nation at a time, from all independents
+ * together: grudges that ripen together no longer arrive as one wave (playtest audit I107).
+ * PROVISIONAL: the rule is fixed, the number waits for the tuning pass. */
+export const RAID_WAVE_MAX = 2;
 /** A burned outpost loses this share of its progress (it is set back, not wiped out). */
 export const OUTPOST_BURN_LOSS = 0.5;
 
@@ -220,7 +224,7 @@ export const TRIBUTE_TURNS = 20;
 export const TRIBUTE_DEMAND_GRUDGE = 40;
 export const TRIBUTE_STRENGTH_RATIO = 1.5;
 export const TRIBUTE_DEMAND_CHANCE = 0.15;
-export const TRIBUTE_DEMAND_COOLDOWN = 20;  // turns between two demands to the same nation
+export const TRIBUTE_DEMAND_COOLDOWN_REF_TURNS = 12; // reference turns between two demands to the same nation (ages.js speedTurns: 20 at Normal, as before)
 export const TRIBUTE_ANSWER_TURNS = 3;      // the player's answer; silence is a refusal
 export const tributeGold = (ageId = 'bronze') => 2 + Math.max(0, AGE_ORDER.indexOf(ageId));
 

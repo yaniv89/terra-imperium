@@ -26,6 +26,7 @@ import { opinionOf, opinionBreakdown } from '../../engine/opinion';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { claimsAgainst, claimableCities, CLAIM_FABRICATE_TURNS, CLAIM_RANGE_RINGS } from '../../engine/claims';
 import { hasOpenBorders, openBordersAcceptance, demandAcceptance, DEMANDS } from '../../engine/accords';
+import { tradeRouteStatus } from '../../engine/tradeDisruptions';
 
 // Plan feedback ("I don't understand why I can't start a war, I have plenty of resources"): the
 // player was reading the top-bar Gold total and assuming that meant "affordable," when most
@@ -116,6 +117,8 @@ export const NationCard = ({ nation, hideTitle = false }) => {
   const isRival = (player.rivals || []).includes(nation.id);
   const isVassalOfPlayer = nation.vassalOf === state.playerNationId;
   const truceActive = !atWarWithPlayer && isInTruce(state, state.playerNationId, nation.id);
+  // What the trade agreement is doing now: open, cut (where, why, how long) or paying nothing (tradeDisruptions.js).
+  const trade = nation.hasTradeAgreement ? tradeRouteStatus(state, nation.id) : null;
   // `nation.isAtWar` is broad — true if they're fighting ANYONE, not just the player. A nation
   // busy elsewhere can't be wooed with a marriage (PROPOSE_MARRIAGE gates on it), but it CAN be
   // attacked or allied with — declaring on it just opens a second front for them.
@@ -210,8 +213,8 @@ export const NationCard = ({ nation, hideTitle = false }) => {
 
       {(nation.hasPeaceTreaty || nation.hasTradeAgreement || nation.hasMilitaryPact || bordersOpen || truceActive || isRival || hasDiplomatAssigned || claimsAgainst(state, player.id, nation.id).length > 0 || (player.claimsInProgress || []).some((c) => state.regions[c.cityId]?.owner === nation.id)) && (
         <div className="flex flex-wrap gap-1.5">
-          {nation.hasPeaceTreaty && <Chip tone="good">Peace treaty</Chip>}
-          {nation.hasTradeAgreement && <Chip tone="you">Trade agreement</Chip>}
+          {nation.hasPeaceTreaty && !atWarWithPlayer && <Chip tone="good">Peace treaty</Chip>}
+          {nation.hasTradeAgreement && <Chip tone={trade && !trade.pays ? 'enemy' : 'you'} data-testid="trade-chip">{trade && !trade.pays ? (trade.phase === 'cut' ? 'Trade agreement: route cut' : 'Trade agreement: pays nothing') : 'Trade agreement'}</Chip>}
           {nation.hasMilitaryPact && <Chip tone="good">Military pact</Chip>}
           {bordersOpen && <Chip tone="good" data-testid="open-borders-badge">Open borders</Chip>}
           {claimsAgainst(state, player.id, nation.id).length > 0 && <Chip data-testid="claim-badge">Claim on {claimsAgainst(state, player.id, nation.id).map((c) => c.name).join(', ')}</Chip>}
@@ -222,6 +225,9 @@ export const NationCard = ({ nation, hideTitle = false }) => {
           {isRival && <Chip tone="enemy">Rival</Chip>}
           {hasDiplomatAssigned && <Chip tone="you">Diplomat assigned</Chip>}
         </div>
+      )}
+      {trade && (
+        <p className={`text-[12px] ${trade.pays ? 'text-fa-muted' : 'text-fa-danger-text'}`} data-testid="trade-status">Trade route: {trade.text}{trade.advice ? ` ${trade.advice}` : ''}</p>
       )}
 
       <div className="grid grid-cols-2 gap-2">
@@ -246,7 +252,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
         ) : (
           <>
             <Tile label="Declare war" testId="declare-war"
-              sub={`${justified ? 'Casus belli' : 'No casus belli: costs more, hurts relations'}, ${formatCost(declareWarCosts)}${theirOtherEnemies.length ? `. Already fighting ${theirOtherEnemies.join(', ')}` : ''}`}
+              sub={`${justified ? 'A cause for war' : 'No cause for war: costs more, hurts relations'}, ${formatCost(declareWarCosts)}${theirOtherEnemies.length ? `. Already fighting ${theirOtherEnemies.join(', ')}` : ''}`}
               looksDisabled={!canAfford(state.resources, declareWarCosts) || !!player.vassalOf}
               onClick={() => {
                 if (player.vassalOf) return addLog("Can't declare war while you're a vassal", 'action');
@@ -272,7 +278,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
                   return undefined;
                 }} />
             )}
-            <Tile label="Demand tribute" sub={tribute.reason || (tribute.accepted ? `Would yield, ${formatCost(ACTION_COSTS.demand)}` : 'Would refuse: a casus belli for you')} refuse={!tribute.accepted}
+            <Tile label="Demand tribute" sub={tribute.reason || (tribute.accepted ? `Would yield, ${formatCost(ACTION_COSTS.demand)}` : 'Would refuse: a cause for war for you')} refuse={!tribute.accepted}
               looksDisabled={!!tribute.reason || !canAfford(state.resources, ACTION_COSTS.demand)}
               onClick={() => (tribute.reason ? addLog(tribute.reason, 'action') : dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind: 'tribute', cityId: null }))} />
           </>
@@ -296,7 +302,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
               <IconButton
                 icon={Target}
                 label={site ? `Fabricate claim on ${site.city.name} (${formatCost(ACTION_COSTS.fabricateClaim)})` : 'Fabricate claim (no city in reach)'}
-                title={site ? `A casus belli for ${site.city.name}, ready in ${CLAIM_FABRICATE_TURNS} turns` : `A claim needs one of their cities within ${CLAIM_RANGE_RINGS} tiles of your border`}
+                title={site ? `A cause for war over ${site.city.name}, ready in ${CLAIM_FABRICATE_TURNS} turns` : `A claim needs one of their cities within ${CLAIM_RANGE_RINGS} tiles of your border`}
                 disabled={!site || !canAfford(state.resources, ACTION_COSTS.fabricateClaim)}
                 onClick={() => site && dispatchIfAffordable(ActionTypes.FABRICATE_CLAIM, ACTION_COSTS.fabricateClaim, { cityId: site.city.id })}
               />
@@ -311,7 +317,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
             const answer = demandAcceptance(state, nation.id, kind, claimed?.id);
             return (
               <IconButton key={kind} icon={Scale} label={`${kind === 'city' ? `Demand ${claimed.name}` : d.label} (${formatCost(ACTION_COSTS.demand)})${answer.reason ? '' : answer.accepted ? ': would yield' : ': would refuse'}`}
-                title={answer.reason || `${answer.accepted ? 'They would yield' : 'They would refuse, giving you a casus belli'} (score ${answer.score}: strength x${answer.ratio}, opinion ${answer.opinion})`}
+                title={answer.reason || `${answer.accepted ? 'They would yield' : 'They would refuse, giving you a cause for war'} (score ${answer.score}: strength x${answer.ratio}, opinion ${answer.opinion})`}
                 disabled={!!answer.reason || !canAfford(state.resources, ACTION_COSTS.demand)}
                 onClick={() => dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind, cityId: claimed?.id || null })} />
             );

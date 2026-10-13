@@ -123,5 +123,10 @@ export const speedCostMult = (speedId, ageId = 'bronze') => {
   const age = REFERENCE_YEARS[ageId] != null ? ageId : 'modern';
   return REFERENCE_YEARS[age] / getYearsPerTurn(age, speedId);
 };
+/** A span given in reference turns (the table the balance was tuned at) as turns at this speed and
+ * age, at least 1: cooldowns, truces and other waits then last the same span of history at every
+ * speed (playtest audits, trap T11: never a hardcoded number of turns). Normal is 1.6 to 2 turns
+ * per reference turn, Marathon 2 to 4. */
+export const speedTurns = (refTurns, speedId, ageId = 'bronze') => Math.max(1, Math.round(refTurns * speedCostMult(speedId, ageId) - 1e-9));
 /** The turns a full game takes at a speed, from the table itself. */
 export const gameLengthTurns = (speedId) => AGE_ORDER.reduce((sum, id) => sum + Math.ceil((AGES[id].endYear - AGES[id].startYear) / getYearsPerTurn(id, speedId)), 0);

@@ -69,7 +69,12 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   `menOf` / `menText` are the one strength-to-men conversion) rides on every battle report entry;
   the result screen shows the campaign's receipt (battleReceipt.js: the reducer Continue runs,
   on the same state and action), never its own reading. Opinion with reasons (AI war
-  roll, casus belli): src/engine/opinion.js over src/data/opinion.js. Loyalty and culture per
+  roll, casus belli): src/engine/opinion.js over src/data/opinion.js. Majors' demands (when one may
+  be made: `demandBlock`; the card and the answer: `demandTerms`; a met demand buys a truce):
+  src/engine/aiAccords.js over accords.js; every tribute price: tributePricing.js; a cut trade route
+  is an event with an end: tradeDisruptions.js (`tradeRouteStatus` for every surface). Waits there
+  are reference turns through `speedTurns` (src/data/ages.js), never a fixed number of turns.
+  Loyalty and culture per
   city (flips, free cities): src/engine/loyalty.js. AI fronts (attacks from touching tiles,
   tile marches, sieges and assaults): src/engine/aiOperations.js. Research boosts from map facts:
   src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
