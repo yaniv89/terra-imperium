@@ -62,8 +62,17 @@ describe('march to attack a city the army does not border', () => {
     // Beside the city's centre, on its ring: a siege.
     const tiles = getTiles();
     army(arrived).forEach((u) => expect(tiles.neighbors[arrived.regions[MARI].tile]).toContain(unitTile(arrived, u)));
-    const besieged = play(arrived, (x) => !!x.regions[MARI].siege, 1);
+    // Mari is an independent's city: standing beside it is no siege (playtest audit I130). The
+    // siege starts with the Lay siege order, and only then.
+    const waiting = play(arrived, (x) => !!x.regions[MARI].siege, 1);
+    expect(waiting.regions[MARI].siege ?? null).toBe(null);
+    const laid = gameReducer(arrived, { type: ActionTypes.SET_SIEGE, payload: { unitIds: ready[0].unitIds, cityId: MARI } });
+    army(laid).forEach((u) => expect(u.siegeOf).toBe(MARI));
+    const besieged = play(laid, (x) => !!x.regions[MARI].siege, 1);
     expect(besieged.regions[MARI].siege).toBeTruthy();
+    // Lifting it stops the siege; a march order ends the standing order too.
+    const lifted = gameReducer(laid, { type: ActionTypes.SET_SIEGE, payload: { unitIds: ready[0].unitIds, cityId: null } });
+    army(lifted).forEach((u) => expect(u.siegeOf ?? null).toBe(null));
     // The assault: the normal battle choice (Command here), the same pending battle as any assault.
     const s = gameReducer(arrived, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: ready[0].fromRegionId, targetRegionId: MARI } });
     expect(s.pendingBattle).toMatchObject({ kind: 'invasion', targetRegionId: MARI, attackerUnitIds: ready[0].unitIds });
@@ -76,6 +85,9 @@ describe('march to attack a city the army does not border', () => {
     const off = gameReducer(arrived, { type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: ids } });
     expect(readyAttacks(off)).toEqual([]);
     ids.forEach((id) => { expect(off.units[id].routeAttack ?? null).toBe(null); expect(off.units[id].tile).toBe(arrived.units[id].tile); });
+    // ... and calling it off never starts a siege on its own (I130).
+    const later = play(off, (x) => !!x.regions[MARI].siege, 2);
+    expect(later.regions[MARI].siege ?? null).toBe(null);
   });
 
   it('an army that already borders the city keeps the immediate attack card', () => {

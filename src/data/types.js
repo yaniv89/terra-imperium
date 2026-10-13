@@ -205,7 +205,11 @@ export const ActionTypes = {
   DECLARE_INDEPENDENCE: 'DECLARE_INDEPENDENCE',
   // Plan §M18: "Continue playing after victory" — resumes an ambition-triggered VICTORY back to
   // ACTIVE so the game keeps running toward END_YEAR's own ranked ending.
-  CONTINUE_AFTER_VICTORY: 'CONTINUE_AFTER_VICTORY'
+  CONTINUE_AFTER_VICTORY: 'CONTINUE_AFTER_VICTORY',
+  // Standing orders of an army on the map (src/engine/standingOrders.js, playtest audit I062, I130):
+  // Hold keeps a unit off the idle list; Lay siege is the explicit order against an independent's city.
+  SET_HOLD: 'SET_HOLD',
+  SET_SIEGE: 'SET_SIEGE'
 };
 
 export const LogTypes = {

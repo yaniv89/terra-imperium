@@ -95,6 +95,8 @@ export const ACTION_SOUNDS = {
   [T.MARK_TUTORIAL_STEP]: null,
   [T.ANSWER_DEMAND]: 'ui-confirm',
   [T.SET_AIR_PATROL]: null,
+  [T.SET_HOLD]: null,
+  [T.SET_SIEGE]: null,
   [T.FUND_SCHOLARS]: 'tribute-paid',
   [T.CHANGE_GOVERNMENT_TYPE]: 'ui-confirm',
   [T.ENACT_GOVERNMENT_REFORM]: 'ui-confirm',

@@ -19,13 +19,13 @@ import { Button, IconButton } from '../ui/atlas';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { defenseSheetModel } from './defenseSheetModel';
 import { SHOW_DEFENSE } from '../ui/uiEvents';
+import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 
 const DefenseSheet = () => {
   const { state, dispatch } = useGame();
-  const [tucked, setTucked] = useState(false);
-  // End Turn's "Defend <city>: Command or Auto" (turnBlockers.js) untucks it.
+  // End Turn's "Defend <city>: Command or Auto" (turnBlockers.js) brings it back up.
   useEffect(() => {
-    const onShow = () => setTucked(false);
+    const onShow = () => interactions.promote('defense');
     window.addEventListener(SHOW_DEFENSE, onShow);
     return () => window.removeEventListener(SHOW_DEFENSE, onShow);
   }, []);
@@ -35,17 +35,12 @@ const DefenseSheet = () => {
   const blocked = !def || !!state.pendingBattle || battleQueueBlocked(state);
   const view = useMemo(() => (blocked ? null : queuedBattleView(state, def, 30)), [blocked, def, state.units, state.regions]); // eslint-disable-line react-hooks/exhaustive-deps
   const m = useMemo(() => (view ? defenseSheetModel(state, def, { view }) : null), [view]); // eslint-disable-line react-hooks/exhaustive-deps
-  // The queue waits while a battle is under way or an event or a peace offer is open.
-  if (blocked || !m) return null;
-
-  if (tucked) {
-    return (
-      <button type="button" onClick={() => setTucked(false)} data-testid="defense-pill"
-        className="fixed z-[60] left-1/2 -translate-x-1/2 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] pl:bottom-3 fa-btn fa-btn-danger !bg-fa-panel shadow-2xl gap-2">
-        <ShieldIcon className="w-4 h-4" aria-hidden="true" /> {defenses.length} under attack: back to the battle
-      </button>
-    );
-  }
+  // One entry of the interaction registry (useExclusivePanel.js): set aside ("Look at the map
+  // first") or behind a card the player opened, it waits as the "N under attack" chip.
+  const turn = useInteraction('defense', !blocked && !!m, { priority: PRIORITY.defense, label: `${defenses.length} under attack: back to the battle`, testId: 'defense-pill', tone: 'danger' });
+  // The queue waits while a battle is under way or an event or a peace offer is open (the engine's
+  // own rule, battleQueue.js battleQueueBlocked).
+  if (blocked || !m || !turn.shown) return null;
 
   const chosen = mode === 'withdraw' && !m.withdraw?.ok ? 'command' : mode;
   const act = () => {
@@ -65,7 +60,7 @@ const DefenseSheet = () => {
 
   return (
     <div role="dialog" aria-labelledby="defense-title" data-testid="defense-sheet"
-      className="fixed z-[60] left-[max(env(safe-area-inset-left),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(30rem,calc(100vw-1rem-var(--rail-inset,0px)))] lg:w-[32rem] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
+      className="fixed z-[60] left-[max(env(safe-area-inset-left),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(30rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(22rem,calc(100vw-1rem))] lg:w-[32rem] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
       <div className="flex items-start gap-2 px-3 pt-2 pb-1 border-b border-fa-line">
         <ShieldIcon className="w-5 h-5 mt-1 text-fa-danger-text shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex-1">
@@ -76,7 +71,7 @@ const DefenseSheet = () => {
           <div className="font-semibold">End of turn paused</div>
           <div className="text-fa-muted fa-num">{defenses.length > 1 ? `1 of ${defenses.length}` : 'one battle'}</div>
         </div>
-        <IconButton label="Look at the map first" icon={ChevronDown} onClick={() => setTucked(true)} className="!w-9 !h-9 -mr-1" />
+        <IconButton label="Look at the map first" icon={ChevronDown} onClick={turn.tuck} className="!w-9 !h-9 -mr-1" data-testid="defense-later" />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2 pl:space-y-1.5" data-testid="defense-row">

@@ -67,3 +67,42 @@ Scale and placement (helpers in src/battle/art/workerLoads.js):
 
 Nothing draws the loads yet: the battle view lists who carries (`eco.carrying`) but not what.
 plans/art-pilot/md06-nodes-loads/LOG.md says what the view must add.
+
+## Raid and landing props
+
+Six separate files, each with one root named exactly as its filename stem and
+LOD0, LOD1, LOD2 children:
+
+| File/root | Required design |
+| --- | --- |
+| `loot-sack.glb` | Canvas sacks and a clay amphora, shared across ages |
+| `exit-marker.glb` | Neutral Team flag with an arrow pointing to local +Z (Blender -Y) |
+| `burnt-field-overlay.glb` | Thin irregular scorched field overlay, cutout Ground edge |
+| `landing-ancient.glb` | Beached galleys with gangplanks |
+| `landing-middle.glb` | Ship's boats with a carrack offshore |
+| `landing-modern.glb` | Open-bow landing craft with lowered ramps |
+
+Source: `scripts/blender/build_raid_landing_props.py` and its dedicated
+`raid_landing_support.py`. Original geometry and procedural textures, CC0-1.0.
+The generated design sheet is reference only, never sampled into a texture.
+The builder waits for a hash-matched visual review of the corrected six-item sheet.
+Editable packed BLENDs, basecolor/normal/ORM PNG maps, 844x390 warm previews and
+reports live in `/workspace/remaining-production/props/<root>/` during production.
+No delivery is implied until the GLBs and their validation reports exist.
+
+All six use embedded 1024 atlases, neutral Team cloth, matte Town material,
+actual baked AO applied to basecolor once, no vertex RGB multiplication, and
+uncompressed mesh data. Origin and axes match the existing props contract.
+Landing roots include `socket-door` at the shore end of the ramp/gangplank.
+
+`src/battle/art/raidLandingProps.js` resolves these exact files via `ART.url()`.
+It instances exits at existing entry/fallback edges, goods beside live raid loot
+structures and on visible workers listed in `eco.carrying`, scorch overlays on
+explicitly destroyed field loot structures/farms, and the matching age's landing
+root against the actual sea/sand boundary. Team alone takes the side's colour.
+The shared kit loader selects LOD by camera zoom. Ordinary no-economy land setups
+load only the exit marker; goods/scorch textures load only for an economy configuration,
+loot-bearing structures or a raid/sack type. Landing textures load only for landing maps. Missing files leave existing
+rendering in place. Placement reads snapshots and changes no simulation state.
+There is no per-raider loot inventory in the current render view: this layer does
+not claim to show such inventory or infer pillage merely from damaged HP.

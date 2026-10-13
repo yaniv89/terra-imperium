@@ -11,18 +11,19 @@ import { ActionTypes } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
 import { GameStatus } from '../../data/types';
 import { suggestTechs } from '../../engine/research';
+import { researchNeedsChoice, advisorPlan } from '../../engine/researchStatus';
 import { describeTech, formatTurns, getSciencePerTurn, techInfo } from '../panels/researchView';
 import { CATEGORY_LABELS } from '../panels/TechPanel';
 import { openPanelTab } from '../panels/panelEvents';
 import { OPEN_RESEARCH_CHOICE } from '../ui/uiEvents';
+import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 
 // Whether the sheet should be up (pure, for tests): nothing being researched, nothing queued, no
 // advisor, something available, and no other decision on screen.
 export const needsResearchChoice = (state) => {
-  const r = state.research;
-  if (!r || r.current || r.queue?.length || r.auto) return false;
+  if (!researchNeedsChoice(state)) return false;
   if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent || state.pendingBattle || state.pendingDefenses?.length || state.pendingPeaceOffer) return false;
-  return suggestTechs(state, state.playerNationId, 1).length > 0;
+  return true;
 };
 
 const ResearchChoiceSheet = ({ hidden }) => {
@@ -32,11 +33,16 @@ const ResearchChoiceSheet = ({ hidden }) => {
   // while it would wait for the onboarding (the player asked for it).
   const [asked, setAsked] = useState(false);
   useEffect(() => {
-    const onOpen = () => { setLaterTurn(null); setAsked(true); };
+    const onOpen = () => { setLaterTurn(null); setAsked(true); interactions.promote('research-choice'); };
     window.addEventListener(OPEN_RESEARCH_CHOICE, onOpen);
     return () => window.removeEventListener(OPEN_RESEARCH_CHOICE, onOpen);
   }, []);
-  if ((hidden && !asked) || laterTurn === state.turnNumber || !needsResearchChoice(state)) return null;
+  const wanted = !((hidden && !asked) || laterTurn === state.turnNumber || !needsResearchChoice(state));
+  // One entry of the interaction registry (useExclusivePanel.js): it waits as a chip behind a more
+  // pressing card, and tucks the dock on a narrow screen instead of sitting on it. No chip of its
+  // own while it waits: the "Choose research" chip and End Turn already say it.
+  const turn = useInteraction('research-choice', wanted, { priority: PRIORITY.research, user: asked });
+  if (!wanted || !turn.shown) return null;
 
   const science = getSciencePerTurn(state);
   const options = suggestTechs(state, state.playerNationId, 3).map((id) => techInfo(state, id, science));
@@ -79,7 +85,7 @@ const ResearchChoiceSheet = ({ hidden }) => {
         </div>
 
         <div className="flex gap-2">
-          <button onClick={() => dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } })} className="flex-1 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-sm font-semibold" data-testid="research-let-advisor">Let my advisor choose</button>
+          <button onClick={() => { const plan = advisorPlan(state); dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } }); if (plan.techId) choose(plan.techId); }} className="flex-1 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-sm font-semibold" data-testid="research-let-advisor">Let my advisor choose</button>
           <button onClick={() => { setLaterTurn(state.turnNumber); openPanelTab('tech'); }} className="flex-1 min-h-[40px] rounded-lg bg-fa-raised hover:bg-fa-hover text-sm">All techs</button>
         </div>
         <div className="text-[10px] text-fa-muted text-center">Close it to decide later: science banks until you pick.</div>

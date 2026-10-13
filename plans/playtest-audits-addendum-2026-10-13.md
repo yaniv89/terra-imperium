@@ -111,3 +111,15 @@ With no saved game, launch goes straight to the start steps as today. The stale-
 guard and the v-number save migrations still apply to every slot; a slot that cannot be migrated is
 shown as "from an older version" and is not deleted. Phone landscape first (844x340). Art: none
 beyond the existing start-screen style.
+
+## 9. Code needed for the 13 October art to show (from the art session)
+
+Art branches in progress (local Blender, not pushed): `claude/art-md13-ruined-buildings`,
+`claude/art-md09-machine-scale`, `claude/art-md06-nodes-loads`, `claude/art-ui-icons-oct13`.
+
+| ID | Code change | Joins |
+|---|---|---|
+| X27 | Destroyed battle buildings must stay in the sim view and be drawn: today `economyLayer.js` skips dead buildings and the view drops them, so a `<role>-ruined` model (MD13) would never show. Keep a destroyed record (position, role, side) in the view; draw the ruin; it no longer counts as base (Q4). | CB18 / CB20 |
+| X28 | The economy view must carry each loaded worker's resource type (wood, stone, gold, food), not only "loaded", so `worker-loads.glb` (MD07) can show the right load. | CB16 / CB20 |
+| X29 | Retire the ore key with the four-resource change (Q1): `ore-outcrop.glb` stays until then; ore outcrops become stone or gold nodes per age (the art LOG will carry the per-age plan). | CB16 |
+| X30 | Siege crews shrink with their machine today (ballista and cannon crews about half infantry size). Crews are drawn at the people's scale, machines at true size or a little over (Q7); check picking radius and formation spacing after the change. | CB20 |

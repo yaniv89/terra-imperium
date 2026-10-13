@@ -11,13 +11,20 @@
 // Call off is the close button: nothing is spent and the army keeps its move. With `navalUnitId`
 // it is a landing by the troops aboard that fleet; with `tile` a field battle; with `fromTile`
 // too a sea battle. All the numbers come from preBattleModel.js.
+//
+// A decision card (playtest audit X18, I153, I154): a tap on the dimmed map never closes it. Only
+// its own buttons do: Call off (the explicit choice), Begin battle or Fight on Auto. `arrival`: the
+// game opened it (an army that marched to attack has arrived, MarchAttackPrompt.jsx); then it
+// waits its turn behind a more pressing card (useExclusivePanel.js), and "Decide later" sets it
+// aside as a chip that brings it back, without cancelling the march.
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Castle, Home, Users, Mountain } from 'lucide-react';
+import { Castle, Home, Users, Mountain, ChevronDown } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
-import { Button, CloseButton, Switch } from '../ui/atlas';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { Button, CloseButton, IconButton, Switch } from '../ui/atlas';
 import { openSettings } from '../ui/uiEvents';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { preBattleModel } from './preBattleModel';
@@ -32,11 +39,12 @@ const Tile = ({ icon: Icon, label, title, children, testId }) => (
   </div>
 );
 
-const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = null, tile = null, fromTile = null, onClose }) => {
+const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = null, tile = null, fromTile = null, onClose, arrival = false }) => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const m = useMemo(() => preBattleModel(state, { fromRegionId, targetRegionId, navalUnitId, tile, fromTile }),
     [state, fromRegionId, targetRegionId, navalUnitId, tile, fromTile]);
+  const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: `${m.name}: Command or Auto`, testId: 'pre-battle-chip', tone: 'danger', user: !arrival });
   const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);
   const [prefer, setPrefer] = useState(false);
@@ -78,10 +86,15 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const c = m.chance;
   const w = m.walls;
 
+  // Another card is on screen first: this one waits as a chip (WaitingChips.jsx).
+  if (!turn.shown) return null;
+
   // On the body: opened from the map (the march arrival), a transformed parent would clip it.
+  // The backdrop only dims: it has no click handler, so a tap aimed at something under it cannot
+  // close the card and lose the attack.
   const card = (
-    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center pr-[var(--rail-inset,0px)]" onClick={onClose} data-testid="battle-choice">
-      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="pre-battle-title" data-testid="pre-battle"
+    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center pr-[var(--rail-inset,0px)]" data-testid="battle-choice">
+      <div role="dialog" aria-modal="true" aria-labelledby="pre-battle-title" data-testid="pre-battle"
         className="fa-panel !bg-fa-panel shadow-2xl w-full sm:w-[min(56rem,calc(100vw-1rem-var(--rail-inset,0px)))] max-h-[94dvh] sm:max-h-[calc(100dvh-1rem)] flex flex-col rounded-b-none sm:rounded-[10px]">
         <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
           <Castle className="w-5 h-5 text-fa-muted shrink-0" aria-hidden="true" />
@@ -89,7 +102,12 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
             <h2 id="pre-battle-title" className="fa-heading text-[19px] pl:text-[17px] leading-tight" data-testid="battle-name">{m.name}</h2>
             <span className="text-[12px] text-fa-muted truncate">{m.subtitle} · T{m.turn}</span>
           </div>
-          <CloseButton onClick={onClose} label="Call off the attack: nothing is spent, your army keeps its move" className="shrink-0" />
+          {arrival ? (
+            <>
+              <Button size="sm" onClick={onClose} data-testid="battle-choice-calloff" title="Call off the attack: nothing is spent, your army stays where it stands" className="shrink-0">Call off</Button>
+              <IconButton label="Decide later: look at the map first. The attack waits as a chip" icon={ChevronDown} onClick={turn.tuck} className="shrink-0 !w-9 !h-9" data-testid="battle-choice-later" />
+            </>
+          ) : <CloseButton onClick={onClose} label="Call off the attack: nothing is spent, your army keeps its move" className="shrink-0" />}
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-2.5 pl:p-2 grid gap-2 grid-cols-1 sm:grid-cols-[1fr_1.35fr_1fr]">
@@ -170,7 +188,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
             <Button variant="primary" hero disabled={disabled || (chosen === 'command' && blockedAtSea)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 w-full">
               {knownEmpty ? 'March in' : chosen === 'command' ? 'Begin battle' : 'Fight on Auto'}
             </Button>
-            <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">Call off the attack</button>
+            {!arrival && <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">Call off the attack</button>}
           </div>
         </div>
         {!knownEmpty && (

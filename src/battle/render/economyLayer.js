@@ -14,7 +14,8 @@
 //     with a file: data/economy.js buildingArt), an object per role (expedition-camp, town-hall,
 //     house (optional), food-depot, materials-yard, trade-post, farm-plot, mine, barracks, range,
 //     stable, siege-workshop, aid-post, tower), fitted to the footprint; `<role>-damaged` under 70%
-//     HP; while building, `construction-stage-0` (foundation) to `-3` by progress, else the role
+//     HP; `<role>-ruined` once it is destroyed (a dead building stays in the view: its wreck is
+//     drawn until something is built over it; no file, no wreck); while building, `construction-stage-0` (foundation) to `-3` by progress, else the role
 //     rising out of the ground. Team parts take the side's colour.
 //   culture skins -> src/assets/battle/rts/rts-<age>-<theme>.glb (SKIN_ROLES: barracks, tower,
 //     trade-post and their -damaged): a side's buildings in its people's theme (themeOfNation,
@@ -89,6 +90,18 @@ export const groveNames = (frac) => (frac > 0.6 ? ['tree-l', 'tree-m'] : frac > 
 export const constructionStage = (progress) => `construction-stage-${Math.min(3, Math.floor(Math.max(0, progress) / 25))}`;
 /** How far from a grove's centre its log pile stands (tiles). */
 export const LOG_PILE_OFFSET = 0.7;
+/**
+ * A finished building's state object (manifest row MD13): `<role>-ruined` once it is destroyed
+ * (dead but still in the view), `<role>-damaged` under 70% HP, else the whole building. A building
+ * that never stood (a cancelled or razed building site) leaves nothing: null.
+ */
+export const buildingStateName = (b, role) => {
+  if (!b.alive) return b.built ? `${role}-ruined` : null;
+  return b.hp < b.maxHp * 0.7 ? `${role}-damaged` : role;
+};
+/** True when a standing building covers the wreck `b` (the player built over the rubble). */
+export const ruinCovered = (b, buildings) => buildings.some((o) => o.alive && o.idx !== b.idx
+  && Math.abs(o.x - b.x) < ((o.size + b.size) / 2) * Q && Math.abs(o.y - b.y) < ((o.size + b.size) / 2) * Q);
 // Herd animals round a herd node (tiles from its centre, yaw).
 const HERD_SPOTS = { herd: [[-0.3, 0, 0.4], [0.25, 0.25, 2.1], [0.2, -0.3, 4.0]], cattle: [[-0.3, 0, 0.6], [0.35, 0.3, 2.6]] };
 
@@ -195,6 +208,15 @@ export class EconomyLayer {
     const fit = (obj) => (b.size * 0.95) / Math.max(0.05, objectSize(obj).footprint);
     const y = this.r.heightAt(x, z);
     tmpColor.set(side);
+    if (!b.alive) {
+      // the wreck, at the scale of the building it was (a skin without one takes the shared file's)
+      const name = buildingStateName(b, role);
+      const from = name && (kitObject(own, name) ? own : kitObject(kit, name) && kitObject(kit, role) ? kit : null);
+      if (!from) return false;
+      const s = fit(kitObject(from, role));
+      this.kits.add(kitObject(from, name), lod, M.makeScale(s, s, s).setPosition(x, y, z), tmpColor);
+      return true;
+    }
     if (!b.built) {
       const stage = kitObject(kit, constructionStage(b.progress));
       if (stage) { this.kits.add(stage, lod, M.makeScale(fit(stage), fit(stage), fit(stage)).setPosition(x, y, z), tmpColor); return true; }
@@ -202,7 +224,7 @@ export class EconomyLayer {
       this.kits.add(whole, lod, M.makeScale(s, s * grow, s).setPosition(x, y, z), tmpColor);
       return true;
     }
-    const obj = (b.hp < b.maxHp * 0.7 && kitObject(own, `${role}-damaged`)) || whole;
+    const obj = kitObject(own, buildingStateName(b, role)) || whole;
     const s = fit(whole);
     this.kits.add(obj, lod, M.makeScale(s, s, s).setPosition(x, y, z), tmpColor);
     return true;
@@ -248,9 +270,14 @@ export class EconomyLayer {
       this.writeParts(NODE_PARTS[n.kind] || NODE_PARTS.stone, x, z, 1, left, '#ffffff', counts, cull);
     });
     cur.eco.buildings.forEach((b) => {
-      if (!b.alive || b.proxy) return;
+      if (b.proxy) return;
       const x = b.x / Q; const z = b.y / Q;
       if (!cull(x, z, b.size + 3)) return;
+      if (!b.alive) {
+        // a destroyed building leaves its wreck (only as art: no greybox), until something is built over it
+        if (b.built && !ruinCovered(b, cur.eco.buildings)) this.writeBuildingArt(b, x, z, r.setup.sides[b.side].color, lod);
+        return;
+      }
       const grow = b.built ? 1 : 0.15 + 0.85 * (b.progress / 100);
       const side = r.setup.sides[b.side].color;
       if (this.writeBuildingArt(b, x, z, side, lod)) return;

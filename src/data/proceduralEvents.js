@@ -19,6 +19,7 @@
 // template with no `candidates` (a general at court) keeps a plain isEligible gate.
 import { getTiles } from './geo/tiles';
 import { CLIMATE_RESILIENCE_THRESHOLD } from './actionCosts';
+import { speedCostMult } from './ages';
 
 const mine = (state) => Object.values(state.regions || {}).filter((c) => c.owner === state.playerNationId && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
 const facts = (c) => { const t = getTiles(); return { river: !!t.rivers[c.tile], coastal: t.coastal[c.tile] === 1, lat: t.latLonOf(c.tile).lat }; };
@@ -27,10 +28,33 @@ const frontier = (state, c) => { const t = getTiles(); const owner = state.world
 const foreignMajority = (c) => { const cu = c.culture || {}; const own = cu[c.owner] || 0; return Object.entries(cu).some(([id, v]) => id !== c.owner && v > own); };
 const starving = (c) => (c.lastYields?.food ?? 0) < 0;
 const unprepared = (c) => (c.climateResilience || 0) < CLIMATE_RESILIENCE_THRESHOLD;
+// A granary is the food line's first tier (buildings.js): text that talks about granaries only
+// says so for a city that has one (playtest audit I222).
+const hasGranary = (c) => (c.buildings?.categories?.food ?? -1) >= 0;
+// Winter bites where winters are cold: a continental (D) or polar (E) climate, or a temperate one
+// (C) from latitude 40. The Nile and the Euphrates do not get a harsh winter.
+const coldWinter = (c) => {
+  const t = getTiles();
+  const k = t.climateNames?.[t.climate?.[c.tile]] || '';
+  const lat = Math.abs(facts(c).lat);
+  if (k) return k[0] === 'D' || k[0] === 'E' || (k[0] === 'C' && lat >= 40);
+  return lat >= 40;
+};
+
+// Cooldowns (playtest audit I221). The numbers are turns at the reference pace and are scaled by
+// the speed table (speedCostMult: the same stretch of history at every speed, never a hardcoded
+// turn count): an event template, an event family and one city each rest after an event.
+export const EVENT_COOLDOWN_TURNS = { template: 14, family: 5, city: 7 };
+export const cooldownTurns = (state, kind) => Math.ceil(EVENT_COOLDOWN_TURNS[kind] * speedCostMult(state.gameSpeed, state.age));
+const onCooldown = (state, key, kind) => {
+  const last = state.eventHistory?.[key];
+  return last != null && (state.turnNumber || 0) - last < cooldownTurns(state, kind);
+};
 
 const PROCEDURAL_TEMPLATES = [
   {
     id: 'coastal_trade_boom',
+    family: 'trade',
     weight: 10,
     candidates: (state) => mine(state).filter((c) => facts(c).coastal && (c.control || 0) >= 60),
     build: (state, rng, city) => ({
@@ -44,6 +68,7 @@ const PROCEDURAL_TEMPLATES = [
   },
   {
     id: 'overcrowded_plague',
+    family: 'people',
     weight: 8,
     candidates: (state) => mine(state).filter((c) => (c.currentInfrastructure || 0) >= 3 || (c.size || 1) >= 5),
     build: (state, rng, city) => ({
@@ -57,6 +82,7 @@ const PROCEDURAL_TEMPLATES = [
   },
   {
     id: 'frontier_raiders',
+    family: 'war',
     weight: 10,
     candidates: (state) => mine(state).filter((c) => (c.defenseLevel || 0) < 3 && frontier(state, c)),
     build: (state, rng, city) => ({
@@ -72,6 +98,7 @@ const PROCEDURAL_TEMPLATES = [
   },
   {
     id: 'ambitious_general',
+    family: 'war',
     weight: 6,
     isEligible: (state) => Object.keys(state.hiredCommanders || {}).length > 0,
     build: (state, rng) => {
@@ -89,13 +116,14 @@ const PROCEDURAL_TEMPLATES = [
   },
   {
     id: 'failed_harvest',
+    family: 'food',
     weight: 10,
     // Gated off once Build Climate Resilience (Modern age) has raised the city past the threshold.
     // A starving city is the likeliest place for it.
     candidates: (state) => { const all = mine(state).filter(unprepared); const hungry = all.filter(starving); return hungry.length ? hungry : all; },
     build: (state, rng, city) => ({
       title: 'Failed Harvest',
-      description: `Poor weather ruins the harvest around ${city.name}, and granaries that should be full stand nearly empty heading into the lean months.`,
+      description: `Poor weather ruins the harvest around ${city.name}, and ${hasGranary(city) ? 'granaries that should be full stand' : 'the stores that should be full stand'} nearly empty heading into the lean months.`,
       options: [
         { label: 'Import food at whatever price it takes', effects: { gold: -100, cityFood: 10 } },
         { label: 'Ration what remains', effects: { cityFood: -10, cityUnrest: 5 } }
@@ -104,11 +132,12 @@ const PROCEDURAL_TEMPLATES = [
   },
   {
     id: 'river_flood',
+    family: 'food',
     weight: 8,
     candidates: (state) => mine(state).filter((c) => facts(c).river && unprepared(c)),
     build: (state, rng, city) => ({
       title: 'The River Rises',
-      description: `The river bursts its banks at ${city.name}; the low fields are under water and the granary is wet through.`,
+      description: `The river bursts its banks at ${city.name}; the low fields are under water and ${hasGranary(city) ? 'the granary is wet through' : 'the stored grain is spoiling'}.`,
       options: [
         { label: 'Raise levees and drain the fields', effects: { gold: -80, cityFood: -5 } },
         { label: 'Let the waters recede on their own', effects: { cityFood: -15, cityUnrest: 5 } }
@@ -117,6 +146,7 @@ const PROCEDURAL_TEMPLATES = [
   },
   {
     id: 'foreign_quarter',
+    family: 'people',
     weight: 7,
     candidates: (state) => mine(state).filter(foreignMajority),
     build: (state, rng, city) => ({
@@ -130,6 +160,7 @@ const PROCEDURAL_TEMPLATES = [
   },
   {
     id: 'traveling_merchants',
+    family: 'trade',
     weight: 12,
     candidates: (state) => mine(state),
     build: (state, rng, city) => ({
@@ -143,6 +174,7 @@ const PROCEDURAL_TEMPLATES = [
   },
   {
     id: 'refugee_crisis',
+    family: 'people',
     weight: 9,
     // Post-war or post-disaster: any war in the world, or a badly unsettled city of yours; the
     // refugees arrive at a frontier city when there is one.
@@ -164,24 +196,37 @@ const PROCEDURAL_TEMPLATES = [
   },
   {
     id: 'harsh_winter',
+    family: 'food',
     weight: 8,
-    candidates: (state) => { const all = mine(state).filter(unprepared); const north = all.filter((c) => Math.abs(facts(c).lat) >= 40); return north.length ? north : all; },
+    candidates: (state) => mine(state).filter((c) => unprepared(c) && coldWinter(c)),
     build: (state, rng, city) => ({
       title: 'A Harsh Winter',
       description: `An unusually harsh winter settles over ${city.name}, straining stores of food and fuel alike.`,
       options: [
-        { label: 'Open the granaries to everyone', effects: { cityFood: -10, gold: -60 } },
+        { label: hasGranary(city) ? 'Open the granaries to everyone' : 'Share out what grain is left', effects: { cityFood: -10, gold: -60 } },
         { label: 'Ration carefully and wait it out', effects: { cityFood: -5, cityUnrest: 5 } }
       ]
     })
   }
 ];
 
+/** The event history after an event fired this turn: the template, its family and its city rest
+ * (read by pickProceduralEvent). Persisted as state.eventHistory; absent in older saves = empty. */
+export const noteEventFired = (history, event, turnNumber) => ({
+  ...(history || {}),
+  ...(event?.templateId ? { [`t:${event.templateId}`]: turnNumber, [`f:${event.family}`]: turnNumber } : {}),
+  ...(event?.cityId != null ? { [`c:${event.cityId}`]: turnNumber } : {})
+});
+
 // Picks one procedural event to fire this turn, or null if none of the templates are currently
 // eligible. Weighted random selection among eligible templates, using the caller's seeded rng so
 // turn resolution stays deterministic.
 export const pickProceduralEvent = (state, rng) => {
-  const eligible = PROCEDURAL_TEMPLATES.map((t) => ({ t, cities: t.candidates ? t.candidates(state) : null })).filter(({ t, cities }) => (cities ? cities.length > 0 : t.isEligible(state)));
+  // A template (or its family) that fired lately rests, and so does a city that just had an event.
+  const eligible = PROCEDURAL_TEMPLATES
+    .filter((t) => !onCooldown(state, `t:${t.id}`, 'template') && !onCooldown(state, `f:${t.family}`, 'family'))
+    .map((t) => ({ t, cities: t.candidates ? t.candidates(state).filter((c) => !onCooldown(state, `c:${c.id}`, 'city')) : null }))
+    .filter(({ t, cities }) => (cities ? cities.length > 0 : t.isEligible(state)));
   if (eligible.length === 0) return null;
 
   const totalWeight = eligible.reduce((sum, e) => sum + e.t.weight, 0);
@@ -198,6 +243,8 @@ export const pickProceduralEvent = (state, rng) => {
     year: state.year,
     mandatory: false,
     procedural: true,
+    templateId: chosen.t.id,
+    family: chosen.t.family,
     ...(city ? { cityId: city.id, tile: city.tile } : {}),
     ...built
   };

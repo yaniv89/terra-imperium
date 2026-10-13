@@ -11,7 +11,8 @@
 #   map kinds: town | landmark | walls | wonder | improvement | ship | house
 #   Wave 0 kinds (plans/ART-MODELS-PLAN.md D1, D2; plans/ART-PRODUCTION-PLAN.md 4.1):
 #     prefab        battle building, rts-<age>.glb (town-hall and expedition-camp take the HQ budget;
-#                   construction-stage-* and <role>-damaged the same as their role)
+#                   construction-stage-* and <role>-damaged the same as their role; <role>-ruined
+#                   takes the ruin budget, 1,200 / 300 / 80)
 #     house-damage  <age>-<theme>-houses-damage.glb: <house>-damaged and <house>-ruined objects
 #     ruin          ruins-<age>.glb (rubble-s/-m/-l, beams, scorch) and ruined houses
 #     wall-kit      walls-<age>.glb pieces (wall-straight, wall-corner, tower, gate-open, gate-closed, -damaged, -breached)
@@ -89,6 +90,8 @@ def infer_kind(path):
 
 def object_kind(kind, name):
     """The budget kind of one object of a file of `kind`."""
+    if kind == 'prefab' and name.endswith('-ruined'):
+        return 'ruin'  # a destroyed battle building, the HQ roles too (manifest row MD13)
     if kind == 'prefab' and any(name == r or name.startswith(r + '-') for r in HQ_ROLES):
         return 'prefab-hq'
     if kind == 'house-damage':

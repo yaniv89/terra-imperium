@@ -4,12 +4,11 @@
 // (march, cancel the route, rename the army, disband). A bottom sheet on a phone, a docked panel
 // on a wider screen, like the tile sheet.
 import React, { useMemo, useState } from 'react';
-import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle } from 'lucide-react';
+import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle, Anchor } from 'lucide-react';
 import PreBattleModal from '../battle/PreBattleModal';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { ActionTypes } from '../../data/types';
-import { getTiles } from '../../data/geo/tiles';
 import { startMarch } from './marchEvents';
 import { armySheetModel } from './armySheetModel';
 import { UnitIcon } from '../ui/icons';
@@ -24,8 +23,9 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
   if (!model) return null;
   const marching = picked ? model.unitIds.filter((id) => picked.has(id)) : model.unitIds;
   const togglePick = (id) => setPicked((p) => { const next = new Set(p || model.unitIds); if (next.has(id)) next.delete(id); else next.add(id); return next.size === model.unitIds.length ? null : next; });
-  const tiles = getTiles();
-  const where = tiles.names[tile] || (model.naval ? 'open water' : model.base || 'the field');
+  // The place the stack stands on (unitLocation.js whereLabel), never its base: "Army near Siwa".
+  const where = model.where;
+  const showBase = !!model.base && !model.atBase;
   const sail = () => { startMarch(model.regionId, { naval: true, unitIds: marching }); onClose?.(); };
   const rename = () => { if (renaming?.trim()) dispatch({ type: ActionTypes.RENAME_ARMY, payload: { unitIds: model.unitIds, name: renaming.trim() } }); setRenaming(null); };
   const body = (
@@ -34,8 +34,8 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
         <div className="flex items-center gap-2 min-w-0">
           <Shield className="w-4 h-4 text-fa-good shrink-0" />
           <div className="min-w-0">
-            <div className="font-bold text-fa-text truncate text-sm">{model.groups.length === 1 && model.groups[0].key ? model.groups[0].name : `${model.naval ? 'Fleet' : 'Army'} at ${where}`}</div>
-            <div className="text-fa-muted text-[10px]">{model.soldiers.toLocaleString()} {model.naval ? 'crew' : 'soldiers'} · {where}{model.base ? ` · based at ` : ''}{model.base && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
+            <div className="font-bold text-fa-text truncate text-sm">{model.groups.length === 1 && model.groups[0].key ? model.groups[0].name : `${model.naval ? 'Fleet' : 'Army'} ${where}`}</div>
+            <div className="text-fa-muted text-[10px]" data-testid="army-where">{model.soldiers.toLocaleString()} {model.naval ? 'crew' : 'soldiers'} · {where}{showBase ? ` · based at ` : ''}{showBase && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
           </div>
         </div>
         <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
@@ -51,6 +51,12 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       )}
       {model.route && <div className="text-[11px] text-amber-200 mb-2" data-testid="army-route">Marching to {model.route.name}: about {model.route.turns} turn{model.route.turns === 1 ? '' : 's'}.</div>}
       {model.siege && <div className="text-[11px] text-orange-200 mb-2 flex items-center gap-1.5" data-testid="army-siege"><Castle className="w-3.5 h-3.5 shrink-0" />Besieging {model.siege.name}: walls {model.siege.hp}/{model.siege.maxHp}{model.siege.walls ? ` (${model.siege.walls} wall${model.siege.walls === 1 ? '' : 's'})` : ''}, {model.siege.strength} siege strength a turn{model.siege.encircled ? ', encircled: it starves' : ''}.</div>}
+      {model.holding && <div className="text-[11px] text-sky-200 mb-2" data-testid="army-holding">Holding this position: not counted idle until you lift the order or march.</div>}
+      {model.siegeOrders.map((s) => (
+        <button key={s.regionId} type="button" onClick={() => dispatch({ type: ActionTypes.SET_SIEGE, payload: { unitIds: model.unitIds, cityId: s.on ? null : s.regionId } })} data-testid="army-siege-order" aria-pressed={s.on} title={s.on ? 'Stop besieging: the army stays here' : 'Besiege the city: its walls are worn down every turn while the army stands beside it'} className={`w-full mb-2 min-h-[40px] rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 ${s.on ? 'bg-fa-hover hover:bg-fa-line text-fa-text' : 'bg-orange-800/70 hover:bg-orange-700 text-fa-text'}`}>
+          <Castle className="w-3.5 h-3.5" /> {s.on ? `Lift the siege of ${s.name}` : `Lay siege to ${s.name}`}
+        </button>
+      ))}
       {model.groups.map((g) => (
         <div key={g.key || 'none'} className="mb-2" data-testid="army-group">
           <div className="text-[11px] font-semibold text-fa-text mb-1">{g.name} <span className="text-fa-muted">({g.units.length})</span></div>
@@ -89,6 +95,11 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
         {model.route
           ? <button type="button" onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: model.unitIds } })} className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">Halt the march</button>
           : <button type="button" disabled={!model.canMarch || !marching.length} onClick={() => { if (model.naval) sail(); else { startMarch(model.regionId, { unitIds: marching }); onClose?.(); } }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> {model.naval ? 'Sail' : 'March'}{picked ? ` ${marching.length} of ${model.unitIds.length}` : ''}…</button>}
+        {model.canHold && (
+          <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_HOLD, payload: { unitIds: model.unitIds, hold: !model.holding } })} data-testid="army-hold" aria-pressed={model.holding} title="Hold: the army stays here and is not counted idle, until you lift it or order a march" className={`min-h-[44px] px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${model.holding ? 'bg-sky-700/80 text-fa-text' : 'bg-fa-hover hover:bg-fa-line text-fa-text'}`}>
+            <Anchor className="w-3.5 h-3.5" /> {model.holding ? 'Holding' : 'Hold'}
+          </button>
+        )}
         <button type="button" onClick={() => setRenaming(model.groups[0].key ? model.groups[0].name : '')} aria-label="Name this army" className="min-h-[44px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text"><Pencil className="w-4 h-4" /></button>
       </div>
       {model.targets.length > 0 && (

@@ -39,6 +39,9 @@ export const STACK_WIDTH_MULT = 2;
 export const STACK_OVER_LOSS = 10;
 export const STARVE_STRENGTH = 0.05;
 export const STARVE_MORALE = 10;
+// A unit this many turns in a row at an empty meter is flagged by the state audit (a warning, not
+// a broken invariant: starving is legal, a long run of it is worth a look. Playtest audit I004).
+export const LONG_STARVE_TURNS = 10;
 
 export const supplyOf = (unit, max = SUPPLY_MAX) => (unit.supply == null ? max : Math.min(max, unit.supply));
 
@@ -92,23 +95,56 @@ export const supplyZone = (state, tiles, unit, { lineRings = SUPPLY_LINE_RINGS }
   return { zone: 'enemy', delta: lineReaches(state, tiles, tile, unit.ownerId, lineRingsAt(state, tile, lineRings)) ? -SUPPLY_LINE_LOSS : -SUPPLY_ENEMY_LOSS };
 };
 
+/**
+ * This turn's real change of a unit's meter: the zone's delta, then, outside home land, hunger
+ * (the nation's supplies stock is empty), an over-full stack, the owner's attrition modifier, and
+ * the unit's Forager perk and logistician general. The ONE formula: the turn (applySupplyMeter)
+ * and the forecast (supplyReport) both call it, so the sheet's "a turn" is what the turn does
+ * (playtest audit I005). `stackSize`: the nation's land units on the unit's tile.
+ * Returns { zone, delta (the zone alone), change (what the meter moves by), hungry, overStack, mult }.
+ */
+export const supplyChange = (state, tiles, unit, { lineRings = SUPPLY_LINE_RINGS, hungry = false, stackSize = 0, stackCapExtra = 0, attritionMult = 1 } = {}) => {
+  const { zone, delta } = supplyZone(state, tiles, unit, { lineRings });
+  if (zone === 'home') return { zone, delta, change: delta, hungry: false, overStack: false, mult: 1 };
+  let change = delta;
+  if (hungry) change -= SUPPLY_HUNGER_LOSS;
+  const tile = unitTile(state, unit);
+  const overStack = tile != null && stackSize > stackCap(tiles, tile, stackCapExtra);
+  if (overStack) change -= STACK_OVER_LOSS;
+  let mult = Math.max(0, attritionMult);
+  if (hasPerk(unit, 'forager')) mult *= 0.5;
+  if (state.hiredCommanders?.[unit.commanderId]?.personality === 'logistician') mult *= 0.5;
+  return { zone, delta, change: Math.round(change * mult), hungry: !!hungry, overStack, mult };
+};
+
 /** What the army sheet says about a stack's supply (plans/playtest-1.md P2.2): the meter, this
- * turn's change, the distance to your border, the line's reach and the lever to pull. */
-export const supplyReport = (state, unit, { lineRings = SUPPLY_LINE_RINGS, max = SUPPLY_MAX } = {}) => {
+ * turn's real change (supplyChange: the same number the turn applies), the turns left, whether it
+ * starves, the distance to your border, the line's reach and the lever to pull.
+ * `hungry`, `attritionMult`, `stackCapExtra`: as the turn passes them (resolveTurn's supply phase). */
+export const supplyReport = (state, unit, { lineRings = SUPPLY_LINE_RINGS, max = SUPPLY_MAX, hungry = false, attritionMult = 1, stackCapExtra = 0 } = {}) => {
   const tiles = getTiles();
   const tile = unitTile(state, unit);
-  const { zone, delta } = supplyZone(state, tiles, unit, { lineRings });
+  const stackSize = tile == null ? 0 : Object.values(state.units || {}).filter((u) => u.ownerId === unit.ownerId && u.domain !== 'naval' && !u.embarkedOn && !isSettler(u) && u.strength > 0 && unitTile(state, u) === tile).length;
+  const { zone, delta, change, overStack } = supplyChange(state, tiles, unit, { lineRings, hungry, stackSize, stackCapExtra, attritionMult });
   const reach = tile != null ? lineRingsAt(state, tile, lineRings) : lineRings;
   const borderDistance = tile != null ? lineDistance(state, tiles, tile, unit.ownerId, reach + 6) : 0;
   const supply = supplyOf(unit, max);
-  const turnsLeft = delta < 0 ? Math.ceil(supply / -delta) : null;
+  const starving = supply <= 0 && zone !== 'home';
+  const turnsLeft = change < 0 && supply > 0 ? Math.ceil(supply / -change) : null;
   let hint;
   if (zone === 'home') hint = supply >= max ? 'Fully supplied in your own land.' : 'In your land: the meter refills, full in two turns.';
   else if (zone === 'held') hint = 'Holding enemy land you have taken: the meter holds.';
   else if (zone === 'wild') hint = 'In the wilderness: the meter drains slowly. A march home refills it.';
-  else if (delta === -SUPPLY_LINE_LOSS) hint = `A supply line from your border (${borderDistance} tile${borderDistance === 1 ? '' : 's'} away, a line reaches ${reach}) feeds this stack at half cost. A Road Post or a road would reach further.`;
+  else if (delta === -SUPPLY_LINE_LOSS) hint = `A supply line from your border (${borderDistance} tile${borderDistance === 1 ? '' : 's'} away, a line reaches ${reach}) halves the drain of enemy land; it does not refill the meter. A Road Post or a road would reach further.`;
   else hint = borderDistance == null ? `Far beyond your border: no supply line reaches here (a line reaches ${reach} tiles). March back or take a city to hold.` : `Your border is ${borderDistance} tiles away and a line reaches only ${reach}: the stack drains fast. A Road Post at the border or a road under the army reaches ${reach + ROAD_LINE_BONUS}; taking the city here would hold the meter.`;
-  return { supply, max, delta, zone, borderDistance, reach, turnsLeft, hint };
+  if (hungry && zone !== 'home') hint += ' Your supplies stock is empty: every army abroad drains faster.';
+  if (overStack) hint += ' Too many units on this tile: the stack eats the land bare.';
+  // The line the sheet shows: the meter, the real change, and what an empty meter costs.
+  const pct = Math.round(STARVE_STRENGTH * 100);
+  const text = starving
+    ? `Supply 0/${max}: starving. The stack loses ${pct}% of its strength and ${STARVE_MORALE} morale every turn, and takes no recruits, until it stands in your own land. ${hint}`
+    : `Supply ${Math.round(supply)}/${max}, ${change >= 0 ? '+' : ''}${change} a turn${turnsLeft != null ? ` (${turnsLeft} turn${turnsLeft === 1 ? '' : 's'} until it starves)` : ''}. ${hint}`;
+  return { supply, max, delta, change, zone, borderDistance, reach, turnsLeft, starving, starvedTurns: unit.starvedTurns || 0, overStack, hint, text };
 };
 
 /** Land units of one nation per tile (settlers and cargo aside). */
@@ -139,19 +175,14 @@ export const applySupplyMeter = (state, units, { hungryFor = () => false, attrit
     if (!state.nations[u.ownerId]) return; // rebels live off the land
     const fx = fxOf(u.ownerId);
     const max = SUPPLY_MAX + fx.supplyMax;
-    const { zone, delta } = supplyZone(state, tiles, u, { lineRings: lineRingsFor(u.ownerId) + ringsForKm(fx.lineRings, { min: 0 }) });
-    let change = delta;
-    if (zone !== 'home') {
-      if (hungryFor(u.ownerId)) change -= SUPPLY_HUNGER_LOSS;
-      const tile = unitTile(state, u);
-      if (tile != null && (sizes.get(`${u.ownerId}|${tile}`) || 0) > stackCap(tiles, tile, fx.stackCap)) change -= STACK_OVER_LOSS;
-      let mult = Math.max(0, attritionMultFor(u.ownerId));
-      if (hasPerk(u, 'forager')) mult *= 0.5;
-      if (state.hiredCommanders?.[u.commanderId]?.personality === 'logistician') mult *= 0.5;
-      change = Math.round(change * mult);
-    }
+    const { change } = supplyChange(state, tiles, u, {
+      lineRings: lineRingsFor(u.ownerId) + ringsForKm(fx.lineRings, { min: 0 }),
+      hungry: hungryFor(u.ownerId), stackSize: sizes.get(`${u.ownerId}|${unitTile(state, u)}`) || 0, stackCapExtra: fx.stackCap, attritionMult: attritionMultFor(u.ownerId)
+    });
     const supply = Math.max(0, Math.min(max, supplyOf(u, max) + change));
-    let next = { ...u, supply };
+    // `starvedTurns`: turns in a row at an empty meter (stateAudit.js warns on a long run of them);
+    // written only for a unit that starves or has starved, so a fed unit's record is untouched.
+    let next = { ...u, supply, ...(supply <= 0 ? { starvedTurns: (u.starvedTurns || 0) + 1 } : u.starvedTurns ? { starvedTurns: 0 } : {}) };
     if (supply <= 0) {
       const strength = Math.max(0, Math.floor(u.strength * (1 - STARVE_STRENGTH)));
       if (strength <= 0) { delete units[id]; dead.set(u.ownerId, (dead.get(u.ownerId) || 0) + 1); return; }

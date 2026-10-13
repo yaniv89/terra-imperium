@@ -23,6 +23,7 @@ import { Button, Label, SheetHeader, Segmented, Switch } from './atlas';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
 import { turnLogText } from '../../services/turnClient';
 import MapCard from './MapCard';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 
 // The turn worker's recent events (turnClient.js) for a bug report: copied, or shown to copy by hand.
 const TurnLogButton = () => {
@@ -63,7 +64,10 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
   const prefs = useMapPrefs();
   const audio = useAudioSettings();
   const fileRef = useRef(null);
-  if (!open) return null;
+  // A sheet the player opened: it takes the screen, and a decision card it covers waits as a chip
+  // (useExclusivePanel.js).
+  const turn = useInteraction('settings', open, { priority: PRIORITY.sheet, user: true, label: 'Settings' });
+  if (!open || !turn.shown) return null;
   const bs = state.battleSettings || {};
   const setBattle = (patch) => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: patch });
   const mode = bs.defaultMode === 'command' || bs.defaultMode === 'auto' ? bs.defaultMode : 'ask';
@@ -98,11 +102,11 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
         <SheetHeader title="Settings" subtitle="Saved as you change them" icon={Settings2} onClose={onClose} titleId="settings-title" />
         <div className="flex-1 overflow-y-auto px-4 pb-4 grid gap-x-6 gap-y-4 md:grid-cols-2">
           <section className="space-y-1" aria-labelledby="settings-map">
-            <Label id="settings-map">Map</Label>
+            <Label id="settings-map">Map display</Label>
             <Switch label="Globe view" hint="Hidden by default; the flat map is faster" checked={prefs.globe} onChange={(v) => setMapPrefs({ globe: v })} testId="map-show-globe" />
-            <Switch label="Fog: explored world" hint={fogOn(state) ? 'Off: chosen when the game began' : 'On: chosen when the game began'} checked={!fogOn(state)} onChange={() => {}} disabled testId="settings-fog" />
+            <Switch label="Fog: explored world" hint={fogOn(state) ? 'Off. Locked: it is chosen on the start screen and cannot change during a game' : 'On. Locked: it is chosen on the start screen and cannot change during a game'} checked={!fogOn(state)} onChange={() => {}} disabled testId="settings-fog" />
             <Switch label="Old map drawing" hint="The previous, slower map; only if the new one shows something wrong here" checked={prefs.renderer === 'svg'} onChange={(v) => setMapPrefs({ renderer: v ? 'svg' : 'webgl' })} testId="map-old-renderer" />
-            <MapCard map={state.scenario?.map} withCache className="pt-2" />
+            <MapCard map={state.scenario?.map} withCache className="pt-2" label="This game's world" />
           </section>
           <section className="space-y-2" aria-labelledby="settings-battles">
             <Label id="settings-battles">Battles, default mode</Label>

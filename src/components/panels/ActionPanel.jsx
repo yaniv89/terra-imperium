@@ -9,7 +9,7 @@ import SpacePanel from './SpacePanel';
 import LegacyPanel from './LegacyPanel';
 import DiplomacyPanel from './DiplomacyPanel';
 import CityList from '../city/CityList';
-import { selectRegion } from '../map/marchEvents';
+import { openCityOnMap } from '../map/marchEvents';
 
 const ActionPanel = ({ activeTab }) => {
   return (
@@ -20,7 +20,7 @@ const ActionPanel = ({ activeTab }) => {
       {activeTab === 'cities' && (
         <div>
           <div className="px-4 pt-3 pb-2 flex items-baseline gap-2"><h2 className="fa-heading text-[19px]">Cities</h2><span className="text-[12px] text-fa-muted">tap one to open it</span></div>
-          <CityList onSelect={selectRegion} compact />
+          <CityList onSelect={openCityOnMap} compact />
         </div>
       )}
       {activeTab === 'tech' && (

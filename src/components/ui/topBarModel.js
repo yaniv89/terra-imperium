@@ -14,8 +14,9 @@ const titleCase = (s) => s.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toU
 export const yearLabel = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
 
 /** "Bronze Working 3t" style, short enough for the bar. */
-export const scienceLabel = (current) => {
-  if (!current) return 'Choose research';
+export const scienceLabel = (current, status = null) => {
+  if (!current) return status && !status.needsChoice ? status.shortLabel : 'Choose research';
+  if (current.gate) return `${current.tech.name} waits for ${current.gate.label}`;
   const t = current.finishesIn === Infinity ? '?' : current.finishesIn;
   return `${current.tech.name} ${t}t`;
 };
@@ -48,8 +49,9 @@ export const topBarModel = (state) => {
     },
     science: {
       perTurn: research.science,
-      current: research.current ? { name: research.current.tech.name, turns: research.current.finishesIn } : null,
-      label: scienceLabel(research.current),
+      current: research.current ? { name: research.current.tech.name, turns: research.current.finishesIn, gate: research.current.gate } : null,
+      status: research.status,
+      label: scienceLabel(research.current, research.status),
       bank: research.bank
     },
     culture: {

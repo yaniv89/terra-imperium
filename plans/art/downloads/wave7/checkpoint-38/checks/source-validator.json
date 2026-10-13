@@ -1,0 +1,438 @@
+{
+  "status": "passed",
+  "scope": "first38: 5 terrain + 3 vegetation + 6 props; 14 newly built GLBs only",
+  "count": 14,
+  "validator": "/workspace/terra-remaining/scripts/blender/validate_model.py",
+  "validator_sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+  "mode": "auto on installed game paths first, then auto on byte-identical preserved copies with the full relative game-path suffix",
+  "summary": {
+    "installed_passed": 14,
+    "copies_passed": 14,
+    "exact_uncompressed_copies": 14,
+    "unchanged_sources": 14,
+    "same_kind_inference": 14
+  },
+  "auto_inference_note": "The current validator has no battle/props inference rule; auto falls back to landmark for all six props. No explicit-kind override was applied.",
+  "no_baking_packing_or_repo_writes": true,
+  "items": [
+    {
+      "game_path": "src/assets/battle/terrain/river-kit.glb",
+      "sha256": "3efe3a681982ffe0018b49fbec4296c91721b59ad7a2297d0a117ea1a74164f7",
+      "bytes": 345504,
+      "inferred_kind": "terrain-kit",
+      "auto_kind": "terrain-kit",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/terrain/river-kit/river-kit.validation.json",
+        "failed_checks": [],
+        "objects": 13
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/river-kit.glb",
+      "copy_sha256": "3efe3a681982ffe0018b49fbec4296c91721b59ad7a2297d0a117ea1a74164f7",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/terrain/river-kit/river-kit.validation.json",
+        "failed_checks": [],
+        "objects": 13
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/terrain/ford.glb",
+      "sha256": "7a3b28514cb26e82490e8367fb545ca059905ec818ef5d19ca3a11e3cbff6265",
+      "bytes": 188324,
+      "inferred_kind": "terrain-kit",
+      "auto_kind": "terrain-kit",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/terrain/ford/ford.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/ford.glb",
+      "copy_sha256": "7a3b28514cb26e82490e8367fb545ca059905ec818ef5d19ca3a11e3cbff6265",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/terrain/ford/ford.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-wood.glb",
+      "sha256": "1d6e29678811a97d09209179db366471b053444b9ed450f51944333e365fd19c",
+      "bytes": 854700,
+      "inferred_kind": "terrain-kit",
+      "auto_kind": "terrain-kit",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/terrain/bridge-wood/bridge-wood.validation.json",
+        "failed_checks": [],
+        "objects": 3
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/bridge-wood.glb",
+      "copy_sha256": "1d6e29678811a97d09209179db366471b053444b9ed450f51944333e365fd19c",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/terrain/bridge-wood/bridge-wood.validation.json",
+        "failed_checks": [],
+        "objects": 3
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-stone.glb",
+      "sha256": "82b819680bd666e56204210a9c1f11b56bd5ebf55c8e6144070ca8e79d173bc5",
+      "bytes": 675084,
+      "inferred_kind": "terrain-kit",
+      "auto_kind": "terrain-kit",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/terrain/bridge-stone/bridge-stone.validation.json",
+        "failed_checks": [],
+        "objects": 3
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/bridge-stone.glb",
+      "copy_sha256": "82b819680bd666e56204210a9c1f11b56bd5ebf55c8e6144070ca8e79d173bc5",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/terrain/bridge-stone/bridge-stone.validation.json",
+        "failed_checks": [],
+        "objects": 3
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-steel.glb",
+      "sha256": "0295b17cd90ed28de2b560331fd5f9ccc93f12bb632ded5c57eccfbbd350707b",
+      "bytes": 729740,
+      "inferred_kind": "terrain-kit",
+      "auto_kind": "terrain-kit",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/terrain/bridge-steel/bridge-steel.validation.json",
+        "failed_checks": [],
+        "objects": 3
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/terrain/bridge-steel.glb",
+      "copy_sha256": "0295b17cd90ed28de2b560331fd5f9ccc93f12bb632ded5c57eccfbbd350707b",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "terrain-kit",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/terrain/bridge-steel/bridge-steel.validation.json",
+        "failed_checks": [],
+        "objects": 3
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-conifer.glb",
+      "sha256": "7c930e464ab9e899fa46dd8bd7622ad90fc7b5f53d3b65812c0fe5bf98533e5e",
+      "bytes": 548736,
+      "inferred_kind": "tree",
+      "auto_kind": "tree",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "tree",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/nature/vegetation-conifer/vegetation-conifer.validation.json",
+        "failed_checks": [],
+        "objects": 9
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/nature/vegetation-conifer.glb",
+      "copy_sha256": "7c930e464ab9e899fa46dd8bd7622ad90fc7b5f53d3b65812c0fe5bf98533e5e",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "tree",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/nature/vegetation-conifer/vegetation-conifer.validation.json",
+        "failed_checks": [],
+        "objects": 9
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-tropical.glb",
+      "sha256": "be13bfb9243fdf055b7626d51187252c1d1f45ad9b0f6bf370d149ff7499f935",
+      "bytes": 565604,
+      "inferred_kind": "tree",
+      "auto_kind": "tree",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "tree",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/nature/vegetation-tropical/vegetation-tropical.validation.json",
+        "failed_checks": [],
+        "objects": 9
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/nature/vegetation-tropical.glb",
+      "copy_sha256": "be13bfb9243fdf055b7626d51187252c1d1f45ad9b0f6bf370d149ff7499f935",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "tree",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/nature/vegetation-tropical/vegetation-tropical.validation.json",
+        "failed_checks": [],
+        "objects": 9
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-cold.glb",
+      "sha256": "9a80ad1072f22fb76d1d1c29c06b7259b47ac097983248fd507192c59b75aee2",
+      "bytes": 654540,
+      "inferred_kind": "tree",
+      "auto_kind": "tree",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "tree",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/nature/vegetation-cold/vegetation-cold.validation.json",
+        "failed_checks": [],
+        "objects": 9
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/nature/vegetation-cold.glb",
+      "copy_sha256": "9a80ad1072f22fb76d1d1c29c06b7259b47ac097983248fd507192c59b75aee2",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "tree",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/nature/vegetation-cold/vegetation-cold.validation.json",
+        "failed_checks": [],
+        "objects": 9
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/props/loot-sack.glb",
+      "sha256": "29b258a38e992ed74a4099460fcd130de92b92be912238ddd1c223230ad7df3e",
+      "bytes": 371056,
+      "inferred_kind": null,
+      "auto_kind": "landmark",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/props/loot-sack/loot-sack.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/loot-sack.glb",
+      "copy_sha256": "29b258a38e992ed74a4099460fcd130de92b92be912238ddd1c223230ad7df3e",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/props/loot-sack/loot-sack.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/props/exit-marker.glb",
+      "sha256": "ef7e9f21a05c7f2fab253d9c8cda0678439c994a96860a5a911b59c580a7ace3",
+      "bytes": 204008,
+      "inferred_kind": null,
+      "auto_kind": "landmark",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/props/exit-marker/exit-marker.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/exit-marker.glb",
+      "copy_sha256": "ef7e9f21a05c7f2fab253d9c8cda0678439c994a96860a5a911b59c580a7ace3",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/props/exit-marker/exit-marker.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/props/burnt-field-overlay.glb",
+      "sha256": "050667529d18d523fe20104a4f99c4c8d41039e5258762be5c05f44f14a373d3",
+      "bytes": 452540,
+      "inferred_kind": null,
+      "auto_kind": "landmark",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/props/burnt-field-overlay/burnt-field-overlay.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/burnt-field-overlay.glb",
+      "copy_sha256": "050667529d18d523fe20104a4f99c4c8d41039e5258762be5c05f44f14a373d3",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/props/burnt-field-overlay/burnt-field-overlay.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-ancient.glb",
+      "sha256": "21fce05b3387fc3f64cdc999ca039f8d052db4cabdfabdc9c68fdafb24d092bd",
+      "bytes": 483452,
+      "inferred_kind": null,
+      "auto_kind": "landmark",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/props/landing-ancient/landing-ancient.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/landing-ancient.glb",
+      "copy_sha256": "21fce05b3387fc3f64cdc999ca039f8d052db4cabdfabdc9c68fdafb24d092bd",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/props/landing-ancient/landing-ancient.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-middle.glb",
+      "sha256": "33510bab4509052bb7f93227c090712dea8d4486cf25b6fae9881bdb12d28800",
+      "bytes": 660352,
+      "inferred_kind": null,
+      "auto_kind": "landmark",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/props/landing-middle/landing-middle.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/landing-middle.glb",
+      "copy_sha256": "33510bab4509052bb7f93227c090712dea8d4486cf25b6fae9881bdb12d28800",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/props/landing-middle/landing-middle.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-modern.glb",
+      "sha256": "cb6f0ebcb69563e10f050647c348a2397d3f8478f8242c184d5713b14963983e",
+      "bytes": 373876,
+      "inferred_kind": null,
+      "auto_kind": "landmark",
+      "uncompressed_geometry": true,
+      "installed_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/installed/src/assets/battle/props/landing-modern/landing-modern.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/landing-modern.glb",
+      "copy_sha256": "cb6f0ebcb69563e10f050647c348a2397d3f8478f8242c184d5713b14963983e",
+      "exact_copy": true,
+      "copy_validation": {
+        "passed": true,
+        "exit_code": 0,
+        "kind": "landmark",
+        "report": "/workspace/remaining-production/checks/all14-source-validation/copies/src/assets/battle/props/landing-modern/landing-modern.validation.json",
+        "failed_checks": [],
+        "objects": 1
+      },
+      "same_auto_kind": true,
+      "source_unchanged": true
+    }
+  ],
+  "final_frozen_refresh": {
+    "agent": "terrain source sidecar",
+    "changes": [
+      {
+        "game_path": "src/assets/battle/terrain/bridge-steel.glb",
+        "previous_sha256": "b51e7add9d39a4055fd05e5bd7fe15692a5bb93bd6c5199462a24a4227853e0d",
+        "new_sha256": "0295b17cd90ed28de2b560331fd5f9ccc93f12bb632ded5c57eccfbbd350707b",
+        "previous_backup_sha256": "b51e7add9d39a4055fd05e5bd7fe15692a5bb93bd6c5199462a24a4227853e0d"
+      }
+    ],
+    "all_14_newest_sources_match_validated_backups": true,
+    "no_baking_rendering_model_or_repo_writes": true
+  }
+}

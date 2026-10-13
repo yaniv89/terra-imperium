@@ -1,0 +1,20 @@
+
+Running 8 tests using 1 worker
+
+(node:23000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/guidedStart.spec.js:10:1 › the guided start plays as Kemet with the guide in the next prompt (29.2s)
+  ✓  2 [chromium] › e2e/stabilization.spec.js:50:1 › actual globe pointer hits preserve selected province at two zoom levels (50.8s)
+  ✓  3 [chromium] › e2e/stabilization.spec.js:93:1 › 2D province fills select their own region at two zoom levels (1.0m)
+  ✓  4 [chromium] › e2e/stabilization.spec.js:97:1 › the old SVG map still selects its provinces (30.1s)
+  ✓  5 [chromium] › e2e/webglMap.spec.js:57:3 › the WebGL map on a desktop › is the map: no globe switch, wheel zoom, a tap on land picks the city, on open land the tile (54.1s)
+  ✓  6 [chromium] › e2e/webglMap.spec.js:96:3 › the WebGL map on a desktop › wraps east to west: dragging across the antimeridian continues into the other side (57.3s)
+  ✓  7 [chromium] › e2e/webglMap.spec.js:120:3 › the WebGL map on a phone held sideways › pinch zoom, and a tap on the army banner or the land picks the city (1.7m)
+  ✓  8 [chromium] › e2e/webglMap.spec.js:161:3 › the globe behind its setting › with the setting on, the globe switch comes back (1.3m)
+
+  8 passed (8.2m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

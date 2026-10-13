@@ -480,6 +480,57 @@ def transfer_uvs(src, dst):
     bpy.ops.object.modifier_apply(modifier=mod.name)
 
 
+def transfer_uvs_by_face(src, dst):
+    """transfer_uvs gave each corner of a simpler face the uv of the nearest point of ANY full-model
+    face, so the corners of one wall landed on different atlas islands and the texture smeared
+    across the atlas in stripes (about two thirds of the LOD1 and LOD2 faces of the battle
+    buildings). Here every corner is looked up a little inside its own face, on the nearest
+    full-model face of the same material that faces the same way as the middle of its face, so a
+    simpler face always stays on one face of the full model, and so on one island."""
+    from mathutils.bvhtree import BVHTree
+    from mathutils.interpolate import poly_3d_calc
+    from mathutils.geometry import closest_point_on_tri
+    sm = src.data
+    sm.calc_loop_triangles()
+    suv = sm.uv_layers.active.data
+    trees = {}
+    for tri in sm.loop_triangles:
+        trees.setdefault(tri.material_index, []).append(tri)
+    every = list(sm.loop_triangles)
+
+    def tree_of(tris):
+        verts = [sm.vertices[v].co.copy() for t in tris for v in t.vertices]
+        return BVHTree.FromPolygons(verts, [(3 * i, 3 * i + 1, 3 * i + 2) for i in range(len(tris))]), tris
+    trees = {m: tree_of(tris) for m, tris in trees.items()}
+    whole = tree_of(every) if every else None
+    dm = dst.data
+    if not dm.uv_layers:
+        dm.uv_layers.new(name='UVMap')
+    duv = dm.uv_layers.active.data
+    for poly in dm.polygons:
+        tree, tris = trees.get(poly.material_index) or whole
+        centre, normal = poly.center, poly.normal
+        # the full-model face under the middle of this face: every corner stays on it
+        near = tree.find_nearest_range(centre, 0.08)
+        same = [h for h in near if h[1].dot(normal) > 0.3]
+        mid = min(same or near, key=lambda h: h[3]) if near else tree.find_nearest(centre)
+        if mid is None or mid[2] is None:
+            continue
+        home = tris[mid[2]]
+        for li in poly.loop_indices:
+            p = dm.vertices[dm.loops[li].vertex_index].co.lerp(centre, 0.2)
+            on = [h for h in tree.find_nearest_range(p, 0.08) if tris[h[2]].polygon_index == home.polygon_index]
+            if on:
+                hit = min(on, key=lambda h: h[3])
+                tri, at = tris[hit[2]], hit[0]
+            else:
+                tri = home
+                at = closest_point_on_tri(p, *[sm.vertices[v].co for v in tri.vertices])
+            w = poly_3d_calc([sm.vertices[v].co for v in tri.vertices], at)
+            uv = sum((suv[l].uv * wk for l, wk in zip(tri.loops, w)), Vector((0.0, 0.0)))
+            duv[li].uv = uv
+
+
 def triangles(obj):
     return sum(len(p.vertices) - 2 for p in obj.data.polygons)
 
