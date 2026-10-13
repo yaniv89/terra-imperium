@@ -1381,7 +1381,9 @@ const reduceAction = (state, action) => {
       // A manual move replaces any march order and counts as marching this turn (routes.js costs).
       const toTile = state.regions[toRegionId]?.tile ?? null;
       // Harsh ground on the way costs what a march pays (routes.js MARCH_ATTRITION per step).
-      const walked = walk?.harshSteps ? { strength: Math.max(1, Math.round(unit.strength * (1 - MARCH_ATTRITION) ** walk.harshSteps)) } : {};
+      let walkedStrength = unit.strength;
+      for (let i = 0; i < (walk?.harshSteps || 0); i++) walkedStrength = Math.max(1, Math.round(walkedStrength * (1 - MARCH_ATTRITION)));
+      const walked = walk?.harshSteps ? { strength: walkedStrength } : {};
       const nextUnits = { ...state.units, [unitId]: { ...released(cancelRoute(unit)), ...walked, regionId: toRegionId, tile: toTile, movesLeft: (unit.movesLeft ?? 1) - 1, ...(unit.domain === 'naval' ? {} : { marchedTurn: state.turnNumber, movedNowTurn: state.turnNumber }) } };
       // A transport takes its embarked cargo along with it.
       Object.values(state.units).forEach(u => {
