@@ -32,7 +32,10 @@
 //   13 lastBattleTurn on every survivor and the BATTLE_MARK_TURNS mark on the battle's tile
 //   11 plague contact: survivors of a battle at an infected city carry it home (plague.js)
 //   15 each nation's battle record (won, lost, cities taken), read by the research boosts
-//   14 the player's battle report, named (battleName.js), and the log line
+//   14 the player's battle report, named (battleName.js), and the log line. The report's rows are
+//      the participant ledger (battleLedger.js), checked here against the committed map: before =
+//      after + fallen + fled on each side, no destroyed regiment left standing, no survivor made
+//      whole. The Log's losses, the report sheet and the result screen all read that one ledger.
 // The inputs rows (4, 7, 8, 9, 10, 11, 12, 16, 18, 19) live in battleInputs.js, and row 22 (the
 // odds and the scouts' guess for the pre-battle screen) in battleOdds.js and intel.js. Pure.
 import { LogTypes } from '../data/types';
@@ -46,6 +49,7 @@ import { recordBattle } from './diplomacy';
 import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
 import { recordBattleReport } from './battleReports';
+import { checkLedger, ledgerOf, menText } from './battleLedger';
 import { addNationModifier } from './modifiers/timed';
 import { clampPrestige } from './nationalPower';
 import { cityManifestOf, applyCityBattleDamage } from './cityManifest';
@@ -635,19 +639,30 @@ export const applyBattleOutcome = (state, o) => {
   // row 14: the player's report, named, and the log
   const involved = viewerId === out.attackerNationId || viewerId === out.defenderNationId;
   let reportFields = {};
+  let lossLine = '';
   if (involved) {
     const viewerState = state.playerNationId === viewerId ? state : { ...state, playerNationId: viewerId };
     reportFields = recordBattleReport(viewerState, {
       ...out.report, name, captured: placed.captured, outcome: out.outcome, kind: placed.reportKind || (o.kind === 'invasion' || o.kind === 'defense' ? out.report?.kind : o.kind),
       ...(placed.reportExtra || {}), ...(o.tile != null ? { tile: o.tile } : {}),
       fromRegionId: out.fromRegionId ?? null, targetRegionId: placed.aftermathRegionId ?? out.regionId ?? null,
-      attackerNationId: out.attackerNationId, defenderNationId: out.defenderNationId, mode: out.mode
-    }, { attackers: out.attackerUnits, defenders: out.defenderUnits, beforeOf: (u) => startStrength(state, out, u), goneIds: goneAfter(state, out, placed.units) });
+      attackerNationId: out.attackerNationId, defenderNationId: out.defenderNationId, mode: out.mode,
+      // The receipt (battleLedger.js): the operation, and the line the campaign logs for it.
+      opId: id, line: placed.message
+    }, {
+      attackers: out.attackerUnits, defenders: out.defenderUnits, beforeOf: (u) => startStrength(state, out, u), goneIds: goneAfter(state, out, placed.units),
+      // The ledger against the map this outcome was committed to: a regiment the battle destroyed
+      // never stands on the map, a survivor never regains strength (X04, I003).
+      breaches: (rows) => checkLedger({ rows, before: state.units, after: s.units, missing: out.report?.tactical?.missingUnitIds })
+    });
+    // The Log reads the same ledger as the report and the result screen (X05: one count of men).
+    const ledger = ledgerOf(reportFields.battleReports[0]);
+    if (ledger.mine.fallen + ledger.theirs.fallen > 0) lossLine = ` Fallen: ${menText(ledger.mine.fallen)} of yours, ${menText(ledger.theirs.fallen)} of theirs.`;
   }
   return {
     ...s,
     ...reportFields,
     rngSeed: out.rngSeed ?? s.rngSeed,
-    logs: [...s.logs, { year: state.year, message: `${name}: ${placed.message}`, type: LogTypes.COMBAT }, ...aftermath.logs]
+    logs: [...s.logs, { year: state.year, message: `${name}: ${placed.message}${lossLine}`, type: LogTypes.COMBAT }, ...aftermath.logs]
   };
 };

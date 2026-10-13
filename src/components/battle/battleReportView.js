@@ -19,12 +19,44 @@ export const describeOutcome = (entry) => {
   const won = entry.outcome === entry.playerSide;
   if (entry.kind === 'naval') return won ? { tone: 'win', text: `Victory at sea off ${place}` } : { tone: 'loss', text: `Defeat at sea off ${place}` };
   if (entry.kind === 'rebellion') return won ? { tone: 'win', text: `Rebels crushed in ${place}` } : { tone: 'loss', text: `The rebels held ${place}` };
+  // A raid or a sack is never a conquest, and it says nothing about walls (I006): the raiders are
+  // driven off, or they get through with the loot.
+  if (entry.kind === 'raid' || entry.kind === 'sack') {
+    const sack = entry.kind === 'sack';
+    if (entry.playerSide === 'defender') {
+      if (won) return { tone: 'win', text: sack ? `Raiders driven off at ${place}` : `Raiders driven off near ${place}` };
+      return { tone: 'loss', text: sack ? `${place} sacked: the raiders got away with the loot` : `Raiders got through near ${place} with the loot` };
+    }
+    return won ? { tone: 'win', text: sack ? `${place} sacked` : `Raid near ${place} succeeded` } : { tone: 'loss', text: `Your raiders were driven off near ${place}` };
+  }
+  // A battle in the open takes no city either.
+  if (entry.kind === 'field') return won ? { tone: 'win', text: `Victory in the field near ${place}` } : { tone: 'loss', text: `Defeat in the field near ${place}` };
   if (entry.playerSide === 'attacker') {
     if (!won) return { tone: 'loss', text: `Repelled at ${place}` };
-    return entry.captured ? { tone: 'win', text: `${place} taken` } : { tone: 'win', text: `Victory at ${place}: the siege goes on` };
+    return entry.captured ? { tone: 'win', text: `${place} taken` } : { tone: 'win', text: `Victory at ${place}, but the city is not yours yet` };
   }
   if (won) return { tone: 'win', text: `${place} held` };
-  return entry.captured ? { tone: 'loss', text: `${place} lost` } : { tone: 'loss', text: `${place} held, but its walls are damaged` };
+  return entry.captured ? { tone: 'loss', text: `${place} lost` } : { tone: 'loss', text: `${place} holds on, but the enemy gained ground` };
+};
+
+// How a commanded battle was checked by the campaign (src/engine/battleVerify.js), in plain words
+// for the player, or null when there is nothing to say (verified, or an Auto battle).
+const VERIFY_NOTICE = {
+  desync: 'The campaign counted this battle again and reached a different end than your screen showed. This result is the one that counts.',
+  setup: 'The campaign counted this battle again from its own record of the armies, which differed from your screen. This result is the one that counts.',
+  cut: 'Some of your orders could not be counted again, so this result may differ a little from what you saw. This result is the one that counts.',
+  version: 'This battle was fought under older rules and could not be counted again: the result your screen reported was used.',
+  error: 'The campaign could not count this battle again: the result your screen reported was used.',
+  no_setup: 'The armies had moved on, so the campaign could not count this battle again: the result your screen reported was used.'
+};
+export const verificationNotice = (entry) => {
+  const parts = [];
+  if (entry?.verification && VERIFY_NOTICE[entry.verification]) parts.push(VERIFY_NOTICE[entry.verification]);
+  const missing = (entry?.breaches || []).filter((b) => b.kind === 'missing').length;
+  if (missing) parts.push(`${missing} regiment${missing === 1 ? ' was' : 's were'} missing from the battle's record and count${missing === 1 ? 's' : ''} as lost.`);
+  const other = (entry?.breaches || []).some((b) => b.kind !== 'missing');
+  if (other) parts.push('The count of this battle does not match the map exactly. Please report it.');
+  return parts.length ? parts.join(' ') : null;
 };
 
 // The player's side and the enemy's, in that order, for bars and tables.

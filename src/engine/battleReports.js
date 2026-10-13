@@ -10,9 +10,14 @@
 // Each unit also keeps its fate, how it left the battle (unitFate below), read from the rules
 // that already ran (autoBattle.js autoDispositions, src/battle/sim/result.js, the adapters of
 // battleOutcome.js): it records what happened and decides nothing.
+// The rows are the battle's participant ledger (battleLedger.js): the totals of `fallen` and `fled`
+// are its sums, so before = after + fallen + fled on each side, and the result screen, the report
+// sheet and the Log read the same numbers. An entry also keeps the operation id (`opId`), the line
+// the campaign logged (`line`), the troops trained for the battle (`aux`, temporary), why a
+// commanded battle ended (`reason`), how it was checked (`verification`) and any ledger breach.
 // Display only: no game rule reads it back.
-import { MEN_PER_STRENGTH } from './aftermath';
 import { battleName } from './battleNames';
+import { auxiliariesOf, menOf, sideTotals } from './battleLedger';
 
 export const BATTLE_REPORT_HISTORY = 30;
 
@@ -42,10 +47,15 @@ export const unitFate = (u, { loser = false, gone = false } = {}) => {
   return u.routed ? 'escaped' : 'withdrew';
 };
 
+// Troops that live on the battle only (never a unit on the map): the city's militia, an AI's
+// expedition counted from its military strength.
+const tempOf = (u) => (u.militia ? 'militia' : u.synthetic ? 'synthetic' : undefined);
+
 const sideOf = (units, beforeOf, fateOf) => (units || []).map((u) => {
   const { fate, byCavalry } = fateOf(u);
   return {
     id: u.id,
+    temp: tempOf(u),
     classId: u.classId,
     navalLine: u.navalLine || undefined,
     domain: u.domain,
@@ -58,16 +68,20 @@ const sideOf = (units, beforeOf, fateOf) => (units || []).map((u) => {
   };
 });
 
-const menLost = (side) => side.reduce((sum, u) => sum + Math.max(0, u.before - u.after), 0) * MEN_PER_STRENGTH;
-const menFled = (side) => side.reduce((sum, u) => sum + (u.routed ? u.after : 0), 0) * MEN_PER_STRENGTH;
+// The ledger's sums, in men: the fallen include the survivors the result destroyed (run down), the
+// fled only those who got away.
+const menLost = (side) => menOf(sideTotals(side).fallen);
+const menFled = (side) => menOf(sideTotals(side).fled);
 
 // `report` is the full report stored as lastBattleReport (resolveBattle's report plus where and
 // who). `attackers` / `defenders` are the units after the battle; `beforeOf(u)` their strength
 // before it (default: the unit as it stood in `state`, i.e. before the battle was applied).
 // `goneIds` (optional, a Set): units that lived but the battle's result destroyed (battleOutcome.js);
 // without it a loser's unit left on the field (disposition 'field') counts as run down.
+// `breaches` (optional): what checkLedger found against the committed map (battleOutcome.js);
+// given as a function of the rows, it is called with them.
 // Returns the state fields to spread into the next state.
-export const recordBattleReport = (state, report, { attackers, defenders, beforeOf, goneIds = null } = {}) => {
+export const recordBattleReport = (state, report, { attackers, defenders, beforeOf, goneIds = null, breaches = null } = {}) => {
   const startOf = beforeOf || ((u) => state.units?.[u.id]?.strength ?? u.maxStrength ?? u.strength ?? 0);
   const seq = (state.battleReportSeq || 0) + 1;
   const loser = report.outcome === 'attacker' ? 'defender' : report.outcome === 'defender' ? 'attacker' : null;
@@ -105,6 +119,16 @@ export const recordBattleReport = (state, report, { attackers, defenders, before
     fallen: { attacker: menLost(attacker), defender: menLost(defender) },
     fled: { attacker: menFled(attacker), defender: menFled(defender) }
   };
+  const tactical = report.tactical || null;
+  const aux = auxiliariesOf(report);
+  const found = typeof breaches === 'function' ? breaches({ attacker, defender }) : breaches;
+  if (report.opId) entry.opId = report.opId;
+  if (report.line) entry.line = report.line;
+  if (aux) entry.aux = aux;
+  if (tactical?.reason) entry.reason = tactical.reason;
+  if (tactical?.durationSec) entry.durationSec = tactical.durationSec;
+  if (tactical?.verification?.status) entry.verification = tactical.verification.status;
+  if (found?.length) entry.breaches = found.slice(0, 12);
   return {
     lastBattleReport: report,
     battleReports: [entry, ...(state.battleReports || [])].slice(0, BATTLE_REPORT_HISTORY),

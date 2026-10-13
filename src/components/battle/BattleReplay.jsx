@@ -3,12 +3,13 @@
 // (same seed, same rules); this plays its REAL course back, round by round, from the report's
 // strength timeline (src/engine/battle.js), then shows the result. No invented back-and-forth.
 // Several battles at once (an end of turn with many assaults) play as a row of small bars
-// together. Tap to skip; with reduced motion the result shows at once.
+// together. Tap to skip; with reduced motion the result shows at once. A battle decided in one
+// round has no course to play back: its result shows at once, as a summary (I016).
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Swords, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { battleTitle, describeOutcome, formatMen, nationName, regionName, sidesFor, timelineFor } from './battleReportView';
-import { MEN_PER_STRENGTH } from '../../engine/aftermath';
+import { menText } from '../../engine/battleLedger';
 
 const OURS = 'var(--fa-you)';
 const THEIRS = 'var(--fa-enemy)';
@@ -19,11 +20,11 @@ const HEAVY_ROUND = 0.08;
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Progress 0..1 over `ms`, restartable, jumps to 1 on skip.
-const useProgress = (ms, deps) => {
-  const [p, setP] = useState(() => (prefersReducedMotion() ? 1 : 0));
+const useProgress = (ms, deps, instant = false) => {
+  const [p, setP] = useState(() => (instant || prefersReducedMotion() ? 1 : 0));
   const skipRef = useRef(false);
   useEffect(() => {
-    if (prefersReducedMotion()) { setP(1); return undefined; }
+    if (instant || prefersReducedMotion()) { setP(1); return undefined; }
     skipRef.current = false;
     setP(0);
     let raf; const t0 = performance.now();
@@ -52,7 +53,7 @@ const Bar = ({ label, value, abs, color, hit, stamp }) => (
   <div className="space-y-1">
     <div className="flex justify-between text-[11px] text-fa-text">
       <span>{label}</span>
-      <span className="font-mono tabular-nums">{formatMen(abs * MEN_PER_STRENGTH)} men</span>
+      <span className="font-mono tabular-nums">{menText(abs)} men</span>
     </div>
     <div className="relative h-4 rounded bg-fa-raised overflow-visible">
       <div key={hit} className={`h-full rounded ${hit ? 'animate-hit-flash' : ''}`} style={{ width: `${Math.max(0, value) * 100}%`, background: color, transition: 'width 60ms linear' }} />
@@ -69,7 +70,9 @@ const SingleReplay = ({ entry, onOpen, onClose }) => {
   const { state } = useGame();
   const points = useMemo(() => timelineFor(entry), [entry]);
   const ms = Math.min(3200, Math.max(1600, (points.length - 1) * 450));
-  const [p, skip] = useProgress(ms, [entry.id]);
+  // The fighting rounds (the pursuit after a rout is a last point on the timeline, not a round).
+  const rounds = entry.rounds ?? points.length - 1;
+  const [p, skip] = useProgress(ms, [entry.id], rounds <= 1);
   const now = sample(points, p);
   const done = p >= 1;
   const last = points[points.length - 1];
@@ -82,8 +85,6 @@ const SingleReplay = ({ entry, onOpen, onClose }) => {
   const theirNation = nationName(state, entry[`${theirs}NationId`]);
   const result = describeOutcome(entry);
   const share = now.mineAbs / Math.max(1, now.mineAbs + now.theirsAbs);
-  // The fighting rounds (the pursuit after a rout is a last point on the timeline, not a round).
-  const rounds = entry.rounds ?? points.length - 1;
 
   return (
     <div onClick={done ? undefined : skip} data-testid="battle-replay"
@@ -103,7 +104,7 @@ const SingleReplay = ({ entry, onOpen, onClose }) => {
       <div className="space-y-1">
         <div className="flex justify-between text-[10px] text-fa-muted">
           <span>Balance of strength</span>
-          <span>{done ? `${rounds} round${rounds === 1 ? '' : 's'}` : `Round ${Math.min(rounds, now.round + 1)} of ${rounds}`}</span>
+          <span data-testid="battle-replay-rounds">{done ? (rounds <= 1 ? 'Decided in one round' : `${rounds} rounds`) : `Round ${Math.min(rounds, now.round + 1)} of ${rounds}`}</span>
         </div>
         <div className="relative h-2 rounded-full overflow-hidden flex bg-fa-raised">
           <div style={{ width: `${share * 100}%`, background: OURS }} />

@@ -12,7 +12,7 @@ import { MapPin, Play, Castle, Swords, Ship, ChevronLeft, ShieldCheck, Undo2, Ar
 import { useGame } from '../../context/GameContext';
 import { formatMen, sidesFor, unitName } from './battleReportView';
 import { regimentName } from '../../data/regimentNames';
-import { MEN_PER_STRENGTH } from '../../engine/aftermath';
+import { menOf } from '../../engine/battleLedger';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getTechAgeId } from '../../engine/nationState';
 import { Button, Chip, CloseButton } from '../ui/atlas';
@@ -31,8 +31,8 @@ const StrengthChart = ({ entry }) => {
   const t = entry.timeline || [];
   const [hover, setHover] = useState(null);
   if (t.length < 2) return <div className="text-[12px] text-fa-muted">No round by round record for this battle.</div>;
-  const ours = t.map((p) => (mine === 'attacker' ? p.att : p.def) * MEN_PER_STRENGTH);
-  const theirs = t.map((p) => (mine === 'attacker' ? p.def : p.att) * MEN_PER_STRENGTH);
+  const ours = t.map((p) => menOf(mine === 'attacker' ? p.att : p.def));
+  const theirs = t.map((p) => menOf(mine === 'attacker' ? p.def : p.att));
   const W = 300; const H = 92; const L = 6; const R = 44; const T = 6; const B = 16;
   const max = Math.max(1, ...ours, ...theirs);
   const x = (i) => L + (i / (t.length - 1)) * (W - L - R);
@@ -90,7 +90,7 @@ const SideTable = ({ title, color, rows, nation, ageId = 'bronze' }) => (
               <span className="truncate">{regimentName(nation, u, unitName(u.classId, ageId, u.navalLine))}</span>
               <span className="fa-num shrink-0 text-fa-muted">{`${formatMen(u.menBefore)} → ${formatMen(u.menAfter)}`}</span>
             </div>
-            <div className={`text-[11px] ${FATE_TONE[u.tone]}`}>{u.text}</div>
+            <div className={`text-[11px] ${FATE_TONE[u.tone]}`}>{u.text}{u.temp ? <span className="text-fa-muted">{u.temp === 'militia' ? ' · city militia, not a regiment' : ' · raised for this battle'}</span> : null}</div>
           </div>
         </div>
       );
@@ -180,6 +180,9 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
                 <Side tone="enemy" tag="THEIRS" name={d.theirs.name} sideIn={d.theirs.in} lost={d.theirs.lost} />
               </div>
               <p className="text-[12.5px] leading-snug">{d.summary}</p>
+              {d.line && <p className="text-[12px] leading-snug text-fa-muted" data-testid="battle-report-line">On the map: {d.line}</p>}
+              {d.aux.map((a) => <p key={a} className="text-[12px] leading-snug text-fa-muted" data-testid="battle-report-aux">{a}</p>)}
+              {d.notice && <p className="text-[12px] leading-snug text-fa-brass" role="status" data-testid="battle-report-notice">{d.notice}</p>}
               <div className="fa-card px-2.5 py-1.5"><StrengthChart entry={current} /></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <SideTable title="Your units" color={OURS} rows={fateRows(current, mine)} nation={state.nations?.[current[`${mine}NationId`]]} ageId={ageOf(state.playerNationId)} />
@@ -190,7 +193,7 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
               {(d.targetRegionId || current.tile != null) && (
                 <Button onClick={() => { if (onShowRegion && state.regions?.[d.targetRegionId]) onShowRegion(d.targetRegionId); focusPlace(battlePlaces(current)); onClose(); }} className="shrink-0" data-testid="battle-report-show"><MapPin className="w-4 h-4" aria-hidden="true" /> Show on map</Button>
               )}
-              <span className="flex-1 text-[11px] text-fa-muted leading-tight">{d.canReplay ? 'Auto battles keep their rounds.' : 'Commanded battles keep no replay yet.'}</span>
+              <span className="flex-1 text-[11px] text-fa-muted leading-tight">{d.oneRound ? 'Decided in one round: these numbers are the whole battle.' : d.canReplay ? 'Auto battles keep their rounds.' : 'Commanded battles keep no replay yet.'}</span>
               {d.canReplay && onReplay && (
                 <Button variant="primary" onClick={() => onReplay(current)} data-testid="battle-report-replay" className="shrink-0"><Play className="w-4 h-4" aria-hidden="true" /> View replay</Button>
               )}
