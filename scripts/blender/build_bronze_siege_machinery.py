@@ -10,11 +10,12 @@ sys.path.insert(0,str(Path(__file__).resolve().parent));import ti_units
 OUT=ti_units.out_dir('bronze-siege')
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 bpy.context.scene.render.fps=20
-# True size (manifest MD09): the machinery below is laid out at about 0.6 of its real size; K brings
-# it to a covered ram about 6 m long and 2.9 m to the roof ridge against a 1.8 m person (H = 1).
-# Only the machine is scaled: the crew (build_bronze_siege.py) stays at 1.0, and the push handles
-# are placed afterwards at the crew's hand height.
-K=1.7
+# Machine size (manifest MD09, the user's cap of two thirds of real size): K brings the machinery
+# below to a covered ram about 4.1 m long and 2 m to the roof ridge against a 1.8 m person (H = 1;
+# the real one about 6 m and 2.5 to 3 m). Only the machine is scaled: the crew
+# (build_bronze_siege.py) stays at 1.0, and the push handles are placed afterwards at the crew's
+# hand height.
+K=1.15
 def material(name,hexcolor):
  srgb=[int(hexcolor[i:i+2],16)/255 for i in (0,2,4)]
  linear=tuple(v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4 for v in srgb)
@@ -78,7 +79,7 @@ for o in parts:
  o.location=o.location*K;o.data.transform(Matrix.Scale(K,4));o.data.update()
 # The push handles last, at the crew's hand height (.605 H) whatever the machine's size.
 for side in (-1,1):
- for y in (-.52*K,.52*K):box('Crew push handle',(side*(.36*K+.34),y,.605),(.68,.055,.055),'DarkWood')
+ for y in (-.52*K,.52*K):box('Crew push handle',(side*(.36*K+.25),y,.605),(.5,.055,.055),'DarkWood')
 # All moving parts are separate rigidly weighted meshes. Crew is appended after shared-body authoring.
 clips={'Idle':40,'Move':20,'Deploy':20,'Aim':20,'Fire':20,'Reload':24,'Destroyed':30}
 rig.animation_data_create()

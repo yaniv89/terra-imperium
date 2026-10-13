@@ -342,19 +342,21 @@ def m_ranged():
 
 
 def m_cavalry():
-    # True size (MD09): a main battle tank with a hull about 7 m long, 3.7 m wide and 2.4 m to the
-    # turret roof (the rig is game-sized: enlarged, wider less than longer so the tracks stay round).
+    # Two thirds of real size (MD09): a main battle tank with a hull about 4.6 m long, 2.5 m wide
+    # and 1.6 m to the turret roof (the real one 7 m, 3.7 m and 2.4 m; the rig is game-sized:
+    # enlarged, wider less than longer so the tracks stay round).
     parts, info = tm.tank('Tank', hull_len=1.72, gun_len=1.05, wheels=7)
-    tm.enlarge(info['rig'], (1.6, 2.25))
+    tm.enlarge(info['rig'], (1.07, 1.5))
     return parts, {'Skin': 'C99472', 'Cloth': OLIVE, 'Leather': '2A2A28', 'Metal': GUNMETAL, 'Wood': '4A4038'}, \
         'Tank: a main battle tank on the tracked rig: tracks with six road wheels, side skirts with a Team stripe, a low angular turret with a Team band, a long gun with a fume extractor, the commander\'s cupola and open hatch, the loader\'s machine gun, a stowage basket', dict(budget=3000, mounted=False, machine=True)
 
 
 def m_siege():
     parts, info = howitzer()
-    # True size (MD09): a 155 mm howitzer about 8 m from muzzle to spades; the crew stays at 1.0.
-    tm.enlarge(info['rig'], 2.1)
-    for i, ((x, y, z, yaw), tool) in enumerate(zip([(-1.12, .3, 0, 90), (1.05, .1, 0, -90), (-.2, 1.5, 0, 180)], ('shell', 'binoculars', 'rammer'))):
+    # Two thirds of real size (MD09): a 155 mm howitzer about 5.3 m from muzzle to spades (the real
+    # one 8 m); the crew stays at 1.0.
+    tm.enlarge(info['rig'], 1.4)
+    for i, ((x, y, z, yaw), tool) in enumerate(zip([(-.76, .2, 0, 90), (.72, .07, 0, -90), (-.13, 1.0, 0, 180)], ('shell', 'binoculars', 'rammer'))):
         parts.append(crewman(f'Crew{i}', (x, y, z), yaw, tool))
     return parts, {'Skin': 'C99472', 'Cloth': OLIVE, 'Leather': '2A2A28', 'Metal': GUNMETAL, 'Wood': '6E5236', 'Emblem': 'C8A040'}, \
         'Artillery: a towed 155 mm howitzer in the firing position (split trails spread to their spades, a long barrel raised with a muzzle brake, a small shield, ready rounds), three crew in helmets and Team vests with a shell, binoculars and a rammer', dict(budget=3200, mounted=False, machine=True)
@@ -362,10 +364,10 @@ def m_siege():
 
 def m_support():
     parts, info = aa_truck()
-    # True size (MD09): a heavy three-axle truck about 7 m long and 2.5 m wide; the gunner stays at
-    # 1.0 and stands on the bed behind the gun mount.
-    tm.enlarge(info['rig'], (1.8, 2.3))
-    gunner = crewman('Gunner', (0, 1.32, .92), 180)
+    # Two thirds of real size (MD09): a three-axle truck about 4.6 m long and 1.7 m wide (the real
+    # one 7 m and 2.5 m); the gunner stays at 1.0 and stands on the bed behind the gun mount.
+    tm.enlarge(info['rig'], (1.2, 1.55))
+    gunner = crewman('Gunner', (0, .95, .62), 180)
     parts.append(gunner)
     return parts, {'Skin': 'C99472', 'Cloth': OLIVE, 'Leather': '2A2A28', 'Metal': GUNMETAL, 'Wood': '4A4038'}, \
         'Anti-air battery: a three-axle truck (Team doors and tailboard) with a twin 35 mm anti-aircraft gun mount on its bed, the guns raised, a radar panel, stabiliser legs out, a gunner at the mount', dict(budget=3000, mounted=False, machine=True)
@@ -379,9 +381,9 @@ def m_worker():
 
 def m_general():
     parts, info = command_car()
-    # True size (MD09): an open car about 3.5 m long; the driver and the general stay at 1.0, on the
-    # enlarged seat and floor.
-    S = 1.4
+    # Two thirds of real size (MD09): the rig's own open car, 2.5 m long (the real one 3.4 m), is
+    # already that; the driver and the general stay at 1.0 on its seat and floor.
+    S = 1.0
     tm.enlarge(info['rig'], S)
     fz = info['floor'] * S - .12
     dx, dy = (v * S for v in info['driver'])

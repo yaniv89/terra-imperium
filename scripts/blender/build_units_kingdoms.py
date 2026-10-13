@@ -188,10 +188,10 @@ def k_cavalry():
 def k_siege():
     parts, info = tm.frame('Frame', wheels=False, deck_z=.22, length=1.3, width=.56)
     trebuchet(info)
-    # True size (MD09): a counterweight trebuchet about 9 m to the tip of its beam on a frame about
-    # 4 m long; the crew stays at 1.0, two beside the frame and one at the trough.
-    tm.enlarge(info['rig'], 2.95)
-    for i, (x, y, z, yaw) in enumerate([(-1.15, 1.1, 0, 90), (1.15, 1.1, 0, -90), (-.62, 2.25, 0, 90)]):
+    # Two thirds of real size (MD09): a counterweight trebuchet about 6 m to the tip of its beam
+    # (the real one 9 m); the crew stays at 1.0, two beside the frame and one at the trough.
+    tm.enlarge(info['rig'], 1.97)
+    for i, (x, y, z, yaw) in enumerate([(-.86, .75, 0, 90), (.86, .75, 0, -90), (-.46, 1.5, 0, 90)]):
         c, _ = u.crew(f'Crew{i}', (x, y, z), lite=True, head='cap', yaw=yaw)
         parts.append(c)
     return parts, {'Skin': 'C99472', 'Cloth': 'C9BB98', 'Leather': '6B4630', 'Metal': IRON, 'Wood': '8A6646'}, \

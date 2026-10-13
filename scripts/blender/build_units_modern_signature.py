@@ -235,8 +235,9 @@ def agal(arm, mat='Leather'):
 def build_kindah():
     camel, _ = tm.camel('Camel', coat='Leather', dark='Wood')
     cs.pack_saddle(camel)
+    seat = tm.true_camel(camel, cl.seat_offset('camel'))  # the camel at its true size, the rider at 1.0 (MD09)
     dress = [(cs.tunic, 'Team', {'low': .36}), (cl.seated_cloak, 'Cloth'), (lib.headcloth, 'Cloth', {'tail': True}), agal, bandolier]
-    r = cl.rider(dress, [rifle], at=cl.seat_offset('camel'), pose=cs.WIDE_SEAT)
+    r = cl.rider(dress, [rifle], at=seat, pose=cs.WIDE_SEAT)
     return [camel, r]
 
 
@@ -251,7 +252,7 @@ def build_merkava():
     u.box('SlatRail', (0, ty + .16, tz + .2), (.66, .014, .014), 'Leather', 'Turret', rig)
     u.box('SlatRailLow', (0, ty + .16, tz + .02), (.66, .014, .014), 'Leather', 'Turret', rig)
     u.box('RearDoor', (0, .82, .26), (.22, .02, .14), 'Metal', 'Hull', rig)
-    tm.enlarge(rig, (1.6, 2.4))  # true size (MD09): a hull about 7 m long, 3.7 m wide
+    tm.enlarge(rig, (1.07, 1.65))  # two thirds of real size (MD09): a hull about 4.8 m long, 2.5 m wide
     return parts
 
 
@@ -267,7 +268,7 @@ def build_ltvz38():
     u.tube('HullMG', [(.12, -.52, .44), (.12, -.66, .44)], [.014, .012], 'Leather', ['Hull'] * 2, 5, rig)
     for k in range(6):
         u.box(f'TurretRivet{k}', (-.2 + .08 * k, -.27, .58), (.018, .012, .018), 'Metal', 'Turret', rig)
-    tm.enlarge(rig, (1.45, 2.15))  # true size (MD09): a light tank about 4.6 m long, 2.1 m wide
+    tm.enlarge(rig, (1.0, 1.45))  # two thirds of real size (MD09): a light tank about 3.1 m long, 1.45 m wide
     return parts
 
 
@@ -288,14 +289,10 @@ def build(model):
         return
     if model == 'kindah':
         parts = build_kindah()
-        bpy.context.view_layer.update()
-        height = round(cs.measured_height() * cs.MOUNTED_SCALE, 3)
-        lib.finish(model, parts, KINDAH['colors'], {'name': KINDAH['name'], 'role': 'infantry', 'rig': 'camel', 'look': KINDAH['look'], 'height': height}, 3000, True)
-        path = u.out_dir(model) / f'{model}.json'
-        opts = json.loads(path.read_text()); opts['height'] = height
-        path.write_text(json.dumps(opts, indent=2) + '\n')
+        # no fitted height: the battle draws the file at the people's scale (MD09)
+        lib.finish(model, parts, KINDAH['colors'], {'name': KINDAH['name'], 'role': 'infantry', 'rig': 'camel', 'look': KINDAH['look']}, 3000, True)
         return
-    # A tank: at its true size, drawn at the people's scale and spaced by its footprint (MD09).
+    # A tank: two thirds of its real size, drawn at the people's scale and spaced by its footprint (MD09).
     spec = TANKS[model]
     parts = spec['build']()
     lib.finish(model, parts, spec['colors'], {'name': spec['name'], 'role': 'cavalry', 'rig': 'tank', 'look': spec['look']}, 3000, False)

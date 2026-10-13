@@ -6,6 +6,5 @@
     "team": "(^|\\s)Team(\\s|$)",
     "skin": "(^|\\s)Skin(\\s|$)",
     "emblem": "(^|\\s)Emblem(\\s|$)"
-  },
-  "height": 3.618
+  }
 }

@@ -17,8 +17,8 @@ for name in clips:
 machinery.animation_data.action=None
 crew=[]
 # The crew at 1.0 (MD09: only the machine is bigger), each a step behind a push handle of the
-# enlarged machinery (handles at y = -.884 and .884, reaching out to x = 1.29).
-for index,(x,y) in enumerate([(-1.02,-.779),(-1.02,.989),(1.02,-.779),(1.02,.989)],1):
+# enlarged machinery (handles at y = -.598 and .598, reaching out to x = .91).
+for index,(x,y) in enumerate([(-.72,-.493),(-.72,.703),(.72,-.493),(.72,.703)],1):
  arm,body=unit.build_body(ready=True,lite=True,modest=False);arm.name=f'Crew{index}Rig';body.name=f'Crew{index}Body';arm.parent=lod;arm.location=(x,y,0)
  clothes=[]
  clothes.append(unit.tube(f'Crew{index}Kilt',[(0,0,.34),(0,0,.45),(0,0,.515)],[(.13,.087),(.111,.078),(.093,.067)],'Team',['Hips']*3,6,arm))

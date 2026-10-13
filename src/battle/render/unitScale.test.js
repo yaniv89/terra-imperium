@@ -123,25 +123,38 @@ describe('figure scale: men, horses and riders at true size', () => {
   }, 60000);
 });
 
-// Machines at true size, crews at the people's scale (manifest MD09, MD10: "only machines get
-// bigger"). A machine file is drawn at ART_UNIT_WORLD like the infantry beside it (no fitted height),
-// its crew is authored at 1.0 and the machine at its real size against a 1.8 m man. Lengths and
-// heights in metres: the real machine as the floor, at most about 1.3 times it.
+// Machines bigger, crews at the people's scale (manifest MD09, MD10: "only machines get bigger").
+// A machine file is drawn at ART_UNIT_WORLD like the infantry beside it (no fitted height), its crew
+// is authored at 1.0 and the machine at about TWO THIRDS of its real size against a 1.8 m man (the
+// user's cap of 13 October: bigger than a man and than before, small enough for the 3 tiles between
+// squads). Lengths and heights in metres: about 0.58 to 0.85 of the real machine.
 const MACHINES = [
   // file, the key it registers under, its class, crew, [length], [height] of the machine alone
-  { name: 'bronze-siege', key: 'siege', classId: 'siege', crew: 4, length: [5.5, 7.8], height: [2.4, 3.3] }, // covered ram: 6 m, 2.5 m
-  { name: 'classical-siege', key: 'siege', classId: 'siege', crew: 3, length: [2.9, 3.9], height: [1.5, 2.6] }, // ballista: 3 m
-  { name: 'kingdoms-siege', key: 'siege', classId: 'siege', crew: 3, length: [6, 10], height: [8.6, 11.7] }, // trebuchet: 9 m high
-  { name: 'gunpowder-siege', key: 'siege', classId: 'siege', crew: 3, length: [3.4, 4.6], height: [1.3, 1.85] }, // field gun: 3.5 m, wheels 1.4 m
-  { name: 'modern-siege', key: 'siege', classId: 'siege', crew: 3, length: [7.6, 10.4], height: [2, 4.6] }, // 155 mm howitzer: 8 m with trails
-  { name: 'modern-cavalry', key: 'cavalry', classId: 'cavalry', crew: 0, length: [8.5, 12.4], height: [2.4, 4] }, // tank: hull 7 m (9.5 m with the gun), 2.4 m to the roof (aerial above)
-  { name: 'modern-support', key: 'support', classId: 'support', crew: 1, length: [6.6, 9.1], height: [3, 5.5] }, // AA truck: 7 m, guns raised
-  { name: 'modern-general', key: 'general', classId: 'cavalry', crew: 2, length: [3.3, 4.6], height: [1.5, 4.8] }, // command car: 3.4 m, a whip mast
-  { name: 'modern-raider', key: 'raider', classId: 'cavalry', crew: 1, length: [4.6, 6.9], height: [1.8, 3] }, // technical: a 5.3 m pickup
+  { name: 'bronze-siege', key: 'siege', classId: 'siege', crew: 4, length: [3.5, 4.8], height: [1.5, 2.3] }, // covered ram: real 6 m, 2.5 to 3 m
+  { name: 'classical-siege', key: 'siege', classId: 'siege', crew: 3, length: [1.8, 2.5], height: [1.1, 1.8] }, // ballista: real 3 m
+  { name: 'kingdoms-siege', key: 'siege', classId: 'siege', crew: 3, length: [4.5, 6.5], height: [5.4, 6.8] }, // trebuchet: real 9 m high
+  { name: 'gunpowder-siege', key: 'siege', classId: 'siege', crew: 3, length: [2.1, 2.9], height: [0.75, 1.1] }, // field gun: real 3.5 m, wheels 1.4 m
+  { name: 'modern-siege', key: 'siege', classId: 'siege', crew: 3, length: [4.7, 6], height: [1.5, 3.2] }, // 155 mm howitzer: real 8 m with trails
+  { name: 'modern-cavalry', key: 'cavalry', classId: 'cavalry', crew: 0, length: [5.2, 7.2], height: [1.6, 2.8] }, // tank: real hull 7 m (9.5 m with the gun), 2.4 m to the roof (aerial above)
+  { name: 'modern-support', key: 'support', classId: 'support', crew: 1, length: [4.1, 5.4], height: [2.2, 3.8] }, // AA truck: real 7 m, guns raised
+  { name: 'modern-general', key: 'general', classId: 'cavalry', crew: 2, length: [2.2, 3], height: [1.5, 3.6] }, // command car: real 3.4 m, a whip mast
+  { name: 'modern-raider', key: 'raider', classId: 'cavalry', crew: 1, length: [3.1, 4.1], height: [1.3, 2.2] }, // technical: a real 5.3 m pickup
   // signature machines (a people's own unit in place of the base one)
-  { name: 'signature/kingdom-of-israel', people: 'israel', ageId: 'modern', key: 'cavalry', classId: 'cavalry', crew: 0, length: [8.5, 12.4], height: [2.4, 4] }, // Merkava: 7.6 m hull, 9 m with the gun
-  { name: 'signature/marcomannia', people: 'marcomannia', ageId: 'modern', key: 'cavalry', classId: 'cavalry', crew: 0, length: [4.6, 6], height: [2.2, 4] }, // LT vz. 38: 4.6 m, 2.4 m high (aerial above)
-  { name: 'signature/bosporan-kingdom', people: 'bosporan_kingdom', ageId: 'classical', key: 'siege', classId: 'siege', crew: 3, length: [3.5, 5.2], height: [2, 3.4] } // a stone-thrower: about 4 m
+  { name: 'signature/kingdom-of-israel', people: 'israel', ageId: 'modern', key: 'cavalry', classId: 'cavalry', crew: 0, length: [5.6, 7.6], height: [1.6, 2.9] }, // Merkava: real 7.6 m hull, 9 m with the gun
+  { name: 'signature/marcomannia', people: 'marcomannia', ageId: 'modern', key: 'cavalry', classId: 'cavalry', crew: 0, length: [3, 4], height: [1.6, 2.9] }, // LT vz. 38: real 4.6 m, 2.4 m high (aerial above)
+  { name: 'signature/bosporan-kingdom', people: 'bosporan_kingdom', ageId: 'classical', key: 'siege', classId: 'siege', crew: 3, length: [2.4, 3.4], height: [1.5, 2.3] }, // a stone-thrower: real about 4 m
+  { name: 'signature/tondo', people: 'tondo', ageId: 'gunpowder', key: 'siege', classId: 'siege', crew: 3, length: [1.2, 2.2], height: [0.8, 1.5] } // a lantaka swivel gun on its rest: small in life too
+];
+// Camels and elephants (signature units): no fitted height either, the animal at its TRUE size (its
+// back, metres), every rider and howdah crewman the infantryman's size.
+const BEASTS = [
+  { name: 'signature/saba', people: 'saba', ageId: 'classical', key: 'ranged', classId: 'ranged', crew: 1, back: [1.75, 2.1] }, // a dromedary: about 1.9 m at the hump
+  { name: 'signature/qedar', people: 'qedar', ageId: 'classical', key: 'cavalry', classId: 'cavalry', crew: 1, back: [1.75, 2.1] },
+  { name: 'signature/kindah', people: 'kindah', ageId: 'modern', key: 'infantry', classId: 'infantry', crew: 1, back: [1.75, 2.1] },
+  { name: 'signature/magadha', people: 'magadha', ageId: 'classical', key: 'cavalry', classId: 'cavalry', crew: 3, back: [2.7, 3.3] }, // an Asian war elephant: 2.8 to 3 m at the shoulder
+  { name: 'signature/kalinga', people: 'kalinga', ageId: 'classical', key: 'cavalry', classId: 'cavalry', crew: 3, back: [2.7, 3.3] },
+  { name: 'signature/kamarupa', people: 'kamarupa', ageId: 'kingdoms', key: 'cavalry', classId: 'cavalry', crew: 3, back: [2.7, 3.3] },
+  { name: 'signature/champa', people: 'champa', ageId: 'kingdoms', key: 'cavalry', classId: 'cavalry', crew: 3, back: [2.7, 3.3] }
 ];
 const ageOf = (m) => m.ageId || m.name.split('-')[0];
 const modelOf = (m) => (m.people ? findSignatureModel(m.people, m.ageId, m.classId) : findUnitModel(ageOf(m), m.key));
@@ -158,7 +171,8 @@ const DRAWN_VEHICLES = [
 
 // What is in a unit file: every person's skeleton size (the bone chain from the left foot up to the
 // head, which no pose changes: a seated driver measures like a standing man), the machine's own
-// bounds (meshes on a rig with no head and no animal's bones), the whole file's bounds, triangles.
+// bounds (meshes on a rig with no head and no animal's bones), the whole file's bounds, triangles,
+// and an animal's back (the top of a camel's hump or an elephant's body, without saddle or howdah).
 const fileParts = async (name) => {
   const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
   const { MeshoptDecoder } = await import('three/examples/jsm/libs/meshopt_decoder.module.js');
@@ -167,7 +181,7 @@ const fileParts = async (name) => {
   const gltf = await loader.parseAsync(bytes(name), '');
   gltf.scene.updateMatrixWorld(true);
   const machine = new Box3(); const all = new Box3(); const v = new Vector3(); const w = new Vector3();
-  const people = new Map(); let triangles = 0;
+  const people = new Map(); let triangles = 0; let back = -Infinity;
   const chain = (bone) => { let d = 0; for (let b = bone; b.parent?.isBone && !/^Hips/.test(b.name); b = b.parent) d += b.getWorldPosition(v).distanceTo(b.parent.getWorldPosition(w)); return d; };
   gltf.scene.traverse((m) => {
     if (!m.isMesh) return;
@@ -180,14 +194,15 @@ const fileParts = async (name) => {
       if (m.isSkinnedMesh) m.getVertexPosition(i, v); else v.fromBufferAttribute(g.attributes.position, i);
       v.applyMatrix4(m.matrixWorld); all.expandByPoint(v);
       if (!head && !animal) machine.expandByPoint(v);
+      if (/^(Camel|Elephant)(Barrel|Hump)$/.test(m.name)) back = Math.max(back, v.y);
     }
   });
-  return { people: [...people.values()], machine, all, triangles };
+  return { people: [...people.values()], machine, all, triangles, back };
 };
 
-describe('machines at true size, their crews at the people\'s scale (MD09, MD10)', () => {
-  it('draws every machine file at the infantry\'s scale: no fitted height', async () => {
-    for (const m of [...MACHINES, ...DRAWN_VEHICLES]) {
+describe('machines bigger, beasts at true size, their crews and riders at the people\'s scale (MD09, MD10)', () => {
+  it('draws every machine and beast file at the infantry\'s scale: no fitted height', async () => {
+    for (const m of [...MACHINES, ...DRAWN_VEHICLES, ...BEASTS]) {
       const ageId = ageOf(m);
       expect(modelOf(m).options.height, `${m.name} must not be fitted to a height`).toBeUndefined();
       expect(await scaleOf(m), m.name).toBeCloseTo(ART_UNIT_WORLD, 3);
@@ -195,8 +210,8 @@ describe('machines at true size, their crews at the people\'s scale (MD09, MD10)
     }
   }, 120000);
 
-  it('every crew member is the infantryman\'s size within 3%', async () => {
-    for (const m of [...MACHINES, ...DRAWN_VEHICLES]) {
+  it('every crew member and rider is the infantryman\'s size within 3%', async () => {
+    for (const m of [...MACHINES, ...DRAWN_VEHICLES, ...BEASTS]) {
       const ageId = ageOf(m);
       const man = (await fileParts(`${ageId}-infantry`)).people[0] * (await drawnScale(ageId, 'infantry', 'infantry'));
       const k = await scaleOf(m);
@@ -206,7 +221,17 @@ describe('machines at true size, their crews at the people\'s scale (MD09, MD10)
     }
   }, 120000);
 
-  it('every machine is its real size against a 1.8 m man, or modestly larger', async () => {
+  it('a camel stands about 1.9 m at the hump and a war elephant about 2.8 to 3 m, against a 1.8 m man', async () => {
+    for (const m of BEASTS) {
+      const ageId = ageOf(m);
+      const man = (await rigHeights(`${ageId}-infantry`)).head * (await drawnScale(ageId, 'infantry', 'infantry'));
+      const back = ((await fileParts(m.name)).back * (await scaleOf(m)) * 1.8) / man;
+      expect(back, `${m.name} back ${back.toFixed(2)} m`).toBeGreaterThanOrEqual(m.back[0]);
+      expect(back, `${m.name} back ${back.toFixed(2)} m`).toBeLessThanOrEqual(m.back[1]);
+    }
+  }, 120000);
+
+  it('every machine is about two thirds of its real size against a 1.8 m man', async () => {
     for (const m of MACHINES) {
       const ageId = ageOf(m);
       const man = (await rigHeights(`${ageId}-infantry`)).head * (await drawnScale(ageId, 'infantry', 'infantry'));
@@ -234,6 +259,9 @@ describe('machines at true size, their crews at the people\'s scale (MD09, MD10)
       const wide = footprint[0] * ART_UNIT_WORLD; const long = footprint[1] * ART_UNIT_WORLD;
       expect(lay.spacing - wide, `${m.name} side by side`).toBeGreaterThanOrEqual(MACHINE_BLOCK.gap - 1e-9);
       expect(lay.rowGap - long, `${m.name} nose to tail`).toBeGreaterThanOrEqual(MACHINE_BLOCK.gap - 1e-9);
+      // one machine with its crew stands inside the squad's own ground (3 tiles between squads)
+      expect(wide, `${m.name} is ${wide.toFixed(2)} tiles wide`).toBeLessThanOrEqual(MACHINE_BLOCK.width);
+      expect(long, `${m.name} is ${long.toFixed(2)} tiles long`).toBeLessThanOrEqual(MACHINE_BLOCK.depth);
       expect(lay.figures).toBeGreaterThanOrEqual(1);
       expect(lay.figures).toBeLessThanOrEqual(soldiers);
       const rows = Math.ceil(lay.figures / lay.cols);

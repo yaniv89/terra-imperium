@@ -14,16 +14,27 @@ const base = process.env.URL || 'http://localhost:5202/terra-imperium/?battleSan
 const cases = (process.env.CASES || 'bronze:siege:siege,classical:siege:siege,kingdoms:siege:siege,gunpowder:siege:siege,modern:siege:siege,modern:balanced:cavalry')
   .split(',').map((s) => { const [age, attacker, cls] = s.split(':'); return { age, attacker, cls }; });
 const zooms = (process.env.ZOOMS || 'z1:1,z3:3').split(',').map((s) => { const [name, z] = s.split(':'); return { name, z: Number(z) }; });
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: (process.env.GL === 'gpu' ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] : ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--enable-webgl']) });
 for (const c of cases) {
   const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 3, hasTouch: true });
   const page = await ctx.newPage();
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-  await page.goto(`${base}&age=${c.age}&attacker=${c.attacker}${process.env.EXTRA || ''}`);
-  await page.getByRole('button', { name: 'Fight' }).click({ timeout: 120000 });
-  await page.waitForFunction(() => window.__battleRenderer && window.__battleRenderer.soldierLayers.size > 0, null, { timeout: 90000 });
+  // The dev server compiles the sim's modules on first use; on a busy machine that can take longer
+  // than the battle's 25 second watchdog, which then shows the failure panel. Open again (the
+  // modules are compiled by then) until the army is on the field.
+  let open = false;
+  for (let attempt = 1; attempt <= 5 && !open; attempt++) {
+    try {
+      await page.goto(`${base}&age=${c.age}&attacker=${c.attacker}${process.env.EXTRA || ''}`, { timeout: 180000 });
+      await page.getByRole('button', { name: 'Fight' }).click({ timeout: 120000 });
+      await page.waitForFunction(() => (window.__battleRenderer && window.__battleRenderer.soldierLayers.size > 0) || document.body.innerText.includes('could not start'), null, { timeout: 120000 });
+      open = await page.evaluate(() => !!window.__battleRenderer && window.__battleRenderer.soldierLayers.size > 0 && !document.body.innerText.includes('could not start'));
+    } catch (e) { errors.push(`attempt ${attempt}: ${String(e.message).split('\n')[0]}`); }
+    if (!open) console.log(`(${c.age} ${c.attacker}: attempt ${attempt} did not open the battle, opening it again)`);
+  }
+  if (!open) { console.log(`GAVE UP ${c.age} ${c.attacker}`); await ctx.close(); continue; }
   await page.waitForTimeout(Number(process.env.WAIT || 6000)); // the models download and bake
   // the deployment hint covers the army: hide it for the picture
   await page.evaluate(() => { const h = [...document.querySelectorAll('h1,h2,h3,div,p')].find((e) => e.childElementCount === 0 && e.textContent.trim() === 'Deploy your army'); if (h?.parentElement) h.parentElement.style.display = 'none'; });
@@ -42,7 +53,10 @@ for (const c of cases) {
     await page.waitForTimeout(1500);
     const file = `${outDir}/${prefix}-${c.age}-${c.cls}-${zm.name}.jpg`;
     await page.screenshot({ path: file, type: 'jpeg', quality: 82, timeout: 180000 });
-    console.log(`${file} zoom=${info.zoom.toFixed(2)} soldierPx=${info.px.toFixed(1)} gap=${info.gap?.toFixed(1)} tiles [${info.squads}]`);
+    // SwiftShader can stall the page long enough for the battle's 25 second watchdog to give up:
+    // such a picture shows the failure panel, not the army. Say so, so it gets retaken.
+    const failed = await page.evaluate(() => document.body.innerText.includes('could not start'));
+    console.log(`${failed ? 'RETAKE (the battle watchdog fired) ' : ''}${file} zoom=${info.zoom.toFixed(2)} soldierPx=${info.px.toFixed(1)} gap=${info.gap?.toFixed(1)} tiles [${info.squads}]`);
   }
   if (errors.length) console.log(`errors: ${errors.slice(0, 5).join(' | ')}`);
   await ctx.close();

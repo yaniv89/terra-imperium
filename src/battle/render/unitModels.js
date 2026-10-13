@@ -127,18 +127,21 @@ export const needsUnitModels = (setup, extras = battleExtraModels) => battleMode
 // `height` keep that fit.
 // Machines on land are drawn at the same scale as the men beside them (MD09, MD10: only machines
 // get bigger, never their crews): a siege engine, a gun, a tank or a truck is authored in Blender
-// at its true size against a 1.8 m person (ART_METRES_PER_UNIT), its crew at 1.0 like every
-// soldier, and the whole file is drawn at ART_UNIT_WORLD. Fitting such a file to a height shrank
-// the crew with the machine (the ballista and cannon crews stood half as tall as the infantry).
-// Its JSON carries `footprint`: [width, length] in authored units, crew included, which
+// at about two thirds of its real size against a 1.8 m person (the user's cap: big enough to read
+// as a machine beside its crew, small enough for the ground between squads), its crew at 1.0 like
+// every soldier, and the whole file is drawn at ART_UNIT_WORLD. Fitting such a file to a height
+// shrank the crew with the machine (the ballista and cannon crews stood half as tall as the
+// infantry). Its JSON carries `footprint`: [width, length] in authored units, crew included, which
 // machineLayout turns into the squad's spacing and how many machines the squad draws.
+// Camels and elephants the same way: no fitted height, the animal at its true size (a dromedary
+// about 1.9 m at the hump, a war elephant about 2.8 m at the shoulder), its riders at 1.0.
 export const ART_UNIT_WORLD = 0.95;
 const FIT_TO_HEIGHT = new Set(['air', 'naval']);
 /** The ground a squad's drawn block of machines may cover (tiles). The sim deploys squads 3 tiles
  * apart along a line and the two lines 4 tiles apart (sim/world.js spawnSides), so a block wider
- * than about 3 tiles runs into the squad beside it and a deeper one into the line behind. A real
- * ram, trebuchet, howitzer or tank fills that ground alone: such a squad draws one machine; guns
- * and ballistas two, one behind the other; light trucks two abreast. */
+ * than about 3 tiles runs into the squad beside it and a deeper one into the line behind. A
+ * trebuchet, howitzer or tank fills that ground alone: such a squad draws one machine; guns and
+ * ballistas their three, two abreast and one behind. */
 export const MACHINE_BLOCK = Object.freeze({ width: 2.9, depth: 5.2, gap: 0.3 });
 /** How a squad of machines is drawn (drawing only, the sim never sees figures): the gap between
  * machines side by side (`spacing`) and between rows (`rowGap`), tiles; at most `cols` abreast and

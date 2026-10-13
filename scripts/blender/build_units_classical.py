@@ -204,10 +204,10 @@ def b_cavalry():
 def b_siege():
     parts, info = tm.frame('Frame')
     tm.torsion_engine(info)
-    # True size (MD09): a bolt thrower about 3 m long on wheels about 1.4 m; the crew stays at 1.0,
-    # two beside the wheels and one behind the winch.
-    tm.enlarge(info['rig'], 1.65)
-    for i, (x, y, z, yaw) in enumerate([(-.82, .38, 0, 90), (.82, .38, 0, -90), (0, 1.16, 0, 180)]):
+    # Two thirds of real size (MD09): a bolt thrower about 2.1 m long (the real one 3 m); the crew
+    # stays at 1.0, two beside the wheels and one behind the winch.
+    tm.enlarge(info['rig'], 1.1)
+    for i, (x, y, z, yaw) in enumerate([(-.58, .25, 0, 90), (.58, .25, 0, -90), (0, .86, 0, 180)]):
         c, _ = u.crew(f'Crew{i}', (x, y, z), lite=True, head='cap', yaw=yaw)
         parts.append(c)
     return parts, {'Skin': 'C99472', 'Cloth': 'E2D6BC', 'Leather': '6B4630', 'Metal': IRON, 'Wood': '8A6646'}, \

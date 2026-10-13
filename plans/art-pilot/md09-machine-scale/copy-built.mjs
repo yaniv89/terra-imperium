@@ -12,7 +12,15 @@ const UNITS = {
   'modern-cavalry': 'art-build/units/modern/modern-cavalry',
   'modern-support': 'art-build/units/modern/modern-support',
   'modern-general': 'art-build/units/modern/modern-general',
-  'modern-raider': 'art-build/units/modern/modern-raider'
+  'modern-raider': 'art-build/units/modern/modern-raider',
+  // signature units (src/assets/units/signature/): tanks, the stone-thrower, the lantaka, the camels
+  'kingdom-of-israel': 'art-build/units/signature/kingdom-of-israel',
+  marcomannia: 'art-build/units/signature/marcomannia',
+  'bosporan-kingdom': 'art-build/units/signature/bosporan-kingdom',
+  tondo: 'art-build/units/signature/tondo',
+  saba: 'art-build/units/signature/saba',
+  qedar: 'art-build/units/signature/qedar',
+  kindah: 'art-build/units/signature/kindah'
 };
 const ids = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(UNITS);
 for (const id of ids) {

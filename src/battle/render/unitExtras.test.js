@@ -38,15 +38,16 @@ describe('signature units', () => {
     expect(findSignatureModel('israel', 'bronze', 'infantry', { table: TABLE, art: createArtIndex({}), options: {} })).toBeNull();
     expect(findSignatureModel('israel', 'bronze', 'infantry', { table: TABLE, art, options: { 'israel-spear': { enabled: false } } })).toBeNull();
     expect(findSignatureModel('israel', 'modern', 'cavalry')?.url).toMatch(/kingdom-of-israel.*.glb/); // Wave 6: the Merkava
-    // Waves 2 to 6: every people's file ships and resolves for its age and role; camels and elephants
-    // carry their own drawn height (taller than a horseman); tanks have no trotting legs, no fitted
-    // height and their footprint instead (true size at the people's scale, MD09)
+    // Waves 2 to 6: every people's file ships and resolves for its age and role. Since MD09 no camel,
+    // elephant or tank file is fitted to a height (that scaled the riders with the beast): they are
+    // drawn at the people's scale (unitScale.test.js checks rider and beast sizes); tanks have no
+    // trotting legs and carry their footprint
     Object.entries(SIGNATURE_UNITS).forEach(([id, e]) => {
       const m = findSignatureModel(id, e.ageId, e.classId);
       expect(m?.url, id).toMatch(new RegExp(`${e.model}.*\\.glb`));
       expect(m.options.quadruped, id).toBe(e.rig !== 'person' && e.rig !== 'frame' && e.rig !== 'tank');
-      if (e.rig === 'camel' || e.rig === 'elephant') expect(m.options.height, id).toBeGreaterThan(2);
-      if (e.rig === 'tank') { expect(m.options.height, id).toBeUndefined(); expect(m.options.footprint[1], id).toBeGreaterThan(2.5); } // over 4.5 m long
+      if (e.rig === 'camel' || e.rig === 'elephant') expect(m.options.height, id).toBeUndefined();
+      if (e.rig === 'tank') { expect(m.options.height, id).toBeUndefined(); expect(m.options.footprint[1], id).toBeGreaterThan(1.8); } // over 3.2 m long with its gun
     });
   });
 
@@ -57,8 +58,9 @@ describe('signature units', () => {
       const e = SIGNATURE_UNITS[id];
       expect(rigFiguresOf(e), id).toEqual({ figures: 2, spacing: expect.any(Number) });
       expect(rigFiguresOf(e).spacing, id).toBeGreaterThan(1.5); // a beast is far wider than a horse
-      // full size (3.6), no longer the 0.8 that squeezed eight a squad
-      expect(findSignatureModel(id, e.ageId, e.classId).options.height, id).toBeCloseTo(3.618, 3);
+      // full size: no fitted height (MD09: the beast true size, its crew the people's scale;
+      // unitScale.test.js measures both), no longer the 0.8 that squeezed eight a squad
+      expect(findSignatureModel(id, e.ageId, e.classId).options.height, id).toBeUndefined();
     });
     Object.values(SIGNATURE_UNITS).filter((e) => e.rig !== 'elephant').forEach((e) => expect(rigFiguresOf(e), e.model).toBeNull());
     expect(RIG_FIGURES.camel).toBeUndefined(); expect(RIG_FIGURES.tank).toBeUndefined();
@@ -98,7 +100,7 @@ describe('extra battle models', () => {
     expect(findGeneralModel('modern')?.url).toMatch(/modern-general.*.glb/); // Wave 6: the command car
     // a machine at its true size beside its crew (MD09): no fitted height, a footprint instead
     expect(findGeneralModel('modern').options.height).toBeUndefined();
-    expect(findGeneralModel('modern').options.footprint[1]).toBeGreaterThan(1.8); // a car over 3.2 m long
+    expect(findGeneralModel('modern').options.footprint[1]).toBeGreaterThan(1.2); // a car over 2.2 m long
     expect(MODEL_SCALE.general).toBeGreaterThan(MODEL_SCALE.cavalry);
   });
 

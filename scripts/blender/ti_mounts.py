@@ -455,12 +455,28 @@ def jet(prefix='Jet', length=2.0, span=1.5, body='Cloth', team='Team', metal='Me
     return [rig], {'rig': rig, 'length': length, 'span': span}
 
 
-# ---- Machines at their true size (manifest MD09, MD10): only machines get bigger, never the crew.
-# The battle draws a machine file at the same scale as the infantry beside it (unitModels.js
-# ART_UNIT_WORLD), so a machine is authored at its real size against a 1.8 m person (H = 1) and its
-# crew stays at 1.0. The rigs above were first built "game-sized" (about half size), so a unit
-# builds its machine with them and then `enlarge`s the rig, and places its crew afterwards.
+# ---- Machines bigger, crews at human size (manifest MD09, MD10): only machines get bigger, never
+# the crew. The battle draws a machine file at the same scale as the infantry beside it
+# (unitModels.js ART_UNIT_WORLD), so a machine is authored against a 1.8 m person (H = 1) and its
+# crew stays at 1.0. The user's cap (13 October): a machine's body is about TWO THIRDS of its real
+# dimensions (MACHINE_SHARE), big enough to read as a machine beside its crew and small enough to
+# stand in the 3 tiles the battle leaves between squads. The rigs above were first built
+# "game-sized", so a unit builds its machine with them, `enlarge`s the rig to the capped size, and
+# places its crew afterwards. Animals are at their TRUE size (a dromedary about 1.9 m at the hump:
+# CAMEL_TRUE on the camel rig, whose hump was 2.3 m; the elephant rig is already 2.8 m at the
+# shoulder), their riders at 1.0.
 METRES_PER_H = 1.8
+MACHINE_SHARE = 2 / 3
+CAMEL_TRUE = .85
+
+
+def true_camel(camel, seat_at):
+    """Bring a dressed camel rig to its true size (after its saddle is on) and return the rider's
+    spot, moved with the seat; the rider itself stays at 1.0."""
+    enlarge(camel, CAMEL_TRUE)
+    s = u.MOUNTS['camel']['seat']
+    x, y, z = seat_at
+    return (x, y - s[1] * (1 - CAMEL_TRUE), z - s[2] * (1 - CAMEL_TRUE))
 
 
 def enlarge(rig, s):
