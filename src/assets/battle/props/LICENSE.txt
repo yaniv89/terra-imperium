@@ -3,6 +3,6 @@ CC0-1.0: dedicated to the public domain; https://creativecommons.org/publicdomai
 No imported geometry, photographs or external textures. Generated2D sheet is design reference only.
 Also covers the wave 7 kits (2026-10-12, checkpoint 38): burnt-field-overlay.glb, exit-marker.glb, landing-ancient.glb, landing-middle.glb, landing-modern.glb, loot-sack.glb.
 
-worker-loads.glb (2026-10-13): original mesh and procedural atlas made for Terra Imperium by its
+worker-loads.glb and worker-loads-modern.glb (2026-10-13): original mesh and procedural atlas made for Terra Imperium by its
 contributors with scripts/blender/build_worker_loads.py. CC0-1.0, dedicated to the public domain.
 No imported geometry, photographs or external textures; no design sheet was used.

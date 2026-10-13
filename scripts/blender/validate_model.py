@@ -20,7 +20,7 @@
 #     herd          herd-sheep-goat, herd-cattle (animal: 400 triangles, rigid or rigged)
 #     tree          vegetation-<kit>.glb (tree-s/-m/-l, stump, felled, bush, rock-s/-m, grass-tuft)
 #     terrain-kit   map/terrain/<id>.glb and battle/terrain (river-kit, ford, bridge-*)
-#     prop          props/worker-loads.glb (load-*, barrow-*: 800 / 200 / 50; the older props-<age>.glb
+#     prop          props/worker-loads*.glb (load-*, barrow-*: 800 / 200 / 50; the older props-<age>.glb
 #                   kits are not held to it yet, see plans/art-pilot/md06-nodes-loads/LOG.md)
 #     projectile    projectiles/<age>.glb (arrow ... missile; one level, no LOD children needed)
 #     unit | unit-mounted | unit-machine   a battle unit (LOD0 only: the runtime builds the rest;
@@ -74,7 +74,7 @@ def infer_kind(path):
             return 'improvement'
     if '/battle/nature/' in p:
         return 'tree' if name.startswith('vegetation-') else 'herd' if name.startswith('herd-') else 'node'
-    if '/battle/props/' in p and name == 'worker-loads':
+    if '/battle/props/' in p and name.startswith('worker-loads'):
         return 'prop'
     if '/units/' in p:
         if name.endswith('-general') or name.endswith('-cavalry'):

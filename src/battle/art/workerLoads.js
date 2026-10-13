@@ -7,8 +7,13 @@
 /** A person's height in tiles: unitModels.js ART_UNIT_WORLD (workerLoads.test.js holds the two equal). */
 export const PERSON_TILES = 0.95;
 
-/** The kit's key in the art index (artIndex.js `workerLoads`). */
+/** The kits' keys in the art index (artIndex.js `workerLoads`): one set for Bronze to Gunpowder (timber, rope and
+ * wicker), one for Modern (sawn planks, concrete, a strongbox, a plastic crate, a steel barrow). Both files hold the
+ * SAME object names, so the age picks the file and the resource the object. */
 export const WORKER_LOADS_KEY = 'battle/props/worker-loads.glb';
+export const WORKER_LOADS_MODERN_KEY = 'battle/props/worker-loads-modern.glb';
+/** The loads file for a side's age: Modern has its own, every other age (and an unknown one) the first set. */
+export const workerLoadsKey = (ageId) => (ageId === 'modern' ? WORKER_LOADS_MODERN_KEY : WORKER_LOADS_KEY);
 
 /** The object carried on the back, and the barrow that hauls it, per resource. */
 export const LOAD_OBJECTS = {

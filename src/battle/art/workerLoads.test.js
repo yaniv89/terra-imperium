@@ -3,7 +3,7 @@
 // each, a wheel on every barrow level).
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { loadObjectName, loadResource, workerLoadPlacement, LOAD_OBJECTS, BARROW_EMPTY, LOAD_TILES_PER_UNIT, PERSON_TILES, WORKER_LOADS_KEY, WORKER_LOAD_BACK } from './workerLoads';
+import { loadObjectName, loadResource, workerLoadPlacement, LOAD_OBJECTS, BARROW_EMPTY, LOAD_TILES_PER_UNIT, PERSON_TILES, WORKER_LOADS_KEY, WORKER_LOADS_MODERN_KEY, workerLoadsKey, WORKER_LOAD_BACK } from './workerLoads';
 import { createArtIndex } from './artIndex';
 import { ART_UNIT_WORLD } from '../render/unitModels';
 import { CITY_TILES_PER_UNIT } from '../setup/cityBattle';
@@ -42,18 +42,25 @@ describe('worker loads', () => {
     expect(barrow.scale).toBe(LOAD_TILES_PER_UNIT);
   });
 
-  it('finds the file in the art index', () => {
-    expect(createArtIndex({ [`src/assets/${WORKER_LOADS_KEY}`]: 'u' }).workerLoads()).toEqual({ url: 'u', key: WORKER_LOADS_KEY });
-    expect(createArtIndex({}).workerLoads()).toBeNull();
+  it('picks the file by age: Modern its own set, every other age the first, the same object names in both', () => {
+    expect(workerLoadsKey('modern')).toBe(WORKER_LOADS_MODERN_KEY);
+    ['bronze', 'classical', 'kingdoms', 'gunpowder', undefined].forEach((a) => expect(workerLoadsKey(a)).toBe(WORKER_LOADS_KEY));
+    const both = createArtIndex({ [`src/assets/${WORKER_LOADS_KEY}`]: 'old', [`src/assets/${WORKER_LOADS_MODERN_KEY}`]: 'new' });
+    expect(both.workerLoads('modern')).toEqual({ url: 'new', key: WORKER_LOADS_MODERN_KEY });
+    expect(both.workerLoads('kingdoms')).toEqual({ url: 'old', key: WORKER_LOADS_KEY });
+    expect(both.workerLoads()).toEqual({ url: 'old', key: WORKER_LOADS_KEY });
+    // without the Modern file a Modern worker still carries something
+    expect(createArtIndex({ [`src/assets/${WORKER_LOADS_KEY}`]: 'old' }).workerLoads('modern').url).toBe('old');
+    expect(createArtIndex({}).workerLoads('modern')).toBeNull();
   });
 
-  const file = `src/assets/${WORKER_LOADS_KEY}`;
-  it('ships every object with three levels and a wheel on each barrow level', () => {
-    const buf = readFileSync(file);
+  it.each([WORKER_LOADS_KEY, WORKER_LOADS_MODERN_KEY])('%s ships every object with three levels and a wheel on each barrow level', (key) => {
+    const buf = readFileSync(`src/assets/${key}`);
     const json = JSON.parse(buf.subarray(20, 20 + buf.readUInt32LE(12)).toString('utf8'));
     const nodes = json.nodes;
     const roots = Object.fromEntries(json.scenes[0].nodes.map((i) => [nodes[i].name, nodes[i]]));
     const names = [...Object.values(LOAD_OBJECTS).flatMap((o) => [o.back, o.barrow]), BARROW_EMPTY];
+    expect(Object.keys(roots).sort()).toEqual([...names].sort());
     names.forEach((name) => {
       const kids = (roots[name]?.children || []).map((i) => nodes[i]);
       expect(kids.map((k) => k.name.slice(0, 4)).sort(), name).toEqual(['LOD0', 'LOD1', 'LOD2']);

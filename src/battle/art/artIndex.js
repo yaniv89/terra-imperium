@@ -72,8 +72,14 @@ export const createArtIndex = (files = {}) => {
     },
     /** Decorative prop kits; placement is supplied by a consumer. */
     props: (ageId) => byAge(ageId, (a) => `battle/props/props-${a}.glb`),
-    /** What workers carry (workerLoads.js): battle/props/worker-loads.glb, one file for every age. */
-    workerLoads: () => (url('battle/props/worker-loads.glb') ? { url: url('battle/props/worker-loads.glb'), key: 'battle/props/worker-loads.glb' } : null),
+    /** What workers carry (workerLoads.js): battle/props/worker-loads-modern.glb for a Modern side,
+     * battle/props/worker-loads.glb for every other age and when the Modern file is missing. */
+    workerLoads: (ageId = null) => {
+      for (const key of [...(ageId === 'modern' ? ['battle/props/worker-loads-modern.glb'] : []), 'battle/props/worker-loads.glb']) {
+        if (url(key)) return { url: url(key), key };
+      }
+      return null;
+    },
     /** S7 wall kit: battle/city/walls-<age>.glb. */
     walls: (ageId) => byAge(ageId, (a) => `battle/city/walls-${a}.glb`),
     /** S6 ruin library: battle/city/ruins-<age>.glb. */

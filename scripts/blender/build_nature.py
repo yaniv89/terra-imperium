@@ -162,25 +162,34 @@ def quarry():
 
 
 def gold_vein():
-    def nuggets(ms, rng, spots, far=1, mid=4):
+    def nuggets(ms, rng, spots, far=1, mid=4, fine=6):
+        """Loose nuggets on the ground; the first `fine` are finely faceted at LOD0."""
         for k, (x, y, r) in enumerate(spots):
             seed = rng.randrange(1 << 30)
-            tn.blob(ms, 'gold_bright', (x, y, r * 0.75), r, (1.15, 1.0, 0.8), random.Random(seed), 0.2, 2, lod=0, only=(0,))
+            tn.blob(ms, 'gold_bright', (x, y, r * 0.75), r, (1.15, 1.0, 0.8), random.Random(seed), 0.2, 2 if k < fine else 1, lod=0, only=(0,))
             if k < mid:
                 tn.blob(ms, 'gold_bright', (x, y, r * 0.75), r * (1.3 if k < far else 1.0), (1.15, 1.0, 0.8), random.Random(seed), 0.15, 1,
                         lod=2 if k < far else 1, only=(1, 2) if k < far else (1,))
+    def lode(ms, rng, spots, mid=2):
+        """The exposed lode: angular chunks of gold piled up a cleft in the rock's front face
+        (the reference sheet's reading: dark rock, a seam of nuggets, not stripes)."""
+        for k, (x, y, z, r) in enumerate(spots):
+            tn.blob(ms, 'gold_bright', (x, y, z), r, (1.1, 1.0, 0.9), rng, 0.22, 1, lod=1 if k < mid else 0, yaw=rng.uniform(0, 360))
     def full(ms, rng):
-        # (x, y, radius, height), its levels of detail, its seams (height share, tilt, dip, thickness)
-        crag3(ms, 'gold_rock', 0.0, 0.07, 0.15, 0.33, rng, (3, 2, 1), [(0.3, 38, 250, 0.04), (0.62, 30, 60, 0.036), (0.5, 62, 330, 0.03)])
-        crag3(ms, 'gold_rock', -0.18, -0.03, 0.115, 0.22, rng, (2, 2, 1), [(0.42, 34, 200, 0.036), (0.7, 40, 20, 0.03)])
-        crag3(ms, 'gold_rock', 0.18, -0.05, 0.105, 0.18, rng, (2, 1, None), [(0.45, 42, 300, 0.036)])
-        crag3(ms, 'gold_rock', 0.03, -0.17, 0.075, 0.1, rng, (2, None, None), [(0.5, 30, 240, 0.03)])
-        nuggets(ms, rng, [(-0.07, -0.21, 0.034), (0.15, -0.2, 0.028), (-0.24, -0.17, 0.024), (0.28, 0.06, 0.024), (0.22, -0.23, 0.02), (-0.15, -0.25, 0.02)], far=1, mid=3)
+        # (x, y, radius, height), its levels of detail, its seams (height share, tilt, dip, thickness):
+        # steep and thin, so they read as cracks filled with gold, about a sixth of the rock's face
+        crag3(ms, 'gold_rock', 0.0, 0.07, 0.15, 0.33, rng, (3, 2, 1), [(0.35, 68, 255, 0.022), (0.55, 74, 40, 0.02)])
+        crag3(ms, 'gold_rock', -0.18, -0.03, 0.115, 0.22, rng, (3, 1, 1), [(0.45, 66, 215, 0.02)])
+        crag3(ms, 'gold_rock', 0.18, -0.05, 0.105, 0.18, rng, (2, 1, None), [(0.45, 70, 310, 0.03)])
+        crag3(ms, 'gold_rock', 0.03, -0.17, 0.075, 0.1, rng, (2, None, None))
+        lode(ms, rng, [(0.03, -0.1, 0.03, 0.042), (-0.03, -0.07, 0.085, 0.036), (0.035, -0.05, 0.135, 0.032), (0.0, -0.025, 0.185, 0.027), (-0.05, -0.115, 0.02, 0.03)])
+        nuggets(ms, rng, [(-0.1, -0.21, 0.03), (0.15, -0.2, 0.026), (-0.24, -0.17, 0.022), (0.28, 0.06, 0.022), (0.22, -0.23, 0.018), (-0.17, -0.25, 0.018)], far=1, mid=2, fine=2)
         rubble(ms, 'gold_rock', rng, 8, 0.34)
     def half(ms, rng):
-        crag3(ms, 'gold_rock', 0.0, 0.05, 0.125, 0.18, rng, (3, 2, 1), [(0.45, 36, 250, 0.036), (0.75, 30, 80, 0.028)])
-        crag3(ms, 'gold_rock', -0.15, -0.05, 0.09, 0.115, rng, (2, 1, None), [(0.5, 40, 210, 0.03)])
-        nuggets(ms, rng, [(0.1, -0.15, 0.026), (-0.05, -0.19, 0.022), (0.2, -0.04, 0.02)], far=1, mid=3)
+        crag3(ms, 'gold_rock', 0.0, 0.05, 0.125, 0.18, rng, (3, 2, 1), [(0.45, 68, 250, 0.02)])
+        crag3(ms, 'gold_rock', -0.15, -0.05, 0.09, 0.115, rng, (2, 1, None), [(0.5, 66, 210, 0.026)])
+        lode(ms, rng, [(0.03, -0.075, 0.025, 0.034), (-0.01, -0.05, 0.07, 0.028)], mid=1)
+        nuggets(ms, rng, [(0.1, -0.15, 0.024), (-0.05, -0.19, 0.02), (0.2, -0.04, 0.018)], far=1, mid=2, fine=1)
         rubble(ms, 'gold_rock', rng, 14, 0.32, near=3)
     def depleted(ms, rng):
         worked_out(ms, rng, 'gold_rock', 'gold_rock')
