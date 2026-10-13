@@ -4,10 +4,13 @@
 // guard against: a battle that cannot be set up or has no troops on a side never opens (it is
 // settled on Auto through the outcome service, with a log line), a set-up error is shown with the
 // way back, and a mid-battle checkpoint is resumed only into the battle it was saved from.
-import { buildInvasionSetup, setupHasBothSides, setupKeyOf, setupSideCounts, SETUP_VERSION } from '../../battle/setup/buildBattleSetup';
+import { buildCommandedSetup, setupHasBothSides, setupKeyOf, setupSideCounts, SETUP_VERSION } from '../../battle/setup/buildBattleSetup';
 
-/** The battle for `pb`: { setup } or { setup: null, error } when building it threw. */
-export const safeBattleSetup = (state, pb, build = buildInvasionSetup) => {
+/**
+ * The battle for `pb`, the very setup the reducer verifies (buildCommandedSetup: the player's side
+ * never routs): { setup } or { setup: null, error } when building it threw.
+ */
+export const safeBattleSetup = (state, pb, build = buildCommandedSetup) => {
   if (!pb) return { setup: null };
   try { return { setup: build(state, pb) }; } catch (err) {
     console.error('[battle] the battle could not be set up', err);
