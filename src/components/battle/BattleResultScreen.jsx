@@ -95,7 +95,7 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
         <div className="fa-card px-2.5 py-2 flex flex-col" data-testid="battle-result-city">
           {m.city ? (
             <>
-              <div className="fa-label">{playerSide === 1 ? 'Your city' : m.city.taken ? 'The city is yours' : 'The city'}</div>
+              <div className="fa-label">{playerSide === 1 ? (m.city.taken ? 'The city is lost' : 'Your city') : m.city.taken ? 'The city is yours' : 'The city'}</div>
               {m.city.committed ? (
                 <div className="text-[12.5px] leading-snug mt-1">
                   {m.city.line ? `${m.city.line} Repairs are free.` : 'The city took no lasting damage.'}

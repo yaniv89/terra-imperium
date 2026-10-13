@@ -64,7 +64,11 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   HP, the city's militia, allied reinforcements); autoBattle.js is the honest auto-resolve
   (auxiliaries from the battle economy, the walls' gate, calibrated with battle-lab parityEco);
   battleQueue.js holds battles others start against the player (pendingDefenses: city, field and
-  sea), Command or Auto each, waiting for events and peace offers. Opinion with reasons (AI war
+  sea), Command or Auto each, waiting for events and peace offers. The participant ledger
+  (battleLedger.js: per side before = after + fallen + fled, checked against the committed map;
+  `menOf` / `menText` are the one strength-to-men conversion) rides on every battle report entry;
+  the result screen shows the campaign's receipt (battleReceipt.js: the reducer Continue runs,
+  on the same state and action), never its own reading. Opinion with reasons (AI war
   roll, casus belli): src/engine/opinion.js over src/data/opinion.js. Loyalty and culture per
   city (flips, free cities): src/engine/loyalty.js. AI fronts (attacks from touching tiles,
   tile marches, sieges and assaults): src/engine/aiOperations.js. Research boosts from map facts:
