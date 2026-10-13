@@ -236,3 +236,21 @@ auxiliary and tower balance (I211, I212), CB09 AI budgets.
 8. Q8 (C10): Delete the globe and the old SVG map now (decision 28) instead of fixing their fog? **Recommended: yes.**
 9. Q9 (C12): Keep Marathon as "the same game over more turns" and fix its slow opening with cheaper first builds, not a separate 2.5x production factor? **Recommended: yes.**
 10. Q10 (C13): "Make tributary" on a city taken from a big nation releases it as a one-city independent that pays you tribute? **Recommended: yes.**
+
+## 9. User answers (2026-10-13)
+
+These settle Q1 to Q10 and replace the proposed defaults D1, D2, D3, D6 and D7 where they differ.
+D4, D5 and D8 to D13 stand as proposed.
+
+| Q | Answer | What it means for the work |
+|---|---|---|
+| Q1 stone | **Four battle resources: Food, Wood, Stone, Gold** (the Age of Empires set). | "Materials" becomes Wood; ore outcrops stop being a separate resource (they become stone or gold nodes; pick per age in CB16). U01 is this change, versioned. |
+| Q2 reserves | **No overflow rule needed:** armies start well under 300 a side, so everything takes the field at the start. | U10 removes Reserve; keep a guard (cap check and test) so an army over the cap cannot break the setup, but no wave or join-later system. |
+| Q3 defeat | **Yes:** a side loses only when its base buildings are gone, in field battles, sallies and landings too (they all have camps). Units still on the field at the end are lost. | D1 applies to every battle with a base. |
+| Q4 base | **Not only the keep:** the base is all of the HQ, camp or keep plus the economy and military buildings. Houses, landmarks, walls and unfinished sites do not count. | Taking the keep alone no longer wins a city assault; the attacker must also destroy the economy and military buildings. Re-check Auto parity and siege balance after this. |
+| Q5 clock | **Yes:** at the clock with buildings standing, the defender holds and the attacker withdraws in order (today's rule). No draw. | D3 settled. |
+| Q6 group speed | **Each unit always walks at its own speed**, also inside a mixed group. | No slowest-unit pace. I192 and U07 resolve to per-unit speed. |
+| Q7 scale | **Yes:** only machines get bigger, crews stay at human size; "tiny soldiers" is fixed with bigger tap areas. | U08 and I218 follow the true-scale fix. |
+| Q8 globe | **Hide the globe (comment it out, keep the code).** The "old 2D map" is the SVG map `Map2DView.jsx` behind Settings (mapPrefs.js), kept "for one release" after the WebGL map. | Question back to the user: remove the old SVG map setting too? Until answered, fix fog only on the WebGL map. |
+| Q9 Marathon | **Not "much cheaper first builds":** study how Civilization's systems scale costs (game speed percentages per category, era-based costs) and follow that logic. | CB04 starts with a short study of Civ's game-speed and cost model, then sets our speed multipliers and opening costs from it, with balance-sim evidence. |
+| Q10 tributary | **Yes:** a city taken from a big nation becomes a one-city independent that pays you tribute. | D6 settled. |
