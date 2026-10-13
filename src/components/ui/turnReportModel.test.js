@@ -46,4 +46,27 @@ describe('turn report model (W10)', () => {
     expect(m.title).toBe(`Turns ${before.turnNumber} to ${before.turnNumber + 4}`);
     expect(m.turns).toBe(5);
   });
+
+  it('collapses news about peoples the player has not met into one line, and folds recurring upkeep', () => {
+    const me = before.playerNationId;
+    const stranger = Object.values(before.nations).find((n) => n.id !== me && !before.fog?.met?.[me]?.[n.id] && n.name);
+    expect(stranger).toBeTruthy();
+    const after = next({
+      logs: [...before.logs,
+        { year: before.year, type: LogTypes.CRISIS, message: `${stranger.name} descends into civil war!` },
+        { year: before.year, type: LogTypes.CRISIS, message: `${stranger.name} loses a city to rebels.` }]
+    });
+    const m = turnReportModel(before, after);
+    const unmet = m.items.filter((i) => i.unmet);
+    expect(unmet).toHaveLength(1);
+    expect(unmet[0].title).toBe('2 reports from lands you have not seen');
+    expect(m.items.some((i) => i.title.includes('civil war'))).toBe(false);
+    expect(m.quiet).toBe(true);
+  });
+
+  it('folds recurring upkeep lines of a fast forward into one', () => {
+    const logs = [1, 2, 3].map((y) => ({ year: y, type: LogTypes.CRISIS, message: `Upkeep: -${y} (army 1)` }));
+    const m = turnReportModel(before, { ...before, turnNumber: before.turnNumber + 3, logs: [...before.logs, ...logs] });
+    expect(m.items.filter((i) => i.title.startsWith('Upkeep'))).toHaveLength(1);
+  });
 });
