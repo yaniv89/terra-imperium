@@ -23,7 +23,8 @@
 //   nodes -> src/assets/battle/nature/<id>.glb (stone-outcrop, ore-outcrop, gold-vein, fish-shoal:
 //     objects full, half, depleted; herd-sheep-goat, herd-cattle: an `animal` object placed a few
 //     times), groves -> the battle's vegetation kit (tree-l, tree-m, felled, stump by what is
-//     left). True scale: CITY_TILES_PER_UNIT tiles per model unit.
+//     left, and the kit's log-pile beside it: the mark of a wood node). True scale:
+//     CITY_TILES_PER_UNIT tiles per model unit.
 import { InstancedMesh, MeshLambertMaterial, MeshBasicMaterial, BoxGeometry, ConeGeometry, CylinderGeometry, DodecahedronGeometry, CircleGeometry, Object3D, Color, Matrix4, Vector3 } from 'three';
 import { Q } from '../sim/constants';
 import { BUILDINGS, NODE_KINDS, buildingArt } from '../data/economy';
@@ -86,6 +87,8 @@ export const nodeStateNames = (frac) => (frac > 0.5 ? ['full', 'half'] : frac > 
 export const groveNames = (frac) => (frac > 0.6 ? ['tree-l', 'tree-m'] : frac > 0.25 ? ['tree-m', 'tree-l'] : frac > 0 ? ['felled', 'stump', 'tree-m'] : ['stump', 'felled', 'tree-m']);
 /** The construction stage object for a build progress (0..100). */
 export const constructionStage = (progress) => `construction-stage-${Math.min(3, Math.floor(Math.max(0, progress) / 25))}`;
+/** How far from a grove's centre its log pile stands (tiles). */
+export const LOG_PILE_OFFSET = 0.7;
 // Herd animals round a herd node (tiles from its centre, yaw).
 const HERD_SPOTS = { herd: [[-0.3, 0, 0.4], [0.25, 0.25, 2.1], [0.2, -0.3, 4.0]], cattle: [[-0.3, 0, 0.6], [0.35, 0.3, 2.6]] };
 
@@ -167,7 +170,14 @@ export class EconomyLayer {
     }
     const obj = kitObject(kit, n.kind === 'tree' ? groveNames(frac) : nodeStateNames(frac));
     if (!obj) return false;
-    this.kits.add(obj, lod, M.makeRotationY(((n.i ?? 0) * 2.39996) % 6.283).scale(V.setScalar(S)).setPosition(x, y, z));
+    const yaw = ((n.i ?? 0) * 2.39996) % 6.283;
+    this.kits.add(obj, lod, M.makeRotationY(yaw).scale(V.setScalar(S)).setPosition(x, y, z));
+    // A grove is a wood node, not one more tree: a pile of cut logs stands beside it (MD06).
+    const pile = n.kind === 'tree' ? kitObject(kit, 'log-pile') : null;
+    if (pile) {
+      const px = x + Math.cos(yaw) * LOG_PILE_OFFSET; const pz = z + Math.sin(yaw) * LOG_PILE_OFFSET;
+      this.kits.add(pile, lod, M.makeRotationY(yaw + 0.9).scale(V.setScalar(S)).setPosition(px, this.r.heightAt(px, pz), pz));
+    }
     return true;
   }
 

@@ -3,7 +3,7 @@
 // and construction objects, the node states by what is left; no file keeps the greyboxes.
 import { describe, it, expect } from 'vitest';
 import { Group } from 'three';
-import { EconomyLayer, nodeStateNames, groveNames, constructionStage, kitLodForZoom, sideTheme, SKIN_ROLES } from './economyLayer';
+import { EconomyLayer, nodeStateNames, groveNames, constructionStage, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET } from './economyLayer';
 import { createArtIndex } from '../art/artIndex';
 import { parseKit } from '../art/kitLoader';
 import { kitGlb, parseGlbBytes } from '../../components/map/closeView/glbFixture';
@@ -84,6 +84,32 @@ describe('battle economy art', () => {
     expect(drawn.has(shared.objects.barracks.lods[0].geometry.uuid)).toBe(true);
     expect(drawn.has(shared.objects['barracks-damaged'].lods[0].geometry.uuid)).toBe(false);
     layer.dispose();
+  });
+
+  it('marks a grove with the kit\'s log pile, and draws the tree alone from a kit without one', async () => {
+    const kits = {
+      'with-pile': [{ name: 'tree-l', size: 0.5 }, { name: 'felled', size: 0.5 }, { name: 'log-pile', size: 0.2 }],
+      'no-pile': [{ name: 'tree-l', size: 0.5 }]
+    };
+    for (const [name, copies] of [['with-pile', 2], ['no-pile', 1]]) {
+      const art = createArtIndex({ 'assets/battle/nature/vegetation-temperate.glb': `test://${name}` });
+      const r = fakeRenderer();
+      const layer = new EconomyLayer({ ...r, setup: { ...r.setup, economy: {} } }, { art, load: async () => parseKit((await parseGlbBytes(kitGlb(kits[name]))).scene) });
+      layer.build();
+      await Promise.all(layer.ready);
+      const grove = { i: 3, kind: 'tree', x: 10 * Q, y: 10 * Q, amount: 250, max: 250 };
+      layer.update({ eco: { nodes: [grove], buildings: [] } }, () => true);
+      expect(layer.kits.stats().copies, name).toBe(copies);
+      if (name === 'with-pile') { // the pile stays beside the grove as it is cut down
+        layer.update({ eco: { nodes: [{ ...grove, amount: 20 }], buildings: [] } }, () => true);
+        expect(layer.kits.stats().copies).toBe(2);
+        const kit = layer.kit(layer.nodeRef.tree);
+        const pileMesh = layer.kits.meshes.get(kit.objects['log-pile'].lods[0]).mesh;
+        const e = pileMesh.instanceMatrix.array;
+        expect(Math.hypot(e[12] - 10, e[14] - 10)).toBeCloseTo(LOG_PILE_OFFSET, 5);
+      }
+      layer.dispose();
+    }
   });
 
   it('keeps the greyboxes and loads nothing without files', () => {
