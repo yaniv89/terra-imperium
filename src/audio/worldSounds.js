@@ -97,6 +97,8 @@ export const ACTION_SOUNDS = {
   [T.SET_AIR_PATROL]: null,
   [T.SET_HOLD]: null,
   [T.SET_SIEGE]: null,
+  [T.SET_SETTLER_HOLD]: null,
+  [T.DISBAND_SETTLERS]: 'ui-close',
   [T.FUND_SCHOLARS]: 'tribute-paid',
   [T.CHANGE_GOVERNMENT_TYPE]: 'ui-confirm',
   [T.ENACT_GOVERNMENT_REFORM]: 'ui-confirm',
