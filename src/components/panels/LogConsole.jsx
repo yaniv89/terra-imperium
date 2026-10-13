@@ -219,7 +219,7 @@ const LogConsole = () => {
       </div>
 
       {/* Filters Row */}
-      <div className="px-2 py-1.5 border-b border-fa-line/50 flex flex-wrap gap-1 shrink-0 bg-fa-panel/50">
+      <div className="px-2 py-1.5 border-b border-fa-line/50 flex flex-wrap gap-1 shrink-0 bg-fa-panel/50 pl:flex-nowrap pl:overflow-x-auto scrollbar-none">
         <Filter className="w-3 h-3 text-fa-muted mr-1 mt-0.5" />
         {Object.entries(LOG_STYLES).map(([type, style]) => (
           <FilterButton
@@ -281,7 +281,7 @@ const LogConsole = () => {
 
       {/* Footer with turn info */}
       <div className="px-2 py-1 border-t border-fa-line text-[9px] text-fa-muted
-                      flex justify-between items-center shrink-0 bg-fa-panel/50">
+                      flex justify-between items-center shrink-0 bg-fa-panel/50 pl:hidden">
         <span>Turn {state.turnNumber} • Year {state.year}</span>
         <span className="flex items-center gap-2">
           {AGES[state.age]?.name || state.age}

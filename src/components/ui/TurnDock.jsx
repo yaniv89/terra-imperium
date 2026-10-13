@@ -9,7 +9,9 @@
 //                   waiting", the second ends the turn (it disarms by itself)
 //   The world moves while the turn worker runs, a progress strip instead of the button
 // Enter presses the button (the first blocker, or the end of the turn) when nothing is being typed.
-// Sits left of the tab rail (--rail-inset) and above the bottom bar of a phone held upright.
+// Sits left of the tab rail (--rail-w, never the dock: it stays in the same place when a panel
+// opens, playtest audit X17 / I156; the dock leaves a strip at its foot for it) and above the
+// bottom bar of a phone held upright.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Hammer, FlaskConical, Scroll, Shield, Feather, Bell, Swords, HeartHandshake, Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -18,6 +20,7 @@ import { softHints, WARN_ARM_MS } from './nextPromptModel';
 import { endTurnButton, endTurnPress } from './endTurnModel';
 import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
 import { prewarmTurnWorker, abandonTurnInWorker } from '../../services/turnClient';
+import IdleChip from './IdleChip';
 
 // "The world moves" longer than this offers to run the turn on this thread instead (an iPhone has
 // been seen waiting on the turn worker for good; turnClient.js keeps a log of why).
@@ -68,8 +71,8 @@ const TurnDock = () => {
 
   return (
     <div data-testid="turn-dock"
-      className={`fixed z-20 flex flex-col items-end gap-2 pointer-events-none
-        ${isMobile ? 'right-3 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)]' : 'right-[calc(var(--rail-inset,0px)+0.75rem)] bottom-[max(env(safe-area-inset-bottom),0.75rem)]'}`}>
+      className={`fixed z-[21] flex flex-col items-end gap-2 pointer-events-none
+        ${isMobile ? 'right-3 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)]' : 'right-[calc(var(--rail-w,0px)+0.75rem)] bottom-[max(env(safe-area-inset-bottom),0.75rem)]'}`}>
       {armed && hints.length > 0 && (
         <div className="pointer-events-auto fa-panel p-2 w-[min(17rem,60vw)] shadow-2xl" role="status" data-testid="end-turn-warnings">
           <div className="fa-label mb-1.5">{hints.length} still waiting</div>
@@ -81,6 +84,8 @@ const TurnDock = () => {
         </div>
       )}
       <div className="flex items-stretch gap-2 pointer-events-auto">
+        {/* "Idle N": the next army or settler that waits, one tap each (IdleChip.jsx). */}
+        {btn.mode !== 'moving' && <IdleChip />}
         {btn.mode === 'moving' ? (
           <div className="fa-panel h-[50px] pl:h-11 min-w-[11rem] px-4 flex flex-col justify-center shadow-xl" role="status" aria-live="polite" data-testid="world-moves">
             <span className="text-[13px] font-semibold">{slow ? 'Still working…' : 'The world moves…'}</span>
@@ -106,7 +111,9 @@ const TurnDock = () => {
               ${blocking ? '!px-3.5 !text-[15px] pl:!text-[14px] max-w-[min(22rem,52vw)] pl:max-w-[min(17rem,40vw)]' : '!px-5'}`}
           >
             {Icon && <Icon className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />}
-            <span className="truncate min-w-0">{btn.label}</span>
+            {/* A blocker names its city or people: two lines rather than a cut-off name
+                (playtest audit I158). */}
+            <span className={blocking ? 'min-w-0 text-left whitespace-normal leading-[1.15] line-clamp-2' : 'truncate min-w-0'}>{btn.label}</span>
             {btn.badge && (
               <span className="fa-num shrink-0 text-[11px] font-semibold bg-fa-ink text-fa-brass rounded-full px-2 py-0.5" aria-hidden="true" data-testid="end-turn-badge">{btn.badge}</span>
             )}

@@ -12,6 +12,7 @@ import { openPanelTab } from '../panels/panelEvents';
 import { nationOverviewModel } from './nationOverviewModel';
 import { Button, Label, Meter, SheetHeader, Shield, signed } from './atlas';
 import MapCard from './MapCard';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 
 const Card = ({ children, className = '', testId }) => <section className={`fa-card p-3 space-y-2 ${className}`} data-testid={testId}>{children}</section>;
 
@@ -37,7 +38,9 @@ const NationOverviewSheet = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
   const m = useMemo(() => (open ? nationOverviewModel(state) : null), [open, state]);
-  if (!open || !m) return null;
+  // A sheet the player opened: it takes the screen, and a decision card it covers waits as a chip.
+  const turn = useInteraction('nation-overview', open && !!m, { priority: PRIORITY.sheet, user: true, label: 'Nation overview' });
+  if (!open || !m || !turn.shown) return null;
   const close = () => setOpen(false);
   const s = m.stability;
   const closest = m.era.goals.filter((g) => !g.done).sort((a, b) => (b.value / b.target) - (a.value / a.target))[0];

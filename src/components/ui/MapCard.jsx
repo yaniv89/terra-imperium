@@ -29,7 +29,8 @@ export const mapCardModel = (map) => {
 
 const kb = (bytes) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
 
-const MapCard = ({ map, withCache = false, className = '' }) => {
+// `label`: the heading (Settings already has a "Map display" section above it: playtest audit I164).
+const MapCard = ({ map, withCache = false, className = '', label = 'Map' }) => {
   const m = mapCardModel(map);
   const [copied, setCopied] = useState(false);
   const [cache, setCache] = useState(null); // { count, bytes } | 'cleared'
@@ -42,7 +43,7 @@ const MapCard = ({ map, withCache = false, className = '' }) => {
   const copy = async () => { try { await navigator.clipboard.writeText(m.code); setCopied(true); } catch { setCopied(false); } };
   return (
     <section className={`space-y-1 ${className}`} data-testid="map-card">
-      <Label>Map</Label>
+      <Label>{label}</Label>
       <div className="text-[14px] font-semibold leading-tight">{m.title}</div>
       {m.lines.map((l) => <div key={l} className="text-[12px] text-fa-muted leading-snug">{l}</div>)}
       {m.code && (

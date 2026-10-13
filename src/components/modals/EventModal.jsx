@@ -11,6 +11,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { focusRegion } from '../map/marchEvents';
 import { describeEffects } from '../../engine/describeEffects';
 import { getOptionShortfall } from '../../engine/applyEventEffects';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 
 // Plan §M17: describeEffects is the ONE shared effect-description function (src/engine/
 // describeEffects.js) — this replaces the local formatEffectItem/parseEffects pair that used to
@@ -37,7 +38,11 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
   const isMobile = useIsMobile();
   // Centre the map on the event's city while the sheet is open; release it after.
   useEffect(() => { if (!event || !cityId) return undefined; focusRegion(cityId); return () => focusRegion(null); }, [event, cityId]);
-  if (!event) return null;
+  // The most pressing entry of the interaction registry (useExclusivePanel.js): it tucks the dock
+  // on a narrow screen instead of squeezing beside it, and waits as a chip behind a sheet the
+  // player opened.
+  const turn = useInteraction('event', !!event, { priority: PRIORITY.event, label: event ? `Event: ${event.title}` : null, testId: 'event-chip' });
+  if (!event || !turn.shown) return null;
   // An option the treasury can't cover is shown but not clickable — unless NO option is affordable,
   // in which case every option stays open and the engine charges what it can (-1 stability).
   const shortfalls = event.options.map((option) => getOptionShortfall(resources, option.effects));
@@ -50,16 +55,17 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
       <div
         className={isMobile
           ? 'pointer-events-auto absolute inset-x-0 bottom-0 max-h-[60vh] rounded-t-2xl bg-fa-panel border-t-2 border-amber-500 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)] sheet-panel'
-          : 'pointer-events-auto w-[min(34rem,calc(100vw-1rem-var(--rail-inset,0px)))] max-h-full rounded-xl bg-fa-panel border-2 border-amber-500 shadow-2xl flex flex-col'}
+          : 'pointer-events-auto w-[min(34rem,calc(100vw-1rem-var(--rail-inset,0px)))] pl:w-[min(44rem,calc(100vw-1rem-var(--rail-inset,0px)))] max-h-full rounded-xl bg-fa-panel border-2 border-amber-500 shadow-2xl flex flex-col'}
+        role="dialog" aria-label={event.title}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 border-b border-fa-line shrink-0">
-          <div className="flex items-center gap-2 text-amber-400 font-bold text-lg">
+        <div className="p-4 pl:px-3 pl:py-1.5 border-b border-fa-line shrink-0 pl:flex pl:items-center pl:justify-between pl:gap-3">
+          <div className="flex items-center gap-2 text-amber-400 font-bold text-lg pl:text-[16px] min-w-0">
             <AlertTriangle className="w-5 h-5 shrink-0" />
-            <span className="line-clamp-2">{event.title}</span>
+            <span className="line-clamp-2 pl:line-clamp-1">{event.title}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-fa-muted mt-1">
+          <div className="flex items-center gap-1.5 text-xs text-fa-muted mt-1 pl:mt-0 pl:shrink-0">
             {event.year != null && (
               <>
                 <Calendar className="w-3 h-3" />
@@ -78,14 +84,15 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
         </div>
 
         {/* Content */}
-        <div className="p-4 overflow-y-auto flex-1">
+        <div className="p-4 pl:px-3 pl:py-2 overflow-y-auto flex-1 min-h-0" data-testid="event-body">
           {/* Description */}
-          <p className="text-fa-text text-sm leading-relaxed mb-4">
+          <p className="text-fa-text text-sm leading-relaxed mb-4 pl:text-[13px] pl:leading-snug pl:mb-2">
             {event.description}
           </p>
 
-          {/* Options */}
-          <div className="space-y-3">
+          {/* Options: side by side on a phone held sideways, so every choice is on screen at
+              844x340 without scrolling past the text (playtest audit I159). */}
+          <div className={`space-y-3 pl:space-y-0 pl:grid pl:gap-2 ${event.options.length % 3 === 0 ? 'pl:grid-cols-3' : 'pl:grid-cols-2'}`} data-testid="event-options">
             {event.options.map((option, index) => {
               const effects = describeEffects(option.effects);
               const blocked = anyAffordable && shortfalls[index].length > 0;
@@ -95,7 +102,8 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
                   key={index}
                   onClick={() => { if (!blocked) onResolve(index); }}
                   aria-disabled={blocked}
-                  className={`w-full p-4 rounded-lg text-left border transition-all group ${blocked ? 'bg-fa-panel border-fa-line opacity-60 cursor-not-allowed' : 'bg-fa-raised hover:bg-fa-hover border-fa-line hover:border-amber-500/50'}`}
+                  data-testid={`event-option-${index}`}
+                  className={`w-full p-4 pl:p-2.5 rounded-lg text-left border transition-all group ${blocked ? 'bg-fa-panel border-fa-line opacity-60 cursor-not-allowed' : 'bg-fa-raised hover:bg-fa-hover border-fa-line hover:border-amber-500/50'}`}
                 >
                   {blocked && (
                     <div className="text-[11px] text-fa-danger-text mb-1">Can&apos;t afford: {shortfalls[index].map((id) => `${-option.effects[id]} ${id}`).join(', ')}</div>
@@ -114,7 +122,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
 
                   {/* Effects Preview */}
                   {effects.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
+                    <div className="mt-3 pl:mt-1.5 flex flex-wrap gap-1.5">
                       {effects.map((effect, i) => (
                         <EffectBadge key={i} {...effect} />
                       ))}
@@ -127,7 +135,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
         </div>
 
         {/* Footer hint */}
-        <div className="px-4 py-2 border-t border-fa-line text-xs text-fa-muted text-center shrink-0">
+        <div className="px-4 py-2 border-t border-fa-line text-xs text-fa-muted text-center shrink-0 pl:hidden">
           Choose an option to go on: the turn waits for it. The map stays live behind.
         </div>
       </div>

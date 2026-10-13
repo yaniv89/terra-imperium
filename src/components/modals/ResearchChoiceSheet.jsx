@@ -16,6 +16,7 @@ import { describeTech, formatTurns, getSciencePerTurn, techInfo } from '../panel
 import { CATEGORY_LABELS } from '../panels/TechPanel';
 import { openPanelTab } from '../panels/panelEvents';
 import { OPEN_RESEARCH_CHOICE } from '../ui/uiEvents';
+import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 
 // Whether the sheet should be up (pure, for tests): nothing being researched, nothing queued, no
 // advisor, something available, and no other decision on screen.
@@ -32,11 +33,16 @@ const ResearchChoiceSheet = ({ hidden }) => {
   // while it would wait for the onboarding (the player asked for it).
   const [asked, setAsked] = useState(false);
   useEffect(() => {
-    const onOpen = () => { setLaterTurn(null); setAsked(true); };
+    const onOpen = () => { setLaterTurn(null); setAsked(true); interactions.promote('research-choice'); };
     window.addEventListener(OPEN_RESEARCH_CHOICE, onOpen);
     return () => window.removeEventListener(OPEN_RESEARCH_CHOICE, onOpen);
   }, []);
-  if ((hidden && !asked) || laterTurn === state.turnNumber || !needsResearchChoice(state)) return null;
+  const wanted = !((hidden && !asked) || laterTurn === state.turnNumber || !needsResearchChoice(state));
+  // One entry of the interaction registry (useExclusivePanel.js): it waits as a chip behind a more
+  // pressing card, and tucks the dock on a narrow screen instead of sitting on it. No chip of its
+  // own while it waits: the "Choose research" chip and End Turn already say it.
+  const turn = useInteraction('research-choice', wanted, { priority: PRIORITY.research, user: asked });
+  if (!wanted || !turn.shown) return null;
 
   const science = getSciencePerTurn(state);
   const options = suggestTechs(state, state.playerNationId, 3).map((id) => techInfo(state, id, science));
