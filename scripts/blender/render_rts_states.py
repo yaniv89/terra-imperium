@@ -25,7 +25,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=src)
 scene = bpy.context.scene
 roots = {o.name: o for o in scene.objects if o.type == 'EMPTY' and o.parent is None and any(c.type == 'MESH' for c in o.children)}
-roles = [n for n in roots if n + '-ruined' in roots and (not only or n in only)]
+roles = [n for n in roots if n + '-damaged' in roots and (not only or n in only)]  # a culture skin has no -ruined
 team = bpy.data.materials.get('Team')
 if team:  # the side's colour over the grey cloth
     nt = team.node_tree
