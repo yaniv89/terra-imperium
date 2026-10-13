@@ -12,6 +12,18 @@ import { auditGameState } from '../../../src/engine/stateAudit';
 import { getTiles } from '../../../src/data/geo/tiles';
 import { worldHealth, kaplanMeier } from '../../../scripts/simStats.mjs';
 import { installGeneratedWorld } from '../../../src/worldgen/nodeWorld';
+import { createScriptedPlayer, createTelemetry } from '../../../scripts/campaignTelemetry.mjs';
+import { chooseProduction, nationCounts } from '../../../src/engine/aiProduction';
+import { bestSites, MAX_SETTLE_RINGS } from '../../../src/engine/settlers';
+import { getResearched, getTechAgeId } from '../../../src/engine/nationState';
+import { getEffectiveAgeId, speedCostMult } from '../../../src/data/ages';
+import { authorityOf } from '../../../src/engine/authority';
+import { getOverextension } from '../../../src/engine/nationalPower';
+import { metNations } from '../../../src/engine/fog';
+import { opinionOf } from '../../../src/engine/opinion';
+import { isIndependentNation } from '../../../src/data/independents';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Land tiles of the world in play (recounted when MAP=generated installs a world per seed).
 const countLand = () => { const t = getTiles(); let n = 0; for (let i = 0; i < t.count; i++) if (t.land[i] === 1) n += 1; return n; };
@@ -34,6 +46,17 @@ const PLAYER = process.env.PLAYER || 'fr';
 // country id (mapped through LEGACY_NATION_IDS: au is the Gunditjmara).
 const SCENARIO = process.env.SCENARIO || 'full';
 const SIZE = process.env.SIZE || 'standard';
+// POLICY=passive (default, the old harness) | scripted (answers every blocker and queues what an AI
+// would build in the player's idle cities and sends its settlers to the best site; scripts/campaignTelemetry.mjs). DEMANDS=refuse (default) |
+// pay for the scripted player's answer to a major's demand and to an independent's tribute demand.
+// SPEED=normal|marathon|... is the game speed. OUT_DIR=dir also writes telemetry-<seed>.json (series,
+// wars, tribute answers, stack verdicts); TRACE_WARS=1 with OUT_DIR writes warstacks-<seed>.jsonl,
+// one row per AI stack per war per turn (why a stack waits or shuttles).
+const POLICY = process.env.POLICY || 'passive';
+const DEMANDS = process.env.DEMANDS || 'refuse';
+const SPEED = process.env.SPEED || null;
+const OUT_DIR = process.env.OUT_DIR || '';
+const TRACE_WARS = process.env.TRACE_WARS === '1' && !!OUT_DIR;
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((a, id) => ({ ...a, [id]: true }), {});
 
 // Campaign invariant violations from the state auditor (src/engine/stateAudit.js): must stay 0.
@@ -47,7 +70,7 @@ const checkpoints = () => { const c = []; for (let t = EVERY; t <= TURNS; t += E
 
 const isPlagued = (r) => r.disaster?.kind === 'plague' || (r.plague?.i || 0) > 0;
 
-const snapshot = (s, t, counters, ms, lives) => {
+const snapshot = (s, t, counters, ms, lives, telemetry) => {
   const regs = Object.values(s.regions);
   const nations = Object.values(s.nations);
   const counts = {}; regs.forEach((r) => { counts[r.owner] = (counts[r.owner] || 0) + 1; });
@@ -85,6 +108,7 @@ const snapshot = (s, t, counters, ms, lives) => {
     medianAiTechs: (() => { const n = nations.filter((x) => !x.isPlayer && !x.isEliminated).map((x) => (x.tech?.researched || []).length).sort((a, b) => a - b); return n[Math.floor(n.length / 2)] || 0; })(),
     // Per-city normalised versions of the count keys above, for a denser grid or more cities.
     devastatedShare: +(dev.length / Math.max(1, regs.length)).toFixed(3), unclaimedShare: +((counts.null || 0) / Math.max(1, regs.length)).toFixed(3),
+    ...(telemetry ? telemetry.snapshot(s) : {}),
     ...worldHealth(s, { isLand, landTiles: LAND_TILES, playerId: s.playerNationId }),
     nationsAliveShare: +kaplanMeier(lives, [t]).at[t].toFixed(3), leadChanges: counters.leadChanges,
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
@@ -122,7 +146,12 @@ SEEDS.forEach((seed) => {
     if (MAP === 'generated') { const w = installGeneratedWorld({ seed, generatorVersion: MAP_VERSION, params: { land: MAP_LAND, shape: MAP_SHAPE } }); map = w.spec; mapReport = w.report; LAND_TILES = countLand(); }
     const scenario = SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : (SCENARIO === 'peoples' || map) ? { scenario: { mode: 'peoples', size: SIZE, seed, ...(map ? { map } : {}), ...(process.env.INDEPENDENTS === '0' ? { independents: false } : {}) } } : {};
     if (mapReport) console.log(`MAP seed=${seed} hash=${mapReport.worldHash} continents=${mapReport.continents} startMin=${mapReport.startMin} startMedian=${mapReport.startMedian} startSpread=${mapReport.startSpread.toFixed(3)} repairs=${mapReport.startRepairs}`);
-    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario, ...(SPEED ? { gameSpeed: SPEED } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    if (OUT_DIR) fs.mkdirSync(OUT_DIR, { recursive: true });
+    const traceStream = TRACE_WARS ? fs.openSync(path.join(OUT_DIR, `warstacks-${seed}.jsonl`), 'w') : null;
+    const scripted = POLICY === 'scripted' ? createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId, speedCostMult }, demands: DEMANDS, opinionOf }) : null;
+    const telemetry = createTelemetry({ playerId: s.playerNationId, isIndependent: isIndependentNation, authorityOf, getOverextension, metNations, getTiles, traceFile: TRACE_WARS, writeLine: traceStream == null ? null : (line) => fs.writeSync(traceStream, line + '\n') });
+    let telemMs = 0;
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
     const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set() };
     // One life per nation alive at the start; a nation that dies and comes back starts a new life.
@@ -134,10 +163,13 @@ SEEDS.forEach((seed) => {
     let owners = Object.fromEntries(Object.values(s.regions).map((r) => [r.id, r.owner]));
     let t0 = performance.now(); let turnsSince = 0;
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
-      if (s.pendingPeaceOffer) s = gameReducer(s, { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE });
+      if (scripted) s = scripted.answer(s).state;
+      else if (s.pendingPeaceOffer) s = gameReducer(s, { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE });
       const before = s.logs.length;
+      const pre = s;
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
+      const tm0 = performance.now(); telemetry.observe(pre, s); telemMs += performance.now() - tm0;
       turnsSince += 1;
       s.logs.slice(before).forEach((l) => {
         if (/defensive league/.test(l.message)) counters.leagues += 1;
@@ -165,14 +197,21 @@ SEEDS.forEach((seed) => {
       if (t % EVERY === 0 || t === TURNS || s.gameStatus !== GameStatus.ACTIVE) {
         // The game ending early (a passive France falls to a siege around turn 100) still prints a
         // final snapshot with its real status, not the last round number's.
-        last = snapshot(s, t, counters, (performance.now() - t0) / Math.max(1, turnsSince), lives);
+        last = snapshot(s, t, counters, (performance.now() - t0 - telemMs) / Math.max(1, turnsSince), lives, telemetry);
         console.log(`STATS seed=${seed} ${Object.entries(last).map(([k, v]) => `${k}=${v}`).join(' ')}`);
-        t0 = performance.now(); turnsSince = 0;
+        t0 = performance.now(); turnsSince = 0; telemMs = 0;
       }
     }
     // Survival curve at each checkpoint (S(t) holds its last value after an early end).
     const km = kaplanMeier(lives, checkpoints());
     const survival = Object.fromEntries(checkpoints().map((c) => [`survivalT${c}`, +km.at[c].toFixed(3)]));
-    console.log(`SUMMARY ${JSON.stringify({ seed, ...last, ...survival, medianNationLife: km.median })}`);
+    console.log(`SUMMARY ${JSON.stringify({ seed, policy: POLICY, ...last, ...survival, medianNationLife: km.median })}`);
+    if (traceStream != null) fs.closeSync(traceStream);
+    if (OUT_DIR) {
+      const rep = telemetry.report(s);
+      const warsOnPlayerStarts = rep.wars.filter((w) => w.e === s.playerNationId).map((w) => ({ from: w.a, start: w.start }));
+      const demands = [...(scripted ? scripted.log.demands : []), ...(scripted ? scripted.log.tribute : [])].map((d) => ({ ...d, warWithin10: warsOnPlayerStarts.some((w) => w.from === d.from && w.start > d.turn && w.start <= d.turn + 10) }));
+      fs.writeFileSync(path.join(OUT_DIR, `telemetry-${seed}.json`), JSON.stringify({ seed, policy: POLICY, demandsPolicy: DEMANDS, speed: SPEED || 'default', player: s.playerNationId, finalTurn: s.turnNumber, status: s.gameStatus, ...rep, demandsAnswered: demands, scriptedLog: scripted ? { ...scripted.log, demands: undefined, tribute: undefined } : null }));
+    }
   });
 });

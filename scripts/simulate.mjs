@@ -30,11 +30,19 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import { worldHealth, kaplanMeier, mean, sd, tCritical95 } from './simStats.mjs';
+import { createScriptedPlayer, createTelemetry } from './campaignTelemetry.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const parseArgs = (argv) => {
-  const args = { games: 5, turns: 150, seed: 1 };
+  // W00 telemetry options (all optional, defaults keep the old legacy-world passive run):
+  //   --scenario legacy|peoples   the 240-country world (default) or a new game's peoples world
+  //   --policy passive|scripted   scripted answers every blocker and fills idle player cities
+  //   --demands refuse|pay        the scripted player's answer to demands and tribute
+  //   --speed normal|marathon|..  game speed (default: the engine's)
+  //   --player <id>               one player for every game (default: a different nation per game)
+  const args = { games: 5, turns: 150, seed: 1, scenario: 'legacy', policy: 'passive', demands: 'refuse', speed: null, player: null };
+  const STRINGS = { scenario: ['legacy', 'peoples'], policy: ['passive', 'scripted'], demands: ['refuse', 'pay'], speed: null, player: null };
   for (let i = 0; i < argv.length; i++) {
     const [flag, inlineValue] = argv[i].split('=');
     const key = flag.replace(/^--/, '');
@@ -42,9 +50,14 @@ export const parseArgs = (argv) => {
     if (key === 'games' || key === 'turns' || key === 'seed') {
       args[key] = Number(value);
       if (inlineValue === undefined) i++;
+    } else if (key in STRINGS) {
+      if (STRINGS[key] && !STRINGS[key].includes(value)) throw new Error(`Invalid --${key}: expected one of ${STRINGS[key].join(', ')}`);
+      args[key] = value;
+      if (inlineValue === undefined) i++;
     }
   }
-  for (const [key, value] of Object.entries(args)) {
+  for (const key of ['games', 'turns', 'seed']) {
+    const value = args[key];
     if (!Number.isSafeInteger(value) || value < (key === 'seed' ? 0 : 1)) throw new Error(`Invalid --${key}: expected ${key === 'seed' ? 'a nonnegative' : 'a positive'} integer`);
   }
   return args;
@@ -64,7 +77,16 @@ export const buildSimEngine = async () => {
         "export { migrateSave, CURRENT_SAVE_VERSION } from '../src/engine/saveMigrations.js';",
         "export { getNeighborIds } from '../src/data/regions.js';",
         "export { WORLD_NATIONS } from '../src/data/worldNations.js';",
-        "export { getTiles } from '../src/data/geo/tiles.js';"
+        "export { getTiles } from '../src/data/geo/tiles.js';",
+        "export { chooseProduction, nationCounts } from '../src/engine/aiProduction.js';",
+        "export { bestSites, MAX_SETTLE_RINGS } from '../src/engine/settlers.js';",
+        "export { getResearched, getTechAgeId } from '../src/engine/nationState.js';",
+        "export { getEffectiveAgeId, speedCostMult } from '../src/data/ages.js';",
+        "export { authorityOf } from '../src/engine/authority.js';",
+        "export { getOverextension } from '../src/engine/nationalPower.js';",
+        "export { metNations } from '../src/engine/fog.js';",
+        "export { opinionOf } from '../src/engine/opinion.js';",
+        "export { isIndependentNation } from '../src/data/independents.js';"
       ].join('\n'),
       resolveDir: __dirname,
       loader: 'js'
@@ -99,16 +121,18 @@ export const advanceCampaign = (engine, state, options = {}) => {
   return next;
 };
 
-const runGame = (engine, playerNationId, seed, turns) => {
+const runGame = (engine, playerNationId, seed, turns, opts = {}) => {
   const firedEvents = Object.keys(engine.HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
   let state = {
-    ...engine.createInitialState({ playerNationId, rngSeed: seed }),
+    ...engine.createInitialState({ playerNationId, rngSeed: seed, ...(opts.scenario === 'peoples' ? { scenario: { mode: 'peoples', size: 'standard', seed } } : {}), ...(opts.speed ? { gameSpeed: opts.speed } : {}) }),
     firedEvents,
     proceduralEventCooldown: 999999,
     // Nobody is at the controls: defense battles auto-resolve instead of waiting for the player.
     battleSettings: { defaultMode: 'auto', autoDefend: true }
   };
 
+  const scripted = opts.policy === 'scripted' ? createScriptedPlayer({ engine, demands: opts.demands, opinionOf: engine.opinionOf }) : null;
+  const telemetry = createTelemetry({ playerId: state.playerNationId, isIndependent: engine.isIndependentNation, authorityOf: engine.authorityOf, getOverextension: engine.getOverextension, metNations: engine.metNations, getTiles: engine.getTiles });
   const seenWarIds = new Set();
   const seenBankruptNations = new Set();
   const seenCivilWarNations = new Set();
@@ -126,10 +150,12 @@ const runGame = (engine, playerNationId, seed, turns) => {
 
   for (let t = 0; t < turns; t++) {
     const startedAt = performance.now();
+    if (scripted) state = scripted.answer(state).state;
     const next = advanceCampaign(engine, state);
     const elapsed=performance.now()-startedAt;
     turnTimeMsTotal += elapsed; turnTimes.push(elapsed);
     completedTurns += next.turnNumber - state.turnNumber;
+    telemetry.observe(state, next);
 
     (next.wars || []).forEach((w) => {
       if (!seenWarIds.has(w.id)) {
@@ -168,6 +194,7 @@ const runGame = (engine, playerNationId, seed, turns) => {
 
   return {
     ...health,
+    campaign: telemetry.snapshot(state),
     survival: km.at[turns],
     medianNationLife: km.median,
     finalTurn: state.turnNumber,
@@ -189,7 +216,8 @@ const runGame = (engine, playerNationId, seed, turns) => {
 };
 
 const main = async () => {
-  const { games, turns, seed } = parseArgs(process.argv.slice(2));
+  const args = parseArgs(process.argv.slice(2));
+  const { games, turns, seed } = args;
   console.log(`Balance simulation: ${games} game(s) x up to ${turns} turns each (seed base ${seed})`);
 
   const enginePath = await buildSimEngine();
@@ -199,10 +227,10 @@ const main = async () => {
   const nationIds = Object.keys(engine.WORLD_NATIONS);
   const results = [];
   for (let g = 0; g < games; g++) {
-    const playerNationId = nationIds[(seed + g) % nationIds.length];
+    const playerNationId = args.player || nationIds[(seed + g) % nationIds.length];
     const gameSeed = seed * 1000 + g;
     console.log(`  game ${g + 1}/${games}: player=${playerNationId} seed=${gameSeed}`);
-    results.push(runGame(engine, playerNationId, gameSeed, turns));
+    results.push(runGame(engine, playerNationId, gameSeed, turns, { scenario: args.scenario, policy: args.policy, demands: args.demands, speed: args.speed }));
   }
 
   const sum = (key) => results.reduce((acc, r) => acc + r[key], 0);
@@ -227,6 +255,9 @@ const main = async () => {
   console.log('\nRunaway and health (mean ± 95% CI across games):');
   ['nationsAlive', 'survival', 'giniCities', 'giniPopulation', 'giniWealth', 'giniLand', 'hhiLand', 'effectiveNations', 'topLandShare', 'zipfSlope']
     .forEach((key) => console.log(`  ${key.padEnd(18)}${ci(key)}`));
+  console.log(`\nCampaign telemetry (scenario ${args.scenario}, policy ${args.policy}), per game:`);
+  const TELEM_KEYS = ['playerAdm', 'playerDip', 'playerMil', 'playerCities', 'playerProdMean', 'aiCityProdMedian', 'firstUnitTurn', 'firstBuildingTurn', 'secondCityTurn', 'demandsMajor', 'demandsTribute', 'warsDeclaredMajors', 'warLenMedian', 'siegesBegun', 'capturesTotal', 'conquestsKept20', 'rebellionsStarted', 'aiMoveRate', 'stackMovedShare', 'stackShuttleShare', 'majorsMet', 'aiTopOverext', 'aiTopAuthority'];
+  results.forEach((r, i) => console.log(`  #${i + 1}: ${TELEM_KEYS.map((k) => `${k}=${r.campaign[k]}`).join(' ')}`));
   console.log('\nPer-game results:');
   results.forEach((r, i) => {
     console.log(`  #${i + 1}: turn ${r.finalTurn} (${r.finalYear}), status ${r.finalStatus}, ` +
