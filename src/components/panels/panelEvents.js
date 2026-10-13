@@ -7,6 +7,9 @@ export const OPEN_TAB = 'ti:open-tab';
 export const TAB_ALIAS = { military: 'domestic' };
 export const SECTION_OF_TAB = { military: 'war' };
 export const OPEN_SECTION = 'ti:open-section';
+// "Show it on the map": the panel gets out of the map's way on a phone or a tablet (PanelDrawer).
+export const SHOW_MAP = 'ti:show-map';
+export const showMap = () => window.dispatchEvent(new CustomEvent(SHOW_MAP));
 export const openPanelTab = (tabId) => {
   window.dispatchEvent(new CustomEvent(OPEN_TAB, { detail: TAB_ALIAS[tabId] || tabId }));
   if (SECTION_OF_TAB[tabId]) window.dispatchEvent(new CustomEvent(OPEN_SECTION, { detail: SECTION_OF_TAB[tabId] }));

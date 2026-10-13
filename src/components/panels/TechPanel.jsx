@@ -27,7 +27,7 @@ import { FOCUS_SCIENCE_BONUS } from '../../engine/research';
 import { ActionButton, CollapsibleSection } from '../ui';
 import { Button, Chip, Label, Meter, Segmented, Switch } from '../ui/atlas';
 import { setMapLens } from '../ui/uiEvents';
-import { openPanelTab } from './panelEvents';
+import { openPanelTab, showMap } from './panelEvents';
 import { advisorPlan, scholarsPreview } from '../../engine/researchStatus';
 import { describeTech, formatTurns, formatEta, techInfo, techGraph, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
 import { researchSheetModel } from './researchSheetModel';
@@ -105,7 +105,7 @@ const CurrentCard = ({ m }) => {
 
 // One map boost: a dot (filled when met), what to do and what it gives, the Map button.
 const BoostRow = ({ b }) => {
-  const go = () => { if (!b.target) return; if (b.target.kind === 'lens') setMapLens(b.target.lens); else openPanelTab(b.target.tab); };
+  const go = () => { if (!b.target) return; if (b.target.kind === 'lens') { setMapLens(b.target.lens); showMap(); } else openPanelTab(b.target.tab); };
   return (
     <div className="fa-card flex items-center gap-2.5 pl-3 pr-1.5 py-1.5 min-h-[48px]" data-testid="research-map-boost">
       <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${b.met ? 'bg-fa-good' : 'border-2 border-fa-muted'}`} aria-hidden="true" />

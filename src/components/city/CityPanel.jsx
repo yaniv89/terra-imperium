@@ -29,6 +29,7 @@ import { wonderOptions, wonderItem } from '../../engine/wonders';
 import { GREAT_PROJECTS, cityWonderTotal } from '../../data/greatProjects';
 import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } from '../ui/icons';
 import { Meter, Stat } from '../ui/atlas';
+import { settlingOutlook } from '../../engine/settlers';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
 
@@ -98,6 +99,9 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const costCtx = { ageId, citiesOwned, speedMult: speedCostMult(state.gameSpeed, ageId) };
   const turnsFor = (item, progress = 0) => Math.max(1, Math.ceil(Math.max(0, productionCost(item, costCtx) - progress) / Math.max(0.1, yields.production)));
 
+  // Whether settlers built here would have a site worth a city (settlers.js settlingOutlook: the
+  // best legal, explored site in reach). The Settlers row says so when there is none (I092).
+  const settling = useMemo(() => (city ? settlingOutlook(state, state.playerNationId, city.tile, ageId) : { ok: true, best: null }), [city, state, ageId]);
   const options = useMemo(() => {
     if (!city) return [];
     const out = [];
@@ -324,6 +328,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                     <ItemIcon item={o.item} ageId={ageId} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate">{itemLabel(o.item, tiles, ageId)}</div>
+                      {o.item.kind === 'settler' && !settling.ok && <div className="text-amber-300 text-[11px] leading-snug" data-testid="settler-no-site">No good site is known within reach of {city.name}: these settlers would have nowhere worth going. Explore first, or build something else.</div>}
                       {o.item.kind === 'wonder' && <div className="text-fa-muted text-[11px] leading-snug" data-testid="wonder-description">{GREAT_PROJECTS[o.item.projectId]?.description}</div>}
                       <div className="text-fa-muted text-[12px]">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } })} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">Research it</button></> : o.reason}</div>
                     </div>

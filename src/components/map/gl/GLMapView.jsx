@@ -39,7 +39,6 @@ import { clamp } from '../../../effects/engine';
 import { openBattleReport } from '../../battle/battleReportEvents';
 import { useMarch } from '../MarchContext';
 import { fogView } from '../fogView';
-import { isSettler } from '../../../engine/settlers';
 import { loadGroundData } from '../closeView/groundBlend';
 import { createCloseScene, closeTowns } from '../closeView/closeViewScene';
 import { tileGpuData } from './tileGpuData';
@@ -58,6 +57,8 @@ import {
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
 } from './sceneModel';
 import { raidShapes } from './raidShapes';
+import { declutterLabels } from './declutter';
+import { settlerLines } from '../settleRoutes';
 import { raidMapModel } from '../../independents/raidMapModel';
 import { openIndependent } from '../../independents/independentEvents';
 
@@ -87,7 +88,7 @@ export const canRunGLMap = () => {
 const GLMapView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, hudOffset = false,
   initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null,
-  onSelectArmy = null, selectedArmy = null, lens = 'political', onFail = null
+  onSelectArmy = null, selectedArmy = null, lens = 'political', onFail = null, settle = null
 }) => {
   const { state: gameState } = useGame();
   const gameStateRef = useRef(gameState);
@@ -95,10 +96,13 @@ const GLMapView = ({
   const camKey = cameraKey(gameState);
   const fog = useMemo(() => fogView(gameState), [gameState]);
   const state = fog.state;
-  // One of your settlers on the selected tile shows the settle tints round it (settle-rules R6).
-  const settlerTile = useMemo(() => (selectedTile != null && Object.values(gameState.units).some((u) => isSettler(u) && u.ownerId === gameState.playerNationId && u.tile === selectedTile) ? selectedTile : null),
-    [selectedTile, gameState.units, gameState.playerNationId]);
-  const tintOn = lens === 'supply' || lens === 'settle' || (settlerTile != null && lens === 'political');
+  // The settle mode (settleMode.js, MapContainer): `settle` is { tile, sites } for its settler and
+  // the lens is then 'settle' whatever the player had on; the tints are drawn round that settler
+  // and stay while other tiles are tapped and their sheet is closed (playtest audit I084, I086).
+  const settlerTile = settle?.tile ?? null;
+  const settleSiteList = settle?.sites;
+  // 2: the settle view (stronger at the strategic zoom, blocked land hatched: territoryShader.js)
+  const tintOn = lens === 'settle' ? 2 : lens === 'supply' ? 1 : 0;
   const { effects } = useEffects();
   const rawInsets = useMapInsets();
   const insets = hudOffset ? rawInsets : { top: 0, bottom: 0, left: 0, right: 0 };
@@ -108,6 +112,8 @@ const GLMapView = ({
   // a march's target is being picked (the taps below read it)
   const marchingRef = useRef(false);
   marchingRef.current = !!marchCtx?.march && !marchCtx.march.dragging;
+  const settleRef = useRef(false);
+  settleRef.current = !!settle;
 
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -208,7 +214,7 @@ const GLMapView = ({
     g.raster.update(v, { closeK: CLOSE_ZOOM_K, baseZ: s.baseZ, worldUrl: s.worldUrl, worldSize: s.worldSize });
     const territoryOpts = {
       uHex: v.k >= HEX_FROM_ZOOM ? 1 : 0, uCityDetail: v.k >= CITY_DETAIL_ZOOM ? 1 : 0, uNationHalf: v.k < 3 ? 0.55 : 0.45,
-      uSelTile: s.selectedTile ?? -1, uTintOn: s.tintOn ? 1 : 0, uFogOn: s.fogOn ? 1 : 0
+      uSelTile: s.selectedTile ?? -1, uTintOn: s.tintOn || 0, uFogOn: s.fogOn ? 1 : 0
     };
     [g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
     // the world camera (the raster quads and the close view's models)
@@ -261,9 +267,9 @@ const GLMapView = ({
     clearTimeout(settleTimer.current);
     const prevK = settledRef.current.k;
     const ratio = t.k / prevK;
-    const settle = () => setSettled({ k: t.k, x: t.x, y: t.y, n: Date.now() });
-    if (ratio > ZOOM_JUMP || ratio < 1 / ZOOM_JUMP) settle();
-    else settleTimer.current = setTimeout(settle, ZOOM_SETTLE_MS);
+    const settleNow = () => setSettled({ k: t.k, x: t.x, y: t.y, n: Date.now() });
+    if (ratio > ZOOM_JUMP || ratio < 1 / ZOOM_JUMP) settleNow();
+    else settleTimer.current = setTimeout(settleNow, ZOOM_SETTLE_MS);
   }, []);
   useEffect(() => () => clearTimeout(settleTimer.current), []);
 
@@ -426,7 +432,7 @@ const GLMapView = ({
     g.territory.setCities(buildCityTexels({ regions: state.regions, index: cityIndex, playerNationId: state.playerNationId, selectedRegion, atWarNationIds: atWar, nations: state.nations }));
     g.request();
   }, [ready, state.regions, state.nations, cityIndex, state.playerNationId, selectedRegion, atWar]);
-  const lensOut = useMemo(() => (projection ? lensShapes({ state, projection, k: settled.k, lens, dpr, settlerTile }) : null), [state, projection, settled.k, lens, dpr, settlerTile]);
+  const lensOut = useMemo(() => (projection ? lensShapes({ state, projection, k: settled.k, lens, dpr, settlerTile, sites: settleSiteList }) : null), [state, projection, settled.k, lens, dpr, settlerTile, settleSiteList]);
   useEffect(() => {
     const g = gl.current;
     if (!g) return;
@@ -462,7 +468,11 @@ const GLMapView = ({
     [state, projection, k, landKey, fog, lens, closeGround, dpr]);
   const marks = useMemo(() => (projection ? groundMarks({ state, projection, k, dpr }) : []), [state, projection, k, dpr]);
   const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr }) : null), [state, projection, k, fog, dpr]);
-  const march = useMemo(() => (projection ? marchShapes({ marchLines, projection, k, selectedArmy, dpr }) : null), [marchLines, projection, k, selectedArmy, dpr]);
+  // settlers on their way draw their road like a march (settleRoutes.js, I095)
+  const settlerRoads = useMemo(() => settlerLines(gameState),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gameState.units, gameState.world?.tileOwner, gameState.wars, gameState.playerNationId]);
+  const march = useMemo(() => (projection ? marchShapes({ marchLines: [...(marchLines || []), ...settlerRoads], projection, k, selectedArmy, dpr }) : null), [marchLines, settlerRoads, projection, k, selectedArmy, dpr]);
   // The independents' raid parties, warnings, sieges and fires in sight (phase W4).
   const raidModel = useMemo(() => raidMapModel(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -514,7 +524,8 @@ const GLMapView = ({
       terrain: terrainOut,
       ground: [...(lensOut?.sprites || []), ...landOut.sprites, ...marks],
       upper: [...march.sprites, ...settlers.sprites],
-      top: [...cities.sprites, ...cities.names, ...markerOut.sprites, ...raids.sprites]
+      // names, banners and the raids' labels never stand on each other (declutter.js, I080)
+      top: [...cities.sprites, ...declutterLabels([...cities.names, ...raids.sprites.filter((s) => s.label)], k), ...markerOut.sprites, ...raids.sprites.filter((s) => !s.label)]
     };
     const resolve = () => {
       const out = {};
@@ -540,7 +551,7 @@ const GLMapView = ({
     g.marchLines.set([...march.lines, ...raids.lines]);
     g.hits = [...raids.hits, ...settlers.hits, ...cities.hits, ...markerOut.hits];
     g.request();
-  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick]);
+  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k]);
 
   // ---------------------------------------------------------------- the close view
   const [land, setLand] = useState(null);
@@ -613,7 +624,7 @@ const GLMapView = ({
     // tile always does. From the hex zoom a tile of its land is the tile itself (its sheet names
     // the city and opens it): the player can inspect the land inside a border (playtest audit
     // I077). A march keeps aiming at the city whose land was tapped, and so does settling.
-    const hexPick = v.k >= HEX_FROM_ZOOM && !marchingRef.current;
+    const hexPick = (v.k >= HEX_FROM_ZOOM || settleRef.current) && !marchingRef.current;
     if (city && state.regions[city] && (!hexPick || state.regions[city].tile === tile)) return { kind: 'city', id: city, via: 'land', tile };
     return { kind: 'tile', tile, land: tile != null && tile >= 0 && getTiles().land[tile] === 1, explored: tile != null && tile >= 0 && fog.isExplored(tile), cityId: city && state.regions[city] ? city : null };
   };

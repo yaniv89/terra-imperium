@@ -22,7 +22,7 @@ import { useGame } from '../../context/GameContext';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ActionPanelTabs, { visibleTabs, getTabBadge } from './ActionPanelTabs';
-import { OPEN_TAB } from './panelEvents';
+import { OPEN_TAB, SHOW_MAP } from './panelEvents';
 import ActionPanel from './ActionPanel';
 import { openSettings } from '../ui/uiEvents';
 
@@ -79,9 +79,13 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
       if (isMobile) setMobileSheetOpen(true);
       else { setDockOpen(true); interactions.promote('tabs'); }
     };
+    // "Show it on the map" from inside a tab (a research boost's Map button): on a phone or a
+    // tablet the panel covers the map, so it closes; a desktop keeps it beside the map (I085).
+    const onShowMap = () => { if (isMobile) setMobileSheetOpen(false); else if (layout !== 'desktop') setDockOpen(false); };
     window.addEventListener(OPEN_TAB, onOpen);
-    return () => window.removeEventListener(OPEN_TAB, onOpen);
-  }, [onTabChange, isMobile]);
+    window.addEventListener(SHOW_MAP, onShowMap);
+    return () => { window.removeEventListener(OPEN_TAB, onOpen); window.removeEventListener(SHOW_MAP, onShowMap); };
+  }, [onTabChange, isMobile, layout]);
 
   // --rail-inset: the width of the rail and its dock (0 without a rail).
   useEffect(() => {
