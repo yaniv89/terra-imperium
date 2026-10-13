@@ -247,7 +247,7 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 | I162 | UX | Resource popover remains open over other sheets | R85 | W04 | Popover lifecycle participates in the interaction coordinator and has a predictable dismissal. |
 | I163 | UX | Stored-resource icons have unlabeled numbers | R85 | W04,W07 | Provide visible/accessible labels, units and explanation for every resource amount. |
 | I164 | UX | Settings duplicates Map section headings | R2 | W14 | Organize settings with distinct headings and clear disabled-control explanations. |
-| I165 | Request | No in-game local save/load slots | R1 | W15 | Scope explicit local slots/checkpoints with persistence semantics separately from corruption fixes. |
+| I165 | Request | No in-game local save/load slots | R1 | W15 | Scope explicit local slots/checkpoints with persistence semantics separately from corruption fixes. Includes the launch title screen (Continue / New game / Load): addendum X26. |
 | I166 | UX | New Game uses a native browser confirmation | L11; R12 | W04,W15 | Use an accessible in-game dialog that states progress/save consequences and handles cancellation. |
 | I167 | UX | Start search promises capital names but misses modern aliases | R13 | W14 | Support the promised aliases or accurately narrow the placeholder; preserve empty-state behavior. |
 | I168 | UX | Start region chips overflow without a scroll hint | R15 | W14 | All region filters are discoverable and reachable on landscape phones. |

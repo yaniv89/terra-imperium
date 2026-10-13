@@ -92,3 +92,22 @@ one-city independents (2.3 per major; Civ VI uses 1.5).
 Open: which 50 are majors (a list from the user, or a proposal by region: every region keeps 4 to
 6 choices). Art consequence: UI18 in [the art update](playtest-audits-art-update-2026-10-13.md),
 on hold until confirmed.
+
+## 8. Title screen on launch (X26, user request of 13 October)
+
+Today the game reopens the last game with no choice, even days later; the only way out is Menu,
+New game, and a native browser confirm (test log row 12), and there is one autosave and no slots
+(I165). Resuming is the right default, but the player must be able to choose.
+
+X26 joins I165 (W15, CB13 for the screen). On launch, when a saved game exists, show a title
+screen:
+1. **Continue**: the people, turn, year and date of the last save, so the player knows what is
+   resumed. One tap.
+2. **New game**: goes to the start steps. The current game is kept as a save, never overwritten
+   silently. Replaces the native confirm with an in-game one.
+3. **Load**: a few local save slots (the autosave plus manual saves), each with people, turn, year
+   and date; delete with a confirm.
+With no saved game, launch goes straight to the start steps as today. The stale-version reload
+guard and the v-number save migrations still apply to every slot; a slot that cannot be migrated is
+shown as "from an older version" and is not deleted. Phone landscape first (844x340). Art: none
+beyond the existing start-screen style.
