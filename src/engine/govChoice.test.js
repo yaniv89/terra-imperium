@@ -27,7 +27,7 @@ describe('government change with chosen reforms (I140)', () => {
     expect(next.nations[s.playerNationId].government.reforms[slot.ageId]).toBe(second);
     const bogus = gameReducer(s, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: target, reforms: { [slot.ageId]: 'nope' } } });
     expect(bogus.nations[s.playerNationId].government.reforms[slot.ageId]).toBe(slot.options[0].id);
-  }), 120000);
+  }, 120000);
 });
 
 describe('court names and successions (I145, I147)', () => {

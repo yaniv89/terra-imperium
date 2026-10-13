@@ -48,6 +48,7 @@ import TileSheet from './TileSheet';
 import ArmySheet from './ArmySheet';
 import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
+import MapGoals from './MapGoals';
 import { LENSES } from './lenses';
 import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION, MANAGE_CITY, FOCUS_PLACE } from './marchEvents';
 import { SET_MAP_LENS } from '../ui/uiEvents';
@@ -205,6 +206,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
         position="panel-hud"
       />
       )}
+      <MapGoals />
       {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} />}
       {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}

@@ -22,7 +22,7 @@ import { useGame } from '../../context/GameContext';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ActionPanelTabs, { visibleTabs, getTabBadge } from './ActionPanelTabs';
-import { OPEN_TAB } from './panelEvents';
+import { OPEN_TAB, CLOSE_PANELS } from './panelEvents';
 import ActionPanel from './ActionPanel';
 import { openSettings } from '../ui/uiEvents';
 
@@ -82,6 +82,13 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
     window.addEventListener(OPEN_TAB, onOpen);
     return () => window.removeEventListener(OPEN_TAB, onOpen);
   }, [onTabChange, isMobile]);
+
+  // The Map button of a Research boost asks for a clear map.
+  useEffect(() => {
+    const onClose = () => { setDockOpen(false); setMobileSheetOpen(false); };
+    window.addEventListener(CLOSE_PANELS, onClose);
+    return () => window.removeEventListener(CLOSE_PANELS, onClose);
+  }, []);
 
   // --rail-inset: the width of the rail and its dock (0 without a rail).
   useEffect(() => {
