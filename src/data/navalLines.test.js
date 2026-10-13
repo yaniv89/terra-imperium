@@ -52,7 +52,11 @@ describe('naval lines', () => {
     const built = Object.values(r.units).find((u) => u.domain === 'naval' && !s.units[u.id]);
     if (built) { expect(built.navalLine).toBe('transport'); expect(built.transportCapacity).toBe(navalCargo('transport', 'bronze')); }
     const tiles = getTiles(); const world = { cities: s.regions, tileOwner: s.world.tileOwner, tileState: s.world.tileState };
-    expect(canQueue(port, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'carrier' }, { researched: [], ageId: 'bronze' }).ok).toBe(false);
-    expect(canQueue(port, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'warship' }, { researched: [], ageId: 'bronze' }).ok).toBe(true);
+    // Ships are queued only in a city on the sea (cities.js hasSeaCoast, playtest audits I039).
+    const harbour = Object.values(s.regions).find((c) => c.tile != null && tiles.coastal[c.tile] === 1);
+    expect(canQueue(harbour, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'carrier' }, { researched: [], ageId: 'bronze' }).ok).toBe(false);
+    expect(canQueue(harbour, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'warship' }, { researched: [], ageId: 'bronze' }).ok).toBe(true);
+    const inland = Object.values(s.regions).find((c) => c.tile != null && tiles.coastal[c.tile] !== 1);
+    expect(canQueue(inland, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'warship' }, { researched: [], ageId: 'bronze' }).ok).toBe(false);
   });
 });
