@@ -1,0 +1,451 @@
+{
+  "passed": true,
+  "files": {
+    "river-kit": {
+      "passed": true,
+      "separate_actual_LOD_bake_regions_verified": true,
+      "all_physical_exported_UV_triangles_nonzero_area": true,
+      "source_packed_1024_maps": true,
+      "source_origin_ground_bounds_and_no_hidden_scene_objects": true,
+      "uncompressed_source_and_export_seams_max_error": 2.9802322387695312e-08,
+      "objects": {
+        "bank": [
+          {
+            "LOD": 0,
+            "triangles": 187,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 40,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 16,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "straight": [
+          {
+            "LOD": 0,
+            "triangles": 224,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 112,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 56,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "bend": [
+          {
+            "LOD": 0,
+            "triangles": 224,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 112,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 56,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "junction": [
+          {
+            "LOD": 0,
+            "triangles": 24,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 24,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 24,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "end": [
+          {
+            "LOD": 0,
+            "triangles": 271,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 135,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 67,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "straight-5": [
+          {
+            "LOD": 0,
+            "triangles": 224,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 112,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 56,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "bend-5": [
+          {
+            "LOD": 0,
+            "triangles": 224,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 112,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 56,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "junction-5": [
+          {
+            "LOD": 0,
+            "triangles": 24,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 24,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 24,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "end-5": [
+          {
+            "LOD": 0,
+            "triangles": 271,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 135,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 67,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "straight-8": [
+          {
+            "LOD": 0,
+            "triangles": 224,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 112,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 56,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "bend-8": [
+          {
+            "LOD": 0,
+            "triangles": 224,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 112,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 56,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "junction-8": [
+          {
+            "LOD": 0,
+            "triangles": 24,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 24,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 24,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "end-8": [
+          {
+            "LOD": 0,
+            "triangles": 271,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 135,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 67,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ]
+      },
+      "glb_sha256": "3efe3a681982ffe0018b49fbec4296c91721b59ad7a2297d0a117ea1a74164f7"
+    },
+    "ford": {
+      "passed": true,
+      "separate_actual_LOD_bake_regions_verified": true,
+      "all_physical_exported_UV_triangles_nonzero_area": true,
+      "source_packed_1024_maps": true,
+      "source_origin_ground_bounds_and_no_hidden_scene_objects": true,
+      "uncompressed_source_and_export_seams_max_error": 2.9802322387695312e-08,
+      "objects": {
+        "ford": [
+          {
+            "LOD": 0,
+            "triangles": 290,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 138,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 102,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ]
+      },
+      "glb_sha256": "7a3b28514cb26e82490e8367fb545ca059905ec818ef5d19ca3a11e3cbff6265"
+    },
+    "bridge-wood": {
+      "passed": true,
+      "separate_actual_LOD_bake_regions_verified": true,
+      "all_physical_exported_UV_triangles_nonzero_area": true,
+      "source_packed_1024_maps": true,
+      "source_origin_ground_bounds_and_no_hidden_scene_objects": true,
+      "uncompressed_source_and_export_seams_max_error": 2.9802322387695312e-08,
+      "objects": {
+        "bridge-wood": [
+          {
+            "LOD": 0,
+            "triangles": 704,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 464,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 184,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "bridge-wood-damaged": [
+          {
+            "LOD": 0,
+            "triangles": 660,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 416,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 152,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "bridge-wood-destroyed": [
+          {
+            "LOD": 0,
+            "triangles": 500,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 380,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 128,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ]
+      },
+      "glb_sha256": "1d6e29678811a97d09209179db366471b053444b9ed450f51944333e365fd19c"
+    },
+    "bridge-stone": {
+      "passed": true,
+      "separate_actual_LOD_bake_regions_verified": true,
+      "all_physical_exported_UV_triangles_nonzero_area": true,
+      "source_packed_1024_maps": true,
+      "source_origin_ground_bounds_and_no_hidden_scene_objects": true,
+      "uncompressed_source_and_export_seams_max_error": 2.9802322387695312e-08,
+      "objects": {
+        "bridge-stone": [
+          {
+            "LOD": 0,
+            "triangles": 800,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 416,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 8
+          },
+          {
+            "LOD": 2,
+            "triangles": 176,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 8
+          }
+        ],
+        "bridge-stone-damaged": [
+          {
+            "LOD": 0,
+            "triangles": 744,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 356,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 8
+          },
+          {
+            "LOD": 2,
+            "triangles": 116,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 8
+          }
+        ],
+        "bridge-stone-destroyed": [
+          {
+            "LOD": 0,
+            "triangles": 520,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 280,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 8
+          },
+          {
+            "LOD": 2,
+            "triangles": 80,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 8
+          }
+        ]
+      },
+      "glb_sha256": "82b819680bd666e56204210a9c1f11b56bd5ebf55c8e6144070ca8e79d173bc5"
+    },
+    "bridge-steel": {
+      "passed": true,
+      "separate_actual_LOD_bake_regions_verified": true,
+      "all_physical_exported_UV_triangles_nonzero_area": true,
+      "source_packed_1024_maps": true,
+      "source_origin_ground_bounds_and_no_hidden_scene_objects": true,
+      "uncompressed_source_and_export_seams_max_error": 2.9802322387695312e-08,
+      "objects": {
+        "bridge-steel": [
+          {
+            "LOD": 0,
+            "triangles": 1560,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 1
+          },
+          {
+            "LOD": 1,
+            "triangles": 344,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 152,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "bridge-steel-damaged": [
+          {
+            "LOD": 0,
+            "triangles": 1496,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 308,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 120,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ],
+        "bridge-steel-destroyed": [
+          {
+            "LOD": 0,
+            "triangles": 1084,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 1,
+            "triangles": 284,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          },
+          {
+            "LOD": 2,
+            "triangles": 128,
+            "zero_area_geometry_triangles_counted_in_raw_budget": 0
+          }
+        ]
+      },
+      "glb_sha256": "0295b17cd90ed28de2b560331fd5f9ccc93f12bb632ded5c57eccfbbd350707b"
+    }
+  }
+}

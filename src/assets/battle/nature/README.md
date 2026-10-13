@@ -9,7 +9,25 @@ Read by `src/battle/render/economyLayer.js` (nodes, herds, groves) and
 |---|---|---|
 | `stone-outcrop.glb`, `ore-outcrop.glb`, `gold-vein.glb`, `fish-shoal.glb` | `full` (more than half left), `half`, `depleted` (a low stump or pit that does not block) | 1,500 / 300 / 80 |
 | `herd-sheep-goat.glb`, `herd-cattle.glb` | `animal` (one animal at real size; the game places 2 or 3 round the node, fewer as it is used up) | 400 / 150 / 60 |
-| `vegetation-<kit>.glb` (kits: temperate, conifer, mediterranean, tropical, steppe, desert, cold) | `tree-s`, `tree-m`, `tree-l`, `stump`, `felled`, `bush`, `rock-s`, `rock-m`, `grass-tuft` | 600 / 150 / 150 (LOD2 may be a 2-triangle impostor) |
+| `vegetation-<kit>.glb` (kits: temperate, conifer, mediterranean, tropical, steppe, desert, cold) | `tree-s`, `tree-m`, `tree-l`, `stump`, `felled`, `bush`, `rock-s`, `rock-m`, `grass-tuft`, `log-pile` | 600 / 150 / 150 (LOD2 may be a 2-triangle impostor) |
+
+## The four resources (2026-10-13, manifest row MD06)
+The battle has food, wood, stone and gold. Each node is told from the others by colour and shape,
+and its states by height:
+- Stone (`stone-outcrop.glb`): pale grey and square. Sawn benches step up a quarry face, loose cut
+  blocks lie in front. `half` is one low bench, `depleted` a flat bed of rubble round a dark pit.
+- Gold (`gold-vein.glb`): dark pointed crags with bright yellow seams in the rock faces and nuggets
+  at the foot. `half` is two low crags, `depleted` a dark rubble bed with three specks left.
+- Fish (`fish-shoal.glb`): a light patch of stirred water with ripples, dark fish under it and
+  silver fish leaping. `half` is a smaller patch with one leaper, `depleted` a small grey patch
+  with one fish.
+- Wood has no node file: a grove is the kit's `tree-l`, then `tree-m`, then `felled` (the trunk
+  down by its pale-topped stump, logs stacked), then `stump` (three pale-topped stumps and chips),
+  and the game stands the kit's `log-pile` beside it, the mark that says wood node and not one
+  more tree.
+- Ore is retired. `ore-outcrop.glb` stays until the code stops pointing at it (the replacement
+  plan is in plans/art-pilot/md06-nodes-loads/LOG.md).
+`full` is 2.7 to 3.4 m tall, `half` 1.3 to 1.8 m, `depleted` under 0.4 m.
 
 Every object has `LOD0`, `LOD1`, `LOD2` children; materials `Town` (and `Ground` for a ground
 patch); one 1024 atlas per file. Herd animals are drawn in their rest pose for now (rigid or
@@ -37,3 +55,6 @@ the code's trees, rocks and greybox nodes stay.
 `stone-outcrop`, `ore-outcrop`, `gold-vein`, `fish-shoal`, `herd-sheep-goat`, `herd-cattle`,
 `vegetation-temperate`, `vegetation-mediterranean`, `vegetation-desert`. The conifer, tropical, steppe
 and cold kits are still missing (cold and conifer fall back to temperate, steppe to temperate).
+
+2026-10-13 (MD06, `plans/art-pilot/md06-nodes-loads/LOG.md`): `stone-outcrop`, `gold-vein` and `fish-shoal`
+rebuilt for the four resources; `stump` and `felled` redrawn and `log-pile` added in the three kits.

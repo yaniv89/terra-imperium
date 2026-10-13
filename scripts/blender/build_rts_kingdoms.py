@@ -66,6 +66,7 @@ def main():
         if only and name not in only:
             continue
         items.append((name, rb.grounded(name, fn), None))
+    items += rb.ruined_items([(n, fn) for n, fn in ROLES if not only or n in only])  # last: nothing before them moves
     counts = tt.build_file('rts-kingdoms', items, out_dir, atlas=atlas, seed=3400, write=False)
     scene = bpy.context.scene
     roots = [o for o in scene.objects if o.type == 'EMPTY' and o.name in {n for n, _, _ in items}]

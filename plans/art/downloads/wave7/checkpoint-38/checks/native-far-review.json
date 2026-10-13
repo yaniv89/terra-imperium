@@ -1,0 +1,41 @@
+{
+  "status": "visually_reviewed_for_uv_compatibility",
+  "native_cases": 4,
+  "screenshots": 8,
+  "viewports": [
+    [
+      844,
+      390
+    ],
+    [
+      1600,
+      900
+    ]
+  ],
+  "lods": [
+    1,
+    2
+  ],
+  "reviewed_files": [
+    "plans/art/shots/wave7/checkpoint-38/nature-conifer-1600x900-far-LOD1-zoom1-conifer.png",
+    "plans/art/shots/wave7/checkpoint-38/nature-conifer-1600x900-far-LOD2-zoom0.5-conifer.png",
+    "plans/art/shots/wave7/checkpoint-38/nature-conifer-844x390-far-LOD1-zoom1-conifer.png",
+    "plans/art/shots/wave7/checkpoint-38/nature-conifer-844x390-far-LOD2-zoom0.5-conifer.png",
+    "plans/art/shots/wave7/checkpoint-38/river-bronze-1600x900-far-LOD1-zoom0.5-bridge-wood.png",
+    "plans/art/shots/wave7/checkpoint-38/river-bronze-1600x900-far-LOD2-zoom0.45-bridge-wood.png",
+    "plans/art/shots/wave7/checkpoint-38/river-bronze-844x390-far-LOD1-zoom0.5-bridge-wood.png",
+    "plans/art/shots/wave7/checkpoint-38/river-bronze-844x390-far-LOD2-zoom0.45-bridge-wood.png"
+  ],
+  "observations": [
+    "Wooden bridge is centrally visible, with tan deck surfaces and both river-bank contacts at both LODs.",
+    "Bank and ford surfaces retain coherent atlas sampling.",
+    "Conifer tree silhouettes and foliage sampling remain coherent in both native lower-detail levels."
+  ],
+  "scope": "UV compatibility only; quality acceptance remains awaiting lead review.",
+  "limits": [
+    "No hardware GPU or FPS acceptance measurement.",
+    "No new proof for unused damaged bridge variants, standalone tropical/cold vegetation, other landing eras or goods/scorch states."
+  ],
+  "framing_diagnostic": "native-far-framing-diagnostic.json",
+  "final_runtime_audit": "native-far-final.json"
+}

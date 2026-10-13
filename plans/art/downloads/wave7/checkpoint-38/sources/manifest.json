@@ -1,0 +1,54 @@
+{
+  "status": "ready",
+  "frozen_sources": true,
+  "no_bakes_renders_model_or_repo_edits": "Archive preparation only; read-only packed-image audit.",
+  "bundles": [
+    {
+      "zip": "sources/terrain5.zip",
+      "bytes": 32502660,
+      "MiB": 30.997,
+      "sha256": "ac21ef47e9f849495bfc57996778c9dda3a48b8b3ed15ed5722802537770dab7",
+      "assets": [
+        "river-kit",
+        "ford",
+        "bridge-wood",
+        "bridge-stone",
+        "bridge-steel"
+      ],
+      "file_count": 110,
+      "file_list": "sources/terrain5.files.txt",
+      "manifest": "sources/terrain5.manifest.json"
+    },
+    {
+      "zip": "sources/nature3-props2.zip",
+      "bytes": 32228092,
+      "MiB": 30.735,
+      "sha256": "6c33c31a0739e35ba9bef8ac5834ed451447cd1d79cd6a62104b72c3f8b9dd51",
+      "assets": [
+        "vegetation-conifer",
+        "vegetation-tropical",
+        "vegetation-cold",
+        "loot-sack",
+        "exit-marker"
+      ],
+      "file_count": 77,
+      "file_list": "sources/nature3-props2.files.txt",
+      "manifest": "sources/nature3-props2.manifest.json"
+    },
+    {
+      "zip": "sources/props4.zip",
+      "bytes": 25374615,
+      "MiB": 24.199,
+      "sha256": "4af7212e83089fbb396e9dc33ab8cb7d05829c8c9f9c70d232fbdcb281bd9b1c",
+      "assets": [
+        "burnt-field-overlay",
+        "landing-ancient",
+        "landing-middle",
+        "landing-modern"
+      ],
+      "file_count": 65,
+      "file_list": "sources/props4.files.txt",
+      "manifest": "sources/props4.manifest.json"
+    }
+  ]
+}
