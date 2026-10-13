@@ -1,5 +1,7 @@
 # Audit fixes: animation, model and visual-asset production checklist
 
+**Updated 2026-10-13:** [the art update](playtest-audits-art-update-2026-10-13.md) overrides this document where they differ: four battle resources (Food, Wood, Stone, Gold, no ore), no Reserve or reinforcement cues, each unit at its own speed, only machines get bigger, the capture card, base buildings and their damage states, new rows UI15 to UI18, MD13 and MD14, and the budgets of [TRIANGLE-BUDGET.md](art/TRIANGLE-BUDGET.md) instead of section 3.2.
+
 Planning only. No assets or game changes are produced by this document.
 
 **Scope clarification and production detail:** this is an audit-scoped checklist, including overlap with previously planned work, not the complete pre-audit backlog. Read the [detailed art production plan](playtest-audits-art-production-plan.md) and [54-row production manifest](playtest-audits-art-production-manifest.csv) for reconciled specifications, production batches, acceptance gates and backlog boundaries. The plan preserves AN01–AN26 / MD01–MD12 / UI01–UI10, adds four later player-requested UI groups and two supporting checks for herd motion and projectile/FX synchronization. The 13 later player requests are tracked separately in [implementation plan §12](playtest-audits-implementation-plan.md#12-player-follow-up-rts-and-iphone-layout). Its source-authority decisions supersede conflicting technical guidance below.

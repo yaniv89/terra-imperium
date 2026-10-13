@@ -444,6 +444,8 @@ def build(model):
     else:
         spec = HORSE[model]; parts = cs.build_horseman(model, spec); rig = 'horse'; role = 'cavalry'; budget = 3000; mounted = True
     lib.finish(model, parts, spec['colors'], {'name': spec['name'], 'role': role, 'rig': rig, 'look': spec['look']}, budget, mounted)
+    if model == 'tondo':  # a small swivel gun on its rest, already its real size: its footprint for the squad's spacing (MD09)
+        tm.mark_machine(model)
 
 
 ALL = list(FOOT) + list(HORSE) + ['khoekhoe', 'tondo']

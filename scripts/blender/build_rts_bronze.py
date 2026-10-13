@@ -516,8 +516,330 @@ def damaged(layout):
             a = rng.uniform(0, math.pi)
             L = rng.uniform(0.18, 0.32)
             beam(ms, 'ash' if k else 'timber', (x - math.cos(a) * L / 2, y - math.sin(a) * L / 2, G + 0.012), (x + math.cos(a) * L / 2, y + math.sin(a) * L / 2, G + 0.03), r=0.013, lod=0)
+        _breach(ms, layout.__doc__ or '')
         return sockets
     return build
+
+
+def _breach(ms, key):
+    """What makes the damaged state read at a glance (manifest row MD13): one corner of the main
+    body has collapsed (every part is cut by one sloping plane through that corner, the cuts closed
+    in ash), the walls and roofs are blotched with soot, and the fallen corner lies as heaps on a
+    scorch mark. Run last, on its own random stream (seeded from the layout's description), so the
+    shared stream, and with it every other object of the file, stays as it was."""
+    import zlib
+    rng = tm.seeded(zlib.crc32(('breach:' + key).encode()))
+    parts = [p for p in ms.parts if len(p[0].verts)]
+    boxes = [_bounds(p[0]) for p in parts]
+    hard = [(b, p) for b, p in zip(boxes, parts) if tt.TO_FINAL.get(p[1]) is None]
+    if not hard:
+        return
+    lo = [min(b[0][k] for b in boxes) for k in range(3)]
+    hi = [max(b[1][k] for b in boxes) for k in range(3)]
+    (m0, m1), _main = max(hard, key=lambda bp: (bp[0][1][0] - bp[0][0][0]) * (bp[0][1][1] - bp[0][0][1]) * (bp[0][1][2] - bp[0][0][2]))
+    if (m1[0] - m0[0]) * (m1[1] - m0[1]) < 0.2 * (hi[0] - lo[0]) * (hi[1] - lo[1]):
+        m0, m1 = lo, hi  # no main body (a yard, a camp, a field): a corner of the whole plot
+    ux, uy, uh = m1[0] - m0[0], m1[1] - m0[1], m1[2] - G
+    sx = rng.choice((-1, 1))
+    sy = -1 if rng.random() < 0.75 else 1  # mostly a front corner: the camera looks at the front
+    # the plane cuts everything beyond the corner too, so the corner must look out of the plot: where
+    # the main body has more of the building on one side (a second house, a yard), take the other
+    gx = (m0[0] - lo[0], hi[0] - m1[0])
+    if abs(gx[0] - gx[1]) > 0.15:
+        sx = -1 if gx[0] < gx[1] else 1
+    corner = Vector((m1[0] if sx > 0 else m0[0], m1[1] if sy > 0 else m0[1], m1[2]))
+    bite = rng.uniform(0.22, 0.3)   # the share of each top edge that is gone, halved
+    drop = rng.uniform(0.6, 0.85) * uh
+    co = Vector((corner.x - sx * bite * ux, corner.y - sy * bite * uy, corner.z))
+    no = Vector((sx / ux, sy / uy, 2 * bite / max(drop, 0.02))).normalized()
+    out = []
+    for (bm, mat, lod, only), ((x0, y0, z0), (x1, y1, z1)) in zip(parts, boxes):
+        # only the main body and what stands on or against it falls; the yard's things stay
+        on_it = x1 > m0[0] - 0.12 and x0 < m1[0] + 0.12 and y1 > m0[1] - 0.12 and y0 < m1[1] + 0.12
+        caps = _cut(bm, co, no) if on_it else []
+        if not bm.faces:
+            bm.free()
+            continue
+        big = max(x1 - x0, y1 - y0, z1 - z0) >= 0.15
+        if caps:
+            out.append((_take(bm, caps), 'ash', lod, only))
+        if big and tt.TO_FINAL.get(mat) is None and mat != 'ash' and not mat.startswith('burnt'):
+            mat = tt.charred(mat, 0.8)
+        if bm.faces:
+            out.append((bm, mat, lod, only))
+    ms.parts[:] = out
+    r = 0.5 * max(0.5, min(1.2, max(ux, uy)))
+    px, py = corner.x - sx * bite * ux * 0.5, corner.y - sy * bite * uy * 0.5
+    ms.quad_strip('ash', [(px + math.cos(6.2832 * i / 7) * r * rng.uniform(0.75, 1.0), py + math.sin(6.2832 * i / 7) * r * rng.uniform(0.75, 1.0), G + 0.007) for i in range(7)], lod=2)
+    stuff = [m for _bm, m, _lod, _only in out if m.startswith('burnt80_')][:1] or ['ash']
+    for k in range(4):
+        _heap(ms, stuff[0] if k % 2 else stuff[0].replace('burnt80_', '', 1), px + rng.uniform(-0.7, 0.7) * r, py + rng.uniform(-0.7, 0.7) * r,
+              rng.uniform(0.06, 0.1) * max(0.7, min(1.4, max(ux, uy))), rng.uniform(0.05, 0.085), rng, 1 if k < 2 else 0)
+
+
+# ---- the ruined state ------------------------------------------------------------------------------
+# `<role>-ruined` (manifest row MD13): what is left when the building is destroyed. Built from the
+# role's OWN parts so every age's wreck stays in its age's stuff: every part is cut off at knee to
+# waist height by a tilted plane (so the stumps are jagged), big blocks are hollowed into a burnt-out
+# shell with an ash floor, the stuff is charred (ti_town.charred), all team cloth is gone, what
+# stood low (racks, troughs, stalls, blocks) is left broken where it was, and the wreck lies on a
+# scorch mark with heaps of its own wall stuff and burnt beams. Same origin and footprint as the
+# whole building. Budget: the validator's `ruin` (1,200 / 300 / 80 triangles).
+
+RUIN_BUDGET = (1200, 300, 80)
+# triangles for the cut walls and for the low leftovers, per LOD; the rest is the scorch, heaps and beams
+RUIN_WALLS = (600, 140, 48)
+RUIN_PROPS = (270, 50, 10)
+# the share of the building's height its stumps keep (default: knee to waist height, 1.1 to 1.9 m)
+RUIN_CUT = {'tower': 0.3}
+# roles whose big rounded masses are rock, not walls: broken down to half their height, sooted
+RUIN_ROCK = ('mine',)
+# stuff that burns: cloth is cut lower than walls, crops and thatch are left as black as cut walls
+RUIN_CLOTH = ('linen', 'sail', 'canvas', 'camo', 'cloth')
+RUIN_CROPS = ('barley', 'flax', 'wheat', 'rye', 'potato', 'veg', 'thatch', 'reed', 'turf', 'leaf', 'hedge')
+RUIN_FIELD = ('barley', 'flax', 'wheat', 'rye', 'potato', 'veg', 'tilled')  # crop beds: trampled flat as well
+
+
+def _tris(bm):
+    return sum(len(f.verts) - 2 for f in bm.faces)
+
+
+def _cut(bm, co, no):
+    """Cut away everything above the plane (co, no) and close the cut. Returns the closing faces,
+    turned to face up."""
+    res = bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=co, plane_no=no, clear_outer=True)
+    edges = [e for e in res['geom_cut'] if isinstance(e, bmesh.types.BMEdge)]
+    if not edges or not bm.faces:
+        return []
+    caps = bmesh.ops.holes_fill(bm, edges=edges, sides=0)['faces']
+    for f in caps:
+        f.normal_update()
+        if f.normal.z < 0:
+            f.normal_flip()
+    return caps
+
+
+def _take(bm, faces):
+    """Move `faces` out of `bm` into a bmesh of their own (the ash caps are their own material)."""
+    out = bmesh.new()
+    for f in faces:
+        out.faces.new([out.verts.new(v.co) for v in f.verts])
+    out.normal_update()
+    bmesh.ops.delete(bm, geom=faces, context='FACES')
+    return out
+
+
+def _no_floor(bm):
+    """Drop the faces lying on the ground, never seen (the ruin budget is small)."""
+    flat = [f for f in bm.faces if all(v.co.z < G + 0.003 for v in f.verts)]
+    if flat:
+        bmesh.ops.delete(bm, geom=flat, context='FACES')
+
+
+def _heap(ms, mat, x, y, r, h, rng, lod, only=None, sides=5):
+    """A rubble heap: a ragged ring on the ground rising to a smaller ragged top, no floor.
+    sides 5 = 13 triangles; `peak` (LOD2) is a 4-triangle pyramid."""
+    bm = bmesh.new()
+    a0 = rng.uniform(0, 6.28)
+    base = [bm.verts.new((x + math.cos(a0 + 6.2832 * i / sides) * r * rng.uniform(0.8, 1.2),
+                          y + math.sin(a0 + 6.2832 * i / sides) * r * rng.uniform(0.8, 1.2), G)) for i in range(sides)]
+    ox, oy = rng.uniform(-0.2, 0.2) * r, rng.uniform(-0.2, 0.2) * r
+    if sides == 4:
+        apex = bm.verts.new((x + ox, y + oy, G + h))
+        for i in range(sides):
+            bm.faces.new((base[i], base[(i + 1) % sides], apex))
+    else:
+        top = [bm.verts.new((x + ox + math.cos(a0 + 6.2832 * i / sides) * r * 0.42, y + oy + math.sin(a0 + 6.2832 * i / sides) * r * 0.42,
+                             G + h * rng.uniform(0.7, 1.0))) for i in range(sides)]
+        for i in range(sides):
+            j = (i + 1) % sides
+            bm.faces.new((base[i], base[j], top[j], top[i]))
+        bm.faces.new(top)
+    bm.normal_update()
+    ms.add(bm, mat, lod, only=only)
+
+
+def ruined(role, layout):
+    """The `-ruined` state of `layout` (see above). Its own random stream (seeded from the role's
+    name), so adding it does not move a single part of the whole or damaged buildings."""
+    import zlib
+
+    def build(ms, _rng):
+        rng = tm.seeded(zlib.crc32(('ruin:' + role).encode()))
+        src = layout(ms, rng) or {}
+        parts = [p for p in ms.parts if len(p[0].verts)]
+        ms.parts[:] = []
+        boxes = [_bounds(p[0]) for p in parts]
+        ztop = max(b[1][2] for b in boxes) - G
+        lo = (min(b[0][0] for b in boxes), min(b[0][1] for b in boxes))
+        hi = (max(b[1][0] for b in boxes), max(b[1][1] for b in boxes))
+        cx, cy = (lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2
+        w, d = hi[0] - lo[0], hi[1] - lo[1]
+        stump = RUIN_CUT[role] * ztop if role in RUIN_CUT else min(0.19, max(0.11, 0.3 * ztop))
+        # the candidates: every part once (a bevelled block's plain twin stands in for it), no team cloth
+        cands, skip = [], None
+        for (bm, mat, lod, only), box in zip(parts, boxes):
+            twin = skip is not None and all(abs(a - b) < 0.02 for p, q in zip(box, skip) for a, b in zip(p, q))
+            skip = None
+            if twin or tt.TO_FINAL.get(mat) == 'Team':
+                continue
+            if only is not None and 0 not in (only if isinstance(only, tuple) else (only,)):
+                skip = box
+            cands.append((bm, mat, box))
+        posts = [k for k, (_bm, _mat, ((x0, y0, z0), (x1, y1, z1))) in enumerate(cands) if max(x1 - x0, y1 - y0) < 0.1 and z1 - z0 > 3 * stump and z0 < G + 0.05]
+        tall = set() if role in RUIN_CUT else set(rng.sample(posts, min(2, len(posts))))  # one or two posts still stand, burnt
+        walls, props = [], []
+        for k, (bm0, mat, ((x0, y0, z0), (x1, y1, z1))) in enumerate(cands):
+            dx, dy = x1 - x0, y1 - y0
+            if max(dx, dy, z1 - z0) < 0.035 or (role in RUIN_ROCK and mat == 'dark'):  # (the adit's black mouth: fallen in)
+                continue
+            rock = role in RUIN_ROCK and len(bm0.verts) >= 16 and max(dx, dy) > 0.25 and z1 - z0 > 0.12
+            h = min(0.5, stump * rng.uniform(1.9, 3.0)) if k in tall else stump * rng.uniform(0.6, 1.3)
+            if rock:
+                h = 0.45 * ztop * rng.uniform(0.85, 1.1)
+            elif any(t in mat for t in RUIN_CLOTH):
+                h *= 0.45  # cloth burns away: a tent leaves a low charred skirt
+            half = 0.5 * math.hypot(dx, dy)
+            slope = min(0.3 if rock else 0.5, (h - 0.03) / max(half, 0.02)) * rng.uniform(0.55, 1.0)
+            a = rng.uniform(0, 2 * math.pi)
+            co, no = Vector(((x0 + x1) / 2, (y0 + y1) / 2, G + h)), Vector((-slope * math.cos(a), -slope * math.sin(a), 1.0)).normalized()
+            bm = bm0.copy()
+            caps = _cut(bm, co, no)
+            was_cut = bool(caps) or len(bm.verts) != len(bm0.verts)
+            if not bm.faces or (not was_cut and not rock and rng.random() < 0.25):  # all above the cut, or lost
+                bm.free()
+                continue
+            field = any(t in mat for t in RUIN_FIELD)
+            if field:  # a crop bed: trampled flat and burnt
+                flat = rng.uniform(0.2, 0.5)
+                for v in bm.verts:
+                    v.co.z = G + (v.co.z - G) * flat
+            keep = 0.62 if rock else 0.3 if field else 0.4 if was_cut or any(t in mat for t in RUIN_CROPS) else 0.55
+            cmat = mat if mat.endswith('_fringe') else tt.charred(mat, keep)
+            # a big block becomes a shell: a rim of wall round a sunken ash floor
+            shell = None
+            if not rock and len(caps) == 1 and len(caps[0].verts) <= 8 and min(dx, dy) > 0.16 and h > 0.07:
+                shell = bm.copy()
+                shell.faces.ensure_lookup_table()
+                cap = max(shell.faces, key=lambda f: (round(f.normal.z, 2), f.calc_area()) if all(abs((v.co - co).dot(no)) < 1e-4 for v in f.verts) else (-2, 0))
+                bmesh.ops.inset_region(shell, faces=[cap], thickness=min(0.045, 0.22 * min(dx, dy)), depth=0.0, use_even_offset=True, use_boundary=True)
+                for v in cap.verts:
+                    v.co.z = max(G + 0.012, v.co.z - 0.07)
+                floor = _take(shell, [cap])
+                _no_floor(shell)
+                shell = (shell, floor)
+            top = _take(bm, caps) if caps else None
+            _no_floor(bm)
+            if not bm.faces:
+                bm.free()
+                continue
+            zs = [v.co.z for v in bm.verts]
+            peak = max(bm.verts, key=lambda v: v.co.z).co.copy()
+            item = {'bm': bm, 'top': top, 'shell': shell, 'mat': cmat, 'top_mat': cmat if rock else 'ash', 'own': mat, 'box': ((x0, y0), (x1, y1)), 'peak': peak,
+                    'cut': was_cut, 'rose': z1 - G, 'imp': max(dx, dy) * (0.3 + min(dx, dy)) * (0.4 + max(zs) - G)}
+            (walls if (was_cut or rock) and (max(dx, dy) >= 0.22 or dx * dy >= 0.03) else props).append(item)
+
+        # fit the walls and the leftovers into their shares of the budget, biggest first
+        def fit(items, share, cap_tris):
+            used = [0, 0, 0]
+            kept = []
+            for it in sorted(items, key=lambda i: -i['imp']):
+                plain = _tris(it['bm']) + (_tris(it['top']) if it['top'] else 0)
+                hollow = _tris(it['shell'][0]) + _tris(it['shell'][1]) if it['shell'] else None
+                if plain > cap_tris:
+                    continue
+                lv_h, lv_p = [], []
+                for lod in (0, 1, 2):
+                    if hollow is not None and lod < 2 and used[lod] + hollow <= share[lod]:
+                        lv_h.append(lod)
+                        used[lod] += hollow
+                    elif used[lod] + plain <= share[lod]:
+                        lv_p.append(lod)
+                        used[lod] += plain
+                if lv_h:
+                    ms.parts.append((it['shell'][0], it['mat'], max(lv_h), tuple(lv_h)))
+                    ms.parts.append((it['shell'][1], 'ash', max(lv_h), tuple(lv_h)))
+                if lv_p:
+                    ms.parts.append((it['bm'], it['mat'], max(lv_p), tuple(lv_p)))
+                    if it['top']:
+                        ms.parts.append((it['top'], it['top_mat'], max(lv_p), tuple(lv_p)))
+                if lv_h or lv_p:
+                    kept.append(it)
+            return kept
+        standing = fit(walls, RUIN_WALLS, 110)
+        fit(props, RUIN_PROPS, 44)
+
+        # the scorch mark under it all
+        n = 9
+        ring = []
+        for i in range(n):
+            t = 2 * math.pi * i / n
+            k = rng.uniform(0.84, 1.0)
+            ring.append((cx + 0.5 * w * k * math.cos(t) * 1.12, cy + 0.5 * d * k * math.sin(t) * 1.12, G + 0.005))
+        ms.quad_strip('ash', ring, lod=2)
+        # a broken tooth of wall on the highest corner of the biggest stumps
+        for k, it in enumerate([s for s in standing if s['cut'] and s['rose'] > 1.6 * stump][:3]):
+            p = it['peak']
+            (x0, y0), (x1, y1) = it['box']
+            tx, ty = p.x + (0.03 if p.x < (x0 + x1) / 2 else -0.03), p.y + (0.03 if p.y < (y0 + y1) / 2 else -0.03)
+            ms.box(it['mat'], (0.07, 0.07, rng.uniform(0.08, 0.16) + 0.03), at=(tx, ty, p.z - 0.03), rot_z=rng.uniform(-12, 12), lod=1 if k == 0 else 0, taper=0.55)
+        # heaps of the building's own stuff along what stands, half of them charred
+        stuff = [s['own'] for s in standing[:3] if tt.TO_FINAL.get(s['own']) != 'Ground'] or ['ash']
+        scale = max(0.7, min(1.5, min(w, d)))
+        for k in range(9):
+            if standing and k < 7:
+                (x0, y0), (x1, y1) = standing[k % min(4, len(standing))]['box']
+                side = rng.randrange(4)
+                x = rng.uniform(x0, x1) if side < 2 else (x0 - 0.03 if side == 2 else x1 + 0.03)
+                y = rng.uniform(y0, y1) if side >= 2 else (y0 - 0.03 if side == 0 else y1 + 0.03)
+            else:
+                x, y = cx + rng.uniform(-0.38, 0.38) * w, cy + rng.uniform(-0.38, 0.38) * d
+            x, y = min(hi[0] - 0.04, max(lo[0] + 0.04, x)), min(hi[1] - 0.04, max(lo[1] + 0.04, y))
+            own = rng.choice(stuff)
+            mat = own if own == 'ash' or k % 2 == 0 else tt.charred(own, 0.4)
+            r, hh = rng.uniform(0.07, 0.11) * scale, rng.uniform(0.045, 0.08) * scale
+            if k < 2:
+                _heap(ms, mat, x, y, r, hh, rng, 1, only=(0, 1))
+                _heap(ms, mat, x, y, r, hh, rng, 2, only=(2,), sides=4)
+            else:
+                _heap(ms, mat, x, y, r, hh, rng, 1 if k < 4 else 0)
+        # burnt beams: three still leaning on the stumps, the rest lying where the roof fell
+        for k in range(7):
+            x, y = cx + rng.uniform(-0.36, 0.36) * w, cy + rng.uniform(-0.36, 0.36) * d
+            a = rng.uniform(0, 2 * math.pi)
+            L = rng.uniform(0.22, 0.38) * scale
+            z1 = G + (min(0.34, stump * rng.uniform(1.1, 1.9)) if k < 3 else 0.03)
+            beam(ms, 'ash', (x - math.cos(a) * L / 2, y - math.sin(a) * L / 2, G + 0.012), (x + math.cos(a) * L / 2, y + math.sin(a) * L / 2, z1), r=0.017, segs=4, lod=1 if k in (0, 3) else 0)
+        if role in RUIN_ROCK:  # the adit has fallen in: its mouth choked with rock, its frame lying broken
+            mx, my = src.get('socket-door', (cx, lo[1] + 0.1, 0))[:2]
+            rock_stuff = standing[0]['mat'] if standing else 'ash'
+            for k in range(4):
+                _heap(ms, rock_stuff, mx + rng.uniform(-0.1, 0.1), my + rng.uniform(-0.02, 0.1), rng.uniform(0.09, 0.13), rng.uniform(0.1, 0.17), rng, 1 if k < 2 else 0)
+            for k in range(3):
+                a = rng.uniform(-0.6, 0.6)
+                beam(ms, tt.charred('timber', 0.4), (mx - 0.14 + 0.14 * k, my - 0.09, G + 0.012), (mx - 0.14 + 0.14 * k + math.sin(a) * 0.2, my + 0.06, G + rng.uniform(0.12, 0.26)), r=0.02, segs=4, lod=1 if k == 0 else 0)
+        if role == 'farm-plot':  # the fence lies broken round the field, the rows burnt through in patches
+            for k in range(6):
+                t = rng.uniform(-0.4, 0.4)
+                x, y = (cx + t * w, lo[1] if k % 4 == 0 else hi[1]) if k % 4 < 2 else (lo[0] if k % 4 == 2 else hi[0], cy + t * d)
+                a, L = rng.uniform(0, math.pi), rng.uniform(0.2, 0.32)
+                beam(ms, tt.charred('timber', 0.55), (x - math.cos(a) * L / 2, y - math.sin(a) * L / 2, G + 0.012), (x + math.cos(a) * L / 2, y + math.sin(a) * L / 2, G + rng.choice((0.02, 0.02, 0.1))), r=0.012, segs=4, lod=0)
+            for k in range(3):
+                x, y, r = cx + rng.uniform(-0.3, 0.3) * w, cy + rng.uniform(-0.3, 0.3) * d, rng.uniform(0.13, 0.2) * min(w, d)
+                ms.quad_strip('ash', [(x + math.cos(6.2832 * i / 6) * r * rng.uniform(0.7, 1.0), y + math.sin(6.2832 * i / 6) * r * rng.uniform(0.7, 1.0), G + 0.046) for i in range(6)], lod=1 if k == 0 else 0)
+        for bm0, _mat, _lod, _only in parts:
+            bm0.free()
+        used = [sum(_tris(bm) for bm, _m, lod, only in ms.parts if lod >= lv and (only is None or lv in only)) for lv in (0, 1, 2)]
+        assert all(u <= b for u, b in zip(used, RUIN_BUDGET)), (role, used)
+        print('ruin', role, used, 'walls', len(standing), flush=True)
+        # the fires and the smoke stay, brought down onto the wreck
+        return {k: (x, y, min(z, stump)) for k, (x, y, z) in src.items() if k.startswith('socket-fire') or k.startswith('socket-smoke')}
+    return build
+
+
+def ruined_items(roles):
+    """The `<role>-ruined` items of a file, to be added AFTER its other items."""
+    return [(name + '-ruined', grounded(name + '-ruined', ruined(name, fn)), None) for name, fn in roles]
 
 
 SOCKETS = {}
@@ -536,12 +858,18 @@ def main():
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
     out_dir = argv[0] if argv else os.path.join(tm.__file__.rsplit(os.sep, 3)[0], 'art-build', 'rts-bronze')
     atlas = int(argv[1]) if len(argv) > 1 else 2048
+    only = [a for a in os.environ.get('ONLY', '').split(',') if a]
     items = []
     for name, fn in ROLES:
+        if only and name not in only:
+            continue
         items.append((name, grounded(name, fn), None))
         items.append((name + '-damaged', grounded(name + '-damaged', damaged(fn)), None))
     for name, fn in STAGES:
+        if only and name not in only:
+            continue
         items.append((name, grounded(name, fn), None))
+    items += ruined_items([(n, fn) for n, fn in ROLES if not only or n in only])  # last: nothing before them moves
     counts = tt.build_file('rts-bronze', items, out_dir, atlas=atlas, seed=3100, write=False)
     scene = bpy.context.scene
     roots = [o for o in scene.objects if o.type == 'EMPTY' and o.name in {n for n, _, _ in items}]

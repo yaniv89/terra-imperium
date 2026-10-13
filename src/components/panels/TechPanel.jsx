@@ -26,9 +26,11 @@ import { canAfford } from '../../utils/helpers';
 import { FOCUS_SCIENCE_BONUS } from '../../engine/research';
 import { ActionButton, CollapsibleSection } from '../ui';
 import { Button, Chip, Label, Meter, Segmented, Switch } from '../ui/atlas';
-import { setMapLens } from '../ui/uiEvents';
-import { openPanelTab } from './panelEvents';
-import { describeTech, formatTurns, techInfo, techGraph, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
+import { setMapLens, showMapHint } from '../ui/uiEvents';
+import { focusPlace } from '../map/marchEvents';
+import { openPanelTab, closePanels } from './panelEvents';
+import { advisorPlan, scholarsPreview } from '../../engine/researchStatus';
+import { describeTech, formatTurns, formatEta, techInfo, techGraph, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
 import { researchSheetModel } from './researchSheetModel';
 
 export const CATEGORY_LABELS = {
@@ -44,7 +46,7 @@ const COST_WORDS = { adm: 'administrative power', dip: 'diplomatic power', mil: 
 
 const TechRow = ({ info, onResearch, onQueue }) => {
   const { tech, researched, current, queuedAt, canStart, reason, cost, turns, share, diffusion, boost, mapEffect } = info;
-  const status = researched ? 'Known' : current ? `Researching, ${formatTurns(turns)}` : queuedAt >= 0 ? `Queued, number ${queuedAt + 2}` : canStart ? `${cost} science, ${formatTurns(turns)}` : reason;
+  const status = researched ? 'Known' : current ? `Researching, ${formatTurns(turns)}` : queuedAt >= 0 ? `Queued, number ${queuedAt + 2}` : canStart ? `${cost} science, ${formatTurns(turns)}` : info.gateText ? `${reason}: ${info.gateText}` : reason;
   const diffusionNote = !diffusion || researched ? '' : diffusion.pioneer ? '. First in the world: +20% cost'
     : diffusion.knownWithIt ? `. ${diffusion.knownWithIt} of the ${diffusion.known} peoples you know have it: -${Math.round((1 - diffusion.mult) * 100)}%` : '';
   const Icon = researched ? Check : current ? Sparkles : canStart || queuedAt >= 0 ? BookOpen : Lock;
@@ -77,7 +79,7 @@ const CurrentCard = ({ m }) => {
     return (
       <div className="fa-card p-3 text-[13px]" data-testid="research-current">
         <div className="fa-heading text-[16px] mb-0.5">Nothing under way</div>
-        <div className="text-fa-muted">{m.bank > 0 ? `${m.bank} science waits. ` : ''}Pick a tech below, or let your advisor choose.</div>
+        <div className="text-fa-muted">{m.status.kind === 'choose' || m.status.kind === 'advisor' ? `${m.bank > 0 ? `${m.bank} science waits. ` : ''}Pick a tech below, or let your advisor choose.` : m.status.note}</div>
       </div>
     );
   }
@@ -95,16 +97,25 @@ const CurrentCard = ({ m }) => {
         <span className="fa-num">{Math.floor(c.progress)} / {c.cost}</span>
         <span className="fa-num text-fa-muted">+{m.science} a turn</span>
         {c.pendingBoost > 0 && <span className="fa-num text-fa-good" data-testid="research-boost-waiting">boost +{c.pendingShare}% waiting</span>}
-        <span className="fa-num font-semibold ml-auto">{formatTurns(c.finishesIn)}</span>
+        <span className="fa-num font-semibold ml-auto" data-testid="research-eta">{formatEta(c)}</span>
       </div>
-      {!c.canStart && <div className="text-[12px] text-fa-danger-text">{c.reason}: science banks until then.</div>}
+      {!c.canStart && <div className="text-[12px] text-fa-danger-text" data-testid="research-gate">{c.gate ? m.status.note : `${c.reason}: science banks until then.`}</div>}
     </div>
   );
 };
 
 // One map boost: a dot (filled when met), what to do and what it gives, the Map button.
 const BoostRow = ({ b }) => {
-  const go = () => { if (!b.target) return; if (b.target.kind === 'lens') setMapLens(b.target.lens); else openPanelTab(b.target.tab); };
+  // A lens target: clear the panel, switch the lens, centre the map and say what to do there, with a
+  // way back to Research (MapGoals.jsx). A sheet target (Peoples) just opens that tab.
+  const go = () => {
+    if (!b.target) return;
+    if (b.target.kind !== 'lens') { openPanelTab(b.target.tab); return; }
+    closePanels();
+    setMapLens(b.target.lens);
+    focusPlace([]);
+    showMapHint({ title: b.label, text: `Look for it on the map (${b.target.lens} lens). It gives +${b.share}% to ${b.techName}.`, back: 'tech' });
+  };
   return (
     <div className="fa-card flex items-center gap-2.5 pl-3 pr-1.5 py-1.5 min-h-[48px]" data-testid="research-map-boost">
       <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${b.met ? 'bg-fa-good' : 'border-2 border-fa-muted'}`} aria-hidden="true" />
@@ -194,7 +205,7 @@ const TechPanel = () => {
     <div className="px-3 sm:px-4 pt-3" data-testid="research-tab">
       <div className="flex items-baseline gap-2 flex-wrap mb-2.5">
         <h2 className="fa-heading text-[19px]">Research</h2>
-        <span className="fa-label">{m.header.ageName}, {m.header.known} of {m.header.total} known</span>
+        <span className="fa-label" data-testid="research-header">{m.header.ageName}: {m.header.known} of {m.header.total} {m.header.techAgeName} techs known{m.header.aheadOfCalendar ? " (ahead of the calendar)" : ""}</span>
         <span className="ml-auto fa-num text-[12px]" style={{ color: SCIENCE }}>+{science} science a turn{m.bank > 0 ? <span className="text-fa-muted">, {m.bank} banked</span> : null}</span>
       </div>
 
@@ -216,12 +227,12 @@ const TechPanel = () => {
               {m.queue.length === 0 && <span className="text-[12px] text-fa-muted">Nothing queued. Tap the queue button on a tech.</span>}
               {m.queue.map((q, i) => (
                 <span key={q.tech.id} className="fa-chip !pr-1 gap-1">
-                  <span className="fa-num text-fa-muted">{i + 1}</span> {q.tech.name} <span className="fa-num text-fa-muted">{q.finishesIn}t</span>
+                  <span className="fa-num text-fa-muted">{i + 1}</span> {q.tech.name} <span className="fa-num text-fa-muted">{q.gate ? `waits ${q.gate.label}` : `${q.finishesIn}t`}</span>
                   <button type="button" onClick={() => unqueue(q.tech.id)} aria-label={`Remove ${q.tech.name} from the queue`} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-fa-hover text-fa-muted"><X className="w-3 h-3" aria-hidden="true" /></button>
                 </span>
               ))}
             </div>
-            <Switch label="Let my advisor pick" hint="When the queue runs out" checked={m.auto} onChange={(v) => dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: v } })} testId="research-auto" />
+            <Switch label="Let my advisor pick" hint={m.auto && !m.current ? m.status.note : 'When the queue runs out'} checked={m.auto} onChange={(v) => { const plan = v ? advisorPlan(state) : null; dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: v } }); if (plan?.techId) dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId: plan.techId } }); }} testId="research-auto" />
           </section>
         </div>
 
@@ -240,7 +251,7 @@ const TechPanel = () => {
           label="Fund Scholars"
           description="Turn gold into science, paid into your research at the end of the turn"
           costs={ACTION_COSTS.fundScholars}
-          effects={{ custom: `+${FUND_SCHOLARS_TECHPOINTS} science` }}
+          effects={{ custom: scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note }}
           onClick={handleFundScholars}
           disabled={!canAfford(state.resources, ACTION_COSTS.fundScholars)}
           size="small"

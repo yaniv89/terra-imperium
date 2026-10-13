@@ -191,8 +191,8 @@ I189,Audit,Attack then structure tap silently fails,Code,Fix,Major,None,"W01,W05
 I190,Audit,Pullback move leaves squads idle under towers,Code,Fix,Major,None,W05,
 I191,Audit,Squads go idle after their target is destroyed,Code,Fix,Major,None,W05,
 I192,Audit,Mixed-speed attack sends cavalry alone ahead of infantry,Code,Change,Major,Art,W05,
-I193,Audit,Reserve/second-wave control appears only intermittently,Code,Fix,Major,None,W05,
-I194,Audit,No prompt reminds the player that reserves remain available,Code,Fix,Small,None,W05,
+I193,Audit,Reserve/second-wave control appears only intermittently,Code,Superseded by U10,Major,None,W05,
+I194,Audit,No prompt reminds the player that reserves remain available,Code,Superseded by U10,Small,None,W05,
 I195,Audit,Squad count drops without casualty/retreat explanation,Code,Fix,Small,Art,"W02,W05",
 I196,Audit,Player cannot find the enemy objective or navigate via minimap,Code,Addition,Major,None,W05,
 I197,Audit,Keep focus action is broken or slow to become available,Code,Investigation,Major,None,W05,Diagnosis first; scope can change

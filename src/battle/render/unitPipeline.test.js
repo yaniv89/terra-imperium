@@ -112,12 +112,17 @@ describe('unit model registry', () => {
     expect(findUnitModel('kingdoms', 'cavalry').options.quadruped).toBe(true);
     expect(findUnitModel('gunpowder', 'cavalry').options.quadruped).toBe(true);
     expect(findUnitModel('gunpowder', 'siege').options.quadruped).toBe(false);
-    // Modern vehicles are rigid (no trotting legs) and carry their true height, so crews keep the people's scale
+    // Modern vehicles are rigid (no trotting legs). On land they are drawn at the people's scale
+    // (MD09: no fitted height, which would scale the crew with the machine) and carry their
+    // footprint [width, length] for the squad's spacing; only the jet is fitted to a height.
     ['cavalry', 'siege', 'support', 'air'].forEach((cls) => {
       const m = findUnitModel('modern', cls);
       expect(m?.url, `modern-${cls}`).toMatch(/modern-.*\.glb/);
       expect(m.options.quadruped).toBe(false);
-      expect(m.options.height).toBeGreaterThan(0.4);
+      if (cls === 'air') { expect(m.options.height).toBeGreaterThan(0.4); return; }
+      expect(m.options.height, `modern-${cls}`).toBeUndefined();
+      expect(m.options.footprint[0], `modern-${cls} width`).toBeGreaterThan(1);
+      expect(m.options.footprint[1], `modern-${cls} length`).toBeGreaterThan(m.options.footprint[0]);
     });
     expect(findUnitModel('modern', 'infantry').options.height).toBeUndefined();
     expect(findUnitModel('bronze', 'naval')).toBeNull();

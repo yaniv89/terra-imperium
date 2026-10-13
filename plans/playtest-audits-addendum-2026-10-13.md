@@ -63,3 +63,84 @@ names the work package and code batch it joins. Nothing here is implemented yet.
 - X21 goes into CB08 (wave 2); X22, X23 into CB09 (wave 4); X24 into CB04 rules (wave 2) and W00.
 - X01 goes into CB11 (wave 4), after CB02 and CB13.
 - Open with the user: are sea battles covered by X02; and (from Q8) remove the old SVG map setting too.
+
+## 7. City-states and the peoples pool (decision 42, proposed)
+
+X25. Discussed with the user on 13 October; recorded as proposed until the user confirms the
+counts and the list of majors. Joins CB08 (diplomacy), wave 2.
+
+Measured on the map data: 150 peoples; South and East Asia 45, Europe 32, Near East and North
+Africa 27, Americas 19, Sub-Saharan Africa 17, Central Asia 8, Oceania 2. The median distance from
+a capital to its nearest neighbour is 458 km; 100 of 150 have a neighbour within 612 km and 128
+within 900 km. The land holds at most about 1,840 city sites at the 306 km spacing, so the world is
+not full, but Europe and the Near East are. A Standard world today starts 36 majors and 84
+one-city independents (2.3 per major; Civ VI uses 1.5).
+
+1. **Two tiers of peoples.** About 50 full majors (pickable, and met as majors); the other ~100
+   are the names city-states are drawn from. A flag per people in `src/data/peoples.js`; nothing is
+   deleted. All 150 signature units already exist and stay.
+2. **Fewer city-states.** Standard about 36 to 54 (1 to 1.5 per major), Small about 30, Large
+   about 60 (`src/data/worldSizes.js`).
+3. **Spaced by density, not a flat cut.** A minimum gap of about 900 km between any two starting
+   cities (today 612 km, majors only: `MAJOR_MIN_GAP_KM`), applied in
+   `src/engine/worldgen/peoplesWorld.js`.
+4. **Raiders capped at about a third.** The rest are Civ-style types (trade, military, science,
+   culture) with a bonus for the major they favour (`src/engine/independents.js`,
+   `src/data/independents.js`).
+5. **A start-screen setting:** City-states Few / Normal / Many.
+
+Open: which 50 are majors (a list from the user, or a proposal by region: every region keeps 4 to
+6 choices). Art consequence: UI18 in [the art update](playtest-audits-art-update-2026-10-13.md),
+on hold until confirmed.
+
+## 8. Title screen on launch (X26, user request of 13 October)
+
+Today the game reopens the last game with no choice, even days later; the only way out is Menu,
+New game, and a native browser confirm (test log row 12), and there is one autosave and no slots
+(I165). Resuming is the right default, but the player must be able to choose.
+
+X26 joins I165 (W15, CB13 for the screen). On launch, when a saved game exists, show a title
+screen:
+1. **Continue**: the people, turn, year and date of the last save, so the player knows what is
+   resumed. One tap.
+2. **New game**: goes to the start steps. The current game is kept as a save, never overwritten
+   silently. Replaces the native confirm with an in-game one.
+3. **Load**: a few local save slots (the autosave plus manual saves), each with people, turn, year
+   and date; delete with a confirm.
+With no saved game, launch goes straight to the start steps as today. The stale-version reload
+guard and the v-number save migrations still apply to every slot; a slot that cannot be migrated is
+shown as "from an older version" and is not deleted. Phone landscape first (844x340). Art: none
+beyond the existing start-screen style.
+
+## 9. Code needed for the 13 October art to show (from the art session)
+
+Art branches in progress (local Blender, not pushed): `claude/art-md13-ruined-buildings`,
+`claude/art-md09-machine-scale`, `claude/art-md06-nodes-loads`, `claude/art-ui-icons-oct13`.
+
+| ID | Code change | Joins |
+|---|---|---|
+| X27 | Destroyed battle buildings must stay in the sim view and be drawn: today `economyLayer.js` skips dead buildings and the view drops them, so a `<role>-ruined` model (MD13) would never show. Keep a destroyed record (position, role, side) in the view; draw the ruin; it no longer counts as base (Q4). | CB18 / CB20 |
+| X28 | The economy view must carry each loaded worker's resource type (wood, stone, gold, food), not only "loaded", so `worker-loads.glb` (MD07) can show the right load. | CB16 / CB20 |
+| X29 | Retire the ore key with the four-resource change (Q1): `ore-outcrop.glb` stays until then; ore outcrops become stone or gold nodes per age (the art LOG will carry the per-age plan). | CB16 |
+| X30 | Siege crews shrink with their machine today (ballista and cannon crews about half infantry size). Crews are drawn at the people's scale, machines at true size or a little over (Q7); check picking radius and formation spacing after the change. | CB20 |
+
+## 10. Art decisions of 13 October (user, in the art session) and what they ask of the code
+
+- **Ore becomes stone in every age** (one rule, no per-age gold table). X29 is therefore:
+  `NODE_KINDS.ore.art = 'stone-outcrop'` now, and ore spots become stone nodes when the key is
+  retired with the four-resource change (CB16).
+- **Machines are capped at two thirds of real size**, one or two per squad; elephant and camel
+  riders are fixed too. No deployment spacing change in the sim (X30 stays a render change).
+- **Wrecks stay for the whole battle**; the 60 culture skins get the stronger damaged state, the
+  wreck stays generic.
+- **The log pile beside every grove stays** (it marks a harvestable grove).
+- Icons: the new battle Food and Gold icons stay; Free is the open gate; the existing close glyph
+  stays; the tributary and map Hold icons are being redrawn.
+
+| ID | Code change | Joins |
+|---|---|---|
+| X27 | Done on the art branch (merged): destroyed, finished buildings draw their wreck (`economyLayer.js` `buildingStateName`, `ruinCovered`). Left: fire and smoke on the kept sockets, and "a destroyed building no longer counts as base". | CB18 / CB20 |
+| X28 | In `ecoView` (`src/battle/sim/economy.js` about line 645) carry `{ idx, res, kind }` per carrying worker, then draw `loadObjectName(res, { nodeKind })` at `workerLoadPlacement(...)` from `ART.workerLoads()` (`src/battle/art/workerLoads.js`), picking the load set by age (a Modern set is coming). | CB16 / CB20 |
+| X31 | A spent node is dropped from the view, so the `stump` state never shows: keep spent groves visible. | CB16 / CB20 |
+| X32 | When a worker uses a barrow is a rules decision (art only today): decide with the four-resource change. | CB16 |
+| X33 | After the two texture changes (the LOD UV transfer in the rts building files, and `kitLoader` keeping authored LOD UVs except for the temperate kit), check buildings and trees together at far zoom, and measure UV mismatch on the desert, mediterranean, rts and city kits. | CB20 |

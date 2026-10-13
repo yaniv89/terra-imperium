@@ -2,6 +2,8 @@
 
 Planning only. No models, animations, images, game code or production-queue statuses are changed by this document.
 
+**Updated 2026-10-13:** [the art update](playtest-audits-art-update-2026-10-13.md) overrides this document where they differ: four battle resources (Food, Wood, Stone, Gold, no ore), no Reserve or reinforcement cues, each unit at its own speed, only machines get bigger, the capture card, base buildings and their damage states, new rows UI15 to UI18, MD13 and MD14, and the budgets of [TRIANGLE-BUDGET.md](art/TRIANGLE-BUDGET.md) instead of section 3.2.
+
 Prepared 2026-10-09 against `claude/integration` at [`f135336418d86021325a399d92dbf65024ed630f`](https://github.com/yaniv89/terra-imperium/tree/f135336418d86021325a399d92dbf65024ed630f). Audit evidence is the [three-report implementation plan](playtest-audits-implementation-plan.md), [224-item inventory](playtest-audits-item-inventory.md) and [original visual checklist](playtest-audits-animation-model-brief.md). The [production manifest](playtest-audits-art-production-manifest.csv) provides one trackable row per requirement below. The later U01–U13 player requests are specified in [implementation plan §12](playtest-audits-implementation-plan.md#12-player-follow-up-rts-and-iphone-layout); they are distinct from the original audits.
 
 ## 1. Answer about scope

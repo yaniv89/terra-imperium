@@ -455,6 +455,89 @@ def jet(prefix='Jet', length=2.0, span=1.5, body='Cloth', team='Team', metal='Me
     return [rig], {'rig': rig, 'length': length, 'span': span}
 
 
+# ---- Machines bigger, crews at human size (manifest MD09, MD10): only machines get bigger, never
+# the crew. The battle draws a machine file at the same scale as the infantry beside it
+# (unitModels.js ART_UNIT_WORLD), so a machine is authored against a 1.8 m person (H = 1) and its
+# crew stays at 1.0. The user's cap (13 October): a machine's body is about TWO THIRDS of its real
+# dimensions (MACHINE_SHARE), big enough to read as a machine beside its crew and small enough to
+# stand in the 3 tiles the battle leaves between squads. The rigs above were first built
+# "game-sized", so a unit builds its machine with them, `enlarge`s the rig to the capped size, and
+# places its crew afterwards. Animals are at their TRUE size (a dromedary about 1.9 m at the hump:
+# CAMEL_TRUE on the camel rig, whose hump was 2.3 m; the elephant rig is already 2.8 m at the
+# shoulder), their riders at 1.0.
+METRES_PER_H = 1.8
+MACHINE_SHARE = 2 / 3
+CAMEL_TRUE = .85
+
+
+def true_camel(camel, seat_at):
+    """Bring a dressed camel rig to its true size (after its saddle is on) and return the rider's
+    spot, moved with the seat; the rider itself stays at 1.0."""
+    enlarge(camel, CAMEL_TRUE)
+    s = u.MOUNTS['camel']['seat']
+    x, y, z = seat_at
+    return (x, y - s[1] * (1 - CAMEL_TRUE), z - s[2] * (1 - CAMEL_TRUE))
+
+
+def enlarge(rig, s):
+    """Scale a machine rig and its meshes about the ground point under its origin, in place.
+    `s`: one factor, or (width, length_and_height) so wheels stay round. Never used on a person."""
+    sx, syz = (s, s) if isinstance(s, (int, float)) else s
+    m = Matrix.Diagonal((sx, syz, syz, 1))
+    rig.data.transform(m)
+    for ob in rig.children:
+        if ob.type == 'MESH':
+            ob.data.transform(m)
+            ob.data.update()
+    rig.location = m @ rig.location
+    bpy.context.view_layer.update()
+
+
+def machine_size():
+    """(the whole file's footprint [width, length], the machine's own [length, width, height]) in H,
+    from every mesh of the scene; the machine is the meshes of armatures that are not people."""
+    bpy.context.view_layer.update()
+    deps = bpy.context.evaluated_depsgraph_get()
+    lo_all, hi_all = Vector((1e9,) * 3), Vector((-1e9,) * 3)
+    lo, hi = Vector((1e9,) * 3), Vector((-1e9,) * 3)
+    for o in bpy.context.scene.objects:
+        if o.type != 'MESH':
+            continue
+        person = bool(o.parent and o.parent.type == 'ARMATURE' and 'Head' in o.parent.data.bones)
+        animal = bool(o.parent and o.parent.type == 'ARMATURE' and any(b.name.startswith('Mount_') for b in o.parent.data.bones))
+        ev = o.evaluated_get(deps); me = ev.to_mesh()
+        for v in me.vertices:
+            w = o.matrix_world @ v.co
+            for k in range(3):
+                lo_all[k] = min(lo_all[k], w[k]); hi_all[k] = max(hi_all[k], w[k])
+                if not person and not animal:
+                    lo[k] = min(lo[k], w[k]); hi[k] = max(hi[k], w[k])
+        ev.to_mesh_clear()
+    return [round(hi_all.x - lo_all.x, 2), round(hi_all.y - lo_all.y, 2)], [round(hi.y - lo.y, 2), round(hi.x - lo.x, 2), round(hi.z, 2)]
+
+
+def mark_machine(uid):
+    """After the unit's finish(): write the machine's `footprint` into its JSON (the battle spaces
+    the squad's machines by it, unitModels.js machineLayout), drop any `height` (a fitted height
+    would scale the crew with the machine) and note the true size in report.json."""
+    import json
+    out = u.out_dir(uid)
+    footprint, size = machine_size()
+    p = out / f'{uid}.json'
+    o = json.loads(p.read_text())
+    o.pop('height', None)
+    o['footprint'] = footprint
+    o['triangleBudget'] = 6000  # a machine or vehicle: 4,000 target, 6,000 hard (plans/art/TRIANGLE-BUDGET.md)
+    p.write_text(json.dumps(o, indent=2) + '\n')
+    r = out / 'report.json'
+    if r.exists():
+        rep = json.loads(r.read_text())
+        rep['machine_metres'] = {'length': round(size[0] * METRES_PER_H, 2), 'width': round(size[1] * METRES_PER_H, 2), 'height': round(size[2] * METRES_PER_H, 2)}
+        rep['footprint_h'] = footprint
+        r.write_text(json.dumps(rep, indent=2))
+    print(f'MACHINE {uid} footprint={footprint} metres={[round(v * METRES_PER_H, 2) for v in size]}', flush=True)
+
+
 def build_rig_files():
     """The bare rigs as reference files (art-build/units/rigs; not shipped: units carry them)."""
     out = u.REPO / 'art-build' / 'units' / 'rigs'

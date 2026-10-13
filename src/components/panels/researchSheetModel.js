@@ -46,6 +46,7 @@ export const researchSheetModel = (state) => {
     const techs = all.filter((t) => t.ageId === ageId);
     return { ageId, name: shortAge(ageId), total: techs.length, known: techs.filter((t) => researched.has(t.id)).length, current: ageId === techAge };
   });
+  const calendarAge = state.age && AGES[state.age] ? state.age : techAge;
   const here = ages.find((a) => a.current) || ages[0];
 
   // The boosts worth showing: the current tech, the queue, and every tech you could start now.
@@ -72,9 +73,13 @@ export const researchSheetModel = (state) => {
     science: view.science,
     bank: view.bank,
     auto: view.auto,
+    status: view.status,
     current,
     queue: view.queue,
-    header: { ageName: AGES[techAge]?.name || techAge, known: here.known, total: here.total },
+    // I137: the calendar age and the age of your techs are different things; the heading names the calendar age
+    // (what the date says) and the techs counted are named for their own age, so a Classical tech count under a
+    // Bronze Age date is never read as the age you are in.
+    header: { ageName: AGES[calendarAge]?.name || calendarAge, techAgeName: AGES[techAge]?.name || techAge, aheadOfCalendar: AGE_ORDER.indexOf(techAge) > AGE_ORDER.indexOf(calendarAge), known: here.known, total: here.total },
     boosts,
     ages,
     era: {

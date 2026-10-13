@@ -8,6 +8,7 @@ import { useGame } from '../../context/GameContext';
 import { empireOverviewModel } from './empireOverviewModel';
 import { formatNumber } from '../../utils/helpers';
 import { formatTurns } from './researchView';
+import { gateText } from '../../engine/researchStatus';
 
 const TONE = { red: 'text-fa-danger-text', amber: 'text-amber-300', green: 'text-fa-good' };
 const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
@@ -38,7 +39,7 @@ const EmpireOverview = () => {
       </div>
       <div className="bg-fa-raised/60 rounded-lg p-2 text-xs flex items-center justify-between gap-2" data-testid="empire-research">
         <span className="flex items-center gap-1.5 text-fa-text font-semibold"><Beaker className="w-3.5 h-3.5" />{m.research.name ? `Researching ${m.research.name}` : 'Nothing being researched'}</span>
-        <span className="text-fa-muted shrink-0">{m.research.name ? formatTurns(m.research.turns) : `${m.research.science} science a turn`}</span>
+        <span className="text-fa-muted shrink-0">{m.research.name ? (m.research.gate ? gateText(m.research.gate) : formatTurns(m.research.turns)) : m.research.note}</span>
       </div>
       {m.wars.length > 0 && <div className="text-[11px] text-fa-danger-text flex items-center gap-1.5"><Swords className="w-3.5 h-3.5" />Wars: {m.wars.join(', ')}</div>}
     </div>

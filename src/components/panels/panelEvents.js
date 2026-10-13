@@ -7,7 +7,10 @@ export const OPEN_TAB = 'ti:open-tab';
 export const TAB_ALIAS = { military: 'domestic' };
 export const SECTION_OF_TAB = { military: 'war' };
 export const OPEN_SECTION = 'ti:open-section';
-export const openPanelTab = (tabId) => {
+// Tuck the tab dock / phone sheet away so the map is clear (Research's Map button). PanelDrawer listens.
+export const CLOSE_PANELS = 'ti:close-panels';
+export const closePanels = () => window.dispatchEvent(new CustomEvent(CLOSE_PANELS));
+export const openPanelTab =(tabId) => {
   window.dispatchEvent(new CustomEvent(OPEN_TAB, { detail: TAB_ALIAS[tabId] || tabId }));
   if (SECTION_OF_TAB[tabId]) window.dispatchEvent(new CustomEvent(OPEN_SECTION, { detail: SECTION_OF_TAB[tabId] }));
 };

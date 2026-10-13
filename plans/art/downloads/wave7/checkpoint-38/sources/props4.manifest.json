@@ -1,0 +1,425 @@
+{
+  "bundle": "props4",
+  "logical_assets": [
+    "burnt-field-overlay",
+    "landing-ancient",
+    "landing-middle",
+    "landing-modern"
+  ],
+  "asset_count": 4,
+  "native_editable_packed_blends": true,
+  "geometry_in_GLBS_uncompressed": true,
+  "frozen_uncompressed_assets": [
+    {
+      "game_path": "src/assets/battle/props/burnt-field-overlay.glb",
+      "sha256": "050667529d18d523fe20104a4f99c4c8d41039e5258762be5c05f44f14a373d3",
+      "bytes": 452540,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/burnt-field-overlay.glb"
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-ancient.glb",
+      "sha256": "21fce05b3387fc3f64cdc999ca039f8d052db4cabdfabdc9c68fdafb24d092bd",
+      "bytes": 483452,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/landing-ancient.glb"
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-middle.glb",
+      "sha256": "33510bab4509052bb7f93227c090712dea8d4486cf25b6fae9881bdb12d28800",
+      "bytes": 660352,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/landing-middle.glb"
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-modern.glb",
+      "sha256": "cb6f0ebcb69563e10f050647c348a2397d3f8478f8242c184d5713b14963983e",
+      "bytes": 373876,
+      "unpacked_path": "/workspace/remaining-production/unpacked/src/assets/battle/props/landing-modern.glb"
+    }
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 1174,
+      "sha256": "4490e73e79f8ef63d3b9186cbd0313a24a8440335a916b92f2fd4aea915a7aa5",
+      "original_source": "generated bundle metadata"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/basecolor.png",
+      "bytes": 1019015,
+      "sha256": "46d4c9f4aac52675bcb58a1446a786a414042bd7aee8b52041a2dca4e46e8afe",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/basecolor.png"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/build_raid_landing_props.py",
+      "bytes": 10600,
+      "sha256": "05d4b33cea35abc7e221364029a2370ab9a94712831eec1f480e58944a50bd80",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/build_raid_landing_props.py"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/burnt-field-overlay.blend",
+      "bytes": 2275083,
+      "sha256": "92ac0f0b652786a0f0a129bd477176bd7b974b361d0aa72b0c87509e7eb460d8",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/burnt-field-overlay.blend"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/burnt-field-overlay.glb",
+      "bytes": 452540,
+      "sha256": "050667529d18d523fe20104a4f99c4c8d41039e5258762be5c05f44f14a373d3",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/props/burnt-field-overlay.glb"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/burnt-field-overlay.validation.json",
+      "bytes": 1947,
+      "sha256": "68ab5eb58e96e700f161cbfbcd2a9b619af998d7133561dfa919582ca955364f",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/burnt-field-overlay.validation.json"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/manifest.json",
+      "bytes": 912,
+      "sha256": "841f9dadaef42428db0bfc5c4a94e1bb192599a79d7e4a242c8acec6cb2be4dd",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/manifest.json"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/normal.png",
+      "bytes": 532712,
+      "sha256": "9a92c404d5bc151ccdf779f8e9b57282b2b0b613a1d944a55549a110a96e5bef",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/normal.png"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/orm.png",
+      "bytes": 605856,
+      "sha256": "c27d6a625ecbe4d93bef757e6e5bc4bce5e8eb4054766d36680a096b8aacf44d",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/orm.png"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/preview.png",
+      "bytes": 175301,
+      "sha256": "44bdf73b8c7c1b6593d766c1aab244d7472477b6ae94a34b131d36510ab6c823",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/preview.png"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/raid_landing_support.py",
+      "bytes": 21042,
+      "sha256": "703b5856514de24085b893dfe45ea11210ea83e58b439a159c390a2098a42a22",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/raid_landing_support.py"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/source-audit.json",
+      "bytes": 2319,
+      "sha256": "9aa82b19fe5d7d35a79097267f30f03d79b3f5b1ce7497daacb583c3284e898d",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/source-audit.json"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/ti_map.py",
+      "bytes": 21859,
+      "sha256": "48f5eb5148ce243685229f08fc3b0a6a3cf0da6696f5a2802a4053d1640e2602",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/ti_map.py"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/tone.json",
+      "bytes": 201,
+      "sha256": "a4b8dfc1f944f669b78c021991ffbeb603988d0c8495287acf0db65deda227b4",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/tone.json"
+    },
+    {
+      "path": "assets/props/burnt-field-overlay/validate_model.py",
+      "bytes": 15249,
+      "sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+      "original_source": "/workspace/remaining-production/props/burnt-field-overlay/validate_model.py"
+    },
+    {
+      "path": "assets/props/landing-ancient/basecolor.png",
+      "bytes": 1259077,
+      "sha256": "5bb54c7256543462da804f41ec595f531c72afb8d98c4acdfaeb3966232bd5da",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/basecolor.png"
+    },
+    {
+      "path": "assets/props/landing-ancient/build_raid_landing_props.py",
+      "bytes": 10448,
+      "sha256": "7385fc43b96c92d3d9ef1b3f7b6cb52de281cfb8465c28aa81b3c30ea542082a",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/build_raid_landing_props.py"
+    },
+    {
+      "path": "assets/props/landing-ancient/landing-ancient.blend",
+      "bytes": 2727877,
+      "sha256": "cd6adca3083ff3ad8d4b0eb215d0e34359e6e46f2c33bc931b8963cc07bd2354",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/landing-ancient.blend"
+    },
+    {
+      "path": "assets/props/landing-ancient/landing-ancient.glb",
+      "bytes": 483452,
+      "sha256": "21fce05b3387fc3f64cdc999ca039f8d052db4cabdfabdc9c68fdafb24d092bd",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/props/landing-ancient.glb"
+    },
+    {
+      "path": "assets/props/landing-ancient/landing-ancient.validation.json",
+      "bytes": 1938,
+      "sha256": "5e295a9c42116f2738f1c28520fb536e4493af6d553b79c201323a534e1803da",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/landing-ancient.validation.json"
+    },
+    {
+      "path": "assets/props/landing-ancient/manifest.json",
+      "bytes": 894,
+      "sha256": "20e3762b7fcc4d101b8b2d4ec4ea5023d106df3ec778d2b92bfec6a646c91e3d",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/manifest.json"
+    },
+    {
+      "path": "assets/props/landing-ancient/normal.png",
+      "bytes": 492598,
+      "sha256": "af1572bcfda8648041aee16530e0f2a1a8002ed98e4d57c3526b746bad1fb1dd",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/normal.png"
+    },
+    {
+      "path": "assets/props/landing-ancient/orm.png",
+      "bytes": 853102,
+      "sha256": "4266f6695043ebcf27c80c5ff4a3933866a08f581bba523fe1c9a556c2ab6dda",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/orm.png"
+    },
+    {
+      "path": "assets/props/landing-ancient/preview.png",
+      "bytes": 147164,
+      "sha256": "51547c9b413f0ba0e1a6fea1111b2a680a190e0efa20b37061856b704b2f92b3",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/preview.png"
+    },
+    {
+      "path": "assets/props/landing-ancient/raid_landing_support.py",
+      "bytes": 20827,
+      "sha256": "9c5bc45c50a92d7e1a8a8cd6de5f325e766b1e666eba8368d2626ee861b6b955",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/raid_landing_support.py"
+    },
+    {
+      "path": "assets/props/landing-ancient/source-audit.json",
+      "bytes": 2316,
+      "sha256": "07bb1e3ac9645046b19f7a48eed914a5ab5f0c12a7c9e56a493fae9bc37dcae9",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/source-audit.json"
+    },
+    {
+      "path": "assets/props/landing-ancient/ti_map.py",
+      "bytes": 21859,
+      "sha256": "48f5eb5148ce243685229f08fc3b0a6a3cf0da6696f5a2802a4053d1640e2602",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/ti_map.py"
+    },
+    {
+      "path": "assets/props/landing-ancient/tone.json",
+      "bytes": 196,
+      "sha256": "0476bcddf2f15ba7ffd2477ea556977cee823f9286a29007e485b64c4d8a48a2",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/tone.json"
+    },
+    {
+      "path": "assets/props/landing-ancient/validate_model.py",
+      "bytes": 15249,
+      "sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+      "original_source": "/workspace/remaining-production/props/landing-ancient/validate_model.py"
+    },
+    {
+      "path": "assets/props/landing-middle/basecolor.png",
+      "bytes": 1380618,
+      "sha256": "5671d51fdeb863ba26c1f925accc681e6708e6de81b066f97f758bdc76f6df41",
+      "original_source": "/workspace/remaining-production/props/landing-middle/basecolor.png"
+    },
+    {
+      "path": "assets/props/landing-middle/build_raid_landing_props.py",
+      "bytes": 10448,
+      "sha256": "7385fc43b96c92d3d9ef1b3f7b6cb52de281cfb8465c28aa81b3c30ea542082a",
+      "original_source": "/workspace/remaining-production/props/landing-middle/build_raid_landing_props.py"
+    },
+    {
+      "path": "assets/props/landing-middle/landing-middle.blend",
+      "bytes": 2933552,
+      "sha256": "9ad27c81c97ef05ac1dae4598d1c8337972c54a983e3016f31338c49d0eca3f3",
+      "original_source": "/workspace/remaining-production/props/landing-middle/landing-middle.blend"
+    },
+    {
+      "path": "assets/props/landing-middle/landing-middle.glb",
+      "bytes": 660352,
+      "sha256": "33510bab4509052bb7f93227c090712dea8d4486cf25b6fae9881bdb12d28800",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/props/landing-middle.glb"
+    },
+    {
+      "path": "assets/props/landing-middle/landing-middle.validation.json",
+      "bytes": 1936,
+      "sha256": "e16f6912ec494cced5d3394da1c849a225e022c6a8a8afe0f1eb41f7f1aa3153",
+      "original_source": "/workspace/remaining-production/props/landing-middle/landing-middle.validation.json"
+    },
+    {
+      "path": "assets/props/landing-middle/manifest.json",
+      "bytes": 891,
+      "sha256": "bb5139962521fed8b596f77153aa1206e845bbaff41abbb40e890582db7bf7b2",
+      "original_source": "/workspace/remaining-production/props/landing-middle/manifest.json"
+    },
+    {
+      "path": "assets/props/landing-middle/normal.png",
+      "bytes": 518783,
+      "sha256": "3837c9b5db4937b4e18cafc0dca9a592b747840f8a5cfd1cba2c80beaf65aaed",
+      "original_source": "/workspace/remaining-production/props/landing-middle/normal.png"
+    },
+    {
+      "path": "assets/props/landing-middle/orm.png",
+      "bytes": 891939,
+      "sha256": "fd5aa64c5c192c3af2c7a4bf0e7534410a740f3b2ca37adbdcd33bd25d31c5eb",
+      "original_source": "/workspace/remaining-production/props/landing-middle/orm.png"
+    },
+    {
+      "path": "assets/props/landing-middle/preview.png",
+      "bytes": 151342,
+      "sha256": "723680980c722fac4f3d22fa1774c0adbc3c0912dab6fd7d2a1154be8aee69d4",
+      "original_source": "/workspace/remaining-production/props/landing-middle/preview.png"
+    },
+    {
+      "path": "assets/props/landing-middle/raid_landing_support.py",
+      "bytes": 20827,
+      "sha256": "9c5bc45c50a92d7e1a8a8cd6de5f325e766b1e666eba8368d2626ee861b6b955",
+      "original_source": "/workspace/remaining-production/props/landing-middle/raid_landing_support.py"
+    },
+    {
+      "path": "assets/props/landing-middle/source-audit.json",
+      "bytes": 2318,
+      "sha256": "c1447c8f687530839279a4b9c1ade64882f90fa25f2ec7f4ee401807c47a2d1c",
+      "original_source": "/workspace/remaining-production/props/landing-middle/source-audit.json"
+    },
+    {
+      "path": "assets/props/landing-middle/ti_map.py",
+      "bytes": 21859,
+      "sha256": "48f5eb5148ce243685229f08fc3b0a6a3cf0da6696f5a2802a4053d1640e2602",
+      "original_source": "/workspace/remaining-production/props/landing-middle/ti_map.py"
+    },
+    {
+      "path": "assets/props/landing-middle/tone.json",
+      "bytes": 194,
+      "sha256": "62aa4c5df5696cdd0666eb70355637214382ca5c89af072774fc01f61bf7f26a",
+      "original_source": "/workspace/remaining-production/props/landing-middle/tone.json"
+    },
+    {
+      "path": "assets/props/landing-middle/validate_model.py",
+      "bytes": 15249,
+      "sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+      "original_source": "/workspace/remaining-production/props/landing-middle/validate_model.py"
+    },
+    {
+      "path": "assets/props/landing-modern/basecolor.png",
+      "bytes": 1186697,
+      "sha256": "31d41eb6ef28cd4cce8173c02a9540df3dc54c4df03c7358ec6b5a502105f02e",
+      "original_source": "/workspace/remaining-production/props/landing-modern/basecolor.png"
+    },
+    {
+      "path": "assets/props/landing-modern/build_raid_landing_props.py",
+      "bytes": 10600,
+      "sha256": "05d4b33cea35abc7e221364029a2370ab9a94712831eec1f480e58944a50bd80",
+      "original_source": "/workspace/remaining-production/props/landing-modern/build_raid_landing_props.py"
+    },
+    {
+      "path": "assets/props/landing-modern/landing-modern.blend",
+      "bytes": 2674490,
+      "sha256": "7dc5601f0eb62595c4ff5174f1f14d40150286722f43fdca84692b6823dc114d",
+      "original_source": "/workspace/remaining-production/props/landing-modern/landing-modern.blend"
+    },
+    {
+      "path": "assets/props/landing-modern/landing-modern.glb",
+      "bytes": 373876,
+      "sha256": "cb6f0ebcb69563e10f050647c348a2397d3f8478f8242c184d5713b14963983e",
+      "original_source": "/workspace/remaining-production/unpacked/src/assets/battle/props/landing-modern.glb"
+    },
+    {
+      "path": "assets/props/landing-modern/landing-modern.validation.json",
+      "bytes": 1930,
+      "sha256": "e86897d2d0da92e70e6626275f8cce4d3ebefff294638cb94791c098392ea738",
+      "original_source": "/workspace/remaining-production/props/landing-modern/landing-modern.validation.json"
+    },
+    {
+      "path": "assets/props/landing-modern/manifest.json",
+      "bytes": 886,
+      "sha256": "51fb491f87e27f21ddf507f80ae01f696fc37e92735aa5ba667f071181f807b1",
+      "original_source": "/workspace/remaining-production/props/landing-modern/manifest.json"
+    },
+    {
+      "path": "assets/props/landing-modern/normal.png",
+      "bytes": 578530,
+      "sha256": "52f53a698611864231048a444bbe78b9646e1fdca812710b0c707b008231c868",
+      "original_source": "/workspace/remaining-production/props/landing-modern/normal.png"
+    },
+    {
+      "path": "assets/props/landing-modern/orm.png",
+      "bytes": 790579,
+      "sha256": "71d9b5cdbd858bdaedc437779cfcd079515d2b2d38a001fd9e143688ff1306da",
+      "original_source": "/workspace/remaining-production/props/landing-modern/orm.png"
+    },
+    {
+      "path": "assets/props/landing-modern/preview.png",
+      "bytes": 178244,
+      "sha256": "9fb7f894c0845f6a1b0024d875128c1dff2c551697b9cc314bf0223b682edaed",
+      "original_source": "/workspace/remaining-production/props/landing-modern/preview.png"
+    },
+    {
+      "path": "assets/props/landing-modern/raid_landing_support.py",
+      "bytes": 21042,
+      "sha256": "703b5856514de24085b893dfe45ea11210ea83e58b439a159c390a2098a42a22",
+      "original_source": "/workspace/remaining-production/props/landing-modern/raid_landing_support.py"
+    },
+    {
+      "path": "assets/props/landing-modern/source-audit.json",
+      "bytes": 2294,
+      "sha256": "66dc07adc9a6ff60ecbeaa3ffc8351f44f4159b490738bc118367ccbd2ef09ff",
+      "original_source": "/workspace/remaining-production/props/landing-modern/source-audit.json"
+    },
+    {
+      "path": "assets/props/landing-modern/ti_map.py",
+      "bytes": 21859,
+      "sha256": "48f5eb5148ce243685229f08fc3b0a6a3cf0da6696f5a2802a4053d1640e2602",
+      "original_source": "/workspace/remaining-production/props/landing-modern/ti_map.py"
+    },
+    {
+      "path": "assets/props/landing-modern/tone.json",
+      "bytes": 198,
+      "sha256": "a874c9ba5d90a4477d325e8dbe9754283f6c9b088b6cc966c027c26993658dfa",
+      "original_source": "/workspace/remaining-production/props/landing-modern/tone.json"
+    },
+    {
+      "path": "assets/props/landing-modern/validate_model.py",
+      "bytes": 15249,
+      "sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+      "original_source": "/workspace/remaining-production/props/landing-modern/validate_model.py"
+    },
+    {
+      "path": "audits/frozen-validation.json",
+      "bytes": 6193,
+      "sha256": "0708a07a73d2b17df58337805178bba4e1a409fc106b86f5ae5b51aa645732f3",
+      "original_source": "generated bundle metadata"
+    },
+    {
+      "path": "audits/packed-blend-images.json",
+      "bytes": 3447,
+      "sha256": "3b2bcfb5e40e6f7a57bb49f47ed60cf5c74844fb090929985dd0be8aca8c18de",
+      "original_source": "generated bundle metadata"
+    },
+    {
+      "path": "audits/props/DELIVERY.md",
+      "bytes": 2127,
+      "sha256": "191ffc991729ddcab61b301d0ec9da1e370e8fa037a3410c550323fd6651e64e",
+      "original_source": "/workspace/remaining-production/props/DELIVERY.md"
+    },
+    {
+      "path": "concepts/raid-landing-props.png",
+      "bytes": 2356567,
+      "sha256": "fee691efc4534e790e5de1b01984d4cceb3a7f66100fe4534a9c3ccde4da6792",
+      "original_source": "/workspace/terra-remaining/plans/art/concepts/wave7/raid-landing-props.png"
+    },
+    {
+      "path": "scripts/blender/ti_map.py",
+      "bytes": 21859,
+      "sha256": "48f5eb5148ce243685229f08fc3b0a6a3cf0da6696f5a2802a4053d1640e2602",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_map.py"
+    },
+    {
+      "path": "scripts/blender/ti_town.py",
+      "bytes": 27827,
+      "sha256": "12f3693882ac771dc815a99e0888a818b2a31e2a585744d4ceb941dd05f3307d",
+      "original_source": "/workspace/terra-remaining/scripts/blender/ti_town.py"
+    },
+    {
+      "path": "scripts/blender/validate_model.py",
+      "bytes": 15249,
+      "sha256": "3533588dc971b963d2d6862af4da85224393f5f1657e0286b4c5691785931a34",
+      "original_source": "/workspace/terra-remaining/scripts/blender/validate_model.py"
+    }
+  ],
+  "no_source_changes": true
+}

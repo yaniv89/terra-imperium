@@ -1,0 +1,119 @@
+7:48:27 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+7:48:27 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.10 /workspace/terra-remaining
+
+ ↓ src/engine/resolveTurn.test.js > resolveTurn determinism > produces identical output for identical input (same rngSeed)
+ ↓ src/engine/resolveTurn.test.js > resolveTurn determinism > replaying an identical sequence of turns and player actions from the same starting state converges to byte-identical results
+ ↓ src/engine/resolveTurn.test.js > resolveTurn determinism > is a no-op once the game has ended
+ ↓ src/engine/resolveTurn.test.js > resolveTurn determinism > is a no-op while a scripted event is blocking play
+ ↓ src/engine/resolveTurn.test.js > resolveTurn determinism > is a no-op while a procedural event is blocking play
+ ✓ src/engine/resolveTurn.test.js > resolveTurn calendar advance > advances the year by the age/speed years-per-turn table 1353ms
+ ↓ src/engine/resolveTurn.test.js > resolveTurn calendar advance > advances faster at Fast speed than Marathon, all else equal
+ ↓ src/engine/resolveTurn.test.js > resolveTurn calendar advance > recomputes age from the new calendar year
+ ↓ src/engine/resolveTurn.test.js > resolveTurn calendar advance > logs a milestone the exact turn the calendar age changes (App.jsx turns this into the banner/globe pulse)
+ ↓ src/engine/resolveTurn.test.js > resolveTurn calendar advance > logs nothing extra when the calendar age does not change this turn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn calendar advance > increments turnNumber
+ ↓ src/engine/resolveTurn.test.js > resolveTurn resource income > grows the player's gold and hr each turn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn resource income > unlocks a newly-available resource at 0 the turn its age arrives
+ ↓ src/engine/resolveTurn.test.js > resolveTurn resource income > tops adm/dip/mil up by the per-turn budget when none was left over
+ ↓ src/engine/resolveTurn.test.js > resolveTurn resource income > a whole long run never runs out of ADM to spend
+ ↓ src/engine/resolveTurn.test.js > resolveTurn army maintenance > charges no upkeep, and logs none, with no units fielded
+ ↓ src/engine/resolveTurn.test.js > resolveTurn army maintenance > deducts UNIT_UPKEEP_GOLD_PER_TURN per player-owned unit, on top of ordinary income
+ ↓ src/engine/resolveTurn.test.js > resolveTurn army maintenance > never charges upkeep for another nation's units
+ ↓ src/engine/resolveTurn.test.js > resolveTurn army maintenance > floors gold at zero (via bankruptcy, pre-Banking-Houses) rather than going negative from upkeep
+ ↓ src/engine/resolveTurn.test.js > resolveTurn economy (plan §M11) > charges fort upkeep for a built Defense-tier region
+ ↓ src/engine/resolveTurn.test.js > resolveTurn economy (plan §M11) > auto-takes a loan on a shortfall once Banking Houses is researched, rather than going bankrupt
+ ↓ src/engine/resolveTurn.test.js > resolveTurn economy (plan §M11) > bankruptcy applies -3 stability, -20 prestige, clears loans, and pushes a 10-turn modifier
+ ↓ src/engine/resolveTurn.test.js > resolveTurn economy (plan §M11) > Fusion Grid deducts its per-turn helium3 upkeep while active
+ ↓ src/engine/resolveTurn.test.js > resolveTurn economy (plan §M11) > Fusion Grid goes offline once helium3 can no longer cover its upkeep
+ ↓ src/engine/resolveTurn.test.js > resolveTurn unrest drift > settles unrest toward 0 when every region is at full control
+ ↓ src/engine/resolveTurn.test.js > resolveTurn unrest drift > raises unrest for a region under the control threshold
+ ↓ src/engine/resolveTurn.test.js > resolveTurn population growth > grows a region with a built Food building faster than an unimproved one over several turns
+ ↓ src/engine/resolveTurn.test.js > resolveTurn population growth > loses population instead of growing while a region is under active invasion
+ ↓ src/engine/resolveTurn.test.js > resolveTurn population growth > grows even an undeveloped, calm region a little just from the passage of time
+ ↓ src/engine/resolveTurn.test.js > resolveTurn rebellion > spawns a rebel army once unrest crosses the threshold
+ ↓ src/engine/resolveTurn.test.js > resolveTurn rebellion > does not spawn a second rebel army in a region that already has one
+ ↓ src/engine/resolveTurn.test.js > resolveTurn rebellion > grows an existing rebel army while unrest stays at or above the threshold
+ ↓ src/engine/resolveTurn.test.js > resolveTurn rebellion > dissolves the rebellion once unrest drops back below the threshold
+ ↓ src/engine/resolveTurn.test.js > resolveTurn revolt end conditions (conquered territory) > reverts a conquered region to its former owner once the revolt runs unresolved for REVOLT_SUCCESS_TURNS
+ ↓ src/engine/resolveTurn.test.js > resolveTurn revolt end conditions (conquered territory) > keeps growing the rebel army in conquered land that has not yet run REVOLT_SUCCESS_TURNS
+ ↓ src/engine/resolveTurn.test.js > resolveTurn revolt end conditions (conquered territory) > never reverts ownership for a home-territory rebellion, which has no formerOwner to revert to
+ ↓ src/engine/resolveTurn.test.js > resolveTurn revolt end conditions (conquered territory) > integrates a conquered region once control reaches INTEGRATION_CONTROL_THRESHOLD without a live rebellion
+ ↓ src/engine/resolveTurn.test.js > resolveTurn revolt end conditions (conquered territory) > keeps formerOwner set on conquered land that is neither revolting nor yet fully integrated
+ ↓ src/engine/resolveTurn.test.js > resolveTurn supply meter (plans/civ-map-rework.md D3) > drains the meter of a unit deep in enemy land and starves it at zero
+ ↓ src/engine/resolveTurn.test.js > resolveTurn supply meter (plans/civ-map-rework.md D3) > keeps a unit at home full, and refills one that comes home
+ ↓ src/engine/resolveTurn.test.js > resolveTurn supply meter (plans/civ-map-rework.md D3) > does not touch embarked cargo (it shares its transport's supply)
+ ↓ src/engine/resolveTurn.test.js > resolveTurn supply meter (plans/civ-map-rework.md D3) > removes a starving unit whose strength is gone
+ ↓ src/engine/resolveTurn.test.js > resolveTurn supply meter (plans/civ-map-rework.md D3) > a Forager loses less, and Paved Roads (national.attrition) slow the drain for the player only
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > resets a fully-spent unit's move at the start of its next turn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > grants a second move to a unit with the forcedMarch perk
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > recovers morale for a unit that did not fight this turn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > does not recover morale for a unit that fought THIS turn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > never recovers morale past 100
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > reinforces a below-strength unit in its owner's own, unoccupied territory
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > costs the player manpower for the strength it reinforces
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > does not reinforce a unit in a region occupied by someone else
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > does not reinforce a unit outside its owner's own territory
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > never reinforces past maxStrength
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > the Cadre perk doubles the reinforcement gain
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > reinforces an AI-owned unit's strength without touching the player's manpower
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > the Forager perk halves the supply drain abroad
+ ↓ src/engine/resolveTurn.test.js > resolveTurn movement reset, reinforcement, and morale recovery (plan §M14) > a logistician-commanded unit also loses half its supply
+ ↓ src/engine/resolveTurn.test.js > resolveTurn war exhaustion > rises for a nation at war
+ ↓ src/engine/resolveTurn.test.js > resolveTurn war exhaustion > decays for a nation at peace
+ ↓ src/engine/resolveTurn.test.js > resolveTurn war exhaustion > applies to the player too, not just AI nations
+ ↓ src/engine/resolveTurn.test.js > resolveTurn war exhaustion > never drops below 0 or exceeds 100
+ ↓ src/engine/resolveTurn.test.js > resolveTurn AI nations > grows non-player nations' military strength over many turns without crashing
+ ↓ src/engine/resolveTurn.test.js > resolveTurn AI nations > never touches the player nation's own stats via the AI pass
+ ↓ src/engine/resolveTurn.test.js > resolveTurn AI war declarations > carries an existing war forward across a turn (wars is part of the resolved state)
+ ↓ src/engine/resolveTurn.test.js > resolveTurn AI war declarations > an aggressive, hostile Tier 1 neighbor eventually declares war on its own, wired end-to-end through resolveTurn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn AI war progress (Task 32: territorial conquest, wired end-to-end) > lets one AI nation actually conquer territory from another
+ ↓ src/engine/resolveTurn.test.js > resolveTurn AI war progress (Task 32: territorial conquest, wired end-to-end) > grinds a defended region's control instead of instantly capturing it in one turn (src/engine/siege.js)
+ ↓ src/engine/resolveTurn.test.js > resolveTurn AI war progress (Task 32: territorial conquest, wired end-to-end) > lets an AI nation conquer territory from the PLAYER — every nation must be conquerable by anyone
+ ↓ src/engine/resolveTurn.test.js > resolveTurn AI war progress (Task 32: territorial conquest, wired end-to-end) > leaves a war the player started to be resolved by the player's own invasion actions, not synthetically
+ ↓ src/engine/resolveTurn.test.js > resolveTurn victory > triggers a Score Victory at END_YEAR only when the player actually ranks #1
+ ↓ src/engine/resolveTurn.test.js > resolveTurn victory > ends as GameStatus.COMPLETE with a real finalRank when the player does NOT rank #1 at END_YEAR
+ ↓ src/engine/resolveTurn.test.js > resolveTurn victory > does not check victory conditions while an event is pending
+ ↓ src/engine/resolveTurn.test.js > resolveTurn event chains > does not fire a chain event before its dueTurn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn event chains > ignores a pending entry whose id has no matching registry entry, rather than throwing
+ ↓ src/engine/resolveTurn.test.js > resolveTurn event chains > fires a real, multi-step chain end-to-end: schedules, fires at dueTurn, and resolving it schedules the next step
+ ↓ src/engine/resolveTurn.test.js > resolveTurn curated national events > fires a curated national event for the nation it names, once its year arrives
+ ↓ src/engine/resolveTurn.test.js > resolveTurn curated national events > never fires a curated national event for a different nation
+ ↓ src/engine/resolveTurn.test.js > resolveTurn curated national events > declaring war through a curated event's warWith effect marks both sides isAtWar (Task 23's aggressor fix)
+ ↓ src/engine/resolveTurn.test.js > resolveTurn orbital debris (Space Race) > decays every turn, whether or not anyone struck a satellite this turn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn orbital debris (Space Race) > never drops below 0
+ ↓ src/engine/resolveTurn.test.js > resolveTurn orbital debris (Space Race) > feeds a satellite's stabilityBonus into every owning nation's own regions' unrest drift, not just the player's
+ ↓ src/engine/resolveTurn.test.js > resolveTurn space mission ladder > ticks a mission's progress down by one turn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn space mission ladder > completes a mission once its progress reaches 0, applying its one-time reward and clearing it from progress
+ ↓ src/engine/resolveTurn.test.js > resolveTurn space mission ladder > leaves unrelated in-progress missions untouched
+ ↓ src/engine/resolveTurn.test.js > resolveTurn space mission ladder > a completed mission's recurring reward flows into income starting the turn after completion
+ ↓ src/engine/resolveTurn.test.js > resolveTurn diplomatic leadership streak > increments the streak while aligned with a majority of the world
+ ↓ src/engine/resolveTurn.test.js > resolveTurn diplomatic leadership streak > resets the streak once alignment drops below a majority
+ ↓ src/engine/resolveTurn.test.js > resolveTurn new victory conditions wired end-to-end > triggers Space Ascendancy once the final mission completes mid-turn
+ ↓ src/engine/resolveTurn.test.js > resolveTurn new victory conditions wired end-to-end > triggers Domination once the player holds enough of the world's regions
+ ↓ src/engine/resolveTurn.test.js > resolveTurn nation elimination (src/engine/elimination.js) > marks a nation eliminated once it holds zero regions and closes out its wars
+ ↓ src/engine/resolveTurn.test.js > resolveTurn nation elimination (src/engine/elimination.js) > rewards the player and fires the popup signal when THEY are the one who eliminated a nation
+ ↓ src/engine/resolveTurn.test.js > resolveTurn nation elimination (src/engine/elimination.js) > never eliminates the player nation itself, however few regions remain
+ ↓ src/engine/resolveTurn.test.js > resolveTurn nation elimination (src/engine/elimination.js) > sets GameStatus.DEFEAT once the PLAYER is reduced to zero regions (plan §M15)
+ ↓ src/engine/resolveTurn.test.js > resolveTurn nation elimination (src/engine/elimination.js) > does not set DEFEAT while the player still owns at least one region
+ ↓ src/engine/resolveTurn.test.js > resolveTurn capitals (plan §M15) > applies a one-time -1 stability the turn the capital first becomes occupied
+ ↓ src/engine/resolveTurn.test.js > resolveTurn capitals (plan §M15) > does not repeat the stability penalty on a later turn the capital is STILL occupied
+ ↓ src/engine/resolveTurn.test.js > resolveTurn capitals (plan §M15) > deducts 1 ADM/DIP/MIL every turn the player's capital stays occupied
+ ↓ src/engine/resolveTurn.test.js > resolveTurn capitals (plan §M15) > clears the occupied flag and stops the penalty once the capital is liberated
+ ↓ src/engine/resolveTurn.test.js > resolveTurn civil war trigger (plan §M15) > descends into civil war after the streak of turns at the stability floor (five, plans/playtest-1.md P4)
+ ↓ src/engine/resolveTurn.test.js > resolveTurn civil war trigger (plan §M15) > the streak resets once stability recovers above the floor
+ ↓ src/engine/resolveTurn.test.js > resolveTurn disasters (plan §M15) > grows the Revolution meter for a discredited Modern-age regime
+ ↓ src/engine/resolveTurn.test.js > resolveTurn disasters (plan §M15) > completes into a new government and a civil war once the Revolution meter reaches 100
+ ↓ src/engine/resolveTurn.test.js > resolveTurn national power (plan §M4) > runs the stability/legitimacy/prestige pass for every nation, not just the player's
+ ↓ src/engine/resolveTurn.test.js > resolveTurn national power (plan §M4) > crowns a new ruler when a reign ends, with no heir and no stability cost
+ ↓ src/engine/resolveTurn.test.js > resolveTurn diplomacy (plan §M12) > decays every nation's Aggressive Expansion by AE_DECAY_PER_TURN
+ ↓ src/engine/resolveTurn.test.js > resolveTurn diplomacy (plan §M12) > decays a diplomat's assigned target's hostility faster than passive decay alone
+ ↓ src/engine/resolveTurn.test.js > resolveTurn diplomacy (plan §M12) > pays the player real vassal tribute proportional to the vassal's own development
+ ↓ src/engine/resolveTurn.test.js > resolveTurn diplomacy (plan §M12) > rewards prestige when a designated rival is eliminated
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 107 skipped (108)
+   Start at  07:48:27
+   Duration  6.89s (transform 2.87s, setup 0ms, import 5.08s, tests 1.36s, environment 0ms)

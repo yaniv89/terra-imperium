@@ -27,7 +27,7 @@ import { GameStatus, LogTypes } from '../data/types';
 import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
-import { pickProceduralEvent } from '../data/proceduralEvents';
+import { pickProceduralEvent, noteEventFired } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getNationBonusTotal, getPowerIncome, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
@@ -71,7 +71,7 @@ import {
   ECONOMIC_COLLAPSE_STABILITY_PENALTY,
   POWER_POOL_CAP
 } from '../data/actionCosts';
-import { processReignEnd, getAdvisorSalary } from './rulers';
+import { processReignEnd, getAdvisorSalary, successionLine } from './rulers';
 import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX } from './nationalPower';
 import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
@@ -88,6 +88,7 @@ import { updateDefensivePacts } from './pacts';
 import { computeSupplyFlow, isCampaigning, unitsByOwner, HUNGER_MORALE } from './supplies';
 import { advanceMarches, marchUpkeep } from './routes';
 import { normalizeUnitTiles } from './armies';
+import { canReinforce } from './unitLocation';
 import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
 import { processSieges } from './sieges';
 import { opinionOf, opinionGivesCasusBelli } from './opinion';
@@ -108,6 +109,7 @@ import { navalCargo } from '../data/navalLines';
 import { ringsFromF75 } from '../data/geo/gridScale';
 import { updateFog } from './fog';
 import { repairCityDamage } from './cityManifest';
+import { subjectVerb } from './grammar';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -576,8 +578,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       patch = { ...patch, morale: Math.min(100, u.morale + Math.round(MORALE_RECOVERY_PER_TURN * (1 + moraleRecoveryBonus) * maintenanceFactor)) };
     }
 
-    const region = regions[u.regionId];
-    const isSuppliedHomeTerritory = region && region.owner === u.ownerId && !region.occupiedBy;
+    // Recruits reach a unit that STANDS on its nation's own, unoccupied land (unitLocation.js): the
+    // tile is the truth, the home base (`regionId`) is not a position. A field army in Sinai based
+    // at Men-nefer no longer refills through its base (playtest audit I058, plan 2.4).
+    const isSuppliedHomeTerritory = canReinforce(state, u, regions);
     if (!hungry && !foughtThisTurn && isSuppliedHomeTerritory && u.strength < u.maxStrength) {
       const cadreMult = hasPerk(u, 'cadre') ? 2 : 1;
       const gain = Math.min(Math.floor((ownerPool.hr || 0) * 10), u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
@@ -719,7 +723,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const sameDynastyStreak = ruler.dynasty === nation.ruler?.dynasty ? (nation.sameDynastyStreak || 0) + 1 : 1;
     nations[nId] = { ...nation, ruler, sameDynastyStreak };
     if (nId === state.playerNationId) {
-      logs.push({ year: newYear, message: `${ruler.name} of House ${ruler.dynasty} now rules.`, type: LogTypes.MILESTONE });
+      logs.push({ year: newYear, message: successionLine(nation.ruler, ruler), type: LogTypes.MILESTONE });
     }
   });
   mark('rulers');
@@ -796,7 +800,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
         Object.assign(regions, started.regions);
         Object.assign(units, started.units);
         nations[nId] = { ...nations[nId], civilWar: started.civilWar, lowStabilityStreak: 0 };
-        logs.push({ year: newYear, message: `${nations[nId].name} descends into civil war!`, type: LogTypes.CRISIS });
+        logs.push({ year: newYear, message: `${subjectVerb(nations[nId].name, 'descend', 'into civil war')}!`, type: LogTypes.CRISIS });
         return;
       }
     }
@@ -1203,10 +1207,12 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // cooldown (a random few turns after each firing) so these don't cluster.
   let proceduralEventCooldown = Math.max(0, (state.proceduralEventCooldown || 0) - 1);
   let activeProceduralEvent = null;
+  let eventHistory = state.eventHistory || {}; // which event templates, families and cities rested when (proceduralEvents.js)
   if (!dueEvent && !chainEventId && proceduralEventCooldown <= 0 && rng.next() < 0.3) {
     const candidate = pickProceduralEvent({ ...state, nations, turnNumber: newTurnNumber, year: newYear }, rng);
     if (candidate) {
       activeProceduralEvent = candidate;
+      eventHistory = noteEventFired(eventHistory, candidate, newTurnNumber);
       proceduralEventCooldown = 3 + Math.floor(rng.next() * 5);
     }
   }
@@ -1246,6 +1252,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,
     proceduralEventCooldown,
+    eventHistory,
     pendingEventChains: nextPendingEventChains,
     nextLoanSeq,
     lodPeriods, // world/lod.js: next turn's loyalty pass reads which nations are far and quiet

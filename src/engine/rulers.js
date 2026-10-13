@@ -7,7 +7,7 @@
 // keeps the higher), a Dictatorship floors MIL at 3.
 import { getYearsPerTurn } from '../data/ages';
 import { generateGivenName, generateDynastyName } from '../data/names';
-import { POSITIVE_TRAIT_IDS, NEGATIVE_TRAIT_IDS } from '../data/traits';
+import { POSITIVE_TRAIT_IDS, NEGATIVE_TRAIT_IDS, TRAITS } from '../data/traits';
 
 /** The skill bias a government type gives a newly rolled ruler ('theocratic', 'autocratic' or null). */
 export const rulerStyleFor = (government) => {
@@ -67,6 +67,15 @@ export const processReignEnd = (nation, rng, { turnNumber, age, gameSpeed }) => 
   return generateRuler(nation.id, rng, { dynasty, turnNumber, age, gameSpeed, style: rulerStyleFor(nation.government) });
 };
 
+/** The Log line for a succession (I147): who the reign ended for, how long it lasted, the new
+ *  ruler's house, skills and traits. One line per succession; phase RU owns the full history. */
+export const successionLine = (prev, next) => {
+  const traits = (next.traits || []).map((id) => TRAITS[id]?.name || id);
+  const skills = `ADM ${next.adm}, DIP ${next.dip}, MIL ${next.mil}${traits.length ? `; ${traits.join(', ')}` : ''}`;
+  const ended = prev ? `${prev.name} of House ${prev.dynasty} reigned ${Math.max(1, next.reignStartTurn - prev.reignStartTurn)} turns. ` : '';
+  return `${ended}${next.name} of House ${next.dynasty} now rules (${skills}).`;
+};
+
 // Advisors (plan §M3). A hired advisor's only effect is +level to their own power pool
 // (src/engine/modifiers/sources.js).
 export const ADVISOR_HIRE_GOLD_PER_LEVEL_SQUARED = 50;
@@ -76,18 +85,36 @@ export const getAdvisorSalary = (level) => ADVISOR_SALARY_GOLD_PER_LEVEL_SQUARED
 
 const ADVISOR_LEVEL_WEIGHTS = [1, 1, 2, 2, 2, 3]; // level 1-3, weighted toward the middle
 
-const generateOneAdvisor = (nationId, rng, idSuffix) => ({
+// A name nobody at court already has (I145: two advisors, or an advisor and the ruler, with one name
+// could not be told apart). A few tries; the pool is large, so a repeat is rare and the rng stays
+// unchanged whenever the first roll is free.
+const freshName = (nationId, rng, taken) => {
+  let name = generateGivenName(nationId, rng);
+  for (let i = 0; i < 8 && taken.has(name); i++) name = generateGivenName(nationId, rng);
+  taken.add(name);
+  return name;
+};
+
+const generateOneAdvisor = (nationId, rng, idSuffix, taken = new Set()) => ({
   id: idSuffix,
-  name: generateGivenName(nationId, rng),
+  name: freshName(nationId, rng, taken),
   level: ADVISOR_LEVEL_WEIGHTS[Math.floor(rng.next() * ADVISOR_LEVEL_WEIGHTS.length)]
 });
 
 // Three hire-able candidates per pool, refreshed every ADVISOR_REFRESH_TURNS turns or whenever the
 // current one is hired (gameReducer.js's HIRE_ADVISOR).
-export const generateAdvisorCandidates = (nationId, rng) => ({
-  adm: [0, 1, 2].map((i) => generateOneAdvisor(nationId, rng, `adv_adm_${i}`)),
-  dip: [0, 1, 2].map((i) => generateOneAdvisor(nationId, rng, `adv_dip_${i}`)),
-  mil: [0, 1, 2].map((i) => generateOneAdvisor(nationId, rng, `adv_mil_${i}`))
-});
+// `avoid`: names already at court (the ruler, hired advisors), so a new face never shares one.
+export const generateAdvisorCandidates = (nationId, rng, avoid = []) => {
+  const taken = new Set(avoid.filter(Boolean));
+  const make = (pool) => [0, 1, 2].map((i) => generateOneAdvisor(nationId, rng, `adv_${pool}_${i}`, taken));
+  return { adm: make('adm'), dip: make('dip'), mil: make('mil') };
+};
+
+/** The names at a nation's court: its ruler, hired advisors and every waiting candidate. */
+export const courtNames = (nation, pool = null) => [
+  nation?.ruler?.name,
+  ...Object.values(nation?.advisors || {}).map((a) => a?.name),
+  ...Object.values(pool || {}).flat().map((a) => a?.name)
+].filter(Boolean);
 
 export const ADVISOR_REFRESH_TURNS = 5;

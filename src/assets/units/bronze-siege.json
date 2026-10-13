@@ -3,10 +3,14 @@
   "restClip": "^Idle$",
   "rotateY": 0,
   "quadruped": false,
-  "triangleBudget": 3000,
+  "triangleBudget": 6000,
   "tags": {
     "team": "^Team(?:\\s|$)",
     "skin": "^Skin(?:\\s|$)",
     "emblem": "^Emblem(?:\\s|$)"
-  }
+  },
+  "footprint": [
+    1.92,
+    2.27
+  ]
 }

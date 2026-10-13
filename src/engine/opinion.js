@@ -200,3 +200,19 @@ export const opinionOf = (state, a, b = state.playerNationId) => {
 export const warRollOpinionMult = (opinion) => Math.max(0, (WAR_ROLL_OPINION_CEILING - opinion) / WAR_ROLL_OPINION_SPAN);
 
 export const opinionGivesCasusBelli = (opinion) => opinion <= CASUS_BELLI_OPINION;
+
+/**
+ * The opinion with every part shown and reconciled to the displayed number (CB08, I112): `rows`
+ * are the reasons (the first is where a stranger starts), `sum` their total, `total` the shown
+ * opinion (the sum clamped to -100..100 and rounded), `clamped` true when the clamp changed it,
+ * and `rounding` the small difference rounding leaves (shown as its own row when not 0), so the
+ * rows always add up to `total`. `plain` is true when only the starting point applies.
+ */
+export const opinionBreakdown = (state, a, b = state.playerNationId) => {
+  const rows = opinionReasons(state, a, b).map((r) => (r.id === 'baseline' ? { ...r, label: 'Starting point for strangers' } : r));
+  const sum = rows.reduce((s, r) => s + r.value, 0);
+  const total = clamp(sum);
+  const clamped = Math.round(sum) !== total;
+  const rounding = clamped ? 0 : Math.round((total - sum) * 10) / 10;
+  return { rows, sum: Math.round(sum * 10) / 10, total, clamped, rounding, plain: rows.length <= 1 };
+};

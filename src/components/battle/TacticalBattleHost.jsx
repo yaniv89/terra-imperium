@@ -60,11 +60,13 @@ const TacticalBattleHost = () => {
     return <BattleFailure title="The battle could not be set up" message="Something went wrong while preparing this battle." detail={built.error} onAuto={() => abandon('setup_error')} onRetry={retry} />;
   }
   if (!setup || problem || resume === undefined) return null;
+  const setupKey = setupKeyOf(setup);
+  // The live battle's own end record goes with the log (battleVerify.js): the rules it ran under,
+  // which battle it was and the world it ended on, so the reducer's replay is checked against it.
   const finish = (ended) => {
     clearBattleCheckpoint(pb.id);
-    dispatch({ type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result: ended.result, log: ended.log } });
+    dispatch({ type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result: ended.result, log: ended.log, hash: ended.hash, chain: ended.chain, tick: ended.tick, setupVersion: SETUP_VERSION, setupKey } });
   };
-  const setupKey = setupKeyOf(setup);
   return (
     <BattleErrorBoundary key={`${pb.id}:${attempt}`} onAuto={() => abandon('screen_error')} onRetry={retry}>
       <TacticalBattleScreen

@@ -8,8 +8,9 @@
 //
 // Publishes its real height as --header-height on <html> and reports it as the map's top inset,
 // as GameHeader did, so sheets and map controls sit below it.
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
+import { useOnInteractionOpen } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { openPanelTab } from '../panels/panelEvents';
@@ -17,6 +18,7 @@ import { openNationOverview, openTurnReport } from './uiEvents';
 import { topBarModel } from './topBarModel';
 import { Shield, signed } from './atlas';
 import ResourceBar from './ResourceBar';
+import { CULTURE_HELP } from '../../data/powerPools';
 
 const GoldIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-brass)" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v8M9.5 10.5h5" /></svg>;
 const FoodIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-food)" strokeWidth="1.8" aria-hidden="true"><path d="M12 21V8M12 8c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-3-2-5-5-5 0 3 2 5 5 5zM12 16c0-3 2-5 5-5 0 3-2 5-5 5z" /></svg>;
@@ -38,7 +40,7 @@ const BarItem = ({ label, onClick, expanded, children, testId }) => (
 const Reasons = ({ title, rows, total, unit, footer, onClose }) => (
   <>
     <div className="fixed inset-0 z-30" onClick={onClose} aria-hidden="true" />
-    <div role="dialog" aria-label={title} className="absolute left-2 top-full mt-1 z-40 w-[min(320px,calc(100vw-1rem))] fa-panel shadow-2xl p-3 max-h-[70dvh] overflow-y-auto" data-testid="top-bar-reasons">
+    <div role="dialog" aria-label={title} className="absolute left-2 top-full mt-1 z-40 w-[min(320px,calc(100vw-1rem))] fa-panel !bg-fa-panel shadow-2xl p-3 max-h-[70dvh] overflow-y-auto" data-testid="top-bar-reasons">
       <div className="flex items-baseline justify-between gap-2 mb-1.5">
         <span className="fa-heading text-[15px]">{title}</span>
         {total != null && <span className="fa-num text-[13px]">{signed(total)}{unit}</span>}
@@ -75,7 +77,10 @@ const WorldTopBar = () => {
   }, []);
   useReportInset(`game-header-${layoutMode}`, 'top', ref);
   const toggle = (id) => setOpen((v) => (v === id ? null : id));
-  const close = () => setOpen(null);
+  const close = useCallback(() => setOpen(null), []);
+  // A card, sheet or dock that opens closes the reasons popover: it used to stay open over them
+  // (playtest audit I162).
+  useOnInteractionOpen(close);
   const portrait = layoutMode === 'phone-portrait' || layoutMode === 'tablet-portrait';
 
   return (
@@ -126,7 +131,7 @@ const WorldTopBar = () => {
       {open === 'food' && <Reasons title="Food a turn, by city" rows={m.food.reasons} total={m.food.perTurn} unit="" onClose={close}
         footer={<p className="mt-2 text-[11px] text-fa-muted">The surplus after the people eat. It fills each city&apos;s bank ({m.food.value} in all) until the city grows.</p>} />}
       {open === 'culture' && <Reasons title="Culture a turn, by city" rows={m.culture.reasons} total={m.culture.perTurn} unit="" onClose={close}
-        footer={<p className="mt-2 text-[11px] text-fa-muted">Culture claims new tiles for each city and holds its people loyal.</p>} />}
+        footer={<p className="mt-2 text-[11px] text-fa-muted">Culture claims new tiles for each city and holds its people loyal. {CULTURE_HELP.earns} {CULTURE_HELP.spends}</p>} />}
     </header>
   );
 };

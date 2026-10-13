@@ -1,0 +1,1591 @@
+{
+  "scope": "Read-only reconciliation of specified existing pending queue entries; recommendations only",
+  "date_UTC": "2026-10-08",
+  "repo": "/workspace/terra-remaining",
+  "branch": "gpt/art-remaining",
+  "HEAD": "1586070d90888dd7828869be64735035361a3a74",
+  "queue_sha256": "492744c5ab68f47a65bc5bdce3155d9238468e461765f95dc209ec7c54ae8c2e",
+  "queue_counts": {
+    "total": 1135,
+    "statuses": {
+      "uploaded_quality_accepted": 260,
+      "in_game_quality_accepted": 25,
+      "pending": 376,
+      "in_game_awaiting_review": 474
+    },
+    "accepted_combined": 285
+  },
+  "legacy_aggregate_fields": "remaining_to_finish/remaining_to_upload=65 and target_items=350 are old top-level metadata; use actual item-array statuses 1135/376, not those aggregates.",
+  "method": "Read source, queue and working-tree docs; git ls-tree -r --name-only HEAD for tracked-path presence. No -l, fetch, checkout, asset mutation, validation run, tests, queue update, commit or push.",
+  "limits": "Many tracked binary/metadata paths are not materialized in this partial checkout. Tracked presence is not a new binary/visual audit. Two unavailable HEAD metadata blobs were probed with GIT_NO_LAZY_FETCH=1 and returned bad object; no lazy fetch requested. Source/queue delivery evidence is independently available. Kit candidates cannot yet be cleared at component level.",
+  "findings": {
+    "scoped_pending_rows": 38,
+    "direct_reconcile_to_existing_delivery": 2,
+    "explicit_superseded_rows": 11,
+    "pending_after_those_two_plus_eleven_reclassifications_if_parent_adopts_supersession_policy": 363,
+    "conditional_kit_rows": 4,
+    "remaining_missing_or_omitted_scope_rows": 21,
+    "note": "Reclassified counts are recommendations, not actual queue changes. No superseded row should be counted as a newly built asset."
+  },
+  "explicit_skips_outside_scope": [
+    {
+      "item": "map-terrain/rivers",
+      "reason": "claude/map-river-lines owns redraw",
+      "evidence": "brief-rivers"
+    },
+    {
+      "item": "units/impostors/classical-infantry-lod3",
+      "reason": "Skip for now; zoom-look branch owns unit appearance/scale",
+      "evidence": "brief-unit-freeze"
+    }
+  ],
+  "sources": {
+    "brief-existing": {
+      "path": "plans/art/GPT-PROMPT-REMAINING-ART.md",
+      "line": 62,
+      "matched_text": "exists in `src/assets/map/` first; only build what is really missing, and mark a queue item",
+      "finding": "Existing deliveries must be reconciled before duplicate production."
+    },
+    "brief-unit-freeze": {
+      "path": "plans/art/GPT-PROMPT-REMAINING-ART.md",
+      "line": 72,
+      "matched_text": "until that branch is merged; then follow its rules.",
+      "finding": "No unit GLB, rig or unit rendering changes until claude/battle-unit-zoom-look merges."
+    },
+    "brief-fishing": {
+      "path": "plans/art/GPT-PROMPT-REMAINING-ART.md",
+      "line": 56,
+      "matched_text": "- Fishing boats: `units/fishing-boat-ancient`, `-modern`.",
+      "finding": "Both fishing boat unit items explicitly remain Batch 1 work."
+    },
+    "brief-rivers": {
+      "path": "plans/art/GPT-PROMPT-REMAINING-ART.md",
+      "line": 67,
+      "matched_text": "**Skip `map-terrain/rivers`:** another branch (`claude/map-river-lines`) is redrawing the",
+      "finding": "Explicit river skip is not a skip of settlers or ships."
+    },
+    "brief-checkpoints": {
+      "path": "plans/art/GPT-PROMPT-REMAINING-ART.md",
+      "line": 125,
+      "matched_text": "**Wave 7 checkpoint 38**). For each checkpoint:",
+      "finding": "Checkpoint workflow and numbering."
+    },
+    "israel-dropped": {
+      "path": "plans/ART-MODELS-PLAN.md",
+      "line": 204,
+      "matched_text": "Israelite unit set of `plans/art/israelite-theme.md` section 7 (11 unit items) shrinks to the one",
+      "finding": "Section4.4 explicitly replaces all eleven theme unit items with one signature unit."
+    },
+    "israel-single": {
+      "path": "plans/ART-MODELS-PLAN.md",
+      "line": 205,
+      "matched_text": "Israelite signature unit below (now the Merkava tank); the Judahite headdress and sling look stay as reference for the Israelite map dressings.",
+      "finding": "The replacement is the Merkava; not eleven additional uniforms."
+    },
+    "israel-runtime": {
+      "path": "src/data/signatureUnits.js",
+      "line": 17,
+      "matched_text": "israel: { ageId: 'modern', classId: 'cavalry', model: 'kingdom-of-israel', rig: 'tank', name: 'Merkava main battle tank' },",
+      "finding": "israel maps Modern cavalry to kingdom-of-israel on tank rig."
+    },
+    "israel-builder": {
+      "path": "scripts/blender/build_units_modern_signature.py",
+      "line": 273,
+      "matched_text": "'kingdom-of-israel': dict(name='Merkava main battle tank', build=build_merkava, colors=C('C99472', Cloth='9A8E6E', Leather='2C2A26', Metal=('5A5A54', .45, .6), Wood='4A4038'),",
+      "finding": "Rebuildable Merkava definition exists."
+    },
+    "israel-delivery": {
+      "path": "plans/art/PRODUCTION-PROGRESS.md",
+      "line": 97,
+      "matched_text": "Wave 6 [checkpoint 32](downloads/wave6/checkpoint-32/README.md), 2026-10-08 (Claude): the 10 Modern signature units (the Merkava and the LT vz. 38 on the tracked rig, Kindah's camel riflemen, and 7 on foot; `build_units_modern_signature.py`), 10 queue items `in_game_awaiting_review`; all 150 peoples now have their signature unit in battle. 0.79 MB added (20 files).",
+      "finding": "Modern signatures including Merkava delivered in checkpoint32."
+    },
+    "classical-delivery": {
+      "path": "plans/art/PRODUCTION-PROGRESS.md",
+      "line": 69,
+      "matched_text": "Wave 3 [checkpoint 18](downloads/wave3/checkpoint-18/README.md), 2026-10-08 (Claude): the 12 Classical culture skins of the battle buildings (barracks, tower, trade post with damaged states, `rts-classical-<theme>.glb`) and the map's Classical fort (`fort-classical.glb`), 13 queue items `in_game_awaiting_review`. 9.99 MB added. The Classical remainder is done.",
+      "finding": "Classical map fort delivered at checkpoint18, distinct from battle fort checkpoint14."
+    },
+    "modern-delivery": {
+      "path": "plans/art/PRODUCTION-PROGRESS.md",
+      "line": 103,
+      "matched_text": "Wave 6 [checkpoint 35](downloads/wave6/checkpoint-35/README.md), 2026-10-08 (Claude): the Modern remainder: the 13 damaged-and-ruined house files, the palace damage set, the raider (a technical) and the mercenary (a contractor), the projectiles (shell, missile), the twelve props, the 12 culture skins of the battle buildings and the map's bunker-line fort, 31 queue items `in_game_awaiting_review`. 16.79 MB added (33 files). The Modern age is done.",
+      "finding": "Modern map fort delivered at checkpoint35, distinct from battle fort checkpoint34."
+    },
+    "modern-fort-readme": {
+      "path": "plans/art/downloads/wave6/checkpoint-35/README.md",
+      "line": 24,
+      "matched_text": "| `src/assets/map/improvements/fort-modern.glb` | the battle's bunker line on a round earth patch in the 50 m circle | `build_improvement_fort_modern.py` | 0.39 MB |",
+      "finding": "Packed Modern map fort explicitly listed. README also says it was not shot live in map close view."
+    },
+    "classical-builder": {
+      "path": "scripts/blender/build_improvement_fort_classical.py",
+      "line": 72,
+      "matched_text": "tt.build_file('fort-classical', [('fort-classical', fort_budgeted, GROUND)], out, atlas=1024, seed=6420)",
+      "finding": "Dedicated map export uses round Ground and improvement budget, not raw battle fort."
+    },
+    "modern-builder": {
+      "path": "scripts/blender/build_improvement_fort_modern.py",
+      "line": 33,
+      "matched_text": "tt.build_file('fort-modern', [('fort-modern', fort_budgeted, GROUND)], out, atlas=1024, seed=6720)",
+      "finding": "Dedicated map export reuses battle bunker with round Ground and budget trim."
+    },
+    "fort-runtime": {
+      "path": "src/components/map/closeView/improvementModels.test.js",
+      "line": 97,
+      "matched_text": "expect(improvementModel('fort', 'modern', 'europe').name).toBe('fort-modern'); // the bunker line in the Modern Age",
+      "finding": "Source assertion selects fort-modern for base Modern fort; tests were read, not run."
+    },
+    "oil-modern": {
+      "path": "plans/ART-MODELS-PLAN.md",
+      "line": 668,
+      "matched_text": "age where the improvement exists (oil_well Modern only; forts all five), base style first, theme",
+      "finding": "Ancient in old queue path does not authorize ancient-era oil infrastructure."
+    },
+    "oil-building": {
+      "path": "src/components/map/closeView/buildingModels.js",
+      "line": 25,
+      "matched_text": "export const EXTRACTION_MODEL_IDS = { copper: 'copper_mine', iron: 'iron_foundry', oil: 'oil_well' };",
+      "finding": "Oil extraction building uses oil_well lookup in separate buildings asset index."
+    },
+    "building-index": {
+      "path": "src/components/map/closeView/buildingModels.js",
+      "line": 39,
+      "matched_text": "const FILES = import.meta.glob('../../../assets/map/buildings/*.glb', { query: '?url', import: 'default', eager: true });",
+      "finding": "Building glob does not index improvement directory."
+    },
+    "improvement-index": {
+      "path": "src/components/map/closeView/improvementModels.js",
+      "line": 47,
+      "matched_text": "const FILES = import.meta.glob('../../../assets/map/improvements/*.glb', { query: '?url', import: 'default', eager: true });",
+      "finding": "Improvement glob is separate; one file in buildings does not automatically satisfy improvement wiring."
+    },
+    "improvement-naming": {
+      "path": "src/components/map/closeView/improvementModels.js",
+      "line": 9,
+      "matched_text": "//          left out, it means bronze. It shows from that age on until a later age has a file. An",
+      "finding": "A bare oil_well.glb improvement parses as Bronze; prefer oil_well-modern.glb for Modern-only semantics."
+    },
+    "oil-runtime-absence": {
+      "path": "src/components/map/closeView/improvementModels.test.js",
+      "line": 100,
+      "matched_text": "expect(improvementModelUrl('oil_well', 'modern', 'europe')).toBeNull();",
+      "finding": "Existing source assertion expects null. This is checked source evidence, not test execution."
+    },
+    "kit-delivery-rule": {
+      "path": "plans/art/IMPLEMENTED.md",
+      "line": 46,
+      "matched_text": "A kit counts as in the game when its towns are built from it (its houses, street, roofscape,",
+      "finding": "Runtime town assets are kit delivery targets, not necessarily standalone kit component files."
+    },
+    "steppe-document": {
+      "path": "plans/art/IMPLEMENTED.md",
+      "line": 57,
+      "matched_text": "| steppe | yes | yes | yes | yes | yes | 5 |",
+      "finding": "Existing older table calls steppe Modern integrated; latest brief still requests component reconciliation."
+    },
+    "indic-older-negative": {
+      "path": "plans/art/IMPLEMENTED.md",
+      "line": 68,
+      "matched_text": "- `indic/modern`: the early prototypes must be redone under `plans/art/blender-delivery-spec.md`: all six items.",
+      "finding": "Older status section says Indic Modern needs redo; not sufficient to override later supersession statement."
+    },
+    "indic-later-positive": {
+      "path": "plans/art/IMPLEMENTED.md",
+      "line": 117,
+      "matched_text": "buildings, wonders, improvements and icons by id; the two early prototypes, `indic-modern-five`",
+      "finding": "Later 2026-10-07 import section says early Indic prototype superseded by production kits."
+    },
+    "kit-coverage": {
+      "path": "scripts/art/downloads-coverage.mjs",
+      "line": 93,
+      "matched_text": "return { kind: 'kit', files: towns(age, SUB_STYLE[part] || style) };",
+      "finding": "Generic kit mapping maps each part to any matching town candidate; presence alone cannot prove specific houses/street/roofscape/material quality."
+    },
+    "town-runtime": {
+      "path": "src/components/map/closeView/townAssets.js",
+      "line": 22,
+      "matched_text": "const FILES = import.meta.glob('../../../assets/map/towns/*.glb', { query: '?url', import: 'default', eager: true });",
+      "finding": "All tracked matching town files are candidates for existing runtime indexing."
+    },
+    "ships-scope": {
+      "path": "plans/ART-MODELS-PLAN.md",
+      "line": 550,
+      "matched_text": "warship x 5 ages, raider and transport x Classical to Modern, carrier (Modern). Map now (fleets on the",
+      "finding": "Section4.8 retains fourteen map ships: five warships, four raiders, four transports, one carrier."
+    },
+    "ships-fallback": {
+      "path": "src/components/map/closeView/shipModels.js",
+      "line": 32,
+      "matched_text": "export const shipModel = (ageId, kind = 'warship', index = BY_KIND) => {",
+      "finding": "shipModel defaults to warship; age fallback exists and does not count missing ships delivered."
+    },
+    "ships-import": {
+      "path": "plans/art/IMPLEMENTED.md",
+      "line": 149,
+      "matched_text": "- **Section 7 warships (3 of 45)**: `src/assets/map/ships/warship-bronze`, `-classical`, `-kingdoms`.",
+      "finding": "Only first three warships imported; later ages currently reuse Kingdoms ship."
+    },
+    "queue-helper": {
+      "path": "scripts/art/queue-update.mjs",
+      "line": 14,
+      "matched_text": "const done = { delivery_status: 'in_game_awaiting_review', delivered: label };",
+      "finding": "Helper overwrites delivery_status with delivered status; unsuitable for recording supersession/exclusion."
+    },
+    "ship-skill": {
+      "path": ".claude/skills/ship/SKILL.md",
+      "line": 15,
+      "matched_text": "## Before every commit",
+      "finding": "Ship skill requires lint and Vitest before every commit, E2E for gameplay/UI. Latest brief adds E2E every art checkpoint."
+    }
+  },
+  "entries": [
+    {
+      "queue_index_zero_based": 280,
+      "queue_path": "plans/art/improvements/ancient/oil_well",
+      "queue_line": 1768,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "same-semantic-asset-not-yet-delivered",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Produce one shared original pumpjack+tank source, then satisfy both independent loader contexts. Modern-only improvement should be oil_well-modern.glb; building lookup is oil_well.glb. Reuse source geometry with appropriate root/footprint/LOD exports rather than assuming directory aliasing. Do not mark either row delivered from accepted oil icons.",
+      "latest_asset_paths": [
+        "src/assets/map/improvements/oil_well-modern.glb",
+        "src/assets/map/buildings/oil_well.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/improvements/oil_well-modern.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/buildings/oil_well.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-existing",
+        "oil-modern",
+        "oil-building",
+        "building-index",
+        "improvement-index",
+        "improvement-naming",
+        "oil-runtime-absence"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": ""
+    },
+    {
+      "queue_index_zero_based": 292,
+      "queue_path": "plans/art/buildings/oil_well",
+      "queue_line": 1852,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "same-semantic-asset-not-yet-delivered",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Produce one shared original pumpjack+tank source, then satisfy both independent loader contexts. Modern-only improvement should be oil_well-modern.glb; building lookup is oil_well.glb. Reuse source geometry with appropriate root/footprint/LOD exports rather than assuming directory aliasing. Do not mark either row delivered from accepted oil icons.",
+      "latest_asset_paths": [
+        "src/assets/map/improvements/oil_well-modern.glb",
+        "src/assets/map/buildings/oil_well.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/improvements/oil_well-modern.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/buildings/oil_well.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-existing",
+        "oil-modern",
+        "oil-building",
+        "building-index",
+        "improvement-index",
+        "improvement-naming",
+        "oil-runtime-absence"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "oil_well (Oil Well, modern): a pumpjack and a storage tank (the same model as the `oil_well` improvement"
+    },
+    {
+      "queue_index_zero_based": 281,
+      "queue_path": "plans/art/improvements/bronze/fort-bronze",
+      "queue_line": 1774,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "base-map-asset-missing-battle-and-regional-exist",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Reuse existing Bronze battle fort source to author a base map improvement with round Ground and map budgets. Israelite-only file does not satisfy all base styles.",
+      "latest_asset_paths": [
+        "src/assets/map/improvements/fort-bronze.glb",
+        "src/assets/battle/city/fort-bronze.glb",
+        "src/assets/map/improvements/fort-bronze-israelite.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/improvements/fort-bronze.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/battle/city/fort-bronze.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/improvements/fort-bronze-israelite.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-existing",
+        "improvement-naming"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": ""
+    },
+    {
+      "queue_index_zero_based": 282,
+      "queue_path": "plans/art/improvements/classical/fort-classical",
+      "queue_line": 1780,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "legacy-duplicate-of-delivered-map-fort",
+      "recommended_status": "in_game_awaiting_review",
+      "conditional": false,
+      "action": "Reconcile old pending row to existing canonical delivery; inherit checkpoint reference, do not rebuild and do not promote to quality accepted. Keep canonical row authoritative and flag legacy path as its alias.",
+      "latest_asset_paths": [
+        "src/assets/map/improvements/fort-classical.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/improvements/fort-classical.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "classical-delivery",
+        "classical-builder",
+        "brief-existing"
+      ],
+      "canonical_queue_path": "plans/art/improvements/classical/fort",
+      "source_queue_description": ""
+    },
+    {
+      "queue_index_zero_based": 285,
+      "queue_path": "plans/art/improvements/modern/fort-modern",
+      "queue_line": 1802,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "legacy-duplicate-of-delivered-map-fort",
+      "recommended_status": "in_game_awaiting_review",
+      "conditional": false,
+      "action": "Reconcile old pending row to existing canonical delivery; inherit checkpoint reference, do not rebuild and do not promote to quality accepted. Keep canonical row authoritative and flag legacy path as its alias.",
+      "latest_asset_paths": [
+        "src/assets/map/improvements/fort-modern.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/improvements/fort-modern.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "modern-delivery",
+        "modern-builder",
+        "modern-fort-readme",
+        "fort-runtime",
+        "brief-existing"
+      ],
+      "canonical_queue_path": "plans/art/improvements/modern/fort",
+      "source_queue_description": ""
+    },
+    {
+      "queue_index_zero_based": 287,
+      "queue_path": "plans/art/kits/steppe/modern/houses",
+      "queue_line": 1816,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "existing-integrated-kit-candidates-component-proof-incomplete",
+      "recommended_status": "pending",
+      "conditional": true,
+      "action": "Avoid blind rebuild: six tracked runtime town files exist. Verify the specific queued part against delivery source/manifest and actual town geometry/materials first. If proven, set in_game_awaiting_review with that source reference; if deficient, refine that part only. Latest brief still names the gap and generic coverage-any-town is not component-level evidence.",
+      "latest_asset_paths": [
+        "src/assets/map/towns/modern-town-big-a-steppe.glb",
+        "src/assets/map/towns/modern-town-big-b-steppe.glb",
+        "src/assets/map/towns/modern-town-medium-a-steppe.glb",
+        "src/assets/map/towns/modern-town-medium-b-steppe.glb",
+        "src/assets/map/towns/modern-town-small-a-steppe.glb",
+        "src/assets/map/towns/modern-town-small-b-steppe.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/towns/modern-town-big-a-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-big-b-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-medium-a-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-medium-b-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-small-a-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-small-b-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-existing",
+        "kit-delivery-rule",
+        "town-runtime",
+        "kit-coverage",
+        "steppe-document"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "steppe / modern / houses (Soviet blocks and new glass)"
+    },
+    {
+      "queue_index_zero_based": 288,
+      "queue_path": "plans/art/kits/steppe/modern/street",
+      "queue_line": 1823,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "existing-integrated-kit-candidates-component-proof-incomplete",
+      "recommended_status": "pending",
+      "conditional": true,
+      "action": "Avoid blind rebuild: six tracked runtime town files exist. Verify the specific queued part against delivery source/manifest and actual town geometry/materials first. If proven, set in_game_awaiting_review with that source reference; if deficient, refine that part only. Latest brief still names the gap and generic coverage-any-town is not component-level evidence.",
+      "latest_asset_paths": [
+        "src/assets/map/towns/modern-town-big-a-steppe.glb",
+        "src/assets/map/towns/modern-town-big-b-steppe.glb",
+        "src/assets/map/towns/modern-town-medium-a-steppe.glb",
+        "src/assets/map/towns/modern-town-medium-b-steppe.glb",
+        "src/assets/map/towns/modern-town-small-a-steppe.glb",
+        "src/assets/map/towns/modern-town-small-b-steppe.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/towns/modern-town-big-a-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-big-b-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-medium-a-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-medium-b-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-small-a-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-small-b-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-existing",
+        "kit-delivery-rule",
+        "town-runtime",
+        "kit-coverage",
+        "steppe-document"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "steppe / modern / street"
+    },
+    {
+      "queue_index_zero_based": 289,
+      "queue_path": "plans/art/kits/steppe/modern/roofscape",
+      "queue_line": 1830,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "existing-integrated-kit-candidates-component-proof-incomplete",
+      "recommended_status": "pending",
+      "conditional": true,
+      "action": "Avoid blind rebuild: six tracked runtime town files exist. Verify the specific queued part against delivery source/manifest and actual town geometry/materials first. If proven, set in_game_awaiting_review with that source reference; if deficient, refine that part only. Latest brief still names the gap and generic coverage-any-town is not component-level evidence.",
+      "latest_asset_paths": [
+        "src/assets/map/towns/modern-town-big-a-steppe.glb",
+        "src/assets/map/towns/modern-town-big-b-steppe.glb",
+        "src/assets/map/towns/modern-town-medium-a-steppe.glb",
+        "src/assets/map/towns/modern-town-medium-b-steppe.glb",
+        "src/assets/map/towns/modern-town-small-a-steppe.glb",
+        "src/assets/map/towns/modern-town-small-b-steppe.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/towns/modern-town-big-a-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-big-b-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-medium-a-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-medium-b-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-small-a-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-small-b-steppe.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-existing",
+        "kit-delivery-rule",
+        "town-runtime",
+        "kit-coverage",
+        "steppe-document"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "steppe / modern / roofscape"
+    },
+    {
+      "queue_index_zero_based": 290,
+      "queue_path": "plans/art/kits/indic/modern/materials",
+      "queue_line": 1837,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "existing-integrated-kit-candidates-component-proof-incomplete",
+      "recommended_status": "pending",
+      "conditional": true,
+      "action": "Avoid blind rebuild: six tracked runtime town files exist. Verify the specific queued part against delivery source/manifest and actual town geometry/materials first. If proven, set in_game_awaiting_review with that source reference; if deficient, refine that part only. Latest brief still names the gap and generic coverage-any-town is not component-level evidence.",
+      "latest_asset_paths": [
+        "src/assets/map/towns/modern-town-big-a-indic.glb",
+        "src/assets/map/towns/modern-town-big-b-indic.glb",
+        "src/assets/map/towns/modern-town-medium-a-indic.glb",
+        "src/assets/map/towns/modern-town-medium-b-indic.glb",
+        "src/assets/map/towns/modern-town-small-a-indic.glb",
+        "src/assets/map/towns/modern-town-small-b-indic.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/towns/modern-town-big-a-indic.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-big-b-indic.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-medium-a-indic.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-medium-b-indic.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-small-a-indic.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/map/towns/modern-town-small-b-indic.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-existing",
+        "kit-delivery-rule",
+        "town-runtime",
+        "kit-coverage",
+        "indic-older-negative",
+        "indic-later-positive"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "indic / modern / materials"
+    },
+    {
+      "queue_index_zero_based": 294,
+      "queue_path": "plans/art/units/bronze-infantry-israelite",
+      "queue_line": 1866,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 295,
+      "queue_path": "plans/art/units/bronze-ranged-israelite",
+      "queue_line": 1872,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 296,
+      "queue_path": "plans/art/units/bronze-cavalry-israelite",
+      "queue_line": 1878,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 297,
+      "queue_path": "plans/art/units/classical-infantry-israelite",
+      "queue_line": 1884,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 298,
+      "queue_path": "plans/art/units/classical-ranged-israelite",
+      "queue_line": 1890,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 299,
+      "queue_path": "plans/art/units/classical-cavalry-israelite",
+      "queue_line": 1896,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 300,
+      "queue_path": "plans/art/units/classical-siege-israelite",
+      "queue_line": 1902,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 301,
+      "queue_path": "plans/art/units/modern-infantry-israelite",
+      "queue_line": 1908,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 302,
+      "queue_path": "plans/art/units/modern-cavalry-israelite",
+      "queue_line": 1914,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 303,
+      "queue_path": "plans/art/units/settler-bronze-israelite",
+      "queue_line": 1920,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 304,
+      "queue_path": "plans/art/units/settler-modern-israelite",
+      "queue_line": 1926,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "explicitly-superseded-culture-unit-row",
+      "recommended_status": "superseded (proposed non-delivery status)",
+      "conditional": false,
+      "action": "Remove from active production through a non-delivery supersession/alias policy. Do not build eleven Israelite uniforms or claim each old file exists. Link replacement delivered Merkava signature row. Exact superseded status is a proposal, not an existing observed queue vocabulary; queue-update.mjs must not be used to fake delivery.",
+      "latest_asset_paths": [
+        "src/assets/units/signature/kingdom-of-israel.glb",
+        "src/assets/units/signature/kingdom-of-israel.json"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.glb",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": false
+        },
+        {
+          "path": "src/assets/units/signature/kingdom-of-israel.json",
+          "tracked_at_HEAD": true,
+          "materialized_in_checkout": true
+        }
+      ],
+      "evidence_ids": [
+        "israel-dropped",
+        "israel-single",
+        "israel-runtime",
+        "israel-builder",
+        "israel-delivery",
+        "queue-helper"
+      ],
+      "canonical_queue_path": "plans/art/units/signature/kingdom-of-israel",
+      "source_queue_description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets"
+    },
+    {
+      "queue_index_zero_based": 331,
+      "queue_path": "plans/art/units/settler-bronze",
+      "queue_line": 2136,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-and-unit-freeze-applies",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending; omission from enumerated batches does not cancel the opening instruction to finish pending items. Family/wagon or truck design is distinct from the existing worker/base units. Defer unit GLB/rig/render work until claude/battle-unit-zoom-look merges. Expected filename is inferred from queue id, not a verified runtime destination contract.",
+      "latest_asset_paths": [
+        "src/assets/units/settler-bronze.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/settler-bronze.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-unit-freeze"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "Age-specific family and wagon/truck"
+    },
+    {
+      "queue_index_zero_based": 332,
+      "queue_path": "plans/art/units/settler-classical",
+      "queue_line": 2142,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-and-unit-freeze-applies",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending; omission from enumerated batches does not cancel the opening instruction to finish pending items. Family/wagon or truck design is distinct from the existing worker/base units. Defer unit GLB/rig/render work until claude/battle-unit-zoom-look merges. Expected filename is inferred from queue id, not a verified runtime destination contract.",
+      "latest_asset_paths": [
+        "src/assets/units/settler-classical.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/settler-classical.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-unit-freeze"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "Age-specific family and wagon/truck"
+    },
+    {
+      "queue_index_zero_based": 333,
+      "queue_path": "plans/art/units/settler-kingdoms",
+      "queue_line": 2148,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-and-unit-freeze-applies",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending; omission from enumerated batches does not cancel the opening instruction to finish pending items. Family/wagon or truck design is distinct from the existing worker/base units. Defer unit GLB/rig/render work until claude/battle-unit-zoom-look merges. Expected filename is inferred from queue id, not a verified runtime destination contract.",
+      "latest_asset_paths": [
+        "src/assets/units/settler-kingdoms.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/settler-kingdoms.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-unit-freeze"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "Age-specific family and wagon/truck"
+    },
+    {
+      "queue_index_zero_based": 334,
+      "queue_path": "plans/art/units/settler-gunpowder",
+      "queue_line": 2154,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-and-unit-freeze-applies",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending; omission from enumerated batches does not cancel the opening instruction to finish pending items. Family/wagon or truck design is distinct from the existing worker/base units. Defer unit GLB/rig/render work until claude/battle-unit-zoom-look merges. Expected filename is inferred from queue id, not a verified runtime destination contract.",
+      "latest_asset_paths": [
+        "src/assets/units/settler-gunpowder.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/settler-gunpowder.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-unit-freeze"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "Age-specific family and wagon/truck"
+    },
+    {
+      "queue_index_zero_based": 335,
+      "queue_path": "plans/art/units/settler-modern",
+      "queue_line": 2160,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-and-unit-freeze-applies",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending; omission from enumerated batches does not cancel the opening instruction to finish pending items. Family/wagon or truck design is distinct from the existing worker/base units. Defer unit GLB/rig/render work until claude/battle-unit-zoom-look merges. Expected filename is inferred from queue id, not a verified runtime destination contract.",
+      "latest_asset_paths": [
+        "src/assets/units/settler-modern.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/settler-modern.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-unit-freeze"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "Age-specific family and wagon/truck"
+    },
+    {
+      "queue_index_zero_based": 339,
+      "queue_path": "plans/art/ships/warship-gunpowder",
+      "queue_line": 2187,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/warship-gunpowder.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/warship-gunpowder.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a 1790s frigate: 45 m, three masts, a single gun deck with 14 gunports a side, a figurehead"
+    },
+    {
+      "queue_index_zero_based": 340,
+      "queue_path": "plans/art/ships/warship-modern",
+      "queue_line": 2193,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/warship-modern.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/warship-modern.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a present-day destroyer: 150 m, a forward 5 inch gun, a vertical launch block, a radar mast, a helicopter deck aft"
+    },
+    {
+      "queue_index_zero_based": 341,
+      "queue_path": "plans/art/ships/transport-classical",
+      "queue_line": 2199,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/transport-classical.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/transport-classical.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a Roman corbita: 25 m, a round hull, a square mainsail and a small bow sail (artemon), a swan-neck sternpost, a deckhouse aft"
+    },
+    {
+      "queue_index_zero_based": 342,
+      "queue_path": "plans/art/ships/transport-kingdoms",
+      "queue_line": 2205,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/transport-kingdoms.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/transport-kingdoms.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a 1480s carrack: 30 m, three masts, a high stern castle, a lateen mizzen"
+    },
+    {
+      "queue_index_zero_based": 343,
+      "queue_path": "plans/art/ships/transport-gunpowder",
+      "queue_line": 2211,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/transport-gunpowder.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/transport-gunpowder.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a 1600s galleon: 45 m, a beakhead, a square tuck stern, two gun decks lightly armed"
+    },
+    {
+      "queue_index_zero_based": 344,
+      "queue_path": "plans/art/ships/transport-modern",
+      "queue_line": 2217,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/transport-modern.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/transport-modern.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a present-day landing ship: 120 m, a flat bow with doors and a ramp, a tall bridge aft, a vehicle deck"
+    },
+    {
+      "queue_index_zero_based": 345,
+      "queue_path": "plans/art/ships/raider-classical",
+      "queue_line": 2223,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/raider-classical.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/raider-classical.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a Phoenician bireme: 25 m, two banks of oars, a ram, a small sail"
+    },
+    {
+      "queue_index_zero_based": 346,
+      "queue_path": "plans/art/ships/raider-kingdoms",
+      "queue_line": 2229,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/raider-kingdoms.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/raider-kingdoms.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a Viking longship: 28 m, one square sail, a dragon prow, shields along the gunwale (team), 16 oars a side"
+    },
+    {
+      "queue_index_zero_based": 347,
+      "queue_path": "plans/art/ships/raider-gunpowder",
+      "queue_line": 2235,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/raider-gunpowder.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/raider-gunpowder.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a Baltimore clipper schooner: 30 m, two raked masts, sharp lines, four guns a side"
+    },
+    {
+      "queue_index_zero_based": 348,
+      "queue_path": "plans/art/ships/raider-modern",
+      "queue_line": 2241,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/raider-modern.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/raider-modern.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a present-day attack submarine: 100 m, a sail with planes, drawn surfaced"
+    },
+    {
+      "queue_index_zero_based": 349,
+      "queue_path": "plans/art/ships/carrier-modern",
+      "queue_line": 2247,
+      "queue_id": null,
+      "current_status": "pending",
+      "classification": "not-explicitly-skipped-missing-map-ship",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Keep pending. Ships omitted from batch bullets are still retained by section4.8 and initial pending scope. Existing age fallback does not deliver this vessel. This is map-quality art, not authorization to implement naval battle rules; raider/transport/carrier placement needs actual selector wiring review.",
+      "latest_asset_paths": [
+        "src/assets/map/ships/carrier-modern.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/map/ships/carrier-modern.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "ships-scope",
+        "ships-fallback",
+        "ships-import"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "a present-day aircraft carrier: 300 m, an angled deck, an island, four jets on the deck"
+    },
+    {
+      "queue_index_zero_based": 446,
+      "queue_path": "plans/art/units/fishing-boat-ancient",
+      "queue_line": 3548,
+      "queue_id": "units/fishing-boat-ancient",
+      "current_status": "pending",
+      "classification": "explicitly-in-scope-fishing-unit-not-improvement",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Explicit Batch1 item; retain pending. Existing fishing_boats improvement is a source to adapt, not a delivered fishing unit. Respect blanket unit GLB/rig/render freeze until zoom-look merge. Filename below is proposed by item id, not yet a verified specialized fishing-unit loader contract.",
+      "latest_asset_paths": [
+        "src/assets/units/fishing-boat-ancient.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/fishing-boat-ancient.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-fishing",
+        "brief-unit-freeze"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "Fishing boat, ancient: small reed or plank boat with a net, workers on board (adapt the fishing_boats improvement)"
+    },
+    {
+      "queue_index_zero_based": 447,
+      "queue_path": "plans/art/units/fishing-boat-modern",
+      "queue_line": 3561,
+      "queue_id": "units/fishing-boat-modern",
+      "current_status": "pending",
+      "classification": "explicitly-in-scope-fishing-unit-not-improvement",
+      "recommended_status": "pending",
+      "conditional": false,
+      "action": "Explicit Batch1 item; retain pending. Existing fishing_boats improvement is a source to adapt, not a delivered fishing unit. Respect blanket unit GLB/rig/render freeze until zoom-look merge. Filename below is proposed by item id, not yet a verified specialized fishing-unit loader contract.",
+      "latest_asset_paths": [
+        "src/assets/units/fishing-boat-modern.glb"
+      ],
+      "asset_presence": [
+        {
+          "path": "src/assets/units/fishing-boat-modern.glb",
+          "tracked_at_HEAD": false,
+          "materialized_in_checkout": false
+        }
+      ],
+      "evidence_ids": [
+        "brief-fishing",
+        "brief-unit-freeze"
+      ],
+      "canonical_queue_path": null,
+      "source_queue_description": "Fishing boat, modern: a small motor trawler (adapt the modern fishing_boats improvement)"
+    }
+  ],
+  "required_parent_checks": [
+    {
+      "source": "ship skill",
+      "required": "npm run lint (zero warnings); npx vitest run before every commit"
+    },
+    {
+      "source": "ship skill",
+      "required": "For gameplay/UI: PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test"
+    },
+    {
+      "source": "latest remaining-art brief",
+      "required": "Every checkpoint: lint, Vitest (rerun timed-out test alone), npx playwright test; use stricter E2E-per-checkpoint rule"
+    },
+    {
+      "source": "latest remaining-art brief",
+      "required": "Validate every delivered GLB at final game path: python3 scripts/blender/validate_model.py <file.glb> /tmp/validate auto; npm run pack:models; npm run build:town-layouts for town art"
+    },
+    {
+      "source": "latest remaining-art brief",
+      "required": "Real-game screenshots at 844x390 and 1600x900, battle sandbox and map close view; inspect and fix"
+    },
+    {
+      "source": "latest remaining-art brief",
+      "required": "For map/render work, before/after node scripts/perf/map-pan.mjs --gpu; retain identical battle hashes, no sim/rules changes"
+    },
+    {
+      "source": "latest remaining-art brief",
+      "required": "Checkpoint ~20, starting Wave7 checkpoint38; README, manifest.json, SHA256SUMS.txt, contact.png; queue delivered status in_game_awaiting_review and progress line; builders and GLBs together"
+    },
+    {
+      "source": "latest remaining-art brief plus ship skill",
+      "required": "Parent may push designated gpt/art-remaining after checks. No integration/main merge here. Main merge only explicit user request; npm run build as local main-merge check. This sidecar commits/pushes nothing."
+    }
+  ]
+}

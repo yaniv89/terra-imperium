@@ -22,8 +22,9 @@ import { LIMB, PART } from './soldierFactory';
 export const DEFAULT_TRIANGLE_BUDGET = 8000; // per soldier at full detail (plans/model-brief-for-claude.md section 2): the battle draws the nearest squads at this and the rest as LOD1 and imposters
 
 // A model drawn at its own scale (opts.scale) must measure like the art set (a person about 1, a
-// horse and rider about 1.4, an elephant about 2.8); anything else came in other units.
-export const NATIVE_HEIGHT_RANGE = [0.5, 3.5];
+// horse and rider about 1.4, an elephant about 2.8, a trebuchet at its true 9 m about 5); anything
+// else came in other units.
+export const NATIVE_HEIGHT_RANGE = [0.5, 7];
 // How much of the side's colour team cloth takes on a mount (opts.mountTeam) and on the arms, hips
 // and legs (opts.garmentTeam; 1 = all of it, as on the chest, the head and the shield).
 // (Mixed in, the side's colour and an earthy cloth meet as grey: the blue caparisons went lilac. The

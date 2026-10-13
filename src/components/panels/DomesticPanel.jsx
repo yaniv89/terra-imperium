@@ -7,7 +7,7 @@
 // opened via RegionInfoModal's "Manage Region" button. Government/Laws/Identity default
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
-import React from 'react';
+import React, { useState } from 'react';
 import { WonderIcon } from '../ui/icons';
 import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Globe2, Swords } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -39,6 +39,10 @@ import { ActionButton, CollapsibleSection } from '../ui';
 import { cityGroups, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_ASSIGN_TURNS, GOVERNOR_REFRESH_TURNS } from '../../engine/governors';
 import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engine/authority';
 import { lawRulesOf, describeRules } from '../../engine/lawRules';
+import { previewGovernmentChange } from '../../engine/governmentPreview';
+import { lawEffectLines, lawLockReason } from '../../engine/lawEffects';
+import GovernmentChangeDialog from './GovernmentChangeDialog';
+import { POWER_POOLS_SHORT, POWER_POOL_HELP } from '../../data/powerPools';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -46,6 +50,7 @@ const DomesticPanel = () => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const playerNation = state.nations[state.playerNationId];
+  const [confirmGov, setConfirmGov] = useState(null); // the government type waiting for its confirm dialog
 
   const handleSetTaxRate = (rate) => {
     if (!canAfford(state.resources, ACTION_COSTS.setTaxRate)) return addLog('Not enough resources', 'action');
@@ -241,15 +246,8 @@ const DomesticPanel = () => {
   const authority = authorityOf(state, state.playerNationId);
   const courtSection = (
     <div className="space-y-2">
-      <div className="bg-fa-raised/60 rounded-lg p-3 text-sm" data-testid="authority">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-fa-text font-semibold">Authority</span>
-          <span className={`font-mono font-bold ${authority.total < AUTHORITY_CIVIL_WAR ? 'text-fa-danger-text' : authority.total < AUTHORITY_NO_LAWS ? 'text-amber-300' : 'text-fa-good'}`}>{authority.total}</span>
-        </div>
-        <div className="h-1.5 rounded bg-fa-hover overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${authority.total}%` }} /></div>
-        <div className="text-[10px] text-fa-muted mt-1">{authority.parts.map((p) => `${p.label} ${p.value > 0 ? '+' : ''}${p.value}`).join(' · ')}</div>
-        {authority.total < AUTHORITY_NO_LAWS && <div className="text-[10px] text-amber-300 mt-0.5">Under {AUTHORITY_NO_LAWS}: no new laws{authority.total < AUTHORITY_CIVIL_WAR ? `; under ${AUTHORITY_CIVIL_WAR} a civil war brews` : ''}.</div>}
-      </div>
+      {/* Authority is drawn once, with its parts, at the top of the Overview (I144); the Court only links to it. */}
+      {authority.total < AUTHORITY_NO_LAWS && <div className="text-[11px] text-amber-300 bg-fa-raised/60 rounded-lg px-2 py-1" data-testid="authority">Authority {authority.total}: under {AUTHORITY_NO_LAWS} no new laws{authority.total < AUTHORITY_CIVIL_WAR ? `; under ${AUTHORITY_CIVIL_WAR} a civil war brews` : ''}. Its parts are in the Overview.</div>}
       {ruler && (
         <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
           <div className="flex items-center gap-2">
@@ -259,6 +257,9 @@ const DomesticPanel = () => {
           <div className="text-[10px] text-fa-muted mt-0.5">
             ADM {ruler.adm} · DIP {ruler.dip} · MIL {ruler.mil}
             {ruler.traits?.length > 0 && ` · ${ruler.traits.map((id) => TRAITS[id]?.name || id).join(', ')}`}
+          </div>
+          <div className="text-[10px] text-fa-muted" data-testid="ruler-skill-help">
+            Each skill adds to the power pool of its name every turn. {POWER_POOLS_SHORT}
           </div>
           <div className="text-[10px] text-fa-muted">
             Reign ends turn {ruler.reignEndsTurn}
@@ -306,6 +307,7 @@ const DomesticPanel = () => {
               <Users size={12} />
               {POWER_POOL_NAMES[pool]} Advisor
             </div>
+            <div className="text-[10px] text-fa-muted">Adds their level to {pool.toUpperCase()} each turn. {POWER_POOL_HELP[pool].spends}</div>
             {current ? (
               <div className="text-fa-text">{current.name} (level {current.level})</div>
             ) : (
@@ -332,10 +334,11 @@ const DomesticPanel = () => {
     </div>
   );
 
+  // Nothing applies here: the confirm dialog (GovernmentChangeDialog.jsx) shows the preview, lets
+  // the player choose the reforms and dispatches only on its own button (I140).
   const handleChangeGovernmentType = (typeId) => {
     if (!canAfford(state.resources, ACTION_COSTS.changeGovernmentType)) return addLog('Not enough resources', 'action');
-    triggerEffect('change_government_type', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId } });
+    setConfirmGov(typeId);
   };
   const handleEnactReform = (ageId, reformId) => {
     if (!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform)) return addLog('Not enough resources', 'action');
@@ -365,19 +368,24 @@ const DomesticPanel = () => {
           <div className="text-[10px] text-fa-muted mt-0.5">{activeReforms.map((r) => r.name).join(' · ')}</div>
         )}
       </div>
-      {availableGovernmentTypes.map((gov) => (
+      {availableGovernmentTypes.map((gov) => {
+        const preview = previewGovernmentChange(state, gov.id);
+        return (
+        <React.Fragment key={gov.id}>
         <ActionButton
-          key={gov.id}
           icon={Landmark}
           label={`Become a ${gov.name}`}
-          description="Resets your reform choices; -2 stability."
+          description={preview.ok ? `${preview.lines.filter((l) => /^(Stability|Authority)/.test(l)).join(' ')} Tap for the details and to choose its reforms.` : 'Resets your reform choices; -2 stability.'}
           costs={ACTION_COSTS.changeGovernmentType}
           onClick={() => handleChangeGovernmentType(gov.id)}
           disabled={!canAfford(state.resources, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, state.age)}
           resources={state.resources}
           size="small"
         />
-      ))}
+        {preview.locksLaws && <div className="text-[11px] text-fa-danger-text px-1" data-testid="gov-locks-laws">This drops Authority under {AUTHORITY_NO_LAWS}: no laws until it recovers.</div>}
+        </React.Fragment>
+        );
+      })}
 
       {currentGovernmentType && currentAgeReformChoices.length > 0 && (
         <>
@@ -425,22 +433,26 @@ const DomesticPanel = () => {
               <span className="text-fa-muted capitalize">{category}</span>
               <span className="text-fa-text font-semibold">{currentLaw?.name}</span>
             </div>
-            {currentLaw?.description && <div className="text-fa-muted">{currentLaw.description}</div>}
-            <div className="flex flex-wrap gap-1 pt-1">
+            {currentLaw && <div className="text-fa-muted" data-testid={`law-effects-${category}`}>{lawEffectLines(currentLaw).map((l) => l.text).join('; ') || currentLaw.description}</div>}
+            <div className="flex flex-col gap-1.5 pt-1">
               {alternatives.map((law) => {
                 const canEnact = canEnactLaw(state, state.playerNationId, category, law.id);
                 const cost = { adm: getLawChangeCost(state, state.playerNationId, category, law.id) };
                 const requiredTech = getRequiredTechName(law);
+                const effectText = lawEffectLines(law).map((l) => l.text).join('; ');
+                const lock = lawLockReason(state, state.playerNationId, category, law);
                 return (
-                  <button
-                    key={law.id}
-                    onClick={() => handleChangeLaw(category, law.id)}
-                    disabled={!canEnact || !canAfford(state.resources, cost)}
-                    title={requiredTech && !canEnact ? `Requires ${requiredTech}` : law.description}
-                    className="text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text px-2 py-1"
-                  >
-                    {law.name} ({cost.adm} ADM)
-                  </button>
+                  <div key={law.id} className="flex flex-col items-start gap-0.5">
+                    <button
+                      onClick={() => handleChangeLaw(category, law.id)}
+                      disabled={!canEnact || !canAfford(state.resources, cost)}
+                      title={requiredTech && !canEnact ? `Requires ${requiredTech}` : effectText || law.description}
+                      className="text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text px-2 py-1"
+                    >
+                      {law.name} ({cost.adm} ADM)
+                    </button>
+                    <span className="text-[10px] text-fa-muted" data-testid={`law-alt-${law.id}`}>{effectText || law.description}{lock ? ` Locked: ${lock}.` : ''}</span>
+                  </div>
                 );
               })}
             </div>
@@ -493,6 +505,7 @@ const DomesticPanel = () => {
   const warsNow = Object.values(state.nations).filter((n) => !n.isPlayer && isAtWarWithPlayer(state, n.id));
   return (
     <div className="space-y-3">
+      <GovernmentChangeDialog typeId={confirmGov} onClose={() => setConfirmGov(null)} />
       <CollapsibleSection title="Overview" icon={Globe2} defaultOpen>
         <EmpireOverview />
       </CollapsibleSection>

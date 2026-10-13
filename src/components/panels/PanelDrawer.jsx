@@ -7,19 +7,22 @@
 // the desktop (the desktop dock is wider). A phone held upright keeps a bottom tab bar and a
 // sheet (useIsMobile).
 //
-// Publishes how much of the right edge it covers as --rail-inset on <html> (the End Turn dock sits
-// left of it), and the bottom bar's height as --panel-bar-height on a phone held upright, so map
-// corner controls can stay clear of both.
+// Publishes how much of the right edge it covers as --rail-inset on <html> (cards keep clear of
+// it), the rail alone as --rail-w (End Turn is anchored to it, so it never moves when the dock
+// opens: playtest audit X17, I156; the dock leaves a strip at its foot for it), and the bottom
+// bar's height as --panel-bar-height on a phone held upright, so map corner controls stay clear.
+// The dock is one entry of the interaction registry (useExclusivePanel.js): a decision card that
+// arrives on a narrow screen tucks it, and it comes back when the card is answered.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollText, Menu, X } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useLayoutMode, isLandscapeShell } from '../../hooks/useLayoutMode';
-import { useExclusivePanel } from '../../hooks/useExclusivePanel';
+import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useGame } from '../../context/GameContext';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ActionPanelTabs, { visibleTabs, getTabBadge } from './ActionPanelTabs';
-import { OPEN_TAB } from './panelEvents';
+import { OPEN_TAB, CLOSE_PANELS } from './panelEvents';
 import ActionPanel from './ActionPanel';
 import { openSettings } from '../ui/uiEvents';
 
@@ -63,29 +66,44 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
   useReportInset('panel-rail', 'right', railRef, railLayout && !isMobile);
   const [peeking, cancelPeek] = useAutoPeek(isMobile && mobileSheetOpen);
 
-  // Opening a province tucks this panel away when both wouldn't leave room for the map, and closing
-  // the province brings it back (useExclusivePanel.js).
-  useExclusivePanel('tabs', railLayout ? dockOpen : false, (tucked) => { if (railLayout) setDockOpen(!tucked); });
+  // The city panel or a decision card tucks the dock away when both would not leave room, and
+  // closing them brings it back (useExclusivePanel.js).
+  const dock = useInteraction('tabs', railLayout && !isMobile && dockOpen, { kind: 'panel', priority: PRIORITY.panel, user: true });
+  const dockShown = dockOpen && dock.shown;
+  const navRef = useRef(null);
 
   // Another part of the UI asked for a tab (panelEvents.js): switch to it and make sure it shows.
   useEffect(() => {
     const onOpen = (e) => {
       onTabChange(e.detail);
       if (isMobile) setMobileSheetOpen(true);
-      else setDockOpen(true);
+      else { setDockOpen(true); interactions.promote('tabs'); }
     };
     window.addEventListener(OPEN_TAB, onOpen);
     return () => window.removeEventListener(OPEN_TAB, onOpen);
   }, [onTabChange, isMobile]);
+
+  // The Map button of a Research boost asks for a clear map.
+  useEffect(() => {
+    const onClose = () => { setDockOpen(false); setMobileSheetOpen(false); };
+    window.addEventListener(CLOSE_PANELS, onClose);
+    return () => window.removeEventListener(CLOSE_PANELS, onClose);
+  }, []);
 
   // --rail-inset: the width of the rail and its dock (0 without a rail).
   useEffect(() => {
     const el = railRef.current;
     const root = document.documentElement;
     if (!railLayout || isMobile || !el) { root.style.setProperty('--rail-inset', '0px'); return undefined; }
-    const observer = new ResizeObserver(() => root.style.setProperty('--rail-inset', `${Math.round(el.getBoundingClientRect().width)}px`));
+    const measure = () => {
+      const box = el.getBoundingClientRect();
+      root.style.setProperty('--rail-inset', `${Math.round(box.width)}px`);
+      const nav = navRef.current;
+      root.style.setProperty('--rail-w', `${Math.round(nav ? box.right - nav.getBoundingClientRect().left : box.width)}px`);
+    };
+    const observer = new ResizeObserver(measure);
     observer.observe(el);
-    return () => { observer.disconnect(); root.style.setProperty('--rail-inset', '0px'); };
+    return () => { observer.disconnect(); root.style.setProperty('--rail-inset', '0px'); root.style.setProperty('--rail-w', '0px'); };
   }, [railLayout, isMobile]);
 
   useEffect(() => {
@@ -114,8 +132,11 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
 
   if (railLayout && !isMobile) {
     const handleRailTab = (tabId) => {
-      if (tabId === activeTab) setDockOpen((open) => !open);
-      else { onTabChange(tabId); setDockOpen(true); }
+      // The open tab closes on a second tap; a tab whose dock waits behind a card comes back up.
+      if (tabId === activeTab && dockShown) { setDockOpen(false); return; }
+      onTabChange(tabId);
+      setDockOpen(true);
+      dock.promote();
     };
     return (
       <div
@@ -123,18 +144,18 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
         data-testid="landscape-rail"
         className="fixed right-0 bottom-0 top-[var(--header-height,2.25rem)] z-20 flex pr-[env(safe-area-inset-right)] bg-fa-panel/95 border-l border-fa-line text-fa-text"
       >
-        {dockOpen && (
-          <div data-testid="landscape-dock" data-tab={activeTab} className={`${WIDE_TABS.has(activeTab) ? 'w-[min(600px,calc(100vw-52px-12rem))] lg:w-[640px]' : 'w-[clamp(300px,40vw,380px)] tb:w-[420px] lg:w-[420px]'} flex flex-col border-r border-fa-line shadow-2xl bg-fa-panel`}>
+        {dockShown && (
+          <div data-testid="landscape-dock" data-tab={activeTab} className={`${WIDE_TABS.has(activeTab) ? 'w-[min(600px,calc(100vw-52px-12rem))] lg:w-[640px]' : 'w-[clamp(300px,40vw,380px)] tb:w-[420px] lg:w-[420px]'} flex flex-col border-r border-fa-line shadow-2xl bg-fa-panel pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+58px)] pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+50px)]`}>
             <ActionPanel activeTab={activeTab} />
           </div>
         )}
-        <nav aria-label="Panels" className="w-[52px] shrink-0 flex flex-col overflow-y-auto scrollbar-none pb-[env(safe-area-inset-bottom)]">
+        <nav ref={navRef} aria-label="Panels" className="w-[52px] shrink-0 flex flex-col overflow-y-auto scrollbar-none pb-[env(safe-area-inset-bottom)]">
           {visibleTabs(state).map((tab) => (
             <RailButton
               key={tab.id}
               icon={tab.icon}
               label={tab.label}
-              active={dockOpen && activeTab === tab.id}
+              active={dockShown && activeTab === tab.id}
               badge={getTabBadge(state, tab.id)}
               onClick={() => handleRailTab(tab.id)}
             />

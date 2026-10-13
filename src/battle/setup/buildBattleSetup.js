@@ -34,8 +34,11 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
 // under different rules (v2: garrisons, v3: the region's buildings on the battlefield, v4: the real
 // city from its manifest, cityBattle.js; v5: the battle economy, economySetup.js; v6: phase R3, the
-// raid and sack types, the pursuit after a field battle, forts and generals on the field).
-export const SETUP_VERSION = 6;
+// raid and sack types, the pursuit after a field battle, forts and generals on the field; v7:
+// playtest audit CB01, one order schema for the live battle and its replay (sim/orderSchema.js),
+// the deployment set down before the first tick in every replay, the commanded setup verified).
+// A log or a checkpoint of another version is never replayed as if it were this one.
+export const SETUP_VERSION = 7;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
@@ -560,7 +563,7 @@ export const setupHasBothSides = (setup) => { const [a = 0, d = 0] = setupSideCo
  * battle must never be replayed into this one.
  */
 export const setupKeyOf = (setup) => (setup
-  ? `${setup.version}|${setup.seed}|${setup.regionId}|${setup.battleType}|${(setup.sides || []).map((s) => (s.units || []).map((u) => `${u.id}:${u.strength}`).join(',')).join('/')}`
+  ? `${setup.version}|${setup.seed}|${setup.regionId}|${setup.battleType}|${(setup.controllers || []).join(',')}|${(setup.sides || []).map((s) => `${s.canRout === false ? 'steady:' : ''}${(s.units || []).map((u) => `${u.id}:${u.strength}`).join(',')}`).join('/')}`
   : null);
 
 export const PLAYER_SIDE_INDEX =(pendingBattle) => (pendingBattle?.playerSide === 'defender' ? 1 : SIDE_ATTACKER);
@@ -576,3 +579,12 @@ export const commandedSetup = (setup) => {
   if (!setup?.sides || !controllers.includes('player')) return setup;
   return { ...setup, sides: setup.sides.map((s, i) => ({ ...s, canRout: controllers[i] !== 'player' })) };
 };
+
+/**
+ * THE setup of a commanded battle (playtest audit CB01, addendum X03): the campaign's battle with
+ * the commanded rules on. The battle screen fights this setup and RESOLVE_TACTICAL_BATTLE replays
+ * this same setup, so the verified battle is the one the player saw. (The replay used to rebuild
+ * the bare setup, where the player's squads could rout: the same log then told another battle.)
+ * Null when the battle can no longer be set up.
+ */
+export const buildCommandedSetup = (state, pendingBattle) => commandedSetup(buildInvasionSetup(state, pendingBattle));

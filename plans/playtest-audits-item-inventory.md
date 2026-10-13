@@ -53,7 +53,7 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 | I008 | Defect | Pre-battle force estimates disagree with actual battle participants | P2 §7; R91 | W02,W06 | Card, setup and result use consistent participants and explicit uncertainty/units. |
 | I009 | Defect | Wall descriptions disagree between army, independent and pre-battle views | M14; R82; P2 session 2 | W06 | Separate fortification tier, siege endurance, gate/wall HP and keep HP using one shared model. |
 | I010 | UX | Numerical Auto odds appear only after battle | M11; R103; R157 | W06 | Show the estimated Auto percentage before choosing a mode, labeled separately from Command prospects. |
-| I011 | UX | Hopeless defense starts without adequate warning | P2 §7 | W06 | Show odds and consequences; provide an appropriate default while preserving an intentional Command choice when playable. |
+| I011 | UX | Hopeless defense starts without adequate warning | P2 §7 | W06 | Show odds and consequences; provide an appropriate default while preserving an intentional Command choice when playable. Done with I010. |
 | I012 | Defect | Retreat orders whole-battle forfeiture instead of selected withdrawal | H8; R103; P2 §7 | W06 | Selected withdrawal moves selected squads to exits and does not cancel the entire army operation. |
 | I013 | UX | Whole-army withdrawal has no confirmation | H8; R103; P2 §7 | W06 | A separate whole-army command previews consequences and requires an in-game confirmation. |
 | I014 | Request | Army elimination ends an economy battle despite surviving buildings | P2 §7 user rule; P3 §6 | W06 | Resolve eligible-building and stalemate definitions; living eligible bases can continue recruiting after troop loss. |
@@ -116,11 +116,11 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 | ID | Type | Issue / request | Evidence | Packages | Completion check |
 |---|---|---|---|---|---|
 | I058 | Defect | Army location and march origin use a stale home city | M4; R26; R30; R33; R82; P2 §4 | W03 | Physical location, base assignment and march origin are distinct and accurate. |
-| I059 | Defect | City Armies here lists physically distant units | R34 | W03 | Membership follows actual co-location rather than a shared base/legacy region ID. |
+| I059 | Defect | City Armies here lists physically distant units | R34 | W03 | Membership follows actual co-location rather than a shared base/legacy region ID. Done with I058. |
 | I060 | Request | City movement controls cannot split or select individual units | R34 | W03 | Select and split co-located units without moving every unit assigned to a city. |
 | I061 | Defect | Marching and besieging armies are incorrectly idle | R32; R83; P3 §7 | W03,W04 | Idle selectors exclude all active movement, siege, hold and guard orders. |
 | I062 | Request | Map has no explicit Hold order suppressing idle alerts | R139; P3 §7 | W03,W04 | Hold persists visibly until canceled and excludes the unit from idle cycling. |
-| I063 | Defect | Attack prompt claims adjacency when target is several turns away | P2 §4 | W03 | Prompt and engine use the same physical adjacency and route facts. |
+| I063 | Defect | Attack prompt claims adjacency when target is several turns away | P2 §4 | W03 | Prompt and engine use the same physical adjacency and route facts. Done with I058. |
 | I064 | Defect | City-card invasion bypasses travel distance | P2 §2; P2 §4 | W03 | All invasion paths spend legal movement or create a march-to-attack order. |
 | I065 | Defect | Move now arrives sooner than its route ETA predicts | M17; R120 | W03 | ETA includes movement available now and agrees with actual arrival under terrain and supply constraints. |
 | I066 | UX | Ordinary marches wait until End Turn without clear timing | P2 §4; R120 | W03 | Explain scheduling versus Move now and retain the working immediate-movement option. |
@@ -146,10 +146,10 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 
 | ID | Type | Issue / request | Evidence | Packages | Completion check |
 |---|---|---|---|---|---|
-| I084 | Defect | Supply lens prevents entering settlement mode | M5; R44 | W13 | Activating settlement explicitly transitions tools and restores passive lenses deliberately. |
+| I084 | Defect | Supply lens prevents entering settlement mode | M5; R44 | W13 | Activating settlement explicitly transitions tools and restores passive lenses deliberately. Done with I086. |
 | I085 | UX | Research boost Map action moves/switches lens without useful feedback | M5; R43 | W09,W13 | Focus and highlight an eligible road/boost target; name the activated lens and next action. |
 | I086 | Defect | Settlement lens disappears after invalid tap or closing sheet | M6; R37; P2 session 2 | W13 | Keep settlement mode active until explicit cancel or successful commitment. |
-| I087 | UX | Settlement mode does not center on the chosen settler | M6; R69 | W13 | Select and focus the relevant settler rather than stale map context. |
+| I087 | UX | Settlement mode does not center on the chosen settler | M6; R69 | W13 | Select and focus the relevant settler rather than stale map context. Done with I086. |
 | I088 | UX | Nearest legal/good sites are undiscoverable or behind sheets | M6; R39; R45 | W13 | Offer known reachable ranked sites and fit selected candidates into free viewport space. |
 | I089 | UX | Green/red settlement eligibility is faint at strategic zoom | R69 | W13 | Eligibility remains distinguishable at strategic zoom, with contrast and non-color cues. |
 | I090 | UX | Found-city button is clipped or below the usable footer | R38; P2 session 2 | W04,W13 | Keep the commitment action reachable in the visible-height layout without sideways scrolling. |
@@ -182,7 +182,7 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 | I112 | UX | Opinion Why shows only unexplained Standing | L5; R60 | W10 | Explain the components and reconcile them to the displayed total. |
 | I113 | Balance | Trade route stays unprofitable from perpetual plunder | M3; R116 | W10 | Model a viable route or explicit suspension and measure downtime/value conservation. |
 | I114 | UX | Blocked trade offers no visible cause or recovery action | M3; R67; R116 | W10 | Show known obstruction and feasible escort, repair, alternate-route, access or cancel options. |
-| I115 | UX | Plunder repeats as an identical log line every turn | M3; R112; R116 | W10,W14 | Summarize sustained blockage while surfacing new threats and restoration events. |
+| I115 | UX | Plunder repeats as an identical log line every turn | M3; R112; R116 | W10,W14 | Summarize sustained blockage while surfacing new threats and restoration events. Done with I170. |
 | I116 | Request | Map/intelligence trading is missing | R62; P2 §6 | W10 | Scope an explored-map snapshot exchange with clear value and no live hidden-information leakage. |
 | I117 | UX | War declaration is easily missed | R88 | W04,W10 | Deliver a persistent actionable war notice without destroying the current mandatory choice. |
 | I118 | Defect | First-contact narrative credits scouts that do not exist | L9; R71 | W10,W14 | Generate text from actual contact cause or truthful neutral encounter wording. |
@@ -200,7 +200,7 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 |---|---|---|---|---|---|
 | I126 | Balance | Conquered cities rapidly rebel despite attempted occupation measures | H4; R163; P2 §2 | W12 | Reasonable real garrison/governor/control investment materially improves retention with a bounded grace period. |
 | I127 | UX | Loyalty/rebellion danger is only visible in the log | H4; R163 | W04,W12 | Surface forecast and actionable warnings with time to make an available response. |
-| I128 | UX | Capture or surrender changes ownership without a noticeable receipt | R87; R161 | W04,W12 | Announce the ownership transition and its consequences exactly once, including after reload. |
+| I128 | UX | Capture or surrender changes ownership without a noticeable receipt | R87; R161 | W04,W12 | Announce the ownership transition and its consequences exactly once, including after reload. Done with I129. |
 | I129 | Request | No Conquer/Raze/Tributary/Free decision after capture | H4b; R165 | W12 | All eligible battle/surrender capture paths open the same durable disposition choice with effects and disabled reasons. |
 | I130 | Defect | Adjacent armies automatically begin sieges without an order | R29; P2 session 2 | W03,W06 | Hostile siege intent is explicit; calling off an assault does not silently create a new siege order. |
 | I131 | Balance | Healthy garrison surrenders at zero siege HP without meaningful cost | M12; R86 | W06 | Surrender considers supply, morale, isolation and force; waiting carries credible risks and costs. |
@@ -213,18 +213,18 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 | I133 | Defect | Research ETA ignores historical availability gates | M1; R105; R127 | W09 | Show calendar wait and science readiness using the actual speed/calendar schedule. |
 | I134 | UX | Advisor mode fails to explain waiting when all technologies are gated | M1; R105 | W09 | Expose waiting/next availability and resume automatically without a false player-action blocker. |
 | I135 | Defect | Choose research prompt appears while research is active | R6; R76; P2 §6 | W09 | One shared status drives helpers, Empire, top bar and Research. |
-| I136 | Defect | Empire says nothing researched despite active progress | P2 §6 | W09 | Display the same active research/progress as the engine and research panel. |
-| I137 | UX | Research panel shows an apparently wrong current age | P2 §6 | W09 | Distinguish calendar age and expertise consistently or fix the incorrect heading. |
+| I136 | Defect | Empire says nothing researched despite active progress | P2 §6 | W09 | Display the same active research/progress as the engine and research panel. Done with I135. |
+| I137 | UX | Research panel shows an apparently wrong current age | P2 §6 | W09 | Distinguish calendar age and expertise consistently or fix the incorrect heading. Done with I135. |
 | I138 | UX | Fund Scholars hides its expected benefit | R42; P2 §6 | W07,W09 | Preview science added, banked value and turns saved before payment. |
 | I139 | Defect | Government change hides authority loss and law lockout | M2; R107 | W09 | Projected stability, authority and threshold effects match committed state. |
-| I140 | UX | Government change applies immediately without informed confirmation | M2; R107 | W09 | Confirm the full projected consequences of a high-impact switch in an in-game dialog. |
-| I141 | UX | Government switch silently chooses reforms | R107 | W09 | Let the player choose or clearly preview the actual default reform package. |
+| I140 | UX | Government change applies immediately without informed confirmation | M2; R107 | W09 | Confirm the full projected consequences of a high-impact switch in an in-game dialog. Done with I139. |
+| I141 | UX | Government switch silently chooses reforms | R107 | W09 | Let the player choose or clearly preview the actual default reform package. Done with I139. |
 | I142 | UX | Laws show cost but not effects or comparisons | R108 | W09 | Explain current/proposed effects, eligibility and dependencies for every law. |
 | I143 | Defect | Empire collapsible headers are not accessible buttons | R106 | W04,W09 | Use named keyboard-operable controls with correct expanded state and focus behavior. |
 | I144 | UX | Authority appears twice without distinct purpose | P2 §6 | W04,W09 | Consolidate duplicate presentation or label separate contexts meaningfully. |
 | I145 | UX | Advisor names repeat ambiguously | P2 §6 | W09 | Differentiate same-name advisors so selection and assignment are unambiguous. |
-| I146 | Balance | Rulers change too quickly to develop strategic significance | L6; R117; P2 §2 | W09 | Compare reign duration across speeds and preserve enough useful turns for traits to matter. |
-| I147 | Defect | Ruler successions are absent from history | L6; R117 | W09,W14 | Log every succession with identity and meaningful changed effects. |
+| I146 | Balance | Rulers change too quickly to develop strategic significance | L6; R117; P2 §2 | W09 | Superseded by phase RU (decision 39: one ruler per nation, never changing). Closes with RU; no separate reign tuning. |
+| I147 | Defect | Ruler successions are absent from history | L6; R117 | W09,W14 | Until phase RU lands: one small log line per succession with the new ruler's identity. RU then owns the full history. |
 | I148 | UX | Military unit names are anachronistic for the shown era/date | L4; R133 | W09,W14 | Apply a consistent explicit unlock/name policy and explain any intentional technological divergence. |
 | I149 | UX | Era goals are buried instead of guiding play | P3 §8 | W09,W14 | Offer an optional compact map goal tracker linking to clear progress and next actions. |
 | I150 | UX | Achievements lack progress bars or measurable progress | R114 | W09 | Show progress for incremental achievements and clear binary status where a bar is inappropriate. |
@@ -247,7 +247,7 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 | I162 | UX | Resource popover remains open over other sheets | R85 | W04 | Popover lifecycle participates in the interaction coordinator and has a predictable dismissal. |
 | I163 | UX | Stored-resource icons have unlabeled numbers | R85 | W04,W07 | Provide visible/accessible labels, units and explanation for every resource amount. |
 | I164 | UX | Settings duplicates Map section headings | R2 | W14 | Organize settings with distinct headings and clear disabled-control explanations. |
-| I165 | Request | No in-game local save/load slots | R1 | W15 | Scope explicit local slots/checkpoints with persistence semantics separately from corruption fixes. |
+| I165 | Request | No in-game local save/load slots | R1 | W15 | Scope explicit local slots/checkpoints with persistence semantics separately from corruption fixes. Includes the launch title screen (Continue / New game / Load): addendum X26. |
 | I166 | UX | New Game uses a native browser confirmation | L11; R12 | W04,W15 | Use an accessible in-game dialog that states progress/save consequences and handles cancellation. |
 | I167 | UX | Start search promises capital names but misses modern aliases | R13 | W14 | Support the promised aliases or accurately narrow the placeholder; preserve empty-state behavior. |
 | I168 | UX | Start region chips overflow without a scroll hint | R15 | W14 | All region filters are discoverable and reachable on landscape phones. |
@@ -264,12 +264,12 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 | I174 | UX | Playable field boundary is not drawn | H6; R137; P2 §7 | W05 | Draw the actual boundary so visible grass beyond it is not mistaken for playable land. |
 | I175 | UX | Resources and obstacles hide their blocking footprints | H6; R140 | W05 | Show resource/obstacle occupancy and building footprint distinctly during placement. |
 | I176 | Investigation | Generated battle start offers almost no valid construction space | P2 §7 | W05 | Measure reachable legal slots for core buildings across layouts and fix generation if overlays alone are insufficient. |
-| I177 | UX | Valid placement commits immediately without a clear confirmation step | H6; R96 | W05 | Phone preview and explicit Build here are separate states with clear cancel behavior. |
-| I178 | Defect | Build menu reopens beneath the confirming finger | H6; R96 | W05 | Successful placement closes the menu and consumes the gesture without arming a second building. |
-| I179 | Defect | Placement error text remains after successful construction | R96 | W05 | Clear stale validity/error state immediately when placement succeeds or the target changes. |
+| I177 | UX | Valid placement commits immediately without a clear confirmation step | H6; R96 | W05 | Phone preview and explicit Build here are separate states with clear cancel behavior. Done with U13. |
+| I178 | Defect | Build menu reopens beneath the confirming finger | H6; R96 | W05 | The confirming tap is consumed: placement succeeds, the build sheet reopens once with updated stock, and no second building is armed (U13 rule). Done with U13. |
+| I179 | Defect | Placement error text remains after successful construction | R96 | W05 | Clear stale validity/error state immediately when placement succeeds or the target changes. Done with U13. |
 | I180 | Defect | Placement ghost stays stuck at the camp despite taps | R142 | W05 | Preview follows valid pointer updates and reports any input/geometry rejection. |
 | I181 | UX | Build here is disabled without explaining why | R142 | W05 | Display the current authoritative placement/affordability reason next to the action. |
-| I182 | UX | Stop is mistaken for close-menu and halts construction | R97 | W05 | Separate Close, Cancel placement, Cancel construction and Stop working in text and placement. |
+| I182 | UX | Stop is mistaken for close-menu and halts construction | R97 | W05 | Separate Close, Cancel placement, Cancel construction and Stop working in text and placement. Done with U05. |
 | I183 | Defect | Cancel placement triggers a newly exposed Tower/build tile | P2 §10 | W04,W05 | Pointer capture and gesture consumption prevent the same tap activating the next screen. |
 | I184 | UX | Assigning a worker to construction is unclear on touch | R98 | W05 | Give a visible worker-to-site/repair action whose touch and desktop paths perform the same command. |
 | I185 | Investigation | Training cost timing/queue feedback appears inconsistent | R94 | W01,W05 | Reconcile source reservation timing with UI updates and confirm accepted queue entries/costs visibly. |
@@ -277,18 +277,18 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 | I187 | UX | Build details are hidden behind poorly signposted long-press | R143 | W05 | Make effects/cost details discoverable without relying on hover or an obscure gesture. |
 | I188 | Defect | All N selection unexpectedly moves the camera | H7; R154 | W05 | Select without centering; provide a separate Find army action. |
 | I189 | Defect | Attack then structure tap silently fails | H7; R155 | W01,W05 | Every intended order has an accepted marker or specific rejection and matches right-click behavior. |
-| I190 | Defect | Pullback move leaves squads idle under towers | H7; R101 | W05 | Trace and fix movement/order priority so legal withdrawal movement executes predictably. |
-| I191 | Defect | Squads go idle after their target is destroyed | H7; R147 | W05 | Attack-move and engagement stance acquire nearby threats within leash rules without violating Hold. |
-| I192 | UX | Mixed-speed attack sends cavalry alone ahead of infantry | R100 | W05 | Offer group pace/cohesion and deliberate break-formation control. |
-| I193 | Defect | Reserve/second-wave control appears only intermittently | M13; R148; R152 | W05 | Keep reserve status and call action visible whenever relevant, with entry constraints explained. |
-| I194 | UX | No prompt reminds the player that reserves remain available | M13; P2 §7 | W05 | Provide a restrained contextual reminder when reserves can affect the battle. |
-| I195 | UX | Squad count drops without casualty/retreat explanation | R149 | W02,W05 | Distinguish killed, routed, withdrawn, reserve and reinforcing units in a concise live summary. |
+| I190 | Defect | Pullback move leaves squads idle under towers | H7; R101 | W05 | Trace and fix movement/order priority so legal withdrawal movement executes predictably. Done with U11. |
+| I191 | Defect | Squads go idle after their target is destroyed | H7; R147 | W05 | Attack-move and engagement stance acquire nearby threats within leash rules without violating Hold. Done with U11. |
+| I192 | UX | Mixed-speed attack sends cavalry alone ahead of infantry | R100 | W05 | Closed against Q6: each unit walks at its own speed, also in a mixed group, so there is no group-pace setting. An attack order warns when cavalry will arrive first (addendum X13). Done with U07, as revised by Q6. |
+| I193 | Defect | Reserve/second-wave control appears only intermittently | M13; R148; R152 | W05 | Superseded by U10: no Reserve button; the full eligible roster starts on the field (Q2). |
+| I194 | UX | No prompt reminds the player that reserves remain available | M13; P2 §7 | W05 | Superseded by U10: no reserve exists, so there is no reserve reminder. |
+| I195 | UX | Squad count drops without casualty/retreat explanation | R149 | W02,W05 | Distinguish killed, routed, withdrawn, not yet entered / later reinforcement and reinforcing units in a concise live summary. |
 | I196 | Request | Player cannot find the enemy objective or navigate via minimap | P2 §7; P3 §7 | W05 | Provide objective/base/army navigation plus a toggleable minimap respecting available intel. |
 | I197 | Investigation | Keep focus action is broken or slow to become available | P2 §7; R93 | W05 | Verify each battle type and opening state; preserve the working P3 behavior and explain unavailable targets. |
 | I198 | Request | Desktop lacks accessible keyboard/edge panning | P2 §7; R93 | W05 | Provide documented panning controls without conflicting with selection/orders. |
 | I199 | Request | Camera never follows a marching battle formation | P2 §7 | W05 | Offer optional follow-selection with explicit cancellation on manual pan. |
 | I200 | UX | Battle zoom ignores the pointer location | R93 | W05 | Choose predictable zoom anchoring and test cursor/touch focal behavior across supported devices. |
-| I201 | UX | Battle HUD leaves only a narrow field strip | R141; P2 §10; P3 §7 | W05 | Measure occlusion and target at least 70% field visibility in ordinary play while preserving usable controls. |
+| I201 | UX | Battle HUD leaves only a narrow field strip | R141; P2 §10; P3 §7 | W05 | Measure occlusion and target at least 70% field visibility in ordinary play while preserving usable controls. Done with U03. |
 | I202 | Defect | Defender housing collapse control fails or stays open by default | P2 §10; R141 | W05 | Collapse works in all layouts and nonessential housing starts minimized. |
 | I203 | UX | Battle alerts accumulate and obscure the field | R141; P3 §7 | W05 | Use a compact timed alert stack with accessible history rather than permanent overlap. |
 | I204 | UX | Deploy help is oversized, clipped and gives desktop-only instructions | P2 §10; R92 | W05 | Use concise layout/input-specific help with all essential instructions reachable. |
@@ -309,8 +309,8 @@ P2 refers to the earlier report, including its second session; P3 refers to the 
 | I214 | UX | Battle lighting is too dark on phone | R92; P2 session 2 | W05,W14 | Use readable default lighting on reference devices without flattening essential terrain/ownership contrast. |
 | I215 | UX | Battle towns use an inappropriate era/cultural style | P2 §7; P2 §8 | W14 | Validate Bronze Mesopotamian and other culture/era asset assignments against battle setup. |
 | I216 | Investigation | Nubian battlefield farmland may not fit the location | R134 | W14 | Check actual tile/river context before replacing green terrain solely on regional assumptions. |
-| I217 | UX | Trees are repetitive dark blobs that read as noise | P2 §8 | W14 | Improve silhouette/material variation and readability within mobile rendering budgets. |
-| I218 | UX | Soldiers are too tiny to identify or select on phone | P2 §8 | W05,W14 | Provide readable visual scale and generous selection targets without changing combat hitboxes. |
+| I217 | UX | Trees are repetitive dark blobs that read as noise | P2 §8 | W14 | Improve silhouette/material variation and readability within mobile rendering budgets. Done with U04. |
+| I218 | UX | Soldiers are too tiny to identify or select on phone | P2 §8 | W05,W14 | Provide readable visual scale and generous selection targets without changing combat hitboxes. Done with MD09. |
 | I219 | Request | Animation set is limited and the bake pipeline is not built | P2 §8 | W14 | Validate and connect the existing pipeline for useful movement/combat/work reactions before adding assets. |
 | I220 | Investigation | Battle loading varies from roughly 5 to 20 seconds | R92; R134 | W14,W15 | Profile setup/assets/worker startup separately and provide honest progress plus measurable regression checks. |
 | I221 | Balance | Events repeat too frequently | M15; R89; P2 §2 | W14 | Apply event/family/city cooldowns scaled to campaign speed while retaining sufficient valid events. |

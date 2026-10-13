@@ -28,6 +28,14 @@ describe.skipIf(!hasPython)('validate_model.py Wave 0 kinds', () => {
     expect(r.report.checks.no_reserved_words).toBe(true);
   });
 
+  it('holds a destroyed battle building to the ruin budget, the HQ roles too', () => {
+    const r = run(file('src/assets/battle/rts/rts-classical.glb', [{ name: 'town-hall', size: 2 }, { name: 'town-hall-ruined', size: 2 }, { name: 'barracks-ruined', size: 1.4 }]));
+    expect(r.ok).toBe(true);
+    expect(r.stdout).toMatch(/kind from the path: prefab/);
+    // (the fixture's boxes are far under every budget: this pins that the names are accepted)
+    expect(r.report.objects['town-hall-ruined'].over_budget).toEqual([]);
+  });
+
   it('takes one-level projectiles and fails a unit made with map materials', () => {
     expect(run(file('src/assets/battle/projectiles/bronze.glb', [{ name: 'arrow', size: 0.08, lods: false }])).ok).toBe(true);
     const unit = run(file('src/assets/units/signature/israel.glb', [{ name: 'spearman', size: 0.3, lods: false }]));

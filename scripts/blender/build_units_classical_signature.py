@@ -352,7 +352,8 @@ CAMELS = {
 def build_camel(model, spec):
     camel, _ = tm.camel('Camel', coat='Leather', dark='Wood')
     pack_saddle(camel)
-    r = cl.rider(spec['dress'], spec['arms'], at=cl.seat_offset('camel'), pose=WIDE_SEAT)
+    seat = tm.true_camel(camel, cl.seat_offset('camel'))  # the camel at its true size, the rider at 1.0 (MD09)
+    r = cl.rider(spec['dress'], spec['arms'], at=seat, pose=WIDE_SEAT)
     return [camel, r]
 
 
@@ -385,11 +386,14 @@ def build_elephant(model, spec):
 def build_bosporan(model, spec):
     parts, info = tm.frame('Frame', length=1.1, width=.52)
     tm.torsion_engine(info, stone=True, scale=1.1)
-    for i, (x, y, z, yaw) in enumerate(info['crew']):
+    stone_pile(info['rig'], (.62, .55))
+    # Two thirds of real size (MD09): a stone-thrower about 2.5 m long (the real one about 4 m); the
+    # crew stays at 1.0.
+    tm.enlarge(info['rig'], 1.25)
+    for i, (x, y, z, yaw) in enumerate([(-.68, .3, 0, 90), (.68, .22, 0, -90), (0, 1.0, 0, 180)]):
         c, _ = u.crew(f'Crew{i}', (x, y, z), lite=True, head='cap', yaw=yaw)
         lib.top(c, 'Cloth', name=f'Crew{i}Linen')
         parts.append(c)
-    stone_pile(info['rig'], (.62, .55))
     return parts
 
 
@@ -423,8 +427,8 @@ def build(model):
     else:
         spec = SPECIAL[model]; parts = spec['build'](model, spec); rig = 'frame'; role = spec['role']; budget = 4000
     bpy.context.view_layer.update()
-    if rig in ('camel', 'elephant'):
-        height = round(measured_height() * MOUNTED_SCALE * (ELEPHANT_DRAWN if rig == 'elephant' else 1), 3)
+    # (camels and elephants carried a fitted height here until MD09: the battle now draws them at the
+    # people's scale like every rider, the animal authored at its true size)
     lib.finish(model, parts, spec['colors'], {'name': spec['name'], 'role': role, 'rig': rig, 'look': spec['look'], **({'height': height} if height else {})}, budget, rig != 'frame')
     if height:  # the loader's target height (see the header)
         path = u.out_dir(model) / f'{model}.json'
@@ -434,6 +438,8 @@ def build(model):
         path = u.out_dir(model) / f'{model}.json'
         opts = json.loads(path.read_text()); opts['triangleBudget'] = 5000
         path.write_text(json.dumps(opts, indent=2) + '\n')
+    if model == 'bosporan-kingdom':  # a machine at its true size, spaced by its footprint (MD09)
+        tm.mark_machine(model)
 
 
 ALL = list(FOOT) + list(HORSE) + list(CHARIOTS) + list(CAMELS) + list(ELEPHANTS) + list(SPECIAL)

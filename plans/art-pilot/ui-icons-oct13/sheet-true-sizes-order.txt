@@ -1,0 +1,27 @@
+Left to right, top to bottom, 3 a row; each cell shows 11, 14, 18 and 24 px on the dark panel, then on the light map colour:
+1. ref wheat
+2. ref gold
+3. ref timber
+4. ref stone
+5. stock-food
+6. stock-wood
+7. stock-stone
+8. stock-gold
+9. stock-supply
+10. stock-population
+11. base-marker
+12. base-status
+13. select-all
+14. find-army
+15. close
+16. stop-working
+17. placement-legal
+18. placement-blocked
+19. placement-overlap
+20. placement-fog
+21. capture-conquer
+22. capture-raze
+23. capture-tributary
+24. capture-free
+25. no-mans-land
+26. hold-map

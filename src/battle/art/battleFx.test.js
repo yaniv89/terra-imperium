@@ -28,6 +28,32 @@ describe('battle terrain crossings', () => {
     expect(bridges).toEqual([{ x: 6.5, z: 4, axis: 'z', length: 3 }]);
   });
 
+  it('rejects coastal road candidates whose end socket leaves any map edge', () => {
+    for (const [x, z, axis] of [[0, 1, 'x'], [9, 1, 'x'], [3, 0, 'z'], [3, 7, 'z']]) {
+      const map = riverMap();
+      map.tiles[z * map.w + x] = TILE.ROAD;
+      const lateral = axis === 'x' ? [[x, z - 1], [x, z + 1]] : [[x - 1, z], [x + 1, z]];
+      lateral.forEach(([i, j]) => { map.tiles[j * map.w + i] = TILE.WATER; });
+      const found = findCrossings(map);
+      expect(found.bridges).toEqual([{ x: 6.5, z: 4, axis: 'z', length: 3 }]);
+      expect(found.fords).toHaveLength(2);
+      expect(found.banks.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('rejects water or ford landings at either end while keeping another valid crossing', () => {
+    for (const wet of [TILE.WATER, TILE.FORD]) for (const z of [2, 5]) {
+      const map = riverMap();
+      map.tiles[3 * map.w + 8] = TILE.ROAD;
+      map.tiles[4 * map.w + 8] = TILE.ROAD;
+      map.tiles[z * map.w + 6] = wet;
+      const found = findCrossings(map);
+      expect(found.bridges).toEqual([{ x: 8.5, z: 4, axis: 'z', length: 3 }]);
+      expect(found.fords).toHaveLength(wet === TILE.FORD ? 3 : 2);
+      if (wet === TILE.FORD) expect(found.fords).toContainEqual(expect.objectContaining({ x: 6.5, z: z + 0.5 }));
+    }
+  });
+
   it('spans a bridge by its end sockets', async () => {
     const k = await kit([{ name: 'bridge-wood', size: 1, sockets: { 'socket-end-a': [0, 0, -0.6], 'socket-end-b': [0, 0, 0.6] } }, { name: 'bridge-stone', size: 1 }]);
     expect(bridgeSpan(k.objects['bridge-wood'])).toEqual({ axis: 'z', length: expect.closeTo(1.2) });
