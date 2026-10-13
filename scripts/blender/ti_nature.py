@@ -7,6 +7,7 @@
 # Scale 1 unit = 10 m, true size (trees 3 to 8 m, nodes 4 to 8 m across), the front facing Blender -Y.
 import math
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -20,7 +21,11 @@ import ti_town as tt  # noqa: E402
 NEW = ['rock', 'rock_dark', 'sandstone', 'ore', 'verdigris', 'quartz', 'gold', 'bark', 'bark_pale', 'birch',
        'cut_wood', 'foliage', 'foliage_dark', 'foliage_light', 'olive_leaf', 'cypress_leaf', 'pine_leaf', 'palm_leaf',
        'acacia_leaf', 'dry_shrub', 'tuft', 'tuft_dry', 'wool', 'wool_dark', 'hide', 'hide_pale', 'horn', 'hoof',
-       'ripple', 'deep_water', 'fish']
+       'ripple', 'deep_water', 'fish',
+       # the four battle resources (MD06, 13 October): a pale quarry, gold in dark rock, a shoal's water
+       'quarry', 'quarry_cut', 'rubble', 'pit', 'gold_rock', 'gold_bright', 'shoal_water', 'fish_silver', 'foam',
+       # log piles for the kits built elsewhere (log-piles.glb): pine, tropical hardwood, larch
+       'bark_pine', 'cut_pine', 'bark_hardwood', 'cut_hardwood', 'bark_larch']
 for _n in NEW:
     if _n not in tt.PROC:
         tt.PROC.append(_n)
@@ -59,6 +64,21 @@ def make_materials():
     s('ripple', ['#7fa2a8', '#93b4b8', '#6e939a'], scale=20.0, rough=0.2, bump=0.0)
     s('deep_water', ['#24484e', '#2e5a60', '#1e3c42'], scale=12.0, rough=0.2, bump=0.0)
     s('fish', ['#4a5a5c', '#6a7a7c', '#c8ccc4'], scale=30.0, rough=0.4, bump=0.1)
+    # MD06: stone is PALE and cut square, gold is DARK rock with bright yellow, so the two never read alike
+    s('quarry', ['#a5a198', '#b6b2a8', '#c2beb4', '#99958b'], scale=9.0, bump=0.6)
+    s('quarry_cut', ['#c4c1b8', '#d2cfc6', '#b7b4ab'], scale=6.0, stripes={'dir': 'Z', 'scale': 55.0, 'distortion': 1.5}, bump=0.25)
+    s('rubble', ['#8c877d', '#9d988d', '#7b766d'], scale=22.0, bump=0.7)
+    s('pit', ['#3d3832', '#4a443c', '#322e29'], scale=14.0, bump=0.4)
+    s('gold_rock', ['#3a3531', '#4a433d', '#2c2825', '#554c44'], scale=11.0, bump=0.7)
+    s('gold_bright', ['#f0b90f', '#ffd428', '#ffe45c', '#e3a600'], scale=26.0, rough=0.35, bump=0.15)
+    s('shoal_water', ['#4fa3b5', '#66b7c6', '#3f93a6'], scale=9.0, rough=0.2, bump=0.0)
+    s('fish_silver', ['#c9d3d6', '#e4eaeb', '#a9b6ba'], scale=30.0, rough=0.3, bump=0.1)
+    s('foam', ['#e9f3f4', '#f7fbfb', '#d6e8ea'], scale=30.0, rough=0.4, bump=0.0)
+    s('bark_pine', ['#9a6a48', '#ae7c56', '#82563a'], scale=10.0, stripes={'dir': 'Z', 'scale': 50.0, 'distortion': 8.0}, bump=0.7)
+    s('cut_pine', ['#e6c88c', '#f0d8a2', '#d8b678'], scale=8.0, stripes={'dir': 'Z', 'scale': 200.0, 'distortion': 2.0}, bump=0.3)
+    s('bark_hardwood', ['#38231a', '#482d20', '#2a1912'], scale=10.0, stripes={'dir': 'Z', 'scale': 60.0, 'distortion': 8.0}, bump=0.7)
+    s('cut_hardwood', ['#a9603c', '#bb7048', '#904e30'], scale=8.0, stripes={'dir': 'Z', 'scale': 200.0, 'distortion': 2.0}, bump=0.3)
+    s('bark_larch', ['#6c5a4c', '#7e6a5a', '#5a4a3e'], scale=10.0, stripes={'dir': 'Z', 'scale': 60.0, 'distortion': 8.0}, bump=0.7)
 
 
 if not any(n == 'nature' for n, _ in tt.EXTRA_MATERIALS):
@@ -218,28 +238,145 @@ def grass_tuft(ms, rng, h, mat='tuft', blades=9):
         limb(ms, mat, (0, 0, -0.002), (math.cos(a) * h * 0.35, math.sin(a) * h * 0.35, h * 0.9), 0.01, 0.0, segs=3, lod=2, only=(1, 2), caps=False)
 
 
+def disc(ms, mat, at, toward, r, segs=6, lod=0, only=None, flip=False):
+    """A flat n-gon facing along `toward` (a log's sawn end, a stump's top): one face."""
+    bm = bmesh.new()
+    bmesh.ops.create_circle(bm, cap_ends=True, cap_tris=False, segments=segs, radius=r)
+    if flip:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces)
+    m = Matrix.Translation(Vector(at)) @ Vector(toward).to_track_quat('Z', 'Y').to_matrix().to_4x4()
+    return ms.add(bm, mat, lod, m, only=only)
+
+
+def log(ms, p0, p1, r, bark='bark', ends='cut_wood', segs=6, lod=2, only=None, taper=1.0):
+    """A cut log from p0 to p1: bark round the side and a pale sawn face on each end (the cue that
+    says worked wood at any zoom). An open tube and two faces: 2 * segs + 2 * (segs - 2) triangles."""
+    p0, p1 = Vector(p0), Vector(p1)
+    d = (p1 - p0).normalized()
+    limb(ms, bark, p0, p1, r, r * taper, segs=segs, lod=lod, only=only, caps=False)
+    disc(ms, ends, p0 - d * 0.0004, d, r, segs, lod, only, flip=True)
+    disc(ms, ends, p1 + d * 0.0004, d, r * taper, segs, lod, only)
+
+
+def log_stack(ms, x, y, length, r, rows=(3, 2, 1), bark='bark', yaw=0.0, stakes=True, far_rows=None, z=0.0, ends='cut_wood'):
+    """Logs stacked in a pyramid along the local x axis, their sawn ends showing at both sides,
+    between two stakes a side. LOD1 keeps every log five-sided, LOD2 four-sided (`far_rows`: only
+    those rows, a little thicker). `bark` may be a list: the logs take its materials in turn."""
+    f = Matrix.Translation(Vector((x, y, z))) @ Matrix.Rotation(math.radians(yaw), 4, 'Z')
+    pitch = r * 2.02
+    barks = [bark] if isinstance(bark, str) else list(bark)
+    count = 0
+    for row, n in enumerate(rows):
+        zz = r + row * pitch * 0.87
+        for k in range(n):
+            yy = (k - (n - 1) / 2) * pitch
+            a, b = f @ Vector((-length / 2, yy, zz)), f @ Vector((length / 2, yy, zz))
+            mat = barks[count % len(barks)]
+            count += 1
+            log(ms, a, b, r, bark=mat, ends=ends, segs=6, lod=0)
+            log(ms, a, b, r, bark=mat, ends=ends, segs=5, lod=1, only=(1,))
+            if far_rows is None or row in far_rows:
+                log(ms, a, b, r * (1.0 if far_rows is None else 1.25), bark=mat, ends=ends, segs=4, lod=2, only=(2,))
+    if stakes:
+        w = rows[0] * pitch / 2 + r * 0.3
+        for sx in (-0.3, 0.3):
+            for sy in (-1, 1):
+                p = f @ Vector((sx * length, sy * w, -0.006))
+                q = f @ Vector((sx * length, sy * w * 0.94, r * 2.7))
+                limb(ms, barks[0], p, q, r * 0.24, r * 0.2, segs=4, lod=1, caps=False)
+
+
+def _burn(rng, n):
+    """Draw the `n` numbers a retired shape used to draw, so the objects built after it in the
+    same file keep their shapes."""
+    for _ in range(n):
+        rng.uniform(0, 1)
+
+
 def stump(ms, rng, r, h=0.05, bark='bark'):
-    limb(ms, bark, (0, 0, -0.008), (0, 0, h), r, r * 0.92, segs=7, lod=0)
-    ms.cyl('cut_wood', r * 0.88, r * 0.88, 0.003, at=(0, 0, h - 0.001), segs=7, lod=0)
-    for k in range(3):  # roots
-        a = 2 * math.pi * k / 3 + rng.uniform(-0.3, 0.3)
-        limb(ms, bark, (0, 0, h * 0.4), (math.cos(a) * r * 2.0, math.sin(a) * r * 2.0, 0.0), r * 0.4, r * 0.15, segs=4, lod=0)
-    limb(ms, bark, (0, 0, -0.008), (0, 0, h), r, r * 0.92, segs=5, lod=2, only=(1, 2))
+    """A felled grove's stumps (MD06): a broad stump with a pale sawn top and spreading roots, two
+    smaller ones beside it and pale chips on the ground. The pale tops are what reads from above."""
+    _burn(rng, 3)
+    own = random.Random(9107)
+    for k, (x, y, rr, hh) in enumerate([(0.0, 0.0, r * 1.5, h * 1.3), (r * 4.0, r * 1.8, r * 1.1, h * 0.9), (-r * 2.6, r * 3.4, r * 0.9, h * 0.7)]):
+        far = (1, 2) if k == 0 else (1,)
+        limb(ms, bark, (x, y, -0.008), (x, y, hh), rr * 1.12, rr, segs=8, lod=0, caps=False)
+        disc(ms, 'cut_wood', (x, y, hh), (0, 0, 1), rr, 8, lod=0)
+        limb(ms, bark, (x, y, -0.008), (x, y, hh), rr * 1.12, rr, segs=5, lod=far[-1], only=far, caps=False)
+        disc(ms, 'cut_wood', (x, y, hh), (0, 0, 1), rr, 5, lod=far[-1], only=far)
+        roots = 4 if k == 0 else 3
+        for i in range(roots):
+            a = 2 * math.pi * i / roots + own.uniform(-0.3, 0.3)
+            limb(ms, bark, (x, y, hh * 0.45), (x + math.cos(a) * rr * 2.3, y + math.sin(a) * rr * 2.3, 0.0), rr * 0.4, rr * 0.14, segs=4, lod=0)
+    for i in range(7):  # chips of fresh wood
+        a, d = own.uniform(0, 2 * math.pi), own.uniform(1.8, 4.5) * r
+        ms.box('cut_wood', (r * 0.5, r * 0.28, r * 0.12), at=(math.cos(a) * d, math.sin(a) * d + r, 0), rot_z=own.uniform(0, 180), lod=0)
 
 
 def felled(ms, rng, length, r, bark='bark', leaf='foliage'):
-    """A felled trunk on the ground, a few limbs trimmed and stacked beside it, its stump."""
-    a = Vector((-length / 2, 0, r * 0.85))
-    b = Vector((length / 2, 0.02, r * 0.75))
-    limb(ms, bark, a, b, r, r * 0.7, segs=7, lod=0)
-    limb(ms, bark, a, b, r, r * 0.7, segs=5, lod=2, only=(1, 2))
-    ms.cyl('cut_wood', r * 0.9, r * 0.9, 0.003, at=(-length / 2 - 0.001, 0, r * 0.85), rot=(0, -90, 0), segs=7, lod=0)
+    """A grove being cut (MD06): the trunk down beside its pale-topped stump, the crown lopped and
+    the first logs stacked. The trunk is thick enough to read at battle zoom (0.8 m across)."""
+    _burn(rng, 12)
+    own = random.Random(9203)
+    r = r * 1.45
+    sx = -length / 2 - r * 2.2
+    for segs, lod, only in ((8, 0, None), (5, 2, (1, 2))):
+        limb(ms, bark, (sx, 0, -0.008), (sx, 0, r * 1.5), r * 1.15, r * 1.02, segs=segs, lod=lod, only=only, caps=False)
+        disc(ms, 'cut_wood', (sx, 0, r * 1.5), (0, 0, 1), r * 1.02, segs, lod=lod, only=only)
+    a = Vector((-length / 2, 0.012, r * 0.9))
+    b = Vector((length / 2, 0.03, r * 0.72))
+    log(ms, a, b, r, bark=bark, segs=8, lod=0, taper=0.72)
+    log(ms, a, b, r, bark=bark, segs=5, lod=2, only=(1, 2), taper=0.72)
     for k in range(3):  # the crown's limbs, lopped
         x = length / 2 - 0.05 * k
-        limb(ms, bark, (x, 0.02, r), (x + 0.12, 0.08 * (1 if k % 2 else -1), r * 0.6), r * 0.3, r * 0.15, segs=4, lod=0)
-    blob(ms, leaf, (length / 2 + 0.1, 0.02, r), length * 0.18, (1.2, 1, 0.55), rng, 0.25, 1, lod=1, cut=-0.02)
-    for k in range(3):  # cut logs
-        ms.cyl(bark, r * 0.55, r * 0.55, length * 0.3, at=(-0.05 + 0.1 * k, -r * 3.0, r * 0.55), rot=(0, 90, 0), segs=6, lod=0)
+        limb(ms, bark, (x, 0.03, r), (x + 0.12, 0.03 + 0.09 * (1 if k % 2 else -1), r * 0.6), r * 0.3, r * 0.15, segs=4, lod=0)
+    blob(ms, leaf, (length / 2 + 0.1, 0.03, r), length * 0.16, (1.2, 1, 0.5), own, 0.25, 1, lod=1, cut=-0.02)
+    log_stack(ms, -length * 0.08, -r * 4.6, length * 0.42, r * 0.7, rows=(3, 2), bark=bark, stakes=False, far_rows=(0,))
+
+
+def log_pile(ms, rng, length=0.26, r=0.032, bark='bark', rows=(3, 2, 1), ends='cut_wood', far_rows=None):
+    """A worked grove's marker (MD06): six cut logs stacked three, two, one between stakes."""
+    log_stack(ms, 0, 0, length, r, rows=rows, bark=bark, stakes=True, ends=ends, far_rows=far_rows)
+
+
+# ---- quarry and gold (MD06) ------------------------------------------------------------------------
+
+def crag(ms, mat, x, y, r, h, rng, subdiv=2, lod=0, only=None, jitter=0.14, taper=0.74, yaw=0.0, veins=(), vein_mat='gold_bright'):
+    """A pointed crag: a jittered lump drawn in toward its top, its foot cut flat under Z = 0.
+    `r` is its radius at the ground, `h` its height. `veins` are seams of `vein_mat` through it:
+    (height as a share of h, tilt in degrees, compass direction of the dip in degrees, thickness);
+    the faces a seam's slab crosses take the vein's material, so a seam is flush with the rock and
+    ragged along the facets, never a hoop round it."""
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=subdiv, radius=1.0)
+    for v in bm.verts:
+        v.co *= 1.0 + rng.uniform(-jitter, jitter)
+        k = 1.0 - taper * (v.co.z + 1.0) / 2.0
+        v.co.x *= k
+        v.co.y *= k
+    res = bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, -0.5), plane_no=(0, 0, 1), clear_inner=True)
+    edges = [e for e in res['geom_cut'] if isinstance(e, bmesh.types.BMEdge)]
+    if edges:
+        bmesh.ops.holes_fill(bm, edges=edges)
+    sz = h / 1.5
+    foot = 0.866 * (1.0 - taper * 0.25)  # the lump's radius where the ground cuts it
+    m = (Matrix.Translation(Vector((x, y, 0.5 * sz - 0.006))) @ Matrix.Rotation(math.radians(yaw), 4, 'Z')
+         @ Matrix.Diagonal(Vector((r / foot, r / foot, sz, 1.0))))
+    bmesh.ops.transform(bm, matrix=m, verts=bm.verts)
+    if veins:
+        slabs = []
+        for share, tilt, dip, thick in veins:
+            t, d = math.radians(tilt), math.radians(dip)
+            slabs.append((Vector((x, y, h * share)), Vector((math.sin(t) * math.cos(d), math.sin(t) * math.sin(d), math.cos(t))), thick / 2))
+        def in_vein(face):
+            c = face.calc_center_median()
+            return c.z > 0.004 and any(abs((c - p).dot(n)) < half for p, n, half in slabs)
+        ore = bm.copy()
+        bmesh.ops.delete(ore, geom=[f for f in ore.faces if not in_vein(f)], context='FACES')
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if in_vein(f)], context='FACES')
+        if ore.faces:
+            ms.add(ore, vein_mat, lod, only=only)
+    return ms.add(bm, mat, lod, only=only)
 
 
 # ---- herd animals (validate_model.py `herd`: 400 / 150 / 60) ---------------------------------------
@@ -288,7 +425,7 @@ def ring(ms, mat, x, y, r, w=0.006, z=0.002, segs=16, lod=0, only=None):
     return ms.add(bm, mat, lod, only=only)
 
 
-def fish(ms, x, y, yaw, size=0.05, z=0.003, lod=0, jump=0.0):
+def fish(ms, x, y, yaw, size=0.05, z=0.003, lod=0, jump=0.0, mat='fish', only=None):
     """A fish lying just under the surface (a dark shape), or leaping (`jump` > 0, arched above)."""
     f = tm.house_frame(x, y, yaw)
     if jump:
@@ -300,8 +437,8 @@ def fish(ms, x, y, yaw, size=0.05, z=0.003, lod=0, jump=0.0):
         v.co.z *= 0.3
         v.co.y *= 1.0
     bmesh.ops.translate(bm, vec=(0, 0, z), verts=bm.verts)
-    ms.add(bm, 'fish', lod, f)
+    ms.add(bm, mat, lod, f, only=only)
     tail = bmesh.new()
     v = [tail.verts.new((0, size * 0.45, z)), tail.verts.new((-size * 0.18, size * 0.72, z)), tail.verts.new((size * 0.18, size * 0.72, z))]
     tail.faces.new(v)
-    ms.add(tail, 'fish', lod, f)
+    ms.add(tail, mat, lod, f, only=only)

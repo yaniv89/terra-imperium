@@ -75,6 +75,38 @@ def make_materials():
         maker()
 
 
+def charred(name, keep=0.4):
+    """A burnt copy of material `name` for ruins: its own colour multiplied down to `keep` with
+    black soot patches over it, so a wreck stays in its building's stuff but reads dark. Made on
+    first use (after make_materials) and added to PROC; returns the copy's name."""
+    cname = 'burnt%d_%s' % (round(keep * 100), name)
+    if cname in bpy.data.materials:
+        return cname
+    mat = bpy.data.materials[name].copy()
+    mat.name = cname
+    nt = mat.node_tree
+    bsdf = next(n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED')
+    sock = bsdf.inputs['Base Color']
+    if sock.links:
+        src = sock.links[0].from_socket
+        nt.links.remove(sock.links[0])
+    else:
+        src = tuple(sock.default_value)
+    dark = tm._mix(nt, 1.0, src, (keep, keep * 0.94, keep * 0.88, 1.0), 'MULTIPLY')
+    n = tm._noise(nt, 7.0, 3.0, 0.6)
+    mr = nt.nodes.new('ShaderNodeMapRange')
+    mr.inputs['From Min'].default_value = 0.42
+    mr.inputs['From Max'].default_value = 0.68
+    mr.inputs['To Min'].default_value = 0.0
+    mr.inputs['To Max'].default_value = 0.85 if keep < 0.5 else 0.6
+    nt.links.new(n.outputs['Fac'], mr.inputs['Value'])
+    nt.links.new(tm._mix(nt, mr.outputs['Result'], dark, (0.012, 0.011, 0.01, 1.0)), sock)
+    bsdf.inputs['Roughness'].default_value = 0.95
+    if cname not in PROC:
+        PROC.append(cname)
+    return cname
+
+
 # ---- the ground patch ---------------------------------------------------------------------------
 
 def ground_patch(ms, rng, rx=1.98, ry=1.84, square=0.42, power=2.0, mat='earth', n=96):
@@ -476,7 +508,7 @@ def build_file(file_name, items, out_dir, atlas=2048, seed=2000, write=True):
         for lod in (1, 2):
             o = ms.build('LOD%d' % lod, lod, PROC)
             o.data.transform(Matrix.Translation(Vector((k * spacing, 0, 0))))
-            tm.transfer_uvs(lod0, o)
+            tm.transfer_uvs_by_face(lod0, o)
             lods.append(o)
         shift = Matrix.Translation(Vector((-k * spacing, 0, 0)))
         for o in lods:

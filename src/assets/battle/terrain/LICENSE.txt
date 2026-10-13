@@ -1,0 +1,4 @@
+Original mesh and procedural atlas synthesis by Terra Imperium contributors, 2026-10-12.
+CC0-1.0: dedicated to the public domain; https://creativecommons.org/publicdomain/zero/1.0/.
+No imported geometry, photographs or external textures. Generated 2D sheets are design reference only.
+Covers: river-kit.glb, ford.glb, bridge-wood.glb, bridge-stone.glb, bridge-steel.glb (wave 7, checkpoint 38).

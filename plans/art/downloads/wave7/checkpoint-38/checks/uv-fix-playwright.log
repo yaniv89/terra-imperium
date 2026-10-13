@@ -1,0 +1,26 @@
+
+Running 14 tests using 1 worker
+
+(node:32659) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/generatedGame.spec.js:14:1 › a generated world: chosen on the start screen, played for turns, saved and reloaded (1.3m)
+  ✓   2 [chromium] › e2e/guidedStart.spec.js:10:1 › the guided start plays as Kemet with the guide in the next prompt (31.5s)
+  ✓   3 [chromium] › e2e/landscape.spec.js:30:3 › phone held sideways › slim top bar, tab rail and docked panels leave the map usable (27.7s)
+  ✓   4 [chromium] › e2e/landscape.spec.js:92:3 › phone held upright › asks to rotate on every screen, the map included (8.9s)
+  ✓   5 [chromium] › e2e/landscape.spec.js:105:3 › tablet held sideways › the landscape shell with a wider dock (52.2s)
+  ✓   6 [chromium] › e2e/playability.spec.js:48:1 › a randomly chosen nation can play several turns with no console errors and visible progress (46.9s)
+  ✓   7 [chromium] › e2e/stabilization.spec.js:50:1 › actual globe pointer hits preserve selected province at two zoom levels (21.5s)
+  ✓   8 [chromium] › e2e/stabilization.spec.js:93:1 › 2D province fills select their own region at two zoom levels (51.9s)
+  ✓   9 [chromium] › e2e/stabilization.spec.js:97:1 › the old SVG map still selects its provinces (27.5s)
+  ✓  10 [chromium] › e2e/webglMap.spec.js:57:3 › the WebGL map on a desktop › is the map: no globe switch, wheel zoom, a tap on land picks the city, on open land the tile (40.4s)
+  ✓  11 [chromium] › e2e/webglMap.spec.js:96:3 › the WebGL map on a desktop › wraps east to west: dragging across the antimeridian continues into the other side (29.7s)
+  ✓  12 [chromium] › e2e/webglMap.spec.js:120:3 › the WebGL map on a phone held sideways › pinch zoom, and a tap on the army banner or the land picks the city (2.4m)
+  ✓  13 [chromium] › e2e/webglMap.spec.js:161:3 › the globe behind its setting › with the setting on, the globe switch comes back (29.2s)
+  ✓  14 [chromium] › e2e/worldgen.spec.js:10:1 › a generated world hashes the same in a browser worker as in Node (21.0s)
+
+  14 passed (10.3m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

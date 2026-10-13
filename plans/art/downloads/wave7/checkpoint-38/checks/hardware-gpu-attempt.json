@@ -1,0 +1,55 @@
+{
+  "status": "incomplete_not_an_acceptance_measurement",
+  "reason": "Cloud has no /dev/dri GPU and two effective CPU cores. Attempt consumed several minutes under concurrent art/test load. Re-run bounded software comparisons serially; native GPU acceptance remains for hardware environment.",
+  "command": "node scripts/perf/map-pan.mjs --no-build --gpu --channel chromium",
+  "partial_rows": [
+    {
+      "profile": "desktop",
+      "renderer": "webgl",
+      "world": "fog",
+      "k": 1,
+      "stepMedian": 5302.5,
+      "stepP90": 8904.8,
+      "fps": 1.7,
+      "frameP90": 1999.9,
+      "frameMax": 1999.9,
+      "mainMsPerFrame": 764,
+      "settleMs": 4522,
+      "draws": 6,
+      "screenKB": 0,
+      "screenFiles": 0
+    },
+    {
+      "profile": "desktop",
+      "renderer": "webgl",
+      "world": "fog",
+      "k": 4,
+      "stepMedian": 1594.7,
+      "stepP90": 2105.5,
+      "fps": 1.1,
+      "frameP90": 1749.9,
+      "frameMax": 1749.9,
+      "mainMsPerFrame": 1293.3,
+      "settleMs": 6106,
+      "draws": 7,
+      "screenKB": 0,
+      "screenFiles": 0
+    },
+    {
+      "profile": "desktop",
+      "renderer": "webgl",
+      "world": "fog",
+      "k": 12,
+      "stepMedian": 892.7,
+      "stepP90": 1306.1,
+      "fps": 0.9,
+      "frameP90": 1750,
+      "frameMax": 1750,
+      "mainMsPerFrame": 1956.7,
+      "settleMs": 10306,
+      "draws": 6,
+      "screenKB": 0,
+      "screenFiles": 0
+    }
+  ]
+}

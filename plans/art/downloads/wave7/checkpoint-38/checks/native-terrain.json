@@ -1,0 +1,954 @@
+{
+  "base": "http://127.0.0.1:3010/terra-imperium/",
+  "resolutions": [
+    {
+      "width": 844,
+      "height": 390
+    },
+    {
+      "width": 1600,
+      "height": 900
+    }
+  ],
+  "nativeTileSelection": true,
+  "screenshotTiming": {
+    "rafIntervalMs": 200,
+    "maxRenderFPS": 5,
+    "performanceBenchmark": false,
+    "realClock": true,
+    "workerTimersUnmodified": true,
+    "firstFrameGateQAOnly": true
+  },
+  "scenarios": [
+    {
+      "id": "river-classical",
+      "query": {
+        "terrain": "mixed",
+        "age": "classical",
+        "tile": "29",
+        "artRoads": ""
+      },
+      "crossing": "stone",
+      "keys": [
+        "battle/terrain/river-kit.glb",
+        "battle/terrain/ford.glb",
+        "battle/terrain/bridge-stone.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads="
+    }
+  ],
+  "limitations": [
+    "--plan leaves tile IDs unresolved; --run discovers actual loaded geo tiles.",
+    "artRoads supplies QA preview road state only; campaign state remains untouched.",
+    "Delayed loot/scorch requires real field destruction and can time out; opening raid is separate.",
+    "No bridge damage HP hook; intact placement only. Parent must visually inspect screenshots."
+  ],
+  "startedAt": "2026-10-08T08:48:04.473Z",
+  "smokeOnly": false,
+  "parentVisualReviewRequired": true,
+  "rendererBackendRequested": "ANGLE SwiftShader",
+  "hardwarePerformanceEvidence": false,
+  "results": [
+    {
+      "id": "river-classical",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads=",
+      "errors": [],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-infantry.glb",
+          "status": 200,
+          "bytes": 85864,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-general.glb",
+          "status": 200,
+          "bytes": 136896,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-ranged.glb",
+          "status": 200,
+          "bytes": 65056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-classical.glb",
+          "status": 200,
+          "bytes": 362056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-classical.glb",
+          "status": 200,
+          "bytes": 591360,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/bridge-stone.glb",
+          "status": 200,
+          "bytes": 490304,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/classical.glb",
+          "status": 200,
+          "bytes": 33812,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        }
+      ],
+      "shots": [
+        "river-classical-844x390-wide.png",
+        "river-classical-844x390-detail-bank.png",
+        "river-classical-844x390-detail-ford.png",
+        "river-classical-844x390-detail-bridge-stone.png"
+      ],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads=",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 35,
+      "audit": {
+        "screenshotTiming": {
+          "rafIntervalMs": 200,
+          "performanceBenchmark": false,
+          "firstFrameGateQAOnly": true,
+          "gateChecks": 19,
+          "gateStartedAtMs": 9397,
+          "firstFrameAtMs": 15274.70000000298,
+          "gateDurationMs": 5877.70000000298
+        },
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 83,
+          "triangles": 565295,
+          "geometries": 53,
+          "textures": 39,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "field",
+        "actualTile": 29,
+        "simTick": 35,
+        "canvas": {
+          "width": 844,
+          "height": 390,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "conifer",
+        "assets": [
+          {
+            "key": "battle/terrain/river-kit.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 557,
+            "objects": [
+              "bank",
+              "straight",
+              "bend",
+              "junction",
+              "end",
+              "straight-5",
+              "bend-5",
+              "junction-5",
+              "end-5",
+              "straight-8",
+              "bend-8",
+              "junction-8",
+              "end-8"
+            ]
+          },
+          {
+            "key": "battle/terrain/ford.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 170,
+            "objects": [
+              "ford"
+            ]
+          },
+          {
+            "key": "battle/terrain/bridge-stone.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/bridge-stone.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 3,
+            "objects": [
+              "bridge-stone",
+              "bridge-stone-damaged",
+              "bridge-stone-destroyed"
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "bank",
+            "x": 1.4999898988753557,
+            "z": 1.000000194646418,
+            "worldCorners": [
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              }
+            ],
+            "height": 0.18691258318722248,
+            "copies": 557
+          },
+          {
+            "name": "ford",
+            "x": 47.4999999795109,
+            "z": 0.500000799074769,
+            "worldCorners": [
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              }
+            ],
+            "height": 0.18974577449262142,
+            "copies": 170
+          },
+          {
+            "name": "bridge-stone",
+            "x": 45,
+            "z": 24.49999608658254,
+            "worldCorners": [
+              {
+                "x": 43.44791668653488,
+                "y": -0.10957030951976776,
+                "z": 24.91718816757202
+              },
+              {
+                "x": 46.55208331346512,
+                "y": -0.10957030951976776,
+                "z": 24.91718816757202
+              },
+              {
+                "x": 43.44791668653488,
+                "y": 0.839967206120491,
+                "z": 24.91718816757202
+              },
+              {
+                "x": 46.55208331346512,
+                "y": 0.839967206120491,
+                "z": 24.91718816757202
+              },
+              {
+                "x": 43.44791668653488,
+                "y": -0.10957030951976776,
+                "z": 24.08280400559306
+              },
+              {
+                "x": 46.55208331346512,
+                "y": -0.10957030951976776,
+                "z": 24.08280400559306
+              },
+              {
+                "x": 43.44791668653488,
+                "y": 0.839967206120491,
+                "z": 24.08280400559306
+              },
+              {
+                "x": 46.55208331346512,
+                "y": 0.839967206120491,
+                "z": 24.08280400559306
+              }
+            ],
+            "height": 0.9495375156402588,
+            "copies": 3
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 170,
+          "banks": 557,
+          "bridges": 3
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 1.5,
+              "z": 34.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 102.5,
+              "z": 34.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker"
+          ],
+          "instances": {
+            "copies": 2,
+            "draws": 2
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "detailFraming": [
+        {
+          "name": "bank",
+          "safe": {
+            "left": 24,
+            "right": 820,
+            "top": 110,
+            "bottom": 300
+          },
+          "bounds": {
+            "left": 397.89118665256217,
+            "right": 446.1088133474392,
+            "top": 185.69574387557714,
+            "bottom": 224.30425612442124
+          },
+          "zoom": 2.2,
+          "height": 0.18691258318722248,
+          "fits": true
+        },
+        {
+          "name": "ford",
+          "safe": {
+            "left": 24,
+            "right": 820,
+            "top": 110,
+            "bottom": 300
+          },
+          "bounds": {
+            "left": 388.63157580356074,
+            "right": 455.36842419644,
+            "top": 179.51282287334178,
+            "bottom": 230.48717712665805
+          },
+          "zoom": 2.2,
+          "height": 0.18974577449262142,
+          "fits": true
+        },
+        {
+          "name": "bridge-stone",
+          "safe": {
+            "left": 24,
+            "right": 820,
+            "top": 110,
+            "bottom": 300
+          },
+          "bounds": {
+            "left": 355.62473936056665,
+            "right": 488.3752606394335,
+            "top": 144.08547763335773,
+            "bottom": 265.9145223666429
+          },
+          "zoom": 2.2,
+          "height": 0.9495375156402588,
+          "fits": true
+        }
+      ],
+      "ok": true,
+      "proofStatus": "automated-load-and-placement-pass-needs-visual-review"
+    },
+    {
+      "id": "river-classical",
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads=",
+      "errors": [],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-infantry.glb",
+          "status": 200,
+          "bytes": 85864,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-ranged.glb",
+          "status": 200,
+          "bytes": 65056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-general.glb",
+          "status": 200,
+          "bytes": 136896,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-classical.glb",
+          "status": 200,
+          "bytes": 591360,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-classical.glb",
+          "status": 200,
+          "bytes": 362056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/bridge-stone.glb",
+          "status": 200,
+          "bytes": 490304,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/classical.glb",
+          "status": 200,
+          "bytes": 33812,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        }
+      ],
+      "shots": [
+        "river-classical-1600x900-wide.png",
+        "river-classical-1600x900-detail-bank.png",
+        "river-classical-1600x900-detail-ford.png",
+        "river-classical-1600x900-detail-bridge-stone.png"
+      ],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads=",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 268,
+      "audit": {
+        "screenshotTiming": {
+          "rafIntervalMs": 200,
+          "performanceBenchmark": false,
+          "firstFrameGateQAOnly": true,
+          "gateChecks": 18,
+          "gateStartedAtMs": 9810.60000000894,
+          "firstFrameAtMs": 14453.90000000596,
+          "gateDurationMs": 4643.29999999702
+        },
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 94,
+          "triangles": 601923,
+          "geometries": 49,
+          "textures": 39,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "field",
+        "actualTile": 29,
+        "simTick": 268,
+        "canvas": {
+          "width": 1600,
+          "height": 900,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "conifer",
+        "assets": [
+          {
+            "key": "battle/terrain/river-kit.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 557,
+            "objects": [
+              "bank",
+              "straight",
+              "bend",
+              "junction",
+              "end",
+              "straight-5",
+              "bend-5",
+              "junction-5",
+              "end-5",
+              "straight-8",
+              "bend-8",
+              "junction-8",
+              "end-8"
+            ]
+          },
+          {
+            "key": "battle/terrain/ford.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 170,
+            "objects": [
+              "ford"
+            ]
+          },
+          {
+            "key": "battle/terrain/bridge-stone.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/bridge-stone.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 3,
+            "objects": [
+              "bridge-stone",
+              "bridge-stone-damaged",
+              "bridge-stone-destroyed"
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "bank",
+            "x": 1.4999898988753557,
+            "z": 1.000000194646418,
+            "worldCorners": [
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              }
+            ],
+            "height": 0.18691258318722248,
+            "copies": 557
+          },
+          {
+            "name": "ford",
+            "x": 47.4999999795109,
+            "z": 0.500000799074769,
+            "worldCorners": [
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              }
+            ],
+            "height": 0.18974577449262142,
+            "copies": 170
+          },
+          {
+            "name": "bridge-stone",
+            "x": 45,
+            "z": 24.49999608658254,
+            "worldCorners": [
+              {
+                "x": 43.44791668653488,
+                "y": -0.10957030951976776,
+                "z": 24.91718816757202
+              },
+              {
+                "x": 46.55208331346512,
+                "y": -0.10957030951976776,
+                "z": 24.91718816757202
+              },
+              {
+                "x": 43.44791668653488,
+                "y": 0.839967206120491,
+                "z": 24.91718816757202
+              },
+              {
+                "x": 46.55208331346512,
+                "y": 0.839967206120491,
+                "z": 24.91718816757202
+              },
+              {
+                "x": 43.44791668653488,
+                "y": -0.10957030951976776,
+                "z": 24.08280400559306
+              },
+              {
+                "x": 46.55208331346512,
+                "y": -0.10957030951976776,
+                "z": 24.08280400559306
+              },
+              {
+                "x": 43.44791668653488,
+                "y": 0.839967206120491,
+                "z": 24.08280400559306
+              },
+              {
+                "x": 46.55208331346512,
+                "y": 0.839967206120491,
+                "z": 24.08280400559306
+              }
+            ],
+            "height": 0.9495375156402588,
+            "copies": 3
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 170,
+          "banks": 557,
+          "bridges": 3
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 1.5,
+              "z": 34.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 102.5,
+              "z": 34.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker"
+          ],
+          "instances": {
+            "copies": 2,
+            "draws": 2
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "detailFraming": [
+        {
+          "name": "bank",
+          "safe": {
+            "left": 24,
+            "right": 1576,
+            "top": 110,
+            "bottom": 810
+          },
+          "bounds": {
+            "left": 766.6185661343164,
+            "right": 833.3814338656847,
+            "top": 433.2710299815695,
+            "bottom": 486.7289700184306
+          },
+          "zoom": 2.2,
+          "height": 0.18691258318722248,
+          "fits": true
+        },
+        {
+          "name": "ford",
+          "safe": {
+            "left": 24,
+            "right": 1576,
+            "top": 110,
+            "bottom": 810
+          },
+          "bounds": {
+            "left": 753.7975664972374,
+            "right": 846.2024335027627,
+            "top": 424.7100624400103,
+            "bottom": 495.28993755998675
+          },
+          "zoom": 2.2,
+          "height": 0.18974577449262142,
+          "fits": true
+        },
+        {
+          "name": "bridge-stone",
+          "safe": {
+            "left": 24,
+            "right": 1576,
+            "top": 110,
+            "bottom": 810
+          },
+          "bounds": {
+            "left": 708.0957929607846,
+            "right": 891.9042070392155,
+            "top": 375.65681518464874,
+            "bottom": 544.3431848153514
+          },
+          "zoom": 2.2,
+          "height": 0.9495375156402588,
+          "fits": true
+        }
+      ],
+      "ok": true,
+      "proofStatus": "automated-load-and-placement-pass-needs-visual-review"
+    }
+  ],
+  "realTiles": {
+    "vegetation": {
+      "conifer": {
+        "tile": 1374,
+        "terrain": "forest",
+        "forestSectors": 6,
+        "score": 220,
+        "climate": "Dwc",
+        "kit": "conifer",
+        "forestCells": 2556
+      },
+      "tropical": {
+        "tile": 7670,
+        "terrain": "forest",
+        "forestSectors": 6,
+        "score": 220,
+        "climate": "Aw",
+        "kit": "tropical",
+        "forestCells": 2280
+      },
+      "cold": {
+        "tile": 23653,
+        "terrain": "arctic",
+        "forestSectors": 4,
+        "score": 78,
+        "climate": "ET",
+        "kit": "cold",
+        "forestCells": 1005
+      }
+    },
+    "vegetationSearch": {
+      "conifer": {
+        "candidates": 3498,
+        "checked": 1,
+        "zeroForestRejected": 0
+      },
+      "tropical": {
+        "candidates": 5627,
+        "checked": 1,
+        "zeroForestRejected": 0
+      },
+      "cold": {
+        "candidates": 4558,
+        "checked": 1,
+        "zeroForestRejected": 0
+      }
+    },
+    "river": {
+      "tile": 29,
+      "crossings": {
+        "fords": 170,
+        "banks": 557,
+        "bridges": 3
+      }
+    }
+  },
+  "finishedAt": "2026-10-08T08:51:42.103Z"
+}
