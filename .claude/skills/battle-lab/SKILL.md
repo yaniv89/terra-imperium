@@ -126,6 +126,10 @@ pure speed change should leave every world hash unchanged (compare `runHeadless(
 - Integer Q8 fixed point (1 tile = 256), integer ticks, `nextRandom(w)` only. Replays and the
   replay-verification tests (replay.test.js) must stay exact. Round damage immediately.
 - Anything outside the sim influences it only through orders.
+- A new player order needs its row in `src/battle/sim/orderSchema.js` in the same change: the live
+  loop and the verified replay both admit orders through it (orderSchema.test.js fails otherwise).
+  The campaign verifies a commanded battle on `buildCommandedSetup` (src/engine/battleVerify.js);
+  a rule change that moves hashes bumps `SETUP_VERSION` once.
 - New per-squad fields go in `makeSquad` (world.js); new view fields in view.js.
 - Neighbour queries go through the packed grids (spatial.js, pathing.js `queryRadius`,
   `buildTargetGrid`), never a scan of every squad per squad. `classId`, `commanderId` and `side`
@@ -135,3 +139,10 @@ pure speed change should leave every world hash unchanged (compare `runHeadless(
 - Renderer: every geometry, material and texture goes through `this.track()` so `dispose()`
   frees it; instanced meshes reset `count` every frame; short effects live in `this.fx` with a life.
 - Run `npx vitest run src/battle` and the full suite before committing.
+
+## squadTrace extras (W00)
+`ORDER=attackStructure` sends every fighting squad at one structure (`STRUCT=0` is the keep; `FORT=2`
+gives towers and gates) and prints the tick it falls, what each attacker does then, and a
+`STRUCTURE ... attackersWithoutTarget=N` line: the repro for "idle after the target falls".
+`ECO=1` builds the setup with the battle economy as campaign battles do (`ECO_SUPPLY`, `ECO_DEV`
+0..1); workers are left out of the orders and an `ECO workers=.. buildings=..` line is printed.

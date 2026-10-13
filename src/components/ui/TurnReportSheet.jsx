@@ -17,6 +17,7 @@ import { openPanelTab } from '../panels/panelEvents';
 import { OPEN_TURN_REPORT, setTurnReportShown } from './uiEvents';
 import { turnReportModel } from './turnReportModel';
 import { Button, Chip, Label, SheetHeader } from './atlas';
+import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 
 const DOT = { good: 'bg-fa-good', danger: 'bg-fa-danger', enemy: 'bg-fa-enemy', you: 'bg-fa-you', science: 'bg-[var(--fa-science)]', muted: 'bg-fa-muted' };
 
@@ -56,8 +57,13 @@ const TurnReportSheet = () => {
     setOpen(!!next && !next.quiet && state.gameStatus === GameStatus.ACTIVE);
   }, [state, turnPending]);
 
+  // One entry of the interaction registry (useExclusivePanel.js): an attack to answer, a peace
+  // offer or an event comes first and the report waits as a chip; an army's arrival waits for it.
+  const turn = useInteraction('turn-report', open && !!report, { priority: PRIORITY.report, label: report ? report.title : null, testId: 'turn-report-chip' });
+  const showing = turn.shown;
+
   useEffect(() => {
-    const onOpen = () => { if (report) { setFilter('all'); setOpen(true); } };
+    const onOpen = () => { if (report) { setFilter('all'); setOpen(true); interactions.promote('turn-report'); } };
     window.addEventListener(OPEN_TURN_REPORT, onOpen);
     return () => window.removeEventListener(OPEN_TURN_REPORT, onOpen);
   }, [report]);
@@ -67,16 +73,16 @@ const TurnReportSheet = () => {
 
   // Enter plays the next turn: it closes the report first (End Turn's own Enter must not fire).
   useEffect(() => {
-    if (!open) return undefined;
+    if (!showing) return undefined;
     const onKey = (e) => {
       if (e.key === 'Escape' || (e.key === 'Enter' && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target?.tagName || ''))) { e.preventDefault(); e.stopPropagation(); setOpen(false); }
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [open]);
+  }, [showing]);
 
   const shown = useMemo(() => (report ? report.items.filter((i) => filter === 'all' || i.group === filter) : []), [report, filter]);
-  if (!open || !report) return null;
+  if (!open || !report || !showing) return null;
   const close = () => setOpen(false);
   const go = (place) => {
     close();

@@ -71,6 +71,21 @@ export const getBattlePowers = (state, nationId, ageId, units = [], { allowNucle
 
 export { MISSILE_POWER_TIERS };
 
+/**
+ * The player's land units based at `fromRegionId` that physically reach the city `targetRegionId`
+ * now: they stand on a tile next to its land, or inside the land of `fromRegionId` when the two
+ * lands touch. The one adjacency fact the attack card, the march bar (marchAttack.js attackReach)
+ * and validateInvasion share (playtest audit I063, I064): the base is never a position.
+ */
+export const unitsReaching = (state, fromRegionId, targetRegionId, { ignoreBattleLocks = false } = {}) => {
+  const tiles = getTiles();
+  const tileOwner = state.world?.tileOwner || {};
+  const cityAdjacent = getTouchingIds(fromRegionId).includes(targetRegionId);
+  const reaches = (u) => { const t = unitTile(state, u); return t != null && ((cityAdjacent && tileOwner[t] === fromRegionId) || touchesCity(state, tiles, t, targetRegionId)); };
+  // Troops aboard a ship are not on the land: they land through AMPHIBIOUS_ASSAULT, never here.
+  return Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && u.classId !== 'settler' && !u.embarkedOn && (ignoreBattleLocks || !isUnitInBattle(state, u.id)) && reaches(u));
+};
+
 export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCost = false, ignoreBattleLocks = false } = {}) => {
   const fromRegion = state.regions[fromRegionId];
   const targetRegion = state.regions[targetRegionId];
@@ -81,13 +96,8 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   // Workstream 5 and 13: an army attacks a city from any tile next to its land (armies.js), or from
   // inside a city whose land TOUCHES the target's (registry.js `touching`); the Dawn bridge that
   // linked capitals 12 tiles apart no longer carries an attack: the army walks there first.
-  const tiles = getTiles();
-  const tileOwner = state.world?.tileOwner || {};
   const cityAdjacent = getTouchingIds(fromRegionId).includes(targetRegionId);
-  const reaches = (u) => { const t = unitTile(state, u); return t != null && ((cityAdjacent && tileOwner[t] === fromRegionId) || touchesCity(state, tiles, t, targetRegionId)); };
-  // Troops aboard a ship are not on the land: they land through AMPHIBIOUS_ASSAULT, never here.
-  const stack = Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && u.classId !== 'settler' && !u.embarkedOn && (ignoreBattleLocks || !isUnitInBattle(state, u.id)));
-  const attackerUnits = stack.filter(reaches);
+  const attackerUnits = unitsReaching(state, fromRegionId, targetRegionId, { ignoreBattleLocks });
   if (!cityAdjacent && attackerUnits.length === 0) return { ok: false, reason: 'not_adjacent' };
   // Plan §M13: invasions require an active war with the target's owner, except an independent's
   // city, which anyone may attack without one (hostility.js; `war` is then null: no war score).

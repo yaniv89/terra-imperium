@@ -1001,12 +1001,25 @@ describe('Military tab actions', () => {
       return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
     };
 
-    it('moves the unit to an adjacent, player-owned region, deducts the cost, and spends its move (plan §M14)', () => {
+    // Move now walks the same route a march would, and only when it fits in this turn's movement
+    // (routes.js moveNowCheck): the unit stands one tile from the city it moves into.
+    const beside = (state, cityId) => getTiles().neighbors[state.regions[cityId].tile].find((t) => getTiles().land[t] === 1);
+    it('moves the unit to a player-owned city it can reach this turn, and spends its move (plan §M14)', () => {
+      const s0 = withUnit();
+      const unitId = Object.keys(s0.units)[0];
+      const state = { ...s0, units: { ...s0.units, [unitId]: { ...s0.units[unitId], classId: 'cavalry', tile: beside(s0, FR_NEIGHBOR) } } };
+      const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } });
+      expect(next.units[unitId].regionId).toBe(FR_NEIGHBOR);
+      expect(next.units[unitId].tile).toBe(state.regions[FR_NEIGHBOR].tile);
+      expect(next.units[unitId].movesLeft).toBe(0);
+    });
+
+    it('refuses, with the reason, a city the march would not reach this turn (no jump: playtest audit I065)', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } });
-      expect(next.units[unitId].regionId).toBe(FR_NEIGHBOR);
-      expect(next.units[unitId].movesLeft).toBe(0);
+      expect(next.units).toBe(state.units);
+      expect(next.logs[next.logs.length - 1].message).toMatch(/Too far to move now: the march takes \d+ turns/);
     });
 
     it('is a no-op once the unit has no moves left this turn (plan §M14)', () => {
@@ -1022,13 +1035,18 @@ describe('Military tab actions', () => {
     it('is a no-op moving to an adjacent but foreign-owned region', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
-      expect(gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: BE_REGION } })).toBe(state);
+      const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: BE_REGION } });
+      expect(next.units).toBe(state.units);
+      expect(next.resources).toBe(state.resources);
+      expect(next.logs[next.logs.length - 1].message).toMatch(/city of your own/);
     });
 
-    it('is a no-op moving to a non-adjacent region', () => {
+    it('moves nothing to a far foreign region', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
-      expect(gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: cap('jp') } })).toBe(state);
+      const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: cap('jp') } });
+      expect(next.units).toBe(state.units);
+      expect(next.resources).toBe(state.resources);
     });
 
     it('is a no-op for a unit not owned by the player', () => {

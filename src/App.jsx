@@ -13,7 +13,10 @@ import SettingsSheet from './components/ui/SettingsSheet';
 import TurnReportSheet from './components/ui/TurnReportSheet';
 import NationOverviewSheet from './components/ui/NationOverviewSheet';
 import { OPEN_SETTINGS } from './components/ui/uiEvents';
-import { SELECT_REGION } from './components/map/marchEvents';
+import { SELECT_REGION, openCityOnMap } from './components/map/marchEvents';
+import WaitingChips from './components/ui/WaitingChips';
+import ConfirmDialog from './components/ui/ConfirmDialog';
+import { useAutoDismiss } from './hooks/useAutoDismiss';
 import FirstContactCard from './components/modals/FirstContactCard';
 import { MapContainer } from './components/map';
 import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
@@ -125,9 +128,11 @@ const GameLayout = () => {
     prevAgeRef.current = state.age;
     setAgeBanner(AGES[state.age]?.name || state.age);
     triggerEffect('age_advance', { region: getNationCapital(state.playerNationId) });
-    const timer = setTimeout(() => setAgeBanner(null), AGE_ADVANCE_BANNER_MS);
-    return () => clearTimeout(timer);
   }, [state.age, state.turnNumber, state.playerNationId, triggerEffect]);
+  // Its five seconds run on their own clock: ending the next turn at once no longer cancels the
+  // timer and leaves the banner over the top bar (playtest audit X19, I161). The news itself
+  // stays in the log.
+  useAutoDismiss(ageBanner, () => setAgeBanner(null), AGE_ADVANCE_BANNER_MS);
 
   // Nation Eliminated banner (h2's "small reward for winning the war" popup): resolveTurn.js sets
   // state.playerEliminatedNationId for exactly the one turn a player conquest reduces a rival to
@@ -141,20 +146,25 @@ const GameLayout = () => {
     prevEliminatedIdRef.current = state.playerEliminatedNationId;
     if (!isNewElimination) return;
     setEliminatedNationName(state.nations[state.playerEliminatedNationId]?.name || state.playerEliminatedNationId);
-    const timer = setTimeout(() => setEliminatedNationName(null), AGE_ADVANCE_BANNER_MS);
-    return () => clearTimeout(timer);
   }, [state.playerEliminatedNationId, state.nations]);
+  // The same clock of its own (this effect reruns on every change to the nations).
+  useAutoDismiss(eliminatedNationName, () => setEliminatedNationName(null), AGE_ADVANCE_BANNER_MS);
 
   // Handle game reset. No confirmation needed once the run has already ended (Victory/Defeat) —
   // there's nothing left to lose. Routes back through the start screen so the player can pick a
   // new nation/speed/difficulty rather than silently restarting as whatever they last played.
+  // A game in progress asks first, in the game's own dialog (ConfirmDialog, playtest audit I166).
+  const [confirmNewGame, setConfirmNewGame] = useState(false);
+  const goToStart = useCallback(() => {
+    setConfirmNewGame(false);
+    setShowStartScreen(true);
+    setSelectedRegion(null);
+  }, []);
   const handleReset = useCallback(() => {
-    const alreadyOver = state.gameStatus !== GameStatus.ACTIVE;
-    if (alreadyOver || window.confirm('Reset game? All progress will be lost.')) {
-      setShowStartScreen(true);
-      setSelectedRegion(null);
-    }
-  }, [state.gameStatus]);
+    if (state.gameStatus !== GameStatus.ACTIVE) goToStart();
+    else setConfirmNewGame(true);
+  }, [state.gameStatus, goToStart]);
+  const cancelNewGame = useCallback(() => setConfirmNewGame(false), []);
 
   const handleStart = useCallback((options) => {
     resetGame(options);
@@ -215,7 +225,13 @@ const GameLayout = () => {
 
       {/* "Needs you" chips under the top bar (W02): tap one to jump there. */}
       <div className="fixed z-10 left-[calc(max(env(safe-area-inset-left),0.75rem)+var(--city-rail-w,0px))] top-[calc(var(--header-height,2.25rem)+0.625rem)] pointer-events-none needs-you">
-        {state.gameStatus === GameStatus.ACTIVE && <NextPrompt />}
+        {state.gameStatus === GameStatus.ACTIVE && (
+          <div className="flex flex-col items-start gap-1.5">
+            {/* Decisions that wait behind the one on screen (useExclusivePanel.js), then the chips. */}
+            <WaitingChips />
+            <NextPrompt />
+          </div>
+        )}
       </div>
 
       {/* First contact with a people (W03). */}
@@ -225,7 +241,7 @@ const GameLayout = () => {
       <TurnDock />
 
       {/* Desktop: the city list rail on the left (plans/civ-map-rework.md E2). */}
-      <CityRail onSelectRegion={handleSelectRegion} />
+      <CityRail onSelectRegion={openCityOnMap} />
 
       {/* Empire-management tabs/content: a collapsible right-docked drawer on desktop, a bottom
           tab bar + on-demand sheet on mobile (PanelDrawer.jsx) — floating over the map instead of
@@ -310,6 +326,12 @@ const GameLayout = () => {
       <IndependentsHost />
       {state.pendingBattle && <Suspense fallback={<div className="fixed inset-0 z-[80] bg-slate-950 flex items-center justify-center text-slate-300 text-sm">Preparing the battlefield…</div>}><TacticalBattleHost /></Suspense>}
       <ConflictChooserModal conflict={cloudSync.conflict} onChoose={cloudSync.resolveConflict} />
+
+      {/* New game, asked in the game's own words (playtest audit I166). */}
+      <ConfirmDialog open={confirmNewGame} title="Start a new game?" confirmLabel="New game" cancelLabel="Keep playing" danger onConfirm={goToStart} onCancel={cancelNewGame} testId="new-game-confirm">
+        <p>You go to the start screen to choose a people and a world.</p>
+        <p>Your game as {state.nations[state.playerNationId]?.name || 'your people'} (turn {state.turnNumber}) stays saved on this device until the new game begins; then the new game takes its place. To keep it, export a save in Settings first.</p>
+      </ConfirmDialog>
 
       {/* Onboarding (Phase H) - once ever, per browser, for a genuinely new player. Sits above
           the event modal (z-[70] vs z-50) as a defensive measure, though a fresh game's turn 0

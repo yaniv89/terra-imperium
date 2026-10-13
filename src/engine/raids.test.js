@@ -193,12 +193,13 @@ describe('W2 raids on the map', () => {
     expect(s.nations[raider.id].indep.raid === null || s.nations[raider.id].indep.raid.phase === 'home').toBe(true);
   });
 
-  it('a party fights a weaker army on its road; its losses leave a grudge, a beaten party goes home to recover', () => {
+  it('a party fights a weaker army on its road; its losses leave no grudge against the defender (CB08), a beaten party goes home to recover', () => {
     const { s, raider, me, placed } = blockedRun(2);
     expect(placed).toBe(true);
     expect(s.indepStats.raidBattles).toBeGreaterThan(0);
     const n = s.nations[raider.id];
-    expect(grudgeOf(n, me)).toBeGreaterThan(0);
+    expect(grudgeOf(n, me)).toBe(0);
+    expect((n.indep.grudgeLog?.[me] || []).some((c) => c.id === 'killed')).toBe(false);
     if (n.indep.raid?.lost) expect(n.indep.raid.phase).toBe('home');
   });
 });

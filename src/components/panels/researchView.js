@@ -9,6 +9,7 @@ import { AGES, AGE_ORDER } from '../../data/ages';
 import { calcIncome } from '../../utils/helpers';
 import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS } from '../../engine/research';
 import { getTechDiffusion } from '../../engine/techDiffusion';
+import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
 import { mapEffectLabel } from '../../engine/techMapEffects';
 
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`;
@@ -50,6 +51,7 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
   const rate = science * (state.researchFocus === tech.category ? 1 + FOCUS_SCIENCE_BONUS : 1);
   const remaining = Math.max(0, cost - progress);
   const start = canStartTech(techId, researched, state.year);
+  const gate = techGate(state, techId, researched);
   const diffusion = researched.has(techId) ? null : getTechDiffusion(state, state.playerNationId, techId);
   const boost = researched.has(techId) ? null : boostOf(state, state.playerNationId, techId);
   return {
@@ -59,7 +61,11 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
     cost,
     progress,
     share: cost > 0 ? Math.min(1, progress / cost) : 0,
-    turns: rate > 0 ? Math.max(1, Math.ceil(remaining / rate)) : Infinity,
+    // turns of science alone; a date gate is `gate` and `turns` is the later of the two
+    scienceTurns: rate > 0 ? Math.max(1, Math.ceil(remaining / rate)) : Infinity,
+    turns: Math.max(rate > 0 ? Math.max(1, Math.ceil(remaining / rate)) : Infinity, gate ? gate.turns : 0),
+    gate,
+    gateText: gateText(gate),
     researched: researched.has(techId),
     current: research.current === techId,
     queuedAt: (research.queue || []).indexOf(techId),
@@ -69,24 +75,20 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
   };
 };
 
-// The current tech and the queue, each with the turn it would finish (cumulative).
+// The current tech and the queue, each with the turn it would finish (cumulative, and never before
+// its date: researchStatus.js researchSchedule). `status` is the one research status every surface reads.
 export const getResearchView = (state) => {
   const science = getSciencePerTurn(state);
   const research = state.research || {};
   const order = [research.current, ...(research.queue || [])].filter(Boolean);
-  let turnsSoFar = 0; let carry = state.resources?.techPoints || 0;
-  const items = order.map((id) => {
-    const info = techInfo(state, id, science);
-    const remaining = Math.max(0, info.cost - info.progress - carry);
-    carry = Math.max(0, carry - (info.cost - info.progress));
-    const turns = remaining <= 0 ? 0 : science > 0 ? Math.ceil(remaining / science) : Infinity;
-    turnsSoFar += turns;
-    return { ...info, finishesIn: Math.max(1, turnsSoFar) };
-  });
-  return { science, bank: Math.round(state.resources?.techPoints || 0), current: items[0] || null, queue: items.slice(1), auto: !!research.auto };
+  const schedule = researchSchedule(state, order, science);
+  const items = order.map((id, i) => ({ ...techInfo(state, id, science), finishesIn: schedule[i].finishesIn, waitsOnGate: schedule[i].waitsOnGate }));
+  return { science, bank: Math.round(state.resources?.techPoints || 0), current: items[0] || null, queue: items.slice(1), auto: !!research.auto, status: researchStatus(state, { science }) };
 };
 
 export const formatTurns = (n) => (n === Infinity ? 'no science' : `${n} turn${n === 1 ? '' : 's'}`);
+/** The honest time for one research item: "waits for 500 CE, about 12 turns" when a date holds it back. */
+export const formatEta = (item) => (item?.gate ? gateText(item.gate) : formatTurns(item?.finishesIn ?? item?.turns));
 
 // The research web (plan C3.1): one column per step of a line (two per age), one row per line,
 // every prerequisite an edge. Pure; TechPanel draws it as an SVG.

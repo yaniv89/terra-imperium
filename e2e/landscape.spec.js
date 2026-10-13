@@ -86,6 +86,47 @@ test.describe('phone held sideways', () => {
   });
 });
 
+// Playtest audit X16 to X18 (lane L4): with Safari's bars a landscape phone is 844x340. End Turn
+// stays where it is when a dock opens, and a decision card is never squeezed beside the dock.
+test.describe('phone held sideways with Safari bars', () => {
+  test.use({ viewport: { width: 844, height: 340 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('End Turn does not move with the dock, and a card takes the dock\'s place', async ({ page }) => {
+    test.setTimeout(120000);
+    await page.addInitScript(() => { window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; });
+    await page.goto('/');
+    await startGame(page);
+    expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-landscape');
+    const rail = page.getByTestId('landscape-rail');
+    const endTurn = page.getByTestId('end-turn');
+    await expect(endTurn).toBeVisible();
+    const before = await box(endTurn);
+
+    // The wide Peoples dock (600 px): End Turn keeps its box and stays on screen.
+    await click(rail.getByRole('button', { name: 'Peoples' }));
+    const dock = page.getByTestId('landscape-dock');
+    await expect(dock).toBeVisible();
+    const withDock = await box(endTurn);
+    expect(withDock.left).toBe(before.left);
+    expect(withDock.top).toBe(before.top);
+    expect(withDock.left).toBeGreaterThanOrEqual(0);
+    expect(withDock.bottom).toBeLessThanOrEqual(340);
+
+    // The research choice is a card: asked for from End Turn it takes the dock's place at a
+    // readable width, and the dock comes back when it is answered.
+    await click(endTurn);
+    const research = page.getByTestId('research-choice');
+    if (await research.isVisible().catch(() => false)) {
+      await expect(dock).toHaveCount(0);
+      expect((await box(research.locator('.sheet-panel'))).width).toBeGreaterThanOrEqual(300);
+      await click(page.getByTestId('research-let-advisor'));
+      await expect(research).toHaveCount(0);
+      await expect(dock).toBeVisible();
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(844);
+  });
+});
+
 test.describe('phone held upright', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 

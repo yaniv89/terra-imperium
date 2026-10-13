@@ -72,6 +72,7 @@ export const researchSheetModel = (state) => {
     science: view.science,
     bank: view.bank,
     auto: view.auto,
+    status: view.status,
     current,
     queue: view.queue,
     header: { ageName: AGES[techAge]?.name || techAge, known: here.known, total: here.total },

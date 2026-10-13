@@ -19,7 +19,7 @@ import { AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
-import { useExclusivePanel } from '../../hooks/useExclusivePanel';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { loyaltyOf, loyaltyTarget } from '../../engine/loyalty';
@@ -70,8 +70,12 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
   const isShown = open && !!regionId;
   useReportInset('province-panel', isMobile ? 'bottom' : 'left', sheetRef, isShown);
   const [peeking, cancelPeek] = useAutoPeek(isShown && isMobile);
-  // Opening the tab panel beside it closes this one when both wouldn't leave room for the map.
-  useExclusivePanel('province', isShown && !isMobile, (tucked) => { if (tucked) onClose(); });
+  // Opening the tab panel beside it, or a decision card that arrives, closes this one when both
+  // would not leave room for the map (the interaction registry, useExclusivePanel.js). It does not
+  // come back by itself: one close returns to the map (playtest audit I155).
+  const panel = useInteraction('province', isShown && !isMobile, { kind: 'panel', priority: PRIORITY.panel, user: true });
+  const tuckedAway = isShown && !isMobile && !panel.shown;
+  useEffect(() => { if (tuckedAway) onClose(); }, [tuckedAway]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new city opens on its overview, unless End Turn asked for a tab (marchEvents.js manageCity).
   useEffect(() => { setTab(tabRequest?.regionId === regionId ? tabRequest.tab : 'overview'); }, [regionId, tabRequest]);

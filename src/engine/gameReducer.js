@@ -1,4 +1,4 @@
-import { orderMarch, cancelRoute, placeName } from './routes';
+import { orderMarch, cancelRoute, placeName, moveNowCheck, released, MARCH_ATTRITION } from './routes';
 import { orderMarchAttack } from './marchAttack';
 import { normalizeUnitTiles, regionForTile, tileAccess, passableTile, unitTile } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
@@ -48,6 +48,7 @@ import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { canAttack } from './hostility';
+import { setHold, setSiege } from './standingOrders';
 import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { addGrudge } from './grudges';
 import { hireMercenaryForPlayer } from './mercenaries';
@@ -89,12 +90,12 @@ import {
   VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV,
   ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
-import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { resolveAutoBattle } from './autoBattle';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
 import { cityMilitia, reinforcementSources } from './battleInputs';
 import { battleQueueBlocked, queuedKind, queuedArmies, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
 import { replayBattle } from '../battle/sim/replay';
+import { verifyCommandedBattle, fieldedUnitIds } from './battleVerify';
 
 // Re-exported so the edge-function bundle (scripts/build-edge-engine.mjs) can verify a battle log
 // on its own, too.
@@ -573,13 +574,26 @@ const MANIFEST_ID = /^[a-z][a-z0-9_-]{0,47}$/;
 const cleanIds = (list) => (Array.isArray(list) ? [...new Set(list.filter((id) => typeof id === 'string' && MANIFEST_ID.test(id)))].slice(0, 600) : []);
 
 const DISPOSITIONS = ['dead', 'fled', 'field', 'reserve'];
-export const sanitizeTacticalResult = (state, pb, result) => {
+// The ledger invariant (playtest audit X04, the ghost cavalry): `fielded` is [attacker ids, defender
+// ids] of the units that took the field (battleVerify.js fieldedUnitIds, from the battle's setup).
+// Every one of them is in an honest result. One that is missing is NOT handed back at full strength
+// (it used to be: a regiment the battle lost could stand whole on the map): it counts as lost in
+// the battle and is listed in `report.tactical.missingUnitIds`, so the breach is on the record.
+// Without `fielded` (no setup could be built) a missing unit is left as it was, as before.
+export const sanitizeTacticalResult = (state, pb, result, { fielded = null } = {}) => {
   const OUTCOMES = ['attacker', 'defender', 'stalemate'];
+  const tookField = new Set(Array.isArray(fielded) ? fielded.flat() : []);
+  const missingUnitIds = [];
   // Synthetic expeditionary troops (defense battles) live on the battle record, not in state.units.
   const clampUnits = (ids, reported) => ids.map((id) => {
     const real = state.units[id] || (pb.synthetic || []).find((u) => u.id === id) || (pb.militia || []).find((u) => u.id === id);
     if (!real) return null;
-    const r = (reported || []).find((u) => u && u.id === id) || {};
+    const found = (reported || []).find((u) => u && u.id === id);
+    if (!found && tookField.has(id)) {
+      missingUnitIds.push(id);
+      return { ...real, strength: 0, morale: 0, routed: false, disposition: 'dead' };
+    }
+    const r = found || {};
     const strength = Number.isFinite(r.strength) ? Math.max(0, Math.min(real.strength, Math.round(r.strength))) : real.strength;
     const morale = Number.isFinite(r.morale) ? Math.max(0, Math.min(100, Math.round(r.morale))) : real.morale;
     const disposition = DISPOSITIONS.includes(r.disposition) ? (strength <= 0 ? 'dead' : r.disposition === 'dead' ? 'field' : r.disposition) : undefined;
@@ -611,6 +625,7 @@ export const sanitizeTacticalResult = (state, pb, result) => {
       tactical: {
         ...(report.tactical || {}),
         decisive: !!report.tactical?.decisive,
+        missingUnitIds,
         xpBonusById: bonus,
         powersUsed: sanitizePowersUsed(report.tactical?.powersUsed),
         // Generals on the field (row 5): only commanders of the battle's own units.
@@ -1365,7 +1380,12 @@ const reduceAction = (state, action) => {
       if ((unit.movesLeft ?? 1) <= 0) return state;
       const isLandAdjacent = getNeighborIds(unit.regionId).includes(toRegionId);
       const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, state.age);
-      if (!isLandAdjacent && !isSeaLaneReachable) return state;
+      // A land unit moves now only where its march would arrive this turn (routes.js moveNowCheck,
+      // the same route and schedule as the preview): never a jump over a march of several turns
+      // (playtest audit I065). Fleets keep the sea-lane rule.
+      const walk = unit.domain === 'naval' ? null : moveNowCheck(state, unit, toRegionId);
+      if (walk && !walk.ok) return reject(state, walk.reason);
+      if (!walk && !isLandAdjacent && !isSeaLaneReachable) return state;
       // MOVE_ARMY is redeployment within your own territory, not an invasion — it has no war
       // declaration, no combat resolution, and no AP/gold cost beyond the ordinary move, so it must
       // never be able to walk a unit straight into someone else's region. Entering foreign
@@ -1374,7 +1394,11 @@ const reduceAction = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
       // A manual move replaces any march order and counts as marching this turn (routes.js costs).
       const toTile = state.regions[toRegionId]?.tile ?? null;
-      const nextUnits = { ...state.units, [unitId]: { ...cancelRoute(unit), regionId: toRegionId, tile: toTile, movesLeft: (unit.movesLeft ?? 1) - 1, ...(unit.domain === 'naval' ? {} : { marchedTurn: state.turnNumber }) } };
+      // Harsh ground on the way costs what a march pays (routes.js MARCH_ATTRITION per step).
+      let walkedStrength = unit.strength;
+      for (let i = 0; i < (walk?.harshSteps || 0); i++) walkedStrength = Math.max(1, Math.round(walkedStrength * (1 - MARCH_ATTRITION)));
+      const walked = walk?.harshSteps ? { strength: walkedStrength } : {};
+      const nextUnits = { ...state.units, [unitId]: { ...released(cancelRoute(unit)), ...walked, regionId: toRegionId, tile: toTile, movesLeft: (unit.movesLeft ?? 1) - 1, ...(unit.domain === 'naval' ? {} : { marchedTurn: state.turnNumber, movedNowTurn: state.turnNumber }) } };
       // A transport takes its embarked cargo along with it.
       Object.values(state.units).forEach(u => {
         if (u.embarkedOn === unitId) nextUnits[u.id] = { ...u, regionId: toRegionId, tile: toTile };
@@ -1596,19 +1620,17 @@ const reduceAction = (state, action) => {
 
     case ActionTypes.RESOLVE_TACTICAL_BATTLE: {
       const pb = state.pendingBattle;
-      const { battleId, log } = action.payload || {};
+      const { battleId } = action.payload || {};
       if (!pb || pb.id !== battleId) return state;
       // With the command log, the battle is re-simulated here from the authoritative game state
-      // (src/battle/sim/replay.js), and the client's reported result is ignored. This is what the
-      // edge function runs too. Without a log (older clients) the reported result is sanitized.
-      let result = action.payload.result;
-      if (Array.isArray(log)) {
-        const setup = buildInvasionSetup(state, pb);
-        if (setup) {
-          const replay = replayBattle(setup, log);
-          result = { ...replay.result, report: { ...replay.result.report, tactical: { ...replay.result.report?.tactical, verified: true, hash: replay.hash } } };
-        }
-      }
+      // (battleVerify.js: THE commanded setup the screen fought, the log through the live battle's
+      // own order schema), and the client's reported result is ignored. This is what the edge
+      // function runs too. Without a log, or with a log of another setup version, the reported
+      // result is sanitized; the report keeps how the battle was checked (tactical.verification).
+      const checked = verifyCommandedBattle(state, pb, action.payload);
+      const result = checked.result;
+      // The units that took the field: one missing from the result is lost, never handed back whole.
+      const ledger = { fielded: checked.setup ? fieldedUnitIds(checked.setup) : null };
       const targetRegion = state.regions[pb.targetRegionId];
       // If peace was signed while the battle was being fought, the battle has no consequences.
       const war = state.wars.find((w) => w.id === pb.warId && w.active);
@@ -1622,7 +1644,7 @@ const reduceAction = (state, action) => {
       if (pb.defenseId && (pb.kind === 'intercept' || (pb.kind === 'amphibious' && pb.playerSide === 'defender'))) {
         const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
         if (!def) return cleared;
-        const safe = sanitizeTacticalResult(state, pb, result);
+        const safe = sanitizeTacticalResult(state, pb, result, ledger);
         const opts = { mode: 'command', decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById };
         return pb.kind === 'intercept' ? resolveInterceptQueued(cleared, def, safe, opts) : resolveLandingQueued(cleared, def, safe, opts);
       }
@@ -1630,7 +1652,7 @@ const reduceAction = (state, action) => {
       if (pb.defenseId && isRaidKind(pb.kind)) {
         const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
         if (!def) return cleared;
-        const safe = sanitizeTacticalResult(state, pb, result);
+        const safe = sanitizeTacticalResult(state, pb, result, ledger);
         return resolveRaidBattle(cleared, def, safe, { mode: 'command', xpBonusById: safe.report.tactical.xpBonusById });
       }
       const aiStarted = !!pb.defenseId && (pb.kind === 'field' || pb.kind === 'naval');
@@ -1639,26 +1661,26 @@ const reduceAction = (state, action) => {
       if (pb.kind === 'naval') {
         const nv = validateFleetAttack(gateState, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!nv.ok || (pb.warId && !war)) return cleared;
-        const safe = sanitizeTacticalResult(state, pb, result);
+        const safe = sanitizeTacticalResult(state, pb, result, ledger);
         const vv = { ...nv, attackerUnits: nv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: nv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)), war };
         return applyFleetResult(cleared, vv, safe, sideOpts);
       }
       if (pb.kind === 'field') {
         const fv = validateFieldAttack(gateState, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!fv.ok || (pb.warId && !war)) return cleared;
-        const safe = sanitizeTacticalResult(state, pb, result);
+        const safe = sanitizeTacticalResult(state, pb, result, ledger);
         const vv = { ...fv, attackerUnits: fv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: fv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)), war };
         return applyFieldResult(cleared, vv, safe, { ...sideOpts, xpBonusById: safe.report.tactical.xpBonusById });
       }
       if (pb.kind === 'defense') {
         const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
         if (!def) return cleared;
-        const safe = sanitizeTacticalResult(state, pb, result);
+        const safe = sanitizeTacticalResult(state, pb, result, ledger);
         return applyDefenseResult(cleared, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById, mode: 'command', militia: pb.militia || [] });
       }
       // An assault on an independent has no war (hostility.js): it stands while the target may still be attacked.
       if (!targetRegion || (pb.warId ? !war : !canAttack(state, pb.attackerNationId || state.playerNationId, targetRegion.owner))) return cleared;
-      const safe = sanitizeTacticalResult(state, pb, result);
+      const safe = sanitizeTacticalResult(state, pb, result, ledger);
       const cityOpts = { ...opts, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById, militia: pb.militia || [] };
       if (pb.kind === 'amphibious') {
         return applyAmphibiousLanding(cleared, { navalUnitId: pb.navalUnitId, fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion, isDefended: pb.defenderUnitIds.length > 0 }, safe, cityOpts);
@@ -3075,6 +3097,32 @@ const reduceAction = (state, action) => {
       // An AI's tribute demand (aiAccords.js): pay it or refuse and hand them a casus belli.
       const r = answerDemand(state, !!action.payload?.accept);
       return r.message ? { ...r.state, logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] } : r.state;
+    }
+
+    case ActionTypes.SET_HOLD: {
+      // Hold (standingOrders.js): the units stay put and leave the idle list until told otherwise.
+      const { unitIds = [], hold = true } = action.payload || {};
+      const units = setHold(state, unitIds, hold);
+      return units ? { ...state, units } : state;
+    }
+
+    case ActionTypes.SET_SIEGE: {
+      // Lay siege to an independent's city, or lift it (`cityId` null): the explicit siege order
+      // (sieges.js besiegesCity). A city at war with you is besieged by standing beside it.
+      const { unitIds = [], cityId = null } = action.payload || {};
+      if (cityId != null) {
+        const city = state.regions[cityId];
+        if (!city || city.owner === state.playerNationId) return reject(state, 'That city cannot be besieged.');
+        if (!canAttack(state, state.playerNationId, city.owner)) return reject(state, `You are at peace with ${state.nations[city.owner]?.name || 'its owner'}: no siege without a war.`);
+        const tiles = getTiles();
+        const beside = unitIds.filter((id) => { const u = state.units[id]; const t = u ? unitTile(state, u) : null; return t != null && tiles.neighbors[city.tile].includes(t); });
+        if (!beside.length) return reject(state, `A siege needs an army on a tile beside ${city.name}.`);
+        const units = setSiege(state, beside, cityId);
+        if (!units) return state;
+        return { ...state, units, logs: [...state.logs, { year: state.year, message: `Your army lays siege to ${city.name}.`, type: LogTypes.COMBAT }] };
+      }
+      const units = setSiege(state, unitIds, null);
+      return units ? { ...state, units, logs: [...state.logs, { year: state.year, message: 'Your army lifts its siege.', type: LogTypes.COMBAT }] } : state;
     }
 
     default:

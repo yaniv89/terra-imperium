@@ -16,11 +16,13 @@
 //                  through conquest.js at once; a player city falls through a last-stand assault
 //                  (defense.js, the pending defence of the turn), so the player may still fight
 // Assaults stay the attack card (invasion.js). Rebels besiege too.
+//   intent         an army beside an enemy city at war besieges it; beside an independent's city
+//                  only under an order (besiegesCity below: Lay siege, or an AI campaign)
 // Ripples: a siege feeds war score through the capture, the supply meter (besiegers sit in enemy
 // land), the city's yields and growth, and the AI's "threatened city" objective (aiOperations).
 import { getTiles } from '../data/geo/tiles';
 import { REBEL_OWNER_ID } from '../data/rebellion';
-import { canAttack } from './hostility';
+import { canAttack, isIndependentId } from './hostility';
 import { getResearched } from './nationState';
 import { unitTile } from './armies';
 import { isBlockaded, isFleet, portWaters } from './fleets';
@@ -46,9 +48,59 @@ export const wallsOf = (city) => Math.min(MAX_WALLS, (city.buildings?.categories
 export const siegeMaxHp = (city, greatProjects = null) => Math.round(SIEGE_HP_BASE * (1 + wallsOf(city)) * (1 + (city.size || 1) / 10) * (1 + cityWonderTotal(greatProjects, city.id, 'local.wallHp')));
 export const siegeHpOf = (city, greatProjects = null) => (city.siege ? city.siege.hp : siegeMaxHp(city, greatProjects));
 
-// Who besieges a city: anyone who may attack its owner (hostility.js: at war, rebels, or anyone
-// against an independent; a passive independent never besieges).
-const besieges = (state, ownerId, cityOwnerId) => canAttack(state, ownerId, cityOwnerId);
+/**
+ * Does this unit, standing beside the city, besiege it? Hostile intent is explicit (playtest
+ * audit I130: an army parked next to an independent's city began a siege on its own, and calling
+ * off an assault left one running):
+ *   at war       a declared war is the intent: an enemy army beside the city besieges it (the AI's
+ *                fronts and the "threatened city" objective rely on it); rebels likewise
+ *   independent  an independent's city may be attacked without a war (hostility.js), so standing
+ *                beside it means nothing. It is besieged only under an order: the player's
+ *                Lay siege (`unit.siegeOf` = the city id, gameReducer SET_SIEGE, shown on the army
+ *                sheet until lifted or the army is told to move), or an AI campaign's siege force
+ *                (`unit.indepOp` = the city id, indepPolicy.js)
+ * A passive independent never besieges (canAttack).
+ */
+export const besiegesCity = (state, unit, city) => {
+  if (!city || unit.ownerId === city.owner || !canAttack(state, unit.ownerId, city.owner)) return false;
+  if (!isIndependentId(state, city.owner)) return true;
+  return unit.siegeOf === city.id || unit.indepOp === city.id;
+};
+
+/** City centres by tile: Map tile -> city id (for besiegedCityOf over many units). */
+export const centreIndex = (state) => {
+  const map = new Map();
+  Object.values(state.regions || {}).forEach((c) => { if (c.tile != null && c.owner) map.set(c.tile, c.id); });
+  return map;
+};
+
+/** The city this land unit besieges from the tile it stands on (ring 1 of the centre), or null. */
+export const besiegedCityOf = (state, unit, centres = centreIndex(state)) => {
+  if (unit.domain === 'naval' || unit.embarkedOn || isSettler(unit) || !(unit.strength > 0)) return null;
+  const t = unitTile(state, unit);
+  if (t == null) return null;
+  for (const n of getTiles().neighbors[t]) {
+    const id = centres.get(n);
+    if (id != null && besiegesCity(state, unit, state.regions[id])) return id;
+  }
+  return null;
+};
+
+/**
+ * The independent cities the stack on `tile` could lay siege to, or already does (the army
+ * sheet's Lay siege / Lift the siege): [{ regionId, name, on }]. Cities at war with the player
+ * are besieged without an order and are not listed.
+ */
+export const siegeOrders = (state, tile, units, nationId = state.playerNationId) => {
+  const out = [];
+  getTiles().neighbors[tile].forEach((n) => {
+    const id = state.world?.tileOwner?.[n];
+    const city = id != null ? state.regions[id] : null;
+    if (!city || city.tile !== n || city.owner === nationId || !isIndependentId(state, city.owner) || !canAttack(state, nationId, city.owner)) return;
+    out.push({ regionId: id, name: city.name, on: units.length > 0 && units.every((u) => u.siegeOf === id) });
+  });
+  return out.sort((a, b) => (a.regionId < b.regionId ? -1 : 1));
+};
 
 /** Land units (no cargo, no settlers, alive) by the tile they stand on: Map tile -> units. Built
  * once per turn and shared by the siege and loyalty phases. */
@@ -69,7 +121,7 @@ export const besiegersOf = (state, city, units = state.units, byTile = null) => 
   const index = byTile || landUnitsByTile(state, units);
   const byNation = new Map();
   tiles.neighbors[city.tile].forEach((t) => (index.get(t) || []).forEach((u) => {
-    if (u.ownerId === city.owner || !besieges(state, u.ownerId, city.owner)) return;
+    if (!besiegesCity(state, u, city)) return;
     if (!byNation.has(u.ownerId)) byNation.set(u.ownerId, []);
     byNation.get(u.ownerId).push(u);
   }));

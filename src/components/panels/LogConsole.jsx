@@ -1,7 +1,8 @@
 // src/components/panels/LogConsole.jsx
 // Scrollable game log console showing all events, actions, and combat
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
+import { summarizeLogs } from '../../engine/logSummary';
 import { ScrollText, Filter } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { LogTypes } from '../../data/types';
@@ -62,6 +63,10 @@ const LOG_STYLES = {
 // Individual log entry component
 const LogEntry = ({ log, showYear = true }) => {
   const style = LOG_STYLES[log.type] || LOG_STYLES[LogTypes.ACTION];
+  // A recurring line the summarizer folded (src/engine/logSummary.js): one line with a count; the
+  // original lines open under it.
+  const [open, setOpen] = useState(false);
+  const folded = log.count > 1 && Array.isArray(log.details);
 
   return (
     <div 
@@ -80,6 +85,23 @@ const LogEntry = ({ log, showYear = true }) => {
       )}
       {/* FIX: added break-words to prevent horizontal scrolling breaking layout */}
       <span className="text-[11px] break-words">{log.message}</span>
+      {folded && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="ml-2 text-[9px] text-fa-you underline"
+        >
+          {open ? 'Hide' : `Show all ${log.count}`}
+        </button>
+      )}
+      {folded && open && (
+        <div className="mt-1 ml-3 space-y-0.5 text-fa-muted">
+          {log.details.map((d, i) => (
+            <div key={i} className="text-[10px] break-words"><span className="font-mono mr-1">[{d.year}]</span>{d.message}</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -150,7 +172,7 @@ const LogConsole = () => {
   };
 
   // Filter logs
-  const filteredLogs = state.logs.filter(log => filters[log.type] !== false);
+  const filteredLogs = useMemo(() => summarizeLogs(state.logs.filter(log => filters[log.type] !== false)), [state.logs, filters]);
 
   // Count logs by type
   const logCounts = state.logs.reduce((acc, log) => {
@@ -197,7 +219,7 @@ const LogConsole = () => {
       </div>
 
       {/* Filters Row */}
-      <div className="px-2 py-1.5 border-b border-fa-line/50 flex flex-wrap gap-1 shrink-0 bg-fa-panel/50">
+      <div className="px-2 py-1.5 border-b border-fa-line/50 flex flex-wrap gap-1 shrink-0 bg-fa-panel/50 pl:flex-nowrap pl:overflow-x-auto scrollbar-none">
         <Filter className="w-3 h-3 text-fa-muted mr-1 mt-0.5" />
         {Object.entries(LOG_STYLES).map(([type, style]) => (
           <FilterButton
@@ -259,7 +281,7 @@ const LogConsole = () => {
 
       {/* Footer with turn info */}
       <div className="px-2 py-1 border-t border-fa-line text-[9px] text-fa-muted
-                      flex justify-between items-center shrink-0 bg-fa-panel/50">
+                      flex justify-between items-center shrink-0 bg-fa-panel/50 pl:hidden">
         <span>Turn {state.turnNumber} • Year {state.year}</span>
         <span className="flex items-center gap-2">
           {AGES[state.age]?.name || state.age}
