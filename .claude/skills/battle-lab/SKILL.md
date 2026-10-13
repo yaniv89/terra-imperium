@@ -115,8 +115,11 @@ networks, then open `<Network URL>?battleSandbox&bench=300&autostart&perf` on th
 Renderer rules: soldiers draw through soldierLod.js (full, then meshoptimizer edge collapse to about
 550 and 220 triangles within 1.5% and 3% error, thin shafts locked; one level a frame by size on screen
 within BATTLE_GRAPHICS.figureTriangles; never vertex clustering, which left only team cloth as blue
-arrows); GLB people and mounts are drawn at the art set's own scale (unitModels.js ART_UNIT_WORLD,
-unitScale.test.js checks man, horse and rider heights); only squads in view are written;
+arrows); GLB people, mounts and land machines are drawn at the art set's own scale (unitModels.js
+ART_UNIT_WORLD, unitScale.test.js checks man, horse and rider heights, and for every machine file
+that its crew is the infantryman's size and the machine about two thirds of its real size, camels
+and elephants their true size with riders the infantryman's size; a machine's JSON `footprint`
+sets the squad's spacing and how many are drawn, `machineLayout`); only squads in view are written;
 figures per squad shrink past 80 squads a side (capacity.js figureScale); props are instanced per
 48-tile chunk so three culls them; worker frames are packed (packedView.js, keep it equal to view.js).
 Any change to the sim must keep `kernel.test.js` (grids equal the full scan, hash chain) green; a

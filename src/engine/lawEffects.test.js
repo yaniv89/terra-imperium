@@ -16,10 +16,14 @@ describe('law effects shown to the player', () => {
     expect(text).toContain('war exhaustion rises 20% slower');
   });
 
-  // The hand-written descriptions in src/data/laws.js must match the data the engine applies.
-  // KNOWN: private_property and collectivization call a gold multiplier "production" (reported to
-  // the user; the card shows the data-derived wording instead). A new drift fails this test.
-  it('flags exactly the known description drift', () => {
-    expect(checkLawText().map((p) => p.lawId).sort()).toEqual(['collectivization', 'private_property']);
+  // The hand-written descriptions in src/data/laws.js must agree with the data the engine applies
+  // (private_property and collectivization used to say "production" for a gold multiplier).
+  it('every written description agrees with the data', () => {
+    expect(checkLawText()).toEqual([]);
+    const all = Object.values(LAW_CATEGORIES).flat();
+    all.filter((l) => l.effects?.goldMult).forEach((l) => expect(l.description, l.id).not.toMatch(/production/i));
+    const byId = Object.fromEntries(all.map((l) => [l.id, l]));
+    expect(byId.private_property.description).toContain('+15% gold income');
+    expect(byId.collectivization.description).toContain('+25% gold income');
   });
 });

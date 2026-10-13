@@ -71,7 +71,7 @@ import {
   ECONOMIC_COLLAPSE_STABILITY_PENALTY,
   POWER_POOL_CAP
 } from '../data/actionCosts';
-import { processReignEnd, getAdvisorSalary } from './rulers';
+import { processReignEnd, getAdvisorSalary, successionLine } from './rulers';
 import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX } from './nationalPower';
 import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
@@ -723,7 +723,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const sameDynastyStreak = ruler.dynasty === nation.ruler?.dynasty ? (nation.sameDynastyStreak || 0) + 1 : 1;
     nations[nId] = { ...nation, ruler, sameDynastyStreak };
     if (nId === state.playerNationId) {
-      logs.push({ year: newYear, message: `${ruler.name} of House ${ruler.dynasty} now rules.`, type: LogTypes.MILESTONE });
+      logs.push({ year: newYear, message: successionLine(nation.ruler, ruler), type: LogTypes.MILESTONE });
     }
   });
   mark('rulers');

@@ -317,8 +317,7 @@ def build(model):
     else:
         spec = ELEPHANTS[model]; parts = build_elephant(model, spec); rig = 'elephant'; role = 'cavalry'; budget = lib.MOUNTED_BUDGET
     bpy.context.view_layer.update()
-    if rig == 'elephant':
-        height = round(cs.measured_height() * cs.MOUNTED_SCALE * cs.ELEPHANT_DRAWN, 3)
+    # (no fitted height for the elephants since MD09: drawn at the people's scale, the beast true size)
     lib.finish(model, parts, spec['colors'], {'name': spec['name'], 'role': role, 'rig': rig, 'look': spec['look'], **({'height': height} if height else {})}, budget, True)
     if height:
         path = u.out_dir(model) / f'{model}.json'

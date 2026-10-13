@@ -123,10 +123,41 @@ export const needsUnitModels = (setup, extras = battleExtraModels) => battleMode
 // that scale (ART_UNIT_WORLD tiles per unit, after the renderer's MODEL_SCALE for its class), so a
 // man stands shoulder-high to a horse's back in every age. Fitting each model to the procedural
 // model's height instead (which counts a pike, a lance or a banner) blew the Kingdoms spearman up
-// to twice a horseman's size. Machines (siege, air, naval) and files whose JSON gives a `height`
-// keep that fit: their layouts are spaced for it.
+// to twice a horseman's size. Only aircraft and ships (air, naval) and files whose JSON gives a
+// `height` keep that fit.
+// Machines on land are drawn at the same scale as the men beside them (MD09, MD10: only machines
+// get bigger, never their crews): a siege engine, a gun, a tank or a truck is authored in Blender
+// at about two thirds of its real size against a 1.8 m person (the user's cap: big enough to read
+// as a machine beside its crew, small enough for the ground between squads), its crew at 1.0 like
+// every soldier, and the whole file is drawn at ART_UNIT_WORLD. Fitting such a file to a height
+// shrank the crew with the machine (the ballista and cannon crews stood half as tall as the
+// infantry). Its JSON carries `footprint`: [width, length] in authored units, crew included, which
+// machineLayout turns into the squad's spacing and how many machines the squad draws.
+// Camels and elephants the same way: no fitted height, the animal at its true size (a dromedary
+// about 1.9 m at the hump, a war elephant about 2.8 m at the shoulder), its riders at 1.0.
 export const ART_UNIT_WORLD = 0.95;
-const FIT_TO_HEIGHT = new Set(['siege', 'air', 'naval']);
+const FIT_TO_HEIGHT = new Set(['air', 'naval']);
+/** The ground a squad's drawn block of machines may cover (tiles). The sim deploys squads 3 tiles
+ * apart along a line and the two lines 4 tiles apart (sim/world.js spawnSides), so a block wider
+ * than about 3 tiles runs into the squad beside it and a deeper one into the line behind. A
+ * trebuchet, howitzer or tank fills that ground alone: such a squad draws one machine; guns and
+ * ballistas their three, two abreast and one behind. */
+export const MACHINE_BLOCK = Object.freeze({ width: 2.9, depth: 5.2, gap: 0.3 });
+/** How a squad of machines is drawn (drawing only, the sim never sees figures): the gap between
+ * machines side by side (`spacing`) and between rows (`rowGap`), tiles; at most `cols` abreast and
+ * `figures` machines, as many of the role's `soldiers` as fit MACHINE_BLOCK (at least one).
+ * `footprint`: [width, length] of one machine with its crew, authored units. Null without one. */
+export const machineLayout = (footprint, soldiers, baseSpacing = 0) => {
+  if (!Array.isArray(footprint) || !(footprint[0] > 0) || !(footprint[1] > 0)) return null;
+  const spacing = Math.max(baseSpacing, footprint[0] * ART_UNIT_WORLD + MACHINE_BLOCK.gap);
+  const rowGap = Math.max(baseSpacing, footprint[1] * ART_UNIT_WORLD + MACHINE_BLOCK.gap);
+  const across = Math.max(1, Math.floor((MACHINE_BLOCK.width + MACHINE_BLOCK.gap) / spacing));
+  const rows = Math.max(1, Math.floor((MACHINE_BLOCK.depth + MACHINE_BLOCK.gap) / rowGap));
+  const figures = Math.max(1, Math.min(soldiers, across * rows));
+  return { spacing, rowGap, cols: Math.min(across, figures), figures };
+};
+/** The footprint of the model a squad draws ([width, length], authored units), or null. */
+export const footprintOf = (model) => model?.options?.footprint || null;
 export const POLEARM_M = { spear: 2.5, pike: 5, lance: 3.5 };
 /** Bake options for a model registered under `regKey` (a class, 'general', a look or signature key). */
 export const bakeOptionsFor = (ageId, regKey, classId, model) => {
@@ -171,7 +202,8 @@ export const preloadUnitModels = async (setup, { timeoutMs = 8000, load = loadUn
     if (model.recipe) {
       if (!inflight.has(key)) inflight.set(key, compose(model.recipe, { resolve: resolveSource, ageId }).then((r) => r.geometry));
     } else {
-      // People and mounts at the art set's own scale; machines as tall as the procedural model.
+      // People, mounts and land machines at the art set's own scale; aircraft and ships as tall as
+      // the procedural model.
       const opts = bakeOptionsFor(ageId, regKey, classId, model);
       model.key = `${model.url}@${opts.scale ? `x${opts.scale}` : opts.height}`;
       if (!inflight.has(model.key)) inflight.set(model.key, load(model.url, opts).then((r) => r.geometry));

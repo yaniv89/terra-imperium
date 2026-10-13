@@ -36,6 +36,51 @@ brick field wall with a sandstone coping, a brick well under a tile roof, an amm
 barrels, a haystack, a crate, powder barrels (`barrel`), the kit's stall under a Team awning, a regimental
 colour on a pike (`standard`), a campfire, a sandstone wayside shrine and a milestone.
 
+## Worker loads (`worker-loads.glb`, `worker-loads-modern.glb`, 2026-10-13, manifest rows MD07, AN15, AN16)
+
+What a battle worker carries for the four resources (food, wood, stone, gold; ore is not a
+resource and has no load). Two files with the same nine object names: `worker-loads.glb` for Bronze to Gunpowder, `worker-loads-modern.glb` for Modern (the age picks the file: `workerLoadsKey`, `ART.workerLoads(ageId)`). Source: scripts/blender/build_worker_loads.py
+(original mesh and procedural atlas, CC0-1.0, nothing imported). One 512 atlas, material Town,
+LOD0 / LOD1 / LOD2 per object, budget 800 / 200 / 50 (plans/art/TRIANGLE-BUDGET.md, prop row;
+`validate_model.py <file> <out> auto` reads the kind `prop` from the files' names).
+
+| Object | What it is | Told apart by |
+|---|---|---|
+| `load-logs` | three short logs across a back frame | a wide dark bar with pale round ends |
+| `load-stone` | a sawn block in a rope sling, a smaller one on top | a pale grey square lump |
+| `load-gold` | a small dark sack heaped with gold | a round dark base under bright yellow |
+| `load-food` | a tall wicker basket of produce | a tan cone, green and red on top |
+| `barrow-empty` | a timber wheelbarrow | the bare tray |
+| `barrow-logs`, `barrow-stone`, `barrow-gold`, `barrow-food` | the same barrow loaded | the colours and shapes of the loads |
+
+The Modern file, the same names:
+
+| Object | What it is | Told apart by |
+|---|---|---|
+| `load-logs` | a strapped bundle of sawn planks | a pale square-ended slab |
+| `load-stone` | two concrete blocks and a cement bag on a pack frame | pale grey bricks, a tan bag |
+| `load-gold` | an open steel case of gold bars | a dark box under a yellow stack |
+| `load-food` | a blue plastic crate of produce | blue, green and red on top |
+| `barrow-empty` | a green steel wheelbarrow, tube frame, rubber tyre | the bare green tray, the black tyre |
+| `barrow-logs`, `barrow-stone`, `barrow-gold`, `barrow-food` | the same barrow loaded | the colours and shapes of the loads |
+
+A resource keeps its colour in both sets (wood pale or brown with pale ends, stone grey, gold
+yellow, food green and red), so the age changes the look and not the reading.
+
+Scale and placement (helpers in src/battle/art/workerLoads.js):
+- 1 model unit = 10 m, true size, front to glTF +Z. A person is 0.18 units.
+- The battle draws a person 0.95 tiles tall, 1.92 times a kit's 2.75 tiles a unit, so a load with
+  a worker is drawn at the figure scale: 0.95 / 0.18 = 5.278 tiles a unit (`LOAD_TILES_PER_UNIT`).
+- `load-*`: the origin is where the load meets the back (bottom centre; the load is behind and
+  above it). Place it 0.095 units up and 0.022 units behind the worker's centre.
+- `barrow-*`: the origin is on the ground under the tray, the wheel ahead, the handles reaching
+  back; the worker stands 0.115 units behind the origin.
+- Wheel: every barrow level has a child mesh `wheel` (wheel, wheel.001 ... in the file) whose
+  origin is the axle, the axle along its local X, so it can spin. The kit loader merges it into
+  its level, so the barrow draws whole without new code.
+
+Nothing draws the loads yet: the battle view lists who carries (`eco.carrying`) but not what.
+plans/art-pilot/md06-nodes-loads/LOG.md says what the view must add.
 
 ## Raid and landing props
 

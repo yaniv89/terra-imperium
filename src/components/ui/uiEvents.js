@@ -14,6 +14,9 @@ export const openNationOverview = () => fire(OPEN_NATION_OVERVIEW);
 export const openSettings = () => fire(OPEN_SETTINGS);
 /** The last turn's report (W10). */
 export const openTurnReport = () => fire(OPEN_TURN_REPORT);
+// A line on the map saying what to do there (Research's Map button): MapGoals.jsx shows it.
+export const MAP_HINT = 'ti:map-hint';
+export const showMapHint = (hint) => fire(MAP_HINT, hint);
 /** Switch the map lens (lenses.js id), e.g. Research's Map button on a boost. */
 export const setMapLens = (lensId) => fire(SET_MAP_LENS, lensId);
 // The End Turn button's blockers (src/engine/turnBlockers.js) bring back a sheet the player closed

@@ -2,10 +2,10 @@
 // a dropped-in file replaces the greyboxes per age with the earlier-age fallback, picks the damaged
 // and construction objects, the node states by what is left; no file keeps the greyboxes.
 import { describe, it, expect } from 'vitest';
-import { Group } from 'three';
-import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, kitLodForZoom, sideTheme, SKIN_ROLES } from './economyLayer';
+import { Group, Matrix4 } from 'three';
+import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET, LOG_PILES_FILE, LOG_PILE_FILE_KITS } from './economyLayer';
 import { createArtIndex } from '../art/artIndex';
-import { parseKit } from '../art/kitLoader';
+import { parseKit, objectSize } from '../art/kitLoader';
 import { kitGlb, parseGlbBytes } from '../../components/map/closeView/glbFixture';
 import { Q } from '../sim/constants';
 
@@ -86,6 +86,64 @@ describe('battle economy art', () => {
     layer.dispose();
   });
 
+  it('marks a grove with the kit\'s log pile, and draws the tree alone from a kit without one', async () => {
+    const kits = {
+      'with-pile': [{ name: 'tree-l', size: 0.5 }, { name: 'felled', size: 0.5 }, { name: 'log-pile', size: 0.2 }],
+      'no-pile': [{ name: 'tree-l', size: 0.5 }]
+    };
+    for (const [name, copies] of [['with-pile', 2], ['no-pile', 1]]) {
+      const art = createArtIndex({ 'assets/battle/nature/vegetation-temperate.glb': `test://${name}` });
+      const r = fakeRenderer();
+      const layer = new EconomyLayer({ ...r, setup: { ...r.setup, economy: {} } }, { art, load: async () => parseKit((await parseGlbBytes(kitGlb(kits[name]))).scene) });
+      layer.build();
+      await Promise.all(layer.ready);
+      const grove = { i: 3, kind: 'tree', x: 10 * Q, y: 10 * Q, amount: 250, max: 250 };
+      layer.update({ eco: { nodes: [grove], buildings: [] } }, () => true);
+      expect(layer.kits.stats().copies, name).toBe(copies);
+      if (name === 'with-pile') { // the pile stays beside the grove as it is cut down
+        layer.update({ eco: { nodes: [{ ...grove, amount: 20 }], buildings: [] } }, () => true);
+        expect(layer.kits.stats().copies).toBe(2);
+        const kit = layer.kit(layer.nodeRef.tree);
+        const pileMesh = layer.kits.meshes.get(kit.objects['log-pile'].lods[0]).mesh;
+        const e = pileMesh.instanceMatrix.array;
+        expect(Math.hypot(e[12] - 10, e[14] - 10)).toBeCloseTo(LOG_PILE_OFFSET, 5);
+      }
+      layer.dispose();
+    }
+  });
+
+  it('gives a kit without a log pile its climate\'s pile from the shared file', async () => {
+    const piles = [{ name: 'log-pile-conifer', size: 0.2 }, { name: 'log-pile-tropical', size: 0.25 }, { name: 'log-pile-cold', size: 0.15 }];
+    const trees = [{ name: 'tree-l', size: 0.5 }];
+    const load = async (url) => parseKit((await parseGlbBytes(kitGlb(url.includes('log-piles') ? piles : trees))).scene);
+    const grove = { i: 1, kind: 'tree', x: 10 * Q, y: 10 * Q, amount: 250, max: 250 };
+    const run = async (files, vegetation) => {
+      const art = createArtIndex(Object.fromEntries(files.map((k) => [`assets/battle/nature/${k}.glb`, `test://${k}`])));
+      const r = fakeRenderer();
+      const layer = new EconomyLayer({ ...r, setup: { ...r.setup, vegetation, economy: {} } }, { art, load });
+      layer.build();
+      await Promise.all(layer.ready);
+      layer.update({ eco: { nodes: [grove], buildings: [] } }, () => true);
+      return layer;
+    };
+    expect(LOG_PILE_FILE_KITS).toEqual(['conifer', 'tropical', 'cold']);
+    for (const kit of LOG_PILE_FILE_KITS) {
+      const layer = await run([`vegetation-${kit}`, LOG_PILES_FILE], kit);
+      expect(layer.kits.stats().copies, kit).toBe(2);
+      const shared = layer.kit(layer.pileRef);
+      expect(layer.kits.meshes.get(shared.objects[`log-pile-${kit}`].lods[0]).n, kit).toBe(1);
+      layer.dispose();
+    }
+    // without the shared file the tree stands alone; a kit that is not one of the three never loads it
+    const bare = await run(['vegetation-cold'], 'cold');
+    expect(bare.kits.stats().copies).toBe(1);
+    bare.dispose();
+    const temperate = await run(['vegetation-temperate', LOG_PILES_FILE], 'temperate');
+    expect(temperate.pileRef).toBeNull();
+    expect(temperate.kits.stats().copies).toBe(1);
+    temperate.dispose();
+  });
+
   it('names a finished building by its state: whole, damaged under 70% HP, ruined once destroyed', () => {
     const b = { alive: true, built: true, hp: 1200, maxHp: 1200 };
     expect(buildingStateName(b, 'barracks')).toBe('barracks');
@@ -120,6 +178,36 @@ describe('battle economy art', () => {
     eco.buildings.push({ idx: 4, alive: true, side: 0, type: 'stable', size: 4, x: 5 * Q, y: 5 * Q, built: true, hp: 1300, maxHp: 1300, progress: 100 });
     layer.update({ eco }, () => true);
     expect(layer.kits.stats().copies).toBe(0);
+    layer.dispose();
+  });
+
+  it('a destroyed building of a side with a culture skin leaves the shared file\'s wreck, at the shared building\'s scale', async () => {
+    // the skins (rts-<age>-<theme>.glb) carry no -ruined: one generic wreck per age and role
+    const files = { ...FILES, 'battle/rts/rts-bronze.glb': [...FILES['battle/rts/rts-bronze.glb'], { name: 'barracks-ruined', size: 1.2 }] };
+    expect(files['battle/rts/rts-bronze-sinic.glb'].some((o) => o.name.endsWith('-ruined'))).toBe(false);
+    const load = async (url) => parseKit((await parseGlbBytes(kitGlb(files[url.replace('test://', '')]))).scene);
+    const art = createArtIndex(Object.fromEntries(Object.keys(files).map((k) => [`assets/${k}`, `test://${k}`])));
+    const r = fakeRenderer();
+    const sides = [{ ageId: 'bronze', nationId: 'shang', color: '#dc2626' }, { ageId: 'bronze', nationId: 'kemet', color: '#2563eb' }];
+    const layer = new EconomyLayer({ ...r, setup: { ...r.setup, sides, economy: {} } }, { art, load });
+    layer.build();
+    await Promise.all(layer.ready);
+    const skin = layer.kit(layer.skinRef[0]);
+    const shared = layer.kit({ url: 'test://battle/rts/rts-bronze.glb' });
+    expect(skin.objects.barracks).toBeTruthy();
+    expect(skin.objects['barracks-ruined']).toBeUndefined();
+    const barracks = (idx, x, more) => ({ idx, side: 0, type: 'barracks', size: 3, x: x * Q, y: 5 * Q, built: true, hp: 1200, maxHp: 1200, progress: 100, alive: true, ...more });
+    layer.update({ eco: { nodes: [], buildings: [barracks(0, 5), barracks(1, 15, { alive: false, hp: 0 })] } }, () => true);
+    const drawn = new Map([...layer.kits.meshes].filter(([, e]) => e.n).map(([bundle, e]) => [bundle.geometry.uuid, e]));
+    // the standing one in the Shang skin, the dead one as the shared wreck: two copies, nothing else
+    expect(layer.kits.stats().copies).toBe(2);
+    expect(drawn.has(skin.objects.barracks.lods[0].geometry.uuid)).toBe(true);
+    const wreck = drawn.get(shared.objects['barracks-ruined'].lods[0].geometry.uuid);
+    expect(wreck).toBeTruthy();
+    // fitted like the shared barracks (footprint 1.2), not like the larger skin (1.5)
+    const m = new Matrix4(); wreck.mesh.getMatrixAt(0, m);
+    expect(m.elements[0]).toBeCloseTo((3 * 0.95) / objectSize(shared.objects.barracks).footprint, 5);
+    expect(m.elements[0]).not.toBeCloseTo((3 * 0.95) / objectSize(skin.objects.barracks).footprint, 2);
     layer.dispose();
   });
 

@@ -20,6 +20,8 @@
 #     herd          herd-sheep-goat, herd-cattle (animal: 400 triangles, rigid or rigged)
 #     tree          vegetation-<kit>.glb (tree-s/-m/-l, stump, felled, bush, rock-s/-m, grass-tuft)
 #     terrain-kit   map/terrain/<id>.glb and battle/terrain (river-kit, ford, bridge-*)
+#     prop          props/worker-loads*.glb (load-*, barrow-*: 800 / 200 / 50; the older props-<age>.glb
+#                   kits are not held to it yet, see plans/art-pilot/md06-nodes-loads/LOG.md)
 #     projectile    projectiles/<age>.glb (arrow ... missile; one level, no LOD children needed)
 #     unit | unit-mounted | unit-machine   a battle unit (LOD0 only: the runtime builds the rest;
 #                   unit materials Team, Skin, Emblem, Metal, Wood, Leather, Cloth; flat colours, no textures)
@@ -37,6 +39,7 @@ BUDGETS = {  # LOD0, LOD1, LOD2 (section 2)
     'prefab': (8000, 2000, 400), 'prefab-hq': (15000, 3000, 600),
     'house-damaged': (2500, 600, 120), 'ruin': (1200, 300, 80), 'wall-kit': (1500, 400, 80),
     'node': (1500, 300, 80), 'herd': (400, 150, 60), 'tree': (600, 150, 150), 'terrain-kit': (4000, 1000, 200),
+    'prop': (800, 200, 50),  # plans/art/TRIANGLE-BUDGET.md section 5: worker loads and barrows
     'projectile': (60, 60, 60),
     # units: the target, then the hard cap (D1); LOD1 and LOD2 are the runtime's
     'unit': (1500, 3000), 'unit-mounted': (2500, 4000), 'unit-machine': (3000, 5000),
@@ -49,7 +52,7 @@ SINGLE_LOD = UNIT_KINDS + ('projectile',)
 UNIT_MATERIALS = {'Team', 'Skin', 'Emblem', 'Metal', 'Wood', 'Leather', 'Cloth'}
 FILE_MB = {'town': 12, 'landmark': 12, 'walls': 12, 'wonder': 6, 'improvement': 12, 'ship': 3, 'house': 12,
            'prefab': 12, 'house-damage': 12, 'ruin': 6, 'wall-kit': 6, 'node': 4, 'herd': 4, 'tree': 4,
-           'terrain-kit': 8, 'projectile': 1, 'unit': 3, 'unit-mounted': 3, 'unit-machine': 3}
+           'terrain-kit': 8, 'prop': 4, 'projectile': 1, 'unit': 3, 'unit-mounted': 3, 'unit-machine': 3}
 
 
 def infer_kind(path):
@@ -71,6 +74,8 @@ def infer_kind(path):
             return 'improvement'
     if '/battle/nature/' in p:
         return 'tree' if name.startswith('vegetation-') else 'herd' if name.startswith('herd-') else 'node'
+    if '/battle/props/' in p and name.startswith('worker-loads'):
+        return 'prop'
     if '/units/' in p:
         if name.endswith('-general') or name.endswith('-cavalry'):
             return 'unit-mounted'

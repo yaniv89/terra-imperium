@@ -504,6 +504,8 @@ def transfer_uvs_by_face(src, dst):
     trees = {m: tree_of(tris) for m, tris in trees.items()}
     whole = tree_of(every) if every else None
     dm = dst.data
+    while 'orig' in dm.uv_layers:  # a delivered kit part's own uvs (assemble_kit_towns.py): build-only
+        dm.uv_layers.remove(dm.uv_layers['orig'])
     if not dm.uv_layers:
         dm.uv_layers.new(name='UVMap')
     duv = dm.uv_layers.active.data

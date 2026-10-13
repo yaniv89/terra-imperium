@@ -16,6 +16,15 @@ export const PLAYSTYLES = {
   science: { label: 'Science', targets: [4, 8, 14, 20, 28], unit: 'techs', mods: { 'national.researchCost': -0.1 }, bonusLabel: '-10% research cost' }
 };
 
+// What to do next for each goal, in one plain line (the map goal tracker, I149).
+export const GOAL_NEXT_ACTION = {
+  expand: 'Found or conquer another city.',
+  wealth: 'Make a trade agreement in Peoples.',
+  war: 'Take an enemy city.',
+  culture: 'Raise a wonder in a city.',
+  science: 'Finish a tech in Research.'
+};
+
 export const goalsForAge = (ageId) => {
   const i = Math.max(0, AGE_ORDER.indexOf(ageId));
   return Object.entries(PLAYSTYLES).map(([id, p]) => ({ id, label: p.label, target: p.targets[i], unit: p.unit }));
