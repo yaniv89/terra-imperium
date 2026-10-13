@@ -317,10 +317,18 @@ FILES = {
     'vegetation-temperate': TEMPERATE,
     'vegetation-mediterranean': MEDITERRANEAN,
     'vegetation-desert': DESERT,
+    # Log piles for the kits built by build_vegetation_remaining.py (conifer, tropical, cold). Those
+    # files are pinned by hash and were not rebuilt; the game stands `log-pile-<kit>` beside a grove
+    # whose kit has no `log-pile` of its own (economyLayer.js).
+    'log-piles': [
+        ('log-pile-conifer', lambda ms, rng: tn.log_pile(ms, rng, bark='bark_pine', ends='cut_pine')),                  # pale pine
+        ('log-pile-tropical', lambda ms, rng: tn.log_pile(ms, rng, length=0.27, r=0.035, bark='bark_hardwood', ends='cut_hardwood')),  # dark hardwood
+        ('log-pile-cold', lambda ms, rng: tn.log_pile(ms, rng, length=0.24, r=0.023, bark=('birch', 'bark_larch', 'birch'), rows=(4, 3, 2), far_rows=(0,))),  # thin birch and larch; the far level keeps the bottom row, thicker
+    ],
 }
 
 # Small objects need less than the README's 1024 atlas: one animal, a few ripples and fish.
-SMALL_ATLAS = {'herd-sheep-goat': 512, 'herd-cattle': 512, 'fish-shoal': 512}
+SMALL_ATLAS = {'herd-sheep-goat': 512, 'herd-cattle': 512, 'fish-shoal': 512, 'log-piles': 512}
 
 
 def material_transfer(src, dst):

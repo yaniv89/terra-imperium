@@ -3,7 +3,7 @@
 // and construction objects, the node states by what is left; no file keeps the greyboxes.
 import { describe, it, expect } from 'vitest';
 import { Group, Matrix4 } from 'three';
-import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET } from './economyLayer';
+import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET, LOG_PILES_FILE, LOG_PILE_FILE_KITS } from './economyLayer';
 import { createArtIndex } from '../art/artIndex';
 import { parseKit, objectSize } from '../art/kitLoader';
 import { kitGlb, parseGlbBytes } from '../../components/map/closeView/glbFixture';
@@ -110,6 +110,38 @@ describe('battle economy art', () => {
       }
       layer.dispose();
     }
+  });
+
+  it('gives a kit without a log pile its climate\'s pile from the shared file', async () => {
+    const piles = [{ name: 'log-pile-conifer', size: 0.2 }, { name: 'log-pile-tropical', size: 0.25 }, { name: 'log-pile-cold', size: 0.15 }];
+    const trees = [{ name: 'tree-l', size: 0.5 }];
+    const load = async (url) => parseKit((await parseGlbBytes(kitGlb(url.includes('log-piles') ? piles : trees))).scene);
+    const grove = { i: 1, kind: 'tree', x: 10 * Q, y: 10 * Q, amount: 250, max: 250 };
+    const run = async (files, vegetation) => {
+      const art = createArtIndex(Object.fromEntries(files.map((k) => [`assets/battle/nature/${k}.glb`, `test://${k}`])));
+      const r = fakeRenderer();
+      const layer = new EconomyLayer({ ...r, setup: { ...r.setup, vegetation, economy: {} } }, { art, load });
+      layer.build();
+      await Promise.all(layer.ready);
+      layer.update({ eco: { nodes: [grove], buildings: [] } }, () => true);
+      return layer;
+    };
+    expect(LOG_PILE_FILE_KITS).toEqual(['conifer', 'tropical', 'cold']);
+    for (const kit of LOG_PILE_FILE_KITS) {
+      const layer = await run([`vegetation-${kit}`, LOG_PILES_FILE], kit);
+      expect(layer.kits.stats().copies, kit).toBe(2);
+      const shared = layer.kit(layer.pileRef);
+      expect(layer.kits.meshes.get(shared.objects[`log-pile-${kit}`].lods[0]).n, kit).toBe(1);
+      layer.dispose();
+    }
+    // without the shared file the tree stands alone; a kit that is not one of the three never loads it
+    const bare = await run(['vegetation-cold'], 'cold');
+    expect(bare.kits.stats().copies).toBe(1);
+    bare.dispose();
+    const temperate = await run(['vegetation-temperate', LOG_PILES_FILE], 'temperate');
+    expect(temperate.pileRef).toBeNull();
+    expect(temperate.kits.stats().copies).toBe(1);
+    temperate.dispose();
   });
 
   it('names a finished building by its state: whole, damaged under 70% HP, ruined once destroyed', () => {
