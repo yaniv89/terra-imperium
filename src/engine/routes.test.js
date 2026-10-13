@@ -10,7 +10,7 @@ import { getTiles } from '../data/geo/tiles';
 import { computeSupplyFlow, MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { calcNationBalance } from './economy';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
-import { accessOf, advanceMarches, findRoute, planMarch, scheduleSteps, stackPace, stepCost, ENEMY_STEP_COST } from './routes';
+import { accessOf, advanceMarches, findRoute, planMarch, scheduleSteps, stackPace, stepCost, ENEMY_STEP_COST, moveNowCheck, routeEta, marchingUnits, marchOrigin } from './routes';
 import { ROAD_COST, riverCrossingCost, TILE_COST_MOUNTAINS, MOVE_POINTS, findTilePath, normalizeUnitTiles, tileAccess, tileStepCost, unitTile, inEnemyZoc } from './armies';
 import { validateInvasion } from './invasion';
 import { addCity } from './testWorld';
@@ -226,14 +226,82 @@ describe('marching', () => {
   it('a manual move replaces the march, puts the unit on the city centre and costs no military power', () => {
     const { state: s0, cityId: B } = addCity(S, 'in', { near: P });
     expect(getNeighborIds(P)).toContain(B);
-    let s = withUnits(s0, [unit('a', P)]);
+    // The unit stands one tile from the city: the march would arrive this turn, so it may move now.
+    const next = tiles.neighbors[s0.regions[B].tile].find((t) => tiles.land[t] === 1);
+    let s = withUnits(s0, [unit('a', P, { classId: 'cavalry', tile: next })]);
     s = marchTo(s, P, freeAt(4));
+    expect(moveNowCheck(s, s.units.a, B).ok).toBe(true);
     const moved = gameReducer(s, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a', toRegionId: B } });
     expect(moved.units.a.regionId).toBe(B);
     expect(moved.units.a.tile).toBe(s0.regions[B].tile);
     expect(moved.units.a.route).toBe(null);
     expect(moved.resources.mil).toBe(s.resources.mil);
     expect(moved.units.a.marchedTurn).toBe(s.turnNumber);
+  });
+
+  it('Move now is refused when the march takes more than this turn, and the preview says the same turns (I065)', () => {
+    const { state: s0, cityId: B } = addCity(S, 'in', { near: P });
+    const s = withUnits(s0, [unit('a', P)]);
+    const plan = planMarch(s, P, B);
+    const check = moveNowCheck(s, s.units.a, B);
+    // One selector: Move now is offered exactly when the march's own preview says one turn.
+    expect(check.ok).toBe(plan.turns === 1);
+    if (!check.ok) {
+      expect(check.turns).toBe(plan.turns);
+      const refused = gameReducer(s, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a', toRegionId: B } });
+      expect(refused.units).toBe(s.units);
+      expect(refused.logs[refused.logs.length - 1].message).toMatch(/Too far to move now/);
+    }
+  });
+
+  it('a unit that moved now does not also march this End Turn, and its ETA counts the spent move', () => {
+    const { state: s0, cityId: B } = addCity(S, 'in', { near: P });
+    const next = tiles.neighbors[s0.regions[B].tile].find((t) => tiles.land[t] === 1);
+    let s = withUnits(s0, [unit('a', P, { classId: 'cavalry', tile: next }), unit('b', P, { classId: 'cavalry', tile: s0.regions[B].tile, regionId: B })]);
+    s = gameReducer(s, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a', toRegionId: B } });
+    expect(s.units.a.tile).toBe(s0.regions[B].tile);
+    const to = homeTile;
+    const fresh = planMarch(s, B, to, ['b']);
+    const spent = planMarch(s, B, to, ['a']);
+    expect(spent.ok, spent.reason).toBe(true);
+    expect(spent.spent).toBe(true);
+    expect(spent.turns).toBe(fresh.turns + 1);
+    s = gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: B, toTile: to, unitIds: ['a', 'b'] } });
+    expect(routeEta(s, s.units.a)).toBe(routeEta(s, s.units.b) + 1);
+    const units = { ...s.units };
+    advanceMarches(s, units, {});
+    expect(units.a.tile).toBe(s0.regions[B].tile); // already moved this turn
+    expect(units.b.tile).not.toBe(s0.regions[B].tile);
+    // Next turn it walks like any march.
+    const later = { ...s, turnNumber: s.turnNumber + 1, units };
+    const u2 = { ...units };
+    advanceMarches(later, u2, {});
+    expect(u2.a.tile).not.toBe(s0.regions[B].tile);
+  });
+
+  it('the ETA of a route is the turn the march really arrives (routeEta)', () => {
+    let s = withUnits(S, [unit('a', P)]);
+    const to = freeAt(7);
+    s = marchTo(s, P, to);
+    const eta = routeEta(s, s.units.a);
+    expect(eta).toBe(planMarch(withUnits(S, [unit('a', P)]), P, to).turns);
+    const units = { ...s.units };
+    let st = s; let turns = 0;
+    while (units.a.route && turns < 20) { advanceMarches(st, units, {}); turns += 1; st = { ...st, turnNumber: st.turnNumber + 1, units: { ...units } }; if (units.a.route) expect(routeEta(st, units.a)).toBe(eta - turns); }
+    expect(units.a.tile).toBe(to);
+    expect(turns).toBe(eta);
+  });
+
+  it('an order is for the units that stand in the city, or for the picked ids, never for a field army based there (I058)', () => {
+    const far = freeAt(6);
+    const s = withUnits(S, [unit('home', P), unit('field', P, { tile: far })]);
+    expect(marchingUnits(s, P).map((u) => u.id)).toEqual(['home']);
+    expect(marchingUnits(s, P, ['field']).map((u) => u.id)).toEqual(['field']);
+    expect(marchOrigin(s, P)).toBe(homeTile);
+    expect(marchOrigin(s, P, ['field'])).toBe(far);
+    const ordered = gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: P, toTile: freeAt(3) } });
+    expect(ordered.units.home.route?.length).toBeGreaterThan(0);
+    expect(ordered.units.field.route ?? null).toBe(null);
   });
 
   it('a route survives a save and load', () => {
