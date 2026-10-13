@@ -50,6 +50,8 @@
 //   reason, opinion.js). The independent: a grudge against whoever killed its raiders.
 // Deterministic: every roll is hashRoll(`${id}|${turn}|<what>`) or an rng seeded from one.
 // Cheap: a ring scan per thinker, one A* per raid start or return; measured in the balance-sim.
+import { speedTurns } from '../data/ages';
+import { tributePerTurn } from './tributePricing';
 import { getTiles } from '../data/geo/tiles';
 import { landmassOf } from '../data/geo/citySpacing';
 import { kmPerRing, ringsForKm } from '../data/geo/gridScale';
@@ -59,7 +61,7 @@ import {
   isIndependentNation, garrisonTarget, THINK_PERIOD, RAID_KM, RAID_COOLDOWN, RAID_CHANCE, FORTRESS_REVENGE_GRUDGE, RAID_THRESHOLD,
   RAID_RING_PENALTY, RAID_RING_PENALTY_KM, RAID_MAX_TURNS, RAID_RECOVER_TURNS, RAID_FIGHT_RATIO, RAID_ERA_FACTOR, ROUTE_LOOT, SETTLER_LOOT,
   OUTPOST_LOOT, RAID_SPARE_TURNS, OUTPOST_BURN_LOSS, SACK_GARRISON_RATIO, SACK_INCOME_TURNS, SACK_MIN_GOLD, INDEPENDENT_GOLD_CAP, MERCANTILE_GOLD_MULT, GRUDGE_REFUSED,
-  TRIBUTE_TURNS, TRIBUTE_DEMAND_GRUDGE, TRIBUTE_STRENGTH_RATIO, TRIBUTE_DEMAND_CHANCE, TRIBUTE_DEMAND_COOLDOWN, TRIBUTE_ANSWER_TURNS, tributeGold
+  TRIBUTE_TURNS, TRIBUTE_DEMAND_GRUDGE, TRIBUTE_STRENGTH_RATIO, TRIBUTE_DEMAND_CHANCE, TRIBUTE_DEMAND_COOLDOWN_REF_TURNS, TRIBUTE_ANSWER_TURNS, RAID_WAVE_MAX
 } from '../data/independents';
 import { createRng } from '../utils/rng';
 import { ringsAround, sizeToPeople } from './world/cities';
@@ -638,23 +640,31 @@ const payTribute = (w, id) => {
   });
 };
 
+/** How many independents have a raid party out against `victimId` now (walking there, fighting or holding; not going home). */
+export const raidsOutAgainst = (w, victimId) => Object.values(w.nations).reduce((k, n) => k + (n?.indep?.raid && n.indep.raid.targetNationId === victimId && n.indep.raid.phase !== 'home' && !n.isEliminated ? 1 : 0), 0);
+
 const demandTribute = (w, id, city, myStrength, nearArmies, nearOwners) => {
   const n = w.nations[id];
   if (!['raiders', 'tribal'].includes(n.indep?.personality)) return false;
   if (hashRoll(`${id}|${w.turn}|tribute`) >= TRIBUTE_DEMAND_CHANCE) return false;
   const asked = n.indep.demandedTurn || {};
-  const cands = [...nearOwners].filter((o) => victimOk(w, id, o) && !n.indep.tributeFrom?.[o] && !(asked[o] != null && w.turn - asked[o] < TRIBUTE_DEMAND_COOLDOWN)
+  const cooldown = speedTurns(TRIBUTE_DEMAND_COOLDOWN_REF_TURNS, w.view.gameSpeed, w.age);
+  const cands = [...nearOwners].filter((o) => victimOk(w, id, o) && !n.indep.tributeFrom?.[o] && !(asked[o] != null && w.turn - asked[o] < cooldown)
     && !(o === w.playerId && w.tributeDemands.some((d) => d.indepId === id))
     && (grudgeOf(n, o) >= TRIBUTE_DEMAND_GRUDGE || myStrength >= TRIBUTE_STRENGTH_RATIO * (nearArmies.get(o) || 0)))
     .sort((a, b) => grudgeOf(n, b) - grudgeOf(n, a) || (nearArmies.get(a) || 0) - (nearArmies.get(b) || 0) || (a < b ? -1 : 1));
-  const target = cands[0];
+  // No empty threats (I106, I109): only of a people it could raid today, something of theirs
+  // within its reach and worth the walk (the raid's own score and threshold).
+  let threat = null;
+  const target = cands.find((o) => { const t = scanTargets(w, id, city, Math.max(1, myStrength), { onlyVictim: o }).best; if (t && t.score >= RAID_THRESHOLD) { threat = t; return true; } return false; });
   if (!target) return false;
-  const gold = tributeGold(w.age);
+  // The price follows the payer's city income (tributePricing.js), fixed for the deal's length.
+  const gold = tributePerTurn(w.view, target, w.age);
   setIndep(w, id, { demandedTurn: { ...asked, [target]: w.turn } });
   w.stats.tributeDemands += 1;
   if (target === w.playerId) {
     w.tributeDemands.push({ id: `trib_${id}_${w.turn}`, indepId: id, gold, turns: TRIBUTE_TURNS, turn: w.turn, expires: w.turn + TRIBUTE_ANSWER_TURNS });
-    log(w, `${subjectVerb(raiderName(w, id), 'demand')} ${gold} gold a turn for ${TRIBUTE_TURNS} turns, or they will raid you. Answer under Relations on the Empire tab within ${TRIBUTE_ANSWER_TURNS} turns.`, LogTypes.DIPLOMACY);
+    log(w, `${subjectVerb(raiderName(w, id), 'demand')} ${gold} gold a turn for ${TRIBUTE_TURNS} turns, or they will raid you (${placeOf(w, threat.tile)} is within their reach). Answer under Relations on the Empire tab within ${TRIBUTE_ANSWER_TURNS} turns.`, LogTypes.DIPLOMACY);
     return true;
   }
   // An AI major pays when the independent outweighs its army there and it can afford the deal.
@@ -704,7 +714,11 @@ const think = (w, id, city) => {
   const mayDemand = ['raiders', 'tribal'].includes(p) && hashRoll(`${id}|${w.turn}|tribute`) < TRIBUTE_DEMAND_CHANCE;
   if (!mayRaid && !mayDemand) return;
   const { best, nearArmies, nearOwners } = scanTargets(w, id, city, Math.max(1, partyStrength || myStrength));
-  if (mayRaid && best && best.score >= RAID_THRESHOLD) {
+  // At most RAID_WAVE_MAX parties are out against one nation at a time (I107): grudges that ripen
+  // together arrive one after the other, not as a single wave. This one waits its turn (its
+  // cooldown is not spent).
+  const wave = mayRaid && best && best.score >= RAID_THRESHOLD ? raidsOutAgainst(w, best.victim) : 0;
+  if (mayRaid && best && best.score >= RAID_THRESHOLD && wave < RAID_WAVE_MAX) {
     const grudge = grudgeOf(w.nations[id], best.victim);
     const chance = Math.min(1, (RAID_CHANCE[p] || 0) * (best.victim === w.playerId ? (w.difficulty || 1) : 1) * (1 + grudge / 100));
     if (raidRoll < chance) {
@@ -804,8 +818,14 @@ export const answerTributeDemand = (state, demandId, pay) => {
       logs: [...state.logs, { year: state.year, message: `You pay ${indep.name} ${d.gold} gold a turn for ${d.turns} turns: no raids from them meanwhile.`, type: LogTypes.DIPLOMACY }]
     };
   }
+  // The threat as it really stands (I106): what they could raid today, or that nothing is in reach.
+  const f = raidForecast(state, d.indepId, state.playerNationId);
+  const where = f ? getTiles().names?.[f.tile] || state.regions?.[f.cityId]?.name || 'your frontier' : null;
+  const risk = !f ? `Nothing of yours is within their reach now, so no raid follows; they hold it against you (grudge +${GRUDGE_REFUSED}) and may come when something is.`
+    : f.likely ? `Expect raiders at ${where}. Their grudge against you rises (+${GRUDGE_REFUSED}).`
+      : `They may raid ${where}, though it is hardly worth their walk today. Their grudge against you rises (+${GRUDGE_REFUSED}).`;
   return {
     ...state, tributeDemands: rest, nations: refuseTribute(state.nations, d.indepId, state.playerNationId, state.turnNumber),
-    logs: [...state.logs, { year: state.year, message: `You refuse the tribute that ${indep.name} ${agree(indep.name, 'demand')}. Expect raiders.`, type: LogTypes.DIPLOMACY }]
+    logs: [...state.logs, { year: state.year, message: `You refuse the tribute that ${indep.name} ${agree(indep.name, 'demand')}. ${risk}`, type: LogTypes.DIPLOMACY }]
   };
 };

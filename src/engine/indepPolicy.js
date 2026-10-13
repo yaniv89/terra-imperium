@@ -19,7 +19,7 @@
 // - Trade (mercantile). Up to TRADE_MAX_PARTNERS majors with a city within TRADE_KM and a grudge under
 //   TRADE_MAX_GRUDGE: each side gains tradeGoldOf(age) a turn; a grudge at the limit ends it.
 // - Tribute to a major. A major whose army near it is DEMAND_TRIBUTE_RATIO x the independent's
-//   strength may demand tributeGold a turn for TRIBUTE_TURNS turns: it pays from its treasury (a truce
+//   strength may demand tribute (tributePricing.js tributePerTurn: a share of its city income) a turn for TRIBUTE_TURNS turns: it pays from its treasury (a truce
 //   both ways meanwhile, hostility.js) or refuses (+GRUDGE_REFUSED). A fortress never pays.
 // - The AI majors think every INDEP_POLICY_PERIOD turns, staggered by id, when not at war with a
 //   major and not in a civil war. In order: sign trade with mercantile neighbours (TRADE_AI_CHANCE);
@@ -46,7 +46,7 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsForKm, ringsApart } from '../data/geo/gridScale';
 import { LogTypes } from '../data/types';
 import {
-  isIndependentNation, TRIBUTE_TURNS, GRUDGE_REFUSED, tributeGold, INDEP_POLICY_PERIOD, CONQUER_KM, CONQUER_STRENGTH_RATIO,
+  isIndependentNation, TRIBUTE_TURNS, GRUDGE_REFUSED, INDEP_POLICY_PERIOD, CONQUER_KM, CONQUER_STRENGTH_RATIO,
   CONQUER_FORCE_RATIO, CONQUER_KEEP_PER_CITY, CONQUER_CHANCE, CONQUER_MAX_TURNS, CONQUER_RETRY_TURNS, CONQUER_RUNAWAY_MULT,
   CONQUER_RUNAWAY_MIN, CONQUER_AE_LIMIT, JOIN_PERSONALITIES, JOIN_KM, JOIN_OPINION, JOIN_TURNS, JOIN_STRENGTH_RATIO,
   JOIN_STRENGTH_OPINION, JOIN_LOYALTY, JOIN_OFFER_TURNS, GIFT_GOLD, GIFT_FAVOUR, FAVOUR_MAX, FAVOUR_DECAY, COURT_GOLD_MULT, MUSTER_MAX_UNITS, MUSTER_MAX_TURNS, MUSTER_MIN_GOLD,
@@ -58,6 +58,7 @@ import { canAttack, hasMet } from './hostility';
 import { hashRoll } from './aftermath';
 import { thinksOn, startTribute } from './raids';
 import { grudgeOf, withGrudge } from './grudges';
+import { tributePerTurn } from './tributePricing';
 import { goldIn, addGoldIn } from './mercenaries';
 import { unitTile, placeInCity } from './armies';
 import { isUnitInBattle } from './invasion';
@@ -304,7 +305,7 @@ const demandTributeOf = (w, majorId, indepId, mine, theirs) => {
   const pays = n.indep?.personality !== 'fortress' && mine >= DEMAND_TRIBUTE_RATIO * Math.max(1, theirs);
   if (!pays) { w.nations[indepId] = withGrudge(n, majorId, GRUDGE_REFUSED, { id: 'demand', turn: w.turn }); return false; }
   const until = w.turn + TRIBUTE_TURNS;
-  setIndep(w, indepId, { tributeTo: { ...(n.indep.tributeTo || {}), [majorId]: { until, gold: tributeGold(w.age) } }, truceWith: { ...(n.indep.truceWith || {}), [majorId]: until } });
+  setIndep(w, indepId, { tributeTo: { ...(n.indep.tributeTo || {}), [majorId]: { until, gold: tributePerTurn({ regions: w.regions }, indepId, w.age) } }, truceWith: { ...(n.indep.truceWith || {}), [majorId]: until } });
   w.stats.tributeDemandsByMajors += 1;
   return true;
 };
@@ -567,7 +568,7 @@ export const demandTributeCheck = (state, indepId, majorId = state.playerNationI
   if (n.indep?.personality === 'fortress') return { ok: true, would: false, mine, theirs, reason: 'A fortress people pays no one: they would refuse and remember it.' };
   const need = DEMAND_TRIBUTE_RATIO * Math.max(1, theirs);
   if (mine < need) return { ok: true, would: false, mine, theirs, reason: `They would refuse: your army within ${CONQUER_KM} km is ${(mine / Math.max(1, theirs)).toFixed(1)} times theirs, they pay at ${DEMAND_TRIBUTE_RATIO} times.` };
-  return { ok: true, would: true, mine, theirs, reason: `They would pay ${tributeGold(state.age)} gold a turn for ${TRIBUTE_TURNS} turns.` };
+  return { ok: true, would: true, mine, theirs, reason: `They would pay ${tributePerTurn(state, indepId)} gold a turn for ${TRIBUTE_TURNS} turns.` };
 };
 
 /** Would mercantile independent `indepId` trade with `majorId`? { ok, reason }. */
@@ -594,7 +595,7 @@ export const offerTributeCheck = (state, indepId, majorId = state.playerNationId
   if (!TRIBUTE_TAKERS.includes(n.indep?.personality)) return { ok: false, reason: 'A mercantile city takes no tribute: offer trade instead.' };
   if (n.indep?.tributeFrom?.[majorId]) return { ok: false, reason: `You already pay them until turn ${n.indep.tributeFrom[majorId].until}.` };
   if (n.indep?.tributeTo?.[majorId]) return { ok: false, reason: 'They pay you tribute.' };
-  const gold = tributeGold(state.age);
+  const gold = tributePerTurn(state, majorId);
   return { ok: true, gold, reason: `${gold} gold a turn for ${TRIBUTE_TURNS} turns: no raids from them, and you may not attack them meanwhile.` };
 };
 
@@ -604,11 +605,11 @@ export const demandIndependentTribute = (state, indepId) => {
   const me = state.playerNationId;
   const check = demandTributeCheck(state, indepId, me);
   if (!check.ok) return { reason: check.reason };
-  const w = { turn: state.turnNumber || 0, age: state.age, playerId: me, nations: { ...state.nations }, resources: { ...state.resources }, stats: { ...(state.indepStats || {}) } };
+  const w = { turn: state.turnNumber || 0, age: state.age, playerId: me, regions: state.regions, nations: { ...state.nations }, resources: { ...state.resources }, stats: { ...(state.indepStats || {}) } };
   w.stats.tributeDemandsByMajors = w.stats.tributeDemandsByMajors || 0;
   const paid = demandTributeOf(w, me, indepId, check.mine, check.theirs);
   const msg = paid
-    ? `${n.name} agree to pay you ${tributeGold(state.age)} gold a turn for ${TRIBUTE_TURNS} turns (a truce both ways meanwhile).`
+    ? `${n.name} agree to pay you ${tributePerTurn(state, indepId)} gold a turn for ${TRIBUTE_TURNS} turns (a truce both ways meanwhile).`
     : n.indep?.personality === 'fortress' ? `${n.name} refuse: a fortress people pays no one. They will remember it.` : `${n.name} refuse: your army near them is not ${DEMAND_TRIBUTE_RATIO} times their strength. They will remember it.`;
   return { ...state, nations: w.nations, indepStats: w.stats, logs: withLog(state, msg) };
 };

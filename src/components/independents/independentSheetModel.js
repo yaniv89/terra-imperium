@@ -23,9 +23,10 @@ import { ActionTypes } from '../../data/types';
 import {
   isIndependentNation, PERSONALITIES, GRUDGE_MAX, GRUDGE_DECAY, GRUDGE_REFUSED, MERC_SELLERS, MERC_CONTRACT_TURNS, MERC_MAX_GRUDGE,
   TRADE_MAX_GRUDGE, TRIBUTE_DEMAND_GRUDGE, FORTRESS_REVENGE_GRUDGE, GIFT_GOLD, GIFT_FAVOUR, JOIN_OPINION, JOIN_TURNS,
-  JOIN_STRENGTH_OPINION, JOIN_STRENGTH_RATIO, INDEPENDENT_CONQUEST_AE_MULT, RAID_KM, tradeGoldOf, tributeGold, garrisonTarget
+  JOIN_STRENGTH_OPINION, JOIN_STRENGTH_RATIO, INDEPENDENT_CONQUEST_AE_MULT, RAID_KM, tradeGoldOf, garrisonTarget
 } from '../../data/independents';
 import { grudgeOf, grudgeCausesOf, GRUDGE_CAUSES } from '../../engine/grudges';
+import { tributePerTurn } from '../../engine/tributePricing';
 import { canAttack } from '../../engine/hostility';
 import { attitudeOf, mayJoin, joinCheck, demandTributeCheck, tradeCheck, offerTributeCheck } from '../../engine/indepPolicy';
 import { opinionBreakdown } from '../../engine/opinion';
@@ -232,7 +233,7 @@ export const independentSheetModel = (state, indepId) => {
     });
     const dt = demandTributeCheck(state, indepId, me);
     actions.push({
-      id: 'demandTribute', label: 'Demand tribute', sub: !dt.ok ? 'not now' : dt.would ? `+${tributeGold(state.age)} gold a turn` : 'they would refuse',
+      id: 'demandTribute', label: 'Demand tribute', sub: !dt.ok ? 'not now' : dt.would ? `+${tributePerTurn(state, indepId)} gold a turn` : 'they would refuse',
       ok: dt.ok, warn: dt.ok && !dt.would, reason: dt.ok && !dt.would ? `${dt.reason} A refusal adds ${GRUDGE_REFUSED} grudge.` : dt.reason,
       run: { action: send(ActionTypes.DEMAND_INDEPENDENT_TRIBUTE) }
     });

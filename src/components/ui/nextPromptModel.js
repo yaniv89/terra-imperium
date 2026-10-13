@@ -12,6 +12,8 @@
 //   unrest    a city whose unrest is UNREST_PROMPT or more
 //   guide     the guided start's current step (src/engine/tutorial.js), always first
 //   demand    an AI's tribute demand waits for an answer (src/engine/aiAccords.js)
+//   war       a people declared war on you in the last WAR_NOTICE_TURNS turns (a notice: it never blocks
+//             End Turn, stays on screen while other answers are given, and opens Peoples; I117)
 import { unitTile } from '../../engine/armies';
 import { isSettler } from '../../engine/settlers';
 import { tutorialPrompt } from '../../engine/tutorial';
@@ -22,6 +24,7 @@ import { getTiles } from '../../data/geo/tiles';
 import { idleArmyTiles } from '../../engine/standingOrders';
 
 export const UNREST_PROMPT = 50;
+export const WAR_NOTICE_TURNS = 3; // turns of play a declaration stays as a chip (an on-screen notice, not a span of history)
 export const WARN_ARM_MS = 4000;
 
 // The prompts that never block End Turn (the rest are End Turn's blockers, src/engine/turnBlockers.js):
@@ -39,6 +42,8 @@ export const nextPrompts = (state) => {
   if (guide) out.push(guide);
   if (state.pendingPeaceOffer) out.push({ id: 'peace', kind: 'peace', label: 'A peace offer awaits your answer', tab: 'diplomacy' });
   if (demandWaiting(state)) { const d = state.pendingDemand; out.push({ id: 'demand', kind: 'demand', label: `${state.nations[d.from].name} demands ${d.kind === 'city' ? d.cityName || 'a city' : d.kind === 'stopSettling' ? 'a stop to your settling' : `${d.amount} gold`}`, tab: 'diplomacy' }); }
+  // A war declared on the player lately: the log line alone was easy to miss (I117).
+  (state.wars || []).forEach((w) => { if (w.active && w.enemy === me && w.aggressor && state.nations?.[w.aggressor] && (state.turnNumber || 0) - (w.startTurn ?? -Infinity) < WAR_NOTICE_TURNS) out.push({ id: 'war:' + w.id, kind: 'war', label: state.nations[w.aggressor].name + ' declared war on you', tab: 'diplomacy', nationId: w.aggressor }); });
   if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: 'Choose what to research', tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
   cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: `${c.name} has nothing to build`, regionId: c.id }); });

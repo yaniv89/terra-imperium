@@ -35,6 +35,7 @@ export const chipLabel = (state, p) => {
   if (p.kind === 'peace') return 'Peace offer';
   if (p.kind === 'unrest') return `${state.regions[p.regionId]?.name || 'A city'} is restless`;
   if (p.kind === 'supply') return 'Army low on supply';
+  if (p.kind === 'war') return (state.nations[p.nationId]?.name || 'A people') + ' declared war';
   if (p.kind === 'demand') return `${state.nations[state.pendingDemand?.from]?.name || 'A people'} demands`;
   return p.label;
 };

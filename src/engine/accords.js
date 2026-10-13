@@ -54,6 +54,7 @@ import { relocateLostCapital } from './conquest';
 import { getPool } from './nationState';
 import { LOYALTY_ON_FLIP } from './loyalty';
 import { speedTurns } from '../data/ages';
+import { cityIncomeOf } from './tributePricing';
 
 export const OPEN_BORDERS_OPINION = 20;
 export const DEMAND_STRENGTH_WEIGHT = 20;
@@ -114,23 +115,9 @@ export const settlingBarred = (state, nationId, tile) => {
   });
 };
 
-// What a nation's cities add to its treasury a turn (tax and production, the two city terms of
-// the gold income: helpers.js calcIncome for the player, the same development for an AI). Occupied
-// cities and outposts pay nothing. One pass over the cities per regions map.
-const cityIncomeCache = new WeakMap(); // regions -> Map nationId -> gold a turn
-export const cityIncomeOf = (state, nationId) => {
-  const regions = state.regions || {};
-  let m = cityIncomeCache.get(regions);
-  if (!m) {
-    m = new Map();
-    Object.values(regions).forEach((c) => {
-      if (!c?.owner || c.occupiedBy || c.outpost) return;
-      m.set(c.owner, (m.get(c.owner) || 0) + Math.max(0, c.dev?.tax || 0) + Math.max(0, c.dev?.production || 0));
-    });
-    cityIncomeCache.set(regions, m);
-  }
-  return m.get(nationId) || 0;
-};
+// City income (what a nation's cities add to its treasury a turn): tributePricing.js, shared with
+// the independents' running tribute.
+export { cityIncomeOf };
 
 /** The strength ratio a demand is weighed by: the demander's power over the target's, 0 to DEMAND_RATIO_CAP. */
 export const demandRatio = (state, demanderId, targetId) => Math.min(DEMAND_RATIO_CAP, getEffectiveMilitaryPower(state, demanderId) / Math.max(1, getEffectiveMilitaryPower(state, targetId)));

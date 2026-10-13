@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../../data/regions';
-import { nextPrompts, endTurnWarnings, softHints, SOFT_KINDS, UNREST_PROMPT } from './nextPromptModel';
+import { nextPrompts, endTurnWarnings, softHints, SOFT_KINDS, UNREST_PROMPT, WAR_NOTICE_TURNS } from './nextPromptModel';
+import { chipLabel } from './promptActions';
 
 describe('next prompt', () => {
   it('lists what wants a decision, in order, and nothing when all is settled', () => {
@@ -40,5 +41,17 @@ describe('next prompt', () => {
     expect(softHints(warn).some((p) => p.kind === 'research')).toBe(false);
     const guided = { ...warn, tutorial: { startTurn: 1, done: {}, ended: false }, playerNationId: 'fr' };
     expect(endTurnWarnings(guided)).toBe(softHints(guided).length);
+  });
+  it('a war declared on the player stays as a notice for a few turns and opens Peoples (I117)', () => {
+    const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const war = (aggressor, enemy, startTurn) => ({ id: `w_${aggressor}`, aggressor, enemy, active: true, startTurn });
+    const attacked = { ...S, turnNumber: 10, wars: [war('de', 'fr', 9), war('fr', 'be', 9), war('es', 'fr', 2)] };
+    const notices = nextPrompts(attacked).filter((p) => p.kind === 'war');
+    expect(notices).toHaveLength(1); // not the war the player declared, not an old one
+    expect(notices[0]).toMatchObject({ tab: 'diplomacy', nationId: 'de' });
+    expect(notices[0].label).toBe(`${S.nations.de.name} declared war on you`);
+    expect(chipLabel(attacked, notices[0])).toMatch(/declared war/);
+    expect(softHints(attacked).some((p) => p.kind === 'war')).toBe(false); // never an End Turn warning
+    expect(nextPrompts({ ...attacked, turnNumber: 9 + WAR_NOTICE_TURNS }).some((p) => p.kind === 'war')).toBe(false);
   });
 });
