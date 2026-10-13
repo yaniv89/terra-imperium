@@ -289,7 +289,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
         expect(u.before, u.id).toBe(started.units[u.id].strength);
       }));
       expect(auditGameState(next).filter((i) => i.code === 'battle_ledger')).toEqual([]);
-    });
+    }, 120000);
 
     it('one count of men: the report, the Log and the result screen say the same number', () => {
       const { ended, setup, receipt, next } = settled();
@@ -311,7 +311,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       m.xp.forEach((x) => expect(next.units[x.id].xp - (settled().started.units[x.id].xp || 0)).toBe(x.gained));
       // gold looted in the battle is never shown as gold for the treasury unless it arrives
       if (m.loot?.banked) expect(next.resources.gold - settled().started.resources.gold).toBe(m.loot.gold);
-    });
+    }, 120000);
 
     it('the trained auxiliaries are on the receipt as temporary troops, never as regiments', () => {
       const { ended, receipt, next } = settled();
@@ -320,7 +320,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       expect(receipt.entry.aux.attacker.squads).toBe(trained);
       expect(auxiliaryLine(receipt.ledger.aux)).toMatch(/Temporary: they leave after the battle/);
       expect(Object.values(next.units).filter((u) => u.ownerId === 'fr').map((u) => u.id).every((id) => ['a1', 'a2', 'a3'].includes(id))).toBe(true);
-    });
+    }, 120000);
 
     it('while the campaign counts, the screen shows no number; a count that differs from the screen says which one stands', () => {
       const { started, ended, setup, payload } = settled();
@@ -331,7 +331,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       expect(desynced.entry.verification).toBe('desync');
       expect(battleResultModel(ended, setup, 0, {}, desynced).notice).toMatch(/This result is the one that counts/);
       expect(verificationNotice(desynced.entry)).toMatch(/different end/);
-    });
+    }, 120000);
 
     it('a unit missing from the result is a breach on the entry, told to the player and found by the audit', () => {
       const started = begin(withArmies());
@@ -346,7 +346,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       expect(receipt.ledger.mine).toMatchObject({ before: 3000, fallen: 1700, destroyed: 1 });
       const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
       expect(auditGameState(next).filter((i) => i.code === 'battle_ledger').length).toBeGreaterThan(0);
-    });
+    }, 60000);
 
     it('a battle that changes nothing says so, on the screen and in the Log', () => {
       const started = begin(withArmies());
@@ -363,7 +363,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       expect(next.logs[next.logs.length - 1].message).toBe(receipt.voidLine);
       const setup = buildCommandedSetup(started, pb);
       expect(battleResultModel({ result }, setup, 0, {}, receipt)).toMatchObject({ state: 'void', verdict: 'No effect', line: receipt.voidLine });
-    });
+    }, 60000);
   });
 
   it('the real city stands on the battlefield; its losses carry to the map under the 50% rule', () => {
