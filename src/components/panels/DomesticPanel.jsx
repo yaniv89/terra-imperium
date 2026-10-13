@@ -39,6 +39,8 @@ import { ActionButton, CollapsibleSection } from '../ui';
 import { cityGroups, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_ASSIGN_TURNS, GOVERNOR_REFRESH_TURNS } from '../../engine/governors';
 import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engine/authority';
 import { lawRulesOf, describeRules } from '../../engine/lawRules';
+import { previewGovernmentChange } from '../../engine/governmentPreview';
+import { lawEffectLines, lawLockReason } from '../../engine/lawEffects';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -365,19 +367,24 @@ const DomesticPanel = () => {
           <div className="text-[10px] text-fa-muted mt-0.5">{activeReforms.map((r) => r.name).join(' · ')}</div>
         )}
       </div>
-      {availableGovernmentTypes.map((gov) => (
+      {availableGovernmentTypes.map((gov) => {
+        const preview = previewGovernmentChange(state, gov.id);
+        return (
+        <React.Fragment key={gov.id}>
         <ActionButton
-          key={gov.id}
           icon={Landmark}
           label={`Become a ${gov.name}`}
-          description="Resets your reform choices; -2 stability."
+          description={preview.ok ? preview.lines.slice(1).join(' ') : 'Resets your reform choices; -2 stability.'}
           costs={ACTION_COSTS.changeGovernmentType}
           onClick={() => handleChangeGovernmentType(gov.id)}
           disabled={!canAfford(state.resources, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, state.age)}
           resources={state.resources}
           size="small"
         />
-      ))}
+        {preview.locksLaws && <div className="text-[11px] text-fa-danger-text px-1" data-testid="gov-locks-laws">This drops Authority under {AUTHORITY_NO_LAWS}: no laws until it recovers.</div>}
+        </React.Fragment>
+        );
+      })}
 
       {currentGovernmentType && currentAgeReformChoices.length > 0 && (
         <>
@@ -425,22 +432,26 @@ const DomesticPanel = () => {
               <span className="text-fa-muted capitalize">{category}</span>
               <span className="text-fa-text font-semibold">{currentLaw?.name}</span>
             </div>
-            {currentLaw?.description && <div className="text-fa-muted">{currentLaw.description}</div>}
-            <div className="flex flex-wrap gap-1 pt-1">
+            {currentLaw && <div className="text-fa-muted" data-testid={`law-effects-${category}`}>{lawEffectLines(currentLaw).map((l) => l.text).join('; ') || currentLaw.description}</div>}
+            <div className="flex flex-col gap-1.5 pt-1">
               {alternatives.map((law) => {
                 const canEnact = canEnactLaw(state, state.playerNationId, category, law.id);
                 const cost = { adm: getLawChangeCost(state, state.playerNationId, category, law.id) };
                 const requiredTech = getRequiredTechName(law);
+                const effectText = lawEffectLines(law).map((l) => l.text).join('; ');
+                const lock = lawLockReason(state, state.playerNationId, category, law);
                 return (
-                  <button
-                    key={law.id}
-                    onClick={() => handleChangeLaw(category, law.id)}
-                    disabled={!canEnact || !canAfford(state.resources, cost)}
-                    title={requiredTech && !canEnact ? `Requires ${requiredTech}` : law.description}
-                    className="text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text px-2 py-1"
-                  >
-                    {law.name} ({cost.adm} ADM)
-                  </button>
+                  <div key={law.id} className="flex flex-col items-start gap-0.5">
+                    <button
+                      onClick={() => handleChangeLaw(category, law.id)}
+                      disabled={!canEnact || !canAfford(state.resources, cost)}
+                      title={requiredTech && !canEnact ? `Requires ${requiredTech}` : effectText || law.description}
+                      className="text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text px-2 py-1"
+                    >
+                      {law.name} ({cost.adm} ADM)
+                    </button>
+                    <span className="text-[10px] text-fa-muted" data-testid={`law-alt-${law.id}`}>{effectText || law.description}{lock ? ` Locked: ${lock}.` : ''}</span>
+                  </div>
                 );
               })}
             </div>
