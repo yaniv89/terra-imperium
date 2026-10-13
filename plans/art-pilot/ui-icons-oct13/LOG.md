@@ -55,11 +55,11 @@ Group `ui` (`src/assets/icons/ui/`, new group), found with `uiIconUrl(id)`:
 | --- | --- | --- |
 | `capture-conquer.svg` | UI15 | Conquer: a banner planted on a wall. |
 | `capture-raze.svg` | UI15 | Raze: a broken wall on fire. |
-| `capture-tributary.svg` | UI15 | Make tributary: a chest and a coin under a small pennant. |
+| `capture-tributary.svg` | UI15 | Make tributary: one big coin dropping into an open hand. |
 | `capture-free.svg` | UI15 | Free: a gate standing open. |
 | `capture-header.svg` | UI15 | Card header plate, 512x96, the middle left empty for the title. |
 | `no-mans-land.svg` | UI17 | Pre-battle card badge: bare ground between two sides' pennants. |
-| `hold-map.svg` | UI07 | Campaign Hold marker: a planted spear and shield on a ground line. |
+| `hold-map.svg` | UI07 | Campaign Hold marker: a spear planted between two stakes on a thick ground line. |
 
 Not made, on purpose: Materials (retired), a house marker (houses, landmarks and walls have no marker),
 UI18.
@@ -115,16 +115,25 @@ The four label glyphs carry the same colours and differ by shape (circle, diamon
    (`background-size: 100% 100%`), and `<GameIcon disabled />` for a choice that is not on offer.
 3. Draw `base-marker` over HQ, camp or keep and the economy and military buildings (not houses,
    landmarks or walls), tinted by side; show `base-status` beside the "standing" counter.
-4. Swap the build sheet's close button and its Stop working button to `close` and `stop-working`, and
-   the command bar's All and find buttons to `select-all` and `find-army`.
+4. Give the build sheet's Stop working button `stop-working` (its close button keeps the lucide
+   glyph), and the command bar's All and find buttons `select-all` and `find-army`.
 5. Put `hold-map` on campaign units that hold, and `no-mans-land` on the pre-battle card.
 6. Placement: the label glyphs, the tints above, `field-edge` as a repeating texture on the edge band.
 
+## Second pass (review at small sizes)
+
+- `capture-tributary` was a chest, a coin and a pennant, and turned into a blob at 16 px. It is now one
+  idea: a big coin over an open hand. Checked at 14 px on the true-size sheet.
+- `hold-map` was a shield, which did not say "stay here". It is now a spear planted between two stakes
+  on a ground line. It has no ring (base marker), no pennant (find army) and no wall (conquer).
+
+## Settled by the user
+
+- The battle keeps the new `stock-food` and `stock-gold`. The campaign's `wheat` and `gold` are untouched.
+- "Free" stays the open gate.
+- The HUD close button keeps its one-colour lucide glyph. `close.svg` stays in the folder, unused.
+
 ## Open points
 
-- `stock-food` and `stock-gold` are new drawings, bolder than the campaign's `wheat` and `gold`, so the
-  battle bar reads at 11 px. The campaign icons are untouched. Say so if the battle should reuse them.
-- `capture-tributary` is the busiest of the set at 11 px (chest, coin, pennant). It reads from 14 px.
-- The glyphs (`close`, `select-all`, `find-army`) are coloured art, while the HUD buttons today use
-  one-colour lucide glyphs. The code session may prefer to keep lucide for `close`.
+- `select-all` and `find-army` are coloured art, while the HUD buttons today use one-colour lucide glyphs.
 - `resources/timber.webp` and `resources/stone.webp` stay: the campaign map still uses them.
