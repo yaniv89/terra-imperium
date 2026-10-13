@@ -94,9 +94,10 @@ const MarchBar = ({ onSelectRegion }) => {
   if (fieldAttack != null) return <PreBattleModal fromRegionId={march.from} tile={fieldAttack} onClose={() => { setFieldAttack(null); cancel(); }} />;
 
   return (
-    <div data-testid="march-bar" className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-emerald-500/50 bg-fa-panel/95 shadow-2xl px-3 py-2 text-[12px] text-fa-text flex items-center gap-2">
+    <div data-testid="march-bar" className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-emerald-500/50 bg-fa-panel/95 shadow-2xl px-3 py-2 pl:py-1 text-[12px] pl:text-[11px] text-fa-text flex items-center gap-2">
       <Flag className="w-4 h-4 text-fa-good shrink-0" />
-      <div className="flex-1 min-w-0 leading-snug">{line}</div>
+      {/* A phone held sideways: two lines at most, so the bar stays a strip and the route under it shows (I083); the title holds the rest. */}
+      <div className="flex-1 min-w-0 leading-snug pl:line-clamp-2" data-testid="march-line">{line}</div>
       {m.canAttackNow && <button onClick={attack} data-testid="march-attack-now" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text">Attack</button>}
       {m.canMarchAttack && (
         <button onClick={marchAttack} data-testid="march-attack" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text flex items-center gap-1.5">
