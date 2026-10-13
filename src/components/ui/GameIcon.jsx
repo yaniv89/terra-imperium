@@ -5,7 +5,8 @@
 import React from 'react';
 import { iconUrl } from '../../data/icons';
 
-const GameIcon = ({ group, id, url = null, size = 20, fallback = null, title, className = '', halo = true }) => {
+// `disabled` is the one look of an icon whose choice is not on offer (grey, 45% strength: index.css).
+const GameIcon = ({ group, id, url = null, size = 20, fallback = null, title, className = '', halo = true, disabled = false }) => {
   const src = url || iconUrl(group, id);
   if (!src) return fallback;
   return (
@@ -18,7 +19,7 @@ const GameIcon = ({ group, id, url = null, size = 20, fallback = null, title, cl
       draggable={false}
       loading="lazy"
       decoding="async"
-      className={`game-icon shrink-0 select-none ${halo ? 'game-icon-halo' : ''} ${className}`}
+      className={`game-icon shrink-0 select-none ${halo && !disabled ? 'game-icon-halo' : ''} ${disabled ? 'game-icon-disabled' : ''} ${className}`}
       style={{ width: size, height: size }}
     />
   );

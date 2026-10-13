@@ -1,7 +1,7 @@
 // src/components/battle/EconomyHud.jsx
 // The battle economy's controls (phase R1; src/battle/sim/economy.js) and the info card, phone first
 // (844x390; plans/UI-DESIGN.md section 8, B09):
-//   ResIcon / Cost  a resource as its picture (wheat, timber, gold: src/assets/icons/resources), a
+//   ResIcon / Cost  a resource as its picture (the stock icons of src/assets/icons/battle), a
 //                   price with the parts you cannot pay in red
 //   BuildMenu       the buildings a laborer can raise as picture tiles (src/assets/icons/battle/
 //                   build-*.webp, rendered from the battle's own models): name, cost, the shortfall on
@@ -12,19 +12,25 @@
 //   BuildingActions your own building's actions for the context panel (B10): the queue, train
 //                   tiles, rally, and the house to build when training waits for housing
 import React, { useEffect, useRef, useState } from 'react';
-import { Wheat, TreePine, Coins, Home, Hammer, X, Flag, Hourglass, Castle, Landmark, DoorOpen, Gem, Shield } from 'lucide-react';
+import { Wheat, TreePine, Coins, Package, Users, Home, Hammer, X, Flag, Hourglass, Castle, Landmark, DoorOpen, Gem, Shield } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
 import { BUILDINGS, UNITS, RESOURCES, ecoName, buildableFor, trainableRoles } from '../../battle/data/economy';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
-import { unitIconUrl } from '../../data/icons';
+import { unitIconUrl, BATTLE_STOCK_ICON_IDS } from '../../data/icons';
 import { buildBlock, buildDetail } from './inspectModel';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
-const RES_ICON = { food: ['wheat', Wheat, 'text-amber-200'], materials: ['timber', TreePine, 'text-emerald-200'], gold: ['gold', Coins, 'text-yellow-300'] };
-const RES_NAME = { food: 'Food', materials: 'Materials', gold: 'Gold' };
+// The battle stock icons (UI14, src/data/icons.js BATTLE_STOCK_ICON_IDS). The sim's one "materials"
+// stock draws the Wood icon until it is split into wood and stone; `supply` and `population` are
+// the top bar's two counters.
+const RES_ICON = {
+  food: [Wheat, 'text-amber-200'], materials: [TreePine, 'text-emerald-200'], gold: [Coins, 'text-yellow-300'],
+  supply: [Package, 'text-fa-brass'], population: [Users, 'text-fa-you']
+};
+const RES_NAME = { food: 'Food', materials: 'Materials', gold: 'Gold', supply: 'Battle supply', population: 'Population / housing' };
 export const ResIcon = ({ res, size = 14 }) => {
-  const [id, Glyph, tone] = RES_ICON[res];
-  return <GameIcon group="resources" id={id} size={size} title={RES_NAME[res]} fallback={<Glyph className={`shrink-0 ${tone}`} style={{ width: size, height: size }} aria-label={RES_NAME[res]} />} />;
+  const [Glyph, tone] = RES_ICON[res];
+  return <GameIcon group="battle" id={BATTLE_STOCK_ICON_IDS[res]} size={size} title={RES_NAME[res]} fallback={<Glyph className={`shrink-0 ${tone}`} style={{ width: size, height: size }} aria-label={RES_NAME[res]} />} />;
 };
 export const Cost = ({ cost, stock, size = 11, className = '' }) => (
   <span className={cx('flex flex-wrap justify-center gap-x-1.5 leading-none fa-num', className)}>
