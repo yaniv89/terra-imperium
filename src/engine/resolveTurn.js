@@ -88,6 +88,7 @@ import { updateDefensivePacts } from './pacts';
 import { computeSupplyFlow, isCampaigning, unitsByOwner, HUNGER_MORALE } from './supplies';
 import { advanceMarches, marchUpkeep } from './routes';
 import { normalizeUnitTiles } from './armies';
+import { canReinforce } from './unitLocation';
 import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
 import { processSieges } from './sieges';
 import { opinionOf, opinionGivesCasusBelli } from './opinion';
@@ -576,8 +577,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       patch = { ...patch, morale: Math.min(100, u.morale + Math.round(MORALE_RECOVERY_PER_TURN * (1 + moraleRecoveryBonus) * maintenanceFactor)) };
     }
 
-    const region = regions[u.regionId];
-    const isSuppliedHomeTerritory = region && region.owner === u.ownerId && !region.occupiedBy;
+    // Recruits reach a unit that STANDS on its nation's own, unoccupied land (unitLocation.js): the
+    // tile is the truth, the home base (`regionId`) is not a position. A field army in Sinai based
+    // at Men-nefer no longer refills through its base (playtest audit I058, plan 2.4).
+    const isSuppliedHomeTerritory = canReinforce(state, u, regions);
     if (!hungry && !foughtThisTurn && isSuppliedHomeTerritory && u.strength < u.maxStrength) {
       const cadreMult = hasPerk(u, 'cadre') ? 2 : 1;
       const gain = Math.min(Math.floor((ownerPool.hr || 0) * 10), u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
