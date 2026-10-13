@@ -52,7 +52,7 @@ const MarchBar = ({ onSelectRegion }) => {
   const attack = () => { cancel(); onSelectRegion?.(target); };
 
   let line;
-  if (target == null) line = naval ? <>Tap a port or a sea tile to sail to from <b>{name(march.from)}</b>.</> : <>Tap a city or a tile to march to from <b>{name(march.from)}</b>.</>;
+  if (target == null) line = naval ? <>Tap a port or a sea tile to sail to. Starting from <b>{name(march.from)}</b>.</> : <>Tap a city or a tile to march to. Starting from <b>{name(march.from)}</b>.</>;
   else if (m.canAttackNow) line = <>Your army borders <b>{targetName}</b>: attack it now.</>;
   else if (!plan?.ok) line = <span className="text-fa-danger-text">{plan?.reason || 'No route.'}</span>;
   else if (m.canMarchAttack) {

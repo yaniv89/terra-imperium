@@ -11,6 +11,7 @@ import { useGame } from '../../context/GameContext';
 import { focusRegion } from '../map/marchEvents';
 import { Button, CloseButton } from '../ui/atlas';
 import { tributeDemandModel, joinOfferModel } from './tributeSheetModel';
+import { subjectVerb } from '../../engine/grammar';
 import { openIndependent } from './independentEvents';
 import { ShieldMark, GrudgeMeter, CardLabel } from './IndependentBits';
 
@@ -50,7 +51,7 @@ export const TributeDemandSheet = ({ demandId, onClose }) => {
   const verb = chosen.id === 'pay' ? 'Pay' : chosen.id === 'hire' ? 'Hire and refuse' : 'Refuse';
   return (
     <Frame testId="tribute-demand-sheet" label={`${m.name} demand tribute`} onClose={onClose}>
-      <Header m={m} title={`${m.name} demand ${m.gold} gold a turn for ${m.turns} turns, or they raid`} onClose={onClose} />
+      <Header m={m} title={`${subjectVerb(m.name, 'demand')} ${m.gold} gold a turn for ${m.turns} turns, or they raid`} onClose={onClose} />
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2 text-[12px]">
         <section className="space-y-1" data-testid="tribute-grudge">
           <CardLabel right={<span className="fa-num normal-case tracking-normal text-[12px] text-fa-text">{m.grudge.value} {m.grudge.word}{chosen.id !== 'pay' ? <span className="text-fa-danger-text"> +{m.grudge.after - m.grudge.value} to {m.grudge.after}</span> : null}</span>}>Grudge toward you</CardLabel>
