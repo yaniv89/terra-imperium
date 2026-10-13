@@ -23,6 +23,9 @@ export const HEX_HALF_PX = 0.3;
 export const SELECTED_HALF_PX = 0.75;
 export const OUTLINE_HALF_PX = 0.4;
 export const FAINT_HALF_PX = 0.25;
+// The settle view (uTintOn 2): the tints' gain below the hex zoom and the hatch on blocked land.
+export const SETTLE_FAR_GAIN = 1.7;
+export const SETTLE_HATCH_PX = 7;
 export const MASK_COLOR = [11 / 255, 17 / 255, 32 / 255];
 // The soft fog edge (fogField.js): the field's band, its noise warp and the per-tile cores.
 export const FOG_DEEP = 0.002;     // below this the field is deep dark: the mask, no tile search
@@ -154,9 +157,12 @@ void main() {
   bool landA = ca.w > 0.5;
 
   // Per neighbour: the distance in CSS px to the shared edge, and what lies beyond it.
-  float dist[6]; vec4 tn[6]; bool landN[6];
+  // unk: the neighbour is unexplored, so nobody knows whose land it is: no border, band or
+  // outline is drawn on that edge. A lone explored tile of somebody's land used to get a border on
+  // all six sides, a closed ring far from its city (playtest audit I078).
+  float dist[6]; vec4 tn[6]; bool landN[6]; bool unk[6];
   for (int k = 0; k < 6; k++) {
-    dist[k] = 1e6; tn[k] = vec4(0.0); landN[k] = false;
+    dist[k] = 1e6; tn[k] = vec4(0.0); landN[k] = false; unk[k] = false;
     if (n[k] < 0) continue;
     vec4 cn = centreOf(n[k]);
     vec3 ab = ca.xyz - cn.xyz;
@@ -165,6 +171,7 @@ void main() {
     dist[k] = max(0.0, f) / max(length(g), 1e-12);
     tn[k] = tileOf(n[k]);
     landN[k] = cn.w > 0.5;
+    unk[k] = uFogOn > 0.5 && tn[k].z < 0.5;
   }
 
   acc = vec4(0.0);
@@ -202,7 +209,7 @@ void main() {
   // then the coloured outlines (both sides of the edge), the selected city last.
   for (int pass = 0; pass < 3; pass++) {
     for (int k = 0; k < 6; k++) {
-      if (n[k] < 0) continue;
+      if (n[k] < 0 || unk[k]) continue;
       int cityN = int(floor(tn[k].x + 0.5)) - 1;
       if (cityN == cityA) continue;
       if (pass == 0) {
@@ -220,17 +227,17 @@ void main() {
   // The nation's band just inside its border.
   if (natA > 0.5) {
     float dBand = 1e6;
-    for (int k = 0; k < 6; k++) if (n[k] >= 0 && tn[k].y != natA) dBand = min(dBand, dist[k]);
+    for (int k = 0; k < 6; k++) if (n[k] >= 0 && !unk[k] && tn[k].y != natA) dBand = min(dBand, dist[k]);
     if (dBand < ${BAND_PX.toFixed(1)} + 1.0) over(bandA.rgb, 0.9 * line(dBand, ${BAND_PX.toFixed(1)}));
   }
   // The nation border.
   for (int k = 0; k < 6; k++) {
-    if (n[k] < 0 || tn[k].y == natA || (natA < 0.5 && tn[k].y < 0.5)) continue;
+    if (n[k] < 0 || unk[k] || tn[k].y == natA || (natA < 0.5 && tn[k].y < 0.5)) continue;
     over(vec3(0.008, 0.024, 0.09), 0.85 * line(dist[k], uNationHalf));
   }
   // War: a red band round every enemy city, a dark red hairline on its edge.
   for (int k = 0; k < 6; k++) {
-    if (n[k] < 0) continue;
+    if (n[k] < 0 || unk[k]) continue;
     int cityN = int(floor(tn[k].x + 0.5)) - 1;
     if (cityN == cityA) continue;
     bool enemyN = cityN >= 0 && mod(floor(cityBand(cityN).w + 0.5), 2.0) > 0.5;
@@ -245,7 +252,20 @@ void main() {
   // Explored, out of sight: the grey wash.
   if (washA > 0.0) over(vec3(0.059, 0.09, 0.165), 0.55 * washA);
   // The lens tints.
-  if (uTintOn > 0.5) { vec4 t = texelFetch(uTint, at(a, ${DATA_W}), 0); if (t.a > 0.0) over(t.rgb, t.a); }
+  if (uTintOn > 0.5) {
+    vec4 t = texelFetch(uTint, at(a, ${DATA_W}), 0);
+    if (t.a > 0.0) {
+      float ta = t.a;
+      if (uTintOn > 1.5) {
+        // The settle view: stronger while the hexes are too small to see (the strategic zoom),
+        // and blocked land (the red tints) hatched, so legal and blocked land differ by more
+        // than their colour (playtest audit I089).
+        ta = min(0.8, ta * (uHex > 0.5 ? 1.0 : ${SETTLE_FAR_GAIN.toFixed(2)}));
+        if (t.r > t.g) ta = min(0.92, ta + 0.3 * step(mod((vWorld.x + vWorld.y) * uK, ${SETTLE_HATCH_PX.toFixed(1)}), ${(SETTLE_HATCH_PX * 0.3).toFixed(1)}));
+      }
+      over(t.rgb, ta);
+    }
+  }
   // The selected tile.
   if (uSelTile >= 0.0) {
     int sel = int(floor(uSelTile + 0.5));

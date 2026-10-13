@@ -1,6 +1,6 @@
 // src/components/ui/SettingsSheet.jsx
 // Settings (W12, plans/UI-DESIGN.md): "saved as you change them". Opened from Menu on the tab rail.
-//   Map       the globe view (hidden by default) and the old map drawing (mapPrefs.js, per browser);
+//   Map       the old map drawing (the globe switch is hidden, user answer Q8) (mapPrefs.js, per browser);
 //             the game's map (MapCard.jsx: the map code, Clear cached worlds)
 //   Battles   the default mode the pre-battle screen preselects (Command, Auto or ask each time),
 //             always Auto for defences, instant AI battles (state.battleSettings, per game)
@@ -103,7 +103,9 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
         <div className="flex-1 overflow-y-auto px-4 pb-4 grid gap-x-6 gap-y-4 md:grid-cols-2">
           <section className="space-y-1" aria-labelledby="settings-map">
             <Label id="settings-map">Map display</Label>
-            <Switch label="Globe view" hint="Hidden by default; the flat map is faster" checked={prefs.globe} onChange={(v) => setMapPrefs({ globe: v })} testId="map-show-globe" />
+            {/* The globe is hidden (user answer Q8, playtest audit I079): its code stays (mapPrefs.js
+                `globe`, GlobeContainer), the switch is off the screen. Its fog is not kept up.
+            <Switch label="Globe view" hint="Hidden by default; the flat map is faster" checked={prefs.globe} onChange={(v) => setMapPrefs({ globe: v })} testId="map-show-globe" /> */}
             <Switch label="Fog: explored world" hint={fogOn(state) ? 'Off. Locked: it is chosen on the start screen and cannot change during a game' : 'On. Locked: it is chosen on the start screen and cannot change during a game'} checked={!fogOn(state)} onChange={() => {}} disabled testId="settings-fog" />
             <Switch label="Old map drawing" hint="The previous, slower map; only if the new one shows something wrong here" checked={prefs.renderer === 'svg'} onChange={(v) => setMapPrefs({ renderer: v ? 'svg' : 'webgl' })} testId="map-old-renderer" />
             <MapCard map={state.scenario?.map} withCache className="pt-2" label="This game's world" />

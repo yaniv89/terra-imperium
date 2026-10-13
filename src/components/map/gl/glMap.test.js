@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
-import { worldRect, wrapNear, viewFor, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, startZoomFor, EARTH_RADIUS_KM } from './mapView';
+import { worldRect, wrapNear, viewFor, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, startZoomFor, EARTH_RADIUS_KM, wheelZoomDelta, WHEEL_MAX_STEP } from './mapView';
 import { cssColor } from './cssColor';
 import { packShelf, ATLAS_SIZE } from './spriteAtlas';
 import { indexCities, buildTileTexels, buildCityTexels, buildTintTexels, FLAG_ENEMY, FLAG_OWN, PLAYER_BAND_COLOR } from './territoryData';
@@ -49,6 +49,31 @@ describe('the WebGL map camera', () => {
     expect(pickHit(v, hits, 400, 190).kind).toBe('marker');
     expect(pickHit(v, hits, 400, 206).kind).toBe('city'); // below the marker's box, on the disc (radius 8)
     expect(pickHit(v, hits, 460, 260)).toBeNull();
+  });
+
+  it('a city badge is a finger-sized target and the nearest one wins (I074)', () => {
+    const v = view({ k: 1, x: 0, y: 0 });
+    const a = screenToWorld(v, 400, 200); const b = screenToWorld(v, 410, 200);
+    const city = (id, anchor) => ({ kind: 'city', id, anchor, size: [7, 7], exp: [0.5, 0], round: true, pad: 2, minR: 14, nearest: true });
+    const hits = [city('a', a), city('b', b)];
+    expect(pickHit(v, hits, 402, 200).id).toBe('a'); // inside both discs: the nearer centre
+    expect(pickHit(v, hits, 409, 203).id).toBe('b');
+    expect(pickHit(v, hits, 388, 200).id).toBe('a'); // 12 px out: only the 14 px least radius reaches
+    expect(pickHit(v, hits, 440, 200)).toBeNull();
+    // a marker drawn over the cities still wins where it is
+    const marker = { kind: 'marker', marker: { regionId: 'm' }, anchor: a, size: [10, 10] };
+    expect(pickHit(v, [...hits, marker], 401, 201).kind).toBe('marker');
+    // a settler under the cities loses to the city the tap is on
+    expect(pickHit(v, [{ kind: 'settler', tile: 1, anchor: a, size: [12, 12], round: true }, ...hits], 401, 201).kind).toBe('city');
+  });
+
+  it('one wheel event is one small zoom step (I075)', () => {
+    expect(wheelZoomDelta({ deltaY: -100, deltaMode: 0 })).toBeCloseTo(0.2, 6); // one notch as before
+    expect(wheelZoomDelta({ deltaY: -900, deltaMode: 0 })).toBe(WHEEL_MAX_STEP); // a burst is capped
+    expect(wheelZoomDelta({ deltaY: 900, deltaMode: 0 })).toBe(-WHEEL_MAX_STEP);
+    expect(wheelZoomDelta({ deltaY: -3, deltaMode: 1 })).toBeCloseTo(0.15, 6);
+    expect(wheelZoomDelta({ deltaY: -10, deltaMode: 0, ctrlKey: true })).toBeCloseTo(0.2, 6); // a trackpad pinch
+    expect(wheelZoomDelta({ deltaY: NaN })).toBe(0);
   });
 });
 

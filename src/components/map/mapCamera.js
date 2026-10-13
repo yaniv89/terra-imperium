@@ -96,3 +96,24 @@ export const rememberCamera = (key, { lat, lng, scaleK }) => {
 export const recallCamera = (key) => (remembered && key && remembered.key === key ? { ...remembered } : null);
 
 export const forgetCamera = () => { remembered = null; };
+
+// ---------------------------------------------------------------- camera intents, applied once
+// A fly-to is an INTENT (the minimap, a chip, "Show on map"): it is applied once. The map's
+// callbacks are rebuilt whenever a sheet changes the free part of the screen or the screen is
+// resized, and an effect that depended on them used to fly to the last target again (playtest
+// audit I072: the camera jumped to an old place when a sheet opened or closed). The gate below
+// remembers what was applied; `fresh` says whether the sheet that came with the intent may still
+// re-centre it into the room that is left (INTENT_SETTLE_MS, a sheet's opening animation).
+export const INTENT_SETTLE_MS = 700;
+
+/** A gate for intents: `take(target)` is true once per target (by identity; null is never one),
+ * `fresh(now)` while the last taken intent is younger than `settleMs`, `clear()` forgets it. */
+export const createIntentGate = (settleMs = INTENT_SETTLE_MS) => {
+  let last = null; let at = -Infinity;
+  return {
+    take: (target, now = 0) => { if (target == null || target === last) return false; last = target; at = now; return true; },
+    fresh: (now = 0) => last != null && now - at <= settleMs,
+    last: () => last,
+    clear: () => { last = null; at = -Infinity; }
+  };
+};

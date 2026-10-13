@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
 import {
   cleanLatLng, normalLng, latLngOfTile, latLngOfCity, latLngOfPlace, cameraTarget, battlePlaces, freshBattleReport,
-  cameraKey, rememberCamera, recallCamera, forgetCamera
+  cameraKey, rememberCamera, recallCamera, forgetCamera, createIntentGate, INTENT_SETTLE_MS
 } from './mapCamera';
 import { carryTransform, isSaneTransform } from './gl/mapView';
 import { getTiles } from '../../data/geo/tiles';
@@ -147,5 +147,28 @@ describe('a resize keeps the camera on the same place', () => {
     expect(carryTransform({ transform: { x: 0, y: 0, k: 0 }, from, to })).toBeNull();
     expect(carryTransform({ transform: null, from, to })).toBeNull();
     expect(isSaneTransform({ x: 1, y: Infinity, k: 1 })).toBe(false);
+  });
+});
+
+describe('a camera intent is applied once (I072)', () => {
+  it('takes each target once, by identity, and never a null one', () => {
+    const gate = createIntentGate(700);
+    const a = { lat: 1, lng: 2 };
+    expect(gate.take(null)).toBe(false);
+    expect(gate.take(a, 1000)).toBe(true);
+    // the callbacks were rebuilt (a sheet opened, the screen was resized): the same target again
+    expect(gate.take(a, 5000)).toBe(false);
+    // a new request for the same place is a new object, so it flies again
+    expect(gate.take({ lat: 1, lng: 2 }, 6000)).toBe(true);
+  });
+  it('is fresh only while the sheet that came with it opens', () => {
+    const gate = createIntentGate(INTENT_SETTLE_MS);
+    expect(gate.fresh(0)).toBe(false);
+    gate.take('city-a', 1000);
+    expect(gate.fresh(1000 + INTENT_SETTLE_MS)).toBe(true);
+    expect(gate.fresh(1001 + INTENT_SETTLE_MS)).toBe(false);
+    gate.clear();
+    expect(gate.last()).toBeNull();
+    expect(gate.take('city-a', 9000)).toBe(true); // the same city opened again later
   });
 });

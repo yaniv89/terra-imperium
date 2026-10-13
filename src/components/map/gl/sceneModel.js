@@ -12,6 +12,7 @@ import { getTiles } from '../../../data/geo/tiles';
 import { cityLatLon, landTilesWithin } from '../../../data/geo/cityFeatures';
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
 import { getNationColor } from '../../../data/nationColors';
+import { isIndependent } from '../../../data/independents';
 import { getEffectiveAgeId } from '../../../data/ages';
 import { getTechAgeId } from '../../../engine/nationState';
 import { wallsOf } from '../../../engine/sieges';
@@ -44,6 +45,8 @@ export const CITY_DETAIL_ZOOM = 2.5;
 export const NAME_EARLY_ZOOM = 1.5;
 export const CLOSE_ZOOM_K = 10 / hexSizeVsF75();
 export const FOREIGN_MIN_ZOOM = 2;
+/** The least radius (CSS px) of a city badge's tap target below the hex zoom. */
+export const CITY_TAP_MIN_R = 14;
 const CLUSTER_RADIUS_PX = 22;
 const IMPROVEMENT_GLYPH = { farm: 'F', pasture: 'P', camp: 'H', mine: 'M', quarry: 'Q', lumber_camp: 'L', fishing_boats: 'B', plantation: 'N', oil_well: 'O', fort: 'W' };
 const WHITE = [1, 1, 1, 1];
@@ -100,7 +103,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
       const own = owner === state.playerNationId;
       const art = cityBannerArt({
         name: city.name, size: city.size, colour: own ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8', selected: city.id === selectedRegion,
-        capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25,
+        capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25, indep: isIndependent(state.nations, owner),
         siege: city.siege ? Math.max(0, Math.min(1, city.siege.hp / Math.max(1, city.siege.maxHp))) : null,
         outpost: city.outpost ? Math.max(0, Math.min(1, (city.outpost.progress || 0) / OUTPOST_DONE)) : null,
         build: own ? builds.get(city.id) ?? null : null
@@ -112,7 +115,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
     }
     const rCss = r0 * sk;
     const art = badgeArt({
-      r0, colour, capital: !!city.isCapital,
+      r0, colour, capital: !!city.isCapital, indep: isIndependent(state.nations, city.owner),
       fill: city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc',
       iconUrl: city.outpost ? null : cityIconUrl(townTier(city)?.id, ageOf(city.owner)),
       capitalUrl: city.isCapital ? capitalUrl : null,
@@ -125,10 +128,13 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
     }, badgeRadiusStep(rCss * dpr));
     const box = r0 * BADGE_BOX_R * 2;
     sprites.push({ art, anchor, offset: [0, 0, 0, 0], size: [box, box], exp: [0.5, 0], color: fade(city.ghost ? 0.6 : 1) });
-    hits.push({ kind: 'city', id: city.id, anchor, offset: [0, 0, 0, 0], size: [r0 * 2, r0 * 2], exp: [0.5, 0], round: true, pad: 0 });
+    // The whole badge is the target, never smaller than a fingertip while the hexes are too small
+    // to pick (the strategic zoom, where a badge is a few pixels and covers several tiles), and
+    // the nearest badge wins where they stand close together (playtest audit I074).
+    hits.push({ kind: 'city', id: city.id, anchor, offset: [0, 0, 0, 0], size: [r0 * 2, r0 * 2], exp: [0.5, 0], round: true, pad: 2, minR: k < HEX_FROM_ZOOM ? CITY_TAP_MIN_R : 0, nearest: true });
     if (k >= CITY_DETAIL_ZOOM || (k >= NAME_EARLY_ZOOM && (city.isCapital || city.owner === state.playerNationId))) {
       // a remembered town (fog, W03) says when it was last seen
-      const label = labelArt(city.ghost && city.lastSeen ? `${city.name} · last seen T${city.lastSeen}` : city.name, { size: 11, weight: 700, fill: city.ghost ? '#B9B19F' : '#fff' }, dpr);
+      const label = labelArt(city.ghost && city.lastSeen ? `${city.name} · last seen T${city.lastSeen}` : city.name, { size: 11, weight: 700, fill: city.ghost ? '#B9B19F' : isIndependent(state.nations, city.owner) ? '#DCD5F7' : '#fff' }, dpr);
       // the baseline 2 px over the disc, as the SVG's text
       names.push({ art: label, anchor, offset: [0, -2 - label.css.baseline + label.css.h / 2, 0, -r0], size: [label.css.w, label.css.h], exp: [0, 0.5], color: fade(city.ghost ? 0.6 : 1) });
     }
@@ -268,6 +274,8 @@ export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
 };
 
 // ------------------------------------------------------------------ march routes
+/** Half the width of a march line, CSS px, at every zoom. */
+export const MARCH_LINE_PX = 1.3;
 /** The marches under way and the one being planned (MarchContext lines). */
 export const marchShapes = ({ marchLines, projection, k, selectedArmy, dpr }) => {
   const lines = []; const sprites = [];
@@ -284,24 +292,28 @@ export const marchShapes = ({ marchLines, projection, k, selectedArmy, dpr }) =>
     });
     if (pts.length < 2) return;
     const preview = l.kind === 'preview';
-    const colour = cssColor(preview ? '#fde68a' : l.halted ? '#f87171' : '#34d399');
+    const settlers = l.kind === 'settlers'; // settlers on their way to a site (settleRoutes.js)
+    const colour = cssColor(preview || settlers ? '#fde68a' : l.halted ? '#f87171' : '#34d399');
     const faint = !preview && selectedArmy != null && l.points[0] !== selectedArmy;
     const op = faint ? 0.5 : 1;
-    const w = 2.2; // CSS px times sqrt(k): the SVG's 2.2 / sqrt(k) world units
-    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: w * 0.9, exp: 0.5, color: [15 / 255, 23 / 255, 42 / 255, 0.55 * op] });
-    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: w * 0.45, dash: preview ? w * 3 : 0, gap: preview ? w * 2 : 0, exp: 0.5, color: [colour[0], colour[1], colour[2], op] });
+    // A thin line of the same width on screen at every zoom (it used to grow with the zoom, to
+    // 14 px in the close view, and hid the land it crossed: playtest audit I071).
+    const w = settlers ? MARCH_LINE_PX * 0.85 : MARCH_LINE_PX;
+    const dashed = preview || settlers;
+    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: w + 0.9, exp: 0, color: [15 / 255, 23 / 255, 42 / 255, 0.5 * op] });
+    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: w, dash: dashed ? 7 : 0, gap: dashed ? 4 : 0, exp: 0, color: [colour[0], colour[1], colour[2], op] });
     // the arrowhead: two short strokes back from the end
     const end = pts[pts.length - 1]; const prev = pts[pts.length - 2];
     const ang = Math.atan2(end[1] - prev[1], end[0] - prev[0]);
-    const ah = (5 * sk) / k; // world units
-    [2.5, -2.5].forEach((da) => lines.push({ a: end, b: [end[0] + Math.cos(ang + da) * ah, end[1] + Math.sin(ang + da) * ah], half: w * 0.5, exp: 0.5, color: [colour[0], colour[1], colour[2], op] }));
-    if (preview) l.marks.slice(0, -1).forEach((m) => { const p = pts[m.index]; if (!p) return; const d = discArt(16); sprites.push({ art: d, anchor: p, size: [3.2, 3.2], exp: [0.5, 0], color: [colour[0], colour[1], colour[2], 1] }); });
+    const ah = Math.min(5 * sk, 9) / k; // world units: at most 9 px on screen
+    [2.5, -2.5].forEach((da) => lines.push({ a: end, b: [end[0] + Math.cos(ang + da) * ah, end[1] + Math.sin(ang + da) * ah], half: w, exp: 0, color: [colour[0], colour[1], colour[2], op] }));
+    if (preview) l.marks.slice(0, -1).forEach((m) => { const p = pts[m.index]; if (!p) return; const d = discArt(16); sprites.push({ art: d, anchor: p, size: [5, 5], exp: [0, 0], color: [colour[0], colour[1], colour[2], 1] }); });
     if (!faint) {
       const turns = l.marks.length ? l.marks[l.marks.length - 1].turn : null;
       const text = l.halted ? 'halted' : turns != null ? `${turns} turn${turns === 1 ? '' : 's'}` : '';
       if (text) {
         const art = labelArt(text, { size: 10, weight: 700, fill: l.halted ? '#fecaca' : '#fff', stroke: 'rgba(15,23,42,0.85)', strokeW: 2.2 }, dpr);
-        sprites.push({ art, anchor: end, offset: [0, -art.css.baseline + art.css.h / 2, 0, -9], size: [art.css.w, art.css.h], exp: [0, 0.5], color: WHITE });
+        sprites.push({ art, anchor: end, offset: [0, -12 - art.css.baseline + art.css.h / 2, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });
       }
     }
   });
