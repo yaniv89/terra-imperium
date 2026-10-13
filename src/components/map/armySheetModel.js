@@ -10,7 +10,10 @@ import { unitTile, movePoints } from '../../engine/armies';
 import { supplyOf, supplyZone, supplyReport, SUPPLY_MAX, SUPPLY_LINE_RINGS } from '../../engine/supplyMeter';
 import { isFortified } from '../../engine/fieldBattle';
 import { getModifier } from '../../engine/modifiers/sheet';
-import { routeDestination, placeName } from '../../engine/routes';
+import { routeDestination, placeName, routeEta } from '../../engine/routes';
+import { armyStatus, isHolding } from '../../engine/standingOrders';
+import { whereLabel, locationOf } from '../../engine/unitLocation';
+import { computeSupplyFlow } from '../../engine/supplies';
 import { getTechAgeId, getResearched } from '../../engine/nationState';
 import { mapEffectsFor } from '../../engine/techMapEffects';
 
@@ -25,7 +28,7 @@ import { declareWarModel } from '../panels/warActions';
 import { fleetPace } from '../../engine/fleets';
 import { navalLineOf, navalName } from '../../data/navalLines';
 import { validateInvasion } from '../../engine/invasion';
-import { besiegersOf, siegeHpOf, siegeMaxHp, wallsOf, isEncircled, siegeStrength } from '../../engine/sieges';
+import { besiegersOf, siegeHpOf, siegeMaxHp, wallsOf, isEncircled, siegeStrength, siegeOrders, centreIndex } from '../../engine/sieges';
 import { ringsForKm, ringsFromF75 } from '../../data/geo/gridScale';
 
 export const ZONE_TEXT = {
@@ -83,22 +86,46 @@ export const armySheetModel = (state, tile) => {
     g.units.push(r);
   });
   const zone = naval ? { zone: 'sea' } : supplyZone(state, tiles, units[0]);
-  const report = naval ? null : supplyReport(state, units[0], { lineRings: SUPPLY_LINE_RINGS + ringsForKm(mapEffectsFor(state, state.playerNationId).lineRings, { min: 0 }) + ringsFromF75(Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total))), max });
+  // The forecast takes what the turn's supply phase takes (resolveTurn.js): the line's reach, the
+  // attrition modifier, an empty supplies stock, the stack cap. It reads the unit worst off, so
+  // the sheet never says "fine" over a starving regiment (playtest audit I005).
+  const fx = mapEffectsFor(state, state.playerNationId);
+  const worst = units.reduce((w, u) => (supplyOf(u, max) < supplyOf(w, max) ? u : w), units[0]);
+  const report = naval ? null : supplyReport(state, worst, {
+    lineRings: SUPPLY_LINE_RINGS + ringsForKm(fx.lineRings, { min: 0 }) + ringsFromF75(Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total))),
+    max, stackCapExtra: fx.stackCap,
+    attritionMult: Math.max(0, 1 + getModifier(state, state.playerNationId, 'national.attrition').total),
+    hungry: !!computeSupplyFlow({ regions: state.regions, units: state.units, nationId: state.playerNationId, ageId, resources: state.resources, turnNumber: state.turnNumber, tileOwner: state.world?.tileOwner }).hungry
+  });
   const fortified = !naval && units.every((u) => isFortified(u, state.turnNumber));
   const mergeFrom = naval ? [] : mergeSources(state, tile, units);
   const lead = units.find((u) => u.route?.length) || null;
   const dest = lead ? routeDestination(lead) : null;
-  const pace = lead ? (lead.routePace || 1) : 0;
+  // What the stack is doing (standingOrders.js): the busiest answer of its units, so one idle
+  // unit in a holding stack still reads idle.
+  const centres = centreIndex(state);
+  const statuses = units.map((u) => armyStatus(state, u, centres));
+  const status = statuses.includes('idle') ? 'idle' : statuses[0];
+  // Where the stack stands (the tile) and where it is based (its home city) are two facts
+  // (unitLocation.js): the header names the place, and the base only when the stack is away from it.
+  const where = whereLabel(state, tile);
+  const loc = locationOf(state, units[0]);
   return {
     tile,
     naval,
     regionId: units[0].regionId,
     base: state.regions[units[0].regionId]?.name || null,
+    where: where.text, whereName: where.name, atBase: loc.atBase,
     soldiers: units.reduce((s, u) => s + u.strength, 0),
     groups,
-    zone: zone.zone, zoneText: report ? `Supply ${Math.round(report.supply)}/${report.max}, ${report.delta >= 0 ? '+' : ''}${report.delta} a turn${report.turnsLeft != null ? ` (${report.turnsLeft} turn${report.turnsLeft === 1 ? '' : 's'} left)` : ''}. ${report.hint}` : ZONE_TEXT[zone.zone] || '',
+    zone: zone.zone, zoneText: report ? report.text : ZONE_TEXT[zone.zone] || '',
     supplyReport: report, fortified, mergeFrom,
-    route: dest != null ? { to: dest, name: placeName(state, dest), turns: Math.max(1, Math.ceil(lead.route.length / Math.max(1, pace))) } : null,
+    // The ETA is the march's own schedule (routes.js routeEta), the number the order promised.
+    route: dest != null ? { to: dest, name: placeName(state, dest), turns: routeEta(state, lead) ?? 1 } : null,
+    status,
+    holding: !naval && units.every((u) => isHolding(u)),
+    canHold: !naval && !units.some((u) => u.route?.length),
+    siegeOrders: naval ? [] : siegeOrders(state, tile, units),
     canMarch: units.some((u) => (u.movesLeft ?? 0) > 0 && !u.route?.length),
     pillage: naval ? null : pillageTarget(state, tile, units),
     generals,
