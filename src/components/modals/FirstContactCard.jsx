@@ -1,5 +1,5 @@
 // src/components/modals/FirstContactCard.jsx
-// First contact (W03, plans/UI-DESIGN.md): when your scouts meet a people, a card under the top bar
+// First contact (W03, plans/UI-DESIGN.md): when you meet a people, a card under the top bar
 // names them in their colour, says where you saw them and what diplomacy now opens, with the mood,
 // the cities seen and the shared border; "Open diplomacy" (the screen's one brass action) or
 // "Later". One card at a time, the others queue. A loaded save or a new game shows none: only
@@ -10,6 +10,7 @@ import { metNations } from '../../engine/fog';
 import { openPanelTab } from '../panels/panelEvents';
 import { Button, Chip, Label, Shield } from '../ui/atlas';
 import { contactCard, newContacts } from './firstContactModel';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 
 const FirstContactCard = () => {
   const { state } = useGame();
@@ -29,7 +30,10 @@ const FirstContactCard = () => {
 
   const id = queue[0];
   const card = id ? contactCard(state, id) : null;
-  if (!card) return null;
+  // News, not a decision (useExclusivePanel.js): it shows when no card is up (and, on a narrow
+  // screen, no panel), and waits as a chip otherwise instead of covering what the player is doing.
+  const turn = useInteraction('first-contact', !!card, { kind: 'notice', priority: PRIORITY.notice, label: card ? `You met ${card.title.replace(/^The /, 'the ')}${queue.length > 1 ? ` +${queue.length - 1}` : ''}` : null, testId: 'first-contact-chip' });
+  if (!card || !turn.shown) return null;
   const close = () => setQueue((q) => q.slice(1));
 
   return (
@@ -44,7 +48,7 @@ const FirstContactCard = () => {
         </div>
       </div>
       <p className="text-[13px] leading-snug mt-2">
-        {card.capitalSeen ? `Your scouts saw ${card.capital}, their capital.` : `Your scouts crossed into their land${card.capital ? `; their capital is ${card.capital}` : ''}.`} Their lands are now drawn in their colour, and you can talk to them.
+        {card.how}{card.youSaw ? ' Their lands are now drawn in their colour, and you can talk to them.' : ' You can talk to them.'}
       </p>
       <div className="flex flex-wrap gap-1.5 mt-2">
         <Chip title={`Their opinion of you: ${card.opinion}`}>Mood <span style={{ color: card.opinion >= 20 ? 'var(--fa-good)' : card.opinion <= -40 ? 'var(--fa-danger-text)' : 'var(--fa-enemy)' }}>{card.mood}</span></Chip>

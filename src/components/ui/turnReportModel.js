@@ -15,7 +15,9 @@ import { TECH_TREE } from '../../data/techTree';
 import { AGES } from '../../data/ages';
 import { playerWon } from '../../engine/battleReports';
 import { newContacts, contactCard } from '../modals/firstContactModel';
-import { isExplored } from '../../engine/fog';
+import { isExplored, fogOn, hasMet } from '../../engine/fog';
+import { summarizeLogs } from '../../engine/logSummary';
+import { isIndependentNation } from '../../data/independents';
 
 export const REPORT_GROUPS = [
   { id: 'battles', label: 'Battles' },
@@ -28,7 +30,6 @@ export const REPORT_GROUPS = [
 
 const RAID_WORDS = /pillag|plunder|raider|raid\b|raids\b|sack/i;
 const NEWS_TYPES = new Set([LogTypes.COMBAT, LogTypes.CRISIS, LogTypes.DIPLOMACY, LogTypes.MILESTONE, LogTypes.EVENT]);
-const asLog = (l) => (typeof l === 'string' ? { message: l, type: LogTypes.ACTION } : l || { message: '', type: LogTypes.ACTION });
 const fmtYear = (y) => (y < 0 ? `${Math.abs(Math.round(y))} BCE` : `${Math.round(y)} CE`);
 const men = (n) => `${Math.round(n || 0).toLocaleString('en-US')}`;
 
@@ -43,6 +44,32 @@ const placeIn = (state, message) => {
     if (!best || (mine && best.owner !== me) || c.name.length > best.name.length) best = c;
   });
   return best ? { kind: 'city', id: best.id, name: best.name } : null;
+};
+
+// A line is "unmet" news when it names a major people the player has not met or a city the player
+// has not seen, and names nothing of the player's own or already known. Fog off: nothing is unmet.
+const unmetFilter = (state) => {
+  if (!fogOn(state)) return () => false;
+  const me = state.playerNationId;
+  const known = new Set(); const unmet = new Set();
+  Object.values(state.regions || {}).forEach((c) => {
+    if (!c.name || c.name.length < 3) return;
+    (c.owner === me || isExplored(state, c.tile) ? known : unmet).add(c.name);
+  });
+  Object.entries(state.nations || {}).forEach(([id, n]) => {
+    if (!n?.name || id === me || isIndependentNation(n)) return;
+    (hasMet(state, me, id) ? known : unmet).add(n.name);
+  });
+  const knownList = [...known]; const unmetList = [...unmet].filter((s) => !known.has(s));
+  return (msg) => unmetList.some((s) => msg.includes(s)) && !knownList.some((s) => msg.includes(s));
+};
+
+// A city that shrank (a sack, a starving siege) and grew back inside one report reads as two
+// steps in order, not as a contradiction (playtest audit I172): "shrinks to 1" then "grew to 2".
+const shrinkNote = (lines, city) => {
+  const hit = lines.find((l) => String(l.message).includes(city.name) && /shrinks? to (?:size )?(\d+)/i.test(l.message));
+  const n = hit && /shrinks? to (?:size )?(\d+)/i.exec(hit.message)[1];
+  return n ? `It shrank to ${n} earlier in this report, then grew back.` : null;
 };
 
 export const turnReportModel = (before, after) => {
@@ -66,17 +93,31 @@ export const turnReportModel = (before, after) => {
     });
   });
 
-  // Log lines added since `before` (the log only grows; a reset starts a new game).
-  const fresh = (after.logs || []).slice((before.logs || []).length).map(asLog);
+  // Log lines added since `before` (the log only grows; a reset starts a new game). Recurring
+  // lines (upkeep, a plundered route) are folded into one with a count (logSummary.js).
+  const fresh = summarizeLogs((after.logs || []).slice((before.logs || []).length));
+  const unmetNews = [];
+  const isUnmet = unmetFilter(after);
   fresh.forEach((l) => {
     const msg = String(l.message || '');
     if (!msg) return;
+    // News about peoples and cities the player has not met or seen is not a task: one line.
+    if (l.type !== LogTypes.ACTION && l.type !== LogTypes.TECH && isUnmet(msg)) { unmetNews.push(msg); return; }
     if (RAID_WORDS.test(msg) && (l.type === LogTypes.COMBAT || l.type === LogTypes.CRISIS)) {
       add('raids', { tone: 'danger', title: msg, sub: null, place: placeIn(after, msg) });
     } else if (NEWS_TYPES.has(l.type) && !/^A new era dawns/.test(msg)) {
       add('news', { tone: l.type === LogTypes.CRISIS ? 'danger' : l.type === LogTypes.COMBAT ? 'enemy' : 'muted', title: msg, sub: null, place: placeIn(after, msg) });
     }
   });
+
+  if (unmetNews.length) {
+    add('news', {
+      tone: 'muted', unmet: true,
+      title: unmetNews.length === 1 ? '1 report from lands you have not seen' : `${unmetNews.length} reports from lands you have not seen`,
+      sub: 'Rumours of peoples you have not met. They are in the Event Log.',
+      lines: unmetNews, place: null
+    });
+  }
 
   // Contacts.
   newContacts(after, new Set(Object.keys(before.fog?.met?.[me] || {}))).forEach((id) => {
@@ -105,7 +146,7 @@ export const turnReportModel = (before, after) => {
     add('cities', {
       tone: 'good', growth: true,
       title: grown.length === 1 ? `${grown[0].name} grew to size ${grown[0].size}` : `${grown.length} cities grew`,
-      sub: grown.length === 1 ? null : grown.slice(0, 4).map((c) => `${c.name} ${c.size}`).join(', '),
+      sub: grown.length === 1 ? shrinkNote(fresh, grown[0]) : grown.slice(0, 4).map((c) => `${c.name} ${c.size}${shrinkNote(fresh, c) ? ' (after a loss)' : ''}`).join(', '),
       place: { kind: 'city', id: grown[0].id, name: grown[0].name }
     });
   }
@@ -118,7 +159,7 @@ export const turnReportModel = (before, after) => {
   if (after.age !== before.age) add('news', { tone: 'you', title: `The world enters the ${AGES[after.age]?.name || after.age}`, sub: null, place: null });
 
   const counts = Object.fromEntries(REPORT_GROUPS.map((g) => [g.id, items.filter((i) => i.group === g.id).length]));
-  const quiet = items.every((i) => i.group === 'research' || i.growth);
+  const quiet = items.every((i) => i.group === 'research' || i.growth || i.unmet);
   const turns = after.turnNumber - before.turnNumber;
   return {
     title: turns > 1 ? `Turns ${before.turnNumber} to ${after.turnNumber - 1}` : `Turn ${before.turnNumber} report`,

@@ -122,6 +122,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   sets `<html data-layout>`. Phones play landscape (slim top bar, tab rail on the right, side
   sheets); portrait shows a rotate screen. CSS follows it with the `pl:` Tailwind variant and the
   `.sheet-backdrop` / `.sheet-panel` classes (index.css). `useIsMobile` = the bottom-bar layout only.
+- Who is on screen: every card, sheet, dock and notice registers with `useInteraction(id, open, { priority, kind, label })` (src/hooks/useExclusivePanel.js; rules in interactionModel.js). On a phone or tablet one shows and the rest wait as chips (ui/WaitingChips.jsx); a desktop keeps panels beside cards. A new overlay joins it instead of keeping its own "busy" list. Decision cards never close on a backdrop tap. End Turn is anchored to `--rail-w` (never `--rail-inset`); the "Idle N" chip beside it and the stacked "needs you" chips come from ui/promptStack.js. Real-browser check: `node scripts/ui/panels-shots.mjs` (dev server on 5197).
 
 ## Commands
 - `npm run lint` (zero warnings allowed), `npx vitest run`, `npm run build` (writes dist/, gitignored).

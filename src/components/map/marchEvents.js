@@ -23,6 +23,9 @@ export const focusRegion = (regionId) => window.dispatchEvent(new CustomEvent(FO
 // cameraTarget: the first that still exists, else the selected army, else the capital).
 export const FOCUS_PLACE = 'ti:focus-place';
 export const focusPlace = (places) => window.dispatchEvent(new CustomEvent(FOCUS_PLACE, { detail: places }));
+// Open a city's card AND centre the map on it: the Cities list, the city rail (playtest audit X20;
+// the turn report's place buttons do the same).
+export const openCityOnMap = (regionId) => { if (!regionId) return; selectRegion(regionId); focusPlace([{ regionId }]); };
 // Open a city's management sheet on one of its tabs ('build' for End Turn's "Choose production"),
 // selecting the city and centring the map on it.
 export const MANAGE_CITY = 'ti:manage-city';

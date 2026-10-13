@@ -1,0 +1,92 @@
+7:09:52 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+7:09:52 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.10 /workspace/terra-remaining
+
+ ❯ src/engine/resolveTurn.test.js (108 tests | 3 failed) 109588ms
+     × produces identical output for identical input (same rngSeed) 5088ms
+     × replaying an identical sequence of turns and player actions from the same starting state converges to byte-identical results 9287ms
+     × advances the year by the age/speed years-per-turn table 5873ms
+Starting inspector on 127.0.0.1:9229 failed: operation not permitted
+Starting inspector on 127.0.0.1:9229 failed: operation not permitted
+ ❯ src/data/geo/rasterDetail.test.js (0 test)
+ ❯ src/data/geo/rasterTiles.test.js (2 tests | 1 failed) 39ms
+     × draws nothing while the base picture is sharp enough, and only the tiles on screen when zoomed in 31ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/data/geo/rasterDetail.test.js [ src/data/geo/rasterDetail.test.js ]
+Error: ENOENT: no such file or directory, open 'public/map/tiles/detail.json'
+ ❯ src/data/geo/rasterDetail.test.js:8:29
+      6| import { RASTER_MAX_Z } from './rasterTiles';
+      7|
+      8| const manifest = JSON.parse(readFileSync('public/map/tiles/detail.json…
+       |                             ^
+      9|
+     10| describe('raster detail manifest', () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/engine/resolveTurn.test.js > resolveTurn determinism > produces identical output for identical input (same rngSeed)
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/engine/resolveTurn.test.js:35:3
+     33|
+     34| describe('resolveTurn determinism', () => {
+     35|   it('produces identical output for identical input (same rngSeed)', (…
+       |   ^
+     36|     const state = createInitialState({ playerNationId: 'fr' });
+     37|     const a = resolveTurn(state);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/engine/resolveTurn.test.js > resolveTurn determinism > replaying an identical sequence of turns and player actions from the same starting state converges to byte-identical results
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/engine/resolveTurn.test.js:49:3
+     47|   // several ADVANCE_TURNs worth of AI decisions/rebellion rolls) rath…
+     48|   // economic actions, which wouldn't actually exercise the seeded ran…
+     49|   it('replaying an identical sequence of turns and player actions from…
+       |   ^
+     50|     const initial = createInitialState({ playerNationId: 'fr' });
+     51|     const withResources = { ...initial, resources: { ...initial.resour…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/engine/resolveTurn.test.js > resolveTurn calendar advance > advances the year by the age/speed years-per-turn table
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/engine/resolveTurn.test.js:90:3
+     88|
+     89| describe('resolveTurn calendar advance', () => {
+     90|   it('advances the year by the age/speed years-per-turn table', () => {
+       |   ^
+     91|     const state = createInitialState({ playerNationId: 'fr', gameSpeed…
+     92|     const next = resolveTurn(state);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  src/data/geo/rasterTiles.test.js > the raster pyramid (plans/playtest-1.md P1.2) > draws nothing while the base picture is sharp enough, and only the tiles on screen when zoomed in
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/data/geo/rasterTiles.test.js:23:162
+
+ ❯ src/data/geo/rasterTiles.test.js:23:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  3 failed | 316 passed | 2 skipped (321)
+      Tests  4 failed | 3095 passed | 17 skipped (3116)
+   Start at  07:09:53
+   Duration  2249.81s (transform 33.22s, setup 0ms, import 506.21s, tests 1675.75s, environment 43ms)

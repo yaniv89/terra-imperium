@@ -16,9 +16,33 @@ for (const [file, url] of Object.entries(files)) {
   (URLS[m[1]] ||= {})[m[2]] = url;
 }
 
-export const ICON_GROUPS = ['resources', 'improvements', 'buildings', 'wonders', 'units', 'ships', 'cities', 'ages', 'markers', 'battle'];
+export const ICON_GROUPS = ['resources', 'improvements', 'buildings', 'wonders', 'units', 'ships', 'cities', 'ages', 'markers', 'battle', 'ui'];
 // battle: the battle economy's building icons (build-house ...), rendered from the battle's own models by
-// scripts/art/build-icons.mjs; data/economy.js BUILDINGS[*].icon names them.
+// scripts/art/build-icons.mjs; data/economy.js BUILDINGS[*].icon names them. Plus the battle screen's
+// hand-drawn glyphs below. ui: campaign-side cards and markers. Both sets are drawn in
+// scripts/icons/oct13-ui-icons.mjs (art update of 13 October; plans/art-pilot/ui-icons-oct13/LOG.md).
+
+// Battle stocks (UI14): the sim's resource id, or a HUD counter, to its icon in `battle`. The sim still
+// has one "materials" stock: it shows as Wood until the stock is split into wood and stone.
+export const BATTLE_STOCK_ICON_IDS = {
+  food: 'stock-food', materials: 'stock-wood', wood: 'stock-wood', stone: 'stock-stone', gold: 'stock-gold',
+  supply: 'stock-supply', population: 'stock-population'
+};
+export const battleStockIconUrl = (res) => iconUrl('battle', BATTLE_STOCK_ICON_IDS[res]);
+
+// The rest of the battle screen's glyphs: base identity (UI16; base-marker and base-status tint, their
+// coloured parts are currentColor), select all and find army (UI08), close and stop working (UI11),
+// the placement label's states and the tiling field edge, 96x24 (UI06).
+export const BATTLE_GLYPH_IDS = [
+  'base-marker', 'base-status', 'select-all', 'find-army', 'close', 'stop-working',
+  'placement-legal', 'placement-blocked', 'placement-overlap', 'placement-fog', 'field-edge'
+];
+// Campaign side: the capture card's four choices and its header plate, 512x96 (UI15; a choice that is
+// not on offer takes the .game-icon-disabled class, GameIcon's `disabled`), the no man's land badge of
+// the pre-battle card (UI17) and the map's Hold marker (UI07).
+export const CAPTURE_CHOICE_ICON_IDS = { conquer: 'capture-conquer', raze: 'capture-raze', tributary: 'capture-tributary', free: 'capture-free' };
+export const UI_ICON_IDS = [...Object.values(CAPTURE_CHOICE_ICON_IDS), 'capture-header', 'no-mans-land', 'hold-map'];
+export const uiIconUrl = (id) => iconUrl('ui', id);
 
 /** URL of a delivered icon, or null (the caller then falls back to its old glyph). */
 export const iconUrl = (group, id) => (id && URLS[group]?.[id]) || null;

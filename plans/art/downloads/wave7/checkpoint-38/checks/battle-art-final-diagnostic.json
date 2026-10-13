@@ -1,0 +1,1241 @@
+{
+  "base": "http://127.0.0.1:3010/terra-imperium/",
+  "resolutions": [
+    {
+      "width": 844,
+      "height": 390
+    },
+    {
+      "width": 1600,
+      "height": 900
+    }
+  ],
+  "nativeTileSelection": true,
+  "screenshotTiming": {
+    "rafIntervalMs": 200,
+    "maxRenderFPS": 5,
+    "performanceBenchmark": false,
+    "realClock": true,
+    "workerTimersUnmodified": true
+  },
+  "scenarios": [
+    {
+      "id": "river-bronze",
+      "query": {
+        "terrain": "mixed",
+        "age": "bronze",
+        "tile": "29",
+        "artRoads": ""
+      },
+      "crossing": "wood",
+      "keys": [
+        "battle/terrain/river-kit.glb",
+        "battle/terrain/ford.glb",
+        "battle/terrain/bridge-wood.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads="
+    },
+    {
+      "id": "river-classical",
+      "query": {
+        "terrain": "mixed",
+        "age": "classical",
+        "tile": "29",
+        "artRoads": ""
+      },
+      "crossing": "stone",
+      "keys": [
+        "battle/terrain/river-kit.glb",
+        "battle/terrain/ford.glb",
+        "battle/terrain/bridge-stone.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads="
+    },
+    {
+      "id": "river-modern",
+      "query": {
+        "terrain": "mixed",
+        "age": "modern",
+        "tile": "29",
+        "artRoads": ""
+      },
+      "crossing": "steel",
+      "keys": [
+        "battle/terrain/river-kit.glb",
+        "battle/terrain/ford.glb",
+        "battle/terrain/bridge-steel.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=modern&tile=29&artRoads="
+    },
+    {
+      "id": "nature-conifer",
+      "query": {
+        "terrain": "forest",
+        "age": "bronze",
+        "tile": "1374"
+      },
+      "vegetation": "conifer",
+      "keys": [
+        "battle/nature/vegetation-conifer.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=forest&age=bronze&tile=1374"
+    },
+    {
+      "id": "nature-tropical",
+      "query": {
+        "terrain": "forest",
+        "age": "bronze",
+        "tile": "7670"
+      },
+      "vegetation": "tropical",
+      "keys": [
+        "battle/nature/vegetation-tropical.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=forest&age=bronze&tile=7670"
+    },
+    {
+      "id": "nature-cold",
+      "query": {
+        "terrain": "arctic",
+        "age": "bronze",
+        "tile": "23653"
+      },
+      "vegetation": "cold",
+      "keys": [
+        "battle/nature/vegetation-cold.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=arctic&age=bronze&tile=23653"
+    },
+    {
+      "id": "raid",
+      "query": {
+        "terrain": "mixed",
+        "age": "bronze",
+        "raid": "raid"
+      },
+      "keys": [
+        "battle/props/loot-sack.glb",
+        "battle/props/exit-marker.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&raid=raid"
+    },
+    {
+      "id": "landing-ancient",
+      "query": {
+        "terrain": "island",
+        "age": "bronze",
+        "landing": ""
+      },
+      "keys": [
+        "battle/props/landing-ancient.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=island&age=bronze&landing="
+    },
+    {
+      "id": "landing-middle",
+      "query": {
+        "terrain": "island",
+        "age": "kingdoms",
+        "landing": ""
+      },
+      "keys": [
+        "battle/props/landing-middle.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=island&age=kingdoms&landing="
+    },
+    {
+      "id": "landing-modern",
+      "query": {
+        "terrain": "island",
+        "age": "modern",
+        "landing": ""
+      },
+      "keys": [
+        "battle/props/landing-modern.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=island&age=modern&landing="
+    }
+  ],
+  "limitations": [
+    "--plan leaves tile IDs unresolved; --run discovers actual loaded geo tiles.",
+    "artRoads supplies QA preview road state only; campaign state remains untouched.",
+    "Delayed loot/scorch requires real field destruction and can time out; opening raid is separate.",
+    "No bridge damage HP hook; intact placement only. Parent must visually inspect screenshots."
+  ],
+  "startedAt": "2026-10-08T08:39:12.157Z",
+  "smokeOnly": false,
+  "parentVisualReviewRequired": true,
+  "rendererBackendRequested": "ANGLE SwiftShader",
+  "hardwarePerformanceEvidence": false,
+  "results": [
+    {
+      "id": "river-bronze",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads=",
+      "errors": [],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-infantry.glb",
+          "status": 200,
+          "bytes": 122236,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-ranged.glb",
+          "status": 200,
+          "bytes": 137020,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-general.glb",
+          "status": 200,
+          "bytes": 118660,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-bronze.glb",
+          "status": 200,
+          "bytes": 341700,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-bronze.glb",
+          "status": 200,
+          "bytes": 365184,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+          "status": 200,
+          "bytes": 661056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/bronze.glb",
+          "status": 200,
+          "bytes": 21548,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        }
+      ],
+      "shots": [
+        "river-bronze-844x390-wide.png",
+        "river-bronze-844x390-detail-bank.png",
+        "river-bronze-844x390-detail-ford.png",
+        "river-bronze-844x390-detail-bridge-wood.png"
+      ],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads=",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 91,
+      "audit": {
+        "screenshotTiming": {
+          "rafIntervalMs": 200,
+          "performanceBenchmark": false
+        },
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 81,
+          "triangles": 597299,
+          "geometries": 57,
+          "textures": 39,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "field",
+        "actualTile": 29,
+        "simTick": 91,
+        "canvas": {
+          "width": 844,
+          "height": 390,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "conifer",
+        "assets": [
+          {
+            "key": "battle/terrain/river-kit.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 557,
+            "objects": [
+              "bank",
+              "straight",
+              "bend",
+              "junction",
+              "end",
+              "straight-5",
+              "bend-5",
+              "junction-5",
+              "end-5",
+              "straight-8",
+              "bend-8",
+              "junction-8",
+              "end-8"
+            ]
+          },
+          {
+            "key": "battle/terrain/ford.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 170,
+            "objects": [
+              "ford"
+            ]
+          },
+          {
+            "key": "battle/terrain/bridge-wood.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 5,
+            "objects": [
+              "bridge-wood",
+              "bridge-wood-damaged",
+              "bridge-wood-destroyed"
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "bank",
+            "x": 1.4999898988753557,
+            "z": 1.000000194646418,
+            "worldCorners": [
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              }
+            ],
+            "height": 0.18691258318722248,
+            "copies": 557
+          },
+          {
+            "name": "ford",
+            "x": 47.4999999795109,
+            "z": 0.500000799074769,
+            "worldCorners": [
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              }
+            ],
+            "height": 0.18974577449262142,
+            "copies": 170
+          },
+          {
+            "name": "bridge-wood",
+            "x": 0.5,
+            "z": 17.500001618638635,
+            "worldCorners": [
+              {
+                "x": -0.5347222089767456,
+                "y": 0.002778964670142159,
+                "z": 17.912504196166992
+              },
+              {
+                "x": 1.5347222089767456,
+                "y": 0.002778964670142159,
+                "z": 17.912504196166992
+              },
+              {
+                "x": -0.5347222089767456,
+                "y": 0.5912247262895107,
+                "z": 17.912504196166992
+              },
+              {
+                "x": 1.5347222089767456,
+                "y": 0.5912247262895107,
+                "z": 17.912504196166992
+              },
+              {
+                "x": -0.5347222089767456,
+                "y": 0.002778964670142159,
+                "z": 17.087499041110277
+              },
+              {
+                "x": 1.5347222089767456,
+                "y": 0.002778964670142159,
+                "z": 17.087499041110277
+              },
+              {
+                "x": -0.5347222089767456,
+                "y": 0.5912247262895107,
+                "z": 17.087499041110277
+              },
+              {
+                "x": 1.5347222089767456,
+                "y": 0.5912247262895107,
+                "z": 17.087499041110277
+              }
+            ],
+            "height": 0.5884457616193686,
+            "copies": 5
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 170,
+          "banks": 557,
+          "bridges": 5
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 1.5,
+              "z": 34.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 102.5,
+              "z": 34.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker"
+          ],
+          "instances": {
+            "copies": 2,
+            "draws": 2
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "detailFraming": [
+        {
+          "name": "bank",
+          "safe": {
+            "left": 24,
+            "right": 820,
+            "top": 110,
+            "bottom": 300
+          },
+          "bounds": {
+            "left": 397.89118665256217,
+            "right": 446.1088133474392,
+            "top": 185.69574387557714,
+            "bottom": 224.30425612442124
+          },
+          "zoom": 2.2,
+          "height": 0.18691258318722248,
+          "fits": true
+        },
+        {
+          "name": "ford",
+          "safe": {
+            "left": 24,
+            "right": 820,
+            "top": 110,
+            "bottom": 300
+          },
+          "bounds": {
+            "left": 388.63157580356074,
+            "right": 455.36842419644,
+            "top": 179.51282287334178,
+            "bottom": 230.48717712665805
+          },
+          "zoom": 2.2,
+          "height": 0.18974577449262142,
+          "fits": true
+        },
+        {
+          "name": "bridge-wood",
+          "safe": {
+            "left": 24,
+            "right": 820,
+            "top": 110,
+            "bottom": 300
+          },
+          "bounds": {
+            "left": 373.2206760524067,
+            "right": 470.7793239475925,
+            "top": 162.18689246793593,
+            "bottom": 247.8131075320634
+          },
+          "zoom": 2.2,
+          "height": 0.5884457616193686,
+          "fits": true
+        }
+      ],
+      "ok": true,
+      "proofStatus": "automated-load-and-placement-pass-needs-visual-review"
+    },
+    {
+      "id": "river-bronze",
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads=",
+      "errors": [],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-infantry.glb",
+          "status": 200,
+          "bytes": 122236,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-ranged.glb",
+          "status": 200,
+          "bytes": 137020,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/bronze-general.glb",
+          "status": 200,
+          "bytes": 118660,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-bronze.glb",
+          "status": 200,
+          "bytes": 341700,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+          "status": 200,
+          "bytes": 661056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-bronze.glb",
+          "status": 200,
+          "bytes": 365184,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/bronze.glb",
+          "status": 200,
+          "bytes": 21548,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        }
+      ],
+      "shots": [
+        "river-bronze-1600x900-wide.png",
+        "river-bronze-1600x900-detail-bank.png",
+        "river-bronze-1600x900-detail-ford.png",
+        "river-bronze-1600x900-detail-bridge-wood.png"
+      ],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=bronze&tile=29&artRoads=",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 283,
+      "audit": {
+        "screenshotTiming": {
+          "rafIntervalMs": 200,
+          "performanceBenchmark": false
+        },
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 92,
+          "triangles": 633927,
+          "geometries": 53,
+          "textures": 39,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "field",
+        "actualTile": 29,
+        "simTick": 283,
+        "canvas": {
+          "width": 1600,
+          "height": 900,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "conifer",
+        "assets": [
+          {
+            "key": "battle/terrain/river-kit.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 557,
+            "objects": [
+              "bank",
+              "straight",
+              "bend",
+              "junction",
+              "end",
+              "straight-5",
+              "bend-5",
+              "junction-5",
+              "end-5",
+              "straight-8",
+              "bend-8",
+              "junction-8",
+              "end-8"
+            ]
+          },
+          {
+            "key": "battle/terrain/ford.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/ford.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 170,
+            "objects": [
+              "ford"
+            ]
+          },
+          {
+            "key": "battle/terrain/bridge-wood.glb",
+            "url": "/terra-imperium/src/assets/battle/terrain/bridge-wood.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 5,
+            "objects": [
+              "bridge-wood",
+              "bridge-wood-damaged",
+              "bridge-wood-destroyed"
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "bank",
+            "x": 1.4999898988753557,
+            "z": 1.000000194646418,
+            "worldCorners": [
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.9954648353159428,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.3037109375,
+                "z": 0.7801951840519905
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 1.2198052052408457
+              },
+              {
+                "x": 1.0045149624347687,
+                "y": -0.11679835431277752,
+                "z": 0.7801951840519905
+              }
+            ],
+            "height": 0.18691258318722248,
+            "copies": 557
+          },
+          {
+            "name": "ford",
+            "x": 47.4999999795109,
+            "z": 0.500000799074769,
+            "worldCorners": [
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.0049991607666,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": -0.05156249925494194,
+                "z": 0.9950016178190708
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.004999980330467224
+              },
+              {
+                "x": 47.995000798255205,
+                "y": 0.13818327523767948,
+                "z": 0.9950016178190708
+              }
+            ],
+            "height": 0.18974577449262142,
+            "copies": 170
+          },
+          {
+            "name": "bridge-wood",
+            "x": 0.5,
+            "z": 17.500001618638635,
+            "worldCorners": [
+              {
+                "x": -0.5347222089767456,
+                "y": 0.002778964670142159,
+                "z": 17.912504196166992
+              },
+              {
+                "x": 1.5347222089767456,
+                "y": 0.002778964670142159,
+                "z": 17.912504196166992
+              },
+              {
+                "x": -0.5347222089767456,
+                "y": 0.5912247262895107,
+                "z": 17.912504196166992
+              },
+              {
+                "x": 1.5347222089767456,
+                "y": 0.5912247262895107,
+                "z": 17.912504196166992
+              },
+              {
+                "x": -0.5347222089767456,
+                "y": 0.002778964670142159,
+                "z": 17.087499041110277
+              },
+              {
+                "x": 1.5347222089767456,
+                "y": 0.002778964670142159,
+                "z": 17.087499041110277
+              },
+              {
+                "x": -0.5347222089767456,
+                "y": 0.5912247262895107,
+                "z": 17.087499041110277
+              },
+              {
+                "x": 1.5347222089767456,
+                "y": 0.5912247262895107,
+                "z": 17.087499041110277
+              }
+            ],
+            "height": 0.5884457616193686,
+            "copies": 5
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 170,
+          "banks": 557,
+          "bridges": 5
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 1.5,
+              "z": 34.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 102.5,
+              "z": 34.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker"
+          ],
+          "instances": {
+            "copies": 2,
+            "draws": 2
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "detailFraming": [
+        {
+          "name": "bank",
+          "safe": {
+            "left": 24,
+            "right": 1576,
+            "top": 110,
+            "bottom": 810
+          },
+          "bounds": {
+            "left": 766.6185661343164,
+            "right": 833.3814338656847,
+            "top": 433.2710299815695,
+            "bottom": 486.7289700184306
+          },
+          "zoom": 2.2,
+          "height": 0.18691258318722248,
+          "fits": true
+        },
+        {
+          "name": "ford",
+          "safe": {
+            "left": 24,
+            "right": 1576,
+            "top": 110,
+            "bottom": 810
+          },
+          "bounds": {
+            "left": 753.7975664972374,
+            "right": 846.2024335027627,
+            "top": 424.7100624400103,
+            "bottom": 495.28993755998675
+          },
+          "zoom": 2.2,
+          "height": 0.18974577449262142,
+          "fits": true
+        },
+        {
+          "name": "bridge-wood",
+          "safe": {
+            "left": 24,
+            "right": 1576,
+            "top": 110,
+            "bottom": 810
+          },
+          "bounds": {
+            "left": 732.4593976110258,
+            "right": 867.5406023889753,
+            "top": 400.7203126479118,
+            "bottom": 519.2796873520882
+          },
+          "zoom": 2.2,
+          "height": 0.5884457616193686,
+          "fits": true
+        }
+      ],
+      "ok": true,
+      "proofStatus": "automated-load-and-placement-pass-needs-visual-review"
+    },
+    {
+      "id": "river-classical",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads=",
+      "errors": [
+        "[battle] no frame from the battle sim",
+        "Harness: Native worker boot failed before Start: The battle could not start.\n\nNothing is lost: fight it on Auto (the same armies and the same rules) and go back to the map, or try once more.\n\nNo answer from the battle after 25 seconds.\n\nFight it on Auto"
+      ],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-infantry.glb",
+          "status": 200,
+          "bytes": 85864,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-ranged.glb",
+          "status": 200,
+          "bytes": 65056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-general.glb",
+          "status": 200,
+          "bytes": 136896,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-classical.glb",
+          "status": 200,
+          "bytes": 591360,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-classical.glb",
+          "status": 200,
+          "bytes": 362056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/bridge-stone.glb",
+          "status": 200,
+          "bytes": 490304,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/classical.glb",
+          "status": 200,
+          "bytes": 33812,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        }
+      ],
+      "shots": [],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads=",
+      "ok": false,
+      "proofStatus": "diagnostic-not-acceptance-proof"
+    },
+    {
+      "id": "river-classical",
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads=",
+      "errors": [
+        "Harness: page.evaluate: Target page, context or browser has been closed\nBrowser logs:\n\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] \n[pid=24780][err] Fontconfig error: No writable cache directories\n[pid=24780][err] \t/var/cache/fontconfig\n[pid=24780][err] \t/home/agent/.cache/fontconfig\n[pid=24780][err] \t/home/agent/.fontconfig\n[pid=24780][err] [24780:24791:1008/083912.733367:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=24780][err] [24780:24802:1008/083912.736953:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 24827: Read-only file system (30)\n[pid=24780][err] [24780:24780:1008/083912.795751:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=24780][err] [24780:24791:1008/083912.795991:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=24780][err] [24780:24780:1008/083912.796028:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=24780][err] [24780:24791:1008/083912.796088:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=24780][err] [24780:24780:1008/083912.805187:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=24780][err] [24780:24791:1008/083912.805283:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=24780][err] [24780:24780:1008/083912.810639:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=24780][err] [24780:24791:1008/083912.811184:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory\n[pid=24780][err] [24780:24791:1008/083912.811220:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory\n[pid=24780][err] [24780:24780:1008/083912.814567:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=24780][err] [24780:24791:1008/083912.815129:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=24780][err] [24780:24780:1008/083912.816216:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=24780][err] [24780:24780:1008/083912.817913:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.Properties.GetAll: object_path= /org/freedesktop/UPower/devices/DisplayDevice: unknown error type: \n[pid=24780][err] [24780:24780:1008/083912.822805:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=24780][err] [24780:24791:1008/083912.825057:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=24780][err] [24780:24780:1008/083912.828159:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=24780][err] [24780:24791:1008/083912.828238:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=24780][err] [24780:24780:1008/083912.828651:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=24780][err] \n[pid=24780][err] (process:24780): dconf-CRITICAL **: 08:39:12.854: unable to create directory '/home/agent/.cache/dconf': Read-only file system.  dconf will not work properly.\n[pid=24780][err] \n[pid=24780][err] (process:24780): dconf-CRITICAL **: 08:39:12.855: unable to create directory '/home/agent/.cache/dconf': Read-only file system.  dconf will not work properly.\n[pid=24780][err] \n[pid=24780][err] (process:24780): dconf-CRITICAL **: 08:39:12.855: unable to create directory '/home/agent/.cache/dconf': Read-only file system.  dconf will not work properly.\n[pid=24780][err] [24780:24802:1008/083912.912566:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 24846: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/083912.960371:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 24858: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/083912.970507:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 24866: Read-only file system (30)\n[pid=24780][err] [24780:24790:1008/083913.031673:ERROR:crypto/nss_util.cc:256] Error initializing NSS with a persistent database (sql:/home/agent/.pki/nssdb): NSS error code: -8126\n[pid=24780][err] [24818:24823:1008/083913.070438:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083913.074636:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083913.213357:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083913.213441:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083913.233186:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083913.505280:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083914.165376:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083916.700213:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083921.053694:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24780:24802:1008/083921.090107:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 24925: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/083921.122767:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 24934: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/083921.125336:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 24935: Read-only file system (30)\n[pid=24780][err] [24818:24823:1008/083921.160568:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083921.205166:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083921.262667:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083921.459651:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083924.228585:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083948.533410:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/083952.507156:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] Failed to create secure directory (/home/agent/.config/pulse): Read-only file system\n[pid=24780][err] [24818:24823:1008/084012.829502:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084012.955933:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084024.840556:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24780:24802:1008/084025.624004:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 25069: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/084025.648872:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 25078: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/084025.655009:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 25079: Read-only file system (30)\n[pid=24780][err] [24818:24823:1008/084025.746280:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084025.806008:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084025.876171:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084105.707410:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084109.512663:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084232.039414:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24780:24802:1008/084234.660071:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 25211: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/084234.689837:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 25220: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/084234.694988:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 25221: Read-only file system (30)\n[pid=24780][err] [24780:24780:1008/084234.705292:ERROR:chrome/browser/ui/views/user_education/impl/browser_user_education_interface_impl.cc:186] Attempting to show IPH IPH_ExtensionsZeroStatePromo before browser initialization complete; IPH will not be shown.\n[pid=24780][err] [24818:24823:1008/084234.767667:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084234.854018:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084235.058967:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084253.229061:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084328.335147:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24780:24802:1008/084330.630932:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 25332: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/084330.697887:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 25340: Read-only file system (30)\n[pid=24780][err] [24780:24802:1008/084330.709853:ERROR:content/browser/zygote_host/zygote_host_impl_linux.cc:300] Failed to adjust OOM score of renderer with pid 25343: Read-only file system (30)\n[pid=24780][err] [24818:24823:1008/084330.832397:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084330.877603:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084331.148718:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780][err] [24818:24823:1008/084447.406969:ERROR:net/socket/ssl_client_socket_impl.cc:949] handshake failed; returned -1, SSL error code 1, net_error -202\n[pid=24780] <gracefully close start>"
+      ],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-ranged.glb",
+          "status": 200,
+          "bytes": 65056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-general.glb",
+          "status": 200,
+          "bytes": 136896,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/classical-infantry.glb",
+          "status": 200,
+          "bytes": 85864,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-conifer.glb",
+          "status": 200,
+          "bytes": 437940,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/bridge-stone.glb",
+          "status": 200,
+          "bytes": 490304,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-classical.glb",
+          "status": 200,
+          "bytes": 591360,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-classical.glb",
+          "status": 200,
+          "bytes": 362056,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/classical.glb",
+          "status": 200,
+          "bytes": 33812,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        }
+      ],
+      "shots": [],
+      "gaps": [],
+      "entryURL": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=mixed&age=classical&tile=29&artRoads=",
+      "firstNativeFrameTick": 0,
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 466,
+      "ok": false,
+      "proofStatus": "diagnostic-not-acceptance-proof"
+    }
+  ],
+  "realTiles": {
+    "vegetation": {
+      "conifer": {
+        "tile": 1374,
+        "terrain": "forest",
+        "forestSectors": 6,
+        "score": 220,
+        "climate": "Dwc",
+        "kit": "conifer",
+        "forestCells": 2556
+      },
+      "tropical": {
+        "tile": 7670,
+        "terrain": "forest",
+        "forestSectors": 6,
+        "score": 220,
+        "climate": "Aw",
+        "kit": "tropical",
+        "forestCells": 2280
+      },
+      "cold": {
+        "tile": 23653,
+        "terrain": "arctic",
+        "forestSectors": 4,
+        "score": 78,
+        "climate": "ET",
+        "kit": "cold",
+        "forestCells": 1005
+      }
+    },
+    "vegetationSearch": {
+      "conifer": {
+        "candidates": 3498,
+        "checked": 1,
+        "zeroForestRejected": 0
+      },
+      "tropical": {
+        "candidates": 5627,
+        "checked": 1,
+        "zeroForestRejected": 0
+      },
+      "cold": {
+        "candidates": 4558,
+        "checked": 1,
+        "zeroForestRejected": 0
+      }
+    },
+    "river": {
+      "tile": 29,
+      "crossings": {
+        "fords": 170,
+        "banks": 557,
+        "bridges": 5
+      }
+    }
+  },
+  "finishedAt": "2026-10-08T08:45:04.267Z"
+}

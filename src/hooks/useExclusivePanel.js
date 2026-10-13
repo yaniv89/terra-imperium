@@ -1,44 +1,87 @@
 // src/hooks/useExclusivePanel.js
-// Side panels take turns when the screen can't fit two of them and still show the map: the tab
-// panel (right, PanelDrawer) and the province panel (left, ProvinceModal) together covered 65 to
-// 90% of a laptop or a landscape phone. Opening one tucks the other away; closing it brings the
-// tucked one back. Wide screens keep both.
-import { useEffect, useRef } from 'react';
+// The one interaction registry (playtest audit X16): every card, sheet, dock and notice that wants
+// the middle of the screen registers here while it is open, and the registry says which one shows
+// (interactionModel.js holds the rules). It grew out of the two side panels taking turns (the tab
+// dock and the city panel, which together covered 65 to 90% of a laptop or a landscape phone); now
+// on a phone or a tablet a decision card that arrives tucks the dock, two cards never show
+// together, and whatever waits is a chip (WaitingChips.jsx) that brings it back. A desktop keeps
+// its panels beside the cards.
+//
+//   const { shown, tuck, promote } = useInteraction('defense', open, { priority, kind, label });
+//   if (!shown) return null;   // it waits as a chip, or (a panel) simply stays closed
+import { useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
+import { getLayoutMode } from './useLayoutMode';
+import {
+  emptyInteractions, openInteraction, closeInteraction, promoteInteraction, tuckInteraction,
+  relabelInteraction, isShown, waitingChips, EXCLUSIVE_BELOW_WIDTH, PRIORITY
+} from './interactionModel';
 
-const OPEN = 'ti:side-panel-open';
-const CLOSE = 'ti:side-panel-close';
-// Two side panels (about 380 + 450 px) only leave half the screen to the map from about here up.
-export const EXCLUSIVE_BELOW_WIDTH = 1600;
+export { EXCLUSIVE_BELOW_WIDTH, PRIORITY };
 
-const tooNarrow = () => typeof window !== 'undefined' && window.innerWidth < EXCLUSIVE_BELOW_WIDTH;
+const hasWindow = typeof window !== 'undefined';
+const widthNow = () => (hasWindow ? window.innerWidth : EXCLUSIVE_BELOW_WIDTH);
+// The one-card rule is for phones and tablets (useLayoutMode.js writes the layout on <html>).
+const compactNow = () => hasWindow && getLayoutMode(window.innerWidth, window.innerHeight) !== 'desktop';
 
-// `open`: whether this panel is showing. `tuck(true|false)`: hide it for another panel, or bring it
-// back when that panel closes (only if it was this hook that tucked it).
-export const useExclusivePanel = (id, open, tuck) => {
-  const tuckedRef = useRef(false);
-  const tuckRef = useRef(tuck);
-  tuckRef.current = tuck;
+let model = emptyInteractions();
+let chipsCache = null; // { model, width, chips }
+const listeners = new Set();
+const openListeners = new Set();
+let resizeBound = false;
 
-  // Announce this panel opening and closing.
-  useEffect(() => {
+const emit = () => listeners.forEach((fn) => fn());
+const set = (next) => { if (next === model) return; model = next; emit(); };
+const subscribe = (fn) => {
+  listeners.add(fn);
+  if (hasWindow && !resizeBound) { resizeBound = true; window.addEventListener('resize', emit); }
+  return () => listeners.delete(fn);
+};
+
+/** The registry's actions, for the places that are not a component (End Turn's blockers, chips). */
+export const interactions = {
+  open: (entry, opts) => { const before = model; set(openInteraction(model, entry, opts)); if (model !== before) openListeners.forEach((fn) => fn(entry.id)); },
+  close: (id) => set(closeInteraction(model, id)),
+  promote: (id) => { set(promoteInteraction(model, id)); openListeners.forEach((fn) => fn(id)); },
+  tuck: (id) => set(tuckInteraction(model, id)),
+  relabel: (id, patch) => set(relabelInteraction(model, id, patch)),
+  isShown: (id) => isShown(model, id, widthNow(), compactNow()),
+  chips: () => {
+    const width = widthNow();
+    const compact = compactNow();
+    if (!chipsCache || chipsCache.model !== model || chipsCache.width !== width || chipsCache.compact !== compact) chipsCache = { model, width, compact, chips: waitingChips(model, width, compact) };
+    return chipsCache.chips;
+  },
+  /** For tests. */
+  reset: () => { model = emptyInteractions(); chipsCache = null; emit(); }
+};
+
+// On the server (the tests render components to a string) nothing registers: everything shows.
+const useIsoLayoutEffect = hasWindow ? useLayoutEffect : useEffect;
+const NO_CHIPS = [];
+
+/**
+ * Register `id` while `open`. Options: `priority` (interactionModel PRIORITY), `kind` ('card',
+ * 'panel' or 'notice'), `label` (the chip's words while it waits), `testId` and `tone` for that
+ * chip, `user` (the player opened it: it takes the screen from anything).
+ * Returns `shown` (draw it now), `tuck()` (set it aside as a chip) and `promote()` (bring it up).
+ */
+export const useInteraction = (id, open, { priority = PRIORITY.sheet, kind = 'card', label = null, testId = null, tone = null, user = false } = {}) => {
+  useIsoLayoutEffect(() => {
     if (!open) return undefined;
-    window.dispatchEvent(new CustomEvent(OPEN, { detail: id }));
-    return () => window.dispatchEvent(new CustomEvent(CLOSE, { detail: id }));
-  }, [id, open]);
+    interactions.open({ id, priority, kind, label, testId, tone }, { user });
+    return () => interactions.close(id);
+    // Not in the list on purpose: the words are kept fresh below, and `user` only matters at the
+    // moment it opens.
+  }, [id, open, priority, kind]);
+  useEffect(() => { if (open) interactions.relabel(id, { label, testId, tone }); }, [id, open, label, testId, tone]);
+  const shown = useSyncExternalStore(subscribe, () => interactions.isShown(id), () => true);
+  return { shown: !!open && shown, tuck: () => interactions.tuck(id), promote: () => interactions.promote(id) };
+};
 
-  useEffect(() => {
-    const onOpen = (e) => {
-      if (e.detail === id || !open || !tooNarrow()) return;
-      tuckedRef.current = true;
-      tuckRef.current(true);
-    };
-    const onClose = (e) => {
-      if (e.detail === id || !tuckedRef.current) return;
-      tuckedRef.current = false;
-      tuckRef.current(false);
-    };
-    window.addEventListener(OPEN, onOpen);
-    window.addEventListener(CLOSE, onClose);
-    return () => { window.removeEventListener(OPEN, onOpen); window.removeEventListener(CLOSE, onClose); };
-  }, [id, open]);
+/** The cards and notices that wait, for the chips. */
+export const useWaitingChips = () => useSyncExternalStore(subscribe, interactions.chips, () => NO_CHIPS);
+
+/** Call `fn(id)` whenever something opens or is brought up (a popover closes itself on it). */
+export const useOnInteractionOpen = (fn) => {
+  useEffect(() => { openListeners.add(fn); return () => openListeners.delete(fn); }, [fn]);
 };

@@ -1,0 +1,5 @@
+{
+  "reason": "Stabilization fixtures wait on removed Search 240 nations selector. Stop repetitive stale-selector timeouts, update only fixture to current people picker, then rerun. Existing passing scenarios preserved in initial log.",
+  "root_pid": 21434,
+  "owned_process_count": 10
+}

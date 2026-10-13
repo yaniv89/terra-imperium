@@ -7,9 +7,13 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import LogConsole from './LogConsole';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 
 const LogDrawer = ({ open, onClose }) => {
-  if (!open) return null;
+  // A sheet the player opened: it takes the screen, and a decision card it covers waits as a chip
+  // (useExclusivePanel.js).
+  const turn = useInteraction('log', open, { priority: PRIORITY.sheet, user: true, label: 'Event log' });
+  if (!open || !turn.shown) return null;
 
   return (
     <div className="fixed inset-0 z-40 flex lg:justify-end pl:justify-end" onClick={onClose}>
@@ -20,7 +24,10 @@ const LogDrawer = ({ open, onClose }) => {
                    flex flex-col bg-fa-ink border-t lg:border-t-0 lg:border-l border-fa-line shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-3 py-2 border-b border-fa-line shrink-0 lg:hidden">
+        {/* A phone held sideways has about 300 px of height: the log's own header already names it,
+            so this second title row goes and the close button hangs off the edge as on a desktop
+            (playtest audit I169: the log showed about four lines). */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-fa-line shrink-0 lg:hidden pl:hidden">
           <span className="text-xs font-semibold text-fa-muted">Event Log</span>
           <button onClick={onClose} className="p-1 hover:bg-fa-raised rounded text-fa-muted hover:text-fa-text" aria-label="Close log">
             <X className="w-4 h-4" />
@@ -28,7 +35,7 @@ const LogDrawer = ({ open, onClose }) => {
         </div>
         <button
           onClick={onClose}
-          className="hidden lg:flex items-center justify-center absolute -left-9 top-2 p-1.5 bg-fa-ink border border-fa-line rounded-lg
+          className="hidden lg:flex pl:flex pl:-left-12 pl:w-11 pl:h-11 items-center justify-center absolute -left-9 top-2 p-1.5 bg-fa-ink border border-fa-line rounded-lg
                      text-fa-muted hover:text-fa-text hover:bg-fa-raised"
           aria-label="Close log"
         >

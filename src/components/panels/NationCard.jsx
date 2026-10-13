@@ -22,7 +22,7 @@ import { getTotalDev } from '../../engine/development';
 import { getNationCapital, getBorderingNationIds } from '../../data/regions';
 import { canAfford, formatNumber, getFieldedStrength } from '../../utils/helpers';
 import { hasIntel } from '../../engine/intel';
-import { opinionOf, opinionReasons } from '../../engine/opinion';
+import { opinionOf, opinionBreakdown } from '../../engine/opinion';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { claimsAgainst, claimableCities, CLAIM_FABRICATE_TURNS, CLAIM_RANGE_RINGS } from '../../engine/claims';
 import { hasOpenBorders, openBordersAcceptance, demandAcceptance, DEMANDS } from '../../engine/accords';
@@ -150,6 +150,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
   const hasSecondary = !isVassalOfPlayer && !atWarWithPlayer;
 
   const opinion = opinionOf(state, nation.id);
+  const breakdown = opinionBreakdown(state, nation.id);
   const allianceAnswer = allianceAcceptanceScore >= 0;
   const tradeBlock = nation.hasTradeAgreement ? null : nation.isAtWar ? 'At war: no trade' : activeTradePactCount >= tradePactCapacity ? `No free trade pact (${activeTradePactCount} of ${tradePactCapacity} in use)` : null;
   const tribute = demandAcceptance(state, nation.id, 'tribute');
@@ -187,9 +188,13 @@ export const NationCard = ({ nation, hideTitle = false }) => {
             </span>
           </summary>
           <ul className="mt-1 space-y-0.5">
-            {opinionReasons(state, nation.id).map((r) => (
+            {breakdown.rows.map((r) => (
               <li key={r.id} className="flex justify-between gap-2 text-[12px]"><span className="text-fa-muted">{r.label}{r.detail ? ` (${r.detail})` : ''}</span><span className={`fa-num ${r.value >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{r.value > 0 ? '+' : ''}{r.value}</span></li>
             ))}
+            {breakdown.rounding !== 0 && <li className="flex justify-between gap-2 text-[12px]"><span className="text-fa-muted">Rounding</span><span className="fa-num">{breakdown.rounding > 0 ? '+' : ''}{breakdown.rounding}</span></li>}
+            {breakdown.clamped && <li className="flex justify-between gap-2 text-[12px]"><span className="text-fa-muted">Opinion stops at {breakdown.total > 0 ? 'the top' : 'the bottom'} of the scale ({breakdown.sum > 0 ? '+' : ''}{breakdown.sum} counted)</span><span className="fa-num">{breakdown.total > 0 ? '+' : ''}{breakdown.total}</span></li>}
+            <li className="flex justify-between gap-2 text-[12px] border-t border-fa-line pt-0.5" data-testid="opinion-total"><span className="text-fa-text">Total</span><span className="fa-num text-fa-text">{breakdown.total > 0 ? '+' : ''}{breakdown.total}</span></li>
+            {breakdown.plain && <li className="text-[11px] text-fa-muted">Nothing else shapes their view yet: no border, trade, treaty or past dealings.</li>}
           </ul>
         </details>
         <div className="relative h-1.5 mt-1 rounded-full bg-fa-ink/60" aria-hidden="true">

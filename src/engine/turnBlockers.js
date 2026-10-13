@@ -18,7 +18,7 @@
 //   city      one per city with an empty build queue     action 'city'
 import { GameStatus } from '../data/types';
 import { demandWaiting } from './aiAccords';
-import { suggestTechs } from './research';
+import { researchNeedsChoice } from './researchStatus';
 
 const nameOf = (state, id) => state.nations?.[id]?.name || 'A people';
 const alive = (state, id) => !!state.nations?.[id] && !state.nations[id].isEliminated;
@@ -32,12 +32,8 @@ const defenseLabel = (state, def) => {
   return 'Defend your army: Command or Auto';
 };
 
-/** Is research idle while something could be researched (and no advisor picks)? */
-export const researchIdle = (state) => {
-  const r = state.research;
-  if (!r || r.current || r.queue?.length || r.auto) return false;
-  return suggestTechs(state, state.playerNationId, 1).length > 0;
-};
+/** Is research idle while something could be researched (and no advisor picks)? One truth: researchStatus.js. */
+export const researchIdle = (state) => researchNeedsChoice(state);
 
 /** The player's cities with nothing to build (outposts and burning cities build nothing), by id. */
 export const idleCities = (state) => {

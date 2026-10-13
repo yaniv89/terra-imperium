@@ -2,15 +2,21 @@ import { describe, it, expect } from 'vitest';
 import {
   iconUrl, iconIds, ICON_GROUPS, BUILDING_ICON_IDS, EXTRACTION_ICON_IDS, buildingIconUrl, buildingIconUrlForAge,
   buildingIconTiersMatch, extractionIconUrl, unitIconUrl, shipIconUrl, cityIconUrl, CITY_SIZES, ageIconUrl,
-  markerIconUrl, resourceIconUrl, improvementIconUrl, wonderIconUrl
+  markerIconUrl, resourceIconUrl, improvementIconUrl, wonderIconUrl,
+  BATTLE_STOCK_ICON_IDS, battleStockIconUrl, BATTLE_GLYPH_IDS, CAPTURE_CHOICE_ICON_IDS, UI_ICON_IDS, uiIconUrl
 } from './icons';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { RESOURCES_ON_TILES, IMPROVEMENT_IDS } from './tileYields';
 import { BUILDING_CATEGORIES, EXTRACTION_BUILDINGS } from './buildings';
 import { GREAT_PROJECTS } from './greatProjects';
 import { UNIT_CLASS_IDS } from './unitClasses';
 import { NAVAL_LINE_IDS } from './navalLines';
 import { AGE_ORDER } from './ages';
-import { BUILDINGS as BATTLE_BUILDINGS } from '../battle/data/economy';
+import { BUILDINGS as BATTLE_BUILDINGS, RESOURCES as BATTLE_RESOURCES } from '../battle/data/economy';
+
+const ICON_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'icons');
 import { WONDER_ICONS } from '../components/city/wonderIcons';
 import { BUILDING_MODEL_IDS } from '../components/map/closeView/buildingModels';
 
@@ -89,9 +95,43 @@ describe('icon index', () => {
       cities: CITY_SIZES.flatMap((s) => AGE_ORDER.map((a) => `city-${s}-${a}`)),
       ages: AGE_ORDER,
       markers: ['capital', 'wonder', 'event', 'battle'],
-      battle: Object.values(BATTLE_BUILDINGS).map((b) => b.icon)
+      battle: [...Object.values(BATTLE_BUILDINGS).map((b) => b.icon), ...Object.values(BATTLE_STOCK_ICON_IDS), ...BATTLE_GLYPH_IDS],
+      ui: UI_ICON_IDS
     };
     ICON_GROUPS.forEach((g) => iconIds(g).forEach((id) => expect(used[g], `${g}/${id}`).toContain(id)));
+  });
+});
+
+describe('UI icons of the 13 October art update', () => {
+  const svg = (group, id) => readFileSync(join(ICON_DIR, group, `${id}.svg`), 'utf8');
+
+  it('has a battle stock icon for every battle resource, wood, stone, supply and population (UI14)', () => {
+    [...BATTLE_RESOURCES, 'wood', 'stone', 'supply', 'population'].forEach((r) => expect(battleStockIconUrl(r), r).toBeTruthy());
+    expect(battleStockIconUrl('materials')).toBe(battleStockIconUrl('wood')); // one stock in the sim, for now
+    expect(battleStockIconUrl('wood')).not.toBe(battleStockIconUrl('stone'));
+    expect(battleStockIconUrl('supply')).not.toBe(battleStockIconUrl('gold'));
+    expect(battleStockIconUrl('nope')).toBeNull();
+  });
+
+  it('resolves every battle glyph and every card and map icon', () => {
+    BATTLE_GLYPH_IDS.forEach((id) => expect(iconUrl('battle', id), id).toBeTruthy());
+    UI_ICON_IDS.forEach((id) => expect(uiIconUrl(id), id).toBeTruthy());
+    expect(Object.keys(CAPTURE_CHOICE_ICON_IDS)).toEqual(['conquer', 'raze', 'tributary', 'free']);
+    expect(uiIconUrl('capture-conquer-disabled')).toBeNull(); // disabled is a CSS look, not a file
+  });
+
+  it('draws them as plain vector art: no text, no embedded picture, the 256 box (two wide pieces apart)', () => {
+    const wide = { 'field-edge': '0 0 96 24', 'capture-header': '0 0 512 96' };
+    const all = [...new Set(Object.values(BATTLE_STOCK_ICON_IDS)), ...BATTLE_GLYPH_IDS].map((id) => ['battle', id]).concat(UI_ICON_IDS.map((id) => ['ui', id]));
+    all.forEach(([group, id]) => {
+      const text = svg(group, id);
+      expect(text, id).not.toMatch(/<text|<image|<script|href=/);
+      expect(text, id).toContain(`viewBox="${wide[id] || '0 0 256 256'}"`);
+    });
+  });
+
+  it('keeps the base marker and the base counter tintable', () => {
+    ['base-marker', 'base-status'].forEach((id) => expect(svg('battle', id), id).toContain('fill="currentColor"'));
   });
 });
 
