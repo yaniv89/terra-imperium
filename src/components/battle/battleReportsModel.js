@@ -3,9 +3,9 @@
 // as a list with filters (All, Won, Lost, Command, Auto, Sieges, Field, Sea) and the detail of
 // one: its name, the result from your side (Victory, Held, Defeat, Lost, Repelled, Stalemate),
 // Command or Auto, both sides in and lost, a plain summary and the strength timeline. Pure.
-import { MEN_PER_STRENGTH } from '../../engine/aftermath';
+import { auxiliaryLine, ledgerOf, menOf } from '../../engine/battleLedger';
 import { playerWon } from '../../engine/battleReports';
-import { FATE_VIEW, battleTitle, describeOutcome, fateOf, fateText, nationName, regionName, sidesFor, timelineFor } from './battleReportView';
+import { FATE_VIEW, battleTitle, describeOutcome, fateOf, fateText, nationName, regionName, sidesFor, timelineFor, verificationNotice } from './battleReportView';
 
 export const REPORT_FILTERS = [
   { id: 'all', label: 'All' },
@@ -38,13 +38,18 @@ export const filterReports = (reports = [], filter = 'all') => reports.filter((e
 export const resultOf = (e) => {
   if (e.outcome === 'stalemate') return { label: 'Stalemate', tone: 'draw' };
   const won = playerWon(e);
+  // A raid or a sack takes no city: it is driven off, or it gets through (I006).
+  if (e.kind === 'raid' || e.kind === 'sack') {
+    if (e.playerSide === 'defender') return won ? { label: 'Driven off', tone: 'win' } : { label: e.kind === 'sack' ? 'Sacked' : 'Raided', tone: 'loss' };
+    return won ? { label: 'Victory', tone: 'win' } : { label: 'Driven off', tone: 'loss' };
+  }
   if (e.playerSide === 'defender') return won ? { label: 'Held', tone: 'win' } : { label: e.captured ? 'Lost' : 'Defeat', tone: 'loss' };
   return won ? { label: 'Victory', tone: 'win' } : { label: 'Repelled', tone: 'loss' };
 };
 
 export const yearText = (y) => (y < 0 ? `${-y} BCE` : `${y} CE`);
 const men = (n) => Math.round(n || 0);
-const sideMen = (e, side) => (e.sides?.[side] || []).reduce((s, u) => s + u.before, 0) * MEN_PER_STRENGTH;
+const sideMen = (e, side) => menOf((e.sides?.[side] || []).reduce((s, u) => s + u.before, 0));
 
 /** One row of the list. */
 export const reportRow = (state, e) => {
@@ -68,7 +73,7 @@ export const fateRows = (e, side) => (e?.sides?.[side] || []).map((u) => {
   const fate = fateOf(e, side, u);
   return {
     id: u.id, classId: u.classId, navalLine: u.navalLine || null, regiment: u.regiment || null,
-    menBefore: men(u.before * MEN_PER_STRENGTH), menAfter: men(u.after * MEN_PER_STRENGTH),
+    menBefore: menOf(u.before), menAfter: menOf(u.after), temp: u.temp || null,
     fate, tone: FATE_VIEW[fate].tone, text: fateText(e, side, u), byCavalry: !!u.byCavalry
   };
 });
@@ -83,6 +88,9 @@ export const reportDetail = (state, e) => {
     ? ` Fled the field: ${men(e.fled[mine])} of yours, ${men(e.fled[theirs])} of theirs.` : '';
   const destroyed = (e.sides?.[theirs] || []).filter((u) => u.after <= 0).length;
   const lostUnits = (e.sides?.[mine] || []).filter((u) => u.after <= 0).length;
+  const ledger = ledgerOf(e);
+  // One round has no course to play back (I016): say so, and keep the replay for the longer ones.
+  const rounds = e.rounds ?? Math.max(0, timelineFor(e).filter((p) => !p.pursuit).length - 1);
   return {
     ...reportRow(state, e),
     who: `${e.playerSide === 'attacker' ? 'You attacked' : 'You defended'} · ${e.commanded ? 'Command' : 'Auto'}${e.terrain ? ` · ${e.terrain}` : ''}`,
@@ -91,6 +99,11 @@ export const reportDetail = (state, e) => {
     summary: `${outcome.text}. ${destroyed ? `${destroyed} of their regiments destroyed` : 'None of their regiments destroyed'}; ${lostUnits ? `${lostUnits} of yours lost` : 'none of yours lost'}.${fled}`,
     timeline: timelineFor(e),
     canReplay: timelineFor(e).length > 1,
+    oneRound: !e.commanded && rounds === 1,
+    // The receipt: what the campaign logged, the temporary troops, and how a commanded battle was checked.
+    line: e.line || null,
+    aux: [auxiliaryLine(ledger.aux), auxiliaryLine(ledger.theirAux, { yours: false })].filter(Boolean),
+    notice: verificationNotice(e),
     place: e.targetRegionId ? regionName(e.targetRegionId) : null,
     targetRegionId: e.targetRegionId || null
   };

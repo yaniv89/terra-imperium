@@ -20,6 +20,12 @@ import { addCity, addCities } from './testWorld';
 import { createWorld, sideEdgeX } from '../battle/sim/world';
 import { firePower } from '../battle/sim/effects';
 import { cityManifestOf } from './cityManifest';
+import { battleReceipt, resolveActionOf } from './battleReceipt';
+import { auxiliaryLine, conserved, menOf, menText } from './battleLedger';
+import { auditGameState } from './stateAudit';
+import { battleResultModel } from '../components/battle/battleHudModel';
+import { resultOf } from '../components/battle/battleReportsModel';
+import { verificationNotice } from '../components/battle/battleReportView';
 
 // The Dawn world gives France one city with no room beside it, so the fixture founds French
 // cities on the nearest free land: FR_BORDER (bordering a foreign capital, the war's target),
@@ -121,8 +127,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
   // Playtest audit CB01 (I001: Victory on the screen, a defeat in the campaign): a battle played
   // live through the real loop on the screen's setup, with a deployment, the economy's orders and
   // the army's, then handed to the reducer exactly as TacticalBattleHost does.
-  describe('the verified replay is the battle the player saw', () => {
-    const played = (() => {
+  const played = (() => {
       let memo = null;
       return () => {
         if (memo) return memo;
@@ -134,8 +139,9 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
         memo = { started, pb, setup, ...live, payload };
         return memo;
       };
-    })();
+  })();
 
+  describe('the verified replay is the battle the player saw', () => {
     it('the screen and the reducer build the same setup with one function, the player\'s side never routing', () => {
       const { started, pb, setup } = played();
       expect(setup).toEqual(buildCommandedSetup(started, pb));
@@ -233,6 +239,131 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       expect(safe.attackerUnits.find((u) => u.id === 'a2').strength).toBe(1000);
       expect(safe.report.tactical.missingUnitIds).toEqual(['a3']);
     });
+  });
+
+  // Playtest audit CB02 (I002, I003; addendum X04, X05): the result screen shows the campaign's
+  // receipt, read off the very reducer Continue runs, and one participant ledger feeds the screen,
+  // the battle report and the Log.
+  describe('the receipt: what the result screen shows is what the campaign commits', () => {
+    const settled = (() => {
+      let memo = null;
+      return () => {
+        if (memo) return memo;
+        const p = played();
+        const action = resolveActionOf(p.pb, p.ended, setupKeyOf(p.setup));
+        const before = JSON.stringify({ units: p.started.units, pendingBattle: p.started.pendingBattle.id, seq: p.started.battleReportSeq || 0 });
+        const receipt = battleReceipt(p.started, action);
+        const untouched = before === JSON.stringify({ units: p.started.units, pendingBattle: p.started.pendingBattle.id, seq: p.started.battleReportSeq || 0 });
+        memo = { ...p, action, receipt, untouched, next: gameReducer(p.started, action) };
+        return memo;
+      };
+    })();
+
+    it('the receipt is the committed report entry, under the operation id, and reading it changes nothing', () => {
+      const { started, pb, ended, receipt, next, untouched, action } = settled();
+      expect(untouched).toBe(true);
+      expect(started.pendingBattle).not.toBeNull();
+      expect(action.payload).toMatchObject({ battleId: pb.id, hash: ended.hash, setupVersion: SETUP_VERSION });
+      expect(receipt.applied).toBe(true);
+      expect(receipt.entry).toEqual(next.battleReports[0]);
+      expect(receipt.entry).toMatchObject({ opId: pb.id, commanded: true, verification: 'verified', outcome: ended.result.outcome });
+      expect(receipt.entry.breaches).toBeUndefined();
+      expect(receipt.line).toBe(receipt.entry.line);
+      expect(next.logs.some((l) => l.message.includes(receipt.line))).toBe(true);
+    }, 120000);
+
+    it('the ledger is conserved on each side and equals the map: no regiment the battle destroyed stands, no survivor is made whole', () => {
+      const { started, receipt, next } = settled();
+      const { ledger, entry } = receipt;
+      [ledger.mine, ledger.theirs].forEach((t) => {
+        expect(t.before).toBe(t.after + t.fallen + t.fled);
+        expect(conserved(t)).toBe(true);
+      });
+      expect(ledger.conserved).toBe(true);
+      expect(ledger.mine.units).toBe(3);
+      expect(ledger.mine.before).toBe(3000);
+      ['attacker', 'defender'].forEach((side) => entry.sides[side].forEach((u) => {
+        if (!started.units[u.id]) return; // the militia lives on the battle only
+        const kept = u.after > 0 && u.fate !== 'runDown' ? u.after : 0;
+        expect(next.units[u.id]?.strength ?? 0, u.id).toBe(kept);
+        expect(u.before, u.id).toBe(started.units[u.id].strength);
+      }));
+      expect(auditGameState(next).filter((i) => i.code === 'battle_ledger')).toEqual([]);
+    }, 120000);
+
+    it('one count of men: the report, the Log and the result screen say the same number', () => {
+      const { ended, setup, receipt, next } = settled();
+      const { ledger, entry } = receipt;
+      expect(entry.fallen[ledger.mineKey]).toBe(menOf(ledger.mine.fallen));
+      expect(entry.fallen[ledger.theirsKey]).toBe(menOf(ledger.theirs.fallen));
+      expect(entry.fled[ledger.mineKey]).toBe(menOf(ledger.mine.fled));
+      const logged = next.logs.find((l) => l.message.includes(receipt.line)).message;
+      if (ledger.mine.fallen + ledger.theirs.fallen > 0) expect(logged).toContain(`Fallen: ${menText(ledger.mine.fallen)} of yours, ${menText(ledger.theirs.fallen)} of theirs.`);
+      const m = battleResultModel(ended, setup, 0, { turnNumber: next.turnNumber }, receipt);
+      expect(m.state).toBe('committed');
+      expect(m.mine).toMatchObject({ start: ledger.mine.before, lost: ledger.mine.fallen, fled: ledger.mine.fled });
+      expect(m.theirs).toMatchObject({ start: ledger.theirs.before, lost: ledger.theirs.fallen });
+      expect(m.verdict).toBe(resultOf(entry).label);
+      expect(m.won).toBe(entry.outcome === 'attacker');
+      expect(m.line).toBe(entry.line);
+      expect(m.notice).toBeNull();
+      // the XP on the screen is the XP on the map
+      m.xp.forEach((x) => expect(next.units[x.id].xp - (settled().started.units[x.id].xp || 0)).toBe(x.gained));
+      // gold looted in the battle is never shown as gold for the treasury unless it arrives
+      if (m.loot?.banked) expect(next.resources.gold - settled().started.resources.gold).toBe(m.loot.gold);
+    }, 120000);
+
+    it('the trained auxiliaries are on the receipt as temporary troops, never as regiments', () => {
+      const { ended, receipt, next } = settled();
+      const trained = Object.entries(ended.result.report.tactical.economy[0].trained).reduce((s, [k, n]) => s + (k === 'worker' ? 0 : n), 0);
+      expect(trained).toBeGreaterThan(0);
+      expect(receipt.entry.aux.attacker.squads).toBe(trained);
+      expect(auxiliaryLine(receipt.ledger.aux)).toMatch(/Temporary: they leave after the battle/);
+      expect(Object.values(next.units).filter((u) => u.ownerId === 'fr').map((u) => u.id).every((id) => ['a1', 'a2', 'a3'].includes(id))).toBe(true);
+    }, 120000);
+
+    it('while the campaign counts, the screen shows no number; a count that differs from the screen says which one stands', () => {
+      const { started, ended, setup, payload } = settled();
+      const waiting = battleResultModel(ended, setup, 0, {}, { pending: true });
+      expect(waiting).toMatchObject({ state: 'pending', mine: null, theirs: null });
+      const action = { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { ...payload, hash: 12345 } };
+      const desynced = battleReceipt(started, action);
+      expect(desynced.entry.verification).toBe('desync');
+      expect(battleResultModel(ended, setup, 0, {}, desynced).notice).toMatch(/This result is the one that counts/);
+      expect(verificationNotice(desynced.entry)).toMatch(/different end/);
+    }, 120000);
+
+    it('a unit missing from the result is a breach on the entry, told to the player and found by the audit', () => {
+      const started = begin(withArmies());
+      const pb = started.pendingBattle;
+      const result = { outcome: 'defender', attackerUnits: [{ ...started.units.a1, strength: 400, disposition: 'fled' }, { ...started.units.a3, strength: 900, disposition: 'fled' }], defenderUnits: pb.defenderUnitIds.map((id) => ({ ...started.units[id] })), report: { tactical: {} } };
+      const receipt = battleReceipt(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
+      // (the city's militia took the field too and is not in this result either)
+      expect(receipt.entry.breaches).toContainEqual({ id: 'a2', kind: 'missing' });
+      expect(receipt.entry.breaches.every((b) => b.kind === 'missing')).toBe(true);
+      expect(verificationNotice(receipt.entry)).toMatch(/regiments? w(as|ere) missing from the battle's record/);
+      // it is lost, and the ledger says so: 1,000 of the cavalry, 600 of a1, 100 of a3
+      expect(receipt.ledger.mine).toMatchObject({ before: 3000, fallen: 1700, destroyed: 1 });
+      const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
+      expect(auditGameState(next).filter((i) => i.code === 'battle_ledger').length).toBeGreaterThan(0);
+    }, 60000);
+
+    it('a battle that changes nothing says so, on the screen and in the Log', () => {
+      const started = begin(withArmies());
+      const pb = started.pendingBattle;
+      const peace = { ...started, wars: started.wars.map((w) => (w.id === pb.warId ? { ...w, active: false } : w)) };
+      const result = { outcome: 'attacker', attackerUnits: [], defenderUnits: [], report: { tactical: {} } };
+      const action = { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } };
+      const receipt = battleReceipt(peace, action);
+      expect(receipt.applied).toBe(false);
+      expect(receipt.voidLine).toMatch(/changed nothing: peace was made before it ended/);
+      const next = gameReducer(peace, action);
+      expect(next.pendingBattle).toBeNull();
+      expect(next.units).toEqual(peace.units);
+      expect(next.logs[next.logs.length - 1].message).toBe(receipt.voidLine);
+      const setup = buildCommandedSetup(started, pb);
+      expect(battleResultModel({ result }, setup, 0, {}, receipt)).toMatchObject({ state: 'void', verdict: 'No effect', line: receipt.voidLine });
+    }, 60000);
   });
 
   it('the real city stands on the battlefield; its losses carry to the map under the 50% rule', () => {

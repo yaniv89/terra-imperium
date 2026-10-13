@@ -504,6 +504,8 @@ export const ABANDON_REASONS = {
   setup_error: 'the battle could not be set up',
   screen_error: 'the battle screen failed'
 };
+/** How the Log line of a finished battle that changed nothing begins (battleReceipt.js reads it). */
+export const BATTLE_VOID_PREFIX = 'The battle at';
 
 const reject = (state, message) => ({
   ...state,
@@ -1622,6 +1624,16 @@ const reduceAction = (state, action) => {
       const pb = state.pendingBattle;
       const { battleId } = action.payload || {};
       if (!pb || pb.id !== battleId) return state;
+      // A finished battle never vanishes without a word (plan W02 task 9): when it changed nothing
+      // (peace was made meanwhile, the target can no longer be fought, its queued record is gone)
+      // no report is recorded, and the Log says so.
+      if (!action.settling) {
+        const done = reduceAction(state, { ...action, settling: true });
+        if ((done.battleReportSeq || 0) !== (state.battleReportSeq || 0)) return done;
+        const place = state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name || 'the field';
+        const why = pb.warId && !state.wars.some((w) => w.id === pb.warId && w.active) ? 'peace was made before it ended' : 'it could no longer be fought when it ended';
+        return { ...done, logs: [...done.logs, { year: state.year, message: `${BATTLE_VOID_PREFIX} ${place} changed nothing: ${why}.`, type: LogTypes.COMBAT }] };
+      }
       // With the command log, the battle is re-simulated here from the authoritative game state
       // (battleVerify.js: THE commanded setup the screen fought, the log through the live battle's
       // own order schema), and the client's reported result is ignored. This is what the edge

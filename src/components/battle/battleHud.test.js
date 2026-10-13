@@ -65,12 +65,15 @@ describe('BattleHud', () => {
     expect(h).not.toContain('data-testid="battle-commands"');
   });
 
-  it('a city assault shows the housing and the 50% rule; ended leaves only the top bar', () => {
+  it('a city assault shows the housing and the houses ruined, never the 50% rule; ended leaves only the top bar', () => {
     const citySetup = { ...setup, city: {}, structures: [{ kind: 'keep', housing: 20 }, { kind: 'house', housing: 10 }, { kind: 'house', housing: 10 }] };
     const cityHud = { ...hud, structures: [hud.structures[0], { kind: 'house', alive: false, hp: 0, maxHp: 1 }, { kind: 'house', alive: true, hp: 1, maxHp: 1 }] };
     const h = html({ setup: citySetup, hud: cityHud });
     expect(h).toContain('data-testid="battle-city"');
-    expect(h).toContain('The 50% rule');
+    expect(h).toContain('data-testid="battle-city-houses"');
+    expect(h).toContain('Repairs are free');
+    expect(h).not.toContain('50% rule');
+    expect(h).not.toMatch(/At most \d+ carry/);
     const done = html({ ended: true });
     expect(done).toContain('data-testid="battle-top-bar"');
     expect(done).not.toContain('data-testid="battle-commands"');

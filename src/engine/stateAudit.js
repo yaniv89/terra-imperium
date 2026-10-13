@@ -104,6 +104,11 @@ export const auditGameState = (state) => {
   if (state.pendingPeaceOffer && !(state.wars || []).some(w => w.active && w.id === state.pendingPeaceOffer.warId)) {
     report('stale_peace', 'pendingPeaceOffer', 'Offer references an inactive war');
   }
+  // The newest battle's participant ledger against the map it was committed to (battleLedger.js):
+  // a destroyed regiment left standing, a survivor made whole, a unit missing from the result.
+  ((state.battleReports || [])[0]?.breaches || []).forEach((b) => {
+    report('battle_ledger', `battleReports.0.${b.id}`, `Battle ledger breach (${b.kind}): ledger ${b.ledger ?? 'n/a'}, map ${b.map ?? 'n/a'}`);
+  });
   return issues;
 };
 
