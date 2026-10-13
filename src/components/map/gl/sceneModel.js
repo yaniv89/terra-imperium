@@ -370,9 +370,14 @@ export const lensShapes = ({ state, projection, k, lens, dpr, settlerTile = null
     // numbered marks that keep their size at every zoom (a ring for a sound site, a dashed ring
     // for a poor one), so the good land is found from the strategic zoom too (I088, I089).
     out.tints = settleTints(state, [settlerTile], { km: SETTLE_MODE_KM });
+    const placed = [];
     (sites || []).forEach((s, i) => {
       const p = at(s.tile);
       if (!p) return;
+      // far out the sites stand within a few pixels of each other: the better one keeps its mark
+      // (the bar still walks through all of them)
+      if (placed.some((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) * k < SITE_MARK_PX * 0.9)) return;
+      placed.push(p);
       const c = cssColor(s.poor ? '#fbbf24' : '#fde68a');
       out.sprites.push({ art: discArt(48), anchor: p, size: [SITE_MARK_PX, SITE_MARK_PX], exp: [0, 0], color: [15 / 255, 23 / 255, 42 / 255, 0.78] });
       out.sprites.push({ art: discArt(48, { ring: 5, dash: s.poor ? [7, 5] : null }), anchor: p, size: [SITE_MARK_PX + 2, SITE_MARK_PX + 2], exp: [0, 0], color: [c[0], c[1], c[2], 1] });

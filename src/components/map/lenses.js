@@ -138,7 +138,7 @@ export const tradeLines = (state) => {
  * not another nation's land, clear of every city) and no accord bars it; the reason names the
  * blocking city or the owning nation ("Too close to Jerusalem.", "Belongs to Egypt."). */
 export const SETTLE_LENS_KM = 612;
-export const SETTLE_COLOUR = { ok: 'rgba(52,211,153,0.22)', no: 'rgba(239,68,68,0.4)' };
+export const SETTLE_COLOUR = { ok: 'rgba(52,211,153,0.34)', no: 'rgba(239,68,68,0.4)' };
 export const settleTints = (state, from = null, { km = SETTLE_LENS_KM, limit = 3000 } = {}) => {
   const tiles = getTiles();
   const me = state.playerNationId;

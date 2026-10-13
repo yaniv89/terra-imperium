@@ -16,9 +16,13 @@
 import { getTiles } from '../../data/geo/tiles';
 import { getEffectiveAgeId } from '../../data/ages';
 import { bestSites, isSettler, settlersOf, siteOutlook, MAX_SETTLE_RINGS, SETTLER_MOVES } from '../../engine/settlers';
+import { ringDistance } from '../../engine/world/cities';
+import { citySpacingRings } from '../../data/geo/citySpacing';
 
 /** How many ranked sites the mode lists and marks on the map. */
 export const SETTLE_SITE_LIMIT = 8;
+/** How many of the engine's ranked tiles the list is drawn from. */
+export const SETTLE_SITE_POOL = 400;
 
 const ageOf = (state) => getEffectiveAgeId(state.age, state.techAgeId);
 
@@ -58,7 +62,17 @@ export const settleSites = (state, mode, limit = SETTLE_SITE_LIMIT) => {
   if (!u) return [];
   const tiles = getTiles();
   const me = state.playerNationId;
-  const list = bestSites(state, me, u.tile, ageOf(state), { rings: MAX_SETTLE_RINGS, limit: limit * 2 })
+  // The engine ranks tiles, and the best ones are often neighbours: one place, several tiles. The
+  // list keeps the best tile of each place (a site closer to a kept one than two cities may stand
+  // is the same place), so every "Next good site" is somewhere else to go.
+  const apart = citySpacingRings(tiles);
+  const kept = [];
+  for (const s of bestSites(state, me, u.tile, ageOf(state), { rings: MAX_SETTLE_RINGS, limit: SETTLE_SITE_POOL })) {
+    if (kept.some((q) => ringDistance(tiles, q.tile, s.tile, apart - 1) < apart)) continue;
+    kept.push(s);
+    if (kept.length >= limit * 2) break;
+  }
+  const list = kept
     .map((s) => ({ ...s, turns: Math.max(1, Math.ceil(s.steps / SETTLER_MOVES)), name: tiles.names[s.tile] || null, warnings: siteOutlook(state, s.tile, me)?.warnings || [] }));
   // stable: the engine's order within the sound sites, then within the poor ones
   return [...list.filter((s) => !s.warnings.length), ...list.filter((s) => s.warnings.length)].slice(0, limit);

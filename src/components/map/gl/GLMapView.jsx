@@ -522,7 +522,8 @@ const GLMapView = ({
     if (!g || !cities || !markerOut || !landOut || !settlers || !march || !terrainOut || !raids) return;
     const groups = {
       terrain: terrainOut,
-      ground: [...(lensOut?.sprites || []), ...landOut.sprites, ...marks],
+      // the lens's own marks (the settle mode's numbered sites) over the tile glyphs
+      ground: [...landOut.sprites, ...marks, ...(lensOut?.sprites || [])],
       upper: [...march.sprites, ...settlers.sprites],
       // names, banners and the raids' labels never stand on each other (declutter.js, I080)
       top: [...cities.sprites, ...declutterLabels([...cities.names, ...raids.sprites.filter((s) => s.label)], k), ...markerOut.sprites, ...raids.sprites.filter((s) => !s.label)]

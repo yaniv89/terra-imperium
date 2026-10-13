@@ -6,6 +6,7 @@ import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
 import { makeSettler, bestSites, canSettle, SETTLER_MOVES, MAX_SETTLE_RINGS } from '../../engine/settlers';
 import { isExplored } from '../../engine/fog';
+import { ringDistance } from '../../engine/world/cities';
 import { resourceKnown } from '../../data/tileYields';
 import { citySpacingRings } from '../../data/geo/citySpacing';
 import { settleModeFor, settleModeOver, settleSites, settleUnit, nextSite, settleBarModel, idleSettlerOn, firstIdleSettler } from './settleMode';
@@ -47,6 +48,9 @@ describe('the settle mode', () => {
     });
     const firstPoor = sites.findIndex((x) => x.warnings.length > 0);
     if (firstPoor >= 0) sites.slice(firstPoor).forEach((x) => expect(x.warnings.length).toBeGreaterThan(0));
+    // each is a place of its own: no two closer than two cities may stand
+    const tiles = getTiles();
+    sites.forEach((a, i) => sites.slice(i + 1).forEach((b) => expect(ringDistance(tiles, a.tile, b.tile, 12)).toBeGreaterThanOrEqual(citySpacingRings(tiles))));
     // the engine's own best site is among them
     const best = bestSites(s, me, capital.tile, 'bronze', { rings: MAX_SETTLE_RINGS, limit: 1 })[0];
     expect(sites.map((x) => x.tile)).toContain(best.tile);
@@ -91,7 +95,7 @@ describe('the settle mode', () => {
   it('draws its tints round the settler and a numbered mark on every ranked site', () => {
     const s = withSettler();
     const sites = settleSites(s, settleModeFor(s.units.u_set));
-    const out = lensShapes({ state: s, projection, k: 2, lens: 'settle', dpr: 1, settlerTile: capital.tile, sites: sites.map((x) => ({ tile: x.tile, poor: x.warnings.length > 0 })) });
+    const out = lensShapes({ state: s, projection, k: 400, lens: 'settle', dpr: 1, settlerTile: capital.tile, sites: sites.map((x) => ({ tile: x.tile, poor: x.warnings.length > 0 })) });
     expect(out.tints.length).toBeGreaterThan(50);
     sites.forEach((x) => expect(out.tints.find((t) => t.tile === x.tile)?.ok).toBe(true)); // every ranked site is inside the tinted land
     expect(out.sprites.filter((sp) => sp.art.key.startsWith('label|')).map((sp) => sp.art.key.split('|')[1])).toEqual(sites.map((_, i) => String(i + 1)));
