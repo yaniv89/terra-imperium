@@ -35,7 +35,9 @@ export const WAR_ROLL_OPINION_CEILING = 20;  // no AI war roll at this opinion o
 export const WAR_ROLL_OPINION_SPAN = 60;     // full roll at ceiling - span
 export const CASUS_BELLI_OPINION = -40;      // this low, a war on them needs no claim
 export const RAIDED_US = -15;                // an independent raided or sacked us; fades 1 a turn (raids.js)
-export const PAYS_US_TRIBUTE = 10;           // an independent's view of a nation paying it tribute
+export const MET_OUR_DEMAND = 10;            // they paid the tribute (or yielded what) we demanded: while the truce it bought lasts (accords.js)
+export const DEMAND_MAX_OPINION = 15;        // a major that thinks this well of a people demands nothing of it (aiAccords.js)
+export const PAYS_US_TRIBUTE = 10;          // an independent's view of a nation paying it tribute
 // Phase W3 (indepPolicy.js, razing.js): an independent's attitude to a major adds these to the
 // reasons above (opinion.js). Its grudge counts against it; favour is bought with gifts.
 export const INDEP_FAVOUR_PER_POINT = 1;     // per point of favour (gifts, capped by FAVOUR_MAX)

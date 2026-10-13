@@ -11,7 +11,7 @@ import { opinionOf } from './opinion';
 import { claimableCities } from './claims';
 import {
   hasOpenBorders, openBordersAcceptance, setOpenBorders, demandAcceptance, applyDemand, settlingBarred, hasDemandCasusBelli,
-  OPEN_BORDERS_OPINION, DEMAND_CB_TURNS, DEMAND_COOLDOWN_TURNS, DEMAND_STOP_SETTLING_TURNS, DEMAND_TRIBUTE_MIN
+  OPEN_BORDERS_OPINION, demandCbTurns, demandCooldownTurns, demandTruceTurns, tributeQuote, cityIncomeOf, DEMAND_STOP_SETTLING_TURNS, DEMAND_TRIBUTE_MIN, DEMAND_TRIBUTE_BANK_CAP, DEMAND_TRIBUTE_INCOME_SHARE
 } from './accords';
 
 const base = () => {
@@ -65,14 +65,24 @@ describe('demands', () => {
     expect(hasDemandCasusBelli(refused, 'in', other)).toBe(true);
     expect(hasCasusBelli(refused, 'in', other)).toBe(true);
     expect(refused.nations[other].hostility).toBeGreaterThan(weak.nations[other].hostility || 0);
-    expect(refused.nations.in.demandCooldowns[other]).toBe(weak.turnNumber + DEMAND_COOLDOWN_TURNS);
+    expect(refused.nations.in.demandCooldowns[other]).toBe(weak.turnNumber + demandCooldownTurns(weak));
     expect(demandAcceptance(refused, other, 'tribute').reason).toMatch(/no demand/);
-    expect(hasDemandCasusBelli({ ...refused, turnNumber: refused.turnNumber + DEMAND_CB_TURNS + 1 }, 'in', other)).toBe(false);
+    expect(hasDemandCasusBelli({ ...refused, turnNumber: refused.turnNumber + demandCbTurns(refused) + 1 }, 'in', other)).toBe(false);
     const strong = { ...s, nations: { ...s.nations, in: { ...s.nations.in, militaryStrength: 50000 }, [other]: { ...s.nations[other], militaryStrength: 100, hostility: 0, economy: { ...s.nations[other].economy, gold: 1000 } } }, units: {} };
     expect(demandAcceptance(strong, other, 'tribute').accepted).toBe(true);
     const paid = gameReducer(strong, { type: ActionTypes.DEMAND, payload: { nationId: other, kind: 'tribute' } });
-    expect(paid.resources.gold - strong.resources.gold).toBe(200); // 20% of 1,000; the demand costs DIP, not gold
-    expect(paid.nations[other].economy.gold).toBe(800);
+    // The sum comes from their income and the strength ratio, capped at half of what they hold: never a share of the bank alone.
+    const q = tributeQuote(strong, 'in', other);
+    expect(q.amount).toBe(Math.min(Math.max(DEMAND_TRIBUTE_MIN, Math.round(cityIncomeOf(strong, other) * demandCooldownTurns(strong) * DEMAND_TRIBUTE_INCOME_SHARE * q.ratio)), 1000 * DEMAND_TRIBUTE_BANK_CAP));
+    const rich = { ...strong, nations: { ...strong.nations, [other]: { ...strong.nations[other], economy: { ...strong.nations[other].economy, gold: 1000000 } } } };
+    expect(tributeQuote(rich, 'in', other).amount).toBe(q.byPower); // a full treasury is not taxed
+    expect(paid.resources.gold - strong.resources.gold).toBe(q.amount); // the demand costs DIP, not gold
+    expect(paid.nations[other].economy.gold).toBe(1000 - q.amount);
+    // Meeting a demand buys a truce both ways, and the demander thinks better of the payer meanwhile.
+    expect(paid.nations.in.truces[other]).toBe(strong.turnNumber + demandTruceTurns(strong));
+    expect(paid.nations[other].truces.in).toBe(strong.turnNumber + demandTruceTurns(strong));
+    expect(paid.nations.in.demandMet[other]).toMatchObject({ kind: 'tribute' });
+    expect(demandAcceptance({ ...paid, nations: { ...paid.nations, in: { ...paid.nations.in, demandCooldowns: {} } } }, other, 'tribute').reason).toMatch(/truce/i);
     expect(paid.logs[paid.logs.length - 1].message).toMatch(/tribute/);
     expect(DEMAND_TRIBUTE_MIN).toBeGreaterThan(0);
     assertGameState(paid);

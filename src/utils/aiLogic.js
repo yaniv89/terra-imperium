@@ -30,6 +30,7 @@ import { getBorderingNationIds, getNeighborIds, getOwnedRegionIds } from '../dat
 import { hasMet } from '../engine/fog';
 import { declareWar, isInTruce, hasActiveWarBetween, hasCasusBelli } from '../engine/diplomacy';
 import { claimsOf, claimsInProgressOf, claimableCities, startClaim } from '../engine/claims';
+import { hasOpenDemand } from '../engine/accords';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
@@ -303,6 +304,8 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
     // Independents are never a war target (they are attacked without a war: W3 gives the AI that).
     // Only a people it has met (fog.js): contact needs sight.
     .filter(id => id !== excludeId && state.nations[id] && !state.nations[id].isEliminated && !isIndependentNation(state.nations[id]) && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id) && hasMet(state, nationId, id)
+      // Never a people it holds an open demand on: the answer comes first (accords.js, addendum X21).
+      && !hasOpenDemand(state, nationId, id)
       && !hasActiveWarBetween(state, nationId, id) && countActiveWars(state.wars, id) < MAX_TARGET_WARS);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;

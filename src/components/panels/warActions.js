@@ -19,7 +19,7 @@ export const declareWarModel = (state, nationId) => {
   return {
     nationId, name: nation.name, atWar, justified, costs, blocked, breaksTruce, affordable,
     label: `Declare war on ${nation.name}${justified ? '' : ' (unjustified)'}`,
-    note: blocked || (justified ? 'You have a casus belli.' : 'No casus belli: costs more and angers the world.') + (breaksTruce ? ' Breaks your truce.' : ''),
+    note: blocked || (justified ? 'You have a cause for war.' : 'No cause for war: costs more and angers the world.') + (breaksTruce ? ' Breaks your truce.' : ''),
     enabled: !blocked && affordable
   };
 };

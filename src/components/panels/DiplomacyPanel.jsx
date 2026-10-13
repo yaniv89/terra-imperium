@@ -40,6 +40,7 @@ import { peoplesModel, RELATION_LABEL } from './peoplesModel';
 // specific reason instead of a generic "Not enough resources" — both readable without a hover
 // tooltip, which mobile touch has no equivalent of.
 import NationCard from './NationCard';
+import { demandTerms } from '../../engine/aiAccords';
 import IndependentsList from '../independents/IndependentsList';
 import { openTributeDemand, openJoinOffer, openIndependent } from '../independents/independentEvents';
 
@@ -77,6 +78,7 @@ const DiplomacyPanel = () => {
   const selected = selectedId ? state.nations[selectedId] : null;
   const pendingPeaceOffer = state.pendingPeaceOffer;
   const pendingPeaceOfferNation = pendingPeaceOffer ? state.nations[pendingPeaceOffer.from] : null;
+  const demand = useMemo(() => demandTerms(state), [state]);
   const tributes = (state.tributeDemands || []).filter((d) => state.nations[d.indepId] && !state.nations[d.indepId].isEliminated);
   const joins = (state.joinOffers || []).filter((o) => state.nations[o.indepId] && !state.nations[o.indepId].isEliminated);
 
@@ -100,14 +102,22 @@ const DiplomacyPanel = () => {
           </div>
         </div>
       )}
-      {state.pendingDemand && state.nations[state.pendingDemand.from] && (
-        <div className="fa-card p-2.5 flex flex-wrap items-center justify-between gap-2 border-fa-danger" data-testid="pending-demand">
-          <div className="text-[13px] min-w-0">
-            <span className="font-semibold">{state.nations[state.pendingDemand.from].name}</span> {state.pendingDemand.kind === 'city' ? `demand ${state.pendingDemand.cityName || 'a city'}` : state.pendingDemand.kind === 'stopSettling' ? 'demand that you found no city near theirs for 50 turns' : `demand ${state.pendingDemand.amount} gold in tribute`}. <span className="text-fa-muted">Answer by turn {state.pendingDemand.until}; a refusal hands them a casus belli.</span>
+      {/* A major's demand (aiAccords.js demandTerms: the same terms the answer applies). The card
+          states the sum, the deadline, what meeting it buys and what refusing risks (X21, I104). */}
+      {demand && !demand.void && (
+        <div className="fa-card p-2.5 space-y-1.5 border-fa-danger" data-testid="pending-demand">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-[13px]">
+            <div className="min-w-0"><span className="font-semibold">{demand.name}</span> demand <span className="font-semibold" data-testid="demand-ask">{demand.ask}</span>.</div>
+            <div className="text-fa-muted text-[12px] shrink-0" data-testid="demand-deadline">Answer by turn {demand.deadline} ({demand.turnsLeft} {demand.turnsLeft === 1 ? 'turn' : 'turns'} left). No answer counts as a refusal.</div>
           </div>
-          <div className="flex gap-1.5 shrink-0">
-            <Button size="sm" onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } })}>{state.pendingDemand.kind === 'tribute' ? 'Pay' : state.pendingDemand.kind === 'city' ? 'Yield' : 'Promise'}</Button>
-            <Button size="sm" variant="danger" onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: false } })}>Refuse</Button>
+          <div className="grid gap-1.5 sm:grid-cols-2 pl:grid-cols-2 text-[12px]">
+            <div data-testid="demand-pay"><span className="font-semibold text-fa-good">If you {demand.pay.label.toLowerCase()}:</span> {demand.pay.text}</div>
+            <div data-testid="demand-refuse"><span className="font-semibold text-fa-danger-text">If you refuse:</span> {demand.refuse.text}</div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {demand.pay.reason && <span className="text-[12px] text-fa-danger-text mr-auto" data-testid="demand-blocked">{demand.pay.reason}</span>}
+            <Button size="sm" disabled={!demand.pay.ok} onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } })} data-testid="demand-accept">{demand.pay.label}{demand.amount != null ? ` ${demand.amount} gold` : ''}</Button>
+            <Button size="sm" variant="danger" onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: false } })} data-testid="demand-decline">Refuse</Button>
           </div>
         </div>
       )}

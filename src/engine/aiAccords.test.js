@@ -3,10 +3,11 @@ import { createInitialState, gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
-import { getSortedByMilitary } from '../utils/aiLogic';
-import { processAIAccords, touchingNations, tributeOf, answerDemand, demandWaiting, AI_ACCORD_PERIOD, AI_DEMAND_RATIO, AI_OPEN_BORDERS_OPINION, DEMAND_ANSWER_TURNS } from './aiAccords';
-import { hasOpenBorders, hasDemandCasusBelli, DEMAND_CB_TURNS } from './accords';
-import { opinionOf } from './opinion';
+import { getSortedByMilitary, processAIWarDecisions } from '../utils/aiLogic';
+import { processAIAccords, touchingNations, tributeOf, answerDemand, demandWaiting, demandTerms, demandBlock, forceNear, demandGapTurns, AI_ACCORD_PERIOD, AI_DEMAND_RATIO, AI_OPEN_BORDERS_OPINION, DEMAND_ANSWER_TURNS } from './aiAccords';
+import { hasOpenBorders, hasDemandCasusBelli, demandCbTurns, demandTruceTurns, demandCooldownTurns } from './accords';
+import { opinionOf, opinionReasons } from './opinion';
+import { isInTruce, declareWar } from './diplomacy';
 import { nextPrompts } from '../components/ui/nextPromptModel';
 import { assertGameState } from './stateAudit';
 
@@ -16,6 +17,10 @@ const sorted = getSortedByMilitary(S);
 // Two touching AI nations in Europe (France and one neighbour whose cities touch).
 const fr = 'fr'; const other = touchingNations(S, fr).find((id) => id !== 'au');
 const onSlot = (state, id) => { const ids = Object.keys(state.nations).filter((x) => x !== state.playerNationId && !state.nations[x].isEliminated && !state.nations[x].isPlayer).sort(); const slot = ids.indexOf(id) % AI_ACCORD_PERIOD; let t = state.turnNumber; while (t % AI_ACCORD_PERIOD !== slot) t++; return t; };
+// An army of `owner` standing on `target`'s capital tile: the force that makes a demand credible.
+const armyNear = (state, owner, target) => ({ near1: { id: 'near1', ownerId: owner, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, tile: state.regions[state.nations[target].capitalRegionId].tile, regionId: state.nations[owner].capitalRegionId } });
+// The player (500 gold, no army) pressed by a far stronger `bully` on the bully's accord turn.
+const pressedBy = (bully) => ({ ...S, turnNumber: onSlot(S, bully), units: armyNear(S, bully, 'au'), resources: { ...S.resources, gold: 500 }, nations: { ...S.nations, [bully]: { ...S.nations[bully], militaryStrength: 50000 }, au: { ...S.nations.au, militaryStrength: 100 } } });
 
 describe('AI accords (plan C6)', () => {
   it('two friendly touching AI nations open their borders on the slot turn, and close them when opinion sours', () => {
@@ -40,7 +45,7 @@ describe('AI accords (plan C6)', () => {
 
   it('a strong Tier-1 nation demands tribute from a weak touching AI, and from the player as a pending demand', () => {
     const turn = onSlot(S, fr);
-    const giant = { ...S, turnNumber: turn, units: {}, nations: { ...S.nations, [fr]: { ...S.nations[fr], militaryStrength: 50000, economy: { ...S.nations[fr].economy, gold: 100 } }, [other]: { ...S.nations[other], militaryStrength: 100, hostility: 0, economy: { ...S.nations[other].economy, gold: 1000 } } } };
+    const giant = { ...S, turnNumber: turn, units: armyNear(S, fr, other), nations: { ...S.nations, [fr]: { ...S.nations[fr], militaryStrength: 50000, economy: { ...S.nations[fr].economy, gold: 100 } }, [other]: { ...S.nations[other], militaryStrength: 100, hostility: 0, economy: { ...S.nations[other].economy, gold: 1000 } } } };
     const bigSorted = getSortedByMilitary(giant);
     const r = processAIAccords(giant, giant.nations, { turn, sortedByMilitary: bigSorted });
     const paid = r.nations[other].economy.gold < 1000;
@@ -54,9 +59,12 @@ describe('AI accords (plan C6)', () => {
     if (auTouch.length) {
       const bully = auTouch[0];
       const t2 = onSlot(S, bully);
-      const pressed = { ...S, turnNumber: t2, units: {}, resources: { ...S.resources, gold: 500 }, nations: { ...S.nations, [bully]: { ...S.nations[bully], militaryStrength: 50000 }, au: { ...S.nations.au, militaryStrength: 100 } } };
+      const pressed = pressedBy(bully);
       const r2 = processAIAccords(pressed, pressed.nations, { turn: t2, sortedByMilitary: getSortedByMilitary(pressed) });
-      expect(r2.pendingDemand).toMatchObject({ from: bully, kind: 'tribute', amount: tributeOf(pressed, 'au'), until: t2 + DEMAND_ANSWER_TURNS });
+      expect(r2.pendingDemand).toMatchObject({ from: bully, kind: 'tribute', amount: tributeOf(pressed, 'au', bully), until: t2 + DEMAND_ANSWER_TURNS });
+      expect(r2.pendingDemand.amount).toBeGreaterThanOrEqual(50);
+      expect(r2.pendingDemand.amount).toBeLessThanOrEqual(250); // never more than half of the 500 held
+      expect(r2.nations.au.lastDemandedTurn).toBe(t2);
       const withDemand = { ...pressed, nations: r2.nations, pendingDemand: r2.pendingDemand };
       expect(demandWaiting(withDemand)).toBe(true);
       expect(nextPrompts(withDemand).find((p) => p.kind === 'demand')).toMatchObject({ tab: 'diplomacy' });
@@ -71,9 +79,106 @@ describe('AI accords (plan C6)', () => {
       const late = { ...withDemand, turnNumber: t2 + DEMAND_ANSWER_TURNS + 1 };
       const r3 = processAIAccords(late, late.nations, { turn: late.turnNumber, sortedByMilitary: getSortedByMilitary(late) });
       expect(r3.pendingDemand).toBeNull();
-      expect(r3.nations[bully].demandCasusBelli.au).toBe(late.turnNumber + DEMAND_CB_TURNS);
+      expect(r3.nations[bully].demandCasusBelli.au).toBe(late.turnNumber + demandCbTurns(late));
       expect(answerDemand({ ...withDemand, pendingDemand: null }, true).message).toBeNull();
     }
+  });
+
+  // Playtest audits CB08 (I100 to I105, I109, addendum X21).
+  it('paying buys a truce, an opinion reason and a log line; the quoted sum is the sum paid', () => {
+    const bully = touchingNations(S, 'au')[0]; if (!bully) return;
+    const pressed = pressedBy(bully); const t2 = pressed.turnNumber;
+    const r = processAIAccords(pressed, pressed.nations, { turn: t2, sortedByMilitary: getSortedByMilitary(pressed) });
+    const withDemand = { ...pressed, nations: r.nations, pendingDemand: r.pendingDemand };
+    const terms = demandTerms(withDemand);
+    expect(terms).toMatchObject({ from: bully, kind: 'tribute', amount: r.pendingDemand.amount, deadline: t2 + DEMAND_ANSWER_TURNS });
+    expect(terms.pay).toMatchObject({ ok: true, truceTurns: demandTruceTurns(pressed), truceUntil: t2 + demandTruceTurns(pressed) });
+    expect(terms.refuse).toMatchObject({ cbTurns: demandCbTurns(pressed) });
+    expect(terms.pay.text).toMatch(/truce/i); expect(terms.refuse.text).toMatch(/cause for war/);
+    // The player grows richer before answering: the sum does not move with the bank.
+    const richer = { ...withDemand, resources: { ...withDemand.resources, gold: 5000 } };
+    const before = opinionOf(richer, bully);
+    const paid = gameReducer(richer, { type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } });
+    expect(paid.resources.gold).toBe(5000 - r.pendingDemand.amount);
+    expect(isInTruce(paid, bully, 'au')).toBe(true);
+    expect(paid.nations.au.truces[bully]).toBe(t2 + demandTruceTurns(pressed));
+    expect(opinionReasons(paid, bully).find((x) => x.id === 'metDemand')).toMatchObject({ value: 10 });
+    expect(opinionOf(paid, bully)).toBeGreaterThanOrEqual(before + 10);
+    expect(paid.logs[paid.logs.length - 1].message).toMatch(/truce holds between you until turn/i);
+    // While the truce holds they ask nothing more, and the war roll leaves the payer alone (pickWarTarget reads isInTruce).
+    const later = { ...paid, turnNumber: t2 + AI_ACCORD_PERIOD };
+    expect(demandBlock(later, bully, 'au')).toMatchObject({ id: 'truce' });
+    // Too little gold: the answer is rejected, nothing changes, the demand stays open.
+    const poor = { ...withDemand, resources: { ...withDemand.resources, gold: 1 } };
+    expect(demandTerms(poor).pay.ok).toBe(false);
+    expect(answerDemand(poor, true)).toMatchObject({ rejected: true });
+    expect(answerDemand(poor, true).state).toBe(poor);
+  });
+
+  it('no war roll picks a people with an open demand, and a demand between enemies is void', () => {
+    const bully = touchingNations(S, 'au')[0]; if (!bully) return;
+    const pressed = pressedBy(bully); const t2 = pressed.turnNumber;
+    const r = processAIAccords(pressed, pressed.nations, { turn: t2, sortedByMilitary: getSortedByMilitary(pressed) });
+    // Certain war: the bully's roll always passes (rng 0), it hates the player and has a cause.
+    const angry = { ...pressed, nations: { ...r.nations, [bully]: { ...r.nations[bully], hostility: 100, doctrine: 'expansionist' } } };
+    const rng = { next: () => 0 };
+    const sortedNow = getSortedByMilitary(angry);
+    const only = { [bully]: angry.nations[bully], au: angry.nations.au };
+    const free = processAIWarDecisions({ ...angry, pendingDemand: null }, only, [], sortedNow, rng);
+    const held = processAIWarDecisions({ ...angry, pendingDemand: r.pendingDemand }, only, [], sortedNow, rng);
+    const onPlayer = (res) => res.wars.some((w) => w.aggressor === bully && w.enemy === 'au');
+    expect(onPlayer(free)).toBe(true);
+    expect(onPlayer(held)).toBe(false);
+    // The player went to war with them anyway: the demand is void, nothing is paid, no casus belli.
+    const atWar = { ...pressed, nations: r.nations, pendingDemand: r.pendingDemand, wars: [{ id: 'w', aggressor: 'au', enemy: bully, active: true, startTurn: t2 }] };
+    const ans = answerDemand(atWar, true);
+    expect(ans.state.pendingDemand).toBeNull();
+    expect(ans.state.resources.gold).toBe(atWar.resources.gold);
+    expect(ans.message).toMatch(/void/);
+    expect(demandTerms(atWar).pay.ok).toBe(false);
+    const r4 = processAIAccords(atWar, atWar.nations, { turn: t2 + 1, sortedByMilitary: sortedNow });
+    expect(r4.pendingDemand).toBeNull();
+    expect(hasDemandCasusBelli({ ...atWar, nations: r4.nations }, bully, 'au')).toBe(false);
+  });
+
+  it('demands are gated: partners and friends are not pressed, the threat must be near, and nobody is pressed twice in a row', () => {
+    const bully = touchingNations(S, 'au')[0]; if (!bully) return;
+    const pressed = pressedBy(bully);
+    expect(demandBlock(pressed, bully, 'au')).toBeNull();
+    const withBully = (patch) => ({ ...pressed, nations: { ...pressed.nations, [bully]: { ...pressed.nations[bully], ...patch } } });
+    expect(demandBlock(withBully({ hasTradeAgreement: true }), bully, 'au')).toMatchObject({ id: 'agreement' });
+    expect(demandBlock(withBully({ hasMilitaryPact: true }), bully, 'au')).toMatchObject({ id: 'agreement' });
+    expect(demandBlock(withBully({ openBordersWith: { au: true } }), bully, 'au')).toMatchObject({ id: 'agreement' });
+    expect(demandBlock(withBully({ marriageWith: ['au'] }), bully, 'au')).toMatchObject({ id: 'agreement' });
+    expect(demandBlock(withBully({ truces: { au: pressed.turnNumber + 5 } }), bully, 'au')).toMatchObject({ id: 'truce' });
+    expect(demandBlock(withBully({ demandCooldowns: { au: pressed.turnNumber + 1 } }), bully, 'au')).toMatchObject({ id: 'cooldown' });
+    expect(demandBlock(withBully({ demandMet: { au: { until: pressed.turnNumber + 99, kind: 'tribute' } } }), bully, 'au')).toMatchObject({ id: 'friendly' }); // 8 + 10 = 18
+    expect(demandBlock(withBully({ militaryStrength: 100 }), bully, 'au')).toMatchObject({ id: 'weak' });
+    // No army of theirs near the player's cities: an empty threat is not made (I109).
+    expect(forceNear({ ...pressed, units: {} }, bully, 'au')).toBe(0);
+    expect(demandBlock({ ...pressed, units: {} }, bully, 'au')).toMatchObject({ id: 'far' });
+    // Another people pressed the player lately (A11: many neighbours cannot take turns).
+    const gap = demandGapTurns(pressed);
+    const justPressed = { ...pressed, nations: { ...pressed.nations, au: { ...pressed.nations.au, lastDemandedTurn: pressed.turnNumber - 1 } } };
+    expect(demandBlock(justPressed, bully, 'au')).toMatchObject({ id: 'recent' });
+    expect(demandBlock({ ...justPressed, turnNumber: pressed.turnNumber + gap }, bully, 'au', pressed.turnNumber + gap)).toBeNull();
+    expect(processAIAccords(justPressed, justPressed.nations, { turn: justPressed.turnNumber, sortedByMilitary: getSortedByMilitary(justPressed) }).pendingDemand).toBeNull();
+    // Waits follow the game speed (trap T11): longer in turns at Marathon, the same span of history.
+    expect(demandCooldownTurns({ ...pressed, gameSpeed: 'marathon' })).toBeGreaterThan(demandCooldownTurns(pressed));
+    expect(demandCooldownTurns(pressed)).toBe(24);
+    // A payer who holds too little is asked for nothing: no demand of 0 gold.
+    const broke = { ...pressed, resources: { ...pressed.resources, gold: 40 } };
+    expect(processAIAccords(broke, broke.nations, { turn: broke.turnNumber, sortedByMilitary: getSortedByMilitary(broke) }).pendingDemand).toBeNull();
+  });
+
+  it('a war ends the truce and the peace treaty between the two (I105)', () => {
+    const bully = touchingNations(S, 'au')[0]; if (!bully) return;
+    const peace = { ...S, nations: { ...S.nations, [bully]: { ...S.nations[bully], hasPeaceTreaty: true, truces: { au: 99 } }, au: { ...S.nations.au, truces: { [bully]: 99 } } } };
+    const war = declareWar(peace, bully, { aggressor: 'au' });
+    expect(war.nations[bully].hasPeaceTreaty).toBe(false);
+    expect(war.nations[bully].truces.au).toBeUndefined();
+    expect(war.nations.au.truces[bully]).toBeUndefined();
+    expect(war.nations[bully].hostilityFloor).toBeGreaterThanOrEqual(40); // the broken treaty is still remembered
   });
 
   it('runs inside the turn and keeps the state sound', () => {
@@ -94,7 +199,7 @@ describe('AI demands for a city and a stop to settling (plan C6)', () => {
     // A second Australian city the bully claims (never the capital).
     const added = addCity(S, 'au', { near: S.nations.au.capitalRegionId });
     let s = added.state;
-    s = { ...s, nations: { ...s.nations, [bully]: { ...s.nations[bully], claims: [added.cityId], militaryStrength: 50000 }, au: { ...s.nations.au, militaryStrength: 100 } }, units: {} };
+    s = { ...s, nations: { ...s.nations, [bully]: { ...s.nations[bully], claims: [added.cityId], militaryStrength: 50000 }, au: { ...s.nations.au, militaryStrength: 100 } }, units: armyNear(S, bully, 'au') };
     expect(demandKind(s, bully, 'au')).toEqual({ kind: 'city', cityId: added.cityId });
     const t2 = onSlot(s, bully);
     const pressed = { ...s, turnNumber: t2 };
