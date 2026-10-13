@@ -144,8 +144,8 @@ I142,Laws show cost but not effects or comparisons,CB12,,src/engine/research.js;
 I143,Empire collapsible headers are not accessible buttons,CB12,CB13,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
 I144,Authority appears twice without distinct purpose,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
 I145,Advisor names repeat ambiguously,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
-I146,Rulers change too quickly to develop strategic significance,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Change,Major
-I147,Ruler successions are absent from history,CB12,CB14,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
+I146,Rulers change too quickly to develop strategic significance,CB12,,src/engine/rulers.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Change,Major
+I147,Ruler successions are absent from history,CB12,CB14,src/engine/rulers.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
 I148,Military unit names are anachronistic for the shown era/date,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Small
 I149,Era goals are buried instead of guiding play,CB12,CB13,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Fix,Medium
 I150,Achievements lack progress bars or measurable progress,CB12,,src/engine/research.js; src/engine/gameReducer.js; src/components/panels/researchView.js,Code,Addition,Small
@@ -191,8 +191,8 @@ I189,Attack then structure tap silently fails,CB17,CB20,src/battle/sim/orders.js
 I190,Pullback move leaves squads idle under towers,CB17,CB18,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Fix,Major
 I191,Squads go idle after their target is destroyed,CB17,,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Fix,Major
 I192,Mixed-speed attack sends cavalry alone ahead of infantry,CB17,CB20,src/battle/sim/orders.js; src/battle/sim/movement.js; src/battle/sim/tacticalAI.js; src/components/battle/TacticalBattleScreen.jsx,Code,Change,Major
-I193,Reserve/second-wave control appears only intermittently,CB18,CB01;CB02,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Major
-I194,No prompt reminds the player that reserves remain available,CB18,CB19,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
+I193,Reserve/second-wave control appears only intermittently,CB18,CB01;CB02,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Superseded by U10,Major
+I194,No prompt reminds the player that reserves remain available,CB18,CB19,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Superseded by U10,Small
 I195,Squad count drops without casualty/retreat explanation,CB18,CB02,src/battle/setup/buildBattleSetup.js; src/battle/sim/objectives.js; src/battle/sim/result.js; src/components/battle/BattleHud.jsx,Code,Fix,Small
 I196,Player cannot find the enemy objective or navigate via minimap,CB19,CB18,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Addition,Major
 I197,Keep focus action is broken or slow to become available,CB19,CB18,src/components/battle/TacticalBattleScreen.jsx; src/components/battle/BattleHud.jsx; src/components/battle/EconomyHud.jsx; battle camera/renderer,Code,Investigation,Major
