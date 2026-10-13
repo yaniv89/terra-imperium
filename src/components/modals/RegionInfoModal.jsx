@@ -40,8 +40,10 @@ import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
 import TopLayer from '../ui/TopLayer';
 import PreBattleModal from '../battle/PreBattleModal';
-import { startMarch, selectNation } from '../map/marchEvents';
+import { startMarch, selectNation, selectArmy } from '../map/marchEvents';
 import { placeName } from '../../engine/routes';
+import { unitsStationedIn, fieldUnitsOf, whereLabel } from '../../engine/unitLocation';
+import { unitTile } from '../../engine/armies';
 import { supplyOf } from '../../engine/supplyMeter';
 import { atSea } from '../../engine/fleets';
 import { wallsOf } from '../../engine/sieges';
@@ -167,7 +169,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const intelTurnsLeft = getIntelTurnsLeft(state, regionState.owner);
   // The big-picture data every region shows, owned or foreign.
   const coastal = isCoastal(regionId);
-  const unitsHere = Object.values(state.units).filter((u) => u.regionId === regionId);
+  // "Here" is physical (unitLocation.js): an army that only has this city as its base and stands
+  // days away is listed as "in the field", not here (playtest audit I059).
+  const unitsHere = unitsStationedIn(state, regionId);
+  const awayUnits = fieldUnitsOf(state, regionId, state.playerNationId).filter((u) => u.classId !== 'settler');
+  const awayTiles = [...new Set(awayUnits.map((u) => unitTile(state, u)).filter((t) => t != null))];
   const rebelsHere = unitsHere.filter((u) => u.ownerId === REBEL_OWNER_ID);
   const ownGarrison = unitsHere.filter((u) => u.ownerId === regionState.owner && !u.embarkedOn);
   // Your forces first, then everyone else's, grouped by owner.
@@ -565,6 +571,14 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
       <Section icon={Swords} title="Armies here" aside={unitsHere.length ? `${unitsHere.length} unit${unitsHere.length === 1 ? '' : 's'}` : null}>
         {unitsHere.length === 0 && <Empty>No units stationed in this region.</Empty>}
+        {awayTiles.map((t) => {
+          const n = awayUnits.filter((u) => unitTile(state, u) === t).length;
+          return (
+            <button key={t} type="button" onClick={() => selectArmy(t)} data-testid="army-away" className="w-full text-left min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[11px] text-fa-text px-2 mb-1.5">
+              {n} unit{n === 1 ? '' : 's'} based here {n === 1 ? 'is' : 'are'} in the field, {whereLabel(state, t).text}: open the army
+            </button>
+          );
+        })}
         <div className="space-y-1.5">
           {unitGroups.map(({ ownerId, units }) => (
             <div key={ownerId}>
@@ -581,13 +595,22 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               {ownerId === state.playerNationId && units.some((u) => u.domain !== 'naval' && !u.embarkedOn) && (() => {
                 const onRoute = units.find((u) => u.route?.length);
                 const dest = onRoute?.route[onRoute.route.length - 1];
+                // The order is for the land units that stand here (their ids), never for every
+                // unit based here; "Choose units" opens the stack's own sheet to march a part of it.
+                const landHere = units.filter((u) => u.domain !== 'naval' && !u.embarkedOn && u.classId !== 'settler');
+                const ids = landHere.map((u) => u.id);
                 return (
                   <div className="flex gap-1.5 mt-1.5">
-                    <button onClick={() => startMarch(regionId)} data-testid="march-start" className="flex-1 min-h-[36px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-fa-text text-[12px] font-semibold flex items-center justify-center gap-1.5">
+                    <button onClick={() => startMarch(regionId, { unitIds: ids })} data-testid="march-start" className="flex-1 min-h-[36px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-fa-text text-[12px] font-semibold flex items-center justify-center gap-1.5">
                       <Flag className="w-3.5 h-3.5" /> March…
                     </button>
+                    {landHere.length > 1 && regionState.tile != null && (
+                      <button onClick={() => selectArmy(regionState.tile)} data-testid="march-choose-units" title="Pick which units march, one by one" className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] px-2">
+                        Choose units…
+                      </button>
+                    )}
                     {onRoute && (
-                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { regionId } })} className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] truncate px-2" title={`Marching to ${placeName(state, dest)}`}>
+                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: ids } })} className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] truncate px-2" title={`Marching to ${placeName(state, dest)}`}>
                         Stop march to {placeName(state, dest)}
                       </button>
                     )}
