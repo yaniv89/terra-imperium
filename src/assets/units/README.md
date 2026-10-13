@@ -12,7 +12,7 @@ flag; model imports still require a visual and licensing review.
 | File | Unit | Triangles | Built by |
 |---|---|---:|---|
 | `bronze-infantry.glb` | Spearmen: kilt, leather corselet, bronze cap, round shield (Emblem), 2.2 m spear | 1,508 | `scripts/blender/build_bronze_infantry.py` (Codex) |
-| `bronze-ranged.glb` | Archers: linen tunic, Team kilt and shawl, self bow, quiver, knife | 1,494 | `build_bronze_ranged.py` (Codex; kilt made Team by Claude) |
+| `bronze-ranged.glb` | Archers: sleeveless linen tunic, Team shawl over the left shoulder and across the chest, white headcloth with a dark band, beard, self bow with a visible string, an arrow in the hand, back quiver, knife; baked shade in COLOR_0 | 1,976 | `build_bronze_ranged.py` on `ti_figure.py` (quality pass of 2026-10-13) |
 | `bronze-cavalry.glb` | Chariots: two small horses side by side, six-spoke wheels, driver and archer | 2,388 | `build_units_bronze.py` (Claude) |
 | `bronze-siege.glb` | Battering ram: covered ram on four wheels, hide roof, four pushers | 2,900 | `build_bronze_siege_machinery.py` + `build_bronze_siege.py` (Codex) |
 | `bronze-support.glb` | Baggage train: one ox in shafts with a withers yoke, solid-wheeled cart, jars, sacks under a Team cover, seated driver | 2,000 | `build_units_bronze.py` (Claude) |

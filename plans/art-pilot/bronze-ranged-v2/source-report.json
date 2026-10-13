@@ -1,0 +1,211 @@
+{
+  "unit": "bronze-ranged",
+  "triangles": 1976,
+  "budget": 2000,
+  "objects": 59,
+  "bones": [
+    "Root",
+    "Hips",
+    "Spine",
+    "Chest",
+    "Neck",
+    "Head",
+    "Arm_L",
+    "Forearm_L",
+    "Hand_L",
+    "Prop_L",
+    "Prop_String",
+    "Arm_R",
+    "Forearm_R",
+    "Hand_R",
+    "Prop_R",
+    "Prop_Back",
+    "Leg_L",
+    "Shin_L",
+    "Foot_L",
+    "Leg_R",
+    "Shin_R",
+    "Foot_R"
+  ],
+  "clips": {
+    "Death": {
+      "frames": [
+        1,
+        30
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    "DeathAlt": {
+      "frames": [
+        1,
+        30
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    "Draw-aim-release": {
+      "frames": [
+        1,
+        32
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    "Hit": {
+      "frames": [
+        1,
+        8
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    "Idle": {
+      "frames": [
+        1,
+        40
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    "IdleAlt": {
+      "frames": [
+        1,
+        40
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    "Melee-fallback": {
+      "frames": [
+        1,
+        20
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    "Run": {
+      "frames": [
+        1,
+        14
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    "Walk": {
+      "frames": [
+        1,
+        20
+      ],
+      "fps": 20,
+      "loop": true
+    }
+  },
+  "floorAudit": {
+    "Death": {
+      "minZ": 0.002,
+      "maxRootLift": 0.02084
+    },
+    "DeathAlt": {
+      "minZ": 0.002,
+      "maxRootLift": 0.38472
+    },
+    "Draw-aim-release": {
+      "minZ": 0.002,
+      "maxRootLift": 0.002
+    },
+    "Hit": {
+      "minZ": 0.002,
+      "maxRootLift": 0.00291
+    },
+    "Idle": {
+      "minZ": 0.002,
+      "maxRootLift": 0.002
+    },
+    "IdleAlt": {
+      "minZ": 0.002,
+      "maxRootLift": 0.002
+    },
+    "Melee-fallback": {
+      "minZ": 0.002,
+      "maxRootLift": 0.002
+    },
+    "Run": {
+      "minZ": 0.002,
+      "maxRootLift": 0.02232
+    },
+    "Walk": {
+      "minZ": 0.002,
+      "maxRootLift": 0.00927
+    }
+  },
+  "string": "Prop_String (the 22nd bone) skins the bowstring midpoint; pulled on frames 7 to 21, loosed on 22",
+  "arrow": "Prop_R carries the arrow: nocked from 7, downrange 22 to 24, hidden by scale 25 and 26, back in the hand 27",
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "fps": 20,
+  "by_object": {
+    "BodyLeg_L": 84,
+    "BodyFoot_L": 36,
+    "SandalSole_L": 12,
+    "SandalToeStrap_L": 24,
+    "SandalAnkle_L": 16,
+    "SandalLace_L": 16,
+    "BodyLeg_R": 84,
+    "BodyFoot_R": 36,
+    "SandalSole_R": 12,
+    "SandalToeStrap_R": 24,
+    "SandalAnkle_R": 16,
+    "SandalLace_R": 16,
+    "BodyArm_L": 70,
+    "Shoulder_L": 30,
+    "BodyArm_R": 70,
+    "Shoulder_R": 30,
+    "BodyHand_L": 36,
+    "Fingers_L": 24,
+    "BodyHand_R": 36,
+    "Fingers_R": 24,
+    "BodyNeck": 24,
+    "BodyHead": 140,
+    "FaceNose": 6,
+    "Ear_-1": 24,
+    "FaceEye_-1": 12,
+    "FaceBrow_-1": 12,
+    "Ear_1": 24,
+    "FaceEye_1": 12,
+    "FaceBrow_1": 12,
+    "linen-kilt": 80,
+    "kilt-hem": 48,
+    "belt": 20,
+    "belt-buckle": 12,
+    "knife-sheath": 12,
+    "knife-hilt": 12,
+    "linen-tunic": 150,
+    "team-shoulder-shawl": 40,
+    "team-shawl-end": 12,
+    "hair-nape": 56,
+    "LinenHeadcloth": 80,
+    "Headband": 20,
+    "Beard": 56,
+    "self-bow": 90,
+    "bow-grip": 12,
+    "bow-string": 18,
+    "nocked-arrow-shaft": 16,
+    "nocked-arrow-head": 16,
+    "nocked-arrow-fletching": 16,
+    "back-quiver": 64,
+    "quiver-binding": 16,
+    "arrow-shaft-0": 12,
+    "arrow-fletching-0": 16,
+    "arrow-shaft-1": 12,
+    "arrow-fletching-1": 16,
+    "arrow-shaft-2": 12,
+    "arrow-fletching-2": 16,
+    "arrow-shaft-3": 12,
+    "arrow-fletching-3": 16,
+    "diagonal-quiver-strap": 56
+  }
+}
