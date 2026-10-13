@@ -73,7 +73,9 @@ const computeTradeRoute = (state, partnerId) => {
   const allowed = (id) => { const c = state.regions[id]; if (!c || c.occupiedBy || !c.owner) return false; const o = c.owner; return o === me || o === partnerId || (!!state.nations[o] && !atWar(state, me, o)); };
   // A caravan goes round an enemy stack when it can; when it cannot, the route is cut (plunder.js
   // names the raider and pays them).
-  const land = findCaravanPath(state, state.regions[start]?.tile, state.regions[target]?.tile, allowed, TRADE_ROUTE_MAX_TILES, { avoidEnemies: true });
+  // Under guard (tradeDisruptions.js: a cut that lasted its time) the caravans pass whatever stands on the road.
+  const guarded = state.tradeDisruptions?.[partnerId]?.phase === 'guarded';
+  const land = findCaravanPath(state, state.regions[start]?.tile, state.regions[target]?.tile, allowed, TRADE_ROUTE_MAX_TILES, { avoidEnemies: !guarded });
   if (land) return { ok: true, kind: 'land', regions: land.regions, tiles: land.tiles };
   const ports=id=>getOwnedRegionIds(state.regions,id).filter(r=>isCoastal(r) && !state.regions[r].occupiedBy && (state.regions[r].buildings?.categories?.naval ?? -1)>=0);
   const blocked=r=>isBlockaded(state,r)||Object.values(state.units).some(u=>u.regionId===r && u.domain==='naval' && state.wars.some(w=>w.active && ((w.aggressor===me&&w.enemy===u.ownerId)||(w.enemy===me&&w.aggressor===u.ownerId))));
@@ -84,8 +86,8 @@ const computeTradeRoute = (state, partnerId) => {
 export const getTradeRoute = (state, partnerId) => {
   if (!state.regions) return computeTradeRoute(state, partnerId);
   let entry = routeCache.get(state.regions);
-  if (!entry || entry.wars !== state.wars || entry.nations !== state.nations || entry.world !== state.world || entry.units !== state.units || entry.age !== state.age) {
-    entry = { wars: state.wars, nations: state.nations, world: state.world, units: state.units, age: state.age, byPartner: new Map() };
+  if (!entry || entry.wars !== state.wars || entry.nations !== state.nations || entry.world !== state.world || entry.units !== state.units || entry.age !== state.age || entry.disruptions !== state.tradeDisruptions) {
+    entry = { wars: state.wars, nations: state.nations, world: state.world, units: state.units, age: state.age, disruptions: state.tradeDisruptions, byPartner: new Map() };
     routeCache.set(state.regions, entry);
   }
   if (!entry.byPartner.has(partnerId)) entry.byPartner.set(partnerId, computeTradeRoute(state, partnerId));

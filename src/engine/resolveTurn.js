@@ -100,7 +100,7 @@ import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
 import { lawRulesOf } from './lawRules';
-import { plunderedRoutes, plunderGoldFor } from './plunder';
+import { advanceTradeDisruptions } from './tradeDisruptions';
 import { authorityRisksCivilWar } from './authority';
 import { rollCityDisasters } from './cityDisasters';
 import { spreadPlague, seedPlagueNear, PLAGUE_EVENT_ORIGINS } from './plague';
@@ -917,14 +917,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   Object.assign(nations, decayAggressiveExpansion(nations));
   // Claims on cities (claims.js): the ones being fabricated complete, the ones on cities now owned drop.
   advanceClaims(nations, regions, newTurnNumber).forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.DIPLOMACY }); });
-  // Raids on the player's trade routes (plunder.js): the raider takes the gold, the player is told.
-  plunderedRoutes({ ...state, regions, units, nations }).forEach((p) => {
-    const gold = plunderGoldFor(state, p.by);
-    const raider = nations[p.by];
-    // An independent's raid party took its loot already (raids.js ROUTE_LOOT): the route is only cut.
-    if (raider && !isIndependentNation(raider)) nations[p.by] = { ...raider, economy: { ...(raider.economy || {}), gold: ((raider.economy || {}).gold || 0) + gold } };
-    logs.push({ year: newYear, message: `${raider?.name || 'Rebels'} plunder your ${p.kind} trade route to ${nations[p.partnerId]?.name || p.partnerId} (${getTiles().names[p.tile] || 'a tile'}): no trade this turn.`, type: LogTypes.COMBAT });
-  });
+  // Cuts of the player's trade routes (tradeDisruptions.js over plunder.js): a cut is an event with
+  // a cause, a length and an end. The raider takes its gold once, when it starts; the player is
+  // told at the start and at the end, never every turn (CB08: I113 to I115).
+  const tradeTurn = advanceTradeDisruptions({ ...state, regions, units, nations, turnNumber: newTurnNumber }, newTurnNumber);
+  tradeTurn.loot.forEach(({ by, gold }) => { const raider = nations[by]; if (raider) nations[by] = { ...raider, economy: { ...(raider.economy || {}), gold: ((raider.economy || {}).gold || 0) + gold } }; });
+  tradeTurn.logs.forEach((l) => logs.push({ year: newYear, message: l.message, type: LogTypes.COMBAT }));
+  const tradeDisruptions = tradeTurn.disruptions;
   // Nations that fear the same conqueror band together in defensive pacts (src/engine/pacts.js).
   {
     const pacts = updateDefensivePacts(nations, { playerNationId: state.playerNationId, turnNumber: newTurnNumber });
@@ -1017,7 +1016,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- AI war declarations (plan §8.5's tiered AI): Tier 1 nations (at war, bordering the
   // player, or a top-20 military power) may each declare one war this turn against a weaker
   // neighbor, biased by doctrine and hostility. ---
-  const warDecisions = processAIWarDecisions({ ...state, nations, regions, units }, nations, state.wars, sortedByMilitary, rng);
+  // `pendingDemand` is this turn's: a major never rolls for war on a people it holds an open demand on (X21, I103).
+  const warDecisions = processAIWarDecisions({ ...state, nations, regions, units, pendingDemand }, nations, state.wars, sortedByMilitary, rng);
   let nationsAfterWars = warDecisions.nations;
   let wars = warDecisions.wars;
   logs.push(...warDecisions.logs.map(l => ({ year: newYear, ...l })));
@@ -1237,6 +1237,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     wars,
     pendingPeaceOffer,
     pendingDemand,
+    tradeDisruptions, // cut and guarded trade routes (tradeDisruptions.js); absent in old saves = none
     // Assaults on the player's garrisons (src/engine/defense.js), fought before the next turn —
     // dropped if their war ended this same turn.
     nextUnitSeq: operations.nextUnitSeq,

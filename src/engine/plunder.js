@@ -3,9 +3,10 @@
 // pact partner (tradeRoutes.js) runs over real tiles: a LAND route is plundered when an enemy
 // land stack (a nation at war with the player, or rebels) stands on one of its tiles and no
 // other open path exists; a SEA route is plundered when an enemy RAIDER fleet (navalLines.js)
-// lies within RAIDER_REACH_RINGS of either port's waters. A plundered route pays nothing this
-// turn (the pact's gold line in modifiers/sources.js reads `getTradeRoute(...).ok`) and the
-// plunderer takes PLUNDER_GOLD; the player is told. Pure; resolveTurn applies it once a turn.
+// lies within RAIDER_REACH_RINGS of either port's waters. This file only FINDS the cuts of a turn.
+// A cut is an event with a cause, a length and an end (tradeDisruptions.js, which resolveTurn runs
+// once a turn): the route pays nothing while it lasts (tradeValue.js), the plunderer takes
+// PLUNDER_GOLD once, when it starts, and the player is told where and why. Pure.
 import { getTiles } from '../data/geo/tiles';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { isWarBetween } from './diplomacy';
@@ -69,6 +70,8 @@ export const plunderedRoutes = (state) => {
   const out = [];
   const start = getCapital(state, me);
   partners.forEach((partner) => {
+    // Under guard (tradeDisruptions.js) a route cannot be cut.
+    if (state.tradeDisruptions?.[partner.id]?.phase === 'guarded') return;
     const route = getTradeRoute(state, partner.id);
     if (route.ok && route.kind === 'land' && land.size) {
       const hit = route.tiles.find((t) => land.has(t));
@@ -93,6 +96,9 @@ export const plunderedRoutes = (state) => {
   });
   return out;
 };
+
+/** Does a stack of `by` that may still cut the player's routes stand on `tile`? (For a sea cut: a raider fleet of `by` on it.) */
+export const blockerStands = (state, me, by, tile) => enemyLandByTile(state, me).get(tile)?.ownerId === by || enemyRaidersByTile(state, me).get(tile) === by;
 
 /** Gold a plunderer takes from one route, doubled by Chieftaincy (lawRules.js pillageGoldMult). */
 export const plunderGoldFor = (state, nationId) => Math.round(PLUNDER_GOLD * Math.max(0, 1 + (lawRulesOf(state.nations?.[nationId]).pillageGoldMult || 0)));
