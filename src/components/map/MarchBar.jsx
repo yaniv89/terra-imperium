@@ -82,7 +82,7 @@ const MarchBar = ({ onSelectRegion }) => {
       </span>
     );
   } else if (m.enemyArmy) {
-    line = <span data-testid="march-enemy-army">An army of {m.enemyArmy.owner} ({m.enemyArmy.strength.toLocaleString()}) stands there, {turnsText(plan.turns)} away: march beside it, then attack it from your army's sheet. About {plan.supplies} supplies.</span>;
+    line = <span data-testid="march-enemy-army">An army of {m.enemyArmy.owner} ({m.enemyArmy.strength.toLocaleString()}) stands there, {turnsText(plan.turns)} away: march beside it, then attack it from the army sheet. About {plan.supplies} supplies.</span>;
   } else {
     line = (
       <span data-testid="march-plan">
