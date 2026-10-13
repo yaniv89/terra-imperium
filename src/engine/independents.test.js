@@ -176,11 +176,17 @@ describe('canFight: attacking an independent needs no war', () => {
     expect(taken.regions[PK].owner).toBe('in');
   });
 
-  it('the player besieges an independent; an independent besieges nobody', () => {
+  it('the player besieges an independent under a siege order; an independent besieges nobody', () => {
     const tiles = getTiles();
     const gate = tiles.neighbors[s.regions[PK].tile].find((n) => tiles.land[n] === 1);
     const mine = { ...s, units: { ...s.units, a: unit('a', 'in', P, gate) } };
-    expect([...besiegersOf(mine, mine.regions[PK]).keys()]).toEqual(['in']);
+    // Standing beside an independent's city is no siege: it takes the Lay siege order (I130).
+    expect(besiegersOf(mine, mine.regions[PK]).size).toBe(0);
+    const laid = { ...mine, units: { ...mine.units, a: { ...mine.units.a, siegeOf: PK } } };
+    expect([...besiegersOf(laid, laid.regions[PK]).keys()]).toEqual(['in']);
+    // An AI campaign's siege force counts the same way (indepPolicy.js `indepOp`).
+    const campaign = { ...mine, units: { ...mine.units, a: { ...mine.units.a, indepOp: PK } } };
+    expect([...besiegersOf(campaign, campaign.regions[PK]).keys()]).toEqual(['in']);
     const gateP = tiles.neighbors[s.regions[P].tile].find((n) => tiles.land[n] === 1);
     const theirs = { ...s, units: { ...s.units, b: unit('b', 'pk', PK, gateP) } };
     expect(besiegersOf(theirs, theirs.regions[P]).size).toBe(0);
