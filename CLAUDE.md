@@ -103,6 +103,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - `src/battle/`: the tactical RTS. `sim/` is an integer fixed-point 20 Hz deterministic sim
   driven only by orders, run in a Web Worker (`worker/`); `render/` is the three.js battlefield;
   `setup/` builds a battle from macro armies. UI in src/components/battle/.
+  A commanded battle is verified by replay (src/engine/battleVerify.js): the screen and the reducer build the same setup (`buildCommandedSetup`), and the live loop and the replay admit orders through one schema (sim/orderSchema.js: a new order needs its row there).
   Battle economy (phase R1, `setup.economy`, on for campaign battles, off by default in
   `buildSetupFromArmies` so tests/parity/bench hash as before): catalog src/battle/data/economy.js,
   nodes and camp src/battle/setup/economySetup.js, sim src/battle/sim/economy.js (workers, building,
