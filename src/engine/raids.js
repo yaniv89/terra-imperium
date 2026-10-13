@@ -58,7 +58,7 @@ import { LogTypes } from '../data/types';
 import {
   isIndependentNation, garrisonTarget, THINK_PERIOD, RAID_KM, RAID_COOLDOWN, RAID_CHANCE, FORTRESS_REVENGE_GRUDGE, RAID_THRESHOLD,
   RAID_RING_PENALTY, RAID_RING_PENALTY_KM, RAID_MAX_TURNS, RAID_RECOVER_TURNS, RAID_FIGHT_RATIO, RAID_ERA_FACTOR, ROUTE_LOOT, SETTLER_LOOT,
-  OUTPOST_LOOT, RAID_SPARE_TURNS, OUTPOST_BURN_LOSS, SACK_GARRISON_RATIO, SACK_INCOME_TURNS, SACK_MIN_GOLD, INDEPENDENT_GOLD_CAP, MERCANTILE_GOLD_MULT, GRUDGE_ATTACKED, GRUDGE_REFUSED,
+  OUTPOST_LOOT, RAID_SPARE_TURNS, OUTPOST_BURN_LOSS, SACK_GARRISON_RATIO, SACK_INCOME_TURNS, SACK_MIN_GOLD, INDEPENDENT_GOLD_CAP, MERCANTILE_GOLD_MULT, GRUDGE_REFUSED,
   TRIBUTE_TURNS, TRIBUTE_DEMAND_GRUDGE, TRIBUTE_STRENGTH_RATIO, TRIBUTE_DEMAND_CHANCE, TRIBUTE_DEMAND_COOLDOWN, TRIBUTE_ANSWER_TURNS, tributeGold
 } from '../data/independents';
 import { createRng } from '../utils/rng';
@@ -74,6 +74,7 @@ import { cityManifestOf } from './cityManifest';
 import { withGrudge, grudgeOf, decayGrudges } from './grudges';
 import { isUnitInBattle } from './invasion';
 import { hireMercenary, mercOffer, processMercenaries, goldIn, addGoldIn } from './mercenaries';
+import { agree, subjectVerb } from './grammar';
 
 const KIND_STAT = { pillage: 'pillages', route: 'routesCut', settler: 'settlersKilled', outpost: 'outpostsBurned' };
 
@@ -296,8 +297,7 @@ const fight = (w, id, { kind, raidKind = kind, tile, victim, city = null, party,
   }
   const r = fightRaidBattle(w.view, b, rngFor(w, id, `battle|${tile}`), { viewerId: w.playerId });
   applyOutcomeInPlace(w, r);
-  // It holds a grudge against whoever killed its raiders (4.5).
-  if (r.attackerLoss > 0) w.nations[id] = withGrudge(w.nations[id], victim, GRUDGE_ATTACKED, { id: 'killed', turn: w.turn });
+  // No grudge for defending (CB08): the raiders started this fight, the victim is not blamed for killing them.
   return r;
 };
 const raiderName = (w, id) => w.nations[id]?.name || 'Raiders';
@@ -413,14 +413,14 @@ const takeLoot = (w, id, raid) => {
       : sackedCity(city, w.turn);
     w.regions[city.id] = s.city; w.regionsChanged = true;
     w.stats.sacks += 1;
-    what = `sack ${city.name}: ${gold} gold taken${s.lostSize > 0 ? `, the city shrinks to ${s.city.size}` : ''}${s.lostBuilding ? `, a ${s.lostBuilding} building damaged` : ', the town burns'}`;
+    what = `sack ${city.name}: ${gold} gold taken${s.lostSize > 0 ? `, the city loses ${s.lostSize > 1 ? `${s.lostSize} sizes` : 'a size'}` : ''}${s.lostBuilding ? `, a ${s.lostBuilding} building damaged` : ', the town burns'}`;
   }
   addGold(w, id, loot);
   w.stats.raidsHit += 1;
   if (KIND_STAT[raid.kind]) w.stats[KIND_STAT[raid.kind]] = (w.stats[KIND_STAT[raid.kind]] || 0) + 1;
   w.stats.loot += loot;
   markRaided(w, victim, id);
-  if (toPlayer) { w.stats.raidsOnPlayer += 1; log(w, `${name} ${what}.`); noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot, text: `They ${what}.` }); }
+  if (toPlayer) { w.stats.raidsOnPlayer += 1; { const [verb, ...rest] = what.split(" "); log(w, `${subjectVerb(name, verb, rest.join(" "))}.`); } noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot, text: `They ${what}.` }); }
   const out = { ...raid, phase: 'out', battleId: undefined, sizeBefore: undefined };
   if (raid.kind === 'route') { setIndep(w, id, { raid: { ...out, phase: 'hold', holdUntil: w.turn + 1 } }); return; }
   sendHome(w, id, party, out);
@@ -429,7 +429,7 @@ const takeLoot = (w, id, raid) => {
 /** After a battle with an army on the road: through it (it falls back to its city) or beaten home. */
 const afterIntercept = (w, id, raid, tile, owner, raidersWon) => {
   if (owner === w.playerId) {
-    const text = raidersWon ? `${raiderName(w, id)} cut through your army near ${placeOf(w, tile)}.` : `Your army near ${placeOf(w, tile)} stopped ${raiderName(w, id)}.`;
+    const text = raidersWon ? `${subjectVerb(raiderName(w, id), 'cut')} through your army near ${placeOf(w, tile)}.` : `Your army near ${placeOf(w, tile)} stopped ${raiderName(w, id)}.`;
     log(w, text);
     if (!raidersWon) noteOutcome(w, id, owner, { kind: 'intercept', won: false, loot: 0, text });
   }
@@ -446,12 +446,12 @@ const afterIntercept = (w, id, raid, tile, owner, raidersWon) => {
  * applied: the raid carries on from it (the loot or the march home), on `state`. `result`: {
  * raidersWon, attackerLoss }. Returns the next state.
  */
-export const settleRaidBattle = (state, def, { raidersWon, attackerLoss = 0 }) => {
+export const settleRaidBattle = (state, def, { raidersWon }) => {
   const id = def.aggressorId;
   const raid = state.nations[id]?.indep?.raid;
   if (!raid || raid.battleId !== def.id) return state;
   const w = workOn(state);
-  if (attackerLoss > 0) w.nations[id] = withGrudge(w.nations[id], state.playerNationId, GRUDGE_ATTACKED, { id: 'killed', turn: w.turn });
+  // No grudge against the player for killing the raiders: they started this fight and the player defended.
   if (def.raidKind === 'intercept') afterIntercept(w, id, raid, def.tile, raid.interceptOf ?? state.playerNationId, raidersWon);
   else if (afterTargetBattle(w, id, raid, raidersWon)) takeLoot(w, id, raid);
   return { ...state, regions: w.regions, units: w.units, nations: w.nations, resources: w.resources, world: w.view.world, indepStats: w.stats, logs: [...state.logs, ...w.logs] };
@@ -474,8 +474,7 @@ export const resolveRaidBattle = (state, def, battle = null, { mode = 'auto', xp
   const outcome = raidOutcome(state, spec, fought, { id: def.id, defenseId: def.id, mode, viewerId: state.playerNationId, rngSeed: state.rngSeed, xpBonusById });
   const next = applyBattleOutcome(state, outcome);
   if (next === state) return drop;
-  const lost = spec.attackerUnits.reduce((s, u) => s + u.strength, 0) - fought.attackerUnits.reduce((s, u) => s + Math.max(0, u.strength), 0);
-  return settleRaidBattle(next, def, { raidersWon: outcome.outcome === 'attacker', attackerLoss: lost });
+  return settleRaidBattle(next, def, { raidersWon: outcome.outcome === 'attacker' });
 };
 
 /** One turn of a running raid. */
@@ -655,7 +654,7 @@ const demandTribute = (w, id, city, myStrength, nearArmies, nearOwners) => {
   w.stats.tributeDemands += 1;
   if (target === w.playerId) {
     w.tributeDemands.push({ id: `trib_${id}_${w.turn}`, indepId: id, gold, turns: TRIBUTE_TURNS, turn: w.turn, expires: w.turn + TRIBUTE_ANSWER_TURNS });
-    log(w, `${raiderName(w, id)} demand ${gold} gold a turn for ${TRIBUTE_TURNS} turns, or they will raid you. Answer under Relations on the Empire tab within ${TRIBUTE_ANSWER_TURNS} turns.`, LogTypes.DIPLOMACY);
+    log(w, `${subjectVerb(raiderName(w, id), 'demand')} ${gold} gold a turn for ${TRIBUTE_TURNS} turns, or they will raid you. Answer under Relations on the Empire tab within ${TRIBUTE_ANSWER_TURNS} turns.`, LogTypes.DIPLOMACY);
     return true;
   }
   // An AI major pays when the independent outweighs its army there and it can afford the deal.
@@ -807,6 +806,6 @@ export const answerTributeDemand = (state, demandId, pay) => {
   }
   return {
     ...state, tributeDemands: rest, nations: refuseTribute(state.nations, d.indepId, state.playerNationId, state.turnNumber),
-    logs: [...state.logs, { year: state.year, message: `You refuse the tribute ${indep.name} demand. Expect raiders.`, type: LogTypes.DIPLOMACY }]
+    logs: [...state.logs, { year: state.year, message: `You refuse the tribute that ${indep.name} ${agree(indep.name, 'demand')}. Expect raiders.`, type: LogTypes.DIPLOMACY }]
   };
 };

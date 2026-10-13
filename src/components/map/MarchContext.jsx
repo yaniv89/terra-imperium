@@ -5,7 +5,7 @@
 // provides it; both maps read it to draw the lines. Views outside it (the minimap) get null.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
-import { planMarch } from '../../engine/routes';
+import { planMarch, marchingUnits } from '../../engine/routes';
 import { getMarchLines } from '../../utils/marchLines';
 import { START_MARCH } from './marchEvents';
 
@@ -25,7 +25,8 @@ export const MarchProvider = ({ children }) => {
 
   const plan = useMemo(() => (march?.from && march.target != null ? planMarch(state, march.from, march.target, march.unitIds || null, { naval: !!march.naval }) : null), [state, march]);
   // The march mode ends by itself when its army is gone (moved, disbanded, beaten).
-  const hasArmy = useMemo(() => !march || Object.values(state.units).some((u) => u.regionId === march.from && u.ownerId === state.playerNationId && (march.naval ? u.domain === 'naval' : u.domain !== 'naval') && !u.embarkedOn && (!march.unitIds || march.unitIds.includes(u.id))), [state.units, state.playerNationId, march]);
+  // The same units the order would move (routes.js marchingUnits: the picked ids, else the units that stand in the city).
+  const hasArmy = useMemo(() => !march || marchingUnits(state, march.from, march.unitIds || null, { naval: !!march.naval }).length > 0, [state, march]);
   useEffect(() => { if (!hasArmy) setMarch(null); }, [hasArmy]);
 
   const lines = useMemo(() => getMarchLines(state, plan), [state, plan]);

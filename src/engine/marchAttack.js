@@ -20,13 +20,10 @@
 // Pure.
 import { getTiles } from '../data/geo/tiles';
 import { canAttack } from './hostility';
-import { validateInvasion } from './invasion';
+import { validateInvasion, unitsReaching } from './invasion';
 import { validateFieldAttack, enemyStackAt } from './fieldBattle';
 import { orderMarch, planMarch, marchingUnits } from './routes';
 import { unitTile } from './armies';
-
-// Reasons that still mean "the army borders the city" (it only lacks a move, gold or a war).
-const ADJACENT_REASONS = ['no_moves', 'cost', 'no_war'];
 
 /**
  * How the stack in `fromId` (or `unitIds`) stands towards the city `cityId`:
@@ -36,12 +33,14 @@ const ADJACENT_REASONS = ['no_moves', 'cost', 'no_war'];
 export const attackReach = (state, fromId, cityId, unitIds = null) => {
   const city = state.regions?.[cityId];
   if (!city || city.owner === state.playerNationId) return null;
-  const v = validateInvasion(state, fromId, cityId, { ignoreCost: true });
-  if (!(v.ok || ADJACENT_REASONS.includes(v.reason))) return 'far';
+  // Physical adjacency only (invasion.js unitsReaching, the fact validateInvasion uses): a stack
+  // whose base touches the city but which stands days away is 'far', whatever else blocks the
+  // attack (no war, no gold, no moves). Playtest audit I063.
+  const reaching = unitsReaching(state, fromId, cityId, { ignoreBattleLocks: true });
+  if (!reaching.length) return 'far';
   if (!unitIds) return 'adjacent';
   // A chosen part of the stack: those units must be among the ones that reach the city.
-  const reaching = v.ok ? new Set(v.attackerUnits.map((u) => u.id)) : null;
-  return !reaching || unitIds.some((id) => reaching.has(id)) ? 'adjacent' : 'far';
+  return reaching.some((u) => unitIds.includes(u.id)) ? 'adjacent' : 'far';
 };
 
 /**

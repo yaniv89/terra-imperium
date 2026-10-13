@@ -1,0 +1,4612 @@
+{
+  "status": "passed",
+  "kitLoader_sha256": "4beb2ed872957adf51ceb3fec9af97c23347406feae3f6d201dabc5541471ac6",
+  "baseline": "Pre-repair root assembly + actual bakeBundle, independent of parseKit policy",
+  "loader": "Actual GLTFLoader + MeshoptDecoder, real packed buffers",
+  "limits": "ImageBitmap dimension stub only; no pixel/browser/alpha/shader acceptance. Legacy explicit opt-in and ART URL policy are covered separately by kitLodUv.test.js.",
+  "model_hash_baseline": "Packed checkpoint38 SHA256s measured before loader fix",
+  "files": [
+    {
+      "game_path": "src/assets/battle/terrain/river-kit.glb",
+      "sha256": "98b4b8d31de41b9d105d7f40782820985bfa553d82684d162e5b0b87da22e85a",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "bank",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 341,
+                  "sha256": "d634ced756e082bcefa1351d842bb4ef2f7c55b12723baccbc3a76222db812db"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 341,
+                  "sha256": "7bac727999d406f0b21c4ebe38ed21054577d6a8a1e702e6819b456f7a879723"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 341,
+                  "sha256": "b9537c16cff188472cbb0d43648da31bf0bc930831815070a20eb5a1d39192b4"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "4f590b6fb726c0ab418378e08d02e4a7021336760613dd870b8d294d08a8397a",
+              "triangles": 187,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 68,
+                  "sha256": "d2f96160f147a399653dc5f54a56cd3c2d5dbfd6e89c64445bf7bf52b83fe629"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 68,
+                  "sha256": "b13c7ac8e1e85b3fa45e98b852093350655a086bb41d5b6463060c902600f2cf"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 68,
+                  "sha256": "58fba74f68d311f068043329eebe0a9c5127c4dd70d71f182c50a1109de547f6"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "63f9854295fd093e22fcf271d007434cc4136a7319c608044c58e1361accff8c",
+              "triangles": 40,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 24,
+                  "sha256": "d136d96172dc8d19d50127583b1bf1dff171c421d2a73b60bef1c9ab6d5aa96e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 24,
+                  "sha256": "b0f5bb2a09038c31f3a076e90c94acacdd81f3cff2e6616ee2aee6269961052b"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 24,
+                  "sha256": "c52e3b01e935751f8f2e2b8d6de711681d64e73dc51461bd681b7bb605067f7a"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "9aaf62515e956cb9d07196a64cfc4099d2a8b96b985c068d6d309ab696c39b2e",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "straight",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 238,
+                  "sha256": "5506703a9ac8f0f7680ff1b6a10dbe3da9adf6973127413f11597d8e6254f120"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 238,
+                  "sha256": "e779272ac957f70caf1559a7fe49a15a458f32ee4b65add449ddc031dc7c275c"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 238,
+                  "sha256": "38bec890cf87ea9207667b54b01d20cda8e12199e89f3c41260d7d18415a1d82"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7c0c0f9f41e8c9f14c9122b51657b91c2cbd68ea5573fe73d85e647fee34e80a",
+              "triangles": 224,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 126,
+                  "sha256": "2a12db20d985486104f38313f51ae71d8eb23e7617025bf852dd6f1c66187e5e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 126,
+                  "sha256": "57b7d01fde8552bf383bfe9d82d88fe8107026d11453e8c2479aaed1c88c4184"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 126,
+                  "sha256": "784e5b3d349d2ae9f3b5c98b6a13807ad55edd3c4a4e38f27b685112c2ac8de1"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "a00fe5e376363bc19cf3842ad61ba470d4469ef3b65c4a3a349d8a2499c5a31c",
+              "triangles": 112,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 70,
+                  "sha256": "c6070567504f11df424d3b325a23ca4b8784494db1131f20b6e8704766c9666e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 70,
+                  "sha256": "5735cdef425813c1f773207d5c404e561d4f433b20547d8bc499c975c7cd57b1"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 70,
+                  "sha256": "c9516c53fb212862c60340f3fd582154e758fea2b5902576c8af345772621f20"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "87466f0e26ad1ff0334b398e72f5a765520f9b279c213f5581031a7a3eac27c6",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bend",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 418,
+                  "sha256": "7b1da90e4567d8282deb2d07a2bf17c22ca1db024a6b0265255c21f95dbc61d5"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 418,
+                  "sha256": "f8dd0b02aabdd661faeda5c3e016b35366fadea03ae68cbe8f98a0361ac7bf55"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 418,
+                  "sha256": "2c82ea62b474c8cdda8d59d358ff8cc024aab2211aee42a492ed971769394e3f"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "ee3b88bf6289f8abe9e1fe3c9175873e6c013ae38feffdc79c5256f92c1c0487",
+              "triangles": 224,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "587fca6ca16c3ad8f7478bc61d6af179d316c64e3be07f2f040884c1e6a4e573"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "9c549fb4c9786c5ad6d9219ef624acf69c63879e16b0868b3a585265d76f5c4a"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "077e56418132708d7c186e5fb8170c8ad884afd7805d4bdf575610ab1c129540"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "961352f3b482a08816dd1e045e2e0fdf7bc1c72bb5f0ae5f155a9a7556dde5de",
+              "triangles": 112,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 106,
+                  "sha256": "e4e062d29f738abdfeafeb3fe66585bf7fa3205dcf5aa8fba5c7f1dd660b8d52"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 106,
+                  "sha256": "88d003c17a92ec9402690af5611969a2d896d32ac3dc1d0306ebaebf0b97c262"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 106,
+                  "sha256": "da6fb0aa9540041f3122b5a41fe9cadafd78e5f88261e912d95a9a8393cd3a9d"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "742a5c0e3d6a42fbb63b612da324b29da7770d89c75b7be4915b8c854c4c725d",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "junction",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "c2fc8eb2c93b5d09fc0bbb53d71ad7ad0eeab7cb24fd016a936b8128284a8179"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "e8c1336a64e87dbb180fd95fddc8e40f06d20e8b5112c7e45835f0d4be42472e"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "f456a6115426466f13239ff9ead85081ae70310e79f8234c8bb8df7433424f77"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "c2fc8eb2c93b5d09fc0bbb53d71ad7ad0eeab7cb24fd016a936b8128284a8179"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "e8c1336a64e87dbb180fd95fddc8e40f06d20e8b5112c7e45835f0d4be42472e"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "7594b2c5a7539e33bfb4dc7a1ec86481aa61d10d58026476fed14b54aafb7f78"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "c2fc8eb2c93b5d09fc0bbb53d71ad7ad0eeab7cb24fd016a936b8128284a8179"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "e8c1336a64e87dbb180fd95fddc8e40f06d20e8b5112c7e45835f0d4be42472e"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "c2f5e65b713e85f54367c9e964105e78ccab52ed0aef49fe224da8f33ed59d0b"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "end",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 319,
+                  "sha256": "ee463eb920876fe89330400b7daf9c832b1e046723aeac0dce252d190c44c8e5"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 319,
+                  "sha256": "2efeb55c86cb9fad829c21599fb59472010517f09f89ff470bca10f7ee5b26b0"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 319,
+                  "sha256": "d1d307b794e59eea1aa38c629ab7f02de95b612cdbed151c82c168effc83aecf"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "5d5ebea8c4d458edbb1e6522d01e88d3ed8c0fe611d15c13063c8d30018481cc",
+              "triangles": 271,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 167,
+                  "sha256": "99135af643baf24254ff46c03c5f9b05e3b7c7b89ce3ab2e2659755c810db3c3"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 167,
+                  "sha256": "f3c3a06f8c9d5e69b906ba1a631f20d0a4efd38421ff2afe71b5f8d65edb6f15"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 167,
+                  "sha256": "1a06ee5c953571ba4db9d59012218d41af4af65184ab27af3cba9f4430032ebf"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "aae87066594acc07081ba66e4b3e97b05d19e30d2a9e69339c0d3cd80eae621a",
+              "triangles": 135,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 91,
+                  "sha256": "2bbd6404744b66d30f5f1f83efbc474f7cec91ac696737d4f07aeb563b7268d8"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 91,
+                  "sha256": "56064392ae62a33baa49b788d56df0d8b24809740b79ca3896c3bdc6e4c40c63"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 91,
+                  "sha256": "fbe19bb9b74c67049833966723bd12136ed85e9906fb00aa6ab7cf64e03dde68"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "6e4ba30a637c84487228b17e420400f57f44e80946390090716ea697a22ba060",
+              "triangles": 67,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "straight-5",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 238,
+                  "sha256": "b6eedfa0e2cdbbe1ac1b6435cf640e7cd9a12efad150d727475ec2aa7d86a10d"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 238,
+                  "sha256": "e779272ac957f70caf1559a7fe49a15a458f32ee4b65add449ddc031dc7c275c"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 238,
+                  "sha256": "a1fffd773abf0e10901ff35482a3bf75fc7e04a8934b9788fd96cc38b69d421e"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7c0c0f9f41e8c9f14c9122b51657b91c2cbd68ea5573fe73d85e647fee34e80a",
+              "triangles": 224,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 126,
+                  "sha256": "d96d57b678233f5adb364ce7868572591afac02f861b22db9da81d9e6b81f6d2"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 126,
+                  "sha256": "57b7d01fde8552bf383bfe9d82d88fe8107026d11453e8c2479aaed1c88c4184"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 126,
+                  "sha256": "361e801714403189abf71cc05b9c9894ff3b9a835fad43ac402e61f65d3b6b48"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "a00fe5e376363bc19cf3842ad61ba470d4469ef3b65c4a3a349d8a2499c5a31c",
+              "triangles": 112,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 70,
+                  "sha256": "b1517a159fb2ab4aaeb05278877891043b713736cf0650721b953fefff61281e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 70,
+                  "sha256": "5735cdef425813c1f773207d5c404e561d4f433b20547d8bc499c975c7cd57b1"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 70,
+                  "sha256": "27d961f48e0e747bca8b708fff9cfaaede03a175f2cb39a427112df78148fe6f"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "87466f0e26ad1ff0334b398e72f5a765520f9b279c213f5581031a7a3eac27c6",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bend-5",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 418,
+                  "sha256": "5d71c1f01f4f5419af0bd1351868c6dee0cb15109e9f478f27e600f1de961b18"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 418,
+                  "sha256": "809e4ced081796fcc6f240b092dfdf276c96eae7c0f747f09bd64d710b64958c"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 418,
+                  "sha256": "cd1986cd2b3e01d6a872b9ce8e606b43b53e8d9c707d38ede8e55a438daeb103"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "ee3b88bf6289f8abe9e1fe3c9175873e6c013ae38feffdc79c5256f92c1c0487",
+              "triangles": 224,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "d0874324bb51c442ffbac5879869d6ca37a6bedb167ff65626999b26e14ae600"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "9c549fb4c9786c5ad6d9219ef624acf69c63879e16b0868b3a585265d76f5c4a"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "82d92272146ea143aacf3261359614706879ddd33ccc8b6037fe101aeb7509a4"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "961352f3b482a08816dd1e045e2e0fdf7bc1c72bb5f0ae5f155a9a7556dde5de",
+              "triangles": 112,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 106,
+                  "sha256": "ca46df4db9f79a5cba9b9be7194d7e52e691291a2e41cb9277f9d877da50a3bb"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 106,
+                  "sha256": "88d003c17a92ec9402690af5611969a2d896d32ac3dc1d0306ebaebf0b97c262"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 106,
+                  "sha256": "5cf36c6f1d1237737826b6a9d4e008e75a7734440013255cbe7f145882eaed95"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "742a5c0e3d6a42fbb63b612da324b29da7770d89c75b7be4915b8c854c4c725d",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "junction-5",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "31fe810b41a7e69499ebfe5b630832a2e22bfc5d126e088cb92bc86812c5bd48"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "e8c1336a64e87dbb180fd95fddc8e40f06d20e8b5112c7e45835f0d4be42472e"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "6769bc32ddacfef8e737ff0f63f94123a00fa84a89c627a6d30db40016c18f86"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "31fe810b41a7e69499ebfe5b630832a2e22bfc5d126e088cb92bc86812c5bd48"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "b8f01af7be4bc1f0591e9d8ec41933dccc26151e9cbdd498da21f2e5fceff5d6"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "f3a61e7fba9ce4fd4f90afd17bc3ea012d29376d7749a2273b878b8dee804646"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "31fe810b41a7e69499ebfe5b630832a2e22bfc5d126e088cb92bc86812c5bd48"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "b8f01af7be4bc1f0591e9d8ec41933dccc26151e9cbdd498da21f2e5fceff5d6"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "6ff08e1f4c017a5a77db7d03673971c130870fb627b1c30d18058400f7e3a49d"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "end-5",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 319,
+                  "sha256": "2468767a9bd2fc440d310ded84380574445565f2055a3b37a50198cc89e24538"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 319,
+                  "sha256": "43ccd5693c2d3ae80d1e86c3b5225d82dafd4651f361175761099d1bae5bbe07"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 319,
+                  "sha256": "d4883c0a954a45bfaec496ec9d8de181468fd5479efc4b4fdf5b3357a72a7bb3"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "5d5ebea8c4d458edbb1e6522d01e88d3ed8c0fe611d15c13063c8d30018481cc",
+              "triangles": 271,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 167,
+                  "sha256": "2455baa78b87bb65f27aa1ce27dbe55bdc885620cd5110d5e35c63c9882c50d3"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 167,
+                  "sha256": "433b14485f5f2a76f4240e5277bb94b5cae72bc7a159f99ffd2904019591befd"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 167,
+                  "sha256": "5d94873a252ab9b4f1e1a850cbcbd7c7d0bf35a021dd511e64fd6e7499ccb9ef"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "aae87066594acc07081ba66e4b3e97b05d19e30d2a9e69339c0d3cd80eae621a",
+              "triangles": 135,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 91,
+                  "sha256": "9eaf956d0d0f3482c6c900c5f36be536dc434fa7cd70e4ff45a62a3c92e99072"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 91,
+                  "sha256": "adbbf16e03ba4f0ffcfb825bb867f7b4d0d7818511e8422d8e655679e047e4e4"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 91,
+                  "sha256": "35b1103d73126ea0296c28ae49db754698558eae9b1166c97d4bbd67d0f9e75a"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "6e4ba30a637c84487228b17e420400f57f44e80946390090716ea697a22ba060",
+              "triangles": 67,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "straight-8",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 238,
+                  "sha256": "0931e2a9b6bb918e52d1ae68b4cfbe1f3dc34aff0e2e34573ec46a45b4db08ca"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 238,
+                  "sha256": "e779272ac957f70caf1559a7fe49a15a458f32ee4b65add449ddc031dc7c275c"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 238,
+                  "sha256": "d74fd8cefe6fc71a1b4333ca2f676f20f865737fb0376e0c39491a7b0d53f2c7"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7c0c0f9f41e8c9f14c9122b51657b91c2cbd68ea5573fe73d85e647fee34e80a",
+              "triangles": 224,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 126,
+                  "sha256": "9b679521fb957fb54012b902e00631e4b5a8e8929feaca4b36ee767f42dbcc7c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 126,
+                  "sha256": "57b7d01fde8552bf383bfe9d82d88fe8107026d11453e8c2479aaed1c88c4184"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 126,
+                  "sha256": "8067574c26999fc1c13b3869db2eb1b081e7ec7650a5c55225f9984bd18004f3"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "a00fe5e376363bc19cf3842ad61ba470d4469ef3b65c4a3a349d8a2499c5a31c",
+              "triangles": 112,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 70,
+                  "sha256": "deb2908090aad10c33a6c44ae1e326eae2fb97af61efefc7daa7d35c3eab0ba0"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 70,
+                  "sha256": "5735cdef425813c1f773207d5c404e561d4f433b20547d8bc499c975c7cd57b1"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 70,
+                  "sha256": "e84a0e1302060bd6f8ed47bc83f4d97d05d4e6c8a3a31105fba51d10048a6544"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "87466f0e26ad1ff0334b398e72f5a765520f9b279c213f5581031a7a3eac27c6",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bend-8",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 418,
+                  "sha256": "6fb0284f6df7937a3eaad3b4c02a28edafbcc68ab78dd751d0cf8cf76585ee76"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 418,
+                  "sha256": "809e4ced081796fcc6f240b092dfdf276c96eae7c0f747f09bd64d710b64958c"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 418,
+                  "sha256": "88b3a8d3cfc9b2b1b3d58d9d58469e972e90dd065018745d409d05618577e197"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "ee3b88bf6289f8abe9e1fe3c9175873e6c013ae38feffdc79c5256f92c1c0487",
+              "triangles": 224,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "aac07ff98d8808a51bd08a63d459a9eec63fee269e02906fe244ccb98132b9b3"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "9c549fb4c9786c5ad6d9219ef624acf69c63879e16b0868b3a585265d76f5c4a"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "f27a8ffb302c977dd4a3b15a384a292904a63aa44a347998fc08cfafa9ab5f92"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "961352f3b482a08816dd1e045e2e0fdf7bc1c72bb5f0ae5f155a9a7556dde5de",
+              "triangles": 112,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 106,
+                  "sha256": "3638e8e8279f538d3e4efc9cd671e87a90366c140e278b7494cce2a089d21d4c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 106,
+                  "sha256": "cbf5dbaae10afabb8f52640de0fffe55fb9bdb440cdca1863087045f2be05442"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 106,
+                  "sha256": "361e0ca3d709b1d645cd95ff6d30909df03ac578644b08828da7776276f942b8"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "742a5c0e3d6a42fbb63b612da324b29da7770d89c75b7be4915b8c854c4c725d",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "junction-8",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "9a22c839288252b5ea1cbe4ce99e847d1213e70b0a7dd14e84971c8653243252"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "b8f01af7be4bc1f0591e9d8ec41933dccc26151e9cbdd498da21f2e5fceff5d6"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "c1aa9e13e75c23120a0ea2fa939c673d8825bd5894292e5d7691add91bcd028c"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "9a22c839288252b5ea1cbe4ce99e847d1213e70b0a7dd14e84971c8653243252"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "b8f01af7be4bc1f0591e9d8ec41933dccc26151e9cbdd498da21f2e5fceff5d6"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "f8f6a71f66cd815ef4719e4e0e9aefb114704807d97a9acb0669c3ce7cdce320"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "9a22c839288252b5ea1cbe4ce99e847d1213e70b0a7dd14e84971c8653243252"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "b8f01af7be4bc1f0591e9d8ec41933dccc26151e9cbdd498da21f2e5fceff5d6"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "8e9d4bd8ee222a41ab0f0aad64ba22ae5ee950159ba5d4b088b59c055eebd0d9"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "end-8",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 319,
+                  "sha256": "e0cbf9166fcdaa8fc1222ff203df76222129f6bd4c0b8276d55861954a90466a"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 319,
+                  "sha256": "46ec16e97b426dfb571e1c0105663ea9c4fd6c1a75267fbfe8b892e11b58edf1"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 319,
+                  "sha256": "8af1a8528acfbb39122c776c14dee3ce27d7edcb6184a0958c389fd475cd8719"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "5d5ebea8c4d458edbb1e6522d01e88d3ed8c0fe611d15c13063c8d30018481cc",
+              "triangles": 271,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 167,
+                  "sha256": "489f1418cd3689d8047f06e1ee5a4eb0307481d4d18719a8779f17c57a16e49b"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 167,
+                  "sha256": "fe88232250006d69d810b25fe7d46629329d31c011ec934d817275767ef376ed"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 167,
+                  "sha256": "b66e17d07b402a4746d04a84c7d56266bc66f8f46672530ea95a8cb08108af78"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "aae87066594acc07081ba66e4b3e97b05d19e30d2a9e69339c0d3cd80eae621a",
+              "triangles": 135,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 91,
+                  "sha256": "9fd52eb92983a23eaf01330b922234a8d212287aedaec1ded7bde80a87a8a060"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 91,
+                  "sha256": "c125b8bc055230b0f80ebfb408911382e0b944d00fc41f000c1a7a74bffb69f5"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 91,
+                  "sha256": "95ae2d6f5162da1b1ec89579ae852c7361abcea8cfb8310889f47b6a076cadf6"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "6e4ba30a637c84487228b17e420400f57f44e80946390090716ea697a22ba060",
+              "triangles": 67,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/terrain/ford.glb",
+      "sha256": "9da93d98cdfe5f64dd514cd6157d83786d11bec4dccfc020319c89dcb61b2119",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "ford",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 516,
+                  "sha256": "56e6ba8575918b72b4a46de3e42c1e9cd78b82d5ca12178a194d4d56cd386de3"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 516,
+                  "sha256": "454b11b0f1a6212a8dd99be7b995baf1a738bf671dd8a6b3255fefb3d6b90779"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 516,
+                  "sha256": "1755ebbdf70fb890838d31a6dea0a21eee9a937a76fa7fe59c9193853aea1bb6"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c3869fc099135243d18b88f492301f5b946954ec5b71b88373a8da3f00e1e845",
+              "triangles": 290,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 232,
+                  "sha256": "27569a57840c4319fe08684407099ff795e94b966a023e3365bd626608c79df7"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 232,
+                  "sha256": "3f67b1b0b6643d3f2550d9be941cad2eb4b19e4a85c5ee7e2f07c97fe0890a45"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 232,
+                  "sha256": "f40401d29fe60197d0f20654cb709755fd1e272d2bba32a5b0e375a183f0baf8"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "6dbb8330e72d759aea547f82a0f6a5b92ee0d0ebc9757608f01c451012bb74d2",
+              "triangles": 138,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 182,
+                  "sha256": "0770591f17c7fc3b5402c27ad6ebdfa22c917e784057532e8592ecfd811c0904"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 182,
+                  "sha256": "e0dece18afa1d146577fdd4933646ffdb2abdb271e08a66023e79c5c3560b2f0"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 182,
+                  "sha256": "f91778ea345997c6c5ef29545d9bac85cf83f8546a20e5a1deef9ad1f83da989"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "352b0276d7d202a16310f15a1552be90cbfaa5d5e0faadc6088753f6e5078fe7",
+              "triangles": 102,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-wood.glb",
+      "sha256": "36b5b768a5d7ea0d288011591e50e5c2b9be7de3e32d184900e8bb5eecdb0812",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "bridge-wood",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1404,
+                  "sha256": "24204d0a745052f06bbcdc9a7953939d22e9525f25edda3a5175f14c8a00f9d9"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1404,
+                  "sha256": "c6e5ae477cc58eb7fcffae9fa9b6b6f69dd22dd69e6b56a20bf0d6172cb0d552"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1404,
+                  "sha256": "5a1be08c6a661076ae0d7d7d080cc47710df13f771f996916c7e6062dbf23c58"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "da2ba028f510ad3a50861043118faeaf2d7cb2bff1251e0484093b46b717e808",
+              "triangles": 704,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 924,
+                  "sha256": "9b0909ee864395fee301d72603ca518a4d6f925e32660db3956678fd840977ac"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 924,
+                  "sha256": "d8c2faec328cc5177cb0825a6b935d459ee88fdb583aa7360cb71faa1111db00"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 924,
+                  "sha256": "b87df44e40f2444befba1530a7c7ee680504b4c003e22120d776dbc8bd9b0c58"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1862ea13dff2cc574c97b92b7ba50d240e280bcef56bb098c3dad7cf6ce24a5d",
+              "triangles": 464,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 396,
+                  "sha256": "16bccd2baadda0b511ce984c6199001bac0231578b3f261a6c66432de1760018"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 396,
+                  "sha256": "340fdbcb3886acc94bb7d2df7ba50ed7902ea63a9c3e9857c17128c0e4152ff6"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 396,
+                  "sha256": "6e53c028fe4d3f6ccb7c0b61b6ffa4e84c34e95ae8d6f570177d6fe2c14b74b4"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "ee34a1d2ec5ea3121cf2b88e1a737e4e92cc12ec2079637a920a0d8c4ac385c6",
+              "triangles": 184,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bridge-wood-damaged",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1314,
+                  "sha256": "bbeeb72c284bc3c8765f8d878f2aa8c584525c11f0dca076a1e8122db879f95c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1314,
+                  "sha256": "f8b4135b89823796d30c648078d2d55195fc1ce6c7cbfe8003df67360fb57126"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1314,
+                  "sha256": "e28f3a2f38dfcbbb712a278a19385451a2e107230f1f2dea9a945fcef459dac9"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c615292e738ecdc28f5b429efb51f3c6af41f534af36b9cbe6c10e1e29b96586",
+              "triangles": 660,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 828,
+                  "sha256": "7feea920dd0143d2462e0baa60db7bc8a552f32a26bc3f65f11d49f665afda34"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 828,
+                  "sha256": "c793c7a88d5ed3947a0675f1ab20329db03a774fb01e8da32c8f87f49d211142"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 828,
+                  "sha256": "eca7bbff35c44dd45a042e50127e111a2703dc3120643f716b58fc4c2feff3ec"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "90aee681bccdbb4c7615ff710bea285a8a27d6fab9a061250f244349070e2fd0",
+              "triangles": 416,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 330,
+                  "sha256": "6ead37583b5902411dc0678fe611fb7d95eafdaca5fbb053a03a606bf7449f58"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 330,
+                  "sha256": "25b32cb499c0472b122ef863ed8934dff9940942013bb8b24f902a5b24105214"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 330,
+                  "sha256": "bcc20964cf7f73636112b433108f0be60d815698cfa1319832b16bc88ba14978"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "bba13500b03fad52d5cdbae24e7704a290e45131dd45b4c20265306c948cfe8c",
+              "triangles": 152,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bridge-wood-destroyed",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 996,
+                  "sha256": "4ad4020fdd2e549c46ed146479696162068ac8c797bd018f34f9e7350a54c82c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 996,
+                  "sha256": "9b2c2d5721d252ca698502e9bf7fab982817ed31b08582d16a55eede02934a0b"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 996,
+                  "sha256": "d89ff7605a535574b8f95785e6f3d0c633434f06cca3fdcc09b21e924c022720"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "fd902ac8c26dd66e5020d7bfc524e8cb7a4a566e969f9bff198ca2331d75ada6",
+              "triangles": 500,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 756,
+                  "sha256": "2a14adc133ca4a07e97fd85e871185015fb62f2796b5e5e104d5ff0d3086d69b"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 756,
+                  "sha256": "011e13c927e8e40e589f1e82ac74d9a81b75b94eef71b67d3fb984b554a0d076"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 756,
+                  "sha256": "d2e72be8720eca2ad9070d95f19fd73a3334ae9674a75c9689537c7945ea60a0"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "74d01039f714495a1807023ba143d610eaa07cc64cb460eb1599ecb1ce2d6ff3",
+              "triangles": 380,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "487129dac4795296baf5cf047d25c9dad033f5a51732548df9686639c4e184e0"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "4fd58689ea6cfbe0773bf86d6bfad2d352c1b58e376867408e393d5b8ca26801"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "f812a67f192479d2c093481808682662f668e53acc6786d3816383aa9384003d"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "a88947673cf39bcba4d5cc7f913eb43f0f30c9c562ed06c06be920668b66459b",
+              "triangles": 128,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-stone.glb",
+      "sha256": "35665c949376f7e91830a0f7d2fe40d84ca31d9e2f3f245927b386e348adb6c7",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "bridge-stone",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1596,
+                  "sha256": "1cd01006984600fd4bee01ef8980e3976410d8e869a401d809c69b6be51c804f"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1596,
+                  "sha256": "42135b458b6514868887abf45c61ff85a2a9f91e1c0af89c0ad9cef4f9cc04de"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1596,
+                  "sha256": "df6f2cf584891f64f706917c1e6547761b079dc990f7a0d17272bfaba42767e2"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "3041f96611089cae24ce879f4efbbce3f3b9b8915774f7782fb4215d75dc14bc",
+              "triangles": 800,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 816,
+                  "sha256": "5fe21503c381e5b81b6352237c3fae965e7581ea05d9f77b63f1d526329a0eca"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 816,
+                  "sha256": "84c00a193fc1be9bdd4b7512de554312a6f6b01cf1914f518195b9b6ec8dedc0"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 816,
+                  "sha256": "299703ad0e0e1dbc59246dc19f61d28559b7916c6db6407a9f90e28e0c9d0f77"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "a0d6fa70e119dd488c145ac34bfce87bf4f37e05512afe3acdecfb53814563cc",
+              "triangles": 408,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 336,
+                  "sha256": "3dd807cdd32d87283c868f5c530085f41bd1c1061845074ddb5349d95047a6c1"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 336,
+                  "sha256": "e22096ea65fa161d424a706c8842a1deee3c3a8618e43c4d6fcc047aa9f4757b"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 336,
+                  "sha256": "70722d505e1668191d453bd8c12e3976d06ba90bd4ff53621998480c20442c83"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "109ad3c9b0329ece5c6f81b489b3530f0079743b69275fee683b316c492c5a69",
+              "triangles": 168,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bridge-stone-damaged",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1482,
+                  "sha256": "a9e45540988283bc799b0b549bc7a8d3cd2512fab204a9c8bde4b2b4e64850e7"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1482,
+                  "sha256": "ff3b1235b81aeea06ae12f9e0103af4664ede7997d59fd0cf11a79b87a4c006e"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1482,
+                  "sha256": "c78c29b193532a4b5deb6df7c903904df183b9bf54808cfac32b7d8906d635a8"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "49a208544492b88f0ed0f0df705757a3568b2b119a0028d51002bdb09b1efa17",
+              "triangles": 744,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 696,
+                  "sha256": "dd519fea79604c5bb3fe2f0bb6b6ba03d04cf322a96ce50ab093b5c22512d815"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 696,
+                  "sha256": "ebd3618a559fc3d3eaa471b234d55f0523034791e8deb1fa6172f6fb7aa034ff"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 696,
+                  "sha256": "ed1694532b7b687d6979fcfe0008d99b79ac30e5d38aa5d13ca50f251900b6f3"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "6ae068ae93696b16a2281e9371921c87723d408759c7af6da8dd936e88a470d5",
+              "triangles": 348,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 216,
+                  "sha256": "0b268c556c0a56edb37eaa6234a5209d00c3aed581e72d5ce57974c58c3d71dd"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 216,
+                  "sha256": "28052d7ce0f3455736c56e1fd1b88734fe07c65281d282c89cc9431a39ba0fd5"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 216,
+                  "sha256": "bfa13bdfd4ec351fa3a959371fdf9e23fcc77b4457269cedeb430517343c1b0b"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "335293ccb18072e28d90fe4e6a8bb7c7c11f45c9ec98e1d458a1a2dbdbeee9ad",
+              "triangles": 108,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bridge-stone-destroyed",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1026,
+                  "sha256": "f32b1c8ffbbba551cb3776ac105756f9366751b46129bc2d2d1697543e5b2832"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1026,
+                  "sha256": "2a4ba4f53b5afd644e614d5eeefff6f652e6a021779c27d66850c0434c0bfcd6"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1026,
+                  "sha256": "ec5aef646cece28599e9a9cb408412cc7e71c92c8d45dca9cfa0774de9bedb62"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7af109032e64f371a708297f35e5f9dacfa23ae3eee69269339d62054e957729",
+              "triangles": 520,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 534,
+                  "sha256": "2e2b00812a6254662992a4ae2b2bf87a62f6f936b15c2f66fbe98dd346a22f2a"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 534,
+                  "sha256": "fbc2ff390d7fec81a6b140f909501567c69df438e08357c87a12b65ea5154e3f"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 534,
+                  "sha256": "be16e62a1fe97d5189ec2bcc529c252fc72ab3af00aa78d4857f25ed679065ef"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "8a76f56a44ecf0e1a44744a86f30bc892613a35fa41101c9409a413062f78420",
+              "triangles": 272,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 144,
+                  "sha256": "339904f84ecdf840908180de438c2d80496408e61ad80c391dba78e2ee949f4d"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 144,
+                  "sha256": "c29d376091b30ff16c46f6fff001b250dfc5e4b3a55d7e991cd495c95497ac68"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 144,
+                  "sha256": "193b37a96b9615764a16d09ab7686fecd468c54626b596ce98d56617c46ecd60"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "70747af794baf359371c376afbeaf01a71684f01b8e17c83617699b899b5926f",
+              "triangles": 72,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/terrain/bridge-steel.glb",
+      "sha256": "5612757d0a00241fa8f1e5ed1d29f0dced27c6dc43dab94a680534d5d2a5cd1c",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "bridge-steel",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 2832,
+                  "sha256": "c4d9733b47003b65b25a40954e1206d92ea0f73475e7f6fcf19d71ad75d7b900"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 2832,
+                  "sha256": "15a90042782bde5bab00900b9e5bf8d1c702409b2728461b28b41de7efcdd7d5"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 2832,
+                  "sha256": "dee08d179f12c8d1ee0741d9f4c199c2089705b6b03a68dbd06d364b6d735918"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "466752b19e8d6213239613484d06194bd0eaae29ccfce03d65d993197d7c3890",
+              "triangles": 1560,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 684,
+                  "sha256": "1680735a7a00387e28a4143488d8bc451f3c2c30c0f629a38fcadffb9ed57cac"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 684,
+                  "sha256": "c05ab2fc7e21c96afc7aa40a3e570d577b87b475ca1f4eab601803deee211fa9"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 684,
+                  "sha256": "6df93ce40fed2c12d053e8fbcc06b2671b144014a20374e20535314333c80795"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0e0398ee3b02513aa2b53b7d6dd0869d3dc0e791a248c2afe8519f35ed0f47d0",
+              "triangles": 344,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 324,
+                  "sha256": "11758e307cd79a48dfa5fdee305a4836370350cb92600847d29e79e4a4a4110e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 324,
+                  "sha256": "cfa4d648ddefd145f0355fb1ee5e394a2ed7d980adc6119874d5f0486e7953ba"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 324,
+                  "sha256": "b8474f2c7c4b57ff321e3d8b22223c1350fce82aac23e2933742dd1123cfd3d0"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "411e54014ea491dbc2ffa4bba7c38a5fd89427b7a9ccdab46e91217831c32ef5",
+              "triangles": 152,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bridge-steel-damaged",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 2718,
+                  "sha256": "7a30b1f1e3a3d4a4a75410b57eab71107385085f949167b4f7e33b2bb54a8af6"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 2718,
+                  "sha256": "3a74b4724882c09083f6629d79b831d44f21b2b0078887b603df115ae43f5727"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 2718,
+                  "sha256": "e7a99efb12f07952ebb3ac9e895442afbcfc8f56bbec0c2856d36b453ae49cea"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "440bf1ffcaa9c1ff803cf48b7bea5f80571838ef2ff68f62a1ab03847c46b44b",
+              "triangles": 1496,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 612,
+                  "sha256": "69411ce6d3992384312aff835cd09b67e819b80fa82134f4c45d434b478a2ebc"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 612,
+                  "sha256": "30fae50c2739e74128ad16d608c4557b0745c3ba8de994ff8a73dec5789193ac"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 612,
+                  "sha256": "b2d72a6111648482be6eefc176268c0c3c9e6c80f1482a6174eda0eac85f88c2"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "271dd486e39856d34f61cfcb2de320cfd4548d677c7821adb2f314b8f54b34fe",
+              "triangles": 308,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 258,
+                  "sha256": "fad3294f1c55b6f41f7daeada160f7c0fa6bbe2dc3a96ad3cdef16fe5fe16541"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 258,
+                  "sha256": "cee5d35df9a10fb8ab7151d50127a86134d1408db599a51e9a76e325d61936a9"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 258,
+                  "sha256": "1858a88dda62a632151ed4ad6debdf90ce41102b0a86826326091a806a2846e2"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1133eaa3c4ba875285a64b037eff648222135eb2b2017fe33a6a5b14bb09b6fe",
+              "triangles": 120,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bridge-steel-destroyed",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1956,
+                  "sha256": "bf14ae765cca181e12a32aa98f40ba691e0b57be7ecc4aeac642c430abf22e66"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1956,
+                  "sha256": "042fd022e8b7ba344409f8de82778e6d79b7a631b4d91164e8c123f96b9719da"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1956,
+                  "sha256": "1c765b242cc79ed171b7590980e7032c23cfb8b21c89b5bcc7b049e6ab5de19f"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0c3a927a4395025a7dbe9118d8fe9a2cb6eb4f5ee8af88aa7dbe059ffa29c60c",
+              "triangles": 1084,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 564,
+                  "sha256": "d750ffbef3f2a72a10ec09cf7294556343fe4ff8de17a8c0766d485dcf5517e7"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 564,
+                  "sha256": "bfd33709239ed6ad3007095d355509677b1eab0c2994ee029f33a2a2f10e37ad"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 564,
+                  "sha256": "d68b89f665f12fc58f6ac7020fb2a7267b35c234738457667066998e6e32d091"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "3564e3054ab4f0072fbbde29f4798a65ef7a997b612ddd45458aa2b4d8100352",
+              "triangles": 284,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "82a25045b273f6c9b524d26908f60f6cfd1939f4192fe1a5092025a865badf11"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "a22f7c986541842df7453aa0360b860bbaa189c274d4bdba1f735dee4e8662d8"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "af3e3f6cb1f8b3bb4fb8dfabc30b98120e109450e9c3b09c46a673ce07964625"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "a88947673cf39bcba4d5cc7f913eb43f0f30c9c562ed06c06be920668b66459b",
+              "triangles": 128,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-conifer.glb",
+      "sha256": "3e8f62642faa9099fa38a0317028ebd301cf30194de8caf60dd22dc6dd7bd8f1",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "tree-s",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 506,
+                  "sha256": "33b4c91244c893f010885ba27378c32e33279cc66ac88cf48e8e1350f04337f1"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 506,
+                  "sha256": "7024ebc4e6056527e7803d651d4316f68c50cfcd022d2c54129275c5348941d2"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 506,
+                  "sha256": "39dc4c7435d5cbdcd4cfa04984aa3516f3bf99d5773a8bc4149cbb096a212be4"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "59f0676a70d7c1386ca3cf7f52c21e6fb76e5ce032b37aae6383bd4e20b91f68",
+              "triangles": 246,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "22f3c0963805990052b1a12dd15a9e863349f956a60434ba13d4c4ba80acb05c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "c68b4800beb2c6b409b21b1849cde649e397fac1ad8a9726a26546e66a72de93"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "22e03ac2ab7635e06a9309af5a78af26ac0fdd15e9b1e4b47db4d85e5e3e5903"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7f0df598250d0854b095c614543d784e8dd1d6c1d4d0eb525ec900d68817aa67",
+              "triangles": 54,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "50f720a5aca91aa940371c2783ad55f74824c2fe59f6eced355fad58ef10c992"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "6e0d6e68c0b0d16dddf8756f605a01e94e585f2c38dc7baee98074202b8591b6"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "0f4441123a759be457b9344aadab88b0249e037249f36e39224ce3cf6c411d76"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7f0df598250d0854b095c614543d784e8dd1d6c1d4d0eb525ec900d68817aa67",
+              "triangles": 54,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "tree-m",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 506,
+                  "sha256": "f455637f48aaa104b178373c9a5fe35545a51dbf42eaabceb491bff93c834d37"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 506,
+                  "sha256": "9e24ec3b540bc00b8ae411496a2ad0d7024a7356929aa7ff60e09e3fab95ab23"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 506,
+                  "sha256": "db3f228d795b082d987b3c292885d3b221c09784176c3b438eeabc525c4d5138"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "59f0676a70d7c1386ca3cf7f52c21e6fb76e5ce032b37aae6383bd4e20b91f68",
+              "triangles": 246,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "1332e5d300653770fc89bc788c4371fda434c060e7d6aca75c99433054d4299a"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "972c65a69963ed5ae59c8d4f857d45a3b4563eefd37d4f64bb3d2a9c56445b55"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "045ce45da29b03e842befb672d813c038304a2337cd86d0141235a945303c3d9"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "b9f579a6d42e580df11d0561d8ad7d547fddf5a96558067d609599f0e5522940",
+              "triangles": 54,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "e48b3f7a251339f869b5301c7d3994e56be67c868c3b524917d1bd572da80b86"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "812b2283e0b4da8b30abb0c6c80516f4a590b4b51e3cbef71716275e48d79516"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "50f27ef75fcd3e075fe2766599452a02aa6ba39a46f656536e0255c863b4eee5"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7f0df598250d0854b095c614543d784e8dd1d6c1d4d0eb525ec900d68817aa67",
+              "triangles": 54,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "tree-l",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 506,
+                  "sha256": "fec73073a5e911a681b82a6a3118153cef76d408c72c6177ef44bec94c7a549d"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 506,
+                  "sha256": "33275bcaf8b5f6f901d0c76c49f32c7c8648cf884898014a90036849c7d30cbe"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 506,
+                  "sha256": "0ec424d31455be96b63c1afae0cd1dbba2fbfdfb2ae9f3e6455f405914f70527"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "59f0676a70d7c1386ca3cf7f52c21e6fb76e5ce032b37aae6383bd4e20b91f68",
+              "triangles": 246,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "563e225aee12e976df0d227689a6428e06be8c3195ca84bdcbf02f38430501bd"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "6f34e1d559f241509d574058ec80d58d1f1b8c856d2a3bdcd7c480f77ea994da"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "120fef7b57e8e9657945bdae1fb421ccb92a7a8e2b8866fc733ffe4470b15186"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7f0df598250d0854b095c614543d784e8dd1d6c1d4d0eb525ec900d68817aa67",
+              "triangles": 54,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "09b0f383a864e619b35d1ff74fcc450aebbc2f00a8a8b4c5fde48bacda887ef9"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "980b959b151b71eb5e6f10899203929d8058ea1b7ad938cf2a98b698b7332192"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "18e2bd20293d199a471ef41f75d8028ea9d6ee37aa41d39392b231f62a756125"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7f0df598250d0854b095c614543d784e8dd1d6c1d4d0eb525ec900d68817aa67",
+              "triangles": 54,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "stump",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "54717a12fdedb7a44d3c6fb641658b1bc37ad2fd8872169c8f6dbfbcc9c18672"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "a0b9584f237cfc9c685c306024049d765f37ba732dc51893aad1677f5c6362a2"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "9819e27a8743304a8c633854bcb9266351363ceba8f14ca38c14870c67d19851"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "242c058cd35b533ab07ac6b275223af13c46dc94698fc84d0867d4c4737976ee",
+              "triangles": 84,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "60ae2edd2128592878ef7f834c68a6655dd757db9ff7c5ea17f1dcc8fca97ce8"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "64d5ab90c214052d720e70ff1e4bfe60d0713d6ebddf7d14b453e2c38f86d8ff"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "2cbe935cac555efcc769e1cfb7b97954ba32d8b54567de9bb0de45af6fdd4861"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1eaa343ffc40e7abbd79edea3ee1b71fe69a980b8ad247d30f9cd1e30906b799",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "60ae2edd2128592878ef7f834c68a6655dd757db9ff7c5ea17f1dcc8fca97ce8"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "64d5ab90c214052d720e70ff1e4bfe60d0713d6ebddf7d14b453e2c38f86d8ff"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "2cbe935cac555efcc769e1cfb7b97954ba32d8b54567de9bb0de45af6fdd4861"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1eaa343ffc40e7abbd79edea3ee1b71fe69a980b8ad247d30f9cd1e30906b799",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "felled",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 324,
+                  "sha256": "a8f79d92121ad5063b7729012ea16e91a2fd434fdd32be71fbe379ee2b19c04c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 324,
+                  "sha256": "8b5b91f49be989f8e5363ceda3bffd5a2d5bf789930ce59e82380bbeb7c16b25"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 324,
+                  "sha256": "adc4b20df9bbb2ba1ff31d5d75aee5c185e396d0a91b1f74128d2219d37f3324"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "4bc7981947407b629a31ddb9fdfafd381025af6b1f167569a4337015524d738b",
+              "triangles": 172,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "1bd536276aed390a9894481054540236c85f8498c9e6c29a72b2c6cab95bc51e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "883a3511e4758ae50ee39bb2157f18e8938106a3d8a59b89de3e0773f81af634"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "170c9063560432fae2adc80c4bc189645d4120f0ac32e7b01360e1bb02a2ab9d"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "effaa015a64a41040480320756a0a86840a00aa8dcd14ffbaa9d96a5e14eaeb0",
+              "triangles": 44,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "d74d78e91c1a2c3e8de5b20e012d2a2256978d84884e7d18a8ad8459498715ea"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "3c19de823f1f89f1430b9205b898a0c0b49f40c1d89bd2e924be1a11f82bcab4"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "4671aefa942977394874058a31b1263b8003c99c40da189c43455e6383041ae8"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1eaa343ffc40e7abbd79edea3ee1b71fe69a980b8ad247d30f9cd1e30906b799",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bush",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "d62b6459fe5c2816860d4c0859966019140f1ff33027896148e638b36f74db8c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "4328d2aa0dedc036a9af39729af4c73ccec47e7dd951d18b79bfa8523a383e14"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "9e31e7cfe178c68ac92c9a306d2144757fd6b0d65ecf41c276dbd56c9e9e48e2"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "72d60126b30d1ad2ce2c57704b4a725953f9262fdf7bbb9bf90e7382d9968720",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "f8ec2ca01827acd45224ec2c07045ba3de6b176e15f4d397413ee2cbfccc281f"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "36a24fa15025bfb711549a6b7c61891149940f50fb71736e843272a8654f9b21"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "8c2248362327ea65c6a674596f2b9890a5904bc31c003965532376f7c9ee5a16"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "49a291a2e10eb5483043afe2b8f8c5493034c360e2cab53ec48805c451db35bc",
+              "triangles": 28,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "f8ec2ca01827acd45224ec2c07045ba3de6b176e15f4d397413ee2cbfccc281f"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "36a24fa15025bfb711549a6b7c61891149940f50fb71736e843272a8654f9b21"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "8c2248362327ea65c6a674596f2b9890a5904bc31c003965532376f7c9ee5a16"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "49a291a2e10eb5483043afe2b8f8c5493034c360e2cab53ec48805c451db35bc",
+              "triangles": 28,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "rock-s",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 150,
+                  "sha256": "5e76b858c4565b82374bde3073f2d217798dd846a6c546be809cbfe556a2de58"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 150,
+                  "sha256": "46b6e5b5fa8a82f23fc90cdc5e499bc7408f70b157e2d6981c58b0883d60a712"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 150,
+                  "sha256": "6c62ccda9bb9aff4bb118c9256bcb541db9c519813b678d94e66f7e2db2c31fc"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "3ed032c7f5e085494f8e5bc527df8effa6ca93bddc458562787dd88303e43436",
+              "triangles": 68,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 58,
+                  "sha256": "10913e885889057225ff14a30df970d4bc97e3681f06df85cb06cdd69fbc8793"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 58,
+                  "sha256": "8e19e1c91ba9e727a29d3f53d53c3243138b086743bfc672c713f21f89369745"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 58,
+                  "sha256": "73af5fbe3b195a1ab4fed630ce970e9eceda9b7c28e9eff9dab90910a8c963ac"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "8f90b96f6433cea649e6f9a122e68d65dab7348779e387c14a00b2acf3e0c6b3",
+              "triangles": 28,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 58,
+                  "sha256": "10913e885889057225ff14a30df970d4bc97e3681f06df85cb06cdd69fbc8793"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 58,
+                  "sha256": "8e19e1c91ba9e727a29d3f53d53c3243138b086743bfc672c713f21f89369745"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 58,
+                  "sha256": "73af5fbe3b195a1ab4fed630ce970e9eceda9b7c28e9eff9dab90910a8c963ac"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "8f90b96f6433cea649e6f9a122e68d65dab7348779e387c14a00b2acf3e0c6b3",
+              "triangles": 28,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "rock-m",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "d9512abdfae0d568fad728dc4a6b8db0f34e6a2081f4d0dd5b71e7e05d004fe7"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "ab4631357fa3def310f8c7c92036a42e6592730936b14d31cad649cddad45812"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "4ab546abdad8195c2d48ed5335d2feac6b51ab360c08d1cd21bccdfb653e0ee1"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "d890695a53b3d63e8fa21fd670def5a49192d354bba54ef77b591df222d408af",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "f240f4d5d0eb0895bcb2ee4760072ca028da4c6a1400410b08d830bbca1b4817"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "379f62088ba02564915bac3875db4163ee149845c5f24c1d4e67e044b5641db7"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "c94861a510d93d37abcddb6ac71a7f0201a6580355021330990f8008a5493271"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "757740b0e1b5a0e78f3f123d0265b3bf10b7e24503cd3a2ce52382393d3f5999",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "f240f4d5d0eb0895bcb2ee4760072ca028da4c6a1400410b08d830bbca1b4817"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "379f62088ba02564915bac3875db4163ee149845c5f24c1d4e67e044b5641db7"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "c94861a510d93d37abcddb6ac71a7f0201a6580355021330990f8008a5493271"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "757740b0e1b5a0e78f3f123d0265b3bf10b7e24503cd3a2ce52382393d3f5999",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "grass-tuft",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 81,
+                  "sha256": "df93b27ebc5cd88d0d03610e1aa3a041a230761b0d3eb391d63151d7f0ed6ede"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 81,
+                  "sha256": "65c675ec6317ea9fb123284dbcc04f75cf3c7d1af8bcd09b7f26a69d3ca81b73"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 81,
+                  "sha256": "4212c8b1366ebefea3ad2470d84ac95fd96f40410665d4f5d87a64539bec4d4d"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "68d84c60e771cf82ed204a30c37f9224c24719f89df395c1ed25ca5bdc2bdb84",
+              "triangles": 27,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "8b9ab0be311531221e4bbd62957e919f00ced4eeda6a18b3f8edbf263d250556"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "8b7264e7d77a015558ebf6f3cb1270d5bafc5bff1761a399dfbb5a554a4df1c3"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "f2d7f4cb37c3b4a3451a1ce9d96156c7a62519a25f264e391d43bd23181f62af"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "58a54299e0e8d0a77ba77fbdbba8a96b0265aa7d3e04f884ea0817d9d1915665",
+              "triangles": 9,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "8b9ab0be311531221e4bbd62957e919f00ced4eeda6a18b3f8edbf263d250556"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "8b7264e7d77a015558ebf6f3cb1270d5bafc5bff1761a399dfbb5a554a4df1c3"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "f2d7f4cb37c3b4a3451a1ce9d96156c7a62519a25f264e391d43bd23181f62af"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "58a54299e0e8d0a77ba77fbdbba8a96b0265aa7d3e04f884ea0817d9d1915665",
+              "triangles": 9,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-tropical.glb",
+      "sha256": "202f14f0cee224039be57258f6bb7c1576dab6da09c5d3dfdd2e8d28a03ecd6d",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "tree-s",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1105,
+                  "sha256": "017f8f4ce2b3977842fa6b80545a29643a7683b1453889e94d9dbf8c6c73bdcd"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1105,
+                  "sha256": "1030cd30b548bbb23aa88f271001b1474dea5f0030679f1c8c9babf6f8ca56c2"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1105,
+                  "sha256": "6ff7dfe2fb66fc194f7a91e39109782a89a6b756a5a8a1f9bed7979ea5b18c35"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "a3e5e38a4a453bbd9528be912488f46ba5d56a6e4b523b5c4a7ba8679cb2c02a",
+              "triangles": 387,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 136,
+                  "sha256": "c3b8b1a20f59171f951a4838bf769e262024d5f1bc680ea17d992f67c7038a20"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 136,
+                  "sha256": "ca70e3a1d296e5b6a7f5ad0aca66cdfbdcf2deb0d7155942e9e38bb6ffefbd67"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 136,
+                  "sha256": "6834a169f01812ec8ebe65fc95784582697859dbf0e1cc2d3d5c13c1e1346c10"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "40aba468d3d14c8f81dd06ec82acd7a627a647fbb5671623962b8f0dbf090c23",
+              "triangles": 48,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 76,
+                  "sha256": "d7d6a4195c106e874de6d110eaf9aced00bdffe6aa6ba4ac40eb8941f31014d0"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 76,
+                  "sha256": "d976a0bf50004fd7f9d6e048964b537c393ee23fe29ba2605deed61e9d97d942"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 76,
+                  "sha256": "4acc0680da814cc67ad5bf0d6384669533c88b4f38249de869cf148dccb0ec0d"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "3f639272f827a7aa28b59aa1dde0532f0afce6aecb64718e5135d46486f16861",
+              "triangles": 28,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "tree-m",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 188,
+                  "sha256": "0c3325405d4df9877443065843d3638c25564c4453136081ad97882b96a8b0a9"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 188,
+                  "sha256": "ecf4dc2a9509f2fe9775e1c49c993a74bb9b0b16ef5db8ec1f5e5bd828f0b6d5"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 188,
+                  "sha256": "72bda22c1582a67c23d73b533658771acb1d2e21e2bdcd8875e969506dbfa999"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "cb294b0b6683d2f86a388a864f0a69f2416b05e72dd542a4669e233e7e19d09a",
+              "triangles": 94,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "2c8f3bf1528d5994608ecb68795f2037e3fb2d479fff977df2a5ed2f1a63c4e2"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "6c9448ecaf09c419ccf112ca31d83c36efcbd75eb23b05202c011f838f1aa983"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "c8d1d9667181acb9d8a7d52a4ac01c9e36886cd48a7516fc118aada11b00cd91"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "98b0eeb4ef49943ef4a9ad002ab5397c9fcd6a26774a7ef39a3600d9c0c7731f",
+              "triangles": 44,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 82,
+                  "sha256": "21cf5ced35f08823f2b241f8f7ae80becb26ed61fb445a4817e43c9a4a5b528a"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 82,
+                  "sha256": "5e574a1714328137daa35b23fd8abf1f7905bfb955d31cadc1628bf8adba28ac"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 82,
+                  "sha256": "b297431f6176f9358d211f89657f5d2adc744387e274b7ef6916d17bff2a6edf"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "74b21ed853ea07733c640bd875a38aff73df62b3cb27605a318f0a5702b9a704",
+              "triangles": 40,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "tree-l",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1404,
+                  "sha256": "6b21abdda1d2c3db21312c6de835409442203c58f79097c3bb641d08be185b6d"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1404,
+                  "sha256": "eb0e408fa259414618065ae2a11b05369236e01257dc78d9362f719ecb51dd4a"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1404,
+                  "sha256": "62cce04682e11ce8f3aaae431f8002ee1ae82ac1a63f5cca7832e75c69ec32af"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "de37f4b28a38993861581b4d3456f1c3ed5379360752f434af2441f625011471",
+              "triangles": 517,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "4fa64a73da4a0048f409375c9ea9d6b3d1625bc6df97048cb3e0584a7bef5a35"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "4cc5b1cb11748d829911e26a4c89d84bd1bc93a678a667c64cb7d3efd9905e68"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "b4ae9ee4626bdb90ba6caaf3fe0857f7790535a744aa78c54d8b07d0378c881a"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "33b43fb91c351f0719d8148bec62f61a481d7479879aed73c57198d500852124",
+              "triangles": 76,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "a4a043c073a9b70e1ff3376170f43b7d27ba182f9f81a73fd95e2c7ad5dec197"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "a6df4ecb0863340417deae64b69c0da339d70fd029531d23a8163e3c0a8feed7"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "3b945458612bab689eaed0b428cfc1a5ac88c012f443209505cda74e1b37e7b7"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "33b43fb91c351f0719d8148bec62f61a481d7479879aed73c57198d500852124",
+              "triangles": 76,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "stump",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "457bf4af611a4b57b4f0af8dc4e9676333e504bec537f0511dd506df7eb46c17"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "4604567885edcd49a6ef6289e3adad604bda773678f4d28cad85a4f22206b1f9"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "e166b4125cfefa91ef1307962802561f24b1f6aa80a7934562834145bcf4ade4"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "242c058cd35b533ab07ac6b275223af13c46dc94698fc84d0867d4c4737976ee",
+              "triangles": 84,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "c4ea7b4694e0af0d0764340455c9a69db42b005daa0252df7b2db6d7b0164b8c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "64d5ab90c214052d720e70ff1e4bfe60d0713d6ebddf7d14b453e2c38f86d8ff"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "8a0cdf3d9cfc0fb17bbd289f9bb7e7de2a17b3e7457a35983f8b8aa713c31372"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1eaa343ffc40e7abbd79edea3ee1b71fe69a980b8ad247d30f9cd1e30906b799",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "c4ea7b4694e0af0d0764340455c9a69db42b005daa0252df7b2db6d7b0164b8c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "64d5ab90c214052d720e70ff1e4bfe60d0713d6ebddf7d14b453e2c38f86d8ff"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "8a0cdf3d9cfc0fb17bbd289f9bb7e7de2a17b3e7457a35983f8b8aa713c31372"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1eaa343ffc40e7abbd79edea3ee1b71fe69a980b8ad247d30f9cd1e30906b799",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "felled",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 504,
+                  "sha256": "6b67c081bd42227d81a04e5eff3d28c9288ba8d5e1eb9d1641855a1566dd1991"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 504,
+                  "sha256": "2793ea1f93f570d11669c1e6ce13d4b0003b7d8aad7b1d5415fab641db3effa2"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 504,
+                  "sha256": "9ada7e82688854b53fa7b0bd03a0a3a805bcacdd4a3524df59bb65f6bab27c5f"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "06af2bab8e9ac963446a1cff5934226829e3ac667989dd2f155041a628290251",
+              "triangles": 232,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "53dcb34e390a0458a0efa12af2d74109264f31850466a7078ac408b8b3586af7"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "c0dcb74fd9cdc5621549240ef7f39b0845b52907b2bcad3fa7ca010f35cd7421"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "826a07227f9b83ac5ed0c5152ef489c2a5896733647f3ea463f06b96293ea3d2"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "effaa015a64a41040480320756a0a86840a00aa8dcd14ffbaa9d96a5e14eaeb0",
+              "triangles": 44,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "9569fd7cfddbb320b0b32d1d9719390f3a4d6b657be87dd9b36478276ecb0ceb"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "3c19de823f1f89f1430b9205b898a0c0b49f40c1d89bd2e924be1a11f82bcab4"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "a12f93bd77b16694ee2a3214cb1113731eb19b6ade963185894787f833ece8a2"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1eaa343ffc40e7abbd79edea3ee1b71fe69a980b8ad247d30f9cd1e30906b799",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bush",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 72,
+                  "sha256": "2fb98b39b53b543b463f26f5bacc7aabe085f1a708b35ee5aa89eb9cdf3ed2fc"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 72,
+                  "sha256": "6734bb78461b94f74dc22fdac5f898e4f58acb340fe80f994281611753002fd4"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 72,
+                  "sha256": "bddd5fbe5da168e59ac999c88746b9d81eeafc9c875ae3eaac66a7870b8e9ef3"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "03f99433f71ada60476dfdb00089d1e9ddb92b9d08065732de17a4b8ff1e322b",
+              "triangles": 36,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 52,
+                  "sha256": "9232ed22adff764eacfa86cb2239efe27e5b4493f5ca06d2aea915a236c0645a"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 52,
+                  "sha256": "7ade25639f4b36c2dfe2d02a036913242928679b6dbab23af46e952b3ffc9485"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 52,
+                  "sha256": "cafc182b3cdee6277eb12423ea910b5406c4f8c699a1527492bd18b5b6119a6b"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c1ca9a5920659bdbd71daabb01a85e8ecede9e294676ac4386a0bf911dc73697",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 42,
+                  "sha256": "93736c2cd265c9e83506e779efe618f85350657beb803f93f28dbe88b0367ec9"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 42,
+                  "sha256": "f7a58e7efde911b6dadab47ef101937fceff40f7c7a1389949c084a4f7870f9f"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 42,
+                  "sha256": "6765aee23cf4014c3bbafa68bdb085ae075560be29355ef2d4aa8851066caa35"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "f7ec1b15c24e81b9972cbed6dab06a2dd1071d9be2b41ad0e9345c45430de7d5",
+              "triangles": 20,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "rock-s",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 150,
+                  "sha256": "32ebec19080e16a9e416be6fad8b89301901e82da52b3b28ec10ed888faf4450"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 150,
+                  "sha256": "96dcbff95d0349e6205ff585a7a1352aecdae34dc6e8e77f5e1becfd2863e4e2"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 150,
+                  "sha256": "c7c30b4bddedf45497c8a822ec778f7ba99b6839f24e631c8725d3f8d210537f"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "08b468da96709af4c77b0608946b211e440f45e14739d541f619ca8abcd537a3",
+              "triangles": 68,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "acec744018280c5731d9a600ec398e21367fc30c110d3b5ec9bb8b24220d8a5e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "02429dd5ce10698c4ccffb9f7bbbf8f328fee90cf879c9223590b3cccdd90b74"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "55c56db45c3886cb53e269c51e77886462a6d9e401978324e819eb613b01722a"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "49a291a2e10eb5483043afe2b8f8c5493034c360e2cab53ec48805c451db35bc",
+              "triangles": 28,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "acec744018280c5731d9a600ec398e21367fc30c110d3b5ec9bb8b24220d8a5e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "02429dd5ce10698c4ccffb9f7bbbf8f328fee90cf879c9223590b3cccdd90b74"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "55c56db45c3886cb53e269c51e77886462a6d9e401978324e819eb613b01722a"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "49a291a2e10eb5483043afe2b8f8c5493034c360e2cab53ec48805c451db35bc",
+              "triangles": 28,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "rock-m",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "1e041e05a95062962fff9d33f944841825aff277d250bf4a5cf30d80653053fa"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "55996068c5707cbb2de49df30c197569808d73be4450907c45bb48b6b5cc1913"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "1a8ba0bfc889e9ac6b18d564edc696a73bf302a718818165dec79da99bf97be2"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7c249142c9cf2d8355d0f9f0195da50ef2ac9d4a403fea588795383b41c7e6cd",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "d866122a82d3b9cef0a8d4194525969c21d74ff9ff5e86d619025f0777eb0e8e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "a6f4c7b93901b0b984bb99dcbd5bb8a791f52647cc2ba1d5d0bc575673638b28"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "150e6a170e91b4bf5ba53a469956a9936ae3ea8872373e32ff0c5fec230470ec"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "757740b0e1b5a0e78f3f123d0265b3bf10b7e24503cd3a2ce52382393d3f5999",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "d866122a82d3b9cef0a8d4194525969c21d74ff9ff5e86d619025f0777eb0e8e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "a6f4c7b93901b0b984bb99dcbd5bb8a791f52647cc2ba1d5d0bc575673638b28"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "150e6a170e91b4bf5ba53a469956a9936ae3ea8872373e32ff0c5fec230470ec"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "757740b0e1b5a0e78f3f123d0265b3bf10b7e24503cd3a2ce52382393d3f5999",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "grass-tuft",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 81,
+                  "sha256": "c5ef1db136a72fab5d286c50c09cbb214ffb4722bc67949b0e64265bbe2055b8"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 81,
+                  "sha256": "cf5a736b0d9170c47d9dec7f6c574d34d5bf1a9853b392bacd5fbeb19f8c253f"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 81,
+                  "sha256": "80b893b4b0fb255936614549c2e3a15142628b54759e8bca6f4e52dc6d5adb1e"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "68d84c60e771cf82ed204a30c37f9224c24719f89df395c1ed25ca5bdc2bdb84",
+              "triangles": 27,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "a7ae201b180d9683a1a2c4970eb7519bfe5c78fbb09c5493e241f987d462848e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "8b7264e7d77a015558ebf6f3cb1270d5bafc5bff1761a399dfbb5a554a4df1c3"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "76855ff5a39be2e1547651a5bc193b02a0f43fd2173bea911b60e1df883f308b"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "58a54299e0e8d0a77ba77fbdbba8a96b0265aa7d3e04f884ea0817d9d1915665",
+              "triangles": 9,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "a7ae201b180d9683a1a2c4970eb7519bfe5c78fbb09c5493e241f987d462848e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "8b7264e7d77a015558ebf6f3cb1270d5bafc5bff1761a399dfbb5a554a4df1c3"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "76855ff5a39be2e1547651a5bc193b02a0f43fd2173bea911b60e1df883f308b"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "58a54299e0e8d0a77ba77fbdbba8a96b0265aa7d3e04f884ea0817d9d1915665",
+              "triangles": 9,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/nature/vegetation-cold.glb",
+      "sha256": "073be8c85915e539020f93c53b6e27fc2ab60777fbe173816f2c638da504e91b",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "tree-s",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 864,
+                  "sha256": "76080ba436079ec141b694bd70d76fc1719df828e4c948834aac7aa09bbd2486"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 864,
+                  "sha256": "6e5b51e652537091c2f1e892b49ec93a7a672cf59c57d74f333b1150c2a65396"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 864,
+                  "sha256": "41b9c275fb28c6e569625730404302c1ac99be39b67557ef0a8657972e811d2c"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c62736af338118c626399a0538c9ac94a8f8f07592eae345964d6cc18d9418a4",
+              "triangles": 340,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "7cb661998d1c6740c9f67093462fbab5932cddb1f3ac4651feef5d5963c2db98"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "2bd0b71ec448ae5d07ffc78113911040cfd753b2eeae87ccab0e5a79b979838a"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "cb3c1277ad30f390bfa4df0663ba13c60e8facb1918a8f2e9f3a076ea989cb0e"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c01148e8b82c693703b42dddee6c58a625ca6dc64aea0d9bd5ef56547e8bf3a0",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "10f95f9ec875a4f8be255e65a8c39beab90bf732af683e9cf0ed8491660f565a"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "22227889947f0e88ad0daf89c297d2eaafa25827dfb441d2a3bd44e3db2789e2"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "a3d4e0402e7e73bf2afed0c9da65aea7a6bee863bdf80567df7e8bedbe7e6484"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c01148e8b82c693703b42dddee6c58a625ca6dc64aea0d9bd5ef56547e8bf3a0",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "tree-m",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 864,
+                  "sha256": "e0cafe9b5c6855bf135c26c0c712c0a536a445fbb8d4ed95602f1b14c583f099"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 864,
+                  "sha256": "f95c734491f9132ce37aef85a26b36e165a4e31f5fc681d4a901a864458d31b0"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 864,
+                  "sha256": "373901a3c97f80e6060ae5993f439b3ac30272d937d5ed80a0591ee8c259edf6"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c62736af338118c626399a0538c9ac94a8f8f07592eae345964d6cc18d9418a4",
+              "triangles": 340,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "f0bb1abc26bb9a0a0b4c03108a3464c92639ca089b0ae912f0dd582957d1c349"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "83677c0c275f9820a5738b3e1dba806964ffaf2aa34d9726790ab678f27b2d7c"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "de09765d58a15d38c59935eb719648c8ce9d7a415f244d345eb04c4ac2330928"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c01148e8b82c693703b42dddee6c58a625ca6dc64aea0d9bd5ef56547e8bf3a0",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "24b419293e3faeb0813eb32f39eb2b856eaf0547815ef791461d63ed083c2314"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "23b8ce821b94f54c5201515ca40497b7cd523e0d7a20ff1830603b942ba49a88"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "9fea31dd641d00550b8c9396c7cfa64f83332ce6f83408170ab6bb078a2a0f30"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c01148e8b82c693703b42dddee6c58a625ca6dc64aea0d9bd5ef56547e8bf3a0",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "tree-l",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 864,
+                  "sha256": "a1512e14cc7909962243bf9cfce06cd3b99919ef218d4c7428f7ee7dc04c16df"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 864,
+                  "sha256": "05f28294a85bae308639d9c82629702db795591f9efe9b75f422ca8a006de307"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 864,
+                  "sha256": "2b9eab7f1e9fa4c78ede09e53c55ae40f689f9da048b46cea51863d528510499"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c62736af338118c626399a0538c9ac94a8f8f07592eae345964d6cc18d9418a4",
+              "triangles": 340,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "3d4a5dd43605505da395cd6ee2fe4e20d0edb241d04265e7cff6f63033ec397f"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "e7891c552a17b28204106a629214d1925e154571319457107d17eb8aa7fa3bea"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "236c63200f084efc6dc4baf2897513e7c71abd6656210ad81029d5d37f5ec5ff"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c01148e8b82c693703b42dddee6c58a625ca6dc64aea0d9bd5ef56547e8bf3a0",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "ff571d79ca65f18e22fc3f858f4dca84622fbd8759d369a5c9e3aa90d5909919"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "b63011c11d258f6e2b35db29a9fbe6bf663b164c1b693c066372aaf31d5a9619"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 276,
+                  "sha256": "48db7a3855be2fcf66c1e7ab55baff677321e63feb58055a4f68217263d84ec1"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "c01148e8b82c693703b42dddee6c58a625ca6dc64aea0d9bd5ef56547e8bf3a0",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "stump",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "21270cfabb8a767823c1a15f1371ac34b486ddfb06bdd76e1af3ca05406cf511"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "bf1a2f2721dc3c7957ea29c7458511bd7df30cb4ce146b77c0616f1101fb244c"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "0bdfa1a2db3bdbdff018ad8e9e947f26bdfb0abb538ce5f48192b22f15402633"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "242c058cd35b533ab07ac6b275223af13c46dc94698fc84d0867d4c4737976ee",
+              "triangles": 84,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "6f39100ec04d0df084cb8cb6c4bb120ffea0234c8b7893b00e4b27d6f17e1204"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "64d5ab90c214052d720e70ff1e4bfe60d0713d6ebddf7d14b453e2c38f86d8ff"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "6ef3a02dc8f9f2176e3695109c99294dc64827391c1e43d563ff2602469f2ffd"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1eaa343ffc40e7abbd79edea3ee1b71fe69a980b8ad247d30f9cd1e30906b799",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "6f39100ec04d0df084cb8cb6c4bb120ffea0234c8b7893b00e4b27d6f17e1204"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "64d5ab90c214052d720e70ff1e4bfe60d0713d6ebddf7d14b453e2c38f86d8ff"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "6ef3a02dc8f9f2176e3695109c99294dc64827391c1e43d563ff2602469f2ffd"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1eaa343ffc40e7abbd79edea3ee1b71fe69a980b8ad247d30f9cd1e30906b799",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "felled",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 564,
+                  "sha256": "100e33aafc5d477394e60940f417d0656bd4d643de0b38de803fc369a15fc579"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 564,
+                  "sha256": "d6fd29478b1f1433a0e81e8e91c51e97390c979941cd43193c732b663613303e"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 564,
+                  "sha256": "9a5c8db08f1dfcd737b6b1eb57424dd20012fd264d74f4f175356376a9ae7aec"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "269918d608eb52940bc3a7c0e45a436540c892590cda137425f38d2b11d50db3",
+              "triangles": 252,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "11786e588696f61df6238defbcd3af7a6a68c28e07668ba3ca11002153ea85c3"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "17d381220d866ea4bcf1f311375b0ecf0a771eab61b6de47cb72bd627cd81cbb"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 90,
+                  "sha256": "6f2d7ebdf3b63dbea11d93f45fd8eec4ba34091d70b3262c4e1432d0fcd01d6b"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "effaa015a64a41040480320756a0a86840a00aa8dcd14ffbaa9d96a5e14eaeb0",
+              "triangles": 44,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "466f09954ebbf64e4240213cb6bed36789222c4e0d2537edcbefe8c193111f8e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "3c19de823f1f89f1430b9205b898a0c0b49f40c1d89bd2e924be1a11f82bcab4"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 30,
+                  "sha256": "45c5a2afef9d5b52477314fe0fd067c9f380b78ef7caf1bcbdd1c0749ad32e9f"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "1eaa343ffc40e7abbd79edea3ee1b71fe69a980b8ad247d30f9cd1e30906b799",
+              "triangles": 16,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "bush",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 192,
+                  "sha256": "38b29874344665c3837947838500ffefdfbe2c5985b8f96d397e7b21b3117afd"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 192,
+                  "sha256": "ad068c208ebb1fff4b13913dd80aeb0511c13ba0f18636432cf15d2d00f3494f"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 192,
+                  "sha256": "fdf52ed584dce093adc459fba73d763123264d52741af42dbee16e0f303eda06"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "25fa9e28f43008f67f7be5251a5ca0fb3fa796736bdf127215209ea75428f22f",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "91a9c7dea988c9451e663abc85e73f48d756fa51d92df5b7ba02e38625617f3d"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "3a1a8afbfb3b480e90489750a794488ded856b7a100e2b5333ff1ee42a0244c5"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 48,
+                  "sha256": "53370578a424fe54d364a1cbdc7f5790095e5c96e4080867b084b26503c47f44"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0145a2c9521e0c5f545c5c46696dc3a7e0a0470fe48eb56a86e574465b40bc19",
+              "triangles": 24,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 36,
+                  "sha256": "8bfa07c3a453b52f130bbbec61560492bce106a6373bb9ddcf7d0e5bac0b0abf"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 36,
+                  "sha256": "f37d359b3b611f2081586e1d62183190c48d712d2b319bee7d43a0843c93bcd3"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 36,
+                  "sha256": "de8bcc18f033f134e7035612a6699b240d0995ec60dfdd92bb810af23133026e"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "14c7f823752339c34c6d6e4d3188780aa6df62825e732611ffcc55b36fb1fb94",
+              "triangles": 18,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "rock-s",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 150,
+                  "sha256": "0325402ee3257e6abd4a013afca398e66db1c48b1ed8a838b233209c0c5ea66c"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 150,
+                  "sha256": "f7c74f580d1ee6ca864bf17712869d3e36b225dfbc37dcef810615d88d091d7c"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 150,
+                  "sha256": "a1400613bb6ed29e593bb7716d63fb0300550c8d6fecc913e34a4b684cedfc6f"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "adc69d50eb7ced8e3c70d01b319a70289c7cf6b032e733f247731ff6b999f59d",
+              "triangles": 68,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "e4c955ac8dc8405efa8ef5822d38d9e8de66fdf7d8bb7578dea9846f9f4247e0"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "a1f655d60d9763b2b807cce5c34609cbbdf4b70b0749efb4dbebe64a8c12cd71"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "54d1e9ab35aaa4e319924ee409149aa9e02d8a468f8488ea5565a7da8f30f745"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "49a291a2e10eb5483043afe2b8f8c5493034c360e2cab53ec48805c451db35bc",
+              "triangles": 28,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "e4c955ac8dc8405efa8ef5822d38d9e8de66fdf7d8bb7578dea9846f9f4247e0"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "a1f655d60d9763b2b807cce5c34609cbbdf4b70b0749efb4dbebe64a8c12cd71"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 60,
+                  "sha256": "54d1e9ab35aaa4e319924ee409149aa9e02d8a468f8488ea5565a7da8f30f745"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "49a291a2e10eb5483043afe2b8f8c5493034c360e2cab53ec48805c451db35bc",
+              "triangles": 28,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "rock-m",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "96e2c6ebeb0d533255ed5aaf1484632251cf1df68dcadb5d5046aa1abc9841d1"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "b59467dfef51b5eb6ed4ec504fdcea332baf5eee6f4b4a6d98c09a96a627bb5b"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 210,
+                  "sha256": "f31d7449baefa625394b3a7ae168755a1764b92546739ce49cf6b43b7e584800"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "97989e5001c1021a3bf2d11dd4d989ebe7029514f9ae9d564c7000d7b084f98d",
+              "triangles": 96,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "32e015e785bd4d023ef2b5ae1e32db45eb5998b1fdc6ad012896866f5a8978f6"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "403676c9f958ab5edbfcf4fccbdbc14f212d7996eee27df086feae08122f33e9"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "a99cd72cae92a8a78ca063a7a9c0f840e4df90705f0357530d174efcbb06abe2"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "757740b0e1b5a0e78f3f123d0265b3bf10b7e24503cd3a2ce52382393d3f5999",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "32e015e785bd4d023ef2b5ae1e32db45eb5998b1fdc6ad012896866f5a8978f6"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "403676c9f958ab5edbfcf4fccbdbc14f212d7996eee27df086feae08122f33e9"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 120,
+                  "sha256": "a99cd72cae92a8a78ca063a7a9c0f840e4df90705f0357530d174efcbb06abe2"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "757740b0e1b5a0e78f3f123d0265b3bf10b7e24503cd3a2ce52382393d3f5999",
+              "triangles": 56,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        },
+        {
+          "root": "grass-tuft",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 81,
+                  "sha256": "b2a0ced0ccfc1c2582a10ea1bd8cce0fbf1fee3122a9c1720a66241e417cf102"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 81,
+                  "sha256": "02bc5a36db4d5e6ea0712628c5c828c5adc35eb752853f310414596b4ea8d24d"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 81,
+                  "sha256": "c7652672c3c6785a9527d4fbc33bf6c6a10cf9d54825946891fcbcba4a5e5c2a"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "68d84c60e771cf82ed204a30c37f9224c24719f89df395c1ed25ca5bdc2bdb84",
+              "triangles": 27,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "9f9d69550333406ddbdd7d271dd2971e35e30191b9e0601c543c16076cb2e981"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "b4e7739cfd1b2ab63f4c940983dbd2336b7da27849265caef411c5e062e02747"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "31850b700c50af431133a01aaaeca76807e53127e272f91bed6517966ac03c37"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "58a54299e0e8d0a77ba77fbdbba8a96b0265aa7d3e04f884ea0817d9d1915665",
+              "triangles": 9,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "9f9d69550333406ddbdd7d271dd2971e35e30191b9e0601c543c16076cb2e981"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "b4e7739cfd1b2ab63f4c940983dbd2336b7da27849265caef411c5e062e02747"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 27,
+                  "sha256": "31850b700c50af431133a01aaaeca76807e53127e272f91bed6517966ac03c37"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "58a54299e0e8d0a77ba77fbdbba8a96b0265aa7d3e04f884ea0817d9d1915665",
+              "triangles": 9,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/loot-sack.glb",
+      "sha256": "2847ea345fe421458c7e4161635086fd64202bc75503970fd8565a8840ebf187",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "loot-sack",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 872,
+                  "sha256": "19d6484cb35a80c36fc25ad6de4ade18049bcdb5097c114c24ec2f9a954b9d39"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 872,
+                  "sha256": "f89626de2023767b28d2639c036865fa346477fc4296daabe1136a626e634305"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 872,
+                  "sha256": "25e06fa1dc58f159e0948b3adabe1a9a1fffc4fdcbedbd1cbbea5ef89cc74651"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "4a1d898ebcff5d9249597159313c8b4a255e97d8340608a4f658b689bbdb05dc",
+              "triangles": 460,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 574,
+                  "sha256": "48471309d6d1188165ff4ad70730197e183cfbe01be3ef41ebeff2c29ebdd793"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 574,
+                  "sha256": "8b9883d8652860a86103c8302f90e1fb546c3a73a2255227f0e6e3b0133985df"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 574,
+                  "sha256": "fbc66158739cd1e788d46effe668e77704ab594bb333da5ef05a0e74a5d4af93"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "a3ab971732c6bf5f283213b427128d823294ddaf355f7261517e0fdbb0caf76f",
+              "triangles": 294,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 152,
+                  "sha256": "7c6f77666e967334ca9fb98ac7b146a3500a0e7aef2b07e7906e727680bab933"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 152,
+                  "sha256": "3549d87f02720bc4b204a2af0c2d9b6d85cc4b4ccf4067b561d0e8209ca4dfe5"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 152,
+                  "sha256": "ddded55d90beba683a28ac39cf46bb505973aa1b1ac054d68377d7e50afc46ed"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0f8b5cd88cdc7888ad1a930f0cb556b69c2ccdcaa5944f5a9e0160eabab5d127",
+              "triangles": 76,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/exit-marker.glb",
+      "sha256": "24dd3703cdd0de7e304cfd105013058a9d2cc486d1e77dad4207c56cdf08c00d",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "exit-marker",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 396,
+                  "sha256": "91db8d24c323519c90e9629180883d4240cb2a1b6f2636bc59250a04fe35ebc4"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 396,
+                  "sha256": "c88044bb0d86faa66d6d3231b39f60a19906ba3123a60e704bf202d1721ef784"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 396,
+                  "sha256": "b1b3ac00230d72711c1e01d5091bb37f4534a2dc27aef09b7ecc44ef8bbfd2f1"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "3e4b07266dbbcb3a5595e75fe55d79025838703f9c121534833622b330292cd2",
+              "triangles": 200,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 288,
+                  "sha256": "a8ff2bd31b7923215aca920415e6027d52045017415b30ac5ca832ae9eb8b6ff"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 288,
+                  "sha256": "6108feb9f7d971414d4379efeb10119cf448967fd8cd964dc47c7fbfb178f5b7"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 288,
+                  "sha256": "22189307d1d098f62f78930fdaaec05a63f1f80b6ad382c4cb87cb248a900d4f"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "233b18ca09e09b835160bbab925da4ff1dc7ce694d22ea8b26956d79ce96b737",
+              "triangles": 144,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 136,
+                  "sha256": "b5d00d926a75939338b3f8dd8c7254c3a3a6d4c08172d62c8f58ea9d0d2b8e73"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 136,
+                  "sha256": "17d2007ae40a50dff19798d30471e507dcf54c314e7293586f81043a087a3574"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 136,
+                  "sha256": "69e983e1a801c0ba3c728e9446b6c0b6476f7a355026cf6d964a08cb0d48cbcc"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "b67ef17c7f207642e2023b093e02452f7250987957ff643f01e821d2e07ca2dc",
+              "triangles": 68,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/burnt-field-overlay.glb",
+      "sha256": "5d07899b742664b1b2b08b9e0b0ad324a1fe392700e626fc57f6f5c73d15f921",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "burnt-field-overlay",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1272,
+                  "sha256": "fec0ac59ce1bd75f19577419acff88acfb236675810d40a47b7499dd1ebba0e8"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1272,
+                  "sha256": "b23ed204d9545bcb301559b421404132f9802d916637614fce98d67ae37764e4"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1272,
+                  "sha256": "edeb8103520ac1988ced3656c92094d65b0df64b714213c7c35dc53edd0dbda5"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "e459fd9f41b470f3ba5dcc057a7bf73ef7f25b6d9492e092558efdaa08a05adf",
+              "triangles": 576,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 526,
+                  "sha256": "df31f72d9393bb5de35f61afe9b0ca88374ce98f84239609b0645094d8587478"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 526,
+                  "sha256": "896a345fa992cdfd1b71bd354c6e23e41da0d177fad7b08975fb142108265334"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 526,
+                  "sha256": "c37b1958130c499a7ff702c84f5ee058553889d236ea4a1959c41e4f74ff5dd7"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "13adc61877c25ef5589dbf1c8506a56559eecfd0309cd69503b38fb5f2ebdfa7",
+              "triangles": 238,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "c20c83ba2fabff6cd11e97800468872584d2e013f13a32397438ad66eec6bd47"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "a6101e017afa512b1427b58741c419eab1969cd4ba249a21d8e4ea7d6429d252"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 156,
+                  "sha256": "a104a5e2a834f39a0b5bf41c9f52e9b40d98f7445c7ee4043b4fd4ffdde560e8"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "7f2de2caa86d078c47ed4656aee4c300feb9e88f5a7009c1e15023b4f977890a",
+              "triangles": 72,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-ancient.glb",
+      "sha256": "8b7995aa3fed6f2996de95386d28caaf4486af4426c4964c076f7288f807e5e7",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "landing-ancient",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1424,
+                  "sha256": "c181caf426b902ea04a2ec8611a1618cc4e43c6b19b1ece456ce277aab7b8482"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1424,
+                  "sha256": "3278b606908bec9a01c54da958ccb07b92fda34dc50eff0a34243a17f8c64552"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1424,
+                  "sha256": "5e447174b2e9176c4e2f06a85db7aceba4d3e6ec186873928627894f170fa12c"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "b5b7439ec96bd14787cc63fa2685a6ebdd2c585d85e40db85a597339f63cdee4",
+              "triangles": 784,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 812,
+                  "sha256": "fa23fbd0bd39ab5ccca868f33790078202fe9d60c9ffc321b91b22c81463db33"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 812,
+                  "sha256": "b0d01a5d54be1cd0d7d9f375926726c4801395499e7e385790b5c2922bdefd46"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 812,
+                  "sha256": "ae718603781c3f21dc4e4210468440c97443508c9757b82ad7f1fd32b5b6126a"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "f8a8d63e0f90ff8c0ae014783bac1ee7102f58e80f47e2725a341052f9b54fac",
+              "triangles": 440,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 248,
+                  "sha256": "c8702bbc58e0c6533cb62a852f8f28b1223bdb670c69af9f53596f1c9ff75387"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 248,
+                  "sha256": "fb3055a579535dbb0a9109640292628fbbeb3acff8909a5785a4e4cc0e38f7e1"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 248,
+                  "sha256": "69ca8753882d85e936cb7b497dd055c87a233670ff62dff75557adcec3aeed54"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "5862a0a539eb1180abd690c7c2d12683303405ed6349aaaf4830712c76e34f64",
+              "triangles": 124,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-middle.glb",
+      "sha256": "50eab83668e4762398addbde21761683fb9a43cc49a3927de43b5fdf2688608b",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "landing-middle",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1920,
+                  "sha256": "29d88b614e787fba29208b9e9659ef87a0044e92d8f896be23ab7a3046df491d"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1920,
+                  "sha256": "8ac04a2f6f592557898cce96c32f5156e1a0bf2ce1f585cda178edaa6e720255"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1920,
+                  "sha256": "7df38a97368a32e4e5e91276f26cc487b8608f82a9671d535b89939a91106b5b"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "eac1a577ae0148d5e915d0f276cead0c589d5199f15f3f160e08d4fb9b9b1c7e",
+              "triangles": 1008,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1476,
+                  "sha256": "60de149cb22fa288004fd633f4c04751b784515cffe2416069b2dd73dbc5086d"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1476,
+                  "sha256": "8fa959be61072dc082972f93566a60cc5d902d7b9dd7a0566e5f466586eb675d"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1476,
+                  "sha256": "36eb699466686d25b0de0497ad43737b1134da25d8dccde89dbbe3c115297db6"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "48bb32296e1bef6593df117b89ed085d8cded4297acec0892fd28324597d84eb",
+              "triangles": 780,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 576,
+                  "sha256": "0d91746b4e93f308655366fe33248ee47f037960844160a6c2bceafd503c0f03"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 576,
+                  "sha256": "af1dd5db6c91d66444152642f54776182e0937be0ec80af8959d2a179f69d560"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 576,
+                  "sha256": "3a8f8d8b6dac82b7c2fbc2383e04d5bbdc907a9c0c8dfba3cd89e5f16aaf568e"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "76ad13a47b3543576c8c20c76948ddd638e4888a34ae418702c98a93838697a8",
+              "triangles": 288,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "game_path": "src/assets/battle/props/landing-modern.glb",
+      "sha256": "7262ed51d993460843032bfa3a4ae713de28fc158aae24db35c6a2083bf79c67",
+      "unchanged_since_uv_proof": true,
+      "unchanged_during_check": true,
+      "roots": [
+        {
+          "root": "landing-modern",
+          "lods": [
+            {
+              "level": 0,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 1072,
+                  "sha256": "48cb0e09c5cbc510e3afb1c943cb8447275cb1151bca8ea7ebfd5eb874e7044e"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 1072,
+                  "sha256": "36f2d617c87b0758269ee007f3bbe7f7155827d1569e7b67f217195a4e249719"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 1072,
+                  "sha256": "cc23a7334d0b197ce5a7bad7a2b85132cb8ae5ec48dfc6937837ffe8325fab78"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "bbbe005eee0cd781740fb6731b757afb993d39039cd13a0c58adffa5ac14157b",
+              "triangles": 564,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 1,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 592,
+                  "sha256": "9616434cdc8711aac9b51c3d78a1fcdf64ce1b315b6d6adf798924e9507fd8b0"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 592,
+                  "sha256": "1f481eb2e7a30b4ee9cf211e712ab80568eebe58a1613f713d3eac9a4c361b6c"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 592,
+                  "sha256": "1a15dab65224228d32ec5190014d8fe966969701f7334b8cc05ca920aac867cb"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "89c30a2e202261f332158a3b9b7c5ac7f7c7dbe20480036ccbf466e5da3a9a46",
+              "triangles": 316,
+              "triangles_identical": true,
+              "groups_identical": true
+            },
+            {
+              "level": 2,
+              "attributes": {
+                "position": {
+                  "identical": true,
+                  "count": 136,
+                  "sha256": "a170cb46a3f50d6376cf6e62a88bc00085f8cbddb1a9d0035f58cf7141d4cbc6"
+                },
+                "normal": {
+                  "identical": true,
+                  "count": 136,
+                  "sha256": "5787ac21e1869fc7cd441dcc073f22f274bd959168a87f21776575f1f00801bc"
+                },
+                "uv": {
+                  "identical": true,
+                  "count": 136,
+                  "sha256": "1a4334520492fb955bc8a1d4e81948adf9b08d66d309b27aff1e77b30a210e08"
+                }
+              },
+              "indices_identical": true,
+              "index_sha256": "0c5bdcccccc845cece7e9bdb384c6ef9afdb7c3b87373dc61c19875d7d7c57c7",
+              "triangles": 68,
+              "triangles_identical": true,
+              "groups_identical": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "models": 14,
+    "roots": 56,
+    "lower_lods": 112,
+    "uv_rewrites": 0,
+    "index_changes": 0,
+    "triangle_changes": 0,
+    "unchanged_model_hashes": 14
+  }
+}

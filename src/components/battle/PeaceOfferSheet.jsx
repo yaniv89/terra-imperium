@@ -5,7 +5,8 @@
 // from your side, their terms (or a white peace), the truce it starts; Accept is the brass action,
 // Keep fighting beside it. It can be tucked away to look at the map first. A panel on the left
 // over the map, like the attack interrupt (W14).
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 import { Feather, ChevronDown } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -28,41 +29,36 @@ export const describeTerm = (term, state) => {
 
 const PeaceOfferSheet = () => {
   const { state, dispatch } = useGame();
-  const [tucked, setTucked] = useState(false);
   const offer = state.pendingPeaceOffer;
-  // End Turn's "Answer: X offers peace" (turnBlockers.js) untucks it.
+  // End Turn's "Answer: X offers peace" (turnBlockers.js) brings it back up.
   useEffect(() => {
-    const onShow = () => setTucked(false);
+    const onShow = () => interactions.promote('peace-offer');
     window.addEventListener(SHOW_PEACE_OFFER, onShow);
     return () => window.removeEventListener(SHOW_PEACE_OFFER, onShow);
   }, []);
   // A battle under way comes first. Queued assaults do not: the battle queue itself waits for the
   // answer (battleQueue.js battleQueueBlocked), so hiding behind it left neither sheet on screen.
-  if (!offer || state.pendingBattle) return null;
-  const from = state.nations[offer.from]?.name || offer.from;
+  const waiting = !!offer && !state.pendingBattle;
+  const fromName = offer ? state.nations[offer.from]?.name || offer.from : '';
+  // One entry of the interaction registry (useExclusivePanel.js): set aside or behind another
+  // card, it waits as the "Peace offer from X" chip.
+  const turn = useInteraction('peace-offer', waiting, { priority: PRIORITY.peace, label: `Peace offer from ${fromName}`, testId: 'peace-offer-pill' });
+  if (!waiting || !turn.shown) return null;
+  const from = fromName;
   const war = (state.wars || []).find((w) => w.id === offer.warId);
   const terms = offer.terms || [];
   const score = war ? (war.aggressor === state.playerNationId ? 1 : -1) * computeWarScore(war, state) : null;
 
-  if (tucked) {
-    return (
-      <button type="button" onClick={() => setTucked(false)} data-testid="peace-offer-pill"
-        className="fixed z-[60] left-1/2 -translate-x-1/2 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] pl:bottom-3 fa-btn fa-btn-secondary shadow-2xl gap-2">
-        <Feather className="w-4 h-4" aria-hidden="true" /> Peace offer from {from}
-      </button>
-    );
-  }
-
   return (
     <div role="dialog" aria-labelledby="peace-offer-title" data-testid="peace-offer-sheet"
-      className="fixed z-[60] left-[max(env(safe-area-inset-left),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(26rem,calc(100vw-1rem-var(--rail-inset,0px)))] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
+      className="fixed z-[60] left-[max(env(safe-area-inset-left),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(26rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(20rem,calc(100vw-1rem))] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
       <div className="flex items-start gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
         <Feather className="w-5 h-5 mt-1 text-fa-muted shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <Label>Peace offer · end of turn paused</Label>
           <h2 id="peace-offer-title" className="fa-heading text-[18px] leading-tight">{from} {/[^s]s$/.test(from) ? 'offer' : 'offers'} peace</h2>
         </div>
-        <IconButton label="Look at the map first" icon={ChevronDown} onClick={() => setTucked(true)} className="!w-9 !h-9" />
+        <IconButton label="Look at the map first" icon={ChevronDown} onClick={turn.tuck} className="!w-9 !h-9" data-testid="peace-offer-later" />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2">
         <p className="text-[12.5px] leading-snug">

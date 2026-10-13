@@ -1,4 +1,4 @@
-import { orderMarch, cancelRoute, placeName } from './routes';
+import { orderMarch, cancelRoute, placeName, moveNowCheck, released, MARCH_ATTRITION } from './routes';
 import { orderMarchAttack } from './marchAttack';
 import { normalizeUnitTiles, regionForTile, tileAccess, passableTile, unitTile } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
@@ -48,6 +48,7 @@ import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { canAttack } from './hostility';
+import { setHold, setSiege } from './standingOrders';
 import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { addGrudge } from './grudges';
 import { hireMercenaryForPlayer } from './mercenaries';
@@ -1381,7 +1382,12 @@ const reduceAction = (state, action) => {
       if ((unit.movesLeft ?? 1) <= 0) return state;
       const isLandAdjacent = getNeighborIds(unit.regionId).includes(toRegionId);
       const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, state.age);
-      if (!isLandAdjacent && !isSeaLaneReachable) return state;
+      // A land unit moves now only where its march would arrive this turn (routes.js moveNowCheck,
+      // the same route and schedule as the preview): never a jump over a march of several turns
+      // (playtest audit I065). Fleets keep the sea-lane rule.
+      const walk = unit.domain === 'naval' ? null : moveNowCheck(state, unit, toRegionId);
+      if (walk && !walk.ok) return reject(state, walk.reason);
+      if (!walk && !isLandAdjacent && !isSeaLaneReachable) return state;
       // MOVE_ARMY is redeployment within your own territory, not an invasion — it has no war
       // declaration, no combat resolution, and no AP/gold cost beyond the ordinary move, so it must
       // never be able to walk a unit straight into someone else's region. Entering foreign
@@ -1390,7 +1396,11 @@ const reduceAction = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
       // A manual move replaces any march order and counts as marching this turn (routes.js costs).
       const toTile = state.regions[toRegionId]?.tile ?? null;
-      const nextUnits = { ...state.units, [unitId]: { ...cancelRoute(unit), regionId: toRegionId, tile: toTile, movesLeft: (unit.movesLeft ?? 1) - 1, ...(unit.domain === 'naval' ? {} : { marchedTurn: state.turnNumber }) } };
+      // Harsh ground on the way costs what a march pays (routes.js MARCH_ATTRITION per step).
+      let walkedStrength = unit.strength;
+      for (let i = 0; i < (walk?.harshSteps || 0); i++) walkedStrength = Math.max(1, Math.round(walkedStrength * (1 - MARCH_ATTRITION)));
+      const walked = walk?.harshSteps ? { strength: walkedStrength } : {};
+      const nextUnits = { ...state.units, [unitId]: { ...released(cancelRoute(unit)), ...walked, regionId: toRegionId, tile: toTile, movesLeft: (unit.movesLeft ?? 1) - 1, ...(unit.domain === 'naval' ? {} : { marchedTurn: state.turnNumber, movedNowTurn: state.turnNumber }) } };
       // A transport takes its embarked cargo along with it.
       Object.values(state.units).forEach(u => {
         if (u.embarkedOn === unitId) nextUnits[u.id] = { ...u, regionId: toRegionId, tile: toTile };
@@ -3099,6 +3109,32 @@ const reduceAction = (state, action) => {
       // An AI's tribute demand (aiAccords.js): pay it or refuse and hand them a casus belli.
       const r = answerDemand(state, !!action.payload?.accept);
       return r.message ? { ...r.state, logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] } : r.state;
+    }
+
+    case ActionTypes.SET_HOLD: {
+      // Hold (standingOrders.js): the units stay put and leave the idle list until told otherwise.
+      const { unitIds = [], hold = true } = action.payload || {};
+      const units = setHold(state, unitIds, hold);
+      return units ? { ...state, units } : state;
+    }
+
+    case ActionTypes.SET_SIEGE: {
+      // Lay siege to an independent's city, or lift it (`cityId` null): the explicit siege order
+      // (sieges.js besiegesCity). A city at war with you is besieged by standing beside it.
+      const { unitIds = [], cityId = null } = action.payload || {};
+      if (cityId != null) {
+        const city = state.regions[cityId];
+        if (!city || city.owner === state.playerNationId) return reject(state, 'That city cannot be besieged.');
+        if (!canAttack(state, state.playerNationId, city.owner)) return reject(state, `You are at peace with ${state.nations[city.owner]?.name || 'its owner'}: no siege without a war.`);
+        const tiles = getTiles();
+        const beside = unitIds.filter((id) => { const u = state.units[id]; const t = u ? unitTile(state, u) : null; return t != null && tiles.neighbors[city.tile].includes(t); });
+        if (!beside.length) return reject(state, `A siege needs an army on a tile beside ${city.name}.`);
+        const units = setSiege(state, beside, cityId);
+        if (!units) return state;
+        return { ...state, units, logs: [...state.logs, { year: state.year, message: `Your army lays siege to ${city.name}.`, type: LogTypes.COMBAT }] };
+      }
+      const units = setSiege(state, unitIds, null);
+      return units ? { ...state, units, logs: [...state.logs, { year: state.year, message: 'Your army lifts its siege.', type: LogTypes.COMBAT }] } : state;
     }
 
     default:

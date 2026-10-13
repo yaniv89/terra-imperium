@@ -83,3 +83,29 @@ src/engine/stateAudit.js for invariant checks inside any test.
 Note: the passive player defaults to France (`PLAYER=fr`), a one-city nation with neighbours that
 often falls to a siege around turn 100 on the frequency-75 grid, which ends the run early (the
 SUMMARY then carries the real turn and status). Use `PLAYER=au` for full-length runs.
+
+## Campaign telemetry (W00, the peoples world with a scripted player)
+```bash
+SCENARIO=peoples PLAYER=au POLICY=scripted SPEED=normal TURNS=200 EVERY=25 SEEDS=11 \
+  OUT_DIR=/tmp/w00 TRACE_WARS=1 \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim/worldStats.sim.js
+scripts/w00-baseline.sh            # seeds 11-14, 200 turns, Normal, 4 at a time (SPEED=marathon too)
+node scripts/simulate.mjs --games 2 --turns 100 --scenario peoples --policy scripted --player au
+```
+- `POLICY=passive` (default) is the old harness. `POLICY=scripted` answers every blocker in
+  turnBlockers.js (events, peace, defenses, demands, tribute, join offers; `DEMANDS=pay` pays them,
+  default refuses) queues what an AI would build in the player's idle cities and sends its settlers
+  to the best site. It never declares war or moves an army. The SUMMARY line carries `policy`.
+- New flat keys (scripts/campaignTelemetry.mjs, additive): playerAdm/Dip/Mil, playerGoldMin/Max,
+  playerCities, playerProdMean, aiCityProdP10/Median/P90, aiTopCities, aiTopProdMean,
+  firstUnitTurn / firstSettlerTurn / firstBuildingTurn / secondCityTurn (-1 = not yet), demandsMajor,
+  demandsTribute, warsDeclaredMajors/All, warsOnPlayer, warLenMedian/Mean/Max, siegesBegun,
+  capturesTotal, conquestsKept20, conquestsLost20, rebellionsStarted/OnPlayer/ConqueredLand/Succeeded,
+  aiMoveRate (and ...War / ...Peace), stack*Share (one AI stack per war per turn: moved, shuttle,
+  besieging, waitRoute, idleHome, idleField), majorsMet, playerOverext/Authority, aiTopOverext/Authority,
+  aiTop5OverextMean/AuthorityMean. msPerTurn leaves the telemetry time out.
+- `OUT_DIR=dir` also writes `telemetry-<seed>.json` (per-turn series, every war, tribute answers with
+  `warWithin10`, per-war stack verdicts) and, with `TRACE_WARS=1`, `warstacks-<seed>.jsonl`: one row
+  per AI stack per war per turn (nation, tile, from, verdict, route length and goal, halt reason).
+- A stack that never moves in a long war: filter the jsonl by `war` and read `verdict` over time;
+  `shuttle` means it returned to the tile it left two turns before.

@@ -1,0 +1,379 @@
+{
+  "base": "http://127.0.0.1:3010/terra-imperium/",
+  "resolutions": [
+    {
+      "width": 844,
+      "height": 390
+    },
+    {
+      "width": 1600,
+      "height": 900
+    }
+  ],
+  "nativeTileSelection": true,
+  "scenarios": [
+    {
+      "id": "landing-middle",
+      "query": {
+        "terrain": "island",
+        "age": "kingdoms",
+        "landing": ""
+      },
+      "keys": [
+        "battle/props/landing-middle.glb"
+      ],
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=island&age=kingdoms&landing="
+    }
+  ],
+  "limitations": [
+    "--plan leaves tile IDs unresolved; --run discovers actual loaded geo tiles.",
+    "artRoads supplies QA preview road state only; campaign state remains untouched.",
+    "Delayed loot/scorch requires real field destruction and can time out; opening raid is separate.",
+    "No bridge damage HP hook; intact placement only. Parent must visually inspect screenshots."
+  ],
+  "startedAt": "2026-10-08T08:32:47.198Z",
+  "smokeOnly": false,
+  "parentVisualReviewRequired": true,
+  "rendererBackendRequested": "ANGLE SwiftShader",
+  "hardwarePerformanceEvidence": false,
+  "results": [
+    {
+      "id": "landing-middle",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=island&age=kingdoms&landing=",
+      "errors": [
+        "[battle] no frame from the battle sim",
+        "Harness: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('battle-pause')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-testid=\"battle-pause\" class=\"fa-btn fa-btn-primary !min-h-[36px] !px-4 shrink-0\">Start</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div role=\"alertdialog\" data-testid=\"battle-failure\" aria-labelledby=\"battle-failure-title\" class=\"fixed inset-0 z-[95] bg-black/80 flex items-center justify-center p-3\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div role=\"alertdialog\" data-testid=\"battle-failure\" aria-labelledby=\"battle-failure-title\" class=\"fixed inset-0 z-[95] bg-black/80 flex items-center justify-center p-3\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    3 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div role=\"alertdialog\" data-testid=\"battle-failure\" aria-labelledby=\"battle-failure-title\" class=\"fixed inset-0 z-[95] bg-black/80 flex items-center justify-center p-3\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n"
+      ],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/kingdoms-infantry.glb",
+          "status": 200,
+          "bytes": 65148,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/kingdoms-general.glb",
+          "status": 200,
+          "bytes": 137052,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/kingdoms-ranged.glb",
+          "status": 200,
+          "bytes": 72412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-temperate.glb",
+          "status": 200,
+          "bytes": 418284,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-kingdoms.glb",
+          "status": 200,
+          "bytes": 334064,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-kingdoms.glb",
+          "status": 200,
+          "bytes": 691828,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/kingdoms.glb",
+          "status": 200,
+          "bytes": 30108,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/landing-middle.glb",
+          "status": 200,
+          "bytes": 548952,
+          "validGLB": true
+        }
+      ],
+      "shots": [],
+      "gaps": [],
+      "ok": false,
+      "proofStatus": "diagnostic-not-acceptance-proof"
+    },
+    {
+      "id": "landing-middle",
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:3010/terra-imperium/?battleSandbox=&autostart=&seed=7&fort=0&attacker=small&defender=small&noeco=&terrain=island&age=kingdoms&landing=",
+      "errors": [],
+      "warnings": [],
+      "httpFailures": [],
+      "failedRequests": [],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/kingdoms-infantry.glb",
+          "status": 200,
+          "bytes": 65148,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/kingdoms-ranged.glb",
+          "status": 200,
+          "bytes": 72412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/units/kingdoms-general.glb",
+          "status": 200,
+          "bytes": 137052,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/nature/vegetation-temperate.glb",
+          "status": 200,
+          "bytes": 418284,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/city/civic-kingdoms.glb",
+          "status": 200,
+          "bytes": 691828,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/props-kingdoms.glb",
+          "status": 200,
+          "bytes": 334064,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/river-kit.glb",
+          "status": 200,
+          "bytes": 181412,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/terrain/ford.glb",
+          "status": 200,
+          "bytes": 164120,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/projectiles/kingdoms.glb",
+          "status": 200,
+          "bytes": 30108,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/exit-marker.glb",
+          "status": 200,
+          "bytes": 182064,
+          "validGLB": true
+        },
+        {
+          "url": "http://127.0.0.1:3010/terra-imperium/src/assets/battle/props/landing-middle.glb",
+          "status": 200,
+          "bytes": 548952,
+          "validGLB": true
+        }
+      ],
+      "shots": [
+        "landing-middle-1600x900-wide.png",
+        "landing-middle-1600x900-detail-landing-middle.png"
+      ],
+      "gaps": [],
+      "capturePhase": "started-native-battle",
+      "firstRunningTick": 308,
+      "audit": {
+        "gpu": {
+          "vendor": "WebKit",
+          "renderer": "WebKit WebGL",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "requestedBackend": "ANGLE SwiftShader",
+          "hardwarePerformanceEvidence": false,
+          "classification": "software"
+        },
+        "diagnostics": {
+          "dpr": 1,
+          "p50": 100,
+          "p95": 100,
+          "drawCalls": 93,
+          "triangles": 551959,
+          "geometries": 56,
+          "textures": 40,
+          "figures": 32,
+          "tier": 0,
+          "bias": 1,
+          "zoom": 1
+        },
+        "battleType": "landing",
+        "actualTile": 373,
+        "simTick": 308,
+        "canvas": {
+          "width": 1600,
+          "height": 900,
+          "webglContextLost": false
+        },
+        "nativeVegetation": "temperate",
+        "assets": [
+          {
+            "key": "battle/props/landing-middle.glb",
+            "url": "/terra-imperium/src/assets/battle/props/landing-middle.glb",
+            "loaded": true,
+            "parsed": true,
+            "placedCopies": 1,
+            "objects": [
+              "landing-middle"
+            ]
+          }
+        ],
+        "targets": [
+          {
+            "name": "landing-middle",
+            "x": -0.1699998378753662,
+            "z": 32.50014514476061,
+            "worldCorners": [
+              {
+                "x": -5.3399999886751175,
+                "y": 0,
+                "z": 33.64124997705221
+              },
+              {
+                "x": 5.000000312924385,
+                "y": 0,
+                "z": 33.64124997705221
+              },
+              {
+                "x": -5.3399999886751175,
+                "y": 3.355151206254959,
+                "z": 33.64124997705221
+              },
+              {
+                "x": 5.000000312924385,
+                "y": 3.355151206254959,
+                "z": 33.64124997705221
+              },
+              {
+                "x": -5.3399999886751175,
+                "y": 0,
+                "z": 31.359040312469006
+              },
+              {
+                "x": 5.000000312924385,
+                "y": 0,
+                "z": 31.359040312469006
+              },
+              {
+                "x": -5.3399999886751175,
+                "y": 3.355151206254959,
+                "z": 31.359040312469006
+              },
+              {
+                "x": 5.000000312924385,
+                "y": 3.355151206254959,
+                "z": 31.359040312469006
+              }
+            ],
+            "height": 3.355151206254959,
+            "copies": 1
+          }
+        ],
+        "gaps": [],
+        "crossings": {
+          "fords": 107,
+          "banks": 499,
+          "bridges": 0
+        },
+        "raidLanding": {
+          "consumerExists": true,
+          "placements": [
+            {
+              "id": "exit-marker",
+              "x": 5.5,
+              "z": 32.5,
+              "yaw": -1.5707963267948966,
+              "side": 0
+            },
+            {
+              "id": "exit-marker",
+              "x": 94.5,
+              "z": 32.5,
+              "yaw": 1.5707963267948966,
+              "side": 1
+            },
+            {
+              "id": "landing-middle",
+              "x": 5,
+              "z": 32.5,
+              "yaw": 1.5707963267948966,
+              "side": 0,
+              "shore": true
+            }
+          ],
+          "loadedObjects": [
+            "exit-marker",
+            "landing-middle"
+          ],
+          "instances": {
+            "copies": 3,
+            "draws": 4
+          },
+          "carrying": [],
+          "destroyedFields": []
+        }
+      },
+      "detailFraming": [
+        {
+          "name": "landing-middle",
+          "safe": {
+            "left": 24,
+            "right": 1576,
+            "top": 110,
+            "bottom": 810
+          },
+          "bounds": {
+            "left": 505.46674139860824,
+            "right": 1094.5332586013906,
+            "top": 181.98156716640014,
+            "bottom": 738.0184328336
+          },
+          "zoom": 2.2,
+          "height": 3.355151206254959,
+          "fits": true
+        }
+      ],
+      "ok": true,
+      "proofStatus": "automated-load-and-placement-pass-needs-visual-review"
+    }
+  ],
+  "finishedAt": "2026-10-08T08:36:55.567Z"
+}

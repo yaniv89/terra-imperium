@@ -3,6 +3,7 @@ import { INSURGENT_MARKER } from './civilWar';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { getTiles } from '../data/geo/tiles';
 import { spacingBreaches } from '../data/geo/citySpacing';
+import { LONG_STARVE_TURNS } from './supplyMeter';
 
 export const auditGameState = (state) => {
   const issues = [];
@@ -109,6 +110,21 @@ export const auditGameState = (state) => {
     report('battle_ledger', `battleReports.0.${b.id}`, `Battle ledger breach (${b.kind}): ledger ${b.ledger ?? 'n/a'}, map ${b.map ?? 'n/a'}`);
   });
   return issues;
+};
+
+/**
+ * Things worth a look that break no rule (kept apart from auditGameState, whose issues are hard
+ * invariants and fail assertGameState). No repairs.
+ *   long_zero_supply  a unit has stood at an empty supply meter for LONG_STARVE_TURNS turns or more
+ *                     (supplyMeter.js `starvedTurns`): legal, it starves 5% a turn, but a long run
+ *                     means an army was forgotten or a rule let it live (playtest audit I004).
+ */
+export const auditWarnings = (state) => {
+  const warnings = [];
+  Object.entries(state.units || {}).forEach(([id, u]) => {
+    if ((u.starvedTurns || 0) >= LONG_STARVE_TURNS) warnings.push({ code: 'long_zero_supply', path: `units.${id}.starvedTurns`, message: `Unit of ${u.ownerId} at zero supply for ${u.starvedTurns} turns (strength ${u.strength})` });
+  });
+  return warnings;
 };
 
 export const assertGameState = (state) => {

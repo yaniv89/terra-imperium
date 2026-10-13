@@ -19,7 +19,7 @@
 //   city (B05)   in a city assault: the defender's housing as houses burn
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords, Coins } from 'lucide-react';
+import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords } from 'lucide-react';
 import { ResIcon } from './EconomyHud';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
@@ -139,9 +139,9 @@ const BattleHud = ({
           {eco ? (
             <>
               <Res icon={<ResIcon res="food" size={18} />} label="Food" value={eco.stock[0]} /><Res icon={<ResIcon res="materials" size={18} />} label="Materials" value={eco.stock[1]} /><Res icon={<ResIcon res="gold" size={18} />} label="Gold" value={eco.stock[2]} />
-              <Res icon={<Users className="w-4 h-4 text-fa-you" aria-hidden="true" />} label="Population / housing" value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />
+              <Res icon={<ResIcon res="population" size={18} />} label="Population / housing" value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />
             </>
-          ) : <Res icon={<Coins className="w-4 h-4 text-fa-brass" aria-hidden="true" />} label="Battle supply" value={Math.floor(supply)} />}
+          ) : <Res icon={<ResIcon res="supply" size={18} />} label="Battle supply" value={Math.floor(supply)} />}
           <Res icon={<Swords className="w-4 h-4 text-fa-enemy" aria-hidden="true" />} label="Enemy squads left" value={enemyLeft} />
         </div>
         {pauseOpen && <span className="text-[11px] font-bold tracking-[0.08em] text-fa-muted shrink-0">PAUSED</span>}

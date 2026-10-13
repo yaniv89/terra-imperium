@@ -3,7 +3,7 @@
 #   .claude/skills/balance-sim/compare.sh <base-ref> [TURNS] [SEEDS]
 # SEEDS is a list (11,12,13) or a range (11-18). Every (side, seed) runs as its own vitest process,
 # JOBS at a time (default: the number of cores), so 8 seeds cost about what 2 did on 4 cores.
-# Env passed through: PLAYER (default au), EVERY, SCENARIO, JOBS, AT (extra checkpoint turns to
+# Env passed through: PLAYER (default au), EVERY, SCENARIO, POLICY, DEMANDS, SPEED, JOBS, AT (extra checkpoint turns to
 # compare, e.g. AT=50,100). Prints both sides' SUMMARY lines per seed (the old output), then the
 # paired table: mean difference, 95% interval, * where the interval excludes 0.
 # Logs stay in $OUT (default: a temp dir) for pairedCompare.mjs reruns with --turn or --all.
@@ -24,7 +24,7 @@ ln -s "$ROOT/node_modules" "$WT/node_modules"
 # The base runs the current harness (sim, stats and config), so both sides report the same keys.
 mkdir -p "$WT/.claude/skills" "$WT/scripts"
 cp -r "$ROOT/.claude/skills/balance-sim" "$ROOT/.claude/skills/vitest.skills.config.js" "$WT/.claude/skills/"
-cp "$ROOT/scripts/simStats.mjs" "$WT/scripts/"
+cp "$ROOT/scripts/simStats.mjs" "$ROOT/scripts/campaignTelemetry.mjs" "$WT/scripts/"
 run_one() { # side dir seed
   (cd "$2" && SEEDS=$3 npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim > "$OUT/$1-$3.log" 2>&1) \
     || echo "run $1 seed $3 failed, see $OUT/$1-$3.log" >&2

@@ -8,8 +8,9 @@
 //
 // Publishes its real height as --header-height on <html> and reports it as the map's top inset,
 // as GameHeader did, so sheets and map controls sit below it.
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
+import { useOnInteractionOpen } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { openPanelTab } from '../panels/panelEvents';
@@ -38,7 +39,7 @@ const BarItem = ({ label, onClick, expanded, children, testId }) => (
 const Reasons = ({ title, rows, total, unit, footer, onClose }) => (
   <>
     <div className="fixed inset-0 z-30" onClick={onClose} aria-hidden="true" />
-    <div role="dialog" aria-label={title} className="absolute left-2 top-full mt-1 z-40 w-[min(320px,calc(100vw-1rem))] fa-panel shadow-2xl p-3 max-h-[70dvh] overflow-y-auto" data-testid="top-bar-reasons">
+    <div role="dialog" aria-label={title} className="absolute left-2 top-full mt-1 z-40 w-[min(320px,calc(100vw-1rem))] fa-panel !bg-fa-panel shadow-2xl p-3 max-h-[70dvh] overflow-y-auto" data-testid="top-bar-reasons">
       <div className="flex items-baseline justify-between gap-2 mb-1.5">
         <span className="fa-heading text-[15px]">{title}</span>
         {total != null && <span className="fa-num text-[13px]">{signed(total)}{unit}</span>}
@@ -75,7 +76,10 @@ const WorldTopBar = () => {
   }, []);
   useReportInset(`game-header-${layoutMode}`, 'top', ref);
   const toggle = (id) => setOpen((v) => (v === id ? null : id));
-  const close = () => setOpen(null);
+  const close = useCallback(() => setOpen(null), []);
+  // A card, sheet or dock that opens closes the reasons popover: it used to stay open over them
+  // (playtest audit I162).
+  useOnInteractionOpen(close);
   const portrait = layoutMode === 'phone-portrait' || layoutMode === 'tablet-portrait';
 
   return (

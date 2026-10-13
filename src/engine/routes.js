@@ -31,8 +31,9 @@ import { getResearched } from './nationState';
 import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters } from './fleets';
 import {
   BANK_CAP, DEFAULT_MOVE_POINTS, ENEMY_TILE_COST, MARCH_ATTRITION, MAX_ROUTE_STEPS, MOVE_POINTS,
-  enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
+  enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
 } from './armies';
+import { isStationedIn } from './unitLocation';
 
 export { MARCH_SUPPLY_PER_UNIT, BANK_CAP, MAX_ROUTE_STEPS, MARCH_ATTRITION, stackPace };
 export const MARCH_POINTS = MOVE_POINTS;
@@ -66,10 +67,16 @@ export const findRoute = (state, from, target) => {
   return findTilePath(state, from, to, state.playerNationId, { researched: getResearched(state, state.playerNationId) });
 };
 
-// On which turn (1 = this End Turn) the army enters each step, ignoring halts.
-export const scheduleSteps = (state, from, steps, pace, bank = 0) => {
+/** Has the unit already used this turn's march (Move now)? End Turn's walk then skips it, and
+ * every preview counts one turn more (playtest audit I065: the ETA includes movement already spent). */
+export const marchedThisTurn = (state, u) => u?.movedNowTurn != null && u.movedNowTurn === state.turnNumber;
+
+// On which turn (1 = this End Turn) the army enters each step, ignoring halts. `skipFirst`: the
+// stack already marched this turn, so this End Turn passes without a step. The one schedule every
+// preview (planMarch, the march lines, the army sheet's ETA: routeEta) and advanceMarches share.
+export const scheduleSteps = (state, from, steps, pace, bank = 0, { skipFirst = false } = {}) => {
   const turns = [];
-  let turn = 0; let b = bank; let at = from;
+  let turn = skipFirst ? 1 : 0; let b = bank; let at = from;
   steps.forEach((tile) => {
     const cost = stepCost(state, tile, at);
     while (b + 1e-9 < cost) { turn += 1; b = Math.min(BANK_CAP + pace, b + pace); }
@@ -79,15 +86,67 @@ export const scheduleSteps = (state, from, steps, pace, bank = 0) => {
   return turns;
 };
 
-// The player's own land units that would march from the city `fromId` (all of them, or `unitIds`).
+/** Turns until a marching unit reaches the end of its route (1 = this End Turn), by the same
+ * schedule the march walks (its pace, its banked points, a move already spent); null off a route. */
+export const routeEta = (state, unit) => {
+  if (!unit?.route?.length) return null;
+  const at = unitTile(state, unit);
+  const here = unit.route.indexOf(at);
+  const steps = here >= 0 ? unit.route.slice(here + 1) : unit.route;
+  if (!steps.length) return null;
+  if (isFleet(unit)) return Math.max(1, Math.ceil(steps.length / Math.max(1, unit.routePace || fleetPace(state, unit))));
+  const turns = scheduleSteps(state, at, steps, unit.routePace || DEFAULT_MOVE_POINTS, unit.routeBank || 0, { skipFirst: marchedThisTurn(state, unit) });
+  return turns[turns.length - 1];
+};
+
+/**
+ * Move now: may this land unit walk to its nation's own city `toRegionId` THIS turn (gameReducer
+ * MOVE_ARMY)? The same route and the same schedule as a march (findRoute, scheduleSteps): it is
+ * offered only when the whole way fits in the unit's movement of one turn, so "1 turn" on the
+ * preview and "arrives now" are the same promise, and a march of 2 turns is never a jump
+ * (playtest audit I065, plan W03 task 3: no teleport path). The way must be safe: no enemy land,
+ * no enemy army or fort beside it (those are a march's business: zone of control, forts.js).
+ * Returns { ok, path, harshSteps } or { ok: false, reason, turns }.
+ */
+export const moveNowCheck = (state, unit, toRegionId) => {
+  const city = state.regions[toRegionId];
+  if (!unit || !city || city.owner !== unit.ownerId) return { ok: false, reason: 'Move now only goes to a city of your own.' };
+  if ((unit.movesLeft ?? 1) <= 0 || marchedThisTurn(state, unit)) return { ok: false, reason: 'This army has already moved this turn.' };
+  const from = unitTile(state, unit);
+  if (from == null) return { ok: false, reason: 'Unknown place.' };
+  if (from === city.tile) return { ok: false, reason: 'The army is already there.' };
+  const researched = getResearched(state, unit.ownerId);
+  const found = findTilePath(state, from, city.tile, unit.ownerId, { researched });
+  if (!found.path) return { ok: false, reason: found.reason };
+  const tiles = getTiles();
+  const steps = found.path.slice(1);
+  const turns = scheduleSteps(state, from, steps, movePoints(unit, researched));
+  const eta = turns[turns.length - 1];
+  if (eta > 1) return { ok: false, turns: eta, reason: `Too far to move now: the march takes ${eta} turns.` };
+  const unsafe = steps.some((t) => ['enemy', 'held', 'closed'].includes(tileAccess(state, t, unit.ownerId)) || enemyArmyAt(state, t, unit.ownerId) || inEnemyZoc(state, tiles, t, unit.ownerId));
+  if (unsafe) return { ok: false, turns: eta, reason: 'The way is not safe (an enemy is close): give a march order instead.' };
+  return { ok: true, turns: 1, path: found.path, harshSteps: steps.filter((t) => isHarsh(tiles, t)).length };
+};
+
+// The player's own land units an order is for. With `unitIds` those units are the order (a stack
+// picked on its tile: the army sheet), wherever they are based; without, the units that STAND in
+// the city `fromId` (unitLocation.js isStationedIn), never a field army that only has it as its
+// base (playtest audit I058: the city's March button moved an army in Sinai too).
 export const marchingUnits = (state, fromId, unitIds = null, { naval = false } = {}) => Object.values(state.units).filter((u) => u.ownerId === state.playerNationId
-  && u.regionId === fromId && (naval ? u.domain === 'naval' : u.domain !== 'naval') && !u.embarkedOn && u.strength > 0 && u.classId !== 'settler' && (!unitIds || unitIds.includes(u.id)));
+  && (naval ? u.domain === 'naval' : u.domain !== 'naval') && !u.embarkedOn && u.strength > 0 && u.classId !== 'settler'
+  && (unitIds ? unitIds.includes(u.id) : isStationedIn(state, u, fromId)));
 
 // The tile most of a stack stands on (ties: the lowest id).
 const mainTile = (state, units) => {
   const count = new Map();
   units.forEach((u) => { const t = unitTile(state, u); count.set(t, (count.get(t) || 0) + 1); });
   return [...count].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
+};
+
+/** The tile a march order starts from (where the stack stands, not its base), or null. */
+export const marchOrigin = (state, fromId, unitIds = null, { naval = false } = {}) => {
+  const units = marchingUnits(state, fromId, unitIds, { naval });
+  return units.length ? mainTile(state, units) : null;
 };
 
 // Everything the map needs to preview a march: the path (tiles), the turn of each step, the arrival
@@ -101,7 +160,9 @@ export const planMarch = (state, fromId, target, unitIds = null, { naval = false
   if (!found.path) return { ok: false, reason: found.reason };
   const steps = found.path.slice(1);
   const pace = naval ? units.reduce((m, u) => Math.min(m, fleetPace(state, u)), Infinity) : stackPace(units, getResearched(state, units[0]?.ownerId));
-  const stepTurns = naval ? steps.map((_, i) => Math.floor(i / pace) + 1) : scheduleSteps(state, from, steps, pace);
+  // A stack that already moved this turn (Move now) starts walking at the next End Turn but one.
+  const spent = !naval && units.some((u) => marchedThisTurn(state, u));
+  const stepTurns = naval ? steps.map((_, i) => Math.floor(i / pace) + 1) : scheduleSteps(state, from, steps, pace, 0, { skipFirst: spent });
   const turns = stepTurns[stepTurns.length - 1];
   const me = state.playerNationId;
   const centres = new Set(Object.values(state.regions).map((c) => c.tile));
@@ -109,8 +170,12 @@ export const planMarch = (state, fromId, target, unitIds = null, { naval = false
   const enemySteps = steps.filter((t) => ['enemy', 'held'].includes(tileAccess(state, t, me))).length;
   const supplies = Math.round(units.length * MARCH_SUPPLY_PER_UNIT * (turns + Math.min(turns, enemySteps)) * 10) / 10;
   const haltTile = haltIndex >= 0 ? steps[haltIndex] : null;
-  return { ok: true, naval, from, path: found.path, steps, stepTurns, turns, pace, units: units.map((u) => u.id), supplies, haltTile, haltAt: haltTile != null ? state.world?.tileOwner?.[haltTile] ?? null : null };
+  return { ok: true, naval, from, path: found.path, steps, stepTurns, turns, pace, spent, units: units.map((u) => u.id), supplies, haltTile, haltAt: haltTile != null ? state.world?.tileOwner?.[haltTile] ?? null : null };
 };
+
+/** A new move order ends a standing one: Hold (`unit.hold`) and Lay siege (`unit.siegeOf`, sieges.js)
+ * last until the unit is told to go somewhere. The same object when it had neither. */
+export const released = (u) => (u.hold || u.siegeOf ? { ...u, hold: false, siegeOf: null } : u);
 
 // Give the order (gameReducer SET_ROUTE). Units standing elsewhere in the city's land get a route
 // of their own. Returns { units, plan } or { reason }.
@@ -120,7 +185,7 @@ export const orderMarch = (state, fromId, target, unitIds = null, { naval = fals
   const units = { ...state.units };
   const to = plan.path[plan.path.length - 1];
   plan.units.forEach((id) => {
-    const u = units[id];
+    const u = released(units[id]);
     const at = unitTile(state, u);
     if (at === plan.from) { units[id] = { ...u, route: plan.steps, routeBank: 0, routePace: plan.pace, routeHalt: null }; return; }
     const own = at === to ? null : naval ? findSeaPath(state, at, to, state.playerNationId) : findRoute(state, at, to);
@@ -192,6 +257,9 @@ export const advanceMarches = (state, units, { year } = {}) => {
     if (!u?.route?.length || u.ownerId !== me) return;
     if (u.embarkedOn || !(u.strength > 0)) { units[id] = clearRoute(u); return; }
     if (isFleet(u)) { sailFleet(state, units, u, { reached, halted }); return; }
+    // It already used this turn's march (Move now, gameReducer MOVE_ARMY): it walks from the next
+    // turn, as every preview says (scheduleSteps skipFirst).
+    if (marchedThisTurn(state, u)) return;
     // An attack (or a manual move) put the unit somewhere on its route: drop the steps behind it.
     let route = u.route;
     let at = unitTile(state, u);

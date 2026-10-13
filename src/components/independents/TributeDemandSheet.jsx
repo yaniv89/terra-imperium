@@ -8,16 +8,20 @@
 // lapses (silence is a refusal). Also: the join offer sheet (W3's offer, Accept or Decline).
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { focusRegion } from '../map/marchEvents';
 import { Button, CloseButton } from '../ui/atlas';
 import { tributeDemandModel, joinOfferModel } from './tributeSheetModel';
+import { subjectVerb } from '../../engine/grammar';
 import { openIndependent } from './independentEvents';
 import { ShieldMark, GrudgeMeter, CardLabel } from './IndependentBits';
 
 // The independents' panel: dashed violet border (UI-DESIGN 2: independent = dashed), right side.
-const Frame = ({ testId, label, onClose, children }) => (
+// A decision card: nothing behind it catches taps, so a tap on the map (or on another card's
+// button under it) never closes it; only its own buttons do (playtest audit X18). The map stays
+// live around it.
+const Frame = ({ testId, label, children }) => (
   <div className="fixed inset-0 z-[68] pointer-events-none" data-testid={testId}>
-    <button type="button" aria-label="Decide later" onClick={onClose} className="absolute inset-0 bg-black/25 pointer-events-auto cursor-default sm:bg-transparent" tabIndex={-1} />
     <div role="dialog" aria-label={label}
       className="pointer-events-auto absolute right-[calc(var(--rail-inset,0px)+0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(27rem,calc(100vw-1rem-var(--rail-inset,0px)))] flex flex-col fa-panel !bg-fa-panel !border-dashed !border-fa-indep/80 shadow-2xl">
       {children}
@@ -36,11 +40,14 @@ const Header = ({ m, title, onClose }) => (
   </div>
 );
 
-export const TributeDemandSheet = ({ demandId, onClose }) => {
+// `asked`: the player opened it (End Turn's blocker, Peoples); otherwise it arrived and takes its
+// turn behind a more pressing card (useExclusivePanel.js), waiting as a chip.
+export const TributeDemandSheet = ({ demandId, onClose, asked = false }) => {
   const { state, dispatch } = useGame();
   const m = useMemo(() => tributeDemandModel(state, demandId), [state, demandId]);
   const [pick, setPick] = useState(null);
-  if (!m) return null;
+  const turn = useInteraction('tribute', !!m, { priority: PRIORITY.tribute, label: m ? `${m.name} demand tribute` : null, testId: 'tribute-chip', user: asked });
+  if (!m || !turn.shown) return null;
   const chosen = m.choices.find((c) => c.id === (pick || m.preferred)) || m.choices[0];
   const go = () => {
     if (!chosen.ok) return;
@@ -50,7 +57,7 @@ export const TributeDemandSheet = ({ demandId, onClose }) => {
   const verb = chosen.id === 'pay' ? 'Pay' : chosen.id === 'hire' ? 'Hire and refuse' : 'Refuse';
   return (
     <Frame testId="tribute-demand-sheet" label={`${m.name} demand tribute`} onClose={onClose}>
-      <Header m={m} title={`${m.name} demand ${m.gold} gold a turn for ${m.turns} turns, or they raid`} onClose={onClose} />
+      <Header m={m} title={`${subjectVerb(m.name, 'demand')} ${m.gold} gold a turn for ${m.turns} turns, or they raid`} onClose={onClose} />
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2 text-[12px]">
         <section className="space-y-1" data-testid="tribute-grudge">
           <CardLabel right={<span className="fa-num normal-case tracking-normal text-[12px] text-fa-text">{m.grudge.value} {m.grudge.word}{chosen.id !== 'pay' ? <span className="text-fa-danger-text"> +{m.grudge.after - m.grudge.value} to {m.grudge.after}</span> : null}</span>}>Grudge toward you</CardLabel>
@@ -85,10 +92,11 @@ export const TributeDemandSheet = ({ demandId, onClose }) => {
   );
 };
 
-export const JoinOfferSheet = ({ offerId, onClose }) => {
+export const JoinOfferSheet = ({ offerId, onClose, asked = false }) => {
   const { state, dispatch } = useGame();
   const m = useMemo(() => joinOfferModel(state, offerId), [state, offerId]);
-  if (!m) return null;
+  const turn = useInteraction('join-offer', !!m, { priority: PRIORITY.join, label: m ? `${m.name} offer to join you` : null, testId: 'join-chip', user: asked });
+  if (!m || !turn.shown) return null;
   return (
     <Frame testId="join-offer-sheet" label={`${m.name} offer to join you`} onClose={onClose}>
       <Header m={m} title={`${m.name} offer to join you`} onClose={onClose} />

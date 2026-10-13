@@ -10,6 +10,8 @@ import ResourceBadge from './ResourceBadge';
 import Breakdown from './Breakdown';
 import { POWER_POOL_CAP } from '../../data/actionCosts';
 
+// `wrap`: the top bar's "All your stores" list. There every badge carries its name: a phone has no
+// hover, so the bare icons and numbers could not be told apart (playtest audit I163).
 const ResourceBar = ({ wrap = false }) => {
   const { state } = useGame();
   const [expandedResource, setExpandedResource] = useState(null);
@@ -37,6 +39,7 @@ const ResourceBar = ({ wrap = false }) => {
           type={pool}
           value={state.resources[pool]}
           perTurn={powerIncome[pool]}
+          showLabel={wrap}
           expanded={expandedResource === pool}
           onClick={() => handleToggle(pool)}
           tooltipContent={(
@@ -53,6 +56,7 @@ const ResourceBar = ({ wrap = false }) => {
           key={resourceId}
           type={resourceId}
           value={state.resources[resourceId] || 0}
+          showLabel={wrap}
           expanded={expandedResource === resourceId}
           onClick={() => handleToggle(resourceId)}
         />
@@ -61,6 +65,7 @@ const ResourceBar = ({ wrap = false }) => {
       <ResourceBadge
         type="techPoints"
         value={state.resources.techPoints}
+        showLabel={wrap}
         expanded={expandedResource === 'techPoints'}
         onClick={() => handleToggle('techPoints')}
       />
@@ -68,6 +73,7 @@ const ResourceBar = ({ wrap = false }) => {
       <ResourceBadge
         type="militaryStrength"
         value={getFieldedStrength(state, state.playerNationId)}
+        showLabel={wrap}
         expanded={expandedResource === 'military'}
         onClick={() => handleToggle('military')}
       />
