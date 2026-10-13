@@ -44,6 +44,7 @@ export const ACTION_SOUNDS = {
   [T.STOP_RAZING]: 'ui-confirm',
   [T.DELETE_ARMY_TEMPLATE]: null,
   [T.DEQUEUE_PRODUCTION]: null,
+  [T.MOVE_PRODUCTION]: null,
   [T.SET_CITY_FOCUS]: null,
   [T.TOGGLE_TILE_LOCK]: null,
   [T.BUY_TILE]: 'tribute-paid',

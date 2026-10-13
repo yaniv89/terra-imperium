@@ -8,7 +8,8 @@ import { abandonColony, foundColony, validateColony } from './colonies';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
-import { queueItem, dequeueItem, setFocus, toggleLock, canQueue, claimCandidates, buyTileCost, canFoundCity, addPeople, sizeToPeople } from './world/cities';
+import { queueItem, dequeueItem, moveQueueItem, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
+import { quoteBuyTile } from './cityEconomy';
 import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
@@ -114,7 +115,7 @@ import { applyDifficulty } from '../data/difficulty';
 import { initFog, updateFog, fogOn, hasMet } from './fog';
 import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './rulers';
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
-import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
+import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import { canAfford, applyCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
@@ -923,9 +924,8 @@ const reduceAction = (state, action) => {
         regions: {
           ...state.regions,
           [regionId]: {
-            ...region,
-            ...(region.size != null ? addPeople(region, sizeToPeople(region.size) * DEVELOP_PROVINCE_POP_GAIN_RATIO) : { currentPopulation: (region.currentPopulation || modernBaseline) + popGain }),
-            dev: { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 }
+            // applyDevelopment (development.js): a city keeps the point as lasting investment (I031).
+            ...applyDevelopment(region.size != null ? addPeople(region, sizeToPeople(region.size) * DEVELOP_PROVINCE_POP_GAIN_RATIO) : { ...region, currentPopulation: (region.currentPopulation || modernBaseline) + popGain }, devType)
           }
         },
         logs: [...state.logs, { year: state.year, message: `Developed ${devType} in ${REGIONS_DATA[regionId]?.name} (+1).`, type: LogTypes.ACTION }]
@@ -995,6 +995,8 @@ const reduceAction = (state, action) => {
       const nextRegion = region.size != null
         ? addPeople(region, (region.currentPopulation || sizeToPeople(region.size)) * POPULATION_POLICY_GROWTH_RATE)
         : { ...region, currentPopulation: Math.round((region.currentPopulation || 1) * (1 + POPULATION_POLICY_GROWTH_RATE)) };
+      // Nothing to buy: the food bank is already full (I032). No charge for no effect.
+      if (nextRegion === region) return reject(state, `${REGIONS_DATA[regionId]?.name}'s food bank is full: it grows as soon as it has housing and a food surplus.`);
       const nextPopulation = nextRegion.currentPopulation ?? sizeToPeople(nextRegion.size);
       return {
         ...state,
@@ -3057,17 +3059,27 @@ const reduceAction = (state, action) => {
       const { cityId: id, tile } = action.payload || {};
       const city = state.regions[id];
       if (!city || city.owner !== state.playerNationId) return reject(state, 'Not your city.');
-      const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
-      const candidate = claimCandidates(city, getTiles(), world, { ageId: getEffectiveAgeId(state.age, state.techAgeId) }).find((c) => c.tile === tile);
-      if (!candidate) return reject(state, 'That tile cannot be claimed.');
-      const cost = buyTileCost(city, candidate);
-      if ((state.resources.gold || 0) < cost) return reject(state, `Needs ${cost} gold.`);
+      // The price and the eligibility are the city sheet's own quote (cityEconomy.js quoteBuyTile,
+      // I036): the research that cheapens land and pushes the border counts here as it does there.
+      const quote = quoteBuyTile(state, id, tile);
+      if (!quote.ok) return reject(state, quote.reason);
+      const cost = quote.cost;
       return {
         ...state,
         resources: { ...state.resources, gold: state.resources.gold - cost },
         regions: { ...state.regions, [id]: { ...city, tiles: [...city.tiles, tile] } },
-        world: { ...state.world, tileOwner: { ...(state.world?.tileOwner || {}), [tile]: id } }
+        world: { ...state.world, tileOwner: { ...(state.world?.tileOwner || {}), [tile]: id } },
+        logs: [...state.logs, { year: state.year, message: `${city.name} buys ${getTiles().names?.[tile] || 'new land'} for ${cost} gold.`, type: LogTypes.ACTION }]
       };
+    }
+    case ActionTypes.MOVE_PRODUCTION: {
+      // Reorder the queue (I046): `index` and `to` count [current, ...queue]; 0 is the front. No
+      // progress is lost either way (cities.js moveQueueItem).
+      const { cityId: id, index, to } = action.payload || {};
+      const city = state.regions[id];
+      if (!city || city.owner !== state.playerNationId) return reject(state, 'Not your city.');
+      const next = moveQueueItem(city, index, to);
+      return next === city ? state : { ...state, regions: { ...state.regions, [id]: next } };
     }
 
     case ActionTypes.RESET_GAME: {

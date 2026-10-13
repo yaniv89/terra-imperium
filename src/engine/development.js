@@ -72,3 +72,40 @@ export const getDevelopProvinceCost = (region, developmentCostMult = 0) =>
 // +1 development raises currentPopulation by 3% of the modern baseline (plan §M5) — a real,
 // separate growth channel from Population Policy's own per-turn growth-RATE bump.
 export const DEVELOP_PROVINCE_POP_GAIN_RATIO = 0.03;
+
+// --- Bought development that lasts (playtest audits I031) -------------------------------------
+// On the tile world a city's `dev` is a mirror: resolveTurn rewrites it every turn from the city's
+// yields and size, so a Develop purchase written only into `dev` was gone a turn later. What the
+// owner bought is now kept on the city as `investment = { tax, production, manpower }` (absent
+// means none; old saves read as none) and the mirror is rebuilt on top of it:
+//   tax         +1 base gold of the city (cities.js cityYields: its Market multiplies it), so
+//               dev.tax and the treasury income (helpers.js calcIncome) follow
+//   production  +1 base production of the city (its Workshop multiplies it): faster builds, and
+//               through dev.production the gold every hammer also pays
+//   manpower    +1 dev.manpower: manpower income
+// Every point also counts in total development (science per development, research.js; the next
+// Develop price, getDevelopProvinceCost), which is what keeps it from snowballing. It stays with
+// the city through focus changes, saves and a change of owner; it ends only with the city.
+const NO_INVESTMENT = Object.freeze({ tax: 0, production: 0, manpower: 0 });
+export const investmentOf = (region) => {
+  const inv = region?.investment;
+  return inv ? { tax: inv.tax || 0, production: inv.production || 0, manpower: inv.manpower || 0 } : NO_INVESTMENT;
+};
+
+/** The `dev` mirror of a city from this turn's yields (resolveTurn's cities phase). Tax and
+ * production investment are already inside the yields; manpower is added here. */
+export const devFromYields = (yields, city) => ({
+  tax: Math.max(1, Math.round(yields.raw.gold)),
+  production: Math.max(1, Math.round(yields.production)),
+  manpower: Math.max(1, city.size) + (city.investment?.manpower || 0)
+});
+
+/** `region` with one more point of `devType` development. A city (a record with a size) records
+ * it as investment and shows it in `dev` at once; a size-less legacy record keeps it in `dev`,
+ * which nothing rewrites there. */
+export const applyDevelopment = (region, devType) => {
+  const dev = { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 };
+  if (region.size == null) return { ...region, dev };
+  const inv = investmentOf(region);
+  return { ...region, dev, investment: { ...inv, [devType]: inv[devType] + 1 } };
+};

@@ -20,7 +20,15 @@
 //               Culture building tier. Short cities grow slower and gain unrest.
 //   production  one item at a time with a queue; overflow carries; buildings use the existing
 //               9 category lines (src/data/buildings.js), units the age roster, improvements
-//               src/data/tileYields.js, settlers cost a citizen.
+//               src/data/tileYields.js, settlers cost a citizen. Progress belongs to the ITEM
+//               (playtest audits I046, I047): `production.progress` is the current item's, and
+//               `production.stored[itemKey]` keeps what an item had when it left the front (moved
+//               back, or removed), so reordering loses nothing and a removed item gets its work
+//               back when it is queued again. Hammers only ever move between those two places.
+//   investment  `city.investment = { tax, production, manpower }` (I031): development the owner
+//               bought (development.js applyDevelopment). Tax and production points are flat base
+//               yields of the city (so buildings multiply them like a worked tile's); manpower is
+//               added where resolveTurn mirrors the city into `dev`. Absent means none.
 //   borders     culture fills a bank; the cheapest eligible tile (ring, count) is claimed when the
 //               bank covers it, by yield score; tiles can be bought for gold at BUY_TILE_MULT.
 //
@@ -329,6 +337,8 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const sum = fields.reduce((acc, t) => { const y = yieldsOfTile(tiles, world, t, researched); acc.food += y.food; acc.production += y.production; acc.gold += y.gold; return acc; }, { ...centre });
   const districts = districtYields(tiles, world, city); // the Campus, Temple Quarter and Market Quarter on their tiles (districts.js)
   sum.gold += districts.gold;
+  // Bought development (development.js): flat base yields, there in a siege too.
+  if (city.investment) { sum.production += city.investment.production || 0; sum.gold += city.investment.tax || 0; }
   const palace = city.isCapital ? PALACE_YIELDS : { gold: 0, production: 0, science: 0, culture: 0 };
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
   const dm = disasterMults(city, ctx.turnNumber); // a flood or a fire (cityDisasters.js)
@@ -366,16 +376,22 @@ const baseProductionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {}) =>
   }
 };
 
+/** Ships and the Naval building line need the sea beside the city centre (I039, I040): a river,
+ * an oasis or a lake is not a coast. One rule for the build list, the reducer and the AI. */
+export const NEEDS_SEA_COAST = 'Needs a sea coast.';
+export const hasSeaCoast = (tiles, city) => !!city && tiles.coastal[city.tile] === 1;
+
 export const canQueue = (city, tiles, world, item, { researched = [], ageId = 'bronze' } = {}) => {
   switch (item.kind) {
     case 'building': {
       const current = city.buildings?.categories?.[item.category] ?? -1;
       if (item.tier !== current + 1) return { ok: false, reason: 'Tiers are built in order.' };
       if (!canBuildTier(item.category, new Set(researched), item.tier)) return { ok: false, reason: 'Needs a technology.' };
-      if (BUILDING_CATEGORIES[item.category]?.coastalOnly && !tiles.coastal[city.tile]) return { ok: false, reason: 'Needs a coast.' };
+      if (BUILDING_CATEGORIES[item.category]?.coastalOnly && !hasSeaCoast(tiles, city)) return { ok: false, reason: NEEDS_SEA_COAST };
       return { ok: true };
     }
     case 'unit':
+      if (item.classId === 'naval' && !hasSeaCoast(tiles, city)) return { ok: false, reason: NEEDS_SEA_COAST };
       if (item.classId === 'naval' && item.navalLine && !navalLinesFor(ageId).includes(item.navalLine)) return { ok: false, reason: 'Not available in this age.' };
       return getAvailableClasses(ageId).includes(item.classId) ? { ok: true } : { ok: false, reason: 'Not available in this age.' };
     case 'improvement': {
@@ -396,16 +412,76 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = 'b
   }
 };
 
+/** The identity of a production item: what its stored progress is kept under. Two orders for the
+ * same thing (two Spearmen) share a key, so they share what was stored for it. */
+export const itemKey = (item) => {
+  if (!item) return '';
+  switch (item.kind) {
+    case 'unit': return `unit:${item.classId}${item.navalLine ? `:${item.navalLine}` : ''}`;
+    case 'building': return `building:${item.category}:${item.tier}`;
+    case 'improvement': return `improvement:${item.improvement}:${item.tile}`;
+    case 'settler': return 'settler';
+    case 'wonder': return `wonder:${item.projectId}:${item.tier}`;
+    case 'army': return `army:${item.armyId || item.templateId}`;
+    default: return String(item.kind);
+  }
+};
+/** The progress of the item at `index` of [current, ...queue]: the front item's own, and for the
+ * others what is stored for them (only the first order of a kind has a claim on it). */
+export const itemProgress = (city, index) => {
+  const p = city?.production;
+  if (!p) return 0;
+  if (index === 0) return p.progress || 0;
+  const list = [p.current, ...p.queue];
+  const key = itemKey(list[index]);
+  return list.findIndex((it) => itemKey(it) === key) === index ? p.stored?.[key] || 0 : 0;
+};
+// `stored` without `key`, or nothing at all when that empties it (the field is absent, never {}).
+const withoutStored = (stored, key) => {
+  if (!stored || !(key in stored)) return stored;
+  const rest = { ...stored }; delete rest[key];
+  return Object.keys(rest).length ? rest : undefined;
+};
+// The production record with `item` at the front: it takes what was stored for it on top of `carry`.
+const promote = (production, item, queue, carry) => {
+  const key = itemKey(item);
+  const had = item ? production.stored?.[key] || 0 : 0;
+  const rest = { ...production }; delete rest.stored;
+  const stored = had ? withoutStored(production.stored, key) : production.stored;
+  return { ...rest, current: item || null, queue, progress: carry + had, ...(stored ? { stored } : {}) };
+};
+// The production record with the current item's progress put aside under its key.
+const shelve = (production) => {
+  const key = itemKey(production.current);
+  if (!production.current || !(production.progress > 0)) return { ...production, progress: 0 };
+  return { ...production, progress: 0, stored: { ...(production.stored || {}), [key]: (production.stored?.[key] || 0) + production.progress } };
+};
+
 export const queueItem = (city, item) => {
-  if (!city.production.current) return { ...city, production: { ...city.production, current: item } };
+  if (!city.production.current) return { ...city, production: promote(city.production, item, city.production.queue, city.production.progress || 0) };
   return { ...city, production: { ...city.production, queue: [...city.production.queue, item] } };
 };
+/** Removes the item at `index` of [current, ...queue]. Its progress stays stored under its key:
+ * queueing the same thing again picks it up (I047). */
 export const dequeueItem = (city, index) => {
   if (index === 0) {
     const [next, ...rest] = city.production.queue;
-    return { ...city, production: { current: next || null, queue: rest, progress: 0 } };
+    return { ...city, production: promote(shelve(city.production), next || null, rest, 0) };
   }
   return { ...city, production: { ...city.production, queue: city.production.queue.filter((_, i) => i !== index - 1) } };
+};
+/** Moves the item at `from` of [current, ...queue] to `to` (0 is the front). No progress is lost:
+ * an item pushed off the front keeps its own, and the new front item takes up what it had (I046). */
+export const moveQueueItem = (city, from, to) => {
+  const list = [city.production.current, ...city.production.queue].filter(Boolean);
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= list.length) return city;
+  const target = Math.max(0, Math.min(list.length - 1, to));
+  if (target === from) return city;
+  const next = list.slice();
+  const [moved] = next.splice(from, 1);
+  next.splice(target, 0, moved);
+  if (from !== 0 && target !== 0) return { ...city, production: { ...city.production, queue: next.slice(1) } };
+  return { ...city, production: promote(shelve(city.production), next[0], next.slice(1), 0) };
 };
 export const setFocus = (city, focus) => (FOCUS.includes(focus) && focus !== city.focus ? { ...city, focus } : city);
 export const toggleLock = (city, tile) => (city.locked.includes(tile) ? { ...city, locked: city.locked.filter((t) => t !== tile) } : { ...city, locked: [...city.locked, tile] });
@@ -604,7 +680,8 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
       if (item.kind === 'unit') logs.push(`${c.name} trains ${item.classId}.`);
     }
     const [following, ...rest] = production.queue;
-    production = { current: following || null, queue: rest, progress: production.progress };
+    // The next order takes the overflow, plus whatever it had stored from an earlier turn at the front.
+    production = promote({ current: null, queue: rest, progress: 0, ...(production.stored ? { stored: production.stored } : {}) }, following || null, rest, production.progress);
   }
   if (!production.current) production = { ...production, progress: Math.min(production.progress, 50) }; // idle cities bank a little
 

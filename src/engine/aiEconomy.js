@@ -26,7 +26,7 @@ import { getResearched } from './nationState';
 import { getModifier, getRegionModifierTotals } from './modifiers/sheet';
 const INCOME_KEYS = ['local.taxIncome', 'local.productionIncome', 'local.manpower', 'local.techPoints', 'local.flatGold', 'local.flatManpower', 'local.tradeIncome'];
 import {
-  getPopFactor, seedDevelopment, getTotalDev, DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO
+  getPopFactor, seedDevelopment, getTotalDev, DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment
 } from './development';
 import { REGIONS_DATA, getOwnedRegionIds } from '../data/regions';
 import {
@@ -224,9 +224,8 @@ const tryDevelopProvince = (state, nation, regions) => {
     nation: { ...nation, economy: { ...pool, [poolKey]: pool[poolKey] - cost } },
     regionId,
     updatedRegion: {
-      ...region,
-      ...(region.size != null ? addPeople(region, sizeToPeople(region.size) * DEVELOP_PROVINCE_POP_GAIN_RATIO) : { currentPopulation: (region.currentPopulation || modernBaseline) + popGain }),
-      dev: { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 }
+      // The same lasting investment the player's Develop buys (development.js applyDevelopment, I031).
+      ...applyDevelopment(region.size != null ? addPeople(region, sizeToPeople(region.size) * DEVELOP_PROVINCE_POP_GAIN_RATIO) : { ...region, currentPopulation: (region.currentPopulation || modernBaseline) + popGain }, devType)
     }
   };
 };
