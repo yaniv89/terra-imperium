@@ -1,5 +1,5 @@
 // src/components/modals/FirstContactCard.jsx
-// First contact (W03, plans/UI-DESIGN.md): when your scouts meet a people, a card under the top bar
+// First contact (W03, plans/UI-DESIGN.md): when you meet a people, a card under the top bar
 // names them in their colour, says where you saw them and what diplomacy now opens, with the mood,
 // the cities seen and the shared border; "Open diplomacy" (the screen's one brass action) or
 // "Later". One card at a time, the others queue. A loaded save or a new game shows none: only
@@ -44,7 +44,7 @@ const FirstContactCard = () => {
         </div>
       </div>
       <p className="text-[13px] leading-snug mt-2">
-        {card.capitalSeen ? `Your scouts saw ${card.capital}, their capital.` : `Your scouts crossed into their land${card.capital ? `; their capital is ${card.capital}` : ''}.`} Their lands are now drawn in their colour, and you can talk to them.
+        {card.how}{card.youSaw ? ' Their lands are now drawn in their colour, and you can talk to them.' : ' You can talk to them.'}
       </p>
       <div className="flex flex-wrap gap-1.5 mt-2">
         <Chip title={`Their opinion of you: ${card.opinion}`}>Mood <span style={{ color: card.opinion >= 20 ? 'var(--fa-good)' : card.opinion <= -40 ? 'var(--fa-danger-text)' : 'var(--fa-enemy)' }}>{card.mood}</span></Chip>

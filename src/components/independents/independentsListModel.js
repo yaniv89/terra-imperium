@@ -8,7 +8,7 @@ import { isIndependentNation, PERSONALITIES, PERSONALITY_IDS } from '../../data/
 import { grudgeOf } from '../../engine/grudges';
 import { attitudeOf } from '../../engine/indepPolicy';
 import { hasMet } from '../../engine/fog';
-import { attitudeWord, attitudeTone, grudgeTone } from './independentSheetModel';
+import { attitudeLabel, grudgeTone } from './independentSheetModel';
 import { shieldUrl, shieldColour } from './independentArt';
 
 export const LIST_SORTS = [
@@ -59,11 +59,12 @@ export const independentsListModel = (state, { sort = 'distance', filter = 'all'
     const p = n.indep?.personality || 'tribal';
     const km = mine.reduce((best, t) => Math.min(best, tileKm(tiles, t, city.tile)), Infinity);
     const attitude = Math.round(attitudeOf(state, n.id, me));
+    const label = attitudeLabel(state, n, me, attitude);
     const grudge = Math.round(grudgeOf(n, me));
     all.push({
       id: n.id, name: n.name, cityId: city.id, cityName: city.name, size: city.size || 1,
       personality: p, personalityName: PERSONALITIES[p]?.name || p, colour: shieldColour(p), shieldUrl: shieldUrl(p),
-      km, attitude, attitudeWord: attitudeWord(attitude), attitudeTone: attitudeTone(attitude), grudge, grudgeTone: grudgeTone(grudge),
+      km, attitude, attitudeWord: label.word, attitudeTone: label.tone, grudge, grudgeTone: grudgeTone(grudge),
       deal: dealOf(state, n)
     });
   });

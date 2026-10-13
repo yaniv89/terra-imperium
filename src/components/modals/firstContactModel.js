@@ -19,7 +19,16 @@ export const newContacts = (state, before) => {
   return metNations(state).filter((id) => !before.has(id) && id !== state.playerNationId && state.nations[id] && !state.nations[id].isEliminated && !isIndependentNation(state.nations[id]));
 };
 
-export const contactCard = (state, nationId) => {
+/** How the meeting happened, in words that depend on who saw whom (no invented scouts). */
+export const contactHow = ({ youSaw, theySaw, capitalSeen, capital }) => {
+  const seen = capitalSeen && capital ? `You have seen ${capital}, their capital.` : capital ? `Their capital is ${capital}.` : '';
+  if (youSaw && theySaw) return `Your lands came into each other's sight. ${seen}`.trim();
+  if (theySaw && !youSaw) return 'They came across your land first; you have not seen their cities yet.';
+  if (youSaw) return capitalSeen && capital ? `You came upon ${capital}, their capital.` : `You came upon their land${capital ? `; their capital is ${capital}` : ''}.`;
+  return 'Word of them has reached you.';
+};
+
+export const contactCard =(state, nationId) => {
   const n = state.nations[nationId];
   if (!n) return null;
   const me = state.playerNationId;
@@ -35,15 +44,23 @@ export const contactCard = (state, nationId) => {
     if ((tiles.neighbors[t] || []).some((x) => ownerOf(x) === nationId)) border += 1;
   });
   const opinion = opinionOf(state, nationId);
+  const citiesSeen = theirs.filter((c) => isExplored(state, c.tile)).length;
+  const capitalSeen = !!capital && isExplored(state, capital.tile);
+  // Who saw whom (I118): meeting is mutual, so the card says what happened, not "your scouts".
+  const youSaw = capitalSeen || citiesSeen > 0 || border > 0;
+  const theySaw = Object.values(state.regions || {}).some((c) => c.owner === me && c.tile != null && isExplored(state, c.tile, nationId));
   return {
     id: nationId,
     title: n.name,
     name: PEOPLES[nationId]?.name || n.name,
     color: n.color || '#EE8A3A',
     capital: capital?.name || null,
-    capitalSeen: !!capital && isExplored(state, capital.tile),
-    citiesSeen: theirs.filter((c) => isExplored(state, c.tile)).length,
+    capitalSeen,
+    citiesSeen,
     border,
+    youSaw,
+    theySaw,
+    how: contactHow({ youSaw, theySaw, capitalSeen, capital: capital?.name || null }),
     opinion,
     mood: moodWord(opinion)
   };
