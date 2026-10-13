@@ -2,6 +2,8 @@
 // Mid-battle checkpoints (Tactical Battles plan §12.3): every 10 s the battle's order log is saved
 // under its battle id, so closing the app — or the OS killing it — never loses a battle: it
 // replays the log (6 minutes of battle re-simulates in well under a second) and carries on.
+// A battle that has ended keeps its end record (`ended`: result, log, hash) until the player
+// continues, so its result is handed to the campaign as it was even if the app closes first.
 // IndexedDB when available, localStorage otherwise; every call is best-effort and never throws.
 const DB = 'terra-imperium-battles';
 const STORE = 'checkpoints';
@@ -27,7 +29,7 @@ const withStore = async (mode, fn) => {
 
 export const saveBattleCheckpoint = async (battleId, checkpoint) => {
   // setupKey: which battle it belongs to (buildBattleSetup.js setupKeyOf); ids repeat between games.
-  const record = { tick: checkpoint.tick, hash: checkpoint.hash, log: checkpoint.log, setupVersion: checkpoint.setupVersion, setupKey: checkpoint.setupKey ?? null, savedAt: checkpoint.savedAt };
+  const record = { tick: checkpoint.tick, hash: checkpoint.hash, log: checkpoint.log, setupVersion: checkpoint.setupVersion, setupKey: checkpoint.setupKey ?? null, savedAt: checkpoint.savedAt, ...(checkpoint.ended ? { ended: checkpoint.ended } : {}) };
   try { await withStore('readwrite', (s) => s.put(record, battleId)); } catch {
     try { localStorage.setItem(LS_PREFIX + battleId, JSON.stringify(record)); } catch { /* storage full or blocked */ }
   }

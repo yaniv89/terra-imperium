@@ -4,8 +4,8 @@
 // Three columns at 844x390 and on the desktop (stacked on a phone held upright):
 //   yours   your army by kind with its men and generals
 //   middle  the odds with where they come from (exact: a spy report or both armies in sight;
-//           otherwise the scouts' guess, a band), the walls and the houses (battle housing and the
-//           50% rule), and 300 a side with the waves
+//           otherwise the scouts' guess, a band), the walls and the houses (battle housing), and
+//           300 a side with the waves
 //   theirs  their garrison or army (a range of men and "?" without intel)
 // Then the way to fight as two cards (Command, Auto), what it means, and the one brass button.
 // Call off is the close button: nothing is spent and the army keeps its move. With `navalUnitId`
@@ -143,7 +143,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
               {w ? (
                 <>
                   <Tile icon={Castle} label="Walls" title={w.level ? w.name : 'No walls'} testId="pre-battle-fort">{w.level ? w.hpText : 'An open town'}{m.fortTier > 0 ? ` · fort level ${m.fortTier}` : ''}</Tile>
-                  <Tile icon={Home} label="Houses" title={`${w.houses} houses, housing ${w.housing}`} testId="pre-battle-houses">At most {w.maxLost} can be lost (the 50% rule).</Tile>
+                  <Tile icon={Home} label="Houses" title={`${w.houses} houses, housing ${w.housing}`} testId="pre-battle-houses">Houses burned in the battle are repaired for free.</Tile>
                 </>
               ) : (
                 <>

@@ -5,7 +5,7 @@
 //   armyView      one side: men (strength on the map), regiments, lines by kind, generals
 //   oddsSource    exact odds (a spy report, your own city, open ground in sight) or the scouts' guess
 //   battleSize    300 a side: how many regiments fight at once on this ground, how many wait as waves
-//   cityWallsView the walls (name, HP), the houses and the battle housing, and the 50% rule
+//   cityWallsView the walls (name, HP), the houses and the battle housing
 import { unitDisplayName } from '../../data/unitNames';
 import { getCombatWidth } from '../../data/combatWidth';
 import { getCategoryTierName } from '../../data/buildings';
@@ -16,8 +16,6 @@ import { canSeeRegionDetails, hasIntel } from '../../engine/intel';
 import { cityDefenseModel } from '../city/cityDefenseModel';
 
 export const BATTLE_POP_LIMIT = POP_LIMIT;
-/** Of a city's houses and buildings, at most this share carries to the map (master plan 6.8). */
-export const CITY_DAMAGE_CARRY_MAX = 0.5;
 
 const men = (u) => Math.max(0, Math.round(u.strength || 0));
 
@@ -106,8 +104,6 @@ export const cityWallsView = (state, cityId) => {
     hpText: level > 0 ? `HP ${Math.round((hp / max) * 100)}%${city.siege ? ' after the siege so far' : ''}` : 'Open town',
     houses: houseCount,
     housing: def?.housing || 0,
-    housingLines: def?.lines || [],
-    maxLost: Math.floor(houseCount * CITY_DAMAGE_CARRY_MAX),
-    ruleText: `At most half carries to the map: ${Math.floor(houseCount * CITY_DAMAGE_CARRY_MAX)} of ${houseCount} houses at worst.`
+    housingLines: def?.lines || []
   };
 };

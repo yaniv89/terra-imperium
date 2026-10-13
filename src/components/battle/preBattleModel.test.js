@@ -1,6 +1,6 @@
 // src/components/battle/preBattleModel.test.js
 // W11 Pre-battle: without intel the odds are the scouts' band and their men a range; a spy
-// report makes them exact and says so; the walls and houses carry the 50% rule; 300 a side.
+// report makes them exact and says so; the walls and the houses; 300 a side.
 import { describe, expect, it } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNeighborIds } from '../../data/regions';
@@ -33,7 +33,8 @@ describe('W11 preBattleModel', () => {
     expect(m.chance.band[1] - m.chance.band[0]).toBeCloseTo(0.33, 5);
     expect(m.theirs.total).toMatch(/^about \d+ to \d+$/);
     expect(m.yours.men).toBe(1000);
-    expect(m.walls.maxLost).toBe(Math.floor(m.walls.houses / 2));
+    expect(m.walls.maxLost).toBeUndefined();
+    expect(m.walls.ruleText).toBeUndefined();
     expect(m.size.cap).toBe(300);
     expect(m.command).toMatch(/300 a side/);
   });

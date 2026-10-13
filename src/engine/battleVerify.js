@@ -52,7 +52,19 @@ export const fieldedUnitIds = (setup) => (setup?.sides || []).slice(0, 2).map((s
  * Returns { result, setup, verification }: the result to sanitize and apply, with
  * `report.tactical.verified` and `.verification` set here (never taken from the client).
  */
+// The last check, kept by identity: the result screen asks for the committed outcome when the
+// battle ends and Continue commits it with the same state and the same payload (battleReceipt.js),
+// so the battle is replayed once, not twice. A pure function's memo: same inputs, same answer.
+let last = null;
+
 export const verifyCommandedBattle = (state, pb, payload = {}, { build = buildCommandedSetup, replay = replayBattle } = {}) => {
+  if (last&& last.state === state && last.pb === pb && last.payload === payload && last.build === build && last.replay === replay) return last.out;
+  const out = verifyOnce(state, pb, payload, { build, replay });
+  last = { state, pb, payload, build, replay, out };
+  return out;
+};
+
+const verifyOnce = (state, pb, payload, { build, replay }) => {
   const log = payload.log;
   const evidence = {
     setupVersion: SETUP_VERSION,

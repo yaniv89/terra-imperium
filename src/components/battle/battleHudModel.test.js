@@ -1,7 +1,8 @@
 // src/components/battle/battleHudModel.test.js
 // The battle screens' numbers: the context panel's state, the selection line, the city's housing and
-// the 50% line, alerts between frames (at most two shown), and the result: XP by the campaign's
-// formula, the general's fate by the same roll, the city under the 50% rule, Auto's odds.
+// the houses ruined, alerts between frames (at most two shown), and the result: without a receipt
+// the battle's own reading (XP by the campaign's formula, the general's fate by the same roll),
+// with one (src/engine/battleReceipt.js) what the campaign commits.
 import { describe, expect, it } from 'vitest';
 import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel } from './battleHudModel';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
@@ -28,11 +29,12 @@ describe('battle HUD model', () => {
     expect(selectionSummary([])).toBeNull();
   });
 
-  it('the city: housing now and at the start, the 50% line', () => {
+  it('the city: housing now and at the start, houses ruined', () => {
     const setup = { city: {}, structures: [st('keep', { housing: 20 }), st('house', { housing: 10 }), st('house', { housing: 10 }), st('house', { housing: 5 }), st('house', { housing: 5, ruinedAtStart: true }), st('gate')] };
     const hud = { structures: [st('keep'), st('house', { alive: false }), st('house'), st('house'), st('house', { alive: false }), st('gate', { alive: false })] };
     const c = cityAssaultView(hud, setup);
-    expect(c).toMatchObject({ total: 3, standing: 2, ruined: 1, maxLost: 1, housingStart: 45, housingNow: 35 });
+    expect(c).toMatchObject({ total: 3, standing: 2, ruined: 1, housingStart: 45, housingNow: 35 });
+    expect(c.maxLost).toBeUndefined();
     expect(c.gate.alive).toBe(false);
     expect(cityAssaultView(hud, { ...setup, city: null })).toBeNull();
   });
@@ -53,7 +55,7 @@ describe('battle HUD model', () => {
     expect(minutesLeft(1800, 3)).toBe(10);
   });
 
-  it('the result: XP by the formula, the general by the same roll, the city under the 50% rule', () => {
+  it('the result without a campaign: XP by the formula, the general by the same roll, the houses ruined', () => {
     const setup = {
       battleType: 'assault', city: {},
       sides: [{ ageId: 'bronze', units: [{ id: 'a', strength: 100 }, { id: 'b', strength: 80 }] }, { ageId: 'bronze', units: [{ id: 'd', strength: 90 }] }],
@@ -71,9 +73,12 @@ describe('battle HUD model', () => {
     expect(m.xp).toEqual([expect.objectContaining({ id: 'a', gained: XP_WIN + 5 })]);
     const falls = hashRoll('b|31') < COMMANDER_FALL_CHANCE;
     expect(m.generals[0].fate).toBe(falls ? 'fell' : 'escaped');
-    expect(m.city).toMatchObject({ total: 10, ruined: 7, maxLost: 5, carried: 5, kept: 5, otherDown: 1 });
+    expect(m.state).toBe('preview');
+    expect(m.city).toMatchObject({ committed: false, total: 10, ruined: 7, otherDown: 1 });
+    expect(m.city.maxLost).toBeUndefined();
     expect(m.workersLost).toBe(3);
-    expect(m.loot.gold).toBe(40);
+    // Gold looted in the battle is spent in it: never shown as gold for the treasury.
+    expect(m.loot).toEqual({ gold: 40, banked: false });
     expect(m.auto).toMatch(/62%/);
   });
 });

@@ -3,19 +3,24 @@
 // Result; plans/UI-DESIGN.md) show, from the HUD frame (render/view.js) and the setup. Pure.
 //   contextFor        what the bottom-right context panel shows for the selection (B10)
 //   selectionSummary  the top pill: "Spearmen  3 squads, 146 men  74%"
-//   cityAssaultView   the real city: houses standing and ruined, housing then and now, the 50% line
+//   cityAssaultView   the real city: houses standing and ruined, housing then and now
 //   nextAlerts        new alerts between two frames (gate breached, a regiment of yours Shaken, enemy
 //                     squads broke, workers attacked, the keep at half, enemy reinforcements), at most
 //                     two shown; one about a squad carries its index (Go selects it)
-//   battleResultModel the result screen: losses, XP with its formula, the general's fate, what the
-//                     city keeps under the 50% rule, loot, and Auto's odds for comparison
+//   battleResultModel the result screen. With the campaign's receipt (src/engine/battleReceipt.js)
+//                     it shows what is committed: the verdict, the participant ledger's losses, the
+//                     XP really gained, each general's real fate, the city as it then stands, the
+//                     gold that reaches the treasury. Without one (the sandbox) it reads the battle.
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 import { getRankForXp } from '../../data/promotions';
 import { getGeneralXpMultiplier } from '../../data/generals';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN, XP_LOSE } from '../../engine/battleOutcome';
+import { playerWon } from '../../engine/battleReports';
+import { auxiliaryLine } from '../../engine/battleLedger';
 import { TICK_HZ } from '../../battle/sim/constants';
-import { CITY_DAMAGE_CARRY_MAX } from './warModel';
+import { describeOutcome, verificationNotice } from './battleReportView';
+import { resultOf } from './battleReportsModel';
 import { SHAKEN_MORALE } from '../../battle/sim/morale';
 
 /** A squad beaten down but not running: the player's side in a commanded battle (sim/morale.js). */
@@ -51,8 +56,8 @@ export const selectionSummary = (selected = []) => {
 };
 
 /**
- * The real city in a city assault (setup.city): its houses by index, how many stand, the housing
- * they gave at the start and give now (plus the town hall), and the 50% rule's line.
+ * The real city in a city assault (setup.city): its houses by index, how many stand, and the
+ * housing they gave at the start and give now (plus the town hall).
  */
 export const cityAssaultView = (hud, setup) => {
   if (!hud || !setup?.city) return null;
@@ -66,13 +71,11 @@ export const cityAssaultView = (hud, setup) => {
   const hallUp = hud.structures[0]?.alive ? hall : 0;
   const housingStart = sum(idx, (i) => setup.structures[i].housing || 0) + hall;
   const housingNow = sum(idx.filter((i) => hud.structures[i]?.alive), (i) => setup.structures[i].housing || 0) + hallUp;
-  const maxLost = Math.floor(total * CITY_DAMAGE_CARRY_MAX);
   const gate = hud.structures.find((s) => s.kind === 'gate');
   const towers = hud.structures.filter((s) => s.kind === 'tower');
   const keep = hud.structures[0];
   return {
-    total, standing, ruined: Math.max(0, ruined), maxLost,
-    carried: Math.min(Math.max(0, ruined), maxLost),
+    total, standing, ruined: Math.max(0, ruined),
     housingStart, housingNow,
     gate: gate ? { alive: gate.alive, hp: gate.hp, maxHp: gate.maxHp } : null,
     towers: { standing: towers.filter((t) => t.alive).length, total: towers.length },
@@ -128,29 +131,91 @@ export const visibleAlerts = (alerts, tick) => {
   return { shown: fresh.slice(-2).reverse(), older: Math.max(0, fresh.length - 2) };
 };
 
+/** What the player is told when the battle loop refused orders (its `ordersRefused` message). */
+export const refusedText = (m) => (m?.full
+  ? 'The battle cannot take more orders: its order log is full. Your troops fight on by themselves.'
+  : `${m?.count > 1 ? `${m.count} orders were` : 'That order was'} not taken by the battle. Please try again.`);
+
 /** How long the battle has left at each speed, in minutes. */
 export const minutesLeft = (seconds, speed = 1) => Math.max(0, Math.round(seconds / 60 / speed));
 
 const lossOf = (units, before) => {
   const start = sum(before, (u) => Math.max(0, u.strength));
   const end = sum(units, (u) => Math.max(0, u.strength));
-  return { start, end, lost: Math.max(0, start - end), destroyed: units.filter((u) => u.strength <= 0).length };
+  return { start, end, lost: Math.max(0, start - end), destroyed: units.filter((u) => u.strength <= 0).length, fled: 0, runDown: 0 };
 };
+// A side of the participant ledger (battleLedger.js sideTotals), in the result screen's words.
+const fromLedger = (t) => ({ start: t.before, end: t.after + t.fled, lost: t.fallen, destroyed: t.destroyed, fled: t.fled, runDown: t.runDown });
+
+const GENERAL_TEXT = {
+  survived: (name) => `${name} survived.`,
+  fell: (name) => `${name} fell with the regiment.`,
+  escaped: (name) => `${name} escaped the rout, without a regiment now.`
+};
+const xpRuleOf = (base, won, draw) => `${base} for a ${won ? 'win' : draw ? 'draw' : 'loss'}, x1.25 with a logistician general, plus up to 20 for the fighting you did`;
+// Gold looted inside a battle is spent inside it: only gold the campaign pays in is "yours".
+const lootOf = (eco, goldGained = 0) => (goldGained > 0 ? { gold: goldGained, banked: true } : eco?.looted > 0 ? { gold: eco.looted, banked: false } : null);
 
 /**
  * The B08 result. `campaign` (optional, from the game): { turnNumber, year, hiredCommanders,
  * ageId, auto: { win } } where auto.win is Auto's chance to win this same battle for you.
+ * `receipt`: the campaign's answer for this battle (src/engine/battleReceipt.js), `{ pending: true }`
+ * while it is being counted, `{ failed: true }` when it could not be, or nothing outside a campaign
+ * (the sandbox). `state`: 'committed' | 'void' | 'pending' | 'preview'.
  */
-export const battleResultModel = (ended, setup, playerSide, campaign = {}) => {
+export const battleResultModel = (ended, setup, playerSide, campaign = {}, receipt = undefined) => {
   const { result } = ended;
+  const tac = result.report?.tactical || {};
+  const eco = tac.economy?.[playerSide] || null;
+  const ageId = campaign.ageId || setup.sides[playerSide].ageId;
+  const autoWin = campaign.auto?.win;
+  const common = {
+    reason: tac.reason || null,
+    duration: tac.durationSec || 0,
+    workersLost: eco?.workersLost ?? null,
+    auto: Number.isFinite(autoWin)
+      ? `Auto wins this battle ${Math.round(autoWin * 100)}% of the time; it counts the same either way.`
+      : 'Auto is tuned to score about the same as playing: it counts the same either way.'
+  };
+  const empty = { mine: null, theirs: null, xp: [], xpRule: null, generals: [], city: null, loot: null, aux: null, notice: null, headline: null };
+
+  // The campaign is still counting the battle: no number is shown before it is the final one.
+  if (receipt?.pending) return { ...common, ...empty, state: 'pending', won: false, draw: true, verdict: 'The battle is over', line: 'Counting the result with the campaign.' };
+  // The battle changed nothing on the map (peace was made, the target can no longer be fought).
+  if (receipt && receipt.applied === false && !receipt.failed) {
+    return { ...common, ...empty, state: 'void', won: false, draw: true, verdict: 'No effect', line: receipt.voidLine || 'This battle changed nothing on the map.' };
+  }
+
+  // What the campaign commits: the report entry and its ledger, read off the same reducer Continue runs.
+  if (receipt?.applied) {
+    const e = receipt.entry;
+    const won = playerWon(e); const draw = e.outcome === 'stalemate';
+    const base = won ? XP_WIN : draw ? Math.round((XP_WIN + XP_LOSE) / 2) : XP_LOSE;
+    return {
+      ...common,
+      state: 'committed', won, draw,
+      verdict: resultOf(e).label,
+      headline: describeOutcome(e).text,
+      line: receipt.line,
+      reason: e.reason || common.reason,
+      duration: e.durationSec || common.duration,
+      mine: fromLedger(receipt.ledger.mine), theirs: fromLedger(receipt.ledger.theirs),
+      xp: receipt.xp.map((x) => ({ id: x.id, name: getSquadDisplayName(x.classId, ageId), gained: x.gained, rankUp: x.rankUp })),
+      xpRule: xpRuleOf(base, won, draw),
+      generals: receipt.generals.map((g) => ({ name: g.name, fate: g.fate, text: GENERAL_TEXT[g.fate](g.name) })),
+      city: setup.city ? { committed: true, line: receipt.cityLine, taken: !!receipt.city?.taken, control: receipt.city?.control ?? null } : null,
+      loot: lootOf(eco, receipt.goldGained),
+      aux: auxiliaryLine(receipt.ledger.aux),
+      notice: verificationNotice(e)
+    };
+  }
+
+  // No campaign behind this battle (the sandbox), or its count could not be shown: the battle's own reading.
   const mySide = playerSide === 0 ? 'attacker' : 'defender';
   const won = result.outcome === mySide;
   const draw = result.outcome === 'stalemate';
   const myUnits = playerSide === 0 ? result.attackerUnits : result.defenderUnits;
   const theirUnits = playerSide === 0 ? result.defenderUnits : result.attackerUnits;
-  const mine = lossOf(myUnits, setup.sides[playerSide].units);
-  const theirs = lossOf(theirUnits, setup.sides[1 - playerSide].units);
-  const tac = result.report?.tactical || {};
   const deployed = new Set(playerSide === 0 ? result.report?.deployedAttackerIds || [] : result.report?.deployedDefenderIds || []);
   const base = won ? XP_WIN : draw ? Math.round((XP_WIN + XP_LOSE) / 2) : XP_LOSE;
   const commanders = campaign.hiredCommanders || {};
@@ -160,40 +225,35 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}) => {
     const gained = Math.round(base * mult) + bonus;
     const before = u.xp || 0;
     const rankUp = getRankForXp(before + gained) !== getRankForXp(before) ? getRankForXp(before + gained) : null;
-    return { id: u.id, name: getSquadDisplayName(u.classId, campaign.ageId || setup.sides[playerSide].ageId), gained, bonus, mult, rankUp };
+    return { id: u.id, name: getSquadDisplayName(u.classId, ageId), gained, bonus, mult, rankUp };
   }).sort((a, b) => b.gained - a.gained);
   const generals = myUnits.filter((u) => u.commanderId).map((u) => {
     const g = commanders[u.commanderId];
     const name = g?.name || 'Your general';
-    if (u.strength > 0) return { name, fate: 'survived', text: `${name} survived.` };
+    if (u.strength > 0) return { name, fate: 'survived', text: GENERAL_TEXT.survived(name) };
     const falls = campaign.turnNumber != null ? hashRoll(`${u.id}|${campaign.turnNumber}`) < COMMANDER_FALL_CHANCE : null;
-    return { name, fate: falls === null ? 'unknown' : falls ? 'fell' : 'escaped', text: falls === null ? `${name}'s regiment was destroyed: a ${Math.round(COMMANDER_FALL_CHANCE * 100)}% chance to fall.` : falls ? `${name} fell with the regiment.` : `${name} escaped the rout, without a regiment now.` };
+    return { name, fate: falls === null ? 'unknown' : falls ? 'fell' : 'escaped', text: falls === null ? `${name}'s regiment was destroyed: a ${Math.round(COMMANDER_FALL_CHANCE * 100)}% chance to fall.` : GENERAL_TEXT[falls ? 'fell' : 'escaped'](name) };
   });
   let city = null;
   if (setup.city && tac.cityDamage) {
     const houses = setup.structures.filter((s) => s.kind === 'house' && !s.ruinedAtStart);
     const houseIds = new Set(houses.map((s) => s.manifestId));
     const ruined = tac.cityDamage.destroyed.filter((id) => houseIds.has(id)).length;
-    const total = houses.length;
-    const maxLost = Math.floor(total * CITY_DAMAGE_CARRY_MAX);
     const otherDown = tac.cityDamage.destroyed.filter((id) => !houseIds.has(id)).length;
-    city = { total, ruined, maxLost, carried: Math.min(ruined, maxLost), kept: total - Math.min(ruined, maxLost), otherDown, damaged: tac.cityDamage.damaged.length };
+    city = { committed: false, total: houses.length, ruined, otherDown, damaged: tac.cityDamage.damaged.length };
   }
-  const eco = tac.economy?.[playerSide] || null;
-  const autoWin = campaign.auto?.win;
+  const auxTrained = Object.entries(eco?.trained || {}).reduce((s, [k, n]) => s + (k === 'worker' ? 0 : n), 0);
   return {
-    won, draw,
+    ...common,
+    state: 'preview', won, draw,
     verdict: draw ? 'Stalemate' : won ? (playerSide === 1 ? 'Held' : 'Victory') : 'Defeat',
-    reason: tac.reason || null,
-    duration: tac.durationSec || 0,
-    mine, theirs,
-    workersLost: eco?.workersLost ?? null,
-    loot: eco ? { gold: eco.looted || 0 } : null,
-    xp, xpRule: `${base} for a ${won ? 'win' : draw ? 'draw' : 'loss'}, x1.25 with a logistician general, plus up to 20 for the fighting you did`,
+    headline: null, line: null,
+    mine: lossOf(myUnits, setup.sides[playerSide].units), theirs: lossOf(theirUnits, setup.sides[1 - playerSide].units),
+    xp, xpRule: xpRuleOf(base, won, draw),
     generals,
     city,
-    auto: Number.isFinite(autoWin)
-      ? `Auto wins this battle ${Math.round(autoWin * 100)}% of the time; it counts the same either way.`
-      : 'Auto is tuned to score about the same as playing: it counts the same either way.'
+    loot: lootOf(eco),
+    aux: auxTrained > 0 ? auxiliaryLine({ squads: auxTrained, standing: Object.values(eco.auxiliariesStanding || {}).reduce((s, n) => s + n, 0) }) : null,
+    notice: receipt?.failed ? 'The campaign could not show its count of this battle here. Continue hands the battle over; Battle reports will have the final numbers.' : null
   };
 };

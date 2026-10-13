@@ -7,11 +7,16 @@
 // service with a log line saying why. An error while setting it up, starting it or drawing it shows
 // BattleFailure (a readable message, Auto or Try again) instead of a frozen field. A checkpoint is
 // resumed only into the battle it was saved from (setupKeyOf): battle ids repeat between games.
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+// The result screen shows the campaign's receipt (src/engine/battleReceipt.js): the same pure
+// reducer Continue runs, on the same state with the same action, so what is shown is what is
+// committed. A battle that has ended is kept with its end record (the checkpoint store): closing
+// the app on the result screen and coming back hands that same result over, never a second fight.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { battleName } from '../../engine/battleNames';
 import { setupKeyOf, SETUP_VERSION } from '../../battle/setup/buildBattleSetup';
+import { battleReceipt, resolveActionOf } from '../../engine/battleReceipt';
 import { saveBattleCheckpoint, loadBattleCheckpoint, clearBattleCheckpoint } from '../../battle/worker/battleStore';
 import TacticalBattleScreen from './TacticalBattleScreen';
 import BattleFailure, { BattleErrorBoundary } from './BattleFailure';
@@ -23,6 +28,9 @@ const TacticalBattleHost = () => {
   const pb = state.pendingBattle;
   const [resume, setResume] = useState(undefined); // undefined = still looking for a checkpoint
   const [attempt, setAttempt] = useState(0); // Try again remounts the battle from the start
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const actionRef = useRef(null); // { ended, action }: one action per ended battle, for the receipt and for Continue
 
   // The setup is fixed for the life of the battle (its units are locked), so build it once per id.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -38,6 +46,12 @@ const TacticalBattleHost = () => {
     loadBattleCheckpoint(pb.id).then((cp) => {
       if (!alive) return;
       if (cp && !checkpointFits(cp, setup)) { clearBattleCheckpoint(pb.id); setResume(null); return; }
+      // The battle had already ended when the app was closed: its result is handed over as it was.
+      if (cp?.ended?.result && Array.isArray(cp.ended.log)) {
+        clearBattleCheckpoint(pb.id);
+        dispatch(resolveActionOf(pb, cp.ended, setupKeyOf(setup)));
+        return;
+      }
       setResume(cp || null);
     });
     return () => { alive = false; };
@@ -63,9 +77,16 @@ const TacticalBattleHost = () => {
   const setupKey = setupKeyOf(setup);
   // The live battle's own end record goes with the log (battleVerify.js): the rules it ran under,
   // which battle it was and the world it ended on, so the reducer's replay is checked against it.
+  const actionFor = (ended) => {
+    if (actionRef.current?.ended !== ended) actionRef.current = { ended, action: resolveActionOf(pb, ended, setupKey) };
+    return actionRef.current.action;
+  };
+  // The battle ended: its end record is kept until Continue, so the result survives a closed app.
+  const onEnded = (ended) => saveBattleCheckpoint(pb.id, { ended: { result: ended.result, log: ended.log, hash: ended.hash, chain: ended.chain, tick: ended.tick }, setupVersion: SETUP_VERSION, setupKey, savedAt: Date.now() });
+  const getReceipt = (ended) => battleReceipt(stateRef.current, actionFor(ended));
   const finish = (ended) => {
     clearBattleCheckpoint(pb.id);
-    dispatch({ type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result: ended.result, log: ended.log, hash: ended.hash, chain: ended.chain, tick: ended.tick, setupVersion: SETUP_VERSION, setupKey } });
+    dispatch(actionFor(ended));
   };
   return (
     <BattleErrorBoundary key={`${pb.id}:${attempt}`} onAuto={() => abandon('screen_error')} onRetry={retry}>
@@ -80,6 +101,8 @@ const TacticalBattleHost = () => {
         onAbandon={abandon}
         onRetry={retry}
         getCampaign={getCampaign}
+        getReceipt={getReceipt}
+        onEnded={onEnded}
       />
     </BattleErrorBoundary>
   );

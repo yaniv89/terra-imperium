@@ -18,6 +18,7 @@ import { BUILDINGS, UNITS, RESOURCES, ecoName, buildableFor, trainableRoles } fr
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 import { unitIconUrl } from '../../data/icons';
 import { buildBlock, buildDetail } from './inspectModel';
+import { AUXILIARY_NOTE } from '../../engine/battleLedger';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
 const RES_ICON = { food: ['wheat', Wheat, 'text-amber-200'], materials: ['timber', TreePine, 'text-emerald-200'], gold: ['gold', Coins, 'text-yellow-300'] };
@@ -155,6 +156,7 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
     <div className="w-[min(26rem,calc(100vw-7.5rem))] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]" data-testid="battle-building-actions">
       <div className="flex items-center gap-2 px-1 pb-1">
         <span className="fa-label">Train</span>
+        {roles.some((r) => r !== 'worker') && <span className="text-[10px] text-fa-brass truncate" data-testid="battle-train-temporary" title={AUXILIARY_NOTE}>Temporary: they leave after the battle</span>}
         {eco?.popSplit && <span className="text-[10px] text-fa-muted truncate" data-testid="battle-pop-split">Population <span className="fa-num">{eco.pop}/{eco.cap}</span>: army {eco.popSplit.army}, laborers {eco.popSplit.workers}, training {eco.popSplit.training}</span>}
       </div>
       {building.queue.length > 0 && (

@@ -28,7 +28,7 @@ import { getMapPrefs } from '../map/mapPrefs';
 import { Check, X as XIcon, Ban } from 'lucide-react';
 import { BuildMenu, BuildingActions, InfoCard } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
-import { contextFor } from './battleHudModel';
+import { contextFor, refusedText } from './battleHudModel';
 import { updateSiteLabels } from './siteLabels';
 import { BUILDINGS, ecoName } from '../../battle/data/economy';
 import { placementCheck, footprintAt } from '../../battle/input/placement';
@@ -56,7 +56,11 @@ const markHintSeen = (key) => { try { localStorage.setItem(key, '1'); } catch { 
 // A mouse is the main pointer (desktop): the hints speak of clicks instead of taps.
 const MOUSE_POINTER = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: fine)').matches;
 
-const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onRetry = null, getCampaign = null }) => {
+// An order the battle did not take is said, not swallowed (CB02): the battle loop posts
+// `ordersRefused` when the shared order schema turns an order down or the order log is full.
+const REFUSED_MS = 4000;
+
+const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onRetry = null, getCampaign = null, getReceipt = null, onEnded = null }) => {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
@@ -81,6 +85,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [radial, setRadial] = useState(null);
   const [ended, setEnded] = useState(null);
   const [failure, setFailure] = useState(null); // { message, detail }: BattleFailure
+  const [refused, setRefused] = useState(null); // the last `ordersRefused` message, shown a few seconds
+  // The campaign's answer for the ended battle (battleReceipt.js): undefined outside a campaign,
+  // { pending } while it is counted (the replay takes a moment), then the receipt or { failed }.
+  const [receipt, setReceipt] = useState(undefined);
   // The battle economy (EconomyHud.jsx): the selected building, the build menu.
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const selectedBuildingRef = useRef(null);
@@ -200,6 +208,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           } catch (err) { if (!f.fxWarned) { f.fxWarned = true; console.error('[battle] effects or sound failed', err); } }
         } else if (m.type === 'checkpoint') onCheckpoint?.(m);
         else if (m.type === 'ended') setEnded(m);
+        else if (m.type === 'ordersRefused') setRefused({ count: m.count, full: !!m.full });
         else if (m.type === 'resumeRejected') {
           // The saved checkpoint was not this battle's: it starts fresh, at deployment.
           startedRef.current = false; setStarted(false); setPaused(true);
@@ -287,6 +296,25 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
 
   // The result screen covers the battlefield: its sounds stop (the victory or defeat sting has played).
   useEffect(() => { audioRef.current?.setVisible(!ended); }, [ended]);
+  useEffect(() => {
+    if (!refused) return undefined;
+    const t = setTimeout(() => setRefused(null), REFUSED_MS);
+    return () => clearTimeout(t);
+  }, [refused]);
+  // The battle is over: the result screen opens at once, and the campaign counts the battle right
+  // after (a tick later, so "counting" is on screen while the replay runs).
+  useEffect(() => {
+    if (!ended) return undefined;
+    onEnded?.(ended);
+    if (!getReceipt) return undefined;
+    setReceipt({ pending: true });
+    const t = setTimeout(() => {
+      let r = null;
+      try { r = getReceipt(ended); } catch (err) { console.error('[battle] the campaign result could not be read', err); }
+      setReceipt(r || { failed: true });
+    }, 40);
+    return () => clearTimeout(t);
+  }, [ended]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- input --------------------------------------------------------------------------------
   // `enemyFirst` (a tap with troops selected): a visible enemy beside your squad wins, so a tap
@@ -712,7 +740,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         ended={!!ended}
       />
       {showPerf && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
-      {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} onContinue={() => onFinish?.(ended)} />}
+      {refused && !ended && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" role="status" aria-live="polite" data-testid="battle-orders-refused">{refusedText(refused)}</div>
+      )}
+      {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} receipt={receipt} onContinue={() => onFinish?.(ended)} />}
       {failure && !ended && <BattleFailure title={failure.message} detail={failure.detail} onAuto={() => onAbandon?.('screen_error')} onRetry={onRetry} />}
     </div>
   );

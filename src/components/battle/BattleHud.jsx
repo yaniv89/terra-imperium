@@ -16,7 +16,7 @@
 //                older ones fold into a count
 //   pause (B06)  a sheet on the right: Resume, speed, the time left, Switch to Auto and Retreat set
 //                apart, sound, and the powers, usable while paused
-//   city (B05)   in a city assault: the defender's housing as houses burn and the 50% rule's line
+//   city (B05)   in a city assault: the defender's housing as houses burn
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords, Coins } from 'lucide-react';
@@ -28,6 +28,7 @@ import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { TICK_HZ } from '../../battle/sim/constants';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft } from './battleHudModel';
+import { menText } from '../../engine/battleLedger';
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 const cx = (...p) => p.filter(Boolean).join(' ');
@@ -211,7 +212,7 @@ const BattleHud = ({
           {sel && !pauseOpen && (
             <div className={cx('max-w-full pl-3 py-1 rounded-full bg-fa-panel/95 border border-fa-line text-[12px] shadow-xl pointer-events-auto flex items-center gap-2', onClearSelection ? 'pr-0' : 'pr-3')} data-testid="battle-selection">
               <span className="font-semibold truncate min-w-[3rem] max-w-[9rem] lg:max-w-none">{sel.name}</span>
-              <span className="text-fa-muted whitespace-nowrap hidden lg:inline">{sel.squads} squad{sel.squads === 1 ? '' : 's'}, <span className="fa-num">{sel.men}</span> men</span>
+              <span className="text-fa-muted whitespace-nowrap hidden lg:inline">{sel.squads} squad{sel.squads === 1 ? '' : 's'}, <span className="fa-num">{menText(sel.men)}</span> men</span>
               <span className={cx('fa-num', sel.share < 0.35 ? 'text-fa-danger-text' : 'text-fa-good')}>{Math.round(sel.share * 100)}%</span>
               {sel.shaken > 0 && <span className="px-1.5 rounded-md bg-fa-brass/20 text-fa-brass text-[11px] font-bold whitespace-nowrap" title="Beaten down: weaker blows, more hurt taken, until morale returns. Your squads never run." data-testid="battle-selection-shaken">Shaken{sel.squads > 1 ? ` ${sel.shaken}` : ''}</span>}
               {sel.routed && <span className="text-fa-danger-text font-semibold">routed</span>}
@@ -227,7 +228,7 @@ const BattleHud = ({
           )}
         </div>
 
-        {/* B05: the city in a city assault, its housing as the houses burn, the 50% line */}
+        {/* B05: the city in a city assault, its housing as the houses burn */}
         {city && started && !pauseOpen && (
           <div className="w-[min(16.5rem,30vw)] shrink-0 pointer-events-auto" data-testid="battle-city">
             {cityOpen ? (
@@ -241,11 +242,9 @@ const BattleHud = ({
                   <span className={cx('fa-num text-[17px] font-semibold', city.housingNow < city.housingStart ? 'text-fa-danger-text' : '')}>{city.housingNow}</span>
                   <span className="text-[11px] text-fa-muted">{city.ruined ? `${city.ruined} house${city.ruined === 1 ? '' : 's'} burned` : 'no house burned yet'}</span>
                 </div>
-                <div className="fa-label mt-1">The 50% rule</div>
-                <div className="text-[11.5px] leading-snug">Ruined {city.ruined} of {city.total} houses. At most {city.maxLost} carry to the map: {playerSide === 1 ? 'you keep' : 'you take'} a city, not rubble.</div>
+                <div className="text-[11.5px] leading-snug mt-1" data-testid="battle-city-houses">Ruined {city.ruined} of {city.total} houses. Repairs are free after the battle.</div>
                 <div className="relative h-1.5 mt-1 rounded-full bg-fa-ink overflow-hidden" role="meter" aria-label="Houses ruined" aria-valuenow={city.ruined} aria-valuemin={0} aria-valuemax={city.total}>
                   <span className="absolute inset-y-0 left-0 bg-fa-danger" style={{ width: `${(city.ruined / Math.max(1, city.total)) * 100}%` }} />
-                  <span className="absolute inset-y-[-1px] w-0.5 bg-fa-text" style={{ left: `${(city.maxLost / Math.max(1, city.total)) * 100}%` }} />
                 </div>
                 <div className="flex gap-3 mt-1 text-[10.5px] text-fa-muted">
                   {city.gate && <span>Gate {city.gate.alive ? `${Math.round((city.gate.hp / city.gate.maxHp) * 100)}%` : 'open'}</span>}
@@ -254,7 +253,7 @@ const BattleHud = ({
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setCityOpen(true)} className="ml-auto flex fa-chip !bg-fa-panel/95 gap-1.5"><Home className="w-3.5 h-3.5" aria-hidden="true" />Housing <span className="fa-num">{city.housingNow}</span> · ruined <span className="fa-num">{city.ruined}/{city.maxLost}</span></button>
+              <button type="button" onClick={() => setCityOpen(true)} className="ml-auto flex fa-chip !bg-fa-panel/95 gap-1.5"><Home className="w-3.5 h-3.5" aria-hidden="true" />Housing <span className="fa-num">{city.housingNow}</span> · ruined <span className="fa-num">{city.ruined}/{city.total}</span></button>
             )}
           </div>
         )}
