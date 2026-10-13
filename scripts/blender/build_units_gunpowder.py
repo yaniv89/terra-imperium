@@ -276,10 +276,13 @@ def g_cavalry():
 
 def g_siege():
     parts, info = field_gun()
-    for i, ((x, y, z, yaw), tool) in enumerate(zip(info['crew'], ('rammer', 'linstock', None))):
+    # Two thirds of real size (MD09): a field gun about 2.5 m from muzzle to trail on wheels about
+    # 0.9 m (the real one 3.5 m and 1.4 m); the crew stays at 1.0.
+    tm.enlarge(info['rig'], .82)
+    for i, ((x, y, z, yaw), tool) in enumerate(zip([(-.56, .09, 0, 90), (.5, -.22, 0, -90), (.23, 1.0, 0, 180)], ('rammer', 'linstock', None))):
         parts.append(gun_crew(f'Crew{i}', (x, y, z), yaw, tool))
     return parts, {'Skin': 'C99472', 'Cloth': 'D9CFB4', 'Leather': '2E2A28', 'Metal': ('A8823C', .55, .75), 'Wood': '6E5236'}, \
-        'Field cannon: a bronze gun on a two-wheeled carriage with a trail, a rammer and a pile of balls, three crew in Team coats and forage caps (one with a rammer, one with a linstock)', dict(budget=3200, mounted=False)
+        'Field cannon: a bronze gun on a two-wheeled carriage with a trail, a rammer and a pile of balls, three crew in Team coats and forage caps (one with a rammer, one with a linstock)', dict(budget=3200, mounted=False, machine=True)
 
 
 def g_support():
@@ -317,6 +320,8 @@ def build(uid):
     lib.reset()
     parts, colors, look, opts = BUILDERS[uid]()
     lib.finish(uid, parts, colors, {'role': uid.split('-')[1], 'look': look}, opts['budget'], opts['mounted'])
+    if opts.get('machine'):
+        tm.mark_machine(uid)
 
 
 if __name__ == '__main__':

@@ -35,7 +35,7 @@ import { orderRingState, recordOrderTarget, ORDER_RING_COLOR, MAX_ORDER_TARGETS 
 import { getAgeIndex } from '../../data/ages';
 import { peopleForNationId } from '../../data/peoples';
 import { signatureKey, baseClassOf, signatureUnitFor, rigFiguresOf } from '../../data/signatureUnits';
-import { lookKey, unitLookOf, LOOK_CLASS } from './unitModels';
+import { lookKey, unitLookOf, LOOK_CLASS, findUnitModel, findSignatureModel, footprintOf, machineLayout } from './unitModels';
 import { battleGroundSets, groundTextureUniform } from '../../data/groundMaterials';
 import { styleOfLand } from '../../data/architecture';
 import { BattleProps } from '../art/battleProps';
@@ -1017,9 +1017,9 @@ export class BattleRenderer {
       const memo = list[k].target.kind === 'squad' ? this.soldierMemo.get(list[k].target.index) : null;
       if (memo && memo.n > 0) {
         // figures stand behind the squad's point in rows (drawSquads): centre on the block
-        const rows = Math.ceil(memo.n / Math.max(1, memo.cols)); const back = ((rows - 1) * memo.spacing) / 2;
+        const rows = Math.ceil(memo.n / Math.max(1, memo.cols)); const rowGap = memo.rowGap ?? memo.spacing; const back = ((rows - 1) * rowGap) / 2;
         s.x = memo.x - memo.fx * back; s.z = memo.z - memo.fz * back;
-        s.radius = Math.max(s.radius, Math.hypot(memo.cols * memo.spacing, rows * memo.spacing) / 2 + 0.6);
+        s.radius = Math.max(s.radius, Math.hypot(memo.cols * memo.spacing, rows * rowGap) / 2 + 0.6);
       }
       const y = this.heightAt(s.x, s.z) + 0.1;
       const r = s.radius * (1 + 0.08 * pulse);
@@ -1196,16 +1196,25 @@ export class BattleRenderer {
     // a rig drawn with its own few full-size figures (war elephants: two a squad, RIG_FIGURES in
     // data/signatureUnits.js); drawing only, the squad's strength and combat stay the role's
     const rigFig = useSig ? rigFiguresOf(signatureUnitFor(people, s.ageId, s.classId)) : null;
-    const figures = rigFig ? rigFig.figures : stats.soldiers;
+    const layerKey = useSig ? sig : look && hasSoldierOverride(s.ageId, look) ? look : s.classId;
+    const baseSpacing = rigFig ? rigFig.spacing : stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? (s.ageId === 'modern' ? 1.3 : 0.95) : s.classId === 'support' ? (s.ageId === 'modern' ? 1.4 : 1.05) : 0.52;
+    // A machine at its true size beside its crew (unitModels.js machineLayout, MD09): spaced by its
+    // own footprint, and only as many drawn as fit the squad's ground. Drawing only, like rigFig.
+    const model = rigFig || stats.flying || s.classId === 'naval' || !hasSoldierOverride(s.ageId, layerKey) ? null
+      : useSig ? findSignatureModel(people, s.ageId, s.classId) : findUnitModel(s.ageId, layerKey);
+    const machine = machineLayout(footprintOf(model), stats.soldiers, baseSpacing);
+    const figures = rigFig ? rigFig.figures : machine ? machine.figures : stats.soldiers;
     return {
       stats,
-      layer: this.soldierLayer(s.ageId, useSig ? sig : look && hasSoldierOverride(s.ageId, look) ? look : s.classId),
+      layer: this.soldierLayer(s.ageId, layerKey),
       general: hasSoldierOverride(s.ageId, 'general') ? this.soldierLayer(s.ageId, 'general') : null,
-      drawn: this.figureScale < 1 || rigFig ? { soldiers: this.figureScale < 1 ? scaledSoldiers(figures, this.figureScale) : figures } : stats,
+      drawn: this.figureScale < 1 || rigFig || machine ? { soldiers: this.figureScale < 1 ? scaledSoldiers(figures, this.figureScale) : figures } : stats,
       big: s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || !!stats.flying,
       // Modern tanks and AA trucks are wider than horses and carts: spread them so they do not overlap
       rigFig,
-      spacing: rigFig ? rigFig.spacing : stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? (s.ageId === 'modern' ? 1.3 : 0.95) : s.classId === 'support' ? (s.ageId === 'modern' ? 1.4 : 1.05) : 0.52,
+      machine,
+      spacing: machine ? machine.spacing : baseSpacing,
+      rowGap: machine ? machine.rowGap : baseSpacing, // between rows (a machine is longer than it is wide)
       scale: MODEL_SCALE[s.classId] || 0.62,
       organic: isOrganic(s.classId, s.ageId),
       sideColor: this.sideColors[s.side],
@@ -1216,23 +1225,23 @@ export class BattleRenderer {
   // A squad's figures where they stand in its block (lateral, back), the cos and sin of each one's
   // small turn, its walk phase and its look (skin, emblem, cloth): all fixed for a given count and
   // spacing, so worked out once and again only when the squad loses a figure.
-  squadFigures(info, s, n, cols, spacing) {
+  squadFigures(info, s, n, cols, spacing, rowGap = spacing) {
     const f = info.fig;
-    if (f && f.n === n && f.cols === cols && f.spacing === spacing) return f.data;
+    if (f && f.n === n && f.cols === cols && f.spacing === spacing && f.rowGap === rowGap) return f.data;
     const data = new Float32Array(n * FIG);
     const jitter = info.big ? 0.1 : 0.07;
     const look = new Float32Array(4);
     for (let i = 0; i < n; i++) {
       const d = i * FIG; const col = i % cols; const row = Math.floor(i / cols);
       data[d] = (col - (cols - 1) / 2) * spacing + (hash01(s.idx * 97 + i) - 0.5) * jitter * 2;
-      data[d + 1] = row * spacing + (hash01(s.idx * 53 + i) - 0.5) * jitter * 2;
+      data[d + 1] = row * rowGap + (hash01(s.idx * 53 + i) - 0.5) * jitter * 2;
       const j = (hash01(s.idx * 7 + i) - 0.5) * 0.18;
       data[d + 2] = Math.cos(j); data[d + 3] = Math.sin(j);
       data[d + 4] = hash01(s.idx * 131 + i) * 6.283;
       writeSoldierVariant(look, 0, s.idx, s.side, i, info.tone);
       data.set(look, d + 5);
     }
-    info.fig = { n, cols, spacing, data };
+    info.fig = { n, cols, spacing, rowGap, data };
     return data;
   }
 
@@ -1269,12 +1278,12 @@ export class BattleRenderer {
       const info = this.squadInfo[s.idx] || (this.squadInfo[s.idx] = this.squadLook(s));
       const { stats, layer, big } = info;
       const n = getSoldierCount(info.drawn, s.strength, s.maxStrength);
-      const cols = Math.max(1, Math.ceil(Math.sqrt(n * (big ? 1.2 : 1.8))));
-      const spacing = info.spacing * spread;
+      const cols = info.machine ? Math.min(info.machine.cols, Math.max(1, n)) : Math.max(1, Math.ceil(Math.sqrt(n * (big ? 1.2 : 1.8))));
+      const spacing = info.spacing * spread; const rowGap = info.rowGap * spread;
       // Off screen (with a margin for the block, which runs back from its front rank, the figures'
       // height and the banner): nothing to draw, so no figures, ring, banner or bar, and no blood
       // for its losses while away.
-      if (!cull(x, z, Math.max(cols / 2, Math.ceil(n / cols)) * spacing + 3)) { this.soldierMemo.delete(s.idx); return; }
+      if (!cull(x, z, Math.max((cols / 2) * spacing, Math.ceil(n / cols) * rowGap) + (info.machine ? 6 : 3))) { this.soldierMemo.delete(s.idx); return; }
       const facing = useP ? lerpAngle256(p.facing, s.facing, alpha) : s.facing;
       // Squads in contact get nudged apart a little every tick; that's jostling, not marching.
       const step = useP ? Math.hypot(p.x - s.x, p.y - s.y) / Q : 0;
@@ -1296,7 +1305,7 @@ export class BattleRenderer {
       const walking = moving || s.routed ? 1 : 0; const striking = fighting ? 1 : 0;
       const turn = heading + (s.routed ? Math.PI : 0); // routed troops turn and run
       const ct = Math.cos(turn) * scale; const st = Math.sin(turn) * scale;
-      const fig = this.squadFigures(info, s, n, cols, spacing);
+      const fig = this.squadFigures(info, s, n, cols, spacing, rowGap);
       const varArr = layer.variant.array;
       for (let i = 0; i < n; i++) {
         const k = layer.count;
@@ -1326,15 +1335,18 @@ export class BattleRenderer {
         layer.count += 1;
       }
       // Soldiers lost since last frame go down in a spray of blood where they stood.
-      if (memo && n < memo.n) this.spillBlood({ n: memo.n, x, z, fx, fz, cols, spacing, big, organic: info.organic, idx: s.idx }, n);
+      if (memo && n < memo.n) this.spillBlood({ n: memo.n, x, z, fx, fz, cols, spacing, rowGap, big, organic: info.organic, idx: s.idx }, n);
       const m = memo || {};
-      Object.assign(m, { n, x, z, fx, fz, cols, spacing, big, organic: info.organic, idx: s.idx });
+      Object.assign(m, { n, x, z, fx, fz, cols, spacing, rowGap, big, organic: info.organic, idx: s.idx });
       if (!memo) this.soldierMemo.set(s.idx, m);
       // Ground ring, selection ring, standard-bearer banner, strength bar (written straight into
       // their instance buffers: three.js's Object3D compose and colour parsing cost more than
       // the soldiers themselves at 600 squads).
       // (a few wide figures, the war elephants: round the whole line abreast)
-      const r = info.rigFig ? (Math.min(n, cols) - 1) * spacing / 2 + 1.1 : 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
+      // (machines at true size: round the block, which runs back from the squad's point)
+      const r = info.rigFig ? (Math.min(n, cols) - 1) * spacing / 2 + 1.1
+        : info.machine ? Math.hypot((Math.min(n, cols) * spacing) / 2, (Math.ceil(n / cols) - 0.5) * rowGap) + 0.2
+          : 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
       // Readable at 300 to 500 a side (phase R1 readability): rings only under the selection, one
       // short standard per few squads (and every general), shown from mid zoom in, and a strength
       // bar only on the selection and on squads losing men in a fight.
@@ -1394,10 +1406,10 @@ export class BattleRenderer {
   // throws a few droplets and leaves a pool on the ground; a machine throws sparks and leaves a
   // scorch mark instead.
   spillBlood(memo, from) {
-    const { x, z, fx, fz, cols, spacing, big, organic, idx } = memo;
+    const { x, z, fx, fz, cols, spacing, big, organic, idx } = memo; const rowGap = memo.rowGap ?? spacing;
     for (let i = from; i < memo.n; i++) {
       const col = i % cols; const row = Math.floor(i / cols);
-      const lat = (col - (cols - 1) / 2) * spacing; const back = row * spacing;
+      const lat = (col - (cols - 1) / 2) * spacing; const back = row * rowGap;
       const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
       const seed = idx * 977 + i * 31 + Math.floor(this.time * 60);
       if (organic) {
