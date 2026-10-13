@@ -23,7 +23,9 @@ NEW = ['rock', 'rock_dark', 'sandstone', 'ore', 'verdigris', 'quartz', 'gold', '
        'acacia_leaf', 'dry_shrub', 'tuft', 'tuft_dry', 'wool', 'wool_dark', 'hide', 'hide_pale', 'horn', 'hoof',
        'ripple', 'deep_water', 'fish',
        # the four battle resources (MD06, 13 October): a pale quarry, gold in dark rock, a shoal's water
-       'quarry', 'quarry_cut', 'rubble', 'pit', 'gold_rock', 'gold_bright', 'shoal_water', 'fish_silver', 'foam']
+       'quarry', 'quarry_cut', 'rubble', 'pit', 'gold_rock', 'gold_bright', 'shoal_water', 'fish_silver', 'foam',
+       # log piles for the kits built elsewhere (log-piles.glb): pine, tropical hardwood, larch
+       'bark_pine', 'cut_pine', 'bark_hardwood', 'cut_hardwood', 'bark_larch']
 for _n in NEW:
     if _n not in tt.PROC:
         tt.PROC.append(_n)
@@ -72,6 +74,11 @@ def make_materials():
     s('shoal_water', ['#4fa3b5', '#66b7c6', '#3f93a6'], scale=9.0, rough=0.2, bump=0.0)
     s('fish_silver', ['#c9d3d6', '#e4eaeb', '#a9b6ba'], scale=30.0, rough=0.3, bump=0.1)
     s('foam', ['#e9f3f4', '#f7fbfb', '#d6e8ea'], scale=30.0, rough=0.4, bump=0.0)
+    s('bark_pine', ['#9a6a48', '#ae7c56', '#82563a'], scale=10.0, stripes={'dir': 'Z', 'scale': 50.0, 'distortion': 8.0}, bump=0.7)
+    s('cut_pine', ['#e6c88c', '#f0d8a2', '#d8b678'], scale=8.0, stripes={'dir': 'Z', 'scale': 200.0, 'distortion': 2.0}, bump=0.3)
+    s('bark_hardwood', ['#38231a', '#482d20', '#2a1912'], scale=10.0, stripes={'dir': 'Z', 'scale': 60.0, 'distortion': 8.0}, bump=0.7)
+    s('cut_hardwood', ['#a9603c', '#bb7048', '#904e30'], scale=8.0, stripes={'dir': 'Z', 'scale': 200.0, 'distortion': 2.0}, bump=0.3)
+    s('bark_larch', ['#6c5a4c', '#7e6a5a', '#5a4a3e'], scale=10.0, stripes={'dir': 'Z', 'scale': 60.0, 'distortion': 8.0}, bump=0.7)
 
 
 if not any(n == 'nature' for n, _ in tt.EXTRA_MATERIALS):
@@ -251,28 +258,32 @@ def log(ms, p0, p1, r, bark='bark', ends='cut_wood', segs=6, lod=2, only=None, t
     disc(ms, ends, p1 + d * 0.0004, d, r * taper, segs, lod, only)
 
 
-def log_stack(ms, x, y, length, r, rows=(3, 2, 1), bark='bark', yaw=0.0, stakes=True, far_rows=None, z=0.0):
+def log_stack(ms, x, y, length, r, rows=(3, 2, 1), bark='bark', yaw=0.0, stakes=True, far_rows=None, z=0.0, ends='cut_wood'):
     """Logs stacked in a pyramid along the local x axis, their sawn ends showing at both sides,
     between two stakes a side. LOD1 keeps every log five-sided, LOD2 four-sided (`far_rows`: only
-    those rows, a little thicker)."""
+    those rows, a little thicker). `bark` may be a list: the logs take its materials in turn."""
     f = Matrix.Translation(Vector((x, y, z))) @ Matrix.Rotation(math.radians(yaw), 4, 'Z')
     pitch = r * 2.02
+    barks = [bark] if isinstance(bark, str) else list(bark)
+    count = 0
     for row, n in enumerate(rows):
         zz = r + row * pitch * 0.87
         for k in range(n):
             yy = (k - (n - 1) / 2) * pitch
             a, b = f @ Vector((-length / 2, yy, zz)), f @ Vector((length / 2, yy, zz))
-            log(ms, a, b, r, bark=bark, segs=6, lod=0)
-            log(ms, a, b, r, bark=bark, segs=5, lod=1, only=(1,))
+            mat = barks[count % len(barks)]
+            count += 1
+            log(ms, a, b, r, bark=mat, ends=ends, segs=6, lod=0)
+            log(ms, a, b, r, bark=mat, ends=ends, segs=5, lod=1, only=(1,))
             if far_rows is None or row in far_rows:
-                log(ms, a, b, r * (1.0 if far_rows is None else 1.25), bark=bark, segs=4, lod=2, only=(2,))
+                log(ms, a, b, r * (1.0 if far_rows is None else 1.25), bark=mat, ends=ends, segs=4, lod=2, only=(2,))
     if stakes:
         w = rows[0] * pitch / 2 + r * 0.3
         for sx in (-0.3, 0.3):
             for sy in (-1, 1):
                 p = f @ Vector((sx * length, sy * w, -0.006))
                 q = f @ Vector((sx * length, sy * w * 0.94, r * 2.7))
-                limb(ms, bark, p, q, r * 0.24, r * 0.2, segs=4, lod=1, caps=False)
+                limb(ms, barks[0], p, q, r * 0.24, r * 0.2, segs=4, lod=1, caps=False)
 
 
 def _burn(rng, n):
@@ -323,9 +334,9 @@ def felled(ms, rng, length, r, bark='bark', leaf='foliage'):
     log_stack(ms, -length * 0.08, -r * 4.6, length * 0.42, r * 0.7, rows=(3, 2), bark=bark, stakes=False, far_rows=(0,))
 
 
-def log_pile(ms, rng, length=0.26, r=0.032, bark='bark'):
+def log_pile(ms, rng, length=0.26, r=0.032, bark='bark', rows=(3, 2, 1), ends='cut_wood', far_rows=None):
     """A worked grove's marker (MD06): six cut logs stacked three, two, one between stakes."""
-    log_stack(ms, 0, 0, length, r, rows=(3, 2, 1), bark=bark, stakes=True)
+    log_stack(ms, 0, 0, length, r, rows=rows, bark=bark, stakes=True, ends=ends, far_rows=far_rows)
 
 
 # ---- quarry and gold (MD06) ------------------------------------------------------------------------

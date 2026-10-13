@@ -90,6 +90,9 @@ export const groveNames = (frac) => (frac > 0.6 ? ['tree-l', 'tree-m'] : frac > 
 export const constructionStage = (progress) => `construction-stage-${Math.min(3, Math.floor(Math.max(0, progress) / 25))}`;
 /** How far from a grove's centre its log pile stands (tiles). */
 export const LOG_PILE_OFFSET = 0.7;
+/** The file of log piles for the kits that have none (objects `log-pile-<kit>`), and those kits. */
+export const LOG_PILES_FILE = 'log-piles';
+export const LOG_PILE_FILE_KITS = ['conifer', 'tropical', 'cold'];
 /**
  * A finished building's state object (manifest row MD13): `<role>-ruined` once it is destroyed
  * (dead but still in the view), `<role>-damaged` under 70% HP, else the whole building. A building
@@ -160,9 +163,16 @@ export class EconomyLayer {
     Object.entries(NODE_KINDS).forEach(([kind, k]) => { this.nodeRef[kind] = k.art === 'vegetation' ? art.vegetation(vegetationKitFor(r.setup)) : art.nature(k.art); });
     const kinds = new Set((r.setup.economy?.nodes || []).map((n) => n.kind));
     Object.entries(this.nodeRef).forEach(([kind, ref]) => { if (!kinds.size || kinds.has(kind)) want(ref); });
+    // A kit without a log pile of its own (conifer, tropical, cold: built by another pipeline) takes its
+    // climate's pile from the shared file; any other kit without one draws the tree alone.
+    this.pileRef = LOG_PILE_FILE_KITS.includes(this.nodeRef.tree?.kit) && (!kinds.size || kinds.has('tree')) ? art.nature(LOG_PILES_FILE) : null;
+    want(this.pileRef);
   }
 
   kit(ref) { return ref ? this.loaded.get(ref.url) || null : null; }
+
+  /** The shared file's log pile for the battle's vegetation kit, or null (not loaded, or no such pile). */
+  sharedPile() { return kitObject(this.kit(this.pileRef), `log-pile-${this.nodeRef.tree?.kit}`); }
 
   // A node from its art file, or false (the greybox draws it).
   writeNodeArt(n, x, z, frac, lod) {
@@ -186,7 +196,7 @@ export class EconomyLayer {
     const yaw = ((n.i ?? 0) * 2.39996) % 6.283;
     this.kits.add(obj, lod, M.makeRotationY(yaw).scale(V.setScalar(S)).setPosition(x, y, z));
     // A grove is a wood node, not one more tree: a pile of cut logs stands beside it (MD06).
-    const pile = n.kind === 'tree' ? kitObject(kit, 'log-pile') : null;
+    const pile = n.kind === 'tree' ? kitObject(kit, 'log-pile') || this.sharedPile() : null;
     if (pile) {
       const px = x + Math.cos(yaw) * LOG_PILE_OFFSET; const pz = z + Math.sin(yaw) * LOG_PILE_OFFSET;
       this.kits.add(pile, lod, M.makeRotationY(yaw + 0.9).scale(V.setScalar(S)).setPosition(px, this.r.heightAt(px, pz), pz));

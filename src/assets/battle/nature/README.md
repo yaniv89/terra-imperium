@@ -9,6 +9,7 @@ Read by `src/battle/render/economyLayer.js` (nodes, herds, groves) and
 |---|---|---|
 | `stone-outcrop.glb`, `ore-outcrop.glb`, `gold-vein.glb`, `fish-shoal.glb` | `full` (more than half left), `half`, `depleted` (a low stump or pit that does not block) | 1,500 / 300 / 80 |
 | `herd-sheep-goat.glb`, `herd-cattle.glb` | `animal` (one animal at real size; the game places 2 or 3 round the node, fewer as it is used up) | 400 / 150 / 60 |
+| `log-piles.glb` | `log-pile-conifer`, `log-pile-tropical`, `log-pile-cold` (the grove's log pile for the kits without one; `build_nature.py`, one 512 atlas) | 1,500 / 300 / 80 (they use 212 / 176 / 72 at most) |
 | `vegetation-<kit>.glb` (kits: temperate, conifer, mediterranean, tropical, steppe, desert, cold) | `tree-s`, `tree-m`, `tree-l`, `stump`, `felled`, `bush`, `rock-s`, `rock-m`, `grass-tuft`, `log-pile` | 600 / 150 / 150 (LOD2 may be a 2-triangle impostor) |
 
 ## The four resources (2026-10-13, manifest row MD06)
@@ -24,7 +25,9 @@ and its states by height:
 - Wood has no node file: a grove is the kit's `tree-l`, then `tree-m`, then `felled` (the trunk
   down by its pale-topped stump, logs stacked), then `stump` (three pale-topped stumps and chips),
   and the game stands the kit's `log-pile` beside it, the mark that says wood node and not one
-  more tree.
+  more tree. The conifer, tropical and cold kits (built by another pipeline, pinned by hash) have
+  no `log-pile`: the game takes `log-pile-conifer`, `log-pile-tropical` or `log-pile-cold` from
+  `log-piles.glb` for them (pale pine, dark hardwood, thin birch and larch).
 - Ore is retired. `ore-outcrop.glb` stays until the code stops pointing at it (the replacement
   plan is in plans/art-pilot/md06-nodes-loads/LOG.md).
 `full` is 2.7 to 3.4 m tall, `half` 1.3 to 1.8 m, `depleted` under 0.4 m.

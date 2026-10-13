@@ -271,10 +271,8 @@ forbids touching the sim. Exactly what is missing:
   sea water (an opaque light disc about 1 cm over the surface) and the pile's place beside a grove.
 - The log pile stands 0.7 tiles from the grove's centre from the first tick. The user confirmed this on
   13 October. It has no footprint in the rules, so a worker or a building can overlap it.
-- The conifer, tropical and cold vegetation kits arrived with the integration merge (wave 7, built
-  by another pipeline). They have no `log-pile` and keep their own `stump` and `felled`, so a grove
-  in those climates shows no pile and the old worked states. The steppe kit is still missing and
-  falls back to temperate, which has them. Adding the three objects to those kits is not done.
+- The conifer, tropical and cold vegetation kits arrived with the integration merge. See the third pass
+  below: they now get a log pile from `log-piles.glb`; their `stump` and `felled` are still the old ones.
 - The older props kits (`props-<age>.glb`) are still judged as `landmark` by `validate_model.py
   auto`. Under the `prop` row some of their objects are over at LOD1 and LOD2 (up to 460 and 198
   by the triangle budget plan's own table). The new `prop` kind is bound only to the
@@ -381,3 +379,50 @@ sampled or traced).
   colour change if a phone check asks for it.
 - The Modern `load-stone` is the smallest reading of the eight loads at 20 px (grey on a figure).
 - Nothing of either pass has been seen in the running game.
+
+## Third pass, 14 October: a log pile for the conifer, tropical and cold kits
+
+The three kits that came with the integration merge have no `log-pile`, so a grove there had no
+pile. They were NOT rebuilt. Why rebuilding through `build_vegetation_remaining.py` is not practical:
+- Its `stump` and `felled` call `ti_nature.stump` and `ti_nature.felled`, which this branch
+  redrew. A rebuild would replace those two objects in all three kits with the new shapes (270
+  and 214 triangles, not the shipped ones), against the instruction to leave the existing objects.
+- The three files are pinned by hash (`scripts/art/checkpoint38-lod-uvs.mjs`) and carry a recorded
+  proof of their authored LOD UVs (checkpoint 38). A rebuild bakes new atlases, moves every UV and
+  voids that proof for the trees as well.
+- The builder shells out to `python3` for the validator and asserts on the result; this Windows
+  machine has no `python3` command (the validator is run here with Blender's own Python).
+
+What was done instead, and it goes one step past the asked fallback (the temperate pile for every
+kit): a small file with a pile in each kit's own wood.
+- `src/assets/battle/nature/log-piles.glb` (`build_nature.py`, entry `log-piles`, last in FILES so
+  no other file's seed moves; one 512 atlas; 175 KB packed):
+
+| Object | Wood | Triangles LOD0 / LOD1 / LOD2 | Size (m) |
+|---|---|---|---|
+| `log-pile-conifer` | pale red-brown pine bark, pale yellow ends, six logs | 152 / 128 / 72 | 2.6 x 2.3 x 1.76 |
+| `log-pile-tropical` | dark hardwood, red-brown ends, six thicker logs | 152 / 128 / 72 | 2.7 x 2.5 x 1.93 |
+| `log-pile-cold` | thin white birch and grey larch, nine logs (four, three, two) | 212 / 176 / 48 | 2.4 x 2.1 x 1.27 |
+
+- `economyLayer.js`: a grove whose kit has no `log-pile` takes `log-pile-<kit>` from this file.
+  The file is asked for only when the battle's kit is conifer, tropical or cold and the battle has
+  groves. Without the file the tree stands alone, as before. Test: the new case in
+  `economyArt.test.js` (each of the three kits, no file, and a temperate battle that never loads it).
+- `validate_model.py auto`: PASSED as `node` (1,500 / 300 / 80). The cold pile keeps only its
+  bottom row, a little thicker, at LOD2 to stay under 80.
+- The three kits' files are byte-identical to the merge (`git diff` shows nothing), so their trees,
+  stumps, felled trunks, bushes and rocks have the same triangle counts.
+- Their `stump` and `felled` are the old shapes this branch replaced in its own kits (one 0.7 m
+  stump; a thin trunk with three thin logs, plus moss or snow). They read clearly weaker than the
+  new ones at battle zoom. Left as they are, as instructed.
+- Note for whoever next runs `build_vegetation_remaining.py`: it will pick up the new `stump` and
+  `felled` from `ti_nature.py` and change those objects.
+
+Evidence: `log-piles-large.png`, `log-piles-phone-zoom1.png` and `@8x`,
+`log-piles-phone-zoom06-lod1.png` and `@10x` (conifer, tropical, cold, left to right).
+
+Tests: `npx vitest run src/battle scripts/art` gave 361 passed, 1 skipped and 3 timeouts at 5
+seconds (`sim.test.js`, `systems.test.js`, `battleLoop.test.js`) with about forty node and Blender
+processes of other sessions on the machine. Alone, `sim.test.js` passed 12 of 12; the other two
+still timed out at 5 seconds and passed 39 of 39 with `--testTimeout=120000`. None of the three
+reads a file this branch changed. eslint on the changed JavaScript files: zero warnings.
