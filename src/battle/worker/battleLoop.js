@@ -6,7 +6,8 @@
 // one transferable buffer, `post(message, transfer)`), checkpoints and the result.
 import { createWorld } from '../sim/world';
 import { step } from '../sim/step';
-import { applyOrder } from '../sim/orders';
+import { applyOrder, applyDeployment } from '../sim/orders';
+import { admitOrder, MAX_LOG_ORDERS } from '../sim/orderSchema';
 import { toStrategicResult } from '../sim/result';
 import { worldHash } from '../sim/hash';
 import { TICK_HZ } from '../sim/constants';
@@ -18,7 +19,7 @@ const CHECKPOINT_EVERY = 10 * TICK_HZ;
 // Re-simulate a recorded log headlessly up to `untilTick` (resume after the app was closed).
 export const replayTo = (world, log, untilTick) => {
   const byTick = new Map();
-  log.forEach((o) => { const l = byTick.get(o.tick) || []; l.push(o); byTick.set(o.tick, l); });
+  applyDeployment(world, log).forEach((o) => { const l = byTick.get(o.tick) || []; l.push(o); byTick.set(o.tick, l); });
   while (!world.ended && world.tick < untilTick) { step(world, byTick.get(world.tick) || []); world.events.length = 0; }
   return world;
 };
@@ -73,14 +74,22 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
     pushOrders(orders) {
       // Orders always take effect on the next tick to be simulated — never in the past — which
       // is exactly how the replay applies them, so live play and replay agree.
+      // Each order is admitted through the shared schema (sim/orderSchema.js), on the player's
+      // side: what is logged and applied here is exactly what the verified replay will run. An
+      // order the schema refuses, or one past the log's cap, is not applied at all (and the screen
+      // is told), so the live battle can never get ahead of its own log.
+      let refused = 0;
       orders.forEach((o) => {
-        const stamped = { ...o, tick: world.tick, seq: seq++ };
+        const admitted = log.length < MAX_LOG_ORDERS ? admitOrder(o, playerSide) : null;
+        if (!admitted) { refused += 1; return; }
+        const stamped = { ...admitted, tick: world.tick, seq: seq++ };
         log.push(stamped);
         // A deployment (before the first tick) is set down at once so the paused frame shows it;
         // the replay applies the same logged order at tick 0 before stepping, to the same effect.
         if (o.type === 'deploy' && world.tick === 0) { applyOrder(world, stamped); world.events.length = 0; return; }
         pending.push(stamped);
       });
+      if (refused) post({ type: 'ordersRefused', count: refused, full: log.length >= MAX_LOG_ORDERS });
       if (paused) postFrame(false, 1, [], true);
     },
     setPaused(p) { paused = p; last = null; },

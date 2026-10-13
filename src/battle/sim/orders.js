@@ -137,7 +137,9 @@ export const applyOrder = (w, o) => {
     }
     case 'attack': {
       const t = o.target;
-      if (!t) return;
+      // A target that is not on this field (an index past the list, an economy building in a
+      // battle without an economy) is no order at all.
+      if (!t || !(t.kind === 'squad' ? w.squads[t.index] : t.kind === 'eco' ? w.eco?.buildings[t.index] : t.kind === 'structure' ? w.structures[t.index] : null)) return;
       ids.forEach((i) => {
         const q = w.squads[i];
         q.order = { type: 'attack' };
@@ -196,3 +198,15 @@ export const applyOrder = (w, o) => {
 };
 
 export const applyOrders = (w, orders) => sortOrders(orders).forEach((o) => applyOrder(w, o));
+
+// The deployment phase (plan D5): before the first tick the live battle sets a `deploy` order down
+// the moment it arrives (worker/battleLoop.js pushOrders), ahead of the first tick's fog, the AI's
+// first thought and any other order given before Start. Every replay of a log (headless.js,
+// replay.js, the loop's resume) does the same through here, in the log's order, so both agree.
+export const isDeployment = (o) => o?.type === 'deploy' && o.tick === 0;
+/** Sets the log's deployment down on a world at tick 0; returns the orders left for step(). */
+export const applyDeployment = (w, orders) => {
+  if (!orders.some(isDeployment)) return orders;
+  if (w.tick === 0) { orders.forEach((o) => { if (isDeployment(o)) applyOrder(w, o); }); w.events.length = 0; }
+  return orders.filter((o) => !isDeployment(o));
+};
