@@ -10,7 +10,6 @@ import { calcIncome } from '../../utils/helpers';
 import { sizeToPeople } from '../../engine/world/cities';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { getResearchView } from './researchView';
-import { TECH_TREE } from '../../data/techTree';
 
 const EXPENSE_LABELS = { armyUpkeep: 'Army upkeep', marchingUpkeep: 'Armies on the march', navyUpkeep: 'Navy upkeep', fortUpkeep: 'Fort upkeep', advisorSalaries: 'Advisors', loanInterest: 'Loan interest' };
 const INCOME_LABELS = { gold: 'Gold', techPoints: 'Science', hr: 'Manpower', adm: 'Administrative', dip: 'Diplomatic', mil: 'Military', supplies: 'Supplies' };
@@ -43,6 +42,6 @@ export const empireOverviewModel = (state) => {
     cities: mine.length,
     people,
     wars,
-    research: research.current ? { name: TECH_TREE[research.current.id]?.name || research.current.id, turns: research.current.finishesIn, science: research.science } : { name: null, turns: 0, science: research.science }
+    research: research.current ? { name: research.current.tech.name, turns: research.current.finishesIn, gate: research.current.gate, science: research.science, note: research.status.note } : { name: null, turns: 0, gate: null, science: research.science, note: research.status.note }
   };
 };
