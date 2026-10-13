@@ -41,8 +41,10 @@ construction stages show the building rising out of the ground.
 Every role of the five shared files has `<role>`, `<role>-damaged` and `<role>-ruined`
 (`src/battle/render/rtsStates.test.js` checks it). The wreck is made by script from the role's own
 parts (`build_rts_bronze.py` `ruined`, used by all five builders), so it stays in its age's stuff.
-The culture skins (`rts-<age>-<theme>.glb`) have no `-ruined` yet and keep their older, milder
-`-damaged`. Review sheets: `plans/art-pilot/md13-ruined-buildings/` (`scripts/blender/render_rts_states.py`).
+The 60 culture skins (`rts-<age>-<theme>.glb`) were rebuilt the same day with the stronger
+`-damaged`; they carry no `-ruined` by decision: a destroyed skinned building leaves the shared
+file's wreck for its age and role (economyLayer.js, tested in economyArt.test.js). Their house kits
+are read from `art-build/kitsrc` (unpacked from the delivery ZIPs kept outside git). Review sheets: `plans/art-pilot/md13-ruined-buildings/` (`scripts/blender/render_rts_states.py`).
 
 ## Delivered
 `rts-bronze.glb` (2026-10-07, `scripts/blender/build_rts_bronze.py`, from the Bronze town kit): the

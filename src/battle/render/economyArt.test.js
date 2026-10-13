@@ -2,10 +2,10 @@
 // a dropped-in file replaces the greyboxes per age with the earlier-age fallback, picks the damaged
 // and construction objects, the node states by what is left; no file keeps the greyboxes.
 import { describe, it, expect } from 'vitest';
-import { Group } from 'three';
+import { Group, Matrix4 } from 'three';
 import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET } from './economyLayer';
 import { createArtIndex } from '../art/artIndex';
-import { parseKit } from '../art/kitLoader';
+import { parseKit, objectSize } from '../art/kitLoader';
 import { kitGlb, parseGlbBytes } from '../../components/map/closeView/glbFixture';
 import { Q } from '../sim/constants';
 
@@ -146,6 +146,36 @@ describe('battle economy art', () => {
     eco.buildings.push({ idx: 4, alive: true, side: 0, type: 'stable', size: 4, x: 5 * Q, y: 5 * Q, built: true, hp: 1300, maxHp: 1300, progress: 100 });
     layer.update({ eco }, () => true);
     expect(layer.kits.stats().copies).toBe(0);
+    layer.dispose();
+  });
+
+  it('a destroyed building of a side with a culture skin leaves the shared file\'s wreck, at the shared building\'s scale', async () => {
+    // the skins (rts-<age>-<theme>.glb) carry no -ruined: one generic wreck per age and role
+    const files = { ...FILES, 'battle/rts/rts-bronze.glb': [...FILES['battle/rts/rts-bronze.glb'], { name: 'barracks-ruined', size: 1.2 }] };
+    expect(files['battle/rts/rts-bronze-sinic.glb'].some((o) => o.name.endsWith('-ruined'))).toBe(false);
+    const load = async (url) => parseKit((await parseGlbBytes(kitGlb(files[url.replace('test://', '')]))).scene);
+    const art = createArtIndex(Object.fromEntries(Object.keys(files).map((k) => [`assets/${k}`, `test://${k}`])));
+    const r = fakeRenderer();
+    const sides = [{ ageId: 'bronze', nationId: 'shang', color: '#dc2626' }, { ageId: 'bronze', nationId: 'kemet', color: '#2563eb' }];
+    const layer = new EconomyLayer({ ...r, setup: { ...r.setup, sides, economy: {} } }, { art, load });
+    layer.build();
+    await Promise.all(layer.ready);
+    const skin = layer.kit(layer.skinRef[0]);
+    const shared = layer.kit({ url: 'test://battle/rts/rts-bronze.glb' });
+    expect(skin.objects.barracks).toBeTruthy();
+    expect(skin.objects['barracks-ruined']).toBeUndefined();
+    const barracks = (idx, x, more) => ({ idx, side: 0, type: 'barracks', size: 3, x: x * Q, y: 5 * Q, built: true, hp: 1200, maxHp: 1200, progress: 100, alive: true, ...more });
+    layer.update({ eco: { nodes: [], buildings: [barracks(0, 5), barracks(1, 15, { alive: false, hp: 0 })] } }, () => true);
+    const drawn = new Map([...layer.kits.meshes].filter(([, e]) => e.n).map(([bundle, e]) => [bundle.geometry.uuid, e]));
+    // the standing one in the Shang skin, the dead one as the shared wreck: two copies, nothing else
+    expect(layer.kits.stats().copies).toBe(2);
+    expect(drawn.has(skin.objects.barracks.lods[0].geometry.uuid)).toBe(true);
+    const wreck = drawn.get(shared.objects['barracks-ruined'].lods[0].geometry.uuid);
+    expect(wreck).toBeTruthy();
+    // fitted like the shared barracks (footprint 1.2), not like the larger skin (1.5)
+    const m = new Matrix4(); wreck.mesh.getMatrixAt(0, m);
+    expect(m.elements[0]).toBeCloseTo((3 * 0.95) / objectSize(shared.objects.barracks).footprint, 5);
+    expect(m.elements[0]).not.toBeCloseTo((3 * 0.95) / objectSize(skin.objects.barracks).footprint, 2);
     layer.dispose();
   });
 

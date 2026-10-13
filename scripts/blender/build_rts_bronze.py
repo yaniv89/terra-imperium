@@ -542,6 +542,11 @@ def _breach(ms, key):
     ux, uy, uh = m1[0] - m0[0], m1[1] - m0[1], m1[2] - G
     sx = rng.choice((-1, 1))
     sy = -1 if rng.random() < 0.75 else 1  # mostly a front corner: the camera looks at the front
+    # the plane cuts everything beyond the corner too, so the corner must look out of the plot: where
+    # the main body has more of the building on one side (a second house, a yard), take the other
+    gx = (m0[0] - lo[0], hi[0] - m1[0])
+    if abs(gx[0] - gx[1]) > 0.15:
+        sx = -1 if gx[0] < gx[1] else 1
     corner = Vector((m1[0] if sx > 0 else m0[0], m1[1] if sy > 0 else m0[1], m1[2]))
     bite = rng.uniform(0.22, 0.3)   # the share of each top edge that is gone, halved
     drop = rng.uniform(0.6, 0.85) * uh
@@ -549,7 +554,9 @@ def _breach(ms, key):
     no = Vector((sx / ux, sy / uy, 2 * bite / max(drop, 0.02))).normalized()
     out = []
     for (bm, mat, lod, only), ((x0, y0, z0), (x1, y1, z1)) in zip(parts, boxes):
-        caps = _cut(bm, co, no)
+        # only the main body and what stands on or against it falls; the yard's things stay
+        on_it = x1 > m0[0] - 0.12 and x0 < m1[0] + 0.12 and y1 > m0[1] - 0.12 and y0 < m1[1] + 0.12
+        caps = _cut(bm, co, no) if on_it else []
         if not bm.faces:
             bm.free()
             continue
@@ -590,6 +597,7 @@ RUIN_ROCK = ('mine',)
 # stuff that burns: cloth is cut lower than walls, crops and thatch are left as black as cut walls
 RUIN_CLOTH = ('linen', 'sail', 'canvas', 'camo', 'cloth')
 RUIN_CROPS = ('barley', 'flax', 'wheat', 'rye', 'potato', 'veg', 'thatch', 'reed', 'turf', 'leaf', 'hedge')
+RUIN_FIELD = ('barley', 'flax', 'wheat', 'rye', 'potato', 'veg', 'tilled')  # crop beds: trampled flat as well
 
 
 def _tris(bm):
@@ -683,12 +691,12 @@ def ruined(role, layout):
         walls, props = [], []
         for k, (bm0, mat, ((x0, y0, z0), (x1, y1, z1))) in enumerate(cands):
             dx, dy = x1 - x0, y1 - y0
-            if max(dx, dy, z1 - z0) < 0.035:
+            if max(dx, dy, z1 - z0) < 0.035 or (role in RUIN_ROCK and mat == 'dark'):  # (the adit's black mouth: fallen in)
                 continue
             rock = role in RUIN_ROCK and len(bm0.verts) >= 16 and max(dx, dy) > 0.25 and z1 - z0 > 0.12
             h = min(0.5, stump * rng.uniform(1.9, 3.0)) if k in tall else stump * rng.uniform(0.6, 1.3)
             if rock:
-                h = 0.55 * ztop * rng.uniform(0.85, 1.1)
+                h = 0.45 * ztop * rng.uniform(0.85, 1.1)
             elif any(t in mat for t in RUIN_CLOTH):
                 h *= 0.45  # cloth burns away: a tent leaves a low charred skirt
             half = 0.5 * math.hypot(dx, dy)
@@ -701,8 +709,13 @@ def ruined(role, layout):
             if not bm.faces or (not was_cut and not rock and rng.random() < 0.25):  # all above the cut, or lost
                 bm.free()
                 continue
-            keep = 0.62 if rock else 0.4 if was_cut or any(t in mat for t in RUIN_CROPS) else 0.55
-            cmat = mat if tt.TO_FINAL.get(mat) == 'Ground' else tt.charred(mat, keep)
+            field = any(t in mat for t in RUIN_FIELD)
+            if field:  # a crop bed: trampled flat and burnt
+                flat = rng.uniform(0.2, 0.5)
+                for v in bm.verts:
+                    v.co.z = G + (v.co.z - G) * flat
+            keep = 0.62 if rock else 0.3 if field else 0.4 if was_cut or any(t in mat for t in RUIN_CROPS) else 0.55
+            cmat = mat if mat.endswith('_fringe') else tt.charred(mat, keep)
             # a big block becomes a shell: a rim of wall round a sunken ash floor
             shell = None
             if not rock and len(caps) == 1 and len(caps[0].verts) <= 8 and min(dx, dy) > 0.16 and h > 0.07:
@@ -797,6 +810,23 @@ def ruined(role, layout):
             L = rng.uniform(0.22, 0.38) * scale
             z1 = G + (min(0.34, stump * rng.uniform(1.1, 1.9)) if k < 3 else 0.03)
             beam(ms, 'ash', (x - math.cos(a) * L / 2, y - math.sin(a) * L / 2, G + 0.012), (x + math.cos(a) * L / 2, y + math.sin(a) * L / 2, z1), r=0.017, segs=4, lod=1 if k in (0, 3) else 0)
+        if role in RUIN_ROCK:  # the adit has fallen in: its mouth choked with rock, its frame lying broken
+            mx, my = src.get('socket-door', (cx, lo[1] + 0.1, 0))[:2]
+            rock_stuff = standing[0]['mat'] if standing else 'ash'
+            for k in range(4):
+                _heap(ms, rock_stuff, mx + rng.uniform(-0.1, 0.1), my + rng.uniform(-0.02, 0.1), rng.uniform(0.09, 0.13), rng.uniform(0.1, 0.17), rng, 1 if k < 2 else 0)
+            for k in range(3):
+                a = rng.uniform(-0.6, 0.6)
+                beam(ms, tt.charred('timber', 0.4), (mx - 0.14 + 0.14 * k, my - 0.09, G + 0.012), (mx - 0.14 + 0.14 * k + math.sin(a) * 0.2, my + 0.06, G + rng.uniform(0.12, 0.26)), r=0.02, segs=4, lod=1 if k == 0 else 0)
+        if role == 'farm-plot':  # the fence lies broken round the field, the rows burnt through in patches
+            for k in range(6):
+                t = rng.uniform(-0.4, 0.4)
+                x, y = (cx + t * w, lo[1] if k % 4 == 0 else hi[1]) if k % 4 < 2 else (lo[0] if k % 4 == 2 else hi[0], cy + t * d)
+                a, L = rng.uniform(0, math.pi), rng.uniform(0.2, 0.32)
+                beam(ms, tt.charred('timber', 0.55), (x - math.cos(a) * L / 2, y - math.sin(a) * L / 2, G + 0.012), (x + math.cos(a) * L / 2, y + math.sin(a) * L / 2, G + rng.choice((0.02, 0.02, 0.1))), r=0.012, segs=4, lod=0)
+            for k in range(3):
+                x, y, r = cx + rng.uniform(-0.3, 0.3) * w, cy + rng.uniform(-0.3, 0.3) * d, rng.uniform(0.13, 0.2) * min(w, d)
+                ms.quad_strip('ash', [(x + math.cos(6.2832 * i / 6) * r * rng.uniform(0.7, 1.0), y + math.sin(6.2832 * i / 6) * r * rng.uniform(0.7, 1.0), G + 0.046) for i in range(6)], lod=1 if k == 0 else 0)
         for bm0, _mat, _lod, _only in parts:
             bm0.free()
         used = [sum(_tris(bm) for bm, _m, lod, only in ms.parts if lod >= lv and (only is None or lv in only)) for lv in (0, 1, 2)]
