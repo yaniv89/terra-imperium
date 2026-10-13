@@ -30,7 +30,7 @@ import { cityRailModel } from '../city/cityRailModel';
 import { cityDefenseModel } from '../city/cityDefenseModel';
 import { Button, CloseButton, Label, Meter, Tabs, signed } from '../ui/atlas';
 
-const CityDefense = ({ model }) => (
+const CityDefense = ({ model, onOpenTab }) => (
   <div className="space-y-3" data-testid="city-defense">
     <div className="fa-card p-3">
       <div className="flex items-baseline justify-between gap-2">
@@ -56,6 +56,20 @@ const CityDefense = ({ model }) => (
       <div className="fa-card px-3 py-2"><div className="text-fa-muted text-[12px]">Siege</div><div className="font-semibold">{model.siege ? (model.siege.by ? `By ${model.siege.by}${model.siege.encircled ? ', encircled' : ''}` : 'Recovering') : 'None'}</div></div>
     </div>
     {model.siege && <Meter value={model.siege.hp} max={Math.max(1, model.siege.maxHp)} color="var(--fa-enemy)" label={`Walls ${model.siege.hp} of ${model.siege.maxHp} HP`} />}
+    {/* What can be done about it, each with the tab that does it (playtest audits I053). */}
+    {model.paths?.length > 0 && (
+      <div className="fa-card p-3" data-testid="city-defense-paths">
+        <Label>What you can do</Label>
+        <ul className="mt-1 space-y-1.5 text-[13px]">
+          {model.paths.map((p) => (
+            <li key={p.id} className="flex items-center gap-2">
+              <span className="flex-1 min-w-0">{p.text}</span>
+              {p.tab && onOpenTab && <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => onOpenTab(p.tab)}>{p.action}</Button>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
   </div>
 );
 
@@ -151,7 +165,7 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
           {tab === 'tiles' && <CityPanel cityId={regionId} view="tiles" />}
           {tab === 'buildings' && <CityBuildings cityId={regionId} />}
           {tab === 'politics' && <CityPolitics cityId={regionId} />}
-          {tab === 'defense' && defense && <CityDefense model={defense} />}
+          {tab === 'defense' && defense && <CityDefense model={defense} onOpenTab={setTab} />}
         </div>
       </div>
     </div>

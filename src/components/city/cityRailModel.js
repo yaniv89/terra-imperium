@@ -1,16 +1,18 @@
 // src/components/city/cityRailModel.js
 // The desktop city list rail (plans/civ-map-rework.md E2): every city of the player at a glance,
 // biggest first: size, growth in N turns, what it builds and in how many turns, and the flags that
-// want a look (nothing queued, restless, besieged, starving, an outpost). Last turn's yields
-// (`lastYields`) give the pace, so the list costs one pass, not an allocation per city. Pure.
+// want a look (nothing queued, restless, besieged, starving, an outpost). The pace is the city's
+// live yields and the turns are the queue's own (src/engine/cityEconomy.js growthView, queueView):
+// the same numbers the city sheet shows, never last turn's mirror (playtest audits I052, where a
+// new city's row said "Settlers in 2800 t"). The allocation behind them is memoised. Pure.
 import { unitDisplayName } from '../../data/unitNames';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId, speedCostMult } from '../../data/ages';
+import { getEffectiveAgeId } from '../../data/ages';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { IMPROVEMENTS } from '../../data/tileYields';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { NAVAL_LINES } from '../../data/navalLines';
-import { growthThreshold, productionCost, MAX_SIZE } from '../../engine/world/cities';
+import { cityLive, growthView, queueView } from '../../engine/cityEconomy';
 import { UNREST_PROMPT } from '../ui/nextPromptModel';
 
 export const RAIL_STORAGE_KEY = 'terra-imperium-city-rail-collapsed';
@@ -32,17 +34,19 @@ export const cityRailModel = (state) => {
   const tiles = getTiles();
   const ageId = getEffectiveAgeId(state.age, state.techAgeId);
   const mine = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null);
-  const costCtx = { ageId, citiesOwned: mine.length, speedMult: speedCostMult(state.gameSpeed, ageId) };
   const capital = state.nations?.[me]?.capitalRegionId;
   return mine.map((c) => {
-    const food = c.lastYields?.food ?? 0; const production = c.lastYields?.production ?? 0;
-    const growthTurns = c.outpost ? null : food > 0 && c.size < MAX_SIZE ? Math.max(1, Math.ceil(Math.max(0, growthThreshold(c.size, speedCostMult(state.gameSpeed, ageId)) - (c.food || 0)) / food)) : null;
+    const live = cityLive(state, c.id);
+    const growth = growthView(state, c.id, live);
+    const growthTurns = growth.turns;
     const item = c.production?.current || null;
-    const cost = item ? productionCost(item, costCtx) : 0;
-    const buildTurns = item ? Math.max(1, Math.ceil(Math.max(0, cost - (c.production?.progress || 0)) / Math.max(0.1, production))) : null;
+    const first = item ? queueView(state, c.id, live)[0] : null;
+    const cost = first ? first.cost : 0;
+    // An army order shows the turns to its next unit, as its label names that unit.
+    const buildTurns = first ? first.pieceTurns ?? first.turns : null;
     return {
       id: c.id, name: c.name, size: c.size, capital: c.id === capital, outpost: !!c.outpost,
-      growthTurns, starving: food < 0,
+      growthTurns, starving: growth.state === 'starving',
       building: shortItemLabel(item, tiles, ageId), buildTurns, idle: !item && !c.outpost,
       // the thin production bar under the city (W02): how far the current item is
       buildShare: item && cost > 0 ? Math.min(1, (c.production?.progress || 0) / cost) : null,

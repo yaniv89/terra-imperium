@@ -47,6 +47,7 @@ export const ActionTypes = {
   STOP_RAZING: 'STOP_RAZING', // phase W3: payload { regionId }
   DELETE_ARMY_TEMPLATE: 'DELETE_ARMY_TEMPLATE',
   DEQUEUE_PRODUCTION: 'DEQUEUE_PRODUCTION',
+  MOVE_PRODUCTION: 'MOVE_PRODUCTION', // playtest audits I046: payload { cityId, index, to } over [current, ...queue]
   SET_CITY_FOCUS: 'SET_CITY_FOCUS',
   TOGGLE_TILE_LOCK: 'TOGGLE_TILE_LOCK',
   BUY_TILE: 'BUY_TILE',

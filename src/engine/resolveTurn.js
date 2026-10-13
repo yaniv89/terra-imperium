@@ -81,7 +81,7 @@ import {
   nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn, inCivilWarCooldown
 } from './civilWar';
 import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseDisasterReady } from './disasters';
-import { getTotalDev } from './development';
+import { getTotalDev, devFromYields } from './development';
 import { decayAggressiveExpansion } from './expansion';
 import { advanceClaims } from './claims';
 import { updateDefensivePacts } from './pacts';
@@ -187,7 +187,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   const regions = {};
   Object.entries(result.world.cities).forEach(([id, c]) => {
     const y = result.yields[id];
-    regions[id] = y ? { ...c, lastYields: { gold: y.gold, production: y.production, food: y.food, science: y.science, culture: y.culture, luxuries: y.luxuries, strategic: y.strategic }, dev: { tax: Math.max(1, Math.round(y.raw.gold)), production: Math.max(1, Math.round(y.production)), manpower: Math.max(1, c.size) } } : c;
+    regions[id] = y ? { ...c, lastYields: { gold: y.gold, production: y.production, food: y.food, science: y.science, culture: y.culture, luxuries: y.luxuries, strategic: y.strategic }, dev: devFromYields(y, c) } : c; // bought development is inside the yields and the mirror (development.js, I031)
   });
   // Floods, fires and plagues by tile facts (cityDisasters.js).
   const disasterLogs = rollCityDisasters(regions, newTurnNumber);
