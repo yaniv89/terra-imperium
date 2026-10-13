@@ -866,6 +866,9 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
 
   it('lets an AI nation conquer territory from the PLAYER — every nation must be conquerable by anyone', () => {
     const state = withCertainCapture('de', 'fr', cap('fr'));
+    // A thin garrison: the assault is a real battle, and a full one can win it on some dice (it
+    // did once the court's name rolls moved the seed). This test is about the wiring, not the odds.
+    state.units = Object.fromEntries(Object.entries(state.units).map(([id, u]) => [id, u.ownerId === 'fr' ? { ...u, strength: 100 } : u]));
     const next = resolveTurn(state);
     expect(next.regions[cap('fr')].owner).toBe('de'); // conquered in battle
     expect(next.regions[cap('fr')].conquest?.from).toBe('fr');
