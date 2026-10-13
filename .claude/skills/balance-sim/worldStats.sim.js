@@ -14,6 +14,7 @@ import { worldHealth, kaplanMeier } from '../../../scripts/simStats.mjs';
 import { installGeneratedWorld } from '../../../src/worldgen/nodeWorld';
 import { createScriptedPlayer, createTelemetry } from '../../../scripts/campaignTelemetry.mjs';
 import { chooseProduction, nationCounts } from '../../../src/engine/aiProduction';
+import { bestSites, MAX_SETTLE_RINGS } from '../../../src/engine/settlers';
 import { getResearched, getTechAgeId } from '../../../src/engine/nationState';
 import { getEffectiveAgeId, speedCostMult } from '../../../src/data/ages';
 import { authorityOf } from '../../../src/engine/authority';
@@ -46,7 +47,7 @@ const PLAYER = process.env.PLAYER || 'fr';
 const SCENARIO = process.env.SCENARIO || 'full';
 const SIZE = process.env.SIZE || 'standard';
 // POLICY=passive (default, the old harness) | scripted (answers every blocker and queues what an AI
-// would build in the player's idle cities; scripts/campaignTelemetry.mjs). DEMANDS=refuse (default) |
+// would build in the player's idle cities and sends its settlers to the best site; scripts/campaignTelemetry.mjs). DEMANDS=refuse (default) |
 // pay for the scripted player's answer to a major's demand and to an independent's tribute demand.
 // SPEED=normal|marathon|... is the game speed. OUT_DIR=dir also writes telemetry-<seed>.json (series,
 // wars, tribute answers, stack verdicts); TRACE_WARS=1 with OUT_DIR writes warstacks-<seed>.jsonl,
@@ -148,7 +149,7 @@ SEEDS.forEach((seed) => {
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario, ...(SPEED ? { gameSpeed: SPEED } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     if (OUT_DIR) fs.mkdirSync(OUT_DIR, { recursive: true });
     const traceStream = TRACE_WARS ? fs.openSync(path.join(OUT_DIR, `warstacks-${seed}.jsonl`), 'w') : null;
-    const scripted = POLICY === 'scripted' ? createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, getResearched, getTechAgeId, getEffectiveAgeId, speedCostMult }, demands: DEMANDS, opinionOf }) : null;
+    const scripted = POLICY === 'scripted' ? createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId, speedCostMult }, demands: DEMANDS, opinionOf }) : null;
     const telemetry = createTelemetry({ playerId: s.playerNationId, isIndependent: isIndependentNation, authorityOf, getOverextension, metNations, getTiles, traceFile: TRACE_WARS, writeLine: traceStream == null ? null : (line) => fs.writeSync(traceStream, line + '\n') });
     let telemMs = 0;
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research

@@ -79,6 +79,7 @@ export const buildSimEngine = async () => {
         "export { WORLD_NATIONS } from '../src/data/worldNations.js';",
         "export { getTiles } from '../src/data/geo/tiles.js';",
         "export { chooseProduction, nationCounts } from '../src/engine/aiProduction.js';",
+        "export { bestSites, MAX_SETTLE_RINGS } from '../src/engine/settlers.js';",
         "export { getResearched, getTechAgeId } from '../src/engine/nationState.js';",
         "export { getEffectiveAgeId, speedCostMult } from '../src/data/ages.js';",
         "export { authorityOf } from '../src/engine/authority.js';",

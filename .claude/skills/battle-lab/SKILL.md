@@ -135,3 +135,10 @@ pure speed change should leave every world hash unchanged (compare `runHeadless(
 - Renderer: every geometry, material and texture goes through `this.track()` so `dispose()`
   frees it; instanced meshes reset `count` every frame; short effects live in `this.fx` with a life.
 - Run `npx vitest run src/battle` and the full suite before committing.
+
+## squadTrace extras (W00)
+`ORDER=attackStructure` sends every fighting squad at one structure (`STRUCT=0` is the keep; `FORT=2`
+gives towers and gates) and prints the tick it falls, what each attacker does then, and a
+`STRUCTURE ... attackersWithoutTarget=N` line: the repro for "idle after the target falls".
+`ECO=1` builds the setup with the battle economy as campaign battles do (`ECO_SUPPLY`, `ECO_DEV`
+0..1); workers are left out of the orders and an `ECO workers=.. buildings=..` line is printed.

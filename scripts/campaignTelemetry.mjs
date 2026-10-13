@@ -12,8 +12,9 @@
 // Policies (POLICY env in worldStats): 'passive' is the old harness (accepts free white peace,
 // refuses costly ones, auto-defends) and is the default so existing runs hash as before. 'scripted'
 // answers every blocker in src/engine/turnBlockers.js (events, peace, defenses, demands, tribute,
-// join offers) and queues what an AI would build in every idle city of the player, so first-build
-// ETAs and city counts mean something. It never declares war, never moves an army.
+// join offers), queues what an AI would build in every idle city of the player and sends its
+// settlers to the best site in reach, so first-build ETAs and city counts mean something. It never
+// declares war and never moves an army.
 
 const median = (xs) => { if (!xs.length) return 0; const a = [...xs].sort((p, q) => p - q); const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
@@ -27,9 +28,9 @@ const buildingCount = (city) => Object.values(city.buildings?.categories || {}).
  * major's demand and an independent's tribute demand; default 'refuse' (the passive baseline).
  * Everything it answers is recorded in `log` for the tribute metrics.
  */
-export const createScriptedPlayer = ({ engine, demands = 'refuse', production = true, opinionOf = null }) => {
+export const createScriptedPlayer = ({ engine, demands = 'refuse', production = true, settle = true, opinionOf = null }) => {
   const { gameReducer, ActionTypes } = engine;
-  const log = { demands: [], tribute: [], peace: 0, defenses: 0, events: 0, joins: 0, queued: 0 };
+  const log = { demands: [], tribute: [], peace: 0, defenses: 0, events: 0, joins: 0, queued: 0, settled: 0 };
   const answer = (state) => {
     let s = state;
     const me = s.playerNationId;
@@ -60,6 +61,19 @@ export const createScriptedPlayer = ({ engine, demands = 'refuse', production = 
         const before = s;
         s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: city.id, item } });
         if (s !== before && s.regions[city.id]?.production?.current) { log.queued += 1; if (item.kind === 'unit') ctx.counts.landUnits += 1; }
+      }
+    }
+    // Settlers without a destination walk to the best site in reach (the AI's own site search), so the
+    // player's city count and the second-city ETA mean something. Founding is the engine's (processSettlers).
+    if (settle && engine.bestSites) {
+      const ageId = engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me));
+      for (const u of Object.values(s.units)) {
+        if (u.ownerId !== me || u.classId !== 'settler' || u.target != null || u.tile == null) continue;
+        const site = engine.bestSites(s, me, u.tile, ageId, { rings: engine.MAX_SETTLE_RINGS, limit: 1 })[0];
+        if (!site) continue;
+        const before = s;
+        s = gameReducer(s, { type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: u.id, tile: site.tile } });
+        if (s !== before) log.settled += 1;
       }
     }
     return { state: s };
