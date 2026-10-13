@@ -63,3 +63,32 @@ names the work package and code batch it joins. Nothing here is implemented yet.
 - X21 goes into CB08 (wave 2); X22, X23 into CB09 (wave 4); X24 into CB04 rules (wave 2) and W00.
 - X01 goes into CB11 (wave 4), after CB02 and CB13.
 - Open with the user: are sea battles covered by X02; and (from Q8) remove the old SVG map setting too.
+
+## 7. City-states and the peoples pool (decision 42, proposed)
+
+X25. Discussed with the user on 13 October; recorded as proposed until the user confirms the
+counts and the list of majors. Joins CB08 (diplomacy), wave 2.
+
+Measured on the map data: 150 peoples; South and East Asia 45, Europe 32, Near East and North
+Africa 27, Americas 19, Sub-Saharan Africa 17, Central Asia 8, Oceania 2. The median distance from
+a capital to its nearest neighbour is 458 km; 100 of 150 have a neighbour within 612 km and 128
+within 900 km. The land holds at most about 1,840 city sites at the 306 km spacing, so the world is
+not full, but Europe and the Near East are. A Standard world today starts 36 majors and 84
+one-city independents (2.3 per major; Civ VI uses 1.5).
+
+1. **Two tiers of peoples.** About 50 full majors (pickable, and met as majors); the other ~100
+   are the names city-states are drawn from. A flag per people in `src/data/peoples.js`; nothing is
+   deleted. All 150 signature units already exist and stay.
+2. **Fewer city-states.** Standard about 36 to 54 (1 to 1.5 per major), Small about 30, Large
+   about 60 (`src/data/worldSizes.js`).
+3. **Spaced by density, not a flat cut.** A minimum gap of about 900 km between any two starting
+   cities (today 612 km, majors only: `MAJOR_MIN_GAP_KM`), applied in
+   `src/engine/worldgen/peoplesWorld.js`.
+4. **Raiders capped at about a third.** The rest are Civ-style types (trade, military, science,
+   culture) with a bonus for the major they favour (`src/engine/independents.js`,
+   `src/data/independents.js`).
+5. **A start-screen setting:** City-states Few / Normal / Many.
+
+Open: which 50 are majors (a list from the user, or a proposal by region: every region keeps 4 to
+6 choices). Art consequence: UI18 in [the art update](playtest-audits-art-update-2026-10-13.md),
+on hold until confirmed.
