@@ -43,7 +43,8 @@ export const nextPrompts = (state) => {
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
   cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: `${c.name} has nothing to build`, regionId: c.id }); });
   const units = Object.values(state.units || {}).filter((u) => u.ownerId === me && u.strength > 0).sort((a, b) => (a.id < b.id ? -1 : 1));
-  units.forEach((u) => { if (isSettler(u) && u.target == null && u.tile != null) out.push({ id: `settler:${u.id}`, kind: 'settler', label: 'Settlers wait for a destination', tile: u.tile }); });
+  // (settlers told to wait, settlers.js setSettlerHold, are not asked about again: I093)
+  units.forEach((u) => { if (isSettler(u) && u.target == null && u.tile != null && !u.hold) out.push({ id: `settler:${u.id}`, kind: 'settler', label: 'Settlers wait for a destination', tile: u.tile }); });
   // Idle armies (src/engine/standingOrders.js idleArmyTiles): a stack that marches, holds (the
   // Hold order), besieges a city or garrisons one is busy, not idle.
   idleArmyTiles(state, me).forEach((t) => out.push({ id: `army:${t}`, kind: 'army', label: 'An army in the field can still move', tile: t }));

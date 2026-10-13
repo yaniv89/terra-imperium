@@ -29,14 +29,15 @@
 //               pressure on far outposts arrive with C5 and C7.3.
 import { pickCityName } from './cityNames';
 import { getTiles } from '../data/geo/tiles';
-import { canFoundCity, foundCity, ringDistance, cityId, SETTLER_MIN_SIZE } from './world/cities';
+import { canFoundCity, foundCity, ringDistance, cityId, SETTLER_MIN_SIZE, CENTRE_MIN_YIELDS, FOOD_PER_CITIZEN, MAX_SIZE } from './world/cities';
+import { getResearched } from './nationState';
 import { tileFacts, tileYields } from '../data/tileYields';
 import { legacyTerrainOf } from './world/registry';
 import { isWarBetween } from './diplomacy';
 import { settlingBarred } from './accords';
 import { isExplored } from './fog';
 import { speedCostMult } from '../data/ages';
-import { ringsForKm, kmPerRing, F75_RING_KM } from '../data/geo/gridScale';
+import { ringsForKm, kmPerRing, F75_RING_KM, foundingDisk } from '../data/geo/gridScale';
 
 export const SETTLER_KM = 306; // km (3 rings at frequency 75)
 export const SETTLER_MOVES = ringsForKm(SETTLER_KM);
@@ -193,6 +194,101 @@ export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_
 };
 
 const terrainFactor = (tiles, tile) => OUTPOST_TERRAIN_FACTOR[legacyTerrainOf(tiles, tile)] ?? 1;
+
+// ---------------------------------------------------------------------------------------------
+// What the player is told before founding, and the orders a settler takes besides a destination
+// (playtest audit I054, I056, I091, I092, I093). These are read models and two small orders; they
+// change no founding rule.
+//
+//   outpostTurns     how long the outpost stage lasts on this tile: OUTPOST_DONE over the progress
+//                    a turn (OUTPOST_PROGRESS x the terrain factor / the speed table's multiplier),
+//                    the same numbers processSettlers adds.
+//   siteOutlook      the city a site would be at size 1: its centre's yields (never under
+//                    cities.CENTRE_MIN_YIELDS, as the city rules give them) and the best tile of its
+//                    founding disk it could work. `foodSurplus` is the centre's food plus that
+//                    tile's food minus FOOD_PER_CITIZEN: at 0 or less the city cannot grow until it
+//                    is improved or buys better land. `production` is the centre plus the best
+//                    tile. Warnings: 'food' (no surplus), 'production' (POOR_PRODUCTION or less).
+//                    A warning never forbids the site (a challenge city is the player's choice).
+//   settlingOutlook  whether a settler built at `fromTile` would have anywhere worth going: the
+//                    best legal, explored site in reach (bestSites), or none. The build list says
+//                    so on its Settlers row, and the AI already builds none without a site.
+//   setSettlerHold   `unit.hold` on a settler: it waits where it is and is not asked about again
+//                    (the "Idle" chip, nextPromptModel.js) until it is sent somewhere or released.
+//   disbandSettlers  the settlers go home: the unit is gone and its people (one citizen, what the
+//                    city gave up to build it) join the nearest own city that is no outpost, up to
+//                    MAX_SIZE. The production spent is not refunded.
+export const POOR_PRODUCTION = 1;
+
+/** Turns the outpost stage lasts for a city founded on `tile` (a whole number, at least 1). */
+export const outpostTurns = (state, tile, ageId) => {
+  const perTurn = (OUTPOST_PROGRESS * terrainFactor(getTiles(), tile)) / speedCostMult(state.gameSpeed, ageId);
+  return Math.max(1, Math.ceil(OUTPOST_DONE / perTurn));
+};
+
+/** The city `tile` would be at size 1 for `nationId` (see the header): { centre, best, foodSurplus, production, warnings }. */
+export const siteOutlook = (state, tile, nationId = state.playerNationId) => {
+  const tiles = getTiles();
+  if (tile == null || !tiles.land[tile]) return null;
+  const tileState = state.world?.tileState || {};
+  const tileOwner = state.world?.tileOwner || {};
+  const researched = getResearched(state, nationId);
+  const y = tileYields(tileFacts(tiles, tile, tileState[tile]), researched);
+  const centre = { food: Math.max(CENTRE_MIN_YIELDS.food, y.food), production: Math.max(CENTRE_MIN_YIELDS.production, y.production), gold: Math.max(CENTRE_MIN_YIELDS.gold, y.gold) };
+  let bestFood = 0; let bestProduction = 0;
+  foundingDisk(tiles, tile).forEach((t) => {
+    if (t === tile || (tileOwner[t] != null && state.regions[tileOwner[t]]?.owner !== nationId)) return;
+    const ty = tileYields(tileFacts(tiles, t, tileState[t]), researched);
+    if (ty.food > bestFood) bestFood = ty.food;
+    if (ty.production > bestProduction) bestProduction = ty.production;
+  });
+  const foodSurplus = centre.food + bestFood - FOOD_PER_CITIZEN;
+  const production = centre.production + bestProduction;
+  const warnings = [];
+  if (foodSurplus <= 0) warnings.push('food');
+  if (production <= POOR_PRODUCTION) warnings.push('production');
+  return { centre, best: { food: bestFood, production: bestProduction }, foodSurplus, production, warnings };
+};
+
+/** Whether settlers from `fromTile` would find a site worth a city: { ok, best: site | null }. */
+export const settlingOutlook = (state, nationId, fromTile, ageId) => {
+  if (fromTile == null) return { ok: false, best: null };
+  const best = bestSites(state, nationId, fromTile, ageId, { rings: MAX_SETTLE_RINGS, limit: 1 })[0] || null;
+  return { ok: !!best, best };
+};
+
+/** SET_SETTLER_HOLD: the player's settler waits (or stops waiting). The new units map, or null. */
+export const setSettlerHold = (state, unitId, hold = true) => {
+  const u = state.units?.[unitId];
+  if (!u || !isSettler(u) || u.ownerId !== state.playerNationId || !!u.hold === !!hold) return null;
+  return { ...state.units, [unitId]: { ...u, hold: !!hold, ...(hold ? { target: null, path: null } : {}) } };
+};
+
+/** The own city the people of a disbanded settler join: its home if still yours and no outpost,
+ * else your nearest city that is no outpost (ties: the lower id), else null. */
+export const settlersHomeCity = (state, unit) => {
+  const mine = Object.values(state.regions || {}).filter((c) => c.owner === unit.ownerId && c.tile != null && !c.outpost && !c.razing);
+  if (!mine.length) return null;
+  const home = mine.find((c) => c.id === unit.homeRegionId);
+  if (home && unit.tile === home.tile) return home;
+  const tiles = getTiles();
+  const from = unit.tile ?? home?.tile;
+  if (from == null) return home || mine.sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+  const far = MAX_SETTLE_RINGS * 4;
+  return mine.map((c) => ({ c, d: c.tile === from ? 0 : ringDistance(tiles, from, c.tile, far) ?? far + 1 })).sort((a, b) => a.d - b.d || (a.c.id < b.c.id ? -1 : 1))[0].c;
+};
+
+/** DISBAND_SETTLERS: { units, regions, city } with the settler gone and its people back in a city
+ * (`city` null when there is none to take them or it is full), or null when it is not the player's settler. */
+export const disbandSettlers = (state, unitId) => {
+  const u = state.units?.[unitId];
+  if (!u || !isSettler(u) || u.ownerId !== state.playerNationId) return null;
+  const units = { ...state.units };
+  delete units[unitId];
+  const home = settlersHomeCity(state, u);
+  if (!home || home.size >= MAX_SIZE) return { units, regions: state.regions, city: null };
+  return { units, regions: { ...state.regions, [home.id]: { ...home, size: home.size + 1 } }, city: home };
+};
 
 /** Founds an outpost for the settler's nation on the settler's tile. Returns the new regions,
  * world and city, or null when the site is not legal. The settler is gone. */

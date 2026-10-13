@@ -7,6 +7,7 @@
 // Terrain is a base (grassland, plains, desert, tundra, snow, coast, ocean, lake) plus a relief
 // (flat, hills, mountains) plus a feature (forest, jungle, marsh, oasis, floodplain, ice), as the
 // grid build classifies it, so the table composes instead of listing every combination.
+import { AGE_ORDER } from './ages';
 
 export const BASE_YIELDS = {
   grassland: { food: 2, production: 0, gold: 0 },
@@ -78,6 +79,21 @@ export const RESOURCES_ON_TILES = {
   rubber: { kind: 'strategic', yields: { production: 1 }, improvement: 'plantation' }
 };
 export const RESOURCE_KIND = (id) => RESOURCES_ON_TILES[id]?.kind || null;
+
+// When a resource is KNOWN (playtest audit I096: "Oil" on a site card in 596 BCE). A display
+// policy only: the map, the site card and the tile sheet do not name or draw a resource before
+// its age (the player's effective age, the later of the calendar's and their techs'). The rules
+// are unchanged: the tile's yields, the site scores and the world's generation still count it, so
+// a hidden resource shows as a little extra production with no name. Hiding the yields too, and
+// revealing by a tech, is a rule change for the balance work (decision D10's history policy).
+export const RESOURCE_KNOWN_FROM_AGE = { coal: 'gunpowder', oil: 'modern', rubber: 'modern', uranium: 'modern' };
+/** Whether the player's age (`ageId`) knows resource `id`; an unknown age knows everything. */
+export const resourceKnown = (id, ageId) => {
+  const from = RESOURCE_KNOWN_FROM_AGE[id];
+  if (!from) return true;
+  const have = AGE_ORDER.indexOf(ageId);
+  return have < 0 || have >= AGE_ORDER.indexOf(from);
+};
 export const STRATEGIC_RESOURCES = Object.keys(RESOURCES_ON_TILES).filter((id) => RESOURCES_ON_TILES[id].kind === 'strategic');
 export const LUXURY_RESOURCES = Object.keys(RESOURCES_ON_TILES).filter((id) => RESOURCES_ON_TILES[id].kind === 'luxury');
 
