@@ -12,11 +12,11 @@ flag; model imports still require a visual and licensing review.
 | File | Unit | Triangles | Built by |
 |---|---|---:|---|
 | `bronze-infantry.glb` | Spearmen: kilt, leather corselet, bronze cap, round shield (Emblem), 2.2 m spear | 1,508 | `scripts/blender/build_bronze_infantry.py` (Codex) |
-| `bronze-ranged.glb` | Archers: linen tunic, Team kilt and shawl, self bow, quiver, knife | 1,494 | `build_bronze_ranged.py` (Codex; kilt made Team by Claude) |
+| `bronze-ranged.glb` | Archers: sleeveless linen tunic, Team shawl over the left shoulder and across the chest, white headcloth with a dark band, beard, self bow with a visible string, an arrow in the hand, back quiver, knife; baked shade in COLOR_0 | 1,976 | `build_bronze_ranged.py` on `ti_figure.py` (quality pass of 2026-10-13) |
 | `bronze-cavalry.glb` | Chariots: two small horses side by side, six-spoke wheels, driver and archer | 2,388 | `build_units_bronze.py` (Claude) |
 | `bronze-siege.glb` | Battering ram: covered ram on four wheels, hide roof, four pushers | 2,900 | `build_bronze_siege_machinery.py` + `build_bronze_siege.py` (Codex) |
 | `bronze-support.glb` | Baggage train: one ox in shafts with a withers yoke, solid-wheeled cart, jars, sacks under a Team cover, seated driver | 2,000 | `build_units_bronze.py` (Claude) |
-| `bronze-worker.glb` | Laborer: Team kilt, headcloth, basket and mattock | 1,348 | `build_bronze_worker.py` (Codex) |
+| `bronze-worker.glb` | Laborer: bare chest, kilt, Team waist sash and headband on a white headcloth, beard, a wicker basket of stone high on the back with the left fist on its rope, a mattock held upright like a staff; baked shade in COLOR_0 | 1,784 | `build_bronze_worker.py` on `ti_figure.py` (quality pass of 2026-10-13) |
 | `bronze-raider.glb` | Raider: a light horseman (hide saddle cloth, loot sacks on both flanks, a bundle and a jar on the croup), Team tunic and headcloth, a raised torch (orange `Flame` material), a slung javelin. Drawn for a raid party's cavalry squads (unit `raidOf`, and the attackers of a raid or sack battle) | 1,696 | `build_units_bronze_irregular.py` (Claude) |
 | `bronze-mercenary.glb` | Mercenary: feathered crown on a bronze band, banded corselet, Team kilt, greaves, a neutral sash with a coin pouch, round Emblem shield, long bronze sword. Drawn for hired bands' infantry squads (unit `mercenary`) | 1,410 | `build_units_bronze_irregular.py` (Claude) |
 | `bronze-general.glb` | General: mounted commander (Team cloak, saddle cloth, plume; bronze scale and helmet; mace) and a standard bearer whose banner is the squad's Emblem | 2,005 | `build_units_bronze.py` (Claude) |

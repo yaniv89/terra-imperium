@@ -492,9 +492,11 @@ const patchRig = (shader, withColor) => {
       float toneF = clamp(aVariant.x, 0.0, ${f(SKIN_N - 1)});
       float tone0 = floor(toneF);
       vec3 skinTone = mix(uSkin[int(tone0)], uSkin[int(min(tone0 + 1.0, ${f(SKIN_N - 1)}))], toneF - tone0);
-      base = mix(base * (1.0 + aVariant.z * 0.09 * (1.0 - aTeam)), skinTone, isSkin);
+      // the model's baked shade for the surfaces whose colour is replaced (gltfUnitLoader.js: aUv.x off the emblem)
+      float bakedShade = (aPart < 1.5 && aUv.x > 0.0) ? aUv.x : 1.0;
+      base = mix(base * (1.0 + aVariant.z * 0.09 * (1.0 - aTeam)), skinTone * bakedShade, isSkin);
       #ifdef USE_INSTANCING_COLOR
-        vColor.rgb = mix(base * mix(vec3(1.0), instanceColor.rgb, ${f(withColor.teamTint ?? 0.12)} * (1.0 - isSkin)), instanceColor.rgb, aTeam);
+        vColor.rgb = mix(base * mix(vec3(1.0), instanceColor.rgb, ${f(withColor.teamTint ?? 0.12)} * (1.0 - isSkin)), instanceColor.rgb * bakedShade, aTeam);
       #else
         vColor.rgb = base;
       #endif
