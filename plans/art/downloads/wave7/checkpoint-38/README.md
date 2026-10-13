@@ -38,6 +38,10 @@ uncompressed GLBs, maps, previews, rebuild scripts and an exact file inventory.
 See `sources/manifest.json` for archive hashes. This preserves the maximum of
 five logical items per ZIP requested earlier in the production session.
 
+**Update 2026-10-13:** the three source archives (90.11 MB) were removed from the branch before
+the merge into `claude/integration`. Their inventories and hashes stay in `sources/*.files.txt`,
+`sources/*.manifest.json` and `sources/manifest.json`; the models rebuild from the scripts below.
+
 To rebuild in a local Python environment with `bpy`, from the repository root:
 
 ```sh
@@ -118,7 +122,8 @@ simulation worker on this two-core software-GPU machine. It also postpones
 the first expensive draw until the worker supplies its real initial frame. It uses actual clock
 and native battle state, never synthetic snapshots; it is not an FPS benchmark.
 
-Native photos are in [`plans/art/shots/wave7/checkpoint-38/`](../../../shots/wave7/checkpoint-38/).
+Native photos were taken into `plans/art/shots/wave7/checkpoint-38/` and removed from the branch on
+2026-10-13 (about 24 MB of screenshots); `scripts/art/capture-battle-art.mjs` retakes them.
 The parent inspected the river scene and whole Middle-age landing at **844x390**
 and **1600x900**, plus the campaign map close view at both sizes. The native
 river scene includes the new conifer kit. Bridge, bank, ford and whole-vessel
