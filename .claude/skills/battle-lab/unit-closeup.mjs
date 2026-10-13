@@ -15,7 +15,7 @@ const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, de
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-await page.goto(`${base}?battleSandbox&age=${process.env.AGE || 'bronze'}&terrain=plains&attacker=small&defender=small${process.env.ECO ? '' : '&noeco'}`);
+await page.goto(`${base}?battleSandbox&age=${process.env.AGE || 'bronze'}&terrain=plains&attacker=small&defender=small${process.env.ECO ? '' : '&noeco'}`, { timeout: 180000 });
 await page.getByRole('button', { name: 'Fight' }).click({ timeout: 120000 });
 await page.waitForFunction(() => window.__battleRenderer && window.__battleRenderer.soldierLayers.size > 0, null, { timeout: 90000 });
 await page.waitForTimeout(2500);

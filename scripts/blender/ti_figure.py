@@ -6,13 +6,14 @@
 #   - legs(), arms(), fist(), head(), beard(), headcloth(), tufted_hem(): the parts people share
 #     (shaped head with eyes and brows, fists that close round what the hand holds, sandals), after
 #     the reference sheets plans/art/concepts/oct13 (design reference only)
+#   - reach(), bake_rest(): pose an arm to a point and make that the rest pose
 #   - fix_normals(): consistent outward normals
 #   - bake_shade(): ambient occlusion and a ground-to-head gradient in COLOR_0 (the battle shader
 #     shades Team cloth and skin with it: src/battle/render/gltfUnitLoader.js)
 #   - export_glb(): the GLB with COLOR_0; preview(): workbench stills for a first look
 # Blender Z up, the front faces -Y, a standing person is 1 tall.
 import bpy, bmesh, math, random
-from mathutils import Vector
+from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 import ti_units as u
 
@@ -192,6 +193,49 @@ def tufted_hem(name='KiltHem'):
         if i % 2:
             hem.data.vertices[i].co.z -= .014
     return hem
+
+
+def reach(side, wrist, pole=(.6, .1, -1)):
+    """Pose one arm so its wrist sits at `wrist` (two-bone reach, the elbow towards `pole`)."""
+    A, FA = arm.pose.bones['Arm_' + side], arm.pose.bones['Forearm_' + side]
+    S = arm.data.bones['Arm_' + side].head_local.copy()
+    l1 = (arm.data.bones['Forearm_' + side].head_local - S).length
+    l2 = (arm.data.bones['Hand_' + side].head_local - arm.data.bones['Forearm_' + side].head_local).length
+    W = Vector(wrist)
+    d = W - S
+    L = min(d.length, (l1 + l2) * .999)
+    dn = d.normalized()
+    a = (l1 * l1 - l2 * l2 + L * L) / (2 * L)
+    h = math.sqrt(max(0, l1 * l1 - a * a))
+    pl = Vector(pole)
+    pl = (pl - dn * pl.dot(dn)).normalized()
+    E = S + dn * a + pl * h
+    for pb, src, dst in ((A, S, E), (FA, E, S + dn * L)):
+        pb.matrix = Matrix.Translation(src) @ (dst - src).to_track_quat('Y', 'Z').to_matrix().to_4x4()
+        bpy.context.view_layer.update()
+
+
+def bake_rest():
+    """Make the current pose the rest pose: the meshes keep the posed shape, the weights stay
+    (as ti_units.bake_rest_pose, for a pose set by matrices)."""
+    bpy.context.view_layer.update()
+    for ob in meshes:
+        mod = next((m for m in ob.modifiers if m.type == 'ARMATURE'), None)
+        if not mod:
+            continue
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.context.view_layer.objects.active = ob
+        ob.select_set(True)
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = arm
+    arm.select_set(True)
+    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.pose.armature_apply(selected=False)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    for ob in meshes:
+        mod = ob.modifiers.new('CanonicalRig', 'ARMATURE')
+        mod.object = arm
 
 
 def fix_normals(open_facing=None):

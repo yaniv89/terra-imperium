@@ -12,7 +12,8 @@
 #   - the basket rides high on the back and the left shoulder (Prop_Back), heaped with stone, on two
 #     ropes; the left fist holds the left rope (BasketHandle); a short dark beard
 #     (the look follows plans/art/concepts/oct13/units-bronze-set.png, design reference only)
-#   - the arms in the ready pose: the mattock stands on its head in front, the right fist on the handle
+#   - the right arm in the ready pose with the mattock upright like a staff (a stout handle, the
+#     bronze head above his own); the left forearm up across the chest, the fist on the rope
 #   - Deposit also tips the basket over the shoulder (Prop_Back); its old keys stay
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
 # Outputs go to art-build/units/bronze-worker/; copy the GLB to src/assets/units/bronze-worker.glb.
@@ -29,10 +30,13 @@ OUT = u.out_dir(UID)
 arm = F.start({'Wood': '9A7443', 'Stone': '8E8A82', 'Leather': '5E3A26'}, ready=True)
 tube, box, raw, vertical = F.tube, F.box, F.raw, F.vertical
 
-# ---- the mattock's line: its head on the ground ahead, the handle up through the right fist ----------
+# ---- the mattock's line: upright like a staff, its butt on the ground, the bronze head above the man's own ----
+# Upright and narrow on purpose: the far detail level keeps long thin parts (soldierLod.js lockShafts:
+# longer than 0.25 with the middle side of its box under 0.06), so the handle and the head each
+# qualify and survive; a slanted handle or a broad blade does not.
 HAND_R = Vector((-.223, -.137, .604))
-HEAD = Vector((-.265, -.270, .052))
-shaft = (HAND_R - HEAD).normalized()
+shaft = Vector((0, 0, 1))
+HEAD = Vector((HAND_R.x, HAND_R.y, 1.062))
 HAND_L = Vector((.225, -.130, .608))
 ROPE_L = [Vector((.100, .100, .790)), Vector((.084, .004, .812)), Vector((.086, -.070, .748)), HAND_L]
 
@@ -88,15 +92,19 @@ tube('BasketHandle', [(tuple(p), .0085, w) for p, w in zip(ROPE_L, ['Chest', 'Ch
 tube('BasketStrap', [((-.020, .112, .800), .0085, 'Chest'), ((-.084, .004, .812), .0085, 'Chest'), ((-.086, -.072, .748), .0085, 'Chest'),
                      ((-.092, -.062, .650), .0085, 'Chest'), ((-.100, .060, .610), .0085, 'Spine')], 'Leather', 4, attachment=True)
 
-# ---- the mattock (Prop_R): wooden handle, bronze socket, a broad blade with a pick at the back ---------
+# ---- the mattock (Prop_R): a stout handle, bronze socket, a long narrow head (blade to the front, pick behind) ----
 P = 'Prop_R'
-fwd = Vector((0, -1, 0))
-fwd = (fwd - shaft * fwd.dot(shaft)).normalized()
-tube('MattockHandle', [(tuple(HEAD - shaft * .022), .0135, P), (tuple(HAND_R + shaft * .080), .0110, P)], 'Wood', 6, attachment=True)
-tube('MattockHead', [(tuple(HEAD - fwd * .095), (.005, .005), P), (tuple(HEAD - fwd * .024), (.024, .018), P), (tuple(HEAD + fwd * .024), (.030, .018), P),
-                     (tuple(HEAD + fwd * .090 - shaft * .008), (.052, .011), P), (tuple(HEAD + fwd * .150 - shaft * .030), (.062, .004), P)],
-     'Metal', 4, attachment=True)
-tube('MattockSocket', [(tuple(HEAD - shaft * .026), .024, P), (tuple(HEAD + shaft * .030), .020, P)], 'Metal', 6, attachment=True)
+back = Vector((0, 1, 0))
+tube('MattockHandle', [((HAND_R.x, HAND_R.y, .030), .0125, P), (tuple(HEAD + shaft * .030), .0115, P)], 'Wood', 6, attachment=True)
+# rings are (thickness, width) here: the head runs front to back
+tube('MattockHead', [(tuple(HEAD + back * .160 - shaft * .016), (.005, .005), P), (tuple(HEAD + back * .035), (.019, .020), P),
+                     (tuple(HEAD - back * .035), (.019, .023), P), (tuple(HEAD - back * .120 - shaft * .006), (.012, .024), P),
+                     (tuple(HEAD - back * .185 - shaft * .020), (.004, .024), P)], 'Metal', 4, attachment=True)
+tube('MattockSocket', [(tuple(HEAD - shaft * .032), .024, P), (tuple(HEAD + shaft * .032), .021, P)], 'Metal', 6, attachment=True)
+
+# ---- the left hand comes up to the basket rope on the chest: posed, then made the rest pose ------------------
+F.reach('L', (.108, -.112, .722))
+F.bake_rest()
 
 meshes = F.meshes
 F.fix_normals()
