@@ -334,6 +334,32 @@ DESERT = kit((tr.date_palm, tr.acacia, tr.tamarisk), 'bark_pale', 'palm_leaf', '
 STEPPE = kit((tr.poplar, tr.elm, tr.saxaul), 'bark_pale', 'dry_shrub', 'dry_shrub', 'rock', 'tuft_dry', tuft=tr.tall_grass)
 
 
+def remaining_kit(kit_name, species):
+    """The conifer, tropical or cold kit: its stump, felled trunk, bush, rocks and grass tuft from
+    ti_vegetation_remaining.py exactly as build_vegetation_remaining.py built them (its layouts,
+    its seed in REMAINING_SEEDS, its trees run first into nothing so the random stream after them
+    is the same), and the trees from ti_trees.py in place of its own. Its own trees drew their far
+    levels badly: the spruce's LOD1 as striped dark and pale cones, the palm's far fronds near
+    black. Imported only here: the helper adds its materials to every file built after it."""
+    import ti_vegetation_remaining as vr
+    import ti_nature_wave7
+    vr.tn = ti_nature_wave7  # the stump and felled trunk as checkpoint 38 shipped them (MD06 redrew ti_nature's)
+    old = vr.items(kit_name)
+    retired = [layout for _name, layout, _ground in old[:3]]
+    rest = [(name, layout) for name, layout, _ground in old[3:]]
+    first_name, first_layout = rest[0]
+
+    def first(ms, rng):
+        for layout in retired:
+            layout(tm.Mesher(), rng)
+        first_layout(ms, rng)
+    return [(first_name, first)] + rest[1:] + species_items(species)
+
+
+# The seeds build_vegetation_remaining.py gave the kits it built (7210 + 37 * its kit index).
+REMAINING_SEEDS = {'vegetation-conifer': 7210, 'vegetation-tropical': 7247, 'vegetation-cold': 7284}
+
+
 def node_items(states):
     full, half, depleted = states
     return [('full', full), ('half', half), ('depleted', depleted)]
@@ -351,9 +377,8 @@ FILES = {
     'vegetation-temperate': TEMPERATE,
     'vegetation-mediterranean': MEDITERRANEAN,
     'vegetation-desert': DESERT,
-    # Log piles for the kits built by build_vegetation_remaining.py (conifer, tropical, cold). Those
-    # files are pinned by hash and were not rebuilt; the game stands `log-pile-<kit>` beside a grove
-    # whose kit has no `log-pile` of its own (economyLayer.js).
+    # Log piles for the conifer, tropical and cold kits, which have no `log-pile` of their own: the
+    # game stands `log-pile-<kit>` beside such a kit's grove (economyLayer.js).
     'log-piles': [
         ('log-pile-conifer', lambda ms, rng: tn.log_pile(ms, rng, bark='bark_pine', ends='cut_pine')),                  # pale pine
         ('log-pile-tropical', lambda ms, rng: tn.log_pile(ms, rng, length=0.27, r=0.035, bark='bark_hardwood', ends='cut_hardwood')),  # dark hardwood
@@ -361,13 +386,11 @@ FILES = {
     ],
     # New files go last: a file's seed is its place in this list.
     'vegetation-steppe': STEPPE,
-    # More species for the kits built by build_vegetation_remaining.py (pinned by hash, not rebuilt):
-    # the game adds a kit's `vegetation-<kit>-species.glb` trees to its own (vegetationProps.js).
-    # Their first species (tree-s, tree-m, tree-l) is in the kit: spruces; a small broadleaf, a palm
-    # and a rainforest tree; wind-bent dwarf trees.
-    'vegetation-conifer-species': species_items((tr.scots_pine, tr.fir), first=2),
-    'vegetation-tropical-species': species_items((tr.coconut_palm, tr.jungle_giant, tr.banana), first=2),
-    'vegetation-cold-species': species_items((tr.larch, tr.dwarf_birch, tr.tundra_shrub), first=2),
+    # The kits first built by build_vegetation_remaining.py (MD05, 14 October: their trees are
+    # replaced, everything else is theirs, built as they built it; see remaining_kit)
+    'vegetation-conifer': lambda: remaining_kit('conifer', (tr.spruce, tr.scots_pine, tr.fir)),
+    'vegetation-tropical': lambda: remaining_kit('tropical', (tr.jungle_giant, tr.coconut_palm, tr.banana)),
+    'vegetation-cold': lambda: remaining_kit('cold', (tr.larch, tr.dwarf_birch, tr.tundra_shrub)),
 }
 
 # Small objects need less than the README's 1024 atlas: one animal, a few ripples and fish.
@@ -470,10 +493,13 @@ def main():
     tm.transfer_uvs_by_face = transfer
     report = {}
     order = list(FILES)
+    only = sorted(only, key=lambda n: n in REMAINING_SEEDS)  # those import their helper's materials: last
     for name in only:
-        items = [(obj, fn, None) for obj, fn in FILES[name]]
+        entries = FILES[name]() if callable(FILES[name]) else FILES[name]
+        items = [(obj, fn, None) for obj, fn in entries]
         # the seed is the file's own (its place in FILES), whichever files are built with it
-        report[name] = tt.build_file(name, items, out_dir, atlas=SMALL_ATLAS.get(name, 1024), seed=4100 + 17 * order.index(name))
+        seed = REMAINING_SEEDS.get(name, 4100 + 17 * order.index(name))
+        report[name] = tt.build_file(name, items, out_dir, atlas=SMALL_ATLAS.get(name, 1024), seed=seed)
     import json
     with open(os.path.join(out_dir, 'report-%s.json' % ('all' if len(only) == len(FILES) else only[0])), 'w') as fh:
         json.dump(report, fh, indent=2)

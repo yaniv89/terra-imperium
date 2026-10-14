@@ -1,7 +1,7 @@
 // src/battle/sim/base.test.js
 // Playtest audit CB18: the full starting roster (U10, the user's ruling Q2) and the base rule
 // (Q3, Q4, Q5): in a battle with bases a side loses only when its base buildings are gone, the keep
-// alone does not win, houses, walls and towers are not base, and at the clock the defender holds.
+// alone does not win, houses, walls and the city's wall towers are not base (a tower workers build is), and at the clock the defender holds.
 import { describe, it, expect } from 'vitest';
 import { buildSetupFromArmies } from '../setup/buildBattleSetup';
 import { createWorld, deployZone, MAX_START_SQUADS } from './world';
@@ -10,7 +10,7 @@ import { applyOrder } from './orders';
 import { toStrategicResult } from './result';
 import { runHeadless } from './headless';
 import { PURSUIT_TICKS } from './step';
-import { baseBuildings, baseCount, baseGone } from './base';
+import { baseBuildings, baseCount, baseGone, isBaseType } from './base';
 import { buildTownManifest } from '../../data/townLayout';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 
@@ -86,6 +86,24 @@ describe('the base rule (Q3, Q4, Q5)', () => {
     ['house', 'wall', 'gate', 'tower', 'landmark', 'hall'].forEach((k) => expect(kinds).not.toContain(k));
     expect(w.structures.some((st) => st.kind === 'house')).toBe(true);
     expect(w.structures.some((st) => st.kind === 'wall')).toBe(true);
+  });
+
+  it('a tower the workers built counts as base (a military building); a house does not (ruling of 14 October)', () => {
+    expect(isBaseType('tower')).toBe(true);
+    expect(isBaseType('barracks')).toBe(true);
+    expect(isBaseType('house')).toBe(false);
+    const w = createWorld(ecoSetup());
+    run(w, 2);
+    const camp = w.eco.buildings.find((b) => b.type === 'camp');
+    // A finished tower and a finished house of the attacker's (bookkeeping only: no workers sent).
+    ['tower', 'house'].forEach((type) => w.eco.buildings.push({ ...camp, idx: w.eco.buildings.length, id: `x${type}`, type, startHousing: null, queue: [], alive: true, built: true }));
+    expect(baseCount(w, SIDE_ATTACKER)).toBe(2); // the camp and the tower
+    raze(w, { kind: 'eco', index: camp.idx });
+    run(w, PURSUIT_TICKS + 5);
+    expect(w.ended).toBeNull(); // the tower still stands: the attacker has not lost
+    expect(baseGone(w, SIDE_ATTACKER)).toBe(false);
+    raze(w, { kind: 'eco', index: w.eco.buildings.find((b) => b.type === 'tower').idx });
+    expect(baseGone(w, SIDE_ATTACKER)).toBe(true); // the house alone is no base
   });
 
   it('an army wiped out while its camp stands does not lose: the battle goes on', () => {

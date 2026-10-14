@@ -274,7 +274,7 @@ export const advanceMarches = (state, units, { year } = {}) => {
     while (route.length) {
       const next = route[0];
       const access = tileAccess(state, next, me);
-      if (access === 'closed') { halt = 'closed'; break; }
+      if (access === 'closed' || (u.explorer && !['wild', 'own', 'friend'].includes(access))) { halt = 'closed'; break; }
       // Enemy land is walked at war (a siege is an army beside the city); the city itself is taken
       // through the attack card.
       if (access === 'enemy' && state.regions[state.world?.tileOwner?.[next]]?.tile === next) { halt = 'attack'; break; }

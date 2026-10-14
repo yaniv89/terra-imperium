@@ -12,6 +12,7 @@
 // armyStatus(state, unit) is the one answer every surface reads (the idle prompt, the army sheet):
 //   'aboard'     cargo on a ship
 //   'marching'   it has a route
+//   'exploring'  a scout on auto-explore (scouting.js)
 //   'holding'    the Hold order
 //   'besieging'  it stands beside a city it besieges (at war, or under a siege order)
 //   'garrison'   it stands on a city's centre: garrisons rest in their cities
@@ -29,6 +30,7 @@ export const isHolding = (unit) => !!unit?.hold;
 export const armyStatus = (state, unit, centres = centreIndex(state)) => {
   if (unit.embarkedOn) return 'aboard';
   if (unit.route?.length) return 'marching';
+  if (unit.explore?.auto) return 'exploring'; // a scout between two legs (scouting.js)
   if (isHolding(unit)) return 'holding';
   if (unit.domain !== 'naval' && besiegedCityOf(state, unit, centres) != null) return 'besieging';
   const t = unitTile(state, unit);

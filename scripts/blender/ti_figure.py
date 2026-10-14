@@ -24,6 +24,9 @@
 # Added for the Classical foot units (2026-10-14, build_classical_*.py; they export the rest pose only):
 #   - torso(), skirt(), strips() (pteruges), greaves(), boots, hair(), ridge() (a crest), helmet(),
 #     oval_shield(), finish_rest()
+# Added for the Kingdoms foot units (2026-10-14, build_kingdoms_*.py; rest pose only): legs(hose=),
+#   arms(long=, pad=, cuff=), quilted torso() and skirt() (ribs, quilt()), lathe(), kettle_hat(),
+#   mail_coif(), hood(), tabard(), straw_hat(), self_bow(), hip_sword()
 # Blender Z up, the front faces -Y, a standing person is 1 tall.
 import bpy, bmesh, math, random, json, os
 from mathutils import Vector, Matrix
@@ -171,12 +174,15 @@ def vertical(zs, cy, radii, weights, cx=0):
     return [((cx, cys[i], zs[i]), radii[i], ws[i]) for i in range(len(zs))]
 
 
-def legs(laces=True, straps=True, simple=False, boots=None):
+def legs(laces=True, straps=True, simple=False, boots=None, hose=None):
     """Bare legs and feet in leather sandals (laced up the calf or not; straps=False: a crew
     member whose feet are hardly seen keeps the sole only; simple=True: legs hidden in a car, one
-    plain tube, a foot and a sole); `boots` is a material for closed ankle boots instead of the sandals."""
+    plain tube, a foot and a sole); `boots` is a material for closed ankle boots instead of the sandals.
+    `hose` (with boots): the legs in wool hose of that material instead of bare skin, or a pair
+    (left, right) for parti-coloured hose."""
     for side, s in (('L', 1), ('R', -1)):
         L, S, F = 'Leg_' + side, 'Shin_' + side, 'Foot_' + side
+        leg = (hose if isinstance(hose, str) else hose[0 if side == 'L' else 1]) if hose else 'Skin'
         if simple:
             tube('BodyLeg_' + side, [((s * .061, 0, .470), (.052, .049), L), ((s * .071, -.010, .262), (.035, .036), {L: .5, S: .5}),
                                      ((s * .074, .002, .060), (.024, .025), F)], 'Skin', 6, caps=(False, True))
@@ -187,7 +193,7 @@ def legs(laces=True, straps=True, simple=False, boots=None):
             tube('BodyLeg_' + side, [
                 ((s * .061, 0, .470), (.053, .050), L), ((s * .070, -.003, .320), (.040, .039), L), ((s * .071, -.012, .268), (.034, .036), {L: .6, S: .4}),
                 ((s * .071, -.014, .250), (.033, .036), {L: .4, S: .6}), ((s * .073, .004, .200), (.039, .040), S),
-                ((s * .074, .005, .120), (.028, .029), S)], 'Skin', 7, caps=(False, False))
+                ((s * .074, .005, .120), (.028, .029), S)], leg, 7, caps=(False, False))
             tube('Boot_' + side, [((s * .074, .005, .138), (.035, .036), S), ((s * .074, .005, .122), (.035, .036), S), ((s * .074, .004, .060), (.027, .030), F),
                                   ((s * .074, .010, .004), (.030, .036), F)], boots, 7, caps=(False, True))
             tube('BootFoot_' + side, [((s * .074, .020, .030), (.026, .030), F), ((s * .074, -.050, .028), (.036, .028), F),
@@ -212,19 +218,26 @@ def legs(laces=True, straps=True, simple=False, boots=None):
                  'Leather', 8, caps=(False, False))
 
 
-def arms(sleeve=None, shoulder=None):
+def arms(sleeve=None, shoulder=None, long=None, pad=0., cuff=None):
     """Bare arms; `sleeve` is a material for a short sleeve, `shoulder` one for a cap over the
-    shoulder (Skin for a bare deltoid). Returns {side: (shoulder, elbow, wrist)}."""
+    shoulder (Skin for a bare deltoid). `long`: the whole arm in a sleeve of that material to the
+    wrist (a padded sleeve with `pad`, wider by that much; `cuff`: a band of that material at the
+    wrist). Returns {side: (shoulder, elbow, wrist)}."""
     bone = arm.data.bones
     out = {}
     for side, s in (('L', 1), ('R', -1)):
         A, FA, H = 'Arm_' + side, 'Forearm_' + side, 'Hand_' + side
         sh, el, wr = bone[A].head_local.copy(), bone[FA].head_local.copy(), bone[H].head_local.copy()
         out[side] = (sh, el, wr)
+        p = pad if long else 0
         tube('BodyArm_' + side, [
-            (tuple(sh), (.043, .040), A), (tuple(sh.lerp(el, .55)), (.039, .036), A),
-            (tuple(el), (.032, .032), {A: .5, FA: .5}), (tuple(el.lerp(wr, .30)), (.035, .032), FA),
-            (tuple(el.lerp(wr, .75)), (.027, .026), FA), (tuple(wr), (.022, .024), H)], 'Skin', 6 if LITE else 7, caps=(False, False))
+            (tuple(sh), (.043 + p, .040 + p), A), (tuple(sh.lerp(el, .55)), (.039 + p, .036 + p), A),
+            (tuple(el), (.032 + p, .032 + p), {A: .5, FA: .5}), (tuple(el.lerp(wr, .30)), (.035 + p, .032 + p), FA),
+            (tuple(el.lerp(wr, .75)), (.027 + p * .7, .026 + p * .7), FA), (tuple(wr), (.022 + p * .4, .024 + p * .4), H)],
+             long or 'Skin', 6 if LITE else 7, caps=(False, False))
+        if cuff:
+            tube('Cuff_' + side, [(tuple(el.lerp(wr, .80)), (.030 + p * .6, .030 + p * .6), FA), (tuple(el.lerp(wr, .98)), (.027 + p * .5, .028 + p * .5), FA)],
+                 cuff, 6, caps=(False, False))
         if sleeve:
             tube('short-sleeve-' + side, [(tuple(sh.lerp(el, -.05)), (.050, .046), A), (tuple(sh.lerp(el, .30)), (.049, .044), A),
                                           (tuple(sh.lerp(el, .52)), (.047, .043), A)], sleeve, 6, caps=(True, False))
@@ -505,22 +518,39 @@ def radius_at(z, profile):
     return profile[-1][1], profile[-1][2]
 
 
-def torso(name, mat, grow=0, chest=0, sides=10, profile=TORSO):
+def quilt(ob, rings, sides, depth):
+    """Quilted channels: every second column of a tube's rings drawn in towards its axis by `depth`
+    (a share of the radius), so a padded coat shows ribs in its facets at no cost in triangles."""
+    for i in range(rings):
+        for j in range(1, sides, 2):
+            v = ob.data.vertices[i * sides + j].co
+            v.x, v.y = v.x * (1 - depth), v.y * (1 - depth)
+
+
+def torso(name, mat, grow=0, chest=0, sides=10, profile=TORSO, ribs=0):
     """The trunk from the waist to the collar as one tube (a tunic, a corselet, a cuirass, bare skin).
-    `grow` widens it over what it covers; `chest` pushes the front of the chest rings forward."""
+    `grow` widens it over what it covers; `chest` pushes the front of the chest rings forward;
+    `ribs` quilts it (a padded coat, quilt())."""
     ob = tube(name, [((0, 0, z), (rx + grow, ry + grow), 'Spine' if z < .66 else 'Chest') for z, rx, ry in profile], mat, sides, caps=(False, True))
     if chest:
         for i, (z, _, _) in enumerate(profile):
             if .68 < z < .75:
                 for j in (sides - 1, 0, 1):
                     ob.data.vertices[i * sides + j].co.y -= chest
+    if ribs:
+        quilt(ob, len(profile) - 1, sides, ribs)
     return ob
 
 
-def skirt(name, mat, low=.335, top=.548, grow=0, sides=10, bone='Hips'):
-    """A tunic's skirt or a kilt from `top` down to `low`."""
+def skirt(name, mat, low=.335, top=.548, grow=0, sides=10, bone='Hips', ribs=0, flare=0):
+    """A tunic's skirt or a kilt from `top` down to `low` (`flare`: the lowest ring that much wider;
+    `ribs` quilts it)."""
     zs = [low] + [z for z, _, _ in SKIRT if low + .02 < z < top - .01] + [top]
-    return tube(name, [((0, 0, z), tuple(r + grow for r in radius_at(z, SKIRT)), bone) for z in zs], mat, sides, caps=(False, False))
+    ob = tube(name, [((0, 0, z), tuple(r + grow + (flare if i == 0 else 0) for r in radius_at(z, SKIRT)), bone) for i, z in enumerate(zs)],
+              mat, sides, caps=(False, False))
+    if ribs:
+        quilt(ob, len(zs), sides, ribs)
+    return ob
 
 
 def band(name, mat, z0, z1, grow, profile=TORSO, bone='Spine', sides=10, bulge=.004):
@@ -669,6 +699,143 @@ def oval_shield(centre, rx, rz, n=14, rim='Metal', back='Wood', prop='Prop_L', d
         tube('ShieldBoss', [((cx, cy - dome + .006, cz), (.046, .040), prop), ((cx, cy - dome - .014, cz), (.035, .030), prop),
                             ((cx, cy - dome - .026, cz), (.010, .012), prop)], boss, 6, attachment=True)
     return ob
+
+
+# ---- Kingdoms (medieval) parts (2026-10-14, build_kingdoms_*.py) ---------------------------------------
+# What tells the medieval foot from the Classical at a glance: wool hose and ankle boots instead of
+# bare legs and sandals (legs(hose=)), long padded sleeves (arms(long=, pad=)), quilted coats (ribs),
+# a Team tabard over the chest with panels front and back, broad-brimmed kettle hats over mail coifs,
+# hoods with a shoulder cape and a long tail, the tall self bow.
+
+def lathe(name, profile, mat, bone='Head', sides=10, sy=.94, cy=-.003, cx=0, attachment=False, weights=None):
+    """A surface of revolution round a vertical axis through (cx, cy): `profile` is (r, z) points in
+    order, r 0 a pole that closes that end; `sy` squashes it front to back. Vertex 0 of a ring faces -Y."""
+    verts, faces, vw, rows = [], [], [], []
+    for k, (r, z) in enumerate(profile):
+        w = weights[k] if weights else bone
+        w = {w: 1} if isinstance(w, str) else w
+        if r < 1e-6:
+            rows.append([len(verts)])
+            verts.append((cx, cy, z))
+            vw.append(w)
+            continue
+        row = []
+        for j in range(sides):
+            a = 2 * math.pi * j / sides
+            row.append(len(verts))
+            verts.append((cx + r * math.sin(a), cy - r * sy * math.cos(a), z))
+            vw.append(w)
+        rows.append(row)
+    for a, b in zip(rows, rows[1:]):
+        if len(a) == 1 and len(b) == 1:
+            continue
+        for j in range(sides):
+            q = (j + 1) % sides
+            if len(a) == 1:
+                faces.append((a[0], b[q], b[j]))
+            elif len(b) == 1:
+                faces.append((a[j], a[q], b[0]))
+            else:
+                faces += [(a[j], a[q], b[q]), (a[j], b[q], b[j])]
+    return raw(name, verts, faces, mat, attachment=attachment, weights=vw)
+
+
+def kettle_hat(name='KettleHat', mat='Metal', brim=.126, droop=.032, top=1.042, comb=True, sides=12):
+    """The medieval kettle hat (the pikeman's): a round steel bowl and a broad brim sloping down all
+    round, a low comb from the brow to the nape."""
+    lathe(name, [(0, top), (.032, top - .007), (.055, top - .024), (.069, .992), (.074, .966), (.076, .954),
+                 (brim, .956 - droop), (brim + .004, .940 - droop), (.074, .932), (0, .936)], mat, sides=sides)
+    if comb:
+        ridge(name + 'Comb', [(-.066, top - .052, top - .040), (-.034, top - .014, top - .001), (.034, top - .014, top - .001),
+                              (.066, top - .052, top - .040)], mat, half=(.009, .007))
+
+
+def mail_coif(name='MailCoif', mat='Mail', sides=10, cape=.190):
+    """A mail hood under a helmet: a short cape over the shoulders (Chest), round the neck and the
+    head, the face left open (the front of the head rings drawn back behind it)."""
+    rings = [(.752, cape, .108, .004, 'Chest'), (.790, .118, .086, .002, 'Chest'), (.828, .072, .066, -.004, 'Neck'),
+             (.864, .068, .066, -.005, 'Head'), (.904, .069, .067, -.004, 'Head'), (.944, .067, .065, -.003, 'Head'), (.972, .054, .052, -.002, 'Head')]
+    ob = tube(name, [((0, cy, z), (rx, ry), w) for z, rx, ry, cy, w in rings], mat, sides, caps=(False, True))
+    for i, (z, *_rest) in enumerate(rings):
+        if z > .85:
+            ob.data.vertices[i * sides].co.y = -.020
+            for j in (1, sides - 1):
+                ob.data.vertices[i * sides + j].co.y *= .80
+    return ob
+
+
+def hood(name='Hood', mat='Cloth', sides=10, cape=.234, low=.700, dags=.020, tail=True):
+    """A medieval hood (chaperon): a shoulder cape with a pointed (dagged) edge down to `low`
+    (Chest), the hood round the head with the face open, a point at the back and a long tail
+    (liripipe) down the back. In Team it is the side's colour seen from above."""
+    rings = [(low, cape, .148, .010, 'Chest'), (low + .046, cape - .010, .138, .008, 'Chest'), (.796, .162, .114, .004, 'Chest'),
+             (.836, .090, .078, 0, 'Neck'), (.866, .073, .071, .003, 'Head'), (.905, .076, .074, .006, 'Head'), (.946, .075, .073, .008, 'Head'),
+             (.986, .063, .063, .014, 'Head'), (1.014, .038, .042, .030, 'Head'), (1.034, .008, .010, .056, 'Head')]
+    ob = tube(name, [((0, cy, z), (rx, ry), w) for z, rx, ry, cy, w in rings], mat, sides, caps=(False, True))
+    for j in range(0, sides, 2):
+        ob.data.vertices[j].co.z -= dags
+    for i, (z, *_rest) in enumerate(rings):
+        if .85 < z < 1.0:
+            ob.data.vertices[i * sides].co.y = -.024
+            for j in (1, sides - 1):
+                ob.data.vertices[i * sides + j].co.y *= .82
+    if tail:
+        tube(name + 'Tail', [((0, .062, 1.030), .014, 'Head'), ((0, .104, .960), .015, 'Head'), ((0, .150, .860), .014, 'Chest'),
+                             ((.006, .172, .760), .012, 'Chest'), ((.010, .172, .690), .007, 'Chest')], mat, 6)
+    return ob
+
+
+def tabard(name='Tabard', mat='Team', low=.400, grow=.016, width=(.078, .094), sides=10, chest=.008, ribs=0):
+    """A sleeveless surcoat on the trunk (Spine and Chest: the battle dyes it) and a panel hanging
+    to `low` in front and at the back (weighted to the Spine too, so it stays the side's colour),
+    the sides open over the coat below."""
+    top = torso(name, mat, grow=grow, chest=chest, sides=sides, ribs=ribs)
+    zt = .548
+    for k, s in (('Front', -1), ('Back', 1)):
+        rt = max(radius_at(zt, TORSO)[1], radius_at(zt, SKIRT)[1]) + grow + .002
+        rb = radius_at(low, SKIRT)[1] + grow + .006
+        w0, w1 = width
+        slab(name + k, [(-w0, s * rt, zt + .012), (w0, s * rt, zt + .012), (w1, s * rb, low), (-w1, s * rb, low)], mat, 'Spine', depth=.007)
+    return top
+
+
+def straw_hat(name='StrawHat', mat='Straw', band='Team', brim=.136, sides=12):
+    """A peasant's round straw hat: a rounded crown, a broad flat brim, a band (Head: Team draws)."""
+    lathe(name, [(0, 1.062), (.036, 1.054), (.060, 1.028), (.071, .994), (.073, .966), (brim, .948), (brim + .004, .940),
+                 (.072, .946), (0, .950)], mat, sides=sides)
+    if band:
+        tube(name + 'Band', vertical([.963, .988], -.003, [(.0775, .073), (.0765, .072)], 'Head'), band, sides, caps=(False, False))
+
+
+def self_bow(grip, length, prop='Prop_L', mat='Wood', string='Cloth', tips='Horn', brace=.050, back=(0, 1, 0), thick=(.0150, .0068), n=12):
+    """A tall self bow (the longbow) upright through the fist at `grip`: one long even bend, its tips
+    `brace` towards the string side (`back`), horn nocks, a straight string. Parts: longbow,
+    longbow-grip, longbow-nock-top/-bottom, longbow-string. Returns (top, bottom) of the string."""
+    g, b = Vector(grip), Vector(back).normalized()
+    ring = []
+    for i in range(n + 1):
+        t = i / n
+        s = abs(t - .5) * 2
+        ring.append((tuple(g + Vector((0, 0, (t - .5) * length)) + b * brace * s * s), thick[0] - (thick[0] - thick[1]) * s, prop))
+    tube('longbow', ring, mat, 5, attachment=True)
+    tube('longbow-grip', [((g.x, g.y, g.z - .045), .0175, prop), ((g.x, g.y, g.z + .045), .0175, prop)], 'Leather', 6, caps=(False, False), attachment=True)
+    top, bottom = Vector(ring[-1][0]), Vector(ring[0][0])
+    for nm, tip, up in (('longbow-nock-top', top, 1), ('longbow-nock-bottom', bottom, -1)):
+        tube(nm, [(tuple(tip - Vector((0, 0, up * .040))), .0085, prop), (tuple(tip + Vector((0, 0, up * .012))), .0055, prop)], tips, 4, attachment=True)
+    tube('longbow-string', [(tuple(bottom + b * .004), .0030, prop), (tuple(top + b * .004), .0030, prop)], string, 3, attachment=True)
+    return top, bottom
+
+
+def hip_sword(name='Sword', side='L', mat='Metal', scabbard='Leather', grip='Leather', length=.42):
+    """A sword in its scabbard at the hip, hanging back from the belt (Hips): the cross guard and
+    the pommel stand up in front of the hip."""
+    s = 1 if side == 'L' else -1
+    top, mid, low = Vector((s * .112, -.040, .538)), Vector((s * .128, .000, .420)), Vector((s * .140, .040, .538 - length))
+    tube(name + 'Scabbard', [(tuple(top), (.016, .010), 'Hips'), (tuple(mid), (.016, .010), 'Hips'), (tuple(low), (.010, .007), 'Hips')], scabbard, 4)
+    ax = (top - mid).normalized()
+    box(name + 'Guard', tuple(top + ax * .008), (.016, .080, .012), mat, 'Hips')
+    tube(name + 'Grip', [(tuple(top + ax * .012), .010, 'Hips'), (tuple(top + ax * .082), .009, 'Hips')], grip, 5, caps=(False, False))
+    tube(name + 'Pommel', [(tuple(top + ax * .080), .008, 'Hips'), (tuple(top + ax * .092), .016, 'Hips'), (tuple(top + ax * .104), .006, 'Hips')], mat, 6)
 
 
 def reach(side, wrist, pole=(.6, .1, -1)):

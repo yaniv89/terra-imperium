@@ -51,12 +51,8 @@ export const raidLandingPlacements = (setup, view = {}, metadata = new Map((setu
     if (b.type !== 'farm' || b.alive !== false || !(b.size > 0)) return;
     out.push({ id: 'burnt-field-overlay', x: b.x / Q, z: b.y / Q, yaw: 0, side: -1, fieldSize: b.size });
   });
-  const carrying = new Set(view.eco?.carrying || []);
-  (view.squads || []).forEach((s) => {
-    if (!carrying.has(s.idx) || !s.alive || !s.onField || s.fled || s.visible === false || s.hidden || s.inside >= 0) return;
-    const a = (s.facing || 0) / 256 * Math.PI * 2;
-    out.push({ id: 'loot-sack', x: s.x / Q - Math.cos(a) * 0.2, z: s.y / Q - Math.sin(a) * 0.2, yaw: Math.PI / 2 - a, side: -1, lift: 0.65 });
-  });
+  // A laborer's load is no loot sack: render/economyLayer.js draws what it really carries
+  // (`eco.carrying` entries, art/workerLoads.js; X28).
   if (map.landing) {
     const id = landingId(setup.sides?.[0]?.ageId);
     // The shore is actual WATER -> SAND/open transition, not a hardcoded sea width.

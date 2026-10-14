@@ -31,14 +31,19 @@ import {
   buildRateHalves, CANCEL_REFUND, REPAIR_HP_PER_SEC, REPAIR_RECENT_TICKS, REPAIR_RECENT_MULT_QUARTERS,
   BUILD_RADIUS_HQ, BUILD_RADIUS_OWN, QUEUE_MAX, LOOT_SHARE, CITY_BUILDING_LOOT, TRADE_GOLD_PER_SEC, TRADE_GOLD_MAX,
   AID_RADIUS, AID_HEAL_PER_SEC, HOUSE_HOUSING, HALL_HOUSING, BUILDINGS, UNITS, costMilli, costTotal, buildTicks, trainTicks,
-  trainableRoles, buildableFor, WORKER_MIX
+  trainableRoles, buildableFor, WORKER_MIX, RES_INDEX, CITY_REPAIR_STONE_PER_HP
 } from '../data/economy';
 
 export const START_WORKERS = 5;          // each side starts with a few laborers by its headquarters
 export const MAX_ECO_BUILDINGS = 80;     // a side's raised buildings (RTS plan 13.1: 80 major structures)
 const ECO_FLOW = 'ecoFlowCache';
-const RES_INDEX = { food: 0, materials: 1, gold: 2 };
+const GOLD = RES_INDEX.gold;
+const STONE = RES_INDEX.stone;
+const VEIN_KINDS = new Set(['stone', 'gold']); // what a mine stands by
 const centre = (t) => t * Q + (Q >> 1);
+/** How close (Chebyshev, Q units) a node's centre may come to a footprint's centre: the footprint
+ *  itself plus a quarter tile, so a node on the next tile over no longer blocks (X10). */
+export const NODE_PAD = (size) => ((size * Q) >> 1) + (Q >> 2);
 const footprintCentre = (tx, ty, size) => ({ x: tx * Q + ((size * Q) >> 1), y: ty * Q + ((size * Q) >> 1) });
 const radiusOf = (size) => ((size * Q) >> 1) + (Q >> 2);
 
@@ -75,12 +80,12 @@ export const initEconomy = (w) => {
   const e = w.setup.economy;
   if (!e) return;
   w.eco = {
-    stock: e.stock.map((s) => [s.food, s.materials, s.gold]),
+    stock: e.stock.map((s) => RESOURCES.map((r) => s[r] || 0)),
     nodes: e.nodes.map((n) => ({ ...n })),
     buildings: [],
     nextId: 0,
     trainedCount: [0, 0],
-    stats: [0, 1].map(() => ({ gathered: [0, 0, 0], spent: [0, 0, 0], looted: 0, trained: {}, built: 0, lost: 0, workersLost: 0 }))
+    stats: [0, 1].map(() => ({ gathered: RESOURCES.map(() => 0), spent: RESOURCES.map(() => 0), looted: 0, trained: {}, built: 0, lost: 0, workersLost: 0 }))
   };
   // The attacker's expedition camp (its footprint is already BUILDING in the setup's map).
   const camp = makeBuilding(w, SIDE_ATTACKER, 'camp', e.camp.tx, e.camp.ty, { built: true });
@@ -170,7 +175,7 @@ const pickNode = (w, side, res, x, y, assigned, maxD = Infinity) => {
 
 // The resource furthest below its share of the side's laborers (WORKER_MIX; food first on ties).
 export const neediest = (w, side) => {
-  const on = [0, 0, 0]; let total = 0;
+  const on = RESOURCES.map(() => 0); let total = 0;
   w.squads.forEach((q) => { if (q.worker && q.side === side && q.alive && q.job?.t === 'gather') { on[RES_INDEX[w.eco.nodes[q.job.node].res]] += 1; total += 1; } });
   let best = 0; let bestGap = -Infinity;
   RESOURCES.forEach((r, i) => { const gap = WORKER_MIX[r] * (total + 1) - on[i]; if (gap > bestGap) { bestGap = gap; best = i; } });
@@ -220,16 +225,18 @@ export const placementBlock = (w, side, type, tx, ty) => {
     }
   }
   const c = footprintCentre(tx, ty, size);
-  // Nodes: never built over; a mine must stand by a stone, ore or gold node that has none yet.
+  // Nodes: never built over (X10: the node's own tile only, no extra ring); a mine must stand by a
+  // stone or gold node that has none yet.
   const near = (n, r) => Math.abs(n.x - c.x) <= r && Math.abs(n.y - c.y) <= r;
-  if (w.eco.nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && near(n, ((size * Q) >> 1) + (Q >> 1)))) return 'node';
+  if (w.eco.nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && near(n, NODE_PAD(size)))) return 'node';
   if (def.mine) {
-    const vein = w.eco.nodes.findIndex((n) => (n.kind === 'stone' || n.kind === 'ore' || n.kind === 'gold') && n.amount !== 0 && near(n, ((size * Q) >> 1) + 2 * Q)
+    const vein = w.eco.nodes.findIndex((n) => VEIN_KINDS.has(n.kind) && n.amount !== 0 && near(n, ((size * Q) >> 1) + 2 * Q)
       && !w.eco.buildings.some((b) => b.alive && b.type === 'mine' && b.node === w.eco.nodes.indexOf(n)));
     if (vein < 0) return 'noVein';
   }
-  // Only on ground the side sees now, near its headquarters or a building of its own.
-  if (w.fog && w.fog[side][tileOf(map, c.x, c.y)] !== 2) return 'fog';
+  // Only on ground the side has explored (X09: buildings see 4 tiles, so "visible now" left most of
+  // the camp area unbuildable), near its headquarters or a building of its own.
+  if (w.fog && w.fog[side][tileOf(map, c.x, c.y)] < 1) return 'fog';
   const reach = w.eco.buildings.some((b) => b.side === side && ready(w, b) && (BUILDINGS[b.type].hq
     ? distSq(b.x, b.y, c.x, c.y) <= (BUILD_RADIUS_HQ * Q) ** 2
     : distSq(b.x, b.y, c.x, c.y) <= (BUILD_RADIUS_OWN * Q) ** 2));
@@ -266,7 +273,7 @@ export const applyEcoOrder = (w, o) => {
       if (def.mine) {
         const c = { x: b.x, y: b.y };
         let best = -1; let bestD = Infinity;
-        w.eco.nodes.forEach((n, i) => { if ((n.kind === 'stone' || n.kind === 'ore' || n.kind === 'gold') && n.amount !== 0) { const d = distSq(n.x, n.y, c.x, c.y); if (d < bestD) { bestD = d; best = i; } } });
+        w.eco.nodes.forEach((n, i) => { if (VEIN_KINDS.has(n.kind) && n.amount !== 0) { const d = distSq(n.x, n.y, c.x, c.y); if (d < bestD) { bestD = d; best = i; } } });
         b.node = best;
       }
       workers.forEach((q) => setJob(q, { t: 'build', b: b.idx }));
@@ -348,8 +355,8 @@ export const destroyEcoBuilding = (w, b, bySide) => {
   removeBuilding(w, b, TILE.RUBBLE);
   w.eco.stats[b.side].lost += 1;
   if (bySide !== b.side && bySide >= 0) {
-    const loot = Math.floor(costTotal(BUILDINGS[b.type].cost || { materials: 400 }) * LOOT_SHARE) * MILLI;
-    w.eco.stock[bySide][2] += loot; w.eco.stats[bySide].looted += loot;
+    const loot = Math.floor(costTotal(BUILDINGS[b.type].cost || { wood: 400 }) * LOOT_SHARE) * MILLI;
+    w.eco.stock[bySide][GOLD] += loot; w.eco.stats[bySide].looted += loot;
   }
   w.events.push({ t: w.tick, type: 'ecoDestroyed', building: b.idx, side: b.side });
 };
@@ -357,7 +364,7 @@ export const destroyEcoBuilding = (w, b, bySide) => {
 /** A city building razed by the attacker (buildings.js): its loot in gold. */
 export const lootCityBuilding = (w, bySide) => {
   if (!w.eco || bySide !== SIDE_ATTACKER) return;
-  w.eco.stock[bySide][2] += CITY_BUILDING_LOOT * MILLI; w.eco.stats[bySide].looted += CITY_BUILDING_LOOT * MILLI;
+  w.eco.stock[bySide][GOLD] += CITY_BUILDING_LOOT * MILLI; w.eco.stats[bySide].looted += CITY_BUILDING_LOOT * MILLI;
 };
 
 // ---- spawning ----------------------------------------------------------------------------------
@@ -397,6 +404,20 @@ const spawnUnit = (w, b, role, atStart = false) => {
 // ---- the tick ----------------------------------------------------------------------------------
 
 let buildersScratch = new Int16Array(64);
+
+/**
+ * What one HP of repair costs, per resource (milli, a stock-shaped array): a building of the
+ * economy its wood and stone price over its full HP (at least a milli of wood); a work of the city
+ * (wall, gate, tower, keep) CITY_REPAIR_STONE_PER_HP stone (U01).
+ */
+export const repairPerHp = (s) => {
+  const per = RESOURCES.map(() => 0);
+  if (!s.eco) { per[STONE] = Math.max(1, Math.round(CITY_REPAIR_STONE_PER_HP * MILLI)); return per; }
+  const cost = BUILDINGS[s.type].cost || { wood: 100 };
+  ['wood', 'stone'].forEach((r) => { if (cost[r]) per[RES_INDEX[r]] = Math.max(1, Math.round((cost[r] * MILLI) / Math.max(1, s.maxHp))); });
+  if (!per.some((p) => p > 0)) per[RES_INDEX.wood] = 1;
+  return per;
+};
 
 const inReach = (q, x, y, r) => distSq(q.x, q.y, x, y) <= (r + WORK_REACH) * (r + WORK_REACH);
 const gatherPerTick = (res, mult) => Math.max(1, Math.round((GATHER_PER_SEC[res] * MILLI * mult) / TICK_HZ));
@@ -458,14 +479,13 @@ const workerTick = (w, q, assigned, builders) => {
     if (!inReach(q, s.x, s.y, s.radius)) { stepToward(w, q, s.x, s.y, ECO_FLOW); return; }
     q.lastStrikeTick = w.tick;
     if (w.tick % TICK_HZ !== 0) return;
-    // Materials in proportion to the HP restored; a quarter speed under recent attack.
-    const price = s.eco ? (BUILDINGS[s.type].cost?.materials || 100) : Math.round(s.maxHp / 10);
-    const perHp = Math.max(1, Math.round((price * MILLI) / Math.max(1, s.maxHp)));
+    // Paid in proportion to the HP restored (repairPerHp); a quarter speed under recent attack.
+    const perHp = repairPerHp(s);
     const recent = w.tick - (s.lastHitTick ?? -10000) < REPAIR_RECENT_TICKS;
     let hp = Math.min(s.maxHp - s.hp, recent ? Math.max(1, Math.round((REPAIR_HP_PER_SEC * REPAIR_RECENT_MULT_QUARTERS) / 4)) : REPAIR_HP_PER_SEC);
-    hp = Math.min(hp, Math.floor(eco.stock[q.side][1] / perHp));
+    perHp.forEach((p, i) => { if (p > 0) hp = Math.min(hp, Math.floor(eco.stock[q.side][i] / p)); });
     if (hp <= 0) return;
-    eco.stock[q.side][1] -= hp * perHp; eco.stats[q.side].spent[1] += hp * perHp;
+    perHp.forEach((p, i) => { eco.stock[q.side][i] -= hp * p; eco.stats[q.side].spent[i] += hp * p; });
     s.hp += hp;
   }
 };
@@ -537,7 +557,7 @@ export const updateEconomy = (w) => {
     const def = BUILDINGS[b.type];
     if (def.trade && b.traded < TRADE_GOLD_MAX * MILLI) {
       const g = Math.min(Math.round(TRADE_GOLD_PER_SEC * MILLI), TRADE_GOLD_MAX * MILLI - b.traded);
-      b.traded += g; eco.stock[b.side][2] += g; eco.stats[b.side].gathered[2] += g;
+      b.traded += g; eco.stock[b.side][GOLD] += g; eco.stats[b.side].gathered[GOLD] += g;
     }
     if (def.aid) {
       queryRadius(w, b.x, b.y, AID_RADIUS).forEach((j) => {
@@ -640,9 +660,18 @@ export const ecoView = (w, playerSide) => {
         rally: own ? b.rally : null
       };
     }).filter(Boolean),
-    nodes: eco.nodes.map((n, i) => (n.amount !== 0 && seen(n.x, n.y) && (n.side < 0 || n.side === playerSide) ? { i, kind: n.kind, res: n.res, x: n.x, y: n.y, amount: n.amount < 0 ? -1 : Math.ceil(n.amount / MILLI), max: n.max < 0 ? -1 : Math.ceil(n.max / MILLI) } : null)).filter(Boolean),
-    // Workers carrying something (the renderer puts a load on their backs).
-    carrying: workers.filter((q) => q.carry > 0).map((q) => q.idx)
+    // A spent grove stays, `spent` (X31: its stumps are drawn; it is no longer a target or an
+    // obstacle to gathering); other spent nodes leave the view.
+    nodes: eco.nodes.map((n, i) => ((n.amount !== 0 || n.kind === 'tree') && seen(n.x, n.y) && (n.side < 0 || n.side === playerSide)
+      ? { i, kind: n.kind, res: n.res, x: n.x, y: n.y, amount: n.amount < 0 ? -1 : Math.ceil(n.amount / MILLI), max: n.max < 0 ? -1 : Math.ceil(n.max / MILLI), ...(n.amount === 0 ? { spent: true } : null) }
+      : null)).filter(Boolean),
+    // X28: every laborer of yours at a gather job, what it carries and from what: { idx, res, kind,
+    // load } (load in whole units, 0 = walking out empty). The renderer draws the load
+    // (art/workerLoads.js) on those carrying, and an empty barrow on the way out for barrow loads.
+    carrying: workers.filter((q) => q.job?.t === 'gather' && q.order.type === 'work' && (q.carry > 0 || q.job.phase === 0)).map((q) => {
+      const n = eco.nodes[q.job.node];
+      return { idx: q.idx, res: q.carry > 0 ? RESOURCES[q.carryRes] : n.res, kind: n.kind, load: Math.ceil(q.carry / MILLI) };
+    })
   };
 };
 

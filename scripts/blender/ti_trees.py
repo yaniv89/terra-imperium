@@ -25,31 +25,33 @@ import ti_map as tm  # noqa: E402
 import ti_town as tt  # noqa: E402
 
 # ---- materials ----------------------------------------------------------------------------------
-# Crowns: lighter than the first kits' leaves (a wood must not read as a dark mass) and a hue of
-# its own per species, so mixed woods show their mix from far.
+# Crowns: a hue of their own per species, so mixed woods show their mix from far, but all in the
+# temperate oak's value range (about 0.4 to 0.47 in luminance) and saturated: the game's bright
+# sun washes a pale grey-green crown out to white at far zoom (14 October tone pass).
 LEAVES = {
     'oak_leaf': ['#44742a', '#538434', '#61923c', '#3a6624'],
-    'beech_leaf': ['#5a9436', '#6aa242', '#7aae4c'],
-    'birch_leaf': ['#8aa040', '#98ac4a', '#a6b854'],
-    'olive_crown': ['#6c8052', '#7a8e5e', '#5e7248'],
+    'beech_leaf': ['#4a8a2e', '#56963a', '#3f7e28'],
+    'birch_leaf': ['#6e8c2c', '#7a9836', '#628024'],
+    'olive_crown': ['#587a3e', '#648648', '#4c6e36'],
     'stonepine_crown': ['#43702e', '#508038', '#5e8e40'],
     'cypress_crown': ['#31573a', '#3c6844', '#2a4c32'],
-    'acacia_crown': ['#7d8e3e', '#8f9e4a', '#6c7c34'],
-    'tamarisk_crown': ['#6f8456', '#7c9060', '#62784c'],
-    'tamarisk_bloom': ['#b07a7a', '#be8a88', '#a06a6c'],
-    'poplar_crown': ['#739a42', '#86aa4e', '#98b85a'],
-    'elm_crown': ['#6f8a3c', '#819a48', '#617a32'],
-    'saxaul_crown': ['#97924a', '#a4a056', '#88843e'],
+    'acacia_crown': ['#66802c', '#728c36', '#5a7426'],
+    'tamarisk_crown': ['#5a7a3c', '#668646', '#4e6e34'],
+    'tamarisk_bloom': ['#a05a64', '#ae6a72', '#904e58'],
+    'poplar_crown': ['#548a30', '#60963a', '#4a7e2a'],
+    'elm_crown': ['#5e7a2e', '#6a8638', '#526e28'],
+    'saxaul_crown': ['#7a7a2a', '#868634', '#6c6c22'],
     'pine_crown': ['#3f7040', '#4c804a', '#5a8e54'],
     'fir_crown': ['#2f6048', '#3a7054', '#28543e'],
-    'jungle_crown': ['#3f8a3a', '#4e9a44', '#5eaa50'],
-    'larch_crown': ['#d2a23a', '#e0b448', '#c08e30'],
-    'dwarf_birch_crown': ['#d8b040', '#e6c050', '#c89c34'],
-    'tundra_crown': ['#a8483c', '#b85a48', '#943c32'],
+    'spruce_crown': ['#30603e', '#3a6c48', '#2a5636'],
+    'jungle_crown': ['#3a7e34', '#448a3c', '#34722e'],
+    'larch_crown': ['#b07e22', '#bc8a2c', '#a0701c'],
+    'dwarf_birch_crown': ['#b08a26', '#bc9630', '#a07c20'],
+    'tundra_crown': ['#9a3c32', '#a84a3c', '#8a342c'],
 }
 # Flat leaves (fronds) and bark.
 FLAT = {
-    'date_frond': (['#577f36', '#628b3e', '#4c7330'], None),
+    'date_frond': (['#78a84e', '#84b458', '#6c9c46'], None),
     'coco_frond': (['#4c8834', '#58943c', '#427e2e'], None),
     'banana_leaf': (['#62a038', '#6eac42', '#58962f'], None),
     'dates': (['#b8782c', '#c88a38', '#a46824'], None),
@@ -69,6 +71,9 @@ for _n in list(LEAVES) + list(FLAT):
     if _n not in tt.PROC:
         tt.PROC.append(_n)
 tt.SMOOTH.update(LEAVES)
+# Fronds too: smooth, and (build_nature.soft_crown_uvs) a far frond takes its colour from a lit
+# full-size frond, not one in the crown's shade, which drew far palms near black.
+tt.SMOOTH.update(['date_frond', 'coco_frond', 'banana_leaf'])
 
 
 def make_materials():
@@ -106,10 +111,15 @@ def tube(ms, mat, pts, radii, segs=7, lod=0, only=None, cap=True):
 
 
 def clump(ms, leaf, at, radii, rng=None, jitter=0.07, detail=2, lod=0, only=None, taper=0.0, yaw=0.0):
-    """One rounded leaf mass: an icosphere (80 faces at detail 2, 20 at 1) with half-axes `radii`,
-    barely jittered so it stays round; `taper` draws its top in (a spire, a fir's tier)."""
+    """One rounded leaf mass: an icosphere (80 faces at detail 2, 20 at 1) or, at detail 'uv', an
+    eight-sided sphere of four rows (48 triangles, rounder than 20 faces once smoothed) with
+    half-axes `radii`, barely jittered so it stays round; `taper` draws its top in (a spire, a
+    fir's tier)."""
     bm = bmesh.new()
-    bmesh.ops.create_icosphere(bm, subdivisions=detail, radius=1.0)
+    if detail == 'uv':
+        bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=4, radius=1.0)
+    else:
+        bmesh.ops.create_icosphere(bm, subdivisions=detail, radius=1.0)
     for v in bm.verts:
         if rng is not None and jitter:
             v.co *= 1.0 + rng.uniform(-jitter, jitter)
@@ -123,7 +133,11 @@ def clump(ms, leaf, at, radii, rng=None, jitter=0.07, detail=2, lod=0, only=None
 
 def crown(ms, leaf, clumps, rng, mid_detail=2, taper=0.0, far_scale=0.94, hull=None):
     """A crown from `clumps` [((x, y, z), (rx, ry, rz), taper, material or None)]: every clump at
-    LOD0; at LOD1 and LOD2 one mass filling the clumps' bounds (80 and 20 faces)."""
+    LOD0; at LOD1 and LOD2 one mass filling the clumps' bounds (48 and 20 triangles; 20 and 20 for
+    a small tree, mid_detail 1). LOD1 was 80 until the zoom 1 budget pass (14 October): the game
+    draws thousands of trees at that level."""
+    if mid_detail == 2:
+        mid_detail = 'uv'
     for at, radii, tp, mat in clumps:
         clump(ms, mat or leaf, at, radii, rng, 0.07, 2, lod=0, only=(0,), taper=tp, yaw=rng.uniform(0, 6.28))
     part = [c for c in clumps if c[3] is None] if hull is None else hull
@@ -131,17 +145,16 @@ def crown(ms, leaf, clumps, rng, mid_detail=2, taper=0.0, far_scale=0.94, hull=N
     hi = [max(c[0][i] + c[1][i] for c in part) for i in range(3)]
     centre = [(lo[i] + hi[i]) / 2 for i in range(3)]
     half = [(hi[i] - lo[i]) / 2 * far_scale for i in range(3)]
-    clump(ms, leaf, centre, half, random.Random(rng.randrange(1 << 30)), 0.08 if mid_detail == 2 else 0.0, mid_detail, lod=1, only=(1,), taper=taper)
+    clump(ms, leaf, centre, half, random.Random(rng.randrange(1 << 30)), 0.05 if mid_detail == 'uv' else 0.0, mid_detail, lod=1, only=(1,), taper=taper)
     clump(ms, leaf, centre, half, None, 0, 1, lod=2, only=(2,), taper=taper)
     return centre, half
 
 
 def trunk(ms, bark, pts, radii, segs=7, far=1.25):
-    """A trunk at three levels: every ring at LOD0, three five-sided rings at LOD1, a three-sided
-    post (thicker by `far`, so it still shows) at LOD2."""
+    """A trunk at three levels: every ring at LOD0, a four-sided post at LOD1 (8 triangles), a
+    three-sided post at LOD2; the far ones thicker by `far`, so they still show."""
     tube(ms, bark, pts, radii, segs, lod=0, only=(0,))
-    mid = len(pts) // 2
-    tube(ms, bark, [pts[0], pts[mid], pts[-1]], [radii[0], radii[mid] * 1.1, radii[-1] * 1.1], 5, lod=1, only=(1,), cap=False)
+    tube(ms, bark, [pts[0], pts[-1]], [radii[0] * 1.1, radii[-1] * 1.25], 4, lod=1, only=(1,), cap=False)
     tube(ms, bark, [pts[0], pts[-1]], [radii[0] * far, radii[-1] * far * 1.3], 3, lod=2, only=(2,), cap=False)
 
 
@@ -259,15 +272,15 @@ def palm_tree(ms, rng, h, f, t, bark='bark_palm', leaf='date_frond', fronds=10, 
         a = 2 * math.pi * k / fronds + rng.uniform(-0.15, 0.15)
         up = rng.uniform(0.75, 1.15)
         frond(ms, leaf, top, a, f * rng.uniform(0.9, 1.08), width, rise * up, droop, 3, lod=0, only=(0,))
-    for k in range(6):
-        frond(ms, leaf, top, 2 * math.pi * k / 6 + 0.3, f, width * 1.5, rise, droop, 2, lod=1, only=(1,))
+    for k in range(5):
+        frond(ms, leaf, top, 2 * math.pi * k / 5 + 0.3, f, width * 1.7, rise, droop, 2, lod=1, only=(1,))
     for k in range(5):
         frond(ms, leaf, top, 2 * math.pi * k / 5 + 0.3, f, width * 1.9, rise, droop, 2, lod=2, only=(2,))
     if fruit:
         for k in range(3):
             a = 2 * math.pi * k / 3 + 0.5
             clump(ms, fruit, (top.x + math.cos(a) * t * 1.3, math.sin(a) * t * 1.3, top.z - t * 1.6), (t * 0.8, t * 0.8, t * 1.3), None, 0, 1, lod=0, only=(0,))
-    clump(ms, leaf, (top.x, 0, top.z), (t * 1.5, t * 1.5, t * 1.3), None, 0, 1, lod=1)  # the crown's heart
+    clump(ms, leaf, (top.x, 0, top.z), (t * 1.5, t * 1.5, t * 1.3), None, 0, 1, lod=0, only=(0,))  # the crown's heart
 
 
 def shrub_tree(ms, rng, h, r, t, bark, leaf, stems=4, ball=0.42, squash=0.8, top_mat=None, mid_detail=1, kink=0.25):
@@ -368,7 +381,13 @@ def saxaul(ms, rng, i):
     shrub_tree(ms, rng, _p(i, 0.2, 0.29, 0.4), _p(i, 0.13, 0.19, 0.26), _p(i, 0.012, 0.016, 0.02), 'bark_saxaul', 'saxaul_crown', stems=_p(i, 3, 4, 5), ball=0.4, squash=0.8, mid_detail=_p(i, 1, 1, 2), kink=0.6)
 
 
-# conifer (the kit's own trees are spruces: build_vegetation_remaining.py)
+# conifer (spruce, Scots pine, fir; until 14 October the kit was spruces only, built by
+# build_vegetation_remaining.py)
+def spruce(ms, rng, i):
+    column_tree(ms, rng, _p(i, 0.42, 0.64, 0.88), _p(i, 0.11, 0.145, 0.18), _p(i, 0.018, 0.024, 0.03), 'bark_dark', 'spruce_crown', n=_p(i, 3, 4, 5), bare=0.1,
+                profile=lambda s: 1.0 - 0.85 * s, taper=0.5, tip=0.92, mid_detail=_p(i, 1, 2, 2), wobble=0.03, hull_taper=0.88)
+
+
 def scots_pine(ms, rng, i):
     broad_tree(ms, rng, _p(i, 0.46, 0.68, 0.9), _p(i, 0.13, 0.18, 0.23), _p(i, 0.02, 0.028, 0.036), 'bark_red', 'pine_crown', n=_p(i, 3, 4, 5), squash=0.62, lean=0.05, limbs=_p(i, 1, 2, 3), trunk_to=0.62, mid_detail=_p(i, 1, 2, 2))
 

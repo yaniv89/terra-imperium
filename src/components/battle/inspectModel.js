@@ -5,15 +5,15 @@
 // resource node. Pure: from the HUD frame (render/view.js), the setup and who the player is.
 //   inspectInfo(hud, setup, target, playerSide) -> { title, owner, ownerLabel, hp, maxHp, alive,
 //     built, progress, icon: { group, id } | { url } | null, glyph, lines: [string], node? } | null
-import { BUILDINGS, NODE_KINDS, ecoName } from '../../battle/data/economy';
+import { BUILDINGS, NODE_KINDS, RESOURCES, ecoName } from '../../battle/data/economy';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { isBaseType } from '../../battle/sim/base';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 import { buildingIconUrl, iconUrl } from '../../data/icons';
 
-const RES_WORD = { food: 'food', materials: 'materials', gold: 'gold' };
+const RES_WORD = { food: 'food', wood: 'wood', stone: 'stone', gold: 'gold' };
 // A node's picture: the resource art (src/assets/icons/resources).
-const NODE_ICON = { tree: 'timber', stone: 'stone', ore: 'iron', gold: 'gold', herd: 'sheep', cattle: 'cattle', fish: 'fish', farm: 'wheat' };
+const NODE_ICON = { tree: 'timber', stone: 'stone', gold: 'gold', herd: 'sheep', cattle: 'cattle', fish: 'fish', farm: 'wheat' };
 const STRUCTURE_TITLE = { keep: 'Keep', tower: 'Tower', wall: 'Wall', gate: 'Gate', house: 'House', palace: 'Palace', wonder: 'Wonder', landmark: 'Landmark', building: 'Building' };
 const STRUCTURE_ICON = { keep: 'build-town-hall', tower: 'build-tower', house: 'build-house' };
 const list = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
@@ -99,7 +99,7 @@ export const inspectInfo = (hud, setup, target, playerSide) => {
 /** Why a building cannot be placed now, or null: the shortfall per resource and the laborers. */
 export const buildBlock = (id, stock, workers) => {
   const cost = BUILDINGS[id]?.cost || {};
-  const short = ['food', 'materials', 'gold'].map((r, i) => [r, Math.max(0, (cost[r] || 0) - (stock?.[i] || 0))]).filter(([, v]) => v > 0);
+  const short = RESOURCES.map((r, i) => [r, Math.max(0, (cost[r] || 0) - (stock?.[i] || 0))]).filter(([, v]) => v > 0);
   if (short.length) return { kind: 'cost', short, text: `Needs ${list(short.map(([r, v]) => `${v} more ${RES_WORD[r]}`))}` };
   if (!workers) return { kind: 'workers', short: [], text: 'No laborers left to build it' };
   return null;

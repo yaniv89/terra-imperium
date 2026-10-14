@@ -12,23 +12,23 @@
 //   BuildingActions your own building's actions for the context panel (B10): the queue, train
 //                   tiles, rally, and the house to build when training waits for housing
 import React, { useEffect, useRef, useState } from 'react';
-import { Wheat, TreePine, Coins, Package, Users, Home, Hammer, X, Flag, Hourglass, Castle, Landmark, DoorOpen, Gem, Shield } from 'lucide-react';
+import { Wheat, TreePine, Mountain, Coins, Package, Users, Home, Hammer, X, Flag, Hourglass, Castle, Landmark, DoorOpen, Gem, Shield, Info } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
-import { BUILDINGS, UNITS, RESOURCES, ecoName, buildableFor, trainableRoles } from '../../battle/data/economy';
+import { BUILDINGS, UNITS, RESOURCES, QUEUE_MAX, ecoName, buildableFor, trainableRoles } from '../../battle/data/economy';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 import { unitIconUrl, BATTLE_STOCK_ICON_IDS } from '../../data/icons';
 import { buildBlock, buildDetail } from './inspectModel';
 import { AUXILIARY_NOTE } from '../../engine/battleLedger';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
-// The battle stock icons (UI14, src/data/icons.js BATTLE_STOCK_ICON_IDS). The sim's one "materials"
-// stock draws the Wood icon until it is split into wood and stone; `supply` and `population` are
-// the top bar's two counters.
+// The battle stock icons (UI14, src/data/icons.js BATTLE_STOCK_ICON_IDS): the four stocks (Q1, U01:
+// food, wood, stone, gold, each its own account in the sim); `supply` and `population` are the top
+// bar's two counters.
 const RES_ICON = {
-  food: [Wheat, 'text-amber-200'], materials: [TreePine, 'text-emerald-200'], gold: [Coins, 'text-yellow-300'],
+  food: [Wheat, 'text-amber-200'], wood: [TreePine, 'text-emerald-200'], stone: [Mountain, 'text-stone-300'], gold: [Coins, 'text-yellow-300'],
   supply: [Package, 'text-fa-brass'], population: [Users, 'text-fa-you']
 };
-const RES_NAME = { food: 'Food', materials: 'Materials', gold: 'Gold', supply: 'Battle supply', population: 'Population / housing' };
+export const RES_NAME = { food: 'Food', wood: 'Wood', stone: 'Stone', gold: 'Gold', supply: 'Battle supply', population: 'Population / housing' };
 export const ResIcon = ({ res, size = 14 }) => {
   const [Glyph, tone] = RES_ICON[res];
   return <GameIcon group="battle" id={BATTLE_STOCK_ICON_IDS[res]} size={size} title={RES_NAME[res]} fallback={<Glyph className={`shrink-0 ${tone}`} style={{ width: size, height: size }} aria-label={RES_NAME[res]} />} />;
@@ -55,27 +55,47 @@ export const Picture = ({ icon, glyph, size = 40 }) => {
 };
 
 const HOLD_MS = 450;
+// A sheet that has just opened ignores the lift of the finger that opened it (I183: cancelling a
+// placement used to build the tile that appeared under the finger).
+const OPEN_GUARD_MS = 300;
+
+/** U02: the round hammer that opens the build sheet for selected laborers (no label, 48 px). */
+export const HammerButton = ({ onClick, active = false, testId = 'battle-build' }) => (
+  <button type="button" onClick={onClick} aria-label="Build" title="Build (laborers)" aria-pressed={active || undefined} data-testid={testId}
+    className={cx('shrink-0 w-12 h-12 rounded-full shadow-lg flex items-center justify-center border', active ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'bg-fa-panel/95 border-fa-brass text-fa-brass')}>
+    <Hammer className="w-6 h-6" aria-hidden="true" />
+  </button>
+);
 
 export const BuildMenu = ({ ageId, stock, workers = 1, onPick, onClose = null, extra = null }) => {
   const [detail, setDetail] = useState(null); // the building id whose detail shows
-  const hold = useRef({ timer: 0, id: null, held: false });
+  // I187: "Details" mode: a tap on a tile shows what it does instead of picking it (no hover or
+  // long-press needed); the hold still works, and a mouse hovers.
+  const [info, setInfo] = useState(false);
+  const hold = useRef({ timer: 0, id: null, held: false, down: null });
+  const openedAt = useRef(typeof performance !== 'undefined' ? performance.now() : 0);
   useEffect(() => () => clearTimeout(hold.current.timer), []);
   const ids = buildableFor(ageId);
   const d = detail ? buildDetail(detail, ageId) : null;
   const dBlock = detail ? buildBlock(detail, stock, workers) : null;
   const down = (id, e) => {
+    hold.current.down = id; // the lift must land on the tile it went down on (I183)
     if (e.pointerType === 'mouse') return; // a mouse hovers for the detail and clicks to pick
     clearTimeout(hold.current.timer);
-    hold.current = { id, held: false, timer: setTimeout(() => { hold.current.held = true; setDetail(id); }, HOLD_MS) };
+    hold.current = { id, held: false, down: id, timer: setTimeout(() => { hold.current.held = true; setDetail(id); }, HOLD_MS) };
   };
   const up = (id, e) => {
     clearTimeout(hold.current.timer);
+    const wentDownHere = hold.current.down === id;
+    hold.current.down = null;
+    if (!wentDownHere || performance.now() - openedAt.current < OPEN_GUARD_MS) return;
     if (e.pointerType !== 'mouse' && hold.current.held) { hold.current.held = false; return; } // a hold only shows the detail
+    if (info) { setDetail(id); return; }
     if (buildBlock(id, stock, workers)) { setDetail(id); return; } // a disabled tile says why
     onPick(id);
   };
   return (
-    <div className="w-[min(28rem,calc(100vw-7.5rem))] lg:w-[31rem] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto" data-testid="battle-build-menu"
+    <div className="w-[min(28rem,100%)] lg:w-[min(31rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto" data-testid="battle-build-menu"
       onContextMenu={(e) => e.preventDefault()}>
       <div className="flex items-start justify-between gap-2 px-1 pb-1 min-h-[34px]">
         {d ? (
@@ -85,10 +105,14 @@ export const BuildMenu = ({ ageId, stock, workers = 1, onPick, onClose = null, e
             <span className="block text-fa-muted truncate">{d.lines.join('. ')}</span>
             {dBlock && <span className="block text-fa-danger-text font-semibold">{dBlock.text}</span>}
           </div>
-        ) : <span className="fa-label pt-1">Build <span className="normal-case tracking-normal text-fa-muted">· hold a tile for details</span></span>}
-        <span className="flex items-center shrink-0 -mt-1 -mr-1">
+        ) : <span className="fa-label pt-1">Build <span className="normal-case tracking-normal text-fa-muted">· {info ? 'tap a tile to read it' : 'Details shows what each does'}</span></span>}
+        <span className="flex items-center gap-1 shrink-0 -mt-1 -mr-1">
           {extra}
-          {onClose && <button type="button" onClick={onClose} aria-label="Close the build menu" className="w-11 h-11 shrink-0 flex items-center justify-center text-fa-muted hover:text-fa-text"><X className="w-4 h-4" /></button>}
+          <button type="button" onClick={() => { setInfo((v) => !v); if (info) setDetail(null); }} aria-pressed={info} data-testid="battle-build-info"
+            className={cx('h-11 px-2 rounded-[10px] text-[11px] font-semibold flex items-center gap-1 border', info ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'border-fa-line text-fa-muted hover:text-fa-text')}>
+            <Info className="w-4 h-4" aria-hidden="true" />Details
+          </button>
+          {onClose && <button type="button" onClick={onClose} aria-label="Close the build menu" title="Close (the laborers keep working)" data-testid="battle-build-close" className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-fa-muted hover:text-fa-text"><GameIcon group="battle" id="close" size={22} eager fallback={<X className="w-4 h-4" />} /></button>}
         </span>
       </div>
       <div className="grid grid-cols-6 gap-1">
@@ -107,7 +131,7 @@ export const BuildMenu = ({ ageId, stock, workers = 1, onPick, onClose = null, e
                 block && 'opacity-60')}>
               {block && short && <span className="absolute top-0.5 right-0.5 px-1 rounded bg-fa-ink/90 text-[9px] font-bold fa-num text-fa-danger-text leading-tight">+{(shortGold || short)[1]}</span>}
               {block?.kind === 'workers' && <span className="absolute top-0.5 right-0.5 px-1 rounded bg-fa-ink/90 text-[9px] font-bold text-fa-danger-text leading-tight">no laborer</span>}
-              <GameIcon group="battle" id={def.icon} size={34} halo={false} className="lg:!w-10 lg:!h-10 pointer-events-none" fallback={<Hammer className="w-6 h-6 text-fa-muted" />} />
+              <GameIcon group="battle" id={def.icon} size={34} halo={false} eager className="lg:!w-10 lg:!h-10 pointer-events-none" fallback={<Hammer className="w-6 h-6 text-fa-muted" />} />
               <span className="max-w-full truncate text-[10px] font-semibold leading-none pointer-events-none">{ecoName(id, ageId)}</span>
               <Cost cost={def.cost} stock={stock} size={10} className="text-[10px] !flex-nowrap !gap-x-1 pointer-events-none whitespace-nowrap" />
             </button>
@@ -153,13 +177,39 @@ export const InfoCard = ({ info, onClose, children, testId = 'battle-info-card' 
 };
 
 /** Your building's actions (the context panel, B10): queue, train tiles, rally, the housing fix. */
+// I185: the price of a unit is taken when the order reaches the battle (sim/economy.js 'train'),
+// so the stock and the queue change together on the next frame. The panel says so: "Queued" with
+// what was paid once the queue has grown, or why it did not within a second.
+const TRAIN_WAIT_MS = 1200;
+const unitName = (role, ageId) => (role === 'worker' ? ecoName('worker', ageId) : getSquadDisplayName(role, ageId));
+const paidText = (cost) => RESOURCES.filter((r) => cost?.[r]).map((r) => `${cost[r]} ${r}`).join(', ');
+/** Why `role` cannot be queued now, or null (whole units; the same checks as the sim's order). */
+export const trainBlock = (role, stock, queueLength) => {
+  if (queueLength >= QUEUE_MAX) return `The queue is full (${QUEUE_MAX})`;
+  const short = RESOURCES.map((r, i) => [r, Math.max(0, (UNITS[role]?.cost?.[r] || 0) - (stock?.[i] || 0))]).filter(([, v]) => v > 0);
+  return short.length ? `Needs ${short.map(([r, v]) => `${v} more ${r}`).join(', ')}` : null;
+};
+
 export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, onCancel, onRally, rallyArmed, onBuildHouse }) => {
+  const [asked, setAsked] = useState(null); // { role, before, at } the last train order sent
+  const [said, setSaid] = useState(null); // { text, bad }
+  const qLen = building?.queue.length ?? 0;
+  const idx = building?.idx;
+  useEffect(() => { setAsked(null); setSaid(null); }, [idx]);
+  useEffect(() => {
+    if (!asked) return undefined;
+    if (qLen > asked.before) { setSaid({ text: `Queued: ${unitName(asked.role, ageId)}, paid ${paidText(UNITS[asked.role].cost)}`, bad: false }); setAsked(null); return undefined; }
+    const t = setTimeout(() => { setSaid({ text: `${unitName(asked.role, ageId)} not queued: ${trainBlock(asked.role, stock, qLen) || 'the battle did not take the order'}`, bad: true }); setAsked(null); }, TRAIN_WAIT_MS);
+    return () => clearTimeout(t);
+  }, [asked, qLen, ageId, stock]);
+  useEffect(() => { if (!said) return undefined; const t = setTimeout(() => setSaid(null), 3000); return () => clearTimeout(t); }, [said]);
   if (!building) return null;
   const def = BUILDINGS[building.type];
   const roles = building.built ? (def.trains || []).filter((r) => trainableRoles(ageId).includes(r)) : [];
   if (!roles.length && !building.queue.length) return null;
+  const train = (role) => { setAsked({ role, before: building.queue.length, at: Date.now() }); setSaid(null); onTrain(role); };
   return (
-    <div className="w-[min(26rem,calc(100vw-7.5rem))] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]" data-testid="battle-building-actions">
+    <div className="w-[min(26rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]" data-testid="battle-building-actions">
       <div className="flex items-center gap-2 px-1 pb-1">
         <span className="fa-label">Train</span>
         {roles.some((r) => r !== 'worker') && <span className="text-[10px] text-fa-brass truncate" data-testid="battle-train-temporary" title={AUXILIARY_NOTE}>Temporary: they leave after the battle</span>}
@@ -183,10 +233,11 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
           <Home className="w-3.5 h-3.5" />Paused for housing: build a house, +10 <Cost cost={BUILDINGS.house.cost} stock={stock} />
         </button>
       )}
+      {said && <div className={cx('px-1 pb-1 font-semibold', said.bad ? 'text-fa-danger-text' : 'text-fa-good')} role="status" data-testid="battle-train-note">{said.text}</div>}
       {roles.length > 0 && (
         <div className="flex gap-1">
           {roles.map((role) => (
-            <button key={role} type="button" disabled={!canPay(UNITS[role].cost, stock)} onClick={() => onTrain(role)} data-testid={`train-${role}`}
+            <button key={role} type="button" disabled={!!trainBlock(role, stock, building.queue.length)} title={trainBlock(role, stock, building.queue.length) || undefined} onClick={() => train(role)} data-testid={`train-${role}`}
               className="flex-1 min-w-0 h-12 px-1 rounded-[10px] bg-fa-raised border border-fa-line flex items-center gap-1.5 disabled:opacity-45">
               {role === 'worker' ? <Hammer className="w-5 h-5 shrink-0 text-fa-muted" /> : <GameIcon group="units" id={role} url={unitIconUrl(role)} size={24} fallback={null} />}
               <span className="min-w-0 flex flex-col items-start gap-0.5">

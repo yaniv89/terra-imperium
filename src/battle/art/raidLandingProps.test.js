@@ -70,12 +70,10 @@ describe('raid and landing delivery wiring', () => {
     expect(raidLandingPlacements(s, view).some((item) => item.id === 'burnt-field-overlay')).toBe(false);
   });
 
-  it('shows only actual visible carriers and never fabricates raider inventory', () => {
-    const squads = Array.from({ length: 6 }, (_, idx) => ({ idx, side: 0, look: 'raider', x: 10 * Q, y: 10 * Q, facing: 0, alive: true, onField: true, visible: true, inside: -1 }));
-    squads[1].visible = false; squads[2].hidden = true; squads[3].inside = 0; squads[4].fled = true;
-    const view = { squads, eco: { carrying: [0, 1, 2, 3, 4] } };
-    const goods = raidLandingPlacements(setup(), view).filter((p) => p.id === 'loot-sack');
-    expect(goods).toHaveLength(1); expect(goods[0].x).toBe(9.8); expect(goods[0].lift).toBeGreaterThan(0);
+  it('never puts a loot sack on a laborer: its real load is drawn by the economy layer (X28)', () => {
+    const squads = Array.from({ length: 3 }, (_, idx) => ({ idx, side: 0, look: 'raider', x: 10 * Q, y: 10 * Q, facing: 0, alive: true, onField: true, visible: true, inside: -1 }));
+    const view = { squads, eco: { carrying: [0, 1, 2].map((idx) => ({ idx, res: 'gold', kind: 'gold', load: 5 })) } };
+    expect(raidLandingPlacements(setup(), view).filter((p) => p.id === 'loot-sack')).toHaveLength(0);
   });
 
   it('aligns landing at the actual sea edge and skips naval maps', () => {
@@ -113,12 +111,12 @@ describe('raid and landing delivery wiring', () => {
     for (let t = 0; t < 500 && !carryingView; t++) {
       step(w, []);
       const v = makeRenderView(w, [], 0, false);
-      if (v.eco.carrying.length) carryingView = v;
+      if (v.eco.carrying.some((c) => c.load > 0)) carryingView = v;
     }
     expect(carryingView).toBeTruthy();
-    const carriers = carryingView.squads.filter((q) => carryingView.eco.carrying.includes(q.idx) && q.alive && q.onField && !q.fled && q.visible && !q.hidden && q.inside < 0);
+    const carriers = carryingView.squads.filter((q) => carryingView.eco.carrying.some((c) => c.idx === q.idx && c.load > 0) && q.alive && q.onField);
     expect(carriers.length).toBeGreaterThan(0);
-    expect(raidLandingPlacements(s, carryingView).filter((p) => p.lift)).toHaveLength(carriers.length);
+    expect(raidLandingPlacements(s, carryingView).filter((p) => p.lift)).toHaveLength(0);
     const camp = w.eco.buildings.find((b) => b.type === 'camp'); let spot;
     for (let r = 3; r < 18 && !spot; r++) for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) {
       const tx = Math.floor(camp.x / Q) + dx; const ty = Math.floor(camp.y / Q) + dy;

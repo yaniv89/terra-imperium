@@ -3,7 +3,7 @@ import {
   processAINationTurn, processAllAINations, getRelationFromHostility,
   getNationTier, getSortedByMilitary, processAIWarDecisions, findRunawayLeader,
   chooseAIRecruitClass, processAIRecruitment,
-  MAX_AI_WARS
+  MAX_AI_WARS, recentlyAtPeace, AI_PEACE_MEMORY_TURNS
 } from './aiLogic';
 import { createRng } from './rng';
 import { RelationStatus } from '../data/types';
@@ -372,6 +372,26 @@ describe('processAIWarDecisions', () => {
     const state = warState({ de: { militaryStrength: 100000 }, be: { truces: { de: 10 }, militaryStrength: 6000 } });
     const result = processAIWarDecisions({ ...state, turnNumber: 5 }, state.nations, state.wars, ['be'], hawkishRng);
     expect(result.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'fr' })]);
+  });
+
+  // Lane CB09: a ready claim buys one war without a roll; the next war on that people needs the roll.
+  it('a ready claim declares once without a roll, then is spent', () => {
+    const state = { ...warState({ de: { claims: [cap('be')] } }), turnNumber: 40 };
+    const first = processAIWarDecisions(state, state.nations, state.wars, ['de'], dovishRng);
+    expect(first.wars).toEqual([expect.objectContaining({ aggressor: 'de', enemy: 'be' })]);
+    expect(first.nations.de.spentClaims).toEqual([cap('be')]);
+    // The war is over and long forgotten: the claim stands, but without a roll there is no new war.
+    const after = { ...state, turnNumber: 200, nations: { ...first.nations, de: { ...first.nations.de, isAtWar: false }, be: { ...first.nations.be, isAtWar: false } }, wars: first.wars.map((w) => ({ ...w, active: false })) };
+    expect(processAIWarDecisions(after, after.nations, after.wars, ['de'], dovishRng).wars.filter((w) => w.active)).toHaveLength(0);
+  });
+
+  it('remembers a peace AI_PEACE_MEMORY_TURNS past the truce: the next target is someone else', () => {
+    // de's truce with be ended at turn 30; at turn 35 be (the weakest) is still off the list.
+    const state = { ...warState({ de: { truces: { be: 30 } } }), turnNumber: 35 };
+    const result = processAIWarDecisions(state, state.nations, state.wars, ['de'], hawkishRng);
+    expect(result.wars.some((w) => w.enemy === 'be')).toBe(false);
+    expect(recentlyAtPeace(state, 'de', 'be')).toBe(true);
+    expect(recentlyAtPeace({ ...state, turnNumber: 30 + AI_PEACE_MEMORY_TURNS }, 'de', 'be')).toBe(false);
   });
 
   it('does not honor an EXPIRED truce with the leader — the coalition override still applies', () => {

@@ -114,6 +114,7 @@ export const rushQuote = (state, cityId, index = 0, nationId = state.playerNatio
 export const rushItemName = (item, ageId = 'bronze') => {
   if (!item) return 'order';
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category;
+  if (item.kind === 'unit' && item.explorer) return 'scouts';
   if (item.kind === 'unit') return unitDisplayName(ageId, item.classId, item.navalLine);
   if (item.kind === 'army') { const next = nextTemplateUnit(item); return next ? `${unitDisplayName(ageId, next)} for ${item.name}` : item.name; }
   if (item.kind === 'improvement') return IMPROVEMENTS[item.improvement]?.name || item.improvement;

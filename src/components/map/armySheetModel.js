@@ -59,7 +59,7 @@ export const armySheetModel = (state, tile) => {
   const rows = units.map((u) => ({
     id: u.id,
     // "3rd Akkadian Spearmen" in a peoples world (regimentNames.js), the plain name otherwise
-    name: regimentName(state.nations[u.ownerId], u, naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId),
+    name: u.explorer ? 'Scouts' : regimentName(state.nations[u.ownerId], u, naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId),
     cargo: naval ? Object.values(state.units).filter((c) => c.embarkedOn === u.id).length : 0,
     classId: u.classId,
     navalLine: naval ? navalLineOf(u) : null,
@@ -86,13 +86,15 @@ export const armySheetModel = (state, tile) => {
     if (!g) { g = { key, name: r.army || 'Unassigned units', units: [] }; groups.push(g); }
     g.units.push(r);
   });
+  // A stack of scouts (scouting.js) lives off the land and never attacks: no supply report, no attack cards.
+  const scouts = !naval && units.every((u) => u.explorer);
   const zone = naval ? { zone: 'sea' } : supplyZone(state, tiles, units[0]);
   // The forecast takes what the turn's supply phase takes (resolveTurn.js): the line's reach, the
   // attrition modifier, an empty supplies stock, the stack cap. It reads the unit worst off, so
   // the sheet never says "fine" over a starving regiment (playtest audit I005).
   const fx = mapEffectsFor(state, state.playerNationId);
   const worst = units.reduce((w, u) => (supplyOf(u, max) < supplyOf(w, max) ? u : w), units[0]);
-  const report = naval ? null : supplyReport(state, worst, {
+  const report = naval || scouts ? null : supplyReport(state, worst, {
     lineRings: SUPPLY_LINE_RINGS + ringsForKm(fx.lineRings, { min: 0 }) + ringsFromF75(Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total))),
     max, stackCapExtra: fx.stackCap,
     attritionMult: Math.max(0, 1 + getModifier(state, state.playerNationId, 'national.attrition').total),
@@ -125,13 +127,14 @@ export const armySheetModel = (state, tile) => {
     route: dest != null ? { to: dest, name: placeName(state, dest), turns: routeEta(state, lead) ?? 1 } : null,
     status,
     holding: !naval && units.every((u) => isHolding(u)),
-    canHold: !naval && !units.some((u) => u.route?.length),
+    scouts, exploring: scouts && units.some((u) => u.explore?.auto),
+    canHold: !naval && !scouts && !units.some((u) => u.route?.length),
     siegeOrders: naval ? [] : siegeOrders(state, tile, units),
     canMarch: units.some((u) => (u.movesLeft ?? 0) > 0 && !u.route?.length),
     pillage: naval ? null : pillageTarget(state, tile, units),
     generals,
     airCover: naval ? 0 : airUnitsInRange(state, state.playerNationId, tile, units).length, airRange: AIR_RANGE,
-    targets: naval ? fleetTargets(state, tile, units) : attackTargets(state, tile, units),
+    targets: scouts ? [] : naval ? fleetTargets(state, tile, units) : attackTargets(state, tile, units),
     siege: naval ? null : siegePressed(state, tile, units),
     unitIds: units.map((u) => u.id)
   };

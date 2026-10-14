@@ -8,8 +8,8 @@ import { createWorld } from './world';
 import { step } from './step';
 import { worldHash } from './hash';
 import { toStrategicResult } from './result';
-import { housingCap, placementBlock, START_WORKERS } from './economy';
-import { BUILDINGS, MILLI, POP_LIMIT, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, START_STOCK, stockMult } from '../data/economy';
+import { housingCap, placementBlock, START_WORKERS, repairPerHp, ecoView } from './economy';
+import { BUILDINGS, MILLI, RES_INDEX, POP_LIMIT, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, START_STOCK, stockMult } from '../data/economy';
 import { buildTownManifest, manifestHousing } from '../../data/townLayout';
 import { Q, ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from './constants';
 
@@ -52,7 +52,7 @@ describe('battle economy', () => {
     // Every side gets a starter cluster of nodes, and there is a contested middle.
     expect(w.eco.nodes.some((n) => n.x < w.map.w * Q * 0.3)).toBe(true);
     expect(w.eco.nodes.some((n) => n.x > w.map.w * Q * 0.62)).toBe(true);
-    expect(new Set(w.eco.nodes.map((n) => n.res))).toEqual(new Set(['food', 'materials', 'gold']));
+    expect(new Set(w.eco.nodes.map((n) => n.res))).toEqual(new Set(['food', 'wood', 'stone', 'gold']));
   });
 
   it('workers gather, carry and deposit: stockpiles grow only at the drop-off', () => {
@@ -72,11 +72,11 @@ describe('battle economy', () => {
     const spot = spotFor(w, 0, 'house');
     expect(spot).not.toBeNull();
     const builders = workersOf(w, 0).slice(0, 2).map((q) => q.idx);
-    const mat0 = w.eco.stock[0][1];
+    const wood0 = w.eco.stock[0][RES_INDEX.wood];
     run(w, 1, [{ side: 0, type: 'build', squads: builders, building: 'house', ...spot }]);
     const site = w.eco.buildings.find((b) => b.type === 'house');
     expect(site.built).toBe(false);
-    expect(w.eco.stock[0][1]).toBeLessThanOrEqual(mat0 - BUILDINGS.house.cost.materials * MILLI + 5 * MILLI); // paid at placement (plus a little gathered)
+    expect(w.eco.stock[0][RES_INDEX.wood]).toBeLessThanOrEqual(wood0 - BUILDINGS.house.cost.wood * MILLI + 5 * MILLI); // paid at placement (plus a little gathered)
     run(w, 20 * 40);
     expect(site.built).toBe(true);
     expect(housingCap(w, 0)).toBe(cap0 + 10);
@@ -136,6 +136,46 @@ describe('battle economy', () => {
     const c = structuredClone(createWorld(setup));
     run(c, 20 * 150);
     expect(worldHash(c)).toBe(worldHash(a));
+  });
+
+  it('U01: four stocks; stone is gathered at a stone node, dropped at the camp and spent on a tower; no ore', () => {
+    const w = createWorld(ecoSetup());
+    expect(w.eco.stock[0]).toHaveLength(4);
+    expect(w.eco.nodes.some((n) => n.kind === 'ore')).toBe(false);
+    expect(w.eco.nodes.filter((n) => n.res === 'stone').length).toBeGreaterThanOrEqual(4); // two a side at least
+    run(w, 1);
+    const stone = w.eco.nodes.findIndex((n) => n.kind === 'stone' && n.x < w.map.w * Q * 0.3);
+    const hands = workersOf(w, 0).map((q) => q.idx);
+    const s0 = w.eco.stock[0][RES_INDEX.stone];
+    run(w, 20 * 60, [{ side: 0, type: 'gather', squads: hands, node: stone }]);
+    const s1 = w.eco.stock[0][RES_INDEX.stone];
+    expect(s1).toBeGreaterThan(s0);
+    expect(w.eco.stats[0].gathered[RES_INDEX.stone]).toBe(s1 - s0);
+    // a tower costs stone, paid when its site is placed
+    const spot = spotFor(w, 0, 'tower');
+    run(w, 1, [{ side: 0, type: 'build', squads: hands.slice(0, 1), building: 'tower', ...spot }]);
+    expect(w.eco.buildings.some((b) => b.type === 'tower')).toBe(true);
+    expect(w.eco.stats[0].spent[RES_INDEX.stone]).toBe(BUILDINGS.tower.cost.stone * MILLI);
+  });
+
+  it('U01: mending the city costs stone; an economy building its wood and stone', () => {
+    expect(repairPerHp({ eco: false })).toEqual([0, 0, 100, 0]);
+    const tower = repairPerHp({ eco: true, type: 'tower', maxHp: BUILDINGS.tower.hp });
+    expect(tower[RES_INDEX.stone]).toBeGreaterThan(0);
+    expect(tower[RES_INDEX.wood]).toBeGreaterThan(0);
+    expect(repairPerHp({ eco: true, type: 'barracks', maxHp: BUILDINGS.barracks.hp })).toEqual([0, 125, 0, 0]);
+  });
+
+  it('X28, X31: the view says what each laborer carries, and a spent grove stays as stumps', () => {
+    const w = createWorld(ecoSetup());
+    let carrying = null;
+    for (let t = 0; t < 20 * 40 && !carrying; t++) { run(w, 1); const v = ecoView(w, 0); if (v.carrying.some((c) => c.load > 0)) carrying = v.carrying; }
+    const c = carrying.find((x) => x.load > 0);
+    expect(c).toMatchObject({ idx: expect.any(Number), res: expect.stringMatching(/^(food|wood|stone|gold)$/), kind: expect.any(String) });
+    const grove = w.eco.nodes.findIndex((n) => n.kind === 'tree');
+    w.eco.nodes[grove].amount = 0;
+    const v = ecoView(w, 0);
+    expect(v.nodes.find((n) => n.i === grove)).toMatchObject({ spent: true, amount: 0 });
   });
 
   it('the result leaves workers and auxiliaries out of the campaign units and reports the economy', () => {

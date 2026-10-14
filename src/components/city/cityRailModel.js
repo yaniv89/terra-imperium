@@ -20,6 +20,7 @@ export const RAIL_STORAGE_KEY = 'terra-imperium-city-rail-collapsed';
 /** A short name for a build item. */
 export const shortItemLabel = (item, tiles = getTiles(), ageId = 'bronze') => {
   if (!item) return null;
+  if (item.kind === 'unit' && item.explorer) return 'Scouts';
   if (item.kind === 'unit') return item.classId === 'naval' ? NAVAL_LINES[item.navalLine || 'warship']?.label || 'Ship' : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category;
   if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement} (${tiles.names?.[item.tile] || 'tile'})`;

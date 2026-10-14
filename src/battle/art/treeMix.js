@@ -79,6 +79,21 @@ export const treeAt = (x, z, speciesCount = 1) => {
   return { species, size, rank: hash2(a, b, 5), scale: 0.86 + hash2(a, b, 6) * 0.28 };
 };
 
+/** The battle's wind (a turn about the vertical, radians) from its seed: wind-bent trees lean this way. */
+export const windYaw = (seed = 0) => hash2(seed | 0, 77, 13) * Math.PI * 2;
+
+/** A crown standing this far off the trunk's foot (a share of the tree's height) marks a wind-bent tree. */
+export const LEAN_SHARE = 0.25; // the steppe elm stands 0.36 to 0.42 off; olives, palms, dwarf birches under 0.2
+/** Which way a tree leans, from its box in its own space (glTF axes: y up), or null for an
+ * upright tree: the angle the turn about y measures, so turning the tree by `w - leanOf(box)`
+ * points its lean at w. */
+export const leanOf = (box) => {
+  if (!box) return null;
+  const cx = (box.min.x + box.max.x) / 2; const cz = (box.min.z + box.max.z) / 2;
+  const h = box.max.y - box.min.y;
+  return h > 0 && Math.hypot(cx, cz) > LEAN_SHARE * h ? Math.atan2(-cz, cx) : null;
+};
+
 /** How many of `ranks` (sorted ascending) are drawn at a vegetation LOD. */
 export const keptCount = (ranks, lod) => {
   const limit = KEEP_AT_LOD[lod] ?? 1;

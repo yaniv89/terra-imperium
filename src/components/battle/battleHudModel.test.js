@@ -4,7 +4,7 @@
 // the battle's own reading (XP by the campaign's formula, the general's fate by the same roll),
 // with one (src/engine/battleReceipt.js) what the campaign commits.
 import { describe, expect, it } from 'vitest';
-import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel, armyTally, armyTallyText } from './battleHudModel';
+import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel, armyTally, armyTallyText, enemyObjectives, supplyView, supplyRate } from './battleHudModel';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN } from '../../engine/battleOutcome';
 
@@ -50,9 +50,42 @@ describe('battle HUD model', () => {
     const v = visibleAlerts(a, 130);
     expect(v.shown).toHaveLength(2);
     expect(v.older).toBe(2);
-    expect(visibleAlerts(a, 120 + 20 * 20 + 1).shown).toHaveLength(0);
+    // I203: shown 8 s, then only in the history (newest first)
+    expect(visibleAlerts(a, 120 + 8 * 20 + 1).shown).toHaveLength(0);
+    expect(visibleAlerts(a, 120 + 8 * 20 + 1).history).toHaveLength(4);
+    expect(visibleAlerts(a, 120 + 8 * 20 + 1).older).toBe(4);
     expect(minutesLeft(1800, 1)).toBe(30);
     expect(minutesLeft(1800, 3)).toBe(10);
+  });
+
+  it('I196, I197: the enemy objective as far as it is known, nearest first, or why there is none', () => {
+    const setup = { sides: [{ ageId: 'bronze' }, { ageId: 'bronze' }], map: { w: 100, h: 60, attackerEdge: 2, keep: { x: 80, y: 30 } } };
+    const keepHud = { structures: [st('keep', { x: 80 * 256, y: 30 * 256 })], squads: [], eco: null };
+    expect(enemyObjectives(keepHud, setup, 0).targets[0]).toMatchObject({ x: 80, y: 30, label: 'Their keep' });
+    // Defending: the keep is yours; their camp counts once seen (the view leaves out the unseen).
+    const eco = { buildings: [
+      { idx: 0, side: 0, type: 'camp', x: 10 * 256, y: 30 * 256, alive: true, built: true, proxy: false },
+      { idx: 1, side: 0, type: 'barracks', x: 30 * 256, y: 30 * 256, alive: true, built: true, proxy: false },
+      { idx: 2, side: 0, type: 'house', x: 40 * 256, y: 30 * 256, alive: true, built: true, proxy: false },
+      { idx: 3, side: 1, type: 'barracks', x: 70 * 256, y: 30 * 256, alive: true, built: true, proxy: false }] };
+    const seen = enemyObjectives({ ...keepHud, eco }, setup, 1, { x: 50, y: 30 });
+    expect(seen.targets.map((t) => t.x)).toEqual([30, 10]); // no house, nothing of yours, nearest first
+    expect(seen.note).toBeNull();
+    const none = enemyObjectives({ structures: [st('keep', { x: 0, y: 0 })], squads: [], eco: { buildings: [] } }, setup, 1);
+    expect(none.targets).toEqual([]);
+    expect(none.note).toMatch(/not seen yet.*west/);
+    expect(none.fallback).toEqual({ x: 8, y: 30 });
+    const troops = enemyObjectives({ structures: [], squads: [sq(0, { side: 0, x: 256 * 20, y: 256 * 10 }), sq(1, { side: 0, visible: false })], eco: { buildings: [] } }, setup, 1);
+    expect(troops.targets).toEqual([{ x: 20, y: 10, label: 'Enemy troops in sight' }]);
+  });
+
+  it('U12: Battle Supply now, cap, low under the cheapest power, and the rise a second', () => {
+    const h = { supply: [90.6, 0], powers: [{ label: 'Rally Cry', cost: 120, usesLeft: 1 }, { label: 'Spent', cost: 50, usesLeft: 0 }] };
+    expect(supplyView(h, { supplyCap: 350 }, 0)).toMatchObject({ now: 90, cap: 350, low: true, costs: [{ label: 'Rally Cry', cost: 120 }] });
+    expect(supplyView({ ...h, supply: [130, 0] }, { supplyCap: 350 }, 0).low).toBe(false);
+    // +2 a second, a spend of 120 left out
+    expect(supplyRate([{ tick: 0, v: 100 }, { tick: 20, v: 102 }, { tick: 40, v: -16 }, { tick: 60, v: -14 }])).toBe(1.3);
+    expect(supplyRate([{ tick: 0, v: 1 }])).toBeNull();
   });
 
   it('the result without a campaign: XP by the formula, the general by the same roll, the houses ruined', () => {

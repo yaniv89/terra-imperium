@@ -1,5 +1,5 @@
 {
-  "url": "http://localhost:5203/terra-imperium/?battleSandbox&age=bronze&terrain=forest&perf",
+  "url": "http://localhost:5204/terra-imperium/?battleSandbox&age=bronze&terrain=forest&perf",
   "shots": [
     {
       "file": "plans/art-pilot/md05-trees/before/before-army-zoom2.jpg",
@@ -9,7 +9,10 @@
       "drawCalls": 97,
       "figures": 57,
       "tier": 0,
-      "vegetationLod": 0
+      "vegetationLod": 0,
+      "treeTriangles": 1507200,
+      "treeMeshes": 32,
+      "trees": null
     },
     {
       "file": "plans/art-pilot/md05-trees/before/before-army-zoom1.jpg",
@@ -19,17 +22,23 @@
       "drawCalls": 110,
       "figures": 57,
       "tier": 0,
-      "vegetationLod": 1
+      "vegetationLod": 1,
+      "treeTriangles": 188400,
+      "treeMeshes": 32,
+      "trees": null
     },
     {
       "file": "plans/art-pilot/md05-trees/before/before-army-zoom0_6.jpg",
       "view": "army",
       "zoom": 0.6,
-      "triangles": 515107,
-      "drawCalls": 116,
+      "triangles": 329351,
+      "drawCalls": 111,
       "figures": 57,
-      "tier": 0,
-      "vegetationLod": 2
+      "tier": 1,
+      "vegetationLod": 2,
+      "treeTriangles": 109900,
+      "treeMeshes": 32,
+      "trees": null
     },
     {
       "file": "plans/art-pilot/md05-trees/before/before-woods-zoom2.jpg",
@@ -39,7 +48,10 @@
       "drawCalls": 81,
       "figures": 0,
       "tier": 0,
-      "vegetationLod": 0
+      "vegetationLod": 0,
+      "treeTriangles": 1507200,
+      "treeMeshes": 32,
+      "trees": null
     },
     {
       "file": "plans/art-pilot/md05-trees/before/before-woods-zoom1.jpg",
@@ -49,17 +61,23 @@
       "drawCalls": 114,
       "figures": 52,
       "tier": 0,
-      "vegetationLod": 1
+      "vegetationLod": 1,
+      "treeTriangles": 188400,
+      "treeMeshes": 32,
+      "trees": null
     },
     {
       "file": "plans/art-pilot/md05-trees/before/before-woods-zoom0_6.jpg",
       "view": "woods",
       "zoom": 0.6,
-      "triangles": 340259,
+      "triangles": 308123,
       "drawCalls": 140,
       "figures": 59,
-      "tier": 1,
-      "vegetationLod": 2
+      "tier": 2,
+      "vegetationLod": 2,
+      "treeTriangles": 109900,
+      "treeMeshes": 32,
+      "trees": null
     }
   ],
   "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x000046A3) Direct3D11 vs_5_0 ps_5_0, D3D11)",

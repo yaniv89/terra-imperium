@@ -224,8 +224,10 @@ def k_general():
         'Kingdoms general: a mounted lord (mail, Team surcoat, crowned great helm, Team cloak, sword) on a caparisoned horse, with a banner bearer on foot whose banner is the squad emblem', dict(budget=3000, mounted=True)
 
 
-BUILDERS = {'kingdoms-infantry': k_infantry, 'kingdoms-ranged': k_ranged, 'kingdoms-cavalry': k_cavalry, 'kingdoms-siege': k_siege,
-            'kingdoms-support': k_support, 'kingdoms-worker': k_worker, 'kingdoms-general': k_general}
+# The foot units were rebuilt in the quality pass of 2026-10-14 by their own builders on ti_figure.py
+# (build_kingdoms_infantry.py, build_kingdoms_ranged.py, build_kingdoms_worker.py,
+# build_kingdoms_support.py); k_infantry, k_ranged, k_support and k_worker stay here for reference only.
+BUILDERS = {'kingdoms-cavalry': k_cavalry, 'kingdoms-siege': k_siege, 'kingdoms-general': k_general}
 
 
 def build(uid):

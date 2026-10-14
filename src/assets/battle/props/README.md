@@ -79,7 +79,7 @@ Scale and placement (helpers in src/battle/art/workerLoads.js):
   origin is the axle, the axle along its local X, so it can spin. The kit loader merges it into
   its level, so the barrow draws whole without new code.
 
-Nothing draws the loads yet: the battle view lists who carries (`eco.carrying`) but not what.
+The battle view lists what each laborer carries (`eco.carrying`: `{ idx, res, kind, load }`, X28) and render/economyLayer.js draws it: food and stone in a barrow (the empty barrow on the way out), wood and gold on the back (`usesBarrow`, X32).
 plans/art-pilot/md06-nodes-loads/LOG.md says what the view must add.
 
 ## Raid and landing props
@@ -111,7 +111,7 @@ Landing roots include `socket-door` at the shore end of the ramp/gangplank.
 
 `src/battle/art/raidLandingProps.js` resolves these exact files via `ART.url()`.
 It instances exits at existing entry/fallback edges, goods beside live raid loot
-structures and on visible workers listed in `eco.carrying`, scorch overlays on
+structures (a laborer's load is the worker-loads kit, not a sack), scorch overlays on
 explicitly destroyed field loot structures/farms, and the matching age's landing
 root against the actual sea/sand boundary. Team alone takes the side's colour.
 The shared kit loader selects LOD by camera zoom. Ordinary no-economy land setups

@@ -96,6 +96,7 @@ export const SETTLER_MIN_SIZE = 2;
 export const UNIT_BASE_COST = 40;
 export const UNIT_COST_PER_AGE = 0.6;
 export const UNIT_CLASS_COST = { infantry: 1, ranged: 1.1, cavalry: 1.5, siege: 1.6, naval: 1.4, support: 1.2, air: 2.2 };
+export const EXPLORER_COST_SHARE = 0.4; // a scout costs this share of a Spearman (scouting.js)
 export const IMPROVEMENT_COST_PER_TURN = 10;
 // Rings between city centres: about 300 km, so the city count stays near the old one on any grid
 // (3 rings at frequency 75, 4 at frequency 100; 2 on the old 150 km grid). One ring less across
@@ -370,7 +371,7 @@ export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1, speedM
 const baseProductionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {}) => {
   switch (item.kind) {
     case 'building': return getBuildingTierCost(item.category, item.tier) ?? 9999;
-    case 'unit': return Math.round(UNIT_BASE_COST * (1 + UNIT_COST_PER_AGE * AGE_ORDER.indexOf(ageId)) * (UNIT_CLASS_COST[item.classId] || 1));
+    case 'unit': return Math.round(UNIT_BASE_COST * (1 + UNIT_COST_PER_AGE * AGE_ORDER.indexOf(ageId)) * (item.explorer ? EXPLORER_COST_SHARE : UNIT_CLASS_COST[item.classId] || 1));
     case 'improvement': return (IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_COST_PER_TURN;
     case 'settler': return SETTLER_BASE_COST + SETTLER_COST_PER_CITY * citiesOwned;
     case 'army': { const next = nextTemplateUnit(item); return next ? baseProductionCost({ kind: 'unit', classId: next }, { ageId, citiesOwned }) : 0; } // the next piece of the army (armyTemplates.js)
@@ -420,7 +421,7 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = 'b
 export const itemKey = (item) => {
   if (!item) return '';
   switch (item.kind) {
-    case 'unit': return `unit:${item.classId}${item.navalLine ? `:${item.navalLine}` : ''}`;
+    case 'unit': return `unit:${item.explorer ? 'scout' : item.classId}${item.navalLine ? `:${item.navalLine}` : ''}`;
     case 'building': return `building:${item.category}:${item.tier}`;
     case 'improvement': return `improvement:${item.improvement}:${item.tile}`;
     case 'settler': return 'settler';
@@ -680,7 +681,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
       logs.push(`${item.name} is complete at ${c.name}.`);
     } else {
       completed.push({ ...item, city: c.id, tile: c.tile });
-      if (item.kind === 'unit') logs.push(`${c.name} trains ${item.classId}.`);
+      if (item.kind === 'unit') logs.push(`${c.name} trains ${item.explorer ? 'scouts' : item.classId}.`);
     }
     const [following, ...rest] = production.queue;
     // The next order takes the overflow, plus whatever it had stored from an earlier turn at the front.

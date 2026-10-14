@@ -56,6 +56,8 @@ export const SETTLER_GIVE_UP_TURNS = 15; // and is disbanded after this long wit
 export { SETTLER_MIN_SIZE };
 
 export const isSettler = (unit) => unit?.classId === 'settler';
+/** The player's cheap scouts (scouting.js): unit.explorer, a Support-class unit that never fights and lives off the land. */
+export const isExplorer = (unit) => !!unit?.explorer;
 
 /** The unit record for a settler just built in `city`. */
 export const makeSettler = (id, city, nationId) => ({
