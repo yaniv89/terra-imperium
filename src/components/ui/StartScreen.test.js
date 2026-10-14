@@ -17,7 +17,7 @@ describe('the start screen in steps (W01, plans/UI-DESIGN.md section 8)', () => 
   it('opens on step 1 with the people, every other step mounted but hidden', () => {
     const html = render();
     expect(html).toContain('data-step="people"');
-    expect(html.match(/data-people="/g)).toHaveLength(150);
+    expect(html.match(/data-people="/g)).toHaveLength(50); // the major peoples only (decision 42)
     expect(panel(html, 'people')).not.toMatch(/^<section hidden/);
     for (const id of ['world', 'rules', 'ready']) expect(panel(html, id)).toMatch(/^<section hidden=""/);
     // the step indicator: four buttons, the first is the current step
@@ -36,7 +36,7 @@ describe('the start screen in steps (W01, plans/UI-DESIGN.md section 8)', () => 
     const people = panel(html, 'people');
     expect(people).toContain('data-testid="guided-start"');
     expect(people).toContain('aria-label="Search peoples"');
-    expect(people).toContain('Standard world, Normal speed, Prince.');
+    expect(people).toContain('Standard world, normal city-states, Normal speed, Prince.');
     for (const step of [1, 2]) {
       const mid = render({ initialStep: step });
       expect(mid).toContain(`data-step="${START_STEPS[step].id}"`);
@@ -60,6 +60,8 @@ describe('the start screen in steps (W01, plans/UI-DESIGN.md section 8)', () => 
     expect(world).toContain('data-testid="map-earth"');
     expect(world).toMatch(/aria-checked="true"[^>]*data-testid="world-size-standard"/);
     expect(world.match(/role="radio"/g)).toHaveLength(5); // the map (Real Earth, Generated world) and the three sizes
+    expect(world).toMatch(/aria-pressed="true"[^>]*data-testid="city-states-normal"/);
+    expect(world).toContain('data-testid="city-states-many"');
     const rules = panel(html, 'rules');
     expect(rules).toMatch(/aria-checked="true"[^>]*data-testid="game-speed-normal"/);
     expect(rules).toMatch(/aria-pressed="true"[^>]*data-testid="difficulty-prince"/);

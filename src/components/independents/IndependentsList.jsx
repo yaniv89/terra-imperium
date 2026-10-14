@@ -46,7 +46,7 @@ const IndependentsList = () => {
               <ShieldMark personality={r.personality} size={24} />
               <span className="min-w-0 flex-1">
                 <span className="block text-[13px] font-semibold text-fa-text truncate">{r.name}</span>
-                <span className="block text-[11px] text-fa-muted truncate">{r.personalityName} · {r.cityName} {r.size} · {kmLabel(r.km)}</span>
+                <span className="block text-[11px] text-fa-muted truncate">{r.cityState ? `${r.cityState.name}${r.cityState.patron === 'you' ? ' (yours)' : ''} · ` : ''}{r.personalityName} · {r.cityName} {r.size} · {kmLabel(r.km)}</span>
               </span>
               <span className="text-right shrink-0">
                 <span className={`block text-[11px] ${TONE_TEXT[r.attitudeTone]}`}>{r.attitudeWord} {r.attitude > 0 ? '+' : ''}{r.attitude}</span>

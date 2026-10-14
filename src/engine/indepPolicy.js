@@ -66,6 +66,7 @@ import { isSettler } from './settlers';
 import { ringsAround } from './world/cities';
 import { transferRegion } from './regionTransfer';
 import { burnCities, aiWantsRaze, startRazing } from './razing';
+import { processPatrons } from './cityStates';
 
 const COURT_MAX_GRUDGE = 20;
 const COURT_MAX_TURNS = 40;
@@ -480,6 +481,7 @@ export const processMajorsAndIndependents = (input) => {
   const byTile = unitsByTile(w.view, w.units);
   // 3. The independents: favour, trade, tribute to majors, joining.
   indeps.forEach((id) => { if (!w.nations[id].isEliminated) independentTurn(w, id, byTile); });
+  processPatrons(w, indeps); // city-state patrons and their bonus (cityStates.js, decision 42)
   // 4. The AI majors.
   const citiesOf = new Map();
   Object.values(w.regions).forEach((c) => {

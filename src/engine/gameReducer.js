@@ -33,11 +33,13 @@ import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } fro
 import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
 import { WORLD_NATIONS, peopleNationRecord } from '../data/worldNations';
 import { peopleForNationId } from '../data/peoples';
-import { DEFAULT_WORLD_SIZE } from '../data/worldSizes';
+import { DEFAULT_WORLD_SIZE, CITY_STATE_DENSITIES, DEFAULT_CITY_STATES, CITY_STATES_PACKED } from '../data/worldSizes';
 import { pickMajors } from './worldgen/peoplesWorld';
 import { placeGeneratedPeoples } from './worldgen/generatedPeoples';
 import { normalizeSpec, sameWorld } from '../worldgen/spec';
-import { pickIndependents, asIndependentSource, finalizeIndependents } from './independents';
+import { placeCityStatesOnEarth, asIndependentSource, finalizeIndependents } from './independents';
+// The City-states setting rides on the saved scenario (decision 42; old saves read it as Normal).
+const withCityStates = (state, density) => (density ? { ...state, scenario: { ...state.scenario, cityStates: density } } : state);
 import { refreshPeopleNames } from './peopleNames';
 import { TECH_TREE } from '../data/techTree';
 import {
@@ -188,12 +190,16 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     if (!sameWorld(loadedWorldSpec(), mapSpec)) throw new Error('This generated world is not the loaded one: boot into it first (src/worldgen/worldLoader.js)');
   }
   const mapRecord = generated ? { ...mapSpec, worldHash: loadedWorldSpec().worldHash } : { kind: 'earth' };
-  const generatedPlacement = generated ? placeGeneratedPeoples(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, getTiles(), { independents: scenario.independents !== false }) : null;
+  // City-states: Few / Normal / Many (decision 42); absent = Normal.
+  const cityStates = CITY_STATE_DENSITIES[scenario?.cityStates] || scenario?.cityStates === CITY_STATES_PACKED ? scenario.cityStates : DEFAULT_CITY_STATES;
+  const generatedPlacement = generated ? placeGeneratedPeoples(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, getTiles(), { independents: scenario.independents !== false, density: cityStates }) : null;
   const majorIds = generatedPlacement ? generatedPlacement.majors.slice() : peoplesMode ? pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() }) : null;
-  // Every other people of the pool is an independent city (phase W1, src/engine/independents.js);
+  // City-state peoples become independent cities (phase W1, src/engine/independents.js; on Earth
+  // spaced by START_MIN_GAP_KM, some moved off their real capital: `sites`);
   // `independents: false` in the scenario leaves them out (majors only, as phase W0 built it).
   const independentPick = generatedPlacement ? { ids: generatedPlacement.independents, late: generatedPlacement.late }
-    : peoplesMode && scenario.independents !== false ? pickIndependents(majorIds, scenario.size || DEFAULT_WORLD_SIZE, worldSeed) : { ids: [], late: [] };
+    : peoplesMode && scenario.independents !== false ? placeCityStatesOnEarth(majorIds, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { density: cityStates, tiles: getTiles() }) : { ids: [], late: [] };
+  const startSites = generatedPlacement ? generatedPlacement.sites : (independentPick.sites && Object.keys(independentPick.sites).length ? independentPick.sites : null);
   const nationSource = peoplesMode
     ? Object.fromEntries([
       ...majorIds.sort().map((id) => [id, peopleNationRecord(id)]),
@@ -493,7 +499,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     ]
   };
   // Fog of war (fog.js): each people knows its homeland; `fog: false` is the "explored world" option.
-  const started = initFog(refreshPeopleNames(syncWorldRegistry(finalizeIndependents(applyScenario(initial, { ...scenario, seed: worldSeed, map: mapRecord, ...(generatedPlacement ? { sites: generatedPlacement.sites } : {}) }), { late: independentPick.late }))), { on: fog });
+  const started = initFog(refreshPeopleNames(syncWorldRegistry(finalizeIndependents(withCityStates(applyScenario(initial, { ...scenario, seed: worldSeed, map: mapRecord, ...(startSites ? { sites: startSites } : {}) }), peoplesMode ? cityStates : null), { late: independentPick.late }))), { on: fog });
   // The guided start (src/engine/tutorial.js): ten turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
