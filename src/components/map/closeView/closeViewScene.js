@@ -50,6 +50,8 @@ import { cityManifestOf, manifestStates } from '../../../engine/cityManifest';
 import { applyTownDamage, syncTownDamage, enableGroundClear, setGroundClear, fileGroundClear } from './townDamage';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 import { shipModel, shipsFor, SHIP_SCALE } from './shipModels';
+import { outpostFor, outpostFitRadius } from './outpostModels';
+import { settlersInSight, settlerBand, SETTLER_KEY, preloadSettlerModel } from './settlerModels';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
@@ -62,6 +64,8 @@ const STAND_HEADING = 0.15;
 // Army figures stand at least this tall (layout px, model height before the tilt; about 34 css px
 // on screen at mid zoom): smaller, the spear, shield and kilt of the battle model run together.
 const MIN_FIGURE_PX = 64;
+// A settler party's people at their smallest: this share of an army figure's floor (settlerModels.js).
+const SETTLER_FIGURE_SHARE = 0.6;
 // The army figures' triangle budget at full detail (phones: about 100 Bronze spearmen of 1,500
 // triangles, a small share of the map's frame); past it every figure takes the clustered level.
 export const MAP_FIGURE_TRIS = 150000;
@@ -235,7 +239,16 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       }
       // The camp, a capital's palace, the wall ring and the fields come from the age's shared file.
       const shared = camp || asset ? sharedFor(opts.ageId, style) : null;
-      const campRoot = camp ? shared?.[COLONY_CAMP] : null;
+      // An outpost shows its age band's camp (outpostModels.js) once that file is in; until then,
+      // or without one, the shared file's colony camp.
+      const outpost = camp ? outpostFor(region, opts.ageId) : null;
+      if (outpost && !t.assets.has(outpost.url)) {
+        t.assets.set(outpost.url, null);
+        loadAssetObjects(outpost.url).then((objs) => { t.assets.set(outpost.url, objs); onAssets(); })
+          .catch((e) => { console.warn('outpost model failed, the outpost keeps the colony camp:', e.message); });
+      }
+      const outpostRoot = outpost ? improvementRoot(t.assets.get(outpost.url), outpost.name) : null;
+      const campRoot = camp ? outpostRoot || shared?.[COLONY_CAMP] : null;
       // A capital's palace follows the owner's theme (a people's `theme`, art spec 3b.5), the town
       // the land's; a legacy nation's palace stays with the land.
       const palaceStyle = themeOfNation(owner);
@@ -251,7 +264,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       // battle damage on the city (src/engine/cityManifest.js): ruined houses cut out, damaged darkened
       const dmg = asset ? region.cityDamage : null;
       const dmgKey = dmg ? `${Object.keys(dmg.ruined || {}).sort().join(',')}/${Object.keys(dmg.damaged || {}).sort().join(',')}` : '';
-      const key = campRoot ? `${id}|camp|${opts.ageId}|${teamColor}|${tintKey(tint)}`
+      const key = campRoot ? `${id}|camp|${opts.ageId}|${outpostRoot ? outpost.url : ''}|${teamColor}|${tintKey(tint)}`
         : asset ? `${id}|asset|${assetUrl}|${teamColor}|${tintKey(tint)}|${palaceRoot ? palaceRoot.uuid : ''}|${wallsRoot ? wallsRoot.uuid : ''}|${fields.map((f) => f.name).join(',')}|${dmgKey}`
           : `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
       seen.add(id);
@@ -287,9 +300,10 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       if (mesh.userData.asset) showLod(mesh, lodForZoom(k));
       // the town's ground (and its wall ring) is claimed first; its fields come after the works.
       // Every tier fills its own hex (cityHex.js, decision D10): the tier's art shows the city's
-      // size; never into a neighbouring hex or the sea. An outpost's camp keeps its natural size.
-      const radius = (camp ? 1.0 : tier.modelRadius || 2) + (opts.walls && !camp ? 0.3 : 0);
-      const ts = hexTownPx({ projection, tiles: getTiles(), tile: region.tile, k, radius, lean, fill: !camp, isTown, tierScale: TIER_SCALE[tier.id] || 1 });
+      // size; never into a neighbouring hex or the sea. An outpost's camp file fills a share of its
+      // hex (outpostModels.js); the old colony camp keeps its natural size.
+      const radius = (outpostRoot ? outpostFitRadius() : camp ? 1.0 : tier.modelRadius || 2) + (opts.walls && !camp ? 0.3 : 0);
+      const ts = hexTownPx({ projection, tiles: getTiles(), tile: region.tile, k, radius, lean, fill: !camp || !!outpostRoot, isTown, tierScale: TIER_SCALE[tier.id] || 1 });
       occ.claim(at.x, at.y, radius * ts);
       if (mesh.userData.fields?.length) ringFields.push({ mesh, at, s: ts });
       // the city's landmarks (its highest building tiers with a model file) round an artist town
@@ -648,6 +662,46 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
           l.variant.setXYZW(k2, soldierSkinTone(tone, mi, i), cell, ((mi + i) % 5) / 5 - 0.4, 0);
           l.mesh.count += 1;
         }
+      });
+      // Settlers: the party of the owner's age band (settlerModels.js) on their tile, facing and
+      // walking toward their target; until its model is in, the map's wagon disc stands alone.
+      settlersInSight(state, fog.isVisible).forEach((u, si) => {
+        const ageId = ageOf(state, u.ownerId);
+        const band = settlerBand(ageId);
+        if (!band) return;
+        if (!hasSoldierOverride(band, SETTLER_KEY)) {
+          const loadKey = `${band}:${SETTLER_KEY}`;
+          if (!t.soldierLoads.has(loadKey)) {
+            t.soldierLoads.add(loadKey);
+            preloadSettlerModel(ageId).then((ok) => { if (ok) onAssets(); }).catch(() => {});
+          }
+          return;
+        }
+        const ll = getTiles().latLonOf(u.tile);
+        const at = toScreenLatLng({ lat: ll.lat, lng: ll.lon });
+        if (!at) return;
+        const l = layerFor(band, 'support', SETTLER_KEY);
+        if (l.mesh.count >= MAX_SOLDIERS) return;
+        const goal = u.target != null && u.target !== u.tile ? getTiles().latLonOf(u.target) : null;
+        const next = goal ? project(goal.lat, goal.lon) : null;
+        const walking = !!next;
+        if (walking) moving = true;
+        const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING + 0.5;
+        // the party is a cart or truck two to three people long: its people stand a little
+        // shorter than an army's figure, so it never outgrows the camp it is going to found
+        const trueScale = s * SOLDIER_SIZE * (MODEL_SCALE.support || 0.88);
+        const scale = Math.max(trueScale, (MIN_FIGURE_PX * SETTLER_FIGURE_SHARE) / l.height);
+        const k2 = l.mesh.count;
+        tmp.position.set(at.x, -at.y, at.y * 0.05 + 40);
+        tmp.rotation.set(TILT, heading, 0, 'XYZ');
+        tmp.scale.setScalar(scale);
+        tmp.updateMatrix();
+        l.mesh.setMatrixAt(k2, tmp.matrix);
+        color.set(u.ownerId === state.playerNationId ? PLAYER_COLOR : getNationColor(u.ownerId) || '#64748b');
+        l.mesh.setColorAt(k2, color);
+        l.anim.setXYZ(k2, (si * 1.3) % 6.28, walking ? 1 : 0, 0);
+        l.variant.setXYZW(k2, soldierSkinTone(skinToneFor(u.ownerId), si, 0), emblemCellFor(u.ownerId === state.playerNationId ? 0 : 1, si), 0, 0);
+        l.mesh.count += 1;
       });
       let figureTris = 0;
       t.layers.forEach((l) => { figureTris += l.mesh.count * l.tris; });

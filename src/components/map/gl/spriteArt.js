@@ -12,7 +12,7 @@
 import { moraleColor, PLAYER_BANNER_COLOR } from '../mapBanners';
 import { shortMen } from '../../../utils/mapMarkers';
 import { getNationColor } from '../../../data/nationColors';
-import { unitIconUrl, shipIconUrl, wonderIconUrl, markerIconUrl } from '../../../data/icons';
+import { unitIconUrl, shipIconUrl, wonderIconUrl, markerIconUrl, iconUrl } from '../../../data/icons';
 import { spriteFrameUrl } from './mapSprites';
 
 export const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
@@ -138,6 +138,12 @@ export const BADGE_BOX_R = 1.9;
 /** An independent city's badge: the diamond's points, in units of the disc's radius, and its colour. */
 export const INDEP_DIAMOND_R = 1.55;
 export const INDEP_BADGE_COLOUR = '#9C8FD0';
+/** The independent's shield on the far map: half its width, in units of the disc's radius. */
+export const INDEP_SHIELD_R = 1.3;
+/** The shield of an independent's personality, or null (a major's city, or no art: the diamond). */
+export const independentShieldUrl = (personality) => (personality ? iconUrl('independents', typeof personality === 'string' ? personality : 'tribal') : null);
+/** The independent city banner's frame (a swallow-tailed ribbon, drawn in three slices), or null. */
+export const independentBannerUrl = () => iconUrl('independents', 'banner-frame');
 
 /**
  * A city badge (Map2DView's badge: a disc with the skyline of the owner's age, the capital mark,
@@ -145,12 +151,16 @@ export const INDEP_BADGE_COLOUR = '#9C8FD0';
  * at radius `rPx` device pixels. `r0`: the badge's base radius (the stroke widths scale with it).
  */
 export const badgeArt = (b, rPx) => {
-  const { r0, iconUrl, capitalUrl, colour, fill, outpost, siege, walls, disloyal, disaster, size, siegeUrl } = b;
+  const { r0, capitalUrl, colour, fill, outpost, siege, walls, disloyal, disaster, size, siegeUrl } = b;
+  // An independent city: its personality's shield (src/assets/icons/independents) in place of the
+  // disc and the skyline, a shape and an emblem of its own (I082); the violet diamond while it loads.
+  const shield = independentShieldUrl(b.indep);
+  const iconUrl = shield ? null : b.iconUrl;
   const box = Math.ceil(rPx * BADGE_BOX_R * 2);
-  const pending = waiting(iconUrl) || waiting(capitalUrl) || waiting(siegeUrl);
+  const pending = waiting(iconUrl) || waiting(capitalUrl) || waiting(siegeUrl) || waiting(shield);
   const q = (v) => (v == null ? '' : Math.round(v * 20));
   return {
-    key: `badge|${rPx}|${Math.round(r0 * 10)}|${iconUrl || ''}|${capitalUrl || ''}|${colour}|${fill}|${b.indep ? 'i' : ''}|${q(outpost)}|${q(siege)}|${walls ? 1 : 0}|${disloyal ? 1 : 0}|${disaster || ''}|${size ?? ''}`,
+    key: `badge|${rPx}|${Math.round(r0 * 10)}|${iconUrl || ''}|${capitalUrl || ''}|${colour}|${fill}|${b.indep ? `i${b.indep}` : ''}|${q(outpost)}|${q(siege)}|${walls ? 1 : 0}|${disloyal ? 1 : 0}|${disaster || ''}|${size ?? ''}`,
     w: box, h: box, pending,
     draw: (ctx) => {
       const r = rPx; const c = box / 2;
@@ -163,16 +173,19 @@ export const badgeArt = (b, rPx) => {
       };
       // An independent city: a violet diamond behind the disc, its four points showing past it
       // (a shape of its own, not only a colour: playtest audit I082).
-      if (b.indep) {
+      const shielded = !!shield && drawIcon(ctx, shield, -r * INDEP_SHIELD_R, -r * INDEP_SHIELD_R * 1.04, r * INDEP_SHIELD_R * 2, r * INDEP_SHIELD_R * 2);
+      if (b.indep && !shielded) {
         const d = r * INDEP_DIAMOND_R;
         ctx.beginPath(); ctx.moveTo(0, -d); ctx.lineTo(d, 0); ctx.lineTo(0, d); ctx.lineTo(-d, 0); ctx.closePath();
         ctx.fillStyle = INDEP_BADGE_COLOUR; ctx.fill(); ctx.strokeStyle = '#1e1b4b'; ctx.lineWidth = sw * 0.5; ctx.stroke();
       }
-      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
-      ctx.fillStyle = fill; ctx.fill();
-      if (outpost != null) ctx.setLineDash([(2 / r0) * r, (2 / r0) * r]);
-      ctx.strokeStyle = colour; ctx.lineWidth = (2 / r0) * r; ctx.stroke();
-      ctx.setLineDash([]);
+      if (!shielded) {
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fillStyle = fill; ctx.fill();
+        if (outpost != null) ctx.setLineDash([(2 / r0) * r, (2 / r0) * r]);
+        ctx.strokeStyle = colour; ctx.lineWidth = (2 / r0) * r; ctx.stroke();
+        ctx.setLineDash([]);
+      }
       if (outpost == null && iconUrl) drawIcon(ctx, iconUrl, -r * 0.92, -r * 0.92, r * 1.84, r * 1.84);
       if (capitalUrl) drawIcon(ctx, capitalUrl, -r * 1.35, -r * 1.35, r * 0.95, r * 0.95);
       else if (b.capital) { ctx.beginPath(); ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2); ctx.fillStyle = colour; ctx.fill(); }
@@ -439,34 +452,55 @@ export const cityBannerArt = (c, dpr, font = 12) => {
   const nameW = measure(nameFont, c.name);
   const disc = font + 6;
   const extras = (c.capital ? 17 : 0) + (c.disloyal ? 16 : 0) + (c.siege != null ? 17 : 0);
-  const w = Math.ceil(3 + disc + 6 + nameW + extras + 9);
   const h = Math.ceil(font + 12);
+  // An independent city: the swallow-tailed frame (src/assets/icons/independents/banner-frame.svg)
+  // in place of the pill, its personality's shield in place of the size disc, the size on the
+  // shield's foot; the tails take `tail` px at each end. The diamond pill while they load.
+  const shield = independentShieldUrl(c.indep); const frame = c.indep ? independentBannerUrl() : null;
+  const framed = !!(shield && frame && imageFor(shield) && imageFor(frame));
+  const tail = framed ? Math.round(h * 0.42) : 0;
+  const w = Math.ceil(3 + disc + 6 + nameW + extras + 9) + tail * 2;
   const bar = c.siege ?? c.outpost ?? c.build ?? null;
   const pad = 6; const cw = w + pad * 2; const ch = h + pad * 2 + 5;
   const q = (v) => (v == null ? '' : Math.round(v * 20));
   return {
-    key: `cityBanner|${c.name}|${sizeText}|${c.colour}|${c.indep ? 'i' : ''}${c.selected ? 1 : 0}|${c.capital ? 1 : 0}|${c.disloyal ? 1 : 0}|${q(c.siege)}|${q(c.outpost)}|${q(c.build)}|${font}|${display ? 1 : 0}|${dpr}`,
-    w: Math.ceil(cw * dpr), h: Math.ceil(ch * dpr), pending: waiting(c.capital ? star : null) || waiting(c.siege != null ? siegeIcon : null),
+    key: `cityBanner|${c.name}|${sizeText}|${c.colour}|${c.indep ? `i${c.indep}${framed ? 'f' : ''}` : ''}${c.selected ? 1 : 0}|${c.capital ? 1 : 0}|${c.disloyal ? 1 : 0}|${q(c.siege)}|${q(c.outpost)}|${q(c.build)}|${font}|${display ? 1 : 0}|${dpr}`,
+    w: Math.ceil(cw * dpr), h: Math.ceil(ch * dpr), pending: waiting(c.capital ? star : null) || waiting(c.siege != null ? siegeIcon : null) || waiting(shield) || waiting(frame),
     css: { w: Math.ceil(cw * dpr) / dpr, h: Math.ceil(ch * dpr) / dpr, pillW: w, pillH: h, pad },
     draw: (ctx) => {
       ctx.scale(dpr, dpr); ctx.translate(pad, pad);
       const pill = (x = 0.5, y = 0.5, pw = w - 1, ph = h - 1) => { ctx.beginPath(); ctx.roundRect?.(x, y, pw, ph, ph / 2); if (!ctx.roundRect) ctx.rect(x, y, pw, ph); };
       ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
-      pill(); ctx.fillStyle = 'rgba(26,33,43,0.92)'; ctx.fill();
+      if (framed) {
+        // the ribbon in three slices: the tails at their own shape, the middle stretched
+        const img = imageFor(frame); const cap = (h * 48) / 64;
+        ctx.drawImage(img, 0, 0, 48, 64, 0, 0, cap, h);
+        ctx.drawImage(img, 208, 0, 48, 64, w - cap, 0, cap, h);
+        ctx.drawImage(img, 56, 0, 144, 64, cap - 1, 0, w - 2 * cap + 2, h); // over both joins, so no seam shows
+      } else { pill(); ctx.fillStyle = 'rgba(26,33,43,0.92)'; ctx.fill(); }
       ctx.shadowColor = 'transparent';
-      // the size disc; a diamond for an independent city (a shape, not only a colour: I082)
-      ctx.beginPath();
-      if (c.indep) { const cx = 3 + disc / 2; const hd = disc / 2 + 1; ctx.moveTo(cx, h / 2 - hd); ctx.lineTo(cx + hd, h / 2); ctx.lineTo(cx, h / 2 + hd); ctx.lineTo(cx - hd, h / 2); ctx.closePath(); } else ctx.arc(3 + disc / 2, h / 2, disc / 2, 0, Math.PI * 2);
-      ctx.fillStyle = c.colour; ctx.fill();
-      ctx.font = sizeFont; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#10141A';
-      ctx.fillText(sizeText, 3 + disc / 2, h / 2 + 0.5);
+      if (framed) {
+        // the personality's shield, a little taller than the ribbon, the size on its foot
+        const sh = h + 6; const sx = tail + 3 + disc / 2;
+        drawIcon(ctx, shield, sx - sh / 2, -3, sh, sh);
+        ctx.beginPath(); ctx.arc(sx + sh * 0.3, h - 1, font * 0.42, 0, Math.PI * 2); ctx.fillStyle = '#10141A'; ctx.fill(); ctx.strokeStyle = '#CDB27A'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.font = fontOf(Math.round(font * 0.62), 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ECE5D3';
+        ctx.fillText(sizeText, sx + sh * 0.3, h - 0.5);
+      } else {
+        // the size disc; a diamond for an independent city (a shape, not only a colour: I082)
+        ctx.beginPath();
+        if (c.indep) { const cx = 3 + disc / 2; const hd = disc / 2 + 1; ctx.moveTo(cx, h / 2 - hd); ctx.lineTo(cx + hd, h / 2); ctx.lineTo(cx, h / 2 + hd); ctx.lineTo(cx - hd, h / 2); ctx.closePath(); } else ctx.arc(3 + disc / 2, h / 2, disc / 2, 0, Math.PI * 2);
+        ctx.fillStyle = c.colour; ctx.fill();
+        ctx.font = sizeFont; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#10141A';
+        ctx.fillText(sizeText, 3 + disc / 2, h / 2 + 0.5);
+      }
       // the name and its marks
-      let x = 3 + disc + 6;
+      let x = tail + 3 + disc + 6;
       ctx.font = nameFont; ctx.textAlign = 'left'; ctx.fillStyle = '#ECE5D3'; ctx.fillText(c.name, x, h / 2 + 0.5); x += nameW + 3;
       if (c.capital) { if (!(star && drawIcon(ctx, star, x, h / 2 - 7, 14, 14))) { ctx.fillStyle = '#ECE5D3'; ctx.font = fontOf(11); ctx.textAlign = 'left'; ctx.fillText('★', x, h / 2); } x += 17; }
       if (c.disloyal) { ctx.beginPath(); ctx.roundRect?.(x, h / 2 - 6.5, 12, 13, 6); ctx.fillStyle = '#E5604D'; ctx.fill(); ctx.fillStyle = '#10141A'; ctx.font = fontOf(10); ctx.textAlign = 'center'; ctx.fillText('!', x + 6, h / 2 + 0.5); x += 16; }
       if (c.siege != null) { if (!(siegeIcon && drawIcon(ctx, siegeIcon, x, h / 2 - 7, 14, 14))) { ctx.fillStyle = '#EE8A3A'; ctx.font = fontOf(11); ctx.textAlign = 'left'; ctx.fillText('⚔', x, h / 2); } }
-      pill(); ctx.strokeStyle = c.colour; ctx.lineWidth = 1; ctx.stroke();
+      if (!framed) { pill(); ctx.strokeStyle = c.colour; ctx.lineWidth = 1; ctx.stroke(); }
       // selected: a 2 px light outline (selection is never brass)
       if (c.selected) { pill(-1.5, -1.5, w + 3, h + 3); ctx.strokeStyle = '#ECE5D3'; ctx.lineWidth = 2; ctx.stroke(); }
       if (bar != null) {

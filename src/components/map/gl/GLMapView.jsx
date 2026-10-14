@@ -42,6 +42,7 @@ import { useMarch } from '../MarchContext';
 import { fogView } from '../fogView';
 import { loadGroundData } from '../closeView/groundBlend';
 import { createCloseScene, closeTowns } from '../closeView/closeViewScene';
+import { settlerModelled } from '../closeView/settlerModels';
 import { tileGpuData } from './tileGpuData';
 import { buildFogField } from './fogField';
 import { indexCities, buildFogStates, buildTileTexels, buildCityTexels, buildTintTexels } from './territoryData';
@@ -558,7 +559,10 @@ const GLMapView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state, projection, k, landKey, fog, lens, closeGround, dpr]);
   const marks = useMemo(() => (projection ? groundMarks({ state, projection, k, dpr }) : []), [state, projection, k, dpr]);
-  const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr }) : null), [state, projection, k, fog, dpr]);
+  // (assetsTick: a settler party's model came in, so its disc gives way in the close view)
+  const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr, modelled: settlerModelled(state) }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, projection, k, fog, dpr, assetsTick]);
   // settlers on their way draw their road like a march (settleRoutes.js, I095)
   const settlerRoads = useMemo(() => settlerLines(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps

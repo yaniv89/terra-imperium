@@ -11,7 +11,8 @@
 // units, src/data/architecture.js), `weight` (A: cradles and great powers, B, C: how likely the
 // picker makes it a major), `region`, `arrives` (late arrivals only: the year the land was
 // settled; never drawn as a major), `pinned` (the Kingdom of Israel: tried first after the player,
-// roadmap decision 13, but it keeps the 612 km gap like everyone; no other advantage).
+// roadmap decision 13, but it keeps the start gap like everyone; no other advantage), `major` (from
+// MAJOR_TIER below: one of the 50 major peoples, else a city-state people; decision 42).
 // Built facts (capital tile, colour, the legacy id table) come from src/data/geo/peopleCapitals.json
 // (npm run build:peoples). City names: src/data/peopleCities.json (20 a people, capital first).
 import CITY_NAMES from './peopleCities.json';
@@ -171,6 +172,28 @@ const RAW = [
   { id: 'bau', name: 'Bau', adjective: 'Bauan', capital: { name: 'Bau', lat: -17.99, lon: 178.62 }, land: 'fj', theme: 'pacific', weight: 'C', region: 'oceania', arrives: -1000 }
 ];
 
+// The two tiers (decision 42, X25): these 50 are the MAJOR peoples, the ones a player picks and the
+// ones a world draws its major nations from; the other 100 are the CITY-STATE peoples, the names
+// a world's independent cities are drawn from. Nothing is deleted: every people keeps its record,
+// art and signature unit, and any people may still be passed as the player (old saves, tests).
+// Chosen for spread (every part of the world holds majors; Europe and the Near East held 59 of 150),
+// for well-known peoples, and for start places far enough apart (START_MIN_GAP_KM, 900 km) that most
+// can meet in one world. Pairs closer than the gap (Israel and Kemet, Akkad and Elam, Saba and D'mt,
+// Rasenna and the Arverni...) are alternatives: a world holds one of the two.
+export const MAJOR_TIER = Object.freeze({
+  neareast: ['israel', 'akkad', 'elam', 'pontus', 'saba'],
+  northafrica: ['kemet', 'kerma', 'numidia', 'garamantes'],
+  europe: ['ahhiyawa', 'rasenna', 'tartessos', 'arverni', 'brigantes', 'geats', 'dacia', 'khazaria'],
+  centralasia: ['bactria', 'gokturk', 'yarlung', 'wusun'],
+  southasia: ['meluhha', 'magadha', 'pandya', 'satavahana'],
+  eastasia: ['shang', 'shu', 'nanyue', 'gojoseon', 'yamatai'],
+  southeastasia: ['van_lang', 'funan', 'pyu', 'srivijaya'],
+  africa: ['wagadu', 'nok', 'd_mt', 'kitara', 'kilwa', 'mapungubwe', 'ndongo'],
+  americas: ['teotihuacan', 'mutal', 'hopewell', 'chaco', 'muisca', 'caral', 'tiwanaku', 'tupinamba'],
+  oceania: ['gunditjmara']
+});
+const MAJOR_SET = new Set(Object.values(MAJOR_TIER).flat());
+
 // Title stems: the word a title is built around when the picker's name does not read well inside
 // one ("Kingdom of Israel", not "Kingdom of Kingdom of Israel"). Default: the name, with a
 // leading "The" lowered ("Kingdom of the Nuragi").
@@ -215,6 +238,7 @@ export const PEOPLES_LIST = Object.freeze(RAW.map((p) => Object.freeze({
   stem: stemOf(p),
   plural: p.name.startsWith('The '),
   weightValue: PEOPLE_WEIGHTS[p.weight],
+  major: MAJOR_SET.has(p.id),
   regionGroup: PEOPLE_REGIONS[p.region].group,
   landName: countriesMeta[p.land]?.name || p.land,
   cities: Object.freeze([...(CITY_NAMES[p.id] || [])]),
@@ -226,6 +250,9 @@ export const PEOPLES_LIST = Object.freeze(RAW.map((p) => Object.freeze({
 export const PEOPLES = Object.freeze(Object.fromEntries(PEOPLES_LIST.map((p) => [p.id, p])));
 export const PEOPLE_IDS = Object.freeze(PEOPLES_LIST.map((p) => p.id));
 export const PINNED_PEOPLE_IDS = Object.freeze(PEOPLES_LIST.filter((p) => p.pinned).map((p) => p.id));
+/** The 50 major peoples (the picker and the majors' draw) and the 100 city-state peoples. */
+export const MAJOR_PEOPLES_LIST = Object.freeze(PEOPLES_LIST.filter((p) => p.major));
+export const CITY_STATE_PEOPLES_LIST = Object.freeze(PEOPLES_LIST.filter((p) => !p.major));
 
 // Kinship (opinion's "Our kin", grudges, razing) reads the people's art theme, but an art sub-theme
 // is not a new kin group: the Mesopotamian look (I215) splits from the Levant only in its buildings,

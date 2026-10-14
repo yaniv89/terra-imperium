@@ -16,8 +16,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, BookOpen, ArrowRight, ArrowLeft, Shuffle, Check } from 'lucide-react';
 import { GAME_SPEEDS } from '../../data/ages';
 import { DIFFICULTIES } from '../../data/difficulty';
-import { PEOPLES, PEOPLES_LIST, PEOPLE_REGION_GROUPS } from '../../data/peoples';
-import { WORLD_SIZES, WORLD_SIZE_IDS, DEFAULT_WORLD_SIZE } from '../../data/worldSizes';
+import { PEOPLES, MAJOR_PEOPLES_LIST, PEOPLE_REGION_GROUPS } from '../../data/peoples';
+import { WORLD_SIZES, WORLD_SIZE_IDS, DEFAULT_WORLD_SIZE, CITY_STATE_DENSITIES, DEFAULT_CITY_STATES, START_MIN_GAP_KM, cityStateCount } from '../../data/worldSizes';
 import { TUTORIAL_NATION, TUTORIAL_WORLD_SIZE } from '../../engine/tutorial';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { PeopleEmblem, ThemeIcon, THEME_LABELS, startArt, regionIcon } from './peopleArt';
@@ -157,6 +157,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const twoCols = layout !== 'phone-portrait' && layout !== 'tablet-portrait';
   const [step, setStep] = useState(() => Math.max(0, Math.min(START_STEPS.length - 1, initialStep | 0)));
   const [worldSize, setWorldSize] = useState(DEFAULT_WORLD_SIZE);
+  const [cityStates, setCityStates] = useState(DEFAULT_CITY_STATES);
   const [search, setSearch] = useState('');
   const [region, setRegion] = useState('all');
   const [selectedId, setSelectedId] = useState(DEFAULT_PEOPLE_ID);
@@ -169,7 +170,8 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const generatedMap = mapSpec.kind === 'generated';
   const mapChoice = generatedWorldsEnabled() || generatedMap;
 
-  const peoples = useMemo(() => PEOPLES_LIST
+  // The picker lists the 50 major peoples (decision 42); the others are city-states.
+  const peoples = useMemo(() => MAJOR_PEOPLES_LIST
     .filter((p) => (region === 'all' || p.regionGroup === region) && matchPeople(p, search))
     .sort((a, b) => a.name.replace(/^The /, '').localeCompare(b.name.replace(/^The /, ''))), [region, search]);
   const selected = PEOPLES[selectedId];
@@ -178,11 +180,11 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const difficulty = DIFFICULTIES[difficultyId];
   const last = START_STEPS.length - 1;
 
-  const begin = useCallback(() => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, seed: newWorldSeed(), map: mapSpec }, exploredWorld }),
-    [onStart, selectedId, gameSpeed, difficultyId, worldSize, mapSpec, exploredWorld]);
+  const begin = useCallback(() => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, cityStates, seed: newWorldSeed(), map: mapSpec }, exploredWorld }),
+    [onStart, selectedId, gameSpeed, difficultyId, worldSize, cityStates, mapSpec, exploredWorld]);
   // The guided start teaches on the Nile: always the real Earth.
   const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed(), map: { kind: 'earth' } }, guided: true, exploredWorld });
-  const random = () => { const pool = peoples.length ? peoples : PEOPLES_LIST; setSelectedId(pool[Math.floor(Math.random() * pool.length)].id); };
+  const random = () => { const pool = peoples.length ? peoples : MAJOR_PEOPLES_LIST; setSelectedId(pool[Math.floor(Math.random() * pool.length)].id); };
 
   // Moving between steps puts the focus on the new step's heading (read out; Enter then goes on).
   const moved = useRef(false);
@@ -208,7 +210,8 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const backdrop = { backgroundImage: background ? `linear-gradient(rgba(16,20,26,0.84), rgba(16,20,26,0.94)), url(${background})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' };
   const fill = twoCols ? 'h-full min-h-0' : '';
   const scrollBox = 'min-h-0 overflow-y-auto overscroll-contain scrollbar-thin';
-  const choicesLine = `${size.name} world${generatedMap ? ' (generated)' : ''}, ${speed?.name} speed, ${difficulty?.name}${exploredWorld ? ', explored world' : ''}.`;
+  const csCount = cityStateCount(worldSize, cityStates);
+  const choicesLine = `${size.name} world${generatedMap ? ' (generated)' : ''}, ${CITY_STATE_DENSITIES[cityStates].name.toLowerCase()} city-states, ${speed?.name} speed, ${difficulty?.name}${exploredWorld ? ', explored world' : ''}.`;
 
   const peopleCard = selected && (
     <div className="fa-panel p-3 flex gap-3 shrink-0" data-testid="selected-people">
@@ -270,12 +273,26 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
 
   // Step 2: the world. Without the map choice, the world size alone as three wide cards.
   const sizeItems = WORLD_SIZE_IDS.map((id) => ({ ...WORLD_SIZES[id], art: startArt(`worldsize-${id}`), count: WORLD_SIZES[id].majors, countLabel: `${WORLD_SIZES[id].majors} peoples` }));
+  // City-states: Few / Normal / Many (decision 42). Beside the map when there is a map choice (it
+  // fits there on a phone), else under the world size.
+  const cityStatesBlock = (
+    <div className="flex flex-col gap-2">
+      <Label id="city-states-title" >City-states</Label>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="city-states-title">
+        {Object.values(CITY_STATE_DENSITIES).map((d) => (
+          <button key={d.id} type="button" aria-pressed={cityStates === d.id} title={d.blurb} onClick={() => setCityStates(d.id)} data-testid={`city-states-${d.id}`} className="fa-chip !min-h-[40px]">{d.name}</button>
+        ))}
+      </div>
+      <p className="text-[12px] text-fa-muted leading-snug" data-testid="city-states-line">Up to {csCount} one-city peoples, each {START_MIN_GAP_KM} km or more from every start. Trade, military, science and culture cities reward the people they favour; a third at most are raiders.</p>
+    </div>
+  );
   const sizeBlock = (
     <div className="flex flex-col gap-2">
       <Label id="world-size-title">World size</Label>
       <RadioCards label="World size" items={sizeItems} value={worldSize} onChange={setWorldSize} testIdPrefix="world-size"
         className={`grid gap-2 ${!mapChoice && twoCols ? 'grid-cols-3' : ''}`} />
       <p className="text-[12px] text-fa-muted leading-snug">Peoples alive at the start. Others rise later as free cities split away.</p>
+      {!mapChoice && cityStatesBlock}
     </div>
   );
   const worldStep = mapChoice ? (
@@ -283,6 +300,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
       <section className={`fa-panel p-2.5 ${scrollBox}`} aria-label="Map">
         <MapPicker value={mapSpec} onChange={setMapSpec} />
         <p className="text-[12px] text-fa-muted leading-snug mt-2">{generatedMap ? 'Each people starts on the site that suits its home climate.' : 'Each people starts at its real home.'}</p>
+        <div className="mt-3">{cityStatesBlock}</div>
       </section>
       <section className={`fa-panel p-2.5 ${scrollBox}`} aria-labelledby="world-size-title">{sizeBlock}</section>
     </div>
@@ -322,6 +340,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const summaryRows = [
     mapChoice && { key: 'map', label: 'Map', value: generatedMap ? 'Generated world' : 'Real Earth', to: 1 },
     { key: 'world', label: 'World size', value: `${size.name}: you and ${size.majors - 1} others`, to: 1 },
+    { key: 'cityStates', label: 'City-states', value: `${CITY_STATE_DENSITIES[cityStates].name}, up to ${csCount}`, to: 1 },
     { key: 'speed', label: 'Game speed', value: `${speed?.name}, about ${speed?.turns?.toLocaleString('en-US')} turns`, to: 2 },
     { key: 'difficulty', label: 'Difficulty', value: difficulty?.name, to: 2 },
     { key: 'explored', label: 'Explored world', value: exploredWorld ? 'On' : 'Off', to: 2 }
