@@ -14,7 +14,7 @@
 // build knows which exist, no request ever 404s, and the files still ship as separate hashed
 // assets, never inside the JavaScript bundle.)
 import React from 'react';
-import { Castle, Landmark, Crown, Palmtree, Wheat, Trees, Tent, Flower2, Gem, Columns, Flower, Waves, Sailboat, Mountain, Sun } from 'lucide-react';
+import { Castle, Landmark, Crown, Palmtree, Wheat, Trees, Tent, Flower2, Gem, Columns, Flower, Waves, Sailboat, Mountain, Sun, Layers } from 'lucide-react';
 
 const urls = (glob) => Object.fromEntries(Object.entries(glob).map(([path, url]) => [path.replace(/^.*\/([^/]+)\.[a-z]+$/, '$1'), url]));
 const START_ART = urls(import.meta.glob('../../assets/ui/start/*.webp', { query: '?url', import: 'default', eager: true }));
@@ -29,12 +29,12 @@ export const regionIcon = (id) => REGION_ICONS[id] || null;
 
 // Placeholder theme icons: one lucide glyph per theme.
 const THEME_GLYPHS = {
-  nile: Sun, levant: Landmark, israelite: Crown, maghreb: Palmtree, westafrica: Wheat, eastafrica: Trees,
+  nile: Sun, levant: Landmark, israelite: Crown, mesopotamia: Layers, maghreb: Palmtree, westafrica: Wheat, eastafrica: Trees,
   europe: Castle, steppe: Tent, indic: Flower2, sinic: Gem, korea: Columns, japan: Flower, monsoon: Waves,
   pacific: Sailboat, americas: Mountain
 };
 export const THEME_LABELS = {
-  nile: 'Nile', levant: 'Levant', israelite: 'Israelite', maghreb: 'Maghreb and Sahel', westafrica: 'West Africa',
+  nile: 'Nile', levant: 'Levant', israelite: 'Israelite', mesopotamia: 'Mesopotamia', maghreb: 'Maghreb and Sahel', westafrica: 'West Africa',
   eastafrica: 'East Africa', europe: 'Europe', steppe: 'Steppe', indic: 'South Asia', sinic: 'East Asia', korea: 'Korea',
   japan: 'Japan', monsoon: 'Monsoon', pacific: 'Pacific', americas: 'Americas'
 };

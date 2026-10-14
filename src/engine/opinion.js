@@ -27,12 +27,12 @@ import {
   WAR_ROLL_OPINION_CEILING, WAR_ROLL_OPINION_SPAN, CASUS_BELLI_OPINION, RAIDED_US, PAYS_US_TRIBUTE, MET_OUR_DEMAND,
   INDEP_FAVOUR_PER_POINT, INDEP_KIN, INDEP_CULTURE_SCALE, INDEP_GRUDGE_PER_POINT, TRADES_WITH_US, TRIBUTARY, RAZED_OUR_KIN
 } from '../data/opinion';
-import { PEOPLES } from '../data/peoples';
+import { kinThemeOf } from '../data/peoples';
 
 // Phase W3: what an independent `A` adds to its view of major `b` (independents 4.5 and 5): the
 // favour its gifts bought, kinship (the same art theme), b's culture in its city, trade, the
 // tribute it pays b, and its grudge against b.
-const themeOf = (n) => (n?.people ? PEOPLES[n.people]?.theme || null : null);
+const themeOf = (n) => (n?.people ? kinThemeOf(n.people) : null);
 const independentReasons = (state, A, b) => {
   const out = [];
   const B = state.nations[b];

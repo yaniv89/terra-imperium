@@ -23,14 +23,14 @@
 // writes into them).
 import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
-import { PEOPLES } from '../data/peoples';
+import { kinThemeOf } from '../data/peoples';
 import { LogTypes } from '../data/types';
 import { isIndependentNation, RAZE_SIZE_PER_TURN, GRUDGE_RAZE_KIN, RAZE_AI_MAX_SIZE, RAZE_AI_CROWD_KM } from '../data/independents';
 import { getCapital } from '../data/regions';
 import { addGrudge, kinOf } from './grudges';
 import { ringsAround, sizeToPeople } from './world/cities';
 
-const themeOfPeople = (id) => (id ? PEOPLES[id]?.theme || null : null);
+const themeOfPeople = (id) => kinThemeOf(id);
 /** The kin theme of a city: its founder's people (a people id or a nation with a `people`). */
 const cityTheme = (state, city) => themeOfPeople(state.nations?.[city.founderId]?.people || city.founderId);
 
