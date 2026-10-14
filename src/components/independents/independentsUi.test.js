@@ -22,10 +22,11 @@ const indeps = (p) => Object.values(base.nations).filter((n) => isIndependentNat
 const html = (el) => renderToStaticMarkup(el);
 
 describe('W4 independents UI', () => {
-  it('the placeholder shield is a dot in the personality colour, never a letter', () => {
+  it('the shield is the delivered personality art (not a letter)', () => {
     const out = html(React.createElement(ShieldMark, { personality: 'raiders' }));
     expect(out).toContain('data-shield="raiders"');
-    expect(out).toMatch(/<circle[^>]*fill="#c2410c"/);
+    // The art session's raiders shield (src/assets/icons/independents/) replaced the coloured dot.
+    expect(out).toMatch(/<img[^>]*src="[^"]+"/);
     expect(out).not.toMatch(/<text/);
   });
 
