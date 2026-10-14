@@ -8,7 +8,7 @@ import { assertGameState } from './stateAudit';
 import { getTiles } from '../data/geo/tiles';
 import { CENTRE_MIN_YIELDS, FOOD_PER_CITIZEN, MAX_SIZE } from './world/cities';
 import {
-  bestSites, makeSettler, outpostTurns, siteOutlook, settlingOutlook, setSettlerHold, disbandSettlers, settlersHomeCity,
+  bestSites, makeSettler, outpostTurns, outpostTurnsLeft, siteOutlook, settlingOutlook, setSettlerHold, disbandSettlers, settlersHomeCity,
   OUTPOST_DONE, OUTPOST_PROGRESS, OUTPOST_TERRAIN_FACTOR, MAX_SETTLE_RINGS
 } from './settlers';
 import { nextPrompts } from '../components/ui/nextPromptModel';
@@ -30,6 +30,15 @@ describe('what a site would be', () => {
     const slowest = Math.min(...Object.values(OUTPOST_TERRAIN_FACTOR));
     expect(turns).toBeLessThanOrEqual(Math.ceil(OUTPOST_DONE / ((OUTPOST_PROGRESS * slowest) / speedCostMult(s.gameSpeed, 'bronze'))));
     expect(outpostTurns({ ...s, gameSpeed: 'marathon' }, site.tile, 'bronze')).toBeGreaterThanOrEqual(turns);
+  }, 60000);
+
+  it('an outpost counts down the same turns the site card promised (the city panel, I054)', () => {
+    const { s, site } = game();
+    const turns = outpostTurns(s, site.tile, 'bronze');
+    const city = { tile: site.tile, outpost: { progress: 0 } };
+    expect(outpostTurnsLeft(s, city, 'bronze')).toBe(turns);
+    expect(outpostTurnsLeft(s, { ...city, outpost: { progress: OUTPOST_DONE - 0.1 } }, 'bronze')).toBe(1);
+    expect(outpostTurnsLeft(s, { tile: site.tile, outpost: null }, 'bronze')).toBeNull();
   }, 60000);
 
   it('the centre never yields less than the city rules give it, and the surplus is the centre plus the best tile minus one citizen', () => {

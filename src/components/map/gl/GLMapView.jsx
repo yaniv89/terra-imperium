@@ -54,7 +54,7 @@ import { onImageLoad } from './spriteArt';
 import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta } from './mapView';
 import { cleanLatLng, latLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS } from '../mapCamera';
 import {
-  citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites,
+  citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites, tileOutline,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
 } from './sceneModel';
 import { raidShapes } from './raidShapes';
@@ -63,6 +63,7 @@ import { settlerLines } from '../settleRoutes';
 import { raidMapModel } from '../../independents/raidMapModel';
 import { openIndependent } from '../../independents/independentEvents';
 import { planGlides, glideAt } from '../marchGlide';
+import { POINT_TILE } from '../marchEvents';
 
 const OCEAN_COLOR = '#0f172a';
 const ZOOM_MAX = 200;
@@ -75,6 +76,8 @@ const INITIAL_FOCUS_ZOOM = 5;
 const START_VIEW_KM = 650;
 // The close view's models are laid out over the screen plus this share of it on every side.
 const CLOSE_MARGIN = 0.35;
+// How long a tile pointed at from a sheet stays outlined (I042).
+const POINT_MS = 8000;
 const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const devicePixelRatio = () => Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -418,6 +421,32 @@ const GLMapView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [insets.left, insets.right, insets.top, insets.bottom]);
 
+  // What a march aims at is never left under its bar (playtest audit I083): once the bar shows the
+  // plan, a target under it (or just below it) is panned down into the free map, the zoom kept.
+  const marchTarget = marchCtx?.march && !marchCtx.march.dragging ? marchCtx.march.target ?? null : null;
+  useEffect(() => {
+    if (marchTarget == null || !hudOffset || !projection) return undefined;
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(() => {
+        const el = containerRef.current; const v = view();
+        const bar = document.querySelector('[data-testid="march-bar"]');
+        if (!el || !v || !bar || !zoomBehaviorRef.current) return;
+        const ll = typeof marchTarget === 'number'
+          ? (() => { const p = getTiles().latLonOf(marchTarget); return p ? { lat: p.lat, lng: p.lon } : null; })()
+          : latLngOfCity(gameStateRef.current, marchTarget);
+        const w = ll && projection([ll.lng, ll.lat]);
+        if (!w) return;
+        const [sx, sy] = worldToScreen(v, w[0], w[1]);
+        const box = el.getBoundingClientRect(); const b = bar.getBoundingClientRect();
+        const left = b.left - box.left - 24; const right = b.right - box.left + 24; const bottom = b.bottom - box.top + 28;
+        if (sx < left || sx > right || sy > bottom || sy < -40) return;
+        const dy = bottom + 24 - sy;
+        select(el).transition().duration(300).call(zoomBehaviorRef.current.translateBy, 0, dy / transformRef.current.k);
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [marchTarget, hudOffset, projection, view]);
+
   // The minimap's "you are here" box, once the view settles.
   useEffect(() => {
     if (!onViewportChange || !projection) return;
@@ -513,6 +542,16 @@ const GLMapView = ({
   const settlerRoads = useMemo(() => settlerLines(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [gameState.units, gameState.world?.tileOwner, gameState.wars, gameState.playerNationId]);
+  // A tile pointed at from a sheet (a build row: I042), outlined until another tap or POINT_MS.
+  const [pointTile, setPointTile] = useState(null);
+  useEffect(() => {
+    let timer = 0;
+    const on = (e) => { clearTimeout(timer); const t = e.detail; setPointTile(t ?? null); if (t != null) timer = setTimeout(() => setPointTile(null), POINT_MS); };
+    window.addEventListener(POINT_TILE, on);
+    return () => { clearTimeout(timer); window.removeEventListener(POINT_TILE, on); };
+  }, []);
+  useEffect(() => { if (selectedTile != null) setPointTile(null); }, [selectedTile]);
+  const pointLines = useMemo(() => (projection && pointTile != null ? tileOutline({ projection, tile: pointTile }) : []), [projection, pointTile]);
   const march = useMemo(() => (projection ? marchShapes({ marchLines: [...(marchLines || []), ...settlerRoads], projection, k, selectedArmy, dpr }) : null), [marchLines, settlerRoads, projection, k, selectedArmy, dpr]);
   // The independents' raid parties, warnings, sieges and fires in sight (phase W4).
   const raidModel = useMemo(() => raidMapModel(gameState),
@@ -618,10 +657,10 @@ const GLMapView = ({
     g.markerPlaced = placed.markers;
     g.markerLayer.set(placed.markers); // (a glide under way moves them on its next frame)
     g.lowLines.set([...landOut.lines, ...(lensOut?.lines || [])]);
-    g.marchLines.set([...march.lines, ...raids.lines]);
+    g.marchLines.set([...march.lines, ...raids.lines, ...pointLines]);
     g.hits = [...raids.hits, ...settlers.hits, ...cities.hits, ...markerOut.hits];
     g.request();
-  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k, hudToScreen, hudRects, hudTick]);
+  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k, hudToScreen, hudRects, hudTick, pointLines]);
 
   // ---------------------------------------------------------------- the close view
   const [land, setLand] = useState(null);

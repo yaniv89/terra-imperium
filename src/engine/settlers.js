@@ -228,6 +228,14 @@ export const outpostTurns = (state, tile, ageId) => {
   return Math.max(1, Math.ceil(OUTPOST_DONE / perTurn));
 };
 
+/** Turns an outpost `city` still needs to become a city (the same progress a turn as above), or
+ * null when it is no outpost. The city panel says it the way the site card did (I054). */
+export const outpostTurnsLeft = (state, city, ageId) => {
+  if (!city?.outpost || city.tile == null) return null;
+  const perTurn = (OUTPOST_PROGRESS * terrainFactor(getTiles(), city.tile)) / speedCostMult(state.gameSpeed, ageId);
+  return Math.max(1, Math.ceil((OUTPOST_DONE - (city.outpost.progress || 0)) / perTurn));
+};
+
 /** The city `tile` would be at size 1 for `nationId` (see the header): { centre, best, foodSurplus, production, warnings }. */
 export const siteOutlook = (state, tile, nationId = state.playerNationId) => {
   const tiles = getTiles();

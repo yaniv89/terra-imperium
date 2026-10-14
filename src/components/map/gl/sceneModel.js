@@ -301,6 +301,32 @@ export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
   return { sprites, hits };
 };
 
+// ------------------------------------------------------------------ a tile pointed at
+/**
+ * The outline of one tile (a build row's tile, playtest audit I042): a dark under-stroke and an
+ * amber line round the hex, the same width on screen at every zoom; the corners taken the short
+ * way round where the tile crosses the date line.
+ */
+export const tileOutline = ({ projection, tile, color = '#fbbf24', half = 1.6 }) => {
+  if (tile == null || tile < 0) return [];
+  const corners = getTiles().polygonOf(tile);
+  const pts = [];
+  const w = projection.scale() * Math.PI; // half the world's width
+  corners.forEach((c) => {
+    const p = projection([c.lon, c.lat]);
+    if (!p) return;
+    const prev = pts[pts.length - 1];
+    pts.push([prev && p[0] - prev[0] > w ? p[0] - 2 * w : prev && p[0] - prev[0] < -w ? p[0] + 2 * w : p[0], p[1]]);
+  });
+  if (pts.length < 3) return [];
+  const rgb = cssColor(color);
+  const ring = pts.map((a, i) => [a, pts[(i + 1) % pts.length]]);
+  return [
+    ...ring.map(([a, b]) => ({ a, b, half: half + 1.2, exp: 0, color: [15 / 255, 23 / 255, 42 / 255, 0.6] })),
+    ...ring.map(([a, b]) => ({ a, b, half, exp: 0, color: [rgb[0], rgb[1], rgb[2], 1] }))
+  ];
+};
+
 // ------------------------------------------------------------------ march routes
 /** Half the width of a march line, CSS px, at every zoom. */
 export const MARCH_LINE_PX = 1.3;
