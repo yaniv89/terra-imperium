@@ -859,16 +859,18 @@ def self_bow(grip, length, prop='Prop_L', mat='Wood', string='Cloth', tips='Horn
     return top, bottom
 
 
-def hip_sword(name='Sword', side='L', mat='Metal', scabbard='Leather', grip='Leather', length=.42, tip=None):
+def hip_sword(name='Sword', side='L', mat='Metal', scabbard='Leather', grip='Leather', length=.42, tip=None, hilt=True):
     """A sword in its scabbard at the hip, hanging back from the belt (Hips): the cross guard and
     the pommel stand up in front of the hip. `tip`: the scabbard's end (the left side's; a rider's
-    sword slants back along the horse's flank)."""
+    sword slants back along the horse's flank). hilt=False: the scabbard only (the blade is drawn)."""
     s = 1 if side == 'L' else -1
     top, mid, low = Vector((s * .112, -.040, .538)), Vector((s * .128, .000, .420)), Vector((s * .140, .040, .538 - length))
     if tip:
         low = Vector((s * tip[0], tip[1], tip[2]))
         mid = top.lerp(low, .45) + Vector((s * .008, 0, 0))
     tube(name + 'Scabbard', [(tuple(top), (.016, .010), 'Hips'), (tuple(mid), (.016, .010), 'Hips'), (tuple(low), (.010, .007), 'Hips')], scabbard, 4)
+    if not hilt:
+        return
     ax = (top - mid).normalized()
     box(name + 'Guard', tuple(top + ax * .008), (.016, .080, .012), mat, 'Hips')
     tube(name + 'Grip', [(tuple(top + ax * .012), .010, 'Hips'), (tuple(top + ax * .082), .009, 'Hips')], grip, 5, caps=(False, False))
@@ -896,7 +898,7 @@ def sweep(name, rows, mat, bone='Head', closed=True, attachment=False):
     return raw(name, verts, faces, mat, bone, attachment)
 
 
-def tricorne(name='Tricorne', mat='Felt', lace='Cloth', cockade='Team', brim=.130, inner=.084, wall=.046, base=.950, top=1.028, sides=18):
+def tricorne(name='Tricorne', mat='Felt', lace='Cloth', cockade='Team', brim=.130, inner=.084, wall=.046, base=.950, top=1.028, sides=18, crown_sides=10):
     """The cocked hat of the line: a low round crown and a broad brim turned up into three walls,
     the points at the front and at the two back corners, the walls highest mid-side, a pale lace
     edging along their tops and a cockade (`cockade`; Head: Team draws) on the left front wall."""
@@ -920,7 +922,7 @@ def tricorne(name='Tricorne', mat='Felt', lace='Cloth', cockade='Team', brim=.13
     sweep(name + 'Brim', rows, mat)
     sweep(name + 'Lace', edge, lace, closed=False)
     facing[prefix + name + 'Lace'] = (0, 0, 1)
-    lathe(name + 'Crown', [(0, top), (.040, top - .004), (.061, top - .020), (.069, base + .030), (.071, base + .004), (0, base + .004)], mat, sides=10)
+    lathe(name + 'Crown', [(0, top), (.040, top - .004), (.061, top - .020), (.069, base + .030), (.071, base + .004), (0, base + .004)], mat, sides=crown_sides)
     if cockade:
         a, R, _ = plan(sides // 6 - 1)
         n = Vector((math.sin(a), -math.cos(a), 0))
@@ -928,11 +930,19 @@ def tricorne(name='Tricorne', mat='Felt', lace='Cloth', cockade='Team', brim=.13
         tube(name + 'Cockade', [(tuple(p - n * .004), .017, 'Head'), (tuple(p + n * .006), .017, 'Head')], cockade, 6)
 
 
-def round_hat(name='RoundHat', mat='Felt', band='Team', brim=.122, crown=1.052, up=0., sides=12):
+def round_hat(name='RoundHat', mat='Felt', band='Team', brim=.122, crown=1.052, up=0., sides=12, droop=0.):
     """A round felt hat: a low crown with a flat top, a broad brim, a band (Head: Team draws).
-    `up`: the left side of the brim hooked up against the crown by that much."""
+    `up`: the left side of the brim hooked up against the crown by that much. `droop`: the front
+    of the brim pulled down over the eyes by that much and the back turned up a little (a slouch hat)."""
     ob = lathe(name, [(0, crown), (.056, crown - .002), (.065, crown - .014), (.068, .968), (.071, .956), (brim, .950), (brim + .004, .942),
                       (.071, .946), (0, .950)], mat, sides=sides)
+    if droop:
+        for v in ob.data.vertices:
+            r = math.hypot(v.co.x, v.co.y + .003)
+            if r > .075:
+                k = (r - .071) / (brim - .071)
+                c = -(v.co.y + .003) / r  # 1 at the front, -1 at the back
+                v.co.z -= droop * k * (c if c > 0 else c * .5)
     if up:
         for v in ob.data.vertices:
             r = math.hypot(v.co.x, v.co.y + .003)
@@ -1771,3 +1781,145 @@ def heater_shield(centre, w, h, prop='Prop_L', face='Emblem', back='Wood', rim='
     tube(name + 'Grip', [((cx - .055, cy + .020, cz + .02), .010, prop), ((cx, cy + .038, cz + .02), .011, prop), ((cx + .055, cy + .020, cz + .02), .010, prop)],
          grip, 4, attachment=True)
     return prefix + name + 'Face', prefix + name + 'Back'
+
+
+# ---- Gunpowder mounted parts (2026-10-14, build_gunpowder_cavalry/general/raider.py) -----------------
+# What tells the horseman of about 1750 from the Kingdoms knight: no armour but a Team coat whose tails
+# lie over the saddle's cantle, buff breeches and tall black jackboots over the knee, a brass dragoon
+# helmet with a black horsehair crest (or a bicorne worn athwart for the general, a slouch hat for the
+# raider), a sabre held upright, a carbine; on the horse a shabraque with a lace border and pistol
+# holsters (ti_mounts.shabraque, holsters).
+
+def jackboots(mat='Boot', top=.330, bucket=.060):
+    """Tall stiff riding boots from the shoe to over the knee, the top flared into a bucket (over
+    legs(boots=...); they hide the ankle boot tubes, which are dropped)."""
+    drop('Boot_L', 'Boot_R')
+    for side, s in (('L', 1), ('R', -1)):
+        L, S, F_ = 'Leg_' + side, 'Shin_' + side, 'Foot_' + side
+        tube('Jackboot_' + side, [((s * .074, .006, .022), (.036, .045), F_), ((s * .074, .004, .075), (.034, .036), {S: .5, F_: .5}),
+                                  ((s * .073, .004, .200), (.046, .047), S), ((s * .071, -.012, .256), (.043, .046), {L: .4, S: .6}),
+                                  ((s * .070, -.016, top - .030), (.050, .052), L), ((s * .070, -.020, top), (bucket, bucket), L)], mat, 7, caps=(False, False))
+
+
+def seated_coat_tails(name='CoatTail', mat='Team', lining='Cloth', thick=.008, low=.430):
+    """The tails of a rider's long coat: two flaps from the waist at the back that fall over the
+    saddle's cantle onto the horse's back (Spine: the battle dyes them), each turned back at its inner
+    edge to show the light lining (a narrow strip on top of the flap). Points in the figure's own
+    space; build them before astride() (the Spine does not move)."""
+    for s in (-1, 1):
+        def at(x, y, z):
+            return (s * x, y, z)
+        grid = [[at(.010, .080, .556), at(.058, .078, .556), at(.098, .064, .552)],
+                [at(.012, .126, .500), at(.068, .122, .494), at(.118, .102, .474)],
+                [at(.016, .188, low + .018), at(.078, .184, low + .010), at(.134, .160, low - .018)],
+                [at(.018, .248, low + .002), at(.082, .244, low - .006), at(.140, .214, low - .036)]]
+        shell(f'{name}_{s}', grid, thick, mat, 'Spine')
+        lin = [[at(.010, .085, .559), at(.034, .084, .559)], [at(.012, .131, .504), at(.040, .129, .502)], [at(.016, .193, low + .022), at(.046, .191, low + .019)],
+               [at(.018, .253, low + .006), at(.050, .251, low + .003)]]
+        shell(f'{name}Lining_{s}', lin, .004, lining, 'Spine')
+
+
+def dragoon_helmet(name='DragoonHelmet', mat='Brass', peak='Felt', crest='Crest', turban='Team', sides=10):
+    """The dragoon's brass helmet: a rounded skull, a black leather peak at the front, a brass comb
+    from the brow over the top to the nape carrying a black horsehair crest that streams back and down
+    the neck, a Team turban (a cloth band) round its base (Head: the battle dyes it)."""
+    lathe(name, [(0, 1.050), (.034, 1.046), (.058, 1.026), (.070, .994), (.074, .962), (.075, .944), (0, .944)], mat, sides=sides)
+    if turban:
+        ob = tube(name + 'Turban', vertical([.938, .956, .976], -.003, [(.078, .075), (.081, .078), (.076, .073)], 'Head'), turban, sides, caps=(False, False))
+        for j in range(0, sides, 2):  # the twist of the cloth: every second point of the middle ring proud
+            v = ob.data.vertices[sides + j].co
+            v.x, v.y = v.x * 1.05, (v.y + .003) * 1.05 - .003
+    sheet(name + 'Peak', (-.062, -.060, .948), (.062, -.060, .948), (.050, -.104, .943), (-.050, -.104, .943), .006, peak, 'Head')
+    ridge(name + 'Comb', [(-.074, .962, .990), (-.050, 1.030, 1.070), (-.005, 1.050, 1.100), (.045, 1.032, 1.080), (.075, .990, 1.030)], mat, half=(.008, .010))
+    ridge(name + 'Crest', [(-.050, 1.064, 1.084), (-.005, 1.082, 1.122), (.045, 1.072, 1.110), (.088, 1.020, 1.060), (.120, .930, .968),
+                           (.140, .820, .860), (.146, .740, .760)], crest, half=(.012, .020))
+
+
+def bicorne(name='Bicorne', mat='Felt', lace='Gilt', cockade='Team', plume='Cloth', span=.172, height=.118, base=.948, sides=11):
+    """The general's cocked hat worn athwart: two high half-moon walls, front and back, meeting at the
+    points over the shoulders, the gilt lace along the top edge, a cockade (Team: Head draws) with a
+    gilt loop on the front wall and a white feather fringe along the top."""
+    rows, top = [], []
+    for k in range(sides):
+        t = -1 + 2 * k / (sides - 1)
+        c = math.sqrt(max(0, 1 - t * t))
+        d = .072 * c ** .6 + .010  # the half depth at the brim
+        z1 = base + .022 + height * c ** 1.3
+        x = t * span
+        rows.append([(x, -.003 - d, base - .004 * c), (x, -.003 - d * .18, z1), (x, -.003 + d * .18, z1), (x, -.003 + d, base - .004 * c)])
+        top.append((x, -.003, z1 + .002))
+    sweep(name, rows, mat, closed=False)
+    tube(name + 'Lace', [(p, .0070, 'Head') for p in top[1:-1]], lace, 3)
+    if plume:
+        tube(name + 'Plume', [((p[0], p[1], p[2] + .010), .011, 'Head') for p in top[2:-2]], plume, 4)
+    if cockade:  # on the front wall, to the wearer's left, a little under half way up
+        x, f = .056, .42
+        c = math.sqrt(1 - (x / span) ** 2)
+        d = .072 * c ** .6 + .010
+        z = base + (.022 + height * c ** 1.3) * f
+        y = -.003 - d * (1 - .82 * f) - .004
+        tube(name + 'Cockade', [((x, y + .008, z), .024, 'Head'), ((x, y - .003, z), .024, 'Head')], cockade, 6)
+        box(name + 'Loop', (x, y - .004, z + .026), (.010, .006, .036), lace, 'Head')
+
+
+def epaulettes(mat='Gilt', fringe=True):
+    """A gilt epaulette on each shoulder: a strap from the collar out to a round pad over the shoulder
+    point, a short fringe hanging from the pad (Chest)."""
+    for side, s in (('L', 1), ('R', -1)):
+        sh = arm.data.bones['Arm_' + side].head_local
+        x, z = sh.x, sh.z + .040
+        tube('Epaulette_' + side, [((s * .045, -.004, z - .004), (.012, .018), 'Chest'), ((x - s * .020, 0, z), (.014, .026), 'Chest'),
+                                   ((x + s * .012, 0, z - .004), (.020, .036), 'Chest')], mat, 6)
+        if fringe:
+            tube('EpauletteFringe_' + side, [((x + s * .006, 0, z - .006), (.036, .040), 'Chest'), ((x + s * .016, 0, z - .040), (.040, .044), 'Chest')], mat, 8, caps=(False, False))
+
+
+def upright_sabre(grip, length=.48, curve=.022, prop='Prop_R', mat='Metal', guard='Brass', grip_mat='Leather', name='Sabre'):
+    """A sabre held upright in the fist at `grip`: the grip through the fist, a stirrup guard round
+    the knuckles at the front (-Y), a slightly curved blade up from it, its edge to the front and its
+    back curving back (+Y); thin and upright, so the far detail level keeps it. Parts <name>Grip,
+    <name>Guard, <name>Blade."""
+    x, y, z = grip.x, grip.y, grip.z
+    tube(name + 'Grip', [((x, y, z - .040), .010, prop), ((x, y, z + .045), .011, prop)], grip_mat, 5, attachment=True)
+    tube(name + 'Guard', [((x, y + .004, z - .046), .006, prop), ((x, y - .032, z - .030), .006, prop), ((x, y - .036, z + .020), .006, prop),
+                          ((x, y - .010, z + .052), .007, prop), ((x, y + .010, z + .054), .008, prop)], guard, 4, attachment=True)
+    rings = []
+    for k in range(6):
+        t = k / 5
+        rings.append(((x, y + curve * t * t, z + .055 + length * t), (.0040 * (1 - .5 * t) + .0008, .017 * (1 - .65 * t) + .0015), prop))
+    return tube(name + 'Blade', rings, mat, 4, attachment=True)
+
+
+def standard(name, grip, top, w, h, prop='Prop_R', pole='Wood', finial='Gilt', flag='Emblem', tassel='Gilt', notch=0., low=.040, hoist='Gilt'):
+    """A colour or banner on a pole upright through the fist at `grip`, from `low` to `top`: a finial
+    with a spear point, a flag `w` wide and `h` deep flying out to the +X side from just under the
+    finial (both faces `flag`, the squad's Emblem, UVs across its own box; `notch`: a swallow tail,
+    else a square colour gently waved), a hoist sleeve and tassels. Parts <name>Pole, <name>Finial,
+    <name>Emblem, <name>Hoist, <name>Tassel*. The pole is upright and thin, so the far detail level
+    keeps it."""
+    g = Vector(grip)
+    tube(name + 'Pole', [((g.x, g.y, low), .012, prop), ((g.x, g.y, top), .010, prop)], pole, 5, attachment=True)
+    tube(name + 'Finial', [((g.x, g.y, top - .005), .014, prop), ((g.x, g.y, top + .030), (.009, .024), prop), ((g.x, g.y, top + .100), .001, prop)],
+         finial, 4, attachment=True)
+    x0, x1, z1, y = g.x + .010, g.x + .010 + w, top - .030, g.y
+    z0 = z1 - h
+    if notch:
+        fv = [(x0, y, z1), (x1, y, z1 - .010), (x1 - notch, y, (z0 + z1) / 2), (x1, y, z0 + .010), (x0, y, z0)]
+        ff = [(0, 4, 2), (0, 2, 1), (4, 3, 2), (0, 1, 2), (0, 2, 4), (4, 2, 3)]
+    else:
+        xm = (x0 + x1) / 2
+        fv = [(x0, y, z1), (xm, y + .022, z1 - .006), (x1, y, z1 - .012), (x1, y, z0 - .004), (xm, y + .022, z0 - .006), (x0, y, z0)]
+        ff = [(0, 5, 4), (0, 4, 1), (1, 4, 3), (1, 3, 2), (0, 4, 5), (0, 1, 4), (1, 3, 4), (1, 2, 3)]
+    ob = raw(name + 'Emblem', fv, ff, flag, prop, True)
+    loose.add(ob.name)
+    uv = ob.data.uv_layers.active
+    for poly in ob.data.polygons:
+        for li in poly.loop_indices:
+            co = ob.data.vertices[ob.data.loops[li].vertex_index].co
+            uv.data[li].uv = ((co.x - x0) / (x1 - x0), (co.z - z0) / (z1 - z0))
+    box(name + 'Hoist', (g.x + .006, y, (z0 + z1) / 2), (.016, .016, z1 - z0 + .01), hoist, prop, True)
+    ends = [(x1, z1 - .010), (x1, z0 + .010)] if notch else [(g.x + .012, z1 - .006)]
+    for k, (xx, zz) in enumerate(ends):
+        tube(f'{name}Tassel{k}', [((xx - .004, y, zz), .005, prop), ((xx + .010, y, zz - .045), .004, prop), ((xx + .014, y, zz - .070), .013, prop)],
+             tassel, 4, attachment=True)
+    return ob

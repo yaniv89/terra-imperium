@@ -80,6 +80,16 @@ Starts the sandbox (kingdoms, mixed, the defaults), fights 12 s at 3x, pauses, c
 and saves one jpg per size and zoom with the detail level picked (TIER forces one; `URL=...&age=bronze`
 for another age). Look at every level at the user's zoom: troops must read as soldiers and riders.
 
+One unit model up close at five zooms (a production build served by `npx vite preview`; add
+`EXTRA=perf` or the build hides `window.__battleRenderer`):
+```bash
+AGE=gunpowder CLASS=cavalry ARMY=cavalry EXTRA=perf node .claude/skills/battle-lab/unit-closeup.mjs http://localhost:5216/terra-imperium/ <outDir> cav
+```
+For cavalry shots pass `ARMY=cavalry`: the default `small` army has no cavalry squad, so the shot
+centres on stand-in procedural horsemen, not the age's model. `LAYER=general` centres on the general,
+`PARAMS='raid=raid&spectate'` shows the raiders, `ARMY=siege CLASS=siege` the machines, `TIER=1|2`
+forces a detail level.
+
 ## 4. Scale: ms per tick at 300 / 500 / 1,000 squads a side
 ```bash
 node scripts/battle-bench.mjs                       # this checkout
