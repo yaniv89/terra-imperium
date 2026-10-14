@@ -4,6 +4,8 @@ import { getNationCapital, getNeighborIds } from '../data/regions';
 import { buildingOrder, BUILDING_PRIORITY, chooseProduction } from './aiProduction';
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_IDS } from '../data/nations';
 import { BUILDING_CATEGORIES } from '../data/buildings';
+import { getTiles } from '../data/geo/tiles';
+import { RESOURCES_ON_TILES, tileFacts, canImprove } from '../data/tileYields';
 
 describe('AI building templates (the doctrine order)', () => {
   it('every doctrine orders every line once, its own preferences first', () => {
@@ -55,5 +57,38 @@ describe('AI production by utility (plans/math/ai.md)', () => {
     const war = { ...s0, wars: [{ id: 'w', active: true, aggressor: 'it', enemy: 'de' }] };
     expect(chooseProduction(war, city, ctx(war, 0))).toMatchObject({ kind: 'unit' });
     expect(chooseProduction(s0, city, ctx(s0, 0)).kind).toBe('building');
+  });
+});
+
+describe('AI resource improvements (lane W6)', () => {
+  it('a city builds the improvement its resource needs, worked tiles first, and not twice', () => {
+    const tiles = getTiles();
+    const s = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
+    // A city of an AI nation with a resource tile on its land whose improvement needs no technology.
+    let found = null;
+    for (const c of Object.values(s.regions)) {
+      if (!c.owner || c.owner === 'fr' || !c.tiles?.length) continue;
+      const t = c.tiles.find((x) => { const r = RESOURCES_ON_TILES[tiles.resourceOf(x)]; return r && x !== c.tile && canImprove(tileFacts(tiles, x, {}), r.improvement, []); });
+      if (t != null) { found = { c, t }; break; }
+    }
+    expect(found).not.toBe(null);
+    const { c, t } = found;
+    const imp = RESOURCES_ON_TILES[tiles.resourceOf(t)].improvement;
+    const city = { ...c, worked: [t], lastYields: { production: 6, food: 2 }, production: { current: null, queue: [], progress: 0 } };
+    const st = { ...s, world: { ...s.world, tileState: {} }, regions: { ...s.regions, [c.id]: city } };
+    const ctx = { researched: [], ageId: 'bronze', citiesOwned: 1, turnNumber: 2, units: st.units, counts: { settlers: 1, outposts: 0, landUnits: 9 } };
+    expect(chooseProduction(st, city, ctx)).toEqual({ kind: 'improvement', improvement: imp, tile: t });
+    const built = { ...st, world: { ...st.world, tileState: { [t]: { improvement: imp } } } };
+    expect(chooseProduction(built, city, ctx)).not.toMatchObject({ kind: 'improvement', tile: t });
+  });
+});
+
+describe('a restless city wants Culture & Order (lane W6)', () => {
+  it('the need rises with unrest up to UNREST_NEED', async () => {
+    const { lineNeed, UNREST_NEED, UNREST_NEED_AT } = await import('./aiProduction');
+    const sit = { atWar: false, arming: false, broke: false, threatened: false };
+    expect(lineNeed('culture', { unrest: 0 }, sit)).toBe(1);
+    expect(lineNeed('culture', { unrest: UNREST_NEED_AT / 2 }, sit)).toBeCloseTo(1 + (UNREST_NEED - 1) / 2, 6);
+    expect(lineNeed('culture', { unrest: 90 }, sit)).toBe(UNREST_NEED);
   });
 });

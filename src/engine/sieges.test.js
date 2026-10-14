@@ -9,7 +9,7 @@ import { getTiles } from '../data/geo/tiles';
 import { assertGameState } from './stateAudit';
 import { allocateTiles, cityYields, SIEGE_YIELD_MULT } from './world/cities';
 import {
-  wallsOf, siegeMaxHp, besiegersOf, siegeStrength, isEncircled, processSieges,
+  wallsOf, siegeMaxHp, besiegersOf, besiegesCity, siegeStrength, isEncircled, processSieges,
   SIEGE_HP_BASE, SIEGE_STRENGTH_OTHER, SIEGE_STRENGTH_SIEGE, WALL_REGEN, ENCIRCLE_MULT, SIEGE_HEAL
 } from './sieges';
 
@@ -130,4 +130,14 @@ describe('a siege', () => {
     expect(s.logs.some((l) => /A siege never takes a city/.test(l.message))).toBe(true);
     assertGameState(s);
   }, 60000);
+});
+
+describe('a campaign siege force on an independent (I125)', () => {
+  it('besieges the city of the independent it is tagged for, by the nation id the campaign stores', () => {
+    const state = { turnNumber: 5, wars: [], nations: { ind: { id: 'ind', kind: 'independent', indep: {} }, maj: { id: 'maj' } } };
+    const city = { id: 'city_42', owner: 'ind', tile: 1 };
+    expect(besiegesCity(state, { ownerId: 'maj', indepOp: 'ind' }, city)).toBe(true);
+    expect(besiegesCity(state, { ownerId: 'maj', indepOp: 'other' }, city)).toBe(false);
+    expect(besiegesCity(state, { ownerId: 'maj' }, city)).toBe(false);
+  });
 });

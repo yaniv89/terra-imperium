@@ -162,3 +162,22 @@ describe('standing works and growth follow age, speed and level (I021)', () => {
     expect(growthCosts(s, { ...s.regions[id], size: 8 }).gold).toBeGreaterThan(growthCosts(s, { ...s.regions[id], size: 1 }).gold);
   });
 });
+
+describe('a rich AI treasury buys in more than one city a think (I017, lane W6)', () => {
+  it('rushes up to AI_MAX_RUSHES_PER_THINK cities while the gold stays over AI_EXTRA_RUSH_GOLD', async () => {
+    const { addCities } = await import('./testWorld');
+    const { processAIEconomyTurn, AI_MAX_RUSHES_PER_THINK } = await import('./aiEconomy');
+    const base = fresh(7);
+    const { state, cityIds } = addCities(base, 'de', 3, { loose: true });
+    const ids = [state.nations.de.capitalRegionId, ...cityIds];
+    const regions = { ...state.regions };
+    ids.forEach((id) => { regions[id] = { ...regions[id], size: 4, lastYields: { production: 2 }, production: { current: { kind: 'building', category: 'economy', tier: 0 }, queue: [], progress: 0 } }; });
+    const nations = { ...state.nations, de: { ...state.nations.de, isAtWar: false, stability: 1, economy: { ...state.nations.de.economy, gold: 100000, adm: 0, dip: 0, mil: 0 } } };
+    const s = { ...state, regions, nations };
+    const work = { ...s.regions };
+    processAIEconomyTurn(s, work, 'de');
+    const rushed = ids.filter((id) => work[id].rush);
+    expect(rushed.length).toBeGreaterThan(1);
+    expect(rushed.length).toBeLessThanOrEqual(AI_MAX_RUSHES_PER_THINK);
+  });
+});
