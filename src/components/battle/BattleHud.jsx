@@ -1,7 +1,7 @@
 // src/components/battle/BattleHud.jsx
 // The commanded battle's HUD in the Field Atlas look (plans/UI-DESIGN.md B01, B05, B06; Tactical
 // Battles plan 11.1), phone first (844x390), the battlefield owns the screen:
-//   top bar      the battle's name and clock, food, materials, gold and population / housing (or
+//   top bar      the battle's name and clock, food, wood, stone, gold and population / housing (or
 //                Battle Supply without an economy), the enemy squads left, speed and pause
 //   bottom left  small buttons only (B10): All (selects the army, the camera stays: I188), Find (the
 //                camera to the selection or the army), Base (the camp), Idle n (a laborer)
@@ -21,7 +21,8 @@
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords, LocateFixed } from 'lucide-react';
-import { ResIcon } from './EconomyHud';
+import { ResIcon, RES_NAME, HammerButton } from './EconomyHud';
+import { RESOURCES } from '../../battle/data/economy';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
@@ -140,7 +141,7 @@ const BattleHud = ({
         <div className="flex-1 min-w-0 flex items-center gap-3 overflow-x-auto scrollbar-none" data-testid="battle-resources">
           {eco ? (
             <>
-              <Res icon={<ResIcon res="food" size={18} />} label="Food" value={eco.stock[0]} /><Res icon={<ResIcon res="materials" size={18} />} label="Materials" value={eco.stock[1]} /><Res icon={<ResIcon res="gold" size={18} />} label="Gold" value={eco.stock[2]} />
+              {RESOURCES.map((r, i) => <Res key={r} icon={<ResIcon res={r} size={18} />} label={RES_NAME[r]} value={eco.stock[i]} testId={`battle-stock-${r}`} />)}
               <Res icon={<ResIcon res="population" size={18} />} label="Population / housing" value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />
             </>
           ) : <Res icon={<ResIcon res="supply" size={18} />} label="Battle supply" value={Math.floor(supply)} />}
@@ -190,7 +191,7 @@ const BattleHud = ({
           )}
           {/* The base rule (sim/base.js): what is left to burn on each side. */}
           {base && (
-            <div className="pointer-events-auto fa-chip !bg-fa-panel/95 !min-h-[24px] !py-0.5 gap-1 text-[10.5px] max-w-full" title="Base buildings standing: the camp or keep, economy and military buildings. Houses, walls and towers do not count. A side loses when its last one falls." data-testid="battle-base">
+            <div className="pointer-events-auto fa-chip !bg-fa-panel/95 !min-h-[24px] !py-0.5 gap-1 text-[10.5px] max-w-full" title="Base buildings standing: the camp or keep, economy and military buildings (a tower your laborers build counts). Houses and the city's walls, gates and wall towers do not. A side loses when its last one falls." data-testid="battle-base">
               <Flag className="w-3 h-3 shrink-0" aria-hidden="true" />
               <span className="whitespace-nowrap">Base <span className="fa-num text-fa-you">{base[0]}</span> vs <span className="fa-num text-fa-enemy">{base[1]}</span></span>
               {marching.length > 0 && <span className="whitespace-nowrap text-fa-you">, {marching.length} arriving</span>}
@@ -307,7 +308,7 @@ const BattleHud = ({
               <div className="flex gap-1 max-w-full overflow-x-auto scrollbar-none [&>*:first-child]:ml-auto" data-testid="battle-commands">
                 {armyCtx ? (
                   <>
-                    {context === 'mixed' && eco && <Cmd icon={Hammer} label="Build" onClick={onOpenBuild} active={buildOpen} testId="battle-build" />}
+                    {context === 'mixed' && eco && <HammerButton onClick={onOpenBuild} active={buildOpen} />}
                     <Cmd icon={Crosshair} label="Attack" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} testId="battle-attack-move" />
                     <Cmd icon={Hand} label="Hold" onClick={() => onCommand('hold')} testId="battle-hold" />
                     <Cmd icon={formation === 'line' ? Rows : Columns} label={formation === 'line' ? 'Line' : 'Column'} onClick={onFormation} testId="battle-formation" />

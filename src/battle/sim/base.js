@@ -9,14 +9,17 @@
 //   the defender   the keep (its town hall or camp), the city's own economy and military buildings
 //                  (the region's built categories, the siege camp and engines of a sally), plus the
 //                  economy and military buildings its workers finished
-// What it is not: houses, landmarks, palaces and wonders, walls, gates and towers (fortifications),
+// (a tower the workers raise is a military building: it counts).
+// What it is not: houses, landmarks, palaces and wonders, the city's walls, gates and wall towers (fortifications),
 // loot targets, and unfinished sites. A destroyed building stops counting at once (it stays drawn
 // as a wreck: render/economyLayer.js). Taking the keep alone therefore does not win a city.
 import { BUILDINGS } from '../data/economy';
 import { SIDE_DEFENDER } from './constants';
 
-/** Economy catalog buildings that never count as base: housing and fortifications. */
-export const NOT_BASE = new Set(['house', 'tower']);
+/** Economy catalog buildings that never count as base: housing. A tower the workers build is a
+ *  military building and counts (the user's ruling of 14 October 2026); the city's own wall towers
+ *  are fortifications and never do (isBaseStructure). */
+export const NOT_BASE = new Set(['house']);
 export const isBaseType = (type) => !!BUILDINGS[type] && !NOT_BASE.has(type);
 
 /** Does this battle have bases (and so the base rule)? */

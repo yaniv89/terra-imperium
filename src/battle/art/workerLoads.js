@@ -2,8 +2,8 @@
 // What a battle worker carries (src/assets/battle/props/worker-loads.glb, built by
 // scripts/blender/build_worker_loads.py): which object of the kit stands for a resource, and where
 // and how big it is drawn on a worker. Pure: no three.js, no loading, no rules. The kit is drawn
-// with kitInstances.js like every other kit; nothing draws it yet (plans/art-pilot/
-// md06-nodes-loads/LOG.md lists what the battle view must carry first).
+// with kitInstances.js like every other kit: render/economyLayer.js draws it on the laborers the
+// view lists in `eco.carrying` ({ idx, res, kind, load }; X28).
 /** A person's height in tiles: unitModels.js ART_UNIT_WORLD (workerLoads.test.js holds the two equal). */
 export const PERSON_TILES = 0.95;
 
@@ -24,12 +24,20 @@ export const LOAD_OBJECTS = {
 };
 export const BARROW_EMPTY = 'barrow-empty';
 
-// Until the rules split `materials` into wood and stone, the node a worker came from says which.
+// The node kind's resource, for a load the view gives without one (`ore` maps to stone: old notes).
 const KIND_RESOURCE = { tree: 'wood', stone: 'stone', ore: 'stone', gold: 'gold', herd: 'food', cattle: 'food', fish: 'food', farm: 'food' };
 
 /**
+ * X32, the barrow rule (a drawing rule: the sim's load is the same for every resource): food and
+ * stone, bulky and heavy, are wheeled home in a barrow; wood (logs on a back frame) and gold (a small
+ * sack) ride on the back. A barrow laborer walks out with the empty barrow.
+ */
+export const BARROW_RESOURCES = new Set(['food', 'stone']);
+export const usesBarrow = (res) => BARROW_RESOURCES.has(res);
+
+/**
  * The resource a load shows: `res` when it is one of the four (food, wood, stone, gold), else the
- * node kind's (a `materials` load from a grove is wood, from a quarry stone), else null.
+ * node kind's, else null.
  */
 export const loadResource = (res, nodeKind = null) => (LOAD_OBJECTS[res] ? res : KIND_RESOURCE[nodeKind] || null);
 

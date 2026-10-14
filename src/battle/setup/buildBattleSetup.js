@@ -46,8 +46,13 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 // when clearly stronger and (king+) raids an unguarded camp (sim/tacticalAI.js); and no pursuit in
 // a battle with bases: it ends the tick the last base building falls, the beaten side's unbroken
 // regiments withdraw in order (sim/step.js, sim/result.js)).
+// v10: playtest audit CB15/CB16 (merged after CB17's v9), four battle resources (food, wood, stone, gold; ore spots are stone),
+// stone prices and stone repairs of the city, the attacker's camp further in, building allowed on
+// explored ground and next to a resource (data/economy.js, sim/economy.js placementBlock), the
+// camp's build circle explored from the start (sim/fog.js), and a tower the workers build counts as
+// a base building (sim/base.js)).
 // A log or a checkpoint of another version is never replayed as if it were this one.
-export const SETUP_VERSION = 9;
+export const SETUP_VERSION = 10;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 

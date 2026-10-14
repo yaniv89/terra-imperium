@@ -22,10 +22,10 @@ export const ICON_GROUPS = ['resources', 'improvements', 'buildings', 'wonders',
 // hand-drawn glyphs below. ui: campaign-side cards and markers. Both sets are drawn in
 // scripts/icons/oct13-ui-icons.mjs (art update of 13 October; plans/art-pilot/ui-icons-oct13/LOG.md).
 
-// Battle stocks (UI14): the sim's resource id, or a HUD counter, to its icon in `battle`. The sim still
-// has one "materials" stock: it shows as Wood until the stock is split into wood and stone.
+// Battle stocks (UI14): the sim's resource id (food, wood, stone, gold: Q1, U01), or a HUD counter,
+// to its icon in `battle`.
 export const BATTLE_STOCK_ICON_IDS = {
-  food: 'stock-food', materials: 'stock-wood', wood: 'stock-wood', stone: 'stock-stone', gold: 'stock-gold',
+  food: 'stock-food', wood: 'stock-wood', stone: 'stock-stone', gold: 'stock-gold',
   supply: 'stock-supply', population: 'stock-population'
 };
 export const battleStockIconUrl = (res) => iconUrl('battle', BATTLE_STOCK_ICON_IDS[res]);

@@ -107,7 +107,8 @@ describe('UI icons of the 13 October art update', () => {
 
   it('has a battle stock icon for every battle resource, wood, stone, supply and population (UI14)', () => {
     [...BATTLE_RESOURCES, 'wood', 'stone', 'supply', 'population'].forEach((r) => expect(battleStockIconUrl(r), r).toBeTruthy());
-    expect(battleStockIconUrl('materials')).toBe(battleStockIconUrl('wood')); // one stock in the sim, for now
+    expect(battleStockIconUrl('stone')).not.toBe(battleStockIconUrl('wood')); // four stocks in the sim (U01)
+    expect(battleStockIconUrl('materials')).toBeNull(); // retired (Q1)
     expect(battleStockIconUrl('wood')).not.toBe(battleStockIconUrl('stone'));
     expect(battleStockIconUrl('supply')).not.toBe(battleStockIconUrl('gold'));
     expect(battleStockIconUrl('nope')).toBeNull();

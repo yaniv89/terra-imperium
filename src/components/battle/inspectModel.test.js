@@ -14,7 +14,7 @@ const hud = {
       { idx: 1, type: 'hall', side: 1, hp: 2000, maxHp: 3000, alive: true, built: true, progress: 100, proxy: true },
       { idx: 2, type: 'barracks', side: 1, hp: 300, maxHp: 1200, alive: true, built: false, progress: 25, proxy: false }
     ],
-    nodes: [{ i: 4, kind: 'stone', res: 'materials', amount: 120, max: 500 }]
+    nodes: [{ i: 4, kind: 'stone', res: 'stone', amount: 120, max: 500 }]
   }
 };
 
@@ -54,9 +54,10 @@ describe('the info card (B09)', () => {
   });
 
   it('the build menu says why a tile is disabled', () => {
-    expect(buildBlock('range', [100, 200, 10], 3)).toMatchObject({ kind: 'cost', short: [['gold', 20]] });
-    expect(buildBlock('house', [0, 100, 0], 0)).toMatchObject({ kind: 'workers' });
-    expect(buildBlock('house', [0, 100, 0], 2)).toBeNull();
+    expect(buildBlock('range', [100, 200, 0, 10], 3)).toMatchObject({ kind: 'cost', short: [['gold', 20]] });
+    expect(buildBlock('house', [0, 100, 0, 0], 0)).toMatchObject({ kind: 'workers' });
+    expect(buildBlock('house', [0, 100, 0, 0], 2)).toBeNull();
+    expect(buildBlock('tower', [0, 100, 20, 100], 2)).toMatchObject({ kind: 'cost', short: [['stone', 70]], text: 'Needs 70 more stone' });
     expect(buildDetail('tower', 'bronze')).toMatchObject({ title: 'Tower', hp: 1000, size: 2, time: 45 });
   });
 });
