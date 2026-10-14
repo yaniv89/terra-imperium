@@ -1,4 +1,4 @@
-﻿// .claude/skills/battle-lab/squadTrace.sim.js
+// .claude/skills/battle-lab/squadTrace.sim.js
 // Headless tactical-battle repro: build a battle, give the player side one order, and print what
 // every squad is doing (position, order, target, in reach?, strength, morale) every EVERY ticks,
 // then a per-squad tally of time spent in each state and damage dealt. This is how "units ignore

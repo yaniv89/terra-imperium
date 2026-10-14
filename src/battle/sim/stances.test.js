@@ -1,4 +1,4 @@
-﻿// src/battle/sim/stances.test.js
+// src/battle/sim/stances.test.js
 // Playtest audit CB17 and CB10: speed per class (U07, I192 under the user's ruling Q6), the stance
 // and threat-response contract (U11, I190, I191; movement.js header) and the AI defender's
 // counter-attacks (I125). The AI is held to the player's rules: it only gives orders and only sees

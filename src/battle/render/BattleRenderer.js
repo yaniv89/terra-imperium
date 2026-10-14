@@ -40,6 +40,7 @@ import { battleGroundSets, groundTextureUniform } from '../../data/groundMateria
 import { styleOfLand } from '../../data/architecture';
 import { BattleProps } from '../art/battleProps';
 import { RaidLandingProps } from '../art/raidLandingProps';
+import { pickStructureAt, FOOTPRINT_PICK_TILES, FOOTPRINT_PICK_PX } from '../input/orderFeedback';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -962,7 +963,9 @@ export class BattleRenderer {
   // see). With `enemyFirst` (the player has troops selected), a visible enemy anywhere near the tap
   // wins over a friendly squad beside it: in a melee the two are inches apart, and a tap meant as
   // "attack that" must not silently turn into "select this".
-  pick(px, py, view, radiusTiles = 1.1, { enemyFirst = false } = {}) {
+  // With `ignoreOwn` (an order tap: CB17 I189, I190) the player's own squads are not picked: an
+  // order is about the enemy, the building or the ground under them, never about them.
+  pick(px, py, view, radiusTiles = 1.1, { enemyFirst = false, ignoreOwn = false } = {}) {
     const g = this.screenToGround(px, py);
     if (!g) return null;
     const enemyRadius = radiusTiles * 1.45;
@@ -971,7 +974,7 @@ export class BattleRenderer {
     (view?.squads || []).forEach((s) => {
       if (!s.alive || !s.onField || s.fled || s.inside >= 0) return;
       const d = (s.x / Q - g.x) ** 2 + (s.y / Q - g.z) ** 2;
-      if (s.side === view.playerSide) { if (d < ownD) { ownD = d; own = { kind: 'squad', idx: s.idx, side: s.side }; } return; }
+      if (s.side === view.playerSide) { if (!ignoreOwn && d < ownD) { ownD = d; own = { kind: 'squad', idx: s.idx, side: s.side }; } return; }
       if (s.visible === false) return;
       if (d < foeD) { foeD = d; foe = { kind: 'squad', idx: s.idx, side: s.side }; }
     });
@@ -982,11 +985,8 @@ export class BattleRenderer {
     // A building of the battle economy (a generous footprint: at least ~16 px around it), or a resource node.
     const eco = this.ecoLayer.pick(g, view, Math.max(0.5, 16 * this.worldPerPixel()));
     if (eco) return { ...eco, ground: g };
-    (view?.structures || []).forEach((s, index) => {
-      if (!s.alive || this.setup.structures[index]?.underHall) return; // a house under the town hall is the hall's
-      const r = s.radius / Q + 0.6;
-      if ((s.x / Q - g.x) ** 2 + (s.y / Q - g.z) ** 2 <= r * r) best = { kind: 'structure', index };
-    });
+    // A structure counts where it stands: a wall or a house by its own tiles (input/orderFeedback.js).
+    best = pickStructureAt(g, view?.structures, this.setup.structures, this.map.w, Math.max(FOOTPRINT_PICK_TILES, FOOTPRINT_PICK_PX * this.worldPerPixel()));
     return best ? { ...best, ground: g } : { kind: 'ground', ground: g };
   }
 
