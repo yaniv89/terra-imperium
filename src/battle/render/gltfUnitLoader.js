@@ -21,7 +21,7 @@
 //      the USE_CLIPS shader plays instead of the procedural rig (I219).
 import { Vector3, Vector4, Matrix4, Color, Box3, BufferGeometry, Float32BufferAttribute, AnimationMixer } from 'three';
 import { LIMB, PART } from './soldierFactory';
-import { textureCap, assetBudget, capSceneTextures, disposeGltf, createAssetLru } from './assetMemory';
+import { textureCap, assetBudget, capSceneTextures, disposeGltf, createAssetLru, hasReleasedTextures } from './assetMemory';
 import { bakeClips, sceneNodes, toBindPose, isHidden } from './clipBake';
 
 export const DEFAULT_TRIANGLE_BUDGET = 8000; // per soldier at full detail (plans/model-brief-for-claude.md section 2): the battle draws the nearest squads at this and the rest as LOD1 and imposters
@@ -570,14 +570,28 @@ const gltfCache = new Map(); // url -> Promise<gltf>
 const evictListeners = new Set();
 /** `fn(url, gltf)` when a file is dropped from memory (kits and town objects built on it go too). */
 export const onGltfEvict = (fn) => { evictListeners.add(fn); return () => evictListeners.delete(fn); };
+const forgetFile = (url, gltf) => {
+  gltfCache.delete(url);
+  evictListeners.forEach((fn) => { try { fn(url, gltf); } catch { /* a cache that cannot forget keeps its copy */ } });
+};
 const gltfLru = createAssetLru({
   budget: assetBudget(),
-  onEvict: (url, gltf) => {
-    gltfCache.delete(url);
-    evictListeners.forEach((fn) => { try { fn(url, gltf); } catch { /* a cache that cannot forget keeps its copy */ } });
-    disposeGltf(gltf);
-  }
+  onEvict: (url, gltf) => { forgetFile(url, gltf); disposeGltf(gltf); }
 });
+/**
+ * Forget the files whose maps kept no CPU copy (a touch device, after their first upload): their
+ * textures can only be drawn by the renderer that uploaded them, so a new renderer (a battle, the
+ * map after a lost context) loads them again in full. Nothing is disposed: the renderer drawing the
+ * old copies keeps them until it lets them go.
+ */
+export const forgetReleasedGltf = () => {
+  gltfLru.keys().forEach((url) => {
+    const gltf = gltfLru.get(url);
+    if (!hasReleasedTextures(gltf?.scene)) return;
+    gltfLru.forget(url);
+    forgetFile(url, gltf);
+  });
+};
 /** The loaded files' decoded bytes and count (memory checks, the crash log). */
 export const gltfMemory = () => ({ files: gltfLru.size, MB: Math.round(gltfLru.bytes / 1048576) });
 /** Drop every loaded file now (a lost WebGL context: their GPU copies are gone). */

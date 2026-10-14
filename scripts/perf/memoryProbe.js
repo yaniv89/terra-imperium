@@ -55,7 +55,7 @@ export const memoryProbe = () => {
     proto.deleteBuffer = function (b) { buf.delete(b); return o.deleteBuffer.call(this, b); };
     proto.bindBuffer = function (target, b) { S(this).buffers.set(target, b); return o.bindBuffer.call(this, target, b); };
     proto.bufferData = function (target, data, ...r) { try { const b = S(this).buffers.get(target); if (b && buf.has(b)) buf.set(b, typeof data === 'number' ? data : (data?.byteLength || 0)); } catch { /* none */ } return o.bufferData.call(this, target, data, ...r); };
-    proto.createRenderbuffer = function () { const r = o.createRenderbuffer.call(this); if (r) rb.set(r, 0); return r; };
+    proto.createRenderbuffer = function () { const r = o.createRenderbuffer.call(this); if (r) { rb.set(r, 0); bufGl.set(r, this); } return r; };
     proto.deleteRenderbuffer = function (r) { rb.delete(r); return o.deleteRenderbuffer.call(this, r); };
     proto.bindRenderbuffer = function (target, r) { S(this).rb = r; return o.bindRenderbuffer.call(this, target, r); };
     proto.renderbufferStorage = function (target, internal, w, h) { const r = S(this).rb; if (r && rb.has(r)) rb.set(r, w * h * 4); return o.renderbufferStorage.call(this, target, internal, w, h); };
@@ -118,14 +118,15 @@ export const memoryProbe = () => {
     // the biggest textures alive: [{ MB, w, h, kind, src }]
     top(n = 20) {
       const list = [];
-      tex.forEach((e) => { let b = 0; e.levels.forEach((v) => { b += v; }); if (e.mip) b = b * 4 / 3; list.push({ MB: mb(b), w: e.w, h: e.h, kind: e.kind, src: e.src }); });
+      tex.forEach((e) => { let b = 0; e.levels.forEach((v) => { b += v; }); if (e.mip && !e.levels.has('storage')) b = b * 4 / 3; list.push({ MB: mb(b), w: e.w, h: e.h, kind: e.kind, src: e.src }); });
       return list.sort((a, b) => b.MB - a.MB).slice(0, n);
     },
     read() {
       tex.forEach((e, t) => { if (lost(e.gl)) tex.delete(t); });
       buf.forEach((v, b) => { if (lost(bufGl.get(b))) { buf.delete(b); bufGl.delete(b); } });
-      let texBytes = 0; tex.forEach((e) => { let b = 0; e.levels.forEach((v) => { b += v; }); texBytes += e.mip ? b * 4 / 3 : b; });
+      let texBytes = 0; tex.forEach((e) => { let b = 0; e.levels.forEach((v) => { b += v; }); texBytes += e.mip && !e.levels.has('storage') ? b * 4 / 3 : b; });
       let bufBytes = 0; buf.forEach((v) => { bufBytes += v; });
+      rb.forEach((v, r) => { if (lost(bufGl.get(r))) { rb.delete(r); bufGl.delete(r); } });
       let rbBytes = 0; rb.forEach((v) => { rbBytes += v; });
       let canvases = 0; let canvasPx = 0;
       live.canvases.forEach((ref) => { const c = ref.deref(); if (!c) { live.canvases.delete(ref); return; } canvases += 1; canvasPx += (c.width || 0) * (c.height || 0); });

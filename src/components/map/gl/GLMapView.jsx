@@ -67,6 +67,7 @@ import { planGlides, glideAt, afterTurnReport } from '../marchGlide';
 import { TURN_REPORT_SHOWN, isTurnReportShown } from '../../ui/uiEvents';
 import { POINT_TILE } from '../marchEvents';
 import { releaseWhenDetached } from '../../../utils/glContext';
+import { forgetReleasedGltf } from '../../../battle/render/gltfUnitLoader';
 import { noteCrashEvent } from '../../../utils/crashLog';
 
 const OCEAN_COLOR = '#0f172a';
@@ -206,9 +207,10 @@ const GLMapView = ({
       e.preventDefault();
       noteCrashEvent('map-context-lost');
       clearTimeout(lostTimer);
-      lostTimer = setTimeout(() => { noteCrashEvent('map-context-replaced'); setCanvasGen((n) => n + 1); }, CONTEXT_RESTORE_MS);
+      lostTimer = setTimeout(() => { noteCrashEvent('map-context-replaced'); forgetReleasedGltf(); setCanvasGen((n) => n + 1); }, CONTEXT_RESTORE_MS);
     };
-    const onRestored = () => { clearTimeout(lostTimer); noteCrashEvent('map-context-restored'); redraw(); };
+    // (the model files whose maps kept no CPU copy load again in full: forgetReleasedGltf)
+    const onRestored = () => { clearTimeout(lostTimer); noteCrashEvent('map-context-restored'); forgetReleasedGltf(); setAssetsTick((n) => n + 1); redraw(); };
     canvas.addEventListener('webglcontextlost', onLost);
     canvas.addEventListener('webglcontextrestored', onRestored);
     document.addEventListener('visibilitychange', onVisible);

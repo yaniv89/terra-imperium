@@ -62,6 +62,7 @@ export const releaseAfterUpload = (tex, makeCanvas = defaultCanvas) => {
     if (!ctx) return;
     try { ctx.drawImage(img, 0, 0, small.width, small.height); } catch { return; }
     t.image = small; // (no needsUpdate: the GPU keeps the full one)
+    t.userData.cpuReleased = true; // another renderer would upload the stand-in: hasReleasedTextures
     closeImage(img);
     if (img && typeof img.getContext === 'function') { img.width = 0; img.height = 0; } // a canvas: its pixels go
   };
@@ -106,6 +107,9 @@ function defaultCanvas(w, h) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; return c;
 }
 
+/** Whether a scene has a texture whose full image is gone (only its GPU copy in one renderer). */
+export const hasReleasedTextures = (scene) => [...texturesOf(scene)].some((t) => t.userData?.cpuReleased);
+
 /** Free a loaded glTF: geometry, materials and textures disposed, bitmaps closed. */
 export const disposeGltf = (gltf) => {
   const scene = gltf?.scene;
@@ -130,6 +134,10 @@ export const createAssetLru = ({ budget, keepMs = 15000, now = () => Date.now(),
     get size() { return entries.size; },
     get bytes() { return total; },
     has: (key) => entries.has(key),
+    keys: () => [...entries.keys()],
+    get: (key) => entries.get(key)?.value,
+    /** Drop a file from the list without onEvict (the caller frees it, or leaves it to its users). */
+    forget(key) { const e = entries.get(key); if (!e) return; entries.delete(key); total -= e.bytes; },
     touch(key) { const e = entries.get(key); if (e) { e.used = now(); entries.delete(key); entries.set(key, e); } },
     add(key, value, bytes = 0) {
       const old = entries.get(key); if (old) total -= old.bytes;

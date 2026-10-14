@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Scene, Mesh, BoxGeometry, MeshStandardMaterial, Texture } from 'three';
-import { textureCap, assetBudget, capSceneTextures, disposeGltf, createAssetLru, STAND_IN_PX } from './assetMemory';
+import { textureCap, assetBudget, capSceneTextures, disposeGltf, createAssetLru, STAND_IN_PX, hasReleasedTextures } from './assetMemory';
 
 const bitmap = (w, h) => ({ width: w, height: h, close: vi.fn() });
 const fakeCanvas = (w, h) => {
@@ -45,6 +45,7 @@ describe('texture cap (the iPhone crash hunt)', () => {
     expect(img.close).toHaveBeenCalled();
     expect(m.map.image.width).toBe(STAND_IN_PX); expect(m.map.image.height).toBe(STAND_IN_PX / 2);
     expect(m.map.onUpdate).toBe(null);
+    expect(hasReleasedTextures(scene)).toBe(true);
   });
 
   it('leaves maps within the cap as they are', () => {
@@ -83,6 +84,10 @@ describe('createAssetLru', () => {
     expect(lru.trim()).toEqual([]);
     t = 100;
     expect(lru.trim()).toEqual(['a', 'c']);
+    lru.add('e', 'E', 10);
+    lru.forget('e');
+    expect(lru.has('e')).toBe(false);
+    expect(evicted).not.toContain('e'); // forget never calls onEvict
     lru.clear();
     expect(lru.size).toBe(0); expect(lru.bytes).toBe(0);
   });
