@@ -110,7 +110,9 @@ def k_mercenary():
         cl.PERSON_OPTS
 
 
-BUILDERS = {'kingdoms-raider': k_raider, 'kingdoms-mercenary': k_mercenary}
+# The mercenary was rebuilt in the quality pass of 2026-10-14 by build_kingdoms_mercenary.py on
+# ti_figure.py; k_mercenary stays here for reference only.
+BUILDERS = {'kingdoms-raider': k_raider}
 
 
 def build(uid):

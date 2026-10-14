@@ -24,6 +24,9 @@
 # Added for the Classical foot units (2026-10-14, build_classical_*.py; they export the rest pose only):
 #   - torso(), skirt(), strips() (pteruges), greaves(), boots, hair(), ridge() (a crest), helmet(),
 #     oval_shield(), finish_rest()
+# Added for the Kingdoms foot units (2026-10-14, build_kingdoms_*.py; rest pose only): legs(hose=),
+#   arms(long=, pad=, cuff=), quilted torso() and skirt() (ribs, quilt()), lathe(), kettle_hat(),
+#   mail_coif(), hood(), tabard(), straw_hat(), self_bow(), hip_sword()
 # Blender Z up, the front faces -Y, a standing person is 1 tall.
 import bpy, bmesh, math, random, json, os
 from mathutils import Vector, Matrix
