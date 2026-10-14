@@ -264,7 +264,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
         </div>
       </div>
       {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}
-      <MarchBar onSelectRegion={selectRegion} />
+      <MarchBar />
       {settleView && !marching && <SettleBar model={settleBarModel(state, settle, sites, selectedTile)} onNext={goNextSite} onCancel={() => setSettle(null)} />}
       <MarchAttackPrompt />
       <RegionChooser choice={tapChoice} onPick={(id) => { setTapChoice(null); onSelectRegion(id); }} onClose={() => setTapChoice(null)} />

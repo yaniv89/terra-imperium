@@ -27,7 +27,9 @@ import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyF
 import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs, applyFleetResult } from './navalBattle';
 import { isRaidKind, queuedRaidArmies, raidSpecOf, fightRaidAuto } from './raidBattle';
 import { resolveRaidBattle } from './raids';
-import { isLandingKind, resolveInterceptQueued, resolveLandingQueued, landingHoldChance } from './aiLanding';
+import { isLandingKind, resolveInterceptQueued, resolveLandingQueued, landingHoldChance, interceptArmies, landingArmies } from './aiLanding';
+import { cityMilitia } from './battleInputs';
+import { isNoMansLand, NO_MANS_LAND_REASON } from './hostility';
 
 export const QUEUE_KINDS = ['defense', 'field', 'naval', 'raid', 'sack', 'intercept', 'landing'];
 
@@ -60,6 +62,46 @@ export const queuedArmies = (state, def) => {
   if (!v.ok) return null;
   const vv = { ...v, attackerUnits: v.attackerUnits.filter((u) => def.attackerUnitIds.includes(u.id)), defenderUnits: v.defenderUnits.filter((u) => def.defenderUnitIds.includes(u.id)) };
   return vv.attackerUnits.length && vv.defenderUnits.length ? { actor, v: vv } : null;
+};
+
+/**
+ * Why Command cannot open this queued battle, or null when it can (DEF-01: the card says so BEFORE
+ * the tap, Command is disabled, and BEGIN_DEFENSE_BATTLE refuses with the same words instead of
+ * silently fighting it on Auto). { code, text }: 'no_attackers' (the attackers are gone),
+ * 'no_defenders' (nobody of yours to command: no regiment and, for a city, no militia),
+ * 'no_battle' (the armies moved apart), 'no_mans_land' (decision 41).
+ */
+export const queuedCommandBlock = (state, def) => {
+  if (!def) return null;
+  const kind = queuedKind(def);
+  const place = state.regions?.[def.regionId]?.name || 'the city';
+  const gone = { code: 'no_attackers', text: 'The attackers are gone: there is no one to fight. Auto closes it.' };
+  if (kind === 'defense') {
+    const armies = getDefenseArmies(state, def);
+    if (!armies.attackerUnits.length) return gone;
+    if (!armies.defenderUnits.length && !cityMilitia(state, def.regionId).length) {
+      return { code: 'no_defenders', text: `No one in ${place} to command: no regiment, and no militia without houses. On Auto the attackers strike its defences.` };
+    }
+    return null;
+  }
+  if (kind === 'intercept' || kind === 'landing') {
+    const armies = kind === 'intercept' ? interceptArmies(state, def) : landingArmies(state, def);
+    if (!armies) return { code: 'no_battle', text: kind === 'intercept' ? 'None of your fleets can reach the landing fleet: Auto settles it.' : 'The landing is over before it started: Auto settles it.' };
+    if (kind === 'landing' && !armies.defenderUnits.length && !(def.militia || []).length) return { code: 'no_defenders', text: `No one in ${place} to command against the landing: no regiment and no militia. On Auto they come ashore.` };
+    return null;
+  }
+  if (isRaidKind(kind)) {
+    const armies = queuedRaidArmies(state, def);
+    if (!armies.attackerUnits.length) return gone;
+    if (!armies.defenderUnits.length && (kind !== 'sack' || !(def.militia || []).length)) return { code: 'no_defenders', text: kind === 'sack' ? 'No one in the town to command: no regiment and no militia. On Auto the raiders sack it.' : 'Your troops are no longer there: Auto settles the raid.' };
+    if (kind === 'raid' && isNoMansLand(state, def.tile, def.aggressorId, state.playerNationId)) return { code: 'no_mans_land', text: NO_MANS_LAND_REASON };
+    return null;
+  }
+  const armies = queuedArmies(state, def);
+  if (!armies) return { code: 'no_battle', text: 'The armies are no longer in reach of each other: there is no battle to command. Auto closes it.' };
+  const foe = def.aggressorId === state.playerNationId ? armies.v.defenderNationId : def.aggressorId;
+  if (kind === 'field' && isNoMansLand(state, def.tile, state.playerNationId, foe)) return { code: 'no_mans_land', text: NO_MANS_LAND_REASON };
+  return null;
 };
 
 /** Fight one queued battle on Auto, whatever its kind. */

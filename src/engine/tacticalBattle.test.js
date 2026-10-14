@@ -93,6 +93,17 @@ describe('BEGIN_TACTICAL_BATTLE', () => {
     }
   });
 
+  it('DEF-01: with no garrison and no militia (every house ruined) Command is fought on Auto and the result says so', () => {
+    const s = baseState();
+    const manifest = cityManifestOf(s, BE_REGION);
+    const ruined = Object.fromEntries(manifest.structures.map((x) => [x.id, true]));
+    const bare = { ...s, units: { a1: unit('a1', FR_BORDER, 'fr') }, regions: { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], cityDamage: { ruined, damaged: {} } } } };
+    expect(cityMilitia(bare, BE_REGION)).toEqual([]);
+    const next = begin(bare);
+    expect(next.pendingBattle).toBeNull();
+    expect(next.battleReports[0].autoBecause).toMatch(/^You chose Command, but nobody defends .* \(no garrison, no militia\): it was fought on Auto against its defences\.$/);
+  });
+
   it('refuses without a war, like LAUNCH_INVASION', () => {
     const s = withArmies({ ...baseState(), wars: [] });
     expect(begin(s).pendingBattle).toBeNull();
