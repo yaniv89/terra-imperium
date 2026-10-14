@@ -15,6 +15,8 @@ import { isIndependentNation } from '../data/independents';
 import { syncWorldRegistry } from './world/registry';
 import { auditGameState } from './stateAudit';
 import { isNoMansLand } from './hostility';
+import { resolveTurn } from './resolveTurn';
+import { HISTORICAL_EVENTS } from '../data/events';
 
 const tiles = getTiles();
 
@@ -235,5 +237,24 @@ describe('decision 41: no man\'s land is fought on Auto', () => {
     expect(isNoMansLand(s, third.tile, 'fr', AGG)).toBe(true);
     if (free != null) expect(isNoMansLand(s, free, 'fr', AGG)).toBe(true);
     expect(isNoMansLand(s, sea, 'fr', AGG)).toBe(false);
+  });
+});
+
+describe('a siege surrender to the player opens the same card (resolveTurn)', () => {
+  it('the city falls at 0 HP with no garrison, changes hands, and waits for the choice; unanswered, the next turn keeps it', () => {
+    const s0 = armies();
+    const city = s0.regions[T];
+    const ring = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1);
+    const units = { b1: { ...unit('b1', FR, 'fr'), tile: ring[0] }, b2: { ...unit('b2', FR, 'fr'), tile: ring[0] } };
+    const s = {
+      ...s0, units, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true },
+      regions: { ...s0.regions, [T]: { ...city, siege: { hp: 0, maxHp: 500, by: 'fr', startedTurn: 1, encircled: false, starving: 0 } } }
+    };
+    const next = resolveTurn(s);
+    expect(next.regions[T].owner).toBe('fr');
+    expect(pendingCapturesOf(next)).toHaveLength(1);
+    expect(pendingCapturesOf(next)[0]).toMatchObject({ cityId: T, source: 'siege', from: AGG });
+    const after = resolveTurn({ ...next, pendingDefenses: [], pendingPeaceOffer: null, activeEventId: null, activeProceduralEvent: null });
+    if (after !== next) expect(after.pendingCaptures).toEqual([]);
   });
 });
