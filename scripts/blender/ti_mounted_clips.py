@@ -359,9 +359,9 @@ def temp_fingers(arm, prefix, axes):
         if hand is not None and len(vs) - 2 != 3 * ((len(vs) - 2) // 3):
             g = B['Hand_' + s].head_local.copy()
         el, wr = B['Forearm_' + s].head_local, B['Hand_' + s].head_local
-        if (axes or {}).get(s) == 'point':  # a pointing hand: the grip a little past the wrist along the forearm
+        if (axes or {}).get(s) == 'point':  # a pointing hand: the grip a little past the wrist, the axis along the finger
             g = wr + (wr - el).normalized() * .034
-            ax = V((0, 0, 1)).cross((wr - el).normalized()).normalized()
+            ax = (wr - el).normalized()
         else:
             ax = V((axes or {}).get(s, (0, 0, 1) if s == 'R' else (0, 1, 0))).normalized()
         c = g - V((0, .004, 0))
@@ -471,10 +471,15 @@ class RiderLib(FC.Lib):
     def rest(self, **extra):
         spec = super().rest(**extra)
         spec['plant'] = 0
-        if self.kind == 'hand':
+        if self.kind == 'hand':  # an empty hand: its targets ride on the chest (the arm keeps its reach as he leans)
             spec.pop('W', None)
             spec[self.side] = self.free(self.side)
+            spec['space'] = 'chest'
         return spec
+
+    def arm_to(self, direction, reach=.255):
+        """A point the right hand reaches: out from the shoulder along `direction` (an arm of the figure's length)."""
+        return tuple(V(self.P.rest['Arm_R'].translation) + nrm(direction) * reach)
 
     def hand_at(self, p, d, f=(0, -1, 0)):
         """The right fist (or the pointing hand) at p, its knuckle axis (the weapon's axis) along d."""
@@ -577,8 +582,8 @@ def weapon_keys(L, act):
             down = (-.34, -.24, .54), FC.pitch(150)
             return [(10, up, lean), (19, up, lean), (23, down, dict(lean, Spine=(18, 0, 16), Chest=(8, 0, 10))), (24, down, dict(lean, Spine=(18, 0, 16), Chest=(8, 0, 10))),
                     (31, up, lean)]
-        up = (-.26, -.30, 1.06), (0, -.55, .83)
-        fwd = (-.28, -.50, .88), (0, -1, .05)
+        up = L.arm_to((-.25, -.55, .8)), (-.25, -.55, .8)
+        fwd = L.arm_to((-.15, -1, .1)), (-.15, -1, .1)
         return [(10, up, lean), (21, up, lean), (23, fwd, dict(lean, Spine=(18, 0, 8))), (24, fwd, dict(lean, Spine=(18, 0, 8))), (31, up, lean)]
     # Attack: from the rest pose, struck down at the right front, back to rest
     tw = {'Spine': (-2, 0, -8), 'Chest': (-4, 0, -12), 'Head': (2, 0, 10)}
@@ -596,8 +601,8 @@ def weapon_keys(L, act):
         wind = (-.22, -.02, 1.05), FC.pitch(-10)
         down = (-.34, -.22, .52), FC.pitch(158)
         return [(7, wind, tw), (11, down, dict(st, Spine=(16, 0, 14))), (12, down, dict(st, Spine=(16, 0, 14))), (16, wind, tw)]
-    up = (-.22, -.04, 1.08), (0, .1, 1)
-    fwd = (-.30, -.46, .80), (0, -1, -.25)
+    up = L.arm_to((-.2, .05, 1)), (-.2, .05, 1)
+    fwd = L.arm_to((-.35, -1, -.35)), (-.35, -1, -.35)
     return [(7, up, tw), (11, fwd, st), (12, fwd, st), (16, up, tw)]
 
 
@@ -614,8 +619,10 @@ def rider_charge(L, hspec):
     r0 = L.rest()
     wk = [(1, r0)] + [(f, L.key(r, at=at)) for f, at, r in weapon_keys(L, 'Charge')] + [(38, r0), (41, r0)]
 
+    contact = ACTS['Charge'][2]['contact']
+
     def fn(f):
-        hs = hspec(f)
+        hs = hspec(contact if f == contact + 1 else f)  # the body held through the strike (the horse gallops on)
         r, _ = seat_torso('charge', hs['phase'], hs)
         w = spec_at(wk, f)
         lean = w.get('r') or {}
@@ -633,8 +640,8 @@ def rider_charge(L, hspec):
 def rider_cheer(L):
     r0 = L.rest()
     if L.kind == 'hand':
-        hi = L.key({'Spine': (-3, 0, 0), 'Chest': (-5, 0, 0), 'Head': (-10, 0, 0)}, at=((-.20, -.08, 1.14), (0, -.15, 1)))
-        lo = L.key({'Spine': (-1, 0, 0), 'Chest': (-1, 0, 0), 'Head': (-4, 0, 0)}, at=((-.24, -.22, .98), (0, -.6, .8)))
+        hi = L.key({'Spine': (-3, 0, 0), 'Chest': (-5, 0, 0), 'Head': (-10, 0, 0)}, at=(L.arm_to((-.15, -.2, 1)), (-.15, -.2, 1)))
+        lo = L.key({'Spine': (-1, 0, 0), 'Chest': (-1, 0, 0), 'Head': (-4, 0, 0)}, at=(L.arm_to((-.3, -.7, .6)), (-.3, -.7, .6)))
     else:
         hi = L.key({'Spine': (-3, 0, 0), 'Chest': (-5, 0, 0), 'Head': (-10, 0, 0)}, at=((-.20, -.06, 1.10), FC.pitch(-8)))
         lo = L.key({'Spine': (-1, 0, 0), 'Chest': (-1, 0, 0), 'Head': (-4, 0, 0)}, at=((-.22, -.10, .96), FC.pitch(4)))
@@ -955,6 +962,7 @@ class CrewLib(RiderLib):
     def rest(self, **extra):
         spec = super().rest(**extra)
         spec['plant'] = 1
+        spec['space'] = 'world'  # the driver's fists stay on the reins, which hang from the car
         return spec
 
 

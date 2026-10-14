@@ -103,3 +103,58 @@ the right front at the contact, Attack thrusts it down to set fire. Triangles 31
 | Hit | 10 | 0.50 | no | - |
 | Death | 40 | 2.00 | no | settle 40 |
 | DeathAlt | 40 | 2.00 | no | settle 40 |
+
+## classical-cavalry
+
+MountRig, RiderRig. The long spear (SpearShaft, SpearHead: the battle fits it to a 3.5 m lance) is couched under
+the arm in Charge and stabbed overhand at the right front in Attack; the small round shield stays on the left
+forearm with the reins. No stirrups: the rider's legs ride with him. Triangles 2974 (unchanged); GLB 287 KB packed
+(was 214 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Trot | 15 | 0.75 | yes | - |
+| Gallop | 13 | 0.65 | yes | - |
+| Charge | 41 | 2.05 | no | contact 23 |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |
+
+## classical-general
+
+MountRig, CommanderRig (no weapon in hand: the pointing hand urges forward in Charge, sweeps up and forward in
+Attack, is raised twice in Cheer; its targets ride on the chest), BearerRig (the standard; the light figure, its
+fists without finger rings). Triangles 3864 (unchanged); GLB 412 KB packed (was 287 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Trot | 15 | 0.75 | yes | - |
+| Gallop | 13 | 0.65 | yes | - |
+| Charge | 41 | 2.05 | no | contact 23 |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |
+| Cheer | 33 | 1.65 | yes | - |
+
+## classical-raider
+
+MountRig, RaiderRig: the torch set of the Bronze raider (raised in the gaits, thrust down in Charge and Attack).
+Triangles 3038 (unchanged); GLB 290 KB packed (was 216 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Trot | 15 | 0.75 | yes | - |
+| Gallop | 13 | 0.65 | yes | - |
+| Charge | 41 | 2.05 | no | contact 23 |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |
