@@ -69,3 +69,71 @@ Long bronze sword and round shield. Attack: a cut from over the right shoulder d
 | DeathAlt | 30 | 1.50 | no | settle 30 |
 | Cheer | 33 | 1.65 | yes | - |
 
+## classical-infantry
+
+Short sword and big oval shield: the sword set of the Bronze mercenary (a cut from over the shoulder, a thrust, crouched behind the shield). Triangles 1904 (unchanged); GLB 196 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| IdleAlt | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Retreat-run | 15 | 0.75 | yes | - |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Attack2 | 25 | 1.25 | no | contact 13 |
+| Block | 20 | 1.00 | no | - |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+| Cheer | 33 | 1.65 | yes | - |
+
+## classical-ranged
+
+Composite bow (Prop_L); its string is one segment on Prop_L and stays straight while the fist draws (no string bone on this bow). The nocked arrow on Tool_Arrow, hidden from the release until a new arrow comes out of the back quiver. Melee-fallback: the arrow stabbed down. Triangles 1980 (unchanged); GLB 182 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Draw-aim-release | 33 | 1.65 | no | release 22 |
+| Melee-fallback | 20 | 1.00 | no | contact 11 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+
+## classical-mercenary
+
+Curved sword and long oval shield: the sword set (cut, thrust, Block behind the shield). Triangles 1982 (unchanged); GLB 202 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| IdleAlt | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Retreat-run | 15 | 0.75 | yes | - |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Attack2 | 25 | 1.25 | no | contact 13 |
+| Block | 20 | 1.00 | no | - |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+| Cheer | 33 | 1.65 | yes | - |
+
+## classical-support
+
+Pick-axe in the right fist (the fist slides down to the haft's end to swing it, one-handed: the wicker mantlet stays on the left arm in every work clip and does not swing in the gaits). Mine: lifted over the shoulder and driven into the ground in front. Build: the same swing, shallower. Repair: crouched, quicker. No Chop, Harvest, Carry or Deposit: he carries no axe, sickle or load. Triangles 1866 (unchanged); GLB 177 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Mine | 29 | 1.45 | yes | contact 15 |
+| Build | 25 | 1.25 | yes | contact 15 |
+| Repair | 21 | 1.05 | yes | contact 11 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+

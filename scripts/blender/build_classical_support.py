@@ -5,7 +5,7 @@
 #   blender -b --factory-startup -P scripts/blender/build_classical_support.py
 # Same contract as that builder: the canonical rig under a root empty named after the unit, flat
 # material colours, the Team and Skin tags, the old object names (Mantlet, MantletBand*, LadderRail*,
-# LadderRung*, PickHaft, PickHead), rest pose only (no clips). The look follows
+# LadderRung*, PickHaft, PickHead), and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged). The look follows
 # plans/art/concepts/oct13/units-classical-set.png (design reference only):
 #   - a Team over-tunic on the chest and the back (weighted to Spine and Chest, so the whole trunk is
 #     the side's colour) over a white tunic with short sleeves, a leather belt and a cross strap
@@ -23,6 +23,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'classical-support'
 arm = F.start({'Skin': 'C99472', 'Cloth': 'EEE5CF', 'Leather': '5A3624', 'Wood': '8A6036', 'Wicker': 'C09A56', 'Metal': ('7A7D83', .5, .7),
@@ -110,4 +111,5 @@ tube('PickHead', [((x, y - .135, top - .004), (.004, .050), P), ((x, y - .070, t
 
 F.finish_rest(UID, 'Engineers: a Team over-tunic on a white tunic, belt and cross strap, dark hair and beard under a Team headband, a short ladder on the back '
               'with its rails above the head, a tall wicker mantlet in a wooden frame on the left arm, a pick-axe held upright',
-              notes={'role': 'support'})
+              notes={'role': 'support'},
+              clips=FC.clips_hook(UID, FC.Kit('tool', tool='pick', still=True)))

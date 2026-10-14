@@ -283,8 +283,8 @@ class Lib:
         k = self.kit
         if k.two_hands:
             return 0, 0
-        if k.kind == 'pike':
-            return 4, 0  # the left fist stays on the sword's pommel
+        if k.kind == 'pike' or k.still:
+            return 4, 0  # the left fist stays on the sword's pommel, or on its mantlet
         return 5, 4
 
     def idle(self, alt=False):
@@ -664,8 +664,8 @@ def support(L):
             two = not k.still
             left = (lambda: L.on(O, hl, pole=(1, .3, -.6))) if two else (lambda: L.free(O))
             rd = {'Spine': (4 + crouch * 50, 0, -4), 'Chest': (2 + crouch * 30, 0, -6)}
-            d, f = pitch(60)
-            ready = L.key(rd, (0, 0, -crouch), W=L.W((-.16, -.18, .64), d, f, h=hr), hands={R: L.on(R, hr), O: left()})
+            d, f = pitch(15)  # the tool up, the fist slid down to the haft's end
+            ready = L.key(rd, (0, 0, -crouch), W=L.W((-.17, -.17, .60 - crouch * .5), d, f, h=hr), hands={R: L.on(R, hr), O: left()})
             d, f = pitch(-40 if heavy else -20)
             up = L.key({'Spine': (-3 + crouch * 50, 0, -8), 'Chest': (-6 + crouch * 30, 0, -12), 'Head': (6, 0, 6)}, (0, 0, -crouch + .004),
                        W=L.W((-.16, .02, .96 - crouch), d, f, h=hr), hands={R: L.on(R, hr, pole=(-1, .5, .3)), O: left()})
