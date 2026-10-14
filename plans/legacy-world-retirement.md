@@ -128,12 +128,11 @@ borders, `GameContext.test.js`) need a rewrite, not a rename. Expect about 15 pe
 Total: about 4 working days of agent time, 3 serial gates (full suite after each of 2a, 2b, 2c). The code that
 goes is small; the effort is the tests.
 
-## 4. Decisions for the user
+## 4. Decisions (answered by the user)
 
-1. Old legacy-world saves (version 10 to 13): keep loading them forever (phase 3 then must keep the legacy
-   builder), or refuse them with the existing "older version, kept, not deleted" notice (simple, recommended;
-   the player's file stays in storage).
-2. OK to rewrite country-specific tests (France/Germany/India geography) as rules about a peoples world, losing
-   the "real country" flavour in the test names.
-3. The balance harness: move scripts/simulate.mjs to a peoples world (changes the baseline numbers the
-   balance-sim skill compares against; every lane's before/after must be rerun once).
+1. Legacy-world saves (version 10 to 13, no peoples scenario) show the existing "older version, kept, not
+   deleted" notice and do not load. Only the user ever played them. The legacy builder therefore does not
+   need to stay for saves.
+2. Country-specific tests (France, Germany, India geography) are rewritten as rules about a peoples world.
+3. scripts/simulate.mjs moves to a peoples world once, at the end of phase 2. That resets every balance
+   baseline: every lane's before/after comparison must be rerun once against the new base.
