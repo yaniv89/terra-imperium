@@ -1,0 +1,95 @@
+{
+  "url": "http://localhost:5203/terra-imperium/?battleSandbox&age=bronze&terrain=forest&perf",
+  "shots": [
+    {
+      "file": "plans/art-pilot/md05-trees/before/before-army-zoom2.jpg",
+      "view": "army",
+      "zoom": 2,
+      "triangles": 1718348,
+      "drawCalls": 97,
+      "figures": 57,
+      "tier": 0,
+      "vegetationLod": 0
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/before/before-army-zoom1.jpg",
+      "view": "army",
+      "zoom": 1,
+      "triangles": 738785,
+      "drawCalls": 110,
+      "figures": 57,
+      "tier": 0,
+      "vegetationLod": 1
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/before/before-army-zoom0_6.jpg",
+      "view": "army",
+      "zoom": 0.6,
+      "triangles": 515107,
+      "drawCalls": 116,
+      "figures": 57,
+      "tier": 0,
+      "vegetationLod": 2
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/before/before-woods-zoom2.jpg",
+      "view": "woods",
+      "zoom": 2,
+      "triangles": 2046507,
+      "drawCalls": 81,
+      "figures": 0,
+      "tier": 0,
+      "vegetationLod": 0
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/before/before-woods-zoom1.jpg",
+      "view": "woods",
+      "zoom": 1,
+      "triangles": 721651,
+      "drawCalls": 114,
+      "figures": 52,
+      "tier": 0,
+      "vegetationLod": 1
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/before/before-woods-zoom0_6.jpg",
+      "view": "woods",
+      "zoom": 0.6,
+      "triangles": 340259,
+      "drawCalls": 140,
+      "figures": 59,
+      "tier": 1,
+      "vegetationLod": 2
+    }
+  ],
+  "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x000046A3) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "kit": {
+    "terrain": "forest",
+    "tile": 373,
+    "vegetation": null
+  },
+  "views": {
+    "army": [
+      7.211328125,
+      27.990625
+    ],
+    "woods": [
+      36,
+      26
+    ],
+    "forestRound": 110,
+    "size": [
+      96,
+      64
+    ],
+    "counts": {
+      "0": 4109,
+      "1": 1548,
+      "2": 188,
+      "4": 157,
+      "6": 111,
+      "7": 31
+    }
+  },
+  "errors": []
+}

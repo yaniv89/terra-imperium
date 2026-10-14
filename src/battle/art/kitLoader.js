@@ -156,6 +156,10 @@ export const parseKit = (scene, { repairLodUvs = false } = {}) => {
   // parts: one object all the same)
   const roots = [...lodRoots, ...scene.children.filter((o) => lodOf(o) === null && !isSocket(o) && !holdsLodRoot(o) && hasMesh(o))];
   const objects = {};
+  // A kit with tree species (tree-s-2 ...: built since MD05 with sound far-level uvs, each far
+  // crown face on a lit leaf of the full model) is never repaired: the repair would move its far
+  // faces onto the nearest full-model face, lit or not, and darken the far woods again.
+  if (roots.some((root) => /^tree-[sml]-\d+$/.test(root.name || ''))) repairLodUvs = false;
   roots.forEach((root) => {
     const toRoot = new Matrix4().copy(root.matrixWorld).invert();
     const lodNodes = [0, 1, 2].map((l) => root.children.filter((c) => lodOf(c) === l));
