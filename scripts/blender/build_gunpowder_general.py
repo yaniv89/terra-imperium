@@ -17,7 +17,9 @@
 #     buff breeches and black gaiters; the colour upright in his right fist, his left hand on the pole
 #     below it: a square flag (the squad's Emblem) under a gilt spear-point finial, a gilt tassel
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
-# Rest pose only. Rigs: MountRig, CommanderRig, BearerRig.
+# Clips (ti_mounted_clips.py, 2026-10-14): the general's set (the mounted set and Cheer), the general's feet
+# in the stirrups, the colour bearer carrying the colour in both fists, waving it in Cheer. Rigs: MountRig,
+# CommanderRig, BearerRig.
 #   blender -b --factory-startup -P scripts/blender/build_gunpowder_general.py
 # Outputs go to art-build/units/gunpowder-general/ (TI_PREVIEW=1: stills); copy the GLB to src/assets/units/.
 import sys
@@ -27,6 +29,8 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 
 UID = 'gunpowder-general'
 tube, box, vertical = F.tube, F.box, F.vertical
@@ -97,6 +101,8 @@ F.standard('Standard', g, top=1.80, w=.36, h=.33)
 tris = F.finish_unit(UID, parts, {
     'role': 'Gunpowder general: a mounted general on a grey horse under a dark shabraque with a gilt lace border (saddle, holsters, stirrups), pointing ahead, in a black bicorne worn athwart with gilt lace, a white feather edging and a Team cockade, powdered hair in a queue, a Team coat laced in gilt with gilt epaulettes and its tails over the cantle, a crimson sash over the shoulder, buff breeches and jackboots, a gilt-hilted sword; a colour bearer on foot in the line dress (tricorne, Team coat, white cross belts, gaiters) whose square colour under a gilt finial is the squad emblem',
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, bicorne, epaulettes, seated_coat_tails, jackboots, pointing_hand, standard, tricorne, coat_skirts) and ti_mounts.py (fine_horse, shabraque, war_saddle, holsters, stirrups, reins). The colour is StandardPole, StandardFinial, StandardEmblem (attachments of the bearer).'},
-    centre=(-.2, -.1, .85), scale=2.8)
+    centre=(-.2, -.1, .85), scale=2.8, mode='NLA_TRACKS',
+    clips=MC.hook(UID, lambda: MC.mounted(horse, cmd, 'hand', 'general', stirrups=True, bearer=bearer, bearer_kit=FC.Kit('spear', two_hands=True),
+                                         bearer_axes={'L': (0, 0, 1)}), 'general'))
 print('TRIS', tris)
 assert tris <= 4600, tris  # two people and a horse: over the 3,500 target like the Kingdoms general (4,320)

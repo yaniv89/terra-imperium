@@ -14,8 +14,9 @@
 #   - a lit torch raised in the right fist (the orange Flame material, no baked shade), the reins in
 #     the left fist, a carbine slung across the back
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
-# Drawn for raider squads of the cavalry class (unitModels.js `raider`). Rest pose only. Rigs:
-# MountRig, RaiderRig.
+# Drawn for raider squads of the cavalry class (unitModels.js `raider`). Clips (ti_mounted_clips.py,
+# 2026-10-14): the mounted set, the torch raised in the gaits and thrust down in Charge and Attack, the feet
+# in the stirrups. Rigs: MountRig, RaiderRig.
 #   blender -b --factory-startup -P scripts/blender/build_gunpowder_raider.py
 # Outputs go to art-build/units/gunpowder-raider/ (TI_PREVIEW=1: stills); copy the GLB to src/assets/units/.
 import sys
@@ -24,6 +25,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 
 UID = 'gunpowder-raider'
 tube, box, vertical = F.tube, F.box, F.vertical
@@ -84,8 +86,8 @@ tm.reins(horse, F.SEAT + gl)
 
 tris = F.finish_unit(UID, parts, {
     'role': 'Gunpowder raider: a freebooter on a dun horse under a fringed red blanket (girth, breast band, bridle, stirrups), loot sacks on both flanks, a rolled blanket, a looted brass kettle and a mantel clock on the croup; a black slouch hat with a Team band, a moustache, a red neckerchief, a loose Team coat with its tails over the cantle, a leather bandolier, a red sash with a pistol, a sabre at the hip, brown breeches and cuffed jackboots, a raised torch, a carbine slung on the back',
-    'pose': 'rest pose only (the rider seated, the torch arm raised); the vertex rig trots the horse',
+    'pose': 'rest pose = Idle frame 1 (the rider seated, the torch arm raised); the mounted clips (ti_mounted_clips.py, 2026-10-14)',
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, round_hat droop, seated_coat_tails, jackboots) and ti_mounts.py (fine_horse, tack, loot_sacks, roll, stirrups, reins). The flame is a flat orange material named Flame with no baked shade; fire and smoke come from the battle effects.'},
-    centre=(0, -.05, .75), scale=2.3)
+    centre=(0, -.05, .75), scale=2.3, mode='NLA_TRACKS', clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'torch', stirrups=True), 'mounted'))
 print('TRIS', tris)
 assert tris <= 3500, tris

@@ -12,7 +12,8 @@
 #   - a lit torch raised in the right fist (the orange Flame material, no baked shade), the reins in
 #     the left fist, two javelins slung across the back
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
-# Drawn for raider squads of the cavalry class (unitModels.js `raider`). Rest pose only. Rigs:
+# Drawn for raider squads of the cavalry class (unitModels.js `raider`). Clips (ti_mounted_clips.py,
+# 2026-10-14): the mounted set, the torch raised in the gaits and thrust down in Charge and Attack. Rigs:
 # MountRig, RaiderRig.
 #   blender -b --factory-startup -P scripts/blender/build_classical_raider.py
 # Outputs go to art-build/units/classical-raider/ (TI_PREVIEW=1: stills); copy the GLB to src/assets/units/.
@@ -22,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 
 UID = 'classical-raider'
 tube, box, vertical = F.tube, F.box, F.vertical
@@ -78,8 +80,8 @@ tm.reins(horse, F.SEAT + gl)
 
 tris = F.finish_unit(UID, parts, {
     'role': 'Classical raider: a light horseman on a chestnut dun horse under a fringed fleece (girth, breast band, bridle), loot sacks on both flanks, a rolled striped rug and a looted bronze cauldron on the croup; a Team felt cap with a forward tip, a short Team cloak, a long-sleeved ochre tunic, trousers and boots, a raised torch, two javelins slung on the back',
-    'pose': 'rest pose only (the rider seated, the torch arm raised); the vertex rig trots the horse',
+    'pose': 'rest pose = Idle frame 1 (the rider seated, the torch arm raised); the mounted clips (ti_mounted_clips.py, 2026-10-14)',
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, cloak, phrygian_cap) and ti_mounts.py (fine_horse, tack, reins). The flame is a flat orange material named Flame with no baked shade; fire and smoke come from the battle effects.'},
-    centre=(0, -.05, .75), scale=2.3)
+    centre=(0, -.05, .75), scale=2.3, mode='NLA_TRACKS', clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'torch'), 'mounted'))
 print('TRIS', tris)
 assert tris <= 3500, tris

@@ -13,7 +13,8 @@
 #     detail level keeps it), a small round shield on the left arm turned to the side (the squad's
 #     Emblem), the reins in the left fist
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
-# Rest pose only (the vertex rig trots the horse). Rigs: MountRig, RiderRig.
+# Clips (ti_mounted_clips.py, 2026-10-14): the mounted set, the spear a lance couched in the Charge and
+# stabbed overhand in the Attack. Rigs: MountRig, RiderRig.
 #   blender -b --factory-startup -P scripts/blender/build_classical_cavalry.py
 # Outputs go to art-build/units/classical-cavalry/ (TI_PREVIEW=1: stills); copy the GLB and the JSON's
 # budget to src/assets/units/.
@@ -25,6 +26,7 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 
 UID = 'classical-cavalry'
 tube, box, vertical = F.tube, F.box, F.vertical
@@ -76,6 +78,7 @@ tm.reins(horse, F.SEAT + gl)
 tris = F.finish_unit(UID, parts, {
     'role': 'Heavy cavalry: a rider astride a bay horse (Team saddle cloth, girth, breast band with bronze discs, no stirrups) in a coat of bronze scales over a white tunic with a red hem, a Team cloak, a helmet with cheek pieces and a tall Team crest, boots; a long spear upright in the right fist, a small round Emblem shield on the left arm, the reins in the left fist',
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, scale_coat, cloak) and ti_mounts.py (fine_horse, tack, reins). The spear is SpearShaft and SpearHead (the battle fits it to a 3.5 m lance from the butt).'},
-    open_facing=facing, centre=(0, -.1, .8), scale=2.6)
+    open_facing=facing, centre=(0, -.1, .8), scale=2.6, mode='NLA_TRACKS',
+    clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'lance'), 'mounted'))
 print('TRIS', tris)
 assert tris <= 3500, tris
