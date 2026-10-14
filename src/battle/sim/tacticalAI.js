@@ -6,8 +6,8 @@
 // fight straightforwardly; prince uses commander powers and abilities; king adds cavalry flanking
 // and missiles; emperor kites with its archers too. It never uses a nuclear strike.
 import { distSq, isqrt } from './fixed';
-import { isFighting } from './combat';
-import { canSeeSquad } from './fog';
+import { isFighting, inRangeOfSquad } from './combat';
+import { canSeeSquad, isTileVisibleTo } from './fog';
 import { getSquadAbilities, powerState, POWERS } from './effects';
 import { canGarrison, garrisonRoom } from './objectives';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
@@ -124,9 +124,29 @@ const decideAbilities = (w, side, mine, enemies, orders) => {
   });
 };
 
+// Every squad walks at its own pace (Q6), so an army keeps together the way a player keeps it
+// together: a squad more than COHESION closer to the objective than the hindmost of the army
+// (`group`: idle; `advancing`: on its way with nothing to fight) stops where it is (a Stop order; it
+// still fights whatever it sees) and is sent on once the others have caught up.
+const COHESION = 6 * Q;
+const STRAGGLER = 16 * Q;
+const keepTogether = (w, side, group, advancing, tx, ty, orders) => {
+  const all = [...group, ...advancing];
+  const d = new Map(all.map((i) => [i, isqrt(distSq(w.squads[i].x, w.squads[i].y, tx, ty))]));
+  // A straggler far behind the bulk (a reinforcement just in from the edge, a squad stuck behind
+  // rock) is not waited for.
+  const sorted = [...d.values()].sort((a, b) => a - b);
+  const median = sorted[sorted.length >> 1];
+  const trail = Math.max(...sorted.filter((v) => v <= median + STRAGGLER));
+  const ahead = (i) => d.get(i) < trail - COHESION;
+  const wait = advancing.filter(ahead);
+  if (wait.length) orders.push({ side, type: 'stop', squads: wait });
+  return group.filter((i) => !ahead(i));
+};
+
 // The attacker advances as ONE army in formation (arriving piecemeal just gets squads beaten one
 // at a time): idle squads are ordered together toward the nearest known enemy — or the keep — and
-// the formation code keeps the front line in front and matches the slowest squad's pace.
+// the formation code keeps the front line in front; the fast ones wait for the slow (keepTogether).
 const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
   const keep = w.structures[0];
   const idle = mine.filter((q) => q.order.type === 'idle' && q.target < 0);
@@ -147,16 +167,19 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
     }
     group.push(q.idx);
   });
-  if (!group.length) return;
+  const advancing = mine.filter((q) => q.order.type === 'attackMove' && q.target < 0 && !q.stats.structureBonus).map((q) => q.idx);
+  const army = group.length ? group : advancing;
+  if (!army.length) return;
   // Nothing in sight: assault the keep — it's the objective, and closing in reveals whoever is
   // still hiding around it.
-  const cx = Math.trunc(group.reduce((s, i) => s + w.squads[i].x, 0) / group.length);
-  const cy = Math.trunc(group.reduce((s, i) => s + w.squads[i].y, 0) / group.length);
+  const cx = Math.trunc(army.reduce((s, i) => s + w.squads[i].x, 0) / army.length);
+  const cy = Math.trunc(army.reduce((s, i) => s + w.squads[i].y, 0) / army.length);
   if (!enemies.length) {
     // With bases, once the keep is down the rest of the base must burn too (base.js).
     const goal = hasBase(w) && !keep.alive ? nearestBase(w, SIDE_DEFENDER, cx, cy) : null;
-    if (goal) orders.push({ side, type: 'attack', squads: group, target: goal });
-    else orders.push({ side, type: 'attackMove', squads: group, x: keep.x - 2 * Q, y: keep.y, formation: 'line' });
+    if (goal) { if (group.length) orders.push({ side, type: 'attack', squads: group, target: goal }); return; }
+    const go = keepTogether(w, side, group, advancing, keep.x - 2 * Q, keep.y, orders);
+    if (go.length) orders.push({ side, type: 'attackMove', squads: go, x: keep.x - 2 * Q, y: keep.y, formation: 'line' });
     return;
   }
   const foe = nearest(enemies, cx, cy);
@@ -164,7 +187,8 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
   const tx = foe ? foe.x : keep.x - 2 * Q; const ty = foe ? foe.y : keep.y;
   const dx = tx - cx; const dy = ty - cy; const d = isqrt(dx * dx + dy * dy) || 1;
   const hop = Math.min(d, 14 * Q);
-  orders.push({ side, type: 'attackMove', squads: group, x: cx + Math.trunc((dx * hop) / d), y: cy + Math.trunc((dy * hop) / d), formation: 'line' });
+  const go = keepTogether(w, side, group, advancing, tx, ty, orders);
+  if (go.length) orders.push({ side, type: 'attackMove', squads: go, x: cx + Math.trunc((dx * hop) / d), y: cy + Math.trunc((dy * hop) / d), formation: 'line' });
 };
 
 // Prince+: man the keep and towers — ranged first — while keeping at least half the army outside.
@@ -188,6 +212,46 @@ const garrisonBuildings = (w, side, mine, orders) => {
     }
   });
   return mine.filter((q) => !sent.has(q.idx));
+};
+
+// The defender's counter-attacks (I125, CB10). It knows only what its own fog shows it and speaks
+// only through orders, exactly like a player.
+//   Siege engines that batter the town are the first prey: the nearest free melee squad (cavalry
+//   first) is sent at each engine it can see near the walls, one hunter an engine.
+//   King+: an enemy camp it can see with no enemy soldier near it is raided by part of its cavalry
+//   (with bases, a camp burned wins the battle: base.js).
+// Returns the squads it sent.
+const strengthOf = (list) => list.reduce((s, q) => s + q.strength, 0);
+const SALLY_ODDS = 1.5;
+const SIEGE_HUNT_RADIUS = DEFENSE_RADIUS + 8 * Q;
+const HUNTER_REACH = 30 * Q;
+const CAMP_GUARD_RADIUS = 10 * Q;
+const counterAttack = (w, side, cfg, mine, enemies, keep, orders) => {
+  const sent = new Set();
+  const isEngine = (t) => t && t.stats.structureBonus && t.side !== side;
+  const hunted = new Set(mine.filter((q) => q.order.type === 'attack' && q.targetKind === 'squad' && isEngine(w.squads[q.target])).map((q) => q.target));
+  const free = mine.filter((q) => q.stats.melee && q.order.type !== 'attack' && q.order.type !== 'garrison' && !(q.target >= 0 && q.targetKind === 'squad' && inRangeOfSquad(q, w.squads[q.target])));
+  enemies.filter((t) => isEngine(t) && distSq(t.x, t.y, keep.x, keep.y) <= SIEGE_HUNT_RADIUS * SIEGE_HUNT_RADIUS && !hunted.has(t.idx))
+    .sort((a, b) => distSq(a.x, a.y, keep.x, keep.y) - distSq(b.x, b.y, keep.x, keep.y) || a.idx - b.idx)
+    .forEach((t) => {
+      const pool = free.filter((q) => !sent.has(q.idx));
+      const hunter = nearest(pool.filter((q) => q.classId === 'cavalry'), t.x, t.y, HUNTER_REACH) || nearest(pool, t.x, t.y, HUNTER_REACH);
+      if (!hunter) return;
+      orders.push({ side, type: 'attack', squads: [hunter.idx], target: { kind: 'squad', index: t.idx } });
+      sent.add(hunter.idx);
+    });
+  if (cfg.flank && hasBase(w)) {
+    const riders = free.filter((q) => q.classId === 'cavalry' && !sent.has(q.idx) && q.target < 0);
+    const camp = riders.length ? nearestBase(w, side === SIDE_DEFENDER ? SIDE_ATTACKER : SIDE_DEFENDER, keep.x, keep.y) : null;
+    const b = camp ? (camp.kind === 'eco' ? w.eco?.buildings[camp.index] : w.structures[camp.index]) : null;
+    const guarded = b && w.squads.some((o) => o.side !== side && !o.worker && isFighting(o) && !o.routed && distSq(o.x, o.y, b.x, b.y) <= CAMP_GUARD_RADIUS * CAMP_GUARD_RADIUS && canSeeSquad(w, side, o));
+    if (b && isTileVisibleTo(w, side, b.x, b.y) && !guarded) {
+      const raiders = riders.slice(0, Math.ceil(riders.length / 2)).map((q) => q.idx);
+      orders.push({ side, type: 'attack', squads: raiders, target: camp });
+      raiders.forEach((i) => sent.add(i));
+    }
+  }
+  return sent;
 };
 
 const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
@@ -219,6 +283,13 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
   if (w.assimilation > 0) {
     mine.forEach((q) => orders.push({ side, type: 'attackMove', squads: [q.idx], x: keep.x, y: keep.y }));
     return;
+  }
+  // I125 (prince+): a defender does not just wait at its walls.
+  if (cfg.powers) {
+    const sent = counterAttack(w, side, cfg, mine, enemies, keep, orders);
+    if (sent.size) mine = mine.filter((q) => !sent.has(q.idx));
+    // Clearly the stronger of what it can see: it goes out to meet the enemy wherever it stands.
+    if (!threat && enemies.length && strengthOf(mine) >= SALLY_ODDS * strengthOf(enemies)) threat = nearest(enemies, keep.x, keep.y);
   }
   mine.forEach((q) => {
     if (cfg.kite && q.classId === 'ranged' && threat && q.target >= 0) {

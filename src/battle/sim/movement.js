@@ -1,7 +1,22 @@
 // src/battle/sim/movement.js
 // Where every squad wants to be this tick, and getting it there (Tactical Battles plan §8.2):
-// straight lines over open ground, flow fields around obstacles, the slowest member's pace for a
-// group moving in formation (RoN), terrain speed, and a separation pass so squads don't stack.
+// straight lines over open ground, flow fields around obstacles, each squad at its own pace (also
+// in a mixed group: the user's ruling Q6), terrain speed, and a separation pass so squads don't stack.
+//
+// The stance contract (playtest audit CB17: U11, I190, I191; the same for the player and the AI):
+//   idle        fights any enemy it can see within its sight, and whoever hits it (even from beyond
+//               its sight: a shooter gives itself away); chases no further than its leash from its
+//               post, then walks back.
+//   attackMove  the same on the way, without the leash; once the fight is over it walks on.
+//   attack      the target it was given, until that dies or leaves the field; then it becomes idle
+//               where it stands and takes on the threats around it (I191). Sent at a building, it
+//               turns on a squad that hits it and goes back to the building once that fight is over.
+//   hold        strikes whatever comes within its reach; never steps out, never chases.
+//   move, retreat  the order is obeyed: it walks where it was sent and does not stop to fight
+//               (a withdrawal never turns into an attack, I190).
+//   garrison    walks into its building; the building does the shooting.
+// Nobody leaves the player's control on their own: morale only makes a commanded side Shaken
+// (morale.js). (The pursuit after a decided field battle is step.js's, not a stance.)
 import { TILE, TILE_COST } from '../setup/mapgen';
 import { angleBetween, distSq, isqrt, polarX, polarY, turnToward } from './fixed';
 import { buildTargetGrid, getFlowField, lineClear, nextWaypoint, tileOf, SPATIAL_CELL, SPATIAL_PER } from './pathing';
@@ -42,8 +57,7 @@ const barredByGate = (w, q, x, y) => {
 export const stepToward = (w, q, gx, gy, cacheKey = null) => {
   const remaining = isqrt(distSq(q.x, q.y, gx, gy));
   if (remaining <= ARRIVE) return true;
-  let speed = q.groupSpeed && (q.order.type === 'move' || q.order.type === 'attackMove') && remaining > 4 * Q ? q.groupSpeed : q.stats.speed;
-  speed = Math.max(1, Math.round(speed * speedMult(w, q)));
+  let speed = Math.max(1, Math.round(q.stats.speed * speedMult(w, q)));
   let wx = gx; let wy = gy;
   if (!q.stats.flying) {
     speed = Math.max(1, Math.trunc((speed * 8) / (TILE_COST[w.map.tiles[tileOf(w.map, q.x, q.y)]] || 8)));
@@ -117,6 +131,18 @@ export const acquireTargets = (w) => {
     let valid = hasValidTarget(w, q);
     // Holding squads never step out to reach a target: one that has moved out of reach is let go.
     if (valid && q.order.type === 'hold' && q.targetKind === 'squad' && !inRangeOfSquad(q, w.squads[q.target])) { q.target = -1; q.targetKind = null; valid = false; }
+    // A squad that broke off an attack on a building to fight back (combat.js applyDamage) goes back
+    // to the building once its attacker is dead, gone or running (U11): it does not chase the beaten.
+    if (q.resumeKind && q.order.type === 'idle') {
+      if (valid && q.targetKind === 'squad' && w.squads[q.target].routed) valid = false;
+      if (!valid) {
+        const kind = q.resumeKind; const idx = q.resumeTarget;
+        q.resumeKind = null; q.resumeTarget = -1;
+        const s = kind === 'eco' ? w.eco?.buildings[idx] : w.structures[idx];
+        if (s?.alive) { q.order = { type: 'attack' }; q.targetKind = kind; q.target = idx; return; }
+        q.target = -1; q.targetKind = null;
+      }
+    }
     if (q.order.type === 'attack') {
       if (valid) return;
       settle(q);
@@ -172,7 +198,7 @@ export const moveSquads = (w) => {
       if (stepToward(w, q, q.order.x, q.order.y)) {
         if (q.order.facing !== undefined) q.facing = q.order.facing;
         q.anchorX = q.x; q.anchorY = q.y;
-        q.order = { type: 'idle' }; q.groupSpeed = 0;
+        q.order = { type: 'idle' };
       }
       return;
     }

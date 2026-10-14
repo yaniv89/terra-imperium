@@ -105,12 +105,13 @@ const applyDamage = (w, attacker, target, damage, arc = 0) => {
   attacker.engaged = true;
   // Retaliation (standard RTS behaviour): a squad that isn't under a specific order fights back
   // against whoever is hitting it, even from beyond its own sight range.
-  // A squad battering a wall turns on whoever attacks it, too.
+  // A squad battering a wall turns on whoever attacks it, too, and goes back to the wall once that
+  // fight is over (movement.js acquireTargets, U11). Move, retreat and hold are obeyed as given.
   const onStructure = target.targetKind === 'structure' || target.targetKind === 'eco';
   const free = target.order.type === 'idle' || target.order.type === 'attackMove' || (target.order.type === 'attack' && onStructure);
   const hasTarget = target.target >= 0 && target.targetKind === 'squad' && isFighting(w.squads[target.target]);
-  if (target.order.type === 'attack' && onStructure && !hasTarget) target.order = { type: 'idle' };
   if (free && !hasTarget && !target.routed && !target.retreating && target.stats.attackTicks > 0 && validTargetFor(target, attacker)) {
+    if (target.order.type === 'attack') { target.resumeKind = target.targetKind; target.resumeTarget = target.target; target.order = { type: 'idle' }; }
     target.targetKind = 'squad'; target.target = attacker.idx;
     target.anchorX = attacker.x; target.anchorY = attacker.y; // chasing its attacker is not "leaving its post"
   }
