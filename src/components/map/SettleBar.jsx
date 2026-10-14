@@ -7,16 +7,18 @@ import React from 'react';
 import { Tent, Compass, X } from 'lucide-react';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useMapToolFlag } from './mapTool';
 
 const SettleBar = ({ model, onNext, onCancel }) => {
   // On a phone held sideways the site sheet stands on the left and the tab rail on the right: the
   // bar takes the room between them (it used to lie over the sheet's close button).
   const insets = useMapInsets();
   const phone = useLayoutMode() === 'phone-landscape';
+  useMapToolFlag('settle', !!model);
   if (!model) return null;
   const between = phone ? { left: insets.left + 16, right: insets.right + 56, transform: 'none', width: 'auto' } : undefined;
   return (
-    <div data-testid="settle-bar" role="status" style={between}
+    <div data-testid="settle-bar" data-map-hud="" role="status" style={between}
       className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-amber-400/60 bg-fa-panel/95 shadow-2xl px-3 py-2 pl:py-1 text-[12px] pl:text-[11px] text-fa-text flex items-center gap-2">
       <Tent className="w-4 h-4 text-fa-brass shrink-0" aria-hidden="true" />
       <div className="flex-1 min-w-0 leading-snug pl:line-clamp-2">

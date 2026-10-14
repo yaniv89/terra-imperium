@@ -1,5 +1,6 @@
 // src/components/map/MapGoals.jsx
-// Two small things in the map's top-left corner (playtest audit I149 and the Research Map button):
+// Two small things in the map's top-left corner, under the "needs you" chips (playtest audit I149
+// and the Research Map button):
 //   the hint    "what to do here", set by showMapHint (uiEvents.js) when a Research boost sends you
 //               to the map, with a way back to Research and a Done button
 //   the tracker the era goals as one chip ("Goals 1/2"); open, each goal has its bar, the legacy it
@@ -13,6 +14,7 @@ import { AGES } from '../../data/ages';
 import { MAP_HINT } from '../ui/uiEvents';
 import { openPanelTab } from '../panels/panelEvents';
 import { Meter } from '../ui/atlas';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 
 const MapGoals = () => {
   const { state } = useGame();
@@ -24,10 +26,17 @@ const MapGoals = () => {
     return () => window.removeEventListener(MAP_HINT, on);
   }, []);
   const era = useMemo(() => eraGoalProgress(state), [state]);
+  // The hint is a notice (useExclusivePanel.js): on a phone it waits as a chip while a card or a
+  // panel has the screen.
+  const { shown: hintShown } = useInteraction('map-hint', !!hint, { priority: PRIORITY.notice, kind: 'notice', label: hint ? `Map: ${hint.title}` : null, testId: 'map-hint-chip' });
+  const wide = 'w-[min(19rem,calc(100vw-1.5rem-var(--rail-inset,0px)))]';
+  // Under the "needs you" chips (App.jsx), so never under them. While a march or a site is being
+  // chosen on a phone held sideways the bar has the top of the screen: the goals step aside
+  // (index.css, html[data-map-tool], I083).
   return (
-    <div className="absolute z-10 left-[calc(var(--city-rail-w,0px)+0.75rem)] pl:left-[max(env(safe-area-inset-left),0.75rem)] top-[calc(var(--header-height,2.5rem)+0.5rem)] w-[min(19rem,calc(100vw-1.5rem-var(--rail-inset,0px)))] flex flex-col items-start gap-1.5 pointer-events-none" data-testid="map-goals" data-map-hud="group">
-      {hint && (
-        <div role="status" className="pointer-events-auto fa-panel !bg-fa-panel shadow-xl p-2 w-full text-[12px] space-y-1.5" data-testid="map-hint">
+    <div className="map-goals flex flex-col items-start gap-1.5 pointer-events-none" data-testid="map-goals">
+      {hint && hintShown && (
+        <div role="status" className={`pointer-events-auto fa-panel !bg-fa-panel shadow-xl p-2 ${wide} text-[12px] space-y-1.5`} data-testid="map-hint">
           <div className="font-semibold leading-tight">{hint.title}</div>
           <div className="text-fa-muted leading-snug">{hint.text}</div>
           <div className="flex gap-2">
@@ -41,7 +50,7 @@ const MapGoals = () => {
         <Target size={14} aria-hidden="true" />Goals <span className="fa-num">{era.met}/{era.needed}</span>
       </button>
       {open && (
-        <div className="pointer-events-auto fa-panel !bg-fa-panel shadow-xl p-2 w-full max-h-[calc(100dvh-8rem)] overflow-y-auto space-y-1.5" data-testid="goal-tracker">
+        <div className={`pointer-events-auto fa-panel !bg-fa-panel shadow-xl p-2 ${wide} max-h-[calc(100dvh-8rem)] overflow-y-auto space-y-1.5`} data-testid="goal-tracker">
           <div className="flex items-start justify-between gap-2">
             <div className="text-[12px] text-fa-muted leading-snug">{AGES[era.ageId]?.name || era.ageId} goals: meet {era.needed} for a legacy that lasts {ERA_LEGACY_TURNS} turns.</div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close the goals" className="w-8 h-8 shrink-0 flex items-center justify-center rounded hover:bg-fa-raised"><X size={14} aria-hidden="true" /></button>

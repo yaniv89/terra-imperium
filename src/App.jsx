@@ -9,6 +9,7 @@ import { StartScreen } from './components/ui';
 import WorldTopBar from './components/ui/WorldTopBar';
 import TurnDock from './components/ui/TurnDock';
 import NextPrompt from './components/ui/NextPrompt';
+import MapGoals from './components/map/MapGoals';
 import SettingsSheet from './components/ui/SettingsSheet';
 import TurnReportSheet from './components/ui/TurnReportSheet';
 import NationOverviewSheet from './components/ui/NationOverviewSheet';
@@ -225,12 +226,15 @@ const GameLayout = () => {
       <WorldTopBar />
 
       {/* "Needs you" chips under the top bar (W02): tap one to jump there. */}
+      {/* data-map-hud: the map's names keep clear of them (I081). */}
       <div className="fixed z-10 left-[calc(max(env(safe-area-inset-left),0.75rem)+var(--city-rail-w,0px))] top-[calc(var(--header-height,2.25rem)+0.625rem)] pointer-events-none needs-you">
         {state.gameStatus === GameStatus.ACTIVE && (
-          <div className="flex flex-col items-start gap-1.5">
+          <div className="flex flex-col items-start gap-1.5" data-map-hud="group">
             {/* Decisions that wait behind the one on screen (useExclusivePanel.js), then the chips. */}
             <WaitingChips />
             <NextPrompt />
+            {/* The map's hint and the era goals under the chips, never under them (I083). */}
+            <MapGoals />
           </div>
         )}
       </div>

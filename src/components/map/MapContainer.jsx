@@ -48,7 +48,6 @@ import TileSheet from './TileSheet';
 import ArmySheet from './ArmySheet';
 import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
-import MapGoals from './MapGoals';
 import { LENSES } from './lenses';
 import SettleBar from './SettleBar';
 import { settleModeFor, settleModeOver, settleSites, settleUnit, nextSite, settleBarModel, idleSettlerOn, firstIdleSettler } from './settleMode';
@@ -252,7 +251,6 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
         position="panel-hud"
       />
       )}
-      <MapGoals />
       {/* Closing the site sheet keeps the settle mode (its bar stays): I086. */}
       {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} settleUnitId={settleUnitNow?.id || null} onSettle={startSettle} />}
       {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
