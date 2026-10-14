@@ -237,8 +237,8 @@ Delivered on `claude/art-foot-clips` over `scripts/blender/ti_foot_clips.py` (th
 - **Weapon hands**: the weapon's bone carries the weapon exactly; the fists reach for it with two-bone
   IK on the figure's short arms, so on a few in-between frames (a long gun coming down from the shoulder,
   the spade's toss) a fist can sit up to 10 cm off the haft. Nothing for the code to do; it is the art.
-- **Not covered**: modern-ranged (the ATGM team: three rigs, a kneeling gunner) keeps its rest pose and the
-  procedural rig; mounted units, siege and vehicles are separate work. The Gunpowder rifleman's rifle
+- **Not covered**: modern-ranged (the ATGM team: three rigs, a kneeling gunner) and the mounted units: see 7.3;
+  siege and vehicles are separate work. The Gunpowder rifleman's rifle
   hangs from Prop_L (his left fist), every other gun from Prop_R. No ramrod and no spare magazine were
   modelled (the triangle counts are unchanged), so loading is the hands' motion alone.
 
@@ -289,7 +289,15 @@ tables and sheets: `plans/art-pilot/mounted-clips/LOG.md`. Test: `src/battle/ren
   stretches them at rest and the stretched shaft rides on Prop_R (7.2). Couched, a 3.5 m lance reaches about 1.5 H
   in front of the rider's fist.
 - **Hidden props by scale** as in 7.1: the chariot archer's arrow (Tool_Arrow, 0 from `release` until a new one
-  comes out of the quiver).
+  comes out of the quiver), the ATGM loader's spare tube (Tool_Spare, 0 from the frame after `reloaded` until a
+  new one is in his fist at frame 47).
+- **The ATGM team** (modern-ranged: AtgmRig, GunnerRig, LoaderRig): Idle, Aim-fire-reload (50 frames, `fire` 12:
+  spawn the missile there; the launcher's Hull kicks about its head; `reloaded` 38), Hit, Death, DeathAlt (settle
+  40). Its people stand on the ground (in place, as 7.2); in the falls the loader may step 0.25 H aside.
+- **Vehicles** (tank, AA truck, command car, technical) are not authored. The renderer's procedural turret
+  (LIMB.TURRET: a slow scan while standing, a shake while firing) stays the right tool for the aim, which only the
+  game knows; clips would add wheel and track spin, the barrel's recoil with a `fire` event and a Wreck, and should
+  leave Turret and Barrel unkeyed so the procedural yaw can still apply.
 - **The procedural rig.** A file with clips must not also get the vertex rig's horse trot (HORSE_FRONT/BACK) or
   the rider's still legs (`staticLegs`): the clips move every leg. Units without clips keep it.
 

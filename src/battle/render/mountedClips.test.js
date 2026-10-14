@@ -27,7 +27,8 @@ const UNITS = {
   'bronze-cavalry': 'chariot', 'bronze-general': 'general', 'bronze-raider': 'mounted',
   'classical-cavalry': 'mounted', 'classical-general': 'general', 'classical-raider': 'mounted',
   'kingdoms-cavalry': 'mounted', 'kingdoms-general': 'general', 'kingdoms-raider': 'mounted',
-  'gunpowder-cavalry': 'mounted', 'gunpowder-general': 'general', 'gunpowder-raider': 'mounted'
+  'gunpowder-cavalry': 'mounted', 'gunpowder-general': 'general', 'gunpowder-raider': 'mounted',
+  'modern-ranged': 'atgm'
 };
 const POLEARMS = /spear|pike|lance|halberd/i;
 const FPS = 20;
@@ -165,6 +166,16 @@ describe.each(Object.entries(UNITS))('%s clips', (name, archetype) => {
       expect(at(0)).toBe(1);
       expect(at(rel - 2)).toBe(1);
       expect(at(rel - 1)).toBe(0);
+      expect(at(-1)).toBe(1);
+    }
+    // the ATGM loader's spare tube on its own bone: in his fist at rest, gone once it is loaded, a new one in his
+    // fist by the end
+    if (bones.has('Tool_Spare')) {
+      const t = track(clips['Aim-fire-reload'], 'Tool_Spare', 'scale'); const done = opts.clips['Aim-fire-reload'].events.reloaded;
+      const at = (k) => (t ? t.values[(k < 0 ? t.times.length + k : k) * 3] : 1);
+      expect(at(0)).toBe(1);
+      expect(at(done - 1)).toBe(1);
+      expect(at(done)).toBe(0);
       expect(at(-1)).toBe(1);
     }
     // Charge: the horses gallop on through the impact; the riders' and the crews' weapons are held two frames

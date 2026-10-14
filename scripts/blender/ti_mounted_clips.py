@@ -1131,6 +1131,162 @@ def chariot(near, off, car, driver, archer, arrow=('ArcherNockedArrow', 'ArcherN
     return table, unit.acts
 
 
+# ---- the Modern ATGM team: the launcher, the kneeling gunner, the loader with the spare tube ---------------
+
+class TeamLib(RiderLib):
+    """A man of a weapon team: `plant` his feet (the standing loader) or not (the kneeling gunner, whose legs
+    keep their rest pose); his hands' targets in the rig's space; `show` the tool bones' scales."""
+
+    def __init__(self, P, kit, kind, plant, show=None):
+        super().__init__(P, kit, kind)
+        self.plant_feet, self.show = plant, dict(show or {})
+
+    def rest(self, **extra):
+        spec = super().rest(**extra)
+        spec['plant'] = 1 if self.plant_feet else 0
+        spec['space'] = 'world'
+        if self.show:
+            spec['show'] = dict(self.show)
+        return spec
+
+
+def add_tool_bone(arm, name, objects, side='R'):
+    """A Tool_<name> bone (a child of Prop_<side> at the fist's grip, as Tool_Arrow) carrying `objects`, which
+    move to it from Prop_<side> (the same place and limb at rest), so they can be hidden by scale. Call with the
+    rig at the origin."""
+    G, ax = C.rest_grip(side, bpy.data.objects.get(arm.name[:-3] + 'Fingers_' + side) and arm.name[:-3] + 'Fingers_' + side)
+    a, _ = C.tool_frame(ax)
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = arm
+    arm.select_set(True)
+    bpy.ops.object.mode_set(mode='EDIT')
+    b = arm.data.edit_bones.new('Tool_' + name)
+    b.head, b.tail, b.roll = G, G + a * .08, 0
+    b.parent = arm.data.edit_bones['Prop_' + side]
+    bpy.ops.object.mode_set(mode='OBJECT')
+    for pb in arm.pose.bones:
+        pb.rotation_mode = 'QUATERNION'
+    bpy.ops.object.select_all(action='DESELECT')
+    for n in objects:
+        g = bpy.data.objects[n].vertex_groups.get('Prop_' + side)
+        assert g, n
+        g.name = 'Tool_' + name
+
+
+def atgm(launcher, gunner, loader, spare=('SpareTube', 'SpareCap', 'SpareCapLow'), tube='AtgmTube'):
+    """Author the ATGM team: the launcher (it kicks at the shot), the gunner kneeling at its sight (he leans
+    in, fires, rides the kick and lays it again), the loader (he brings the spare tube to the launcher's back,
+    reloaded, the tube gone; a new one in his fist as he straightens). Returns (table, order)."""
+    unit = Unit('atgm')
+    acts = unit.acts
+    gp = Person(gunner, FC.Kit('sword'), weapon=False)
+    G = TeamLib(gp.P, gp.kit, 'hand', plant=False)
+    lp = Person(loader, FC.Kit('spear'))
+    loc, rot = loader.location.copy(), loader.rotation_euler.copy()
+    loader.location, loader.rotation_euler = (0, 0, 0), (0, 0, 0)
+    upd()
+    add_tool_bone(loader, 'Spare', spare)
+    loader.location, loader.rotation_euler = loc, rot
+    upd()
+    lp.P.tools.append('Tool_Spare')
+    L = TeamLib(lp.P, lp.kit, 'lance', plant=True, show={'Spare': 1})
+    # the launcher's tube in the loader's space: its back end and its axis
+    tb = bpy.data.objects[tube]
+    vs = [tb.matrix_world @ v.co for v in tb.data.vertices]
+    back = max(vs, key=lambda p: p.y)
+    back = V((sum(p.x for p in vs) / len(vs), back.y, sum(p.z for p in vs) / len(vs)))
+    Mi = loader.matrix_world.inverted()
+    # the spare comes in from behind on the gunner's right, a little nose down, its front end at the launcher's back
+    dw = nrm(V((-.30, -.26, -.10)))
+    d_tube = nrm(Mi.to_3x3() @ dw)
+    face = nrm(Mi.to_3x3() @ V((0, 0, 1)))
+    front = back + V((.03, .02, .03))
+    grip_at = front - dw * (lp.P.length - lp.P.h0)
+    r0g, r0l = G.rest(), L.rest()
+
+    def gk(r, root=(0, 0, 0), **x):
+        return G.key(r, root, **x)
+
+    def lk(r, root=(0, 0, 0), at=None, spare_on=1, **x):
+        s = L.key(r, root, **x)
+        if at is not None:
+            s['W'] = L.W(at, d_tube, face)
+            s['R'] = L.on('R', pole=(-1, .4, -.4))
+        s['show'] = {'Spare': spare_on}
+        return s
+    gclips, lclips = {}, {}
+    for act in acts:
+        frames, loop, events = ACTS[act]
+        if act == 'Idle':
+            gclips[act] = Clip(act, frames, loop, None, keys=[(1, r0g), (21, gk({'Spine': (.8, 0, 0), 'Head': (-2, 0, 4)})), (41, r0g)])
+            lclips[act] = Clip(act, frames, loop, None, keys=[(1, r0l), (21, lk({'Chest': (0, 0, -2), 'Head': (-2, 0, 8), 'Spine': (.6, 0, 0)})), (41, r0l)])
+        elif act == 'Aim-fire-reload':
+            lay = gk({'Spine': (6, 0, 0), 'Chest': (3, 0, 0), 'Head': (-6, 0, 0)}, (0, 0, -.005))
+            kick = gk({'Spine': (2, 0, 0), 'Chest': (-2, 0, 0), 'Head': (-2, 0, 0)}, (0, 0, .004), ease='out')
+            aside = gk({'Spine': (4, -10, 6), 'Chest': (2, -6, 4), 'Head': (-4, 0, 14)}, (0, 0, -.005))  # he leans out of the loader's way
+            gclips[act] = Clip(act, frames, loop, None, keys=[(1, r0g), (7, lay), (11, lay), (12, kick), (14, kick), (20, lay), (26, aside), (38, aside),
+                                                              (44, lay), (50, r0g)], events=events)
+            # the loader: watches the shot, turns and crouches with the spare tube, lays it behind the
+            # launcher and pushes it home (reloaded: it is gone), straightens with a new one
+            P0 = Mi @ grip_at
+            ready = lk({'Spine': (14, -10, -14), 'Chest': (6, -6, -10), 'Head': (-12, 0, 10)}, (0, 0, -.10), at=Mi @ (grip_at - dw * .12 + V((0, 0, .08))))
+            lay_on = lk({'Spine': (20, -16, -18), 'Chest': (8, -8, -12), 'Head': (-16, 0, 12)}, (0, 0, -.14), at=P0)
+            home = lk({'Spine': (22, -16, -18), 'Chest': (9, -8, -12), 'Head': (-16, 0, 12)}, (0, 0, -.15), at=P0 + d_tube * .07, ease='in')
+            empty = lk({'Spine': (20, -14, -16), 'Chest': (8, -6, -10), 'Head': (-14, 0, 10)}, (0, 0, -.14), at=P0 + d_tube * .07, spare_on=0)
+            up = lk({'Spine': (6, -4, -6), 'Chest': (2, 0, -4), 'Head': (-4, 0, 4)}, (0, 0, -.03), spare_on=0)
+            lclips[act] = Clip(act, frames, loop, None, keys=[(1, r0l), (12, lk({'Head': (-4, 0, 14)})), (17, lk({'Head': (-6, 0, 18), 'Spine': (4, 0, -6)})),
+                                                              (24, ready), (30, lay_on), (37, home), (38, home), (39, empty), (44, up), (47, dict(up, show={'Spare': 1})),
+                                                              (50, r0l)], events=events)
+        elif act == 'Hit':
+            a = gk({'Spine': (-8, 0, -4), 'Chest': (-12, 0, -6), 'Head': (-12, 0, 6)}, ease='out')
+            gclips[act] = Clip(act, frames, loop, None, keys=[(1, r0g), (4, a), (6, a), (10, r0g)])
+            b = lk({'Spine': (-6, 0, -4), 'Chest': (-12, 0, -9), 'Head': (-12, 0, 6), 'Hips': (-2, 0, 0)}, (0, 0, -.015), ease='out')
+            lclips[act] = Clip(act, frames, loop, None, keys=[(1, r0l), (4, b), (6, dict(b, root=(0, 0, -.02))), (10, r0l)])
+        elif act in ('Death', 'DeathAlt'):
+            back_fall = act == 'DeathAlt'
+            struck = gk({'Spine': (-10, 0, -6), 'Chest': (-12, 0, -8), 'Head': (-14, 0, 6)}, ease='out', space='chest')
+            # the kneeling legs open out as he goes over (the rest pose has the left knee up, the right on the ground)
+            legs = {'Leg_L': (70, 0, 0), 'Shin_L': (-70, 0, 0), 'Leg_R': (10, 0, 0), 'Shin_R': (-80, 0, 0)}
+            tip = gk(dict({'Root': (-30, 0, 0) if back_fall else (0, -36, 0), 'Spine': (-6, 0, 0), 'Head': (-6, 0, 0)},
+                          **{b: (a[0] * .4, 0, 0) for b, a in legs.items()}), space='chest', ease='in')
+            down = gk(dict({'Root': (-76, 0, 0) if back_fall else (0, -84, 0), 'Spine': (4, 0, 0), 'Head': (-12, 0, 8)}, **legs), space='chest', ground=1, ease='in')
+            bounce = dict(down, r=dict(down['r'], Root=(-70, 0, 0) if back_fall else (0, -79, 0)), ease='out')
+            gclips[act] = Clip(act, frames, loop, None, keys=[(1, r0g), (5, struck), (14, tip), (22, down), (26, bounce), (31, down), (40, down)], ground='all',
+                               events=events)
+            c = retime(L.death(act, -1 if act == 'Death' else 1), frames, act, events=events)
+            out = []
+            for f, s in c.keys:
+                z = V(s.get('root', (0, 0, 0))).z
+                t = min(1, max(0, (f - 3) / 14)) ** .8 if back_fall else 0
+                out.append((f, dict(s, show={'Spare': 1}, root=(.23 * t, .11 * t, z))))  # he steps out to the side (+X)
+            c.keys = out
+            lclips[act] = c
+
+    def pose_launcher(act, f):
+        reset(launcher)
+        if act == 'Aim-fire-reload':
+            k = spec_at([(1, {'p': 0.}), (11, {'p': 0.}), (12, {'p': -4.}), (13, {'p': -3.}), (19, {'p': 0., 'ease': 'io'}), (50, {'p': 0.})], f)
+            u.rotate_world(launcher, 'Hull', (k['p'], 0, 0))
+        upd()
+
+    def pose_gunner(act, f):
+        clip = gclips[act]
+        gp.pose(clip, spec_at(clip.keys, f), f)
+
+    def pose_loader(act, f):
+        clip = lclips[act]
+        lp.A.pose(clip, spec_at(clip.keys, f), f)
+    unit.add(launcher, pose_launcher)
+    unit.add(gunner, pose_gunner, lambda act: gp.begin(gclips[act]))
+    unit.add(loader, pose_loader, lambda act: lp.begin(lclips[act]))
+    bpy.context.scene.render.fps = FPS
+    table = unit.run()
+    for per in (gp, lp):
+        print('REACH', per.arm.name, json.dumps(sorted(((round(e, 4), c, s) for (c, s), e in per.A.reach.items()), reverse=True)[:6]), flush=True)
+    set_clip('Idle', 1)
+    return table, unit.acts
+
+
 # ---- the options file, the builder hook, the sheets ----------------------------------------------------------
 
 def options_extra(uid):

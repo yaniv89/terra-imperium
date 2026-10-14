@@ -6,7 +6,9 @@
 # launcher (AtgmRig with its one Hull bone and its parts AtgmLeg0-2, AtgmHead, AtgmTube, AtgmBand,
 # AtgmSight, AtgmEyepiece, built by build_units_modern.atgm_launcher, unchanged), the gunner
 # (GunnerRig) and the loader (LoaderRig, with the SpareTube and SpareCap on his right hand); flat
-# material colours, the Team and Skin tags; rest pose only (no clips). Only the two people are redone,
+# material colours, the Team and Skin tags. Clips since 2026-10-14 (ti_mounted_clips.atgm: Idle,
+# Aim-fire-reload, Hit, Death, DeathAlt over the three rigs; the spare tube moved to its own bone Tool_Spare,
+# hidden by scale once it is loaded; Idle frame 1 is the rest pose, unchanged). Only the two people are redone,
 # dressed as the rifleman (build_modern_infantry.py, ti_figure.modern_soldier):
 #   - light tan combat helmets with Team cover bands, Team plate carriers with pouches, dark olive
 #     uniforms, knee pads, gloves and high boots
@@ -25,6 +27,7 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
 import build_units_modern as md  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 
 UID = 'modern-ranged'
 F.start({'Skin': 'C99472', 'Hair': '2E241C', 'Uniform': '3C4134', 'Boot': '26231F', 'Sole': '161514', 'Pad': '2C2D29', 'Helmet': '8E8668',
@@ -66,8 +69,9 @@ tris = F.finish_unit(UID, parts, {
     'role': 'ranged',
     'look': 'ATGM team: the gunner kneeling behind a tripod guided-missile launcher, leaning in with his hands on the sight and the tube, the loader standing '
             'with a spare missile tube upright; light tan helmets with Team bands, Team plate carriers with pouches, dark olive uniforms, knee pads, gloves, high boots',
-    'pose': 'rest pose only; the vertex rig walks the legs and swings the arms',
+    'pose': 'rest pose = Idle frame 1; the team clips (ti_mounted_clips.atgm, 2026-10-14)',
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py: the two figures redone, the launcher (AtgmRig) unchanged. Budget: two people and a light launcher, '
              'not a machine (no footprint in modern-ranged.json): under 4,000.'},
-    open_facing=dict(F.facing), centre=(.15, 0, .5), scale=1.9)
+    open_facing=dict(F.facing), centre=(.15, 0, .5), scale=1.9, mode='NLA_TRACKS',
+    clips=MC.hook(UID, lambda: MC.atgm(parts[0], parts[1], parts[2]), 'atgm', {'ortho': 1.9, 'aim': (.05, -.05, .42)}))
 assert tris <= 4000, tris

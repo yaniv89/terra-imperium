@@ -266,3 +266,34 @@ MountRig, RaiderRig: the torch set, the feet in the stirrups. Triangles 3472 (un
 | Hit | 10 | 0.50 | no | - |
 | Death | 40 | 2.00 | no | settle 40 |
 | DeathAlt | 40 | 2.00 | no | settle 40 |
+
+## modern-ranged
+
+The ATGM team: AtgmRig (the tripod launcher, one Hull bone), GunnerRig (kneeling at the sight), LoaderRig (standing
+at the gunner's right, turned 25 degrees). The spare tube (SpareTube, SpareCap, SpareCapLow) moved from Prop_R to its
+own bone Tool_Spare (a child of Prop_R at the fist), shown by scale as in 7.1. Aim-fire-reload: the gunner leans in
+to the sight, fire 12 (the launcher kicks up 4 degrees about its head and settles by 19, the gunner rides it), he
+leans aside while the loader turns, crouches and brings the spare in from behind on the gunner's right, its front end
+at the launcher's back, and pushes it home: reloaded 38, the tube gone from his fist (scale 0 from 39); he
+straightens, a new spare in his fist from 47 (the rest pose at 50). Hit: both recoil. Death: the gunner topples onto
+his right side, the loader falls backward; DeathAlt: the gunner falls backward, the loader steps out to the side and
+falls forward; the kneeling legs open out as the gunner goes down. Triangles 3624 (unchanged); GLB 307 KB packed (was
+263 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Aim-fire-reload | 50 | 2.50 | no | fire 12, reloaded 38 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |
+
+## Modern vehicles (not authored)
+
+modern-cavalry (the tank), modern-siege, modern-general and modern-raider keep their rest pose and the procedural
+rig. The renderer already turns the turret: every vertex classed LIMB.TURRET (bones or nodes named turret, barrel,
+cannon, gun, mantlet) yaws about the model's vertical axis (soldierFactory.js `turret()`: a slow scan of 0.35 rad
+while the squad stands, a small shake while it fires). Wheels and tracks are rigid body parts and do not turn. Clips
+would add the wheel and track spin in Move, the barrel's recoil and the hull's rock at Fire (an event to sync the
+muzzle flash), and a Wreck; the turret's aim must stay procedural (it follows a target only the game knows), so a
+vehicle clip should leave Turret and Barrel unkeyed.
