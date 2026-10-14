@@ -5,6 +5,7 @@
 import { openPanelTab, OPEN_SECTION } from '../panels/panelEvents';
 import { selectArmy, selectTile, selectRegion, manageCity, focusRegion } from '../map/marchEvents';
 import { openTributeDemand, openJoinOffer } from '../independents/independentEvents';
+import { showCapture } from '../capture/captureEvents';
 import { openResearchChoice, showPeaceOffer, showDefense } from './uiEvents';
 import { interactions } from '../../hooks/useExclusivePanel';
 
@@ -57,6 +58,7 @@ export const goToBlocker = (state, b) => {
     case 'join': openJoinOffer(t.offerId); return;
     case 'peace': showPeaceOffer(); return;
     case 'defense': showDefense(); return;
+    case 'capture': showCapture(); return;
     case 'event': interactions.promote('event'); if (t.cityId) focusRegion(t.cityId); return;
     default:
   }
