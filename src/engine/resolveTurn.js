@@ -96,6 +96,7 @@ import { applyLoyalty } from './loyalty';
 import { awardEraLegacy } from './eraGoals';
 import { createDefenseRecord } from './defense';
 import { conquerRegion } from './conquest';
+import { openCapture, settleOpenCaptures } from './capture';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
@@ -288,9 +289,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
 
   // --- sieges (plans/civ-map-rework.md D2, sieges.js): armies beside a city grind its walls; at
   // 0 HP it falls. Before the cities phase, so a besieged city works ring 1 only this turn.
+  // A capture card still open here was never answered (a headless loop: End Turn waits for it in
+  // the game): the city is kept (capture.js). Then this turn's surrenders to the player open one.
+  state = settleOpenCaptures(state);
   {
     const siegeRegions = { ...state.regions };
     const siegeUnits = { ...state.units };
+    const surrendered = [];
     const { fallen, logs: siegeLogs } = processSieges(state, siegeRegions, siegeUnits, { turn: newTurnNumber });
     let siegeNations = state.nations; let siegeWars = state.wars; const pendingDefenses = [...(state.pendingDefenses || [])];
     const committed = new Set();
@@ -309,10 +314,12 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       const r = conquerRegion({ regions: siegeRegions, nations: siegeNations, turnNumber: newTurnNumber }, f.cityId, f.to, war || null);
       Object.assign(siegeRegions, r.regions); siegeRegions[f.cityId] = { ...r.regions[f.cityId], siege: null, buildings: siegeRegions[f.cityId].buildings };
       siegeNations = r.nations; changedHands = true;
+      if (f.to === state.playerNationId) surrendered.push(f);
       siegeLogs.push({ nationId: f.from, message: `${siegeRegions[f.cityId].name} has fallen to ${state.nations[f.to]?.name || f.to} after a siege.` }, { nationId: f.to, message: `${siegeRegions[f.cityId].name} surrenders to your siege.` });
     });
     siegeLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.COMBAT }); });
     state = { ...state, regions: siegeRegions, units: siegeUnits, nations: siegeNations, pendingDefenses };
+    surrendered.forEach((f) => { state = openCapture(state, { opId: `siege:${newTurnNumber}:${f.cityId}`, cityId: f.cityId, by: f.to, from: f.from, source: 'siege' }); });
     // The registry (neighbours, capitals) only changes when a city changed hands: a rebuild every
     // turn cost 15 ms (a breached city the rebels cannot take, or one the player must defend, is
     // listed as fallen every turn without changing owner).

@@ -58,6 +58,7 @@ import { isRaidKind, queuedRaidArmies } from './raidBattle';
 import { interceptArmies, landingArmies, resolveInterceptQueued, resolveLandingQueued } from './aiLanding';
 import { giftIndependent, proposeJoining, answerJoinOffer, demandIndependentTribute, proposeIndependentTrade, offerIndependentTribute, razeCityForPlayer } from './indepPolicy';
 import { canRaze, stopRazing } from './razing';
+import { resolveCapture } from './capture';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
 import { addNationModifier } from './modifiers/timed';
@@ -3166,6 +3167,12 @@ const reduceAction = (state, action) => {
       if (!out) return reject(state, 'Not your settlers.');
       const message = out.city ? `The settlers go home: ${out.city.name} grows by one citizen.` : 'The settlers disband.';
       return syncWorldRegistry({ ...state, units: out.units, regions: out.regions, logs: [...state.logs, { year: state.year, message, type: LogTypes.ACTION }] });
+    }
+
+    case ActionTypes.RESOLVE_CAPTURE: {
+      // The capture card (decision 40, capture.js): Conquer, Raze, Make tributary or Free, once.
+      const r = resolveCapture(state, action.payload?.captureId, action.payload?.choice);
+      return r.reason ? reject(state, r.reason) : r;
     }
 
     default:

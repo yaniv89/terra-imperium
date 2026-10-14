@@ -214,7 +214,10 @@ export const ActionTypes = {
   // Settlers besides a destination (src/engine/settlers.js, playtest audit I093): wait here and stop
   // asking, or go home (the unit is gone, its citizen joins the nearest own city).
   SET_SETTLER_HOLD: 'SET_SETTLER_HOLD',
-  DISBAND_SETTLERS: 'DISBAND_SETTLERS'
+  DISBAND_SETTLERS: 'DISBAND_SETTLERS',
+  // The capture card (decision 40, src/engine/capture.js): payload { captureId, choice } where
+  // choice is 'conquer' | 'raze' | 'tributary' | 'free'.
+  RESOLVE_CAPTURE: 'RESOLVE_CAPTURE'
 };
 
 export const LogTypes = {
