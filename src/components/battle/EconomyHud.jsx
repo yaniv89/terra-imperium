@@ -190,24 +190,40 @@ export const trainBlock = (role, stock, queueLength) => {
   return short.length ? `Needs ${short.map(([r, v]) => `${v} more ${r}`).join(', ')}` : null;
 };
 
-export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, onCancel, onRally, rallyArmed, onBuildHouse }) => {
-  const [asked, setAsked] = useState(null); // { role, before, at } the last train order sent
+/** The stock left once the train orders still waiting for Resume are paid (RTS-03). */
+export const stockAfter = (stock, roles = []) => (stock || []).map((v, i) => v - roles.reduce((s, r) => s + (UNITS[r]?.cost?.[RESOURCES[i]] || 0), 0));
+
+export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, onCancel, onRally, rallyArmed, onBuildHouse, paused = false }) => {
+  // { roles, before, at }: the train orders sent and not yet seen in the queue. While paused they
+  // pile up (the battle takes them on Resume) and show at once as waiting cards (RTS-03).
+  const [asked, setAsked] = useState(null);
   const [said, setSaid] = useState(null); // { text, bad }
   const qLen = building?.queue.length ?? 0;
   const idx = building?.idx;
   useEffect(() => { setAsked(null); setSaid(null); }, [idx]);
   useEffect(() => {
     if (!asked) return undefined;
-    if (qLen > asked.before) { setSaid({ text: `Queued: ${unitName(asked.role, ageId)}, paid ${paidText(UNITS[asked.role].cost)}`, bad: false }); setAsked(null); return undefined; }
-    const t = setTimeout(() => { setSaid({ text: `${unitName(asked.role, ageId)} not queued: ${trainBlock(asked.role, stock, qLen) || 'the battle did not take the order'}`, bad: true }); setAsked(null); }, TRAIN_WAIT_MS);
+    const last = asked.roles[asked.roles.length - 1];
+    if (qLen > asked.before) {
+      const text = asked.roles.length > 1 ? `Queued: ${Math.min(asked.roles.length, qLen - asked.before)} of ${asked.roles.length}` : `Queued: ${unitName(last, ageId)}, paid ${paidText(UNITS[last].cost)}`;
+      setSaid({ text, bad: false }); setAsked(null); return undefined;
+    }
+    if (paused) return undefined; // waiting for Resume: no verdict yet
+    const t = setTimeout(() => { setSaid({ text: `${unitName(last, ageId)} not queued: ${trainBlock(last, stock, qLen) || 'the battle did not take the order'}`, bad: true }); setAsked(null); }, TRAIN_WAIT_MS);
     return () => clearTimeout(t);
-  }, [asked, qLen, ageId, stock]);
+  }, [asked, qLen, ageId, stock, paused]);
+  const waiting = paused && asked ? asked.roles : [];
+  const freeStock = stockAfter(stock, waiting);
+  const blockOf = (role) => trainBlock(role, freeStock, qLen + waiting.length);
   useEffect(() => { if (!said) return undefined; const t = setTimeout(() => setSaid(null), 3000); return () => clearTimeout(t); }, [said]);
   if (!building) return null;
   const def = BUILDINGS[building.type];
   const roles = building.built ? (def.trains || []).filter((r) => trainableRoles(ageId).includes(r)) : [];
   if (!roles.length && !building.queue.length) return null;
-  const train = (role) => { setAsked({ role, before: building.queue.length, at: Date.now() }); setSaid(null); onTrain(role); };
+  const train = (role) => {
+    setAsked((a) => (a && paused ? { ...a, roles: [...a.roles, role] } : { roles: [role], before: building.queue.length, at: Date.now() }));
+    setSaid(null); onTrain(role);
+  };
   return (
     <div className="w-[min(26rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]" data-testid="battle-building-actions">
       <div className="flex items-center gap-2 px-1 pb-1">
@@ -215,7 +231,7 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
         {roles.some((r) => r !== 'worker') && <span className="text-[10px] text-fa-brass truncate" data-testid="battle-train-temporary" title={AUXILIARY_NOTE}>Temporary: they leave after the battle</span>}
         {eco?.popSplit && <span className="text-[10px] text-fa-muted truncate" data-testid="battle-pop-split">Population <span className="fa-num">{eco.pop}/{eco.cap}</span>: army {eco.popSplit.army}, laborers {eco.popSplit.workers}, training {eco.popSplit.training}</span>}
       </div>
-      {building.queue.length > 0 && (
+      {(building.queue.length > 0 || waiting.length > 0) && (
         <div className="flex flex-wrap gap-1 px-0.5 pb-1" data-testid="battle-train-queue">
           {building.queue.map((it, k) => (
             <button key={k} type="button" onClick={() => onCancel(k)} title="Cancel" aria-label={`Cancel ${it.role}`}
@@ -225,8 +241,16 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
               <span className="absolute left-0 bottom-0 h-0.5 bg-fa-good" style={{ width: `${k === 0 ? it.pct : 0}%` }} />
             </button>
           ))}
+          {waiting.map((role, k) => (
+            <div key={`w${k}`} role="img" aria-label={`${unitName(role, ageId)}, starts when you resume`} title="Starts when you resume" data-testid="battle-train-waiting"
+              className="w-11 h-11 rounded-md border border-dashed border-fa-brass bg-fa-raised/60 text-[9px] leading-none flex flex-col items-center justify-center gap-0.5 opacity-90">
+              {role === 'worker' ? <Hammer className="w-4 h-4 text-fa-muted" /> : <GameIcon group="units" id={role} url={unitIconUrl(role)} size={20} fallback={<Hourglass className="w-3 h-3" />} />}
+              <Hourglass className="w-2.5 h-2.5 text-fa-brass" aria-hidden="true" />
+            </div>
+          ))}
         </div>
       )}
+      {waiting.length > 0 && <div className="px-1 pb-1 text-fa-brass font-semibold" role="status" data-testid="battle-train-waiting-note">Paid and started when you resume.</div>}
       {building.queue[0]?.blocked === 'housing' && (
         <button type="button" onClick={onBuildHouse} disabled={!canPay(BUILDINGS.house.cost, stock)} data-testid="battle-build-house"
           className="mb-1 w-full min-h-[44px] rounded-[10px] bg-fa-danger/15 border border-fa-danger text-[10.5px] font-semibold flex items-center justify-center gap-1 disabled:opacity-50">
@@ -237,12 +261,12 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
       {roles.length > 0 && (
         <div className="flex gap-1">
           {roles.map((role) => (
-            <button key={role} type="button" disabled={!!trainBlock(role, stock, building.queue.length)} title={trainBlock(role, stock, building.queue.length) || undefined} onClick={() => train(role)} data-testid={`train-${role}`}
+            <button key={role} type="button" disabled={!!blockOf(role)} title={blockOf(role) || undefined} onClick={() => train(role)} data-testid={`train-${role}`}
               className="flex-1 min-w-0 h-12 px-1 rounded-[10px] bg-fa-raised border border-fa-line flex items-center gap-1.5 disabled:opacity-45">
               {role === 'worker' ? <Hammer className="w-5 h-5 shrink-0 text-fa-muted" /> : <GameIcon group="units" id={role} url={unitIconUrl(role)} size={24} fallback={null} />}
               <span className="min-w-0 flex flex-col items-start gap-0.5">
                 <span className="font-semibold text-[10.5px] leading-none truncate max-w-full">{role === 'worker' ? ecoName('worker', ageId) : getSquadDisplayName(role, ageId)}</span>
-                <Cost cost={UNITS[role].cost} stock={stock} size={10} className="text-[10px] !justify-start" />
+                <Cost cost={UNITS[role].cost} stock={freeStock} size={10} className="text-[10px] !justify-start" />
               </span>
             </button>
           ))}

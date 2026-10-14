@@ -103,7 +103,9 @@ export const orderRingState = (order, view, selected, now, worldPerPixel = 0, ou
   if (age < 0) return null;
   const pos = targetPosition(order.target, view, out);
   if (!pos || !orderStillActive(order, view, age, pos)) return null;
-  const alpha = orderAlpha(order, age, selected);
+  // Given while paused (RTS-03): the ring stays at full strength until the sim has stepped.
+  const waiting = order.tick != null && view.tick != null && view.tick <= order.tick;
+  const alpha = waiting ? 1 : orderAlpha(order, age, selected);
   if (alpha <= 0) return null;
   // The line starts at the ordered squads' centre (the selected ones when the group is picked).
   let sx = 0; let sz = 0; let n = 0; let anySel = false;

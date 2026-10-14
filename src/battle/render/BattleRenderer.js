@@ -38,6 +38,7 @@ import { BattleTerrainArt } from '../art/battleTerrain';
 import { ProjectileArt } from '../art/projectiles';
 import { FxSprites } from '../art/fxSheets';
 import { orderRingState, recordOrderTarget, ORDER_RING_COLOR, MAX_ORDER_TARGETS } from './orderTarget';
+import { recordPendingMark, livePendingMarks } from './pendingMarks';
 import { getAgeIndex } from '../../data/ages';
 import { peopleForNationId } from '../../data/peoples';
 import { signatureKey, baseClassOf, signatureUnitFor, rigFiguresOf } from '../../data/signatureUnits';
@@ -231,6 +232,7 @@ export class BattleRenderer {
     this.treeBudget = BATTLE_GRAPHICS.treeTriangles.desktop;
     this.fx = [];
     this.markers = [];
+    this.pendingMarks = []; // orders given while paused, shown until the sim takes them (pendingMarks.js)
     this.orderTargets = []; // orders at an object (orderTarget.js), drawn as a ring and a dashed line
     this.orderScratch = {};
     this.time = 0;
@@ -1037,6 +1039,12 @@ export class BattleRenderer {
 
   addMarker(x, z, color = '#a3e635') { this.markers.push({ x, z, t: 0, color }); }
 
+  /** An order given while paused (RTS-03): drawn steady until the sim steps past this tick. */
+  addPendingMark(mark) {
+    recordPendingMark(this.pendingMarks, { ...mark, tick: this.lastView?.tick ?? null });
+    this.ecoLayer?.setPendingGhosts?.(this.pendingMarks.filter((m) => m.kind === 'build'));
+  }
+
   /** The building the player inspects (UI-DESIGN B09): { kind: 'structure' | 'eco', index } or null.
    *  It shows its health bar even at full HP, and a ring. */
   setInspected(target) { this.inspected = target && (target.kind === 'structure' || target.kind === 'eco') ? { kind: target.kind, index: target.index } : null; }
@@ -1753,6 +1761,23 @@ export class BattleRenderer {
       tmp.rotation.set(0, 0, 0); tmp.position.set(m.x, this.heightAt(m.x, m.z) + 0.08, m.z); const sc = 0.6 + k * 1.2; tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
       this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
     });
+    // Orders given while paused (pendingMarks.js): a steady ring, gently breathing, where the
+    // squads will go or the strike will land, until the sim takes them on Resume.
+    if (this.pendingMarks.length) {
+      const live = livePendingMarks(this.pendingMarks, this.lastView?.tick);
+      if (live.length !== this.pendingMarks.length) { this.pendingMarks = live; this.ecoLayer?.setPendingGhosts?.(live.filter((m) => m.kind === 'build')); }
+      const breathe = 1 + 0.06 * Math.sin(this.time * 4);
+      const cap = this.markerRings.instanceMatrix.count - 1;
+      live.forEach((m) => {
+        if (m.kind === 'build' || m.ringless || mn >= cap) return;
+        const sc = (m.kind === 'attack' ? 1.5 : 1.25) * breathe;
+        tmp.rotation.set(0, 0, 0); tmp.position.set(m.x, this.heightAt(m.x, m.z) + 0.09, m.z); tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
+        this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
+        if (m.x2 == null || mn >= cap) return; // a battle line's far end
+        tmp.position.set(m.x2, this.heightAt(m.x2, m.z2) + 0.09, m.z2); tmp.updateMatrix();
+        this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
+      });
+    }
     // The inspected building's ring (setInspected), a steady light ring round its footprint.
     const ins = this.inspected && this.lastView ? (this.inspected.kind === 'eco' ? this.lastView.eco?.buildings.find((b) => b.idx === this.inspected.index) : this.lastView.structures[this.inspected.index]) : null;
     if (ins && mn < this.markerRings.instanceMatrix.count) {

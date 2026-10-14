@@ -141,6 +141,8 @@ export const ruinCovered = (b, buildings) => buildings.some((o) => o.alive && o.
 // Herd animals round a herd node (tiles from its centre, yaw).
 const HERD_SPOTS = { herd: [[-0.3, 0, 0.4], [0.25, 0.25, 2.1], [0.2, -0.3, 4.0]], cattle: [[-0.3, 0, 0.6], [0.35, 0.3, 2.6]] };
 
+const PENDING_GHOSTS = 8; // buildings ordered while paused, drawn at once
+
 export class EconomyLayer {
   /** `art` and `loadKit`: the art index and kit loader (tests pass their own). */
   constructor(r, { art = ART, load = loadKit } = {}) {
@@ -176,6 +178,11 @@ export class EconomyLayer {
     this.ghostMesh = new InstancedMesh(r.track(new BoxGeometry(1, 1, 1).translate(0, 0.5, 0)), ghostMat, 1);
     this.ghostMesh.count = 0; this.ghostMesh.frustumCulled = false; this.ghostMesh.renderOrder = 19;
     r.scene.add(this.ghostMesh);
+    // Buildings ordered while paused (RTS-03): a fainter brass footprint until the sim takes the order.
+    const pendingMat = r.track(new MeshBasicMaterial({ color: '#facc15', transparent: true, opacity: 0.35, depthWrite: false, depthTest: false }));
+    this.pendingMesh = new InstancedMesh(r.track(new BoxGeometry(1, 1, 1).translate(0, 0.5, 0)), pendingMat, PENDING_GHOSTS);
+    this.pendingMesh.count = 0; this.pendingMesh.frustumCulled = false; this.pendingMesh.renderOrder = 18;
+    r.scene.add(this.pendingMesh);
     // The placement overlay (UI06; I173 to I175): legal ground tinted, the tiles resources block,
     // the real edge of the field and the land past it shaded out of play. Shown only while placing.
     const flat = r.track(new BoxGeometry(1, 0.04, 1));
@@ -355,6 +362,9 @@ export class EconomyLayer {
   /** The placement ghost: { size, tx, ty, ok } in tiles, or null. */
   setGhost(g) { this.ghost = g; }
 
+  /** Buildings ordered while paused: [{ size, tx, ty }] in tiles (pendingMarks.js). */
+  setPendingGhosts(list) { this.pendingGhosts = list || []; }
+
   /**
    * The placement overlay (UI06), or null to hide it: { cells } a Uint8Array over the map, 1 where
    * a footprint centred on the tile is legal (input/placement.js legalArea). The resource tiles and
@@ -475,6 +485,15 @@ export class EconomyLayer {
       this.ghostMesh.material.color.set(g.ok ? '#4ade80' : '#f87171');
       this.ghostMesh.count = 1; this.ghostMesh.instanceMatrix.needsUpdate = true;
     } else this.ghostMesh.count = 0;
+    const pend = this.pendingGhosts || [];
+    let pn = 0;
+    for (let k = 0; k < pend.length && pn < PENDING_GHOSTS; k++) {
+      const p = pend[k]; if (!(p.size > 0)) continue;
+      const cx = p.tx + p.size / 2; const cz = p.ty + p.size / 2;
+      tmp.position.set(cx, r.heightAt(cx, cz), cz); tmp.rotation.set(0, 0, 0); tmp.scale.set(p.size, 0.45, p.size); tmp.updateMatrix();
+      this.pendingMesh.setMatrixAt(pn, tmp.matrix); pn += 1;
+    }
+    this.pendingMesh.count = pn; if (pn) this.pendingMesh.instanceMatrix.needsUpdate = true;
     this.writeOverlay();
   }
 
