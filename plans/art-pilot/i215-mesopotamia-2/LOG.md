@@ -118,3 +118,43 @@ Contact sheets: `contact-gunpowder-towns.png`, `contact-gunpowder-battle-shared.
 ## 4. Modern
 
 Not built: Iraq's Modern towns keep falling back to the Levant Modern kit (as before this work).
+
+## Atlas sizes (each file's one texture set: base colour, normal, ORM)
+
+The same sizes the existing theme files of each kind use (no atlas raised):
+
+| Kind | Files | Atlas |
+|---|---|---|
+| Towns | kingdoms-town-*-mesopotamia (6), gunpowder-town-*-mesopotamia (6) | 2048 |
+| Shared files | shared-kingdoms-mesopotamia, shared-gunpowder-mesopotamia | 2048 |
+| Civic hall | civic-classical-mesopotamia (as every civic-bronze-<theme>) | 2048 |
+| Battle skins | rts-kingdoms-mesopotamia, rts-gunpowder-mesopotamia | 1024 |
+| Damaged houses | kingdoms-mesopotamia-houses-damage, gunpowder-mesopotamia-houses-damage | 1024 |
+
+## 5. In-game evidence (`shots/`, 844 x 390, device scale factor 3, production build)
+
+`npm run build`, `npx vite preview --port 5214`, then
+`node scripts/art/mesopotamia-shots.mjs plans/art-pilot/i215-mesopotamia-2/shots <age> <size> battle`:
+the battle sandbox's city with `style=mesopotamia&enemy=akkad`, next to `style=levant&enemy=ugarit`.
+- `battle-classical-big-*`: the Classical city with the new town hall (baked brick, glazed gate
+  towers) in place of the white Roman hall.
+- `battle-kingdoms-medium-*`: the Abbasid town (spiral minaret, madrasa, brick houses).
+- `battle-gunpowder-big-*`: the Ottoman town (tiled shrine dome and minarets, the domed bazaar).
+A production build has no `window.__game`, so the map close view can show only the turn-1 Bronze
+town (part 1's shots); the later ages' towns are shown in battle and in the contact sheets.
+
+## 6. Open points and what reads weakly
+
+- In Kingdoms and Gunpowder city battles the town hall is still the shared civic file (a pale hall
+  in Kingdoms, a red brick European town hall with a blue roof in Gunpowder): no theme has a hall
+  in those ages; the Gunpowder one stands out most.
+- The Classical hall is drawn at the hall's battle size, so its glazed gate towers stand tall
+  behind the economy buildings; it reads as Babylonian but its houses are cut-down kit houses.
+- The battle wall ring is the age's shared kit (pale stone): see section 1 for the code a themed
+  ring needs.
+- The canal with a noria asked for in medium-a and big-b (Kingdoms, Gunpowder) found no free spot
+  in the scatter, so no town shows one; a fixed spot in the layout would place it.
+- Kingdoms and Gunpowder houses differ mostly in brick tone and the number of shanasheel and wind
+  catchers; the landmarks carry the age.
+- The serai's clock tower (Gunpowder palace) is small against the building at map zoom.
+- Modern: not built, falls back to the Levant Modern kit.
