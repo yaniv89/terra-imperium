@@ -25,7 +25,7 @@ import { DISTRICTS } from '../../engine/districts';
 import { templatesOf, nextTemplateUnit, templateSize } from '../../engine/armyTemplates';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { cityLive, growthView, landQuotes, focusPreview } from '../../engine/cityEconomy';
-import { GROUPS, describeTile, tileBearing, buildOptions, buildQueue, focusHint, turnsText } from './cityBuildModel';
+import { GROUPS, describeTile, tileBearing, buildOptions, buildQueue, focusHint, turnsText, rushText } from './cityBuildModel';
 import { focusPlace } from '../map/marchEvents';
 import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } from '../ui/icons';
 import { Meter, Stat } from '../ui/atlas';
@@ -93,6 +93,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const [group, setGroup] = useState('All');
   const [openRow, setOpenRow] = useState(null);
   const [tap, setTap] = useState(null);
+  // The order whose rush offer is open (I019): a tap on Buy shows the quote, a second pays.
+  const [buyAt, setBuyAt] = useState(null);
   const timer = useRef(null);
   useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -262,6 +264,12 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                   : 'Pick something below.'}
             </div>
           </div>
+          {mine && current?.rush?.gold > 0 && (
+            <button type="button" onClick={() => setBuyAt((v) => (v === 0 ? null : 0))} aria-expanded={buyAt === 0} data-testid="city-rush-open"
+              className={`fa-btn fa-btn-secondary min-h-[44px] px-2 shrink-0 ${current.rush.ok ? '' : 'opacity-60'}`} title={rushText(current)?.title}>
+              <Coins className="w-4 h-4 mr-0.5" aria-hidden="true" /><span className="fa-num">{current.rush.gold}</span>
+            </button>
+          )}
           <button type="button" onClick={() => setQueueOpen((v) => !v)} disabled={!queue.length} aria-expanded={queueOpen} data-testid="city-queue-toggle"
             className="fa-btn fa-btn-secondary min-h-[44px] px-2.5 disabled:opacity-40 shrink-0" aria-label={queueOpen ? 'Hide the queue' : `Show the queue (${queue.length})`}>
             <span className="fa-num mr-1">{queue.length}</span>{queueOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -269,6 +277,18 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         </div>
         {/* Always there, so the bar is the same height with and without something in production. */}
         <div className="mt-0.5 h-1">{current && <Meter value={current.progress} max={Math.max(1, current.cost)} color="#CDB27A" height={4} />}</div>
+        {mine && buyAt != null && queue[buyAt]?.rush && (() => {
+          const q = queue[buyAt]; const words = rushText(q);
+          return (
+            <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
+              <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${q.rush.reason}`}</div>
+              <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
+                onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
+                className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">Pay {q.rush.gold}</button>
+              <button type="button" onClick={() => setBuyAt(null)} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0" aria-label="Close the offer"><X className="w-4 h-4" /></button>
+            </div>
+          );
+        })()}
         {queueOpen && queue.length > 0 && (
           <div className="mt-1.5 max-h-[42vh] overflow-y-auto">
             <ol className="space-y-1" data-testid="city-queue">
@@ -279,6 +299,11 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                     <div className="truncate">{q.index === 0 ? '' : `${q.index + 1}. `}{q.label}</div>
                     <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.turns == null ? 'no production' : `done in ${turnsText(q.turns)}`}</div>
                   </div>
+                  {mine && q.rush?.gold > 0 && (
+                    <button type="button" onClick={() => setBuyAt(q.index)} className={`fa-icon-btn min-w-[44px] min-h-[44px] text-[11px] fa-num ${q.rush.ok ? '' : 'opacity-60'}`} aria-label={`Buy ${q.label} for ${q.rush.gold} gold`} title={rushText(q)?.title} data-testid="queue-rush">
+                      {q.rush.gold}g
+                    </button>
+                  )}
                   {mine && q.index > 0 && (
                     <button type="button" onClick={() => dispatch({ type: ActionTypes.MOVE_PRODUCTION, payload: { cityId, index: q.index, to: 0 } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Build ${q.label} first`} title="Move to the front" data-testid="queue-front">
                       <ArrowUpToLine className="w-4 h-4" />

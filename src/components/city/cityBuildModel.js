@@ -26,6 +26,7 @@ import { wonderOptions, wonderItem } from '../../engine/wonders';
 import { cityLive, queueView, buildQuote, worldOf, isLongBuild, longBuildTurns, focusPreview } from '../../engine/cityEconomy';
 import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
 import { settlingOutlook } from '../../engine/settlers';
+import { rushQuote, rushGold, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
 
 export const GROUPS = ['Units', 'Armies', 'Buildings', 'Wonders', 'Improvements'];
 
@@ -66,11 +67,28 @@ export const itemLabel = (item, tiles = getTiles(), ageId = 'bronze', cityTile =
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 export const turnsText = (turns) => (turns == null ? 'no production' : plural(turns, 'turn'));
 
-/** The queue rows: queueView plus the label. */
+/** The queue rows: queueView plus the label and the rush quote (spending.js, I019: what the Buy
+ * button shows is what RUSH_PRODUCTION charges). */
 export const buildQueue = (state, cityId, live = cityLive(state, cityId)) => {
   if (!live) return [];
   const tiles = getTiles();
-  return queueView(state, cityId, live).map((q) => ({ ...q, label: itemLabel(q.item, tiles, live.ctx.ageId, live.city.tile), tile: q.item.kind === 'improvement' || q.item.kind === 'wonder' ? q.item.tile ?? null : null }));
+  return queueView(state, cityId, live).map((q) => ({
+    ...q, label: itemLabel(q.item, tiles, live.ctx.ageId, live.city.tile), tile: q.item.kind === 'improvement' || q.item.kind === 'wonder' ? q.item.tile ?? null : null,
+    rush: live.city.owner === state.playerNationId ? rushQuote(state, cityId, q.index) : null
+  }));
+};
+
+/** The words of a rush offer: { button, title, text } ("Buy 312g"; what it buys and the wait it replaces). */
+export const rushText = (q) => {
+  const r = q?.rush;
+  if (!r || r.gold == null) return null;
+  const wait = r.turns == null ? 'the city makes no production now' : `instead of ${turnsText(r.turns)}`;
+  const heat = r.heat > 0 ? ` The price is up ${Math.round((r.mult - 1) * 100)}% for this city's recent purchases; it falls back as turns pass.` : '';
+  return {
+    button: `Buy ${r.gold}g`,
+    title: r.ok ? `Pay ${r.gold} gold for the ${r.hammers} production ${q.label} still needs` : r.reason,
+    text: `${q.label}: ${r.hammers} production for ${r.gold} gold (${RUSH_GOLD_PER_HAMMER} gold each). Done next turn, ${wait}.${heat}`
+  };
 };
 
 /** The catalogue: [{ id, item, group, ok, reason, needsTech, needsName, label, detail, note, tile,
@@ -169,8 +187,12 @@ export const focusHint = (state, cityId, options, live = cityLive(state, cityId)
   const preview = focusPreview(state, cityId);
   const best = preview.rows.find((r) => r.focus === 'production');
   const better = best && !best.current && best.production > production ? { focus: 'production', production: best.production, food: best.food } : null;
+  // Gold is the other way out (I027): the cheapest slow build, bought outright once queued.
+  const cheapest = options.filter((o) => o.long && o.group !== 'Wonders' && o.ok).sort((a, b) => (a.cost - a.stored) - (b.cost - b.stored))[0];
+  const buy = cheapest ? { label: cheapest.label, gold: rushGold(Math.max(0, cheapest.cost - cheapest.stored), 0, cheapest.item.kind) } : null;
+  const buyText = buy ? ` Or queue it and buy it with gold (${buy.label}: about ${buy.gold} gold).` : '';
   const text = better
-    ? `${slow === 1 ? 'One build takes' : `${slow} builds take`} over ${limit} turns at ${production} production a turn. Production focus would make ${better.production}${better.food < 0 ? ' (but the city would starve)' : ''}.`
-    : `${slow === 1 ? 'One build takes' : `${slow} builds take`} over ${limit} turns at ${production} production a turn. Focus cannot help here: ${preview.allSame ? 'every focus works the same land' : 'it already favours production'}. Mines, lumber camps or more citizens will.`;
-  return { production, limit, slow, better, text };
+    ? `${slow === 1 ? 'One build takes' : `${slow} builds take`} over ${limit} turns at ${production} production a turn. Production focus would make ${better.production}${better.food < 0 ? ' (but the city would starve)' : ''}.${buyText}`
+    : `${slow === 1 ? 'One build takes' : `${slow} builds take`} over ${limit} turns at ${production} production a turn. Focus cannot help here: ${preview.allSame ? 'every focus works the same land' : 'it already favours production'}. Mines, lumber camps or more citizens will.${buyText}`;
+  return { production, limit, slow, better, buy, text };
 };
