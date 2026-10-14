@@ -52,3 +52,22 @@ Tools: held: the staff pick (Tool_Held); work: an iron axe, pick, sickle and ham
 | Hit | 8 | 0.40 | no | Held | - |
 | Death | 30 | 1.50 | no | Held | settle 30 |
 
+## kingdoms-worker
+
+Tools: held: the staff felling axe (Tool_Held); work: a steel axe, pick, sickle and hammer. Triangles 1998 (budget 2,000, tools included); GLB 212 KB packed.
+
+| Clip | Frames | Seconds | Loop | Tool | Events |
+|---|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | Held | - |
+| Walk | 21 | 1.05 | yes | Held | - |
+| Run | 15 | 0.75 | yes | Held | - |
+| Carry | 25 | 1.25 | yes | Held | - |
+| Chop | 33 | 1.65 | yes | Axe | contact 17 |
+| Mine | 29 | 1.45 | yes | Pick | contact 15 |
+| Harvest | 37 | 1.85 | yes | Sickle | cut 13 |
+| Build | 25 | 1.25 | yes | Hammer | contact 15 |
+| Repair | 21 | 1.05 | yes | Hammer | contact 11 |
+| Deposit | 30 | 1.50 | no | Held | pour 16 |
+| Hit | 8 | 0.40 | no | Held | - |
+| Death | 30 | 1.50 | no | Held | settle 30 |
+
