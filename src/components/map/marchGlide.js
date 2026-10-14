@@ -75,3 +75,27 @@ export const glideAt = (glide, ms) => {
   const w = f - i;
   return { lat: a.lat + (b.lat - a.lat) * w, lng: wrapLng(a.lng + dl * w), toward: b, done: false };
 };
+
+/** ms to wait after a new turn lands before deciding that no turn report is coming (the report
+ *  opens in an effect one render after the state; this covers that). */
+export const REPORT_SETTLE_MS = 90;
+
+/**
+ * Play `run` once the turn report is out of the way: at once (after REPORT_SETTLE_MS, long enough
+ * for the report to open if it is going to) when no report is open, else when it closes. `env`
+ * is { isShown(), listen(fn(shown)) -> stop, later(fn, ms) -> cancel }. Returns a cancel.
+ */
+export const afterTurnReport = (env, run) => {
+  let done = false;
+  let stopListen = null;
+  let cancelTimer = null;
+  const finish = (play) => {
+    if (done) return;
+    done = true;
+    stopListen?.(); cancelTimer?.();
+    if (play) run();
+  };
+  stopListen = env.listen((shown) => { if (!shown) finish(true); });
+  cancelTimer = env.later(() => { if (!env.isShown()) finish(true); }, REPORT_SETTLE_MS);
+  return () => finish(false);
+};
