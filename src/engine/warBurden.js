@@ -9,7 +9,7 @@
 // times its laws' warExhaustionMult (lawRules.js). Battles add their own share on top
 // (aftermath.js applyBattleWarExhaustion: the loser 2 + 12 x its losses, the winner 1). At peace it
 // decays as before. A quiet war now takes 40 turns to exhaust both sides; a war with no fighting
-// for WAR_STALEMATE_IDLE_TURNS ends earlier as a stalemate (diplomacy.js), said as such.
+// for WAR_STALEMATE_IDLE_TURNS only makes the AI offer the player a white peace (diplomacy.js); AI vs AI wars never end that way.
 // Pure; one pass over the cities for every nation at war.
 export const WE_RISE_BASE = 2;
 export const WE_RISE_PER_BESIEGED = 1;

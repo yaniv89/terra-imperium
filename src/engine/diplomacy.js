@@ -597,9 +597,6 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
         // Trim: the plan's own "score 100 held for 3 turns" enforcement streak isn't tracked —
         // a sufficiently lopsided score enforces immediately instead.
         if (leaderScore >= PEACE_SCORE_ENFORCE_THRESHOLD || acceptance.accepted) return concludeWar(currentWar, leaderId, terms, snapshotState);
-      } else if (isStalemate(currentWar, state.turnNumber)) {
-        // Nothing has happened in this war for a long while and nobody is winning: it ends white (CB09).
-        return concludeWar(currentWar, currentWar.aggressor, [], snapshotState);
       } else if (state.turnNumber - (currentWar.startTurn ?? state.turnNumber) >= CONVERGE_MIN_TURNS && state.turnNumber % CONVERGE_PERIOD === 0
         && getPeaceAcceptance(snapshotState, currentWar, currentWar.aggressor, []).accepted && getPeaceAcceptance(snapshotState, currentWar, currentWar.enemy, []).accepted) {
         // The bargaining model (peace.js, warOdds.js): neither side is winning and both expect

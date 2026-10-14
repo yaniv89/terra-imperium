@@ -210,6 +210,9 @@ export const ActionTypes = {
   // Standing orders of an army on the map (src/engine/standingOrders.js, playtest audit I062, I130):
   // Hold keeps a unit off the idle list; Lay siege is the explicit order against an independent's city.
   SET_HOLD: 'SET_HOLD',
+  // The player's scouts (src/engine/scouting.js, I122): explore the nearest unexplored land or a picked
+  // tile; payload { unitIds, toTile?, stop? }.
+  EXPLORE_ORDER: 'EXPLORE_ORDER',
   SET_SIEGE: 'SET_SIEGE',
   // Settlers besides a destination (src/engine/settlers.js, playtest audit I093): wait here and stop
   // asking, or go home (the unit is gone, its citizen joins the nearest own city).

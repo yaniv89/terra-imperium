@@ -112,6 +112,7 @@ import { updateWarHeat } from './warContagion';
 import { navalCargo } from '../data/navalLines';
 import { ringsFromF75 } from '../data/geo/gridScale';
 import { updateFog } from './fog';
+import { continueExplorers, EXPLORER_STRENGTH } from './scouting';
 import { repairCityDamage } from './cityManifest';
 import { subjectVerb } from './grammar';
 
@@ -212,7 +213,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     }
     if (item.kind !== 'unit') return;
     const id = `unit_${nextUnitSeq++}`;
-    units[id] = { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
+    units[id] = { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.explorer ? { explorer: true, strength: EXPLORER_STRENGTH, maxStrength: EXPLORER_STRENGTH } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
   });
   const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map((l) => l.message);
   disasterLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });
@@ -1341,6 +1342,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // Fog of war last (fog.js): what everyone sees once the turn's moves, foundings and conquests
   // are done grows their explored maps and makes contacts.
   next = updateFog(next);
+  // Scouts on auto-explore pick their next unexplored tile now that the fog has grown (scouting.js).
+  next = continueExplorers(next);
   mark('fog');
   return next;
 };

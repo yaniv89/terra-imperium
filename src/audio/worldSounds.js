@@ -97,6 +97,7 @@ export const ACTION_SOUNDS = {
   [T.ANSWER_DEMAND]: 'ui-confirm',
   [T.SET_AIR_PATROL]: null,
   [T.SET_HOLD]: null,
+  [T.EXPLORE_ORDER]: (a) => (a.payload?.stop ? null : 'army-moved'),
   [T.SET_SIEGE]: null,
   [T.SET_SETTLER_HOLD]: null,
   [T.DISBAND_SETTLERS]: 'ui-close',

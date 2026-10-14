@@ -42,6 +42,7 @@ import { mapEffectsOf } from './techMapEffects';
 // same share of a turn per km. Forced March and techs add km (FORCED_MARCH_KM, techMapEffects).
 export const MOVE_KM = { infantry: 306, ranged: 306, cavalry: 613, siege: 204, support: 306, settler: 306, air: 613 };
 export const DEFAULT_MOVE_KM = 204;
+export const EXPLORER_MOVE_KM = 408; // the player's scouts (scouting.js)
 export const FORCED_MARCH_KM = 102;
 export const MOVE_POINTS = Object.fromEntries(Object.entries(MOVE_KM).map(([k, km]) => [k, ringsForKm(km)]));
 export const DEFAULT_MOVE_POINTS = ringsForKm(DEFAULT_MOVE_KM);
@@ -69,7 +70,7 @@ const HARSH_TERRAIN = new Set(['mountains', 'desert', 'arctic']);
 const MAX_SEARCH = cellsForAreaKm2(72_540_000); // 8000 tiles at frequency 75
 
 // `researched`: the owner's techs (Mechanized Warfare moves land armies further; techMapEffects.js).
-export const movePoints = (unit, researched = []) => ringsForKm((MOVE_KM[unit.classId] ?? DEFAULT_MOVE_KM) + (hasPerk(unit, 'forcedMarch') ? FORCED_MARCH_KM : 0) + (unit.domain !== 'naval' && unit.classId !== 'settler' && unit.classId !== 'air' ? mapEffectsOf(researched).movePoints : 0));
+export const movePoints = (unit, researched = []) => ringsForKm((unit.explorer ? EXPLORER_MOVE_KM : MOVE_KM[unit.classId] ?? DEFAULT_MOVE_KM) + (hasPerk(unit, 'forcedMarch') ? FORCED_MARCH_KM : 0) + (unit.domain !== 'naval' && unit.classId !== 'settler' && unit.classId !== 'air' ? mapEffectsOf(researched).movePoints : 0));
 // The pace of a stack: its slowest unit.
 export const stackPace = (units, researched = []) => units.reduce((m, u) => Math.min(m, movePoints(u, researched)), Infinity);
 
