@@ -5,6 +5,9 @@
 //   PARAMS='attacker=cavalry' (sandbox URL parameters, over the defaults; BattleSandbox.jsx: attacker=cavalry|siege|support,
 //     raid=raid for the raiders, merc for the hired band) SIDE=0|1 (whose squad; the raiders are side 0)
 //   LAYER=general (centre on the first figure of that model layer, e.g. the general beside his standard)
+//   ARMY=engineers (your side's sandbox preset, small by default; engineers brings the support class)
+//   EXTRA=merc (more sandbox URL parameters, joined with &: merc draws your infantry as the hired band)
+//   (PARAMS and EXTRA both add sandbox parameters; PARAMS wins where they name the same one)
 // Writes <prefix>-<zoom>.jpg (the squad centred, the crop scaled to the zoom) for a 844x390 phone at DPR 3.
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
@@ -18,8 +21,9 @@ const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, de
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-const query = new URLSearchParams({ age: process.env.AGE || 'bronze', terrain: 'plains', attacker: 'small', defender: 'small' });
+const query = new URLSearchParams({ age: process.env.AGE || 'bronze', terrain: 'plains', attacker: process.env.ARMY || 'small', defender: 'small' });
 if (!process.env.ECO) query.set('noeco', '');
+new URLSearchParams((process.env.EXTRA || '').replace(/^&/, '')).forEach((v, k) => query.set(k, v));
 new URLSearchParams(process.env.PARAMS || '').forEach((v, k) => query.set(k, v));
 const side = Number(process.env.SIDE || 0);
 const layerKey = process.env.LAYER ? `${query.get('age')}:${process.env.LAYER}` : '';

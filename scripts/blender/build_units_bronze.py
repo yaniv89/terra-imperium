@@ -26,7 +26,7 @@ import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
-tube, box, raw, vertical, slab = F.tube, F.box, F.raw, F.vertical, F.slab
+tube, box, raw, vertical, sheet = F.tube, F.box, F.raw, F.vertical, F.sheet
 SEAT = Vector((0, -.07, .345))  # a rider's rig on the horse's back
 ASTRIDE = {'Leg_L': (-60, -28, 0), 'Leg_R': (-60, 28, 0), 'Shin_L': (70, 0, 0), 'Shin_R': (70, 0, 0)}
 
@@ -150,7 +150,7 @@ def build_general():
     F.hair_nape()
     F.kilt('Tunic', 'Cloth', seated=True)
     rings = []
-    for i, (z, rx, ry) in enumerate(F.TORSO):
+    for i, (z, rx, ry) in enumerate(F.BRONZE_TORSO):
         wt = 'Spine' if z < .66 else 'Chest'
         if 0 < i < 6:  # scales: each band overlaps the one below
             rings.append(((0, 0, z - .003), (rx + .010, ry + .009), wt))

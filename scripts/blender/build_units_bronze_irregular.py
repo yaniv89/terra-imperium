@@ -25,7 +25,7 @@ import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
-tube, box, raw, vertical, slab = F.tube, F.box, F.raw, F.vertical, F.slab
+tube, box, raw, vertical, sheet = F.tube, F.box, F.raw, F.vertical, F.sheet
 
 
 def build_mercenary():
@@ -47,8 +47,8 @@ def build_mercenary():
     # ---- kilt with a leather front panel, the jerkin and its three bronze hoops, the baldric ----
     F.kilt('Kilt', 'Team')
     F.tufted_hem()
-    slab('KiltPanel', (-.036, -.079, .532), (.036, -.079, .532), (.020, -.104, .352), (-.020, -.104, .352), .008, 'Leather', 'Hips')
-    F.torso('Jerkin', 'Leather')
+    sheet('KiltPanel', (-.036, -.079, .532), (.036, -.079, .532), (.020, -.104, .352), (-.020, -.104, .352), .008, 'Leather', 'Hips')
+    F.bronze_torso('Jerkin', 'Leather')
     for i, z in enumerate((.588, .645, .702)):
         rx, ry = F.torso_radius(z)
         rx2, ry2 = F.torso_radius(z + .030)
@@ -125,8 +125,8 @@ def build_raider():
     F.hair_nape()
     F.headcloth('Leather', tail=True, cloth='Team')
     F.kilt('Kilt', 'Team', seated=True)
-    F.torso('Tunic', 'Cloth')
-    tube('HideVest', [((0, .004, z), (rx + .008, ry + .008), 'Spine' if z < .66 else 'Chest') for z, rx, ry in F.TORSO[1:6]], 'Leather', 10, caps=(False, False))
+    F.bronze_torso('Tunic', 'Cloth')
+    tube('HideVest', [((0, .004, z), (rx + .008, ry + .008), 'Spine' if z < .66 else 'Chest') for z, rx, ry in F.BRONZE_TORSO[1:6]], 'Leather', 10, caps=(False, False))
     F.shawl('Shawl', 'Team')
     tube('Belt', vertical([.520, .548], 0, [(.103, .076), (.101, .074)], 'Spine'), 'Leather', 10, caps=(False, False))
     # astride, the torch arm up and forward, the rein hand low in front

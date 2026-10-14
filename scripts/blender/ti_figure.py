@@ -15,12 +15,17 @@
 # a rider on a horse, a ram's pushers):
 #   - start(rig=False) then figure(name) per person (its parts are named <name><part>), use(rig) for
 #     a machine's or an animal's armature, place() to stand the figure where it belongs
-#   - torso(), kilt(seated=), shawl(), sash(), hair_nape(), cap(): the clothes the set shares
+#   - bronze_torso(), kilt(seated=), shawl(), sash(), hair_nape(), cap(): the clothes the set shares
 #   - pose() with reach() and bake_rest() work on the current figure only (a seated rider or driver)
 #   - adopt(): meshes built with ti_units helpers (an animal, a car) join the shade bake
 #   - finish_unit(): normals, COLOR_0, the root empty, the .blend, the GLB and report.json
+#   (BRONZE_TORSO, bronze_torso() and sheet() are this pass's trunk and thin sheet; the Classical
+#   TORSO, torso() and slab() below are the other agent's)
+# Added for the Classical foot units (2026-10-14, build_classical_*.py; they export the rest pose only):
+#   - torso(), skirt(), strips() (pteruges), greaves(), boots, hair(), ridge() (a crest), helmet(),
+#     oval_shield(), finish_rest()
 # Blender Z up, the front faces -Y, a standing person is 1 tall.
-import bpy, bmesh, math, random
+import bpy, bmesh, math, random, json, os
 from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 import ti_units as u
@@ -43,16 +48,15 @@ def start(colors=None, ready=True, rig=True):
     meshes.clear()
     loose.clear()
     bright.clear()
+    facing.clear()
+    radial.clear()
     prefix = ''
     arm = None
+    colors = colors or {}
     u.COLORS.update(PALETTE)
-    u.COLORS.update({k: (v if isinstance(v, str) else v[0]) for k, v in (colors or {}).items()})
+    u.COLORS.update({k: v if isinstance(v, str) else v[0] for k, v in colors.items()})
     u.palette()
-    for k, v in (colors or {}).items():
-        if not isinstance(v, str):
-            n = bpy.data.materials[k].node_tree.nodes.get('Principled BSDF')
-            n.inputs['Roughness'].default_value = v[1]
-            n.inputs['Metallic'].default_value = v[2]
+    u.set_colors({k: v for k, v in colors.items() if not isinstance(v, str)})  # (hex, roughness, metallic)
     if rig:
         arm = u.rig(ready=ready)
     return arm
@@ -150,8 +154,9 @@ def raw(name, verts, faces, mat, bone=None, attachment=False, weights=None):
     return ob
 
 
-def slab(name, a, b, c, d, thick, mat, bone, attachment=False):
-    """A thin closed sheet over the quad a, b, c, d (a hanging cloth end, a banner, a strap)."""
+def sheet(name, a, b, c, d, thick, mat, bone, attachment=False):
+    """A thin closed sheet over the quad a, b, c, d (a hanging cloth end, a banner, a strap); the
+    Classical slab() takes four corners and a depth towards the back instead."""
     a, b, c, d = (Vector(p) for p in (a, b, c, d))
     n = (b - a).cross(d - a).normalized() * thick
     v = [tuple(p) for p in (a, b, c, d)] + [tuple(p - n) for p in (a, b, c, d)]
@@ -166,10 +171,10 @@ def vertical(zs, cy, radii, weights, cx=0):
     return [((cx, cys[i], zs[i]), radii[i], ws[i]) for i in range(len(zs))]
 
 
-def legs(laces=True, straps=True, simple=False):
+def legs(laces=True, straps=True, simple=False, boots=None):
     """Bare legs and feet in leather sandals (laced up the calf or not; straps=False: a crew
     member whose feet are hardly seen keeps the sole only; simple=True: legs hidden in a car, one
-    plain tube, a foot and a sole)."""
+    plain tube, a foot and a sole); `boots` is a material for closed ankle boots instead of the sandals."""
     for side, s in (('L', 1), ('R', -1)):
         L, S, F = 'Leg_' + side, 'Shin_' + side, 'Foot_' + side
         if simple:
@@ -177,6 +182,16 @@ def legs(laces=True, straps=True, simple=False):
                                      ((s * .074, .002, .060), (.024, .025), F)], 'Skin', 6, caps=(False, True))
             box('BodyFoot_' + side, (s * .074, -.040, .028), (.050, .120, .036), 'Skin', F)
             box('SandalSole_' + side, (s * .074, -.042, .007), (.068, .140, .014), 'Leather', F)
+            continue
+        if boots:
+            tube('BodyLeg_' + side, [
+                ((s * .061, 0, .470), (.053, .050), L), ((s * .070, -.003, .320), (.040, .039), L), ((s * .071, -.012, .268), (.034, .036), {L: .6, S: .4}),
+                ((s * .071, -.014, .250), (.033, .036), {L: .4, S: .6}), ((s * .073, .004, .200), (.039, .040), S),
+                ((s * .074, .005, .120), (.028, .029), S)], 'Skin', 7, caps=(False, False))
+            tube('Boot_' + side, [((s * .074, .005, .138), (.035, .036), S), ((s * .074, .005, .122), (.035, .036), S), ((s * .074, .004, .060), (.027, .030), F),
+                                  ((s * .074, .010, .004), (.030, .036), F)], boots, 7, caps=(False, True))
+            tube('BootFoot_' + side, [((s * .074, .020, .030), (.026, .030), F), ((s * .074, -.050, .028), (.036, .028), F),
+                                      ((s * .074, -.112, .016), (.029, .016), F)], boots, 6)
             continue
         tube('BodyLeg_' + side, [
             ((s * .061, 0, .470), (.053, .050), L), ((s * .070, -.003, .320), (.040, .039), L), ((s * .071, -.012, .268), (.034, .036), {L: .6, S: .4}),
@@ -244,8 +259,9 @@ def fist(side, grip=None, axis=(0, 0, 1), half=.027):
     return grip
 
 
-def head():
-    """Neck and a shaped head: jaw, cheeks, brow, nose, ears, eyes and eyebrows."""
+def head(ears=True):
+    """Neck and a shaped head: jaw, cheeks, brow, nose, ears, eyes and eyebrows (`ears` off under a
+    helmet that covers them)."""
     tube('BodyNeck', vertical([.770, .815, .850], [0, -.002, -.004], [(.044, .040), (.036, .034), (.037, .036)], 'Neck'), 'Skin', 6, caps=(False, False))
     tube('BodyHead', vertical([.838, .850, .868, .892, .920, .950, .990],
                               [-.026, -.017, -.012, -.009, -.007, -.005, -.002],
@@ -254,7 +270,9 @@ def head():
     raw('FaceNose', [(-.014, -.060, .932), (.014, -.060, .932), (-.015, -.064, .896), (.015, -.064, .896), (0, -.084, .902)],
         [(0, 1, 4), (0, 4, 2), (1, 3, 4), (2, 4, 3), (0, 2, 3), (0, 3, 1)], 'Skin', 'Head')
     for s in (-1, 1):
-        if LITE:
+        if not ears:
+            pass
+        elif LITE:
             box(f'Ear_{s}', (s * .059, .003, .918), (.012, .018, .032), 'Skin', 'Head')
         else:
             tube(f'Ear_{s}', [((s * .056, .002, .900), (.010, .012), 'Head'), ((s * .064, .004, .918), (.010, .015), 'Head'),
@@ -294,11 +312,11 @@ def tufted_hem(name='KiltHem'):
     return hem
 
 
-TORSO = [(.525, .094, .066), (.575, .090, .064), (.615, .091, .066), (.655, .102, .072), (.695, .118, .078),
+BRONZE_TORSO = [(.525, .094, .066), (.575, .090, .064), (.615, .091, .066), (.655, .102, .072), (.695, .118, .078),
          (.735, .132, .081), (.762, .128, .075), (.790, .072, .050)]
 
 
-def torso_radius(z, profile=TORSO):
+def torso_radius(z, profile=BRONZE_TORSO):
     for (z0, x0, y0), (z1, x1, y1) in zip(profile, profile[1:]):
         if z <= z1:
             t = max(0, (z - z0) / (z1 - z0))
@@ -306,8 +324,8 @@ def torso_radius(z, profile=TORSO):
     return profile[-1][1], profile[-1][2]
 
 
-def torso(name, mat, profile=TORSO, sides=10, chest=False, grow=0):
-    """The trunk from the waist to the neck (a tunic, a jerkin, bare skin with chest=True)."""
+def bronze_torso(name, mat, profile=BRONZE_TORSO, sides=10, chest=False, grow=0):
+    """This pass's trunk from the waist to the neck (a tunic, a jerkin, bare skin with chest=True)."""
     ob = tube(name, [((0, 0, z), (rx + grow, ry + grow), 'Spine' if z < .66 else 'Chest') for z, rx, ry in profile], mat, sides, caps=(False, True))
     if chest:  # the front of the upper rings stands a little proud
         for ring in (3, 4):
@@ -339,7 +357,7 @@ def kilt(name='Kilt', mat='Team', seated=False, sides=10):
     return ob
 
 
-def shawl(name='TeamShawl', mat='Team', profile=TORSO, sides=10, end=True, bands=((.630, .085), (.690, .085), (.745, .068))):
+def shawl(name='TeamShawl', mat='Team', profile=BRONZE_TORSO, sides=10, end=True, bands=((.630, .085), (.690, .085), (.745, .068))):
     """A broad band over the left shoulder, across the chest and the back (the archer's), its end
     down the back: the side's colour where the battle draws it (Spine and Chest)."""
     sv, sf, sw = [], [], []
@@ -357,7 +375,7 @@ def shawl(name='TeamShawl', mat='Team', profile=TORSO, sides=10, end=True, bands
                 sf += [(p, q, k * sides + (j + 1) % sides), (p, k * sides + (j + 1) % sides, k * sides + j)]
     ob = raw(name, sv, sf, mat, weights=sw)
     if end:
-        slab(name + 'End', (.050, .078, .790), (.112, .070, .775), (.118, .100, .640), (.052, .106, .632), .009, mat, 'Chest')
+        sheet(name + 'End', (.050, .078, .790), (.112, .070, .775), (.118, .100, .640), (.052, .106, .632), .009, mat, 'Chest')
     return ob
 
 
@@ -365,7 +383,7 @@ def sash(name='Sash', mat='Team', end=True, knot=True):
     """A waist sash on the Spine bone (so the battle dyes it), a knot and a hanging end at the front."""
     ob = tube(name, vertical([.512, .543, .574], 0, [(.103, .075), (.106, .078), (.092, .066)], 'Spine'), mat, 8 if LITE else 10, caps=(False, False))
     if end:
-        slab(name + 'End', (.030, -.079, .530), (.066, -.070, .530), (.072, -.092, .405), (.026, -.100, .405), .007, mat, 'Spine')
+        sheet(name + 'End', (.030, -.079, .530), (.066, -.070, .530), (.072, -.092, .405), (.026, -.100, .405), .007, mat, 'Spine')
     if knot:
         box(name + 'Knot', (.048, -.080, .540), (.046, .020, .040), mat, 'Spine')
     return ob
@@ -446,9 +464,9 @@ def crew(name, headgear='headcloth', accent='shawl', band='Team', bearded=True, 
     if not seated and not simple:
         tufted_hem()
     if bare:
-        torso('BodyTorso', 'Skin', chest=True, grow=-.004, sides=sides)
+        bronze_torso('BodyTorso', 'Skin', chest=True, grow=-.004, sides=sides)
     else:
-        torso('Tunic', tunic, sides=sides)
+        bronze_torso('Tunic', tunic, sides=sides)
     if accent == 'shawl':
         tube('Belt', vertical([.520, .548], 0, [(.103, .076), (.101, .074)], 'Spine'), 'Leather', 10, caps=(False, False))
         shawl('Shawl', 'Team')
@@ -467,6 +485,190 @@ def pose(rotations):
     for b, angles in rotations.items():
         u.rotate_world(arm, b, angles)
     bpy.context.view_layer.update()
+
+
+# ---- Classical parts (2026-10-14) ----------------------------------------------------------------
+# (z, half width, half depth) up the trunk and down the skirt: what every garment wraps
+TORSO = [(.535, .092, .064), (.575, .089, .063), (.615, .090, .065), (.655, .101, .071), (.695, .117, .077),
+         (.735, .132, .080), (.762, .128, .074), (.790, .072, .050)]
+SKIRT = [(.335, .136, .098), (.385, .129, .093), (.450, .117, .085), (.515, .101, .073), (.548, .090, .064)]
+facing = {}   # open sheets: {object name: the way it faces}, for fix_normals
+radial = set()  # objects made of loose sheets round the body: every face points away from the Z axis
+
+
+def radius_at(z, profile):
+    """(half width, half depth) of a (z, rx, ry) profile at height z (the first span carries on below it)."""
+    for (z0, x0, y0), (z1, x1, y1) in zip(profile, profile[1:]):
+        if z <= z1:
+            t = (z - z0) / (z1 - z0)
+            return x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+    return profile[-1][1], profile[-1][2]
+
+
+def torso(name, mat, grow=0, chest=0, sides=10, profile=TORSO):
+    """The trunk from the waist to the collar as one tube (a tunic, a corselet, a cuirass, bare skin).
+    `grow` widens it over what it covers; `chest` pushes the front of the chest rings forward."""
+    ob = tube(name, [((0, 0, z), (rx + grow, ry + grow), 'Spine' if z < .66 else 'Chest') for z, rx, ry in profile], mat, sides, caps=(False, True))
+    if chest:
+        for i, (z, _, _) in enumerate(profile):
+            if .68 < z < .75:
+                for j in (sides - 1, 0, 1):
+                    ob.data.vertices[i * sides + j].co.y -= chest
+    return ob
+
+
+def skirt(name, mat, low=.335, top=.548, grow=0, sides=10, bone='Hips'):
+    """A tunic's skirt or a kilt from `top` down to `low`."""
+    zs = [low] + [z for z, _, _ in SKIRT if low + .02 < z < top - .01] + [top]
+    return tube(name, [((0, 0, z), tuple(r + grow for r in radius_at(z, SKIRT)), bone) for z in zs], mat, sides, caps=(False, False))
+
+
+def band(name, mat, z0, z1, grow, profile=TORSO, bone='Spine', sides=10, bulge=.004):
+    """A belt or a sash round the trunk (or the skirt) between two heights, a little proud in the middle."""
+    zs = [z0, (z0 + z1) / 2, z1]
+    rs = [tuple(r + grow + (bulge if i == 1 else 0) for r in radius_at(z, profile)) for i, z in enumerate(zs)]
+    return tube(name, vertical(zs, 0, rs, bone), mat, sides, caps=(False, False))
+
+
+def strips(name, mat, top, bottom, n=12, grow=.008, gap=.26, phase=0., flare=.004, bone='Hips'):
+    """A row of hanging strips round the skirt (pteruges): n sheets from `top` down to `bottom`."""
+    verts, faces = [], []
+    for k in range(n):
+        a0, a1 = 2 * math.pi * (k + phase + gap / 2) / n, 2 * math.pi * (k + phase + 1 - gap / 2) / n
+        for z, g in ((top, grow), (bottom, grow + flare)):
+            rx, ry = radius_at(z, SKIRT)
+            verts += [((rx + g) * math.sin(a), -(ry + g) * math.cos(a), z) for a in (a0, a1)]
+        b = k * 4
+        faces += [(b, b + 1, b + 3), (b, b + 3, b + 2)]
+    radial.add(name)
+    return raw(name, verts, faces, mat, bone)
+
+
+def slab(name, corners, mat, bone, depth=.008, attachment=False):
+    """A thin flat piece (a sash end, a flap, a plank) from four corners given clockwise seen from
+    the front; `depth` is its thickness towards the back (+Y)."""
+    verts = [tuple(c) for c in corners] + [(c[0], c[1] + depth, c[2]) for c in corners]
+    faces = [(0, 1, 2), (0, 2, 3), (5, 4, 7), (5, 7, 6), (4, 0, 3), (4, 3, 7), (1, 5, 6), (1, 6, 2), (3, 2, 6), (3, 6, 7), (4, 5, 1), (4, 1, 0)]
+    return raw(name, verts, faces, mat, bone, attachment)
+
+
+def greaves(mat='Metal'):
+    """Shin guards from the ankle to over the knee."""
+    for side, s in (('L', 1), ('R', -1)):
+        L, S = 'Leg_' + side, 'Shin_' + side
+        tube('Greave_' + side, [((s * .074, .005, .098), (.031, .032), S), ((s * .073, .003, .200), (.045, .046), S),
+                                ((s * .071, -.014, .256), (.040, .044), {L: .4, S: .6}), ((s * .071, -.013, .284), (.033, .040), L)],
+             mat, 7, caps=(False, False))
+
+
+def hair(mat='Hair', crown=True):
+    """Short hair: the nape and, with `crown`, the top of the head (a bare head, a headband)."""
+    tube('HairNape', vertical([.868, .888, .920, .950], [.018, .014, .008, .004], [(.046, .040), (.061, .052), (.064, .057), (.063, .058)], 'Head'),
+         mat, 8, caps=(True, False))
+    if crown:
+        tube('HairCrown', vertical([.944, .966, .990, 1.004], -.003, [(.0635, .0605), (.062, .058), (.046, .043), (.016, .016)], 'Head'),
+             mat, 10, caps=(False, True))
+
+
+def headband(mat, z=.955, height=.024):
+    """A band round the brow (over hair() or a cap)."""
+    return tube('Headband', vertical([z - height / 2, z + height / 2], -.003, [(.0690, .0655), (.0675, .0640)], 'Head'), mat, 10, caps=(False, False))
+
+
+def ridge(name, stations, mat, bone='Head', half=(.014, .018), attachment=False):
+    """A crest or a fin standing in the YZ plane: stations of (y, z of its foot, z of its top);
+    `half` is its half thickness at the foot and at the top."""
+    verts, faces = [], []
+    for y, z0, z1 in stations:
+        verts += [(-half[0], y, z0), (half[0], y, z0), (half[1], y, z1), (-half[1], y, z1)]
+    for i in range(len(stations) - 1):
+        a, b = i * 4, i * 4 + 4
+        for k in range(4):
+            faces += [(a + k, a + (k + 1) % 4, b + (k + 1) % 4), (a + k, b + (k + 1) % 4, b + k)]
+    e = (len(stations) - 1) * 4
+    faces += [(0, 1, 2), (0, 2, 3), (e, e + 2, e + 1), (e, e + 3, e + 2)]
+    return raw(name, verts, faces, mat, bone, attachment)
+
+
+def helmet(mat='Metal', cheeks=True, neck=True, name='Helmet', peak=1.036):
+    """A bowl helmet with a flared rim, and with them a neck guard over the nape and the ears and
+    two cheek pieces. `peak` is its top."""
+    k = (peak - .944) / .092
+    tube(name, vertical([.944, .952, .966, .944 + .051 * k, .944 + .076 * k, peak], -.003,
+                        [(.070, .066), (.0745, .070), (.069, .065), (.058, .055), (.036, .034), (.008, .008)], 'Head'), mat, 10, caps=(True, True))
+    if neck:
+        tube(name + 'Neck', vertical([.872, .905, .948], [.024, .013, .004], [(.060, .044), (.066, .056), (.068, .062)], 'Head'), mat, 8, caps=(True, False))
+    if cheeks:
+        for s in (-1, 1):
+            box(f'CheekPiece_{s}', (s * .0575, -.035, .900), (.012, .044, .078), mat, 'Head')
+
+
+def back_quiver(mat='Leather', binding='Wood', arrows=4, strap='Leather'):
+    """A slanted quiver on the back (Prop_Back) with fletched arrows, its strap across the chest
+    (the Bronze archer's, build_bronze_ranged.py)."""
+    P = 'Prop_Back'
+    qb, qt = Vector((.052, .122, .560)), Vector((-.080, .116, .850))
+    qa = (qt - qb).normalized()
+    tube('back-quiver', [(tuple(qb), .029, P), (tuple(qb.lerp(qt, .5)), .036, P), (tuple(qt), .041, P), (tuple(qt - qa * .014), .031, P)], mat, 8, attachment=True)
+    tube('quiver-binding', [(tuple(qt - qa * .050), .044, P), (tuple(qt - qa * .026), .045, P)], binding, 8, caps=(False, False), attachment=True)
+    side_a = qa.cross(Vector((0, 1, 0))).normalized()
+    side_b = qa.cross(side_a).normalized()
+    for n in range(arrows):
+        a = n * 2 * math.pi / arrows + .6
+        off = side_a * math.cos(a) * .019 + side_b * math.sin(a) * .019
+        tip = qt + off * 2.1 + qa * (.100 + .014 * (n % 3))
+        tube(f'arrow-shaft-{n}', [(tuple(qt + off - qa * .020), .0036, P), (tuple(tip), .0036, P)], 'Wood', 3, attachment=True)
+        flat = (.0145, .0035) if n % 2 else (.0035, .0145)
+        tube(f'arrow-fletching-{n}', [(tuple(tip - qa * .062), flat, P), (tuple(tip - qa * .008), flat, P)], 'Cloth', 4, attachment=True)
+    if strap:
+        line = [((-.074, .096, .796), 'Chest'), ((-.086, .000, .806), 'Chest'), ((-.062, -.084, .756), 'Chest'), ((.000, -.101, .688), 'Chest'),
+                ((.056, -.070, .615), 'Spine'), ((.103, -.012, .562), 'Spine'), ((.062, .078, .566), 'Spine')]
+        tube('diagonal-quiver-strap', [(p, (.013, .0055), w) for p, w in line], strap, 4)
+
+
+def oval_shield(centre, rx, rz, n=14, rim='Metal', back='Wood', prop='Prop_L', dome=.036, boss=None, spine=None, face='Emblem'):
+    """A domed oval (or round) shield on the left hand's socket: its face the squad's emblem (UVs
+    across its own box), a rim, a back and a grip; `boss` and `spine` are materials for a centre
+    boss and a rib from top to bottom."""
+    cx, cy, cz = centre
+    ang = [2 * math.pi * j / n for j in range(n)]
+    ix, iz = rx - .016, rz - .016
+    fv = [(cx, cy - dome, cz)]
+    for fx, fz, depth in ((rx * .55, rz * .55, -dome * .78), (ix, iz, -.012)):
+        fv += [(cx + fx * math.cos(a), cy + depth, cz + fz * math.sin(a)) for a in ang]
+    ff = [(0, 1 + (j + 1) % n, 1 + j) for j in range(n)]
+    for j in range(n):
+        a, b = 1 + j, 1 + (j + 1) % n
+        ff += [(a, b, b + n), (a, b + n, a + n)]
+    ob = raw('ShieldFace', fv, ff, face, prop, True)
+    uv = ob.data.uv_layers.active.data
+    for poly in ob.data.polygons:
+        for li in poly.loop_indices:
+            co = ob.data.vertices[ob.data.loops[li].vertex_index].co
+            uv[li].uv = ((co.x - cx) / (rx * 2) + .5, (co.z - cz) / (rz * 2) + .5)
+    rv, rf = [], []
+    for a in ang:
+        for dx, dz, depth in ((ix, iz, -.012), (rx + .002, rz + .002, -.012), (rx + .002, rz + .002, .012), (ix, iz, .016)):
+            rv.append((cx + dx * math.cos(a), cy + depth, cz + dz * math.sin(a)))
+    for j in range(n):
+        for k in range(3):
+            a, b = j * 4 + k, j * 4 + k + 1
+            c, d = ((j + 1) % n) * 4 + k + 1, ((j + 1) % n) * 4 + k
+            rf += [(a, b, c), (a, c, d)]
+    raw('ShieldRim', rv, rf, rim, prop, True)
+    bv = [(cx, cy + .010, cz)] + [(cx + ix * math.cos(a), cy + .016, cz + iz * math.sin(a)) for a in ang]
+    raw('ShieldBack', bv, [(0, 1 + j, 1 + (j + 1) % n) for j in range(n)], back, prop, True)
+    tube('ShieldGrip', [((cx - .060, cy + .020, cz + .033), .010, prop), ((cx, cy + .040, cz + .033), .011, prop), ((cx + .060, cy + .020, cz + .033), .010, prop)],
+         'Leather', 4, attachment=True)
+    facing.update({'ShieldFace': (0, -1, 0), 'ShieldBack': (0, 1, 0)})
+    if spine:
+        tube('ShieldSpine', [((cx, cy - .016, cz - rz * .86), (.012, .007), prop), ((cx, cy - dome * .80, cz - rz * .45), (.013, .008), prop),
+                             ((cx, cy - dome - .004, cz), (.014, .009), prop), ((cx, cy - dome * .80, cz + rz * .45), (.013, .008), prop),
+                             ((cx, cy - .016, cz + rz * .86), (.012, .007), prop)], spine, 4, attachment=True)
+    if boss:
+        tube('ShieldBoss', [((cx, cy - dome + .006, cz), (.046, .040), prop), ((cx, cy - dome - .014, cz), (.035, .030), prop),
+                            ((cx, cy - dome - .026, cz), (.010, .012), prop)], boss, 6, attachment=True)
+    return ob
 
 
 def reach(side, wrist, pole=(.6, .1, -1)):
@@ -515,8 +717,9 @@ def bake_rest():
     bpy.ops.object.select_all(action='DESELECT')
 
 
-def fix_normals(open_facing=None):
-    """Every part's faces point outward. `open_facing`: {object name: the way an open sheet faces}."""
+def fix_normals(open_facing=None, around=()):
+    """Every part's faces point outward. `open_facing`: {object name: the way an open sheet faces};
+    `around`: names of objects made of loose sheets round the body (each face away from the Z axis)."""
     open_facing = open_facing or {}
     for ob in meshes:
         if ob.name in loose:
@@ -524,7 +727,12 @@ def fix_normals(open_facing=None):
         bm = bmesh.new()
         bm.from_mesh(ob.data)
         want = open_facing.get(ob.name)
-        if want:
+        if ob.name in around:
+            bm.normal_update()
+            flip = [f for f in bm.faces if f.normal.dot(Vector((f.calc_center_median().x, f.calc_center_median().y, 0))) < 0]
+            if flip:
+                bmesh.ops.reverse_faces(bm, faces=flip)
+        elif want:
             total = Vector((0, 0, 0))
             for f in bm.faces:
                 total += f.normal * f.calc_area()
@@ -598,20 +806,54 @@ def normalize_weights():
                     ob.vertex_groups[g.group].add([vertex.index], g.weight / total, 'REPLACE')
 
 
-def export_glb(path):
+def export_glb(path, animations=True, extra=()):
     bpy.ops.object.select_all(action='DESELECT')
     arm.select_set(True)
+    for o in extra:
+        o.select_set(True)
     for o in meshes:
         o.select_set(True)
     bpy.context.view_layer.objects.active = arm
     bpy.ops.export_scene.gltf(filepath=str(path), export_format='GLB', use_selection=True, export_yup=True,
-                              export_skins=True, export_animations=True, export_animation_mode='ACTIONS', export_force_sampling=True,
+                              export_skins=True, export_animations=animations, export_animation_mode='ACTIONS', export_force_sampling=True,
                               export_frame_range=False, export_cameras=False, export_lights=False, export_extras=True,
                               export_materials='EXPORT', export_image_format='NONE', export_optimize_animation_size=False,
                               export_vertex_color='ACTIVE', export_all_vertex_colors=False, export_active_vertex_color_when_no_material=True)
 
 
-def preview(out, uid, shots=None):
+def finish_rest(uid, look, budget=2000, rig_name='UnitRig', notes=None):
+    """The end of a rest pose builder (no clips: the Classical units, whose march and arm swing are
+    the vertex rig's): normals, baked shade, the root empty named after the unit, the GLB, its
+    options file and a report in art-build/units/<uid>/. TI_PREVIEW=1 also writes stills."""
+    out = u.out_dir(uid)
+    fix_normals(facing, radial)
+    shade = bake_shade()
+    normalize_weights()
+    tris = u.triangles(meshes)
+    assert tris <= budget, (tris, sorted(((u.triangles([o]), o.name) for o in meshes), reverse=True)[:24])
+    arm.name = rig_name
+    root = u.assemble(uid, [arm])
+    bpy.context.scene.render.fps = 20
+    bpy.context.preferences.filepaths.save_version = 0
+    bpy.ops.wm.save_as_mainfile(filepath=str(out / f'{uid}.blend'))
+    export_glb(out / f'{uid}.glb', animations=False, extra=[root])
+    mats = sorted({s.material.name for o in meshes for s in o.material_slots if s.material})
+    report = {'id': uid, 'triangles': tris, 'budget': budget, 'objects': len(meshes), 'materials': mats,
+              'colors': {k: u.COLORS[k] for k in mats if k in u.COLORS}, 'textures': 0, 'mounted': False,
+              'bones': [b.name for b in arm.data.bones], 'pose': 'rest pose only, no clips', 'front': 'Blender -Y, glTF +Z',
+              'material_contract': 'flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)',
+              'shade_range': shade, 'look': look, **(notes or {}), 'by_object': {o.name: u.triangles([o]) for o in meshes}}
+    (out / 'source-report.json').write_text(json.dumps(report, indent=2))
+    opts = {'enabled': True, 'quadruped': False, 'triangleBudget': 3000,
+            'tags': {'team': '(^|\\s)Team(\\s|$)', 'skin': '(^|\\s)Skin(\\s|$)', 'emblem': '(^|\\s)Emblem(\\s|$)'}}
+    (out / f'{uid}.json').write_text(json.dumps(opts, indent=2) + '\n')
+    if os.environ.get('TI_PREVIEW'):
+        preview(out, uid, size=(560, 720), team='2F6FD0')
+    print('FINISHED', out, 'TRIANGLES', tris, 'SHADE', shade, flush=True)
+    return tris
+
+
+def preview(out, uid, shots=None, size=(700, 900), team=None):
     """Workbench stills (flat colours, baked shade ignored) for a first look: front, back, the game's
     high three-quarter view. `shots`: [(name, action, frame)] extra poses from the front quarter."""
     scene = bpy.context.scene
@@ -619,7 +861,11 @@ def preview(out, uid, shots=None):
     scene.display.shading.light = 'STUDIO'
     scene.display.shading.color_type = 'MATERIAL'
     scene.display.shading.show_cavity = True
-    scene.render.resolution_x, scene.render.resolution_y = 700, 900
+    scene.render.resolution_x, scene.render.resolution_y = size
+    if team:  # stills only: show the Team and Emblem surfaces in a side's colour (call after the export)
+        for tag in ('Team', 'Emblem'):
+            if tag in bpy.data.materials:
+                bpy.data.materials[tag].diffuse_color = (*(u.linear(int(team[i:i + 2], 16) / 255) for i in (0, 2, 4)), 1)
     scene.render.film_transparent = False
     if scene.world is None:
         scene.world = bpy.data.worlds.new('W')
@@ -631,14 +877,17 @@ def preview(out, uid, shots=None):
     arm.hide_viewport = arm.hide_render = True
     views = {'front': (0.5, -3, .9), 'back': (-0.5, 3, .9), 'game': (1.6, -1.9, 2.6), 'gameback': (-1.6, 1.9, 2.6)}
     jobs = [(k, 'Idle', 1, v) for k, v in views.items()] + [(n, a, f, views['game']) for n, a, f in (shots or [])]
+    clips = bool(arm.animation_data and len(bpy.data.actions))  # a rest pose file has none
     for name, action, frame, loc in jobs:
-        arm.animation_data.action = bpy.data.actions[action]
+        if clips:
+            arm.animation_data.action = bpy.data.actions[action]
         scene.frame_set(frame)
         cam.location = loc
         cam.rotation_euler = (Vector((0, 0, .52)) - cam.location).to_track_quat('-Z', 'Y').to_euler()
         scene.render.filepath = str(out / f'preview-{uid}-{name}.png')
         bpy.ops.render.render(write_still=True)
-    arm.animation_data.action = bpy.data.actions['Idle']
+    if clips:
+        arm.animation_data.action = bpy.data.actions['Idle']
     scene.frame_set(1)
 
 
