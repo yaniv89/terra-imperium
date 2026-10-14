@@ -25,7 +25,7 @@ const errors = []; const failed = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 page.on('response', (r) => { if (r.status() >= 400) failed.push(`${r.status()} ${r.url().split('/').slice(-2).join('/')}`); });
-await page.goto(url);
+await page.goto(url, { timeout: 240000 });
 await page.getByRole('button', { name: 'Fight' }).click({ timeout: 120000 });
 await page.waitForFunction(() => window.__battleRenderer && window.__battleRenderer.soldierLayers.size > 0, null, { timeout: 90000 });
 await page.waitForTimeout(1500);
