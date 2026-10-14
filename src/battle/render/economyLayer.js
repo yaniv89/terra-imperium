@@ -27,7 +27,7 @@
 //     left, and the kit's log-pile beside it: the mark of a wood node). True scale:
 //     CITY_TILES_PER_UNIT tiles per model unit.
 import { InstancedMesh, MeshLambertMaterial, MeshBasicMaterial, BoxGeometry, ConeGeometry, CylinderGeometry, DodecahedronGeometry, CircleGeometry, Object3D, Color, Matrix4, Vector3 } from 'three';
-import { Q } from '../sim/constants';
+import { Q, TICK_HZ } from '../sim/constants';
 import { BUILDINGS, NODE_KINDS, buildingArt } from '../data/economy';
 import { CITY_TILES_PER_UNIT } from '../setup/cityBattle';
 import { ART } from '../art/artFiles';
@@ -127,6 +127,14 @@ export const nodePickRadius = (kind) => (kind === 'tree' ? 1.4 : kind === 'herd'
 const OWNED_STRUCTURES = new Set(['keep', 'tower', 'building']);
 /** What a wreck's socket empty gives off (X27): 'fire', 'smoke' or null (any other socket). */
 export const wreckFxKind = (name) => (/^socket[-_]fire/i.test(name) ? 'fire' : /^socket[-_]smoke/i.test(name) ? 'smoke' : null);
+/** How long a wreck's fire burns before it is out, in battle seconds (counted in sim ticks, so pause and speed follow). */
+export const WRECK_FIRE_SECONDS = 30;
+/** The thinnest a wreck's smoke gets once its fire is out (share of the full column's alpha). */
+export const WRECK_SMOKE_MIN = 0.6;
+/** Fire strength 1 (full) to 0 (out) for a wreck `ticks` sim ticks after it was destroyed. */
+export const wreckFireStrength = (ticks) => Math.max(0, Math.min(1, 1 - Math.max(0, ticks) / (WRECK_FIRE_SECONDS * TICK_HZ)));
+/** Smoke strength for the same age: full while the fire burns, a little thinner once it is out. */
+export const wreckSmokeStrength = (ticks) => WRECK_SMOKE_MIN + (1 - WRECK_SMOKE_MIN) * wreckFireStrength(ticks);
 /** True when a standing building covers the wreck `b` (the player built over the rubble). */
 export const ruinCovered = (b, buildings) => buildings.some((o) => o.alive && o.idx !== b.idx
   && Math.abs(o.x - b.x) < ((o.size + b.size) / 2) * Q && Math.abs(o.y - b.y) < ((o.size + b.size) / 2) * Q);
@@ -140,6 +148,7 @@ export class EconomyLayer {
     this.art = art; this.loadKit = load;
     this.on = !!r.setup.economy;
     this.ghost = null;
+    this.deadSince = new Map(); // building idx -> sim tick it was first seen destroyed (drawing only)
     this.wreckFx = []; // this frame's wreck fire and smoke points (X27), refilled by update()
   }
 
@@ -294,7 +303,7 @@ export class EconomyLayer {
       const s = fit(kitObject(from, role));
       const wreck = kitObject(from, name);
       this.kits.add(wreck, lod, M.makeScale(s, s, s).setPosition(x, y, z), tmpColor);
-      this.addWreckFx(wreck, x, y, z, s, b.idx);
+      this.addWreckFx(wreck, x, y, z, s, b.idx, this.tick - (this.deadSince.get(b.idx) ?? this.tick));
       return true;
     }
     if (!b.built) {
@@ -312,12 +321,15 @@ export class EconomyLayer {
 
   /** X27: a wreck's `socket-fire-*` and `socket-smoke-*` empties, in world tiles, for this frame's
    *  fire and smoke (BattleRenderer draws them from `this.wreckFx`; the wreck stays burnt black). */
-  addWreckFx(obj, x, y, z, s, idx) {
+  addWreckFx(obj, x, y, z, s, idx, age = 0) {
     const sockets = obj?.sockets;
     if (!sockets) return;
+    const fire = wreckFireStrength(age); const smoke = wreckSmokeStrength(age);
     Object.entries(sockets).forEach(([name, p]) => {
       const kind = wreckFxKind(name);
-      if (kind) this.wreckFx.push({ kind, x: x + p.x * s, y: y + p.y * s, z: z + p.z * s, phase: idx * 0.37 + this.wreckFx.length * 0.53 });
+      // the fire dies down over WRECK_FIRE_SECONDS and is then not drawn at all; the smoke stays, a little thinner
+      if (kind === 'fire' && fire <= 0) return;
+      if (kind) this.wreckFx.push({ kind, strength: kind === 'fire' ? fire : smoke, x: x + p.x * s, y: y + p.y * s, z: z + p.z * s, phase: idx * 0.37 + this.wreckFx.length * 0.53 });
     });
   }
 
@@ -410,6 +422,13 @@ export class EconomyLayer {
     const counts = Object.fromEntries(PRIMS.map((p) => [p, 0]));
     const lod = kitLodForZoom(r.camera.zoom);
     this.wreckFx.length = 0;
+    // when each wreck was first seen destroyed, in sim ticks (a view without a tick counts as one frame)
+    this.tick = cur.tick ?? this.tick ?? 0;
+    cur.eco.buildings.forEach((b) => {
+      if (b.proxy) return;
+      if (b.alive) this.deadSince.delete(b.idx);
+      else if (b.built && !this.deadSince.has(b.idx)) this.deadSince.set(b.idx, this.tick);
+    });
     this.kits.begin();
     cur.eco.nodes.forEach((n) => {
       const x = n.x / Q; const z = n.y / Q;
