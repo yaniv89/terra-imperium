@@ -1,0 +1,104 @@
+{
+  "file": "classical-town-small-b-mesopotamia.glb",
+  "kind": "town",
+  "bytes": 2995812,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-small-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 16886,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.9,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 2402,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.9,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 544,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.562,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 3.975
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "classical-town-small-b-mesopotamia_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 580614
+    },
+    {
+      "name": "classical-town-small-b-mesopotamia_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 641374
+    },
+    {
+      "name": "classical-town-small-b-mesopotamia_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 456640
+    }
+  ],
+  "passed": true
+}

@@ -3,10 +3,14 @@ import { createInitialState } from './gameReducer';
 import { addCity } from './testWorld';
 import { getNeighborIds } from '../data/regions';
 import {
-  strikeSize, payableUnits, armyCap, goSize, readyToStrike, launched, updateWarPlan, garrisonUnits,
+  strikeSize, payableUnits, armyCap, goSize, readyToStrike, launched, updateWarPlan, garrisonUnits, hostileReach, interiorCitySafe, SAFE_TURNS,
   STRIKE_MIN, STRIKE_MAX, WAR_UNITS_PER_CITY, GATHER_MAX_TURNS, GATHER_MIN_UNITS, WAR_CHEST_TURNS, UPKEEP_MARGIN
 } from './warPlans';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
+import { getTiles } from '../data/geo/tiles';
+import { ringsAround } from './world/cities';
+import { kmPerRing } from '../data/geo/gridScale';
+import { MOVE_KM } from './armies';
 
 const unit = (id, ownerId, regionId, tile, extra = {}) => ({ id, ownerId, regionId, tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [], xp: 0, ...extra });
 
@@ -82,5 +86,23 @@ describe('war plans (lane W5)', () => {
     const plan = updateWarPlan(arming, 'de', [], 'bronze');
     expect(plan.cityId).toBe(paris);
     expect(plan.enemy).toBe('fr');
+  });
+  it('lets an interior city send all its troops only when nothing hostile is within 3 turns (lead ruling)', () => {
+    const { s, interior } = world();
+    const tiles = getTiles();
+    const city = s.regions[interior];
+    const wars = [{ id: 'w', aggressor: 'de', enemy: 'fr', active: true }];
+    const quiet = { ...s, wars, units: {} };
+    expect(interiorCitySafe(city, hostileReach(quiet, 'de'), tiles)).toBe(true);
+    // An enemy regiment two rings off can reach it within SAFE_TURNS turns.
+    const near = [...ringsAround(tiles, city.tile, 2)].find(([t, r]) => r === 2 && tiles.land[t] === 1)[0];
+    const threatened = { ...quiet, units: { e: unit('e', 'fr', s.nations.fr.capitalRegionId, near) } };
+    expect(interiorCitySafe(city, hostileReach(threatened, 'de'), tiles)).toBe(false);
+    // The same regiment of a nation at peace is no threat.
+    expect(interiorCitySafe(city, hostileReach({ ...threatened, wars: [] }, 'de'), tiles)).toBe(true);
+    // An enemy far beyond SAFE_TURNS marches is no threat either.
+    const rings = Math.ceil((SAFE_TURNS * MOVE_KM.infantry) / kmPerRing(tiles)) + 3;
+    const far = [...ringsAround(tiles, city.tile, rings)].find(([t, r]) => r === rings && tiles.land[t] === 1)[0];
+    expect(interiorCitySafe(city, hostileReach({ ...quiet, units: { e: unit('e', 'fr', s.nations.fr.capitalRegionId, far) } }, 'de'), tiles)).toBe(true);
   });
 });

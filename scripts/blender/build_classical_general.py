@@ -12,7 +12,9 @@
 #     white tunic and belt, sandals; the standard upright in his right fist: a pole with a spear-point
 #     finial and a crossbar, the cloth hanging from it the squad's Emblem, Team tassels
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
-# Rest pose only. Rigs: MountRig, CommanderRig, BearerRig.
+# Clips (ti_mounted_clips.py, 2026-10-14): the general's set (the mounted set and Cheer): the commander's
+# pointing hand urges and sweeps forward, the bearer walks, runs at the horse's stride and waves the banner.
+# Rigs: MountRig, CommanderRig, BearerRig.
 #   blender -b --factory-startup -P scripts/blender/build_classical_general.py
 # Outputs go to art-build/units/classical-general/ (TI_PREVIEW=1: stills); copy the GLB to src/assets/units/.
 import sys
@@ -22,6 +24,8 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 
 UID = 'classical-general'
 tube, box, raw, vertical = F.tube, F.box, F.raw, F.vertical
@@ -102,6 +106,7 @@ for k, x in enumerate((x0 + .012, x1 - .012)):
 tris = F.finish_unit(UID, parts, {
     'role': 'Classical general: a mounted commander on a pale grey horse (Team saddle cloth, breast band with bronze discs), pointing ahead, in a bronze muscled cuirass over a white tunic with red pteruges, a long Team cloak, a helmet with a transverse Team crest; a standard bearer on foot (crested helmet, Team cloak) whose hanging standard is the squad emblem',
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, cloak, pointing_hand) and ti_mounts.py (fine_horse, tack, reins). The standard pole, finial and banner are attachments.'},
-    centre=(.2, -.1, .8), scale=2.6)
+    centre=(.2, -.1, .8), scale=2.6, mode='NLA_TRACKS',
+    clips=MC.hook(UID, lambda: MC.mounted(horse, cmd, 'hand', 'general', bearer=bearer, bearer_kit=FC.Kit('spear')), 'general'))
 print('TRIS', tris)
 assert tris <= 4000, tris  # two people and a horse (the Bronze general is 4,486): over the 3,500 target, under its JSON budget

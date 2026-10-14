@@ -16,7 +16,21 @@ for (const [file, url] of Object.entries(files)) {
   (URLS[m[1]] ||= {})[m[2]] = url;
 }
 
-export const ICON_GROUPS = ['resources', 'improvements', 'buildings', 'wonders', 'units', 'ships', 'cities', 'ages', 'markers', 'battle', 'ui'];
+export const ICON_GROUPS = ['resources', 'improvements', 'buildings', 'wonders', 'units', 'ships', 'cities', 'ages', 'markers', 'battle', 'ui', 'independents'];
+// independents: an independent city's personality shields (raiders, mercantile, fortress, tribal) and
+// its banner's frame (banner-frame), on the map's badge and banner (gl/spriteArt.js) and CityBanners.jsx.
+export const INDEPENDENT_ICON_IDS = ['raiders', 'mercantile', 'fortress', 'tribal', 'banner-frame'];
+// City-state type badges (UI18, decision 42): round medallions in the type's colour, never a heater
+// shield, so a city-state's type is not read as its personality. Plus the patron mark ("they favour
+// you"). Drawn in scripts/icons/ui18-citystate-icons.mjs (plans/art-pilot/ui18-citystates/LOG.md).
+export const CITY_STATE_ICON_IDS = {
+  trade: 'citystate-trade', military: 'citystate-military', science: 'citystate-science',
+  culture: 'citystate-culture', raiders: 'citystate-raiders'
+};
+export const CITY_STATE_PATRON_ICON_ID = 'citystate-patron';
+/** A city-state type's badge URL, or null (the caller draws its placeholder). */
+export const cityStateIconUrl = (type) => iconUrl('independents', CITY_STATE_ICON_IDS[type]);
+export const cityStatePatronIconUrl = () => iconUrl('independents', CITY_STATE_PATRON_ICON_ID);
 // battle: the battle economy's building icons (build-house ...), rendered from the battle's own models by
 // scripts/art/build-icons.mjs; data/economy.js BUILDINGS[*].icon names them. Plus the battle screen's
 // hand-drawn glyphs below. ui: campaign-side cards and markers. Both sets are drawn in

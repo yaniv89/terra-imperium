@@ -10,6 +10,7 @@ import { ActionTypes, GameStatus } from '../../../src/data/types';
 import { HISTORICAL_EVENTS } from '../../../src/data/events';
 import { auditGameState } from '../../../src/engine/stateAudit';
 import { getTiles } from '../../../src/data/geo/tiles';
+import { RESOURCES_ON_TILES } from '../../../src/data/tileYields';
 import { worldHealth, kaplanMeier } from '../../../scripts/simStats.mjs';
 import { installGeneratedWorld } from '../../../src/worldgen/nodeWorld';
 import { createScriptedPlayer, createTelemetry } from '../../../scripts/campaignTelemetry.mjs';
@@ -122,6 +123,23 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
     majorsAlive: nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_')).length,
     majorCities: regs.filter((r) => r.owner && s.nations[r.owner]?.kind !== 'independent').length,
+    // Techs of the median AI major (medianAiTechs above counts the independents too), and AI sallies (I125).
+    medianMajorTechs: (() => { const n = nations.filter((x) => !x.isPlayer && !x.isEliminated && x.kind !== 'independent' && !x.id.startsWith('free_') && x.id !== 'rebels').map((x) => (x.tech?.researched || []).length).sort((a, b) => a - b); return n[Math.floor(n.length / 2)] || 0; })(),
+    sallies: s.indepStats?.sallies || 0, salliesIndep: s.indepStats?.salliesIndep || 0, salliesWon: s.indepStats?.salliesWon || 0,
+    // Resource tiles held by AI majors that carry their improvement (the AI builds them, lane W6).
+    aiResImprovedShare: (() => { const tl = getTiles(); if (!tl.resourceOf) return 0; let have = 0; let done = 0; for (const [t, cid] of Object.entries(s.world?.tileOwner || {})) { const o = s.regions[cid]?.owner; if (!o || o === s.playerNationId || s.nations[o]?.kind === 'independent') continue; const r = RESOURCES_ON_TILES[tl.resourceOf(+t)]; if (!r) continue; have += 1; const st = s.world.tileState?.[t]; if (st?.improvement === r.improvement && !st.pillaged) done += 1; } return +(done / Math.max(1, have)).toFixed(3); })(),
+    // Unrest sources (lane W6): the majors' mean overextension (unrest -overext/20 a turn), city size
+    // (amenity need), the share of major cities with unrest at or over 50, and unrest in majors only.
+    aiOverextMean: (() => { const ms = nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels' && n.id !== s.playerNationId); return +(ms.reduce((a, n) => a + getOverextension(s, n.id), 0) / Math.max(1, ms.length)).toFixed(1); })(),
+    majorCitySizeMean: (() => { const c = regs.filter((r) => r.owner && !r.outpost && s.nations[r.owner] && s.nations[r.owner].kind !== 'independent'); return +(c.reduce((a, r) => a + (r.size || 0), 0) / Math.max(1, c.length)).toFixed(2); })(),
+    majorUnrestMean: (() => { const c = regs.filter((r) => r.owner && !r.outpost && s.nations[r.owner] && s.nations[r.owner].kind !== 'independent'); return +(c.reduce((a, r) => a + (r.unrest || 0), 0) / Math.max(1, c.length)).toFixed(2); })(),
+    indepUnrestMean: (() => { const c = regs.filter((r) => r.owner && s.nations[r.owner]?.kind === 'independent'); return +(c.reduce((a, r) => a + (r.unrest || 0), 0) / Math.max(1, c.length)).toFixed(2); })(),
+    // Cities per AI major (outposts not counted, the player left out), and the player's buildings.
+    citiesPerAiMajor: (() => { const ms = new Set(nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels' && n.id !== s.playerNationId).map((n) => n.id)); const c = regs.filter((r) => r.owner && !r.outpost && ms.has(r.owner)).length; return +(c / Math.max(1, ms.size)).toFixed(2); })(),
+    playerBuildings: regs.filter((r) => r.owner === s.playerNationId).reduce((a, c) => a + Object.values(c.buildings?.categories || {}).reduce((k, v) => k + (Number.isFinite(v) ? v + 1 : 0), 0), 0),
+    // Action gaps (I029): turns on which the scripted player had a decision (a city to queue, a
+    // settler to send, a tech done, a blocker to answer); the longest run of turns without one.
+    ...(counters.actions ? { actionTurnShare: +(counters.actions.turns / Math.max(1, t)).toFixed(3), maxActionGap: counters.actions.maxGap, actionGapsOver5: counters.actions.over5, actionTurnShare100: +(counters.actions.turns100 / Math.max(1, Math.min(100, t))).toFixed(3), maxActionGap100: counters.actions.maxGap100 } : {}),
     // Independents' AI (phase W2, raids.js, cumulative): raids started (and at the player), raids
     // that took their loot (and on the player), raid battles, sacks, loot, tribute demands and deals,
     // tribute gold paid, mercenary bands hired; and now: raids out, tribute deals running, bands in service.
@@ -138,9 +156,9 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     // deals and their gold, tribute demanded by majors and paid to them; and now: campaigns running.
     indepConquered: s.indepStats?.conquered || 0, indepJoined: s.indepStats?.joined || 0, citiesRazed: s.indepStats?.razed || 0, razeStarted: s.indepStats?.razeStarted || 0,
     campaigns: s.indepStats?.campaigns || 0, musters: s.indepStats?.musters || 0, courtships: s.indepStats?.courtships || 0, gifts: s.indepStats?.gifts || 0, tradeDeals: s.indepStats?.tradeDeals || 0,
-    tradeGold: s.indepStats?.tradeGold || 0, majorTributeDemands: s.indepStats?.tributeDemandsByMajors || 0, tributeToMajors: s.indepStats?.tributeToMajors || 0,
+    tradeGold: s.indepStats?.tradeGold || 0, majorTributeDemands: s.indepStats?.tributeDemandsByMajors || 0, tributeToMajors: s.indepStats?.tributeToMajors || 0, patrons: s.indepStats?.patrons || 0,
     campaignsRunning: nations.filter((n) => n.indepGoal?.kind === 'conquer' && !n.isEliminated).length,
-    nonFinite, auditViolations: auditCount(s), msPerTurn: +ms.toFixed(1)
+    nonFinite, auditViolations: auditCount(s), auditCodes: (() => { const r = auditGameState(s); return Array.isArray(r) && r.length ? r.slice(0, 4).map((x) => `${x.code}:${x.path}`).join(',') : 'none'; })(), msPerTurn: +ms.toFixed(1)
   };
 };
 
@@ -157,7 +175,9 @@ SEEDS.forEach((seed) => {
     const telemetry = createTelemetry({ playerId: s.playerNationId, isIndependent: isIndependentNation, authorityOf, getOverextension, metNations, getTiles, traceFile: TRACE_WARS, writeLine: traceStream == null ? null : (line) => fs.writeSync(traceStream, line + '\n') });
     let telemMs = 0;
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
-    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set() };
+    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set(), actions: scripted ? { turns: 0, turns100: 0, gap: 0, maxGap: 0, maxGap100: 0, over5: 0, techsPrev: null } : null };
+    const logSum = (l) => l.queued + l.settled + l.events + l.peace + l.defenses + l.joins + l.demands.length + l.tribute.length + (l.rushes || 0);
+    const techCount = (st) => Object.values(st.techTree || {}).filter((x) => x.researched).length;
     // One life per nation alive at the start; a nation that dies and comes back starts a new life.
     const lives = []; const open = {};
     Object.values(s.nations).forEach((n) => { if (!n.isEliminated) { open[n.id] = { born: 0, died: null }; lives.push(open[n.id]); } });
@@ -167,7 +187,16 @@ SEEDS.forEach((seed) => {
     let owners = Object.fromEntries(Object.values(s.regions).map((r) => [r.id, r.owner]));
     let t0 = performance.now(); let turnsSince = 0;
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
+      const acted0 = scripted ? logSum(scripted.log) : 0;
       if (scripted) s = scripted.answer(s).state;
+      if (counters.actions) {
+        // A decision this turn: anything the scripted player answered, queued or bought, or a tech
+        // finished last turn (the next pick).
+        const a = counters.actions; const tc = techCount(s);
+        const acted = logSum(scripted.log) > acted0 || (a.techsPrev != null && tc > a.techsPrev);
+        a.techsPrev = tc;
+        if (acted) { a.turns += 1; if (t <= 100) a.turns100 += 1; if (a.gap > 5) a.over5 += 1; a.gap = 0; } else { a.gap += 1; a.maxGap = Math.max(a.maxGap, a.gap); if (t <= 100) a.maxGap100 = Math.max(a.maxGap100, a.gap); }
+      }
       else if (s.pendingPeaceOffer) s = gameReducer(s, { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE });
       const before = s.logs.length;
       const pre = s;

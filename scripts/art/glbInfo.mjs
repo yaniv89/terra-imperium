@@ -23,7 +23,7 @@ export const readGlbJson = (path) => {
 export const isPacked = (json) => (json.extensionsUsed || []).includes('EXT_meshopt_compression');
 
 /** The close view's map model folders. */
-export const MAP_MODEL_DIRS = ['src/assets/map/towns', 'src/assets/map/shared', 'src/assets/map/buildings', 'src/assets/map/wonders', 'src/assets/map/improvements', 'src/assets/map/ships'];
+export const MAP_MODEL_DIRS = ['src/assets/map/towns', 'src/assets/map/shared', 'src/assets/map/buildings', 'src/assets/map/wonders', 'src/assets/map/improvements', 'src/assets/map/ships', 'src/assets/map/outposts'];
 /** The Wave 0 art folders (plans/ART-MODELS-PLAN.md; each has a README.md): kit files with LOD0..LOD2
  * objects, packed the same way. */
 export const KIT_MODEL_DIRS = ['src/assets/map/terrain', 'src/assets/battle/rts', 'src/assets/battle/city', 'src/assets/battle/nature', 'src/assets/battle/terrain', 'src/assets/battle/props'];
@@ -42,5 +42,7 @@ export const mapModelFiles = () => MAP_MODEL_DIRS.flatMap(glbsIn);
 export const modelFiles = () => [...MAP_MODEL_DIRS, ...KIT_MODEL_DIRS, ...SINGLE_LOD_DIRS].flatMap(glbsIn);
 /** Whether a file's objects must carry LOD levels (every folder but SINGLE_LOD_DIRS). */
 export const needsLods = (file) => !SINGLE_LOD_DIRS.some((d) => slashes(file).startsWith(`${d}/`));
-/** gltfpack's flags for a file: meshopt compression, names, materials and extras kept. */
-export const packFlags = (file) => ['-cc', '-kn', '-km', '-ke', ...(UNQUANTIZED_DIRS.some((d) => slashes(file).startsWith(`${d}/`)) ? ['-noq'] : [])];
+/** gltfpack's flags for a file: meshopt compression, names, materials and extras kept. Units also keep
+ * their clips' own keys (-af 0: no resampling): they are authored at 20 fps with the contact frames
+ * held two frames (plans/art/clip-animation-pipeline.md section 7). */
+export const packFlags = (file) => ['-cc', '-kn', '-km', '-ke', ...(UNQUANTIZED_DIRS.some((d) => slashes(file).startsWith(`${d}/`)) ? ['-noq', '-af', '0'] : [])];

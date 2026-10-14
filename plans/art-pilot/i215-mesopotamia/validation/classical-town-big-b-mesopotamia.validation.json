@@ -1,0 +1,104 @@
+{
+  "file": "classical-town-big-b-mesopotamia.glb",
+  "kind": "town",
+  "bytes": 5410728,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-big-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 44194,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 1.12,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 5910,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 1.12,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 982,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 0.929,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 7.93
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "classical-town-big-b-mesopotamia_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 555014
+    },
+    {
+      "name": "classical-town-big-b-mesopotamia_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 689924
+    },
+    {
+      "name": "classical-town-big-b-mesopotamia_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 491134
+    }
+  ],
+  "passed": true
+}

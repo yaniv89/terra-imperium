@@ -1,0 +1,81 @@
+{
+  "id": "gunpowder-cavalry",
+  "triangles": 3284,
+  "by_rig": {
+    "MountRig": 1392,
+    "RiderRig": 1892
+  },
+  "rigs": {
+    "MountRig": [
+      "Mount_Root",
+      "Mount_Spine",
+      "Mount_Neck",
+      "Mount_Head",
+      "Mount_Tail",
+      "Rider",
+      "Mount_LegFront_L",
+      "Mount_ShinFront_L",
+      "Mount_LegFront_R",
+      "Mount_ShinFront_R",
+      "Mount_LegHind_L",
+      "Mount_ShinHind_L",
+      "Mount_LegHind_R",
+      "Mount_ShinHind_R"
+    ],
+    "RiderRig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Boot",
+    "Brass",
+    "Buff",
+    "Cloth",
+    "Coat",
+    "Crest",
+    "Felt",
+    "Fur",
+    "Hair",
+    "Iron",
+    "Lace",
+    "Leather",
+    "Mane",
+    "Metal",
+    "Saddle",
+    "Shabraque",
+    "Skin",
+    "Team",
+    "Wood",
+    "Wool"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Dragoons: a dragoon astride a bay horse under a dark shabraque with pointed back corners and a pale lace border, the saddle, fur-capped pistol holsters, a rolled cloak, stirrups; a brass helmet with a black horsehair crest and a Team turban, a Team coat with its tails over the cantle lined in white, a white carbine belt and waist belt, buff breeches and black jackboots; the sabre drawn upright in the right fist, a carbine hanging behind the right thigh, the reins in the left fist",
+  "notes": "Quality pass of 2026-10-14 on ti_figure.py (astride, jackboots, seated_coat_tails, dragoon_helmet, upright_sabre) and ti_mounts.py (fine_horse, shabraque, war_saddle, holsters, roll, stirrups, reins). Sabre parts SabreGrip, SabreGuard, SabreBlade (Prop_R)."
+}

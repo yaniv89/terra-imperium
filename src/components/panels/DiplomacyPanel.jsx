@@ -16,7 +16,7 @@
 // overcrowded a list of up to 240 cards. NationCard now shows 1-2 primary actions inline and hides
 // the rest behind a per-card "More" toggle.
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Search, HeartHandshake, Sparkles, Unlock, Ban } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
@@ -41,6 +41,7 @@ import { peoplesModel, RELATION_LABEL } from './peoplesModel';
 // tooltip, which mobile touch has no equivalent of.
 import NationCard from './NationCard';
 import { demandTerms } from '../../engine/aiAccords';
+import { mapOfferTerms } from '../../engine/mapTrade';
 import IndependentsList from '../independents/IndependentsList';
 import { openTributeDemand, openJoinOffer, openIndependent } from '../independents/independentEvents';
 
@@ -75,12 +76,16 @@ const DiplomacyPanel = () => {
   // The peoples you met (engine/fog.js) and anyone at war with you, war first, then the coldest.
   const m = useMemo(() => peoplesModel(state, search), [state, search]);
   const selectedId = picked && m.rows.some((r) => r.id === picked) ? picked : m.rows[0]?.id || null;
+  // Keep the card on the people shown: an action that warms them (a gift, a map) re-sorts the
+  // list, and the card must not jump to whoever is now first.
+  useEffect(() => { if (selectedId && selectedId !== picked) setPicked(selectedId); }, [selectedId, picked]);
   const selected = selectedId ? state.nations[selectedId] : null;
   const pendingPeaceOffer = state.pendingPeaceOffer;
   const pendingPeaceOfferNation = pendingPeaceOffer ? state.nations[pendingPeaceOffer.from] : null;
   const demand = useMemo(() => demandTerms(state), [state]);
   const tributes = (state.tributeDemands || []).filter((d) => state.nations[d.indepId] && !state.nations[d.indepId].isEliminated);
   const joins = (state.joinOffers || []).filter((o) => state.nations[o.indepId] && !state.nations[o.indepId].isEliminated);
+  const mapOffer = useMemo(() => mapOfferTerms(state), [state]);
 
   return (
     <div className="px-3 sm:px-4 pt-3 pb-4 space-y-3" data-testid="peoples-tab">
@@ -142,6 +147,18 @@ const DiplomacyPanel = () => {
           </div>
         </div>
       ))}
+      {/* A major's offer to swap maps (mapTrade.js, I116): never blocks the turn, lapses on its own. */}
+      {mapOffer && (
+        <div className="fa-card p-2.5 flex flex-wrap items-center justify-between gap-2 border-fa-you/60" data-testid="map-offer">
+          <div className="text-[13px] min-w-0">
+            <button type="button" className="font-semibold underline" onClick={() => setPicked(mapOffer.from)}>{mapOffer.name}</button> offer to swap maps. <span className="text-fa-muted">{mapOffer.text} Answer by turn {mapOffer.until}.</span>
+          </div>
+          <div className="flex gap-1.5 shrink-0">
+            <Button size="sm" disabled={!mapOffer.ok} onClick={() => dispatch({ type: ActionTypes.ANSWER_MAP_OFFER, payload: { accept: true } })} data-testid="map-offer-accept">Swap</Button>
+            <Button size="sm" variant="ghost" onClick={() => dispatch({ type: ActionTypes.ANSWER_MAP_OFFER, payload: { accept: false } })} data-testid="map-offer-decline">Decline</Button>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] items-start">
         <div className="space-y-2 min-w-0">

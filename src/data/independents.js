@@ -17,6 +17,8 @@ export const INDEPENDENT_KIND = 'independent';
 /** True for an independent's nation record (or for an id, given the nations map). */
 export const isIndependentNation = (nation) => nation?.kind === INDEPENDENT_KIND;
 export const isIndependent = (nations, id) => !!id && isIndependentNation(nations?.[id]);
+/** An independent's personality (its shield on the map's badge and banner), or null for a major. */
+export const independentPersonality = (nations, id) => (isIndependent(nations, id) ? nations[id].indep?.personality || 'tribal' : null);
 
 /** A world of majors and independents (the peoples world of phase W0, or any world that holds an
  * independent): every major is Tier 1 there (independents 5, master plan section 3 "AI tiers"),
@@ -257,7 +259,10 @@ export const MERC_AI_PERIOD = 5;
 /** An AI major weighs the independents around it every INDEP_POLICY_PERIOD turns, staggered by id. */
 export const INDEP_POLICY_PERIOD = 5;
 /** An independent whose city stands within CONQUER_KM of one of a major's cities is in its reach. */
-export const CONQUER_KM = 612;
+// City-states start 880 km or more apart (src/data/cityStates.js), so the old 612 km found almost none
+// (captures 21 -> 1 a game). 918 km is three marches of a foot regiment (armies.js MOVE_KM; lane W6:
+// captures of city-states about 10 a game, 1,224 km gave the same).
+export const CONQUER_KM = 918;
 /** Plan 5: a major goes for an independent when its army near it is at least this times the
  * garrison; the siege force it sends is at least CONQUER_FORCE_RATIO x the garrison (all it can
  * spare when less), leaving CONQUER_KEEP_PER_CITY units in each of its cities. */

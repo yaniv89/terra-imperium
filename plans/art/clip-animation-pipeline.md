@@ -158,6 +158,149 @@ Each phase: battle-lab screenshots at 844x390, phone frame time within D3.
   the options file `src/assets/units/<uid>.json` under `"clips"`, which `unitModels.js` already
   loads (34). Stop leaving `clips.json` only in the build output.
 
+### 7.1 Worker tools and clips (art, 2026-10-14; rows U06, AN15, AN16, MD07)
+
+Delivered on `claude/art-worker-clips` for the five base workers (`<age>-worker.glb`), built by
+`scripts/blender/build_<age>_worker.py` over `scripts/blender/ti_worker_clips.py`. Clip table:
+`plans/art-pilot/worker-clips/LOG.md`.
+
+- **Tool bones**, children of `Prop_R`, heads at the right grip, the bone's Y axis along the haft:
+  `Tool_Held` (the tool held today: Bronze mattock, Classical staff pick, Kingdoms staff axe,
+  Gunpowder barrow with its shovel, Modern sledgehammer), `Tool_Axe`, `Tool_Pick`, `Tool_Sickle`,
+  `Tool_Hammer` (Bronze a wooden mallet; Modern has none and builds with `Tool_Held`). Gunpowder adds
+  `Tool_Wheel`, a child of `Tool_Held` at the axle, turning in the moving clips. Their vertices
+  classify as the right arm (as `Prop_R` did), so the procedural rig moves them as before.
+- **Visibility is the bone's uniform scale**, 1 or 0, keyed on every frame of every clip. Each clip
+  shows one tool (`"tool"` in the options file); scale tracks that equal the bind value (1) are
+  dropped by gltfpack, so **a missing track means the bind value**: sample each clip starting from
+  the bind pose.
+- **The rest bake is unchanged**: Idle frame 1 shows `Tool_Held` only, so the four work tools bake as
+  degenerate triangles at the grip (invisible; under 200 triangles a worker, counted in the 2,000).
+  For those bones `W(rest)` has scale 0 and no inverse: take **the bind pose** (the GLB's node
+  transforms, every tool at full size) as the reference instead, that is bake the `Tool_*` vertices
+  from the bind pose and store `W(frame) x W(bind)^-1` for them. For every other bone bind and Idle
+  frame 1 agree within 1 mm (the floor lift), so the bind pose can serve as the reference for all.
+- **Root**: in place on X and Y in every clip. Root moves vertically for ground contact (the gaits'
+  rise and fall, crouches in the work clips with the feet planted) and rotates for Death's fall.
+- **Timing**: frame f is at f / 20 s in the GLB (frame 1 at 0.05 s, the last at frames / 20). The pack
+  keeps the 20 fps keys (`-af 0` for unit files, `scripts/art/glbInfo.mjs`). Loops are closed: the
+  last frame repeats the first.
+- **Options file** `"clips"`: per clip `frames`, `fps`, `loop`, `tool` (`Held`, `Axe`, `Pick`,
+  `Sickle`, `Hammer`) and `events` (1-based): `contact` (Chop, Mine, Build, Repair), `cut` (Harvest),
+  `pour` (Deposit: the frame the load leaves; the game drops its load there), `settle` (Death, the last
+  frame). Contact frames are held two frames (the event frame and the next).
+- **Loads**: none added to the meshes; the game draws logs, stone, gold and food from
+  worker-loads.glb. The loads that are part of today's look stay (Bronze and Classical baskets, the
+  Kingdoms firewood, the Gunpowder barrow's earth).
+- **Per worker**: Gunpowder keeps the barrow on the ground (hands on the handles) in Idle, the gaits
+  and Hit, tips it over the wheel in Deposit, leaves it standing when he falls (Death), and hides it in
+  the work clips. Modern walks with the sledgehammer on the right shoulder and steadies a shoulder
+  load in Carry. The basket workers tip the basket over the left shoulder in Deposit.
+
+### 7.2 Foot soldiers' clips (art, 2026-10-14)
+
+Delivered on `claude/art-foot-clips` over `scripts/blender/ti_foot_clips.py` (the poser and author of
+7.1, lifted into `scripts/blender/ti_clips.py` and shared). Clip table and sheets:
+`plans/art-pilot/foot-clips/LOG.md`. Test: `src/battle/render/footClips.test.js`.
+
+- **Sets** (`"clips"` in the options file, in this order): melee (spear, sword, pike) Idle, IdleAlt, Walk,
+  Run, Retreat-run, Attack, Attack2, Block, Hit, Death, DeathAlt, Cheer; bow Idle, Walk, Run,
+  Draw-aim-release, Melee-fallback, Hit, Death, DeathAlt; gun (Gunpowder and Modern infantry, riflemen
+  and mercenaries: the sim makes them shooters, `AGE_OVERRIDES`) the same with Aim-fire-reload; support
+  Idle, Walk, Run, (Mine), Build, Repair, Hit, Death. Retreat-run is a plain upright run (no panic); play
+  it for a squad walking back, or not at all.
+- **Loops**: Idle, IdleAlt, the gaits, Cheer and the work clips. Attack, Attack2, Block, Melee-fallback,
+  Draw-aim-release and Aim-fire-reload are one-shots, played once per strike or shot so the event frame
+  lands on the sim's tick (`lastStrikeTick`); they start and end on the same pose (the melee guard, or the
+  rest pose for the shooting clips), so back-to-back plays join without a fade.
+- **Events** (1-based): `contact` (Attack, Attack2, Melee-fallback, Mine, Build, Repair; held two frames),
+  `release` (Draw-aim-release: the arrow leaves; spawn the projectile here), `fire` and `reloaded`
+  (Aim-fire-reload: the shot, and the end of loading), `settle` (Death, DeathAlt: the last frame; hold it).
+- **Prop bones move**: Prop_R and Prop_L are keyed relative to their hands (a hand slides along a haft: the
+  pike held near its butt, the musket at the stock's wrist; the musket stays in the left hand while the
+  right rams). Sample every bone, Prop_* included; never assume a prop is fixed to its hand.
+- **Tool_Arrow** (archers with a nocked arrow): a child of Prop_R, shown by scale as the worker tools
+  (7.1: a missing scale track is the bind value 1); 0 from `release` until a new arrow comes out of the
+  quiver. Its vertices classify as the right arm, as before. **Prop_String** (the Bronze bow only, a child
+  of Prop_L) carries the string's middle and follows the drawing fist; the Classical and Kingdoms strings
+  are single segments on Prop_L and stay straight.
+- **Polearms** (meshes named spear, pike, lance, halberd): every vertex hangs from Prop_R alone (tested).
+  `fitPolearm` stretches the shaft at rest, from the butt along its rest axis; under clips keep that bake
+  and move the stretched vertices with Prop_R's matrix relative to rest (`W(frame) x W(rest)^-1`, section
+  4): the stretch rides along rigidly, so it must be applied once, in rest space, before the clip matrices,
+  and never re-applied per frame or along a posed axis. A pike levelled in Attack reaches about 2.4 m in
+  front of the man at its 5 m length; that is the drawing, not a bug. Polearms stretch only for base
+  infantry (`bakeOptionsFor`), so a mercenary's or a general's spear keeps its authored length.
+- **Root** stays on X and Y (glTF X and Z) in every clip (tested); it rises and falls with the gaits and
+  the crouches, and turns for the falls (forward in Death, backward in DeathAlt). The floor pass keeps the
+  body above the ground; a weapon may dip into it (a spear butt behind a thrust).
+- **Weapon hands**: the weapon's bone carries the weapon exactly; the fists reach for it with two-bone
+  IK on the figure's short arms, so on a few in-between frames (a long gun coming down from the shoulder,
+  the spade's toss) a fist can sit up to 10 cm off the haft. Nothing for the code to do; it is the art.
+- **Not covered**: modern-ranged (the ATGM team: three rigs, a kneeling gunner) and the mounted units: see 7.3;
+  siege and vehicles are separate work. The Gunpowder rifleman's rifle
+  hangs from Prop_L (his left fist), every other gun from Prop_R. No ramrod and no spare magazine were
+  modelled (the triangle counts are unchanged), so loading is the hands' motion alone.
+
+### 7.3 Mounted units, generals and files of several rigs (art, 2026-10-14)
+
+Delivered on `claude/art-mounted-clips` over `scripts/blender/ti_mounted_clips.py` (on top of 7.1 and 7.2). Clip
+tables and sheets: `plans/art-pilot/mounted-clips/LOG.md`. Test: `src/battle/render/mountedClips.test.js`.
+
+- **Several rigs in one file.** MountRig and RiderRig; MountRig, CommanderRig and BearerRig (generals); the
+  chariot's HorseNearRig, HorseOffRig, ChariotRig, DriverRig and ArcherRig. Each clip is ONE glTF animation that
+  keys every rig over the same frames (exported with `NLA_TRACKS`). Bone names repeat across rigs (Root, Hips,
+  Prop_R ...): three's GLTFLoader numbers the repeats (`Root_1`, `Head_1`) and the tracks bind to those names, so
+  run one mixer on `gltf.scene` and sample every bone. Store each bone relative to its own rig's rest (section 4,
+  `W(frame) x W(rest)^-1`); the per-vertex bone index must index the file's whole bone list (all rigs: 21 a
+  person, 15 a horse with the new Mount_Rein, 3 the car; under 128).
+- **The rider is carried, not parented.** The rider's rig is a sibling of the horse's; his Root follows the horse's
+  back every frame (keyed), so his Root moves a few centimetres on X and Y in the gaits (the back pitches about the
+  middle of the barrel). The "Root stays on X and Y" rule of 7.2 holds for Mount_Root, for people on foot and for
+  the car's Hull (it turns about the axle, a millimetre behind the bone); a carried Root stays within 0.1 H of its
+  seat, and the riders leave it only in the falls.
+- **Gaits and speeds.** Walk 21 frames (one stride, four-beat), Trot 15 (two-beat, diagonal pairs), Gallop 13
+  (three-beat with a suspension), all loops; Charge 41 (four gallop strides at 10 frames). The planted hooves slide
+  back at a natural ground speed: Walk 0.52, Trot 1.29, Gallop 2.74, Charge 3.29 tiles a second (0.55, 1.36, 2.89,
+  3.47 H/s; 1 H = ART_UNIT_WORLD 0.95). The sim's cavalry moves at 3.0 to 3.2 tiles/s, so a squad at full speed
+  plays Gallop at about 1.15x or Charge at about 0.95x; scale the rate by actual / natural speed, pick Walk under
+  about 0.9 tiles/s, Trot under about 2.0, Gallop above. The general's bearer runs at the horse's cadence (his feet
+  slide a little at Gallop speeds). The chariot's Move is the gallop (its wheels turn once a stride: 2.69
+  tiles/s), its Charge the faster gallop (3.22).
+- **Charge.** A one-shot, not a loop: it starts and ends on the gallop's phase 0 (the same leg pose as Gallop frame
+  1, the weapon back to its rest hold), so Gallop to Charge to Gallop joins with the usual cross-fade. The lead-in
+  is 22 frames (1.1 s): start Charge 1.1 s (at its rate) before the sim's charge strike so `contact` (frame 23)
+  lands on `lastStrikeTick`. The lance comes down from frame 2 and is couched by 15; the horse gallops on through
+  the impact, the weapon is held two frames on the rider (frames 23 and 24, relative to his Root).
+- **Attack** is the rider's strike with the horse standing (it starts and ends at rest; contact 11, held). Play it
+  for a squad fighting in place; a moving squad keeps its gait.
+- **Mount deaths.** In place: the horse buckles and rolls onto its side (Mount_Root drops, Mount_Spine rolls about
+  87 degrees about the barrel, the legs lie out), settled from frame 37 (settle event 40). Death rolls it onto its
+  right side (-X), DeathAlt onto its left (+X) after sitting back on its haunches; a general's horse rolls to its
+  right both times (away from the bearer). The rider rides the stumble to frame 12, is thrown over the side the
+  back rolls to and lies along the horse 0.4 H out (on his back in Death, face down in DeathAlt): the corpse covers
+  about 1.4 x 1.6 H, wider than the living figure; keep corpses in the pool at that footprint. The bearer steps 0.24
+  H out to his left and falls (forward, backward). The chariot's Wreck: the car tips onto its right side, the
+  horses go down on their chests, the crew are thrown out over the back.
+- **Reins.** Their hand end hangs from a new bone `Mount_Rein` (a child of Mount_Neck, at the rein fist at rest)
+  keyed to follow the rider's left fist; in the falls it goes back to riding the neck. It classifies as the body,
+  as Mount_Neck did, so the procedural rig and the rest bake are unchanged. The chariot's reins hang from the car.
+- **Lances** keep their names (SpearShaft, SpearHead*) and hang from the rider's Prop_R alone (tested): fitPolearm
+  stretches them at rest and the stretched shaft rides on Prop_R (7.2). Couched, a 3.5 m lance reaches about 1.5 H
+  in front of the rider's fist.
+- **Hidden props by scale** as in 7.1: the chariot archer's arrow (Tool_Arrow, 0 from `release` until a new one
+  comes out of the quiver), the ATGM loader's spare tube (Tool_Spare, 0 from the frame after `reloaded` until a
+  new one is in his fist at frame 47).
+- **The ATGM team** (modern-ranged: AtgmRig, GunnerRig, LoaderRig): Idle, Aim-fire-reload (50 frames, `fire` 12:
+  spawn the missile there; the launcher's Hull kicks about its head; `reloaded` 38), Hit, Death, DeathAlt (settle
+  40). Its people stand on the ground (in place, as 7.2); in the falls the loader may step 0.25 H aside.
+- **Vehicles** (tank, AA truck, command car, technical) are not authored. The renderer's procedural turret
+  (LIMB.TURRET: a slow scan while standing, a shake while firing) stays the right tool for the aim, which only the
+  game knows; clips would add wheel and track spin, the barrel's recoil with a `fire` event and a Wreck, and should
+  leave Turret and Barrel unkeyed so the procedural yaw can still apply.
+- **The procedural rig.** A file with clips must not also get the vertex rig's horse trot (HORSE_FRONT/BACK) or
+  the rider's still legs (`staticLegs`): the clips move every leg. Units without clips keep it.
+
 ## 8. Open questions for the user
 
 1. Replace D5's VAT with the rigid bone texture? (Same art, about 40x less memory.)

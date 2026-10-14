@@ -94,6 +94,36 @@ export const leanOf = (box) => {
   return h > 0 && Math.hypot(cx, cz) > LEAN_SHARE * h ? Math.atan2(-cz, cx) : null;
 };
 
+/** The size level by a medium tree's height on screen (css px; REFERENCE_TREE_UNITS tall): LOD0 from TREE_LOD_PX[0] up,
+ * LOD1 from TREE_LOD_PX[1], LOD2 below. On a landscape phone these sit at zoom 2 and 0.9 (where
+ * the zoom rule switched); a desktop's larger view switches at its own zooms. The size level sets
+ * how much of a wood is drawn (KEEP_AT_LOD) and the finest detail allowed. */
+export const TREE_LOD_PX = [70, 32];
+/** The reference tree for that height: a medium tree, 6 m (0.6 model units). */
+export const REFERENCE_TREE_UNITS = 0.6;
+/** A level is kept until the size is this much past its threshold, so a slow zoom does not flicker. */
+export const TREE_LOD_HYSTERESIS = 0.08;
+export const treeLodForPx = (px, prev = 1) => {
+  for (let k = 0; k < TREE_LOD_PX.length; k++) {
+    const need = TREE_LOD_PX[k] * (prev <= k ? 1 - TREE_LOD_HYSTERESIS : 1 + TREE_LOD_HYSTERESIS);
+    if (px >= need) return k;
+  }
+  return TREE_LOD_PX.length;
+};
+
+/**
+ * The detail level the trees draw this frame: the size level, or coarser while `cost(level)` (the
+ * triangles the visible trees would draw at that level, shadows included) is over `budget`; a
+ * finer level than last frame only with 15% to spare, so a pan does not flip it back and forth.
+ * Like soldierLod.js pickSoldierTier. Only the detail changes: how many trees stand is the size
+ * level's (a wood never thins because it is near the budget).
+ */
+export const pickTreeLod = ({ sizeLod, cost, budget = Infinity, prev = sizeLod }) => {
+  let lod = sizeLod;
+  while (lod < 2 && cost(lod) > budget * (lod < prev ? 0.85 : 1)) lod += 1;
+  return lod;
+};
+
 /** How many of `ranks` (sorted ascending) are drawn at a vegetation LOD. */
 export const keptCount = (ranks, lod) => {
   const limit = KEEP_AT_LOD[lod] ?? 1;

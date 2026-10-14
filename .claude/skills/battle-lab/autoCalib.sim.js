@@ -7,7 +7,7 @@
 //   BASE=parity.txt N=32 npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/autoCalib
 import { it } from 'vitest';
 import fs from 'node:fs';
-import { autoFromInputs } from '../../../src/engine/autoBattle';
+import { autoFromInputs, AUTO_TUNE } from '../../../src/engine/autoBattle';
 import { militiaFor } from '../../../src/engine/battleInputs';
 import { createRng } from '../../../src/utils/rng';
 import { buildTownManifest, manifestHousing } from '../../../src/data/townLayout';
@@ -38,7 +38,7 @@ it('calibrate', () => {
     return { ...r, assault, walled, seeds };
   });
   const score = (tune) => {
-    let out = 0; let logSum = 0; let winGap = 0; const outRows = [];
+    let out = 0; let logSum = 0; let winGap = 0; const outRows = []; const rowsAll = [];
     cases.forEach((c) => {
       let aA = 0; let aD = 0; let wins = 0;
       c.seeds.forEach((s) => {
@@ -52,15 +52,21 @@ it('calibrate', () => {
       if (ratio < 0.5 || ratio > 3.5) { out += 1; outRows.push(`${c.type} ${c.ageA}>${c.ageD} ${c.att.join('+')} vs ${c.def.join('+')} ratio=${ratio.toFixed(2)} wins=${c.wins}/${wins}`); }
       logSum += Math.abs(Math.log(ratio));
       winGap += Math.abs(c.wins - wins) / N;
+      rowsAll.push(`${c.type} ${c.ageA}>${c.ageD} ${c.att.join('+')} vs ${c.def.join('+')} auto=${auto.toFixed(3)} tactical=${c.tactical.toFixed(3)} ratio=${ratio.toFixed(2)} wins=${c.wins}/${wins}`);
     });
-    return { out, logSum, winGap, outRows };
+    return { out, logSum, winGap, outRows, rowsAll };
   };
   const results = [];
-  for (const AUX_CLOSENESS of (process.env.K || "0").split(",").map(Number)) for (const AUX_ROUNDS of (process.env.R || "2").split(",").map(Number)) for (const AUX_UNIT of (process.env.U || "400").split(",").map(Number)) for (const AUX_EFFECT of (process.env.EFF || "0.4,0.7,1").split(",").map(Number)) for (const f of (process.env.F || "4,8,12").split(",").map(Number)) for (const a of (process.env.A || "6,12,20").split(",").map(Number)) for (const d of (process.env.D || "4,8,12").split(",").map(Number)) for (const WALLS_NO_SIEGE_MULT of (process.env.W || "0.2,0.35,0.5,0.7").split(",").map(Number)) {
-    const tune = { AUX_CLOSENESS, AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED: { field: [f, f], assault: [a, d] }, WALLS_NO_SIEGE_MULT };
+  // TA / TD: the auxiliaries of an unwalled city (AUX_TRAINED.town), attacker and defender; unset = the assault's.
+  const town = (v) => (process.env[v] ? process.env[v].split(',').map(Number) : [null]);
+  const ages = (process.env.WAR || String(AUTO_TUNE.WALLS_AGE_RELIEF)).split(',').map(Number);
+  for (const AUX_CLOSENESS of (process.env.K || "0").split(",").map(Number)) for (const AUX_ROUNDS of (process.env.R || "2").split(",").map(Number)) for (const AUX_UNIT of (process.env.U || "400").split(",").map(Number)) for (const AUX_EFFECT of (process.env.EFF || "0.4,0.7,1").split(",").map(Number)) for (const f of (process.env.F || "4,8,12").split(",").map(Number)) for (const a of (process.env.A || "6,12,20").split(",").map(Number)) for (const d of (process.env.D || "4,8,12").split(",").map(Number)) for (const WALLS_NO_SIEGE_MULT of (process.env.W || "0.2,0.35,0.5,0.7").split(",").map(Number)) for (const ta of town('TA')) for (const td of town('TD')) for (const WALLS_AGE_RELIEF of ages) {
+    const tune = { ...AUTO_TUNE, AUX_CLOSENESS, AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED: { field: [f, f], assault: [a, d], ...(ta != null || td != null ? { town: [ta ?? a, td ?? d] } : {}) }, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF };
     results.push({ tune, ...score(tune) });
   }
   results.sort((x, y) => x.out - y.out || (x.logSum + x.winGap) - (y.logSum + y.winGap));
-  results.slice(0, 8).forEach((r) => console.log(`CALIB out=${r.out}/${cases.length} logSum=${r.logSum.toFixed(2)} winGap=${r.winGap.toFixed(2)} ${JSON.stringify(r.tune)}`));
+  const brief = (t) => JSON.stringify({ K: t.AUX_CLOSENESS, R: t.AUX_ROUNDS, U: t.AUX_UNIT, EFF: t.AUX_EFFECT, AUX_TRAINED: t.AUX_TRAINED, W: t.WALLS_NO_SIEGE_MULT, WAR: t.WALLS_AGE_RELIEF });
+  results.slice(0, 8).forEach((r) => console.log(`CALIB out=${r.out}/${cases.length} logSum=${r.logSum.toFixed(2)} winGap=${r.winGap.toFixed(2)} ${brief(r.tune)}`));
+  if (process.env.ROWS) results[0].rowsAll.forEach((row) => console.log(`CALIB-ROW ${row}`));
   results[0].outRows.forEach((row) => console.log(`CALIB-OUT ${row}`));
 });

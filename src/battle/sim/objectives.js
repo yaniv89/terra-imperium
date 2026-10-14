@@ -10,6 +10,7 @@ import { nextRandom } from './rng';
 import { distSq, polarX, polarY } from './fixed';
 import { queryRadius } from './pathing';
 import { isFighting, perHitFraction } from './combat';
+import { fireShare, capShotOn } from './siegeRules';
 import { buildingSupplyPerSec } from './buildings';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks } from './constants';
 import { moraleFromLosses } from './moraleMath';
@@ -93,7 +94,9 @@ export const resolveStructureFire = (w) => {
     });
     if (!target) return;
     const variance = 1 + (nextRandom(w) * 2 - 1) * RNG_VARIANCE;
-    const damage = Math.max(1, Math.round((s.damage + bonus) * variance));
+    // A battered building shoots less (fireShare), and an auxiliary company is never cut down by a
+    // volley or two (capShotOn): I211, I212.
+    const damage = capShotOn(target, Math.max(1, Math.round((s.damage + bonus) * variance * fireShare(s))));
     // The garrison shares the credit (battle XP goes to squads that fought).
     if (bonus) garrison.forEach((q) => { q.engaged = true; q.damageDealt += Math.round((damage * (q.strength * perHitFraction({ attackTicks: s.attackTicks }) * GARRISON_FIRE_MULT)) / (s.damage + bonus)); });
     target.strength = Math.max(0, target.strength - damage);

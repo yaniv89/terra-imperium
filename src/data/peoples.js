@@ -11,7 +11,8 @@
 // units, src/data/architecture.js), `weight` (A: cradles and great powers, B, C: how likely the
 // picker makes it a major), `region`, `arrives` (late arrivals only: the year the land was
 // settled; never drawn as a major), `pinned` (the Kingdom of Israel: tried first after the player,
-// roadmap decision 13, but it keeps the 612 km gap like everyone; no other advantage).
+// roadmap decision 13, but it keeps the start gap like everyone; no other advantage), `major` (from
+// MAJOR_TIER below: one of the 50 major peoples, else a city-state people; decision 42).
 // Built facts (capital tile, colour, the legacy id table) come from src/data/geo/peopleCapitals.json
 // (npm run build:peoples). City names: src/data/peopleCities.json (20 a people, capital first).
 import CITY_NAMES from './peopleCities.json';
@@ -21,9 +22,9 @@ import countriesMeta from './geo/countries-meta.json';
 const RAW = [
   { id: 'israel', name: 'Israel', adjective: 'Israelite', capital: { name: 'Jerusalem', lat: 31.78, lon: 35.23 }, land: 'il', theme: 'israelite', weight: 'A', region: 'neareast', pinned: true },
   { id: 'ugarit', name: 'Ugarit', adjective: 'Ugaritic', capital: { name: 'Ugarit', lat: 35.6, lon: 35.78 }, land: 'sy', theme: 'levant', weight: 'B', region: 'neareast' },
-  { id: 'mari', name: 'Mari', adjective: 'Mariote', capital: { name: 'Mari', lat: 34.55, lon: 40.89 }, land: 'sy', theme: 'levant', weight: 'B', region: 'neareast' },
-  { id: 'akkad', name: 'Akkad', adjective: 'Akkadian', capital: { name: 'Kish', lat: 32.54, lon: 44.6 }, land: 'iq', theme: 'levant', weight: 'A', region: 'neareast' },
-  { id: 'elam', name: 'Elam', adjective: 'Elamite', capital: { name: 'Anshan', lat: 29.98, lon: 52.4 }, land: 'ir', theme: 'levant', weight: 'A', region: 'neareast' },
+  { id: 'mari', name: 'Mari', adjective: 'Mariote', capital: { name: 'Mari', lat: 34.55, lon: 40.89 }, land: 'sy', theme: 'mesopotamia', weight: 'B', region: 'neareast' },
+  { id: 'akkad', name: 'Akkad', adjective: 'Akkadian', capital: { name: 'Kish', lat: 32.54, lon: 44.6 }, land: 'iq', theme: 'mesopotamia', weight: 'A', region: 'neareast' },
+  { id: 'elam', name: 'Elam', adjective: 'Elamite', capital: { name: 'Anshan', lat: 29.98, lon: 52.4 }, land: 'ir', theme: 'mesopotamia', weight: 'A', region: 'neareast' },
   { id: 'media', name: 'Media', adjective: 'Median', capital: { name: 'Hagmatana', lat: 34.8, lon: 48.52 }, land: 'ir', theme: 'levant', weight: 'A', region: 'neareast' },
   { id: 'kanesh', name: 'Kanesh', adjective: 'Kaneshite', capital: { name: 'Kanesh', lat: 38.85, lon: 35.63 }, land: 'tr', theme: 'levant', weight: 'A', region: 'neareast' },
   { id: 'lydia', name: 'Lydia', adjective: 'Lydian', capital: { name: 'Sardis', lat: 38.49, lon: 28.04 }, land: 'tr', theme: 'levant', weight: 'A', region: 'neareast' },
@@ -35,7 +36,7 @@ const RAW = [
   { id: 'saba', name: 'Saba', adjective: 'Sabaean', capital: { name: 'Maryab', lat: 15.42, lon: 45.33 }, land: 'ye', theme: 'levant', weight: 'A', region: 'neareast' },
   { id: 'kindah', name: 'Kindah', adjective: 'Kindite', capital: { name: 'Qaryat al-Faw', lat: 19.78, lon: 45.15 }, land: 'sa', theme: 'levant', weight: 'C', region: 'neareast' },
   { id: 'magan', name: 'Magan', adjective: 'Maganite', capital: { name: 'Bat', lat: 23.27, lon: 56.75 }, land: 'om', theme: 'levant', weight: 'B', region: 'neareast' },
-  { id: 'dilmun', name: 'Dilmun', adjective: 'Dilmunite', capital: { name: "Qal'at al-Bahrain", lat: 26.23, lon: 50.52 }, land: 'bh', theme: 'levant', weight: 'B', region: 'neareast' },
+  { id: 'dilmun', name: 'Dilmun', adjective: 'Dilmunite', capital: { name: "Qal'at al-Bahrain", lat: 26.23, lon: 50.52 }, land: 'bh', theme: 'mesopotamia', weight: 'B', region: 'neareast' },
   { id: 'qedar', name: 'Qedar', adjective: 'Qedarite', capital: { name: 'Adumattu', lat: 29.81, lon: 39.87 }, land: 'sa', theme: 'levant', weight: 'C', region: 'neareast' },
   { id: 'nabataea', name: 'Nabataea', adjective: 'Nabataean', capital: { name: 'Hegra', lat: 26.79, lon: 37.95 }, land: 'sa', theme: 'levant', weight: 'B', region: 'neareast' },
   { id: 'kemet', name: 'Kemet', adjective: 'Kemetic', capital: { name: 'Men-nefer', lat: 29.85, lon: 31.25 }, land: 'eg', theme: 'nile', weight: 'A', region: 'northafrica' },
@@ -171,6 +172,28 @@ const RAW = [
   { id: 'bau', name: 'Bau', adjective: 'Bauan', capital: { name: 'Bau', lat: -17.99, lon: 178.62 }, land: 'fj', theme: 'pacific', weight: 'C', region: 'oceania', arrives: -1000 }
 ];
 
+// The two tiers (decision 42, X25): these 50 are the MAJOR peoples, the ones a player picks and the
+// ones a world draws its major nations from; the other 100 are the CITY-STATE peoples, the names
+// a world's independent cities are drawn from. Nothing is deleted: every people keeps its record,
+// art and signature unit, and any people may still be passed as the player (old saves, tests).
+// Chosen for spread (every part of the world holds majors; Europe and the Near East held 59 of 150),
+// for well-known peoples, and for start places far enough apart (START_MIN_GAP_KM, 900 km) that most
+// can meet in one world. Pairs closer than the gap (Israel and Kemet, Akkad and Elam, Saba and D'mt,
+// Rasenna and the Arverni...) are alternatives: a world holds one of the two.
+export const MAJOR_TIER = Object.freeze({
+  neareast: ['israel', 'akkad', 'elam', 'pontus', 'saba'],
+  northafrica: ['kemet', 'kerma', 'numidia', 'garamantes'],
+  europe: ['ahhiyawa', 'rasenna', 'tartessos', 'arverni', 'brigantes', 'geats', 'dacia', 'khazaria'],
+  centralasia: ['bactria', 'gokturk', 'yarlung', 'wusun'],
+  southasia: ['meluhha', 'magadha', 'pandya', 'satavahana'],
+  eastasia: ['shang', 'shu', 'nanyue', 'gojoseon', 'yamatai'],
+  southeastasia: ['van_lang', 'funan', 'pyu', 'srivijaya'],
+  africa: ['wagadu', 'nok', 'd_mt', 'kitara', 'kilwa', 'mapungubwe', 'ndongo'],
+  americas: ['teotihuacan', 'mutal', 'hopewell', 'chaco', 'muisca', 'caral', 'tiwanaku', 'tupinamba'],
+  oceania: ['gunditjmara']
+});
+const MAJOR_SET = new Set(Object.values(MAJOR_TIER).flat());
+
 // Title stems: the word a title is built around when the picker's name does not read well inside
 // one ("Kingdom of Israel", not "Kingdom of Kingdom of Israel"). Default: the name, with a
 // leading "The" lowered ("Kingdom of the Nuragi").
@@ -215,6 +238,7 @@ export const PEOPLES_LIST = Object.freeze(RAW.map((p) => Object.freeze({
   stem: stemOf(p),
   plural: p.name.startsWith('The '),
   weightValue: PEOPLE_WEIGHTS[p.weight],
+  major: MAJOR_SET.has(p.id),
   regionGroup: PEOPLE_REGIONS[p.region].group,
   landName: countriesMeta[p.land]?.name || p.land,
   cities: Object.freeze([...(CITY_NAMES[p.id] || [])]),
@@ -226,6 +250,19 @@ export const PEOPLES_LIST = Object.freeze(RAW.map((p) => Object.freeze({
 export const PEOPLES = Object.freeze(Object.fromEntries(PEOPLES_LIST.map((p) => [p.id, p])));
 export const PEOPLE_IDS = Object.freeze(PEOPLES_LIST.map((p) => p.id));
 export const PINNED_PEOPLE_IDS = Object.freeze(PEOPLES_LIST.filter((p) => p.pinned).map((p) => p.id));
+/** The 50 major peoples (the picker and the majors' draw) and the 100 city-state peoples. */
+export const MAJOR_PEOPLES_LIST = Object.freeze(PEOPLES_LIST.filter((p) => p.major));
+export const CITY_STATE_PEOPLES_LIST = Object.freeze(PEOPLES_LIST.filter((p) => !p.major));
+
+// Kinship (opinion's "Our kin", grudges, razing) reads the people's art theme, but an art sub-theme
+// is not a new kin group: the Mesopotamian look (I215) splits from the Levant only in its buildings,
+// so Akkad, Elam, Mari and Dilmun stay kin of the Levant's peoples as before.
+const KIN_THEME = { mesopotamia: 'levant' };
+/** The kin group of a people id (its art theme with sub-themes folded in), or null. */
+export const kinThemeOf = (peopleId) => {
+  const theme = (peopleId && PEOPLES[peopleId]?.theme) || null;
+  return (theme && KIN_THEME[theme]) || theme;
+};
 
 /** The people record of a nation id, or null (a legacy country id). */
 export const peopleOf = (nationId) => (nationId && PEOPLES[nationId]) || null;

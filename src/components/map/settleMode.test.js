@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { createInitialState, gameReducer } from '../../engine/gameReducer';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
-import { makeSettler, bestSites, canSettle, SETTLER_MOVES, MAX_SETTLE_RINGS } from '../../engine/settlers';
+import { makeSettler, bestSites, canSettle, siteOutlook, SETTLER_MOVES, MAX_SETTLE_RINGS } from '../../engine/settlers';
 import { isExplored } from '../../engine/fog';
 import { ringDistance } from '../../engine/world/cities';
 import { resourceKnown } from '../../data/tileYields';
@@ -51,9 +51,13 @@ describe('the settle mode', () => {
     // each is a place of its own: no two closer than two cities may stand
     const tiles = getTiles();
     sites.forEach((a, i) => sites.slice(i + 1).forEach((b) => expect(ringDistance(tiles, a.tile, b.tile, 12)).toBeGreaterThanOrEqual(citySpacingRings(tiles))));
-    // the engine's own best site is among them
+    // the engine's own best site is among them, unless it is a poor one (short of food or
+    // production) and the list is already full of sound sites, which come first (I098: with
+    // fewer resources the top score can be a poor site)
     const best = bestSites(s, me, capital.tile, 'bronze', { rings: MAX_SETTLE_RINGS, limit: 1 })[0];
-    expect(sites.map((x) => x.tile)).toContain(best.tile);
+    const bestPoor = (siteOutlook(s, best.tile, me)?.warnings || []).length > 0;
+    if (!bestPoor || sites.some((x) => x.warnings.length)) expect(sites.map((x) => x.tile)).toContain(best.tile);
+    else expect(sites.every((x) => !x.warnings.length)).toBe(true);
   });
 
   it('"Next good site" walks the list round and starts at the best', () => {

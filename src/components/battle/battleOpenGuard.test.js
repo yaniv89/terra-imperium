@@ -12,7 +12,7 @@ import { createBattleLoop } from '../../battle/worker/battleLoop';
 import { battleOpenProblem, checkpointFits, safeBattleSetup } from './battleOpenGuard';
 
 const game = () => {
-  const s = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
+  const s = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11, cityStates: 'packed' } });
   return { ...s, resources: { ...s.resources, gold: 5000 } };
 };
 const KISH = game().nations.akkad.capitalRegionId;

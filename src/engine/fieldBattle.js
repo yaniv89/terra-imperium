@@ -24,7 +24,7 @@ import { REBEL_OWNER_ID } from '../data/rebellion';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
 import { getTechAgeId } from './nationState';
-import { canAttack } from './hostility';
+import { canAttack, canFight } from './hostility';
 import { legacyTerrainOf } from './world/registry';
 import { passableTile, regionForTile, unitTile } from './armies';
 import { isUnitInBattle } from './invasion';
@@ -48,15 +48,17 @@ const isCentre = (state, tile) => state.regions[state.world?.tileOwner?.[tile]]?
 const hostile = (state, me, owner) => canAttack(state, me, owner);
 
 /** Enemy land units of `me` standing on `tile`. */
-export const enemyStackAt = (state, tile, me = state.playerNationId, units = state.units) => Object.values(units)
-  .filter((u) => u.domain === 'land' && !u.embarkedOn && !isSettler(u) && u.strength > 0 && u.ownerId !== me && unitTile(state, u) === tile && hostile(state, me, u.ownerId));
+export const enemyStackAt = (state, tile, me = state.playerNationId, units = state.units, isHostile = hostile) => Object.values(units)
+  .filter((u) => u.domain === 'land' && !u.embarkedOn && !isSettler(u) && u.strength > 0 && u.ownerId !== me && unitTile(state, u) === tile && isHostile(state, me, u.ownerId));
 
-export const validateFieldAttack = (state, fromRegionId, tile, { ignoreCost = false, ignoreBattleLocks = false } = {}) => {
+// `sally`: a besieged garrison strikes at its besiegers (aiSally). Any hostile besieger may be hit,
+// so an independent, which starts no fight of its own (hostility.js), may still sally (I125).
+export const validateFieldAttack = (state, fromRegionId, tile, { ignoreCost = false, ignoreBattleLocks = false, sally = false } = {}) => {
   const me = state.playerNationId;
   const tiles = getTiles();
   if (tile == null || tile < 0 || !passableTile(tiles, tile)) return { ok: false, reason: 'bad_target' };
   if (isCentre(state, tile)) return { ok: false, reason: 'is_city' };
-  const defenderUnits = enemyStackAt(state, tile, me);
+  const defenderUnits = enemyStackAt(state, tile, me, state.units, sally ? canFight : hostile);
   if (!defenderUnits.length) return { ok: false, reason: 'no_enemy' };
   const defenderNationId = defenderUnits[0].ownerId;
   const war = defenderNationId === REBEL_OWNER_ID ? null : (state.wars || []).find((w) => w.active && isWarBetween(w, me, defenderNationId));

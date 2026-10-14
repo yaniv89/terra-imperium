@@ -74,8 +74,9 @@ def g_mercenary():
 
 
 # The mercenary was rebuilt in the quality pass of 2026-10-14 by build_gunpowder_mercenary.py on
-# ti_figure.py; g_mercenary stays here for reference only.
-BUILDERS = {'gunpowder-raider': g_raider}
+# ti_figure.py; g_mercenary stays here for reference only. The raider was rebuilt the same way by
+# build_gunpowder_raider.py (on ti_figure.py and ti_mounts.fine_horse); g_raider stays for reference.
+BUILDERS = {}
 
 
 def build(uid):

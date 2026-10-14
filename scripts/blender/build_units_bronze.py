@@ -14,8 +14,10 @@
 #   bronze-support   baggage train: a long-horned ox (pale face and patch) under a withers yoke, a
 #                    two-wheeled cart with plank wheels and rails, jars and a sack, the rest of the load
 #                    under a Team cover lashed with ropes, a seated driver with a goad
-# Rest pose only (no clips): the soldier loader bakes the rest pose and its vertex rig walks the legs
-# and swings the arms. Rigs, bone names and the root object keep their names (ChariotRig, Hull,
+# Clips since 2026-10-14 (ti_mounted_clips.py; Idle frame 1 is the rest pose, unchanged): the chariot's
+# Idle, Move, Charge, Archer-shoot, Hit, Wreck over its five rigs; the general's mounted set and Cheer over
+# the horse, the commander (the mace) and the standard bearer on foot. The baggage train is rest pose only
+# (the soldier loader's vertex rig walks it). Rigs, bone names and the root object keep their names (ChariotRig, Hull,
 # Wheel_L/R, HorseNearRig/HorseOffRig, MountRig, OxRig, CartRig, the people's canonical rigs).
 #   blender -b --factory-startup -P scripts/blender/build_units_bronze.py -- bronze-cavalry [more ids]
 # Writes art-build/units/<id>/<id>.blend, <id>.glb (uncompressed) and report.json (TI_PREVIEW=1: stills).
@@ -24,6 +26,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ti_units as u  # noqa: E402
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
 tube, box, raw, vertical, sheet = F.tube, F.box, F.raw, F.vertical, F.sheet
@@ -121,7 +125,8 @@ def build_cavalry():
     tris = F.finish_unit('bronze-cavalry', parts, {
         'role': 'Chariots (bronze cavalry): two small horses (bridles, breast bands, blankets) under a yoke on the withers, a hide-sided car with a Team front in a wooden frame, six-spoke wheels with bronze tyres, a quiver on the car; the driver holds the reins of both horses, the archer half draws his bow',
         'notes': 'Quality pass of 2026-10-14 (ti_figure crew, ti_mounts.fine_horse and fine_wheel). Horses are small Bronze Age horses (0.78 H at the withers). Yoke on the withers with saddles; no stirrups or collars. Culture-neutral: no national motifs.'},
-        centre=(0, -.35, .55), scale=2.8)
+        centre=(0, -.35, .55), scale=2.8, mode='NLA_TRACKS',
+        clips=MC.hook('bronze-cavalry', lambda: MC.chariot(parts[0], parts[1], car, drv, arc), 'chariot', {'ortho': 2.8, 'aim': (-.15, -.5, .55)}))
     assert tris <= 6000, tris
 
 
@@ -204,7 +209,8 @@ def build_general():
     tris = F.finish_unit('bronze-general', parts, {
         'role': 'Bronze general: a mounted commander on a pale horse (Team saddle cloth, bronze scale corselet, helmet with a Team crest, Team cloak and collar, a mace held upright) with a standard bearer on foot; the banner prints the squad emblem',
         'notes': 'Quality pass of 2026-10-14 (ti_figure, ti_mounts.fine_horse). A role abstraction: Bronze Age commanders mostly fought from chariots; the plan (D6, 4.3) asks for a mounted general in every age. The pole, mace, crest and banner are attachments (not counted in the model height). The battle draws the saddle cloth as plain wool (Team on a mount).'},
-        centre=(.2, -.1, .7), scale=2.4)
+        centre=(.2, -.1, .7), scale=2.4, mode='NLA_TRACKS',
+        clips=MC.hook('bronze-general', lambda: MC.mounted(horse, cmd, 'mace', 'general', bearer=bearer, bearer_kit=FC.Kit('spear')), 'general'))
     assert tris <= 5000, tris
 
 

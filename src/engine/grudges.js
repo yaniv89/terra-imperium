@@ -10,7 +10,7 @@
 // to `indep.grudgeLog[otherId]` (the last GRUDGE_LOG_MAX), cleared when the grudge fades to 0.
 // Cause ids: GRUDGE_CAUSES. The log is a record only: no rule reads it.
 // Pure: every helper returns new records and never mutates its inputs.
-import { PEOPLES } from '../data/peoples';
+import { kinThemeOf } from '../data/peoples';
 import { isIndependentNation, GRUDGE_MAX, GRUDGE_DECAY, GRUDGE_KIN_CITY } from '../data/independents';
 
 /** The causes the sheet names (grudgeLog entries' `id`). */
@@ -73,7 +73,7 @@ export const decayGrudges = (indep, by = GRUDGE_DECAY) => {
 };
 
 /** The art theme of an independent's people (its kin share it), or null (a free city has none). */
-export const kinOf = (nation) => (nation?.people ? PEOPLES[nation.people]?.theme || null : null);
+export const kinOf = (nation) => (nation?.people ? kinThemeOf(nation.people) : null);
 
 /** A nations map after `conquerorId` took the city of independent `loserId`: every other living
  * independent of the same theme holds GRUDGE_KIN_CITY more against the conqueror. */

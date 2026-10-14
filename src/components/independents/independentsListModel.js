@@ -10,6 +10,7 @@ import { attitudeOf } from '../../engine/indepPolicy';
 import { hasMet } from '../../engine/fog';
 import { attitudeLabel, grudgeTone } from './independentSheetModel';
 import { shieldUrl, shieldColour } from './independentArt';
+import { cityStateViewOf } from './cityStateView';
 
 export const LIST_SORTS = [
   { id: 'distance', label: 'Nearest' },
@@ -63,7 +64,7 @@ export const independentsListModel = (state, { sort = 'distance', filter = 'all'
     const grudge = Math.round(grudgeOf(n, me));
     all.push({
       id: n.id, name: n.name, cityId: city.id, cityName: city.name, size: city.size || 1,
-      personality: p, personalityName: PERSONALITIES[p]?.name || p, colour: shieldColour(p), shieldUrl: shieldUrl(p),
+      personality: p, personalityName: PERSONALITIES[p]?.name || p, cityState: cityStateViewOf(state, n, me), colour: shieldColour(p), shieldUrl: shieldUrl(p),
       km, attitude, attitudeWord: label.word, attitudeTone: label.tone, grudge, grudgeTone: grudgeTone(grudge),
       deal: dealOf(state, n)
     });

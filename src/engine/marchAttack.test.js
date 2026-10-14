@@ -14,7 +14,7 @@ import { unitTile } from './armies';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((a, k) => ({ ...a, [k]: true }), {}), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true }, resources: { ...s.resources, gold: 5000 } });
 // Akkad in a peoples world: Kish with one army; Mari and Hagmatana, independents 6 to 7 rings away.
-const BASE = quiet(createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } }));
+const BASE = quiet(createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11, cityStates: 'packed' } }));
 const KISH = BASE.nations.akkad.capitalRegionId;
 const MARI = getNeighborIds(KISH).find((id) => BASE.regions[id].name === 'Mari');
 const army = (s) => Object.values(s.units).filter((u) => u.ownerId === 'akkad' && u.domain === 'land');

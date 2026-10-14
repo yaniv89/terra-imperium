@@ -93,6 +93,57 @@ Open: which 50 are majors (a list from the user, or a proposal by region: every 
 6 choices). Art consequence: UI18 in [the art update](playtest-audits-art-update-2026-10-13.md),
 on hold until confirmed.
 
+### X25 as built (lane claude/pa-w6-city-states, decided by the lead for the user, 14 October)
+
+**The 50 majors** (`MAJOR_TIER` in `src/data/peoples.js`; every other people is a city-state name,
+nothing deleted, any people may still be passed as the player for old saves and tests):
+
+| Region | Majors |
+| --- | --- |
+| Near East (5) | Israel, Akkad, Elam, Pontus, Saba |
+| Nile and North Africa (4) | Kemet, Kerma, Numidia, Garamantes |
+| Europe (8) | Ahhiyawa, Rasenna, Tartessos, Arverni, Brigantes, Geats, Dacia, Khazaria |
+| Central Asia and the steppe (4) | Bactria, Gokturk, Yarlung, Wusun |
+| South Asia (4) | Meluhha, Magadha, Pandya, Satavahana |
+| East Asia (5) | Shang, Shu, Nanyue, Gojoseon, Yamatai |
+| Southeast Asia (4) | Van Lang, Funan, Pyu, Srivijaya |
+| Africa south of the Sahara (7) | Wagadu, Nok, D'mt, Kitara, Kilwa, Mapungubwe, Ndongo |
+| The Americas (8) | Teotihuacan, Mutal, Hopewell, Chaco, Muisca, Caral, Tiwanaku, Tupinamba |
+| Oceania (1) | Gunditjmara |
+
+Why: Europe and the Near East go from 59 of 150 to 17 of 50, Africa and the Americas get as many
+majors as Europe, every region has at least one, and each pick is the best-known people of its
+land with its own start place. Close pairs were kept as alternatives (a world holds one of the two):
+Israel and Kemet (458 km), Akkad and Elam, Saba and D'mt, Rasenna and the Arverni, Bactria and
+Meluhha. Kemet stays a major for the guided start (the tutorial plays Kemet); with Israel pinned it
+is a major only when the player is Kemet. Kanesh was swapped for Pontus (Kanesh is 787 km from
+Jerusalem and so never fit beside the pinned Israel). No test or scenario needed a city-state
+people as a major.
+
+**Counts** (`src/data/worldSizes.js`): Small 24 majors and 30 city-states, Standard 36 and 45,
+Large 42 and 60. Few / Normal / Many multiply by 0.6 / 1 / 1.3. Achieved on the real Earth over 8
+seeds: Small 18 / 30 / 39, Standard 27 / 45 / 52 to 59, Large 36 / 48 to 54 / the same as Normal
+(the land is full near 50 at the gap, so Large and Many cannot reach 60).
+
+**Spacing:** `START_MIN_GAP_KM` = 880 km between any two starts, majors and city-states (Akkad and
+Israel, the default start and the pinned people, are 895 km apart on the grid; at 900 Israel never
+met Akkad). A city-state stands at its real capital, or when that is too close to another start on
+the nearest livable tile within `CITY_STATE_SHIFT_KM` (1,000 km) of it, else it is left out. About
+three in four are moved, median 585 km. A major's nearest start is 885 / 928 / 1,165 km (10th,
+50th, 90th percentile) on Standard, with 1 / 3 / 6 starts within 1,500 km. Generated worlds keep
+their 612 km major sites (part of the world hash) and place city-states 880 km apart.
+
+**Types:** a city-state's type comes from its personality, never saved: raiders stay Raiders (no
+patron), mercantile is Trade, fortress is Military, tribal is Science or Culture by a fixed roll of
+the id. A new world turns raiders above a third into tribal (`capRaiders`). The patron is the met
+major with a city within 1,224 km and the best attitude of at least 30, chosen on the city-state's
+think turns (`nation.indep.patron`). It gets every turn: Trade +2 gold, Military +3 manpower,
+Science +1 research, Culture +2 prestige (the first three grow by 1, 2 and 1 an age). Gifts raise the
+attitude, so the player can buy a patronage. Code: `src/data/cityStates.js`, `src/engine/cityStates.js`.
+
+**Start screen:** City-states Few / Normal / Many on the World step (beside the map), and a row in
+the Ready summary. The picker lists the 50 majors. Checked at 844x390 and 844x340.
+
 ## 8. Title screen on launch (X26, user request of 13 October)
 
 Today the game reopens the last game with no choice, even days later; the only way out is Menu,

@@ -3,7 +3,7 @@
 # (build_bronze_ranged.py) on the shared parts of ti_figure.py; replaces b_ranged of build_units_classical.py:
 #   blender -b --factory-startup -P scripts/blender/build_classical_ranged.py
 # Same contract as that builder: the canonical rig under a root empty named after the unit, flat
-# material colours, the Team and Skin tags, rest pose only (no clips). The look follows
+# material colours, the Team and Skin tags, and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged). The look follows
 # plans/art/concepts/oct13/units-classical-set.png (design reference only):
 #   - a pointed felt cap, its tip bent forward, with a neck flap and a Team band; a short dark beard
 #   - a dark leather corselet with shoulder pieces over a pale tunic with short sleeves, a row of
@@ -20,6 +20,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'classical-ranged'
 arm = F.start({'Skin': 'C99472', 'Cloth': 'EDE4CE', 'Felt': 'C8AE7C', 'Leather': '5C3823', 'Hide': '8A5A36', 'Metal': ('D2A24C', .36, .65),
@@ -94,4 +95,5 @@ F.back_quiver('Hide', 'Leather', arrows=3, strap='Hide')
 
 F.finish_rest(UID, 'Composite archers: a pointed felt cap with a neck flap and a Team band, beard, dark leather corselet with shoulder pieces over a pale tunic, '
               'leather strips over the skirt, a Team waist sash, closed boots, a short recurved composite bow with horn tips and a visible string, an arrow in the right hand, back quiver',
-              notes={'role': 'ranged', 'bow_length_H': LEN})
+              notes={'role': 'ranged', 'bow_length_H': LEN},
+              clips=FC.clips_hook(UID, FC.Kit('bow', side='L', arrow=('nocked-arrow-shaft', 'nocked-arrow-head', 'nocked-arrow-fletching'), quiver='back')))
