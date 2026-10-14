@@ -1,0 +1,81 @@
+{
+  "id": "bronze-support",
+  "triangles": 3354,
+  "by_rig": {
+    "CartRig": 1054,
+    "DriverRig": 1476,
+    "OxRig": 824
+  },
+  "rigs": {
+    "OxRig": [
+      "Mount_Root",
+      "Mount_Spine",
+      "Mount_Neck",
+      "Mount_Head",
+      "Mount_Tail",
+      "Rider",
+      "Mount_LegFront_L",
+      "Mount_ShinFront_L",
+      "Mount_LegFront_R",
+      "Mount_ShinFront_R",
+      "Mount_LegHind_L",
+      "Mount_ShinHind_L",
+      "Mount_LegHind_R",
+      "Mount_ShinHind_R"
+    ],
+    "CartRig": [
+      "Hull",
+      "Wheel_L",
+      "Wheel_R"
+    ],
+    "DriverRig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Clay",
+    "Cloth",
+    "Coat",
+    "DarkWood",
+    "Hair",
+    "Horn",
+    "Leather",
+    "Mane",
+    "Metal",
+    "Rope",
+    "Sack",
+    "Skin",
+    "Team",
+    "Wood"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Baggage train (bronze support): one long-horned draught ox (pale face, muzzle and back patch) in shafts with a withers yoke, a two-wheeled cart with plank wheels and rails, two jars and a sack, the rest of the load under a Team cover lashed with ropes, a seated driver with a goad and a lead rope",
+  "notes": "Quality pass of 2026-10-14 (ti_figure crew, ti_mounts.fine_ox and fine_disc_wheel). Jars are their own Clay material now."
+}
