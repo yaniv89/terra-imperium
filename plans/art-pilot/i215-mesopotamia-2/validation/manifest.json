@@ -1,0 +1,114 @@
+{
+  "civic-classical-mesopotamia.glb": {
+    "bytes": 2466428,
+    "objects": {
+      "keep": {
+        "LOD0": {
+          "triangles": 6384,
+          "width": 1.885,
+          "depth": 1.881,
+          "height": 0.92,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 760,
+          "width": 1.885,
+          "depth": 1.881,
+          "height": 0.92,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 92,
+          "width": 1.84,
+          "depth": 1.7,
+          "height": 0.665,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "keep-damaged": {
+        "LOD0": {
+          "triangles": 1749,
+          "width": 1.882,
+          "depth": 1.881,
+          "height": 0.924,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 527,
+          "width": 1.885,
+          "depth": 1.881,
+          "height": 0.92,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 92,
+          "width": 1.84,
+          "depth": 1.7,
+          "height": 0.495,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "keep-ruined": {
+        "LOD0": {
+          "triangles": 949,
+          "width": 1.933,
+          "depth": 1.818,
+          "height": 0.365,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 276,
+          "width": 1.885,
+          "depth": 1.803,
+          "height": 0.364,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 80,
+          "width": 1.84,
+          "depth": 1.7,
+          "height": 0.16,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  }
+}
