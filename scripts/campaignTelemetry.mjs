@@ -99,7 +99,7 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
   const wars = new Map(); // id -> { id, a, e, start, end, withPlayer, indep }
   const demandsSeen = new Set();
   const conquests = new Map(); // cityId -> { turn, owner } (a conquest not yet judged)
-  const tallies = { sieges: 0, captures: 0, conquestsKept20: 0, conquestsLost20: 0, rebellionsStarted: 0, rebellionsOnPlayer: 0, rebellionsConqueredLand: 0, rebellionsSucceeded: 0, rebelCitiesPlayer: 0 };
+  const tallies = { sieges: 0, captures: 0, capturesFromMajors: 0, capturesFromIndep: 0, conquestsKept20: 0, conquestsLost20: 0, rebellionsStarted: 0, rebellionsOnPlayer: 0, rebellionsConqueredLand: 0, rebellionsSucceeded: 0, rebelCitiesPlayer: 0 };
   const move = { aiUnitTurns: 0, aiMoved: 0, warUnitTurns: 0, warMoved: 0, peaceUnitTurns: 0, peaceMoved: 0 };
   const stackStats = {}; // per war: { stackTurns, moved, shuttle, ... }
   const history = new Map(); // lead unit id -> last tiles
@@ -191,7 +191,11 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
     for (const c of Object.values(after.regions)) {
       const b = before.regions[c.id];
       if (c.siege?.by && !sieging.has(c.id)) { sieging.add(c.id); tallies.sieges += 1; } else if (!c.siege?.by) sieging.delete(c.id);
-      if (b && b.owner !== c.owner && c.owner && c.conquest?.turn === t) { tallies.captures += 1; conquests.set(c.id, { turn: t, owner: c.owner }); }
+      if (b && b.owner !== c.owner && c.owner && c.conquest?.turn === t) {
+        tallies.captures += 1; conquests.set(c.id, { turn: t, owner: c.owner });
+        // Who lost it: a major (a war between majors) or an independent (a campaign on it).
+        if (isIndependent(after.nations[b.owner]) || isIndependent(before.nations[b.owner])) tallies.capturesFromIndep += 1; else tallies.capturesFromMajors += 1;
+      }
       else if (b && b.owner !== c.owner && conquests.has(c.id) && conquests.get(c.id).owner === b.owner) { if (t - conquests.get(c.id).turn <= 20) tallies.conquestsLost20 += 1; conquests.delete(c.id); }
     }
     for (const [id, cq] of conquests) if (t - cq.turn >= 20) { if (after.regions[id]?.owner === cq.owner) tallies.conquestsKept20 += 1; conquests.delete(id); }
@@ -242,7 +246,7 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       battlesPerWar: r1(mean(allWars.filter((w) => !w.indep).map((w) => w.battles || 0))),
       warsZeroBattles: allWars.filter((w) => !w.indep && !(w.battles > 0)).length,
       warLenMedian: median(endedWars), warLenMean: r1(mean(endedWars)), warLenMax: endedWars.length ? Math.max(...endedWars) : 0, warsEnded: endedWars.length,
-      sieges: undefined, siegesBegun: tallies.sieges, capturesTotal: tallies.captures, conquestsKept20: tallies.conquestsKept20, conquestsLost20: tallies.conquestsLost20,
+      sieges: undefined, siegesBegun: tallies.sieges, capturesTotal: tallies.captures, capturesFromMajors: tallies.capturesFromMajors, capturesFromIndep: tallies.capturesFromIndep, conquestsKept20: tallies.conquestsKept20, conquestsLost20: tallies.conquestsLost20,
       rebellionsStarted: tallies.rebellionsStarted, rebellionsOnPlayer: tallies.rebellionsOnPlayer, rebellionsConqueredLand: tallies.rebellionsConqueredLand, rebellionsSucceeded: tallies.rebellionsSucceeded,
       aiMoveRate: r3(move.aiMoved / Math.max(1, move.aiUnitTurns)), aiMoveRateWar: r3(move.warMoved / Math.max(1, move.warUnitTurns)), aiMoveRatePeace: r3(move.peaceMoved / Math.max(1, move.peaceUnitTurns)),
       stackTurns: st, stackMovedShare: r3(sum('moved') / Math.max(1, st)), stackShuttleShare: r3(sum('shuttle') / Math.max(1, st)), stackBesiegeShare: r3(sum('besieging') / Math.max(1, st)),
