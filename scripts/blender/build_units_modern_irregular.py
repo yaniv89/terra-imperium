@@ -82,7 +82,9 @@ def m_mercenary():
         cl.PERSON_OPTS
 
 
-BUILDERS = {'modern-raider': m_raider, 'modern-mercenary': m_mercenary}
+# The mercenary was rebuilt in the quality pass of 2026-10-14 by build_modern_mercenary.py on
+# ti_figure.py; m_mercenary here stays for reference only.
+BUILDERS = {'modern-raider': m_raider}
 
 
 def build(uid):

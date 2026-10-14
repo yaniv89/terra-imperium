@@ -1131,7 +1131,7 @@ def chest_rig(name='ChestRig', mat='Team', pouch='Pouch', low=.560, high=.700, p
     slab(name, [(-.100, -yt, high), (.100, -yt, high), (.096, -yb, low), (-.096, -yb, low)], mat, 'Spine', depth=.014)
     for k in range(pouches):
         x = (k - (pouches - 1) / 2) * .060
-        box(f'RigPouch{k}', (x, -(yb + .018), .600), (.050, .026, .072), pouch, 'Spine')
+        box(f'RigPouch{k}', (x, -(yb + .016), .592), (.044, .024, .060), pouch, 'Spine')
     cross_belts(name + 'Strap', mat, plate=None, low=low + .010, high=.800, width=.026, grow=.016, chest=.006)
 
 
