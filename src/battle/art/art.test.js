@@ -144,6 +144,7 @@ describe('kit files', () => {
 
 describe('vegetation kits on the battlefield', async () => {
   const { VegetationProps, vegetationLodForZoom } = await import('./vegetationProps');
+  const { KEEP_AT_LOD, keptCount } = await import('./treeMix');
   const { kitForClimate, vegetationKitFor } = await import('./vegetation');
   const { InstancedMesh, BoxGeometry, MeshBasicMaterial } = await import('three');
 
@@ -158,20 +159,133 @@ describe('vegetation kits on the battlefield', async () => {
 
   it('swaps a dropped-in kit into the instanced chunks and follows the zoom; no kit, no change', async () => {
     const mesh = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 4);
-    const procedural = mesh.geometry;
+    const rocks = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 3);
+    const procedural = rocks.geometry;
+    const field = new Group(); field.add(mesh); field.add(rocks);
     const r = { track: (x) => x, camera: { zoom: 1 }, setup: { terrain: 'plains' } };
     const kit = parseKit((await parseGlbBytes(kitGlb([{ name: 'tree-l', size: 0.4 }, { name: 'rock-m', size: 0.2 }]))).scene);
-    const v = new VegetationProps(r, { pine: [mesh], tuft: [] }, { ref: { url: 'test://veg' }, load: async () => kit });
+    const v = new VegetationProps(r, { pine: [mesh], rock: [rocks], tuft: [] }, { ref: { url: 'test://veg' }, load: async () => kit });
     await v.ready;
-    expect(mesh.geometry).not.toBe(procedural);
-    expect(mesh.count).toBe(4); // the instances stay
-    const lod1 = mesh.geometry;
+    // rocks keep their chunk and instances and take the kit's geometry, the LOD by zoom
+    expect(rocks.geometry).not.toBe(procedural);
+    expect(rocks.count).toBe(3);
+    const lod1 = rocks.geometry;
     v.update(3); expect(vegetationLodForZoom(3)).toBe(0);
-    expect(mesh.geometry).not.toBe(lod1);
+    expect(rocks.geometry).not.toBe(lod1);
+    // a kit with one tree still replaces every procedural tree (the species rule takes the size it has)
+    expect(mesh.visible).toBe(false);
+    expect(v.treeStats()).toMatchObject({ trees: 4, drawn: 4, species: 1, lod: 0 });
     const other = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 2);
     const before = other.geometry;
     const none = new VegetationProps(r, { pine: [other] }, { ref: null });
     none.update(3);
     expect(other.geometry).toBe(before);
+  });
+
+  // a wood of 400 trees on a 20 x 20 tile patch, as BattleRenderer places them (one chunk mesh a kind)
+  const wood = () => {
+    const field = new Group();
+    const make = (n, off) => {
+      const m = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), n);
+      for (let i = 0; i < n; i++) m.setMatrixAt(i, new Matrix4().makeTranslation((i % 20) + off, 0, Math.floor(i / 20) + off));
+      field.add(m); m.castShadow = true;
+      return m;
+    };
+    return { field, pine: make(200, 0.3), oak: make(200, 0.7) };
+  };
+  const speciesKit = async (names) => parseKit((await parseGlbBytes(kitGlb(names.map((name, i) => ({ name, size: 0.2 + 0.05 * (i % 3) }))))).scene);
+
+  it('mixes the species and sizes of the kit and its species file, the same on every build', async () => {
+    const own = await speciesKit(['tree-s', 'tree-m', 'tree-l', 'tree-s-2', 'tree-m-2', 'tree-l-2', 'rock-m']);
+    const more = await speciesKit(['tree-s-3', 'tree-m-3', 'tree-l-3']);
+    const build = async () => {
+      const { field, pine, oak } = wood();
+      const r = { track: (x) => x, camera: { zoom: 3 }, setup: { terrain: 'forest' } };
+      const v = new VegetationProps(r, { pine: [pine], oak: [oak] }, { ref: { url: 'test://own' }, more: { url: 'test://more' }, load: async (u) => (u.includes('more') ? more : own) });
+      await v.ready;
+      return { v, field, pine, oak };
+    };
+    const a = await build();
+    expect(a.pine.visible).toBe(false); expect(a.oak.visible).toBe(false);
+    const stats = a.v.treeStats();
+    expect(stats).toMatchObject({ trees: 400, drawn: 400, species: 3, lod: 0 });
+    const perVariant = {};
+    a.v.trees.near.forEach((n) => { perVariant[`${n.species}/${n.size}`] = (perVariant[`${n.species}/${n.size}`] || 0) + n.mesh.count; });
+    expect(Object.keys(perVariant).length).toBe(9); // three species, three sizes each
+    Object.values(perVariant).forEach((n) => expect(n).toBeGreaterThan(8));
+    expect(a.field.children.filter((m) => m.visible).length).toBe(a.v.trees.near.length);
+    // deterministic: a second build of the same field draws the same trees in the same places
+    const b = await build();
+    const where = (v) => v.trees.near.map((n) => [n.species, n.size, n.mesh.count, Array.from(n.mesh.instanceMatrix.array).join()]).sort().join('|');
+    expect(where(b.v)).toBe(where(a.v));
+    a.v.dispose();
+    expect(a.field.children.length).toBe(2); // only the procedural chunks are left
+  });
+
+  it('thins the wood at far zoom (fewer trees, nested, one mesh a species) and never touches the procedural chunks it hid', async () => {
+    const own = await speciesKit(['tree-s', 'tree-m', 'tree-l', 'tree-s-2', 'tree-m-2', 'tree-l-2']);
+    const { pine, oak } = wood();
+    const r = { track: (x) => x, camera: { zoom: 3 }, setup: { terrain: 'forest' } };
+    const v = new VegetationProps(r, { pine: [pine], oak: [oak] }, { ref: { url: 'test://own' }, more: null, load: async () => own });
+    await v.ready;
+    const drawnAt = (zoom) => { v.update(zoom); return v.treeStats(); };
+    const near = drawnAt(3); const mid = drawnAt(1); const far = drawnAt(0.6);
+    expect(near.drawn).toBe(400);
+    expect(mid.lod).toBe(1); expect(far.lod).toBe(2);
+    expect(mid.drawn).toBeLessThan(near.drawn);
+    expect(far.drawn).toBeLessThan(mid.drawn);
+    expect(far.drawn / near.drawn).toBeGreaterThan(KEEP_AT_LOD[2] - 0.12);
+    expect(far.drawn / near.drawn).toBeLessThan(KEEP_AT_LOD[2] + 0.12);
+    expect(far.meshes).toBe(2); // one per species in the chunk, not one per size
+    v.trees.near.forEach((n) => expect(n.mesh.visible).toBe(false));
+    // the far trees are the first of each mesh's rank order, so the ones LOD2 keeps are kept at LOD1 too
+    v.trees.far.forEach((f) => { expect(f.ranks).toEqual([...f.ranks].sort((x, y) => x - y)); expect(keptCount(f.ranks, 2)).toBeLessThanOrEqual(keptCount(f.ranks, 1)); });
+    expect(pine.count).toBe(200); expect(oak.count).toBe(200); // the procedural instances are untouched
+    drawnAt(3);
+    expect(v.treeStats().drawn).toBe(400);
+  });
+});
+
+describe('tree species picking (treeMix.js)', async () => {
+  const { treeAt, parseTreeName, treeSpecies, nearestSize, keptCount: kept } = await import('./treeMix');
+  it('reads species and sizes from the object names', () => {
+    expect(parseTreeName('tree-m')).toEqual({ species: 0, size: 1 });
+    expect(parseTreeName('tree-l-3')).toEqual({ species: 2, size: 2 });
+    expect(parseTreeName('tree-x')).toBeNull();
+    expect(parseTreeName('stump')).toBeNull();
+    const rows = treeSpecies({ objects: { 'tree-l': 'a', 'tree-s-2': 'b', stump: 'c' } }, { objects: { 'tree-m-2': 'd', 'tree-l': 'ignored' } });
+    expect(rows).toEqual([[null, null, 'a'], ['b', 'd', null]]);
+    expect(nearestSize(rows[0], 0)).toBe(2);
+    expect(nearestSize(rows[1], 2)).toBe(1);
+    expect(kept([0.1, 0.5, 0.7, 0.9], 2)).toBe(2);
+  });
+  it('is a pure function of the place: the same tree every time, stands of a leading species', () => {
+    expect(treeAt(12.3, 40.7, 3)).toEqual(treeAt(12.3, 40.7, 3));
+    const counts = [0, 0, 0]; const sizes = [0, 0, 0];
+    let same = 0; let pairs = 0;
+    for (let z = 0; z < 60; z += 0.7) for (let x = 0; x < 60; x += 0.7) {
+      const t = treeAt(x, z, 3); counts[t.species]++; sizes[t.size]++;
+      expect(t.scale).toBeGreaterThanOrEqual(0.86); expect(t.scale).toBeLessThanOrEqual(1.14);
+      const n = treeAt(x + 0.7, z, 3); pairs++; if (n.species === t.species) same++;
+    }
+    counts.forEach((c) => expect(c).toBeGreaterThan(400));
+    sizes.forEach((c) => expect(c).toBeGreaterThan(1000));
+    expect(same / pairs).toBeGreaterThan(0.45); // neighbours agree more than a third of the time: stands
+  });
+});
+
+describe('the steppe kit and the species files', () => {
+  it('a steppe battle reads vegetation-steppe.glb, and only an exact kit takes a species file', () => {
+    const a = idx('battle/nature/vegetation-temperate.glb', 'battle/nature/vegetation-steppe.glb', 'battle/nature/vegetation-conifer-species.glb');
+    expect(a.vegetation('steppe').kit).toBe('steppe');
+    expect(a.vegetation('desert').kit).toBe('steppe'); // desert falls back to steppe before temperate
+    expect(a.vegetationSpecies('conifer').key).toBe('battle/nature/vegetation-conifer-species.glb');
+    expect(a.vegetationSpecies('temperate')).toBeNull();
+    expect(a.vegetation('steppe').key).not.toBe(a.vegetationSpecies('conifer').key);
+  });
+  it('ships the steppe kit and the three species files the game reads', () => {
+    expect(ART.vegetation('steppe')?.kit).toBe('steppe');
+    ['conifer', 'tropical', 'cold'].forEach((k) => expect(ART.vegetationSpecies(k), k).not.toBeNull());
+    expect(ART.vegetationSpecies('temperate')).toBeNull();
   });
 });

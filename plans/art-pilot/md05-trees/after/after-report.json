@@ -1,0 +1,137 @@
+{
+  "url": "http://localhost:5203/terra-imperium/?battleSandbox&age=bronze&terrain=forest&perf",
+  "shots": [
+    {
+      "file": "plans/art-pilot/md05-trees/after/after-army-zoom2.jpg",
+      "view": "army",
+      "zoom": 2,
+      "triangles": 1542379,
+      "drawCalls": 133,
+      "figures": 57,
+      "tier": 0,
+      "vegetationLod": 0,
+      "trees": {
+        "trees": 3925,
+        "drawn": 3925,
+        "species": 3,
+        "meshes": 141,
+        "lod": 0
+      }
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/after/after-army-zoom1.jpg",
+      "view": "army",
+      "zoom": 1,
+      "triangles": 761529,
+      "drawCalls": 111,
+      "figures": 57,
+      "tier": 0,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3925,
+        "drawn": 2745,
+        "species": 3,
+        "meshes": 48,
+        "lod": 1
+      }
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/after/after-army-zoom0_6.jpg",
+      "view": "army",
+      "zoom": 0.6,
+      "triangles": 436257,
+      "drawCalls": 123,
+      "figures": 57,
+      "tier": 0,
+      "vegetationLod": 2,
+      "trees": {
+        "trees": 3925,
+        "drawn": 2017,
+        "species": 3,
+        "meshes": 48,
+        "lod": 2
+      }
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/after/after-woods-zoom2.jpg",
+      "view": "woods",
+      "zoom": 2,
+      "triangles": 1802939,
+      "drawCalls": 138,
+      "figures": 0,
+      "tier": 0,
+      "vegetationLod": 0,
+      "trees": {
+        "trees": 3925,
+        "drawn": 3925,
+        "species": 3,
+        "meshes": 141,
+        "lod": 0
+      }
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/after/after-woods-zoom1.jpg",
+      "view": "woods",
+      "zoom": 1,
+      "triangles": 813073,
+      "drawCalls": 124,
+      "figures": 52,
+      "tier": 0,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3925,
+        "drawn": 2745,
+        "species": 3,
+        "meshes": 48,
+        "lod": 1
+      }
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/after/after-woods-zoom0_6.jpg",
+      "view": "woods",
+      "zoom": 0.6,
+      "triangles": 270559,
+      "drawCalls": 151,
+      "figures": 59,
+      "tier": 1,
+      "vegetationLod": 2,
+      "trees": {
+        "trees": 3925,
+        "drawn": 2017,
+        "species": 3,
+        "meshes": 48,
+        "lod": 2
+      }
+    }
+  ],
+  "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x000046A3) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "kit": {
+    "terrain": "forest",
+    "tile": 373,
+    "vegetation": null
+  },
+  "views": {
+    "army": [
+      7.211328125,
+      27.990625
+    ],
+    "woods": [
+      36,
+      26
+    ],
+    "forestRound": 110,
+    "size": [
+      96,
+      64
+    ],
+    "counts": {
+      "0": 4109,
+      "1": 1548,
+      "2": 188,
+      "4": 157,
+      "6": 111,
+      "7": 31
+    }
+  },
+  "errors": []
+}

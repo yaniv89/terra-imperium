@@ -11,13 +11,16 @@ import math
 import os
 import random
 import sys
+import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bmesh  # noqa: E402
+import bpy  # noqa: E402
 from mathutils import Vector  # noqa: E402
 import ti_map as tm  # noqa: E402
 import ti_town as tt  # noqa: E402
 import ti_nature as tn  # noqa: E402
+import ti_trees as tr  # noqa: E402
 
 
 def rock_lods(ms, mat, x, y, r, rng, far=True, flat=0.7):
@@ -259,9 +262,33 @@ def cattle(ms, rng):
 
 # ---- vegetation kits (600 / 150 / 150) ------------------------------------------------------------
 
-def kit(trees, bark, leaf, bush_leaf, rock_mat, tuft_mat):
-    s, m, l = trees
+# Since 14 October (MD05, MD14: plans/art-pilot/md05-trees/LOG.md) a kit holds two to four SPECIES,
+# each at three sizes (ti_trees.py). Object names: the first species is tree-s, tree-m, tree-l (the
+# names the game has always read), the second tree-s-2, tree-m-2, tree-l-2, the third tree-s-3 ...
+# The battle picks a species and a size per tree (src/battle/art/vegetationProps.js).
+
+SIZES = ('s', 'm', 'l')
+
+
+def species_items(species, first=1):
+    """The tree objects of a list of species, numbered from `first` (1 has no suffix). Every tree
+    has its own random stream (from its name), so adding a species never reshapes another."""
+    out = []
+    for k, fn in enumerate(species):
+        for i, size in enumerate(SIZES):
+            name = 'tree-%s%s' % (size, '' if first + k == 1 else '-%d' % (first + k))
+            seed = zlib.crc32(('%s/%s' % (fn.__name__, name)).encode())
+            out.append((name, lambda ms, rng, fn=fn, i=i, seed=seed: fn(ms, random.Random(seed), i)))
+    return out
+
+
+def kit(species, bark, leaf, bush_leaf, rock_mat, tuft_mat, retired=(), tuft=None):
+    """A kit's objects. `retired` are the three trees the kit had before the species (built into
+    nothing, only to draw the random numbers they drew, so the stump, the felled trunk, the bush
+    and the rocks after them keep their shapes)."""
     def stump(ms, rng):
+        for old in retired:
+            old(tm.Mesher(), rng)
         tn.stump(ms, rng, 0.03, bark=bark)
     def felled(ms, rng):
         tn.felled(ms, rng, 0.42, 0.028, bark=bark, leaf=leaf)
@@ -272,32 +299,39 @@ def kit(trees, bark, leaf, bush_leaf, rock_mat, tuft_mat):
     def rock_m(ms, rng):
         rock_lods(ms, rock_mat, 0, 0, 0.11, rng, flat=0.75)
         rock_lods(ms, rock_mat, 0.1, -0.05, 0.05, rng, far=False)
-    def tuft(ms, rng):
-        tn.grass_tuft(ms, rng, 0.05, mat=tuft_mat)
+    def grass(ms, rng):
+        if tuft:
+            tuft(ms, rng)
+        else:
+            tn.grass_tuft(ms, rng, 0.05, mat=tuft_mat)
     def pile(ms, rng):
         tn.log_pile(ms, rng, bark=bark)
-    # log-pile comes last so the objects before it keep their shapes (one random stream per file)
-    return [('tree-s', s), ('tree-m', m), ('tree-l', l), ('stump', stump), ('felled', felled), ('bush', bush),
-            ('rock-s', rock_s), ('rock-m', rock_m), ('grass-tuft', tuft), ('log-pile', pile)]
+    # log-pile comes last of the old objects so those before it keep their shapes (one random
+    # stream per file); the trees draw from streams of their own
+    return [('stump', stump), ('felled', felled), ('bush', bush), ('rock-s', rock_s), ('rock-m', rock_m),
+            ('grass-tuft', grass), ('log-pile', pile)] + species_items(species)
 
 
-TEMPERATE = kit((
+TEMPERATE = kit((tr.oak, tr.beech, tr.birch), 'bark', 'foliage', 'foliage', 'rock', 'tuft', retired=(
     lambda ms, rng: tn.broadleaf(ms, rng, 0.38, 0.1, 0.012, bark='birch', leaf='foliage_light', shape=(0.9, 0.9, 1.3), crown_z=0.45),   # birch
     lambda ms, rng: tn.broadleaf(ms, rng, 0.6, 0.24, 0.03, bark='bark', leaf='foliage', shape=(1.1, 1.1, 0.75), crown_z=0.45),           # oak
     lambda ms, rng: tn.broadleaf(ms, rng, 0.8, 0.22, 0.03, bark='bark_pale', leaf='foliage_dark', shape=(1.0, 1.0, 1.25), crown_z=0.4),  # beech
-), 'bark', 'foliage', 'foliage', 'rock', 'tuft')
+))
 
-MEDITERRANEAN = kit((
+MEDITERRANEAN = kit((tr.olive, tr.stone_pine, tr.cypress), 'bark_pale', 'olive_leaf', 'olive_leaf', 'rock', 'tuft_dry', retired=(
     lambda ms, rng: tn.broadleaf(ms, rng, 0.34, 0.15, 0.024, bark='bark_pale', leaf='olive_leaf', shape=(1.1, 1.1, 0.7), crown_z=0.4, lean=0.12),  # olive
     lambda ms, rng: tn.umbrella(ms, rng, 0.62, 0.26),                                                                                        # stone pine
     lambda ms, rng: tn.spire(ms, rng, 0.82, 0.07),                                                                                           # cypress
-), 'bark_pale', 'olive_leaf', 'olive_leaf', 'rock', 'tuft_dry')
+))
 
-DESERT = kit((
+DESERT = kit((tr.date_palm, tr.acacia, tr.tamarisk), 'bark_pale', 'palm_leaf', 'dry_shrub', 'sandstone', 'tuft_dry', retired=(
     lambda ms, rng: tn.broadleaf(ms, rng, 0.3, 0.13, 0.016, bark='bark', leaf='dry_shrub', shape=(1.1, 1.1, 0.7), crown_z=0.3),  # tamarisk
     lambda ms, rng: tn.acacia(ms, rng, 0.48, 0.28),                                                                              # umbrella thorn
     lambda ms, rng: tn.palm(ms, rng, 0.8, frond=0.3),                                                                            # date palm
-), 'bark_pale', 'palm_leaf', 'dry_shrub', 'sandstone', 'tuft_dry')
+))
+
+# The steppe (MD14): poplars, wind-bent elms, saxaul, tall feather grass.
+STEPPE = kit((tr.poplar, tr.elm, tr.saxaul), 'bark_pale', 'dry_shrub', 'dry_shrub', 'rock', 'tuft_dry', tuft=tr.tall_grass)
 
 
 def node_items(states):
@@ -325,6 +359,15 @@ FILES = {
         ('log-pile-tropical', lambda ms, rng: tn.log_pile(ms, rng, length=0.27, r=0.035, bark='bark_hardwood', ends='cut_hardwood')),  # dark hardwood
         ('log-pile-cold', lambda ms, rng: tn.log_pile(ms, rng, length=0.24, r=0.023, bark=('birch', 'bark_larch', 'birch'), rows=(4, 3, 2), far_rows=(0,))),  # thin birch and larch; the far level keeps the bottom row, thicker
     ],
+    # New files go last: a file's seed is its place in this list.
+    'vegetation-steppe': STEPPE,
+    # More species for the kits built by build_vegetation_remaining.py (pinned by hash, not rebuilt):
+    # the game adds a kit's `vegetation-<kit>-species.glb` trees to its own (vegetationProps.js).
+    # Their first species (tree-s, tree-m, tree-l) is in the kit: spruces; a small broadleaf, a palm
+    # and a rainforest tree; wind-bent dwarf trees.
+    'vegetation-conifer-species': species_items((tr.scots_pine, tr.fir), first=2),
+    'vegetation-tropical-species': species_items((tr.coconut_palm, tr.jungle_giant, tr.banana), first=2),
+    'vegetation-cold-species': species_items((tr.larch, tr.dwarf_birch, tr.tundra_shrub), first=2),
 }
 
 # Small objects need less than the README's 1024 atlas: one animal, a few ripples and fish.
@@ -363,11 +406,68 @@ def material_transfer(src, dst):
             uv.data[k].uv = samples[name][index][1]
 
 
+def soft_crown_uvs(src, dst):
+    """UVs for the far levels of a soft crown (ti_trees.py). A crown is clumps pushed into each
+    other: the faces inside are baked black (no light reaches them), and the one round mass that
+    stands for the crown from far would take its colour from them wherever it runs through the
+    clumps. So every far face of a soft leaf material takes one atlas point: the centre of the
+    nearest full-model face of its material that sees the open air and faces the same way."""
+    from mathutils.bvhtree import BVHTree
+    sm, dm = src.data, dst.data
+    soft = [m.name in tt.SMOOTH for m in dm.materials]
+    if not any(soft[p.material_index] for p in dm.polygons):
+        return
+    bvh = BVHTree.FromPolygons([v.co for v in sm.vertices], [tuple(p.vertices) for p in sm.polygons])
+    su = sm.uv_layers.active.data
+    open_faces, all_faces = {}, {}
+    for face in sm.polygons:
+        name = sm.materials[face.material_index].name
+        if name not in tt.SMOOTH:
+            continue
+        row = (face.center.copy(), face.normal.copy(), sum((su[k].uv.copy() for k in face.loop_indices), Vector((0, 0))) / len(face.loop_indices))
+        all_faces.setdefault(name, []).append(row)
+        if bvh.ray_cast(face.center + face.normal * 1e-4, face.normal, 0.15)[0] is None and face.normal.z > -0.35:
+            open_faces.setdefault(name, []).append(row)
+    # and of those, not the darkest third: a face in the crease where two clumps meet sees the air
+    # but is baked dark, and one such face would show as a dark triangle on the far crown
+    base = next((im for im in bpy.data.images if im.name.endswith('_base')), None)
+    if base is not None:
+        import numpy as np
+        w, h = base.size
+        px = np.array(base.pixels[:], dtype=np.float32).reshape(h, w, 4)
+
+        def lum(t):
+            x, y = min(w - 1, max(0, int(t.x * w))), min(h - 1, max(0, int(t.y * h)))
+            return float(px[y, x, 0] * 0.3 + px[y, x, 1] * 0.59 + px[y, x, 2] * 0.11)
+        for name, rows in open_faces.items():
+            if len(rows) > 6:
+                cut = sorted(lum(r[2]) for r in rows)[len(rows) // 3]
+                open_faces[name] = [r for r in rows if lum(r[2]) >= cut]
+    uv = dm.uv_layers.active.data
+    for face in dm.polygons:
+        if not soft[face.material_index]:
+            continue
+        name = dm.materials[face.material_index].name
+        rows = open_faces.get(name) or all_faces.get(name)
+        if not rows:
+            continue
+        c, n = face.center, face.normal
+        pick = min(rows, key=lambda r: (r[0] - c).length - 0.2 * r[1].dot(n))
+        for k in face.loop_indices:
+            uv[k].uv = pick[2]
+
+
 def main():
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
     out_dir = os.path.abspath(argv[0]) if argv else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'art-build', 'nature')
     only = argv[1].split(',') if len(argv) > 1 else list(FILES)
     tm.transfer_uvs = material_transfer
+    by_face = tm.transfer_uvs_by_face  # what ti_town.build_file gives the lower levels
+
+    def transfer(src, dst):
+        by_face(src, dst)
+        soft_crown_uvs(src, dst)
+    tm.transfer_uvs_by_face = transfer
     report = {}
     order = list(FILES)
     for name in only:

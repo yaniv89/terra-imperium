@@ -13,6 +13,7 @@ import { AGE_ORDER } from '../../data/ages';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { makeBenchSetup } from '../../battle/bench/benchScenario';
 import { sandboxTileOptions } from './sandboxTile';
+import { VEGETATION_KITS } from '../../battle/art/artIndex';
 
 const PRESETS = {
   balanced: ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'siege', 'infantry'],
@@ -140,12 +141,16 @@ const BattleSandbox = () => {
     economy: config.economy, // the battle economy (phase R1): workers, buildings, training; `&noeco` turns it off
     ...sandboxCity(config.raid === 'sack' && !config.city ? { ...config, city: 'medium' } : config)
   }), [config, runId, sampleTile, previewState, raiding]);
+  // `&vegetation=steppe` (art QA): draw the battle with this vegetation kit whatever the tile's
+  // climate. Drawing only: the battlefield, the sim and the result are the same.
+  const veg = params.get('vegetation');
+  const shown = useMemo(() => (VEGETATION_KITS.includes(veg) ? { ...setup, vegetation: veg } : setup), [setup, veg]);
 
   if (running) {
     return (
       <TacticalBattleScreen
         key={runId}
-        setup={setup}
+        setup={shown}
         playerSide={playerSide}
         title={`Sandbox · ${config.sea ? 'sea battle' : raiding ? `${config.raid} (you defend)` : config.terrain}`}
         onFinish={(ended) => { setLastResult(ended.result); setRunning(false); }}

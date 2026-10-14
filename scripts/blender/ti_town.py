@@ -364,6 +364,7 @@ def pennant(ms, f, x, y, z, yaw=-150, lod=1, w=0.2, h=0.12):
 # ---- atlas, LODs, export ------------------------------------------------------------------------
 
 SPACING = 12.0  # build_file lays the objects of a file this far apart in x for the one bake
+SMOOTH = set()   # PROC materials whose faces export with smoothed normals (tree crowns: ti_nature.py); the rest stay flat
 
 
 def fringe_uvs(obj):
@@ -515,9 +516,10 @@ def build_file(file_name, items, out_dir, atlas=2048, seed=2000, write=True):
             o.data.transform(shift)
             me = o.data
             remap = [order.index(TO_FINAL.get(m.name, 'Town')) for m in me.materials]
+            soft = [m.name in SMOOTH for m in me.materials]
             for p in me.polygons:
+                p.use_smooth = soft[p.material_index]
                 p.material_index = remap[p.material_index]
-                p.use_smooth = False
             # Mesh.materials.clear() would reset every face to slot 0: overwrite in place, pop the rest
             for j, mname in enumerate(order):
                 me.materials[j] = finals[mname]

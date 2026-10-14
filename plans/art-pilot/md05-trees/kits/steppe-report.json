@@ -1,0 +1,69 @@
+{
+  "url": "http://localhost:5203/terra-imperium/?battleSandbox&age=bronze&terrain=forest&perf&vegetation=steppe",
+  "shots": [
+    {
+      "file": "plans/art-pilot/md05-trees/kits/steppe-army-zoom1.jpg",
+      "view": "army",
+      "zoom": 1,
+      "triangles": 717890,
+      "drawCalls": 111,
+      "figures": 57,
+      "tier": 0,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3925,
+        "drawn": 2745,
+        "species": 3,
+        "meshes": 48,
+        "lod": 1
+      }
+    },
+    {
+      "file": "plans/art-pilot/md05-trees/kits/steppe-woods-zoom1.jpg",
+      "view": "woods",
+      "zoom": 1,
+      "triangles": 748080,
+      "drawCalls": 124,
+      "figures": 52,
+      "tier": 0,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3925,
+        "drawn": 2745,
+        "species": 3,
+        "meshes": 48,
+        "lod": 1
+      }
+    }
+  ],
+  "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x000046A3) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "kit": {
+    "terrain": "forest",
+    "tile": 373,
+    "vegetation": "steppe"
+  },
+  "views": {
+    "army": [
+      7.211328125,
+      27.990625
+    ],
+    "woods": [
+      36,
+      26
+    ],
+    "forestRound": 110,
+    "size": [
+      96,
+      64
+    ],
+    "counts": {
+      "0": 4109,
+      "1": 1548,
+      "2": 188,
+      "4": 157,
+      "6": 111,
+      "7": 31
+    }
+  },
+  "errors": []
+}
