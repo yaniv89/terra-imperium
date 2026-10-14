@@ -3,7 +3,9 @@
 //
 //   a garrison   units stand in the city: Auto fights those units first (autoBattle.js, the usual
 //                auto-resolve with the city's militia, walls and auxiliaries beside them). Winning
-//                damages or destroys them; the city is NOT taken (`report.garrisonFirst`).
+//                damages or destroys them, and the beaten survivors are driven out to their nearest
+//                city (lost with nowhere to go); the city is NOT taken (`report.garrisonFirst`,
+//                battleOutcome.js beatenGarrison). A lost fight leaves them in place.
 //   empty city   no unit of the owner stands in it: the attack is against the city itself, here.
 //
 // The attack on an empty city, in plain words:

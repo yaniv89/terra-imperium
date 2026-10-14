@@ -53,7 +53,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const c = v.odds?.city;
   const odds = v.odds?.undefended
     ? { undefended: true, hold, text: c ? `No one defends it: on Auto the attack takes its defences from ${c.hpBefore} to about ${c.hpAfter} of ${c.maxHp} HP${hold < 0.5 ? ', and it likely falls' : ''}. It holds ${pct}% of the time.` : 'No one defends it.' }
-    : { undefended: false, hold, text: `Auto ${attacking ? 'wins' : 'holds'} ${pct}% of the time${city && v.odds?.avgDamage != null ? `, about ${v.odds.avgDamage} control lost on average` : ''}.${city && !attacking ? ' On Auto your garrison is fought first: the city is not taken while units stand in it.' : ''}`, verdict: attacking ? (hold >= 0.65 ? 'Likely win' : hold >= 0.35 ? 'Close' : 'Likely loss') : (hold >= 0.65 ? 'Likely hold' : hold >= 0.35 ? 'Close' : 'Likely lost') };
+    : { undefended: false, hold, text: `Auto ${attacking ? 'wins' : 'holds'} ${pct}% of the time${city && v.odds?.avgDamage != null ? `, about ${v.odds.avgDamage} control lost on average` : ''}.${city && !attacking ? ' On Auto your garrison is fought first: even beaten, the city is not taken in this battle.' : ''}`, verdict: attacking ? (hold >= 0.65 ? 'Likely win' : hold >= 0.35 ? 'Close' : 'Likely loss') : (hold >= 0.65 ? 'Likely hold' : hold >= 0.35 ? 'Close' : 'Likely lost') };
   const plural = /[^s]s$/.test(enemyShort);
   const verb = KIND_VERB[kind] ? KIND_VERB[kind][plural ? 0 : 1] : plural ? 'attack' : 'attacks';
   const withdrawTo = city && fallbackId ? state.regions?.[fallbackId]?.name || fallbackId : null;
@@ -62,7 +62,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   // or Auto) is still the one chosen: an intentional Command stays playable.
   const hopeless = !attacking && !odds.undefended && hold < HOPELESS_HOLD;
   const warning = hopeless
-    ? `Badly outnumbered: Auto holds only ${pct}% of the time. ${city ? `If ${place} falls, it is taken and your defenders still in it are lost.` : 'If you lose, the regiments still on the field at the end are lost.'}${withdrawTo ? ` Withdraw keeps the men: they fall back to ${withdrawTo}.` : ''}`
+    ? `Badly outnumbered: Auto holds only ${pct}% of the time. ${city ? `Lose on Command and ${place} is taken with your defenders still in it; on Auto a beaten garrison is driven out, but the city stands until its defences are broken.` : 'If you lose, the regiments still on the field at the end are lost.'}${withdrawTo ? ` Withdraw keeps the men: they fall back to ${withdrawTo}.` : ''}`
     : null;
   const setting = state.battleSettings?.defaultMode;
   const suggested = setting === 'auto' || setting === 'command' ? setting : hopeless && withdrawTo ? 'withdraw' : 'command';

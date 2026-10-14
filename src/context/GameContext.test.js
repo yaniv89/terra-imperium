@@ -1080,10 +1080,12 @@ describe('Military tab actions', () => {
       return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], strength } } };
     };
 
-    it('conquers an undefended adjacent region and moves surviving units into it', () => {
+    it('conquers an empty adjacent city with broken defences and moves surviving units into it', () => {
       // Conquest by battle (src/engine/conquest.js): a captured region becomes the attacker's at
-      // once, marked with the war it was taken in so a peace deal can still hand it back.
-      const state = withAttacker();
+      // once, marked with the war it was taken in so a peace deal can still hand it back. An empty
+      // city falls on Auto when an attack brings its HP to 0 (cityAssault.js).
+      const raw = withAttacker();
+      const state = { ...raw, regions: { ...raw.regions, [BE_REGION]: { ...raw.regions[BE_REGION], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } } } };
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
       expect(next.regions[BE_REGION].owner).toBe('fr');
@@ -1162,7 +1164,7 @@ describe('Military tab actions', () => {
         expect(next.units[attackerId].regionId).toBe(FR_BORDER);
       });
 
-      it('captures once control crosses the threshold and a melee unit is present', () => {
+      it('on Auto a beaten garrison is driven out, but the city is not taken in that battle', () => {
         const state = withAttacker(50000);
         const defenderUnit = {
           id: 'def_weak', regionId: BE_REGION, ownerId: AGG, domain: 'land', classId: 'infantry', ageId: 'bronze',
@@ -1172,10 +1174,11 @@ describe('Military tab actions', () => {
         // the 15 threshold.
         const withDefender = { ...state, units: { ...state.units, def_weak: defenderUnit }, regions: { ...state.regions, [BE_REGION]: { ...state.regions[BE_REGION], control: 40 } } };
         const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-        expect(next.regions[BE_REGION].owner).toBe('fr'); // conquered by battle
-        expect(next.regions[BE_REGION].control).toBe(25); // the usual post-capture reset
-        expect(next.regions[BE_REGION].underInvasion).toBe(false);
-        expect(next.lastBattleReport.captured).toBe(true);
+        // On Auto the garrison is fought first (the 14 October rule): beaten, it is driven out, but the
+        // city is not taken in this battle. The next attack goes at its defences.
+        expect(next.regions[BE_REGION].owner).toBe(AGG);
+        expect(next.lastBattleReport.captured).toBe(false);
+        expect(next.units.def_weak?.regionId ?? null).not.toBe(BE_REGION);
       });
 
       it('clamps at the threshold without capturing when the attacker has no melee unit deployed', () => {
@@ -1470,8 +1473,9 @@ describe('Navies and amphibious invasion actions', () => {
       return { state: withWarAgainst(embarked, 'gb'), navalUnitId, landUnitId };
     };
 
-    it('conquers an undefended coastal region reachable only by sea', () => {
-      const { state, navalUnitId, landUnitId } = withEmbarkedForce();
+    it('conquers an empty coastal city with broken defences, reachable only by sea', () => {
+      const { state: s0, navalUnitId, landUnitId } = withEmbarkedForce();
+      const state = { ...s0, regions: { ...s0.regions, [GB_TARGET]: { ...s0.regions[GB_TARGET], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } } } };
       const next = gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: GB_TARGET } });
       expect(next.regions[GB_TARGET].owner).toBe('fr');
       expect(next.regions[GB_TARGET].conquest).toMatchObject({ from: 'gb' });

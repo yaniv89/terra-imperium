@@ -226,12 +226,24 @@ const cityAttackLine = (s, o, place, mine) => {
     : `${who} attacks ${place}: its defences fall from ${a.hpBefore} to ${a.hpAfter} of ${a.maxHp} HP. Attack again to take it.`;
 };
 const garrisonLine = (s, o, place, mine) => (o.outcome === 'attacker'
-  ? `${mine ? 'Your army' : nameOf(s, o.attackerNationId)} beat the garrison of ${place}. The city holds while units stand in it; once it is empty, attack its defences.`
+  ? `${mine ? 'Your army' : nameOf(s, o.attackerNationId)} beat the garrison of ${place}: its survivors are driven out. The city is not taken yet: attack its defences next.`
   : null);
+// A garrison beaten on Auto is driven out of its city (it breaks, as a Civilization unit dies or
+// falls back): the survivors fall back to the owner's nearest held city, or are lost with nowhere to
+// go; aircraft stay at their base. The city stands empty for the next attack on its defences.
+const beatenGarrison = (s, o) => {
+  const fallback = nearestHeldCity(s, o.regionId, o.defenderNationId);
+  return (u) => {
+    if (isAir(u) || u.domain === 'naval') return { ...u };
+    return fallback ? { ...placeInCity(u, s.regions, fallback), movesLeft: 0, route: null } : null;
+  };
+};
 
 const conquer = (s, regionId, conquerorId, war) => {
   const r = conquerRegion({ regions: s.regions, nations: s.nations, turnNumber: s.turnNumber }, regionId, conquerorId, war);
-  return { regions: r.regions, nations: r.nations, capitalTaken: r.capitalTaken };
+  // A taken city's battered defences are its new owner's to mend: the siege record goes.
+  const regions = r.regions[regionId]?.siege ? { ...r.regions, [regionId]: { ...r.regions[regionId], siege: null } } : r.regions;
+  return { regions, nations: r.nations, capitalTaken: r.capitalTaken };
 };
 
 const nameOf = (s, id) => (id === REBEL_OWNER_ID ? 'the rebels' : s.nations[id]?.name || id);
@@ -249,10 +261,12 @@ const invasionAdapter = (s, o, war, att, def) => {
     const stays = isAir(u); // aircraft fly home
     units[u.id] = { ...u, regionId: stays ? u.regionId : captured ? o.regionId : o.fromRegionId, tile: stays ? unitTile(s, u) : captured ? target.tile : unitTile(s, u), movesLeft: 0 };
   });
+  const out = rule === 'garrison' && o.outcome === 'attacker' ? beatenGarrison(s, o) : null;
   def.forEach((u) => {
     if (!units[u.id]) return; // the militia and synthetic troops live on the battle only
     if (captured || u.strength <= 0) { delete units[u.id]; return; }
-    units[u.id] = { ...u };
+    units[u.id] = out ? out(u) : { ...u };
+    if (!units[u.id]) delete units[u.id];
   });
   let { regions, nations } = s; let capitalTaken = false;
   if (captured) ({ regions, nations, capitalTaken } = conquer({ ...s, units }, o.regionId, o.attackerNationId, war));
@@ -285,10 +299,12 @@ const landingAdapter = (s, o, war, att, def) => {
       ? { ...u, regionId: o.regionId, tile: target.tile ?? null, embarkedOn: null, movesLeft: 0 }
       : { ...u, regionId: o.fromRegionId, embarkedOn: o.navalUnitId, movesLeft: 0 };
   });
+  const out = rule === 'garrison' && o.outcome === 'attacker' ? beatenGarrison(s, o) : null;
   def.forEach((u) => {
     if (!units[u.id]) return;
     if (captured || u.strength <= 0) { delete units[u.id]; return; }
-    units[u.id] = { ...u };
+    units[u.id] = out ? out(u) : { ...u };
+    if (!units[u.id]) delete units[u.id];
   });
   if (units[o.navalUnitId]) units[o.navalUnitId] = { ...units[o.navalUnitId], movesLeft: 0, lastBattleTurn: s.turnNumber };
   let { regions, nations } = s; let capitalTaken = false;
@@ -319,12 +335,15 @@ const defenseAdapter = (s, o, war, att, def, record) => {
   const aggressorWon = pressure == null ? o.outcome === 'attacker' : pressure >= 0.5;
   const defenderWon = pressure == null ? o.outcome === 'defender' : pressure < 0.5;
   const units = { ...s.units };
-  const fallback = captured ? nearestHeldCity(s, o.regionId, o.defenderNationId) : null;
+  // A garrison beaten on Auto is driven out like a captured city's (beatenGarrison), but the city stands.
+  const drivenOut = rule === 'garrison' && aggressorWon;
+  const fallback = captured || drivenOut ? nearestHeldCity(s, o.regionId, o.defenderNationId) : null;
   def.forEach((u) => {
     if (!units[u.id]) return;
-    if (u.strength <= 0 || (captured && !fallback)) { delete units[u.id]; return; }
+    const leaves = captured || (drivenOut && !isAir(u));
+    if (u.strength <= 0 || (leaves && !fallback)) { delete units[u.id]; return; }
     const next = { ...units[u.id], strength: u.strength, morale: u.morale, xp: u.xp, rank: u.rank, promotions: u.promotions };
-    units[u.id] = captured ? placeInCity(next, s.regions, fallback) : next;
+    units[u.id] = leaves ? { ...placeInCity(next, s.regions, fallback), ...(drivenOut ? { route: null, movesLeft: 0 } : {}) } : next;
   });
   // The aggressor's real troops take their losses where they stand; synthetic ones fold back
   // into militaryStrength minus what they lost.
@@ -353,7 +372,7 @@ const defenseAdapter = (s, o, war, att, def, record) => {
   const message = captured
     ? `${enemy} storms ${name} and conquers it!${fallback ? ` ${mine ? 'Your' : 'The'} survivors fall back to ${s.regions[fallback]?.name || fallback}.` : ''}`
     : rule === 'attack' ? cityAttackLine(s, o, name, false)
-    : rule === 'garrison' && o.outcome === 'attacker' ? `${enemy} beats ${mine ? 'your' : 'the'} garrison of ${name}, but the city holds while units stand in it.`
+    : drivenOut ? `${enemy} beats ${mine ? 'your' : 'the'} garrison of ${name}${fallback ? ` and drives it back to ${s.regions[fallback]?.name || fallback}` : ''}. The city still stands, but empty its defences must hold the next attack.`
     : damaged ?`${enemy} presses the siege of ${name} (control now ${siege.nextControl}%). ${mine ? 'Your' : 'The'} garrison holds on.`
       : `${mine ? 'Your' : 'The'} garrison repels ${enemy}'s assault on ${name}!`;
   const winnerId = aggressorWon ? o.attackerNationId : defenderWon ? o.defenderNationId : null;

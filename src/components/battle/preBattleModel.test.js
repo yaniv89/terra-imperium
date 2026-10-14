@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNeighborIds } from '../../data/regions';
 import { atGates } from '../../engine/testWorld';
-import { preBattleModel } from './preBattleModel';
+import { preBattleModel, autoText } from './preBattleModel';
 
 const setup = () => {
   const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
@@ -45,5 +45,24 @@ describe('W11 preBattleModel', () => {
     expect(m.chance).toMatchObject({ exact: true, source: 'Spy report' });
     expect(m.chance.win + m.chance.lose + m.chance.draw).toBeCloseTo(1, 5);
     expect(typeof m.theirs.total).toBe('number');
+  });
+});
+
+describe('the two ways against a city (the 14 October rule)', () => {
+  it('the card says Auto fights the garrison first and Command takes a city it wins', { timeout: 20000 }, () => {
+    const { s, from, target } = setup();
+    const m = preBattleModel(s, { fromRegionId: from, targetRegionId: target }, { samples: 10 });
+    expect(m.cityRule).toBe('garrison');
+    expect(m.auto).toMatch(/Auto fights the garrison first; the city is taken only when empty and its defences are broken/);
+    expect(m.command).toMatch(/^Win the battle and the city is yours/);
+    const { d, ...rest } = s.units; // eslint-disable-line no-unused-vars
+    expect(preBattleModel({ ...s, units: rest }, { fromRegionId: from, targetRegionId: target }, { samples: 10 }).cityRule).toBe('attack');
+  });
+
+  it('an empty city seen up close says how far one attack brings its defences down', () => {
+    const text = autoText({ knownEmpty: true, odds: { capture: 0, city: { hpBefore: 520, hpAfter: 340, maxHp: 520 } } });
+    expect(text).toMatch(/520 of 520 HP down to about 340/);
+    expect(text).toMatch(/needs more attacks/);
+    expect(autoText({ field: true })).toMatch(/the field is yours/);
   });
 });
