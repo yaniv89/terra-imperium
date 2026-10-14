@@ -1,0 +1,123 @@
+{
+  "id": "gunpowder-siege",
+  "triangles": 4000,
+  "by_rig": {
+    "Crew0Rig": 1132,
+    "Crew1Rig": 1112,
+    "Crew2Rig": 1084,
+    "GunRig": 672
+  },
+  "rigs": {
+    "GunRig": [
+      "Hull",
+      "Wheel_L",
+      "Wheel_R"
+    ],
+    "Crew0Rig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ],
+    "Crew1Rig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ],
+    "Crew2Rig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Brass",
+    "Buff",
+    "Cloth",
+    "Felt",
+    "Gaiter",
+    "Hair",
+    "Leather",
+    "Metal",
+    "Shoe",
+    "Skin",
+    "Sponge",
+    "Staff",
+    "Team",
+    "White",
+    "Wood",
+    "Wool"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Field cannon: a bronze gun on a two-wheeled carriage with a trail, a rammer and a pile of balls; three gunners in the line dress (tricorne with pale lace, Team coat with white-lined skirts, white cross belts, buff breeches, black gaiters): one with the rammer and sponge upright, one holding a ball, one stooping to lay the gun with a handspike",
+  "notes": "The gun is the one of build_units_gunpowder.py g_siege (ti_mounts.field_gun, the same calls, unchanged); the crew are ti_figure.py figures (LITE) from the quality pass of 2026-10-14.",
+  "machine_metres": {
+    "length": 2.5,
+    "width": 1.15,
+    "height": 0.86
+  },
+  "footprint_h": [
+    1.3,
+    1.69
+  ]
+}
