@@ -29,6 +29,33 @@ export const isShakenView = (q) => !!q && q.alive && !q.routed && q.classId !== 
 const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
 
 /**
+ * I195: where a side's squads are, so a count that drops is explained. Laborers are left out.
+ * { field, routed, killed, withdrew, arriving, out } over the squads that ever stood in the battle
+ * (arriving: allied reinforcements still marching in; out: past the 300 cap, never in it).
+ */
+export const armyTally = (hud, side) => {
+  const t = { field: 0, routed: 0, killed: 0, withdrew: 0, arriving: 0, out: 0 };
+  (hud?.squads || []).forEach((q) => {
+    if (q.side !== side || q.classId === 'worker') return;
+    if (!q.alive) t.killed += 1;
+    else if (q.fled) t.withdrew += 1;
+    else if (q.onField) t[q.routed ? 'routed' : 'field'] += 1;
+    else if (q.enterTick >= 0) t.arriving += 1;
+    else t.out += 1;
+  });
+  return t;
+};
+/** The tally in words: "8 on the field, 2 killed, 1 routed, 1 withdrew, 2 arriving". */
+export const armyTallyText = (t) => [
+  `${t.field} on the field`,
+  t.killed ? `${t.killed} killed` : null,
+  t.routed ? `${t.routed} routed` : null,
+  t.withdrew ? `${t.withdrew} withdrew` : null,
+  t.arriving ? `${t.arriving} arriving` : null,
+  t.out ? `${t.out} kept out (over 300)` : null
+].filter(Boolean).join(', ');
+
+/**
  * The context panel's state (B10, AoE style: the actions of the selection only):
  * 'place' (a building in hand) | 'building' (your finished building) | 'site' (your building going up)
  * | 'workers' (laborers only: the build grid) | 'mixed' (laborers and troops) | 'army' | 'inspect'

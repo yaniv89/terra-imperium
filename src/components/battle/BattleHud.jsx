@@ -26,7 +26,7 @@ import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { TICK_HZ } from '../../battle/sim/constants';
-import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft } from './battleHudModel';
+import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, armyTally, armyTallyText } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -143,7 +143,7 @@ const BattleHud = ({
               <Res icon={<ResIcon res="population" size={18} />} label="Population / housing" value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />
             </>
           ) : <Res icon={<ResIcon res="supply" size={18} />} label="Battle supply" value={Math.floor(supply)} />}
-          <Res icon={<Swords className="w-4 h-4 text-fa-enemy" aria-hidden="true" />} label="Enemy squads left" value={enemyLeft} />
+          <Res icon={<Swords className="w-4 h-4 text-fa-enemy" aria-hidden="true" />} label={`Enemy squads left: ${armyTallyText(armyTally(hud, 1 - playerSide))}`} value={enemyLeft} />
         </div>
         {pauseOpen && <span className="text-[11px] font-bold tracking-[0.08em] text-fa-muted shrink-0">PAUSED</span>}
         <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} aria-label={`Speed ${speed}, tap for faster`} className="fa-icon-btn !w-11 !h-10 shrink-0 fa-num text-[13px] font-semibold">{speed}×</button>
@@ -358,6 +358,11 @@ const BattleHud = ({
               <div className="grid grid-cols-3 gap-1.5">{powerCards.map((pw) => <PowerCard key={pw.id} pw={pw} supply={supply} armed={armed?.type === 'power' && armed.id === pw.id} onClick={() => firePower(pw)} />)}</div>
             </div>
           )}
+          {/* I195: where each side's squads went, so a falling count is explained. */}
+          <div className="text-[11.5px] leading-snug" data-testid="battle-tally">
+            <div><span className="text-fa-you font-semibold">Yours:</span> {armyTallyText(armyTally(hud, playerSide))}.</div>
+            <div><span className="text-fa-enemy font-semibold">Theirs:</span> {armyTallyText(armyTally(hud, 1 - playerSide))}.</div>
+          </div>
           <div className="text-[11px] text-fa-muted mt-auto">Retreat asks once more. Your regiments leave by the nearest exit{bt === BATTLE_TYPES.assault ? '; the siege is lifted' : ''}. Switch to Auto finishes this battle by the same rules, at once.</div>
         </div>
       )}
