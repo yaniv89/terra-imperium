@@ -242,6 +242,57 @@ Delivered on `claude/art-foot-clips` over `scripts/blender/ti_foot_clips.py` (th
   hangs from Prop_L (his left fist), every other gun from Prop_R. No ramrod and no spare magazine were
   modelled (the triangle counts are unchanged), so loading is the hands' motion alone.
 
+### 7.3 Mounted units, generals and files of several rigs (art, 2026-10-14)
+
+Delivered on `claude/art-mounted-clips` over `scripts/blender/ti_mounted_clips.py` (on top of 7.1 and 7.2). Clip
+tables and sheets: `plans/art-pilot/mounted-clips/LOG.md`. Test: `src/battle/render/mountedClips.test.js`.
+
+- **Several rigs in one file.** MountRig and RiderRig; MountRig, CommanderRig and BearerRig (generals); the
+  chariot's HorseNearRig, HorseOffRig, ChariotRig, DriverRig and ArcherRig. Each clip is ONE glTF animation that
+  keys every rig over the same frames (exported with `NLA_TRACKS`). Bone names repeat across rigs (Root, Hips,
+  Prop_R ...): three's GLTFLoader numbers the repeats (`Root_1`, `Head_1`) and the tracks bind to those names, so
+  run one mixer on `gltf.scene` and sample every bone. Store each bone relative to its own rig's rest (section 4,
+  `W(frame) x W(rest)^-1`); the per-vertex bone index must index the file's whole bone list (all rigs: 21 a
+  person, 15 a horse with the new Mount_Rein, 3 the car; under 128).
+- **The rider is carried, not parented.** The rider's rig is a sibling of the horse's; his Root follows the horse's
+  back every frame (keyed), so his Root moves a few centimetres on X and Y in the gaits (the back pitches about the
+  middle of the barrel). The "Root stays on X and Y" rule of 7.2 holds for Mount_Root, for people on foot and for
+  the car's Hull (it turns about the axle, a millimetre behind the bone); a carried Root stays within 0.1 H of its
+  seat, and the riders leave it only in the falls.
+- **Gaits and speeds.** Walk 21 frames (one stride, four-beat), Trot 15 (two-beat, diagonal pairs), Gallop 13
+  (three-beat with a suspension), all loops; Charge 41 (four gallop strides at 10 frames). The planted hooves slide
+  back at a natural ground speed: Walk 0.52, Trot 1.29, Gallop 2.74, Charge 3.29 tiles a second (0.55, 1.36, 2.89,
+  3.47 H/s; 1 H = ART_UNIT_WORLD 0.95). The sim's cavalry moves at 3.0 to 3.2 tiles/s, so a squad at full speed
+  plays Gallop at about 1.15x or Charge at about 0.95x; scale the rate by actual / natural speed, pick Walk under
+  about 0.9 tiles/s, Trot under about 2.0, Gallop above. The general's bearer runs at the horse's cadence (his feet
+  slide a little at Gallop speeds). The chariot's Move is the gallop (its wheels turn once a stride: 2.69
+  tiles/s), its Charge the faster gallop (3.22).
+- **Charge.** A one-shot, not a loop: it starts and ends on the gallop's phase 0 (the same leg pose as Gallop frame
+  1, the weapon back to its rest hold), so Gallop to Charge to Gallop joins with the usual cross-fade. The lead-in
+  is 22 frames (1.1 s): start Charge 1.1 s (at its rate) before the sim's charge strike so `contact` (frame 23)
+  lands on `lastStrikeTick`. The lance comes down from frame 2 and is couched by 15; the horse gallops on through
+  the impact, the weapon is held two frames on the rider (frames 23 and 24, relative to his Root).
+- **Attack** is the rider's strike with the horse standing (it starts and ends at rest; contact 11, held). Play it
+  for a squad fighting in place; a moving squad keeps its gait.
+- **Mount deaths.** In place: the horse buckles and rolls onto its side (Mount_Root drops, Mount_Spine rolls about
+  87 degrees about the barrel, the legs lie out), settled from frame 37 (settle event 40). Death rolls it onto its
+  right side (-X), DeathAlt onto its left (+X) after sitting back on its haunches; a general's horse rolls to its
+  right both times (away from the bearer). The rider rides the stumble to frame 12, is thrown over the side the
+  back rolls to and lies along the horse 0.4 H out (on his back in Death, face down in DeathAlt): the corpse covers
+  about 1.4 x 1.6 H, wider than the living figure; keep corpses in the pool at that footprint. The bearer steps 0.24
+  H out to his left and falls (forward, backward). The chariot's Wreck: the car tips onto its right side, the
+  horses go down on their chests, the crew are thrown out over the back.
+- **Reins.** Their hand end hangs from a new bone `Mount_Rein` (a child of Mount_Neck, at the rein fist at rest)
+  keyed to follow the rider's left fist; in the falls it goes back to riding the neck. It classifies as the body,
+  as Mount_Neck did, so the procedural rig and the rest bake are unchanged. The chariot's reins hang from the car.
+- **Lances** keep their names (SpearShaft, SpearHead*) and hang from the rider's Prop_R alone (tested): fitPolearm
+  stretches them at rest and the stretched shaft rides on Prop_R (7.2). Couched, a 3.5 m lance reaches about 1.5 H
+  in front of the rider's fist.
+- **Hidden props by scale** as in 7.1: the chariot archer's arrow (Tool_Arrow, 0 from `release` until a new one
+  comes out of the quiver).
+- **The procedural rig.** A file with clips must not also get the vertex rig's horse trot (HORSE_FRONT/BACK) or
+  the rider's still legs (`staticLegs`): the clips move every leg. Units without clips keep it.
+
 ## 8. Open questions for the user
 
 1. Replace D5's VAT with the rigid bone texture? (Same art, about 40x less memory.)
