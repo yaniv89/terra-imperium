@@ -153,6 +153,62 @@ ZOOMS=1,0.6 node plans/art-pilot/md05-trees/forest-shots.mjs plans/art-pilot/md0
   at zoom 1 retaken after the third pass; `desert-woods-zoom1-before-palms.jpg` is the second
   pass, with the dark date palms).
 
+## Tree budget at the phone's zoom (branch claude/art-md05-tree-budget, from integration 6a5a6c3b)
+
+Report from the code session: a forest battle at the default zoom drew about 1.02 M triangles a
+frame on a phone, over the 1.0 M ceiling, said to be mostly trees at full detail.
+
+**Measured** (`layer-budget.mjs`: phone profile 844x390 at device scale 3, real GPU, production
+build; each layer's share is the drop in `renderer.info` triangles when that layer is hidden, so
+it counts the shadow pass). The battle opens at zoom 1 (BattleRenderer: `camera.zoom = 1`; a
+landscape phone shows 18 tiles tall, so zoom 1 on a phone is already close), where the trees were
+at LOD1, not full detail:
+
+| View | Total | Trees | Rocks, grass | Soldiers | Terrain | Everything else |
+|---|---|---|---|---|---|---|
+| opening camera, zoom 1 | 926k | 140k | 17k | 456k | 51k | 263k |
+| densest wood, zoom 1 | 412k | 150k | 19k | 0 | 51k | 193k |
+| densest wood, zoom 2 (before) | **1,407k** | **1,124k** | 42k | 0 | 51k | 191k |
+
+So at the opening zoom the frame is mostly soldiers (456k, the adaptive tier lifting them past
+their 300k budget) and the camp, nodes and buildings (about 200k to 260k). The trees blow the
+budget from zoom 2 up, where every tree switched to full detail at once: 1.12 M for the trees
+alone. That is the likely source of the 1.02 M reading (a slightly zoomed-in view, or the zoom 2
+step); I could not reproduce over 1.0 M at zoom 1 in the forest sandbox.
+
+**Fix** (tree drawing only, `vegetationProps.js`, `treeMix.js`, `quality.js`):
+- The level follows a medium tree's height on screen (css px, a 6 m reference tree): full trees
+  from 70 px, the middle level from 32 px, with an 8% margin against flicker. On a landscape phone
+  these sit where the zoom rule switched (zoom 2.16 and 0.9); a desktop switches at its own zooms.
+  The size level also sets how much of a wood stands (all, 70%, 52%), as before.
+- A per-frame tree budget like the soldiers' (`BATTLE_GRAPHICS.treeTriangles`: 160k phone, 500k
+  desktop, shadows counted): the cost is the trees in the chunks in view (a chunk on screen is
+  drawn whole) at each level; past the budget the trees draw a simpler level, never fewer trees;
+  a finer level only with 15% to spare.
+- Close up (the full-tree size level) the trees come from 16-tile chunks instead of 48: every
+  chunk in view draws the middle level, then full trees go to the chunks nearest the middle of
+  the view, one by one, while the budget lasts. The 48-tile chunks still draw the middle and far
+  levels (few draw calls over a whole wood).
+
+**After** (same views):
+
+| View | Total | Trees | Tree estimate | Detail |
+|---|---|---|---|---|
+| opening camera, zoom 1 | 926k | 140k | 136k | middle level, 70% of trees |
+| army, zoom 1 | 506k | 141k | 141k | middle level |
+| densest wood, zoom 1 | 412k | 150k | 159k | middle level |
+| densest wood, zoom 1.5 | 379k | 120k | 110k | middle level |
+| densest wood, zoom 2 | 374k (was 1,407k) | 118k (was 1,124k) | 110k | middle level, 70% |
+| densest wood, zoom 3 | 423k | 141k | 136k | every tree; full trees in the middle chunks, the middle level round them |
+| army, zoom 3 | 507k | 138k | 135k | same |
+
+(The opening and army totals differ between runs with the soldiers' adaptive tier: 456k at tier
+0, 85k at tier 1.) Shots: `budget/before-*.jpg` and `budget/after-*.jpg` at each view.
+
+Open: the soldiers (456k at tier 0) and the camp, nodes and buildings (about 200k to 260k) are
+most of the opening frame; at zoom 3 the edge between full trees and the middle level shows as a
+change of crown shape across chunk lines.
+
 ## Open points
 
 - Near-zoom draw calls are 8 to 13 above the old level (accepted).

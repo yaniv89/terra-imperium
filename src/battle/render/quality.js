@@ -2,7 +2,10 @@
 // still steps the pixel ratio down on slow frames and back up when frames are fast again.
 // figureTriangles: what the soldiers may draw a frame (soldierLod.js picks a coarser level past
 // it), the rest of RTS plan 13.1's budget (0.5 M phone, 1 to 1.5 M desktop) is terrain and scenery.
-export const BATTLE_GRAPHICS = { maxDpr: 2, shadows: true, shadowSize: 2048, effects: 400, figureTriangles: { phone: 300000, desktop: 800000 } };
+// treeTriangles: what the kit's trees may draw a frame, shadow pass included (vegetationProps.js
+// draws a coarser level past it; plans/art/TRIANGLE-BUDGET.md gives trees, props and nodes about
+// 80k of a phone's 700k target and the phone ceiling is 1.0 M).
+export const BATTLE_GRAPHICS = { maxDpr: 2, shadows: true, shadowSize: 2048, effects: 400, figureTriangles: { phone: 300000, desktop: 800000 }, treeTriangles: { phone: 160000, desktop: 500000 } };
 
 // Adaptive soldier detail (BattleRenderer.adaptDetail): bias = how many levels finer than size on
 // screen asks for. Up while the frame p95 holds the display rate, down past stepDownMs.

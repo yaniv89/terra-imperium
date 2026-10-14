@@ -1,0 +1,110 @@
+{
+  "url": "http://localhost:5203/terra-imperium/?battleSandbox&age=bronze&terrain=forest&perf",
+  "views": [
+    {
+      "view": "opening camera",
+      "zoom": 1,
+      "total": 926452,
+      "layers": {
+        "trees": 139944,
+        "rocks and grass": 16910,
+        "soldiers": 456112,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 262796
+      },
+      "tier": 0,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3922,
+        "drawn": 2750,
+        "species": 3,
+        "meshes": 48,
+        "lod": 1
+      }
+    },
+    {
+      "view": "army, zoom 1",
+      "zoom": 1,
+      "total": 877388,
+      "layers": {
+        "trees": 140616,
+        "rocks and grass": 16462,
+        "soldiers": 456112,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 213508
+      },
+      "tier": 0,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3922,
+        "drawn": 2750,
+        "species": 3,
+        "meshes": 48,
+        "lod": 1
+      }
+    },
+    {
+      "view": "densest wood, zoom 1",
+      "zoom": 1,
+      "total": 412120,
+      "layers": {
+        "trees": 150248,
+        "rocks and grass": 18538,
+        "soldiers": 0,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 192644
+      },
+      "tier": 0,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3922,
+        "drawn": 2750,
+        "species": 3,
+        "meshes": 48,
+        "lod": 1
+      }
+    },
+    {
+      "view": "densest wood, zoom 1.5",
+      "zoom": 1.5,
+      "total": 378859,
+      "layers": {
+        "trees": 120344,
+        "rocks and grass": 15181,
+        "soldiers": 0,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 192644
+      },
+      "tier": 0,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3922,
+        "drawn": 2750,
+        "species": 3,
+        "meshes": 48,
+        "lod": 1
+      }
+    },
+    {
+      "view": "densest wood, zoom 2",
+      "zoom": 2,
+      "total": 1406836,
+      "layers": {
+        "trees": 1123659,
+        "rocks and grass": 41831,
+        "soldiers": 0,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 190656
+      },
+      "tier": 0,
+      "vegetationLod": 0,
+      "trees": {
+        "trees": 3922,
+        "drawn": 3922,
+        "species": 3,
+        "meshes": 48,
+        "lod": 0
+      }
+    }
+  ]
+}

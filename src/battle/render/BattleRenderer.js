@@ -221,6 +221,7 @@ export class BattleRenderer {
     this.sideColors = setup.sides.map((sd) => new Color(sd.color));
     this.squadInfo = [];
     this.figureBudget = BATTLE_GRAPHICS.figureTriangles.desktop;
+    this.treeBudget = BATTLE_GRAPHICS.treeTriangles.desktop;
     this.fx = [];
     this.markers = [];
     this.orderTargets = []; // orders at an object (orderTarget.js), drawn as a ring and a dashed line
@@ -885,6 +886,7 @@ export class BattleRenderer {
     // The soldiers' share of the triangle budget (RTS plan 13.1: about 0.5 M a frame on a phone
     // with terrain and scenery, 1 to 1.5 M on a desktop).
     this.figureBudget = Math.min(width, height) <= 500 ? BATTLE_GRAPHICS.figureTriangles.phone : BATTLE_GRAPHICS.figureTriangles.desktop;
+    this.treeBudget = Math.min(width, height) <= 500 ? BATTLE_GRAPHICS.treeTriangles.phone : BATTLE_GRAPHICS.treeTriangles.desktop;
     this.camera.left = (-viewH * aspect) / 2; this.camera.right = (viewH * aspect) / 2;
     this.camera.top = viewH / 2; this.camera.bottom = -viewH / 2;
     this.camera.updateProjectionMatrix();
@@ -1152,7 +1154,7 @@ export class BattleRenderer {
     this.fitShadows();
     if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.copy(this.skyColor).lerp(new Color('#ffffff'), this.flash); }
     this.updateCamera();
-    this.vegetation?.update(this.camera.zoom);
+    this.vegetation?.update(this.camera.zoom, { cssPxPerTile: 1 / this.worldPerPixel(), camera: this.camera, budget: this.treeBudget });
     this.terrainArt?.update(this.camera.zoom);
     if (cur) this.lastView = cur;
     if (cur) this.drawSquads(prev, cur, alpha, ui);

@@ -273,6 +273,74 @@ describe('vegetation kits on the battlefield', async () => {
   });
 });
 
+describe('the tree triangle budget', async () => {
+  const { VegetationProps } = await import('./vegetationProps');
+  const { treeLodForPx, pickTreeLod, TREE_LOD_PX, REFERENCE_TREE_UNITS } = await import('./treeMix');
+  const { InstancedMesh, BoxGeometry, MeshBasicMaterial, OrthographicCamera } = await import('three');
+  const { CITY_TILES_PER_UNIT } = await import('../setup/cityBattle');
+
+  it('picks the size level by a tree\'s height on screen, with a margin against flicker', () => {
+    expect(treeLodForPx(TREE_LOD_PX[0] * 1.1)).toBe(0);
+    expect(treeLodForPx(TREE_LOD_PX[1] * 1.1)).toBe(1);
+    expect(treeLodForPx(TREE_LOD_PX[1] * 0.9)).toBe(2);
+    expect(treeLodForPx(TREE_LOD_PX[0] - 2, 0)).toBe(0); // just under: stays close up
+    expect(treeLodForPx(TREE_LOD_PX[0] + 2, 1)).toBe(1); // just over: stays at the middle level
+    expect(treeLodForPx(TREE_LOD_PX[1] - 1, 1)).toBe(1);
+    // a landscape phone (18 tiles tall on 390 css px): the size levels sit near zoom 2 and 0.9, where the zoom rule switched
+    const phonePx = (zoom) => REFERENCE_TREE_UNITS * CITY_TILES_PER_UNIT * (390 / 18) * zoom;
+    expect(treeLodForPx(phonePx(2.2), 1)).toBe(0);
+    expect(treeLodForPx(phonePx(1), 1)).toBe(1);
+    expect(treeLodForPx(phonePx(0.8), 1)).toBe(2);
+  });
+
+  it('draws coarser while over the budget, finer again only with room to spare', () => {
+    const cost = (lod) => [400, 60, 30][lod] * 1000;
+    expect(pickTreeLod({ sizeLod: 0, cost, budget: Infinity })).toBe(0);
+    expect(pickTreeLod({ sizeLod: 0, cost, budget: 150000 })).toBe(1);
+    expect(pickTreeLod({ sizeLod: 0, cost, budget: 50000 })).toBe(2);
+    expect(pickTreeLod({ sizeLod: 1, cost, budget: 1e9 })).toBe(1); // never finer than the size level
+    expect(pickTreeLod({ sizeLod: 0, cost, budget: 420000, prev: 1 })).toBe(1); // 400k fits 420k, not with 15% spare
+    expect(pickTreeLod({ sizeLod: 0, cost, budget: 480000, prev: 1 })).toBe(0);
+  });
+
+  it('a dense wood seen close keeps every tree and draws it simpler past the budget; trees out of view cost nothing', async () => {
+    const field = new Group();
+    const trees = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 900);
+    for (let i = 0; i < 900; i++) trees.setMatrixAt(i, new Matrix4().makeTranslation(i % 30, 0, Math.floor(i / 30)));
+    trees.castShadow = true; field.add(trees);
+    const kit = parseKit((await parseGlbBytes(kitGlb([{ name: 'tree-s', size: 0.3 }, { name: 'tree-m', size: 0.4 }, { name: 'tree-l', size: 0.5 }]))).scene);
+    const m = kit.objects['tree-m'];
+    m.lods = [{ ...m.lods[0], geometry: new BoxGeometry(0.4, 0.4, 0.4, 4, 4, 4) }, m.lods[1], m.lods[2]]; // a full tree far heavier than its far levels
+    const v = new VegetationProps({ track: (x) => x, camera: { zoom: 3 }, setup: { terrain: 'forest' } }, { pine: [trees] }, { ref: { url: 'test://k' }, load: async () => kit });
+    await v.ready;
+    const cam = (x0, x1) => { const c = new OrthographicCamera(x0, x1, 40, -40, 0.1, 400); c.position.set(0, 100, 0); c.up.set(0, 0, -1); c.lookAt(0, 0, 0); c.updateMatrixWorld(); return c; };
+    const seen = cam(-10, 40); // the whole wood
+    const close = 100; // css px a tile: the size level asks for full detail
+    v.update(3, { cssPxPerTile: close, camera: seen, budget: Infinity });
+    expect(v.treeStats()).toMatchObject({ lod: 0, sizeLod: 0, drawn: 900 });
+    const full = v.treeStats().cost;
+    const chunks = v.treeStats().fullDetail;
+    expect(chunks).toBe(4); // a 30-tile wood in 16-tile chunks
+    const budget = full - 1;
+    v.update(3, { cssPxPerTile: close, camera: seen, budget });
+    expect(v.treeStats().fullDetail).toBe(3); // the chunk furthest from the middle of the view draws simpler
+    expect(v.treeStats().drawn).toBe(900); // not one tree fewer
+    expect(v.treeStats().cost).toBeLessThanOrEqual(budget);
+    v.update(3, { cssPxPerTile: close, camera: seen, budget: 1 });
+    expect(v.treeStats().fullDetail).toBe(0); // nothing fits: every chunk at the simplest level, every tree still there
+    expect(v.treeStats().lod).toBe(2);
+    expect(v.treeStats().drawn).toBe(900);
+    // looking away from the wood: nothing of it counts
+    v.update(3, { cssPxPerTile: close, camera: cam(500, 560), budget });
+    expect(v.treeStats().cost).toBe(0);
+    // further out the 48-tile chunks draw, thinned, one level for all
+    v.update(1, { cssPxPerTile: 20, camera: seen, budget: Infinity });
+    expect(v.treeStats()).toMatchObject({ sizeLod: 1, lod: 1, fullDetail: 0 });
+    expect(v.treeStats().drawn).toBeLessThan(900);
+    expect(v.trees.near.every((t) => !t.mesh.visible)).toBe(true);
+  });
+});
+
 describe('tree species picking (treeMix.js)', async () => {
   const { treeAt, parseTreeName, treeSpecies, nearestSize, keptCount: kept } = await import('./treeMix');
   it('reads species and sizes from the object names', () => {
