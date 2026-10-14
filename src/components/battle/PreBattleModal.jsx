@@ -25,6 +25,7 @@ import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { Button, CloseButton, IconButton, Switch } from '../ui/atlas';
+import GameIcon from '../ui/GameIcon';
 import { openSettings } from '../ui/uiEvents';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { preBattleModel } from './preBattleModel';
@@ -48,8 +49,9 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);
   const [prefer, setPrefer] = useState(false);
-  const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty } = m;
-  const chosen = knownEmpty || blockedAtSea ? 'auto' : mode;
+  const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand } = m;
+  const autoOnly = blockedAtSea || !!noMansLand;
+  const chosen = knownEmpty || autoOnly ? 'auto' : mode;
 
   const remember = (choice) => { if (prefer) dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: choice } }); };
   const auto = () => {
@@ -70,7 +72,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     return onClose();
   };
   const command = () => {
-    if (blockedReason || blockedAtSea) return addLog(blockedReason || 'Defeat the defending fleet first.', 'action');
+    if (blockedReason || autoOnly) return addLog(blockedReason || noMansLand || 'Defeat the defending fleet first.', 'action');
     if (!affordable) return addLog('Not enough resources', 'action');
     remember('command');
     dispatch(landing
@@ -80,7 +82,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   };
   const disabled = !!blockedReason || !affordable;
   const options = knownEmpty ? [] : [
-    { id: 'command', sub: 'Play the battle in real time', disabled: disabled || blockedAtSea, testId: 'battle-choice-command', title: blockedAtSea ? 'An enemy fleet guards the coast: fight it at sea first' : undefined },
+    { id: 'command', sub: noMansLand ? 'Not here: no man\'s land' : 'Play the battle in real time', disabled: disabled || autoOnly, testId: 'battle-choice-command', title: blockedAtSea ? 'An enemy fleet guards the coast: fight it at sea first' : noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : undefined },
     { id: 'auto', sub: 'Instant result, same rules', disabled, testId: 'battle-choice-auto' }
   ];
   const c = m.chance;
@@ -180,12 +182,18 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
         {blockedReason && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-brass rounded-[8px] border border-fa-brass/50 px-2.5 py-1.5" data-testid="battle-blocked-reason">{blockedReason}</div>}
         {!blockedReason && !affordable && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-danger-text">Not enough resources to launch this attack.</div>}
         {landing && blockedAtSea && <div className="mx-2.5 mb-1.5 text-[11.5px] text-fa-muted">An enemy fleet guards the coast: it has to be fought at sea first, so this landing can only be fought on Auto.</div>}
+        {noMansLand && (
+          <div role="status" className="mx-2.5 mb-1.5 flex items-center gap-2 text-[12px] text-fa-muted" data-testid="pre-battle-no-mans-land">
+            <GameIcon group="ui" id="no-mans-land" size={22} halo={false} fallback={<Mountain className="w-4 h-4 shrink-0" aria-hidden="true" />} />
+            <span><b className="text-fa-text">{noMansLand}.</b> This ground is inside neither people&apos;s borders, so there is no Command here.</span>
+          </div>
+        )}
 
         <div className="px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] border-t border-fa-line grid gap-2 grid-cols-1 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_auto] items-stretch">
           {options.length > 0 ? <ModeCards options={options} value={chosen} onChange={setMode} compact /> : <div />}
           <ModeExplain title={chosen === 'command' ? 'Command' : knownEmpty ? 'March in' : 'Auto'} compact>{chosen === 'command' ? m.command : m.auto}</ModeExplain>
           <div className="flex flex-col gap-1 justify-center">
-            <Button variant="primary" hero disabled={disabled || (chosen === 'command' && blockedAtSea)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 w-full">
+            <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 w-full">
               {knownEmpty ? 'March in' : chosen === 'command' ? 'Begin battle' : 'Fight on Auto'}
             </Button>
             {!arrival && <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">Call off the attack</button>}

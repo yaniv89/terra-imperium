@@ -7,7 +7,7 @@ import { TECH_TREE } from '../../data/techTree';
 import { getTiles } from '../../data/geo/tiles';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { TAX_RATES } from '../../data/taxRates';
-import { loyaltyOf, loyaltyTarget, cultureOf } from '../../engine/loyalty';
+import { loyaltyOf, loyaltyTarget, cultureOf, loyaltyForecast } from '../../engine/loyalty';
 import { amenitiesOf, AMENITY_UNREST_PER_MISSING, hasSeaCoast } from '../../engine/world/cities';
 import { cityLive, buildQuote, growthView, investInGrowth } from '../../engine/cityEconomy';
 import { buildingEffect } from '../../engine/cityEffects';
@@ -82,6 +82,12 @@ export const cityPoliticsModel = (state, cityId) => {
   const candidates = mine && group ? governorChoices(nation) : [];
   const turn = state.turnNumber || 0;
   const disaster = city.disaster && city.disaster.until >= turn ? { kind: city.disaster.kind, turnsLeft: city.disaster.until - turn } : null;
+  // Where loyalty is heading and what holds it (I127): the occupation grace, and the turns left before it could break away.
+  const f = city.owner ? loyaltyForecast(state, city) : null;
+  const forecast = f ? {
+    grace: f.graceLeft ? `Newly conquered: it cannot break away for ${f.graceLeft} more turn${f.graceLeft === 1 ? '' : 's'}.` : null,
+    danger: f.breaksIn != null ? `Loyalty is heading to 0: it could break away in about ${f.breaksIn} turn${f.breaksIn === 1 ? '' : 's'}.${mine && f.garrison.gain ? ` Each land unit standing in it adds ${f.garrison.gain} (up to ${f.garrison.cap}).` : ''}` : null
+  } : null;
   return {
     cityId, name: city.name, mine, ownerName: nation?.name || city.owner || 'Free city',
     loyalty: loyaltyOf(city), loyaltyTarget: t.total, loyaltyParts, culture,
@@ -91,7 +97,8 @@ export const cityPoliticsModel = (state, cityId) => {
     pending: pending ? { name: pending.name, ready: pending.ready } : null,
     ungovernedLoyalty: group && !governor && !pending && (mine || nation?.governors) ? UNGOVERNED_LOYALTY : 0,
     candidates,
-    disaster
+    disaster,
+    forecast
   };
 };
 

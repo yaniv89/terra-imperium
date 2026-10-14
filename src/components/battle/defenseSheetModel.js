@@ -12,6 +12,7 @@ import { cityMilitia } from '../../engine/battleInputs';
 import { legacyTerrainOf } from '../../engine/world/registry';
 import { getTiles } from '../../data/geo/tiles';
 import { plainPlace } from '../../engine/grammar';
+import { isNoMansLand, NO_MANS_LAND_TEXT } from '../../engine/hostility';
 import { armyView, battleSize, cityWallsView } from './warModel';
 
 const OURS = { defense: 'garrison', field: 'army', naval: 'fleet', raid: 'troops', sack: 'town', intercept: 'fleet', landing: 'garrison' };
@@ -28,6 +29,8 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   // A fort that stopped the player's army (R3 forts.js): here the player is the one attacking.
   const attacking = def.aggressorId === state.playerNationId;
   const foeId = attacking ? v.defenderUnits?.[0]?.ownerId : def.aggressorId;
+  // Decision 41: a field clash or a raid on land inside neither side's borders is fought on Auto only.
+  const noMansLand = (kind === 'field' || kind === 'raid') && isNoMansLand(state, def.tile, state.playerNationId, foeId) ? NO_MANS_LAND_TEXT : null;
   const enemy = state.nations?.[foeId]?.name || foeId || 'The enemy';
   const enemyShort = enemy.replace(/^The /, '').replace(/^(Kingdom|Empire|Republic|Tribes?|Chiefdom|City-state|Confederation) of /i, '');
   const place = city ? region?.name || def.regionId : plainPlace(v.name);
@@ -67,6 +70,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
         ? { ok: true, to: state.regions?.[fallbackId]?.name || fallbackId, text: `Give up ${place}: your ${OURS[kind]} falls back to ${state.regions?.[fallbackId]?.name || fallbackId} (-${WITHDRAW_MORALE_LOSS} morale, -${Math.round(WITHDRAW_STRENGTH_LOSS * 100)}% men) and ${enemyShort} takes the city without a fight.` }
         : { ok: false, text: 'Nowhere to fall back to.' })
       : null,
+    noMansLand,
     command: `Real time, ${size.cap} a side at most. ${city ? `${walls?.level ? 'Walls and towers fight for you. ' : ''}${walls?.houses ?? 0} houses and the town hall: battle housing ${walls?.housing ?? 0}; burned houses stop your training.` : 'The ground as it is on the map.'} About ${size.minutes} minutes; pause any time.`,
     auto: `Instant result by the same rules and the same armies. ${odds.text}`
   };

@@ -18,6 +18,7 @@ import { validateFleetAttack } from '../../engine/navalBattle';
 import { legacyTerrainOf } from '../../engine/world/registry';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { canSeeRegionDetails } from '../../engine/intel';
+import { isNoMansLand, NO_MANS_LAND_TEXT } from '../../engine/hostility';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { canAfford } from '../../utils/helpers';
 import { scoutsEstimate } from './battleReportView';
@@ -43,6 +44,8 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   const affordable = canAfford(state.resources, landing ? ACTION_COSTS.amphibiousAssault : fleet ? ACTION_COSTS.navalEngagement : ACTION_COSTS.launchInvasion);
   // An enemy fleet off the beach must be fought at sea first, which is always auto-resolved.
   const blockedAtSea = landing && Object.values(state.units || {}).some((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
+  // Decision 41: a clash outside both sides' borders is fought on Auto only (sea battles are not covered).
+  const noMansLand = field && !fleet && !!v?.ok && isNoMansLand(state, tile, state.playerNationId, v.defenderNationId) ? NO_MANS_LAND_TEXT : null;
   const source = oddsSource(state, { targetRegionId, field });
   const hasIntel = field || canSeeRegionDetails(state, targetRegionId);
   const odds = v.ok ? (landing ? estimateLandingOdds(state, navalUnitId, targetRegionId, samples)
@@ -96,7 +99,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
       return `${who} ${landing ? verb(who, 'lands on', 'land on') : verb(who, 'attacks', 'attack')} ${place} · ${them} ${verb(them, 'holds', 'hold')} it`;
     })(),
     turn: state.turnNumber,
-    v, blockedReason, affordable, blockedAtSea, knownEmpty,
+    v, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand,
     hasIntel,
     terrain, fortTier,
     yours: { ...yours, title: landing ? 'Landing party' : fleet ? 'Your fleet' : 'Your army' },
@@ -111,6 +114,6 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
     walls,
     chance,
     command: `You lead ${size.cap} a side at most in real time. ${size.waves ? `${size.front} regiments fight at once; the other ${size.waves} enter as a second wave.` : 'Everyone is on the field at once.'} About ${size.minutes} minutes. Pause any time.`,
-    auto: knownEmpty ? 'No garrison: your army marches in and takes it now.' : `Instant, by the same rules${chance?.exact ? ' and the odds above' : ", your scouts' guess above"}. Break the whole garrison and ${field || fleet ? 'the field is yours' : 'the city is yours'}.`
+    auto: knownEmpty ? 'No garrison: your army marches in and takes it now.' : `Instant, by the same rules${chance?.exact ? ' and the odds above' : ", your scouts' guess above"}. ${field || fleet ? 'Break them and the field is yours.' : 'Win and the city is yours: then you choose to keep it, raze it, make it a tributary or free it.'}`
   };
 };

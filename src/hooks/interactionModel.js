@@ -25,6 +25,7 @@ export const PRIORITY = {
   peace: 80,
   defense: 70,
   report: 65,
+  capture: 62, // the capture card (decision 40): after the report, before the next attack's card
   preBattle: 60,
   tribute: 50,
   join: 45,

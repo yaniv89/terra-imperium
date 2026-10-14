@@ -11,6 +11,7 @@
 //   event     an event waits for an answer               action 'event'
 //   peace     an AI's peace offer                        action 'peace'
 //   defense   a battle others started against you, one per queued battle (Command or Auto)  'defense'
+//   capture   a city you took waits for Conquer, Raze, Make tributary or Free (capture.js)  'capture'
 //   demand    a major's demand (aiAccords.js)            action 'diplomacy'
 //   tribute   an independent's tribute demand (raids.js) action 'tribute'
 //   join      an independent's offer to join             action 'join'
@@ -19,6 +20,7 @@
 import { GameStatus } from '../data/types';
 import { demandWaiting } from './aiAccords';
 import { researchNeedsChoice } from './researchStatus';
+import { pendingCapturesOf } from './capture';
 
 const nameOf = (state, id) => state.nations?.[id]?.name || 'A people';
 const alive = (state, id) => !!state.nations?.[id] && !state.nations[id].isEliminated;
@@ -50,6 +52,7 @@ export const turnBlockers = (state) => {
   if (state.activeEventId || state.activeProceduralEvent) out.push({ id: 'event', kind: 'event', label: 'Answer the event', target: { cityId: state.activeProceduralEvent?.cityId || null }, action: 'event' });
   if (state.pendingPeaceOffer) out.push({ id: 'peace', kind: 'peace', label: `Answer: ${nameOf(state, state.pendingPeaceOffer.from)} offers peace`, target: { nationId: state.pendingPeaceOffer.from || null }, action: 'peace' });
   (state.pendingDefenses || []).forEach((def, i) => out.push({ id: `defense:${def.id ?? i}`, kind: 'defense', label: defenseLabel(state, def), target: { defenseId: def.id ?? null, regionId: def.regionId || null, tile: def.tile ?? null }, action: 'defense' }));
+  pendingCapturesOf(state).forEach((c) => out.push({ id: `capture:${c.id}`, kind: 'capture', label: `Decide the fate of ${state.regions[c.cityId]?.name || 'the city'}`, target: { captureId: c.id, regionId: c.cityId }, action: 'capture' }));
   if (demandWaiting(state)) { const d = state.pendingDemand; out.push({ id: 'demand', kind: 'demand', label: `Answer: ${nameOf(state, d.from)} ${demandText(d)}`, target: { nationId: d.from }, action: 'diplomacy' }); }
   (state.tributeDemands || []).filter((d) => alive(state, d.indepId)).forEach((d) => out.push({ id: `tribute:${d.id}`, kind: 'tribute', label: `Answer: ${nameOf(state, d.indepId)} demands tribute`, target: { demandId: d.id, nationId: d.indepId }, action: 'tribute' }));
   (state.joinOffers || []).filter((o) => alive(state, o.indepId)).forEach((o) => out.push({ id: `join:${o.id}`, kind: 'join', label: `Answer: ${nameOf(state, o.indepId)} offers to join`, target: { offerId: o.id, nationId: o.indepId }, action: 'join' }));

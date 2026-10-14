@@ -37,6 +37,8 @@ const CityPolitics = ({ cityId }) => {
         <div className="text-fa-muted">{m.loyaltyParts.map((p) => `${p.label} ${signed(p.value)}`).join(' · ') || 'Nothing moves it.'}</div>
         <div className="text-fa-muted">People: {m.culture.map((c) => `${c.name} ${c.share}%`).join(', ')}</div>
         {m.ungovernedLoyalty ? <div className="text-amber-300">No governor: {m.ungovernedLoyalty} loyalty.</div> : null}
+        {m.forecast?.grace ? <div className="text-fa-muted" data-testid="loyalty-grace">{m.forecast.grace}</div> : null}
+        {m.forecast?.danger ? <div className="text-amber-300" data-testid="loyalty-forecast">{m.forecast.danger}</div> : null}
       </Card>
       <Card icon={Users} title={`Unrest ${m.unrest}`}>
         <ul className="text-fa-muted space-y-0.5">
