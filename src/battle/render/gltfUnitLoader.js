@@ -16,8 +16,12 @@
 //   6. normalise: feet on y = 0, centred, facing +Z, scaled to a target height
 // The result carries exactly soldierFactory's attributes (position, normal, color, aLimb, aPivot,
 // aTeam, aPart, aUv, aSurface) and is registered with registerSoldierGeometry().
+//   7. a model with clips also gets aBone (each vertex's driver: its dominant bone, or its node) and
+//      geometry.userData.clips, every clip sampled at 20 fps into a bone texture (clipBake.js), which
+//      the USE_CLIPS shader plays instead of the procedural rig (I219).
 import { Vector3, Vector4, Matrix4, Color, Box3, BufferGeometry, Float32BufferAttribute, AnimationMixer } from 'three';
 import { LIMB, PART } from './soldierFactory';
+import { bakeClips, sceneNodes, toBindPose, isHidden } from './clipBake';
 
 export const DEFAULT_TRIANGLE_BUDGET = 8000; // per soldier at full detail (plans/model-brief-for-claude.md section 2): the battle draws the nearest squads at this and the rest as LOD1 and imposters
 
@@ -247,8 +251,11 @@ export const extractUnitGeometry = (root, opts = {}) => {
   const {
     animations = [], restClip = /idle/i, height = 1, rotateY = 0, quadruped = false, segment = 'auto',
     triangleBudget = DEFAULT_TRIANGLE_BUDGET, teamFrom = null, skinFrom = null, staticLegs = false, scale = null,
-    mountTeam = quadruped ? MOUNT_TEAM_SHARE : 1, garmentTeam = GARMENT_TEAM_SHARE, polearm = 0
+    mountTeam = quadruped ? MOUNT_TEAM_SHARE : 1, garmentTeam = GARMENT_TEAM_SHARE, polearm = 0, clips: clipOpts = null
   } = opts;
+  // Clips only for a model whose options file lists them ("clips"): mounted units, generals and the
+  // ATGM team carry unfinished clips and stay on the procedural rig until the art lists them.
+  const wantClips = !!(animations.length && clipOpts && typeof clipOpts === 'object' && Object.keys(clipOpts).length);
   const tags = { ...DEFAULT_TAGS, ...(opts.tags || {}) };
   const limbOpts = { quadruped };
   applyPose(root, animations, restClip);
@@ -258,6 +265,9 @@ export const extractUnitGeometry = (root, opts = {}) => {
   const pole = []; // per vertex: polearm part (see polePart)
   const hinge = []; // per vertex: the Object3D (a limb chain's top joint) it pivots about, or null
   const source = []; // per vertex: the bone / node name it hangs from (for teamFrom)
+  const driver = []; // per vertex: the Object3D whose motion it follows in a clip (dominant bone, or its mesh)
+  const hiddenAt = new Map(); // driver → hidden at rest (scale 0: a worker's spare tools)
+  const hiddenVerts = []; // [vertex, mesh, source vertex] of vertices whose driver is hidden at rest
   const measured = []; // per vertex: counts toward the model's size (attachments like a long spear don't)
   const isAttachment = (o) => { for (let a = o; a && a !== root.parent; a = a.parent) if (a.userData?.attachment) return true; return false; };
   const stats = { meshes: 0, skinned: 0, triangles: 0, limbs: {}, namedLimbs: false, warnings: [] };
@@ -317,14 +327,22 @@ export const extractUnitGeometry = (root, opts = {}) => {
           col.push(c.r, c.g, c.b);
           let rig = nodeLimb;
           let boneName = mesh.name || mesh.parent?.name || '';
+          let drv = mesh;
           if (skinned) {
             skinIdx.fromBufferAttribute(geo.attributes.skinIndex, vi); skinW.fromBufferAttribute(geo.attributes.skinWeight, vi);
             let best = 0;
             for (let q = 1; q < 4; q++) if (skinW.getComponent(q) > skinW.getComponent(best)) best = q;
             rig = boneLimb[skinIdx.getComponent(best)];
             boneName = mesh.skeleton.bones[skinIdx.getComponent(best)]?.name || '';
+            drv = mesh.skeleton.bones[skinIdx.getComponent(best)] || mesh;
           }
           bone.push(boneName);
+          driver.push(drv);
+          if (wantClips) {
+            let h = hiddenAt.get(drv);
+            if (h === undefined) { h = isHidden(drv.matrixWorld); hiddenAt.set(drv, h); }
+            if (h) hiddenVerts.push(pos.length / 3 - 1, mesh, vi);
+          }
           pole.push(polePart);
           limb.push(rig ? rig.limb : LIMB.BODY);
           hinge.push(rig?.hinge || null);
@@ -344,6 +362,23 @@ export const extractUnitGeometry = (root, opts = {}) => {
     });
   });
   flatEmblems.forEach(([first, end]) => planarEmblemUv(pos, uvs, first, end));
+  // Vertices hidden at rest (section 7.1): their bind-pose positions, and the bind pose of their
+  // drivers as the clips' reference. The scene goes back to rest after.
+  const bindPos = new Map(); const bindWorld = new Map(); let bindLocals = null;
+  if (wantClips) {
+    const nodes = sceneNodes(root);
+    const restLocals = nodes.map((o) => [o.position.clone(), o.quaternion.clone(), o.scale.clone()]);
+    toBindPose(root);
+    bindLocals = nodes.map((o) => [o.position.clone(), o.quaternion.clone(), o.scale.clone()]);
+    for (let k = 0; k < hiddenVerts.length; k += 3) {
+      const [i, mesh, vi] = [hiddenVerts[k], hiddenVerts[k + 1], hiddenVerts[k + 2]];
+      mesh.getVertexPosition(vi, v).applyMatrix4(mesh.matrixWorld);
+      bindPos.set(i, [v.x, v.y, v.z]);
+    }
+    hiddenAt.forEach((h, d) => { if (h) bindWorld.set(d, d.matrixWorld.clone()); });
+    nodes.forEach((o, i) => { o.position.copy(restLocals[i][0]); o.quaternion.copy(restLocals[i][1]); o.scale.copy(restLocals[i][2]); });
+    root.updateMatrixWorld(true);
+  }
 
   const n = pos.length / 3;
   if (!n) throw new Error('extractUnitGeometry: the model has no triangles');
@@ -402,6 +437,9 @@ export const extractUnitGeometry = (root, opts = {}) => {
   // Polearms at their true length (opts.polearm, metres): the shaft stretches or shrinks along its
   // own axis from the butt, the head moves with the tip.
   if (polearm > 0) fitPolearm(pos, pole, polearm / ART_METRES_PER_UNIT);
+  // the clips' reference positions: rest (after the polearm fit), bind for the hidden-at-rest parts
+  const clipPos = wantClips ? pos.slice() : null;
+  if (clipPos) bindPos.forEach((p, i) => { clipPos[i * 3] = p[0]; clipPos[i * 3 + 1] = p[1]; clipPos[i * 3 + 2] = p[2]; });
   if (staticLegs) for (let i = 0; i < n; i++) if (limb[i] === LIMB.LEG_L || limb[i] === LIMB.LEG_R) { limb[i] = LIMB.BODY; hinge[i] = null; }
 
   // Normalise: yaw to face +Z, feet on the ground, centred, scaled to `height`.
@@ -417,6 +455,10 @@ export const extractUnitGeometry = (root, opts = {}) => {
   for (let i = 0; i < n; i++) {
     v.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).applyMatrix4(norm);
     pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z;
+    if (clipPos) {
+      v.set(clipPos[i * 3], clipPos[i * 3 + 1], clipPos[i * 3 + 2]).applyMatrix4(norm);
+      clipPos[i * 3] = v.x; clipPos[i * 3 + 1] = v.y; clipPos[i * 3 + 2] = v.z;
+    }
   }
 
   // Hinges: each limb chain's top joint, in normalised model space (the rig rotates about X, so
@@ -459,6 +501,29 @@ export const extractUnitGeometry = (root, opts = {}) => {
   geometry.setAttribute('aPart', new Float32BufferAttribute(partId, 1));
   geometry.setAttribute('aUv', new Float32BufferAttribute(uvs, 2));
   geometry.setAttribute('aSurface', new Float32BufferAttribute(surf, 2));
+  // Clips (I219): one driver index per vertex and the sampled bone texture. A model without clips,
+  // or opts.clips === false, keeps the procedural rig only.
+  if (wantClips) {
+    const index = new Map(); const drivers = [];
+    const aBone = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      let k = index.get(driver[i]);
+      if (k === undefined) { k = drivers.length; index.set(driver[i], k); drivers.push(driver[i]); }
+      aBone[i] = k + 1;
+    }
+    try {
+      const bake = bakeClips(root, animations, drivers, norm, clipOpts, { bind: bindLocals, world: drivers.map((d) => bindWorld.get(d) || d.matrixWorld) });
+      if (bake) {
+        geometry.setAttribute('aBone', new Float32BufferAttribute(aBone, 1));
+        geometry.setAttribute('aClipPos', new Float32BufferAttribute(clipPos, 3));
+        bake.hiddenVertices = bindPos.size;
+        geometry.userData.clips = bake;
+        stats.clips = bake.clips.map((c) => c.name); stats.bones = bake.bones;
+      }
+    } catch (e) {
+      stats.warnings.push(`clips not baked: ${e.message}`);
+    }
+  }
   geometry.computeVertexNormals(); // non-indexed → one flat normal per face
   geometry.computeBoundingBox(); geometry.computeBoundingSphere();
   stats.triangles = n / 3;

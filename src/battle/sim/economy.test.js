@@ -8,7 +8,7 @@ import { createWorld } from './world';
 import { step } from './step';
 import { worldHash } from './hash';
 import { toStrategicResult } from './result';
-import { housingCap, placementBlock, START_WORKERS, repairPerHp, ecoView } from './economy';
+import { housingCap, placementBlock, START_WORKERS, repairPerHp, ecoView, workCodes, workJobOf, workNodeOf, WORK_JOB } from './economy';
 import { BUILDINGS, MILLI, RES_INDEX, POP_LIMIT, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, START_STOCK, stockMult } from '../data/economy';
 import { buildTownManifest, manifestHousing } from '../../data/townLayout';
 import { Q, ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from './constants';
@@ -176,6 +176,32 @@ describe('battle economy', () => {
     w.eco.nodes[grove].amount = 0;
     const v = ecoView(w, 0);
     expect(v.nodes.find((n) => n.i === grove)).toMatchObject({ spent: true, amount: 0 });
+  });
+
+  it('I219: work codes say what each laborer does, from both sides; deposits are dated; the hash never sees either', () => {
+    const w = createWorld(ecoSetup({ controllers: ['ai', 'ai'], difficultyId: 'king' }));
+    const seen = { 0: new Set(), 1: new Set() }; const kinds = new Set();
+    let deposits = 0;
+    for (let t = 0; t < 20 * 60; t++) {
+      run(w, 1);
+      const codes = workCodes(w);
+      w.squads.forEach((q, i) => {
+        if (!q.worker) { expect(codes[i]).toBe(0); return; }
+        if (!codes[i]) return;
+        seen[q.side].add(workJobOf(codes[i]));
+        if (workNodeOf(codes[i])) kinds.add(workNodeOf(codes[i]));
+        if (workJobOf(codes[i]) === WORK_JOB.gathering) expect(q.job.phase).toBe(1);
+        if (q.lastDepositTick === w.tick - 1) deposits += 1; // step() moves the tick on after the economy
+      });
+    }
+    [0, 1].forEach((side) => [WORK_JOB.toNode, WORK_JOB.gathering, WORK_JOB.hauling].forEach((j) => expect(seen[side].has(j), `side ${side} job ${j}`).toBe(true)));
+    expect(deposits).toBeGreaterThan(0);
+    expect(kinds.size).toBeGreaterThan(1);
+    // drawing-only fields: rewriting them changes nothing the hash folds in
+    const h = worldHash(w);
+    w.squads.forEach((q) => { q.lastDepositTick = -1234; });
+    workCodes(w);
+    expect(worldHash(w)).toBe(h);
   });
 
   it('the result leaves workers and auxiliaries out of the campaign units and reports the economy', () => {
