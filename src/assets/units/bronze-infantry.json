@@ -7,5 +7,20 @@
     "team": "(^|\\s)Team(\\s|$)",
     "skin": "(^|\\s)Skin(\\s|$)",
     "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "clips": {
+    "fps": 20,
+    "Attack": {
+      "contact": 11
+    },
+    "Attack2": {
+      "contact": 13
+    },
+    "Death": {
+      "settle": 30
+    },
+    "DeathAlt": {
+      "settle": 30
+    }
   }
 }

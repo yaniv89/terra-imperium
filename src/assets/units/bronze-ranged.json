@@ -6,5 +6,20 @@
     "team": "(^|\\s)Team(\\s|$)",
     "skin": "(^|\\s)Skin(\\s|$)",
     "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "clips": {
+    "fps": 20,
+    "Draw-aim-release": {
+      "release": 22
+    },
+    "Melee-fallback": {
+      "contact": 11
+    },
+    "Death": {
+      "settle": 30
+    },
+    "DeathAlt": {
+      "settle": 30
+    }
   }
 }

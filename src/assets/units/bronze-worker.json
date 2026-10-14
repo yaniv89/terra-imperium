@@ -6,5 +6,29 @@
     "team": "(^|\\s)Team(\\s|$)",
     "skin": "(^|\\s)Skin(\\s|$)",
     "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "clips": {
+    "fps": 20,
+    "Chop": {
+      "contact": 19
+    },
+    "Mine": {
+      "contact": 17
+    },
+    "Harvest": {
+      "cut": 22
+    },
+    "Build": {
+      "contact": 17
+    },
+    "Repair": {
+      "contact": 14
+    },
+    "Deposit": {
+      "pour": 18
+    },
+    "Death": {
+      "settle": 30
+    }
   }
 }

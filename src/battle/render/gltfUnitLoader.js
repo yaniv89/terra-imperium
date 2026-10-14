@@ -16,8 +16,12 @@
 //   6. normalise: feet on y = 0, centred, facing +Z, scaled to a target height
 // The result carries exactly soldierFactory's attributes (position, normal, color, aLimb, aPivot,
 // aTeam, aPart, aUv, aSurface) and is registered with registerSoldierGeometry().
+//   7. a model with clips also gets aBone (each vertex's driver: its dominant bone, or its node) and
+//      geometry.userData.clips, every clip sampled at 20 fps into a bone texture (clipBake.js), which
+//      the USE_CLIPS shader plays instead of the procedural rig (I219).
 import { Vector3, Vector4, Matrix4, Color, Box3, BufferGeometry, Float32BufferAttribute, AnimationMixer } from 'three';
 import { LIMB, PART } from './soldierFactory';
+import { bakeClips } from './clipBake';
 
 export const DEFAULT_TRIANGLE_BUDGET = 8000; // per soldier at full detail (plans/model-brief-for-claude.md section 2): the battle draws the nearest squads at this and the rest as LOD1 and imposters
 
@@ -247,7 +251,7 @@ export const extractUnitGeometry = (root, opts = {}) => {
   const {
     animations = [], restClip = /idle/i, height = 1, rotateY = 0, quadruped = false, segment = 'auto',
     triangleBudget = DEFAULT_TRIANGLE_BUDGET, teamFrom = null, skinFrom = null, staticLegs = false, scale = null,
-    mountTeam = quadruped ? MOUNT_TEAM_SHARE : 1, garmentTeam = GARMENT_TEAM_SHARE, polearm = 0
+    mountTeam = quadruped ? MOUNT_TEAM_SHARE : 1, garmentTeam = GARMENT_TEAM_SHARE, polearm = 0, clips: clipOpts = {}
   } = opts;
   const tags = { ...DEFAULT_TAGS, ...(opts.tags || {}) };
   const limbOpts = { quadruped };
@@ -258,6 +262,7 @@ export const extractUnitGeometry = (root, opts = {}) => {
   const pole = []; // per vertex: polearm part (see polePart)
   const hinge = []; // per vertex: the Object3D (a limb chain's top joint) it pivots about, or null
   const source = []; // per vertex: the bone / node name it hangs from (for teamFrom)
+  const driver = []; // per vertex: the Object3D whose motion it follows in a clip (dominant bone, or its mesh)
   const measured = []; // per vertex: counts toward the model's size (attachments like a long spear don't)
   const isAttachment = (o) => { for (let a = o; a && a !== root.parent; a = a.parent) if (a.userData?.attachment) return true; return false; };
   const stats = { meshes: 0, skinned: 0, triangles: 0, limbs: {}, namedLimbs: false, warnings: [] };
@@ -317,14 +322,17 @@ export const extractUnitGeometry = (root, opts = {}) => {
           col.push(c.r, c.g, c.b);
           let rig = nodeLimb;
           let boneName = mesh.name || mesh.parent?.name || '';
+          let drv = mesh;
           if (skinned) {
             skinIdx.fromBufferAttribute(geo.attributes.skinIndex, vi); skinW.fromBufferAttribute(geo.attributes.skinWeight, vi);
             let best = 0;
             for (let q = 1; q < 4; q++) if (skinW.getComponent(q) > skinW.getComponent(best)) best = q;
             rig = boneLimb[skinIdx.getComponent(best)];
             boneName = mesh.skeleton.bones[skinIdx.getComponent(best)]?.name || '';
+            drv = mesh.skeleton.bones[skinIdx.getComponent(best)] || mesh;
           }
           bone.push(boneName);
+          driver.push(drv);
           pole.push(polePart);
           limb.push(rig ? rig.limb : LIMB.BODY);
           hinge.push(rig?.hinge || null);
@@ -459,6 +467,27 @@ export const extractUnitGeometry = (root, opts = {}) => {
   geometry.setAttribute('aPart', new Float32BufferAttribute(partId, 1));
   geometry.setAttribute('aUv', new Float32BufferAttribute(uvs, 2));
   geometry.setAttribute('aSurface', new Float32BufferAttribute(surf, 2));
+  // Clips (I219): one driver index per vertex and the sampled bone texture. A model without clips,
+  // or opts.clips === false, keeps the procedural rig only.
+  if (animations.length && clipOpts !== false) {
+    const index = new Map(); const drivers = [];
+    const aBone = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      let k = index.get(driver[i]);
+      if (k === undefined) { k = drivers.length; index.set(driver[i], k); drivers.push(driver[i]); }
+      aBone[i] = k + 1;
+    }
+    try {
+      const bake = bakeClips(root, animations, drivers, norm, clipOpts || {});
+      if (bake) {
+        geometry.setAttribute('aBone', new Float32BufferAttribute(aBone, 1));
+        geometry.userData.clips = bake;
+        stats.clips = bake.clips.map((c) => c.name); stats.bones = bake.bones;
+      }
+    } catch (e) {
+      stats.warnings.push(`clips not baked: ${e.message}`);
+    }
+  }
   geometry.computeVertexNormals(); // non-indexed → one flat normal per face
   geometry.computeBoundingBox(); geometry.computeBoundingSphere();
   stats.triangles = n / 3;

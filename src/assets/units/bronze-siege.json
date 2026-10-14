@@ -12,5 +12,11 @@
   "footprint": [
     1.92,
     2.27
-  ]
+  ],
+  "clips": {
+    "fps": 20,
+    "Destroyed": {
+      "loop": false
+    }
+  }
 }
