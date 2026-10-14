@@ -4,7 +4,7 @@
 // the battle's own reading (XP by the campaign's formula, the general's fate by the same roll),
 // with one (src/engine/battleReceipt.js) what the campaign commits.
 import { describe, expect, it } from 'vitest';
-import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel } from './battleHudModel';
+import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel, armyTally, armyTallyText } from './battleHudModel';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN } from '../../engine/battleOutcome';
 
@@ -80,5 +80,19 @@ describe('battle HUD model', () => {
     // Gold looted in the battle is spent in it: never shown as gold for the treasury.
     expect(m.loot).toEqual({ gold: 40, banked: false });
     expect(m.auto).toMatch(/62%/);
+  });
+});
+
+describe('I195: the army tally', () => {
+  it('says where every squad went: on the field, killed, routed, withdrew, arriving, kept out', () => {
+    const q = (o) => ({ side: 0, classId: 'infantry', alive: true, onField: true, fled: false, routed: false, enterTick: -1, ...o });
+    const hud = { squads: [
+      q({}), q({}), q({ alive: false }), q({ routed: true }), q({ fled: true }), q({ onField: false, enterTick: 500 }),
+      q({ onField: false }), q({ classId: 'worker' }), q({ side: 1 })
+    ] };
+    const t = armyTally(hud, 0);
+    expect(t).toEqual({ field: 2, routed: 1, killed: 1, withdrew: 1, arriving: 1, out: 1 });
+    expect(armyTallyText(t)).toBe('2 on the field, 1 killed, 1 routed, 1 withdrew, 1 arriving, 1 kept out (over 300)');
+    expect(armyTallyText(armyTally(hud, 1))).toBe('1 on the field');
   });
 });

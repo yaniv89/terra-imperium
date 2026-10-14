@@ -4,20 +4,36 @@
 // including the RNG state — so a structuredClone of it is a complete, replayable checkpoint.
 import { getUnitBattleStats } from '../data/battleStats';
 import { TILE_COST } from '../setup/mapgen';
-import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
+import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks } from './constants';
+import { POP_LIMIT } from '../data/economy';
 import { initFog } from './fog';
 import { HASH_CHAIN_SEED } from './hash';
 import { tileOf, walkableGoal } from './pathing';
 import { initEconomy } from './economy';
+import { reserveEntryMult } from './buildings';
 
 const tileCenter = (t) => t * Q + (Q >> 1);
 
-// Same split as battle.js's deploy(): strongest first, the first `combatWidth` fight, the rest wait.
+// Strongest first, the first `limit` take the field, the rest stay out of the battle.
 // Array.prototype.sort is stable, so equal strengths keep their input order on every engine.
-export const splitFrontAndReserve = (units, combatWidth) => {
+export const splitFrontAndReserve = (units, limit) => {
   const sorted = [...units].sort((a, b) => b.strength - a.strength);
-  return { front: sorted.slice(0, combatWidth), reserve: sorted.slice(combatWidth) };
+  return { front: sorted.slice(0, limit), reserve: sorted.slice(limit) };
 };
+
+// U10 (the user's ruling Q2): no Reserve. Every regiment of the army starts on the field; there is
+// no call and no later wave. Armies stay well under the 300-a-side population limit, so this cap is
+// only a guard: past it the weakest regiments stay out of the battle untouched (result.js reports
+// them as 'reserve': the campaign keeps them as they were). They never enter.
+export const MAX_START_SQUADS = POP_LIMIT;
+// Allied reinforcements from neighbouring provinces are not a reserve either: nobody calls them,
+// they march in from their own edge on their own, this long after the battle starts (sooner for a
+// defender whose Barracks stands: buildings.js reserveEntryMult).
+export const REINFORCEMENT_ARRIVAL_TICKS = secondsToTicks(25);
+// A line of squads a side deploys: 3 tiles apart across the field; a longer line forms more ranks,
+// RANK_DEPTH tiles apart, behind the first.
+const LINE_SPACING = 3;
+const RANK_DEPTH = 2;
 
 const isBackLine = (stats) => !stats.melee && !stats.flying;
 
@@ -74,7 +90,6 @@ export const createWorld = (setup) => {
     structures: setup.structures.map((s) => ({ ...s })),
     points: setup.points.map((p) => ({ ...p })),
     supply: [setup.startSupply?.[0] ?? 100, setup.startSupply?.[1] ?? 100],
-    lastStandUsed: [false, false],
     effects: [],
     impacts: [],
     powersUsed: [{}, {}],
@@ -153,27 +168,35 @@ export const deployBlocks = (w) => {
   return w;
 };
 
-// Place each side's front line in formation; reserves wait off-map.
+// Place each side's whole army in formation (U10: no reserve waits off-map).
 const spawnSides = (w) => {
   const { setup, map } = w;
   const midY = Math.floor(map.h / 2);
   const template = deployTemplate(setup.battleType);
-  const massed = setup.deployment === 'blocks';
   [SIDE_ATTACKER, SIDE_DEFENDER].forEach((side) => {
     const s = setup.sides[side];
-    const { front, reserve } = splitFrontAndReserve(s.units.filter((u) => u.strength > 0), massed ? Infinity : setup.combatWidth);
+    const { front, reserve } = splitFrontAndReserve(s.units.filter((u) => u.strength > 0), MAX_START_SQUADS);
     const squads = front.map((u) => makeSquad(w, u, side, s.ageId, 0));
     const melee = squads.filter((q) => !isBackLine(q.stats));
     const back = squads.filter((q) => isBackLine(q.stats));
     const edge = map.attackerEdge || 1; // a landing deploys on the beach, not in the sea
-    const [frontX, backX] = side === SIDE_ATTACKER ? template.attacker(w, edge) : template.defender(w);
+    const [frontX, baseBackX] = side === SIDE_ATTACKER ? template.attacker(w, edge) : template.defender(w);
     const zone = deployZone(w, side);
     const column = side === SIDE_ATTACKER && template.column;
+    // How many squads one rank holds across the zone; a bigger line forms ranks behind it, and the
+    // shooters stand behind the last rank of the melee line.
+    const perRank = Math.max(1, Math.floor((zone.y1 - zone.y0) / LINE_SPACING) + 1);
+    const behind = side === SIDE_ATTACKER ? -1 : 1;
+    const meleeRanks = Math.ceil(melee.length / perRank);
+    const backShift = Math.max(0, (meleeRanks - 1) * RANK_DEPTH - Math.abs(frontX - baseBackX) + RANK_DEPTH);
+    const backX = baseBackX + behind * backShift;
     [[melee, frontX], [back, backX]].forEach(([line, x]) => {
       line.forEach((q, i) => {
-        const offset = Math.round((i - (line.length - 1) / 2) * 3);
+        const rank = column ? 0 : Math.floor(i / perRank);
+        const inRank = column ? line.length : Math.min(perRank, line.length - rank * perRank);
+        const offset = Math.round(((column ? i : i % perRank) - (inRank - 1) / 2) * LINE_SPACING);
         // In column the squads file up along x behind the lead; in line they spread along y.
-        const tx = column ? x - Math.abs(offset) : x;
+        const tx = column ? x - Math.abs(offset) : x + behind * RANK_DEPTH * rank;
         const ty = column ? midY + (offset > 0 ? 1 : offset < 0 ? -1 : 0) : midY + offset;
         q.x = tileCenter(Math.max(zone.x0, Math.min(zone.x1, tx)));
         q.y = tileCenter(Math.max(zone.y0, Math.min(zone.y1, ty)));
@@ -186,12 +209,14 @@ const spawnSides = (w) => {
         q.anchorX = q.x; q.anchorY = q.y;
       });
     });
-    reserve.forEach((u) => { const q = makeSquad(w, u, side, s.ageId, 0); q.reserve = true; squads.push(q); });
-    // Reinforcements waiting in neighbouring provinces (RoN Conquer the World): callable with
-    // Battle Supply, they march in from the edge facing the province they come from.
+    // Past the cap (a guard only): left out of the battle, never called.
+    reserve.forEach((u) => { const q = makeSquad(w, u, side, s.ageId, 0); q.reserve = true; q.heldBack = true; squads.push(q); });
+    // Reinforcements from neighbouring provinces (RoN Conquer the World): they march in on their
+    // own (REINFORCEMENT_ARRIVAL_TICKS), from the edge facing the province they come from.
     (s.reinforcements || []).forEach((src) => src.units.filter((u) => u.strength > 0).forEach((u) => {
       const q = makeSquad(w, u, side, s.ageId, 0);
       q.reserve = true;
+      q.enterTick = Math.round(REINFORCEMENT_ARRIVAL_TICKS * reserveEntryMult(w, side));
       q.reinforcement = { regionId: src.regionId, name: src.name, edge: src.edge };
       squads.push(q);
     }));
@@ -242,6 +267,3 @@ const spawnGenerals = (w) => {
 // (For an amphibious landing the attacker's edge is the waterline: its troops fall back to the boats.)
 export const sideEdgeX = (w, side) => (side === SIDE_ATTACKER ? (w.map.attackerEdge || 1) * Q : (w.map.w - 1) * Q);
 
-// The army on the field (the reserve-call limit): workers and trained auxiliaries are housed, not counted here.
-export const fieldCount = (w, side) => w.squads.filter((q) => q.side === side && !q.eco && q.alive && !q.fled && (q.onField || q.enterTick >= 0)).length;
-export const fieldCap = (w) => w.setup.combatWidth + 2;

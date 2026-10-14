@@ -30,7 +30,8 @@ const DefenseSheet = () => {
     window.addEventListener(SHOW_DEFENSE, onShow);
     return () => window.removeEventListener(SHOW_DEFENSE, onShow);
   }, []);
-  const [mode, setMode] = useState(state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command');
+  // null until the player picks: then the card's own suggestion (defenseSheetModel `suggested`).
+  const [mode, setMode] = useState(null);
   const defenses = state.pendingDefenses || [];
   const def = defenses[0] || null;
   const blocked = !def || !!state.pendingBattle || battleQueueBlocked(state);
@@ -43,7 +44,8 @@ const DefenseSheet = () => {
   // own rule, battleQueue.js battleQueueBlocked).
   if (blocked || !m || !turn.shown) return null;
 
-  const chosen = m.noMansLand && mode === 'command' ? 'auto' : mode === 'withdraw' && !m.withdraw?.ok ? 'command' : mode;
+  const picked = mode || m.suggested || 'command';
+  const chosen = m.noMansLand && picked === 'command' ? 'auto' : picked === 'withdraw' && !m.withdraw?.ok ? 'command' : picked;
   const act = () => {
     if (chosen === 'auto') dispatch({ type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
     else if (chosen === 'withdraw') dispatch({ type: ActionTypes.WITHDRAW_FROM_DEFENSE, payload: { defenseId: def.id } });
@@ -90,6 +92,7 @@ const DefenseSheet = () => {
             <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft={m.attacking ? 'they hold' : 'they take it'} labelRight={m.attacking ? 'you win' : 'you hold'} /></div>
           </div>
         )}
+        {m.warning && <div role="status" className="text-[12px] leading-snug text-fa-danger-text rounded-[8px] border border-fa-danger/60 px-2 py-1" data-testid="defense-hopeless">{m.warning}</div>}
         <ModeCards options={options} value={chosen} onChange={setMode} compact />
         {m.noMansLand && (
           <div role="status" className="flex items-center gap-2 text-[12px] text-fa-muted" data-testid="defense-no-mans-land">

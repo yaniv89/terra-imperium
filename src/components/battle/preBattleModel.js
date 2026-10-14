@@ -22,7 +22,7 @@ import { isNoMansLand, NO_MANS_LAND_TEXT } from '../../engine/hostility';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { canAfford } from '../../utils/helpers';
 import { scoutsEstimate } from './battleReportView';
-import { armyView, battleSize, cityWallsView, oddsSource, scoutsRange } from './warModel';
+import { armyView, battleSize, cityWallsView, oddsSource, scoutsRange, siegeAdvice } from './warModel';
 
 const nationLabel = (state, id) => (id === 'rebels' ? 'the rebels' : state.nations?.[id]?.name || 'the enemy');
 const verb = (name, one, many) => (/[^s]s$/.test(name) ? many : one);
@@ -113,7 +113,9 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
     size,
     walls,
     chance,
-    command: `You lead ${size.cap} a side at most in real time. ${size.waves ? `${size.front} regiments fight at once; the other ${size.waves} enter as a second wave.` : 'Everyone is on the field at once.'} About ${size.minutes} minutes. Pause any time.`,
+    // I213: a walled city and no siege engine in the army.
+    siegeAdvice: walls ? siegeAdvice({ wallLevel: walls.level, units: mineUnits, ageId: myAge }) : null,
+    command: `You lead ${size.cap} a side at most in real time. ${size.text} About ${size.minutes} minutes. Pause any time.`,
     auto: knownEmpty ? 'No garrison: your army marches in and takes it now.' : `Instant, by the same rules${chance?.exact ? ' and the odds above' : ", your scouts' guess above"}. ${field || fleet ? 'Break them and the field is yours.' : 'Win and the city is yours: then you choose to keep it, raze it, make it a tributary or free it.'}`
   };
 };

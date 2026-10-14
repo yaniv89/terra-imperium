@@ -18,6 +18,8 @@ import { armyView, battleSize, cityWallsView } from './warModel';
 const OURS = { defense: 'garrison', field: 'army', naval: 'fleet', raid: 'troops', sack: 'town', intercept: 'fleet', landing: 'garrison' };
 const KIND_OBJECT = { defense: '', field: 'your army near ', naval: 'your fleet near ', raid: 'your land near ', sack: '', intercept: 'your fleet near ', landing: '' };
 // What the attackers do, by kind (R3): a raid plunders, a sack hits a weak town, a landing comes ashore.
+// I011: below this chance for Auto to hold, a defence is called hopeless on the card.
+export const HOPELESS_HOLD = 0.15;
 const KIND_VERB = { raid: ['raid', 'raids'], sack: ['sack', 'sacks'], landing: ['land at', 'lands at'], intercept: ['attack', 'attacks'] };
 
 export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}) => {
@@ -52,6 +54,16 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
     : { undefended: false, hold, text: `Auto ${attacking ? 'wins' : 'holds'} ${pct}% of the time${city && v.odds?.avgDamage != null ? `, about ${v.odds.avgDamage} control lost on average` : ''}.`, verdict: attacking ? (hold >= 0.65 ? 'Likely win' : hold >= 0.35 ? 'Close' : 'Likely loss') : (hold >= 0.65 ? 'Likely hold' : hold >= 0.35 ? 'Close' : 'Likely lost') };
   const plural = /[^s]s$/.test(enemyShort);
   const verb = KIND_VERB[kind] ? KIND_VERB[kind][plural ? 0 : 1] : plural ? 'attack' : 'attacks';
+  const withdrawTo = city && fallbackId ? state.regions?.[fallbackId]?.name || fallbackId : null;
+  // I011: a defence Auto almost never holds says so before the choice, with what losing costs, and
+  // pre-selects Withdraw when there is somewhere to go. A mode the player set in Settings (Command
+  // or Auto) is still the one chosen: an intentional Command stays playable.
+  const hopeless = !attacking && !odds.undefended && hold < HOPELESS_HOLD;
+  const warning = hopeless
+    ? `Badly outnumbered: Auto holds only ${pct}% of the time. ${city ? `If ${place} falls, it is taken and your defenders still in it are lost.` : 'If you lose, the regiments still on the field at the end are lost.'}${withdrawTo ? ` Withdraw keeps the men: they fall back to ${withdrawTo}.` : ''}`
+    : null;
+  const setting = state.battleSettings?.defaultMode;
+  const suggested = setting === 'auto' || setting === 'command' ? setting : hopeless && withdrawTo ? 'withdraw' : 'command';
   return {
     kind,
     city,
@@ -65,6 +77,9 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
     walls,
     size,
     odds,
+    hopeless,
+    warning,
+    suggested,
     withdraw: city
       ? (fallbackId
         ? { ok: true, to: state.regions?.[fallbackId]?.name || fallbackId, text: `Give up ${place}: your ${OURS[kind]} falls back to ${state.regions?.[fallbackId]?.name || fallbackId} (-${WITHDRAW_MORALE_LOSS} morale, -${Math.round(WITHDRAW_STRENGTH_LOSS * 100)}% men) and ${enemyShort} takes the city without a fight.` }

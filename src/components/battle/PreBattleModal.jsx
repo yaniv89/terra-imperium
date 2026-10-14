@@ -118,7 +118,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
               <GeneralsLine generals={m.yours.generals} />
               <span className="flex items-center gap-1.5 mt-1 text-[12px] text-fa-text" data-testid="pre-battle-size">
                 <Users className="w-3.5 h-3.5 text-fa-muted shrink-0" aria-hidden="true" />
-                <span className="flex-1 min-w-0"><b className="fa-num">{m.size.cap} a side</b>{m.size.waves ? ` · ${m.size.waves} more join in a second wave` : ` · all ${m.yours.regiments} at once`}</span>
+                <span className="flex-1 min-w-0"><b className="fa-num">{m.size.cap} a side</b>{m.size.heldBack ? ` · ${m.size.heldBack} stay out` : ` · all ${m.yours.regiments} at once`}</span>
                 <button type="button" onClick={openSettings} className="underline text-fa-muted hover:text-fa-text shrink-0 min-h-[32px]">Settings</button>
               </span>
             </>} />
@@ -127,7 +127,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
             {c && c.exact && (
               <div className="fa-card px-2.5 py-1.5" data-testid="battle-odds">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="fa-label truncate">{c.source}</span>
+                  <span className="fa-label truncate" title="Auto's odds for this battle. On Command the result is up to you.">Auto odds: {c.source}</span>
                   <span className={`text-[13px] font-bold ${c.win >= 0.5 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{c.verdict}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-1 mt-0.5 text-center">
@@ -149,7 +149,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
             {c && !c.exact && (
               <div className="fa-card px-2.5 py-1.5" data-testid="battle-odds-scouts">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="fa-label">Scouts&apos; guess</span>
+                  <span className="fa-label" title="Auto's odds as your scouts guess them. On Command the result is up to you.">Auto, scouts&apos; guess</span>
                   <span className={`text-[13px] font-bold ${c.bandId === 'likely' ? 'text-fa-good' : c.bandId === 'unlikely' ? 'text-fa-danger-text' : 'text-fa-brass'}`}>{c.verdict}</span>
                 </div>
                 <div className="mt-1"><OddsBar band={c.band} bandColor={c.bandId === 'likely' ? 'var(--fa-good)' : c.bandId === 'unlikely' ? 'var(--fa-enemy)' : 'var(--fa-brass)'} compact /></div>
@@ -180,6 +180,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
         </div>
 
         {blockedReason && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-brass rounded-[8px] border border-fa-brass/50 px-2.5 py-1.5" data-testid="battle-blocked-reason">{blockedReason}</div>}
+        {!blockedReason && m.siegeAdvice && <div role="status" className="mx-2.5 mb-1.5 text-[12px] leading-snug text-fa-brass" data-testid="pre-battle-siege-advice">{m.siegeAdvice}</div>}
         {!blockedReason && !affordable && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-danger-text">Not enough resources to launch this attack.</div>}
         {landing && blockedAtSea && <div className="mx-2.5 mb-1.5 text-[11.5px] text-fa-muted">An enemy fleet guards the coast: it has to be fought at sea first, so this landing can only be fought on Auto.</div>}
         {noMansLand && (

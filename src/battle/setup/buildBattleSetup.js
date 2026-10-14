@@ -36,9 +36,12 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 // city from its manifest, cityBattle.js; v5: the battle economy, economySetup.js; v6: phase R3, the
 // raid and sack types, the pursuit after a field battle, forts and generals on the field; v7:
 // playtest audit CB01, one order schema for the live battle and its replay (sim/orderSchema.js),
-// the deployment set down before the first tick in every replay, the commanded setup verified).
+// the deployment set down before the first tick in every replay, the commanded setup verified;
+// v8: playtest audit CB18, no Reserve: the whole army starts on the field and allied reinforcements
+// march in on their own (sim/world.js); in a battle with bases a side loses only when its base
+// buildings are gone, the keep alone does not win, and at the clock the defender holds (sim/base.js)).
 // A log or a checkpoint of another version is never replayed as if it were this one.
-export const SETUP_VERSION = 7;
+export const SETUP_VERSION = 8;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 

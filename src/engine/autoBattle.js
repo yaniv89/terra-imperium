@@ -96,6 +96,9 @@ export const autoCityDamage = (manifest, battle, defenderLossShare, rng) => {
 const ASSAULT_KINDS = new Set(['invasion', 'landing', 'defense', 'assault']);
 // Raids and sacks (raidBattle.js): the one light battle, no battle economy, no gate held.
 export const RAID_KINDS = new Set(['raid', 'sack']);
+// The kinds fought with a battle economy and so with bases (buildBattleSetup.js economy: true): a
+// side loses only when its base is gone, and nothing ends in a draw (src/battle/sim/base.js).
+export const BASE_KINDS = new Set([...ASSAULT_KINDS, 'field']);
 
 /** The auxiliaries a side brings into an auto-resolved battle: reserve units, never campaign units. */
 export const auxiliariesFor = (kind, side, ins, tune = AUTO_TUNE) => {
@@ -192,6 +195,9 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
     defenderUnits: strip(battle.defenderUnits),
     report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult, ageRelief }
   };
+  // A battle with bases has no draw (the user's rulings Q3 and Q5; src/battle/sim/base.js): with
+  // both lines gone neither base has fallen, so the defender holds, as at the real-time clock.
+  if (battle.outcome === 'stalemate' && BASE_KINDS.has(kind)) battle = { ...battle, outcome: 'defender', report: { ...battle.report, outcome: 'defender', heldNoDraw: true } };
   // Raiders beaten in the fight may still have burned the loot and got away (the raid's objective).
   if (kind === 'raid' && battle.outcome !== 'attacker') {
     const alive = battle.attackerUnits.filter((u) => u.strength > 0);

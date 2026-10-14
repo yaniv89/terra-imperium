@@ -619,7 +619,6 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     updateSelection(picked.map((q) => q.idx));
     if (picked.length) rendererRef.current?.centerOn(picked.reduce((s, q) => s + q.x, 0) / picked.length / Q, picked.reduce((s, q) => s + q.y, 0) / picked.length / Q);
   };
-  const callReserve = (idx) => send([{ type: 'callReserve', squads: [idx] }]);
   const commandSelected = (type) => { const sel = [...selectedRef.current]; if (sel.length) send([{ type, squads: sel }]); setRadial(null); };
   const retreatAll = () => send([{ type: 'retreatAll' }]);
   const focusKeep = () => { const k = setup.structures[0]; rendererRef.current?.centerOn(k.x / Q, k.y / Q); };
@@ -725,7 +724,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         paused={paused} started={started} speed={speed} armed={armed} formation={formation}
         selectedSquads={selectedSquads}
         onTogglePause={togglePause} onSpeed={changeSpeed} onArm={arm} onFormation={cycleFormation}
-        onSelectClass={selectClass} onCallReserve={callReserve} onCommand={commandSelected}
+        onSelectClass={selectClass} onCommand={commandSelected}
         onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onAbandon}
         onPower={firePower} onOpenAbilities={() => { const w0 = wrapRef.current; setRadial({ x: (w0?.clientWidth || 400) / 2, y: (w0?.clientHeight || 800) - 150 }); }}
         hasAbilities={selectedAbilities.length > 0}

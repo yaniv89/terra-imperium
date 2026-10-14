@@ -36,6 +36,19 @@ describe('the info card (B09)', () => {
     expect(inspectInfo(hud, setup, { kind: 'structure', index: 2 }, 0)).toMatchObject({ title: 'Temple' });
   });
 
+  it('I208 and the base rule: the camp says what it is whatever the age calls it; base buildings say so', () => {
+    const based = { ...hud, base: [1, 3] };
+    const camp = inspectInfo(based, setup, { kind: 'eco', index: 0 }, 0);
+    expect(camp.lines.some((l) => /^Your camp, the headquarters \(each age names it its own way\)/.test(l))).toBe(true);
+    expect(camp.lines).toContain('Base building: you lose when your last one falls');
+    expect(inspectInfo(based, setup, { kind: 'structure', index: 0 }, 0).lines).toContain('Base building: destroy every one to win');
+    expect(inspectInfo(based, setup, { kind: 'structure', index: 2 }, 0).lines).toContain('Base building: destroy every one to win');
+    expect(inspectInfo(based, setup, { kind: 'structure', index: 1 }, 0).lines).toContain('Not part of the base');
+    // An unfinished site is not base yet; without bases the keep is the objective as before.
+    expect(inspectInfo(based, setup, { kind: 'eco', index: 2 }, 0).lines.some((l) => /base/i.test(l))).toBe(false);
+    expect(inspectInfo(hud, setup, { kind: 'structure', index: 0 }, 0).lines).toContain('The objective: take it');
+  });
+
   it('a resource node shows what is left', () => {
     expect(inspectInfo(hud, setup, { kind: 'node', index: 4 }, 0)).toMatchObject({ title: 'Stone', owner: 'neutral', hp: 120, maxHp: 500 });
   });

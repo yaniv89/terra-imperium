@@ -8,7 +8,9 @@ import { addCity } from '../../engine/testWorld';
 import { createDefenseRecord } from '../../engine/defense';
 import { getNeighborIds } from '../../data/regions';
 import { defenseSheetModel } from './defenseSheetModel';
-import { armyView, battleSize, oddsSource, scoutsRange, battleMinutes } from './warModel';
+import { queuedBattleView } from '../../engine/battleQueue';
+import { armyView, battleSize, oddsSource, scoutsRange, battleMinutes, wallsLabel, siegeAdvice } from './warModel';
+import { getCategoryTierName } from '../../data/buildings';
 
 const WORLD = (() => {
   const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
@@ -44,6 +46,23 @@ describe('W14 defenseSheetModel', () => {
     expect(m.auto).toMatch(/Auto holds \d+% of the time/);
   });
 
+  it('I011: a hopeless defence warns with the odds and what losing costs, and suggests Withdraw unless Settings chose a mode', () => {
+    const { st, def } = withAttack();
+    const real = queuedBattleView(st, def, 2);
+    const view = { ...real, odds: { ...(real.odds || {}), undefended: false, holdChance: 0.05 } };
+    const m = defenseSheetModel(st, def, { view });
+    expect(m.hopeless).toBe(true);
+    expect(m.warning).toMatch(/^Badly outnumbered: Auto holds only 5% of the time\./);
+    expect(m.warning).not.toMatch(/—/);
+    expect(m.suggested).toBe(m.withdraw?.ok ? 'withdraw' : 'command');
+    const chosen = defenseSheetModel({ ...st, battleSettings: { defaultMode: 'command' } }, def, { view });
+    expect(chosen.suggested).toBe('command'); // an intentional Command stays the choice
+    const even = defenseSheetModel(st, def, { view: { ...view, odds: { ...view.odds, holdChance: 0.5 } } });
+    expect(even.hopeless).toBe(false);
+    expect(even.warning).toBeNull();
+    expect(even.suggested).toBe('command');
+  });
+
   it('offers Withdraw only with somewhere to fall back to', () => {
     const { st, def } = withAttack();
     const m = defenseSheetModel(st, def, { samples: 2 });
@@ -63,9 +82,27 @@ describe('warModel', () => {
     expect(v.generals).toEqual([{ id: 'g1', name: 'Sargon', skill: 3 }]);
   });
 
-  it('300 a side: the front by the ground, the rest as waves', () => {
-    expect(battleSize({ regiments: 3, terrain: 'plains' })).toMatchObject({ cap: 300, front: 3, waves: 0 });
-    expect(battleSize({ regiments: 9, terrain: 'mountains' })).toMatchObject({ front: 3, waves: 6 });
+  it('I009: one name for a city\'s walls on every screen; an open town has none', () => {
+    expect(wallsLabel({ buildings: { categories: {} } })).toBe('No walls');
+    expect(wallsLabel({ buildings: { categories: { defense: 0 } } })).toBe(getCategoryTierName('defense', 0));
+    expect(wallsLabel(null)).toBe('No walls');
+  });
+
+  it('I213: walls and no siege engine in the army: bring them or build a workshop in the battle', () => {
+    const inf = [{ classId: 'infantry', strength: 1000 }];
+    expect(siegeAdvice({ wallLevel: 0, units: inf, ageId: 'classical' })).toBeNull();
+    expect(siegeAdvice({ wallLevel: 2, units: [...inf, { classId: 'siege', strength: 500 }], ageId: 'classical' })).toBeNull();
+    const advice = siegeAdvice({ wallLevel: 2, units: inf, ageId: 'classical' });
+    expect(advice).toMatch(/^Walls: without siege engines/);
+    expect(advice).toMatch(/in the battle to train them\.$/);
+    expect(advice).not.toMatch(/\u2014/);
+  });
+
+  it('300 a side: the whole army on the field at once, whatever the ground (U10: no waves)', () => {
+    expect(battleSize({ regiments: 3, terrain: 'plains' })).toMatchObject({ cap: 300, front: 3, heldBack: 0 });
+    expect(battleSize({ regiments: 9, terrain: 'mountains' })).toMatchObject({ front: 9, heldBack: 0, text: 'All 9 regiments on the field at once.' });
+    expect(battleSize({ regiments: 305 })).toMatchObject({ front: 300, heldBack: 5 });
+    expect(battleSize({ regiments: 9 }).text).not.toMatch(/wave/);
     expect(battleMinutes('assault')).toBe(30);
     expect(battleMinutes('field')).toBe(15);
   });

@@ -7,7 +7,7 @@ import { thinkAI } from './tacticalAI';
 import { buildSpatialHash } from './pathing';
 import { advanceHashChain } from './hash';
 import { acquireTargets, enterReserves, moveSquads, separateSquads } from './movement';
-import { isFighting, resolveAttacks } from './combat';
+import { resolveAttacks } from './combat';
 import { resolveStructureFire, updateAssimilation, updateCapturePoints, updateSupply, updateGarrisons, ASSIMILATION_TICKS } from './objectives';
 import { updateMorale, canRout } from './morale';
 import { updateFog } from './fog';
@@ -15,6 +15,7 @@ import { updateEffects, processImpacts } from './effects';
 import { applySupplyAndAttrition } from './support';
 import { updateBuildings } from './buildings';
 import { updateEconomy, fireEcoTowers, countEcoLosses } from './economy';
+import { baseGone, hasBase } from './base';
 import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER, Q, secondsToTicks } from './constants';
 import { LOSS_DECISIVE, RIVER_HOLD_SHARE, AMBUSH_SECONDS, AMBUSH_LOSS, LANDING_HOLD_SECONDS, SALLY_ENGINES } from '../setup/battleType';
 
@@ -25,24 +26,25 @@ export const PURSUIT_TICKS = secondsToTicks(PURSUIT_SECONDS);
 const PURSUIT_TYPES = new Set(['field', 'river', 'ambush', 'sally']); // the campaign's 'field' kind (a sally is one)
 const LANDING_HOLD_TICKS = secondsToTicks(LANDING_HOLD_SECONDS);
 
-// A side with no squads left on the field sends its whole remaining reserve in, once (last stand).
-const lastStand = (w, side) => {
-  if (w.lastStandUsed[side]) return;
-  const fighting = w.squads.some((q) => q.side === side && !q.worker && !q.isGeneral && isFighting(q) && !q.routed && !q.retreating);
-  const entering = w.squads.some((q) => q.side === side && q.alive && q.enterTick >= 0);
-  if (fighting || entering) return;
-  const waiting = w.squads.filter((q) => q.side === side && q.alive && q.reserve && !q.fled);
-  if (!waiting.length || w.retreatOrdered?.[side]) return;
-  w.lastStandUsed[side] = true;
-  waiting.forEach((q) => { q.enterTick = w.tick + 1; });
-  w.events.push({ t: w.tick, type: 'lastStand', side });
-};
-
 // Workers (the battle economy) never keep a side in the fight: an army of laborers is a broken one;
-// nor do generals (world.js): a general with no army left has lost.
+// nor do generals (world.js): a general with no army left has lost. There is no reserve to send in
+// (U10: the whole army starts on the field, world.js); allied reinforcements still marching in count.
 const isBroken = (w, side) => !w.squads.some((q) => q.side === side && !q.worker && !q.isGeneral && q.alive && !q.fled && (
-  (q.onField && !q.routed && !q.retreating) || q.enterTick >= 0 || (q.reserve && !w.lastStandUsed[side] && !w.retreatOrdered?.[side])
+  (q.onField && !q.routed && !q.retreating) || q.enterTick >= 0
 ));
+
+// A battle with bases (base.js; the user's rulings Q3, Q4 and Q5): a side loses only when its base
+// buildings are gone. Dead soldiers do not end it while buildings stand (the side trains on, or its
+// commander orders the retreat); taking the keep alone does not win; at the clock the defender
+// holds. Both bases gone in the same tick: the defender holds too (no draw). A commander's own
+// Retreat still ends the battle once the army has turned for the exits.
+const baseVerdict = (w) => {
+  if (baseGone(w, SIDE_ATTACKER)) return { outcome: 'defender', reason: 'campDestroyed', decisive: true, tick: w.tick };
+  if (baseGone(w, SIDE_DEFENDER)) return { outcome: 'attacker', reason: 'baseDestroyed', decisive: true, tick: w.tick };
+  if (w.retreatOrdered?.[SIDE_ATTACKER] && isBroken(w, SIDE_ATTACKER)) return { outcome: 'defender', reason: 'attackerRetreated', tick: w.tick };
+  if (w.retreatOrdered?.[SIDE_DEFENDER] && isBroken(w, SIDE_DEFENDER)) return { outcome: 'attacker', reason: 'defenderRetreated', tick: w.tick };
+  return null;
+};
 
 // The strength a side still fields (alive, not fled, not routed; reserves count) against what it
 // brought: the battle types' loss rules read this (battleType.js).
@@ -75,21 +77,9 @@ const raidEnd = (w) => {
   else if (w.tick >= battleLimitTicks(w.setup)) w.ended = w.looted ? { outcome: 'attacker', reason: 'looted', tick: w.tick } : { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
   if (w.ended) w.events.push({ t: w.tick, type: 'ended', outcome: w.ended.outcome, reason: w.ended.reason });
 };
-const campBurned = (w) => { const razed = w.razed || []; return razed.filter((c) => c === 'engine').length >= SALLY_ENGINES || razed.includes('camp'); };
-
-const checkEnd = (w) => {
-  const type = w.setup.battleType || 'field';
-  if (type === 'raid' || type === 'sack') { raidEnd(w); return; }
-  if (w.assimilation >= ASSIMILATION_TICKS) { w.ended = { outcome: 'attacker', reason: 'keepTaken', decisive: true, tick: w.tick }; return; }
-  if (type === 'sally' && campBurned(w)) { w.ended = { outcome: 'attacker', reason: 'campBurned', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'attacker', reason: 'campBurned' }); return; }
-  if (type === 'landing') {
-    const beach = w.points.find((p) => p.kind === 'beachhead');
-    w.beachhead = beach && beach.owner === SIDE_ATTACKER ? (w.beachhead || 0) + 1 : 0;
-    if (w.beachhead >= LANDING_HOLD_TICKS) { w.ended = { outcome: 'attacker', reason: 'beachheadHeld', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'attacker', reason: 'beachheadHeld' }); return; }
-  }
-  if (type === 'ambush' && w.tick <= AMBUSH_TICKS && lossShare(w, SIDE_ATTACKER) >= AMBUSH_LOSS) { w.ended = { outcome: 'defender', reason: 'ambushed', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'defender', reason: 'ambushed' }); return; }
-  // Field rules (field, river, ambush, landing): a side down LOSS_DECISIVE of its strength breaks
-  // and runs (the pursuit then costs it as auto-resolve would), a decisive end for the other side.
+// Field rules (field, river, ambush, landing): a side down LOSS_DECISIVE of its squads breaks and
+// runs (the pursuit then costs it as auto-resolve would), a decisive end for the other side.
+const spendSides = (w, type) => {
   const lossRule = type !== 'assault' && type !== 'sally';
   w.spent = w.spent || [false, false];
   [SIDE_ATTACKER, SIDE_DEFENDER].forEach((side) => {
@@ -100,12 +90,35 @@ const checkEnd = (w) => {
     if (canRout(w, side)) w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled && !q.routed && !(q.inside >= 0)) { q.routed = true; q.morale = 0; w.events.push({ t: w.tick, type: 'routed', id: q.idx }); } });
     w.events.push({ t: w.tick, type: 'sideSpent', side });
   });
+};
+const campBurned = (w) => { const razed = w.razed || []; return razed.filter((c) => c === 'engine').length >= SALLY_ENGINES || razed.includes('camp'); };
+
+const checkEnd = (w) => {
+  const type = w.setup.battleType || 'field';
+  if (type === 'raid' || type === 'sack') { raidEnd(w); return; }
+  // With bases none of the type objectives below ends the battle (Q3): only the bases, a retreat
+  // or the clock. An AI side that lost most of its line still breaks and runs (the rule below).
+  if (hasBase(w)) { spendSides(w, type); finishEnd(w, type, baseVerdict(w), true); return; }
+  if (w.assimilation >= ASSIMILATION_TICKS) { w.ended = { outcome: 'attacker', reason: 'keepTaken', decisive: true, tick: w.tick }; return; }
+  if (type === 'sally' && campBurned(w)) { w.ended = { outcome: 'attacker', reason: 'campBurned', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'attacker', reason: 'campBurned' }); return; }
+  if (type === 'landing') {
+    const beach = w.points.find((p) => p.kind === 'beachhead');
+    w.beachhead = beach && beach.owner === SIDE_ATTACKER ? (w.beachhead || 0) + 1 : 0;
+    if (w.beachhead >= LANDING_HOLD_TICKS) { w.ended = { outcome: 'attacker', reason: 'beachheadHeld', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'attacker', reason: 'beachheadHeld' }); return; }
+  }
+  if (type === 'ambush' && w.tick <= AMBUSH_TICKS && lossShare(w, SIDE_ATTACKER) >= AMBUSH_LOSS) { w.ended = { outcome: 'defender', reason: 'ambushed', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'defender', reason: 'ambushed' }); return; }
+  spendSides(w, type);
   const attackerBroken = isBroken(w, SIDE_ATTACKER);
   const defenderBroken = isBroken(w, SIDE_DEFENDER);
   let verdict = null;
   if (attackerBroken && defenderBroken) verdict = { outcome: 'stalemate', reason: 'mutualDestruction', tick: w.tick };
   else if (defenderBroken) verdict = { outcome: 'attacker', reason: w.spent[SIDE_DEFENDER] ? 'lossesDecisive' : 'defendersBroken', decisive: !!w.spent[SIDE_DEFENDER], tick: w.tick };
   else if (attackerBroken) verdict = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : w.spent[SIDE_ATTACKER] ? 'lossesDecisive' : 'attackersBroken', tick: w.tick };
+  finishEnd(w, type, verdict, false);
+};
+
+// The end of checkEnd, shared by both rule sets: the pursuit, then the clock.
+const finishEnd = (w, type, verdict, based) => {
   // Decisive field battles (master plan 6.9, decision 33): a broken side runs for its edge and the
   // winner pursues; the battle ends once the last of the losers is off the field (or dead), or after
   // PURSUIT_TICKS. The ones still on the field then are lost; the ones that got out live.
@@ -121,8 +134,9 @@ const checkEnd = (w) => {
   } else if (verdict) w.ended = verdict;
   else if (w.tick >= battleLimitTicks(w.setup)) {
     // At the clock: a river crossing is won by the far bank; a field battle by the strength left.
-    if (type === 'river' && farBankStrength(w) >= RIVER_HOLD_SHARE * startStrength(w, SIDE_ATTACKER)) w.ended = { outcome: 'attacker', reason: 'farBankHeld', decisive: true, tick: w.tick };
-    else if ((type === 'field' || type === 'naval') && sideStrength(w, SIDE_ATTACKER) > sideStrength(w, SIDE_DEFENDER) * 1.5) w.ended = { outcome: 'attacker', reason: 'fieldHeld', decisive: false, tick: w.tick };
+    // With bases the defender holds, whatever stands, and the attacker withdraws in order (Q5).
+    if (!based && type === 'river' && farBankStrength(w) >= RIVER_HOLD_SHARE * startStrength(w, SIDE_ATTACKER)) w.ended = { outcome: 'attacker', reason: 'farBankHeld', decisive: true, tick: w.tick };
+    else if (!based && (type === 'field' || type === 'naval') && sideStrength(w, SIDE_ATTACKER) > sideStrength(w, SIDE_DEFENDER) * 1.5) w.ended = { outcome: 'attacker', reason: 'fieldHeld', decisive: false, tick: w.tick };
     else w.ended = { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
   }
   if (!verdict && w.pursuit) w.pursuit = null; // the beaten side turned and fights on
@@ -154,8 +168,6 @@ export const step = (w, orders = []) => {
   updateCapturePoints(w);
   updateAssimilation(w);
   countEcoLosses(w);
-  lastStand(w, SIDE_ATTACKER);
-  lastStand(w, SIDE_DEFENDER);
   checkEnd(w);
   w.tick += 1;
   advanceHashChain(w); // every HASH_CHAIN_EVERY ticks (hash.js)
