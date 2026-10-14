@@ -440,6 +440,7 @@ const workerTick = (w, q, assigned, builders) => {
       if (!inReach(q, d.x, d.y, d.radius)) { stepToward(w, q, d.x, d.y, ECO_FLOW); return; }
       eco.stock[q.side][ri] += q.carry; eco.stats[q.side].gathered[ri] += q.carry;
       q.carry = 0;
+      q.lastDepositTick = w.tick; // drawing only (the Deposit clip): nothing in the sim reads it
       job.phase = 0;
       if (empty) {
         // The node ran out: the nearest one of the same kind of resource, else whatever is needed.
@@ -673,6 +674,41 @@ export const ecoView = (w, playerSide) => {
       return { idx: q.idx, res: q.carry > 0 ? RESOURCES[q.carryRes] : n.res, kind: n.kind, load: Math.ceil(q.carry / MILLI) };
     })
   };
+};
+
+// ---- what each worker is doing, for the drawing (I219) --------------------------------------------
+// A worker's `work` code in the render view: WORK_JOB + 8 x the node kind's index in WORK_NODE.
+// Read-only: it mirrors workerTick's own decisions (the slot queue is the same lowest-index-first
+// count over the same workers), so it never changes the world or its hash.
+export const WORK_JOB = Object.freeze({ none: 0, toNode: 1, gathering: 2, waiting: 3, hauling: 4, build: 5, repair: 6 });
+export const WORK_NODE = Object.freeze(['', 'tree', 'stone', 'gold', 'herd', 'cattle', 'fish', 'farm']);
+export const workJobOf = (code) => code & 7;
+export const workNodeOf = (code) => WORK_NODE[code >> 3] || '';
+
+/** Every squad's work code (0 for all but workers at a job), indexed by squad. */
+export const workCodes = (w) => {
+  const out = new Uint8Array(w.squads.length);
+  const { eco } = w;
+  if (!eco) return out;
+  const used = new Map();
+  for (let i = 0; i < w.squads.length; i++) {
+    const q = w.squads[i];
+    if (!q.worker || !q.alive || !q.onField || q.fled || q.order.type !== 'work' || !q.job) continue;
+    const job = q.job;
+    if (job.t === 'gather') {
+      const n = eco.nodes[job.node];
+      const kind = Math.max(0, WORK_NODE.indexOf(n?.kind));
+      let code = WORK_JOB.toNode;
+      if (job.phase === 2) code = WORK_JOB.hauling;
+      else if (job.phase === 1 && n) {
+        const u = (used.get(job.node) || 0) + 1; used.set(job.node, u);
+        code = u > n.slots ? WORK_JOB.waiting : WORK_JOB.gathering;
+      }
+      out[i] = code + 8 * kind;
+    } else if (job.t === 'build') out[i] = WORK_JOB.build;
+    else if (job.t === 'repair') out[i] = WORK_JOB.repair;
+  }
+  return out;
 };
 
 /**
