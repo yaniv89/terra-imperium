@@ -41,6 +41,7 @@ import { styleOfLand } from '../../data/architecture';
 import { BattleProps } from '../art/battleProps';
 import { RaidLandingProps } from '../art/raidLandingProps';
 import { pickStructureAt, FOOTPRINT_PICK_TILES, FOOTPRINT_PICK_PX } from '../input/orderFeedback';
+import { pickSquadAt } from '../input/squadPick';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -72,6 +73,9 @@ const VIEW_TILES = 30;       // landscape; portrait phones get a closer camera (
 const PHONE_VIEW_TILES = 18; // a landscape phone (short side <= 500 css px)
 const BANNER_HEIGHT = 0.62;  // of the old pole: standards above the men, not a forest over them
 const BANNER_MIN_ZOOM = 0.6; // zoomed further out only generals and the selection carry one
+const FAR_MARK_PX = 9;       // soldiers shorter than this on screen: every squad gets its side's disc (I218)
+const FAR_MARK_MIN_PX = 26;  // ...at least this wide on screen
+const WRECK_SMOKE_LIFE = 3.5; // seconds a wreck's smoke puff takes to rise and fade (X27)
 const BAR_MIN_ZOOM = 0.7;    // strength bars of fighting squads from this zoom in
 const tmp = new Object3D();
 const ORDER_DASHES = 48; // dashes per order target line at most
@@ -972,19 +976,8 @@ export class BattleRenderer {
   pick(px, py, view, radiusTiles = 1.1, { enemyFirst = false, ignoreOwn = false } = {}) {
     const g = this.screenToGround(px, py);
     if (!g) return null;
-    const enemyRadius = radiusTiles * 1.45;
-    let own = null; let ownD = radiusTiles * radiusTiles;
-    let foe = null; let foeD = enemyRadius * enemyRadius;
-    (view?.squads || []).forEach((s) => {
-      if (!s.alive || !s.onField || s.fled || s.inside >= 0) return;
-      const d = (s.x / Q - g.x) ** 2 + (s.y / Q - g.z) ** 2;
-      if (s.side === view.playerSide) { if (!ignoreOwn && d < ownD) { ownD = d; own = { kind: 'squad', idx: s.idx, side: s.side }; } return; }
-      if (s.visible === false) return;
-      if (d < foeD) { foeD = d; foe = { kind: 'squad', idx: s.idx, side: s.side }; }
-    });
-    let best = null;
-    if (foe && (enemyFirst || !own || foeD < ownD)) best = foe;
-    else if (own) best = own;
+    // A squad by its block as drawn, never smaller than a finger on screen (input/squadPick.js, I218).
+    let best = pickSquadAt(g, view, { memoOf: (idx) => this.soldierMemo.get(idx), wpp: this.worldPerPixel(), radiusTiles, enemyFirst, ignoreOwn });
     if (best) return { ...best, ground: g };
     // A building of the battle economy (a generous footprint: at least ~16 px around it), or a resource node.
     const eco = this.ecoLayer.pick(g, view, Math.max(0.5, 16 * this.worldPerPixel()));
@@ -1269,6 +1262,8 @@ export class BattleRenderer {
     const ringMat = this.rings.instanceMatrix.array;
     const poleMat = this.bannerPoles.instanceMatrix.array; const flagMat = this.bannerFlags.instanceMatrix.array; const flagCol = instanceColors(this.bannerFlags);
     const barBgMat = this.barBg.instanceMatrix.array; const barFillMat = this.barFill.instanceMatrix.array; const barFillCol = instanceColors(this.barFill);
+    const farMarks = this.soldierPx() < FAR_MARK_PX;
+    const farMarkR = (FAR_MARK_MIN_PX / 2) * this.worldPerPixel();
     cur.squads.forEach((s) => {
       const memo = this.soldierMemo.get(s.idx);
       // Wiped out on the field: every soldier still standing last frame falls at once.
@@ -1351,16 +1346,23 @@ export class BattleRenderer {
       const r = info.rigFig ? (Math.min(n, cols) - 1) * spacing / 2 + 1.1
         : info.machine ? Math.hypot((Math.min(n, cols) * spacing) / 2, (Math.ceil(n / cols) - 0.5) * rowGap) + 0.2
           : 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
+      m.ring = r; // the pick circle reads it (input/squadPick.js)
       // Readable at 300 to 500 a side (phase R1 readability): rings only under the selection, one
       // short standard per few squads (and every general), shown from mid zoom in, and a strength
       // bar only on the selection and on squads losing men in a fight.
+      // I218: zoomed out on a phone (soldiers under FAR_MARK_PX tall) every squad also gets its
+      // side's disc, at least FAR_MARK_MIN_PX across, so a block of tiny men reads as one unit and
+      // shows where to tap (soldiers keep their true size).
       const side = info.sideColor;
       const zoom = this.camera.zoom;
-      if (isSelected) {
-        writeYaw(discMat, discN, x, y + 0.05, z, 0, r, 1, r);
+      if (isSelected || farMarks) {
+        const dr = farMarks ? Math.max(r, farMarkR) : r;
+        // centred on the block as drawn (it runs back from the squad's point), like the pick circle
+        const back = farMarks ? ((Math.ceil(n / cols) - 1) * rowGap) / 2 : 0;
+        writeYaw(discMat, discN, x - fx * back, y + 0.05, z - fz * back, 0, dr, 1, dr);
         discCol[discN * 3] = side.r; discCol[discN * 3 + 1] = side.g; discCol[discN * 3 + 2] = side.b;
         discN += 1;
-        writeYaw(ringMat, ringN, x, y + 0.07, z, 0, r, 1, r); ringN += 1;
+        if (isSelected) { writeYaw(ringMat, ringN, x - fx * back, y + 0.07, z - fz * back, 0, dr, 1, dr); ringN += 1; }
       }
       if (!stats.flying && s.classId !== 'worker' && (isSelected || s.commanderId || (zoom >= BANNER_MIN_ZOOM && s.idx % this.bannerEvery === 0))) {
         const bx = x + fx * 0.25 + (-fz) * (r * 0.55); const bz = z + fz * 0.25 + fx * (r * 0.55);
@@ -1527,6 +1529,20 @@ export class BattleRenderer {
       const burn = (x, z, phase) => sprites.add('fire-large', x, this.heightAt(x, z) + 0.2, z, { time: this.time + phase });
       (this.lastView.eco?.buildings || []).forEach((b) => { if (b.alive && !b.proxy && b.built && b.hp < b.maxHp * 0.3) burn(b.x / Q, b.y / Q, b.idx * 0.37); });
       (this.lastView.structures || []).forEach((st, i) => { if (st.alive && st.maxHp > 0 && st.hp < st.maxHp * 0.3) burn(st.x / Q, st.y / Q, i * 0.41); });
+    }
+    // X27: a wreck smoulders for the rest of the battle: a small fire on each of its fire sockets and
+    // a column of three rising puffs on each smoke socket (stateless: the phase is the time).
+    const wreckFx = this.ecoLayer.wreckFx || [];
+    for (let i = 0; i < wreckFx.length; i++) {
+      const f = wreckFx[i];
+      if (f.kind === 'fire') {
+        if (sprites.has('fire-small')) sprites.add('fire-small', f.x, f.y + 0.15, f.z, { time: this.time + f.phase, scale: 0.6 });
+      } else if (sprites.has('smoke')) {
+        for (let j = 0; j < 3; j++) {
+          const k = ((this.time + f.phase) / WRECK_SMOKE_LIFE + j / 3) % 1;
+          sprites.add('smoke', f.x + k * 0.4, f.y + 0.3 + k * 2.2, f.z, { k, scale: 0.7 + k * 0.8, alpha: (1 - k) * 0.7 });
+        }
+      }
     }
     sprites.end(); shots.end();
     let bn = 0;
