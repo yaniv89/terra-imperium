@@ -106,7 +106,13 @@ describe('field attacks', () => {
     expect(auto.resources.mil).toBe(war.resources.mil - 2);
     expect(auto.battleReports[0].kind).toBe('field');
     assertGameState(auto);
-    const began = gameReducer(war, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: IN, tile: theirs } });
+    // Decision 41: on land inside neither side's borders there is no Command, only Auto.
+    const noMans = gameReducer(war, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: IN, tile: theirs } });
+    expect(noMans.pendingBattle ?? null).toBeNull();
+    expect(noMans.logs.at(-1).message).toMatch(/No man's land/);
+    // Inside the player's own borders the choice stays.
+    const ownLand = { ...war, world: { ...war.world, tileOwner: { ...war.world.tileOwner, [theirs]: IN } } };
+    const began = gameReducer(ownLand, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: IN, tile: theirs } });
     expect(began.pendingBattle.kind).toBe('field');
     const setup = buildInvasionSetup(began, began.pendingBattle);
     expect(setup.tile).toBe(theirs);

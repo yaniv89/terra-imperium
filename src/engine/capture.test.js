@@ -14,6 +14,7 @@ import { processSieges, BREACH_HOLD_TURNS } from './sieges';
 import { isIndependentNation } from '../data/independents';
 import { syncWorldRegistry } from './world/registry';
 import { auditGameState } from './stateAudit';
+import { isNoMansLand } from './hostility';
 
 const tiles = getTiles();
 
@@ -218,5 +219,21 @@ describe('the breach (I131): a healthy garrison does not hand over its city at 0
     }
     expect(held).toBe(BREACH_HOLD_TURNS);
     expect(units.g1.strength).toBeLessThan(1000);
+  });
+});
+
+describe('decision 41: no man\'s land is fought on Auto', () => {
+  it('a land tile inside neither side\'s borders, a third people\'s included, is no man\'s land; own land and the sea are not', () => {
+    const s = armies();
+    const own = s.regions[FR].tile;
+    const theirs = s.regions[T].tile;
+    const third = Object.values(s.regions).find((r) => r.owner && r.owner !== 'fr' && r.owner !== AGG && r.tile != null && tiles.land[r.tile] === 1);
+    const free = tiles.neighbors[own].concat(...tiles.neighbors[own].map((n) => tiles.neighbors[n])).find((t) => tiles.land[t] === 1 && s.world.tileOwner[t] == null);
+    const sea = Array.from({ length: tiles.land.length }, (_, i) => i).find((t) => tiles.land[t] !== 1);
+    expect(isNoMansLand(s, own, 'fr', AGG)).toBe(false);
+    expect(isNoMansLand(s, theirs, 'fr', AGG)).toBe(false);
+    expect(isNoMansLand(s, third.tile, 'fr', AGG)).toBe(true);
+    if (free != null) expect(isNoMansLand(s, free, 'fr', AGG)).toBe(true);
+    expect(isNoMansLand(s, sea, 'fr', AGG)).toBe(false);
   });
 });

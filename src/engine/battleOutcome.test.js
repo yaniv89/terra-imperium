@@ -196,7 +196,8 @@ describe('master plan 6.7, row by row', () => {
 
   it('7 a fort and a held tile: the same reduction in the field battle setup and the auto-resolve', () => {
     const s0 = fieldState();
-    const s = { ...s0, world: { ...s0.world, tileState: { ...s0.world.tileState, [FIELD.theirs]: { improvement: 'fort' } } } };
+    // On the player's own land (decision 41: on nobody's land a clash is fought on Auto only).
+    const s = { ...s0, world: { ...s0.world, tileOwner: { ...s0.world.tileOwner, [FIELD.theirs]: FIELD.IN }, tileState: { ...s0.world.tileState, [FIELD.theirs]: { improvement: 'fort' } } } };
     const v = validateFieldAttack(s, FIELD.IN, FIELD.theirs);
     const ctx = getFieldBattleContext(s, v);
     expect(ctx.defenderDamageReductionMultiplier).toBe(FORT_REDUCTION);

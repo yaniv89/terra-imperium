@@ -21,6 +21,7 @@
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { isIndependentNation } from '../data/independents';
 import { isWarBetween } from './diplomacy';
+import { getTiles } from '../data/geo/tiles';
 
 /** Independents start no siege, assault or field attack through the shared paths; raids.js runs their
  * raids and sacks (phase W2). */
@@ -54,6 +55,25 @@ export const canFight = (state, a, b) => {
 export const canAttack = (state, attacker, target) => {
   if (!INDEPENDENTS_ATTACK && isIndependentId(state, attacker)) return false;
   return canFight(state, attacker, target);
+};
+
+/** The nation whose land `tile` is (through the city that owns the tile), or null (nobody's land). */
+export const tileOwnerNation = (state, tile) => (tile == null ? null : state?.regions?.[state.world?.tileOwner?.[tile]]?.owner ?? null);
+
+/** What the pre-battle and defence cards say about a no man's land clash (decision 41). */
+export const NO_MANS_LAND_TEXT = "No man's land: fought on Auto";
+export const NO_MANS_LAND_REASON = "No man's land: a clash outside both peoples' borders is fought on Auto.";
+
+/**
+ * Decision 41: a clash between two stacks on a land tile inside neither side's borders (nobody's
+ * land, or a third people's, an independent's included) is fought on Auto only; on either side's
+ * own land the player may still command it. Sea tiles are not covered (they are nobody's, and sea
+ * battles keep Command: an assumption until the user rules), and neither are city battles.
+ */
+export const isNoMansLand = (state, tile, a, b) => {
+  if (tile == null || getTiles().land[tile] !== 1) return false;
+  const owner = tileOwnerNation(state, tile);
+  return owner !== a && owner !== b;
 };
 
 /**
