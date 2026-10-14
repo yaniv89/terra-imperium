@@ -26,6 +26,7 @@ import MapPicker, { generatedWorldsEnabled, mapFromUrl } from './MapPicker';
 import { newWorldSeed } from './seeds';
 import HOMES from '../../data/geo/peopleHomes.json';
 import { currentWorldSpec } from '../../worldgen/worldLoader';
+import LanguageSwitch from './LanguageSwitch';
 
 // "Home: a hot dry river land" from the people's home profile (plans/MAP-VARIATIONS-PLAN.md 6.5),
 // shown instead of the real capital off the real Earth.
@@ -428,6 +429,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
         <h1 className="fa-heading text-[19px] shrink-0">New game</h1>
         {!phone && <span className="text-[13px] text-fa-muted truncate">Dawn, 2000 BCE. One city each.</span>}
         <StepIndicator step={step} onGo={go} compact={phone} />
+        <LanguageSwitch compact className="ms-auto shrink-0" />
       </header>
       <main className={`flex-1 min-h-0 ${twoCols ? 'overflow-hidden' : 'overflow-y-auto'} ${frame}`}>
         <StepPanel id="people" active={step === 0} fill={twoCols} title="Step 1 of 4: People">{peopleStep}</StepPanel>

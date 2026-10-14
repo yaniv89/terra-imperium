@@ -1,4 +1,11 @@
 /* src/index.css */
+
+/* Hebrew (src/i18n): Heebo and Frank Ruhl Libre are loaded when Hebrew is on; the Latin fonts follow so
+   English words and numbers inside Hebrew text still have a face. */
+:root[lang='he'] {
+  --fa-font-display: 'Frank Ruhl Libre', 'Spectral SC', Georgia, serif;
+  --fa-font-body: Heebo, Figtree, ui-sans-serif, system-ui, sans-serif;
+}
 /* Main stylesheet for Terra Imperium */
 
 @tailwind base;
