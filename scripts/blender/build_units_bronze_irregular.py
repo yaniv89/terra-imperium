@@ -1,142 +1,164 @@
 # scripts/blender/build_units_bronze_irregular.py
-# The Bronze irregulars of plans/ART-MODELS-PLAN.md 4.3, on the shared rig and body of ti_units.py
-# and the helpers of build_units_bronze.py (reset, finish copied: that module builds on import) (Claude, 2026-10-07), rest pose only like the general:
-#   bronze-raider     a light mounted raider: a small horse with a hide saddle cloth and loot sacks on
-#                     both flanks, a rider in a Team tunic and headcloth, a lit torch raised in the right
-#                     hand and a short javelin across the back. Drawn for raider squads of the cavalry
-#                     class (raids and sacks: the attacking party), unitModels.js `raider`.
-#   bronze-mercenary  a hired foot soldier in mixed foreign kit: a feathered crown over a bronze band,
-#                     a banded corselet, a Team kilt, greaves, a neutral sash with a coin pouch, a round
-#                     shield (the squad's Emblem) and a long bronze sword. Drawn for mercenary squads of
-#                     the infantry class, unitModels.js `mercenary`.
-# Culture neutral (no national motifs). Flame is its own flat material (not a tag).
+# The Bronze irregulars of plans/ART-MODELS-PLAN.md 4.3, quality pass of 2026-10-14 (after the
+# spearman, the archer and the labourer: the figure parts of ti_figure.py, the horse of
+# ti_mounts.fine_horse, baked shade in COLOR_0). Rest pose only, as before: the soldier loader bakes
+# the rest pose and its vertex rig walks the legs and swings the arms.
+#   bronze-mercenary  a hired foot soldier in foreign kit: a feathered crown on a bronze band, a
+#                     leather jerkin under three bronze hoops, a baldric, bronze greaves and armlets, a
+#                     Team waist sash with a coin pouch, a round shield (the squad's Emblem) and a long
+#                     bronze sword held upright. Drawn for mercenary squads of the infantry class
+#                     (unitModels.js `mercenary`).
+#   bronze-raider     a light mounted raider: a small bay horse with a blaze, socks and a bridle, a
+#                     hide saddle cloth, loot (a sack on each flank, a rolled rug and a jar on the
+#                     croup); the rider sits astride in a linen tunic and a hide vest with a Team
+#                     shawl and a Team headcloth, a lit torch raised in the right fist, the reins in the
+#                     left, a javelin across the back. Drawn for raider squads of the cavalry class
+#                     (raids and sacks: the attacking party), unitModels.js `raider`.
+# Culture neutral (no national motifs). The battle draws the side's colour only on the Spine, Chest
+# and Head bones (gltfUnitLoader.js), so the Team accents sit there. Flame is its own flat material.
 #   blender -b --factory-startup -P scripts/blender/build_units_bronze_irregular.py -- bronze-raider bronze-mercenary
+# Outputs go to art-build/units/<id>/ (TI_PREVIEW=1 adds stills); copy the GLB to src/assets/units/.
 import bpy, sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ti_units as u  # noqa: E402
-import json  # noqa: E402
+import ti_figure as F  # noqa: E402
+import ti_mounts as tm  # noqa: E402
+from mathutils import Vector  # noqa: E402
 
-
-def reset():
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.context.scene.render.fps = 20
-
-
-def finish(uid, parts, colors, notes):
-    u.set_colors(colors)
-    root = u.assemble(uid, parts)
-    out = u.out_dir(uid)
-    meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
-    for o in meshes:
-        for p in o.data.polygons:
-            p.use_smooth = False
-    tris = u.scene_triangles()
-    bpy.context.preferences.filepaths.save_version = 0
-    bpy.ops.wm.save_as_mainfile(filepath=str(out / f'{uid}.blend'))
-    u.export_unit(out / f'{uid}.glb', animations=False)
-    rigs = {o.name: [b.name for b in o.data.bones] for o in bpy.context.scene.objects if o.type == 'ARMATURE'}
-    mats = sorted({s.material.name for o in meshes for s in o.material_slots if s.material})
-    report = {'id': uid, 'triangles': tris, 'rigs': rigs, 'materials': mats, 'colors': colors, 'textures': 0,
-              'pose': 'rest pose only; clips and VAT with Wave 0b (ART-MODELS-PLAN D5)', 'person_height_H': 1, 'front': 'Blender -Y, glTF +Z', **notes}
-    (out / 'report.json').write_text(json.dumps(report, indent=2))
-    print(f'BUILT {uid} triangles={tris} root={root.name}', flush=True)
-
-
-def flame_material():
-    m = bpy.data.materials.get('Flame') or bpy.data.materials.new('Flame')
-    m.use_nodes = True
-    c = tuple(u.linear(int('F29A2E'[i:i + 2], 16) / 255) for i in (0, 2, 4))
-    m.diffuse_color = (*c, 1)
-    n = m.node_tree.nodes.get('Principled BSDF')
-    n.inputs['Base Color'].default_value = (*c, 1)
-    n.inputs['Emission Color'].default_value = (*c, 1)
-    n.inputs['Emission Strength'].default_value = .6
-    return m
-
-
-def seated_rider(name, at):
-    """A rider astride (pose baked like the general's), dressed: Team tunic, hide vest, headcloth."""
-    rider, body = u.build_body(ready=True, lite=False, modest=False); rider.name = f'{name}Rig'; body.name = f'{name}Body'
-    u.drop_faces(body, lambda c: .36 < c.z < .75 and abs(c.x) < .135)
-    u.tube('RiderTunic', [(0, 0, .36), (0, 0, .46), (0, 0, .60), (0, 0, .72), (0, 0, .785)], [(.135, .095), (.115, .082), (.092, .066), (.128, .076), (.105, .062)], 'Team', ['Hips', 'Hips', 'Spine', 'Chest', 'Chest'], 8, rider)
-    u.tube('HideVest', [(0, .005, .58), (0, .005, .68), (0, .005, .76)], [(.098, .072), (.12, .082), (.13, .078)], 'Leather', ['Spine', 'Chest', 'Chest'], 6, rider)
-    u.tube('Headcloth', [(0, -.003, .952), (0, 0, .99), (0, 0, 1.012)], [(.066, .058), (.06, .051), (.032, .03)], 'Team', ['Head'] * 3, 6, rider)
-    u.tube('HeadclothTail', [(0, .05, .96), (0, .10, .90), (0, .13, .83)], [.03, .025, .012], 'Team', ['Head'] * 3, 4, rider)
-    rider.location = at
-    u.bake_rest_pose(rider, [o for o in bpy.context.scene.objects if o.type == 'MESH' and o.parent == rider],
-                     {'r': {'Leg_L': (-60, -28, 0), 'Leg_R': (-60, 28, 0), 'Shin_L': (70, 0, 0), 'Shin_R': (70, 0, 0), 'Arm_R': (0, 0, 0)}})
-    return rider
-
-
-def build_raider():
-    reset(); u.palette(); flame_material(); parts = []
-    horse, _ = u.quadruped('Mount', 'horse', (0, 0, 0), coat='Leather', dark='Wood'); parts.append(horse)
-    u.box('HideCloth', (0, -.06, .665), (.32, .34, .10), 'Cloth', 'Mount_Spine', horse)
-    # loot: a sack on each flank behind the rider's legs and a bundle on the croup
-    for sx in (-1, 1):
-        u.tube(f'LootSack{sx}', [(sx * .19, .16, .64), (sx * .21, .16, .55), (sx * .20, .16, .46)], [(.07, .08), (.09, .095), (.06, .07)], 'Cloth', ['Mount_Spine'] * 3, 6, horse)
-        u.tube(f'SackTie{sx}', [(sx * .17, .16, .70), (sx * .19, .16, .64)], [.015, .02], 'Leather', ['Mount_Spine'] * 2, 4, horse)
-    u.tube('LootBundle', [(-.12, .30, .74), (.12, .30, .74)], [(.06, .05), (.06, .05)], 'Leather', ['Mount_Spine'] * 2, 6, horse)
-    u.tube('LootJar', [(0, .30, .78), (0, .30, .84), (0, .30, .90), (0, .30, .93)], [.035, .055, .03, .035], 'Wood', ['Mount_Spine'] * 4, 6, horse)
-    rider = seated_rider('Raider', (0, -.07, .33)); parts.append(rider)
-    w = rider.data.bones['Hand_R'].head_local
-    # the torch raised forward of the face: a haft, a wrapped head, a flame
-    u.tube('TorchHaft', [(w.x, w.y + .05, w.z - .10), (w.x, w.y - .06, w.z + .30)], [.010, .009], 'Wood', ['Prop_R'] * 2, 4, rider, attachment=True)
-    u.tube('TorchWrap', [(w.x, w.y - .055, w.z + .28), (w.x, w.y - .07, w.z + .34)], [.022, .02], 'Leather', ['Prop_R'] * 2, 5, rider, attachment=True)
-    u.tube('TorchFlame', [(w.x, w.y - .07, w.z + .335), (w.x, w.y - .075, w.z + .39), (w.x, w.y - .06, w.z + .46)], [.035, .03, .004], 'Flame', ['Prop_R'] * 3, 5, rider, attachment=True)
-    # a short javelin slung across the back
-    u.tube('Javelin', [(-.16, .10, .56), (.20, .07, .98)], [.007, .006], 'Wood', ['Chest'] * 2, 4, rider, attachment=True)
-    u.tube('JavelinHead', [(.20, .07, .98), (.225, .065, 1.03)], [.012, .001], 'Metal', ['Chest'] * 2, 4, rider, attachment=True)
-    finish('bronze-raider', parts, {'Leather': '8C5A34', 'Wood': '5E4430', 'Cloth': 'CDBB98', 'Metal': ('B98E4E', .45, .6), 'Team': 'BFBFBF', 'Skin': 'C98E66'},
-           {'role': 'Bronze raider: a light mounted raider with loot sacks on both flanks, a bundle and a jar on the croup, a raised torch and a slung javelin; Team tunic and headcloth',
-            'notes': 'Culture-neutral irregular from the base parts (plan 4.3). Mounted rather than in a chariot: a raid party rides light. The flame is a flat orange material named Flame; fire and smoke come from the battle effects.'})
+tube, box, raw, vertical, slab = F.tube, F.box, F.raw, F.vertical, F.slab
 
 
 def build_mercenary():
-    reset(); u.palette(); parts = []
-    arm, body = u.build_body(ready=True, lite=False, modest=False); arm.name = 'MercenaryRig'; body.name = 'MercenaryBody'
-    u.drop_faces(body, lambda c: .35 < c.z < .745 and abs(c.x) < (.145 if c.z > .535 else .15))
-    parts.append(arm)
-    u.tube('Kilt', [(0, 0, .33), (0, 0, .40), (0, 0, .50), (0, 0, .537)], [(.132, .095), (.127, .088), (.104, .075), (.089, .061)], 'Team', ['Hips'] * 4, 10, arm)
-    # the banded corselet of the sea raiders' hired men: three bronze hoops over a leather jerkin
-    u.tube('Jerkin', [(0, 0, .53), (0, 0, .60), (0, 0, .68), (0, 0, .745), (0, 0, .77)], [(.094, .066), (.087, .063), (.112, .077), (.133, .079), (.112, .066)], 'Leather', ['Spine', 'Spine', 'Chest', 'Chest', 'Chest'], 8, arm)
-    for i, z in enumerate((.58, .64, .70)):
-        r = (.091 + .012 * i, .066 + .006 * i)
-        u.tube(f'CorseletBand{i}', [(0, 0, z - .012), (0, 0, z + .012)], [r, r], 'Metal', ['Spine' if z < .62 else 'Chest'] * 2, 8, arm)
-    # the neutral sash over the left shoulder and the coin pouch on it at the right hip
-    u.tube('Sash', [(.10, -.07, .76), (0, -.085, .64), (-.10, -.075, .50)], [(.022, .008)] * 3, 'Cloth', ['Chest', 'Spine', 'Hips'], 4, arm)
-    u.tube('CoinPouch', [(-.12, -.06, .47), (-.125, -.065, .43), (-.12, -.06, .39)], [.022, .034, .02], 'Leather', ['Hips'] * 3, 6, arm)
-    for side, sign in [('L', 1), ('R', -1)]:
-        u.tube(f'Greave_{side}', [(sign * .073, -.008, .095), (sign * .073, -.01, .17), (sign * .072, -.012, .245)], [(.03, .031), (.041, .038), (.035, .034)], 'Metal', ['Shin_' + side] * 3, 6, arm)
-        u.box(f'Sandal_{side}', (sign * .074, -.042, .008), (.066, .134, .016), 'Leather', 'Foot_' + side, arm)
-    # the feathered crown: a bronze band and a ring of upright reeds round the head
-    u.tube('CrownBand', [(0, -.004, .955), (0, -.003, .985)], [(.066, .059), (.066, .059)], 'Metal', ['Head'] * 2, 8, arm)
-    for k in range(9):
-        a = math.pi * (k / 8)  # the front half and the sides
-        x, y = .058 * math.cos(a), -.05 * math.sin(a)
-        u.box(f'Feather{k}', (x, y, 1.04), (.016, .008, .11), 'Cloth', 'Head', arm)
-    # the long bronze sword (a Naue II type) in the right hand, point up
-    w = arm.data.bones['Hand_R'].head_local
-    u.tube('SwordGrip', [(w.x, w.y - .01, w.z - .05), (w.x, w.y - .01, w.z + .04)], [.012, .012], 'Wood', ['Prop_R'] * 2, 5, arm, attachment=True)
-    u.box('SwordGuard', (w.x, w.y - .01, w.z + .045), (.06, .02, .014), 'Metal', 'Prop_R', arm, True)
-    v = [(w.x - .016, w.y - .01, w.z + .05), (w.x + .016, w.y - .01, w.z + .05), (w.x + .012, w.y - .01, w.z + .38), (w.x, w.y - .01, w.z + .44), (w.x - .012, w.y - .01, w.z + .38),
-         (w.x, w.y - .02, w.z + .2), (w.x, w.y, w.z + .2)]
-    f = [(0, 1, 5), (1, 2, 5), (2, 3, 5), (3, 4, 5), (4, 0, 5), (1, 0, 6), (2, 1, 6), (3, 2, 6), (4, 3, 6), (0, 4, 6)]
-    u.mesh_obj('SwordBlade', v, f, 'Metal', 'Prop_R', True, arm=arm)
-    # a round shield on the left arm, its face the squad's Emblem (as the base infantry's)
-    cx, cy, cz = .225, -.160, .610; rad = .17; n = 14
-    verts = [(cx, cy - .022, cz)] + [(cx + rad * math.cos(2 * math.pi * j / n), cy - .007, cz + rad * math.sin(2 * math.pi * j / n)) for j in range(n)]
-    face = u.mesh_obj('ShieldFace', verts, [(0, j + 1, (j + 1) % n + 1) for j in range(n)], 'Emblem', 'Prop_L', True, arm=arm)
-    for poly in face.data.polygons:
-        for li in poly.loop_indices:
-            co = face.data.vertices[face.data.loops[li].vertex_index].co
-            face.data.uv_layers.active.data[li].uv = ((co.x - cx) / (rad * 2) + .5, (co.z - cz) / (rad * 2) + .5)
-    u.tube('ShieldRim', [(cx, cy - .004, cz + rad), (cx, cy - .004, cz - rad)], [.008, .008], 'Metal', ['Prop_L'] * 2, 4, arm, attachment=True)
-    u.box('ShieldBarH', (cx, cy + .015, cz), (.28, .02, .025), 'Wood', 'Prop_L', arm, True)
-    u.box('ShieldBarV', (cx, cy + .016, cz), (.025, .02, .28), 'Wood', 'Prop_L', arm, True)
-    finish('bronze-mercenary', parts, {'Leather': '7A5236', 'Wood': '5A4130', 'Cloth': 'D9CDA8', 'Metal': ('C2995A', .4, .6), 'Team': 'BFBFBF', 'Skin': 'B9805C', 'Emblem': 'E6D6AF'},
-           {'role': 'Bronze mercenary: a hired foot soldier in mixed foreign kit (feathered crown, banded corselet, greaves), a Team kilt, a neutral sash with a coin pouch, a round Emblem shield and a long bronze sword',
-            'notes': 'From the base parts, no theme parts (plan 4.3, 4.4). Rest pose; the vertex rig walks the legs and swings the arms.'})
+    arm = F.start({'Leather': '6E4630', 'Wood': '5A4130', 'Cloth': 'E6DCC0', 'Metal': ('C8A058', .4, .6), 'Hair': '3A2A1E', 'Skin': 'B9805C', 'Emblem': 'E6D6AF'})
+    arm.name = 'MercenaryRig'
+    GRIP_R, GRIP_L = Vector((-.223, -.137, .604)), Vector((.225, -.130, .608))
+    # ---- body ----
+    F.legs(laces=False)
+    sides = F.arms(shoulder='Skin')
+    F.fist('R', GRIP_R, (0, 0, 1))
+    F.fist('L', GRIP_L, (0, 0, 1))
+    F.head()
+    F.hair_nape()
+    for side, s in (('L', 1), ('R', -1)):
+        tube('Greave_' + side, [((s * .074, .004, .098), (.031, .032), 'Shin_' + side), ((s * .073, .004, .200), (.045, .045), 'Shin_' + side),
+                                ((s * .071, -.010, .262), (.040, .041), 'Shin_' + side)], 'Metal', 6, caps=(False, False))
+        sh, el, _ = sides[side]
+        tube('Armlet_' + side, [(tuple(sh.lerp(el, .50)), .0445, 'Arm_' + side), (tuple(sh.lerp(el, .66)), .0425, 'Arm_' + side)], 'Metal', 6, caps=(False, False))
+    # ---- kilt with a leather front panel, the jerkin and its three bronze hoops, the baldric ----
+    F.kilt('Kilt', 'Team')
+    F.tufted_hem()
+    slab('KiltPanel', (-.036, -.079, .532), (.036, -.079, .532), (.020, -.104, .352), (-.020, -.104, .352), .008, 'Leather', 'Hips')
+    F.torso('Jerkin', 'Leather')
+    for i, z in enumerate((.588, .645, .702)):
+        rx, ry = F.torso_radius(z)
+        rx2, ry2 = F.torso_radius(z + .030)
+        tube(f'CorseletBand{i}', [((0, 0, z - .016), (rx + .011, ry + .010), 'Spine' if z < .66 else 'Chest'),
+                                  ((0, 0, z + .016), (rx2 + .007, ry2 + .006), 'Spine' if z < .66 else 'Chest')], 'Metal', 10, caps=(False, False))
+    for side, s in (('L', 1), ('R', -1)):
+        tube('JerkinStrap_' + side, [((s * .082, -.082, .728), (.019, .010), 'Chest'), ((s * .078, -.020, .805), (.019, .010), 'Chest'), ((s * .082, .068, .752), (.019, .010), 'Chest')], 'Leather', 4)
+    strap = [((-.074, .096, .796), 'Chest'), ((-.086, .000, .808), 'Chest'), ((-.062, -.088, .758), 'Chest'), ((.000, -.106, .690), 'Chest'),
+             ((.058, -.080, .620), 'Spine'), ((.108, -.012, .575), 'Spine'), ((.062, .082, .580), 'Spine')]
+    tube('Baldric', [(p, (.014, .006), w) for p, w in strap], 'Wood', 4)
+    # ---- the Team sash at the waist (Spine: the battle dyes it) and the coin pouch that hangs from it ----
+    F.sash('Sash', 'Team')
+    tube('CoinPouch', [((-.112, -.050, .505), .014, 'Hips'), ((-.118, -.056, .470), .034, 'Hips'), ((-.118, -.056, .432), .030, 'Hips'), ((-.116, -.054, .412), .010, 'Hips')], 'Leather', 6)
+    tube('CoinPouchTie', [((-.113, -.051, .494), .019, 'Hips'), ((-.114, -.052, .506), .019, 'Hips')], 'Metal', 5, caps=(False, False))
+    # ---- the feathered crown: a bronze band, a Team band above it, a flaring ring of pale feathers ----
+    tube('CrownBand', vertical([.944, .970], -.003, [(.0705, .0665), (.0700, .0660)], 'Head'), 'Metal', 10, caps=(False, False))
+    tube('CrownCloth', vertical([.970, .990], -.003, [(.0715, .0675), (.0715, .0675)], 'Head'), 'Team', 10, caps=(False, False))
+    n = 12
+    crown = tube('FeatherCrown', vertical([.986, 1.040, 1.112], -.003, [(.067, .063), (.078, .074), (.092, .088)], 'Head'), 'Cloth', n, caps=(False, True), attachment=True)
+    for j in range(n):
+        if j % 2:  # every second feather is shorter and set in: a fluted, notched ring
+            for ring, k, drop in ((1, .90, 0), (2, .80, .030)):
+                v = crown.data.vertices[ring * n + j]
+                v.co.x *= k
+                v.co.y = -.003 + (v.co.y + .003) * k
+                v.co.z -= drop
+    crown.data.vertices[3 * n].co.z = 1.060  # the ring is hollow at the top
+    # ---- the long bronze sword, upright in the right fist (long, thin and upright: it survives the far detail level) ----
+    P = 'Prop_R'
+    x, y, z = GRIP_R
+    tube('SwordGrip', [((x, y, z - .040), .0125, P), ((x, y, z + .040), .0125, P)], 'Wood', 6, caps=(False, False), attachment=True)
+    tube('SwordPommel', [((x, y, z - .066), .006, P), ((x, y, z - .052), .020, P), ((x, y, z - .038), .014, P)], 'Metal', 6, attachment=True)
+    box('SwordGuard', (x, y, z + .047), (.078, .024, .016), 'Metal', P, True)
+    tube('SwordBlade', [((x, y, z + .052), (.019, .007), P), ((x, y, z + .200), (.017, .007), P), ((x, y, z + .360), (.024, .007), P),
+                        ((x, y, z + .470), (.016, .005), P), ((x, y, z + .535), (.0015, .0015), P)], 'Metal', 4, attachment=True)
+    # ---- the round shield on the left arm, its face the squad's Emblem ----
+    F.round_shield((.225, -.166, .612), .176)
+    F.normalize_weights()
+    tris = F.finish_unit('bronze-mercenary', [arm], {
+        'role': 'Bronze mercenary: a hired foot soldier in foreign kit (feathered crown on a bronze band, leather jerkin under three bronze hoops, baldric, greaves, armlets), a kilt with a leather front panel, a Team waist sash with a coin pouch, a round Emblem shield and a long bronze sword held upright',
+        'pose': 'rest pose only; the vertex rig walks the legs and swings the arms',
+        'notes': 'Quality pass of 2026-10-14 on ti_figure.py. Team: the waist sash (Spine) and the band under the feathers (Head). The kilt is Team by tag but hangs from the hips, so the battle draws it as plain cloth.'},
+        open_facing=F.shield_facing(), centre=(0, 0, .58), scale=1.45)
+    assert tris <= 2000, tris
+
+
+def build_raider():
+    F.start({'Coat': '7C4B2B', 'Mane': '241A15', 'Leather': '6A4028', 'Hide': 'B9A078', 'Wood': '5E4430', 'Cloth': 'E4D8BC', 'Rug': '9C3F2C', 'Sack': 'CDBB94', 'Clay': 'B4683F',
+             'Metal': ('C09A54', .45, .6), 'Hair': '2B201A', 'Skin': 'C98E66', 'Flame': 'F6A22E'}, rig=False)
+    parts = []
+    horse, _ = tm.fine_horse('Mount', (0, 0, 0))
+    parts.append(horse)
+    S = 'Mount_Spine'
+    F.meshes.extend([tm.drape('HideCloth', horse, 'Hide', -.27, .14, reach=100, fringe=.02),
+             tm.drape('Girth', horse, 'Leather', -.215, -.165, reach=180, grow=.017, rows=2, steps=8)])
+    F.use(horse)
+    # loot: a tied sack on each flank behind the rider's legs, a rolled rug across the croup, a jar on it
+    for sx in (-1, 1):
+        tube(f'LootSack{sx}', [((sx * .165, .21, .700), .030, S), ((sx * .190, .21, .640), (.085, .075), S), ((sx * .205, .21, .540), (.105, .090), S),
+                               ((sx * .200, .21, .455), (.080, .070), S), ((sx * .195, .21, .425), .020, S)], 'Sack', 7)
+        tube(f'SackTie{sx}', [((sx * .166, .21, .688), .036, S), ((sx * .171, .21, .672), .040, S)], 'Leather', 6, caps=(False, False))
+    tube('SackRope', [((-.160, .21, .715), .010, S), ((0, .21, .770), .010, S), ((.160, .21, .715), .010, S)], 'Leather', 4)
+    tube('LootBundle', [((-.170, .345, .740), .020, S), ((-.160, .345, .745), .058, S), ((.160, .345, .745), .058, S), ((.170, .345, .740), .020, S)], 'Rug', 7)
+    for sx in (-1, 1):
+        tube(f'BundleTie{sx}', [((sx * .085, .345, .745), .061, S), ((sx * .105, .345, .745), .061, S)], 'Leather', 7, caps=(False, False))
+    tube('LootJar', [((0, .255, .760), .030, S), ((0, .255, .800), .062, S), ((0, .255, .850), .058, S), ((0, .255, .885), .028, S), ((0, .255, .905), .036, S)], 'Clay', 7)
+    # ---- the rider ----
+    rider = F.figure('Raider')
+    parts.append(rider)
+    F.legs(laces=True)
+    F.arms(shoulder='Skin')
+    F.head()
+    F.beard()
+    F.hair_nape()
+    F.headcloth('Leather', tail=True, cloth='Team')
+    F.kilt('Kilt', 'Team', seated=True)
+    F.torso('Tunic', 'Cloth')
+    tube('HideVest', [((0, .004, z), (rx + .008, ry + .008), 'Spine' if z < .66 else 'Chest') for z, rx, ry in F.TORSO[1:6]], 'Leather', 10, caps=(False, False))
+    F.shawl('Shawl', 'Team')
+    tube('Belt', vertical([.520, .548], 0, [(.103, .076), (.101, .074)], 'Spine'), 'Leather', 10, caps=(False, False))
+    # astride, the torch arm up and forward, the rein hand low in front
+    F.pose({'Leg_L': (-60, -28, 0), 'Leg_R': (-60, 28, 0), 'Shin_L': (70, 0, 0), 'Shin_R': (70, 0, 0)})
+    F.reach('R', (-.250, -.120, .900), pole=(-.8, .3, -1))
+    F.reach('L', (.105, -.185, .640), pole=(.8, .2, -1))
+    F.bake_rest()
+    AT = Vector((0, -.07, .345))
+    F.place(AT)
+    g = F.fist('R', None, (0, 0, 1))
+    P = 'Prop_R'
+    tube('TorchHaft', [((g.x, g.y, g.z - .130), .0115, P), ((g.x, g.y, g.z + .250), .0105, P)], 'Wood', 5, attachment=True)
+    tube('TorchWrap', [((g.x, g.y, g.z + .225), .020, P), ((g.x, g.y, g.z + .262), .030, P), ((g.x, g.y, g.z + .310), .028, P)], 'Leather', 6, attachment=True)
+    flame = tube('TorchFlame', [((g.x, g.y, g.z + .300), .030, P), ((g.x, g.y - .006, g.z + .350), .046, P), ((g.x + .008, g.y - .004, g.z + .410), .030, P),
+                                ((g.x - .004, g.y + .006, g.z + .480), .003, P)], 'Flame', 6, attachment=True)
+    F.bright.add(flame.name)
+    gl = F.fist('L', None, (0, 1, 0), half=.020)
+    tube('Javelin', [((-.150, .100, .545), .0075, 'Chest'), ((.185, .078, .985), .0065, 'Chest')], 'Wood', 4, attachment=True)
+    tube('JavelinHead', [((.180, .078, .978), (.012, .005), 'Chest'), ((.200, .077, 1.005), (.016, .005), 'Chest'), ((.228, .075, 1.045), .001, 'Chest')], 'Metal', 4, attachment=True)
+    # the reins, from the bit to the left fist (they belong to the horse: rigid with its body)
+    F.use(horse)
+    hand = AT + gl
+    for sx in (-1, 1):
+        bit = Vector((sx * .043, -.722, .898))
+        mid = bit.lerp(hand, .5) + Vector((sx * .035, 0, -.050))
+        tube(f'Rein{sx}', [(tuple(bit), .0065, 'Mount_Head'), (tuple(mid), .0065, 'Mount_Neck'), (tuple(hand), .0065, S)], 'Leather', 3)
+    tris = F.finish_unit('bronze-raider', parts, {
+        'role': 'Bronze raider: a light mounted raider on a small bay horse (blaze, socks, bridle, hide saddle cloth), loot sacks on both flanks, a rolled rug and a jar on the croup, a raised torch and a slung javelin; linen tunic and hide vest, Team shawl and headcloth',
+        'pose': 'rest pose only (the rider seated, the torch arm raised); the vertex rig trots the horse',
+        'notes': 'Quality pass of 2026-10-14 on ti_figure.py and ti_mounts.fine_horse. Mounted rather than in a chariot: a raid party rides light. The flame is a flat orange material named Flame with no baked shade; fire and smoke come from the battle effects.'},
+        centre=(0, -.1, .7), scale=2.1)
+    assert tris <= 3500, tris
 
 
 BUILDERS = {'bronze-raider': build_raider, 'bronze-mercenary': build_mercenary}

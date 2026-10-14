@@ -23,7 +23,9 @@ const PRESETS = {
   raiders: ['cavalry', 'cavalry', 'cavalry', 'infantry', 'infantry'],
   // a siege train with its escort, to see the age's engines live (`&attacker=siege`, or `&siege`;
   // with `&people=bosporan_kingdom&age=classical` the Bosporan stone-throwers)
-  siege: ['siege', 'siege', 'siege', 'infantry', 'ranged']
+  siege: ['siege', 'siege', 'siege', 'infantry', 'ranged'],
+  // the age's support unit with an escort (`&attacker=support`: the Bronze baggage train's ox carts)
+  support: ['support', 'support', 'infantry', 'ranged']
 };
 
 // `extra(unit)`: flags added to a unit (a raid party's `raidOf`, a hired band's `mercenary`), as
