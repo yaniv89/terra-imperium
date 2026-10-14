@@ -150,7 +150,7 @@ const StepPanel = ({ id, active, title, fill, children }) => (
 );
 
 // `initialStep`: the step it opens on (tests; a player always starts on People).
-const StartScreen = ({ onStart, initialStep = 0 }) => {
+const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const layout = useLayoutMode();
   const wide = layout === 'desktop';
   const phone = layout === 'phone-landscape' || layout === 'phone-portrait';
@@ -354,6 +354,7 @@ const StartScreen = ({ onStart, initialStep = 0 }) => {
   return (
     <div className="h-[100dvh] w-full bg-fa-ink text-fa-text flex flex-col overflow-hidden" style={backdrop} data-testid="start-screen" data-step={START_STEPS[step].id}>
       <header className={`flex items-center gap-3 pt-[max(0.25rem,env(safe-area-inset-top))] pb-1 shrink-0 ${frame}`}>
+        {onBackToTitle && <button type="button" onClick={onBackToTitle} className="fa-btn fa-btn-ghost shrink-0 !min-h-[44px] !px-2" data-testid="start-back-to-title"><ArrowLeft className="w-4 h-4" aria-hidden="true" />Title</button>}
         <h1 className="fa-heading text-[19px] shrink-0">New game</h1>
         {!phone && <span className="text-[13px] text-fa-muted truncate">Dawn, 2000 BCE. One city each.</span>}
         <StepIndicator step={step} onGo={go} compact={phone} />

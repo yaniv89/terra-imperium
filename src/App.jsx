@@ -2,7 +2,9 @@
 // Main application component - Terra Imperium
 
 import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react';
-import { GameProvider, useGame, hasExistingSave, takePendingStart } from './context/GameContext';
+import { GameProvider, useGame, hasExistingSave, takePendingStart, setLaunchHold, stashCurrentGame, readSaveText, removeSave, AUTOSAVE_KEY, PREVIOUS_SAVE_KEY } from './context/GameContext';
+import TitleScreen from './components/ui/TitleScreen';
+import { launchScreen, describeSave } from './utils/launchDecision';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { MapInsetsProvider } from './context/MapInsetsContext';
 import { StartScreen } from './components/ui';
@@ -50,9 +52,16 @@ import CaptureCard from './components/capture/CaptureCard';
 
 const AGE_ADVANCE_BANNER_MS = 5000;
 
+// The saved games the title screen lists: the autosave, and the game before it (New game and Load
+// keep the game being left there). A slot this build cannot read still shows, marked as old.
+const readTitleSlots = () => [
+  { id: 'autosave', key: AUTOSAVE_KEY, label: 'Last game (autosave)', info: describeSave(readSaveText(AUTOSAVE_KEY)) },
+  { id: 'previous', key: PREVIOUS_SAVE_KEY, label: 'Game before it', info: describeSave(readSaveText(PREVIOUS_SAVE_KEY)) }
+].filter((s) => s.info.status !== 'none');
+
 // Main game layout component
 const GameLayout = () => {
-  const { state, dispatch, resolveEvent, resetGame, meta, completeOnboarding } = useGame();
+  const { state, dispatch, resolveEvent, resetGame, importSave, meta, completeOnboarding } = useGame();
   const { triggerEffect } = useEffects();
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [showAccount, setShowAccount] = useState(false);
@@ -107,7 +116,18 @@ const GameLayout = () => {
   // A new game chosen on another world before the reload into it (GameContext resetGame) starts
   // as soon as this page, booted into that world, is up.
   const [pendingStart] = useState(() => takePendingStart());
-  const [showStartScreen, setShowStartScreen] = useState(() => !pendingStart && !hasExistingSave());
+  // X26: with a readable save, every launch shows the title screen first (Continue, New game,
+  // Load, Settings); the old save is never resumed behind the player's back. The decision is
+  // src/utils/launchDecision.js. The autosave stays quiet until the player has chosen.
+  const [launch] = useState(() => {
+    const screen = launchScreen({ pendingStart: !!pendingStart, hasSave: hasExistingSave() });
+    setLaunchHold(screen === 'title');
+    return screen;
+  });
+  const [showTitle, setShowTitle] = useState(launch === 'title');
+  const [cameFromTitle, setCameFromTitle] = useState(launch === 'title');
+  const [showStartScreen, setShowStartScreen] = useState(launch === 'start');
+  const [titleSlots, setTitleSlots] = useState(() => (launch === 'title' ? readTitleSlots() : []));
 
   // Age Advance banner + globe pulse (plan §10.5's "showpiece", previously never built — the
   // calendar age used to change with zero on-screen feedback). prevAgeRef starts at the CURRENT
@@ -158,6 +178,7 @@ const GameLayout = () => {
   const [confirmNewGame, setConfirmNewGame] = useState(false);
   const goToStart = useCallback(() => {
     setConfirmNewGame(false);
+    setCameFromTitle(false);
     setShowStartScreen(true);
     setSelectedRegion(null);
   }, []);
@@ -168,9 +189,41 @@ const GameLayout = () => {
   const cancelNewGame = useCallback(() => setConfirmNewGame(false), []);
 
   const handleStart = useCallback((options) => {
+    stashCurrentGame(); // the game being left stays under Load (X26)
+    setLaunchHold(false);
     resetGame(options);
     setShowStartScreen(false);
   }, [resetGame]);
+
+  // Title screen actions (X26).
+  const leaveTitle = useCallback(() => { setLaunchHold(false); setShowTitle(false); }, []);
+  const titleNewGame = useCallback(() => { setShowTitle(false); setShowStartScreen(true); }, []);
+  const backToTitle = useCallback(() => { setTitleSlots(readTitleSlots()); setShowStartScreen(false); setShowTitle(true); }, []);
+  const titleLoad = useCallback((key) => {
+    if (key === AUTOSAVE_KEY) { leaveTitle(); return; }
+    const raw = readSaveText(key);
+    if (!raw) return;
+    stashCurrentGame();
+    const result = importSave(raw);
+    if (result === true) leaveTitle();
+  }, [importSave, leaveTitle]);
+  const titleImport = useCallback((text) => {
+    stashCurrentGame();
+    const result = importSave(text);
+    if (result === true) leaveTitle();
+    return result;
+  }, [importSave, leaveTitle]);
+  const titleDelete = useCallback((key) => {
+    removeSave(key);
+    if (key === AUTOSAVE_KEY) {
+      // The game in memory must not come back: promote the earlier game, then reload.
+      const earlier = readSaveText(PREVIOUS_SAVE_KEY);
+      if (earlier) { try { localStorage.setItem(AUTOSAVE_KEY, earlier); } catch (e) { /* storage unavailable */ } removeSave(PREVIOUS_SAVE_KEY); }
+      window.location.reload();
+      return;
+    }
+    setTitleSlots(readTitleSlots());
+  }, []);
   const pendingStarted = useRef(false);
   useEffect(() => { if (pendingStart && !pendingStarted.current) { pendingStarted.current = true; handleStart(pendingStart); } }, [pendingStart, handleStart]);
 
@@ -205,8 +258,17 @@ const GameLayout = () => {
     return () => { delete window.__selectRegion; };
   }, [handleSelectRegion]);
 
+  if (showTitle) {
+    return (
+      <>
+        <TitleScreen slots={titleSlots} onContinue={leaveTitle} onNewGame={titleNewGame} onLoad={titleLoad} onDelete={titleDelete}
+          onImportText={titleImport} onSettings={() => setShowSettings(true)} />
+        <SettingsSheet open={showSettings} onClose={() => setShowSettings(false)} onOpenAccount={() => setShowSettings(false)} onReset={() => { setShowSettings(false); titleNewGame(); }} cloudLabel={null} />
+      </>
+    );
+  }
   if (showStartScreen) {
-    return <><StartScreen onStart={handleStart} /><OldSaveNotice /></>;
+    return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} /><OldSaveNotice /></>;
   }
 
   return (
@@ -333,7 +395,7 @@ const GameLayout = () => {
       {/* New game, asked in the game's own words (playtest audit I166). */}
       <ConfirmDialog open={confirmNewGame} title="Start a new game?" confirmLabel="New game" cancelLabel="Keep playing" danger onConfirm={goToStart} onCancel={cancelNewGame} testId="new-game-confirm">
         <p>You go to the start screen to choose a people and a world.</p>
-        <p>Your game as {state.nations[state.playerNationId]?.name || 'your people'} (turn {state.turnNumber}) stays saved on this device until the new game begins; then the new game takes its place. To keep it, export a save in Settings first.</p>
+        <p>Your game as {state.nations[state.playerNationId]?.name || 'your people'} (turn {state.turnNumber}) stays saved on this device. When the new game begins it moves to Load on the title screen.</p>
       </ConfirmDialog>
 
       {/* Onboarding (Phase H) - once ever, per browser, for a genuinely new player. Sits above
