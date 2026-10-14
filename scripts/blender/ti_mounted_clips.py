@@ -383,7 +383,8 @@ class Person:
     def __init__(self, arm, kit, axes=None, stirrups=False, weapon=True):
         self.arm, self.kit, self.stirrups = arm, kit, stirrups
         self.prefix = arm.name[:-3] if arm.name.endswith('Rig') else arm.name
-        self.meshes = [m for m in F.meshes if m.parent == arm]
+        # (every mesh on the rig: the ti_figure parts, or the older builders' ti_units meshes)
+        self.meshes = [m for m in F.meshes if m.parent == arm] or [m for m in bpy.data.objects if m.type == 'MESH' and m.parent == arm]
         loc, rot = arm.location.copy(), arm.rotation_euler.copy()
         arm.location, arm.rotation_euler = (0, 0, 0), (0, 0, 0)
         upd()
@@ -764,17 +765,21 @@ class Unit:
     """The rigs of one unit file and how each is posed per act: horses (Horse), cars (posed by a function),
     people (Person, carried by a horse or a car or standing on the ground). `acts`: the clip names in order."""
 
-    def __init__(self, archetype, acts=None):
+    def __init__(self, archetype, acts=None, table=None):
         self.archetype = archetype
         self.acts = list(acts or SETS[archetype])
+        self.ACTS = table or ACTS  # name: (frames, loop, events)
         self.rigs = []    # (armature, poser function (act, frame) -> None), in posing order
+        self.skips = {}   # armature name: ({bones never keyed}, {bones keyed in location only})
         self.events = {}
         self.loops = {}
 
-    def add(self, arm, fn, begin=None):
+    def add(self, arm, fn, begin=None, skip=(), loc_only=()):
         self.rigs.append((arm, fn, begin))
+        self.skips[arm.name] = (set(skip), set(loc_only))
 
     def run(self):
+        ACTS = self.ACTS
         store = {a.name: {} for a, _, _ in self.rigs}
         for act in self.acts:
             frames, loop, events = ACTS[act]
@@ -792,7 +797,8 @@ class Unit:
         first = self.rigs[0][0]
         for arm, _, _ in self.rigs:
             for act in self.acts:
-                write(arm, act, store[arm.name][act], ACTS[act][1], primary=(arm == first))
+                write(arm, act, store[arm.name][act], ACTS[act][1], primary=(arm == first), skip=self.skips[arm.name][0],
+                      loc_only=self.skips[arm.name][1])
         table = {}
         for act in self.acts:
             frames, loop, events = ACTS[act]
@@ -803,9 +809,10 @@ class Unit:
         return table
 
 
-def write(arm, act, frames, loop, primary=False):
+def write(arm, act, frames, loop, primary=False, skip=(), loc_only=()):
     """One action of `arm` for the clip `act` (every bone's rotation and location keyed on every frame, the
-    Tool_* bones' scale too) on a muted NLA track named `act`."""
+    Tool_* bones' scale too) on a muted NLA track named `act`. `skip`: bones left unkeyed (a turret the game
+    aims); `loc_only`: bones keyed in location only (a barrel's recoil, its aim left to the game)."""
     arm.animation_data_create()
     action = bpy.data.actions.new(act if primary else f'{act}.{arm.name}')
     arm.animation_data.action = action
@@ -813,13 +820,16 @@ def write(arm, act, frames, loop, primary=False):
     scaled = {b.name for b in arm.data.bones if b.name.startswith('Tool_')}
     for f, pose in enumerate(frames, 1):
         for name, (q, loc, sc) in pose.items():
+            if name in skip:
+                continue
             pb = arm.pose.bones[name]
             if name in last and last[name].dot(q) < 0:
                 q = -q
             last[name] = q
-            pb.rotation_quaternion = q
             pb.location = loc
-            pb.keyframe_insert('rotation_quaternion', frame=f)
+            if name not in loc_only:
+                pb.rotation_quaternion = q
+                pb.keyframe_insert('rotation_quaternion', frame=f)
             pb.keyframe_insert('location', frame=f)
             if name in scaled:
                 pb.scale = sc

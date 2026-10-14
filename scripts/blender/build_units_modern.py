@@ -426,11 +426,21 @@ def true_height():
 
 def finish(uid, parts, colors, notes, opts):
     """lib.finish; a land machine's JSON then gets its footprint and no height (tm.mark_machine: the
-    battle draws it at the people's scale, MD09); the jet's JSON gets its height (aircraft are fitted)."""
+    battle draws it at the people's scale, MD09); the jet's JSON gets its height (aircraft are fitted).
+    A vehicle with clips (ti_vehicle_clips.AUTHORS) carries them in its GLB and lists them in its JSON."""
+    import ti_vehicle_clips as VC
     h = round(true_height() * opts.get('scale', 1), 3) if opts.get('fit_height') else None
-    lib.finish(uid, parts, colors, notes, opts['budget'], opts['mounted'])
+    author = VC.AUTHORS.get(uid)
+    state = {}
+
+    def clips():
+        state['table'], state['order'] = author(parts)
+        return state['table']
+    lib.finish(uid, parts, colors, notes, opts['budget'], opts['mounted'], clips=clips if author else None)
     if opts.get('machine'):
         tm.mark_machine(uid)
+    if author:
+        VC.write_options(uid, state['table'], state['order'])
     if h:
         out = u.out_dir(uid) / f'{uid}.json'
         o = json.loads(out.read_text())

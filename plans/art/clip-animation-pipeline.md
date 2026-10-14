@@ -294,12 +294,41 @@ tables and sheets: `plans/art-pilot/mounted-clips/LOG.md`. Test: `src/battle/ren
 - **The ATGM team** (modern-ranged: AtgmRig, GunnerRig, LoaderRig): Idle, Aim-fire-reload (50 frames, `fire` 12:
   spawn the missile there; the launcher's Hull kicks about its head; `reloaded` 38), Hit, Death, DeathAlt (settle
   40). Its people stand on the ground (in place, as 7.2); in the falls the loader may step 0.25 H aside.
-- **Vehicles** (tank, AA truck, command car, technical) are not authored. The renderer's procedural turret
-  (LIMB.TURRET: a slow scan while standing, a shake while firing) stays the right tool for the aim, which only the
-  game knows; clips would add wheel and track spin, the barrel's recoil with a `fire` event and a Wreck, and should
-  leave Turret and Barrel unkeyed so the procedural yaw can still apply.
+- **Vehicles**: see 7.4.
 - **The procedural rig.** A file with clips must not also get the vertex rig's horse trot (HORSE_FRONT/BACK) or
   the rider's still legs (`staticLegs`): the clips move every leg. Units without clips keep it.
+
+### 7.4 Modern vehicles (art, 2026-10-14)
+
+Delivered on `claude/art-vehicle-clips` over `scripts/blender/ti_vehicle_clips.py`, called from the vehicles' own
+builders (build_units_modern.py, build_units_modern_irregular.py). Clip table, speeds and sheets:
+`plans/art-pilot/vehicle-clips/LOG.md`. Test: `src/battle/render/vehicleClips.test.js`.
+
+- **Units and clips.** modern-cavalry (tank), modern-support (AA truck and its gunner), modern-general (command car,
+  driver, general), modern-raider (technical and its gunner), modern-siege (howitzer and three crew): Idle (41,
+  loop), Move (loop), Fire (`fire`), Hit (10), Wreck (40, `settle` 40), and Death (40, `settle` 40: the crew killed,
+  the machine standing) where there is a crew. Several rigs per file as 7.3; crews riding a vehicle are carried by
+  its hull (their Root follows it).
+- **Wheel and track spin.** Each Move loop turns the wheels a whole number of times, so it closes; the hull rides
+  over the wheels' fixed centres. Natural ground speeds (tiles/s): tank 2.98, AA truck 1.39, command car 3.04,
+  technical 3.12, howitzer 0.84 (its crew walk beside it): play Move at actual / natural speed. The tank's road
+  wheels moved to bones of their own (RoadWheel_L0..., children of Track_L/R, body limb as before); its track
+  belts are rigid loops and stay still. The wheeled rigs' Wheel_* bones turn about their axles.
+- **Recoil.** Only the Barrel bone's position is keyed, and only Fire moves it: back along the bore at the `fire`
+  frame (tank 0.11 H, howitzer 0.22, AA guns 0.045 and the technical's MG 0.025 a shot in bursts), run out again by
+  the end (rest at the last frame). The position is in the Turret's frame along the REST bore: when the game pitches
+  the barrel, apply the same travel along the current bore (the offset's length is the recoil). The AA guns and the
+  howitzer barrel are elevated in their meshes while their Barrel bones lie level, so their recoil is along the
+  elevated bore, not the bone's axis; a rig made for pitching should point the Barrel bone along the bore.
+- **What stays unkeyed.** Turret has no track in any clip; Barrel has no rotation track. Yaw and pitch are the
+  game's (today the procedural `turret()` yaw on LIMB.TURRET): apply them on top of the clip.
+- **Wreck.** In place: the blast lifts the hull, it drops 3.5 to 5 cm onto its wheels with a list (one wheel splayed
+  on the wheeled ones) and settles from frame 22; the turret and gun stay as aimed (unkeyed), so a burnt look (dark
+  tint, smoke) is the game's effect. Crews: slumped where they stand (AA gunner), slumped in the seat (driver),
+  thrown over the side (the general) or out over the tailgate (technical), falling beside the gun (howitzer crew).
+- **Footprints** and sizes are unchanged (the JSON keeps footprint and triangleBudget); a thrown crewman lands up to
+  0.5 H beside the hull, inside the squad's spacing.
+- **The command car has no gun**: its Fire is the general's order (his arm thrown forward, `fire` at the point).
 
 ## 8. Open questions for the user
 
