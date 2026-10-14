@@ -1,0 +1,283 @@
+{
+  "file": "shared-classical-mesopotamia.glb",
+  "kind": "landmark",
+  "bytes": 5410560,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "palace": {
+      "lods": {
+        "LOD0": {
+          "triangles": 7132,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.212,
+          "depth": 1.268,
+          "height": 0.95,
+          "min_height": 0.026
+        },
+        "LOD1": {
+          "triangles": 508,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.212,
+          "depth": 1.268,
+          "height": 0.95,
+          "min_height": 0.026
+        },
+        "LOD2": {
+          "triangles": 144,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.2,
+          "depth": 1.14,
+          "height": 0.634,
+          "min_height": 0.03
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.268
+    },
+    "palace-small": {
+      "lods": {
+        "LOD0": {
+          "triangles": 2768,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.818,
+          "depth": 0.825,
+          "height": 0.87,
+          "min_height": 0.026
+        },
+        "LOD1": {
+          "triangles": 236,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.818,
+          "depth": 0.825,
+          "height": 0.87,
+          "min_height": 0.026
+        },
+        "LOD2": {
+          "triangles": 48,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.76,
+          "depth": 0.72,
+          "height": 0.614,
+          "min_height": 0.03
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.825
+    },
+    "walls-big": {
+      "lods": {
+        "LOD0": {
+          "triangles": 10512,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 9.003,
+          "depth": 9.005,
+          "height": 1.4,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 2296,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 9.003,
+          "depth": 9.002,
+          "height": 1.4,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 384,
+          "materials": [
+            "Town"
+          ],
+          "width": 8.997,
+          "depth": 8.996,
+          "height": 1.144,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.004",
+        "LOD1.004",
+        "LOD2.004"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 9.005
+    },
+    "walls-medium": {
+      "lods": {
+        "LOD0": {
+          "triangles": 8384,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.8,
+          "depth": 6.8,
+          "height": 1.01,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1928,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.8,
+          "depth": 6.8,
+          "height": 0.96,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 360,
+          "materials": [
+            "Town"
+          ],
+          "width": 6.394,
+          "depth": 6.743,
+          "height": 0.91,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.003",
+        "LOD1.003",
+        "LOD2.003"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.8
+    },
+    "walls-small": {
+      "lods": {
+        "LOD0": {
+          "triangles": 5588,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.84,
+          "depth": 4.84,
+          "height": 0.776,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1556,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.84,
+          "depth": 4.84,
+          "height": 0.726,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 300,
+          "materials": [
+            "Town"
+          ],
+          "width": 4.434,
+          "depth": 4.571,
+          "height": 0.676,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 4.84
+    }
+  },
+  "materials": [
+    "Town",
+    "Team",
+    "Ground"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "shared-classical-mesopotamia_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 839918
+    },
+    {
+      "name": "shared-classical-mesopotamia_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 1005060
+    },
+    {
+      "name": "shared-classical-mesopotamia_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 679046
+    }
+  ],
+  "passed": true
+}

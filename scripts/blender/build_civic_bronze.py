@@ -109,7 +109,7 @@ def layout(state):
         for x in (-.29,.29):ms.box('timber',(.025,.025,.38),at=(x,-.31,0),lod=1)
         ms.box('team_cloth',(.64,.34,.015),at=(0,-.2,.38),lod=1)
         ms.box('team_cloth',(.16,.014,.22),at=(.59,-.153,.31),lod=1)
-        if THEME in ('base','levant','nile','maghreb','israelite'):
+        if THEME in ('base','levant','nile','maghreb','israelite','mesopotamia'):
             ms.box('mudwall_bare',(.27,.28,.6),at=(.71,-.49,0),lod=1,taper=.82)
             ms.box('reed',(.34,.34,.025),at=(.71,-.49,.71),lod=1)
             for x in (.6,.82):ms.box('timber',(.02,.02,.11),at=(x,-.49,.6),lod=1)
