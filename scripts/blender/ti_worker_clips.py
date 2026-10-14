@@ -674,7 +674,7 @@ def hammer(name, tool, crouch, period, contact, two_hands=False, heavy=False):
     mid = dict(W, r={'Spine': (5 + low * 60, 0, 0), 'Chest': (6 + low * 40, 0, 0)}, root=(0, 0, -low - .01),
                R={'p': (-.14, -.21, .84), 'd': (0, -.55, .83)}, L=left(), ease='in')
     hit = dict(W, r={'Spine': (9 + low * 60, 0, 2), 'Chest': (12 + low * 40, 0, 5), 'Head': (-10, 0, 0)}, root=(0, 0, -low - .02),
-               R={'p': (-.10, -.26, .62), 'd': (.05, -.96, -.25)}, L=left(), ease='in')
+               R={'p': (-.10, -.26, .62 + (.05 if heavy else 0)), 'd': (.05, -.96, -.25 + (.12 if heavy else 0))}, L=left(), ease='in')
     back = dict(W, r={'Spine': (7 + low * 60, 0, 0), 'Chest': (8 + low * 40, 0, 2)}, root=(0, 0, -low - .01),
                 R={'p': (-.12, -.25, .66), 'd': (0, -.70, .70)}, L=left(), ease='out')
     q = period
