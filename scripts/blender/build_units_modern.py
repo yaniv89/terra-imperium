@@ -404,10 +404,10 @@ def m_air():
 
 
 # The foot units were rebuilt in the quality pass of 2026-10-14 by build_modern_<class>.py on
-# ti_figure.py (infantry so far); their functions here stay for reference only (atgm_launcher and
+# ti_figure.py (infantry and worker so far); their functions here stay for reference only (atgm_launcher and
 # the constants are still used by build_modern_ranged.py).
 BUILDERS = {'modern-ranged': m_ranged, 'modern-cavalry': m_cavalry, 'modern-siege': m_siege,
-            'modern-support': m_support, 'modern-worker': m_worker, 'modern-general': m_general, 'modern-air': m_air}
+            'modern-support': m_support, 'modern-general': m_general, 'modern-air': m_air}
 
 
 def true_height():
