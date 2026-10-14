@@ -43,7 +43,9 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 // v9: playtest audit CB17 and CB10, every squad at its own pace also in a mixed group (Q6), the
 // stance contract (sim/movement.js: a squad sent at a building fights back and then goes back to
 // it), the AI attacker keeps its army together itself, the AI defender hunts siege engines, sallies
-// when clearly stronger and (king+) raids an unguarded camp (sim/tacticalAI.js)).
+// when clearly stronger and (king+) raids an unguarded camp (sim/tacticalAI.js); and no pursuit in
+// a battle with bases: it ends the tick the last base building falls, the beaten side's unbroken
+// regiments withdraw in order (sim/step.js, sim/result.js)).
 // A log or a checkpoint of another version is never replayed as if it were this one.
 export const SETUP_VERSION = 9;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
