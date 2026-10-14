@@ -1,4 +1,4 @@
-import { marchUpkeep } from './routes';
+import { advanceMarches, marchUpkeep } from './routes';
 import { getOwnedRegionIds } from '../data/regions';
 import { getPool, getResearched } from './nationState';
 // src/engine/economy.js
@@ -65,7 +65,16 @@ export const getLoanSize = (state, nationId) => {
 // tribute is left out (subjects don't exist until M12). Returns zeros for any nation but the
 // player, matching calcIncome's own player-only scope.
 // `ownedUnits`: the nation's units when the caller already grouped them (supplies.js unitsByOwner).
-export const calcNationBalance = (state, nationId, knownIncome, ownedUnits = null) => {
+// The nation's units as they stand after the coming turn's march phase (the player's routes only,
+// routes.js advanceMarches), so the forecast charges the extra march upkeep the turn will charge.
+const unitsAfterMarch = (state, nationId, owned) => {
+  if (nationId !== state.playerNationId || !owned.some((u) => u.route?.length)) return owned;
+  const after = { ...state.units };
+  advanceMarches(state, after, { year: state.year });
+  return Object.values(after).filter((u) => u.ownerId === nationId);
+};
+
+export const calcNationBalance =(state, nationId, knownIncome, ownedUnits = null) => {
   const nation = state.nations[nationId];
   const units = ownedUnits || Object.values(state.units).filter((u) => u.ownerId === nationId);
   // Laws and reforms move the army's upkeep (lawRules.js unitUpkeepMult: Feudal Levy -20%, Professional Army +30%...).
@@ -85,7 +94,9 @@ export const calcNationBalance = (state, nationId, knownIncome, ownedUnits = nul
 
   const income = knownIncome || calcIncome(nationId === state.playerNationId ? state : { ...state, playerNationId: nationId, resources: getPool(state, nationId), techTree: Object.fromEntries(getResearched(state, nationId).map(id => [id, { researched: true }])) });
   // Armies that marched this turn (routes.js) cost MARCH_UPKEEP_SHARE more.
-  const marchingUpkeep = marchUpkeep(state.units, nationId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult, units);
+  // The forecast looks one turn ahead: armies with a route walk during the coming End Turn
+  // (routes.js advanceMarches, the walk resolveTurn runs first), so they are charged too (ECON-01).
+  const marchingUpkeep = marchUpkeep(null, nationId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult, unitsAfterMarch(state, nationId, units));
   const expenses = { armyUpkeep, marchingUpkeep, navyUpkeep, fortUpkeep, advisorSalaries, loanInterest };
   const totalExpenses = Object.values(expenses).reduce((sum, v) => sum + v, 0);
   return { income, expenses, net: (income.gold || 0) - totalExpenses };
