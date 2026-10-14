@@ -4,7 +4,7 @@
 // reinforcements from neighbouring provinces, and the parity harness against auto-resolve.
 import { describe, it, expect } from 'vitest';
 import { buildSetupFromArmies, reinforcementEdge } from '../setup/buildBattleSetup';
-import { createWorld } from './world';
+import { createWorld, REINFORCEMENT_ARRIVAL_TICKS } from './world';
 import { step } from './step';
 import { runHeadless } from './headless';
 import { updateFog, canSeeSquad } from './fog';
@@ -13,7 +13,6 @@ import { activateAbility, effectMult, firePower, processImpacts } from './effect
 import { applyOrder } from './orders';
 import { garrisonRoom, resolveStructureFire, updateGarrisons, updateSupply } from './objectives';
 import { attackStructure } from './combat';
-import { callCost } from './orders';
 import { updateBuildings } from './buildings';
 import { toStrategicResult } from './result';
 import { buildSpatialHash } from './pathing';
@@ -155,23 +154,24 @@ describe('commander powers', () => {
 });
 
 describe('reinforcements from neighbouring provinces', () => {
-  it('wait off-map, march in from their edge when called, and only then count in the result', () => {
+  it('march in from their edge on their own (nobody calls them, U10), then count in the result', () => {
     const s = setup({ controllers: ['player', 'player'], reinforcements: [[{ regionId: 'n1', name: 'North', edge: 'N', units: mk('r', ['cavalry', 'infantry']) }], []] });
     const w = createWorld(s);
     const rein = w.squads.filter((q) => q.reinforcement);
     expect(rein).toHaveLength(2);
-    expect(rein.every((q) => q.reserve && !q.onField)).toBe(true);
+    expect(rein.every((q) => q.reserve && !q.onField && q.enterTick === REINFORCEMENT_ARRIVAL_TICKS)).toBe(true);
+    // The old call is a harmless order now: it costs nothing and changes nothing.
     w.supply[0] = 1000;
     applyOrder(w, { side: 0, type: 'callReserve', squads: [rein[0].idx] });
-    expect(w.supply[0]).toBe(880);
+    expect(w.supply[0]).toBe(1000);
+    expect(rein[0].enterTick).toBe(REINFORCEMENT_ARRIVAL_TICKS);
     w.tick = rein[0].enterTick; enterReserves(w);
     expect(rein[0].onField).toBe(true);
     expect(rein[0].y).toBe(Q); // north edge
-    // Battle Supply starts at 100 (+1/s); a reinforcement costs 120, so the call waits for income.
-    const { result } = runHeadless(s, { orders: [{ tick: 420, side: 0, type: 'callReserve', squads: [rein[0].idx] }], maxTicks: 1000 });
-    expect(result.report.tactical.joinedReinforcements).toEqual(['r0']);
+    const { result } = runHeadless(s, { maxTicks: REINFORCEMENT_ARRIVAL_TICKS + 40 });
+    expect(result.report.tactical.joinedReinforcements).toEqual(['r0', 'r1']);
     expect(result.attackerUnits.some((u) => u.id === 'r0')).toBe(true);
-    expect(result.attackerUnits.some((u) => u.id === 'r1')).toBe(false);
+    expect(result.attackerUnits.some((u) => u.id === 'r1')).toBe(true);
   });
 
   it('bearings: the origin province is west; the others keep their real direction around it', () => {
@@ -342,10 +342,11 @@ describe('the region\'s buildings on the battlefield', () => {
     expect(toStrategicResult(market).report.tactical.razed).toEqual(['economy']);
   });
 
-  it('a Barracks makes the defender\'s reserves cheaper; a Library speeds its powers; a Workshop repairs the keep', () => {
-    const w = withBuildings([B('military'), B('science'), B('industry')], { powers: [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]] });
-    const reserve = w.squads.find((q) => q.side === 1) || { side: 1, reinforcement: null };
-    expect(callCost({ ...reserve, side: 1, reinforcement: null }, w)).toBeLessThan(callCost({ ...reserve, side: 1, reinforcement: null }));
+  it('a Barracks brings the defender\'s reinforcements sooner; a Library speeds its powers; a Workshop repairs the keep', () => {
+    const rein = { reinforcements: [[], [{ regionId: 'n1', name: 'North', edge: 'N', units: mk('r', ['infantry']) }]] };
+    const w = withBuildings([B('military'), B('science'), B('industry')], { powers: [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], ...rein });
+    const without = withBuildings([], rein);
+    expect(w.squads.find((q) => q.reinforcement).enterTick).toBeLessThan(without.squads.find((q) => q.reinforcement).enterTick);
     w.supply[1] = 500;
     firePower(w, 1, 'rallyCry', 0, 0);
     const plain = withBuildings([]); plain.supply[1] = 500; firePower(plain, 1, 'rallyCry', 0, 0);

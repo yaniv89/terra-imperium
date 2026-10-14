@@ -7,7 +7,7 @@
 // included when it changed (every few ticks) to keep frames small.
 import { canSeeSquad } from '../sim/fog';
 import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
-import { callCost } from '../sim/orders';
+import { baseCount, hasBase } from '../sim/base';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
 import { ecoView } from '../sim/economy';
 
@@ -22,6 +22,8 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
   assimilation: w.assimilation,
   battleType: w.setup.battleType || 'field',
   beachhead: w.beachhead || 0,
+  // Base buildings standing per side (base.js), null in a battle without bases.
+  base: hasBase(w) ? [baseCount(w, 0), baseCount(w, 1)] : null,
   ended: w.ended,
   pendingOrders: pendingOrders.length,
   fog: includeFog && w.fog ? w.fog[playerSide].slice() : null,
@@ -38,7 +40,6 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
     visible: canSeeSquad(w, playerSide, q),
     hidden: (q.hiddenUntil || -1) > w.tick,
     reinforcement: q.reinforcement ? { name: q.reinforcement.name, edge: q.reinforcement.edge } : null,
-    callCost: callCost(q, w),
     order: q.order.type, orderX: q.order.x ?? null, orderY: q.order.y ?? null,
     target: q.target, targetKind: q.targetKind,
     // Swung or fired within its last attack cycle: in the thick of it, even while being jostled.

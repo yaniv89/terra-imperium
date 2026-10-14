@@ -6,8 +6,6 @@
 // fight straightforwardly; prince uses commander powers and abilities; king adds cavalry flanking
 // and missiles; emperor kites with its archers too. It never uses a nuclear strike.
 import { distSq, isqrt } from './fixed';
-import { fieldCap, fieldCount } from './world';
-import { callCost } from './orders';
 import { isFighting } from './combat';
 import { canSeeSquad } from './fog';
 import { getSquadAbilities, powerState, POWERS } from './effects';
@@ -16,15 +14,16 @@ import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 import { makeGrid, rebuildGrid } from './spatial';
 import { thinkEconomy } from './economyAI';
 import { generalsOf } from './squadLists';
+import { baseBuildings, hasBase } from './base';
 
 const AI_CELL = 4 * Q;
 
 export const AI_DIFFICULTY = {
-  settler: { thinkEvery: 24, retreatAt: 0.15, reserves: false, powers: false, abilities: false, flank: false, missiles: false },
-  chieftain: { thinkEvery: 20, retreatAt: 0.2, reserves: true, powers: false, abilities: false, flank: false, missiles: false },
-  prince: { thinkEvery: 10, retreatAt: 0.25, reserves: true, powers: true, abilities: true, flank: false, missiles: false },
-  king: { thinkEvery: 6, retreatAt: 0.3, reserves: true, powers: true, abilities: true, flank: true, missiles: true },
-  emperor: { thinkEvery: 4, retreatAt: 0.3, reserves: true, powers: true, abilities: true, flank: true, missiles: true, kite: true }
+  settler: { thinkEvery: 24, retreatAt: 0.15, powers: false, abilities: false, flank: false, missiles: false },
+  chieftain: { thinkEvery: 20, retreatAt: 0.2, powers: false, abilities: false, flank: false, missiles: false },
+  prince: { thinkEvery: 10, retreatAt: 0.25, powers: true, abilities: true, flank: false, missiles: false },
+  king: { thinkEvery: 6, retreatAt: 0.3, powers: true, abilities: true, flank: true, missiles: true },
+  emperor: { thinkEvery: 4, retreatAt: 0.3, powers: true, abilities: true, flank: true, missiles: true, kite: true }
 };
 const DEFENSE_RADIUS = 24 * Q;
 const RAID_GUARD_RADIUS = 14 * Q;
@@ -53,20 +52,15 @@ const nearest = (list, x, y, maxD = Infinity) => {
   return best;
 };
 
-const callReinforcementsAndReserves = (w, side, orders) => {
-  let slots = fieldCap(w) - fieldCount(w, side);
-  let supply = w.supply[side];
-  // Plain reserves first (cheaper), then neighbouring provinces' troops.
-  w.squads
-    .filter((q) => q.side === side && q.reserve && q.alive && q.enterTick < 0 && !q.fled)
-    .sort((a, b) => (a.reinforcement ? 1 : 0) - (b.reinforcement ? 1 : 0) || b.strength - a.strength)
-    .forEach((q) => {
-      const cost = callCost(q, w);
-      if (slots <= 0 || supply < cost) return;
-      orders.push({ side, type: 'callReserve', squads: [q.idx] });
-      slots -= 1; supply -= cost;
-    });
+// The enemy's nearest standing base building (base.js) to (x, y), as an attack target, or null.
+// In a battle with bases that is what wins it (Q3, Q4): the keep alone is not enough.
+const nearestBase = (w, enemySide, x, y) => {
+  let best = null; let bestD = Infinity;
+  baseBuildings(w, enemySide).forEach((b) => { const d = distSq(b.x, b.y, x, y); if (d < bestD) { bestD = d; best = b; } });
+  return best ? { kind: best.kind, index: best.index } : null;
 };
+// Has the enemy no army left on the field (only laborers and generals, or nothing)?
+const enemyArmyGone = (w, side) => !w.squads.some((q) => q.side !== side && !q.worker && !q.isGeneral && q.alive && !q.fled && q.onField && !q.routed);
 
 // The 8×8-tile cell holding the most visible enemy strength with none of our own squads in it.
 const densestEnemyCluster = (w, side, enemies) => {
@@ -142,6 +136,8 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
       const tower = w.structures.find((s) => s.alive && s.kind === 'tower' && s.damage > 0); // an armed one
       const s = tower || (keep.alive ? keep : null);
       if (s) { orders.push({ side, type: 'attack', squads: [q.idx], target: { kind: 'structure', index: w.structures.indexOf(s) } }); return; }
+      const goal = hasBase(w) ? nearestBase(w, SIDE_DEFENDER, q.x, q.y) : null;
+      if (goal) { orders.push({ side, type: 'attack', squads: [q.idx], target: goal }); return; }
     }
     // King+: cavalry swings wide around the flank of whatever it's going for.
     if (cfg.flank && q.classId === 'cavalry' && enemies.length) {
@@ -154,12 +150,15 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
   if (!group.length) return;
   // Nothing in sight: assault the keep — it's the objective, and closing in reveals whoever is
   // still hiding around it.
-  if (!enemies.length) {
-    orders.push({ side, type: 'attackMove', squads: group, x: keep.x - 2 * Q, y: keep.y, formation: 'line' });
-    return;
-  }
   const cx = Math.trunc(group.reduce((s, i) => s + w.squads[i].x, 0) / group.length);
   const cy = Math.trunc(group.reduce((s, i) => s + w.squads[i].y, 0) / group.length);
+  if (!enemies.length) {
+    // With bases, once the keep is down the rest of the base must burn too (base.js).
+    const goal = hasBase(w) && !keep.alive ? nearestBase(w, SIDE_DEFENDER, cx, cy) : null;
+    if (goal) orders.push({ side, type: 'attack', squads: group, target: goal });
+    else orders.push({ side, type: 'attackMove', squads: group, x: keep.x - 2 * Q, y: keep.y, formation: 'line' });
+    return;
+  }
   const foe = nearest(enemies, cx, cy);
   // Step toward the objective in bounded hops, so the line re-forms instead of stringing out.
   const tx = foe ? foe.x : keep.x - 2 * Q; const ty = foe ? foe.y : keep.y;
@@ -206,6 +205,16 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
       if (d < bestD) { bestD = d; threat = foe; }
     });
   }
+  // With bases: once the attacker has no army left on the field, the defenders go out and burn its
+  // camp (the battle is not over while its base stands: base.js), rather than wait for the clock.
+  if (hasBase(w) && !threat && enemyArmyGone(w, side)) {
+    const goal = nearestBase(w, SIDE_ATTACKER, keep.x, keep.y);
+    if (goal) {
+      const idle = mine.filter((q) => q.order.type !== 'attack' && q.order.type !== 'garrison' && q.target < 0);
+      if (idle.length) orders.push({ side, type: 'attack', squads: idle.map((q) => q.idx), target: goal });
+      return;
+    }
+  }
   // The keep being taken beats everything else: everyone back to it.
   if (w.assimilation > 0) {
     mine.forEach((q) => orders.push({ side, type: 'attackMove', squads: [q.idx], x: keep.x, y: keep.y }));
@@ -247,7 +256,6 @@ export const thinkAI = (w, side, orders) => {
   if (w.tick % cfg.thinkEvery !== side) return; // the two sides think on different ticks
   const mine = own(w, side);
   const enemies = visibleEnemies(w, side);
-  if (cfg.reserves) callReinforcementsAndReserves(w, side, orders);
   const start = w.setup.sides[side].units.reduce((s, u) => s + u.strength, 0) || 1;
   const now = w.squads.filter((q) => q.side === side && q.alive && !q.fled && !q.reinforcement && !q.worker && !q.isGeneral).reduce((s, q) => s + q.strength, 0);
   // An attacking AI that has lost most of its army withdraws rather than fighting to the last.

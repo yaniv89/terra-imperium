@@ -56,7 +56,18 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
   const mine = w.eco.buildings.filter((b) => b.side === side && ecoAlive(w, b));
   const hq = mine.find((b) => BUILDINGS[b.type].hq && b.built);
   const workers = w.squads.filter((q) => q.worker && q.side === side && q.alive && !q.fled && q.onField);
-  if (!hq) return;
+  const roles = trainableRoles(ageId);
+  const prod = mine.filter((b) => PRODUCTION.includes(b.type));
+  // Keep the production buildings training (a little food kept back for laborers). With bases the
+  // keep or the camp may fall while the barracks stand (base.js, Q4): they train on regardless.
+  const keepTraining = () => prod.filter((b) => b.built).forEach((b) => {
+    if (b.queue.length >= cfg.queue) return;
+    const role = BUILDINGS[b.type].trains.find((r) => roles.includes(r));
+    if (!role || !afford(stock, UNITS[role].cost, 40)) return;
+    spend(stock, UNITS[role].cost);
+    orders.push({ side, type: 'train', building: b.idx, role });
+  });
+  if (!hq) { keepTraining(); return; }
 
   // 1. Idle laborers to whatever resource is furthest under its share.
   const onRes = { food: 0, materials: 0, gold: 0 };
@@ -113,8 +124,6 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
   }
 
   // 5. Production, then (defending) towers: one new site a think.
-  const roles = trainableRoles(ageId);
-  const prod = mine.filter((b) => PRODUCTION.includes(b.type));
   if (!sites.some((b) => b.type !== 'house') && workers.length >= Math.min(6, cfg.workers)) {
     const want = PRODUCTION.filter((t) => buildableFor(ageId).includes(t) && roles.includes(BUILDINGS[t].trains[0])).slice(0, cfg.prod);
     const next = want.find((t) => !prod.some((b) => b.type === t));
@@ -122,12 +131,6 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
     else if (side !== SIDE_ATTACKER && cfg.towers && mine.filter((b) => b.type === 'tower').length < cfg.towers) build('tower');
   }
 
-  // 6. Keep the production buildings training (a little food kept back for laborers).
-  prod.filter((b) => b.built).forEach((b) => {
-    if (b.queue.length >= cfg.queue) return;
-    const role = BUILDINGS[b.type].trains.find((r) => roles.includes(r));
-    if (!role || !afford(stock, UNITS[role].cost, 40)) return;
-    spend(stock, UNITS[role].cost);
-    orders.push({ side, type: 'train', building: b.idx, role });
-  });
+  // 6. Keep the production buildings training.
+  keepTraining();
 };
