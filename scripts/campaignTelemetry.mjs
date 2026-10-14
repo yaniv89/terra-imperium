@@ -28,7 +28,7 @@ const buildingCount = (city) => Object.values(city.buildings?.categories || {}).
  * major's demand and an independent's tribute demand; default 'refuse' (the passive baseline).
  * Everything it answers is recorded in `log` for the tribute metrics.
  */
-export const createScriptedPlayer = ({ engine, demands = 'refuse', production = true, settle = true, opinionOf = null }) => {
+export const createScriptedPlayer = ({ engine, demands = 'refuse', production = true, settle = true, rush = false, opinionOf = null }) => {
   const { gameReducer, ActionTypes } = engine;
   const log = { demands: [], tribute: [], peace: 0, defenses: 0, events: 0, joins: 0, queued: 0, settled: 0 };
   const answer = (state) => {
@@ -53,7 +53,7 @@ export const createScriptedPlayer = ({ engine, demands = 'refuse', production = 
       const counts = engine.nationCounts(s)[me] || { settlers: 0, outposts: 0, landUnits: 0 };
       const owned = Object.values(s.regions).filter((c) => c.owner === me).length;
       const ageId = engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me));
-      const ctx = { researched: engine.getResearched(s, me), ageId, turnNumber: s.turnNumber, citiesOwned: owned || 1, speedMult: engine.speedCostMult(s.gameSpeed, ageId), greatProjects: s.greatProjects || {}, units: s.units, counts: { ...counts } };
+      const ctx = { researched: engine.getResearched(s, me), ageId, turnNumber: s.turnNumber, citiesOwned: owned || 1, speedMult: engine.speedCostMult(s.gameSpeed, ageId), trainMult: engine.speedTrainMult ? engine.speedTrainMult(s.gameSpeed, ageId) : undefined, greatProjects: s.greatProjects || {}, units: s.units, counts: { ...counts } };
       for (const city of Object.values(s.regions)) {
         if (city.owner !== me || city.outpost || city.razing || city.tile == null || city.production?.current) continue;
         const item = engine.chooseProduction(s, city, ctx);
@@ -61,6 +61,18 @@ export const createScriptedPlayer = ({ engine, demands = 'refuse', production = 
         const before = s;
         s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: city.id, item } });
         if (s !== before && s.regions[city.id]?.production?.current) { log.queued += 1; if (item.kind === 'unit') ctx.counts.landUnits += 1; }
+      }
+    }
+    // RUSH=1 (CB04): the player also buys what its cities lack, like the AI (aiEconomy.js
+    // tryRushProduction): the front order of each city, biggest first, when it would take more than
+    // 3 turns and the price leaves a reserve of 200 gold. Gold spent this way is in log.rushGold.
+    if (rush && engine.rushQuote) {
+      const mine = Object.values(s.regions).filter((c) => c.owner === me && c.production?.current).sort((a, b) => (b.size - a.size) || (a.id < b.id ? -1 : 1));
+      for (const city of mine) {
+        const q = engine.rushQuote(s, city.id, 0);
+        if (!q.ok || !(q.turns > 3) || s.resources.gold - q.gold < 200) continue;
+        s = gameReducer(s, { type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: city.id, index: 0 } });
+        log.rushes = (log.rushes || 0) + 1; log.rushGold = (log.rushGold || 0) + q.gold;
       }
     }
     // Settlers without a destination walk to the best site in reach (the AI's own site search), so the
