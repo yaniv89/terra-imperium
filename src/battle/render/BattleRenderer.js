@@ -73,7 +73,7 @@ const VIEW_TILES = 30;       // landscape; portrait phones get a closer camera (
 const PHONE_VIEW_TILES = 18; // a landscape phone (short side <= 500 css px)
 const BANNER_HEIGHT = 0.62;  // of the old pole: standards above the men, not a forest over them
 const BANNER_MIN_ZOOM = 0.6; // zoomed further out only generals and the selection carry one
-const FAR_MARK_PX = 9;       // soldiers shorter than this on screen: every squad gets its side's disc (I218)
+const FAR_MARK_PX = 10;      // soldiers shorter than this on screen: every squad gets its side's disc (I218)
 const FAR_MARK_MIN_PX = 26;  // ...at least this wide on screen
 const WRECK_SMOKE_LIFE = 3.5; // seconds a wreck's smoke puff takes to rise and fade (X27)
 const BAR_MIN_ZOOM = 0.7;    // strength bars of fighting squads from this zoom in
@@ -193,7 +193,8 @@ export class BattleRenderer {
     this.slowFrames = 0; this.fastFrames = 0;
     this.renderer.setPixelRatio(this.dpr);
     this.renderer.toneMapping = ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    // I214: a little brighter than 1.05; on a phone (OLED, low brightness outdoors) the field read as dark.
+    this.renderer.toneMappingExposure = 1.18;
     this.renderer.shadowMap.enabled = BATTLE_GRAPHICS.shadows;
     // three r186 folded PCFSoftShadowMap into PCFShadowMap (now soft: Vogel-disk filtering sized by
     // shadow.radius); asking for PCFSoft only logs a deprecation warning.
@@ -226,7 +227,7 @@ export class BattleRenderer {
     this.time = 0;
 
     // Less flat fill than before, a stronger sun: shadows read as shadows and ground the troops.
-    this.scene.add(new HemisphereLight('#e3eef8', '#5a503f', 0.95));
+    this.scene.add(new HemisphereLight('#e3eef8', '#6b604c', 1.05));
     // A low warm sun from the side, casting soft shadows that follow the camera around the field.
     this.sun = new DirectionalLight('#ffe7c2', 3.1);
     this.sun.castShadow = true;
