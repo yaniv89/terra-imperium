@@ -48,7 +48,7 @@ def town(size, v, kit=mb, seed=None, layouts=None):
         taken.append(ml.Rect(gx, gy, 0, 0.78, 0.18))
         slots = [(s, r) for (s, r) in slots if not r.overlaps(taken[-1], 0.03)]
     slots = ml.fill_houses(pick, size, slots, taken)
-    reed = {i: (s['kind'] == 'poor' and pick.random() < REED_SHARE[size]) for i, (s, _r) in enumerate(slots)}
+    reed = {i: (s['kind'] == 'poor' and pick.random() < spec.get('reed', REED_SHARE[size])) for i, (s, _r) in enumerate(slots)}
 
     def layout(ms, rng):
         for (kind, x, y, w, d, h, yaw) in spec['landmarks']:
@@ -76,6 +76,9 @@ def town(size, v, kit=mb, seed=None, layouts=None):
             kit.bundles_at(ms, rng, x, y, yaw=pick.uniform(0, 180))
         for (x, y) in ml.scatter(pick, size, occupied, 3, radius=0.08, rmin=0.35, rmax=0.8):
             kit.bits_at(ms, rng, x, y, 4)
+        if spec.get('noria'):  # later ages: a canal with a water wheel in a gap at the edge
+            for (x, y) in ml.scatter(pick, size, occupied, 1, radius=0.34, rmin=0.5, rmax=0.84):
+                kit.canal_noria(ms, rng, x, y, yaw=ml.facing(x, y) + 90)
     return layout, len(slots), len(stalls)
 
 

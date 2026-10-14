@@ -80,6 +80,9 @@ if not any(n == 'mesopotamia_bronze' for n, _ in tt.EXTRA_MATERIALS):
     tt.EXTRA_MATERIALS.append(('mesopotamia_bronze', make_materials))
 
 EARTH_GROUND = dict(mat='msb_earth')
+# the house walls (two tones so neighbours differ): later ages' kits set their own stuff here
+HOUSE_WALLS = ['msb_plaster', 'msb_plaster2']
+POOR_WALLS = ['msb_brick', 'msb_plaster2']
 
 
 # ---- basic parts --------------------------------------------------------------------------------
@@ -314,7 +317,7 @@ def poor_house(ms, rng, x, y, w, d, yaw=None, side=None, reed=False, yard=0.0):
     h = 0.26
     rd = max(0.26, 0.58 * d)
     y0 = D - m - rd
-    wall = 'msb_brick' if rng.random() < 0.55 else 'msb_plaster2'
+    wall = POOR_WALLS[0] if rng.random() < 0.55 else POOR_WALLS[1]
     footing(ms, f, -W + m, W - m, y0, D - m, lod=0)
     top = block(ms, f, -W + m, W - m, y0, D - m, G, h, wall=wall)
     side = side if side is not None else rng.choice([-1, 1])
@@ -348,7 +351,7 @@ def court_house(ms, rng, x, y, w, d, yaw=None, rich=False, side=None, upper=None
     posts round the court, a baked-brick door frame and a team awning over the door."""
     f = tm.house_frame(x, y, tm.facing_centre(x, y) if yaw is None else yaw)
     W, D, m = w / 2, d / 2, 0.012
-    wall = 'msb_plaster' if (rich or rng.random() < 0.5) else 'msb_plaster2'
+    wall = HOUSE_WALLS[0] if (rich or rng.random() < 0.5) else HOUSE_WALLS[1]
     h = 0.3 if rich else 0.28
     fd = max(0.11, 0.21 * d)
     bd = max(0.13, 0.3 * d)

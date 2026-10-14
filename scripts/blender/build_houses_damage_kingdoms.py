@@ -22,14 +22,14 @@ import build_houses_damage_bronze as hb  # noqa: E402
 import build_houses_damage_classical as hc  # noqa: E402
 
 KIT_THEMES = hc.KIT_THEMES
-PROC_THEMES = ('base', 'europe', 'indic', 'levant', 'sinic')
+PROC_THEMES = ('base', 'europe', 'indic', 'levant', 'sinic', 'mesopotamia')
 # rubble: (main heap material, bits) in the kit's building stuff
 RUBBLE = {
     'base': ('kg_wallstone', 'slate'), 'europe': ('ek_stone', 'ek_slate'), 'levant': ('lvk_brick', 'timber'),
     'indic': ('ink_sandstone', 'ink_tile'), 'sinic': ('snk_brick', 'snk_tile'), 'americas': ('stone', 'thatch'),
     'steppe': ('mud', 'timber'), 'monsoon': ('timber', 'thatch'), 'eastafrica': ('stone', 'thatch'),
     'maghreb': ('mudwall_bare', 'timber'), 'nile': ('mudwall_bare', 'reed'), 'westafrica': ('mud', 'thatch'),
-    'israelite': ('stone', 'timber'),
+    'israelite': ('stone', 'timber'), 'mesopotamia': ('mkg_brick', 'mkg_wood'),
 }
 # the kits' house_kind() areas: poor under 0.3, rich 0.6 and up
 SIZES = {'poor': (0.6, 0.48), 'common': (0.8, 0.66), 'rich': (0.9, 0.7)}
