@@ -2,8 +2,8 @@
 // and name with the documented fallbacks, a kit file parses into instanced pieces, and nothing is
 // found (the placeholders stay) when the folders are empty.
 import { describe, it, expect } from 'vitest';
-import { Group, Matrix4, Color } from 'three';
-import { createArtIndex, ageChain, vegetationChain, assetKey } from './artIndex';
+import { Group, Matrix4, Color, Quaternion, Vector3 } from 'three';
+import { createArtIndex, ageChain, vegetationChain, assetKey, VEGETATION_KITS } from './artIndex';
 import { ART } from './artFiles';
 import { parseKit, loadKit, kitObject, objectSize } from './kitLoader';
 import { KitInstances } from './kitInstances';
@@ -195,38 +195,65 @@ describe('vegetation kits on the battlefield', async () => {
   };
   const speciesKit = async (names) => parseKit((await parseGlbBytes(kitGlb(names.map((name, i) => ({ name, size: 0.2 + 0.05 * (i % 3) }))))).scene);
 
-  it('mixes the species and sizes of the kit and its species file, the same on every build', async () => {
-    const own = await speciesKit(['tree-s', 'tree-m', 'tree-l', 'tree-s-2', 'tree-m-2', 'tree-l-2', 'rock-m']);
-    const more = await speciesKit(['tree-s-3', 'tree-m-3', 'tree-l-3']);
+  it('mixes the species and sizes of the kit in one mesh a species and chunk, the same on every build', async () => {
+    const own = await speciesKit(['tree-s', 'tree-m', 'tree-l', 'tree-s-2', 'tree-m-2', 'tree-l-2', 'tree-s-3', 'tree-m-3', 'tree-l-3', 'rock-m']);
     const build = async () => {
       const { field, pine, oak } = wood();
-      const r = { track: (x) => x, camera: { zoom: 3 }, setup: { terrain: 'forest' } };
-      const v = new VegetationProps(r, { pine: [pine], oak: [oak] }, { ref: { url: 'test://own' }, more: { url: 'test://more' }, load: async (u) => (u.includes('more') ? more : own) });
+      const r = { track: (x) => x, camera: { zoom: 3 }, setup: { terrain: 'forest', seed: 5 } };
+      const v = new VegetationProps(r, { pine: [pine], oak: [oak] }, { ref: { url: 'test://own' }, load: async () => own });
       await v.ready;
       return { v, field, pine, oak };
     };
     const a = await build();
     expect(a.pine.visible).toBe(false); expect(a.oak.visible).toBe(false);
-    const stats = a.v.treeStats();
-    expect(stats).toMatchObject({ trees: 400, drawn: 400, species: 3, lod: 0 });
+    expect(a.v.treeStats()).toMatchObject({ trees: 400, drawn: 400, species: 3, lod: 0, meshes: 3 }); // one chunk, three species: three draw calls
     const perVariant = {};
-    a.v.trees.near.forEach((n) => { perVariant[`${n.species}/${n.size}`] = (perVariant[`${n.species}/${n.size}`] || 0) + n.mesh.count; });
+    a.v.trees.meshes.forEach((m) => m.sizes.forEach((size) => { perVariant[`${m.species}/${size}`] = (perVariant[`${m.species}/${size}`] || 0) + 1; }));
     expect(Object.keys(perVariant).length).toBe(9); // three species, three sizes each
     Object.values(perVariant).forEach((n) => expect(n).toBeGreaterThan(8));
-    expect(a.field.children.filter((m) => m.visible).length).toBe(a.v.trees.near.length);
+    // the sizes are scales of one geometry: a large tree is drawn bigger than a small one
+    const scaleOf = (m, j) => new Matrix4().fromArray(m.mesh.instanceMatrix.array, j * 16).getMaxScaleOnAxis();
+    a.v.trees.meshes.forEach((m) => {
+      const avg = (size) => { const js = m.sizes.map((s, j) => (s === size ? j : -1)).filter((j) => j >= 0); return js.reduce((t, j) => t + scaleOf(m, j), 0) / js.length; };
+      expect(avg(2)).toBeGreaterThan(avg(0));
+    });
     // deterministic: a second build of the same field draws the same trees in the same places
     const b = await build();
-    const where = (v) => v.trees.near.map((n) => [n.species, n.size, n.mesh.count, Array.from(n.mesh.instanceMatrix.array).join()]).sort().join('|');
+    const where = (v) => v.trees.meshes.map((m) => [m.species, m.mesh.count, Array.from(m.mesh.instanceMatrix.array).join()]).sort().join('|');
     expect(where(b.v)).toBe(where(a.v));
     a.v.dispose();
     expect(a.field.children.length).toBe(2); // only the procedural chunks are left
+  });
+
+  it('turns wind-bent species to one wind per battle, give or take a little', async () => {
+    const { treeSpecies: rows, leanOf, windYaw } = await import('./treeMix');
+    const own = await speciesKit(['tree-s', 'tree-m', 'tree-l']);
+    // shift the medium tree's crown off its foot along +x: a wind-bent tree
+    const bent = { ...own, objects: { ...own.objects, 'tree-m': { ...own.objects['tree-m'], box: { min: { x: 0.0, y: 0, z: -0.05 }, max: { x: 0.3, y: 0.4, z: 0.05 } } } } };
+    expect(rows(bent)[0][1]).toBe(bent.objects['tree-m']);
+    expect(leanOf(bent.objects['tree-m'].box)).toBeCloseTo(0);
+    expect(leanOf({ min: { x: -0.1, y: 0, z: -0.1 }, max: { x: 0.1, y: 0.5, z: 0.1 } })).toBeNull();
+    const yaws = async (seed) => {
+      const { pine, oak } = wood();
+      const v = new VegetationProps({ track: (x) => x, camera: { zoom: 3 }, setup: { terrain: 'forest', seed } }, { pine: [pine], oak: [oak] }, { ref: { url: 'test://bent' }, load: async () => bent });
+      await v.ready;
+      const out = [];
+      v.trees.meshes.forEach(({ mesh }) => { for (let j = 0; j < mesh.count; j++) { const q = new Quaternion(); new Matrix4().fromArray(mesh.instanceMatrix.array, j * 16).decompose(new Vector3(), q, new Vector3()); out.push(new Vector3(1, 0, 0).applyQuaternion(q)); } });
+      return out;
+    };
+    const leanAngle = (d) => Math.atan2(-d.z, d.x);
+    const diff = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+    const a = await yaws(5);
+    a.forEach((d) => expect(diff(leanAngle(d), windYaw(5))).toBeLessThan(0.27));
+    const b = await yaws(6);
+    expect(diff(leanAngle(b[0]), leanAngle(a[0]))).toBeGreaterThan(0.01); // another battle, another wind
   });
 
   it('thins the wood at far zoom (fewer trees, nested, one mesh a species) and never touches the procedural chunks it hid', async () => {
     const own = await speciesKit(['tree-s', 'tree-m', 'tree-l', 'tree-s-2', 'tree-m-2', 'tree-l-2']);
     const { pine, oak } = wood();
     const r = { track: (x) => x, camera: { zoom: 3 }, setup: { terrain: 'forest' } };
-    const v = new VegetationProps(r, { pine: [pine], oak: [oak] }, { ref: { url: 'test://own' }, more: null, load: async () => own });
+    const v = new VegetationProps(r, { pine: [pine], oak: [oak] }, { ref: { url: 'test://own' }, load: async () => own });
     await v.ready;
     const drawnAt = (zoom) => { v.update(zoom); return v.treeStats(); };
     const near = drawnAt(3); const mid = drawnAt(1); const far = drawnAt(0.6);
@@ -237,9 +264,9 @@ describe('vegetation kits on the battlefield', async () => {
     expect(far.drawn / near.drawn).toBeGreaterThan(KEEP_AT_LOD[2] - 0.12);
     expect(far.drawn / near.drawn).toBeLessThan(KEEP_AT_LOD[2] + 0.12);
     expect(far.meshes).toBe(2); // one per species in the chunk, not one per size
-    v.trees.near.forEach((n) => expect(n.mesh.visible).toBe(false));
+    expect(near.meshes).toBe(2); // the same meshes close up
     // the far trees are the first of each mesh's rank order, so the ones LOD2 keeps are kept at LOD1 too
-    v.trees.far.forEach((f) => { expect(f.ranks).toEqual([...f.ranks].sort((x, y) => x - y)); expect(keptCount(f.ranks, 2)).toBeLessThanOrEqual(keptCount(f.ranks, 1)); });
+    v.trees.meshes.forEach((f) => { expect(f.ranks).toEqual([...f.ranks].sort((x, y) => x - y)); expect(keptCount(f.ranks, 2)).toBeLessThanOrEqual(keptCount(f.ranks, 1)); });
     expect(pine.count).toBe(200); expect(oak.count).toBe(200); // the procedural instances are untouched
     drawnAt(3);
     expect(v.treeStats().drawn).toBe(400);
@@ -274,18 +301,13 @@ describe('tree species picking (treeMix.js)', async () => {
   });
 });
 
-describe('the steppe kit and the species files', () => {
-  it('a steppe battle reads vegetation-steppe.glb, and only an exact kit takes a species file', () => {
-    const a = idx('battle/nature/vegetation-temperate.glb', 'battle/nature/vegetation-steppe.glb', 'battle/nature/vegetation-conifer-species.glb');
+describe('the steppe kit', () => {
+  it('a steppe battle reads vegetation-steppe.glb (and a desert battle without its kit falls back to it)', () => {
+    const a = idx('battle/nature/vegetation-temperate.glb', 'battle/nature/vegetation-steppe.glb');
     expect(a.vegetation('steppe').kit).toBe('steppe');
-    expect(a.vegetation('desert').kit).toBe('steppe'); // desert falls back to steppe before temperate
-    expect(a.vegetationSpecies('conifer').key).toBe('battle/nature/vegetation-conifer-species.glb');
-    expect(a.vegetationSpecies('temperate')).toBeNull();
-    expect(a.vegetation('steppe').key).not.toBe(a.vegetationSpecies('conifer').key);
+    expect(a.vegetation('desert').kit).toBe('steppe');
   });
-  it('ships the steppe kit and the three species files the game reads', () => {
-    expect(ART.vegetation('steppe')?.kit).toBe('steppe');
-    ['conifer', 'tropical', 'cold'].forEach((k) => expect(ART.vegetationSpecies(k), k).not.toBeNull());
-    expect(ART.vegetationSpecies('temperate')).toBeNull();
+  it('ships all seven kits, each its own file', () => {
+    VEGETATION_KITS.forEach((k) => expect(ART.vegetation(k)?.kit, k).toBe(k));
   });
 });
