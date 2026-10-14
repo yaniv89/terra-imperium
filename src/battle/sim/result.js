@@ -10,6 +10,10 @@ import { economyReport } from './economy';
 // can't be farmed (one attack per stack per turn already holds).
 export const COMMAND_XP_BONUS_CAP = 20;
 const CLOCK_ENDS = new Set(['timeLimit', 'fieldHeld', 'farBankHeld']);
+// A base battle ends the tick the last base building falls, with no pursuit (the user's ruling,
+// 2026-10-14): the beaten side's unbroken regiments withdraw in order, as on Auto (autoBattle.js
+// autoDispositions); only its broken (routed) ones still on the field are lost.
+const BASE_ENDS = new Set(['baseDestroyed', 'campDestroyed']);
 const xpBonusFor = (q) => Math.min(COMMAND_XP_BONUS_CAP, Math.floor(q.damageDealt / 150));
 
 export const toStrategicResult = (w) => {
@@ -18,6 +22,9 @@ export const toStrategicResult = (w) => {
   // Workers and trained auxiliaries (the battle economy) are not campaign units: they are reported
   // in `tactical.economy` (RTS plan 6.5: auxiliaries demobilise after the battle).
   const tookPart = (q) => !q.eco && (!q.reinforcement || q.joined);
+  const reason = w.ended?.reason;
+  const loserSide = w.ended?.outcome === 'attacker' ? SIDE_DEFENDER : w.ended?.outcome === 'defender' ? SIDE_ATTACKER : -1;
+  const withdraws = (q) => !q.routed && (CLOCK_ENDS.has(reason) || (BASE_ENDS.has(reason) && q.side === loserSide));
   const bySide = (side) => w.squads.filter((q) => q.side === side && tookPart(q)).map((q) => ({
     ...q.original,
     strength: Math.max(0, Math.min(q.startStrength, q.strength)),
@@ -26,7 +33,7 @@ export const toStrategicResult = (w) => {
     // How it left the battle (src/engine/battleOutcome.js, master plan 6.9): a field battle's
     // loser loses the units still on the field; the ones that left by an exit step back a tile.
     // At the clock nobody broke: an unbroken squad still on the field withdraws in order (as on Auto).
-    disposition: !q.alive || q.strength <= 0 ? 'dead' : q.fled ? 'fled' : q.onField ? (CLOCK_ENDS.has(w.ended?.reason) && !q.routed ? 'fled' : 'field') : 'reserve'
+    disposition: !q.alive || q.strength <= 0 ? 'dead' : q.fled ? 'fled' : q.onField ? (withdraws(q) ? 'fled' : 'field') : 'reserve'
   }));
   const engagedIds = (side) => w.squads.filter((q) => q.side === side && q.engaged && !q.eco).map((q) => q.unitId);
   const attackerUnits = bySide(SIDE_ATTACKER);

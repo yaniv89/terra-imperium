@@ -101,9 +101,12 @@ export const calcNationBalance = (state, nationId, knownIncome, ownedUnits = nul
 // drifting copies. `extraStabilityPenalty` is the disaster's own additional hit on top of bankruptcy's
 // regular one; the natural shortfall path always passes 0.
 export const applyBankruptcy = (nation, regions, nationId, turnNumber, extraStabilityPenalty = 0) => {
+  // One Bankruptcy modifier at a time: a second bankruptcy refreshes it (lane CB09, I124). Stacked,
+  // ten of them took -330% off a nation's gold and locked it in a bankruptcy every turn.
   const nextNation = addNationModifier(
     {
       ...nation,
+      modifiers: (nation.modifiers || []).filter((m) => m.sourceId !== 'bankruptcy'),
       loans: [],
       stability: clampStability((nation.stability || 0) - BANKRUPTCY_STABILITY_PENALTY - extraStabilityPenalty),
       prestige: clampPrestige((nation.prestige || 0) - BANKRUPTCY_PRESTIGE_PENALTY),

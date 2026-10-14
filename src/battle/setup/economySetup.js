@@ -4,22 +4,28 @@
 // housing it starts with. Computed once, before the sim; pure of the battle seed (the same tile is
 // always the same ground: the nodes come from the map and the tile, like mapgen.js).
 //
-// Nodes (decision 35): every side gets a safe starter cluster by its base (a grove, stone, ore, a
+// Nodes (Q1, U01): every side gets a safe starter cluster by its base (a grove, stone outcrops, a
 // gold vein, herds, fish where there is water) and the middle of the field holds a few contested
-// ones (gold, stone, ore, a herd), more or fewer by the tile and its neighbours: woods give groves,
-// hills and mountains stone and ore, desert gold and few trees, plains and grassland herds and
-// cattle, a coast, river or lake fish.
+// ones (gold, stone, a herd), more or fewer by the tile and its neighbours: woods give groves,
+// hills and mountains stone, desert gold and few trees, plains and grassland herds and cattle, a
+// coast, river or lake fish. Metal ore is no resource (X29): where an ore spot stood there is
+// stone, in every age, so every starter cluster has at least two stone outcrops.
+//
+// The attacker's camp (X08) stands CAMP_INSET tiles in from its edge, so its build circle is not
+// half off the field.
 //
 // The campaign seam (R2 builds the full bridge): `inputs` = { supply: [a, d], development: [a, d] }
 // in 0..1, from which each side's stockpile multiplier comes (data/economy.js stockMult). With no
 // inputs, buildSetupFromArmies reads the supply meter of the units each side brings.
 import { createRng } from '../../utils/rng';
 import { TILE, isPassable, hashString } from './mapgen';
-import { NODE_KINDS, BUILDINGS, START_STOCK, stockMult, toMilli, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, HALL_HOUSING, MILLI } from '../data/economy';
+import { NODE_KINDS, BUILDINGS, RESOURCES, START_STOCK, stockMult, toMilli, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, HALL_HOUSING, MILLI } from '../data/economy';
 import { Q } from '../sim/constants';
 const SUPPLY_MAX = 100; // src/engine/supplyMeter.js SUPPLY_MAX (not imported: it pulls the tile world into the battle bundle)
 
 const centre = (t) => t * Q + (Q >> 1);
+/** How far in from the attacker's edge its camp stands (tiles; X08). */
+export const CAMP_INSET = 3;
 
 /** A side's campaign supply as 0..1: the mean supply meter of the units it brings (full when none say). */
 export const unitsSupply = (units = []) => {
@@ -35,7 +41,7 @@ const terrainMix = (terrain, tileContext) => {
   return {
     trees: near.has('forest') ? 6 : terrain === 'desert' || terrain === 'arctic' ? 2 : 4,
     stone: near.has('mountains') || near.has('hills') ? 2 : 1,
-    ore: near.has('mountains') ? 2 : 1,
+    extraStone: near.has('mountains') ? 2 : 1, // where the ore spots stood (X29)
     gold: terrain === 'desert' || near.has('mountains') ? 2 : 1,
     herds: near.has('plains') || terrain === 'plains' || terrain === 'mixed' ? 2 : 1,
     cattle: terrain === 'plains' || terrain === 'mixed',
@@ -60,19 +66,20 @@ export const buildEconomySetup = ({ map, terrain, tileContext = null, regionKey 
   const claim = (tx, ty, r) => { for (let y = ty - r; y <= ty + r; y++) for (let x = tx - r; x <= tx + r; x++) if (x >= 0 && y >= 0 && x < w && y < h) taken[y * w + x] = 1; };
   const midY = Math.floor(h / 2);
 
-  // The attacker's expedition camp: at the back of its zone, off the centre line (the roads).
+  // The attacker's expedition camp: in its deployment zone, CAMP_INSET tiles in from its edge (X08:
+  // at one tile in, 40% of its build circle lay off the field), off the centre line (the roads).
   const edge = map.attackerEdge || 1;
   const size = BUILDINGS.camp.size;
   let camp = null;
   for (let k = 0; k < 40 && !camp; k++) {
     const dy = (k % 2 ? 1 : -1) * (8 + Math.floor(k / 2));
-    const tx = edge + 1; const ty = midY + dy - (size >> 1);
+    const tx = edge + CAMP_INSET; const ty = midY + dy - (size >> 1);
     if (ty < 2 || ty + size > h - 2) continue;
     let ok = true;
     for (let y = ty; y < ty + size && ok; y++) for (let x = tx; x < tx + size && ok; x++) { const t = tiles[y * w + x]; if (!isPassable(t) || t === TILE.ROAD || t === TILE.FORD) ok = false; }
     if (ok) camp = { tx, ty };
   }
-  if (!camp) camp = { tx: edge + 1, ty: Math.max(2, midY - 10) };
+  if (!camp) camp = { tx: edge + CAMP_INSET, ty: Math.max(2, midY - 10) };
   const campFootprint = [];
   for (let y = camp.ty; y < camp.ty + size; y++) for (let x = camp.tx; x < camp.tx + size; x++) { campFootprint.push(y * w + x); tiles[y * w + x] = TILE.BUILDING; }
   claim(camp.tx + (size >> 1), camp.ty + (size >> 1), size);
@@ -105,11 +112,11 @@ export const buildEconomySetup = ({ map, terrain, tileContext = null, regionKey 
     return null;
   };
   const cluster = (a) => {
-    // A grove (trees side by side), stone, ore, gold, herds, maybe cattle and fish.
+    // A grove (trees side by side), stone (the old ore spot too), gold, herds, maybe cattle and fish.
     let grove = null;
     for (let k = 0; k < mix.trees; k++) grove = place('tree', a, grove) || grove;
     for (let k = 0; k < mix.stone; k++) place('stone', a);
-    place('ore', a);
+    place('stone', a); // the old ore spot
     place('gold', a);
     for (let k = 0; k < mix.herds; k++) place('herd', a);
     if (mix.cattle) place('cattle', a);
@@ -120,7 +127,7 @@ export const buildEconomySetup = ({ map, terrain, tileContext = null, regionKey 
   const middle = { x: Math.floor(w / 2), y: midY, rMin: 0, rMax: Math.floor(h / 2) - 4, xMin: Math.floor(w * 0.36), xMax: Math.floor(w * 0.64) };
   for (let k = 0; k < mix.gold + 1; k++) place('gold', middle);
   place('stone', middle);
-  for (let k = 0; k < mix.ore; k++) place('ore', middle);
+  for (let k = 0; k < mix.extraStone; k++) place('stone', middle); // the old ore spots
   place('herd', middle);
   let midGrove = null;
   for (let k = 0; k < Math.max(2, mix.trees - 2); k++) midGrove = place('tree', middle, midGrove) || midGrove;
@@ -130,11 +137,11 @@ export const buildEconomySetup = ({ map, terrain, tileContext = null, regionKey 
   const development = inputs?.development || [0, 0];
   const stock = [START_STOCK.attacker, START_STOCK.defender].map((base, side) => {
     const m = stockMult(supply[side], development[side]);
-    return { food: Math.round(base.food * m) * MILLI, materials: Math.round(base.materials * m) * MILLI, gold: Math.round(base.gold * m) * MILLI };
+    return Object.fromEntries(RESOURCES.map((r) => [r, Math.round((base[r] || 0) * m) * MILLI]));
   });
   const regiments = sides.map((s) => (s.units || []).filter((u) => u.strength > 0).length);
   return {
-    version: 1,
+    version: 2, // 2: four resources (U01), stone where ore stood (X29), the camp further in (X08)
     ageIds,
     stock,
     stockMult: [stockMult(supply[0], development[0]), stockMult(supply[1], development[1])],

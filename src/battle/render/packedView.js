@@ -10,7 +10,7 @@
 // HUD's copy of one) may live for many frames, and a fresh 50 KB buffer costs nothing to make.
 import { canSeeSquad } from '../sim/fog';
 import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
-import { callCost } from '../sim/orders';
+import { baseCount, hasBase } from '../sim/base';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
 import { ecoView } from '../sim/economy';
 import { squadLookOf } from './view';
@@ -22,7 +22,7 @@ const F = Object.fromEntries(FIELDS.map((k, i) => [k, i]));
 const FLAGS = ['alive', 'onField', 'fled', 'routed', 'retreating', 'reserve', 'visible', 'hidden', 'striking'];
 // Fields that change rarely, sent with the slow part (checked every SLOW_EVERY ticks and when
 // paused, and only for the squads where something changed).
-const SLOW = ['unitId', 'classId', 'ageId', 'navalLine', 'look', 'maxStrength', 'startStrength', 'reinforcement', 'callCost', 'xp', 'promotions', 'commanderId', 'abilities'];
+const SLOW = ['unitId', 'classId', 'ageId', 'navalLine', 'look', 'maxStrength', 'startStrength', 'reinforcement', 'xp', 'promotions', 'commanderId', 'abilities'];
 export const SLOW_EVERY = 5;
 
 const num = (v) => (v === null || v === undefined ? NaN : v);
@@ -56,6 +56,7 @@ export const createViewPacker = () => {
     const packed = {
       tick: w.tick, playerSide, n,
       supply: [...w.supply], assimilation: w.assimilation, battleType: w.setup.battleType || 'field', beachhead: w.beachhead || 0,
+      base: hasBase(w) ? [baseCount(w, 0), baseCount(w, 1)] : null,
       ended: w.ended, pendingOrders: pendingOrders.length,
       fog: fog && w.fog ? w.fog[playerSide].slice() : null,
       powers: (w.setup.powers?.[playerSide] || []).map((p) => {
@@ -75,7 +76,7 @@ export const createViewPacker = () => {
         unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null, look: squadLookOf(q),
         maxStrength: q.maxStrength, startStrength: q.startStrength,
         reinforcement: q.reinforcement ? { name: q.reinforcement.name, edge: q.reinforcement.edge } : null,
-        callCost: callCost(q, w), xp: q.original.xp || 0, promotions: q.promotions, commanderId: q.commanderId,
+        xp: q.original.xp || 0, promotions: q.promotions, commanderId: q.commanderId,
         abilities: q.side === playerSide ? getSquadAbilities(w, q).map((id) => ({ id, readyIn: Math.max(0, (q.cooldowns?.[id] || 0) - w.tick) })) : []
       })).filter((m) => {
         if (!m) return false;

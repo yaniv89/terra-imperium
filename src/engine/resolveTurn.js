@@ -24,7 +24,7 @@ import { invalidateRegionsCache } from '../data/regions';
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult } from '../data/ages';
+import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult, speedTrainMult } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent, noteEventFired } from '../data/proceduralEvents';
@@ -36,6 +36,9 @@ import { getPopulationGrowthRate, nextRegionPopulation, peopleOf } from './popul
 import { checkNationElimination, unlinkEliminatedVassalage, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
 import { calcAllNationIncomes, processAIEconomyTurn, settleAIUpkeep, thinksThisTurn } from './aiEconomy';
+import { aiBudgetStep } from './aiBudget';
+import { warBurdenInputs, warExhaustionRise } from './warBurden';
+import { isUnitInBattle } from './invasion';
 import { processAIAbmDefense } from './aiMissiles';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { drainAutoBattles } from './battleQueue';
@@ -73,7 +76,7 @@ import {
 } from '../data/actionCosts';
 import { processReignEnd, getAdvisorSalary, successionLine } from './rulers';
 import { applyResearchTurn, researchesThisTurn } from './research';
-import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX } from './nationalPower';
+import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX, getOverextension } from './nationalPower';
 import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy } from './economy';
@@ -96,6 +99,7 @@ import { applyLoyalty } from './loyalty';
 import { awardEraLegacy } from './eraGoals';
 import { createDefenseRecord } from './defense';
 import { conquerRegion } from './conquest';
+import { openCapture, settleOpenCaptures } from './capture';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
@@ -113,7 +117,6 @@ import { subjectVerb } from './grammar';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-const WAR_EXHAUSTION_RISE_PER_TURN = 5;
 const WAR_EXHAUSTION_DECAY_PER_TURN = 3;
 
 // War exhaustion past WAR_WEARINESS_FROM adds (WE - FROM) / SCALE unrest per turn in every province.
@@ -145,6 +148,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
         turnNumber: newTurnNumber,
         citiesOwned: citiesOwned[nid] || 1,
         speedMult: speedCostMult(state.gameSpeed, getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge)), // the speed table (ages.js)
+        trainMult: speedTrainMult(state.gameSpeed, getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge)), // units and settlers (I024)
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
         greatProjects: state.greatProjects || {},
         // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
@@ -288,9 +292,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
 
   // --- sieges (plans/civ-map-rework.md D2, sieges.js): armies beside a city grind its walls; at
   // 0 HP it falls. Before the cities phase, so a besieged city works ring 1 only this turn.
+  // A capture card still open here was never answered (a headless loop: End Turn waits for it in
+  // the game): the city is kept (capture.js). Then this turn's surrenders to the player open one.
+  state = settleOpenCaptures(state);
   {
     const siegeRegions = { ...state.regions };
     const siegeUnits = { ...state.units };
+    const surrendered = [];
     const { fallen, logs: siegeLogs } = processSieges(state, siegeRegions, siegeUnits, { turn: newTurnNumber });
     let siegeNations = state.nations; let siegeWars = state.wars; const pendingDefenses = [...(state.pendingDefenses || [])];
     const committed = new Set();
@@ -309,10 +317,12 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       const r = conquerRegion({ regions: siegeRegions, nations: siegeNations, turnNumber: newTurnNumber }, f.cityId, f.to, war || null);
       Object.assign(siegeRegions, r.regions); siegeRegions[f.cityId] = { ...r.regions[f.cityId], siege: null, buildings: siegeRegions[f.cityId].buildings };
       siegeNations = r.nations; changedHands = true;
+      if (f.to === state.playerNationId) surrendered.push(f);
       siegeLogs.push({ nationId: f.from, message: `${siegeRegions[f.cityId].name} has fallen to ${state.nations[f.to]?.name || f.to} after a siege.` }, { nationId: f.to, message: `${siegeRegions[f.cityId].name} surrenders to your siege.` });
     });
     siegeLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.COMBAT }); });
     state = { ...state, regions: siegeRegions, units: siegeUnits, nations: siegeNations, pendingDefenses };
+    surrendered.forEach((f) => { state = openCapture(state, { opId: `siege:${newTurnNumber}:${f.cityId}`, cityId: f.cityId, by: f.to, from: f.from, source: 'siege' }); });
     // The registry (neighbours, capitals) only changes when a city changed hands: a rebuild every
     // turn cost 15 ms (a breached city the rebels cannot take, or one the player must defend, is
     // listed as fallen every turn without changing owner).
@@ -380,7 +390,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     if (stabilityCache.has(ownerId)) return stabilityCache.get(ownerId);
     const value = ownerId === state.playerNationId
       ? getModifier(state, ownerId, 'national.stabilityBonus').total
-      : getNationBonusTotal(owner, 'stabilityBonus') + (owner?.stability || 0) + ((owner?.legitimacy ?? 50) < 50 && owner?.ruler ? -1 : 0);
+      : getNationBonusTotal(owner, 'stabilityBonus') + (owner?.stability || 0) + ((owner?.legitimacy ?? 50) < 50 && owner?.ruler ? -1 : 0)
+        // Overextension weighs on an AI's cities as on the player's (sources.js: -overextension/20;
+        // addendum X23, CB09). getOverextension reads the memoized owned-city index: no scan.
+        - (isIndependentNation(owner) ? 0 : getOverextension(state, ownerId) / 20);
     stabilityCache.set(ownerId, value);
     return value;
   };
@@ -692,8 +705,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // so no AI nation ever researched anything.
     ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p] * turns, POWER_POOL_CAP); });
     nations[nId] = { ...nation, economy: pool, lodSettledTurn: newTurnNumber };
-    nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits, turns, income.gold);
-    if (nations[nId].lastBankruptcyTurn === newTurnNumber) applyArmyDesertion(units, nId);
+    // A budget that does not add up: cut pay, then disband the weakest units (aiBudget.js, I124).
+    const budget = aiBudgetStep(upkeepState, nId, income, ownedUnits, (uid) => isUnitInBattle(upkeepState, uid));
+    nations[nId] = budget.nation;
+    const keptUnits = budget.disband.length ? ownedUnits.filter((u) => !budget.disband.includes(u.id)) : ownedUnits;
+    budget.disband.forEach((uid) => { delete units[uid]; });
+    nations[nId] = settleAIUpkeep(upkeepState, nId, income, keptUnits, turns, income.gold);
+    if (nations[nId].lastBankruptcyTurn === newTurnNumber || nations[nId].lastUnpaidTurn === newTurnNumber) applyArmyDesertion(units, nId);
 
     if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
     const result = processAIEconomyTurn(aiEconState, regions, nId);
@@ -1150,9 +1168,14 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this
   // is what "forces you to actually end them" rather than letting a war run forever for free.
+  // The rise follows the war's real burden (warBurden.js, CB09 I121/X22): a base, own cities under
+  // siege and cities an enemy holds; battles add their own (aftermath.js).
+  const liveWarIds = new Set(wars.filter((w) => w.active).map((w) => w.id));
+  const atWarIds = new Set(Object.keys(nationsAfterWars).filter((nId) => nationsAfterWars[nId].isAtWar));
+  const burden = warBurdenInputs(regions, atWarIds, (warId) => liveWarIds.has(warId));
   Object.entries(nationsAfterWars).forEach(([nId, nation]) => {
     // Laws and reforms slow the rise (lawRules.js warExhaustionMult: Mass Conscription, Martial Law, Military Junta).
-    const delta = nation.isAtWar ? WAR_EXHAUSTION_RISE_PER_TURN * Math.max(0, 1 + (lawRulesOf(nation).warExhaustionMult || 0)) : -WAR_EXHAUSTION_DECAY_PER_TURN;
+    const delta = nation.isAtWar ? warExhaustionRise(burden.get(nId)) * Math.max(0, 1 + (lawRulesOf(nation).warExhaustionMult || 0)) : -WAR_EXHAUSTION_DECAY_PER_TURN;
     const warExhaustion = clamp((nation.warExhaustion || 0) + delta, 0, 100);
     if (warExhaustion !== nation.warExhaustion) nationsAfterWars[nId] = { ...nation, warExhaustion };
   });

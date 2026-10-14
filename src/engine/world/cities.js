@@ -363,7 +363,10 @@ export const amenitiesOf = (city, ctx = {}) => {
 
 // ---------------------------------------------------------------------------------------------
 // Production
-export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1, speedMult = 1 } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * speedMult);
+// What is trained (units, settlers, army orders) takes the speed's training multiplier, everything
+// else its cost multiplier (ages.js speedTrainMult; the same number unless the caller passes both).
+const TRAINED_KINDS = new Set(['unit', 'settler', 'army']);
+export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1, speedMult = 1, trainMult = null } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * (TRAINED_KINDS.has(item.kind) ? trainMult ?? speedMult : speedMult));
 const baseProductionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {}) => {
   switch (item.kind) {
     case 'building': return getBuildingTierCost(item.category, item.tier) ?? 9999;
@@ -636,7 +639,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   let next = { ...c, size, food: Math.round(food * 10) / 10, unrest, worked };
   for (let guard = 0; guard < 6 && production.current; guard++) {
     const item = production.current;
-    const cost = productionCost(item, { ageId, citiesOwned: ctx.citiesOwned || 1, speedMult: ctx.speedMult || 1 });
+    const cost = productionCost(item, { ageId, citiesOwned: ctx.citiesOwned || 1, speedMult: ctx.speedMult || 1, trainMult: ctx.trainMult });
     if (production.progress < cost) break;
     production = { ...production, progress: production.progress - cost };
     if (item.kind === 'building') {
@@ -757,6 +760,14 @@ export const drawPeople = (city, men, { speedMult = 1, canShrink = false } = {})
 const withPeople = (city, speedMult) => (city.currentPopulation == null ? city : { ...city, currentPopulation: peopleOf(city, growthThreshold(city.size, speedMult)) });
 const PEOPLE_GUARD = 8;
 
+/** Add `food` to a city's bank (Invest in growth), up to just below the next threshold. The same
+ * city when the bank is already full. */
+export const addFood = (city, food, { speedMult = 1 } = {}) => {
+  if (!city || city.size == null || !(food > 0)) return city;
+  const threshold = growthThreshold(city.size, speedMult);
+  const rounded = Math.round(Math.min(threshold - 0.1, (city.food || 0) + food) * 10) / 10;
+  return rounded > (city.food || 0) ? withPeople({ ...city, food: rounded }, speedMult) : city;
+};
 /** Add `men` people to a city as food in its bank (Develop Province, Population Policy), up to just below the next threshold. */
 export const addPeople = (city, men, { speedMult = 1 } = {}) => {
   if (!city || city.size == null || !(men > 0)) return city;

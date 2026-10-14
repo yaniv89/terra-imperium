@@ -1,11 +1,12 @@
 // src/components/battle/BattleHud.jsx
 // The commanded battle's HUD in the Field Atlas look (plans/UI-DESIGN.md B01, B05, B06; Tactical
 // Battles plan 11.1), phone first (844x390), the battlefield owns the screen:
-//   top bar      the battle's name and clock, food, materials, gold and population / housing (or
+//   top bar      the battle's name and clock, food, wood, stone, gold and population / housing (or
 //                Battle Supply without an economy), the enemy squads left, speed and pause
-//   bottom left  small buttons only (B10): All (the army), Base (the camp), Idle n (a laborer)
+//   bottom left  small buttons only (B10): All (selects the army, the camera stays: I188), Find (the
+//                camera to the selection or the army), Base (the camp), Idle n (a laborer)
 //   bottom right the context panel (B10, AoE style): the actions of the selection only. Nothing
-//                selected: Select and Reserves; army: Attack, Hold, Formation, Retreat; laborers:
+//                selected: Select (no Reserve: the whole army starts on the field, U10); army: Attack, Hold, Formation, Retreat; laborers:
 //                the build grid (`panel`); your building: train, queue, rally (`panel`); placing: the
 //                spot's verdict, Build here, Cancel (`panel`). Powers in their own group above, for
 //                the army and for nothing selected
@@ -19,15 +20,15 @@
 //   city (B05)   in a city assault: the defender's housing as houses burn
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords } from 'lucide-react';
-import { ResIcon } from './EconomyHud';
+import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords, LocateFixed } from 'lucide-react';
+import { ResIcon, RES_NAME, HammerButton } from './EconomyHud';
+import { RESOURCES } from '../../battle/data/economy';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { TICK_HZ } from '../../battle/sim/constants';
-import { getSquadDisplayName } from '../../battle/data/battleStats';
-import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft } from './battleHudModel';
+import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, armyTally, armyTallyText } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -68,7 +69,7 @@ const Res = ({ icon, label, value, warn, testId }) => (
 
 const BattleHud = ({
   title, hud, setup, playerSide, timeLeft, paused, started, speed, armed, formation, selectedSquads,
-  onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCallReserve, onCommand, onRetreatAll, onFocusKeep, onAbandon,
+  onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onFindArmy, onCommand, onRetreatAll, onFocusKeep, onAbandon,
   onPower, onOpenAbilities, hasAbilities, soundOn = true, onToggleSound,
   onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
   context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
@@ -80,10 +81,10 @@ const BattleHud = ({
   mouse = false, // a mouse is the main pointer: the hints speak of clicks
   ended = false // the battle is over: only the top bar stays (the result screen, B08, owns the rest)
 }) => {
-  const [showReserves, setShowReserves] = useState(false);
   const [confirmNuke, setConfirmNuke] = useState(null);
   const [confirmRetreat, setConfirmRetreat] = useState(false);
-  const [cityOpen, setCityOpen] = useState(true);
+  // I202: the city's housing card starts folded (a chip); the player opens it when it matters.
+  const [cityOpen, setCityOpen] = useState(false);
   // The pause sheet can be put aside to give orders while paused (a pill brings it back).
   const [sheetHidden, setSheetHidden] = useState(false);
   useEffect(() => { if (!paused) setSheetHidden(false); }, [paused]);
@@ -104,11 +105,13 @@ const BattleHud = ({
   const mine = hud.squads.filter((q) => q.side === playerSide && q.alive && !q.fled);
   const onField = mine.filter((q) => q.onField);
   const eco = hud.eco || null;
-  const reserves = mine.filter((q) => q.reserve);
+  // Base buildings standing (sim/base.js): [yours, theirs], null in a battle without bases.
+  const base = hud.base ? [hud.base[playerSide], hud.base[1 - playerSide]] : null;
+  // Allied reinforcements still marching in on their own (U10: nobody calls them).
+  const marching = mine.filter((q) => q.reinforcement && !q.onField && q.enterTick >= 0);
   const keep = hud.structures[0];
   const supply = hud.supply[playerSide];
   const enemyLeft = hud.squads.filter((q) => q.side !== playerSide && q.alive && !q.fled).length;
-  const ageId = setup.sides[playerSide].ageId;
   const sel = selectionSummary(selectedSquads);
   const target = selectedSquads.find((q) => q.targetKind === 'structure' && q.target >= 0);
   const targetSt = target ? hud.structures[target.target] : null;
@@ -138,11 +141,11 @@ const BattleHud = ({
         <div className="flex-1 min-w-0 flex items-center gap-3 overflow-x-auto scrollbar-none" data-testid="battle-resources">
           {eco ? (
             <>
-              <Res icon={<ResIcon res="food" size={18} />} label="Food" value={eco.stock[0]} /><Res icon={<ResIcon res="materials" size={18} />} label="Materials" value={eco.stock[1]} /><Res icon={<ResIcon res="gold" size={18} />} label="Gold" value={eco.stock[2]} />
+              {RESOURCES.map((r, i) => <Res key={r} icon={<ResIcon res={r} size={18} />} label={RES_NAME[r]} value={eco.stock[i]} testId={`battle-stock-${r}`} />)}
               <Res icon={<ResIcon res="population" size={18} />} label="Population / housing" value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />
             </>
           ) : <Res icon={<ResIcon res="supply" size={18} />} label="Battle supply" value={Math.floor(supply)} />}
-          <Res icon={<Swords className="w-4 h-4 text-fa-enemy" aria-hidden="true" />} label="Enemy squads left" value={enemyLeft} />
+          <Res icon={<Swords className="w-4 h-4 text-fa-enemy" aria-hidden="true" />} label={`Enemy squads left: ${armyTallyText(armyTally(hud, 1 - playerSide))}`} value={enemyLeft} />
         </div>
         {pauseOpen && <span className="text-[11px] font-bold tracking-[0.08em] text-fa-muted shrink-0">PAUSED</span>}
         <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} aria-label={`Speed ${speed}, tap for faster`} className="fa-icon-btn !w-11 !h-10 shrink-0 fa-num text-[13px] font-semibold">{speed}×</button>
@@ -182,9 +185,17 @@ const BattleHud = ({
               <Castle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               {keep.alive
                 ? <><span className="w-10 lg:w-16 h-1.5 bg-fa-ink rounded-full overflow-hidden shrink-0"><span className="block h-full bg-fa-enemy" style={{ width: `${(keep.hp / keep.maxHp) * 100}%` }} /></span><span className="fa-num text-[10.5px] lg:hidden">{Math.round((keep.hp / keep.maxHp) * 100)}%</span><span className="fa-num text-[10.5px] hidden lg:inline">{Math.round(keep.hp)}/{keep.maxHp}</span></>
-                : <span className="text-fa-good">Breached{hud.assimilation > 0 ? `, taking ${Math.round((hud.assimilation / ASSIMILATION_TICKS) * 100)}%` : ''}</span>}
+                : <span className="text-fa-good">{base ? 'Keep down' : `Breached${hud.assimilation > 0 ? `, taking ${Math.round((hud.assimilation / ASSIMILATION_TICKS) * 100)}%` : ''}`}</span>}
               {keep.alive && keep.garrisonSlots > 0 && <span className="text-fa-you truncate hidden lg:inline" title="Garrison: tap the keep with infantry or ranged selected">garrison {keep.garrison}/{keep.garrisonSlots}</span>}
             </button>
+          )}
+          {/* The base rule (sim/base.js): what is left to burn on each side. */}
+          {base && (
+            <div className="pointer-events-auto fa-chip !bg-fa-panel/95 !min-h-[24px] !py-0.5 gap-1 text-[10.5px] max-w-full" title="Base buildings standing: the camp or keep, economy and military buildings (a tower your laborers build counts). Houses and the city's walls, gates and wall towers do not. A side loses when its last one falls." data-testid="battle-base">
+              <Flag className="w-3 h-3 shrink-0" aria-hidden="true" />
+              <span className="whitespace-nowrap">Base <span className="fa-num text-fa-you">{base[0]}</span> vs <span className="fa-num text-fa-enemy">{base[1]}</span></span>
+              {marching.length > 0 && <span className="whitespace-nowrap text-fa-you">, {marching.length} arriving</span>}
+            </div>
           )}
           {!started && (
           <div className="max-w-md text-center px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] shadow-xl max-h-[calc(100vh-9rem)] overflow-hidden" data-testid="battle-deploy-help">
@@ -202,7 +213,11 @@ const BattleHud = ({
             <div className="mt-1 text-fa-brass">
               {fmtTime(timeLeft)} on the clock: {setup.battleType === 'raid' || setup.battleType === 'sack'
                 ? `${BATTLE_TYPES[setup.battleType][playerSide === 1 ? 'defender' : 'attacker']}.`
-                : playerSide === 1
+                : setup.economy
+                  ? (playerSide === 1
+                    ? 'keep one of your base buildings standing until it runs out and the defence is yours. You lose only when the last one falls.'
+                    : 'burn every enemy base building (the keep or camp, its economy and military buildings) before it runs out, or the defender holds. Keep your camp standing: you lose if it falls.')
+                  : playerSide === 1
                   ? 'hold out until it runs out and the defence is yours.'
                   : 'take the keep or break the defenders before it runs out, or the defender holds.'}
             </div>
@@ -235,7 +250,7 @@ const BattleHud = ({
               <div className="fa-panel !bg-fa-panel/95 px-2.5 py-1.5 shadow-xl">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="fa-label">{playerSide === 1 ? 'Your city' : 'Defender'} housing</span>
-                  <button type="button" onClick={() => setCityOpen(false)} aria-label="Fold the city card" className="-mr-1 p-1 text-fa-muted"><ChevronUp className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => setCityOpen(false)} aria-label="Fold the city card" className="-mr-2 -my-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-fa-muted" data-testid="battle-city-fold"><ChevronUp className="w-4 h-4" /></button>
                 </div>
                 <div className="flex items-baseline gap-2">
                   {city.housingNow < city.housingStart && <span className="fa-num text-[13px] text-fa-muted line-through">{city.housingStart}</span>}
@@ -249,11 +264,11 @@ const BattleHud = ({
                 <div className="flex gap-3 mt-1 text-[10.5px] text-fa-muted">
                   {city.gate && <span>Gate {city.gate.alive ? `${Math.round((city.gate.hp / city.gate.maxHp) * 100)}%` : 'open'}</span>}
                   {city.towers.total > 0 && <span>Towers {city.towers.standing}/{city.towers.total}</span>}
-                  {city.keep && <button type="button" onClick={onFocusKeep} className="underline">Keep {city.keep.alive ? `${Math.round((city.keep.hp / city.keep.maxHp) * 100)}%` : 'taken'}</button>}
+                  {city.keep && <button type="button" onClick={onFocusKeep} className="underline">Keep {city.keep.alive ? `${Math.round((city.keep.hp / city.keep.maxHp) * 100)}%` : base ? 'down' : 'taken'}</button>}
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setCityOpen(true)} className="ml-auto flex fa-chip !bg-fa-panel/95 gap-1.5"><Home className="w-3.5 h-3.5" aria-hidden="true" />Housing <span className="fa-num">{city.housingNow}</span> · ruined <span className="fa-num">{city.ruined}/{city.total}</span></button>
+              <button type="button" onClick={() => setCityOpen(true)} className="ml-auto flex fa-chip !bg-fa-panel/95 !min-h-[36px] gap-1.5" aria-expanded="false" data-testid="battle-city-open"><Home className="w-3.5 h-3.5" aria-hidden="true" />Housing <span className="fa-num">{city.housingNow}</span> · ruined <span className="fa-num">{city.ruined}/{city.total}</span></button>
             )}
           </div>
         )}
@@ -277,6 +292,7 @@ const BattleHud = ({
         <div className="absolute bottom-0 inset-x-0 p-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-end justify-between gap-2 pointer-events-none">
           <div className="pointer-events-auto flex gap-1 shrink-0" data-testid="battle-quick">
             <Cmd icon={Users} label={`All ${allCount}`} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" />
+            {onFindArmy && <Cmd icon={LocateFixed} label="Find" onClick={onFindArmy} disabled={!allCount} testId="battle-find-army" />}
             {eco && <Cmd icon={Tent} label="Base" onClick={onSelectHq} testId="battle-hq" />}
             {eco && eco.idleWorkers.length > 0 && <Cmd icon={Hammer} label={`Idle ${eco.idleWorkers.length}`} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
           </div>
@@ -292,7 +308,7 @@ const BattleHud = ({
               <div className="flex gap-1 max-w-full overflow-x-auto scrollbar-none [&>*:first-child]:ml-auto" data-testid="battle-commands">
                 {armyCtx ? (
                   <>
-                    {context === 'mixed' && eco && <Cmd icon={Hammer} label="Build" onClick={onOpenBuild} active={buildOpen} testId="battle-build" />}
+                    {context === 'mixed' && eco && <HammerButton onClick={onOpenBuild} active={buildOpen} />}
                     <Cmd icon={Crosshair} label="Attack" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} testId="battle-attack-move" />
                     <Cmd icon={Hand} label="Hold" onClick={() => onCommand('hold')} testId="battle-hold" />
                     <Cmd icon={formation === 'line' ? Rows : Columns} label={formation === 'line' ? 'Line' : 'Column'} onClick={onFormation} testId="battle-formation" />
@@ -301,7 +317,6 @@ const BattleHud = ({
                 ) : (
                   <>
                     {onToggleSelectMode && !mouse && <Cmd icon={BoxSelect} label="Select" onClick={onToggleSelectMode} active={selectMode} testId="battle-select-mode" />}
-                    {reserves.length > 0 && <Cmd icon={Flag} label={`Reserve ${reserves.length}`} onClick={() => setShowReserves((v) => !v)} active={showReserves} testId="battle-reserves" />}
                   </>
                 )}
               </div>
@@ -320,23 +335,6 @@ const BattleHud = ({
           {mouse
             ? 'Left click selects (shift adds), click the ground to let go, drag a box. Right click orders; right drag draws a battle line.'
             : 'Tap a unit or building to select, tap it again to let go. Drag a box: tap Select, or double-tap and drag.'}
-        </div>
-      )}
-
-      {showReserves && !pauseOpen && (
-        <div className="absolute right-2 bottom-[calc(4.2rem+env(safe-area-inset-bottom))] w-64 max-w-[calc(100vw-1rem)] p-2 fa-panel !bg-fa-panel shadow-2xl text-xs space-y-1.5">
-          <div className="flex items-center justify-between"><span className="fa-label">Reserves and reinforcements</span><button type="button" onClick={() => setShowReserves(false)} aria-label="Close" className="p-1"><X className="w-4 h-4" /></button></div>
-          {reserves.map((q) => (
-            <button key={q.idx} type="button" disabled={q.enterTick >= 0 || supply < q.callCost}
-              onClick={() => onCallReserve(q.idx)}
-              className="w-full min-h-[44px] px-2 py-1 fa-option flex items-center justify-between gap-2 text-left disabled:opacity-50">
-              <span className="min-w-0">
-                <span className="block truncate">{getSquadDisplayName(q.classId, ageId)}, <span className="fa-num">{q.strength}</span></span>
-                {q.reinforcement && <span className="block text-[10px] text-fa-you truncate">from {q.reinforcement.name}</span>}
-              </span>
-              <span className="fa-num text-fa-brass shrink-0">{q.enterTick >= 0 ? 'Marching' : `${q.callCost} supply`}</span>
-            </button>
-          ))}
         </div>
       )}
 
@@ -363,6 +361,11 @@ const BattleHud = ({
               <div className="grid grid-cols-3 gap-1.5">{powerCards.map((pw) => <PowerCard key={pw.id} pw={pw} supply={supply} armed={armed?.type === 'power' && armed.id === pw.id} onClick={() => firePower(pw)} />)}</div>
             </div>
           )}
+          {/* I195: where each side's squads went, so a falling count is explained. */}
+          <div className="text-[11.5px] leading-snug" data-testid="battle-tally">
+            <div><span className="text-fa-you font-semibold">Yours:</span> {armyTallyText(armyTally(hud, playerSide))}.</div>
+            <div><span className="text-fa-enemy font-semibold">Theirs:</span> {armyTallyText(armyTally(hud, 1 - playerSide))}.</div>
+          </div>
           <div className="text-[11px] text-fa-muted mt-auto">Retreat asks once more. Your regiments leave by the nearest exit{bt === BATTLE_TYPES.assault ? '; the siege is lifted' : ''}. Switch to Auto finishes this battle by the same rules, at once.</div>
         </div>
       )}
@@ -388,7 +391,7 @@ const BattleHud = ({
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4 pointer-events-auto">
           <div className="w-full max-w-sm fa-panel !bg-fa-panel p-4 text-sm space-y-3" data-testid="battle-retreat-confirm">
             <div className="fa-heading text-[17px]">Retreat from the battle?</div>
-            <p className="text-xs text-fa-muted">Sound the retreat: your regiments march off the field and survive with the strength they have left. The battle counts as lost.</p>
+            <p className="text-xs text-fa-muted" data-testid="battle-retreat-consequences">Sound the retreat: your {allCount} regiment{allCount === 1 ? '' : 's'} on the field march for the nearest exit. Those that get off the field live with the strength they have left; any the enemy catches first are lost. The battle counts as lost{bt === BATTLE_TYPES.assault ? ' and the siege is lifted' : ''}.</p>
             <div className="grid grid-cols-1 gap-2">
               <button type="button" onClick={() => { setConfirmRetreat(false); onRetreatAll(); }} className="fa-btn fa-btn-danger !min-h-[44px]" data-testid="battle-retreat-all">Sound the retreat</button>
               {onAbandon && <button type="button" onClick={() => { setConfirmRetreat(false); onAbandon(); }} className="fa-btn fa-btn-secondary !min-h-[44px]">Switch to Auto instead</button>}

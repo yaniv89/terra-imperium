@@ -8,26 +8,18 @@
 //   { side, type: 'formationLine', squads: [idx], x, y, x2, y2 }   // drag a line, squads spread on it
 //   { side, type: 'attack', squads: [idx], target: { kind: 'squad' | 'structure', index } }
 //   { side, type: 'stop' | 'hold' | 'retreat', squads: [idx] }
-//   { side, type: 'callReserve', squads: [idx] }
+//   { side, type: 'callReserve', squads: [idx] }   // no-op since U10 (no Reserve); still admitted for old logs
 //   { side, type: 'retreatAll' }
 //   { side, type: 'ability', squads: [idx], ability }   // general / perk ability (effects.js)
 //   { side, type: 'power', power, x, y }                // commander power (effects.js)
 //   { side, type: 'garrison', squads, structure }       // man the keep or a tower (objectives.js)
 import { angleBetween, polarX, polarY } from './fixed';
 import { deployZone } from './world';
-import { fieldCap, fieldCount } from './world';
-import { Q, SIDE_ATTACKER, secondsToTicks } from './constants';
+import { Q, SIDE_ATTACKER } from './constants';
 import { activateAbility, firePower } from './effects';
 import { canGarrison, garrisonRoom, leaveGarrison } from './objectives';
-import { reserveCostMult, reserveEntryMult } from './buildings';
 import { applyEcoOrder, clearWorkerJobs } from './economy';
 
-export const RESERVE_COST = 60;
-export const RESERVE_ENTRY_TICKS = secondsToTicks(8);
-export const REINFORCEMENT_COST = 120;
-export const REINFORCEMENT_ENTRY_TICKS = secondsToTicks(25);
-// A standing Barracks (src/battle/sim/buildings.js) makes the defender's reserves cheaper and faster.
-export const callCost = (q, w = null) => Math.round((q.reinforcement ? REINFORCEMENT_COST : RESERVE_COST) * reserveCostMult(w, q.side));
 const SLOT_SPACING = Math.round(2.5 * Q);
 
 const commandable = (w, side, idx) => {
@@ -82,9 +74,10 @@ const lineSlots = (squads, x, y, x2, y2, side) => {
   return slots;
 };
 
-const setMoveOrder = (q, type, slot, groupSpeed) => {
+// Every squad walks at its own pace, also in a mixed group (the user's ruling Q6, I192, U07): an
+// order never slows cavalry down to the infantry's or the siege train's speed.
+const setMoveOrder = (q, type, slot) => {
   q.order = { type, x: slot.x, y: slot.y, facing: slot.facing };
-  q.groupSpeed = groupSpeed;
   q.retreating = false;
   if (type === 'move') { q.target = -1; q.targetKind = null; }
 };
@@ -93,6 +86,8 @@ const setMoveOrder = (q, type, slot, groupSpeed) => {
 const LEAVES_GARRISON = new Set(['move', 'attackMove', 'formationLine', 'attack', 'retreat']);
 // Orders that take a worker off its job (economy.js).
 const TAKES_OFF_WORK = new Set(['move', 'attackMove', 'formationLine', 'stop', 'hold', 'retreat']);
+// Orders that leave what a squad is doing alone (an ability, a commander power).
+const KEEPS_RESUME = new Set(['ability', 'power']);
 
 export const applyOrder = (w, o) => {
   const side = o.side;
@@ -100,7 +95,9 @@ export const applyOrder = (w, o) => {
   // cancelBuild: economy.js), only in a battle with an economy.
   if (applyEcoOrder(w, o)) return;
   const ids = (o.squads || []).filter((i) => commandable(w, side, i));
-  if (LEAVES_GARRISON.has(o.type)) ids.forEach((i) => leaveGarrison(w, w.squads[i]));
+  // A new order replaces the job a squad would have gone back to after a fight (U11).
+  if (!KEEPS_RESUME.has(o.type)) ids.forEach((i) => { w.squads[i].resumeKind = null; w.squads[i].resumeTarget = -1; });
+  if (LEAVES_GARRISON.has(o.type))ids.forEach((i) => leaveGarrison(w, w.squads[i]));
   if (TAKES_OFF_WORK.has(o.type)) clearWorkerJobs(w, side, ids);
   switch (o.type) {
     case 'garrison': {
@@ -113,7 +110,7 @@ export const applyOrder = (w, o) => {
         const q = w.squads[i];
         if (room <= 0 || !canGarrison(q) || q.inside >= 0) return;
         q.order = { type: 'garrison', structure: si, x: s.x, y: s.y };
-        q.target = -1; q.targetKind = null; q.groupSpeed = 0; q.retreating = false;
+        q.target = -1; q.targetKind = null; q.retreating = false;
         room -= 1;
       });
       return;
@@ -123,16 +120,14 @@ export const applyOrder = (w, o) => {
       const squads = ids.map((i) => w.squads[i]);
       if (!squads.length) return;
       const slots = squads.length === 1 ? new Map([[squads[0].idx, { x: o.x, y: o.y, facing: squads[0].facing }]]) : formationSlots(squads, o.x, o.y, o.formation);
-      const groupSpeed = squads.length > 1 ? Math.min(...squads.map((q) => q.stats.speed)) : 0;
-      squads.forEach((q) => setMoveOrder(q, o.type, slots.get(q.idx), groupSpeed));
+      squads.forEach((q) => setMoveOrder(q, o.type, slots.get(q.idx)));
       return;
     }
     case 'formationLine': {
       const squads = ids.map((i) => w.squads[i]);
       if (!squads.length) return;
       const slots = lineSlots(squads, o.x, o.y, o.x2, o.y2, side);
-      const groupSpeed = squads.length > 1 ? Math.min(...squads.map((q) => q.stats.speed)) : 0;
-      squads.forEach((q) => setMoveOrder(q, 'move', slots.get(q.idx), groupSpeed));
+      squads.forEach((q) => setMoveOrder(q, 'move', slots.get(q.idx)));
       return;
     }
     case 'attack': {
@@ -143,7 +138,7 @@ export const applyOrder = (w, o) => {
       ids.forEach((i) => {
         const q = w.squads[i];
         q.order = { type: 'attack' };
-        q.targetKind = t.kind; q.target = t.index; q.groupSpeed = 0; q.retreating = false;
+        q.targetKind = t.kind; q.target = t.index; q.retreating = false;
       });
       return;
     }
@@ -176,16 +171,9 @@ export const applyOrder = (w, o) => {
       w.retreatOrdered[side] = true;
       return;
     case 'callReserve':
-      (o.squads || []).forEach((i) => {
-        const q = w.squads[i];
-        if (!q || q.side !== side || !q.reserve || !q.alive || q.enterTick >= 0) return;
-        const cost = callCost(q, w);
-        if (w.supply[side] < cost || fieldCount(w, side) >= fieldCap(w)) return;
-        w.supply[side] -= cost;
-        q.enterTick = w.tick + Math.round((q.reinforcement ? REINFORCEMENT_ENTRY_TICKS : RESERVE_ENTRY_TICKS) * reserveEntryMult(w, side));
-        w.stats.reservesCalled[side] += 1;
-        w.events.push({ t: w.tick, type: 'reserveCalled', id: q.idx, side });
-      });
+      // U10 (the user's ruling Q2): there is no reserve to call. The whole army starts on the field
+      // and allied reinforcements march in on their own (world.js). Kept as a harmless order so a
+      // log recorded before setup version 8 is still admitted (battleVerify.js refuses to replay it).
       return;
     case 'ability':
       ids.forEach((i) => activateAbility(w, w.squads[i], o.ability));

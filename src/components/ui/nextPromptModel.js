@@ -9,7 +9,8 @@
 //   settler   a settler with no destination
 //   army      an army in the field with moves left and nothing to do: no route, no Hold order, no
 //             siege (garrisons rest in their cities); src/engine/standingOrders.js decides
-//   unrest    a city whose unrest is UNREST_PROMPT or more
+//   unrest    a city whose unrest is UNREST_PROMPT or more, or one that could break away within
+//             LOYALTY_PROMPT_TURNS turns (loyalty.js loyaltyForecast)
 //   guide     the guided start's current step (src/engine/tutorial.js), always first
 //   demand    an AI's tribute demand waits for an answer (src/engine/aiAccords.js)
 //   war       a people declared war on you in the last WAR_NOTICE_TURNS turns (a notice: it never blocks
@@ -22,8 +23,10 @@ import { researchNeedsChoice } from '../../engine/researchStatus';
 import { supplyOf, supplyZone, SUPPLY_LOW } from '../../engine/supplyMeter';
 import { getTiles } from '../../data/geo/tiles';
 import { idleArmyTiles } from '../../engine/standingOrders';
+import { loyaltyForecast, loyaltyOf } from '../../engine/loyalty';
 
 export const UNREST_PROMPT = 50;
+export const LOYALTY_PROMPT_TURNS = 12; // a city that could break away within this many turns is a hint (I127)
 export const WAR_NOTICE_TURNS = 3; // turns of play a declaration stays as a chip (an on-screen notice, not a span of history)
 export const WARN_ARM_MS = 4000;
 
@@ -54,6 +57,12 @@ export const nextPrompts = (state) => {
   // Hold order), besieges a city or garrisons one is busy, not idle.
   idleArmyTiles(state, me).forEach((t) => out.push({ id: `army:${t}`, kind: 'army', label: 'An army in the field can still move', tile: t }));
   cities.forEach((c) => { if ((c.unrest || 0) >= UNREST_PROMPT) out.push({ id: `unrest:${c.id}`, kind: 'unrest', label: `${c.name} is restless (unrest ${Math.round(c.unrest)})`, regionId: c.id }); });
+  // A city heading to break away (loyalty.js loyaltyForecast, I127): a hint while there is time to garrison it.
+  cities.forEach((c) => {
+    if ((c.unrest || 0) >= UNREST_PROMPT || (!c.conquest && loyaltyOf(c) >= 50)) return;
+    const f = loyaltyForecast(state, c);
+    if (f.breaksIn != null && f.breaksIn <= LOYALTY_PROMPT_TURNS) out.push({ id: `unrest:${c.id}`, kind: 'unrest', label: `${c.name} could break away in ${f.breaksIn} turn${f.breaksIn === 1 ? '' : 's'}: garrison it`, regionId: c.id });
+  });
   // An army running out of supply (supplyMeter.js): under SUPPLY_LOW and falling.
   const lowSeen = new Set();
   units.forEach((u) => {

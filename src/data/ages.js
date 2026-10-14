@@ -123,6 +123,19 @@ export const speedCostMult = (speedId, ageId = 'bronze') => {
   const age = REFERENCE_YEARS[ageId] != null ? ageId : 'modern';
   return REFERENCE_YEARS[age] / getYearsPerTurn(age, speedId);
 };
+/** Training has its own speed percentage, as in Civilization (Civ 4 and 5 Marathon: buildings,
+ * research and growth at 300%, units at 200%): armies march the same distance a turn at every
+ * speed, so on a slower game a unit that cost the full multiplier would arrive long after the war
+ * it was ordered for. Up to Normal training follows the cost multiplier; past it, only
+ * TRAIN_SPEED_SHARE of the extra (Marathon Bronze: buildings 4.0, units and settlers 2.8, which is
+ * 2.5 and 1.75 times Normal, close to Civ's 3 and 2). Units, settlers and army orders use it
+ * (cities.js productionCost). Provisional share, playtest audits I024. */
+export const TRAIN_SPEED_SHARE = 0.5;
+export const speedTrainMult = (speedId, ageId = 'bronze') => {
+  const mult = speedCostMult(speedId, ageId);
+  const normal = speedCostMult('normal', ageId);
+  return mult <= normal ? mult : normal + (mult - normal) * TRAIN_SPEED_SHARE;
+};
 /** A span given in reference turns (the table the balance was tuned at) as turns at this speed and
  * age, at least 1: cooldowns, truces and other waits then last the same span of history at every
  * speed (playtest audits, trap T11: never a hardcoded number of turns). Normal is 1.6 to 2 turns

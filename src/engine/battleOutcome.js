@@ -62,6 +62,7 @@ import { isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { seaPassable, fleetAge, enemyFleetAt } from './fleets';
 import { mapEffectsFor } from './techMapEffects';
 import { sackCityDamage } from './raidBattle';
+import { cityFell, openCapture } from './capture';
 
 export const OUTCOME_VERSION = 1;
 export const APPLIED_MEMORY = 64;
@@ -191,12 +192,12 @@ export const dispositionOf = (u, loser) => {
 const siegeOf = (o, region) => {
   const hasMeleeUnit = hasMeleeUnitDeployed(o.attackerUnits.filter((u) => u.strength > 0 && !u.routed && !u.militia));
   const garrisonBroken = isGarrisonBroken(o.defenderUnits);
-  if (!o.isDefended) return { nextControl: region.control, captured: o.outcome === 'attacker' };
-  if (o.pressure == null || (o.outcome === 'attacker' && garrisonBroken)) return resolveSiegeControlDamage({ currentControl: region.control, outcome: o.outcome, hasMeleeUnit, garrisonBroken });
+  if (!o.isDefended) return { nextControl: region.control, captured: o.outcome === 'attacker', hasMeleeUnit };
+  if (o.pressure == null || (o.outcome === 'attacker' && garrisonBroken)) return { ...resolveSiegeControlDamage({ currentControl: region.control, outcome: o.outcome, hasMeleeUnit, garrisonBroken }), hasMeleeUnit };
   // An auto-resolved assault on a garrison (defense.js getAssaultPressure): the damage follows the exchange.
   const damaged = Math.max(0, (region.control || 0) - Math.round(SIEGE_CONTROL_DAMAGE.attacker * o.pressure));
-  if (o.pressure <= 0 || damaged > SIEGE_CAPTURE_CONTROL_THRESHOLD) return { nextControl: damaged, captured: false };
-  return hasMeleeUnit ? { nextControl: damaged, captured: true } : { nextControl: SIEGE_CAPTURE_CONTROL_THRESHOLD, captured: false };
+  if (o.pressure <= 0 || damaged > SIEGE_CAPTURE_CONTROL_THRESHOLD) return { nextControl: damaged, captured: false, hasMeleeUnit };
+  return hasMeleeUnit ? { nextControl: damaged, captured: true, hasMeleeUnit } : { nextControl: SIEGE_CAPTURE_CONTROL_THRESHOLD, captured: false, hasMeleeUnit };
 };
 
 const conquer = (s, regionId, conquerorId, war) => {
@@ -210,7 +211,7 @@ const nameOf = (s, id) => (id === REBEL_OWNER_ID ? 'the rebels' : s.nations[id]?
 const invasionAdapter = (s, o, war, att, def) => {
   const target = s.regions[o.regionId];
   const siege = siegeOf(o, target);
-  const captured = siege.captured || (o.decisive && o.outcome === 'attacker');
+  const captured = cityFell(o, { occupier: siege.hasMeleeUnit, fell: siege.captured || (o.decisive && o.outcome === 'attacker') });
   const units = { ...s.units };
   att.forEach((u) => {
     if (!units[u.id]) return;
@@ -229,7 +230,7 @@ const invasionAdapter = (s, o, war, att, def) => {
   const place = target.name || o.regionId;
   const me = o.attackerNationId === o.viewerId;
   const message = captured
-    ? `${place} is conquered: taken from ${nameOf(s, target.owner)}${me ? ', it is now yours' : ` by ${nameOf(s, o.attackerNationId)}`}${capitalTaken ? ' (their capital has fallen!)' : ''}.${me ? ' Hold it: it starts restless (control 25%).' : ''}`
+    ? `${place} is conquered: taken from ${nameOf(s, target.owner)}${me ? ', it is now yours' : ` by ${nameOf(s, o.attackerNationId)}`}${capitalTaken ? ' (their capital has fallen!)' : ''}.${me ? ' Decide what becomes of it.' : ''}`
     : o.outcome === 'attacker' ? `${me ? 'Your forces' : nameOf(s, o.attackerNationId)} broke through at ${place} (control now ${siege.nextControl}%), but could not yet secure it.`
       : o.outcome === 'defender' ? `${me ? 'Your invasion' : `${nameOf(s, o.attackerNationId)}'s attack`} on ${place} was repelled.`
         : `The attack on ${place} ended in a mutual withdrawal.`;
@@ -241,7 +242,7 @@ const invasionAdapter = (s, o, war, att, def) => {
 const landingAdapter = (s, o, war, att, def) => {
   const target = s.regions[o.regionId];
   const siege = siegeOf(o, target);
-  const captured = siege.captured || (o.decisive && o.outcome === 'attacker');
+  const captured = cityFell(o, { occupier: siege.hasMeleeUnit, fell: siege.captured || (o.decisive && o.outcome === 'attacker') });
   const units = { ...s.units };
   att.forEach((u) => {
     if (!units[u.id]) return;
@@ -274,7 +275,7 @@ const landingAdapter = (s, o, war, att, def) => {
 const defenseAdapter = (s, o, war, att, def, record) => {
   const region = s.regions[o.regionId];
   const siege = siegeOf(o, region);
-  const captured = siege.captured || (o.decisive && o.outcome === 'attacker');
+  const captured = cityFell(o, { occupier: siege.hasMeleeUnit, fell: siege.captured || (o.decisive && o.outcome === 'attacker') });
   const damaged = siege.nextControl < (region.control || 0);
   const pressure = o.pressure;
   const aggressorWon = pressure == null ? o.outcome === 'attacker' : pressure >= 0.5;
@@ -630,7 +631,10 @@ export const applyBattleOutcome = (state, o) => {
   }
 
   // row 15: each nation's battle record (research boosts read it)
-  s = { ...s, nations: recordStats(s.nations, out, placed.captured) };
+  // A city taken again by the same nation soon after (conquest.js captureLog) is not a second prize (I132).
+  s = { ...s, nations: recordStats(s.nations, out, placed.captured && !s.regions[o.regionId]?.conquest?.repeat) };
+  // Decision 40: the player who took a city decides its fate on the capture card (capture.js), once.
+  if (placed.captured && out.attackerNationId === viewerId && s.regions[o.regionId]?.owner === viewerId) s = openCapture(s, { opId: id, cityId: o.regionId, by: viewerId, from: state.regions[o.regionId]?.owner ?? null, source: 'battle' });
   // An independent remembers who attacked it (grudges.js, phase W2): any assault on its city, any
   // other battle in which it lost men.
   const lostMen = sum(out.defenderUnits) < out.defenderUnits.reduce((x, u) => x + startStrength(state, out, u), 0);

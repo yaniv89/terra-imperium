@@ -11,6 +11,7 @@ import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, valid
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs } from './fieldBattle';
 import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs } from './navalBattle';
 import { resolveSiegeControlDamage, hasMeleeUnitDeployed, isGarrisonBroken } from './siege';
+import { cityFell } from './capture';
 import { getCounterMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
 
@@ -51,13 +52,15 @@ const simulate = (state, v, args, ctx, samples, spec) => {
     tally[r.outcome] += 1;
     attLoss += attStart - sumStrength(r.attackerUnits);
     defLoss += defStart - sumStrength(r.defenderUnits);
+    const hasMeleeUnit = hasMeleeUnitDeployed(r.attackerUnits.filter((u) => u.strength > 0 && !u.routed));
     const siege = resolveSiegeControlDamage({
       currentControl: v.targetRegion.control,
       outcome: r.outcome,
-      hasMeleeUnit: hasMeleeUnitDeployed(r.attackerUnits.filter((u) => u.strength > 0 && !u.routed)),
+      hasMeleeUnit,
       garrisonBroken: isGarrisonBroken(r.defenderUnits)
     });
-    if (siege.captured) captures += 1;
+    // The same reading as the outcome service (decision 40, capture.js cityFell).
+    if (cityFell(r, { occupier: hasMeleeUnit, fell: siege.captured })) captures += 1;
     controlLeft += siege.nextControl;
   }
   return {

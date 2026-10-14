@@ -5,14 +5,15 @@
 // resource node. Pure: from the HUD frame (render/view.js), the setup and who the player is.
 //   inspectInfo(hud, setup, target, playerSide) -> { title, owner, ownerLabel, hp, maxHp, alive,
 //     built, progress, icon: { group, id } | { url } | null, glyph, lines: [string], node? } | null
-import { BUILDINGS, NODE_KINDS, ecoName } from '../../battle/data/economy';
+import { BUILDINGS, NODE_KINDS, RESOURCES, ecoName } from '../../battle/data/economy';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
+import { isBaseType } from '../../battle/sim/base';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 import { buildingIconUrl, iconUrl } from '../../data/icons';
 
-const RES_WORD = { food: 'food', materials: 'materials', gold: 'gold' };
+const RES_WORD = { food: 'food', wood: 'wood', stone: 'stone', gold: 'gold' };
 // A node's picture: the resource art (src/assets/icons/resources).
-const NODE_ICON = { tree: 'timber', stone: 'stone', ore: 'iron', gold: 'gold', herd: 'sheep', cattle: 'cattle', fish: 'fish', farm: 'wheat' };
+const NODE_ICON = { tree: 'timber', stone: 'stone', gold: 'gold', herd: 'sheep', cattle: 'cattle', fish: 'fish', farm: 'wheat' };
 const STRUCTURE_TITLE = { keep: 'Keep', tower: 'Tower', wall: 'Wall', gate: 'Gate', house: 'House', palace: 'Palace', wonder: 'Wonder', landmark: 'Landmark', building: 'Building' };
 const STRUCTURE_ICON = { keep: 'build-town-hall', tower: 'build-tower', house: 'build-house' };
 const list = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
@@ -30,7 +31,10 @@ const ecoInfo = (hud, setup, b, playerSide) => {
   if (def.trains?.length) lines.push(`Trains ${list(def.trains.map((r) => (r === 'worker' ? ecoName('worker', ageId) : getSquadDisplayName(r, ageId)).toLowerCase()))}`);
   if (def.housing) lines.push(`+${def.housing} housing`);
   if (def.dropoff && !def.hq) lines.push(`Takes ${list(def.dropoff.map((r) => RES_WORD[r]))}`);
-  if (def.hq) lines.push(owner === 'you' ? 'Your headquarters: laborers bring everything here' : 'Their headquarters');
+  // I208: the camp's name follows the age (Expedition camp, Headquarters tent, Command camp): say what it is.
+  if (def.hq) lines.push(owner === 'you' ? 'Your camp, the headquarters (each age names it its own way): laborers bring everything here' : 'Their camp, the headquarters (each age names it its own way)');
+  // The base rule (sim/base.js): what counts.
+  if (hud.base && b.built) lines.push(isBaseType(b.type) ? (owner === 'you' ? 'Base building: you lose when your last one falls' : 'Base building: destroy every one to win') : 'Not part of the base');
   if (def.trade) lines.push('Brings in gold while it stands');
   if (def.farm) lines.push(`Food for ${def.slots} laborers, never runs out`);
   if (def.mine) lines.push('Faster mining at its vein');
@@ -51,7 +55,11 @@ const structureInfo = (hud, setup, index, playerSide) => {
   const title = town ? 'Town hall' : st.kind === 'building' || st.name ? st.name || STRUCTURE_TITLE[st.kind] : STRUCTURE_TITLE[live.kind] || live.kind;
   const lines = [];
   if (!live.alive) lines.push(live.kind === 'gate' ? 'Broken open' : live.kind === 'wall' ? 'Breached' : 'Ruined');
-  if (index === 0) lines.push(owner === 'you' ? 'The objective: hold it to the end' : 'The objective: take it');
+  if (hud.base) {
+    // The base rule (sim/base.js): the keep is one base building among others.
+    if (index === 0 || live.kind === 'building') lines.push(owner === 'you' ? 'Base building: you lose when your last one falls' : 'Base building: destroy every one to win');
+    else lines.push('Not part of the base');
+  } else if (index === 0) lines.push(owner === 'you' ? 'The objective: hold it to the end' : 'The objective: take it');
   if (live.garrisonSlots > 0) lines.push(`Garrison ${live.garrison} / ${live.garrisonSlots}`);
   if (st.housing) lines.push(`Houses ${st.housing} people (battle housing)`);
   if (live.kind === 'building' && st.category) lines.push(BUILDING_EFFECTS[st.category] || 'A landmark of the town');
@@ -91,7 +99,7 @@ export const inspectInfo = (hud, setup, target, playerSide) => {
 /** Why a building cannot be placed now, or null: the shortfall per resource and the laborers. */
 export const buildBlock = (id, stock, workers) => {
   const cost = BUILDINGS[id]?.cost || {};
-  const short = ['food', 'materials', 'gold'].map((r, i) => [r, Math.max(0, (cost[r] || 0) - (stock?.[i] || 0))]).filter(([, v]) => v > 0);
+  const short = RESOURCES.map((r, i) => [r, Math.max(0, (cost[r] || 0) - (stock?.[i] || 0))]).filter(([, v]) => v > 0);
   if (short.length) return { kind: 'cost', short, text: `Needs ${list(short.map(([r, v]) => `${v} more ${RES_WORD[r]}`))}` };
   if (!workers) return { kind: 'workers', short: [], text: 'No laborers left to build it' };
   return null;

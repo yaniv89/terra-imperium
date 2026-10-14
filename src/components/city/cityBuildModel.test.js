@@ -7,7 +7,7 @@ import { getTiles } from '../../data/geo/tiles';
 import { getNationCapital } from '../../data/regions';
 import { NEEDS_SEA_COAST } from '../../engine/world/cities';
 import { buildingEffect } from '../../engine/cityEffects';
-import { buildOptions, buildQueue, focusHint, tileBearing, itemLabel } from './cityBuildModel';
+import { buildOptions, buildQueue, focusHint, tileBearing, itemLabel, rushText } from './cityBuildModel';
 import { cityBuildingsModel, crownActions, cityDevelopmentModel, populationPolicyPreview } from './cityPoliticsModel';
 import { cityDefenseModel } from './cityDefenseModel';
 
@@ -157,5 +157,19 @@ describe('the other city tabs', () => {
     expect(m.paths.map((p) => p.id)).toEqual(['walls', 'garrison', 'works']);
     expect(m.paths[0]).toMatchObject({ tab: 'build', action: 'Build Palisade' });
     expect(cityDefenseModel(S, getNationCapital('de')).paths).toEqual([]);
+  });
+});
+
+describe('rush offer on the queue (CB04 I019, I027)', () => {
+  it('each queue row carries the reducer\'s own quote, and its words name the gold and the wait', () => {
+    let s = queue({ ...S, resources: { ...S.resources, gold: 99999 } }, { kind: 'building', category: 'food', tier: 0 });
+    const [row] = buildQueue(s, paris);
+    expect(row.rush.ok).toBe(true);
+    const words = rushText(row);
+    expect(words.button).toBe(`Buy ${row.rush.gold}g`);
+    expect(words.text).toMatch(/Done next turn/);
+    s = gameReducer(s, { type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: paris, index: 0 } });
+    expect(s.resources.gold).toBe(99999 - row.rush.gold);
+    expect(buildQueue(s, paris)[0].rush.ok).toBe(false);
   });
 });

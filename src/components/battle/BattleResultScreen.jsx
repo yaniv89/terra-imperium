@@ -16,6 +16,10 @@ import { menText } from '../../engine/battleLedger';
 
 const REASONS = {
   keepTaken: 'The keep was taken and held.',
+  // A battle with bases (sim/base.js): a side loses when its last base building falls.
+  baseDestroyed: "The defenders' last base building fell.",
+  campDestroyed: "The attackers' camp and base buildings were destroyed.",
+  defenderRetreated: 'The defenders withdrew from the field.',
   defendersBroken: 'The defenders were broken.',
   attackersBroken: 'The attack was broken.',
   attackerRetreated: 'The attackers withdrew from the field.',

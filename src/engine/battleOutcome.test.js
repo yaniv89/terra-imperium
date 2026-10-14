@@ -144,13 +144,18 @@ describe('master plan 6.7, row by row', () => {
     expect(ranged.regions[T].control).toBe(SIEGE_CAPTURE_CONTROL_THRESHOLD);
     const melee = applyBattleOutcome(low, invasion(low, 'attacker', { a1: 800, a2: 0, a3: 900 }, { d1: 500, d2: 400 }, { id: 'op2' }));
     expect(melee.regions[T].owner).toBe('fr');
-    // The city's militia stand in the garrison: an attack that broke the units but not the militia grinds on.
+    // Decision 40: a won city battle takes the city (capture.js cityFell). Whether the militia still
+    // standing means the battle is not won is the battle's own rule (its outcome), not a grind here.
     const mil = cityMilitia(s, T);
     expect(mil.length).toBeGreaterThan(0);
-    const militiaHolds = applyBattleOutcome(s, makeBattleOutcome({ id: 'op3', kind: 'invasion', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, fromRegionId: FR, regionId: T, isDefended: true, militia: mil }, {
+    const militiaStands = applyBattleOutcome(s, makeBattleOutcome({ id: 'op3', kind: 'invasion', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, fromRegionId: FR, regionId: T, isDefended: true, militia: mil }, {
       outcome: 'attacker', attackerUnits: [{ ...s.units.a1, strength: 900 }], defenderUnits: [{ ...s.units.d1, strength: 0 }, { ...mil[0], strength: 100 }], report: {}
     }));
-    expect(militiaHolds.regions[T].owner).toBe(AGG);
+    expect(militiaStands.regions[T].owner).toBe('fr');
+    const held = applyBattleOutcome(s, makeBattleOutcome({ id: 'op4', kind: 'invasion', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, fromRegionId: FR, regionId: T, isDefended: true, militia: mil }, {
+      outcome: 'defender', attackerUnits: [{ ...s.units.a1, strength: 900 }], defenderUnits: [{ ...s.units.d1, strength: 0 }, { ...mil[0], strength: 100 }], report: {}
+    }));
+    expect(held.regions[T].owner).toBe(AGG);
   });
 
   it('4 zone of control and local.fortLevel are setup inputs, the same for Command and Auto', () => {
@@ -191,7 +196,8 @@ describe('master plan 6.7, row by row', () => {
 
   it('7 a fort and a held tile: the same reduction in the field battle setup and the auto-resolve', () => {
     const s0 = fieldState();
-    const s = { ...s0, world: { ...s0.world, tileState: { ...s0.world.tileState, [FIELD.theirs]: { improvement: 'fort' } } } };
+    // On the player's own land (decision 41: on nobody's land a clash is fought on Auto only).
+    const s = { ...s0, world: { ...s0.world, tileOwner: { ...s0.world.tileOwner, [FIELD.theirs]: FIELD.IN }, tileState: { ...s0.world.tileState, [FIELD.theirs]: { improvement: 'fort' } } } };
     const v = validateFieldAttack(s, FIELD.IN, FIELD.theirs);
     const ctx = getFieldBattleContext(s, v);
     expect(ctx.defenderDamageReductionMultiplier).toBe(FORT_REDUCTION);
@@ -293,7 +299,11 @@ describe('master plan 6.7, row by row', () => {
   it('15 each nation\'s battle record feeds the research boosts', () => {
     const s = armies();
     let t = s;
-    for (let i = 0; i < 3; i++) t = applyBattleOutcome(t, invasion(t, 'attacker', { a1: 900 }, { d1: 500 }, { id: `w${i}`, isDefended: true }));
+    // A won city battle takes the city (decision 40): hand it back between the battles.
+    for (let i = 0; i < 3; i++) {
+      t = applyBattleOutcome(t, invasion(t, 'attacker', { a1: 900 }, { d1: 500 }, { id: `w${i}`, isDefended: true }));
+      t = { ...t, regions: { ...t.regions, [T]: s.regions[T] }, units: { ...t.units, d1: s.units.d1 } };
+    }
     expect(t.nations.fr.battleStats.won).toBe(3);
     expect(t.nations[AGG].battleStats.lost).toBe(3);
     expect(nationFacts(t, 'fr').battlesWon).toBe(3);

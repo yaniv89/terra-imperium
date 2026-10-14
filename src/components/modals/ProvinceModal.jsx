@@ -55,7 +55,7 @@ const CityDefense = ({ model, onOpenTab }) => (
       <div className="fa-card px-3 py-2"><div className="text-fa-muted text-[12px]">Walls</div><div className="fa-num font-semibold">{model.walls}</div></div>
       <div className="fa-card px-3 py-2"><div className="text-fa-muted text-[12px]">Siege</div><div className="font-semibold">{model.siege ? (model.siege.by ? `By ${model.siege.by}${model.siege.encircled ? ', encircled' : ''}` : 'Recovering') : 'None'}</div></div>
     </div>
-    {model.siege && <Meter value={model.siege.hp} max={Math.max(1, model.siege.maxHp)} color="var(--fa-enemy)" label={`Walls ${model.siege.hp} of ${model.siege.maxHp} HP`} />}
+    {model.siege && <Meter value={model.siege.hp} max={Math.max(1, model.siege.maxHp)} color="var(--fa-enemy)" label={`Holds out ${model.siege.hp} of ${model.siege.maxHp}`} />}
     {/* What can be done about it, each with the tab that does it (playtest audits I053). */}
     {model.paths?.length > 0 && (
       <div className="fa-card p-3" data-testid="city-defense-paths">

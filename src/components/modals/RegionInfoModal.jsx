@@ -46,7 +46,7 @@ import { unitsStationedIn, fieldUnitsOf, whereLabel } from '../../engine/unitLoc
 import { unitTile } from '../../engine/armies';
 import { supplyOf } from '../../engine/supplyMeter';
 import { atSea } from '../../engine/fleets';
-import { wallsOf } from '../../engine/sieges';
+import { wallsLabel } from '../battle/warModel';
 import { cultureOf, loyaltyOf, loyaltyTarget } from '../../engine/loyalty';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { claimOn, canFabricateClaim, CLAIM_FABRICATE_TURNS } from '../../engine/claims';
@@ -320,7 +320,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             <div className="rounded-lg border border-fa-enemy/70 bg-fa-raised p-2 text-[12px]" data-testid="siege-note">
               <div className="font-semibold">{regionState.siege.by ? `Under siege by ${state.nations[regionState.siege.by]?.name || 'rebels'}` : 'Recovering from a siege'}{regionState.siege.encircled ? ', encircled' : ''}</div>
               <div className="h-1.5 bg-fa-line rounded-full mt-1 overflow-hidden"><div className="h-full bg-fa-enemy" style={{ width: `${Math.round(100 * regionState.siege.hp / Math.max(1, regionState.siege.maxHp))}%` }} /></div>
-              <div className="text-fa-muted mt-0.5">Walls {wallsOf(regionState)} · {regionState.siege.hp}/{regionState.siege.maxHp} HP · the city works its first ring only</div>
+              <div className="text-fa-muted mt-0.5">{wallsLabel(regionState)} · holds out {regionState.siege.hp}/{regionState.siege.maxHp} · the city works its first ring only</div>
             </div>
           )}
           {regionState.owner && (() => {

@@ -5,12 +5,12 @@
 // does nothing. placement.test.js keeps the two in step on a real battle.
 //   placementCheck({ view, setup, side, type, tx, ty, fog }) -> { ok, code, reason }
 //   tx, ty: the footprint's top-left tile (the build order's), fog: the player's fog grid or null.
-import { BUILDINGS, buildableFor, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN } from '../data/economy';
-import { MAX_ECO_BUILDINGS } from '../sim/economy';
+import { BUILDINGS, RESOURCES, buildableFor, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN } from '../data/economy';
+import { MAX_ECO_BUILDINGS, NODE_PAD } from '../sim/economy';
 import { TILE } from '../setup/mapgen';
 import { Q } from '../sim/constants';
 
-const VEINS = new Set(['stone', 'ore', 'gold']);
+const VEINS = new Set(['stone', 'gold']);
 const GROUND_REASON = {
   [TILE.FOREST]: 'Blocked by trees',
   [TILE.WATER]: 'Cannot build on water',
@@ -27,10 +27,14 @@ export const PLACEMENT_REASON = {
   ground: 'Blocked ground',
   crowded: 'Too close to another building',
   node: 'On top of a resource',
-  noVein: 'A mine must stand by stone, ore or gold',
-  fog: 'You cannot see this ground',
+  noVein: 'A mine must stand by stone or gold',
+  fog: 'Unexplored ground',
   far: 'Outside your camp area',
-  occupied: 'Troops are standing here'
+  occupied: 'Troops are standing here',
+  outside: 'Outside the battlefield',
+  workers: 'No laborers left to build it',
+  cost: 'Not enough to pay for it',
+  refused: 'The site could not be placed there'
 };
 
 // The map's tiles as the sim has them now: the setup's ground, every standing building's footprint
@@ -49,16 +53,53 @@ const tileAt = (view, setup) => {
   return (i) => (claimed.has(i) ? claimed.get(i) : map.tiles[i]);
 };
 
-/** { ok, code, reason } for `side` placing `type` with its top-left tile at (tx, ty). */
-export const placementCheck = ({ view, setup, side, type, tx, ty, fog = null }) => {
+/** "Needs 70 more stone and 20 more gold", or null when `stock` (whole units, RESOURCES order) pays `cost`. */
+export const shortfallText = (cost, stock) => {
+  const short = RESOURCES.map((r, i) => [r, Math.max(0, (cost?.[r] || 0) - (stock?.[i] || 0))]).filter(([, v]) => v > 0);
+  if (!short.length) return null;
+  const parts = short.map(([r, v]) => `${v} more ${r}`);
+  return `Needs ${parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`}`;
+};
+
+/**
+ * { ok, code, reason } for `side` placing `type` with its top-left tile at (tx, ty). With `stock`
+ * (the view's whole units) the price is checked too ('cost'), with `workers` the laborers
+ * ('workers'): the sim's build order refuses both (I181: the reason shows next to Build here).
+ */
+export const placementCheck = ({ view, setup, side, type, tx, ty, fog = null, stock = null, workers = null }) => {
   const fail = (code, reason = PLACEMENT_REASON[code]) => ({ ok: false, code, reason });
   const def = BUILDINGS[type];
   if (!def || !view?.eco || !buildableFor(setup.sides[side].ageId).includes(type)) return fail('unknown');
+  if (workers === 0) return fail('workers');
+  const shortText = stock ? shortfallText(def.cost, stock) : null;
+  const ground = groundCheck({ view, setup, side, type, tx, ty, fog });
+  if (!ground.ok) return ground;
+  return shortText ? fail('cost', shortText) : ground;
+};
+
+/** The legal footprint centres for `type` around (cx, cy) within `radius` tiles: a Uint8Array over
+ *  the map, 1 where a footprint centred on that tile can go (I173: the tint while placing). */
+export const legalArea = ({ view, setup, side, type, fog = null, cx, cy, radius }) => {
+  const { map } = setup; const size = BUILDINGS[type]?.size || 1;
+  const out = new Uint8Array(map.w * map.h);
+  const tileFn = tileAt(view, setup);
+  for (let y = Math.max(0, cy - radius); y <= Math.min(map.h - 1, cy + radius); y++) {
+    for (let x = Math.max(0, cx - radius); x <= Math.min(map.w - 1, cx + radius); x++) {
+      const { tx, ty } = footprintAt(type, x + 0.5, y + 0.5);
+      if (groundCheck({ view, setup, side, type, tx, ty, fog, tileFn }).ok) out[y * map.w + x] = 1;
+    }
+  }
+  return { cells: out, size };
+};
+
+const groundCheck = ({ view, setup, side, type, tx, ty, fog = null, tileFn = null }) => {
+  const fail = (code, reason = PLACEMENT_REASON[code]) => ({ ok: false, code, reason });
+  const def = BUILDINGS[type];
   const { map } = setup; const size = def.size;
   if (tx < 1 || ty < 1 || tx + size > map.w - 1 || ty + size > map.h - 1) return fail('edge');
   const buildings = view.eco.buildings;
   if (buildings.filter((b) => b.side === side && b.alive && !BUILDINGS[b.type]?.hq).length >= MAX_ECO_BUILDINGS) return fail('limit');
-  const tile = tileAt(view, setup);
+  const tile = tileFn || tileAt(view, setup);
   for (let y = ty; y < ty + size; y++) {
     for (let x = tx; x < tx + size; x++) {
       const t = tile(y * map.w + x);
@@ -74,7 +115,7 @@ export const placementCheck = ({ view, setup, side, type, tx, ty, fog = null }) 
   const cx = tx * Q + ((size * Q) >> 1); const cy = ty * Q + ((size * Q) >> 1); // economy.js footprintCentre
   const nodes = view.eco.nodes;
   const near = (n, r) => Math.abs(n.x - cx) <= r && Math.abs(n.y - cy) <= r;
-  if (nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && near(n, ((size * Q) >> 1) + (Q >> 1)))) return fail('node');
+  if (nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && near(n, NODE_PAD(size)))) return fail('node');
   if (def.mine) {
     // The vein a standing mine works is the one nearest to it (economy.js 'build').
     const taken = new Set();
@@ -86,7 +127,7 @@ export const placementCheck = ({ view, setup, side, type, tx, ty, fog = null }) 
     });
     if (!nodes.some((n) => VEINS.has(n.kind) && n.amount !== 0 && near(n, ((size * Q) >> 1) + 2 * Q) && !taken.has(n.i))) return fail('noVein');
   }
-  if (fog && fog[Math.floor(cy / Q) * map.w + Math.floor(cx / Q)] !== 2) return fail('fog');
+  if (fog && fog[Math.floor(cy / Q) * map.w + Math.floor(cx / Q)] < 1) return fail('fog');
   const reach = buildings.some((b) => b.side === side && b.built && b.alive && ((b.x - cx) ** 2 + (b.y - cy) ** 2 <= ((BUILDINGS[b.type]?.hq ? BUILD_RADIUS_HQ : BUILD_RADIUS_OWN) * Q) ** 2));
   if (!reach) return fail('far');
   const half = (size * Q) >> 1;

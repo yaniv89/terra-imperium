@@ -82,6 +82,13 @@ export const ADVISOR_HIRE_GOLD_PER_LEVEL_SQUARED = 50;
 export const ADVISOR_SALARY_GOLD_PER_LEVEL_SQUARED = 2;
 export const getAdvisorHireCost = (level) => ADVISOR_HIRE_GOLD_PER_LEVEL_SQUARED * level * level;
 export const getAdvisorSalary = (level) => ADVISOR_SALARY_GOLD_PER_LEVEL_SQUARED * level * level;
+/** Why one advisor costs more than another (playtest audits I033): the price and the salary grow
+ * with the square of the level, the gain only with the level. One line under each Hire button. */
+export const advisorQuoteText = (level, pool, current = null) => {
+  const p = String(pool).toUpperCase();
+  const replaces = current ? ` Replaces ${current.name} (level ${current.level}, +${current.level} ${p}): no refund.` : '';
+  return `+${level} ${p} a turn for ${getAdvisorHireCost(level)} gold now and ${getAdvisorSalary(level)} gold a turn. Price and salary grow with the level squared (${ADVISOR_HIRE_GOLD_PER_LEVEL_SQUARED} x level x level).${replaces}`;
+};
 
 const ADVISOR_LEVEL_WEIGHTS = [1, 1, 2, 2, 2, 3]; // level 1-3, weighted toward the middle
 

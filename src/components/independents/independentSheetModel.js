@@ -32,7 +32,7 @@ import { attitudeOf, mayJoin, joinCheck, demandTributeCheck, tradeCheck, offerTr
 import { opinionBreakdown } from '../../engine/opinion';
 import { mercOffer, mercStockOf } from '../../engine/mercenaries';
 import { raidEta } from '../../engine/raids';
-import { wallsOf } from '../../engine/sieges';
+import { wallsLabel } from '../battle/warModel';
 import { unitTile } from '../../engine/armies';
 import { shieldUrl, shieldColour } from './independentArt';
 
@@ -65,7 +65,6 @@ export const GRUDGE_BANDS = [[0, 'Calm'], [25, 'Wary'], [50, 'Hostile'], [75, 'B
 export const grudgeWord = (g) => GRUDGE_BANDS.reduce((w, [from, word]) => (g >= from ? word : w), 'Calm');
 export const grudgeTone = (g) => (g >= 50 ? 'bad' : g > 0 ? 'neutral' : 'good');
 
-const WALL_WORDS = ['no walls', 'walls low', 'walls strong', 'walls great'];
 const MOOD = { calm: null, raiding: 'raid party out', besieged: 'under threat', recovering: 'licking its wounds' };
 
 /** How long the sheet and the city card name the last raid's outcome. */
@@ -123,7 +122,7 @@ export const independentSheetModel = (state, indepId) => {
     const place = city.tile != null ? getTiles().names?.[city.tile] : null;
     if (place && place !== city.name) facts.push(place);
     facts.push(`size ${city.size || 1}`);
-    facts.push(WALL_WORDS[wallsOf(city)] || 'walls');
+    facts.push(wallsLabel(city).toLowerCase()); // the walls' one name on every screen (I009)
     facts.push(`garrison ${garrison.length}`);
     if (MOOD[ind.mood]) facts.push(MOOD[ind.mood]);
     if (city.razing) facts.push('burning');

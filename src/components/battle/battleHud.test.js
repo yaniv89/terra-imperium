@@ -70,8 +70,10 @@ describe('BattleHud', () => {
     const cityHud = { ...hud, structures: [hud.structures[0], { kind: 'house', alive: false, hp: 0, maxHp: 1 }, { kind: 'house', alive: true, hp: 1, maxHp: 1 }] };
     const h = html({ setup: citySetup, hud: cityHud });
     expect(h).toContain('data-testid="battle-city"');
-    expect(h).toContain('data-testid="battle-city-houses"');
-    expect(h).toContain('Repairs are free');
+    // I202: the city card starts folded, a chip with the housing that opens it.
+    expect(h).toContain('data-testid="battle-city-open"');
+    expect(h).not.toContain('data-testid="battle-city-houses"');
+    expect(h).toContain('ruined <span class="fa-num">1/2</span>');
     expect(h).not.toContain('50% rule');
     expect(h).not.toMatch(/At most \d+ carry/);
     const done = html({ ended: true });

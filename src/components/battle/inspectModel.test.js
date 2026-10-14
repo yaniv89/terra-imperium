@@ -14,7 +14,7 @@ const hud = {
       { idx: 1, type: 'hall', side: 1, hp: 2000, maxHp: 3000, alive: true, built: true, progress: 100, proxy: true },
       { idx: 2, type: 'barracks', side: 1, hp: 300, maxHp: 1200, alive: true, built: false, progress: 25, proxy: false }
     ],
-    nodes: [{ i: 4, kind: 'stone', res: 'materials', amount: 120, max: 500 }]
+    nodes: [{ i: 4, kind: 'stone', res: 'stone', amount: 120, max: 500 }]
   }
 };
 
@@ -36,14 +36,28 @@ describe('the info card (B09)', () => {
     expect(inspectInfo(hud, setup, { kind: 'structure', index: 2 }, 0)).toMatchObject({ title: 'Temple' });
   });
 
+  it('I208 and the base rule: the camp says what it is whatever the age calls it; base buildings say so', () => {
+    const based = { ...hud, base: [1, 3] };
+    const camp = inspectInfo(based, setup, { kind: 'eco', index: 0 }, 0);
+    expect(camp.lines.some((l) => /^Your camp, the headquarters \(each age names it its own way\)/.test(l))).toBe(true);
+    expect(camp.lines).toContain('Base building: you lose when your last one falls');
+    expect(inspectInfo(based, setup, { kind: 'structure', index: 0 }, 0).lines).toContain('Base building: destroy every one to win');
+    expect(inspectInfo(based, setup, { kind: 'structure', index: 2 }, 0).lines).toContain('Base building: destroy every one to win');
+    expect(inspectInfo(based, setup, { kind: 'structure', index: 1 }, 0).lines).toContain('Not part of the base');
+    // An unfinished site is not base yet; without bases the keep is the objective as before.
+    expect(inspectInfo(based, setup, { kind: 'eco', index: 2 }, 0).lines.some((l) => /base/i.test(l))).toBe(false);
+    expect(inspectInfo(hud, setup, { kind: 'structure', index: 0 }, 0).lines).toContain('The objective: take it');
+  });
+
   it('a resource node shows what is left', () => {
     expect(inspectInfo(hud, setup, { kind: 'node', index: 4 }, 0)).toMatchObject({ title: 'Stone', owner: 'neutral', hp: 120, maxHp: 500 });
   });
 
   it('the build menu says why a tile is disabled', () => {
-    expect(buildBlock('range', [100, 200, 10], 3)).toMatchObject({ kind: 'cost', short: [['gold', 20]] });
-    expect(buildBlock('house', [0, 100, 0], 0)).toMatchObject({ kind: 'workers' });
-    expect(buildBlock('house', [0, 100, 0], 2)).toBeNull();
+    expect(buildBlock('range', [100, 200, 0, 10], 3)).toMatchObject({ kind: 'cost', short: [['gold', 20]] });
+    expect(buildBlock('house', [0, 100, 0, 0], 0)).toMatchObject({ kind: 'workers' });
+    expect(buildBlock('house', [0, 100, 0, 0], 2)).toBeNull();
+    expect(buildBlock('tower', [0, 100, 20, 100], 2)).toMatchObject({ kind: 'cost', short: [['stone', 70]], text: 'Needs 70 more stone' });
     expect(buildDetail('tower', 'bronze')).toMatchObject({ title: 'Tower', hp: 1000, size: 2, time: 45 });
   });
 });

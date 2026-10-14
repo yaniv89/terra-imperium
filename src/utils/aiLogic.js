@@ -296,7 +296,14 @@ export const rankWarTargets = (state, nationId, candidates) => {
   const cost = WAR_COST / warTemper(state.nations[nationId]);
   return candidates.map((id) => ({ id, ...warValue(state, nationId, id, { cost }) })).sort((a, b) => b.ev - a.ev || (a.id < b.id ? -1 : 1));
 };
-const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = null) => {
+// A peace (or a truce bought with tribute) is remembered AI_PEACE_MEMORY_TURNS past the truce's end
+// (truces hold their expiry turn, diplomacy.js setTruce); in that time the AI picks other targets.
+export const AI_PEACE_MEMORY_TURNS = 20;
+export const recentlyAtPeace = (state, nationId, otherId) => {
+  const until = state.nations[nationId]?.truces?.[otherId];
+  return until != null && state.turnNumber < until + AI_PEACE_MEMORY_TURNS;
+};
+const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = null, memoryExempt = null) => {
   // Plan §M12/M13: the AI never breaks a truce (isInTruce, src/engine/diplomacy.js) — a
   // truce-active neighbor is filtered out of consideration entirely.
   const candidates = getBorderingNationIds(state.regions, nationId)
@@ -306,6 +313,9 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
     .filter(id => id !== excludeId && state.nations[id] && !state.nations[id].isEliminated && !isIndependentNation(state.nations[id]) && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id) && hasMet(state, nationId, id)
       // Never a people it holds an open demand on: the answer comes first (accords.js, addendum X21).
       && !hasOpenDemand(state, nationId, id)
+      // Nor one it made peace with lately: the truce's end is not the next war's start (CB09).
+      // (a coalition's strike on the runaway leader honours only the truce itself).
+      && (id === memoryExempt || !recentlyAtPeace(state, nationId, id))
       && !hasActiveWarBetween(state, nationId, id) && countActiveWars(state.wars, id) < MAX_TARGET_WARS);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;
@@ -396,10 +406,15 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     const view = { ...state, nations: currentNations, wars: currentWars };
     // A claim this nation fabricated (claims.js) and that is ready: the war it was made for
     // needs no new roll (the roll was passed when the claim was started).
-    const readyTarget = claimsOf(activeNation).map((cid) => state.regions[cid]?.owner).find((t) => t && t !== nationId && !(warRollOpinionMult(opinion) <= 0 && t === state.playerNationId) && pickWarTarget(view, nationId, t, null) === t) || null;
+    // A claim buys ONE war without a roll (lane CB09): once a war was declared over it, later wars
+    // on that people need the roll like any other (a claim that skipped the roll redeclared the
+    // turn every truce ended: six Kanesh wars on one player in 90 turns).
+    const spent = new Set(activeNation.spentClaims || []);
+    const freshClaims = claimsOf(activeNation).filter((cid) => !spent.has(cid));
+    const readyTarget = freshClaims.map((cid) => state.regions[cid]?.owner).find((t) => t && t !== nationId && !(warRollOpinionMult(opinion) <= 0 && t === state.playerNationId) && pickWarTarget(view, nationId, t, null) === t) || null;
     // Recent wars nearby raise the roll (warContagion.js, a Hawkes process).
     if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * warContagionMult(activeNation) * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinion))) return;
-    const targetId = readyTarget || pickWarTarget(view, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null);
+    const targetId = readyTarget || pickWarTarget(view, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null, canStrikeLeader ? runawayLeaderId : null);
     if (!targetId) return;
     if (!hasCasusBelli(view, nationId, targetId)) {
       // No justification yet: fabricate a claim on the nearest city of the target when the DIP is
@@ -418,6 +433,13 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     if (result.wars === currentWars) return; // no-op (shouldn't happen given pickWarTarget's filter, but stay defensive)
     draggedIn.add(targetId);
     currentNations = result.nations;
+    // Every claim on the target is spent by this war (see readyTarget above).
+    const claimsOnTarget = claimsOf(currentNations[nationId]).filter((cid) => state.regions[cid]?.owner === targetId);
+    if (claimsOnTarget.length) {
+      const me = currentNations[nationId];
+      const live = new Set(claimsOf(me));
+      currentNations = { ...currentNations, [nationId]: { ...me, spentClaims: [...new Set([...(me.spentClaims || []).filter((c) => live.has(c)), ...claimsOnTarget])] } };
+    }
     currentWars = result.wars;
     const targetName = state.nations[targetId]?.name || targetId;
     logs.push({

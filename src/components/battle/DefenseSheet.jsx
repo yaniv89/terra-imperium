@@ -16,6 +16,7 @@ import { ActionTypes } from '../../data/types';
 import { queuedBattleView, battleQueueBlocked, queuedKind } from '../../engine/battleQueue';
 import { battleNameOf } from '../../engine/battleName';
 import { Button, IconButton } from '../ui/atlas';
+import GameIcon from '../ui/GameIcon';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { defenseSheetModel } from './defenseSheetModel';
 import { SHOW_DEFENSE } from '../ui/uiEvents';
@@ -29,7 +30,8 @@ const DefenseSheet = () => {
     window.addEventListener(SHOW_DEFENSE, onShow);
     return () => window.removeEventListener(SHOW_DEFENSE, onShow);
   }, []);
-  const [mode, setMode] = useState(state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command');
+  // null until the player picks: then the card's own suggestion (defenseSheetModel `suggested`).
+  const [mode, setMode] = useState(null);
   const defenses = state.pendingDefenses || [];
   const def = defenses[0] || null;
   const blocked = !def || !!state.pendingBattle || battleQueueBlocked(state);
@@ -42,14 +44,15 @@ const DefenseSheet = () => {
   // own rule, battleQueue.js battleQueueBlocked).
   if (blocked || !m || !turn.shown) return null;
 
-  const chosen = mode === 'withdraw' && !m.withdraw?.ok ? 'command' : mode;
+  const picked = mode || m.suggested || 'command';
+  const chosen = m.noMansLand && picked === 'command' ? 'auto' : picked === 'withdraw' && !m.withdraw?.ok ? 'command' : picked;
   const act = () => {
     if (chosen === 'auto') dispatch({ type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
     else if (chosen === 'withdraw') dispatch({ type: ActionTypes.WITHDRAW_FROM_DEFENSE, payload: { defenseId: def.id } });
     else dispatch({ type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
   };
   const options = [
-    { id: 'command', sub: m.city ? 'Play the defence from the walls' : 'Play it in real time', testId: 'defense-command' },
+    { id: 'command', sub: m.noMansLand ? 'Not here: no man\'s land' : m.city ? 'Play the defence from the walls' : 'Play it in real time', disabled: !!m.noMansLand, title: m.noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : undefined, testId: 'defense-command' },
     { id: 'auto', sub: 'Instant result, same rules', testId: 'defense-auto' },
     ...(m.withdraw ? [{ id: 'withdraw', sub: m.withdraw.ok ? `Give up ${m.place}, keep the men` : 'Nowhere to go', disabled: !m.withdraw.ok, title: m.withdraw.text, testId: 'defense-withdraw' }] : [])
   ];
@@ -89,7 +92,14 @@ const DefenseSheet = () => {
             <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft={m.attacking ? 'they hold' : 'they take it'} labelRight={m.attacking ? 'you win' : 'you hold'} /></div>
           </div>
         )}
+        {m.warning && <div role="status" className="text-[12px] leading-snug text-fa-danger-text rounded-[8px] border border-fa-danger/60 px-2 py-1" data-testid="defense-hopeless">{m.warning}</div>}
         <ModeCards options={options} value={chosen} onChange={setMode} compact />
+        {m.noMansLand && (
+          <div role="status" className="flex items-center gap-2 text-[12px] text-fa-muted" data-testid="defense-no-mans-land">
+            <GameIcon group="ui" id="no-mans-land" size={22} halo={false} />
+            <span><b className="text-fa-text">{m.noMansLand}.</b> This ground is inside neither people&apos;s borders.</span>
+          </div>
+        )}
         <ModeExplain title={chosen === 'command' ? 'Command' : chosen === 'auto' ? 'Auto' : 'Withdraw'} right={chosen === 'command' ? 'Your call' : null} compact>{explain}</ModeExplain>
         {defenses.length > 1 && (
           <div className="text-[11px] text-fa-muted">Next: {defenses.slice(1, 3).map((d) => battleNameOf(state, { kind: queuedKind(d), regionId: d.regionId, tile: d.tile })).join(', ')}{defenses.length > 3 ? ` and ${defenses.length - 3} more` : ''}.</div>

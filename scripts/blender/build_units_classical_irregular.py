@@ -141,7 +141,9 @@ def build_mercenary():
             'notes': 'From the base parts, no theme parts (plan 4.3, 4.4). Rest pose; the vertex rig walks the legs and swings the arms.'})
 
 
-BUILDERS = {'classical-raider': build_raider, 'classical-mercenary': build_mercenary}
+# The mercenary was rebuilt in the quality pass of 2026-10-14 by build_classical_mercenary.py on
+# ti_figure.py; build_mercenary stays here for reference only.
+BUILDERS = {'classical-raider': build_raider}
 ids = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else list(BUILDERS)
 for uid in ids:
     BUILDERS[uid]()

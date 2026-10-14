@@ -48,7 +48,7 @@ import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
-import { canAttack } from './hostility';
+import { canAttack, isNoMansLand, NO_MANS_LAND_REASON } from './hostility';
 import { setHold, setSiege } from './standingOrders';
 import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { addGrudge } from './grudges';
@@ -58,6 +58,7 @@ import { isRaidKind, queuedRaidArmies } from './raidBattle';
 import { interceptArmies, landingArmies, resolveInterceptQueued, resolveLandingQueued } from './aiLanding';
 import { giftIndependent, proposeJoining, answerJoinOffer, demandIndependentTribute, proposeIndependentTrade, offerIndependentTribute, razeCityForPlayer } from './indepPolicy';
 import { canRaze, stopRazing } from './razing';
+import { resolveCapture } from './capture';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
 import { addNationModifier } from './modifiers/timed';
@@ -133,6 +134,7 @@ import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
+import { rushQuote, applyRush, rushItemName, infrastructureCosts, defensesCosts, growthCosts } from './spending';
 
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
@@ -714,7 +716,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.BUILD_INFRASTRUCTURE: {
       const { regionId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.buildInfrastructure;
+      const costs = infrastructureCosts(state, region); // by age, speed and level (spending.js, I021)
       if (!region || region.owner !== state.playerNationId || region.currentInfrastructure >= 10) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
@@ -728,7 +730,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.BUILD_DEFENSES: {
       const { regionId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.buildDefenses;
+      const costs = defensesCosts(state, region); // by age, speed and level (spending.js, I021)
       if (!region || region.owner !== state.playerNationId || region.defenseLevel >= 10) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
@@ -989,13 +991,13 @@ const reduceAction = (state, action) => {
     case ActionTypes.POPULATION_POLICY: {
       const { regionId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.populationPolicy;
+      const costs = region?.size != null ? growthCosts(state, region) : ACTION_COSTS.populationPolicy; // by age, speed and size (spending.js)
       if (!region || region.owner !== state.playerNationId) return state;
       if (region.occupiedBy) return reject(state, `${REGIONS_DATA[regionId]?.name} is occupied — liberate it first.`);
       if (!canAfford(state.resources, costs)) return state;
       // A city banks the new people as food toward its next size (population.js, one model).
       const nextRegion = region.size != null
-        ? investInGrowth(state, regionId, POPULATION_POLICY_GROWTH_RATE) // at this game's growth threshold (cityEconomy.js)
+        ? investInGrowth(state, regionId) // a quarter of the next citizen's food (cityEconomy.js)
         : { ...region, currentPopulation: Math.round((region.currentPopulation || 1) * (1 + POPULATION_POLICY_GROWTH_RATE)) };
       // Nothing to buy: the food bank is already full (I032). No charge for no effect.
       if (nextRegion === region) return reject(state, `${REGIONS_DATA[regionId]?.name}'s food bank is full: it grows as soon as it has housing and a food surplus.`);
@@ -1570,6 +1572,8 @@ const reduceAction = (state, action) => {
         // A commanded field battle (fieldBattle.js): the stack beside `tile` against the enemy on it.
         const fv = validateFieldAttack(state, fromRegionId, tile);
         if (!fv.ok) return refuseAttack(state, fv.reason, fromRegionId);
+        // Decision 41: outside both sides' borders the clash is fought on Auto only.
+        if (isNoMansLand(state, tile, state.playerNationId, fv.defenderNationId)) return reject(state, NO_MANS_LAND_REASON);
         const frng = createRng(state.rngSeed);
         const fseed = Math.floor(frng.next() * 0xffffffff) >>> 0;
         const fcounter = (state.battleCounter || 0) + 1;
@@ -1849,6 +1853,7 @@ const reduceAction = (state, action) => {
         // Raiders against the player's troops or town: the player defends (raidBattle.js).
         const armies = queuedRaidArmies(state, def);
         if (!armies.attackerUnits.length || (!armies.defenderUnits.length && kind !== 'sack')) return resolveQueuedAuto(state, def.id);
+        if (kind === 'raid' && isNoMansLand(state, def.tile, def.aggressorId, state.playerNationId)) return reject(state, NO_MANS_LAND_REASON); // decision 41
         return {
           ...state,
           battleCounter: counter,
@@ -1868,6 +1873,7 @@ const reduceAction = (state, action) => {
         if (!armies) return resolveQueuedAuto(state, def.id);
         const attacking = def.aggressorId === state.playerNationId;
         const foe = attacking ? armies.v.defenderNationId : def.aggressorId;
+        if (kind === 'field' && isNoMansLand(state, def.tile, state.playerNationId, foe)) return reject(state, NO_MANS_LAND_REASON); // decision 41
         return {
           ...state,
           battleCounter: counter,
@@ -3166,6 +3172,27 @@ const reduceAction = (state, action) => {
       if (!out) return reject(state, 'Not your settlers.');
       const message = out.city ? `The settlers go home: ${out.city.name} grows by one citizen.` : 'The settlers disband.';
       return syncWorldRegistry({ ...state, units: out.units, regions: out.regions, logs: [...state.logs, { year: state.year, message, type: LogTypes.ACTION }] });
+    }
+
+    case ActionTypes.RESOLVE_CAPTURE: {
+      // The capture card (decision 40, capture.js): Conquer, Raze, Make tributary or Free, once.
+      const r = resolveCapture(state, action.payload?.captureId, action.payload?.choice);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+
+    case ActionTypes.RUSH_PRODUCTION: {
+      // Gold for the production an order still lacks (spending.js, I019): the button's quote is
+      // the charge, revalidated here; the order completes on the next turn like any other.
+      const { cityId: id, index = 0 } = action.payload || {};
+      const quote = rushQuote(state, id, index);
+      if (!quote.ok) return reject(state, quote.reason);
+      const city = state.regions[id];
+      return {
+        ...state,
+        resources: { ...state.resources, gold: state.resources.gold - quote.gold },
+        regions: { ...state.regions, [id]: applyRush(city, index, quote, state.turnNumber) },
+        logs: [...state.logs, { year: state.year, message: `${city.name} pays ${quote.gold} gold to finish its ${rushItemName(quote.item, quote.ageId)}: ready next turn.`, type: LogTypes.ACTION }]
+      };
     }
 
     default:
