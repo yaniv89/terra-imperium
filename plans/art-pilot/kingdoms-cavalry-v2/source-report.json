@@ -1,0 +1,74 @@
+{
+  "id": "kingdoms-cavalry",
+  "triangles": 3198,
+  "by_rig": {
+    "MountRig": 1320,
+    "RiderRig": 1878
+  },
+  "rigs": {
+    "MountRig": [
+      "Mount_Root",
+      "Mount_Spine",
+      "Mount_Neck",
+      "Mount_Head",
+      "Mount_Tail",
+      "Rider",
+      "Mount_LegFront_L",
+      "Mount_ShinFront_L",
+      "Mount_LegFront_R",
+      "Mount_ShinFront_R",
+      "Mount_LegHind_L",
+      "Mount_ShinHind_L",
+      "Mount_LegHind_R",
+      "Mount_ShinHind_R"
+    ],
+    "RiderRig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Brass",
+    "Coat",
+    "Emblem",
+    "Leather",
+    "Mail",
+    "Mane",
+    "Metal",
+    "Saddle",
+    "Skin",
+    "Slit",
+    "Team",
+    "Trim",
+    "Wood"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Knights: a knight astride a grey destrier under a Team caparison with a dagged cream-bordered hem (drawn as plain wool on a mount), a steel chanfron, the high war saddle and stirrups; a great helm with a Team torse and mantling, a Team surcoat over mail with flaps over the lap and the cantle, steel shoulders, knee cops and gauntlets, a sword at the hip; the lance upright with a vamplate and a Team pennon, a heater shield (Emblem) on the left arm, the reins in the left fist",
+  "notes": "Quality pass of 2026-10-14 on ti_figure.py (astride, great_helm, surcoat_flaps, heater_shield, poleyns) and ti_mounts.py (fine_horse, caparison, war_saddle, stirrups, chanfron, reins). The lance is SpearShaft and SpearHead (the battle fits it to 3.5 m from the butt); the pennon is SpearHeadPennon (moves with the head)."
+}
