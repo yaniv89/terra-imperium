@@ -263,3 +263,33 @@ Spade in both fists (the right under the handle, the left half way down), bent o
 | Hit | 8 | 0.40 | no | - |
 | Death | 30 | 1.50 | no | settle 30 |
 
+## modern-infantry
+
+Assault rifle in both fists (the right on the pistol grip, the left on the handguard, as at rest). Aim-fire-reload: shouldered side on, fire 8 (one shot and the kick), lowered, the left hand to a pouch and back to the magazine well (reloaded 32: the magazine is part of the rifle, so the swap is the hand's motion only), back to rest. Melee-fallback: a butt stroke. Triangles 1870 (unchanged); GLB 174 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Aim-fire-reload | 40 | 2.00 | no | fire 8, reloaded 32 |
+| Melee-fallback | 20 | 1.00 | no | contact 11 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+
+## modern-mercenary
+
+Carbine low in the right fist, the left thumb in the rig at rest: the left takes the handguard to shoulder it. Aim-fire-reload and Melee-fallback as the rifleman. Triangles 1842 (unchanged); GLB 175 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Aim-fire-reload | 40 | 2.00 | no | fire 8, reloaded 32 |
+| Melee-fallback | 20 | 1.00 | no | contact 11 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+

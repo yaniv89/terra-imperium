@@ -234,6 +234,13 @@ Delivered on `claude/art-foot-clips` over `scripts/blender/ti_foot_clips.py` (th
 - **Root** stays on X and Y (glTF X and Z) in every clip (tested); it rises and falls with the gaits and
   the crouches, and turns for the falls (forward in Death, backward in DeathAlt). The floor pass keeps the
   body above the ground; a weapon may dip into it (a spear butt behind a thrust).
+- **Weapon hands**: the weapon's bone carries the weapon exactly; the fists reach for it with two-bone
+  IK on the figure's short arms, so on a few in-between frames (a long gun coming down from the shoulder,
+  the spade's toss) a fist can sit up to 10 cm off the haft. Nothing for the code to do; it is the art.
+- **Not covered**: modern-ranged (the ATGM team: three rigs, a kneeling gunner) keeps its rest pose and the
+  procedural rig; mounted units, siege and vehicles are separate work. The Gunpowder rifleman's rifle
+  hangs from Prop_L (his left fist), every other gun from Prop_R. No ramrod and no spare magazine were
+  modelled (the triangle counts are unchanged), so loading is the hands' motion alone.
 
 ## 8. Open questions for the user
 
