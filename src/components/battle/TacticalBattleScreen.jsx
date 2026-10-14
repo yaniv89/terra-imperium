@@ -22,6 +22,7 @@ import { startBattleMusic } from '../../audio/music';
 import { playVoice } from '../../audio/sfx';
 import { voiceForOrders, voiceForSelection } from '../../battle/audio/voiceLines';
 import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
+import { prewarmBattleWorker } from '../../battle/worker/warmWorker';
 import { isSoldierLodReady } from '../../battle/render/soldierLod';
 import { createPerfMeter, formatPerf } from '../../battle/render/perfMeter';
 import { getMapPrefs } from '../map/mapPrefs';
@@ -788,6 +789,7 @@ const TacticalBattleScreen = (props) => {
   const setup = useMemo(() => commandedSetup(props.setup), [props.setup]);
   const [ready, setReady] = useState(() => !needsUnitModels(props.setup) && isSoldierLodReady());
   useEffect(() => {
+    prewarmBattleWorker(); // the sim's worker loads while the models do
     if (ready) return undefined;
     let live = true;
     preloadUnitModels(props.setup).then(() => { if (live) setReady(true); });

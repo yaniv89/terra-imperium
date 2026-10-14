@@ -47,10 +47,13 @@ export const loadFxAtlas = (sheet) => new Promise((resolve, reject) => {
   let left = n;
   sheet.urls.forEach((url, i) => {
     const img = new Image();
-    img.onload = () => {
+    const draw = () => {
       g.drawImage(img, (i % cols) * fw, Math.floor(i / cols) * fh, fw, fh);
       if (--left === 0) { const texture = new CanvasTexture(canvas); texture.colorSpace = SRGBColorSpace; resolve({ texture, cols, rows }); }
     };
+    // decode() unpacks the PNG off the main thread, so drawing it later is cheap (the first-battle
+    // profile, scripts/perf/battle-load.mjs: ~100 small frames decoded in onload blocked the page for 1.5 s+).
+    img.onload = () => { if (img.decode) img.decode().then(draw, draw); else draw(); };
     img.onerror = () => reject(new Error(`${url}: frame failed`));
     img.src = url;
   });
