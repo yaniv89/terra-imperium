@@ -158,6 +158,45 @@ Each phase: battle-lab screenshots at 844x390, phone frame time within D3.
   the options file `src/assets/units/<uid>.json` under `"clips"`, which `unitModels.js` already
   loads (34). Stop leaving `clips.json` only in the build output.
 
+### 7.1 Worker tools and clips (art, 2026-10-14; rows U06, AN15, AN16, MD07)
+
+Delivered on `claude/art-worker-clips` for the five base workers (`<age>-worker.glb`), built by
+`scripts/blender/build_<age>_worker.py` over `scripts/blender/ti_worker_clips.py`. Clip table:
+`plans/art-pilot/worker-clips/LOG.md`.
+
+- **Tool bones**, children of `Prop_R`, heads at the right grip, the bone's Y axis along the haft:
+  `Tool_Held` (the tool held today: Bronze mattock, Classical staff pick, Kingdoms staff axe,
+  Gunpowder barrow with its shovel, Modern sledgehammer), `Tool_Axe`, `Tool_Pick`, `Tool_Sickle`,
+  `Tool_Hammer` (Bronze a wooden mallet; Modern has none and builds with `Tool_Held`). Gunpowder adds
+  `Tool_Wheel`, a child of `Tool_Held` at the axle, turning in the moving clips. Their vertices
+  classify as the right arm (as `Prop_R` did), so the procedural rig moves them as before.
+- **Visibility is the bone's uniform scale**, 1 or 0, keyed on every frame of every clip. Each clip
+  shows one tool (`"tool"` in the options file); scale tracks that equal the bind value (1) are
+  dropped by gltfpack, so **a missing track means the bind value**: sample each clip starting from
+  the bind pose.
+- **The rest bake is unchanged**: Idle frame 1 shows `Tool_Held` only, so the four work tools bake as
+  degenerate triangles at the grip (invisible; under 200 triangles a worker, counted in the 2,000).
+  For those bones `W(rest)` has scale 0 and no inverse: take **the bind pose** (the GLB's node
+  transforms, every tool at full size) as the reference instead, that is bake the `Tool_*` vertices
+  from the bind pose and store `W(frame) x W(bind)^-1` for them. For every other bone bind and Idle
+  frame 1 agree within 1 mm (the floor lift), so the bind pose can serve as the reference for all.
+- **Root**: in place on X and Y in every clip. Root moves vertically for ground contact (the gaits'
+  rise and fall, crouches in the work clips with the feet planted) and rotates for Death's fall.
+- **Timing**: frame f is at f / 20 s in the GLB (frame 1 at 0.05 s, the last at frames / 20). The pack
+  keeps the 20 fps keys (`-af 0` for unit files, `scripts/art/glbInfo.mjs`). Loops are closed: the
+  last frame repeats the first.
+- **Options file** `"clips"`: per clip `frames`, `fps`, `loop`, `tool` (`Held`, `Axe`, `Pick`,
+  `Sickle`, `Hammer`) and `events` (1-based): `contact` (Chop, Mine, Build, Repair), `cut` (Harvest),
+  `pour` (Deposit: the frame the load leaves; the game drops its load there), `settle` (Death, the last
+  frame). Contact frames are held two frames (the event frame and the next).
+- **Loads**: none added to the meshes; the game draws logs, stone, gold and food from
+  worker-loads.glb. The loads that are part of today's look stay (Bronze and Classical baskets, the
+  Kingdoms firewood, the Gunpowder barrow's earth).
+- **Per worker**: Gunpowder keeps the barrow on the ground (hands on the handles) in Idle, the gaits
+  and Hit, tips it over the wheel in Deposit, leaves it standing when he falls (Death), and hides it in
+  the work clips. Modern walks with the sledgehammer on the right shoulder and steadies a shoulder
+  load in Carry. The basket workers tip the basket over the left shoulder in Deposit.
+
 ## 8. Open questions for the user
 
 1. Replace D5's VAT with the rigid bone texture? (Same art, about 40x less memory.)
