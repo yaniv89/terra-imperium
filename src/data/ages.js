@@ -136,6 +136,16 @@ export const speedTrainMult = (speedId, ageId = 'bronze') => {
   const normal = speedCostMult('normal', ageId);
   return mult <= normal ? mult : normal + (mult - normal) * TRAIN_SPEED_SHARE;
 };
+/** Building on a slow game (I029, lane W6): Marathon's first hundred turns were dead, a granary or
+ * a market took 20 to 40 turns in a young city while research kept the calendar. Buildings, wonders
+ * and improvements now take BUILD_SPEED_SHARE of the extra over Normal, like training does
+ * (TRAIN_SPEED_SHARE): Marathon Bronze 1.6 + 0.5 x 2.4 = 2.8 instead of 4.0. Normal and Fast are
+ * unchanged (the multiplier is never raised). The argument is the speed's cost multiplier in that age. */
+export const BUILD_SPEED_SHARE = 0.5;
+export const buildSpeedMult = (mult, ageId = 'bronze') => {
+  const normal = speedCostMult('normal', ageId);
+  return mult <= normal ? mult : normal + (mult - normal) * BUILD_SPEED_SHARE;
+};
 /** A span given in reference turns (the table the balance was tuned at) as turns at this speed and
  * age, at least 1: cooldowns, truces and other waits then last the same span of history at every
  * speed (playtest audits, trap T11: never a hardcoded number of turns). Normal is 1.6 to 2 turns

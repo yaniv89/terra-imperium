@@ -141,7 +141,10 @@ describe('cities on the grid', () => {
 describe('the speed table scales costs (plans/playtest-1.md P3)', () => {
   it('production and growth cost more at a slower speed', () => {
     const item = { kind: 'building', category: 'food', tier: 0 };
-    expect(productionCost(item, { speedMult: 3 }) / productionCost(item)).toBeCloseTo(3, 1);
+    // Up to Normal's multiplier (Bronze 1.6) a building pays the speed in full; above it half the
+    // extra (ages.js buildSpeedMult, lane W6): 1.6 + 0.5 x (3 - 1.6) = 2.3.
+    expect(productionCost(item, { speedMult: 1.6 }) / productionCost(item)).toBeCloseTo(1.6, 1);
+    expect(productionCost(item, { speedMult: 3 }) / productionCost(item)).toBeCloseTo(2.3, 1);
     expect(productionCost({ kind: 'settler' }, { citiesOwned: 2, speedMult: 1.8 }) / productionCost({ kind: 'settler' }, { citiesOwned: 2 })).toBeCloseTo(1.8, 1);
     expect(growthThreshold(3, 3) / growthThreshold(3)).toBeCloseTo(3, 1);
   });
