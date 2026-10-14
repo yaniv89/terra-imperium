@@ -1,0 +1,11 @@
+One icon a row; each row shows 11, 14, 18 and 24 px on the list row colour (#232C38), the panel (#1A212B) and a light map colour (#C8CFA4):
+1. citystate-trade
+2. citystate-military
+3. citystate-science
+4. citystate-culture
+5. citystate-raiders
+6. citystate-patron
+7. shield raiders
+8. shield mercantile
+9. shield fortress
+10. shield tribal

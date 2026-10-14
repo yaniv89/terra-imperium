@@ -8,6 +8,7 @@ import { useGame } from '../../context/GameContext';
 import { independentsListModel, LIST_SORTS, LIST_FILTERS, kmLabel } from './independentsListModel';
 import { openIndependent } from './independentEvents';
 import { ShieldMark, TONE_TEXT } from './IndependentBits';
+import GameIcon from '../ui/GameIcon';
 
 const Chip = ({ on, onClick, children, testId }) => (
   <button type="button" onClick={onClick} aria-pressed={on} data-testid={testId}
@@ -46,7 +47,7 @@ const IndependentsList = () => {
               <ShieldMark personality={r.personality} size={24} />
               <span className="min-w-0 flex-1">
                 <span className="block text-[13px] font-semibold text-fa-text truncate">{r.name}</span>
-                <span className="block text-[11px] text-fa-muted truncate">{r.cityState ? `${r.cityState.name}${r.cityState.patron === 'you' ? ' (yours)' : ''} · ` : ''}{r.personalityName} · {r.cityName} {r.size} · {kmLabel(r.km)}</span>
+                <span className="block text-[11px] text-fa-muted truncate">{r.cityState?.iconUrl && <GameIcon url={r.cityState.iconUrl} size={14} halo={false} className="mr-1 -mt-0.5" />}{r.cityState?.patronUrl && <GameIcon url={r.cityState.patronUrl} size={14} halo={false} title="They favour you" className="mr-1 -mt-0.5" />}{r.cityState ? `${r.cityState.name}${r.cityState.patron === 'you' ? ' (yours)' : ''} · ` : ''}{r.personalityName} · {r.cityName} {r.size} · {kmLabel(r.km)}</span>
               </span>
               <span className="text-right shrink-0">
                 <span className={`block text-[11px] ${TONE_TEXT[r.attitudeTone]}`}>{r.attitudeWord} {r.attitude > 0 ? '+' : ''}{r.attitude}</span>
