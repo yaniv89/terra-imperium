@@ -73,7 +73,7 @@ export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'indu
  * scans of units and cities were the cost of the phase): { settlers, outposts, landUnits }. */
 export const nationCounts = (state) => {
   const out = {};
-  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0, siege: 0, ranged: 0 });
+  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0, siege: 0, ranged: 0, queuedUnits: 0 });
   Object.values(state.units || {}).forEach((u) => {
     if (!u.ownerId) return;
     if (u.classId === 'settler') { of(u.ownerId).settlers += 1; return; }
@@ -81,7 +81,11 @@ export const nationCounts = (state) => {
     const c = of(u.ownerId); c.landUnits += 1;
     if (u.classId === 'siege') c.siege += 1; else if (u.classId === 'ranged') c.ranged += 1;
   });
-  Object.values(state.regions || {}).forEach((c) => { if (c.owner && c.outpost) of(c.owner).outposts += 1; });
+  Object.values(state.regions || {}).forEach((c) => {
+    if (!c.owner) return;
+    if (c.outpost) of(c.owner).outposts += 1;
+    else if (c.production?.current?.kind === 'unit') of(c.owner).queuedUnits += 1; // regiments in training (a war plan counts them)
+  });
   return out;
 };
 
@@ -190,7 +194,10 @@ export const chooseProduction = (state, city, ctx) => {
   const plan = independent ? null : state.nations?.[nationId]?.warPlan;
   const unitCap = independent ? ctx.garrisonTarget + (ctx.raidReserve || 0) : Math.max(ctx.citiesOwned * UNITS_PER_CITY, muster ? goal.cap || 0 : 0, plan?.cap || 0);
   const classes = getAvailableClasses(ctx.ageId);
-  if (counts.landUnits < unitCap && classes.includes('infantry')) {
+  // Under a war plan the regiments already in training count toward its cap: every idle city queued
+  // one at once against the same count and the army overshot what the budget carries.
+  const fielded = counts.landUnits + (plan && unitCap === plan.cap ? counts.queuedUnits || 0 : 0);
+  if (fielded < unitCap && classes.includes('infantry')) {
     const mounted = independent && ctx.personality === 'raiders' && counts.landUnits >= ctx.garrisonTarget && classes.includes('cavalry');
     const score = independent ? GARRISON_UNIT_UTILITY : muster ? MUSTER_UNIT_UTILITY : sit.atWar ? WAR_UNIT_UTILITY : sit.arming ? ARMING_UNIT_UTILITY : UNIT_UTILITY;
     if (score > bestScore) {

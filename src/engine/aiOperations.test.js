@@ -61,22 +61,25 @@ describe('operational AI',()=>{
     const attackers=next.pendingDefenses.flatMap(d=>d.attackerUnitIds);
     expect(new Set(attackers).size).toBe(attackers.length);
   });
-  it('gathers spare troops at the muster point by the front, leaving a garrison (war plan, lane W5)',()=>{
-    const {s,border,interior}=setup();
+  it('an interior city sends its regiments to the muster point by the front (war plan, lane W5)',()=>{
+    const {s,border}=setup();
     s.units.b={...s.units.a,id:'b'};
     const next=processAIOperations(s,createRng(7));
     expect(next.nations.de.warPlan.staging).toBe(border);
-    expect(next.units.a.regionId).toBe(interior); // the garrison stays
-    expect(next.units.a.route).toBeFalsy();
-    const b=next.units.b;
-    expect(b.route?.length>0||b.tile===s.regions[border].tile).toBe(true); // on the road to Berlin (or there)
-    if(b.route?.length)expect(b.route[b.route.length-1]).toBe(s.regions[border].tile);
+    for(const id of ['a','b']){
+      const u=next.units[id];
+      expect(u.route?.length>0||u.tile===s.regions[border].tile).toBe(true); // on the road to Berlin (or there)
+      if(u.route?.length)expect(u.route[u.route.length-1]).toBe(s.regions[border].tile);
+    }
     expect(next.nations.de.economy.mil).toBe(100); // moving is free since routes (plan §4g)
   });
-  it('a lone regiment waits instead of walking to the walls alone (war plan, lane W5)',()=>{
-    const {s,interior}=setup();const next=processAIOperations(s,createRng(7));
-    expect(next.units.a.regionId).toBe(interior);
+  it('a border city or the capital keeps one regiment home; a lone one waits instead of walking to the walls alone (lane W5)',()=>{
+    const {s,border}=setup();
+    s.units.a={...s.units.a,regionId:border,tile:s.regions[border].tile};
+    const next=processAIOperations(s,createRng(7));
+    expect(next.units.a.regionId).toBe(border);
     expect(next.units.a.route).toBeFalsy();
+    expect(next.pendingDefenses).toHaveLength(0);
   });
   it('marches on tiles toward the player\'s city when its own does not touch it, and halts before it',()=>{
     // India (AI) at war with the player Pakistan: New Delhi does not touch Islamabad, five tiles away.

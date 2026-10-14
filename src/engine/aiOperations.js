@@ -239,14 +239,15 @@ export const besiegedByUs = (state, nationId, city, byTile) => {
 };
 
 /**
- * Sends a stack toward the plan's muster point (the staging city): all of it from the field, all
- * but the weakest from one of its own cities (siegeParty). Writes routes into `next.units` (a
+ * Sends a stack toward the plan's muster point (the staging city): all of it from the field or
+ * from an interior city, all but the weakest from a border city or the capital (`keepGarrison`,
+ * siegeParty). Writes routes into `next.units` (a
  * working copy). Returns true when a party is on the road.
  */
-export const gatherStack = (next, nationId, plan, stack, at, from, committed) => {
+export const gatherStack = (next, nationId, plan, stack, at, from, committed, keepGarrison = true) => {
   const staging = next.regions[plan.staging];
   if (!staging || staging.tile == null || at == null || at === staging.tile) return false;
-  const goers = siegeParty(next, stack, at, from);
+  const goers = keepGarrison ? siegeParty(next, stack, at, from) : stack;
   if (!goers.length) return false;
   const goalKey = `stage:${plan.staging}`;
   const failed = stack[0].routeFailed;
@@ -274,7 +275,7 @@ export const gatherForPlan = (state, nationId, plan, committed) => {
   for (const [key, stack] of [...stacks].sort(([a], [b]) => a.localeCompare(b))) {
     const from = key.split('|')[0];
     if (next.regions[from]?.owner !== nationId) continue;
-    if (gatherStack(next, nationId, plan, stack, unitTile(next, stack[0]), from, committed)) marching = true;
+    if (gatherStack(next, nationId, plan, stack, unitTile(next, stack[0]), from, committed)) marching = true; // at peace every city keeps its garrison
   }
   return marching ? marchAiArmies(next, nationId) : state;
 };
@@ -424,7 +425,7 @@ export const processAIOperations = (state, rng) => {
             const joining = besiegedByUs(next, nationId, city, byTile);
             // (Under threat the stack holds its own city instead of gathering.)
             if (plan && !joining && !readyToStrike(plan, goers.length, state.turnNumber)) {
-              if (!threatened.size && gatherStack(next, nationId, plan, stack, at, from, committed)) marching = true;
+              if (!threatened.size && gatherStack(next, nationId, plan, stack, at, from, committed, fronts.has(from) || from === getCapital(next, nationId))) marching = true;
               continue;
             }
             const failed = stack[0].routeFailed;
@@ -505,7 +506,7 @@ export const processAIOperations = (state, rng) => {
               }
             }
           }
-          if (!holding && gatherStack(next, nationId, plan, stack, at, from, committed)) marching = true;
+          if (!holding && gatherStack(next, nationId, plan, stack, at, from, committed, fronts.has(from) || from === getCapital(next, nationId))) marching = true;
           continue;
         }
         // A stack already at a goal city stays on it and marches on tiles below; hopping on to the
