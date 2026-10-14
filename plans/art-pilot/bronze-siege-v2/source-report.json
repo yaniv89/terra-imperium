@@ -1,0 +1,42 @@
+{
+  "triangles": 3932,
+  "cap": 6000,
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "by_rig": {
+    "RamRig": 884,
+    "Crew1Rig": 762,
+    "Crew2Rig": 762,
+    "Crew3Rig": 762,
+    "Crew4Rig": 762
+  },
+  "crew": 4,
+  "wheels": 4,
+  "fps": 20,
+  "clips": {
+    "Idle": 40,
+    "Move": 20,
+    "Deploy": 20,
+    "Aim": 20,
+    "Fire": 20,
+    "Reload": 24,
+    "Destroyed": 30
+  },
+  "floor_correction_maximum_by_clip": {
+    "Idle": 0,
+    "Move": 0.01220884919166565,
+    "Deploy": 0,
+    "Aim": 0,
+    "Fire": 0,
+    "Reload": 0,
+    "Destroyed": 0.10432000458240509
+  },
+  "textures": 0,
+  "source_body": "scripts/blender/ti_figure.py crew (quality pass of 2026-10-14)",
+  "human_height": 1,
+  "limitations": [
+    "VAT integration pending; authored animation not played by current battle renderer"
+  ]
+}

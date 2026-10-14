@@ -30,6 +30,7 @@ meshes = []
 prefix = ''   # put before every part's name (a file with several people)
 loose = set()  # adopted meshes: shaded, but their faces stay as authored
 bright = set()  # parts that take no baked shade (a flame)
+LITE = False  # crew(lite=True): fewer sides on the head, arms, fists and clothes (four pushers on a machine)
 PALETTE = {'Hair': '2B201A', 'Leather': '6A3D27', 'Metal': 'C9994F', 'Wood': '7A5636', 'Cloth': 'EADFC6'}
 
 
@@ -59,7 +60,8 @@ def start(colors=None, ready=True, rig=True):
 
 def figure(name, ready=True):
     """A new person on the canonical rig, named <name>Rig; its parts are named <name><part>."""
-    global arm, prefix
+    global arm, prefix, LITE
+    LITE = False
     bpy.ops.object.select_all(action='DESELECT')
     arm = u.rig(ready=ready)
     arm.name = name + 'Rig'
@@ -207,7 +209,7 @@ def arms(sleeve=None, shoulder=None):
         tube('BodyArm_' + side, [
             (tuple(sh), (.043, .040), A), (tuple(sh.lerp(el, .55)), (.039, .036), A),
             (tuple(el), (.032, .032), {A: .5, FA: .5}), (tuple(el.lerp(wr, .30)), (.035, .032), FA),
-            (tuple(el.lerp(wr, .75)), (.027, .026), FA), (tuple(wr), (.022, .024), H)], 'Skin', 7, caps=(False, False))
+            (tuple(el.lerp(wr, .75)), (.027, .026), FA), (tuple(wr), (.022, .024), H)], 'Skin', 6 if LITE else 7, caps=(False, False))
         if sleeve:
             tube('short-sleeve-' + side, [(tuple(sh.lerp(el, -.05)), (.050, .046), A), (tuple(sh.lerp(el, .30)), (.049, .044), A),
                                           (tuple(sh.lerp(el, .52)), (.047, .043), A)], sleeve, 6, caps=(True, False))
@@ -235,9 +237,10 @@ def fist(side, grip=None, axis=(0, 0, 1), half=.027):
     grip = Vector(grip) if grip is not None else grip_point(side)
     ax = Vector(axis).normalized()
     tube('BodyHand_' + side, [(tuple(wr), (.022, .024), H),
-                              (tuple(grip), (.027, .030), H), (tuple(grip + (grip - wr).normalized() * .016), (.018, .024), H)], 'Skin', 6)
+                              (tuple(grip), (.027, .030), H), (tuple(grip + (grip - wr).normalized() * .016), (.018, .024), H)], 'Skin', 4 if LITE else 6)
     c = grip + Vector((0, -.004, 0))
-    tube('Fingers_' + side, [(tuple(c - ax * half), (.024, .024), H), (tuple(c + ax * half), (.024, .024), H)], 'Skin', 6)
+    if not LITE:  # (a lite fist is the hand's own knuckle ring)
+        tube('Fingers_' + side, [(tuple(c - ax * half), (.024, .024), H), (tuple(c + ax * half), (.024, .024), H)], 'Skin', 6)
     return grip
 
 
@@ -247,14 +250,18 @@ def head():
     tube('BodyHead', vertical([.838, .850, .868, .892, .920, .950, .990],
                               [-.026, -.017, -.012, -.009, -.007, -.005, -.002],
                               [(.016, .016), (.036, .036), (.047, .047), (.055, .053), (.058, .055), (.058, .056), (.034, .033)],
-                              'Head'), 'Skin', 10)
+                              'Head'), 'Skin', 8 if LITE else 10)
     raw('FaceNose', [(-.014, -.060, .932), (.014, -.060, .932), (-.015, -.064, .896), (.015, -.064, .896), (0, -.084, .902)],
         [(0, 1, 4), (0, 4, 2), (1, 3, 4), (2, 4, 3), (0, 2, 3), (0, 3, 1)], 'Skin', 'Head')
     for s in (-1, 1):
-        tube(f'Ear_{s}', [((s * .056, .002, .900), (.010, .012), 'Head'), ((s * .064, .004, .918), (.010, .015), 'Head'),
-                          ((s * .056, .002, .938), (.010, .011), 'Head')], 'Skin', 4)
+        if LITE:
+            box(f'Ear_{s}', (s * .059, .003, .918), (.012, .018, .032), 'Skin', 'Head')
+        else:
+            tube(f'Ear_{s}', [((s * .056, .002, .900), (.010, .012), 'Head'), ((s * .064, .004, .918), (.010, .015), 'Head'),
+                              ((s * .056, .002, .938), (.010, .011), 'Head')], 'Skin', 4)
         box(f'FaceEye_{s}', (s * .024, -.0585, .924), (.012, .008, .007), 'Hair', 'Head')
-        box(f'FaceBrow_{s}', (s * .025, -.0600, .940), (.026, .010, .008), 'Hair', 'Head')
+        if not LITE:
+            box(f'FaceBrow_{s}', (s * .025, -.0600, .940), (.026, .010, .008), 'Hair', 'Head')
 
 
 def beard():
@@ -274,8 +281,8 @@ def headcloth(band, tail=True, cloth='Cloth'):
         tube('HeadclothTail', vertical([.842, .880, .920, .950], [.026, .016, .008, .004], [(.056, .036), (.064, .052), (.066, .058), (.065, .059)], 'Head'),
              cloth, 8, caps=(True, False))
     tube('LinenHeadcloth', vertical([.944, .966, .990, 1.006], -.003, [(.066, .062), (.063, .059), (.047, .044), (.018, .018)], 'Head'),
-         cloth, 10, caps=(True, True))
-    tube('Headband', vertical([.945, .966], -.003, [(.0705, .0665), (.0690, .0650)], 'Head'), band, 10, caps=(False, False))
+         cloth, 8 if LITE else 10, caps=(True, True))
+    tube('Headband', vertical([.945, .966], -.003, [(.0705, .0665), (.0690, .0650)], 'Head'), band, 8 if LITE else 10, caps=(False, False))
 
 
 def tufted_hem(name='KiltHem'):
@@ -356,7 +363,7 @@ def shawl(name='TeamShawl', mat='Team', profile=TORSO, sides=10, end=True, bands
 
 def sash(name='Sash', mat='Team', end=True, knot=True):
     """A waist sash on the Spine bone (so the battle dyes it), a knot and a hanging end at the front."""
-    ob = tube(name, vertical([.512, .543, .574], 0, [(.103, .075), (.106, .078), (.092, .066)], 'Spine'), mat, 10, caps=(False, False))
+    ob = tube(name, vertical([.512, .543, .574], 0, [(.103, .075), (.106, .078), (.092, .066)], 'Spine'), mat, 8 if LITE else 10, caps=(False, False))
     if end:
         slab(name + 'End', (.030, -.079, .530), (.066, -.070, .530), (.072, -.092, .405), (.026, -.100, .405), .007, mat, 'Spine')
     if knot:
@@ -419,32 +426,36 @@ def shield_facing():
     return {prefix + 'ShieldFace': (0, -1, 0), prefix + 'ShieldBack': (0, 1, 0)}
 
 
-def crew(name, headgear='headcloth', accent='shawl', band='Team', bearded=True, straps=True, laces=False, bare=False, seated=False, tunic='Cloth', simple=False):
+def crew(name, headgear='headcloth', accent='shawl', band='Team', bearded=True, straps=True, laces=False, bare=False, seated=False, tunic='Cloth', simple=False, lite=False):
     """A dressed person of the set on a rig of their own (<name>Rig): kilt with its pale hem, a linen
     tunic (bare=True: a bare chest), a leather belt, the side's colour as a chest shawl or a waist
     sash, a headcloth under a band (`band`) or the pointed bronze cap. Pose it, bake_rest(), place()
     it, then give it fists and what it holds. simple=True: a crew member standing in a car (plain
-    legs, no hem)."""
+    legs, no hem). lite=True: a lighter figure for a machine's crew (LITE: fewer sides, no shoulder
+    caps, brows or headcloth flap, plain ears), until the next figure()."""
+    global LITE
     rig = figure(name)
+    LITE = lite
+    sides = 8 if lite else 10
     legs(laces=laces, straps=straps, simple=simple)
-    arms(shoulder='Skin')
+    arms(shoulder=None if lite else 'Skin')
     head()
     if bearded:
         beard()
-    kilt('Kilt', 'Team', seated=seated)
+    kilt('Kilt', 'Team', seated=seated, sides=sides)
     if not seated and not simple:
         tufted_hem()
     if bare:
-        torso('BodyTorso', 'Skin', chest=True, grow=-.004)
+        torso('BodyTorso', 'Skin', chest=True, grow=-.004, sides=sides)
     else:
-        torso('Tunic', tunic)
+        torso('Tunic', tunic, sides=sides)
     if accent == 'shawl':
         tube('Belt', vertical([.520, .548], 0, [(.103, .076), (.101, .074)], 'Spine'), 'Leather', 10, caps=(False, False))
         shawl('Shawl', 'Team')
     else:
-        sash('Sash', 'Team')
+        sash('Sash', 'Team', end=not lite, knot=not lite)
     if headgear == 'headcloth':
-        headcloth(band)
+        headcloth(band, tail=not lite)
     else:
         hair_nape()
         cap()
