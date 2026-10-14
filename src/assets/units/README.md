@@ -63,6 +63,20 @@ flag; model imports still require a visual and licensing review.
 | `modern-mercenary.glb` | Mercenary: a contractor in a black ball cap with a headset and microphone, sunglasses, a full beard, a tan shirt with short sleeves, a Team chest rig with dark pouches and X straps, khaki cargo trousers, a thigh holster, tan boots, a short carbine upright in the right fist; baked shade in COLOR_0 | 1,842 | `build_modern_mercenary.py` on `ti_figure.py` (quality pass of 2026-10-14) |
 | `modern-air.glb` | Fighter jet (`air` squads): twin-tail multirole fighter, gear up, Team fins, emblem roundels, two missiles (one Hull bone; `segment: false`) | 556 | `build_units_modern.py` (Claude) |
 
+## Settler parties (map close view only, 2026-10-14)
+
+Drawn by the map's close view for settlers on their tile (src/components/map/closeView/settlerModels.js,
+unitModels.js `findSettlerModel`: an age takes the latest band at or below it), baked at the
+baggage train's scale (class support) and registered under the key `settler`. Never in a battle.
+
+| File | Party | Triangles |
+|---|---|---:|
+| `bronze-settler.glb` | a long-horned ox in shafts, a two-wheeled cart of bundles under a Team cover with jars and a basket; a man in a headcloth leading it with a staff, a woman in a long gown and straw hat behind with a Team bundle on her back | 3,942 |
+| `kingdoms-settler.glb` | a horse in shafts, a four-wheeled wagon with a hooped canvas cover and a Team band, barrels at the tail; a man in a Team hood leading it with a staff, a woman behind with a Team bundle | 4,526 |
+| `modern-settler.glb` | a small pickup with the household under a Team tarp and a chair on top; a man in a Team jacket and cap beside it | 1,536 |
+
+Built by `scripts/blender/build_units_settler.py` on `ti_figure.py` and `ti_mounts.fine_ox` / `fine_horse` / `wheeled`.
+
 Machines bigger, crews at human size (manifest MD09, MD10: only machines get bigger, never their
 crews). A land machine's file (siege engines, guns, tanks, trucks, the command car, the technical)
 is drawn at the same scale as the infantry beside it (unitModels.js `ART_UNIT_WORLD`), so it is

@@ -51,6 +51,7 @@ import { applyTownDamage, syncTownDamage, enableGroundClear, setGroundClear, fil
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 import { shipModel, shipsFor, SHIP_SCALE } from './shipModels';
 import { outpostFor, outpostFitRadius } from './outpostModels';
+import { settlersInSight, settlerBand, SETTLER_KEY, preloadSettlerModel } from './settlerModels';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
@@ -63,6 +64,8 @@ const STAND_HEADING = 0.15;
 // Army figures stand at least this tall (layout px, model height before the tilt; about 34 css px
 // on screen at mid zoom): smaller, the spear, shield and kilt of the battle model run together.
 const MIN_FIGURE_PX = 64;
+// A settler party's people at their smallest: this share of an army figure's floor (settlerModels.js).
+const SETTLER_FIGURE_SHARE = 0.6;
 // The army figures' triangle budget at full detail (phones: about 100 Bronze spearmen of 1,500
 // triangles, a small share of the map's frame); past it every figure takes the clustered level.
 export const MAP_FIGURE_TRIS = 150000;
@@ -659,6 +662,46 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
           l.variant.setXYZW(k2, soldierSkinTone(tone, mi, i), cell, ((mi + i) % 5) / 5 - 0.4, 0);
           l.mesh.count += 1;
         }
+      });
+      // Settlers: the party of the owner's age band (settlerModels.js) on their tile, facing and
+      // walking toward their target; until its model is in, the map's wagon disc stands alone.
+      settlersInSight(state, fog.isVisible).forEach((u, si) => {
+        const ageId = ageOf(state, u.ownerId);
+        const band = settlerBand(ageId);
+        if (!band) return;
+        if (!hasSoldierOverride(band, SETTLER_KEY)) {
+          const loadKey = `${band}:${SETTLER_KEY}`;
+          if (!t.soldierLoads.has(loadKey)) {
+            t.soldierLoads.add(loadKey);
+            preloadSettlerModel(ageId).then((ok) => { if (ok) onAssets(); }).catch(() => {});
+          }
+          return;
+        }
+        const ll = getTiles().latLonOf(u.tile);
+        const at = toScreenLatLng({ lat: ll.lat, lng: ll.lon });
+        if (!at) return;
+        const l = layerFor(band, 'support', SETTLER_KEY);
+        if (l.mesh.count >= MAX_SOLDIERS) return;
+        const goal = u.target != null && u.target !== u.tile ? getTiles().latLonOf(u.target) : null;
+        const next = goal ? project(goal.lat, goal.lon) : null;
+        const walking = !!next;
+        if (walking) moving = true;
+        const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING + 0.5;
+        // the party is a cart or truck two to three people long: its people stand a little
+        // shorter than an army's figure, so it never outgrows the camp it is going to found
+        const trueScale = s * SOLDIER_SIZE * (MODEL_SCALE.support || 0.88);
+        const scale = Math.max(trueScale, (MIN_FIGURE_PX * SETTLER_FIGURE_SHARE) / l.height);
+        const k2 = l.mesh.count;
+        tmp.position.set(at.x, -at.y, at.y * 0.05 + 40);
+        tmp.rotation.set(TILT, heading, 0, 'XYZ');
+        tmp.scale.setScalar(scale);
+        tmp.updateMatrix();
+        l.mesh.setMatrixAt(k2, tmp.matrix);
+        color.set(u.ownerId === state.playerNationId ? PLAYER_COLOR : getNationColor(u.ownerId) || '#64748b');
+        l.mesh.setColorAt(k2, color);
+        l.anim.setXYZ(k2, (si * 1.3) % 6.28, walking ? 1 : 0, 0);
+        l.variant.setXYZW(k2, soldierSkinTone(skinToneFor(u.ownerId), si, 0), emblemCellFor(u.ownerId === state.playerNationId ? 0 : 1, si), 0, 0);
+        l.mesh.count += 1;
       });
       let figureTris = 0;
       t.layers.forEach((l) => { figureTris += l.mesh.count * l.tris; });

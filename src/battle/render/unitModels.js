@@ -235,6 +235,34 @@ export const preloadSoldierModel = async (ageId, classId, deps = {}) => {
   return r.loaded.length > 0;
 };
 
+// The settler party (src/assets/units/{age}-settler.glb, scripts/blender/build_units_settler.py): a
+// cart or wagon with its animal and the family walking beside it, or a small truck. Drawn only by
+// the map's close view, through the soldier layer under the key 'settler', baked at the baggage
+// train's scale (class support: the same rigs and the same people). One file per age band: an age
+// takes the latest band at or below it.
+export const SETTLER_KEY = 'settler';
+const AGES = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+/** The settler model for an owner in this age: { name, url, options, ageId (the band's age) } or null. */
+export const findSettlerModel = (ageId, find = findUnitModel) => {
+  for (let i = AGES.indexOf(ageId); i >= 0; i--) {
+    const m = find(AGES[i], SETTLER_KEY);
+    if (m) return { ...m, ageId: AGES[i] };
+  }
+  return null;
+};
+/**
+ * Load and register the settler model of this age's band. Resolves to the band's age once the
+ * model is registered under (that age, 'settler'), or null (no file, or it failed: the map keeps
+ * its settler sprite).
+ */
+export const preloadSettlerModel = async (ageId, deps = {}) => {
+  const model = findSettlerModel(ageId, deps.find);
+  if (!model) return null;
+  if (hasSoldierOverride(model.ageId, SETTLER_KEY)) return model.ageId;
+  const r = await preloadUnitModels({ sides: [] }, { extras: () => [{ ageId: model.ageId, key: SETTLER_KEY, classId: 'support', model }], ...deps });
+  return r.loaded.length > 0 ? model.ageId : null;
+};
+
 /**
  * A people's signature soldier outside a battle (the map's close view), registered under
  * signatureKey(classId, peopleId). Resolves true when registered, false when the people has none

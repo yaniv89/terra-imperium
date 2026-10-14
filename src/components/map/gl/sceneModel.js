@@ -282,8 +282,10 @@ export const groundMarks = ({ state, projection, k, dpr }) => {
 
 export const SETTLER_MIN_R = 6;
 export const SETTLER_MAX_R = 13;
-/** Settlers on their tiles: yours, and foreign ones in sight from zoom 2. */
-export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
+/** Settlers on their tiles: yours, and foreign ones in sight from zoom 2. In the close view a
+ * settler whose party model is drawn (`modelled(unit)`, closeView/settlerModels.js) keeps only its
+ * tap target: the 3D party stands where the disc was. */
+export const settlerSprites = ({ state, projection, k, isVisible, dpr, modelled = null }) => {
   const sprites = []; const hits = [];
   const close = k >= CLOSE_ZOOM_K;
   Object.values(state.units || {}).forEach((u) => {
@@ -292,10 +294,12 @@ export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
     if (!own && !(k >= 2 && isVisible(u.tile))) return;
     const anchor = pointOf(projection, u.tile);
     // One readable size from the strategic zoom to the close view (it shrank to a 6 px dot beside
-    // the 3D towns: playtest audit I099). No settler model exists yet: this wagon disc is the unit.
+    // the 3D towns: playtest audit I099). In the close view the party model takes its place.
     const rCss = Math.max(SETTLER_MIN_R, Math.min(5 * Math.sqrt(k), SETTLER_MAX_R));
-    const art = settlerArt({ own, idle: own && u.target == null && !close, iconUrl: unitIconUrl('settler') }, rCss, dpr);
-    sprites.push({ art, anchor, size: [art.css.w, art.css.h], color: WHITE });
+    if (!(close && modelled?.(u))) {
+      const art = settlerArt({ own, idle: own && u.target == null && !close, iconUrl: unitIconUrl('settler') }, rCss, dpr);
+      sprites.push({ art, anchor, size: [art.css.w, art.css.h], color: WHITE });
+    }
     hits.push({ kind: 'settler', tile: u.tile, anchor, offset: [0, 0, 0, 0], size: [rCss * 2.3, rCss * 2.3], exp: [0, 0], round: true, pad: 4 });
   });
   return { sprites, hits };

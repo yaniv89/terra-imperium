@@ -51,3 +51,38 @@ After: after/after-t1-outpost-k60.jpg, after/after-t1-outpost-k150.jpg.
 
 Reads weakly: the ox and horse are block animals (fine at map zoom, crude at k 150); the camp's
 earth patch is darker than the desert around it (the land tint multiplies the authored earth).
+
+## Task 2: the settler party (units/settler-<age>, MD01)
+
+Before: a settler was a wagon disc sprite at every zoom (before/before-settler-k60.jpg).
+
+Built: `scripts/blender/build_units_settler.py` on the unit figure parts (ti_figure.py crew, legs,
+arms, head, torso, skirt, hood, straw_hat, ball_cap; ti_mounts.fine_ox, fine_horse, fine_disc_wheel,
+fine_wheel, wheeled), rest pose, flat colours, baked shade in COLOR_0, a person 1 tall:
+
+| File | Party | Triangles (by rig) |
+|---|---|---|
+| bronze-settler | ox, two-wheeled cart with a Team cover, jars, basket; a man leading with a staff, a woman with a Team bundle | 3,942 (ox 824, cart 752, man 1,162, woman 1,204) |
+| kingdoms-settler | horse, four-wheeled hooped canvas wagon with a Team band, barrels; a man in a Team hood with a staff, a woman with a Team bundle | 4,526 (horse 858, wagon 1,336, man 1,128, woman 1,204) |
+| modern-settler | a small pickup with the household under a Team tarp, a chair on top; a man in a Team jacket and cap | 1,536 (truck 568, man 968) |
+
+All under the machine budget (4,000 target, 6,000 hard) but the kingdoms wagon (4,526, under the
+hard cap). Files in `src/assets/units/<age>-settler.glb` with a JSON (quadruped for the animals,
+triangleBudget 6,000), packed unquantized like every unit. `validate_model.py ... unit-machine`
+fails only `material_names` (the extra flat colours Coat, Mane, Sack, Clay, Rope...), exactly as
+the shipped bronze-support does.
+
+Wiring: `unitModels.js` `findSettlerModel` (the latest band at or below the age) and
+`preloadSettlerModel` (registered under the key `settler`, baked as class support);
+`closeView/settlerModels.js` (which settlers stand a party: yours and others' in sight; whether the
+model is in); `closeViewScene.js` stands one party on each settler's tile, turned and walking toward
+its target, at 60% of an army figure's size floor so it never outgrows the camp; `sceneModel.js`
+`settlerSprites` drops the disc in the close view for a modelled settler but keeps its tap target;
+the far map keeps the disc. Test: `settlerModels.test.js` (bands, readiness, who stands, the disc
+rule, the shipped files load and bake).
+
+After: after/after-t2-<age>-settler-k60.jpg and after-t2-<age>-outpost-k60.jpg (bronze, kingdoms,
+modern; the age set through LOAD_GAME, so the header still says 2000 BCE).
+
+Reads weakly: the modern pickup reads large beside the modern camp; the figures stand in the rig's
+ready pose (arms a little forward), the walk cycle only moves the legs.
