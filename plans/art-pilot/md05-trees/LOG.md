@@ -2,7 +2,8 @@
 
 Branch `claude/art-md05-trees`. First pass 6dc4817f (merged into integration as 13a81ecf); second
 pass 9e3d77d7 on the user's decisions (one mesh a species, rebuild and re-pin the conifer,
-tropical and cold kits, one wind, darker crowns), then integration 8cec80ba merged in.
+tropical and cold kits, one wind, darker crowns), then integration 8cec80ba merged in; third
+pass on top of e3aa70ed: lighter LOD1 crowns for the zoom 1 phone budget and lit date palm fronds.
 Brief: plans/playtest-audits-art-update-2026-10-13.md section 4 and row MD14. Complaint, checked
 in a forest battle at 844x390: one species everywhere in flat-shaded shards, crowns floating on
 thin trunks, dense woods a spiky dark mass hiding the men under it.
@@ -24,8 +25,12 @@ game always read, and what groves use), the others tree-s-2 ... tree-l-3.
 
 - Trees: `scripts/blender/ti_trees.py`. Trunk: one tube with a flared foot, bare for the lower
   third to half. Crown: a few large icosphere clumps, barely jittered, exported with smoothed
-  normals (`ti_town.SMOOTH`; every other builder stays flat). LOD1 is the trunk and one 80-face
-  rounded mass the size of the crown, LOD2 the same at 20 faces (palms keep a few wide fronds).
+  normals (`ti_town.SMOOTH`; every other builder stays flat). LOD1 (third pass, the zoom 1
+  budget) is a four-sided trunk post and one rounded mass the size of the crown: an eight-sided
+  sphere of four rows (48 triangles, smoothed), 20 faces for small trees; 56 triangles for a
+  medium tree (was 100). LOD2 the same mass at 20 faces. Palms: 5 wide fronds at LOD1 (48).
+- Palm fronds (third pass) are smoothed and take their far colour from a lit frond like the
+  crowns; the date palm's fronds are lighter, in the other crowns' value range at zoom 1.
 - Tone (second pass): every crown in the temperate oak's value range (luminance about 0.4 to
   0.47) and saturated; the pale ones (beech, birch, olive, acacia, tamarisk, poplar, elm, saxaul,
   larch, dwarf birch) were washing out to white at far zoom. Birch trunks stay white.
@@ -75,53 +80,54 @@ takes `&vegetation=<kit>` (drawing only) for art checks.
 
 ## Triangles (LOD0 / LOD1 / LOD2, budget 600 / 150 / 150; validator kind `tree`)
 
-The validator holds 150 at LOD1 (TRIANGLE-BUDGET.md asks 200): the stricter limit is kept.
+The validator holds 150 at LOD1 (TRIANGLE-BUDGET.md asks 200): the stricter limit is kept, and
+the third pass brought LOD1 down to about 56 for the zoom 1 phone budget.
 
 | Kit | Trees (small, medium, large) |
 |---|---|
-| temperate | oak 309/40/26, 397/100/26, 485/100/26; beech 309/40/26, 397/100/26, 477/100/26; birch 280/40/26, 280/100/26, 360/100/26 |
-| mediterranean | olive 317/40/26, 397/100/26, 485/100/26; stone pine 387/48/32, 477/108/32, 557/108/32; cypress 280/40/26, 360/100/26, 360/100/26 |
-| desert | date palm 177/88/46, 261/88/46, 285/88/46; acacia 387/48/32, 477/108/32, 567/108/32; tamarisk 380/38/26, 480/38/26, 580/98/26 |
-| steppe | poplar 280/40/26, 360/100/26, 360/100/26; elm 309/40/26, 397/100/26, 477/100/26; saxaul 380/38/26, 480/38/26, 580/98/26 |
-| conifer | spruce 280/40/26, 360/100/26, 440/100/26; pine 309/40/26, 397/100/26, 485/100/26; fir 280/40/26, 360/100/26, 440/100/26 |
-| tropical | jungle 321/40/26, 413/100/26, 493/100/26; coconut 177/88/46, 249/88/46, 261/88/46; banana 132/88/46, 144/88/46, 156/88/46 |
-| cold | larch 280/40/26, 360/100/26, 440/100/26; dwarf birch 309/40/26, 397/40/26, 397/100/26; tundra shrub 380/38/26, 480/38/26, 580/38/26 |
+| temperate | oak 309/28/26, 397/56/26, 485/56/26; beech 309/28/26, 397/56/26, 477/56/26; birch 280/28/26, 280/56/26, 360/56/26 |
+| mediterranean | olive 317/28/26, 397/56/26, 485/56/26; stone pine 387/36/32, 477/64/32, 557/64/32; cypress 280/28/26, 360/56/26, 360/56/26 |
+| desert | date palm 177/48/46, 261/48/46, 285/48/46; acacia 387/36/32, 477/64/32, 567/64/32; tamarisk 380/38/26, 480/38/26, 580/66/26 |
+| steppe | poplar 280/28/26, 360/56/26, 360/56/26; elm 309/28/26, 397/56/26, 477/56/26; saxaul 380/38/26, 480/38/26, 580/66/26 |
+| conifer | spruce 280/28/26, 360/56/26, 440/56/26; pine 309/28/26, 397/56/26, 485/56/26; fir 280/28/26, 360/56/26, 440/56/26 |
+| tropical | jungle 321/28/26, 413/56/26, 493/56/26; coconut 177/48/46, 249/48/46, 261/48/46; banana 132/48/46, 144/48/46, 156/48/46 |
+| cold | larch 280/28/26, 360/56/26, 440/56/26; dwarf birch 309/28/26, 397/28/26, 397/56/26; tundra shrub 380/38/26, 480/38/26, 580/38/26 |
 
-The game now draws each species' medium tree (scaled), so a tree costs 144 to 480 at LOD0.
+The game draws each species' medium tree (scaled), so a tree costs 144 to 480 triangles at
+LOD0, 28 to 64 at LOD1 and 26 to 46 at LOD2.
 
 ## Frame cost (forest sandbox, bronze, tile 373 = temperate kit, 844x390 at scale 3, Intel UHD, D3D11)
 
 Before: base commit dbc96467 built from a clean export (`git archive`) and served on port 5204.
-After: this branch with integration 8cec80ba merged in, port 5203. Both runs on the same machine
-in the same hour.
+After: this branch (integration 8cec80ba merged in), port 5203. Same machine, same day.
 
 Tree triangles: instances drawn times the level's triangles over the whole field (the main pass;
 shadows double it on both sides). This is the trees' own cost, free of the soldiers' adaptive
 detail and of the economy art that integration added meanwhile.
 
-| Zoom | Tree triangles before | after | Tree meshes before | after |
-|---|---|---|---|---|
-| 2 | 1,507k | 1,390k (-8%) | 32 | 48 |
-| 1 | 188k | 275k (+46%) | 32 | 48 |
-| 0.6 | 110k | 53k (-52%) | 32 | 48 |
+| Zoom | Tree triangles before | second pass | final | Tree meshes before | final |
+|---|---|---|---|---|---|
+| 2 | 1,507k | 1,390k | 1,390k (-8%) | 32 | 48 |
+| 1 | 188k | 275k | **154k (-18%)** | 32 | 48 |
+| 0.6 | 110k | 53k | 53k (-52%) | 32 | 48 |
+
+At zoom 1 the desert kit draws 136k and the tropical kit 139k for the same view.
 
 Whole frame from the `&perf` readout (triangles include the soldiers, whose detail tier the
-renderer picks by speed: before tier 0/0/1 and 0/0/2, after 0/0/0 and 0/0/1, so the zoom 0.6
-army totals are not comparable; integration also added drawn worker loads and grove stumps):
+renderer picks by speed and which differed between runs, and the worker loads and grove stumps
+integration added; the tree rows above are the comparable numbers):
 
-| View, zoom | Triangles before | after | Draw calls before | after (first pass) |
+| View, zoom | Triangles before | final | Draw calls before | final |
 |---|---|---|---|---|
-| army, 2 | 1,718k | 1,709k | 97 | 109 (133) |
-| army, 1 | 739k | 988k | 110 | 118 (111) |
-| army, 0.6 | 329k | 657k | 111 | 130 (123) |
-| woods, 2 | 2,047k | 1,645k | 81 | 92 (138) |
-| woods, 1 | 722k | 1,028k | 114 | 126 (124) |
-| woods, 0.6 | 308k | 300k | 140 | 153 (151) |
+| army, 2 | 1,718k | 1,709k | 97 | 109 |
+| army, 1 | 739k | 877k | 110 | 118 |
+| army, 0.6 | 329k | 284k | 111 | 124 |
+| woods, 2 | 2,047k | 1,645k | 81 | 92 |
+| woods, 1 | 722k | 531k | 114 | 120 |
+| woods, 0.6 | 308k | 250k | 140 | 153 |
 
-Draw calls: down 24 to 46 from the first pass at near zoom; still 8 to 13 above the old level,
-because a chunk now has three species meshes where it had two kinds (pine, oak). Zoom 1 costs
-more tree triangles (LOD1 about 100 against the old 44, after 30% thinning). Frame time p50 was
-13.7 to 13.9 ms before and after at zoom 2 on this machine.
+Draw calls: 8 to 13 above the old level at every zoom (three species meshes a chunk against two
+kinds), accepted. The first pass, with a mesh per size, drew 133 and 138 at zoom 2.
 
 ## Commands
 
@@ -141,17 +147,14 @@ ZOOMS=1,0.6 node plans/art-pilot/md05-trees/forest-shots.mjs plans/art-pilot/md0
 
 - `sheets/sheet-<kit>.jpg` (and `-phone.jpg`, a quarter size): front row LOD0, then LOD1, LOD2;
   a 1.8 m post for scale; the kit's other objects in front.
-- `before/` and `after/`: army and woods views at zooms 2, 1, 0.6, with `*-report.json`
-  (triangles, draw calls, tree triangles, trees drawn).
-- `kits/`: each kit's woods at zooms 1 and 0.6 through `&vegetation=<kit>`.
+- `before/` (base) and `after/` (final): army and woods views at zooms 2, 1, 0.6, with
+  `*-report.json` (triangles, draw calls, tree triangles, trees drawn).
+- `kits/`: each kit's woods at zooms 1 and 0.6 through `&vegetation=<kit>` (desert and tropical
+  at zoom 1 retaken after the third pass; `desert-woods-zoom1-before-palms.jpg` is the second
+  pass, with the dark date palms).
 
 ## Open points
 
-- Near-zoom draw calls are 8 to 13 above the old level (three species meshes a chunk against two
-  kinds). Going lower means fewer species per chunk (for example one species in the far skirt).
-- Zoom 1 tree triangles are up 46% (about 87k over the field); a lighter LOD1 crown or keeping
-  60% of the trees at LOD1 would bring it back.
-- The desert date palms' fronds now read dark at zoom 1 after the tone pass (darker than the
-  acacias); a lighter `date_frond` would fix it.
+- Near-zoom draw calls are 8 to 13 above the old level (accepted).
 - Groves still use the first species' `tree-l` / `tree-m` only.
 - The sandbox fights on a temperate tile; other kits were checked with `&vegetation=`.

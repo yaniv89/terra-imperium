@@ -23,9 +23,11 @@ const EXPECTED = {
   // 2026-10-14, MD05 tree pass: the three kits rebuilt by build_nature.py (remaining_kit) with new
   // trees (their own drew striped spruce cones at LOD1 and near-black palm fronds far); every
   // other object as checkpoint 38 shipped it. Was 3e8f6264..., 202f14f0..., 073be8c8....
-  "src/assets/battle/nature/vegetation-conifer.glb": "fb47f07e447136845df0d91f7bd05155ff0efe5f7f6916f9c83f7c3f497aca81",
-  "src/assets/battle/nature/vegetation-tropical.glb": "cba87ecc40b5e142c49f03f977305f98eae847773d8f28c248c6a859004a2119",
-  "src/assets/battle/nature/vegetation-cold.glb": "4fcf6a5528d2afe1f28e3b47640cc53f8d5e6889d710a9f9d76ad2e6036efcf5",
+  // Moved again the same day for the lighter far crowns (LOD1 about 56 triangles a tree) and lit
+  // far palm fronds.
+  "src/assets/battle/nature/vegetation-conifer.glb": "edd33023b95b156b04c49e6d717ef269f6befbb6c50aed0334ba0b677827274a",
+  "src/assets/battle/nature/vegetation-tropical.glb": "ccbed63a55bbffbd234ed2e71e3aa82a1a032544c0aa7f6de6fe906f5acb762d",
+  "src/assets/battle/nature/vegetation-cold.glb": "d7a8eecc0aa5521800ab26110bf780e398316711184f460338fe8fb06e53c214",
   "src/assets/battle/props/loot-sack.glb": "2847ea345fe421458c7e4161635086fd64202bc75503970fd8565a8840ebf187",
   "src/assets/battle/props/exit-marker.glb": "24dd3703cdd0de7e304cfd105013058a9d2cc486d1e77dad4207c56cdf08c00d",
   "src/assets/battle/props/burnt-field-overlay.glb": "5d07899b742664b1b2b08b9e0b0ad324a1fe392700e626fc57f6f5c73d15f921",

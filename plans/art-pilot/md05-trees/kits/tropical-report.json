@@ -5,68 +5,38 @@
       "file": "plans/art-pilot/md05-trees/kits/tropical-army-zoom1.jpg",
       "view": "army",
       "zoom": 1,
-      "triangles": 965114,
+      "triangles": 862738,
       "drawCalls": 118,
       "figures": 81,
       "tier": 0,
       "vegetationLod": 1,
+      "treeTriangles": 139264,
+      "treeMeshes": 48,
       "trees": {
         "trees": 3922,
         "drawn": 2750,
         "species": 3,
         "meshes": 48,
         "lod": 1
-      }
-    },
-    {
-      "file": "plans/art-pilot/md05-trees/kits/tropical-army-zoom0_6.jpg",
-      "view": "army",
-      "zoom": 0.6,
-      "triangles": 689018,
-      "drawCalls": 130,
-      "figures": 81,
-      "tier": 0,
-      "vegetationLod": 2,
-      "trees": {
-        "trees": 3922,
-        "drawn": 2022,
-        "species": 3,
-        "meshes": 48,
-        "lod": 2
       }
     },
     {
       "file": "plans/art-pilot/md05-trees/kits/tropical-woods-zoom1.jpg",
       "view": "woods",
       "zoom": 1,
-      "triangles": 1003140,
+      "triangles": 874852,
       "drawCalls": 126,
       "figures": 77,
       "tier": 0,
       "vegetationLod": 1,
+      "treeTriangles": 139264,
+      "treeMeshes": 48,
       "trees": {
         "trees": 3922,
         "drawn": 2750,
         "species": 3,
         "meshes": 48,
         "lod": 1
-      }
-    },
-    {
-      "file": "plans/art-pilot/md05-trees/kits/tropical-woods-zoom0_6.jpg",
-      "view": "woods",
-      "zoom": 0.6,
-      "triangles": 718564,
-      "drawCalls": 159,
-      "figures": 83,
-      "tier": 0,
-      "vegetationLod": 2,
-      "trees": {
-        "trees": 3922,
-        "drawn": 2022,
-        "species": 3,
-        "meshes": 48,
-        "lod": 2
       }
     }
   ],

@@ -51,7 +51,7 @@ LEAVES = {
 }
 # Flat leaves (fronds) and bark.
 FLAT = {
-    'date_frond': (['#577f36', '#628b3e', '#4c7330'], None),
+    'date_frond': (['#78a84e', '#84b458', '#6c9c46'], None),
     'coco_frond': (['#4c8834', '#58943c', '#427e2e'], None),
     'banana_leaf': (['#62a038', '#6eac42', '#58962f'], None),
     'dates': (['#b8782c', '#c88a38', '#a46824'], None),
@@ -71,6 +71,9 @@ for _n in list(LEAVES) + list(FLAT):
     if _n not in tt.PROC:
         tt.PROC.append(_n)
 tt.SMOOTH.update(LEAVES)
+# Fronds too: smooth, and (build_nature.soft_crown_uvs) a far frond takes its colour from a lit
+# full-size frond, not one in the crown's shade, which drew far palms near black.
+tt.SMOOTH.update(['date_frond', 'coco_frond', 'banana_leaf'])
 
 
 def make_materials():
@@ -108,10 +111,15 @@ def tube(ms, mat, pts, radii, segs=7, lod=0, only=None, cap=True):
 
 
 def clump(ms, leaf, at, radii, rng=None, jitter=0.07, detail=2, lod=0, only=None, taper=0.0, yaw=0.0):
-    """One rounded leaf mass: an icosphere (80 faces at detail 2, 20 at 1) with half-axes `radii`,
-    barely jittered so it stays round; `taper` draws its top in (a spire, a fir's tier)."""
+    """One rounded leaf mass: an icosphere (80 faces at detail 2, 20 at 1) or, at detail 'uv', an
+    eight-sided sphere of four rows (48 triangles, rounder than 20 faces once smoothed) with
+    half-axes `radii`, barely jittered so it stays round; `taper` draws its top in (a spire, a
+    fir's tier)."""
     bm = bmesh.new()
-    bmesh.ops.create_icosphere(bm, subdivisions=detail, radius=1.0)
+    if detail == 'uv':
+        bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=4, radius=1.0)
+    else:
+        bmesh.ops.create_icosphere(bm, subdivisions=detail, radius=1.0)
     for v in bm.verts:
         if rng is not None and jitter:
             v.co *= 1.0 + rng.uniform(-jitter, jitter)
@@ -125,7 +133,11 @@ def clump(ms, leaf, at, radii, rng=None, jitter=0.07, detail=2, lod=0, only=None
 
 def crown(ms, leaf, clumps, rng, mid_detail=2, taper=0.0, far_scale=0.94, hull=None):
     """A crown from `clumps` [((x, y, z), (rx, ry, rz), taper, material or None)]: every clump at
-    LOD0; at LOD1 and LOD2 one mass filling the clumps' bounds (80 and 20 faces)."""
+    LOD0; at LOD1 and LOD2 one mass filling the clumps' bounds (48 and 20 triangles; 20 and 20 for
+    a small tree, mid_detail 1). LOD1 was 80 until the zoom 1 budget pass (14 October): the game
+    draws thousands of trees at that level."""
+    if mid_detail == 2:
+        mid_detail = 'uv'
     for at, radii, tp, mat in clumps:
         clump(ms, mat or leaf, at, radii, rng, 0.07, 2, lod=0, only=(0,), taper=tp, yaw=rng.uniform(0, 6.28))
     part = [c for c in clumps if c[3] is None] if hull is None else hull
@@ -133,17 +145,16 @@ def crown(ms, leaf, clumps, rng, mid_detail=2, taper=0.0, far_scale=0.94, hull=N
     hi = [max(c[0][i] + c[1][i] for c in part) for i in range(3)]
     centre = [(lo[i] + hi[i]) / 2 for i in range(3)]
     half = [(hi[i] - lo[i]) / 2 * far_scale for i in range(3)]
-    clump(ms, leaf, centre, half, random.Random(rng.randrange(1 << 30)), 0.08 if mid_detail == 2 else 0.0, mid_detail, lod=1, only=(1,), taper=taper)
+    clump(ms, leaf, centre, half, random.Random(rng.randrange(1 << 30)), 0.05 if mid_detail == 'uv' else 0.0, mid_detail, lod=1, only=(1,), taper=taper)
     clump(ms, leaf, centre, half, None, 0, 1, lod=2, only=(2,), taper=taper)
     return centre, half
 
 
 def trunk(ms, bark, pts, radii, segs=7, far=1.25):
-    """A trunk at three levels: every ring at LOD0, three five-sided rings at LOD1, a three-sided
-    post (thicker by `far`, so it still shows) at LOD2."""
+    """A trunk at three levels: every ring at LOD0, a four-sided post at LOD1 (8 triangles), a
+    three-sided post at LOD2; the far ones thicker by `far`, so they still show."""
     tube(ms, bark, pts, radii, segs, lod=0, only=(0,))
-    mid = len(pts) // 2
-    tube(ms, bark, [pts[0], pts[mid], pts[-1]], [radii[0], radii[mid] * 1.1, radii[-1] * 1.1], 5, lod=1, only=(1,), cap=False)
+    tube(ms, bark, [pts[0], pts[-1]], [radii[0] * 1.1, radii[-1] * 1.25], 4, lod=1, only=(1,), cap=False)
     tube(ms, bark, [pts[0], pts[-1]], [radii[0] * far, radii[-1] * far * 1.3], 3, lod=2, only=(2,), cap=False)
 
 
@@ -261,15 +272,15 @@ def palm_tree(ms, rng, h, f, t, bark='bark_palm', leaf='date_frond', fronds=10, 
         a = 2 * math.pi * k / fronds + rng.uniform(-0.15, 0.15)
         up = rng.uniform(0.75, 1.15)
         frond(ms, leaf, top, a, f * rng.uniform(0.9, 1.08), width, rise * up, droop, 3, lod=0, only=(0,))
-    for k in range(6):
-        frond(ms, leaf, top, 2 * math.pi * k / 6 + 0.3, f, width * 1.5, rise, droop, 2, lod=1, only=(1,))
+    for k in range(5):
+        frond(ms, leaf, top, 2 * math.pi * k / 5 + 0.3, f, width * 1.7, rise, droop, 2, lod=1, only=(1,))
     for k in range(5):
         frond(ms, leaf, top, 2 * math.pi * k / 5 + 0.3, f, width * 1.9, rise, droop, 2, lod=2, only=(2,))
     if fruit:
         for k in range(3):
             a = 2 * math.pi * k / 3 + 0.5
             clump(ms, fruit, (top.x + math.cos(a) * t * 1.3, math.sin(a) * t * 1.3, top.z - t * 1.6), (t * 0.8, t * 0.8, t * 1.3), None, 0, 1, lod=0, only=(0,))
-    clump(ms, leaf, (top.x, 0, top.z), (t * 1.5, t * 1.5, t * 1.3), None, 0, 1, lod=1)  # the crown's heart
+    clump(ms, leaf, (top.x, 0, top.z), (t * 1.5, t * 1.5, t * 1.3), None, 0, 1, lod=0, only=(0,))  # the crown's heart
 
 
 def shrub_tree(ms, rng, h, r, t, bark, leaf, stems=4, ball=0.42, squash=0.8, top_mat=None, mid_detail=1, kink=0.25):
