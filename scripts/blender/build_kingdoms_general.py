@@ -15,7 +15,9 @@
 #     right fist: a pole with a spear-point finial, a swallow-tailed flag (the squad's Emblem) flying
 #     from it, Team tassels
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
-# Rest pose only. Rigs: MountRig, CommanderRig, BearerRig.
+# Clips (ti_mounted_clips.py, 2026-10-14): the general's set (the mounted set and Cheer), the lord's feet in
+# the stirrups, the bearer walking, running at the horse's stride and waving the banner. Rigs: MountRig,
+# CommanderRig, BearerRig.
 #   blender -b --factory-startup -P scripts/blender/build_kingdoms_general.py
 # Outputs go to art-build/units/kingdoms-general/ (TI_PREVIEW=1: stills); copy the GLB to src/assets/units/.
 import math
@@ -26,6 +28,8 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 
 UID = 'kingdoms-general'
 tube, box, raw, vertical = F.tube, F.box, F.raw, F.vertical
@@ -116,6 +120,7 @@ for k, zz in enumerate((z1 - .020, z0 + .020)):
 tris = F.finish_unit(UID, parts, {
     'role': 'Kingdoms general: a mounted lord on a chestnut horse under a short Team caparison (drawn as plain wool on a mount) with the war saddle and stirrups, pointing ahead, in an open bascinet with a gilt coronet, a beard, a mail coif, a Team surcoat over mail, a long Team cloak with a gilt clasp; a banner bearer on foot (kettle hat, Team tabard over a gambeson) whose swallow-tailed flag is the squad emblem',
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, surcoat_flaps, cloak, pointing_hand, poleyns, tabard, kettle_hat) and ti_mounts.py (fine_horse, caparison, war_saddle, stirrups, reins). The banner pole, finial and flag are attachments (StandardPole, StandardEmblem).'},
-    centre=(.2, -.1, .85), scale=2.8)
+    centre=(.2, -.1, .85), scale=2.8, mode='NLA_TRACKS',
+    clips=MC.hook(UID, lambda: MC.mounted(horse, cmd, 'hand', 'general', stirrups=True, bearer=bearer, bearer_kit=FC.Kit('spear')), 'general'))
 print('TRIS', tris)
 assert tris <= 4500, tris  # two people and a horse: over the 3,500 target (the Classical general is 3,864, the Bronze 4,486)

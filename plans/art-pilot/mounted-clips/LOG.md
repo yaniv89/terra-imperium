@@ -158,3 +158,57 @@ Triangles 3038 (unchanged); GLB 290 KB packed (was 216 KB).
 | Hit | 10 | 0.50 | no | - |
 | Death | 40 | 2.00 | no | settle 40 |
 | DeathAlt | 40 | 2.00 | no | settle 40 |
+
+## kingdoms-cavalry
+
+MountRig, RiderRig. The knight's lance (SpearShaft with its vamplate, the Team pennon on the head) is couched in
+Charge and thrust down at the right front in Attack; the heater shield stays on the left arm. Stirrups: his feet
+stay in them (two-bone legs) as he rises to the trot. The caparison hangs from the horse's back and the legs
+move under it. Triangles 3198 (unchanged); GLB 302 KB packed (was 224 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Trot | 15 | 0.75 | yes | - |
+| Gallop | 13 | 0.65 | yes | - |
+| Charge | 41 | 2.05 | no | contact 23 |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |
+
+## kingdoms-general
+
+MountRig, CommanderRig (the lord's pointing hand, as the Classical general's; feet in the stirrups), BearerRig
+(the swallow-tailed banner). Triangles 4320 (unchanged); GLB 442 KB packed (was 311 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Trot | 15 | 0.75 | yes | - |
+| Gallop | 13 | 0.65 | yes | - |
+| Charge | 41 | 2.05 | no | contact 23 |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |
+| Cheer | 33 | 1.65 | yes | - |
+
+## kingdoms-raider
+
+MountRig, RaiderRig: the torch set, the feet in the stirrups. Triangles 3224 (unchanged); GLB 307 KB packed (was
+229 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Trot | 15 | 0.75 | yes | - |
+| Gallop | 13 | 0.65 | yes | - |
+| Charge | 41 | 2.05 | no | contact 23 |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |

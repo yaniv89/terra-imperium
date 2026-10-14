@@ -25,7 +25,8 @@ const FALLS = ['Death', 'DeathAlt', 'Wreck'];
 // unit -> archetype
 const UNITS = {
   'bronze-cavalry': 'chariot', 'bronze-general': 'general', 'bronze-raider': 'mounted',
-  'classical-cavalry': 'mounted', 'classical-general': 'general', 'classical-raider': 'mounted'
+  'classical-cavalry': 'mounted', 'classical-general': 'general', 'classical-raider': 'mounted',
+  'kingdoms-cavalry': 'mounted', 'kingdoms-general': 'general', 'kingdoms-raider': 'mounted'
 };
 const POLEARMS = /spear|pike|lance|halberd/i;
 const FPS = 20;
