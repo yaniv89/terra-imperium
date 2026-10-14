@@ -1412,7 +1412,13 @@ export class BattleRenderer {
           const gk = gl.count; const gx = bx - fx * 0.6; const gz = bz - fz * 0.6; const gs = MODEL_SCALE.general;
           writeYaw(gl.matrix.array, gk, gx, this.heightAt(gx, gz), gz, turn, gs, gs, gs);
           gl.color.array[gk * 3] = cr; gl.color.array[gk * 3 + 1] = cg; gl.color.array[gk * 3 + 2] = cb;
-          if (gl.clipSet) { gl.anim.array.set([gl.clipSet.roles.idle, 0, 1, fig[4]], gk * 4); gl.animPrev.array.set([0, 0, 1, -1], gk * 4); } // a general with clips stands (phase 3 brings its own)
+          if (gl.clipSet) {
+            // the general rides with his squad: its gait at its speed (clipPlayer.js), else he stands
+            const gst = info.genClips || (info.genClips = newFigureState(1));
+            const gb = baseMotion(gl.clipSet, { moving: !!walking, routed: s.routed, speed: step * (this.tickRate || 20), simRate: 1 });
+            playClip(gst, 0, gl.clipSet.roles[gb.role], this.time, gb.rate, this.time);
+            writeAnim(gst, 0, gl.anim.array, gl.animPrev.array, gk, (fig[4] / 6.283) * 2);
+          }
           else { gl.anim.array[gk * 3] = fig[4]; gl.anim.array[gk * 3 + 1] = walking; gl.anim.array[gk * 3 + 2] = striking; }
           gl.variant.array.set(fig.subarray(5, 9), gk * 4);
           gl.count += 1;
@@ -1469,7 +1475,7 @@ export class BattleRenderer {
     const newHit = (s.lastHitTick ?? -10000) > sc.hit; sc.hit = Math.max(sc.hit, s.lastHitTick ?? -10000);
     const newDeposit = (s.lastDepositTick ?? -10000) > sc.dep; sc.dep = Math.max(sc.dep, s.lastDepositTick ?? -10000);
     if (newStrike) sc.swings += 1;
-    const { attack, attack2, hit, deposit } = set.roles;
+    const { attack, attack2, hit, deposit, charge } = set.roles;
     const periodS = (info.stats.attackTicks || 20) / tickRate;
     const front = Math.max(1, Math.min(cols, n));
     const st = sc.st;
@@ -1477,7 +1483,12 @@ export class BattleRenderer {
       const busy = busyUntil(st, i) > now;
       const was = currentClip(st, i);
       const swinging = was === attack || was === attack2;
-      if (moving || s.routed) {
+      if (moving && !s.routed && newStrike && charge >= 0) {
+        // a charge (section 7.3): its lead-in runs so the contact lands on the next strike
+        const t = strikeTiming(set, charge, renderAt(s.lastStrikeTick), periodS);
+        playClip(st, i, charge, Math.max(now, t.start), t.rate, now, { keepLoop: false });
+        setBusy(st, i, Math.max(now, t.start) + set.dur[charge] / t.rate);
+      } else if ((moving || s.routed) && !(busy && was === charge)) {
         playClip(st, i, set.roles[base.role], now, base.rate, now); setBusy(st, i, 0);
       } else if (fighting && !working && attack >= 0) {
         if (newStrike) {

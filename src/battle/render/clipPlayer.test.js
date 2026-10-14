@@ -1,6 +1,6 @@
 // The clip player (I219): which clip a figure plays, cross-fades, and strikes timed on the sim's beat.
 import { describe, it, expect } from 'vitest';
-import { clipSetOf, newFigureState, playClip, writeAnim, baseMotion, strikeTiming, TILE_M, WALK_MPS } from './clipPlayer';
+import { clipSetOf, newFigureState, playClip, writeAnim, baseMotion, strikeTiming, TILE_M, WALK_MPS, MOUNTED_TPS } from './clipPlayer';
 import { WORK_JOB, WORK_NODE } from '../sim/economy';
 
 const bakeOf = (clips) => ({
@@ -44,6 +44,22 @@ describe('clip player', () => {
     expect(baseMotion(set, { moving: true, speed: 3 / TILE_M, simRate: 1 }).role).toBe('run');
     expect(baseMotion(set, { moving: true, routed: true, speed: 1, simRate: 1 }).role).toBe('retreat');
     expect(baseMotion(set, { won: true, speed: 0, simRate: 1 }).role).toBe('cheer');
+  });
+
+  it('horses walk, trot and gallop by speed at actual / natural pace; a chariot gallops on Move (section 7.3)', () => {
+    const horse = clipSetOf(bakeOf([['Idle', 41, true], ['Walk', 21, true], ['Trot', 15, true], ['Gallop', 13, true], ['Charge', 41, false, { contact: 22 }], ['Attack', 21, false, { contact: 10 }], ['Death', 40, false]]));
+    const m = (speed) => baseMotion(horse, { moving: true, speed, simRate: 1 });
+    expect(m(0.52)).toEqual({ role: 'walk', rate: 1 });
+    expect(m(1.29).role).toBe('trot');
+    expect(m(3.0).role).toBe('gallop');
+    expect(m(3.0).rate).toBeCloseTo(3.0 / MOUNTED_TPS.gallop);
+    const chariot = clipSetOf(bakeOf([['Idle', 41, true], ['Move', 13, true], ['Charge', 41, false, { contact: 22 }], ['Archer-shoot', 30, false, { release: 20 }], ['Hit', 8, false], ['Wreck', 40, false]]));
+    expect(chariot.chariot).toBe(true);
+    expect(baseMotion(chariot, { moving: true, speed: 2.69, simRate: 1 })).toEqual({ role: 'gallop', rate: 1 });
+    expect(chariot.roles.death).toBe(5);
+    expect(chariot.roles.attack).toBe(3);
+    // Charge: contact (frame 23) 1.1 s into the clip
+    expect(horse.strike[horse.roles.charge]).toBeCloseTo(1.1);
   });
 
   it('a new clip cross-fades from the old one; the same loop at a new rate keeps its frame', () => {

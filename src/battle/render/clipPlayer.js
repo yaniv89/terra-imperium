@@ -14,9 +14,10 @@ const S_CLIP = 0; const S_START = 1; const S_RATE = 2; const S_PCLIP = 3; const 
 const ROLES = {
   idle: ['Idle', 'Aim'], idleAlt: ['IdleAlt', 'Idle', 'Aim'],
   walk: ['Walk', 'Move'], run: ['Run', 'Walk', 'Move'], retreat: ['Retreat-run', 'Run', 'Walk', 'Move'],
-  attack: ['Attack', 'Draw-aim-release', 'Aim-fire-reload', 'Fire', 'Melee-fallback'],
-  attack2: ['Attack2', 'Attack', 'Draw-aim-release', 'Aim-fire-reload', 'Fire', 'Melee-fallback'],
-  hit: ['Hit'], death: ['Death', 'Destroyed'], deathAlt: ['DeathAlt', 'Death', 'Destroyed'], cheer: ['Cheer'],
+  trot: ['Trot'], gallop: ['Gallop', 'Move'], charge: ['Charge'],
+  attack: ['Attack', 'Draw-aim-release', 'Aim-fire-reload', 'Archer-shoot', 'Fire', 'Melee-fallback'],
+  attack2: ['Attack2', 'Attack', 'Draw-aim-release', 'Aim-fire-reload', 'Archer-shoot', 'Fire', 'Melee-fallback'],
+  hit: ['Hit'], death: ['Death', 'Destroyed', 'Wreck'], deathAlt: ['DeathAlt', 'Death', 'Destroyed', 'Wreck'], cheer: ['Cheer'],
   carry: ['Carry', 'Walk'], chop: ['Chop', 'Build'], mine: ['Mine', 'Build'], harvest: ['Harvest', 'Build'],
   build: ['Build', 'Repair'], repair: ['Repair', 'Build'], deposit: ['Deposit']
 };
@@ -27,6 +28,9 @@ const STRIKE_EVENT = ['contact', 'release', 'fire'];
 export const TILE_M = 1.8 / 0.95;
 export const WALK_MPS = 1.6;
 export const RUN_MPS = 2.6;
+// Mounted gaits (section 7.3): the hooves' natural ground speed at rate 1, tiles a second; Walk
+// under about 0.9, Trot under about 2.0, Gallop above. The chariot's Move is its gallop.
+export const MOUNTED_TPS = { walk: 0.52, trot: 1.29, gallop: 2.74, charge: 3.29, chariotMove: 2.69, chariotCharge: 3.22 };
 const NODE_ROLE = { tree: 'chop', stone: 'mine', gold: 'mine', herd: 'harvest', cattle: 'harvest', fish: 'harvest', farm: 'harvest' };
 
 /** A unit's clips by motion: { role: clip index or -1 }, with each clip's duration, loop and strike frame. */
@@ -43,10 +47,12 @@ export const clipSetOf = (bake) => {
   or('idleAlt', 'idle'); or('walk', 'idle'); or('run', 'walk'); or('retreat', 'run'); or('carry', 'walk'); or('cheer', 'idle');
   ['chop', 'mine', 'harvest', 'build', 'repair'].forEach((r) => or(r, 'idle'));
   or('attack', 'chop'); or('attack2', 'attack');
+  const chariot = bake.byName.Move !== undefined && bake.byName.Gallop === undefined && bake.byName.Charge !== undefined;
+  const mounted = bake.byName.Gallop !== undefined || chariot;
   const dur = bake.clips.map((c) => c.duration || (c.frames - 1) / 20);
   const loop = bake.clips.map((c) => !!c.loop);
   const strike = bake.clips.map((c) => { const e = STRIKE_EVENT.find((k) => Number.isFinite(c.events?.[k])); return e ? c.events[e] / 20 : dur[bake.clips.indexOf(c)] * 0.5; });
-  return { roles, dur, loop, strike, count: bake.clips.length };
+  return { roles, dur, loop, strike, count: bake.clips.length, mounted, chariot };
 };
 
 export const newFigureState = (n) => { const s = new Float32Array(n * FIGURE_STATE); for (let i = 0; i < n; i++) { s[i * FIGURE_STATE + S_CLIP] = -1; s[i * FIGURE_STATE + S_PCLIP] = -1; s[i * FIGURE_STATE + S_SWITCH] = -1; } return s; };
@@ -88,6 +94,12 @@ export const baseMotion = (set, sq) => {
     const stride = r === 'run' || r === 'retreat' ? RUN_MPS : WALK_MPS;
     return { role: r, rate: Math.max(0.5, Math.min(2.2, mps / stride)) };
   };
+  if (set.mounted && (sq.moving || sq.routed)) {
+    // a horse or a chariot: the gait the speed calls for, at actual / natural speed
+    const v = sq.speed; const M = MOUNTED_TPS;
+    const [role, natural] = set.chariot ? ['gallop', M.chariotMove] : v < 0.9 ? ['walk', M.walk] : v < 2.0 ? ['trot', M.trot] : ['gallop', M.gallop];
+    return { role: set.roles[role] >= 0 ? role : 'gallop', rate: Math.max(0.4, Math.min(2, v / natural)) };
+  }
   if (sq.routed) return gait('retreat');
   const job = sq.worker ? workJobOf(sq.work) : WORK_JOB.none;
   if (sq.moving) return gait(job === WORK_JOB.hauling ? 'carry' : 'walk');
