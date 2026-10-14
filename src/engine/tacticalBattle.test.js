@@ -14,6 +14,8 @@ import { playCommandedBattle } from '../battle/sim/__fixtures__/recordBattles';
 import { safeBattleSetup } from '../components/battle/battleOpenGuard';
 import { fieldedUnitIds } from './battleVerify';
 import { estimateInvasionOdds } from './battleOdds';
+import { cityMilitia } from './battleInputs';
+import { siegeMaxHp } from './sieges';
 import { getNationCapital, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { addCity, addCities } from './testWorld';
@@ -79,11 +81,16 @@ describe('BEGIN_TACTICAL_BATTLE', () => {
     expect(begin(next).pendingBattle.id).toBe(next.pendingBattle.id);
   });
 
-  it('takes an undefended region immediately, like auto-resolve', () => {
+  it('an empty city is commanded against its militia (win it and it is yours); with no militia it is attacked on Auto', () => {
     const s = baseState();
     const next = begin({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } });
-    expect(next.pendingBattle).toBeNull();
-    expect(next.regions[BE_REGION].owner).toBe('fr');
+    if (cityMilitia(s, BE_REGION).length) {
+      expect(next.pendingBattle).toMatchObject({ kind: 'invasion', defenderUnitIds: [] });
+      expect(next.pendingBattle.militia.length).toBeGreaterThan(0);
+    } else {
+      expect(next.pendingBattle).toBeNull();
+      expect(next.regions[BE_REGION].siege?.hp ?? 0).toBeLessThan(siegeMaxHp(s.regions[BE_REGION]));
+    }
   });
 
   it('refuses without a war, like LAUNCH_INVASION', () => {
@@ -469,10 +476,13 @@ describe('battle odds preview', () => {
     const odds = estimateInvasionOdds(s, FR_BORDER, BE_REGION, 100);
     expect(odds.attacker + odds.defender + odds.stalemate).toBeCloseTo(1, 5);
     expect(odds.attackerStrength).toBe(3000);
-    // An empty city still has its militia (battleInputs.js, master plan 6.7 row 19): a regiment beats it.
+    expect(odds.autoRule).toBe('garrison'); // Auto fights the garrison and never takes the city
+    expect(odds.capture).toBe(0);
+    // An empty city on Auto is an attack on its defences (cityAssault.js): its HP drops.
     const empty = estimateInvasionOdds({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } }, FR_BORDER, BE_REGION);
     expect(empty.undefended).toBeFalsy();
-    expect(empty.attacker).toBeGreaterThan(0.8);
+    expect(empty.autoRule).toBe('attack');
+    expect(empty.city.hpAfter).toBeLessThan(empty.city.hpBefore);
   });
 });
 
@@ -603,7 +613,8 @@ describe('T9: commanded amphibious landing', () => {
     const withFleet = { ...s, units: { ...s.units, gbNavy: { id: 'gbNavy', regionId: GB_TARGET, ownerId: 'gb', domain: 'naval', classId: 'naval', strength: 50000, maxStrength: 50000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null } } };
     expect(beginLanding(withFleet).pendingBattle).toBeNull();
     const { gb1, ...rest } = s.units; // eslint-disable-line no-unused-vars
-    const empty = beginLanding({ ...s, units: rest });
+    // An empty beach: no command battle; Auto attacks the city's defences and takes it at 0 HP.
+    const empty = beginLanding({ ...s, units: rest, regions: { ...s.regions, [GB_TARGET]: { ...s.regions[GB_TARGET], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } } } });
     expect(empty.pendingBattle).toBeNull();
     expect(empty.regions[GB_TARGET].owner).toBe('fr');
   });
@@ -621,7 +632,8 @@ describe('T9: commanded amphibious landing', () => {
 describe('conquest by battle (reported: "I won but the region didn\'t become mine / I could attack it forever")', () => {
   it('a won invasion makes the region yours on the spot, and it can\'t be attacked again', () => {
     const s0 = withArmies();
-    const s = { ...s0, units: { a1: s0.units.a1 } };
+    // An empty city whose defences are broken (cityAssault.js: Auto takes it at 0 HP).
+    const s = { ...s0, units: { a1: s0.units.a1 }, regions: { ...s0.regions, [BE_REGION]: { ...s0.regions[BE_REGION], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } } } };
     const taken = gameReducer(s, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
     expect(taken.regions[BE_REGION]).toMatchObject({ owner: 'fr', control: 25, formerOwner: AGG });
     expect(taken.regions[BE_REGION].occupiedBy).toBeUndefined();
@@ -652,7 +664,7 @@ describe('conquest by battle (reported: "I won but the region didn\'t become min
   it('the enemy can demand conquered land back at the peace table', async () => {
     const { buildAITerms } = await import('./peace');
     const s0 = withArmies();
-    const taken = gameReducer({ ...s0, units: { a1: s0.units.a1 } }, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+    const taken = gameReducer({ ...s0, units: { a1: s0.units.a1 }, regions: { ...s0.regions, [BE_REGION]: { ...s0.regions[BE_REGION], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } } } }, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
     const war = { ...taken.wars.find((w) => w.id === 'war_t'), score: -60 };
     expect(buildAITerms(taken, war, AGG)).toContainEqual({ type: 'cede', regionId: BE_REGION });
   });
@@ -667,7 +679,7 @@ describe('conquest by battle (reported: "I won but the region didn\'t become min
 });
 
 describe('auto-resolve is fair and explains itself (reported: "check the auto battle is fair")', () => {
-  it('a stronger army usually wins and takes the region; a weaker one usually fails; the odds say why', async () => {
+  it('a stronger army usually beats the garrison; a weaker one usually fails; the odds say why', async () => {
     const { estimateInvasionOdds } = await import('./battleOdds');
     const s = withArmies();
     const garrison = Object.values(s.units).filter((u) => u.regionId === BE_REGION);
@@ -680,7 +692,7 @@ describe('auto-resolve is fair and explains itself (reported: "check the auto ba
     // and the city its militia, calibrated against the real-time battle (parityEco): in this
     // mountain town the defenders hold far more often than a bare count of regiments says.
     expect(strong.attacker).toBeGreaterThan(0.4);
-    expect(strong.capture).toBeGreaterThan(0.3);
+    expect(strong.capture).toBe(0); // on Auto a garrison is fought first: the city is not taken in this battle
     expect(weak.attacker).toBeLessThan(strong.attacker);
     expect(strong.factors.find((f) => f.id === 'numbers').value).toBeGreaterThan(1);
   });

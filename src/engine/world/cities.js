@@ -328,14 +328,25 @@ const tierEffect = (city, category, key) => {
   return BUILDING_CATEGORIES[category]?.tiers[tier]?.effects?.[key] || 0;
 };
 
+// A besieged city's production and taxes (gold) are cut to this share (sieges.js).
+export const SIEGE_YIELD_MULT = 0.75;
+
 /** The city's yields this turn with the given worked tiles. */
 export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}) => {
   const centre = centreYields(tiles, world, city, researched);
   // A city under invasion lives off its centre alone: the enemy holds the countryside. One under
-  // siege (sieges.js) works ring 1 only.
-  const ring1 = city.siege ? new Set(tiles.neighbors[city.tile]) : null;
-  const fields = city.underInvasion ? [] : ring1 ? worked.filter((t) => ring1.has(t)) : worked;
-  const sum = fields.reduce((acc, t) => { const y = yieldsOfTile(tiles, world, t, researched); acc.food += y.food; acc.production += y.production; acc.gold += y.gold; return acc; }, { ...centre });
+  // siege (sieges.js, besiegers beside it) still eats from all its fields, but draws production and
+  // taxes from ring 1 only, cut to SIEGE_YIELD_MULT: a siege weakens a city, it never starves it out.
+  const besieged = !!city.siege?.by;
+  const ring1 = besieged ? new Set(tiles.neighbors[city.tile]) : null;
+  const fields = city.underInvasion ? [] : worked;
+  const sum = fields.reduce((acc, t) => {
+    const y = yieldsOfTile(tiles, world, t, researched);
+    acc.food += y.food;
+    if (!ring1 || ring1.has(t)) { acc.production += y.production; acc.gold += y.gold; }
+    return acc;
+  }, { ...centre });
+  if (besieged) { sum.production *= SIEGE_YIELD_MULT; sum.gold *= SIEGE_YIELD_MULT; }
   const districts = districtYields(tiles, world, city); // the Campus, Temple Quarter and Market Quarter on their tiles (districts.js)
   sum.gold += districts.gold;
   // Bought development (development.js): flat base yields, there in a siege too.

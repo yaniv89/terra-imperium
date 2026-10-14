@@ -199,11 +199,11 @@ export const resolveDefenseAuto = (state, defId) => {
   const def = (state.pendingDefenses || []).find((d) => d.id === defId);
   if (!def) return state;
   const armies = getDefenseArmies(state, def);
-  // The garrison left or was wiped out before the battle: the old dice roll's result stands, and
-  // the region simply takes the siege damage.
-  if (!armies.defenderUnits.length || !armies.attackerUnits.length) {
+  // The attackers left or were wiped out before the battle: nothing happens. A garrison that left
+  // or died leaves an empty city: Auto attacks its defences (cityAssault.js), it is not walked into.
+  if (!armies.attackerUnits.length) {
     return applyDefenseResult(state, def, {
-      outcome: armies.attackerUnits.length ? 'attacker' : 'defender',
+      outcome: 'defender',
       attackerUnits: armies.attackerUnits,
       defenderUnits: armies.defenderUnits,
       report: { log: [], deployedAttackerIds: [], deployedDefenderIds: [] }
@@ -222,16 +222,25 @@ export const resolveAllDefensesAuto = (state) =>
 // auto-resolved runs. The attackers are marching at you in plain sight, so no intel is needed.
 export const estimateDefenseOdds = (state, def, samples = 40) => {
   const armies = getDefenseArmies(state, def);
-  if (!armies.defenderUnits.length) return { undefended: true, holdChance: 0, avgDamage: SIEGE_CONTROL_DAMAGE.attacker };
+  if (!armies.attackerUnits.length) return { undefended: false, holdChance: 1, avgDamage: 0 };
   let before = null;
-  let held = 0; let damage = 0;
+  let held = 0; let damage = 0; let hpAfter = 0; let city = null;
   for (let i = 0; i < samples; i++) {
     const battle = autoResolveDefense(state, { ...def, seed: (def.seed + i * 0x9e3779b1) >>> 0 });
+    // An empty city (cityAssault.js): it holds unless this attack brings its HP to 0.
+    if (battle.report?.cityAttack) {
+      city = battle.report.cityAttack; hpAfter += city.hpAfter;
+      if (!city.falls) held++;
+      continue;
+    }
     before = before || { attacker: sumStrength(armies.attackerUnits), defender: sumStrength(armies.defenderUnits) + sumStrength(battle.inputs.militia) };
     const p = getAssaultPressure(battle, before);
+    // On Auto a garrison is fought first and the city is never taken (garrisonFirst): it holds
+    // unless the garrison is beaten.
     if (p < 0.5) held++;
     damage += SIEGE_CONTROL_DAMAGE.attacker * p;
   }
+  if (city) return { undefended: true, holdChance: held / samples, avgDamage: null, city: { hpBefore: city.hpBefore, hpAfter: Math.round(hpAfter / samples), maxHp: city.maxHp } };
   return { undefended: false, holdChance: held / samples, avgDamage: Math.round(damage / samples) };
 };
 

@@ -33,6 +33,9 @@ import { ringsForKm } from '../data/geo/gridScale';
 import { isIndependentNation } from '../data/independents';
 import { canAttack } from './hostility';
 import { aiScout, marchScouts } from './aiScouting';
+import { cityAttackStrength, cityAttackDamage, cityDefence } from './cityAssault';
+import { cityMilitia, wallsHpRatio } from './battleInputs';
+import { siegeHpOf } from './sieges';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -66,12 +69,22 @@ export const AI_RAID_RINGS = ringsForKm(AI_RAID_KM); // a stack at war with the 
 //   ASSAULT_MIN_P  a stack touching an enemy city assaults it (or the walls are under ASSAULT_HP)
 //   LANDING_MIN_P  an embarked army lands on a defended coast
 // SALLY_RATIO is the cheap pre-filter: a garrison under half the besiegers' strength never asks.
+// Wars must fight (the user's rule of 14 October): the bars are low, an AI army at war prefers
+// action, and FIGHT_FLOOR_P is the one floor under all of them, so it never throws itself at
+// hopeless odds. A stack at war also seeks battle (FIELD_SEEK_MIN_P): an enemy army on a tile
+// beside it is attacked.
+export const FIGHT_FLOOR_P = 0.25;
 export const SALLY_RATIO = 1.3;
-export const SALLY_MIN_P = 0.6;
-export const RELIEF_MIN_P = 0.6;
-export const ASSAULT_MIN_P = 0.45;
-export const LANDING_MIN_P = 0.5;
+export const SALLY_MIN_P = 0.5;
+export const RELIEF_MIN_P = 0.4;
+export const ASSAULT_MIN_P = 0.3;
+export const FIELD_SEEK_MIN_P = 0.35;
+export const LANDING_MIN_P = 0.4;
+// An empty city (cityAssault.js) is attacked when one attack takes at least CITY_HIT_MIN_SHARE of
+// its max HP (more than it heals in a turn), or enough to take it; else the stack besieges it first.
+export const CITY_HIT_MIN_SHARE = 0.12;
 const PREFILTER = 0.5;
+const atLeast = (p, bar) => p >= Math.max(FIGHT_FLOOR_P, bar);
 // A battle an AI starts against the player is not fought at once: it joins the battle queue
 // (battleQueue.js) so the player chooses Command or Auto (master plan decision 24). The attackers
 // spend their move now; a player stack already queued against is not attacked twice.
@@ -162,6 +175,43 @@ export const attackBlocker = (state, nationId, from, stack, tile, rng) => {
   return { ...state, units: r.units, regions: r.regions, nations: { ...r.nations, [nationId]: { ...r.nations[nationId], economy: state.nations[nationId]?.economy } }, hiredCommanders: r.hiredCommanders, appliedBattleIds: r.appliedBattleIds, world: r.world || state.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport, logs: state.logs };
 };
 
+/**
+ * Seek battle (the user's rule of 14 October: wars must fight): a stack at war attacks the enemy
+ * army on a tile beside it (not a city centre: a garrison is an assault) with the best odds, when
+ * the estimate clears FIELD_SEEK_MIN_P. Against the player the battle is queued (Command or Auto).
+ * Returns the new state, or null when it does not attack.
+ */
+export const seekFieldBattle = (state, nationId, from, stack, at, enemies, rng) => {
+  if (at == null) return null;
+  const tiles = getTiles();
+  const centres = new Set(Object.values(state.regions).map((c) => c.tile));
+  const byTile = landUnitsByTile(state);
+  const actor = { ...state, playerNationId: nationId, resources: getPool(state, nationId), techAgeId: getTechAgeId(state, nationId) };
+  let best = null;
+  for (const t of tiles.neighbors[at]) {
+    if (centres.has(t) || !(byTile.get(t) || []).some((u) => enemies.has(u.ownerId) && !isUnitInBattle(state, u.id))) continue;
+    const v = validateFieldAttack(actor, from, t, { ignoreCost: true });
+    if (!v.ok || !v.attackerUnits.some((u) => stack.some((s) => s.id === u.id))) continue;
+    const ctx = getFieldBattleContext(actor, v);
+    const p = estimateBattle(getFieldResolveArgs(v, ctx)).pWin;
+    if (atLeast(p, FIELD_SEEK_MIN_P) && (!best || p > best.p || (p === best.p && t < best.t))) best = { v, ctx, p, t };
+  }
+  if (!best) return null;
+  const { v, ctx } = best;
+  if (v.defenderNationId === state.playerNationId) return queueAgainstPlayer(state, v, nationId, rng);
+  const battle = resolveAutoBattle(actor, getFieldResolveArgs(v, ctx), { kind: 'field', fromRegionId: v.fromRegionId }, rng);
+  const r = applyFieldResult({ ...actor, units: state.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId, viewerId: state.playerNationId });
+  return { ...state, units: r.units, regions: r.regions, nations: { ...r.nations, [nationId]: { ...r.nations[nationId], economy: state.nations[nationId]?.economy } }, hiredCommanders: r.hiredCommanders, appliedBattleIds: r.appliedBattleIds, world: r.world || state.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport, logs: state.logs };
+};
+
+/** Is an empty enemy city worth an attack by this stack now (cityAssault.js)? One attack must take
+ * CITY_HIT_MIN_SHARE of its max HP, or what HP it has left. */
+export const cityAttackWorthIt = (state, nationId, stack, city) => {
+  const attack = cityAttackStrength(stack, { attackerAgeId: getTechAgeId(state, nationId), defenderAgeId: getTechAgeId(state, city.owner) });
+  const hit = cityAttackDamage(attack, cityDefence(city, { militia: cityMilitia(state, city.id), hpRatio: wallsHpRatio(state, city) }));
+  return hit >= CITY_HIT_MIN_SHARE * siegeMaxHp(city, state.greatProjects) || hit >= siegeHpOf(city, state.greatProjects);
+};
+
 /** The units of a stack that march out to lay siege (CB09 I120): all of them, except that a stack
  * standing in one of its own cities leaves its weakest unit behind as the garrison. */
 export const siegeParty = (state, stack, at, fromCityId) => {
@@ -225,7 +275,7 @@ export const processAIOperations = (state, rng) => {
       // A march halted by an enemy army on its next tile (routes.js 'enemy') attacks it when the
       // estimate gives it ASSAULT_MIN_P; two stacks used to stand face to face for the whole war (CB09 I120).
       if (stack.some(u => u.route?.length) && stack.every(u => u.routeHalt === 'enemy')) {
-        const r = attackBlocker(next, nationId, from, stack, stack[0].route[0], rng);
+        const r = attackBlocker(next, nationId, from, stack, stack.find(u => u.route?.length).route[0], rng);
         if (r) { next = r; stack.forEach(u => committed.add(u.id)); continue; }
       }
       if (stack.some(u => u.route?.length)) { marching = true; continue; } // already on the road: the march phase below walks it
@@ -261,11 +311,19 @@ export const processAIOperations = (state, rng) => {
         break;
       }
       if (relieved) continue;
+      // Seek battle: an enemy army beside this stack is attacked when the odds allow.
+      const sought = seekFieldBattle(next, nationId, from, stack, at, enemies, rng);
+      if (sought) { next = sought; stack.forEach(u => committed.add(u.id)); continue; }
       // Units by region, rebuilt only when a battle replaced the units map (the scan per enemy
       // neighbour per stack was most of the phase at a thousand units).
       if (unitsByRegionFor !== next.units) { unitsByRegion = new Map(); Object.values(next.units).forEach(u => { const l = unitsByRegion.get(u.regionId); if (l) l.push(u); else unitsByRegion.set(u.regionId, [u]); }); unitsByRegionFor = next.units; }
       const unitsIn = (id) => unitsByRegion.get(id) || [];
-      const ranked = rankTargets(next, nationId, wars, stack, getNeighborIds(from).filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !unitsIn(id).some(u=>isUnitInBattle(next,u.id))), unitsIn);
+      // The cities next to the stack's base, and those whose land the stack stands on or beside: a
+      // stack that marched to besiege a far city assaults it from there (with sieges that never
+      // take a city, it used to sit at the walls for the whole war).
+      const near = new Set(getNeighborIds(from));
+      if (at != null) [at, ...tiles.neighbors[at]].forEach((t) => { const id = next.world?.tileOwner?.[t]; if (id != null && id !== from) near.add(id); });
+      const ranked = rankTargets(next, nationId, wars, stack, [...near].sort().filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !unitsIn(id).some(u=>isUnitInBattle(next,u.id))), unitsIn);
       // Attacks come from tiles that touch the city's land; a city farther off is marched on.
       const candidates = ranked.filter(id => touchesCity(next, tiles, at, id));
       const target = threatened.size && !threatened.has(from) ? null : candidates[0];
@@ -276,11 +334,16 @@ export const processAIOperations = (state, rng) => {
         const city = next.regions[target];
         const wallsDown = !!city.siege && city.siege.hp < ASSAULT_HP * siegeMaxHp(city, next.greatProjects);
         const ctx = getInvasionBattleContext(actor, v);
-        // Not worth an assault yet. A stack already beside the city (ring 1) holds its tile, which
-        // keeps the siege on (sieges.js). One that only touches the city's land from its own city
-        // used to wait there forever (CB09 I120: 30 Kanesh units piled in a colony beside Waset and
-        // never fought): it marches to the walls and lays siege instead, leaving one unit at home.
-        if (!wallsDown && v.defenderUnits.length && estimateBattle(getResolveBattleArgs(v, ctx)).pWin < ASSAULT_MIN_P) {
+        // Not worth an assault yet. A garrison is assaulted at ASSAULT_MIN_P (at the floor once the
+        // walls are down); an empty city (cityAssault.js) when one attack does real damage. A stack
+        // already beside the city (ring 1) holds its tile, which keeps the siege on (sieges.js). One
+        // that only touches the city's land from its own city used to wait there forever (CB09 I120:
+        // 30 Kanesh units piled in a colony beside Waset and never fought): it marches to the walls
+        // and lays siege instead, leaving one unit at home.
+        const notYet = v.defenderUnits.length
+          ? !atLeast(estimateBattle(getResolveBattleArgs(v, ctx)).pWin, wallsDown ? FIGHT_FLOOR_P : ASSAULT_MIN_P)
+          : !cityAttackWorthIt(next, nationId, v.attackerUnits, city);
+        if (notYet) {
           if (city.tile != null && at !== city.tile && !tiles.neighbors[city.tile].includes(at)) {
             const goers = siegeParty(next, stack, at, from);
             const failed = stack[0].routeFailed;
@@ -409,8 +472,9 @@ export const aiHuntRaiders = (state, nationId, raidTiles, rng) => {
 /**
  * A campaign against an independent (indepPolicy.js `nation.indepGoal`, kind 'conquer'): the tagged
  * siege force (`unit.indepOp`) marches on tiles to its city, halts beside it (the siege, sieges.js)
- * and assaults when the walls are down to ASSAULT_HP or the estimate gives ASSAULT_MIN_P; a fallen
- * siege takes the city through sieges.js. No war: the assault is an invasion with `war` null.
+ * and assaults when the estimate gives ASSAULT_MIN_P (the floor once the walls are down to ASSAULT_HP);
+ * an empty city is attacked through its defences (cityAssault.js). A siege never takes the city: only
+ * an assault does. No war: the assault is an invasion with `war` null.
  */
 export const processIndependentOps = (state, nationId, rng) => {
   const goal = state.nations[nationId]?.indepGoal;
@@ -444,8 +508,12 @@ export const processIndependentOps = (state, nationId, rng) => {
       if (!v.ok) continue;
       const wallsDown = !!cur.siege && cur.siege.hp < ASSAULT_HP * siegeMaxHp(cur, next.greatProjects);
       const ctx = getInvasionBattleContext(actor, v);
-      // Not worth an assault yet: the force holds its tile, which keeps the siege on.
-      if (!wallsDown && v.defenderUnits.length && estimateBattle(getResolveBattleArgs(v, ctx)).pWin < ASSAULT_MIN_P) continue;
+      // Not worth an assault yet: the force holds its tile, which keeps the siege on (the same bars
+      // as a war's fronts above).
+      const notYet = v.defenderUnits.length
+        ? !atLeast(estimateBattle(getResolveBattleArgs(v, ctx)).pWin, wallsDown ? FIGHT_FLOOR_P : ASSAULT_MIN_P)
+        : !cityAttackWorthIt(next, nationId, v.attackerUnits, cur);
+      if (notYet) continue;
       const battle = resolveAutoBattle(actor, getResolveBattleArgs(v, ctx), { kind: 'invasion', cityId: city.id, fromRegionId: from }, rng);
       const result = applyInvasionResult(actor, { ...v, fromRegionId: from, targetRegionId: city.id, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), viewerId: state.playerNationId, militia: battle.inputs.militia });
       next = { ...next, regions: result.regions, units: { ...result.units }, wars: result.wars, hiredCommanders: result.hiredCommanders, appliedBattleIds: result.appliedBattleIds, world: result.world || next.world,

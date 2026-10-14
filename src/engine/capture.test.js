@@ -10,7 +10,7 @@ import { cityFell, pendingCapturesOf, captureOptions, resolveCapture, settleOpen
 import { conquerRegion, OCCUPATION_GRACE_TURNS, OCCUPATION_GRACE_FLOOR, CAPTURE_REPEAT_TURNS } from './conquest';
 import { applyLoyalty, loyaltyForecast, loyaltyTarget, LOYALTY_OCCUPATION_PER_UNIT } from './loyalty';
 import { turnBlockers } from './turnBlockers';
-import { processSieges, BREACH_HOLD_TURNS } from './sieges';
+import { processSieges } from './sieges';
 import { isIndependentNation } from '../data/independents';
 import { syncWorldRegistry } from './world/registry';
 import { auditGameState } from './stateAudit';
@@ -201,29 +201,19 @@ describe('occupation (I126, I127) and the anti-loop history (I132)', () => {
   });
 });
 
-describe('the breach (I131): a healthy garrison does not hand over its city at 0 HP', () => {
-  it('holds while it has the men and is not encircled, at a cost, for a bounded number of turns', () => {
+describe('a siege never takes a city (the 14 October rule)', () => {
+  it('at 0 HP with no garrison the siege phase hands nothing over and costs nobody men', () => {
     const s = armies();
     const city = s.regions[T];
     const ring = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1);
-    // Two besiegers on one side (not encircled), a garrison of equal men, walls already at 0.
-    const units = {
-      b1: { ...unit('b1', FR, 'fr'), tile: ring[0] }, b2: { ...unit('b2', FR, 'fr'), tile: ring[0] },
-      g1: { ...unit('g1', T, AGG), tile: city.tile }, g2: { ...unit('g2', T, AGG), tile: city.tile }
-    };
-    let regions = { ...s.regions, [T]: { ...city, siege: { hp: 0, maxHp: 500, by: 'fr', startedTurn: 1, encircled: false, starving: 0 } } };
-    let held = 0;
-    for (let turn = 2; turn < 2 + BREACH_HOLD_TURNS + 2; turn++) {
-      const out = processSieges({ ...s, regions, units }, regions, units, { turn });
-      if (out.fallen.some((f) => f.cityId === T)) break;
-      held += 1;
-      regions = { ...regions };
-    }
-    expect(held).toBe(BREACH_HOLD_TURNS);
-    expect(units.g1.strength).toBeLessThan(1000);
+    const units = { b1: { ...unit('b1', FR, 'fr'), tile: ring[0] }, g1: { ...unit('g1', T, AGG), tile: city.tile } };
+    const regions = { ...s.regions, [T]: { ...city, siege: { hp: 0, maxHp: 500, by: 'fr', startedTurn: 1, encircled: false } } };
+    for (let turn = 2; turn < 8; turn++) processSieges({ ...s, regions, units }, regions, units, { turn });
+    expect(regions[T].owner).toBe(AGG);
+    expect(regions[T].siege.hp).toBe(0);
+    expect(units.g1.strength).toBe(1000);
   });
 });
-
 describe('decision 41: no man\'s land is fought on Auto', () => {
   it('a land tile inside neither side\'s borders, a third people\'s included, is no man\'s land; own land and the sea are not', () => {
     const s = armies();
@@ -240,21 +230,18 @@ describe('decision 41: no man\'s land is fought on Auto', () => {
   });
 });
 
-describe('a siege surrender to the player opens the same card (resolveTurn)', () => {
-  it('the city falls at 0 HP with no garrison, changes hands, and waits for the choice; unanswered, the next turn keeps it', () => {
+describe('an empty city battered to 0 HP by a siege', () => {
+  it('stays in its owner\'s hands through the turn: no surrender, no card', () => {
     const s0 = armies();
     const city = s0.regions[T];
     const ring = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1);
     const units = { b1: { ...unit('b1', FR, 'fr'), tile: ring[0] }, b2: { ...unit('b2', FR, 'fr'), tile: ring[0] } };
     const s = {
       ...s0, units, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true },
-      regions: { ...s0.regions, [T]: { ...city, siege: { hp: 0, maxHp: 500, by: 'fr', startedTurn: 1, encircled: false, starving: 0 } } }
+      regions: { ...s0.regions, [T]: { ...city, siege: { hp: 0, maxHp: 500, by: 'fr', startedTurn: 1, encircled: false } } }
     };
     const next = resolveTurn(s);
-    expect(next.regions[T].owner).toBe('fr');
-    expect(pendingCapturesOf(next)).toHaveLength(1);
-    expect(pendingCapturesOf(next)[0]).toMatchObject({ cityId: T, source: 'siege', from: AGG });
-    const after = resolveTurn({ ...next, pendingDefenses: [], pendingPeaceOffer: null, activeEventId: null, activeProceduralEvent: null });
-    if (after !== next) expect(after.pendingCaptures).toEqual([]);
+    expect(next.regions[T].owner).toBe(AGG);
+    expect(pendingCapturesOf(next)).toHaveLength(0);
   });
 });

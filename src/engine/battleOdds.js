@@ -5,7 +5,7 @@
 // explains WHY — the multipliers each side fights under (numbers, matchups, terrain, walls, age)
 // — so the calculation isn't a black box. Pure and fast (~a few ms for 200 samples).
 import { resolveAutoBattle } from './autoBattle';
-import { battleInputs, cityMilitia } from './battleInputs';
+import { battleInputs } from './battleInputs';
 import { createRng } from '../utils/rng';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, validateAmphibious, getAmphibiousBattleContext } from './invasion';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs } from './fieldBattle';
@@ -47,6 +47,7 @@ const simulate = (state, v, args, ctx, samples, spec) => {
   const attStart = sumStrength(v.attackerUnits); const defStart = sumStrength(inputs.defenderUnits); // the militia stand with the garrison
   const tally = { attacker: 0, defender: 0, stalemate: 0 };
   let attLoss = 0; let defLoss = 0; let captures = 0; let controlLeft = 0;
+  let autoRule = null; let hpAfter = 0; let cityAttack = null;
   for (let i = 1; i <= samples; i++) {
     const r = resolveAutoBattle(state, args, spec, createRng(Math.imul(i, 2654435761) >>> 0), inputs);
     tally[r.outcome] += 1;
@@ -59,11 +60,20 @@ const simulate = (state, v, args, ctx, samples, spec) => {
       hasMeleeUnit,
       garrisonBroken: isGarrisonBroken(r.defenderUnits)
     });
-    // The same reading as the outcome service (decision 40, capture.js cityFell).
-    if (cityFell(r, { occupier: hasMeleeUnit, fell: siege.captured })) captures += 1;
+    // The same reading as the outcome service (decision 40, capture.js cityFell; on Auto the
+    // garrison-first rule and the attack on an empty city's defences, cityAssault.js).
+    if (r.report?.cityAttack) {
+      autoRule = 'attack'; cityAttack = r.report.cityAttack; hpAfter += r.report.cityAttack.hpAfter;
+      if (r.report.cityAttack.falls && hasMeleeUnit) captures += 1;
+    } else if (r.report?.garrisonFirst) autoRule = 'garrison';
+    else if (cityFell(r, { occupier: hasMeleeUnit, fell: siege.captured })) captures += 1;
     controlLeft += siege.nextControl;
   }
   return {
+    // How Auto treats this city: 'garrison' (it fights the units inside and never takes the city),
+    // 'attack' (an empty city: it batters the defences, `city` the HP before and expected after).
+    autoRule,
+    city: cityAttack ? { hpBefore: cityAttack.hpBefore, hpAfter: Math.round(hpAfter / samples), maxHp: cityAttack.maxHp, walls: cityAttack.walls, attack: cityAttack.attack, defence: cityAttack.defence } : null,
     attacker: tally.attacker / samples,
     defender: tally.defender / samples,
     stalemate: tally.stalemate / samples,
@@ -79,12 +89,11 @@ const simulate = (state, v, args, ctx, samples, spec) => {
   };
 };
 
-const UNDEFENDED = { attacker: 1, defender: 0, stalemate: 0, capture: 1, undefended: true, attackerLossShare: 0, defenderLossShare: 0, factors: [] };
-
+// An empty city is no longer walked into (the user's rule of 14 October): Auto attacks its
+// defences (cityAssault.js), so it is simulated like any other city battle.
 export const estimateInvasionOdds = (state, fromRegionId, targetRegionId, samples = 200) => {
   const v = validateInvasion(state, fromRegionId, targetRegionId, { ignoreCost: true });
   if (!v.ok) return null;
-  if (v.defenderUnits.length === 0 && !cityMilitia(state, targetRegionId).length) return UNDEFENDED;
   const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits: v.defenderUnits });
   return simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId: targetRegionId, fromRegionId });
 };
@@ -112,7 +121,6 @@ export const estimateFleetOdds = (state, fromTile, tile, samples = 200) => {
 export const estimateLandingOdds = (state, navalUnitId, targetRegionId, samples = 200) => {
   const v = validateAmphibious(state, navalUnitId, targetRegionId, { ignoreCost: true });
   if (!v.ok) return null;
-  if (v.defenderLandUnits.length === 0) return UNDEFENDED;
   const ctx = getAmphibiousBattleContext(state, v, v.defenderLandUnits);
   const battle = { attackerUnits: v.embarkedLandUnits, defenderUnits: v.defenderLandUnits, targetRegion: v.targetRegion };
   return simulate(state, battle, { ...ctx, attackerUnits: battle.attackerUnits, defenderUnits: battle.defenderUnits }, ctx, samples, { kind: 'landing', cityId: targetRegionId, fromRegionId: v.navalUnit.regionId });

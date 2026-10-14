@@ -57,8 +57,10 @@ describe('attack buttons follow the engine validation', () => {
     expect(validateInvasion(game.state, from, target).ok).toBe(true);
     expect(button(renderBattle(), 'battle-choice-auto')).not.toContain('disabled=""');
   });
-  it('blocks a second invasion after an actual undefended conquest', () => {
+  it('blocks a second invasion after an actual conquest of an empty city', () => {
     game.state.units.army.movesLeft = 1;
+    // Its defences already broken: Auto takes an empty city only when an attack brings its HP to 0 (cityAssault.js).
+    game.state.regions[target] = { ...game.state.regions[target], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } };
     game.state = gameReducer(game.state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: from, targetRegionId: target } });
     expect(game.state.regions[target].owner).toBe('fr');
     expect(game.state.units.army.regionId).toBe(target);

@@ -869,9 +869,16 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
     // A thin garrison: the assault is a real battle, and a full one can win it on some dice (it
     // did once the court's name rolls moved the seed). This test is about the wiring, not the odds.
     state.units = Object.fromEntries(Object.entries(state.units).map(([id, u]) => [id, u.ownerId === 'fr' ? { ...u, strength: 100 } : u]));
+    // On Auto a garrison is fought first and the city is not taken in that battle (the 14 October
+    // rule, cityAssault.js); the beaten garrison is driven out.
     const next = resolveTurn(state);
-    expect(next.regions[cap('fr')].owner).toBe('de'); // conquered in battle
-    expect(next.regions[cap('fr')].conquest?.from).toBe('fr');
+    expect(next.regions[cap('fr')].owner).toBe('fr');
+    expect(Object.values(next.units).some((u) => u.ownerId === 'fr' && u.regionId === cap('fr') && u.domain === 'land')).toBe(false);
+    // Empty and its defences broken, the city falls to the next attack.
+    const empty = { ...state, units: Object.fromEntries(Object.entries(state.units).filter(([, u]) => u.ownerId !== 'fr')), regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } } } };
+    const taken = resolveTurn(empty);
+    expect(taken.regions[cap('fr')].owner).toBe('de');
+    expect(taken.regions[cap('fr')].conquest?.from).toBe('fr');
   });
 
   it('leaves a war the player started to be resolved by the player\'s own invasion actions, not synthetically', () => {

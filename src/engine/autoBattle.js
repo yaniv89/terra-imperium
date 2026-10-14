@@ -38,6 +38,7 @@ import { stockMult, TRAIN_STRENGTH } from '../battle/data/economy';
 import { cityManifestOf } from './cityManifest';
 import { getRosterCombatMultiplier } from '../data/unitClasses';
 import { powExact } from '../utils/exactMath';
+import { garrisonOf, resolveCityAttack } from './cityAssault';
 
 export const AUX_UNIT = 1000;
 export const AUX_EFFECT = 1.6;
@@ -94,6 +95,8 @@ export const autoCityDamage = (manifest, battle, defenderLossShare, rng) => {
 };
 
 const ASSAULT_KINDS = new Set(['invasion', 'landing', 'defense', 'assault']);
+// The kinds that can take a city (battleOutcome.js): Auto follows the garrison-first rule for them.
+export const CITY_KINDS = new Set(['invasion', 'landing', 'defense']);
 // Raids and sacks (raidBattle.js): the one light battle, no battle economy, no gate held.
 export const RAID_KINDS = new Set(['raid', 'sack']);
 // The kinds fought with a battle economy and so with bases (buildBattleSetup.js economy: true): a
@@ -150,7 +153,13 @@ export const resolveAutoBattle = (state, args, spec, rng, inputs = null) => {
   const naval = kind === 'naval' || !!spec?.naval;
   const cityId = naval || kind === 'field' ? null : spec?.cityId ?? null;
   const ins = inputs || battleInputs(state, { attackerUnits: args.attackerUnits, defenderUnits: args.defenderUnits, cityId, fromRegionId: spec?.fromRegionId ?? null, naval, militia: spec?.militia ?? null });
-  const battle = autoFromInputs(args, ins, kind, rng);
+  // Auto against a city works like Civilization (cityAssault.js): with units in it, Auto fights them
+  // first and never takes the city (garrisonFirst); with none, the attack is against the city
+  // itself, its HP, walls, size and militia, and it falls when an attack brings its HP to 0.
+  const cityKind = !!cityId && CITY_KINDS.has(kind) && !!state.regions?.[cityId];
+  if (cityKind && !garrisonOf(ins.defenderUnits).length && ins.attackerUnits.some((u) => u.strength > 0)) return resolveCityAttack(state, args, ins, cityId, rng);
+  const fought = autoFromInputs(args, ins, kind, rng);
+  const battle = cityKind ? { ...fought, report: { ...fought.report, garrisonFirst: true } } : fought;
   if (!cityId || !ASSAULT_KINDS.has(kind)) return battle;
   // The real city takes its damage as in a commanded battle (row 20 of master plan 6.7).
   const start = ins.defenderUnits.reduce((s, u) => s + Math.max(0, u.strength), 0);
