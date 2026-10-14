@@ -250,12 +250,15 @@ const tryRushProduction = (state, nation, regions) => {
   const reserve = Math.max(AI_RUSH_RESERVE, -(nation.lastNetIncome || 0) * 3);
   if (gold - reserve < rushGold(1)) return null;
   const owned = getOwnedRegionIds(regions, nation.id);
+  // Under a war plan (warPlans.js, lane W5) the regiments come first: the biggest city training one.
+  const wantsUnits = !!nation.warPlan;
   let best = null;
   for (const id of owned) {
     const c = regions[id];
     const item = c?.production?.current;
     if (c.size == null || !item || item.kind === 'wonder' || c.occupiedBy || c.underInvasion || c.siege || c.razing) continue;
-    if (best == null || c.size > regions[best].size) best = id;
+    const unitFirst = wantsUnits ? (item.kind === 'unit') - (regions[best]?.production?.current?.kind === 'unit') : 0;
+    if (best == null || unitFirst > 0 || (unitFirst === 0 && c.size > regions[best].size)) best = id;
   }
   if (best == null) return null;
   const city = regions[best];

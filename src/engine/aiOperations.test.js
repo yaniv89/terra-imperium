@@ -61,18 +61,33 @@ describe('operational AI',()=>{
     const attackers=next.pendingDefenses.flatMap(d=>d.attackerUnitIds);
     expect(new Set(attackers).size).toBe(attackers.length);
   });
-  it('moves toward a front one legal hop and spends movement',()=>{
-    const {s,interior}=setup();const next=processAIOperations(s,createRng(7));
-    expect(getNeighborIds(interior)).toContain(next.units.a.regionId);
-    expect(next.units.a.movesLeft).toBe(0);
+  it('an interior city sends its regiments to the muster point by the front (war plan, lane W5)',()=>{
+    const {s,border}=setup();
+    s.units.b={...s.units.a,id:'b'};
+    const next=processAIOperations(s,createRng(7));
+    expect(next.nations.de.warPlan.staging).toBe(border);
+    for(const id of ['a','b']){
+      const u=next.units[id];
+      expect(u.route?.length>0||u.tile===s.regions[border].tile).toBe(true); // on the road to Berlin (or there)
+      if(u.route?.length)expect(u.route[u.route.length-1]).toBe(s.regions[border].tile);
+    }
     expect(next.nations.de.economy.mil).toBe(100); // moving is free since routes (plan §4g)
-    expect(processAIOperations(next,createRng(7)).units.a).toEqual(next.units.a);
+  });
+  it('a border city or the capital keeps one regiment home; a lone one waits instead of walking to the walls alone (lane W5)',()=>{
+    const {s,border}=setup();
+    s.units.a={...s.units.a,regionId:border,tile:s.regions[border].tile};
+    const next=processAIOperations(s,createRng(7));
+    expect(next.units.a.regionId).toBe(border);
+    expect(next.units.a.route).toBeFalsy();
+    expect(next.pendingDefenses).toHaveLength(0);
   });
   it('marches on tiles toward the player\'s city when its own does not touch it, and halts before it',()=>{
     // India (AI) at war with the player Pakistan: New Delhi does not touch Islamabad, five tiles away.
     const s0=createInitialState({playerNationId:'pk',rngSeed:7});
     const IN=s0.nations.in.capitalRegionId;const PK=s0.nations.pk.capitalRegionId;
-    const s={...s0,wars:[{id:'w',aggressor:'pk',enemy:'in',active:true,battleScore:0}],units:{a:{id:'a',ownerId:'in',regionId:IN,tile:s0.regions[IN].tile,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0}}};
+    // A strike stack (warPlans.js): five regiments in New Delhi, four march and one holds the city.
+    const reg=(id)=>({id,ownerId:'in',regionId:IN,tile:s0.regions[IN].tile,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0});
+    const s={...s0,wars:[{id:'w',aggressor:'pk',enemy:'in',active:true,battleScore:0}],units:{a:reg('a'),b:reg('b'),c:reg('c'),d:reg('d'),home:{...reg('home'),strength:900}}};
     s.nations.in={...s.nations.in,economy:{gold:1000,hr:1000,mil:100,adm:100},isAtWar:true};s.nations.pk={...s.nations.pk,isAtWar:true};
     const tiles=getTiles();
     const next=processAIOperations(s,createRng(7));
@@ -80,11 +95,27 @@ describe('operational AI',()=>{
     expect(next.units.a.tile).not.toBe(s.regions[IN].tile);
     expect(next.units.a.route?.length).toBeGreaterThan(0);
     expect(next.units.a.regionId).toBe(IN);
+    expect(next.units.home.route).toBeFalsy();
     let st=next;
     for(let i=0;i<12&&st.units.a.route?.length;i++){st={...st,units:Object.fromEntries(Object.entries(st.units).map(([id,u])=>[id,{...u,movesLeft:1}]))};st=processAIOperations(st,createRng(7+i));}
     const at=st.units.a.tile;
     expect(tiles.neighbors[at].some(t=>s.world.tileOwner[t]===PK)||s.world.tileOwner[at]===PK).toBe(true);
-    expect(st.units.a.routeHalt).toBe('attack');
+    // Halted before the city (routes.js 'attack'), the next turn's decision drops the last step and
+    // fights there or holds the tile (lane W5): it never waits on the step all war.
+    expect(st.units.a.routeHalt==='attack'||!st.units.a.route?.length).toBe(true);
+    st={...st,units:Object.fromEntries(Object.entries(st.units).map(([id,u])=>[id,{...u,movesLeft:1}]))};
+    st=processAIOperations(st,createRng(99));
+    expect(st.units.a.route?.length||0).toBe(0);
+  });
+  it('a march halted before the city it was sent to fights there instead of waiting on its last step (lane W5)',()=>{
+    const {s,border,target}=setup();s.units.a.regionId=border;
+    const tiles=getTiles();
+    const beside=s.regions[target].tiles.flatMap(t=>tiles.neighbors[t]).find(t=>tiles.land[t]===1&&s.world.tileOwner[t]!==target);
+    s.units.a={...s.units.a,tile:beside,route:[s.regions[target].tile],routeHalt:'attack',routeBank:0};
+    const next=processAIOperations(s,createRng(7));
+    expect(next.pendingDefenses).toHaveLength(1);
+    expect(next.pendingDefenses[0].attackerUnitIds).toEqual(['a']);
+    expect(next.units.a.route).toBeFalsy();
   });
   it('counterattacks in a player-started war using real troops only, from a tile touching the city',()=>{
     const {s,border,target}=setup();s.units.a.regionId=border;
