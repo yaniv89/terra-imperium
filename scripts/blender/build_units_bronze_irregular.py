@@ -103,7 +103,7 @@ def build_raider():
     parts.append(horse)
     S = 'Mount_Spine'
     F.meshes.extend([tm.drape('HideCloth', horse, 'Hide', -.27, .14, reach=100, fringe=.02),
-             tm.drape('Girth', horse, 'Leather', -.215, -.165, reach=180, grow=.017, rows=2, steps=8)])
+             tm.drape('Girth', horse, 'Leather', -.215, -.165, reach=180, grow=.024, rows=2, steps=12)])
     F.use(horse)
     # loot: a tied sack on each flank behind the rider's legs, a rolled rug across the croup, a jar on it
     for sx in (-1, 1):

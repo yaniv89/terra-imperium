@@ -1,214 +1,277 @@
 # scripts/blender/build_units_bronze.py
-# The Bronze base units Claude built in Wave 1 (plans/ART-MODELS-PLAN.md 4.2, 4.3), on the shared rig
-# and body of ti_units.py, in the town-building look (faceted, flat colours, readable at 30 px):
-#   bronze-cavalry   light two-horse chariot, six-spoke wheels, a driver and an archer (2,500 target)
-#   bronze-support   baggage train: one ox in shafts with a withers yoke, a two-wheeled cart with
-#                    solid wheels, storage jars, sacks under a Team cover, a seated driver
-#   bronze-general   a mounted commander (Team cloak and plume, bronze scale and helmet, mace) and a
+# The Bronze base units Claude built in Wave 1 (plans/ART-MODELS-PLAN.md 4.2, 4.3), quality pass of
+# 2026-10-14 (after the spearman, the archer and the labourer): every person on the figure parts of
+# ti_figure.py (shaped head, fists, sandals, the set's clothes, the side's colour on the chest, the
+# waist or the head, where the battle draws it), the animals of ti_mounts.fine_horse / fine_ox, the
+# fine wheels, and baked shade in COLOR_0 over the whole file.
+#   bronze-cavalry   light two-horse chariot: a hide-sided car with a Team front in a wooden frame,
+#                    six-spoke wheels with bronze tyres, pole, yoke and breast bands; the driver (bronze
+#                    cap, Team shawl) holds the reins of both horses, the archer (headcloth with a Team
+#                    band, Team sash) half draws his bow over the horses
+#   bronze-general   a mounted commander on a pale horse (Team saddle cloth, bronze scale corselet,
+#                    helmet with a Team crest, Team cloak and collar, a mace held upright, reins) and a
 #                    standard bearer on foot whose banner is the squad's Emblem
+#   bronze-support   baggage train: a long-horned ox (pale face and patch) under a withers yoke, a
+#                    two-wheeled cart with plank wheels and rails, jars and a sack, the rest of the load
+#                    under a Team cover lashed with ropes, a seated driver with a goad
 # Rest pose only (no clips): the soldier loader bakes the rest pose and its vertex rig walks the legs
-# and swings the arms; authored clips and their VAT bake come with Wave 0b (decision D5).
+# and swings the arms. Rigs, bone names and the root object keep their names (ChariotRig, Hull,
+# Wheel_L/R, HorseNearRig/HorseOffRig, MountRig, OxRig, CartRig, the people's canonical rigs).
 #   blender -b --factory-startup -P scripts/blender/build_units_bronze.py -- bronze-cavalry [more ids]
-# Writes art-build/units/<id>/<id>.blend, <id>.glb (uncompressed) and report.json.
-import bpy, sys, os, math, json
+# Writes art-build/units/<id>/<id>.blend, <id>.glb (uncompressed) and report.json (TI_PREVIEW=1: stills).
+import bpy, sys, os, math  # noqa: F401
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ti_units as u  # noqa: E402
-from mathutils import Matrix, Vector  # noqa: E402
+import ti_figure as F  # noqa: E402
+import ti_mounts as tm  # noqa: E402
+from mathutils import Vector  # noqa: E402
 
-
-def reset():
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.context.scene.render.fps = 20
-
-
-def rigid(name, defs, at=(0, 0, 0)):
-    """A rigid vehicle's armature (bones named so the loader leaves them still: Hull, Wheel_*)."""
-    return u.make_armature(name, defs, at)
-
-
-def wheel(prefix, arm, bone, cx, cy, cz, radius, spokes=6, mat='Wood', hub='Metal'):
-    """A spoked wheel in the YZ plane (axle along X): a triangular-section rim, spokes, a hub."""
-    out = []
-    n = 10; v = []; f = []
-    for i in range(n):
-        a = 2 * math.pi * i / n; ca, sa = math.cos(a), math.sin(a)
-        for dx, dr in [(-.016, 0), (.016, 0), (0, -.03)]:
-            r = radius + dr
-            v.append((cx + dx, cy + r * ca, cz + r * sa))
-    for i in range(n):
-        j = (i + 1) % n
-        for k in range(3):
-            a0 = 3 * i + k; a1 = 3 * i + (k + 1) % 3; b0 = 3 * j + k; b1 = 3 * j + (k + 1) % 3
-            f += [(a0, a1, b1), (a0, b1, b0)]
-    out.append(u.mesh_obj(f'{prefix}Rim', v, f, mat, bone, arm=arm))
-    for i in range(spokes // 2):
-        a = math.pi * i / (spokes // 2)
-        ob = u.box(f'{prefix}Spoke{i}', (cx, cy, cz), (.018, 2 * radius - .03, .02), mat, bone, arm)
-        ob.data.transform(Matrix.Translation((cx, cy, cz)) @ Matrix.Rotation(a, 4, 'X') @ Matrix.Translation((-cx, -cy, -cz)))
-        out.append(ob)
-    out.append(u.tube(f'{prefix}Hub', [(cx - .04, cy, cz), (cx + .04, cy, cz)], [.04, .04], hub, [bone] * 2, 6, arm))
-    return out
-
-
-def disc_wheel(prefix, arm, bone, cx, cy, cz, radius, mat='Wood'):
-    """A solid (tripartite plank) wheel: a short 10-sided drum with a raised hub."""
-    return [u.tube(f'{prefix}Disc', [(cx - .03, cy, cz), (cx + .03, cy, cz)], [radius, radius], mat, [bone] * 2, 10, arm),
-            u.tube(f'{prefix}Hub', [(cx - .055, cy, cz), (cx + .055, cy, cz)], [.05, .05], mat, [bone] * 2, 6, arm)]
-
-
-def finish(uid, parts, colors, notes):
-    u.set_colors(colors)
-    root = u.assemble(uid, parts)
-    out = u.out_dir(uid)
-    meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
-    for o in meshes:
-        for p in o.data.polygons:
-            p.use_smooth = False
-    tris = u.scene_triangles()
-    bpy.context.preferences.filepaths.save_version = 0
-    bpy.ops.wm.save_as_mainfile(filepath=str(out / f'{uid}.blend'))
-    u.export_unit(out / f'{uid}.glb', animations=False)
-    rigs = {o.name: [b.name for b in o.data.bones] for o in bpy.context.scene.objects if o.type == 'ARMATURE'}
-    mats = sorted({s.material.name for o in meshes for s in o.material_slots if s.material})
-    report = {'id': uid, 'triangles': tris, 'rigs': rigs, 'materials': mats, 'colors': colors, 'textures': 0,
-              'pose': 'rest pose only; clips and VAT with Wave 0b (ART-MODELS-PLAN D5)', 'person_height_H': 1, 'front': 'Blender -Y, glTF +Z', **notes}
-    (out / 'report.json').write_text(json.dumps(report, indent=2))
-    print(f'BUILT {uid} triangles={tris} root={root.name}', flush=True)
+tube, box, raw, vertical, slab = F.tube, F.box, F.raw, F.vertical, F.slab
+SEAT = Vector((0, -.07, .345))  # a rider's rig on the horse's back
+ASTRIDE = {'Leg_L': (-60, -28, 0), 'Leg_R': (-60, 28, 0), 'Shin_L': (70, 0, 0), 'Shin_R': (70, 0, 0)}
 
 
 # ---- bronze-cavalry: light two-horse chariot -------------------------------------------------------
 
 def build_cavalry():
-    reset(); u.palette(); parts = []
-    for name, x in [('HorseNear', .165), ('HorseOff', -.165)]:
-        arm, _ = u.quadruped(name, 'horse', (x, -.62, 0), coat='Leather', dark='Wood')
-        parts.append(arm)
-    car = rigid('ChariotRig', [('Hull', (0, .22, .30), (0, .22, .5), None), ('Wheel_L', (.36, .30, .27), (.42, .30, .27), 'Hull'), ('Wheel_R', (-.36, .30, .27), (-.42, .30, .27), 'Hull')])
+    F.start({'Coat': '7A4A2C', 'Mane': '231912', 'Leather': '5E3A24', 'Wood': '6B4A2E', 'Hide': 'D9CCAE', 'Blanket': 'B8A57E', 'Cloth': 'E6DCC2',
+             'Metal': ('C59A50', .4, .6), 'Hair': '2B201A', 'Skin': 'C98E66'}, rig=False)
+    parts = []
+    for name, x, socks in [('HorseNear', .165, True), ('HorseOff', -.165, False)]:
+        h, _ = tm.fine_horse(name, (x, -.62, 0), socks=socks)
+        parts.append(h)
+        F.meshes.extend([tm.drape(f'{name}Blanket', h, 'Blanket', -.25, .08, reach=92, fringe=.02),
+                         tm.drape(f'{name}Girth', h, 'Leather', -.20, -.155, reach=180, grow=.024, rows=2, steps=12)])
+        F.use(h, name)
+        tube('BreastBand', [((.122, -.30, .705), .012, 'Mount_Spine'), ((.092, -.452, .665), .013, 'Mount_Spine'), ((0, -.505, .655), .013, 'Mount_Spine'),
+                            ((-.092, -.452, .665), .013, 'Mount_Spine'), ((-.122, -.30, .705), .012, 'Mount_Spine')], 'Leather', 4)
+        box('BreastBoss', (0, -.515, .655), (.040, .016, .040), 'Metal', 'Mount_Spine')
+    car = u.make_armature('ChariotRig', [('Hull', (0, .22, .30), (0, .22, .5), None), ('Wheel_L', (.36, .30, .27), (.42, .30, .27), 'Hull'),
+                                         ('Wheel_R', (-.36, .30, .27), (-.42, .30, .27), 'Hull')])
     parts.append(car)
-    floor = .33
-    u.box('CarFloor', (0, .22, floor - .015), (.52, .34, .03), 'Wood', 'Hull', car)
-    u.box('CarFront', (0, .055, floor + .19), (.5, .025, .38), 'Team', 'Hull', car)  # dyed hide breastwork
+    F.use(car)
+    floor, H = .33, 'Hull'
+    box('CarFloor', (0, .22, floor - .015), (.52, .34, .03), 'Wood', H)
     for sx in (-1, 1):
-        u.box(f'CarSide{sx}', (sx * .25, .17, floor + .16), (.022, .25, .32), 'Cloth', 'Hull', car)  # pale hide sides
-    rail = [(-.25, .30, floor + .34), (-.25, .06, floor + .38), (0, .045, floor + .40), (.25, .06, floor + .38), (.25, .30, floor + .34)]
-    u.tube('CarRail', rail, [.016] * 5, 'Wood', ['Hull'] * 5, 4, car)
-    u.tube('Axle', [(-.40, .30, .27), (.40, .30, .27)], [.02, .02], 'Wood', ['Hull'] * 2, 4, car)
-    u.tube('Pole', [(0, .26, .29), (0, -.10, .40), (0, -.55, .60), (0, -.93, .78)], [.02, .02, .018, .016], 'Wood', ['Hull'] * 4, 4, car)
-    u.box('Yoke', (0, -.93, .80), (.50, .035, .032), 'Wood', 'Hull', car)
+        box(f'CarPostF{sx}', (sx * .25, .058, floor + .19), (.032, .032, .38), 'Wood', H)
+        box(f'CarPostB{sx}', (sx * .25, .372, floor + .16), (.030, .030, .32), 'Wood', H)
+        box(f'CarSide{sx}', (sx * .25, .215, floor + .15), (.016, .29, .27), 'Hide', H)  # pale hide sides
+    box('CarFront', (0, .056, floor + .185), (.47, .018, .33), 'Team', H)  # the dyed hide breastwork
+    box('CarFrontBand', (0, .046, floor + .345), (.50, .020, .030), 'Metal', H)
+    rail = [(-.25, .37, floor + .32), (-.25, .06, floor + .38), (0, .045, floor + .40), (.25, .06, floor + .38), (.25, .37, floor + .32)]
+    tube('CarRail', [(p, .019, H) for p in rail], 'Wood', 6)
+    tube('Axle', [((-.42, .30, .27), .022, H), ((.42, .30, .27), .022, H)], 'Wood', 6)
+    YOKE = -.88
+    tube('Pole', [((0, .30, .29), .024, H), ((0, -.05, .36), .024, H), ((0, -.50, .60), .021, H), ((0, YOKE - .02, .79), .018, H), ((0, YOKE - .08, .83), .012, H)], 'Wood', 5)
+    tube('Yoke', [((-.27, YOKE, .770), .015, H), ((-.165, YOKE, .808), .020, H), ((0, YOKE, .822), .020, H), ((.165, YOKE, .808), .020, H), ((.27, YOKE, .770), .015, H)], 'Wood', 6)
     for sx in (-1, 1):
-        u.box(f'YokeSaddle{sx}', (sx * .165, -.93, .765), (.05, .05, .07), 'Metal', 'Hull', car)
-    u.tube('Quiver', [(-.275, .30, floor + .10), (-.275, .10, floor + .40)], [.034, .04], 'Leather', ['Hull'] * 2, 5, car)
-    u.tube('QuiverArrows', [(-.275, .12, floor + .40), (-.275, .09, floor + .47)], [.026, .02], 'Wood', ['Hull'] * 2, 4, car)
+        for k, dx in enumerate((-.06, .06)):  # the yoke saddle's two legs down the horse's shoulders
+            tube(f'YokeSaddle{sx}{k}', [((sx * .165 + dx * .4, YOKE, .80), .011, H), ((sx * .165 + dx, YOKE + .01, .72), .009, H)], 'Metal', 4)
+    q0, q1 = Vector((-.282, .34, floor + .07)), Vector((-.282, .10, floor + .40))
+    qa = (q1 - q0).normalized()
+    tube('Quiver', [(tuple(q0), .030, H), (tuple(q0.lerp(q1, .5)), .038, H), (tuple(q1), .042, H)], 'Leather', 6)
+    tube('QuiverRim', [(tuple(q1 - qa * .02), .046, H), (tuple(q1), .046, H)], 'Metal', 6, caps=(False, False))
+    for k, (dx, dy) in enumerate(((-.012, .010), (.012, -.008), (0, .018))):
+        tip = q1 + qa * .085 + Vector((dx, dy, 0))
+        tube(f'QuiverArrow{k}', [(tuple(q1 + Vector((dx, dy, 0))), .004, H), (tuple(tip), .004, H)], 'Wood', 3)
+        tube(f'QuiverFletch{k}', [(tuple(tip - qa * .04), (.012, .003), H), (tuple(tip), (.012, .003), H)], 'Cloth', 3)
     for side, sx in [('L', 1), ('R', -1)]:
-        wheel(f'Wheel{side}', car, f'Wheel_{side}', sx * .36, .30, .27, .27)
-    # crew on the floor: the driver (right) holds the reins, the archer (left) a self bow
-    drv, _ = u.crew('Driver', (-.10, .24, floor), head='headcloth'); parts.append(drv)
-    arc, _ = u.crew('Archer', (.11, .25, floor), head='cap'); parts.append(arc)
-    bpy.context.view_layer.update()
-    # reins: from between the driver's hands to each horse's mouth (rigid with the driver's hands)
-    hl = drv.matrix_world @ drv.data.bones['Hand_L'].head_local; hr = drv.matrix_world @ drv.data.bones['Hand_R'].head_local
-    grip = (hl + hr) / 2
-    inv = drv.matrix_world.inverted()
-    for name, hx in [('NearRein', .165), ('OffRein', -.165)]:
-        mouth = Vector((hx, -.62 - .76, .87))
-        pts = [tuple(inv @ grip), tuple(inv @ grip.lerp(mouth, .5) + Vector((0, 0, -.04))), tuple(inv @ mouth)]
-        u.tube(name, pts, [.007] * 3, 'Leather', ['Hand_L', 'Hand_L', 'Hand_L'], 3, drv)
-    # the archer's self bow in the left hand (Prop_L), string to the back; a bronze tipped arrow nocked
-    w = arc.data.bones['Hand_L'].head_local
-    pts = []; n = 7
-    for i in range(n):
-        t = i / (n - 1); z = w.z - .40 + .80 * t; y = w.y - .05 - .07 * math.sin(math.pi * t)
-        pts.append((w.x + .01, y, z))
-    u.tube('SelfBow', pts, [.006, .009, .011, .012, .011, .009, .006], 'Wood', ['Prop_L'] * n, 4, arc, attachment=True)
-    u.tube('BowString', [pts[0], (w.x + .01, w.y + .02, w.z), pts[-1]], [.003] * 3, 'Cloth', ['Prop_L'] * 3, 3, arc, attachment=True)
-    finish('bronze-cavalry', parts, {'Leather': '9A6236', 'Wood': '5A4130', 'Cloth': 'E4D8BF', 'Metal': ('BE9655', .45, .6), 'Team': 'BFBFBF', 'Skin': 'C98E66'},
-           {'role': 'Chariots (bronze cavalry): two horses side by side, two crew, six-spoke wheels, axle at the rear of the car, rear-entry car with pale hide sides and a Team-dyed front',
-            'notes': 'Horses are small Bronze Age horses (0.78 H at the withers). Yoke on the withers with saddles; no stirrups or collars. Culture-neutral: no national motifs.'})
-
-
-# ---- bronze-support: ox baggage cart ------------------------------------------------------------------
-
-def build_support():
-    reset(); u.palette(); parts = []
-    ox, _ = u.quadruped('Ox', 'ox', (0, -.66, 0), coat='Leather', dark='Wood', horn='Cloth'); parts.append(ox)
-    cart = rigid('CartRig', [('Hull', (0, .40, .40), (0, .40, .6), None), ('Wheel_L', (.34, .42, .25), (.40, .42, .25), 'Hull'), ('Wheel_R', (-.34, .42, .25), (-.40, .42, .25), 'Hull')])
-    parts.append(cart)
-    bed = .44
-    u.box('CartBed', (0, .42, bed - .02), (.54, .66, .04), 'Wood', 'Hull', cart)
-    for sx in (-1, 1):
-        u.box(f'SideBoard{sx}', (sx * .265, .42, bed + .05), (.025, .66, .10), 'Wood', 'Hull', cart)
-    u.box('TailBoard', (0, .745, bed + .05), (.54, .025, .10), 'Wood', 'Hull', cart)
-    u.tube('Axle', [(-.38, .42, .25), (.38, .42, .25)], [.025, .025], 'Wood', ['Hull'] * 2, 4, cart)
-    for side, sx in [('L', 1), ('R', -1)]:
-        disc_wheel(f'Wheel{side}', cart, f'Wheel_{side}', sx * .34, .42, .25, .25)
-        # shafts from the bed's front corners to the yoke on the ox's withers
-        u.tube(f'Shaft{side}', [(sx * .21, .30, bed - .03), (sx * .21, .02, bed + .02), (sx * .21, -.55, .62), (sx * .215, -1.0, .70)], [.02, .02, .018, .016], 'Wood', ['Hull'] * 4, 4, cart)
-    u.box('WithersYoke', (0, -.98, .73), (.50, .045, .04), 'Wood', 'Hull', cart)
-    for sx in (-1, 1):
-        u.box(f'YokePad{sx}', (sx * .07, -.98, .70), (.06, .07, .05), 'Leather', 'Hull', cart)
-    # the load: storage jars at the back, sacks under a Team cover at the front
-    for i, (x, y) in enumerate([(.13, .62), (-.13, .62), (0, .58)]):
-        h = .02 if i < 2 else .05
-        u.tube(f'Jar{i}', [(x, y, bed), (x, y, bed + .06 + h), (x, y, bed + .16 + h), (x, y, bed + .23 + h), (x, y, bed + .26 + h)], [.045, .085, .078, .036, .045], 'Metal', ['Hull'] * 5, 6, cart)
-    for i, x in enumerate((.12, -.12)):
-        u.tube(f'Sack{i}', [(x, .34, bed), (x, .34, bed + .08), (x, .34, bed + .15)], [(.10, .08), (.105, .085), (.06, .05)], 'Cloth', ['Hull'] * 3, 6, cart)
-    u.tube('LoadCover', [(-.25, .34, bed + .10), (-.12, .34, bed + .18), (.12, .34, bed + .18), (.25, .34, bed + .10)], [(.07, .15), (.05, .16), (.05, .16), (.07, .15)], 'Team', ['Hull'] * 4, 6, cart)
-    # the driver sits on the front of the bed, legs over the front board, a goad in the right hand
-    drv, meshes = u.crew('Driver', (0, .20, bed - .43), lite=False, head='headcloth'); parts.append(drv)
-    u.bake_rest_pose(drv, [o for o in bpy.context.scene.objects if o.type == 'MESH' and o.parent == drv],
-                     {'r': {'Leg_L': (-88, 0, 0), 'Leg_R': (-88, 0, 0), 'Shin_L': (85, 0, 0), 'Shin_R': (85, 0, 0), 'Chest': (6, 0, 0)}})
-    w = drv.data.bones['Hand_R'].head_local
-    u.tube('Goad', [(w.x, w.y + .05, w.z - .10), (w.x - .02, w.y - .30, w.z + .32)], [.008, .006], 'Wood', ['Prop_R'] * 2, 4, drv, attachment=True)
-    finish('bronze-support', parts, {'Leather': 'A87B52', 'Wood': '8A6646', 'Cloth': 'E2D6BC', 'Metal': ('B4683F', .85, 0), 'Team': 'BFBFBF', 'Skin': 'C98E66'},
-           {'role': 'Baggage train (bronze support): one long-horned draught ox in shafts with a withers yoke, two-wheeled cart with solid wheels, storage jars, sacks under a Team cover, a seated driver with a goad',
-            'notes': 'Metal is recoloured terracotta for the jars in this file (the tag only sets the flat colour). Horns use Cloth (pale horn).'})
+        F.adopt(tm.fine_wheel(f'Wheel{side}', car, f'Wheel_{side}', sx * .36, .30, .27, .27, spokes=6, rim='Metal'))
+    # ---- the driver, both fists forward on the reins ----
+    drv = F.crew('Driver', headgear='cap', accent='shawl', simple=True)
+    parts.append(drv)
+    F.reach('L', (.098, -.200, .672), pole=(.8, .2, -1))
+    F.reach('R', (-.098, -.200, .672), pole=(-.8, .2, -1))
+    F.bake_rest()
+    at = Vector((-.11, .17, floor))
+    F.place(at)
+    gl = F.fist('L', None, (1, 0, 0), half=.020)
+    gr = F.fist('R', None, (1, 0, 0), half=.020)
+    F.use(car)
+    for hx, g, name in ((.165, gl, 'Near'), (-.165, gr, 'Off')):
+        hand = at + g
+        for sx in (-1, 1):
+            bit = Vector((hx + sx * .043, -.62 - .722, .898))
+            mid = bit.lerp(hand, .55) + Vector((0, 0, -.05))
+            tube(f'{name}Rein{sx}', [(tuple(bit), .006, H), (tuple(mid), .006, H), (tuple(hand), .006, H)], 'Leather', 3)
+    # ---- the archer: the bow out over the horses in the left fist, the right hand at the chest on the string ----
+    arc = F.crew('Archer', headgear='headcloth', accent='sash', simple=True)
+    parts.append(arc)
+    F.reach('L', (.170, -.230, .800), pole=(1, .2, -.6))
+    F.reach('R', (.010, -.075, .770), pole=(-.6, 1, .1))
+    F.bake_rest()
+    F.place((.12, .31, floor))
+    g = F.fist('L', None, (0, 0, 1))
+    r = F.fist('R', None, (0, 1, 0), half=.018)
+    BOW_LEN, BRACE = .84, .085
+    back = (r - g)
+    back.z = 0
+    back = back.normalized()
+    pts = []
+    for i in range(9):
+        t = i / 8
+        p = g + Vector((0, 0, (t - .5) * BOW_LEN)) + back * BRACE * (1 - max(0, math.sin(math.pi * t)) ** .8) - back * .02 * math.sin(math.pi * t)
+        pts.append((tuple(p), .0075 + .0055 * math.sin(math.pi * t), 'Prop_L'))
+    tube('SelfBow', pts, 'Wood', 5, attachment=True)
+    tube('BowGrip', [((g.x, g.y, g.z - .040), .0155, 'Prop_L'), ((g.x, g.y, g.z + .040), .0155, 'Prop_L')], 'Leather', 6, caps=(False, False), attachment=True)
+    tube('BowString', [(pts[0][0], .0032, 'Prop_L'), (tuple(r), .0032, 'Hand_R'), (pts[-1][0], .0032, 'Prop_L')], 'Cloth', 3, attachment=True)
+    d = (g - r).normalized()
+    tube('NockedArrow', [(tuple(r), .004, 'Prop_R'), (tuple(g + d * .10), .004, 'Prop_R')], 'Wood', 4, attachment=True)
+    tube('NockedArrowHead', [(tuple(g + d * .095), (.010, .004), 'Prop_R'), (tuple(g + d * .14), .001, 'Prop_R')], 'Metal', 4, attachment=True)
+    tris = F.finish_unit('bronze-cavalry', parts, {
+        'role': 'Chariots (bronze cavalry): two small horses (bridles, breast bands, blankets) under a yoke on the withers, a hide-sided car with a Team front in a wooden frame, six-spoke wheels with bronze tyres, a quiver on the car; the driver holds the reins of both horses, the archer half draws his bow',
+        'notes': 'Quality pass of 2026-10-14 (ti_figure crew, ti_mounts.fine_horse and fine_wheel). Horses are small Bronze Age horses (0.78 H at the withers). Yoke on the withers with saddles; no stirrups or collars. Culture-neutral: no national motifs.'},
+        centre=(0, -.35, .55), scale=2.8)
+    assert tris <= 6000, tris
 
 
 # ---- bronze-general: mounted commander and standard bearer -------------------------------------------
 
 def build_general():
-    reset(); u.palette(); parts = []
-    horse, hm = u.quadruped('Mount', 'horse', (0, 0, 0), coat='Leather', dark='Wood'); parts.append(horse)
-    u.box('SaddleCloth', (0, -.06, .665), (.34, .36, .12), 'Team', 'Mount_Spine', horse)
-    # the commander, seated astride (pose baked into the rest pose)
-    rider, body = u.build_body(ready=True, lite=False, modest=False); rider.name = 'CommanderRig'; body.name = 'CommanderBody'
-    u.drop_faces(body, lambda c: .36 < c.z < .75 and abs(c.x) < .135)
-    rm = [body]
-    rm.append(u.tube('Tunic', [(0, 0, .36), (0, 0, .45), (0, 0, .53)], [(.135, .095), (.115, .082), (.097, .07)], 'Cloth', ['Hips'] * 3, 8, rider))
-    rm.append(u.tube('ScaleCorselet', [(0, 0, .52), (0, 0, .60), (0, 0, .68), (0, 0, .745), (0, 0, .79)], [(.10, .07), (.092, .068), (.118, .08), (.138, .08), (.11, .064)], 'Metal', ['Spine', 'Spine', 'Chest', 'Chest', 'Chest'], 8, rider))
-    rm.append(u.tube('Helmet', [(0, -.004, .935), (0, -.002, .955), (0, 0, 1.005), (0, 0, 1.03)], [(.068, .061), (.067, .06), (.035, .032), (.012, .012)], 'Metal', ['Head'] * 4, 8, rider))
-    rm.append(u.tube('Plume', [(0, 0, 1.025), (0, .07, 1.085), (0, .15, 1.06), (0, .20, .98)], [.02, .035, .03, .012], 'Team', ['Head'] * 4, 5, rider))
-    # a cloak from the shoulders falling behind over the horse's back (both sides drawn)
-    rows = [[(-.13, .04, .785), (0, .06, .795), (.13, .04, .785)], [(-.17, .16, .55), (0, .19, .56), (.17, .16, .55)], [(-.19, .25, .36), (0, .29, .37), (.19, .25, .36)]]
-    v = [p for r in rows for p in r]; f = []
-    for i in range(2):
-        for j in range(2):
-            a = 3 * i + j; b = a + 1; c = a + 4; d = a + 3
-            f += [(a, b, c), (a, c, d), (a, c, b), (a, d, c)]
-    rm.append(u.mesh_obj('Cloak', v, f, 'Team', None, arm=rider, weights=[{'Chest': 1}] * 3 + [{'Spine': 1}] * 3 + [{'Hips': 1}] * 3))
-    rider.location = (0, -.07, .33)
-    u.bake_rest_pose(rider, [o for o in bpy.context.scene.objects if o.type == 'MESH' and o.parent == rider],
-                     {'r': {'Leg_L': (-60, -28, 0), 'Leg_R': (-60, 28, 0), 'Shin_L': (70, 0, 0), 'Shin_R': (70, 0, 0)}})
-    parts.append(rider)
-    w = rider.data.bones['Hand_R'].head_local
-    u.tube('MaceHaft', [(w.x, w.y + .06, w.z - .06), (w.x, w.y - .10, w.z + .26)], [.009, .008], 'Wood', ['Prop_R'] * 2, 4, rider, attachment=True)
-    u.tube('MaceHead', [(w.x, w.y - .09, w.z + .23), (w.x, w.y - .115, w.z + .29), (w.x, w.y - .12, w.z + .31)], [.026, .03, .01], 'Metal', ['Prop_R'] * 3, 6, rider, attachment=True)
-    # the standard bearer on foot at the horse's left shoulder; the banner is the squad's Emblem
-    bearer, _ = u.crew('Bearer', (.50, -.05, 0), head='headcloth'); parts.append(bearer)
-    w = bearer.data.bones['Hand_R'].head_local
-    top = 1.62
-    u.tube('StandardPole', [(w.x, w.y, .06), (w.x, w.y, top)], [.011, .009], 'Wood', ['Prop_R'] * 2, 4, bearer, attachment=True)
-    u.box('StandardBar', (w.x + .12, w.y, top - .03), (.30, .02, .02), 'Metal', 'Prop_R', bearer, attachment=True)
-    x0, x1, z0, z1, y = w.x - .02, w.x + .26, top - .27, top - .04, w.y - .012
-    banner = u.mesh_obj('StandardEmblem', [(x0, y, z0), (x1, y, z0), (x1, y, z1), (x0, y, z1)], [(0, 1, 2), (0, 2, 3), (0, 2, 1), (0, 3, 2)], 'Emblem', 'Prop_R', True, arm=bearer)
+    F.start({'Coat': 'CFC6B4', 'Mane': '4A4038', 'Leather': '5C3826', 'Wood': '3F2E22', 'Cloth': 'E7DDC7', 'Metal': ('C9A055', .4, .65),
+             'Hair': '2B201A', 'Skin': 'C98E66', 'Emblem': 'E6D6AF'}, rig=False)
+    parts = []
+    horse, _ = tm.fine_horse('Mount', (0, 0, 0), blaze=False, socks=False)
+    parts.append(horse)
+    F.meshes.extend([tm.drape('SaddleCloth', horse, 'Team', -.30, .16, reach=108, fringe=.028),
+                     tm.drape('Girth', horse, 'Leather', -.22, -.175, reach=180, grow=.031, rows=2, steps=12)])
+    F.use(horse)
+    S = 'Mount_Spine'
+    tube('BreastBand', [((.124, -.30, .705), .012, S), ((.094, -.452, .665), .013, S), ((0, -.505, .655), .013, S), ((-.094, -.452, .665), .013, S), ((-.124, -.30, .705), .012, S)], 'Leather', 4)
+    for k, x in enumerate((-.07, 0, .07)):
+        box(f'BreastDisc{k}', (x, -.500 + abs(x) * .6, .650), (.036, .014, .036), 'Metal', S)
+    # ---- the commander astride ----
+    cmd = F.figure('Commander')
+    parts.append(cmd)
+    F.legs(laces=True)
+    F.arms(sleeve='Cloth', shoulder='Metal')
+    F.head()
+    F.beard()
+    F.hair_nape()
+    F.kilt('Tunic', 'Cloth', seated=True)
+    rings = []
+    for i, (z, rx, ry) in enumerate(F.TORSO):
+        wt = 'Spine' if z < .66 else 'Chest'
+        if 0 < i < 6:  # scales: each band overlaps the one below
+            rings.append(((0, 0, z - .003), (rx + .010, ry + .009), wt))
+        rings.append(((0, 0, z), (rx + .002, ry + .002), wt))
+    tube('ScaleCorselet', rings, 'Metal', 10, caps=(False, True))
+    tube('Belt', vertical([.520, .548], 0, [(.105, .078), (.103, .076)], 'Spine'), 'Leather', 10, caps=(False, False))
+    tube('CloakCollar', vertical([.770, .800], [.004, .006], [(.112, .080), (.078, .060)], 'Chest'), 'Team', 10, caps=(False, False))
+    box('CloakClasp', (.050, -.068, .785), (.030, .012, .030), 'Metal', 'Chest')
+    tube('Cloak', [((0, .070, .785), (.120, .014), 'Chest'), ((0, .105, .665), (.150, .016), 'Chest'), ((0, .150, .545), (.172, .016), 'Spine'),
+                   ((0, .215, .420), (.188, .012), 'Spine')], 'Team', 6)
+    F.cap('Helmet', height=1.075)
+    tube('HelmetRim', vertical([.944, .958], -.003, [(.075, .070), (.075, .070)], 'Head'), 'Leather', 10, caps=(False, False))
+    tube('Plume', [((0, -.010, 1.065), .016, 'Head'), ((0, .020, 1.120), .036, 'Head'), ((0, .085, 1.125), .040, 'Head'), ((0, .150, 1.065), .030, 'Head'),
+                   ((0, .175, .985), .010, 'Head')], 'Team', 6, attachment=True)
+    F.pose(ASTRIDE)
+    F.reach('R', (-.240, -.130, .665), pole=(-.8, .3, -1))
+    F.reach('L', (.105, -.185, .640), pole=(.8, .2, -1))
+    F.bake_rest()
+    F.place(SEAT)
+    g = F.fist('R', None, (0, 0, 1))
+    gl = F.fist('L', None, (0, 1, 0), half=.020)
+    P = 'Prop_R'
+    tube('MaceHaft', [((g.x, g.y, g.z - .110), .0105, P), ((g.x, g.y, g.z + .300), .0095, P)], 'Wood', 5, attachment=True)
+    tube('MaceHead', [((g.x, g.y, g.z + .285), .014, P), ((g.x, g.y, g.z + .310), .034, P), ((g.x, g.y, g.z + .350), .036, P), ((g.x, g.y, g.z + .380), .012, P)], 'Metal', 7, attachment=True)
+    F.use(horse)
+    hand = SEAT + gl
+    for sx in (-1, 1):
+        bit = Vector((sx * .043, -.722, .898))
+        mid = bit.lerp(hand, .5) + Vector((sx * .03, 0, -.05))
+        tube(f'Rein{sx}', [(tuple(bit), .0065, 'Mount_Head'), (tuple(mid), .0065, 'Mount_Neck'), (tuple(hand), .0065, S)], 'Leather', 3)
+    # ---- the standard bearer on foot at the horse's left shoulder ----
+    bearer = F.crew('Bearer', headgear='headcloth', accent='shawl', laces=True)
+    parts.append(bearer)
+    F.place((.50, -.05, 0))
+    g = F.fist('R', Vector((-.223, -.137, .604)), (0, 0, 1))
+    F.fist('L', Vector((.225, -.130, .608)), (0, 1, 0), half=.020)
+    P, top = 'Prop_R', 1.62
+    tube('StandardPole', [((g.x, g.y, .040), .012, P), ((g.x, g.y, top), .010, P)], 'Wood', 5, attachment=True)
+    tube('StandardFinial', [((g.x, g.y, top - .005), .016, P), ((g.x, g.y, top + .030), (.028, .006), P), ((g.x, g.y, top + .085), .002, P)], 'Metal', 4, attachment=True)
+    box('StandardBar', (g.x + .12, g.y, top - .03), (.30, .02, .02), 'Metal', P, True)
+    x0, x1, z0, z1, y = g.x - .02, g.x + .26, top - .27, top - .04, g.y - .012
+    banner = raw('StandardEmblem', [(x0, y, z0), (x1, y, z0), (x1, y, z1), (x0, y, z1)], [(0, 1, 2), (0, 2, 3), (0, 2, 1), (0, 3, 2)], 'Emblem', P, True)
+    F.loose.add(banner.name)
     uv = banner.data.uv_layers.active
     for poly in banner.data.polygons:
         for li in poly.loop_indices:
             co = banner.data.vertices[banner.data.loops[li].vertex_index].co
             uv.data[li].uv = ((co.x - x0) / (x1 - x0), (co.z - z0) / (z1 - z0))
-    finish('bronze-general', parts, {'Leather': '7E4F31', 'Wood': '3F2E22', 'Cloth': 'E7DDC7', 'Metal': ('C49A52', .4, .65), 'Team': 'BFBFBF', 'Skin': 'C98E66', 'Emblem': 'E6D6AF'},
-           {'role': 'Bronze general: a mounted commander a size up from cavalry (Team cloak, saddle cloth and plume, bronze scale corselet and helmet, mace) with a standard bearer on foot; the banner prints the squad emblem',
-            'notes': 'A role abstraction: Bronze Age commanders mostly fought from chariots; the plan (D6, 4.3) asks for a mounted general in every age. The pole, mace and banner are attachments (not counted in the model height).'})
+    for k, x in enumerate((x0 + .01, x1 - .01)):
+        tube(f'StandardTassel{k}', [((x, y + .012, top - .040), .006, P), ((x, y + .012, top - .200), .004, P), ((x, y + .012, top - .230), .014, P)], 'Team', 4, attachment=True)
+    tris = F.finish_unit('bronze-general', parts, {
+        'role': 'Bronze general: a mounted commander on a pale horse (Team saddle cloth, bronze scale corselet, helmet with a Team crest, Team cloak and collar, a mace held upright) with a standard bearer on foot; the banner prints the squad emblem',
+        'notes': 'Quality pass of 2026-10-14 (ti_figure, ti_mounts.fine_horse). A role abstraction: Bronze Age commanders mostly fought from chariots; the plan (D6, 4.3) asks for a mounted general in every age. The pole, mace, crest and banner are attachments (not counted in the model height). The battle draws the saddle cloth as plain wool (Team on a mount).'},
+        centre=(.2, -.1, .7), scale=2.4)
+    assert tris <= 5000, tris
+
+
+# ---- bronze-support: ox baggage cart ------------------------------------------------------------------
+
+def build_support():
+    F.start({'Coat': '7E4E2E', 'Mane': '2A1E16', 'Horn': 'E2D8C0', 'Leather': '5E3A26', 'Wood': '8A6646', 'DarkWood': '5C432C', 'Cloth': 'E6DCC2',
+             'Sack': 'CDBB94', 'Clay': 'B4683F', 'Rope': 'B8A47A', 'Metal': ('C09A54', .45, .6), 'Hair': '2B201A', 'Skin': 'C98E66'}, rig=False)
+    parts = []
+    ox, _ = tm.fine_ox('Ox', (0, -.66, 0))
+    parts.append(ox)
+    cart = u.make_armature('CartRig', [('Hull', (0, .40, .40), (0, .40, .6), None), ('Wheel_L', (.34, .42, .25), (.40, .42, .25), 'Hull'),
+                                       ('Wheel_R', (-.34, .42, .25), (-.40, .42, .25), 'Hull')])
+    parts.append(cart)
+    F.use(cart)
+    bed, H = .44, 'Hull'
+    box('CartBed', (0, .42, bed - .02), (.54, .66, .04), 'Wood', H)
+    for sx in (-1, 1):
+        box(f'SideBoard{sx}', (sx * .265, .42, bed + .045), (.025, .66, .09), 'Wood', H)
+        tube(f'SideRail{sx}', [((sx * .265, .09, bed + .19), .014, H), ((sx * .265, .75, bed + .19), .014, H)], 'DarkWood', 5)
+        for k, y in enumerate((.10, .31, .53, .74)):
+            box(f'RailPost{sx}{k}', (sx * .265, y, bed + .10), (.022, .022, .19), 'DarkWood', H)
+    box('TailBoard', (0, .745, bed + .045), (.54, .025, .09), 'Wood', H)
+    box('FrontBoard', (0, .095, bed + .03), (.54, .025, .06), 'DarkWood', H)
+    tube('Axle', [((-.40, .42, .25), .026, H), ((.40, .42, .25), .026, H)], 'DarkWood', 6)
+    for side, sx in [('L', 1), ('R', -1)]:
+        F.adopt(tm.fine_disc_wheel(f'Wheel{side}', cart, f'Wheel_{side}', sx * .34, .42, .25, .25, mat='Wood', dark='DarkWood'))
+        # shafts from the bed's front corners to the yoke on the ox's withers
+        tube(f'Shaft{side}', [((sx * .21, .30, bed - .03), .021, H), ((sx * .21, .02, bed + .02), .021, H), ((sx * .21, -.55, .66), .019, H), ((sx * .215, -.99, .74), .016, H)], 'DarkWood', 5)
+    YOKE, YZ = -.99, .775
+    tube('WithersYoke', [((-.27, YOKE, YZ - .02), .018, H), ((-.12, YOKE, YZ + .01), .024, H), ((.12, YOKE, YZ + .01), .024, H), ((.27, YOKE, YZ - .02), .018, H)], 'DarkWood', 6)
+    for sx in (-1, 1):
+        box(f'YokePad{sx}', (sx * .075, YOKE, YZ - .035), (.07, .08, .04), 'Leather', H)
+        tube(f'YokeBow{sx}', [((sx * .15, YOKE, YZ), .009, H), ((sx * .175, YOKE - .01, YZ - .12), .009, H), ((sx * .11, YOKE - .02, YZ - .22), .009, H)], 'DarkWood', 4)
+    # ---- the load: two jars and a sack in front, the rest under a Team cover lashed with ropes ----
+    for i, (x, y, h) in enumerate([(.13, .30, .03), (-.12, .33, 0)]):
+        tube(f'Jar{i}', [((x, y, bed), .045, H), ((x, y, bed + .07 + h), .088, H), ((x, y, bed + .17 + h), .080, H), ((x, y, bed + .24 + h), .036, H),
+                         ((x, y, bed + .265 + h), .046, H), ((x, y, bed + .285 + h), .040, H)], 'Clay', 8)
+    tube('Sack0', [((.0, .27, bed), (.06, .10), H), ((.0, .27, bed + .10), (.10, .085), H), ((.0, .27, bed + .17), (.06, .05), H), ((.0, .27, bed + .20), .015, H)], 'Sack', 7)
+    # (rings at one height: the tube runs straight along Y, so every ring keeps its orientation)
+    cover = tube('LoadCover', [((0, .43, bed + .16), (.10, .20), H), ((0, .47, bed + .16), (.20, .27), H), ((0, .62, bed + .16), (.225, .285), H),
+                               ((0, .72, bed + .16), (.195, .27), H), ((0, .765, bed + .16), (.09, .20), H)], 'Team', 8)
+    for j in (1, 7):  # bundles under the cloth push it up in places
+        cover.data.vertices[2 * 8 + j].co.z += .035
+    for k, (y, r) in enumerate(((.52, (.217, .282)), (.68, (.213, .282)))):
+        tube(f'CoverRope{k}', [((0, y - .008, bed + .16), r, H), ((0, y + .008, bed + .16), r, H)], 'Rope', 8, caps=(False, False))
+    # ---- the driver sits on the front of the bed, legs over the front board, a goad upright in the right fist ----
+    drv = F.crew('Driver', headgear='headcloth', accent='shawl', seated=True)
+    parts.append(drv)
+    F.pose({'Leg_L': (-88, -6, 0), 'Leg_R': (-88, 6, 0), 'Shin_L': (85, 0, 0), 'Shin_R': (85, 0, 0), 'Chest': (6, 0, 0)})
+    F.reach('L', (.120, -.200, .600), pole=(.8, .2, -1))
+    F.bake_rest()
+    at = Vector((0, .20, bed - .43))
+    F.place(at)
+    g = F.fist('R', None, (0, 0, 1))
+    gl = F.fist('L', None, (0, 1, 0), half=.020)
+    P = 'Prop_R'
+    tube('Goad', [((g.x, g.y, g.z - .14), .009, P), ((g.x, g.y, g.z + .55), .007, P)], 'Wood', 4, attachment=True)
+    tube('GoadTip', [((g.x, g.y, g.z + .545), .008, P), ((g.x, g.y, g.z + .60), .001, P)], 'Metal', 4, attachment=True)
+    F.use(cart)
+    hand = at + gl
+    tube('Lead', [(tuple(hand), .007, H), ((.03, -.40, .60), .007, H), ((.02, -1.36, .58), .007, H)], 'Rope', 3)
+    tris = F.finish_unit('bronze-support', parts, {
+        'role': 'Baggage train (bronze support): one long-horned draught ox (pale face, muzzle and back patch) in shafts with a withers yoke, a two-wheeled cart with plank wheels and rails, two jars and a sack, the rest of the load under a Team cover lashed with ropes, a seated driver with a goad and a lead rope',
+        'notes': 'Quality pass of 2026-10-14 (ti_figure crew, ti_mounts.fine_ox and fine_disc_wheel). Jars are their own Clay material now.'},
+        centre=(0, -.2, .5), scale=2.6)
+    assert tris <= 5000, tris
 
 
 BUILDERS = {'bronze-cavalry': build_cavalry, 'bronze-support': build_support, 'bronze-general': build_general}

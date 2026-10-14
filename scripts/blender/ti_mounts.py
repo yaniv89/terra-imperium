@@ -204,7 +204,7 @@ def fine_ox(prefix='Ox', at=(0, 0, 0), coat='Coat', dark='Mane', horn='Horn', pa
     top = Vector((0, -.70, .71)).normalized()
     add(u.tube(f'{prefix}Blaze', [tuple(Vector(head[0]) + top * .074), tuple(Vector(head[1]) + top * .080), tuple(Vector(head[2]) + top * .060)],
                [(.040, .008), (.040, .008), (.030, .008)], pale, [H] * 3, 4, arm))
-    add(u.tube(f'{prefix}BackPatch', [(0, -.20, .715), (0, -.05, .700), (0, .12, .690)], [(.012, .10), (.014, .13), (.012, .09)], pale, [S] * 3, 6, arm))
+    add(drape(f'{prefix}BackPatch', arm, pale, -.22, .14, reach=38, grow=.004, barrel=OX_BARREL, steps=4, rows=3))
     for sx in (-1, 1):
         add(u.box(f'{prefix}Eye{sx}', (sx * .074, -.675, .570), (.014, .026, .020), dark, H, arm))
         add(u.tube(f'{prefix}Ear{sx}', [(sx * .070, -.615, .600), (sx * .125, -.605, .590), (sx * .160, -.600, .575)], [(.020, .028), (.016, .030), (.004, .006)], coat, [H] * 3, 4, arm))

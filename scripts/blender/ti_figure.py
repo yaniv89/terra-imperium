@@ -164,11 +164,18 @@ def vertical(zs, cy, radii, weights, cx=0):
     return [((cx, cys[i], zs[i]), radii[i], ws[i]) for i in range(len(zs))]
 
 
-def legs(laces=True, straps=True):
+def legs(laces=True, straps=True, simple=False):
     """Bare legs and feet in leather sandals (laced up the calf or not; straps=False: a crew
-    member whose feet are hardly seen keeps the sole only)."""
+    member whose feet are hardly seen keeps the sole only; simple=True: legs hidden in a car, one
+    plain tube, a foot and a sole)."""
     for side, s in (('L', 1), ('R', -1)):
         L, S, F = 'Leg_' + side, 'Shin_' + side, 'Foot_' + side
+        if simple:
+            tube('BodyLeg_' + side, [((s * .061, 0, .470), (.052, .049), L), ((s * .071, -.010, .262), (.035, .036), {L: .5, S: .5}),
+                                     ((s * .074, .002, .060), (.024, .025), F)], 'Skin', 6, caps=(False, True))
+            box('BodyFoot_' + side, (s * .074, -.040, .028), (.050, .120, .036), 'Skin', F)
+            box('SandalSole_' + side, (s * .074, -.042, .007), (.068, .140, .014), 'Leather', F)
+            continue
         tube('BodyLeg_' + side, [
             ((s * .061, 0, .470), (.053, .050), L), ((s * .070, -.003, .320), (.040, .039), L), ((s * .071, -.012, .268), (.034, .036), {L: .6, S: .4}),
             ((s * .071, -.014, .250), (.033, .036), {L: .4, S: .6}), ((s * .073, .004, .200), (.039, .040), S),
@@ -412,19 +419,20 @@ def shield_facing():
     return {prefix + 'ShieldFace': (0, -1, 0), prefix + 'ShieldBack': (0, 1, 0)}
 
 
-def crew(name, headgear='headcloth', accent='shawl', band='Team', bearded=True, straps=True, laces=False, bare=False, seated=False, tunic='Cloth'):
+def crew(name, headgear='headcloth', accent='shawl', band='Team', bearded=True, straps=True, laces=False, bare=False, seated=False, tunic='Cloth', simple=False):
     """A dressed person of the set on a rig of their own (<name>Rig): kilt with its pale hem, a linen
     tunic (bare=True: a bare chest), a leather belt, the side's colour as a chest shawl or a waist
     sash, a headcloth under a band (`band`) or the pointed bronze cap. Pose it, bake_rest(), place()
-    it, then give it fists and what it holds."""
+    it, then give it fists and what it holds. simple=True: a crew member standing in a car (plain
+    legs, no hem)."""
     rig = figure(name)
-    legs(laces=laces, straps=straps)
+    legs(laces=laces, straps=straps, simple=simple)
     arms(shoulder='Skin')
     head()
     if bearded:
         beard()
     kilt('Kilt', 'Team', seated=seated)
-    if not seated:
+    if not seated and not simple:
         tufted_hem()
     if bare:
         torso('BodyTorso', 'Skin', chest=True, grow=-.004)

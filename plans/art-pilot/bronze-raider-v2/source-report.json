@@ -1,8 +1,8 @@
 {
   "id": "bronze-raider",
-  "triangles": 3152,
+  "triangles": 3160,
   "by_rig": {
-    "MountRig": 1396,
+    "MountRig": 1404,
     "RaiderRig": 1756
   },
   "rigs": {
