@@ -47,10 +47,20 @@ describe('attack buttons follow the engine validation', () => {
   });
   it('disables the source action in the province panel as well', () => {
     const html = renderToStaticMarkup(React.createElement(RegionInfoModal, { regionId: target, onClose: vi.fn() }));
-    const action = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(m => m[0]).find(b => b.includes(`Invade from ${REGIONS_DATA[from].name}`));
+    const action = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(m => m[0]).find(b => b.includes(`Invade ${game.state.regions[target].name}`));
     expect(action).toBeDefined();
     expect(action).toContain('disabled=""');
     expect(html).toContain('End the turn before attacking again.');
+    // the label names the target and where the army stands, never the city it is based at
+    expect(action).toContain('(army ');
+    expect(action).not.toContain(`from ${REGIONS_DATA[from].name}`);
+  });
+  it('offers no claim to fabricate while already at war with the owner', () => {
+    expect(renderToStaticMarkup(React.createElement(RegionInfoModal, { regionId: target, onClose: vi.fn() }))).not.toContain('Fabricate a claim');
+    game.state.wars[0].active = false;
+    game.state.wars = [];
+    // at peace the card may offer it (when in range); at war it must not
+    expect(renderToStaticMarkup(React.createElement(RegionInfoModal, { regionId: target, onClose: vi.fn() }))).toContain('claim-card');
   });
   it('enables auto-resolve when movement is restored', () => {
     game.state.units.army.movesLeft = 1;

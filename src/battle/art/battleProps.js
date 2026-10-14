@@ -145,12 +145,13 @@ export class BattleProps {
     if (!this.kit || !this.list.length) return;
     const lod = kitLodForZoom(this.r.camera?.zoom ?? 1);
     const builds = (view?.eco?.buildings || []).filter((b) => b.alive);
-    const key = builds.length * 4 + lod;
+    const key = builds.length * 4 + lod + (this.r.fogVersion || 0) * 1e6; // props on ground never seen are left out
     if (key === this.covered) return;
     this.covered = key;
     const colors = (this.r.setup.sides || []).map((s) => new Color(s.color));
     this.instances.begin();
     this.list.forEach((p) => {
+      if (this.r.seenAt && !this.r.seenAt(p.x, p.z)) return;
       if (builds.some((b) => Math.abs(b.x / Q - p.x) <= b.size / 2 + 0.6 && Math.abs(b.y / Q - p.z) <= b.size / 2 + 0.6)) return;
       const obj = kitObject(this.kit, p.name);
       M.makeRotationY(p.yaw).scale(V.setScalar(PROP_SCALE)).setPosition(p.x, this.r.heightAt(p.x, p.z), p.z);
