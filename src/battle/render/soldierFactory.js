@@ -481,6 +481,7 @@ export const CLIP_TABLE_SIZE = 24; // clipBake.js MAX_CLIPS
 export const CLIP_FADE_S = { value: 0.15 }; // the cross-fade (0 = snap between clips)
 const CLIP_GLSL = /* glsl */`
 attribute float aBone;
+attribute vec3 aClipPos; // the clip reference position (the rest bake; bind for parts hidden at rest)
 attribute vec4 aAnim;
 attribute vec4 aAnimPrev;
 uniform float uTime;
@@ -525,10 +526,11 @@ const patchRig = (shader, withColor, clips = null) => {
     shader.vertexShader = CLIP_GLSL + shader.vertexShader
       .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
       clipRig();
-      objectNormal = clipDir(objectNormal);`)
+      objectNormal = clipDir(objectNormal);
+      if (dot(objectNormal, objectNormal) < 1e-8) objectNormal = vec3(0.0, 1.0, 0.0); // a part hidden at rest (lit by flat shading)`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
       clipRig();
-      transformed = clipPoint(transformed);`);
+      transformed = clipPoint(aClipPos);`);
   } else {
     shader.vertexShader = RIG_GLSL + shader.vertexShader
       .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
@@ -615,7 +617,9 @@ export const createSoldierMaterial = ({ standard = false, emblems = getEmblemAtl
     : new MeshLambertMaterial({ vertexColors: true });
   mat.onBeforeCompile = (shader) => patchRig(shader, { emblems, standard, teamTint }, clips);
   mat.customProgramCacheKey = () => `${standard ? 'soldier-rig-std' : 'soldier-rig'}-${teamTint}${clips ? '-clips' : ''}`;
-  if (clips) mat.defines = { ...(mat.defines || {}), USE_CLIPS: '' };
+  // flat shading from the screen derivatives: the faces' own normals in every pose, as the baked
+  // soup's face normals are at rest
+  if (clips) { mat.defines = { ...(mat.defines || {}), USE_CLIPS: '' }; mat.flatShading = true; }
   return mat;
 };
 // Shadow pass: the same bones, so shadows walk with their soldiers.

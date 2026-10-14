@@ -191,7 +191,7 @@ describe('battle economy', () => {
         seen[q.side].add(workJobOf(codes[i]));
         if (workNodeOf(codes[i])) kinds.add(workNodeOf(codes[i]));
         if (workJobOf(codes[i]) === WORK_JOB.gathering) expect(q.job.phase).toBe(1);
-        if (q.lastDepositTick === w.tick) deposits += 1;
+        if (q.lastDepositTick === w.tick - 1) deposits += 1; // step() moves the tick on after the economy
       });
     }
     [0, 1].forEach((side) => [WORK_JOB.toNode, WORK_JOB.gathering, WORK_JOB.hauling].forEach((j) => expect(seen[side].has(j), `side ${side} job ${j}`).toBe(true)));

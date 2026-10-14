@@ -59,8 +59,11 @@ const weld = (geo) => {
   const count = idx ? idx.count : n;
   const indices = new Uint32Array(count);
   for (let k = 0; k < count; k++) indices[k] = remap[idx ? idx.getX(k) : k];
+  // A clip model simplifies on its clip reference positions (clipBake.js): a worker's spare tools sit
+  // collapsed at rest (scale 0) and would otherwise look free to remove.
+  const shape = geo.attributes.aClipPos || pos;
   const positions = new Float32Array(firsts.length * 3);
-  firsts.forEach((i, v) => { positions[v * 3] = pos.getX(i); positions[v * 3 + 1] = pos.getY(i); positions[v * 3 + 2] = pos.getZ(i); });
+  firsts.forEach((i, v) => { positions[v * 3] = shape.getX(i); positions[v * 3 + 1] = shape.getY(i); positions[v * 3 + 2] = shape.getZ(i); });
   return { names, indices, positions, firsts };
 };
 
