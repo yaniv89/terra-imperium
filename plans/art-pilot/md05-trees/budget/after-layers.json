@@ -1,0 +1,180 @@
+{
+  "url": "http://localhost:5203/terra-imperium/?battleSandbox&age=bronze&terrain=forest&perf",
+  "views": [
+    {
+      "view": "opening camera",
+      "zoom": 1,
+      "total": 926452,
+      "layers": {
+        "trees": 139944,
+        "rocks and grass": 16910,
+        "soldiers": 456112,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 262796
+      },
+      "tier": 0,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3922,
+        "drawn": 2750,
+        "species": 3,
+        "meshes": 48,
+        "nearMeshes": 273,
+        "lod": 1,
+        "sizeLod": 1,
+        "fullDetail": 0,
+        "cost": 135856
+      }
+    },
+    {
+      "view": "army, zoom 1",
+      "zoom": 1,
+      "total": 506010,
+      "layers": {
+        "trees": 140616,
+        "rocks and grass": 16462,
+        "soldiers": 84734,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 213508
+      },
+      "tier": 1,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3922,
+        "drawn": 2750,
+        "species": 3,
+        "meshes": 48,
+        "nearMeshes": 273,
+        "lod": 1,
+        "sizeLod": 1,
+        "fullDetail": 0,
+        "cost": 140616
+      }
+    },
+    {
+      "view": "densest wood, zoom 1",
+      "zoom": 1,
+      "total": 412120,
+      "layers": {
+        "trees": 150248,
+        "rocks and grass": 18538,
+        "soldiers": 0,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 192644
+      },
+      "tier": 1,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3922,
+        "drawn": 2750,
+        "species": 3,
+        "meshes": 48,
+        "nearMeshes": 273,
+        "lod": 1,
+        "sizeLod": 1,
+        "fullDetail": 0,
+        "cost": 158984
+      }
+    },
+    {
+      "view": "densest wood, zoom 1.5",
+      "zoom": 1.5,
+      "total": 378859,
+      "layers": {
+        "trees": 120344,
+        "rocks and grass": 15181,
+        "soldiers": 0,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 192644
+      },
+      "tier": 1,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3922,
+        "drawn": 2750,
+        "species": 3,
+        "meshes": 48,
+        "nearMeshes": 273,
+        "lod": 1,
+        "sizeLod": 1,
+        "fullDetail": 0,
+        "cost": 110208
+      }
+    },
+    {
+      "view": "densest wood, zoom 2",
+      "zoom": 2,
+      "total": 374295,
+      "layers": {
+        "trees": 117768,
+        "rocks and grass": 15181,
+        "soldiers": 0,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 190656
+      },
+      "tier": 1,
+      "vegetationLod": 1,
+      "trees": {
+        "trees": 3922,
+        "drawn": 2750,
+        "species": 3,
+        "meshes": 48,
+        "nearMeshes": 273,
+        "lod": 1,
+        "sizeLod": 1,
+        "fullDetail": 0,
+        "cost": 110208
+      }
+    },
+    {
+      "view": "densest wood, zoom 3",
+      "zoom": 3,
+      "total": 422841,
+      "layers": {
+        "trees": 140966,
+        "rocks and grass": 40607,
+        "soldiers": 0,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 190578
+      },
+      "tier": 0,
+      "vegetationLod": 0,
+      "trees": {
+        "trees": 3922,
+        "drawn": 3922,
+        "species": 3,
+        "meshes": 48,
+        "nearMeshes": 273,
+        "lod": 0,
+        "sizeLod": 0,
+        "fullDetail": 4,
+        "cost": 135926
+      }
+    },
+    {
+      "view": "army, zoom 3",
+      "zoom": 3,
+      "total": 506948,
+      "layers": {
+        "trees": 138170,
+        "rocks and grass": 28024,
+        "soldiers": 84734,
+        "terrain": 50690,
+        "everything else (buildings, nodes, camp, effects)": 205330
+      },
+      "tier": 1,
+      "vegetationLod": 0,
+      "trees": {
+        "trees": 3922,
+        "drawn": 3922,
+        "species": 3,
+        "meshes": 48,
+        "nearMeshes": 273,
+        "lod": 0,
+        "sizeLod": 0,
+        "fullDetail": 7,
+        "cost": 135090
+      }
+    }
+  ]
+}
