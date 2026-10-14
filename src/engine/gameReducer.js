@@ -133,6 +133,7 @@ import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
+import { rushQuote, applyRush, rushItemName, infrastructureCosts, defensesCosts, growthCosts } from './spending';
 
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
@@ -714,7 +715,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.BUILD_INFRASTRUCTURE: {
       const { regionId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.buildInfrastructure;
+      const costs = infrastructureCosts(state, region); // by age, speed and level (spending.js, I021)
       if (!region || region.owner !== state.playerNationId || region.currentInfrastructure >= 10) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
@@ -728,7 +729,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.BUILD_DEFENSES: {
       const { regionId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.buildDefenses;
+      const costs = defensesCosts(state, region); // by age, speed and level (spending.js, I021)
       if (!region || region.owner !== state.playerNationId || region.defenseLevel >= 10) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
@@ -989,13 +990,13 @@ const reduceAction = (state, action) => {
     case ActionTypes.POPULATION_POLICY: {
       const { regionId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.populationPolicy;
+      const costs = region?.size != null ? growthCosts(state, region) : ACTION_COSTS.populationPolicy; // by age, speed and size (spending.js)
       if (!region || region.owner !== state.playerNationId) return state;
       if (region.occupiedBy) return reject(state, `${REGIONS_DATA[regionId]?.name} is occupied — liberate it first.`);
       if (!canAfford(state.resources, costs)) return state;
       // A city banks the new people as food toward its next size (population.js, one model).
       const nextRegion = region.size != null
-        ? investInGrowth(state, regionId, POPULATION_POLICY_GROWTH_RATE) // at this game's growth threshold (cityEconomy.js)
+        ? investInGrowth(state, regionId) // a quarter of the next citizen's food (cityEconomy.js)
         : { ...region, currentPopulation: Math.round((region.currentPopulation || 1) * (1 + POPULATION_POLICY_GROWTH_RATE)) };
       // Nothing to buy: the food bank is already full (I032). No charge for no effect.
       if (nextRegion === region) return reject(state, `${REGIONS_DATA[regionId]?.name}'s food bank is full: it grows as soon as it has housing and a food surplus.`);
@@ -3166,6 +3167,21 @@ const reduceAction = (state, action) => {
       if (!out) return reject(state, 'Not your settlers.');
       const message = out.city ? `The settlers go home: ${out.city.name} grows by one citizen.` : 'The settlers disband.';
       return syncWorldRegistry({ ...state, units: out.units, regions: out.regions, logs: [...state.logs, { year: state.year, message, type: LogTypes.ACTION }] });
+    }
+
+    case ActionTypes.RUSH_PRODUCTION: {
+      // Gold for the production an order still lacks (spending.js, I019): the button's quote is
+      // the charge, revalidated here; the order completes on the next turn like any other.
+      const { cityId: id, index = 0 } = action.payload || {};
+      const quote = rushQuote(state, id, index);
+      if (!quote.ok) return reject(state, quote.reason);
+      const city = state.regions[id];
+      return {
+        ...state,
+        resources: { ...state.resources, gold: state.resources.gold - quote.gold },
+        regions: { ...state.regions, [id]: applyRush(city, index, quote, state.turnNumber) },
+        logs: [...state.logs, { year: state.year, message: `${city.name} pays ${quote.gold} gold to finish its ${rushItemName(quote.item, quote.ageId)}: ready next turn.`, type: LogTypes.ACTION }]
+      };
     }
 
     default:

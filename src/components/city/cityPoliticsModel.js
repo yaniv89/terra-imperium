@@ -12,7 +12,7 @@ import { amenitiesOf, AMENITY_UNREST_PER_MISSING, hasSeaCoast } from '../../engi
 import { cityLive, buildQuote, growthView, investInGrowth } from '../../engine/cityEconomy';
 import { buildingEffect } from '../../engine/cityEffects';
 import { investmentOf } from '../../engine/development';
-import { POPULATION_POLICY_GROWTH_RATE } from '../../data/actionCosts';
+import { infrastructureCosts, defensesCosts, growthCosts } from '../../engine/spending';
 import { groupOfCity, governorOf, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_UNREST_MULT } from '../../engine/governors';
 import { getModifier, getRegionModifier, getNationBonusTotal } from '../../engine/modifiers/sheet';
 import { WAR_WEARINESS_FROM, WAR_WEARINESS_SCALE } from '../../engine/resolveTurn';
@@ -144,7 +144,7 @@ export const crownActions = (state, cityId) => {
   // Invest in growth (I032): what the gold buys, in the city's own terms, before it is spent. The
   // preview is the reducer's own step (cities.js addPeople), so a full bank is refused here too.
   const grow = populationPolicyPreview(state, cityId);
-  out.push({ id: 'populationPolicy', label: 'Invest in growth', description: grow.text, costs: ACTION_COSTS.populationPolicy, enabled: grow.effective && canAfford(state.resources, ACTION_COSTS.populationPolicy), reason: grow.effective ? null : 'the food bank is full', actionType: ActionTypes.POPULATION_POLICY, payload: { regionId: cityId } });
+  out.push({ id: 'populationPolicy', label: 'Invest in growth', description: grow.text, costs: grow.costs, enabled: grow.effective && canAfford(state.resources, grow.costs), reason: grow.effective ? null : 'the food bank is full', actionType: ActionTypes.POPULATION_POLICY, payload: { regionId: cityId } });
   if (capital && capital !== cityId) out.push({ id: 'moveCapital', label: 'Move the capital here', description: city.conquest ? 'Relocates the capital (-1 stability: conquered land)' : 'Relocates the capital', costs: ACTION_COSTS.moveCapital, enabled: !city.occupiedBy && canAfford(state.resources, ACTION_COSTS.moveCapital), reason: city.occupiedBy ? 'occupied' : null, actionType: ActionTypes.MOVE_CAPITAL, payload: { regionId: cityId } });
   return out;
 };
@@ -154,15 +154,19 @@ export const crownActions = (state, cityId) => {
  * turn; with housing full the bank fills but the city does not grow until it has room. */
 export const populationPolicyPreview = (state, cityId) => {
   const city = state.regions?.[cityId];
-  if (!city || city.size == null) return { effective: true, before: 0, after: 0, threshold: 0, housingFull: false, text: 'Invest in growth: more people, more gold and manpower here' };
-  const next = investInGrowth(state, cityId, POPULATION_POLICY_GROWTH_RATE);
+  if (!city || city.size == null) return { effective: true, before: 0, after: 0, threshold: 0, housingFull: false, costs: ACTION_COSTS.populationPolicy, text: 'Invest in growth: more people, more gold and manpower here' };
+  const costs = growthCosts(state, city); // by age, speed and size (spending.js)
+  const next = investInGrowth(state, cityId);
   const g = growthView(state, cityId);
   const before = Math.floor(city.food || 0); const after = Math.floor(next.food || 0);
   const housingFull = g?.state === 'full';
-  if (next === city) return { effective: false, before, after: before, threshold: g?.threshold || 0, housingFull, text: `The food bank is full (${before}/${g?.threshold || 0}): there is nothing to buy. ${housingFull ? 'The city needs housing (a Food building) before it can grow.' : 'The city grows on its next food surplus.'}` };
+  if (next === city) return { effective: false, before, after: before, threshold: g?.threshold || 0, housingFull, costs, text: `The food bank is full (${before}/${g?.threshold || 0}): there is nothing to buy. ${housingFull ? 'The city needs housing (a Food building) before it can grow.' : 'The city grows on its next food surplus.'}` };
   const people = Math.round((next.currentPopulation || 0) - (city.currentPopulation || 0));
-  const tail = housingFull ? ' Housing is full: the food is kept, but the city will not grow until it has room (a Food building).' : g?.state === 'growing' ? ` It grows in ${g.turns} turn${g.turns === 1 ? '' : 's'} as it is.` : '';
-  return { effective: true, before, after, threshold: g?.threshold || 0, housingFull, text: `Adds ${after - before || 'a little'} food to the bank toward size ${city.size + 1}: ${before} to ${after} of ${g?.threshold || 0}${people > 0 ? ` (about ${people.toLocaleString()} people)` : ''}. The bank is kept from turn to turn.${tail}` };
+  // The wait it saves: the same growth view on the city with the fuller bank.
+  const gNext = g?.state === 'growing' ? growthView({ ...state, regions: { ...state.regions, [cityId]: next } }, cityId) : null;
+  const sooner = gNext?.turns != null && g.turns != null ? g.turns - gNext.turns : 0;
+  const tail = housingFull ? ' Housing is full: the food is kept, but the city will not grow until it has room (a Food building).' : g?.state === 'growing' ? ` It grows in ${gNext.turns} turn${gNext.turns === 1 ? '' : 's'} instead of ${g.turns}${sooner > 0 ? '' : ' (no sooner)'}.` : '';
+  return { effective: true, before, after, threshold: g?.threshold || 0, housingFull, costs, sooner, text: `Adds ${after - before || 'a little'} food to the bank toward size ${city.size + 1}: ${before} to ${after} of ${g?.threshold || 0}${people > 0 ? ` (about ${people.toLocaleString()} people)` : ''}. The bank is kept from turn to turn.${tail}` };
 };
 
 /** Notes the crown should see: conquered and at risk, devastated. */
@@ -197,8 +201,10 @@ export const cityDevelopmentModel = (state, cityId) => {
   // the city already holds.
   const inv = investmentOf(city);
   const rows = DEV_TYPE_IDS.map((devType) => ({ id: `dev:${devType}`, devType, label: `Develop ${devType[0].toUpperCase()}${devType.slice(1)} (${city.dev?.[devType] || 0})`, description: `${DEV_TYPE_GIVES[devType]}${city.size != null ? ` Lasting${inv[devType] ? `: ${inv[devType]} bought here so far` : ''}.` : ''}`, bought: inv[devType], costs: { [DEV_TYPE_POOL[devType]]: cost }, enabled: (state.resources[DEV_TYPE_POOL[devType]] || 0) >= cost, actionType: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cityId, devType } }));
-  rows.push({ id: 'infrastructure', label: `Infrastructure (level ${city.currentInfrastructure || 0}, supply ${getSupplyCapacity(city.currentInfrastructure)})`, description: 'Raises supply capacity and output', costs: ACTION_COSTS.buildInfrastructure, enabled: (city.currentInfrastructure || 0) < 10 && canAfford(state.resources, ACTION_COSTS.buildInfrastructure), actionType: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cityId } });
-  rows.push({ id: 'defenses', label: `Defenses (level ${city.defenseLevel || 0})`, description: 'Strengthens the city against invasion', costs: ACTION_COSTS.buildDefenses, enabled: (city.defenseLevel || 0) < 10 && canAfford(state.resources, ACTION_COSTS.buildDefenses), actionType: ActionTypes.BUILD_DEFENSES, payload: { regionId: cityId } });
+  // Priced by age, speed and the level already built (spending.js, I021).
+  const infra = infrastructureCosts(state, city); const walls = defensesCosts(state, city);
+  rows.push({ id: 'infrastructure', label: `Infrastructure (level ${city.currentInfrastructure || 0}, supply ${getSupplyCapacity(city.currentInfrastructure)})`, description: 'Raises supply capacity and output', costs: infra, enabled: (city.currentInfrastructure || 0) < 10 && canAfford(state.resources, infra), actionType: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cityId } });
+  rows.push({ id: 'defenses', label: `Defenses (level ${city.defenseLevel || 0})`, description: 'Strengthens the city against invasion', costs: walls, enabled: (city.defenseLevel || 0) < 10 && canAfford(state.resources, walls), actionType: ActionTypes.BUILD_DEFENSES, payload: { regionId: cityId } });
   if (ageId === 'modern') rows.push({ id: 'resilience', label: `Climate resilience (${city.climateResilience || 0}/${CLIMATE_RESILIENCE_MAX})`, description: 'Less exposure to weather and harvest disasters', costs: ACTION_COSTS.buildClimateResilience, enabled: (city.climateResilience || 0) < CLIMATE_RESILIENCE_MAX && canAfford(state.resources, ACTION_COSTS.buildClimateResilience), actionType: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cityId } });
   return { rows, deposits, totalDev: getTotalDev(city) };
 };

@@ -19,7 +19,7 @@
 //   focusPreview  the yields under each focus, and why they are all the same when they are.
 //   LONG_BUILD_TURNS / isLongBuild   the "this will take a long time" line of the Build tab.
 import { getTiles } from '../data/geo/tiles';
-import { getEffectiveAgeId, speedCostMult } from '../data/ages';
+import { getEffectiveAgeId, speedCostMult, speedTrainMult } from '../data/ages';
 import { cityWonderTotal } from '../data/greatProjects';
 import { IMPROVEMENTS, RESOURCES_ON_TILES, tileFacts, tileYields } from '../data/tileYields';
 import { TECH_TREE } from '../data/techTree';
@@ -31,7 +31,7 @@ import { logisticGrowthMult } from './population';
 import { nextTemplateUnit, templateProgress } from './armyTemplates';
 import {
   FOCUS, MAX_SIZE, FOOD_PER_CITIZEN, allocateTiles, cityYields, housingOf, amenitiesOf, growthThreshold, productionCost,
-  claimCandidates, buyTileCost, itemProgress, itemKey, addPeople, sizeToPeople
+  claimCandidates, buyTileCost, itemProgress, itemKey, addFood
 } from './world/cities';
 
 export const worldOf = (state) => ({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} });
@@ -63,6 +63,7 @@ export const cityCtx = (state, city) => {
     turnNumber: state.turnNumber,
     citiesOwned: facts.cities[nid] || 1,
     speedMult: speedCostMult(state.gameSpeed, ageId),
+    trainMult: speedTrainMult(state.gameSpeed, ageId),
     luxuries: facts.luxuries[nid] ? facts.luxuries[nid].size : 0,
     greatProjects: state.greatProjects || {},
     ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid, state.age) : {})
@@ -76,7 +77,7 @@ export const cityCtx = (state, city) => {
 };
 
 /** What a production item costs in this city (the cost the turn will ask for). */
-export const costCtxOf = (ctx) => ({ ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult });
+export const costCtxOf = (ctx) => ({ ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult });
 
 const NO_YIELDS = Object.freeze({ food: 0, production: 0, gold: 0, science: 0, culture: 0, strategic: {}, luxuries: [], raw: { food: 0, production: 0, gold: 0 } });
 
@@ -114,13 +115,17 @@ export const growthView = (state, cityId, live = cityLive(state, cityId)) => {
   return { bank, threshold, housing, speed, turns, state: status };
 };
 
-/** The city after Invest in growth (POPULATION_POLICY, I032): `rate` of its people banked as food
- * toward the next citizen, at this game's growth threshold (the speed table). The same object
- * when the bank is already full. The reducer and the button's preview both call this. */
-export const investInGrowth = (state, cityId, rate) => {
+/** The city after Invest in growth (POPULATION_POLICY, I032, CB04): GROWTH_BUY_SHARE of the food
+ * the next citizen needs, at this game's growth threshold (the speed table), banked toward it and
+ * never past it (it used to add 10% of the people, about 2 food of 49). The same object when the
+ * bank is already full. The reducer and the button's preview both call this; the price is
+ * spending.js growthCosts. */
+export const GROWTH_BUY_SHARE = 0.25;
+export const investInGrowth = (state, cityId) => {
   const city = state.regions?.[cityId];
   if (!city || city.size == null) return city;
-  return addPeople(city, (city.currentPopulation || sizeToPeople(city.size)) * rate, { speedMult: cityCtx(state, city).speedMult || 1 });
+  const speedMult = cityCtx(state, city).speedMult || 1;
+  return addFood(city, growthThreshold(city.size, speedMult) * GROWTH_BUY_SHARE, { speedMult });
 };
 
 // An army order is built piece by piece: what is left of it costs the sum of its missing pieces.

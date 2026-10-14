@@ -19,10 +19,10 @@ import { hasDeposit } from '../data/deposits';
 // Spending follows a bounded cadence with stability, frontier reserves, laws and advisors ahead
 // of long-term investment. Space missions remain a player victory objective.
 import { devastationIncomeMult } from './aftermath';
-import { addPeople, sizeToPeople } from './world/cities';
+import { addPeople, sizeToPeople, productionCost } from './world/cities';
 import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV } from '../data/actionCosts';
 import { getFieldedStrength } from '../utils/helpers';
-import { getResearched } from './nationState';
+import { getResearched, getTechAgeId } from './nationState';
 import { getModifier, getRegionModifierTotals } from './modifiers/sheet';
 const INCOME_KEYS = ['local.taxIncome', 'local.productionIncome', 'local.manpower', 'local.techPoints', 'local.flatGold', 'local.flatManpower', 'local.tradeIncome'];
 import {
@@ -32,11 +32,12 @@ import { REGIONS_DATA, getOwnedRegionIds } from '../data/regions';
 import {
   BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
 } from '../data/buildings';
-import { AGE_ORDER } from '../data/ages';
+import { AGE_ORDER, getEffectiveAgeId, speedCostMult, speedTrainMult } from '../data/ages';
 import { getAvailableGovernmentTypes, getReformChoices, resetReformsForType } from '../data/government';
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_GOVERNMENT, DOCTRINE_LAWS, DOCTRINE_REFORMS } from '../data/nations';
 import { clampStability, getIncreaseStabilityCost } from './nationalPower';
 import { createRng } from '../utils/rng';
+import { rushQuote, applyRush, rushGold } from './spending';
 import { autoGovern } from './governors';
 
 // Plan §M21 balance harness (scripts/simulate.mjs) found that a 150-turn AI-vs-AI run produced
@@ -172,6 +173,10 @@ const tryConstructBuilding = (state, nation, regions) => {
   if (ownedRegionIds.length === 0) return null;
   const regionId = ownedRegionIds.reduce((best, id) => (getTotalDev(regions[id]) > getTotalDev(regions[best]) ? id : best), ownedRegionIds[0]);
   const region = regions[regionId];
+  // A city (a record with a size) builds through its queue; gold buys what the queue lacks
+  // (tryRushProduction below, the player's own rush price). Writing the tier in directly paid one
+  // gold a point at any speed and built what the queue was already building (addendum X24).
+  if (region.size != null) return null;
   const totalDev = getTotalDev(region);
   const slots = getBuildingSlots(totalDev, !!REGIONS_DATA[regionId]?.isCapital);
   const used = getUsedBuildingSlots(region.buildings);
@@ -228,6 +233,36 @@ const tryDevelopProvince = (state, nation, regions) => {
       ...applyDevelopment(region.size != null ? addPeople(region, sizeToPeople(region.size) * DEVELOP_PROVINCE_POP_GAIN_RATIO) : { ...region, currentPopulation: (region.currentPopulation || modernBaseline) + popGain }, devType)
     }
   };
+};
+
+// An AI nation rushes like the player (spending.js rushQuote and applyRush, addendum X24): the
+// front order of its biggest city that is building something, when the price leaves a reserve of
+// AI_RUSH_RESERVE gold (or three turns of a deficit) and the order would take more than
+// AI_RUSH_MIN_TURNS turns. Not in a war chest emergency (the think returns earlier for that).
+export const AI_RUSH_RESERVE = 200;
+export const AI_RUSH_MIN_TURNS = 3;
+const tryRushProduction = (state, nation, regions) => {
+  const gold = nation.economy?.gold || 0;
+  const reserve = Math.max(AI_RUSH_RESERVE, -(nation.lastNetIncome || 0) * 3);
+  if (gold <= reserve) return null;
+  let best = null;
+  for (const id of getOwnedRegionIds(regions, nation.id)) {
+    const c = regions[id];
+    const item = c?.production?.current;
+    if (c.size == null || !item || item.kind === 'wonder' || c.occupiedBy) continue;
+    if (best == null || c.size > regions[best].size) best = id;
+  }
+  if (best == null) return null;
+  // A cheap estimate first (the full quote works the city's land): skip when even the base price of
+  // what is missing is out of reach.
+  const ageId = getEffectiveAgeId(state.age, getTechAgeId(state, nation.id));
+  const p = regions[best].production;
+  const estimate = productionCost(p.current, { ageId, citiesOwned: 1, speedMult: speedCostMult(state.gameSpeed, ageId), trainMult: speedTrainMult(state.gameSpeed, ageId) }) - (p.progress || 0);
+  if (rushGold(estimate, 0, p.current.kind) > gold - reserve) return null;
+  const look = { ...state, regions };
+  const quote = rushQuote(look, best, 0, nation.id, gold - reserve);
+  if (!quote.ok || !(quote.turns > AI_RUSH_MIN_TURNS)) return null;
+  return { nation: { ...nation, economy: { ...nation.economy, gold: gold - quote.gold } }, regionId: best, updatedRegion: applyRush(regions[best], 0, quote, state.turnNumber) };
 };
 
 export const AI_LAW_ADM_RESERVE = 50;
@@ -291,7 +326,7 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
     if (govResult) {
       nextNation = govResult;
     } else {
-      const buildResult = tryConstructBuilding(state, nextNation, regions);
+      const buildResult = tryRushProduction(state, nextNation, regions) || tryConstructBuilding(state, nextNation, regions);
       if (buildResult) {
         nextNation = buildResult.nation;
         regions[buildResult.regionId] = buildResult.updatedRegion;
