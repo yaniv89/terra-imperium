@@ -159,15 +159,16 @@ export const markerSprites = ({ markers, projection, k, atWar, dpr, waterTile })
   const sprites = []; const hits = [];
   clusterScreenMarkers(items, CLUSTER_RADIUS_PX).forEach((c) => {
     const single = c.members.length === 1;
-    const tag = close && single && c.kind === 'army';
-    const scale = dpr * (tag ? 0.72 : 1);
+    // One size at every zoom: an army's banner over its soldiers in the close view is the banner of
+    // the far map (it was drawn at 72% there, so the army shrank as the map zoomed in).
+    const scale = dpr;
     const art = !single ? clusterArt(c.members.length, c.members.some((m) => m.own && m.kind !== 'battle'), scale)
       : c.kind === 'event' ? eventArt(scale) : c.kind === 'wonder' ? wonderArt(c, scale) : c.kind === 'colony' ? colonyArt(c, scale)
         : c.kind === 'battle' ? battleArt(c, scale, { sea: c.tile != null && waterTile?.(c.tile) }) : c.kind === 'fleet' ? fleetArt(c, atWar.has(c.ownerId), scale) : armyArt(c, atWar.has(c.ownerId), scale);
     const cssW = art.w / dpr; const cssH = art.h / dpr;
     // `glideKey`: a lone banner that may glide in from its last tile (marchGlide.js, I070)
     sprites.push({ art, anchor: c.anchor, offset: [c.off[0], c.off[1], 0, 0], size: [cssW, cssH], exp: [0, 0], color: fade(single && !c.own ? 0.92 : 1), glideKey: single ? c.key : null });
-    hits.push({ kind: single ? 'marker' : 'cluster', marker: c, anchor: c.anchor, offset: [c.off[0], c.off[1], 0, 0], size: [cssW - 12 * (tag ? 0.72 : 1), cssH - 12 * (tag ? 0.72 : 1)], exp: [0, 0], pad: 7 });
+    hits.push({ kind: single ? 'marker' : 'cluster', marker: c, anchor: c.anchor, offset: [c.off[0], c.off[1], 0, 0], size: [cssW - 12, cssH - 12], exp: [0, 0], pad: 7 });
   });
   return { sprites, hits };
 };
@@ -282,6 +283,8 @@ export const groundMarks = ({ state, projection, k, dpr }) => {
 
 export const SETTLER_MIN_R = 6;
 export const SETTLER_MAX_R = 13;
+/** A settler disc's radius (CSS px) at zoom k: grows to SETTLER_MAX_R, never shrinks with the zoom. */
+export const settlerRadius = (k) => Math.max(SETTLER_MIN_R, Math.min(5 * Math.sqrt(k), SETTLER_MAX_R));
 /** Settlers on their tiles: yours, and foreign ones in sight from zoom 2. In the close view a
  * settler whose party model is drawn (`modelled(unit)`, closeView/settlerModels.js) keeps only its
  * tap target: the 3D party stands where the disc was. */
@@ -295,7 +298,7 @@ export const settlerSprites = ({ state, projection, k, isVisible, dpr, modelled 
     const anchor = pointOf(projection, u.tile);
     // One readable size from the strategic zoom to the close view (it shrank to a 6 px dot beside
     // the 3D towns: playtest audit I099). In the close view the party model takes its place.
-    const rCss = Math.max(SETTLER_MIN_R, Math.min(5 * Math.sqrt(k), SETTLER_MAX_R));
+    const rCss = settlerRadius(k);
     if (!(close && modelled?.(u))) {
       const art = settlerArt({ own, idle: own && u.target == null && !close, iconUrl: unitIconUrl('settler') }, rCss, dpr);
       sprites.push({ art, anchor, size: [art.css.w, art.css.h], color: WHITE });
