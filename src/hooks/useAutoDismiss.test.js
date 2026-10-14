@@ -18,7 +18,7 @@ vi.mock('react', () => ({
 import { useAutoDismiss } from './useAutoDismiss';
 
 // One "render" of a component calling the hook.
-const render = (value, clear, ms = 5000) => { cursor = 0; useAutoDismiss(value, clear, ms); };
+const useRender = (value, clear, ms = 5000) => { cursor = 0; useAutoDismiss(value, clear, ms); };
 
 describe('useAutoDismiss (X19)', () => {
   beforeEach(() => { slots.length = 0; vi.useFakeTimers(); });
@@ -26,7 +26,7 @@ describe('useAutoDismiss (X19)', () => {
 
   it('clears the banner after its time', () => {
     const clear = vi.fn();
-    render('Iron Age', clear);
+    useRender('Iron Age', clear);
     vi.advanceTimersByTime(4999);
     expect(clear).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
@@ -36,11 +36,11 @@ describe('useAutoDismiss (X19)', () => {
   it('re-rendering (the turn changing, a new callback each render) does not cancel the timer', () => {
     const first = vi.fn();
     const second = vi.fn();
-    render('Iron Age', first);
+    useRender('Iron Age', first);
     vi.advanceTimersByTime(1000);
-    render('Iron Age', second); // end turn: the component renders again with a fresh closure
+    useRender('Iron Age', second); // end turn: the component renders again with a fresh closure
     vi.advanceTimersByTime(1000);
-    render('Iron Age', vi.fn());
+    useRender('Iron Age', vi.fn());
     vi.advanceTimersByTime(3000);
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledTimes(0);
@@ -49,9 +49,9 @@ describe('useAutoDismiss (X19)', () => {
   it('calls the newest callback when the timer fires', () => {
     const first = vi.fn();
     const latest = vi.fn();
-    render('Iron Age', first);
+    useRender('Iron Age', first);
     vi.advanceTimersByTime(2000);
-    render('Iron Age', latest);
+    useRender('Iron Age', latest);
     vi.advanceTimersByTime(3000);
     expect(latest).toHaveBeenCalledTimes(1);
     expect(first).not.toHaveBeenCalled();
@@ -59,12 +59,12 @@ describe('useAutoDismiss (X19)', () => {
 
   it('does nothing while there is no banner, and restarts for a new one', () => {
     const clear = vi.fn();
-    render(null, clear);
+    useRender(null, clear);
     vi.advanceTimersByTime(10000);
     expect(clear).not.toHaveBeenCalled();
-    render('Bronze Age', clear);
+    useRender('Bronze Age', clear);
     vi.advanceTimersByTime(2000);
-    render('Iron Age', clear);
+    useRender('Iron Age', clear);
     vi.advanceTimersByTime(4000);
     expect(clear).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1000);
