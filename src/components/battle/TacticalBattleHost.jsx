@@ -22,12 +22,24 @@ import TacticalBattleScreen from './TacticalBattleScreen';
 import BattleFailure, { BattleErrorBoundary } from './BattleFailure';
 import { autoOddsForPendingBattle } from './autoCompare';
 import { battleOpenProblem, checkpointFits, safeBattleSetup } from './battleOpenGuard';
+import { crashLog } from '../../utils/crashLog';
+
+// The page was killed during a battle (a phone out of memory: src/utils/crashLog.js) and the
+// player pressed Continue: the battle is not reloaded at once (the same load could fail the same
+// way, "A problem repeatedly occurred"); the player chooses Resume or Auto. Once per page load.
+let crashChecked = false;
+export const reopenedAfterCrash = (log = crashLog()) => {
+  if (crashChecked) return false;
+  crashChecked = true;
+  return log?.last?.ending === 'crash' && log.last.screen === 'battle';
+};
 
 const TacticalBattleHost = () => {
   const { state, dispatch } = useGame();
   const pb = state.pendingBattle;
   const [resume, setResume] = useState(undefined); // undefined = still looking for a checkpoint
   const [attempt, setAttempt] = useState(0); // Try again remounts the battle from the start
+  const [afterCrash, setAfterCrash] = useState(() => reopenedAfterCrash());
   const stateRef = useRef(state);
   stateRef.current = state;
   const actionRef = useRef(null); // { ended, action }: one action per ended battle, for the receipt and for Continue
@@ -74,6 +86,9 @@ const TacticalBattleHost = () => {
     return <BattleFailure title="The battle could not be set up" message="Something went wrong while preparing this battle." detail={built.error} onAuto={() => abandon('setup_error')} onRetry={retry} />;
   }
   if (!setup || problem || resume === undefined) return null;
+  if (afterCrash) {
+    return <BattleFailure title="The game closed during this battle" message="The phone closed the game while this battle was open. Resume it where it was last saved, or let Auto fight it." retryLabel="Resume" onAuto={() => abandon()} onRetry={() => setAfterCrash(false)} />;
+  }
   const setupKey = setupKeyOf(setup);
   // The live battle's own end record goes with the log (battleVerify.js): the rules it ran under,
   // which battle it was and the world it ended on, so the reducer's replay is checked against it.

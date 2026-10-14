@@ -14,7 +14,10 @@ import './index.css';
 import { lazyWithReload, installStaleChunkReload } from './utils/lazyWithReload';
 import { installAppViewport } from './utils/appViewport';
 import { loadWorld, bootWorldSpec, rememberWorldSpec } from './worldgen/worldLoader';
+import { installCrashLog } from './utils/crashLog';
 
+// First: a session record for the crash log (src/utils/crashLog.js), before anything heavy loads.
+installCrashLog();
 installStaleChunkReload();
 // The visible area as --app-height before anything draws (iOS Safari bars; index.css).
 installAppViewport();

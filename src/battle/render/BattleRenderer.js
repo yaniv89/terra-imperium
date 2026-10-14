@@ -18,6 +18,8 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/battleStats';
 import { soldierSlots, squadSlots, figureScale, scaledSoldiers } from './capacity';
+import { trimGltfCache } from './gltfUnitLoader';
+import { textureCap } from './assetMemory';
 import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
 import { writeSoldierVariant, skinToneFor } from './unitVariants';
 import { soldierLodGeometries, pickSoldierTier, triangleCount } from './soldierLod';
@@ -1608,5 +1610,9 @@ export class BattleRenderer {
     this.disposables.forEach((d) => d.dispose?.());
     disposeSoldierCache();
     this.renderer.dispose();
+    // (the context itself is let go when the canvas leaves the page: glContext.js, used by
+    // TacticalBattleScreen; the same canvas may get a new renderer)
+    // On a phone the battle's kits leave with it (the map's files load again when it needs them).
+    if (textureCap() <= 1024) trimGltfCache(48);
   }
 }
