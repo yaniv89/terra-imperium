@@ -3,7 +3,7 @@
 // and construction objects, the node states by what is left; no file keeps the greyboxes.
 import { describe, it, expect } from 'vitest';
 import { Group, Matrix4 } from 'three';
-import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET, LOG_PILES_FILE, LOG_PILE_FILE_KITS } from './economyLayer';
+import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, wreckFxKind, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET, LOG_PILES_FILE, LOG_PILE_FILE_KITS } from './economyLayer';
 import { createArtIndex } from '../art/artIndex';
 import { parseKit, objectSize } from '../art/kitLoader';
 import { kitGlb, parseGlbBytes } from '../../components/map/closeView/glbFixture';
@@ -178,6 +178,27 @@ describe('battle economy art', () => {
     eco.buildings.push({ idx: 4, alive: true, side: 0, type: 'stable', size: 4, x: 5 * Q, y: 5 * Q, built: true, hp: 1300, maxHp: 1300, progress: 100 });
     layer.update({ eco }, () => true);
     expect(layer.kits.stats().copies).toBe(0);
+    layer.dispose();
+  });
+
+  it('a wreck smoulders: its fire and smoke sockets give this frame\'s fire and smoke points (X27)', async () => {
+    expect(['socket-fire-1', 'socket-smoke-2', 'socket-door', 'socket_fire_3'].map(wreckFxKind)).toEqual(['fire', 'smoke', null, 'fire']);
+    const ruined = { name: 'barracks-ruined', size: 1.2, sockets: { 'socket-fire-1': [0.2, 0.1, 0], 'socket-smoke-1': [0, 0.3, -0.2] } };
+    const files = { ...FILES, 'battle/rts/rts-bronze.glb': [...FILES['battle/rts/rts-bronze.glb'], ruined] };
+    const load = async (url) => parseKit((await parseGlbBytes(kitGlb(files[url.replace('test://', '')]))).scene);
+    const art = createArtIndex({ 'assets/battle/rts/rts-bronze.glb': 'test://battle/rts/rts-bronze.glb' });
+    const r = fakeRenderer();
+    const layer = new EconomyLayer({ ...r, setup: { ...r.setup, economy: {} } }, { art, load });
+    layer.build();
+    await Promise.all(layer.ready);
+    const wreck = { idx: 0, alive: false, side: 0, type: 'barracks', size: 3, x: 5 * Q, y: 5 * Q, built: true, hp: 0, maxHp: 1200, progress: 100 };
+    layer.update({ eco: { nodes: [], buildings: [wreck] } }, () => true);
+    expect(layer.wreckFx.map((f) => f.kind).sort()).toEqual(['fire', 'smoke']);
+    const fire = layer.wreckFx.find((f) => f.kind === 'fire');
+    expect(fire.x).toBeGreaterThan(5); // the socket's offset, scaled to the footprint
+    // off screen or built over: nothing burns
+    layer.update({ eco: { nodes: [], buildings: [wreck] } }, () => false);
+    expect(layer.wreckFx).toHaveLength(0);
     layer.dispose();
   });
 
