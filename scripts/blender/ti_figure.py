@@ -30,6 +30,10 @@
 # Added for the Gunpowder foot units (2026-10-14, build_gunpowder_*.py; rest pose only): sweep(),
 #   tricorne(), round_hat(), fur_cap(), coat_skirts() (Team skirts on the Spine, lined), cross_belts(),
 #   gaiters(), queue(), neck_stock(), musket() (upright, socket bayonet); fix_normals() takes `inward`
+# Added for the Modern foot units (2026-10-14, build_modern_*.py; rest pose only): hold() (a fist to an
+#   exact point), fist(mat=) for gloves, combat_boots(), cargo_trousers() (pockets, knee pads),
+#   combat_helmet(), plate_carrier() (pouches, radio and antenna), chest_rig(), hi_vis_vest(), hard_hat(),
+#   ball_cap() with a headset, sunglasses(), assault_rifle() (upright, muzzle up), modern_soldier()
 # Blender Z up, the front faces -Y, a standing person is 1 tall.
 import bpy, bmesh, math, random, json, os
 from mathutils import Vector, Matrix
@@ -262,17 +266,18 @@ def grip_point(side, out=.034):
     return wr + (wr - el).normalized() * out
 
 
-def fist(side, grip=None, axis=(0, 0, 1), half=.027):
-    """A closed fist at `grip` (default: grip_point) round a shaft that runs along `axis`. Returns the grip."""
+def fist(side, grip=None, axis=(0, 0, 1), half=.027, mat='Skin'):
+    """A closed fist at `grip` (default: grip_point) round a shaft that runs along `axis`. Returns the grip.
+    `mat`: a glove instead of the bare hand."""
     H = 'Hand_' + side
     wr = arm.data.bones[H].head_local.copy()
     grip = Vector(grip) if grip is not None else grip_point(side)
     ax = Vector(axis).normalized()
     tube('BodyHand_' + side, [(tuple(wr), (.022, .024), H),
-                              (tuple(grip), (.027, .030), H), (tuple(grip + (grip - wr).normalized() * .016), (.018, .024), H)], 'Skin', 4 if LITE else 6)
+                              (tuple(grip), (.027, .030), H), (tuple(grip + (grip - wr).normalized() * .016), (.018, .024), H)], mat, 4 if LITE else 6)
     c = grip + Vector((0, -.004, 0))
     if not LITE:  # (a lite fist is the hand's own knuckle ring)
-        tube('Fingers_' + side, [(tuple(c - ax * half), (.024, .024), H), (tuple(c + ax * half), (.024, .024), H)], 'Skin', 6)
+        tube('Fingers_' + side, [(tuple(c - ax * half), (.024, .024), H), (tuple(c + ax * half), (.024, .024), H)], mat, 6)
     return grip
 
 
@@ -1023,6 +1028,192 @@ def musket(grip, butt=.012, length=.860, bayonet=.230, prop='Prop_R', wood='Wood
         tube('Bayonet', [((x, y - .022, z1 + .004), (.0028, .0085), prop), ((x, y - .022, z1 + bayonet * .5), (.0024, .0070), prop),
                          ((x, y - .022, z1 + bayonet), (.0008, .0008), prop)], metal, 4, attachment=True)
     return z1
+
+
+# ---- Modern (present day) parts (2026-10-14, build_modern_*.py) --------------------------------------------
+# What tells the present-day foot from every earlier age at 20 px: a low rounded combat helmet, a bulky
+# plate carrier with pouches (Team: Spine and Chest) over a dark uniform with long sleeves, gloves, knee
+# pads and high boots, a radio antenna standing over the shoulder, and the short assault rifle held
+# upright, muzzle up (upright and thin, so the far detail level keeps it). No camouflage pattern, no
+# insignia, no flags: flat colours only.
+
+def hold(side, grip, pole=(.6, .1, -1), out=.034, steps=5):
+    """Pose one arm so that its fist (grip_point: `out` past the wrist along the forearm) closes at
+    `grip`; reach() places the wrist, this corrects for the fist."""
+    want = Vector(grip)
+    target = want.copy()
+    for _ in range(steps):
+        reach(side, target, pole)
+        el, wr = arm.pose.bones['Forearm_' + side].head, arm.pose.bones['Hand_' + side].head
+        target += want - (wr + (wr - el).normalized() * out)
+
+
+def combat_boots(mat='Boot', sole='Sole', top=.180):
+    """High laced combat boots over legs(boots=mat): the shaft to mid-calf and a thick sole."""
+    for side, s in (('L', 1), ('R', -1)):
+        S, Fo = 'Shin_' + side, 'Foot_' + side
+        tube('BootShaft_' + side, [((s * .074, .004, .112), (.036, .037), S), ((s * .074, .004, top), (.043, .044), S)], mat, 7, caps=(False, False))
+        box('BootSole_' + side, (s * .074, -.040, .009), (.064, .142, .018), sole, Fo)
+
+
+def cargo_trousers(mat, pads='Pad', pockets=True, seat=True):
+    """Over legs(hose=mat): the seat of the trousers, cargo pockets on the thighs, knee pads (`pads`:
+    their material, None for none)."""
+    if seat:
+        skirt('TrouserSeat', mat, low=.450, grow=-.014, sides=10)
+    for side, s in (('L', 1), ('R', -1)):
+        L, S = 'Leg_' + side, 'Shin_' + side
+        if pockets:
+            box('Pocket_' + side, (s * .113, -.006, .350), (.026, .068, .082), mat, L)
+        if pads:
+            box('KneePad_' + side, (s * .071, -.056, .262), (.060, .026, .068), pads, S)
+
+
+def combat_helmet(name='Helmet', mat='Helmet', band='Team', nvg='Gear', strap='Gear', sides=12):
+    """The present-day combat helmet: a low rounded shell, the rim higher over the brow and lower over
+    the ears and the nape, a cover band (`band`; Head: Team draws), a night-sight mount on the front and
+    the chin straps."""
+    ob = lathe(name, [(0, 1.052), (.036, 1.047), (.060, 1.028), (.074, .998), (.080, .968), (.0815, .946), (.0835, .936), (.075, .932), (0, .936)],
+               mat, sides=sides, sy=1.04)
+    for v in ob.data.vertices:
+        if v.co.z < .95:
+            k = (v.co.y + .003) / .086  # -1 at the brow, 1 at the nape
+            v.co.z -= .020 * max(0, k) + .012 * (1 - abs(k)) - .006 * max(0, -k)
+    if band:
+        tube(name + 'Band', vertical([.958, .992], -.003, [(.0835, .0870), (.0785, .0820)], 'Head'), band, sides, caps=(False, False))
+    if nvg:
+        box(name + 'Mount', (0, -.087, .978), (.032, .012, .030), nvg, 'Head')
+    if strap:
+        for s in (-1, 1):
+            box(f'{name}Strap_{s}', (s * .066, -.010, .900), (.008, .012, .064), strap, 'Head')
+    return ob
+
+
+def plate_carrier(name='Carrier', mat='Team', pouch='Pouch', gear='Gear', grow=.020, low=.556, high=.752, pouches=3, admin=True, radio=True, back=True):
+    """A plate carrier over the shirt (Spine and Chest: the battle dyes it): a squared shell from the
+    waist to under the arms closing in onto the shirt at both ends, magazine pouches across the front,
+    an admin pouch on the chest, a radio with a tall antenna at the back left (thin and upright: it
+    survives the far detail level), a back panel."""
+    zs = [low - .012] + [z for z, _, _ in TORSO if low < z < high] + [low, high]
+    zs = sorted(set(zs)) + [high + .026]
+    rings = []
+    for z in zs:
+        rx, ry = radius_at(z, TORSO)
+        g = .004 if z < low or z > high else grow
+        rings.append(((0, 0, z), (rx + g, ry + g), 'Spine' if z < .66 else 'Chest'))
+    ob = tube(name, rings, mat, 8, caps=(False, False))
+    for i in range(len(rings)):  # square the section: plates front and back
+        for j in (1, 7, 3, 5):
+            v = ob.data.vertices[i * 8 + j].co
+            v.x *= 1.16
+            v.y *= 1.30
+    radial.add(prefix + name)
+    yf = radius_at(.600, TORSO)[1] + grow
+    xs = [(k - (pouches - 1) / 2) * .056 for k in range(pouches)]
+    for k, x in enumerate(xs):
+        box(f'MagPouch{k}', (x, -(yf + .016), .600), (.050, .032, .078), pouch, 'Spine')
+        box(f'MagFlap{k}', (x, -(yf + .019), .644), (.052, .036, .014), gear, 'Spine')
+    if admin:
+        box('AdminPouch', (.036, -(radius_at(.705, TORSO)[1] + grow + .012), .705), (.064, .024, .052), pouch, 'Chest')
+    if back:
+        box('Hydration', (0, radius_at(.630, TORSO)[1] + grow + .013, .630), (.140, .026, .130), pouch, 'Spine')
+    if radio:
+        yb = radius_at(.700, TORSO)[1] + grow + .016
+        box('Radio', (.076, yb, .700), (.050, .036, .110), gear, 'Chest')
+        tube('RadioAntenna', [((.090, yb + .004, .750), .0055, 'Chest'), ((.098, yb + .010, 1.080), .0035, 'Chest')], gear, 4)
+    return ob
+
+
+def chest_rig(name='ChestRig', mat='Team', pouch='Pouch', low=.560, high=.700, pouches=3):
+    """A light chest rig (the contractor's): a panel across the front of the chest with pouches on it and
+    X straps over the shoulders and round the back (Spine and Chest: the battle dyes it)."""
+    yb, yt = radius_at(low, TORSO)[1] + .016, radius_at(high, TORSO)[1] + .018
+    slab(name, [(-.100, -yt, high), (.100, -yt, high), (.096, -yb, low), (-.096, -yb, low)], mat, 'Spine', depth=.014)
+    for k in range(pouches):
+        x = (k - (pouches - 1) / 2) * .060
+        box(f'RigPouch{k}', (x, -(yb + .018), .600), (.050, .026, .072), pouch, 'Spine')
+    cross_belts(name + 'Strap', mat, plate=None, low=low + .010, high=.800, width=.026, grow=.016, chest=.006)
+
+
+def hi_vis_vest(name='HiVis', mat='Team', stripe='Reflect', low=.505, high=.770, grow=.012):
+    """A high-visibility vest (Spine and Chest: the battle dyes it) with pale reflective bands round the
+    body and up the front over the shoulders."""
+    rings = [((0, 0, z), tuple(r + grow for r in radius_at(z, TORSO)), 'Spine' if z < .66 else 'Chest')
+             for z in sorted({low, high} | {z for z, _, _ in TORSO if low < z < high})]
+    rings.append(((0, 0, high + .024), tuple(r + .004 for r in radius_at(high + .024, TORSO)), 'Chest'))
+    tube(name, rings, mat, 10, caps=(False, False))
+    for k, z in enumerate((.575, .650)):
+        band(f'{name}Stripe{k}', stripe, z - .011, z + .011, grow + .004, sides=10, bulge=.001)
+    for s in (-1, 1):
+        y0, y1 = radius_at(low + .01, TORSO)[1] + grow + .004, radius_at(.735, TORSO)[1] + grow + .004
+        slab(f'{name}Brace_{s}', [(s * .040, -y1, .740), (s * .062, -y1, .740), (s * .062, -y0, low + .010), (s * .040, -y0, low + .010)], stripe, 'Spine', depth=.004)
+
+
+def hard_hat(name='HardHat', mat='HardHat', sides=12):
+    """A builder's hard hat: a high rounded shell, a ridge from the brow to the nape, a brim all round
+    with a peak at the front."""
+    lathe(name, [(0, 1.060), (.036, 1.054), (.060, 1.032), (.071, 1.002), (.074, .972), (.075, .958), (0, .960)], mat, sides=sides)
+    rows = []
+    for r0, z, peak in ((.071, .966, 0), (1, .956, 1), (1, .948, 1), (.071, .954, 0)):
+        row = []
+        for j in range(sides):
+            a = 2 * math.pi * j / sides
+            r = r0 if not peak else .088 + .030 * max(0, math.cos(a)) ** 2
+            row.append((r * math.sin(a), -r * math.cos(a) - .003, z))
+        rows.append(row)
+    sweep(name + 'Brim', rows, mat)
+    ridge(name + 'Ridge', [(-.066, 1.020, 1.032), (-.030, 1.050, 1.068), (.030, 1.050, 1.068), (.062, 1.020, 1.032)], mat, half=(.012, .010))
+
+
+def ball_cap(name='BallCap', mat='Cap', headset='Gear', sides=10):
+    """A ball cap with a long bill (`mat`), a headset over it: ear cups, a band over the crown, a boom
+    microphone to the mouth."""
+    lathe(name, [(0, 1.034), (.034, 1.030), (.056, 1.012), (.066, .986), (.068, .958), (.069, .950), (0, .952)], mat, sides=sides)
+    sheet('CapBill', (-.054, -.058, .958), (.054, -.058, .958), (.050, -.132, .944), (-.050, -.132, .944), .008, mat, 'Head')
+    if headset:
+        for s in (-1, 1):
+            box(f'HeadsetCup{s}', (s * .066, .002, .918), (.024, .044, .050), headset, 'Head')
+        tube('HeadsetBand', [((-.070, .002, .940), .0055, 'Head'), ((-.064, .002, 1.004), .0055, 'Head'), ((0, .002, 1.044), .0055, 'Head'),
+                             ((.064, .002, 1.004), .0055, 'Head'), ((.070, .002, .940), .0055, 'Head')], headset, 4)
+        tube('HeadsetMic', [((.074, -.012, .906), .0040, 'Head'), ((.052, -.062, .884), .0040, 'Head'), ((.020, -.074, .884), .0060, 'Head')], headset, 4)
+
+
+def sunglasses(name='Sunglasses', mat='Gear'):
+    box(name, (0, -.0615, .926), (.104, .010, .020), mat, 'Head')
+
+
+def assault_rifle(grip, prop='Prop_R', body='Gun', metal='Metal', optic='Gear', below=.180, above=.400, name='Rifle'):
+    """A short assault rifle upright, muzzle up, its pistol grip in the fist at `grip`: the stock below
+    the fist, the receiver, the handguard and the barrel above; the magazine stands forward (-Y), the
+    optic on the receiver's top towards the face (+Y). The body is one thin upright piece (the far
+    detail level keeps it). Parts <name>Body, <name>Mag, <name>Optic, <name>Muzzle, <name>Grip."""
+    x, y, z = grip.x, grip.y + .018, grip.z
+    tube(name + 'Body', [((x, y + .002, z - below), (.011, .022), prop), ((x, y + .001, z - below + .080), (.010, .018), prop),
+                         ((x, y, z - .030), (.012, .017), prop), ((x, y, z + .130), (.013, .019), prop), ((x, y, z + .150), (.015, .017), prop),
+                         ((x, y, z + .330), (.014, .016), prop), ((x, y, z + .345), (.007, .007), prop), ((x, y, z + above), (.0065, .0065), prop)],
+         body, 6, attachment=True)
+    tube(name + 'Muzzle', [((x, y, z + above - .004), .0090, prop), ((x, y, z + above + .040), .0085, prop)], metal, 6, attachment=True)
+    tube(name + 'Mag', [((x, y - .018, z + .100), (.010, .016), prop), ((x, y - .040, z + .060), (.010, .017), prop), ((x, y - .052, z + .020), (.010, .016), prop)],
+         body, 4, attachment=True)
+    box(name + 'Optic', (x, y + .030, z + .070), (.020, .022, .060), optic, prop, True)
+    box(name + 'Grip', (x, y - .022, z - .004), (.016, .026, .040), body, prop, True)
+    return Vector((x, y, z))
+
+
+def modern_soldier(uniform='Uniform', boots='Boot', pads='Pad', carrier='Team', helmet='Helmet', helmet_band='Team', radio=True, pouches=3):
+    """A present-day soldier on the current rig: dark uniform with long sleeves and cargo trousers,
+    knee pads, high boots, the Team plate carrier with its pouches, a belt, the combat helmet with a
+    Team band. Pose the arms, bake_rest(), then fists (gloves) and what they hold."""
+    legs(boots=boots, hose=uniform)
+    combat_boots(boots)
+    arms(long=uniform, pad=.008)
+    head()
+    hair(crown=False)
+    cargo_trousers(uniform, pads)
+    torso('Shirt', uniform, grow=.006, chest=.004)
+    band('Belt', 'Gear', .528, .552, grow=.014, bone='Spine')
+    plate_carrier('Carrier', carrier, radio=radio, pouches=pouches)
+    combat_helmet('Helmet', helmet, helmet_band)
 
 
 def reach(side, wrist, pole=(.6, .1, -1)):

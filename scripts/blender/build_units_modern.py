@@ -403,7 +403,10 @@ def m_air():
         'Fighter jet: a generic twin-tail multirole fighter, gear up: a pointed radome, a tinted bubble canopy, side intakes, swept wings with emblem roundels and a missile under each, twin canted fins in Team colour, two nozzles', dict(budget=3000, mounted=False, fit_height=True, json={'segment': False})
 
 
-BUILDERS = {'modern-infantry': m_infantry, 'modern-ranged': m_ranged, 'modern-cavalry': m_cavalry, 'modern-siege': m_siege,
+# The foot units were rebuilt in the quality pass of 2026-10-14 by build_modern_<class>.py on
+# ti_figure.py (infantry so far); their functions here stay for reference only (atgm_launcher and
+# the constants are still used by build_modern_ranged.py).
+BUILDERS = {'modern-ranged': m_ranged, 'modern-cavalry': m_cavalry, 'modern-siege': m_siege,
             'modern-support': m_support, 'modern-worker': m_worker, 'modern-general': m_general, 'modern-air': m_air}
 
 
