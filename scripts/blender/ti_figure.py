@@ -27,6 +27,9 @@
 # Added for the Kingdoms foot units (2026-10-14, build_kingdoms_*.py; rest pose only): legs(hose=),
 #   arms(long=, pad=, cuff=), quilted torso() and skirt() (ribs, quilt()), lathe(), kettle_hat(),
 #   mail_coif(), hood(), tabard(), straw_hat(), self_bow(), hip_sword()
+# Added for the Gunpowder foot units (2026-10-14, build_gunpowder_*.py; rest pose only): sweep(),
+#   tricorne(), round_hat(), fur_cap(), coat_skirts() (Team skirts on the Spine, lined), cross_belts(),
+#   gaiters(), queue(), neck_stock(), musket() (upright, socket bayonet); fix_normals() takes `inward`
 # Blender Z up, the front faces -Y, a standing person is 1 tall.
 import bpy, bmesh, math, random, json, os
 from mathutils import Vector, Matrix
@@ -53,6 +56,7 @@ def start(colors=None, ready=True, rig=True):
     bright.clear()
     facing.clear()
     radial.clear()
+    inward.clear()
     prefix = ''
     arm = None
     colors = colors or {}
@@ -507,6 +511,7 @@ TORSO = [(.535, .092, .064), (.575, .089, .063), (.615, .090, .065), (.655, .101
 SKIRT = [(.335, .136, .098), (.385, .129, .093), (.450, .117, .085), (.515, .101, .073), (.548, .090, .064)]
 facing = {}   # open sheets: {object name: the way it faces}, for fix_normals
 radial = set()  # objects made of loose sheets round the body: every face points away from the Z axis
+inward = set()  # sheets seen from inside (a coat skirt's lining): every face points towards the Z axis
 
 
 def radius_at(z, profile):
@@ -838,6 +843,188 @@ def hip_sword(name='Sword', side='L', mat='Metal', scabbard='Leather', grip='Lea
     tube(name + 'Pommel', [(tuple(top + ax * .080), .008, 'Hips'), (tuple(top + ax * .092), .016, 'Hips'), (tuple(top + ax * .104), .006, 'Hips')], mat, 6)
 
 
+# ---- Gunpowder (about 1750) parts (2026-10-14, build_gunpowder_*.py) ------------------------------------
+# What tells the Gunpowder foot from the Kingdoms at a glance: cocked felt hats (the tricorne) and round
+# hats instead of steel, a Team coat whose long skirts are lined in a light colour (coat_skirts(),
+# weighted to the Spine so the battle dyes them like the coat), white cross belts, breeches and
+# gaiters, the flintlock musket with its socket bayonet held upright at the order.
+
+def sweep(name, rows, mat, bone='Head', closed=True, attachment=False):
+    """Rows of points round a vertical axis (every row the same count, point 0 of each at the same
+    angle) joined row to row; closed=True joins the last row back to the first (a closed section
+    swept round: a hat's brim)."""
+    n = len(rows[0])
+    verts = [tuple(p) for row in rows for p in row]
+    pairs = list(zip(range(len(rows) - 1), range(1, len(rows)))) + ([(len(rows) - 1, 0)] if closed else [])
+    faces = []
+    for a, b in pairs:
+        for j in range(n):
+            q = (j + 1) % n
+            faces += [(a * n + j, a * n + q, b * n + q), (a * n + j, b * n + q, b * n + j)]
+    return raw(name, verts, faces, mat, bone, attachment)
+
+
+def tricorne(name='Tricorne', mat='Felt', lace='Cloth', cockade='Team', brim=.130, inner=.084, wall=.046, base=.950, top=1.028, sides=18):
+    """The cocked hat of the line: a low round crown and a broad brim turned up into three walls,
+    the points at the front and at the two back corners, the walls highest mid-side, a pale lace
+    edging along their tops and a cockade (`cockade`; Head: Team draws) on the left front wall."""
+    def plan(j):
+        a = 2 * math.pi * j / sides
+        phi = (math.degrees(a) % 120) - 60
+        return a, min(brim, inner / math.cos(math.radians(phi))), abs(phi) / 60
+
+    def at(a, r, z):
+        return (r * math.sin(a), -r * math.cos(a) * .97 - .004, z)
+    rows, edge = [[], [], [], []], [[], []]
+    for j in range(sides):
+        a, R, pt = plan(j)
+        h = base + wall * (1 - .40 * pt)
+        rows[0].append(at(a, .070, base + .010))
+        rows[1].append(at(a, R * .97, base - .006))
+        rows[2].append(at(a, R, h))
+        rows[3].append(at(a, R - .020, h - .002))
+        edge[0].append(at(a, R + .0015, h + .0035))
+        edge[1].append(at(a, R - .0215, h + .0015))
+    sweep(name + 'Brim', rows, mat)
+    sweep(name + 'Lace', edge, lace, closed=False)
+    facing[prefix + name + 'Lace'] = (0, 0, 1)
+    lathe(name + 'Crown', [(0, top), (.040, top - .004), (.061, top - .020), (.069, base + .030), (.071, base + .004), (0, base + .004)], mat, sides=10)
+    if cockade:
+        a, R, _ = plan(sides // 6 - 1)
+        n = Vector((math.sin(a), -math.cos(a), 0))
+        p = Vector(at(a, R, base + .024))
+        tube(name + 'Cockade', [(tuple(p - n * .004), .017, 'Head'), (tuple(p + n * .006), .017, 'Head')], cockade, 6)
+
+
+def round_hat(name='RoundHat', mat='Felt', band='Team', brim=.122, crown=1.052, up=0., sides=12):
+    """A round felt hat: a low crown with a flat top, a broad brim, a band (Head: Team draws).
+    `up`: the left side of the brim hooked up against the crown by that much."""
+    ob = lathe(name, [(0, crown), (.056, crown - .002), (.065, crown - .014), (.068, .968), (.071, .956), (brim, .950), (brim + .004, .942),
+                      (.071, .946), (0, .950)], mat, sides=sides)
+    if up:
+        for v in ob.data.vertices:
+            r = math.hypot(v.co.x, v.co.y + .003)
+            if r > .075 and v.co.x > .01:
+                k = (r - .071) / (brim - .071) * (v.co.x / r)
+                v.co.z += up * k
+                v.co.x -= up * .45 * k
+    if band:
+        tube(name + 'Band', vertical([.958, .980], -.003, [(.0725, .0685), (.0715, .0675)], 'Head'), band, sides, caps=(False, False))
+    return ob
+
+
+def fur_cap(name='Bearskin', mat='Fur', plate='Brass', height=1.165, sides=10):
+    """A tall fur cap (the sappers'): a tapering drum of fur over the head, a brass plate on its front."""
+    lathe(name, [(0, height), (.044, height - .006), (.074, height - .040), (.084, 1.060), (.080, .990), (.074, .948), (0, .950)], mat, sides=sides)
+    if plate:
+        sheet(name + 'Plate', (-.036, -.083, .990), (.036, -.083, .990), (.026, -.084, 1.068), (-.026, -.084, 1.068), .006, plate, 'Head')
+
+
+def coat_skirts(name='CoatSkirt', mat='Team', lining='Cloth', low=.360, top=.556, grow=.016, flare=.026, open_deg=56, cols=12, bone='Spine'):
+    """The skirts of a long coat from the waist to `low`, round the sides and the back, open in front
+    (`open_deg` either side of the front left bare), weighted to `bone` (the Spine: the battle dyes
+    them with the coat, where skirts on the hips would draw as plain cloth), lined in `lining`: the
+    lining reaches a little further forward, so its edge shows like turned-back skirts."""
+    zs = [top, top - (top - low) * .45, low]
+    a0 = math.radians(open_deg)
+    for part, mat_, g0, extra in ((name, mat, grow, 0), (name + 'Lining', lining, grow - .006, .14)):
+        verts = []
+        for z in zs:
+            t = (top - z) / (top - low)
+            rx, ry = (max(p, q) for p, q in zip(radius_at(z, SKIRT), radius_at(z, TORSO)))
+            g = g0 + flare * t
+            for i in range(cols + 1):
+                a = a0 - extra + (2 * math.pi - 2 * (a0 - extra)) * i / cols
+                verts.append(((rx + g) * math.sin(a), -(ry + g) * math.cos(a), z))
+        faces = []
+        for r in range(len(zs) - 1):
+            for i in range(cols):
+                p, q = r * (cols + 1) + i, (r + 1) * (cols + 1) + i
+                faces += [(p, p + 1, q + 1), (p, q + 1, q)]
+        raw(part, verts, faces, mat_, bone)
+        (radial if part == name else inward).add(prefix + part)
+
+
+def cross_belts(name='CrossBelt', mat='Cloth', plate='Brass', low=.520, high=.796, width=.028, grow=.020, chest=.010, sides=16, which='LR'):
+    """Two pale belts, each from one shoulder across the chest to the other hip and round the back
+    (Spine and Chest), crossing in front over a brass plate: the line's white X. `which`: 'L' only the
+    belt from the left shoulder, 'R' only the one from the right (a single shoulder strap)."""
+    mid, slope = (low + high) / 2, (high - low) / 2
+    for k, sgn, g0 in [b for b in (('L', 1, grow), ('R', -1, grow + .003)) if b[0] in which]:
+        verts, w = [], []
+        for half in (-1, 1):
+            for j in range(sides):
+                a = 2 * math.pi * j / sides
+                z = mid + sgn * slope * math.sin(a) + half * width / 2
+                rx, ry = radius_at(z, TORSO)
+                g = g0 + (chest if .67 < z < .76 and math.cos(a) > .7 else 0)
+                verts.append(((rx + g) * math.sin(a), -(ry + g) * math.cos(a), z))
+                w.append({'Spine' if z < .66 else 'Chest': 1})
+        faces = []
+        for j in range(sides):
+            q = (j + 1) % sides
+            faces += [(j, q, sides + q), (j, sides + q, sides + j)]
+        raw(f'{name}_{k}', verts, faces, mat, weights=w)
+        radial.add(prefix + f'{name}_{k}')
+    if plate:
+        ry = radius_at(mid, TORSO)[1]
+        box(name + 'Plate', (0, -(ry + grow + .008), mid), (.032, .008, .038), plate, 'Spine')
+
+
+def drop(*names):
+    """Remove parts made by a shared helper that end up hidden (the ankle boots under gaiters)."""
+    for nm in names:
+        ob = bpy.data.objects.get(prefix + nm)
+        if ob:
+            meshes.remove(ob)
+            bpy.data.objects.remove(ob, do_unlink=True)
+
+
+def gaiters(mat='Gaiter', top=.300, sides=7):
+    """Cloth gaiters from over the shoe to above the knee (over legs(boots=...); they hide the boot
+    tubes, which are dropped)."""
+    drop('Boot_L', 'Boot_R')
+    for side, s in (('L', 1), ('R', -1)):
+        L, S, F = 'Leg_' + side, 'Shin_' + side, 'Foot_' + side
+        tube('Gaiter_' + side, [((s * .074, .006, .022), (.035, .044), F), ((s * .074, .004, .075), (.032, .034), {S: .5, F: .5}),
+                                ((s * .073, .004, .200), (.045, .046), S), ((s * .071, -.012, .256), (.040, .043), {L: .4, S: .6}),
+                                ((s * .070, -.006, top), (.046, .046), L)], mat, sides, caps=(False, False))
+
+
+def queue(mat='Hair', ribbon='Felt', curls=True):
+    """The soldier's hair of the age: the nape, a short plaited queue down the neck tied with a black
+    ribbon, and a rolled curl over each ear."""
+    hair(mat, crown=False)
+    tube('Queue', [((0, .052, .912), .015, 'Head'), ((0, .068, .866), .013, 'Head'), ((0, .076, .812), .009, 'Neck')], mat, 5)
+    tube('QueueRibbon', [((0, .061, .894), .017, 'Head'), ((0, .065, .876), .017, 'Head')], ribbon, 5, caps=(False, False))
+    if curls:
+        for s in (-1, 1):
+            tube(f'Curl_{s}', [((s * .060, -.012, .913), .011, 'Head'), ((s * .060, .024, .913), .011, 'Head')], mat, 5)
+
+
+def neck_stock(mat='Felt'):
+    """The black stock round the neck above the coat."""
+    return tube('NeckStock', vertical([.784, .806, .826], [0, -.002, -.003], [(.062, .054), (.048, .044), (.042, .040)], ['Chest', 'Neck', 'Neck']), mat, 8, caps=(False, False))
+
+
+def musket(grip, butt=.012, length=.860, bayonet=.230, prop='Prop_R', wood='Wood', metal='Metal', lock='Metal', name='Musket'):
+    """A flintlock musket upright through the fist at `grip`, its butt `butt` above the ground (order
+    arms): a stock with a deep butt, a slim wrist and a fore-stock, the barrel on its front (-Y), the
+    lock on its right, a socket bayonet above the muzzle (bayonet=0: none). Every part is upright and
+    thin, so the far detail level keeps them. Parts <name>Stock, <name>Barrel, <name>Lock, Bayonet."""
+    x, y = grip.x, grip.y
+    z0, z1 = butt, butt + length
+    tube(name + 'Stock', [((x, y + .004, z0), (.010, .023), prop), ((x, y + .003, z0 + .17), (.010, .015), prop), ((x, y, z0 + .23), (.008, .010), prop),
+                          ((x, y - .002, z0 + .29), (.010, .013), prop), ((x, y - .002, z1 - .07), (.007, .009), prop)], wood, 6, attachment=True)
+    tube(name + 'Barrel', [((x, y - .012, z0 + .26), .0065, prop), ((x, y - .012, z1), .0065, prop)], metal, 5, attachment=True)
+    box(name + 'Lock', (x - .011, y - .004, z0 + .285), (.006, .030, .024), lock, prop, True)
+    if bayonet:
+        tube('BayonetSocket', [((x, y - .012, z1 - .035), .0090, prop), ((x, y - .012, z1 + .004), .0090, prop)], metal, 5, attachment=True)
+        tube('Bayonet', [((x, y - .022, z1 + .004), (.0028, .0085), prop), ((x, y - .022, z1 + bayonet * .5), (.0024, .0070), prop),
+                         ((x, y - .022, z1 + bayonet), (.0008, .0008), prop)], metal, 4, attachment=True)
+    return z1
+
+
 def reach(side, wrist, pole=(.6, .1, -1)):
     """Pose one arm so its wrist sits at `wrist` (two-bone reach, the elbow towards `pole`)."""
     A, FA = arm.pose.bones['Arm_' + side], arm.pose.bones['Forearm_' + side]
@@ -894,9 +1081,10 @@ def fix_normals(open_facing=None, around=()):
         bm = bmesh.new()
         bm.from_mesh(ob.data)
         want = open_facing.get(ob.name)
-        if ob.name in around:
+        if ob.name in around or ob.name in inward:
             bm.normal_update()
-            flip = [f for f in bm.faces if f.normal.dot(Vector((f.calc_center_median().x, f.calc_center_median().y, 0))) < 0]
+            sign = -1 if ob.name in inward else 1
+            flip = [f for f in bm.faces if sign * f.normal.dot(Vector((f.calc_center_median().x, f.calc_center_median().y, 0))) < 0]
             if flip:
                 bmesh.ops.reverse_faces(bm, faces=flip)
         elif want:

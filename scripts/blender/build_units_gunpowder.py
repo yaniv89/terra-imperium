@@ -312,8 +312,9 @@ def g_general():
         'Gunpowder general: a mounted officer in a plumed bicorne, a Team coat with epaulettes and a sash, a Team cloak, sabre drawn, on a horse in a Team saddle cloth; a colour bearer on foot with the squad emblem colour', dict(budget=3000, mounted=True)
 
 
-BUILDERS = {'gunpowder-infantry': g_infantry, 'gunpowder-ranged': g_ranged, 'gunpowder-cavalry': g_cavalry, 'gunpowder-siege': g_siege,
-            'gunpowder-support': g_support, 'gunpowder-worker': g_worker, 'gunpowder-general': g_general}
+# The foot units were rebuilt in the quality pass of 2026-10-14 by build_gunpowder_<class>.py on
+# ti_figure.py (infantry, ranged, worker, support); their functions here stay for reference only.
+BUILDERS = {'gunpowder-cavalry': g_cavalry, 'gunpowder-siege': g_siege, 'gunpowder-general': g_general}
 
 
 def build(uid):

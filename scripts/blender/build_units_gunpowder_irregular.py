@@ -73,7 +73,9 @@ def g_mercenary():
         cl.PERSON_OPTS
 
 
-BUILDERS = {'gunpowder-raider': g_raider, 'gunpowder-mercenary': g_mercenary}
+# The mercenary was rebuilt in the quality pass of 2026-10-14 by build_gunpowder_mercenary.py on
+# ti_figure.py; g_mercenary stays here for reference only.
+BUILDERS = {'gunpowder-raider': g_raider}
 
 
 def build(uid):
