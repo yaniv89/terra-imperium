@@ -32,7 +32,7 @@ describe('W11 preBattleModel', () => {
     expect(m.chance.exact).toBe(false);
     expect(m.chance.verdict).toBe('Likely win');
     expect(m.chance.band[1] - m.chance.band[0]).toBeCloseTo(0.33, 5);
-    expect(m.theirs.total).toMatch(/^about \d+ to \d+$/);
+    expect(m.theirs.total).toMatch(/^about [\d,]+ to [\d,]+$/);
     expect(m.yours.men).toBe(1000);
     expect(m.walls.maxLost).toBeUndefined();
     expect(m.walls.ruleText).toBeUndefined();

@@ -5,6 +5,7 @@
 // on a wider screen, like the tile sheet.
 import React, { useMemo, useState } from 'react';
 import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle, Anchor, Compass } from 'lucide-react';
+import { menText } from '../../engine/battleLedger';
 import PreBattleModal from '../battle/PreBattleModal';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -35,7 +36,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
           <Shield className="w-4 h-4 text-fa-good shrink-0" />
           <div className="min-w-0">
             <div className="font-bold text-fa-text truncate text-sm">{model.groups.length === 1 && model.groups[0].key ? model.groups[0].name : `${model.naval ? 'Fleet' : 'Army'} ${where}`}</div>
-            <div className="text-fa-muted text-[10px]" data-testid="army-where">{model.soldiers.toLocaleString()} {model.naval ? 'crew' : 'soldiers'} · {where}{showBase ? ` · based at ` : ''}{showBase && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
+            <div className="text-fa-muted text-[10px]" data-testid="army-where">{menText(model.soldiers)} {model.naval ? 'crew' : 'soldiers'} · {where}{showBase ? ` · based at ` : ''}{showBase && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
           </div>
         </div>
         <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>

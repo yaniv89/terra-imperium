@@ -6,6 +6,7 @@
 import React from 'react';
 import { Swords, Zap, Undo2, Crown } from 'lucide-react';
 import { lineLabel } from './warModel';
+import { menText } from '../../engine/battleLedger';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
 
@@ -15,14 +16,14 @@ export const ForceCard = ({ tone = 'you', tag, name, total, lines = [], unknownL
     <div className="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
       <span className={cx('text-[11px] font-bold tracking-[0.08em] shrink-0', tone === 'you' ? 'text-fa-you' : 'text-fa-enemy')}>{tag}</span>
       <span className="text-[13px] font-semibold truncate flex-1">{name}</span>
-      {total != null && <span className="fa-num text-[13px] font-semibold ml-auto text-right">{total}</span>}
+      {total != null && <span className="fa-num text-[13px] font-semibold ml-auto text-right">{typeof total === 'number' ? menText(total) : total}</span>}
     </div>
     {lines.length > 0 && (
       <ul className="mt-1 space-y-0.5">
         {lines.map((l) => (
           <li key={l.id} className="flex justify-between gap-2 text-[12px] leading-tight">
             <span className="truncate">{lineLabel(l)}</span>
-            <span className="fa-num text-fa-muted">{unknownLines ? '?' : l.men}</span>
+            <span className="fa-num text-fa-muted">{unknownLines ? '?' : menText(l.men)}</span>
           </li>
         ))}
       </ul>

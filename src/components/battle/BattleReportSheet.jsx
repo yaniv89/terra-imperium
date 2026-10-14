@@ -16,7 +16,7 @@ import { menOf } from '../../engine/battleLedger';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getTechAgeId } from '../../engine/nationState';
 import { Button, Chip, CloseButton } from '../ui/atlas';
-import { REPORT_FILTERS, fateRows, filterReports, reportDetail, reportRow } from './battleReportsModel';
+import { REPORT_FILTERS, fateRows, detailFor, filterReports, reportDetail, reportRow } from './battleReportsModel';
 import { focusPlace } from '../map/marchEvents';
 import { battlePlaces } from '../map/mapCamera';
 
@@ -133,11 +133,13 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
   const [pickedId, setPickedId] = useState(null);
   const [phoneDetail, setPhoneDetail] = useState(true);
   const shown = useMemo(() => filterReports(all, filter), [all, filter]);
-  const current = all.find((r) => r.id === (pickedId || entry?.id)) || null;
+  // The detail follows the filter (REPORT-01): a picked battle the filter hides gives way to the first
+  // one it shows, and to nothing when it shows none.
+  const current = detailFor(all, shown, pickedId || entry?.id);
   const ageOf = (nationId) => (nationId && nationId !== 'rebels' && state.nations?.[nationId] ? getEffectiveAgeId(state.age, getTechAgeId(state, nationId)) : state.age);
-  if (!entry || !current) return null;
-  const d = reportDetail(state, current);
-  const { mine, theirs } = sidesFor(current);
+  if (!entry) return null;
+  const d = current ? reportDetail(state, current) : null;
+  const { mine, theirs } = current ? sidesFor(current) : {};
   const many = all.length > 1;
 
   return (
@@ -147,14 +149,14 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
         <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
           <h2 id="battle-report-title" className="fa-heading text-[19px] pl:text-[17px] leading-tight shrink-0">Battle reports</h2>
           <span className="text-[12px] text-fa-muted hidden lg:inline shrink-0">your last 30 battles are kept</span>
-          {many && (
-            <div className="flex-1 min-w-0 flex gap-1.5 overflow-x-auto scrollbar-none justify-end" role="toolbar" aria-label="Filter">
-              {REPORT_FILTERS.map((f) => <Chip key={f.id} pressed={filter === f.id} onClick={() => setFilter(f.id)} className="shrink-0">{f.label}</Chip>)}
-            </div>
-          )}
-          {!many && <div className="flex-1" />}
+          <div className="flex-1" />
           <CloseButton onClick={onClose} label="Close reports" />
         </div>
+        {many && (
+          <div className="px-3 py-1.5 border-b border-fa-line flex gap-1.5 overflow-x-auto scrollbar-none" role="toolbar" aria-label="Filter" data-testid="battle-report-filters">
+            {REPORT_FILTERS.map((f) => <Chip key={f.id} pressed={filter === f.id} onClick={() => setFilter(f.id)} className="shrink-0">{f.label}</Chip>)}
+          </div>
+        )}
 
         <div className={`flex-1 min-h-0 grid ${many ? 'sm:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]' : ''}`}>
           {many && (
@@ -162,11 +164,14 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
               {shown.length === 0 && <div className="text-[12px] text-fa-muted p-2">No battles of this kind yet.</div>}
               {shown.map((e) => {
                 const row = reportRow(state, e);
-                return <Row key={e.id} row={row} selected={e.id === current.id} onClick={() => { setPickedId(e.id); setPhoneDetail(true); }} />;
+                return <Row key={e.id} row={row} selected={e.id === current?.id} onClick={() => { setPickedId(e.id); setPhoneDetail(true); }} />;
               })}
             </div>
           )}
 
+          {!current ? (
+            <div className="min-h-0 flex items-center justify-center p-4 text-[12.5px] text-fa-muted" data-testid="battle-report-empty">No battle to show for this filter.</div>
+          ) : (
           <div className={`min-h-0 flex flex-col ${many && !phoneDetail ? 'hidden sm:flex' : ''}`}>
             <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2">
               <div className="flex items-baseline gap-2 flex-wrap">
@@ -194,12 +199,13 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
               {(d.targetRegionId || current.tile != null) && (
                 <Button onClick={() => { if (onShowRegion && state.regions?.[d.targetRegionId]) onShowRegion(d.targetRegionId); focusPlace(battlePlaces(current)); onClose(); }} className="shrink-0" data-testid="battle-report-show"><MapPin className="w-4 h-4" aria-hidden="true" /> Show on map</Button>
               )}
-              <span className="flex-1 text-[11px] text-fa-muted leading-tight">{d.oneRound ? 'Decided in one round: these numbers are the whole battle.' : d.canReplay ? 'Auto battles keep their rounds.' : 'Commanded battles keep no replay yet.'}</span>
+              <span className="flex-1 text-[11px] text-fa-muted leading-tight">{d.footer}</span>
               {d.canReplay && onReplay && (
                 <Button variant="primary" onClick={() => onReplay(current)} data-testid="battle-report-replay" className="shrink-0"><Play className="w-4 h-4" aria-hidden="true" /> View replay</Button>
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

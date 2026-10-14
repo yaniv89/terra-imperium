@@ -131,6 +131,6 @@ describe('warModel', () => {
     expect(oddsSource(s, { field: true }).exact).toBe(true);
     expect(oddsSource(s, { targetRegionId: WORLD.foe }).exact).toBe(false);
     expect(oddsSource({ ...s, intel: { [WORLD.agg]: s.turnNumber + 3 } }, { targetRegionId: WORLD.foe })).toMatchObject({ exact: true, label: 'Spy report' });
-    expect(scoutsRange(290).text).toBe('about 230 to 350');
+    expect(scoutsRange(290).text).toBe('about 2,320 to 3,480');
   });
 });

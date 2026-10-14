@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import BattleReportSheet from './BattleReportSheet';
 import BattleReplay from './BattleReplay';
+import { replayFooter, detailFor, filterReports } from './battleReportsModel';
 
 const game = vi.hoisted(() => ({ state: { nations: { fr: { name: 'France' }, de: { name: 'Germany' } } } }));
 vi.mock('../../context/GameContext', () => ({ useGame: () => game }));
@@ -37,6 +38,17 @@ describe('battle report sheet', () => {
     expect(html).toContain('Sieges');
     expect(html).toContain('>Lost<');
     expect(html).toContain('>Command<');
+  });
+
+  it('keeps the replay footer true to the recorded mode, and the detail inside the filter', () => {
+    const auto = { ...entry, commanded: false };
+    const cmd = { ...entry, id: 'b2', commanded: true };
+    expect(replayFooter(auto, false, false)).not.toMatch(/Commanded/);
+    expect(replayFooter(cmd, false, false)).toMatch(/Commanded battles keep no replay/);
+    const lost = { ...entry, id: 'b3', outcome: 'defender', captured: false };
+    const all = [lost];
+    expect(detailFor(all, filterReports(all, 'won'), 'b3')).toBeNull();
+    expect(detailFor(all, filterReports(all, 'lost'), 'b3')).toBe(lost);
   });
 
   it('renders nothing without an entry, and the replay starts on the first round', () => {

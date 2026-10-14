@@ -12,6 +12,7 @@ import {
   bestSites, settlerPath, canSettle, settlersOf, outpostsOf, processSettlers, makeSettler, OUTPOST_DONE, OUTPOST_PROGRESS, SETTLER_MOVES, OUTPOST_SLOTS_BY_AGE, SETTLER_GIVE_UP_TURNS
 } from './settlers';
 import { chooseProduction, SETTLER_THINK_PERIOD } from './aiProduction';
+import { addCity } from './testWorld';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
 const play = (s) => {
@@ -20,6 +21,32 @@ const play = (s) => {
   x = resolveTurn(x);
   return x.activeProceduralEvent ? { ...x, activeProceduralEvent: null } : x;
 };
+
+describe('settlers of a captured city (T87)', () => {
+  const setup = () => {
+    const a = addCity(createInitialState({ playerNationId: 'eg', rngSeed: 5 }), 'eg');
+    const lost = a.state.regions[a.cityId];
+    const keep = a.state.regions[getNationCapital('eg')];
+    const settler = makeSettler('s1', lost, 'eg');
+    // The city changed hands: the settlers still stand on its tile.
+    const regions = { ...a.state.regions, [lost.id]: { ...lost, owner: 'fr' } };
+    return { state: { ...a.state, regions, units: { s1: settler } }, lost, keep, settler };
+  };
+  it('go to the old owner nearest city, with a log line', () => {
+    const { state, lost, keep } = setup();
+    const out = processSettlers(state, state.regions, state.units, state.world, () => 'bronze', state.turnNumber);
+    expect(out.units.s1.homeRegionId).toBe(keep.id);
+    expect(out.units.s1.tile).toBe(keep.tile);
+    expect(out.logs.some((l) => l.nationId === 'eg' && l.message.includes(lost.name) && l.message.includes(keep.name))).toBe(true);
+  });
+  it('are lost, with a line, when the old owner has no city left', () => {
+    const { state } = setup();
+    const regions = Object.fromEntries(Object.entries(state.regions).map(([id, r]) => [id, r.owner === 'eg' ? { ...r, owner: 'fr' } : r]));
+    const out = processSettlers({ ...state, regions }, regions, state.units, state.world, () => 'bronze', state.turnNumber);
+    expect(out.units.s1).toBeUndefined();
+    expect(out.logs.some((l) => /no city left/.test(l.message))).toBe(true);
+  });
+});
 
 describe('settlers and outposts', () => {
   it('finds sites in reach, scored by yields, never on owned land or too close to a city', () => {
