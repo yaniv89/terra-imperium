@@ -24,6 +24,26 @@ import { grudgeForKinCity } from './grudges';
 export const CONQUEST_CONTROL = 25;
 export const CONQUEST_MIN_UNREST = 50;
 
+// Occupation and the city's own history (playtest audits I126, I132; capture.js is the player's choice).
+//   Grace    for OCCUPATION_GRACE_TURNS after a conquest the city cannot break away (loyalty.js holds
+//            its loyalty at OCCUPATION_GRACE_FLOOR and its unrest under the uprising line): time to
+//            bring a garrison, never a permanent shield (`conquest.graceUntil`, a fixed turn).
+//   History  every conquest is written on the CITY (`captureLog`, the last CAPTURE_HISTORY entries
+//            { by, from, turn }), so it survives every later change of hands. A nation that takes
+//            the same city again within CAPTURE_REPEAT_TURNS gets no second grace, no second
+//            "city taken" on its battle record and no second thanks for freeing it
+//            (`conquest.repeat`): take, lose, retake is never a way to farm them.
+export const OCCUPATION_GRACE_TURNS = 10;
+export const OCCUPATION_GRACE_FLOOR = 20;
+export const OCCUPATION_GRACE_UNREST_CAP = 80;
+export const CAPTURE_REPEAT_TURNS = 30;
+export const CAPTURE_HISTORY = 6;
+
+/** Did `nationId` already take this city within the last CAPTURE_REPEAT_TURNS turns? */
+export const isRepeatCapture = (region, nationId, turn) => (region?.captureLog || []).some((e) => e.by === nationId && turn - e.turn < CAPTURE_REPEAT_TURNS);
+/** Is the city inside its occupation grace on `turn`? */
+export const inOccupationGrace = (region, turn) => region?.conquest?.graceUntil != null && turn < region.conquest.graceUntil;
+
 // If `nationId`'s capital is no longer its own, move it to its richest remaining province (and cost
 // it stability). Returns `nations` unchanged when nothing moved or nothing is left.
 export const relocateLostCapital = (nations, regions, nationId, stabilityPenalty = CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY) => {
@@ -48,7 +68,8 @@ export const conquerRegion = ({ regions, nations, turnNumber }, regionId, conque
     control: CONQUEST_CONTROL,
     unrest: Math.max(region.unrest || 0, CONQUEST_MIN_UNREST),
     lastAttackedTurn: turnNumber,
-    conquest: { warId: war?.id || null, from: loserId, turn: turnNumber, capital: loserCapital === regionId },
+    conquest: { warId: war?.id || null, from: loserId, turn: turnNumber, capital: loserCapital === regionId, ...(isRepeatCapture(region, conquerorId, turnNumber) ? { repeat: true } : { graceUntil: turnNumber + OCCUPATION_GRACE_TURNS }) },
+    captureLog: [...(region.captureLog || []), { by: conquerorId, from: loserId, turn: turnNumber }].slice(-CAPTURE_HISTORY),
     // Loyalty (loyalty.js): a taken city starts half loyal and resents the conquest for a while.
     loyalty: LOYALTY_ON_CONQUEST, freeCity: undefined
   });

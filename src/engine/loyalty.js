@@ -36,7 +36,7 @@ import { buildRadiusIndex } from './world/registry';
 import { settlesThisTurn } from './world/lod';
 import { amenitiesOf } from './world/cities';
 import { transferRegion } from './regionTransfer';
-import { relocateLostCapital } from './conquest';
+import { relocateLostCapital, inOccupationGrace, OCCUPATION_GRACE_FLOOR, OCCUPATION_GRACE_UNREST_CAP, OCCUPATION_GRACE_TURNS } from './conquest';
 import { unitTile } from './armies';
 import { isSettler } from './settlers';
 import { landUnitsByTile } from './sieges';
@@ -61,6 +61,8 @@ export const LOYALTY_GARRISON_PER_UNIT = 10;
 export const LOYALTY_GARRISON_CAP = 30;
 export const LOYALTY_AMENITY_CAP = 10;
 export const LOYALTY_CONQUERED = -20;
+export const LOYALTY_OCCUPATION_PER_UNIT = 15;
+export const LOYALTY_OCCUPATION_CAP = 45;
 export const CONQUERED_TURNS = 20;
 export const LOYALTY_CAPITAL_LOST = -20;
 export const LOYALTY_ON_CONQUEST = 50;
@@ -148,10 +150,15 @@ export const loyaltyTarget = (state, city, units = state.units, nations = state.
   const culture = cultureOf(city);
   const share = city.owner ? (culture[city.owner] || 0) : 0;
   const onCentre = byTile ? (byTile.get(city.tile) || []).filter((u) => u.ownerId === city.owner) : Object.values(units).filter((u) => u.ownerId === city.owner && u.domain === 'land' && !u.embarkedOn && !isSettler(u) && u.strength > 0 && unitTile(state, u) === city.tile);
-  const garrison = Math.min(LOYALTY_GARRISON_CAP, LOYALTY_GARRISON_PER_UNIT * onCentre.length);
-  const amenities = Math.max(-LOYALTY_AMENITY_CAP, Math.min(LOYALTY_AMENITY_CAP, amenitiesOf(city).net));
   const turn = state.turnNumber || 1;
-  const conquered = city.conquest && turn - (city.conquest.turn || 0) < CONQUERED_TURNS ? LOYALTY_CONQUERED : 0;
+  const age = city.conquest ? turn - (city.conquest.turn || 0) : Infinity;
+  // A city under occupation (a conquest younger than CONQUERED_TURNS) is held by its garrison more
+  // than a settled one (I126): LOYALTY_OCCUPATION_PER_UNIT a unit up to LOYALTY_OCCUPATION_CAP.
+  const occupied = age < CONQUERED_TURNS;
+  const garrison = occupied ? Math.min(LOYALTY_OCCUPATION_CAP, LOYALTY_OCCUPATION_PER_UNIT * onCentre.length) : Math.min(LOYALTY_GARRISON_CAP, LOYALTY_GARRISON_PER_UNIT * onCentre.length);
+  const amenities = Math.max(-LOYALTY_AMENITY_CAP, Math.min(LOYALTY_AMENITY_CAP, amenitiesOf(city).net));
+  // The resentment of the conquest fades over CONQUERED_TURNS instead of stopping all at once.
+  const conquered = occupied ? Math.round(LOYALTY_CONQUERED * (1 - age / CONQUERED_TURNS)) : 0;
   const owner = nations[city.owner];
   const capitalLost = owner && owner.capitalRegionId && state.regions[owner.capitalRegionId] && state.regions[owner.capitalRegionId].owner !== city.owner ? LOYALTY_CAPITAL_LOST : 0;
   const maxOther = Object.entries(culture).reduce((m, [id, v]) => (id !== city.owner && v > m ? v : m), 0);
@@ -163,6 +170,35 @@ export const loyaltyTarget = (state, city, units = state.units, nations = state.
   const wonder = city.owner ? cityWonderTotal(state.greatProjects, city.id, 'local.loyalty') : 0;
   const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost + governor + law + wonder)));
   return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost, governor, law, wonder };
+};
+
+/**
+ * Where a city's loyalty is heading (I127): { loyalty, target, trend: 'rising' | 'falling' |
+ * 'steady', breaksIn (turns until it can break away, or null), graceLeft (turns of occupation
+ * grace left, 0 when none), garrison: { units, perUnit, cap, gain } (what one more unit on the
+ * centre adds now) }. Plain numbers for the city card; the turn itself decides nothing from it.
+ */
+export const loyaltyForecast = (state, city) => {
+  const turn = state.turnNumber || 1;
+  const parts = loyaltyTarget(state, city);
+  const loyalty = loyaltyOf(city);
+  const graceLeft = inOccupationGrace(city, turn) ? city.conquest.graceUntil - turn : 0;
+  const trend = parts.total > loyalty ? 'rising' : parts.total < loyalty ? 'falling' : 'steady';
+  const occupied = city.conquest && turn - (city.conquest.turn || 0) < CONQUERED_TURNS;
+  const perUnit = occupied ? LOYALTY_OCCUPATION_PER_UNIT : LOYALTY_GARRISON_PER_UNIT;
+  const cap = occupied ? LOYALTY_OCCUPATION_CAP : LOYALTY_GARRISON_CAP;
+  const units = Math.round(parts.garrison / perUnit);
+  const gain = Math.max(0, Math.min(cap, parts.garrison + perUnit) - parts.garrison);
+  let breaksIn = null;
+  const capital = state.nations?.[city.owner]?.capitalRegionId === city.id;
+  if (!capital && parts.total <= 0) {
+    // Down LOYALTY_STEP a turn to 0, never before the grace (or a flip cool-down) ends.
+    const fall = Math.ceil(loyalty / LOYALTY_STEP);
+    const graceEnd = graceLeft ? Math.ceil(Math.max(0, Math.min(loyalty, OCCUPATION_GRACE_FLOOR)) / LOYALTY_STEP) + graceLeft : 0;
+    const cool = city.lastFlipTurn != null ? Math.max(0, FLIP_COOLDOWN_TURNS - (turn - city.lastFlipTurn)) : 0;
+    breaksIn = Math.max(fall, graceEnd, cool, 1);
+  }
+  return { loyalty, target: parts.total, trend, breaksIn, graceLeft, graceTurns: OCCUPATION_GRACE_TURNS, garrison: { units, perUnit, cap, gain } };
 };
 
 // Nations whose land touches this city's tiles.
@@ -210,9 +246,14 @@ export const applyLoyalty = (state, regions, units, nations, turn, periodOf = nu
     const target = loyaltyTarget(view, { ...city, culture }, units, nations, byTile, cache).total;
     const current = loyaltyOf(city);
     const step = LOYALTY_STEP * period;
-    const loyalty = current < target ? Math.min(target, current + step) : Math.max(target, current - step);
-    if (culture !== city.culture || loyalty !== city.loyalty) regions[city.id] = { ...city, culture, loyalty };
-    const settling = (city.lastFlipTurn != null && turn - city.lastFlipTurn < FLIP_COOLDOWN_TURNS) || (city.founded > 1 && turn - city.founded < FOUNDING_GRACE_TURNS);
+    // The occupation grace (conquest.js, I126): loyalty never falls under the floor and unrest stays
+    // under the uprising line, so the city cannot break away through either system meanwhile.
+    const grace = inOccupationGrace(city, turn);
+    const moved = current < target ? Math.min(target, current + step) : Math.max(target, current - step);
+    const loyalty = grace ? Math.max(moved, Math.min(current, OCCUPATION_GRACE_FLOOR)) : moved;
+    const unrest = grace && (city.unrest || 0) > OCCUPATION_GRACE_UNREST_CAP ? OCCUPATION_GRACE_UNREST_CAP : city.unrest;
+    if (culture !== city.culture || loyalty !== city.loyalty || unrest !== city.unrest) regions[city.id] = { ...city, culture, loyalty, ...(unrest !== city.unrest ? { unrest } : {}) };
+    const settling = grace || (city.lastFlipTurn != null && turn - city.lastFlipTurn < FLIP_COOLDOWN_TURNS) || (city.founded > 1 && turn - city.founded < FOUNDING_GRACE_TURNS);
     if (loyalty <= 0 && !settling && nations[city.owner]?.capitalRegionId !== city.id) { // a nation's current capital never flips (a stale isCapital flag on a taken city does not count)
       const near = bordering(view, tiles, city);
       const press = pressure || pressureOn(tiles, cities, index, city, neighbours);
