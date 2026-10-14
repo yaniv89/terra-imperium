@@ -21,6 +21,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_worker_clips as W  # noqa: E402
 
 UID = 'gunpowder-worker'
 arm = F.start({'Skin': 'C99472', 'Hair': '3A2A1E', 'Cloth': 'ECE6D8', 'Breeches': '5C4632', 'Stocking': '8C8A84', 'Shoe': '2A2420', 'Kerchief': '8E3B2C',
@@ -99,6 +100,13 @@ tube('Shovel', [((sx, sy, .300), .0115, P), ((sx, sy, .920), .0105, P)], 'Wood',
 tube('ShovelGrip', [((sx - .040, sy, .930), .010, P), ((sx + .040, sy, .930), .010, P)], 'Wood', 5, attachment=True)
 box('ShovelBlade', (sx, sy, .330), (.090, .014, .090), 'Metal', P, True)
 
-F.finish_rest(UID, 'Labourer: a round felt hat with a Team band, a red neckerchief, a Team waistcoat with brass buttons over white shirt sleeves, brown breeches, '
-              'grey stockings and buckled shoes, leaning into a wooden wheelbarrow of earth and stones pushed with both hands, a shovel upright in the load',
-              notes={'role': 'worker'})
+# ---- work tools and clips (2026-10-14, ti_worker_clips.py): the barrow and its shovel move from Prop_R to
+# their own bone Tool_Held, the wheel to Tool_Wheel (a child of Tool_Held at the axle; it turns in the
+# moving clips); same shapes, same rest pose. A steel axe, pick, sickle and hammer on Tool_Axe, Tool_Pick,
+# Tool_Sickle and Tool_Hammer, hidden (scale 0) but in the clips that use them (the barrow is then hidden).
+# The barrow stays on the ground in the clips that keep it (both hands on the handles), tips over its
+# wheel in Deposit and stays where it stood when he falls (Death).
+W.finish_worker(UID, 'Labourer: a round felt hat with a Team band, a red neckerchief, a Team waistcoat with brass buttons over white shirt sleeves, brown breeches, '
+                'grey stockings and buckled shoes, leaning into a wooden wheelbarrow of earth and stones pushed with both hands, a shovel upright in the load; '
+                'steel work tools in the clips', 'steel', 'barrow',
+                wheel=(AX, ['BarrowWheelRim', 'BarrowWheelSpoke0', 'BarrowWheelSpoke1', 'BarrowWheelHub']), notes={'role': 'worker'})

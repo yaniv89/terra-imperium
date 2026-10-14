@@ -14,6 +14,9 @@ describe('map and battle models', () => {
     expect(packFlags('src/assets/units/bronze-infantry.glb')).toContain('-noq');
     expect(packFlags('src\\assets\\units\\bronze-siege.glb')).toContain('-noq');
     expect(packFlags('src/assets/battle/city/walls-bronze.glb')).not.toContain('-noq');
+    // unit clips keep their 20 fps keys (no resampling)
+    expect(packFlags('src/assets/units/bronze-worker.glb').join(' ')).toContain('-af 0');
+    expect(packFlags('src/assets/battle/city/walls-bronze.glb')).not.toContain('-af');
   });
 
   it('are packed (run npm run pack:models after adding art)', () => {

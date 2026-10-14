@@ -21,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_worker_clips as W  # noqa: E402
 
 UID = 'modern-worker'
 arm = F.start({'Skin': 'C99472', 'Hair': '2E241C', 'Shirt': '56677A', 'Trousers': '2C3440', 'Boot': '6A4A2E', 'Sole': '231C16', 'HardHat': 'ECEAE2',
@@ -60,5 +61,11 @@ P = 'Prop_R'
 tube('HammerShaft', [((HX, HY, .070), .0125, P), ((HX, HY, .725), .0110, P)], 'Wood', 5, attachment=True)
 box('HammerHead', (HX, HY, .042), (.132, .046, .050), 'Metal', P, True)
 
-F.finish_rest(UID, 'Engineer: a white hard hat, a Team high-visibility vest with pale reflective bands, a blue-grey work shirt, dark work trousers with cargo pockets, '
-              'tan gloves, brown work boots, a tool belt and bag, leaning on a sledgehammer stood on its head', notes={'role': 'worker'})
+# ---- work tools and clips (2026-10-14, ti_worker_clips.py): the sledgehammer moves from Prop_R to its own bone
+# Tool_Held (same shape, same rest pose) and builds and repairs; a modern axe, pick and sickle (black
+# grips) on Tool_Axe, Tool_Pick and Tool_Sickle, hidden (scale 0) but in the clips that use them. Walking
+# he carries the sledgehammer on his right shoulder; Carry steadies a load on the left shoulder.
+from mathutils import Vector  # noqa: E402
+W.finish_worker(UID, 'Engineer: a white hard hat, a Team high-visibility vest with pale reflective bands, a blue-grey work shirt, dark work trousers with cargo pockets, '
+                'tan gloves, brown work boots, a tool belt and bag, leaning on a sledgehammer stood on its head; modern work tools in the clips',
+                'modern', 'sledge', held_frame=(Vector((0, 0, -1)), Vector((1, 0, 0))), build_tool='Held', notes={'role': 'worker'})
