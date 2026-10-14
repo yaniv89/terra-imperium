@@ -194,6 +194,7 @@ export const processImpacts = (w) => {
       if (!s.alive || imp.side === SIDE_DEFENDER) return; // the defender never shells its own keep
       if (distSq(s.x, s.y, imp.x, imp.y) > (imp.radius + s.radius) * (imp.radius + s.radius)) return;
       s.hp = Math.max(0, s.hp - Math.round(imp.damage * imp.structureMult));
+      s.lastHitTick = w.tick;
       if (s.hp === 0) { s.alive = false; w.events.push({ t: w.tick, type: s.kind === 'keep' ? 'keepBreached' : 'structureDestroyed', structure: s.id }); collapseFootprint(w, s); }
     });
   });

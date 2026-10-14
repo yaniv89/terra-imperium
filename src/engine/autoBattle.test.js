@@ -31,6 +31,16 @@ describe('the honest auto-resolve', () => {
     expect(auxiliariesFor('naval', 0, i)).toEqual([]);
   });
 
+  it('an unwalled town trains its own, smaller count of auxiliaries (AUX_TRAINED.town)', () => {
+    const i = ins(mk('a', ['infantry', 'infantry']), mk('d', ['infantry', 'infantry']), { housing: 100 });
+    const total = (side, walled) => auxiliariesFor('invasion', side, i, AUTO_TUNE, walled).reduce((s, u) => s + u.strength, 0);
+    [0, 1].forEach((side) => {
+      expect(total(side, false)).toBeGreaterThan(0);
+      expect(total(side, false)).toBeLessThan(total(side, true));
+    });
+    expect(total(0, false) / total(0, true)).toBeCloseTo(AUTO_TUNE.AUX_TRAINED.town[0] / AUTO_TUNE.AUX_TRAINED.assault[0], 1);
+  });
+
   it('a walled city holds its gate against an army without siege engines, less so once a siege battered it', () => {
     const att = mk('a', ['infantry', 'infantry', 'infantry']);
     const def = mk('d', ['infantry']);
