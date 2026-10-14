@@ -50,6 +50,7 @@ import { cityManifestOf, manifestStates } from '../../../engine/cityManifest';
 import { applyTownDamage, syncTownDamage, enableGroundClear, setGroundClear, fileGroundClear } from './townDamage';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 import { shipModel, shipsFor, SHIP_SCALE } from './shipModels';
+import { outpostFor, outpostFitRadius } from './outpostModels';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
@@ -235,7 +236,16 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       }
       // The camp, a capital's palace, the wall ring and the fields come from the age's shared file.
       const shared = camp || asset ? sharedFor(opts.ageId, style) : null;
-      const campRoot = camp ? shared?.[COLONY_CAMP] : null;
+      // An outpost shows its age band's camp (outpostModels.js) once that file is in; until then,
+      // or without one, the shared file's colony camp.
+      const outpost = camp ? outpostFor(region, opts.ageId) : null;
+      if (outpost && !t.assets.has(outpost.url)) {
+        t.assets.set(outpost.url, null);
+        loadAssetObjects(outpost.url).then((objs) => { t.assets.set(outpost.url, objs); onAssets(); })
+          .catch((e) => { console.warn('outpost model failed, the outpost keeps the colony camp:', e.message); });
+      }
+      const outpostRoot = outpost ? improvementRoot(t.assets.get(outpost.url), outpost.name) : null;
+      const campRoot = camp ? outpostRoot || shared?.[COLONY_CAMP] : null;
       // A capital's palace follows the owner's theme (a people's `theme`, art spec 3b.5), the town
       // the land's; a legacy nation's palace stays with the land.
       const palaceStyle = themeOfNation(owner);
@@ -251,7 +261,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       // battle damage on the city (src/engine/cityManifest.js): ruined houses cut out, damaged darkened
       const dmg = asset ? region.cityDamage : null;
       const dmgKey = dmg ? `${Object.keys(dmg.ruined || {}).sort().join(',')}/${Object.keys(dmg.damaged || {}).sort().join(',')}` : '';
-      const key = campRoot ? `${id}|camp|${opts.ageId}|${teamColor}|${tintKey(tint)}`
+      const key = campRoot ? `${id}|camp|${opts.ageId}|${outpostRoot ? outpost.url : ''}|${teamColor}|${tintKey(tint)}`
         : asset ? `${id}|asset|${assetUrl}|${teamColor}|${tintKey(tint)}|${palaceRoot ? palaceRoot.uuid : ''}|${wallsRoot ? wallsRoot.uuid : ''}|${fields.map((f) => f.name).join(',')}|${dmgKey}`
           : `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
       seen.add(id);
@@ -287,9 +297,10 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       if (mesh.userData.asset) showLod(mesh, lodForZoom(k));
       // the town's ground (and its wall ring) is claimed first; its fields come after the works.
       // Every tier fills its own hex (cityHex.js, decision D10): the tier's art shows the city's
-      // size; never into a neighbouring hex or the sea. An outpost's camp keeps its natural size.
-      const radius = (camp ? 1.0 : tier.modelRadius || 2) + (opts.walls && !camp ? 0.3 : 0);
-      const ts = hexTownPx({ projection, tiles: getTiles(), tile: region.tile, k, radius, lean, fill: !camp, isTown, tierScale: TIER_SCALE[tier.id] || 1 });
+      // size; never into a neighbouring hex or the sea. An outpost's camp file fills a share of its
+      // hex (outpostModels.js); the old colony camp keeps its natural size.
+      const radius = (outpostRoot ? outpostFitRadius() : camp ? 1.0 : tier.modelRadius || 2) + (opts.walls && !camp ? 0.3 : 0);
+      const ts = hexTownPx({ projection, tiles: getTiles(), tile: region.tile, k, radius, lean, fill: !camp || !!outpostRoot, isTown, tierScale: TIER_SCALE[tier.id] || 1 });
       occ.claim(at.x, at.y, radius * ts);
       if (mesh.userData.fields?.length) ringFields.push({ mesh, at, s: ts });
       // the city's landmarks (its highest building tiers with a model file) round an artist town
