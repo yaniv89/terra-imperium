@@ -43,7 +43,10 @@ const showKeys = () => {
   try { return typeof location !== 'undefined' && new URLSearchParams(location.search).has('i18nKeys'); } catch (e) { return false; }
 };
 
-let current = readStored() || detectLanguage(typeof navigator !== 'undefined' ? navigator.language : '');
+// Until the Hebrew text covers every screen (plans/hebrew-support-plan.md, H6), a new device starts
+// in English; Hebrew only by choice in the Menu. Then: detectLanguage(navigator.language).
+export const AUTO_DETECT_LANGUAGE = false;
+let current = readStored() || (AUTO_DETECT_LANGUAGE ? detectLanguage(typeof navigator !== 'undefined' ? navigator.language : '') : 'en');
 const listeners = new Set();
 
 export const getLanguage = () => current;
