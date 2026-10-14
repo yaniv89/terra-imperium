@@ -307,7 +307,7 @@ const DomesticPanel = () => {
               <Users size={12} />
               {POWER_POOL_NAMES[pool]} Advisor
             </div>
-            <div className="text-[10px] text-fa-muted">Adds their level to {pool.toUpperCase()} each turn. {POWER_POOL_HELP[pool].spends}</div>
+            <div className="text-[10px] text-fa-muted">Adds their level to {pool.toUpperCase()} each turn. {POWER_POOL_HELP[pool].name} {POWER_POOL_HELP[pool].short}.</div>
             {current ? (
               <div className="text-fa-text">{current.name} (level {current.level})</div>
             ) : (

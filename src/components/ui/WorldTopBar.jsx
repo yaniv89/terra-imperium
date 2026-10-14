@@ -131,7 +131,7 @@ const WorldTopBar = () => {
       {open === 'food' && <Reasons title="Food a turn, by city" rows={m.food.reasons} total={m.food.perTurn} unit="" onClose={close}
         footer={<p className="mt-2 text-[11px] text-fa-muted">The surplus after the people eat. It fills each city&apos;s bank ({m.food.value} in all) until the city grows.</p>} />}
       {open === 'culture' && <Reasons title="Culture a turn, by city" rows={m.culture.reasons} total={m.culture.perTurn} unit="" onClose={close}
-        footer={<p className="mt-2 text-[11px] text-fa-muted">Culture claims new tiles for each city and holds its people loyal. {CULTURE_HELP.earns} {CULTURE_HELP.spends}</p>} />}
+        footer={<p className="mt-2 text-[11px] text-fa-muted">{CULTURE_HELP.earns} {CULTURE_HELP.spends}</p>} />}
     </header>
   );
 };
