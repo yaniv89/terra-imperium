@@ -1,8 +1,8 @@
 // src/components/battle/TacticalBattleScreen.jsx
-// The commanded battle (Tactical Battles plan §2, §11): a full-screen three.js battlefield driven
+// The commanded battle (Tactical Battles plan ֲ§2, ֲ§11): a full-screen three.js battlefield driven
 // by the sim in a Web Worker, with a thumb-friendly HUD on top. Mobile first: tap to select / tap to
 // order, drag a line for a formation, double-tap-drag to lasso, long-press for attack-move or the
-// squad menu, pinch to zoom — plus a tactical pause that keeps accepting orders. It starts paused
+// squad menu, pinch to zoom ג€” plus a tactical pause that keeps accepting orders. It starts paused
 // (deployment): give opening orders, then press Start.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deployZone } from '../../battle/sim/world';
@@ -29,7 +29,8 @@ import { Check, X as XIcon, Ban, Hammer, Wrench } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
 import { BuildMenu, BuildingActions, InfoCard, HammerButton } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
-import { contextFor, refusedText } from './battleHudModel';
+import { contextFor, refusedText, enemyObjectives, supplyRate } from './battleHudModel';
+import BattleMinimap from './BattleMinimap';
 import { updateSiteLabels } from './siteLabels';
 import { BUILDINGS, ecoName, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN } from '../../battle/data/economy';
 import { placementCheck, footprintAt, legalArea, PLACEMENT_REASON } from '../../battle/input/placement';
@@ -66,6 +67,28 @@ const MOUSE_POINTER = typeof window !== 'undefined' && !!window.matchMedia?.('(p
 const REFUSED_MS = 4000;
 const ORDER_NOTE_MS = 3500;
 
+// U03: the battle screen's usable rectangle. The safe-area insets (a notch or Dynamic Island on the
+// left or right in landscape, the home bar below) as --sa-t/r/b/l for the HUD; `&safe=t,r,b,l` (css
+// px) in the URL stands in for a notch where the browser has none (screenshots, desktop checks).
+const SAFE_URL = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('safe') : null;
+const safeVars = () => {
+  const n = SAFE_URL ? SAFE_URL.split(',').map((v) => Math.max(0, Number(v) || 0)) : null;
+  const side = (k, i) => (n ? `${n[i] ?? 0}px` : `env(safe-area-inset-${k}, 0px)`);
+  return { '--sa-t': side('top', 0), '--sa-r': side('right', 1), '--sa-b': side('bottom', 2), '--sa-l': side('left', 3) };
+};
+// I196: the minimap's on/off is a per-device convenience, never game state.
+const MINIMAP_KEY = 'ti.battle.minimap';
+const readFlag = (key) => { try { return localStorage.getItem(key) === '1'; } catch { return false; } };
+const writeFlag = (key, on) => { try { localStorage.setItem(key, on ? '1' : '0'); } catch { /* storage blocked */ } };
+// I198: arrow keys and the mouse at the screen's edge move the camera (css px a second).
+const KEY_PAN_PX_S = 700;
+const EDGE_PAN_PX_S = 600;
+const EDGE_PX = 14;
+// I199: how fast the camera catches up with a followed selection (per second).
+const FOLLOW_RATE = 4;
+// Notes about orders sit just above the bottom bar, inside the safe area.
+const NOTE_BOTTOM = 'calc(max(0.375rem, var(--sa-b, 0px)) + 3.75rem)';
+
 const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onRetry = null, getCampaign = null, getReceipt = null, onEnded = null }) => {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -75,7 +98,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const soundOn = useAudioSettings().sound; // the one Sound switch (also in Settings)
   const frames = useRef({ prev: null, cur: null, arrival: 0 });
   const selectedRef = useRef(new Set());
-  const armedRef = useRef(null); // 'attackMove' — the next ground order becomes an attack-move
+  const armedRef = useRef(null); // 'attackMove' ג€” the next ground order becomes an attack-move
   const formationRef = useRef('line');
   const speedRef = useRef(1);
   const [hud, setHud] = useState(null);
@@ -122,6 +145,17 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const setSelectModeOn = useCallback((on) => { selectModeRef.current = on; setSelectMode(on); }, []);
   // A one-time hint in the player's first commanded battle (a UI hint, never game state).
   const [selectHint, setSelectHint] = useState(() => !hintSeen(SELECT_HINT_KEY));
+  // I199: the camera follows the selection until the player moves it by hand.
+  const [follow, setFollowState] = useState(false);
+  const followRef = useRef(false);
+  const setFollow = useCallback((on) => { followRef.current = on; setFollowState(on); }, []);
+  // I196: the minimap, off until the player turns it on (remembered on this device).
+  const [minimapOn, setMinimapOn] = useState(() => readFlag(MINIMAP_KEY));
+  // I198: arrow keys held, and the edge the mouse rests at ({ x, y } in -1..1), for the render loop.
+  const panKeysRef = useRef(new Set());
+  const edgeRef = useRef(null);
+  const objectiveIdxRef = useRef(0);
+  const safeStyle = useMemo(safeVars, []);
 
   // The hint is remembered as soon as it shows (the HUD is up), and fades on its own.
   const hudUp = !!hud;
@@ -252,6 +286,30 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         setFailure({ message: 'The battle could not start.', detail: `No answer from the battle after ${Math.round(FIRST_FRAME_TIMEOUT_MS / 1000)} seconds.` });
       }
       const alpha = f.prev ? Math.min(1, ((t - f.arrival) * speedRef.current) / (1000 / TICK_HZ)) : 1;
+      // I198: arrow keys and the screen's edge pan (a hand on the camera ends a follow, I199).
+      let px = 0; let py = 0;
+      const keys = panKeysRef.current;
+      if (keys.size) {
+        const k = KEY_PAN_PX_S * dt;
+        if (keys.has('ArrowLeft')) px += k;
+        if (keys.has('ArrowRight')) px -= k;
+        if (keys.has('ArrowUp')) py += k;
+        if (keys.has('ArrowDown')) py -= k;
+      }
+      const edge = edgeRef.current;
+      if (edge) { px -= edge.x * EDGE_PAN_PX_S * dt; py -= edge.y * EDGE_PAN_PX_S * dt; }
+      if (px || py) { renderer.pan(px, py); if (followRef.current) setFollow(false); }
+      // I199: the camera eases towards the followed squads.
+      if (followRef.current && f.cur) {
+        const list = [...selectedRef.current].map((i) => f.cur.squads[i]).filter((q) => q?.alive && q.onField && !q.fled);
+        if (!list.length) setFollow(false);
+        else {
+          const k = 1 - Math.exp(-FOLLOW_RATE * dt);
+          const gx = list.reduce((s, q) => s + q.x, 0) / list.length / Q; const gz = list.reduce((s, q) => s + q.y, 0) / list.length / Q;
+          renderer.target.x += (gx - renderer.target.x) * k; renderer.target.z += (gz - renderer.target.z) * k;
+          renderer.clampTarget();
+        }
+      }
       const r0 = meter ? performance.now() : 0;
       try {
         renderer.render(f.prev, f.cur, alpha, { selected: selectedRef.current }, dt);
@@ -595,7 +653,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       order: (p) => pointer('right', p),
       longPress: (p) => { if (selectedRef.current.size) issueAt(p, true); },
       radial: (p) => setRadial({ x: p.x, y: p.y }),
-      pan: (dx, dy) => rendererRef.current?.pan(dx, dy),
+      pan: (dx, dy) => { rendererRef.current?.pan(dx, dy); if (followRef.current && Math.abs(dx) + Math.abs(dy) > 2) setFollow(false); },
       zoom: (factor, x, y) => rendererRef.current?.zoomBy(factor, x, y),
       formationDrag: (s, p) => setDragLine({ x0: s.x, y0: s.y, x1: p.x, y1: p.y }),
       formationEnd: (s, p) => {
@@ -620,14 +678,40 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       },
       cancel: () => { setDragLine(null); setLasso(null); }
     });
-  }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn, setGhostAt]);
+  }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn, setGhostAt, setFollow]);
 
-  // Keyboard (desktop): space pause, A attack-move, S stop, H hold, R retreat, Esc deselect.
+  // I198: the mouse resting at the screen's edge moves the camera (a mouse only; the HUD's own
+  // buttons are not the field, so pointing at them never pans).
   useEffect(() => {
+    const el = canvasRef.current;
+    const onMove = (e) => {
+      if (e.pointerType !== 'mouse' || e.buttons) { edgeRef.current = null; return; }
+      const w = wrapRef.current; if (!w) return;
+      const rect = w.getBoundingClientRect();
+      const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+      const ex = x < EDGE_PX ? -1 : x > rect.width - EDGE_PX ? 1 : 0;
+      const ey = y < EDGE_PX ? -1 : y > rect.height - EDGE_PX ? 1 : 0;
+      edgeRef.current = ex || ey ? { x: ex, y: ey } : null;
+    };
+    const off = () => { edgeRef.current = null; };
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerleave', off);
+    window.addEventListener('blur', off);
+    return () => { el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', off); window.removeEventListener('blur', off); };
+  }, []);
+
+  // Keyboard (desktop): space pause, A attack-move, S stop, H hold, R retreat, F follow, Esc deselect,
+  // arrow keys move the camera (I198).
+  useEffect(() => {
+    const keys = panKeysRef.current;
+    const onUp = (e) => keys.delete(e.key);
+    const clear = () => keys.clear();
     const onKey = (e) => {
       if (e.target?.tagName === 'INPUT') return;
       const sel = [...selectedRef.current];
-      if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+      if (e.key.startsWith('Arrow')) { e.preventDefault(); keys.add(e.key); }
+      else if (e.key === 'f' && sel.length) setFollow(!followRef.current);
+      else if (e.code === 'Space') { e.preventDefault(); togglePause(); }
       else if (e.key === 'a') { armedRef.current = 'attackMove'; setArmed('attackMove'); }
       else if (e.key === 's' && sel.length) send([{ type: 'stop', squads: sel }]);
       else if (e.key === 'h' && sel.length) send([{ type: 'hold', squads: sel }]);
@@ -635,13 +719,15 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       else if (e.key === 'Escape') closeX();
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', clear);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onUp); window.removeEventListener('blur', clear); };
   });
 
   // --- HUD actions -----------------------------------------------------------------------------
   const togglePause = () => {
     const c = clientRef.current; if (!c) return;
-    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); c.resume(); return; } // deployment → battle
+    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); c.resume(); return; } // deployment ג†’ battle
     setPaused((p) => { if (p) c.resume(); else c.pause(); return !p; });
   };
   const toggleSound = () => setAudioSettings({ sound: !soundOn });
@@ -665,23 +751,45 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // somewhere else); Find brings the army into view without touching the selection. Idle workers
   // are still shown, as they may be anywhere.
   const fightersOf = (cur) => cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && q.classId !== 'worker');
+  // Every camera jump from the HUD (Find, Go, the keep, Enemy, Base): a hand on the camera, so a
+  // follow ends (I199).
+  const lookAt = (x, z) => { rendererRef.current?.centerOn(x, z); setFollow(false); };
+  const lookAtSquads = (list) => { if (list.length) lookAt(list.reduce((s, q) => s + q.x, 0) / list.length / Q, list.reduce((s, q) => s + q.y, 0) / list.length / Q); };
   const selectClass = (classId) => {
     const cur = frames.current.cur; if (!cur) return;
     const idle = classId === 'idle' ? new Set(cur.eco?.idleWorkers || []) : null;
     const picked = classId === 'all' ? fightersOf(cur) : cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && (idle ? idle.has(q.idx) : q.classId === classId));
     updateSelection(picked.map((q) => q.idx));
-    if (idle && picked.length) rendererRef.current?.centerOn(picked.reduce((s, q) => s + q.x, 0) / picked.length / Q, picked.reduce((s, q) => s + q.y, 0) / picked.length / Q);
+    if (idle && picked.length) lookAtSquads(picked);
   };
   // Find army: the selection if there is one, else the whole army.
   const findArmy = () => {
     const cur = frames.current.cur; if (!cur) return;
     const sel = [...selectedRef.current].map((i) => cur.squads[i]).filter((q) => q?.alive && q.onField);
-    const list = sel.length ? sel : fightersOf(cur);
-    if (list.length) rendererRef.current?.centerOn(list.reduce((s, q) => s + q.x, 0) / list.length / Q, list.reduce((s, q) => s + q.y, 0) / list.length / Q);
+    lookAtSquads(sel.length ? sel : fightersOf(cur));
   };
+  // I196, I197: Enemy: the camera to the enemy's objective as far as you know it (their keep, their
+  // base buildings once seen, nearest your army first; each tap the next one), else says why not.
+  const showObjective = () => {
+    const cur = frames.current.cur; if (!cur) return;
+    const own = fightersOf(cur);
+    const from = own.length ? { x: own.reduce((s, q) => s + q.x, 0) / own.length / Q, y: own.reduce((s, q) => s + q.y, 0) / own.length / Q } : null;
+    const { targets, note, fallback } = enemyObjectives(cur, setup, playerSide, from);
+    if (!targets.length) { lookAt(fallback.x, fallback.y); setOrderNote(note); return; }
+    const i = objectiveIdxRef.current % targets.length; objectiveIdxRef.current = i + 1;
+    const t = targets[i];
+    lookAt(t.x, t.y);
+    setOrderNote(note || (targets.length > 1 ? `${t.label}, ${i + 1} of ${targets.length}. Tap Enemy again for the next.` : `${t.label}.`));
+  };
+  const toggleFollow = () => {
+    if (followRef.current) { setFollow(false); return; }
+    if (selectedRef.current.size) setFollow(true);
+  };
+  const toggleMinimap = () => setMinimapOn((on) => { writeFlag(MINIMAP_KEY, !on); return !on; });
+  const getRenderer = useCallback(() => rendererRef.current, []);
   const commandSelected = (type) => { const sel = [...selectedRef.current]; if (sel.length) send([{ type, squads: sel }]); setRadial(null); };
   const retreatAll = () => send([{ type: 'retreatAll' }]);
-  const focusKeep = () => { const k = setup.structures[0]; rendererRef.current?.centerOn(k.x / Q, k.y / Q); };
+  const focusKeep = () => { const k = setup.structures[0]; lookAt(k.x / Q, k.y / Q); };
   // The battle economy's actions.
   // `from`: 'sheet' (the build sheet: it comes back after) or 'panel' (a building's panel: the house
   // when training waits for housing).
@@ -698,7 +806,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const seenInfo = !ecoBuilding && inspect ? inspectInfo(hud, setup, inspect, playerSide) : null;
   // An alert's Go: the camera goes there; a squad of yours it is about is selected.
   const alertGo = (a) => {
-    rendererRef.current?.centerOn(a.x / Q, a.y / Q);
+    lookAt(a.x / Q, a.y / Q);
     const q = a.squad != null ? frames.current.cur?.squads[a.squad] : null;
     if (q && q.side === playerSide && q.alive && q.onField && !q.fled) updateSelection([a.squad]);
   };
@@ -709,8 +817,20 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const hq = hud?.eco?.buildings.find((b) => b.side === playerSide && (b.type === 'camp' || b.type === 'hall') && b.alive);
     if (!hq) return;
     selectBuilding(hq.idx);
-    rendererRef.current?.centerOn(hq.x / Q, hq.y / Q);
+    lookAt(hq.x / Q, hq.y / Q);
   };
+  // U12: Battle Supply gained a second, from the last few seconds of frames.
+  const supplySamplesRef = useRef([]);
+  const [supplyGain, setSupplyGain] = useState(null);
+  useEffect(() => {
+    if (!hud) return;
+    const s = supplySamplesRef.current;
+    if (s.length && hud.tick <= s[s.length - 1].tick) { if (hud.tick < s[s.length - 1].tick) s.length = 0; else return; }
+    s.push({ tick: hud.tick, v: hud.supply[playerSide] });
+    while (s.length > 2 && hud.tick - s[0].tick > 5 * TICK_HZ) s.shift();
+    const rate = supplyRate(s);
+    setSupplyGain((old) => (old === rate ? old : rate));
+  }, [hud, playerSide]);
 
   const timeLeft = hud ? Math.max(0, Math.ceil((battleLimitTicks(setup) - hud.tick) / TICK_HZ)) : 0;
   const selectedSquads = useMemo(() => (hud ? selected.map((i) => hud.squads[i]).filter((q) => q && q.alive) : []), [hud, selected]);
@@ -773,8 +893,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   let panel = null;
   if (hud?.eco && context === 'place' && ghost) {
     panel = (
-      <div className="w-[min(19rem,calc(100vw-11rem))] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl text-[11.5px]" data-testid="battle-place-panel">
-        <div className="px-1 leading-snug"><b>{ecoName(ghost.building, ageId)}</b><span className="text-fa-muted"> · {MOUSE_POINTER ? 'click the green ground to build' : 'tap or drag on the green ground, then Build here'}</span></div>
+      <div className="w-[min(19rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl text-[11.5px]" data-testid="battle-place-panel">
+        <div className="px-1 leading-snug"><b>{ecoName(ghost.building, ageId)}</b><span className="text-fa-muted"> ֲ· {MOUSE_POINTER ? 'click the green ground to build' : 'tap or drag on the green ground, then Build here'}</span></div>
         <div className="flex items-center gap-1 mt-1">
           <div className={cx('flex-1 min-w-0 px-1 font-semibold leading-tight', ghost.ok ? 'text-fa-good' : 'text-fa-danger-text')} data-testid="battle-place-reason">{ghost.ok ? 'Good spot' : ghost.reason}</div>
           <button type="button" onClick={placeGhost} disabled={!ghost.ok} aria-describedby="battle-place-why" data-testid="battle-place-confirm" className="shrink-0 min-w-[64px] h-12 px-2 rounded-[10px] bg-fa-raised border border-fa-good text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 disabled:opacity-40 disabled:border-fa-line"><Check className="w-4 h-4" aria-hidden="true" /><span className="leading-none">Build here</span></button>
@@ -839,9 +959,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       </div>
     );
   } else if (note) panel = note;
+  // A phone in landscape: the minimap is smaller.
+  const compactScreen = typeof window !== 'undefined' && window.innerHeight <= 500;
 
   return (
-    <div ref={wrapRef} className="fixed inset-0 z-[80] bg-fa-ink text-fa-text select-none" style={{ touchAction: 'none' }} data-testid="tactical-battle">
+    <div ref={wrapRef} className="fixed inset-x-0 top-0 z-[80] bg-fa-ink text-fa-text select-none" style={{ touchAction: 'none', height: 'var(--app-height, 100%)', ...safeStyle }} data-testid="tactical-battle">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ touchAction: 'none' }} />
       {/* B10: "Building 43%" over your sites and the reason over a red placement ghost, moved by the render loop */}
       <div ref={siteLabelsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
@@ -872,8 +994,14 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         onTogglePause={togglePause} onSpeed={changeSpeed} onArm={arm} onFormation={cycleFormation}
         onSelectClass={selectClass} onFindArmy={findArmy} onCommand={commandSelected}
         onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onAbandon}
-        onPower={firePower} onOpenAbilities={() => { const w0 = wrapRef.current; setRadial({ x: (w0?.clientWidth || 400) / 2, y: (w0?.clientHeight || 800) - 150 }); }}
-        hasAbilities={selectedAbilities.length > 0}
+        onPower={firePower} onAbility={triggerSquadAbility} abilities={selectedAbilities}
+        onCancelArmed={() => disarm()}
+        onObjective={showObjective}
+        follow={follow} onToggleFollow={toggleFollow}
+        minimapOn={minimapOn} onToggleMinimap={toggleMinimap}
+        minimap={hud ? <BattleMinimap setup={setup} hud={hud} playerSide={playerSide} getRenderer={getRenderer} onMoved={() => setFollow(false)} {...(compactScreen ? { maxW: 150, maxH: 92 } : { maxW: 220, maxH: 136 })} /> : null}
+        supplyRate={supplyGain}
+        perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
         onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq}
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => { setSelectModeOn(!selectModeRef.current); setSelectHint(false); }}
@@ -884,12 +1012,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         context={context} panel={panel}
         ended={!!ended}
       />
-      {showPerf && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
       {refused && !ended && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" role="status" aria-live="polite" data-testid="battle-orders-refused">{refusedText(refused)}</div>
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-orders-refused">{refusedText(refused)}</div>
       )}
       {orderNote && !refused && !ended && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 max-w-[min(26rem,calc(100vw-32rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" role="status" aria-live="polite" data-testid="battle-order-note">{orderNote}</div>
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">{orderNote}</div>
       )}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} receipt={receipt} onContinue={() => onFinish?.(ended)} />}
       {failure && !ended && <BattleFailure title={failure.message} detail={failure.detail} onAuto={() => onAbandon?.('screen_error')} onRetry={onRetry} />}
@@ -913,7 +1040,7 @@ const TacticalBattleScreen = (props) => {
   if (!ready) {
     return (
       <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center text-slate-300 text-sm" data-testid="battle-loading">
-        Mustering the troops…
+        Mustering the troopsג€¦
       </div>
     );
   }
