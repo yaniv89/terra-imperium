@@ -6,9 +6,9 @@ through each unit's builder (`blender -b --factory-startup -P scripts/blender/bu
 plans/art/clip-animation-pipeline.md section 7 and 7.2. 20 fps, in place, loops closed (the last frame
 repeats the first), events 1-based, contact frames held two frames. Frame f is at f / 20 s in the GLB.
 
-Sheets (the battle camera, high three-quarter; a red bar marks an event frame): <uid>-moving.png (Idle,
-IdleAlt, the gaits, Cheer or Hit) and <uid>-combat.png (the attacks or the shot, Block, Hit and the falls;
-support units: <uid>-work.png), eight frames a row, the event frames among them.
+Sheets (the battle camera, high three-quarter; a red bar marks an event frame): <uid>-moving.jpg (Idle,
+IdleAlt, the gaits, Cheer or Hit) and <uid>-combat.jpg (the attacks or the shot, Block, Hit and the falls;
+support units: <uid>-work.jpg), eight frames a row, the event frames among them. Blender writes PNGs; they are kept here as JPEG (quality 82, sharp) to keep the folder small.
 
 Rest look: the baked rest pose (Idle frame 1) of every unit was checked against its previous GLB through
 the game's loader (extractUnitGeometry with the unit's options, and with the infantry polearm lengths):
