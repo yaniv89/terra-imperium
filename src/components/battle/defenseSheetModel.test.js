@@ -11,6 +11,7 @@ import { defenseSheetModel } from './defenseSheetModel';
 import { queuedBattleView } from '../../engine/battleQueue';
 import { armyView, battleSize, oddsSource, scoutsRange, battleMinutes, wallsLabel, siegeAdvice } from './warModel';
 import { getCategoryTierName } from '../../data/buildings';
+import { cityManifestOf } from '../../engine/cityManifest';
 
 const WORLD = (() => {
   const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
@@ -69,6 +70,23 @@ describe('W14 defenseSheetModel', () => {
     expect(m.withdraw).not.toBeNull();
     if (m.withdraw.ok) expect(m.withdraw.text).toMatch(/falls back to .* \(-25 morale, -5% men\)/);
     else expect(m.withdraw.text).toBe('Nowhere to fall back to.');
+  });
+
+  // DEF-01: Command on a militia-only city opens; with nobody to command the card says why first.
+  it('a militia-only city says Command is the militia alone; a city with nobody disables Command with the reason', () => {
+    const { st, def } = withAttack();
+    const bare = { ...st, units: { r1: st.units.r1 } };
+    const m = defenseSheetModel(bare, def, { samples: 2 });
+    expect(m.commandBlocked).toBeNull();
+    expect(m.yours.title).toBe('Militia only');
+    expect(m.command).toMatch(/^No regiment stands in .*: you command its militia alone\./);
+    const manifest = cityManifestOf(bare, WORLD.city);
+    const ruined = Object.fromEntries(manifest.structures.map((x) => [x.id, true]));
+    const empty = { ...bare, regions: { ...bare.regions, [WORLD.city]: { ...bare.regions[WORLD.city], cityDamage: { ruined, damaged: {} } } } };
+    const e = defenseSheetModel(empty, def, { samples: 2 });
+    expect(e.commandBlocked).toMatch(/^No one in .* to command: no regiment, and no militia without houses\./);
+    expect(e.suggested).toBe(e.hopeless && e.withdraw?.ok ? 'withdraw' : 'auto');
+    expect(e.commandBlocked).not.toMatch(/—/);
   });
 });
 

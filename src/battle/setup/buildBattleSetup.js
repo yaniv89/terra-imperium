@@ -276,7 +276,8 @@ const buildDefenseSetup = (state, pb) => {
   const region = state.regions[pb.targetRegionId];
   if (!def || !region) return null;
   const armies = getDefenseArmies(state, { ...def, attackerUnitIds: pb.attackerUnitIds, synthetic: pb.synthetic, defenderUnitIds: pb.defenderUnitIds });
-  if (!armies.attackerUnits.length || !armies.defenderUnits.length) return null;
+  // A city with no regiment in it is held by its militia alone (DEF-01): still a battle.
+  if (!armies.attackerUnits.length || (!armies.defenderUnits.length && !(pb.militia || []).length)) return null;
   const ctx = getDefenseBattleContext(state, def);
   // The same campaign inputs as the auto-resolve (battleInputs.js): conditioned morale, the city's
   // militia fixed when the battle began (pb.militia), the stockpiles' supply and development.

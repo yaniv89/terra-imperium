@@ -98,14 +98,14 @@ import { resolveTurn } from './resolveTurn';
 import { resolveAutoBattle } from './autoBattle';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
 import { cityMilitia, reinforcementSources } from './battleInputs';
-import { battleQueueBlocked, queuedKind, queuedArmies, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
+import { battleQueueBlocked, queuedKind, queuedArmies, queuedCommandBlock, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
 import { replayBattle } from '../battle/sim/replay';
 import { verifyCommandedBattle, fieldedUnitIds } from './battleVerify';
 
 // Re-exported so the edge-function bundle (scripts/build-edge-engine.mjs) can verify a battle log
 // on its own, too.
 export { replayBattle };
-import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, applyDefenseWithdrawal } from './defense';
+import { applyDefenseResult, getDefenseArmies, applyDefenseWithdrawal } from './defense';
 import { applyEventEffects } from './applyEventEffects';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
 import { pillageTile } from './threat';
@@ -1729,7 +1729,11 @@ const reduceAction = (state, action) => {
         const settled = gameReducer(state, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
         const place = state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name || 'the field';
         const why = ABANDON_REASONS[reason] || 'the battle screen could not open';
-        return { ...settled, logs: [...settled.logs, { year: state.year, message: `The battle at ${place} was settled on Auto: ${why}.`, type: LogTypes.COMBAT }] };
+        // DEF-01: the result itself says the player's Command became Auto, and why (BattleReplay,
+        // the report sheet), not only the Log.
+        const recorded = (settled.battleReportSeq || 0) !== (state.battleReportSeq || 0) && settled.battleReports?.[0];
+        const reports = recorded ? [{ ...recorded, autoBecause: `You chose Command, but it was fought on Auto: ${why}.` }, ...settled.battleReports.slice(1)] : settled.battleReports;
+        return { ...settled, battleReports: reports, logs:[...settled.logs, { year: state.year, message: `The battle at ${place} was settled on Auto: ${why}.`, type: LogTypes.COMBAT }] };
       }
       const cleared = { ...state, pendingBattle: null };
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'auto' };
@@ -1840,6 +1844,10 @@ const reduceAction = (state, action) => {
       if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
       const def = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
       if (!def) return state;
+      // DEF-01: Command that cannot open is refused with the reason the card already shows
+      // (queuedCommandBlock), never fought on Auto behind the player's back.
+      const block = queuedCommandBlock(state, def);
+      if (block) return reject(state, block.text);
       const counter = (state.battleCounter || 0) + 1;
       const kind = queuedKind(def);
       if (kind === 'intercept' || kind === 'landing') {
@@ -1897,8 +1905,10 @@ const reduceAction = (state, action) => {
         };
       }
       const armies = getDefenseArmies(state, def);
-      // Nothing left to command (the garrison or the attackers are gone): settle it as auto does.
-      if (!armies.defenderUnits.length || !armies.attackerUnits.length) return resolveDefenseAuto(state, def.id);
+      // A city with no regiment in it is fought by its militia (the user's rule of 14 October, as
+      // for the player's own attacks): win and it holds, lose and it falls. queuedCommandBlock has
+      // already refused a battle with nobody on a side.
+      const militia = cityMilitia(state, def.regionId);
       return {
         ...state,
         battleCounter: counter,
@@ -1919,7 +1929,7 @@ const reduceAction = (state, action) => {
           defenderUnitIds: armies.defenderUnits.map((u) => u.id),
           attackerReinforcements: [],
           defenderReinforcements: reinforcementSources(state, def.regionId, state.playerNationId, def.aggressorId),
-          militia: cityMilitia(state, def.regionId)
+          militia
         },
         logs: [...state.logs, { year: state.year, message: `You take command of the defense of ${REGIONS_DATA[def.regionId]?.name}.`, type: LogTypes.COMBAT }]
       };

@@ -48,14 +48,15 @@ const DefenseSheet = () => {
   if (blocked || !m || !turn.shown) return null;
 
   const picked = mode || m.suggested || 'command';
-  const chosen = m.noMansLand && picked === 'command' ? 'auto' : picked === 'withdraw' && !m.withdraw?.ok ? 'command' : picked;
+  const noCommand = !!(m.noMansLand || m.commandBlocked);
+  const chosen = noCommand && picked === 'command' ? 'auto' : picked === 'withdraw' && !m.withdraw?.ok ? (noCommand ? 'auto' : 'command') : picked;
   const act = () => {
     if (chosen === 'auto') dispatch({ type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
     else if (chosen === 'withdraw') dispatch({ type: ActionTypes.WITHDRAW_FROM_DEFENSE, payload: { defenseId: def.id } });
     else dispatch({ type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
   };
   const options = [
-    { id: 'command', sub: m.noMansLand ? 'Not here: no man\'s land' : m.city ? 'Play the defence from the walls' : 'Play it in real time', disabled: !!m.noMansLand, title: m.noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : undefined, testId: 'defense-command' },
+    { id: 'command', sub: m.noMansLand ? 'Not here: no man\'s land' : m.commandBlocked ? 'Not possible: see why below' : m.city ? 'Play the defence from the walls' : 'Play it in real time', disabled: noCommand, title: m.noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : m.commandBlocked || undefined, testId: 'defense-command' },
     { id: 'auto', sub: 'Instant result, same rules', testId: 'defense-auto' },
     ...(m.withdraw ? [{ id: 'withdraw', sub: m.withdraw.ok ? `Give up ${m.place}, keep the men` : 'Nowhere to go', disabled: !m.withdraw.ok, title: m.withdraw.text, testId: 'defense-withdraw' }] : [])
   ];
@@ -97,6 +98,9 @@ const DefenseSheet = () => {
         )}
         {m.warning && <div role="status" className="text-[12px] leading-snug text-fa-danger-text rounded-[8px] border border-fa-danger/60 px-2 py-1" data-testid="defense-hopeless">{m.warning}</div>}
         <ModeCards options={options} value={chosen} onChange={setMode} compact />
+        {m.commandBlocked && (
+          <div role="status" className="text-[12px] leading-snug text-fa-muted" data-testid="defense-no-command"><b className="text-fa-text">Command is not possible.</b> {m.commandBlocked}</div>
+        )}
         {m.noMansLand && (
           <div role="status" className="flex items-center gap-2 text-[12px] text-fa-muted" data-testid="defense-no-mans-land">
             <GameIcon group="ui" id="no-mans-land" size={22} halo={false} />

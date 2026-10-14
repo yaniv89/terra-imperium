@@ -179,6 +179,7 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
                 <Side tone="you" tag="YOURS" name={d.yours.name} sideIn={d.yours.in} lost={d.yours.lost} />
                 <Side tone="enemy" tag="THEIRS" name={d.theirs.name} sideIn={d.theirs.in} lost={d.theirs.lost} />
               </div>
+              {current.autoBecause && <p className="text-[12.5px] leading-snug text-fa-danger-text" role="status" data-testid="battle-auto-because">{current.autoBecause}</p>}
               <p className="text-[12.5px] leading-snug">{d.summary}</p>
               {d.line && <p className="text-[12px] leading-snug text-fa-muted" data-testid="battle-report-line">On the map: {d.line}</p>}
               {d.aux.map((a) => <p key={a} className="text-[12px] leading-snug text-fa-muted" data-testid="battle-report-aux">{a}</p>)}
