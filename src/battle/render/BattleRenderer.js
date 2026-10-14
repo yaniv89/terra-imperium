@@ -895,13 +895,17 @@ export class BattleRenderer {
     this.clampTarget();
   }
 
+  // The ground under (px, py) stays under it (I200). The camera is brought up to date first and
+  // after: a trackpad or a pinch sends several zooms (and pans) between two frames, and measuring
+  // with the last frame's camera let the anchor drift towards the screen's centre.
   zoomBy(factor, px = this.width / 2, py = this.height / 2) {
+    this.updateCamera();
     const before = this.screenToGround(px, py);
     this.camera.zoom = Math.max(0.45, Math.min(this.maxZoom || 3, this.camera.zoom * factor));
     this.camera.updateProjectionMatrix();
     this.updateCamera();
     const after = this.screenToGround(px, py);
-    if (before && after) { this.target.x += before.x - after.x; this.target.z += before.z - after.z; this.clampTarget(); }
+    if (before && after) { this.target.x += before.x - after.x; this.target.z += before.z - after.z; this.clampTarget(); this.updateCamera(); }
   }
 
   centerOn(x, z) { this.target.set(x, 0, z); this.clampTarget(); }
