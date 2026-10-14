@@ -32,6 +32,7 @@ import { getCapital } from '../data/regions';
 import { ringsForKm } from '../data/geo/gridScale';
 import { isIndependentNation } from '../data/independents';
 import { canAttack } from './hostility';
+import { aiScout, marchScouts } from './aiScouting';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -194,7 +195,11 @@ export const processAIOperations = (state, rng) => {
       if (next.nations[nationId]?.indepGoal?.kind === 'conquer') next = processIndependentOps(next, nationId, rng);
     }
     const wars = next.wars.filter(w => w.active && (w.aggressor === nationId || w.enemy === nationId));
-    if (!wars.length) continue;
+    // At peace a major scouts (aiScouting.js, CB09 I122): one unit at a time explores and makes contact.
+    if (!wars.length) {
+      if (!isIndependentNation(next.nations[nationId]) && aiScout(next, nationId)) marchScouts(next, nationId);
+      continue;
+    }
     next = aiSally(next, nationId, rng);
     const enemies = new Set(wars.map(w => w.aggressor === nationId ? w.enemy : w.aggressor));
     const land = getOwnedRegionIds(next.regions, nationId);
