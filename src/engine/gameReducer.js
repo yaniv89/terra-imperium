@@ -1,5 +1,6 @@
 import { orderMarch, cancelRoute, placeName, moveNowCheck, released, MARCH_ATTRITION } from './routes';
 import { orderMarchAttack } from './marchAttack';
+import { orderExplore, stopExplore } from './scouting';
 import { normalizeUnitTiles, regionForTile, tileAccess, passableTile, unitTile } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
@@ -3130,6 +3131,15 @@ const reduceAction = (state, action) => {
       // An AI's tribute demand (aiAccords.js): pay it or refuse and hand them a casus belli.
       const r = answerDemand(state, !!action.payload?.accept);
       return r.message ? { ...r.state, logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] } : r.state;
+    }
+
+    case ActionTypes.EXPLORE_ORDER: {
+      // Scouts (scouting.js): explore the nearest unexplored land, or walk to a picked tile; never a battle.
+      const { unitIds = [], toTile = null, stop = false } = action.payload || {};
+      if (stop) { const stopped = stopExplore(state, unitIds); return stopped ? { ...state, units: stopped } : state; }
+      const order = orderExplore(state, unitIds, toTile);
+      if (!order.units) return reject(state, order.reason || 'The scouts cannot explore.');
+      return { ...state, units: order.units, logs: [...state.logs, { year: state.year, message: order.count > 1 ? `${order.count} scouts set out to explore.` : 'Scouts set out to explore.', type: LogTypes.ACTION }] };
     }
 
     case ActionTypes.SET_HOLD: {

@@ -19,7 +19,7 @@ import { getTiles } from '../data/geo/tiles';
 import { getCombatWidth } from '../data/combatWidth';
 import { hasPerk } from '../data/promotions';
 import { legacyTerrainOf } from './world/registry';
-import { isSettler } from './settlers';
+import { isSettler, isExplorer } from './settlers';
 import { tileAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 import { ringsForKm } from '../data/geo/gridScale';
@@ -124,7 +124,7 @@ export const supplyChange = (state, tiles, unit, { lineRings = SUPPLY_LINE_RINGS
 export const supplyReport = (state, unit, { lineRings = SUPPLY_LINE_RINGS, max = SUPPLY_MAX, hungry = false, attritionMult = 1, stackCapExtra = 0 } = {}) => {
   const tiles = getTiles();
   const tile = unitTile(state, unit);
-  const stackSize = tile == null ? 0 : Object.values(state.units || {}).filter((u) => u.ownerId === unit.ownerId && u.domain !== 'naval' && !u.embarkedOn && !isSettler(u) && u.strength > 0 && unitTile(state, u) === tile).length;
+  const stackSize = tile == null ? 0 : Object.values(state.units || {}).filter((u) => u.ownerId === unit.ownerId && u.domain !== 'naval' && !u.embarkedOn && !isSettler(u) && !isExplorer(u) && u.strength > 0 && unitTile(state, u) === tile).length;
   const { zone, delta, change, overStack } = supplyChange(state, tiles, unit, { lineRings, hungry, stackSize, stackCapExtra, attritionMult });
   const reach = tile != null ? lineRingsAt(state, tile, lineRings) : lineRings;
   const borderDistance = tile != null ? lineDistance(state, tiles, tile, unit.ownerId, reach + 6) : 0;
@@ -151,7 +151,7 @@ export const supplyReport = (state, unit, { lineRings = SUPPLY_LINE_RINGS, max =
 const stackSizes = (state, units) => {
   const sizes = new Map();
   Object.values(units).forEach((u) => {
-    if (u.domain === 'naval' || u.embarkedOn || isSettler(u) || !(u.strength > 0)) return;
+    if (u.domain === 'naval' || u.embarkedOn || isSettler(u) || isExplorer(u) || !(u.strength > 0)) return;
     const key = `${u.ownerId}|${unitTile(state, u)}`;
     sizes.set(key, (sizes.get(key) || 0) + 1);
   });
@@ -171,7 +171,7 @@ export const applySupplyMeter = (state, units, { hungryFor = () => false, attrit
   const starving = new Map(); const dead = new Map();
   Object.keys(units).sort().forEach((id) => {
     const u = units[id];
-    if (!u || u.domain === 'naval' || u.embarkedOn || isSettler(u)) return;
+    if (!u || u.domain === 'naval' || u.embarkedOn || isSettler(u) || isExplorer(u)) return;
     if (!state.nations[u.ownerId]) return; // rebels live off the land
     const fx = fxOf(u.ownerId);
     const max = SUPPLY_MAX + fx.supplyMax;

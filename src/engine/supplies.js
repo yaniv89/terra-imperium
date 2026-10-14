@@ -32,7 +32,7 @@ const round1 = (v) => Math.round(v * 10) / 10;
 // A land unit is campaigning when it stands outside its nation's own, unoccupied land: by the tile
 // it stands on when the tile owner map is given (workstream 5), else by its region.
 export const isCampaigning = (unit, regions, tileOwner = null) => {
-  if (unit.domain === 'naval' || unit.embarkedOn) return false;
+  if (unit.domain === 'naval' || unit.embarkedOn || unit.explorer) return false; // scouts live off the land (scouting.js)
   const r = regions[tileOwner && unit.tile != null && unit.tile >= 0 ? tileOwner[unit.tile] : unit.regionId];
   return !r || r.owner !== unit.ownerId || !!r.occupiedBy;
 };
@@ -52,7 +52,7 @@ export const unitsByOwner = (units) => {
 export const ownedUnitsOf = (units, nationId, ownedUnits = null) => ownedUnits || Object.values(units).filter((u) => u.ownerId === nationId);
 
 export const marchSupplyCost = (units, regions, nationId, turnNumber, tileOwner = null, ownedUnits = null) => (turnNumber == null ? 0 : ownedUnitsOf(units, nationId, ownedUnits).reduce((sum, u) => {
-  if (u.ownerId !== nationId || u.marchedTurn !== turnNumber || u.domain === 'naval' || u.embarkedOn) return sum;
+  if (u.ownerId !== nationId || u.marchedTurn !== turnNumber || u.domain === 'naval' || u.embarkedOn || u.explorer) return sum;
   return sum + MARCH_SUPPLY_PER_UNIT * (isCampaigning(u, regions, tileOwner) ? 2 : 1);
 }, 0));
 

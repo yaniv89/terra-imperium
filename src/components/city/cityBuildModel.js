@@ -55,6 +55,7 @@ export const tileBearing = (tiles, from, to) => {
 export const tilePlace = (tiles, cityTile, tile, facts = tileFacts(tiles, tile)) => `${describeTile(facts)}${facts.resource ? `, ${facts.resource}` : ''}, ${tileBearing(tiles, cityTile, tile).text}`;
 
 export const itemLabel = (item, tiles = getTiles(), ageId = 'bronze', cityTile = null) => {
+  if (item.kind === 'unit' && item.explorer) return 'Scouts';
   if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${NAVAL_LINES[item.navalLine || 'warship'].role})` : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || `${item.category} ${item.tier + 1}`;
   if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement}: ${cityTile != null ? tilePlace(tiles, cityTile, item.tile) : describeTile(tileFacts(tiles, item.tile))}`;
@@ -128,6 +129,8 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     }
     add({ kind: 'unit', classId }, 'Units', { fields: { detail: UNIT_CLASSES[classId]?.role || null } });
   });
+  // Scouts (scouting.js): cheap, no supply, explore at peace, never fight.
+  add({ kind: 'unit', classId: 'support', explorer: true }, 'Units', { fields: { detail: 'Cheap, fast and unarmed. Explores free land and meets other peoples; eats no supplies.' } });
   templatesOf(state.nations[city.owner]).forEach((t) => {
     add({ kind: 'army', templateId: t.id, name: t.name, composition: t.composition, built: {} }, 'Armies', { id: `army:${t.id}`, fields: { detail: 'Built one unit at a time; each joins the army as it is trained.' } });
   });

@@ -4,7 +4,7 @@
 // (march, cancel the route, rename the army, disband). A bottom sheet on a phone, a docked panel
 // on a wider screen, like the tile sheet.
 import React, { useMemo, useState } from 'react';
-import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle, Anchor } from 'lucide-react';
+import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle, Anchor, Compass } from 'lucide-react';
 import PreBattleModal from '../battle/PreBattleModal';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -95,6 +95,11 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
         {model.route
           ? <button type="button" onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: model.unitIds } })} className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">Halt the march</button>
           : <button type="button" disabled={!model.canMarch || !marching.length} onClick={() => { if (model.naval) sail(); else { startMarch(model.regionId, { unitIds: marching }); onClose?.(); } }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> {model.naval ? 'Sail' : 'March'}{picked ? ` ${marching.length} of ${model.unitIds.length}` : ''}…</button>}
+        {model.scouts && (
+          <button type="button" onClick={() => dispatch({ type: ActionTypes.EXPLORE_ORDER, payload: { unitIds: model.unitIds, stop: model.exploring } })} data-testid="army-explore" aria-pressed={model.exploring} title="Explore: walk to the nearest unexplored land, then on to the next, until nothing is left in reach" className={`min-h-[44px] px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${model.exploring ? 'bg-sky-700/80 text-fa-text' : 'bg-emerald-700/80 hover:bg-emerald-600 text-fa-text'}`}>
+            <Compass className="w-3.5 h-3.5" /> {model.exploring ? 'Stop exploring' : 'Explore'}
+          </button>
+        )}
         {model.canHold && (
           <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_HOLD, payload: { unitIds: model.unitIds, hold: !model.holding } })} data-testid="army-hold" aria-pressed={model.holding} title="Hold: the army stays here and is not counted idle, until you lift it or order a march" className={`min-h-[44px] px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${model.holding ? 'bg-sky-700/80 text-fa-text' : 'bg-fa-hover hover:bg-fa-line text-fa-text'}`}>
             <Anchor className="w-3.5 h-3.5" /> {model.holding ? 'Holding' : 'Hold'}
