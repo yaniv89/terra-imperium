@@ -1009,5 +1009,904 @@
         1024
       ]
     ]
+  },
+  "gunpowder-town-small-a-mesopotamia.glb": {
+    "bytes": 2809464,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 13220,
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.75,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2678,
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.73,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 518,
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.482,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-small-b-mesopotamia.glb": {
+    "bytes": 3068632,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 16493,
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.91,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2926,
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.91,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 482,
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.482,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-medium-a-mesopotamia.glb": {
+    "bytes": 3834908,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 26996,
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 1.09,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4874,
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 1.09,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 658,
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 0.512,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-medium-b-mesopotamia.glb": {
+    "bytes": 3757584,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 25893,
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 1.11,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4790,
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 1.11,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 648,
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 0.521,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-big-a-mesopotamia.glb": {
+    "bytes": 5122712,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 39309,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 1.11,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7037,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 1.11,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 984,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 0.576,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-big-b-mesopotamia.glb": {
+    "bytes": 5399520,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 41855,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 1.13,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7280,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 1.13,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 920,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 0.53,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "shared-gunpowder-mesopotamia.glb": {
+    "bytes": 4268196,
+    "objects": {
+      "palace": {
+        "LOD0": {
+          "triangles": 850,
+          "width": 1.216,
+          "depth": 1.232,
+          "height": 0.966,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 235,
+          "width": 1.216,
+          "depth": 1.197,
+          "height": 0.966,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 1.16,
+          "depth": 1.0,
+          "height": 0.826,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "palace-small": {
+        "LOD0": {
+          "triangles": 1019,
+          "width": 0.766,
+          "depth": 0.78,
+          "height": 0.75,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 259,
+          "width": 0.76,
+          "depth": 0.77,
+          "height": 0.75,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 24,
+          "width": 0.76,
+          "depth": 0.72,
+          "height": 0.494,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "walls-big": {
+        "LOD0": {
+          "triangles": 7760,
+          "width": 9.069,
+          "depth": 9.0,
+          "height": 1.218,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1860,
+          "width": 9.04,
+          "depth": 9.0,
+          "height": 1.168,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 300,
+          "width": 8.596,
+          "depth": 8.742,
+          "height": 1.118,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "walls-medium": {
+        "LOD0": {
+          "triangles": 6932,
+          "width": 6.8,
+          "depth": 6.8,
+          "height": 0.984,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1860,
+          "width": 6.8,
+          "depth": 6.8,
+          "height": 0.934,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 300,
+          "width": 6.396,
+          "depth": 6.534,
+          "height": 0.884,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "walls-small": {
+        "LOD0": {
+          "triangles": 6012,
+          "width": 4.84,
+          "depth": 4.84,
+          "height": 0.776,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1772,
+          "width": 4.84,
+          "depth": 4.84,
+          "height": 0.726,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 300,
+          "width": 4.435,
+          "depth": 4.561,
+          "height": 0.676,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-mesopotamia-houses-damage.glb": {
+    "bytes": 1134152,
+    "objects": {
+      "house-common-damaged": {
+        "LOD0": {
+          "triangles": 1382,
+          "width": 0.771,
+          "depth": 0.655,
+          "height": 0.46,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 244,
+          "width": 0.756,
+          "depth": 0.636,
+          "height": 0.427,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 80,
+          "width": 0.75,
+          "depth": 0.59,
+          "height": 0.427,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-common-ruined": {
+        "LOD0": {
+          "triangles": 720,
+          "width": 0.768,
+          "depth": 0.653,
+          "height": 0.249,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 162,
+          "width": 0.756,
+          "depth": 0.636,
+          "height": 0.249,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 38,
+          "width": 0.75,
+          "depth": 0.59,
+          "height": 0.249,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-damaged": {
+        "LOD0": {
+          "triangles": 926,
+          "width": 0.631,
+          "depth": 0.463,
+          "height": 0.392,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 116,
+          "width": 0.576,
+          "depth": 0.393,
+          "height": 0.354,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 80,
+          "width": 0.57,
+          "depth": 0.299,
+          "height": 0.344,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-poor-ruined": {
+        "LOD0": {
+          "triangles": 514,
+          "width": 0.592,
+          "depth": 0.46,
+          "height": 0.193,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 88,
+          "width": 0.576,
+          "depth": 0.364,
+          "height": 0.193,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 38,
+          "width": 0.57,
+          "depth": 0.272,
+          "height": 0.187,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-damaged": {
+        "LOD0": {
+          "triangles": 1798,
+          "width": 0.891,
+          "depth": 0.774,
+          "height": 0.619,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 316,
+          "width": 0.876,
+          "depth": 0.765,
+          "height": 0.614,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 80,
+          "width": 0.87,
+          "depth": 0.67,
+          "height": 0.586,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "house-rich-ruined": {
+        "LOD0": {
+          "triangles": 1096,
+          "width": 0.888,
+          "depth": 0.778,
+          "height": 0.382,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 226,
+          "width": 0.876,
+          "depth": 0.722,
+          "height": 0.382,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 38,
+          "width": 0.87,
+          "depth": 0.67,
+          "height": 0.383,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  },
+  "rts-gunpowder-mesopotamia.glb": {
+    "bytes": 1971460,
+    "objects": {
+      "barracks": {
+        "LOD0": {
+          "triangles": 2972,
+          "width": 1.502,
+          "depth": 1.13,
+          "height": 0.75,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 652,
+          "width": 1.494,
+          "depth": 1.121,
+          "height": 0.75,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 148,
+          "width": 1.491,
+          "depth": 1.119,
+          "height": 0.75,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "barracks-damaged": {
+        "LOD0": {
+          "triangles": 3136,
+          "width": 1.675,
+          "depth": 1.181,
+          "height": 0.5,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 841,
+          "width": 1.666,
+          "depth": 1.181,
+          "height": 0.489,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 77,
+          "width": 1.664,
+          "depth": 1.043,
+          "height": 0.364,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "tower": {
+        "LOD0": {
+          "triangles": 872,
+          "width": 0.6,
+          "depth": 0.6,
+          "height": 1.48,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 196,
+          "width": 0.6,
+          "depth": 0.6,
+          "height": 1.48,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 148,
+          "width": 0.6,
+          "depth": 0.6,
+          "height": 1.48,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "tower-damaged": {
+        "LOD0": {
+          "triangles": 1134,
+          "width": 0.74,
+          "depth": 0.739,
+          "height": 1.197,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 385,
+          "width": 0.737,
+          "depth": 0.739,
+          "height": 1.158,
+          "materials": [
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 63,
+          "width": 0.737,
+          "depth": 0.739,
+          "height": 1.161,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "trade-post": {
+        "LOD0": {
+          "triangles": 3664,
+          "width": 1.449,
+          "depth": 1.356,
+          "height": 0.66,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 548,
+          "width": 1.449,
+          "depth": 1.35,
+          "height": 0.66,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 124,
+          "width": 1.232,
+          "depth": 0.398,
+          "height": 0.66,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        }
+      },
+      "trade-post-damaged": {
+        "LOD0": {
+          "triangles": 3861,
+          "width": 1.777,
+          "depth": 1.585,
+          "height": 0.66,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 730,
+          "width": 1.777,
+          "depth": 1.579,
+          "height": 0.66,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 49,
+          "width": 1.533,
+          "depth": 1.578,
+          "height": 0.66,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
   }
 }

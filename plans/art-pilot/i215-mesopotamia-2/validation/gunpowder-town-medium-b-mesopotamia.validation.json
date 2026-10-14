@@ -1,0 +1,104 @@
+{
+  "file": "gunpowder-town-medium-b-mesopotamia.glb",
+  "kind": "town",
+  "bytes": 3757584,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-medium-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 25893,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 1.11,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 4790,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 1.11,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 648,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 0.521,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 5.923
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "gunpowder-town-medium-b-mesopotamia_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 607732
+    },
+    {
+      "name": "gunpowder-town-medium-b-mesopotamia_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 642040
+    },
+    {
+      "name": "gunpowder-town-medium-b-mesopotamia_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 450622
+    }
+  ],
+  "passed": true
+}

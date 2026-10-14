@@ -82,3 +82,39 @@ pointed arches, portal, wind catcher, muqarnas), unchanged.
 All passed validate_model.py; packed 31 MB to 18 MB; hall-clear --dry changes 0 of 6; landmark
 hints written; townLayouts.json: houses 7 / 8 / 11 / 11 / 21 / 24, landmarks 1 / 1 / 2 / 2 / 2 / 2.
 Contact sheets: `contact-kingdoms-towns.png`, `contact-kingdoms-battle-shared.png`.
+
+## 3. Gunpowder Age: Ottoman and Safavid Iraq
+
+Kit `scripts/blender/ti_mesopotamia_gunpowder.py` (materials `mgp_*`), on the Kingdoms kit.
+- Houses: yellow-brown Ottoman brick, a shanasheel oriel on every common and rich house, wind
+  catchers on most roofs, small domes on the rich ones.
+- Landmark 1: the shrine (Kadhimiya, Najaf, Karbala): a court wall with a tiled gate, the shrine block,
+  a tall tiled turquoise dome on a tiled drum with a pale band, two minarets with balconies and tiled
+  caps. Landmark 2: the covered bazaar (qaysariyya) under two rows of small brick domes with skylights,
+  shop arches with awnings, a tiled portal and a khan gate.
+- big-a: the brick gate between round towers under a turquoise dome (the Kingdoms gate).
+- Shared file: palace-small (a pasha's house with two shanasheel, a wind catcher, a tiled dome),
+  palace (the serai: arcaded two-storey front, tiled portal, a clock tower), brick wall rings with
+  round bastions. Camp and fields: the base file's.
+- Battle: rts-gunpowder-mesopotamia.glb, gunpowder-mesopotamia-houses-damage.glb (`kit_house` is the
+  entry). No theme has a Gunpowder civic hall.
+
+| File | Size (unpacked) | LOD0 / LOD1 / LOD2, height |
+|---|---|---|
+| gunpowder-town-small-a | 2.8 MB | 13,220 / 2,678 / 518, 7.5 m |
+| gunpowder-town-small-b | 3.1 MB | 16,493 / 2,926 / 482, 9.1 m |
+| gunpowder-town-medium-a | 3.8 MB | 26,996 / 4,874 / 658, 10.9 m |
+| gunpowder-town-medium-b | 3.8 MB | 25,893 / 4,790 / 648, 11.1 m |
+| gunpowder-town-big-a | 5.1 MB | 39,309 / 7,037 / 984, 11.1 m |
+| gunpowder-town-big-b | 5.4 MB | 41,855 / 7,280 / 920, 11.3 m |
+| shared-gunpowder-mesopotamia | 4.3 MB | palace 850 / 235 / 36; palace-small 1,019 / 259 / 24; walls 6,012 to 7,760 / 1,772 to 1,860 / 300 |
+| rts-gunpowder-mesopotamia | 2.0 MB | barracks 2,972 / 652 / 148; tower 872 / 196 / 148; trade-post 3,664 / 548 / 124 |
+| gunpowder-mesopotamia-houses-damage | 1.1 MB | damaged up to 1,798 / 316 / 80; ruined up to 1,096 / 226 / 38 |
+
+All passed validate_model.py; packed 31 MB to 17 MB; hall-clear --dry changes 0 of 6; landmark
+hints written; townLayouts.json: houses 7 / 8 / 11 / 11 / 21 / 24, landmarks 1 / 1 / 2 / 2 / 2 / 2.
+Contact sheets: `contact-gunpowder-towns.png`, `contact-gunpowder-battle-shared.png`.
+
+## 4. Modern
+
+Not built: Iraq's Modern towns keep falling back to the Levant Modern kit (as before this work).
