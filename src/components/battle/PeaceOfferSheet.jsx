@@ -12,7 +12,7 @@ import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
 import { TRUCE_DURATION_TURNS } from '../../data/actionCosts';
-import { computeWarScore } from '../../engine/diplomacy';
+import { peaceOfferModel } from './peaceDealModel';
 import { Button, IconButton, Label } from '../ui/atlas';
 import { SHOW_PEACE_OFFER } from '../ui/uiEvents';
 
@@ -47,7 +47,8 @@ const PeaceOfferSheet = () => {
   const from = fromName;
   const war = (state.wars || []).find((w) => w.id === offer.warId);
   const terms = offer.terms || [];
-  const score = war ? (war.aggressor === state.playerNationId ? 1 : -1) * computeWarScore(war, state) : null;
+  const pm = peaceOfferModel(state, offer);
+  const score = war ? pm.score : null;
 
   return (
     <div role="dialog" aria-labelledby="peace-offer-title" data-testid="peace-offer-sheet"
@@ -66,7 +67,7 @@ const PeaceOfferSheet = () => {
             ? 'Both sides are worn out by the war. They propose ending it where it stands.'
             : offer.reason === 'stalemate'
               ? 'Nothing has happened in this war for many turns: no battle, siege or captured city. They see nothing to gain and propose ending it where it stands.'
-              : terms.length === 0 ? 'They propose a white peace: the war ends and nobody gives anything up.' : 'They are winning and name their price for ending the war.'}
+              : terms.length === 0 ? 'They propose a white peace: the war ends and nobody gives anything up.' : pm.themWinning ? 'They are ahead in this war and name their price for ending it.' : 'They name their price for ending the war.'}
         </p>
         {score !== null && (
           <div className="flex justify-between text-[12.5px] fa-card px-2.5 py-1.5"><span>War score, from your side</span><span className={`fa-num font-semibold ${score >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{score > 0 ? '+' : ''}{score}</span></div>
@@ -78,7 +79,13 @@ const PeaceOfferSheet = () => {
               {terms.map((t, i) => <li key={i} className="flex gap-2"><span className="text-fa-enemy">•</span>{describeTerm(t, state)}</li>)}
             </ul>
           )}
-        <div className="text-[11px] text-fa-muted">Accepting starts a {TRUCE_DURATION_TURNS} turn truce. If you refuse, the war goes on and they may ask again in a few turns.</div>
+        {(pm.ownership.length > 0 || pm.money.length > 0) && (
+          <ul className="fa-card px-2.5 py-1.5 text-[12px] space-y-0.5" data-testid="peace-offer-effects">
+            {pm.ownership.map((t) => <li key={t}>{t}</li>)}
+            {pm.money.map((t) => <li key={t}>{t}</li>)}
+          </ul>
+        )}
+        <div className="text-[11px] text-fa-muted">Accepting starts a {TRUCE_DURATION_TURNS} turn truce, ending on turn {pm.truceEndsTurn}. If you refuse, the war goes on and they may ask again in a few turns.</div>
       </div>
       <div className="px-3 pt-1.5 pb-2 border-t border-fa-line grid grid-cols-2 gap-2">
         <Button onClick={() => dispatch({ type: ActionTypes.REJECT_PENDING_PEACE })} data-testid="peace-offer-reject">Keep fighting</Button>
