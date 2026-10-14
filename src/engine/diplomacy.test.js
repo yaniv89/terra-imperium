@@ -487,6 +487,14 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
       expect(r2.wars[0].lastActiveTurn).toBe(t);
     });
 
+    it('an AI vs AI war idle for a long time does NOT end in a stalemate peace (user ruling, 14 Oct)', () => {
+      const { state } = aiWarState({ goal: { type: 'destroy_military', threshold: 1 } });
+      const t = state.turnNumber;
+      const old = { ...state, turnNumber: t + 3, wars: [{ ...state.wars[0], startTurn: t - WAR_STALEMATE_MIN_TURNS - 3, lastActiveTurn: t - WAR_STALEMATE_IDLE_TURNS - 3 }] };
+      const result = resolveWarProgress(old, old.regions, old.nations, old.wars, neverRolls);
+      expect(result.wars[0].active).toBe(true);
+    });
+
     it('warActivity: held land or a siege counts as activity; a quiet turn keeps the old mark', () => {
       const war = { aggressor: 'a', enemy: 'b', startTurn: 1, battleScore: 0 };
       const idx = (occupiedDev = {}, sieged = []) => ({ occupiedDev, sieged: new Set(sieged) });
