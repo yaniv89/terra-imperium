@@ -219,11 +219,12 @@ const GLMapView = ({
     gd.plan.forEach((p, key) => { const q = glideAt(p, ms); if (!q.done) at.set(key, q); });
     const live = at.size > 0;
     const placed = g.markerPlaced || [];
-    g.markerLayer.set(!live ? placed : placed.map((s) => {
+    g.markerShown = !live ? placed : placed.map((s) => {
       const q = s.glideKey ? at.get(s.glideKey) : null;
       const xy = q && projection ? projection([q.lng, q.lat]) : null;
       return xy ? { ...s, anchor: xy } : s;
-    }));
+    });
+    g.markerLayer.set(g.markerShown);
     if (g.closeLayout && k >= CLOSE_ZOOM_K) {
       const move = (list, kind) => (list || []).map((m) => { const q = at.get(`${kind}:${m.id}`); return q ? { ...m, at: { lat: q.lat, lng: q.lng }, toward: q.toward } : m; });
       g.closeScene.moveArmies({ ...gd.markers, armies: move(gd.markers.armies, 'army'), fleets: move(gd.markers.fleets, 'fleet') });
@@ -655,6 +656,7 @@ const GLMapView = ({
     g.upperSprites.set(placed.upper);
     g.topSprites.set(placed.top);
     g.markerPlaced = placed.markers;
+    g.markerShown = placed.markers;
     g.markerLayer.set(placed.markers); // (a glide under way moves them on its next frame)
     g.lowLines.set([...landOut.lines, ...(lensOut?.lines || [])]);
     g.marchLines.set([...march.lines, ...raids.lines, ...pointLines]);
@@ -717,11 +719,19 @@ const GLMapView = ({
   }, [focusOnLatLng]);
   // What a tap at a screen point picks, top first: a marker or cluster, a settler, a city's badge,
   // banner or town, else the land (the city that holds it, else the tile, land or sea).
-  const tapAt = (sx, sy) => {
+  // While a march is aimed, a cluster of banners (the strategic zoom piles them on the cities) and a
+  // foreign army on a city's centre are the place under them, as a closer zoom picks it: a tap
+  // aims at the city, it does not zoom (playtest audit I074, checked in a late world).
+  const tapAt = (sx, sy, under = false) => {
     const g = gl.current; const v = view();
     if (!g || !v || !projection) return null;
-    const hit = pickHit(v, g.hits, sx, sy);
-    if (hit?.kind === 'cluster' || hit?.kind === 'marker') return { kind: hit.kind, marker: hit.marker, id: hit.marker.regionId };
+    const hit = pickHit(v, under ? g.hits.filter((h) => h.kind !== 'marker' && h.kind !== 'cluster') : g.hits, sx, sy);
+    if (hit?.kind === 'cluster' || hit?.kind === 'marker') {
+      const m = hit.marker;
+      const onCityCentre = m.tile != null && state.regions[state.world?.tileOwner?.[m.tile]]?.tile === m.tile;
+      if (marchingRef.current && (hit.kind === 'cluster' || (!m.own && m.kind === 'army' && onCityCentre))) return tapAt(sx, sy, true);
+      return { kind: hit.kind, marker: m, id: m.regionId };
+    }
     if (hit?.kind === 'indep') return { kind: 'indep', id: hit.id };
     if (hit?.kind === 'settler') return { kind: 'settler', tile: hit.tile };
     if (hit?.kind === 'city' || hit?.kind === 'banner') return { kind: 'city', id: hit.id, via: hit.kind };
@@ -821,6 +831,9 @@ const GLMapView = ({
     window.__glMap = {
       info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount, rivers: gl.current.rivers.count() }),
       renderer: gl.current?.renderer,
+      // the banners as last drawn (a glide moves them frame by frame: marchGlide.js, I070)
+      banners: () => (gl.current?.markerShown || []).map((s) => ({ key: s.glideKey, anchor: [...s.anchor] })),
+      gliding: () => !!gl.current?.glide,
       // ms a frame over `n` frames drawn back to back (GPU finished), with the river lines on or
       // off: what the lines cost on this machine (scripts/perf/river-cost.mjs)
       timeFrames: (n = 30, rivers = true) => {
