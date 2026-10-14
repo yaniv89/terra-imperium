@@ -101,6 +101,8 @@ describe('build options', () => {
     expect(hint.slow).toBeGreaterThan(0);
     expect(hint.better).toBeNull();
     expect(hint.text).toMatch(/Focus cannot help here/);
+    expect(hint.short).toMatch(/slow here/); // the one line the Build tab shows before More (BUILD-01)
+    expect(hint.short.length).toBeLessThan(hint.text.length);
     expect(options.filter((o) => o.long).every((o) => o.ok)).toBe(true);
     expect(focusHint(S, paris, [])).toBeNull();
     // With a food focus and hills to work, Production focus is the answer.

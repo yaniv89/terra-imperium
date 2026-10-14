@@ -91,6 +91,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   // Build tab state: the open queue, the group shown, the row opened for its details, and the
   // last tap (what the confirmation line under the queue bar reports).
   const [queueOpen, setQueueOpen] = useState(false);
+  const [hintOpen, setHintOpen] = useState(false); // the long-build advice: one line, the rest on a tap
   const [group, setGroup] = useState('All');
   const [openRow, setOpenRow] = useState(null);
   const [tap, setTap] = useState(null);
@@ -295,63 +296,67 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         </div>
         {/* Always there, so the bar is the same height with and without something in production. */}
         <div className="mt-0.5 h-1">{current && <Meter value={current.progress} max={Math.max(1, current.cost)} color="#CDB27A" height={4} />}</div>
-        {mine && buyAt != null && queue[buyAt]?.rush && (() => {
-          const q = queue[buyAt]; const words = rushText(q);
-          return (
-            <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
-              <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${q.rush.reason}`}</div>
-              <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
-                onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
-                className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">Pay {q.rush.gold}</button>
-              <button type="button" onClick={() => setBuyAt(null)} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0" aria-label="Close the offer"><X className="w-4 h-4" /></button>
-            </div>
-          );
-        })()}
-        {queueOpen && queue.length > 0 && (
-          <div className="mt-1.5 max-h-[42vh] overflow-y-auto">
-            <ol className="space-y-1" data-testid="city-queue">
-              {queue.map((q) => (
-                <li key={`${q.key}-${q.index}`} className="flex items-center gap-1 rounded-lg pl-2 min-h-[44px] text-[13px] fa-card">
-                  <ItemIcon item={q.item} ageId={ageId} size={24} />
-                  <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => openTile(q.tile)} onKeyDown={(e) => { if (e.key === 'Enter') openTile(q.tile); }}>
-                    <div className="truncate">{q.index === 0 ? '' : `${q.index + 1}. `}{q.label}</div>
-                    <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.turns == null ? 'no production' : `done in ${turnsText(q.turns)}`}</div>
-                  </div>
-                  {mine && q.rush?.gold > 0 && (
-                    <button type="button" onClick={() => setBuyAt(q.index)} className={`fa-icon-btn min-w-[44px] min-h-[44px] text-[11px] fa-num ${q.rush.ok ? '' : 'opacity-60'}`} aria-label={`Buy ${q.label} for ${q.rush.gold} gold`} title={rushText(q)?.title} data-testid="queue-rush">
-                      {q.rush.gold}g
-                    </button>
-                  )}
-                  {mine && q.index > 0 && (
-                    <button type="button" onClick={() => dispatch({ type: ActionTypes.MOVE_PRODUCTION, payload: { cityId, index: q.index, to: 0 } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Build ${q.label} first`} title="Move to the front" data-testid="queue-front">
-                      <ArrowUpToLine className="w-4 h-4" />
-                    </button>
-                  )}
-                  {mine && q.index > 1 && (
-                    <button type="button" onClick={() => dispatch({ type: ActionTypes.MOVE_PRODUCTION, payload: { cityId, index: q.index, to: q.index - 1 } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Move ${q.label} up`} title="Move up" data-testid="queue-up">
-                      <ArrowUp className="w-4 h-4" />
-                    </button>
-                  )}
-                  {mine && (
-                    <button type="button" onClick={() => dispatch({ type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId, index: q.index } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Remove ${q.label} from the queue`} title="Remove" data-testid="queue-remove">
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ol>
-            <div className="text-[11px] text-fa-muted mt-1">Moving or removing an item never loses its progress: it is kept for that item and picked up when it is built again.</div>
-          </div>
-        )}
       </div>
+      {/* Below the bar, in the scroll: the offer and the queue list never cover the rows (BUILD-01). */}
+      {mine && buyAt != null && queue[buyAt]?.rush && (() => {
+        const q = queue[buyAt]; const words = rushText(q);
+        return (
+          <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
+            <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${q.rush.reason}`}</div>
+            <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
+              onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
+              className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">Pay {q.rush.gold}</button>
+            <button type="button" onClick={() => setBuyAt(null)} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0" aria-label="Close the offer"><X className="w-4 h-4" /></button>
+          </div>
+        );
+      })()}
+      {queueOpen && queue.length > 0 && (
+        <div className="mt-1.5 max-h-[42vh] overflow-y-auto">
+          <ol className="space-y-1" data-testid="city-queue">
+            {queue.map((q) => (
+              <li key={`${q.key}-${q.index}`} className="flex items-center gap-1 rounded-lg pl-2 min-h-[44px] text-[13px] fa-card">
+                <ItemIcon item={q.item} ageId={ageId} size={24} />
+                <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => openTile(q.tile)} onKeyDown={(e) => { if (e.key === 'Enter') openTile(q.tile); }}>
+                  <div className="truncate">{q.index === 0 ? '' : `${q.index + 1}. `}{q.label}</div>
+                  <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.turns == null ? 'no production' : `done in ${turnsText(q.turns)}`}</div>
+                </div>
+                {mine && q.rush?.gold > 0 && (
+                  <button type="button" onClick={() => setBuyAt(q.index)} className={`fa-icon-btn min-w-[44px] min-h-[44px] text-[11px] fa-num ${q.rush.ok ? '' : 'opacity-60'}`} aria-label={`Buy ${q.label} for ${q.rush.gold} gold`} title={rushText(q)?.title} data-testid="queue-rush">
+                    {q.rush.gold}g
+                  </button>
+                )}
+                {mine && q.index > 0 && (
+                  <button type="button" onClick={() => dispatch({ type: ActionTypes.MOVE_PRODUCTION, payload: { cityId, index: q.index, to: 0 } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Build ${q.label} first`} title="Move to the front" data-testid="queue-front">
+                    <ArrowUpToLine className="w-4 h-4" />
+                  </button>
+                )}
+                {mine && q.index > 1 && (
+                  <button type="button" onClick={() => dispatch({ type: ActionTypes.MOVE_PRODUCTION, payload: { cityId, index: q.index, to: q.index - 1 } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Move ${q.label} up`} title="Move up" data-testid="queue-up">
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                )}
+                {mine && (
+                  <button type="button" onClick={() => dispatch({ type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId, index: q.index } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={`Remove ${q.label} from the queue`} title="Remove" data-testid="queue-remove">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ol>
+          <div className="text-[11px] text-fa-muted mt-1">Moving or removing an item never loses its progress: it is kept for that item and picked up when it is built again.</div>
+        </div>
+      )}
 
       {mine && hint && (
-        <div className="flex items-start gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-2 text-[12px] leading-snug" data-testid="long-build-hint">
-          <AlertTriangle className="w-4 h-4 text-fa-brass shrink-0 mt-0.5" aria-hidden="true" />
-          <div className="min-w-0 flex-1">{hint.text}</div>
-          {hint.better && (
-            <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_CITY_FOCUS, payload: { cityId, focus: hint.better.focus } })} className="fa-btn fa-btn-secondary fa-btn-sm min-h-[44px] shrink-0" data-testid="long-build-focus">Production focus</button>
-          )}
+        <div className="rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1 text-[12px] leading-snug" data-testid="long-build-hint">
+          <div className="flex flex-wrap items-center gap-x-2 min-h-[36px]">
+            <AlertTriangle className="w-4 h-4 text-fa-brass shrink-0" aria-hidden="true" />
+            <div className={`min-w-0 ${hintOpen ? 'order-last basis-full pb-1' : 'flex-1 truncate'}`} data-testid="long-build-text">{hintOpen ? hint.text : hint.short}</div>
+            <button type="button" onClick={() => setHintOpen((v) => !v)} aria-expanded={hintOpen} className="underline text-fa-you min-h-[44px] px-1 shrink-0" data-testid="long-build-more">{hintOpen ? 'Less' : 'More'}</button>
+            {hint.better && (
+              <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_CITY_FOCUS, payload: { cityId, focus: hint.better.focus } })} className="fa-btn fa-btn-secondary fa-btn-sm min-h-[44px] shrink-0" data-testid="long-build-focus">Production focus</button>
+            )}
+          </div>
         </div>
       )}
 
@@ -388,6 +393,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                             : o.queued ? null
                               : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">Research it</button></>
                                 : o.note || o.reason}
+                          {!o.ok && o.cost > 0 && <span className="text-fa-muted"> · <span className="fa-num">{o.cost}</span> production · {turnsText(o.turns)}</span>}
                         </div>
                       </div>
                     </div>
