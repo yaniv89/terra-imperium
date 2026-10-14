@@ -330,7 +330,7 @@ const BattleHud = ({
                     </div>
                   )}
                   {setup.economy && <div className="text-fa-muted">Base buildings are the {playerSide === 1 ? 'keep' : 'camp'}, economy and military buildings. Houses and walls do not count.</div>}
-                  <div className="text-fa-muted">{mouse ? 'Arrow keys or the screen edge move the camera; the wheel zooms where the pointer is.' : 'Drag to move the camera, pinch to zoom.'} Every regiment starts on the field.</div>
+                  <div className="text-fa-muted">{mouse ? 'Hold Space (or Alt) and drag, use the arrow keys or the screen edge to move the camera; the wheel zooms where the pointer is.' : 'Drag to move the camera, pinch to zoom.'} Every regiment starts on the field.</div>
                 </div>
               )}
               <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary w-full !min-h-[44px] mt-1.5" data-testid="battle-start">Start the battle</button>
@@ -480,7 +480,7 @@ const BattleHud = ({
       {selectHint && !selectMode && !pauseOpen && started && (
         <div className="absolute max-w-[250px] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-xs font-semibold shadow-xl pointer-events-none" style={{ left: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-select-hint">
           {mouse
-            ? 'Left click selects (shift adds), drag a box. Right click orders. Arrow keys or the screen edge move the camera.'
+            ? 'Left click selects (shift adds), drag a box. Right click orders. Space (or Alt) + drag, arrow keys or the screen edge move the camera.'
             : 'Tap a unit or building to select, tap it again to let go. Drag a box: tap Select, or double-tap and drag.'}
         </div>
       )}

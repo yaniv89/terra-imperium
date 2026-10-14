@@ -6,8 +6,11 @@ import { decidePointer, selectionAfter } from './selection';
 
 const makeEl = () => {
   const handlers = {};
+  const winHandlers = {};
   return {
     handlers,
+    winHandlers,
+    ownerDocument: { defaultView: { addEventListener: (t, fn) => { winHandlers[t] = fn; }, removeEventListener: (t) => { delete winHandlers[t]; } } },
     addEventListener: (t, fn) => { handlers[t] = fn; },
     removeEventListener: (t) => { delete handlers[t]; },
     getBoundingClientRect: () => ({ left: 0, top: 0 }),
@@ -160,6 +163,22 @@ describe('battle gestures', () => {
       expect(h.click).toHaveBeenCalledWith({ x: 50, y: 50 }, { shift: true });
       expect(h.order).not.toHaveBeenCalled();
       expect(h.tap).not.toHaveBeenCalled();
+    });
+
+    it('Alt + left drag pans instead of drawing a box (a trackpad has no middle button)', () => {
+      down(1, 50, 50, { ...M, altKey: true }); clock += 30; move(1, 150, 120, M); up(1, 150, 120, M);
+      expect(h.pan).toHaveBeenCalled();
+      expect(h.lassoEnd).not.toHaveBeenCalled();
+    });
+
+    it('Space held + left drag pans; let go of Space and a drag is a box again', () => {
+      el.winHandlers.keydown({ code: 'Space', target: {}, preventDefault: () => {} });
+      down(1, 50, 50, M); clock += 30; move(1, 150, 120, M); up(1, 150, 120, M);
+      expect(h.pan).toHaveBeenCalled();
+      expect(h.lassoEnd).not.toHaveBeenCalled();
+      el.winHandlers.keyup({ code: 'Space' });
+      clock += 500; down(1, 50, 50, M); clock += 30; move(1, 150, 120, M); up(1, 150, 120, M);
+      expect(h.lassoEnd).toHaveBeenCalledTimes(1);
     });
 
     it('left drag from a selected squad is still a box, not a battle line', () => {

@@ -14,7 +14,8 @@
 //         lift ends it (`h.placeEnd(p, { moved, onGhost, quick })`: a still tap on the ghost builds).
 // Mouse:  left click = select (`h.click`, shift adds; empty ground deselects) · left drag = box
 //         select (shift adds) · right click = order (`h.order`) · right drag = formation line while
-//         something is selected (`h.hasSelection`), else pan · middle drag = pan · wheel = zoom.
+//         something is selected (`h.hasSelection`), else pan · middle drag = pan · Space or Alt held
+//         + left drag = pan (a laptop trackpad has no middle button) · wheel = zoom.
 //         The browser's context menu never opens on the battlefield.
 export const TAP_MS = 260;
 export const LONG_MS = 380;
@@ -30,6 +31,7 @@ export const createGestureRecognizer = (el, h) => {
   let lastTapAt = -1000;
   let pinch = null;
   let fromSelectMode = false; // this lasso was drawn in select mode (not a double-tap)
+  let spaceHeld = false; // Space held: a left drag pans (mouse only)
 
   const pos = (e) => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   const clearLong = () => { if (longTimer) { clearTimeout(longTimer); longTimer = null; } };
@@ -53,7 +55,7 @@ export const createGestureRecognizer = (el, h) => {
     start = { ...p, t: e.timeStamp, button: e.button, touch: e.pointerType === 'touch', shift: !!e.shiftKey };
     last = p;
     if (!start.touch) {
-      mode = e.button === 2 ? 'mouse-right' : e.button === 1 ? 'mouse-pan' : 'mouse-left';
+      mode = e.button === 2 ? 'mouse-right' : e.button === 1 || spaceHeld || e.altKey ? 'mouse-pan' : 'mouse-left';
       return;
     }
     // Placing a building (B10): one finger moves the ghost; a tap on the ghost builds it.
@@ -121,6 +123,11 @@ export const createGestureRecognizer = (el, h) => {
   const cancel = (e) => { pointers.delete(e.pointerId); clearLong(); if (mode === 'formation' || mode === 'lasso') h.cancel?.(); mode = 'idle'; start = null; };
   const wheel = (e) => { e.preventDefault(); const p = pos(e); h.zoom?.(e.deltaY < 0 ? 1.12 : 1 / 1.12, p.x, p.y); };
   const context = (e) => e.preventDefault();
+  // Space is a held modifier for panning; a typing field keeps its own Space.
+  const typing = (e) => /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '') || e.target?.isContentEditable;
+  const keyDown = (e) => { if (e.code === 'Space' && !typing(e)) { spaceHeld = true; e.preventDefault?.(); } };
+  const keyUp = (e) => { if (e.code === 'Space') spaceHeld = false; };
+  const blur = () => { spaceHeld = false; };
 
   el.addEventListener('pointerdown', down);
   el.addEventListener('pointermove', move);
@@ -128,7 +135,14 @@ export const createGestureRecognizer = (el, h) => {
   el.addEventListener('pointercancel', cancel);
   el.addEventListener('wheel', wheel, { passive: false });
   el.addEventListener('contextmenu', context);
+  const win = el.ownerDocument?.defaultView || (typeof window !== 'undefined' ? window : null);
+  win?.addEventListener('keydown', keyDown);
+  win?.addEventListener('keyup', keyUp);
+  win?.addEventListener('blur', blur);
   return () => {
+    win?.removeEventListener('keydown', keyDown);
+    win?.removeEventListener('keyup', keyUp);
+    win?.removeEventListener('blur', blur);
     clearLong();
     el.removeEventListener('pointerdown', down);
     el.removeEventListener('pointermove', move);
