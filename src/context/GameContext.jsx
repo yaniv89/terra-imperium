@@ -18,6 +18,7 @@ import { soundsForTransition } from '../audio/worldSounds';
 import { isCurrentWorld, currentWorldSpec, rememberWorldSpec, PENDING_START_KEY } from '../worldgen/worldLoader';
 import { normalizeSpec, EARTH_SPEC } from '../worldgen/spec';
 import { playSounds } from '../audio/sfx';
+import { noteCrashEvent } from '../utils/crashLog';
 
 export { createInitialState, gameReducer };
 
@@ -38,6 +39,7 @@ export const removeSave = (key) => { try { localStorage.removeItem(key); } catch
 // While the title screen (or the new game steps reached from it) is up, nothing is played, so the
 // autosave must not rewrite the save: it would change "last played" to the time of this launch.
 let launchHold = false;
+let saveFailedNoted = false;
 export const setLaunchHold = (on) => { launchHold = !!on; };
 // New game and Load keep the game being left: its autosave moves to the previous slot (only when
 // it is a save this build can read).
@@ -72,6 +74,7 @@ export const reloadIntoWorld = (spec) => {
     if (sessionStorage.getItem(RELOAD_GUARD) === JSON.stringify(normalizeSpec(spec))) return false;
     sessionStorage.setItem(RELOAD_GUARD, JSON.stringify(normalizeSpec(spec)));
   } catch (e) { /* storage unavailable */ }
+  noteCrashEvent('reload: into the world of the saved game');
   window.location.reload();
   return true;
 };
@@ -197,13 +200,19 @@ export const GameProvider = ({ children }) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state: stateRef.current, savedAt: Date.now() }));
     } catch (e) {
-      // Storage unavailable or full — autosave is best-effort, never fatal.
+      // Storage unavailable or full — autosave is best-effort, never fatal (noted once for the crash log).
+      if (!saveFailedNoted) { saveFailedNoted = true; noteCrashEvent(`save failed: ${e?.name || e?.message || 'unknown'}`); }
     }
   }, []);
   useEffect(() => {
     const id = setTimeout(saveNow, AUTOSAVE_IDLE_MS);
     return () => clearTimeout(id);
   }, [state, saveNow]);
+  // A new turn and a battle about to open are saved at once, not after the idle wait: a phone that
+  // runs out of memory is killed without pagehide (the crash hunt), and the heaviest moments come
+  // right after them (the turn's report and map, the battlefield loading).
+  const pendingBattleId = state.pendingBattle?.id ?? null;
+  useEffect(() => { saveNow(); }, [state.turnNumber, pendingBattleId, saveNow]);
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === 'hidden') saveNow(); };
     window.addEventListener('pagehide', saveNow);

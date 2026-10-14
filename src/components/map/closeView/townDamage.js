@@ -212,7 +212,7 @@ export const ruinMound = (s) => {
 };
 
 // A kit object as a town-file-like root (LOD0..LOD2 meshes), so showLod and instanceTownAsset work.
-const templates = new Map(); // kit object -> root
+const templates = new WeakMap(); // kit object -> root (weak: a kit dropped from memory takes it along)
 const templateOf = (obj) => {
   if (!templates.has(obj)) {
     const root = new Group(); root.name = obj.name;

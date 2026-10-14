@@ -18,6 +18,8 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/battleStats';
 import { soldierSlots, squadSlots, figureScale, scaledSoldiers } from './capacity';
+import { trimGltfCache, forgetReleasedGltf } from './gltfUnitLoader';
+import { textureCap } from './assetMemory';
 import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE, clipUniforms } from './soldierFactory';
 import { clipSetOf, newFigureState, playClip, busyUntil, setBusy, currentClip, writeAnim, baseMotion, strikeTiming } from './clipPlayer';
 import { WORK_JOB, workJobOf } from '../sim/economy';
@@ -190,6 +192,8 @@ export class BattleRenderer {
     this.playerSide = playerSide;
     this.frameTimes = [];
     this.renderer = new WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: 'high-performance' });
+    // a model file whose maps live only in the map's renderer (a phone keeps no CPU copy) loads again
+    forgetReleasedGltf();
     // Dynamic resolution (plan §15): start at the screen's DPR (max 2); 3 slow frames in a row
     // (> 20 ms) drop it a step (1.25, then 1), and a long run of fast frames earns it back.
     this.baseDpr = Math.min(window.devicePixelRatio || 1, BATTLE_GRAPHICS.maxDpr);
@@ -1775,5 +1779,11 @@ export class BattleRenderer {
     this.disposables.forEach((d) => d.dispose?.());
     disposeSoldierCache();
     this.renderer.dispose();
+    // (the context itself is let go when the canvas leaves the page: glContext.js, used by
+    // TacticalBattleScreen; the same canvas may get a new renderer)
+    // The battle's files whose maps lived only in this renderer go with it; on a phone the rest of
+    // its kits too (the map's files load again when it needs them).
+    forgetReleasedGltf();
+    if (textureCap() <= 1024) trimGltfCache(48);
   }
 }

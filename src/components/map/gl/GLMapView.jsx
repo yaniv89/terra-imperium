@@ -66,6 +66,9 @@ import { openIndependent } from '../../independents/independentEvents';
 import { planGlides, glideAt, afterTurnReport } from '../marchGlide';
 import { TURN_REPORT_SHOWN, isTurnReportShown } from '../../ui/uiEvents';
 import { POINT_TILE } from '../marchEvents';
+import { releaseWhenDetached } from '../../../utils/glContext';
+import { forgetReleasedGltf } from '../../../battle/render/gltfUnitLoader';
+import { noteCrashEvent } from '../../../utils/crashLog';
 
 const OCEAN_COLOR = '#0f172a';
 const ZOOM_MAX = 200;
@@ -80,7 +83,10 @@ const START_VIEW_KM = 650;
 const CLOSE_MARGIN = 0.35;
 // How long a tile pointed at from a sheet stays outlined (I042).
 const POINT_MS = 8000;
+// How long a lost WebGL context may take to come back before the map makes a new canvas.
+const CONTEXT_RESTORE_MS = 3000;
 const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const hudToScreenOf = (settledView) => (a) => (settledView ? worldToScreen(settledView, a[0], a[1]) : null);
 const devicePixelRatio = () => Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -129,7 +135,11 @@ const GLMapView = ({
   const zoomBehaviorRef = useRef(null);
   const appliedInitialFocusRef = useRef(false);
   const [settled, setSettled] = useState(() => ({ k: 1, x: 0, y: 0, n: 0 }));
-  const [ready, setReady] = useState(false);
+  // 0 until the renderer is made, then a count that goes up each time it is (re)made: the effects
+  // that fill its layers depend on it, so a renderer rebuilt after a lost context is filled again.
+  const [ready, setReady] = useState(0);
+  // A new canvas (and renderer) when a lost WebGL context does not come back (canvasGen).
+  const [canvasGen, setCanvasGen] = useState(0);
   const [assetsTick, setAssetsTick] = useState(0);
   const dpr = devicePixelRatio();
 
@@ -187,24 +197,39 @@ const GLMapView = ({
     gl.current = g;
     // A phone may drop the map's WebGL context while the battle's renderer runs (or the app sits in
     // the background): three.js rebuilds it on restore, the map has to draw again (and its cached
-    // territory picture is gone).
+    // territory picture is gone). A context that does not come back within CONTEXT_RESTORE_MS is
+    // replaced: a new canvas and renderer (canvasGen), never a black map (three.js uploads the
+    // models' textures again from their CPU copies).
     const redraw = () => { g.territoryCache.invalidate(); g.request(); };
     const onVisible = () => { if (document.visibilityState === 'visible') redraw(); };
-    canvas.addEventListener('webglcontextrestored', redraw);
+    let lostTimer = 0;
+    const onLost = (e) => {
+      e.preventDefault();
+      noteCrashEvent('map-context-lost');
+      clearTimeout(lostTimer);
+      lostTimer = setTimeout(() => { noteCrashEvent('map-context-replaced'); forgetReleasedGltf(); setCanvasGen((n) => n + 1); }, CONTEXT_RESTORE_MS);
+    };
+    // (the model files whose maps kept no CPU copy load again in full: forgetReleasedGltf)
+    const onRestored = () => { clearTimeout(lostTimer); noteCrashEvent('map-context-restored'); forgetReleasedGltf(); setAssetsTick((n) => n + 1); redraw(); };
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
     document.addEventListener('visibilitychange', onVisible);
     if (import.meta.env.DEV) window.__closeView = Object.assign(g.closeScene.state, { renderer });
-    setReady(true);
+    setReady((n) => n + 1);
     return () => {
-      canvas.removeEventListener('webglcontextrestored', redraw);
+      clearTimeout(lostTimer);
+      canvas.removeEventListener('webglcontextlost', onLost);
+      canvas.removeEventListener('webglcontextrestored', onRestored);
       document.removeEventListener('visibilitychange', onVisible);
       g.disposed = true;
       cancelAnimationFrame(g.raf);
       [g.raster, g.territory, g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.markerLayer, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
       renderer.dispose();
+      releaseWhenDetached(canvas); // the canvas left the page (or was replaced): its context goes now
       gl.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canvasGen]);
 
   // ---------------------------------------------------------------- one frame
   // Reads the live transform (a ref), so panning draws without React.
@@ -609,17 +634,16 @@ const GLMapView = ({
     if (east <= west) east += 360;
     return `${west},${east},${Math.max(-90, Math.floor(b[1] / 5) * 5)},${Math.min(90, Math.ceil(a[1] / 5) * 5)}`;
   }, [projection, raster, settled, riverBand, width, height, dpr]);
-  const riverStripData = useMemo(() => {
-    if (!riverData?.length) return null;
-    const w = riverWindow ? riverWindow.split(',').map(Number) : null;
-    return riverStrips(riverData, riverBand, w && { west: w[0], east: w[1], south: w[2], north: w[3] }, riverCap);
-  }, [riverData, riverBand, riverWindow, riverCap]);
+  // (built inside the effect, never held in this component's render scope: a callback memoized in
+  // an older render keeps that render's scope alive, and with it every big array named there; the
+  // strips of each settled view piled up, about 5 MB a zoom: the crash hunt's map leak)
   useEffect(() => {
     const g = gl.current;
-    if (!g || !riverStripData) return;
-    g.rivers.set(riverStripData);
+    if (!g || !riverData?.length) return;
+    const w = riverWindow ? riverWindow.split(',').map(Number) : null;
+    g.rivers.set(riverStrips(riverData, riverBand, w && { west: w[0], east: w[1], south: w[2], north: w[3] }, riverCap));
     g.request();
-  }, [ready, riverStripData]);
+  }, [ready, riverData, riverBand, riverWindow, riverCap]);
   const terrainOut = useMemo(() => (projection ? terrainSprites({ projection, k, near: settledView ? nearView(settledView) : null, dpr }) : null), [projection, k, settledView, dpr]);
 
   // The map's own buttons (every element marked data-map-hud; "group": each child on its own) as
@@ -633,7 +657,10 @@ const GLMapView = ({
     document.querySelectorAll('[data-map-hud]').forEach((el) => ro.observe(el));
     return () => { clearTimeout(timer); ro.disconnect(); };
   }, [ready, hudOffset]);
-  const hudToScreen = useCallback((a) => (settledView ? worldToScreen(settledView, a[0], a[1]) : null), [settledView]);
+  // (made outside this component's scope: a callback kept from an older render keeps that whole
+  // render alive, its game state included, and through its own kept callbacks the render before:
+  // the map's memory grew about 4 MB a turn. hudToScreenOf only holds the view.)
+  const hudToScreen = useMemo(() => hudToScreenOf(settledView), [settledView]);
   const hudRects = useCallback((el) => {
     if (!hudOffset || !el || typeof document === 'undefined') return [];
     const box = el.getBoundingClientRect();
@@ -732,14 +759,14 @@ const GLMapView = ({
     const tile = ll ? tileAtLatLon(ll[1], ll[0]) : null;
     return tile != null && tile >= 0 ? state.world?.tileOwner?.[tile] || null : null;
   };
-  const handleCityTap = useCallback((cityId, e, sx, sy) => {
+  // (a plain function, made fresh each render: memoized, it kept older renders alive, see hudToScreen)
+  const handleCityTap = (cityId, e, sx, sy) => {
     if (e?.pointerType === 'touch' && onAmbiguousTap) {
       const ids = tapCandidates(tapRingPoints(sx, sy).map(([px, py]) => regionAt(px, py)));
       if (ids.length > 1) { const rect = containerRef.current.getBoundingClientRect(); onAmbiguousTap({ x: sx + rect.left, y: sy + rect.top, ids }); return; }
     }
     onSelectRegion(cityId === selectedRegion ? null : cityId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onAmbiguousTap, onSelectRegion, selectedRegion]);
+  };
   const zoomToRegion = useCallback((regionId) => {
     const c = latLngOfCity(gameStateRef.current, regionId);
     if (c) focusOnLatLng(c.lat, c.lng, Math.min(ZOOM_MAX, Math.max(transformRef.current.k * 2.5, INITIAL_FOCUS_ZOOM)), true);
@@ -893,7 +920,7 @@ const GLMapView = ({
         onPointerUp={onPointerUp}
         onPointerMove={onPointerMove}
       >
-        <canvas ref={canvasRef} data-testid="gl-map" style={{ width, height, display: 'block' }} />
+        <canvas key={canvasGen} ref={canvasRef} data-testid="gl-map" style={{ width, height, display: 'block' }} />
       </div>
       {!prefersReducedMotion() && <EffectsLayer effects={effects} getProjector={getProjector} width={width} height={height} ageId={state.age} testId="map2d-effects" />}
       <MapZoomControls
