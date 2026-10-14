@@ -145,6 +145,32 @@ const rankTargets = (state, nationId, wars, stack, ids, unitsIn) => {
   return ids.sort((a, b) => score.get(b) - score.get(a) || a.localeCompare(b));
 };
 
+/** A halted march attacks the army blocking its next tile (CB09 I120) when the estimate clears
+ * ASSAULT_MIN_P: against the player the battle is queued (Command or Auto). Returns the new state,
+ * or null when it does not attack. */
+export const attackBlocker = (state, nationId, from, stack, tile, rng) => {
+  if (tile == null) return null;
+  const actor = { ...state, playerNationId: nationId, resources: getPool(state, nationId), techAgeId: getTechAgeId(state, nationId) };
+  const v = validateFieldAttack(actor, from, tile, { ignoreCost: true });
+  if (!v.ok || !v.attackerUnits.some((u) => stack.some((s) => s.id === u.id))) return null;
+  const ctx = getFieldBattleContext(actor, v);
+  if (estimateBattle(getFieldResolveArgs(v, ctx)).pWin < ASSAULT_MIN_P) return null;
+  if (v.defenderNationId === state.playerNationId) return queueAgainstPlayer(state, v, nationId, rng);
+  const battle = resolveAutoBattle(actor, getFieldResolveArgs(v, ctx), { kind: 'field', fromRegionId: v.fromRegionId }, rng);
+  const r = applyFieldResult({ ...actor, units: state.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId, viewerId: state.playerNationId });
+  return { ...state, units: r.units, regions: r.regions, nations: { ...r.nations, [nationId]: { ...r.nations[nationId], economy: state.nations[nationId]?.economy } }, hiredCommanders: r.hiredCommanders, appliedBattleIds: r.appliedBattleIds, world: r.world || state.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport, logs: state.logs };
+};
+
+/** The units of a stack that march out to lay siege (CB09 I120): all of them, except that a stack
+ * standing in one of its own cities leaves its weakest unit behind as the garrison. */
+export const siegeParty = (state, stack, at, fromCityId) => {
+  const inOwnCity = state.regions[fromCityId]?.tile === at && state.regions[fromCityId]?.owner === stack[0]?.ownerId;
+  if (!inOwnCity) return stack;
+  if (stack.length < 2) return [];
+  const keep = [...stack].sort((a, b) => (a.strength || 0) - (b.strength || 0) || (a.id < b.id ? -1 : 1))[0];
+  return stack.filter((u) => u !== keep);
+};
+
 export const processAIOperations = (state, rng) => {
   let next = { ...state, units: { ...state.units }, aiOperations: {}, pendingDefenses: [...(state.pendingDefenses || [])] };
   const committed = new Set();
@@ -191,6 +217,12 @@ export const processAIOperations = (state, rng) => {
     for (const [key, stack] of [...stacks].sort(([a], [b]) => a.localeCompare(b))) {
       const from = key.split('|')[0];
       if (!stack.every(u => u.movesLeft > 0 && !committed.has(u.id)) || next.regions[from]?.owner !== nationId) continue;
+      // A march halted by an enemy army on its next tile (routes.js 'enemy') attacks it when the
+      // estimate gives it ASSAULT_MIN_P; two stacks used to stand face to face for the whole war (CB09 I120).
+      if (stack.some(u => u.route?.length) && stack.every(u => u.routeHalt === 'enemy')) {
+        const r = attackBlocker(next, nationId, from, stack, stack[0].route[0], rng);
+        if (r) { next = r; stack.forEach(u => committed.add(u.id)); continue; }
+      }
       if (stack.some(u => u.route?.length)) { marching = true; continue; } // already on the road: the march phase below walks it
       const pool = getPool(next, nationId);
       const at = unitTile(next, stack[0]);
@@ -239,8 +271,25 @@ export const processAIOperations = (state, rng) => {
         const city = next.regions[target];
         const wallsDown = !!city.siege && city.siege.hp < ASSAULT_HP * siegeMaxHp(city, next.greatProjects);
         const ctx = getInvasionBattleContext(actor, v);
-        // Not worth an assault yet: the stack holds its tile, which keeps the siege on (sieges.js).
-        if (!wallsDown && v.defenderUnits.length && estimateBattle(getResolveBattleArgs(v, ctx)).pWin < ASSAULT_MIN_P) continue;
+        // Not worth an assault yet. A stack already beside the city (ring 1) holds its tile, which
+        // keeps the siege on (sieges.js). One that only touches the city's land from its own city
+        // used to wait there forever (CB09 I120: 30 Kanesh units piled in a colony beside Waset and
+        // never fought): it marches to the walls and lays siege instead, leaving one unit at home.
+        if (!wallsDown && v.defenderUnits.length && estimateBattle(getResolveBattleArgs(v, ctx)).pWin < ASSAULT_MIN_P) {
+          if (city.tile != null && at !== city.tile && !tiles.neighbors[city.tile].includes(at)) {
+            const goers = siegeParty(next, stack, at, from);
+            const failed = stack[0].routeFailed;
+            if (goers.length && !(failed && failed.goal === `siege:${target}` && failed.until > state.turnNumber)) {
+              const path = findTilePath({ ...next, playerNationId: nationId }, at, city.tile, nationId, { maxSteps: AI_MARCH_STEPS, researched: getResearched(state, nationId) });
+              if (path.path) {
+                const pace = stackPace(goers, getResearched(state, nationId));
+                goers.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
+                marching = true;
+              } else stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: `siege:${target}`, until: state.turnNumber + ROUTE_RETRY_TURNS } }; });
+            }
+          }
+          continue;
+        }
         // Keep a defensive reserve when the capital is under siege elsewhere.
         stack.forEach(u => committed.add(u.id));
         const chargedPool = applyCosts(pool, ACTION_COSTS.launchInvasion);
@@ -256,7 +305,9 @@ export const processAIOperations = (state, rng) => {
             logs: [...next.logs, { year: next.year, type: 'combat', message: `${next.nations[nationId].name} attacks from ${from} toward ${target}.` }] };
         }
       } else {
-        const to = routeStep(next.regions, nationId, from, goals);
+        // A stack already at a goal city stays on it and marches on tiles below; hopping on to the
+        // next goal city made stacks shuttle between two fronts for whole wars (CB09 I120, X22).
+        const to = goals.has(from) ? null : routeStep(next.regions, nationId, from, goals);
         if (to && canAfford(pool, ACTION_COSTS.moveArmy)) {
           stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...placeInCity(u, next.regions, to), movesLeft: 0 }; });
           next.nations = { ...next.nations, [nationId]: { ...next.nations[nationId], economy: applyCosts(pool, ACTION_COSTS.moveArmy) } };
