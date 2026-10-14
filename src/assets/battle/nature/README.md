@@ -11,7 +11,6 @@ Read by `src/battle/render/economyLayer.js` (nodes, herds, groves) and
 | `herd-sheep-goat.glb`, `herd-cattle.glb` | `animal` (one animal at real size; the game places 2 or 3 round the node, fewer as it is used up) | 400 / 150 / 60 |
 | `log-piles.glb` | `log-pile-conifer`, `log-pile-tropical`, `log-pile-cold` (the grove's log pile for the kits without one; `build_nature.py`, one 512 atlas) | 1,500 / 300 / 80 (they use 212 / 176 / 72 at most) |
 | `vegetation-<kit>.glb` (kits: temperate, conifer, mediterranean, tropical, steppe, desert, cold) | `tree-s`, `tree-m`, `tree-l` (the first species), `tree-s-2` ... `tree-l-3` (more species, MD05), `stump`, `felled`, `bush`, `rock-s`, `rock-m`, `grass-tuft`, `log-pile` | 600 / 150 / 150 (LOD2 may be a 2-triangle impostor) |
-| `vegetation-<kit>-species.glb` (conifer, tropical, cold) | `tree-s-2` ... `tree-l-4`: more species for the kits whose own file is pinned (`build_nature.py`) | 600 / 150 / 150 |
 
 ## The four resources (2026-10-13, manifest row MD06)
 The battle has food, wood, stone and gold. Each node is told from the others by colour and shape,
@@ -26,7 +25,7 @@ and its states by height:
 - Wood has no node file: a grove is the kit's `tree-l`, then `tree-m`, then `felled` (the trunk
   down by its pale-topped stump, logs stacked), then `stump` (three pale-topped stumps and chips),
   and the game stands the kit's `log-pile` beside it, the mark that says wood node and not one
-  more tree. The conifer, tropical and cold kits (built by another pipeline, pinned by hash) have
+  more tree. The conifer, tropical and cold kits (first built by another pipeline) have
   no `log-pile`: the game takes `log-pile-conifer`, `log-pile-tropical` or `log-pile-cold` from
   `log-piles.glb` for them (pale pine, dark hardwood, thin birch and larch).
 - Ore is retired. `ore-outcrop.glb` stays until the code stops pointing at it (the replacement
@@ -42,9 +41,11 @@ rigged; the clips come with the VAT pipeline, plan Wave 0b).
 - True scale: 2.75 battle tiles per model unit. Node footprints 4 to 8 m, trees 3 to 8 m.
 - Battlefield props: every tree keeps its place, turn and shade and takes a species and a size
   from a hash of its place (`src/battle/art/treeMix.js`: stands of a leading species, small,
-  medium and large); boulders `rock-m`, grass tufts `grass-tuft`. LOD0 only when zoomed in close;
+  medium and large, drawn as the species' `tree-m` scaled to the size's height: one mesh per chunk
+  and species); boulders `rock-m`, grass tufts `grass-tuft`. LOD0 only when zoomed in close;
   at LOD1 and LOD2 a wood is thinned (70% and 52% of its trees drawn, the far ones 14% larger) so
-  the crowns stand apart. Drawing only: forest tiles block and hide as before.
+  the crowns stand apart. A species whose crown stands well off its foot (the steppe elm) leans
+  with the battle's wind (from its seed). Drawing only: forest tiles block and hide as before.
 - Groves (wood nodes): `tree-l`, then `tree-m`, `felled`, `stump` as they are cut.
 
 ## Fallback
@@ -70,6 +71,8 @@ rebuilt for the four resources; `stump` and `felled` redrawn and `log-pile` adde
 the temperate (oak, beech, birch), mediterranean (olive, stone pine, cypress) and desert (date palm,
 acacia, tamarisk) trees rebuilt as three species at three sizes, with sturdy trunks and soft crowns
 (smoothed normals); `vegetation-steppe.glb` added (poplar, wind-bent elm, saxaul, tall feather
-grass); `vegetation-conifer-species.glb` (Scots pine, fir), `vegetation-tropical-species.glb`
-(coconut palm, buttressed jungle tree, banana) and `vegetation-cold-species.glb` (larch, dwarf
-birch, tundra shrub) add species to the pinned kits.
+grass). The conifer (spruce, Scots pine, fir), tropical (buttressed jungle tree, coconut palm,
+banana) and cold (larch, dwarf birch, tundra shrub) kits rebuilt by `build_nature.py`
+(`remaining_kit`): new trees, every other object exactly as checkpoint 38 shipped it (its layouts
+from `ti_vegetation_remaining.py` and `ti_nature_wave7.py`, its seeds); their pins in
+`scripts/art/checkpoint38-lod-uvs.mjs` moved to the new files.

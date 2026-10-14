@@ -120,13 +120,6 @@ export const createArtIndex = (files = {}) => {
       }
       return null;
     },
-    /** More tree species for a kit whose own file cannot be rebuilt (MD05: conifer, tropical, cold):
-     * battle/nature/vegetation-<kit>-species.glb, objects tree-s-2, tree-m-2 ... Only for the exact
-     * kit (pass the kit `vegetation` resolved to), never along the fallback chain. */
-    vegetationSpecies: (kit) => {
-      const key = `battle/nature/vegetation-${kit}-species.glb`;
-      return url(key) ? { url: url(key), kit, key } : null;
-    },
     /** S11 battle terrain: battle/terrain/<id>.glb (river-kit, ford). */
     terrain: (id) => (url(`battle/terrain/${id}.glb`) ? { url: url(`battle/terrain/${id}.glb`), id, key: `battle/terrain/${id}.glb` } : null),
     /** S11 bridges: battle/terrain/bridge-<wood|stone|steel>.glb for the age, lighter ones after. */

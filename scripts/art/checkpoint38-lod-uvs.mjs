@@ -20,9 +20,12 @@ const EXPECTED = {
   "src/assets/battle/terrain/bridge-wood.glb": "36b5b768a5d7ea0d288011591e50e5c2b9be7de3e32d184900e8bb5eecdb0812",
   "src/assets/battle/terrain/bridge-stone.glb": "35665c949376f7e91830a0f7d2fe40d84ca31d9e2f3f245927b386e348adb6c7",
   "src/assets/battle/terrain/bridge-steel.glb": "5612757d0a00241fa8f1e5ed1d29f0dced27c6dc43dab94a680534d5d2a5cd1c",
-  "src/assets/battle/nature/vegetation-conifer.glb": "3e8f62642faa9099fa38a0317028ebd301cf30194de8caf60dd22dc6dd7bd8f1",
-  "src/assets/battle/nature/vegetation-tropical.glb": "202f14f0cee224039be57258f6bb7c1576dab6da09c5d3dfdd2e8d28a03ecd6d",
-  "src/assets/battle/nature/vegetation-cold.glb": "073be8c85915e539020f93c53b6e27fc2ab60777fbe173816f2c638da504e91b",
+  // 2026-10-14, MD05 tree pass: the three kits rebuilt by build_nature.py (remaining_kit) with new
+  // trees (their own drew striped spruce cones at LOD1 and near-black palm fronds far); every
+  // other object as checkpoint 38 shipped it. Was 3e8f6264..., 202f14f0..., 073be8c8....
+  "src/assets/battle/nature/vegetation-conifer.glb": "fb47f07e447136845df0d91f7bd05155ff0efe5f7f6916f9c83f7c3f497aca81",
+  "src/assets/battle/nature/vegetation-tropical.glb": "cba87ecc40b5e142c49f03f977305f98eae847773d8f28c248c6a859004a2119",
+  "src/assets/battle/nature/vegetation-cold.glb": "4fcf6a5528d2afe1f28e3b47640cc53f8d5e6889d710a9f9d76ad2e6036efcf5",
   "src/assets/battle/props/loot-sack.glb": "2847ea345fe421458c7e4161635086fd64202bc75503970fd8565a8840ebf187",
   "src/assets/battle/props/exit-marker.glb": "24dd3703cdd0de7e304cfd105013058a9d2cc486d1e77dad4207c56cdf08c00d",
   "src/assets/battle/props/burnt-field-overlay.glb": "5d07899b742664b1b2b08b9e0b0ad324a1fe392700e626fc57f6f5c73d15f921",
@@ -132,8 +135,10 @@ report.summary = {
   unchanged_model_hashes: report.files.filter(file => file.unchanged_since_uv_proof && file.unchanged_during_check).length
 };
 assert.equal(report.summary.models, 14);
-assert.equal(report.summary.roots, 56);
-assert.equal(report.summary.lower_lods, 112);
+// 2026-10-14, MD05 tree pass: the three vegetation kits hold three tree species each (tree-s-2 ...
+// tree-l-3), 6 more roots a kit: 56 + 18 roots, 112 + 36 lower levels.
+assert.equal(report.summary.roots, 74);
+assert.equal(report.summary.lower_lods, 148);
 report.status = report.failures.length ? 'failed' : 'passed';
 if (args.length) writeFileSync(resolve(args[1]), `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify({ status: report.status, ...report.summary, failures: report.failures }));

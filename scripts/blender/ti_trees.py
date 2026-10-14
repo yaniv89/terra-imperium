@@ -25,27 +25,29 @@ import ti_map as tm  # noqa: E402
 import ti_town as tt  # noqa: E402
 
 # ---- materials ----------------------------------------------------------------------------------
-# Crowns: lighter than the first kits' leaves (a wood must not read as a dark mass) and a hue of
-# its own per species, so mixed woods show their mix from far.
+# Crowns: a hue of their own per species, so mixed woods show their mix from far, but all in the
+# temperate oak's value range (about 0.4 to 0.47 in luminance) and saturated: the game's bright
+# sun washes a pale grey-green crown out to white at far zoom (14 October tone pass).
 LEAVES = {
     'oak_leaf': ['#44742a', '#538434', '#61923c', '#3a6624'],
-    'beech_leaf': ['#5a9436', '#6aa242', '#7aae4c'],
-    'birch_leaf': ['#8aa040', '#98ac4a', '#a6b854'],
-    'olive_crown': ['#6c8052', '#7a8e5e', '#5e7248'],
+    'beech_leaf': ['#4a8a2e', '#56963a', '#3f7e28'],
+    'birch_leaf': ['#6e8c2c', '#7a9836', '#628024'],
+    'olive_crown': ['#587a3e', '#648648', '#4c6e36'],
     'stonepine_crown': ['#43702e', '#508038', '#5e8e40'],
     'cypress_crown': ['#31573a', '#3c6844', '#2a4c32'],
-    'acacia_crown': ['#7d8e3e', '#8f9e4a', '#6c7c34'],
-    'tamarisk_crown': ['#6f8456', '#7c9060', '#62784c'],
-    'tamarisk_bloom': ['#b07a7a', '#be8a88', '#a06a6c'],
-    'poplar_crown': ['#739a42', '#86aa4e', '#98b85a'],
-    'elm_crown': ['#6f8a3c', '#819a48', '#617a32'],
-    'saxaul_crown': ['#97924a', '#a4a056', '#88843e'],
+    'acacia_crown': ['#66802c', '#728c36', '#5a7426'],
+    'tamarisk_crown': ['#5a7a3c', '#668646', '#4e6e34'],
+    'tamarisk_bloom': ['#a05a64', '#ae6a72', '#904e58'],
+    'poplar_crown': ['#548a30', '#60963a', '#4a7e2a'],
+    'elm_crown': ['#5e7a2e', '#6a8638', '#526e28'],
+    'saxaul_crown': ['#7a7a2a', '#868634', '#6c6c22'],
     'pine_crown': ['#3f7040', '#4c804a', '#5a8e54'],
     'fir_crown': ['#2f6048', '#3a7054', '#28543e'],
-    'jungle_crown': ['#3f8a3a', '#4e9a44', '#5eaa50'],
-    'larch_crown': ['#d2a23a', '#e0b448', '#c08e30'],
-    'dwarf_birch_crown': ['#d8b040', '#e6c050', '#c89c34'],
-    'tundra_crown': ['#a8483c', '#b85a48', '#943c32'],
+    'spruce_crown': ['#30603e', '#3a6c48', '#2a5636'],
+    'jungle_crown': ['#3a7e34', '#448a3c', '#34722e'],
+    'larch_crown': ['#b07e22', '#bc8a2c', '#a0701c'],
+    'dwarf_birch_crown': ['#b08a26', '#bc9630', '#a07c20'],
+    'tundra_crown': ['#9a3c32', '#a84a3c', '#8a342c'],
 }
 # Flat leaves (fronds) and bark.
 FLAT = {
@@ -368,7 +370,13 @@ def saxaul(ms, rng, i):
     shrub_tree(ms, rng, _p(i, 0.2, 0.29, 0.4), _p(i, 0.13, 0.19, 0.26), _p(i, 0.012, 0.016, 0.02), 'bark_saxaul', 'saxaul_crown', stems=_p(i, 3, 4, 5), ball=0.4, squash=0.8, mid_detail=_p(i, 1, 1, 2), kink=0.6)
 
 
-# conifer (the kit's own trees are spruces: build_vegetation_remaining.py)
+# conifer (spruce, Scots pine, fir; until 14 October the kit was spruces only, built by
+# build_vegetation_remaining.py)
+def spruce(ms, rng, i):
+    column_tree(ms, rng, _p(i, 0.42, 0.64, 0.88), _p(i, 0.11, 0.145, 0.18), _p(i, 0.018, 0.024, 0.03), 'bark_dark', 'spruce_crown', n=_p(i, 3, 4, 5), bare=0.1,
+                profile=lambda s: 1.0 - 0.85 * s, taper=0.5, tip=0.92, mid_detail=_p(i, 1, 2, 2), wobble=0.03, hull_taper=0.88)
+
+
 def scots_pine(ms, rng, i):
     broad_tree(ms, rng, _p(i, 0.46, 0.68, 0.9), _p(i, 0.13, 0.18, 0.23), _p(i, 0.02, 0.028, 0.036), 'bark_red', 'pine_crown', n=_p(i, 3, 4, 5), squash=0.62, lean=0.05, limbs=_p(i, 1, 2, 3), trunk_to=0.62, mid_detail=_p(i, 1, 2, 2))
 
