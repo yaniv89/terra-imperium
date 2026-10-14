@@ -5,6 +5,18 @@ import { frameAlpha, ownerMarkKind, OwnerMarks } from './ownerMarks';
 import { EconomyLayer } from './economyLayer';
 import { Q } from '../sim/constants';
 
+describe('picking a resource node (U04)', () => {
+  it('a grove is picked by its canopy, and by a finger-wide circle when zoomed out', () => {
+    const r = { scene: new Group(), track: (x) => x, heightAt: () => 0, camera: { zoom: 1 }, setup: { terrain: 'plains', economy: {}, sides: [{ color: '#fff' }, { color: '#000' }] } };
+    const layer = new EconomyLayer(r, { art: { rts: () => null, nature: () => null, vegetation: () => null }, load: async () => null });
+    const v = { eco: { buildings: [], nodes: [{ i: 0, kind: 'tree', x: 10 * Q, y: 10 * Q, res: 'wood' }, { i: 1, kind: 'stone', x: 20 * Q, y: 10 * Q, res: 'stone' }, { i: 2, kind: 'tree', x: 30 * Q, y: 10 * Q, spent: true }] } };
+    expect(layer.pick({ x: 11.2, z: 10 }, v)).toMatchObject({ kind: 'node', index: 0 });
+    expect(layer.pick({ x: 21.2, z: 10 }, v)).toBeNull();
+    expect(layer.pick({ x: 21.2, z: 10 }, v, 1.5)).toMatchObject({ kind: 'node', index: 1 }); // far zoom
+    expect(layer.pick({ x: 30, z: 10 }, v, 1.5)).toBeNull(); // spent: nothing to gather
+  });
+});
+
 describe('owner marks (I209)', () => {
   it('own: a closed frame; enemy: corner brackets only', () => {
     // the middle of an edge: drawn for own, empty for the enemy

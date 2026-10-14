@@ -121,6 +121,8 @@ export const buildingStateName = (b, role) => {
   if (!b.alive) return b.built ? `${role}-ruined` : null;
   return b.hp < b.maxHp * 0.7 ? `${role}-damaged` : role;
 };
+/** How far from a node's centre a tap still picks it (tiles; U04): a grove by its canopy and log pile. */
+export const nodePickRadius = (kind) => (kind === 'tree' ? 1.4 : kind === 'herd' || kind === 'cattle' ? 1.2 : 1.0);
 /** City and fort structures that carry the defender's owner mark (I209). */
 const OWNED_STRUCTURES = new Set(['keep', 'tower', 'building']);
 /** What a wreck's socket empty gives off (X27): 'fire', 'smoke' or null (any other socket). */
@@ -474,8 +476,16 @@ export class EconomyLayer {
     if (!this.on || !view?.eco) return null;
     const b = view.eco.buildings.find((e) => e.alive && !e.proxy && Math.abs(e.x / Q - g.x) <= e.size / 2 + margin && Math.abs(e.y / Q - g.z) <= e.size / 2 + margin);
     if (b) return { kind: 'eco', index: b.idx, side: b.side };
-    let best = null; let bestD = 1.0;
-    view.eco.nodes.forEach((n) => { if (n.spent) return; const d = (n.x / Q - g.x) ** 2 + (n.y / Q - g.z) ** 2; if (d < bestD) { bestD = d; best = { kind: 'node', index: n.i, res: n.res }; } });
+    // A node by a forgiving circle (U04): a grove's canopy reaches further than a rock, and neither
+    // shrinks below the building margin on screen (a finger at far zoom). Scored relative to the
+    // circle, so the nearest node wins.
+    let best = null; let bestS = 1;
+    view.eco.nodes.forEach((n) => {
+      if (n.spent) return;
+      const r = Math.max(nodePickRadius(n.kind), margin * 1.4);
+      const s = ((n.x / Q - g.x) ** 2 + (n.y / Q - g.z) ** 2) / (r * r);
+      if (s < bestS) { bestS = s; best = { kind: 'node', index: n.i, res: n.res }; }
+    });
     return best;
   }
 }
