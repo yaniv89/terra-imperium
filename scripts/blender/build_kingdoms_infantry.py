@@ -3,8 +3,8 @@
 # passes on the shared parts of ti_figure.py; replaces k_infantry of build_units_kingdoms.py:
 #   blender -b --factory-startup -P scripts/blender/build_kingdoms_infantry.py
 # Same contract as that builder: the canonical rig (UnitRig) under a root empty named after the unit,
-# flat material colours, the Team and Skin tags, rest pose only (no clips: the vertex rig marches the
-# legs and swings the arms). The pike keeps its old names (PikeShaft, PikeHead...: the loader's
+# flat material colours, the Team and Skin tags, and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the
+# rest pose, unchanged). The pike keeps its old names (PikeShaft, PikeHead...: the loader's
 # fitPolearm finds "pike" and stretches the shaft to 5 m from the butt on the ground). The look follows
 # plans/art/concepts/oct13/units-kingdoms-set.png (design reference only):
 #   - a steel kettle hat with a broad sloping brim and a low comb over a mail coif with a short cape
@@ -23,6 +23,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'kingdoms-infantry'
 arm = F.start({'Skin': 'C99472', 'Cloth': 'CDBC98', 'Hose': '5C4A38', 'Leather': '553623', 'Metal': ('B4B8BD', .32, .82), 'Mail': ('7E848B', .55, .75),
@@ -64,4 +65,5 @@ F.bake_rest()
 
 F.finish_rest(UID, 'Pikemen: a steel kettle hat with a broad brim over a mail coif, a Team tabard front and back over a quilted gambeson with padded sleeves, '
               'brown hose and ankle boots, a sword at the hip with the left hand on its pommel, a long pike upright in the right fist',
-              notes={'role': 'infantry', 'pike_authored_top_H': 2.15, 'pike_drawn_m': 5})
+              notes={'role': 'infantry', 'pike_authored_top_H': 2.15, 'pike_drawn_m': 5},
+              clips=FC.clips_hook(UID, FC.Kit('pike')))

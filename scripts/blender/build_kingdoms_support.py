@@ -5,7 +5,7 @@
 #   blender -b --factory-startup -P scripts/blender/build_kingdoms_support.py
 # Same contract as that builder: the canonical rig (UnitRig) under a root empty named after the unit,
 # flat material colours, the Team, Skin and Emblem tags, the old names of the shovel (ShovelHaft,
-# ShovelBlade), rest pose only (no clips). The look follows plans/art/concepts/oct13/units-kingdoms-set.png
+# ShovelBlade), and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged). The look follows plans/art/concepts/oct13/units-kingdoms-set.png
 # (design reference only):
 #   - a plain iron kettle hat (no comb, a narrower brim than the pikeman's) over a linen arming coif, a
 #     moustache
@@ -23,6 +23,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'kingdoms-support'
 arm = F.start({'Skin': 'C99472', 'Cloth': 'CFC2A2', 'Linen': 'EAE2CE', 'Hose': '4C4034', 'Leather': '553623', 'Metal': ('6F7378', .5, .75),
@@ -109,4 +110,5 @@ for k, dy in enumerate((.060, -.060)):
 
 F.finish_rest(UID, 'Pioneers: a plain iron kettle hat over a linen coif, a Team tabard over a quilted gambeson, hose and boots, a tall wheeled wooden mantlet with '
               'iron bands and an Emblem panel beside him, a wooden maul held upright, a shovel on the back',
-              notes={'role': 'support'})
+              notes={'role': 'support'},
+              clips=FC.clips_hook(UID, FC.Kit('tool', tool='maul', still=True)))

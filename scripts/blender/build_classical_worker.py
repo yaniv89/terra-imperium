@@ -20,6 +20,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_worker_clips as W  # noqa: E402
 
 UID = 'classical-worker'
 arm = F.start({'Skin': 'C99472', 'Cloth': 'EEE5CF', 'Leather': '5E3A26', 'Wood': '8E6638', 'Wicker': 'B58C48', 'Earth': '6B4E34',
@@ -83,6 +84,10 @@ tube('PickHead', [((x, y - .175, top - .036), (.005, .005), P), ((x, y - .105, t
 F.reach('L', (.108, -.112, .722))
 F.bake_rest()
 
-F.finish_rest(UID, 'Laborer: a long belted sleeveless tunic, dark hair and beard, a Team headband, neckcloth and waist sash, a tall wicker pannier of earth '
-              'on the back with the left fist on its strap, a pick held upright like a staff',
-              notes={'role': 'worker'})
+# ---- work tools and clips (2026-10-14, ti_worker_clips.py): the staff pick moves from Prop_R to its own bone
+# Tool_Held (same shape, same rest pose); an iron axe, pick, sickle and hammer on Tool_Axe, Tool_Pick,
+# Tool_Sickle and Tool_Hammer, hidden (scale 0) but in the clips that use them; the twelve clips of the
+# Bronze labourer's set. The GLB now carries clips; Idle frame 1 is the rest pose above.
+W.finish_worker(UID, 'Laborer: a long belted sleeveless tunic, dark hair and beard, a Team headband, neckcloth and waist sash, a tall wicker pannier of earth '
+                'on the back with the left fist on its strap, a pick held upright like a staff; iron work tools in the clips',
+                'iron', 'basket', notes={'role': 'worker'})

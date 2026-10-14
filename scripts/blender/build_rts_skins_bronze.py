@@ -27,7 +27,7 @@ import build_houses_damage_bronze as hd  # noqa: E402
 import build_rts_bronze as rb  # noqa: E402
 from ti_town import G  # noqa: E402
 
-THEMES = ('americas', 'eastafrica', 'europe', 'indic', 'israelite', 'levant', 'maghreb', 'monsoon', 'nile', 'sinic', 'steppe', 'westafrica')
+THEMES = ('americas', 'eastafrica', 'europe', 'indic', 'israelite', 'levant', 'maghreb', 'monsoon', 'nile', 'sinic', 'steppe', 'westafrica', 'mesopotamia')  # new themes go last: the seed is 3100 + the index
 argv = sys.argv[sys.argv.index('--') + 1:]
 OUT = os.path.abspath(argv[0])
 THEME = argv[1]
@@ -48,7 +48,7 @@ else:
 
 # The theme's building stuff for the parts that are not houses (the tower's body, the court walls).
 WALL = {'europe': 'timber', 'steppe': 'timber', 'monsoon': 'timber', 'sinic': 'mud', 'eastafrica': 'mud', 'westafrica': 'mud',
-        'americas': 'stone', 'israelite': 'stone'}.get(THEME, 'mudwall_bare')
+        'americas': 'stone', 'israelite': 'stone', 'mesopotamia': 'msb_brick'}.get(THEME, 'mudwall_bare')
 STILTS = WALL == 'timber'  # a timber land's tower stands on posts
 
 

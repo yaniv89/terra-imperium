@@ -110,6 +110,7 @@ import { updateWarHeat } from './warContagion';
 import { navalCargo } from '../data/navalLines';
 import { ringsFromF75 } from '../data/geo/gridScale';
 import { updateFog } from './fog';
+import { processAIMapOffers } from './mapTrade';
 import { continueExplorers, EXPLORER_STRENGTH } from './scouting';
 import { repairCityDamage } from './cityManifest';
 import { subjectVerb } from './grammar';
@@ -1318,6 +1319,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   next = updateFog(next);
   // Scouts on auto-explore pick their next unexplored tile now that the fog has grown (scouting.js).
   next = continueExplorers(next);
+  // A major may offer the player a swap of maps on the grown fog (mapTrade.js, I116; never blocks).
+  next = processAIMapOffers(next);
   mark('fog');
   return next;
 };

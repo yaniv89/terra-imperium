@@ -54,7 +54,10 @@ const TurnReportSheet = () => {
     baseRef.current = state;
     setReport(next);
     setFilter('all');
-    setOpen(!!next && !next.quiet && state.gameStatus === GameStatus.ACTIVE);
+    const willOpen = !!next && !next.quiet && state.gameStatus === GameStatus.ACTIVE;
+    setOpen(willOpen);
+    // (said now, not a render later: the army banners' glide waits on it, marchGlide.js afterTurnReport)
+    setTurnReportShown(willOpen);
   }, [state, turnPending]);
 
   // One entry of the interaction registry (useExclusivePanel.js): an attack to answer, a peace

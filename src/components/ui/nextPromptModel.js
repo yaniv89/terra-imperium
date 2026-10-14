@@ -15,6 +15,7 @@
 //   demand    an AI's tribute demand waits for an answer (src/engine/aiAccords.js)
 //   war       a people declared war on you in the last WAR_NOTICE_TURNS turns (a notice: it never blocks
 //             End Turn, stays on screen while other answers are given, and opens Peoples; I117)
+//   maps      a major offers to swap maps (src/engine/mapTrade.js, I116): a notice, never a blocker
 import { unitTile } from '../../engine/armies';
 import { isSettler } from '../../engine/settlers';
 import { tutorialPrompt } from '../../engine/tutorial';
@@ -47,6 +48,8 @@ export const nextPrompts = (state) => {
   if (demandWaiting(state)) { const d = state.pendingDemand; out.push({ id: 'demand', kind: 'demand', label: `${state.nations[d.from].name} demands ${d.kind === 'city' ? d.cityName || 'a city' : d.kind === 'stopSettling' ? 'a stop to your settling' : `${d.amount} gold`}`, tab: 'diplomacy' }); }
   // A war declared on the player lately: the log line alone was easy to miss (I117).
   (state.wars || []).forEach((w) => { if (w.active && w.enemy === me && w.aggressor && state.nations?.[w.aggressor] && (state.turnNumber || 0) - (w.startTurn ?? -Infinity) < WAR_NOTICE_TURNS) out.push({ id: 'war:' + w.id, kind: 'war', label: state.nations[w.aggressor].name + ' declared war on you', tab: 'diplomacy', nationId: w.aggressor }); });
+  // A major's offer to swap maps (mapTrade.js, I116): a notice like the war one, never a blocker.
+  if (state.pendingMapOffer && state.nations?.[state.pendingMapOffer.from] && !state.nations[state.pendingMapOffer.from].isEliminated) out.push({ id: 'maps', kind: 'maps', label: `${state.nations[state.pendingMapOffer.from].name} offer to swap maps`, tab: 'diplomacy', nationId: state.pendingMapOffer.from });
   if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: 'Choose what to research', tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
   cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: `${c.name} has nothing to build`, regionId: c.id }); });

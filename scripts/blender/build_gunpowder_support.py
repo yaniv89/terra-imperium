@@ -4,7 +4,7 @@
 #   blender -b --factory-startup -P scripts/blender/build_gunpowder_support.py
 # Same contract as that builder: the canonical rig (UnitRig) under a root empty named after the unit,
 # flat material colours, the Team and Skin tags, the old names of the gabion (Gabion, GabionBand0-2),
-# the shovel (ShovelHaft, ShovelBlade), the apron and the belt; rest pose only (no clips). He must not
+# the shovel (ShovelHaft, ShovelBlade), the apron and the belt; and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged). He must not
 # be taken for the line infantryman (build_gunpowder_infantry.py), so he wears the sapper's marks. The
 # look follows plans/art/concepts/oct13/units-gunpowder-set.png (design reference only):
 #   - a tall black fur cap with a brass plate, a full beard (the sappers' privilege)
@@ -22,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'gunpowder-support'
 arm = F.start({'Skin': 'C99472', 'Hair': '2B201A', 'Fur': '24201D', 'Cloth': 'EEEAE0', 'Buff': 'D6CBAE', 'Apron': 'E2D6B8', 'Wool': '6E6A60',
@@ -84,4 +85,5 @@ F.sheet('ShovelBlade', (x - .050, y + .006, .130), (x + .050, y + .006, .130), (
 
 F.finish_rest(UID, 'Sappers: a tall black fur cap with a brass plate, a full beard, a Team coat with short white-lined skirts, a white shoulder belt, a buff leather apron, '
               'black gaiters, a wicker gabion on the back standing above the head with stakes over its rim, a spade upright with its blade by the ground',
-              notes={'role': 'support'})
+              notes={'role': 'support'},
+              clips=FC.clips_hook(UID, FC.Kit('tool', tool='spade')))

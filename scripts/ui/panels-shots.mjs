@@ -149,7 +149,7 @@ const main = async () => {
   for (let i = 0; i < 3; i += 1) {
     await idle.tap();
     await wait(600);
-    seen.push(await page.getByText(/^Army at /).first().textContent().catch(() => ''));
+    seen.push(await page.getByTestId('army-where').first().textContent({ timeout: 2000 }).catch(() => ''));
   }
   check('three taps on the idle chip open an army card each time, more than one place', seen.every(Boolean) && new Set(seen).size >= 2, seen.join(' ; '));
   check('the idle chip still reads Idle 3 after three taps', /Idle 3/.test(await idle.textContent()));

@@ -47,3 +47,9 @@ export const INDEP_GRUDGE_PER_POINT = -0.5;  // per point of its grudge against 
 export const TRADES_WITH_US = 10;            // a trade deal with the major (mercantile)
 export const TRIBUTARY = 15;                 // it pays the major tribute: used to its rule
 export const RAZED_OUR_KIN = -40;            // a major razed a city of its people's kin; fades 1 a turn
+// Map trading (src/engine/mapTrade.js, playtest audit I116): a map given for nothing, or a fair swap,
+// is remembered; the warmth fades 1 every SHARED_MAP_FADE_TURNS turns and a new map refreshes it
+// (it never stacks).
+export const GAVE_US_MAP = 6;
+export const SWAPPED_MAPS = 3;
+export const SHARED_MAP_FADE_TURNS = 4;

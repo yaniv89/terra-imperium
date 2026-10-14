@@ -43,8 +43,11 @@ import { garrisonOf, resolveCityAttack } from './cityAssault';
 export const AUX_UNIT = 1000;
 export const AUX_EFFECT = 1.6;
 // Auxiliaries a side trains in a battle of this kind, [attacker, defender] (measured in the
-// real-time battle with the parity harness, .claude/skills/battle-lab/parityEco.sim.js).
-export const AUX_TRAINED = { field: [8, 8], assault: [12, 12] };
+// real-time battle with the parity harness, .claude/skills/battle-lab/parityEco.sim.js). `town` is an
+// unwalled city: over in two to four minutes, so few are trained, and with the company frontage of
+// SETUP_VERSION 12 (src/battle/sim/siegeRules.js) the real-time attacker of a town lost about half
+// what the old count made Auto's lose (I211, I212; calibrated with autoCalib TA/TD, N=32).
+export const AUX_TRAINED = { field: [8, 8], assault: [8, 12], town: [2, 4] };
 export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (the time to fight them)
 export const WALLS_FORT_LEVEL = 2;
 export const WALLS_NO_SIEGE_MULT = 0.7;
@@ -104,8 +107,9 @@ export const RAID_KINDS = new Set(['raid', 'sack']);
 export const BASE_KINDS = new Set([...ASSAULT_KINDS, 'field']);
 
 /** The auxiliaries a side brings into an auto-resolved battle: reserve units, never campaign units. */
-export const auxiliariesFor = (kind, side, ins, tune = AUTO_TUNE) => {
-  const k = ASSAULT_KINDS.has(kind) ? 'assault' : kind === 'field' ? 'field' : null;
+export const auxiliariesFor = (kind, side, ins, tune = AUTO_TUNE, walled = true) => {
+  // An unwalled city (a town) is over long before a walled one: it trains its own count (AUX_TRAINED.town).
+  const k = ASSAULT_KINDS.has(kind) ? (!walled && tune.AUX_TRAINED.town ? 'town' : 'assault') : kind === 'field' ? 'field' : null;
   if (!k) return [];
   const supply = ins.economyInputs?.supply?.[side] ?? 1;
   const development = ins.economyInputs?.development?.[side] ?? 0;
@@ -115,7 +119,7 @@ export const auxiliariesFor = (kind, side, ins, tune = AUTO_TUNE) => {
   const even = a > 0 && d > 0 ? Math.min(a, d) / Math.max(a, d) : 1;
   const closeness = tune.AUX_CLOSENESS > 0 ? Math.min(1, tune.AUX_CLOSENESS * even) : 1;
   let total = Math.round(tune.AUX_TRAINED[k][side] * TRAIN_STRENGTH * tune.AUX_EFFECT * stockMult(supply, development) * closeness);
-  if (k === 'assault' && side === 1 && ins.housing > 0) total = Math.min(total, Math.max(0, ins.housing - (ins.defenderUnits?.length || 0)) * TRAIN_STRENGTH * tune.AUX_EFFECT);
+  if (k !== 'field' && side === 1 && ins.housing > 0) total = Math.min(total, Math.max(0, ins.housing - (ins.defenderUnits?.length || 0)) * TRAIN_STRENGTH * tune.AUX_EFFECT);
   const out = [];
   for (let i = 0; total > 0; i++) {
     const strength = Math.min(tune.AUX_UNIT, total);
@@ -176,10 +180,11 @@ export const resolveAutoBattle = (state, args, spec, rng, inputs = null) => {
 export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
   // A city with no garrison (its militia only) is walked into: no battle economy, no gate held.
   const contested = !ASSAULT_KINDS.has(kind) || ins.defenderUnits.some((u) => !u.militia && u.strength > 0);
-  const auxA = contested ? auxiliariesFor(kind, 0, ins, tune) : [];
-  const auxD = contested ? auxiliariesFor(kind, 1, ins, tune) : [];
+  const cityWalled = ASSAULT_KINDS.has(kind) && (ins.walled ?? (args.fortLevel ?? 0) >= WALLS_FORT_LEVEL);
+  const auxA = contested ? auxiliariesFor(kind, 0, ins, tune, cityWalled) : [];
+  const auxD = contested ? auxiliariesFor(kind, 1, ins, tune, cityWalled) : [];
   // A field battle against a manned fort (forts.js: a walled keep on the battle map) holds its gate too.
-  const walled = contested && ((ASSAULT_KINDS.has(kind) && (ins.walled ?? (args.fortLevel ?? 0) >= WALLS_FORT_LEVEL)) || (kind === 'field' && !!args.isAttackingFortification));
+  const walled = contested && (cityWalled || (kind === 'field' && !!args.isAttackingFortification));
   const noSiege = walled && !ins.attackerUnits.some((u) => u.classId === 'siege' && u.strength > 0);
   const wallsMult = noSiege ? 1 - (1 - tune.WALLS_NO_SIEGE_MULT) * Math.max(0, Math.min(1, ins.hpRatio ?? 1)) : 1;
   // The attacker's roster disadvantage is eased behind walls (WALLS_AGE_RELIEF).

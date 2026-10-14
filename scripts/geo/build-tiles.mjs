@@ -27,6 +27,7 @@ import { createRequire } from 'node:module';
 import { feature } from 'topojson-client';
 import { buildGrid, toLatLon, fromLatLon, buildLatLonIndex, distanceKm, icosahedronVertices } from '../../src/data/geo/geodesic.js';
 import { TERRAIN, RELIEF, FEATURE, hash01, classify, scatterResource } from '../../src/data/geo/classifyTile.js';
+import { thinResources, startTilesOf, RESOURCE_DENSITY_VERSION } from '../../src/data/geo/resourceDensity.js';
 
 const require = createRequire(import.meta.url);
 const { PNG } = require('pngjs');
@@ -563,6 +564,13 @@ export const buildTiles = ({ log = console.log } = {}) => {
     names: Object.fromEntries(names.map((x, i) => [i, x]).filter(([, x]) => x)),
     capitals: capitalTile
   };
+  // I098: thin the scatter to about 18% of the land (src/data/geo/resourceDensity.js), the same
+  // pass scripts/geo/thin-resources.mjs applies to a tiles.json built before it.
+  // The peoples' capitals (npm run build:peoples, which reads this grid) are protected when known.
+  const peoplesFile = path.join(GEO, 'peopleCapitals.json');
+  const peoples = existsSync(peoplesFile) ? readJson(peoplesFile) : null;
+  out.resource = thinResources(out, depositsByCountry, startTilesOf(out, peoples));
+  out.resourceDensity = RESOURCE_DENSITY_VERSION;
   return { out, grid, latLon, cellIndex, ms: Date.now() - t0 };
 };
 

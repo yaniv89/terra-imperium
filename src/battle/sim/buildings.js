@@ -14,6 +14,8 @@
 import { distSq } from './fixed';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 import { lootCityBuilding } from './economy';
+import { recentlyHit } from './siegeRules';
+import { REPAIR_RECENT_TICKS } from '../data/economy';
 
 export const BUILDING_EFFECTS = {
   military: 'Reinforcements arrive faster',
@@ -46,7 +48,8 @@ export const powerCooldownMult = (w, side) => (side === SIDE_DEFENDER && standin
 export const updateBuildings = (w) => {
   if (w.tick % 20 !== 0 || w.tick === 0) return;
   if (standing(w, 'industry')) {
-    w.structures.forEach((s) => { if (s.alive && s.kind !== 'building' && s.hp < s.maxHp) s.hp = Math.min(s.maxHp, s.hp + REPAIR_PER_SEC); });
+    // Field repairs wait until a structure is no longer under attack (I212: they slow a breach, never stop it).
+    w.structures.forEach((s) => { if (s.alive && s.kind !== 'building' && s.hp < s.maxHp && !recentlyHit(w, s, REPAIR_RECENT_TICKS)) s.hp = Math.min(s.maxHp, s.hp + REPAIR_PER_SEC); });
   }
   const temples = standingOf(w, 'culture'); const granaries = standingOf(w, 'food');
   if (!temples.length && !granaries.length) return;
