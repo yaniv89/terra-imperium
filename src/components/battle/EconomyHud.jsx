@@ -12,7 +12,7 @@
 //   BuildingActions your own building's actions for the context panel (B10): the queue, train
 //                   tiles, rally, and the house to build when training waits for housing
 import React, { useEffect, useRef, useState } from 'react';
-import { Wheat, TreePine, Coins, Package, Users, Home, Hammer, X, Flag, Hourglass, Castle, Landmark, DoorOpen, Gem, Shield } from 'lucide-react';
+import { Wheat, TreePine, Mountain, Coins, Package, Users, Home, Hammer, X, Flag, Hourglass, Castle, Landmark, DoorOpen, Gem, Shield } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
 import { BUILDINGS, UNITS, RESOURCES, ecoName, buildableFor, trainableRoles } from '../../battle/data/economy';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
@@ -21,14 +21,14 @@ import { buildBlock, buildDetail } from './inspectModel';
 import { AUXILIARY_NOTE } from '../../engine/battleLedger';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
-// The battle stock icons (UI14, src/data/icons.js BATTLE_STOCK_ICON_IDS). The sim's one "materials"
-// stock draws the Wood icon until it is split into wood and stone; `supply` and `population` are
-// the top bar's two counters.
+// The battle stock icons (UI14, src/data/icons.js BATTLE_STOCK_ICON_IDS): the four stocks (Q1, U01:
+// food, wood, stone, gold, each its own account in the sim); `supply` and `population` are the top
+// bar's two counters.
 const RES_ICON = {
-  food: [Wheat, 'text-amber-200'], materials: [TreePine, 'text-emerald-200'], gold: [Coins, 'text-yellow-300'],
+  food: [Wheat, 'text-amber-200'], wood: [TreePine, 'text-emerald-200'], stone: [Mountain, 'text-stone-300'], gold: [Coins, 'text-yellow-300'],
   supply: [Package, 'text-fa-brass'], population: [Users, 'text-fa-you']
 };
-const RES_NAME = { food: 'Food', materials: 'Materials', gold: 'Gold', supply: 'Battle supply', population: 'Population / housing' };
+export const RES_NAME = { food: 'Food', wood: 'Wood', stone: 'Stone', gold: 'Gold', supply: 'Battle supply', population: 'Population / housing' };
 export const ResIcon = ({ res, size = 14 }) => {
   const [Glyph, tone] = RES_ICON[res];
   return <GameIcon group="battle" id={BATTLE_STOCK_ICON_IDS[res]} size={size} title={RES_NAME[res]} fallback={<Glyph className={`shrink-0 ${tone}`} style={{ width: size, height: size }} aria-label={RES_NAME[res]} />} />;

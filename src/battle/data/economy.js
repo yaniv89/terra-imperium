@@ -1,12 +1,20 @@
 // src/battle/data/economy.js
-// The battle economy's catalog (phase R1; plans/MASTER-PLAN.md 6.3, 6.4; RTS plan 6): three
+// The battle economy's catalog (phase R1; plans/MASTER-PLAN.md 6.3, 6.4; RTS plan 6): four
 // resources, the resource nodes, the buildings workers raise and the units buildings train. Pure
 // data and a few pure helpers; the sim (src/battle/sim/economy.js) and the setup
 // (src/battle/setup/economySetup.js) read it.
 //
-// Three resources (decision 35): food (farms, fishing, herds), materials (wood, stone, metal ore)
-// and gold (mines, trade, loot). Amounts in the sim are integer milli-units (1 food = 1000), so a
-// worker's small per-tick gain never rounds away (RTS plan 6.1); the UI shows whole units.
+// Four resources (the user's Q1 of 13 October 2026, replacing decision 35's three; U01): food
+// (farms, fishing, herds), wood (groves), stone (stone outcrops) and gold (veins, trade, loot).
+// "Materials" and metal ore are retired: every ore spot is a stone node, in every age (X29). Stone
+// is its own stock with its own prices: towers, the trade post and the siege workshop, and the
+// repair of the city's walls, gates, towers and keep. Amounts in the sim are integer milli-units
+// (1 food = 1000), so a worker's small per-tick gain never rounds away (RTS plan 6.1); the UI shows
+// whole units.
+//
+// Barrows (X32, a drawing rule only, the sim's load is CARRY for every resource): a laborer wheels
+// food and stone home in a barrow (bulky and heavy) and carries wood and gold on the back
+// (src/battle/art/workerLoads.js usesBarrow).
 //
 // One functional set for every age (RTS plan 7.1, master 6.6): the roles and rules are the same in
 // every age; only names (and later the art) change. Names are keyed by the age registry
@@ -21,7 +29,9 @@ import { secondsToTicks, Q } from '../sim/constants';
 import { AGE_ORDER } from '../../data/ages';
 import { getAvailableClasses } from '../../data/unitClasses';
 
-export const RESOURCES = ['food', 'materials', 'gold'];
+export const RESOURCES = ['food', 'wood', 'stone', 'gold'];
+/** A resource's index in a stock array (`w.eco.stock[side][RES_INDEX.stone]`). */
+export const RES_INDEX = Object.fromEntries(RESOURCES.map((r, i) => [r, i]));
 export const MILLI = 1000;
 export const toMilli = (n) => Math.round(n * MILLI);
 
@@ -41,9 +51,8 @@ export const POP_PER_SQUAD = 1;
 // Workers: gather rates per worker-second before walking (RTS plan 6.1), carry 10.
 export const CARRY = toMilli(10);
 // How a side spreads its laborers when it puts one to work by itself (a new laborer, an emptied node).
-export const WORKER_MIX = { food: 0.45, materials: 0.4, gold: 0.15 };
-export const GATHER_PER_SEC = { food: 0.65, materials: 0.6, gold: 0.4 };
-export const ORE_RATE_MULT = 0.75;   // metal ore is slower to work than wood or stone
+export const WORKER_MIX = { food: 0.4, wood: 0.3, stone: 0.15, gold: 0.15 };
+export const GATHER_PER_SEC = { food: 0.65, wood: 0.6, stone: 0.5, gold: 0.4 };
 export const FARM_RATE_MULT = 0.7;   // a farm is renewable but slower (RTS plan 6.1)
 export const MINE_RATE_MULT = 1.25;  // a mine on its vein: faster, and no walk
 export const WORK_REACH = Math.round(1.1 * Q); // a worker works a node or a site from this close (plus its radius)
@@ -52,11 +61,13 @@ export const WORK_REACH = Math.round(1.1 * Q); // a worker works a node or a sit
 // rate(n) = 1 + 0.5 * min(n - 1, 4), counted in halves so it stays integer.
 export const buildRateHalves = (n) => (n <= 0 ? 0 : 2 + Math.min(n - 1, 4));
 export const CANCEL_REFUND = 0.75;
-// Repairs cost materials in proportion to the HP restored (here: a building's materials price per
-// its full HP), at a quarter speed while it was hit in the last few seconds.
+// Repairs cost in proportion to the HP restored: a building of the economy its wood and stone price
+// per its full HP, a work of the city (wall, gate, tower, keep) stone, a tenth of a stone per HP
+// (CITY_REPAIR_STONE_PER_HP); at a quarter speed while it was hit in the last few seconds.
 export const REPAIR_HP_PER_SEC = 12;
 export const REPAIR_RECENT_TICKS = secondsToTicks(5);
 export const REPAIR_RECENT_MULT_QUARTERS = 1; // of 4
+export const CITY_REPAIR_STONE_PER_HP = 0.1;
 
 // Where a side may build: near its headquarters, or near a building of its own already standing.
 export const BUILD_RADIUS_HQ = 20;    // tiles
@@ -74,11 +85,12 @@ export const TRADE_GOLD_MAX = 300;
 export const AID_RADIUS = 6 * Q;
 export const AID_HEAL_PER_SEC = 0.004;
 
-// Starting stockpiles (RTS plan 6.1, the four accounts folded into three: metal into materials,
-// credits into gold), scaled once at setup by the campaign: low supply means a smaller stockpile.
+// Starting stockpiles (RTS plan 6.1; U01: the old materials split into wood and stone, the same
+// total), scaled once at setup by the campaign: low supply means a smaller stockpile. Every side
+// starts with stone and has stone nodes in its starter cluster, so a stone-poor map still builds.
 export const START_STOCK = {
-  attacker: { food: 250, materials: 350, gold: 150 },
-  defender: { food: 300, materials: 450, gold: 200 }
+  attacker: { food: 250, wood: 250, stone: 100, gold: 150 },
+  defender: { food: 300, wood: 300, stone: 150, gold: 200 }
 };
 /** The setup's stockpile multiplier from campaign supply (0..1) and development (0..1): 0.75 to 1.5. */
 export const stockMult = (supply = 1, development = 0) => Math.max(0.75, Math.min(1.5, 0.75 + 0.5 * clamp01(supply) + 0.25 * clamp01(development)));
@@ -86,10 +98,10 @@ const clamp01 = (v) => Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0));
 
 // ---- resource nodes (S9) ------------------------------------------------------------------------
 // amount in whole units; slots = how many workers can work it at once; rate = gather multiplier.
+// No `ore`: metal ore is not a resource (Q1, X29); the setup places stone where ore stood.
 export const NODE_KINDS = {
-  tree: { res: 'materials', amount: 250, slots: 3, rate: 1, label: 'Grove', art: 'vegetation' },
-  stone: { res: 'materials', amount: 500, slots: 4, rate: 1, label: 'Stone', art: 'stone-outcrop' },
-  ore: { res: 'materials', amount: 400, slots: 4, rate: ORE_RATE_MULT, label: 'Metal ore', art: 'ore-outcrop' },
+  tree: { res: 'wood', amount: 250, slots: 3, rate: 1, label: 'Grove', art: 'vegetation' },
+  stone: { res: 'stone', amount: 500, slots: 4, rate: 1, label: 'Stone', art: 'stone-outcrop' },
   gold: { res: 'gold', amount: 400, slots: 4, rate: 1, label: 'Gold vein', art: 'gold-vein' },
   herd: { res: 'food', amount: 300, slots: 3, rate: 1, label: 'Herd', art: 'herd-sheep-goat' },
   cattle: { res: 'food', amount: 450, slots: 3, rate: 1, label: 'Cattle', art: 'herd-cattle' },
@@ -97,23 +109,25 @@ export const NODE_KINDS = {
 };
 
 // ---- buildings (S5) -----------------------------------------------------------------------------
-// cost { food, materials, gold }, time (one-builder seconds), hp, size (footprint in tiles, square),
+// cost { food, wood, stone, gold }, time (one-builder seconds), hp, size (footprint in tiles, square),
 // what it does: housing, dropoff (resources it takes), trains (unit roles), and the art object.
+// The `materialsYard` id stays (its art object and icon are `materials-yard`); it is the yard that
+// takes wood and stone.
 export const BUILDINGS = {
   camp: { size: 4, hp: 2500, cost: null, time: 0, dropoff: RESOURCES, trains: ['worker'], art: 'expedition-camp', icon: 'build-expedition-camp', hq: true },
   hall: { size: 3, hp: 0, cost: null, time: 0, dropoff: RESOURCES, trains: ['worker'], art: 'town-hall', icon: 'build-town-hall', hq: true }, // the keep is the town hall (its HP)
-  house: { size: 2, hp: 400, cost: { materials: 30 }, time: 15, housing: HOUSE_HOUSING, art: 'house', icon: 'build-house' },
-  foodDepot: { size: 2, hp: 600, cost: { materials: 60 }, time: 20, dropoff: ['food'], art: 'food-depot', icon: 'build-food-depot' },
-  materialsYard: { size: 2, hp: 600, cost: { materials: 60 }, time: 20, dropoff: ['materials'], art: 'materials-yard', icon: 'build-materials-yard' },
-  tradePost: { size: 3, hp: 700, cost: { materials: 80, gold: 20 }, time: 30, dropoff: ['gold'], trade: true, art: 'trade-post', icon: 'build-trade-post' },
-  farm: { size: 3, hp: 300, cost: { materials: 50 }, time: 15, farm: true, slots: 2, art: 'farm-plot', icon: 'build-farm-plot' },
-  mine: { size: 2, hp: 700, cost: { materials: 80 }, time: 25, mine: true, art: 'mine', icon: 'build-mine' },
-  barracks: { size: 3, hp: 1200, cost: { materials: 150 }, time: 40, trains: ['infantry'], art: 'barracks', icon: 'build-barracks' },
-  range: { size: 3, hp: 1100, cost: { materials: 150, gold: 30 }, time: 40, trains: ['ranged'], art: 'range', icon: 'build-range' },
-  stable: { size: 4, hp: 1300, cost: { materials: 200, gold: 60 }, time: 50, trains: ['cavalry'], art: 'stable', icon: 'build-stable' },
-  siegeWorkshop: { size: 4, hp: 1300, cost: { materials: 220, gold: 100 }, time: 60, trains: ['siege'], art: 'siege-workshop', icon: 'build-siege-workshop' },
-  aidPost: { size: 3, hp: 900, cost: { materials: 120, gold: 40 }, time: 35, trains: ['support'], aid: true, art: 'aid-post', icon: 'build-aid-post' },
-  tower: { size: 2, hp: 1000, cost: { materials: 120, gold: 40 }, time: 45, tower: { range: 7 * Q, damage: 14, attackTicks: secondsToTicks(1.5) }, art: 'tower', icon: 'build-tower' }
+  house: { size: 2, hp: 400, cost: { wood: 30 }, time: 15, housing: HOUSE_HOUSING, art: 'house', icon: 'build-house' },
+  foodDepot: { size: 2, hp: 600, cost: { wood: 60 }, time: 20, dropoff: ['food'], art: 'food-depot', icon: 'build-food-depot' },
+  materialsYard: { size: 2, hp: 600, cost: { wood: 60 }, time: 20, dropoff: ['wood', 'stone'], art: 'materials-yard', icon: 'build-materials-yard' },
+  tradePost: { size: 3, hp: 700, cost: { wood: 60, stone: 20, gold: 20 }, time: 30, dropoff: ['gold'], trade: true, art: 'trade-post', icon: 'build-trade-post' },
+  farm: { size: 3, hp: 300, cost: { wood: 50 }, time: 15, farm: true, slots: 2, art: 'farm-plot', icon: 'build-farm-plot' },
+  mine: { size: 2, hp: 700, cost: { wood: 80 }, time: 25, mine: true, art: 'mine', icon: 'build-mine' },
+  barracks: { size: 3, hp: 1200, cost: { wood: 150 }, time: 40, trains: ['infantry'], art: 'barracks', icon: 'build-barracks' },
+  range: { size: 3, hp: 1100, cost: { wood: 150, gold: 30 }, time: 40, trains: ['ranged'], art: 'range', icon: 'build-range' },
+  stable: { size: 4, hp: 1300, cost: { wood: 200, gold: 60 }, time: 50, trains: ['cavalry'], art: 'stable', icon: 'build-stable' },
+  siegeWorkshop: { size: 4, hp: 1300, cost: { wood: 180, stone: 40, gold: 100 }, time: 60, trains: ['siege'], art: 'siege-workshop', icon: 'build-siege-workshop' },
+  aidPost: { size: 3, hp: 900, cost: { wood: 120, gold: 40 }, time: 35, trains: ['support'], aid: true, art: 'aid-post', icon: 'build-aid-post' },
+  tower: { size: 2, hp: 1000, cost: { wood: 30, stone: 90, gold: 20 }, time: 45, tower: { range: 7 * Q, damage: 14, attackTicks: secondsToTicks(1.5) }, art: 'tower', icon: 'build-tower' }
 };
 /**
  * A building's art in an age: { ageId, file, object, id } with the file of `ageId` or the nearest
@@ -140,17 +154,17 @@ export const TRAIN_STRENGTH = 200;
 export const WORKER_STRENGTH = 25;
 export const UNITS = {
   worker: { cost: { food: 50 }, time: 12, strength: WORKER_STRENGTH },
-  infantry: { cost: { food: 60, materials: 30 }, time: 20, strength: TRAIN_STRENGTH },
-  ranged: { cost: { food: 50, materials: 40, gold: 10 }, time: 22, strength: TRAIN_STRENGTH },
-  cavalry: { cost: { food: 80, materials: 40, gold: 40 }, time: 28, strength: TRAIN_STRENGTH },
-  siege: { cost: { materials: 120, gold: 60 }, time: 40, strength: TRAIN_STRENGTH },
-  support: { cost: { food: 60, materials: 60 }, time: 25, strength: TRAIN_STRENGTH }
+  infantry: { cost: { food: 60, wood: 30 }, time: 20, strength: TRAIN_STRENGTH },
+  ranged: { cost: { food: 50, wood: 40, gold: 10 }, time: 22, strength: TRAIN_STRENGTH },
+  cavalry: { cost: { food: 80, wood: 40, gold: 40 }, time: 28, strength: TRAIN_STRENGTH },
+  siege: { cost: { wood: 120, gold: 60 }, time: 40, strength: TRAIN_STRENGTH },
+  support: { cost: { food: 60, wood: 60 }, time: 25, strength: TRAIN_STRENGTH }
 };
 
 // Names by age (the age registry's ids); `default` is the Bronze set.
 const NAMES = {
   default: {
-    camp: 'Expedition camp', hall: 'Town hall', house: 'Village house', foodDepot: 'Food depot', materialsYard: 'Materials yard',
+    camp: 'Expedition camp', hall: 'Town hall', house: 'Village house', foodDepot: 'Food depot', materialsYard: 'Wood and stone yard',
     tradePost: 'Trade post', farm: 'Farm', mine: 'Mine', barracks: 'Barracks', range: 'Archery range', stable: 'Chariot yard',
     siegeWorkshop: 'Siege workshop', aidPost: 'Aid post', tower: 'Tower', worker: 'Laborer'
   },
@@ -161,7 +175,7 @@ const NAMES = {
 };
 export const ecoName = (id, ageId) => NAMES[ageId]?.[id] || NAMES.default[id] || id;
 
-/** Cost as an integer milli map { food, materials, gold }. */
+/** Cost as an integer milli map { food, wood, stone, gold }. */
 export const costMilli = (cost) => Object.fromEntries(RESOURCES.map((r) => [r, toMilli(cost?.[r] || 0)]));
 export const costTotal = (cost) => RESOURCES.reduce((s, r) => s + (cost?.[r] || 0), 0);
 export const buildTicks = (id) => secondsToTicks(BUILDINGS[id].time);

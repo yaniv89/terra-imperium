@@ -7,6 +7,7 @@
 // Ambushed squads stay hidden even inside sight until they attack or enemy cavalry comes close.
 import { Q } from './constants';
 import { cavalryOf } from './squadLists';
+import { BUILD_RADIUS_HQ } from '../data/economy';
 
 // A disc of radius r as one run per row: half[dy + r] = the largest dx with dx^2 + dy^2 <= r^2.
 const disc = new Map();
@@ -30,6 +31,18 @@ export const initFog = (w) => {
   // The defender knows every inch of its own land; the attacker only knows what intel told it.
   if (w.setup.modifiers.intel?.attackerSeesDefender) w.fog[0].fill(1);
   w.fog[1].fill(1);
+  // The attacker knows the ground of its own camp (X09): its build circle starts explored, so the
+  // camp area can be built on from the first tick (sim/economy.js placementBlock wants explored).
+  const camp = w.setup.economy?.camp;
+  if (camp) {
+    const r = BUILD_RADIUS_HQ; const half = discHalfWidths(r);
+    const tx = Math.floor(camp.x / Q); const ty = Math.floor(camp.y / Q);
+    for (let dy = -r; dy <= r; dy++) {
+      const py = ty + dy; if (py < 0 || py >= w.map.h) continue;
+      const x0 = Math.max(0, tx - half[dy + r]); const x1 = Math.min(w.map.w - 1, tx + half[dy + r]);
+      for (let i = py * w.map.w + x0; i <= py * w.map.w + x1; i++) if (w.fog[0][i] < 1) w.fog[0][i] = 1;
+    }
+  }
 };
 
 const stamp = (w, grid, x, y, radiusTiles) => {

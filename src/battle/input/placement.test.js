@@ -30,7 +30,7 @@ const compare = (w, side) => {
         const ui = placementCheck({ view, setup: w.setup, side, type, tx, ty, fog: view.fog });
         expect(ui.ok, `${type} at ${tx},${ty}: sim ${sim}, ui ${ui.code}`).toBe(sim === null);
         // What lies in the fog (a resource there) the screen cannot know: it may give another reason.
-        if (ui.code !== 'fog' && sim !== 'node' && sim !== 'noVein') expect(ui.code, `${type} at ${tx},${ty}`).toBe(sim);
+        if (ui.code !== 'fog' && sim !== 'fog' && sim !== 'node' && sim !== 'noVein') expect(ui.code, `${type} at ${tx},${ty}`).toBe(sim);
         seen.set(sim, (seen.get(sim) || 0) + 1); n += 1;
       });
     }

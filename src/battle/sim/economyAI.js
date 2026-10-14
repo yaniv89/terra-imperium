@@ -11,7 +11,7 @@ import { placementBlock, population, housingCap, ecoAlive } from './economy';
 import { BUILDINGS, UNITS, RESOURCES, MILLI, costMilli, buildableFor, trainableRoles, POP_LIMIT, WORKER_MIX } from '../data/economy';
 
 // workers: laborers it keeps; prod: production buildings; towers: when defending; mix: the share of
-// laborers on food, materials, gold; army: what its barracks train, in order of preference.
+// laborers on food, wood, stone, gold (WORKER_MIX); army: what its barracks train, in order of preference.
 export const AI_ECONOMY = {
   settler: { every: 60, workers: 6, prod: 1, towers: 0, queue: 1 },
   chieftain: { every: 50, workers: 8, prod: 1, towers: 0, queue: 1 },
@@ -70,7 +70,7 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
   if (!hq) { keepTraining(); return; }
 
   // 1. Idle laborers to whatever resource is furthest under its share.
-  const onRes = { food: 0, materials: 0, gold: 0 };
+  const onRes = Object.fromEntries(RESOURCES.map((r) => [r, 0]));
   workers.forEach((q) => { if (q.job?.t === 'gather') onRes[w.eco.nodes[q.job.node].res] += 1; });
   const idle = workers.filter((q) => !q.job || q.order.type !== 'work');
   idle.forEach((q) => {

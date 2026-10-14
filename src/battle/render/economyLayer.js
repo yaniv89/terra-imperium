@@ -21,7 +21,7 @@
 //     trade-post and their -damaged): a side's buildings in its people's theme (themeOfNation,
 //     else the land's style), the same age as the shared file it would use; any role or theme
 //     without a skin keeps the shared building. (The town hall's skin is the civic hall the keep draws.)
-//   nodes -> src/assets/battle/nature/<id>.glb (stone-outcrop, ore-outcrop, gold-vein, fish-shoal:
+//   nodes -> src/assets/battle/nature/<id>.glb (stone-outcrop, gold-vein, fish-shoal (no ore: Q1, X29):
 //     objects full, half, depleted; herd-sheep-goat, herd-cattle: an `animal` object placed a few
 //     times), groves -> the battle's vegetation kit (tree-l, tree-m, felled, stump by what is
 //     left, and the kit's log-pile beside it: the mark of a wood node). True scale:
@@ -36,6 +36,7 @@ import { KitInstances, kitLodForZoom } from '../art/kitInstances';
 
 export { kitLodForZoom };
 import { vegetationKitFor } from '../art/vegetation';
+import { loadObjectName, usesBarrow, BARROW_EMPTY, workerLoadPlacement } from '../art/workerLoads';
 import { themeOfNation, styleOfLand } from '../../data/architecture';
 
 /** The roles that take a culture skin (plans/ART-MODELS-PLAN.md 5). */
@@ -72,12 +73,26 @@ export const PARTS = { // exported for the build menu icons (scripts/art/build-i
 const NODE_PARTS = {
   tree: [['cyl', 0, 0, 0, 0.12, 0.5, 0.12, '#5a3d24'], ['cone', 0, 0.45, 0, 0.9, 1.3, 0.9, '#2f6b33'], ['cone', 0.35, 0.2, 0.3, 0.6, 0.9, 0.6, '#3b7a3c']],
   stone: [['rock', 0, 0.2, 0, 0.9, 0.6, 0.8, '#9ca3af'], ['rock', 0.45, 0.1, 0.35, 0.45, 0.35, 0.45, '#b8bec6']],
-  ore: [['rock', 0, 0.2, 0, 0.9, 0.6, 0.8, '#57534e'], ['rock', 0.4, 0.15, -0.3, 0.4, 0.35, 0.4, '#b45309']],
   gold: [['rock', 0, 0.2, 0, 0.8, 0.55, 0.8, '#6b6256'], ['rock', 0.25, 0.3, 0.2, 0.4, 0.35, 0.4, '#eab308'], ['rock', -0.3, 0.2, -0.2, 0.3, 0.25, 0.3, '#facc15']],
   herd: [['box', -0.3, 0.12, 0, 0.32, 0.22, 0.18, '#f5f5f4'], ['box', 0.25, 0.12, 0.25, 0.32, 0.22, 0.18, '#e7e5e4'], ['box', 0.2, 0.12, -0.3, 0.32, 0.22, 0.18, '#d6d3d1']],
   cattle: [['box', -0.3, 0.18, 0, 0.5, 0.32, 0.24, '#78350f'], ['box', 0.35, 0.18, 0.3, 0.5, 0.32, 0.24, '#a16207']],
   fish: [['flat', 0, 0.06, 0, 1.0, 1, 1.0, '#93c5fd'], ['flat', 0.25, 0.07, 0.2, 0.45, 1, 0.45, '#dbeafe']],
   farm: []
+};
+// A spent grove without art: two stumps (X31).
+const STUMP_PARTS = [['cyl', -0.15, 0, 0.1, 0.22, 0.18, 0.22, '#6b4a2e'], ['cyl', 0.25, 0, -0.15, 0.18, 0.14, 0.18, '#5a3d24']];
+// A load without the loads kit: a small block of the resource's colour on the back.
+const LOAD_COLOR = { food: '#c8a24a', wood: '#8a6a43', stone: '#b8bec6', gold: '#eab308' };
+
+/**
+ * X28 / X32: the kit object a laborer shows for a `carrying` entry ({ res, load }): the loaded
+ * barrow or back load while it carries, the empty barrow on the way out for a barrow resource,
+ * else null. Pure (tests).
+ */
+export const workerLoadObject = (c) => {
+  const barrow = usesBarrow(c.res);
+  if (c.load > 0) return loadObjectName(c.res, { nodeKind: c.kind, barrow });
+  return barrow ? BARROW_EMPTY : null;
 };
 
 const M = new Matrix4();
@@ -167,6 +182,33 @@ export class EconomyLayer {
     // climate's pile from the shared file; any other kit without one draws the tree alone.
     this.pileRef = LOG_PILE_FILE_KITS.includes(this.nodeRef.tree?.kit) && (!kinds.size || kinds.has('tree')) ? art.nature(LOG_PILES_FILE) : null;
     want(this.pileRef);
+    // What the player's laborers carry (X28): the loads kit of the player's age (art/workerLoads.js).
+    this.loadsRef = art.workerLoads ? art.workerLoads(r.setup.sides[r.playerSide ?? 0]?.ageId) : null;
+    want(this.loadsRef);
+  }
+
+  /** The player's laborers' loads (X28, X32): a barrow or a back load per `eco.carrying` entry, where
+   *  the laborer's figure was drawn this frame (BattleRenderer.soldierMemo, after drawSquads). */
+  writeLoads(cur, cull, lod, counts) {
+    const memo = this.r.soldierMemo;
+    if (!memo || !cur.eco.carrying?.length) return;
+    const kit = this.kit(this.loadsRef);
+    cur.eco.carrying.forEach((c) => {
+      const m = memo.get(c.idx);
+      if (!m || !cull(m.x, m.z, 1)) return;
+      const name = workerLoadObject(c);
+      if (!name) return;
+      const yaw = Math.atan2(m.fx, m.fz);
+      const barrow = name.startsWith('barrow');
+      const obj = kit ? kitObject(kit, name) : null;
+      if (obj) {
+        const p = workerLoadPlacement(m.x, this.r.heightAt(m.x, m.z), m.z, yaw, { barrow });
+        this.kits.add(obj, lod, M.makeRotationY(p.yaw).scale(V.setScalar(p.scale)).setPosition(p.x, p.y, p.z));
+        return;
+      }
+      if (c.load <= 0) return; // no art: only a real load gets the stand-in block
+      this.writeParts([['box', -m.fx * 0.12, 0.42, -m.fz * 0.12, 0.2, 0.18, 0.2, LOAD_COLOR[c.res] || '#a8a29e']], m.x, m.z, 1, 1, '#ffffff', counts, cull);
+    });
   }
 
   kit(ref) { return ref ? this.loaded.get(ref.url) || null : null; }
@@ -196,7 +238,8 @@ export class EconomyLayer {
     const yaw = ((n.i ?? 0) * 2.39996) % 6.283;
     this.kits.add(obj, lod, M.makeRotationY(yaw).scale(V.setScalar(S)).setPosition(x, y, z));
     // A grove is a wood node, not one more tree: a pile of cut logs stands beside it (MD06).
-    const pile = n.kind === 'tree' ? kitObject(kit, 'log-pile') || this.sharedPile() : null;
+    // (a spent grove keeps its stumps but no pile: nothing left to cut, X31)
+    const pile = n.kind === 'tree' && !n.spent ? kitObject(kit, 'log-pile') || this.sharedPile() : null;
     if (pile) {
       const px = x + Math.cos(yaw) * LOG_PILE_OFFSET; const pz = z + Math.sin(yaw) * LOG_PILE_OFFSET;
       this.kits.add(pile, lod, M.makeRotationY(yaw + 0.9).scale(V.setScalar(S)).setPosition(px, this.r.heightAt(px, pz), pz));
@@ -274,11 +317,13 @@ export class EconomyLayer {
     cur.eco.nodes.forEach((n) => {
       const x = n.x / Q; const z = n.y / Q;
       if (!cull(x, z, 3)) return;
-      const frac = n.amount < 0 || n.max <= 0 ? 1 : n.amount / n.max;
+      const frac = n.spent ? 0 : n.amount < 0 || n.max <= 0 ? 1 : n.amount / n.max;
       if (this.writeNodeArt(n, x, z, frac, lod)) return;
+      if (n.spent) { this.writeParts(STUMP_PARTS, x, z, 1, 1, '#ffffff', counts, cull); return; } // X31
       const left = Math.max(0.35, frac);
       this.writeParts(NODE_PARTS[n.kind] || NODE_PARTS.stone, x, z, 1, left, '#ffffff', counts, cull);
     });
+    this.writeLoads(cur, cull, lod, counts);
     cur.eco.buildings.forEach((b) => {
       if (b.proxy) return;
       const x = b.x / Q; const z = b.y / Q;
@@ -324,7 +369,7 @@ export class EconomyLayer {
     const b = view.eco.buildings.find((e) => e.alive && !e.proxy && Math.abs(e.x / Q - g.x) <= e.size / 2 + margin && Math.abs(e.y / Q - g.z) <= e.size / 2 + margin);
     if (b) return { kind: 'eco', index: b.idx, side: b.side };
     let best = null; let bestD = 1.0;
-    view.eco.nodes.forEach((n) => { const d = (n.x / Q - g.x) ** 2 + (n.y / Q - g.z) ** 2; if (d < bestD) { bestD = d; best = { kind: 'node', index: n.i, res: n.res }; } });
+    view.eco.nodes.forEach((n) => { if (n.spent) return; const d = (n.x / Q - g.x) ** 2 + (n.y / Q - g.z) ** 2; if (d < bestD) { bestD = d; best = { kind: 'node', index: n.i, res: n.res }; } });
     return best;
   }
 }

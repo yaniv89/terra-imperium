@@ -3,7 +3,7 @@
 // each, a wheel on every barrow level).
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { loadObjectName, loadResource, workerLoadPlacement, LOAD_OBJECTS, BARROW_EMPTY, LOAD_TILES_PER_UNIT, PERSON_TILES, WORKER_LOADS_KEY, WORKER_LOADS_MODERN_KEY, workerLoadsKey, WORKER_LOAD_BACK } from './workerLoads';
+import { loadObjectName, loadResource, workerLoadPlacement, LOAD_OBJECTS, BARROW_EMPTY, LOAD_TILES_PER_UNIT, PERSON_TILES, WORKER_LOADS_KEY, WORKER_LOADS_MODERN_KEY, workerLoadsKey, WORKER_LOAD_BACK, usesBarrow } from './workerLoads';
 import { createArtIndex } from './artIndex';
 import { ART_UNIT_WORLD } from '../render/unitModels';
 import { CITY_TILES_PER_UNIT } from '../setup/cityBattle';
@@ -67,5 +67,17 @@ describe('worker loads', () => {
       if (name.startsWith('barrow-')) kids.forEach((k) => expect((k.children || []).map((i) => nodes[i].name).filter((n) => /^wheel/.test(n)).length, `${name} ${k.name}`).toBe(1));
     });
     expect(json.materials.map((m) => m.name)).toEqual(['Town']);
+  });
+});
+
+describe('X28, X32: what a laborer shows', () => {
+  it('food and stone in a barrow (empty on the way out), wood and gold on the back', async () => {
+    const { workerLoadObject } = await import('../render/economyLayer');
+    expect(usesBarrow('food')).toBe(true); expect(usesBarrow('stone')).toBe(true);
+    expect(usesBarrow('wood')).toBe(false); expect(usesBarrow('gold')).toBe(false);
+    expect(workerLoadObject({ res: 'stone', kind: 'stone', load: 6 })).toBe('barrow-stone');
+    expect(workerLoadObject({ res: 'food', kind: 'herd', load: 0 })).toBe(BARROW_EMPTY);
+    expect(workerLoadObject({ res: 'wood', kind: 'tree', load: 4 })).toBe('load-logs');
+    expect(workerLoadObject({ res: 'gold', kind: 'gold', load: 0 })).toBeNull();
   });
 });

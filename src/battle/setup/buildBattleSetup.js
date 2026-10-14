@@ -39,9 +39,14 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 // the deployment set down before the first tick in every replay, the commanded setup verified;
 // v8: playtest audit CB18, no Reserve: the whole army starts on the field and allied reinforcements
 // march in on their own (sim/world.js); in a battle with bases a side loses only when its base
-// buildings are gone, the keep alone does not win, and at the clock the defender holds (sim/base.js)).
+// buildings are gone, the keep alone does not win, and at the clock the defender holds (sim/base.js);
+// v9: playtest audit CB15/CB16, four battle resources (food, wood, stone, gold; ore spots are stone),
+// stone prices and stone repairs of the city, the attacker's camp further in, building allowed on
+// explored ground and next to a resource (data/economy.js, sim/economy.js placementBlock), the
+// camp's build circle explored from the start (sim/fog.js), and a tower the workers build counts as
+// a base building (sim/base.js)).
 // A log or a checkpoint of another version is never replayed as if it were this one.
-export const SETUP_VERSION = 8;
+export const SETUP_VERSION = 9;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 

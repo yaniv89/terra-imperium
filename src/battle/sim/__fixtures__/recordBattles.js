@@ -164,6 +164,9 @@ export const playCommandedBattle = (setup, seed = 0, { maxFrames = 120000, retre
       if (site) { const before = w.eco.buildings.length; push({ type: 'build', squads: hands.slice(-1), building: 'house', ...site }); spare = before; }
     } else if (spare >= 0 && w.eco.buildings[spare] && roll < 0.5) {
       push({ type: 'cancelBuild', building: spare }); spare = -2;
+    } else if (barracks >= 0 && w.eco.buildings[barracks]?.alive && !w.eco.buildings[barracks].built && hands.length && roll < 0.6) {
+      // Keep two laborers on the barracks until it stands (the random moves below pull them away).
+      push({ type: 'assist', squads: hands.slice(0, 2), target: { kind: 'eco', index: barracks } });
     } else if (barracks >= 0 && w.eco.buildings[barracks]?.built && !trained) {
       push({ type: 'train', building: barracks, role: 'infantry', count: 3 });
       push({ type: 'cancelTrain', building: barracks, slot: 2 });

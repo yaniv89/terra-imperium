@@ -6,11 +6,11 @@
 //   placementCheck({ view, setup, side, type, tx, ty, fog }) -> { ok, code, reason }
 //   tx, ty: the footprint's top-left tile (the build order's), fog: the player's fog grid or null.
 import { BUILDINGS, buildableFor, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN } from '../data/economy';
-import { MAX_ECO_BUILDINGS } from '../sim/economy';
+import { MAX_ECO_BUILDINGS, NODE_PAD } from '../sim/economy';
 import { TILE } from '../setup/mapgen';
 import { Q } from '../sim/constants';
 
-const VEINS = new Set(['stone', 'ore', 'gold']);
+const VEINS = new Set(['stone', 'gold']);
 const GROUND_REASON = {
   [TILE.FOREST]: 'Blocked by trees',
   [TILE.WATER]: 'Cannot build on water',
@@ -27,8 +27,8 @@ export const PLACEMENT_REASON = {
   ground: 'Blocked ground',
   crowded: 'Too close to another building',
   node: 'On top of a resource',
-  noVein: 'A mine must stand by stone, ore or gold',
-  fog: 'You cannot see this ground',
+  noVein: 'A mine must stand by stone or gold',
+  fog: 'Unexplored ground',
   far: 'Outside your camp area',
   occupied: 'Troops are standing here'
 };
@@ -74,7 +74,7 @@ export const placementCheck = ({ view, setup, side, type, tx, ty, fog = null }) 
   const cx = tx * Q + ((size * Q) >> 1); const cy = ty * Q + ((size * Q) >> 1); // economy.js footprintCentre
   const nodes = view.eco.nodes;
   const near = (n, r) => Math.abs(n.x - cx) <= r && Math.abs(n.y - cy) <= r;
-  if (nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && near(n, ((size * Q) >> 1) + (Q >> 1)))) return fail('node');
+  if (nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && near(n, NODE_PAD(size)))) return fail('node');
   if (def.mine) {
     // The vein a standing mine works is the one nearest to it (economy.js 'build').
     const taken = new Set();
@@ -86,7 +86,7 @@ export const placementCheck = ({ view, setup, side, type, tx, ty, fog = null }) 
     });
     if (!nodes.some((n) => VEINS.has(n.kind) && n.amount !== 0 && near(n, ((size * Q) >> 1) + 2 * Q) && !taken.has(n.i))) return fail('noVein');
   }
-  if (fog && fog[Math.floor(cy / Q) * map.w + Math.floor(cx / Q)] !== 2) return fail('fog');
+  if (fog && fog[Math.floor(cy / Q) * map.w + Math.floor(cx / Q)] < 1) return fail('fog');
   const reach = buildings.some((b) => b.side === side && b.built && b.alive && ((b.x - cx) ** 2 + (b.y - cy) ** 2 <= ((BUILDINGS[b.type]?.hq ? BUILD_RADIUS_HQ : BUILD_RADIUS_OWN) * Q) ** 2));
   if (!reach) return fail('far');
   const half = (size * Q) >> 1;
