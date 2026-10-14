@@ -1,0 +1,114 @@
+{
+  "solomons_temple.glb": {
+    "bytes": 3379788,
+    "objects": {
+      "tier1": {
+        "LOD0": {
+          "triangles": 7024,
+          "width": 4.06,
+          "depth": 7.43,
+          "height": 2.522,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2416,
+          "width": 4.06,
+          "depth": 7.43,
+          "height": 2.522,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 532,
+          "width": 4,
+          "depth": 7.4,
+          "height": 2.482,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "tier2": {
+        "LOD0": {
+          "triangles": 9144,
+          "width": 6.53,
+          "depth": 8.705,
+          "height": 2.522,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 3960,
+          "width": 6.53,
+          "depth": 8.705,
+          "height": 2.522,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 952,
+          "width": 6.5,
+          "depth": 8.7,
+          "height": 2.482,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "tier3": {
+        "LOD0": {
+          "triangles": 11836,
+          "width": 9.51,
+          "depth": 8.705,
+          "height": 2.522,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 5584,
+          "width": 9.51,
+          "depth": 8.705,
+          "height": 2.522,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 1252,
+          "width": 9.5,
+          "depth": 8.7,
+          "height": 2.482,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ]
+  }
+}
