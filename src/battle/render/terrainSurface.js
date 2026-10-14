@@ -29,6 +29,16 @@ export const vnoise = (x, z) => {
 };
 const smoothstep = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
+// ---- the grass by climate (I216) ---------------------------------------------------------------
+// The grass colour comes from the battle terrain ('plains' is green), but a plains tile in a hot
+// desert or a steppe climate (a Nile-side tile in Nubia: Koppen BWh) is not lush farmland: the
+// grass is dried toward these tones by the battle's vegetation kit (art/vegetation.js
+// vegetationKitFor, the fought-over tile's climate). Water and the river's own tiles keep their tint.
+export const DRY_GRASS = { base: '#a99a5f', alt: '#bfae72' };
+const DRY_BLEND = { desert: 0.6, steppe: 0.4, mediterranean: 0.2 };
+/** How far the grass dries toward DRY_GRASS (0..1) for a vegetation kit on a battle terrain. */
+export const dryGrassBlend = (kit, terrain) => (terrain === 'desert' ? 0 : DRY_BLEND[kit] || 0);
+
 // ---- the tile mask ---------------------------------------------------------------------------
 
 export const buildTileMask = (map) => {

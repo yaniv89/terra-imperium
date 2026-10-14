@@ -21,7 +21,8 @@ import { soldierSlots, squadSlots, figureScale, scaledSoldiers } from './capacit
 import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
 import { writeSoldierVariant, skinToneFor } from './unitVariants';
 import { soldierLodGeometries, pickSoldierTier, triangleCount } from './soldierLod';
-import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox } from './terrainSurface';
+import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox, dryGrassBlend, DRY_GRASS } from './terrainSurface';
+import { vegetationKitFor } from '../art/vegetation';
 import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
@@ -378,6 +379,9 @@ export class BattleRenderer {
     const colors = new Float32Array(pos.count * 3);
     const base = new Color(GROUND[this.setup.terrain] || GROUND.mixed);
     const alt = new Color(GROUND_ALT[this.setup.terrain] || GROUND_ALT.mixed);
+    // I216: a green-terrain tile in a dry climate gets dry grass (terrainSurface.js dryGrassBlend).
+    const dry = dryGrassBlend(vegetationKitFor(this.setup), this.setup.terrain);
+    if (dry > 0) { base.lerp(new Color(DRY_GRASS.base), dry); alt.lerp(new Color(DRY_GRASS.alt), dry); }
     const tileColor = new Color();
     // The grass itself (two tones over big and small noise, lit a touch by height) is per vertex;
     // roads, sand, rock and forest floor are painted per pixel by the ground shader

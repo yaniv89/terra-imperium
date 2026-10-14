@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { Vector3 } from 'three';
 import { TILE } from '../setup/mapgen';
-import { SKIRT, buildTileMask, makeSkirtHeight, buildSkirtGeometry, fitShadowBox, hasCoast, horizonLevel } from './terrainSurface';
+import { SKIRT, buildTileMask, makeSkirtHeight, buildSkirtGeometry, fitShadowBox, hasCoast, horizonLevel, dryGrassBlend } from './terrainSurface';
 
 const makeMap = (w = 20, h = 12, edgeWater = false) => {
   const tiles = new Array(w * h).fill(TILE.OPEN);
@@ -77,5 +77,15 @@ describe('coasts vs rivers', () => {
     const skirt = makeSkirtHeight(map, heightAtFor(map));
     expect(skirt(-5, 6.5)).toBeLessThan(-0.3); // the channel carries on
     expect(skirt(-SKIRT, 6.5)).toBeCloseTo(horizonLevel(false) + 0.02, 3); // …and ends at the rim
+  });
+});
+
+describe('grass by climate (I216)', () => {
+  it('a green terrain in a dry climate dries its grass; a desert terrain and wet climates do not', () => {
+    expect(dryGrassBlend('desert', 'plains')).toBeGreaterThan(0.5);
+    expect(dryGrassBlend('steppe', 'mixed')).toBeGreaterThan(0);
+    expect(dryGrassBlend('desert', 'desert')).toBe(0);
+    expect(dryGrassBlend('temperate', 'plains')).toBe(0);
+    expect(dryGrassBlend('tropical', 'forest')).toBe(0);
   });
 });
