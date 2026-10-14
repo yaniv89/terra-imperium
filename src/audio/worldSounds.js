@@ -101,6 +101,7 @@ export const ACTION_SOUNDS = {
   [T.SET_SETTLER_HOLD]: null,
   [T.DISBAND_SETTLERS]: 'ui-close',
   [T.RESOLVE_CAPTURE]: (a) => (a.payload?.choice === 'raze' ? 'city-razed' : 'ui-confirm'),
+  [T.RUSH_PRODUCTION]: 'tribute-paid', // gold paid, like Buy land (CB04 I019)
   [T.FUND_SCHOLARS]: 'tribute-paid',
   [T.CHANGE_GOVERNMENT_TYPE]: 'ui-confirm',
   [T.ENACT_GOVERNMENT_REFORM]: 'ui-confirm',

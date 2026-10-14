@@ -129,7 +129,7 @@ export const chooseProduction = (state, city, ctx) => {
   const units = ctx.units || state.units || {};
   const counts = ctx.counts || { settlers: settlersOf(units, nationId).length, outposts: outpostsOf(state.regions, nationId).length, landUnits: Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler').length };
   const production = Math.max(1, city.lastYields?.production ?? city.dev?.production ?? city.size ?? 1);
-  const costOf = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult });
+  const costOf = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult });
   const affordable = (item) => costOf(item) / production <= MAX_BUILD_TURNS * (ctx.speedMult || 1);
   const situation = situationOf(state, nationId);
   const threatened = situation.atWar && getNeighborIds(city.id).some((n) => situation.enemies.has(state.regions[n]?.owner));

@@ -16,7 +16,7 @@ import { createScriptedPlayer, createTelemetry } from '../../../scripts/campaign
 import { chooseProduction, nationCounts } from '../../../src/engine/aiProduction';
 import { bestSites, MAX_SETTLE_RINGS } from '../../../src/engine/settlers';
 import { getResearched, getTechAgeId } from '../../../src/engine/nationState';
-import { getEffectiveAgeId, speedCostMult } from '../../../src/data/ages';
+import * as AGES from '../../../src/data/ages';
 import { authorityOf } from '../../../src/engine/authority';
 import { getOverextension } from '../../../src/engine/nationalPower';
 import { metNations } from '../../../src/engine/fog';
@@ -53,6 +53,10 @@ const SIZE = process.env.SIZE || 'standard';
 // wars, tribute answers, stack verdicts); TRACE_WARS=1 with OUT_DIR writes warstacks-<seed>.jsonl,
 // one row per AI stack per war per turn (why a stack waits or shuttles).
 const POLICY = process.env.POLICY || 'passive';
+// RUSH=1 with POLICY=scripted: the scripted player also buys production with gold (spending.js,
+// lane CB04). Loaded lazily so the harness still runs on a commit without spending.js.
+const RUSH = process.env.RUSH === '1';
+const SPENDING = RUSH ? await import('../../../src/engine/spending').catch(() => null) : null;
 const DEMANDS = process.env.DEMANDS || 'refuse';
 const SPEED = process.env.SPEED || null;
 const OUT_DIR = process.env.OUT_DIR || '';
@@ -149,7 +153,7 @@ SEEDS.forEach((seed) => {
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario, ...(SPEED ? { gameSpeed: SPEED } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     if (OUT_DIR) fs.mkdirSync(OUT_DIR, { recursive: true });
     const traceStream = TRACE_WARS ? fs.openSync(path.join(OUT_DIR, `warstacks-${seed}.jsonl`), 'w') : null;
-    const scripted = POLICY === 'scripted' ? createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId, speedCostMult }, demands: DEMANDS, opinionOf }) : null;
+    const scripted = POLICY === 'scripted' ? createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId: AGES.getEffectiveAgeId, speedCostMult: AGES.speedCostMult, speedTrainMult: AGES.speedTrainMult, rushQuote: SPENDING?.rushQuote }, demands: DEMANDS, rush: RUSH, opinionOf }) : null;
     const telemetry = createTelemetry({ playerId: s.playerNationId, isIndependent: isIndependentNation, authorityOf, getOverextension, metNations, getTiles, traceFile: TRACE_WARS, writeLine: traceStream == null ? null : (line) => fs.writeSync(traceStream, line + '\n') });
     let telemMs = 0;
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
@@ -198,6 +202,7 @@ SEEDS.forEach((seed) => {
         // The game ending early (a passive France falls to a siege around turn 100) still prints a
         // final snapshot with its real status, not the last round number's.
         last = snapshot(s, t, counters, (performance.now() - t0 - telemMs) / Math.max(1, turnsSince), lives, telemetry);
+        if (RUSH && scripted) last = { ...last, playerRushes: scripted.log.rushes || 0, playerRushGold: scripted.log.rushGold || 0 };
         console.log(`STATS seed=${seed} ${Object.entries(last).map(([k, v]) => `${k}=${v}`).join(' ')}`);
         t0 = performance.now(); turnsSince = 0; telemMs = 0;
       }

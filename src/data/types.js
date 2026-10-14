@@ -217,7 +217,10 @@ export const ActionTypes = {
   DISBAND_SETTLERS: 'DISBAND_SETTLERS',
   // The capture card (decision 40, src/engine/capture.js): payload { captureId, choice } where
   // choice is 'conquer' | 'raze' | 'tributary' | 'free'.
-  RESOLVE_CAPTURE: 'RESOLVE_CAPTURE'
+  RESOLVE_CAPTURE: 'RESOLVE_CAPTURE',
+  // Pay gold for the production an order still lacks (src/engine/spending.js rushQuote, playtest
+  // audits I019): payload { cityId, index } over [current, ...queue]; it completes on the next turn.
+  RUSH_PRODUCTION: 'RUSH_PRODUCTION'
 };
 
 export const LogTypes = {

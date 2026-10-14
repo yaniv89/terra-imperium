@@ -31,7 +31,7 @@ import {
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { calcNationBalance, getLoanCapacity, getLoanSize, hasBankingHouses } from '../../engine/economy';
 import { canAfford, formatNumber } from '../../utils/helpers';
-import { getAdvisorHireCost } from '../../engine/rulers';
+import { getAdvisorHireCost, advisorQuoteText } from '../../engine/rulers';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { TRAITS } from '../../data/traits';
@@ -320,6 +320,7 @@ const DomesticPanel = () => {
                   key={candidate.id}
                   icon={Users}
                   label={`Hire ${candidate.name} (level ${candidate.level})`}
+                  description={advisorQuoteText(candidate.level, pool, current)}
                   costs={{ gold: cost }}
                   onClick={() => handleHireAdvisor(pool, index, cost)}
                   disabled={current?.id === candidate.id || (state.resources.gold || 0) < cost}
