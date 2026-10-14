@@ -1535,17 +1535,17 @@ export class BattleRenderer {
       (this.lastView.eco?.buildings || []).forEach((b) => { if (b.alive && !b.proxy && b.built && b.hp < b.maxHp * 0.3) burn(b.x / Q, b.y / Q, b.idx * 0.37); });
       (this.lastView.structures || []).forEach((st, i) => { if (st.alive && st.maxHp > 0 && st.hp < st.maxHp * 0.3) burn(st.x / Q, st.y / Q, i * 0.41); });
     }
-    // X27: a wreck smoulders for the rest of the battle: a small fire on each of its fire sockets and
-    // a column of three rising puffs on each smoke socket (stateless: the phase is the time).
+    // X27: a wreck's fire (strength from the sim tick, out after 30 battle seconds) on each fire socket;
+    // the smoke stays all battle, a little thinner once the fire is out: a column of three rising puffs on each smoke socket (stateless: the phase is the time).
     const wreckFx = this.ecoLayer.wreckFx || [];
     for (let i = 0; i < wreckFx.length; i++) {
       const f = wreckFx[i];
       if (f.kind === 'fire') {
-        if (sprites.has('fire-small')) sprites.add('fire-small', f.x, f.y + 0.15, f.z, { time: this.time + f.phase, scale: 0.6 });
+        if (sprites.has('fire-small')) sprites.add('fire-small', f.x, f.y + 0.15, f.z, { time: this.time + f.phase, scale: 0.6 * (0.3 + 0.7 * f.strength), alpha: Math.min(1, f.strength * 2) });
       } else if (sprites.has('smoke')) {
         for (let j = 0; j < 3; j++) {
           const k = ((this.time + f.phase) / WRECK_SMOKE_LIFE + j / 3) % 1;
-          sprites.add('smoke', f.x + k * 0.4, f.y + 0.3 + k * 2.2, f.z, { k, scale: 0.7 + k * 0.8, alpha: (1 - k) * 0.7 });
+          sprites.add('smoke', f.x + k * 0.4, f.y + 0.3 + k * 2.2, f.z, { k, scale: 0.7 + k * 0.8, alpha: (1 - k) * 0.7 * f.strength });
         }
       }
     }

@@ -3,7 +3,7 @@
 // and construction objects, the node states by what is left; no file keeps the greyboxes.
 import { describe, it, expect } from 'vitest';
 import { Group, Matrix4 } from 'three';
-import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, wreckFxKind, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET, LOG_PILES_FILE, LOG_PILE_FILE_KITS } from './economyLayer';
+import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, wreckFxKind, wreckFireStrength, wreckSmokeStrength, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET, LOG_PILES_FILE, LOG_PILE_FILE_KITS } from './economyLayer';
 import { createArtIndex } from '../art/artIndex';
 import { parseKit, objectSize } from '../art/kitLoader';
 import { kitGlb, parseGlbBytes } from '../../components/map/closeView/glbFixture';
@@ -196,6 +196,21 @@ describe('battle economy art', () => {
     expect(layer.wreckFx.map((f) => f.kind).sort()).toEqual(['fire', 'smoke']);
     const fire = layer.wreckFx.find((f) => f.kind === 'fire');
     expect(fire.x).toBeGreaterThan(5); // the socket's offset, scaled to the footprint
+    // the fire dies down over 30 battle seconds (600 ticks of the view), then only smoke is left
+    expect(wreckFireStrength(0)).toBe(1);
+    expect(wreckFireStrength(300)).toBeCloseTo(0.5);
+    expect(wreckFireStrength(600)).toBe(0);
+    expect(wreckFireStrength(5000)).toBe(0);
+    expect(wreckSmokeStrength(0)).toBe(1);
+    expect(wreckSmokeStrength(5000)).toBeCloseTo(0.6);
+    const at = (tick) => { layer.update({ tick, eco: { nodes: [], buildings: [wreck] } }, () => true); return layer.wreckFx; };
+    layer.deadSince.clear();
+    expect(at(1000).find((f) => f.kind === 'fire').strength).toBe(1); // first seen destroyed at tick 1000
+    expect(at(1300).find((f) => f.kind === 'fire').strength).toBeCloseTo(0.5);
+    expect(at(1300).find((f) => f.kind === 'fire').strength).toBeCloseTo(0.5); // same tick, same strength (paused)
+    const late = at(1700);
+    expect(late.map((f) => f.kind)).toEqual(['smoke']); // fire out: not drawn
+    expect(late[0].strength).toBeCloseTo(0.6);
     // off screen or built over: nothing burns
     layer.update({ eco: { nodes: [], buildings: [wreck] } }, () => false);
     expect(layer.wreckFx).toHaveLength(0);
