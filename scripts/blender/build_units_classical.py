@@ -241,8 +241,9 @@ def b_general():
 # (build_classical_swordsman.py, build_classical_ranged.py, build_classical_worker.py,
 # build_classical_support.py); b_infantry, b_ranged, b_support and b_worker stay here for reference only.
 # The heavy cavalry and the general were rebuilt the same way by build_classical_cavalry.py and
-# build_classical_general.py; b_cavalry and b_general stay for reference.
-BUILDERS = {'classical-siege': b_siege}
+# build_classical_general.py, the ballista's crew by build_classical_siege.py (the machine by the same
+# calls as b_siege); b_cavalry, b_general and b_siege stay for reference.
+BUILDERS = {}
 
 
 def build(uid):

@@ -1,0 +1,114 @@
+{
+  "id": "classical-siege",
+  "triangles": 3858,
+  "by_rig": {
+    "Crew0Rig": 1036,
+    "Crew1Rig": 1036,
+    "Crew2Rig": 1036,
+    "FrameRig": 750
+  },
+  "rigs": {
+    "FrameRig": [
+      "Hull",
+      "Wheel_L",
+      "Wheel_R"
+    ],
+    "Crew0Rig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ],
+    "Crew1Rig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ],
+    "Crew2Rig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Cloth",
+    "Hair",
+    "Leather",
+    "Metal",
+    "Skin",
+    "Team",
+    "Wood"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Ballista: a torsion bolt thrower (two sinew spring bundles, arms, string, a bolt laid, winch) on the wheeled siege frame, three crew in white tunics with a Team sash and headband",
+  "notes": "The machine is the one of build_units_classical.py b_siege (unchanged); the crew are ti_figure.py figures (LITE) from the quality pass of 2026-10-14.",
+  "machine_metres": {
+    "length": 2.07,
+    "width": 1.89,
+    "height": 1.53
+  },
+  "footprint_h": [
+    1.36,
+    1.53
+  ]
+}
