@@ -17,7 +17,8 @@
 #     keeps it), the carbine hanging muzzle down from the belt's swivel behind the right thigh, the
 #     reins in the left fist
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
-# Rest pose only (the vertex rig trots the horse). Rigs: MountRig, RiderRig.
+# Clips (ti_mounted_clips.py, 2026-10-14): the mounted set, the sword pointed at the enemy in the Charge and
+# cut down from over the shoulder in the Attack, the feet in the stirrups. Rigs: MountRig, RiderRig.
 #   blender -b --factory-startup -P scripts/blender/build_gunpowder_cavalry.py
 # Outputs go to art-build/units/gunpowder-cavalry/ (TI_PREVIEW=1: stills); copy the GLB to src/assets/units/.
 import sys
@@ -27,6 +28,7 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 
 UID = 'gunpowder-cavalry'
 tube, box, vertical = F.tube, F.box, F.vertical
@@ -75,6 +77,7 @@ tm.reins(horse, F.SEAT + gl)
 tris = F.finish_unit(UID, parts, {
     'role': 'Dragoons: a dragoon astride a bay horse under a dark shabraque with pointed back corners and a pale lace border, the saddle, fur-capped pistol holsters, a rolled cloak, stirrups; a brass helmet with a black horsehair crest and a Team turban, a Team coat with its tails over the cantle lined in white, a white carbine belt and waist belt, buff breeches and black jackboots; the sabre drawn upright in the right fist, a carbine hanging behind the right thigh, the reins in the left fist',
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, jackboots, seated_coat_tails, dragoon_helmet, upright_sabre) and ti_mounts.py (fine_horse, shabraque, war_saddle, holsters, roll, stirrups, reins). Sabre parts SabreGrip, SabreGuard, SabreBlade (Prop_R).'},
-    centre=(0, -.1, .85), scale=2.7)
+    centre=(0, -.1, .85), scale=2.7, mode='NLA_TRACKS',
+    clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'sword', stirrups=True), 'mounted'))
 print('TRIS', tris)
 assert tris <= 3500, tris

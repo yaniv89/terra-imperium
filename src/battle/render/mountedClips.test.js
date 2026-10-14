@@ -26,7 +26,8 @@ const FALLS = ['Death', 'DeathAlt', 'Wreck'];
 const UNITS = {
   'bronze-cavalry': 'chariot', 'bronze-general': 'general', 'bronze-raider': 'mounted',
   'classical-cavalry': 'mounted', 'classical-general': 'general', 'classical-raider': 'mounted',
-  'kingdoms-cavalry': 'mounted', 'kingdoms-general': 'general', 'kingdoms-raider': 'mounted'
+  'kingdoms-cavalry': 'mounted', 'kingdoms-general': 'general', 'kingdoms-raider': 'mounted',
+  'gunpowder-cavalry': 'mounted', 'gunpowder-general': 'general', 'gunpowder-raider': 'mounted'
 };
 const POLEARMS = /spear|pike|lance|halberd/i;
 const FPS = 20;

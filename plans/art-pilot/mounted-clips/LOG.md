@@ -212,3 +212,57 @@ MountRig, RaiderRig: the torch set, the feet in the stirrups. Triangles 3224 (un
 | Hit | 10 | 0.50 | no | - |
 | Death | 40 | 2.00 | no | settle 40 |
 | DeathAlt | 40 | 2.00 | no | settle 40 |
+
+## gunpowder-cavalry
+
+MountRig, RiderRig. The dragoon's straight sword (SabreGrip, SabreGuard, SabreBlade on Prop_R) is pointed at the
+enemy, arm out, in Charge and cut down from over the right shoulder in Attack; the carbine hangs from his hips;
+the feet in the stirrups. Triangles 3284 (unchanged); GLB 320 KB packed (was 242 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Trot | 15 | 0.75 | yes | - |
+| Gallop | 13 | 0.65 | yes | - |
+| Charge | 41 | 2.05 | no | contact 23 |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |
+
+## gunpowder-general
+
+MountRig, CommanderRig (the general's pointing hand, the feet in the stirrups), BearerRig (the colour bearer holds
+the colour in both fists in every clip and waves it in Cheer). Triangles 4484 (unchanged); GLB 467 KB packed (was
+338 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Trot | 15 | 0.75 | yes | - |
+| Gallop | 13 | 0.65 | yes | - |
+| Charge | 41 | 2.05 | no | contact 23 |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |
+| Cheer | 33 | 1.65 | yes | - |
+
+## gunpowder-raider
+
+MountRig, RaiderRig: the torch set, the feet in the stirrups. Triangles 3472 (unchanged); GLB 328 KB packed (was
+250 KB).
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Trot | 15 | 0.75 | yes | - |
+| Gallop | 13 | 0.65 | yes | - |
+| Charge | 41 | 2.05 | no | contact 23 |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Hit | 10 | 0.50 | no | - |
+| Death | 40 | 2.00 | no | settle 40 |
+| DeathAlt | 40 | 2.00 | no | settle 40 |
