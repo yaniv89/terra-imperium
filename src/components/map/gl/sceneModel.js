@@ -165,7 +165,8 @@ export const markerSprites = ({ markers, projection, k, atWar, dpr, waterTile })
       : c.kind === 'event' ? eventArt(scale) : c.kind === 'wonder' ? wonderArt(c, scale) : c.kind === 'colony' ? colonyArt(c, scale)
         : c.kind === 'battle' ? battleArt(c, scale, { sea: c.tile != null && waterTile?.(c.tile) }) : c.kind === 'fleet' ? fleetArt(c, atWar.has(c.ownerId), scale) : armyArt(c, atWar.has(c.ownerId), scale);
     const cssW = art.w / dpr; const cssH = art.h / dpr;
-    sprites.push({ art, anchor: c.anchor, offset: [c.off[0], c.off[1], 0, 0], size: [cssW, cssH], exp: [0, 0], color: fade(single && !c.own ? 0.92 : 1) });
+    // `glideKey`: a lone banner that may glide in from its last tile (marchGlide.js, I070)
+    sprites.push({ art, anchor: c.anchor, offset: [c.off[0], c.off[1], 0, 0], size: [cssW, cssH], exp: [0, 0], color: fade(single && !c.own ? 0.92 : 1), glideKey: single ? c.key : null });
     hits.push({ kind: single ? 'marker' : 'cluster', marker: c, anchor: c.anchor, offset: [c.off[0], c.off[1], 0, 0], size: [cssW - 12 * (tag ? 0.72 : 1), cssH - 12 * (tag ? 0.72 : 1)], exp: [0, 0], pad: 7 });
   });
   return { sprites, hits };
@@ -298,6 +299,32 @@ export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
     hits.push({ kind: 'settler', tile: u.tile, anchor, offset: [0, 0, 0, 0], size: [rCss * 2.3, rCss * 2.3], exp: [0, 0], round: true, pad: 4 });
   });
   return { sprites, hits };
+};
+
+// ------------------------------------------------------------------ a tile pointed at
+/**
+ * The outline of one tile (a build row's tile, playtest audit I042): a dark under-stroke and an
+ * amber line round the hex, the same width on screen at every zoom; the corners taken the short
+ * way round where the tile crosses the date line.
+ */
+export const tileOutline = ({ projection, tile, color = '#fbbf24', half = 1.6 }) => {
+  if (tile == null || tile < 0) return [];
+  const corners = getTiles().polygonOf(tile);
+  const pts = [];
+  const w = projection.scale() * Math.PI; // half the world's width
+  corners.forEach((c) => {
+    const p = projection([c.lon, c.lat]);
+    if (!p) return;
+    const prev = pts[pts.length - 1];
+    pts.push([prev && p[0] - prev[0] > w ? p[0] - 2 * w : prev && p[0] - prev[0] < -w ? p[0] + 2 * w : p[0], p[1]]);
+  });
+  if (pts.length < 3) return [];
+  const rgb = cssColor(color);
+  const ring = pts.map((a, i) => [a, pts[(i + 1) % pts.length]]);
+  return [
+    ...ring.map(([a, b]) => ({ a, b, half: half + 1.2, exp: 0, color: [15 / 255, 23 / 255, 42 / 255, 0.6] })),
+    ...ring.map(([a, b]) => ({ a, b, half, exp: 0, color: [rgb[0], rgb[1], rgb[2], 1] }))
+  ];
 };
 
 // ------------------------------------------------------------------ march routes

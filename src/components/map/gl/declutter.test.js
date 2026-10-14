@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { declutterLabels, labelBox, cityLabelPrio } from './declutter';
+import { declutterLabels, labelBox, cityLabelPrio, avoidHud } from './declutter';
 
 const label = (id, x, y, prio, w = 60, h = 14) => ({ id, anchor: [x, y], offset: [0, 0, 0, 0], size: [w, h], exp: [0, 0], prio });
 
@@ -17,6 +17,20 @@ describe('map labels do not pile up (I080)', () => {
   it('reads the offset and the zoom exponents of a sprite', () => {
     const s = { anchor: [10, 10], offset: [0, -4, 0, -2], size: [20, 10], exp: [0, 0.5] };
     expect(labelBox(s, 4, 0)).toEqual([30, 27, 50, 37]);
+  });
+  it('slides a name out from under a map button, the shortest way (I081)', () => {
+    const toScreen = (a) => [a[0], a[1]]; // k 1, no pan
+    const button = [0, 300, 80, 340]; // the World button
+    // a name whose box (40..100 x 288..302) is just under the button's top: up out of it
+    const under = label('u', 70, 295, 1);
+    const [moved] = avoidHud([under], 1, toScreen, [button]);
+    const box = labelBox(moved, 1, 0);
+    expect(box[3]).toBeLessThanOrEqual(button[1] - 3);
+    // one far from it stays as it is; one whose city is under the button is left out
+    const free = label('f', 400, 100, 1); const hidden = label('h', 40, 320, 1);
+    expect(avoidHud([free, hidden], 1, toScreen, [button]).map((s) => s.id)).toEqual(['f']);
+    // no buttons: nothing changes
+    expect(avoidHud([under], 1, toScreen, [])).toEqual([under]);
   });
   it('ranks the selected city, then your cities, then capitals, then size', () => {
     const big = { size: 12 }; const cap = { size: 3, isCapital: true };

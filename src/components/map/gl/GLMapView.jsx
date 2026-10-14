@@ -10,7 +10,8 @@
 // Panning only changes the view uniforms and draws one frame (no React render, no rebuild):
 // badges, markers and glyphs are rebuilt once the zoom settles (ZOOM_SETTLE_MS), the close view's
 // models are laid out once per settled view over a margin round the screen and moved with the
-// camera between layouts. Frames are drawn on demand; only marching soldiers animate.
+// camera between layouts. Frames are drawn on demand; only marching soldiers and the banners
+// gliding between tiles after a move (marchGlide.js, I070) animate.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { geoEquirectangular } from 'd3-geo';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
@@ -53,14 +54,16 @@ import { onImageLoad } from './spriteArt';
 import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta } from './mapView';
 import { cleanLatLng, latLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS } from '../mapCamera';
 import {
-  citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites,
+  citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites, tileOutline,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
 } from './sceneModel';
 import { raidShapes } from './raidShapes';
-import { declutterLabels } from './declutter';
+import { declutterLabels, avoidHud } from './declutter';
 import { settlerLines } from '../settleRoutes';
 import { raidMapModel } from '../../independents/raidMapModel';
 import { openIndependent } from '../../independents/independentEvents';
+import { planGlides, glideAt } from '../marchGlide';
+import { POINT_TILE } from '../marchEvents';
 
 const OCEAN_COLOR = '#0f172a';
 const ZOOM_MAX = 200;
@@ -73,6 +76,8 @@ const INITIAL_FOCUS_ZOOM = 5;
 const START_VIEW_KM = 650;
 // The close view's models are laid out over the screen plus this share of it on every side.
 const CLOSE_MARGIN = 0.35;
+// How long a tile pointed at from a sheet stays outlined (I042).
+const POINT_MS = 8000;
 const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const devicePixelRatio = () => Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -174,6 +179,8 @@ const GLMapView = ({
     g.marchLines = createLineLayer(base, 40);
     g.upperSprites = createSpriteLayer(base, atlas, 45);
     g.topSprites = createSpriteLayer(top, atlas, 50);
+    // the armies', fleets' and battles' banners: a layer of their own, so a glide moves only them
+    g.markerLayer = createSpriteLayer(top, atlas, 55);
     g.closeScene = createCloseScene(close, closeRoot, { onAssets: () => setAssetsTick((n) => n + 1) });
     gl.current = g;
     // A phone may drop the map's WebGL context while the battle's renderer runs (or the app sits in
@@ -190,7 +197,7 @@ const GLMapView = ({
       document.removeEventListener('visibilitychange', onVisible);
       g.disposed = true;
       cancelAnimationFrame(g.raf);
-      [g.raster, g.territory, g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
+      [g.raster, g.territory, g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.markerLayer, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
       renderer.dispose();
       gl.current = null;
     };
@@ -202,6 +209,29 @@ const GLMapView = ({
   const settings = useRef({});
   const worldSize = worldPicture()?.size || worldRasterSizeFor(width, height); // a generated world has one painted size
   settings.current = { selectedTile, lens, tintOn, fogOn: fog.on, worldUrl: worldRasterUrl(worldSize), worldSize, baseZ: baseRasterZoom(worldSize) };
+  // One frame of the banners' glide (marchGlide.js, I070): the gliding banners at their place on
+  // the way and, in the close view, their soldiers with them. False once every glide has arrived
+  // (the banners then stand where the engine put them, as placed).
+  const stepGlide = useCallback((g, now, k) => {
+    const gd = g.glide;
+    const ms = now - gd.start;
+    const at = new Map();
+    gd.plan.forEach((p, key) => { const q = glideAt(p, ms); if (!q.done) at.set(key, q); });
+    const live = at.size > 0;
+    const placed = g.markerPlaced || [];
+    g.markerShown = !live ? placed : placed.map((s) => {
+      const q = s.glideKey ? at.get(s.glideKey) : null;
+      const xy = q && projection ? projection([q.lng, q.lat]) : null;
+      return xy ? { ...s, anchor: xy } : s;
+    });
+    g.markerLayer.set(g.markerShown);
+    if (g.closeLayout && k >= CLOSE_ZOOM_K) {
+      const move = (list, kind) => (list || []).map((m) => { const q = at.get(`${kind}:${m.id}`); return q ? { ...m, at: { lat: q.lat, lng: q.lng }, toward: q.toward } : m; });
+      g.closeScene.moveArmies({ ...gd.markers, armies: move(gd.markers.armies, 'army'), fleets: move(gd.markers.fleets, 'fleet') });
+    }
+    if (!live) g.glide = null;
+    return live;
+  }, [projection]);
   const frame = useCallback((now) => {
     const g = gl.current;
     if (!g) return;
@@ -216,7 +246,8 @@ const GLMapView = ({
       uHex: v.k >= HEX_FROM_ZOOM ? 1 : 0, uCityDetail: v.k >= CITY_DETAIL_ZOOM ? 1 : 0, uNationHalf: v.k < 3 ? 0.55 : 0.45,
       uSelTile: s.selectedTile ?? -1, uTintOn: s.tintOn || 0, uFogOn: s.fogOn ? 1 : 0
     };
-    [g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
+    [g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.markerLayer].forEach((l) => l.update(v));
+    const gliding = g.glide ? stepGlide(g, now ?? performance.now(), v.k) : false;
     // the world camera (the raster quads and the close view's models)
     camera.left = v.worldLeft; camera.right = v.worldLeft + width / v.k;
     camera.top = -v.worldTop; camera.bottom = -(v.worldTop + height / v.k);
@@ -246,8 +277,8 @@ const GLMapView = ({
     }
     renderer.render(g.top, camera);
     g.frames += 1;
-    if (g.closeActive && g.closeScene.moving()) g.request();
-  }, [view, width, height]);
+    if (gliding || (g.closeActive && g.closeScene.moving())) g.request();
+  }, [view, width, height, stepGlide]);
   useEffect(() => { if (gl.current) { gl.current.frame = frame; gl.current.request(); } }, [frame, ready]);
   useEffect(() => {
     const g = gl.current;
@@ -391,6 +422,32 @@ const GLMapView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [insets.left, insets.right, insets.top, insets.bottom]);
 
+  // What a march aims at is never left under its bar (playtest audit I083): once the bar shows the
+  // plan, a target under it (or just below it) is panned down into the free map, the zoom kept.
+  const marchTarget = marchCtx?.march && !marchCtx.march.dragging ? marchCtx.march.target ?? null : null;
+  useEffect(() => {
+    if (marchTarget == null || !hudOffset || !projection) return undefined;
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(() => {
+        const el = containerRef.current; const v = view();
+        const bar = document.querySelector('[data-testid="march-bar"]');
+        if (!el || !v || !bar || !zoomBehaviorRef.current) return;
+        const ll = typeof marchTarget === 'number'
+          ? (() => { const p = getTiles().latLonOf(marchTarget); return p ? { lat: p.lat, lng: p.lon } : null; })()
+          : latLngOfCity(gameStateRef.current, marchTarget);
+        const w = ll && projection([ll.lng, ll.lat]);
+        if (!w) return;
+        const [sx, sy] = worldToScreen(v, w[0], w[1]);
+        const box = el.getBoundingClientRect(); const b = bar.getBoundingClientRect();
+        const left = b.left - box.left - 24; const right = b.right - box.left + 24; const bottom = b.bottom - box.top + 28;
+        if (sx < left || sx > right || sy > bottom || sy < -40) return;
+        const dy = bottom + 24 - sy;
+        select(el).transition().duration(300).call(zoomBehaviorRef.current.translateBy, 0, dy / transformRef.current.k);
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [marchTarget, hudOffset, projection, view]);
+
   // The minimap's "you are here" box, once the view settles.
   useEffect(() => {
     if (!onViewportChange || !projection) return;
@@ -447,6 +504,20 @@ const GLMapView = ({
   const markers = useMemo(() => getMapMarkers(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [gameState.units, gameState.regions, gameState.nations, gameState.intel, gameState.battleReports, gameState.turnNumber, gameState.playerNationId]);
+  // A stack that moved since the last markers glides there from its last tile (I070). Drawing
+  // only; never with reduced motion.
+  const glidePrev = useRef(null);
+  useEffect(() => {
+    const prev = glidePrev.current;
+    const now = gameStateRef.current;
+    glidePrev.current = { markers, state: now };
+    const g = gl.current;
+    if (!g || !prev || prefersReducedMotion()) return;
+    const plan = planGlides({ prevState: prev.state, nextState: now, prevMarkers: prev.markers, nextMarkers: markers });
+    if (!plan.size) return;
+    g.glide = { start: performance.now(), plan, markers };
+    g.request();
+  }, [markers]);
   const towns = useMemo(() => closeTowns(state), [state]);
   // the settled view: the cities' sprites are built round it
   const settledView = useMemo(() => (projection ? viewFor({ transform: { k: settled.k, x: settled.x, y: settled.y }, width, height, dpr, projection, raster }) : null), [projection, raster, settled, width, height, dpr]);
@@ -472,6 +543,16 @@ const GLMapView = ({
   const settlerRoads = useMemo(() => settlerLines(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [gameState.units, gameState.world?.tileOwner, gameState.wars, gameState.playerNationId]);
+  // A tile pointed at from a sheet (a build row: I042), outlined until another tap or POINT_MS.
+  const [pointTile, setPointTile] = useState(null);
+  useEffect(() => {
+    let timer = 0;
+    const on = (e) => { clearTimeout(timer); const t = e.detail; setPointTile(t ?? null); if (t != null) timer = setTimeout(() => setPointTile(null), POINT_MS); };
+    window.addEventListener(POINT_TILE, on);
+    return () => { clearTimeout(timer); window.removeEventListener(POINT_TILE, on); };
+  }, []);
+  useEffect(() => { if (selectedTile != null) setPointTile(null); }, [selectedTile]);
+  const pointLines = useMemo(() => (projection && pointTile != null ? tileOutline({ projection, tile: pointTile }) : []), [projection, pointTile]);
   const march = useMemo(() => (projection ? marchShapes({ marchLines: [...(marchLines || []), ...settlerRoads], projection, k, selectedArmy, dpr }) : null), [marchLines, settlerRoads, projection, k, selectedArmy, dpr]);
   // The independents' raid parties, warnings, sieges and fires in sight (phase W4).
   const raidModel = useMemo(() => raidMapModel(gameState),
@@ -515,6 +596,30 @@ const GLMapView = ({
   }, [ready, riverStripData]);
   const terrainOut = useMemo(() => (projection ? terrainSprites({ projection, k, near: settledView ? nearView(settledView) : null, dpr }) : null), [projection, k, settledView, dpr]);
 
+  // The map's own buttons (every element marked data-map-hud; "group": each child on its own) as
+  // screen boxes over the map, for the labels to keep clear of (avoidHud, I081). Read again when
+  // one of them changes size (the mini map opens, the goals unfold).
+  const [hudTick, setHudTick] = useState(0);
+  useEffect(() => {
+    if (!ready || !hudOffset || typeof ResizeObserver === 'undefined') return undefined;
+    let timer = 0;
+    const ro = new ResizeObserver(() => { clearTimeout(timer); timer = setTimeout(() => setHudTick((n) => n + 1), 150); });
+    document.querySelectorAll('[data-map-hud]').forEach((el) => ro.observe(el));
+    return () => { clearTimeout(timer); ro.disconnect(); };
+  }, [ready, hudOffset]);
+  const hudToScreen = useCallback((a) => (settledView ? worldToScreen(settledView, a[0], a[1]) : null), [settledView]);
+  const hudRects = useCallback((el) => {
+    if (!hudOffset || !el || typeof document === 'undefined') return [];
+    const box = el.getBoundingClientRect();
+    const out = [];
+    document.querySelectorAll('[data-map-hud]').forEach((h) => {
+      (h.dataset.mapHud === 'group' ? [...h.children] : [h]).forEach((p) => {
+        const r = p.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) out.push([r.left - box.left, r.top - box.top, r.right - box.left, r.bottom - box.top]);
+      });
+    });
+    return out;
+  }, [hudOffset]);
   const [atlasTick, setAtlasTick] = useState(0);
   useEffect(() => onImageLoad(() => { const g = gl.current; if (g && g.atlas.dropPending()) setAtlasTick((n) => n + 1); }), []);
   useEffect(() => {
@@ -526,7 +631,9 @@ const GLMapView = ({
       ground: [...landOut.sprites, ...marks, ...(lensOut?.sprites || [])],
       upper: [...march.sprites, ...settlers.sprites],
       // names, banners and the raids' labels never stand on each other (declutter.js, I080)
-      top: [...cities.sprites, ...declutterLabels([...cities.names, ...raids.sprites.filter((s) => s.label)], k), ...markerOut.sprites, ...raids.sprites.filter((s) => !s.label)]
+      // and never under the map's own buttons (avoidHud, I081)
+      top: [...cities.sprites, ...declutterLabels(avoidHud([...cities.names, ...raids.sprites.filter((s) => s.label)], k, hudToScreen, hudRects(containerRef.current)), k), ...raids.sprites.filter((s) => !s.label)],
+      markers: markerOut.sprites
     };
     const resolve = () => {
       const out = {};
@@ -548,11 +655,14 @@ const GLMapView = ({
     g.groundSprites.set(placed.ground);
     g.upperSprites.set(placed.upper);
     g.topSprites.set(placed.top);
+    g.markerPlaced = placed.markers;
+    g.markerShown = placed.markers;
+    g.markerLayer.set(placed.markers); // (a glide under way moves them on its next frame)
     g.lowLines.set([...landOut.lines, ...(lensOut?.lines || [])]);
-    g.marchLines.set([...march.lines, ...raids.lines]);
+    g.marchLines.set([...march.lines, ...raids.lines, ...pointLines]);
     g.hits = [...raids.hits, ...settlers.hits, ...cities.hits, ...markerOut.hits];
     g.request();
-  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k]);
+  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k, hudToScreen, hudRects, hudTick, pointLines]);
 
   // ---------------------------------------------------------------- the close view
   const [land, setLand] = useState(null);
@@ -609,11 +719,19 @@ const GLMapView = ({
   }, [focusOnLatLng]);
   // What a tap at a screen point picks, top first: a marker or cluster, a settler, a city's badge,
   // banner or town, else the land (the city that holds it, else the tile, land or sea).
-  const tapAt = (sx, sy) => {
+  // While a march is aimed, a cluster of banners (the strategic zoom piles them on the cities) and a
+  // foreign army on a city's centre are the place under them, as a closer zoom picks it: a tap
+  // aims at the city, it does not zoom (playtest audit I074, checked in a late world).
+  const tapAt = (sx, sy, under = false) => {
     const g = gl.current; const v = view();
     if (!g || !v || !projection) return null;
-    const hit = pickHit(v, g.hits, sx, sy);
-    if (hit?.kind === 'cluster' || hit?.kind === 'marker') return { kind: hit.kind, marker: hit.marker, id: hit.marker.regionId };
+    const hit = pickHit(v, under ? g.hits.filter((h) => h.kind !== 'marker' && h.kind !== 'cluster') : g.hits, sx, sy);
+    if (hit?.kind === 'cluster' || hit?.kind === 'marker') {
+      const m = hit.marker;
+      const onCityCentre = m.tile != null && state.regions[state.world?.tileOwner?.[m.tile]]?.tile === m.tile;
+      if (marchingRef.current && (hit.kind === 'cluster' || (!m.own && m.kind === 'army' && onCityCentre))) return tapAt(sx, sy, true);
+      return { kind: hit.kind, marker: m, id: m.regionId };
+    }
     if (hit?.kind === 'indep') return { kind: 'indep', id: hit.id };
     if (hit?.kind === 'settler') return { kind: 'settler', tile: hit.tile };
     if (hit?.kind === 'city' || hit?.kind === 'banner') return { kind: 'city', id: hit.id, via: hit.kind };
@@ -713,6 +831,9 @@ const GLMapView = ({
     window.__glMap = {
       info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount, rivers: gl.current.rivers.count() }),
       renderer: gl.current?.renderer,
+      // the banners as last drawn (a glide moves them frame by frame: marchGlide.js, I070)
+      banners: () => (gl.current?.markerShown || []).map((s) => ({ key: s.glideKey, anchor: [...s.anchor] })),
+      gliding: () => !!gl.current?.glide,
       // ms a frame over `n` frames drawn back to back (GPU finished), with the river lines on or
       // off: what the lines cost on this machine (scripts/perf/river-cost.mjs)
       timeFrames: (n = 30, rivers = true) => {

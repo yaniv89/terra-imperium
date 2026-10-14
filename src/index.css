@@ -618,6 +618,13 @@ svg path {
   top: calc(var(--header-height, 2.75rem) + (100dvh - var(--header-height, 2.75rem)) / 2);
 }
 
+/* A march or a site being chosen (MarchBar, SettleBar set html[data-map-tool]): on a phone held
+   sideways their bar has the top of the screen, so the map's hint and goals (MapGoals.jsx) step
+   aside until it ends (playtest audit I083). */
+[data-layout="phone-landscape"][data-map-tool] .map-goals {
+  display: none;
+}
+
 /* Phone held upright (E2): the map on top, a half sheet below, so the globe stays in view while a
    city, tile or army sheet is open. */
 [data-layout="phone-portrait"] .sheet-panel {

@@ -25,8 +25,9 @@ import { DISTRICTS } from '../../engine/districts';
 import { templatesOf, nextTemplateUnit, templateSize } from '../../engine/armyTemplates';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { cityLive, growthView, landQuotes, focusPreview } from '../../engine/cityEconomy';
+import { outpostTurnsLeft, OUTPOST_DONE } from '../../engine/settlers';
 import { GROUPS, describeTile, tileBearing, buildOptions, buildQueue, focusHint, turnsText, rushText } from './cityBuildModel';
-import { focusPlace } from '../map/marchEvents';
+import { focusPlace, pointAtTile } from '../map/marchEvents';
 import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } from '../ui/icons';
 import { Meter, Stat } from '../ui/atlas';
 
@@ -116,7 +117,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       ? { ok: true, text: `Added: ${tap.label}. ${queue.length} in the queue.` }
       : state.logs.length > tap.logs ? { ok: false, text: `Not added: ${state.logs[state.logs.length - 1].message}` } : null)
     : null;
-  const openTile = (tile) => { if (tile != null) focusPlace([{ tile }, { regionId: cityId }]); };
+  // The map flies to the row's tile and outlines it (I042).
+  const openTile = (tile) => { if (tile != null) { focusPlace([{ tile }, { regionId: cityId }]); pointAtTile(tile); } };
   const toggleRow = (o) => { setOpenRow((id) => (id === o.id ? null : o.id)); openTile(o.tile); };
 
   if (view === 'tiles') {
@@ -179,12 +181,28 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const built = Object.entries(city.buildings?.categories || {}).filter(([, tier]) => tier >= 0)
     .map(([category, tier]) => ({ id: category, name: BUILDING_CATEGORIES[category]?.tiers[tier]?.name || category }));
   const wondersHere = Object.entries(state.greatProjects || {}).filter(([, e]) => e?.regionId === cityId).map(([id]) => ({ id, name: GREAT_PROJECTS[id]?.name || id }));
+  // An outpost says what the site card promised (I054): it holds its land now, and builds and
+  // yields as a city in about N turns (settlers.js, the same progress a turn as the engine's).
+  const outpostLeft = outpostTurnsLeft(state, city, ageId);
   const growthLine = growth.state === 'growing' ? `grows in ${growth.turns} turn${growth.turns === 1 ? '' : 's'}`
-    : growth.state === 'starving' ? 'starving' : growth.state === 'full' ? 'housing full: no growth' : growth.state === 'max' ? 'as large as it can be' : growth.state === 'outpost' ? 'an outpost' : 'not growing';
+    : growth.state === 'starving' ? 'starving' : growth.state === 'full' ? 'housing full: no growth' : growth.state === 'max' ? 'as large as it can be'
+      : growth.state === 'outpost' ? `an outpost: a city in about ${outpostLeft ?? '?'} turn${outpostLeft === 1 ? '' : 's'}` : 'not growing';
   const currentTurns = current ? current.pieceTurns ?? current.turns : null;
 
   const overview = (
     <>
+      {city.outpost && (
+        <div className="fa-card p-2.5" data-testid="city-outpost">
+          <div className="flex items-center justify-between gap-2">
+            <span className="fa-label">Outpost</span>
+            {outpostLeft != null && <span className="fa-num text-[13px] font-semibold">{turnsText(outpostLeft)}</span>}
+          </div>
+          <div className="text-[12px] leading-snug mt-0.5">
+            It holds its land already. It builds and yields as a city after about {outpostLeft ?? '?'} more turn{outpostLeft === 1 ? '' : 's'}; until then it works no land and builds nothing.
+          </div>
+          <Meter value={city.outpost.progress || 0} max={OUTPOST_DONE} color="var(--fa-text)" className="mt-1.5" label={`Outpost: ${Math.round(city.outpost.progress || 0)} of ${OUTPOST_DONE}`} />
+        </div>
+      )}
       {focus && (
         <div className="fa-card p-2" data-testid="city-focus">
           <div className="flex items-baseline justify-between gap-2 mb-1">

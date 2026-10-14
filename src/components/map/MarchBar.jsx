@@ -18,6 +18,7 @@ import { canSeeTile } from '../../engine/sight';
 import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
 import PreBattleModal from '../battle/PreBattleModal';
 import { useMarch } from './MarchContext';
+import { useMapToolFlag } from './mapTool';
 
 const name = (id) => REGIONS_DATA[id]?.name || id;
 
@@ -54,6 +55,7 @@ const MarchBar = ({ onSelectRegion }) => {
   const { state, dispatch } = useGame();
   const ctx = useMarch();
   const [fieldAttack, setFieldAttack] = useState(null); // the tile of an enemy army beside the stack
+  useMapToolFlag('march', !!ctx?.march && !ctx.march.dragging);
   if (!ctx?.march || ctx.march.dragging) return null;
   const { march, plan, cancel } = ctx;
   const m = marchBarModel(state, march, plan);
@@ -94,7 +96,7 @@ const MarchBar = ({ onSelectRegion }) => {
   if (fieldAttack != null) return <PreBattleModal fromRegionId={march.from} tile={fieldAttack} onClose={() => { setFieldAttack(null); cancel(); }} />;
 
   return (
-    <div data-testid="march-bar" className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-emerald-500/50 bg-fa-panel/95 shadow-2xl px-3 py-2 pl:py-1 text-[12px] pl:text-[11px] text-fa-text flex items-center gap-2">
+    <div data-testid="march-bar" data-map-hud="" className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-emerald-500/50 bg-fa-panel/95 shadow-2xl px-3 py-2 pl:py-1 text-[12px] pl:text-[11px] text-fa-text flex items-center gap-2">
       <Flag className="w-4 h-4 text-fa-good shrink-0" />
       {/* A phone held sideways: two lines at most, so the bar stays a strip and the route under it shows (I083); the title holds the rest. */}
       <div className="flex-1 min-w-0 leading-snug pl:line-clamp-2" data-testid="march-line">{line}</div>

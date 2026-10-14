@@ -23,6 +23,10 @@ export const focusRegion = (regionId) => window.dispatchEvent(new CustomEvent(FO
 // cameraTarget: the first that still exists, else the selected army, else the capital).
 export const FOCUS_PLACE = 'ti:focus-place';
 export const focusPlace = (places) => window.dispatchEvent(new CustomEvent(FOCUS_PLACE, { detail: places }));
+// Outline one tile on the map for a few seconds (a build row's tile, playtest audit I042): the
+// WebGL map draws it; null clears it.
+export const POINT_TILE = 'ti:point-tile';
+export const pointAtTile = (tile) => window.dispatchEvent(new CustomEvent(POINT_TILE, { detail: tile ?? null }));
 // Open a city's card AND centre the map on it: the Cities list, the city rail (playtest audit X20;
 // the turn report's place buttons do the same).
 export const openCityOnMap = (regionId) => { if (!regionId) return; selectRegion(regionId); focusPlace([{ regionId }]); };

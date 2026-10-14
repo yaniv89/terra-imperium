@@ -84,7 +84,7 @@ const WorldTopBar = () => {
   const portrait = layoutMode === 'phone-portrait' || layoutMode === 'tablet-portrait';
 
   return (
-    <header ref={ref} data-testid="world-top-bar"
+    <header ref={ref} data-testid="world-top-bar" data-map-hud=""
       className="fixed top-0 inset-x-0 z-20 bg-fa-panel/95 border-b border-fa-line text-fa-text
                  pt-[env(safe-area-inset-top)] pl-[max(env(safe-area-inset-left),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)]">
       <div className="h-9 flex items-center gap-3 sm:gap-3.5">

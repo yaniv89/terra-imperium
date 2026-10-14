@@ -191,3 +191,18 @@ describe('the first view of a game (plans/ui/start-zoom)', () => {
     expect(startZoomFor({ height: 390, scale: NaN, viewKm: 650 })).toBe(null);
   });
 });
+
+describe('a tile pointed at from a build row (I042)', () => {
+  it('outlines the hex: one under-stroke and one amber line per edge, closed round the tile', async () => {
+    const { tileOutline } = await import('./sceneModel');
+    const { getTiles } = await import('../../../data/geo/tiles');
+    const projection = geoEquirectangular().fitSize([1000, 500], { type: 'Sphere' });
+    const tile = getTiles().land.indexOf(1);
+    const lines = tileOutline({ projection, tile });
+    const edges = getTiles().neighbors[tile].length;
+    expect(lines).toHaveLength(edges * 2);
+    expect(lines[edges].b).toEqual(lines[edges + 1].a);
+    expect(lines[lines.length - 1].b).toEqual(lines[edges].a);
+    expect(tileOutline({ projection, tile: null })).toEqual([]);
+  });
+});

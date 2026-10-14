@@ -142,6 +142,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
       <div
         ref={railRef}
         data-testid="landscape-rail"
+        data-map-hud=""
         className="fixed right-0 bottom-0 top-[var(--header-height,2.25rem)] z-20 flex pr-[env(safe-area-inset-right)] bg-fa-panel/95 border-l border-fa-line text-fa-text"
       >
         {dockShown && (

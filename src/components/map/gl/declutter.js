@@ -41,5 +41,39 @@ export const declutterLabels = (labels, k, pad = 1) => {
   return labels.filter((_, i) => keep[i]);
 };
 
+const overlaps = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+
+/**
+ * Labels moved out from under the map's own buttons (playtest audit I081: a city's name under the
+ * World button). `toScreen(anchor)` is an anchor's screen point at the settled view, `rects` the
+ * controls' boxes [x0, y0, x1, y1] in CSS px over the map. A label under a control slides the
+ * shortest way out (at most `maxShift` px, never onto another control); one whose city itself is
+ * under the control, or that cannot get out, is left out (its badge is still there to tap, and it
+ * comes back as the map moves). Pure: sprites in, sprites out.
+ */
+export const avoidHud = (labels, k, toScreen, rects, { pad = 3, maxShift = 72 } = {}) => {
+  if (!labels?.length || !rects?.length) return labels || [];
+  const grown = rects.map((r) => [r[0] - pad, r[1] - pad, r[2] + pad, r[3] + pad]);
+  const out = [];
+  for (const s of labels) {
+    const at = toScreen(s.anchor);
+    if (!at) { out.push(s); continue; }
+    const b0 = labelBox(s, k, 0);
+    const dx0 = at[0] - s.anchor[0] * k; const dy0 = at[1] - s.anchor[1] * k;
+    const box = [b0[0] + dx0, b0[1] + dy0, b0[2] + dx0, b0[3] + dy0];
+    const hit = grown.find((r) => overlaps(box, r));
+    if (!hit) { out.push(s); continue; }
+    if (at[0] >= hit[0] && at[0] <= hit[2] && at[1] >= hit[1] && at[1] <= hit[3]) continue;
+    const moves = [[hit[0] - box[2], 0], [hit[2] - box[0], 0], [0, hit[1] - box[3]], [0, hit[3] - box[1]]]
+      .filter(([x, y]) => Math.abs(x) + Math.abs(y) <= maxShift)
+      .filter(([x, y]) => !grown.some((r) => overlaps([box[0] + x, box[1] + y, box[2] + x, box[3] + y], r)))
+      .sort((a, b) => Math.abs(a[0]) + Math.abs(a[1]) - Math.abs(b[0]) - Math.abs(b[1]));
+    if (!moves.length) continue;
+    const o = s.offset || [0, 0, 0, 0];
+    out.push({ ...s, offset: [o[0] + moves[0][0], o[1] + moves[0][1], o[2], o[3]] });
+  }
+  return out;
+};
+
 /** A city name's priority: the selected city, your capital, your cities, capitals, then by size. */
 export const cityLabelPrio = (city, { selected = false, own = false } = {}) => (selected ? 1000 : 0) + (own ? 400 : 0) + (city.isCapital ? 200 : 0) + Math.min(99, city.size || 1);
