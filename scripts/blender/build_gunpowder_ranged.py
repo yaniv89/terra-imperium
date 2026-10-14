@@ -4,7 +4,7 @@
 #   blender -b --factory-startup -P scripts/blender/build_gunpowder_ranged.py
 # Same contract as that builder: the canonical rig (UnitRig) under a root empty named after the unit,
 # flat material colours, the Team and Skin tags, the old names of the rifle (RifleStock, RifleBarrel),
-# rest pose only (no clips). He must not be taken for the line infantryman
+# and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged). He must not be taken for the line infantryman
 # (build_gunpowder_infantry.py: tricorne, long coat, white cross belts, musket and bayonet on the
 # right), so he is a light skirmisher. The look follows plans/art/concepts/oct13/units-gunpowder-set.png
 # (design reference only):
@@ -22,6 +22,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'gunpowder-ranged'
 arm = F.start({'Skin': 'C99472', 'Hair': '3A2A1E', 'Felt': '2E2924', 'Sleeve': '5A5446', 'Trews': '7A6A4E', 'Leather': '553623', 'Horn': 'E6D9B8',
@@ -71,4 +72,5 @@ F.musket(Vector((g.x, g.y, g.z)), butt=.200, length=.820, bayonet=0, prop='Prop_
 
 F.finish_rest(UID, 'Riflemen: a round felt hat hooked up on the left with a Team band and a dark feather, a short Team jacket with brass buttons, a leather belt and '
               'bullet pouch, a strap to a powder horn at the hip, brown trousers and short boots, a short rifle upright in the left hand',
-              notes={'role': 'ranged'})
+              notes={'role': 'ranged'},
+              clips=FC.clips_hook(UID, FC.Kit('gun', side='L')))

@@ -24,7 +24,8 @@ const HELD = ['Attack', 'Attack2', 'Melee-fallback', 'Mine', 'Build', 'Repair'];
 const UNITS = {
   'bronze-infantry': 'melee', 'bronze-ranged': 'bow', 'bronze-mercenary': 'melee',
   'classical-infantry': 'melee', 'classical-ranged': 'bow', 'classical-mercenary': 'melee', 'classical-support': 'support',
-  'kingdoms-infantry': 'melee', 'kingdoms-ranged': 'bow', 'kingdoms-mercenary': 'melee', 'kingdoms-support': 'support'
+  'kingdoms-infantry': 'melee', 'kingdoms-ranged': 'bow', 'kingdoms-mercenary': 'melee', 'kingdoms-support': 'support',
+  'gunpowder-infantry': 'gun', 'gunpowder-ranged': 'gun', 'gunpowder-mercenary': 'gun', 'gunpowder-support': 'support'
 };
 const POLEARMS = /spear|pike|lance|halberd/i;
 const FPS = 20;

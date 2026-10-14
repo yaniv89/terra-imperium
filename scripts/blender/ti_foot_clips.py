@@ -138,10 +138,23 @@ class FootAuthor(C.Author):
         self.reach = {}
 
     def first_sign(self, clip):
+        """Per clip, which way a fist that grips the weapon in the other hand turns its knuckles along the
+        haft: as at the first key where it holds on (so it never flips over during the clip)."""
         self.lsign = 1
+        self.csign = dict(self.P.sign)
+        if not clip.keys:
+            return
+        for s in 'LR':
+            ax = self.P.grip[s][1]
+            for _, spec in clip.keys:
+                H, ws = spec.get(s), spec.get('W')
+                if H and ws and float(H.get('w', 0)) > .5:
+                    self.csign[s] = 1 if ax.dot(V(ws['d'])) >= 0 else -1
+                    break
 
     def pose(self, clip, spec, frame):
         P, kit = self.P, self.kit
+        self.frame = frame
         P.reset()
         if clip.name == 'Idle' and frame in (1, clip.frames):
             self.scales(clip, spec)
@@ -199,7 +212,7 @@ class FootAuthor(C.Author):
         Pt, Q = Pf, Qf
         if wt > 1e-4:
             Pon = T @ (P.G0 + P.a0 * (H['on'] - P.h0))
-            Qon = Qw if s == self.kit.side else (ax * P.sign[s]).rotation_difference(D).to_matrix()
+            Qon = Qw if s == self.kit.side else (ax * self.csign[s]).rotation_difference(D).to_matrix()
             Pt = Pf.lerp(Pon, wt)
             Q = Qf.to_quaternion().slerp(Qon.to_quaternion(), wt).to_matrix()
         P.two_bone('Arm_' + s, 'Forearm_' + s, P.len['arm' + s], Pt - Q @ (G - Wr), V(H.get('pole', P.rpole[s])))
@@ -207,6 +220,10 @@ class FootAuthor(C.Author):
         e = (P.grip_now(s) - Pt).length
         key = (clip.name, s)
         self.reach[key] = max(self.reach.get(key, 0), e)
+        if e > .03 and os.environ.get('TI_REACH_DEBUG'):
+            S = P.pb('Arm_' + s).head
+            print('MISS', clip.name, self.frame, s, 'target', tuple(round(x, 3) for x in Pt), 'shoulder', tuple(round(x, 3) for x in S),
+                  'dist %.3f wrist-dist %.3f miss %.3f w %.2f' % ((Pt - S).length, (Pt - Q @ (G - Wr) - S).length, e, wt), flush=True)
 
     def string(self, wt):
         """The Bronze bow's string (Prop_String, a child of Prop_L): where it rests on the bow, pulled `wt`
@@ -568,35 +585,35 @@ def bow_melee(L):
 # ---- guns ----------------------------------------------------------------------------------------------------
 
 def gun_fire(L):
-    """Aim-fire-reload. Muzzle-loaders (Gunpowder): present (the butt in the right shoulder, the right
-    fist at the stock's wrist, the left under the fore-stock, side on), fire, the kick, the musket
-    brought down upright in front in the left hand, the right fetches a cartridge from the hip, pours,
-    rams twice at the muzzle (reloaded), back to the order. Modern rifles: shouldered, fire, the kick,
-    the left hand swaps the magazine (reloaded), back to rest."""
+    """Aim-fire-reload. Muzzle-loaders (Gunpowder): present (side on, the butt in the right shoulder, the
+    right fist at the stock's wrist, the left under the fore-stock, the cheek down to the stock), fire,
+    the kick, the musket brought down upright in front and held in the left fist, the right fetches a
+    cartridge from the hip, pours, rams twice at the muzzle (reloaded), back to the order. Modern rifles:
+    shouldered, fire, the kick, the left hand swaps the magazine (reloaded), back to rest. (The figure's
+    arms are short for a long gun: the fists sit close together on it.)"""
     P, k = L.P, L.kit
-    R, O = L.side, L.other
     modern = P.length < .75
     r0 = L.rest()
-    aim_r = {'Hips': (0, 0, -16), 'Spine': (3, 0, -12), 'Chest': (2, 0, -12), 'Head': (8, 0, 38)}
+    aim_r = {'Hips': (0, 0, -20), 'Spine': (3, 0, -17), 'Chest': (2, 0, -18), 'Head': (10, 0, 50)}
+    kick_r = dict(aim_r, Chest=(-3, 0, -18), Head=(6, 0, 50))
     if modern:
         hw, hf = P.h0, P.h0 + .17  # the pistol grip, the handguard
-        d, f = pitch(90)
-        aim = L.key(aim_r, W=L.W((-.06, -.13, .78), d, f, h=hw), hands={'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)})
-        kick = L.key(dict(aim_r, Chest=(-2, 0, -12), Head=(4, 0, 38)), (0, 0, .003), W=L.W((-.06, -.11, .79), *pitch(84), h=hw),
-                     hands={'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)}, ease='out')
-        low_r = {'Spine': (4, 0, -6), 'Chest': (4, 0, -6), 'Head': (-14, 0, 14)}
-        low = L.key(low_r, W=L.W((-.08, -.16, .64), *pitch(60, 10), h=hw), hands={'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)})
-        mag = (-.0, -.20, .60)
-        pouch = L.key(low_r, W=low['W'], hands={'R': on_station(L, 'R', hw), 'L': L.free('L', p=(.05, -.13, .60), d=(0, 0, 1), f=(0, -1, 0), pole=(1, .2, -.8))})
-        seat = L.key(low_r, W=low['W'], hands={'R': on_station(L, 'R', hw), 'L': L.free('L', p=mag, d=(0, 0, 1), f=(0, -1, 0), pole=(1, .2, -.8))})
+        hands = lambda: {'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)}  # noqa: E731
+        aim = L.key(aim_r, W=L.W((-.06, -.13, .78), *pitch(90), h=hw), hands=hands())
+        kick = L.key(kick_r, (0, 0, .003), W=L.W((-.06, -.11, .79), *pitch(84), h=hw), hands=hands(), ease='out')
+        low_r = {'Hips': (0, 0, -8), 'Spine': (4, 0, -8), 'Chest': (4, 0, -8), 'Head': (-14, 0, 20)}
+        low = L.key(low_r, W=L.W((-.08, -.16, .64), *pitch(60, 10), h=hw), hands=hands())
+        lh = lambda p: L.free('L', p=p, d=(0, 0, 1), f=(0, -1, 0), pole=(1, .2, -.8), on=hf, w=0.)  # noqa: E731
+        pouch = L.key(low_r, W=low['W'], hands={'R': on_station(L, 'R', hw), 'L': lh((.05, -.13, .60))})
+        mag = V(low['W']['at']) + V(low['W']['d']) * .10 + V((.0, -.03, -.04))
+        seat = L.key(low_r, W=low['W'], hands={'R': on_station(L, 'R', hw), 'L': lh(mag)})
         keys = [(1, r0), (6, aim), (8, aim), (9, kick), (11, aim), (16, low), (20, dict(pouch, ease='out')), (26, pouch), (31, seat),
                 (32, seat), (34, low), (40, dict(r0, ease='io'))]
         return Clip('Aim-fire-reload', 40, False, None, keys=keys, events={'fire': 8, 'reloaded': 32})
-    hw, hf = .24, .40  # the stock's wrist, the fore-stock
-    d, f = pitch(90, 0, 180)  # level, the barrel on top
-    aim = L.key(aim_r, W=L.W((-.07, -.14, .78), d, f, h=hw), hands={'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)})
-    kick = L.key(dict(aim_r, Chest=(-3, 0, -12), Head=(4, 0, 38)), (0, 0, .004), W=L.W((-.07, -.11, .80), *pitch(80, 0, 180), h=hw),
-                 hands={'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)}, ease='out')
+    hw, hf = .20, .34  # the stock's wrist, the fore-stock
+    hands = lambda: {'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)}  # noqa: E731
+    aim = L.key(aim_r, W=L.W((-.06, -.13, .78), *pitch(90, 0, 180), h=hw), hands=hands())  # level, the barrel on top
+    kick = L.key(kick_r, (0, 0, .004), W=L.W((-.06, -.10, .80), *pitch(80, 0, 180), h=hw), hands=hands(), ease='out')
     # loading: the musket upright in front of the left hip, its butt on the ground, held in the left fist
     up_w = L.W((.03, -.17, .012), *pitch(-2, 0, 180), h=0)
     hold_l = L.on('L', .60, pole=(1, .3, -.6))
@@ -605,14 +622,14 @@ def gun_fire(L):
     def rh(p, d=(0, 0, 1)):
         return L.free('R', p=p, d=d, f=(0, -1, 0), pole=(-1, .5, -.5), on=hw, w=0.)
     box = (-.12, -.02, .52)
-    muzzle = V(up_w['at']) + V(up_w['d']) * (P.length + .02)
+    muzzle = V(up_w['at']) + V(up_w['d']) * (P.length - (.23 if k.bayonet else 0) + .02)  # (F.musket's bayonet is 0.23 long)
     lower = L.key(load_r, W=up_w, hands={'L': hold_l, 'R': rh((-.02, -.24, .70))})
     fetch = L.key(load_r, W=up_w, hands={'L': hold_l, 'R': rh(box, (0, -1, 0))})
     pour = L.key(load_r, W=up_w, hands={'L': hold_l, 'R': rh(muzzle + V((-.02, .03, .02)), (0, -1, 0))})
     ram_up = L.key(load_r, W=up_w, hands={'L': hold_l, 'R': rh(muzzle + V((-.01, .02, .10)))})
     ram_dn = L.key(load_r, W=up_w, hands={'L': hold_l, 'R': rh(muzzle + V((-.01, .02, .03)))})
-    keys = [(1, r0), (8, aim), (10, aim), (11, kick), (14, aim), (19, lower), (23, fetch), (27, pour), (31, ram_up), (33, ram_dn),
-            (35, ram_up), (37, ram_dn), (40, lower), (44, lower), (50, dict(r0, ease='io'))]
+    keys = [(1, r0), (8, aim), (10, aim), (11, kick), (14, aim), (17, dict(lower, ease='io')), (19, lower), (23, fetch), (27, pour), (31, ram_up),
+            (33, ram_dn), (35, ram_up), (37, ram_dn), (40, lower), (44, lower), (50, dict(r0, ease='io'))]
     return Clip('Aim-fire-reload', 50, False, None, keys=keys, events={'fire': 10, 'reloaded': 40})
 
 
@@ -621,28 +638,25 @@ def on_station(L, s, station):
 
 
 def gun_melee(L):
-    """Melee-fallback: with a bayonet, the gun levelled at the hip and thrust; without, the butt swung
-    up and driven forward at head height."""
+    """Melee-fallback: with a bayonet, the gun levelled at the hip and thrust; without, a butt stroke:
+    the gun swung back on the right with the butt low, then the butt driven forward and up at the belly."""
     P, k = L.P, L.kit
     r0 = L.rest()
+    modern = P.length < .75
+    hw, hf = (P.h0, P.h0 + .17) if modern else (.20, .34)
+    hands = lambda: {'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)}  # noqa: E731
+    roll = 0 if modern else 180
     if k.bayonet:
-        hw, hf = .24, .46
-        d, f = pitch(80, 0, 180)
-        guard = L.key({'Hips': (0, 0, -10), 'Spine': (4, 0, -8), 'Chest': (2, 0, -8), 'Head': (0, 0, 22)}, (0, 0, -.01),
-                      W=L.W((-.08, .02, .62), d, f, h=hw), hands={'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)})
-        d, f = pitch(86, 0, 180)
-        thrust = L.key({'Hips': (4, 0, -4), 'Spine': (10, 0, -2), 'Chest': (6, 0, -2), 'Head': (-10, 0, 12)}, (0, 0, -.04),
-                       W=L.W((-.05, -.16, .64), d, f, h=hw), hands={'R': on_station(L, 'R', hw), 'L': on_station(L, 'L', hf)}, ease='in')
+        guard = L.key({'Hips': (0, 0, -16), 'Spine': (4, 0, -12), 'Chest': (2, 0, -12), 'Head': (0, 0, 36)}, (0, 0, -.01),
+                      W=L.W((-.06, -.06, .64), *pitch(80, 0, roll), h=hw), hands=hands())
+        thrust = L.key({'Hips': (4, 0, -14), 'Spine': (10, 0, -12), 'Chest': (6, 0, -12), 'Head': (-10, 0, 34)}, (0, 0, -.04),
+                       W=L.W((-.04, -.18, .66), *pitch(86, 0, roll), h=hw), hands=hands(), ease='in')
         keys = [(1, r0), (6, guard), (11, thrust), (12, thrust), (16, dict(guard, ease='out')), (20, r0)]
         return Clip('Melee-fallback', 20, False, None, keys=keys, events={'contact': 11})
-    modern = P.length < .75
-    hb, ht = (P.h0, P.h0 + .17) if modern else (.30, .52)
-    d, f = pitch(-150, 0, 0 if modern else 180)  # upside down: the butt up and forward
-    wind = L.key({'Spine': (-2, 0, -10), 'Chest': (-4, 0, -12), 'Head': (2, 0, 10)}, (0, 0, .004), W=L.W((-.12, .04, .78), d, f, h=hb),
-                 hands={'R': on_station(L, 'R', hb), 'L': on_station(L, 'L', ht)})
-    d, f = pitch(-120, 0, 0 if modern else 180)
+    wind = L.key({'Hips': (0, 0, -8), 'Spine': (-2, 0, -12), 'Chest': (-4, 0, -14), 'Head': (2, 0, 24)}, (0, 0, .004),
+                 W=L.W((-.14, .02, .70), *pitch(55, 30, roll), h=hw), hands=hands())
     strike = L.key({'Hips': (3, 0, 6), 'Spine': (10, 0, 10), 'Chest': (6, 0, 12), 'Head': (-8, 0, -10)}, (0, 0, -.03),
-                   W=L.W((-.06, -.24, .80), d, f, h=hb), hands={'R': on_station(L, 'R', hb), 'L': on_station(L, 'L', ht)}, ease='in')
+                   W=L.W((-.06, -.17, .80), *pitch(-40, -10, roll), h=hw), hands=hands(), ease='in')
     keys = [(1, r0), (7, wind), (11, strike), (12, strike), (16, dict(wind, ease='out')), (20, r0)]
     return Clip('Melee-fallback', 20, False, None, keys=keys, events={'contact': 11})
 
@@ -685,22 +699,21 @@ def support(L):
             out.append(swing('Build', 25, 15, 150, 0., True))
             out.append(swing('Repair', 21, 11, 140, .06, False))
         return out
-    # the spade: both hands on the haft, the blade driven down in front, levered, the earth thrown aside
-    ht, hl = P.length - .02, P.h0 + .02  # the handle (top), the lower hand
-    rd = {'Spine': (6, 0, -4), 'Chest': (4, 0, -4)}
+    # the spade (its butt station 0 is the blade's edge, its axis runs up to the handle): both hands on the
+    # haft, the blade driven down in front, levered back, the earth thrown aside
+    ht, hl = P.length - .13, P.length * .52  # the right fist under the handle, the left a little below half way
+    rd = {'Hips': (6, 0, 0), 'Spine': (14, 0, -4), 'Chest': (10, 0, -4), 'Head': (-10, 0, 0)}
+    hands = lambda: {R: L.on(R, ht, pole=(-1, .3, -.5)), O: L.on(O, hl, pole=(1, .3, -.6))}  # noqa: E731
 
     def dig(name, frames, contact, crouch):
-        d, f = pitch(160, 0, 180)
-        ready = L.key(rd, (0, 0, -crouch), W=L.W((-.05, -.30, .14), d, f, h=0), hands={R: L.on(R, ht, pole=(-1, .3, -.5)), O: L.on(O, hl, pole=(1, .3, -.6))})
-        d, f = pitch(172, 0, 180)
-        push = L.key({'Hips': (4, 0, 0), 'Spine': (12, 0, -2), 'Chest': (8, 0, -2), 'Head': (-10, 0, 0)}, (0, 0, -.05 - crouch),
-                     W=L.W((-.05, -.30, .02), d, f, h=0), hands={R: L.on(R, ht, pole=(-1, .3, -.5)), O: L.on(O, hl, pole=(1, .3, -.6))}, ease='in')
-        d, f = pitch(120, 0, 180)
-        lever = L.key({'Hips': (6, 0, 0), 'Spine': (16, 0, 0), 'Chest': (10, 0, 0), 'Head': (-12, 0, 0)}, (0, 0, -.07 - crouch),
-                      W=L.W((-.05, -.32, .08), d, f, h=0), hands={R: L.on(R, ht, pole=(-1, .3, -.5)), O: L.on(O, hl, pole=(1, .3, -.6))})
-        d, f = pitch(100, 50, 180)
+        ready = L.key(rd, (0, 0, -.05 - crouch), W=L.W((0, -.30, .10), *pitch(-22), h=0), hands=hands())
+        push = L.key({'Hips': (8, 0, 0), 'Spine': (20, 0, -2), 'Chest': (12, 0, -2), 'Head': (-16, 0, 0)}, (0, 0, -.09 - crouch),
+                     W=L.W((0, -.30, -.03), *pitch(-12), h=0), hands=hands(), ease='in')
+        lever = L.key({'Hips': (10, 0, 0), 'Spine': (22, 0, 0), 'Chest': (14, 0, 0), 'Head': (-18, 0, 0)}, (0, 0, -.10 - crouch),
+                      W=L.W((0, -.34, .01), *pitch(-40), h=0), hands=hands())
+        d = nrm(V((-.30, .50, .81)))  # the blade up in front on the left, the handle back by the right shoulder
         toss = L.key({'Hips': (2, 0, 10), 'Spine': (6, 0, 14), 'Chest': (4, 0, 16), 'Head': (-6, 0, 10)}, (0, 0, -.03 - crouch),
-                     W=L.W((.10, -.30, .34), d, f, h=0), hands={R: L.on(R, ht, pole=(-1, .3, -.5)), O: L.on(O, hl, pole=(1, .3, -.6))}, ease='out')
+                     W=L.W((.10, -.32, .26), d, (0, -1, 0), h=0), hands=hands(), ease='out')
         keys = [(1, r0), (4, ready), (contact, push), (contact + 1, push), (contact + 5, lever), (frames - 5, toss), (frames - 2, ready), (frames, r0)]
         return Clip(name, frames, True, None, keys=keys, events={'contact': contact})
     out.append(dig('Build', 25, 13, 0.))

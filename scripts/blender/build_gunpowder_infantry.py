@@ -5,8 +5,8 @@
 #   blender -b --factory-startup -P scripts/blender/build_gunpowder_infantry.py
 # Same contract as that builder: the canonical rig (UnitRig) under a root empty named after the unit,
 # flat material colours, the Team and Skin tags, the old names of the musket (MusketStock,
-# MusketBarrel, MusketLock, Bayonet), rest pose only (no clips: the vertex rig marches the legs and
-# swings the arms). The look follows plans/art/concepts/oct13/units-gunpowder-set.png (design
+# MusketBarrel, MusketLock, Bayonet), and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the
+# rest pose, unchanged). The look follows plans/art/concepts/oct13/units-gunpowder-set.png (design
 # reference only):
 #   - a black felt tricorne with pale lace along its turned-up walls and a Team cockade
 #   - a Team coat: the body and the long skirts round the sides and the back (weighted to the Spine,
@@ -25,6 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'gunpowder-infantry'
 arm = F.start({'Skin': 'C99472', 'Hair': '3A2A1E', 'Felt': '1E1C1B', 'Cloth': 'EEEAE0', 'Buff': 'D6CBAE', 'Wool': '6E6A60', 'Gaiter': '2A2724',
@@ -61,4 +62,5 @@ F.musket(F.grip_point('R'))
 
 F.finish_rest(UID, 'Line infantry: a black tricorne with pale lace and a Team cockade, a Team coat with long skirts lined in white, white cross belts with a brass plate, '
               'a cartridge box, buff breeches and black gaiters, the hair in a queue, a musket with a socket bayonet upright at the order',
-              notes={'role': 'infantry'})
+              notes={'role': 'infantry'},
+              clips=FC.clips_hook(UID, FC.Kit('gun', bayonet=True)))

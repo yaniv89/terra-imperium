@@ -204,3 +204,62 @@ Wooden maul in the right fist, swung one-handed from the haft's end (Build: driv
 | Hit | 8 | 0.40 | no | - |
 | Death | 30 | 1.50 | no | settle 30 |
 
+## gunpowder-infantry
+
+Musket with a socket bayonet (a shooter in the sim, so the gun set). Aim-fire-reload: presented side on (the butt in the shoulder, the barrel on top, the fists at the stock's wrist and the fore-stock), fire 10, the kick, then the musket upright in the left fist while the right fetches a cartridge from the hip, pours and rams twice (no ramrod drawn: none was modelled, so the hand rams empty), reloaded 40, back to the order. Melee-fallback: a bayonet thrust from the hip. Triangles 1918 (unchanged); GLB 180 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Aim-fire-reload | 50 | 2.50 | no | fire 10, reloaded 40 |
+| Melee-fallback | 20 | 1.00 | no | contact 11 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+
+## gunpowder-ranged
+
+Rifle held in the LEFT fist at rest (Prop_L carries it): the right takes the stock's wrist to present, the left the fore-stock; loading and the butt stroke as the mercenary. Triangles 1678 (unchanged); GLB 160 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Aim-fire-reload | 50 | 2.50 | no | fire 10, reloaded 40 |
+| Melee-fallback | 20 | 1.00 | no | contact 11 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+
+## gunpowder-mercenary
+
+Musket without a bayonet. Aim-fire-reload as the line infantryman. Melee-fallback: a butt stroke (swung back on the right, the butt driven forward at the belly). The left fist leaves the sabre's hilt for the stock. Triangles 1732 (unchanged); GLB 167 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Aim-fire-reload | 50 | 2.50 | no | fire 10, reloaded 40 |
+| Melee-fallback | 20 | 1.00 | no | contact 11 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+
+## gunpowder-support
+
+Spade in both fists (the right under the handle, the left half way down), bent over the work. Build: the blade driven into the ground in front (contact 13), levered back, the earth thrown to the left; Repair: crouched, quicker (contact 10). The gabion stays on his back. No Mine (no pick). Triangles 1922 (unchanged); GLB 171 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Build | 25 | 1.25 | yes | contact 13 |
+| Repair | 21 | 1.05 | yes | contact 10 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+
