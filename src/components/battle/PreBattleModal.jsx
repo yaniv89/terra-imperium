@@ -51,8 +51,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);
   const [prefer, setPrefer] = useState(false);
-  const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand } = m;
-  const autoOnly = blockedAtSea || !!noMansLand;
+  const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand, commandBlocked } = m;
+  const autoOnly = blockedAtSea || !!noMansLand || !!commandBlocked;
   const chosen = autoOnly ? 'auto' : mode;
 
   const remember = (choice) => { if (prefer) dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: choice } }); };
@@ -74,7 +74,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     return onClose();
   };
   const command = () => {
-    if (blockedReason || autoOnly) return addLog(blockedReason || noMansLand || 'Defeat the defending fleet first.', 'action');
+    if (blockedReason || autoOnly) return addLog(blockedReason || noMansLand || commandBlocked || 'Defeat the defending fleet first.', 'action');
     if (!affordable) return addLog('Not enough resources', 'action');
     remember('command');
     dispatch(landing
@@ -84,7 +84,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   };
   const disabled = !!blockedReason || !affordable;
   const options = [
-    { id: 'command', sub: noMansLand ? 'Not here: no man\'s land' : 'Play the battle in real time', disabled: disabled || autoOnly, testId: 'battle-choice-command', title: blockedAtSea ? 'An enemy fleet guards the coast: fight it at sea first' : noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : undefined },
+    { id: 'command', sub: noMansLand ? 'Not here: no man\'s land' : commandBlocked ? 'Not possible: nobody to fight' : 'Play the battle in real time', disabled: disabled || autoOnly, testId: 'battle-choice-command', title: blockedAtSea ? 'An enemy fleet guards the coast: fight it at sea first' : noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : commandBlocked || undefined },
     { id: 'auto', sub: 'Instant result, same rules', disabled, testId: 'battle-choice-auto' }
   ];
   const c = m.chance;
@@ -159,7 +159,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
               </div>
             )}
             {knownEmpty && (
-              <div className="fa-card px-2.5 py-1.5 text-[12.5px] text-fa-good" data-testid="pre-battle-undefended">No garrison: Auto attacks its defences. Command fights its militia: win and it is yours.</div>
+              <div className="fa-card px-2.5 py-1.5 text-[12.5px] text-fa-good" data-testid="pre-battle-undefended">{commandBlocked || 'No garrison: Auto attacks its defences. Command fights its militia: win and it is yours.'}</div>
             )}
             {m.cityRule && (
               <div className="text-[11.5px] leading-snug text-fa-muted px-0.5" data-testid="pre-battle-city-rule">

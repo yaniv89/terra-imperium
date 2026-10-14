@@ -6,6 +6,7 @@ import { createInitialState } from '../../engine/gameReducer';
 import { getNeighborIds } from '../../data/regions';
 import { atGates } from '../../engine/testWorld';
 import { preBattleModel, autoText } from './preBattleModel';
+import { cityManifestOf } from '../../engine/cityManifest';
 
 const setup = () => {
   const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
@@ -64,5 +65,23 @@ describe('the two ways against a city (the 14 October rule)', () => {
     expect(text).toMatch(/520 of 520 HP down to about 340/);
     expect(text).toMatch(/needs more attacks/);
     expect(autoText({ field: true })).toMatch(/the field is yours/);
+  });
+});
+describe('DEF-01 on the attack card: Command with nobody to fight', () => {
+  it('a city seen to hold no garrison and no militia disables Command and says why; with a militia it does not', { timeout: 20000 }, () => {
+    const { s, from, target } = setup();
+    const { d, ...rest } = s.units; // eslint-disable-line no-unused-vars
+    const seen = { ...s, units: rest, intel: { de: s.turnNumber + 3 } };
+    const withMilitia = preBattleModel(seen, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
+    expect(withMilitia.knownEmpty).toBe(true);
+    expect(withMilitia.commandBlocked).toBeNull();
+    const manifest = cityManifestOf(seen, target);
+    const ruined = Object.fromEntries(manifest.structures.map((x) => [x.id, true]));
+    const bare = { ...seen, regions: { ...seen.regions, [target]: { ...seen.regions[target], cityDamage: { ruined, damaged: {} } } } };
+    const m = preBattleModel(bare, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
+    expect(m.commandBlocked).toMatch(/^Nobody defends it, not even a militia/);
+    // Without intel the card cannot know: Command stays, and the reducer says so on the result.
+    const blind = preBattleModel({ ...bare, intel: {} }, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
+    expect(blind.commandBlocked).toBeNull();
   });
 });

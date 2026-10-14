@@ -111,8 +111,15 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
   // Foreign-region attack/settle options (plan feedback: "Manage Region" now only opens for your
   // own provinces, Civ-style — a foreign region's available actions surface here directly instead).
+  // ACT-01: an army based far away but standing beside this city (a march that halted here) is a
+  // source too; before, only the neighbouring cities' armies were, and its card had no attack.
+  const besideBases = !isPlayerOwned
+    ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.domain === 'land' && !u.embarkedOn).map((u) => u.regionId))]
+      .filter((id) => !getNeighborIds(regionId).includes(id) && attackReach(state, id, regionId) === 'adjacent')
+      .sort()
+    : [];
   const invasionSources = !isPlayerOwned
-    ? getNeighborIds(regionId)
+    ? [...getNeighborIds(regionId), ...besideBases]
       .filter((nId) => state.regions[nId]?.owner === state.playerNationId)
       .map((nId) => {
         // Only an army that borders the city invades at once; a far one marches there to attack
@@ -389,7 +396,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {!isPlayerOwned && (ownerNation || isNeutralFrontier || canSettle) && (
         <div className="mb-2 pt-2 border-t border-fa-line space-y-1.5">
           {!hasMilitaryOption && !isNeutralFrontier && !canSettle && (
-            <div className="text-fa-muted text-[10px]">No actions available against this region right now.</div>
+            <div className="text-fa-muted text-[10px]" data-testid="no-attack-reason">{atWarWithOwner ? 'No army of yours is beside this city or based next to it. Select an army, tap March, then tap this city to march on it.' : 'No actions available against this region right now.'}</div>
           )}
           {regionState.tile != null && (() => {
             const kind = claimOn(state, state.playerNationId, regionState);
