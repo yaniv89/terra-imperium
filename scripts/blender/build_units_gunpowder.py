@@ -313,9 +313,8 @@ def g_general():
 
 
 # The foot units were rebuilt in the quality pass of 2026-10-14 by build_gunpowder_<class>.py on
-# ti_figure.py (infantry, ranged and worker so far); their functions here stay for reference only.
-BUILDERS = {'gunpowder-cavalry': g_cavalry, 'gunpowder-siege': g_siege,
-            'gunpowder-support': g_support, 'gunpowder-general': g_general}
+# ti_figure.py (infantry, ranged, worker, support); their functions here stay for reference only.
+BUILDERS = {'gunpowder-cavalry': g_cavalry, 'gunpowder-siege': g_siege, 'gunpowder-general': g_general}
 
 
 def build(uid):
