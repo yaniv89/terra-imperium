@@ -859,11 +859,15 @@ def self_bow(grip, length, prop='Prop_L', mat='Wood', string='Cloth', tips='Horn
     return top, bottom
 
 
-def hip_sword(name='Sword', side='L', mat='Metal', scabbard='Leather', grip='Leather', length=.42):
+def hip_sword(name='Sword', side='L', mat='Metal', scabbard='Leather', grip='Leather', length=.42, tip=None):
     """A sword in its scabbard at the hip, hanging back from the belt (Hips): the cross guard and
-    the pommel stand up in front of the hip."""
+    the pommel stand up in front of the hip. `tip`: the scabbard's end (the left side's; a rider's
+    sword slants back along the horse's flank)."""
     s = 1 if side == 'L' else -1
     top, mid, low = Vector((s * .112, -.040, .538)), Vector((s * .128, .000, .420)), Vector((s * .140, .040, .538 - length))
+    if tip:
+        low = Vector((s * tip[0], tip[1], tip[2]))
+        mid = top.lerp(low, .45) + Vector((s * .008, 0, 0))
     tube(name + 'Scabbard', [(tuple(top), (.016, .010), 'Hips'), (tuple(mid), (.016, .010), 'Hips'), (tuple(low), (.010, .007), 'Hips')], scabbard, 4)
     ax = (top - mid).normalized()
     box(name + 'Guard', tuple(top + ax * .008), (.016, .080, .012), mat, 'Hips')
@@ -1579,10 +1583,11 @@ def scale_coat(name='ScaleCoat', mat='Metal', low=.505, high=.785, rows=5, sides
 
 
 def cloak(name='Cloak', mat='Team', top=.792, low=.46, rows=4, k=7, arc=(150, 85), width=(.118, .200), depth=(.074, .090),
-          back=(.004, .150), thick=.012, split=.66):
+          back=(.004, .150), thick=.012, split=.66, bones=('Chest', 'Spine')):
     """A cloak as a thick shell from the shoulders down the back: each row an arc round the back
     (`arc` degrees either side of +Y at the top and at the foot), wider and further back as it falls.
-    Chest above `split`, Spine below (the battle dyes both)."""
+    Chest above `split`, Spine below (the battle dyes both); `bones` names those two (a helmet's
+    mantling: ('Head', 'Head'))."""
     verts, vw = [], []
     for i in range(rows):
         t = i / (rows - 1)
@@ -1594,7 +1599,7 @@ def cloak(name='Cloak', mat='Team', top=.792, low=.46, rows=4, k=7, arc=(150, 85
                 a = math.radians(-a_deg + 2 * a_deg * j / (k - 1))
                 d = thick * shell
                 verts.append(((rx - d) * math.sin(a), cy + (ry - d) * math.cos(a), z))
-                vw.append({'Chest' if z > split else 'Spine': 1})
+                vw.append({bones[0] if z > split else bones[1]: 1})
     faces = []
     row = 2 * k
     for i in range(rows - 1):
@@ -1641,3 +1646,128 @@ def turn(objects, centre, degrees, axis='Z'):
     for o in objects:
         o.data.transform(m)
         o.data.update()
+
+
+# ---- Kingdoms mounted parts (2026-10-14, build_kingdoms_cavalry/general/raider.py) ------------------
+# What tells the medieval horseman from the Classical: the closed great helm with its Team torse and
+# mantling, mail all over with steel knees and shoulders, a Team surcoat whose flaps lie over the lap
+# and the saddle's cantle, the heater shield, stirrups and the high war saddle (ti_mounts.war_saddle).
+
+def shell(name, grid, thick, mat, bone, attachment=False):
+    """A thick cloth from a grid of points (rows of the same count): the grid is one face, the other
+    is `thick` behind it along each point's normal, the edges closed. Returns the mesh (closed, so
+    fix_normals makes it point outward)."""
+    rows, cols = len(grid), len(grid[0])
+    P = [[Vector(p) for p in row] for row in grid]
+    verts = [p for row in P for p in row]
+    n = [None] * (rows * cols)
+    for r in range(rows):
+        for c in range(cols):
+            du = P[r][min(cols - 1, c + 1)] - P[r][max(0, c - 1)]
+            dv = P[min(rows - 1, r + 1)][c] - P[max(0, r - 1)][c]
+            n[r * cols + c] = du.cross(dv).normalized()
+    v = [tuple(p) for p in verts] + [tuple(p - n[i] * thick) for i, p in enumerate(verts)]
+    off = rows * cols
+    f = []
+    for r in range(rows - 1):
+        for c in range(cols - 1):
+            a, b, d, e = r * cols + c, r * cols + c + 1, (r + 1) * cols + c + 1, (r + 1) * cols + c
+            f += [(a, b, d), (a, d, e), (off + a, off + d, off + b), (off + a, off + e, off + d)]
+    edge = [r * cols for r in range(rows)][::-1] + list(range(cols)) + [r * cols + cols - 1 for r in range(rows)] + \
+        [(rows - 1) * cols + c for c in range(cols)][::-1]
+    loop = []
+    for k in edge:
+        if not loop or loop[-1] != k:
+            loop.append(k)
+    if loop[0] == loop[-1]:
+        loop.pop()
+    for k in range(len(loop)):
+        a, b = loop[k], loop[(k + 1) % len(loop)]
+        f += [(a, off + b, b), (a, off + a, off + b)]
+    return raw(name, v, f, mat, bone, attachment)
+
+
+def great_helm(name='GreatHelm', mat='Metal', slit='Slit', trim='Brass', torse='Team', mantling='Team', sides=10):
+    """The closed great helm of the knights: a flat-topped drum over the whole head (drop the face's
+    nose, eyes and brows under it), two eye slits, a brass cross down the face; on its crown a Team
+    torse (a twisted wreath) and a Team mantling hanging from the crown down the back to the
+    shoulders with a dagged edge (all on Head: the battle dyes them)."""
+    lathe(name, [(0, 1.040), (.056, 1.040), (.070, 1.031), (.077, 1.000), (.078, .946), (.077, .892), (.073, .852), (.066, .834)], mat,
+          sides=sides, sy=1.0, cy=-.006)
+    for s in (-1, 1):
+        box(f'{name}Slit_{s}', (s * .031, -.083, .949), (.040, .010, .011), slit, 'Head')
+    box(name + 'Cross', (0, -.085, .935), (.014, .008, .176), trim, 'Head')
+    box(name + 'Brow', (0, -.083, .968), (.100, .008, .012), trim, 'Head')
+    if torse:
+        ob = tube(name + 'Torse', vertical([1.024, 1.036, 1.050], -.006, [(.074, .074), (.077, .077), (.066, .066)], 'Head'), torse, 10, caps=(False, True))
+        for j in range(0, 10, 2):  # the twist: every second point of the middle ring proud
+            v = ob.data.vertices[10 + j].co
+            v.x, v.y = v.x * 1.06, (v.y + .006) * 1.06 - .006
+    if mantling:
+        ob = cloak(name + 'Mantling', mantling, top=1.030, low=.800, rows=3, k=5, arc=(70, 96), width=(.072, .118), depth=(.074, .104),
+                   back=(-.006, .040), thick=.008, bones=('Head', 'Head'))
+        for j in range(5):  # a dagged edge: every second point of the hem higher
+            if j % 2:
+                for shell_ in (0, 1):
+                    ob.data.vertices[2 * 2 * 5 + shell_ * 5 + j].co.z += .030
+
+
+def poleyns(mat='Metal'):
+    """Steel knee cops over hose or mail: a small dome on the front of each knee (Leg and Shin)."""
+    for side, s in (('L', 1), ('R', -1)):
+        w = {'Leg_' + side: .5, 'Shin_' + side: .5}
+        tube('Poleyn_' + side, [((s * .071, -.028, .262), (.044, .040), w), ((s * .071, -.050, .262), (.038, .034), w), ((s * .071, -.064, .262), (.014, .012), w)],
+             mat, 6, caps=(False, True))
+
+
+def surcoat_flaps(name='Surcoat', mat='Team', front=True, back=True, thick=.008):
+    """The skirts of a seated rider's surcoat as two flaps on the Spine (so the battle dyes them): the
+    front one over the lap and the saddle's pommel, the back one over the cantle onto the horse's
+    back. Points in the figure's own space; build them before astride() (the Spine does not move)."""
+    out = []
+    if front:
+        out.append(shell(name + 'Front', [[(-.090, -.094, .556), (0, -.102, .560), (.090, -.094, .556)],
+                                          [(-.122, -.138, .470), (0, -.150, .540), (.122, -.138, .470)],
+                                          [(-.140, -.172, .430), (0, -.190, .492), (.140, -.172, .430)]], thick, mat, 'Spine'))
+    if back:
+        out.append(shell(name + 'Back', [[(-.090, .072, .558), (0, .080, .560), (.090, .072, .558)],
+                                         [(-.104, .160, .526), (0, .172, .532), (.104, .160, .526)],
+                                         [(-.118, .226, .436), (0, .240, .430), (.118, .226, .436)]], thick, mat, 'Spine'))
+    return out
+
+
+def heater_shield(centre, w, h, prop='Prop_L', face='Emblem', back='Wood', rim='Metal', curve=.024, name='Shield', grip='Leather'):
+    """The medieval heater shield facing -Y: a straight top, the sides falling to a point, curved
+    round the arm (`curve`); its face the squad's Emblem (UVs across its own box), a wooden back, a
+    steel edge and a grip. Parts <name>Face, <name>Back, <name>Rim, <name>Grip. Returns the face's and
+    the back's names (for fix_normals' open_facing)."""
+    cx, cy, cz = centre
+    outline = [(-.5, .50), (-.25, .53), (0, .54), (.25, .53), (.5, .50), (.5, .18), (.46, -.06), (.36, -.26), (.20, -.42), (0, -.50),
+               (-.20, -.42), (-.36, -.26), (-.46, -.06), (-.5, .18)]
+
+    def at(x, z, dy, grow=0):
+        k = 1 + grow
+        X, Z = x * w * k, z * h * k
+        return (cx + X, cy + dy - curve * (1 - (2 * x) ** 2), cz + Z)
+    fv = [(cx, cy - curve - .004, cz)] + [at(x, z, 0) for x, z in outline]
+    n = len(outline)
+    ff = [(0, 1 + (j + 1) % n, 1 + j) for j in range(n)]
+    fob = raw(name + 'Face', fv, ff, face, prop, True)
+    uv = fob.data.uv_layers.active.data
+    for poly in fob.data.polygons:
+        for li in poly.loop_indices:
+            co = fob.data.vertices[fob.data.loops[li].vertex_index].co
+            uv[li].uv = ((co.x - cx) / w + .5, (co.z - cz) / (h * 1.08) + .5)
+    bv = [(cx, cy - curve + .014, cz)] + [at(x, z, .012) for x, z in outline]
+    raw(name + 'Back', bv, [(0, 1 + j, 1 + (j + 1) % n) for j in range(n)], back, prop, True)
+    rv = []
+    for x, z in outline:
+        rv += [at(x, z, -.004, .025), at(x, z, .014, .025)]
+    rf = []
+    for j in range(n):
+        a, b = 2 * j, 2 * ((j + 1) % n)
+        rf += [(a, b, b + 1), (a, b + 1, a + 1)]
+    raw(name + 'Rim', rv, rf, rim, prop, True)
+    tube(name + 'Grip', [((cx - .055, cy + .020, cz + .02), .010, prop), ((cx, cy + .038, cz + .02), .011, prop), ((cx + .055, cy + .020, cz + .02), .010, prop)],
+         grip, 4, attachment=True)
+    return prefix + name + 'Face', prefix + name + 'Back'
