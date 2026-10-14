@@ -143,6 +143,20 @@ pure speed change should leave every world hash unchanged (compare `runHeadless(
   frees it; instanced meshes reset `count` every frame; short effects live in `this.fx` with a life.
 - Run `npx vitest run src/battle` and the full suite before committing.
 
+## Building in battle (CB15, CB16)
+```bash
+SEEDS=8 TERRAINS=plains,forest,mixed TYPES=field,assault \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/buildSlots
+node .claude/skills/battle-lab/build-shot.mjs <outDir> [--w 844 --h 340]   # dev server first
+```
+buildSlots counts, per terrain and side, the legal top-left tiles for a house, a barracks and a
+stable in the build circle a few ticks in, and why the rest is refused (edge, fog, ground, node...):
+run it on two checkouts to compare a placement or setup change (I176). build-shot drives the
+worker build flow at a phone size (laborer, hammer, sheet, ghost with the green legal grid and the
+field edge, a tap to move it, Build here, the sheet back once, cancel, X) and prints each state.
+A dev server started from a worktree under `.claude/` may not see later edits (its file watcher
+skips the path): restart it (`--force`) after changing code, or the browser runs the old modules.
+
 ## squadTrace extras (W00)
 `ORDER=attackStructure` sends every fighting squad at one structure (`STRUCT=0` is the keep; `FORT=2`
 gives towers and gates) and prints the tick it falls, what each attacker does then, and a
