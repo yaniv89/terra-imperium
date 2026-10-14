@@ -25,6 +25,7 @@ import { airUnitsInRange, AIR_RANGE } from '../../engine/airPower';
 import { validateFieldAttack, enemyStackAt } from '../../engine/fieldBattle';
 import { validateFleetAttack, enemyFleetsAt } from '../../engine/navalBattle';
 import { declareWarModel } from '../panels/warActions';
+import { wallsLabel } from '../battle/warModel';
 import { fleetPace } from '../../engine/fleets';
 import { navalLineOf, navalName } from '../../data/navalLines';
 import { validateInvasion } from '../../engine/invasion';
@@ -204,7 +205,8 @@ export const fleetTargets = (state, tile, units) => {
 };
 
 /** The enemy city this stack besieges (a city whose centre touches the tile), or null:
- * { regionId, name, hp, maxHp, walls, encircled, strength }. */
+ * { regionId, name, hp, maxHp, walls, wallsName, encircled, strength }. `hp` is the city's siege
+ * endurance (an open town has one too); `wallsName` its walls as every screen names them (I009). */
 export const siegePressed = (state, tile, units) => {
   if (!units.length) return null;
   const tiles = getTiles();
@@ -215,7 +217,7 @@ export const siegePressed = (state, tile, units) => {
     if (!city || city.tile !== n || city.owner === me) continue;
     const mine = besiegersOf(state, city).get(me);
     if (!mine?.length) continue;
-    return { regionId: cityId, name: city.name, hp: Math.round(siegeHpOf(city, state.greatProjects)), maxHp: siegeMaxHp(city, state.greatProjects), walls: wallsOf(city), encircled: isEncircled(state, city, me), strength: Math.round(siegeStrength(state, me, mine)) };
+    return { regionId: cityId, name: city.name, hp: Math.round(siegeHpOf(city, state.greatProjects)), maxHp: siegeMaxHp(city, state.greatProjects), walls: wallsOf(city), wallsName: wallsLabel(city), encircled: isEncircled(state, city, me), strength: Math.round(siegeStrength(state, me, mine)) };
   }
   return null;
 };

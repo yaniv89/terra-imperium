@@ -81,7 +81,8 @@ const BattleHud = ({
 }) => {
   const [confirmNuke, setConfirmNuke] = useState(null);
   const [confirmRetreat, setConfirmRetreat] = useState(false);
-  const [cityOpen, setCityOpen] = useState(true);
+  // I202: the city's housing card starts folded (a chip); the player opens it when it matters.
+  const [cityOpen, setCityOpen] = useState(false);
   // The pause sheet can be put aside to give orders while paused (a pill brings it back).
   const [sheetHidden, setSheetHidden] = useState(false);
   useEffect(() => { if (!paused) setSheetHidden(false); }, [paused]);
@@ -247,7 +248,7 @@ const BattleHud = ({
               <div className="fa-panel !bg-fa-panel/95 px-2.5 py-1.5 shadow-xl">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="fa-label">{playerSide === 1 ? 'Your city' : 'Defender'} housing</span>
-                  <button type="button" onClick={() => setCityOpen(false)} aria-label="Fold the city card" className="-mr-1 p-1 text-fa-muted"><ChevronUp className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => setCityOpen(false)} aria-label="Fold the city card" className="-mr-2 -my-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-fa-muted" data-testid="battle-city-fold"><ChevronUp className="w-4 h-4" /></button>
                 </div>
                 <div className="flex items-baseline gap-2">
                   {city.housingNow < city.housingStart && <span className="fa-num text-[13px] text-fa-muted line-through">{city.housingStart}</span>}
@@ -261,11 +262,11 @@ const BattleHud = ({
                 <div className="flex gap-3 mt-1 text-[10.5px] text-fa-muted">
                   {city.gate && <span>Gate {city.gate.alive ? `${Math.round((city.gate.hp / city.gate.maxHp) * 100)}%` : 'open'}</span>}
                   {city.towers.total > 0 && <span>Towers {city.towers.standing}/{city.towers.total}</span>}
-                  {city.keep && <button type="button" onClick={onFocusKeep} className="underline">Keep {city.keep.alive ? `${Math.round((city.keep.hp / city.keep.maxHp) * 100)}%` : 'taken'}</button>}
+                  {city.keep && <button type="button" onClick={onFocusKeep} className="underline">Keep {city.keep.alive ? `${Math.round((city.keep.hp / city.keep.maxHp) * 100)}%` : base ? 'down' : 'taken'}</button>}
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setCityOpen(true)} className="ml-auto flex fa-chip !bg-fa-panel/95 gap-1.5"><Home className="w-3.5 h-3.5" aria-hidden="true" />Housing <span className="fa-num">{city.housingNow}</span> · ruined <span className="fa-num">{city.ruined}/{city.total}</span></button>
+              <button type="button" onClick={() => setCityOpen(true)} className="ml-auto flex fa-chip !bg-fa-panel/95 !min-h-[36px] gap-1.5" aria-expanded="false" data-testid="battle-city-open"><Home className="w-3.5 h-3.5" aria-hidden="true" />Housing <span className="fa-num">{city.housingNow}</span> · ruined <span className="fa-num">{city.ruined}/{city.total}</span></button>
             )}
           </div>
         )}

@@ -4,12 +4,11 @@
 // to 6.3 and 6.8). Pure: reads the state and the armies, changes nothing.
 //   armyView      one side: men (strength on the map), regiments, lines by kind, generals
 //   oddsSource    exact odds (a spy report, your own city, open ground in sight) or the scouts' guess
-//   battleSize    300 a side: how many regiments fight at once on this ground, how many wait as waves
+//   battleSize    300 a side: the whole army takes the field at once (U10, no Reserve and no waves)
 //   cityWallsView the walls (name, HP), the houses and the battle housing
 import { unitDisplayName } from '../../data/unitNames';
-import { getCombatWidth } from '../../data/combatWidth';
 import { getCategoryTierName } from '../../data/buildings';
-import { POP_LIMIT } from '../../battle/data/economy';
+import { POP_LIMIT, trainableRoles, ecoName } from '../../battle/data/economy';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS, TICK_HZ } from '../../battle/sim/constants';
 import { wallsOf, siegeHpOf, siegeMaxHp } from '../../engine/sieges';
 import { canSeeRegionDetails, hasIntel } from '../../engine/intel';
@@ -72,19 +71,44 @@ export const battleMinutes = (kind) => Math.round((kind === 'assault' || kind ==
  * as many fight at once as the ground allows; the rest wait off the map and come in as waves when
  * called. `regiments` is the player's side.
  */
-export const battleSize = ({ regiments, terrain = 'mixed', kind = 'assault' }) => {
-  const front = Math.min(regiments, getCombatWidth(terrain));
-  const waves = Math.max(0, regiments - front);
+// `terrain` no longer limits it (the combat width was the old Reserve rule); past the 300-a-side
+// cap, a guard only (sim/world.js MAX_START_SQUADS), the weakest regiments stay out untouched.
+export const battleSize = ({ regiments, kind = 'assault' }) => {
+  const front = Math.min(regiments, BATTLE_POP_LIMIT);
+  const heldBack = Math.max(0, regiments - front);
   const minutes = battleMinutes(kind);
   return {
     cap: BATTLE_POP_LIMIT,
     front,
-    waves,
+    heldBack,
     minutes,
-    text: waves > 0
-      ? `${front} regiments fight at once on this ground; ${waves} more wait off the map and join as a second wave.`
+    text: heldBack > 0
+      ? `The strongest ${front} regiments take the field; ${heldBack} more stay out of this battle.`
       : `All ${regiments} regiment${regiments === 1 ? '' : 's'} on the field at once.`
   };
+};
+
+/**
+ * The one name every screen gives a city's walls (playtest audit I009: the army sheet said "2
+ * walls", the independent's card "walls strong" and the pre-battle card the building's name for
+ * the same city). The wall level is the fortification; the siege's HP is the city's endurance, which
+ * an open town has too, so it is never called its walls.
+ */
+export const wallsLabel = (city) => {
+  const level = city ? wallsOf(city) : 0;
+  return level > 0 ? getCategoryTierName('defense', level - 1) || `Walls ${level}` : 'No walls';
+};
+
+/**
+ * I213: the pre-battle warning to bring siege tools. A walled city against an army without a
+ * siege engine: the gate holds it out and its blows on the walls count for little. Names the age's
+ * siege regiment (if the age has one) and the battle's siege workshop (it can train them on the
+ * field). Null when there is nothing to warn about.
+ */
+export const siegeAdvice = ({ wallLevel = 0, units = [], ageId = 'bronze' }) => {
+  if (!(wallLevel > 0) || units.some((u) => u.classId === 'siege' && u.strength > 0)) return null;
+  if (!trainableRoles(ageId).includes('siege')) return 'Walls and no siege engines in your age: expect a long fight at the gate.';
+  return `Walls: without siege engines your army can only batter the gate. Bring ${unitDisplayName(ageId, 'siege') || 'siege engines'}, or build a ${ecoName('siegeWorkshop', ageId).toLowerCase()} in the battle to train them.`;
 };
 
 /** The city's walls and houses for the pre-battle and attack screens, or null for open ground. */
@@ -99,7 +123,7 @@ export const cityWallsView = (state, cityId) => {
   const houseCount = houses ? parseInt(houses.label, 10) || 0 : 0;
   return {
     level,
-    name: level > 0 ? getCategoryTierName('defense', level - 1) || `Walls ${level}` : 'No walls',
+    name: wallsLabel(city),
     hpShare: hp / max,
     hpText: level > 0 ? `HP ${Math.round((hp / max) * 100)}%${city.siege ? ' after the siege so far' : ''}` : 'Open town',
     houses: houseCount,
