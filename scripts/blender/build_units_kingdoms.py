@@ -205,8 +205,9 @@ def k_general():
 # (build_kingdoms_infantry.py, build_kingdoms_ranged.py, build_kingdoms_worker.py,
 # build_kingdoms_support.py); k_infantry, k_ranged, k_support and k_worker stay here for reference only.
 # The knights and the general were rebuilt the same way by build_kingdoms_cavalry.py and
-# build_kingdoms_general.py; k_cavalry and k_general stay for reference.
-BUILDERS = {'kingdoms-siege': k_siege}
+# build_kingdoms_general.py, the trebuchet's crew by build_kingdoms_siege.py (the machine by the same
+# calls as k_siege); k_cavalry, k_general and k_siege stay for reference.
+BUILDERS = {}
 
 
 def build(uid):

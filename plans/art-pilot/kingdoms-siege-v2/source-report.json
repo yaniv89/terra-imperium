@@ -1,0 +1,116 @@
+{
+  "id": "kingdoms-siege",
+  "triangles": 3604,
+  "by_rig": {
+    "Crew0Rig": 1052,
+    "Crew1Rig": 1052,
+    "Crew2Rig": 1052,
+    "FrameRig": 448
+  },
+  "rigs": {
+    "FrameRig": [
+      "Hull",
+      "Wheel_L",
+      "Wheel_R"
+    ],
+    "Crew0Rig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ],
+    "Crew1Rig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ],
+    "Crew2Rig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Boot",
+    "Cloth",
+    "Hair",
+    "Hose",
+    "Leather",
+    "Metal",
+    "Skin",
+    "Team",
+    "Wood"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Trebuchet: a counterweight engine on a skid frame (A-frame uprights, axle, the beam cocked with its sling down, the counterweight box, a stone in the sling, a winch drum), three crew in Team tabards over gambesons with iron kettle hats",
+  "notes": "The machine is the one of build_units_kingdoms.py k_siege (the same calls, unchanged); the crew are ti_figure.py figures (LITE) from the quality pass of 2026-10-14.",
+  "machine_metres": {
+    "length": 5.76,
+    "width": 2.41,
+    "height": 5.98
+  },
+  "footprint_h": [
+    1.9,
+    3.2
+  ]
+}
