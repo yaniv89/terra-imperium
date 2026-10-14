@@ -10,7 +10,7 @@
 // reuses the level above it.
 import { Matrix4, Vector3, BufferGeometry, BufferAttribute, Box3 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { loadGltf } from '../render/gltfUnitLoader';
+import { loadGltf, onGltfEvict } from '../render/gltfUnitLoader';
 import { ART } from './artFiles';
 
 const LOD_NAME = /^LOD(\d)/;
@@ -179,13 +179,28 @@ export const parseKit = (scene, { repairLodUvs = false } = {}) => {
 };
 
 const kits = new Map(); // [url, repair policy] -> Promise<kit>
+/** Forget the kits baked from a file (its glTF was dropped from memory: gltfUnitLoader.js), and
+ * free their baked geometry. */
+export const forgetKits = (url) => {
+  [false, true].forEach((repair) => {
+    const key = JSON.stringify([url, repair]);
+    const p = kits.get(key);
+    if (!p) return;
+    kits.delete(key);
+    p.then((kit) => {
+      const seen = new Set();
+      Object.values(kit?.objects || {}).forEach((o) => o.lods.forEach((b) => { if (b && !seen.has(b.geometry)) { seen.add(b.geometry); b.geometry.dispose(); } }));
+    }).catch(() => {});
+  });
+};
+onGltfEvict((url) => forgetKits(url));
 /** Preserve authored UV charts except for the exact known legacy kit, or an explicit opt-in. */
 export const loadKit = (url, { load = loadGltf, repairLodUvs = url === ART.url('battle/nature/vegetation-temperate.glb') } = {}) => {
   if (!url) return Promise.resolve(null);
   const key = JSON.stringify([url, !!repairLodUvs]);
   if (!kits.has(key)) {
     kits.set(key, Promise.resolve().then(() => load(url)).then((gltf) => parseKit(gltf.scene, { repairLodUvs })).catch((e) => { kits.delete(key); throw new Error(`${url}: ${e.message}`); }));
-  }
+  } else if (load === loadGltf) load(url).catch(() => {}); // a use: keeps the file's place in memory (assetMemory.js)
   return kits.get(key);
 };
 /** The first object of `names` the kit has (a fallback list: 'barracks-damaged', 'barracks'). */

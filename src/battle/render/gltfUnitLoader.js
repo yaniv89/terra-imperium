@@ -18,6 +18,7 @@
 // aTeam, aPart, aUv, aSurface) and is registered with registerSoldierGeometry().
 import { Vector3, Vector4, Matrix4, Color, Box3, BufferGeometry, Float32BufferAttribute, AnimationMixer } from 'three';
 import { LIMB, PART } from './soldierFactory';
+import { textureCap, assetBudget, capSceneTextures, disposeGltf, createAssetLru } from './assetMemory';
 
 export const DEFAULT_TRIANGLE_BUDGET = 8000; // per soldier at full detail (plans/model-brief-for-claude.md section 2): the battle draws the nearest squads at this and the rest as LOD1 and imposters
 
@@ -491,18 +492,44 @@ const getLoader = async ({ dracoDecoderPath } = {}) => {
   return loaderPromise;
 };
 
-// Free the glTF's own GPU-side objects once baked (we keep only our geometry).
-const disposeScene = (scene) => scene.traverse((o) => {
-  if (!o.isMesh) return;
-  o.geometry?.dispose();
-  (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m?.map?.dispose(); m?.dispose(); });
-});
+// Free the glTF's own GPU-side objects once baked (we keep only our geometry); its decoded bitmaps
+// are closed too (three.js never closes one, and they are not collected: assetMemory.js).
+const disposeScene = (scene) => disposeGltf({ scene });
 
 // The raw glTF (scene + clips), loaded once per URL: composed units (unitComposer.js) reuse one
-// archetype for many ages and classes, cloning it (skeletons included) for each.
-const gltfCache = new Map();
+// archetype for many ages and classes, cloning it (skeletons included) for each; kits (kitLoader.js)
+// and the close view's towns (townAssets.js) read the same files. Textures are scaled to the
+// device's cap at load, and past the budget the files not used for a while are dropped
+// (assetMemory.js): `onGltfEvict` tells the caches built on a file to forget it.
+const gltfCache = new Map(); // url -> Promise<gltf>
+const evictListeners = new Set();
+/** `fn(url, gltf)` when a file is dropped from memory (kits and town objects built on it go too). */
+export const onGltfEvict = (fn) => { evictListeners.add(fn); return () => evictListeners.delete(fn); };
+const gltfLru = createAssetLru({
+  budget: assetBudget(),
+  onEvict: (url, gltf) => {
+    gltfCache.delete(url);
+    evictListeners.forEach((fn) => { try { fn(url, gltf); } catch { /* a cache that cannot forget keeps its copy */ } });
+    disposeGltf(gltf);
+  }
+});
+/** The loaded files' decoded bytes and count (memory checks, the crash log). */
+export const gltfMemory = () => ({ files: gltfLru.size, MB: Math.round(gltfLru.bytes / 1048576) });
+/** Drop every loaded file now (a lost WebGL context: their GPU copies are gone). */
+export const clearGltfCache = () => { gltfLru.clear(); gltfCache.clear(); };
+/** Drop the files not used for a while down to `MB` (a battle's end on a phone). */
+export const trimGltfCache = (MB = 0) => gltfLru.trim(MB * 1048576);
 export const loadGltf = (url, opts = {}) => {
-  if (!gltfCache.has(url)) gltfCache.set(url, getLoader(opts).then((loader) => loader.loadAsync(url)).catch((e) => { gltfCache.delete(url); throw e; }));
+  if (!gltfCache.has(url)) {
+    const cap = opts.textureCap ?? textureCap();
+    gltfCache.set(url, getLoader(opts).then((loader) => loader.loadAsync(url)).then((gltf) => {
+      const bytes = capSceneTextures(gltf.scene, cap);
+      // the parser holds every buffer view and the json: not needed once the scene is built
+      delete gltf.parser;
+      if (gltfCache.has(url)) { gltfLru.add(url, gltf, bytes); gltfLru.trim(); }
+      return gltf;
+    }).catch((e) => { gltfCache.delete(url); throw e; }));
+  } else gltfLru.touch(url);
   return gltfCache.get(url);
 };
 export const cloneScene = async (scene) => {

@@ -10,7 +10,7 @@
 // medium or big one), the wall ring of the town's size round a town with a defense building, and
 // the colony camp that stands in place of a town on an outpost.
 import { Color } from 'three';
-import { loadGltf } from '../../../battle/render/gltfUnitLoader';
+import { loadGltf, onGltfEvict } from '../../../battle/render/gltfUnitLoader';
 import { styleChain } from '../../../data/architecture';
 import { townFileKey, indexTownFiles, townVariant, TOWN_VARIANT_BY_AGE } from '../../../data/townLayout';
 
@@ -103,7 +103,8 @@ const lodOf = (o) => { const m = LOD_NAME.exec(o.name || ''); return m ? Number(
 const files = new Map(); // url -> Promise<{ [object name]: Object3D }>
 /** Load a model file once; resolves to its objects (every node holding LOD children), by name. */
 export const loadAssetObjects = (url, load = loadGltf) => {
-  if (!files.has(url)) {
+  if (files.has(url)) { if (load === loadGltf) load(url).catch(() => {}); } // a use: keeps the file in memory (assetMemory.js)
+  else {
     files.set(url, load(url).then((gltf) => {
       const out = {};
       gltf.scene.traverse((o) => { if (lodOf(o) === null && o.children.some((c) => lodOf(c) === 0)) out[o.name] = o; });
@@ -118,6 +119,18 @@ export const loadAssetObjects = (url, load = loadGltf) => {
 export const loadTownAsset = (url, load = loadGltf) => loadAssetObjects(url, load).then((objs) => Object.values(objs)[0]);
 
 const instanceMaterials = new Map(); // `${uuid}|${team or tint}` -> material
+// A file dropped from memory (gltfUnitLoader.js, assetMemory.js): its objects and the tinted copies
+// of its materials go too.
+onGltfEvict((url, gltf) => {
+  files.delete(url);
+  const uuids = new Set();
+  gltf?.scene?.traverse?.((o) => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m && uuids.add(m.uuid)); });
+  [...instanceMaterials.keys()].forEach((key) => {
+    if (!uuids.has(key.split('|')[0])) return;
+    instanceMaterials.get(key).dispose();
+    instanceMaterials.delete(key);
+  });
+});
 /** A town instance: shares the file's geometry and textures; Team takes `teamColor`, Ground is
  * multiplied by `groundTint` ([r, g, b], groundBlend.js) to sit in the land under it. */
 export const instanceTownAsset = (root, teamColor, groundTint = null) => {
