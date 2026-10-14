@@ -18,7 +18,9 @@ import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN, XP_LOSE } from '../../engine/battleOutcome';
 import { playerWon } from '../../engine/battleReports';
 import { auxiliaryLine } from '../../engine/battleLedger';
-import { TICK_HZ } from '../../battle/sim/constants';
+import { TICK_HZ, Q } from '../../battle/sim/constants';
+import { isBaseType } from '../../battle/sim/base';
+import { ecoName } from '../../battle/data/economy';
 import { describeOutcome, verificationNotice } from './battleReportView';
 import { resultOf } from './battleReportsModel';
 import { SHAKEN_MORALE } from '../../battle/sim/morale';
@@ -110,7 +112,7 @@ export const cityAssaultView = (hud, setup) => {
   };
 };
 
-const ALERT_KEEP_TICKS = 20 * TICK_HZ; // an alert stays 20 s
+export const ALERT_SHOW_TICKS = 8 * TICK_HZ; // an alert shows 8 s, then lives on in the history (I203)
 const WORKER_ALERT_GAP = 30 * TICK_HZ;
 
 /**
@@ -152,10 +154,67 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
   return out;
 };
 
-/** The alerts to show now: the newest two still fresh, and how many older ones are folded away. */
+/**
+ * I203: the alerts to show now: the newest two of the last 8 seconds (they fade on their own, so they
+ * never pile up over the field), how many others there are, and the whole list newest first (the
+ * history the player can open).
+ */
 export const visibleAlerts = (alerts, tick) => {
-  const fresh = alerts.filter((a) => tick - a.tick < ALERT_KEEP_TICKS);
-  return { shown: fresh.slice(-2).reverse(), older: Math.max(0, fresh.length - 2) };
+  const fresh = alerts.filter((a) => tick - a.tick < ALERT_SHOW_TICKS);
+  const shown = fresh.slice(-2).reverse();
+  return { shown, older: Math.max(0, alerts.length - shown.length), history: [...alerts].reverse() };
+};
+
+/**
+ * I196, I197: where the enemy's objective is, as far as the player knows it (the view is already
+ * seen from the player's side: enemy buildings never explored are not in it). Returns
+ * { targets: [{ x, y, label }] in tiles, nearest to `from` first, note, fallback: { x, y } }.
+ * `note` says why there is no target (their camp not seen yet) and where to look.
+ */
+export const enemyObjectives = (hud, setup, playerSide, from = null) => {
+  const enemy = 1 - playerSide;
+  const targets = [];
+  const keep = hud?.structures?.[0];
+  // The keep (or the town hall standing for it) is the defender's.
+  if (enemy === 1 && keep?.alive && keep.kind === 'keep') targets.push({ x: keep.x / Q, y: keep.y / Q, label: 'Their keep' });
+  const ageId = setup?.sides?.[enemy]?.ageId;
+  (hud?.eco?.buildings || []).forEach((b) => {
+    if (b.side !== enemy || !b.alive || b.proxy || !b.built || !isBaseType(b.type)) return;
+    targets.push({ x: b.x / Q, y: b.y / Q, label: `Their ${ecoName(b.type, ageId).toLowerCase()}` });
+  });
+  if (from) targets.sort((a, b) => ((a.x - from.x) ** 2 + (a.y - from.y) ** 2) - ((b.x - from.x) ** 2 + (b.y - from.y) ** 2));
+  const map = setup?.map || {};
+  const w = map.w || 0; const h = map.h || 0;
+  // The enemy comes from the west edge when it attacks, sits to the east when it defends.
+  const fallback = enemy === 0 ? { x: (map.attackerEdge || 1) + 6, y: h / 2 } : { x: map.keep?.x ?? w - 10, y: map.keep?.y ?? h / 2 };
+  if (targets.length) return { targets, note: null, fallback };
+  const seen = (hud?.squads || []).filter((q) => q.side === enemy && q.alive && q.onField && !q.fled && q.visible !== false);
+  if (seen.length) {
+    const x = seen.reduce((s, q) => s + q.x, 0) / seen.length / Q; const y = seen.reduce((s, q) => s + q.y, 0) / seen.length / Q;
+    return { targets: [{ x, y, label: 'Enemy troops in sight' }], note: `Their base is not seen yet; ${seen.length} enemy squad${seen.length === 1 ? '' : 's'} in sight.`, fallback };
+  }
+  return { targets: [], note: `Their base is not seen yet. They are to the ${enemy === 0 ? 'west' : 'east'}: send troops to look.`, fallback };
+};
+
+/**
+ * U12: Battle Supply for the top bar: now and the cap, the rise a second (from recent frames), what
+ * the powers cost and whether it is low (under the cheapest power the side still has).
+ */
+export const supplyView = (hud, setup, playerSide, rate = null) => {
+  const now = Math.floor(hud?.supply?.[playerSide] || 0);
+  const cap = setup?.supplyCap || null;
+  const costs = (hud?.powers || []).filter((p) => p.cost > 0 && p.usesLeft > 0).map((p) => ({ label: p.label, cost: p.cost }));
+  const cheapest = costs.length ? Math.min(...costs.map((c) => c.cost)) : null;
+  return { now, cap, rate, costs, low: cheapest !== null && now < cheapest };
+};
+
+/** The supply gained a second over recent samples [{ tick, v }] (drops from spending are left out). */
+export const supplyRate = (samples) => {
+  if (!samples || samples.length < 2) return null;
+  let gain = 0;
+  for (let i = 1; i < samples.length; i++) gain += Math.max(0, samples[i].v - samples[i - 1].v);
+  const secs = (samples[samples.length - 1].tick - samples[0].tick) / TICK_HZ;
+  return secs > 0 ? Math.round((gain / secs) * 10) / 10 : null;
 };
 
 /** What the player is told when the battle loop refused orders (its `ordersRefused` message). */

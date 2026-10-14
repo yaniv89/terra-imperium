@@ -10,7 +10,7 @@ import BattleHud from './BattleHud';
 const sq = (idx, o = {}) => ({ idx, side: 0, classId: 'infantry', ageId: 'bronze', strength: 50, maxStrength: 100, morale: 80, alive: true, onField: true, fled: false, routed: false, x: 0, y: 0, reserve: false, enterTick: -1, ...o });
 const hud = { tick: 100, supply: [200, 200], battleType: 'assault', assimilation: 0, powers: [{ id: 'rallyCry', label: 'Rally Cry', cost: 120, usesLeft: Infinity, readyIn: 0 }], squads: [sq(0), sq(1, { classId: 'ranged' }), sq(2, { side: 1 })], structures: [{ kind: 'keep', hp: 900, maxHp: 1000, alive: true, x: 0, y: 0, garrison: 0, garrisonSlots: 0 }], eco: null };
 const setup = { sides: [{ ageId: 'bronze' }, { ageId: 'bronze' }], structures: [{ kind: 'keep' }] };
-const base = { title: 'Siege of Susa', hud, setup, playerSide: 0, timeLeft: 1500, paused: false, started: true, speed: 1, armed: null, formation: 'line', selectedSquads: [], onTogglePause: vi.fn(), onSpeed: vi.fn(), onArm: vi.fn(), onFormation: vi.fn(), onSelectClass: vi.fn(), onCallReserve: vi.fn(), onCommand: vi.fn(), onRetreatAll: vi.fn(), onFocusKeep: vi.fn(), onPower: vi.fn(), onOpenAbilities: vi.fn(), hasAbilities: false };
+const base = { title: 'Siege of Susa', hud, setup, playerSide: 0, timeLeft: 1500, paused: false, started: true, speed: 1, armed: null, formation: 'line', selectedSquads: [], onTogglePause: vi.fn(), onSpeed: vi.fn(), onArm: vi.fn(), onFormation: vi.fn(), onSelectClass: vi.fn(), onCommand: vi.fn(), onRetreatAll: vi.fn(), onFocusKeep: vi.fn(), onPower: vi.fn(), onAbility: vi.fn(), abilities: [] };
 const html = (props) => renderToStaticMarkup(React.createElement(BattleHud, { ...base, ...props }));
 const btn = (h, id) => h.match(new RegExp(`<button[^>]*data-testid="${id}"[^>]*>`))?.[0] || '';
 
@@ -22,7 +22,10 @@ describe('BattleHud', () => {
     expect(h).not.toContain('battle-regiment-');
     expect(btn(h, 'battle-select-all')).toBeTruthy();
     expect(h).toContain('All 2');
-    expect(h).toContain('Rally Cry'); // powers with nothing selected
+    // U09: the powers sit behind one round wand with no visible text (named for screen readers)
+    const wand = btn(h, 'battle-wand');
+    expect(wand).toContain('aria-label="Abilities and powers');
+    expect(h).not.toContain('Rally Cry');
     expect(h).not.toContain('data-testid="battle-attack-move"');
     const sel = html({ selectedSquads: [hud.squads[0]], context: 'army' });
     expect(btn(sel, 'battle-attack-move')).not.toContain('disabled=""');
@@ -63,6 +66,37 @@ describe('BattleHud', () => {
     expect(h).toContain('battle-switch-auto');
     expect(h).toContain('battle-leave');
     expect(h).not.toContain('data-testid="battle-commands"');
+  });
+
+  it('U12: Battle Supply now and cap in every battle, red when under the cheapest power', () => {
+    const plain = html({ setup: { ...setup, supplyCap: 350 } });
+    expect(btn(plain, 'battle-supply')).toContain('aria-label="Battle supply 200 of 350"');
+    const eco = { stock: [10, 20, 30, 40], pop: 5, cap: 10, workers: 2, idleWorkers: [], buildings: [], nodes: [] };
+    const low = html({ hud: { ...hud, eco, supply: [90, 0] }, setup: { ...setup, supplyCap: 350 } });
+    expect(btn(low, 'battle-supply')).toContain('Battle supply 90 of 350, low');
+    expect(low).toContain('data-testid="battle-stock-stone"');
+  });
+
+  it('I206: speed and pause keep the same 44 px slots before Start, in battle and paused; Start is also in the deploy card', () => {
+    const slots = (h) => [btn(h, 'battle-speed').replace(/aria-label="[^"]*"/, ''), btn(h, 'battle-pause').match(/class="([^"]*)"/)[1].replace(/ !bg-fa-brass.*$/, '')];
+    const deploy = html({ started: false, paused: true });
+    const fight = html();
+    expect(slots(deploy)[0]).toBe(slots(fight)[0]);
+    expect(slots(deploy)[1]).toBe(slots(fight)[1]);
+    expect(btn(fight, 'battle-pause')).toContain('!w-11 !h-11');
+    expect(deploy).toContain('data-testid="battle-start"');
+    // I204: short, for the input in hand, never the old regiment cards
+    expect(deploy).toContain('tap inside your zone');
+    expect(html({ started: false, paused: true, mouse: true })).toContain('right click inside your zone');
+    expect(deploy).not.toContain('regiment card');
+  });
+
+  it('I196, I199: Enemy and Map in the small buttons, Follow with an army selected', () => {
+    const h = html({ onObjective: vi.fn(), onToggleMinimap: vi.fn(), onToggleFollow: vi.fn(), selectedSquads: [hud.squads[0]], context: 'army' });
+    expect(btn(h, 'battle-objective')).toBeTruthy();
+    expect(btn(h, 'battle-minimap-toggle')).toContain('aria-pressed="false"');
+    expect(btn(h, 'battle-follow')).toContain('aria-pressed="false"');
+    expect(btn(html({ onToggleFollow: vi.fn(), selectedSquads: [hud.squads[0]], context: 'army', follow: true }), 'battle-follow')).toContain('aria-pressed="true"');
   });
 
   it('a city assault shows the housing and the houses ruined, never the 50% rule; ended leaves only the top bar', () => {

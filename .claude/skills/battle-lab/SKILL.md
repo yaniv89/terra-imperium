@@ -157,6 +157,18 @@ field edge, a tap to move it, Build here, the sheet back once, cancel, X) and pr
 A dev server started from a worktree under `.claude/` may not see later edits (its file watcher
 skips the path): restart it (`--force`) after changing code, or the browser runs the old modules.
 
+## The HUD's space (CB19)
+```bash
+node .claude/skills/battle-lab/hud-shot.mjs <outDir> --w 844 --h 340 --safe 0,47,21,47   # dev server first
+```
+Shoots deploy, the army selected, the wand sheet, laborers and their build sheet, the minimap and
+the pause sheet, and prints per state the share of the screen left to the field (I201: 70% or
+more in ordinary play; the first-battle hint is taken as seen unless `--hint 1`), buttons under
+44 px, buttons crossing the safe area (`--safe t,r,b,l` css px reaches the screen as `&safe=`,
+headless Chromium has no notch) and where speed and pause sit (they must never move, I206).
+Camera controls: arrow keys and the mouse at the screen's edge pan, F follows the selection, the
+wheel zooms at the pointer (`zoomBy` brings the camera up to date before and after measuring).
+
 ## squadTrace extras (W00)
 `ORDER=attackStructure` sends every fighting squad at one structure (`STRUCT=0` is the keep; `FORT=2`
 gives towers and gates) and prints the tick it falls, what each attacker does then, and a

@@ -95,7 +95,7 @@ export const BuildMenu = ({ ageId, stock, workers = 1, onPick, onClose = null, e
     onPick(id);
   };
   return (
-    <div className="w-[min(28rem,calc(100vw-7.5rem))] lg:w-[31rem] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto" data-testid="battle-build-menu"
+    <div className="w-[min(28rem,100%)] lg:w-[min(31rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto" data-testid="battle-build-menu"
       onContextMenu={(e) => e.preventDefault()}>
       <div className="flex items-start justify-between gap-2 px-1 pb-1 min-h-[34px]">
         {d ? (
@@ -209,7 +209,7 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
   if (!roles.length && !building.queue.length) return null;
   const train = (role) => { setAsked({ role, before: building.queue.length, at: Date.now() }); setSaid(null); onTrain(role); };
   return (
-    <div className="w-[min(26rem,calc(100vw-7.5rem))] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]" data-testid="battle-building-actions">
+    <div className="w-[min(26rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]" data-testid="battle-building-actions">
       <div className="flex items-center gap-2 px-1 pb-1">
         <span className="fa-label">Train</span>
         {roles.some((r) => r !== 'worker') && <span className="text-[10px] text-fa-brass truncate" data-testid="battle-train-temporary" title={AUXILIARY_NOTE}>Temporary: they leave after the battle</span>}
