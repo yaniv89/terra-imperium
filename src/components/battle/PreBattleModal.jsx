@@ -198,11 +198,11 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
           </div>
         )}
 
-        <div className="px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] border-t border-fa-line grid gap-2 grid-cols-1 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_auto] items-stretch">
+        <div className="px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] border-t border-fa-line grid gap-2 grid-cols-1 sm:grid-cols-[minmax(14.5rem,1.2fr)_minmax(0,1.6fr)_auto] items-stretch" data-testid="pre-battle-footer">
           {options.length > 0 ? <ModeCards options={options} value={chosen} onChange={setMode} compact /> : <div />}
-          <ModeExplain title={chosen === 'command' ? 'Command' : 'Auto'} compact>{chosen === 'command' ? m.command : m.auto}</ModeExplain>
+          <ModeExplain title={chosen === 'command' ? 'Command' : 'Auto'} compact className="min-w-0 pl:max-h-[4.75rem] pl:overflow-y-auto">{chosen === 'command' ? m.command : m.auto}</ModeExplain>
           <div className="flex flex-col gap-1 justify-center">
-            <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 w-full">
+            <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 pl:!px-3 w-full">
               {chosen === 'command' ? 'Begin battle' : 'Fight on Auto'}
             </Button>
             {!arrival && <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">Call off the attack</button>}
