@@ -36,6 +36,7 @@ import { aiScout, marchScouts } from './aiScouting';
 import { cityAttackStrength, cityAttackDamage, cityDefence } from './cityAssault';
 import { cityMilitia, wallsHpRatio } from './battleInputs';
 import { siegeHpOf } from './sieges';
+import { updateWarPlan, readyToStrike, launched } from './warPlans';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -218,8 +219,64 @@ export const siegeParty = (state, stack, at, fromCityId) => {
   const inOwnCity = state.regions[fromCityId]?.tile === at && state.regions[fromCityId]?.owner === stack[0]?.ownerId;
   if (!inOwnCity) return stack;
   if (stack.length < 2) return [];
-  const keep = [...stack].sort((a, b) => (a.strength || 0) - (b.strength || 0) || (a.id < b.id ? -1 : 1))[0];
+  // A siege engine never stays home as the garrison: the walls are what it is for.
+  const keep = [...stack].sort((a, b) => (a.classId === 'siege') - (b.classId === 'siege') || (a.strength || 0) - (b.strength || 0) || (a.id < b.id ? -1 : 1))[0];
   return stack.filter((u) => u !== keep);
+};
+
+// --- War plans (warPlans.js, lane W5): gathering at the muster point --------------------------
+
+/** Writes the plan on the working copy's nation (next.nations is replaced, never mutated). */
+const savePlan = (next, nationId, plan) => {
+  next.nations = { ...next.nations, [nationId]: { ...next.nations[nationId], warPlan: plan } };
+  return plan;
+};
+
+/** Do units of ours already stand beside this city (a siege a new party may join)? */
+export const besiegedByUs = (state, nationId, city, byTile) => {
+  if (city?.tile == null) return false;
+  return getTiles().neighbors[city.tile].some((t) => (byTile.get(t) || []).some((u) => u.ownerId === nationId));
+};
+
+/**
+ * Sends a stack toward the plan's muster point (the staging city): all of it from the field, all
+ * but the weakest from one of its own cities (siegeParty). Writes routes into `next.units` (a
+ * working copy). Returns true when a party is on the road.
+ */
+export const gatherStack = (next, nationId, plan, stack, at, from, committed) => {
+  const staging = next.regions[plan.staging];
+  if (!staging || staging.tile == null || at == null || at === staging.tile) return false;
+  const goers = siegeParty(next, stack, at, from);
+  if (!goers.length) return false;
+  const goalKey = `stage:${plan.staging}`;
+  const failed = stack[0].routeFailed;
+  if (failed && failed.goal === goalKey && failed.until > (next.turnNumber || 0)) return false;
+  const researched = getResearched(next, nationId);
+  const path = findTilePath({ ...next, playerNationId: nationId }, at, staging.tile, nationId, { maxSteps: AI_MARCH_STEPS, researched });
+  if (!path.path) { stack.forEach((u) => { next.units[u.id] = { ...next.units[u.id], routeFailed: { goal: goalKey, until: (next.turnNumber || 0) + ROUTE_RETRY_TURNS } }; }); return false; }
+  const pace = stackPace(goers, researched);
+  goers.forEach((u) => { committed.add(u.id); next.units[u.id] = { ...next.units[u.id], route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
+  return true;
+};
+
+/** Arming at peace (a claim in the making): spare regiments of every city gather at the muster point. */
+export const gatherForPlan = (state, nationId, plan, committed) => {
+  const next = { ...state, units: { ...state.units } };
+  const stacks = new Map();
+  for (const u of Object.values(next.units)) {
+    if (u.ownerId !== nationId || u.domain !== 'land' || u.classId === 'settler' || u.embarkedOn || !(u.strength > 0) || u.indepOp || u.scout || u.route?.length || committed.has(u.id) || isUnitInBattle(next, u.id)) continue;
+    const key = `${u.regionId}|${unitTile(next, u)}`;
+    const l = stacks.get(key); if (l) l.push(u); else stacks.set(key, [u]);
+  }
+  // Parties still on the road from earlier turns walk too (marchedThisTurn in routes.js keeps a
+  // scout that already walked this turn from walking twice).
+  let marching = Object.values(next.units).some((u) => u.ownerId === nationId && u.route?.length && !u.scout);
+  for (const [key, stack] of [...stacks].sort(([a], [b]) => a.localeCompare(b))) {
+    const from = key.split('|')[0];
+    if (next.regions[from]?.owner !== nationId) continue;
+    if (gatherStack(next, nationId, plan, stack, unitTile(next, stack[0]), from, committed)) marching = true;
+  }
+  return marching ? marchAiArmies(next, nationId) : state;
 };
 
 export const processAIOperations = (state, rng) => {
@@ -245,9 +302,18 @@ export const processAIOperations = (state, rng) => {
       if (next.nations[nationId]?.indepGoal?.kind === 'conquer') next = processIndependentOps(next, nationId, rng);
     }
     const wars = next.wars.filter(w => w.active && (w.aggressor === nationId || w.enemy === nationId));
+    // The war plan (warPlans.js, lane W5): the city to take, the muster point, the strike size and
+    // the army to train. Kept on the nation; dropped when it is neither at war nor arming.
+    let plan = null;
+    if (!isIndependentNation(next.nations[nationId])) {
+      plan = updateWarPlan(next, nationId, wars, getTechAgeId(next, nationId), { maxRings: AI_MARCH_STEPS });
+      if (plan !== (next.nations[nationId].warPlan ?? null)) next.nations = { ...next.nations, [nationId]: { ...next.nations[nationId], warPlan: plan || undefined } };
+    }
     // At peace a major scouts (aiScouting.js, CB09 I122): one unit at a time explores and makes contact.
     if (!wars.length) {
       if (!isIndependentNation(next.nations[nationId]) && aiScout(next, nationId)) marchScouts(next, nationId);
+      // Arming for a war (a claim in the making): spare regiments gather at the muster point.
+      if (plan) next = gatherForPlan(next, nationId, plan, committed);
       continue;
     }
     next = aiSally(next, nationId, rng);
@@ -277,6 +343,13 @@ export const processAIOperations = (state, rng) => {
       if (stack.some(u => u.route?.length) && stack.every(u => u.routeHalt === 'enemy')) {
         const r = attackBlocker(next, nationId, from, stack, stack.find(u => u.route?.length).route[0], rng);
         if (r) { next = r; stack.forEach(u => committed.add(u.id)); continue; }
+      }
+      // A march halted before its target city (routes.js 'attack': the next step is the city) is at
+      // the walls: it drops the last step and decides here like any stack beside the city (assault,
+      // or hold the tile and keep the siege on). It used to keep the step and wait there all war,
+      // battering the walls to 0 HP and never fighting the garrison (lane W5).
+      if (stack.some(u => u.route?.length) && stack.every(u => !u.route?.length || u.routeHalt === 'attack')) {
+        stack.forEach((u, i) => { if (u.route) { next.units[u.id] = { ...next.units[u.id], route: null, routeHalt: null, routeBank: 0 }; stack[i] = next.units[u.id]; } });
       }
       if (stack.some(u => u.route?.length)) { marching = true; continue; } // already on the road: the march phase below walks it
       const pool = getPool(next, nationId);
@@ -346,6 +419,14 @@ export const processAIOperations = (state, rng) => {
         if (notYet) {
           if (city.tile != null && at !== city.tile && !tiles.neighbors[city.tile].includes(at)) {
             const goers = siegeParty(next, stack, at, from);
+            // A war plan (warPlans.js): a party too small to strike gathers at the muster point
+            // instead of walking to the walls alone; one joining a siege of ours already there goes.
+            const joining = besiegedByUs(next, nationId, city, byTile);
+            // (Under threat the stack holds its own city instead of gathering.)
+            if (plan && !joining && !readyToStrike(plan, goers.length, state.turnNumber)) {
+              if (!threatened.size && gatherStack(next, nationId, plan, stack, at, from, committed)) marching = true;
+              continue;
+            }
             const failed = stack[0].routeFailed;
             if (goers.length && !(failed && failed.goal === `siege:${target}` && failed.until > state.turnNumber)) {
               const path = findTilePath({ ...next, playerNationId: nationId }, at, city.tile, nationId, { maxSteps: AI_MARCH_STEPS, researched: getResearched(state, nationId) });
@@ -353,6 +434,7 @@ export const processAIOperations = (state, rng) => {
                 const pace = stackPace(goers, getResearched(state, nationId));
                 goers.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
                 marching = true;
+                if (plan && !joining) plan = savePlan(next, nationId, launched(plan, state.turnNumber));
               } else stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: `siege:${target}`, until: state.turnNumber + ROUTE_RETRY_TURNS } }; });
             }
           }
@@ -373,6 +455,59 @@ export const processAIOperations = (state, rng) => {
             logs: [...next.logs, { year: next.year, type: 'combat', message: `${next.nations[nationId].name} attacks from ${from} toward ${target}.` }] };
         }
       } else {
+        // A war plan (warPlans.js, lane W5): regiments gather at the muster point and march on the
+        // target city as one strike stack (later waves when the first is spent). Under threat the
+        // stack in a threatened city of ours is its own muster point: it holds, and strikes out
+        // (leaving its garrison) only once it is a strike stack; stacks elsewhere go to defend.
+        const inCity = next.regions[from]?.tile === at;
+        const holding = threatened.size > 0;
+        if (plan && (!holding || (threatened.has(from) && inCity)) && next.regions[plan.cityId]?.tile != null) {
+          const staging = next.regions[plan.staging];
+          const atMuster = holding || at === staging?.tile;
+          if (atMuster || !inCity) {
+            const goers = atMuster ? siegeParty(next, stack, at, from) : stack;
+            if (goers.length && readyToStrike(plan, goers.length, state.turnNumber)) {
+              const failed = stack[0].routeFailed;
+              const goalKey = `plan:${plan.cityId}`;
+              if (failed && failed.goal === goalKey && failed.until > state.turnNumber) continue;
+              const path = findTilePath({ ...next, playerNationId: nationId }, at, next.regions[plan.cityId].tile, nationId, { maxSteps: AI_MARCH_STEPS, researched: getResearched(state, nationId) });
+              if (!path.path) { stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: goalKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
+              const pace = stackPace(goers, getResearched(state, nationId));
+              goers.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
+              marching = true;
+              plan = savePlan(next, nationId, launched(plan, state.turnNumber));
+              continue;
+            }
+            if (atMuster) continue; // gathering: wait for the rest
+            // A small party in the field pillages where it stands, or raids the player's trade
+            // routes near it (plunder.js), else falls back to the muster point.
+            const raid = pillageTile(next, nationId, at, enemies);
+            if (raid) {
+              stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, movesLeft: 0 }; });
+              next = { ...next, world: { ...next.world, tileState: raid.tileState }, nations: { ...next.nations, [nationId]: { ...next.nations[nationId], economy: { ...pool, gold: (pool.gold || 0) + raid.gold } } },
+                logs: next.regions[raid.cityId]?.owner === state.playerNationId ? [...next.logs, { year: next.year, type: 'combat', message: `${next.nations[nationId].name} pillages the land of ${next.regions[raid.cityId].name} (${tiles.names[at] || 'a tile'}).` }] : next.logs };
+              continue;
+            }
+            if (enemies.has(state.playerNationId)) {
+              const routeTile = nearestRouteTile(next, at, AI_RAID_RINGS);
+              if (routeTile === at) continue; // standing on the route cuts it
+              const failed = stack[0].routeFailed;
+              const goalKey = `raid:${routeTile}`;
+              if (routeTile != null && !(failed && failed.goal === goalKey && failed.until > state.turnNumber)) {
+                const path = findTilePath({ ...next, playerNationId: nationId }, at, routeTile, nationId, { maxSteps: AI_MARCH_STEPS, researched: getResearched(state, nationId) });
+                if (path.path) {
+                  const pace = stackPace(stack, getResearched(state, nationId));
+                  stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
+                  marching = true;
+                  continue;
+                }
+                stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: goalKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; });
+              }
+            }
+          }
+          if (!holding && gatherStack(next, nationId, plan, stack, at, from, committed)) marching = true;
+          continue;
+        }
         // A stack already at a goal city stays on it and marches on tiles below; hopping on to the
         // next goal city made stacks shuttle between two fronts for whole wars (CB09 I120, X22).
         const to = goals.has(from) ? null : routeStep(next.regions, nationId, from, goals);

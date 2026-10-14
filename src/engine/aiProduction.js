@@ -20,7 +20,10 @@
 //   unit      UNIT_UTILITY in peace, ARMING_UNIT_UTILITY while arming, WAR_UNIT_UTILITY at war, while
 //             the nation fields fewer land units than UNITS_PER_CITY per city: armies come before a
 //             war, not after it; a major MUSTERING against an independent (phase W3, indepPolicy.js
-//             `indepGoal.kind === 'muster'`) trains up to its muster cap at MUSTER_UNIT_UTILITY
+//             `indepGoal.kind === 'muster'`) trains up to its muster cap at MUSTER_UNIT_UTILITY;
+//             a major with a war plan (warPlans.js, at war or arming) trains up to the plan's `cap`
+//             (a strike stack plus home garrisons, what its budget carries): a siege engine first
+//             when the target has walls and it has none, archers up to PLAN_RANGED_SHARE, then foot
 // Nothing scores: nothing is queued (production is banked by the queue's overflow).
 // Ripples: AI expansion fills the map over the ages (C7's 50% of land by 500 CE target), AI
 // buildings feed the same yields the player's do, and AI armies come from the same cities.
@@ -61,6 +64,7 @@ export const ARMING_UNIT_UTILITY = 1.1;
 export const WAR_UNIT_UTILITY = 1.6;
 export const GARRISON_UNIT_UTILITY = 1.4; // an independent below its garrison target trains first (independents.js)
 export const MUSTER_UNIT_UTILITY = 1.6; // a major mustering against an independent (phase W3, indepPolicy.js) trains as at war
+export const PLAN_RANGED_SHARE = 0.25; // under a war plan (warPlans.js) about a quarter of the army are archers
 /** The building lines in the order a doctrine builds them, every line once (the template). */
 export const buildingOrder = (doctrine) => { const liked = DOCTRINE_BUILDING_PRIORITY[doctrine] || []; return [...liked.filter((c) => BUILDING_PRIORITY.includes(c)), ...BUILDING_PRIORITY.filter((c) => !liked.includes(c))]; };
 export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'military', 'logistics', 'defense', 'naval']; // 'logistics' is the category id (buildings.js); it was listed as 'infrastructure' and the AI never built a Road Post from the template
@@ -69,8 +73,14 @@ export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'indu
  * scans of units and cities were the cost of the phase): { settlers, outposts, landUnits }. */
 export const nationCounts = (state) => {
   const out = {};
-  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0 });
-  Object.values(state.units || {}).forEach((u) => { if (!u.ownerId) return; if (u.classId === 'settler') of(u.ownerId).settlers += 1; else if (u.domain === 'land') of(u.ownerId).landUnits += 1; });
+  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0, siege: 0, ranged: 0 });
+  Object.values(state.units || {}).forEach((u) => {
+    if (!u.ownerId) return;
+    if (u.classId === 'settler') { of(u.ownerId).settlers += 1; return; }
+    if (u.domain !== 'land') return;
+    const c = of(u.ownerId); c.landUnits += 1;
+    if (u.classId === 'siege') c.siege += 1; else if (u.classId === 'ranged') c.ranged += 1;
+  });
   Object.values(state.regions || {}).forEach((c) => { if (c.owner && c.outpost) of(c.owner).outposts += 1; });
   return out;
 };
@@ -175,12 +185,24 @@ export const chooseProduction = (state, city, ctx) => {
   // A major mustering against an independent (phase W3, indepPolicy.js) trains the force it lacks.
   const goal = independent ? null : state.nations?.[nationId]?.indepGoal;
   const muster = goal?.kind === 'muster' ? goal.need || 0 : 0;
-  const unitCap = independent ? ctx.garrisonTarget + (ctx.raidReserve || 0) : Math.max(ctx.citiesOwned * UNITS_PER_CITY, muster ? goal.cap || 0 : 0);
-  if (counts.landUnits < unitCap && getAvailableClasses(ctx.ageId).includes('infantry')) {
-    const mounted = independent && ctx.personality === 'raiders' && counts.landUnits >= ctx.garrisonTarget && getAvailableClasses(ctx.ageId).includes('cavalry');
-    const item = { kind: 'unit', classId: mounted ? 'cavalry' : 'infantry' };
+  // A war plan (warPlans.js, lane W5: at war or arming) trains toward its army cap, with a siege
+  // engine for a walled target and a share of archers (PLAN_RANGED_SHARE) beside the foot.
+  const plan = independent ? null : state.nations?.[nationId]?.warPlan;
+  const unitCap = independent ? ctx.garrisonTarget + (ctx.raidReserve || 0) : Math.max(ctx.citiesOwned * UNITS_PER_CITY, muster ? goal.cap || 0 : 0, plan?.cap || 0);
+  const classes = getAvailableClasses(ctx.ageId);
+  if (counts.landUnits < unitCap && classes.includes('infantry')) {
+    const mounted = independent && ctx.personality === 'raiders' && counts.landUnits >= ctx.garrisonTarget && classes.includes('cavalry');
     const score = independent ? GARRISON_UNIT_UTILITY : muster ? MUSTER_UNIT_UTILITY : sit.atWar ? WAR_UNIT_UTILITY : sit.arming ? ARMING_UNIT_UTILITY : UNIT_UTILITY;
-    if (score > bestScore && canQueue(city, tiles, world, item, ctx).ok && affordable(item)) offer(item, score);
+    if (score > bestScore) {
+      const options = [];
+      if (plan && plan.siege && !(counts.siege > 0) && classes.includes('siege')) options.push('siege');
+      if (plan && classes.includes('ranged') && (counts.ranged || 0) < PLAN_RANGED_SHARE * (counts.landUnits + 1)) options.push('ranged');
+      options.push(mounted ? 'cavalry' : 'infantry');
+      for (const classId of options) {
+        const item = { kind: 'unit', classId };
+        if (canQueue(city, tiles, world, item, ctx).ok && affordable(item)) { offer(item, score); break; }
+      }
+    }
   }
   return best;
 };
