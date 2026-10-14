@@ -402,3 +402,29 @@ export const initFog = (state, { on = true } = {}) => {
   });
   return updateFog({ ...state, fog: { on: true, explored, met, seen: emptySeen() } });
 };
+
+/**
+ * A traded map (mapTrade.js, playtest audit I116): `toId` learns the tiles `fromId` has explored.
+ * Only the explored land and sea and, for the player, the picture of those tiles as they stand now
+ * (which city holds them, the cities on them, improvements): never live sight, so no army is shown
+ * and nobody is met (contact still needs sight). Returns { state, tiles: the tiles learned }.
+ */
+export const shareExploredMap = (state, fromId, toId) => {
+  if (!fogOn(state) || fromId === toId) return { state, tiles: [] };
+  const from = state.fog.explored?.[fromId]?.bytes;
+  if (!from) return { state, tiles: [] };
+  const into = state.fog.explored?.[toId]?.bytes;
+  const n = getTiles().count;
+  const bytes = into ? into.slice() : new Uint8Array(byteCount(n));
+  const learned = [];
+  for (let i = 0; i < from.length; i++) {
+    const v = from[i] & ~(into ? into[i] : 0);
+    if (!v) continue;
+    bytes[i] |= v;
+    for (let k = 0; k < 8; k++) if ((v >> k) & 1 && i * 8 + k < n) learned.push(i * 8 + k);
+  }
+  if (!learned.length) return { state, tiles: [] };
+  const fog = { ...state.fog, explored: { ...state.fog.explored, [toId]: new TileBits(bytes) } };
+  if (toId === state.playerNationId) fog.seen = updateSeen(state, state.fog.seen || emptySeen(), new Set(learned));
+  return { state: { ...state, fog }, tiles: learned };
+};

@@ -54,8 +54,9 @@ describe('tile yields', () => {
       if (!tiles.land[i]) expect(['fish', 'whales']).toContain(r);
     }
     const land = tiles.land.reduce((a, b) => a + b, 0);
-    expect(count / land).toBeGreaterThan(0.3);
-    expect(count / land).toBeLessThan(0.6);
+    // About 18% of the land carries one after the I098 thinning (resourceDensity.js), plus the sea's.
+    expect(count / land).toBeGreaterThan(0.15);
+    expect(count / land).toBeLessThan(0.3);
     const has = (cid, res) => tiles.countryTiles[cid].some((i) => tiles.resourceOf(i) === res);
     expect(has('sa', 'oil')).toBe(true); expect(has('cl', 'copper')).toBe(true); expect(has('se', 'iron')).toBe(true); expect(has('us', 'iron')).toBe(true);
     // The Nile floodplain works: a floodplain tile with a river in Egypt
