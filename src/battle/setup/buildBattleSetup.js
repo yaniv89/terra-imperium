@@ -51,8 +51,11 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 // explored ground and next to a resource (data/economy.js, sim/economy.js placementBlock), the
 // camp's build circle explored from the start (sim/fog.js), and a tower the workers build counts as
 // a base building (sim/base.js)).
+// v11: playtest audit CB20, a general's guard deploys one full line pitch (3 tiles) behind its side's
+// rearmost squad (or on the rear rank's flank when there is no room), never inside the back line where
+// machines and chariots overlapped it (sim/world.js spawnGenerals).
 // A log or a checkpoint of another version is never replayed as if it were this one.
-export const SETUP_VERSION = 10;
+export const SETUP_VERSION = 11;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 

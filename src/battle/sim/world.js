@@ -246,15 +246,32 @@ const spawnGenerals = (w) => {
     const ids = [...new Set((s.units || []).filter((u) => u.strength > 0 && u.commanderId && generals[u.commanderId]).map((u) => u.commanderId))].sort();
     if (!ids.length) return;
     const edge = map.attackerEdge || 1;
-    const backX = side === SIDE_ATTACKER ? template.attacker(w, edge)[1] : template.defender(w)[1];
     const zone = deployZone(w, side);
-    const behind = side === SIDE_ATTACKER ? -2 : 2;
+    const behind = side === SIDE_ATTACKER ? -1 : 1;
+    // The guard stands one full line pitch (LINE_SPACING tiles) behind the side's rearmost squad
+    // as deployed, never inside the back line: machines and chariots there drew over it (CB20,
+    // SETUP_VERSION 11). The rear is read from the placed squads, so deep armies push it back too.
+    const placed = w.squads.filter((q) => q.side === side && q.onField && !q.reserve);
+    const templateBack = side === SIDE_ATTACKER ? template.attacker(w, edge)[1] : template.defender(w)[1];
+    const rearX = placed.length
+      ? placed.reduce((r, q) => (behind < 0 ? Math.min(r, Math.floor(q.x / Q)) : Math.max(r, Math.floor(q.x / Q))), Math.floor(placed[0].x / Q))
+      : templateBack;
+    const genX = Math.max(zone.x0, Math.min(zone.x1, rearX + behind * LINE_SPACING));
+    // No room behind (the rear rank stands at the zone's edge): the guard takes the flank of the
+    // rear rank instead, one pitch past its outermost squad.
+    const cramped = Math.abs(genX - rearX) < LINE_SPACING;
+    const rearSpan = cramped
+      ? placed.filter((q) => Math.abs(Math.floor(q.x / Q) - genX) < LINE_SPACING).reduce((m, q) => Math.max(m, Math.abs(Math.floor(q.y / Q) - midY)), 0)
+      : 0;
     ids.forEach((cid, i) => {
       const unit = { id: `gen_${cid}`, classId: 'cavalry', strength: GENERAL_GUARD, maxStrength: GENERAL_GUARD, morale: 100, promotions: [], commanderId: cid, domain: 'land' };
       const q = makeSquad(w, unit, side, s.ageId, w.squads.length);
       q.isGeneral = cid; q.eco = 'general';
-      q.x = tileCenter(Math.max(zone.x0, Math.min(zone.x1, backX + behind)));
-      q.y = tileCenter(Math.max(zone.y0, Math.min(zone.y1, midY + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 3)));
+      q.x = tileCenter(genX);
+      const ty = cramped
+        ? midY + (i % 2 ? 1 : -1) * (rearSpan + LINE_SPACING * (1 + Math.floor(i / 2)))
+        : midY + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * LINE_SPACING;
+      q.y = tileCenter(Math.max(zone.y0, Math.min(zone.y1, ty)));
       if ((setup.city || setup.economy) && !TILE_COST[map.tiles[tileOf(map, q.x, q.y)]]) {
         const g = walkableGoal(map, tileOf(map, q.x, q.y));
         q.x = tileCenter(g % map.w); q.y = tileCenter(Math.floor(g / map.w));

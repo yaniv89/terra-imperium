@@ -90,6 +90,30 @@ describe('territory attrition & supply wagons', () => {
   });
 });
 
+describe('the general on the field', () => {
+  // CB20 (SETUP_VERSION 11): the guard deploys a full line pitch from every squad of its side, so a
+  // machine or a chariot in the back line no longer stands on it.
+  const tileGap = (a, b) => Math.max(Math.abs(Math.floor(a.x / Q) - Math.floor(b.x / Q)), Math.abs(Math.floor(a.y / Q) - Math.floor(b.y / Q)));
+  const gaps = (w) => w.squads.filter((q) => q.isGeneral).map((g) => {
+    const mine = w.squads.filter((q) => q.side === g.side && q !== g && q.onField && !q.reserve);
+    return Math.min(...mine.map((q) => tileGap(q, g)));
+  });
+  const gens = { g1: { id: 'g1', personality: 'cautious', martial: 3, shock: 3, fire: 3, maneuver: 3 }, g2: { id: 'g2', personality: 'reckless', martial: 3, shock: 3, fire: 3, maneuver: 3 } };
+  it.each([
+    ['siege and shooters', ['infantry', 'siege', 'siege', 'ranged', 'cavalry']],
+    ['a deep army', Array.from({ length: 40 }, (_, i) => ['infantry', 'siege', 'ranged', 'cavalry'][i % 4])]
+  ])('stands 3 tiles clear of its own side: %s', (_, cls) => {
+    const w = createWorld(setup({
+      attackerUnits: mk('a', cls, 1000, { commanderId: 'g1' }),
+      defenderUnits: mk('d', cls, 1000, { commanderId: 'g2' }),
+      generals: gens
+    }));
+    const g = gaps(w);
+    expect(g).toHaveLength(2);
+    g.forEach((d) => expect(d).toBeGreaterThanOrEqual(3));
+  });
+});
+
 describe('abilities', () => {
   const general = (personality) => ({ g1: { id: 'g1', personality, martial: 3, shock: 3, fire: 3, maneuver: 3 } });
   it('Forced March speeds up everyone near the general, then goes on cooldown', () => {
