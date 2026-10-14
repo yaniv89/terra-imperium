@@ -82,3 +82,13 @@ describe('AI resource improvements (lane W6)', () => {
     expect(chooseProduction(built, city, ctx)).not.toMatchObject({ kind: 'improvement', tile: t });
   });
 });
+
+describe('a restless city wants Culture & Order (lane W6)', () => {
+  it('the need rises with unrest up to UNREST_NEED', async () => {
+    const { lineNeed, UNREST_NEED, UNREST_NEED_AT } = await import('./aiProduction');
+    const sit = { atWar: false, arming: false, broke: false, threatened: false };
+    expect(lineNeed('culture', { unrest: 0 }, sit)).toBe(1);
+    expect(lineNeed('culture', { unrest: UNREST_NEED_AT / 2 }, sit)).toBeCloseTo(1 + (UNREST_NEED - 1) / 2, 6);
+    expect(lineNeed('culture', { unrest: 90 }, sit)).toBe(UNREST_NEED);
+  });
+});

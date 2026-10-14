@@ -56,6 +56,8 @@ export const THREAT_NEED = 2;
 export const WAR_NEED = 1.3;
 export const BROKE_NEED = 1.25;
 export const BROKE_GOLD = 50;
+export const UNREST_NEED = 1.6;
+export const UNREST_NEED_AT = 25;
 export const FAST_TURNS = 5;
 export const SLOW_AFFORD = 0.5;
 export const WONDER_UTILITY = 0.55;
@@ -119,6 +121,9 @@ export const lineNeed = (category, city, situation) => {
   if (category === 'defense') return situation.threatened ? THREAT_NEED : situation.atWar ? WAR_NEED : 1;
   if (category === 'military') return situation.atWar || situation.arming ? WAR_NEED : 1;
   if (category === 'economy') return situation.broke ? BROKE_NEED : 1;
+  // Culture & Order (stability and an amenity) by the city's unrest, up to UNREST_NEED at
+  // UNREST_NEED_AT (lane W6: bigger empires carry more overextension, so their cities ran restless).
+  if (category === 'culture') return 1 + (UNREST_NEED - 1) * Math.min(1, Math.max(0, city.unrest || 0) / UNREST_NEED_AT);
   return 1;
 };
 
