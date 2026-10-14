@@ -2,8 +2,9 @@
 // A new game's world from the peoples pool (plans/peoples-and-world-setup.md 4.3, phase W0).
 //
 // Who becomes a major: the player's people first, then the pinned peoples (the Kingdom of Israel,
-// roadmap decision 13) when they are at least MAJOR_MIN_GAP_KM from the player, then, among the
-// peoples at least MAJOR_MIN_GAP_KM from every major already chosen, the one with the best
+// roadmap decision 13) when they are at least START_MIN_GAP_KM from the player, then, among the
+// MAJOR peoples (the 50 of peoples.js MAJOR_TIER, decision 42) at least START_MIN_GAP_KM from every
+// major already chosen, the one with the best
 // `weight x a seeded roll between 0.5 and 1.5`, until the world size's count is reached. The
 // great powers are likely but not certain, majors are never packed together and every seed gives
 // a different world. Late arrivals (`arrives`) are never drawn: their land was not yet settled at
@@ -15,8 +16,8 @@
 // Every nation starts equal (roadmap decision 10): one city of EQUAL_START_SIZE, the same army
 // and treasury, no settlers. Capitals sit on the pool's built tiles (peopleCapitals.json), all
 // spaced by the settling rule. Deterministic in (player, size, seed).
-import { PEOPLES, PEOPLES_LIST, PINNED_PEOPLE_IDS } from '../../data/peoples';
-import { WORLD_SIZES, DEFAULT_WORLD_SIZE, MAJOR_MIN_GAP_KM, EQUAL_START_SIZE } from '../../data/worldSizes';
+import { PEOPLES, MAJOR_PEOPLES_LIST, PINNED_PEOPLE_IDS } from '../../data/peoples';
+import { WORLD_SIZES, DEFAULT_WORLD_SIZE, START_MIN_GAP_KM, EQUAL_START_SIZE } from '../../data/worldSizes';
 import { distanceKm } from '../../data/geo/geodesic';
 import { getTiles } from '../../data/geo/tiles';
 import { createRng } from '../../utils/rng';
@@ -35,10 +36,10 @@ export const pickMajors = (playerId, sizeId = DEFAULT_WORLD_SIZE, seed = 1, { ti
   const chosen = [playerId];
   // Everyone keeps the gap from every major already chosen, the player first: the pinned people
   // is tried next (before the draw), the rest in the order of the draw.
-  const fits = (id) => chosen.every((s) => km(s, id) >= MAJOR_MIN_GAP_KM);
+  const fits = (id) => chosen.every((s) => km(s, id) >= START_MIN_GAP_KM);
   PINNED_PEOPLE_IDS.forEach((id) => { if (chosen.length < size.majors && !chosen.includes(id) && fits(id)) chosen.push(id); });
   const rng = createRng(((seed >>> 0) ^ MIX) >>> 0);
-  const ranked = PEOPLES_LIST.map((p) => ({ id: p.id, score: p.weightValue * (0.5 + rng.next()), late: p.arrives != null }))
+  const ranked = MAJOR_PEOPLES_LIST.map((p) => ({ id: p.id, score: p.weightValue * (0.5 + rng.next()), late: p.arrives != null }))
     .filter((c) => !c.late && !chosen.includes(c.id))
     .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1));
   // One pass, no relaxing: a people too close to a chosen major is skipped (it becomes an

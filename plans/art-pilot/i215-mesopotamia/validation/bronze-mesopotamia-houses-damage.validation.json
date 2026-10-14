@@ -1,0 +1,312 @@
+{
+  "file": "bronze-mesopotamia-houses-damage.glb",
+  "kind": "house-damage",
+  "bytes": 985612,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "house-common-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1374,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.671,
+          "depth": 0.654,
+          "height": 0.494,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 228,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.656,
+          "depth": 0.625,
+          "height": 0.488,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 80,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.65,
+          "depth": 0.61,
+          "height": 0.488,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.671
+    },
+    "house-common-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 542,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.668,
+          "depth": 0.636,
+          "height": 0.296,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 164,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.656,
+          "depth": 0.625,
+          "height": 0.276,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 47,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.65,
+          "depth": 0.61,
+          "height": 0.286,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.003",
+        "LOD1.003",
+        "LOD2.003"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.668
+    },
+    "house-poor-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1062,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.631,
+          "depth": 0.533,
+          "height": 0.391,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 116,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.576,
+          "depth": 0.428,
+          "height": 0.363,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 80,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.57,
+          "depth": 0.368,
+          "height": 0.363,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.631
+    },
+    "house-poor-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 402,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.592,
+          "depth": 0.53,
+          "height": 0.188,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 90,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.576,
+          "depth": 0.428,
+          "height": 0.188,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 38,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.57,
+          "depth": 0.314,
+          "height": 0.201,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.592
+    },
+    "house-rich-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1608,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.731,
+          "depth": 0.754,
+          "height": 0.614,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 292,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.716,
+          "depth": 0.745,
+          "height": 0.614,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 80,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.71,
+          "depth": 0.656,
+          "height": 0.605,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.004",
+        "LOD1.004",
+        "LOD2.004"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.754
+    },
+    "house-rich-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 562,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.728,
+          "depth": 0.751,
+          "height": 0.243,
+          "min_height": -0.004
+        },
+        "LOD1": {
+          "triangles": 152,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.716,
+          "depth": 0.731,
+          "height": 0.243,
+          "min_height": -0.004
+        },
+        "LOD2": {
+          "triangles": 38,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.71,
+          "depth": 0.65,
+          "height": 0.242,
+          "min_height": -0.004
+        }
+      },
+      "children": [
+        "LOD0.005",
+        "LOD1.005",
+        "LOD2.005"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.751
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "bronze-mesopotamia-houses-damage_normal",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 142790
+    },
+    {
+      "name": "bronze-mesopotamia-houses-damage_base",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 209422
+    },
+    {
+      "name": "bronze-mesopotamia-houses-damage_orm",
+      "mime": "image/webp",
+      "size": [
+        1024,
+        1024
+      ],
+      "bytes": 128474
+    }
+  ],
+  "passed": true
+}

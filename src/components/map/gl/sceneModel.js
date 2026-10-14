@@ -12,7 +12,7 @@ import { getTiles } from '../../../data/geo/tiles';
 import { cityLatLon, landTilesWithin } from '../../../data/geo/cityFeatures';
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
 import { getNationColor } from '../../../data/nationColors';
-import { isIndependent } from '../../../data/independents';
+import { isIndependent, independentPersonality } from '../../../data/independents';
 import { getEffectiveAgeId } from '../../../data/ages';
 import { getTechAgeId } from '../../../engine/nationState';
 import { wallsOf } from '../../../engine/sieges';
@@ -104,7 +104,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
       const own = owner === state.playerNationId;
       const art = cityBannerArt({
         name: city.name, size: city.size, colour: own ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8', selected: city.id === selectedRegion,
-        capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25, indep: isIndependent(state.nations, owner),
+        capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25, indep: independentPersonality(state.nations, owner),
         siege: city.siege ? Math.max(0, Math.min(1, city.siege.hp / Math.max(1, city.siege.maxHp))) : null,
         outpost: city.outpost ? Math.max(0, Math.min(1, (city.outpost.progress || 0) / OUTPOST_DONE)) : null,
         build: own ? builds.get(city.id) ?? null : null
@@ -116,7 +116,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
     }
     const rCss = r0 * sk;
     const art = badgeArt({
-      r0, colour, capital: !!city.isCapital, indep: isIndependent(state.nations, city.owner),
+      r0, colour, capital: !!city.isCapital, indep: independentPersonality(state.nations, city.owner),
       fill: city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc',
       iconUrl: city.outpost ? null : cityIconUrl(townTier(city)?.id, ageOf(city.owner)),
       capitalUrl: city.isCapital ? capitalUrl : null,
@@ -282,8 +282,10 @@ export const groundMarks = ({ state, projection, k, dpr }) => {
 
 export const SETTLER_MIN_R = 6;
 export const SETTLER_MAX_R = 13;
-/** Settlers on their tiles: yours, and foreign ones in sight from zoom 2. */
-export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
+/** Settlers on their tiles: yours, and foreign ones in sight from zoom 2. In the close view a
+ * settler whose party model is drawn (`modelled(unit)`, closeView/settlerModels.js) keeps only its
+ * tap target: the 3D party stands where the disc was. */
+export const settlerSprites = ({ state, projection, k, isVisible, dpr, modelled = null }) => {
   const sprites = []; const hits = [];
   const close = k >= CLOSE_ZOOM_K;
   Object.values(state.units || {}).forEach((u) => {
@@ -292,10 +294,12 @@ export const settlerSprites = ({ state, projection, k, isVisible, dpr }) => {
     if (!own && !(k >= 2 && isVisible(u.tile))) return;
     const anchor = pointOf(projection, u.tile);
     // One readable size from the strategic zoom to the close view (it shrank to a 6 px dot beside
-    // the 3D towns: playtest audit I099). No settler model exists yet: this wagon disc is the unit.
+    // the 3D towns: playtest audit I099). In the close view the party model takes its place.
     const rCss = Math.max(SETTLER_MIN_R, Math.min(5 * Math.sqrt(k), SETTLER_MAX_R));
-    const art = settlerArt({ own, idle: own && u.target == null && !close, iconUrl: unitIconUrl('settler') }, rCss, dpr);
-    sprites.push({ art, anchor, size: [art.css.w, art.css.h], color: WHITE });
+    if (!(close && modelled?.(u))) {
+      const art = settlerArt({ own, idle: own && u.target == null && !close, iconUrl: unitIconUrl('settler') }, rCss, dpr);
+      sprites.push({ art, anchor, size: [art.css.w, art.css.h], color: WHITE });
+    }
     hits.push({ kind: 'settler', tile: u.tile, anchor, offset: [0, 0, 0, 0], size: [rCss * 2.3, rCss * 2.3], exp: [0, 0], round: true, pad: 4 });
   });
   return { sprites, hits };

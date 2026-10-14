@@ -40,7 +40,7 @@
 // Deterministic: no randomness at all; ties break by tile id and city id. Returns the same world
 // object when nothing changed.
 import { DISTRICTS, districtSite, districtEntry, districtYields, hasDistrict, repairedDistrict } from '../districts';
-import { AGE_ORDER } from '../../data/ages';
+import { AGE_ORDER, buildSpeedMult } from '../../data/ages';
 import { ringsForKm, gridSpacing, foundingDisk } from '../../data/geo/gridScale';
 import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
@@ -376,9 +376,9 @@ export const amenitiesOf = (city, ctx = {}) => {
 // ---------------------------------------------------------------------------------------------
 // Production
 // What is trained (units, settlers, army orders) takes the speed's training multiplier, everything
-// else its cost multiplier (ages.js speedTrainMult; the same number unless the caller passes both).
+// else its cost multiplier eased on a slow game (ages.js speedTrainMult, buildSpeedMult).
 const TRAINED_KINDS = new Set(['unit', 'settler', 'army']);
-export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1, speedMult = 1, trainMult = null } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * (TRAINED_KINDS.has(item.kind) ? trainMult ?? speedMult : speedMult));
+export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1, speedMult = 1, trainMult = null } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * (TRAINED_KINDS.has(item.kind) ? trainMult ?? speedMult : buildSpeedMult(speedMult, ageId)));
 const baseProductionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {}) => {
   switch (item.kind) {
     case 'building': return getBuildingTierCost(item.category, item.tier) ?? 9999;

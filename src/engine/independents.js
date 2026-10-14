@@ -4,10 +4,12 @@
 // src/data/independents.js; who may fight whom in src/engine/hostility.js.
 //
 // The model in plain words:
-// - A new peoples world (phase W0) draws its major nations; every other people of the pool with a
-//   capital tile becomes an INDEPENDENT (Standard and Large: all of them; Small: the
-//   WORLD_SIZES.small.independents best by weight x a seeded roll). It is a nation record with
-//   `kind: 'independent'` and one equal city, like every major (roadmap decision 10).
+// - A new peoples world (phase W0) draws its major nations; then cityStateCount(size, density)
+//   CITY-STATE peoples (the 100 of the city-state tier, decision 42) by weight x a seeded roll
+//   become INDEPENDENTS, each keeping START_MIN_GAP_KM from every other start (placeCityStatesOnEarth).
+//   It is a nation record with `kind: 'independent'` and one equal city, like every major (roadmap
+//   decision 10). At most a third are raiders (capRaiders); the rest carry a city-state type with a
+//   bonus for their patron (cityStates.js).
 // - The late peoples (`arrives`: Lapita, Bau, Dorset, Merina...) arrive as independents in their
 //   year if their capital tile is still free and the settling rule allows a city there; never as
 //   majors (no emergence of majors: master plan section 3, "Emergence").
@@ -26,33 +28,85 @@
 // Pure and deterministic (seeded rolls, fixed orders).
 import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
-import { PEOPLES, PEOPLES_LIST } from '../data/peoples';
-import { WORLD_SIZES, DEFAULT_WORLD_SIZE, EQUAL_START_SIZE } from '../data/worldSizes';
+import { distanceKm } from '../data/geo/geodesic';
+import { PEOPLES, CITY_STATE_PEOPLES_LIST } from '../data/peoples';
+import { DEFAULT_WORLD_SIZE, EQUAL_START_SIZE, START_MIN_GAP_KM, CITY_STATE_SHIFT_KM, DEFAULT_CITY_STATES, CITY_STATES_PACKED, cityStateCount } from '../data/worldSizes';
 import { createRng } from '../utils/rng';
 import {
   INDEPENDENT_KIND, INDEPENDENT_BORDER_KM, isIndependentNation, independentSizeCap, garrisonTarget,
   personalityFor, independentTitle, RAID_RESERVE
 } from '../data/independents';
 import { canFoundCity, foundCity, sizeToPeople } from './world/cities';
+import { capRaiders } from '../data/cityStates';
 
 const MIX = 0x51ed270b; // the independents' roll: its own stream of the world seed
 
-/**
- * The independents of a peoples world: { ids, late } (both sorted). `ids` start with a city;
- * `late` arrive in their year. The majors are left out; late arrivals are never drawn as majors.
- */
-export const pickIndependents = (majorIds, sizeId = DEFAULT_WORLD_SIZE, seed = 1) => {
-  const size = WORLD_SIZES[sizeId] || WORLD_SIZES[DEFAULT_WORLD_SIZE];
+/** The city-state peoples of a world in the order of its seeded draw (weight x a roll between 0.5
+ * and 1.5), and its late arrivals. Only the city-state tier (peoples.js MAJOR_TIER, decision 42). */
+const drawCityStates = (majorIds, seed) => {
   const majors = new Set(majorIds);
-  const pool = PEOPLES_LIST.filter((p) => !majors.has(p.id) && p.tile != null);
+  const pool = CITY_STATE_PEOPLES_LIST.filter((p) => !majors.has(p.id) && p.tile != null);
   const late = pool.filter((p) => p.arrives != null).map((p) => p.id).sort();
-  const now = pool.filter((p) => p.arrives == null);
-  if (size.independents === 'all' || size.independents >= now.length) return { ids: now.map((p) => p.id).sort(), late };
   const rng = createRng(((seed >>> 0) ^ MIX) >>> 0);
-  const ids = now.map((p) => ({ id: p.id, score: p.weightValue * (0.5 + rng.next()) }))
-    .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1))
-    .slice(0, size.independents).map((x) => x.id).sort();
-  return { ids, late };
+  const order = pool.filter((p) => p.arrives == null).map((p) => ({ id: p.id, score: p.weightValue * (0.5 + rng.next()) }))
+    .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1)).map((x) => x.id);
+  return { order, late };
+};
+
+/**
+ * The independents of a peoples world by name only: { ids, late } (both sorted), `ids` the first
+ * cityStateCount(size, density) of the draw. A generated world places them itself
+ * (generatedPeoples.js); the real Earth uses placeCityStatesOnEarth.
+ */
+export const pickIndependents = (majorIds, sizeId = DEFAULT_WORLD_SIZE, seed = 1, { density = DEFAULT_CITY_STATES } = {}) => {
+  const { order, late } = drawCityStates(majorIds, seed);
+  return { ids: order.slice(0, cityStateCount(sizeId, density)).sort(), late };
+};
+
+/** A tile a city-state may be moved to: open, livable land (no mountains, ice, marsh or bare desert). */
+export const cityStateSiteOk = (tiles, t) => {
+  if (tiles.land[t] !== 1) return false;
+  const terrain = tiles.terrainOf(t); const feature = tiles.featureOf(t);
+  if (terrain !== 'grassland' && terrain !== 'plains' && !(terrain === 'desert' && (feature === 'oasis' || feature === 'floodplain' || tiles.rivers[t]))) return false;
+  return tiles.reliefOf(t) !== 'mountains' && feature !== 'ice' && feature !== 'marsh';
+};
+
+/**
+ * The city-states of a world on the real Earth (decision 42): in the order of the draw, each stands
+ * at its people's real capital when that is at least START_MIN_GAP_KM from every start placed so
+ * far (the majors first), else on the nearest livable tile within CITY_STATE_SHIFT_KM of it that is
+ * (nearest first; on a tie a river or coast, then the lower tile id), else it is left out; until
+ * cityStateCount(size, density) stand. Returns { ids, late, sites } with `sites` only for the moved
+ * ones ({ peopleId: tile }, saved in scenario.sites). Deterministic in (majors, size, seed, density).
+ */
+export const placeCityStatesOnEarth = (majorIds, sizeId = DEFAULT_WORLD_SIZE, seed = 1, { density = DEFAULT_CITY_STATES, tiles = getTiles(), shiftKm = CITY_STATE_SHIFT_KM } = {}) => {
+  const { order, late } = drawCityStates(majorIds, seed);
+  // 'packed': every city-state people at its real capital, the layout before decision 42 (engine tests).
+  if (density === CITY_STATES_PACKED) return { ids: order.slice().sort(), late, sites: {} };
+  const want = cityStateCount(sizeId, density);
+  const placed = majorIds.map((id) => PEOPLES[id]?.tile).filter((t) => t != null).map((t) => tiles.centres[t]);
+  const clear = (t) => { const c = tiles.centres[t]; return placed.every((p) => distanceKm(p, c) >= START_MIN_GAP_KM); };
+  const reach = ringsForKm(shiftKm);
+  const ids = []; const sites = {};
+  for (let i = 0; i < order.length && ids.length < want; i++) {
+    const id = order[i]; const home = PEOPLES[id].tile;
+    let site = clear(home) ? home : null;
+    if (site == null) {
+      const homeC = tiles.centres[home];
+      let frontier = [home]; const seen = new Set(frontier);
+      for (let d = 1; d <= reach && site == null; d++) {
+        const next = [];
+        frontier.forEach((x) => tiles.neighbors[x].forEach((y) => { if (!seen.has(y)) { seen.add(y); next.push(y); } }));
+        const ok = next.filter((t) => cityStateSiteOk(tiles, t) && distanceKm(homeC, tiles.centres[t]) <= shiftKm && clear(t));
+        if (ok.length) site = ok.sort((a, b) => (tiles.rivers[b] || tiles.coastal[b] ? 1 : 0) - (tiles.rivers[a] || tiles.coastal[a] ? 1 : 0) || a - b)[0];
+        frontier = next;
+      }
+    }
+    if (site == null) continue;
+    ids.push(id); placed.push(tiles.centres[site]);
+    if (site !== home) sites[id] = site;
+  }
+  return { ids: ids.sort(), late, sites };
 };
 
 /** Marks a start record (createInitialState's nation source) as an independent's. */
@@ -97,10 +151,12 @@ export const finalizeIndependents = (state, { late = [] } = {}) => {
   const ids = Object.keys(state.nations).filter((id) => state.nations[id].kind === INDEPENDENT_KIND).sort();
   if (!ids.length && !late.length) return state;
   const nations = { ...state.nations };
+  // At most a third are raiders (decision 42, cityStates.js capRaiders).
+  const personalities = capRaiders(Object.fromEntries(ids.map((id) => [id, personalityFor(tiles, state.regions[nations[id].capitalRegionId]?.tile, id)])));
   ids.forEach((id) => {
     const n = nations[id];
     const tile = state.regions[n.capitalRegionId]?.tile;
-    const personality = personalityFor(tiles, tile, id);
+    const personality = personalities[id];
     const rec = independentRecord(n, { id, name: n.name, color: n.color, people: n.people || null, personality, seaRaiders: isSeaRaider(tiles, tile, personality), since: state.turnNumber || 1, capitalRegionId: n.capitalRegionId });
     nations[id] = { ...rec, name: independentNameOf(state, rec) };
   });

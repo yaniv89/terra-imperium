@@ -61,7 +61,7 @@ Actions: the player's own dispatch (`ACTION_SOUNDS` in worldSounds.js names ever
 | war-declared (big) | A war the player is in begins (declared by or on the player, DECLARE_INDEPENDENCE, a pact calling them in). | state (wars) |
 | peace-signed | A war the player was in ends. | state (wars) |
 | pact-signed | MILITARY_ALLIANCE, OPEN_BORDERS, PROPOSE_MARRIAGE, VASSALIZE (a refusal in the log turns it into ui-error). | action |
-| trade-route | TRADE_AGREEMENT, PROPOSE_INDEPENDENT_TRADE. | action |
+| trade-route | TRADE_AGREEMENT, PROPOSE_INDEPENDENT_TRADE, TRADE_MAPS (swap, give, ask; buy is tribute-paid, sell gold-received), ANSWER_MAP_OFFER (accept; decline is ui-close). | action |
 | gold-received | PILLAGE_TILE, REQUEST_LOAN; "Vassal tribute: +", "You take the treasury of", "+N gold". | action, log |
 | tribute-paid | ANSWER_TRIBUTE_DEMAND (pay), GIFT_INDEPENDENT, OFFER_INDEPENDENT_TRIBUTE, GIFT_BRIBE, BUY_TILE, FUND_SCHOLARS, REPAY_LOAN. | action |
 | raid-warning | A raid or sack is queued against the player (pendingDefenses kind raid or sack); "raiders are N tiles from", "plunder your trade route", "or they will raid you". | state, log |

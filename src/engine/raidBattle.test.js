@@ -30,7 +30,7 @@ const unit = (id, owner, regionId, tile, classId = 'infantry') => ({ id, ownerId
 
 // The player (Akkad) and the nearest raiders independent, everyone else's independents retired.
 const duel = () => {
-  const s0 = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
+  const s0 = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11, cityStates: 'packed' } });
   const s = { ...s0, firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: false } };
   const tiles = getTiles();
   const capital = s.regions[s.nations.akkad.capitalRegionId];

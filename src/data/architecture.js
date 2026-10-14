@@ -50,7 +50,14 @@ const ANDALUS = new Set(['es', 'pt', 'gi']);
 // The land of Israel builds the Israelite theme (plans/art/israelite-theme.md) in every age,
 // falling back to the Levant kit wherever it has no model of its own.
 const ISRAELITE = new Set(['il']);
-export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic', pacific: 'monsoon', andalus: 'levant', israelite: 'levant' };
+// The Tigris and Euphrates and the head of the Gulf build the Mesopotamian theme (I215: mud brick
+// round courtyards, a ziggurat, reed huts, date palms; glazed brick later) in every age; the
+// Iranian plateau (Elam, Jiroft) and Dilmun build it in the Bronze Age only (from the Classical Age
+// Persia's Apadana and the Gulf's later towns are the Levant kit's). It falls back to the Levant
+// kit wherever it has no model of its own.
+const MESOPOTAMIA = new Set(['iq', 'kw']);
+const MESOPOTAMIA_BRONZE = new Set(['ir', 'bh']);
+export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic', pacific: 'monsoon', andalus: 'levant', israelite: 'levant', mesopotamia: 'levant' };
 /** A people's art theme (src/data/peoples.js), or null for a legacy country id. Palaces and theme
  * units follow it (art spec 3b.5); towns follow the land (styleOfLand). */
 export const themeOfNation = (nationId) => PEOPLES[nationId]?.theme || null;
@@ -64,6 +71,7 @@ export const styleOfLand = (nationId, ageId) => {
   if (ageId === 'classical' && EUROPE_NORTH.has(nationId)) return 'europenorth';
   if (ageId === 'kingdoms' && ANDALUS.has(nationId)) return 'andalus';
   if (ISRAELITE.has(nationId)) return 'israelite';
+  if (MESOPOTAMIA.has(nationId) || (ageId === 'bronze' && MESOPOTAMIA_BRONZE.has(nationId))) return 'mesopotamia';
   const base = (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) || (COLONIES.has(nationId) ? 'colonies' : styleOfNation(nationId));
   return base === 'monsoon' && PACIFIC.has(nationId) ? 'pacific' : base;
 };

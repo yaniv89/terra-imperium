@@ -3,8 +3,11 @@ import {
   iconUrl, iconIds, ICON_GROUPS, BUILDING_ICON_IDS, EXTRACTION_ICON_IDS, buildingIconUrl, buildingIconUrlForAge,
   buildingIconTiersMatch, extractionIconUrl, unitIconUrl, shipIconUrl, cityIconUrl, CITY_SIZES, ageIconUrl,
   markerIconUrl, resourceIconUrl, improvementIconUrl, wonderIconUrl,
-  BATTLE_STOCK_ICON_IDS, battleStockIconUrl, BATTLE_GLYPH_IDS, CAPTURE_CHOICE_ICON_IDS, UI_ICON_IDS, uiIconUrl
+  BATTLE_STOCK_ICON_IDS, battleStockIconUrl, BATTLE_GLYPH_IDS, CAPTURE_CHOICE_ICON_IDS, UI_ICON_IDS, uiIconUrl, INDEPENDENT_ICON_IDS,
+  CITY_STATE_ICON_IDS, CITY_STATE_PATRON_ICON_ID, cityStateIconUrl, cityStatePatronIconUrl
 } from './icons';
+import { CITY_STATE_TYPES } from './cityStates';
+import { PERSONALITY_IDS, PERSONALITIES } from './independents';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -96,7 +99,8 @@ describe('icon index', () => {
       ages: AGE_ORDER,
       markers: ['capital', 'wonder', 'event', 'battle'],
       battle: [...Object.values(BATTLE_BUILDINGS).map((b) => b.icon), ...Object.values(BATTLE_STOCK_ICON_IDS), ...BATTLE_GLYPH_IDS],
-      ui: UI_ICON_IDS
+      ui: UI_ICON_IDS,
+      independents: [...INDEPENDENT_ICON_IDS, ...Object.values(CITY_STATE_ICON_IDS), CITY_STATE_PATRON_ICON_ID]
     };
     ICON_GROUPS.forEach((g) => iconIds(g).forEach((id) => expect(used[g], `${g}/${id}`).toContain(id)));
   });
@@ -133,6 +137,50 @@ describe('UI icons of the 13 October art update', () => {
 
   it('keeps the base marker and the base counter tintable', () => {
     ['base-marker', 'base-status'].forEach((id) => expect(svg('battle', id), id).toContain('fill="currentColor"'));
+  });
+});
+
+describe('independent city art', () => {
+  const svg = (id) => readFileSync(join(ICON_DIR, 'independents', `${id}.svg`), 'utf8');
+
+  it('has a shield for every personality and the banner frame', () => {
+    PERSONALITY_IDS.forEach((p) => expect(iconUrl('independents', p), p).toBeTruthy());
+    expect(iconUrl('independents', 'banner-frame')).toBeTruthy();
+    expect(INDEPENDENT_ICON_IDS).toEqual([...PERSONALITY_IDS, 'banner-frame']);
+  });
+
+  it('draws them in the icon style: vector only, no letters, the outline colour, the 256 box (the frame 256 by 64)', () => {
+    INDEPENDENT_ICON_IDS.forEach((id) => {
+      const text = svg(id);
+      expect(text, id).not.toMatch(/<text|<image|<script|href=/);
+      expect(text, id).toContain('#292C29');
+      expect(text, id).toContain(id === 'banner-frame' ? 'viewBox="0 0 256 64"' : 'viewBox="0 0 256 256"');
+    });
+    // each shield in its own personality's colour
+    PERSONALITY_IDS.forEach((p) => expect(svg(p).toUpperCase(), p).toContain(PERSONALITIES[p].badge.toUpperCase()));
+  });
+});
+
+describe('city-state badges (UI18)', () => {
+  const svg = (id) => readFileSync(join(ICON_DIR, 'independents', `${id}.svg`), 'utf8');
+  const ids = [...Object.values(CITY_STATE_ICON_IDS), CITY_STATE_PATRON_ICON_ID];
+
+  it('has a badge for every city-state type and the patron mark', () => {
+    expect(Object.keys(CITY_STATE_ICON_IDS).sort()).toEqual(Object.keys(CITY_STATE_TYPES).sort());
+    Object.keys(CITY_STATE_TYPES).forEach((t) => expect(cityStateIconUrl(t), t).toBeTruthy());
+    expect(new Set(Object.keys(CITY_STATE_TYPES).map(cityStateIconUrl)).size).toBe(Object.keys(CITY_STATE_TYPES).length);
+    expect(cityStatePatronIconUrl()).toBeTruthy();
+    expect(cityStateIconUrl('nope')).toBeNull();
+  });
+
+  it('draws them in the icon style: vector only, no letters, the 256 box, each badge in its type colour', () => {
+    ids.forEach((id) => {
+      const text = svg(id);
+      expect(text, id).not.toMatch(/<text|<image|<script|href=/);
+      expect(text, id).toContain('#292C29');
+      expect(text, id).toContain('viewBox="0 0 256 256"');
+    });
+    Object.entries(CITY_STATE_ICON_IDS).forEach(([t, id]) => expect(svg(id).toUpperCase(), t).toContain(CITY_STATE_TYPES[t].badge.toUpperCase()));
   });
 });
 

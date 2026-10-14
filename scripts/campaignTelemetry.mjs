@@ -99,7 +99,8 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
   const wars = new Map(); // id -> { id, a, e, start, end, withPlayer, indep }
   const demandsSeen = new Set();
   const conquests = new Map(); // cityId -> { turn, owner } (a conquest not yet judged)
-  const tallies = { sieges: 0, captures: 0, capturesFromMajors: 0, capturesFromIndep: 0, conquestsKept20: 0, conquestsLost20: 0, rebellionsStarted: 0, rebellionsOnPlayer: 0, rebellionsConqueredLand: 0, rebellionsSucceeded: 0, rebelCitiesPlayer: 0 };
+  const tallies = { sieges: 0, captures: 0, capturesFromMajors: 0, capturesFromIndep: 0, conquestsKept20: 0, conquestsLost20: 0, rebellionsStarted: 0, rebellionsOnPlayer: 0, rebellionsConqueredLand: 0, rebellionsSucceeded: 0, rebelCitiesPlayer: 0, playerCitiesLost: 0, bankruptcies: 0 };
+  const stackSizes = []; const fieldStackSizes = []; const wallStackSizes = []; // AI majors at war: units per stack, one entry per stack per turn
   const move = { aiUnitTurns: 0, aiMoved: 0, warUnitTurns: 0, warMoved: 0, peaceUnitTurns: 0, peaceMoved: 0 };
   const stackStats = {}; // per war: { stackTurns, moved, shuttle, ... }
   const history = new Map(); // lead unit id -> last tiles
@@ -140,6 +141,8 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       if (warOf[u.ownerId]) { move.warUnitTurns += 1; if (moved) move.warMoved += 1; } else { move.peaceUnitTurns += 1; if (moved) move.peaceMoved += 1; }
     }
     if (!activeWars.length) return;
+    const enemiesOf = {}; activeWars.forEach((w) => { (enemiesOf[w.aggressor] ||= new Set()).add(w.enemy); (enemiesOf[w.enemy] ||= new Set()).add(w.aggressor); });
+    const cityOwnerAt = new Map(); Object.values(after.regions).forEach((c) => { if (c.tile != null && c.owner) cityOwnerAt.set(c.tile, c.owner); });
     // One row per stack per war per turn (X22): why does a stack wait or shuttle?
     const stacks = {}; // `${owner}|${tile}` of the AFTER state
     for (const u of Object.values(after.units || {})) {
@@ -159,6 +162,12 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       const besieging = Object.values(after.regions).some((c) => c.siege?.by === owner && c.tile != null && (c.tile === tile || (tiles?.neighbors?.[tile] || []).includes(c.tile)));
       const home = Object.values(after.regions).some((c) => c.owner === owner && c.tile === tile);
       const hasRoute = !!lead.route?.length;
+      if (!isIndependent(after.nations[owner])) {
+        stackSizes.push(list.length);
+        if (!home) fieldStackSizes.push(list.length);
+        // At the walls: beside a city of a nation it is at war with (the stacks that assault).
+        if (tiles && (tiles.neighbors?.[tile] || []).some((n) => { const o = cityOwnerAt.get(n); return o && enemiesOf[owner]?.has(o); })) wallStackSizes.push(list.length);
+      }
       let verdict;
       if (shuttle) verdict = 'shuttle'; else if (movedNow) verdict = 'moved'; else if (besieging) verdict = 'besieging'; else if (hasRoute) verdict = 'waitRoute'; else if (home) verdict = 'idleHome'; else verdict = 'idleField';
       for (const wid of warOf[owner]) {
@@ -195,10 +204,16 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
         tallies.captures += 1; conquests.set(c.id, { turn: t, owner: c.owner });
         // Who lost it: a major (a war between majors) or an independent (a campaign on it).
         if (isIndependent(after.nations[b.owner]) || isIndependent(before.nations[b.owner])) tallies.capturesFromIndep += 1; else tallies.capturesFromMajors += 1;
+        if (b.owner === me) tallies.playerCitiesLost += 1;
       }
       else if (b && b.owner !== c.owner && conquests.has(c.id) && conquests.get(c.id).owner === b.owner) { if (t - conquests.get(c.id).turn <= 20) tallies.conquestsLost20 += 1; conquests.delete(c.id); }
     }
     for (const [id, cq] of conquests) if (t - cq.turn >= 20) { if (after.regions[id]?.owner === cq.owner) tallies.conquestsKept20 += 1; conquests.delete(id); }
+    // Bankruptcies of AI majors this turn (economy.js applyBankruptcy stamps lastBankruptcyTurn).
+    for (const n of Object.values(after.nations)) {
+      if (n.id === me || isIndependent(n) || n.lastBankruptcyTurn !== t) continue;
+      if (before.nations[n.id]?.lastBankruptcyTurn !== t) tallies.bankruptcies += 1;
+    }
     // Rebellions: a new rebel stack (rebellion breaks out) and a success (uprising reclaims the city).
     for (const u of Object.values(after.units)) {
       if (u.ownerId !== 'rebels' || u.isInsurgent || before.units[u.id] || u.spawnedTurn !== t) continue;
@@ -216,6 +231,15 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
     observeStacks(before, after);
   };
 
+  const aiMajors = (s) => Object.values(s.nations).filter((n) => n.id !== playerId && !n.isEliminated && !isIndependent(n) && !String(n.id).startsWith('free_') && n.id !== 'rebels');
+  let unitCountCache = null;
+  const landUnitsOf = (s, id) => {
+    if (!unitCountCache || unitCountCache.s !== s) {
+      const c = {}; for (const u of Object.values(s.units || {})) if (u.domain === 'land' && u.classId !== 'settler') c[u.ownerId] = (c[u.ownerId] || 0) + 1;
+      unitCountCache = { s, c };
+    }
+    return unitCountCache.c[id] || 0;
+  };
   const aiCities = (s) => Object.values(s.regions).filter((c) => c.owner && c.owner !== playerId && !c.outpost && c.lastYields && !isIndependent(s.nations[c.owner]));
 
   const snapshot = (s) => {
@@ -252,6 +276,13 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       stackTurns: st, stackMovedShare: r3(sum('moved') / Math.max(1, st)), stackShuttleShare: r3(sum('shuttle') / Math.max(1, st)), stackBesiegeShare: r3(sum('besieging') / Math.max(1, st)),
       stackWaitRouteShare: r3(sum('waitRoute') / Math.max(1, st)), stackIdleHomeShare: r3(sum('idleHome') / Math.max(1, st)), stackIdleFieldShare: r3(sum('idleField') / Math.max(1, st)),
       majorsMet,
+      // Army size (lane W5 AI armies): land units per AI-major stack at war (all, and away from its own
+      // cities), the majors' mean treasury and land units now, their bankruptcies and the player's losses.
+      warStackMean: r1(mean(stackSizes)), warStackMedian: median(stackSizes), warFieldStackMean: r1(mean(fieldStackSizes)), warFieldStackMedian: median(fieldStackSizes),
+      warWallStackMean: r1(mean(wallStackSizes)), warWallStackMedian: median(wallStackSizes), warWallStackTurns: wallStackSizes.length,
+      aiGoldMean: Math.round(mean(aiMajors(s).map((n) => n.economy?.gold || 0))),
+      aiUnitsMean: r1(mean(aiMajors(s).map((n) => landUnitsOf(s, n.id)))),
+      bankruptcies: tallies.bankruptcies, playerCitiesLost: tallies.playerCitiesLost,
       playerOverext: getOverextension ? Math.round(getOverextension(s, me)) : 0, playerAuthority: authorityOf ? r1(authorityOf(s, me).total) : 0,
       aiTopOverext: top && getOverextension ? Math.round(getOverextension(s, top[0])) : 0, aiTopAuthority: top && authorityOf ? r1(authorityOf(s, top[0]).total) : 0,
       aiTop5OverextMean: top5.length && getOverextension ? r1(mean(top5.map((e) => getOverextension(s, e[0])))) : 0, aiTop5AuthorityMean: top5.length && authorityOf ? r1(mean(top5.map((e) => authorityOf(s, e[0]).total))) : 0,

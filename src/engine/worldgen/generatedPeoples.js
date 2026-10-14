@@ -5,7 +5,7 @@
 // other candidates by score. This module only decides who stands where:
 //
 // - Who is a major: the player's people, the pinned people (the Kingdom of Israel, decision 13),
-//   then the pool by weight x a seeded roll, exactly like peoplesWorld.js but without Earth's
+//   then the 50 major peoples (decision 42) by weight x a seeded roll, exactly like peoplesWorld.js but without Earth's
 //   geography (there is no real capital to keep apart). Late arrivals are never majors.
 // - Where: by climate affinity with the people's home (peopleHomes.json: the Köppen class, coast
 //   and river of its real capital). The player's people takes its best site first, the other
@@ -18,8 +18,9 @@
 // Returns the site table `sites` ({ peopleId: tile }) saved in the scenario. Deterministic in
 // (player, size, seed, world).
 import HOMES from '../../data/geo/peopleHomes.json';
-import { PEOPLES, PEOPLES_LIST, PINNED_PEOPLE_IDS } from '../../data/peoples';
-import { WORLD_SIZES, DEFAULT_WORLD_SIZE } from '../../data/worldSizes';
+import { PEOPLES, MAJOR_PEOPLES_LIST, PINNED_PEOPLE_IDS } from '../../data/peoples';
+import { WORLD_SIZES, DEFAULT_WORLD_SIZE, START_MIN_GAP_KM, DEFAULT_CITY_STATES } from '../../data/worldSizes';
+import { ringsForKm } from '../../data/geo/gridScale';
 import { citySpacingRings, landmassOf } from '../../data/geo/citySpacing';
 import { createRng } from '../../utils/rng';
 import { pickIndependents } from '../independents';
@@ -93,7 +94,7 @@ export const pickGeneratedMajors = (playerId, count, seed) => {
   const chosen = [playerId];
   PINNED_PEOPLE_IDS.forEach((id) => { if (chosen.length < count && !chosen.includes(id)) chosen.push(id); });
   const rng = createRng(((seed >>> 0) ^ MIX) >>> 0);
-  PEOPLES_LIST.map((p) => ({ id: p.id, score: p.weightValue * (0.5 + rng.next()), late: p.arrives != null }))
+  MAJOR_PEOPLES_LIST.map((p) => ({ id: p.id, score: p.weightValue * (0.5 + rng.next()), late: p.arrives != null }))
     .filter((c) => !c.late && !chosen.includes(c.id))
     .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1))
     .forEach((c) => { if (chosen.length < count) chosen.push(c.id); });
@@ -101,13 +102,13 @@ export const pickGeneratedMajors = (playerId, count, seed) => {
 };
 
 const NEXT_FREE = 60; // independents choose among this many free candidates, best score first
-const SPREAD_EXTRA_RINGS = 3; // independents first keep this many rings beyond the settling rule
+// Independents keep START_MIN_GAP_KM from every start (decision 42); one with no such site is left out.
 
 /**
  * Who stands where on a generated world: { majors, independents, late, sites }. `tiles` is the
  * loaded generated grid (with `starts`).
  */
-export const placeGeneratedPeoples = (playerId, sizeId = DEFAULT_WORLD_SIZE, seed = 1, tiles, { independents = true } = {}) => {
+export const placeGeneratedPeoples = (playerId, sizeId = DEFAULT_WORLD_SIZE, seed = 1, tiles, { independents = true, density = DEFAULT_CITY_STATES } = {}) => {
   const starts = tiles.starts;
   if (!starts?.majors?.length) throw new Error('This world has no start sites (not a generated world?)');
   const size = WORLD_SIZES[sizeId] || WORLD_SIZES[DEFAULT_WORLD_SIZE];
@@ -130,11 +131,10 @@ export const placeGeneratedPeoples = (playerId, sizeId = DEFAULT_WORLD_SIZE, see
   const blocked = new Uint8Array(tiles.count);
   const mass = landmassOf(tiles);
   const reach = citySpacingRings(tiles) - 1;
-  // `crowded`: within SPREAD_RINGS of a placed city. Independents first look for free land away
-  // from everyone (so they spread over the world instead of filling the best region shoulder to
-  // shoulder), then take what the settling rule allows.
+  // `crowded`: within about START_MIN_GAP_KM of a placed start. Independents only take land that
+  // is not crowded (decision 42), so they spread over the world; one with no room is left out.
   const crowded = new Uint8Array(tiles.count);
-  const spread = reach + SPREAD_EXTRA_RINGS;
+  const spread = Math.max(reach, ringsForKm(START_MIN_GAP_KM) - 1);
   const block = (c) => {
     blocked[c] = 1; crowded[c] = 1;
     let frontier = [c]; const seen = new Set(frontier);
@@ -150,7 +150,7 @@ export const placeGeneratedPeoples = (playerId, sizeId = DEFAULT_WORLD_SIZE, see
     }
   };
   Object.values(sites).forEach(block);
-  const pick = independents ? pickIndependents(majors, sizeId, seed) : { ids: [], late: [] };
+  const pick = independents ? pickIndependents(majors, sizeId, seed, { density }) : { ids: [], late: [] };
   const rng = createRng(((seed >>> 0) ^ 0x2545f491) >>> 0);
   const order = (ids) => ids.map((id) => ({ id, r: (PEOPLES[id]?.weightValue || 1) * (0.5 + rng.next()) })).sort((a, b) => b.r - a.r || (a.id < b.id ? -1 : 1)).map((x) => x.id);
   const placed = { ids: [], late: [] };
@@ -159,7 +159,6 @@ export const placeGeneratedPeoples = (playerId, sizeId = DEFAULT_WORLD_SIZE, see
   const placeOne = (id) => {
     const free = [];
     for (let i = cursor; i < cands.length && free.length < NEXT_FREE; i++) if (!crowded[cands[i]]) free.push(cands[i]);
-    if (!free.length) for (let i = cursor; i < cands.length && free.length < NEXT_FREE; i++) if (!blocked[cands[i]]) free.push(cands[i]);
     while (cursor < cands.length && blocked[cands[cursor]]) cursor++;
     if (!free.length) return false;
     let t = free[0]; let a = -Infinity;
