@@ -204,8 +204,9 @@ def k_general():
 # The foot units were rebuilt in the quality pass of 2026-10-14 by their own builders on ti_figure.py
 # (build_kingdoms_infantry.py, build_kingdoms_ranged.py, build_kingdoms_worker.py,
 # build_kingdoms_support.py); k_infantry, k_ranged, k_support and k_worker stay here for reference only.
-# The knights were rebuilt the same way by build_kingdoms_cavalry.py; k_cavalry stays for reference.
-BUILDERS = {'kingdoms-siege': k_siege, 'kingdoms-general': k_general}
+# The knights and the general were rebuilt the same way by build_kingdoms_cavalry.py and
+# build_kingdoms_general.py; k_cavalry and k_general stay for reference.
+BUILDERS = {'kingdoms-siege': k_siege}
 
 
 def build(uid):
