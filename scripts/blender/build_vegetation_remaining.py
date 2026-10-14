@@ -1,4 +1,7 @@
 """Three missing vegetation kits, isolated builder with a mandatory 2D sheet gate.
+SUPERSEDED 2026-10-14 (MD05 tree pass): the shipped conifer, tropical and cold kits are now built
+by build_nature.py (`remaining_kit`), which keeps this script's helper layouts for every object
+but the trees. Kept as the record of how checkpoint 38 built them; it is not run any more.
 Prepare (no bpy import/meshes): python build_vegetation_remaining.py --prepare
 Build: blender -b -t 4 --python build_vegetation_remaining.py -- \
   /workspace/remaining-production/nature --sheet /parent/reference.png

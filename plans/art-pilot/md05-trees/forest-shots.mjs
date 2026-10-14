@@ -62,11 +62,18 @@ for (const view of ['army', 'woods']) {
       r.centerOn(at[0], at[1]); r.updateCamera();
     }, { z, at: views[view] });
     await page.waitForTimeout(1500);
-    const d = await page.evaluate(() => { const r = window.__battleRenderer; const x = r.diagnostics(); return { zoom: x.zoom, triangles: x.triangles, drawCalls: x.drawCalls, figures: x.figures, tier: x.tier, vegetationLod: r.vegetation?.lod ?? null, trees: r.vegetation?.treeStats?.() ?? null }; });
+    const d = await page.evaluate(() => {
+      const r = window.__battleRenderer; const x = r.diagnostics(); const v = r.vegetation;
+      // the trees' own triangles over the whole field (both builds): instances drawn times the level's triangles
+      const tri = (m) => m.count * ((m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3);
+      const treeMeshes = v?.trees ? v.trees.meshes.map((t) => t.mesh) : ['pine', 'oak'].flatMap((k) => v?.kinds?.[k]?.list || []);
+      const treeTriangles = Math.round(treeMeshes.filter((m) => m.visible).reduce((s, m) => s + tri(m), 0));
+      return { zoom: x.zoom, triangles: x.triangles, drawCalls: x.drawCalls, figures: x.figures, tier: x.tier, vegetationLod: v?.lod ?? null, treeTriangles, treeMeshes: treeMeshes.filter((m) => m.visible).length, trees: v?.treeStats?.() ?? null };
+    });
     const file = `${outDir}/${prefix}-${view}-zoom${String(z).replace('.', '_')}.jpg`;
     await page.screenshot({ path: file, type: 'jpeg', quality: 88, timeout: 180000 });
     report.shots.push({ file, view, ...d });
-    console.log(`${file} zoom=${d.zoom} triangles=${d.triangles} drawCalls=${d.drawCalls} vegetationLod=${d.vegetationLod}${d.trees ? ` trees=${d.trees.drawn}/${d.trees.trees} meshes=${d.trees.meshes}` : ''}`);
+    console.log(`${file} zoom=${d.zoom} triangles=${d.triangles} drawCalls=${d.drawCalls} treeTriangles=${d.treeTriangles} treeMeshes=${d.treeMeshes} tier=${d.tier} vegetationLod=${d.vegetationLod}${d.trees ? ` trees=${d.trees.drawn}/${d.trees.trees} meshes=${d.trees.meshes}` : ''}`);
   }
 }
 report.errors = errors.slice(0, 10);
