@@ -70,7 +70,7 @@ const TurnDock = () => {
   const Icon = blocking ? KIND_ICON[btn.blocker.kind] || Bell : null;
 
   return (
-    <div data-testid="turn-dock"
+    <div data-testid="turn-dock" data-map-hud="group"
       className={`fixed z-[21] flex flex-col items-end gap-2 pointer-events-none
         ${isMobile ? 'right-3 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)]' : 'right-[calc(var(--rail-w,0px)+0.75rem)] bottom-[max(env(safe-area-inset-bottom),0.75rem)]'}`}>
       {armed && hints.length > 0 && (

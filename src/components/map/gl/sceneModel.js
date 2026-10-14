@@ -165,7 +165,8 @@ export const markerSprites = ({ markers, projection, k, atWar, dpr, waterTile })
       : c.kind === 'event' ? eventArt(scale) : c.kind === 'wonder' ? wonderArt(c, scale) : c.kind === 'colony' ? colonyArt(c, scale)
         : c.kind === 'battle' ? battleArt(c, scale, { sea: c.tile != null && waterTile?.(c.tile) }) : c.kind === 'fleet' ? fleetArt(c, atWar.has(c.ownerId), scale) : armyArt(c, atWar.has(c.ownerId), scale);
     const cssW = art.w / dpr; const cssH = art.h / dpr;
-    sprites.push({ art, anchor: c.anchor, offset: [c.off[0], c.off[1], 0, 0], size: [cssW, cssH], exp: [0, 0], color: fade(single && !c.own ? 0.92 : 1) });
+    // `glideKey`: a lone banner that may glide in from its last tile (marchGlide.js, I070)
+    sprites.push({ art, anchor: c.anchor, offset: [c.off[0], c.off[1], 0, 0], size: [cssW, cssH], exp: [0, 0], color: fade(single && !c.own ? 0.92 : 1), glideKey: single ? c.key : null });
     hits.push({ kind: single ? 'marker' : 'cluster', marker: c, anchor: c.anchor, offset: [c.off[0], c.off[1], 0, 0], size: [cssW - 12 * (tag ? 0.72 : 1), cssH - 12 * (tag ? 0.72 : 1)], exp: [0, 0], pad: 7 });
   });
   return { sprites, hits };

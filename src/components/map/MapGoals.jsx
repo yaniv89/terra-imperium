@@ -25,7 +25,7 @@ const MapGoals = () => {
   }, []);
   const era = useMemo(() => eraGoalProgress(state), [state]);
   return (
-    <div className="absolute z-10 left-[calc(var(--city-rail-w,0px)+0.75rem)] pl:left-[max(env(safe-area-inset-left),0.75rem)] top-[calc(var(--header-height,2.5rem)+0.5rem)] w-[min(19rem,calc(100vw-1.5rem-var(--rail-inset,0px)))] flex flex-col items-start gap-1.5 pointer-events-none" data-testid="map-goals">
+    <div className="absolute z-10 left-[calc(var(--city-rail-w,0px)+0.75rem)] pl:left-[max(env(safe-area-inset-left),0.75rem)] top-[calc(var(--header-height,2.5rem)+0.5rem)] w-[min(19rem,calc(100vw-1.5rem-var(--rail-inset,0px)))] flex flex-col items-start gap-1.5 pointer-events-none" data-testid="map-goals" data-map-hud="group">
       {hint && (
         <div role="status" className="pointer-events-auto fa-panel !bg-fa-panel shadow-xl p-2 w-full text-[12px] space-y-1.5" data-testid="map-hint">
           <div className="font-semibold leading-tight">{hint.title}</div>

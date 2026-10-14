@@ -67,6 +67,8 @@ export const getMapMarkers = (state) => {
     const marker = {
       id: `${g.tile}|${g.regionId}|${g.ownerId}|${g.domain}`,
       tile: g.tile,
+      // one unit of the stack: the map glides the banner from where it stood (marchGlide.js, I070)
+      lead: g.units[0].id,
       regionId: g.regionId,
       ownerId: g.ownerId,
       own,

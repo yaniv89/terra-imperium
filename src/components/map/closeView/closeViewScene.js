@@ -551,162 +551,173 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     });
     [...t.trees.values(), ...t.works.values()].forEach((m) => { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; });
 
-    // Armies: soldiers of the main unit type, beside the town, in the owner's colour.
-    t.layers.forEach((l) => { l.levels.forEach((m) => { m.count = 0; }); });
-    // The battle's own soldier: the artist's GLB where the unit has one (loaded once, then the
-    // layer is rebuilt on it; the procedural body meanwhile and if it fails), else the procedural
-    // model. The full model whenever the figures on screen fit MAP_FIGURE_TRIS (the clustered
-    // battle LOD, about 280 triangles, read as a blob at mid zoom), the clustered one only beyond.
-    // A people's war elephants (the rigs with their own few figures, RIG_FIGURES) draw under their
-    // signature key once the model is in; until then the base unit of the role. Other signature
-    // units keep the base unit on the map for now.
-    const signatureLayerKey = (peopleId, ageId, classId) => {
-      const entry = peopleId ? signatureUnitFor(peopleId, ageId, classId) : null;
-      if (!rigFiguresOf(entry)) return null;
-      const key = signatureKey(classId, peopleId);
-      if (hasSoldierOverride(ageId, key)) return key;
-      const loadKey = `${ageId}:${key}`;
-      if (!t.soldierLoads.has(loadKey)) {
-        t.soldierLoads.add(loadKey);
-        preloadSignatureModel(peopleId, ageId, classId).then((ok) => { if (ok) onAssets(); }).catch(() => {});
-      }
-      return null;
-    };
-    const layerFor = (ageId, classId, sigKey = null) => {
-      const key = `${ageId}:${sigKey || classId}`;
-      if (!sigKey && !t.soldierLoads.has(key) && !hasSoldierOverride(ageId, classId) && findUnitModel(ageId, classId)) {
-        t.soldierLoads.add(key);
-        preloadSoldierModel(ageId, classId).then((ok) => { if (ok) onAssets(); }).catch(() => {});
-      }
-      const source = getSoldierGeometry(ageId, sigKey || classId);
-      let l = t.layers.get(key);
-      if (l && l.source !== source) { dropLayer(l); l = null; }
-      if (!l) {
-        const anim = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 3), 3).setUsage(DynamicDrawUsage);
-        const variant = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 4), 4).setUsage(DynamicDrawUsage);
-        const color = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 3), 3).setUsage(DynamicDrawUsage);
-        let matrix = null; // one instance buffer set, shared by both levels
-        const levels = soldierLodGeometries(source).slice(0, 2).map((g) => {
-          const geo = packForGPU(g.clone());
-          geo.setAttribute('aAnim', anim); geo.setAttribute('aVariant', variant);
-          const mesh = new InstancedMesh(geo, soldierMaterial, MAX_SOLDIERS);
-          if (matrix) mesh.instanceMatrix = matrix; else matrix = mesh.instanceMatrix.setUsage(DynamicDrawUsage);
-          mesh.instanceColor = color;
-          mesh.count = 0; mesh.frustumCulled = false;
-          root.add(mesh);
-          return mesh;
-        });
-        source.computeBoundingBox();
-        l = { source, levels, mesh: levels[0], anim, variant, color, tris: triangleCount(levels[0].geometry), height: Math.max(0.1, source.boundingBox.max.y - source.boundingBox.min.y) };
-        t.layers.set(key, l);
-      }
-      return l;
-    };
-    const tmp = new Object3D(); const color = new Color();
-    let moving = false;
-    markers.armies.forEach((m, mi) => {
-      const at = toScreenLatLng(markerLatLng(m));
-      if (!at) return;
-      const classId = m.own && m.mainClass && m.mainClass !== 'mixed' ? m.mainClass : 'infantry';
-      const ageId = ageOf(state, m.ownerId);
-      const peopleId = m.ownerId ? peopleForNationId(m.ownerId) : null;
-      const sigKey = signatureLayerKey(peopleId, ageId, classId);
-      // war elephants: at most two full-size figures, wider apart
-      const rigFig = sigKey ? rigFiguresOf(signatureUnitFor(peopleId, ageId, classId)) : null;
-      const l = layerFor(ageId, classId, sigKey);
-      // Marching: face the next step and walk.
-      const lead = m.own ? state.units[m.units?.[0]] : null;
-      const next = lead?.route?.[0] ? toScreen(lead.route[0]) : null;
-      const walking = !!next;
-      if (walking) moving = true;
-      const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING;
-      const n = rigFig ? Math.min(rigFig.figures, figuresFor(m.men)) : figuresFor(m.men);
-      // never smaller than MIN_FIGURE_PX on screen (mid zoom), spaced to match
-      const trueScale = s * SOLDIER_SIZE * (MODEL_SCALE[classId] || 0.88);
-      const scale = Math.max(trueScale, MIN_FIGURE_PX / l.height);
-      const gap = s * (scale / trueScale);
-      color.set(m.own ? PLAYER_COLOR : getNationColor(m.ownerId) || '#64748b');
-      const tone = skinToneFor(m.ownerId); const cell = emblemCellFor(m.own ? 0 : 1, mi);
-      const side = rigFig ? 2.8 : 1.1; // elephants stand wider apart than men and horses, as in battle
-      for (let i = 0; i < n && l.mesh.count < MAX_SOLDIERS; i++) {
-        const k2 = l.mesh.count;
-        const ox = (i - (n - 1) / 2) * gap * side + gap * ARMY_SPOT.x; const oy = gap * ARMY_SPOT.y + (i % 2) * gap * 0.4;
-        tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
-        tmp.rotation.set(TILT, heading, 0, 'XYZ');
-        tmp.scale.setScalar(scale);
-        tmp.updateMatrix();
-        l.mesh.setMatrixAt(k2, tmp.matrix);
-        l.mesh.setColorAt(k2, color);
-        l.anim.setXYZ(k2, (mi * 1.7 + i) % 6.28, walking ? 1 : 0, 0);
-        // one people's skin tone and one device per army, as in battle (unitVariants.js)
-        l.variant.setXYZW(k2, soldierSkinTone(tone, mi, i), cell, ((mi + i) % 5) / 5 - 0.4, 0);
-        l.mesh.count += 1;
-      }
-    });
-    let figureTris = 0;
-    t.layers.forEach((l) => { figureTris += l.mesh.count * l.tris; });
-    const tier = figureTris <= MAP_FIGURE_TRIS ? 0 : 1;
-    t.figureTier = tier;
-    t.layers.forEach((l) => {
-      const [full, mid] = l.levels;
-      const n = full.count;
-      full.count = tier === 0 ? n : 0; mid.count = tier === 1 ? n : 0;
-      full.instanceMatrix.needsUpdate = true; l.color.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true;
-    });
-    t.moving = moving;
-
-    // Fleets: 1 to 3 warships of the owner's age (shipModels.js) on their sea tile, turned toward
-    // the next step of their route. With no ship file for the age only the banner stands.
-    t.ships.begin(lodForZoom(k));
-    markers.fleets.forEach((m, mi) => {
-      const model = shipModel(ageOf(state, m.ownerId));
-      if (!model) return;
-      if (!t.ships.hasModel(model.url)) {
-        if (!t.assets.has(model.url)) {
-          t.assets.set(model.url, null);
-          loadAssetObjects(model.url).then((objs) => {
-            const ship = objs[model.name] || Object.values(objs)[0];
-            // the file's swell (morph targets, for a later animated pass) is not drawn: the
-            // instanced layer shows the hull at rest
-            ship.traverse((o) => {
-              if (!o.isMesh || !Object.keys(o.geometry.morphAttributes || {}).length) return;
-              const g = new BufferGeometry();
-              Object.entries(o.geometry.attributes).forEach(([n, a]) => g.setAttribute(n, a));
-              if (o.geometry.index) g.setIndex(o.geometry.index);
-              o.geometry.groups.forEach((gr) => g.addGroup(gr.start, gr.count, gr.materialIndex));
-              o.geometry = g;
-              o.morphTargetInfluences = undefined; o.morphTargetDictionary = undefined;
-            });
-            t.ships.setModel(model.url, ship); onAssets();
-          })
-            .catch((e) => { console.warn('ship model failed, the fleet keeps its banner:', e.message); });
+    // Armies: soldiers of the main unit type, beside the town, in the owner's colour. Laid out
+    // again on their own while banners glide between tiles (moveArmies, marchGlide.js, I070): a
+    // marker's `at` is where it is on its way, `toward` the point it walks to.
+    const placeArmies = (markers) => {
+      t.layers.forEach((l) => { l.levels.forEach((m) => { m.count = 0; }); });
+      // The battle's own soldier: the artist's GLB where the unit has one (loaded once, then the
+      // layer is rebuilt on it; the procedural body meanwhile and if it fails), else the procedural
+      // model. The full model whenever the figures on screen fit MAP_FIGURE_TRIS (the clustered
+      // battle LOD, about 280 triangles, read as a blob at mid zoom), the clustered one only beyond.
+      // A people's war elephants (the rigs with their own few figures, RIG_FIGURES) draw under their
+      // signature key once the model is in; until then the base unit of the role. Other signature
+      // units keep the base unit on the map for now.
+      const signatureLayerKey = (peopleId, ageId, classId) => {
+        const entry = peopleId ? signatureUnitFor(peopleId, ageId, classId) : null;
+        if (!rigFiguresOf(entry)) return null;
+        const key = signatureKey(classId, peopleId);
+        if (hasSoldierOverride(ageId, key)) return key;
+        const loadKey = `${ageId}:${key}`;
+        if (!t.soldierLoads.has(loadKey)) {
+          t.soldierLoads.add(loadKey);
+          preloadSignatureModel(peopleId, ageId, classId).then((ok) => { if (ok) onAssets(); }).catch(() => {});
         }
-        return;
-      }
-      const at = toScreenLatLng(markerLatLng(m));
-      if (!at) return;
-      const lead = m.own ? state.units[m.units?.[0]] : null;
-      const step = lead?.route?.[0];
-      const stepLL = step != null && step >= 0 ? getTiles().latLonOf(step) : null;
-      const next = stepLL ? project(stepLL.lat, stepLL.lon) : null;
-      const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : 0.5 + mi * 0.7;
-      const px = s * SHIP_SCALE;
-      const n = shipsFor(m.units?.length || 1);
-      const teamColor = m.own ? PLAYER_COLOR : (getNationColor(m.ownerId) || '#64748b');
-      for (let i = 0; i < n; i++) {
-        const ox = (i - (n - 1) / 2) * px * 2.2; const oy = (i % 2) * px * 1.2;
-        tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
-        tmp.rotation.set(TILT, heading, 0, 'XYZ');
-        tmp.scale.setScalar(px);
-        tmp.updateMatrix();
-        t.ships.add(model.url, tmp.matrix, teamColor);
-      }
-    });
-    t.ships.end();
+        return null;
+      };
+      const layerFor = (ageId, classId, sigKey = null) => {
+        const key = `${ageId}:${sigKey || classId}`;
+        if (!sigKey && !t.soldierLoads.has(key) && !hasSoldierOverride(ageId, classId) && findUnitModel(ageId, classId)) {
+          t.soldierLoads.add(key);
+          preloadSoldierModel(ageId, classId).then((ok) => { if (ok) onAssets(); }).catch(() => {});
+        }
+        const source = getSoldierGeometry(ageId, sigKey || classId);
+        let l = t.layers.get(key);
+        if (l && l.source !== source) { dropLayer(l); l = null; }
+        if (!l) {
+          const anim = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 3), 3).setUsage(DynamicDrawUsage);
+          const variant = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 4), 4).setUsage(DynamicDrawUsage);
+          const color = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 3), 3).setUsage(DynamicDrawUsage);
+          let matrix = null; // one instance buffer set, shared by both levels
+          const levels = soldierLodGeometries(source).slice(0, 2).map((g) => {
+            const geo = packForGPU(g.clone());
+            geo.setAttribute('aAnim', anim); geo.setAttribute('aVariant', variant);
+            const mesh = new InstancedMesh(geo, soldierMaterial, MAX_SOLDIERS);
+            if (matrix) mesh.instanceMatrix = matrix; else matrix = mesh.instanceMatrix.setUsage(DynamicDrawUsage);
+            mesh.instanceColor = color;
+            mesh.count = 0; mesh.frustumCulled = false;
+            root.add(mesh);
+            return mesh;
+          });
+          source.computeBoundingBox();
+          l = { source, levels, mesh: levels[0], anim, variant, color, tris: triangleCount(levels[0].geometry), height: Math.max(0.1, source.boundingBox.max.y - source.boundingBox.min.y) };
+          t.layers.set(key, l);
+        }
+        return l;
+      };
+      const tmp = new Object3D(); const color = new Color();
+      let moving = false;
+      markers.armies.forEach((m, mi) => {
+        const at = toScreenLatLng(markerLatLng(m));
+        if (!at) return;
+        const classId = m.own && m.mainClass && m.mainClass !== 'mixed' ? m.mainClass : 'infantry';
+        const ageId = ageOf(state, m.ownerId);
+        const peopleId = m.ownerId ? peopleForNationId(m.ownerId) : null;
+        const sigKey = signatureLayerKey(peopleId, ageId, classId);
+        // war elephants: at most two full-size figures, wider apart
+        const rigFig = sigKey ? rigFiguresOf(signatureUnitFor(peopleId, ageId, classId)) : null;
+        const l = layerFor(ageId, classId, sigKey);
+        // Marching: face the next step and walk (a gliding banner: the point it walks to; the
+        // route's steps are tiles).
+        const lead = m.own ? state.units[m.units?.[0]] : null;
+        const step = lead?.route?.[0];
+        const stepLL = m.toward ? { lat: m.toward.lat, lon: m.toward.lng } : step != null && step >= 0 ? getTiles().latLonOf(step) : null;
+        const next = stepLL ? project(stepLL.lat, stepLL.lon) : null;
+        const walking = !!next;
+        if (walking) moving = true;
+        const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING;
+        const n = rigFig ? Math.min(rigFig.figures, figuresFor(m.men)) : figuresFor(m.men);
+        // never smaller than MIN_FIGURE_PX on screen (mid zoom), spaced to match
+        const trueScale = s * SOLDIER_SIZE * (MODEL_SCALE[classId] || 0.88);
+        const scale = Math.max(trueScale, MIN_FIGURE_PX / l.height);
+        const gap = s * (scale / trueScale);
+        color.set(m.own ? PLAYER_COLOR : getNationColor(m.ownerId) || '#64748b');
+        const tone = skinToneFor(m.ownerId); const cell = emblemCellFor(m.own ? 0 : 1, mi);
+        const side = rigFig ? 2.8 : 1.1; // elephants stand wider apart than men and horses, as in battle
+        for (let i = 0; i < n && l.mesh.count < MAX_SOLDIERS; i++) {
+          const k2 = l.mesh.count;
+          const ox = (i - (n - 1) / 2) * gap * side + gap * ARMY_SPOT.x; const oy = gap * ARMY_SPOT.y + (i % 2) * gap * 0.4;
+          tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
+          tmp.rotation.set(TILT, heading, 0, 'XYZ');
+          tmp.scale.setScalar(scale);
+          tmp.updateMatrix();
+          l.mesh.setMatrixAt(k2, tmp.matrix);
+          l.mesh.setColorAt(k2, color);
+          l.anim.setXYZ(k2, (mi * 1.7 + i) % 6.28, walking ? 1 : 0, 0);
+          // one people's skin tone and one device per army, as in battle (unitVariants.js)
+          l.variant.setXYZW(k2, soldierSkinTone(tone, mi, i), cell, ((mi + i) % 5) / 5 - 0.4, 0);
+          l.mesh.count += 1;
+        }
+      });
+      let figureTris = 0;
+      t.layers.forEach((l) => { figureTris += l.mesh.count * l.tris; });
+      const tier = figureTris <= MAP_FIGURE_TRIS ? 0 : 1;
+      t.figureTier = tier;
+      t.layers.forEach((l) => {
+        const [full, mid] = l.levels;
+        const n = full.count;
+        full.count = tier === 0 ? n : 0; mid.count = tier === 1 ? n : 0;
+        full.instanceMatrix.needsUpdate = true; l.color.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true;
+      });
+      t.moving = moving;
+
+      // Fleets: 1 to 3 warships of the owner's age (shipModels.js) on their sea tile, turned toward
+      // the next step of their route. With no ship file for the age only the banner stands.
+      t.ships.begin(lodForZoom(k));
+      markers.fleets.forEach((m, mi) => {
+        const model = shipModel(ageOf(state, m.ownerId));
+        if (!model) return;
+        if (!t.ships.hasModel(model.url)) {
+          if (!t.assets.has(model.url)) {
+            t.assets.set(model.url, null);
+            loadAssetObjects(model.url).then((objs) => {
+              const ship = objs[model.name] || Object.values(objs)[0];
+              // the file's swell (morph targets, for a later animated pass) is not drawn: the
+              // instanced layer shows the hull at rest
+              ship.traverse((o) => {
+                if (!o.isMesh || !Object.keys(o.geometry.morphAttributes || {}).length) return;
+                const g = new BufferGeometry();
+                Object.entries(o.geometry.attributes).forEach(([n, a]) => g.setAttribute(n, a));
+                if (o.geometry.index) g.setIndex(o.geometry.index);
+                o.geometry.groups.forEach((gr) => g.addGroup(gr.start, gr.count, gr.materialIndex));
+                o.geometry = g;
+                o.morphTargetInfluences = undefined; o.morphTargetDictionary = undefined;
+              });
+              t.ships.setModel(model.url, ship); onAssets();
+            })
+              .catch((e) => { console.warn('ship model failed, the fleet keeps its banner:', e.message); });
+          }
+          return;
+        }
+        const at = toScreenLatLng(markerLatLng(m));
+        if (!at) return;
+        const lead = m.own ? state.units[m.units?.[0]] : null;
+        const step = lead?.route?.[0];
+        const stepLL = m.toward ? { lat: m.toward.lat, lon: m.toward.lng } : step != null && step >= 0 ? getTiles().latLonOf(step) : null;
+        const next = stepLL ? project(stepLL.lat, stepLL.lon) : null;
+        const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : 0.5 + mi * 0.7;
+        const px = s * SHIP_SCALE;
+        const n = shipsFor(m.units?.length || 1);
+        const teamColor = m.own ? PLAYER_COLOR : (getNationColor(m.ownerId) || '#64748b');
+        for (let i = 0; i < n; i++) {
+          const ox = (i - (n - 1) / 2) * px * 2.2; const oy = (i % 2) * px * 1.2;
+          tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
+          tmp.rotation.set(TILT, heading, 0, 'XYZ');
+          tmp.scale.setScalar(px);
+          tmp.updateMatrix();
+          t.ships.add(model.url, tmp.matrix, teamColor);
+        }
+      });
+      t.ships.end();
+    };
+    placeArmies(markers);
+    t.placeArmies = placeArmies;
   };
 
   return {
     layout,
+    /** Lays out only the armies and fleets again, in the last layout's view (a glide's frame). */
+    moveArmies: (markers) => { t.placeArmies?.(markers); },
     moving: () => t.moving,
     state: t,
     dispose: () => {

@@ -10,7 +10,8 @@
 // Panning only changes the view uniforms and draws one frame (no React render, no rebuild):
 // badges, markers and glyphs are rebuilt once the zoom settles (ZOOM_SETTLE_MS), the close view's
 // models are laid out once per settled view over a margin round the screen and moved with the
-// camera between layouts. Frames are drawn on demand; only marching soldiers animate.
+// camera between layouts. Frames are drawn on demand; only marching soldiers and the banners
+// gliding between tiles after a move (marchGlide.js, I070) animate.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { geoEquirectangular } from 'd3-geo';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
@@ -57,10 +58,11 @@ import {
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
 } from './sceneModel';
 import { raidShapes } from './raidShapes';
-import { declutterLabels } from './declutter';
+import { declutterLabels, avoidHud } from './declutter';
 import { settlerLines } from '../settleRoutes';
 import { raidMapModel } from '../../independents/raidMapModel';
 import { openIndependent } from '../../independents/independentEvents';
+import { planGlides, glideAt } from '../marchGlide';
 
 const OCEAN_COLOR = '#0f172a';
 const ZOOM_MAX = 200;
@@ -174,6 +176,8 @@ const GLMapView = ({
     g.marchLines = createLineLayer(base, 40);
     g.upperSprites = createSpriteLayer(base, atlas, 45);
     g.topSprites = createSpriteLayer(top, atlas, 50);
+    // the armies', fleets' and battles' banners: a layer of their own, so a glide moves only them
+    g.markerLayer = createSpriteLayer(top, atlas, 55);
     g.closeScene = createCloseScene(close, closeRoot, { onAssets: () => setAssetsTick((n) => n + 1) });
     gl.current = g;
     // A phone may drop the map's WebGL context while the battle's renderer runs (or the app sits in
@@ -190,7 +194,7 @@ const GLMapView = ({
       document.removeEventListener('visibilitychange', onVisible);
       g.disposed = true;
       cancelAnimationFrame(g.raf);
-      [g.raster, g.territory, g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
+      [g.raster, g.territory, g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.markerLayer, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
       renderer.dispose();
       gl.current = null;
     };
@@ -202,6 +206,28 @@ const GLMapView = ({
   const settings = useRef({});
   const worldSize = worldPicture()?.size || worldRasterSizeFor(width, height); // a generated world has one painted size
   settings.current = { selectedTile, lens, tintOn, fogOn: fog.on, worldUrl: worldRasterUrl(worldSize), worldSize, baseZ: baseRasterZoom(worldSize) };
+  // One frame of the banners' glide (marchGlide.js, I070): the gliding banners at their place on
+  // the way and, in the close view, their soldiers with them. False once every glide has arrived
+  // (the banners then stand where the engine put them, as placed).
+  const stepGlide = useCallback((g, now, k) => {
+    const gd = g.glide;
+    const ms = now - gd.start;
+    const at = new Map();
+    gd.plan.forEach((p, key) => { const q = glideAt(p, ms); if (!q.done) at.set(key, q); });
+    const live = at.size > 0;
+    const placed = g.markerPlaced || [];
+    g.markerLayer.set(!live ? placed : placed.map((s) => {
+      const q = s.glideKey ? at.get(s.glideKey) : null;
+      const xy = q && projection ? projection([q.lng, q.lat]) : null;
+      return xy ? { ...s, anchor: xy } : s;
+    }));
+    if (g.closeLayout && k >= CLOSE_ZOOM_K) {
+      const move = (list, kind) => (list || []).map((m) => { const q = at.get(`${kind}:${m.id}`); return q ? { ...m, at: { lat: q.lat, lng: q.lng }, toward: q.toward } : m; });
+      g.closeScene.moveArmies({ ...gd.markers, armies: move(gd.markers.armies, 'army'), fleets: move(gd.markers.fleets, 'fleet') });
+    }
+    if (!live) g.glide = null;
+    return live;
+  }, [projection]);
   const frame = useCallback((now) => {
     const g = gl.current;
     if (!g) return;
@@ -216,7 +242,8 @@ const GLMapView = ({
       uHex: v.k >= HEX_FROM_ZOOM ? 1 : 0, uCityDetail: v.k >= CITY_DETAIL_ZOOM ? 1 : 0, uNationHalf: v.k < 3 ? 0.55 : 0.45,
       uSelTile: s.selectedTile ?? -1, uTintOn: s.tintOn || 0, uFogOn: s.fogOn ? 1 : 0
     };
-    [g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
+    [g.rivers, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.markerLayer].forEach((l) => l.update(v));
+    const gliding = g.glide ? stepGlide(g, now ?? performance.now(), v.k) : false;
     // the world camera (the raster quads and the close view's models)
     camera.left = v.worldLeft; camera.right = v.worldLeft + width / v.k;
     camera.top = -v.worldTop; camera.bottom = -(v.worldTop + height / v.k);
@@ -246,8 +273,8 @@ const GLMapView = ({
     }
     renderer.render(g.top, camera);
     g.frames += 1;
-    if (g.closeActive && g.closeScene.moving()) g.request();
-  }, [view, width, height]);
+    if (gliding || (g.closeActive && g.closeScene.moving())) g.request();
+  }, [view, width, height, stepGlide]);
   useEffect(() => { if (gl.current) { gl.current.frame = frame; gl.current.request(); } }, [frame, ready]);
   useEffect(() => {
     const g = gl.current;
@@ -447,6 +474,20 @@ const GLMapView = ({
   const markers = useMemo(() => getMapMarkers(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [gameState.units, gameState.regions, gameState.nations, gameState.intel, gameState.battleReports, gameState.turnNumber, gameState.playerNationId]);
+  // A stack that moved since the last markers glides there from its last tile (I070). Drawing
+  // only; never with reduced motion.
+  const glidePrev = useRef(null);
+  useEffect(() => {
+    const prev = glidePrev.current;
+    const now = gameStateRef.current;
+    glidePrev.current = { markers, state: now };
+    const g = gl.current;
+    if (!g || !prev || prefersReducedMotion()) return;
+    const plan = planGlides({ prevState: prev.state, nextState: now, prevMarkers: prev.markers, nextMarkers: markers });
+    if (!plan.size) return;
+    g.glide = { start: performance.now(), plan, markers };
+    g.request();
+  }, [markers]);
   const towns = useMemo(() => closeTowns(state), [state]);
   // the settled view: the cities' sprites are built round it
   const settledView = useMemo(() => (projection ? viewFor({ transform: { k: settled.k, x: settled.x, y: settled.y }, width, height, dpr, projection, raster }) : null), [projection, raster, settled, width, height, dpr]);
@@ -515,6 +556,30 @@ const GLMapView = ({
   }, [ready, riverStripData]);
   const terrainOut = useMemo(() => (projection ? terrainSprites({ projection, k, near: settledView ? nearView(settledView) : null, dpr }) : null), [projection, k, settledView, dpr]);
 
+  // The map's own buttons (every element marked data-map-hud; "group": each child on its own) as
+  // screen boxes over the map, for the labels to keep clear of (avoidHud, I081). Read again when
+  // one of them changes size (the mini map opens, the goals unfold).
+  const [hudTick, setHudTick] = useState(0);
+  useEffect(() => {
+    if (!ready || !hudOffset || typeof ResizeObserver === 'undefined') return undefined;
+    let timer = 0;
+    const ro = new ResizeObserver(() => { clearTimeout(timer); timer = setTimeout(() => setHudTick((n) => n + 1), 150); });
+    document.querySelectorAll('[data-map-hud]').forEach((el) => ro.observe(el));
+    return () => { clearTimeout(timer); ro.disconnect(); };
+  }, [ready, hudOffset]);
+  const hudToScreen = useCallback((a) => (settledView ? worldToScreen(settledView, a[0], a[1]) : null), [settledView]);
+  const hudRects = useCallback((el) => {
+    if (!hudOffset || !el || typeof document === 'undefined') return [];
+    const box = el.getBoundingClientRect();
+    const out = [];
+    document.querySelectorAll('[data-map-hud]').forEach((h) => {
+      (h.dataset.mapHud === 'group' ? [...h.children] : [h]).forEach((p) => {
+        const r = p.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) out.push([r.left - box.left, r.top - box.top, r.right - box.left, r.bottom - box.top]);
+      });
+    });
+    return out;
+  }, [hudOffset]);
   const [atlasTick, setAtlasTick] = useState(0);
   useEffect(() => onImageLoad(() => { const g = gl.current; if (g && g.atlas.dropPending()) setAtlasTick((n) => n + 1); }), []);
   useEffect(() => {
@@ -526,7 +591,9 @@ const GLMapView = ({
       ground: [...landOut.sprites, ...marks, ...(lensOut?.sprites || [])],
       upper: [...march.sprites, ...settlers.sprites],
       // names, banners and the raids' labels never stand on each other (declutter.js, I080)
-      top: [...cities.sprites, ...declutterLabels([...cities.names, ...raids.sprites.filter((s) => s.label)], k), ...markerOut.sprites, ...raids.sprites.filter((s) => !s.label)]
+      // and never under the map's own buttons (avoidHud, I081)
+      top: [...cities.sprites, ...declutterLabels(avoidHud([...cities.names, ...raids.sprites.filter((s) => s.label)], k, hudToScreen, hudRects(containerRef.current)), k), ...raids.sprites.filter((s) => !s.label)],
+      markers: markerOut.sprites
     };
     const resolve = () => {
       const out = {};
@@ -548,11 +615,13 @@ const GLMapView = ({
     g.groundSprites.set(placed.ground);
     g.upperSprites.set(placed.upper);
     g.topSprites.set(placed.top);
+    g.markerPlaced = placed.markers;
+    g.markerLayer.set(placed.markers); // (a glide under way moves them on its next frame)
     g.lowLines.set([...landOut.lines, ...(lensOut?.lines || [])]);
     g.marchLines.set([...march.lines, ...raids.lines]);
     g.hits = [...raids.hits, ...settlers.hits, ...cities.hits, ...markerOut.hits];
     g.request();
-  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k]);
+  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k, hudToScreen, hudRects, hudTick]);
 
   // ---------------------------------------------------------------- the close view
   const [land, setLand] = useState(null);

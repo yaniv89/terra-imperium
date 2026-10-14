@@ -11,7 +11,7 @@ const BTN = 'w-10 h-10 flex items-center justify-center text-fa-text hover:bg-fa
 const MapZoomControls = ({ onZoomIn, onZoomOut, onReset, canZoomIn = true, canZoomOut = true, canReset = true, className = '', style }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div style={style} className={`absolute z-10 flex flex-col items-center gap-1.5 ${className}`} data-testid="map-zoom-controls">
+    <div style={style} className={`absolute z-10 flex flex-col items-center gap-1.5 ${className}`} data-testid="map-zoom-controls" data-map-hud="">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Map zoom controls"
         title={open ? 'Hide zoom buttons' : 'Zoom buttons'}
         className="w-10 h-10 rounded-full flex items-center justify-center bg-fa-panel/90 border border-fa-line shadow-lg text-fa-text hover:bg-fa-raised">
