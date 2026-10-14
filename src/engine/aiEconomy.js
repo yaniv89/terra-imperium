@@ -37,7 +37,7 @@ import { getAvailableGovernmentTypes, getReformChoices, resetReformsForType } fr
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_GOVERNMENT, DOCTRINE_LAWS, DOCTRINE_REFORMS } from '../data/nations';
 import { clampStability, getIncreaseStabilityCost } from './nationalPower';
 import { createRng } from '../utils/rng';
-import { rushQuote, applyRush, rushGold } from './spending';
+import { applyRush, rushGold, rushHeat, rushAffordable } from './spending';
 import { autoGovern } from './governors';
 
 // Plan §M21 balance harness (scripts/simulate.mjs) found that a 150-turn AI-vs-AI run produced
@@ -235,34 +235,40 @@ const tryDevelopProvince = (state, nation, regions) => {
   };
 };
 
-// An AI nation rushes like the player (spending.js rushQuote and applyRush, addendum X24): the
-// front order of its biggest city that is building something, when the price leaves a reserve of
-// AI_RUSH_RESERVE gold (or three turns of a deficit) and the order would take more than
-// AI_RUSH_MIN_TURNS turns. Not in a war chest emergency (the think returns earlier for that).
-export const AI_RUSH_RESERVE = 200;
+// An AI nation buys production at the player's price (spending.js rushGold, rushHeat, applyRush;
+// addendum X24) for the front order of its biggest city that is building something and would take
+// more than AI_RUSH_MIN_TURNS turns. It buys what its gold above AI_RUSH_RESERVE (or three turns of
+// a deficit) pays for, the whole order or part of it, so it spends as it earns, as the old
+// one-gold-a-point building purchase did. Keeping a bigger reserve to buy whole orders let AI
+// treasuries sit above the 150 gold of a fabricated claim and doubled wars at Normal.
+// Not in a war chest emergency (the think returns earlier for that). Cheap: no tile work, the
+// city's last yields stand in for its production.
+export const AI_RUSH_RESERVE = 50;
 export const AI_RUSH_MIN_TURNS = 3;
 const tryRushProduction = (state, nation, regions) => {
   const gold = nation.economy?.gold || 0;
   const reserve = Math.max(AI_RUSH_RESERVE, -(nation.lastNetIncome || 0) * 3);
-  if (gold <= reserve) return null;
+  if (gold - reserve < rushGold(1)) return null;
+  const owned = getOwnedRegionIds(regions, nation.id);
   let best = null;
-  for (const id of getOwnedRegionIds(regions, nation.id)) {
+  for (const id of owned) {
     const c = regions[id];
     const item = c?.production?.current;
-    if (c.size == null || !item || item.kind === 'wonder' || c.occupiedBy) continue;
+    if (c.size == null || !item || item.kind === 'wonder' || c.occupiedBy || c.underInvasion || c.siege || c.razing) continue;
     if (best == null || c.size > regions[best].size) best = id;
   }
   if (best == null) return null;
-  // A cheap estimate first (the full quote works the city's land): skip when even the base price of
-  // what is missing is out of reach.
+  const city = regions[best];
+  const p = city.production;
   const ageId = getEffectiveAgeId(state.age, getTechAgeId(state, nation.id));
-  const p = regions[best].production;
-  const estimate = productionCost(p.current, { ageId, citiesOwned: 1, speedMult: speedCostMult(state.gameSpeed, ageId), trainMult: speedTrainMult(state.gameSpeed, ageId) }) - (p.progress || 0);
-  if (rushGold(estimate, 0, p.current.kind) > gold - reserve) return null;
-  const look = { ...state, regions };
-  const quote = rushQuote(look, best, 0, nation.id, gold - reserve);
-  if (!quote.ok || !(quote.turns > AI_RUSH_MIN_TURNS)) return null;
-  return { nation: { ...nation, economy: { ...nation.economy, gold: gold - quote.gold } }, regionId: best, updatedRegion: applyRush(regions[best], 0, quote, state.turnNumber) };
+  const cost = productionCost(p.current, { ageId, citiesOwned: owned.length || 1, speedMult: speedCostMult(state.gameSpeed, ageId), trainMult: speedTrainMult(state.gameSpeed, ageId) });
+  const missing = cost - (p.progress || 0);
+  const perTurn = city.lastYields?.production || 0;
+  if (!(missing > 0) || (perTurn > 0 && missing / perTurn <= AI_RUSH_MIN_TURNS)) return null;
+  const heat = rushHeat(city, state.turnNumber, state.gameSpeed, ageId);
+  const bought = rushAffordable(missing, gold - reserve, heat, p.current.kind);
+  if (!bought) return null;
+  return { nation: { ...nation, economy: { ...nation.economy, gold: gold - bought.gold } }, regionId: best, updatedRegion: applyRush(city, 0, { cost: (p.progress || 0) + bought.hammers, heat }, state.turnNumber) };
 };
 
 export const AI_LAW_ADM_RESERVE = 50;

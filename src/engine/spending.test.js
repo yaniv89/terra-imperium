@@ -9,7 +9,7 @@ import { speedCostMult, speedTrainMult, TRAIN_SPEED_SHARE } from '../data/ages';
 import { productionCost, queueItem, dequeueItem, itemProgress } from './world/cities';
 import { queueView, investInGrowth, growthView, GROWTH_BUY_SHARE } from './cityEconomy';
 import {
-  rushQuote, applyRush, rushGold, rushHeat, rushPriceMult, RUSH_GOLD_PER_HAMMER, RUSH_KIND_MULT, RUSH_HEAT_MAX, RUSH_COOL_REF_TURNS,
+  rushQuote, applyRush, rushGold, rushAffordable, rushHeat, rushPriceMult, RUSH_GOLD_PER_HAMMER, RUSH_KIND_MULT, RUSH_HEAT_MAX, RUSH_COOL_REF_TURNS,
   scaledGold, eraGoldFactor, infrastructureCosts, defensesCosts, growthCosts
 } from './spending';
 import { speedTurns } from '../data/ages';
@@ -106,6 +106,13 @@ describe('rush (I019)', () => {
     expect(rushHeat(city, 10 + cool, 'normal')).toBe(2);
     expect(rushHeat(city, 10 + 3 * cool, 'normal')).toBe(0);
     expect(applyRush({ production: empty, rush: { heat: RUSH_HEAT_MAX, turn: 1 } }, 0, { cost: 5, heat: RUSH_HEAT_MAX }, 2).rush.heat).toBe(RUSH_HEAT_MAX);
+  });
+
+  it('a budget buys whole points at the same price, never more than it holds', () => {
+    expect(rushAffordable(50, 3)).toBeNull();
+    expect(rushAffordable(50, 41)).toEqual({ hammers: 10, gold: 40 });
+    expect(rushAffordable(5, 1000)).toEqual({ hammers: 5, gold: 20 });
+    expect(rushAffordable(10, 1000, 0, 'settler').gold).toBe(rushGold(10, 0, 'settler'));
   });
 
   it('an AI nation rushes through the same quote instead of writing buildings in', () => {

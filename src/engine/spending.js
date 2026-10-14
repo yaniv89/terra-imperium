@@ -63,7 +63,19 @@ export const rushHeat = (city, turnNumber, gameSpeed, ageId = 'bronze') => {
 export const rushPriceMult = (heat) => 1 + RUSH_HEAT_STEP * Math.min(RUSH_HEAT_MAX, Math.max(0, heat));
 export const rushGold = (hammers, heat = 0, kind = null) => (hammers > 0 ? Math.ceil(hammers * RUSH_GOLD_PER_HAMMER * (RUSH_KIND_MULT[kind] || 1) * rushPriceMult(heat) - 1e-9) : 0);
 
-const treasuryOf = (state, nationId) => (nationId === state.playerNationId ? state.resources?.gold : state.nations?.[nationId]?.economy?.gold) || 0;
+/** The most of `missing` production `budget` gold buys at the rush price: { hammers, gold } (whole
+ * points, gold never above the budget) or null when not even one point. The AI buys this way
+ * (aiEconomy.js tryRushProduction). */
+export const rushAffordable = (missing, budget, heat = 0, kind = null) => {
+  if (!(missing > 0) || !(budget > 0)) return null;
+  const perPoint = RUSH_GOLD_PER_HAMMER * (RUSH_KIND_MULT[kind] || 1) * rushPriceMult(heat);
+  const hammers = Math.min(Math.ceil(missing - 1e-9), Math.floor(budget / perPoint));
+  if (hammers < 1) return null;
+  const gold = rushGold(hammers, heat, kind);
+  return gold <= budget ? { hammers: Math.min(hammers, missing), gold } : null;
+};
+
+const treasuryOf =(state, nationId) => (nationId === state.playerNationId ? state.resources?.gold : state.nations?.[nationId]?.economy?.gold) || 0;
 
 /**
  * The quote to rush the order at `index` of [current, ...queue] in a city:
