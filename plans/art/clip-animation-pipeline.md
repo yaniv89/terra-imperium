@@ -1,0 +1,169 @@
+# Clip animation for battle units: what the code needs (I219)
+
+Status: design note, 2026-10-14. Answers audit item I219 for the code session. No code changed.
+
+## 1. What we have today
+
+- **Drawing.** One `InstancedMesh` per (age, class) and detail level; the three levels share the
+  per-instance buffers: matrix, colour, `aAnim` vec3, `aVariant` vec4 (`src/battle/render/
+  BattleRenderer.js` 849-874). Only figures in view are written each frame (`drawSquads`, 1253).
+- **A rigid rig in the vertex shader.** Each vertex has `aLimb` (8 bones, `soldierFactory.js` 25)
+  and `aPivot` (its hinge). `rigAngle()` (`RIG_GLSL`, 415-451) swings legs and arms from `aAnim` =
+  (phase, moving, attacking) and the clock `RIG_TIME` (544). No death, hit or work motion.
+- **Attributes.** A layer uses 14 of the 16: position, normal, color, aLimb, aPivot, aUv, aLook,
+  aAnim, aVariant, instanceMatrix (4), instanceColor (`packForGPU` comment, 524-527). Two are free.
+- **GLB bake.** `extractUnitGeometry` (`gltfUnitLoader.js` 246) poses the model on Idle frame 1
+  (`applyPose`, 180-196), bakes one non-indexed flat-shaded soup (462), maps each vertex to its
+  **dominant bone** (320-326) and that bone to a limb by name (109). The clips are then dropped.
+- **Detail levels** (`soldierLod.js`): LOD1 and LOD2 are made **at runtime** by meshopt (550 and
+  220 triangles, 19), welding on every rig attribute (40). One level for the whole field (152).
+- **Per squad, not per figure.** The view gives position, facing, strength, `routed` and
+  `striking` (`view.js` 46, `packedView.js` 22, 48). The renderer derives `moving` (1294) and
+  `fighting` (1301). A figure that dies just stops being drawn; `spillBlood` sprays (1342, 1275).
+- **Workers** are one figure a squad (`battleStats.js` 20). `workerTick` (`sim/economy.js`
+  425-491): `gather` phase 0 walks out, 1 works or waits for a slot (455-457), 2 hauls; deposit at
+  441. `build` (473) and `repair` (480) set `lastStrikeTick` (the strike pose). **Gathering sets
+  nothing, so a gathering worker stands still.** `ecoView.carrying` (671) covers only the player's
+  workers. Node kinds (`data/economy.js` 102-109): tree, stone, gold, herd, cattle, fish, farm.
+
+## 2. What the art already gives us
+
+| GLB | Clips (keys / seconds) |
+|---|---|
+| bronze-infantry | Idle, IdleAlt (2.0 s), Walk 1.0, Run 0.7, Retreat-run 0.7, Attack 1.0, Attack2 1.2, Block 1.0, Hit 0.4, Death 1.5, DeathAlt 1.5, Cheer 1.6 |
+| bronze-ranged | Idle, IdleAlt, Walk, Run, Draw-aim-release 1.6, Melee-fallback 1.0, Hit, Death, DeathAlt |
+| bronze-worker | Idle, Walk, Run, Carry 1.25, Chop 1.65, Mine 1.45, Harvest 1.85, Build 1.25, Repair 1.05, Deposit 1.5, Hit, Death |
+| bronze-siege | Idle, Move, Deploy, Aim, Fire, Reload, Destroyed |
+| the other 40 unit GLBs | none: `ti_figure.py` 1408 exports `animations=False` ("rest pose only, no clips") |
+
+- Authored at 20 fps (`ti_units.py` 94 and 151; builders write `clips.json` with fps 20). The
+  exporter resamples at about 29 keys a second; durations match 20 fps.
+- Events exist only in `clips.json` in the build output (for example `build_bronze_worker.py`
+  174-176: Chop contact 19, Mine 17, Build 17, Repair 14, Deposit pour 18, Death settle 30). They
+  are **not in the repo**, so the game cannot read them.
+- Rig: `ti_units.py` `rig()` (81-95), 21 bones: Root, Hips, Spine, Chest, Neck, Head, and per side
+  Arm, Forearm, Hand, Prop, Leg, Shin, Foot, plus Prop_Back. Mounts add 14 `Mount_*` bones and a
+  `Rider` socket (35 in all). Bronze siege carries 91 (four crew plus the machine).
+- The bronze worker has one tool (a mattock on Prop_R) and a basket on Prop_Back. AN15 wants an axe
+  for Chop and a pickaxe for Mine and gold: **tool swap needs authoring**.
+- Plan conflicts: `ART-MODELS-PLAN.md` D5 (57) chose VAT and Wave 0b (702) is this work;
+  `model-brief-for-claude.md` 4.6 (197) says 30 fps and lower-case bone names that no builder uses.
+- Phone budget (`TRIANGLE-BUDGET.md` 183): 700k triangles target, 1.0 M ceiling, 128 MB GPU
+  textures in a battle. A two-triangle impostor (8 directions x pose frames) is planned (215, 287).
+
+## 3. The three options
+
+| | 1. VAT | 2. Bone texture, rigid (recommended) | 3. More procedural motions |
+|---|---|---|---|
+| Data | Each vertex's position (and normal) per frame, RGBA16F | Each bone's 3x4 matrix per frame, RGBA32F, 3 texels a bone | None |
+| Size, bronze infantry (300 frames) | LOD0 6,000 verts: 14 MB positions, 29 MB with normals; LOD1 8 MB; LOD2 3 MB | 21 x 3 x 300 x 16 B = **0.3 MB**; mounted 0.5 MB; siege 1.3 MB | 0 |
+| A battle (about 14 unit types) | 200 to 400 MB with LOD0: over the 128 MB budget | 5 to 10 MB | 0 |
+| Detail levels | Each level needs its own bake, and the levels are made at runtime, so the bake must run after meshopt | Levels keep the bone index like `aLimb` today: **one texture serves all levels** | Free |
+| Attributes | `gl_VertexID` addresses the texture: drop aLimb, aPivot (12 used) | `aBone` replaces aLimb and aPivot (13 used); full 4-weight skinning would be 15 | aAnim becomes a vec4 (14) |
+| Vertex work | 2 fetches (position, normal) per sample | 3 `texelFetch` per sample; 6 with frame blend, 12 while cross-fading | A few ALU ops |
+| Uses the authored clips | Yes | Yes | No |
+| Build step | Bake script in Blender or Node | **None needed**: sample the clips in the loader with three's `AnimationMixer` (already used in `applyPose`) | None |
+| Work | about 3 weeks | about 2 weeks | about 1 week |
+
+Both texture options read unfiltered float textures with `texelFetch`, core WebGL2 on iPhone
+Safari. All three are visual only: the sim never reads animation, so hashes, replays and parity are
+unchanged. Clip time runs on `RIG_TIME`.
+
+VAT loses on memory and on its coupling to runtime LODs; procedural ignores art that exists. Rigid
+skinning is what the loader already does (dominant bone), matches the brief's rigid LOD1 weights and
+keeps the faceted look.
+
+## 4. Recommended design (option 2)
+
+**Loader** (`gltfUnitLoader.js`): keep the rest bake. Also write `aBone` (the dominant bone's index)
+instead of only the limb. For each clip, sample at 20 fps: set the mixer time, update world
+matrices, and store per bone `norm x W(frame) x W(rest)^-1 x norm^-1` (W = the bone's world
+matrix, `norm` the loader's normalising matrix). That is relative to the baked rest pose, so polearm
+fitting, team and skin tags are untouched. Pack frames into one RGBA32F `DataTexture` per unit,
+plus a clip table (first frame, frame count, loop). `unitComposer.js` composed units get the same
+treatment from their cloned skeletons.
+
+**Shader**: a `USE_CLIPS` variant of `patchRig` for the three materials (soldier, far, depth). Fetch
+the bone's matrix for the frame and the next, lerp, transform position and normal. Units without
+clips (procedural, the 40 static GLBs) keep today's `rigAngle()` path unchanged.
+
+**Per-instance state**: `aAnim` becomes vec4 = (clip, start time, rate, figure phase). A second
+vec4 `aAnimPrev` (clip, start time, rate, switch time) gives a 0.15 s cross-fade; phones may skip it.
+
+**Renderer state machine** (`drawSquads`): a small per-figure array next to `squadFigures`
+(current clip, start time). Choose per figure:
+
+| Squad state | Clip |
+|---|---|
+| still | Idle or IdleAlt (by figure hash) |
+| moving | Walk or Run, rate scaled to real speed (strides: walk 1.6 m/s, run 2.6) |
+| striking | Attack or Attack2 alternating, started so the contact frame lands on the sim's strike tick |
+| lost strength, figure survives | Hit on a few front figures; never over Death |
+| routed | Retreat-run |
+| won | Cheer |
+| figure lost | Death or DeathAlt in a **corpse pool**: the slot where `spillBlood` already puts it, hold the last frame, sink after some seconds |
+
+The corpse pool needs room in each layer's capacity (`capacity.js` `soldierSlots`).
+
+**View fields to add** (packed per-tick record, `packedView.js` FIELDS; never hashed):
+
+| Field | Why |
+|---|---|
+| `lastStrikeTick` | Sync attack contact (and arrow release) to the real event (AN06, AN07) |
+| `lastHitTick` | Hit reaction (the sim already keeps it) |
+| `work` | Worker job code: to-node, working, waiting for a slot, hauling, build, repair, plus the node kind |
+| `lastDepositTick` | Deposit at the real drop-off (AN16) |
+
+`work` must cover every visible worker, not only the player's (`ecoView.carrying` today).
+Worker clips: tree to Chop, stone and gold to Mine, herd, cattle, fish and farm to Harvest,
+hauling to Carry, build to Build, repair to Repair, waiting to Idle.
+
+**Impostor (LOD3)**: bake its atlas from the same sampled frames, and pick the atlas cell from the
+same per-instance (clip, time). Same state, no new contract.
+
+## 5. Which clips are ready to bake
+
+| Ready now | Needs authoring or export |
+|---|---|
+| Bronze worker: all 12 (the tool is wrong for Chop and Mine) | Axe and pickaxe props with per-clip visibility (AN15, MD07) |
+| Bronze infantry: all 12 | Classical to Modern: export clips (they ship rest pose only) |
+| Bronze ranged: all 9 | Mounted: no unit has clips (AN09) |
+| Bronze siege: 7 | Charge, Rout, Victory where the brief lists them |
+
+## 6. Phased plan
+
+1. **Workers and death** (about 1 week): loader bake, `USE_CLIPS` shader, per-figure state,
+   `work` and `lastDepositTick` in the view, corpse pool. Bronze worker plays its 12 clips; Bronze
+   infantry, ranged and worker die and lie still.
+2. **Combat** (about 4 days): Attack and Attack2 synced to `lastStrikeTick`, Hit, Block,
+   Draw-aim-release at the arrow spawn, Retreat-run, Cheer; siege Fire, Reload, Destroyed.
+3. **Cavalry and generals** (about 4 days, after the art): 35-bone mounts, coupled rider and horse.
+   Then the impostor.
+
+Each phase: battle-lab screenshots at 844x390, phone frame time within D3.
+
+## 7. Contract between art and code
+
+- **Bones**: the `ti_units.py` names (section 2). One dominant bone per vertex decides the motion,
+  so weight cleanly. At most 128 bones a file.
+- **Frame 1 of Idle is the rest pose** the game bakes.
+- **20 fps**, in place (Root moves only for Death's fall), loops closed (first frame equals last).
+- **Names** per archetype: the D5 table (`ART-MODELS-PLAN.md` 161-171), spelled exactly.
+- **Events** (1-based frames): `contact` (Attack, Attack2, Melee-fallback, Chop, Mine, Build,
+  Repair), `release` (bow and gun fire), `cut` (Harvest), `pour` (Deposit), `settle` (Death,
+  DeathAlt, Destroyed, Wreck).
+- **Tools**: each tool on its own child bone of Prop_R (`Tool_Axe`, `Tool_Pick`), keyed to scale 0
+  in clips that do not use it.
+- **Files**: clips inside `src/assets/units/<uid>.glb` (ACTIONS mode). Loop flags and events in
+  the options file `src/assets/units/<uid>.json` under `"clips"`, which `unitModels.js` already
+  loads (34). Stop leaving `clips.json` only in the build output.
+
+## 8. Open questions for the user
+
+1. Replace D5's VAT with the rigid bone texture? (Same art, about 40x less memory.)
+2. 20 fps everywhere? The model brief says 30, and the Classical infantry builder uses 30.
+3. How long should bodies lie: a few seconds, or the whole battle (capped per squad)?
+4. Should enemy workers also show their work, or only yours?
+5. Export the generic `ti_units` clip set as placeholders for Classical to Modern now, or wait
+   for authored clips?
+6. On phones, allow the cross-fade, or snap between clips to save vertex work?
