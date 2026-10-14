@@ -31,9 +31,13 @@ The user asked for Hebrew support with a switch between Hebrew and English in th
    `{ key, vars }`; the UI renders them in the current language. Old saves keep their English strings
    and show them as they are (no migration of past text). This keeps the engine deterministic and
    lets the language change mid-game.
-5. **Names:** people, city, ruler and dynasty names stay as they are (proper names), with an optional
-   Hebrew spelling table for the best-known (Israel ישראל, Kemet מצרים, Akkad אכד, Jerusalem ירושלים).
-   Techs, buildings, units, laws, resources, wonders and events get full Hebrew names and texts.
+5. **Names (user ruling, 14 October: all or nothing):** in Hebrew, every name is written in Hebrew
+   letters: all peoples, all cities, rulers, dynasties, generals, regiments, battles, wonders and
+   rivers, never a mix of Hebrew and English on one screen. Names are transliterated (ישראל,
+   ירושלים, מצרים, אכד, טנוצ'טיטלאן) by a reviewed table, with a deterministic transliteration rule as
+   the fallback so a generated or rare name is still Hebrew. A test checks that no Latin letters
+   appear in any name the Hebrew UI shows. Techs, buildings, units, laws, resources, wonders and events
+   get full Hebrew names and texts.
 6. **Fonts:** add a Hebrew-capable body and display face from Google Fonts (for example Heebo or
    Assistant for body, Frank Ruhl Libre for display), loaded only when Hebrew is on.
 7. **Quality:** the first full Hebrew text is machine drafted, then reviewed by the user (a native
@@ -47,7 +51,8 @@ The user asked for Hebrew support with a switch between Hebrew and English in th
 | H1 | RTL layout pass: replace physical left/right classes with logical ones across components; mirror the rail and sheets; fix icons that point a direction (chevrons, arrows); screenshots in both languages at 844x390, 844x340 and desktop | M |
 | H2 | Shell strings: title screen, start steps, top bar, rail, Menu, settings, End Turn, chips, prompts, panels' headings and buttons (the parts seen every turn) | M |
 | H3 | Engine and log: `{ key, vars }` entries for logs, events, battle reports, peace and demand cards, notifications; renderer for both languages; old-save strings shown as is | L |
-| H4 | Game data: names and descriptions in `src/data` (techs, buildings, units, laws, resources, wonders, events, era goals, independents, city-states) into per-language tables; the people and city name table | L |
+| H4 | Game data: names and descriptions in `src/data` (techs, buildings, units, laws, resources, wonders, events, era goals, independents, city-states) into per-language tables | L |
+| H4b | Every proper name in Hebrew: peoples, all cities (each people's full city name list), rulers, dynasties, generals, regiments, battle names, rivers; reviewed table plus a transliteration fallback; test that the Hebrew UI shows no Latin letters in names | L |
 | H5 | Battle UI: HUD, build sheet, inspect cards, result screen, battle report | M |
 | H6 | Review: the user plays a session in Hebrew; fix wording, overflow (Hebrew is often shorter, but some labels run longer), and any RTL glitches; then a test that every key has a Hebrew value | M |
 
