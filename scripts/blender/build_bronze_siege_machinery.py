@@ -2,6 +2,9 @@
 # Bronze siege, step 1: the covered ram machinery (run build_bronze_siege.py after it)
 # Authored by the Codex agent on 2026-10-07 (local Blender 5.2), moved into the repository by Claude:
 # outputs go to art-build/units/<id>/ (ti_units.out_dir), the shared helpers are ti_units.py.
+# Quality pass of 2026-10-14 (size, footprint and crew places kept): a dark wood of its own for the
+# frame, the side curtains in the side's colour (Team on the Hull), a darker nave on each plank
+# wheel, a pointed bronze ram head inside the old cap's length.
 """Local Blender authoring: separate articulated ram machinery, no atlas or ground."""
 import bpy, math, json, sys
 from pathlib import Path
@@ -23,7 +26,7 @@ def material(name,hexcolor):
  p=m.node_tree.nodes.get('Principled BSDF');p.inputs['Base Color'].default_value=m.diffuse_color;p.inputs['Roughness'].default_value=.84
  return m
 mats={n:material(n,c) for n,c in [('Wood','957250'),('DarkWood','6B4F33'),('Leather','9C744C'),('Team','BFBFBF'),('Cloth','D8D2C4'),('Metal','A07834')]}
-mats['DarkWood']=mats['Wood']  # Canonical unit material tags, no extra dark-wood shader tag.
+mats['DarkWood']=material('DarkWood','5E4128')  # the frame darker than the planks and the beam
 root=bpy.data.objects.new('bronze-siege',None);bpy.context.collection.objects.link(root)
 lod=bpy.data.objects.new('LOD0',None);bpy.context.collection.objects.link(lod);lod.parent=root
 arm=bpy.data.armatures.new('RamRig');rig=bpy.data.objects.new('RamRig',arm);bpy.context.collection.objects.link(rig);rig.parent=lod
@@ -62,14 +65,20 @@ for x in (-.36,.36):box('Roof edge beam',(x,0,.79),(.07,1.58,.07))
 box('Roof ridge',(0,0,.92),(.045,1.6,.05),'DarkWood')
 for side in (-1,1):
  verts=[(0,-.8,.925),(side*.42,-.8,.785),(side*.42,.8,.785),(0,.8,.925)]
- mesh=bpy.data.meshes.new('Hide roof panel');mesh.from_pydata(verts,[],[(0,1,2,3)]);mesh.update()
+ # a thin closed slab, faces outward: the single panel faced down and the battle (which culls back
+ # faces) drew no roof at all
+ verts=verts+[(x,y,z-.014) for x,y,z in verts]
+ mesh=bpy.data.meshes.new('Hide roof panel');mesh.from_pydata(verts,[],[(0,1,2,3),(7,6,5,4),(0,4,5,1),(1,5,6,2),(2,6,7,3),(3,7,4,0)]);mesh.update()
+ import bmesh;bm=bmesh.new();bm.from_mesh(mesh);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(mesh);bm.free();mesh.update()
  o=bpy.data.objects.new('Hide roof',mesh);bpy.context.collection.objects.link(o);finish(o,'Hide roof','Leather','Hull')
  for y in (-.68,0,.68):
   a=Vector((0,y,.93));b=Vector((side*.415,y,.79));mid=(a+b)/2
   o=box('Roof rib',mid,(.036,.045,(b-a).length),'Wood');o.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler()
- for y in (-.40,.40):box('Partial linen side curtain',(side*.365,y,.66),(.012,.59,.23),'Cloth')
+ for y in (-.40,.40):box('Partial linen side curtain',(side*.365,y,.66),(.012,.59,.23),'Team')
 cylinder('Suspended ram beam',(0,-.3,.49),.105,1.55,'Wood','Beam','Y',vertices=10)
-cylinder('Plain bronze ram cap',(0,-1.125,.49),.112,.1,'Metal','Beam','Y',vertices=10)
+cylinder('Plain bronze ram cap',(0,-1.10,.49),.114,.05,'Metal','Beam','Y',vertices=10)
+bpy.ops.mesh.primitive_cone_add(vertices=10,radius1=.112,radius2=.035,depth=.05,end_fill_type='NGON',location=(0,-1.15,.49))
+o=bpy.context.object;o.rotation_euler=(math.pi/2,0,0);finish(o,'Bronze ram head','Metal','Beam')
 for y in (-.47,.43):
  box('Beam suspension strap',(0,y,.67),(.06,.055,.34),'Leather','Beam')
  cylinder('Beam strap collar',(0,y,.49),.109,.06,'Leather','Beam','Y',vertices=10)

@@ -53,6 +53,44 @@ def disc_wheel(prefix, arm, bone, cx, cy, cz, radius, mat='Wood'):
             u.tube(f'{prefix}Hub', [(cx - .055, cy, cz), (cx + .055, cy, cz)], [.05, .05], mat, [bone] * 2, 6, arm)]
 
 
+def fine_wheel(prefix, arm, bone, cx, cy, cz, radius, spokes=6, mat='Wood', hub='Metal', rim=None, n=12):
+    """The spoked wheel of the quality pass (axle along X): a square-section felloe of `n` sides
+    (`rim`: its material, a bronze tyre), tapered spokes one by one, a nave with flanged ends."""
+    out = []
+    v, f = [], []
+    sect = [(-.019, 0), (.019, 0), (.019, -.045), (-.019, -.045)]
+    for i in range(n):
+        a = 2 * math.pi * i / n
+        for dx, dr in sect:
+            v.append((cx + dx, cy + (radius + dr) * math.cos(a), cz + (radius + dr) * math.sin(a)))
+    for i in range(n):
+        j = (i + 1) % n
+        for k in range(4):
+            a0, a1, b0, b1 = 4 * i + k, 4 * i + (k + 1) % 4, 4 * j + k, 4 * j + (k + 1) % 4
+            f += [(a0, a1, b1), (a0, b1, b0)]
+    out.append(u.mesh_obj(f'{prefix}Rim', v, f, rim or mat, bone, arm=arm))
+    for i in range(spokes):
+        a = 2 * math.pi * (i + .5) / spokes
+        ca, sa = math.cos(a), math.sin(a)
+        out.append(u.tube(f'{prefix}Spoke{i}', [(cx, cy + .035 * ca, cz + .035 * sa), (cx, cy + (radius - .040) * ca, cz + (radius - .040) * sa)],
+                          [(.016, .014), (.011, .010)], mat, [bone] * 2, 4, arm))
+    out.append(u.tube(f'{prefix}Hub', [(cx - .058, cy, cz), (cx - .040, cy, cz), (cx + .040, cy, cz), (cx + .058, cy, cz)], [.024, .048, .048, .024], hub, [bone] * 4, 6, arm))
+    return out
+
+
+def fine_disc_wheel(prefix, arm, bone, cx, cy, cz, radius, mat='Wood', dark='Wood', hub='Metal', n=12):
+    """The solid plank wheel of the quality pass: a drum of `n` sides, two battens across each face,
+    a square nave block with a pin."""
+    out = [u.tube(f'{prefix}Disc', [(cx - .032, cy, cz), (cx + .032, cy, cz)], [radius, radius], mat, [bone] * 2, n, arm)]
+    chord = 2 * radius * math.sin(math.acos(.50)) - .02
+    for sx in (-1, 1):
+        for k, sy in enumerate((-1, 1)):
+            out.append(u.box(f'{prefix}Batten{sx}{k}', (cx + sx * .038, cy + sy * radius * .50, cz), (.014, .045, chord), dark, bone, arm))
+    out.append(u.box(f'{prefix}Hub', (cx, cy, cz), (.13, .085, .085), dark, bone, arm))
+    out.append(u.tube(f'{prefix}Pin', [(cx - .085, cy, cz), (cx + .085, cy, cz)], [.022, .022], hub, [bone] * 2, 5, arm))
+    return out
+
+
 def horse(prefix='Mount', at=(0, 0, 0), coat='Leather', dark='Wood'):
     """The horse rig: a small Bronze Age horse (0.78 H at the withers), hooves on Z = 0."""
     return u.quadruped(prefix, 'horse', at, coat=coat, dark=dark)
@@ -61,6 +99,119 @@ def horse(prefix='Mount', at=(0, 0, 0), coat='Leather', dark='Wood'):
 def ox(prefix='Ox', at=(0, 0, 0), coat='Leather', dark='Wood', horn='Cloth'):
     """The ox rig: a long-horned draught ox."""
     return u.quadruped(prefix, 'ox', at, coat=coat, dark=dark, horn=horn)
+
+
+# The fine horse's and the fine ox's barrel: (y, centre z, half height, half width) from chest to croup.
+HORSE_BARREL = [(-.475, .665, .075, .065), (-.43, .65, .135, .108), (-.30, .615, .160, .128), (-.05, .60, .148, .130), (.22, .61, .150, .128), (.39, .625, .138, .120), (.475, .62, .065, .060)]
+OX_BARREL = [(-.50, .52, .10, .085), (-.44, .53, .185, .145), (-.30, .525, .215, .165), (-.05, .50, .200, .170), (.22, .495, .195, .165), (.40, .505, .180, .150), (.495, .50, .085, .075)]
+
+
+def barrel_at(y, barrel=HORSE_BARREL):
+    """(centre z, half height, half width) of the barrel at `y`."""
+    for a, b in zip(barrel, barrel[1:]):
+        if y <= b[0]:
+            t = max(0, (y - a[0]) / (b[0] - a[0]))
+            return tuple(a[k] + (b[k] - a[k]) * t for k in (1, 2, 3))
+    return barrel[-1][1:]
+
+
+def drape(name, arm, mat, y0, y1, reach=105, grow=.012, bone='Mount_Spine', barrel=HORSE_BARREL, steps=6, rows=3, fringe=0):
+    """A cloth over the animal's back from y0 to y1, hanging `reach` degrees down each flank (a
+    saddle cloth, a blanket, a girth with reach=180). `fringe`: every second point of the two
+    edges hangs that much lower. Faces outward."""
+    v, f = [], []
+    for i in range(rows):
+        y = y0 + (y1 - y0) * i / (rows - 1)
+        cz, h, w = barrel_at(y, barrel)
+        for k in range(steps + 1):
+            a = math.radians(-reach + 2 * reach * k / steps)
+            drop = fringe if (k in (0, steps) and i % 2 == 0) else 0
+            v.append(((w + grow) * math.sin(a), y, cz + (h + grow) * math.cos(a) - drop))
+    n = steps + 1
+    for i in range(rows - 1):
+        for k in range(steps):
+            a, b, c, d = i * n + k, i * n + k + 1, (i + 1) * n + k + 1, (i + 1) * n + k
+            f += [(a, b, c), (a, c, d)]
+    return u.mesh_obj(name, v, f, mat, bone, arm=arm)
+
+
+def _swap(arm, meshes, names):
+    """Remove the named parts of a quadruped (they are rebuilt with more shape)."""
+    for ob in [o for o in meshes if o.name in names]:
+        meshes.remove(ob)
+        bpy.data.objects.remove(ob, do_unlink=True)
+
+
+def fine_horse(prefix='Mount', at=(0, 0, 0), coat='Coat', dark='Mane', pale='Cloth', tack='Leather', blaze=True, socks=True, bridle=True):
+    """The horse rig (same bones, same size) with the quality pass of 2026-10-14: a deeper chest and
+    a rounder croup, an arched neck, a long head with a jaw, a dark muzzle, eyes, pricked ears, a
+    standing mane with a forelock, a full tail, and (options) a white blaze, white socks and a
+    leather bridle. `coat` and `dark` are materials of their own, so the tack and the rider's
+    leather keep their colour. Returns (armature, meshes)."""
+    arm, meshes = u.quadruped(prefix, 'horse', at, coat=coat, dark=dark)
+    _swap(arm, meshes, {f'{prefix}{n}' for n in ('Barrel', 'Neck', 'Head', 'Tail', 'Mane', 'Ear-1', 'Ear1')})
+    add = meshes.append
+    S, N, H = 'Mount_Spine', 'Mount_Neck', 'Mount_Head'
+    add(u.tube(f'{prefix}Barrel', [(0, y, z) for y, z, _, _ in HORSE_BARREL], [(h, w) for _, _, h, w in HORSE_BARREL], coat, [S] * 7, 8, arm))
+    neck = [(0, -.36, .69), (0, -.455, .815), (0, -.535, .925), (0, -.57, .985)]
+    add(u.tube(f'{prefix}Neck', neck, [(.078, .135), (.062, .100), (.052, .078), (.046, .062)], coat, [N] * 4, 8, arm))
+    head = [(0, -.545, 1.000), (0, -.605, .968), (0, -.695, .908), (0, -.770, .858)]
+    hr = [(.048, .052), (.056, .072), (.043, .054), (.036, .041)]
+    add(u.tube(f'{prefix}Head', head, hr, coat, [H] * 4, 8, arm))
+    add(u.tube(f'{prefix}Muzzle', [(0, -.765, .861), (0, -.800, .838), (0, -.815, .828)], [(.0365, .0415), (.034, .036), (.022, .022)], dark, [H] * 3, 6, arm))
+    for sx in (-1, 1):
+        add(u.tube(f'{prefix}Ear{sx}', [(sx * .030, -.540, 1.030), (sx * .036, -.548, 1.075), (sx * .040, -.552, 1.110)], [.017, .014, .002], coat, [H] * 3, 4, arm))
+        add(u.box(f'{prefix}Eye{sx}', (sx * .0545, -.622, .978), (.012, .024, .018), dark, H, arm))
+    # the mane stands along the crest of the neck and falls over the forehead as a forelock
+    back = Vector((0, .87, .50))
+    crest = [Vector(c) + back * (r[1] + .012) for c, r in zip(neck, [(.078, .135), (.062, .100), (.052, .078), (.046, .062)])]
+    crest = [crest[0] + Vector((0, .03, -.05))] + crest + [Vector((0, -.548, 1.058)), Vector((0, -.600, 1.030))]
+    add(u.tube(f'{prefix}Mane', [tuple(c) for c in crest], [(.016, .020), (.022, .040), (.022, .042), (.020, .036), (.018, .030), (.020, .024), (.012, .012)], dark,
+               [N] * 5 + [H] * 2, 5, arm))
+    add(u.tube(f'{prefix}Tail', [(0, .465, .665), (0, .535, .60), (0, .585, .43), (0, .585, .22)], [.028, .048, .050, .012], dark, ['Mount_Tail'] * 4, 6, arm))
+    if blaze:
+        top = Vector((0, -.55, .83)).normalized()
+        pts = [Vector(c) + top * (r[1] + .001) for c, r in zip(head[1:], hr[1:])]
+        add(u.tube(f'{prefix}Blaze', [tuple(q) for q in pts], [(.020, .006), (.016, .006), (.012, .006)], pale, [H] * 3, 4, arm))
+    if socks:
+        for b in arm.data.bones:
+            if b.name.startswith('Mount_Shin'):
+                x, y = b.tail_local.x, b.tail_local.y
+                add(u.tube(f'{prefix}Sock{b.name[10:]}', [(x, y - .008, .050), (x, y - .002, .090), (x, y, .135)], [.0275, .0250, .0245], pale, [b.name] * 3, 5, arm))
+    if bridle:
+        d = (Vector(head[3]) - Vector(head[2])).normalized()
+        c = Vector(head[2]) + d * .030
+        add(u.tube(f'{prefix}Noseband', [tuple(c - d * .011), tuple(c + d * .011)], [(.044, .053), (.042, .051)], tack, [H] * 2, 8, arm))
+        for sx in (-1, 1):
+            add(u.tube(f'{prefix}Cheek{sx}', [(sx * .043, -.720, .900), (sx * .060, -.640, .948), (sx * .052, -.560, 1.012), (sx * .020, -.535, 1.050)], [.008] * 4, tack, [H] * 4, 3, arm))
+    return arm, meshes
+
+
+def fine_ox(prefix='Ox', at=(0, 0, 0), coat='Coat', dark='Mane', horn='Horn', pale='Cloth'):
+    """The ox rig (same bones, same size) with the quality pass: a heavy shoulder hump and a dewlap, a
+    broad head with a pale face and muzzle, dark eyes, ears, lyre horns with a core, a pale patch on the
+    back, a tufted tail. Returns (armature, meshes)."""
+    arm, meshes = u.quadruped(prefix, 'ox', at, coat=coat, dark=dark, horn=horn)
+    _swap(arm, meshes, {f'{prefix}{n}' for n in ('Barrel', 'Neck', 'Head', 'Tail', 'Ear-1', 'Ear1', 'Horn-1', 'Horn1')})
+    add = meshes.append
+    S, N, H = 'Mount_Spine', 'Mount_Neck', 'Mount_Head'
+    add(u.tube(f'{prefix}Barrel', [(0, y, z) for y, z, _, _ in OX_BARREL], [(h, w) for _, _, h, w in OX_BARREL], coat, [S] * 7, 8, arm))
+    add(u.tube(f'{prefix}Neck', [(0, -.42, .56), (0, -.53, .575), (0, -.615, .565)], [(.090, .150), (.080, .125), (.070, .100)], coat, [N] * 3, 8, arm))
+    add(u.tube(f'{prefix}Dewlap', [(0, -.40, .44), (0, -.50, .44), (0, -.60, .47)], [(.030, .060), (.032, .070), (.020, .040)], coat, [N] * 3, 5, arm))
+    head = [(0, -.615, .590), (0, -.675, .545), (0, -.745, .470), (0, -.790, .420)]
+    add(u.tube(f'{prefix}Head', head, [(.075, .078), (.078, .082), (.060, .062), (.050, .050)], coat, [H] * 4, 8, arm))
+    add(u.tube(f'{prefix}Muzzle', [(0, -.775, .437), (0, -.805, .405), (0, -.818, .390)], [(.053, .053), (.050, .047), (.030, .028)], pale, [H] * 3, 6, arm))
+    top = Vector((0, -.70, .71)).normalized()
+    add(u.tube(f'{prefix}Blaze', [tuple(Vector(head[0]) + top * .074), tuple(Vector(head[1]) + top * .080), tuple(Vector(head[2]) + top * .060)],
+               [(.040, .008), (.040, .008), (.030, .008)], pale, [H] * 3, 4, arm))
+    add(drape(f'{prefix}BackPatch', arm, pale, -.22, .14, reach=38, grow=.004, barrel=OX_BARREL, steps=4, rows=3))
+    for sx in (-1, 1):
+        add(u.box(f'{prefix}Eye{sx}', (sx * .074, -.675, .570), (.014, .026, .020), dark, H, arm))
+        add(u.tube(f'{prefix}Ear{sx}', [(sx * .070, -.615, .600), (sx * .125, -.605, .590), (sx * .160, -.600, .575)], [(.020, .028), (.016, .030), (.004, .006)], coat, [H] * 3, 4, arm))
+        add(u.tube(f'{prefix}Horn{sx}', [(sx * .045, -.612, .650), (sx * .130, -.615, .700), (sx * .185, -.635, .790), (sx * .165, -.660, .880)], [.024, .020, .014, .003], horn, [H] * 4, 5, arm))
+    add(u.tube(f'{prefix}Tail', [(0, .50, .57), (0, .545, .44), (0, .555, .28)], [.016, .012, .010], coat, ['Mount_Tail'] * 3, 4, arm))
+    add(u.tube(f'{prefix}TailTuft', [(0, .555, .29), (0, .558, .22), (0, .555, .15)], [.014, .032, .008], dark, ['Mount_Tail'] * 3, 5, arm))
+    return arm, meshes
 
 
 # The camel and the elephant on ti_units.quadruped (same bones, so the loader trots them like a horse).

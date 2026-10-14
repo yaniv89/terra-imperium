@@ -19,11 +19,15 @@ const PRESETS = {
   cavalry: ['cavalry', 'cavalry', 'cavalry', 'infantry', 'ranged'],
   archers: ['ranged', 'ranged', 'ranged', 'infantry', 'infantry'],
   small: ['infantry', 'ranged'],
+  // the support class up close (`&attacker=engineers`: the age's engineers, with a small escort)
+  engineers: ['support', 'infantry', 'ranged'],
   // an independent's raid party (src/engine/raids.js): riders first, a few foot to carry torches
   raiders: ['cavalry', 'cavalry', 'cavalry', 'infantry', 'infantry'],
   // a siege train with its escort, to see the age's engines live (`&attacker=siege`, or `&siege`;
   // with `&people=bosporan_kingdom&age=classical` the Bosporan stone-throwers)
-  siege: ['siege', 'siege', 'siege', 'infantry', 'ranged']
+  siege: ['siege', 'siege', 'siege', 'infantry', 'ranged'],
+  // the age's support unit with an escort (`&attacker=support`: the Bronze baggage train's ox carts)
+  support: ['support', 'support', 'infantry', 'ranged']
 };
 
 // `extra(unit)`: flags added to a unit (a raid party's `raidOf`, a hired band's `mercenary`), as

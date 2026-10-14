@@ -237,8 +237,10 @@ def b_general():
         'Classical general: a mounted commander (muscled cuirass, Team pteruges, transverse Team crest, Team cloak, saddle cloth, sword) with a standard bearer on foot whose cloth standard is the squad emblem', dict(budget=3000, mounted=True)
 
 
-BUILDERS = {'classical-infantry': b_infantry, 'classical-ranged': b_ranged, 'classical-cavalry': b_cavalry, 'classical-siege': b_siege,
-            'classical-support': b_support, 'classical-worker': b_worker, 'classical-general': b_general}
+# The foot units were rebuilt in the quality pass of 2026-10-14 by their own builders on ti_figure.py
+# (build_classical_swordsman.py, build_classical_ranged.py, build_classical_worker.py,
+# build_classical_support.py); b_infantry, b_ranged, b_support and b_worker stay here for reference only.
+BUILDERS = {'classical-cavalry': b_cavalry, 'classical-siege': b_siege, 'classical-general': b_general}
 
 
 def build(uid):

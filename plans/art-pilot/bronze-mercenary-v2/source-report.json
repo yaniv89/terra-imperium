@@ -1,0 +1,53 @@
+{
+  "id": "bronze-mercenary",
+  "triangles": 1998,
+  "by_rig": {
+    "MercenaryRig": 1998
+  },
+  "rigs": {
+    "MercenaryRig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Cloth",
+    "Emblem",
+    "Hair",
+    "Leather",
+    "Metal",
+    "Skin",
+    "Team",
+    "Wood"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Bronze mercenary: a hired foot soldier in foreign kit (feathered crown on a bronze band, leather jerkin under three bronze hoops, baldric, greaves, armlets), a kilt with a leather front panel, a Team waist sash with a coin pouch, a round Emblem shield and a long bronze sword held upright",
+  "pose": "rest pose only; the vertex rig walks the legs and swings the arms",
+  "notes": "Quality pass of 2026-10-14 on ti_figure.py. Team: the waist sash (Spine) and the band under the feathers (Head). The kilt is Team by tag but hangs from the hips, so the battle draws it as plain cloth."
+}
