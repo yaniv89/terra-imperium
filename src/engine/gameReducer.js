@@ -136,6 +136,7 @@ import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder 
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
 import { rushQuote, applyRush, rushItemName, infrastructureCosts, defensesCosts, growthCosts } from './spending';
+import { tradeMaps, answerMapOffer } from './mapTrade';
 
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
@@ -3205,6 +3206,21 @@ const reduceAction = (state, action) => {
         regions: { ...state.regions, [id]: applyRush(city, index, quote, state.turnNumber) },
         logs: [...state.logs, { year: state.year, message: `${city.name} pays ${quote.gold} gold to finish its ${rushItemName(quote.item, quote.ageId)}: ready next turn.`, type: LogTypes.ACTION }]
       };
+    }
+
+    case ActionTypes.TRADE_MAPS: {
+      // Map trading (mapTrade.js, I116): swap, give, ask, buy or sell the explored map; the quote
+      // the nation card shows is the one applied here. A refusal changes nothing.
+      const { nationId, kind } = action.payload || {};
+      const r = tradeMaps(state, nationId, kind);
+      if (r.reason) return reject(state, r.reason);
+      return { ...r.state, logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] };
+    }
+
+    case ActionTypes.ANSWER_MAP_OFFER: {
+      // An AI's offer to swap maps (mapTrade.js processAIMapOffers): accept or decline, never blocking.
+      const r = answerMapOffer(state, !!action.payload?.accept);
+      return r.message ? { ...r.state, logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] } : r.state;
     }
 
     default:

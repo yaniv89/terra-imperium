@@ -28,6 +28,7 @@ import {
   INDEP_FAVOUR_PER_POINT, INDEP_KIN, INDEP_CULTURE_SCALE, INDEP_GRUDGE_PER_POINT, TRADES_WITH_US, TRIBUTARY, RAZED_OUR_KIN
 } from '../data/opinion';
 import { PEOPLES } from '../data/peoples';
+import { GAVE_US_MAP, SWAPPED_MAPS, SHARED_MAP_FADE_TURNS } from '../data/opinion';
 
 // Phase W3: what an independent `A` adds to its view of major `b` (independents 4.5 and 5): the
 // favour its gifts bought, kinship (the same art theme), b's culture in its city, trade, the
@@ -182,6 +183,12 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   // A major whose people's kin had a city razed (razing.js) remembers; fades 1 a turn.
   const razed = A.razedBy?.[b];
   if (razed != null && RAZED_OUR_KIN + ((state.turnNumber || 0) - razed) < 0) out.push({ id: 'razedKin', label: 'Razed a city of our kin', value: RAZED_OUR_KIN + ((state.turnNumber || 0) - razed) });
+  // A map B gave A, or a swap (mapTrade.js, I116): fades 1 every SHARED_MAP_FADE_TURNS turns.
+  const map = A.mapsFrom?.[b];
+  if (map) {
+    const left = (map.gift ? GAVE_US_MAP : SWAPPED_MAPS) - Math.floor(((state.turnNumber || 0) - map.turn) / SHARED_MAP_FADE_TURNS);
+    if (left > 0) out.push({ id: 'sharedMaps', label: map.gift ? 'Gave us their map' : 'Swapped maps with us', value: left });
+  }
   return out.map((r) => ({ ...r, value: Math.round(r.value * 10) / 10 }));
 };
 
