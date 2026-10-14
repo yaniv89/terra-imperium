@@ -120,6 +120,7 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
         rec = { id: w.id, a: w.aggressor, e: w.enemy, start: w.startTurn ?? w.turn ?? t, end: null, withPlayer: w.aggressor === playerId || w.enemy === playerId, indep: isIndependent(after.nations[w.aggressor]) || isIndependent(after.nations[w.enemy]), cb: w.cb || null };
         wars.set(w.id, rec);
       }
+      rec.battles = w.battles || 0;
       if (!w.active && rec.end == null) rec.end = t;
     }
   };
@@ -236,6 +237,10 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       firstUnitTurn: first.unit ?? -1, firstSettlerTurn: first.settler ?? -1, firstBuildingTurn: first.building ?? -1, secondCityTurn: first.city2 ?? -1,
       demandsMajor: demandOutcome.filter((d) => d.kind !== 'tribute').length, demandsTribute: demandOutcome.filter((d) => d.kind === 'tribute').length,
       warsDeclaredMajors: allWars.filter((w) => !w.indep).length, warsDeclaredAll: allWars.length, warsOnPlayer: allWars.filter((w) => w.withPlayer && w.e === me).length,
+      // Battles per war between majors (war.battles, battleOutcome.js), and wars that never saw one.
+      battlesMajors: allWars.filter((w) => !w.indep).reduce((a, w) => a + (w.battles || 0), 0),
+      battlesPerWar: r1(mean(allWars.filter((w) => !w.indep).map((w) => w.battles || 0))),
+      warsZeroBattles: allWars.filter((w) => !w.indep && !(w.battles > 0)).length,
       warLenMedian: median(endedWars), warLenMean: r1(mean(endedWars)), warLenMax: endedWars.length ? Math.max(...endedWars) : 0, warsEnded: endedWars.length,
       sieges: undefined, siegesBegun: tallies.sieges, capturesTotal: tallies.captures, conquestsKept20: tallies.conquestsKept20, conquestsLost20: tallies.conquestsLost20,
       rebellionsStarted: tallies.rebellionsStarted, rebellionsOnPlayer: tallies.rebellionsOnPlayer, rebellionsConqueredLand: tallies.rebellionsConqueredLand, rebellionsSucceeded: tallies.rebellionsSucceeded,

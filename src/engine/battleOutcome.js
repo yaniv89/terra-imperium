@@ -597,7 +597,8 @@ export const applyBattleOutcome = (state, o) => {
   s = { ...s, units: placed.units, regions: placed.regions, nations: placed.nations };
 
   // row 1: one war-score entry
-  if (placed.score && war) s = { ...s, wars: s.wars.map((w) => (w.id === war.id ? { ...w, battleScore: recordBattle(w, placed.score.winnerId, placed.score.share) } : w)) };
+  // `war.battles` counts every battle fought in the war (telemetry: battles per war, wars with none).
+  if (war) s = { ...s, wars: s.wars.map((w) => (w.id === war.id ? { ...w, battles: (w.battles || 0) + 1, ...(placed.score ? { battleScore: recordBattle(w, placed.score.winnerId, placed.score.share) } : {}) } : w)) };
 
   // rows 5 and 21: the aftermath, every kind
   const beforeA = out.attackerUnits.map((u) => ({ ...(state.units[u.id] || u), strength: startStrength(state, out, u) }));
