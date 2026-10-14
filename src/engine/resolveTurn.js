@@ -76,7 +76,7 @@ import {
 } from '../data/actionCosts';
 import { processReignEnd, getAdvisorSalary, successionLine } from './rulers';
 import { applyResearchTurn, researchesThisTurn } from './research';
-import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX } from './nationalPower';
+import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX, getOverextension } from './nationalPower';
 import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy } from './economy';
@@ -390,7 +390,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     if (stabilityCache.has(ownerId)) return stabilityCache.get(ownerId);
     const value = ownerId === state.playerNationId
       ? getModifier(state, ownerId, 'national.stabilityBonus').total
-      : getNationBonusTotal(owner, 'stabilityBonus') + (owner?.stability || 0) + ((owner?.legitimacy ?? 50) < 50 && owner?.ruler ? -1 : 0);
+      : getNationBonusTotal(owner, 'stabilityBonus') + (owner?.stability || 0) + ((owner?.legitimacy ?? 50) < 50 && owner?.ruler ? -1 : 0)
+        // Overextension weighs on an AI's cities as on the player's (sources.js: -overextension/20;
+        // addendum X23, CB09). getOverextension reads the memoized owned-city index: no scan.
+        - (isIndependentNation(owner) ? 0 : getOverextension(state, ownerId) / 20);
     stabilityCache.set(ownerId, value);
     return value;
   };
