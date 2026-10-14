@@ -19,6 +19,8 @@ const PRESETS = {
   cavalry: ['cavalry', 'cavalry', 'cavalry', 'infantry', 'ranged'],
   archers: ['ranged', 'ranged', 'ranged', 'infantry', 'infantry'],
   small: ['infantry', 'ranged'],
+  // the support class up close (`&attacker=engineers`: the age's engineers, with a small escort)
+  engineers: ['support', 'infantry', 'ranged'],
   // an independent's raid party (src/engine/raids.js): riders first, a few foot to carry torches
   raiders: ['cavalry', 'cavalry', 'cavalry', 'infantry', 'infantry'],
   // a siege train with its escort, to see the age's engines live (`&attacker=siege`, or `&siege`;

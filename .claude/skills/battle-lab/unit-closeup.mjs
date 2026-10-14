@@ -2,6 +2,8 @@
 // One unit class up close and at every zoom, cropped round the squad (HUD hidden), for judging a
 // unit model: node unit-closeup.mjs <base url> <outDir> <prefix>
 //   CLASS=infantry (ECO=1 CLASS=worker for the labourer: the battle economy on) AGE=bronze ZOOMS=z6:6,z3:3,z2:2,z1:1,z06:0.6 TIER=0|1|2 (force a detail level)
+//   ARMY=engineers (your side's sandbox preset, small by default; engineers brings the support class)
+//   EXTRA=merc (more sandbox URL parameters, joined with &: merc draws your infantry as the hired band)
 // Writes <prefix>-<zoom>.jpg (the squad centred, the crop scaled to the zoom) for a 844x390 phone at DPR 3.
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
@@ -15,7 +17,7 @@ const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, de
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-await page.goto(`${base}?battleSandbox&age=${process.env.AGE || 'bronze'}&terrain=plains&attacker=small&defender=small${process.env.ECO ? '' : '&noeco'}`, { timeout: 180000 });
+await page.goto(`${base}?battleSandbox&age=${process.env.AGE || 'bronze'}&terrain=plains&attacker=${process.env.ARMY || 'small'}&defender=small${process.env.ECO ? '' : '&noeco'}${process.env.EXTRA ? `&${process.env.EXTRA.replace(/^&/, '')}` : ''}`, { timeout: 180000 });
 await page.getByRole('button', { name: 'Fight' }).click({ timeout: 120000 });
 await page.waitForFunction(() => window.__battleRenderer && window.__battleRenderer.soldierLayers.size > 0, null, { timeout: 90000 });
 await page.waitForTimeout(2500);
