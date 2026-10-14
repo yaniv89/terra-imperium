@@ -6,5 +6,68 @@
     "team": "(^|\\s)Team(\\s|$)",
     "skin": "(^|\\s)Skin(\\s|$)",
     "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "restClip": "^Idle$",
+  "clips": {
+    "Idle": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true,
+      "tool": "Arrow"
+    },
+    "Walk": {
+      "frames": 21,
+      "fps": 20,
+      "loop": true,
+      "tool": "Arrow"
+    },
+    "Run": {
+      "frames": 15,
+      "fps": 20,
+      "loop": true,
+      "tool": "Arrow"
+    },
+    "Draw-aim-release": {
+      "frames": 33,
+      "fps": 20,
+      "loop": false,
+      "tool": "Arrow",
+      "events": {
+        "release": 22
+      }
+    },
+    "Melee-fallback": {
+      "frames": 20,
+      "fps": 20,
+      "loop": false,
+      "tool": "Arrow",
+      "events": {
+        "contact": 11
+      }
+    },
+    "Hit": {
+      "frames": 8,
+      "fps": 20,
+      "loop": false,
+      "tool": "Arrow"
+    },
+    "Death": {
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "tool": "Arrow",
+      "events": {
+        "settle": 30
+      }
+    },
+    "DeathAlt": {
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "tool": "Arrow",
+      "events": {
+        "settle": 30
+      }
+    }
   }
 }

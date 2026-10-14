@@ -1,8 +1,10 @@
 # scripts/blender/build_units_bronze_irregular.py
 # The Bronze irregulars of plans/ART-MODELS-PLAN.md 4.3, quality pass of 2026-10-14 (after the
 # spearman, the archer and the labourer: the figure parts of ti_figure.py, the horse of
-# ti_mounts.fine_horse, baked shade in COLOR_0). Rest pose only, as before: the soldier loader bakes
-# the rest pose and its vertex rig walks the legs and swings the arms.
+# ti_mounts.fine_horse, baked shade in COLOR_0). The raider is rest pose only, as before: the soldier
+# loader bakes the rest pose and its vertex rig walks the legs and swings the arms. The mercenary carries
+# the twelve foot-melee clips since 2026-10-14 (ti_foot_clips.py, a sword and a shield; Idle frame 1 is
+# the rest pose, unchanged).
 #   bronze-mercenary  a hired foot soldier in foreign kit: a feathered crown on a bronze band, a
 #                     leather jerkin under three bronze hoops, a baldric, bronze greaves and armlets, a
 #                     Team waist sash with a coin pouch, a round shield (the squad's Emblem) and a long
@@ -23,6 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ti_units as u  # noqa: E402
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
 tube, box, raw, vertical, sheet = F.tube, F.box, F.raw, F.vertical, F.sheet
@@ -89,9 +92,9 @@ def build_mercenary():
     F.normalize_weights()
     tris = F.finish_unit('bronze-mercenary', [arm], {
         'role': 'Bronze mercenary: a hired foot soldier in foreign kit (feathered crown on a bronze band, leather jerkin under three bronze hoops, baldric, greaves, armlets), a kilt with a leather front panel, a Team waist sash with a coin pouch, a round Emblem shield and a long bronze sword held upright',
-        'pose': 'rest pose only; the vertex rig walks the legs and swings the arms',
+        'pose': 'rest pose = Idle frame 1; the twelve foot-melee clips (ti_foot_clips.py, 2026-10-14)',
         'notes': 'Quality pass of 2026-10-14 on ti_figure.py. Team: the waist sash (Spine) and the band under the feathers (Head). The kilt is Team by tag but hangs from the hips, so the battle draws it as plain cloth.'},
-        open_facing=F.shield_facing(), centre=(0, 0, .58), scale=1.45)
+        open_facing=F.shield_facing(), centre=(0, 0, .58), scale=1.45, clips=FC.clips_hook('bronze-mercenary', FC.Kit('sword', shield=True)))
     assert tris <= 2000, tris
 
 

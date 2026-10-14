@@ -6,7 +6,7 @@
 # Same contract as that builder: the canonical rig (UnitRig) under a root empty named after the unit,
 # flat material colours, the Team and Skin tags, the old names of the cap (BallCap, CapBill,
 # HeadsetCup1 and -1), the chest rig (ChestRig, RigPouch0-2) and the carbine (RifleBody, RifleMag,
-# RifleOptic, RifleMuzzle); rest pose only (no clips). He must not be taken for the rifleman
+# RifleOptic, RifleMuzzle); and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged). He must not be taken for the rifleman
 # (build_modern_infantry.py: helmet, plate carrier, dark uniform, rifle in both hands), so he is a hired
 # hand in his own kit:
 #   - a black ball cap with a headset and boom microphone, dark sunglasses, a full beard
@@ -20,6 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'modern-mercenary'
 arm = F.start({'Skin': 'B9805C', 'Hair': '2B201A', 'Shirt': 'C4AE82', 'Khaki': '625C4C', 'Boot': '8A6C46', 'Sole': '2A221A', 'Cap': '1F1F21',
@@ -57,4 +58,5 @@ F.assault_rifle(g, below=.130, above=.330)
 
 F.finish_rest(UID, 'Mercenary: a contractor in a black ball cap with a headset and microphone, dark sunglasses, a full beard, a tan shirt with short sleeves, a Team chest rig '
               'with dark pouches and X straps, khaki cargo trousers, a pistol in a thigh holster, tan boots, a short carbine upright in the right fist',
-              notes={'role': 'mercenary (drawn for mercenary squads of the infantry class)'})
+              notes={'role': 'mercenary (drawn for mercenary squads of the infantry class)'},
+              clips=FC.clips_hook(UID, FC.Kit('gun')))

@@ -1404,13 +1404,17 @@ def export_glb(path, animations=True, extra=()):
                               export_vertex_color='ACTIVE', export_all_vertex_colors=False, export_active_vertex_color_when_no_material=True)
 
 
-def finish_rest(uid, look, budget=2000, rig_name='UnitRig', notes=None):
-    """The end of a rest pose builder (no clips: the Classical units, whose march and arm swing are
-    the vertex rig's): normals, baked shade, the root empty named after the unit, the GLB, its
-    options file and a report in art-build/units/<uid>/. TI_PREVIEW=1 also writes stills."""
+def finish_rest(uid, look, budget=2000, rig_name='UnitRig', notes=None, clips=None):
+    """The end of a rest pose builder: normals, baked shade, the root empty named after the unit, the
+    GLB, its options file and a report in art-build/units/<uid>/. TI_PREVIEW=1 also writes stills.
+    `clips`: (author, after) from ti_foot_clips.clips_hook: the clips are authored once the rest pose,
+    normals and shade are final (the rest look stays exactly as it was; Idle frame 1 is that pose), the
+    GLB carries them and the options file lists them; after() runs once the GLB is written (the contact
+    sheets)."""
     out = u.out_dir(uid)
     fix_normals(facing, radial)
     shade = bake_shade()
+    table, order = clips[0]() if clips else (None, None)
     normalize_weights()
     tris = u.triangles(meshes)
     assert tris <= budget, (tris, sorted(((u.triangles([o]), o.name) for o in meshes), reverse=True)[:24])
@@ -1419,17 +1423,25 @@ def finish_rest(uid, look, budget=2000, rig_name='UnitRig', notes=None):
     bpy.context.scene.render.fps = 20
     bpy.context.preferences.filepaths.save_version = 0
     bpy.ops.wm.save_as_mainfile(filepath=str(out / f'{uid}.blend'))
-    export_glb(out / f'{uid}.glb', animations=False, extra=[root])
+    export_glb(out / f'{uid}.glb', animations=bool(table), extra=[root])
     mats = sorted({s.material.name for o in meshes for s in o.material_slots if s.material})
     report = {'id': uid, 'triangles': tris, 'budget': budget, 'objects': len(meshes), 'materials': mats,
               'colors': {k: u.COLORS[k] for k in mats if k in u.COLORS}, 'textures': 0, 'mounted': False,
-              'bones': [b.name for b in arm.data.bones], 'pose': 'rest pose only, no clips', 'front': 'Blender -Y, glTF +Z',
+              'bones': [b.name for b in arm.data.bones],
+              'pose': 'rest pose = Idle frame 1; authored clips (ti_foot_clips.py)' if table else 'rest pose only, no clips', 'front': 'Blender -Y, glTF +Z',
               'material_contract': 'flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)',
               'shade_range': shade, 'look': look, **(notes or {}), 'by_object': {o.name: u.triangles([o]) for o in meshes}}
     (out / 'source-report.json').write_text(json.dumps(report, indent=2))
-    opts = {'enabled': True, 'quadruped': False, 'triangleBudget': 3000,
-            'tags': {'team': '(^|\\s)Team(\\s|$)', 'skin': '(^|\\s)Skin(\\s|$)', 'emblem': '(^|\\s)Emblem(\\s|$)'}}
-    (out / f'{uid}.json').write_text(json.dumps(opts, indent=2) + '\n')
+    if table:
+        import ti_clips
+        (out / f'{uid}.json').write_text(ti_clips.options_json(table, order))
+        (out / 'clips.json').write_text(json.dumps({'fps': 20, 'clips': table}, indent=2))
+    else:
+        opts = {'enabled': True, 'quadruped': False, 'triangleBudget': 3000,
+                'tags': {'team': '(^|\\s)Team(\\s|$)', 'skin': '(^|\\s)Skin(\\s|$)', 'emblem': '(^|\\s)Emblem(\\s|$)'}}
+        (out / f'{uid}.json').write_text(json.dumps(opts, indent=2) + '\n')
+    if clips and clips[1]:
+        clips[1]()
     if os.environ.get('TI_PREVIEW'):
         preview(out, uid, size=(560, 720), team='2F6FD0')
     print('FINISHED', out, 'TRIANGLES', tris, 'SHADE', shade, flush=True)
@@ -1517,9 +1529,10 @@ def preview_scene(out, uid, centre=(0, 0, .6), scale=2.4):
     bpy.data.objects.remove(cam, do_unlink=True)
 
 
-def finish_unit(uid, parts, notes, open_facing=None, animations=False, mode='ACTIONS', centre=(0, 0, .6), scale=2.4):
+def finish_unit(uid, parts, notes, open_facing=None, animations=False, mode='ACTIONS', centre=(0, 0, .6), scale=2.4, clips=None):
     """A unit of several rigs: every mesh of the scene shaded (COLOR_0), one root empty named `uid`
-    over `parts`, then <uid>.blend, <uid>.glb and report.json in art-build/units/<uid>/. Returns the triangles."""
+    over `parts`, then <uid>.blend, <uid>.glb and report.json in art-build/units/<uid>/. Returns the triangles.
+    `clips` as finish_rest's (one person on one rig): the GLB carries them, <uid>.json lists them."""
     import json
     import os
     adopt([o for o in bpy.context.scene.objects if o.type == 'MESH'])
@@ -1528,6 +1541,9 @@ def finish_unit(uid, parts, notes, open_facing=None, animations=False, mode='ACT
             p.use_smooth = False
     fix_normals(open_facing)
     shade = bake_shade()
+    table, order = clips[0]() if clips else (None, None)
+    if table:
+        animations = True
     root = u.assemble(uid, parts)
     out = u.out_dir(uid)
     tris = u.scene_triangles()
@@ -1546,6 +1562,12 @@ def finish_unit(uid, parts, notes, open_facing=None, animations=False, mode='ACT
               'material_contract': 'flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)',
               'shade_range': shade, 'person_height_H': 1, 'front': 'Blender -Y, glTF +Z', **notes}
     (out / 'report.json').write_text(json.dumps(report, indent=2))
+    if table:
+        import ti_clips
+        (out / f'{uid}.json').write_text(ti_clips.options_json(table, order))
+        (out / 'clips.json').write_text(json.dumps({'fps': 20, 'clips': table}, indent=2))
+        if clips[1]:
+            clips[1]()
     print(f'BUILT {uid} triangles={tris} by_rig={by_rig} shade={shade} root={root.name}', flush=True)
     return tris
 

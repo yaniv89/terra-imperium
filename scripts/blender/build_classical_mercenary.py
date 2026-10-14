@@ -5,7 +5,7 @@
 #   blender -b --factory-startup -P scripts/blender/build_classical_mercenary.py
 # Same contract as that builder: the canonical rig (MercenaryRig) under a root empty named after the
 # unit, flat material colours, the Team, Skin and Emblem tags, the old object names (Mail, Belt, Sash,
-# CoinPouch, Crest, SwordBlade, ShieldFace, ShieldSpine, ShieldBoss), rest pose only (no clips).
+# CoinPouch, Crest, SwordBlade, ShieldFace, ShieldSpine, ShieldBoss), and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged).
 # He must not be taken for the swordsman (build_classical_swordsman.py: gold bronze, white linen, a
 # tall Team crest), so he is iron and dark wool:
 #   - a grey iron mail shirt to the hips with doubled shoulder capes over a dark wool tunic
@@ -23,6 +23,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'classical-mercenary'
 arm = F.start({'Skin': 'B9805C', 'Cloth': '4A4438', 'Leather': '4E3020', 'Rawhide': '8A6A44', 'Metal': ('9A9DA2', .5, .7), 'Wood': '6A4A30',
@@ -75,4 +76,5 @@ F.oval_shield((.238, -.170, .570), .142, .285, n=12, rim='Rawhide', boss='Metal'
 
 F.finish_rest(UID, 'Mercenary: a grey iron mail shirt with shoulder capes over a dark wool tunic, a tall pointed iron helmet with cheek pieces and a black horsehair tail, beard, '
               'an ochre sash with a coin pouch, a Team waist sash, iron greaves, a long narrow oval shield (Emblem) with a rawhide rim, wooden spine and iron boss, a curved sword held upright',
-              rig_name='MercenaryRig', notes={'role': 'mercenary (drawn for mercenary squads of the infantry class)'})
+              rig_name='MercenaryRig', notes={'role': 'mercenary (drawn for mercenary squads of the infantry class)'},
+              clips=FC.clips_hook(UID, FC.Kit('sword', shield=True)))

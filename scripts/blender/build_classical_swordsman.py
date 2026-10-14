@@ -5,8 +5,8 @@
 # (build_classical_infantry.py is an older pilot on another pipeline, ti_blender.py, and is left as it
 # was; this file replaces b_infantry of build_units_classical.py.)
 # Same contract as that builder: the canonical rig of ti_units.py under a root empty named after the
-# unit, flat material colours, the Team, Skin and Emblem tags, rest pose only (no clips: the vertex rig
-# marches the legs and swings the arms). The look follows plans/art/concepts/oct13/units-classical-set.png
+# unit, flat material colours, the Team, Skin and Emblem tags, and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1
+# is the rest pose, unchanged). The look follows plans/art/concepts/oct13/units-classical-set.png
 # (design reference only):
 #   - a shaped head with eyes and brows under a bronze helmet with a flared rim, cheek pieces, a neck
 #     guard and a tall Team crest from the brow to the nape (the Team colour seen from above)
@@ -23,6 +23,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'classical-infantry'
 arm = F.start({'Skin': 'C99472', 'Cloth': 'F0E8D4', 'Leather': '5A3624', 'Metal': ('D2A24C', .36, .65), 'Iron': ('C9CCD0', .32, .75),
@@ -71,4 +72,5 @@ F.oval_shield((.238, -.170, .585), .165, .262, n=14)
 
 F.finish_rest(UID, 'Swordsmen: bronze muscled cuirass with shoulder guards over a white tunic, leather pteruges, a Team crest and waist sash, '
               'bronze helmet with cheek pieces and neck guard, greaves, a big oval shield (Emblem) with a bronze rim, a short iron sword held upright',
-              notes={'role': 'infantry', 'sword_length_H': .388, 'shield_H': [.33, .524]})
+              notes={'role': 'infantry', 'sword_length_H': .388, 'shield_H': [.33, .524]},
+              clips=FC.clips_hook(UID, FC.Kit('sword', shield=True)))

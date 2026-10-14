@@ -197,6 +197,51 @@ Delivered on `claude/art-worker-clips` for the five base workers (`<age>-worker.
   the work clips. Modern walks with the sledgehammer on the right shoulder and steadies a shoulder
   load in Carry. The basket workers tip the basket over the left shoulder in Deposit.
 
+### 7.2 Foot soldiers' clips (art, 2026-10-14)
+
+Delivered on `claude/art-foot-clips` over `scripts/blender/ti_foot_clips.py` (the poser and author of
+7.1, lifted into `scripts/blender/ti_clips.py` and shared). Clip table and sheets:
+`plans/art-pilot/foot-clips/LOG.md`. Test: `src/battle/render/footClips.test.js`.
+
+- **Sets** (`"clips"` in the options file, in this order): melee (spear, sword, pike) Idle, IdleAlt, Walk,
+  Run, Retreat-run, Attack, Attack2, Block, Hit, Death, DeathAlt, Cheer; bow Idle, Walk, Run,
+  Draw-aim-release, Melee-fallback, Hit, Death, DeathAlt; gun (Gunpowder and Modern infantry, riflemen
+  and mercenaries: the sim makes them shooters, `AGE_OVERRIDES`) the same with Aim-fire-reload; support
+  Idle, Walk, Run, (Mine), Build, Repair, Hit, Death. Retreat-run is a plain upright run (no panic); play
+  it for a squad walking back, or not at all.
+- **Loops**: Idle, IdleAlt, the gaits, Cheer and the work clips. Attack, Attack2, Block, Melee-fallback,
+  Draw-aim-release and Aim-fire-reload are one-shots, played once per strike or shot so the event frame
+  lands on the sim's tick (`lastStrikeTick`); they start and end on the same pose (the melee guard, or the
+  rest pose for the shooting clips), so back-to-back plays join without a fade.
+- **Events** (1-based): `contact` (Attack, Attack2, Melee-fallback, Mine, Build, Repair; held two frames),
+  `release` (Draw-aim-release: the arrow leaves; spawn the projectile here), `fire` and `reloaded`
+  (Aim-fire-reload: the shot, and the end of loading), `settle` (Death, DeathAlt: the last frame; hold it).
+- **Prop bones move**: Prop_R and Prop_L are keyed relative to their hands (a hand slides along a haft: the
+  pike held near its butt, the musket at the stock's wrist; the musket stays in the left hand while the
+  right rams). Sample every bone, Prop_* included; never assume a prop is fixed to its hand.
+- **Tool_Arrow** (archers with a nocked arrow): a child of Prop_R, shown by scale as the worker tools
+  (7.1: a missing scale track is the bind value 1); 0 from `release` until a new arrow comes out of the
+  quiver. Its vertices classify as the right arm, as before. **Prop_String** (the Bronze bow only, a child
+  of Prop_L) carries the string's middle and follows the drawing fist; the Classical and Kingdoms strings
+  are single segments on Prop_L and stay straight.
+- **Polearms** (meshes named spear, pike, lance, halberd): every vertex hangs from Prop_R alone (tested).
+  `fitPolearm` stretches the shaft at rest, from the butt along its rest axis; under clips keep that bake
+  and move the stretched vertices with Prop_R's matrix relative to rest (`W(frame) x W(rest)^-1`, section
+  4): the stretch rides along rigidly, so it must be applied once, in rest space, before the clip matrices,
+  and never re-applied per frame or along a posed axis. A pike levelled in Attack reaches about 2.4 m in
+  front of the man at its 5 m length; that is the drawing, not a bug. Polearms stretch only for base
+  infantry (`bakeOptionsFor`), so a mercenary's or a general's spear keeps its authored length.
+- **Root** stays on X and Y (glTF X and Z) in every clip (tested); it rises and falls with the gaits and
+  the crouches, and turns for the falls (forward in Death, backward in DeathAlt). The floor pass keeps the
+  body above the ground; a weapon may dip into it (a spear butt behind a thrust).
+- **Weapon hands**: the weapon's bone carries the weapon exactly; the fists reach for it with two-bone
+  IK on the figure's short arms, so on a few in-between frames (a long gun coming down from the shoulder,
+  the spade's toss) a fist can sit up to 10 cm off the haft. Nothing for the code to do; it is the art.
+- **Not covered**: modern-ranged (the ATGM team: three rigs, a kneeling gunner) keeps its rest pose and the
+  procedural rig; mounted units, siege and vehicles are separate work. The Gunpowder rifleman's rifle
+  hangs from Prop_L (his left fist), every other gun from Prop_R. No ramrod and no spare magazine were
+  modelled (the triangle counts are unchanged), so loading is the hands' motion alone.
+
 ## 8. Open questions for the user
 
 1. Replace D5's VAT with the rigid bone texture? (Same art, about 40x less memory.)
