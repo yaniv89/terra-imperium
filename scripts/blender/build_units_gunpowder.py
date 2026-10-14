@@ -196,35 +196,7 @@ def wheelbarrow(arm):
 
 
 # ---- the field gun -------------------------------------------------------------------------------
-
-def field_gun(prefix='Gun', mat='Wood', metal='Leather', bronze='Metal'):
-    """A field gun facing -Y: two spoked wheels on the axle at Y = 0, the cheeks of the carriage, the
-    trail sloping back to the ground at +Y, the bronze barrel on its trunnions with the muzzle forward,
-    a rammer and a pile of balls (iron: Leather, the darkest tag; the bronze barrel is Metal). A rigid armature (Hull, Wheel_L, Wheel_R) like ti_mounts.frame."""
-    r = .30; ax = .24
-    rig = u.make_armature(f'{prefix}Rig', [('Hull', (0, 0, r), (0, 0, r + .2), None),
-                                           ('Wheel_L', (ax, 0, r), (ax + .06, 0, r), 'Hull'),
-                                           ('Wheel_R', (-ax, 0, r), (-ax - .06, 0, r), 'Hull')])
-    u.tube(f'{prefix}Axle', [(-ax - .04, 0, r), (ax + .04, 0, r)], [.024, .024], mat, ['Hull'] * 2, 5, rig)
-    for side, sx in [('L', 1), ('R', -1)]:
-        tm.wheel(f'{prefix}Wheel{side}', rig, f'Wheel_{side}', sx * ax, 0, r, r, spokes=10, rim=metal)
-    for sx in (-1, 1):  # the cheeks: from over the axle back to the trail
-        u.tube(f'{prefix}Cheek{sx}', [(sx * .09, -.12, r + .08), (sx * .09, .25, r + .02), (sx * .05, .95, .04)], [(.03, .05), (.03, .045), (.026, .035)], mat, ['Hull'] * 3, 4, rig)
-    u.box(f'{prefix}TrailEnd', (0, .98, .03), (.16, .1, .05), metal, 'Hull', rig)
-    u.box(f'{prefix}Transom', (0, .30, r - .02), (.20, .05, .05), mat, 'Hull', rig)
-    # the barrel: breech with a cascabel at the back, the muzzle swell at the front
-    z = r + .17
-    u.tube(f'{prefix}Barrel', [(0, .30, z), (0, .26, z), (0, .10, z), (0, -.30, z + .01), (0, -.62, z + .02), (0, -.66, z + .02)],
-           [.02, .075, .07, .055, .05, .058], bronze, ['Hull'] * 6, 10, rig)
-    u.tube(f'{prefix}Trunnions', [(-.09, -.02, z - .01), (.09, -.02, z - .01)], [.02, .02], bronze, ['Hull'] * 2, 6, rig)
-    u.box(f'{prefix}Quoin', (0, .24, z - .09), (.08, .14, .05), mat, 'Hull', rig)
-    # the rammer and sponge lying on the trail, a pile of balls by the wheel
-    u.tube(f'{prefix}Rammer', [(.13, -.1, .03), (.13, .85, .03)], [.012, .012], mat, ['Hull'] * 2, 4, rig)
-    u.tube(f'{prefix}RammerHead', [(.13, -.13, .03), (.13, -.08, .03)], [.03, .03], 'Cloth', ['Hull'] * 2, 6, rig)
-    for k, (bx, by, bz) in enumerate([(-.42, .2, .04), (-.48, .26, .04), (-.42, .3, .04), (-.45, .25, .1)]):
-        u.tube(f'{prefix}Ball{k}', [(bx, by, bz - .035), (bx, by, bz + .035)], [.03, .03], metal, ['Hull'] * 2, 6, rig)
-    crew = [(-.62, .1, 0, 90), (.55, -.25, 0, -90), (.25, 1.15, 0, 180)]
-    return [rig], {'rig': rig, 'crew': crew}
+# field_gun() moved unchanged to ti_mounts.py (shared with build_gunpowder_siege.py).
 
 
 def gun_crew(prefix, at, yaw, tool=None):
@@ -275,7 +247,7 @@ def g_cavalry():
 
 
 def g_siege():
-    parts, info = field_gun()
+    parts, info = tm.field_gun()
     # Two thirds of real size (MD09): a field gun about 2.5 m from muzzle to trail on wheels about
     # 0.9 m (the real one 3.5 m and 1.4 m); the crew stays at 1.0.
     tm.enlarge(info['rig'], .82)
@@ -314,7 +286,11 @@ def g_general():
 
 # The foot units were rebuilt in the quality pass of 2026-10-14 by build_gunpowder_<class>.py on
 # ti_figure.py (infantry, ranged, worker, support); their functions here stay for reference only.
-BUILDERS = {'gunpowder-cavalry': g_cavalry, 'gunpowder-siege': g_siege, 'gunpowder-general': g_general}
+# The dragoons and the general were rebuilt the same way by build_gunpowder_cavalry.py and
+# build_gunpowder_general.py, the field cannon's crew by build_gunpowder_siege.py (the gun by the same
+# calls as g_siege: field_gun now lives in ti_mounts.py); g_cavalry, g_general and g_siege stay for
+# reference.
+BUILDERS = {}
 
 
 def build(uid):

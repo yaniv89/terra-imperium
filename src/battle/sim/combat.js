@@ -18,6 +18,7 @@ import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from
 import { moraleFromLosses } from './moraleMath';
 import { isShaken, SHAKEN_DAMAGE_DEALT, SHAKEN_DAMAGE_TAKEN } from './morale';
 import { destroyEcoBuilding, ecoTargetIndex } from './economy';
+import { strikingStrength, ringBroken, KEEP_STORM_MULT } from './siegeRules';
 
 // The structure a squad is going for: a fixed one (the keep, a tower, a city building) or one the
 // battle economy raised ('eco', economy.js).
@@ -34,7 +35,7 @@ export const NON_SIEGE_STRUCTURE_MULT = 0.15; // only siege really cracks walls
 // Raiders torch what they came to loot (battleType.js raid and sack): a depot or a house burns,
 // it need not be battered down.
 export const LOOT_BURN_MULT = 4;
-const WALLS_MULT = 0.6;                       // keep with intact walls (fortLevel ≥ 2, above half HP)
+const WALLS_MULT = 0.6;                       // keep with intact walls (fortLevel ≥ 2, above half HP, the ring unbroken)
 
 export const perHitFraction = (stats) => (BASE_DAMAGE_RATE * (stats.attackTicks / TICK_HZ)) / EXCHANGE_SECONDS;
 
@@ -149,7 +150,7 @@ export const attackSquad = (w, a, t) => {
   a.revealedUntil = w.tick + REVEAL_ON_ATTACK_TICKS;
   const roll = nextRandom(w);
   const variance = 1 + (roll * 2 - 1) * RNG_VARIANCE;
-  const damage = Math.max(0, Math.round(a.strength * perHitFraction(a.stats) * mult * variance));
+  const damage = Math.max(0, Math.round(strikingStrength(a, t) * perHitFraction(a.stats) * mult * variance));
   a.movedSinceAttack = 0;
   a.lastStrikeTick = w.tick;
   w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, to: t.idx, damage, arc });
@@ -168,7 +169,12 @@ export const attackSquad = (w, a, t) => {
 export const attackStructure = (w, a, s) => {
   let mult = NON_SIEGE_STRUCTURE_MULT;
   if (a.stats.structureBonus) mult = applySapperToSiegeMultiplier(view(a), true, getSiegeMultiplier(true));
-  if (s.kind === 'keep' && s.walls && s.hp > s.maxHp / 2) mult *= WALLS_MULT;
+  // A walled keep: its walls' cover while the ring is whole; stormed through the breach once it is not.
+  if (s.kind === 'keep' && s.walls) {
+    const breached = ringBroken(w);
+    if (!breached && s.hp > s.maxHp / 2) mult *= WALLS_MULT;
+    if (breached && !a.stats.structureBonus) mult *= KEEP_STORM_MULT;
+  }
   if (s.loot && a.side === SIDE_ATTACKER) mult *= LOOT_BURN_MULT;
   if (isShaken(w, a)) mult *= SHAKEN_DAMAGE_DEALT;
   const variance = 1 + (nextRandom(w) * 2 - 1) * RNG_VARIANCE;
@@ -177,7 +183,7 @@ export const attackStructure = (w, a, s) => {
   a.lastStrikeTick = w.tick;
   a.damageDealt += Math.round(damage / 3); // structure HP is on a bigger scale; count it 1/3 toward XP
   s.hp = Math.max(0, s.hp - damage);
-  if (s.eco) s.lastHitTick = w.tick; // repairs slow down under attack (economy.js)
+  s.lastHitTick = w.tick; // repairs slow down under attack (economy.js, buildings.js), the city's works too
   w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, structure: s.id, damage });
   if (s.hp === 0) {
     if (s.eco) { destroyEcoBuilding(w, s, a.side); return; }

@@ -24,6 +24,7 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_units as u  # noqa: E402
 import ti_figure as F  # noqa: E402
+import ti_worker_clips as W  # noqa: E402
 
 UID = 'bronze-worker'
 OUT = u.out_dir(UID)
@@ -110,50 +111,13 @@ meshes = F.meshes
 F.fix_normals()
 shade_range = F.bake_shade()
 
-# ---- clips: the Worker list of plans/ART-MODELS-PLAN.md and plans/ART-PRODUCTION-PLAN.md S8 (kept) ------
-clips = {}
-
-
-def add(name, period, keys, loop=False):
-    action = u.make_action(arm, name, period, keys, loop)
-    # Loop endpoints are included: period intervals at 20 fps, closed samples 1..period + 1.
-    if loop:
-        action.frame_end = period + 1
-    clips[name] = {'frames': period + 1 if loop else period, 'fps': 20, 'loop': loop, 'period_intervals': period if loop else None}
-    return action
-
-
-rest = {}
-breath = {'r': {'Chest': (0, 0, -1), 'Head': (0, 0, 2)}}
-add('Idle', 40, [(1, rest), (21, breath), (41, rest)], True)
-for name, period, amplitude in [('Walk', 20, 19), ('Run', 14, 30), ('Carry', 24, 14)]:
-    def gait(sign):
-        a = amplitude * sign
-        return {'r': {'Leg_L': (-a, 0, 0), 'Leg_R': (a, 0, 0), 'Shin_L': (8 if sign == 1 else 23, 0, 0), 'Shin_R': (23 if sign == 1 else 8, 0, 0),
-                      'Arm_L': ((2 if name == 'Carry' else 7) * sign, 0, 0), 'Arm_R': (-6 * sign, 0, 0),
-                      'Forearm_L': (-3 if name == 'Carry' else 0, 0, 0), 'Chest': (5 if name == 'Carry' else 0, 0, 0)}}
-    add(name, period, [(1, gait(1)), (1 + period // 2, gait(-1)), (period + 1, gait(1))], True)
-add('Chop', 32, [(1, {}), (9, {'r': {'Arm_R': (-98, 0, -9), 'Forearm_R': (-22, 0, 0), 'Prop_R': (100, 0, 0), 'Head': (-8, 0, 0)}}),
-                 (19, {'r': {'Chest': (14, 0, 6), 'Arm_R': (-9, 0, 0), 'Forearm_R': (6, 0, 0), 'Prop_R': (-12, 0, 0)}}), (33, {})], True)
-add('Mine', 28, [(1, {'r': {'Chest': (8, 0, 0), 'Arm_R': (-20, 0, 0), 'Prop_R': (15, 0, 0)}}),
-                 (9, {'r': {'Chest': (8, 0, -8), 'Arm_R': (-55, 0, 0), 'Forearm_R': (-14, 0, 0), 'Prop_R': (45, 0, 0)}}),
-                 (17, {'r': {'Chest': (13, 0, 5), 'Arm_R': (-10, 0, 0), 'Forearm_R': (5, 0, 0), 'Prop_R': (0, 0, 0)}}),
-                 (29, {'r': {'Chest': (8, 0, 0), 'Arm_R': (-20, 0, 0), 'Prop_R': (15, 0, 0)}})], True)
-add('Harvest', 36, [(1, {}), (10, {'r': {'Chest': (23, 0, -7), 'Head': (-9, 0, 0), 'Arm_R': (-22, 0, 0), 'Forearm_R': (25, 0, 0)}}),
-                    (22, {'r': {'Chest': (23, 0, 9), 'Arm_R': (-14, 0, 0), 'Forearm_R': (28, 0, 0), 'Prop_R': (25, 0, 0)}}), (37, {})], True)
-for name, period, lift in [('Build', 24, 55), ('Repair', 20, 35)]:
-    add(name, period, [(1, {'r': {'Arm_R': (-20, 0, 0), 'Forearm_R': (10, 0, 0)}}),
-                       (1 + period // 3, {'r': {'Arm_R': (-lift, 0, -6), 'Forearm_R': (-18, 0, 0), 'Prop_R': (55, 0, 0)}}),
-                       (1 + 2 * period // 3, {'r': {'Arm_R': (-20, 0, 0), 'Forearm_R': (20, 0, 0), 'Prop_R': (10, 0, 0), 'Chest': (4, 0, 3)}}),
-                       (period + 1, {'r': {'Arm_R': (-20, 0, 0), 'Forearm_R': (10, 0, 0)}})], True)
-# Deposit: the old keys (the left arm lifts, Prop_L tips) plus the basket itself tipping over the shoulder.
-add('Deposit', 30, [(1, {}), (9, {'r': {'Arm_L': (-42, 0, 0), 'Forearm_L': (12, 0, 0), 'Prop_L': (0, 0, -15), 'Chest': (6, 0, -7), 'Prop_Back': (10, 0, 0)}}),
-                    (18, {'r': {'Arm_L': (-42, 0, 0), 'Forearm_L': (12, 0, 0), 'Prop_L': (70, 0, -15), 'Chest': (6, 0, -7), 'Prop_Back': (40, 0, 0)}}),
-                    (25, {'r': {'Arm_L': (-42, 0, 0), 'Forearm_L': (12, 0, 0), 'Prop_L': (0, 0, -15), 'Prop_Back': (8, 0, 0)}}), (30, {})])
-add('Hit', 8, [(1, {}), (4, {'r': {'Chest': (-13, 0, -9), 'Head': (-9, 0, 0), 'Hips': (-4, 0, 0)}}), (8, {})])
-add('Death', 30, [(1, {}), (9, {'r': {'Chest': (-12, 0, 12), 'Leg_L': (20, 0, 0), 'Shin_L': (30, 0, 0)}}),
-                  (20, {'r': {'Root': (-60, 0, 12), 'Chest': (-8, 0, 0)}, 't': {'Root': (0, .13, .12)}}),
-                  (30, {'r': {'Root': (-87, 0, 12), 'Chest': (-5, 0, 0), 'Arm_R': (0, 0, 15), 'Arm_L': (0, 0, -15)}, 't': {'Root': (0, .10, .10)}})])
+# ---- work tools and clips (2026-10-14, ti_worker_clips.py): the mattock moves from Prop_R to its own
+# bone Tool_Held (same shape, same rest pose); a bronze axe, pick, sickle and a wooden mallet on
+# Tool_Axe, Tool_Pick, Tool_Sickle and Tool_Hammer, hidden (scale 0) but in the clips that use them.
+# The twelve clips are authored anew (planted feet, two hands on the axe and the pick, contacts held two
+# frames); the old keys of 2026-10-07 are gone.
+tool_frames, tools = W.setup_tools('bronze')
+clips = W.author('basket', tool_frames, W.tool_frame(Vector((0, 0, 1))))
 scene = bpy.context.scene
 scene.render.fps = 20
 floor = u.ground_actions(arm, meshes)
@@ -162,7 +126,8 @@ scene.frame_set(1)
 for track in arm.animation_data.nla_tracks:
     track.mute = True
 arm['archetype'] = 'Worker'
-arm['attachments'] = 'Basket/BasketBinding/BasketLoad/BasketStrap: Prop_Back; BasketHandle: Chest to Hand_L; Mattock: Prop_R'
+arm['attachments'] = ('Basket/BasketBinding/BasketLoad/BasketStrap: Prop_Back; BasketHandle: Chest to Hand_L; Mattock: Tool_Held; '
+                      'WorkAxeHaft/WorkAxeHead: Tool_Axe; WorkPickHaft/WorkPickHead: Tool_Pick; WorkSickleGrip/WorkSickleBlade: Tool_Sickle; WorkHammerHandle/WorkHammerHead: Tool_Hammer')
 
 # ---- export ------------------------------------------------------------------------------------------
 F.normalize_weights()
@@ -171,9 +136,8 @@ assert count <= 2000, count
 bpy.context.preferences.filepaths.save_version = 0
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT / f'{UID}.blend'))
 F.export_glb(OUT / f'{UID}.glb')
-(OUT / 'clips.json').write_text(json.dumps({'fps': 20, 'clips': clips, 'events': {
-    'Chop': {'contact_frame': 19}, 'Mine': {'contact_frame': 17}, 'Harvest': {'cut_frame': 22}, 'Build': {'contact_frame': 17},
-    'Repair': {'contact_frame': 14}, 'Deposit': {'pour_frame': 18}, 'Death': {'settle_frame': 30}}, 'runtime_animation_playback': 'pending VAT integration'}, indent=2))
+(OUT / 'clips.json').write_text(json.dumps({'fps': 20, 'clips': clips}, indent=2))
+(OUT / f'{UID}.json').write_text(W.options(clips))
 (OUT / 'floor-correction.json').write_text(json.dumps(floor, indent=2))
 (OUT / 'palette.json').write_text(json.dumps(u.COLORS, indent=2))
 (OUT / 'source-report.json').write_text(json.dumps({
@@ -183,5 +147,9 @@ F.export_glb(OUT / f'{UID}.glb')
     'clip_list_source': 'plans/ART-MODELS-PLAN.md Worker; plans/ART-PRODUCTION-PLAN.md S8',
     'by_object': {o.name: u.triangles([o]) for o in meshes}}, indent=2))
 if os.environ.get('TI_PREVIEW'):
-    F.preview(OUT, UID, [('chop', 'Chop', 9), ('deposit', 'Deposit', 18), ('mine', 'Mine', 17)])
+    F.preview(OUT, UID, [('chop', 'Chop', 17), ('deposit', 'Deposit', 16), ('mine', 'Mine', 15)])
+if os.environ.get('TI_SHEETS'):  # contact sheets of every clip from the battle camera (TI_SHEETS=side: from the side too)
+    W.render_sheets(u.REPO / 'plans' / 'art-pilot' / 'worker-clips', UID, clips, arm)
+    if os.environ.get('TI_SHEETS') == 'side':
+        W.render_sheets(u.REPO / 'plans' / 'art-pilot' / 'worker-clips', UID, clips, arm, view='side')
 print('FINISHED', OUT, 'TRIANGLES', count, 'SHADE', shade_range, flush=True)

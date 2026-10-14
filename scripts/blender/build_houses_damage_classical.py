@@ -5,7 +5,7 @@
 # <house>-damaged and <house>-ruined, made exactly as build_houses_damage_bronze.py makes the Bronze
 # ones (its damaged() and ruined(): a broken corner, a burnt roof, rubble; walls cut low, roof gone).
 #   base: the Roman house of ti_classical (the base town a);
-#   europe, indic, levant, sinic: the procedural Classical kits (ti_<theme>_classical <theme>_house);
+#   europe, indic, levant, sinic, mesopotamia: the procedural Classical kits (ti_<theme>_classical <theme>_house);
 #   americas, steppe, monsoon, eastafrica, maghreb, nile, westafrica, israelite: the kit's delivered
 #     <kit_root>/<theme>/classical/houses/model.glb, loaded like assemble_kit_towns.py does.
 # Output <out_dir>/classical[-<theme>]-houses-damage.glb, one 1024 atlas, LOD0..LOD2.
@@ -21,14 +21,14 @@ import ti_classical as tc  # noqa: E402
 import build_houses_damage_bronze as hb  # noqa: E402
 
 KIT_THEMES = ('americas', 'steppe', 'monsoon', 'eastafrica', 'maghreb', 'nile', 'westafrica', 'israelite')
-PROC_THEMES = ('base', 'europe', 'indic', 'levant', 'sinic')
+PROC_THEMES = ('base', 'europe', 'indic', 'levant', 'sinic', 'mesopotamia')
 # rubble: (main heap material, bits) in the kit's building stuff
 RUBBLE = {
     'base': ('ashlar', 'tile'), 'europe': ('ashlar', 'tile'), 'levant': ('ashlar', 'timber'),
     'indic': ('mudwall_bare', 'tile'), 'sinic': ('mud', 'tile_dark'), 'americas': ('stone', 'thatch'),
     'steppe': ('mud', 'timber'), 'monsoon': ('timber', 'thatch'), 'eastafrica': ('stone', 'thatch'),
     'maghreb': ('ashlar', 'tile'), 'nile': ('mudwall_bare', 'reed'), 'westafrica': ('mud', 'thatch'),
-    'israelite': ('stone', 'timber'),
+    'israelite': ('stone', 'timber'), 'mesopotamia': ('msb_baked', 'msb_reed'),
 }
 # the Classical town scripts' slots (w, d) per house kind
 SIZES = {'poor': (0.8, 0.66), 'common': (0.74, 0.62), 'rich': (0.74, 0.62)}

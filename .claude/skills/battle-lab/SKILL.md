@@ -47,6 +47,19 @@ parityEco output and grid-searches the auto's constants (AUTO_TUNE: auxiliaries,
 gate, closeness); put the winners in autoBattle.js and rerun parityEco. Any change to the sim's
 economy or AI needs this rerun: Auto must stay honest (master plan 6.1).
 
+autoCalib also takes `TA=`/`TD=` (the town's auxiliaries, AUX_TRAINED.town), `WAR=` (WALLS_AGE_RELIEF)
+and `ROWS=1` (every row of the winner).
+
+### What decides an assault (I211, I212)
+```bash
+N=12 ATT=infantry,infantry,infantry,cavalry,ranged DEF=infantry,ranged FORT=2 AGE=bronze [VERBOSE=1] \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/siegeProbe
+```
+Per seed: outcome and reason, when the gate, the ring and the keep fell, the base left, the share of
+the attacker's losses from towers and the keep, auxiliaries' lifetimes and who hit them (AUXHITS).
+VERBOSE prints the keep's HP and what the attackers target every 20 s. The siege rules themselves
+(frontage, volley cap, fire by HP, storming the keep, repairs under attack): src/battle/sim/siegeRules.js.
+
 ### Walls hold (city assaults)
 ```bash
 N=12 AGE=bronze TIER=medium [ORDER=keep] [STRICT=1] \
@@ -79,6 +92,16 @@ SIZES=phone:874x402@3 ZOOMS=near:2,far:1,farther:0.6 TIER=2 node .claude/skills/
 Starts the sandbox (kingdoms, mixed, the defaults), fights 12 s at 3x, pauses, centres on your army
 and saves one jpg per size and zoom with the detail level picked (TIER forces one; `URL=...&age=bronze`
 for another age). Look at every level at the user's zoom: troops must read as soldiers and riders.
+
+One unit model up close at five zooms (a production build served by `npx vite preview`; add
+`EXTRA=perf` or the build hides `window.__battleRenderer`):
+```bash
+AGE=gunpowder CLASS=cavalry ARMY=cavalry EXTRA=perf node .claude/skills/battle-lab/unit-closeup.mjs http://localhost:5216/terra-imperium/ <outDir> cav
+```
+For cavalry shots pass `ARMY=cavalry`: the default `small` army has no cavalry squad, so the shot
+centres on stand-in procedural horsemen, not the age's model. `LAYER=general` centres on the general,
+`PARAMS='raid=raid&spectate'` shows the raiders, `ARMY=siege CLASS=siege` the machines, `TIER=1|2`
+forces a detail level.
 
 ## 4. Scale: ms per tick at 300 / 500 / 1,000 squads a side
 ```bash

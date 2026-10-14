@@ -8,7 +8,7 @@
 #                    inside filled with rubble, charred beams and loose bricks or stones
 # Same origin, footprint and look as the intact house (the footprint stays inside it), so the game
 # can fit a piece to a house's ground in the town layout.
-#   base, europe, indic, sinic: the houses come from the procedural kits (ti_town.house,
+#   base, europe, indic, sinic, mesopotamia: the houses come from the procedural kits (ti_town.house,
 #     ti_europe_bronze, ti_indic_bronze, ti_sinic_bronze), as the towns are built;
 #   americas, levant, steppe, monsoon, eastafrica, maghreb, nile, westafrica, israelite: the kit's
 #     delivered plans/art/kits/<theme>/bronze/houses/model.glb (house-poor, -common, -rich), loaded
@@ -34,6 +34,7 @@ KIT_THEMES = ('americas', 'levant', 'steppe', 'monsoon', 'eastafrica', 'maghreb'
 RUBBLE = {
     'base': ('mudwall_bare', 'timber'), 'levant': ('mudwall_bare', 'timber'), 'nile': ('mudwall_bare', 'reed'),
     'maghreb': ('mudwall_bare', 'timber'), 'israelite': ('stone', 'timber'), 'indic': ('mudwall_bare', 'timber'),
+    'mesopotamia': ('msb_brick', 'msb_reed'),
     'europe': ('mud', 'thatch'), 'steppe': ('mud', 'timber'), 'eastafrica': ('mud', 'thatch'), 'westafrica': ('mud', 'thatch'),
     'monsoon': ('timber', 'thatch'), 'americas': ('stone', 'thatch'), 'sinic': ('mud', 'timber'),
 }

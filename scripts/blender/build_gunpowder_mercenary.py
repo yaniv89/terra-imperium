@@ -6,7 +6,7 @@
 # Same contract as that builder: the canonical rig (UnitRig) under a root empty named after the unit,
 # flat material colours, the Team and Skin tags, the old names of the musket (MusketStock,
 # MusketBarrel, MusketLock), the hat (BroadHat, HatPlume), the coat (BuffCoat, BuffSkirt), the sash,
-# the coin pouch and the waistcoat front; rest pose only (no clips). He must not be taken for the line
+# the coin pouch and the waistcoat front; and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged). He must not be taken for the line
 # infantryman (build_gunpowder_infantry.py: black tricorne, Team coat, white cross belts, gaiters,
 # bayonet), so he is a hired hand in his own kit:
 #   - a broad black hat hooked up on the left under a large Team plume, a heavy moustache
@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'gunpowder-mercenary'
 arm = F.start({'Skin': 'B9805C', 'Hair': '2B201A', 'Felt': '1E1C1B', 'Buff': 'C8A46A', 'Breeches': '6A2A26', 'Boots': '201C1A', 'BootCuff': '3A2C22',
@@ -69,4 +70,5 @@ F.musket(F.grip_point('R'), length=.880, bayonet=0, metal='Iron', lock='Brass')
 
 F.finish_rest(UID, 'Mercenary: a broad black hat hooked up under a large Team plume, a heavy moustache, a buff leather coat open over a Team waistcoat, a Team waist sash '
               'with a pistol, a broad baldric to a sabre at the hip with the left hand on its hilt, a coin pouch, dark red breeches and tall cuffed riding boots, '
-              'a musket upright without a bayonet', notes={'role': 'mercenary (drawn for mercenary squads of the infantry class)'})
+              'a musket upright without a bayonet', notes={'role': 'mercenary (drawn for mercenary squads of the infantry class)'},
+              clips=FC.clips_hook(UID, FC.Kit('gun')))

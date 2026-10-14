@@ -852,6 +852,111 @@ def mark_machine(uid):
     print(f'MACHINE {uid} footprint={footprint} metres={[round(v * METRES_PER_H, 2) for v in size]}', flush=True)
 
 
+# ---- Gunpowder mounted parts (2026-10-14, build_gunpowder_cavalry/general/raider/siege.py) ----------
+
+def shabraque(horse, mat='Shabraque', lace='Lace', y0=-.30, y1=.30, reach=100, rows=5, steps=8, point=.085, grow=.022, depth=.020, name='Shabraque'):
+    """The saddle cloth of about 1750 on a fine horse: a cloth over the back from `y0` to `y1` falling
+    `reach` degrees down each flank, its back corners drawn down into points (`point`), with a lace
+    border `depth` wide laid along its whole edge (`lace`; None for none). Mount_Spine (a mount draws
+    no Team colour, so the cloth has its own). Returns the cloth."""
+    import ti_figure as F
+    grid = []
+    for i in range(rows):
+        t = i / (rows - 1)
+        y = y0 + (y1 - y0) * t
+        cz, h, w = barrel_at(y)
+        row = []
+        for k in range(steps + 1):
+            a = math.radians(-reach + 2 * reach * k / steps)
+            p = Vector(((w + grow) * math.sin(a), y, cz + (h + grow) * math.cos(a)))
+            e = abs(k - steps / 2) / (steps / 2)  # 1 at the edges
+            p.z -= point * max(0, (t - .45) / .55) ** 1.5 * e ** 3
+            row.append(p)
+        grid.append(row)
+    v = [tuple(p) for row in grid for p in row]
+    n = steps + 1
+    f = []
+    for i in range(rows - 1):
+        for k in range(steps):
+            a, b, c, d = i * n + k, i * n + k + 1, (i + 1) * n + k + 1, (i + 1) * n + k
+            f += [(a, b, c), (a, c, d)]
+    ob = u.mesh_obj(name, v, f, mat, 'Mount_Spine', arm=horse)
+    F.meshes.append(ob)
+    if lace:  # the border: round the edge loop, each point pushed off the cloth and in towards its middle
+        loop = [(0, k) for k in range(n)] + [(i, n - 1) for i in range(1, rows)] + [(rows - 1, k) for k in range(n - 2, -1, -1)] + [(i, 0) for i in range(rows - 2, 0, -1)]
+        tv, tf = [], []
+        for i, k in loop:
+            p = grid[i][k]
+            ii, kk = min(max(i, 1), rows - 2), min(max(k, 1), n - 2)
+            inn = (grid[ii][kk] - p)
+            inn = inn.normalized() * depth if inn.length > 1e-6 else Vector((0, 0, depth))
+            cz = barrel_at(p.y)[0]
+            out = Vector((p.x, 0, p.z - cz)).normalized() * .004
+            tv += [tuple(p + out), tuple(p + out + inn)]
+        m = len(loop)
+        for j in range(m):
+            a, b = 2 * j, 2 * ((j + 1) % m)
+            tf += [(a, b, b + 1), (a, b + 1, a + 1)]
+        F.meshes.append(u.mesh_obj(name + 'Lace', tv, tf, lace, 'Mount_Spine', arm=horse))
+    return ob
+
+
+def holsters(horse, mat='Leather', cap='Fur', y=-.300, name='Holster'):
+    """A pair of pistol holsters hanging either side of the saddle's pommel, each with a fur cap over
+    the pistol's butt (Mount_Spine)."""
+    import ti_figure as F
+    F.use(horse)
+    S = 'Mount_Spine'
+    for s in (-1, 1):
+        F.tube(f'{name}{s}', [((s * .118, y + .030, .800), (.026, .030), S), ((s * .150, y - .010, .700), (.024, .026), S), ((s * .168, y - .040, .610), (.014, .016), S)], mat, 5)
+        if cap:
+            F.tube(f'{name}Cap{s}', [((s * .112, y + .040, .798), (.030, .034), S), ((s * .116, y + .034, .812), (.036, .040), S), ((s * .122, y + .028, .826), (.020, .024), S)],
+                   cap, 5, caps=(False, True))
+
+
+def roll(horse, mat='Rug', y=.150, z=.770, half=.165, r=.042, strap='Leather', name='Roll'):
+    """A rolled cloak or blanket strapped across the back behind the saddle (Mount_Spine)."""
+    import ti_figure as F
+    F.use(horse)
+    S = 'Mount_Spine'
+    F.tube(name, [((-half - .008, y, z), r * .45, S), ((-half, y, z), r, S), ((half, y, z), r, S), ((half + .008, y, z), r * .45, S)], mat, 7)
+    if strap:
+        for s in (-1, 1):
+            F.tube(f'{name}Strap{s}', [((s * half * .55, y, z - r - .003), r + .004, S), ((s * half * .55 + .018, y, z - r - .003), r + .004, S)], strap, 7, caps=(False, False))
+
+
+def field_gun(prefix='Gun', mat='Wood', metal='Leather', bronze='Metal'):
+    """A field gun facing -Y (moved here unchanged from build_units_gunpowder.py for the siege
+    builders): two spoked wheels on the axle at Y = 0, the cheeks of the carriage, the trail sloping
+    back to the ground at +Y, the bronze barrel on its trunnions with the muzzle forward, a rammer and
+    a pile of balls (iron: Leather, the darkest tag; the bronze barrel is Metal). A rigid armature
+    (Hull, Wheel_L, Wheel_R) like frame()."""
+    r = .30; ax = .24
+    rig = u.make_armature(f'{prefix}Rig', [('Hull', (0, 0, r), (0, 0, r + .2), None),
+                                           ('Wheel_L', (ax, 0, r), (ax + .06, 0, r), 'Hull'),
+                                           ('Wheel_R', (-ax, 0, r), (-ax - .06, 0, r), 'Hull')])
+    u.tube(f'{prefix}Axle', [(-ax - .04, 0, r), (ax + .04, 0, r)], [.024, .024], mat, ['Hull'] * 2, 5, rig)
+    for side, sx in [('L', 1), ('R', -1)]:
+        wheel(f'{prefix}Wheel{side}', rig, f'Wheel_{side}', sx * ax, 0, r, r, spokes=10, rim=metal)
+    for sx in (-1, 1):  # the cheeks: from over the axle back to the trail
+        u.tube(f'{prefix}Cheek{sx}', [(sx * .09, -.12, r + .08), (sx * .09, .25, r + .02), (sx * .05, .95, .04)], [(.03, .05), (.03, .045), (.026, .035)], mat, ['Hull'] * 3, 4, rig)
+    u.box(f'{prefix}TrailEnd', (0, .98, .03), (.16, .1, .05), metal, 'Hull', rig)
+    u.box(f'{prefix}Transom', (0, .30, r - .02), (.20, .05, .05), mat, 'Hull', rig)
+    # the barrel: breech with a cascabel at the back, the muzzle swell at the front
+    z = r + .17
+    u.tube(f'{prefix}Barrel', [(0, .30, z), (0, .26, z), (0, .10, z), (0, -.30, z + .01), (0, -.62, z + .02), (0, -.66, z + .02)],
+           [.02, .075, .07, .055, .05, .058], bronze, ['Hull'] * 6, 10, rig)
+    u.tube(f'{prefix}Trunnions', [(-.09, -.02, z - .01), (.09, -.02, z - .01)], [.02, .02], bronze, ['Hull'] * 2, 6, rig)
+    u.box(f'{prefix}Quoin', (0, .24, z - .09), (.08, .14, .05), mat, 'Hull', rig)
+    # the rammer and sponge lying on the trail, a pile of balls by the wheel
+    u.tube(f'{prefix}Rammer', [(.13, -.1, .03), (.13, .85, .03)], [.012, .012], mat, ['Hull'] * 2, 4, rig)
+    u.tube(f'{prefix}RammerHead', [(.13, -.13, .03), (.13, -.08, .03)], [.03, .03], 'Cloth', ['Hull'] * 2, 6, rig)
+    for k, (bx, by, bz) in enumerate([(-.42, .2, .04), (-.48, .26, .04), (-.42, .3, .04), (-.45, .25, .1)]):
+        u.tube(f'{prefix}Ball{k}', [(bx, by, bz - .035), (bx, by, bz + .035)], [.03, .03], metal, ['Hull'] * 2, 6, rig)
+    crew = [(-.62, .1, 0, 90), (.55, -.25, 0, -90), (.25, 1.15, 0, 180)]
+    return [rig], {'rig': rig, 'crew': crew}
+
+
 def build_rig_files():
     """The bare rigs as reference files (art-build/units/rigs; not shipped: units carry them)."""
     out = u.REPO / 'art-build' / 'units' / 'rigs'
