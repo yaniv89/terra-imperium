@@ -16,7 +16,10 @@ for (const [file, url] of Object.entries(files)) {
   (URLS[m[1]] ||= {})[m[2]] = url;
 }
 
-export const ICON_GROUPS = ['resources', 'improvements', 'buildings', 'wonders', 'units', 'ships', 'cities', 'ages', 'markers', 'battle', 'ui'];
+export const ICON_GROUPS = ['resources', 'improvements', 'buildings', 'wonders', 'units', 'ships', 'cities', 'ages', 'markers', 'battle', 'ui', 'independents'];
+// independents: an independent city's personality shields (raiders, mercantile, fortress, tribal) and
+// its banner's frame (banner-frame), on the map's badge and banner (gl/spriteArt.js) and CityBanners.jsx.
+export const INDEPENDENT_ICON_IDS = ['raiders', 'mercantile', 'fortress', 'tribal', 'banner-frame'];
 // battle: the battle economy's building icons (build-house ...), rendered from the battle's own models by
 // scripts/art/build-icons.mjs; data/economy.js BUILDINGS[*].icon names them. Plus the battle screen's
 // hand-drawn glyphs below. ui: campaign-side cards and markers. Both sets are drawn in
