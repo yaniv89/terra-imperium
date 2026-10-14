@@ -1,6 +1,6 @@
 // src/components/independents/CityStateBadge.jsx
 // The city-state type line of the independent sheet (decision 42, UI18): a placeholder icon from the
-// lucide set in the type's colour, the type, and what its patron gets (cityStateBadge.js).
+// lucide set in the type's colour, the type, and what its patron gets (cityStateView.js).
 import React from 'react';
 import { Coins, Shield, FlaskConical, Landmark, Swords } from 'lucide-react';
 

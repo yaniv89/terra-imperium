@@ -273,13 +273,11 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
 
   // Step 2: the world. Without the map choice, the world size alone as three wide cards.
   const sizeItems = WORLD_SIZE_IDS.map((id) => ({ ...WORLD_SIZES[id], art: startArt(`worldsize-${id}`), count: WORLD_SIZES[id].majors, countLabel: `${WORLD_SIZES[id].majors} peoples` }));
-  const sizeBlock = (
+  // City-states: Few / Normal / Many (decision 42). Beside the map when there is a map choice (it
+  // fits there on a phone), else under the world size.
+  const cityStatesBlock = (
     <div className="flex flex-col gap-2">
-      <Label id="world-size-title">World size</Label>
-      <RadioCards label="World size" items={sizeItems} value={worldSize} onChange={setWorldSize} testIdPrefix="world-size"
-        className={`grid gap-2 ${!mapChoice && twoCols ? 'grid-cols-3' : ''}`} />
-      <p className="text-[12px] text-fa-muted leading-snug">Peoples alive at the start. Others rise later as free cities split away.</p>
-      <Label id="city-states-title" className="mt-1">City-states</Label>
+      <Label id="city-states-title" >City-states</Label>
       <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="city-states-title">
         {Object.values(CITY_STATE_DENSITIES).map((d) => (
           <button key={d.id} type="button" aria-pressed={cityStates === d.id} title={d.blurb} onClick={() => setCityStates(d.id)} data-testid={`city-states-${d.id}`} className="fa-chip !min-h-[40px]">{d.name}</button>
@@ -288,11 +286,21 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
       <p className="text-[12px] text-fa-muted leading-snug" data-testid="city-states-line">Up to {csCount} one-city peoples, each {START_MIN_GAP_KM} km or more from every start. Trade, military, science and culture cities reward the people they favour; a third at most are raiders.</p>
     </div>
   );
+  const sizeBlock = (
+    <div className="flex flex-col gap-2">
+      <Label id="world-size-title">World size</Label>
+      <RadioCards label="World size" items={sizeItems} value={worldSize} onChange={setWorldSize} testIdPrefix="world-size"
+        className={`grid gap-2 ${!mapChoice && twoCols ? 'grid-cols-3' : ''}`} />
+      <p className="text-[12px] text-fa-muted leading-snug">Peoples alive at the start. Others rise later as free cities split away.</p>
+      {!mapChoice && cityStatesBlock}
+    </div>
+  );
   const worldStep = mapChoice ? (
     <div className={`${fill} grid gap-3 ${twoCols ? 'grid-cols-2' : 'grid-cols-1'}`}>
       <section className={`fa-panel p-2.5 ${scrollBox}`} aria-label="Map">
         <MapPicker value={mapSpec} onChange={setMapSpec} />
         <p className="text-[12px] text-fa-muted leading-snug mt-2">{generatedMap ? 'Each people starts on the site that suits its home climate.' : 'Each people starts at its real home.'}</p>
+        <div className="mt-3">{cityStatesBlock}</div>
       </section>
       <section className={`fa-panel p-2.5 ${scrollBox}`} aria-labelledby="world-size-title">{sizeBlock}</section>
     </div>

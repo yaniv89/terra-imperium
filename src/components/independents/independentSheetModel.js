@@ -35,7 +35,7 @@ import { raidEta } from '../../engine/raids';
 import { wallsLabel } from '../battle/warModel';
 import { unitTile } from '../../engine/armies';
 import { shieldUrl, shieldColour } from './independentArt';
-import { cityStateViewOf } from './cityStateBadge';
+import { cityStateViewOf } from './cityStateView';
 
 /** Attitude words by value (the W08 meter): -100..100. */
 export const attitudeWord = (v) => (v >= JOIN_OPINION ? 'Devoted' : v >= JOIN_STRENGTH_OPINION ? 'Friendly' : v >= 10 ? 'Warm' : v > -20 ? 'Wary' : v > -50 ? 'Unfriendly' : 'Hostile');

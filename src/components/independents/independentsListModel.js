@@ -10,7 +10,7 @@ import { attitudeOf } from '../../engine/indepPolicy';
 import { hasMet } from '../../engine/fog';
 import { attitudeLabel, grudgeTone } from './independentSheetModel';
 import { shieldUrl, shieldColour } from './independentArt';
-import { cityStateViewOf } from './cityStateBadge';
+import { cityStateViewOf } from './cityStateView';
 
 export const LIST_SORTS = [
   { id: 'distance', label: 'Nearest' },

@@ -1,4 +1,4 @@
-// src/components/independents/cityStateBadge.js
+// src/components/independents/cityStateView.js
 // The city-state type of an independent for the UI (decision 42, UI18): its type, what its patron
 // gets, and who that patron is. The icons are placeholders from the lucide set until the UI18 art
 // lands (one badge per type: trade, military, science, culture, raiders).
