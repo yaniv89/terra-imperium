@@ -358,8 +358,10 @@ const buildOccupationIndexes = (regions, nations, wars = []) => {
   Object.keys(nations).forEach((id) => { const capitalId = getCapital({ nations }, id); if (capitalId) capitalIds.add(capitalId); });
   const devByNation = {};
   const occupiedDev = {};
+  const sieged = new Set(); // 'besieger|owner' pairs: a siege is war activity (warActivity below)
   Object.values(regions).forEach((region) => {
     if (!region.owner) return;
+    if (region.siege?.by) sieged.add(`${region.siege.by}|${region.owner}`);
     devByNation[region.owner] = (devByNation[region.owner] || 0) + getTotalDev(region);
     const held = heldPair(region, (warId) => liveWarIds.has(warId));
     if (held) {
@@ -368,8 +370,25 @@ const buildOccupationIndexes = (regions, nations, wars = []) => {
       occupiedDev[key] = (occupiedDev[key] || 0) + getTotalDev(region) * weight;
     }
   });
-  return { devByNation, occupiedDev };
+  return { devByNation, occupiedDev, sieged };
 };
+
+// War activity (lane CB09, I121): a war is active on a turn its battle score moved (a battle was
+// fought), either side holds the other's land, or either side besieges the other's city.
+// `war.lastActiveTurn` (default: the war's start) and `war.seenBattleScore` (default 0) carry it.
+export const WAR_STALEMATE_IDLE_TURNS = 15;
+export const WAR_STALEMATE_MIN_TURNS = 20;
+export const warActivity = (war, indexes, turn) => {
+  const a = war.aggressor; const e = war.enemy;
+  const fought = (war.battleScore || 0) !== (war.seenBattleScore || 0);
+  const held = !!indexes && ((indexes.occupiedDev[`${a}|${e}`] || 0) > 0 || (indexes.occupiedDev[`${e}|${a}`] || 0) > 0);
+  const besieging = !!indexes && (indexes.sieged.has(`${a}|${e}`) || indexes.sieged.has(`${e}|${a}`));
+  if (!(fought || held || besieging) || (war.lastActiveTurn === turn && !fought)) return war; // quiet: the fields stay as they were (or absent)
+  return { ...war, lastActiveTurn: turn, seenBattleScore: war.battleScore || 0 };
+};
+/** A stalemate: the war is old enough and nothing has happened in it for WAR_STALEMATE_IDLE_TURNS. */
+export const isStalemate = (war, turn) => turn - (war.startTurn ?? turn) >= WAR_STALEMATE_MIN_TURNS
+  && turn - (war.lastActiveTurn ?? war.startTurn ?? turn) >= WAR_STALEMATE_IDLE_TURNS;
 
 const scoreWarFromIndexes = (war, indexes) => {
   const enemyTotalDev = indexes.devByNation[war.enemy] || 1;
@@ -528,6 +547,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     }
     const tickScore = updateTickScore(currentWar, snapshotState);
     currentWar = { ...currentWar, tickScore, score: scoreWarFromIndexes({ ...currentWar, tickScore }, occupationIndexes) };
+    currentWar = warActivity(currentWar, occupationIndexes, state.turnNumber);
 
     // Independence war (plan §M12/§M15): a vassal (always the aggressor — DECLARE_INDEPENDENCE,
     // gameReducer.js, is the only place this cb gets assigned) that has fought its overlord to a
@@ -577,6 +597,9 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
         // Trim: the plan's own "score 100 held for 3 turns" enforcement streak isn't tracked —
         // a sufficiently lopsided score enforces immediately instead.
         if (leaderScore >= PEACE_SCORE_ENFORCE_THRESHOLD || acceptance.accepted) return concludeWar(currentWar, leaderId, terms, snapshotState);
+      } else if (isStalemate(currentWar, state.turnNumber)) {
+        // Nothing has happened in this war for a long while and nobody is winning: it ends white (CB09).
+        return concludeWar(currentWar, currentWar.aggressor, [], snapshotState);
       } else if (state.turnNumber - (currentWar.startTurn ?? state.turnNumber) >= CONVERGE_MIN_TURNS && state.turnNumber % CONVERGE_PERIOD === 0
         && getPeaceAcceptance(snapshotState, currentWar, currentWar.aggressor, []).accepted && getPeaceAcceptance(snapshotState, currentWar, currentWar.enemy, []).accepted) {
         // The bargaining model (peace.js, warOdds.js): neither side is winning and both expect
@@ -592,6 +615,14 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     if (nextPendingPeaceOffer || state.turnNumber < (currentWar.peaceOfferCooldownTurn || 0)) return currentWar;
     const aiSide = currentWar.aggressor === state.playerNationId ? currentWar.enemy : currentWar.aggressor;
     const aiScore = aiSide === currentWar.aggressor ? currentWar.score : -currentWar.score;
+    // A stalemate (CB09, I121): no battle, siege or held land for WAR_STALEMATE_IDLE_TURNS. The AI
+    // offers a white peace and says why, instead of claiming an exhaustion the war never caused.
+    if (aiScore < PEACE_SCORE_OFFER_THRESHOLD && isStalemate(currentWar, state.turnNumber)) {
+      const idle = state.turnNumber - (currentWar.lastActiveTurn ?? currentWar.startTurn ?? state.turnNumber);
+      nextPendingPeaceOffer = { warId: currentWar.id, from: aiSide, terms: [], reason: 'stalemate' };
+      logs.push({ message: `${nextNations[aiSide]?.name || aiSide} sees nothing to gain from a war with no fighting for ${idle} turns, and offers a white peace.`, type: 'diplomacy' });
+      return { ...currentWar, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS };
+    }
     if (aiScore < PEACE_SCORE_OFFER_THRESHOLD) return currentWar;
 
     const terms = buildAITerms(snapshotState, currentWar, aiSide);

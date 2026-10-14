@@ -37,6 +37,7 @@ import { checkNationElimination, unlinkEliminatedVassalage, closeWarsForEliminat
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
 import { calcAllNationIncomes, processAIEconomyTurn, settleAIUpkeep, thinksThisTurn } from './aiEconomy';
 import { aiBudgetStep } from './aiBudget';
+import { warBurdenInputs, warExhaustionRise } from './warBurden';
 import { isUnitInBattle } from './invasion';
 import { processAIAbmDefense } from './aiMissiles';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
@@ -116,7 +117,6 @@ import { subjectVerb } from './grammar';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-const WAR_EXHAUSTION_RISE_PER_TURN = 5;
 const WAR_EXHAUSTION_DECAY_PER_TURN = 3;
 
 // War exhaustion past WAR_WEARINESS_FROM adds (WE - FROM) / SCALE unrest per turn in every province.
@@ -1165,9 +1165,14 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this
   // is what "forces you to actually end them" rather than letting a war run forever for free.
+  // The rise follows the war's real burden (warBurden.js, CB09 I121/X22): a base, own cities under
+  // siege and cities an enemy holds; battles add their own (aftermath.js).
+  const liveWarIds = new Set(wars.filter((w) => w.active).map((w) => w.id));
+  const atWarIds = new Set(Object.keys(nationsAfterWars).filter((nId) => nationsAfterWars[nId].isAtWar));
+  const burden = warBurdenInputs(regions, atWarIds, (warId) => liveWarIds.has(warId));
   Object.entries(nationsAfterWars).forEach(([nId, nation]) => {
     // Laws and reforms slow the rise (lawRules.js warExhaustionMult: Mass Conscription, Martial Law, Military Junta).
-    const delta = nation.isAtWar ? WAR_EXHAUSTION_RISE_PER_TURN * Math.max(0, 1 + (lawRulesOf(nation).warExhaustionMult || 0)) : -WAR_EXHAUSTION_DECAY_PER_TURN;
+    const delta = nation.isAtWar ? warExhaustionRise(burden.get(nId)) * Math.max(0, 1 + (lawRulesOf(nation).warExhaustionMult || 0)) : -WAR_EXHAUSTION_DECAY_PER_TURN;
     const warExhaustion = clamp((nation.warExhaustion || 0) + delta, 0, 100);
     if (warExhaustion !== nation.warExhaustion) nationsAfterWars[nId] = { ...nation, warExhaustion };
   });
