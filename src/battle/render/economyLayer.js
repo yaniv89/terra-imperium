@@ -38,6 +38,7 @@ export { kitLodForZoom };
 import { vegetationKitFor } from '../art/vegetation';
 import { loadObjectName, usesBarrow, BARROW_EMPTY, workerLoadPlacement } from '../art/workerLoads';
 import { themeOfNation, styleOfLand } from '../../data/architecture';
+import { OwnerMarks } from './ownerMarks';
 
 /** The roles that take a culture skin (plans/ART-MODELS-PLAN.md 5). */
 export const SKIN_ROLES = new Set(['barracks', 'tower', 'trade-post']);
@@ -120,6 +121,10 @@ export const buildingStateName = (b, role) => {
   if (!b.alive) return b.built ? `${role}-ruined` : null;
   return b.hp < b.maxHp * 0.7 ? `${role}-damaged` : role;
 };
+/** City and fort structures that carry the defender's owner mark (I209). */
+const OWNED_STRUCTURES = new Set(['keep', 'tower', 'building']);
+/** What a wreck's socket empty gives off (X27): 'fire', 'smoke' or null (any other socket). */
+export const wreckFxKind = (name) => (/^socket[-_]fire/i.test(name) ? 'fire' : /^socket[-_]smoke/i.test(name) ? 'smoke' : null);
 /** True when a standing building covers the wreck `b` (the player built over the rubble). */
 export const ruinCovered = (b, buildings) => buildings.some((o) => o.alive && o.idx !== b.idx
   && Math.abs(o.x - b.x) < ((o.size + b.size) / 2) * Q && Math.abs(o.y - b.y) < ((o.size + b.size) / 2) * Q);
@@ -133,6 +138,7 @@ export class EconomyLayer {
     this.art = art; this.loadKit = load;
     this.on = !!r.setup.economy;
     this.ghost = null;
+    this.wreckFx = []; // this frame's wreck fire and smoke points (X27), refilled by update()
   }
 
   build() {
@@ -171,6 +177,8 @@ export class EconomyLayer {
     this.blockedMesh = overlay('#f87171', 0.45, 256, 17);
     this.outMesh = overlay('#0b0f14', 0.55, 4, 15);
     this.edgeMesh = overlay('#fde68a', 0.9, 4, 18);
+    // Whose building it is, by shape as well as colour (I209: ownerMarks.js).
+    this.owners = new OwnerMarks(r);
     // Art files (none: everything stays a greybox, nothing is loaded).
     this.kits = new KitInstances(r.scene, { track: (x) => r.track(x) });
     this.loaded = new Map(); // url -> kit
@@ -282,7 +290,9 @@ export class EconomyLayer {
       const from = name && (kitObject(own, name) ? own : kitObject(kit, name) && kitObject(kit, role) ? kit : null);
       if (!from) return false;
       const s = fit(kitObject(from, role));
-      this.kits.add(kitObject(from, name), lod, M.makeScale(s, s, s).setPosition(x, y, z), tmpColor);
+      const wreck = kitObject(from, name);
+      this.kits.add(wreck, lod, M.makeScale(s, s, s).setPosition(x, y, z), tmpColor);
+      this.addWreckFx(wreck, x, y, z, s, b.idx);
       return true;
     }
     if (!b.built) {
@@ -296,6 +306,34 @@ export class EconomyLayer {
     const s = fit(whole);
     this.kits.add(obj, lod, M.makeScale(s, s, s).setPosition(x, y, z), tmpColor);
     return true;
+  }
+
+  /** X27: a wreck's `socket-fire-*` and `socket-smoke-*` empties, in world tiles, for this frame's
+   *  fire and smoke (BattleRenderer draws them from `this.wreckFx`; the wreck stays burnt black). */
+  addWreckFx(obj, x, y, z, s, idx) {
+    const sockets = obj?.sockets;
+    if (!sockets) return;
+    Object.entries(sockets).forEach(([name, p]) => {
+      const kind = wreckFxKind(name);
+      if (kind) this.wreckFx.push({ kind, x: x + p.x * s, y: y + p.y * s, z: z + p.z * s, phase: idx * 0.37 + this.wreckFx.length * 0.53 });
+    });
+  }
+
+  /** A structure's square on the ground for its owner mark: its footprint's bounds, else its circle. Cached. */
+  structureBox(i, st) {
+    this.boxes = this.boxes || [];
+    if (this.boxes[i] !== undefined) return this.boxes[i];
+    const fixed = this.r.setup.structures?.[i];
+    const w = this.r.setup.map?.w;
+    let box = null;
+    if (fixed?.underHall) box = null;
+    else if (fixed?.footprint?.length && w) {
+      let x0 = Infinity; let x1 = -Infinity; let z0 = Infinity; let z1 = -Infinity;
+      fixed.footprint.forEach((t) => { const tx = t % w; const tz = (t - tx) / w; x0 = Math.min(x0, tx); x1 = Math.max(x1, tx + 1); z0 = Math.min(z0, tz); z1 = Math.max(z1, tz + 1); });
+      box = { x: (x0 + x1) / 2, z: (z0 + z1) / 2, size: Math.max(x1 - x0, z1 - z0) };
+    } else box = { x: st.x / Q, z: st.y / Q, size: Math.max(1, (2 * (st.radius || Q)) / Q) };
+    this.boxes[i] = box;
+    return box;
   }
 
   dispose() { this.disposed = true; this.kits?.dispose(); }
@@ -369,6 +407,7 @@ export class EconomyLayer {
     const r = this.r;
     const counts = Object.fromEntries(PRIMS.map((p) => [p, 0]));
     const lod = kitLodForZoom(r.camera.zoom);
+    this.wreckFx.length = 0;
     this.kits.begin();
     cur.eco.nodes.forEach((n) => {
       const x = n.x / Q; const z = n.y / Q;
@@ -380,6 +419,7 @@ export class EconomyLayer {
       this.writeParts(NODE_PARTS[n.kind] || NODE_PARTS.stone, x, z, 1, left, '#ffffff', counts, cull);
     });
     this.writeLoads(cur, cull, lod, counts);
+    this.owners.begin();
     cur.eco.buildings.forEach((b) => {
       if (b.proxy) return;
       const x = b.x / Q; const z = b.y / Q;
@@ -389,13 +429,22 @@ export class EconomyLayer {
         if (b.built && !ruinCovered(b, cur.eco.buildings)) this.writeBuildingArt(b, x, z, r.setup.sides[b.side].color, lod);
         return;
       }
+      this.owners.mark(b.side, x, z, b.size);
       const grow = b.built ? 1 : 0.15 + 0.85 * (b.progress / 100);
       const side = r.setup.sides[b.side].color;
       if (this.writeBuildingArt(b, x, z, side, lod)) return;
       // The footprint is the truth: parts are laid out for a footprint of `size` and scaled by it.
       this.writeParts(PARTS[b.type] || PARTS.house, x, z, b.size / 3 * 1.1, grow, side, counts, cull, b.built ? 0 : 0.6);
     });
+    // The defender's city and fort buildings (the keep, its towers and the region's buildings) carry
+    // the defender's mark too: in a city assault they are the enemy's base (I209).
+    (cur.structures || []).forEach((st, i) => {
+      if (!st.alive || !OWNED_STRUCTURES.has(st.kind)) return;
+      const box = this.structureBox(i, st);
+      if (box && cull(box.x, box.z, box.size + 3)) this.owners.mark(1, box.x, box.z, box.size);
+    });
     this.kits.end();
+    this.owners.end();
     PRIMS.forEach((p) => { const m = this.meshes[p]; m.count = counts[p]; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
     const g = this.ghost;
     if (g) {
