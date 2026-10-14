@@ -72,21 +72,21 @@ const RESOURCE_CONFIG = {
     color: 'text-amber-300',
     bgColor: 'bg-amber-500/20',
     label: 'ADM',
-    description: 'Administrative Power — domestic, economic and government actions'
+    description: 'Administrative power: laws, reforms, stability and city actions'
   },
   dip: {
     icon: Landmark,
     color: 'text-blue-400',
     bgColor: 'bg-blue-500/20',
     label: 'DIP',
-    description: 'Diplomatic Power — diplomacy, research and space actions'
+    description: 'Diplomatic power: treaties, claims, war declarations, spies and space'
   },
   mil: {
     icon: Swords,
     color: 'text-red-400',
     bgColor: 'bg-red-500/20',
     label: 'MIL',
-    description: 'Military Power — recruitment, fleets and warfare actions'
+    description: 'Military power: recruiting, generals, invasions and sea battles'
   },
   militaryStrength: {
     icon: Swords,

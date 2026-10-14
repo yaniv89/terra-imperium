@@ -15,7 +15,8 @@
 #     head (the battle fits the lance to 3.5 m; upright so the far detail level keeps it), a heater
 #     shield on the left arm turned a little to the side (the squad's Emblem), the reins in the left fist
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
-# Rest pose only (the vertex rig trots the horse). Rigs: MountRig, RiderRig.
+# Clips (ti_mounted_clips.py, 2026-10-14): the mounted set, the lance couched in the Charge and thrust down in
+# the Attack, the feet kept in the stirrups as the knight rises to the trot. Rigs: MountRig, RiderRig.
 #   blender -b --factory-startup -P scripts/blender/build_kingdoms_cavalry.py
 # Outputs go to art-build/units/kingdoms-cavalry/ (TI_PREVIEW=1: stills); copy the GLB to src/assets/units/.
 import math
@@ -26,6 +27,7 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
 
 UID = 'kingdoms-cavalry'
 tube, box, vertical = F.tube, F.box, F.vertical
@@ -86,6 +88,7 @@ tm.reins(horse, F.SEAT + gl)
 tris = F.finish_unit(UID, parts, {
     'role': 'Knights: a knight astride a grey destrier under a Team caparison with a dagged cream-bordered hem (drawn as plain wool on a mount), a steel chanfron, the high war saddle and stirrups; a great helm with a Team torse and mantling, a Team surcoat over mail with flaps over the lap and the cantle, steel shoulders, knee cops and gauntlets, a sword at the hip; the lance upright with a vamplate and a Team pennon, a heater shield (Emblem) on the left arm, the reins in the left fist',
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, great_helm, surcoat_flaps, heater_shield, poleyns) and ti_mounts.py (fine_horse, caparison, war_saddle, stirrups, chanfron, reins). The lance is SpearShaft and SpearHead (the battle fits it to 3.5 m from the butt); the pennon is SpearHeadPennon (moves with the head).'},
-    open_facing=facing, centre=(0, -.1, .85), scale=2.7)
+    open_facing=facing, centre=(0, -.1, .85), scale=2.7, mode='NLA_TRACKS',
+    clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'lance', stirrups=True), 'mounted'))
 print('TRIS', tris)
 assert tris <= 3500, tris

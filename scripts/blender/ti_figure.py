@@ -1532,7 +1532,9 @@ def preview_scene(out, uid, centre=(0, 0, .6), scale=2.4):
 def finish_unit(uid, parts, notes, open_facing=None, animations=False, mode='ACTIONS', centre=(0, 0, .6), scale=2.4, clips=None):
     """A unit of several rigs: every mesh of the scene shaded (COLOR_0), one root empty named `uid`
     over `parts`, then <uid>.blend, <uid>.glb and report.json in art-build/units/<uid>/. Returns the triangles.
-    `clips` as finish_rest's (one person on one rig): the GLB carries them, <uid>.json lists them."""
+    `clips` as finish_rest's (one person on one rig): the GLB carries them, <uid>.json lists them. A unit of
+    several rigs passes mode='NLA_TRACKS' and clips=ti_mounted_clips.hook(...) (one glTF animation per clip
+    over every rig)."""
     import json
     import os
     adopt([o for o in bpy.context.scene.objects if o.type == 'MESH'])
@@ -1564,7 +1566,8 @@ def finish_unit(uid, parts, notes, open_facing=None, animations=False, mode='ACT
     (out / 'report.json').write_text(json.dumps(report, indent=2))
     if table:
         import ti_clips
-        (out / f'{uid}.json').write_text(ti_clips.options_json(table, order))
+        # a third item: the unit's bake options to keep (ti_mounted_clips.hook: a mount's quadruped flag, budget)
+        (out / f'{uid}.json').write_text(ti_clips.options_json(table, order, clips[2] if len(clips) > 2 else None))
         (out / 'clips.json').write_text(json.dumps({'fps': 20, 'clips': table}, indent=2))
         if clips[1]:
             clips[1]()
