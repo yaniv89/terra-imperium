@@ -29,6 +29,24 @@ const STORAGE_KEY = 'terra-imperium-save-v1';
 // re-run the v1→v2 migration and wipe the ADM/DIP/MIL pools.
 const SAVE_VERSION = CURRENT_SAVE_VERSION;
 const AUTOSAVE_IDLE_MS = 1500;
+// The game before the current one: New game keeps the old autosave here instead of overwriting it
+// (X26). One slot, listed under Load on the title screen.
+export const PREVIOUS_SAVE_KEY = 'terra-imperium-save-previous';
+export const AUTOSAVE_KEY = STORAGE_KEY;
+export const readSaveText = (key = STORAGE_KEY) => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+export const removeSave = (key) => { try { localStorage.removeItem(key); } catch (e) { /* storage unavailable */ } };
+// While the title screen (or the new game steps reached from it) is up, nothing is played, so the
+// autosave must not rewrite the save: it would change "last played" to the time of this launch.
+let launchHold = false;
+export const setLaunchHold = (on) => { launchHold = !!on; };
+// New game and Load keep the game being left: its autosave moves to the previous slot (only when
+// it is a save this build can read).
+export const stashCurrentGame = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw && saveProblem(JSON.parse(raw)) === null) localStorage.setItem(PREVIOUS_SAVE_KEY, raw);
+  } catch (e) { /* storage unavailable */ }
+};
 
 // Lazily load a saved game, falling back to a fresh one. migrateSave handles version upgrades and
 // backfills any field a newer build added that this save predates; a save it can't read at all
@@ -175,6 +193,7 @@ export const GameProvider = ({ children }) => {
   // hidden or closed, not after every action: serialising the whole world took tens of ms of the
   // main thread on each army move.
   const saveNow = useCallback(() => {
+    if (launchHold) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state: stateRef.current, savedAt: Date.now() }));
     } catch (e) {

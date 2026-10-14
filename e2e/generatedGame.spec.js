@@ -41,8 +41,9 @@ test('a generated world: chosen on the start screen, played for turns, saved and
 
   // the autosave brings the same world and turn back after a reload
   await page.reload();
-  const continueBtn = page.getByRole('button', { name: /^Continue/ });
-  if (await continueBtn.isVisible({ timeout: 30000 }).catch(() => false)) await click(continueBtn);
+  const continueBtn = page.getByTestId('title-continue'); // X26: a reload always shows the title screen
+  await expect(continueBtn).toBeVisible({ timeout: 60000 });
+  await click(continueBtn);
   await expect(yearLabel).toHaveText(year, { timeout: 180000 });
   const again = await page.evaluate(() => JSON.parse(localStorage.getItem('terra-imperium-world') || 'null'));
   expect(again.seed).toBe(world.seed);
