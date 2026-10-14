@@ -6,6 +6,7 @@
 //   oddsSource    exact odds (a spy report, your own city, open ground in sight) or the scouts' guess
 //   battleSize    300 a side: the whole army takes the field at once (U10, no Reserve and no waves)
 //   cityWallsView the walls (name, HP), the houses and the battle housing
+import { menOf, countText } from '../../engine/battleLedger';
 import { unitDisplayName } from '../../data/unitNames';
 import { getCategoryTierName } from '../../data/buildings';
 import { POP_LIMIT, trainableRoles, ecoName } from '../../battle/data/economy';
@@ -56,11 +57,12 @@ export const oddsSource = (state, { targetRegionId = null, field = false, defend
   return { exact: false, label: "Scouts' guess: a range, not a number. A spy report gives exact odds." };
 };
 
-/** A strength the scouts guess: plus or minus a fifth, rounded to tens ("about 260 to 320"). */
+/** A strength the scouts guess, in men: plus or minus a fifth, rounded to tens ("about 2,600 to 3,200"). */
 export const scoutsRange = (strength) => {
-  const lo = Math.max(0, Math.round((strength * 0.8) / 10) * 10);
-  const hi = Math.round((strength * 1.2) / 10) * 10;
-  return { lo, hi, text: `about ${lo} to ${hi}` };
+  const m = menOf(strength);
+  const lo = Math.max(0, Math.round((m * 0.8) / 10) * 10);
+  const hi = Math.round((m * 1.2) / 10) * 10;
+  return { lo, hi, text: `about ${countText(lo)} to ${countText(hi)}` };
 };
 
 /** The battle's clock in minutes with the battle economy on (master plan 6.1, phase R1). */

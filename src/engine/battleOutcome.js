@@ -225,8 +225,10 @@ const cityAttackLine = (s, o, place, mine) => {
     ? `${who} broke the defences of ${place} (0 of ${a.maxHp} HP) but has no foot or horse to take it.`
     : `${who} attacks ${place}: its defences fall from ${a.hpBefore} to ${a.hpAfter} of ${a.maxHp} HP. Attack again to take it.`;
 };
-const garrisonLine = (s, o, place, mine) => (o.outcome === 'attacker'
-  ? `${mine ? 'Your army' : nameOf(s, o.attackerNationId)} beat the garrison of ${place}: its survivors are driven out. The city is not taken yet: attack its defences next.`
+// Only say "driven out" when somebody survived to be driven (LOGIC-02): a garrison cut down to the
+// last man is destroyed, not driven.
+const garrisonLine = (s, o, place, mine, def = []) => (o.outcome === 'attacker'
+  ? `${mine ? 'Your army' : nameOf(s, o.attackerNationId)} ${def.some((u) => u.strength > 0) ? `beat the garrison of ${place}: its survivors are driven out.` : `destroyed the garrison of ${place}: none of it escaped.`} The city is not taken yet: attack its defences next.`
   : null);
 // A garrison beaten on Auto is driven out of its city (it breaks, as a Civilization unit dies or
 // falls back): the survivors fall back to the owner's nearest held city, or are lost with nowhere to
@@ -277,7 +279,7 @@ const invasionAdapter = (s, o, war, att, def) => {
   const message = captured
     ? `${place} is conquered: taken from ${nameOf(s, target.owner)}${me ? ', it is now yours' : ` by ${nameOf(s, o.attackerNationId)}`}${capitalTaken ? ' (their capital has fallen!)' : ''}.${me ? ' Decide what becomes of it.' : ''}`
     : rule === 'attack' ? cityAttackLine(s, o, place, me)
-    : rule === 'garrison' && garrisonLine(s, o, place, me) ? garrisonLine(s, o, place, me)
+    : rule === 'garrison' && garrisonLine(s, o, place, me, def) ? garrisonLine(s, o, place, me, def)
     : o.outcome === 'attacker' ? `${me ? 'Your forces' : nameOf(s, o.attackerNationId)} broke through at ${place} (control now ${siege.nextControl}%), but could not yet secure it.`
       : o.outcome === 'defender' ? `${me ? 'Your invasion' : `${nameOf(s, o.attackerNationId)}'s attack`} on ${place} was repelled.`
         : `The attack on ${place} ended in a mutual withdrawal.`;
@@ -316,7 +318,7 @@ const landingAdapter = (s, o, war, att, def) => {
   const message = captured
     ? `${me ? 'Your amphibious assault' : `${nameOf(s, o.attackerNationId)}'s landing`} conquers ${place} from ${nameOf(s, target.owner)}${me ? ': it is now yours' : ''}${capitalTaken ? ' (their capital has fallen!)' : ''}.`
     : rule === 'attack' ? cityAttackLine(s, o, place, me)
-    : rule === 'garrison' && garrisonLine(s, o, place, me) ? garrisonLine(s, o, place, me)
+    : rule === 'garrison' && garrisonLine(s, o, place, me, def) ? garrisonLine(s, o, place, me, def)
     : o.outcome === 'attacker' ? `${me ? 'Your landing' : `${nameOf(s, o.attackerNationId)}'s landing`} broke through at ${place} (control now ${siege.nextControl}%), but could not yet secure it.`
       : o.outcome === 'defender' ? `${me ? 'Your amphibious assault' : `${nameOf(s, o.attackerNationId)}'s landing`} on ${place} was repelled.`
         : `The landing at ${place} ended in a mutual withdrawal.`;
@@ -367,12 +369,13 @@ const defenseAdapter = (s, o, war, att, def, record) => {
   else if (rule === 'attack') regions = { ...regions, [o.regionId]: attackedCity(s, o, region) };
   else regions = { ...regions, [o.regionId]: { ...region, control: siege.nextControl, lastAttackedTurn: s.turnNumber, underInvasion: damaged } };
   const name = region.name || o.regionId;
+  const survivors = def.some((u) => u.strength > 0 && !isAir(u));
   const enemy = nameOf(s, o.attackerNationId);
   const mine = o.defenderNationId === o.viewerId;
   const message = captured
     ? `${enemy} storms ${name} and conquers it!${fallback ? ` ${mine ? 'Your' : 'The'} survivors fall back to ${s.regions[fallback]?.name || fallback}.` : ''}`
     : rule === 'attack' ? cityAttackLine(s, o, name, false)
-    : drivenOut ? `${enemy} beats ${mine ? 'your' : 'the'} garrison of ${name}${fallback ? ` and drives it back to ${s.regions[fallback]?.name || fallback}` : ''}. The city still stands, but empty its defences must hold the next attack.`
+    : drivenOut ? `${enemy} ${survivors ? `beats ${mine ? 'your' : 'the'} garrison of ${name}${fallback ? ` and drives it back to ${s.regions[fallback]?.name || fallback}` : ''}` : `destroys ${mine ? 'your' : 'the'} garrison of ${name}: none of it escaped`}. The city still stands, but empty its defences must hold the next attack.`
     : damaged ?`${enemy} presses the siege of ${name} (control now ${siege.nextControl}%). ${mine ? 'Your' : 'The'} garrison holds on.`
       : `${mine ? 'Your' : 'The'} garrison repels ${enemy}'s assault on ${name}!`;
   const winnerId = aggressorWon ? o.attackerNationId : defenderWon ? o.defenderNationId : null;

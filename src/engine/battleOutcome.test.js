@@ -85,6 +85,23 @@ const fieldState = (extra = []) => {
   return { ...S, units, wars: [...S.wars, { id: 'w-f', aggressor: 'in', enemy: 'pk', active: true, startYear: S.year, battleScore: 0 }], nations: { ...S.nations, in: { ...S.nations.in, isAtWar: true }, pk: { ...S.nations.pk, isAtWar: true } } };
 };
 
+describe('the report line tells what happened to the garrison (LOGIC-02)', () => {
+  const garrisonBattle = (s, defStrength, id) => {
+    const o = makeBattleOutcome({ id, kind: 'invasion', mode: 'auto', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, viewerId: 'fr', fromRegionId: FR, regionId: T, tile: s.regions[T].tile, isDefended: true }, {
+      outcome: 'attacker', attackerUnits: [{ ...s.units.a1, strength: 900 }],
+      defenderUnits: [{ ...s.units.d1, strength: defStrength }], report: { garrisonFirst: true }
+    });
+    const next = applyBattleOutcome(s, o);
+    return next.logs[next.logs.length - 1].message;
+  };
+  it('says the survivors were driven out only when some survived', () => {
+    const s = armies();
+    expect(garrisonBattle(s, 0, 'g0')).not.toMatch(/driven out/);
+    expect(garrisonBattle(s, 0, 'g0b')).toMatch(/destroyed the garrison/);
+    expect(garrisonBattle(s, 50, 'g1')).toMatch(/survivors are driven out/);
+  });
+});
+
 describe('the outcome service', () => {
   it('applies an outcome exactly once, and Command and Auto of one operation share its id', () => {
     const s = armies();
