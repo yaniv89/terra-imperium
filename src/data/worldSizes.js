@@ -13,15 +13,17 @@ export const WORLD_SIZES = {
 export const WORLD_SIZE_IDS = Object.keys(WORLD_SIZES);
 export const DEFAULT_WORLD_SIZE = 'standard';
 
-/** The minimum distance between any two starting cities on the real Earth (decision 42). */
-export const START_MIN_GAP_KM = 900;
+/** The minimum distance between any two starting cities on the real Earth (decision 42: "about 900";
+ * 880 keeps the Kingdom of Israel beside Akkad, the default start: 895 km apart on the grid). */
+export const START_MIN_GAP_KM = 880;
 /** The generated worlds' fair start sites keep this gap between majors (src/worldgen/v1/startSites.js).
  * It is part of a generated world's hash, so it stays where it was; their city-states keep
  * START_MIN_GAP_KM where the land allows (generatedPeoples.js). */
 export const MAJOR_MIN_GAP_KM = 612;
 /** A city-state stands at its people's real capital or, when that is within the gap of another
- * start, on the nearest free site at most this far from it; else it is left out of the world. */
-export const CITY_STATE_SHIFT_KM = 700;
+ * start, on the nearest free site at most this far from it (the same part of the world); else it
+ * is left out. On a Large world the land is full near 50 city-states at the 900 km gap. */
+export const CITY_STATE_SHIFT_KM = 1000;
 
 /** The start setting "City-states: Few / Normal / Many": a multiplier on the size's count. */
 export const CITY_STATE_DENSITIES = {
@@ -31,6 +33,9 @@ export const CITY_STATE_DENSITIES = {
 };
 export const CITY_STATE_DENSITY_IDS = Object.keys(CITY_STATE_DENSITIES);
 export const DEFAULT_CITY_STATES = 'normal';
+/** Not on the start screen: every city-state people at its real capital, spaced only by the settling
+ * rule (the layout before decision 42). Engine tests that need a crowded neighbourhood use it. */
+export const CITY_STATES_PACKED = 'packed';
 /** How many city-states a world of this size and density aims for (fewer when the land is full). */
 export const cityStateCount = (sizeId, density = DEFAULT_CITY_STATES) => {
   const size = WORLD_SIZES[sizeId] || WORLD_SIZES[DEFAULT_WORLD_SIZE];

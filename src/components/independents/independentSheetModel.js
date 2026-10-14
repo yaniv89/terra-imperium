@@ -35,6 +35,7 @@ import { raidEta } from '../../engine/raids';
 import { wallsLabel } from '../battle/warModel';
 import { unitTile } from '../../engine/armies';
 import { shieldUrl, shieldColour } from './independentArt';
+import { cityStateViewOf } from './cityStateBadge';
 
 /** Attitude words by value (the W08 meter): -100..100. */
 export const attitudeWord = (v) => (v >= JOIN_OPINION ? 'Devoted' : v >= JOIN_STRENGTH_OPINION ? 'Friendly' : v >= 10 ? 'Warm' : v > -20 ? 'Wary' : v > -50 ? 'Unfriendly' : 'Hostile');
@@ -261,6 +262,7 @@ export const independentSheetModel = (state, indepId) => {
     land: people?.landName || null,
     personality: { id: p, name: PERSONALITIES[p]?.name || p, where: PERSONALITIES[p]?.where || '', colour: shieldColour(p), shieldUrl: shieldUrl(p) },
     freeCity: !!ind.freeCity,
+    cityState: cityStateViewOf(state, n, me),
     city: city ? { id: city.id, name: city.name, tile: city.tile, size: city.size || 1, garrisonTarget: garrisonTarget(city.size, p) } : null,
     facts,
     km: alive ? kmFromNearest(state, me, city.tile) : Infinity,

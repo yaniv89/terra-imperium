@@ -4,8 +4,8 @@
 // independents.js (creation), raids.js (their AI) and indepPolicy.js (majors and independents).
 //
 // The model in plain words:
-// - A new world caps its raiders at RAIDER_SHARE_MAX of its independents (capRaiders): the extra
-//   raiders, by a fixed roll of their ids, become tribal (and so Science or Culture).
+// - A new world caps its raiders at RAIDER_SHARE_MAX of its independents (data capRaiders, called
+//   by independents.js finalizeIndependents).
 // - Patron. On its think turns (raids.js thinksOn) a city-state that is not a raider picks its
 //   patron: among the majors that have met it, hold a city within PATRON_KM and are not campaigning
 //   against it, the one with the best attitude (opinion.js, the joining measure), if that is at least
@@ -19,24 +19,11 @@ import { distanceKm } from '../data/geo/geodesic';
 import { LogTypes } from '../data/types';
 import { isIndependentNation } from '../data/independents';
 import { PEOPLES } from '../data/peoples';
-import { RAIDER_SHARE_MAX, PATRON_KM, PATRON_OPINION, CITY_STATE_TYPES, cityStateTypeOf, patronBonusOf, patronBonusText, cityStateRoll } from '../data/cityStates';
+import { PATRON_KM, PATRON_OPINION, CITY_STATE_TYPES, cityStateTypeOf, patronBonusOf, patronBonusText } from '../data/cityStates';
 import { clampPrestige } from './nationalPower';
 import { opinionOf } from './opinion';
 import { hasMet } from './hostility';
 import { thinksOn } from './raids';
-
-/** The raider cap of a new world: `personalities` { id: personality } -> the same with at most
- * round(n x RAIDER_SHARE_MAX) raiders (the extras, by a fixed roll of their ids, become tribal). */
-export const capRaiders = (personalities) => {
-  const ids = Object.keys(personalities).sort();
-  const raiders = ids.filter((id) => personalities[id] === 'raiders');
-  const keep = Math.round(ids.length * RAIDER_SHARE_MAX);
-  if (raiders.length <= keep) return personalities;
-  const out = { ...personalities };
-  raiders.map((id) => ({ id, r: cityStateRoll(`${id}|raiderCap`) })).sort((a, b) => a.r - b.r || (a.id < b.id ? -1 : 1))
-    .slice(keep).forEach(({ id }) => { out[id] = 'tribal'; });
-  return out;
-};
 
 /** A city-state's patron now (an id or null), from the turn's view. `majorCities`: [{ owner, centre }]. */
 export const choosePatron = (view, indepId, majorCities) => {

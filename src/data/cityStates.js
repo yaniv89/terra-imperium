@@ -11,9 +11,9 @@
 // that have met it with a city within PATRON_KM and takes the one it likes best (attitude, the
 // joining measure of indepPolicy.js), if that attitude is at least PATRON_OPINION. The patron gets
 // the type's bonus every turn while it lasts:
-//   Trade     +tradeGoldOf(age) gold (2 in the Bronze Age, +1 an age)
+//   Trade     +patronGoldOf(age) gold (2 in the Bronze Age, +1 an age)
 //   Military  +patronManpowerOf(age) manpower
-//   Science   +patronSciencesOf(age) research points
+//   Science   +patronScienceOf(age) research points
 //   Culture   +PATRON_PRESTIGE prestige (prestige fades 5% a turn, rounded down, so it settles near 40)
 // A gift (GIFT_GOLD) raises the attitude by its favour, so the player can buy a patronage.
 import { AGE_ORDER } from './ages';
@@ -76,3 +76,17 @@ export const patronBonusText = (type, ageId = 'bronze') => {
   if (b.prestige) return `+${b.prestige} prestige a turn`;
   return null;
 };
+
+/** The raider cap of a new world: `personalities` { id: personality } -> the same with at most
+ * round(n x RAIDER_SHARE_MAX) raiders (the extras, by a fixed roll of their ids, become tribal). */
+export const capRaiders = (personalities) => {
+  const ids = Object.keys(personalities).sort();
+  const raiders = ids.filter((id) => personalities[id] === 'raiders');
+  const keep = Math.round(ids.length * RAIDER_SHARE_MAX);
+  if (raiders.length <= keep) return personalities;
+  const out = { ...personalities };
+  raiders.map((id) => ({ id, r: roll(`${id}|raiderCap`) })).sort((a, b) => a.r - b.r || (a.id < b.id ? -1 : 1))
+    .slice(keep).forEach(({ id }) => { out[id] = 'tribal'; });
+  return out;
+};
+

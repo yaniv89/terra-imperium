@@ -6,7 +6,7 @@ import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { getTiles } from '../data/geo/tiles';
 import { getNationCapital } from '../data/regions';
-import { PEOPLES, PEOPLES_LIST } from '../data/peoples';
+import { PEOPLES, PEOPLES_LIST, CITY_STATE_PEOPLES_LIST } from '../data/peoples';
 import { WORLD_SIZES, EQUAL_START_SIZE } from '../data/worldSizes';
 import {
   INDEPENDENT_KIND, PERSONALITY_IDS, PERSONALITY_MIX_TARGET, isIndependentNation, independentSizeCap, garrisonTarget, personalityFor, independentTitle, INDEPENDENT_ART
@@ -63,13 +63,13 @@ describe('independents data', () => {
 });
 
 describe('who is an independent in a peoples world', () => {
-  it('Standard and Large keep every other people; Small keeps its count; late peoples arrive later', () => {
+  it('each size draws its count of city-state peoples (decision 42); late peoples arrive later', () => {
     const majors = ['akkad', 'israel', 'kemet'];
     const std = pickIndependents(majors, 'standard', 4);
-    const late = PEOPLES_LIST.filter((p) => p.arrives != null).map((p) => p.id);
+    const late = CITY_STATE_PEOPLES_LIST.filter((p) => p.arrives != null).map((p) => p.id);
     expect(std.late.sort()).toEqual(late.sort());
-    expect(std.ids).toHaveLength(PEOPLES_LIST.length - majors.length - late.length);
-    expect(std.ids.some((id) => majors.includes(id))).toBe(false);
+    expect(std.ids).toHaveLength(WORLD_SIZES.standard.independents);
+    expect(std.ids.some((id) => majors.includes(id) || PEOPLES[id].major)).toBe(false);
     const small = pickIndependents(majors, 'small', 4);
     expect(small.ids).toHaveLength(WORLD_SIZES.small.independents);
     expect(pickIndependents(majors, 'small', 4)).toEqual(small);
@@ -79,23 +79,24 @@ describe('who is an independent in a peoples world', () => {
   const indeps = independentIdsOf(state);
   const majors = Object.keys(state.nations).filter((id) => !isIndependentNation(state.nations[id]));
 
-  it('a new Standard world: 36 majors, the rest independents with one equal city and a garrison', () => {
+  it('a new Standard world: 36 majors, city-states with one equal city and a garrison', () => {
     expect(majors).toHaveLength(WORLD_SIZES.standard.majors);
     expect(majors).toContain('akkad');
-    expect(indeps.length).toBe(PEOPLES_LIST.filter((p) => p.arrives == null).length - majors.length);
+    expect(indeps.length).toBeGreaterThan(WORLD_SIZES.standard.independents * 0.75);
+    expect(indeps.length).toBeLessThanOrEqual(WORLD_SIZES.standard.independents);
     indeps.forEach((id) => {
       const n = state.nations[id];
       const city = state.regions[n.capitalRegionId];
       expect(city.owner).toBe(id);
       expect(city.size).toBe(EQUAL_START_SIZE);
-      expect(city.tile).toBe(PEOPLES[id].tile);
+      expect(city.tile).toBe(state.scenario.sites?.[id] ?? PEOPLES[id].tile);
       expect(n.economy).toBeUndefined();
       expect(n.ruler).toBeNull();
       expect(PERSONALITY_IDS).toContain(n.indep.personality);
       expect(n.name).not.toMatch(/Kingdom/);
       expect(Object.values(state.units).filter((u) => u.ownerId === id)).toHaveLength(1);
     });
-    expect(Object.keys(state.scenario.lateArrivals).length).toBe(PEOPLES_LIST.filter((p) => p.arrives != null).length);
+    expect(Object.keys(state.scenario.lateArrivals).length).toBe(CITY_STATE_PEOPLES_LIST.filter((p) => p.arrives != null).length);
     assertGameState(state);
   });
 

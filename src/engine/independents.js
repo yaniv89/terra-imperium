@@ -30,13 +30,14 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
 import { distanceKm } from '../data/geo/geodesic';
 import { PEOPLES, CITY_STATE_PEOPLES_LIST } from '../data/peoples';
-import { DEFAULT_WORLD_SIZE, EQUAL_START_SIZE, START_MIN_GAP_KM, CITY_STATE_SHIFT_KM, DEFAULT_CITY_STATES, cityStateCount } from '../data/worldSizes';
+import { DEFAULT_WORLD_SIZE, EQUAL_START_SIZE, START_MIN_GAP_KM, CITY_STATE_SHIFT_KM, DEFAULT_CITY_STATES, CITY_STATES_PACKED, cityStateCount } from '../data/worldSizes';
 import { createRng } from '../utils/rng';
 import {
   INDEPENDENT_KIND, INDEPENDENT_BORDER_KM, isIndependentNation, independentSizeCap, garrisonTarget,
   personalityFor, independentTitle, RAID_RESERVE
 } from '../data/independents';
 import { canFoundCity, foundCity, sizeToPeople } from './world/cities';
+import { capRaiders } from '../data/cityStates';
 
 const MIX = 0x51ed270b; // the independents' roll: its own stream of the world seed
 
@@ -78,12 +79,14 @@ export const cityStateSiteOk = (tiles, t) => {
  * cityStateCount(size, density) stand. Returns { ids, late, sites } with `sites` only for the moved
  * ones ({ peopleId: tile }, saved in scenario.sites). Deterministic in (majors, size, seed, density).
  */
-export const placeCityStatesOnEarth = (majorIds, sizeId = DEFAULT_WORLD_SIZE, seed = 1, { density = DEFAULT_CITY_STATES, tiles = getTiles() } = {}) => {
+export const placeCityStatesOnEarth = (majorIds, sizeId = DEFAULT_WORLD_SIZE, seed = 1, { density = DEFAULT_CITY_STATES, tiles = getTiles(), shiftKm = CITY_STATE_SHIFT_KM } = {}) => {
   const { order, late } = drawCityStates(majorIds, seed);
+  // 'packed': every city-state people at its real capital, the layout before decision 42 (engine tests).
+  if (density === CITY_STATES_PACKED) return { ids: order.slice().sort(), late, sites: {} };
   const want = cityStateCount(sizeId, density);
   const placed = majorIds.map((id) => PEOPLES[id]?.tile).filter((t) => t != null).map((t) => tiles.centres[t]);
   const clear = (t) => { const c = tiles.centres[t]; return placed.every((p) => distanceKm(p, c) >= START_MIN_GAP_KM); };
-  const reach = ringsForKm(CITY_STATE_SHIFT_KM);
+  const reach = ringsForKm(shiftKm);
   const ids = []; const sites = {};
   for (let i = 0; i < order.length && ids.length < want; i++) {
     const id = order[i]; const home = PEOPLES[id].tile;
@@ -94,7 +97,7 @@ export const placeCityStatesOnEarth = (majorIds, sizeId = DEFAULT_WORLD_SIZE, se
       for (let d = 1; d <= reach && site == null; d++) {
         const next = [];
         frontier.forEach((x) => tiles.neighbors[x].forEach((y) => { if (!seen.has(y)) { seen.add(y); next.push(y); } }));
-        const ok = next.filter((t) => cityStateSiteOk(tiles, t) && distanceKm(homeC, tiles.centres[t]) <= CITY_STATE_SHIFT_KM && clear(t));
+        const ok = next.filter((t) => cityStateSiteOk(tiles, t) && distanceKm(homeC, tiles.centres[t]) <= shiftKm && clear(t));
         if (ok.length) site = ok.sort((a, b) => (tiles.rivers[b] || tiles.coastal[b] ? 1 : 0) - (tiles.rivers[a] || tiles.coastal[a] ? 1 : 0) || a - b)[0];
         frontier = next;
       }
@@ -148,10 +151,12 @@ export const finalizeIndependents = (state, { late = [] } = {}) => {
   const ids = Object.keys(state.nations).filter((id) => state.nations[id].kind === INDEPENDENT_KIND).sort();
   if (!ids.length && !late.length) return state;
   const nations = { ...state.nations };
+  // At most a third are raiders (decision 42, cityStates.js capRaiders).
+  const personalities = capRaiders(Object.fromEntries(ids.map((id) => [id, personalityFor(tiles, state.regions[nations[id].capitalRegionId]?.tile, id)])));
   ids.forEach((id) => {
     const n = nations[id];
     const tile = state.regions[n.capitalRegionId]?.tile;
-    const personality = personalityFor(tiles, tile, id);
+    const personality = personalities[id];
     const rec = independentRecord(n, { id, name: n.name, color: n.color, people: n.people || null, personality, seaRaiders: isSeaRaider(tiles, tile, personality), since: state.turnNumber || 1, capitalRegionId: n.capitalRegionId });
     nations[id] = { ...rec, name: independentNameOf(state, rec) };
   });
