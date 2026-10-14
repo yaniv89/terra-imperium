@@ -1,0 +1,188 @@
+{
+  "file": "civic-classical-mesopotamia.glb",
+  "kind": "landmark",
+  "bytes": 2466428,
+  "checks": {
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "keep": {
+      "lods": {
+        "LOD0": {
+          "triangles": 6384,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.885,
+          "depth": 1.881,
+          "height": 0.92,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 760,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.885,
+          "depth": 1.881,
+          "height": 0.92,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 92,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.84,
+          "depth": 1.7,
+          "height": 0.665,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.885
+    },
+    "keep-damaged": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1749,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.882,
+          "depth": 1.881,
+          "height": 0.924,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 527,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.885,
+          "depth": 1.881,
+          "height": 0.92,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 92,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.84,
+          "depth": 1.7,
+          "height": 0.495,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.882
+    },
+    "keep-ruined": {
+      "lods": {
+        "LOD0": {
+          "triangles": 949,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.933,
+          "depth": 1.818,
+          "height": 0.365,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 276,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.885,
+          "depth": 1.803,
+          "height": 0.364,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 80,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.84,
+          "depth": 1.7,
+          "height": 0.16,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.933
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "civic-classical-mesopotamia_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 415706
+    },
+    {
+      "name": "civic-classical-mesopotamia_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 802090
+    },
+    {
+      "name": "civic-classical-mesopotamia_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 475952
+    }
+  ],
+  "passed": true
+}

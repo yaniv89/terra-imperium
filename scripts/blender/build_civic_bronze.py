@@ -1,6 +1,10 @@
 """Original Bronze civic compounds, reusing delivered cultural house kits.
-Run Blender --background --threads 8 --python this.py -- OUT THEME [--probe].
+Run Blender --background --threads 8 --python this.py -- OUT THEME [AGE] [--probe].
 Design sheets precede each build. Fixed footprint/origin across damage states.
+AGE (default bronze) may be `classical` for a procedural Classical kit (ti_<theme>_classical's
+<theme>_house through build_houses_damage_classical.procedural_house): civic-classical-<theme>.glb.
+The Mesopotamian Classical hall (I215) adds baked-brick court walls with stepped merlons and two
+gate towers faced in blue glazed brick at the entrance in place of the mud tower.
 """
 import os, sys, random, json, inspect
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -16,9 +20,17 @@ _fast_uv = inspect.getsource(tm.smart_uv).replace('CONCAVE','CONVEX')
 exec(_fast_uv, tm.__dict__)
 THEME = sys.argv[sys.argv.index('--')+2]
 OUT = os.path.abspath(sys.argv[sys.argv.index('--')+1])
+_rest = sys.argv[sys.argv.index('--')+3:]
+AGE = _rest[0] if _rest and not _rest[0].startswith('--') else 'bronze'
+GLAZED = THEME == 'mesopotamia' and AGE == 'classical'
 STATE = {}
 AK = None
-if THEME in hd.KIT_THEMES:
+if AGE == 'classical':
+    import build_houses_damage_classical as hc
+    __import__('ti_%s_classical' % THEME)
+    HOUSE = {k: hc.procedural_house(THEME,k) for k in ('rich','common')}
+    LIGHT = HOUSE
+elif THEME in hd.KIT_THEMES:
     HOUSE, LIGHT, AK = hd.kit_layouts(THEME, os.path.abspath('art-build/kitsrc/plans/art/kits'), STATE)
 else:
     if THEME != 'base': __import__('ti_%s_bronze' % THEME)
@@ -69,13 +81,19 @@ def trim_budget(ms, lod, budget):
     ms.parts=remaining
 
 def courtyard(ms,lod):
-    mat='timber' if THEME in ('europe','steppe','monsoon') else 'mudwall_bare'
+    mat='timber' if THEME in ('europe','steppe','monsoon') else 'msb_baked' if GLAZED else 'mudwall_bare'
     for x in (-.92,.92):ms.box(mat,(.045,1.7,.18),at=(x,0,0),lod=lod)
     ms.box(mat,(1.88,.045,.18),at=(0,.85,0),lod=lod)
     for x in (-.64,.64):ms.box(mat,(.57,.045,.18),at=(x,-.85,0),lod=lod)
+    if GLAZED:  # stepped merlons along the court walls' tops
+        import ti_mesopotamia_classical as mc
+        f=tm.house_frame(0,0,0)
+        mc.stepped_merlons(ms,f,-.9,.9,.85,.18,step=.07,size=.03,face=1)
+        for x0,x1 in ((-.92,-.36),(.36,.92)):mc.stepped_merlons(ms,f,x0,x1,-.85,.18,step=.07,size=.03)
+        for x in (-.92,.92):mc.stepped_merlons(ms,f,-.83,.83,x,.18,step=.07,size=.03,face=1 if x>0 else -1,along='y')
 
 def far(ms,state):
-    mat='stone' if THEME in ('israelite','americas') else 'mudwall_bare'
+    mat='stone' if THEME in ('israelite','americas') else 'msb_baked' if GLAZED else 'mudwall_bare'
     h=.62 if state==0 else .45 if state==1 else .16
     # Three open hall walls and a wing retain the empty court and ruined interior.
     for x in (-.61,.61):ms.box(mat,(.08,.68,h),at=(x,.29,0),lod=2)
@@ -109,7 +127,19 @@ def layout(state):
         for x in (-.29,.29):ms.box('timber',(.025,.025,.38),at=(x,-.31,0),lod=1)
         ms.box('team_cloth',(.64,.34,.015),at=(0,-.2,.38),lod=1)
         ms.box('team_cloth',(.16,.014,.22),at=(.59,-.153,.31),lod=1)
-        if THEME in ('base','levant','nile','maghreb','israelite','mesopotamia'):
+        if GLAZED:
+            # the court's gate between two towers faced in blue glazed brick, banners on their tops
+            import ti_mesopotamia_classical as mc
+            f=tm.house_frame(0,0,0)
+            for sx in (-1,1):
+                gx=sx*.43
+                ms.box('msc_glaze',(.16,.16,.5),at=(gx,-.85,0),lod=1)
+                mc.glazed_panel(ms,f,gx-.08,gx+.08,-.93,.02,.48,face=-1,bands=2,lod=0)
+                mc.merlon_rim(ms,f,gx-.08,gx+.08,-.93,-.77,.5,step=.04,size=.024,mat='msc_glaze')
+                ms.cyl('timber',.007,.006,.22,at=(gx,-.85,.5),segs=6,lod=1)
+                tt.pennant(ms,f,gx,-.85,.715,yaw=-120 if sx<0 else -60,w=.16,h=.1)
+            ms.box('msc_glaze',(.7,.05,.1),at=(0,-.85,.36),lod=1)  # the lintel band over the entrance
+        elif THEME in ('base','levant','nile','maghreb','israelite','mesopotamia'):
             ms.box('mudwall_bare',(.27,.28,.6),at=(.71,-.49,0),lod=1,taper=.82)
             ms.box('reed',(.34,.34,.025),at=(.71,-.49,.71),lod=1)
             for x in (.6,.82):ms.box('timber',(.02,.02,.11),at=(x,-.49,.6),lod=1)
@@ -129,9 +159,13 @@ def layout(state):
         low=tm.Mesher();far(low,state)
         low.parts=[(bm,mat,2,(2,)) for bm,mat,_lod,_only in low.parts]
         for bm,mat,lod,only in low.parts:ms.add(bm,mat,2,only=(2,))
+        if AGE!='bronze':  # a charred beam can tilt a centimetre under the ground: lift it to Z = 0
+            for bm,_mat,_lod,_only in ms.parts:
+                for v in bm.verts:
+                    if v.co.z<0:v.co.z=0.0
     return build
 
-name='civic-bronze'+('' if THEME=='base' else '-'+THEME)
+name='civic-'+AGE+('' if THEME=='base' else '-'+THEME)
 items=[('keep',layout(0),None),('keep-damaged',layout(1),None),('keep-ruined',layout(2),None)]
 os.makedirs(OUT,exist_ok=True)
 if '--probe' in sys.argv:

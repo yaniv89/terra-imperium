@@ -6,6 +6,7 @@ import { PEOPLES, kinThemeOf } from './peoples';
 import { styleOfLand, styleChain, themeOfNation, STYLE_FALLBACK } from './architecture';
 import { townFileKey, indexTownFiles, townVariant, buildTownManifest } from './townLayout';
 import { createArtIndex } from '../battle/art/artIndex';
+import { ART } from '../battle/art/artFiles';
 import { townAssetUrl, sharedAssetUrls } from '../components/map/closeView/townAssets';
 import { kinOf } from '../engine/grudges';
 
@@ -100,5 +101,11 @@ describe('Mesopotamian theme routing', () => {
     expect(kinThemeOf(null)).toBeNull();
     expect(kinThemeOf('fr')).toBeNull();
     expect(kinOf({ people: 'akkad' })).toBe(kinOf({ people: 'ugarit' }));
+  });
+
+  it('the shipped battle art: the theme\'s own civic halls for the Bronze and Classical cities', () => {
+    expect(ART.civic('bronze', 'mesopotamia').style).toBe('mesopotamia');
+    expect(ART.civic('classical', 'mesopotamia').style).toBe('mesopotamia');
+    expect(ART.civic('classical', 'levant').style).toBe('base'); // no other theme has a Classical hall
   });
 });
