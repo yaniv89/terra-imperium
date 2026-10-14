@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getTiles } from '../../data/geo/tiles';
-import { planGlides, glideAt, walkedTiles, GLIDE_MIN_MS, GLIDE_MAX_MS } from './marchGlide';
+import { planGlides, glideAt, walkedTiles, afterTurnReport, REPORT_SETTLE_MS, GLIDE_MIN_MS, GLIDE_MAX_MS } from './marchGlide';
 
 // a short walk over land: a land tile and two land steps away from it
 const landWalk = () => {
@@ -52,5 +52,47 @@ describe('march glide (I070)', () => {
     const g = { points: [{ lat: 0, lng: 179 }, { lat: 0, lng: -179 }], dur: 1000 };
     const mid = glideAt(g, 500);
     expect(Math.abs(mid.lng)).toBeGreaterThan(179);
+  });
+});
+
+// The glide after End Turn waits for the turn report to close.
+describe('afterTurnReport', () => {
+  const makeEnv = (shown = false) => {
+    const env = { shown, fns: new Set(), timers: [] };
+    env.isShown = () => env.shown;
+    env.listen = (fn) => { env.fns.add(fn); return () => env.fns.delete(fn); };
+    env.later = (fn, ms) => { const t = { fn, ms, off: false }; env.timers.push(t); return () => { t.off = true; }; };
+    env.setShown = (v) => { env.shown = v; env.fns.forEach((f) => f(v)); };
+    env.tick = () => env.timers.filter((t) => !t.off).forEach((t) => { t.off = true; t.fn(); });
+    return env;
+  };
+
+  it('quiet turn: no report opens, it plays once the short wait is over', () => {
+    const env = makeEnv(); let n = 0;
+    afterTurnReport(env, () => { n += 1; });
+    expect(n).toBe(0);
+    expect(env.timers[0].ms).toBe(REPORT_SETTLE_MS);
+    env.tick();
+    expect(n).toBe(1);
+  });
+
+  it('a report opens: nothing plays until it closes, then it plays once', () => {
+    const env = makeEnv(); let n = 0;
+    afterTurnReport(env, () => { n += 1; });
+    env.setShown(true);
+    env.tick();
+    expect(n).toBe(0);
+    env.setShown(false);
+    expect(n).toBe(1);
+    env.setShown(true); env.setShown(false);
+    expect(n).toBe(1);
+  });
+
+  it('cancelled (another turn, unmount): never plays', () => {
+    const env = makeEnv(); let n = 0;
+    const cancel = afterTurnReport(env, () => { n += 1; });
+    cancel();
+    env.tick(); env.setShown(false);
+    expect(n).toBe(0);
   });
 });

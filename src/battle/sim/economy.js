@@ -26,6 +26,7 @@ import { tileOf, walkableGoal, invalidatePaths, queryRadius } from './pathing';
 import { makeSquad } from './world';
 import { stepToward } from './movement';
 import { moraleFromLosses } from './moraleMath';
+import { capShotOn, fireShare, recentlyHit, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
 import {
   RESOURCES, MILLI, POP_LIMIT, POP_PER_SQUAD, CARRY, GATHER_PER_SEC, FARM_RATE_MULT, MINE_RATE_MULT, WORK_REACH,
   buildRateHalves, CANCEL_REFUND, REPAIR_HP_PER_SEC, REPAIR_RECENT_TICKS, REPAIR_RECENT_MULT_QUARTERS,
@@ -482,12 +483,16 @@ const workerTick = (w, q, assigned, builders) => {
     if (w.tick % TICK_HZ !== 0) return;
     // Paid in proportion to the HP restored (repairPerHp); a quarter speed under recent attack.
     const perHp = repairPerHp(s);
-    const recent = w.tick - (s.lastHitTick ?? -10000) < REPAIR_RECENT_TICKS;
+    const recent = recentlyHit(w, s, REPAIR_RECENT_TICKS);
     let hp = Math.min(s.maxHp - s.hp, recent ? Math.max(1, Math.round((REPAIR_HP_PER_SEC * REPAIR_RECENT_MULT_QUARTERS) / 4)) : REPAIR_HP_PER_SEC);
+    // Under attack all its repairers together restore at most REPAIR_UNDER_ATTACK_MAX_PER_SEC (I212).
+    if (s.repairTick !== w.tick) { s.repairTick = w.tick; s.repairDone = 0; }
+    if (recent) hp = Math.min(hp, REPAIR_UNDER_ATTACK_MAX_PER_SEC - s.repairDone);
     perHp.forEach((p, i) => { if (p > 0) hp = Math.min(hp, Math.floor(eco.stock[q.side][i] / p)); });
     if (hp <= 0) return;
     perHp.forEach((p, i) => { eco.stock[q.side][i] -= hp * p; eco.stats[q.side].spent[i] += hp * p; });
     s.hp += hp;
+    s.repairDone += hp;
   }
 };
 
@@ -585,7 +590,7 @@ export const fireEcoTowers = (w) => {
       if (d < bestD) { bestD = d; target = q; }
     });
     if (!target) return;
-    const damage = Math.max(1, Math.round(t.damage * (0.85 + nextRandom(w) * 0.3)));
+    const damage = capShotOn(target, Math.max(1, Math.round(t.damage * (0.85 + nextRandom(w) * 0.3) * fireShare(b))));
     target.strength = Math.max(0, target.strength - damage);
     target.morale = Math.max(0, target.morale - Math.round(moraleFromLosses(target, damage)));
     target.lastHitTick = w.tick; target.engaged = true;

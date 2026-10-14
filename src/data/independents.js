@@ -17,6 +17,8 @@ export const INDEPENDENT_KIND = 'independent';
 /** True for an independent's nation record (or for an id, given the nations map). */
 export const isIndependentNation = (nation) => nation?.kind === INDEPENDENT_KIND;
 export const isIndependent = (nations, id) => !!id && isIndependentNation(nations?.[id]);
+/** An independent's personality (its shield on the map's badge and banner), or null for a major. */
+export const independentPersonality = (nations, id) => (isIndependent(nations, id) ? nations[id].indep?.personality || 'tribal' : null);
 
 /** A world of majors and independents (the peoples world of phase W0, or any world that holds an
  * independent): every major is Tier 1 there (independents 5, master plan section 3 "AI tiers"),

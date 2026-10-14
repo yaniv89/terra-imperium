@@ -21,6 +21,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_worker_clips as W  # noqa: E402
 
 UID = 'kingdoms-worker'
 arm = F.start({'Skin': 'C99472', 'Cloth': 'E2D8BE', 'Wool': '6B5038', 'Hose': '4E4436', 'Leather': '553623', 'Straw': 'D2B46A',
@@ -77,6 +78,10 @@ tube('AxeHead', [((x, y + .030, top), (.030, .020), P), ((x, y - .010, top), (.0
 F.reach('L', (.108, -.112, .722))
 F.bake_rest()
 
-F.finish_rest(UID, 'Villager: a round straw hat with a Team band, beard, a Team tunic over a brown wool skirt, linen sleeves, belt and pouch, hose and ankle boots, '
-              'a bundle of firewood on the back with the left fist on its strap, a felling axe held upright like a staff',
-              notes={'role': 'worker'})
+# ---- work tools and clips (2026-10-14, ti_worker_clips.py): the staff axe moves from Prop_R to its own bone
+# Tool_Held (same shape, same rest pose); a steel axe (a short felling axe held at the end of its haft),
+# pick, sickle and hammer on Tool_Axe, Tool_Pick, Tool_Sickle and Tool_Hammer, hidden (scale 0) but in the
+# clips that use them. The GLB now carries clips; Idle frame 1 is the rest pose above.
+W.finish_worker(UID, 'Villager: a round straw hat with a Team band, beard, a Team tunic over a brown wool skirt, linen sleeves, belt and pouch, hose and ankle boots, '
+                'a bundle of firewood on the back with the left fist on its strap, a felling axe held upright like a staff; steel work tools in the clips',
+                'steel', 'basket', notes={'role': 'worker'})

@@ -4,7 +4,7 @@
 # build_units_kingdoms_irregular.py (the raider stays there):
 #   blender -b --factory-startup -P scripts/blender/build_kingdoms_mercenary.py
 # Same contract as that builder: the canonical rig (UnitRig) under a root empty named after the unit,
-# flat material colours, the Team, Skin and Emblem tags, rest pose only (no clips). He must not be
+# flat material colours, the Team, Skin and Emblem tags, and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged). He must not be
 # taken for the pikeman (build_kingdoms_infantry.py: kettle hat, Team tabard, pike), so he is a
 # sell-sword in rich mixed kit:
 #   - a pointed bascinet swept back to its tip, with a mail aventail over the shoulders and a small
@@ -22,6 +22,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'kingdoms-mercenary'
 arm = F.start({'Skin': 'B9805C', 'Velvet': '6A2430', 'Brass': ('C9A04E', .4, .7), 'Ochre': 'B88A3A', 'HoseDark': '2E2A28', 'Leather': '4A2E1E',
@@ -77,4 +78,5 @@ F.oval_shield((.236, -.168, .600), .118, .118, n=12, rim='Metal', boss='Metal', 
 
 F.finish_rest(UID, 'Mercenary: a pointed bascinet with a mail aventail and a small Team plume, beard, a wine-red brigandine studded with brass rivets over a mail skirt, '
               'mail sleeves and steel shoulder plates, a Team waist sash, a coin pouch, parti-coloured hose and ankle boots, a round Emblem buckler with a steel boss, '
-              'a falchion held upright', notes={'role': 'mercenary (drawn for mercenary squads of the infantry class)'})
+              'a falchion held upright', notes={'role': 'mercenary (drawn for mercenary squads of the infantry class)'},
+              clips=FC.clips_hook(UID, FC.Kit('sword', shield=True)))

@@ -1,5 +1,6 @@
 {
   "enabled": true,
+  "quadruped": false,
   "restClip": "^Idle$",
   "triangleBudget": 3000,
   "tags": {
@@ -8,27 +9,98 @@
     "emblem": "(^|\\s)Emblem(\\s|$)"
   },
   "clips": {
-    "fps": 20,
+    "Idle": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    },
+    "Walk": {
+      "frames": 21,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    },
+    "Run": {
+      "frames": 15,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    },
+    "Carry": {
+      "frames": 25,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    },
     "Chop": {
-      "contact": 19
+      "frames": 33,
+      "fps": 20,
+      "loop": true,
+      "tool": "Axe",
+      "events": {
+        "contact": 17
+      }
     },
     "Mine": {
-      "contact": 17
+      "frames": 29,
+      "fps": 20,
+      "loop": true,
+      "tool": "Pick",
+      "events": {
+        "contact": 15
+      }
     },
     "Harvest": {
-      "cut": 22
+      "frames": 37,
+      "fps": 20,
+      "loop": true,
+      "tool": "Sickle",
+      "events": {
+        "cut": 13
+      }
     },
     "Build": {
-      "contact": 17
+      "frames": 25,
+      "fps": 20,
+      "loop": true,
+      "tool": "Hammer",
+      "events": {
+        "contact": 15
+      }
     },
     "Repair": {
-      "contact": 14
+      "frames": 21,
+      "fps": 20,
+      "loop": true,
+      "tool": "Hammer",
+      "events": {
+        "contact": 11
+      }
     },
     "Deposit": {
-      "pour": 18
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "tool": "Held",
+      "events": {
+        "pour": 16
+      }
+    },
+    "Hit": {
+      "frames": 8,
+      "fps": 20,
+      "loop": false,
+      "tool": "Held"
     },
     "Death": {
-      "settle": 30
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "tool": "Held",
+      "events": {
+        "settle": 30
+      }
     }
   }
 }

@@ -16,7 +16,7 @@ import { raidMapModel, raidMapEmpty } from './raidMapModel';
 import { tributeDemandModel, joinOfferModel } from './tributeSheetModel';
 import { shieldUrl, actionIconUrl, dressingUrl, tribalCampUrl, burningTownFxUrl } from './independentArt';
 
-const base = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
+const base = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11, cityStates: 'packed' } });
 const me = base.playerNationId;
 const T = base.turnNumber;
 const unit = (id, owner, regionId, tile, classId = 'infantry') => ({ id, ownerId: owner, regionId, homeRegionId: regionId, tile, domain: 'land', classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null });

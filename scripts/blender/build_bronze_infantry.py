@@ -13,13 +13,15 @@
 #     at every zoom
 # Outputs go to art-build/units/bronze-infantry/ (ti_units.out_dir); copy the GLB to
 # src/assets/units/bronze-infantry.glb.
-import bpy, bmesh, sys, math, json, random
+import bpy, bmesh, sys, os, math, json, random
 from pathlib import Path
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_units as u  # noqa: E402
+import ti_clips as C  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 OUT = u.out_dir('bronze-infantry')
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -291,12 +293,10 @@ for ob in meshes:
     me.color_attributes.render_color_index = 0
 
 # ---- clips, floor, export ------------------------------------------------------------------------
-clips = u.add_actions(arm)
-floor_report = u.ground_actions(arm, meshes)
-arm.animation_data.action = bpy.data.actions['Idle']
-bpy.context.scene.frame_set(1)
-for track in arm.animation_data.nla_tracks:
-    track.mute = True
+# The twelve foot-melee clips authored anew (2026-10-14, ti_foot_clips.py: hand targets on the spear and
+# the shield, planted feet, contacts held two frames); the generic keys of ti_units.add_actions are gone.
+KIT = FC.Kit('spear', shield=True)
+clips, order, floor_report = FC.author(KIT, arm, meshes)
 bpy.context.scene.render.fps = 20
 arm['equipment'] = {'spear_total_H': length, 'shield_diameter_H': R * 2, 'body_height_H': 1.0}
 bpy.context.preferences.filepaths.save_version = 0
@@ -312,7 +312,8 @@ bpy.ops.export_scene.gltf(filepath=str(OUT / 'bronze-infantry.glb'), export_form
                           export_materials='EXPORT', export_image_format='NONE', export_optimize_animation_size=False,
                           export_vertex_color='ACTIVE', export_all_vertex_colors=False, export_active_vertex_color_when_no_material=True)
 tris = u.triangles(meshes)
-(OUT / 'clips.json').write_text(json.dumps({'fps': 20, 'clips': clips, 'events': {'Attack': {'contact_frame': 11}, 'Attack2': {'contact_frame': 13}, 'Death': {'settle_frame': 30}, 'DeathAlt': {'settle_frame': 30}}, 'runtime_animation_playback': 'pending VAT integration'}, indent=2))
+(OUT / 'clips.json').write_text(json.dumps({'fps': 20, 'clips': clips}, indent=2))
+(OUT / 'bronze-infantry.json').write_text(C.options_json(clips, order))
 (OUT / 'palette.json').write_text(json.dumps(u.COLORS, indent=2))
 (OUT / 'floor-correction.json').write_text(json.dumps(floor_report, indent=2))
 (OUT / 'source-report.json').write_text(json.dumps({
@@ -320,4 +321,8 @@ tris = u.triangles(meshes)
     'material_contract': 'flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)',
     'shade_range': [round(v, 3) for v in shade_range], 'fps': 20, 'spear_total_H': length, 'shield_diameter_H': R * 2,
     'by_object': {o.name: u.triangles([o]) for o in meshes}}, indent=2))
+if os.environ.get('TI_SHEETS'):  # contact sheets of every clip from the battle camera (TI_SHEETS=side: from the side too)
+    FC.sheets('bronze-infantry', clips, arm, KIT)
+    if os.environ.get('TI_SHEETS') == 'side':
+        FC.sheets('bronze-infantry', clips, arm, KIT, view='side')
 print('FINISHED', OUT, 'TRIANGLES', tris, 'SHADE', shade_range, flush=True)

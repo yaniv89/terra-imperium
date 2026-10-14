@@ -42,6 +42,7 @@ import { useMarch } from '../MarchContext';
 import { fogView } from '../fogView';
 import { loadGroundData } from '../closeView/groundBlend';
 import { createCloseScene, closeTowns } from '../closeView/closeViewScene';
+import { settlerModelled } from '../closeView/settlerModels';
 import { tileGpuData } from './tileGpuData';
 import { buildFogField } from './fogField';
 import { indexCities, buildFogStates, buildTileTexels, buildCityTexels, buildTintTexels } from './territoryData';
@@ -62,7 +63,8 @@ import { declutterLabels, avoidHud } from './declutter';
 import { settlerLines } from '../settleRoutes';
 import { raidMapModel } from '../../independents/raidMapModel';
 import { openIndependent } from '../../independents/independentEvents';
-import { planGlides, glideAt } from '../marchGlide';
+import { planGlides, glideAt, afterTurnReport } from '../marchGlide';
+import { TURN_REPORT_SHOWN, isTurnReportShown } from '../../ui/uiEvents';
 import { POINT_TILE } from '../marchEvents';
 
 const OCEAN_COLOR = '#0f172a';
@@ -214,7 +216,8 @@ const GLMapView = ({
   // (the banners then stand where the engine put them, as placed).
   const stepGlide = useCallback((g, now, k) => {
     const gd = g.glide;
-    const ms = now - gd.start;
+    if (gd.release && gd.start == null) gd.start = now; // (the clock starts on the first frame after the release, not at the event)
+    const ms = gd.start == null ? 0 : now - gd.start; // (held: the banners stand on their old tiles)
     const at = new Map();
     gd.plan.forEach((p, key) => { const q = glideAt(p, ms); if (!q.done) at.set(key, q); });
     const live = at.size > 0;
@@ -230,7 +233,7 @@ const GLMapView = ({
       g.closeScene.moveArmies({ ...gd.markers, armies: move(gd.markers.armies, 'army'), fleets: move(gd.markers.fleets, 'fleet') });
     }
     if (!live) g.glide = null;
-    return live;
+    return live && gd.start != null;
   }, [projection]);
   const frame = useCallback((now) => {
     const g = gl.current;
@@ -505,18 +508,36 @@ const GLMapView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [gameState.units, gameState.regions, gameState.nations, gameState.intel, gameState.battleReports, gameState.turnNumber, gameState.playerNationId]);
   // A stack that moved since the last markers glides there from its last tile (I070). Drawing
-  // only; never with reduced motion.
+  // only; never with reduced motion. After End Turn the banners stand on their old tiles until the
+  // turn report is closed (at once when no report opens), then glide. While they wait, the "last
+  // drawn" state stays the one before the turn, so a further change plans from it.
   const glidePrev = useRef(null);
+  const glideGate = useRef(null);
+  useEffect(() => () => glideGate.current?.(), []);
   useEffect(() => {
     const prev = glidePrev.current;
     const now = gameStateRef.current;
-    glidePrev.current = { markers, state: now };
     const g = gl.current;
-    if (!g || !prev || prefersReducedMotion()) return;
+    glideGate.current?.(); glideGate.current = null;
+    if (g?.glide && g.glide.start == null && !g.glide.release) g.glide = null;
+    if (!g || !prev || prefersReducedMotion()) { glidePrev.current = { markers, state: now }; return; }
     const plan = planGlides({ prevState: prev.state, nextState: now, prevMarkers: prev.markers, nextMarkers: markers });
-    if (!plan.size) return;
-    g.glide = { start: performance.now(), plan, markers };
+    if (!plan.size) { glidePrev.current = { markers, state: now }; return; }
+    glidePrev.current = { ...prev, markers: prev.markers, state: prev.state };
+    g.glide = { start: null, plan, markers };
     g.request();
+    glideGate.current = afterTurnReport({
+      isShown: isTurnReportShown,
+      listen: (fn) => { const h = (e) => fn(!!e.detail); window.addEventListener(TURN_REPORT_SHOWN, h); return () => window.removeEventListener(TURN_REPORT_SHOWN, h); },
+      later: (fn, ms) => { const id = setTimeout(fn, ms); return () => clearTimeout(id); }
+    }, () => {
+      glideGate.current = null;
+      glidePrev.current = { markers, state: now };
+      const live = gl.current;
+      if (!live?.glide || live.glide.start != null) return;
+      live.glide.release = true;
+      live.request();
+    });
   }, [markers]);
   const towns = useMemo(() => closeTowns(state), [state]);
   // the settled view: the cities' sprites are built round it
@@ -538,7 +559,10 @@ const GLMapView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state, projection, k, landKey, fog, lens, closeGround, dpr]);
   const marks = useMemo(() => (projection ? groundMarks({ state, projection, k, dpr }) : []), [state, projection, k, dpr]);
-  const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr }) : null), [state, projection, k, fog, dpr]);
+  // (assetsTick: a settler party's model came in, so its disc gives way in the close view)
+  const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr, modelled: settlerModelled(state) }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, projection, k, fog, dpr, assetsTick]);
   // settlers on their way draw their road like a march (settleRoutes.js, I095)
   const settlerRoads = useMemo(() => settlerLines(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -657,12 +681,13 @@ const GLMapView = ({
     g.topSprites.set(placed.top);
     g.markerPlaced = placed.markers;
     g.markerShown = placed.markers;
-    g.markerLayer.set(placed.markers); // (a glide under way moves them on its next frame)
+    g.markerLayer.set(placed.markers);
+    if (g.glide) stepGlide(g, performance.now(), k); // (a glide under way, or held for the turn report, puts them back at once: no frame of the new tiles)
     g.lowLines.set([...landOut.lines, ...(lensOut?.lines || [])]);
     g.marchLines.set([...march.lines, ...raids.lines, ...pointLines]);
     g.hits = [...raids.hits, ...settlers.hits, ...cities.hits, ...markerOut.hits];
     g.request();
-  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k, hudToScreen, hudRects, hudTick, pointLines]);
+  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, terrainOut, atlasTick, k, hudToScreen, hudRects, hudTick, pointLines, stepGlide]);
 
   // ---------------------------------------------------------------- the close view
   const [land, setLand] = useState(null);

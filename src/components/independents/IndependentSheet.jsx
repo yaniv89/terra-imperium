@@ -13,6 +13,7 @@ import { focusRegion } from '../map/marchEvents';
 import { independentSheetModel } from './independentSheetModel';
 import { openTributeDemand } from './independentEvents';
 import { actionIconUrl } from './independentArt';
+import CityStateBadge from './CityStateBadge';
 import { ShieldMark, AttitudeMeter, GrudgeMeter, CardLabel, TONE_TEXT } from './IndependentBits';
 
 const ACTION_GLYPH = { attack: Swords, payTribute: Coins, join: HeartHandshake, gift: Gift, demandTribute: Crown, trade: ArrowLeftRight, hire: Users };
@@ -43,6 +44,7 @@ export const IndependentSheetBody = ({ model: m, onRun, note, onClose }) => (
         <h2 className="fa-heading text-[19px] leading-tight truncate" data-testid="indep-name">{m.name}</h2>
         <div className="fa-label !text-fa-indep">Independent · {m.personality.name}{m.freeCity ? ' · free city' : ''}</div>
         <div className="text-[12px] text-fa-muted truncate">{m.facts.join(' · ')}{m.people ? ` · ${m.people}` : ''}</div>
+        {m.cityState && <CityStateBadge view={m.cityState} />}
       </div>
       {onClose && <button type="button" onClick={onClose} aria-label="Close" className="fa-icon-btn -mr-1 -mt-1"><X className="w-4 h-4" /></button>}
     </div>

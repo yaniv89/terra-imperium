@@ -29,7 +29,7 @@ import ti_classical as tc  # noqa: E402,F401 (ashlar, tile, marble)
 import build_rts_bronze as rb  # noqa: E402
 from ti_town import G  # noqa: E402
 
-THEMES = ('americas', 'eastafrica', 'europe', 'indic', 'israelite', 'levant', 'maghreb', 'monsoon', 'nile', 'sinic', 'steppe', 'westafrica')
+THEMES = ('americas', 'eastafrica', 'europe', 'indic', 'israelite', 'levant', 'maghreb', 'monsoon', 'nile', 'sinic', 'steppe', 'westafrica', 'mesopotamia')  # new themes go last: the seed is 3300 + the index
 argv = sys.argv[sys.argv.index('--') + 1:]
 OUT = os.path.abspath(argv[0])
 THEME = argv[1]
@@ -50,7 +50,7 @@ else:
 
 # The theme's building stuff for the parts that are not houses (the tower's body, the court walls).
 WALL = {'europe': 'ashlar', 'levant': 'ashlar', 'maghreb': 'ashlar', 'steppe': 'timber', 'monsoon': 'timber', 'sinic': 'mud',
-        'eastafrica': 'stone', 'westafrica': 'mud', 'americas': 'stone', 'israelite': 'stone', 'indic': 'brick'}.get(THEME, 'mudwall_bare')
+        'eastafrica': 'stone', 'westafrica': 'mud', 'americas': 'stone', 'israelite': 'stone', 'indic': 'brick', 'mesopotamia': 'msb_baked'}.get(THEME, 'mudwall_bare')
 STILTS = WALL == 'timber'  # a timber land's tower stands on posts
 
 

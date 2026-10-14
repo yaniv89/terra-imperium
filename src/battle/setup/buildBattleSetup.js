@@ -54,8 +54,14 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 // v11: playtest audit CB20, a general's guard deploys one full line pitch (3 tiles) behind its side's
 // rearmost squad (or on the rear rank's flank when there is no room), never inside the back line where
 // machines and chariots overlapped it (sim/world.js spawnGenerals).
+// v12: playtest audit I211 and I212 (sim/siegeRules.js), a company trained in battle is struck by at
+// most AUX_FRONTAGE times its own strength and loses at most AUX_SHOT_CAP of it to one tower volley;
+// towers and the keep fire in proportion to their HP; once the wall ring is broken the keep loses its
+// walls' cover and men without engines storm it (KEEP_STORM_MULT); the city's works under attack
+// repair slower (all repairers together at most REPAIR_UNDER_ATTACK_MAX_PER_SEC, the Workshop's
+// field repairs wait until the attack stops).
 // A log or a checkpoint of another version is never replayed as if it were this one.
-export const SETUP_VERSION = 11;
+export const SETUP_VERSION = 12;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 

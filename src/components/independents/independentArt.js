@@ -3,8 +3,10 @@
 // W1 and W2-4 rows). Each helper returns the URL of a delivered file, or null while the art is not
 // there, and the caller draws the placeholder the plan allows:
 //   personality shields   src/assets/icons/independents/<personality>.svg   (S1 icons, through
-//                         data/icons.js like every other icon group); placeholder: a plain dot in
-//                         the personality's colour on an empty shield, never a letter
+//                         data/icons.js like every other icon group; delivered 2026-10-14: horse,
+//                         coin, tower, totem; the WebGL map's badge and banner draw them too, with
+//                         banner-frame.svg, gl/spriteArt.js); placeholder: a plain dot in the
+//                         personality's colour on an empty shield, never a letter
 //   action icons          src/assets/icons/independents/<id>.svg (raid-torch, raze, tribute, grudge,
 //                         submit, trade-pact, hire-mercenaries, mercenary-contract); placeholder:
 //                         the lucide glyph the component already shows

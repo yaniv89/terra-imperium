@@ -3,7 +3,7 @@
 # archers on the shared parts of ti_figure.py; replaces k_ranged of build_units_kingdoms.py:
 #   blender -b --factory-startup -P scripts/blender/build_kingdoms_ranged.py
 # Same contract as that builder: the canonical rig (UnitRig) under a root empty named after the unit,
-# flat material colours, the Team and Skin tags, rest pose only (no clips). The look follows
+# flat material colours, the Team and Skin tags, and since 2026-10-14 authored clips (ti_foot_clips.py; Idle frame 1 is the rest pose, unchanged). The look follows
 # plans/art/concepts/oct13/units-kingdoms-set.png (design reference only):
 #   - a Team hood with a dagged shoulder cape and a long tail down the back (Head and Chest: the side's
 #     colour seen from above), the face open, a short beard
@@ -20,6 +20,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_figure as F  # noqa: E402
+import ti_foot_clips as FC  # noqa: E402
 
 UID = 'kingdoms-ranged'
 arm = F.start({'Skin': 'C99472', 'Wool': '6E6A46', 'Hose': '4A3F33', 'Cloth': 'E4DAC2', 'Leather': '5A3824', 'Metal': ('A9ADB2', .35, .8),
@@ -67,4 +68,5 @@ tube('nocked-arrow-fletching', [((ax, -.170, az), (.004, .015), P), ((ax, -.228,
 
 F.finish_rest(UID, 'Longbowmen: a Team hood with a dagged shoulder cape and a long tail, beard, a quilted wool jack with padded sleeves, hose and ankle boots, '
               'a tall self bow as tall as the man with horn nocks and a visible string, an arrow in the right hand, an arrow bag at the hip, a short sword',
-              notes={'role': 'ranged', 'bow_length_H': 1.02})
+              notes={'role': 'ranged', 'bow_length_H': 1.02},
+              clips=FC.clips_hook(UID, FC.Kit('bow', side='L', arrow=('nocked-arrow-shaft', 'nocked-arrow-head', 'nocked-arrow-fletching'), quiver='hip')))

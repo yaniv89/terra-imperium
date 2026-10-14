@@ -1,0 +1,81 @@
+{
+  "id": "gunpowder-raider",
+  "triangles": 3472,
+  "by_rig": {
+    "MountRig": 1590,
+    "RaiderRig": 1882
+  },
+  "rigs": {
+    "MountRig": [
+      "Mount_Root",
+      "Mount_Spine",
+      "Mount_Neck",
+      "Mount_Head",
+      "Mount_Tail",
+      "Rider",
+      "Mount_LegFront_L",
+      "Mount_ShinFront_L",
+      "Mount_LegFront_R",
+      "Mount_ShinFront_R",
+      "Mount_LegHind_L",
+      "Mount_ShinHind_L",
+      "Mount_LegHind_R",
+      "Mount_ShinHind_R"
+    ],
+    "RaiderRig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Boot",
+    "Brass",
+    "Cloth",
+    "Coat",
+    "Felt",
+    "Flame",
+    "Fringe",
+    "Hair",
+    "Hose",
+    "Iron",
+    "Kerchief",
+    "Leather",
+    "Mane",
+    "Rug",
+    "Sack",
+    "Skin",
+    "Team",
+    "Wood",
+    "Wool"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Gunpowder raider: a freebooter on a dun horse under a fringed red blanket (girth, breast band, bridle, stirrups), loot sacks on both flanks, a rolled blanket, a looted brass kettle and a mantel clock on the croup; a black slouch hat with a Team band, a moustache, a red neckerchief, a loose Team coat with its tails over the cantle, a leather bandolier, a red sash with a pistol, a sabre at the hip, brown breeches and cuffed jackboots, a raised torch, a carbine slung on the back",
+  "pose": "rest pose only (the rider seated, the torch arm raised); the vertex rig trots the horse",
+  "notes": "Quality pass of 2026-10-14 on ti_figure.py (astride, round_hat droop, seated_coat_tails, jackboots) and ti_mounts.py (fine_horse, tack, loot_sacks, roll, stirrups, reins). The flame is a flat orange material named Flame with no baked shade; fire and smoke come from the battle effects."
+}
