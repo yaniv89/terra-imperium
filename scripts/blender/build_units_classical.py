@@ -240,7 +240,10 @@ def b_general():
 # The foot units were rebuilt in the quality pass of 2026-10-14 by their own builders on ti_figure.py
 # (build_classical_swordsman.py, build_classical_ranged.py, build_classical_worker.py,
 # build_classical_support.py); b_infantry, b_ranged, b_support and b_worker stay here for reference only.
-BUILDERS = {'classical-cavalry': b_cavalry, 'classical-siege': b_siege, 'classical-general': b_general}
+# The heavy cavalry and the general were rebuilt the same way by build_classical_cavalry.py and
+# build_classical_general.py, the ballista's crew by build_classical_siege.py (the machine by the same
+# calls as b_siege); b_cavalry, b_general and b_siege stay for reference.
+BUILDERS = {}
 
 
 def build(uid):

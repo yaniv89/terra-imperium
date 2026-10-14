@@ -1,0 +1,78 @@
+{
+  "id": "classical-raider",
+  "triangles": 3038,
+  "by_rig": {
+    "MountRig": 1380,
+    "RaiderRig": 1658
+  },
+  "rigs": {
+    "MountRig": [
+      "Mount_Root",
+      "Mount_Spine",
+      "Mount_Neck",
+      "Mount_Head",
+      "Mount_Tail",
+      "Rider",
+      "Mount_LegFront_L",
+      "Mount_ShinFront_L",
+      "Mount_LegFront_R",
+      "Mount_ShinFront_R",
+      "Mount_LegHind_L",
+      "Mount_ShinHind_L",
+      "Mount_LegHind_R",
+      "Mount_ShinHind_R"
+    ],
+    "RaiderRig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Boot",
+    "Cloth",
+    "Coat",
+    "Flame",
+    "Fleece",
+    "Hair",
+    "Iron",
+    "Leather",
+    "Mane",
+    "Metal",
+    "Rug",
+    "Sack",
+    "Skin",
+    "Team",
+    "Trousers",
+    "Wood"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Classical raider: a light horseman on a chestnut dun horse under a fringed fleece (girth, breast band, bridle), loot sacks on both flanks, a rolled striped rug and a looted bronze cauldron on the croup; a Team felt cap with a forward tip, a short Team cloak, a long-sleeved ochre tunic, trousers and boots, a raised torch, two javelins slung on the back",
+  "pose": "rest pose only (the rider seated, the torch arm raised); the vertex rig trots the horse",
+  "notes": "Quality pass of 2026-10-14 on ti_figure.py (astride, cloak, phrygian_cap) and ti_mounts.py (fine_horse, tack, reins). The flame is a flat orange material named Flame with no baked shade; fire and smoke come from the battle effects."
+}

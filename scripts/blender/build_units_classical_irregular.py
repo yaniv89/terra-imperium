@@ -142,8 +142,9 @@ def build_mercenary():
 
 
 # The mercenary was rebuilt in the quality pass of 2026-10-14 by build_classical_mercenary.py on
-# ti_figure.py; build_mercenary stays here for reference only.
-BUILDERS = {'classical-raider': build_raider}
+# ti_figure.py, the raider by build_classical_raider.py; build_mercenary and build_raider stay here for
+# reference only.
+BUILDERS = {}
 ids = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else list(BUILDERS)
 for uid in ids:
     BUILDERS[uid]()
