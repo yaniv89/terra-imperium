@@ -467,15 +467,15 @@ def melee_pike(L):
     across the body to parry (Block), raised upright and shaken (Cheer)."""
     P = L.P
     R, O = L.side, L.other
-    hr, hl = .26, .52  # the fists' stations from the butt
-    turn = {'Hips': (0, 0, -12), 'Spine': (4, 0, -10), 'Chest': (2, 0, -12), 'Head': (0, 0, 30)}
+    hr, hl = .26, .45  # the fists' stations from the butt
+    turn = {'Hips': (0, 0, -14), 'Spine': (4, 0, -12), 'Chest': (2, 0, -14), 'Head': (0, 0, 36)}
     d, f = pitch(86)
     guard = L.key(turn, W=L.W((-.05, -.02, .74), d, f, h=hr), hands={R: L.on(R, hr, pole=(-1, .5, -.4)), O: L.on(O, hl, pole=(.6, -.2, -1))})
     d, f = pitch(88)
     back = L.key(dict(turn, Spine=(0, 0, -12), Chest=(-2, 0, -14)), (0, 0, .004), W=L.W((-.05, .06, .75), d, f, h=hr),
                  hands={R: L.on(R, hr, pole=(-1, .5, -.4)), O: L.on(O, hl, pole=(.6, -.2, -1))})
     d, f = pitch(90)
-    thrust = L.key({'Hips': (4, 0, -6), 'Spine': (10, 0, -4), 'Chest': (6, 0, -6), 'Head': (-10, 0, 20)}, (0, 0, -.035),
+    thrust = L.key({'Hips': (4, 0, -10), 'Spine': (10, 0, -10), 'Chest': (6, 0, -12), 'Head': (-10, 0, 30)}, (0, 0, -.035),
                    W=L.W((-.03, -.18, .73), d, f, h=hr), hands={R: L.on(R, hr, pole=(-1, .5, -.4)), O: L.on(O, hl, pole=(.6, -.2, -1))}, ease='in')
     a1 = Clip('Attack', 21, False, None, keys=[(1, guard), (7, back), (11, thrust), (12, thrust), (16, dict(back, ease='out')), (21, guard)],
               events={'contact': 11})
@@ -483,7 +483,7 @@ def melee_pike(L):
     lowb = L.key(dict(turn, Spine=(2, 0, -12)), (0, 0, -.01), W=L.W((-.05, .05, .64), d, f, h=hr),
                  hands={R: L.on(R, hr, pole=(-1, .5, -.4)), O: L.on(O, hl, pole=(.6, -.2, -1))})
     d, f = pitch(100)
-    low = L.key({'Hips': (4, 0, -6), 'Spine': (12, 0, -4), 'Chest': (8, 0, -6), 'Head': (-12, 0, 20)}, (0, 0, -.05),
+    low = L.key({'Hips': (4, 0, -10), 'Spine': (12, 0, -10), 'Chest': (8, 0, -12), 'Head': (-12, 0, 30)}, (0, 0, -.05),
                 W=L.W((-.03, -.17, .62), d, f, h=hr), hands={R: L.on(R, hr, pole=(-1, .5, -.4)), O: L.on(O, hl, pole=(.6, -.2, -1))}, ease='in')
     a2 = Clip('Attack2', 25, False, None, keys=[(1, guard), (8, lowb), (13, low), (14, low), (19, dict(lowb, ease='out')), (25, guard)],
               events={'contact': 13})
@@ -742,7 +742,8 @@ def sheets(uid, table, arm, kit, view='game'):
         dest = u.REPO / os.environ['TI_SHEETS_DIR']
     dest.mkdir(parents=True, exist_ok=True)
     big = kit.kind == 'pike'
-    return C.render_sheets(dest, uid, table, arm, view=view, sheets=SHEETS[kit.archetype], ortho=2.6 if big else 1.8, aim=(0, -.35, .6) if big else (0, -.2, .5))
+    rows = {k: [n for n in v if n in table] for k, v in SHEETS[kit.archetype].items()}
+    return C.render_sheets(dest, uid, table, arm, view=view, sheets=rows, ortho=2.6 if big else 1.8, aim=(0, -.35, .6) if big else (0, -.2, .5))
 
 
 def clips_hook(uid, kit):

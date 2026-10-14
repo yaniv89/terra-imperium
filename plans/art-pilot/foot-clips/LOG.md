@@ -137,3 +137,70 @@ Pick-axe in the right fist (the fist slides down to the haft's end to swing it, 
 | Hit | 8 | 0.40 | no | - |
 | Death | 30 | 1.50 | no | settle 30 |
 
+## kingdoms-infantry
+
+Pike (5 m in the game: the loader stretches it from the butt) in both hands, the fists slid down to stations 0.26 and 0.45 from the butt. Attack: levelled at the chest and thrust. Attack2: thrust low at the belly. Block: angled up across the body. Cheer: raised upright and pumped. The left fist leaves the sword's pommel for the shaft in the attacks and goes back to it. Triangles 1676 (unchanged); GLB 173 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| IdleAlt | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Retreat-run | 15 | 0.75 | yes | - |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Attack2 | 25 | 1.25 | no | contact 13 |
+| Block | 20 | 1.00 | no | - |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+| Cheer | 33 | 1.65 | yes | - |
+
+## kingdoms-ranged
+
+Longbow (Prop_L), its one-segment string straight; the nocked arrow on Tool_Arrow, a new one taken from the arrow bag at the right hip. Melee-fallback: the arrow stabbed down. Triangles 1934 (unchanged); GLB 180 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Draw-aim-release | 33 | 1.65 | no | release 22 |
+| Melee-fallback | 20 | 1.00 | no | contact 11 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+
+## kingdoms-mercenary
+
+Falchion and round buckler: the sword set (cut, thrust, Block behind the buckler). Triangles 1916 (unchanged); GLB 192 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| IdleAlt | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Retreat-run | 15 | 0.75 | yes | - |
+| Attack | 21 | 1.05 | no | contact 11 |
+| Attack2 | 25 | 1.25 | no | contact 13 |
+| Block | 20 | 1.00 | no | - |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+| DeathAlt | 30 | 1.50 | no | settle 30 |
+| Cheer | 33 | 1.65 | yes | - |
+
+## kingdoms-support
+
+Wooden maul in the right fist, swung one-handed from the haft's end (Build: driving a stake in front; Repair: crouched, quicker); the wheeled mantlet stays still on the left arm. No Mine (no pick). Triangles 1794 (unchanged); GLB 160 KB packed.
+
+| Clip | Frames | Seconds | Loop | Events |
+|---|---|---|---|---|
+| Idle | 41 | 2.05 | yes | - |
+| Walk | 21 | 1.05 | yes | - |
+| Run | 15 | 0.75 | yes | - |
+| Build | 25 | 1.25 | yes | contact 15 |
+| Repair | 21 | 1.05 | yes | contact 11 |
+| Hit | 8 | 0.40 | no | - |
+| Death | 30 | 1.50 | no | settle 30 |
+

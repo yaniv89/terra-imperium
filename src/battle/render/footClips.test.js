@@ -23,7 +23,8 @@ const HELD = ['Attack', 'Attack2', 'Melee-fallback', 'Mine', 'Build', 'Repair'];
 // unit -> archetype (a support unit may add Mine when its tool is a pick)
 const UNITS = {
   'bronze-infantry': 'melee', 'bronze-ranged': 'bow', 'bronze-mercenary': 'melee',
-  'classical-infantry': 'melee', 'classical-ranged': 'bow', 'classical-mercenary': 'melee', 'classical-support': 'support'
+  'classical-infantry': 'melee', 'classical-ranged': 'bow', 'classical-mercenary': 'melee', 'classical-support': 'support',
+  'kingdoms-infantry': 'melee', 'kingdoms-ranged': 'bow', 'kingdoms-mercenary': 'melee', 'kingdoms-support': 'support'
 };
 const POLEARMS = /spear|pike|lance|halberd/i;
 const FPS = 20;

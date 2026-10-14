@@ -498,7 +498,7 @@ def render_sheets(out_dir, uid, table, arm, cols=8, cell=(190, 220), team='2F6FD
     cam.rotation_euler = (Vector(aim) - cam.location).to_track_quat('-Z', 'Y').to_euler()
     # a ground plane so the feet read
     me = bpy.data.meshes.new('SheetGround')
-    me.from_pydata([(-2, -2, 0), (2, -2, 0), (2, 2, 0), (-2, 2, 0)], [], [(0, 1, 2, 3)])
+    me.from_pydata([(-6, -6, 0), (6, -6, 0), (6, 6, 0), (-6, 6, 0)], [], [(0, 1, 2, 3)])
     gm = bpy.data.materials.new('SheetGround')
     gm.diffuse_color = (.36, .42, .26, 1)
     me.materials.append(gm)
