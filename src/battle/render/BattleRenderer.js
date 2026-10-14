@@ -29,6 +29,7 @@ import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
+import { FogMask } from './fogMask';
 import { VegetationProps } from '../art/vegetationProps';
 import { dressStructure, fortRef, CivicStructures } from '../art/structureArt';
 import { BattleTerrainArt } from '../art/battleTerrain';
@@ -308,6 +309,9 @@ export class BattleRenderer {
 
   setFog(grid) {
     const { w, h } = this.map;
+    this.fogNow = grid; this.fogVersion = (this.fogVersion || 0) + 1;
+    this.fogMask?.update(grid);
+    this.structureHolders?.forEach((e) => { e.holder.visible = this.seenAt(e.x, e.z); });
     let veiled = false;
     // The veil's alpha per tile, then softened by a small separable blur (1 2 3 2 1) across rows
     // and columns: the sight discs' tile steps read as soft edges, not dark stair-stepped squares.
@@ -337,6 +341,20 @@ export class BattleRenderer {
     // Nothing hidden (everything in sight, or no fog of war): the two veils would draw about
     // 66,000 fully clear triangles a frame.
     this.fogMesh.visible = veiled; this.skirtFogMesh.visible = veiled;
+  }
+
+  /** Has the player's side ever seen the ground at (x, z) tiles? (Always, without fog of war.) */
+  seenAt(x, z) {
+    const g = this.fogNow;
+    if (!g) return true;
+    const { w, h } = this.map;
+    return g[Math.max(0, Math.min(h - 1, Math.floor(z))) * w + Math.max(0, Math.min(w - 1, Math.floor(x)))] > 0;
+  }
+
+  /** The same for a structure of the setup, by its index. */
+  structureSeen(i) {
+    const s = this.setup.structures[i];
+    return !s || this.seenAt(s.x / Q, s.y / Q);
   }
 
   track(obj) { this.disposables.push(obj); return obj; }
@@ -497,6 +515,7 @@ export class BattleRenderer {
     // Instanced by spatial chunk (PROP_CHUNK tiles square): each chunk has its own bounds, so
     // three.js leaves out the chunks off screen (and outside the sun's shadow box). One mesh for
     // the whole field had bounds covering everything and drew every tree every frame.
+    this.fogMask = new FogMask(w, h); // props on ground never seen stay hidden (fogMask.js)
     const propMeshes = {}; // kind -> its chunk meshes (the vegetation kit swaps their geometry in)
     const place = (list, geo, { color = '#ffffff', shadow = true, scaleFn = (s0) => [s0, s0, s0], tint = 0.25, kind = null } = {}) => {
       if (!list.length) return;
@@ -527,6 +546,7 @@ export class BattleRenderer {
         mesh.computeBoundingSphere(); mesh.computeBoundingBox();
         mesh.castShadow = shadow && !beyond; mesh.receiveShadow = true;
         this.scene.add(mesh);
+        this.fogMask.add(mesh);
         if (kind) (propMeshes[kind] ||= []).push(mesh);
       });
     };
@@ -579,6 +599,7 @@ export class BattleRenderer {
 
   buildStructures() {
     this.structureMeshes = new Map();
+    this.structureHolders = [];
     this.civicStructures = new CivicStructures(this);
     const modern = this.setup.sides[1].ageId === 'modern';
     const merlons = (g, mat, radius, y, count, size = 0.22) => {
@@ -643,7 +664,9 @@ export class BattleRenderer {
       }
       g.position.set(x, this.heightAt(x, z), z);
       this.mergeByMaterial(g);
-      this.scene.add(g);
+      // A holder per structure, so the fog of war can hide it whole whatever is added to it later.
+      const holder = new Group(); holder.add(g); this.scene.add(holder);
+      this.structureHolders.push({ holder, x, z });
       this.structureMeshes.set(s.id, g);
       // A fortified place without a real city: its keep is the age's fort once the file is in
       // (src/assets/battle/city/fort-<age>.glb or the map's fort improvement; structureArt.js).
@@ -1005,7 +1028,7 @@ export class BattleRenderer {
     if (eco) return { ...eco, ground: g };
     // A structure counts where it stands: a wall or a house by its own tiles (input/orderFeedback.js).
     best = pickStructureAt(g, view?.structures, this.setup.structures, this.map.w, Math.max(FOOTPRINT_PICK_TILES, FOOTPRINT_PICK_PX * this.worldPerPixel()));
-    return best ? { ...best, ground: g } : { kind: 'ground', ground: g };
+    return best && this.structureSeen(best.index ?? -1) ? { ...best, ground: g } : { kind: 'ground', ground: g };
   }
 
   addMarker(x, z, color = '#a3e635') { this.markers.push({ x, z, t: 0, color }); }
@@ -1601,6 +1624,7 @@ export class BattleRenderer {
     const picked = this.inspected?.kind === 'structure' ? this.inspected.index : -1;
     cur.structures.forEach((s, i) => {
       const g = this.structureMeshes.get(s.id);
+      if (!this.structureSeen(i)) return; // never seen: no bar
       if (!g && i !== picked) return; // the real city's pieces (cityLayer.js) show a bar only when inspected
       const frac = s.hp / Math.max(1, s.maxHp);
       if (g) {
@@ -1744,6 +1768,7 @@ export class BattleRenderer {
     this.raidLandingProps?.dispose();
     this.ecoLayer?.dispose();
     this.vegetation?.dispose();
+    this.fogMask?.dispose();
     this.terrainArt?.dispose();
     this.projectileArt?.dispose();
     this.fxSprites?.dispose();
