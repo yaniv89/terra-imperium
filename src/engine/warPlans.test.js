@@ -46,9 +46,9 @@ describe('war plans (lane W5)', () => {
 
   it('marches with most of the strike, smaller later waves, and after a while with what it has', () => {
     const plan = { strike: 8, since: 10, waves: 0 };
-    expect(goSize(plan)).toBe(6);
-    expect(readyToStrike(plan, 5, 11)).toBe(false);
-    expect(readyToStrike(plan, 6, 11)).toBe(true);
+    expect(goSize(plan)).toBe(5); // 60% of 8, rounded up
+    expect(readyToStrike(plan, 4, 11)).toBe(false);
+    expect(readyToStrike(plan, 5, 11)).toBe(true);
     expect(readyToStrike(plan, GATHER_MIN_UNITS, 10 + GATHER_MAX_TURNS)).toBe(true);
     expect(readyToStrike(plan, 1, 100)).toBe(false);
     const next = launched(plan, 20);
