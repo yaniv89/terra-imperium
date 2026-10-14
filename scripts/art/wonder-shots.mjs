@@ -10,7 +10,7 @@
 // Env: URL (default http://localhost:5220/terra-imperium/), CHROME (Chrome's exe), WAIT (ms a shot,
 // default 9000), WONDER (default solomons_temple), COMPARE (default masada,great_library),
 // W and H (default 844 x 390 at device scale 3).
-import { chromium } from 'playwright';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import { mkdirSync } from 'node:fs';
 
 const [,, out, prefix = 'shot', tiersArg = '1', ks = '60,150'] = process.argv;
@@ -18,9 +18,8 @@ mkdirSync(out, { recursive: true });
 const W = +(process.env.W || 844); const H = +(process.env.H || 390);
 const WONDER = process.env.WONDER || 'solomons_temple';
 const COMPARE = (process.env.COMPARE || 'masada,great_library').split(',').filter(Boolean);
-const browser = await chromium.launch({
-  executablePath: process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=d3d11']
+const browser = await launchBrowser({
+  executablePath: process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
 const logs = [];

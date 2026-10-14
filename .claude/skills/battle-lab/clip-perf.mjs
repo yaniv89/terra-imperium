@@ -4,18 +4,17 @@
 // Opens the sandbox at 844 x 390, starts the fight at 3x with the armies attack-moving, waits, then
 // samples for a few seconds: frame p50 / p95 (ms), the renderer's own ms a frame (render()), draw
 // calls, triangles, figures, corpses. Dev server first (npx vite --port 5221 --strictPort &).
-//   node .claude/skills/battle-lab/clip-perf.mjs [--gpu] [--scenes default,forest] [--runs 2]
-import { chromium } from '@playwright/test';
+//   node .claude/skills/battle-lab/clip-perf.mjs [--swgl] [--scenes default,forest] [--runs 2]
+import { browserMode, launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 ? process.argv[i + 1] : d; };
-const gpu = process.argv.includes('--gpu');
+const gpu = browserMode() === 'gpu';
 const base = process.env.URL || 'http://localhost:5221/terra-imperium/?battleSandbox';
 const scenes = arg('scenes', 'default,forest').split(',');
 const runs = Number(arg('runs', 1));
 const warm = Number(arg('warm', 14)); const sample = Number(arg('sample', 8));
 const exe = process.env.CHROMIUM || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const gl = gpu ? ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=d3d11', '--disable-gpu-vsync', '--disable-frame-rate-limit'] : ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'];
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: gl });
+const browser = await launchBrowser({ executablePath: exe, args: gpu ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : [] });
 
 const measure = async (url, off) => {
   const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 1, hasTouch: true });

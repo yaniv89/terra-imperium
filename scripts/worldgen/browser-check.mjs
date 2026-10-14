@@ -8,7 +8,8 @@
 import { readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium, webkit, firefox } from 'playwright';
+import { webkit, firefox } from 'playwright';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const arg = (name, dflt) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : dflt; };
@@ -23,8 +24,8 @@ const golden = Object.fromEntries(goldenList.map((h, i) => [i + 1, h]));
 const launch = () => {
   if (browserName === 'webkit') return webkit.launch();
   if (browserName === 'firefox') return firefox.launch();
-  if (browserName === 'chromium') return chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH });
-  return chromium.launch({ channel: browserName });
+  if (browserName === 'chromium') return launchBrowser({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH });
+  return launchBrowser({ channel: browserName });
 };
 
 const runLab = async (page, throttle) => {

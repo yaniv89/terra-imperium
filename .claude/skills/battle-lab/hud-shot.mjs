@@ -10,7 +10,7 @@
 //   pause   where the speed and pause buttons sit (I206: they must not move between states)
 // Start the dev server first:  npx vite --port 5199 --strictPort --force &
 //   node .claude/skills/battle-lab/hud-shot.mjs <outDir> [--w 844 --h 390] [--safe 0,47,21,47] [--params "&city=medium"] [--browser <exe>]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -27,7 +27,7 @@ const url = `${base}?battleSandbox&autostart&age=bronze${safe ? `&safe=${safe}` 
 fs.mkdirSync(outDir, { recursive: true });
 const tag = `${W}x${H}${safe ? '-safe' : ''}${opt('tag', '')}`;
 
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=d3d11'] });
+const browser = await launchBrowser({ executablePath: exe, headless: true });
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, hasTouch: touch });
 // Ordinary play: the first-battle controls hint is taken as seen (`--hint 1` shows it).
 if (opt('hint', '0') !== '1') await ctx.addInitScript(() => { try { localStorage.setItem('ti.hint.battleControls', '1'); } catch { /* blocked */ } });

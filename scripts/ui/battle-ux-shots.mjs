@@ -8,7 +8,7 @@
 //   build    the build menu open, a disabled tile held for its detail
 //   site     a building going up (its HP bar rising), selected
 // Uses the DEV-only hooks window.__battleRenderer, __battleView and __battleOrders (TacticalBattleScreen.jsx).
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,7 +22,7 @@ const base = process.env.URL || 'http://localhost:5199/terra-imperium/';
 const exe = process.env.CHROMIUM || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=d3d11'] });
+const browser = await launchBrowser({ executablePath: exe, headless: true });
 const errors = [];
 const open = async (query = '') => {
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1, hasTouch: W < 900 });

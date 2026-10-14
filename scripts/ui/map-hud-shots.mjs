@@ -3,7 +3,7 @@
 // screen (844x390 landscape) and a desktop (1280x800), for the map HUD cleanup. Needs a running dev
 // server (`npx vite --port 5191`) and a Chrome; headless.
 //   node scripts/ui/map-hud-shots.mjs --tag before|after [--url http://localhost:5191/terra-imperium/]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -41,7 +41,7 @@ const startGame = async (page, people = 'Akkad') => {
   await wait(2500);
 };
 
-const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await launchBrowser({ executablePath: CHROME, headless: true });
 try {
   for (const vp of VIEWPORTS) {
     const ctx = await browser.newContext({ viewport: vp.viewport, isMobile: vp.isMobile, hasTouch: vp.hasTouch, deviceScaleFactor: vp.deviceScaleFactor });

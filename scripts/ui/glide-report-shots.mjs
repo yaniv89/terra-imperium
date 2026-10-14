@@ -3,7 +3,7 @@
 // closed, then plays; with no report it plays at once; before it plays the banner stands on its OLD
 // tile. Needs a dev server of THIS checkout.
 //   node scripts/ui/glide-report-shots.mjs [--url http://localhost:5232/terra-imperium/] [--size 844x390]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : fallback; };
@@ -29,7 +29,7 @@ const SETUP = `
   return { ...s, regions, units: { ...s.units, glideA: unit }, __target: path[path.length - 1] };`;
 
 const main = async () => {
-  const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+  const browser = await launchBrowser({ executablePath: CHROME, headless: true });
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   await page.addInitScript(() => { window.__E2E_MAP_TEST__ = true; });

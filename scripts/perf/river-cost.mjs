@@ -2,9 +2,9 @@
 // What the map's river lines (src/components/map/gl/riverLayer.js) cost a frame: the same view drawn
 // back to back with the lines on and off (__glMap.timeFrames, the GPU finished each time), in turns,
 // medians of a few rounds. Against a dev server you start yourself (npx vite --port 5199) or any URL:
-//   node scripts/perf/river-cost.mjs --url http://localhost:5199/ [--gpu] [--profiles desktop,phone]
+//   node scripts/perf/river-cost.mjs --url http://localhost:5199/ [--swgl] [--profiles desktop,phone]
 //        [--views "nile:30.6,31.1,12|..."] (name:lat,lng,k) [--frames 20] [--rounds 5]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
 const flag = (name) => process.argv.includes(`--${name}`);
@@ -21,9 +21,8 @@ const PROFILE = {
 };
 const median = (a) => [...a].sort((x, y) => x - y)[a.length >> 1];
 
-const args = flag('gpu') ? ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--enable-webgl'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'];
 const exe = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : { channel: 'chrome' }), headless: true, args });
+const browser = await launchBrowser({ ...(exe ? { executablePath: exe } : { channel: 'chrome' }) });
 const rows = [];
 for (const name of PROFILES) {
   const context = await browser.newContext(PROFILE[name]);

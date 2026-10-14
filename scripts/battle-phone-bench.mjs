@@ -14,7 +14,7 @@
 //   node scripts/battle-phone-bench.mjs [--sizes 300,500] [--throttle 1,4,6] [--out dir]
 //        [--browser <chrome or msedge exe>] [--url http://localhost:5199/terra-imperium/]
 //        [--warm 10] [--sample 5] [--eco]   (--eco: the battle economy on, phase R1)
-import { chromium } from '@playwright/test';
+import { launchBrowser } from './lib/browserLaunch.mjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -31,7 +31,7 @@ const exe = opt('browser', process.env.CHROMIUM || defaultExe);
 const cams = [{ name: 'default', zoom: 1 }, { name: 'far', zoom: 0.45 }];
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu', ...(process.platform === 'win32' ? ['--use-angle=d3d11'] : []), '--disable-gpu-vsync', '--disable-frame-rate-limit'] });
+const browser = await launchBrowser({ executablePath: exe, args: ['--disable-gpu-vsync', '--disable-frame-rate-limit'] });
 const rows = [];
 let gpu = 'unknown';
 for (const n of sizes) {

@@ -5,7 +5,8 @@
 // JSON line of measurements per size.
 //   node scripts/ui/mobile-repro.mjs --url http://localhost:5191/ --out plans/ui/fix-mobile --tag before
 // --chrome <path> runs an installed Chrome when Playwright's own browser is not downloaded.
-import { chromium, devices } from '@playwright/test';
+import { devices } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -19,7 +20,7 @@ const only = arg('only', 'start,lens,manage').split(',');
 mkdirSync(out, { recursive: true });
 
 const iphone = devices['iPhone 13 landscape'] || {};
-const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await launchBrowser({ executablePath: chrome });
 const results = [];
 
 const rect = (loc) => loc.evaluate((el) => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, w: r.width, h: r.height }; });

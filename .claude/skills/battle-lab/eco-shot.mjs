@@ -6,7 +6,7 @@
 // Start the dev server first:  npx vite --port 5199 --strictPort &
 //   node .claude/skills/battle-lab/eco-shot.mjs <outDir> [--w 844 --h 390] [--seconds 40] [--query "&age=bronze"]
 //        [--browser "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"] [--tag phone]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,7 +22,7 @@ const spectate = !argv.includes('--player');
 const url = `${process.env.URL || 'http://localhost:5199/terra-imperium/'}?battleSandbox&autostart${spectate ? '&spectate' : ''}${query}`;
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=d3d11'] });
+const browser = await launchBrowser({ executablePath: exe, headless: true });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });

@@ -4,7 +4,7 @@
 // army's banner and figure sizes on screen at each zoom: units must never shrink as the map zooms
 // in, and a mine must never draw black. Needs a running dev server and a Chrome; headless.
 //   node scripts/ui/map-zoom-shots.mjs [--url http://localhost:5243/terra-imperium/] [--tag before|after]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -71,7 +71,7 @@ const sizes = (page) => page.evaluate(() => {
   return { k: window.__map2DTest.transform().k, banners: window.__glMap.banners(), figures: figs.slice(0, 4) };
 });
 
-const browser = await chromium.launch({ headless: true, executablePath: CHROME, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-dev-shm-usage'] });
+const browser = await launchBrowser({ headless: true, executablePath: CHROME, args: ['--disable-dev-shm-usage'] });
 try {
   const context = await browser.newContext({ viewport: { width: W, height: H }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
   await context.addInitScript(() => { window.__E2E_MAP_TEST__ = true; localStorage.setItem('terra-imperium-map-mode', 'flat'); });

@@ -3,10 +3,10 @@
 // profile (the phase F look checks: rivers, mountain chains, level 6 raster, towns and fields).
 // Runs against a dev server you start yourself (npx vite --port 5199) or any URL:
 //   node scripts/perf/map-shots.mjs --url http://localhost:5199/ --out plans/phase-f2/after
-//        [--profiles desktop,phone] [--explored] [--gpu] [--no-rivers]
+//        [--profiles desktop,phone] [--explored] [--swgl] [--no-rivers]
 //        [--views "alps:46.3,8.5,1|alps:46.3,8.5,4|..."]   name:lat,lng,k (several per name allowed)
 import { mkdirSync } from 'node:fs';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
 const flag = (name) => process.argv.includes(`--${name}`);
@@ -40,9 +40,8 @@ const startGame = async (page) => {
   if (await later.isVisible().catch(() => false)) await later.dispatchEvent('click');
 };
 
-const args = flag('gpu') ? ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--enable-webgl'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'];
 const exe = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : { channel: 'chrome' }), headless: true, args });
+const browser = await launchBrowser({ ...(exe ? { executablePath: exe } : { channel: 'chrome' }) });
 mkdirSync(OUT, { recursive: true });
 for (const name of PROFILES) {
   const context = await browser.newContext(PROFILE[name]);

@@ -11,14 +11,14 @@
 // browser (default: Chrome, then Playwright's own Chromium).
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const [mode = 'sandbox', outDir = 'plans/art/shots/units', ...rest] = process.argv.slice(2);
 const BASE = process.env.URL || 'http://localhost:5199/terra-imperium/';
 const W = Number(process.env.W || 844); const H = Number(process.env.H || 390);
 mkdirSync(outDir, { recursive: true });
 const chrome = process.env.CHROME || ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/opt/pw-browsers/chromium'].find((p) => existsSync(p));
-const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await launchBrowser({ executablePath: chrome });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 const errors = []; const unitLog = [];
 page.on('console', (m) => { const t = m.text(); if (t.includes('[units]')) unitLog.push(t); if (m.type() === 'error') errors.push(t); });

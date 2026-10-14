@@ -10,12 +10,12 @@
 // (empty HTTP cache); warm = a reload in the same context (cache primed, JS state fresh).
 //
 //   node scripts/perf/battle-load.mjs [--port 5263] [--ages bronze,classical] [--eco both|on|off]
-//        [--runs 3] [--throttle 1] [--gpu] [--no-build] [--channel chrome] [--out file.json]
+//        [--runs 3] [--throttle 1] [--swgl] [--no-build] [--channel chrome] [--out file.json]
 // Builds the mobile bundle (npm run build:mobile, served from www/) unless --no-build, and serves it with
 // scripts/preview.mjs: a production build, like the phone. Compare before/after on the same machine.
 import { execSync, spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
 const PORT = Number(arg('port', '5263'));
@@ -72,7 +72,7 @@ const measure = async (page, age, eco, reload) => {
   return { ...marks, glbCount: res.length, glbKB: Math.round(res.reduce((s, r) => s + r.bytes, 0) / 1024), glbSlowestMs: Math.max(0, ...res.map((r) => r.ms)), glbCached: res.filter((r) => r.cached).length };
 };
 
-const browser = await chromium.launch({ channel: CHANNEL, headless: true, args: process.argv.includes('--gpu') ? ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--enable-webgl'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await launchBrowser({ channel: CHANNEL });
 const out = [];
 const med = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
 try {

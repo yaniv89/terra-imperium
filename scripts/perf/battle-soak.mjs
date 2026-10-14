@@ -6,10 +6,10 @@
 // Prints the same columns as memory-soak.mjs (scripts/perf/memoryProbe.js).
 //
 //   node scripts/perf/battle-soak.mjs [--battles 10] [--query "city=medium&age=bronze"] [--no-build]
-//        [--port 4211] [--swiftshader] [--out file.json] [--top]
+//        [--port 4211] [--swgl] [--out file.json] [--top]
 import { execSync, spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import { memoryProbe } from './memoryProbe.js';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
@@ -27,8 +27,7 @@ for (let i = 0; i < 150; i++) {
   try { const r = await fetch(`http://localhost:${PORT}/`); if (r.ok) break; } catch { /* not up yet */ }
   await new Promise((r) => setTimeout(r, 300));
 }
-const args = flag('swiftshader') ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] : ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--enable-webgl'];
-const browser = await chromium.launch({ channel: 'chrome', headless: true, args });
+const browser = await launchBrowser({ channel: 'chrome' });
 const context = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
 const page = await context.newPage();
 const errors = [];

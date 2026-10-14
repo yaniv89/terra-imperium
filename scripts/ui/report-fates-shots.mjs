@@ -6,7 +6,7 @@
 // before fates were recorded. Same set-up as scripts/ui/u1b-shots.mjs W16.
 // Needs a running dev server (`npx vite --port 5187`) and a Chrome; headless.
 //   node scripts/ui/report-fates-shots.mjs [--url http://localhost:5187/terra-imperium/] [--chrome <path>]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -75,7 +75,7 @@ const SETUP = () => {
 };
 
 const run = async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: CHROME });
+  const browser = await launchBrowser({ headless: true, executablePath: CHROME });
   try {
     for (const vp of VIEWPORTS) {
       const context = await browser.newContext({ viewport: vp.viewport, isMobile: vp.isMobile, hasTouch: vp.hasTouch, deviceScaleFactor: vp.deviceScaleFactor });

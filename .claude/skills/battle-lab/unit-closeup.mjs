@@ -9,13 +9,13 @@
 //   EXTRA=merc (more sandbox URL parameters, joined with &: merc draws your infantry as the hired band)
 //   (PARAMS and EXTRA both add sandbox parameters; PARAMS wins where they name the same one)
 // Writes <prefix>-<zoom>.jpg (the squad centred, the crop scaled to the zoom) for a 844x390 phone at DPR 3.
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 import { mkdirSync } from 'node:fs';
 const [base, outDir, prefix] = process.argv.slice(2);
 mkdirSync(outDir, { recursive: true });
 const cls = process.env.CLASS || 'infantry';
 const zooms = (process.env.ZOOMS || 'z6:6,z3:3,z2:2,z1:1,z06:0.6').split(',').map((s) => { const [n, z] = s.split(':'); return [n, Number(z)]; });
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || 'C:/Program Files/Google/Chrome/Application/chrome.exe', args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=d3d11'] });
+const browser = await launchBrowser({ executablePath: process.env.CHROMIUM || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
 const DPR = 3;
 const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: DPR, hasTouch: true });
 const page = await ctx.newPage();

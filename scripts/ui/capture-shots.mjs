@@ -6,7 +6,7 @@
 // checkout (`npx vite --port 5231`) and a Chrome; headless. States are set up through the dev-only
 // window.__game hook with LOAD_GAME (as panels-shots.mjs does). Screenshots go to plans/ui/cb11/.
 //   node scripts/ui/capture-shots.mjs [--url http://localhost:5231/terra-imperium/] [--chrome <path>]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -71,7 +71,7 @@ const startGame = async (page) => {
 };
 
 const main = async () => {
-  const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+  const browser = await launchBrowser({ executablePath: CHROME, headless: true });
   const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   const errors = [];

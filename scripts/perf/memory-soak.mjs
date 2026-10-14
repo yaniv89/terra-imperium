@@ -10,10 +10,10 @@
 // A number that keeps rising is a leak.
 //
 //   node scripts/perf/memory-soak.mjs --save save.json [--turns 30] [--every 5] [--no-build]
-//        [--port 4210] [--swiftshader] [--out file.json] [--lat 33 --lng 44]
+//        [--port 4210] [--swgl] [--out file.json] [--lat 33 --lng 44]
 import { execSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import { answerBlockers } from '../../e2e/endTurnHelpers.js';
 import { memoryProbe } from './memoryProbe.js';
 
@@ -37,8 +37,7 @@ for (let i = 0; i < 150; i++) {
   await new Promise((r) => setTimeout(r, 300));
 }
 
-const args = flag('swiftshader') ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] : ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--enable-webgl'];
-const browser = await chromium.launch({ channel: 'chrome', headless: true, args });
+const browser = await launchBrowser({ channel: 'chrome' });
 const context = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
 const page = await context.newPage();
 const errors = [];

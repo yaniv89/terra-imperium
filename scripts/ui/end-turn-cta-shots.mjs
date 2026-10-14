@@ -4,7 +4,7 @@
 // into plans/ui/end-turn-cta/: production needed, research needed, ready, and what a tap opens.
 // Needs a running dev server (`npx vite --port 5187`) and a Chrome; headless.
 //   node scripts/ui/end-turn-cta-shots.mjs [--url http://localhost:5187/terra-imperium/] [--chrome <path>]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -54,7 +54,7 @@ const shot = async (page, name, vp) => {
   console.log('wrote', path.relative(process.cwd(), file), '|', await page.getByTestId('end-turn').getAttribute('aria-label').catch(() => '(no button)'));
 };
 
-const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await launchBrowser({ executablePath: CHROME, headless: true });
 for (const vp of VIEWPORTS) {
   const ctx = await browser.newContext({ viewport: vp.viewport, isMobile: vp.isMobile, hasTouch: vp.hasTouch, deviceScaleFactor: vp.deviceScaleFactor });
   const page = await ctx.newPage();

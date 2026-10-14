@@ -5,6 +5,7 @@
 // base-path subtlety for the test's navigation/selectors to account for — it's just a convenient,
 // already-existing build target for this purpose, not a claim about mobile behavior specifically.
 import { defineConfig, devices } from '@playwright/test';
+import { browserArgs } from './scripts/lib/browserLaunch.mjs';
 
 const PORT = 4173;
 
@@ -31,7 +32,7 @@ export default defineConfig({
       // that pegs the render thread hard enough to make the page appear to hang to CDP — swapping
       // in SwiftShader explicitly (a real, correct software GL implementation, not a hack) is the
       // standard fix for exactly this class of symptom in CI/sandboxed headless environments.
-      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl']
+      args: browserArgs()
     }
   },
   webServer: {

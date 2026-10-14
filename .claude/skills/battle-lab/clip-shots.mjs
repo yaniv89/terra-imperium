@@ -5,9 +5,9 @@
 // figure plays, the corpse pool, and failed requests (a 403 on a model means it fell back to the rig).
 // Dev server first:  npx vite --port 5221 --strictPort &
 //   node .claude/skills/battle-lab/clip-shots.mjs <outDir> [prefix]
-// URL=... (default bronze sandbox on 5221), W, H (844 x 390), CHROMIUM (Edge on Windows), GPU=1 (the
-// real GPU instead of SwiftShader), MOMENTS="12,24,36" (seconds of 3x play before each set of shots).
-import { chromium } from '@playwright/test';
+// URL=... (default bronze sandbox on 5221), W, H (844 x 390), CHROMIUM (Edge on Windows), SWGL=1 (SwiftShader
+// instead of the real GPU, the default), MOMENTS="12,24,36" (seconds of 3x play before each set of shots).
+import { launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 import { mkdirSync } from 'node:fs';
 
 const outDir = process.argv[2] || '.';
@@ -16,9 +16,8 @@ mkdirSync(outDir, { recursive: true });
 const url = process.env.URL || 'http://localhost:5221/terra-imperium/?battleSandbox&age=bronze';
 const W = Number(process.env.W || 844); const H = Number(process.env.H || 390);
 const exe = process.env.CHROMIUM || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const gl = process.env.GPU ? ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=d3d11'] : ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'];
 const moments = (process.env.MOMENTS || '12,24,36').split(',').map(Number);
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: gl });
+const browser = await launchBrowser({ executablePath: exe });
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, hasTouch: true });
 const page = await ctx.newPage();
 const errors = []; const failed = [];

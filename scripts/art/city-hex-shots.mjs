@@ -9,13 +9,13 @@
 //   (the first shot warms up: the close view and its model files load on first use)
 // Optional env: WAIT (ms per shot, default 12000), URL (default http://localhost:5199/terra-imperium/),
 // CHROMIUM (default /opt/pw-browsers/chromium), PEOPLE (default Israel), TIERS (JSON { cityName: 'small'|'medium'|'big'|'big+walls' }).
-import { chromium } from 'playwright';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const [,, out, w, h, ...shots] = process.argv;
 const TIERS = JSON.parse(process.env.TIERS || '{"Jerusalem":"medium+walls","Men-nefer":"big","Durocortorum":"big+walls","Mycenae":"medium","Knossos":"small","Ugarit":"medium","Sardis":"big"}');
 const BUILDINGS = { small: {}, medium: { food: 1, economy: 1 }, big: { food: 2, economy: 2, military: 1, science: 1 } };
 const phone = +w < 900;
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await launchBrowser({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium' });
 const page = await browser.newPage({ viewport: { width: +w, height: +h }, ...(phone ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
 const logs = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') logs.push(`${m.type()}: ${m.text().slice(0, 200)}`); });
