@@ -134,30 +134,7 @@ def caparison(horse):
     u.tube('CaparisonDrape', [(0, s[1] - .28, s[2] - .16), (0, s[1] + .05, s[2] - .17), (0, s[1] + .38, s[2] - .18)], [(.20, .10), (.215, .11), (.19, .10)], 'Team', ['Mount_Spine'] * 3, 8, horse)
 
 
-def trebuchet(info, mat='Wood', rope='Cloth', metal='Metal'):
-    """A counterweight trebuchet on the frame: two A-frame uprights, the axle, the long beam cocked
-    with its sling end down at the back, the counterweight box hanging at the front, a sling and a
-    stone on the trough."""
-    rig = info['rig']; z = info['deck']
-    top = z + 1.05
-    for sx in (-1, 1):
-        x = sx * .2
-        u.tube(f'Upright{sx}a', [(x, -.22, z), (x, 0, top)], [.03, .026], mat, ['Hull'] * 2, 5, rig)
-        u.tube(f'Upright{sx}b', [(x, .22, z), (x, 0, top)], [.03, .026], mat, ['Hull'] * 2, 5, rig)
-        u.box(f'UprightBrace{sx}', (x, 0, z + .4), (.05, .40, .04), mat, 'Hull', rig)
-    u.tube('Axle', [(-.26, 0, top), (.26, 0, top)], [.03, .03], metal, ['Hull'] * 2, 6, rig)
-    long_end = (0, .95, z + .2)
-    short_end = (0, -.32, top + .4)
-    u.tube('Beam', [long_end, (0, 0, top), short_end], [.022, .04, .035], mat, ['Hull'] * 3, 5, rig)
-    cw = (0, -.32, top - .05)
-    u.tube('CwHanger', [short_end, (0, -.32, cw[2] + .17)], [.01, .01], metal, ['Hull'] * 2, 4, rig)
-    u.box('Counterweight', (0, -.32, cw[2] - .17), (.32, .30, .34), mat, 'Hull', rig)
-    u.box('CounterweightBand', (0, -.32, cw[2]), (.34, .32, .04), metal, 'Hull', rig)
-    u.box('Trough', (0, .62, z + .02), (.16, .55, .04), mat, 'Hull', rig)
-    u.tube('Sling', [long_end, (0, .78, z + .1), (0, .58, z + .07)], [.006, .006, .006], rope, ['Hull'] * 3, 3, rig)
-    u.box('SlingPouch', (0, .55, z + .08), (.09, .08, .03), 'Leather', 'Hull', rig)
-    u.tube('Stone', [(0, .55, z + .09), (0, .55, z + .17)], [.05, .04], 'Cloth', ['Hull'] * 2, 6, rig)
-    u.tube('WinchDrum', [(-.24, .3, z + .1), (.24, .3, z + .1)], [.05, .05], mat, ['Hull'] * 2, 6, rig)
+trebuchet = tm.trebuchet  # moved to ti_mounts.py (shared with build_kingdoms_siege.py)
 
 
 # ---- the units ---------------------------------------------------------------------------------------
@@ -227,7 +204,10 @@ def k_general():
 # The foot units were rebuilt in the quality pass of 2026-10-14 by their own builders on ti_figure.py
 # (build_kingdoms_infantry.py, build_kingdoms_ranged.py, build_kingdoms_worker.py,
 # build_kingdoms_support.py); k_infantry, k_ranged, k_support and k_worker stay here for reference only.
-BUILDERS = {'kingdoms-cavalry': k_cavalry, 'kingdoms-siege': k_siege, 'kingdoms-general': k_general}
+# The knights and the general were rebuilt the same way by build_kingdoms_cavalry.py and
+# build_kingdoms_general.py, the trebuchet's crew by build_kingdoms_siege.py (the machine by the same
+# calls as k_siege); k_cavalry, k_general and k_siege stay for reference.
+BUILDERS = {}
 
 
 def build(uid):

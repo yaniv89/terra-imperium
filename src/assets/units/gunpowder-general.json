@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "quadruped": true,
-  "triangleBudget": 4000,
+  "triangleBudget": 5000,
   "tags": {
     "team": "(^|\\s)Team(\\s|$)",
     "skin": "(^|\\s)Skin(\\s|$)",
