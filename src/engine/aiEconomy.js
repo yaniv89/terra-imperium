@@ -245,7 +245,9 @@ const tryDevelopProvince = (state, nation, regions) => {
 // city's last yields stand in for its production.
 export const AI_RUSH_RESERVE = 50;
 export const AI_RUSH_MIN_TURNS = 3;
-const tryRushProduction = (state, nation, regions) => {
+export const AI_MAX_RUSHES_PER_THINK = 4;
+export const AI_EXTRA_RUSH_GOLD = 400;
+const tryRushProduction = (state, nation, regions, skip = null) => {
   const gold = nation.economy?.gold || 0;
   const reserve = Math.max(AI_RUSH_RESERVE, -(nation.lastNetIncome || 0) * 3);
   if (gold - reserve < rushGold(1)) return null;
@@ -256,7 +258,7 @@ const tryRushProduction = (state, nation, regions) => {
   for (const id of owned) {
     const c = regions[id];
     const item = c?.production?.current;
-    if (c.size == null || !item || item.kind === 'wonder' || c.occupiedBy || c.underInvasion || c.siege || c.razing) continue;
+    if (c.size == null || !item || skip?.has(id) || item.kind === 'wonder' || c.occupiedBy || c.underInvasion || c.siege || c.razing) continue;
     const unitFirst = wantsUnits ? (item.kind === 'unit') - (regions[best]?.production?.current?.kind === 'unit') : 0;
     if (best == null || unitFirst > 0 || (unitFirst === 0 && c.size > regions[best].size)) best = id;
   }
@@ -339,6 +341,15 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
       if (buildResult) {
         nextNation = buildResult.nation;
         regions[buildResult.regionId] = buildResult.updatedRegion;
+        // A rich treasury buys in more cities (I017, lane W6: majors sat on about 1,000 gold by turn
+        // 200 once their luxuries paid): further rushes, one city each, while the gold stays over
+        // AI_EXTRA_RUSH_GOLD. The reserve rule of tryRushProduction still holds for each.
+        const skip = new Set([buildResult.regionId]);
+        for (let k = 1; k < AI_MAX_RUSHES_PER_THINK && (nextNation.economy?.gold || 0) > AI_EXTRA_RUSH_GOLD; k++) {
+          const more = tryRushProduction(state, nextNation, regions, skip);
+          if (!more) break;
+          nextNation = more.nation; regions[more.regionId] = more.updatedRegion; skip.add(more.regionId);
+        }
       } else {
         // Research is no longer a purchase here: AI science accumulates every turn into the
         // tech it is researching (src/engine/research.js, run at the end of resolveTurn).
