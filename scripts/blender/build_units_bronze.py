@@ -180,7 +180,7 @@ def build_general():
     for sx in (-1, 1):
         bit = Vector((sx * .043, -.722, .898))
         mid = bit.lerp(hand, .5) + Vector((sx * .03, 0, -.05))
-        tube(f'Rein{sx}', [(tuple(bit), .0065, 'Mount_Head'), (tuple(mid), .0065, 'Mount_Neck'), (tuple(hand), .0065, S)], 'Leather', 3)
+        tube(f'Rein{sx}', [(tuple(bit), .0065, 'Mount_Head'), (tuple(mid), .0065, 'Mount_Neck'), (tuple(hand), .0065, 'Mount_Neck')], 'Leather', 3)
     # ---- the standard bearer on foot at the horse's left shoulder ----
     bearer = F.crew('Bearer', headgear='headcloth', accent='shawl', laces=True)
     parts.append(bearer)

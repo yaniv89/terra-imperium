@@ -146,13 +146,14 @@ def build_raider():
     gl = F.fist('L', None, (0, 1, 0), half=.020)
     tube('Javelin', [((-.150, .100, .545), .0075, 'Chest'), ((.185, .078, .985), .0065, 'Chest')], 'Wood', 4, attachment=True)
     tube('JavelinHead', [((.180, .078, .978), (.012, .005), 'Chest'), ((.200, .077, 1.005), (.016, .005), 'Chest'), ((.228, .075, 1.045), .001, 'Chest')], 'Metal', 4, attachment=True)
-    # the reins, from the bit to the left fist (they belong to the horse: rigid with its body)
+    # the reins, from the bit to the left fist (they hang from the horse's neck bone, which the battle keeps
+    # still: on the back bone they would count as the horse's height)
     F.use(horse)
     hand = AT + gl
     for sx in (-1, 1):
         bit = Vector((sx * .043, -.722, .898))
         mid = bit.lerp(hand, .5) + Vector((sx * .035, 0, -.050))
-        tube(f'Rein{sx}', [(tuple(bit), .0065, 'Mount_Head'), (tuple(mid), .0065, 'Mount_Neck'), (tuple(hand), .0065, S)], 'Leather', 3)
+        tube(f'Rein{sx}', [(tuple(bit), .0065, 'Mount_Head'), (tuple(mid), .0065, 'Mount_Neck'), (tuple(hand), .0065, 'Mount_Neck')], 'Leather', 3)
     tris = F.finish_unit('bronze-raider', parts, {
         'role': 'Bronze raider: a light mounted raider on a small bay horse (blaze, socks, bridle, hide saddle cloth), loot sacks on both flanks, a rolled rug and a jar on the croup, a raised torch and a slung javelin; linen tunic and hide vest, Team shawl and headcloth',
         'pose': 'rest pose only (the rider seated, the torch arm raised); the vertex rig trots the horse',
