@@ -5,12 +5,12 @@
 // player's army has been ordered onto the keep and onto two houses (destruction, rubble).
 // Start a dev server first (npx vite --port 5233 --strictPort), then:
 //   CHROMIUM="C:/Program Files/Google/Chrome/Application/chrome.exe" node scripts/perf/city-assault-shot.mjs <outDir> [query]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const outDir = process.argv[2] || '.';
 const query = process.argv[3] || 'city=medium&ruined=4&damaged=4&age=classical&fort=2';
 const url = `${process.env.URL || 'http://localhost:5233/terra-imperium/'}?battleSandbox&${query}`;
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM, args: ['--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await launchBrowser({ executablePath: process.env.CHROMIUM });
 const page = await browser.newPage({ viewport: { width: Number(process.env.W || 1280), height: Number(process.env.H || 720) } });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });

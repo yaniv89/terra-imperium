@@ -5,7 +5,7 @@
 // plans/ui/start-zoom/, with the map's zoom and where the capital sits on screen.
 // Needs a running dev server (`npx vite --port 5193`) and a Chrome; headless.
 //   node scripts/ui/start-zoom-shots.mjs [--url http://localhost:5193/terra-imperium/] [--tag before|after] [--people Israel]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -43,7 +43,7 @@ const where = (page) => page.evaluate(async () => {
   return { capital: r?.name, screen: p ? { x: Math.round(p.x), y: Math.round(p.y) } : null, k: t ? Number(t.transform().k.toFixed(2)) : null, size: [innerWidth, innerHeight] };
 });
 
-const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await launchBrowser({ executablePath: CHROME, headless: true });
 for (const size of SIZES) {
   const { name, ...opts } = size;
   const ctx = await browser.newContext(opts);

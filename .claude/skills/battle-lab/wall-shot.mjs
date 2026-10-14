@@ -7,7 +7,7 @@
 // Start the dev server first:  npx vite --port 5199 --strictPort &
 //   node .claude/skills/battle-lab/wall-shot.mjs <out.png> [--w 844 --h 390] [--query "&age=bronze&city=medium&fort=2&seed=7"]
 //        [--max 120] [--until contact|fallen] [--browser "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 
 const argv = process.argv.slice(2);
 const out = argv[0] && !argv[0].startsWith('--') ? argv.shift() : 'walls.png';
@@ -20,7 +20,7 @@ const until = opt('until', 'contact');
 const exe = opt('browser', process.env.CHROMIUM || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe');
 const url = `${process.env.URL || 'http://localhost:5199/terra-imperium/'}?battleSandbox&autostart&spectate${query}`;
 
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=d3d11'] });
+const browser = await launchBrowser({ executablePath: exe, headless: true });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });

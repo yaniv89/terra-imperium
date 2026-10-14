@@ -5,7 +5,7 @@
 //   node scripts/ui/start-steps-shots.mjs [--url http://localhost:5193/terra-imperium/] [--before]
 // --before shoots the old one-screen layout (before-<viewport>.png); otherwise every step, the
 // generated-world map and a search, plus a check that no step scrolls sideways.
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -29,7 +29,7 @@ const noSideScroll = (page) => page.evaluate(() => {
   return bad;
 });
 
-const browser = await chromium.launch({ executablePath: CHROME, headless: true });
+const browser = await launchBrowser({ executablePath: CHROME, headless: true });
 const problems = [];
 for (const vp of VIEWPORTS) {
   const ctx = await browser.newContext({ viewport: vp.viewport, isMobile: vp.isMobile, hasTouch: vp.hasTouch, deviceScaleFactor: vp.deviceScaleFactor });

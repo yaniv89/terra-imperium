@@ -23,7 +23,7 @@
  * Reports explicitly list uncaptured cases/assets. This harness does NOT capture the
  * campaign map or claim all 14 checkpoint assets are natively visually verified.
  */
-import { createRequire } from 'node:module';
+import { launchBrowser, browserMode } from '../lib/browserLaunch.mjs';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
@@ -111,16 +111,12 @@ if (!options.run || options.plan) {
   const repo = resolve(options.repo);
   if (out === repo || out.startsWith(`${repo}/`)) throw new Error('Output must be outside the busy repository');
   if (!existsSync(join(repo, 'package.json'))) throw new Error(`Repository package.json absent: ${repo}; run from the repo root or pass --repo`);
-  const require = createRequire(join(repo, 'package.json'));
-  const { chromium } = require('@playwright/test');
   const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || process.env.CHROME || undefined;
   mkdirSync(out, { recursive: true });
   const report = { ...plan, startedAt: new Date().toISOString(), smokeOnly: options.smoke,
-    parentVisualReviewRequired: true, rendererBackendRequested: 'ANGLE SwiftShader',
+    parentVisualReviewRequired: true, rendererBackendRequested: browserMode() === 'swiftshader' ? 'ANGLE SwiftShader' : 'GPU (ANGLE on the real GPU)',
     hardwarePerformanceEvidence: false, results: [] };
-  const browser = await chromium.launch({ headless: true, executablePath, args: [
-    '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'
-  ] });
+  const browser = await launchBrowser({ executablePath });
   const flush = () => {
     const passed = report.results.filter((row) => row.ok && row.audit);
     const verified = new Set(passed.flatMap((row) => row.audit.assets.filter((asset) =>

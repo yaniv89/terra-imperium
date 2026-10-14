@@ -5,7 +5,7 @@
 // server (`npx vite --port 5187`) and a Chrome; headless. Drives the battle with the DEV hooks of
 // TacticalBattleScreen.jsx (window.__battleRenderer, window.__battleOrders), as battle-lab does.
 //   node scripts/ui/u1b-battle-shots.mjs [--url http://localhost:5187/terra-imperium/] [--only B01,B08] [--vp phone]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -89,7 +89,7 @@ const SCREENS = {
   }
 };
 
-const browser = await chromium.launch({ headless: true, executablePath: CHROME, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-dev-shm-usage'] });
+const browser = await launchBrowser({ headless: true, executablePath: CHROME, args: ['--disable-dev-shm-usage'] });
 try {
   for (const vp of VIEWPORTS) {
     if (VP_ONLY && VP_ONLY !== vp.id) continue;

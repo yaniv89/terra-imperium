@@ -8,7 +8,7 @@
 //   node .claude/skills/battle-lab/render-bench.mjs <outDir> [--bench 300] [--w 844 --h 390 --dpr 1]
 //        [--browser "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"] [--warm 12] [--throttle 4]
 // Uses the DEV-only hook window.__battleRenderer (TacticalBattleScreen.jsx).
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -23,7 +23,7 @@ const exe = opt('browser', process.env.CHROMIUM || 'C:/Program Files (x86)/Micro
 const url = `${process.env.URL || 'http://localhost:5199/terra-imperium/'}?battleSandbox&bench=${bench}&autostart`;
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=d3d11', '--disable-gpu-vsync', '--disable-frame-rate-limit'] });
+const browser = await launchBrowser({ executablePath: exe, headless: true, args: ['--disable-gpu-vsync', '--disable-frame-rate-limit'] });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: DPR });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });

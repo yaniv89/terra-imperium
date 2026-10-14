@@ -10,15 +10,14 @@
 //   node scripts/art/outpost-settler-shots.mjs plans/art-pilot/map-outpost-settler/before before - 8,60
 // Env: URL (default http://localhost:5217/terra-imperium/), CHROME (Chrome's exe), WAIT (ms a shot,
 // default 9000), PEOPLE, W and H (default 844 x 390 at device scale 3).
-import { chromium } from 'playwright';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import { mkdirSync } from 'node:fs';
 
 const [,, out, prefix = 'shot', ageArg = '-', ks = '8,60'] = process.argv;
 mkdirSync(out, { recursive: true });
 const W = +(process.env.W || 844); const H = +(process.env.H || 390);
-const browser = await chromium.launch({
-  executablePath: process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=d3d11']
+const browser = await launchBrowser({
+  executablePath: process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
 const logs = [];

@@ -5,7 +5,7 @@
 //   node scripts/ui/u1-shots.mjs [--url http://localhost:5181/terra-imperium/] [--chrome <path>] [--only W02,W05]
 // The game is driven through the UI and, for states that take many turns to reach (a war, a first
 // contact), through the dev-only window.__game hook (GameContext.jsx) with LOAD_GAME.
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -225,7 +225,7 @@ const SCREENS = {
   }
 };
 
-const browser = await chromium.launch({ headless: true, executablePath: CHROME, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await launchBrowser({ headless: true, executablePath: CHROME });
 try {
   for (const vp of VIEWPORTS) {
     const context = await browser.newContext({ viewport: vp.viewport, isMobile: vp.isMobile, hasTouch: vp.hasTouch, deviceScaleFactor: vp.deviceScaleFactor });

@@ -6,7 +6,7 @@
 //   node .claude/skills/battle-lab/zoom-shots.mjs <outDir> [prefix]
 // SIZES="phone:874x402@3,ipad:1180x820@2,desktop:1600x900@1"  ZOOMS="near:2,far:1,farther:0.6"
 // TIER=0|1|2 forces a detail level (otherwise the renderer picks by size on screen and budget).
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 import { mkdirSync } from 'node:fs';
 
 const outDir = process.argv[2] || '.';
@@ -18,7 +18,7 @@ const sizes = (process.env.SIZES || 'phone:874x402@3,ipad:1180x820@2,desktop:160
   return { name, w, h, dpr: Number(dpr || 1) };
 });
 const zooms = (process.env.ZOOMS || 'near:2,far:1,farther:0.6').split(',').map((s) => { const [name, z] = s.split(':'); return { name, z: Number(z) }; });
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await launchBrowser({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium' });
 for (const size of sizes) {
   const ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, deviceScaleFactor: size.dpr, hasTouch: size.name !== 'desktop' });
   const page = await ctx.newPage();

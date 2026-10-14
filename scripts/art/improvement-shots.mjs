@@ -10,16 +10,15 @@
 //   node scripts/art/improvement-shots.mjs /tmp/shots 1280 800 - warm:31.6:35:60 k60:31.9:34.95:60
 //   (the first shot warms up: the close view and its model files load on first use)
 // Optional env: PLAN (JSON { tile: improvement }), WAIT (ms per shot, default 15000),
-// URL (default http://localhost:5199/terra-imperium/), CHROMIUM (default /opt/pw-browsers/chromium;
-// SWIFTSHADER=0 drops the software GL flags for a real browser such as Chrome on Windows).
-import { chromium } from 'playwright';
+// URL (default http://localhost:5199/terra-imperium/), CHROMIUM (default /opt/pw-browsers/chromium).
+// The real GPU is the default; SWGL=1 runs SwiftShader instead (scripts/lib/browserLaunch.mjs).
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const [,, out, w, h, ageArg, ...shots] = process.argv;
 const PLAN = JSON.parse(process.env.PLAN || '{"82396":"farm","82319":"pasture","82473":"plantation","82474":"fort","82472":"fishing_boats","82395":"fishing_boats","82475":"farm"}');
 const PILLAGED = '82475';
 const phone = +w < 900;
-const gl = process.env.SWIFTSHADER === '0' ? [] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: [...gl, '--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await launchBrowser({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium' });
 const page = await browser.newPage({ viewport: { width: +w, height: +h }, ...(phone ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
 const logs = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') logs.push(`${m.type()}: ${m.text().slice(0, 200)}`); });

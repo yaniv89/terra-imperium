@@ -12,18 +12,18 @@
 // Emulation.setCPUThrottlingRate), the reference screen of CLAUDE.md.
 //
 //   node scripts/perf/map-pan.mjs [--renderer webgl|svg] [--no-build] [--port 4199]
-//        [--profiles desktop,phone] [--zooms 1,4,12,40] [--channel chrome] [--gpu] [--out file.json]
+//        [--profiles desktop,phone] [--zooms 1,4,12,40] [--channel chrome] [--swgl] [--out file.json]
 //        [--explored]   start in the explored world (no fog: every nation on the map, the heavy case)
 //        [--shots dir]   screenshots of each profile at k 4 and 40
 //        [--no-rivers]   the river lines off (riverLayer.js), to time what they cost on the same build
 //        [--at lat,lng]  where to pan (default Paris, all unexplored for the Akkad start; pass a
 //                        point on Akkad's fog edge to time the soft fog edge)
 // Builds the mobile bundle (npm run build:mobile, served from www/) unless --no-build. Uses the
-// installed Chrome (channel chrome) by default; --gpu asks it for the real GPU instead of
-// SwiftShader, which is what a phone has (software WebGL makes every WebGL number pessimistic).
+// installed Chrome (channel chrome) by default, on the real GPU (scripts/lib/browserLaunch.mjs); --swgl
+// runs SwiftShader instead (software WebGL makes every WebGL number pessimistic: 1 to 2 frames a second).
 import { execSync, spawn } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
 const flag = (name) => process.argv.includes(`--${name}`);
@@ -133,10 +133,9 @@ const round = (v) => Math.round(v * 10) / 10;
 
 const run = async () => {
   await waitForServer();
-  const args = flag('gpu') ? ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--enable-webgl'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'];
   // PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH (the sandbox's Chromium) wins over --channel
   const exe = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-  const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : { channel: CHANNEL }), headless: true, args });
+  const browser = await launchBrowser({ ...(exe ? { executablePath: exe } : { channel: CHANNEL }) });
   const results = [];
   for (const name of PROFILES) {
     const prof = PROFILE[name];

@@ -5,7 +5,7 @@
 // turns to reach are set up through the dev-only window.__game hook with LOAD_GAME, as
 // u1b-shots.mjs does. Prints one line per check and exits 1 when one fails.
 //   node scripts/ui/panels-shots.mjs [--url http://localhost:5197/terra-imperium/] [--chrome <path>]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -50,7 +50,7 @@ const IDLE = `
   return { ...s, units };`;
 
 const main = async () => {
-  const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+  const browser = await launchBrowser({ executablePath: CHROME, headless: true });
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   const errors = [];
