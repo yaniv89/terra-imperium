@@ -320,13 +320,15 @@ def assemble(uid,parts):
   mw=ob.matrix_world.copy();ob.parent=root;ob.matrix_world=mw
  return root
 
-def export_unit(path,animations=False):
+def export_unit(path,animations=False,mode=None):
  """Export every armature, mesh and empty of the scene as one GLB (glTF Y up, front +Z), flat
- materials only, glTF extras kept (the attachment flags)."""
+ materials only, glTF extras kept (the attachment flags). `mode`: an animation mode for files with
+ clips (ti_vehicle_clips: 'NLA_TRACKS', one animation per clip over every rig, sampled)."""
  bpy.ops.object.select_all(action='DESELECT')
  for o in bpy.context.scene.objects:
   if o.type in ('MESH','ARMATURE','EMPTY'):o.select_set(True)
- bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_yup=True,export_skins=True,export_animations=animations,export_cameras=False,export_lights=False,export_extras=True,export_materials='EXPORT',export_image_format='NONE')
+ extra=dict(export_animation_mode=mode,export_force_sampling=True,export_frame_range=False) if mode else {}
+ bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_yup=True,export_skins=True,export_animations=animations,export_cameras=False,export_lights=False,export_extras=True,export_materials='EXPORT',export_image_format='NONE',**extra)
 
 def scene_triangles():
  return triangles([o for o in bpy.context.scene.objects if o.type=='MESH'])
