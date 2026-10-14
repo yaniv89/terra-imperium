@@ -27,6 +27,7 @@ import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { claimsAgainst, claimableCities, CLAIM_FABRICATE_TURNS, CLAIM_RANGE_RINGS } from '../../engine/claims';
 import { hasOpenBorders, openBordersAcceptance, demandAcceptance, DEMANDS } from '../../engine/accords';
 import { tradeRouteStatus } from '../../engine/tradeDisruptions';
+import MapTradeBox from './MapTradeBox';
 
 // Plan feedback ("I don't understand why I can't start a war, I have plenty of resources"): the
 // player was reading the top-bar Gold total and assuming that meant "affordable," when most
@@ -286,6 +287,8 @@ export const NationCard = ({ nation, hideTitle = false }) => {
       </div>
 
       {refusal && <div className="flex items-start gap-2 rounded-lg border border-fa-line bg-fa-ink/40 px-2.5 py-2 text-[12px]" data-testid="refusal-reason"><Ban className="w-3.5 h-3.5 mt-0.5 text-fa-danger-text shrink-0" aria-hidden="true" /><span>{refusal}</span></div>}
+
+      {hasSecondary && <MapTradeBox nation={nation} />}
 
       {hasSecondary && (
         <button type="button" onClick={() => setExpanded((e) => !e)} className="fa-btn fa-btn-ghost fa-btn-sm w-full" aria-expanded={expanded}>
