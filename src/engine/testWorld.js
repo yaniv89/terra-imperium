@@ -8,6 +8,7 @@ import { foundCity, sizeToPeople, canFoundCity, ringDistance } from './world/cit
 import { syncWorldRegistry } from './world/registry';
 import { getNationCapital, getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getTouchingIds } from '../data/regions';
+import { createInitialState } from './gameReducer';
 
 export const cap = (nationId) => getNationCapital(nationId);
 
@@ -113,3 +114,24 @@ export const growCities = (state, nationId, { size = 8, categories = { science: 
   });
   return syncWorldRegistry({ ...state, regions, world: { ...state.world, tileOwner } });
 };
+
+// ---- A small fixed-seed peoples world (the only kind of world a new game starts) ----
+// The replacement for `createInitialState({ playerNationId: 'fr' })`, which builds the retired
+// 240-country world (plans/legacy-world-retirement.md). Same arguments give the same world, and a
+// state is built once per argument set and shared: tests spread over it and never mutate it.
+// `independents: false` leaves the independent cities out (majors only), the cheap default.
+const peoplesCache = new Map();
+export const peoplesWorld = ({ player = 'akkad', seed = 11, size = 'small', independents = false } = {}) => {
+  const key = `${player}|${seed}|${size}|${independents}`;
+  if (!peoplesCache.has(key)) peoplesCache.set(key, createInitialState({ playerNationId: player, rngSeed: seed, scenario: { mode: 'peoples', size, seed, independents } }));
+  return peoplesCache.get(key);
+};
+
+// The major nations of a world, the player first, then by id (never the independent cities).
+export const majorIds = (state) => Object.values(state.nations)
+  .filter((n) => n.kind !== 'independent')
+  .map((n) => n.id)
+  .sort((a, b) => (a === state.playerNationId ? -1 : b === state.playerNationId ? 1 : a < b ? -1 : 1));
+
+// The first major that is not the player (a stand-in for "the rival", "Germany" in old tests).
+export const rivalOf = (state, n = 0) => majorIds(state).filter((id) => id !== state.playerNationId)[n];

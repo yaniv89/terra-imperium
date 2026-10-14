@@ -94,10 +94,9 @@ const readPendingStart = () => {
   } catch (e) { return null; }
 };
 // The state behind the start screen when there is no game to resume: a small game on this page's
-// world (the legacy Earth world on Earth, as before).
+// world. Always a peoples world: the legacy 240-country world can no longer be started here.
 const placeholderState = () => {
   const spec = currentWorldSpec();
-  if (spec.kind !== 'generated') return createInitialState();
   return createInitialState({ playerNationId: 'akkad', rngSeed: 1, scenario: { mode: 'peoples', size: 'small', seed: 1, map: spec } });
 };
 
@@ -299,13 +298,16 @@ export const GameProvider = ({ children }) => {
       return;
     }
     rememberWorldSpec(map);
+    // A new game is always a peoples world (the legacy 240-country world is retired,
+    // plans/legacy-world-retirement.md): a start without a scenario gets the default one.
+    const scenario = options.scenario || { mode: 'peoples', map: EARTH_SPEC };
     dispatch({
       type: ActionTypes.RESET_GAME,
       payload: {
         playerNationId: options.playerNationId,
         gameSpeed: options.gameSpeed,
-        scenario: options.scenario,
-        rngSeed: options.scenario?.seed,
+        scenario,
+        rngSeed: scenario.seed,
         guided: !!options.guided,
         exploredWorld: !!options.exploredWorld, // the "explored world" option: no fog of war (engine/fog.js)
         doctrineId: meta.selectedDoctrine,
