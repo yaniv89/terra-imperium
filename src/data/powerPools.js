@@ -6,17 +6,17 @@ export const POWER_POOL_HELP = {
   adm: {
     name: 'Administrative power',
     earns: 'Earned every turn from a base amount, your ruler\'s ADM skill, an ADM advisor, your government and techs.',
-    spends: 'Spent on laws, government changes and reforms, stability, research focus and settling.'
+    spends: 'Spent on laws, government changes and reforms, stability, research focus, settling and Develop Tax in a city (City sheet, Politics: lasting gold there).'
   },
   dip: {
     name: 'Diplomatic power',
     earns: 'Earned every turn from a base amount, your ruler\'s DIP skill, a DIP advisor, your government and techs.',
-    spends: 'Spent on treaties, alliances, demands, claims, declaring war and funding scholars.'
+    spends: 'Spent on treaties, alliances, demands, claims, declaring war, funding scholars and Develop Production in a city (City sheet, Politics: lasting production there).'
   },
   mil: {
     name: 'Military power',
     earns: 'Earned every turn from a base amount, your ruler\'s MIL skill, a MIL advisor, your government and techs.',
-    spends: 'Spent on recruiting, hiring generals, launching invasions and naval engagements.'
+    spends: 'Spent on recruiting, hiring generals, launching invasions, naval engagements and Develop Manpower in a city (City sheet, Politics: lasting manpower there).'
   }
 };
 
