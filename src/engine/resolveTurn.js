@@ -36,6 +36,8 @@ import { getPopulationGrowthRate, nextRegionPopulation, peopleOf } from './popul
 import { checkNationElimination, unlinkEliminatedVassalage, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
 import { calcAllNationIncomes, processAIEconomyTurn, settleAIUpkeep, thinksThisTurn } from './aiEconomy';
+import { aiBudgetStep } from './aiBudget';
+import { isUnitInBattle } from './invasion';
 import { processAIAbmDefense } from './aiMissiles';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { drainAutoBattles } from './battleQueue';
@@ -700,8 +702,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // so no AI nation ever researched anything.
     ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p] * turns, POWER_POOL_CAP); });
     nations[nId] = { ...nation, economy: pool, lodSettledTurn: newTurnNumber };
-    nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits, turns, income.gold);
-    if (nations[nId].lastBankruptcyTurn === newTurnNumber) applyArmyDesertion(units, nId);
+    // A budget that does not add up: cut pay, then disband the weakest units (aiBudget.js, I124).
+    const budget = aiBudgetStep(upkeepState, nId, income, ownedUnits, (uid) => isUnitInBattle(upkeepState, uid));
+    nations[nId] = budget.nation;
+    const keptUnits = budget.disband.length ? ownedUnits.filter((u) => !budget.disband.includes(u.id)) : ownedUnits;
+    budget.disband.forEach((uid) => { delete units[uid]; });
+    nations[nId] = settleAIUpkeep(upkeepState, nId, income, keptUnits, turns, income.gold);
+    if (nations[nId].lastBankruptcyTurn === newTurnNumber || nations[nId].lastUnpaidTurn === newTurnNumber) applyArmyDesertion(units, nId);
 
     if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
     const result = processAIEconomyTurn(aiEconState, regions, nId);
