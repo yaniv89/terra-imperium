@@ -1874,7 +1874,7 @@ def epaulettes(mat='Gilt', fringe=True):
             tube('EpauletteFringe_' + side, [((x + s * .006, 0, z - .006), (.036, .040), 'Chest'), ((x + s * .016, 0, z - .040), (.040, .044), 'Chest')], mat, 8, caps=(False, False))
 
 
-def upright_sabre(grip, length=.48, curve=.022, prop='Prop_R', mat='Metal', guard='Brass', grip_mat='Leather', name='Sabre'):
+def upright_sabre(grip, length=.48, curve=.022, prop='Prop_R', mat='Metal', guard='Brass', grip_mat='Leather', name='Sabre', width=.017):
     """A sabre held upright in the fist at `grip`: the grip through the fist, a stirrup guard round
     the knuckles at the front (-Y), a slightly curved blade up from it, its edge to the front and its
     back curving back (+Y); thin and upright, so the far detail level keeps it. Parts <name>Grip,
@@ -1886,7 +1886,7 @@ def upright_sabre(grip, length=.48, curve=.022, prop='Prop_R', mat='Metal', guar
     rings = []
     for k in range(6):
         t = k / 5
-        rings.append(((x, y + curve * t * t, z + .055 + length * t), (.0040 * (1 - .5 * t) + .0008, .017 * (1 - .65 * t) + .0015), prop))
+        rings.append(((x, y + curve * t * t, z + .055 + length * t), (.0040 * (1 - .5 * t) + .0008, width * (1 - .65 * t) + .0015), prop))
     return tube(name + 'Blade', rings, mat, 4, attachment=True)
 
 

@@ -13,7 +13,7 @@
 #     (Spine), grey wool sleeves with white cuffs, a black stock, a white carbine belt from the left
 #     shoulder to the right hip and a white waist belt, a buff waistcoat skirt, buff breeches and tall
 #     black jackboots over the knee, an empty scabbard slanting back along the flank
-#   - the sabre drawn and held upright in the right fist (thin and upright, so the far detail level
+#   - the straight-bladed sword drawn and held upright in the right fist (thin, straight and upright, so the far detail level
 #     keeps it), the carbine hanging muzzle down from the belt's swivel behind the right thigh, the
 #     reins in the left fist
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
@@ -60,7 +60,7 @@ F.dragoon_helmet()
 F.astride(right=(-.215, -.120, .680), left=(.105, -.185, .640))
 g = F.fist('R', None, (0, 0, 1))
 gl = F.fist('L', None, (0, 1, 0), half=.020)
-F.upright_sabre(g, length=.500)
+F.upright_sabre(g, length=.500, curve=0, width=.010)  # a straight-bladed cavalry sword: the far detail level keeps it
 
 # ---- the carbine hanging muzzle down behind the right thigh (Hips: it rides with the man) ----
 cx, cy = -.205, .110
