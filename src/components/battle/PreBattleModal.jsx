@@ -17,7 +17,7 @@
 // game opened it (an army that marched to attack has arrived, MarchAttackPrompt.jsx); then it
 // waits its turn behind a more pressing card (useExclusivePanel.js), and "Decide later" sets it
 // aside as a chip that brings it back, without cancelling the march.
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Castle, Home, Users, Mountain, ChevronDown } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -29,6 +29,7 @@ import GameIcon from '../ui/GameIcon';
 import { openSettings } from '../ui/uiEvents';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { preBattleModel } from './preBattleModel';
+import { prewarmBattleWorker } from '../../battle/worker/warmWorker';
 
 const pct = (v) => `${Math.round(v * 100)}%`;
 
@@ -46,6 +47,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const m = useMemo(() => preBattleModel(state, { fromRegionId, targetRegionId, navalUnitId, tile, fromTile }),
     [state, fromRegionId, targetRegionId, navalUnitId, tile, fromTile]);
   const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: `${m.name}: Command or Auto`, testId: 'pre-battle-chip', tone: 'danger', user: !arrival });
+  useEffect(() => { prewarmBattleWorker(); }, []); // the battle's worker loads while the player decides
   const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);
   const [prefer, setPrefer] = useState(false);

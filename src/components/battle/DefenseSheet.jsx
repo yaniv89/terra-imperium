@@ -20,6 +20,7 @@ import GameIcon from '../ui/GameIcon';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { defenseSheetModel } from './defenseSheetModel';
 import { SHOW_DEFENSE } from '../ui/uiEvents';
+import { prewarmBattleWorker } from '../../battle/worker/warmWorker';
 import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 
 const DefenseSheet = () => {
@@ -39,6 +40,8 @@ const DefenseSheet = () => {
   const m = useMemo(() => (view ? defenseSheetModel(state, def, { view }) : null), [view]); // eslint-disable-line react-hooks/exhaustive-deps
   // One entry of the interaction registry (useExclusivePanel.js): set aside ("Look at the map
   // first") or behind a card the player opened, it waits as the "N under attack" chip.
+  const up = !blocked && !!m;
+  useEffect(() => { if (up) prewarmBattleWorker(); }, [up]); // the battle's worker loads while the player decides
   const turn = useInteraction('defense', !blocked && !!m, { priority: PRIORITY.defense, label: `${defenses.length} under attack: back to the battle`, testId: 'defense-pill', tone: 'danger' });
   // The queue waits while a battle is under way or an event or a peace offer is open (the engine's
   // own rule, battleQueue.js battleQueueBlocked).
