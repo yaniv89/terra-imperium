@@ -33,6 +33,7 @@
 import { siegeHpOf, siegeMaxHp, wallsOf, SIEGE_ENGINEERING_TECH, SIEGE_ENGINEERING_MULT } from './sieges';
 import { getRosterCombatMultiplier } from '../data/unitClasses';
 import { getResearched } from './nationState';
+import { powExact } from '../utils/exactMath';
 
 export const CITY_DEF_BASE = 500;
 export const CITY_DEF_PER_SIZE = 150;
@@ -72,7 +73,7 @@ export const cityDefence = (city, { militia = [], hpRatio = 1 } = {}) => {
 };
 
 /** The HP one attack takes off the city, before the roll. */
-export const cityAttackDamage = (attack, defence) => CITY_HIT_HP * Math.pow(clamp(defence > 0 ? attack / defence : MAX_RATIO, MIN_RATIO, MAX_RATIO), CITY_HIT_EXP);
+export const cityAttackDamage = (attack, defence) => CITY_HIT_HP * powExact(clamp(defence > 0 ? attack / defence : MAX_RATIO, MIN_RATIO, MAX_RATIO), CITY_HIT_EXP);
 
 /**
  * One Auto attack on an empty city. `args`: resolveBattle's arguments (attackerUnits, ages);
