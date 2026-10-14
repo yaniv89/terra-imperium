@@ -588,7 +588,8 @@ export const loadGltf = (url, opts = {}) => {
   if (!gltfCache.has(url)) {
     const cap = opts.textureCap ?? textureCap();
     gltfCache.set(url, getLoader(opts).then((loader) => loader.loadAsync(url)).then((gltf) => {
-      const bytes = capSceneTextures(gltf.scene, cap);
+      // (a touch device keeps no CPU copy of an uploaded map: assetMemory.releaseAfterUpload)
+      const bytes = capSceneTextures(gltf.scene, cap, undefined, { release: cap <= 1024 && !opts.keepImages });
       // the parser holds every buffer view and the json: not needed once the scene is built
       delete gltf.parser;
       if (gltfCache.has(url)) { gltfLru.add(url, gltf, bytes); gltfLru.trim(); }

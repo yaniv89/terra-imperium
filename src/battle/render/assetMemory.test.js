@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Scene, Mesh, BoxGeometry, MeshStandardMaterial, Texture } from 'three';
-import { textureCap, assetBudget, capSceneTextures, disposeGltf, createAssetLru } from './assetMemory';
+import { textureCap, assetBudget, capSceneTextures, disposeGltf, createAssetLru, STAND_IN_PX } from './assetMemory';
 
 const bitmap = (w, h) => ({ width: w, height: h, close: vi.fn() });
 const fakeCanvas = (w, h) => {
@@ -33,6 +33,18 @@ describe('texture cap (the iPhone crash hunt)', () => {
     expect(m.map.image.ctx.drawImage).toHaveBeenCalled();
     // two 1024 squares and one 1024 x 512: GPU with mips plus the CPU copy
     expect(bytes).toBe(Math.round((1024 * 1024 * 2 + 1024 * 512) * 4 * (1 + 4 / 3)));
+  });
+
+  it('with release, swaps the CPU copy for a small stand-in once three.js has uploaded it', () => {
+    const img = bitmap(1024, 512);
+    const { scene, m } = sceneWith(img);
+    const bytes = capSceneTextures(scene, 1024, fakeCanvas, { release: true });
+    expect(bytes).toBe(Math.round(1024 * 512 * 4 * (4 / 3))); // GPU only
+    expect(m.map.image).toBe(img); // still whole until uploaded
+    m.map.onUpdate(m.map); // what WebGLTextures calls after the upload
+    expect(img.close).toHaveBeenCalled();
+    expect(m.map.image.width).toBe(STAND_IN_PX); expect(m.map.image.height).toBe(STAND_IN_PX / 2);
+    expect(m.map.onUpdate).toBe(null);
   });
 
   it('leaves maps within the cap as they are', () => {

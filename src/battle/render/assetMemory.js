@@ -8,6 +8,9 @@
 //     device (a phone or tablet: a quarter of the memory; at a phone's model sizes on screen the
 //     difference does not show). The maps are scaled down once at load (capSceneTextures) and the
 //     decoded full-size ImageBitmap is closed (three.js never closes one: they are not collected).
+//   - on a touch device the CPU copy of each map goes once it is on the GPU (releaseAfterUpload):
+//     a 64 px stand-in stays, so a texture uploaded again (a context restored, a file dropped
+//     while still drawn) comes back blurred, never black.
 //   - createAssetLru(): the loaded files by their decoded bytes. Past the budget the files not
 //     used for a while are dropped: geometry, materials and textures disposed, bitmaps closed,
 //     and the caches built on them (kits, town objects) told to forget them.
@@ -43,35 +46,60 @@ const materialsOf = (scene) => {
 const sizeOf = (img) => ({ w: img?.width || img?.naturalWidth || 0, h: img?.height || img?.naturalHeight || 0 });
 const closeImage = (img) => { try { if (typeof img?.close === 'function') img.close(); } catch { /* already closed */ } };
 
+export const STAND_IN_PX = 64;
+/** After its first upload, swap a texture's full image for a STAND_IN_PX copy and free the full one. */
+export const releaseAfterUpload = (tex, makeCanvas = defaultCanvas) => {
+  const before = tex.onUpdate;
+  tex.onUpdate = (t) => {
+    t.onUpdate = before || null;
+    before?.(t);
+    const img = t.image;
+    const { w, h } = sizeOf(img);
+    if (!w || !h || Math.max(w, h) <= STAND_IN_PX) return;
+    const s = STAND_IN_PX / Math.max(w, h);
+    const small = makeCanvas?.(Math.max(1, Math.round(w * s)), Math.max(1, Math.round(h * s)));
+    const ctx = small?.getContext?.('2d');
+    if (!ctx) return;
+    try { ctx.drawImage(img, 0, 0, small.width, small.height); } catch { return; }
+    t.image = small; // (no needsUpdate: the GPU keeps the full one)
+    closeImage(img);
+    if (img && typeof img.getContext === 'function') { img.width = 0; img.height = 0; } // a canvas: its pixels go
+  };
+};
+
 /**
  * Scale every texture of a loaded glTF scene down to at most `cap` pixels a side (aspect kept),
  * drawn through a 2D canvas (`makeCanvas(w, h)`), and close the decoded full-size bitmap.
- * Returns the decoded bytes the scene holds afterwards (GPU with mipmaps plus the CPU copy).
+ * `release`: the CPU copy goes once uploaded (releaseAfterUpload).
+ * Returns the decoded bytes the scene holds afterwards (GPU with mipmaps, plus the CPU copy unless released).
  */
-export const capSceneTextures = (scene, cap, makeCanvas = defaultCanvas) => {
+export const capSceneTextures = (scene, cap, makeCanvas = defaultCanvas, { release = false } = {}) => {
   let bytes = 0;
-  texturesOf(scene).forEach((tex) => {
-    const img = tex.image;
-    const { w, h } = sizeOf(img);
-    if (!w || !h) return;
-    let nw = w; let nh = h;
-    if (Math.max(w, h) > cap) {
-      const s = cap / Math.max(w, h);
-      nw = Math.max(1, Math.round(w * s)); nh = Math.max(1, Math.round(h * s));
-      const canvas = makeCanvas?.(nw, nh);
-      const ctx = canvas?.getContext?.('2d');
-      if (ctx) {
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, nw, nh);
-        closeImage(img);
-        tex.image = canvas;
-        tex.needsUpdate = true;
-      } else { nw = w; nh = h; }
-    }
-    bytes += nw * nh * 4 * (1 + 4 / 3);
-  });
+  texturesOf(scene).forEach((tex) => { bytes += capTexture(tex, cap, makeCanvas, { release }); });
   return Math.round(bytes);
+};
+/** One texture to at most `cap` a side (capSceneTextures); returns its decoded bytes. */
+export const capTexture = (tex, cap, makeCanvas = defaultCanvas, { release = false } = {}) => {
+  const img = tex.image;
+  const { w, h } = sizeOf(img);
+  if (!w || !h) return 0;
+  let nw = w; let nh = h;
+  if (Math.max(w, h) > cap) {
+    const s = cap / Math.max(w, h);
+    nw = Math.max(1, Math.round(w * s)); nh = Math.max(1, Math.round(h * s));
+    const canvas = makeCanvas?.(nw, nh);
+    const ctx = canvas?.getContext?.('2d');
+    if (ctx) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, nw, nh);
+      closeImage(img);
+      tex.image = canvas;
+      tex.needsUpdate = true;
+    } else { nw = w; nh = h; }
+  }
+  if (release) releaseAfterUpload(tex, makeCanvas);
+  return nw * nh * 4 * ((release ? 0 : 1) + 4 / 3);
 };
 function defaultCanvas(w, h) {
   if (typeof document === 'undefined') return null;

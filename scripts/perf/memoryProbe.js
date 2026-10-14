@@ -11,7 +11,9 @@
 export const memoryProbe = () => {
   const reg = (typeof FinalizationRegistry === 'function') ? FinalizationRegistry : null;
   const live = { contexts: new Set(), canvases: new Set(), bitmaps: new Set(), workers: new Set() };
-  const tex = new Map(); const buf = new Map(); const rb = new Map();
+  const tex = new Map(); const buf = new Map(); const rb = new Map(); const bufGl = new Map();
+  // (a lost context's objects are gone with it: never counted)
+  const lost = (gl) => { try { return !!gl?.isContextLost?.(); } catch { return false; } };
   const counts = { framebuffers: 0, programs: 0, contextsMade: 0, contextsLost: 0, contextsRestored: 0 };
   const SIZED = { 0x8814: 16, 0x881a: 8, 0x822e: 4, 0x822d: 2, 0x8229: 1, 0x822b: 2, 0x8230: 8, 0x822f: 4, 0x8232: 1, 0x8236: 4, 0x8d70: 16, 0x8d7c: 4, 0x8058: 4, 0x8051: 4, 0x88f0: 4, 0x81a6: 4, 0x8cac: 4, 0x8c43: 4, 0x8c41: 4, 0x8d62: 2, 0x8056: 2, 0x8057: 2, 0x8c3a: 4, 0x8c3d: 4, 0x8cad: 8 };
   const CH = { 0x1908: 4, 0x1907: 3, 0x8227: 2, 0x1903: 1, 0x8d94: 1, 0x8228: 2, 0x8d99: 4, 0x1909: 1, 0x1906: 1, 0x190a: 2, 0x1902: 4, 0x84f9: 4 };
@@ -30,7 +32,7 @@ export const memoryProbe = () => {
     ['createTexture', 'deleteTexture', 'bindTexture', 'activeTexture', 'texImage2D', 'texImage3D', 'texStorage2D', 'texStorage3D', 'compressedTexImage2D', 'generateMipmap',
       'createBuffer', 'deleteBuffer', 'bindBuffer', 'bufferData', 'createRenderbuffer', 'deleteRenderbuffer', 'bindRenderbuffer', 'renderbufferStorage', 'renderbufferStorageMultisample',
       'createFramebuffer', 'deleteFramebuffer', 'createProgram', 'deleteProgram'].forEach((k) => { o[k] = proto[k]; });
-    proto.createTexture = function () { const t = o.createTexture.call(this); if (t) tex.set(t, { levels: new Map(), mip: false }); return t; };
+    proto.createTexture = function () { const t = o.createTexture.call(this); if (t) tex.set(t, { levels: new Map(), mip: false, gl: this }); return t; };
     proto.deleteTexture = function (t) { tex.delete(t); return o.deleteTexture.call(this, t); };
     proto.activeTexture = function (u) { S(this).unit = u; return o.activeTexture.call(this, u); };
     proto.bindTexture = function (target, t) { const s = S(this); let m = s.units.get(s.unit); if (!m) { m = new Map(); s.units.set(s.unit, m); } m.set(target, t); return o.bindTexture.call(this, target, t); };
@@ -49,7 +51,7 @@ export const memoryProbe = () => {
     if (o.texStorage3D) proto.texStorage3D = function (target, levels, internal, w, h, d) { try { level(bound(this, target), 'storage', w * h * d * bpp(internal) * (levels > 1 ? 4 / 3 : 1)); } catch { /* none */ } return o.texStorage3D.call(this, target, levels, internal, w, h, d); };
     proto.compressedTexImage2D = function (...a) { try { level(bound(this, a[0]), `${a[0]}:${a[1]}`, a[6]?.byteLength || 0); } catch { /* none */ } return o.compressedTexImage2D.apply(this, a); };
     proto.generateMipmap = function (target) { const e = tex.get(bound(this, target)); if (e) e.mip = true; return o.generateMipmap.call(this, target); };
-    proto.createBuffer = function () { const b = o.createBuffer.call(this); if (b) buf.set(b, 0); return b; };
+    proto.createBuffer = function () { const b = o.createBuffer.call(this); if (b) { buf.set(b, 0); bufGl.set(b, this); } return b; };
     proto.deleteBuffer = function (b) { buf.delete(b); return o.deleteBuffer.call(this, b); };
     proto.bindBuffer = function (target, b) { S(this).buffers.set(target, b); return o.bindBuffer.call(this, target, b); };
     proto.bufferData = function (target, data, ...r) { try { const b = S(this).buffers.get(target); if (b && buf.has(b)) buf.set(b, typeof data === 'number' ? data : (data?.byteLength || 0)); } catch { /* none */ } return o.bufferData.call(this, target, data, ...r); };
@@ -120,6 +122,8 @@ export const memoryProbe = () => {
       return list.sort((a, b) => b.MB - a.MB).slice(0, n);
     },
     read() {
+      tex.forEach((e, t) => { if (lost(e.gl)) tex.delete(t); });
+      buf.forEach((v, b) => { if (lost(bufGl.get(b))) { buf.delete(b); bufGl.delete(b); } });
       let texBytes = 0; tex.forEach((e) => { let b = 0; e.levels.forEach((v) => { b += v; }); texBytes += e.mip ? b * 4 / 3 : b; });
       let bufBytes = 0; buf.forEach((v) => { bufBytes += v; });
       let rbBytes = 0; rb.forEach((v) => { rbBytes += v; });
