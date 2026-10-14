@@ -7,7 +7,7 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { assertGameState } from './stateAudit';
-import { allocateTiles, cityYields } from './world/cities';
+import { allocateTiles, cityYields, SIEGE_YIELD_MULT } from './world/cities';
 import {
   wallsOf, siegeMaxHp, besiegersOf, siegeStrength, isEncircled, processSieges,
   SIEGE_HP_BASE, SIEGE_STRENGTH_OTHER, SIEGE_STRENGTH_SIEGE, WALL_REGEN, ENCIRCLE_MULT, SIEGE_HEAL
@@ -50,13 +50,13 @@ describe('a siege', () => {
     expect(isEncircled(all, city, 'in')).toBe(tiles.neighbors[city.tile].every((t) => tiles.land[t] === 1 || tiles.terrainOf(t) === 'lake'));
   });
 
-  it('grinds HP turn by turn, heals when lifted, and starves an encircled city', () => {
+  it('grinds HP turn by turn, heals when lifted, and never starves an encircled city', () => {
     const city = S.regions[PK];
     const [t0] = ring1Land(city);
     const war = atWar(withUnits(S, [unit('a', IN, { tile: t0 }), unit('b', IN, { tile: t0, classId: 'siege' })]), 'pk');
     const regions = { ...war.regions };
     const r1 = processSieges(war, regions, war.units, { turn: 2 });
-    expect(r1.fallen).toEqual([]);
+    expect(r1.fallen).toBeUndefined(); // a siege never takes a city
     expect(regions[PK].siege.hp).toBe(siegeMaxHp(city) - (SIEGE_STRENGTH_OTHER + SIEGE_STRENGTH_SIEGE - WALL_REGEN * wallsOf(city)));
     expect(regions[PK].siege.by).toBe('in');
     expect(r1.logs.some((l) => l.nationId === 'pk' && /under siege/.test(l.message))).toBe(true);
@@ -72,7 +72,7 @@ describe('a siege', () => {
     const full = { ...lifted, [PK]: { ...lifted[PK], siege: { ...lifted[PK].siege, hp: siegeMaxHp(city) - 1 } } };
     processSieges({ ...war, units: {} }, full, {}, { turn: 4 });
     expect(full[PK].siege).toBe(null);
-    // Encircled (every land neighbour held, no water): double damage, and the city shrinks after four turns.
+    // Encircled (every land neighbour held, no water): double damage, but the city never shrinks or falls.
     const ringUnits = ring1Land(city).map((t, i) => unit(`r${i}`, IN, { tile: t }));
     const ringWar = atWar(withUnits(S, ringUnits), 'pk');
     const noWater = tiles.neighbors[city.tile].every((t) => tiles.land[t] === 1 || tiles.terrainOf(t) === 'lake');
@@ -83,11 +83,12 @@ describe('a siege', () => {
       expect(siegeMaxHp(city) - enc[PK].siege.hp).toBe(SIEGE_STRENGTH_OTHER * ringUnits.length * ENCIRCLE_MULT);
       let st = { ...ringWar, regions: enc };
       for (let i = 0; i < 4; i++) { const r = { ...st.regions }; processSieges(st, r, st.units, { turn: 3 + i }); st = { ...st, regions: r }; }
-      expect(st.regions[PK].size).toBe(Math.max(1, city.size - 1));
+      expect(st.regions[PK].size).toBe(city.size);
+      expect(st.regions[PK].owner).toBe('pk');
     }
   });
 
-  it('a besieged city works its first ring only', () => {
+  it('a besieged city loses production and taxes, not food', () => {
     const city = S.regions[PK];
     const world = { cities: S.regions, tileOwner: S.world.tileOwner, tileState: S.world.tileState };
     const big = { ...city, size: 6, tiles: [...city.tiles, ...tiles.neighbors[city.tiles[1]].filter((t) => tiles.land[t] && !S.world.tileOwner[t]).slice(0, 3)] };
@@ -95,10 +96,16 @@ describe('a siege', () => {
     const worked = allocateTiles(big, tiles, w2);
     const open = cityYields(big, tiles, w2, worked);
     const besieged = cityYields({ ...big, siege: { hp: 10, maxHp: 100, by: 'in' } }, tiles, w2, worked);
-    expect(besieged.raw.food + besieged.raw.production + besieged.raw.gold).toBeLessThanOrEqual(open.raw.food + open.raw.production + open.raw.gold);
+    expect(besieged.raw.food).toBe(open.raw.food);
+    expect(besieged.raw.production).toBeLessThan(open.raw.production);
+    expect(besieged.raw.gold).toBeLessThan(open.raw.gold);
+    expect(besieged.raw.production).toBeLessThanOrEqual(open.raw.production * SIEGE_YIELD_MULT);
+    // A battered city whose siege was lifted (no besiegers) works normally while it heals.
+    const healing = cityYields({ ...big, siege: { hp: 10, maxHp: 100, by: null } }, tiles, w2, worked);
+    expect(healing.raw).toEqual(open.raw);
   });
 
-  it('through resolveTurn: an army beside an enemy city lays siege, and the city falls to it at 0 HP', () => {
+  it('through resolveTurn: a siege grinds the walls to 0 HP but never takes the city', () => {
     const city = S.regions[PK];
     const stack = ring1Land(city).slice(0, 2).flatMap((t, i) => [unit(`s${i}a`, IN, { tile: t, classId: 'siege' }), unit(`s${i}b`, IN, { tile: t, classId: 'siege' })]);
     let s = atWar(withUnits(S, stack), 'pk');
@@ -107,14 +114,20 @@ describe('a siege', () => {
     expect(s.regions[PK].siege.by).toBe('in');
     expect(s.logs.some((l) => /lays siege to/.test(l.message))).toBe(true);
     assertGameState(s);
-    for (let i = 0; i < 40 && s.regions[PK].owner === 'pk'; i++) {
+    let minHp = Infinity; let turnsAtZero = 0;
+    for (let i = 0; i < 25; i++) {
       if (s.pendingPeaceOffer) s = gameReducer(s, { type: ActionTypes.REJECT_PENDING_PEACE });
+      // Keep the besiegers there (the defenders may sally against them): this tests the siege alone.
+      s = { ...s, units: { ...s.units, ...Object.fromEntries(stack.map((u) => [u.id, { ...u, movesLeft: 1 }])) }, pendingDefenses: [] };
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
+      expect(s.regions[PK].owner).toBe('pk');
+      minHp = Math.min(minHp, s.regions[PK].siege?.hp ?? Infinity);
+      if (s.regions[PK].siege?.hp === 0) turnsAtZero += 1;
     }
-    expect(s.regions[PK].owner).toBe('in');
-    expect(s.regions[PK].siege).toBe(null);
-    expect(s.logs.some((l) => /surrenders to your siege/.test(l.message))).toBe(true);
+    expect(minHp).toBe(0);
+    expect(turnsAtZero).toBeGreaterThan(1); // it stays at 0 and is still not taken
+    expect(s.logs.some((l) => /A siege never takes a city/.test(l.message))).toBe(true);
     assertGameState(s);
   }, 60000);
 });

@@ -7,21 +7,16 @@
 //                  per other unit, x SIEGE_ENGINEERING_MULT with Siege Engineering) minus the walls'
 //                  regen (WALL_REGEN x walls), never below 0
 //   encircled      every land tile of ring 1 holds a besieger and every water tile beside the city
-//                  is blockaded (fleets.js): damage doubles and the city starves (size -1 every
-//                  ENCIRCLE_STARVE_TURNS turns)
-//   yields         a besieged city works ring 1 only (cities.js); the countryside is the enemy's
+//                  is blockaded (fleets.js): damage doubles and the walls do not regenerate
+//   yields         a besieged city (besiegers present) works ring 1 only for production and taxes,
+//                  and those are cut to SIEGE_YIELD_MULT (cities.js); its food is untouched
 //   relief         a turn without besiegers heals SIEGE_HEAL of the max HP; at full HP the siege
 //                  record is dropped
-//   fall           at HP 0 the city falls to the besieger: the player's and an AI's conquest go
-//                  through conquest.js at once; a player city falls through a last-stand assault
-//                  (defense.js, the pending defence of the turn), so the player may still fight
-//   the breach     (I131) an AI or independent city whose walls are down does not hand itself over
-//                  while its garrison can still fight: not encircled, and the garrison on the centre
-//                  at least SURRENDER_FORCE_RATIO of the besiegers' men. It holds the breach for at
-//                  most BREACH_HOLD_TURNS turns (`siege.breached`), losing BREACH_ATTRITION of its men
-//                  a turn to hunger and fighting at the gap; then, or as soon as the odds turn or
-//                  the ring closes, it surrenders. Assault it to take it sooner.
-// Assaults stay the attack card (invasion.js). Rebels besiege too.
+// A SIEGE NEVER TAKES A CITY (the user's rule of 14 October): no fall at 0 HP, no surrender, no
+// starving out. HP at 0 stays at 0 while the besiegers stay; the city is taken only by an attack
+// (cityAssault.js on Auto: the attack that brings the HP to 0 takes an empty city; Command: winning
+// the real-time battle). The siege only makes that attack easier: lower HP, battered walls
+// (battleInputs.js hpRatio), a poorer city. Rebels besiege too.
 //   intent         an army beside an enemy city at war besieges it; beside an independent's city
 //                  only under an order (besiegesCity below: Lay siege, or an AI campaign)
 // Ripples: a siege feeds war score through the capture, the supply meter (besiegers sit in enemy
@@ -43,12 +38,11 @@ export const SIEGE_ENGINEERING_MULT = 1.5;
 export const SIEGE_ENGINEERING_TECH = 'military_siege_engineering';
 export const WALL_REGEN = 5;
 export const ENCIRCLE_MULT = 2;
-export const ENCIRCLE_STARVE_TURNS = 4;
 export const SIEGE_HEAL = 0.1;
 export const MAX_WALLS = 3;
-export const SURRENDER_FORCE_RATIO = 0.5;
-export const BREACH_HOLD_TURNS = 5;
-export const BREACH_ATTRITION = 0.05;
+/** Is the city besieged right now (besiegers beside it this turn)? A battered city whose siege was
+ * lifted keeps a healing `siege` record without `by`. */
+export const isBesieged = (city) => !!city?.siege?.by;
 
 /** Walls from the Defense building line: none 0, Palisade 1, Stone Walls 2, Star Fort and up 3. */
 export const wallsOf = (city) => Math.min(MAX_WALLS, (city.buildings?.categories?.defense ?? -1) + 1);
@@ -166,11 +160,10 @@ export const isEncircled = (state, city, nationId, units = state.units, byTile =
 
 /**
  * The siege phase of a turn, on the turn's working `regions` (mutated in place) against `units`.
- * Returns { fallen: [{ cityId, to, from, encircled }], logs: [{ nationId, message }] }.
- * The caller resolves the falls (conquest.js, or a last-stand defence for the player).
+ * Returns { logs: [{ nationId, message }] }. A siege never changes a city's owner.
  */
 export const processSieges = (state, regions, units, { turn }) => {
-  const fallen = []; const logs = [];
+  const logs = [];
   const view = { ...state, regions };
   const byTile = landUnitsByTile(view, units);
   Object.keys(regions).sort().forEach((id) => {
@@ -194,27 +187,13 @@ export const processSieges = (state, regions, units, { turn }) => {
     const regen = encircled ? 0 : WALL_REGEN * wallsOf(city);
     const damage = Math.max(0, Math.round((strength - regen) * (encircled ? ENCIRCLE_MULT : 1)));
     const maxHp = siegeMaxHp(city, state.greatProjects);
-    const prev = city.siege || { hp: maxHp, startedTurn: turn, starving: 0 };
+    const prev = city.siege || { hp: maxHp, startedTurn: turn };
     const hp = Math.max(0, Math.min(maxHp, prev.hp) - damage);
-    let size = city.size;
-    let starving = encircled ? (prev.starving || 0) + 1 : 0;
-    if (encircled && starving >= ENCIRCLE_STARVE_TURNS && size > 1) { size -= 1; starving = 0; logs.push({ nationId: city.owner, message: `${city.name}, encircled, starves and shrinks to size ${size}.` }); }
-    const siege = { hp, maxHp, by: leader, startedTurn: prev.startedTurn ?? turn, encircled, starving };
-    regions[id] = { ...city, size, siege, food: encircled ? 0 : city.food };
-    if (!city.siege) logs.push({ nationId: city.owner, message: `${city.name} is under siege by ${state.nations[leader]?.name || 'rebels'}.` }, { nationId: leader, message: `Your army lays siege to ${city.name} (walls ${wallsOf(city)}, ${hp} HP).` });
-    if (hp > 0) return;
-    // The breach (I131): a garrison that can still fight holds it for a few turns, at a cost.
-    const breached = prev.hp <= 0 ? (prev.breached || 0) + 1 : 1;
-    const garrison = city.owner === state.playerNationId ? [] : (byTile.get(city.tile) || []).filter((u) => u.ownerId === city.owner);
-    const men = (list) => list.reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
-    const besiegerMen = stacks.reduce((s, [, list]) => s + men(list), 0);
-    if (garrison.length && !encircled && breached <= BREACH_HOLD_TURNS && men(garrison) >= SURRENDER_FORCE_RATIO * besiegerMen) {
-      garrison.forEach((u) => { units[u.id] = { ...units[u.id], strength: Math.max(1, Math.round((units[u.id].strength || 0) * (1 - BREACH_ATTRITION))) }; });
-      regions[id] = { ...regions[id], siege: { ...siege, breached } };
-      if (breached === 1) logs.push({ nationId: leader, message: `The walls of ${city.name} are down, but its garrison fights on at the breach: assault it, close the ring around it, or wait up to ${BREACH_HOLD_TURNS} turns for it to give in.` });
-      return;
-    }
-    fallen.push({ cityId: id, to: leader, from: city.owner, encircled });
+    const siege = { hp, maxHp, by: leader, startedTurn: prev.startedTurn ?? turn, encircled };
+    regions[id] = { ...city, siege };
+    if (!city.siege?.by) logs.push({ nationId: city.owner, message: `${city.name} is under siege by ${state.nations[leader]?.name || 'rebels'}.` }, { nationId: leader, message: `Your army lays siege to ${city.name} (walls ${wallsOf(city)}, ${hp} HP).` });
+    // The walls are down: the siege can do no more. Only an attack takes the city.
+    if (hp <= 0 && prev.hp > 0) logs.push({ nationId: leader, message: `The defences of ${city.name} are broken (0 HP). A siege never takes a city: attack it to take it.` }, { nationId: city.owner, message: `The defences of ${city.name} are broken by the siege. Drive the besiegers off before they attack.` });
   });
-  return { fallen, logs };
+  return { logs };
 };
