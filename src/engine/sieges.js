@@ -67,7 +67,9 @@ export const siegeHpOf = (city, greatProjects = null) => (city.siege ? city.sieg
 export const besiegesCity = (state, unit, city) => {
   if (!city || unit.ownerId === city.owner || !canAttack(state, unit.ownerId, city.owner)) return false;
   if (!isIndependentId(state, city.owner)) return true;
-  return unit.siegeOf === city.id || unit.indepOp === city.id;
+  // indepOp is the independent's NATION id (indepPolicy.js tagForce); in the legacy world that is also its
+  // city's id, so the old test passed while peoples-world campaigns never laid a siege (I125).
+  return unit.siegeOf === city.id || unit.indepOp === city.owner || unit.indepOp === city.id;
 };
 
 /** City centres by tile: Map tile -> city id (for besiegedCityOf over many units). */

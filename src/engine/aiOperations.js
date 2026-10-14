@@ -97,10 +97,17 @@ export const queueAgainstPlayer = (next, v, nationId, rng, kind = 'field') => {
   v.attackerUnits.forEach((u) => { if (units[u.id]) units[u.id] = { ...units[u.id], movesLeft: 0 }; });
   return { ...next, units, pendingDefenses: [...(next.pendingDefenses || []), record] };
 };
-export const aiSally = (state, nationId, rng) => {
+// I125: a garrison also strikes at a hostile stack camped beside its city before the siege has
+// begun (an independent's city is usually assaulted the turn the campaign arrives, so it never sat
+// under siege and never sallied). `byTile` (landUnitsByTile at the start of the phase) finds those
+// cities cheaply; the besiegers themselves are read from the live state.
+export const aiSally = (state, nationId, rng, byTile = null) => {
   let next = state;
-  for (const city of Object.values(state.regions).filter((c) => c.owner === nationId && c.siege?.by).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+  const tiles = getTiles();
+  const camped = (c) => c.tile != null && !!byTile && tiles.neighbors[c.tile].some((t) => (byTile.get(t) || []).some((u) => u.ownerId !== nationId));
+  for (const city of Object.values(state.regions).filter((c) => c.owner === nationId && (c.siege?.by || camped(c))).sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const by = besiegersOf(next, city);
+    if (!by.size) continue;
     const garrison = Object.values(next.units).filter((u) => u.ownerId === nationId && u.regionId === city.id && u.domain === 'land' && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && (u.movesLeft ?? 1) > 0 && unitTile(next, u) === city.tile);
     if (!garrison.length) continue;
     const mine = garrison.reduce((s, u) => s + u.strength, 0);
@@ -289,6 +296,7 @@ export const processAIOperations = (state, rng) => {
   const committed = new Set();
   let unitsByRegion = null; let unitsByRegionFor = null;
   const raidTiles = raidPartyTiles(state);
+  const sallyIndex = landUnitsByTile(state); // where foreign stacks stand at the start of the phase (aiSally)
   for (const nationId of Object.keys(state.nations).sort()) {
     if (nationId === state.playerNationId || state.nations[nationId].isEliminated) continue;
     if (state.scenario?.mode === 'emergent') {
@@ -316,7 +324,7 @@ export const processAIOperations = (state, rng) => {
     }
     // A besieged garrison sallies when it can win (I125), at war or not: an independent besieged by a
     // major's campaign (no war needed, hostility.js) or a city besieged by rebels used to sit still.
-    next = aiSally(next, nationId, rng);
+    next = aiSally(next, nationId, rng, sallyIndex);
     // At peace a major scouts (aiScouting.js, CB09 I122): one unit at a time explores and makes contact.
     if (!wars.length) {
       if (!isIndependentNation(next.nations[nationId]) && aiScout(next, nationId)) marchScouts(next, nationId);

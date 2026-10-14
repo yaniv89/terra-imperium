@@ -149,7 +149,7 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     campaigns: s.indepStats?.campaigns || 0, musters: s.indepStats?.musters || 0, courtships: s.indepStats?.courtships || 0, gifts: s.indepStats?.gifts || 0, tradeDeals: s.indepStats?.tradeDeals || 0,
     tradeGold: s.indepStats?.tradeGold || 0, majorTributeDemands: s.indepStats?.tributeDemandsByMajors || 0, tributeToMajors: s.indepStats?.tributeToMajors || 0,
     campaignsRunning: nations.filter((n) => n.indepGoal?.kind === 'conquer' && !n.isEliminated).length,
-    nonFinite, auditViolations: auditCount(s), msPerTurn: +ms.toFixed(1)
+    nonFinite, auditViolations: auditCount(s), auditCodes: (() => { const r = auditGameState(s); return Array.isArray(r) && r.length ? r.slice(0, 4).map((x) => `${x.code}:${x.path}`).join(',') : 'none'; })(), msPerTurn: +ms.toFixed(1)
   };
 };
 
