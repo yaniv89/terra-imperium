@@ -275,7 +275,7 @@ export const processAIOperations = (state, rng) => {
       // A march halted by an enemy army on its next tile (routes.js 'enemy') attacks it when the
       // estimate gives it ASSAULT_MIN_P; two stacks used to stand face to face for the whole war (CB09 I120).
       if (stack.some(u => u.route?.length) && stack.every(u => u.routeHalt === 'enemy')) {
-        const r = attackBlocker(next, nationId, from, stack, stack[0].route[0], rng);
+        const r = attackBlocker(next, nationId, from, stack, stack.find(u => u.route?.length).route[0], rng);
         if (r) { next = r; stack.forEach(u => committed.add(u.id)); continue; }
       }
       if (stack.some(u => u.route?.length)) { marching = true; continue; } // already on the road: the march phase below walks it
@@ -318,7 +318,12 @@ export const processAIOperations = (state, rng) => {
       // neighbour per stack was most of the phase at a thousand units).
       if (unitsByRegionFor !== next.units) { unitsByRegion = new Map(); Object.values(next.units).forEach(u => { const l = unitsByRegion.get(u.regionId); if (l) l.push(u); else unitsByRegion.set(u.regionId, [u]); }); unitsByRegionFor = next.units; }
       const unitsIn = (id) => unitsByRegion.get(id) || [];
-      const ranked = rankTargets(next, nationId, wars, stack, getNeighborIds(from).filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !unitsIn(id).some(u=>isUnitInBattle(next,u.id))), unitsIn);
+      // The cities next to the stack's base, and those whose land the stack stands on or beside: a
+      // stack that marched to besiege a far city assaults it from there (with sieges that never
+      // take a city, it used to sit at the walls for the whole war).
+      const near = new Set(getNeighborIds(from));
+      if (at != null) [at, ...tiles.neighbors[at]].forEach((t) => { const id = next.world?.tileOwner?.[t]; if (id != null && id !== from) near.add(id); });
+      const ranked = rankTargets(next, nationId, wars, stack, [...near].sort().filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !unitsIn(id).some(u=>isUnitInBattle(next,u.id))), unitsIn);
       // Attacks come from tiles that touch the city's land; a city farther off is marched on.
       const candidates = ranked.filter(id => touchesCity(next, tiles, at, id));
       const target = threatened.size && !threatened.has(from) ? null : candidates[0];
