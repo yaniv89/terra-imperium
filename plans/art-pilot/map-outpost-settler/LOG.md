@@ -86,3 +86,37 @@ modern; the age set through LOAD_GAME, so the header still says 2000 BCE).
 
 Reads weakly: the modern pickup reads large beside the modern camp; the figures stand in the rig's
 ready pose (arms a little forward), the walk cycle only moves the legs.
+
+## Task 3: the independent city badge and banner (I082 placeholder)
+
+Before: a violet diamond behind the far map's disc and a diamond size mark on the close view's pill
+(before/before-t3-indep-k8.jpg, before/before-indep-k60.jpg). CityBanners.jsx (the HTML banners)
+already asked for `src/assets/icons/independents/<personality>.svg` and drew a dot without it.
+
+Drawn (SVG, the icon style: #292C29 outline at width 7, flat fills, the 256 box, no letters), in
+`src/assets/icons/independents/` (contact sheet: independent-icons.png):
+
+| File | What |
+|---|---|
+| raiders.svg | a horse's head on a shield in the Raiders colour (#C2410C) |
+| mercantile.svg | a holed coin over a stack of coins, Mercantile colour (#CA8A04) |
+| fortress.svg | a crenellated tower with a gate and an arrow slit, Fortress colour (#57534E) |
+| tribal.svg | a winged totem pole with two carved faces, Tribal colour (#15803D) |
+| banner-frame.svg | a swallow-tailed dark ribbon with a brass inner rule, 256 x 64, drawn in three slices |
+
+Wiring: `data/icons.js` adds the `independents` group (INDEPENDENT_ICON_IDS);
+`data/independents.js` `independentPersonality`; `gl/sceneModel.js` passes the personality to the
+sprites; `gl/spriteArt.js` draws the personality's shield in place of the far badge's disc and
+skyline (size box and capital star as before), and on the close view's banner the swallow-tailed
+frame in place of the pill with the shield in place of the size disc and the size on its foot. Each
+falls back to the old diamond while its image loads. CityBanners.jsx picks the shields up by
+itself. Tests: `gl/independentArt.test.js` (personality, one shield each, keys apart) and
+`data/icons.test.js` (every personality has a shield, vector only, no text, the outline colour,
+the boxes, each shield in its personality's colour, no file the game never asks for).
+
+After: after/after-t3-indep-k8.jpg (Ugarit tribal; Men-nefer, Adumattu, Hegra raiders),
+after/after-t3-indep-k60.jpg, after/after-t3-banner-zoom.png.
+
+Reads weakly: at the far zoom the shield's emblem is about 20 px on a phone: the colour and the
+shape carry it, the emblem only half; the raiders' horse reads a little like a chess knight.
+City-state type badges (UI18) were not made (on hold).

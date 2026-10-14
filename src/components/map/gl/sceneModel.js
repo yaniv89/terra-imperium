@@ -12,7 +12,7 @@ import { getTiles } from '../../../data/geo/tiles';
 import { cityLatLon, landTilesWithin } from '../../../data/geo/cityFeatures';
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
 import { getNationColor } from '../../../data/nationColors';
-import { isIndependent } from '../../../data/independents';
+import { isIndependent, independentPersonality } from '../../../data/independents';
 import { getEffectiveAgeId } from '../../../data/ages';
 import { getTechAgeId } from '../../../engine/nationState';
 import { wallsOf } from '../../../engine/sieges';
@@ -104,7 +104,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
       const own = owner === state.playerNationId;
       const art = cityBannerArt({
         name: city.name, size: city.size, colour: own ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8', selected: city.id === selectedRegion,
-        capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25, indep: isIndependent(state.nations, owner),
+        capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25, indep: independentPersonality(state.nations, owner),
         siege: city.siege ? Math.max(0, Math.min(1, city.siege.hp / Math.max(1, city.siege.maxHp))) : null,
         outpost: city.outpost ? Math.max(0, Math.min(1, (city.outpost.progress || 0) / OUTPOST_DONE)) : null,
         build: own ? builds.get(city.id) ?? null : null
@@ -116,7 +116,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
     }
     const rCss = r0 * sk;
     const art = badgeArt({
-      r0, colour, capital: !!city.isCapital, indep: isIndependent(state.nations, city.owner),
+      r0, colour, capital: !!city.isCapital, indep: independentPersonality(state.nations, city.owner),
       fill: city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc',
       iconUrl: city.outpost ? null : cityIconUrl(townTier(city)?.id, ageOf(city.owner)),
       capitalUrl: city.isCapital ? capitalUrl : null,
