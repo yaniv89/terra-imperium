@@ -187,6 +187,37 @@ def fine_horse(prefix='Mount', at=(0, 0, 0), coat='Coat', dark='Mane', pale='Clo
     return arm, meshes
 
 
+def tack(horse, saddle='Team', span=(-.30, .16), reach=108, fringe=.028, girth='Leather', band='Leather', discs=3, disc='Metal'):
+    """The riding tack of the quality pass on a fine horse (the Bronze general's, shared): a saddle
+    cloth draped over the back (`saddle`: its material, None for none; on a mount the battle draws a
+    Team cloth as plain wool), a girth, a breast band round the chest with `discs` metal discs
+    (phalerae). No stirrups. Parts on ti_figure (shaded and normal-fixed with the rest)."""
+    import ti_figure as F
+    if saddle:
+        F.meshes.append(drape('SaddleCloth', horse, saddle, span[0], span[1], reach=reach, fringe=fringe))
+    if girth:
+        F.meshes.append(drape('Girth', horse, girth, -.22, -.175, reach=180, grow=.031, rows=2, steps=12))
+    F.use(horse)
+    S = 'Mount_Spine'
+    F.tube('BreastBand', [((.124, -.30, .705), .012, S), ((.094, -.452, .665), .013, S), ((0, -.505, .655), .013, S), ((-.094, -.452, .665), .013, S),
+                          ((-.124, -.30, .705), .012, S)], band, 4)
+    for k in range(discs):
+        x = (k - (discs - 1) / 2) * .07
+        F.box(f'BreastDisc{k}', (x, -.500 + abs(x) * .6, .650), (.036, .014, .036), disc, S)
+
+
+def reins(horse, hand, mat='Leather', sag=.05, spread=.03):
+    """Two reins from the bit to a rider's fist (`hand`, world). They hang from the neck bone, which
+    the battle keeps still: on the back bone their hand end would count as the horse's height."""
+    import ti_figure as F
+    F.use(horse)
+    hand = Vector(hand)
+    for sx in (-1, 1):
+        bit = Vector((sx * .043, -.722, .898))
+        mid = bit.lerp(hand, .5) + Vector((sx * spread, 0, -sag))
+        F.tube(f'Rein{sx}', [(tuple(bit), .0065, 'Mount_Head'), (tuple(mid), .0065, 'Mount_Neck'), (tuple(hand), .0065, 'Mount_Neck')], mat, 3)
+
+
 def fine_ox(prefix='Ox', at=(0, 0, 0), coat='Coat', dark='Mane', horn='Horn', pale='Cloth'):
     """The ox rig (same bones, same size) with the quality pass: a heavy shoulder hump and a dewlap, a
     broad head with a pale face and muzzle, dark eyes, ears, lyre horns with a core, a pale patch on the

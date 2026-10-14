@@ -1,0 +1,74 @@
+{
+  "id": "classical-cavalry",
+  "triangles": 2974,
+  "by_rig": {
+    "MountRig": 1138,
+    "RiderRig": 1836
+  },
+  "rigs": {
+    "MountRig": [
+      "Mount_Root",
+      "Mount_Spine",
+      "Mount_Neck",
+      "Mount_Head",
+      "Mount_Tail",
+      "Rider",
+      "Mount_LegFront_L",
+      "Mount_ShinFront_L",
+      "Mount_LegFront_R",
+      "Mount_ShinFront_R",
+      "Mount_LegHind_L",
+      "Mount_ShinHind_L",
+      "Mount_LegHind_R",
+      "Mount_ShinHind_R"
+    ],
+    "RiderRig": [
+      "Root",
+      "Hips",
+      "Spine",
+      "Chest",
+      "Neck",
+      "Head",
+      "Arm_L",
+      "Forearm_L",
+      "Hand_L",
+      "Prop_L",
+      "Arm_R",
+      "Forearm_R",
+      "Hand_R",
+      "Prop_R",
+      "Prop_Back",
+      "Leg_L",
+      "Shin_L",
+      "Foot_L",
+      "Leg_R",
+      "Shin_R",
+      "Foot_R"
+    ]
+  },
+  "materials": [
+    "Boot",
+    "Cloth",
+    "Coat",
+    "Emblem",
+    "Hair",
+    "Iron",
+    "Leather",
+    "Mane",
+    "Metal",
+    "Skin",
+    "Team",
+    "Trim",
+    "Wood"
+  ],
+  "textures": 0,
+  "material_contract": "flat colours; no textures; COLOR_0 = baked ambient occlusion and ground gradient (greyscale)",
+  "shade_range": [
+    0.42,
+    1
+  ],
+  "person_height_H": 1,
+  "front": "Blender -Y, glTF +Z",
+  "role": "Heavy cavalry: a rider astride a bay horse (Team saddle cloth, girth, breast band with bronze discs, no stirrups) in a coat of bronze scales over a white tunic with a red hem, a Team cloak, a helmet with cheek pieces and a tall Team crest, boots; a long spear upright in the right fist, a small round Emblem shield on the left arm, the reins in the left fist",
+  "notes": "Quality pass of 2026-10-14 on ti_figure.py (astride, scale_coat, cloak) and ti_mounts.py (fine_horse, tack, reins). The spear is SpearShaft and SpearHead (the battle fits it to a 3.5 m lance from the butt)."
+}

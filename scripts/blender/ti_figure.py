@@ -34,6 +34,11 @@
 #   exact point), fist(mat=) for gloves, combat_boots(), cargo_trousers() (pockets, knee pads),
 #   combat_helmet(), plate_carrier() (pouches, radio and antenna), chest_rig(), hi_vis_vest(), hard_hat(),
 #   ball_cap() with a headset, sunglasses(), assault_rifle() (upright, muzzle up), modern_soldier()
+# Added for the Classical mounted units (2026-10-14, build_classical_cavalry/general/raider.py): SEAT,
+#   ASTRIDE and astride() (a rider posed on the fine horse), seat_weights() and skirt(seated=) /
+#   strips(seated=) (garments that follow the thighs), scale_coat() (overlapping scalloped rows),
+#   cloak() (a thick shell from the shoulders down the back), pointing_hand(), phrygian_cap(),
+#   turn() (rotate parts about a point: a shield held to the side)
 # Blender Z up, the front faces -Y, a standing person is 1 tall.
 import bpy, bmesh, math, random, json, os
 from mathutils import Vector, Matrix
@@ -552,15 +557,28 @@ def torso(name, mat, grow=0, chest=0, sides=10, profile=TORSO, ribs=0):
     return ob
 
 
-def skirt(name, mat, low=.335, top=.548, grow=0, sides=10, bone='Hips', ribs=0, flare=0):
+def skirt(name, mat, low=.335, top=.548, grow=0, sides=10, bone='Hips', ribs=0, flare=0, seated=False):
     """A tunic's skirt or a kilt from `top` down to `low` (`flare`: the lowest ring that much wider;
-    `ribs` quilts it)."""
+    `ribs` quilts it; `seated`: its lower part follows the thighs, seat_weights())."""
     zs = [low] + [z for z, _, _ in SKIRT if low + .02 < z < top - .01] + [top]
     ob = tube(name, [((0, 0, z), tuple(r + grow + (flare if i == 0 else 0) for r in radius_at(z, SKIRT)), bone) for i, z in enumerate(zs)],
               mat, sides, caps=(False, False))
     if ribs:
         quilt(ob, len(zs), sides, ribs)
+    if seated:
+        seat_weights(ob)
     return ob
+
+
+def seat_weights(ob, top=.52, low=.335, share=.85, bone='Hips'):
+    """A garment below the waist of a seated figure: each vertex under `top` follows the thigh on its
+    side by a share that grows to `share` at `low` (the kilt(seated=True) rule, by height)."""
+    for v in ob.data.vertices:
+        if v.co.z >= top:
+            continue
+        s = share * min(1, (top - v.co.z) / (top - low))
+        side = 'L' if v.co.x > .02 else 'R' if v.co.x < -.02 else None
+        reweight(ob, [v.index], {'Leg_' + side: s, bone: 1 - s} if side else {'Leg_L': s / 2, 'Leg_R': s / 2, bone: 1 - s})
 
 
 def band(name, mat, z0, z1, grow, profile=TORSO, bone='Spine', sides=10, bulge=.004):
@@ -570,8 +588,13 @@ def band(name, mat, z0, z1, grow, profile=TORSO, bone='Spine', sides=10, bulge=.
     return tube(name, vertical(zs, 0, rs, bone), mat, sides, caps=(False, False))
 
 
-def strips(name, mat, top, bottom, n=12, grow=.008, gap=.26, phase=0., flare=.004, bone='Hips'):
-    """A row of hanging strips round the skirt (pteruges): n sheets from `top` down to `bottom`."""
+def strips(name, mat, top, bottom, n=12, grow=.008, gap=.26, phase=0., flare=.004, bone='Hips', seated=False):
+    """A row of hanging strips round the skirt (pteruges): n sheets from `top` down to `bottom`
+    (`seated`: they follow the thighs, seat_weights())."""
+    if seated:
+        ob = strips(name, mat, top, bottom, n, grow, gap, phase, flare, bone)
+        seat_weights(ob, top=top + .01)
+        return ob
     verts, faces = [], []
     for k in range(n):
         a0, a1 = 2 * math.pi * (k + phase + gap / 2) / n, 2 * math.pi * (k + phase + 1 - gap / 2) / n
@@ -1511,3 +1534,110 @@ def finish_unit(uid, parts, notes, open_facing=None, animations=False, mode='ACT
     (out / 'report.json').write_text(json.dumps(report, indent=2))
     print(f'BUILT {uid} triangles={tris} by_rig={by_rig} shade={shade} root={root.name}', flush=True)
     return tris
+
+
+# ---- Classical mounted parts (2026-10-14, build_classical_cavalry/general/raider.py) ------------------
+SEAT = Vector((0, -.07, .345))  # a rider's rig on the fine horse's back (ti_mounts.fine_horse)
+ASTRIDE = {'Leg_L': (-60, -28, 0), 'Leg_R': (-60, 28, 0), 'Shin_L': (70, 0, 0), 'Shin_R': (70, 0, 0)}
+
+
+def astride(right=None, left=None, seat=SEAT, right_pole=(-.8, .3, -1), left_pole=(.8, .2, -1), extra=None):
+    """Seat the current figure on a horse: the legs astride (ASTRIDE, `extra` bones too), each given
+    wrist reached to its point, the pose baked into the rest pose, the rig placed on `seat`."""
+    pose({**ASTRIDE, **(extra or {})})
+    if right is not None:
+        reach('R', right, right_pole)
+    if left is not None:
+        reach('L', left, left_pole)
+    bake_rest()
+    place(seat)
+
+
+def scale_coat(name='ScaleCoat', mat='Metal', low=.505, high=.785, rows=5, sides=12, grow=.013, scallop=.014, profile=TORSO):
+    """A coat of scales over the trunk: `rows` bands from `high` down to `low`, each overlapping the
+    one below, its lower edge scalloped (every second point lower) and set half a scale round from
+    the row above, so the facets read as scales from the battle's height. Spine and Chest bones."""
+    step = (high - low) / rows
+    verts, faces, vw = [], [], []
+    for r in range(rows):
+        z1 = high - r * step
+        z0 = z1 - step * 1.35
+        off = math.pi / sides * (r % 2)
+        base = len(verts)
+        for k, (z, out) in enumerate(((z1, 0), (z0, .007))):
+            for j in range(sides):
+                a = 2 * math.pi * j / sides + off
+                rx, ry = radius_at(z, profile)
+                zz = z - (scallop if k and j % 2 else 0)
+                g = grow + out + r * .0015
+                verts.append(((rx + g) * math.sin(a), -(ry + g) * math.cos(a), zz))
+                vw.append({'Spine' if zz < .66 else 'Chest': 1})
+        for j in range(sides):
+            q = (j + 1) % sides
+            faces += [(base + j, base + q, base + sides + q), (base + j, base + sides + q, base + sides + j)]
+    return raw(name, verts, faces, mat, weights=vw)
+
+
+def cloak(name='Cloak', mat='Team', top=.792, low=.46, rows=4, k=7, arc=(150, 85), width=(.118, .200), depth=(.074, .090),
+          back=(.004, .150), thick=.012, split=.66):
+    """A cloak as a thick shell from the shoulders down the back: each row an arc round the back
+    (`arc` degrees either side of +Y at the top and at the foot), wider and further back as it falls.
+    Chest above `split`, Spine below (the battle dyes both)."""
+    verts, vw = [], []
+    for i in range(rows):
+        t = i / (rows - 1)
+        z = top + (low - top) * t
+        a_deg = arc[0] + (arc[1] - arc[0]) * t
+        rx, ry, cy = (width[0] + (width[1] - width[0]) * t, depth[0] + (depth[1] - depth[0]) * t, back[0] + (back[1] - back[0]) * t)
+        for shell in (0, 1):
+            for j in range(k):
+                a = math.radians(-a_deg + 2 * a_deg * j / (k - 1))
+                d = thick * shell
+                verts.append(((rx - d) * math.sin(a), cy + (ry - d) * math.cos(a), z))
+                vw.append({'Chest' if z > split else 'Spine': 1})
+    faces = []
+    row = 2 * k
+    for i in range(rows - 1):
+        for shell in (0, 1):
+            for j in range(k - 1):
+                a, b = i * row + shell * k + j, i * row + shell * k + j + 1
+                c, d = a + row, b + row
+                faces += [(a, b, d), (a, d, c)] if shell == 0 else [(a, d, b), (a, c, d)]
+        for j in (0, k - 1):  # the two side edges
+            o, n_ = i * row + j, i * row + k + j
+            faces += [(o, n_, n_ + row), (o, n_ + row, o + row)] if j == 0 else [(o, n_ + row, n_), (o, o + row, n_ + row)]
+    for i in (0, rows - 1):  # the top and the hem
+        for j in range(k - 1):
+            o, n_ = i * row + j, i * row + k + j
+            faces += [(o, o + 1, n_ + 1), (o, n_ + 1, n_)] if i == 0 else [(o, n_ + 1, o + 1), (o, n_, n_ + 1)]
+    return raw(name, verts, faces, mat, weights=vw)
+
+
+def pointing_hand(side, mat='Skin'):
+    """An open hand pointing along the forearm: the palm, the index finger out, the thumb along it.
+    Returns the fingertip."""
+    H = 'Hand_' + side
+    el, wr = arm.data.bones['Forearm_' + side].head_local.copy(), arm.data.bones[H].head_local.copy()
+    d = (wr - el).normalized()
+    tube('BodyHand_' + side, [(tuple(wr), (.022, .024), H), (tuple(wr + d * .045), (.026, .013), H), (tuple(wr + d * .068), (.020, .011), H)], mat, 6)
+    tube('IndexFinger_' + side, [(tuple(wr + d * .062), .0075, H), (tuple(wr + d * .115), .006, H)], mat, 4)
+    up = Vector((0, 0, 1))
+    tube('Thumb_' + side, [(tuple(wr + d * .030 + up * .012), .007, H), (tuple(wr + d * .068 + up * .016), .006, H)], mat, 4)
+    return wr + d * .115
+
+
+def phrygian_cap(name='PhrygianCap', mat='Team', sides=10, tip=True):
+    """The soft felt cap of the steppe and Thrace: a high crown whose tip falls forward over the brow."""
+    lathe(name, [(0, .936), (.0705, .936), (.0735, .952), (.073, .995), (.064, 1.040), (.044, 1.072), (0, 1.082)], mat, sides=sides, cy=.002)
+    if tip:
+        tube(name + 'Tip', [((0, .008, 1.060), .042, 'Head'), ((0, -.016, 1.112), .033, 'Head'), ((0, -.062, 1.124), .021, 'Head'),
+                            ((0, -.100, 1.092), .007, 'Head')], mat, 6)
+
+
+def turn(objects, centre, degrees, axis='Z'):
+    """Rotate parts' meshes about a point (a shield turned to face the side)."""
+    c = Vector(centre)
+    m = Matrix.Translation(c) @ Matrix.Rotation(math.radians(degrees), 4, axis) @ Matrix.Translation(-c)
+    for o in objects:
+        o.data.transform(m)
+        o.data.update()
