@@ -30,7 +30,10 @@
 // Pure and deterministic: no randomness; ties by id. New persisted field: nation.warPlan
 // (absent = no plan; every reader defaults it).
 import { getTiles } from '../data/geo/tiles';
-import { ringsApart } from '../data/geo/gridScale';
+import { ringsApart, kmPerRing } from '../data/geo/gridScale';
+import { canFight } from './hostility';
+import { MOVE_KM, DEFAULT_MOVE_KM } from './armies';
+import { NAVAL_KM_BY_AGE } from './fleets';
 import { wallsOf } from './sieges';
 import { getTotalDev } from './development';
 import { getAvailableClasses } from '../data/unitClasses';
@@ -153,6 +156,38 @@ export const updateWarPlan = (state, nationId, wars, ageId, { maxRings = Infinit
   const plan = { enemy: city.owner, cityId, staging, strike, cap, siege, since, waves: keep ? (old.waves || 0) : 0 };
   if (old && Object.keys(plan).every((k) => old[k] === plan[k])) return old;
   return plan;
+};
+
+// The interior-city guard (the lead's ruling of 14 October, on the user's behalf): when a war plan
+// gathers regiments, a city may send ALL of its troops only when nothing hostile can reach it within
+// SAFE_TURNS turns: no land unit of a nation it can fight (an enemy at war, rebels, an independent's
+// warband or garrison) within SAFE_TURNS x that unit's march (armies.js MOVE_KM), and, for a coastal
+// city, no hostile fleet within SAFE_TURNS x its sailing range (fleets.js NAVAL_KM_BY_AGE). Otherwise
+// it keeps one regiment (aiOperations.js siegeParty), as border cities and the capital always do.
+export const SAFE_TURNS = 3;
+
+/** Hostile units that could reach a city of `nationId`: [{ tile, km }] (km = how far it goes in SAFE_TURNS). */
+export const hostileReach = (state, nationId) => {
+  const out = [];
+  for (const u of Object.values(state.units || {})) {
+    if (u.ownerId === nationId || !(u.strength > 0) || u.classId === 'settler' || u.tile == null || u.tile < 0 || u.embarkedOn) continue;
+    if (!canFight(state, nationId, u.ownerId)) continue;
+    if (u.domain === 'naval') out.push({ tile: u.tile, km: SAFE_TURNS * (NAVAL_KM_BY_AGE[state.nations[u.ownerId]?.tech?.ageId] || NAVAL_KM_BY_AGE.bronze), naval: true });
+    else if (u.domain === 'land') out.push({ tile: u.tile, km: SAFE_TURNS * (MOVE_KM[u.classId] || DEFAULT_MOVE_KM) });
+  }
+  return out;
+};
+
+/** May this city of ours send every regiment away (see SAFE_TURNS)? `reach`: hostileReach(state, owner). */
+export const interiorCitySafe = (city, reach, tiles = getTiles()) => {
+  if (!city || city.tile == null) return false;
+  const coastal = tiles.neighbors[city.tile].some((n) => tiles.land[n] !== 1);
+  const km = kmPerRing(tiles);
+  for (const r of reach) {
+    if (r.naval && !coastal) continue;
+    if (ringsApart(r.tile, city.tile, tiles) * km <= r.km) return false;
+  }
+  return true;
 };
 
 /** Units a stack at the staging city needs before it marches (see the header). */

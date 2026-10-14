@@ -36,7 +36,7 @@ import { aiScout, marchScouts } from './aiScouting';
 import { cityAttackStrength, cityAttackDamage, cityDefence } from './cityAssault';
 import { cityMilitia, wallsHpRatio } from './battleInputs';
 import { siegeHpOf } from './sieges';
-import { updateWarPlan, readyToStrike, launched } from './warPlans';
+import { updateWarPlan, readyToStrike, launched, hostileReach, interiorCitySafe } from './warPlans';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -109,7 +109,8 @@ export const aiSally = (state, nationId, rng) => {
     const weakest = [...targets].sort((a, b) => a[1] - b[1] || a[0] - b[0])[0];
     if (!weakest || mine < weakest[1] * PREFILTER) continue;
     const actor = { ...next, playerNationId: nationId, resources: getPool(next, nationId), techAgeId: getTechAgeId(next, nationId) };
-    const v = validateFieldAttack(actor, city.id, weakest[0], { ignoreCost: true });
+    // `sally`: an independent, which starts no fight of its own, still strikes at its besiegers (I125).
+    const v = validateFieldAttack(actor, city.id, weakest[0], { ignoreCost: true, sally: true });
     if (!v.ok) continue;
     const ctx = getFieldBattleContext(actor, v);
     if (estimateBattle(getFieldResolveArgs(v, ctx)).pWin < SALLY_MIN_P) continue;
@@ -117,7 +118,10 @@ export const aiSally = (state, nationId, rng) => {
     if (v.defenderNationId === state.playerNationId) { next = queueAgainstPlayer(next, v, nationId, rng); continue; }
     const battle = resolveAutoBattle(actor, getFieldResolveArgs(v, ctx), { kind: 'field', fromRegionId: v.fromRegionId }, rng);
     const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId, viewerId: state.playerNationId });
-    next = { ...next, units: r.units, regions: r.regions, nations: { ...r.nations, [nationId]: { ...r.nations[nationId], economy: next.nations[nationId]?.economy } }, hiredCommanders: r.hiredCommanders, appliedBattleIds: r.appliedBattleIds, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
+    // Sallies the AI fought (cumulative, for the balance harness; absent on old saves = 0).
+    const st = next.indepStats || {};
+    const indepStats = { ...st, sallies: (st.sallies || 0) + 1, salliesIndep: (st.salliesIndep || 0) + (isIndependentNation(next.nations[nationId]) ? 1 : 0), salliesWon: (st.salliesWon || 0) + (battle.outcome === 'attacker' ? 1 : 0) };
+    next = { ...next, units: r.units, regions: r.regions, nations: { ...r.nations, [nationId]: { ...r.nations[nationId], economy: next.nations[nationId]?.economy } }, hiredCommanders: r.hiredCommanders, appliedBattleIds: r.appliedBattleIds, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport, indepStats,
       logs: [...next.logs, ...r.logs.slice(next.logs.length).filter(() => by.has(state.playerNationId))] };
   }
   return next;
@@ -310,6 +314,9 @@ export const processAIOperations = (state, rng) => {
       plan = updateWarPlan(next, nationId, wars, getTechAgeId(next, nationId), { maxRings: AI_MARCH_STEPS });
       if (plan !== (next.nations[nationId].warPlan ?? null)) next.nations = { ...next.nations, [nationId]: { ...next.nations[nationId], warPlan: plan || undefined } };
     }
+    // A besieged garrison sallies when it can win (I125), at war or not: an independent besieged by a
+    // major's campaign (no war needed, hostility.js) or a city besieged by rebels used to sit still.
+    next = aiSally(next, nationId, rng);
     // At peace a major scouts (aiScouting.js, CB09 I122): one unit at a time explores and makes contact.
     if (!wars.length) {
       if (!isIndependentNation(next.nations[nationId]) && aiScout(next, nationId)) marchScouts(next, nationId);
@@ -317,7 +324,6 @@ export const processAIOperations = (state, rng) => {
       if (plan) next = gatherForPlan(next, nationId, plan, committed);
       continue;
     }
-    next = aiSally(next, nationId, rng);
     const enemies = new Set(wars.map(w => w.aggressor === nationId ? w.enemy : w.aggressor));
     const land = getOwnedRegionIds(next.regions, nationId);
     const fronts = new Set(land.filter(id => getNeighborIds(id).some(n => enemies.has(next.regions[n]?.owner))));
@@ -335,6 +341,14 @@ export const processAIOperations = (state, rng) => {
       const key = `${u.regionId}|${unitTile(next, u)}`;
       const stack = stacks.get(key) || []; stack.push(u); stacks.set(key, stack);
     }
+    // Which city keeps one regiment when the plan gathers (warPlans.js interiorCitySafe): a border
+    // city, the capital, and any city something hostile could reach within SAFE_TURNS turns.
+    let reach = null;
+    const keepsGarrison = (from) => {
+      if (fronts.has(from) || from === getCapital(next, nationId)) return true;
+      if (!reach) reach = hostileReach(next, nationId);
+      return !interiorCitySafe(next.regions[from], reach);
+    };
     let marching = false;
     for (const [key, stack] of [...stacks].sort(([a], [b]) => a.localeCompare(b))) {
       const from = key.split('|')[0];
@@ -425,7 +439,7 @@ export const processAIOperations = (state, rng) => {
             const joining = besiegedByUs(next, nationId, city, byTile);
             // (Under threat the stack holds its own city instead of gathering.)
             if (plan && !joining && !readyToStrike(plan, goers.length, state.turnNumber)) {
-              if (!threatened.size && gatherStack(next, nationId, plan, stack, at, from, committed, fronts.has(from) || from === getCapital(next, nationId))) marching = true;
+              if (!threatened.size && gatherStack(next, nationId, plan, stack, at, from, committed, keepsGarrison(from))) marching = true;
               continue;
             }
             const failed = stack[0].routeFailed;
@@ -506,7 +520,7 @@ export const processAIOperations = (state, rng) => {
               }
             }
           }
-          if (!holding && gatherStack(next, nationId, plan, stack, at, from, committed, fronts.has(from) || from === getCapital(next, nationId))) marching = true;
+          if (!holding && gatherStack(next, nationId, plan, stack, at, from, committed, keepsGarrison(from))) marching = true;
           continue;
         }
         // A stack already at a goal city stays on it and marches on tiles below; hopping on to the

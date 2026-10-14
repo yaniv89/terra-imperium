@@ -1038,6 +1038,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // The map changes the operations made (AI pillage marks, field battle marks) carry on into the
   // phases below and the next state, which is assembled from `state.world`.
   if (operations.world && operations.world !== state.world) state = { ...state, world: operations.world };
+  // Sallies counted by aiSally (I125) ride on indepStats like the independents' tallies.
+  if (operations.indepStats && operations.indepStats !== state.indepStats) state = { ...state, indepStats: operations.indepStats };
   invalidateRegionsCache(regions);
   const warProgress = resolveWarProgress({ ...state, regions, units, nations: nationsAfterWars }, regions, nationsAfterWars, wars, rng);
   Object.assign(regions, warProgress.regions);

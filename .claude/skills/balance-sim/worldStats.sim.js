@@ -122,6 +122,15 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
     majorsAlive: nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_')).length,
     majorCities: regs.filter((r) => r.owner && s.nations[r.owner]?.kind !== 'independent').length,
+    // Techs of the median AI major (medianAiTechs above counts the independents too), and AI sallies (I125).
+    medianMajorTechs: (() => { const n = nations.filter((x) => !x.isPlayer && !x.isEliminated && x.kind !== 'independent' && !x.id.startsWith('free_') && x.id !== 'rebels').map((x) => (x.tech?.researched || []).length).sort((a, b) => a - b); return n[Math.floor(n.length / 2)] || 0; })(),
+    sallies: s.indepStats?.sallies || 0, salliesIndep: s.indepStats?.salliesIndep || 0, salliesWon: s.indepStats?.salliesWon || 0,
+    // Cities per AI major (outposts not counted, the player left out), and the player's buildings.
+    citiesPerAiMajor: (() => { const ms = new Set(nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels' && n.id !== s.playerNationId).map((n) => n.id)); const c = regs.filter((r) => r.owner && !r.outpost && ms.has(r.owner)).length; return +(c / Math.max(1, ms.size)).toFixed(2); })(),
+    playerBuildings: regs.filter((r) => r.owner === s.playerNationId).reduce((a, c) => a + Object.values(c.buildings?.categories || {}).reduce((k, v) => k + (Number.isFinite(v) ? v + 1 : 0), 0), 0),
+    // Action gaps (I029): turns on which the scripted player had a decision (a city to queue, a
+    // settler to send, a tech done, a blocker to answer); the longest run of turns without one.
+    ...(counters.actions ? { actionTurnShare: +(counters.actions.turns / Math.max(1, t)).toFixed(3), maxActionGap: counters.actions.maxGap, actionGapsOver5: counters.actions.over5, actionTurnShare100: +(counters.actions.turns100 / Math.max(1, Math.min(100, t))).toFixed(3), maxActionGap100: counters.actions.maxGap100 } : {}),
     // Independents' AI (phase W2, raids.js, cumulative): raids started (and at the player), raids
     // that took their loot (and on the player), raid battles, sacks, loot, tribute demands and deals,
     // tribute gold paid, mercenary bands hired; and now: raids out, tribute deals running, bands in service.
@@ -157,7 +166,9 @@ SEEDS.forEach((seed) => {
     const telemetry = createTelemetry({ playerId: s.playerNationId, isIndependent: isIndependentNation, authorityOf, getOverextension, metNations, getTiles, traceFile: TRACE_WARS, writeLine: traceStream == null ? null : (line) => fs.writeSync(traceStream, line + '\n') });
     let telemMs = 0;
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
-    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set() };
+    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set(), actions: scripted ? { turns: 0, turns100: 0, gap: 0, maxGap: 0, maxGap100: 0, over5: 0, techsPrev: null } : null };
+    const logSum = (l) => l.queued + l.settled + l.events + l.peace + l.defenses + l.joins + l.demands.length + l.tribute.length + (l.rushes || 0);
+    const techCount = (st) => Object.values(st.techTree || {}).filter((x) => x.researched).length;
     // One life per nation alive at the start; a nation that dies and comes back starts a new life.
     const lives = []; const open = {};
     Object.values(s.nations).forEach((n) => { if (!n.isEliminated) { open[n.id] = { born: 0, died: null }; lives.push(open[n.id]); } });
@@ -167,7 +178,16 @@ SEEDS.forEach((seed) => {
     let owners = Object.fromEntries(Object.values(s.regions).map((r) => [r.id, r.owner]));
     let t0 = performance.now(); let turnsSince = 0;
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
+      const acted0 = scripted ? logSum(scripted.log) : 0;
       if (scripted) s = scripted.answer(s).state;
+      if (counters.actions) {
+        // A decision this turn: anything the scripted player answered, queued or bought, or a tech
+        // finished last turn (the next pick).
+        const a = counters.actions; const tc = techCount(s);
+        const acted = logSum(scripted.log) > acted0 || (a.techsPrev != null && tc > a.techsPrev);
+        a.techsPrev = tc;
+        if (acted) { a.turns += 1; if (t <= 100) a.turns100 += 1; if (a.gap > 5) a.over5 += 1; a.gap = 0; } else { a.gap += 1; a.maxGap = Math.max(a.maxGap, a.gap); if (t <= 100) a.maxGap100 = Math.max(a.maxGap100, a.gap); }
+      }
       else if (s.pendingPeaceOffer) s = gameReducer(s, { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE });
       const before = s.logs.length;
       const pre = s;
