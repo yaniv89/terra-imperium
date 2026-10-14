@@ -36,7 +36,7 @@ import { aiScout, marchScouts } from './aiScouting';
 import { cityAttackStrength, cityAttackDamage, cityDefence } from './cityAssault';
 import { cityMilitia, wallsHpRatio } from './battleInputs';
 import { siegeHpOf } from './sieges';
-import { updateWarPlan, readyToStrike, launched, hostileReach, interiorCitySafe } from './warPlans';
+import { updateWarPlan, readyToStrike, launched, hostileReach, interiorCitySafe, GATHER_MIN_UNITS } from './warPlans';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -236,6 +236,19 @@ export const siegeParty = (state, stack, at, fromCityId) => {
 };
 
 // --- War plans (warPlans.js, lane W5): gathering at the muster point --------------------------
+
+// A party marches before the strike is full when it already beats the target's garrison behind its
+// walls (the Lanchester estimate, as targetUtility reads it) with STRIKE_WIN_P, or the city stands
+// empty. Waiting for a full strike against a city it can already take only made wars drag on
+// (lane W6: mean war length 19 turns with plans against 11 without, and half the captures).
+export const STRIKE_WIN_P = 0.5;
+export const strikeWinsNow = (state, nationId, party, city) => {
+  if (!city || city.tile == null || party.length < GATHER_MIN_UNITS) return false;
+  const garrison = Object.values(state.units).filter((u) => u.ownerId === city.owner && u.regionId === city.id && u.domain === 'land' && u.classId !== 'settler' && u.strength > 0 && (u.tile == null || u.tile === city.tile));
+  if (!garrison.length) return true;
+  const walls = getDefenseLevelDamageReductionMultiplier(city.defenseLevel || 0);
+  return estimateBattle({ attackerUnits: party, defenderUnits: garrison, isAttackingFortification: (city.defenseLevel || 0) > 0, defenderDamageReductionMultiplier: walls }).pWin >= STRIKE_WIN_P;
+};
 
 /** Writes the plan on the working copy's nation (next.nations is replaced, never mutated). */
 const savePlan = (next, nationId, plan) => {
@@ -446,7 +459,7 @@ export const processAIOperations = (state, rng) => {
             // instead of walking to the walls alone; one joining a siege of ours already there goes.
             const joining = besiegedByUs(next, nationId, city, byTile);
             // (Under threat the stack holds its own city instead of gathering.)
-            if (plan && !joining && !readyToStrike(plan, goers.length, state.turnNumber)) {
+            if (plan && !joining && !readyToStrike(plan, goers.length, state.turnNumber) && !strikeWinsNow(next, nationId, goers, city)) {
               if (!threatened.size && gatherStack(next, nationId, plan, stack, at, from, committed, keepsGarrison(from))) marching = true;
               continue;
             }
@@ -489,7 +502,7 @@ export const processAIOperations = (state, rng) => {
           const atMuster = holding || at === staging?.tile;
           if (atMuster || !inCity) {
             const goers = atMuster ? siegeParty(next, stack, at, from) : stack;
-            if (goers.length && readyToStrike(plan, goers.length, state.turnNumber)) {
+            if (goers.length && (readyToStrike(plan, goers.length, state.turnNumber) || strikeWinsNow(next, nationId, goers, next.regions[plan.cityId]))) {
               const failed = stack[0].routeFailed;
               const goalKey = `plan:${plan.cityId}`;
               if (failed && failed.goal === goalKey && failed.until > state.turnNumber) continue;

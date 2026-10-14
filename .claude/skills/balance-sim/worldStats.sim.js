@@ -10,6 +10,7 @@ import { ActionTypes, GameStatus } from '../../../src/data/types';
 import { HISTORICAL_EVENTS } from '../../../src/data/events';
 import { auditGameState } from '../../../src/engine/stateAudit';
 import { getTiles } from '../../../src/data/geo/tiles';
+import { RESOURCES_ON_TILES } from '../../../src/data/tileYields';
 import { worldHealth, kaplanMeier } from '../../../scripts/simStats.mjs';
 import { installGeneratedWorld } from '../../../src/worldgen/nodeWorld';
 import { createScriptedPlayer, createTelemetry } from '../../../scripts/campaignTelemetry.mjs';
@@ -125,6 +126,8 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     // Techs of the median AI major (medianAiTechs above counts the independents too), and AI sallies (I125).
     medianMajorTechs: (() => { const n = nations.filter((x) => !x.isPlayer && !x.isEliminated && x.kind !== 'independent' && !x.id.startsWith('free_') && x.id !== 'rebels').map((x) => (x.tech?.researched || []).length).sort((a, b) => a - b); return n[Math.floor(n.length / 2)] || 0; })(),
     sallies: s.indepStats?.sallies || 0, salliesIndep: s.indepStats?.salliesIndep || 0, salliesWon: s.indepStats?.salliesWon || 0,
+    // Resource tiles held by AI majors that carry their improvement (the AI builds them, lane W6).
+    aiResImprovedShare: (() => { const tl = getTiles(); if (!tl.resourceOf) return 0; let have = 0; let done = 0; for (const [t, cid] of Object.entries(s.world?.tileOwner || {})) { const o = s.regions[cid]?.owner; if (!o || o === s.playerNationId || s.nations[o]?.kind === 'independent') continue; const r = RESOURCES_ON_TILES[tl.resourceOf(+t)]; if (!r) continue; have += 1; const st = s.world.tileState?.[t]; if (st?.improvement === r.improvement && !st.pillaged) done += 1; } return +(done / Math.max(1, have)).toFixed(3); })(),
     // Cities per AI major (outposts not counted, the player left out), and the player's buildings.
     citiesPerAiMajor: (() => { const ms = new Set(nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels' && n.id !== s.playerNationId).map((n) => n.id)); const c = regs.filter((r) => r.owner && !r.outpost && ms.has(r.owner)).length; return +(c / Math.max(1, ms.size)).toFixed(2); })(),
     playerBuildings: regs.filter((r) => r.owner === s.playerNationId).reduce((a, c) => a + Object.values(c.buildings?.categories || {}).reduce((k, v) => k + (Number.isFinite(v) ? v + 1 : 0), 0), 0),

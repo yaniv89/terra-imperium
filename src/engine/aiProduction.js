@@ -28,6 +28,7 @@
 // Ripples: AI expansion fills the map over the ages (C7's 50% of land by 500 CE target), AI
 // buildings feed the same yields the player's do, and AI armies come from the same cities.
 import { getTiles } from '../data/geo/tiles';
+import { RESOURCES_ON_TILES, tileFacts, canImprove } from '../data/tileYields';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { getAvailableClasses } from '../data/unitClasses';
 import { canQueue, productionCost } from './world/cities';
@@ -64,6 +65,14 @@ export const ARMING_UNIT_UTILITY = 1.1;
 export const WAR_UNIT_UTILITY = 1.6;
 export const GARRISON_UNIT_UTILITY = 1.4; // an independent below its garrison target trains first (independents.js)
 export const MUSTER_UNIT_UTILITY = 1.6; // a major mustering against an independent (phase W3, indepPolicy.js) trains as at war
+// Resource improvements (lead's ruling, lane W6): a resource on the city's land pays only with its
+// improvement (cityEconomy.js resourceNeed: a luxury's amenity and gold, a strategic resource's
+// supply, a bonus's yields), and the AI never built one, so its luxuries and iron did nothing. A
+// city now builds the matching improvement on its own resource tiles, worked tiles first:
+//   score = RESOURCE_IMPROVEMENT_UTILITY[kind] x (UNWORKED_IMPROVEMENT_MULT when not worked) x affordability
+// Improvements are cheap (2 to 3 turns of IMPROVEMENT_COST_PER_TURN), so this is a short detour.
+export const RESOURCE_IMPROVEMENT_UTILITY = { luxury: 1.3, strategic: 1.2, bonus: 1.0 };
+export const UNWORKED_IMPROVEMENT_MULT = 0.6;
 export const PLAN_RANGED_SHARE = 0.25; // under a war plan (warPlans.js) about a quarter of the army are archers
 /** The building lines in the order a doctrine builds them, every line once (the template). */
 export const buildingOrder = (doctrine) => { const liked = DOCTRINE_BUILDING_PRIORITY[doctrine] || []; return [...liked.filter((c) => BUILDING_PRIORITY.includes(c)), ...BUILDING_PRIORITY.filter((c) => !liked.includes(c))]; };
@@ -174,6 +183,23 @@ export const chooseProduction = (state, city, ctx) => {
     if (!affordable(item) || !canQueue(city, tiles, world, item, ctx).ok) return;
     offer(item, doctrine * need * affordability(costOf(item) / production, ctx.speedMult || 1));
   });
+  // Resource improvements on the city's own land (see RESOURCE_IMPROVEMENT_UTILITY). One pass over
+  // the city's tiles; tileFacts only for tiles that carry a resource.
+  if (!independent && ctx.improvements !== false) {
+    const worked = new Set(city.worked || []);
+    for (const t of city.tiles || []) {
+      const resId = tiles.resourceOf ? tiles.resourceOf(t) : null;
+      if (!resId || !RESOURCES_ON_TILES[resId]) continue;
+      const facts = tileFacts(tiles, t, world.tileState[t]);
+      const r = RESOURCES_ON_TILES[facts.resource];
+      if (!r || (facts.improvement === r.improvement && !facts.pillaged)) continue;
+      const score = (RESOURCE_IMPROVEMENT_UTILITY[r.kind] || 1) * (worked.has(t) || t === city.tile ? 1 : UNWORKED_IMPROVEMENT_MULT);
+      if (score <= bestScore) continue;
+      const item = { kind: 'improvement', improvement: r.improvement, tile: t };
+      if (!canImprove(facts, r.improvement, ctx.researched || []) || !canQueue(city, tiles, world, item, ctx).ok) continue;
+      offer(item, score * affordability(costOf(item) / production, ctx.speedMult || 1));
+    }
+  }
   if (!independent && ctx.wonders !== false && production >= WONDER_MIN_PRODUCTION && ((ctx.turnNumber || 0) + city.tile) % WONDER_THINK_PERIOD === 0 && WONDER_UTILITY * LIKED_WONDER_MULT > bestScore) {
     const options = wonderOptions(state, city, nationId);
     if (options.length) {
