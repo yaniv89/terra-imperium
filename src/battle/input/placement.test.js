@@ -8,7 +8,7 @@ import { placementBlock } from '../sim/economy';
 import { makeRenderView } from '../render/view';
 import { BUILDINGS, buildableFor } from '../data/economy';
 import { Q } from '../sim/constants';
-import { placementCheck, PLACEMENT_REASON } from './placement';
+import { placementCheck, PLACEMENT_REASON, legalArea, footprintAt, shortfallText } from './placement';
 
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
 const world = (terrain = 'mixed', seed = 11) => createWorld(buildSetupFromArmies({
@@ -61,6 +61,30 @@ describe('placement ghost', () => {
     for (let i = 0; i < 3; i++) step(w, []);
     const { seen } = compare(w, 0);
     expect(seen.get('crowded')).toBeGreaterThan(0);
+  });
+
+  it('I173: the legal tint is the rule of the sim, footprint by footprint; I181: the price and the laborers are said', () => {
+    const w = world();
+    for (let i = 0; i < 5; i++) step(w, []);
+    const view = makeRenderView(w, [], 0, true);
+    const hq = w.eco.buildings.find((b) => b.side === 0 && BUILDINGS[b.type].hq);
+    const cx = Math.floor(hq.x / Q); const cy = Math.floor(hq.y / Q);
+    const { cells } = legalArea({ view, setup: w.setup, side: 0, type: 'barracks', fog: view.fog, cx, cy, radius: 20 });
+    let legal = 0;
+    for (let y = cy - 20; y <= cy + 20; y++) for (let x = cx - 20; x <= cx + 20; x++) {
+      if (x < 0 || y < 0 || x >= w.map.w || y >= w.map.h) continue;
+      const { tx, ty } = footprintAt('barracks', x + 0.5, y + 0.5);
+      const sim = placementBlock(w, 0, 'barracks', tx, ty);
+      if (cells[y * w.map.w + x]) { legal += 1; expect(sim, `barracks centred on ${x},${y}`).toBeNull(); }
+    }
+    expect(legal).toBeGreaterThan(50);
+    // a legal spot the side cannot pay for: the shortfall is the reason; no laborers: that is
+    const i = cells.findIndex((c) => c === 1);
+    const { tx, ty } = footprintAt('barracks', (i % w.map.w) + 0.5, Math.floor(i / w.map.w) + 0.5);
+    expect(placementCheck({ view, setup: w.setup, side: 0, type: 'barracks', tx, ty, fog: view.fog, stock: [0, 10, 0, 0] })).toMatchObject({ ok: false, code: 'cost', reason: 'Needs 140 more wood' });
+    expect(placementCheck({ view, setup: w.setup, side: 0, type: 'barracks', tx, ty, fog: view.fog, stock: view.eco.stock, workers: 0 })).toMatchObject({ ok: false, code: 'workers' });
+    expect(placementCheck({ view, setup: w.setup, side: 0, type: 'barracks', tx, ty, fog: view.fog, stock: view.eco.stock, workers: 3 }).ok).toBe(true);
+    expect(shortfallText({ wood: 30, stone: 90, gold: 20 }, [0, 30, 20, 0])).toBe('Needs 70 more stone and 20 more gold');
   });
 
   it('every reason has words', () => {

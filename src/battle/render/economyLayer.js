@@ -45,6 +45,9 @@ export const SKIN_ROLES = new Set(['barracks', 'tower', 'trade-post']);
 export const sideTheme = (sd) => (sd ? themeOfNation(sd.nationId) || styleOfLand(sd.nationId, sd.ageId) : null);
 
 const PRIMS = ['box', 'roof', 'cyl', 'cone', 'rock', 'flat'];
+const OVERLAY_CAPACITY = 4096;
+// The land skirt the renderer draws past the field (terrainSurface.js: 40 tiles) is shaded while placing.
+const OUT_OF_PLAY_TILES = 44;
 const CAPACITY = 3072;
 const tmp = new Object3D();
 const tmpColor = new Color();
@@ -156,6 +159,18 @@ export class EconomyLayer {
     this.ghostMesh = new InstancedMesh(r.track(new BoxGeometry(1, 1, 1).translate(0, 0.5, 0)), ghostMat, 1);
     this.ghostMesh.count = 0; this.ghostMesh.frustumCulled = false; this.ghostMesh.renderOrder = 19;
     r.scene.add(this.ghostMesh);
+    // The placement overlay (UI06; I173 to I175): legal ground tinted, the tiles resources block,
+    // the real edge of the field and the land past it shaded out of play. Shown only while placing.
+    const flat = r.track(new BoxGeometry(1, 0.04, 1));
+    const overlay = (color, opacity, n, order) => {
+      const m = new InstancedMesh(flat, r.track(new MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, depthTest: false })), n);
+      m.count = 0; m.frustumCulled = false; m.renderOrder = order; r.scene.add(m);
+      return m;
+    };
+    this.legalMesh = overlay('#86efac', 0.4, OVERLAY_CAPACITY, 16);
+    this.blockedMesh = overlay('#f87171', 0.45, 256, 17);
+    this.outMesh = overlay('#0b0f14', 0.55, 4, 15);
+    this.edgeMesh = overlay('#fde68a', 0.9, 4, 18);
     // Art files (none: everything stays a greybox, nothing is loaded).
     this.kits = new KitInstances(r.scene, { track: (x) => r.track(x) });
     this.loaded = new Map(); // url -> kit
@@ -288,6 +303,47 @@ export class EconomyLayer {
   /** The placement ghost: { size, tx, ty, ok } in tiles, or null. */
   setGhost(g) { this.ghost = g; }
 
+  /**
+   * The placement overlay (UI06), or null to hide it: { cells } a Uint8Array over the map, 1 where
+   * a footprint centred on the tile is legal (input/placement.js legalArea). The resource tiles and
+   * the field edge are drawn with it.
+   */
+  setPlacementOverlay(o) { this.overlay = o; this.overlayDirty = true; }
+
+  writeOverlay() {
+    const r = this.r; const o = this.overlay;
+    if (!o) { this.legalMesh.count = 0; this.blockedMesh.count = 0; this.outMesh.count = 0; this.edgeMesh.count = 0; return; }
+    const { w, h } = r.setup.map;
+    const put = (mesh, k, x, z, sx, sz, lift = 0.06) => {
+      tmp.position.set(x, r.heightAt(Math.max(0, Math.min(w - 1, x)), Math.max(0, Math.min(h - 1, z))) + lift, z);
+      tmp.rotation.set(0, 0, 0); tmp.scale.set(sx, 1, sz); tmp.updateMatrix();
+      mesh.setMatrixAt(k, tmp.matrix);
+    };
+    if (this.overlayDirty) {
+      this.overlayDirty = false;
+      let n = 0;
+      for (let i = 0; i < o.cells.length && n < OVERLAY_CAPACITY; i++) if (o.cells[i]) put(this.legalMesh, n++, (i % w) + 0.5, Math.floor(i / w) + 0.5, 0.72, 0.72); // a tile grid, so legal ground reads as such
+      this.legalMesh.count = n; this.legalMesh.instanceMatrix.needsUpdate = true;
+      // Past the field: four wide bands over the skirt the renderer draws (it is no field).
+      const S = OUT_OF_PLAY_TILES;
+      put(this.outMesh, 0, -S / 2, h / 2, S, h + 2 * S, 0.3); put(this.outMesh, 1, w + S / 2, h / 2, S, h + 2 * S, 0.3);
+      put(this.outMesh, 2, w / 2, -S / 2, w, S, 0.3); put(this.outMesh, 3, w / 2, h + S / 2, w, S, 0.3);
+      this.outMesh.count = 4; this.outMesh.instanceMatrix.needsUpdate = true;
+      // The real edge of the field, a bright line round it.
+      const L = 0.12;
+      put(this.edgeMesh, 0, 0, h / 2, L, h, 0.32); put(this.edgeMesh, 1, w, h / 2, L, h, 0.32);
+      put(this.edgeMesh, 2, w / 2, 0, w, L, 0.32); put(this.edgeMesh, 3, w / 2, h, w, L, 0.32);
+      this.edgeMesh.count = 4; this.edgeMesh.instanceMatrix.needsUpdate = true;
+    }
+    // The tiles a resource takes (never built over), from this frame's nodes.
+    let b = 0;
+    (r.lastView?.eco?.nodes || []).forEach((n) => {
+      if (n.spent || n.kind === 'farm' || b >= 256) return;
+      put(this.blockedMesh, b++, Math.floor(n.x / Q) + 0.5, Math.floor(n.y / Q) + 0.5, 0.9, 0.9, 0.08);
+    });
+    this.blockedMesh.count = b; this.blockedMesh.instanceMatrix.needsUpdate = true;
+  }
+
   writeParts(parts, cx, cz, scaleXZ, grow, sideColor, counts, cull, scaffold = 0) {
     const r = this.r;
     const y0 = r.heightAt(cx, cz);
@@ -349,6 +405,7 @@ export class EconomyLayer {
       this.ghostMesh.material.color.set(g.ok ? '#4ade80' : '#f87171');
       this.ghostMesh.count = 1; this.ghostMesh.instanceMatrix.needsUpdate = true;
     } else this.ghostMesh.count = 0;
+    this.writeOverlay();
   }
 
   /** HP bars for damaged or unfinished buildings and the inspected one (`picked`, its idx): [{ x, z, frac, h, w }].

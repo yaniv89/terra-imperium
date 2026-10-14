@@ -20,7 +20,7 @@
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords } from 'lucide-react';
-import { ResIcon, RES_NAME } from './EconomyHud';
+import { ResIcon, RES_NAME, HammerButton } from './EconomyHud';
 import { RESOURCES } from '../../battle/data/economy';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
@@ -306,7 +306,7 @@ const BattleHud = ({
               <div className="flex gap-1 max-w-full overflow-x-auto scrollbar-none [&>*:first-child]:ml-auto" data-testid="battle-commands">
                 {armyCtx ? (
                   <>
-                    {context === 'mixed' && eco && <Cmd icon={Hammer} label="Build" onClick={onOpenBuild} active={buildOpen} testId="battle-build" />}
+                    {context === 'mixed' && eco && <HammerButton onClick={onOpenBuild} active={buildOpen} />}
                     <Cmd icon={Crosshair} label="Attack" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} testId="battle-attack-move" />
                     <Cmd icon={Hand} label="Hold" onClick={() => onCommand('hold')} testId="battle-hold" />
                     <Cmd icon={formation === 'line' ? Rows : Columns} label={formation === 'line' ? 'Line' : 'Column'} onClick={onFormation} testId="battle-formation" />
