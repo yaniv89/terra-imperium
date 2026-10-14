@@ -17,7 +17,8 @@
 // rig and instancing drive it. Each model has a matching reduced-tessellation mesh for far zoom levels.
 import {
   BoxGeometry, CylinderGeometry, SphereGeometry, ConeGeometry, TorusGeometry, ExtrudeGeometry, Shape, Float32BufferAttribute,
-  Matrix4, Euler, Quaternion, Vector3, Color, MeshLambertMaterial, MeshStandardMaterial, MeshDepthMaterial, RGBADepthPacking
+  Matrix4, Euler, Quaternion, Vector3, Vector4, Color, MeshLambertMaterial, MeshStandardMaterial, MeshDepthMaterial, RGBADepthPacking,
+  DataTexture, RGBAFormat, FloatType, NearestFilter
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { SKIN_UNIFORM, SKIN_TONES, EMBLEM_GRID, EMBLEM_INSET, getEmblemAtlas } from './unitVariants';
@@ -471,14 +472,73 @@ varying vec3 vEmblem;
 varying vec2 vSurface;
 `;
 
-const patchRig = (shader, withColor) => {
+// USE_CLIPS (I219, plans/art/clip-animation-pipeline.md): an artist's clips instead of the rigid
+// rig. Every vertex follows one bone (aBone, 0 = static); the bone's 3x4 matrix for each frame sits
+// in the unit's bone texture (clipBake.js: 3 texels a bone, a row a frame) and is blended between
+// the two frames either side. aAnim = (clip, start time, rate, phase), aAnimPrev = the clip it is
+// leaving (clip, start, rate, when the switch began; negative: none) for a short cross-fade.
+export const CLIP_TABLE_SIZE = 24; // clipBake.js MAX_CLIPS
+export const CLIP_FADE_S = { value: 0.15 }; // the cross-fade (0 = snap between clips)
+const CLIP_GLSL = /* glsl */`
+attribute float aBone;
+attribute vec3 aClipPos; // the clip reference position (the rest bake; bind for parts hidden at rest)
+attribute vec4 aAnim;
+attribute vec4 aAnimPrev;
+uniform float uTime;
+uniform float uClipFade;
+uniform highp sampler2D uBones;
+uniform vec4 uClips[${CLIP_TABLE_SIZE}]; // x: first row, y: frames, z: 1 loops, 0 plays once and holds
+vec4 cR0; vec4 cR1; vec4 cR2; bool cDone = false;
+void clipSample(vec4 st, float phase, out vec4 r0, out vec4 r1, out vec4 r2) {
+  vec4 c = uClips[int(st.x + 0.5)];
+  float span = max(c.y - 1.0, 1.0);
+  float f = max(0.0, (uTime - st.y) * st.z * 20.0);
+  f = c.z > 0.5 ? mod(f + phase * 20.0, span) : min(f, span);
+  float f0 = floor(f); float k = f - f0; float f1 = min(f0 + 1.0, span);
+  int x = int(aBone + 0.5) * 3; int y0 = int(c.x + f0); int y1 = int(c.x + f1);
+  r0 = mix(texelFetch(uBones, ivec2(x, y0), 0), texelFetch(uBones, ivec2(x, y1), 0), k);
+  r1 = mix(texelFetch(uBones, ivec2(x + 1, y0), 0), texelFetch(uBones, ivec2(x + 1, y1), 0), k);
+  r2 = mix(texelFetch(uBones, ivec2(x + 2, y0), 0), texelFetch(uBones, ivec2(x + 2, y1), 0), k);
+}
+void clipRig() {
+  if (cDone) return;
+  cDone = true;
+  clipSample(aAnim, aAnim.w, cR0, cR1, cR2);
+  if (aAnimPrev.w >= 0.0 && uClipFade > 0.0) {
+    float w = clamp((uTime - aAnimPrev.w) / uClipFade, 0.0, 1.0);
+    if (w < 1.0) {
+      vec4 p0; vec4 p1; vec4 p2;
+      clipSample(aAnimPrev, aAnim.w, p0, p1, p2);
+      cR0 = mix(p0, cR0, w); cR1 = mix(p1, cR1, w); cR2 = mix(p2, cR2, w);
+    }
+  }
+}
+vec3 clipPoint(vec3 p) { vec4 h = vec4(p, 1.0); return vec3(dot(cR0, h), dot(cR1, h), dot(cR2, h)); }
+vec3 clipDir(vec3 d) { return vec3(dot(cR0.xyz, d), dot(cR1.xyz, d), dot(cR2.xyz, d)); }
+`;
+
+const patchRig = (shader, withColor, clips = null) => {
   shader.uniforms.uTime = RIG_TIME;
-  shader.vertexShader = RIG_GLSL + shader.vertexShader
-    .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+  if (clips) {
+    shader.uniforms.uBones = clips.uBones;
+    shader.uniforms.uClips = clips.uClips;
+    shader.uniforms.uClipFade = CLIP_FADE_S;
+    shader.vertexShader = CLIP_GLSL + shader.vertexShader
+      .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+      clipRig();
+      objectNormal = clipDir(objectNormal);
+      if (dot(objectNormal, objectNormal) < 1e-8) objectNormal = vec3(0.0, 1.0, 0.0); // a part hidden at rest (lit by flat shading)`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+      clipRig();
+      transformed = clipPoint(aClipPos);`);
+  } else {
+    shader.vertexShader = RIG_GLSL + shader.vertexShader
+      .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
       objectNormal = turret(rigRotateDir(objectNormal, rigAngle()));`)
-    .replace('#include <begin_vertex>', `#include <begin_vertex>
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
       transformed = turret(rigRotate(transformed, rigAngle()));
       transformed.y += abs(sin(uTime * 8.5 + aAnim.x)) * 0.035 * aAnim.y;`);
+  }
   if (!withColor) return;
   shader.uniforms.uSkin = SKIN_UNIFORM;
   shader.uniforms.uEmblems = { value: withColor.emblems };
@@ -549,20 +609,39 @@ export const RIG_TIME = { value: 0 };
 // share). `emblems` is the heraldry atlas texture (defaults to the shared procedural one).
 // `teamTint`: how much of the side's colour every cloth and metal part takes (the team parts take
 // all of it); the far detail level raises it so a figure a few pixels tall still reads as its army.
-export const createSoldierMaterial = ({ standard = false, emblems = getEmblemAtlas(), teamTint = 0.12 } = {}) => {
+// `clips` (clipUniforms): the USE_CLIPS variant for one unit's bone texture. Every clip unit shares
+// one program (the cache key), each with its own uniforms.
+export const createSoldierMaterial = ({ standard = false, emblems = getEmblemAtlas(), teamTint = 0.12, clips = null } = {}) => {
   const mat = standard
     ? new MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.05 })
     : new MeshLambertMaterial({ vertexColors: true });
-  mat.onBeforeCompile = (shader) => patchRig(shader, { emblems, standard, teamTint });
-  mat.customProgramCacheKey = () => `${standard ? 'soldier-rig-std' : 'soldier-rig'}-${teamTint}`;
+  mat.onBeforeCompile = (shader) => patchRig(shader, { emblems, standard, teamTint }, clips);
+  mat.customProgramCacheKey = () => `${standard ? 'soldier-rig-std' : 'soldier-rig'}-${teamTint}${clips ? '-clips' : ''}`;
+  // flat shading from the screen derivatives: the faces' own normals in every pose, as the baked
+  // soup's face normals are at rest
+  if (clips) { mat.defines = { ...(mat.defines || {}), USE_CLIPS: '' }; mat.flatShading = true; }
   return mat;
 };
 // Shadow pass: the same bones, so shadows walk with their soldiers.
-export const createSoldierDepthMaterial = () => {
+export const createSoldierDepthMaterial = ({ clips = null } = {}) => {
   const mat = new MeshDepthMaterial({ depthPacking: RGBADepthPacking });
-  mat.onBeforeCompile = (shader) => patchRig(shader, false);
-  mat.customProgramCacheKey = () => 'soldier-rig-depth';
+  mat.onBeforeCompile = (shader) => patchRig(shader, false, clips);
+  mat.customProgramCacheKey = () => `soldier-rig-depth${clips ? '-clips' : ''}`;
+  if (clips) mat.defines = { ...(mat.defines || {}), USE_CLIPS: '' };
   return mat;
+};
+
+/** The shader inputs of a clip bake (clipBake.js): the bone texture and the clip table. The texture
+ * is created here and returned for the caller to track and dispose. */
+export const clipUniforms = (bake) => {
+  const tex = new DataTexture(bake.data, bake.width, bake.height, RGBAFormat, FloatType);
+  tex.minFilter = NearestFilter; tex.magFilter = NearestFilter; tex.generateMipmaps = false;
+  tex.needsUpdate = true;
+  const table = Array.from({ length: CLIP_TABLE_SIZE }, (_, i) => {
+    const c = bake.clips[i];
+    return c ? new Vector4(c.first, c.frames, c.loop ? 1 : 0, 0) : new Vector4(0, 2, 1, 0);
+  });
+  return { texture: tex, uBones: { value: tex }, uClips: { value: table } };
 };
 
 // ---- parts for composed units (unitComposer.js) ---------------------------------------------

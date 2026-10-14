@@ -9,9 +9,10 @@
 // Every line is measured in screen pixels from the exact cell edge (the bisector of two centres
 // on the sphere, through its analytic screen gradient), so borders stay one crisp width at any
 // zoom and the world wraps east to west by itself (longitude is taken modulo 360 degrees).
-// The fog is the exception: its two edges (the dark mask, the grey wash) are soft and wander like
-// clouds, read from a blurred field baked per fog change (fogField.js) through world-space noise,
-// so they never show the hexes; every tile's centre still shows its own per-tile fog state.
+// The fog is the exception: its two edges are soft and wander with world-space noise. The grey
+// wash is read from a blurred field baked per fog change (fogField.js); the dark mask lies on
+// unexplored tiles only and fades in from the edge of the explored land (fogEdgeMask), so
+// explored land, and what is drawn on it, never looks unexplored.
 // GLSL ES 3.00 (WebGL2): texelFetch and integer indices.
 import { DATA_W, LOOKUP_W, LOOKUP_H, WALK_STEPS } from './tileGpuData';
 import { CITY_W, FLAG_ENEMY } from './territoryData';
@@ -36,7 +37,21 @@ export const FOG_NOISE_FREQ = 16;  // noise cells per Earth radius: the base wav
 export const FOG_FINE = 0.6;       // the finer wisps (a wave of about 90 km), in field units
 export const FOG_CORE0_KM = 22;    // a tile's centre (this far from its edges and more) keeps its
 export const FOG_CORE1_KM = 36;    // own fog state whatever the blur says
+// The dark mask's soft edge, on the unexplored side only: from nothing at the edge of the explored
+// land to full this far in, the width times (1 + WARP x warp + WISP x wisp) for the noise's warp
+// and wisps (each -0.5 to 0.5), so it wanders between about 0.2 and 1.8 times as wide.
+export const FOG_EDGE_KM = 36;
+export const FOG_EDGE_WARP = 1.2;
+export const FOG_EDGE_WISP = 0.4;
 const EARTH_KM = 6371;
+const smoothstep = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+/**
+ * The dark mask's strength (0..1) at a point, as the shader draws it: `fog` the tile's state (0
+ * unexplored, 1 explored, 2 in sight), `kmToExplored` the distance to the nearest edge shared with
+ * an explored tile (Infinity: none), `warp` and `wisp` the noise (-0.5..0.5). Explored land: 0.
+ */
+export const fogEdgeMask = (fog, kmToExplored, warp = 0, wisp = 0) => (fog >= 1 ? 0
+  : smoothstep(0, FOG_EDGE_KM, kmToExplored * (1 + FOG_EDGE_WARP * warp + FOG_EDGE_WISP * wisp)));
 
 export const TERRITORY_VERTEX = /* glsl */ `
 uniform vec4 uView;     // world x and y of the screen's top left, world units per CSS px, unused
@@ -184,13 +199,20 @@ void main() {
     // (weighted to nothing near 0 and 1, so the deep checks above stay exact)
     vec2 inBand = smoothstep(vec2(0.08), vec2(0.3), fogF) * (1.0 - smoothstep(vec2(0.7), vec2(0.92), fogF));
     float fine = inBand.r + inBand.g > 0.0 ? (fbm(p * ${(FOG_NOISE_FREQ * 4.3).toFixed(1)} + vec3(7.1, 3.3, 1.9)) - 0.5) * ${FOG_FINE.toFixed(2)} : 0.0;
-    maskA = 1.0 - smoothstep(${FOG_LO.toFixed(2)}, ${FOG_HI.toFixed(2)}, fogF.r + fine * inBand.r);
     washA = 1.0 - smoothstep(${FOG_LO.toFixed(2)}, ${FOG_HI.toFixed(2)}, fogF.g + fine * inBand.g);
-    float dEdge = 1e6;
-    for (int k = 0; k < 6; k++) dEdge = min(dEdge, dist[k]);
+    float dEdge = 1e6; float dExp = 1e6;
+    for (int k = 0; k < 6; k++) { dEdge = min(dEdge, dist[k]); if (n[k] >= 0 && !unk[k]) dExp = min(dExp, dist[k]); }
     float core = smoothstep(${FOG_CORE0_KM.toFixed(1)}, ${FOG_CORE1_KM.toFixed(1)}, dEdge / pxPerRad * ${EARTH_KM.toFixed(1)} + warp * 16.0);
-    maskA = fogA < 0.5 ? max(maskA, core) : min(maskA, 1.0 - core);
     washA = fogA < 1.5 ? max(washA, core) : min(washA, 1.0 - core);
+    // The dark mask lies on unexplored land only, as in Civilization: explored land is never
+    // darkened (the blurred field used to reach a hex into it, so a seen city's border, its town
+    // and the resource glyphs there looked like they stood in the unexplored dark). Its soft edge
+    // starts at nothing on the edge of the explored land and is full ${FOG_EDGE_KM} km in, the
+    // width wandering with the noise (fogEdgeMask, the same rule in JS).
+    if (fogA < 0.5) {
+      float wisp = dExp < 1e5 ? fbm(p * ${(FOG_NOISE_FREQ * 4.3).toFixed(1)} + vec3(7.1, 3.3, 1.9)) - 0.5 : 0.0;
+      maskA = smoothstep(0.0, ${FOG_EDGE_KM.toFixed(1)}, dExp / pxPerRad * ${EARTH_KM.toFixed(1)} * (1.0 + ${FOG_EDGE_WARP.toFixed(2)} * warp + ${FOG_EDGE_WISP.toFixed(2)} * wisp));
+    }
   }
   if (uFogOn > 0.5 && fogA < 0.5) {
     // Unexplored: no territory, only the edge of the wash and the mask over the Earth.

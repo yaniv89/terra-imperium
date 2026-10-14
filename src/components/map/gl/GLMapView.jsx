@@ -297,6 +297,8 @@ const GLMapView = ({
       const shift = wrapNear(lay.camX, v.camX, v.worldW) - lay.camX;
       g.closeRoot.position.set(-lay.tx / lay.k + shift, lay.ty / lay.k, 0);
       g.closeRoot.scale.setScalar(1 / lay.k);
+      // the figures at the live zoom's size, not the layout's scaled up (no snap back on settle)
+      g.closeScene.zoomFigures(v.k);
       RIG_TIME.value = (now ?? performance.now()) / 1000;
       renderer.clearDepth();
       renderer.render(g.close, camera);
@@ -882,7 +884,7 @@ const GLMapView = ({
       info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount, rivers: gl.current.rivers.count() }),
       renderer: gl.current?.renderer,
       // the banners as last drawn (a glide moves them frame by frame: marchGlide.js, I070)
-      banners: () => (gl.current?.markerShown || []).map((s) => ({ key: s.glideKey, anchor: [...s.anchor] })),
+      banners: () => (gl.current?.markerShown || []).map((s) => ({ key: s.glideKey, anchor: [...s.anchor], size: [...s.size] })),
       gliding: () => !!gl.current?.glide,
       // ms a frame over `n` frames drawn back to back (GPU finished), with the river lines on or
       // off: what the lines cost on this machine (scripts/perf/river-cost.mjs)

@@ -12,11 +12,12 @@ import { canSeeSquad } from '../sim/fog';
 import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
 import { baseCount, hasBase } from '../sim/base';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
-import { ecoView } from '../sim/economy';
-import { squadLookOf } from './view';
+import { ecoView, workCodes } from '../sim/economy';
+import { squadLookOf, clipFieldsOf } from './view';
 
 // One squad's per-tick record. Nullable numbers travel as NaN.
-const FIELDS = ['x', 'y', 'facing', 'strength', 'morale', 'flags', 'enterTick', 'inside', 'order', 'orderX', 'orderY', 'target', 'targetKind'];
+// lastStrikeTick .. work: drawing only (the clip player, I219; view.js clipFieldsOf).
+const FIELDS = ['x', 'y', 'facing', 'strength', 'morale', 'flags', 'enterTick', 'inside', 'order', 'orderX', 'orderY', 'target', 'targetKind', 'lastStrikeTick', 'lastHitTick', 'lastDepositTick', 'work'];
 export const SQUAD_STRIDE = FIELDS.length;
 const F = Object.fromEntries(FIELDS.map((k, i) => [k, i]));
 const FLAGS = ['alive', 'onField', 'fled', 'routed', 'retreating', 'reserve', 'visible', 'hidden', 'striking'];
@@ -43,15 +44,19 @@ export const createViewPacker = () => {
   const pack = (w, pendingOrders = [], playerSide = 0, { fog = true, slow = true } = {}) => {
     const n = w.squads.length;
     const f = new Float64Array(n * SQUAD_STRIDE);
+    const work = workCodes(w);
     for (let i = 0; i < n; i++) {
       const q = w.squads[i]; const o = i * SQUAD_STRIDE;
       const striking = w.tick - (q.lastStrikeTick ?? -10000) <= q.stats.attackTicks + 4;
-      const flagValues = [q.alive, q.onField, q.fled, q.routed, q.retreating, q.reserve, canSeeSquad(w, playerSide, q), (q.hiddenUntil || -1) > w.tick, striking];
+      const seen = canSeeSquad(w, playerSide, q);
+      const flagValues = [q.alive, q.onField, q.fled, q.routed, q.retreating, q.reserve, seen, (q.hiddenUntil || -1) > w.tick, striking];
       let bits = 0; flagValues.forEach((b, k) => { if (b) bits |= 1 << k; });
       f[o + F.x] = q.x; f[o + F.y] = q.y; f[o + F.facing] = q.facing; f[o + F.strength] = q.strength; f[o + F.morale] = q.morale;
       f[o + F.flags] = bits; f[o + F.enterTick] = num(q.enterTick); f[o + F.inside] = q.inside ?? -1;
       f[o + F.order] = intern(q.order.type); f[o + F.orderX] = num(q.order.x); f[o + F.orderY] = num(q.order.y);
       f[o + F.target] = num(q.target); f[o + F.targetKind] = intern(q.targetKind);
+      const clip = clipFieldsOf(q, q.side === playerSide || seen, work);
+      f[o + F.lastStrikeTick] = clip.lastStrikeTick; f[o + F.lastHitTick] = clip.lastHitTick; f[o + F.lastDepositTick] = clip.lastDepositTick; f[o + F.work] = clip.work;
     }
     const packed = {
       tick: w.tick, playerSide, n,
