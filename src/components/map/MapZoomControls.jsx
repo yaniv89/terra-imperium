@@ -2,13 +2,15 @@
 // The flat map's zoom buttons, folded into one small round button on the right edge (map HUD
 // cleanup: the three-button column took too much of a phone's 390 px height). A tap opens zoom in,
 // zoom out and reset view under it; a second tap folds them away. Pinch and wheel zoom never need
-// it. Every button stays a 40 px touch target.
+// it. Every button stays a 40 px touch target (the open column folds if it would not fit a short phone: it scrolls).
 import React, { useState } from 'react';
-import { ZoomIn, ZoomOut, Maximize, Search, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, Search, X, Landmark, Swords } from 'lucide-react';
 
 const BTN = 'w-10 h-10 flex items-center justify-center text-fa-text hover:bg-fa-raised transition-colors disabled:opacity-30 disabled:hover:bg-transparent';
 
-const MapZoomControls = ({ onZoomIn, onZoomOut, onReset, canZoomIn = true, canZoomOut = true, canReset = true, className = '', style }) => {
+// Reset is "Fit world" (the whole world, mostly fog early on); Home (the capital) and Army (the
+// selected army) are the two places a player wants back (MAP-01); each shows only when it has a place.
+const MapZoomControls = ({ onZoomIn, onZoomOut, onReset, onHome = null, onArmy = null, canZoomIn = true, canZoomOut = true, canReset = true, className = '', style }) => {
   const [open, setOpen] = useState(false);
   return (
     <div style={style} className={`absolute z-10 flex flex-col items-center gap-1.5 ${className}`} data-testid="map-zoom-controls" data-map-hud="">
@@ -18,16 +20,26 @@ const MapZoomControls = ({ onZoomIn, onZoomOut, onReset, canZoomIn = true, canZo
         {open ? <X className="w-4 h-4" aria-hidden="true" /> : <Search className="w-4 h-4" aria-hidden="true" />}
       </button>
       {open && (
-        <div className="flex flex-col bg-fa-panel/95 rounded-lg border border-fa-line shadow-xl overflow-hidden">
+        <div className="flex flex-col bg-fa-panel/95 rounded-lg border border-fa-line shadow-xl overflow-y-auto max-h-[calc(100dvh-var(--header-height,2.25rem)-4.5rem)]">
           <button type="button" onClick={onZoomIn} disabled={!canZoomIn} className={BTN} title="Zoom in" aria-label="Zoom in">
             <ZoomIn className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <button type="button" onClick={onZoomOut} disabled={!canZoomOut} className={`${BTN} border-t border-fa-line`} title="Zoom out" aria-label="Zoom out">
             <ZoomOut className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
-          <button type="button" onClick={onReset} disabled={!canReset} className={`${BTN} border-t border-fa-line`} title="Reset view" aria-label="Reset view">
+          <button type="button" onClick={onReset} disabled={!canReset} className={`${BTN} border-t border-fa-line`} title="Fit world" aria-label="Fit world" data-testid="map-fit-world">
             <Maximize className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
+          {onHome && (
+            <button type="button" onClick={onHome} className={`${BTN} border-t border-fa-line`} title="Home (your capital)" aria-label="Home" data-testid="map-home">
+              <Landmark className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          )}
+          {onArmy && (
+            <button type="button" onClick={onArmy} className={`${BTN} border-t border-fa-line`} title="Selected army" aria-label="Selected army" data-testid="map-army">
+              <Swords className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          )}
         </div>
       )}
     </div>

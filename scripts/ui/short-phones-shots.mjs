@@ -45,6 +45,7 @@ for (const [w, h] of SIZES) {
     console.log(id, 'ready cut-off values:', cut.length ? cut : 'none');
   }
   if (ONLY !== 'start') {
+    await click(page.getByTestId('start-step-ready'));
     await click(page.getByRole('button', { name: /^Begin as/ }));
     const skip = page.getByRole('button', { name: 'Skip' });
     await skip.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
