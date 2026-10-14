@@ -5,7 +5,7 @@
 //                Battle Supply without an economy), the enemy squads left, speed and pause
 //   bottom left  small buttons only (B10): All (the army), Base (the camp), Idle n (a laborer)
 //   bottom right the context panel (B10, AoE style): the actions of the selection only. Nothing
-//                selected: Select and Reserves; army: Attack, Hold, Formation, Retreat; laborers:
+//                selected: Select (no Reserve: the whole army starts on the field, U10); army: Attack, Hold, Formation, Retreat; laborers:
 //                the build grid (`panel`); your building: train, queue, rally (`panel`); placing: the
 //                spot's verdict, Build here, Cancel (`panel`). Powers in their own group above, for
 //                the army and for nothing selected
@@ -26,7 +26,6 @@ import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { TICK_HZ } from '../../battle/sim/constants';
-import { getSquadDisplayName } from '../../battle/data/battleStats';
 import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
 
@@ -68,7 +67,7 @@ const Res = ({ icon, label, value, warn, testId }) => (
 
 const BattleHud = ({
   title, hud, setup, playerSide, timeLeft, paused, started, speed, armed, formation, selectedSquads,
-  onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCallReserve, onCommand, onRetreatAll, onFocusKeep, onAbandon,
+  onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCommand, onRetreatAll, onFocusKeep, onAbandon,
   onPower, onOpenAbilities, hasAbilities, soundOn = true, onToggleSound,
   onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
   context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
@@ -80,7 +79,6 @@ const BattleHud = ({
   mouse = false, // a mouse is the main pointer: the hints speak of clicks
   ended = false // the battle is over: only the top bar stays (the result screen, B08, owns the rest)
 }) => {
-  const [showReserves, setShowReserves] = useState(false);
   const [confirmNuke, setConfirmNuke] = useState(null);
   const [confirmRetreat, setConfirmRetreat] = useState(false);
   const [cityOpen, setCityOpen] = useState(true);
@@ -104,11 +102,13 @@ const BattleHud = ({
   const mine = hud.squads.filter((q) => q.side === playerSide && q.alive && !q.fled);
   const onField = mine.filter((q) => q.onField);
   const eco = hud.eco || null;
-  const reserves = mine.filter((q) => q.reserve);
+  // Base buildings standing (sim/base.js): [yours, theirs], null in a battle without bases.
+  const base = hud.base ? [hud.base[playerSide], hud.base[1 - playerSide]] : null;
+  // Allied reinforcements still marching in on their own (U10: nobody calls them).
+  const marching = mine.filter((q) => q.reinforcement && !q.onField && q.enterTick >= 0);
   const keep = hud.structures[0];
   const supply = hud.supply[playerSide];
   const enemyLeft = hud.squads.filter((q) => q.side !== playerSide && q.alive && !q.fled).length;
-  const ageId = setup.sides[playerSide].ageId;
   const sel = selectionSummary(selectedSquads);
   const target = selectedSquads.find((q) => q.targetKind === 'structure' && q.target >= 0);
   const targetSt = target ? hud.structures[target.target] : null;
@@ -182,9 +182,17 @@ const BattleHud = ({
               <Castle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               {keep.alive
                 ? <><span className="w-10 lg:w-16 h-1.5 bg-fa-ink rounded-full overflow-hidden shrink-0"><span className="block h-full bg-fa-enemy" style={{ width: `${(keep.hp / keep.maxHp) * 100}%` }} /></span><span className="fa-num text-[10.5px] lg:hidden">{Math.round((keep.hp / keep.maxHp) * 100)}%</span><span className="fa-num text-[10.5px] hidden lg:inline">{Math.round(keep.hp)}/{keep.maxHp}</span></>
-                : <span className="text-fa-good">Breached{hud.assimilation > 0 ? `, taking ${Math.round((hud.assimilation / ASSIMILATION_TICKS) * 100)}%` : ''}</span>}
+                : <span className="text-fa-good">{base ? 'Keep down' : `Breached${hud.assimilation > 0 ? `, taking ${Math.round((hud.assimilation / ASSIMILATION_TICKS) * 100)}%` : ''}`}</span>}
               {keep.alive && keep.garrisonSlots > 0 && <span className="text-fa-you truncate hidden lg:inline" title="Garrison: tap the keep with infantry or ranged selected">garrison {keep.garrison}/{keep.garrisonSlots}</span>}
             </button>
+          )}
+          {/* The base rule (sim/base.js): what is left to burn on each side. */}
+          {base && (
+            <div className="pointer-events-auto fa-chip !bg-fa-panel/95 !min-h-[24px] !py-0.5 gap-1 text-[10.5px] max-w-full" title="Base buildings standing: the camp or keep, economy and military buildings. Houses, walls and towers do not count. A side loses when its last one falls." data-testid="battle-base">
+              <Flag className="w-3 h-3 shrink-0" aria-hidden="true" />
+              <span className="whitespace-nowrap">Base <span className="fa-num text-fa-you">{base[0]}</span> vs <span className="fa-num text-fa-enemy">{base[1]}</span></span>
+              {marching.length > 0 && <span className="whitespace-nowrap text-fa-you">, {marching.length} arriving</span>}
+            </div>
           )}
           {!started && (
           <div className="max-w-md text-center px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] shadow-xl max-h-[calc(100vh-9rem)] overflow-hidden" data-testid="battle-deploy-help">
@@ -202,7 +210,11 @@ const BattleHud = ({
             <div className="mt-1 text-fa-brass">
               {fmtTime(timeLeft)} on the clock: {setup.battleType === 'raid' || setup.battleType === 'sack'
                 ? `${BATTLE_TYPES[setup.battleType][playerSide === 1 ? 'defender' : 'attacker']}.`
-                : playerSide === 1
+                : setup.economy
+                  ? (playerSide === 1
+                    ? 'keep one of your base buildings standing until it runs out and the defence is yours. You lose only when the last one falls.'
+                    : 'burn every enemy base building (the keep or camp, its economy and military buildings) before it runs out, or the defender holds. Keep your camp standing: you lose if it falls.')
+                  : playerSide === 1
                   ? 'hold out until it runs out and the defence is yours.'
                   : 'take the keep or break the defenders before it runs out, or the defender holds.'}
             </div>
@@ -301,7 +313,6 @@ const BattleHud = ({
                 ) : (
                   <>
                     {onToggleSelectMode && !mouse && <Cmd icon={BoxSelect} label="Select" onClick={onToggleSelectMode} active={selectMode} testId="battle-select-mode" />}
-                    {reserves.length > 0 && <Cmd icon={Flag} label={`Reserve ${reserves.length}`} onClick={() => setShowReserves((v) => !v)} active={showReserves} testId="battle-reserves" />}
                   </>
                 )}
               </div>
@@ -320,23 +331,6 @@ const BattleHud = ({
           {mouse
             ? 'Left click selects (shift adds), click the ground to let go, drag a box. Right click orders; right drag draws a battle line.'
             : 'Tap a unit or building to select, tap it again to let go. Drag a box: tap Select, or double-tap and drag.'}
-        </div>
-      )}
-
-      {showReserves && !pauseOpen && (
-        <div className="absolute right-2 bottom-[calc(4.2rem+env(safe-area-inset-bottom))] w-64 max-w-[calc(100vw-1rem)] p-2 fa-panel !bg-fa-panel shadow-2xl text-xs space-y-1.5">
-          <div className="flex items-center justify-between"><span className="fa-label">Reserves and reinforcements</span><button type="button" onClick={() => setShowReserves(false)} aria-label="Close" className="p-1"><X className="w-4 h-4" /></button></div>
-          {reserves.map((q) => (
-            <button key={q.idx} type="button" disabled={q.enterTick >= 0 || supply < q.callCost}
-              onClick={() => onCallReserve(q.idx)}
-              className="w-full min-h-[44px] px-2 py-1 fa-option flex items-center justify-between gap-2 text-left disabled:opacity-50">
-              <span className="min-w-0">
-                <span className="block truncate">{getSquadDisplayName(q.classId, ageId)}, <span className="fa-num">{q.strength}</span></span>
-                {q.reinforcement && <span className="block text-[10px] text-fa-you truncate">from {q.reinforcement.name}</span>}
-              </span>
-              <span className="fa-num text-fa-brass shrink-0">{q.enterTick >= 0 ? 'Marching' : `${q.callCost} supply`}</span>
-            </button>
-          ))}
         </div>
       )}
 
@@ -388,7 +382,7 @@ const BattleHud = ({
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4 pointer-events-auto">
           <div className="w-full max-w-sm fa-panel !bg-fa-panel p-4 text-sm space-y-3" data-testid="battle-retreat-confirm">
             <div className="fa-heading text-[17px]">Retreat from the battle?</div>
-            <p className="text-xs text-fa-muted">Sound the retreat: your regiments march off the field and survive with the strength they have left. The battle counts as lost.</p>
+            <p className="text-xs text-fa-muted" data-testid="battle-retreat-consequences">Sound the retreat: your {allCount} regiment{allCount === 1 ? '' : 's'} on the field march for the nearest exit. Those that get off the field live with the strength they have left; any the enemy catches first are lost. The battle counts as lost{bt === BATTLE_TYPES.assault ? ' and the siege is lifted' : ''}.</p>
             <div className="grid grid-cols-1 gap-2">
               <button type="button" onClick={() => { setConfirmRetreat(false); onRetreatAll(); }} className="fa-btn fa-btn-danger !min-h-[44px]" data-testid="battle-retreat-all">Sound the retreat</button>
               {onAbandon && <button type="button" onClick={() => { setConfirmRetreat(false); onAbandon(); }} className="fa-btn fa-btn-secondary !min-h-[44px]">Switch to Auto instead</button>}
