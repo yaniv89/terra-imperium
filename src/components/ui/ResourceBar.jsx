@@ -8,7 +8,6 @@ import { getUnlockedResourceIds } from '../../data/resources';
 import { getFieldedStrength, getPowerBreakdown, getPowerIncome } from '../../utils/helpers';
 import ResourceBadge from './ResourceBadge';
 import Breakdown from './Breakdown';
-import { POWER_POOL_CAP } from '../../data/actionCosts';
 import { POWER_POOL_HELP } from '../../data/powerPools';
 
 // `wrap`: the top bar's "All your stores" list. There every badge carries its name: a phone has no
@@ -45,13 +44,24 @@ const ResourceBar = ({ wrap = false }) => {
           onClick={() => handleToggle(pool)}
           tooltipContent={(
             <div>
-              <div className="font-semibold mb-1">{pool.toUpperCase()} per turn (banks up to {POWER_POOL_CAP})</div>
+              <div className="font-semibold mb-1">{POWER_POOL_HELP[pool].name} ({pool.toUpperCase()}) each turn</div>
               <Breakdown rows={getPowerBreakdown(state, state.playerNationId, pool)} />
-              <div className="mt-1 text-[11px] text-fa-muted max-w-[16rem] space-y-0.5" data-testid={`pool-help-${pool}`}><div>{POWER_POOL_HELP[pool].earns}</div><div>{POWER_POOL_HELP[pool].spends}</div></div>
+              <div className="mt-1 text-[11px] text-fa-muted max-w-[16rem] space-y-0.5" data-testid={`pool-help-${pool}`}><div>{POWER_POOL_HELP[pool].earns}</div><div>{POWER_POOL_HELP[pool].spends}</div><div>Unspent points are saved for later turns.</div></div>
             </div>
           )}
         />
       ))}
+
+      {wrap && POWER_POOL_HELP[expandedResource] && (
+        // A phone has no hover: tapping ADM, DIP or MIL in the top bar sheet opens its explanation here.
+        <div className="basis-full text-[11px] text-fa-muted space-y-0.5 bg-fa-raised/60 rounded-lg p-2" data-testid={`pool-explain-${expandedResource}`}>
+          <div className="font-semibold text-fa-text">{POWER_POOL_HELP[expandedResource].name}</div>
+          <Breakdown rows={getPowerBreakdown(state, state.playerNationId, expandedResource)} />
+          <div>{POWER_POOL_HELP[expandedResource].earns}</div>
+          <div>{POWER_POOL_HELP[expandedResource].spends}</div>
+          <div>Unspent points are saved for later turns.</div>
+        </div>
+      )}
 
       {unlockedResourceIds.map(resourceId => (
         <ResourceBadge
