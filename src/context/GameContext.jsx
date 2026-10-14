@@ -74,7 +74,7 @@ export const reloadIntoWorld = (spec) => {
     if (sessionStorage.getItem(RELOAD_GUARD) === JSON.stringify(normalizeSpec(spec))) return false;
     sessionStorage.setItem(RELOAD_GUARD, JSON.stringify(normalizeSpec(spec)));
   } catch (e) { /* storage unavailable */ }
-  noteCrashEvent('reload: into the saved game's world');
+  noteCrashEvent('reload: into the world of the saved game');
   window.location.reload();
   return true;
 };
