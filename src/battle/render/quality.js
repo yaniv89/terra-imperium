@@ -5,7 +5,9 @@
 // treeTriangles: what the kit's trees may draw a frame, shadow pass included (vegetationProps.js
 // draws a coarser level past it; plans/art/TRIANGLE-BUDGET.md gives trees, props and nodes about
 // 80k of a phone's 700k target and the phone ceiling is 1.0 M).
-export const BATTLE_GRAPHICS = { maxDpr: 2, shadows: true, shadowSize: 2048, effects: 400, figureTriangles: { phone: 300000, desktop: 800000 }, treeTriangles: { phone: 160000, desktop: 500000 } };
+export const BATTLE_GRAPHICS = { maxDpr: 2, shadows: true, shadowSize: 2048, effects: 400, figureTriangles: { phone: 300000, desktop: 800000 }, treeTriangles: { phone: 160000, desktop: 500000 }, corpses: { phone: 160, desktop: 400 }, corpseSeconds: 30, corpseSinkSeconds: 3 };
+// corpses: the fallen of clip units (BattleRenderer, I219) lie this many at most, for corpseSeconds,
+// then sink into the ground over corpseSinkSeconds; the oldest go first past the cap.
 
 // Adaptive soldier detail (BattleRenderer.adaptDetail): bias = how many levels finer than size on
 // screen asks for. Up while the frame p95 holds the display rate, down past stepDownMs.

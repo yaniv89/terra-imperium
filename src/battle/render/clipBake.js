@@ -73,7 +73,7 @@ export const bakeClips = (root, animations, drivers, norm, meta = {}, ref = {}) 
     let t0 = Infinity; clip.tracks.forEach((t) => { if (t.times.length) t0 = Math.min(t0, t.times[0]); });
     if (!Number.isFinite(t0)) t0 = 0;
     const frames = Math.max(2, info.frames || Math.round((clip.duration - t0) * fps) + 1);
-    clips.push({ name: clip.name, first: rows, frames, duration: (frames - 1) / fps, t0, ...info, frames });
+    clips.push({ ...info, name: clip.name, first: rows, frames, duration: (frames - 1) / fps, t0 });
     rows += frames;
   });
   const width = bones * 3;
