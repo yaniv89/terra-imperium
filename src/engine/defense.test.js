@@ -15,6 +15,7 @@ import { runHeadless } from '../battle/sim/headless';
 import { getDefenseLevelDamageReductionMultiplier, SIEGE_CONTROL_DAMAGE } from './siege';
 import { createRng } from '../utils/rng';
 import { addCity } from './testWorld';
+import { siegeMaxHp } from './sieges';
 import { getNeighborIds } from '../data/regions';
 import {
   buildSyntheticForce, getAssaultSize, getAssaultPressure, createDefenseRecord, PLAYER_DEFENDED_CAPTURE_MULT
@@ -130,14 +131,27 @@ describe('consequences', () => {
     expect(next.nations[AGG].militaryStrength).toBeLessThan(st.nations[AGG].militaryStrength);
   });
 
-  it('a garrison that is overrun at low control falls back to a neighbouring province and the region is conquered', () => {
+  it('on Auto a garrison is fought first: overrun at low control, the city is still not taken (the 14 October rule)', () => {
     const s0 = withDefense(baseState({ g1: unit('g1', FR_BORDER, 'fr', 'ranged', 120) }));
     const s = { ...s0, regions: { ...s0.regions, [FR_BORDER]: { ...s0.regions[FR_BORDER], control: 20 } } };
     const def = { ...s.pendingDefenses[0], synthetic: buildSyntheticForce({ defenseId: 'z', aggressorId: AGG, ageId: s.age, count: 8, seed: 3 }) };
     const next = gameReducer({ ...s, pendingDefenses: [def] }, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
-    expect(next.regions[FR_BORDER].owner).toBe(AGG);
-    expect(next.regions[FR_BORDER].conquest?.from).toBe('fr');
-    if (next.units.g1) expect(next.units.g1.regionId).not.toBe(FR_BORDER);
+    expect(next.regions[FR_BORDER].owner).toBe('fr');
+    expect(next.pendingCaptures || []).toEqual([]);
+  });
+
+  it('on Auto an empty city is attacked through its defences: its HP drops, it falls only at 0', () => {
+    const s0 = { ...withDefense(), units: {} };
+    const def = { ...s0.pendingDefenses[0], defenderUnitIds: [], synthetic: buildSyntheticForce({ defenseId: 'z', aggressorId: AGG, ageId: s0.age, count: 4, seed: 3 }) };
+    const city = s0.regions[FR_BORDER];
+    // Full HP: one attack batters it and the city holds.
+    const hit = gameReducer({ ...s0, pendingDefenses: [def] }, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
+    expect(hit.regions[FR_BORDER].owner).toBe('fr');
+    expect(hit.regions[FR_BORDER].siege.hp).toBeLessThan(siegeMaxHp(city));
+    // Battered down to a few HP: the next attack takes it.
+    const low = { ...s0, regions: { ...s0.regions, [FR_BORDER]: { ...city, siege: { hp: 5, maxHp: siegeMaxHp(city), by: null, startedTurn: 1 } } }, pendingDefenses: [def] };
+    const taken = gameReducer(low, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
+    expect(taken.regions[FR_BORDER].owner).toBe(AGG);
   });
 
   it('peace signed before the battle means nothing happens', () => {

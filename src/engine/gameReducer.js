@@ -1593,8 +1593,10 @@ const reduceAction = (state, action) => {
       }
       const v = validateInvasion(state, fromRegionId, targetRegionId);
       if (!v.ok) return refuseAttack(state, v.reason, targetRegionId);
-      // Nothing to fight: an undefended region is simply taken, exactly as auto-resolve does.
-      if (v.defenderUnits.length === 0) return gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } });
+      // Command takes a city it wins, garrison or not (the user's rule of 14 October): an empty city
+      // is fought against its militia and walls. With not even a militia there is nobody to command
+      // against: the attack is fought on Auto (cityAssault.js, against its defences).
+      if (v.defenderUnits.length === 0 && !cityMilitia(state, targetRegionId).length) return gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } });
       const rng = createRng(state.rngSeed);
       const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;
       const counter = (state.battleCounter || 0) + 1;

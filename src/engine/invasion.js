@@ -115,8 +115,9 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
 };
 
 export const getInvasionBattleContext = (state, { targetRegionId, targetRegion, defenderUnits }) => {
-  // An undefended region is taken in one hit regardless of its control — walking into an empty
-  // city needs no siege. Only a real garrison triggers the multi-turn control grind.
+  // A garrisoned city is a battle against its units; an empty one is, on Auto, an attack on its
+  // defences (cityAssault.js: it falls when an attack brings its HP to 0), on Command a battle
+  // against its militia.
   const isDefended = defenderUnits.length > 0;
   return {
     terrain: getRegionTerrain(targetRegionId, REGIONS_DATA),

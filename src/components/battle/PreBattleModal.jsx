@@ -51,7 +51,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const [prefer, setPrefer] = useState(false);
   const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand } = m;
   const autoOnly = blockedAtSea || !!noMansLand;
-  const chosen = knownEmpty || autoOnly ? 'auto' : mode;
+  const chosen = autoOnly ? 'auto' : mode;
 
   const remember = (choice) => { if (prefer) dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: choice } }); };
   const auto = () => {
@@ -81,7 +81,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     return onClose();
   };
   const disabled = !!blockedReason || !affordable;
-  const options = knownEmpty ? [] : [
+  const options = [
     { id: 'command', sub: noMansLand ? 'Not here: no man\'s land' : 'Play the battle in real time', disabled: disabled || autoOnly, testId: 'battle-choice-command', title: blockedAtSea ? 'An enemy fleet guards the coast: fight it at sea first' : noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : undefined },
     { id: 'auto', sub: 'Instant result, same rules', disabled, testId: 'battle-choice-auto' }
   ];
@@ -136,7 +136,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
                   <div><div className="fa-num text-[15px] font-semibold text-fa-enemy">{pct(c.lose)}</div><div className="text-[10.5px] text-fa-muted leading-tight">they hold</div></div>
                 </div>
                 <div className="mt-1"><OddsBar mine={c.win} compact /></div>
-                <div className="text-[11px] text-fa-muted leading-snug pl:hidden">{c.losses}{m.v?.ok && !c.take && !field ? ' You need infantry or cavalry to take a city.' : ''}</div>
+                <div className="text-[11px] text-fa-muted leading-snug pl:hidden">{c.losses}{m.v?.ok && !c.take && !field && m.cityRule !== 'garrison' ? ' You need infantry or cavalry to take a city.' : ''}</div>
                 {c.factors.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1" data-testid="battle-odds-factors">
                     {c.factors.map((f) => (
@@ -157,7 +157,13 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
               </div>
             )}
             {knownEmpty && (
-              <div className="fa-card px-2.5 py-1.5 text-[12.5px] text-fa-good" data-testid="pre-battle-undefended">No garrison: the city falls as soon as your army marches in.</div>
+              <div className="fa-card px-2.5 py-1.5 text-[12.5px] text-fa-good" data-testid="pre-battle-undefended">No garrison: Auto attacks its defences. Command fights its militia: win and it is yours.</div>
+            )}
+            {m.cityRule && (
+              <div className="text-[11.5px] leading-snug text-fa-muted px-0.5" data-testid="pre-battle-city-rule">
+                <b className="text-fa-text">Auto</b> fights the garrison first; the city is taken only when empty and its defences are broken.{' '}
+                <b className="text-fa-text">Command</b>: win the battle and the city is yours.
+              </div>
             )}
             <div className="grid grid-cols-2 gap-2">
               {w ? (
@@ -192,19 +198,17 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
 
         <div className="px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] border-t border-fa-line grid gap-2 grid-cols-1 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_auto] items-stretch">
           {options.length > 0 ? <ModeCards options={options} value={chosen} onChange={setMode} compact /> : <div />}
-          <ModeExplain title={chosen === 'command' ? 'Command' : knownEmpty ? 'March in' : 'Auto'} compact>{chosen === 'command' ? m.command : m.auto}</ModeExplain>
+          <ModeExplain title={chosen === 'command' ? 'Command' : 'Auto'} compact>{chosen === 'command' ? m.command : m.auto}</ModeExplain>
           <div className="flex flex-col gap-1 justify-center">
             <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 w-full">
-              {knownEmpty ? 'March in' : chosen === 'command' ? 'Begin battle' : 'Fight on Auto'}
+              {chosen === 'command' ? 'Begin battle' : 'Fight on Auto'}
             </Button>
             {!arrival && <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">Call off the attack</button>}
           </div>
         </div>
-        {!knownEmpty && (
-          <div className="px-3 pb-2 -mt-1 pl:hidden">
-            <Switch label="Highlight my choice next time" hint="You will still be asked every time." checked={prefer} onChange={setPrefer} />
-          </div>
-        )}
+        <div className="px-3 pb-2 -mt-1 pl:hidden">
+          <Switch label="Highlight my choice next time" hint="You will still be asked every time." checked={prefer} onChange={setPrefer} />
+        </div>
       </div>
     </div>
   );

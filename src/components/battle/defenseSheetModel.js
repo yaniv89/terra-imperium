@@ -49,9 +49,11 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   // `hold` is always YOUR chance (a fort you attack: the defender holding is your loss).
   const hold = attacking ? 1 - (v.odds?.holdChance ?? 1) : (v.odds?.holdChance ?? 0);
   const pct = Math.round(hold * 100);
+  // An empty city on Auto (cityAssault.js): its defences take the attack; it falls only when its HP reaches 0.
+  const c = v.odds?.city;
   const odds = v.odds?.undefended
-    ? { undefended: true, hold: 0, text: 'No one defends it: on Auto it falls.' }
-    : { undefended: false, hold, text: `Auto ${attacking ? 'wins' : 'holds'} ${pct}% of the time${city && v.odds?.avgDamage != null ? `, about ${v.odds.avgDamage} control lost on average` : ''}.`, verdict: attacking ? (hold >= 0.65 ? 'Likely win' : hold >= 0.35 ? 'Close' : 'Likely loss') : (hold >= 0.65 ? 'Likely hold' : hold >= 0.35 ? 'Close' : 'Likely lost') };
+    ? { undefended: true, hold, text: c ? `No one defends it: on Auto the attack takes its defences from ${c.hpBefore} to about ${c.hpAfter} of ${c.maxHp} HP${hold < 0.5 ? ', and it likely falls' : ''}. It holds ${pct}% of the time.` : 'No one defends it.' }
+    : { undefended: false, hold, text: `Auto ${attacking ? 'wins' : 'holds'} ${pct}% of the time${city && v.odds?.avgDamage != null ? `, about ${v.odds.avgDamage} control lost on average` : ''}.${city && !attacking ? ' On Auto your garrison is fought first: the city is not taken while units stand in it.' : ''}`, verdict: attacking ? (hold >= 0.65 ? 'Likely win' : hold >= 0.35 ? 'Close' : 'Likely loss') : (hold >= 0.65 ? 'Likely hold' : hold >= 0.35 ? 'Close' : 'Likely lost') };
   const plural = /[^s]s$/.test(enemyShort);
   const verb = KIND_VERB[kind] ? KIND_VERB[kind][plural ? 0 : 1] : plural ? 'attack' : 'attacks';
   const withdrawTo = city && fallbackId ? state.regions?.[fallbackId]?.name || fallbackId : null;

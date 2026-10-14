@@ -115,7 +115,21 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
     chance,
     // I213: a walled city and no siege engine in the army.
     siegeAdvice: walls ? siegeAdvice({ wallLevel: walls.level, units: mineUnits, ageId: myAge }) : null,
-    command: `You lead ${size.cap} a side at most in real time. ${size.text} About ${size.minutes} minutes. Pause any time.`,
-    auto: knownEmpty ? 'No garrison: your army marches in and takes it now.' : `Instant, by the same rules${chance?.exact ? ' and the odds above' : ", your scouts' guess above"}. ${field || fleet ? 'Break them and the field is yours.' : 'Win and the city is yours: then you choose to keep it, raze it, make it a tributary or free it.'}`
+    command: `${field || fleet ? '' : 'Win the battle and the city is yours, garrison or not. '}You lead ${size.cap} a side at most in real time. ${size.text} About ${size.minutes} minutes. Pause any time.`,
+    // The two ways differ against a city (the user's rule of 14 October, cityAssault.js).
+    cityRule: field || fleet ? null : odds?.autoRule || (theirUnits.length ? 'garrison' : 'attack'),
+    auto: autoText({ field, fleet, knownEmpty, odds, exact: !!chance?.exact })
   };
+};
+
+/** What Auto does here, in one or two sentences (the pre-battle card's Auto line). */
+export const autoText = ({ field = false, fleet = false, knownEmpty = false, odds = null, exact = false }) => {
+  const how = `Instant, by the same rules${exact ? ' and the odds above' : ", your scouts' guess above"}.`;
+  if (field || fleet) return `${how} Break them and the field is yours.`;
+  const rule = 'Auto fights the garrison first; the city is taken only when empty and its defences are broken.';
+  const c = odds?.city;
+  if (knownEmpty && c) {
+    return `No garrison: Auto attacks its defences, ${c.hpBefore} of ${c.maxHp} HP down to about ${c.hpAfter}.${(odds.capture || 0) >= 0.5 ? ' This attack should take it.' : ' It needs more attacks (or a siege first) before it falls.'} ${rule}`;
+  }
+  return `${rule} ${how}`;
 };
