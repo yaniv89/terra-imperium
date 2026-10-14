@@ -64,7 +64,9 @@ const PeaceOfferSheet = () => {
         <p className="text-[12.5px] leading-snug">
           {offer.reason === 'exhaustion'
             ? 'Both sides are worn out by the war. They propose ending it where it stands.'
-            : terms.length === 0 ? 'They propose a white peace: the war ends and nobody gives anything up.' : 'They are winning and name their price for ending the war.'}
+            : offer.reason === 'stalemate'
+              ? 'Nothing has happened in this war for many turns: no battle, siege or captured city. They see nothing to gain and propose ending it where it stands.'
+              : terms.length === 0 ? 'They propose a white peace: the war ends and nobody gives anything up.' : 'They are winning and name their price for ending the war.'}
         </p>
         {score !== null && (
           <div className="flex justify-between text-[12.5px] fa-card px-2.5 py-1.5"><span>War score, from your side</span><span className={`fa-num font-semibold ${score >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{score > 0 ? '+' : ''}{score}</span></div>

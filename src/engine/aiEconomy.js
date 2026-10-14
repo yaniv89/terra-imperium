@@ -20,7 +20,7 @@ import { hasDeposit } from '../data/deposits';
 // of long-term investment. Space missions remain a player victory objective.
 import { devastationIncomeMult } from './aftermath';
 import { addPeople, sizeToPeople, productionCost } from './world/cities';
-import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV } from '../data/actionCosts';
+import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV, BANKRUPTCY_DURATION_TURNS } from '../data/actionCosts';
 import { getFieldedStrength } from '../utils/helpers';
 import { getResearched, getTechAgeId } from './nationState';
 import { getModifier, getRegionModifierTotals } from './modifiers/sheet';
@@ -389,6 +389,13 @@ export const settleAIUpkeep = (state, nationId, income, ownedUnits = null, turns
     if (loans.length < getLoanCapacity(state, nationId)) {
       const principal = Math.max(200, -gold);
       nation = { ...nation, economy: { ...nation.economy, gold: gold + principal }, loans: [...loans, { id: 'ai_loan_' + nationId + '_' + state.turnNumber + (t ? '_' + t : ''), principal, interestRate: getLoanInterestRate(state, nationId), takenTurn: state.turnNumber }], lastNetIncome: net };
+      continue;
+    }
+    // The recovery window (aiBudget.js, I124): within BANKRUPTCY_DURATION_TURNS of a bankruptcy the
+    // debts are already written off; a new shortfall leaves the troops unpaid (resolveTurn.js applies
+    // the desertion on `lastUnpaidTurn`) instead of a second bankruptcy.
+    if (nation.lastBankruptcyTurn != null && state.turnNumber - nation.lastBankruptcyTurn < BANKRUPTCY_DURATION_TURNS) {
+      nation = { ...nation, economy: { ...nation.economy, gold: 0 }, lastNetIncome: net, lastUnpaidTurn: state.turnNumber };
       continue;
     }
     const bankrupt = applyBankruptcy(nation, state.regions, nationId, state.turnNumber);

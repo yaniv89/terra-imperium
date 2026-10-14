@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, isAtWarWithPlayer, resolveWarProgress,
   isInTruce, setTruce, getTradePactCapacity, recordBattle, getOccupationScore, updateTickScore, computeWarScore, refreshWarFlags,
-  CONVERGE_MIN_TURNS
+  CONVERGE_MIN_TURNS, warActivity, isStalemate, WAR_STALEMATE_IDLE_TURNS, WAR_STALEMATE_MIN_TURNS
 } from './diplomacy';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
@@ -348,7 +348,8 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
       nations: { ...state.nations, mx: { ...state.nations.mx, economy: { gold: 0 }, warExhaustion: 70 }, ca: { ...state.nations.ca, economy: { gold: 0 }, warExhaustion: 70 } } };
     const result = resolveWarProgress(worn, worn.regions, worn.nations, worn.wars, neverRolls);
     expect(result.wars[0].active).toBe(false);
-    const fresh = { ...worn, nations: { ...worn.nations, mx: { ...worn.nations.mx, warExhaustion: 0 }, ca: { ...worn.nations.ca, warExhaustion: 0 } } };
+    // Fresh and still fighting (a battle last turn, so not a stalemate either: CB09): the war goes on.
+    const fresh = { ...worn, wars: worn.wars.map((w) => ({ ...w, lastActiveTurn: turn - 1 })), nations: { ...worn.nations, mx: { ...worn.nations.mx, warExhaustion: 0 }, ca: { ...worn.nations.ca, warExhaustion: 0 } } };
     expect(resolveWarProgress(fresh, fresh.regions, fresh.nations, fresh.wars, neverRolls).wars[0].active).toBe(true);
   });
 
@@ -465,6 +466,35 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
       const again = resolveWarProgress({ ...exhausted, wars: result.wars }, exhausted.regions, exhausted.nations, result.wars, neverRolls);
       expect(again.pendingPeaceOffer).toBeNull();
       expect(again.wars[0].active).toBe(true);
+    });
+
+    // Lane CB09 (I121): a war with nothing happening ends as a stalemate, said as such.
+    it('a war idle for WAR_STALEMATE_IDLE_TURNS: the AI offers the player a white peace for a stalemate', () => {
+      const state = usState();
+      const t = state.turnNumber;
+      const war = {
+        id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: false, startYear: state.year, startTurn: t - WAR_STALEMATE_MIN_TURNS,
+        lastActiveTurn: t - WAR_STALEMATE_IDLE_TURNS, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 }
+      };
+      const s = { ...state, wars: [war] };
+      const result = resolveWarProgress(s, s.regions, s.nations, s.wars, neverRolls);
+      expect(result.pendingPeaceOffer).toEqual({ warId: 'war_1', from: 'ca', terms: [], reason: 'stalemate' });
+      expect(result.logs.some((l) => /nothing to gain/.test(l.message))).toBe(true);
+      // A battle fought lately (the battle score moved) keeps the war alive.
+      const fought = { ...s, wars: [{ ...war, battleScore: 6, seenBattleScore: 0 }] };
+      const r2 = resolveWarProgress(fought, fought.regions, fought.nations, fought.wars, neverRolls);
+      expect(r2.pendingPeaceOffer).toBeNull();
+      expect(r2.wars[0].lastActiveTurn).toBe(t);
+    });
+
+    it('warActivity: held land or a siege counts as activity; a quiet turn keeps the old mark', () => {
+      const war = { aggressor: 'a', enemy: 'b', startTurn: 1, battleScore: 0 };
+      const idx = (occupiedDev = {}, sieged = []) => ({ occupiedDev, sieged: new Set(sieged) });
+      expect(warActivity(war, idx(), 30)).toBe(war); // quiet: unchanged (the start counts as the last activity)
+      expect(warActivity(war, idx({ 'b|a': 3 }), 30).lastActiveTurn).toBe(30);
+      expect(warActivity(war, idx({}, ['a|b']), 30).lastActiveTurn).toBe(30);
+      expect(isStalemate({ startTurn: 1 }, 1 + WAR_STALEMATE_IDLE_TURNS)).toBe(false); // too young
+      expect(isStalemate({ startTurn: 1, lastActiveTurn: 10 }, 10 + WAR_STALEMATE_IDLE_TURNS)).toBe(true);
     });
 
     it('concludes an AI-vs-AI war once the leading side is winning by enough and the loser\'s ledger accepts', () => {
