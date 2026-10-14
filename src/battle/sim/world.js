@@ -71,7 +71,9 @@ export const makeSquad = (w, unit, side, ageId, index) => {
     order: { type: 'idle' },
     targetKind: null,                      // 'squad' | 'structure'
     target: -1,                            // squad idx or structure index
-    groupSpeed: 0,                         // formation speed-matching (0 = own speed)
+    // An 'attack' order on a building that a squad broke off to fight back (U11): it goes back to
+    // that building once the fight is over ('structure' | 'eco' and its index; null = nothing).
+    resumeKind: null, resumeTarget: -1,
     anchorX: 0, anchorY: 0,                // where an idle defender returns to
     inside: -1                             // structure index it's garrisoned in (§8.10), -1 = in the open
   };

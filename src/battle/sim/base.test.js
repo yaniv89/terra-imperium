@@ -102,11 +102,14 @@ describe('the base rule (Q3, Q4, Q5)', () => {
     run(w, 2);
     baseBuildings(w, SIDE_ATTACKER).forEach((b) => raze(w, b));
     run(w, 3);
-    // A field battle: the loser's regiments run for their edge first (the pursuit, decision 33).
-    expect(w.pursuit?.side).toBe(SIDE_ATTACKER);
-    run(w, PURSUIT_TICKS + 5);
+    // No pursuit with bases (the user's ruling, 2026-10-14): it ends at once, nobody is turned to the exits.
+    expect(w.pursuit).toBeFalsy();
     expect(w.ended?.outcome).toBe('defender');
     expect(w.ended?.reason).toBe('campDestroyed');
+    expect(army(w, SIDE_ATTACKER).every((q) => !q.retreating && q.order.type !== 'retreat')).toBe(true);
+    // Its unbroken regiments withdraw in order, as on Auto; none is lost to a chase.
+    const { attackerUnits } = toStrategicResult(w);
+    expect(attackerUnits.filter((u) => u.strength > 0).every((u) => u.disposition === 'fled')).toBe(true);
   });
 
   it('the keep alone does not win; the last base building does', () => {

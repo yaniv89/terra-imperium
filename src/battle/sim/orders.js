@@ -74,9 +74,10 @@ const lineSlots = (squads, x, y, x2, y2, side) => {
   return slots;
 };
 
-const setMoveOrder = (q, type, slot, groupSpeed) => {
+// Every squad walks at its own pace, also in a mixed group (the user's ruling Q6, I192, U07): an
+// order never slows cavalry down to the infantry's or the siege train's speed.
+const setMoveOrder = (q, type, slot) => {
   q.order = { type, x: slot.x, y: slot.y, facing: slot.facing };
-  q.groupSpeed = groupSpeed;
   q.retreating = false;
   if (type === 'move') { q.target = -1; q.targetKind = null; }
 };
@@ -85,6 +86,8 @@ const setMoveOrder = (q, type, slot, groupSpeed) => {
 const LEAVES_GARRISON = new Set(['move', 'attackMove', 'formationLine', 'attack', 'retreat']);
 // Orders that take a worker off its job (economy.js).
 const TAKES_OFF_WORK = new Set(['move', 'attackMove', 'formationLine', 'stop', 'hold', 'retreat']);
+// Orders that leave what a squad is doing alone (an ability, a commander power).
+const KEEPS_RESUME = new Set(['ability', 'power']);
 
 export const applyOrder = (w, o) => {
   const side = o.side;
@@ -92,7 +95,9 @@ export const applyOrder = (w, o) => {
   // cancelBuild: economy.js), only in a battle with an economy.
   if (applyEcoOrder(w, o)) return;
   const ids = (o.squads || []).filter((i) => commandable(w, side, i));
-  if (LEAVES_GARRISON.has(o.type)) ids.forEach((i) => leaveGarrison(w, w.squads[i]));
+  // A new order replaces the job a squad would have gone back to after a fight (U11).
+  if (!KEEPS_RESUME.has(o.type)) ids.forEach((i) => { w.squads[i].resumeKind = null; w.squads[i].resumeTarget = -1; });
+  if (LEAVES_GARRISON.has(o.type))ids.forEach((i) => leaveGarrison(w, w.squads[i]));
   if (TAKES_OFF_WORK.has(o.type)) clearWorkerJobs(w, side, ids);
   switch (o.type) {
     case 'garrison': {
@@ -105,7 +110,7 @@ export const applyOrder = (w, o) => {
         const q = w.squads[i];
         if (room <= 0 || !canGarrison(q) || q.inside >= 0) return;
         q.order = { type: 'garrison', structure: si, x: s.x, y: s.y };
-        q.target = -1; q.targetKind = null; q.groupSpeed = 0; q.retreating = false;
+        q.target = -1; q.targetKind = null; q.retreating = false;
         room -= 1;
       });
       return;
@@ -115,16 +120,14 @@ export const applyOrder = (w, o) => {
       const squads = ids.map((i) => w.squads[i]);
       if (!squads.length) return;
       const slots = squads.length === 1 ? new Map([[squads[0].idx, { x: o.x, y: o.y, facing: squads[0].facing }]]) : formationSlots(squads, o.x, o.y, o.formation);
-      const groupSpeed = squads.length > 1 ? Math.min(...squads.map((q) => q.stats.speed)) : 0;
-      squads.forEach((q) => setMoveOrder(q, o.type, slots.get(q.idx), groupSpeed));
+      squads.forEach((q) => setMoveOrder(q, o.type, slots.get(q.idx)));
       return;
     }
     case 'formationLine': {
       const squads = ids.map((i) => w.squads[i]);
       if (!squads.length) return;
       const slots = lineSlots(squads, o.x, o.y, o.x2, o.y2, side);
-      const groupSpeed = squads.length > 1 ? Math.min(...squads.map((q) => q.stats.speed)) : 0;
-      squads.forEach((q) => setMoveOrder(q, 'move', slots.get(q.idx), groupSpeed));
+      squads.forEach((q) => setMoveOrder(q, 'move', slots.get(q.idx)));
       return;
     }
     case 'attack': {
@@ -135,7 +138,7 @@ export const applyOrder = (w, o) => {
       ids.forEach((i) => {
         const q = w.squads[i];
         q.order = { type: 'attack' };
-        q.targetKind = t.kind; q.target = t.index; q.groupSpeed = 0; q.retreating = false;
+        q.targetKind = t.kind; q.target = t.index; q.retreating = false;
       });
       return;
     }

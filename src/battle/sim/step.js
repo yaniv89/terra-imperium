@@ -122,7 +122,9 @@ const finishEnd = (w, type, verdict, based) => {
   // Decisive field battles (master plan 6.9, decision 33): a broken side runs for its edge and the
   // winner pursues; the battle ends once the last of the losers is off the field (or dead), or after
   // PURSUIT_TICKS. The ones still on the field then are lost; the ones that got out live.
-  if (verdict && verdict.outcome !== 'stalemate' && PURSUIT_TYPES.has(type)) {
+  // With bases (the user's ruling, 2026-10-14) there is no pursuit: the battle ends the tick the
+  // last base building falls (or the retreat is complete); no regiment is turned to the exits.
+  if (verdict && verdict.outcome !== 'stalemate' && PURSUIT_TYPES.has(type) && !based) {
     const loser = verdict.outcome === 'attacker' ? SIDE_DEFENDER : SIDE_ATTACKER;
     if (!w.pursuit) {
       w.pursuit = { side: loser, until: w.tick + PURSUIT_TICKS };

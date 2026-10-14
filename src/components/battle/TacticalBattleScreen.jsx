@@ -33,6 +33,7 @@ import { updateSiteLabels } from './siteLabels';
 import { BUILDINGS, ecoName } from '../../battle/data/economy';
 import { placementCheck, footprintAt } from '../../battle/input/placement';
 import { commandedSetup } from '../../battle/setup/buildBattleSetup';
+import { arrivalNote, NO_GROUND_TEXT } from '../../battle/input/orderFeedback';
 
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
@@ -59,6 +60,7 @@ const MOUSE_POINTER = typeof window !== 'undefined' && !!window.matchMedia?.('(p
 // An order the battle did not take is said, not swallowed (CB02): the battle loop posts
 // `ordersRefused` when the shared order schema turns an order down or the order log is full.
 const REFUSED_MS = 4000;
+const ORDER_NOTE_MS = 3500;
 
 const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onRetry = null, getCampaign = null, getReceipt = null, onEnded = null }) => {
   const wrapRef = useRef(null);
@@ -301,6 +303,14 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const t = setTimeout(() => setRefused(null), REFUSED_MS);
     return () => clearTimeout(t);
   }, [refused]);
+  // A short note about the order just given (CB17): why a tap gave no order (I189), or that fast
+  // squads will arrive first (I192, X13).
+  const [orderNote, setOrderNote] = useState(null);
+  useEffect(() => {
+    if (!orderNote) return undefined;
+    const t = setTimeout(() => setOrderNote(null), ORDER_NOTE_MS);
+    return () => clearTimeout(t);
+  }, [orderNote]);
   // The battle is over: the result screen opens at once, and the campaign counts the battle right
   // after (a tick later, so "counting" is on screen while the replay runs).
   useEffect(() => {
@@ -426,10 +436,14 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       return true;
     }
     if (!r || !cur || !sel.length) return false;
-    const hit = r.pick(p.x, p.y, cur, 1.1, { enemyFirst: true });
-    if (!hit) return false;
+    // An order tap looks past the player's own squads (I189, I190): at the enemy, the building or
+    // the ground under them.
+    const hit = r.pick(p.x, p.y, cur, 1.1, { enemyFirst: true, ignoreOwn: true });
+    if (!hit) { setOrderNote(NO_GROUND_TEXT); return true; } // said why, the selection stays
     const workers = sel.filter((i) => cur.squads[i]?.classId === 'worker');
     const onlyWorkers = workers.length === sel.length;
+    const fighters = sel.filter((i) => !workers.includes(i));
+    const noteFor = (type) => { const n = arrivalNote(fighters.map((i) => cur.squads[i]?.classId), type); if (n) setOrderNote(n); };
     if (hit.kind === 'node') {
       // Workers to a resource: gather it (the others just go there).
       if (workers.length) send([{ type: 'gather', squads: workers, node: hit.index }]);
@@ -447,27 +461,33 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     } else if (hit.kind === 'eco') {
       send([{ type: 'attack', squads: sel, target: { kind: 'eco', index: hit.index } }]);
       r.setOrderTarget(sel, { kind: 'eco', index: hit.index }, 'attack');
+      r.addMarker(hit.ground.x, hit.ground.z, '#ef4444');
+      noteFor('attack');
     } else if (hit.kind === 'structure' && playerSide === 1 && onlyWorkers) {
       send([{ type: 'repair', squads: workers, target: { kind: 'structure', index: hit.index } }]); // mend your city
       r.setOrderTarget(workers, { kind: 'structure', index: hit.index }, 'repair');
     } else if (hit.kind === 'squad' && hit.side !== playerSide) {
       send([{ type: 'attack', squads: sel, target: { kind: 'squad', index: hit.idx } }]);
       r.setOrderTarget(sel, { kind: 'squad', index: hit.idx }, 'attack');
+      noteFor('attack');
     } else if (hit.kind === 'structure' && playerSide === 1) {
       // Defending: tap your keep or a tower to man it (infantry and ranged; fortified buildings only).
       const eligible = sel.filter((i) => ['infantry', 'ranged'].includes(cur.squads[i]?.classId));
       if (eligible.length) {
         send([{ type: 'garrison', squads: eligible, structure: hit.index }]);
         r.setOrderTarget(eligible, { kind: 'structure', index: hit.index }, 'garrison');
-      }
+      } else setOrderNote('No order: only infantry and archers can man a building.');
     } else if (hit.kind === 'structure' && playerSide === 0) {
       send([{ type: 'attack', squads: sel, target: { kind: 'structure', index: hit.index } }]);
       r.setOrderTarget(sel, { kind: 'structure', index: hit.index }, 'attack');
+      r.addMarker(hit.ground.x, hit.ground.z, '#ef4444');
+      noteFor('attack');
     } else {
       const type = !startedRef.current ? 'deploy' : forceAttackMove || armedRef.current === 'attackMove' ? 'attackMove' : 'move'; // before Start the ground order places the squads (plan D5)
       send([{ type, squads: sel, x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
       r.setOrderTarget(sel, null); // a plain move: the old target ring goes, the move marker shows
       r.addMarker(hit.ground.x, hit.ground.z, type === 'attackMove' ? '#fb923c' : '#a3e635');
+      if (type !== 'deploy') noteFor(type);
     }
     armedRef.current = null; setArmed(null);
     return true;
@@ -610,14 +630,23 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     setRadial(null);
   };
   const cycleFormation = () => { const next = formationRef.current === 'line' ? 'column' : 'line'; formationRef.current = next; setFormation(next); };
-  // Selecting by class also brings those squads into view — on a phone, finding your army after
-  // panning away should never take more than one tap.
+  // Selecting by class leaves the camera where it is (I188: moving it made the next tap land
+  // somewhere else); Find brings the army into view without touching the selection. Idle workers
+  // are still shown, as they may be anywhere.
+  const fightersOf = (cur) => cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && q.classId !== 'worker');
   const selectClass = (classId) => {
     const cur = frames.current.cur; if (!cur) return;
     const idle = classId === 'idle' ? new Set(cur.eco?.idleWorkers || []) : null;
-    const picked = cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && (classId === 'all' ? q.classId !== 'worker' : idle ? idle.has(q.idx) : q.classId === classId));
+    const picked = classId === 'all' ? fightersOf(cur) : cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && (idle ? idle.has(q.idx) : q.classId === classId));
     updateSelection(picked.map((q) => q.idx));
-    if (picked.length) rendererRef.current?.centerOn(picked.reduce((s, q) => s + q.x, 0) / picked.length / Q, picked.reduce((s, q) => s + q.y, 0) / picked.length / Q);
+    if (idle && picked.length) rendererRef.current?.centerOn(picked.reduce((s, q) => s + q.x, 0) / picked.length / Q, picked.reduce((s, q) => s + q.y, 0) / picked.length / Q);
+  };
+  // Find army: the selection if there is one, else the whole army.
+  const findArmy = () => {
+    const cur = frames.current.cur; if (!cur) return;
+    const sel = [...selectedRef.current].map((i) => cur.squads[i]).filter((q) => q?.alive && q.onField);
+    const list = sel.length ? sel : fightersOf(cur);
+    if (list.length) rendererRef.current?.centerOn(list.reduce((s, q) => s + q.x, 0) / list.length / Q, list.reduce((s, q) => s + q.y, 0) / list.length / Q);
   };
   const commandSelected = (type) => { const sel = [...selectedRef.current]; if (sel.length) send([{ type, squads: sel }]); setRadial(null); };
   const retreatAll = () => send([{ type: 'retreatAll' }]);
@@ -724,14 +753,14 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         paused={paused} started={started} speed={speed} armed={armed} formation={formation}
         selectedSquads={selectedSquads}
         onTogglePause={togglePause} onSpeed={changeSpeed} onArm={arm} onFormation={cycleFormation}
-        onSelectClass={selectClass} onCommand={commandSelected}
+        onSelectClass={selectClass} onFindArmy={findArmy} onCommand={commandSelected}
         onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onAbandon}
         onPower={firePower} onOpenAbilities={() => { const w0 = wrapRef.current; setRadial({ x: (w0?.clientWidth || 400) / 2, y: (w0?.clientHeight || 800) - 150 }); }}
         hasAbilities={selectedAbilities.length > 0}
         onOpenBuild={() => setBuildMenu((v) => !v)} buildOpen={buildMenu} onSelectHq={selectHq}
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => { setSelectModeOn(!selectModeRef.current); setSelectHint(false); }}
-        selectHint={selectHint}
+        selectHint={selectHint && !orderNote}
         onFocus={(x, y) => rendererRef.current?.centerOn(x / Q, y / Q)}
         onClearSelection={clearSelection} mouse={MOUSE_POINTER}
         onAlertGo={alertGo} leftCard={leftCard}
@@ -741,6 +770,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       {showPerf && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
       {refused && !ended && (
         <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" role="status" aria-live="polite" data-testid="battle-orders-refused">{refusedText(refused)}</div>
+      )}
+      {orderNote && !refused && !ended && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 max-w-[min(26rem,calc(100vw-32rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" role="status" aria-live="polite" data-testid="battle-order-note">{orderNote}</div>
       )}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} receipt={receipt} onContinue={() => onFinish?.(ended)} />}
       {failure && !ended && <BattleFailure title={failure.message} detail={failure.detail} onAuto={() => onAbandon?.('screen_error')} onRetry={onRetry} />}

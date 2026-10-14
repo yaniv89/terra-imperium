@@ -14,8 +14,10 @@
 // ECO=1 builds the setup with the battle economy (as campaign battles do: workers, camp, buildings);
 // ECO_SUPPLY / ECO_DEV (0..1, default 1 and 0.3) are its campaign inputs. The trace then also
 // prints an economy tally (workers, buildings, structures down).
+// COMMANDED=1 fights the commanded setup (the player's side never routs). THEN=<order>@<tick> gives
+// a second order (pullback | stop | hold | attackMove) to every living player squad at that tick.
 import { it } from 'vitest';
-import { buildSetupFromArmies } from '../../../src/battle/setup/buildBattleSetup';
+import { buildSetupFromArmies, commandedSetup } from '../../../src/battle/setup/buildBattleSetup';
 import { createWorld } from '../../../src/battle/sim/world';
 import { step } from '../../../src/battle/sim/step';
 import { inRangeOfSquad, inRangeOfStructure, structureTarget } from '../../../src/battle/sim/combat';
@@ -33,7 +35,8 @@ it('squad trace', () => {
     controllers: ['player', 'ai'], attackerAgeId: env('AGE', 'bronze'), defenderAgeId: env('AGE', 'bronze'), fortLevel: Number(env('FORT', 0)), intel: { attackerSeesDefender: env('INTEL', '1') === '1' },
     ...(ECO ? { economy: true, economyInputs: { supply: [Number(env('ECO_SUPPLY', 1)), Number(env('ECO_SUPPLY', 1))], development: [Number(env('ECO_DEV', 0.3)), Number(env('ECO_DEV', 0.3))] } } : {})
   });
-  const w = createWorld(setup);
+  // COMMANDED=1: the player's side cannot rout (morale only makes it Shaken), as in the game.
+  const w = createWorld(env('COMMANDED', '0') === '1' ? commandedSetup(setup) : setup);
   const mine = w.squads.filter((q) => q.side === 0 && q.onField && !q.worker).map((q) => q.idx);
   const keep = w.structures[0];
   const foe = w.squads.find((q) => q.side === 1 && q.onField);
@@ -54,8 +57,19 @@ it('squad trace', () => {
     const state = st ? (!st.alive ? 'structure-down' : inRangeOfStructure(q, st) ? 'inReachStructure' : `${q.order.type}-closingStructure`) : !q.alive ? 'dead' : q.fled ? 'fled' : q.routed ? 'routed' : !t ? `${q.order.type}-noTarget` : inRangeOfSquad(q, t) ? 'inReach' : `${q.order.type}-closing${t.routed ? '(routed)' : ''}`;
     return { state, text: `${q.side}:${q.idx}:${q.classId} at ${(q.x / Q).toFixed(1)},${(q.y / Q).toFixed(1)} order=${q.order.type} target=${q.targetKind || '-'}#${q.target} ${state} str=${q.strength} mor=${q.morale}` };
   };
+  // THEN=<order>@<tick>: a second order to every living player squad at that tick: pullback (a Move
+  // back to where the army started: the I190 repro), stop, hold, or attackMove (12 tiles before the keep).
+  const [thenType, thenAt] = env('THEN', '').split('@');
+  const startAt = new Map(mine.map((m) => [m, { x: w.squads[m].x, y: w.squads[m].y }]));
+  const thenOrders = () => {
+    const alive = mine.filter((m) => w.squads[m].alive && !w.squads[m].fled);
+    console.log(`--- THEN ${thenType} at tick ${w.tick}`);
+    if (thenType === 'pullback') { const c = startAt.get(mine[0]); return [{ side: 0, type: 'move', squads: alive, x: c.x, y: c.y }]; }
+    if (thenType === 'attackMove') return [{ side: 0, type: 'attackMove', squads: alive, x: keep.x - 12 * Q, y: keep.y }];
+    return [{ side: 0, type: thenType, squads: alive }];
+  };
   for (let i = 0; i < TICKS && !w.ended; i++) {
-    step(w, i === 0 ? first : []);
+    step(w, i === 0 ? first : thenType && i === Number(thenAt) ? thenOrders() : []);
     w.squads.forEach((q) => { if (!q.onField && !q.fled) return; const { state } = line(q); const k = `${q.side}:${q.idx}:${q.classId}`; (tally[k] ||= {})[state] = (tally[k][state] || 0) + 1; });
     if (order === 'attackStructure' && fellAt < 0 && !structure.alive) {
       fellAt = w.tick; console.log(`--- structure ${structIdx} (${structure.kind}) FELL at tick ${w.tick}; attackers now:`);

@@ -3,7 +3,8 @@
 // Battles plan 11.1), phone first (844x390), the battlefield owns the screen:
 //   top bar      the battle's name and clock, food, materials, gold and population / housing (or
 //                Battle Supply without an economy), the enemy squads left, speed and pause
-//   bottom left  small buttons only (B10): All (the army), Base (the camp), Idle n (a laborer)
+//   bottom left  small buttons only (B10): All (selects the army, the camera stays: I188), Find (the
+//                camera to the selection or the army), Base (the camp), Idle n (a laborer)
 //   bottom right the context panel (B10, AoE style): the actions of the selection only. Nothing
 //                selected: Select (no Reserve: the whole army starts on the field, U10); army: Attack, Hold, Formation, Retreat; laborers:
 //                the build grid (`panel`); your building: train, queue, rally (`panel`); placing: the
@@ -19,7 +20,7 @@
 //   city (B05)   in a city assault: the defender's housing as houses burn
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords } from 'lucide-react';
+import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Users, Castle, X, Zap, Sparkles, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, Swords, LocateFixed } from 'lucide-react';
 import { ResIcon } from './EconomyHud';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
@@ -67,7 +68,7 @@ const Res = ({ icon, label, value, warn, testId }) => (
 
 const BattleHud = ({
   title, hud, setup, playerSide, timeLeft, paused, started, speed, armed, formation, selectedSquads,
-  onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCommand, onRetreatAll, onFocusKeep, onAbandon,
+  onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onFindArmy, onCommand, onRetreatAll, onFocusKeep, onAbandon,
   onPower, onOpenAbilities, hasAbilities, soundOn = true, onToggleSound,
   onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
   context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
@@ -290,6 +291,7 @@ const BattleHud = ({
         <div className="absolute bottom-0 inset-x-0 p-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-end justify-between gap-2 pointer-events-none">
           <div className="pointer-events-auto flex gap-1 shrink-0" data-testid="battle-quick">
             <Cmd icon={Users} label={`All ${allCount}`} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" />
+            {onFindArmy && <Cmd icon={LocateFixed} label="Find" onClick={onFindArmy} disabled={!allCount} testId="battle-find-army" />}
             {eco && <Cmd icon={Tent} label="Base" onClick={onSelectHq} testId="battle-hq" />}
             {eco && eco.idleWorkers.length > 0 && <Cmd icon={Hammer} label={`Idle ${eco.idleWorkers.length}`} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
           </div>
