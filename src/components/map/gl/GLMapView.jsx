@@ -490,6 +490,17 @@ const GLMapView = ({
     onViewportChange({ centerLng: centre[0], centerLat: centre[1], halfWidthDeg: (width / 2) * degPerPx, halfHeightDeg: (height / 2) * degPerPx });
   }, [settled, onViewportChange, projection, view, width, height, camKey]);
 
+  // Home and the selected army (MAP-01), both through cameraTarget: the capital with no army given,
+  // the army's tile only when it has one. Close enough to see the ground, never farther out than now.
+  const goTo = useCallback((t) => {
+    if (!t || !projection) return;
+    const close = startZoomFor({ height, scale: projection.scale(), viewKm: START_VIEW_KM, minK: CLOSE_ZOOM_K * 1.05, maxK: ZOOM_MAX }) ?? INITIAL_FOCUS_ZOOM;
+    focusOnLatLng(t.lat, t.lng, Math.max(close, Math.min(transformRef.current.k, ZOOM_MAX)), true);
+  }, [projection, height, focusOnLatLng]);
+  const homeTarget = cameraTarget(state, [], {});
+  const armyTarget = selectedArmy != null ? cameraTarget(state, [], { selectedArmyTile: selectedArmy }) : null;
+  const goHome = useCallback(() => goTo(cameraTarget(gameStateRef.current, [], {})), [goTo]);
+  const goArmy = useCallback(() => { const t = cameraTarget(gameStateRef.current, [], { selectedArmyTile: selectedArmy }); if (t?.from === 'army') goTo(t); }, [goTo, selectedArmy]);
   const zoomBy = useCallback((factor) => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).transition().duration(200).call(zoomBehaviorRef.current.scaleBy, factor); }, []);
   const resetZoom = useCallback(() => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).transition().duration(200).call(zoomBehaviorRef.current.transform, zoomIdentity.scale(minK)); }, [minK]);
 
@@ -929,6 +940,7 @@ const GLMapView = ({
         onZoomIn={() => zoomBy(ZOOM_STEP_SCALE)} canZoomIn={kNow < ZOOM_MAX}
         onZoomOut={() => zoomBy(1 / ZOOM_STEP_SCALE)} canZoomOut={kNow > minK}
         onReset={resetZoom} canReset={kNow > minK}
+        onHome={homeTarget ? goHome : null} onArmy={armyTarget?.from === 'army' ? goArmy : null}
       />
     </div>
   );

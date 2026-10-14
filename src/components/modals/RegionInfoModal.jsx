@@ -34,6 +34,7 @@ import { attackReach, planMarchAttack } from '../../engine/marchAttack';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
@@ -93,6 +94,13 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const [landingChoice, setLandingChoice] = useState(null);
   const [peaceOpen, setPeaceOpen] = useState(false); // naval unit id of a landing awaiting "auto or command?"
   useEffect(() => { setExpanded(false); }, [regionId]);
+  // The corner card on a phone held sideways or a tablet is one of the left-edge panels: opening the
+  // tab dock beside it (or a decision card) closes it, so two panels never squeeze the map to a
+  // sliver (the interaction registry, useExclusivePanel.js; same rule as ProvinceModal).
+  const cardWanted = !!regionId && isCornerCard && !isMobile;
+  const card = useInteraction('region-card', cardWanted, { kind: 'panel', priority: PRIORITY.panel, user: true });
+  const cardTucked = cardWanted && !card.shown;
+  useEffect(() => { if (cardTucked) onClose?.(); }, [cardTucked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
   // would just be more of the same clutter this change is trying to reduce. Desktop keeps it,

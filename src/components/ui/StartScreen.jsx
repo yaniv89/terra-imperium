@@ -13,7 +13,7 @@
 // UI (crypto.getRandomValues, outside the engine, which stays pure), and passes it in
 // `scenario.seed`; the game state keeps it, so a save or a replay rebuilds the same world.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Search, BookOpen, ArrowRight, ArrowLeft, Shuffle, Check } from 'lucide-react';
+import { Search, BookOpen, ArrowRight, ArrowLeft, Shuffle, Check, Pencil } from 'lucide-react';
 import { GAME_SPEEDS } from '../../data/ages';
 import { DIFFICULTIES } from '../../data/difficulty';
 import { PEOPLES, MAJOR_PEOPLES_LIST, PEOPLE_REGION_GROUPS } from '../../data/peoples';
@@ -104,18 +104,46 @@ const RadioCards = ({ label, items, value, onChange, testIdPrefix, className = '
   );
 };
 
-const RegionChips = ({ value, onChange }) => (
-  <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5 shrink-0" role="group" aria-label="Region">
-    {[{ id: 'all', name: 'All' }, ...PEOPLE_REGION_GROUPS].map((r) => {
-      const icon = r.id !== 'all' ? regionIcon(r.id) : null;
-      return (
-        <button key={r.id} type="button" onClick={() => onChange(r.id)} aria-pressed={value === r.id} className="fa-chip shrink-0 !min-h-[36px]">
-          {icon && <img src={icon} alt="" className="w-3.5 h-3.5" />}{r.name}
-        </button>
-      );
-    })}
-  </div>
-);
+const RegionChips = ({ value, onChange, bare = false }) => {
+  const chips = [{ id: 'all', name: 'All' }, ...PEOPLE_REGION_GROUPS].map((r) => {
+    const icon = r.id !== 'all' ? regionIcon(r.id) : null;
+    return (
+      <button key={r.id} type="button" onClick={() => onChange(r.id)} aria-pressed={value === r.id} className="fa-chip shrink-0 !min-h-[36px]">
+        {icon && <img src={icon} alt="" className="w-3.5 h-3.5" />}{r.name}
+      </button>
+    );
+  });
+  return bare ? <>{chips}</> : <ScrollRow label="Region">{chips}</ScrollRow>;
+};
+
+// A row that scrolls sideways with a fade on the end that still has more (the overflow cue). The
+// fade follows the row's end edge (Hebrew reads right to left).
+const ScrollRow = ({ label, className = '', children }) => {
+  const ref = useRef(null);
+  const [more, setMore] = useState(false);
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setMore(Math.abs(el.scrollLeft) + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+  useEffect(() => {
+    measure();
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measure]);
+  const rtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+  const fade = `linear-gradient(to ${rtl ? 'left' : 'right'}, #000 calc(100% - 28px), transparent)`;
+  return (
+    <div ref={ref} onScroll={measure} role="group" aria-label={label} data-scroll-more={more ? 'true' : 'false'}
+      className={`flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 shrink-0 ${className}`}
+      style={more ? { WebkitMaskImage: fade, maskImage: fade } : undefined}>
+      {children}
+    </div>
+  );
+};
 
 // The step indicator: numbered buttons, the current one raised, done ones checked.
 const StepIndicator = ({ step, onGo, compact }) => (
@@ -154,6 +182,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const layout = useLayoutMode();
   const wide = layout === 'desktop';
   const phone = layout === 'phone-landscape' || layout === 'phone-portrait';
+  const shortPhone = layout === 'phone-landscape';
   const twoCols = layout !== 'phone-portrait' && layout !== 'tablet-portrait';
   const [step, setStep] = useState(() => Math.max(0, Math.min(START_STEPS.length - 1, initialStep | 0)));
   const [worldSize, setWorldSize] = useState(DEFAULT_WORLD_SIZE);
@@ -227,29 +256,49 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
     </div>
   );
 
-  // Step 1: the people.
+  // Step 1: the people. On a phone in landscape the search, Random and the region chips share one
+  // sideways row so the list gets the height (50 majors, 44 px rows).
+  const searchInput = (
+    <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search peoples"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && peoples.length > 0) setSelectedId(peoples[0].id);
+        if (e.key === 'Escape' && search) { e.preventDefault(); setSearch(''); }
+      }}
+      placeholder={shortPhone ? 'Search' : 'Search peoples, capitals or lands'}
+      className="fa-input ps-9 !min-h-[40px]" />
+  );
+  const randomButton = (
+    <button type="button" onClick={random} className="fa-chip !min-h-[40px] shrink-0" aria-label="Pick a random people"><Shuffle className="w-3.5 h-3.5" aria-hidden="true" />{shortPhone ? null : 'Random'}</button>
+  );
   const peopleStep = (
     <div className={`${fill} grid gap-3 ${twoCols ? 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]' : 'grid-cols-1'}`}>
-      <section className="fa-panel min-h-0 flex flex-col p-2.5 gap-2" aria-labelledby="choose-people">
+      <section className={`fa-panel min-h-0 flex flex-col ${shortPhone ? 'p-1.5 gap-1.5' : 'p-2.5 gap-2'}`} aria-labelledby="choose-people">
         <h3 id="choose-people" className="sr-only">Choose your people</h3>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-fa-muted absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search peoples"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && peoples.length > 0) setSelectedId(peoples[0].id);
-                if (e.key === 'Escape' && search) { e.preventDefault(); setSearch(''); }
-              }}
-              placeholder="Search peoples, capitals or lands"
-              className="fa-input pl-9 !min-h-[40px]" />
-          </div>
-          <button type="button" onClick={random} className="fa-chip !min-h-[40px] shrink-0" aria-label="Pick a random people"><Shuffle className="w-3.5 h-3.5" aria-hidden="true" />Random</button>
-        </div>
-        <RegionChips value={region} onChange={setRegion} />
+        {shortPhone ? (
+          <ScrollRow label="Search and region">
+            <div className="relative w-[9.5rem] shrink-0">
+              <Search className="w-4 h-4 text-fa-muted absolute start-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
+              {searchInput}
+            </div>
+            {randomButton}
+            <RegionChips value={region} onChange={setRegion} bare />
+          </ScrollRow>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-4 h-4 text-fa-muted absolute start-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
+                {searchInput}
+              </div>
+              {randomButton}
+            </div>
+            <RegionChips value={region} onChange={setRegion} />
+          </>
+        )}
         <div className={`flex-1 ${scrollBox} -mx-1 px-1 grid content-start gap-1 ${wide ? 'grid-cols-2' : 'grid-cols-1'} ${twoCols ? '' : 'max-h-[55dvh]'}`} data-testid="people-list">
           {peoples.map((p) => (
             <button key={p.id} type="button" onClick={() => setSelectedId(p.id)} data-people={p.id} data-people-name={p.name} aria-pressed={selectedId === p.id}
-              className="fa-option w-full flex items-center gap-2.5 px-2.5 min-h-[40px] text-left border-transparent bg-transparent">
+              className="fa-option w-full flex items-center gap-2.5 px-2.5 min-h-[44px] text-left border-transparent bg-transparent">
               <PeopleEmblem slug={p.id} color={p.color} size={16} />
               <span className="min-w-0 flex-1 text-[14px] font-semibold truncate">{p.name}</span>
               <span className="text-[12px] text-fa-muted truncate max-w-[45%]">{p.landName}</span>
@@ -357,10 +406,12 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
       <section className={`fa-panel px-3 py-1 ${scrollBox}`} aria-label="Your choices" data-testid="start-summary">
         <dl>
           {summaryRows.map((r) => (
-            <div key={r.key} className="flex items-center gap-3 min-h-[44px] border-b border-fa-line last:border-b-0" data-summary={r.key}>
-              <dt className="text-[12px] text-fa-muted w-24 shrink-0">{r.label}</dt>
-              <dd className="text-[14px] font-semibold min-w-0 flex-1 truncate">{r.value}</dd>
-              <button type="button" onClick={() => go(r.to)} className="fa-btn fa-btn-ghost !min-h-[40px] !px-2 shrink-0" aria-label={`Change ${r.label.toLowerCase()}`}>Change</button>
+            <div key={r.key} className="flex items-start gap-2 min-h-[44px] py-1.5 border-b border-fa-line last:border-b-0" data-summary={r.key}>
+              <dt className="text-[12px] text-fa-muted w-24 shrink-0 pt-0.5">{r.label}</dt>
+              <dd className="text-[14px] font-semibold min-w-0 flex-1 break-words leading-snug pt-px">{r.value}</dd>
+              <button type="button" onClick={() => go(r.to)} className="fa-btn fa-btn-ghost !min-h-[44px] !min-w-[44px] !px-0 -my-1.5 shrink-0 self-center" aria-label={`Change ${r.label.toLowerCase()}`} title={`Change ${r.label.toLowerCase()}`}>
+                <Pencil className="w-4 h-4" aria-hidden="true" />
+              </button>
             </div>
           ))}
         </dl>
@@ -384,7 +435,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
         <StepPanel id="rules" active={step === 2} fill={twoCols} title="Step 3 of 4: Rules">{rulesStep}</StepPanel>
         <StepPanel id="ready" active={step === 3} fill={twoCols} title="Step 4 of 4: Ready">{readyStep}</StepPanel>
       </main>
-      <footer className={`flex items-center gap-2 pt-2 shrink-0 ${wide ? 'pb-6' : 'pb-[max(0.5rem,env(safe-area-inset-bottom))]'} ${frame}`}>
+      <footer className={`flex items-center gap-2 pt-2 [@media(max-height:320px)]:pt-1 shrink-0 ${wide ? 'pb-6' : 'pb-[max(0.5rem,env(safe-area-inset-bottom))] [@media(max-height:320px)]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'} ${frame}`}>
         {step > 0 && (
           <button type="button" onClick={() => go(step - 1)} className="fa-btn fa-btn-ghost shrink-0" data-testid="start-back">
             <ArrowLeft className="w-4 h-4" aria-hidden="true" />Back
@@ -392,7 +443,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
         )}
         <span className="flex-1" />
         {next && (
-          <button type="button" onClick={() => go(step + 1)} className="fa-btn fa-btn-secondary shrink-0 !min-h-[48px]" data-testid="start-next">
+          <button type="button" onClick={() => go(step + 1)} className="fa-btn fa-btn-secondary shrink-0 !min-h-[48px] [@media(max-height:320px)]:!min-h-[44px]" data-testid="start-next">
             Next: {next.name}<ArrowRight className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
