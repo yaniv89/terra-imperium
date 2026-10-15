@@ -107,8 +107,8 @@ const TurnDock = () => {
             data-blocker={blocking ? btn.blocker.kind : undefined}
             data-armed={armed ? '1' : '0'}
             data-turn-pending="0"
-            aria-label={blocking ? (btn.count > 1 ? t('turn.blockedMore', { label: btn.label, n: btn.count - 1 }) : t('turn.blockedThen', { label: btn.label })) : btn.label}
-            title={blocking ? (btn.count > 1 ? t('turn.blockedTip', { label: btn.label, n: btn.count - 1 }) : btn.label) : undefined}
+            aria-label={blocking ? (btn.count >= 2 ? t('turn.blockedMore', { label: btn.label, n: btn.count - 1 }) : t('turn.blockedThen', { label: btn.label })) : btn.label}
+            title={blocking ? (btn.count >= 2 ? t('turn.blockedTip', { label: btn.label, n: btn.count - 1 }) : btn.label) : undefined}
             className={`fa-btn fa-btn-primary fa-btn-hero !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-2 min-w-0
               ${blocking ? '!px-3.5 !text-[15px] pl:!text-[14px] max-w-[min(22rem,52vw)] pl:max-w-[min(17rem,40vw)]' : '!px-5'}`}
           >

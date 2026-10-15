@@ -10,10 +10,11 @@ import { calcIncome } from '../../utils/helpers';
 import { sizeToPeople } from '../../engine/world/cities';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { getResearchView } from './researchView';
+import { expenseLabel } from '../ui/topBarModel';
+import { t as tNow } from '../../i18n';
+import { nameNow } from '../../i18n/names';
 
-const EXPENSE_LABELS = { armyUpkeep: 'Army upkeep', marchingUpkeep: 'Armies on the march', navyUpkeep: 'Navy upkeep', fortUpkeep: 'Fort upkeep', advisorSalaries: 'Advisors', loanInterest: 'Loan interest' };
-const INCOME_LABELS = { gold: 'Gold', techPoints: 'Science', hr: 'Manpower', adm: 'Administrative', dip: 'Diplomatic', mil: 'Military', supplies: 'Supplies' };
-const titleCase = (s) => s.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
+const INCOME_IDS = ['gold', 'techPoints', 'hr', 'adm', 'dip', 'mil', 'supplies'];
 
 export const empireOverviewModel = (state) => {
   const me = state.playerNationId;
@@ -25,19 +26,19 @@ export const empireOverviewModel = (state) => {
   const yields = calcIncome(state);
   const mine = Object.values(state.regions || {}).filter((c) => c.owner === me);
   const people = mine.reduce((s, c) => s + sizeToPeople(c.size || 1), 0);
-  const wars = Object.values(state.nations).filter((n) => !n.isPlayer && isAtWarWithPlayer(state, n.id)).map((n) => n.name);
+  const wars = Object.values(state.nations).filter((n) => !n.isPlayer && isAtWarWithPlayer(state, n.id)).map((n) => nameNow('people', n.id, n.name));
   const research = getResearchView(state);
   return {
     name: nation.name,
-    authority: { total: authority.total, parts: authority.parts, tone: authority.total < AUTHORITY_CIVIL_WAR ? 'red' : authority.total < AUTHORITY_NO_LAWS ? 'amber' : 'green', note: authority.total < AUTHORITY_CIVIL_WAR ? 'Civil war looms.' : authority.total < AUTHORITY_NO_LAWS ? 'Too low for new laws.' : null },
-    era: { ageName: AGES[era.ageId]?.name || era.ageId, met: era.met, needed: era.needed, goals: era.goals.map((g) => ({ id: g.id, label: g.label, value: g.value, target: g.target, unit: g.unit, done: g.done })) },
+    authority: { total: authority.total, parts: authority.parts, tone: authority.total < AUTHORITY_CIVIL_WAR ? 'red' : authority.total < AUTHORITY_NO_LAWS ? 'amber' : 'green', note: authority.total < AUTHORITY_CIVIL_WAR ? tNow('empire.civilWar') : authority.total < AUTHORITY_NO_LAWS ? tNow('empire.tooLow') : null },
+    era: { ageId: era.ageId, ageName: AGES[era.ageId]?.name || era.ageId, met: era.met, needed: era.needed, goals: era.goals.map((g) => ({ id: g.id, label: g.label, value: g.value, target: g.target, unit: g.unit, done: g.done })) },
     treasury: {
       gold: Math.round(state.resources?.gold || 0),
       income: Math.round(income.gold || 0),
       upkeep: Math.round(Object.values(expenses).reduce((s, v) => s + v, 0)),
       net: Math.round(net),
-      expenseLines: Object.entries(expenses).filter(([, v]) => v > 0).map(([k, v]) => ({ id: k, label: EXPENSE_LABELS[k] || titleCase(k), value: Math.round(v) })),
-      yieldLines: Object.entries(INCOME_LABELS).filter(([k]) => (yields[k] || 0) !== 0 && k !== 'gold').map(([k, label]) => ({ id: k, label, value: Math.round((yields[k] || 0) * 10) / 10 }))
+      expenseLines: Object.entries(expenses).filter(([, v]) => v > 0).map(([k, v]) => ({ id: k, label: expenseLabel(k), value: Math.round(v) })),
+      yieldLines: INCOME_IDS.filter((k) => (yields[k] || 0) !== 0 && k !== 'gold').map((k) => ({ id: k, label: tNow(`empire.income.${k}`), value: Math.round((yields[k] || 0) * 10) / 10 }))
     },
     cities: mine.length,
     people,

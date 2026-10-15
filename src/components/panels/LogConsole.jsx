@@ -7,6 +7,8 @@ import { ScrollText, Filter } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { LogTypes } from '../../data/types';
 import { AGES } from '../../data/ages';
+import { useT } from '../../i18n/useT';
+import { ageName } from '../../i18n';
 
 // Log type styling configuration
 const LOG_STYLES = {
@@ -62,6 +64,7 @@ const LOG_STYLES = {
 
 // Individual log entry component
 const LogEntry = ({ log, showYear = true }) => {
+  const { t } = useT();
   const style = LOG_STYLES[log.type] || LOG_STYLES[LogTypes.ACTION];
   // A recurring line the summarizer folded (src/engine/logSummary.js): one line with a count; the
   // original lines open under it.
@@ -92,7 +95,7 @@ const LogEntry = ({ log, showYear = true }) => {
           aria-expanded={open}
           className="ms-2 text-[9px] text-fa-you underline"
         >
-          {open ? 'Hide' : `Show all ${log.count}`}
+          {open ? t('log.hide') : t('log.showAll', { n: log.count })}
         </button>
       )}
       {folded && open && (
@@ -108,6 +111,7 @@ const LogEntry = ({ log, showYear = true }) => {
 
 // Filter button component
 const FilterButton = ({ type, label, isActive, onClick, count }) => {
+  const { t } = useT();
   const style = LOG_STYLES[type] || {};
   
   return (
@@ -136,6 +140,7 @@ const FilterButton = ({ type, label, isActive, onClick, count }) => {
 // any collapse/expand state — it always renders its full content, sized to fill whatever
 // container the drawer gives it.
 const LogConsole = () => {
+  const { t } = useT();
   const { state } = useGame();
   const scrollRef = useRef(null);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -196,7 +201,7 @@ const LogConsole = () => {
       <div className="px-3 py-2 border-b border-fa-line flex items-center justify-between shrink-0 bg-fa-ink z-10">
         <div className="flex items-center gap-2 min-w-0">
           <ScrollText className="w-4 h-4 text-fa-muted shrink-0" />
-          <span className="text-xs font-semibold text-fa-muted">Event Log</span>
+          <span className="text-xs font-semibold text-fa-muted">{t('log.title')}</span>
           <span className="text-[10px] text-fa-muted bg-fa-raised px-1.5 py-0.5 rounded">
             {filteredLogs.length} / {state.logs.length}
           </span>
@@ -213,7 +218,7 @@ const LogConsole = () => {
             }}
             className="text-[9px] text-fa-you hover:text-fa-you px-1.5 py-0.5 bg-blue-500/20 rounded animate-pulse"
           >
-            ↓ New
+            {t('log.new')}
           </button>
         )}
       </div>
@@ -225,7 +230,7 @@ const LogConsole = () => {
           <FilterButton
             key={type}
             type={type}
-            label={style.label}
+            label={t(`log.type.${style.label}`)}
             isActive={filters[type]}
             onClick={() => toggleFilter(type)}
             count={logCounts[type] || 0}
@@ -251,7 +256,7 @@ const LogConsole = () => {
       >
         {filteredLogs.length === 0 ? (
           <div className="text-fa-muted text-xs text-center py-4 italic">
-            No logs match current filters
+            {t('log.none')}
           </div>
         ) : (
           // Render logs grouped by year
@@ -282,9 +287,9 @@ const LogConsole = () => {
       {/* Footer with turn info */}
       <div className="px-2 py-1 border-t border-fa-line text-[9px] text-fa-muted
                       flex justify-between items-center shrink-0 bg-fa-panel/50 pl:hidden">
-        <span>Turn {state.turnNumber} • Year {state.year}</span>
+        <span>{t('log.footer', { turn: state.turnNumber, year: state.year })}</span>
         <span className="flex items-center gap-2">
-          {AGES[state.age]?.name || state.age}
+          {ageName(state.age, AGES[state.age]?.name)}
         </span>
       </div>
     </div>

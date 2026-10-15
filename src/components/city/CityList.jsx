@@ -7,12 +7,14 @@ import React, { useMemo } from 'react';
 import { Castle, Flame, AlertTriangle, Hourglass } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { cityRailModel } from './cityRailModel';
+import { useT } from '../../i18n/useT';
 
 const CityList = ({ onSelect, compact = false }) => {
   const { state } = useGame();
-  const rows = useMemo(() => cityRailModel(state), [state]);
+  const { t, n, name: nm, lang } = useT();
+  const rows = useMemo(() => cityRailModel(state), [state, lang]);
   const colour = state.nations?.[state.playerNationId]?.color || 'var(--fa-you)';
-  if (!rows.length) return <p className="text-[12px] text-fa-muted p-3">You hold no city yet.</p>;
+  if (!rows.length) return <p className="text-[12px] text-fa-muted p-3">{t('cities.none')}</p>;
   return (
     <ul className="divide-y divide-fa-line" data-testid="city-list">
       {rows.map((r) => (
@@ -22,23 +24,23 @@ const CityList = ({ onSelect, compact = false }) => {
             <span className="w-7 h-7 rounded-full fa-num text-[12px] font-semibold text-fa-ink flex items-center justify-center shrink-0" style={{ background: colour }}>{r.size}</span>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 min-w-0">
-                <span className="fa-heading text-[14px] truncate">{r.name}</span>
-                {r.capital && <span className="text-[11px] text-fa-muted">capital</span>}
-                {r.outpost && <span className="text-[11px] text-fa-muted">outpost</span>}
+                <span className="fa-heading text-[14px] truncate">{nm('city', null, r.name)}</span>
+                {r.capital && <span className="text-[11px] text-fa-muted">{t('cities.capital')}</span>}
+                {r.outpost && <span className="text-[11px] text-fa-muted">{t('cities.outpost')}</span>}
               </span>
               <span className="block text-[11px] text-fa-muted truncate">
-                {r.outpost ? 'Growing into a city' : r.idle ? 'Nothing queued' : `${r.building}${r.buildTurns ? ` in ${r.buildTurns} t` : ''}`}
-                {r.growthTurns ? ` · grows in ${r.growthTurns}` : ''}
+                {r.outpost ? t('cities.growing') : r.idle ? t('cities.nothingQueued') : `${r.building}${r.buildTurns ? t('cities.inTurns', { n: n(r.buildTurns) }) : ''}`}
+                {r.growthTurns ? t('cities.growsIn', { n: n(r.growthTurns) }) : ''}
               </span>
               {!r.idle && !r.outpost && r.buildShare != null && (
                 <span className="fa-bar mt-1 w-full max-w-[9rem]" style={{ height: 3 }} aria-hidden="true"><span style={{ width: `${Math.round(r.buildShare * 100)}%`, background: '#CDB27A' }} /></span>
               )}
             </span>
             <span className="flex items-center gap-1 shrink-0">
-              {r.idle && <Hourglass className="w-4 h-4 text-fa-brass" aria-label="Nothing queued" />}
-              {r.besieged && <Castle className="w-4 h-4 text-fa-danger-text" aria-label="Under siege" />}
-              {r.starving && <Flame className="w-4 h-4 text-fa-enemy" aria-label="Starving" />}
-              {r.restless && <AlertTriangle className="w-4 h-4 text-fa-danger-text" aria-label={`Unrest ${r.unrest}`} />}
+              {r.idle && <Hourglass className="w-4 h-4 text-fa-brass" aria-label={t('cities.nothingQueued')} />}
+              {r.besieged && <Castle className="w-4 h-4 text-fa-danger-text" aria-label={t('cities.siege')} />}
+              {r.starving && <Flame className="w-4 h-4 text-fa-enemy" aria-label={t('cities.starving')} />}
+              {r.restless && <AlertTriangle className="w-4 h-4 text-fa-danger-text" aria-label={t('cities.unrest', { n: r.unrest })} />}
             </span>
           </button>
         </li>

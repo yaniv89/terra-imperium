@@ -55,9 +55,9 @@ const NextPrompt = () => {
         );
       })}
       {(more > 0 || start > 0) && (
-        <button type="button" onClick={() => setOffset(more > 0 ? start + SHOWN : 0)} aria-label={more > 0 ? t('chip.showMore', { n: more }) : t('chip.backFirst')}
+        <button type="button" onClick={() => setOffset(more > 0 ? start + SHOWN : 0)} aria-label={more >= 1 ? t('chip.showMore', { n: more }) : t('chip.backFirst')}
           className="pointer-events-auto min-h-[32px] px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-muted text-[12px] font-semibold hover:text-fa-text">
-          {more > 0 ? t('chip.plusN', { n: more }) : t('chip.backFirst')}
+          {more >= 1 ? t('chip.plusN', { n: more }) : t('chip.backFirst')}
         </button>
       )}
     </div>

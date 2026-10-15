@@ -98,7 +98,8 @@ const MarchBar = () => {
   const leaves = plan?.ok ? (plan.spent ? t('march.movedAlready') : t('march.setsOut')) : '';
   let line;
   if (target == null) line = R(naval ? 'march.tapPort' : 'march.tapCity', { who });
-  else if (m.canAttackNow) line = m.attackBlocked ? <span data-testid="march-attack-blocked">{R('march.bordersBlocked', { target: <b>{targetName}</b>, reason: danger(m.attackBlocked) })}</span> : R('march.bordersNow', { target: <b>{targetName}</b> });
+  else if (m.canAttackNow) line = m.attackBlocked ? <span data-testid="march-attack-blocked">{R('march.bordersBlocked', { target: <b>{targetName}</b>, reason: danger(m.attackBlocked) })}</span>
+    : R('march.bordersNow', { target: <b>{targetName}</b> });
   else if (m.enemyArmy?.adjacent) line = m.enemyArmy.blocked ? <span data-testid="march-attack-blocked">{R('march.foeBlocked', { reason: danger(m.enemyArmy.blocked) }, { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span> : <span data-testid="march-enemy-army">{t('march.foeBeside', { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span>;
   else if (m.marchAttackBlocked) line = <span data-testid="march-attack-blocked">{plan?.ok ? <>{R('march.toTurns', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns) })} </> : null}{danger(m.marchAttackBlocked)}</span>;
   else if (!plan?.ok) line = <span className="text-fa-danger-text">{plan?.reason || t('march.noRoute')}</span>;
