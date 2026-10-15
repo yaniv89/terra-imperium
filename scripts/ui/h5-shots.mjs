@@ -26,7 +26,9 @@ for (const H of [390, 340]) {
   await page.goto(`${URL_BASE}?battleSandbox&autostart&age=bronze`);
   await page.getByTestId('battle-pause').waitFor({ timeout: 120000 });
   await wait(4000);
-  const shot = (name) => page.screenshot({ path: path.join(OUT, `${name}-${LANG}-${H}.png`), timeout: 120000 });
+  // English words still on the battle screen (a hint for the review: the sandbox's own title is English)
+  const leaks = async (name) => { const words = await page.evaluate(() => [...new Set((document.querySelector('[data-testid="tactical-battle"]')?.innerText || document.body.innerText).match(/[A-Za-z][A-Za-z'-]{2,}/g) || [])]); console.log('  english in', name, words.slice(0, 20).join(' | ')); };
+  const shot = async (name) => { await leaks(name); return page.screenshot({ path: path.join(OUT, `${name}-${LANG}-${H}.png`), timeout: 120000 }); };
   await click(page, 'battle-start'); await wait(3000);
   await click(page, 'battle-hq'); await wait(900);
   await shot('camp');

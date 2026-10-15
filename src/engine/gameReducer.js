@@ -52,7 +52,7 @@ import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
-import { canAttack, isNoMansLand, NO_MANS_LAND_REASON } from './hostility';
+import { canAttack, isNoMansLand } from './hostility';
 import { setHold, setSiege } from './standingOrders';
 import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { addGrudge } from './grudges';
@@ -528,6 +528,8 @@ const stampAutoBecause = (before, after, m) => {
 export const BATTLE_VOID_PREFIX = 'The battle at';
 
 // `message` is an English string (a sub-system's reason) or a msg() result: the key travels.
+// A refusal's reason as a message when it carries one (messages.js reasonOf), else its English.
+const whyOf = (r) => (r?.reasonMsg ? msg(r.reasonMsg.key, r.reasonMsg.vars) : r?.reason);
 const reject = (state, message) => ({
   ...state,
   logs: [...state.logs, { year: state.year, ...carry(message), type: LogTypes.ACTION }]
@@ -1419,7 +1421,7 @@ const reduceAction = (state, action) => {
       // the same route and schedule as the preview): never a jump over a march of several turns
       // (playtest audit I065). Fleets keep the sea-lane rule.
       const walk = unit.domain === 'naval' ? null : moveNowCheck(state, unit, toRegionId);
-      if (walk && !walk.ok) return reject(state, walk.reason);
+      if (walk && !walk.ok) return reject(state, whyOf(walk));
       if (!walk && !isLandAdjacent && !isSeaLaneReachable) return state;
       // MOVE_ARMY is redeployment within your own territory, not an invasion — it has no war
       // declaration, no combat resolution, and no AP/gold cost beyond the ordinary move, so it must
@@ -1467,7 +1469,7 @@ const reduceAction = (state, action) => {
       }
       const target = toTile != null ? toTile : toRegionId;
       const order = orderMarch(state, fromRegionId, target, unitIds, { naval });
-      if (!order.units) return reject(state, order.reason || msg('m.act.no.march'));
+      if (!order.units) return reject(state, order.reasonMsg ? whyOf(order) : order.reason || msg('m.act.no.march'));
       const p = order.plan;
       return {
         ...state,
@@ -1603,7 +1605,7 @@ const reduceAction = (state, action) => {
         const fv = validateFieldAttack(state, fromRegionId, tile);
         if (!fv.ok) return refuseAttack(state, fv.reason, fromRegionId);
         // Decision 41: outside both sides' borders the clash is fought on Auto only.
-        if (isNoMansLand(state, tile, state.playerNationId, fv.defenderNationId)) return reject(state, NO_MANS_LAND_REASON);
+        if (isNoMansLand(state, tile, state.playerNationId, fv.defenderNationId)) return reject(state, msg('m.q.noMans'));
         const frng = createRng(state.rngSeed);
         const fseed = Math.floor(frng.next() * 0xffffffff) >>> 0;
         const fcounter = (state.battleCounter || 0) + 1;
@@ -1872,7 +1874,7 @@ const reduceAction = (state, action) => {
       // DEF-01: Command that cannot open is refused with the reason the card already shows
       // (queuedCommandBlock), never fought on Auto behind the player's back.
       const block = queuedCommandBlock(state, def);
-      if (block) return reject(state, block.text);
+      if (block) return reject(state, block.textMsg ? msg(block.textMsg.key, block.textMsg.vars) : block.text);
       const counter = (state.battleCounter || 0) + 1;
       const kind = queuedKind(def);
       if (kind === 'intercept' || kind === 'landing') {
@@ -1896,7 +1898,7 @@ const reduceAction = (state, action) => {
         // Raiders against the player's troops or town: the player defends (raidBattle.js).
         const armies = queuedRaidArmies(state, def);
         if (!armies.attackerUnits.length || (!armies.defenderUnits.length && kind !== 'sack')) return resolveQueuedAuto(state, def.id);
-        if (kind === 'raid' && isNoMansLand(state, def.tile, def.aggressorId, state.playerNationId)) return reject(state, NO_MANS_LAND_REASON); // decision 41
+        if (kind === 'raid' && isNoMansLand(state, def.tile, def.aggressorId, state.playerNationId)) return reject(state, msg('m.q.noMans')); // decision 41
         return {
           ...state,
           battleCounter: counter,
@@ -1916,7 +1918,7 @@ const reduceAction = (state, action) => {
         if (!armies) return resolveQueuedAuto(state, def.id);
         const attacking = def.aggressorId === state.playerNationId;
         const foe = attacking ? armies.v.defenderNationId : def.aggressorId;
-        if (kind === 'field' && isNoMansLand(state, def.tile, state.playerNationId, foe)) return reject(state, NO_MANS_LAND_REASON); // decision 41
+        if (kind === 'field' && isNoMansLand(state, def.tile, state.playerNationId, foe)) return reject(state, msg('m.q.noMans')); // decision 41
         return {
           ...state,
           battleCounter: counter,
@@ -2950,7 +2952,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.FOUND_COLONY: {
       const regionId = action.payload?.regionId ?? action.payload?.targetRegionId;
       const v = validateColony(state, regionId);
-      if (!v.ok) return reject(state, v.reason);
+      if (!v.ok) return reject(state, whyOf(v));
       return foundColony(state, regionId, action.payload?.policy || 'coexist');
     }
 
@@ -2963,14 +2965,14 @@ const reduceAction = (state, action) => {
       // Army templates (armyTemplates.js): a named composition the cities build as one order.
       const { template } = action.payload || {};
       const ok = validateTemplate(template, getEffectiveAgeId(state.age, state.techAgeId));
-      if (!ok.ok) return reject(state, ok.reason);
+      if (!ok.ok) return reject(state, whyOf(ok));
       const me = state.nations[state.playerNationId];
       return { ...state, nations: { ...state.nations, [state.playerNationId]: saveTemplate(me, template, state.turnNumber) } };
     }
     case ActionTypes.HIRE_MERCENARY: {
       // A band from a mercantile or raiders independent (mercenaries.js, phase W2).
       const r = hireMercenaryForPlayer(state, action.payload?.independentId);
-      return r.reason ? reject(state, r.reason) : r;
+      return r.reason ? reject(state, whyOf(r)) : r;
     }
     case ActionTypes.ANSWER_TRIBUTE_DEMAND: {
       // Pay an independent's tribute (no raids from it meanwhile) or refuse it (raids.js, phase W2).
@@ -2980,11 +2982,11 @@ const reduceAction = (state, action) => {
     // Phase W3 (indepPolicy.js, razing.js): influence, joining, tribute, trade and razing.
     case ActionTypes.GIFT_INDEPENDENT: {
       const r = giftIndependent(state, action.payload?.independentId);
-      return r.reason ? reject(state, r.reason) : r;
+      return r.reason ? reject(state, whyOf(r)) : r;
     }
     case ActionTypes.PROPOSE_JOINING: {
       const r = proposeJoining(state, action.payload?.independentId);
-      return r.reason ? reject(state, r.reason) : r;
+      return r.reason ? reject(state, whyOf(r)) : r;
     }
     case ActionTypes.ANSWER_JOIN_OFFER: {
       const { id, accept } = action.payload || {};
@@ -2992,22 +2994,22 @@ const reduceAction = (state, action) => {
     }
     case ActionTypes.DEMAND_INDEPENDENT_TRIBUTE: {
       const r = demandIndependentTribute(state, action.payload?.independentId);
-      return r.reason ? reject(state, r.reason) : r;
+      return r.reason ? reject(state, whyOf(r)) : r;
     }
     case ActionTypes.PROPOSE_INDEPENDENT_TRADE: {
       const r = proposeIndependentTrade(state, action.payload?.independentId);
-      return r.reason ? reject(state, r.reason) : r;
+      return r.reason ? reject(state, whyOf(r)) : r;
     }
     case ActionTypes.OFFER_INDEPENDENT_TRIBUTE: {
       // Phase W4: tribute paid unasked, for peace (indepPolicy.js).
       const r = offerIndependentTribute(state, action.payload?.independentId);
-      return r.reason ? reject(state, r.reason) : r;
+      return r.reason ? reject(state, whyOf(r)) : r;
     }
     case ActionTypes.RAZE_CITY: {
       const why = canRaze(state, state.playerNationId, action.payload?.regionId);
-      if (!why.ok) return reject(state, why.reason);
+      if (!why.ok) return reject(state, whyOf(why));
       const r = razeCityForPlayer(state, action.payload.regionId);
-      return r.reason ? reject(state, r.reason) : r;
+      return r.reason ? reject(state, whyOf(r)) : r;
     }
     case ActionTypes.STOP_RAZING: {
       const regions = stopRazing(state, state.playerNationId, action.payload?.regionId);
@@ -3066,12 +3068,12 @@ const reduceAction = (state, action) => {
       if (raw.kind === 'wonder') {
         // Wonders (wonders.js): the project's rules with the whole state, and the tile it takes.
         const can = canQueueWonder(state, city, raw.projectId, raw.tier || 1);
-        if (!can.ok) return reject(state, can.reason);
+        if (!can.ok) return reject(state, whyOf(can));
         item = wonderItem(raw.projectId, raw.tier || 1, raw.tile ?? can.tile);
       }
       const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
       const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: getEffectiveAgeId(state.age, state.techAgeId) });
-      if (!ok.ok) return reject(state, ok.reason);
+      if (!ok.ok) return reject(state, whyOf(ok));
       // One order per building tier and per tile improvement: a second tap says so instead of
       // paying for the same thing twice (playtest audits I045).
       if ((item.kind === 'building' || item.kind === 'improvement') && [city.production.current, ...city.production.queue].some((q) => q && itemKey(q) === itemKey(item))) return reject(state, msg('m.act.no.inQueue'));
@@ -3083,7 +3085,7 @@ const reduceAction = (state, action) => {
       if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, msg('m.act.no.notYourSettlers'));
       if (tile == null) return { ...state, units: { ...state.units, [unitId]: { ...unit, target: null } } };
       const can = canFoundCity({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, getTiles(), tile, state.playerNationId);
-      if (!can.ok) return reject(state, can.reason);
+      if (!can.ok) return reject(state, whyOf(can));
       const path = settlerPath(state, unit.tile, tile, state.playerNationId);
       if (!path) return reject(state, msg('m.act.no.noLandPath'));
       const turns = Math.ceil(path.length / SETTLER_MOVES);
@@ -3094,7 +3096,7 @@ const reduceAction = (state, action) => {
       const unit = state.units[unitId];
       if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, msg('m.act.no.notYourSettlers'));
       const can = canSettle(state, unit.tile, state.playerNationId, getEffectiveAgeId(state.age, state.techAgeId));
-      if (!can.ok) return reject(state, can.reason);
+      if (!can.ok) return reject(state, whyOf(can));
       const founded = foundOutpost(state, state.regions, { tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, unit, state.turnNumber);
       if (!founded) return reject(state, msg('m.act.no.noCityHere'));
       const units = { ...state.units }; delete units[unitId];
@@ -3126,7 +3128,7 @@ const reduceAction = (state, action) => {
       // The price and the eligibility are the city sheet's own quote (cityEconomy.js quoteBuyTile,
       // I036): the research that cheapens land and pushes the border counts here as it does there.
       const quote = quoteBuyTile(state, id, tile);
-      if (!quote.ok) return reject(state, quote.reason);
+      if (!quote.ok) return reject(state, whyOf(quote));
       const cost = quote.cost;
       return {
         ...state,
@@ -3237,7 +3239,7 @@ const reduceAction = (state, action) => {
       // the charge, revalidated here; the order completes on the next turn like any other.
       const { cityId: id, index = 0 } = action.payload || {};
       const quote = rushQuote(state, id, index);
-      if (!quote.ok) return reject(state, quote.reason);
+      if (!quote.ok) return reject(state, whyOf(quote));
       const city = state.regions[id];
       return {
         ...state,
@@ -3252,7 +3254,7 @@ const reduceAction = (state, action) => {
       // the nation card shows is the one applied here. A refusal changes nothing.
       const { nationId, kind } = action.payload || {};
       const r = tradeMaps(state, nationId, kind);
-      if (r.reason) return reject(state, r.reason);
+      if (r.reason) return reject(state, whyOf(r));
       return { ...r.state, logs: [...r.state.logs, { year: state.year, ...carry(r), type: LogTypes.DIPLOMACY }] };
     }
 

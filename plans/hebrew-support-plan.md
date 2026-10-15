@@ -68,3 +68,21 @@ agent days. Each phase ships behind the switch, so English never breaks.
 - Log text in old saves stays English; the user accepted old saves breaking before, so this is mild.
 - Text in canvases (map labels, sprite atlas text, battle HUD drawn in WebGL) needs the Hebrew font
   in the atlas and right-to-left shaping: check `spriteArt.js` and the city banners.
+
+## H5 notes (battle screens and the leftovers)
+
+- UI text tables: `src/i18n/locales/ui/<area>.en.js` and `.he.js` (hud, result, pre, left, nation, ind, misc, region),
+  merged by `ui.en.js` / `ui.he.js` into the shell tables. They are written from `scripts/i18n-keys/<area>.mjs`
+  with `node scripts/i18n-gen-ui.mjs <area> scripts/i18n-keys/<area>.mjs` (the generator also keeps a sign in
+  front of a number left to right in Hebrew); the generated files may be edited by hand afterwards.
+- Battle data names (abilities, powers, battle types, building effects, economy buildings, nodes):
+  `src/components/battle/battleText.js` over `locales/data/he.battle.js`. `squadName`, `ecoLabel`, `powerLabel`.
+- Reasons: an engine function that says why it cannot do something returns `{ ok: false, ...reasonOf('m.why.key', vars) }`
+  (`src/engine/messages.js`): the English `reason` plus `reasonMsg`. The UI writes it with `reasonText(result)`
+  (`src/i18n/messageText.js`). `queuedCommandBlock` has `textMsg`, a saved battle report `autoBecauseMsg` and
+  `lineMsg`; `msgRefText` / `carryText` (battleText.js) read them.
+- A sentence whose English verbs agree with a name (`agreed()` in battleText.js) keeps its English grammar in code;
+  the English table holds the plain form and Hebrew reads the key.
+- Still English after H5: TileSheet, ArmySheet, TechPanel, CityPanel (outside the two flash lines), DiplomacyPanel
+  lists, settleRoutes and unitLocation status lines, the sandbox's own title. `scripts/ui/h5-shots.mjs` and
+  `scripts/ui/h5-card-shots.mjs` print the English words still on screen for each state.

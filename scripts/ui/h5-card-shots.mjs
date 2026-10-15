@@ -112,6 +112,7 @@ for (const H of [390, 340]) {
   const nid = await page.evaluate(() => { const s = window.__game.state; return Object.values(s.nations).find((n) => !n.indep && n.id !== s.playerNationId && !n.isEliminated)?.id; });
   await page.evaluate(async (id) => { const s = window.__game.state; const f = await import('/terra-imperium/src/engine/fog.js'); window.__game.dispatch({ type: 'LOAD_GAME', payload: { ...s, fog: { ...(s.fog || {}), met: { ...(s.fog?.met || {}), [s.playerNationId]: { ...(s.fog?.met?.[s.playerNationId] || {}), [id]: 1 } } } } }); return f; }, nid);
   await page.evaluate(async (id) => (await import('/terra-imperium/src/components/map/marchEvents.js')).selectNation(id), nid);
+  await shot('nation');
   await page.getByTestId('nation-sheet').waitFor({ timeout: 8000 }).catch(() => {});
   await page.evaluate(async (id) => {
     const s0 = window.__game.state;
