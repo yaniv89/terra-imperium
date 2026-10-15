@@ -20,11 +20,16 @@ import { getResearched } from '../../engine/nationState';
 import { canSettle, scoreSite, siteOutlook, outpostTurns } from '../../engine/settlers';
 import { pickCityName } from '../../engine/cityNames';
 import { isExplored } from '../../engine/fog';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
+import { reasonText } from '../../i18n/messageText';
+import { tileResourceName } from '../../i18n/gameText';
 
-export const SITE_WARNING_TEXT = {
-  food: 'Poor land: a city here feeds its first citizens and no more. It will not grow until its land is improved or it buys better tiles.',
-  production: 'Almost no production: everything this city builds will take very long.'
-};
+// (read when asked, so the text follows the language)
+export const SITE_WARNING_TEXT = Object.defineProperties({}, {
+  food: { enumerable: true, get: () => t('st.warnFood') },
+  production: { enumerable: true, get: () => t('st.warnProduction') }
+});
 
 /** The settling rule in words, from the grid's own numbers: { rings, waterRings, tileKm, text }. */
 export const spacingRule = (tiles = getTiles()) => {
@@ -34,8 +39,8 @@ export const spacingRule = (tiles = getTiles()) => {
   const lo = Math.round((rings * tileKm * 0.866) / 5) * 5; const hi = Math.round((rings * tileKm) / 5) * 5;
   return {
     rings, waterRings: rings - 1, tileKm, loKm: lo, hiKm: hi,
-    short: `Cities ${rings} tiles apart, ${rings - 1} across water`,
-    text: `City centres stand at least ${rings} tiles apart on the same land, ${rings - 1} across water. The rule counts tiles, not km: ${rings} tiles is ${lo} to ${hi} km, depending on the direction.`
+    short: t('st.ruleShort', { rings, water: rings - 1 }),
+    text: t('st.ruleText', { rings, water: rings - 1, lo, hi })
   };
 };
 
@@ -62,31 +67,33 @@ export const settleSiteModel = (state, tile, ageId) => {
   const outlook = siteOutlook(state, tile, me);
   const free = tileOwner[tile] == null;
   const lines = [];
-  if (facts.river) lines.push({ id: 'river', text: 'River tile: fresh water, the city grows faster' });
-  if (facts.coastal) lines.push({ id: 'coast', text: 'On the coast: a harbour and ships later' });
-  if (resource) lines.push({ id: 'resource', text: `Resource here: ${resource}` });
-  if (facts.relief === 'hills') lines.push({ id: 'hills', text: 'On hills: easier to defend' });
-  lines.push({ id: 'claims', text: `Claims ${claims} tile${claims === 1 ? '' : 's'} when founded` });
-  if (nearest) lines.push({ id: 'nearest', text: `Nearest city ${nearest.name}, ${nearest.rings != null ? `${nearest.rings} tile${nearest.rings === 1 ? '' : 's'} (${nearest.km} km)` : `${nearest.km} km`}${nearest.overWater ? ', across water' : ''}` });
+  if (facts.river) lines.push({ id: 'river', text: t('st.river') });
+  if (facts.coastal) lines.push({ id: 'coast', text: t('st.coast') });
+  if (resource) lines.push({ id: 'resource', text: t('st.resource', { name: tileResourceName(resource) }) });
+  if (facts.relief === 'hills') lines.push({ id: 'hills', text: t('st.hills') });
+  lines.push({ id: 'claims', text: t('st.claims', { count: claims }) });
+  if (nearest) lines.push({ id: 'nearest', text: t('st.nearest', { name: nameNow('city', null, nearest.name), far: nearest.rings != null ? t('st.nearestRings', { count: nearest.rings, km: nearest.km }) : t('st.nearestKm', { km: nearest.km }), water: nearest.overWater ? t('st.acrossWater') : '' }) });
   // The blocking reason with its numbers (the spacing rule is CITY_SPACING_KM between centres).
-  let reason = can.ok ? null : can.reason;
-  const tooClose = reason && /^Too close to (.+)\.$/.exec(reason);
+  let reason = can.ok ? null : reasonText(can);
+  const tooCloseName = !can.ok && can.reasonMsg?.key === 'm.world.reasonTooClose' ? can.reasonMsg.vars?.city?.en : null;
+  const tooClose = tooCloseName ? [null, tooCloseName] : null;
   if (tooClose) {
     const by = Object.values(state.regions || {}).find((c) => c.name === tooClose[1] && c.tile != null);
     // the rule counts tiles (rings between centres); the km is the honest distance beside it
     const ring = by ? ringsAround(tiles, tile, need).get(by.tile) : null;
     const km = by ? Math.round(distanceKm(tiles.centres[tile], tiles.centres[by.tile])) : null;
-    const who = by && isExplored(state, by.tile) ? tooClose[1] : 'a city you have not seen';
-    reason = ring == null ? reason.replace(/\.$/, '') : `Too close to ${who}: ${ring} tile${ring === 1 ? '' : 's'} (${km} km), needs ${need}`;
+    const who = by && isExplored(state, by.tile) ? nameNow('city', null, tooClose[1]) : t('st.unseenCity');
+    reason = ring == null ? reason.replace(/\.$/, '') : t('st.tooClose', { who, rings: ring, km, need });
   } else if (reason) reason = reason.replace(/\.$/, '');
   // What founding here would start (only for land nobody owns: a site).
   const stage = free ? outpostTurns(state, tile, ageId) : null;
   const cityName = free ? pickCityName(state.regions, tiles, tile, me) : null;
-  if (can.ok && cityName) lines.push({ id: 'name', text: `The city will be named ${cityName}` });
-  if (can.ok && stage) lines.push({ id: 'outpost', text: `Starts as an outpost: it claims its land at once, and builds and yields as a city after about ${stage} turn${stage === 1 ? '' : 's'}` });
+  if (can.ok && cityName) lines.push({ id: 'name', text: t('st.named', { name: nameNow('city', null, cityName) }) });
+  if (can.ok && stage) lines.push({ id: 'outpost', text: t('st.outpost', { count: stage }) });
   return {
     ok: can.ok,
     reason,
+    tooClose: !!tooClose,
     score: can.ok ? scoreSite(state, tile) : null,
     yields: { food: yields.food, production: yields.production, gold: yields.gold },
     centre: outlook?.centre || null,

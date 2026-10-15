@@ -13,6 +13,7 @@
 //   focusHint                 the long-build line and whether Production focus would help
 import { getTiles } from '../../data/geo/tiles';
 import { TECH_TREE } from '../../data/techTree';
+import { reasonText } from '../../i18n/messageText';
 import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
@@ -110,7 +111,7 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     const quote = buildQuote(state, cityId, item, live);
     const queued = inQueue.get(extra.key || itemKey(item)) || 0;
     out.push({
-      id: extra.id || itemKey(item), item, group, ok: check.ok, reason: check.ok ? null : check.reason,
+      id: extra.id || itemKey(item), item, group, ok: check.ok, reason: check.ok ? null : reasonText(check),
       label: itemLabel(item, tiles, ageId, city.tile), tile: null, detail: null, note: null, needsTech: null, needsName: null,
       cost: quote.cost, stored: quote.stored, turns: quote.turns, long: check.ok && isLongBuild(state, ageId, quote.turns), queued,
       ...extra.fields

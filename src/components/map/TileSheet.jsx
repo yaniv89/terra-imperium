@@ -6,6 +6,7 @@
 // action is "Found City here" (settlers on it) or "Go and found city" (idle settlers elsewhere).
 // Also the armies on the tile (attack, declare war) and a fleet's landing. Docked on the left as
 // a corner card; a bottom sheet on a phone held upright.
+import { t as tNow } from '../../i18n/core';
 import React, { useMemo, useRef } from 'react';
 import { MapPin, Tent, Flag, Swords, Ban, AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -153,11 +154,11 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
                     <Ban className="w-4 h-4 mt-0.5 text-fa-danger-text shrink-0" aria-hidden="true" />
                     <span className="font-semibold text-fa-danger-text">{site.reason}</span>
                   </div>
-                  {/^Too close/.test(site.reason || '') && <div className="mt-1 text-[11px] text-fa-muted" data-testid="spacing-rule">{site.spacing.text}{settleUnitId ? ' Next good site, on the bar above, goes to land that is free.' : ''}</div>}
+                  {site.tooClose && <div className="mt-1 text-[11px] text-fa-muted" data-testid="spacing-rule">{site.spacing.text}{settleUnitId ? tNow('st.nextGood') : ''}</div>}
                 </div>
               )}
             </>
-          ) : <div className="text-[12px] text-fa-muted">Nobody lives at sea.</div>}
+          ) : <div className="text-[12px] text-fa-muted">{tNow('st.noOneAtSea')}</div>}
           {coming.map((u) => (
             <div key={u.id} className="flex items-center justify-between gap-2 text-[13px] fa-card px-3 min-h-[44px]">
               <span className="flex items-center gap-1.5"><Tent className="w-4 h-4" /> Settlers arrive in {turnsFor(u) ?? '?'} turn{turnsFor(u) === 1 ? '' : 's'}, then found</span>

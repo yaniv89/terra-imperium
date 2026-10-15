@@ -5,6 +5,7 @@
 // Attack on an enemy city: an army that borders it attacks now (its attack card opens here; an
 // attack the engine refuses says why on the bar and the button is off, ACT-01); a far one gets a
 // march to attack (marchAttack.js): the route preview and the turns to arrive show here first ("4 turns, stops at Der"), and the assault is offered when it arrives.
+import { reasonText } from '../../i18n/messageText';
 import React, { useState } from 'react';
 import { Flag, Swords, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -102,7 +103,7 @@ const MarchBar = () => {
     : R('march.bordersNow', { target: <b>{targetName}</b> });
   else if (m.enemyArmy?.adjacent) line = m.enemyArmy.blocked ? <span data-testid="march-attack-blocked">{R('march.foeBlocked', { reason: danger(m.enemyArmy.blocked) }, { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span> : <span data-testid="march-enemy-army">{t('march.foeBeside', { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span>;
   else if (m.marchAttackBlocked) line = <span data-testid="march-attack-blocked">{plan?.ok ? <>{R('march.toTurns', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns) })} </> : null}{danger(m.marchAttackBlocked)}</span>;
-  else if (!plan?.ok) line = <span className="text-fa-danger-text">{plan?.reason || t('march.noRoute')}</span>;
+  else if (!plan?.ok) line = <span className="text-fa-danger-text">{plan?.reason ? reasonText(plan) : t('march.noRoute')}</span>;
   else if (m.canMarchAttack) {
     line = (
       <span data-testid="march-attack-plan">
