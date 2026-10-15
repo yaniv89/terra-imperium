@@ -7,5 +7,6 @@ import left from './ui/left.en';
 import nation from './ui/nation.en';
 import ind from './ui/ind.en';
 import misc from './ui/misc.en';
+import region from './ui/region.en';
 
-export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc };
+export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region };
