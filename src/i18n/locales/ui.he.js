@@ -8,5 +8,10 @@ import nation from './ui/nation.he';
 import ind from './ui/ind.he';
 import misc from './ui/misc.he';
 import region from './ui/region.he';
+import city from './ui/city.he';
+import pnl1 from './ui/pnl1.he';
+import pnl2 from './ui/pnl2.he';
+import mapx from './ui/mapx.he';
+import misc2 from './ui/misc2.he';
 
-export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region };
+export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2 };

@@ -8,5 +8,10 @@ import events from './data/he.events';
 import units from './data/he.units';
 import tiles from './data/he.tiles';
 import battle from './data/he.battle';
+import city from './data/he.city';
+import pnl1 from './data/he.pnl1';
+import pnl2 from './data/he.pnl2';
+import mapx from './data/he.mapx';
+import misc2 from './data/he.misc2';
 
-export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles, ...battle });
+export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles, ...battle, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2 });
