@@ -226,6 +226,12 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: { tileOwner: settled.world.tileOwner, tileState: settled.world.tileState } }, logs, wonders };
 };
 
+// The log keeps the last LOG_CAP lines (the turn report and the log panel show recent turns only).
+// Without a cap a long game's save keeps growing (each line also carries msgKey / msgVars) toward
+// Safari's 5 MB storage limit. Trimmed once a turn, so actions inside a turn still append freely.
+export const LOG_CAP = 800;
+export const capLogs = (logs) => (logs.length > LOG_CAP ? logs.slice(-LOG_CAP) : logs);
+
 export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const turnStart = onPhase ? performance.now() : 0;
   let state = syncWorldRegistry(incomingState);
@@ -1261,7 +1267,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     nextLoanSeq,
     lodPeriods, // world/lod.js: next turn's loyalty pass reads which nations are far and quiet
     rngSeed: rng.getSeed(),
-    logs: [...state.logs, ...logs]
+    logs: capLogs([...state.logs, ...logs])
   };
   // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
   // The battle queue (battleQueue.js): with autoDefend the battles are fought on Auto now, unless an
