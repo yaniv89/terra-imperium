@@ -1,12 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { resolveBattle } from './battle';
 import { createRng } from '../utils/rng';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNeighborIds } from '../data/regions';
 import { MEN_PER_STRENGTH } from './aftermath';
 import { recordBattleReport, BATTLE_REPORT_HISTORY, unitFate, FATES } from './battleReports';
 import { atGates } from './testWorld';
+import { neighbourWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 7 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const DE_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const unit = (id, classId, strength) => ({ id, classId, strength, maxStrength: strength, morale: 100, domain: 'land' });
 const sum = (units) => units.reduce((s, u) => s + Math.max(0, u.strength), 0);
@@ -34,17 +40,17 @@ describe('resolveBattle timeline', () => {
 
 describe('battle report history', () => {
   const invade = () => {
-    let state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    const from = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && getNeighborIds(id).some((n) => state.regions[n]?.owner === 'de'));
-    const target = getNeighborIds(from).find((n) => state.regions[n]?.owner === 'de');
+    let state = neighbourWorld({ seed: 7 });
+    const from = Object.keys(state.regions).find((id) => state.regions[id].owner === FR_ID && getNeighborIds(id).some((n) => state.regions[n]?.owner === DE_ID));
+    const target = getNeighborIds(from).find((n) => state.regions[n]?.owner === DE_ID);
     state = {
       ...state,
-      wars: [{ id: 'w', aggressor: 'fr', enemy: 'de', active: true, score: 0 }],
+      wars: [{ id: 'w', aggressor: FR_ID, enemy: DE_ID, active: true, score: 0 }],
       resources: { ...state.resources, gold: 10000, mil: 1000 },
       units: {
-        a1: { ...unit('a1', 'infantry', 1000), ownerId: 'fr', regionId: from, movesLeft: 1 },
-        a2: { ...unit('a2', 'cavalry', 800), ownerId: 'fr', regionId: from, movesLeft: 1 },
-        d1: { ...unit('d1', 'infantry', 600), ownerId: 'de', regionId: target, movesLeft: 1 }
+        a1: { ...unit('a1', 'infantry', 1000), ownerId: FR_ID, regionId: from, movesLeft: 1 },
+        a2: { ...unit('a2', 'cavalry', 800), ownerId: FR_ID, regionId: from, movesLeft: 1 },
+        d1: { ...unit('d1', 'infantry', 600), ownerId: DE_ID, regionId: target, movesLeft: 1 }
       }
     };
     state = atGates(state, from, target); // the attack needs touching lands or an army beside the city
@@ -55,7 +61,7 @@ describe('battle report history', () => {
     const { state, next, target } = invade();
     expect(next.battleReports).toHaveLength(1);
     const e = next.battleReports[0];
-    expect(e).toMatchObject({ targetRegionId: target, attackerNationId: 'fr', defenderNationId: 'de', playerSide: 'attacker', commanded: false, turn: state.turnNumber });
+    expect(e).toMatchObject({ targetRegionId: target, attackerNationId: FR_ID, defenderNationId: DE_ID, playerSide: 'attacker', commanded: false, turn: state.turnNumber });
     expect(e.outcome).toBe(next.lastBattleReport.outcome);
     expect(e.sides.attacker.map((u) => u.id).sort()).toEqual(['a1', 'a2']);
     // The garrison and the city's militia (battleInputs.js, master plan 6.7 row 19).
@@ -70,8 +76,8 @@ describe('battle report history', () => {
   });
 
   it('keeps only the newest entries', () => {
-    let state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    const report = { outcome: 'attacker', attackerNationId: 'fr', defenderNationId: 'de' };
+    let state = neighbourWorld({ seed: 7 });
+    const report = { outcome: 'attacker', attackerNationId: FR_ID, defenderNationId: DE_ID };
     for (let i = 0; i < BATTLE_REPORT_HISTORY + 5; i++) state = { ...state, ...recordBattleReport(state, report, { attackers: [], defenders: [] }) };
     expect(state.battleReports).toHaveLength(BATTLE_REPORT_HISTORY);
     expect(state.battleReports[0].id).toBe(`battle-${BATTLE_REPORT_HISTORY + 5}`);
@@ -92,8 +98,8 @@ describe('unit fates in the report', () => {
   });
 
   it('records fates, men before and after, and cavalry pursuit', () => {
-    const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    const report = { outcome: 'attacker', attackerNationId: 'fr', defenderNationId: 'de' };
+    const state = neighbourWorld({ seed: 7 });
+    const report = { outcome: 'attacker', attackerNationId: FR_ID, defenderNationId: DE_ID };
     const attackers = [{ id: 'c', classId: 'cavalry', strength: 300 }, { id: 'i', classId: 'infantry', strength: 200, routed: true, regiment: 3 }];
     const defenders = [
       { id: 'd0', classId: 'infantry', strength: 0, disposition: 'dead' },

@@ -156,3 +156,18 @@ export const withBorder = (state, a, b) => {
   if (!borderPair(s, a, b)) throw new Error('testWorld.withBorder: the two peoples still do not border');
   return s;
 };
+
+// A peoples world where the player's people border its first `rivals` rivals (a city of each is
+// founded beside the player's capital), for tests that fought over borders in the old country world.
+// Cached like peoplesWorld; the same arguments give the same world.
+const neighbourCache = new Map();
+export const neighbourWorld = ({ rivals = 4, ...opts } = {}) => {
+  const base = peoplesWorld(opts);
+  const key = `${rivals}|${JSON.stringify(opts)}`;
+  if (!neighbourCache.has(key)) {
+    let s = base;
+    for (let i = 0; i < rivals; i++) s = withBorder(s, base.playerNationId, rivalOf(base, i));
+    neighbourCache.set(key, s);
+  }
+  return neighbourCache.get(key);
+};

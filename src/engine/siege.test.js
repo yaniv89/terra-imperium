@@ -10,8 +10,14 @@ import {
   SIEGE_REGEN_COOLDOWN_TURNS,
   ZOC_FORT_LEVEL_THRESHOLD
 } from './siege';
-import { createInitialState } from './gameReducer';
 import { touchingPair } from './testWorld';
+import { neighbourWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 1 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const BE_ID = rivalOf(PEOPLES_WORLD, 0);
+const LU_ID = rivalOf(PEOPLES_WORLD, 1);
 
 describe('resolveSiegeControlDamage', () => {
   it('damages control on an attacker win without capturing, while control stays above the threshold', () => {
@@ -123,33 +129,33 @@ describe('nextSiegeControlRegen', () => {
 // A real bordering pair of cities (a French and a Belgian one) on the Dawn world, wherever
 // genuine adjacency (not just any two owned regions) matters.
 describe('getZoneOfControlMultiplier (plan §M14)', () => {
-  const [FR, BE] = touchingPair(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr', 'be') || touchingPair(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr', 'lu'); // lands that touch: the fort rule reads `touching`
+  const [FR, BE] = touchingPair(neighbourWorld({ seed: 1 }), FR_ID, BE_ID) || touchingPair(neighbourWorld({ seed: 1 }), FR_ID, LU_ID); // lands that touch: the fort rule reads `touching`
   const regions = {
-    [FR]: { owner: 'fr', defenseLevel: 0 },
-    [BE]: { owner: 'be', defenseLevel: 0 }
+    [FR]: { owner: FR_ID, defenseLevel: 0 },
+    [BE]: { owner: BE_ID, defenseLevel: 0 }
   };
 
   it('is a no-op with no fortified neighbor', () => {
-    expect(getZoneOfControlMultiplier(regions, FR, 'fr')).toBe(1);
+    expect(getZoneOfControlMultiplier(regions, FR, FR_ID)).toBe(1);
   });
 
   it('reduces damage when a bordering region the defender holds is fortified to Star Fort tier or better', () => {
-    const withFort = { ...regions, [BE]: { ...regions[BE], owner: 'fr', defenseLevel: ZOC_FORT_LEVEL_THRESHOLD } };
-    expect(getZoneOfControlMultiplier(withFort, FR, 'fr')).toBeLessThan(1);
+    const withFort = { ...regions, [BE]: { ...regions[BE], owner: FR_ID, defenseLevel: ZOC_FORT_LEVEL_THRESHOLD } };
+    expect(getZoneOfControlMultiplier(withFort, FR, FR_ID)).toBeLessThan(1);
   });
 
   it('does not trigger below the fort-level threshold', () => {
-    const weakFort = { ...regions, [BE]: { ...regions[BE], owner: 'fr', defenseLevel: ZOC_FORT_LEVEL_THRESHOLD - 1 } };
-    expect(getZoneOfControlMultiplier(weakFort, FR, 'fr')).toBe(1);
+    const weakFort = { ...regions, [BE]: { ...regions[BE], owner: FR_ID, defenseLevel: ZOC_FORT_LEVEL_THRESHOLD - 1 } };
+    expect(getZoneOfControlMultiplier(weakFort, FR, FR_ID)).toBe(1);
   });
 
   it('does not trigger from a neighbor the defender neither owns nor occupies', () => {
-    const enemyFort = { ...regions, [BE]: { ...regions[BE], owner: 'be', defenseLevel: ZOC_FORT_LEVEL_THRESHOLD } };
-    expect(getZoneOfControlMultiplier(enemyFort, FR, 'fr')).toBe(1);
+    const enemyFort = { ...regions, [BE]: { ...regions[BE], owner: BE_ID, defenseLevel: ZOC_FORT_LEVEL_THRESHOLD } };
+    expect(getZoneOfControlMultiplier(enemyFort, FR, FR_ID)).toBe(1);
   });
 
   it('also counts a neighbor the defender merely occupies', () => {
-    const occupied = { ...regions, [BE]: { ...regions[BE], owner: 'be', occupiedBy: 'fr', defenseLevel: ZOC_FORT_LEVEL_THRESHOLD } };
-    expect(getZoneOfControlMultiplier(occupied, FR, 'fr')).toBeLessThan(1);
+    const occupied = { ...regions, [BE]: { ...regions[BE], owner: BE_ID, occupiedBy: FR_ID, defenseLevel: ZOC_FORT_LEVEL_THRESHOLD } };
+    expect(getZoneOfControlMultiplier(occupied, FR, FR_ID)).toBeLessThan(1);
   });
 });
