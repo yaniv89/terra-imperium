@@ -10,7 +10,7 @@ import { getPeaceAcceptance, getTermCost } from '../../engine/peace';
 import { computeWarScore, getOccupationScore } from '../../engine/diplomacy';
 import { getPool } from '../../engine/nationState';
 import { msgText, sub, people, cityRef } from '../../engine/messages';
-import { t } from '../../i18n/core';
+import { t, isolateLtr } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
 import { agreed } from './battleText';
 
@@ -59,7 +59,7 @@ export const bestDeal = (state, war, candidates = peaceCandidates(state, war)) =
   return { keys: picked.map((p) => p.key), worth: spent, budget };
 };
 
-const signedN = (n) => (n > 0 ? `+${n}` : `${n}`);
+const signedN = (n) => isolateLtr(n > 0 ? `+${n}` : `${n}`);
 const ledgerText = (l) => (l.id === 'odds' && l.pct != null ? `${ledgerLabel(l)}` : ledgerLabel(l));
 
 /**

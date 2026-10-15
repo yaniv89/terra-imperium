@@ -181,7 +181,7 @@ export default {
   'bt.def.ours.intercept': 'צי',
   'bt.def.ours.landing': 'חיל מצב',
   'bt.def.yourArmy': 'הצבא שלכם',
-  'bt.def.giveUp': 'ויתור על {place}: ה{ours} שלכם נסוג אל {to} (-{morale} מורל, -{men}% לוחמים) ו{enemy} כובש את העיר בלי קרב.',
+  'bt.def.giveUp': 'ויתור על {place}: ה{ours} שלכם נסוג אל {to} (⁦-{morale}⁩ מורל, ⁦-{men}%⁩ לוחמים) ו{enemy} כובש את העיר בלי קרב.',
   'bt.def.oursLower.defense': 'חיל מצב',
   'bt.def.oursLower.field': 'צבא',
   'bt.def.oursLower.naval': 'צי',

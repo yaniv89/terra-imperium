@@ -104,3 +104,6 @@ export const dataTable = (lang = 'he') => (lang === 'he' ? dataHe : {});
 export const tOr = (key, fallback, vars) => (hasKey(key, 'en') ? translate(key, vars, current) : dataText(key, fallback, vars, current));
 /** An age's name ("Bronze Age") in the current language. */
 export const ageName = (id, fallback) => tOr(`age.${id}`, fallback || id);
+
+/** A number with a sign ("+10", "-3") inside running text, kept left to right in Hebrew (the sign would flip to the wrong side). */
+export const isolateLtr = (text) => (isRtl() ? `\u2066${text}\u2069` : String(text));

@@ -17,6 +17,7 @@ import { ActionTypes } from '../../data/types';
 import { Button, CloseButton, Label, Meter } from '../ui/atlas';
 import { peaceDealModel, bestDeal } from './peaceDealModel';
 import { useT } from '../../i18n/useT';
+import { isolateLtr } from '../../i18n/core';
 
 const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 const toneOf = (v) => (v > 0 ? 'text-fa-good' : v < 0 ? 'text-fa-danger-text' : 'text-fa-muted');
@@ -80,7 +81,7 @@ const PeaceDealSheet = ({ warId, onClose }) => {
                   <span className="truncate">{who}</span><Meter value={v} max={m.exhaustion.max} color={c} /><span className="fa-num">{v}</span>
                 </div>
               ))}
-              <div className="text-[11px] text-fa-muted mt-1 leading-snug" data-testid="peace-ledger">{rich(t('bt.peace.theyGive', { list: m.ledger.map((l) => `${l.label.toLowerCase()} ${signed(l.value)}`).join(', ') || t('bt.peace.nothingToWeigh') }), { n: <b className="fa-num text-fa-text">{m.willingness}</b> })}</div>
+              <div className="text-[11px] text-fa-muted mt-1 leading-snug" data-testid="peace-ledger">{rich(t('bt.peace.theyGive', { list: m.ledger.map((l) => `${l.label.toLowerCase()} ${isolateLtr(signed(l.value))}`).join(', ') || t('bt.peace.nothingToWeigh') }), { n: <b className="fa-num text-fa-text">{m.willingness}</b> })}</div>
             </div>
           </div>
 

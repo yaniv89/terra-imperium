@@ -81,7 +81,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
     kind,
     city,
     place,
-    name: v.name,
+    name: nameNow('battle', null, v.name),
     attacking,
     eyebrow: attacking
       ? agreed(def.fort ? 'bt.def.eyeStoppedFort' : 'bt.def.eyeStopped', { enemy: enemyShort, place }, () => `Your army is stopped by ${enemyShort}${def.fort ? "' fort" : ''} near ${place}`.replace(/([^s])' fort/, "$1's fort"))

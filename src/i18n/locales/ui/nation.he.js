@@ -132,7 +132,7 @@ export default {
   'nc.closeBordersTitle': 'הצבאות, המתיישבים והסוחרים שלכם מאבדים מעבר דרך אדמתם, והם דרך אדמתכם',
   'nc.openBordersLabel': 'גבולות פתוחים ({cost}){refuse}',
   'nc.wouldRefuseShort': ': היו מסרבים',
-  'nc.openBordersAccept': 'הם היו מסכימים: מעבר לצבאות, מתיישבים וסחר לשני הכיוונים, +10 דעה',
+  'nc.openBordersAccept': 'הם היו מסכימים: מעבר לצבאות, מתיישבים וסחר לשני הכיוונים, ⁦+10⁩ דעה',
   'nc.openBordersRefuse': 'הם היו מסרבים היום (דעה {opinion}, נדרש {needed}{war})',
   'nc.andAtWar': ', ואתם במלחמה',
   'nc.demandLabel.tribute': 'דרשו מס',
@@ -191,5 +191,5 @@ export default {
   'ns.rel.vassal': 'הווסאל שלכם',
   'ns.rel.overlord': 'אדון הפיאודל שלכם',
   'ns.rel.rival': 'היריב שלכם',
-  'ns.rel.restless': 'מלחמות בסביבה: +{n}% סיכוי למלחמה',
+  'ns.rel.restless': 'מלחמות בסביבה: ⁦+{n}%⁩ סיכוי למלחמה',
 };
