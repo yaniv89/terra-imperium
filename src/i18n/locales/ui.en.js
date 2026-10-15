@@ -4,5 +4,6 @@ import hud from './ui/hud.en';
 import result from './ui/result.en';
 import pre from './ui/pre.en';
 import left from './ui/left.en';
+import nation from './ui/nation.en';
 
-export default { ...hud, ...result, ...pre, ...left };
+export default { ...hud, ...result, ...pre, ...left, ...nation };
