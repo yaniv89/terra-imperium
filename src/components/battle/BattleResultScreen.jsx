@@ -13,19 +13,10 @@ import React, { useMemo } from 'react';
 import { Crown, Info } from 'lucide-react';
 import { battleResultModel } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
+import { useT } from '../../i18n/useT';
 
-const REASONS = {
-  keepTaken: 'The keep was taken and held.',
-  // A battle with bases (sim/base.js): a side loses when its last base building falls.
-  baseDestroyed: "The defenders' last base building fell.",
-  campDestroyed: "The attackers' camp and base buildings were destroyed.",
-  defenderRetreated: 'The defenders withdrew from the field.',
-  defendersBroken: 'The defenders were broken.',
-  attackersBroken: 'The attack was broken.',
-  attackerRetreated: 'The attackers withdrew from the field.',
-  timeLimit: 'Time ran out: the defenders held their ground.',
-  mutualDestruction: 'Neither army is left standing.'
-};
+// Why the battle ended (bt.result.reason.<id>); a battle with bases (sim/base.js) ends when a side's last base building falls.
+const REASONS = new Set(['keepTaken', 'baseDestroyed', 'campDestroyed', 'defenderRetreated', 'defendersBroken', 'attackersBroken', 'attackerRetreated', 'timeLimit', 'mutualDestruction']);
 
 const Bar = ({ value, max, color }) => (
   <span className="block h-1.5 rounded-full bg-fa-ink overflow-hidden mt-0.5"><span className="block h-full rounded-full" style={{ width: `${max ? Math.min(100, (value / max) * 100) : 0}%`, background: color }} /></span>
@@ -36,11 +27,12 @@ const Bar = ({ value, max, color }) => (
  * `receipt` (optional): the campaign's answer for this battle (battleHudModel.js battleResultModel).
  */
 const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, receipt, onContinue }) => {
+  const { t, year: fmtYear } = useT();
   const campaign = useMemo(() => (getCampaign ? getCampaign() : {}), [getCampaign]);
   const m = useMemo(() => battleResultModel(ended, setup, playerSide, campaign || {}, receipt), [ended, setup, playerSide, campaign, receipt]);
   const tone = m.draw ? 'text-fa-brass' : m.won ? 'text-fa-good' : 'text-fa-danger-text';
   const mins = Math.floor(m.duration / 60); const secs = m.duration % 60;
-  const year = campaign?.year != null ? (campaign.year < 0 ? `${-campaign.year} BCE` : `${campaign.year} CE`) : null;
+  const year = campaign?.year != null ? fmtYear(campaign.year) : null;
   const pending = m.state === 'pending';
   const counted = m.mine && m.theirs;
   return (
@@ -48,12 +40,12 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
       <div className="min-h-full w-full max-w-[64rem] mx-auto flex flex-col lg:justify-center p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]">
       <div className="flex items-end gap-4 flex-wrap px-1">
         <div className="min-w-0">
-          <div className="fa-label">{[title, campaign?.turnNumber != null ? `turn ${campaign.turnNumber}` : null, year].filter(Boolean).join(', ')}</div>
+          <div className="fa-label">{[title, campaign?.turnNumber != null ? t('bt.result.turnN', { n: campaign.turnNumber }) : null, year].filter(Boolean).join(', ')}</div>
           <div className={`fa-heading text-[30px] leading-none ${tone}`} data-testid="battle-verdict">{m.verdict}</div>
         </div>
         <div className="flex-1 min-w-[14rem] text-[13px] leading-snug pb-0.5">
           {m.line && <div className="font-semibold" data-testid="battle-result-line">{m.line}</div>}
-          {!pending && <div>{REASONS[m.reason] || ''} <span className="text-fa-muted">The battle lasted {mins} min {secs} s.</span></div>}
+          {!pending && <div>{REASONS.has(m.reason) ? t(`bt.result.reason.${m.reason}`) : ''} <span className="text-fa-muted">{t('bt.result.lasted', { min: mins, sec: secs })}</span></div>}
         </div>
       </div>
       {m.notice && (
@@ -65,31 +57,31 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
       {counted && (
       <div className="grid gap-2 mt-2 grid-cols-1 sm:grid-cols-3 flex-1 lg:flex-none lg:min-h-[17rem] min-h-0">
         <div className="fa-card px-2.5 py-2 flex flex-col" data-testid="battle-result-losses">
-          <div className="fa-label">Men lost</div>
-          {[['Yours', m.mine, 'var(--fa-you)', 'text-fa-you'], ['Theirs', m.theirs, 'var(--fa-enemy)', 'text-fa-enemy']].map(([label, l, c, t]) => (
+          <div className="fa-label">{t('bt.result.menLost')}</div>
+          {[[t('bt.result.yours'), m.mine, 'var(--fa-you)', 'text-fa-you'], [t('bt.result.theirs'), m.theirs, 'var(--fa-enemy)', 'text-fa-enemy']].map(([label, l, c, tone]) => (
             <div key={label} className="mt-1.5">
-              <div className="flex justify-between text-[12.5px]"><span className={`font-semibold ${t}`}>{label}</span><span className="fa-num">{menText(l.lost)} of {menText(l.start)}</span></div>
+              <div className="flex justify-between text-[12.5px]"><span className={`font-semibold ${tone}`}>{label}</span><span className="fa-num">{t('bt.result.ofMen', { a: menText(l.lost), b: menText(l.start) })}</span></div>
               <Bar value={l.lost} max={l.start} color={c} />
-              {l.destroyed > 0 && <div className="text-[11px] text-fa-muted">{l.destroyed} regiment{l.destroyed === 1 ? '' : 's'} destroyed{l.runDown > 0 ? `, ${menText(l.runDown)} men caught after the fighting` : ''}</div>}
-              {l.fled > 0 && <div className="text-[11px] text-fa-muted">{menText(l.fled)} men fled the field and live</div>}
+              {l.destroyed > 0 && <div className="text-[11px] text-fa-muted">{t('bt.result.destroyed', { count: l.destroyed })}{l.runDown > 0 ? t('bt.result.runDown', { men: menText(l.runDown) }) : ''}</div>}
+              {l.fled > 0 && <div className="text-[11px] text-fa-muted">{t('bt.result.fled', { men: menText(l.fled) })}</div>}
             </div>
           ))}
-          <div className="text-[11px] text-fa-muted mt-1.5 leading-snug">{m.state === 'committed' ? 'The same count as the battle report and the Log. Men lost are gone for good.' : 'Men lost are gone for good.'}</div>
+          <div className="text-[11px] text-fa-muted mt-1.5 leading-snug">{m.state === 'committed' ? t('bt.result.sameCount') : t('bt.result.goneForGood')}</div>
           {m.aux && <div className="text-[11px] text-fa-muted mt-1 leading-snug" data-testid="battle-result-aux">{m.aux}</div>}
-          {m.workersLost != null && <div className="mt-auto pt-1.5 border-t border-fa-line flex justify-between text-[12px]"><span>Workers lost</span><span className="fa-num">{m.workersLost}</span></div>}
+          {m.workersLost != null && <div className="mt-auto pt-1.5 border-t border-fa-line flex justify-between text-[12px]"><span>{t('bt.result.workersLost')}</span><span className="fa-num">{m.workersLost}</span></div>}
         </div>
 
         <div className="fa-card px-2.5 py-2 flex flex-col" data-testid="battle-result-xp">
-          <div className="fa-label">Experience</div>
+          <div className="fa-label">{t('bt.result.experience')}</div>
           <div className="mt-1 space-y-0.5 overflow-y-auto max-h-[7.5rem]">
-            {m.xp.length === 0 && <div className="text-[12px] text-fa-muted">No regiment of yours came through to learn from it.</div>}
+            {m.xp.length === 0 && <div className="text-[12px] text-fa-muted">{t('bt.result.noLearn')}</div>}
             {m.xp.slice(0, 6).map((x) => (
-              <div key={x.id} className="flex justify-between gap-2 text-[12.5px]"><span className="truncate">{x.name}</span><span className="fa-num text-fa-good shrink-0">+{x.gained} XP{x.rankUp ? `, ${x.rankUp}` : ''}</span></div>
+              <div key={x.id} className="flex justify-between gap-2 text-[12.5px]"><span className="truncate">{x.name}</span><span className="fa-num text-fa-good shrink-0">{x.rankUp ? t('bt.result.xpGainRank', { n: x.gained, rank: t(`bt.rank.${x.rankUp}`) }) : t('bt.result.xpGain', { n: x.gained })}</span></div>
             ))}
           </div>
           <div className="text-[11px] text-fa-muted mt-1 leading-snug">{m.xpRule}.</div>
           <div className="mt-auto pt-1.5 border-t border-fa-line space-y-0.5" data-testid="battle-result-general">
-            {m.generals.length === 0 && <div className="text-[11.5px] text-fa-muted">No general led this army.</div>}
+            {m.generals.length === 0 && <div className="text-[11.5px] text-fa-muted">{t('bt.result.noGeneral')}</div>}
             {m.generals.map((g) => (
               <div key={g.name} className="flex items-start gap-1.5 text-[12px]"><Crown className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${g.fate === 'fell' ? 'text-fa-danger-text' : 'text-fa-brass'}`} aria-hidden="true" /><span>{g.text}</span></div>
             ))}
@@ -99,28 +91,28 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
         <div className="fa-card px-2.5 py-2 flex flex-col" data-testid="battle-result-city">
           {m.city ? (
             <>
-              <div className="fa-label">{playerSide === 1 ? (m.city.taken ? 'The city is lost' : 'Your city') : m.city.taken ? 'The city is yours' : 'The city'}</div>
+              <div className="fa-label">{playerSide === 1 ? (m.city.taken ? t('bt.result.cityLost') : t('bt.result.cityYours')) : m.city.taken ? t('bt.result.cityTaken') : t('bt.result.city')}</div>
               {m.city.committed ? (
                 <div className="text-[12.5px] leading-snug mt-1">
-                  {m.city.line ? `${m.city.line} Repairs are free.` : 'The city took no lasting damage.'}
-                  {!m.city.taken && m.city.control != null && playerSide === 0 && m.won ? ` Their hold on it is now ${m.city.control}%.` : ''}
+                  {m.city.line ? t('bt.result.repairsFree', { line: m.city.line }) : t('bt.result.noLasting')}
+                  {!m.city.taken && m.city.control != null && playerSide === 0 && m.won ? t('bt.result.holdNow', { n: m.city.control }) : ''}
                 </div>
               ) : (
-                <div className="text-[12.5px] leading-snug mt-1">Houses ruined {m.city.ruined} of {m.city.total}{m.city.otherDown ? `; ${m.city.otherDown} other building${m.city.otherDown === 1 ? '' : 's'} down` : ''}. Repairs are free over a few turns.</div>
+                <div className="text-[12.5px] leading-snug mt-1">{t('bt.result.housesRuined', { a: m.city.ruined, b: m.city.total })}{m.city.otherDown ? t('bt.result.otherDown', { count: m.city.otherDown }) : ''}{t('bt.result.repairsFewTurns')}</div>
               )}
             </>
           ) : (
             <>
-              <div className="fa-label">After the battle</div>
-              <div className="text-[12.5px] leading-snug mt-1">{setup.battleType === 'naval' ? 'Ships sunk are gone for good.' : "A decisive field battle: the loser's regiments still on the field are lost; those that left by an exit survive and step back a tile."}</div>
+              <div className="fa-label">{t('bt.result.afterBattle')}</div>
+              <div className="text-[12.5px] leading-snug mt-1">{setup.battleType === 'naval' ? t('bt.result.afterNaval') : t('bt.result.afterField')}</div>
             </>
           )}
           {m.loot && (
             <div className="mt-auto pt-1.5 border-t border-fa-line" data-testid="battle-result-loot">
-              <div className="fa-label">{m.loot.banked ? 'Gold for your treasury' : 'Battle loot'}</div>
+              <div className="fa-label">{m.loot.banked ? t('bt.result.goldTreasury') : t('bt.result.battleLoot')}</div>
               {m.loot.banked
-                ? <div className="fa-num text-[13px]">GOLD <span className="text-fa-good">+{m.loot.gold}</span></div>
-                : <div className="text-[11.5px] text-fa-muted leading-snug"><span className="fa-num">{m.loot.gold}</span> gold was looted and spent inside the battle. None of it reaches your treasury.</div>}
+                ? <div className="fa-num text-[13px]">{t('bt.result.goldCaps')} <span className="text-fa-good">+{m.loot.gold}</span></div>
+                : <div className="text-[11.5px] text-fa-muted leading-snug fa-num">{t('bt.result.lootSpent', { gold: m.loot.gold })}</div>}
             </div>
           )}
         </div>
@@ -128,8 +120,8 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
       )}
 
       <div className="flex items-center gap-2 mt-2">
-        <div className="flex-1 min-w-0 text-[12px] text-fa-muted leading-snug" data-testid="battle-result-auto">{pending ? 'One moment: the campaign is checking the battle order by order.' : m.auto}</div>
-        <button type="button" onClick={onContinue} disabled={pending} className="fa-btn fa-btn-primary fa-btn-hero !min-h-[50px] !px-8 shrink-0 disabled:opacity-50" data-testid="battle-continue">Continue</button>
+        <div className="flex-1 min-w-0 text-[12px] text-fa-muted leading-snug" data-testid="battle-result-auto">{pending ? t('bt.result.checking') : m.auto}</div>
+        <button type="button" onClick={onContinue} disabled={pending} className="fa-btn fa-btn-primary fa-btn-hero !min-h-[50px] !px-8 shrink-0 disabled:opacity-50" data-testid="battle-continue">{t('bt.result.continue')}</button>
       </div>
       </div>
     </div>

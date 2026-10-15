@@ -13,13 +13,12 @@
 //                     gold that reaches the treasury. Without one (the sandbox) it reads the battle.
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
-import { squadName, ecoLabel } from './battleText';
+import { squadName, ecoLabel, auxiliaryText, msgRefText, carryText } from './battleText';
 import { getRankForXp } from '../../data/promotions';
 import { getGeneralXpMultiplier } from '../../data/generals';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN, XP_LOSE } from '../../engine/battleOutcome';
 import { playerWon } from '../../engine/battleReports';
-import { auxiliaryLine } from '../../engine/battleLedger';
 import { TICK_HZ, Q } from '../../battle/sim/constants';
 import { isBaseType } from '../../battle/sim/base';
 import { describeOutcome, verificationNotice } from './battleReportView';
@@ -235,11 +234,11 @@ const lossOf = (units, before) => {
 const fromLedger = (t) => ({ start: t.before, end: t.after + t.fled, lost: t.fallen, destroyed: t.destroyed, fled: t.fled, runDown: t.runDown });
 
 const GENERAL_TEXT = {
-  survived: (name) => `${name} survived.`,
-  fell: (name) => `${name} fell with the regiment.`,
-  escaped: (name) => `${name} escaped the rout, without a regiment now.`
+  survived: (name) => t('bt.result.generalSurvived', { name }),
+  fell: (name) => t('bt.result.generalFell', { name }),
+  escaped: (name) => t('bt.result.generalEscaped', { name })
 };
-const xpRuleOf = (base, won, draw) => `${base} for a ${won ? 'win' : draw ? 'draw' : 'loss'}, x1.25 with a logistician general, plus up to 20 for the fighting you did`;
+const xpRuleOf = (base, won, draw) => t(won ? 'bt.result.xpWin' : draw ? 'bt.result.xpDraw' : 'bt.result.xpLoss', { base });
 // Gold looted inside a battle is spent inside it: only gold the campaign pays in is "yours".
 const lootOf = (eco, goldGained = 0) => (goldGained > 0 ? { gold: goldGained, banked: true } : eco?.looted > 0 ? { gold: eco.looted, banked: false } : null);
 
@@ -261,16 +260,17 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
     duration: tac.durationSec || 0,
     workersLost: eco?.workersLost ?? null,
     auto: Number.isFinite(autoWin)
-      ? `Auto wins this battle ${Math.round(autoWin * 100)}% of the time; it counts the same either way.`
-      : 'Auto is tuned to score about the same as playing: it counts the same either way.'
+      ? t('bt.result.autoWins', { pct: Math.round(autoWin * 100) })
+      : t('bt.result.autoTuned')
   };
   const empty = { mine: null, theirs: null, xp: [], xpRule: null, generals: [], city: null, loot: null, aux: null, notice: null, headline: null };
 
   // The campaign is still counting the battle: no number is shown before it is the final one.
-  if (receipt?.pending) return { ...common, ...empty, state: 'pending', won: false, draw: true, verdict: 'The battle is over', line: 'Counting the result with the campaign.' };
+  if (receipt?.pending) return { ...common, ...empty, state: 'pending', won: false, draw: true, verdict: t('bt.result.over'), line: t('bt.result.counting') };
   // The battle changed nothing on the map (peace was made, the target can no longer be fought).
   if (receipt && receipt.applied === false && !receipt.failed) {
-    return { ...common, ...empty, state: 'void', won: false, draw: true, verdict: 'No effect', line: receipt.voidLine || 'This battle changed nothing on the map.' };
+    const voidAt = (receipt.lines || []).indexOf(receipt.voidLine);
+    return { ...common, ...empty, state: 'void', won: false, draw: true, verdict: t('bt.result.noEffect'), line: (receipt.voidLine ? carryText(receipt.lineMsgs?.[voidAt], receipt.voidLine) : null) || t('bt.result.voidLine') };
   }
 
   // What the campaign commits: the report entry and its ledger, read off the same reducer Continue runs.
@@ -283,16 +283,16 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
       state: 'committed', won, draw,
       verdict: resultOf(e).label,
       headline: describeOutcome(e).text,
-      line: receipt.line,
+      line: msgRefText(receipt.lineMsg, receipt.line),
       reason: e.reason || common.reason,
       duration: e.durationSec || common.duration,
       mine: fromLedger(receipt.ledger.mine), theirs: fromLedger(receipt.ledger.theirs),
       xp: receipt.xp.map((x) => ({ id: x.id, name: squadName(x.classId, ageId), gained: x.gained, rankUp: x.rankUp })),
       xpRule: xpRuleOf(base, won, draw),
       generals: receipt.generals.map((g) => ({ name: g.name, fate: g.fate, text: GENERAL_TEXT[g.fate](g.name) })),
-      city: setup.city ? { committed: true, line: receipt.cityLine, taken: !!receipt.city?.taken, control: receipt.city?.control ?? null } : null,
+      city: setup.city ? { committed: true, line: carryText(receipt.cityLineMsg, receipt.cityLine), taken: !!receipt.city?.taken, control: receipt.city?.control ?? null } : null,
       loot: lootOf(eco, receipt.goldGained),
-      aux: auxiliaryLine(receipt.ledger.aux),
+      aux: auxiliaryText(receipt.ledger.aux),
       notice: verificationNotice(e)
     };
   }
@@ -316,10 +316,10 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
   }).sort((a, b) => b.gained - a.gained);
   const generals = myUnits.filter((u) => u.commanderId).map((u) => {
     const g = commanders[u.commanderId];
-    const name = g?.name || 'Your general';
+    const name = g?.name || t('bt.result.yourGeneral');
     if (u.strength > 0) return { name, fate: 'survived', text: GENERAL_TEXT.survived(name) };
     const falls = campaign.turnNumber != null ? hashRoll(`${u.id}|${campaign.turnNumber}`) < COMMANDER_FALL_CHANCE : null;
-    return { name, fate: falls === null ? 'unknown' : falls ? 'fell' : 'escaped', text: falls === null ? `${name}'s regiment was destroyed: a ${Math.round(COMMANDER_FALL_CHANCE * 100)}% chance to fall.` : GENERAL_TEXT[falls ? 'fell' : 'escaped'](name) };
+    return { name, fate: falls === null ? 'unknown' : falls ? 'fell' : 'escaped', text: falls === null ? t('bt.result.generalDestroyed', { name, pct: Math.round(COMMANDER_FALL_CHANCE * 100) }) : GENERAL_TEXT[falls ? 'fell' : 'escaped'](name) };
   });
   let city = null;
   if (setup.city && tac.cityDamage) {
@@ -333,14 +333,14 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
   return {
     ...common,
     state: 'preview', won, draw,
-    verdict: draw ? 'Stalemate' : won ? (playerSide === 1 ? 'Held' : 'Victory') : 'Defeat',
+    verdict: draw ? t('bt.result.stalemate') : won ? (playerSide === 1 ? t('bt.result.held') : t('bt.result.victory')) : t('bt.result.defeat'),
     headline: null, line: null,
     mine: lossOf(myUnits, setup.sides[playerSide].units), theirs: lossOf(theirUnits, setup.sides[1 - playerSide].units),
     xp, xpRule: xpRuleOf(base, won, draw),
     generals,
     city,
     loot: lootOf(eco),
-    aux: auxTrained > 0 ? auxiliaryLine({ squads: auxTrained, standing: Object.values(eco.auxiliariesStanding || {}).reduce((s, n) => s + n, 0) }) : null,
-    notice: receipt?.failed ? 'The campaign could not show its count of this battle here. Continue hands the battle over; Battle reports will have the final numbers.' : null
+    aux: auxTrained > 0 ? auxiliaryText({ squads: auxTrained, standing: Object.values(eco.auxiliariesStanding || {}).reduce((s, n) => s + n, 0) }) : null,
+    notice: receipt?.failed ? t('bt.result.campaignFailed') : null
   };
 };

@@ -8,8 +8,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Swords, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { nameNow } from '../../i18n/names';
+import { msgRefText } from './battleText';
 import { battleTitle, describeOutcome, formatMen, nationName, regionName, sidesFor, timelineFor } from './battleReportView';
 import { menText } from '../../engine/battleLedger';
+import { useT } from '../../i18n/useT';
 
 const OURS = 'var(--fa-you)';
 const THEIRS = 'var(--fa-enemy)';
@@ -49,25 +52,29 @@ export const sample = (points, p) => {
     mineAbs: a.mineAbs + (b.mineAbs - a.mineAbs) * f, theirsAbs: a.theirsAbs + (b.theirsAbs - a.theirsAbs) * f };
 };
 
-const Bar = ({ label, value, abs, color, hit, stamp }) => (
+const Bar = ({ label, value, abs, color, hit, stamp }) => {
+  const { t } = useT();
+  return (
   <div className="space-y-1">
     <div className="flex justify-between text-[11px] text-fa-text">
       <span>{label}</span>
-      <span className="font-mono tabular-nums">{menText(abs)} men</span>
+      <span className="font-mono tabular-nums">{t('bt.replay.men', { n: menText(abs) })}</span>
     </div>
     <div className="relative h-4 rounded bg-fa-raised overflow-visible">
       <div key={hit} className={`h-full rounded ${hit ? 'animate-hit-flash' : ''}`} style={{ width: `${Math.max(0, value) * 100}%`, background: color, transition: 'width 60ms linear' }} />
       {stamp && (
         <span className="absolute end-1 -top-1.5 px-1.5 rounded border-2 border-fa-danger text-fa-danger-text text-[11px] font-black uppercase tracking-wider bg-fa-panel/80 animate-stamp-in">
-          Routed!
+          {t('bt.replay.routed')}
         </span>
       )}
     </div>
   </div>
-);
+  );
+};
 
 const SingleReplay = ({ entry, onOpen, onClose }) => {
   const { state } = useGame();
+  const { t } = useT();
   const points = useMemo(() => timelineFor(entry), [entry]);
   const ms = Math.min(3200, Math.max(1600, (points.length - 1) * 450));
   // The fighting rounds (the pursuit after a rout is a last point on the timeline, not a round).
@@ -93,18 +100,18 @@ const SingleReplay = ({ entry, onOpen, onClose }) => {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 font-bold text-fa-text"><Swords className="w-4 h-4 text-fa-enemy shrink-0" /> <span className="truncate">{battleTitle(state, entry)}</span></div>
-          <div className="text-[11px] text-fa-muted truncate">{ourNation} against {theirNation}</div>
+          <div className="text-[11px] text-fa-muted truncate">{t('bt.replay.against', { a: ourNation, b: theirNation })}</div>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close battle" className="p-1 rounded hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
+        <button onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label={t('bt.replay.closeBattle')} className="p-1 rounded hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
       </div>
 
-      <Bar label={`Yours · ${ourNation}`} value={now.mine} abs={now.mineAbs} color={OURS} hit={mineHit} stamp={done && last.mineBroken} />
-      <Bar label={`Theirs · ${theirNation}`} value={now.theirs} abs={now.theirsAbs} color={THEIRS} hit={theirsHit} stamp={done && last.theirsBroken} />
+      <Bar label={t('bt.replay.yoursNation', { name: ourNation })} value={now.mine} abs={now.mineAbs} color={OURS} hit={mineHit} stamp={done && last.mineBroken} />
+      <Bar label={t('bt.replay.theirsNation', { name: theirNation })} value={now.theirs} abs={now.theirsAbs} color={THEIRS} hit={theirsHit} stamp={done && last.theirsBroken} />
 
       <div className="space-y-1">
         <div className="flex justify-between text-[10px] text-fa-muted">
-          <span>Balance of strength</span>
-          <span data-testid="battle-replay-rounds">{done ? (rounds <= 1 ? 'Decided in one round' : `${rounds} rounds`) : `Round ${Math.min(rounds, now.round + 1)} of ${rounds}`}</span>
+          <span>{t('bt.replay.balance')}</span>
+          <span data-testid="battle-replay-rounds">{done ? (rounds <= 1 ? t('bt.replay.oneRound') : t('bt.replay.rounds', { n: rounds })) : t('bt.replay.roundOf', { a: Math.min(rounds, now.round + 1), b: rounds })}</span>
         </div>
         <div className="relative h-2 rounded-full overflow-hidden flex bg-fa-raised">
           <div style={{ width: `${share * 100}%`, background: OURS }} />
@@ -116,24 +123,22 @@ const SingleReplay = ({ entry, onOpen, onClose }) => {
       {done ? (
         <div className="space-y-2 pt-1" data-testid="battle-replay-result">
           <div className={`text-base font-bold ${TONE[result.tone]}`}>{result.text}</div>
-          {entry.autoBecause && <div role="status" className="text-xs text-fa-danger-text" data-testid="battle-auto-because">{entry.autoBecause}</div>}
-          <div className="text-xs text-fa-text">
-            Fallen: <span className="font-semibold text-fa-text">{formatMen(entry.fallen[mine])}</span> of yours ·{' '}
-            <span className="font-semibold text-fa-text">{formatMen(entry.fallen[theirs])}</span> of theirs
-          </div>
+          {entry.autoBecause && <div role="status" className="text-xs text-fa-danger-text" data-testid="battle-auto-because">{msgRefText(entry.autoBecauseMsg, entry.autoBecause)}</div>}
+          <div className="text-xs text-fa-text">{t('bt.replay.fallen', { a: formatMen(entry.fallen[mine]), b: formatMen(entry.fallen[theirs]) })}</div>
           <div className="flex gap-2">
-            <button onClick={() => onOpen(entry.id)} className="flex-1 fa-btn fa-btn-secondary">Full report</button>
-            <button onClick={onClose} className="flex-1 fa-btn fa-btn-primary">Continue</button>
+            <button onClick={() => onOpen(entry.id)} className="flex-1 fa-btn fa-btn-secondary">{t('bt.replay.fullReport')}</button>
+            <button onClick={onClose} className="flex-1 fa-btn fa-btn-primary">{t('bt.replay.continue')}</button>
           </div>
         </div>
       ) : (
-        <div className="text-[10px] text-fa-muted text-center">Tap to skip</div>
+        <div className="text-[10px] text-fa-muted text-center">{t('bt.replay.tapSkip')}</div>
       )}
     </div>
   );
 };
 
 const MiniRow = ({ entry, p, onOpen }) => {
+  const { t } = useT();
   const points = timelineFor(entry);
   const now = sample(points, p);
   const result = describeOutcome(entry);
@@ -141,8 +146,8 @@ const MiniRow = ({ entry, p, onOpen }) => {
   return (
     <div className="space-y-1">
       <div className="flex justify-between gap-2 text-[11px]">
-        <span className="truncate text-fa-text">{entry.name || regionName(entry.targetRegionId)}</span>
-        {p >= 1 && <span className={`shrink-0 font-semibold ${TONE[result.tone]}`}>{result.tone === 'win' ? 'Won' : result.tone === 'loss' ? 'Lost' : 'Drawn'}</span>}
+        <span className="truncate text-fa-text">{entry.name ? nameNow('battle', null, entry.name) : regionName(entry.targetRegionId)}</span>
+        {p >= 1 && <span className={`shrink-0 font-semibold ${TONE[result.tone]}`}>{result.tone === 'win' ? t('bt.replay.won') : result.tone === 'loss' ? t('bt.replay.lost') : t('bt.replay.drawn')}</span>}
       </div>
       <div className="flex gap-1 h-2">
         <div className="flex-1 rounded bg-fa-raised"><div className="h-full rounded" style={{ width: `${now.mine * 100}%`, background: OURS }} /></div>
@@ -150,8 +155,8 @@ const MiniRow = ({ entry, p, onOpen }) => {
       </div>
       {p >= 1 && (
         <div className="flex justify-between text-[10px] text-fa-muted">
-          <span>Fallen {formatMen(entry.fallen[mine])} · {formatMen(entry.fallen[theirs])}</span>
-          <button onClick={() => onOpen(entry.id)} className="text-fa-you underline underline-offset-2">Report</button>
+          <span>{t('bt.replay.fallenShort', { a: formatMen(entry.fallen[mine]), b: formatMen(entry.fallen[theirs]) })}</span>
+          <button onClick={() => onOpen(entry.id)} className="text-fa-you underline underline-offset-2">{t('bt.replay.report')}</button>
         </div>
       )}
     </div>
@@ -159,21 +164,22 @@ const MiniRow = ({ entry, p, onOpen }) => {
 };
 
 const MultiReplay = ({ entries, onOpen, onClose }) => {
+  const { t } = useT();
   const [p, skip] = useProgress(1500, [entries.map((e) => e.id).join()]);
   return (
     <div onClick={p >= 1 ? undefined : skip} data-testid="battle-replay"
       className="w-[min(520px,92vw)] max-h-[92dvh] overflow-y-auto bg-fa-panel border border-fa-line rounded-[10px] p-4 shadow-2xl text-fa-text space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 font-bold text-fa-text"><Swords className="w-4 h-4 text-fa-enemy" /> {entries.length} battles this turn</div>
+        <div className="flex items-center gap-1.5 font-bold text-fa-text"><Swords className="w-4 h-4 text-fa-enemy" /> {t('bt.replay.battlesThisTurn', { n: entries.length })}</div>
         <div className="flex items-center gap-3 text-[10px] text-fa-muted">
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: OURS }} />Yours</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: THEIRS }} />Theirs</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: OURS }} />{t('bt.result.yours')}</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: THEIRS }} />{t('bt.result.theirs')}</span>
         </div>
       </div>
       {entries.map((e) => <MiniRow key={e.id} entry={e} p={p} onOpen={onOpen} />)}
       {p >= 1
-        ? <button onClick={onClose} className="w-full fa-btn fa-btn-primary">Continue</button>
-        : <div className="text-[10px] text-fa-muted text-center">Tap to skip</div>}
+        ? <button onClick={onClose} className="w-full fa-btn fa-btn-primary">{t('bt.replay.continue')}</button>
+        : <div className="text-[10px] text-fa-muted text-center">{t('bt.replay.tapSkip')}</div>}
     </div>
   );
 };

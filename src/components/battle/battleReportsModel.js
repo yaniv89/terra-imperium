@@ -3,20 +3,15 @@
 // as a list with filters (All, Won, Lost, Command, Auto, Sieges, Field, Sea) and the detail of
 // one: its name, the result from your side (Victory, Held, Defeat, Lost, Repelled, Stalemate),
 // Command or Auto, both sides in and lost, a plain summary and the strength timeline. Pure.
-import { auxiliaryLine, ledgerOf, menOf } from '../../engine/battleLedger';
+import { ledgerOf, menOf } from '../../engine/battleLedger';
+import { t, formatYear } from '../../i18n/core';
+import { auxiliaryText } from './battleText';
+import { messageOf } from '../../i18n/messageText';
 import { playerWon } from '../../engine/battleReports';
+import { terrainWord } from '../../i18n/gameText';
 import { FATE_VIEW, battleTitle, describeOutcome, fateOf, fateText, nationName, regionName, sidesFor, timelineFor, verificationNotice } from './battleReportView';
 
-export const REPORT_FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'won', label: 'Won' },
-  { id: 'lost', label: 'Lost' },
-  { id: 'command', label: 'Command' },
-  { id: 'auto', label: 'Auto' },
-  { id: 'siege', label: 'Sieges' },
-  { id: 'field', label: 'Field' },
-  { id: 'sea', label: 'Sea' }
-];
+export const REPORT_FILTERS = ['all', 'won', 'lost', 'command', 'auto', 'siege', 'field', 'sea'].map((id) => ({ id, get label() { return t(`bt.rep.filter.${id}`); } }));
 
 /** What sort of battle an entry was: 'sea', 'field' or 'siege' (an assault on a city, a landing, a defence). */
 export const reportGroup = (e) => {
@@ -36,18 +31,18 @@ export const filterReports = (reports = [], filter = 'all') => reports.filter((e
 
 /** The result word from your side and its tone. */
 export const resultOf = (e) => {
-  if (e.outcome === 'stalemate') return { label: 'Stalemate', tone: 'draw' };
+  if (e.outcome === 'stalemate') return { label: t('bt.rep.res.stalemate'), tone: 'draw' };
   const won = playerWon(e);
   // A raid or a sack takes no city: it is driven off, or it gets through (I006).
   if (e.kind === 'raid' || e.kind === 'sack') {
-    if (e.playerSide === 'defender') return won ? { label: 'Driven off', tone: 'win' } : { label: e.kind === 'sack' ? 'Sacked' : 'Raided', tone: 'loss' };
-    return won ? { label: 'Victory', tone: 'win' } : { label: 'Driven off', tone: 'loss' };
+    if (e.playerSide === 'defender') return won ? { label: t('bt.rep.res.drivenOff'), tone: 'win' } : { label: e.kind === 'sack' ? t('bt.rep.res.sacked') : t('bt.rep.res.raided'), tone: 'loss' };
+    return won ? { label: t('bt.rep.res.victory'), tone: 'win' } : { label: t('bt.rep.res.drivenOff'), tone: 'loss' };
   }
-  if (e.playerSide === 'defender') return won ? { label: 'Held', tone: 'win' } : { label: e.captured ? 'Lost' : 'Defeat', tone: 'loss' };
-  return won ? { label: 'Victory', tone: 'win' } : { label: 'Repelled', tone: 'loss' };
+  if (e.playerSide === 'defender') return won ? { label: t('bt.rep.res.held'), tone: 'win' } : { label: e.captured ? t('bt.rep.res.lost') : t('bt.rep.res.defeat'), tone: 'loss' };
+  return won ? { label: t('bt.rep.res.victory'), tone: 'win' } : { label: t('bt.rep.res.repelled'), tone: 'loss' };
 };
 
-export const yearText = (y) => (y < 0 ? `${-y} BCE` : `${y} CE`);
+export const yearText = (y) => formatYear(y);
 const men = (n) => Math.round(n || 0);
 const sideMen = (e, side) => menOf((e.sides?.[side] || []).reduce((s, u) => s + u.before, 0));
 
@@ -58,8 +53,8 @@ export const reportRow = (state, e) => {
     id: e.id,
     name: battleTitle(state, e),
     group: reportGroup(e),
-    when: `T${e.turn} · ${yearText(e.year)}`,
-    mode: e.commanded ? 'Command' : 'Auto',
+    when: t('bt.rep.when', { turn: e.turn, year: yearText(e.year) }),
+    mode: e.commanded ? t('bt.rep.modeCommand') : t('bt.rep.modeAuto'),
     result: resultOf(e),
     losses: `-${men(e.fallen?.[mine])} / -${men(e.fallen?.[theirs])}`
   };
@@ -92,9 +87,9 @@ export const detailFor = (all, shown, pickedId) => {
  * an Auto battle never says "commanded battles keep no replay".
  */
 export const replayFooter = (e, canReplay, oneRound) => {
-  if (oneRound) return 'Decided in one round: these numbers are the whole battle.';
-  if (e.commanded) return canReplay ? 'Commanded battle: the timeline above is kept.' : 'Commanded battles keep no replay yet.';
-  return canReplay ? 'Auto battles keep their rounds.' : 'This Auto battle was decided without rounds to replay.';
+  if (oneRound) return t('bt.rep.footer.oneRound');
+  if (e.commanded) return canReplay ? t('bt.rep.footer.cmdReplay') : t('bt.rep.footer.cmdNoReplay');
+  return canReplay ? t('bt.rep.footer.autoReplay') : t('bt.rep.footer.autoNone');
 };
 
 /** The detail of one battle. */
@@ -104,7 +99,7 @@ export const reportDetail = (state, e) => {
   const myNation = e[`${mine}NationId`]; const theirNation = e[`${theirs}NationId`];
   const outcome = describeOutcome(e);
   const fled = (e.fled?.[mine] || 0) + (e.fled?.[theirs] || 0) > 0
-    ? ` Fled the field: ${men(e.fled[mine])} of yours, ${men(e.fled[theirs])} of theirs.` : '';
+    ? t('bt.rep.fledField', { a: men(e.fled[mine]), b: men(e.fled[theirs]) }) : '';
   const destroyed = (e.sides?.[theirs] || []).filter((u) => u.after <= 0).length;
   const lostUnits = (e.sides?.[mine] || []).filter((u) => u.after <= 0).length;
   const ledger = ledgerOf(e);
@@ -112,17 +107,17 @@ export const reportDetail = (state, e) => {
   const rounds = e.rounds ?? Math.max(0, timelineFor(e).filter((p) => !p.pursuit).length - 1);
   return {
     ...reportRow(state, e),
-    who: `${e.playerSide === 'attacker' ? 'You attacked' : 'You defended'} · ${e.commanded ? 'Command' : 'Auto'}${e.terrain ? ` · ${e.terrain}` : ''}`,
+    who: t(e.terrain ? 'bt.rep.whoTerrain' : 'bt.rep.who', { side: e.playerSide === 'attacker' ? t('bt.rep.youAttacked') : t('bt.rep.youDefended'), mode: e.commanded ? t('bt.rep.modeCommand') : t('bt.rep.modeAuto'), terrain: e.terrain ? terrainWord(e.terrain) : '' }),
     yours: { name: nationName(state, myNation), in: men(sideMen(e, mine)), lost: men(e.fallen?.[mine]) },
     theirs: { name: nationName(state, theirNation), in: men(sideMen(e, theirs)), lost: men(e.fallen?.[theirs]) },
-    summary: `${outcome.text}. ${destroyed ? `${destroyed} of their regiments destroyed` : 'None of their regiments destroyed'}; ${lostUnits ? `${lostUnits} of yours lost` : 'none of yours lost'}.${fled}`,
+    summary: t('bt.rep.summary', { outcome: outcome.text, theirs: destroyed ? t('bt.rep.destroyedTheirs.some', { n: destroyed }) : t('bt.rep.destroyedTheirs.zero'), yours: lostUnits ? t('bt.rep.lostYours.some', { n: lostUnits }) : t('bt.rep.lostYours.zero'), fled }),
     timeline: timelineFor(e),
     canReplay: timelineFor(e).length > 1,
     footer: replayFooter(e, timelineFor(e).length > 1, !e.commanded && rounds === 1),
     oneRound: !e.commanded && rounds === 1,
     // The receipt: what the campaign logged, the temporary troops, and how a commanded battle was checked.
-    line: e.line || null,
-    aux: [auxiliaryLine(ledger.aux), auxiliaryLine(ledger.theirAux, { yours: false })].filter(Boolean),
+    line: e.lineMsg ? messageOf(e.lineMsg.key, e.lineMsg.vars) : e.line || null,
+    aux: [auxiliaryText(ledger.aux), auxiliaryText(ledger.theirAux, { yours: false })].filter(Boolean),
     notice: verificationNotice(e),
     place: e.targetRegionId ? regionName(e.targetRegionId) : null,
     targetRegionId: e.targetRegionId || null

@@ -518,9 +518,11 @@ export const ABANDON_REASONS = {
  * DEF-01: a battle the player chose to Command but that was fought on Auto says so on its result
  * (`autoBecause` on the newest report: BattleReplay and the report sheet show it), never silently.
  */
-const stampAutoBecause = (before, after, text) => {
+// `m` is the msg() record of the sentence (messages.js): its English is `autoBecause`, the key and vars
+// ride beside it as `autoBecauseMsg` so the report is read in the reader's language.
+const stampAutoBecause = (before, after, m) => {
   if ((after.battleReportSeq || 0) === (before.battleReportSeq || 0) || !after.battleReports?.[0]) return after;
-  return { ...after, battleReports: [{ ...after.battleReports[0], autoBecause: text }, ...after.battleReports.slice(1)] };
+  return { ...after, battleReports: [{ ...after.battleReports[0], autoBecause: m.message, autoBecauseMsg: sub(m.msgKey, m.msgVars) }, ...after.battleReports.slice(1)] };
 };
 /** How the Log line of a finished battle that changed nothing begins (battleReceipt.js reads it). */
 export const BATTLE_VOID_PREFIX = 'The battle at';
@@ -1626,7 +1628,7 @@ const reduceAction = (state, action) => {
       // against: the attack is fought on Auto (cityAssault.js, against its defences).
       // The result says so (DEF-01): the card could not tell a city it has no intel on was empty.
       if (v.defenderUnits.length === 0 && !cityMilitia(state, targetRegionId).length) {
-        return stampAutoBecause(state, gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } }), `You chose Command, but nobody defends ${REGIONS_DATA[targetRegionId]?.name || 'the city'} (no garrison, no militia): it was fought on Auto against its defences.`);
+        return stampAutoBecause(state, gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } }), msg('m.act.autoNoDefenders', { place: cityOr(targetRegionId, REGIONS_DATA[targetRegionId]?.name, 'm.battle.theTown') }));
       }
       const rng = createRng(state.rngSeed);
       const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;
@@ -1751,9 +1753,8 @@ const reduceAction = (state, action) => {
       const reason = action.payload?.reason;
       if (reason) {
         const settled = gameReducer(state, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
-        const why = ABANDON_REASONS[reason] || 'the battle screen could not open';
         // DEF-01: the result itself says the player's Command became Auto, and why, not only the Log.
-        const told = stampAutoBecause(state, settled, `You chose Command, but it was fought on Auto: ${why}.`);
+        const told = stampAutoBecause(state, settled, msg('m.act.autoBecause', { why: sub(ABANDON_REASONS[reason] ? `m.act.abandon.${reason}` : 'm.act.abandon.default') }));
         const where = cityOr(pb.targetRegionId, state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name, 'm.act.theField');
         return { ...told, logs: [...settled.logs, { year: state.year, ...msg('m.act.settledOnAuto', { place: where, why: sub(ABANDON_REASONS[reason] ? `m.act.abandon.${reason}` : 'm.act.abandon.default') }), type: LogTypes.COMBAT }] };
       }
@@ -1808,7 +1809,7 @@ const reduceAction = (state, action) => {
       // An enemy fleet has to be fought at sea first, and an empty beach needs no battle: both go
       // through the auto-resolved assault exactly as before.
       if (v.defenderNavalUnits.length || !v.defenderLandUnits.length) {
-        return stampAutoBecause(state, gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId } }), v.defenderNavalUnits.length ? 'You chose Command, but an enemy fleet guards the coast: the landing was fought on Auto.' : 'You chose Command, but nobody holds the beach: the landing was fought on Auto.');
+        return stampAutoBecause(state, gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId } }), msg(v.defenderNavalUnits.length ? 'm.act.autoFleet' : 'm.act.autoBeach'));
       }
       const rng = createRng(state.rngSeed);
       const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;

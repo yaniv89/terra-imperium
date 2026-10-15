@@ -5,57 +5,52 @@
 import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { REGIONS_DATA } from '../../data/regions';
 import { battleName } from '../../engine/battleNames';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
 
-export const regionName = (id) => (id && REGIONS_DATA[id]?.name) || id || 'the field';
-export const unitName = (classId, ageId = 'bronze', navalLine = null) => unitDisplayName(ageId, classId, navalLine) || 'Unit';
-export const nationName = (state, id) => (id === 'rebels' ? 'Rebels' : state.nations?.[id]?.name || id || 'Unknown');
+export const regionName = (id) => { const n = id && REGIONS_DATA[id]?.name; return n ? nameNow('city', null, n) : id || t('bt.rep.theField'); };
+export const unitName = (classId, ageId = 'bronze', navalLine = null) => unitDisplayName(ageId, classId, navalLine) || t('bt.rep.unit');
+export const nationName = (state, id) => { if (id === 'rebels') return t('bt.rep.rebels'); const n = state.nations?.[id]; return n?.name ? nameNow('people', id, n.name) : id || t('bt.rep.unknown'); };
 // "Siege of Kish": the name the entry was given when fought, or one made now for an older entry.
-export const battleTitle = (state, entry) => entry?.name || battleName(state, entry || {});
+export const battleTitle = (state, entry) => nameNow('battle', null, entry?.name || battleName(state, entry || {}));
 
 // 'win' | 'loss' | 'draw', and a short headline.
 export const describeOutcome = (entry) => {
   const place = regionName(entry.targetRegionId);
-  if (entry.outcome === 'stalemate') return { tone: 'draw', text: `Stalemate at ${place}` };
+  if (entry.outcome === 'stalemate') return { tone: 'draw', text: t('bt.rep.out.stalemate', { place }) };
   const won = entry.outcome === entry.playerSide;
-  if (entry.kind === 'naval') return won ? { tone: 'win', text: `Victory at sea off ${place}` } : { tone: 'loss', text: `Defeat at sea off ${place}` };
-  if (entry.kind === 'rebellion') return won ? { tone: 'win', text: `Rebels crushed in ${place}` } : { tone: 'loss', text: `The rebels held ${place}` };
+  if (entry.kind === 'naval') return won ? { tone: 'win', text: t('bt.rep.out.seaWin', { place }) } : { tone: 'loss', text: t('bt.rep.out.seaLoss', { place }) };
+  if (entry.kind === 'rebellion') return won ? { tone: 'win', text: t('bt.rep.out.rebelWin', { place }) } : { tone: 'loss', text: t('bt.rep.out.rebelLoss', { place }) };
   // A raid or a sack is never a conquest, and it says nothing about walls (I006): the raiders are
   // driven off, or they get through with the loot.
   if (entry.kind === 'raid' || entry.kind === 'sack') {
     const sack = entry.kind === 'sack';
     if (entry.playerSide === 'defender') {
-      if (won) return { tone: 'win', text: sack ? `Raiders driven off at ${place}` : `Raiders driven off near ${place}` };
-      return { tone: 'loss', text: sack ? `${place} sacked: the raiders got away with the loot` : `Raiders got through near ${place} with the loot` };
+      if (won) return { tone: 'win', text: t(sack ? 'bt.rep.out.sackDefWin' : 'bt.rep.out.raidDefWin', { place }) };
+      return { tone: 'loss', text: t(sack ? 'bt.rep.out.sackDefLoss' : 'bt.rep.out.raidDefLoss', { place }) };
     }
-    return won ? { tone: 'win', text: sack ? `${place} sacked` : `Raid near ${place} succeeded` } : { tone: 'loss', text: `Your raiders were driven off near ${place}` };
+    return won ? { tone: 'win', text: t(sack ? 'bt.rep.out.sackAtkWin' : 'bt.rep.out.raidAtkWin', { place }) } : { tone: 'loss', text: t('bt.rep.out.raidAtkLoss', { place }) };
   }
   // A battle in the open takes no city either.
-  if (entry.kind === 'field') return won ? { tone: 'win', text: `Victory in the field near ${place}` } : { tone: 'loss', text: `Defeat in the field near ${place}` };
+  if (entry.kind === 'field') return won ? { tone: 'win', text: t('bt.rep.out.fieldWin', { place }) } : { tone: 'loss', text: t('bt.rep.out.fieldLoss', { place }) };
   if (entry.playerSide === 'attacker') {
-    if (!won) return { tone: 'loss', text: `Repelled at ${place}` };
-    return entry.captured ? { tone: 'win', text: `${place} taken` } : { tone: 'win', text: `Victory at ${place}, but the city is not yours yet` };
+    if (!won) return { tone: 'loss', text: t('bt.rep.out.repelled', { place }) };
+    return entry.captured ? { tone: 'win', text: t('bt.rep.out.taken', { place }) } : { tone: 'win', text: t('bt.rep.out.notYet', { place }) };
   }
-  if (won) return { tone: 'win', text: `${place} held` };
-  return entry.captured ? { tone: 'loss', text: `${place} lost` } : { tone: 'loss', text: `${place} holds on, but the enemy gained ground` };
+  if (won) return { tone: 'win', text: t('bt.rep.out.held', { place }) };
+  return entry.captured ? { tone: 'loss', text: t('bt.rep.out.lost', { place }) } : { tone: 'loss', text: t('bt.rep.out.holdsOn', { place }) };
 };
 
 // How a commanded battle was checked by the campaign (src/engine/battleVerify.js), in plain words
 // for the player, or null when there is nothing to say (verified, or an Auto battle).
-const VERIFY_NOTICE = {
-  desync: 'The campaign counted this battle again and reached a different end than your screen showed. This result is the one that counts.',
-  setup: 'The campaign counted this battle again from its own record of the armies, which differed from your screen. This result is the one that counts.',
-  cut: 'Some of your orders could not be counted again, so this result may differ a little from what you saw. This result is the one that counts.',
-  version: 'This battle was fought under older rules and could not be counted again: the result your screen reported was used.',
-  error: 'The campaign could not count this battle again: the result your screen reported was used.',
-  no_setup: 'The armies had moved on, so the campaign could not count this battle again: the result your screen reported was used.'
-};
+const VERIFY_KINDS = new Set(['desync', 'setup', 'cut', 'version', 'error', 'no_setup']);
 export const verificationNotice = (entry) => {
   const parts = [];
-  if (entry?.verification && VERIFY_NOTICE[entry.verification]) parts.push(VERIFY_NOTICE[entry.verification]);
+  if (entry?.verification && VERIFY_KINDS.has(entry.verification)) parts.push(t(`bt.rep.verify.${entry.verification}`));
   const missing = (entry?.breaches || []).filter((b) => b.kind === 'missing').length;
-  if (missing) parts.push(`${missing} regiment${missing === 1 ? ' was' : 's were'} missing from the battle's record and count${missing === 1 ? 's' : ''} as lost.`);
+  if (missing) parts.push(t('bt.rep.missing', { count: missing }));
   const other = (entry?.breaches || []).some((b) => b.kind !== 'missing');
-  if (other) parts.push('The count of this battle does not match the map exactly. Please report it.');
+  if (other) parts.push(t('bt.rep.mismatch'));
   return parts.length ? parts.join(' ') : null;
 };
 
@@ -88,14 +83,16 @@ export const formatMen = (n) => Math.round(n || 0).toLocaleString('en-US');
 // Each unit's fate in plain words (src/engine/battleReports.js unitFate), with a tone the sheet
 // colours and picks an icon by: 'good', 'calm', 'warn', 'bad'. 'broke' is only for reports saved
 // before fates were recorded: a broken unit of the losing side whose end was not written down.
+// (`text` is read when needed, so it follows the language.)
+const fateView = (id, tone) => ({ tone, get text() { return t(`bt.rep.fate.${id}`); } });
 export const FATE_VIEW = {
-  held: { text: 'Held the field', tone: 'good' },
-  pulledBack: { text: 'Pulled back', tone: 'warn' },
-  withdrew: { text: 'Withdrew in good order', tone: 'calm' },
-  escaped: { text: 'Broke but escaped', tone: 'warn' },
-  runDown: { text: 'Caught and destroyed while fleeing', tone: 'bad' },
-  fellFighting: { text: 'Destroyed in the fight', tone: 'bad' },
-  broke: { text: 'Broke and fled', tone: 'warn' }
+  held: fateView('held', 'good'),
+  pulledBack: fateView('pulledBack', 'warn'),
+  withdrew: fateView('withdrew', 'calm'),
+  escaped: fateView('escaped', 'warn'),
+  runDown: fateView('runDown', 'bad'),
+  fellFighting: fateView('fellFighting', 'bad'),
+  broke: fateView('broke', 'warn')
 };
 
 /** A unit's fate in a report entry: the recorded one, or the best reading of an older entry. */
@@ -111,8 +108,8 @@ export const fateOf = (entry, side, u) => {
 export const fateText = (entry, side, u) => {
   const fate = fateOf(entry, side, u);
   if (fate === 'runDown') {
-    if (u.domain === 'naval' || u.classId === 'naval') return 'Sunk while falling back';
-    if (u.byCavalry) return 'Run down by cavalry while fleeing';
+    if (u.domain === 'naval' || u.classId === 'naval') return t('bt.rep.fate.sunk');
+    if (u.byCavalry) return t('bt.rep.fate.cavalry');
   }
   return FATE_VIEW[fate].text;
 };
