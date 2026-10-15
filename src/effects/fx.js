@@ -4,6 +4,8 @@
 // `build(...)` returning an object with a `draw(...)` that sets attributes for the current frame.
 import { make, setAttrs, hide, HIDDEN, clamp, ease, hash, makeIcon, placeIcon, polyPoints } from './engine';
 import { getEffectIconPath } from '../data/effectIcons';
+import { getLanguage } from '../i18n/core';
+import FX_HE from '../i18n/locales/data/he.fx';
 
 // A stage is one effect's private corner of the overlay SVG.
 export const createStage = (svg, defs, key) => {
@@ -159,7 +161,8 @@ export const buildLabel = (stage, text, color) => {
     'text-anchor': 'middle', 'font-family': 'ui-sans-serif, system-ui, sans-serif', 'font-weight': 700,
     fill: color, stroke: '#0f172a', 'stroke-width': 3, 'paint-order': 'stroke', opacity: 0
   });
-  node.textContent = text;
+  // In Hebrew the caption comes from i18n/locales/data/he.fx.js (keyed by the English text).
+  node.textContent = getLanguage() === 'he' ? (FX_HE[text] || text) : text;
   return {
     draw: (x, y, u, z = 1) => {
       const o = u <= 0 || u >= 1 ? 0 : Math.min(1, u / 0.15, (1 - u) / 0.25);

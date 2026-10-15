@@ -7,6 +7,16 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const CONVERTED = [
+  'src/components/panels/DomesticPanel.jsx',
+  'src/components/panels/GovernmentChangeDialog.jsx',
+  'src/components/panels/LegacyPanel.jsx',
+  'src/components/panels/MilitaryPanel.jsx',
+  'src/components/panels/SpacePanel.jsx',
+  'src/components/ui/NationOverviewSheet.jsx',
+  'src/components/modals/AgeAdvanceBanner.jsx',
+  'src/components/modals/NationEliminatedBanner.jsx',
+  'src/components/modals/GameOverModal.jsx',
+  'src/components/ui/ActionButton.jsx',
   'src/components/ui/TitleScreen.jsx',
   'src/components/ui/SettingsSheet.jsx',
   'src/components/ui/LanguageSwitch.jsx',
