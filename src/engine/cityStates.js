@@ -24,6 +24,17 @@ import { clampPrestige } from './nationalPower';
 import { opinionOf } from './opinion';
 import { hasMet } from './hostility';
 import { thinksOn } from './raids';
+import { msg, sub, people, thing } from './messages';
+
+// patronBonusText (data/cityStates.js) as a message: "+3 gold a turn".
+const patronBonusMsg = (type, ageId) => {
+  const b = patronBonusOf(type, ageId);
+  if (b.gold) return sub('m.world.bonusGold', { n: b.gold });
+  if (b.hr) return sub('m.world.bonusManpower', { n: b.hr });
+  if (b.techPoints) return sub('m.world.bonusResearch', { n: b.techPoints });
+  if (b.prestige) return sub('m.world.bonusPrestige', { n: b.prestige });
+  return '';
+};
 
 /** A city-state's patron now (an id or null), from the turn's view. `majorCities`: [{ owner, centre }]. */
 export const choosePatron = (view, indepId, majorCities) => {
@@ -87,8 +98,8 @@ export const processPatrons = (w, indeps) => {
         w.nations[id] = { ...n, indep };
         n = w.nations[id];
         const type = cityStateTypeOf(n);
-        if (patron === w.playerId) w.logs.push({ year: w.year, type: LogTypes.DIPLOMACY, message: `${n.name} (${CITY_STATE_TYPES[type].name} city-state) now favour you: ${patronBonusText(type, w.age)} while they do.`, nationId: id });
-        else if (before === w.playerId) w.logs.push({ year: w.year, type: LogTypes.DIPLOMACY, message: `${n.name} no longer favour you${patron ? `; they now favour ${w.nations[patron]?.name || patron}` : ''}.`, nationId: id });
+        if (patron === w.playerId) w.logs.push({ year: w.year, type: LogTypes.DIPLOMACY, ...msg('m.world.patronYou', { nation: people(id, n.name), type: thing('cityStateType', type, CITY_STATE_TYPES[type].name), bonus: patronBonusMsg(type, w.age) }), nationId: id });
+        else if (before === w.playerId) w.logs.push({ year: w.year, type: LogTypes.DIPLOMACY, ...msg('m.world.patronLost', { nation: people(id, n.name), now: patron ? sub('m.world.patronNow', { patron: people(patron, w.nations[patron]?.name || patron) }) : '' }), nationId: id });
       }
     }
     const patron = n.indep.patron;

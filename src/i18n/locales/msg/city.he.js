@@ -1,4 +1,35 @@
 // src/i18n/locales/msg/city.he.js
-// Engine messages (phase H3): city. Keys and placeholders: src/engine/messages.js.
+// Engine messages (phase H3): city. Machine drafted, for the user to review in H6.
 export default {
+  'm.city.starves': '{city} רעבה ומצטמקת לגודל {size}.',
+  'm.city.starvesSiege': '{city} רעבה במצור ומצטמקת לגודל {size}.',
+  'm.city.grows': '{city} גדלה לגודל {size}.',
+  'm.city.completesBuilding': '{city} משלימה {building}.',
+  'm.city.district': '{city} מתווה את {district} שלה.',
+  'm.city.improvement': '{city} בונה {improvement}.',
+  'm.city.settlers': '{city} שולחת מתיישבים.',
+  'm.city.wonderAbandoned': '{city} נוטשת את {wonder}: הוא כבר עומד במקום אחר.',
+  'm.city.wonderDone': '{city} משלימה את {wonder} (דרגה {tier}).',
+  'm.city.trainsForArmy': '{city} מאמנת {unit} עבור {army} ({done}/{total}).',
+  'm.city.armyComplete': '{army} הושלם ב{city}.',
+  'm.city.trainsScouts': '{city} מאמנת סיירים.',
+  'm.city.trains': '{city} מאמנת {unit}.',
+  'm.city.borders': 'גבולות {city} מתרחבים אל {land}.',
+  'm.city.newLand': 'אדמה חדשה',
+
+  'm.city.loyaltyLow': 'הנאמנות של {city} נשחקת ({loyalty}): הציבו בה חיל מצב או שפרו את הנוחות בה.',
+  'm.city.flipLost': '{city} עברה לצד {nation}: אנשיה כבר לא מרגישים שייכים לך.',
+  'm.city.flipGained': '{city} מצטרפת אליך: אנשיה בחרו בשלטונך.',
+  'm.city.flipIndependent': '{city} השליכה את שלטונך ועומדת כעת כ{nation}, עיר עצמאית.',
+  'm.city.flipFree': '{city} השליכה את שלטונך ועומדת כעת כעיר חופשית.',
+
+  'm.city.plagueOutbreak': 'מגפה פורצת ב{city}.',
+  'm.city.plagueOver': 'המגפה ב{city} דעכה{left}.',
+  'm.city.plagueLeftSize': ', והשאירה אותה בגודל {size}',
+  'm.city.plagueShrinks': 'המגפה הורגת רבים ב{city}: היא מצטמקת לגודל {size}.',
+  'm.city.plagueReaches': 'המגפה מגיעה ל{city}.',
+  'm.city.flood': 'הנהר מציף את {city}: חצי ממאגריה אבדו והשדות יניבו פחות במשך {turns} תורות.',
+  'm.city.fire': 'שריפה פושטת ב{city}: חצי מהעבודה בתהליך אבדה ובתי המלאכה יניבו פחות במשך {turns} תורות.',
+  'm.city.plagueStrikesOne': 'מגפה מכה ב{city}: {n} תושב מת ואין צמיחה במשך {turns} תורות.',
+  'm.city.plagueStrikesMany': 'מגפה מכה ב{city}: {n} תושבים מתו ואין צמיחה במשך {turns} תורות.',
 };

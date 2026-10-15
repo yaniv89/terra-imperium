@@ -8,6 +8,7 @@
 import { getYearsPerTurn } from '../data/ages';
 import { generateGivenName, generateDynastyName } from '../data/names';
 import { POSITIVE_TRAIT_IDS, NEGATIVE_TRAIT_IDS, TRAITS } from '../data/traits';
+import { msg, sub, person, thing } from './messages';
 
 /** The skill bias a government type gives a newly rolled ruler ('theocratic', 'autocratic' or null). */
 export const rulerStyleFor = (government) => {
@@ -67,13 +68,16 @@ export const processReignEnd = (nation, rng, { turnNumber, age, gameSpeed }) => 
   return generateRuler(nation.id, rng, { dynasty, turnNumber, age, gameSpeed, style: rulerStyleFor(nation.government) });
 };
 
-/** The Log line for a succession (I147): who the reign ended for, how long it lasted, the new
+/** The Log line for a succession (I147), as msg(): who the reign ended for, how long it lasted, the new
  *  ruler's house, skills and traits. One line per succession; phase RU owns the full history. */
 export const successionLine = (prev, next) => {
-  const traits = (next.traits || []).map((id) => TRAITS[id]?.name || id);
-  const skills = `ADM ${next.adm}, DIP ${next.dip}, MIL ${next.mil}${traits.length ? `; ${traits.join(', ')}` : ''}`;
-  const ended = prev ? `${prev.name} of House ${prev.dynasty} reigned ${Math.max(1, next.reignStartTurn - prev.reignStartTurn)} turns. ` : '';
-  return `${ended}${next.name} of House ${next.dynasty} now rules (${skills}).`;
+  // A msg() result (message is the English line); the traits are a list of names ("a, b, c").
+  const traits = (next.traits || []).map((id) => thing('trait', id, TRAITS[id]?.name || id)).reduce((acc, t) => (acc === '' ? t : sub('m.world.listMore', { a: acc, b: t })), '');
+  return msg('m.world.succession', {
+    ended: prev ? sub('m.world.reignEnded', { ruler: person(prev.name), house: person(prev.dynasty), turns: Math.max(1, next.reignStartTurn - prev.reignStartTurn) }) : '',
+    ruler: person(next.name), house: person(next.dynasty), adm: next.adm, dip: next.dip, mil: next.mil,
+    traits: traits === '' ? '' : sub('m.world.successionTraits', { traits }),
+  });
 };
 
 // Advisors (plan §M3). A hired advisor's only effect is +level to their own power pool

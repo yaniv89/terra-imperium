@@ -15,6 +15,11 @@ import { getLaw } from '../data/laws';
 import { seedDevelopment } from './development';
 import { transferRegion } from './regionTransfer';
 import { grantClaim, nearestCityOf } from './claims';
+import { msg, sub, people, thing } from './messages';
+
+// The resources an option lacks, as a list of names ("gold, hr").
+const shortfallList = (ids) => ids.map((id) => thing('resource', id, id)).reduce((acc, r) => (acc === '' ? r : sub('m.world.listMore', { a: acc, b: r })), '');
+const nationRef = (next, nId) => people(nId, next.nations[nId]?.name || NATIONS_DATA[nId]?.name || nId);
 
 // Plan §M17: "defenseBonus becomes a timed fort modifier" — the old value (0.05-0.1, meant as a
 // percentage under the pre-M6 combat model) is scaled onto the modifier engine's FLAT
@@ -37,7 +42,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
   const shortfall = getOptionShortfall(state.resources, option.effects);
   const anyAffordable = event.options.some((o) => getOptionShortfall(state.resources, o.effects).length === 0);
   if (shortfall.length && anyAffordable) {
-    return { ...state, logs: [...state.logs, { year: state.year, message: `You can't afford "${option.label}" (${shortfall.join(', ')}).`, type: LogTypes.ACTION }] };
+    return { ...state, logs: [...state.logs, { year: state.year, ...msg('m.world.eventCantAfford', { option: thing('eventOption', `${event.id}.${optionIndex}`, option.label), missing: shortfallList(shortfall) }), type: LogTypes.ACTION }] };
   }
 
   let next = { ...state };
@@ -60,7 +65,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
   if (couldNotPay && next.nations[playerNationId]) {
     const player = next.nations[playerNationId];
     next.nations = { ...next.nations, [playerNationId]: { ...player, stability: clampStability((player.stability || 0) - 1) } };
-    logs.push({ year: next.year, message: `The crown could not pay in full (${shortfall.join(', ')}). (-1 stability)`, type: LogTypes.CRISIS });
+    logs.push({ year: next.year, ...msg('m.world.eventCouldNotPay', { missing: shortfallList(shortfall) }), type: LogTypes.CRISIS });
   }
 
   // A flat bump to the player nation's military stat — the finer-grained unit-composition system
@@ -145,7 +150,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
       next.regions = { ...next.regions, [effects.returnRegion]: region };
       if (revivedNation) {
         next.nations = { ...next.nations, [origOwner]: revivedNation };
-        logs.push({ year: next.year, message: `${revivedNation.name} rises again!`, type: LogTypes.MILESTONE });
+        logs.push({ year: next.year, ...msg('m.world.risesAgain', { nation: people(origOwner, revivedNation.name) }), type: LogTypes.MILESTONE });
       }
     }
   }
@@ -173,7 +178,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
         if (isWarBetween(wars[i], playerNationId, nId)) wars[i] = { ...wars[i], active: false };
       }
       invasions = invasions.filter(inv => !(inv.attackerNation === nId && inv.attackerNation !== playerNationId));
-      logs.push({ year: next.year, message: `PEACE signed with ${next.nations[nId]?.name || NATIONS_DATA[nId]?.name || nId}!`, type: LogTypes.MILESTONE });
+      logs.push({ year: next.year, ...msg('m.world.eventPeace', { nation: nationRef(next, nId) }), type: LogTypes.MILESTONE });
     });
     // Anyone still fighting a different war stays at war.
     next.nations = refreshWarFlags(nations, wars, [playerNationId, ...ids]);
@@ -192,7 +197,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
         hostility: Math.max(0, nations[nId].hostility - 10),
         relationStatus: RelationStatus.FRIENDLY
       };
-      logs.push({ year: next.year, message: `Trade agreement with ${next.nations[nId]?.name || NATIONS_DATA[nId]?.name || nId}!`, type: LogTypes.DIPLOMACY });
+      logs.push({ year: next.year, ...msg('m.world.eventTrade', { nation: nationRef(next, nId) }), type: LogTypes.DIPLOMACY });
     });
     next.nations = nations;
   }
@@ -202,7 +207,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
     ids.forEach(nId => {
       if (!next.nations[nId] || isAtWarWithPlayer(next, nId)) return;
       next = declareWar(next, nId, { aggressor: playerNationId });
-      logs.push({ year: next.year, message: `WAR declared on ${next.nations[nId]?.name || NATIONS_DATA[nId]?.name || nId}!`, type: LogTypes.CRISIS });
+      logs.push({ year: next.year, ...msg('m.world.eventWar', { nation: nationRef(next, nId) }), type: LogTypes.CRISIS });
     });
   }
 
@@ -333,10 +338,10 @@ export const applyEventEffects = (state, event, optionIndex) => {
     // calendar's end), so it now records the display-only 'eventVictory' entry instead
     // (src/data/victoryConditions.js), kept solely for GameOverModal's name/description lookup.
     next.victoryConditionId = 'eventVictory';
-    logs.push({ year: next.year, message: 'VICTORY!', type: LogTypes.MILESTONE });
+    logs.push({ year: next.year, ...msg('m.world.eventVictory'), type: LogTypes.MILESTONE });
   }
 
-  logs.push({ year: next.year, message: `Event: ${event.title} → ${option.label}`, type: LogTypes.EVENT });
+  logs.push({ year: next.year, ...msg('m.world.eventChoice', { event: thing('event', event.id, event.title), option: thing('eventOption', `${event.id}.${optionIndex}`, option.label) }), type: LogTypes.EVENT });
 
   next.logs = [...next.logs, ...logs];
   next.activeEventId = null;

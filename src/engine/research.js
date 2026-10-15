@@ -22,6 +22,7 @@ import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../da
 import { AGES, AGE_ORDER, getAgesBehind, getAgesBehindResearchCostMultiplier, speedCostMult } from '../data/ages';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
+import { msg, thing } from './messages';
 import { getModifier } from './modifiers/sheet';
 import { withDiffusion } from './techDiffusion';
 
@@ -170,7 +171,7 @@ export const applyResearchTurn = (state) => {
   // Boosts from the map (boosts.js): every tech whose fact a nation has met gets its share first.
   const boostedPlayer = applyBoosts(state, state.playerNationId, researchOf(state, state.playerNationId), researchedSetOf(state, state.playerNationId));
   if (boostedPlayer.applied.length) {
-    next = { ...next, research: boostedPlayer.research, logs: [...next.logs, ...boostedPlayer.applied.map((id) => ({ year: state.year, message: `Boost: ${BOOSTS[id].label} speeds ${TECH_TREE[id].name} (${Math.round(BOOST_SHARE * 100)}% of its cost).`, type: LogTypes.TECH }))] };
+    next = { ...next, research: boostedPlayer.research, logs: [...next.logs, ...boostedPlayer.applied.map((id) => ({ year: state.year, ...msg('m.world.boost', { boost: thing('boost', id, BOOSTS[id].label), tech: thing('tech', id, TECH_TREE[id].name), pct: Math.round(BOOST_SHARE * 100) }), type: LogTypes.TECH }))] };
   }
   // The player.
   const p = stepResearch(next, state.playerNationId);
@@ -178,8 +179,8 @@ export const applyResearchTurn = (state) => {
     const techTree = { ...state.techTree };
     p.completed.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
     const logs = [...next.logs];
-    p.completed.forEach((id) => logs.push({ year: state.year, message: `Researched ${TECH_TREE[id].name}.`, type: LogTypes.TECH }));
-    if (p.techAgeId !== state.techAgeId) logs.push({ year: state.year, message: `Your empire's expertise has reached the ${AGES[p.techAgeId]?.name}.`, type: LogTypes.MILESTONE });
+    p.completed.forEach((id) => logs.push({ year: state.year, ...msg('m.world.researched', { tech: thing('tech', id, TECH_TREE[id].name) }), type: LogTypes.TECH }));
+    if (p.techAgeId !== state.techAgeId) logs.push({ year: state.year, ...msg('m.world.techAge', { age: thing('age', p.techAgeId, AGES[p.techAgeId]?.name) }), type: LogTypes.MILESTONE });
     next = { ...next, techTree, techAgeId: p.techAgeId, research: p.research, resources: { ...next.resources, techPoints: p.stock }, logs };
   }
   // AI nations.

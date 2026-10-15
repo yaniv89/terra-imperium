@@ -35,7 +35,7 @@ describe('era goals', () => {
     const r = awardEraLegacy(ready, nation, 'bronze', 10);
     expect(r.nation.eraGoals.bronze.legacy).toBe(true);
     expect(r.nation.modifiers.some((m) => m.sourceType === 'eraGoal' && m.expiresTurn === 10 + ERA_LEGACY_TURNS)).toBe(true);
-    expect(r.log).toMatch(/Legacy of the/);
+    expect(r.log.message).toMatch(/Legacy of the/);
     const again = awardEraLegacy(ready, r.nation, 'bronze', 11);
     expect(again.nation).toBe(r.nation);
     const none = awardEraLegacy(S, S.nations.fr, 'bronze', 10);

@@ -5,6 +5,7 @@
 import { createInitialState } from './gameReducer';
 import { getTiles } from '../data/geo/tiles';
 import { canFoundCity, foundCity, sizeToPeople } from './world/cities';
+import { msg, people, cityRef } from './messages';
 
 export const processEmergence = state => {
   if (state.gameStatus !== 'ACTIVE' || state.scenario?.mode !== 'emergent' || state.turnNumber < 50 || state.turnNumber % 50 !== 0) return state;
@@ -32,6 +33,6 @@ export const processEmergence = state => {
     world: { ...state.world, tileOwner: nextWorld.tileOwner },
     units: { ...state.units, [unitId]: unit },
     scenario: { ...state.scenario, activeNationIds: [...state.scenario.activeNationIds, id], dormantNationIds: state.scenario.dormantNationIds.filter((n) => n !== id), starts: { ...state.scenario.starts, [id]: regionId } },
-    logs: [...state.logs, { year: state.year, type: 'milestone', message: `${nation.name} emerges at ${city.name}.` }]
+    logs: [...state.logs, { year: state.year, type: 'milestone', ...msg('m.world.emerges', { nation: people(id, nation.name), city: cityRef(city.id, city.name) }) }]
   };
 };

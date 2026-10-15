@@ -38,6 +38,20 @@ import { settlingBarred } from './accords';
 import { isExplored } from './fog';
 import { speedCostMult } from '../data/ages';
 import { ringsForKm, kmPerRing, F75_RING_KM, foundingDisk } from '../data/geo/gridScale';
+import { msg, sub, cityRef, people, place } from './messages';
+
+// canSettle's reasons that stop a settler, as messages for the log (the reason strings stay the UI's).
+const REASON_KEYS = {
+  'A city needs land.': 'm.world.reasonLand',
+  'Nothing can live on the ice.': 'm.world.reasonIce',
+  'This land belongs to another nation.': 'm.world.reasonBelongs',
+  'You promised not to settle this close to their cities.': 'm.world.reasonPromised',
+};
+const reasonMsg = (reason) => {
+  if (REASON_KEYS[reason]) return sub(REASON_KEYS[reason]);
+  const near = /^Too close to (.*)\.$/.exec(reason || '');
+  return near ? sub('m.world.reasonTooClose', { city: cityRef(null, near[1]) }) : null;
+};
 
 export const SETTLER_KM = 306; // km (3 rings at frequency 75)
 export const SETTLER_MOVES = ringsForKm(SETTLER_KM);
@@ -338,10 +352,10 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
       const cityHere = nextWorld?.tileOwner?.[settler.tile];
       const inTheirLand = cityHere != null && nextRegions[cityHere]?.owner && nextRegions[cityHere].owner !== settler.ownerId;
       const refuge = settlersHomeCity(view(), settler);
-      if (!refuge) { delete nextUnits[u.id]; logs.push({ nationId: u.ownerId, message: `The settlers of ${home.name} have no city left to go to and are lost.` }); return; }
+      if (!refuge) { delete nextUnits[u.id]; logs.push({ nationId: u.ownerId, ...msg('m.world.settlersLost', { city: cityRef(home.id, home.name) }) }); return; }
       if (inTheirLand) {
         nextUnits[u.id] = { ...settler, tile: refuge.tile, regionId: refuge.id, homeRegionId: refuge.id, target: null, path: null, idleSince: null };
-        logs.push({ nationId: u.ownerId, message: `${home.name} fell: its settlers went back to ${refuge.name}.` });
+        logs.push({ nationId: u.ownerId, ...msg('m.world.settlersReturn', { city: cityRef(home.id, home.name), refuge: cityRef(refuge.id, refuge.name) }) });
         return;
       }
       settler = { ...settler, homeRegionId: refuge.id };
@@ -350,7 +364,7 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
     // idle too long is disbanded.
     if (settler.target == null && settler.ownerId !== state.playerNationId) {
       const idleSince = settler.idleSince ?? turn;
-      if (turn - idleSince >= SETTLER_GIVE_UP_TURNS) { delete nextUnits[u.id]; logs.push({ nationId: u.ownerId, message: `The settlers of ${state.nations?.[u.ownerId]?.name || u.ownerId} found no land and went home.` }); return; }
+      if (turn - idleSince >= SETTLER_GIVE_UP_TURNS) { delete nextUnits[u.id]; logs.push({ nationId: u.ownerId, ...msg('m.world.settlersGiveUp', { nation: people(u.ownerId, state.nations?.[u.ownerId]?.name || u.ownerId) }) }); return; }
       settler = { ...settler, idleSince };
       if ((turn - idleSince) % SETTLER_RETRY_TURNS === 0) {
         const site = bestSites(view(), settler.ownerId, settler.tile, ageById(settler.ownerId), { rings: MAX_SETTLE_RINGS, limit: 1 })[0];
@@ -361,7 +375,7 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
       // The planned road is kept on the unit and replanned only when it breaks (a border closed).
       let path = settler.path && settler.path.length && settler.path[settler.path.length - 1] === settler.target && settler.path.slice(0, SETTLER_MOVES).every((t) => t === settler.target || passable(view(), tiles, t, settler.ownerId)) ? settler.path : null;
       if (!path) path = settlerPath(view(), settler.tile, settler.target, settler.ownerId);
-      if (!path) { settler = { ...settler, target: null, path: null }; logs.push({ nationId: u.ownerId, message: `Your settlers cannot reach ${tiles.names[u.target] || 'their destination'} and stop.` }); }
+      if (!path) { settler = { ...settler, target: null, path: null }; logs.push({ nationId: u.ownerId, ...msg('m.world.settlersBlocked', { place: tiles.names[u.target] ? place(tiles.names[u.target]) : sub('m.world.theirDestination') }) }); }
       else { const steps = Math.min(path.length, SETTLER_MOVES); settler = { ...settler, tile: path[steps - 1], path: path.slice(steps) }; }
     }
     if (settler.target != null && settler.target === settler.tile) {
@@ -374,12 +388,13 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
         if (founded) {
           nextRegions = founded.regions; nextWorld = founded.world;
           delete nextUnits[u.id];
-          logs.push({ nationId: u.ownerId, message: `${founded.city.name} is founded as an outpost.` });
+          logs.push({ nationId: u.ownerId, ...msg('m.world.outpostFounded', { city: cityRef(founded.city.id, founded.city.name) }) });
           return;
         }
       } else if (/belongs|close|land|ice/.test(can.reason)) {
         settler = { ...settler, target: null };
-        logs.push({ nationId: u.ownerId, message: `Your settlers find no room at their destination: ${can.reason}` });
+        const why = reasonMsg(can.reason);
+        logs.push({ nationId: u.ownerId, ...(why ? msg('m.world.settlersNoRoom', { reason: why }) : { message: `Your settlers find no room at their destination: ${can.reason}` }) });
       }
     }
     // A settler's home city for the readers that place units by city: the nearest own city.
@@ -394,7 +409,7 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
     const progress = c.outpost.progress + (OUTPOST_PROGRESS * terrainFactor(tiles, c.tile)) / speedCostMult(state.gameSpeed, ageById(c.owner));
     if (progress >= OUTPOST_DONE) {
       nextRegions[c.id] = { ...c, outpost: null, size: Math.max(1, c.size) };
-      logs.push({ nationId: c.owner, message: `${c.name} has grown from an outpost into a city.` });
+      logs.push({ nationId: c.owner, ...msg('m.world.outpostGrown', { city: cityRef(c.id, c.name) }) });
     } else nextRegions[c.id] = { ...c, outpost: { ...c.outpost, progress: Math.round(progress * 10) / 10 } };
   });
   return { regions: nextRegions, units: nextUnits, world: nextWorld, logs };

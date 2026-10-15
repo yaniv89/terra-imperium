@@ -49,7 +49,7 @@ describe('army templates', () => {
     expect(units).toHaveLength(2);
     units.forEach((u) => { expect(u.classId).toBe('infantry'); expect(u.army).toEqual({ id: item.armyId, name: 'Guard' }); });
     expect(r.city.production.current).toEqual({ kind: 'building', category: 'food', tier: 0 });
-    expect(r.logs.some((l) => /Guard is complete/.test(l))).toBe(true);
+    expect(r.logs.some((l) => /Guard is complete/.test(l.message))).toBe(true);
     const partial = processCity(world, tiles, { ...cap, production: { current: item, queue: [], progress: productionCost({ kind: 'unit', classId: 'infantry' }, { ageId: 'bronze', citiesOwned: 1 }) } }, { ageId: 'bronze', citiesOwned: 1, turnNumber: 2 });
     expect(partial.completed).toHaveLength(1);
     expect(partial.city.production.current.built).toEqual({ infantry: 1 });

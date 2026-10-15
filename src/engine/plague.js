@@ -40,6 +40,7 @@ import { fromLatLonExact } from '../data/geo/geodesic';
 import { distanceKm } from '../data/geo/geodesic';
 import { drawPeople, sizeToPeople } from './world/cities';
 import { getTradeRoute } from './tradeRoutes';
+import { msg, sub, cityRef } from './messages';
 
 export const BETA = 2.4;             // contacts per generation in a city of BETA_REF_SIZE
 export const BETA_REF_SIZE = 6;
@@ -107,7 +108,7 @@ const susceptible = (c) => c.owner && !c.outpost && c.tile != null;
 /**
  * The plague step of a turn on the working `regions` (mutated in place). `ctx`: { units,
  * tileOwner, researchedOf(nationId), state (for the player's trade routes), seed (state.rngSeed) }.
- * Returns logs [{ nationId, message }].
+ * Returns logs [{ nationId, message, msgKey, msgVars }].
  */
 export const spreadPlague = (regions, turn, ctx = {}) => {
   const tiles = getTiles();
@@ -121,7 +122,7 @@ export const spreadPlague = (regions, turn, ctx = {}) => {
     if (!susceptible(c) || (c.size || 1) < SEED_MIN_SIZE || c.plague?.i > 0) return;
     if (hash(`${seed}|${id}|${turn}|plague`) < SEED_CHANCE * (c.size / SEED_MIN_SIZE) * Math.max(0, 1 - (c.plague?.r || 0))) {
       regions[id] = seedPlague(c, turn);
-      logs.push({ nationId: c.owner, message: `Plague breaks out in ${c.name}.` });
+      logs.push({ nationId: c.owner, ...msg('m.city.plagueOutbreak', { city: cityRef(c.id ?? id, c.name) }) });
     }
   });
   if (!infected.length) {
@@ -191,8 +192,8 @@ export const spreadPlague = (regions, turn, ctx = {}) => {
     if (i >= VISIBLE_I && (!next.disaster || next.disaster.kind === 'plague' || turn > next.disaster.until)) next = { ...next, disaster: { kind: 'plague', until: turn + PLAGUE_MARK_TURNS } };
     regions[id] = next;
     if (!c.owner) return;
-    if (i === 0) logs.push({ nationId: c.owner, message: `The plague in ${c.name} has burnt out${next.size < c.size ? `, leaving it at size ${next.size}` : ''}.` });
-    else if (next.size < c.size) logs.push({ nationId: c.owner, message: `Plague kills many in ${c.name}: it shrinks to size ${next.size}.` });
+    if (i === 0) logs.push({ nationId: c.owner, ...msg('m.city.plagueOver', { city: cityRef(c.id ?? id, c.name), left: next.size < c.size ? sub('m.city.plagueLeftSize', { size: next.size }) : '' }) });
+    else if (next.size < c.size) logs.push({ nationId: c.owner, ...msg('m.city.plagueShrinks', { city: cityRef(c.id ?? id, c.name), size: next.size }) });
   });
   // 2. Jumps to new cities.
   [...pressure.keys()].sort().forEach((id) => {
@@ -200,7 +201,7 @@ export const spreadPlague = (regions, turn, ctx = {}) => {
     if (!susceptible(c) || c.plague?.i > 0) return;
     if (hash(`${seed}|${id}|${turn}|plagueJump`) >= jumpChance(pressure.get(id), c.plague?.r || 0)) return;
     regions[id] = seedPlague(c, turn, JUMP_I);
-    logs.push({ nationId: c.owner, message: `Plague reaches ${c.name}.` });
+    logs.push({ nationId: c.owner, ...msg('m.city.plagueReaches', { city: cityRef(c.id ?? id, c.name) }) });
   });
   // 3. Immunity wanes where nothing is burning.
   const burning = new Set(infected);

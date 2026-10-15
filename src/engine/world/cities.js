@@ -52,6 +52,7 @@ import { navalLinesFor } from '../../data/navalLines';
 import { logisticGrowthMult, sizeToPeople as peopleForSize, foodForPeople, peopleOf } from '../population';
 import { noteOwnerCopy, noteOwnerWrite } from './tileIndex';
 import { CITY_SPACING_KM, spacingBlocks, spacingReach } from '../../data/geo/citySpacing';
+import { msg, carry, cityRef, place, thing, sub } from '../messages';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -604,7 +605,7 @@ const writeTileState = (world, tile, entry, inPlace = false) => {
  * One city's turn. `ctx`: { researched, ageId, turnNumber, citiesOwned, luxuries, amenityBonus,
  * goldMult, productionMult, foodBonus, cultureBonus (governors.js), blockedTiles (Set of tiles an enemy stands on),
  * greatProjects (state.greatProjects: a tier-1 wonder already built elsewhere is dropped from a queue) }.
- * Returns { city, world, yields, completed: [item...], logs: [string...] }. With `inPlace` the
+ * Returns { city, world, yields, completed: [item...], logs: [msg()...] }. With `inPlace` the
  * world's tileOwner and tileState are the caller's own copies and are written directly.
  */
 const RAZING_YIELDS = Object.freeze({ food: 0, production: 0, gold: 0, science: 0, culture: 0, strategic: {}, luxuries: [], raw: { food: 0, production: 0, gold: 0 } });
@@ -630,14 +631,14 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   let food = c.food + y.food;
   if (food < 0) {
     size = Math.max(1, size - STARVE_LOSS); food = 0;
-    logs.push(c.underInvasion ? `${c.name} starves under siege and shrinks to ${size}.` : `${c.name} starves and shrinks to ${size}.`);
+    logs.push(msg(c.underInvasion ? 'm.city.starvesSiege' : 'm.city.starves', { city: cityRef(c.id, c.name), size }));
   } else if (y.food > 0 && !c.underInvasion) {
     let gain = y.food * disasterMults(c, ctx.turnNumber).growth; // no growth under plague
     gain *= logisticGrowthMult(size, housing); // the soft cap (population.js)
     if (amen.net >= 2) gain *= 1 + AMENITY_GROWTH_BONUS; else if (amen.net < 0) gain *= 1 - AMENITY_GROWTH_PENALTY;
     food = c.food + gain;
     const threshold = growthThreshold(size, ctx.speedMult || 1);
-    if (food >= threshold && size < Math.min(MAX_SIZE, ctx.maxSize ?? MAX_SIZE)) { size += 1; food -= threshold * (1 - Math.min(0.5, mapEffectsOf(researched).granaryKeep)); logs.push(`${c.name} grows to size ${size}.`); } // granaries keep a share (techMapEffects.js)
+    if (food >= threshold && size < Math.min(MAX_SIZE, ctx.maxSize ?? MAX_SIZE)) { size += 1; food -= threshold * (1 - Math.min(0.5, mapEffectsOf(researched).granaryKeep)); logs.push(msg('m.city.grows', { city: cityRef(c.id, c.name), size })); } // granaries keep a share (techMapEffects.js)
   }
   // 3. Unrest from amenities.
   // Only the penalty lives here: resolveTurn's unrest drift (control, stability, taxes) owns the
@@ -656,29 +657,29 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     production = { ...production, progress: production.progress - cost };
     if (item.kind === 'building') {
       buildings = { ...buildings, categories: { ...buildings.categories, [item.category]: item.tier } };
-      logs.push(`${c.name} completes a ${BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category}.`);
+      logs.push(msg('m.city.completesBuilding', { city: cityRef(c.id, c.name), building: thing('building', `${item.category}.${item.tier}`, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category) }));
       // The line's district stands on a tile of the border from its first tier (districts.js).
       if (DISTRICTS[item.category] && !hasDistrict(w, next, item.category)) {
         const site = districtSite(tiles, w, next, item.category);
-        if (site != null) { w = writeTileState(w, site, districtEntry(w.tileState[site], item.category), inPlace); logs.push(`${c.name} lays out its ${DISTRICTS[item.category].name}.`); }
+        if (site != null) { w = writeTileState(w, site, districtEntry(w.tileState[site], item.category), inPlace); logs.push(msg('m.city.district', { city: cityRef(c.id, c.name), district: thing('district', item.category, DISTRICTS[item.category].name) })); }
       }
     } else if (item.kind === 'improvement') {
       w = writeTileState(w, item.tile, { ...(w.tileState[item.tile] || {}), improvement: item.improvement, pillaged: false, ...(item.improvement === 'road' ? { road: true } : {}) }, inPlace);
-      logs.push(`${c.name} builds a ${IMPROVEMENTS[item.improvement]?.name || item.improvement}.`);
+      logs.push(msg('m.city.improvement', { city: cityRef(c.id, c.name), improvement: thing('improvement', item.improvement, IMPROVEMENTS[item.improvement]?.name || item.improvement) }));
     } else if (item.kind === 'settler') {
-      if (next.size >= SETTLER_MIN_SIZE) { next = { ...next, size: next.size - 1 }; completed.push({ ...item, city: c.id, tile: c.tile }); logs.push(`${c.name} sends out settlers.`); }
+      if (next.size >= SETTLER_MIN_SIZE) { next = { ...next, size: next.size - 1 }; completed.push({ ...item, city: c.id, tile: c.tile }); logs.push(msg('m.city.settlers', { city: cityRef(c.id, c.name) })); }
       else { production = { ...production, progress: production.progress + cost }; break; } // wait for people
     } else if (item.kind === 'wonder') {
       const built = ctx.greatProjects?.[item.projectId];
       if (item.tier === 1 && built && built.regionId !== c.id) {
         // Lost the race (another city finished it first): the order is dropped, the production banked.
         production = { ...production, progress: production.progress + cost };
-        logs.push(`${c.name} abandons ${item.projectId.replace(/_/g, ' ')}: it stands elsewhere.`);
+        logs.push(msg('m.city.wonderAbandoned', { city: cityRef(c.id, c.name), wonder: thing('wonder', item.projectId, item.projectId.replace(/_/g, ' ')) }));
       } else {
         // A wonder on its tile (wonders.js): the turn's great projects phase records it.
         if (item.tile != null) w = writeTileState(w, item.tile, { ...(w.tileState[item.tile] || {}), wonder: item.projectId }, inPlace);
         completed.push({ kind: 'wonder', projectId: item.projectId, tier: item.tier, tile: item.tile, city: c.id });
-        logs.push(`${c.name} completes ${item.projectId.replace(/_/g, ' ')} (tier ${item.tier}).`);
+        logs.push(msg('m.city.wonderDone', { city: cityRef(c.id, c.name), wonder: thing('wonder', item.projectId, item.projectId.replace(/_/g, ' ')), tier: item.tier }));
       }
     } else if (item.kind === 'army') {
       // One piece of the army at a time (armyTemplates.js); the order stays current until complete.
@@ -687,12 +688,12 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
       completed.push({ kind: 'unit', classId, army: { id: item.armyId, name: item.name }, city: c.id, tile: c.tile });
       const order = { ...item, built };
       const { done, total } = templateProgress(order);
-      logs.push(`${c.name} trains ${classId} for ${item.name} (${done}/${total}).`);
+      logs.push(msg('m.city.trainsForArmy', { city: cityRef(c.id, c.name), unit: thing('unit', classId, classId), army: thing('army', null, item.name), done, total }));
       if (done < total) { production = { ...production, current: order }; continue; }
-      logs.push(`${item.name} is complete at ${c.name}.`);
+      logs.push(msg('m.city.armyComplete', { city: cityRef(c.id, c.name), army: thing('army', null, item.name) }));
     } else {
       completed.push({ ...item, city: c.id, tile: c.tile });
-      if (item.kind === 'unit') logs.push(`${c.name} trains ${item.explorer ? 'scouts' : item.classId}.`);
+      if (item.kind === 'unit') logs.push(item.explorer ? msg('m.city.trainsScouts', { city: cityRef(c.id, c.name) }) : msg('m.city.trains', { city: cityRef(c.id, c.name), unit: thing('unit', item.classId, item.classId) }));
     }
     const [following, ...rest] = production.queue;
     // The next order takes the overflow, plus whatever it had stored from an earlier turn at the front.
@@ -713,7 +714,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   next = { ...next, production, buildings, cultureBank: Math.round(cultureBank * 10) / 10 };
   if (claimed.length) {
     const r = claimTile(w, next, claimed[0], inPlace); w = r.world; next = r.city;
-    logs.push(`${c.name}'s borders grow to ${tiles.names[claimed[0]] || 'new land'}.`);
+    logs.push(msg('m.city.borders', { city: cityRef(c.id, c.name), land: tiles.names[claimed[0]] ? place(tiles.names[claimed[0]]) : sub('m.city.newLand') }));
   }
   return { city: next, world: w, yields: y, completed, logs };
 };
@@ -731,7 +732,7 @@ export const processCities = (world, tiles, ctxFor) => {
     w = r.world;
     cities[id] = r.city;
     results[id] = r.yields;
-    r.logs.forEach((m) => logs.push({ cityId: id, nationId: city.ownerId, message: m }));
+    r.logs.forEach((m) => logs.push({ cityId: id, nationId: city.ownerId, ...carry(m) }));
     completed.push(...r.completed.map((x) => ({ ...x, nationId: city.ownerId })));
   });
   return { world: { ...w, cities }, yields: results, logs, completed };
