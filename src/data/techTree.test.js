@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { TECH_TREE, CROSS_PREREQUISITES, getTechsByCategory, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from './techTree';
 import { techGraph } from '../components/panels/researchView';
-import { createInitialState } from '../engine/gameReducer';
 import { canStartTech, RESEARCH_AGE_BASE } from '../engine/research';
 import { AGE_ORDER } from './ages';
 import { TechCategories } from './types';
+import { peoplesWorld } from '../engine/testWorld';
 
 // The generic gating mechanism (canStartTech, src/engine/research.js) is exercised against its own
 // small fixture table, passed explicitly as `techDefs`, so these tests can construct
@@ -174,7 +174,7 @@ describe('getTechsByCategory', () => {
 
 describe('techGraph (the research web view)', () => {
   it('lays out 5 rows of 10 columns with one edge per prerequisite and the cross edges marked', () => {
-    const state = createInitialState({ playerNationId: 'fr', rngSeed: 11 });
+    const state = peoplesWorld({ seed: 11 });
     const graph = techGraph(state);
     expect(graph.nodes.length).toBe(50);
     expect(graph.rows.length).toBe(5);

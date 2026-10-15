@@ -1,24 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import { STARTING_DOCTRINES, applyStartingDoctrine } from './startingDoctrines';
 import { ACHIEVEMENTS } from './achievements';
-import { createInitialState } from '../context/GameContext';
 import { getCapital } from './regions';
+import { peoplesWorld } from '../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld();
+const FR = WORLD.playerNationId;
 
 describe('applyStartingDoctrine', () => {
   it('leaves state untouched for "none" (no effects)', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     const next = applyStartingDoctrine(state, 'none');
     expect(next.resources).toEqual(state.resources);
   });
 
   it('leaves state untouched for an unknown doctrine id rather than throwing', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     expect(() => applyStartingDoctrine(state, 'not_a_real_doctrine')).not.toThrow();
     expect(applyStartingDoctrine(state, 'not_a_real_doctrine')).toEqual(state);
   });
 
   it('does not mutate the input state', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     const snapshotGold = state.resources.gold;
     applyStartingDoctrine(state, 'none');
     expect(state.resources.gold).toBe(snapshotGold);
@@ -35,26 +39,26 @@ describe('applyStartingDoctrine', () => {
   });
 
   it('administrators_start grants +50 ADM', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = peoplesWorld();
     const next = applyStartingDoctrine(state, 'administrators_start');
     expect(next.resources.adm).toBe(state.resources.adm + 50);
   });
 
   it('restored_reputation grants +10 prestige to the player nation', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = peoplesWorld();
     const next = applyStartingDoctrine(state, 'restored_reputation');
-    expect(next.nations.fr.prestige).toBe((state.nations.fr.prestige || 0) + 10);
+    expect(next.nations[FR].prestige).toBe((state.nations[FR].prestige || 0) + 10);
   });
 
   it('veteran_diplomacy grants +5 legitimacy to the player nation', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = peoplesWorld();
     const next = applyStartingDoctrine(state, 'veteran_diplomacy');
-    expect(next.nations.fr.legitimacy).toBe((state.nations.fr.legitimacy ?? 50) + 5);
+    expect(next.nations[FR].legitimacy).toBe((state.nations[FR].legitimacy ?? 50) + 5);
   });
 
   it('master_builder grants a free tier-0 Culture building in the capital, once', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const capitalId = getCapital(state, 'fr');
+    const state = peoplesWorld();
+    const capitalId = getCapital(state, FR);
     const next = applyStartingDoctrine(state, 'master_builder');
     expect(next.regions[capitalId].buildings.categories.culture).toBe(0);
 
@@ -64,14 +68,14 @@ describe('applyStartingDoctrine', () => {
   });
 
   it('seasoned_court grants a real, named level-2 advisor in the ADM slot, deterministically from the state\'s own rngSeed', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = peoplesWorld();
     const next = applyStartingDoctrine(state, 'seasoned_court');
-    expect(next.nations.fr.advisors.adm).toMatchObject({ level: 2 });
-    expect(typeof next.nations.fr.advisors.adm.name).toBe('string');
+    expect(next.nations[FR].advisors.adm).toMatchObject({ level: 2 });
+    expect(typeof next.nations[FR].advisors.adm.name).toBe('string');
     expect(next.rngSeed).not.toBe(state.rngSeed); // the rng it consumed is threaded back onto state
 
     // Same seed in, same advisor out — this doctrine must stay replay-deterministic.
     const again = applyStartingDoctrine(state, 'seasoned_court');
-    expect(again.nations.fr.advisors.adm.name).toBe(next.nations.fr.advisors.adm.name);
+    expect(again.nations[FR].advisors.adm.name).toBe(next.nations[FR].advisors.adm.name);
   });
 });

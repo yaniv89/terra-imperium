@@ -9,9 +9,10 @@ import { TECH_TREE } from './techTree';
 import { LAW_CATEGORIES } from './laws';
 import { GREAT_PROJECT_TIER_COST } from './greatProjects';
 import { HISTORICAL_EVENTS } from './events';
-import { createInitialState, gameReducer } from '../engine/gameReducer';
+import { gameReducer } from '../engine/gameReducer';
 import { resolveTurn } from '../engine/resolveTurn';
 import { ActionTypes } from './types';
+import { peoplesWorld } from '../engine/testWorld';
 
 const POOLS = ['adm', 'dip', 'mil'];
 
@@ -40,7 +41,7 @@ describe('power costs fit under POWER_POOL_CAP', () => {
 describe('power costs are actually reachable in play', () => {
   it('pools grow past 2x income, and science alone researches a first tech within 15 turns', () => {
     let state = {
-      ...createInitialState({ playerNationId: 'fr', rngSeed: 7 }),
+      ...peoplesWorld({ seed: 7 }),
       firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {}),
       proceduralEventCooldown: 999999
     };
@@ -56,7 +57,7 @@ describe('power costs are actually reachable in play', () => {
     // A fixed seed and auto-defend: a random seed can queue an AI assault on France that stalls
     // resolveTurn until the player answers it.
     let state = {
-      ...createInitialState({ playerNationId: 'fr', rngSeed: 7 }),
+      ...peoplesWorld({ seed: 7 }),
       firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {}),
       proceduralEventCooldown: 999999,
       battleSettings: { autoDefend: true }

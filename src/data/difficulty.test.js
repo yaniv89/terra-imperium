@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { DIFFICULTIES, applyDifficulty } from './difficulty';
-import { createInitialState } from '../context/GameContext';
+import { peoplesWorld } from '../engine/testWorld';
 
 describe('applyDifficulty', () => {
   it('prince is fully symmetrical (a no-op)', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     const next = applyDifficulty(state, 'prince');
     expect(next.resources.gold).toBe(state.resources.gold);
     expect(next.difficultyMultiplier).toBe(1);
@@ -15,7 +15,7 @@ describe('applyDifficulty', () => {
   });
 
   it('settler boosts player resources, shrinks AI military, and lowers aggression', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     const next = applyDifficulty(state, 'settler');
     expect(next.resources.gold).toBe(Math.round(state.resources.gold * 1.5));
     expect(next.difficultyMultiplier).toBeLessThan(1);
@@ -25,7 +25,7 @@ describe('applyDifficulty', () => {
   });
 
   it('emperor boosts AI military and aggression without boosting player resources', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     const next = applyDifficulty(state, 'emperor');
     expect(next.resources.gold).toBe(state.resources.gold);
     expect(next.difficultyMultiplier).toBeGreaterThan(1);
@@ -35,13 +35,13 @@ describe('applyDifficulty', () => {
   });
 
   it('falls back to prince for an unknown difficulty id rather than throwing', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     expect(() => applyDifficulty(state, 'nightmare')).not.toThrow();
     expect(applyDifficulty(state, 'nightmare').difficultyMultiplier).toBe(1);
   });
 
   it('does not mutate the input state', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     const snapshotGold = state.resources.gold;
     applyDifficulty(state, 'settler');
     expect(state.resources.gold).toBe(snapshotGold);

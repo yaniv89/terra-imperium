@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { pickProceduralEvent, noteEventFired, cooldownTurns } from './proceduralEvents';
 import { shouldEventFire, HISTORICAL_EVENTS } from './events';
-import { createInitialState } from '../engine/gameReducer';
 import { createRng } from '../utils/rng';
 import { getNationCapital } from './regions';
 import { getTiles } from './geo/tiles';
+import { peoplesWorld } from '../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld();
+const EG = WORLD.playerNationId;
 
 // Playtest audit I221 (cooldowns), I222 (context prerequisites), I223 (Bronze Age Collapse).
 describe('procedural events: context and cooldowns', () => {
@@ -12,13 +16,13 @@ describe('procedural events: context and cooldowns', () => {
   const unprepared = (state) => ({ ...state, regions: Object.fromEntries(Object.entries(state.regions).map(([id, c]) => [id, { ...c, climateResilience: 0 }])) });
 
   it('never gives a harsh winter to a hot river city', () => {
-    const state = createInitialState({ playerNationId: 'eg', rngSeed: 5 });
+    const state = peoplesWorld({ seed: 5 });
     expect(run(unprepared(state)).some((e) => e.templateId === 'harsh_winter')).toBe(false);
   });
 
   it('only talks about granaries in a city that has one', () => {
-    const state = unprepared(createInitialState({ playerNationId: 'eg', rngSeed: 5 }));
-    const capId = getNationCapital('eg');
+    const state = unprepared(peoplesWorld({ seed: 5 }));
+    const capId = getNationCapital(EG);
     const city = state.regions[capId];
     const food = (tier) => ({ ...state, regions: { ...state.regions, [capId]: { ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, food: tier } } } } });
     const text = (s) => run(s, 150).filter((e) => e.cityId === capId && ['river_flood', 'failed_harvest'].includes(e.templateId)).map((e) => e.description).join(' ');
@@ -27,7 +31,7 @@ describe('procedural events: context and cooldowns', () => {
   });
 
   it('rests a template, its family and its city after it fires, and the rest scales with the speed table', () => {
-    const state = { ...createInitialState({ playerNationId: 'eg', rngSeed: 5 }), turnNumber: 40 };
+    const state = { ...peoplesWorld({ seed: 5 }), turnNumber: 40 };
     const first = run(state, 10)[0];
     expect(first).toBeTruthy();
     const history = noteEventFired({}, first, 40);
@@ -44,7 +48,7 @@ describe('procedural events: context and cooldowns', () => {
   });
 
   it('works for a save without an event history', () => {
-    const state = createInitialState({ playerNationId: 'eg', rngSeed: 5 });
+    const state = peoplesWorld({ seed: 5 });
     delete state.eventHistory;
     expect(() => run(state, 5)).not.toThrow();
   });

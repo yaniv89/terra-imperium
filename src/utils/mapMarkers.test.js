@@ -1,23 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../engine/gameReducer';
 import { getMapMarkers, shortMen, sizeBand } from './mapMarkers';
 import { visibleTiles } from '../engine/sight';
 import { getTiles } from '../data/geo/tiles';
+import { peoplesWorld, rivalOf, addCity } from '../engine/testWorld';
 
-const fresh = () => createInitialState({ playerNationId: 'fr', rngSeed: 5 });
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 5 });
+const FR = WORLD.playerNationId;
+const DE = rivalOf(WORLD, 0);
+
+// A rival city is founded beside the player's capital: the world starts with every people far apart.
+const fresh = () => addCity(WORLD, DE, { near: WORLD.nations[FR].capitalRegionId }).state;
 const unit = (id, ownerId, regionId, extra = {}) => ({ id, ownerId, regionId, classId: 'infantry', domain: 'land', strength: 100, maxStrength: 100, morale: 80, movesLeft: 1, embarkedOn: null, ...extra });
 const onlyUnits = (s, list) => ({ ...s, units: Object.fromEntries(list.map((u) => [u.id, u])) });
 
 // A French province, a foreign province next to France, and one far from anything French.
 const setup = () => {
   const s = fresh();
-  const mine = Object.keys(s.regions).find((id) => s.regions[id].owner === 'fr');
+  const mine = Object.keys(s.regions).find((id) => s.regions[id].owner === FR);
   // Sight is by tile (sight.js): a foreign city whose centre France can see, and one it cannot.
-  const sight = visibleTiles(s, 'fr');
-  const border = Object.keys(s.regions).find((id) => s.regions[id].owner !== 'fr' && s.regions[id].owner && sight.has(s.regions[id].tile));
+  const sight = visibleTiles(s, FR);
+  const border = Object.keys(s.regions).find((id) => s.regions[id].owner !== FR && s.regions[id].owner && sight.has(s.regions[id].tile));
   const far = Object.keys(s.regions).find((id) => {
     const o = s.regions[id].owner;
-    return o && o !== 'fr' && !sight.has(s.regions[id].tile) && !s.nations[o]?.hasMilitaryPact && s.nations[o]?.vassalOf !== 'fr';
+    return o && o !== FR && !sight.has(s.regions[id].tile) && !s.nations[o]?.hasMilitaryPact && s.nations[o]?.vassalOf !== FR;
   });
   return { s, mine, border, far, farOwner: s.regions[far].owner, borderOwner: s.regions[border].owner };
 };
@@ -25,7 +31,7 @@ const setup = () => {
 describe('map markers', () => {
   it('stacks own units per province with men, main class, morale and moves', () => {
     const { s, mine } = setup();
-    const st = onlyUnits(s, [unit('a', 'fr', mine), unit('b', 'fr', mine, { strength: 50, morale: 60, movesLeft: 0 }), unit('c', 'fr', mine, { classId: 'cavalry', strength: 20 })]);
+    const st = onlyUnits(s, [unit('a', FR, mine), unit('b', FR, mine, { strength: 50, morale: 60, movesLeft: 0 }), unit('c', FR, mine, { classId: 'cavalry', strength: 20 })]);
     const { armies } = getMapMarkers(st);
     expect(armies).toHaveLength(1);
     expect(armies[0]).toMatchObject({ regionId: mine, own: true, men: 1700, mainClass: 'infantry', canMove: true });
@@ -35,7 +41,7 @@ describe('map markers', () => {
 
   it('calls an army mixed when no class has 60% of it', () => {
     const { s, mine } = setup();
-    const st = onlyUnits(s, [unit('a', 'fr', mine), unit('b', 'fr', mine, { classId: 'cavalry' })]);
+    const st = onlyUnits(s, [unit('a', FR, mine), unit('b', FR, mine, { classId: 'cavalry' })]);
     expect(getMapMarkers(st).armies[0].mainClass).toBe('mixed');
   });
 
@@ -52,10 +58,10 @@ describe('map markers', () => {
     const { s, far, farOwner } = setup();
     const st = onlyUnits(s, [unit('y', farOwner, far, { strength: 1500 })]);
     expect(getMapMarkers(st).armies).toHaveLength(0);
-    // A French scout two tiles from the far city sees the army there.
+    // A scout beside the far city sees the army there.
     const tiles = getTiles();
-    const lookout = tiles.neighbors[tiles.neighbors[s.regions[far].tile].find((t) => tiles.land[t])].find((t) => tiles.land[t] && !s.world.tileOwner[t]);
-    const scouted = onlyUnits(s, [unit('y', farOwner, far, { strength: 1500 }), unit('me', 'fr', 'c0', { regionId: Object.keys(s.regions).find((id) => s.regions[id].owner === 'fr'), tile: lookout })]);
+    const lookout = tiles.neighbors[s.regions[far].tile].find((t) => tiles.land[t]); // a land tile beside the far city
+    const scouted = onlyUnits(s, [unit('y', farOwner, far, { strength: 1500 }), unit('me', FR, 'c0', { regionId: Object.keys(s.regions).find((id) => s.regions[id].owner === FR), tile: lookout })]);
     expect(getMapMarkers(scouted).armies.some((a) => a.regionId === far)).toBe(true);
     const intel = { ...st, intel: { [farOwner]: (s.turnNumber || 1) + 3 } };
     const seen = getMapMarkers(intel).armies.find((a) => a.regionId === far);
@@ -64,7 +70,7 @@ describe('map markers', () => {
 
   it('puts fleets apart from armies and counts what they carry', () => {
     const { s, mine } = setup();
-    const st = onlyUnits(s, [unit('f', 'fr', mine, { domain: 'naval', classId: 'galley' }), unit('l', 'fr', mine, { embarkedOn: 'f' })]);
+    const st = onlyUnits(s, [unit('f', FR, mine, { domain: 'naval', classId: 'galley' }), unit('l', FR, mine, { embarkedOn: 'f' })]);
     const { armies, fleets } = getMapMarkers(st);
     expect(armies).toHaveLength(0);
     expect(fleets[0]).toMatchObject({ domain: 'naval', embarked: 1 });
@@ -82,8 +88,8 @@ describe('map markers', () => {
 
   it('shows your colonies with their progress, and hides far foreign ones', () => {
     const { s, mine, far, farOwner } = setup();
-    const st = { ...s, regions: { ...s.regions, [mine]: { ...s.regions[mine], colony: { ownerId: 'fr', progress: 40 } }, [far]: { ...s.regions[far], colony: { ownerId: farOwner, progress: 10 } } } };
-    expect(getMapMarkers(st).colonies).toEqual([{ id: mine, regionId: mine, ownerId: 'fr', own: true, progress: 40 }]);
+    const st = { ...s, regions: { ...s.regions, [mine]: { ...s.regions[mine], colony: { ownerId: FR, progress: 40 } }, [far]: { ...s.regions[far], colony: { ownerId: farOwner, progress: 10 } } } };
+    expect(getMapMarkers(st).colonies).toEqual([{ id: mine, regionId: mine, ownerId: FR, own: true, progress: 40 }]);
   });
 
   it('formats soldier counts and bands', () => {
@@ -95,8 +101,8 @@ describe('map markers', () => {
   });
   it('wonders show on their tile: yours always, a foreign one only in sight or with intel', () => {
     const s = fresh();
-    const paris = Object.values(s.regions).find((r) => r.owner === 'fr');
-    const berlin = Object.values(s.regions).find((r) => r.owner === 'de');
+    const paris = Object.values(s.regions).find((r) => r.owner === FR);
+    const berlin = Object.values(s.regions).find((r) => r.owner === DE);
     const tiles = getTiles();
     const mineTile = paris.tiles.find((t) => t !== paris.tile && tiles.land[t] === 1);
     const theirTile = berlin.tiles.find((t) => t !== berlin.tile && tiles.land[t] === 1);
@@ -104,14 +110,14 @@ describe('map markers', () => {
     const w = getMapMarkers(st).wonders;
     expect(w.find((x) => x.id === 'great_wall')).toMatchObject({ own: true, tier: 2, tile: mineTile, regionId: paris.id, name: 'The Great Wall' });
     expect(w.some((x) => x.id === 'hanging_gardens')).toBe(false); // no tile yet: nothing to draw
-    const seen = visibleTiles(st, 'fr').has(theirTile);
+    const seen = visibleTiles(st, FR).has(theirTile);
     expect(w.some((x) => x.id === 'great_pyramids')).toBe(seen);
   });
   it('the open event marks its city while the sheet is up', () => {
     const s = fresh();
-    const paris = Object.values(s.regions).find((r) => r.owner === 'fr');
+    const paris = Object.values(s.regions).find((r) => r.owner === FR);
     expect(getMapMarkers(s).events).toEqual([]);
     const ev = { ...s, activeProceduralEvent: { id: 'flood-1', title: 'The river floods', cityId: paris.id, options: [] } };
-    expect(getMapMarkers(ev).events).toEqual([{ id: 'event:flood-1', regionId: paris.id, ownerId: 'fr', own: true, tile: paris.tile, title: 'The river floods' }]);
+    expect(getMapMarkers(ev).events).toEqual([{ id: 'event:flood-1', regionId: paris.id, ownerId: FR, own: true, tile: paris.tile, title: 'The river floods' }]);
   });
 });
