@@ -9,7 +9,9 @@ import { resolve } from 'node:path';
 const CONVERTED = [
   'src/components/ui/TitleScreen.jsx',
   'src/components/ui/SettingsSheet.jsx',
-  'src/components/ui/LanguageSwitch.jsx'
+  'src/components/ui/LanguageSwitch.jsx',
+  'src/components/ui/StartScreen.jsx',
+  'src/components/ui/MapPicker.jsx'
 ];
 
 const TEXT_ATTRS = 'label|hint|title|subtitle|aria-label|placeholder|confirmLabel|cancelLabel|alt|text';

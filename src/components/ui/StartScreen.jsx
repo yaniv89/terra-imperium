@@ -20,22 +20,27 @@ import { PEOPLES, MAJOR_PEOPLES_LIST, PEOPLE_REGION_GROUPS } from '../../data/pe
 import { WORLD_SIZES, WORLD_SIZE_IDS, DEFAULT_WORLD_SIZE, CITY_STATE_DENSITIES, DEFAULT_CITY_STATES, START_MIN_GAP_KM, cityStateCount } from '../../data/worldSizes';
 import { TUTORIAL_NATION, TUTORIAL_WORLD_SIZE } from '../../engine/tutorial';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
-import { PeopleEmblem, ThemeIcon, THEME_LABELS, startArt, regionIcon } from './peopleArt';
+import { PeopleEmblem, ThemeIcon, startArt, regionIcon } from './peopleArt';
 import { Label } from './atlas';
 import MapPicker, { generatedWorldsEnabled, mapFromUrl } from './MapPicker';
 import { newWorldSeed } from './seeds';
 import HOMES from '../../data/geo/peopleHomes.json';
 import { currentWorldSpec } from '../../worldgen/worldLoader';
 import LanguageSwitch from './LanguageSwitch';
+import { useT } from '../../i18n/useT';
+import { t as tNow } from '../../i18n';
+import { rich } from '../../i18n/rich';
 
 // "Home: a hot dry river land" from the people's home profile (plans/MAP-VARIATIONS-PLAN.md 6.5),
 // shown instead of the real capital off the real Earth.
-const CLIMATE_WORDS = { A: 'hot wet', B: 'dry', C: 'mild', D: 'cold-winter', E: 'polar' };
+const CLIMATE_IDS = ['A', 'C', 'D', 'E'];
 export const homeLine = (peopleId) => {
   const h = HOMES[peopleId];
   if (!h) return null;
-  const hot = h.k[0] === 'B' ? (h.k[2] === 'h' ? 'hot ' : 'cool ') : '';
-  return `Home: a ${hot}${CLIMATE_WORDS[h.k[0]] || 'mild'} ${h.v ? 'river ' : ''}${h.c ? 'coast' : 'land'}; it starts on the site that suits it best`;
+  const k0 = h.k[0];
+  const climate = tNow(k0 === 'B' ? (h.k[2] === 'h' ? 'start.climate.Bh' : 'start.climate.Bc') : `start.climate.${CLIMATE_IDS.includes(k0) ? k0 : 'C'}`);
+  const kind = tNow(`start.homeKind.${h.v ? 'river' : ''}${h.c ? (h.v ? 'Coast' : 'coast') : (h.v ? 'Land' : 'land')}`);
+  return tNow('start.home', { climate, kind });
 };
 
 const DEFAULT_PEOPLE_ID = 'akkad';
@@ -52,10 +57,10 @@ export const START_STEPS = [
 export { newWorldSeed };
 
 /** Search over the people's name, adjective, capital and modern land ("iraq" finds Akkad). */
-export const matchPeople = (people, query) => {
+export const matchPeople = (people, query, shownNames = []) => {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  return [people.name, people.adjective, people.capital.name, people.landName].some((s) => s.toLowerCase().includes(q));
+  return [people.name, people.adjective, people.capital.name, people.landName, ...shownNames].some((s) => s && s.toLowerCase().includes(q));
 };
 
 /** What a key does on the start screen: 'next', 'back' or null. Enter in a field or on a button,
@@ -73,7 +78,8 @@ export const startKeyAction = (key, target, { modifier = false } = {}) => {
 const RadioCards = ({ label, items, value, onChange, testIdPrefix, className = 'grid gap-2' }) => {
   const refs = useRef([]);
   const move = (e, i) => {
-    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    const rtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+    const step = { ArrowRight: rtl ? -1 : 1, ArrowDown: 1, ArrowLeft: rtl ? 1 : -1, ArrowUp: -1 }[e.key];
     if (!step) return;
     e.preventDefault();
     const next = (i + step + items.length) % items.length;
@@ -106,15 +112,16 @@ const RadioCards = ({ label, items, value, onChange, testIdPrefix, className = '
 };
 
 const RegionChips = ({ value, onChange, bare = false }) => {
-  const chips = [{ id: 'all', name: 'All' }, ...PEOPLE_REGION_GROUPS].map((r) => {
+  const { t } = useT();
+  const chips = [{ id: 'all' }, ...PEOPLE_REGION_GROUPS].map((r) => {
     const icon = r.id !== 'all' ? regionIcon(r.id) : null;
     return (
       <button key={r.id} type="button" onClick={() => onChange(r.id)} aria-pressed={value === r.id} className="fa-chip shrink-0 !min-h-[36px]">
-        {icon && <img src={icon} alt="" className="w-3.5 h-3.5" />}{r.name}
+        {icon && <img src={icon} alt="" className="w-3.5 h-3.5" />}{t(`start.region.${r.id}`)}
       </button>
     );
   });
-  return bare ? <>{chips}</> : <ScrollRow label="Region">{chips}</ScrollRow>;
+  return bare ? <>{chips}</> : <ScrollRow label={t('start.region')}>{chips}</ScrollRow>;
 };
 
 // A row that scrolls sideways with a fade on the end that still has more (the overflow cue). The
@@ -147,8 +154,10 @@ const ScrollRow = ({ label, className = '', children }) => {
 };
 
 // The step indicator: numbered buttons, the current one raised, done ones checked.
-const StepIndicator = ({ step, onGo, compact }) => (
-  <nav aria-label="New game steps" className="ms-auto min-w-0">
+const StepIndicator = ({ step, onGo, compact }) => {
+  const { t } = useT();
+  return (
+  <nav aria-label={t('start.stepsNav')} className="ms-auto min-w-0">
     <ol className="flex items-center gap-0.5 sm:gap-1">
       {START_STEPS.map((s, i) => {
         const current = i === step;
@@ -156,19 +165,20 @@ const StepIndicator = ({ step, onGo, compact }) => (
         return (
           <li key={s.id}>
             <button type="button" onClick={() => onGo(i)} aria-current={current ? 'step' : undefined} data-testid={`start-step-${s.id}`}
-              aria-label={`Step ${i + 1}: ${s.name}`}
+              aria-label={t('start.stepAria', { i: i + 1, name: t(`start.step.${s.id}`) })}
               className={`min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 rounded-full px-2 sm:px-2.5 text-[13px] font-semibold border ${current ? 'bg-fa-raised border-fa-text text-fa-text' : 'border-transparent text-fa-muted hover:text-fa-text'}`}>
               <span className={`w-5 h-5 rounded-full border text-[11px] flex items-center justify-center shrink-0 ${done ? 'bg-fa-muted text-fa-ink border-fa-muted' : current ? 'border-fa-text' : 'border-fa-muted'}`} aria-hidden="true">
                 {done ? <Check className="w-3 h-3" /> : i + 1}
               </span>
-              <span className={compact && !current ? 'hidden min-[640px]:inline' : ''}>{s.name}</span>
+              <span className={compact && !current ? 'hidden min-[640px]:inline' : ''}>{t(`start.step.${s.id}`)}</span>
             </button>
           </li>
         );
       })}
     </ol>
   </nav>
-);
+  );
+};
 
 // One step's area: a heading for screen readers and focus; hidden (still mounted) when not current.
 const StepPanel = ({ id, active, title, fill, children }) => (
@@ -180,6 +190,7 @@ const StepPanel = ({ id, active, title, fill, children }) => (
 
 // `initialStep`: the step it opens on (tests; a player always starts on People).
 const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
+  const { t, n, year, name: nm, lang } = useT();
   const layout = useLayoutMode();
   const wide = layout === 'desktop';
   const phone = layout === 'phone-landscape' || layout === 'phone-portrait';
@@ -202,12 +213,18 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
 
   // The picker lists the 50 major peoples (decision 42); the others are city-states.
   const peoples = useMemo(() => MAJOR_PEOPLES_LIST
-    .filter((p) => (region === 'all' || p.regionGroup === region) && matchPeople(p, search))
-    .sort((a, b) => a.name.replace(/^The /, '').localeCompare(b.name.replace(/^The /, ''))), [region, search]);
+    .filter((p) => (region === 'all' || p.regionGroup === region) && matchPeople(p, search, [nm('people', p.id, p.name), nm('city', null, p.capital.name), nm('land', null, p.landName)]))
+    .sort((a, b) => (lang === 'he'
+      ? nm('people', a.id, a.name).localeCompare(nm('people', b.id, b.name), 'he')
+      : a.name.replace(/^The /, '').localeCompare(b.name.replace(/^The /, '')))), [region, search, lang, nm]);
   const selected = PEOPLES[selectedId];
   const size = WORLD_SIZES[worldSize];
   const speed = GAME_SPEEDS[gameSpeed];
-  const difficulty = DIFFICULTIES[difficultyId];
+  const sizeName = (id) => t(`start.size.${id}.name`);
+  const densityName = (id) => t(`start.density.${id}.name`);
+  const speedName = (id) => t(`start.speed.${id}.name`);
+  const diffName = (id) => t(`start.diff.${id}.name`);
+  const peopleName = (p) => nm('people', p.id, p.name);
   const last = START_STEPS.length - 1;
 
   const begin = useCallback(() => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, cityStates, seed: newWorldSeed(), map: mapSpec }, exploredWorld }),
@@ -241,18 +258,18 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const fill = twoCols ? 'h-full min-h-0' : '';
   const scrollBox = 'min-h-0 overflow-y-auto overscroll-contain scrollbar-thin';
   const csCount = cityStateCount(worldSize, cityStates);
-  const choicesLine = `${size.name} world${generatedMap ? ' (generated)' : ''}, ${CITY_STATE_DENSITIES[cityStates].name.toLowerCase()} city-states, ${speed?.name} speed, ${difficulty?.name}${exploredWorld ? ', explored world' : ''}.`;
+  const choicesLine = t('start.choices', { size: sizeName(worldSize), map: generatedMap ? t('start.choices.generated') : '', density: densityName(cityStates).toLowerCase(), speed: speedName(gameSpeed), difficulty: diffName(difficultyId), explored: exploredWorld ? t('start.choices.explored') : '' });
 
   const peopleCard = selected && (
     <div className="fa-panel p-3 flex gap-3 shrink-0" data-testid="selected-people">
       <PeopleEmblem slug={selected.id} color={selected.color} size={wide ? 64 : 44} />
       <div className="min-w-0">
-        <div className={`fa-heading leading-tight truncate ${wide ? 'text-[26px]' : 'text-[20px]'}`}>{selected.name}</div>
+        <div className={`fa-heading leading-tight truncate ${wide ? 'text-[26px]' : 'text-[20px]'}`}>{peopleName(selected)}</div>
         {generatedMap
           ? <div className="text-[13px] leading-snug" data-testid="home-line">{homeLine(selected.id)}</div>
-          : <div className="text-[13px] leading-snug">Capital <span className="font-semibold">{selected.capital.name}</span>, in modern {selected.landName}</div>}
-        <div className="text-[13px] text-fa-muted leading-snug flex items-center gap-1"><ThemeIcon theme={selected.theme} className="w-3.5 h-3.5" />{THEME_LABELS[selected.theme] || selected.theme} art{selected.arrives != null ? ' · a late people, playable from the start' : ''}</div>
-        <div className="text-[12px] text-fa-muted leading-snug mt-0.5">{size.name} world: you and {size.majors - 1} other peoples</div>
+          : <div className="text-[13px] leading-snug">{rich(t('start.capital', { land: nm('land', null, selected.landName) }), { city: <span className="font-semibold">{nm('city', null, selected.capital.name)}</span> })}</div>}
+        <div className="text-[13px] text-fa-muted leading-snug flex items-center gap-1"><ThemeIcon theme={selected.theme} className="w-3.5 h-3.5" />{t('start.themeArt', { theme: t(`start.theme.${selected.theme}`) })}{selected.arrives != null ? t('start.latePeople') : ''}</div>
+        <div className="text-[12px] text-fa-muted leading-snug mt-0.5">{t('start.worldLine', { size: sizeName(worldSize), others: size.majors - 1 })}</div>
       </div>
     </div>
   );
@@ -260,23 +277,23 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   // Step 1: the people. On a phone in landscape the search, Random and the region chips share one
   // sideways row so the list gets the height (50 majors, 44 px rows).
   const searchInput = (
-    <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search peoples"
+    <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} aria-label={t('start.searchAria')}
       onKeyDown={(e) => {
         if (e.key === 'Enter' && peoples.length > 0) setSelectedId(peoples[0].id);
         if (e.key === 'Escape' && search) { e.preventDefault(); setSearch(''); }
       }}
-      placeholder={shortPhone ? 'Search' : 'Search peoples, capitals or lands'}
+      placeholder={shortPhone ? t('start.searchShort') : t('start.searchPlaceholder')}
       className="fa-input ps-9 !min-h-[40px]" />
   );
   const randomButton = (
-    <button type="button" onClick={random} className="fa-chip !min-h-[40px] shrink-0" aria-label="Pick a random people"><Shuffle className="w-3.5 h-3.5" aria-hidden="true" />{shortPhone ? null : 'Random'}</button>
+    <button type="button" onClick={random} className="fa-chip !min-h-[40px] shrink-0" aria-label={t('start.randomAria')}><Shuffle className="w-3.5 h-3.5" aria-hidden="true" />{shortPhone ? null : t('start.random')}</button>
   );
   const peopleStep = (
     <div className={`${fill} grid gap-3 ${twoCols ? 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]' : 'grid-cols-1'}`}>
       <section className={`fa-panel min-h-0 flex flex-col ${shortPhone ? 'p-1.5 gap-1.5' : 'p-2.5 gap-2'}`} aria-labelledby="choose-people">
-        <h3 id="choose-people" className="sr-only">Choose your people</h3>
+        <h3 id="choose-people" className="sr-only">{t('start.choosePeople')}</h3>
         {shortPhone ? (
-          <ScrollRow label="Search and region">
+          <ScrollRow label={t('start.searchRegion')}>
             <div className="relative w-[9.5rem] shrink-0">
               <Search className="w-4 h-4 text-fa-muted absolute start-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
               {searchInput}
@@ -301,55 +318,55 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
             <button key={p.id} type="button" onClick={() => setSelectedId(p.id)} data-people={p.id} data-people-name={p.name} aria-pressed={selectedId === p.id}
               className="fa-option w-full flex items-center gap-2.5 px-2.5 min-h-[44px] text-start border-transparent bg-transparent">
               <PeopleEmblem slug={p.id} color={p.color} size={16} />
-              <span className="min-w-0 flex-1 text-[14px] font-semibold truncate">{p.name}</span>
-              <span className="text-[12px] text-fa-muted truncate max-w-[45%]">{p.landName}</span>
+              <span className="min-w-0 flex-1 text-[14px] font-semibold truncate">{peopleName(p)}</span>
+              <span className="text-[12px] text-fa-muted truncate max-w-[45%]">{nm('land', null, p.landName)}</span>
             </button>
           ))}
-          {peoples.length === 0 && <div className="col-span-full text-center text-fa-muted text-[13px] py-4">No people matches your search.</div>}
+          {peoples.length === 0 && <div className="col-span-full text-center text-fa-muted text-[13px] py-4">{t('start.noMatch')}</div>}
         </div>
       </section>
-      <section className={`${scrollBox} flex flex-col gap-2.5`} aria-label="Your people" data-testid="start-details">
+      <section className={`${scrollBox} flex flex-col gap-2.5`} aria-label={t('start.yourPeople')} data-testid="start-details">
         {peopleCard}
         <p className="text-[12px] text-fa-muted leading-snug px-1" data-testid="start-defaults">
-          {choicesLine} Go on to change the world and the rules, then begin on Ready.
+          {choicesLine} {t('start.defaultsHint')}
         </p>
         <button type="button" onClick={guided} data-testid="guided-start" className="fa-btn fa-btn-ghost w-full mt-auto !justify-start !px-2 !h-auto !py-2 !whitespace-normal text-start leading-snug shrink-0"
-          title="Ten turns of prompts on the Nile: settle, farm, build, research, meet a neighbour, fight.">
-          <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" /> <span className="min-w-0">New here? Play the guided start as Kemet</span>
+          title={t('start.guidedTip')}>
+          <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" /> <span className="min-w-0">{t('start.guided', { people: nm('people', 'kemet', 'Kemet') })}</span>
         </button>
       </section>
     </div>
   );
 
   // Step 2: the world. Without the map choice, the world size alone as three wide cards.
-  const sizeItems = WORLD_SIZE_IDS.map((id) => ({ ...WORLD_SIZES[id], art: startArt(`worldsize-${id}`), count: WORLD_SIZES[id].majors, countLabel: `${WORLD_SIZES[id].majors} peoples` }));
+  const sizeItems = WORLD_SIZE_IDS.map((id) => ({ ...WORLD_SIZES[id], name: sizeName(id), blurb: t(`start.size.${id}.blurb`), art: startArt(`worldsize-${id}`), count: WORLD_SIZES[id].majors, countLabel: t('start.peopleCount', { n: WORLD_SIZES[id].majors }) }));
   // City-states: Few / Normal / Many (decision 42). Beside the map when there is a map choice (it
   // fits there on a phone), else under the world size.
   const cityStatesBlock = (
     <div className="flex flex-col gap-2">
-      <Label id="city-states-title" >City-states</Label>
+      <Label id="city-states-title" >{t('start.cityStates')}</Label>
       <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="city-states-title">
         {Object.values(CITY_STATE_DENSITIES).map((d) => (
-          <button key={d.id} type="button" aria-pressed={cityStates === d.id} title={d.blurb} onClick={() => setCityStates(d.id)} data-testid={`city-states-${d.id}`} className="fa-chip !min-h-[40px]">{d.name}</button>
+          <button key={d.id} type="button" aria-pressed={cityStates === d.id} title={t(`start.density.${d.id}.blurb`)} onClick={() => setCityStates(d.id)} data-testid={`city-states-${d.id}`} className="fa-chip !min-h-[40px]">{densityName(d.id)}</button>
         ))}
       </div>
-      <p className="text-[12px] text-fa-muted leading-snug" data-testid="city-states-line">Up to {csCount} one-city peoples, each {START_MIN_GAP_KM} km or more from every start. Trade, military, science and culture cities reward the people they favour; a third at most are raiders.</p>
+      <p className="text-[12px] text-fa-muted leading-snug" data-testid="city-states-line">{t('start.csLine', { n: csCount, km: START_MIN_GAP_KM })}</p>
     </div>
   );
   const sizeBlock = (
     <div className="flex flex-col gap-2">
-      <Label id="world-size-title">World size</Label>
-      <RadioCards label="World size" items={sizeItems} value={worldSize} onChange={setWorldSize} testIdPrefix="world-size"
+      <Label id="world-size-title">{t('start.worldSize')}</Label>
+      <RadioCards label={t('start.worldSize')} items={sizeItems} value={worldSize} onChange={setWorldSize} testIdPrefix="world-size"
         className={`grid gap-2 ${!mapChoice && twoCols ? 'grid-cols-3' : ''}`} />
-      <p className="text-[12px] text-fa-muted leading-snug">Peoples alive at the start. Others rise later as free cities split away.</p>
+      <p className="text-[12px] text-fa-muted leading-snug">{t('start.sizeHint')}</p>
       {!mapChoice && cityStatesBlock}
     </div>
   );
   const worldStep = mapChoice ? (
     <div className={`${fill} grid gap-3 ${twoCols ? 'grid-cols-2' : 'grid-cols-1'}`}>
-      <section className={`fa-panel p-2.5 ${scrollBox}`} aria-label="Map">
+      <section className={`fa-panel p-2.5 ${scrollBox}`} aria-label={t('start.map')}>
         <MapPicker value={mapSpec} onChange={setMapSpec} />
-        <p className="text-[12px] text-fa-muted leading-snug mt-2">{generatedMap ? 'Each people starts on the site that suits its home climate.' : 'Each people starts at its real home.'}</p>
+        <p className="text-[12px] text-fa-muted leading-snug mt-2">{generatedMap ? t('start.mapHint.generated') : t('start.mapHint.earth')}</p>
         <div className="mt-3">{cityStatesBlock}</div>
       </section>
       <section className={`fa-panel p-2.5 ${scrollBox}`} aria-labelledby="world-size-title">{sizeBlock}</section>
@@ -359,28 +376,28 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   );
 
   // Step 3: the rules.
-  const speedItems = Object.values(GAME_SPEEDS).map((s) => ({ id: s.id, name: s.name, blurb: s.blurb }));
+  const speedItems = Object.values(GAME_SPEEDS).map((s) => ({ id: s.id, name: speedName(s.id), blurb: t(`start.speed.${s.id}.blurb`) }));
   const rulesStep = (
     <div className={`${fill} grid gap-3 ${twoCols ? 'grid-cols-2' : 'grid-cols-1'}`}>
-      <section className={`fa-panel p-2.5 ${scrollBox} flex flex-col gap-2`} aria-label="Game speed">
-        <Label>Game speed</Label>
-        <RadioCards label="Game speed" items={speedItems} value={gameSpeed} onChange={setGameSpeed} testIdPrefix="game-speed" />
+      <section className={`fa-panel p-2.5 ${scrollBox} flex flex-col gap-2`} aria-label={t('start.gameSpeed')}>
+        <Label>{t('start.gameSpeed')}</Label>
+        <RadioCards label={t('start.gameSpeed')} items={speedItems} value={gameSpeed} onChange={setGameSpeed} testIdPrefix="game-speed" />
       </section>
-      <section className={`fa-panel p-2.5 ${scrollBox} flex flex-col gap-2`} aria-label="Difficulty and options">
-        <Label>Difficulty</Label>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Difficulty">
+      <section className={`fa-panel p-2.5 ${scrollBox} flex flex-col gap-2`} aria-label={t('start.difficultyOptions')}>
+        <Label>{t('start.difficulty')}</Label>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('start.difficulty')}>
           {Object.values(DIFFICULTIES).map((d) => (
-            <button key={d.id} type="button" onClick={() => setDifficultyId(d.id)} aria-pressed={difficultyId === d.id} data-testid={`difficulty-${d.id}`} className="fa-chip !min-h-[40px]">{d.name}</button>
+            <button key={d.id} type="button" onClick={() => setDifficultyId(d.id)} aria-pressed={difficultyId === d.id} data-testid={`difficulty-${d.id}`} className="fa-chip !min-h-[40px]">{diffName(d.id)}</button>
           ))}
         </div>
-        <p className="text-[12px] text-fa-muted leading-snug">{difficulty?.description}</p>
-        <Label className="mt-1">Options</Label>
+        <p className="text-[12px] text-fa-muted leading-snug">{t(`start.diff.${difficultyId}.desc`)}</p>
+        <Label className="mt-1">{t('start.options')}</Label>
         <div className="flex items-center justify-between gap-3 min-h-[44px]">
           <div className="min-w-0">
-            <div className="text-[14px] font-semibold leading-tight">Explored world</div>
-            <div className="text-[12px] text-fa-muted leading-snug">{exploredWorld ? 'On: the whole map is known, every people met' : 'Off: start in the dark, explore to see'}</div>
+            <div className="text-[14px] font-semibold leading-tight">{t('start.explored')}</div>
+            <div className="text-[12px] text-fa-muted leading-snug">{exploredWorld ? t('start.exploredOn') : t('start.exploredOff')}</div>
           </div>
-          <button type="button" role="switch" aria-checked={exploredWorld} aria-label="Explored world" onClick={() => setExploredWorld((v) => !v)} className="fa-switch before:content-[''] before:absolute before:-inset-y-[10px] before:-inset-x-1" data-testid="explored-world" />
+          <button type="button" role="switch" aria-checked={exploredWorld} aria-label={t('start.explored')} onClick={() => setExploredWorld((v) => !v)} className="fa-switch before:content-[''] before:absolute before:-inset-y-[10px] before:-inset-x-1" data-testid="explored-world" />
         </div>
       </section>
     </div>
@@ -388,29 +405,29 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
 
   // Step 4: ready. One row per choice, each with Change.
   const summaryRows = [
-    mapChoice && { key: 'map', label: 'Map', value: generatedMap ? 'Generated world' : 'Real Earth', to: 1 },
-    { key: 'world', label: 'World size', value: `${size.name}: you and ${size.majors - 1} others`, to: 1 },
-    { key: 'cityStates', label: 'City-states', value: `${CITY_STATE_DENSITIES[cityStates].name}, up to ${csCount}`, to: 1 },
-    { key: 'speed', label: 'Game speed', value: `${speed?.name}, about ${speed?.turns?.toLocaleString('en-US')} turns`, to: 2 },
-    { key: 'difficulty', label: 'Difficulty', value: difficulty?.name, to: 2 },
-    { key: 'explored', label: 'Explored world', value: exploredWorld ? 'On' : 'Off', to: 2 }
+    mapChoice && { key: 'map', label: t('start.map'), value: generatedMap ? t('start.sum.generated') : t('start.sum.earth'), to: 1 },
+    { key: 'world', label: t('start.worldSize'), value: t('start.sum.world', { size: sizeName(worldSize), others: size.majors - 1 }), to: 1 },
+    { key: 'cityStates', label: t('start.cityStates'), value: t('start.sum.cityStates', { density: densityName(cityStates), n: csCount }), to: 1 },
+    { key: 'speed', label: t('start.gameSpeed'), value: t('start.sum.speed', { speed: speedName(gameSpeed), turns: n(speed?.turns) }), to: 2 },
+    { key: 'difficulty', label: t('start.difficulty'), value: diffName(difficultyId), to: 2 },
+    { key: 'explored', label: t('start.explored'), value: exploredWorld ? t('start.on') : t('start.off'), to: 2 }
   ].filter(Boolean);
   const readyStep = (
     <div className={`${fill} grid gap-3 ${twoCols ? 'grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]' : 'grid-cols-1'}`}>
-      <section className={`${scrollBox} flex flex-col gap-1.5`} aria-label="Your people">
+      <section className={`${scrollBox} flex flex-col gap-1.5`} aria-label={t('start.yourPeople')}>
         {peopleCard}
         <p className="text-[12px] text-fa-muted leading-snug px-1 flex items-center gap-2 flex-wrap">
-          <span>Dawn, 2000 BCE. One city each.</span>
-          <button type="button" className="fa-btn fa-btn-ghost !min-h-[40px] !px-2" onClick={() => go(0)} data-testid="change-people">Change people</button>
+          <span>{t('start.dawn', { year: year(-2000) })}</span>
+          <button type="button" className="fa-btn fa-btn-ghost !min-h-[40px] !px-2" onClick={() => go(0)} data-testid="change-people">{t('start.changePeople')}</button>
         </p>
       </section>
-      <section className={`fa-panel px-3 py-1 ${scrollBox}`} aria-label="Your choices" data-testid="start-summary">
+      <section className={`fa-panel px-3 py-1 ${scrollBox}`} aria-label={t('start.yourChoices')} data-testid="start-summary">
         <dl>
           {summaryRows.map((r) => (
             <div key={r.key} className="flex items-start gap-2 min-h-[44px] py-1.5 border-b border-fa-line last:border-b-0" data-summary={r.key}>
               <dt className="text-[12px] text-fa-muted w-24 shrink-0 pt-0.5">{r.label}</dt>
               <dd className="text-[14px] font-semibold min-w-0 flex-1 break-words leading-snug pt-px">{r.value}</dd>
-              <button type="button" onClick={() => go(r.to)} className="fa-btn fa-btn-ghost !min-h-[44px] !min-w-[44px] !px-0 -my-1.5 shrink-0 self-center" aria-label={`Change ${r.label.toLowerCase()}`} title={`Change ${r.label.toLowerCase()}`}>
+              <button type="button" onClick={() => go(r.to)} className="fa-btn fa-btn-ghost !min-h-[44px] !min-w-[44px] !px-0 -my-1.5 shrink-0 self-center" aria-label={t('start.change', { what: r.label.toLowerCase() })} title={t('start.change', { what: r.label.toLowerCase() })}>
                 <Pencil className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
@@ -425,33 +442,33 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   return (
     <div className="h-[100dvh] w-full bg-fa-ink text-fa-text flex flex-col overflow-hidden" style={backdrop} data-testid="start-screen" data-step={START_STEPS[step].id}>
       <header className={`flex items-center gap-3 pt-[max(0.25rem,env(safe-area-inset-top))] pb-1 shrink-0 ${frame}`}>
-        {onBackToTitle && <button type="button" onClick={onBackToTitle} className="fa-btn fa-btn-ghost shrink-0 !min-h-[44px] !px-2" data-testid="start-back-to-title"><ArrowLeft className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />Title</button>}
-        <h1 className="fa-heading text-[19px] shrink-0">New game</h1>
-        {!phone && <span className="text-[13px] text-fa-muted truncate">Dawn, 2000 BCE. One city each.</span>}
+        {onBackToTitle && <button type="button" onClick={onBackToTitle} className="fa-btn fa-btn-ghost shrink-0 !min-h-[44px] !px-2" data-testid="start-back-to-title"><ArrowLeft className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />{t('start.titleBack')}</button>}
+        <h1 className="fa-heading text-[19px] shrink-0">{t('start.title')}</h1>
+        {!phone && <span className="text-[13px] text-fa-muted truncate">{t('start.dawn', { year: year(-2000) })}</span>}
         <StepIndicator step={step} onGo={go} compact={phone} />
         <LanguageSwitch compact className="ms-auto shrink-0" />
       </header>
       <main className={`flex-1 min-h-0 ${twoCols ? 'overflow-hidden' : 'overflow-y-auto'} ${frame}`}>
-        <StepPanel id="people" active={step === 0} fill={twoCols} title="Step 1 of 4: People">{peopleStep}</StepPanel>
-        <StepPanel id="world" active={step === 1} fill={twoCols} title="Step 2 of 4: World">{worldStep}</StepPanel>
-        <StepPanel id="rules" active={step === 2} fill={twoCols} title="Step 3 of 4: Rules">{rulesStep}</StepPanel>
-        <StepPanel id="ready" active={step === 3} fill={twoCols} title="Step 4 of 4: Ready">{readyStep}</StepPanel>
+        <StepPanel id="people" active={step === 0} fill={twoCols} title={t('start.stepTitle', { i: 1, name: t('start.step.people') })}>{peopleStep}</StepPanel>
+        <StepPanel id="world" active={step === 1} fill={twoCols} title={t('start.stepTitle', { i: 2, name: t('start.step.world') })}>{worldStep}</StepPanel>
+        <StepPanel id="rules" active={step === 2} fill={twoCols} title={t('start.stepTitle', { i: 3, name: t('start.step.rules') })}>{rulesStep}</StepPanel>
+        <StepPanel id="ready" active={step === 3} fill={twoCols} title={t('start.stepTitle', { i: 4, name: t('start.step.ready') })}>{readyStep}</StepPanel>
       </main>
       <footer className={`flex items-center gap-2 pt-2 [@media(max-height:320px)]:pt-1 shrink-0 ${wide ? 'pb-6' : 'pb-[max(0.5rem,env(safe-area-inset-bottom))] [@media(max-height:320px)]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'} ${frame}`}>
         {step > 0 && (
           <button type="button" onClick={() => go(step - 1)} className="fa-btn fa-btn-ghost shrink-0" data-testid="start-back">
-            <ArrowLeft className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />Back
+            <ArrowLeft className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />{t('start.back')}
           </button>
         )}
         <span className="flex-1" />
         {next && (
           <button type="button" onClick={() => go(step + 1)} className="fa-btn fa-btn-secondary shrink-0 !min-h-[48px] [@media(max-height:320px)]:!min-h-[44px]" data-testid="start-next">
-            Next: {next.name}<ArrowRight className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />
+            {t('start.next', { name: t(`start.step.${next.id}`) })}<ArrowRight className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />
           </button>
         )}
         {step === last && (
           <button type="button" onClick={begin} data-testid="begin-game" className={`fa-btn fa-btn-primary fa-btn-hero min-w-0 !min-h-[48px] ${twoCols ? 'max-w-[55%]' : 'flex-1'}`}>
-            <span className="truncate">Begin as {selected?.name}</span><ArrowRight className="rtl:-scale-x-100 w-5 h-5 shrink-0" aria-hidden="true" />
+            <span className="truncate">{t('start.begin', { name: selected ? peopleName(selected) : '' })}</span><ArrowRight className="rtl:-scale-x-100 w-5 h-5 shrink-0" aria-hidden="true" />
           </button>
         )}
       </footer>
