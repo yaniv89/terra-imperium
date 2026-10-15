@@ -17,7 +17,7 @@ import { CITY_SPACING_KM, citySpacingRings, sameLandmass } from '../../data/geo/
 import { ringsAround } from '../../engine/world/cities';
 import { tileFacts, tileYields, resourceKnown } from '../../data/tileYields';
 import { getResearched } from '../../engine/nationState';
-import { canSettle, scoreSite, siteOutlook, outpostTurns } from '../../engine/settlers';
+import { canSettle, siteQualityParts, siteRatingOf, bestSites, siteOutlook, outpostTurns, MAX_SETTLE_RINGS } from '../../engine/settlers';
 import { pickCityName } from '../../engine/cityNames';
 import { isExplored } from '../../engine/fog';
 import { t } from '../../i18n/core';
@@ -44,6 +44,34 @@ export const spacingRule = (tiles = getTiles()) => {
   };
 };
 
+// The best site quality in the player's reach (from the capital), once per world object.
+const reachBestCache = new WeakMap();
+const bestQualityInReach = (state, ageId) => {
+  const world = state.world || {};
+  const hit = reachBestCache.get(world);
+  if (hit && hit.regions === state.regions) return hit.best;
+  const cap = state.regions?.[state.nations?.[state.playerNationId]?.capitalRegionId];
+  let best = null;
+  if (cap?.tile != null) {
+    const sites = bestSites(state, state.playerNationId, cap.tile, ageId, { rings: MAX_SETTLE_RINGS, limit: 400 });
+    best = sites.reduce((m, x) => Math.max(m, x.quality), 0) || null;
+  }
+  reachBestCache.set(world, { regions: state.regions, best });
+  return best;
+};
+
+/** The "why" of a site's rating from the parts of its quality: "Neighbours +2.3, river +2". */
+export const siteWhyText = (parts) => {
+  const f = (v) => '⁦+' + Math.round(v * 10) / 10 + '⁩'; // isolated so a Hebrew line keeps the plus on the left of the number
+  const bits = [];
+  if (parts.here > 0) bits.push(t('mx.tile.why.here', { v: f(parts.here) }));
+  if (parts.neighbours > 0) bits.push(t('mx.tile.why.neighbours', { v: f(parts.neighbours) }));
+  if (parts.resource) bits.push(t('mx.tile.why.resource', { v: f(parts.resource) }));
+  if (parts.river) bits.push(t('mx.tile.why.river', { v: f(parts.river) }));
+  if (parts.coast) bits.push(t('mx.tile.why.coast', { v: f(parts.coast) }));
+  return bits.join(', ');
+};
+
 export const settleSiteModel = (state, tile, ageId) => {
   const tiles = getTiles();
   if (tile == null || !tiles.land[tile]) return null;
@@ -67,6 +95,7 @@ export const settleSiteModel = (state, tile, ageId) => {
   const outlook = siteOutlook(state, tile, me);
   const free = tileOwner[tile] == null;
   const lines = [];
+  const parts = siteQualityParts(state, tile);
   if (facts.river) lines.push({ id: 'river', text: t('st.river') });
   if (facts.coastal) lines.push({ id: 'coast', text: t('st.coast') });
   if (resource) lines.push({ id: 'resource', text: t('st.resource', { name: tileResourceName(resource) }) });
@@ -94,7 +123,10 @@ export const settleSiteModel = (state, tile, ageId) => {
     ok: can.ok,
     reason,
     tooClose: !!tooClose,
-    score: can.ok ? scoreSite(state, tile) : null,
+    score: can.ok ? parts.total : null,
+    rating: can.ok ? siteRatingOf(parts.total, bestQualityInReach(state, ageId)) : null,
+    ratingParts: can.ok ? parts : null,
+    why: can.ok ? siteWhyText(parts) : '',
     yields: { food: yields.food, production: yields.production, gold: yields.gold },
     centre: outlook?.centre || null,
     foodSurplus: outlook?.foodSurplus ?? null,

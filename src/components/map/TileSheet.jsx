@@ -182,7 +182,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
               </Button>
             );
           })}
-          {facts.land && site?.ok && !settlers.length && <div className="text-[12px] text-fa-muted">{t('mx.tile.score', { score: site.score })}</div>}
+          {facts.land && site?.ok && !settlers.length && <div className="text-[12px] text-fa-muted"><div>{t('mx.tile.rating', { rating: t('mx.tile.rating.' + site.rating) })}{site.why ? ' ' + t('mx.tile.why', { why: site.why, total: site.score }) : ''}</div><div>{t('mx.tile.claimHint')}</div></div>}
           {landing.length > 0 && (
             <Button className="w-full" onClick={() => landing.forEach((c) => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: c.id, tile } }))} data-testid="land-here">
               {t('mx.tile.land', { count: landing.length })}
