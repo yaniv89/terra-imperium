@@ -6,6 +6,7 @@
 // (plans/UI-DESIGN.md section 2, U1 step 11).
 import React from 'react';
 import { shieldUrl, shieldColour } from './independentArt';
+import { t as tNow } from '../../i18n/core';
 
 export const INDEPENDENT_VIOLET = '#9C8FD0';
 export const BRASS = '#D8A444';
@@ -29,7 +30,7 @@ export const AttitudeMeter = ({ value, tone }) => {
   const at = Math.max(0, Math.min(100, (value + 100) / 2));
   const fill = tone === 'good' ? 'bg-fa-good' : tone === 'bad' ? 'bg-fa-danger' : 'bg-fa-enemy';
   return (
-    <div className="relative h-2 rounded-full bg-fa-hover/80 overflow-hidden" role="meter" aria-valuemin={-100} aria-valuemax={100} aria-valuenow={value} aria-label="Attitude toward you">
+    <div className="relative h-2 rounded-full bg-fa-hover/80 overflow-hidden" role="meter" aria-valuemin={-100} aria-valuemax={100} aria-valuenow={value} aria-label={tNow('ind.sheet.attitudeAria')}>
       <div className="absolute inset-y-0 left-1/2 w-px bg-fa-muted" />
       <div className={`absolute inset-y-0 ${fill}`} style={value >= 0 ? { insetInlineStart: '50%', width: `${at - 50}%` } : { insetInlineStart: `${at}%`, width: `${50 - at}%` }} />
     </div>
@@ -37,7 +38,7 @@ export const AttitudeMeter = ({ value, tone }) => {
 };
 
 /** A 0..max meter, with an optional hatched part from `value` to `after` (what a refusal adds). */
-export const GrudgeMeter = ({ value, max = 100, after = null, label = 'Grudge' }) => {
+export const GrudgeMeter = ({ value, max = 100, after = null, label = tNow('ind.sheet.grudge') }) => {
   const v = Math.max(0, Math.min(100, (100 * value) / max));
   const a = after != null ? Math.max(v, Math.min(100, (100 * after) / max)) : v;
   return (

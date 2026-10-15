@@ -18,7 +18,12 @@
 import { getTiles } from '../../data/geo/tiles';
 import { tileKm } from '../../engine/tradeValue';
 import { PEOPLES } from '../../data/peoples';
-import { unitName as unitDisplayName } from '../../i18n/gameText';
+import { unitName as unitDisplayName, independentKindName, independentWhere } from '../../i18n/gameText';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
+import { reasonText } from '../../i18n/messageText';
+import { carryText } from '../battle/battleText';
+import { opinionLabel } from '../panels/opinionText';
 import { ActionTypes } from '../../data/types';
 import {
   isIndependentNation, PERSONALITIES, GRUDGE_MAX, GRUDGE_DECAY, GRUDGE_REFUSED, MERC_SELLERS, MERC_CONTRACT_TURNS, MERC_MAX_GRUDGE,
@@ -38,7 +43,7 @@ import { shieldUrl, shieldColour } from './independentArt';
 import { cityStateViewOf } from './cityStateView';
 
 /** Attitude words by value (the W08 meter): -100..100. */
-export const attitudeWord = (v) => (v >= JOIN_OPINION ? 'Devoted' : v >= JOIN_STRENGTH_OPINION ? 'Friendly' : v >= 10 ? 'Warm' : v > -20 ? 'Wary' : v > -50 ? 'Unfriendly' : 'Hostile');
+export const attitudeWord = (v) => t(`ind.att.${v >= JOIN_OPINION ? 'Devoted' : v >= JOIN_STRENGTH_OPINION ? 'Friendly' : v >= 10 ? 'Warm' : v > -20 ? 'Wary' : v > -50 ? 'Unfriendly' : 'Hostile'}`);
 /** good / neutral / bad for an attitude. */
 export const attitudeTone = (v) => (v >= JOIN_STRENGTH_OPINION ? 'good' : v > -20 ? 'neutral' : 'bad');
 
@@ -56,36 +61,39 @@ export const attitudeLabel = (state, n, me, value) => {
   const lately = !now && !!last && (state.turnNumber || 0) - last.turn <= LAST_RAID_TURNS;
   const base = attitudeWord(value);
   if (!now && !lately) return { word: base, tone: attitudeTone(value), raiding: null };
-  const tail = now ? 'raiding you' : 'raided you lately';
-  const word = value > -20 ? `${base} but ${tail}` : `${base}, ${tail}`;
+  const tail = t(now ? 'ind.raidingYou' : 'ind.raidedLately');
+  const word = t(value > -20 ? 'ind.attBut' : 'ind.attComma', { base, tail });
   return { word, tone: 'bad', raiding: now ? 'now' : 'lately' };
 };
 
 /** Grudge bands of the W15 meter: [from, word]. */
-export const GRUDGE_BANDS = [[0, 'Calm'], [25, 'Wary'], [50, 'Hostile'], [75, 'Blood feud']];
-export const grudgeWord = (g) => GRUDGE_BANDS.reduce((w, [from, word]) => (g >= from ? word : w), 'Calm');
+const GRUDGE_BAND_DEFS = [[0, 'calm'], [25, 'wary'], [50, 'hostile'], [75, 'feud']];
+/** The bands with their words in the current language. */
+export const grudgeBands = () => GRUDGE_BAND_DEFS.map(([from, id]) => [from, t(`ind.gw.${id}`)]);
+export const grudgeWord = (g) => t(`ind.gw.${GRUDGE_BAND_DEFS.reduce((w, [from, id]) => (g >= from ? id : w), 'calm')}`);
 export const grudgeTone = (g) => (g >= 50 ? 'bad' : g > 0 ? 'neutral' : 'good');
 
-const MOOD = { calm: null, raiding: 'raid party out', besieged: 'under threat', recovering: 'licking its wounds' };
+const moodText = (mood) => (['raiding', 'besieged', 'recovering'].includes(mood) ? t(`ind.mood.${mood}`) : null);
 
 /** How long the sheet and the city card name the last raid's outcome. */
 export const LAST_RAID_TURNS = 10;
 
 /** What a raid goes for, in a few words. */
-export const RAID_KIND_WORDS = { pillage: 'pillage', route: 'trade route', settler: 'settlers', outpost: 'outpost', sack: 'sack' };
+export const RAID_KIND_WORDS = Object.fromEntries(['pillage', 'route', 'settler', 'outpost', 'sack'].map((k) => [k, k]));
+export const raidKindWord = (kind) => (RAID_KIND_WORDS[kind] ? t(`ind.raidKind.${kind}`) : kind);
 
-const placeName = (state, tile) => getTiles().names?.[tile] || state.regions?.[state.world?.tileOwner?.[tile]]?.name || 'the frontier';
+const placeName = (state, tile) => { const n = getTiles().names?.[tile] || state.regions?.[state.world?.tileOwner?.[tile]]?.name; return n ? nameNow('place', null, n) : t('ind.frontier'); };
 
 /** A raid's target in words: "the fields of Kish", "Uruk", "your settlers near X". */
 export const raidTargetName = (state, raid) => {
   if (!raid) return '';
   const city = raid.targetCityId != null ? state.regions?.[raid.targetCityId] : state.regions?.[state.world?.tileOwner?.[raid.targetTile]];
   switch (raid.kind) {
-    case 'sack': return city?.name || placeName(state, raid.targetTile);
-    case 'outpost': return `the outpost of ${city?.name || placeName(state, raid.targetTile)}`;
-    case 'settler': return `settlers near ${placeName(state, raid.targetTile)}`;
-    case 'route': return `the trade route at ${placeName(state, raid.targetTile)}`;
-    default: return city ? `the land of ${city.name} (${placeName(state, raid.targetTile)})` : placeName(state, raid.targetTile);
+    case 'sack': return city?.name ? nameNow('city', null, city.name) : placeName(state, raid.targetTile);
+    case 'outpost': return t('ind.target.outpost', { place: city?.name ? nameNow('city', null, city.name) : placeName(state, raid.targetTile) });
+    case 'settler': return t('ind.target.settler', { place: placeName(state, raid.targetTile) });
+    case 'route': return t('ind.target.route', { place: placeName(state, raid.targetTile) });
+    default: return city ? t('ind.target.land', { city: nameNow('city', null, city.name), place: placeName(state, raid.targetTile) }) : placeName(state, raid.targetTile);
   }
 };
 
@@ -100,7 +108,8 @@ export const kmFromNearest = (state, nationId, tile) => {
   return best;
 };
 
-const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const turnsText = (n) => t('ind.turns', { count: n });
+const bandsText = (n) => t('ind.bands', { count: n });
 
 /** The full sheet of independent `indepId` for the player, or null. */
 export const independentSheetModel = (state, indepId) => {
@@ -119,15 +128,15 @@ export const independentSheetModel = (state, indepId) => {
   const garrison = alive ? garrisonOf(state, indepId, city) : [];
   const facts = [];
   if (alive) {
-    facts.push(city.name);
+    facts.push(nameNow('city', null, city.name));
     const place = city.tile != null ? getTiles().names?.[city.tile] : null;
-    if (place && place !== city.name) facts.push(place);
-    facts.push(`size ${city.size || 1}`);
+    if (place && place !== city.name) facts.push(nameNow('place', null, place));
+    facts.push(t('ind.fact.size', { n: city.size || 1 }));
     facts.push(wallsLabel(city).toLowerCase()); // the walls' one name on every screen (I009)
-    facts.push(`garrison ${garrison.length}`);
-    if (MOOD[ind.mood]) facts.push(MOOD[ind.mood]);
-    if (city.razing) facts.push('burning');
-  } else facts.push(ind.joined ? `joined ${state.nations[ind.joined.to]?.name || 'a nation'}` : 'fallen');
+    facts.push(t('ind.fact.garrison', { n: garrison.length }));
+    if (moodText(ind.mood)) facts.push(moodText(ind.mood));
+    if (city.razing) facts.push(t('ind.fact.burning'));
+  } else facts.push(ind.joined ? t('ind.fact.joined', { name: state.nations[ind.joined.to]?.name ? nameNow('people', ind.joined.to, state.nations[ind.joined.to].name) : t('ind.fact.aNation') }) : t('ind.fact.fallen'));
 
   // Attitude.
   const attitude = attitudeOf(state, indepId, me);
@@ -137,28 +146,28 @@ export const independentSheetModel = (state, indepId) => {
   const reasons = [
     ...bd.rows.filter((r) => r.id === 'baseline'),
     ...bd.rows.filter((r) => r.id !== 'baseline' && r.value !== 0).sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
-  ].map((r) => ({ id: r.id, label: r.label, value: r.value }));
-  if (bd.rounding !== 0) reasons.push({ id: 'rounding', label: 'Rounding', value: bd.rounding });
-  if (bd.clamped) reasons.push({ id: 'scaleEnd', label: 'End of the scale', value: Math.round((bd.total - bd.sum) * 10) / 10 });
+  ].map((r) => ({ id: r.id, label: opinionLabel(r, true), value: r.value }));
+  if (bd.rounding !== 0) reasons.push({ id: 'rounding', label: t('ind.reason.rounding'), value: bd.rounding });
+  if (bd.clamped) reasons.push({ id: 'scaleEnd', label: t('ind.reason.scaleEnd'), value: Math.round((bd.total - bd.sum) * 10) / 10 });
   const attitudeShown = attitudeLabel(state, n, me, attitude);
   const joinable = mayJoin(n);
-  const join = alive ? joinCheck(state, indepId, me) : { ok: false, reason: 'Their city is gone.' };
+  const join = alive ? joinCheck(state, indepId, me) : { ok: false, reason: t('m.why.indepCityGone') };
   const joinRule = !joinable
-    ? (p === 'fortress' ? 'A fortress people never joins anyone peacefully.' : 'Raiders keep their freedom: they never join peacefully.')
-    : `They join at attitude ${JOIN_OPINION} held ${JOIN_TURNS} turns, or at ${JOIN_STRENGTH_OPINION} with your army ${JOIN_STRENGTH_RATIO} times theirs.`;
+    ? (p === 'fortress' ? t('ind.joinRule.fortress') : t('ind.joinRule.raiders'))
+    : t('ind.joinRule.other', { open: JOIN_OPINION, turns: JOIN_TURNS, strong: JOIN_STRENGTH_OPINION, ratio: JOIN_STRENGTH_RATIO });
 
   // Grudge.
   const g = grudgeOf(n, me);
   const effects = [];
-  if (g > 0 && RAID_KM[p]) effects.push(`raids on you ${Math.round(g)}% likelier`);
-  if (g >= TRIBUTE_DEMAND_GRUDGE && ['raiders', 'tribal'].includes(p)) effects.push('they may demand tribute');
-  if (p === 'fortress') effects.push(g >= FORTRESS_REVENGE_GRUDGE ? 'a fortress out for revenge: it raids you' : `a fortress raids only in revenge (grudge ${FORTRESS_REVENGE_GRUDGE})`);
-  if (MERC_SELLERS.includes(p) && g >= MERC_MAX_GRUDGE) effects.push('they sell you no mercenaries');
-  if (p === 'mercantile' && g >= TRADE_MAX_GRUDGE) effects.push('they will not trade with you');
+  if (g > 0 && RAID_KM[p]) effects.push(t('ind.grudge.raids', { n: Math.round(g) }));
+  if (g >= TRIBUTE_DEMAND_GRUDGE && ['raiders', 'tribal'].includes(p)) effects.push(t('ind.grudge.tribute'));
+  if (p === 'fortress') effects.push(g >= FORTRESS_REVENGE_GRUDGE ? t('ind.grudge.fortressRevenge') : t('ind.grudge.fortressOnly', { n: FORTRESS_REVENGE_GRUDGE }));
+  if (MERC_SELLERS.includes(p) && g >= MERC_MAX_GRUDGE) effects.push(t('ind.grudge.noMercs'));
+  if (p === 'mercantile' && g >= TRADE_MAX_GRUDGE) effects.push(t('ind.grudge.noTrade'));
   const grudge = {
     value: Math.round(g), max: GRUDGE_MAX, word: grudgeWord(g), tone: grudgeTone(g), decay: GRUDGE_DECAY,
     fadesIn: g > 0 ? Math.ceil(g / GRUDGE_DECAY) : 0,
-    causes: grudgeCausesOf(n, me).map((c) => ({ label: GRUDGE_CAUSES[c.id] || c.id, turn: c.turn, amount: Math.round(c.amount) })),
+    causes: grudgeCausesOf(n, me).map((c) => ({ label: GRUDGE_CAUSES[c.id] ? t(`ind.cause.${c.id}`) : c.id, turn: c.turn, amount: Math.round(c.amount) })),
     effects
   };
 
@@ -177,8 +186,8 @@ export const independentSheetModel = (state, indepId) => {
     trade: trades ? { gold: tradeGoldOf(state.age) } : null,
     joinOffer: joinOffer ? { id: joinOffer.id, expires: joinOffer.expires } : null,
     // The outcome of their last raid on you (raids.js lastRaidOnPlayer), shown LAST_RAID_TURNS turns.
-    lastRaid: ind.lastRaidOnPlayer && turn - ind.lastRaidOnPlayer.turn <= LAST_RAID_TURNS ? { ...ind.lastRaidOnPlayer, ago: turn - ind.lastRaidOnPlayer.turn } : null,
-    raid: raid ? { kind: raid.kind, kindWord: RAID_KIND_WORDS[raid.kind] || raid.kind, target: raidTargetName(state, raid), tile: raid.targetTile, eta: eta?.turns ?? null } : null
+    lastRaid: ind.lastRaidOnPlayer && turn - ind.lastRaidOnPlayer.turn <= LAST_RAID_TURNS ? { ...ind.lastRaidOnPlayer, englishText: ind.lastRaidOnPlayer.text, text: carryText(ind.lastRaidOnPlayer.textMsg ? { msgKey: ind.lastRaidOnPlayer.textMsg.key, msgVars: ind.lastRaidOnPlayer.textMsg.vars, message: ind.lastRaidOnPlayer.text } : null, ind.lastRaidOnPlayer.text), ago: turn - ind.lastRaidOnPlayer.turn } : null,
+    raid: raid ? { kind: raid.kind, kindWord: raidKindWord(raid.kind), target: raidTargetName(state, raid), tile: raid.targetTile, eta: eta?.turns ?? null } : null
   };
 
   // Mercenaries.
@@ -192,11 +201,11 @@ export const independentSheetModel = (state, indepId) => {
       stock,
       offer: offer.ok ? {
         unit: unitDisplayName(state.age || 'bronze', offer.classId), classId: offer.classId, price: offer.price, upkeep: offer.upkeep, turns: MERC_CONTRACT_TURNS,
-        waitIn: state.regions[offer.cityId]?.name || '', affordable: gold >= offer.price
+        waitIn: state.regions[offer.cityId]?.name ? nameNow('city', null, state.regions[offer.cityId].name) : '', affordable: gold >= offer.price
       } : null,
-      reason: offer.ok ? (gold < offer.price ? `You need ${offer.price} gold (you have ${Math.floor(gold)}).` : null) : offer.reason,
+      reason: offer.ok ? (gold < offer.price ? t('ind.merc.youNeed', { gold: offer.price, have: Math.floor(gold) }) : null) : reasonText(offer),
       hired,
-      note: 'A band serves until its contract ends, or leaves at once when you cannot pay its upkeep.'
+      note: t('ind.merc.note')
     };
   }
 
@@ -206,46 +215,46 @@ export const independentSheetModel = (state, indepId) => {
   if (alive) {
     const attackOk = canAttack(state, me, indepId);
     actions.push({
-      id: 'attack', label: 'Attack without war', tone: 'danger',
-      sub: attackOk ? 'no declaration needed' : 'truce while you pay',
+      id: 'attack', label: t('ind.act.attack'), tone: 'danger',
+      sub: attackOk ? t('ind.act.attackSubOk') : t('ind.act.attackSubNo'),
       ok: attackOk,
-      reason: attackOk ? `Anyone may attack an independent: no war, ${Math.round(INDEPENDENT_CONQUEST_AE_MULT * 100)}% of the usual anger from your neighbours, and their kin hold a grudge. March an army from the city card.`
-        : `You pay them tribute until turn ${youPay?.until}: no attacks meanwhile.`,
+      reason: attackOk ? t('ind.act.attackReasonOk', { pct: Math.round(INDEPENDENT_CONQUEST_AE_MULT * 100) })
+        : t('ind.act.attackReasonNo', { n: youPay?.until }),
       run: { kind: 'focusCity', cityId: city.id }
     });
     if (demand) {
-      actions.push({ id: 'payTribute', label: 'Pay tribute', sub: `${demand.gold} gold a turn`, ok: true, reason: `${demand.gold} gold a turn for ${demand.turns} turns: no raids from them, and no attacks on them meanwhile.`, run: { action: { type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: demand.id, pay: true } } } });
+      actions.push({ id: 'payTribute', label: t('ind.act.payTribute'), sub: t('ind.act.goldTurn', { gold: demand.gold }), ok: true, reason: t('ind.act.payReasonDemand', { gold: demand.gold, turns: demand.turns }), run: { action: { type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: demand.id, pay: true } } } });
     } else {
-      const t = offerTributeCheck(state, indepId, me);
-      actions.push({ id: 'payTribute', label: 'Pay tribute', sub: t.ok ? `${t.gold} gold a turn, no raids` : youPay ? 'paying now' : 'not taken', ok: t.ok, reason: t.reason, run: { action: send(ActionTypes.OFFER_INDEPENDENT_TRIBUTE) } });
+      const tr = offerTributeCheck(state, indepId, me);
+      actions.push({ id: 'payTribute', label: t('ind.act.payTribute'), sub: tr.ok ? t('ind.act.paySubOk', { gold: tr.gold }) : youPay ? t('ind.act.paySubNow') : t('ind.act.paySubNo'), ok: tr.ok, reason: reasonText(tr), run: { action: send(ActionTypes.OFFER_INDEPENDENT_TRIBUTE) } });
     }
     actions.push({
-      id: 'join', label: joinOffer ? 'Accept them' : 'Ask to join', tone: 'good',
-      sub: !joinable ? (p === 'fortress' ? 'fortresses never join' : 'raiders never join') : join.ok ? 'they would say yes' : `attitude ${attitude}`,
+      id: 'join', label: joinOffer ? t('ind.act.accept') : t('ind.act.askJoin'), tone: 'good',
+      sub: !joinable ? (p === 'fortress' ? t('ind.act.joinNever.fortress') : t('ind.act.joinNever.raiders')) : join.ok ? t('ind.act.joinYes') : t('ind.act.joinAttitude', { n: attitude }),
       ok: !!joinOffer || join.ok,
-      reason: joinOffer ? 'They offered to join: their city and soldiers become yours, with no anger from your neighbours.' : join.ok ? 'They would join you now: their city and soldiers become yours, peacefully.' : join.reason,
+      reason: joinOffer ? t('ind.act.joinReasonOffer') : join.ok ? t('ind.act.joinReasonYes') : reasonText(join),
       run: { action: joinOffer ? { type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: joinOffer.id, accept: true } } : send(ActionTypes.PROPOSE_JOINING) }
     });
     actions.push({
-      id: 'gift', label: `Gift ${GIFT_GOLD} gold`, sub: `+${GIFT_FAVOUR} favour`, ok: gold >= GIFT_GOLD,
-      reason: gold >= GIFT_GOLD ? `${GIFT_GOLD} gold raises their attitude to you by ${GIFT_FAVOUR} (favour fades slowly).` : `You need ${GIFT_GOLD} gold (you have ${Math.floor(gold)}).`,
+      id: 'gift', label: t('ind.act.gift', { gold: GIFT_GOLD }), sub: t('ind.act.giftSub', { n: GIFT_FAVOUR }), ok: gold >= GIFT_GOLD,
+      reason: gold >= GIFT_GOLD ? t('ind.act.giftReason', { gold: GIFT_GOLD, n: GIFT_FAVOUR }) : t('ind.merc.youNeed', { gold: GIFT_GOLD, have: Math.floor(gold) }),
       run: { action: send(ActionTypes.GIFT_INDEPENDENT) }
     });
     const dt = demandTributeCheck(state, indepId, me);
     actions.push({
-      id: 'demandTribute', label: 'Demand tribute', sub: !dt.ok ? 'not now' : dt.would ? `+${tributePerTurn(state, indepId)} gold a turn` : 'they would refuse',
-      ok: dt.ok, warn: dt.ok && !dt.would, reason: dt.ok && !dt.would ? `${dt.reason} A refusal adds ${GRUDGE_REFUSED} grudge.` : dt.reason,
+      id: 'demandTribute', label: t('ind.act.demand'), sub: !dt.ok ? t('ind.act.demandNot') : dt.would ? t('ind.act.demandWould', { gold: tributePerTurn(state, indepId) }) : t('ind.act.demandRefuse'),
+      ok: dt.ok, warn: dt.ok && !dt.would, reason: dt.ok && !dt.would ? t('ind.act.demandRefusal', { reason: reasonText(dt), n: GRUDGE_REFUSED }) : reasonText(dt),
       run: { action: send(ActionTypes.DEMAND_INDEPENDENT_TRIBUTE) }
     });
     if (p === 'mercantile') {
       const tc = tradeCheck(state, indepId, me);
-      actions.push({ id: 'trade', label: trades ? 'Trading' : 'Offer trade', sub: trades ? `${tradeGoldOf(state.age)} gold a turn each way` : tc.ok ? 'gold both ways' : 'not now', ok: tc.ok, reason: tc.reason, run: { action: send(ActionTypes.PROPOSE_INDEPENDENT_TRADE) } });
+      actions.push({ id: 'trade', label: trades ? t('ind.act.trading') : t('ind.act.offerTrade'), sub: trades ? t('ind.act.tradeSub', { gold: tradeGoldOf(state.age) }) : tc.ok ? t('ind.act.tradeOk') : t('ind.act.demandNot'), ok: tc.ok, reason: reasonText(tc), run: { action: send(ActionTypes.PROPOSE_INDEPENDENT_TRADE) } });
     }
     if (sells) {
       const o = mercs?.offer;
       actions.push({
-        id: 'hire', label: 'Hire mercenaries', sub: o ? `${o.price} gold, ${plural(mercs.stock, 'band')} free` : 'none for you',
-        ok: !!o && o.affordable, reason: o ? (o.affordable ? `${o.unit}: ${o.price} gold now, then ${o.upkeep} gold a turn for ${o.turns} turns. They wait in ${o.waitIn}.` : mercs.reason) : mercs?.reason,
+        id: 'hire', label: t('ind.act.hire'), sub: o ? t('ind.act.hireSub', { price: o.price, bands: bandsText(mercs.stock) }) : t('ind.act.hireNone'),
+        ok: !!o && o.affordable, reason: o ? (o.affordable ? t('ind.act.hireReason', { unit: o.unit, price: o.price, upkeep: o.upkeep, turns: o.turns, wait: o.waitIn }) : mercs.reason) : mercs?.reason,
         run: { action: { type: ActionTypes.HIRE_MERCENARY, payload: { independentId: indepId } } }
       });
     }
@@ -257,13 +266,13 @@ export const independentSheetModel = (state, indepId) => {
   return {
     id: indepId,
     alive,
-    name: n.name,
-    people: people && people.name !== city?.name ? people.name : null,
+    name: nameNow('people', indepId, n.name),
+    people: people && people.name !== city?.name ? nameNow('people', n.people, people.name) : null,
     land: people?.landName || null,
-    personality: { id: p, name: PERSONALITIES[p]?.name || p, where: PERSONALITIES[p]?.where || '', colour: shieldColour(p), shieldUrl: shieldUrl(p) },
+    personality: { id: p, name: independentKindName(p, PERSONALITIES[p]?.name || p), where: independentWhere(p, PERSONALITIES[p]?.where || ''), colour: shieldColour(p), shieldUrl: shieldUrl(p) },
     freeCity: !!ind.freeCity,
     cityState: cityStateViewOf(state, n, me),
-    city: city ? { id: city.id, name: city.name, tile: city.tile, size: city.size || 1, garrisonTarget: garrisonTarget(city.size, p) } : null,
+    city: city ? { id: city.id, name: nameNow('city', null, city.name), tile: city.tile, size: city.size || 1, garrisonTarget: garrisonTarget(city.size, p) } : null,
     facts,
     km: alive ? kmFromNearest(state, me, city.tile) : Infinity,
     attitude: { value: Math.round(attitude), word: attitudeShown.word, tone: attitudeShown.tone, raiding: attitudeShown.raiding, reasons, joinable, joinRule, join: { ok: join.ok, reason: join.ok ? null : join.reason } },
@@ -279,12 +288,12 @@ export const independentSummary = (state, indepId) => {
   const m = independentSheetModel(state, indepId);
   if (!m) return null;
   const lines = [];
-  if (m.deals.raid) lines.push({ tone: 'bad', text: `Their raiders are heading for ${m.deals.raid.target}${m.deals.raid.eta != null ? `, ${plural(m.deals.raid.eta, 'turn')} away` : ''}.` });
-  if (m.deals.lastRaid) lines.push({ tone: m.deals.lastRaid.won ? 'bad' : 'good', text: `Turn ${m.deals.lastRaid.turn}: ${m.deals.lastRaid.text}` });
-  if (m.deals.demand) lines.push({ tone: 'warn', text: `They demand ${m.deals.demand.gold} gold a turn; answer within ${plural(m.deals.demand.turnsLeft, 'turn')}.` });
-  if (m.deals.joinOffer) lines.push({ tone: 'good', text: 'They offer to join you.' });
-  if (m.deals.youPay) lines.push({ tone: 'neutral', text: `You pay them ${m.deals.youPay.gold} gold a turn until turn ${m.deals.youPay.until}.` });
-  if (m.deals.theyPay) lines.push({ tone: 'good', text: `They pay you ${m.deals.theyPay.gold} gold a turn until turn ${m.deals.theyPay.until}.` });
-  if (m.deals.trade) lines.push({ tone: 'good', text: `You trade: ${m.deals.trade.gold} gold a turn each way.` });
+  if (m.deals.raid) lines.push({ tone: 'bad', text: t('ind.sum.raiders', { target: m.deals.raid.target, eta: m.deals.raid.eta != null ? t('ind.sum.etaAway', { turns: turnsText(m.deals.raid.eta) }) : '' }) });
+  if (m.deals.lastRaid) lines.push({ tone: m.deals.lastRaid.won ? 'bad' : 'good', text: t('ind.sum.lastRaid', { n: m.deals.lastRaid.turn, text: m.deals.lastRaid.text }) });
+  if (m.deals.demand) lines.push({ tone: 'warn', text: t('ind.sum.demand', { gold: m.deals.demand.gold, turns: turnsText(m.deals.demand.turnsLeft) }) });
+  if (m.deals.joinOffer) lines.push({ tone: 'good', text: t('ind.sum.join') });
+  if (m.deals.youPay) lines.push({ tone: 'neutral', text: t('ind.sum.youPay', { gold: m.deals.youPay.gold, n: m.deals.youPay.until }) });
+  if (m.deals.theyPay) lines.push({ tone: 'good', text: t('ind.sum.theyPay', { gold: m.deals.theyPay.gold, n: m.deals.theyPay.until }) });
+  if (m.deals.trade) lines.push({ tone: 'good', text: t('ind.sum.trade', { gold: m.deals.trade.gold }) });
   return { id: m.id, name: m.name, personality: m.personality, attitude: m.attitude, grudge: m.grudge, lines };
 };

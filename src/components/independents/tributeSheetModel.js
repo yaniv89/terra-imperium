@@ -10,7 +10,7 @@ import { ActionTypes } from '../../data/types';
 import { grudgeOf } from '../../engine/grudges';
 import { raidForecast } from '../../engine/raids';
 import { mercOffer } from '../../engine/mercenaries';
-import { grudgeWord, GRUDGE_BANDS, garrisonOf } from './independentSheetModel';
+import { grudgeWord, grudgeBands, garrisonOf } from './independentSheetModel';
 import { shieldUrl, shieldColour } from './independentArt';
 
 const placeName = (state, tile) => getTiles().names?.[tile] || state.regions?.[state.world?.tileOwner?.[tile]]?.name || 'the frontier';
@@ -87,7 +87,7 @@ export const tributeDemandModel = (state, demandId) => {
   return {
     id: d.id, indepId: d.indepId, name: n.name, personality: { id: p, name: PERSONALITIES[p]?.name || p, colour: shieldColour(p), shieldUrl: shieldUrl(p) },
     gold: d.gold, turns: d.turns, expires: d.expires, turnsLeft: Math.max(0, d.expires - turn),
-    grudge: { value: g, after, word: grudgeWord(g), afterWord: grudgeWord(after), max: GRUDGE_MAX, bands: GRUDGE_BANDS.map(([from, word]) => ({ from, word })) },
+    grudge: { value: g, after, word: grudgeWord(g), afterWord: grudgeWord(after), max: GRUDGE_MAX, bands: grudgeBands().map(([from, word]) => ({ from, word })) },
     loss,
     footnote: loss && guard && guard.owner === me ? `${guard.name} has ${guardUnits} unit${guardUnits === 1 ? '' : 's'} in its garrison.` : null,
     choices,

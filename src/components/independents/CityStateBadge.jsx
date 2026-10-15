@@ -6,6 +6,7 @@
 import React from 'react';
 import { Coins, Shield, FlaskConical, Landmark, Swords } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
+import { t as tNow } from '../../i18n/core';
 
 const ICONS = { coins: Coins, shield: Shield, flask: FlaskConical, landmark: Landmark, swords: Swords };
 
@@ -20,7 +21,7 @@ const Placeholder = ({ view }) => {
 
 /** The patron mark ("they favour you"), or nothing. */
 export const PatronMark = ({ view, size = 16 }) => (view?.patronUrl
-  ? <GameIcon url={view.patronUrl} size={size} halo={false} title="They favour you" className="inline-block" />
+  ? <GameIcon url={view.patronUrl} size={size} halo={false} title={tNow('ind.cs.favourTitle')} className="inline-block" />
   : null);
 
 const CityStateBadge = ({ view }) => (
