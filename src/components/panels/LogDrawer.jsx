@@ -20,8 +20,8 @@ const LogDrawer = ({ open, onClose }) => {
       <div className="absolute inset-0 bg-black/60" />
       <div
         className="relative w-full lg:w-96 h-[70vh] lg:h-full mt-auto lg:mt-0 rounded-t-2xl lg:rounded-none
-                   pl:w-[min(400px,56vw)] pl:h-full pl:mt-0 pl:rounded-none pl:border-t-0 pl:border-l
-                   flex flex-col bg-fa-ink border-t lg:border-t-0 lg:border-l border-fa-line shadow-2xl"
+                   pl:w-[min(400px,56vw)] pl:h-full pl:mt-0 pl:rounded-none pl:border-t-0 pl:border-s
+                   flex flex-col bg-fa-ink border-t lg:border-t-0 lg:border-s border-fa-line shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* A phone held sideways has about 300 px of height: the log's own header already names it,
@@ -35,7 +35,7 @@ const LogDrawer = ({ open, onClose }) => {
         </div>
         <button
           onClick={onClose}
-          className="hidden lg:flex pl:flex pl:-left-12 pl:w-11 pl:h-11 items-center justify-center absolute -left-9 top-2 p-1.5 bg-fa-ink border border-fa-line rounded-lg
+          className="hidden lg:flex pl:flex pl:-start-12 pl:w-11 pl:h-11 items-center justify-center absolute -start-9 top-2 p-1.5 bg-fa-ink border border-fa-line rounded-lg
                      text-fa-muted hover:text-fa-text hover:bg-fa-raised"
           aria-label="Close log"
         >

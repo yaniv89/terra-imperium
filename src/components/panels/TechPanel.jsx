@@ -97,7 +97,7 @@ const CurrentCard = ({ m }) => {
         <span className="fa-num">{Math.floor(c.progress)} / {c.cost}</span>
         <span className="fa-num text-fa-muted">+{m.science} a turn</span>
         {c.pendingBoost > 0 && <span className="fa-num text-fa-good" data-testid="research-boost-waiting">boost +{c.pendingShare}% waiting</span>}
-        <span className="fa-num font-semibold ml-auto" data-testid="research-eta">{formatEta(c)}</span>
+        <span className="fa-num font-semibold ms-auto" data-testid="research-eta">{formatEta(c)}</span>
       </div>
       {!c.canStart && <div className="text-[12px] text-fa-danger-text" data-testid="research-gate">{c.gate ? m.status.note : `${c.reason}: science banks until then.`}</div>}
     </div>
@@ -117,7 +117,7 @@ const BoostRow = ({ b }) => {
     showMapHint({ title: b.label, text: `Look for it on the map (${b.target.lens} lens). It gives +${b.share}% to ${b.techName}.`, back: 'tech' });
   };
   return (
-    <div className="fa-card flex items-center gap-2.5 pl-3 pr-1.5 py-1.5 min-h-[48px]" data-testid="research-map-boost">
+    <div className="fa-card flex items-center gap-2.5 ps-3 pe-1.5 py-1.5 min-h-[48px]" data-testid="research-map-boost">
       <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${b.met ? 'bg-fa-good' : 'border-2 border-fa-muted'}`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <div className="text-[13px] font-semibold leading-tight truncate">{b.label}</div>
@@ -206,7 +206,7 @@ const TechPanel = () => {
       <div className="flex items-baseline gap-2 flex-wrap mb-2.5">
         <h2 className="fa-heading text-[19px]">Research</h2>
         <span className="fa-label" data-testid="research-header">{m.header.ageName}: {m.header.known} of {m.header.total} {m.header.techAgeName} techs known{m.header.aheadOfCalendar ? " (ahead of the calendar)" : ""}</span>
-        <span className="ml-auto fa-num text-[12px]" style={{ color: SCIENCE }}>+{science} science a turn{m.bank > 0 ? <span className="text-fa-muted">, {m.bank} banked</span> : null}</span>
+        <span className="ms-auto fa-num text-[12px]" style={{ color: SCIENCE }}>+{science} science a turn{m.bank > 0 ? <span className="text-fa-muted">, {m.bank} banked</span> : null}</span>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(170px,200px)]">
@@ -226,7 +226,7 @@ const TechPanel = () => {
               <Label id="research-next">Next</Label>
               {m.queue.length === 0 && <span className="text-[12px] text-fa-muted">Nothing queued. Tap the queue button on a tech.</span>}
               {m.queue.map((q, i) => (
-                <span key={q.tech.id} className="fa-chip !pr-1 gap-1">
+                <span key={q.tech.id} className="fa-chip !pe-1 gap-1">
                   <span className="fa-num text-fa-muted">{i + 1}</span> {q.tech.name} <span className="fa-num text-fa-muted">{q.gate ? `waits ${q.gate.label}` : `${q.finishesIn}t`}</span>
                   <button type="button" onClick={() => unqueue(q.tech.id)} aria-label={`Remove ${q.tech.name} from the queue`} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-fa-hover text-fa-muted"><X className="w-3 h-3" aria-hidden="true" /></button>
                 </span>

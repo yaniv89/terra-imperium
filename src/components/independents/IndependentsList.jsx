@@ -43,13 +43,13 @@ const IndependentsList = () => {
       <ul className="space-y-1">
         {shown.map((r) => (
           <li key={r.id}>
-            <button type="button" onClick={() => openIndependent(r.id)} className="w-full min-h-[48px] flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-fa-raised hover:bg-fa-hover border border-dashed border-fa-indep/50 text-left" data-testid="indep-row" data-indep={r.id}>
+            <button type="button" onClick={() => openIndependent(r.id)} className="w-full min-h-[48px] flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-fa-raised hover:bg-fa-hover border border-dashed border-fa-indep/50 text-start" data-testid="indep-row" data-indep={r.id}>
               <ShieldMark personality={r.personality} size={24} />
               <span className="min-w-0 flex-1">
                 <span className="block text-[13px] font-semibold text-fa-text truncate">{r.name}</span>
-                <span className="block text-[11px] text-fa-muted truncate">{r.cityState?.iconUrl && <GameIcon url={r.cityState.iconUrl} size={14} halo={false} className="mr-1 -mt-0.5" />}{r.cityState?.patronUrl && <GameIcon url={r.cityState.patronUrl} size={14} halo={false} title="They favour you" className="mr-1 -mt-0.5" />}{r.cityState ? `${r.cityState.name}${r.cityState.patron === 'you' ? ' (yours)' : ''} · ` : ''}{r.personalityName} · {r.cityName} {r.size} · {kmLabel(r.km)}</span>
+                <span className="block text-[11px] text-fa-muted truncate">{r.cityState?.iconUrl && <GameIcon url={r.cityState.iconUrl} size={14} halo={false} className="me-1 -mt-0.5" />}{r.cityState?.patronUrl && <GameIcon url={r.cityState.patronUrl} size={14} halo={false} title="They favour you" className="me-1 -mt-0.5" />}{r.cityState ? `${r.cityState.name}${r.cityState.patron === 'you' ? ' (yours)' : ''} · ` : ''}{r.personalityName} · {r.cityName} {r.size} · {kmLabel(r.km)}</span>
               </span>
-              <span className="text-right shrink-0">
+              <span className="text-end shrink-0">
                 <span className={`block text-[11px] ${TONE_TEXT[r.attitudeTone]}`}>{r.attitudeWord} {r.attitude > 0 ? '+' : ''}{r.attitude}</span>
                 <span className={`block text-[10px] ${r.deal ? TONE_TEXT[r.deal.tone] : r.grudge ? TONE_TEXT[r.grudgeTone] : 'text-fa-muted'}`}>{r.deal ? r.deal.label : r.grudge ? `grudge ${r.grudge}` : 'no deal'}</span>
               </span>

@@ -43,7 +43,7 @@ const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportT
   const autosave = slots.find((s) => s.id === 'autosave');
   const background = startArt(wide ? 'background-wide' : 'background-phone') || startArt('background-wide');
   const backdrop = { backgroundImage: background ? `linear-gradient(rgba(16,20,26,0.80), rgba(16,20,26,0.94)), url(${background})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' };
-  const frame = 'pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]';
+  const frame = 'ps-[max(0.75rem,var(--safe-start))] pe-[max(0.75rem,var(--safe-end))]';
 
   const pickFile = async (e) => {
     const file = e.target.files?.[0];
@@ -73,7 +73,7 @@ const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportT
         )}
       </div>
       <div className="grid gap-2">
-        <Button variant="primary" hero className="!min-h-[56px] pl:!min-h-[48px]" onClick={onContinue} data-testid="title-continue" autoFocus><Play className="w-5 h-5" aria-hidden="true" />{t('title.continue')}</Button>
+        <Button variant="primary" hero className="!min-h-[56px] pl:!min-h-[48px]" onClick={onContinue} data-testid="title-continue" autoFocus><Play className="rtl:-scale-x-100 w-5 h-5" aria-hidden="true" />{t('title.continue')}</Button>
         <Button onClick={onNewGame} className="!min-h-[48px] pl:!min-h-[44px]" data-testid="title-new"><Plus className="w-4 h-4" aria-hidden="true" />{t('title.newGame')}</Button>
         <div className="grid grid-cols-2 gap-2">
           <Button onClick={() => { setMessage(''); setView('load'); }} className="!min-h-[44px]" data-testid="title-load"><FolderOpen className="w-4 h-4" aria-hidden="true" />{t('title.load')}</Button>
@@ -86,7 +86,7 @@ const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportT
   const load = (
     <div className="w-full max-w-[40rem] min-h-0 flex flex-col gap-2" data-testid="title-load-view">
       <div className="flex items-center gap-2 shrink-0">
-        <Button variant="ghost" onClick={() => setView('main')} className="shrink-0" data-testid="title-load-back"><ArrowLeft className="w-4 h-4" aria-hidden="true" />{t('title.back')}</Button>
+        <Button variant="ghost" onClick={() => setView('main')} className="shrink-0" data-testid="title-load-back"><ArrowLeft className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />{t('title.back')}</Button>
         <h2 className="fa-heading text-[20px] flex-1">{t('title.loadHeading')}</h2>
       </div>
       <div className="min-h-0 overflow-y-auto overscroll-contain scrollbar-thin grid gap-2 content-start" style={{ maxHeight: 'calc(100dvh - 4.5rem)' }}>
@@ -113,7 +113,7 @@ const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportT
   return (
     <div className="relative h-[100dvh] w-full bg-fa-ink text-fa-text flex flex-col items-center justify-center overflow-y-auto py-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]" style={backdrop} data-testid="title-screen" data-view={view}>
       <div className={`w-full flex justify-center ${frame}`}>{view === 'main' ? main : load}</div>
-      {view === 'main' && <LanguageSwitch compact className="absolute top-[max(0.25rem,env(safe-area-inset-top))] end-[max(0.5rem,env(safe-area-inset-right))]" />}
+      {view === 'main' && <LanguageSwitch compact className="absolute top-[max(0.25rem,env(safe-area-inset-top))] end-[max(0.5rem,var(--safe-end))]" />}
       <ConfirmDialog open={!!toDelete} title={t('title.deleteHeading')} confirmLabel={t('title.delete')} cancelLabel={t('title.keep')} danger testId="delete-save-confirm"
         onConfirm={() => { const s = toDelete; setToDelete(null); if (s) onDelete(s.key); }} onCancel={() => setToDelete(null)}>
         {toDelete && <p>{toDelete.info.status === 'ok' ? `${t('title.deleteWhich', { nation: name('people', toDelete.info.nationId, toDelete.info.nation), turn: toDelete.info.turn })} ` : ''}{t('title.cannotUndo')}</p>}

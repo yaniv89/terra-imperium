@@ -77,7 +77,7 @@ const MilitaryPanel = () => {
               onChange={(e) => onChange(e.target.value)}
               className="flex-1"
             />
-            <span className="text-fa-text text-xs w-10 text-right">{value}%</span>
+            <span className="text-fa-text text-xs w-10 text-end">{value}%</span>
           </div>
         ))}
       </div>
@@ -165,7 +165,7 @@ const BattleReportList = ({ reports }) => {
         const result = describeOutcome(r);
         const { mine, theirs } = sidesFor(r);
         return (
-          <button key={r.id} onClick={() => openBattleReport(r.id)} className="w-full text-left rounded-md bg-fa-panel/60 hover:bg-fa-panel px-2 py-1.5 min-h-[40px]">
+          <button key={r.id} onClick={() => openBattleReport(r.id)} className="w-full text-start rounded-md bg-fa-panel/60 hover:bg-fa-panel px-2 py-1.5 min-h-[40px]">
             <div className="flex justify-between gap-2 text-[11px]">
               <span className={`truncate font-semibold ${result.tone === 'win' ? 'text-fa-good' : result.tone === 'loss' ? 'text-fa-danger-text' : 'text-amber-300'}`}>{result.text}</span>
               <span className="shrink-0 text-fa-muted">{r.year < 0 ? `${-r.year} BCE` : `${r.year} CE`}</span>
@@ -195,7 +195,7 @@ const BattleReport = ({ report }) => {
   return (
     <div className="bg-fa-raised/60 rounded-lg p-3 text-xs space-y-2 border border-fa-line">
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-fa-text">Last Battle: {REGIONS_DATA[report.fromRegionId]?.name} → {REGIONS_DATA[report.targetRegionId]?.name}</span>
+        <span className="font-semibold text-fa-text">Last Battle: {REGIONS_DATA[report.fromRegionId]?.name} <span className="inline-block rtl:-scale-x-100">→</span> {REGIONS_DATA[report.targetRegionId]?.name}</span>
         <span className={`font-bold ${outcome.className}`}>{outcome.text}</span>
       </div>
       <div className="text-fa-muted font-mono">

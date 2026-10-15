@@ -129,7 +129,7 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
         data-testid="city-sheet-panel"
         className={isMobile
           ? `absolute inset-x-0 bottom-0 ${peeking ? 'max-h-[22vh]' : 'max-h-[65vh]'} transition-[max-height] duration-300 ease-out rounded-t-2xl fa-sheet border-t shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]`
-          : 'absolute left-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(420px,52vw)] pl:pl-[env(safe-area-inset-left)] fa-sheet border-r shadow-2xl flex flex-col'}
+          : 'absolute start-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(420px,52vw)] pl:ps-[var(--safe-start)] fa-sheet border-e shadow-2xl flex flex-col'}
       >
         {/* Header — tapping it while the sheet is peeking brings the full sheet straight back. */}
         <div onClick={peeking ? cancelPeek : undefined} className="px-3 pt-2.5 pb-2 shrink-0 flex items-start gap-3">
@@ -154,7 +154,7 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
         {/* Content */}
         <div className="p-3 overflow-y-auto flex-1 space-y-3">
           {tab === 'overview' && defense?.alert && (
-            <div className="flex items-center gap-2 rounded-lg border border-fa-danger bg-[rgba(229,96,77,0.12)] pl-3 pr-1.5 py-1.5 text-[13px]" data-testid="city-damage-alert">
+            <div className="flex items-center gap-2 rounded-lg border border-fa-danger bg-[rgba(229,96,77,0.12)] ps-3 pe-1.5 py-1.5 text-[13px]" data-testid="city-damage-alert">
               <AlertTriangle className="w-4 h-4 text-fa-danger-text shrink-0" aria-hidden="true" />
               <span className="flex-1 min-w-0">{defense.alert.text}</span>
               <Button size="sm" onClick={() => setTab('defense')}>Details</Button>

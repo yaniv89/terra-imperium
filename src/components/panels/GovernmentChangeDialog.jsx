@@ -18,7 +18,7 @@ import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 
 const costText = (cost) => Object.entries(cost || {}).map(([k, v]) => `${v} ${k.toUpperCase()}`).join(', ');
 const Row = ({ label, children, tone = '' }) => (
-  <div className="flex items-baseline justify-between gap-3 text-[12.5px]"><span className="text-fa-muted">{label}</span><span className={`fa-num text-right ${tone}`}>{children}</span></div>
+  <div className="flex items-baseline justify-between gap-3 text-[12.5px]"><span className="text-fa-muted">{label}</span><span className={`fa-num text-end ${tone}`}>{children}</span></div>
 );
 
 const GovernmentChangeDialog = ({ typeId, onClose }) => {
@@ -74,7 +74,7 @@ const GovernmentChangeDialog = ({ typeId, onClose }) => {
                     const on = o.id === slot.chosen;
                     return (
                       <button key={o.id} type="button" role="radio" aria-checked={on} onClick={() => setPicks((cur) => ({ ...cur, [slot.ageId]: o.id }))} data-testid={`gov-reform-${o.id}`}
-                        className={`w-full min-h-[44px] text-left fa-option px-2.5 py-1 ${on ? 'fa-selected' : ''}`}>
+                        className={`w-full min-h-[44px] text-start fa-option px-2.5 py-1 ${on ? 'fa-selected' : ''}`}>
                         <div className="text-[13px] font-semibold leading-tight">{o.name}</div>
                         <div className="text-[11.5px] text-fa-muted leading-snug">{o.description}</div>
                       </button>

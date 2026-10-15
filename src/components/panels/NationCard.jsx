@@ -82,7 +82,7 @@ const IconButton = ({ icon: Icon, label, onClick, disabled: looksDisabled, title
 // "Would refuse" draws a dashed danger border; the tile still reacts and explains (never disabled).
 const Tile = ({ label, sub, onClick, refuse, looksDisabled, testId }) => (
   <button type="button" onClick={onClick} data-testid={testId}
-    className={`text-left rounded-lg border px-2.5 py-2 min-h-[52px] hover:bg-fa-hover transition-colors ${refuse ? 'border-dashed border-fa-danger bg-fa-ink/30' : 'border-fa-line bg-fa-raised'} ${looksDisabled ? 'opacity-60' : ''}`}>
+    className={`text-start rounded-lg border px-2.5 py-2 min-h-[52px] hover:bg-fa-hover transition-colors ${refuse ? 'border-dashed border-fa-danger bg-fa-ink/30' : 'border-fa-line bg-fa-raised'} ${looksDisabled ? 'opacity-60' : ''}`}>
     <span className="block text-[13px] font-semibold leading-tight text-fa-text">{label}</span>
     {sub && <span className={`block text-[11px] leading-tight mt-0.5 ${refuse ? 'text-fa-danger-text' : 'text-fa-muted'}`}>{sub}</span>}
   </button>
@@ -203,7 +203,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
         </details>
         <div className="relative h-1.5 mt-1 rounded-full bg-fa-ink/60" aria-hidden="true">
           <span className="absolute top-[-2px] bottom-[-2px] left-1/2 w-px bg-fa-muted" />
-          <span className={`absolute inset-y-0 rounded-full ${opinion >= 0 ? 'bg-fa-good' : 'bg-fa-danger'}`} style={opinion >= 0 ? { left: '50%', width: `${Math.min(50, opinion / 2)}%` } : { right: '50%', width: `${Math.min(50, -opinion / 2)}%` }} />
+          <span className={`absolute inset-y-0 rounded-full ${opinion >= 0 ? 'bg-fa-good' : 'bg-fa-danger'}`} style={opinion >= 0 ? { insetInlineStart: '50%', width: `${Math.min(50, opinion / 2)}%` } : { insetInlineEnd: '50%', width: `${Math.min(50, -opinion / 2)}%` }} />
         </div>
         <div className="flex flex-wrap gap-x-3 text-[12px] text-fa-muted mt-1.5">
           <span>Army: {hasIntel(state, nation.id) ? <span className="fa-num text-fa-text">{formatNumber(getFieldedStrength(state, nation.id))}</span> : <span className="fa-num" title="Unknown: a successful espionage op reveals it">?</span>}</span>

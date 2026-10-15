@@ -72,7 +72,7 @@ const TurnDock = () => {
   return (
     <div data-testid="turn-dock" data-map-hud="group"
       className={`fixed z-[21] flex flex-col items-end gap-2 pointer-events-none
-        ${isMobile ? 'right-3 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)]' : 'right-[calc(var(--rail-w,0px)+0.75rem)] bottom-[max(env(safe-area-inset-bottom),0.75rem)]'}`}>
+        ${isMobile ? 'end-3 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)]' : 'end-[calc(var(--rail-w,0px)+0.75rem)] bottom-[max(env(safe-area-inset-bottom),0.75rem)]'}`}>
       {armed && hints.length > 0 && (
         <div className="pointer-events-auto fa-panel p-2 w-[min(17rem,60vw)] shadow-2xl" role="status" data-testid="end-turn-warnings">
           <div className="fa-label mb-1.5">{hints.length} still waiting</div>
@@ -113,7 +113,7 @@ const TurnDock = () => {
             {Icon && <Icon className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />}
             {/* A blocker names its city or people: two lines rather than a cut-off name
                 (playtest audit I158). */}
-            <span className={blocking ? 'min-w-0 text-left whitespace-normal leading-[1.15] line-clamp-2' : 'truncate min-w-0'}>{btn.label}</span>
+            <span className={blocking ? 'min-w-0 text-start whitespace-normal leading-[1.15] line-clamp-2' : 'truncate min-w-0'}>{btn.label}</span>
             {btn.badge && (
               <span className="fa-num shrink-0 text-[11px] font-semibold bg-fa-ink text-fa-brass rounded-full px-2 py-0.5" aria-hidden="true" data-testid="end-turn-badge">{btn.badge}</span>
             )}

@@ -23,7 +23,7 @@ import { ShieldMark, GrudgeMeter, CardLabel } from './IndependentBits';
 const Frame = ({ testId, label, children }) => (
   <div className="fixed inset-0 z-[68] pointer-events-none" data-testid={testId}>
     <div role="dialog" aria-label={label}
-      className="pointer-events-auto absolute right-[calc(var(--rail-inset,0px)+0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(27rem,calc(100vw-1rem-var(--rail-inset,0px)))] flex flex-col fa-panel !bg-fa-panel !border-dashed !border-fa-indep/80 shadow-2xl">
+      className="pointer-events-auto absolute end-[calc(var(--rail-inset,0px)+0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(27rem,calc(100vw-1rem-var(--rail-inset,0px)))] flex flex-col fa-panel !bg-fa-panel !border-dashed !border-fa-indep/80 shadow-2xl">
       {children}
     </div>
   </div>
@@ -31,12 +31,12 @@ const Frame = ({ testId, label, children }) => (
 
 const Header = ({ m, title, onClose }) => (
   <div className="flex items-start gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
-    <button type="button" onClick={() => openIndependent(m.indepId)} aria-label={`Open the sheet of ${m.name}`} className="min-w-[44px] min-h-[44px] -ml-1 flex items-center justify-center rounded-lg hover:bg-fa-raised"><ShieldMark personality={m.personality.id} size={32} /></button>
+    <button type="button" onClick={() => openIndependent(m.indepId)} aria-label={`Open the sheet of ${m.name}`} className="min-w-[44px] min-h-[44px] -ms-1 flex items-center justify-center rounded-lg hover:bg-fa-raised"><ShieldMark personality={m.personality.id} size={32} /></button>
     <div className="min-w-0 flex-1">
       <div className="text-[11px] uppercase tracking-[0.08em] font-semibold text-fa-indep">Independent · {m.personality.name}</div>
       <h2 className="fa-heading text-[15px] leading-tight">{title}</h2>
     </div>
-    <CloseButton onClick={onClose} label="Decide later" className="-mr-1" />
+    <CloseButton onClick={onClose} label="Decide later" className="-me-1" />
   </div>
 );
 
@@ -69,7 +69,7 @@ export const TributeDemandSheet = ({ demandId, onClose, asked = false }) => {
             const on = c.id === chosen.id;
             return (
               <button key={c.id} type="button" role="radio" aria-checked={on} onClick={() => setPick(c.id)} data-testid={`tribute-choice-${c.id}`}
-                className={`w-full min-h-[44px] text-left fa-option px-2.5 py-1.5 ${on ? 'fa-selected' : ''}`}>
+                className={`w-full min-h-[44px] text-start fa-option px-2.5 py-1.5 ${on ? 'fa-selected' : ''}`}>
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-[13px] font-semibold">{c.title}</span>
                   <span className="fa-num text-[11px] text-fa-muted shrink-0">{c.figure}</span>
@@ -84,7 +84,7 @@ export const TributeDemandSheet = ({ demandId, onClose, asked = false }) => {
       <div className="flex items-center gap-2 px-3 py-2 border-t border-fa-line">
         <div className="flex-1 min-w-0 text-[11px] text-fa-muted leading-snug">
           {m.footnote || `Answer within ${m.turnsLeft} turn${m.turnsLeft === 1 ? '' : 's'}; silence is a refusal.`}
-          {m.loss && <button type="button" onClick={() => { onClose(); focusRegion(m.loss.cityId); }} className="ml-1 underline text-fa-text min-h-[32px]" disabled={m.loss.cityId == null}>Show {m.loss.where}</button>}
+          {m.loss && <button type="button" onClick={() => { onClose(); focusRegion(m.loss.cityId); }} className="ms-1 underline text-fa-text min-h-[32px]" disabled={m.loss.cityId == null}>Show {m.loss.where}</button>}
         </div>
         <Button variant="primary" hero onClick={go} disabled={!chosen.ok} className="!min-h-[48px] !px-5 shrink-0" data-testid="tribute-go">{verb}</Button>
       </div>

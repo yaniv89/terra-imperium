@@ -145,7 +145,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
     );
   }
   return (
-    <div className="absolute corner-card corner-card-second top-[calc(var(--header-height,4.5rem)+0.5rem)] left-2 z-20 bg-fa-panel p-3 rounded-lg text-xs w-[300px] max-w-[calc(100vw-1rem)] border border-fa-line shadow-xl max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto" data-testid="army-sheet">{body}</div>
+    <div className="absolute corner-card corner-card-second top-[calc(var(--header-height,4.5rem)+0.5rem)] start-2 z-20 bg-fa-panel p-3 rounded-lg text-xs w-[300px] max-w-[calc(100vw-1rem)] border border-fa-line shadow-xl max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto" data-testid="army-sheet">{body}</div>
   );
 };
 

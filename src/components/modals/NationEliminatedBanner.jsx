@@ -13,7 +13,7 @@ const NationEliminatedBanner = ({ nationName, onDismiss }) => {
   return (
     // Below the top bar, never on it, also while it slides in from 1rem higher (playtest audit I161).
     <div className="fixed top-[calc(var(--header-height,2.25rem)+1rem)] left-1/2 -translate-x-1/2 z-40 animate-banner-in max-w-[calc(100vw-1rem)]" role="status" aria-live="polite" data-testid="eliminated-banner">
-      <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 border border-emerald-300/60 rounded-full shadow-2xl shadow-emerald-900/40 pl-4 pr-2 py-2">
+      <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 border border-emerald-300/60 rounded-full shadow-2xl shadow-emerald-900/40 ps-4 pe-2 py-2">
         <Crown className="w-4 h-4 text-emerald-50 shrink-0" />
         <div className="text-sm font-semibold text-emerald-50 tracking-wide whitespace-nowrap">
           {nationName} conquered — +{NATION_ELIMINATION_REWARD.gold} Gold, +{NATION_ELIMINATION_REWARD.dip} DIP

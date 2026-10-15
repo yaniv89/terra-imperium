@@ -31,7 +31,7 @@ export const AttitudeMeter = ({ value, tone }) => {
   return (
     <div className="relative h-2 rounded-full bg-fa-hover/80 overflow-hidden" role="meter" aria-valuemin={-100} aria-valuemax={100} aria-valuenow={value} aria-label="Attitude toward you">
       <div className="absolute inset-y-0 left-1/2 w-px bg-fa-muted" />
-      <div className={`absolute inset-y-0 ${fill}`} style={value >= 0 ? { left: '50%', width: `${at - 50}%` } : { left: `${at}%`, width: `${50 - at}%` }} />
+      <div className={`absolute inset-y-0 ${fill}`} style={value >= 0 ? { insetInlineStart: '50%', width: `${at - 50}%` } : { insetInlineStart: `${at}%`, width: `${50 - at}%` }} />
     </div>
   );
 };
@@ -42,8 +42,8 @@ export const GrudgeMeter = ({ value, max = 100, after = null, label = 'Grudge' }
   const a = after != null ? Math.max(v, Math.min(100, (100 * after) / max)) : v;
   return (
     <div className="relative h-2 rounded-full bg-fa-hover/80 overflow-hidden" role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={value} aria-label={label}>
-      <div className="absolute inset-y-0 left-0 bg-fa-indep" style={{ width: `${v}%` }} />
-      {a > v && <div className="absolute inset-y-0" style={{ left: `${v}%`, width: `${a - v}%`, background: 'repeating-linear-gradient(135deg, #E5604D 0 3px, transparent 3px 6px)' }} data-after={after} />}
+      <div className="absolute inset-y-0 start-0 bg-fa-indep" style={{ width: `${v}%` }} />
+      {a > v && <div className="absolute inset-y-0" style={{ insetInlineStart: `${v}%`, width: `${a - v}%`, background: 'repeating-linear-gradient(135deg, #E5604D 0 3px, transparent 3px 6px)' }} data-after={after} />}
     </div>
   );
 };

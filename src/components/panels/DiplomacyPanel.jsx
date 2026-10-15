@@ -120,7 +120,7 @@ const DiplomacyPanel = () => {
             <div data-testid="demand-refuse"><span className="font-semibold text-fa-danger-text">If you refuse:</span> {demand.refuse.text}</div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-1.5">
-            {demand.pay.reason && <span className="text-[12px] text-fa-danger-text mr-auto" data-testid="demand-blocked">{demand.pay.reason}</span>}
+            {demand.pay.reason && <span className="text-[12px] text-fa-danger-text me-auto" data-testid="demand-blocked">{demand.pay.reason}</span>}
             <Button size="sm" disabled={!demand.pay.ok} onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } })} data-testid="demand-accept">{demand.pay.label}{demand.amount != null ? ` ${demand.amount} gold` : ''}</Button>
             <Button size="sm" variant="danger" onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: false } })} data-testid="demand-decline">Refuse</Button>
           </div>
@@ -163,26 +163,26 @@ const DiplomacyPanel = () => {
       <div className="grid gap-3 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] items-start">
         <div className="space-y-2 min-w-0">
           <div className="relative">
-            <Search className="w-4 h-4 text-fa-muted absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search peoples" aria-label="Search the peoples you met" className="fa-input w-full !pl-8" />
+            <Search className="w-4 h-4 text-fa-muted absolute start-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search peoples" aria-label="Search the peoples you met" className="fa-input w-full !ps-8" />
           </div>
           <ul className="space-y-1.5" data-testid="peoples-list">
             {m.rows.map((r) => (
               <li key={r.id}>
                 <button type="button" onClick={() => setPicked(r.id)} aria-pressed={r.id === selectedId} data-people-row={r.id}
-                  className={`w-full text-left rounded-lg border px-2.5 py-2 min-h-[52px] ${r.id === selectedId ? 'fa-selected' : 'border-fa-line bg-fa-raised hover:bg-fa-hover'} ${r.eliminated ? 'opacity-60' : ''}`}>
+                  className={`w-full text-start rounded-lg border px-2.5 py-2 min-h-[52px] ${r.id === selectedId ? 'fa-selected' : 'border-fa-line bg-fa-raised hover:bg-fa-hover'} ${r.eliminated ? 'opacity-60' : ''}`}>
                   <span className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: r.color }} aria-hidden="true" />
                     <span className="text-[13px] font-semibold truncate flex-1">{r.name}{r.eliminated ? ' (fallen)' : ''}</span>
                     <span className={`fa-chip !min-h-[20px] !px-1.5 !text-[10px] uppercase tracking-wide ${RELATION_TONE[r.relation] || ''}`}>{RELATION_LABEL[r.relation]}</span>
                   </span>
-                  <span className="block text-[11px] text-fa-muted truncate pl-[18px]">{r.title}</span>
-                  <span className="flex items-center gap-2 pl-[18px] mt-1">
+                  <span className="block text-[11px] text-fa-muted truncate ps-[18px]">{r.title}</span>
+                  <span className="flex items-center gap-2 ps-[18px] mt-1">
                     <span className="relative flex-1 h-1 rounded-full bg-fa-ink/60" aria-hidden="true">
                       <span className="absolute top-[-2px] bottom-[-2px] left-1/2 w-px bg-fa-muted/70" />
-                      <span className={`absolute inset-y-0 rounded-full ${r.opinion >= 0 ? 'bg-fa-good' : 'bg-fa-danger'}`} style={r.opinion >= 0 ? { left: '50%', width: `${Math.min(50, r.opinion / 2)}%` } : { right: '50%', width: `${Math.min(50, -r.opinion / 2)}%` }} />
+                      <span className={`absolute inset-y-0 rounded-full ${r.opinion >= 0 ? 'bg-fa-good' : 'bg-fa-danger'}`} style={r.opinion >= 0 ? { insetInlineStart: '50%', width: `${Math.min(50, r.opinion / 2)}%` } : { insetInlineEnd: '50%', width: `${Math.min(50, -r.opinion / 2)}%` }} />
                     </span>
-                    <span className={`fa-num text-[11px] w-8 text-right ${r.opinion >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{r.opinion > 0 ? '+' : ''}{r.opinion}</span>
+                    <span className={`fa-num text-[11px] w-8 text-end ${r.opinion >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{r.opinion > 0 ? '+' : ''}{r.opinion}</span>
                   </span>
                 </button>
               </li>

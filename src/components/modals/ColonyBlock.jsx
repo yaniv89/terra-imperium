@@ -44,7 +44,7 @@ const ColonyBlock = ({ regionId }) => {
   const found = (policy) => dispatch({ type: ActionTypes.FOUND_COLONY, payload: { regionId, policy } });
   const option = (policy, label, blurb) => (
     <button key={policy} onClick={() => found(policy)} disabled={!v.ok} data-testid={`found-colony-${policy}`}
-      className="flex-1 min-h-[52px] rounded-lg border border-fa-line bg-fa-raised/70 hover:border-emerald-400 disabled:opacity-40 disabled:hover:border-fa-line p-2 text-left">
+      className="flex-1 min-h-[52px] rounded-lg border border-fa-line bg-fa-raised/70 hover:border-emerald-400 disabled:opacity-40 disabled:hover:border-fa-line p-2 text-start">
       <div className="text-[12px] font-semibold text-fa-text">{label}</div>
       <div className="text-[10px] text-fa-muted">{blurb}</div>
     </button>

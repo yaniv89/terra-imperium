@@ -72,7 +72,7 @@ const ActionButton = ({
       onClick={onClick}
       disabled={disabled}
       className={`
-        w-full rounded-lg border transition-all flex items-start text-left
+        w-full rounded-lg border transition-all flex items-start text-start
         ${sizeClasses[size]}
         ${VARIANT_STYLES[variant]}
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98] cursor-pointer'}
@@ -112,7 +112,7 @@ const ActionButton = ({
             {/* Effect */}
             {effectString && (
               <span className="text-fa-good">
-                → {effectString}
+                <span className="inline-block rtl:-scale-x-100">→</span> {effectString}
               </span>
             )}
           </div>

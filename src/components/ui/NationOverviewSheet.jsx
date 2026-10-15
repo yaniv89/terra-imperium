@@ -51,8 +51,8 @@ const NationOverviewSheet = () => {
       <div role="dialog" aria-modal="true" aria-labelledby="nation-overview-title" onClick={(e) => e.stopPropagation()}
         className="sheet-panel sheet-wide fa-sheet w-full max-w-5xl max-h-[92dvh] flex flex-col rounded-[10px] border border-fa-line shadow-2xl">
         <div className="flex items-start gap-1">
-          <div className="pl-4 pt-4"><Shield color={m.color} size={22} /></div>
-          <SheetHeader className="flex-1 !pl-2.5" title={m.name} titleId="nation-overview-title" onClose={close}
+          <div className="ps-4 pt-4"><Shield color={m.color} size={22} /></div>
+          <SheetHeader className="flex-1 !ps-2.5" title={m.name} titleId="nation-overview-title" onClose={close}
             subtitle={`${m.cities} ${m.cities === 1 ? 'city' : 'cities'}${m.capital ? `, capital ${m.capital}` : ''}, ${m.ageName} age`} />
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-start">
@@ -120,7 +120,7 @@ const NationOverviewSheet = () => {
               <Label>Victory</Label>
               {m.victory.map((v) => (
                 <div key={v.id}>
-                  <div className="flex items-baseline justify-between gap-2 text-[13px]"><span>{v.label}</span><span className="fa-num text-[11px] text-fa-muted text-right">{v.text}</span></div>
+                  <div className="flex items-baseline justify-between gap-2 text-[13px]"><span>{v.label}</span><span className="fa-num text-[11px] text-fa-muted text-end">{v.text}</span></div>
                   <Meter value={v.value} max={v.target} color="var(--fa-you)" height={4} className="mt-1" />
                 </div>
               ))}

@@ -85,7 +85,7 @@ const OnboardingOverlay = ({ onComplete }) => {
               className="flex items-center justify-center gap-1 px-3 py-2.5 rounded-lg text-sm
                          bg-fa-hover hover:bg-fa-line text-fa-text transition-all active:scale-95"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="rtl:-scale-x-100 w-4 h-4" />
             </button>
           )}
           <button
@@ -101,7 +101,7 @@ const OnboardingOverlay = ({ onComplete }) => {
                        text-fa-text shadow-lg transition-all active:scale-95"
           >
             {isLastStep ? 'Start Playing' : 'Next'}
-            {!isLastStep && <ChevronRight className="w-4 h-4" />}
+            {!isLastStep && <ChevronRight className="rtl:-scale-x-100 w-4 h-4" />}
           </button>
         </div>
       </div>

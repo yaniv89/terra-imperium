@@ -154,7 +154,7 @@ const ResourceBadge = ({
           <span className="font-mono text-[10px] text-fa-good">+{perTurn}</span>
         )}
         {(expanded || showLabel) && (
-          <span className="text-fa-muted ml-1 text-xs">
+          <span className="text-fa-muted ms-1 text-xs">
             {config.label}
           </span>
         )}

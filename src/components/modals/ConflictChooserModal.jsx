@@ -19,7 +19,7 @@ const ConflictChooserModal = ({ conflict, onChoose }) => {
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => onChoose('useLocal')}
-            className="text-left p-4 rounded-lg border-2 border-fa-line bg-fa-raised hover:border-blue-500 transition-colors"
+            className="text-start p-4 rounded-lg border-2 border-fa-line bg-fa-raised hover:border-blue-500 transition-colors"
           >
             <div className="flex items-center gap-2 text-fa-text font-semibold mb-2">
               <Laptop className="w-4 h-4" /> This device
@@ -28,7 +28,7 @@ const ConflictChooserModal = ({ conflict, onChoose }) => {
           </button>
           <button
             onClick={() => onChoose('useCloud')}
-            className="text-left p-4 rounded-lg border-2 border-fa-line bg-fa-raised hover:border-blue-500 transition-colors"
+            className="text-start p-4 rounded-lg border-2 border-fa-line bg-fa-raised hover:border-blue-500 transition-colors"
           >
             <div className="flex items-center gap-2 text-fa-text font-semibold mb-2">
               <Cloud className="w-4 h-4" /> Cloud

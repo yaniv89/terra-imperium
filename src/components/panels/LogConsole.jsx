@@ -18,43 +18,43 @@ const LOG_STYLES = {
   },
   [LogTypes.EVENT]: {
     className: 'text-yellow-400',
-    borderClass: 'border-l-2 border-yellow-500 pl-2',
+    borderClass: 'border-s-2 border-yellow-500 ps-2',
     bgClass: 'bg-yellow-500/5',
     label: 'Event'
   },
   [LogTypes.COMBAT]: {
     className: 'text-fa-enemy',
-    borderClass: 'border-l-2 border-orange-500 pl-2',
+    borderClass: 'border-s-2 border-orange-500 ps-2',
     bgClass: '',
     label: 'Combat'
   },
   [LogTypes.MILESTONE]: {
     className: 'text-fa-you font-semibold',
-    borderClass: 'border-l-2 border-blue-500 pl-2',
+    borderClass: 'border-s-2 border-blue-500 ps-2',
     bgClass: 'bg-blue-500/5',
     label: 'Milestone'
   },
   [LogTypes.CRISIS]: {
     className: 'text-fa-danger-text font-bold',
-    borderClass: 'border-l-2 border-red-500 pl-2',
+    borderClass: 'border-s-2 border-red-500 ps-2',
     bgClass: 'bg-red-500/10',
     label: 'Crisis'
   },
   [LogTypes.TECH]: {
     className: 'text-purple-400',
-    borderClass: 'border-l-2 border-purple-500 pl-2',
+    borderClass: 'border-s-2 border-purple-500 ps-2',
     bgClass: 'bg-purple-500/5',
     label: 'Tech'
   },
   [LogTypes.DIPLOMACY]: {
     className: 'text-cyan-400',
-    borderClass: 'border-l-2 border-cyan-500 pl-2',
+    borderClass: 'border-s-2 border-cyan-500 ps-2',
     bgClass: '',
     label: 'Diplomacy'
   },
   [LogTypes.AI]: {
     className: 'text-fa-muted italic',
-    borderClass: 'border-l-2 border-fa-line pl-2',
+    borderClass: 'border-s-2 border-fa-line ps-2',
     bgClass: '',
     label: 'World'
   }
@@ -79,7 +79,7 @@ const LogEntry = ({ log, showYear = true }) => {
       `}
     >
       {showYear && (
-        <span className="text-fa-muted mr-2 font-mono text-[10px] inline-block align-top mt-0.5">
+        <span className="text-fa-muted me-2 font-mono text-[10px] inline-block align-top mt-0.5">
           [{log.year}]
         </span>
       )}
@@ -90,15 +90,15 @@ const LogEntry = ({ log, showYear = true }) => {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="ml-2 text-[9px] text-fa-you underline"
+          className="ms-2 text-[9px] text-fa-you underline"
         >
           {open ? 'Hide' : `Show all ${log.count}`}
         </button>
       )}
       {folded && open && (
-        <div className="mt-1 ml-3 space-y-0.5 text-fa-muted">
+        <div className="mt-1 ms-3 space-y-0.5 text-fa-muted">
           {log.details.map((d, i) => (
-            <div key={i} className="text-[10px] break-words"><span className="font-mono mr-1">[{d.year}]</span>{d.message}</div>
+            <div key={i} className="text-[10px] break-words"><span className="font-mono me-1">[{d.year}]</span>{d.message}</div>
           ))}
         </div>
       )}
@@ -123,7 +123,7 @@ const FilterButton = ({ type, label, isActive, onClick, count }) => {
     >
       {label}
       {count > 0 && (
-        <span className="ml-1 text-[8px] opacity-70">({count})</span>
+        <span className="ms-1 text-[8px] opacity-70">({count})</span>
       )}
     </button>
   );
@@ -220,7 +220,7 @@ const LogConsole = () => {
 
       {/* Filters Row */}
       <div className="px-2 py-1.5 border-b border-fa-line/50 flex flex-wrap gap-1 shrink-0 bg-fa-panel/50 pl:flex-nowrap pl:overflow-x-auto scrollbar-none">
-        <Filter className="w-3 h-3 text-fa-muted mr-1 mt-0.5" />
+        <Filter className="w-3 h-3 text-fa-muted me-1 mt-0.5" />
         {Object.entries(LOG_STYLES).map(([type, style]) => (
           <FilterButton
             key={type}

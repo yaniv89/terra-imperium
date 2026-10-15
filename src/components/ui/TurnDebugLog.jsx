@@ -19,7 +19,7 @@ const TurnDebugLog = () => {
   }, []);
   return (
     <pre data-testid="turn-debug-log" aria-hidden="true"
-      className="fixed z-[300] left-[max(env(safe-area-inset-left),0.25rem)] top-[calc(var(--header-height,2.25rem)+0.25rem)] max-w-[min(34rem,70vw)] max-h-[45%] overflow-hidden whitespace-pre-wrap break-all pointer-events-none bg-black/75 text-[10px] leading-tight text-green-300 p-1.5 rounded">
+      className="fixed z-[300] start-[max(var(--safe-start),0.25rem)] top-[calc(var(--header-height,2.25rem)+0.25rem)] max-w-[min(34rem,70vw)] max-h-[45%] overflow-hidden whitespace-pre-wrap break-all pointer-events-none bg-black/75 text-[10px] leading-tight text-green-300 p-1.5 rounded">
       {text}
     </pre>
   );

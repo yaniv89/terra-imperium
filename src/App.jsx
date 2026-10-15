@@ -295,7 +295,7 @@ const GameLayout = () => {
 
       {/* "Needs you" chips under the top bar (W02): tap one to jump there. */}
       {/* data-map-hud: the map's names keep clear of them (I081). */}
-      <div className="fixed z-10 left-[calc(max(env(safe-area-inset-left),0.75rem)+var(--city-rail-w,0px))] top-[calc(var(--header-height,2.25rem)+0.625rem)] pointer-events-none needs-you">
+      <div className="fixed z-10 start-[calc(max(var(--safe-start),0.75rem)+var(--city-rail-w,0px))] top-[calc(var(--header-height,2.25rem)+0.625rem)] pointer-events-none needs-you">
         {state.gameStatus === GameStatus.ACTIVE && (
           <div className="flex flex-col items-start gap-1.5" data-map-hud="group">
             {/* Decisions that wait behind the one on screen (useExclusivePanel.js), then the chips. */}

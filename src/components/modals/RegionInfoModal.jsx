@@ -256,7 +256,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     <div ref={mobileSheet ? sheetRef : undefined} className={
       mobileSheet
         ? `fixed inset-x-0 bottom-0 z-30 ${peeking ? 'max-h-[18vh]' : expanded ? 'max-h-[calc(100dvh-var(--header-height,4.5rem)-0.5rem)]' : 'max-h-[55vh]'} transition-[max-height] duration-300 ease-out overflow-y-auto overscroll-contain rounded-t-2xl fa-sheet p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-[13px] border-t shadow-2xl`
-        : `${isCornerCard ? `absolute corner-card ${cornerTopClass} left-[calc(var(--city-rail-w,0px)+0.5rem)] pl:left-[max(env(safe-area-inset-left),0.5rem)] z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
+        : `${isCornerCard ? `absolute corner-card ${cornerTopClass} start-[calc(var(--city-rail-w,0px)+0.5rem)] pl:start-[max(var(--safe-start),0.5rem)] z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
            fa-sheet p-3 rounded-[10px] text-[13px] w-[310px] max-w-[calc(100vw-1rem)]
            border border-fa-line shadow-xl`
     }>
@@ -593,7 +593,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         {awayTiles.map((t) => {
           const n = awayUnits.filter((u) => unitTile(state, u) === t).length;
           return (
-            <button key={t} type="button" onClick={() => selectArmy(t)} data-testid="army-away" className="w-full text-left min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[11px] text-fa-text px-2 mb-1.5">
+            <button key={t} type="button" onClick={() => selectArmy(t)} data-testid="army-away" className="w-full text-start min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[11px] text-fa-text px-2 mb-1.5">
               {n} unit{n === 1 ? '' : 's'} based here {n === 1 ? 'is' : 'are'} in the field, {whereLabel(state, t).text}: open the army
             </button>
           );
@@ -604,7 +604,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               <div className="flex items-center gap-1.5 text-[10px] text-fa-muted mb-1">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ownerId === REBEL_OWNER_ID ? '#ef4444' : state.nations[ownerId]?.color || '#64748b' }} />
                 <span className="truncate">{ownerId === REBEL_OWNER_ID ? 'Rebels' : ownerId === state.playerNationId ? 'Your forces' : state.nations[ownerId]?.name || ownerId}</span>
-                <span className="ml-auto font-mono">{formatNumber(units.reduce((sum, u) => sum + (u.classId === 'settler' ? 0 : u.strength || 0), 0))} str</span>
+                <span className="ms-auto font-mono">{formatNumber(units.reduce((sum, u) => sum + (u.classId === 'settler' ? 0 : u.strength || 0), 0))} str</span>
               </div>
               <div className="space-y-1">
                 {units.map((unit) => (
@@ -741,7 +741,7 @@ const Section = ({ icon: Icon, title, aside, children }) => (
     <div className="flex items-center gap-1.5 mb-1.5 text-fa-text font-semibold">
       {Icon && <Icon className="w-3.5 h-3.5 text-fa-muted" />}
       <span>{title}</span>
-      {aside && <span className="ml-auto text-fa-muted font-normal text-[10px]">{aside}</span>}
+      {aside && <span className="ms-auto text-fa-muted font-normal text-[10px]">{aside}</span>}
     </div>
     {children}
   </div>
@@ -813,7 +813,7 @@ const UnitLine = ({ unit, age, commander }) => {
         </div>
         {commander && <div className="text-[10px] text-purple-300 truncate mt-0.5">Led by {commander.name}</div>}
       </div>
-      <div className="text-right font-mono text-[10px] text-fa-muted shrink-0">
+      <div className="text-end font-mono text-[10px] text-fa-muted shrink-0">
         <div>{unit.strength}/{unit.maxStrength}</div>
         <div>MOR {unit.morale}</div>
         {unit.domain !== 'naval' && <div className={supplyOf(unit) < 30 ? 'text-fa-danger-text' : ''} title="Supply">SUP {supplyOf(unit)}</div>}

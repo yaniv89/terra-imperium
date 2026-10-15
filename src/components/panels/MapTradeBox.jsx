@@ -15,7 +15,7 @@ const tilesText = (g) => `${formatNumber(g.tiles)} ${g.tiles === 1 ? 'tile' : 't
 
 const TradeTile = ({ label, sub, refuse, onClick, testId }) => (
   <button type="button" onClick={onClick} data-testid={testId}
-    className={`text-left rounded-lg border px-2.5 py-1.5 min-h-[44px] hover:bg-fa-hover transition-colors ${refuse ? 'border-dashed border-fa-danger bg-fa-ink/30' : 'border-fa-line bg-fa-raised'}`}>
+    className={`text-start rounded-lg border px-2.5 py-1.5 min-h-[44px] hover:bg-fa-hover transition-colors ${refuse ? 'border-dashed border-fa-danger bg-fa-ink/30' : 'border-fa-line bg-fa-raised'}`}>
     <span className="block text-[12px] font-semibold leading-tight text-fa-text">{label}</span>
     {sub && <span className={`block text-[11px] leading-tight mt-0.5 ${refuse ? 'text-fa-danger-text' : 'text-fa-muted'}`}>{sub}</span>}
   </button>

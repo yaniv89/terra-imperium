@@ -15,7 +15,7 @@ const RotateGate = ({ testId, title, text }) => {
     <div data-testid={testId} className="fixed inset-0 z-[210] bg-fa-ink/95 text-fa-text flex flex-col items-center justify-center gap-5 p-8 text-center">
       <div className="relative w-24 h-24 flex items-center justify-center">
         <Smartphone className="w-16 h-16 text-blue-400 rotate-90 motion-safe:animate-pulse" />
-        <RotateCw className="absolute -top-1 -right-1 w-8 h-8 text-fa-muted" />
+        <RotateCw className="absolute -top-1 -end-1 w-8 h-8 text-fa-muted" />
       </div>
       <div className="space-y-2">
         <h2 className="text-xl font-bold">{title}</h2>
