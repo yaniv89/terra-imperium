@@ -51,6 +51,7 @@ import CityRail from './components/city/CityRail';
 import IndependentsHost from './components/independents/IndependentsHost';
 import CaptureCard from './components/capture/CaptureCard';
 import { noteScreen } from './utils/crashLog';
+import { useT } from './i18n/useT';
 
 const AGE_ADVANCE_BANNER_MS = 5000;
 
@@ -64,6 +65,7 @@ const readTitleSlots = () => [
 // Main game layout component
 const GameLayout = () => {
   const { state, dispatch, resolveEvent, resetGame, importSave, meta, completeOnboarding } = useGame();
+  const { t, name: nm } = useT();
   const { triggerEffect } = useEffects();
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [showAccount, setShowAccount] = useState(false);
@@ -369,7 +371,7 @@ const GameLayout = () => {
       <LogDrawer open={logDrawerOpen} onClose={() => setLogDrawerOpen(false)} />
 
       {/* Settings and saves (W12), from Menu on the tab rail */}
-      <SettingsSheet open={showSettings} onClose={() => setShowSettings(false)} onOpenAccount={() => { setShowSettings(false); setShowAccount(true); }} onReset={handleReset} cloudLabel={client ? (cloudSync.status === 'synced' ? 'Cloud saves: saved' : 'Cloud saves and account') : null} />
+      <SettingsSheet open={showSettings} onClose={() => setShowSettings(false)} onOpenAccount={() => { setShowSettings(false); setShowAccount(true); }} onReset={handleReset} cloudLabel={client ? (cloudSync.status === 'synced' ? t('app.cloudSaved') : t('app.cloudAccount')) : null} />
 
       {/* Cloud saves + account (plan §M0.5) - opened from Settings */}
       <AccountModal
@@ -399,13 +401,13 @@ const GameLayout = () => {
       <IndependentsHost />
       {/* The capture card: Conquer, Raze, Make tributary or Free after a city falls to you (decision 40) */}
       <CaptureCard />
-      {state.pendingBattle && <Suspense fallback={<div className="fixed inset-0 z-[80] bg-slate-950 flex items-center justify-center text-slate-300 text-sm">Preparing the battlefield…</div>}><TacticalBattleHost /></Suspense>}
+      {state.pendingBattle && <Suspense fallback={<div className="fixed inset-0 z-[80] bg-slate-950 flex items-center justify-center text-slate-300 text-sm">{t('app.preparing')}</div>}><TacticalBattleHost /></Suspense>}
       <ConflictChooserModal conflict={cloudSync.conflict} onChoose={cloudSync.resolveConflict} />
 
       {/* New game, asked in the game's own words (playtest audit I166). */}
-      <ConfirmDialog open={confirmNewGame} title="Start a new game?" confirmLabel="New game" cancelLabel="Keep playing" danger onConfirm={goToStart} onCancel={cancelNewGame} testId="new-game-confirm">
-        <p>You go to the start screen to choose a people and a world.</p>
-        <p>Your game as {state.nations[state.playerNationId]?.name || 'your people'} (turn {state.turnNumber}) stays saved on this device. When the new game begins it moves to Load on the title screen.</p>
+      <ConfirmDialog open={confirmNewGame} title={t('app.newGameTitle')} confirmLabel={t('app.newGame')} cancelLabel={t('app.keepPlaying')} danger onConfirm={goToStart} onCancel={cancelNewGame} testId="new-game-confirm">
+        <p>{t('app.newGameBody1')}</p>
+        <p>{t('app.newGameBody2', { people: state.nations[state.playerNationId] ? nm('people', state.playerNationId, state.nations[state.playerNationId].name) : t('app.yourPeople'), turn: state.turnNumber })}</p>
       </ConfirmDialog>
 
       {/* Onboarding (Phase H) - once ever, per browser, for a genuinely new player. Sits above

@@ -42,7 +42,7 @@ import { lawRulesOf, describeRules } from '../../engine/lawRules';
 import { previewGovernmentChange } from '../../engine/governmentPreview';
 import { lawEffectLines, lawLockReason } from '../../engine/lawEffects';
 import GovernmentChangeDialog from './GovernmentChangeDialog';
-import { POWER_POOLS_SHORT, POWER_POOL_HELP } from '../../data/powerPools';
+import { powerPoolsShort, POWER_POOL_HELP } from '../../data/powerPools';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -259,7 +259,7 @@ const DomesticPanel = () => {
             {ruler.traits?.length > 0 && ` · ${ruler.traits.map((id) => TRAITS[id]?.name || id).join(', ')}`}
           </div>
           <div className="text-[10px] text-fa-muted" data-testid="ruler-skill-help">
-            Each skill adds to the power pool of its name every turn. {POWER_POOLS_SHORT}
+            Each skill adds to the power pool of its name every turn. {powerPoolsShort()}
           </div>
           <div className="text-[10px] text-fa-muted">
             Reign ends turn {ruler.reignEndsTurn}

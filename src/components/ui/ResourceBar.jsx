@@ -9,11 +9,13 @@ import { getFieldedStrength, getPowerBreakdown, getPowerIncome } from '../../uti
 import ResourceBadge from './ResourceBadge';
 import Breakdown from './Breakdown';
 import { POWER_POOL_HELP } from '../../data/powerPools';
+import { useT } from '../../i18n/useT';
 
 // `wrap`: the top bar's "All your stores" list. There every badge carries its name: a phone has no
 // hover, so the bare icons and numbers could not be told apart (playtest audit I163).
 const ResourceBar = ({ wrap = false }) => {
   const { state } = useGame();
+  const { t } = useT();
   const [expandedResource, setExpandedResource] = useState(null);
 
   const handleToggle = (type) => {
@@ -44,9 +46,9 @@ const ResourceBar = ({ wrap = false }) => {
           onClick={() => handleToggle(pool)}
           tooltipContent={(
             <div>
-              <div className="font-semibold mb-1">{POWER_POOL_HELP[pool].name} ({pool.toUpperCase()}) each turn</div>
+              <div className="font-semibold mb-1">{t('res.poolEachTurn', { name: POWER_POOL_HELP[pool].name, pool: t(`res.${pool}`) })}</div>
               <Breakdown rows={getPowerBreakdown(state, state.playerNationId, pool)} />
-              <div className="mt-1 text-[11px] text-fa-muted max-w-[16rem] space-y-0.5" data-testid={`pool-help-${pool}`}><div>{POWER_POOL_HELP[pool].earns}</div><div>{POWER_POOL_HELP[pool].spends}</div><div>Unspent points are saved for later turns.</div></div>
+              <div className="mt-1 text-[11px] text-fa-muted max-w-[16rem] space-y-0.5" data-testid={`pool-help-${pool}`}><div>{POWER_POOL_HELP[pool].earns}</div><div>{POWER_POOL_HELP[pool].spends}</div><div>{t('res.unspent')}</div></div>
             </div>
           )}
         />
@@ -59,7 +61,7 @@ const ResourceBar = ({ wrap = false }) => {
           <Breakdown rows={getPowerBreakdown(state, state.playerNationId, expandedResource)} />
           <div>{POWER_POOL_HELP[expandedResource].earns}</div>
           <div>{POWER_POOL_HELP[expandedResource].spends}</div>
-          <div>Unspent points are saved for later turns.</div>
+          <div>{t('res.unspent')}</div>
         </div>
       )}
 

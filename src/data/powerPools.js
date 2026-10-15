@@ -5,32 +5,21 @@
 // place. No number is typed here: every figure comes from the same constants the engine reads.
 import { BASE_POWER_PER_TURN } from '../utils/helpers';
 import { CULTURE_BASE, CULTURE_PER_SIZE, CULTURE_PER_TIER } from '../engine/world/cities';
+import { t as tNow } from '../i18n';
 
-export const POWER_POOL_HELP = {
-  adm: {
-    name: 'Administrative power',
-    earns: `Every turn: ${BASE_POWER_PER_TURN} base, plus your ruler's ADM skill, an ADM advisor, your government and techs.`,
-    short: 'pays for laws, reforms, stability and city actions',
-    spends: 'Pays for laws, government changes and reforms, Increase Stability, research focus, moving the capital, founding cities, city upkeep actions (quell unrest, gain control, policies) and Develop Tax.'
-  },
-  dip: {
-    name: 'Diplomatic power',
-    earns: `Every turn: ${BASE_POWER_PER_TURN} base, plus your ruler's DIP skill, a DIP advisor, your government, techs, satellites and space missions. Some events give a lump sum.`,
-    short: 'pays for treaties, claims, war declarations and spies',
-    spends: 'Pays for treaties, alliances, marriages, demands, claims, declaring war, vassals, spies, funding scholars, space launches and Develop Production.'
-  },
-  mil: {
-    name: 'Military power',
-    earns: `Every turn: ${BASE_POWER_PER_TURN} base, plus your ruler's MIL skill, a MIL advisor, your government and techs.`,
-    short: 'pays for recruiting, generals, invasions and battles at sea',
-    spends: 'Pays for recruiting, hiring generals, invasions, naval engagements, putting down rebellions, missiles and Develop Manpower.'
-  }
-};
+// The texts are getters: they read the current language each time they are used.
+const pool = (id) => ({
+  get name() { return tNow(`pool.${id}.name`); },
+  get earns() { return tNow(`pool.${id}.earns`, { base: BASE_POWER_PER_TURN }); },
+  get short() { return tNow(`pool.${id}.short`); },
+  get spends() { return tNow(`pool.${id}.spends`); }
+});
+export const POWER_POOL_HELP = { adm: pool('adm'), dip: pool('dip'), mil: pool('mil') };
 
-export const POWER_POOLS_SHORT = 'ADM, DIP and MIL are saved from turn to turn, so you can save up for a big reform or spend them as they come. Each pays for actions of its kind.';
+export const powerPoolsShort = () => tNow('pool.short');
 
 // Culture is not a power point: it is a per-city bank that buys border tiles.
 export const CULTURE_HELP = {
-  earns: `Each city makes ${CULTURE_BASE} a turn, plus ${CULTURE_PER_SIZE} per size, ${CULTURE_PER_TIER} per level of its Culture buildings, and more from the capital, Temple Quarters and a governor.`,
-  spends: 'Each city saves its own culture and spends it by itself to claim the cheapest tile next to its border. It never buys anything else.'
+  get earns() { return tNow('culture.earns', { base: CULTURE_BASE, size: CULTURE_PER_SIZE, tier: CULTURE_PER_TIER }); },
+  get spends() { return tNow('culture.spends'); }
 };

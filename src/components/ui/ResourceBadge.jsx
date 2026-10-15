@@ -7,6 +7,7 @@ import { formatNumber } from '../../utils/helpers';
 import Tooltip from './Tooltip';
 import GameIcon from './GameIcon';
 import { resourceIconUrl } from '../../data/icons';
+import { useT } from '../../i18n/useT';
 
 const RESOURCE_CONFIG = {
   gold: {
@@ -107,8 +108,11 @@ const ResourceBadge = ({
   size = 'normal', // 'small', 'normal', 'large'
   tooltipContent = null // plan §M20: overrides the flat description with a real breakdown (e.g. ADM/DIP/MIL income)
 }) => {
+  const { t, tx } = useT();
   const config = RESOURCE_CONFIG[type];
   if (!config) return null;
+  const label = t(`res.${type}`);
+  const description = tx(`res.${type}.desc`, null);
 
   const Icon = config.icon;
   // Power pools (perTurn set) show their exact banked amount — they bank into the thousands, and an
@@ -130,7 +134,7 @@ const ResourceBadge = ({
   };
 
   return (
-    <Tooltip content={tooltipContent || config.description || config.label}>
+    <Tooltip content={tooltipContent || description || label}>
       <button
         onClick={onClick}
         disabled={!onClick}
@@ -145,7 +149,7 @@ const ResourceBadge = ({
         {/* Gold and the metals have delivered art (src/data/icons.js); the abstract pools keep lucide.
             The art draws a little larger than the glyph so it reads at phone size. */}
         <span className={`${config.color} inline-flex`}>
-          <GameIcon url={resourceIconUrl(type)} size={iconSizes[size] + 4} title={config.label} fallback={<Icon size={iconSizes[size]} />} />
+          <GameIcon url={resourceIconUrl(type)} size={iconSizes[size] + 4} title={label} fallback={<Icon size={iconSizes[size]} />} />
         </span>
         <span className="font-mono font-semibold text-fa-text">
           {displayValue}
@@ -155,7 +159,7 @@ const ResourceBadge = ({
         )}
         {(expanded || showLabel) && (
           <span className="text-fa-muted ms-1 text-xs">
-            {config.label}
+            {label}
           </span>
         )}
       </button>
