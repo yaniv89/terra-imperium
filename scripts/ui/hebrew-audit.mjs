@@ -8,6 +8,7 @@
 import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const arg = (n, f) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : f; };
 const URL_BASE = arg('--url', 'http://localhost:5198/terra-imperium/');
@@ -470,6 +471,14 @@ await step('title', async () => {
   if (await has(tid('title-settings'))) { await click(tid('title-settings')); await wait(800); await record('title: settings'); await esc(); }
 });
 
+// Extra screens: every scripts/ui/audit-steps/*.mjs exports default async (a) => { ... } with the helpers below.
+const stepsDir = path.resolve('scripts/ui/audit-steps');
+if (fs.existsSync(stepsDir)) {
+  const api = { step, record, skipped, click, tid, has, wait, esc, patch, gs, evalMod, railTab, visitTabs, closeAllCards, selTile, selArmy, manage, capitalId, tClick, getPage: () => page, getCtx: () => ctx, URL_BASE, LANG };
+  for (const f of fs.readdirSync(stepsDir).filter((x) => x.endsWith('.mjs')).sort()) {
+    await (await import(pathToFileURL(path.join(stepsDir, f)).href)).default(api);
+  }
+}
 //@@SCREENS
 
 await browser.close();
@@ -482,4 +491,4 @@ for (const [k, v] of uniq) lines.push(`  ${k.slice(0, 140)}   <${v[0]}>`);
 if (pageErrors.length) lines.push('', 'page errors:', ...pageErrors.slice(0, 10));
 if (!ONLY) fs.writeFileSync(path.join(OUT, `report-${LANG}.txt`), lines.join('\n'));
 console.log(lines.slice(0, 3).join('\n'));
-fs.writeFileSync(path.join(OUT, `report-${LANG}.json`), JSON.stringify({ results, pageErrors }, null, 1));
+if (!ONLY) fs.writeFileSync(path.join(OUT, `report-${LANG}.json`), JSON.stringify({ results, pageErrors }, null, 1));
