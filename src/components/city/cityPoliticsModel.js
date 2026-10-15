@@ -23,7 +23,7 @@ import { ActionTypes } from '../../data/types';
 import { ACTION_COSTS, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
 import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
 import { REGIONS_DATA } from '../../data/regions';
-import { getDepositsFor } from '../../data/deposits';
+import { getDepositsFor, depositLandOf } from '../../data/deposits';
 import { EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
 import { getEffectiveAgeId } from '../../data/ages';
 import { DEVASTATION_DECAY } from '../../engine/aftermath';
@@ -201,7 +201,7 @@ export const cityDevelopmentModel = (state, cityId) => {
   const mult = getModifier(state, me, 'national.developmentCost').total;
   const cost = getDevelopProvinceCost(city, mult);
   const ageId = getEffectiveAgeId(state.age, state.techAgeId);
-  const deposits = getDepositsFor(REGIONS_DATA[cityId]?.startOwner || city.startOwner).map((resourceId) => ({
+  const deposits = getDepositsFor(depositLandOf(REGIONS_DATA[cityId] || city)).map((resourceId) => ({
     resourceId, name: extractionName(resourceId, EXTRACTION_BUILDINGS[resourceId]?.name), built: !!city.buildings?.extraction?.[resourceId],
     enabled: !city.buildings?.extraction?.[resourceId] && canBuildExtraction(resourceId, ageId) && canAfford(state.resources, ACTION_COSTS.developResourceSite)
   }));

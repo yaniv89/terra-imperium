@@ -8,7 +8,7 @@ import { getCombatWidth, getTerrainCombatModifier, TERRAIN_COMBAT_MODIFIERS } fr
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { canSeeRegionDetails } from '../../engine/intel';
 import { getRosterCombatMultiplier } from '../../data/unitClasses';
-import { getDepositsFor } from '../../data/deposits';
+import { getDepositsFor, depositLandOf } from '../../data/deposits';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { validateInvasion, getInvasionBattleContext, getBattlePowers, validateAmphibious, getAmphibiousBattleContext } from '../../engine/invasion';
 import { validateFieldAttack, getFieldBattleContext, FORT_BATTLE_LEVEL } from '../../engine/fieldBattle';
@@ -297,7 +297,7 @@ const buildDefenseSetup = (state, pb) => {
     fortLevel: Math.max(0, Math.round(ctx.fortLevel)),
     isCapital: !!regionData.isCapital,
     infrastructure: region.currentInfrastructure || 0,
-    deposits: getDepositsFor(regionData.startOwner),
+    deposits: getDepositsFor(depositLandOf(regionData)),
     defenseReduction: ctx.defenderDamageReductionMultiplier,
     isAttackingFortification: ctx.isAttackingFortification,
     attackerNationId: pb.attackerNationId,
@@ -354,7 +354,7 @@ const buildAmphibiousSetup = (state, pb) => {
     fortLevel: Math.max(0, Math.round(fortLevel)),
     isCapital: !!regionData.isCapital,
     infrastructure: v.targetRegion.currentInfrastructure || 0,
-    deposits: getDepositsFor(regionData.startOwner),
+    deposits: getDepositsFor(depositLandOf(regionData)),
     defenseReduction: ctx.defenderDamageReductionMultiplier,
     isAttackingFortification: ctx.isAttackingFortification,
     attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier,
@@ -547,7 +547,7 @@ export const buildInvasionSetup = (state, pendingBattle) => {
     fortLevel: Math.max(0, Math.round(fortLevel)),
     isCapital: !!regionData.isCapital,
     infrastructure: v.targetRegion.currentInfrastructure || 0,
-    deposits: getDepositsFor(regionData.startOwner),
+    deposits: getDepositsFor(depositLandOf(regionData)),
     defenseReduction: ctx.defenderDamageReductionMultiplier,
     isAttackingFortification: ctx.isAttackingFortification,
     attackerNationId: state.playerNationId,

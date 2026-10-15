@@ -6,7 +6,7 @@
 // The government type only biases the new ruler's skills: a Theocracy favours ADM (rolls twice,
 // keeps the higher), a Dictatorship floors MIL at 3.
 import { getYearsPerTurn } from '../data/ages';
-import { generateGivenName, generateDynastyName } from '../data/names';
+import { generateGivenName, givenNamePool, generateDynastyName } from '../data/names';
 import { POSITIVE_TRAIT_IDS, NEGATIVE_TRAIT_IDS, TRAITS } from '../data/traits';
 import { msg, sub, person, thing } from './messages';
 
@@ -97,11 +97,20 @@ export const advisorQuoteText = (level, pool, current = null) => {
 const ADVISOR_LEVEL_WEIGHTS = [1, 1, 2, 2, 2, 3]; // level 1-3, weighted toward the middle
 
 // A name nobody at court already has (I145: two advisors, or an advisor and the ruler, with one name
-// could not be told apart). A few tries; the pool is large, so a repeat is rare and the rng stays
-// unchanged whenever the first roll is free.
+// could not be told apart). A few rolls first, so the rng is unchanged whenever the first roll is
+// free; if they all repeat, scan the culture's list from the last roll for the first free name, and
+// only when the whole list is taken add a numeral. Always unique, always deterministic.
 const freshName = (nationId, rng, taken) => {
   let name = generateGivenName(nationId, rng);
   for (let i = 0; i < 8 && taken.has(name); i++) name = generateGivenName(nationId, rng);
+  if (taken.has(name)) {
+    const pool = givenNamePool(nationId);
+    const start = Math.max(0, pool.indexOf(name));
+    let free = null;
+    for (let k = 0; k < pool.length && free === null; k++) if (!taken.has(pool[(start + k) % pool.length])) free = pool[(start + k) % pool.length];
+    if (free !== null) name = free;
+    else { let n = 2; while (taken.has(`${name} ${n}`)) n++; name = `${name} ${n}`; }
+  }
   taken.add(name);
   return name;
 };

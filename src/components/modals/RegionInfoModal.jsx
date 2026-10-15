@@ -26,7 +26,7 @@ import { categoryTierName, extractionName, wonderName } from '../../i18n/gameTex
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
 import { UNIT_CLASSES } from '../../data/unitClasses';
 import { getRankForXp } from '../../data/promotions';
-import { getDepositsFor } from '../../data/deposits';
+import { getDepositsFor, depositLandOf } from '../../data/deposits';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { BuildingIcon, ExtractionIcon, ResourceIcon, UnitIcon, WonderIcon } from '../ui/icons';
 import { getTotalDev } from '../../engine/development';
@@ -210,7 +210,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const projectsHere = Object.entries(state.greatProjects || {})
     .filter(([, entry]) => entry?.regionId === regionId)
     .map(([projectId, entry]) => ({ projectId, tier: entry.tier || 1 }));
-  const deposits = getDepositsFor(regionData.startOwner); // geological, keyed by the province's home country
+  const deposits = getDepositsFor(depositLandOf(regionData)); // geological, keyed by the province's home country
   const neighbors = getNeighborIds(regionId)
     .filter((id) => REGIONS_DATA[id])
     .map((id) => {
