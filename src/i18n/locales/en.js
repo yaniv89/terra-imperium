@@ -609,7 +609,7 @@ export default {
   'mapcard.kept.one': '{count} generated world kept on this device ({size}), so it opens at once.',
   'mapcard.kept.two': '{count} generated worlds kept on this device ({size}), so they open at once.',
   'mapcard.kept.other': '{count} generated worlds kept on this device ({size}), so they open at once.',
-  'mapcard.keptNone': 'Generated worlds kept on this device open at once.',
+  'mapcard.keptEmpty': 'Generated worlds kept on this device open at once.',
   'mapcard.clear': 'Clear cached worlds',
   'app.cloudSaved': 'Cloud saves: saved',
   'app.cloudAccount': 'Cloud saves and account',

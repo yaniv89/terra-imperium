@@ -55,7 +55,7 @@ const MapCard = ({ map, withCache = false, className = '', label = null }) => {
         <div className="flex items-center justify-between gap-3 min-h-[44px] pt-1">
           <div className="min-w-0 text-[12px] text-fa-muted leading-snug">
             {cache === 'cleared' ? t('mapcard.cleared')
-              : cache ? t('mapcard.kept', { count: cache.count, size: kb(cache.bytes) }) : t('mapcard.keptNone')}
+              : cache ? t('mapcard.kept', { count: cache.count, size: kb(cache.bytes) }) : t('mapcard.keptEmpty')}
           </div>
           <Button onClick={async () => { await cacheClear(); setCache('cleared'); }} disabled={!cache || cache === 'cleared' || !cache.count} data-testid="map-clear-cache">
             <Trash2 className="w-4 h-4" aria-hidden="true" />{t('mapcard.clear')}
