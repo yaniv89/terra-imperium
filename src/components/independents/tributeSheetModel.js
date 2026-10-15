@@ -5,7 +5,10 @@
 // JoinOfferSheet.jsx. Read only.
 import { getTiles } from '../../data/geo/tiles';
 import { isIndependentNation, PERSONALITIES, GRUDGE_MAX, GRUDGE_REFUSED, MERC_SELLERS, MERC_CONTRACT_TURNS, ROUTE_LOOT, JOIN_LOYALTY } from '../../data/independents';
-import { unitName as unitDisplayName } from '../../i18n/gameText';
+import { unitName as unitDisplayName, independentKindName } from '../../i18n/gameText';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
+
 import { ActionTypes } from '../../data/types';
 import { grudgeOf } from '../../engine/grudges';
 import { raidForecast } from '../../engine/raids';
@@ -13,7 +16,8 @@ import { mercOffer } from '../../engine/mercenaries';
 import { grudgeWord, grudgeBands, garrisonOf } from './independentSheetModel';
 import { shieldUrl, shieldColour } from './independentArt';
 
-const placeName = (state, tile) => getTiles().names?.[tile] || state.regions?.[state.world?.tileOwner?.[tile]]?.name || 'the frontier';
+const placeName = (state, tile) => { const n = getTiles().names?.[tile] || state.regions?.[state.world?.tileOwner?.[tile]]?.name; return n ? nameNow('place', null, n) : t('ind.frontier'); };
+const cityNow = (c) => (c?.name ? nameNow('city', null, c.name) : null);
 
 /** What a refused demand would most likely cost: { text, where, tile } or null when nothing is in reach. */
 export const expectedLoss = (state, indepId) => {
@@ -21,14 +25,15 @@ export const expectedLoss = (state, indepId) => {
   if (!f) return null;
   const city = f.cityId != null ? state.regions?.[f.cityId] : null;
   const place = placeName(state, f.tile);
+  const where = cityNow(city) || place;
   const text = {
-    pillage: `the land of ${city?.name || place} pillaged (${place}): no yield there until repaired, ${f.loot} gold to them`,
-    route: `your trade route cut at ${place} while they stand on it, ${ROUTE_LOOT} gold taken`,
-    settler: `your settlers near ${place} killed`,
-    outpost: `the outpost of ${city?.name || place} burned: half its growth lost`,
-    sack: `${city?.name || place} sacked: ${f.loot} gold, one size and one building tier (never more than half)`
-  }[f.kind] || `a raid near ${place}`;
-  return { text, kind: f.kind, tile: f.tile, cityId: city?.id ?? null, where: city?.name || place, likely: f.likely };
+    pillage: t('td.loss.pillage', { city: where, place, loot: f.loot }),
+    route: t('td.loss.route', { place, loot: ROUTE_LOOT }),
+    settler: t('td.loss.settler', { place }),
+    outpost: t('td.loss.outpost', { city: where }),
+    sack: t('td.loss.sack', { city: where, loot: f.loot })
+  }[f.kind] || t('td.loss.other', { place });
+  return { text, kind: f.kind, tile: f.tile, cityId: city?.id ?? null, where, likely: f.likely };
 };
 
 /** The best mercenary offer from another seller (the demander left out), or null. */
@@ -62,14 +67,14 @@ export const tributeDemandModel = (state, demandId) => {
   const guardUnits = guard && guard.owner === me ? garrisonOf(state, me, guard).length : 0;
   const choices = [
     {
-      id: 'pay', title: `Pay ${d.gold} gold a turn`, figure: `gold ${gold}, ${d.gold * d.turns} in all`,
-      text: `For ${d.turns} turns: no raids from them, and you may not attack them meanwhile. A missed payment ends the deal and adds ${GRUDGE_REFUSED} grudge.`,
-      ok: true, warn: gold < d.gold ? `You hold ${gold} gold: the first payment would be missed.` : null,
+      id: 'pay', title: t('td.c.pay', { gold: d.gold }), figure: t('td.c.payFigure', { have: gold, all: d.gold * d.turns }),
+      text: t('td.c.payText', { turns: d.turns, n: GRUDGE_REFUSED }),
+      ok: true, warn: gold < d.gold ? t('td.c.payWarn', { have: gold }) : null,
       actions: [{ type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: d.id, pay: true } }]
     },
     {
-      id: 'refuse', title: 'Refuse and prepare', figure: 'expected loss',
-      text: loss ? `If they come: ${loss.text}. Grudge +${GRUDGE_REFUSED}. Or meet them there with an army.` : `Nothing of yours in their reach is worth a raid now. Grudge +${GRUDGE_REFUSED}.`,
+      id: 'refuse', title: t('td.c.refuse'), figure: t('td.c.refuseFigure'),
+      text: loss ? t('td.c.refuseLoss', { loss: loss.text, n: GRUDGE_REFUSED }) : t('td.c.refuseNone', { n: GRUDGE_REFUSED }),
       ok: true, warn: null,
       actions: [{ type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: d.id, pay: false } }]
     }
@@ -78,18 +83,18 @@ export const tributeDemandModel = (state, demandId) => {
     const seller = state.nations[merc.sellerId];
     const o = merc.offer;
     choices.push({
-      id: 'hire', title: 'Refuse and hire mercenaries', figure: `${o.price} gold + ${o.upkeep} a turn`,
-      text: `${unitDisplayName(state.age || 'bronze', o.classId)} from ${seller.name} (${PERSONALITIES[seller.indep?.personality]?.name || ''}), ${MERC_CONTRACT_TURNS} turns, waiting in ${state.regions[o.cityId]?.name || 'your city'}. Grudge +${GRUDGE_REFUSED}.`,
-      ok: gold >= o.price, warn: gold >= o.price ? null : `You need ${o.price} gold (you have ${gold}).`,
+      id: 'hire', title: t('td.c.hire'), figure: t('td.c.hireFigure', { price: o.price, upkeep: o.upkeep }),
+      text: t('td.c.hireText', { unit: unitDisplayName(state.age || 'bronze', o.classId), seller: nameNow('people', merc.sellerId, seller.name), kind: independentKindName(seller.indep?.personality, PERSONALITIES[seller.indep?.personality]?.name || ''), turns: MERC_CONTRACT_TURNS, city: cityNow(state.regions[o.cityId]) || t('td.c.yourCity'), n: GRUDGE_REFUSED }),
+      ok: gold >= o.price, warn: gold >= o.price ? null : t('td.c.hireWarn', { price: o.price, have: gold }),
       actions: [{ type: ActionTypes.HIRE_MERCENARY, payload: { independentId: merc.sellerId } }, { type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: d.id, pay: false } }]
     });
   }
   return {
-    id: d.id, indepId: d.indepId, name: n.name, personality: { id: p, name: PERSONALITIES[p]?.name || p, colour: shieldColour(p), shieldUrl: shieldUrl(p) },
+    id: d.id, indepId: d.indepId, name: nameNow('people', d.indepId, n.name), nameEn: n.name, personality: { id: p, name: independentKindName(p, PERSONALITIES[p]?.name || p), colour: shieldColour(p), shieldUrl: shieldUrl(p) },
     gold: d.gold, turns: d.turns, expires: d.expires, turnsLeft: Math.max(0, d.expires - turn),
     grudge: { value: g, after, word: grudgeWord(g), afterWord: grudgeWord(after), max: GRUDGE_MAX, bands: grudgeBands().map(([from, word]) => ({ from, word })) },
     loss,
-    footnote: loss && guard && guard.owner === me ? `${guard.name} has ${guardUnits} unit${guardUnits === 1 ? '' : 's'} in its garrison.` : null,
+    footnote: loss && guard && guard.owner === me ? t('td.guard', { city: cityNow(guard), count: guardUnits }) : null,
     choices,
     // The default pick: pay when they would hit a city, else refuse.
     preferred: loss?.kind === 'sack' && gold >= d.gold ? 'pay' : 'refuse'
@@ -106,10 +111,10 @@ export const joinOfferModel = (state, offerId) => {
   const units = Object.values(state.units || {}).filter((u) => u.ownerId === o.indepId && u.strength > 0).length;
   const p = n.indep?.personality || 'tribal';
   return {
-    id: o.id, indepId: o.indepId, name: n.name, personality: { id: p, name: PERSONALITIES[p]?.name || p, colour: shieldColour(p), shieldUrl: shieldUrl(p) },
-    city: { id: city.id, name: city.name, size: city.size || 1 }, units,
+    id: o.id, indepId: o.indepId, name: nameNow('people', o.indepId, n.name), nameEn: n.name, personality: { id: p, name: independentKindName(p, PERSONALITIES[p]?.name || p), colour: shieldColour(p), shieldUrl: shieldUrl(p) },
+    city: { id: city.id, name: cityNow(city), size: city.size || 1 }, units,
     expires: o.expires, turnsLeft: Math.max(0, o.expires - (state.turnNumber || 0)),
-    gains: [`${city.name}, size ${city.size || 1}`, `${units} unit${units === 1 ? '' : 's'} of soldiers`, 'no anger from your neighbours (no aggressive expansion)', `a loyal city (loyalty ${JOIN_LOYALTY})`],
+    gains: [t('td.gain.city', { city: cityNow(city), n: city.size || 1 }), t('td.gain.units', { count: units }), t('td.gain.noAnger'), t('td.gain.loyal', { n: JOIN_LOYALTY })],
     accept: { type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: true } },
     decline: { type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: false } }
   };

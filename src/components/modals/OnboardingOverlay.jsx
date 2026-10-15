@@ -8,6 +8,7 @@
 // (pointing at nothing) than a plain, centered explanation card.
 import React, { useState } from 'react';
 import { Globe2, ScrollText, Landmark, Hammer, Swords, Trophy, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useT } from '../../i18n/useT';
 
 // Plan §M21: rewritten to reflect the Paradox Overhaul (M1-M19), which replaced almost everything
 // the old copy described — Action Points became three power pools, a free "research one age ahead"
@@ -16,40 +17,10 @@ import { Globe2, ScrollText, Landmark, Hammer, Swords, Trophy, ChevronRight, Che
 // Triangle / "Diplomacy Has Teeth" military-counters card was dropped to make room for them — the
 // Military tab still shows each unit's counters directly, so a dedicated intro card for it is lower
 // priority than the mechanics that have no in-game explanation at all otherwise.
-const STEPS = [
-  {
-    icon: Globe2,
-    title: 'Welcome to Terra Imperium',
-    body: 'You lead one nation, on one real Earth, from 2000 BCE to 2300 CE. Every other country plays the same game you do — its own economy, government, army, and diplomacy — build, conquer, or outlast them all.'
-  },
-  {
-    icon: ScrollText,
-    title: 'ADM / DIP / MIL Power',
-    body: 'Gold and Manpower fund your economy and army; three power pools — Administrative, Diplomatic, and Military — fund everything else: development, laws, research, and diplomacy. Every pool refills slowly each turn, so spend it deliberately.'
-  },
-  {
-    icon: Landmark,
-    title: 'Stability & Authority',
-    body: 'Stability, legitimacy, and prestige are your realm\'s foundation. Let them slip and unrest, rebellions, and even civil war follow. Your authority sums them up: too low and no new law can pass.'
-  },
-  {
-    icon: Hammer,
-    title: 'Buildings & Development',
-    body: 'Develop a province\'s tax, production, and manpower to grow its economy, then build up to six building categories per province — each with real, distinct effects that unlock as your technology advances.'
-  },
-  {
-    icon: Swords,
-    title: 'War & Peace',
-    body: 'Wars need a real justification and are won on war score, not instant conquest — occupy what you\'re fighting for, then dictate peace terms at the table. Push too far and a coalition may form against you.'
-  },
-  {
-    icon: Trophy,
-    title: 'Ambitions & Score',
-    body: 'Ambitions like Domination, Economic Hegemony, or the Space Race are optional early wins — clear one and you can keep playing. Otherwise, the game ends in 2300 and ranks you against the world\'s strongest nations. Good luck.'
-  }
-];
+const STEPS = [Globe2, ScrollText, Landmark, Hammer, Swords, Trophy].map((icon, i) => ({ icon, id: i + 1 })); // text: onb.<id>.title / onb.<id>.body
 
 const OnboardingOverlay = ({ onComplete }) => {
+  const { t } = useT();
   const [stepIndex, setStepIndex] = useState(0);
   const step = STEPS[stepIndex];
   const isLastStep = stepIndex === STEPS.length - 1;
@@ -66,13 +37,13 @@ const OnboardingOverlay = ({ onComplete }) => {
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
       <div className="bg-fa-panel rounded-xl border-2 border-blue-500/60 max-w-sm w-full shadow-2xl p-6 text-center">
         <Icon className="w-12 h-12 mx-auto mb-3 text-fa-you" />
-        <h2 className="text-xl font-bold text-fa-text mb-2">{step.title}</h2>
-        <p className="text-fa-text text-sm leading-relaxed mb-6">{step.body}</p>
+        <h2 className="text-xl font-bold text-fa-text mb-2">{t(`onb.${step.id}.title`)}</h2>
+        <p className="text-fa-text text-sm leading-relaxed mb-6">{t(`onb.${step.id}.body`)}</p>
 
         <div className="flex items-center justify-center gap-1.5 mb-5">
           {STEPS.map((s, i) => (
             <span
-              key={s.title}
+              key={s.id}
               className={`w-1.5 h-1.5 rounded-full ${i === stepIndex ? 'bg-blue-400' : 'bg-fa-hover'}`}
             />
           ))}
@@ -92,7 +63,7 @@ const OnboardingOverlay = ({ onComplete }) => {
             onClick={onComplete}
             className="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm text-fa-muted hover:text-fa-text transition-colors"
           >
-            Skip
+            {t('onb.skip')}
           </button>
           <button
             onClick={handleNext}
@@ -100,7 +71,7 @@ const OnboardingOverlay = ({ onComplete }) => {
                        bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400
                        text-fa-text shadow-lg transition-all active:scale-95"
           >
-            {isLastStep ? 'Start Playing' : 'Next'}
+            {isLastStep ? t('onb.start') : t('onb.next')}
             {!isLastStep && <ChevronRight className="rtl:-scale-x-100 w-4 h-4" />}
           </button>
         </div>

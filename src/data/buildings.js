@@ -18,6 +18,7 @@
 // mechanic — see src/data/deposits.js and the Develop Resource Site action — since a region can
 // hold more than one of those at once, unlike every category here.
 import { getAgeIndex } from './ages';
+import { t } from '../i18n/core';
 
 export const BUILDING_CATEGORIES = {
   food: {
@@ -203,16 +204,16 @@ export const createEmptyRegionBuildings = () => ({
 // What a building tier actually does, in plain words, for the build buttons (e.g. "+3 gold/turn,
 // +15% tax"). Food's growth bonus isn't a modifier line, so the caller adds it.
 const EFFECT_WORDS = {
-  'local.flatGold': (v) => `+${v} gold/turn`,
-  'local.flatManpower': (v) => `+${v} manpower/turn`,
-  'local.taxIncome': (v) => `+${Math.round(v * 100)}% tax`,
-  'local.productionIncome': (v) => `+${Math.round(v * 100)}% production`,
-  'local.manpower': (v) => `+${Math.round(v * 100)}% manpower`,
-  'local.techPoints': (v) => `+${v} research/turn`,
-  'local.tradeIncome': (v) => `+${v} trade gold/turn`,
-  'local.supplyRange': (v) => `+${v} supply range`,
-  'local.fortLevel': (v) => `fort level ${v} (tougher sieges; the keep fires back in battle)`,
-  'local.stabilityBonus': (v) => `-${v} unrest/turn`
+  'local.flatGold': (v) => t('fxb.flatGold', { n: v }),
+  'local.flatManpower': (v) => t('fxb.flatManpower', { n: v }),
+  'local.taxIncome': (v) => t('fxb.taxIncome', { n: Math.round(v * 100) }),
+  'local.productionIncome': (v) => t('fxb.productionIncome', { n: Math.round(v * 100) }),
+  'local.manpower': (v) => t('fxb.manpower', { n: Math.round(v * 100) }),
+  'local.techPoints': (v) => t('fxb.techPoints', { n: v }),
+  'local.tradeIncome': (v) => t('fxb.tradeIncome', { n: v }),
+  'local.supplyRange': (v) => t('fxb.supplyRange', { n: v }),
+  'local.fortLevel': (v) => t('fxb.fortLevel', { n: v }),
+  'local.stabilityBonus': (v) => t('fxb.stabilityBonus', { n: v })
 };
 export const describeTierEffects = (categoryId, tierIndex) => {
   const effects = BUILDING_CATEGORIES[categoryId]?.tiers[tierIndex]?.effects || {};

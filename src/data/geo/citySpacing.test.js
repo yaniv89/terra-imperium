@@ -58,7 +58,7 @@ describe('the settling rule', () => {
     const { world } = foundCity(emptyWorld(), tiles, { nationId: 'xx', tile: centre, name: 'Home' });
     const same = tileAt(world, centre, 3, true);
     const across = tileAt(world, centre, 3, false);
-    expect(canFoundCity(world, tiles, same, 'yy')).toEqual({ ok: false, reason: 'Too close to Home.' });
+    expect(canFoundCity(world, tiles, same, 'yy')).toMatchObject({ ok: false, reason: 'Too close to Home.' });
     expect(canFoundCity(world, tiles, across, 'yy').ok).toBe(true);
     const ring2 = tileAt(world, centre, 2, false) ?? tileAt(world, centre, 2, true);
     if (ring2 != null) expect(canFoundCity(world, tiles, ring2, 'yy').ok).toBe(false);

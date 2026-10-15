@@ -35,13 +35,11 @@ import { describeTech, formatTurns, formatEta, techInfo, techGraph, GRAPH_NODE_W
 import { researchSheetModel } from './researchSheetModel';
 import { techName, boostLabel } from '../../i18n/gameText';
 
-export const CATEGORY_LABELS = {
-  [TechCategories.MILITARY]: 'Military',
-  [TechCategories.ECONOMY]: 'Economy',
-  [TechCategories.INFRASTRUCTURE]: 'Infrastructure',
-  [TechCategories.GOVERNANCE]: 'Governance',
-  [TechCategories.SCIENCE]: 'Science'
-};
+// The labels are read when asked, so they follow the language (keys tc.<category>).
+export const CATEGORY_LABELS = Object.defineProperties({}, Object.fromEntries(
+  [TechCategories.MILITARY, TechCategories.ECONOMY, TechCategories.INFRASTRUCTURE, TechCategories.GOVERNANCE, TechCategories.SCIENCE]
+    .map((c) => [c, { enumerable: true, get: () => tNow(`tc.${String(c).toLowerCase()}`) }])
+));
 
 const SCIENCE = 'var(--fa-science)';
 const COST_WORDS = { adm: 'administrative power', dip: 'diplomatic power', mil: 'military power', techPoints: 'science', gold: 'gold' };

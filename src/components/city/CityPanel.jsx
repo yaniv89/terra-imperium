@@ -36,6 +36,7 @@ import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } fro
 import { Meter, Stat } from '../ui/atlas';
 import { useT } from '../../i18n/useT';
 import { logText } from '../../i18n/messageText';
+import { t as tNow } from '../../i18n/core';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
 const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
@@ -122,8 +123,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   // Accepted when the queue grew; refused when the reducer logged a reason instead.
   const flash = tap && tap.cityId === cityId
     ? (queue.length > tap.before
-      ? { ok: true, text: `Added: ${tap.label}. ${queue.length} in the queue.` }
-      : state.logs.length > tap.logs ? { ok: false, text: `Not added: ${logText(state.logs[state.logs.length - 1], lang)}` } : null)
+      ? { ok: true, text: tNow('cp.added', { label: tap.label, n: queue.length }) }
+      : state.logs.length > tap.logs ? { ok: false, text: tNow('cp.notAdded', { reason: logText(state.logs[state.logs.length - 1], lang) }) } : null)
     : null;
   // The map flies to the row's tile and outlines it (I042).
   const openTile = (tile) => { if (tile != null) { focusPlace([{ tile }, { regionId: cityId }]); pointAtTile(tile); } };
