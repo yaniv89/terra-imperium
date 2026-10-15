@@ -88,7 +88,7 @@ const LensStrip = ({ lens, onChange, onOpenChange }) => {
     <div ref={panelRef} style={maxH ? { maxHeight: maxH } : undefined}
       className={`fa-panel shadow-2xl pointer-events-auto flex flex-col overflow-hidden ${compact ? 'w-[min(340px,calc(100vw-6rem))]' : 'w-[240px]'}`}
       data-testid="lens-strip" role="radiogroup" aria-label="Map lens">
-      <div className="flex items-center justify-between pl-3 pr-1 pt-1 shrink-0">
+      <div className="flex items-center justify-between ps-3 pe-1 pt-1 shrink-0">
         <span className="fa-label">Map lens</span>
         <button type="button" onClick={() => setOpen(false)} aria-label="Close lenses" className="w-11 h-11 flex items-center justify-center text-fa-muted hover:text-fa-text"><X className="w-4 h-4" /></button>
       </div>
@@ -98,7 +98,7 @@ const LensStrip = ({ lens, onChange, onOpenChange }) => {
           const on = lens === l.id;
           return (
             <button key={l.id} type="button" role="radio" aria-checked={on} onClick={() => pick(l.id)} data-lens={l.id} title={l.hint}
-              className={`w-full flex items-center gap-2.5 px-2.5 min-h-[44px] rounded-lg text-left ${on ? 'fa-selected' : 'text-fa-text hover:bg-fa-raised'}`}>
+              className={`w-full flex items-center gap-2.5 px-2.5 min-h-[44px] rounded-lg text-start ${on ? 'fa-selected' : 'text-fa-text hover:bg-fa-raised'}`}>
               <LIcon className="w-4 h-4 shrink-0" aria-hidden="true" />
               <span className="min-w-0">
                 <span className="block text-[13px] font-semibold leading-tight">{l.label} <span className="fa-num text-fa-muted font-normal text-[11px]">{l.key}</span></span>

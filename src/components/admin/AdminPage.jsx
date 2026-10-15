@@ -80,9 +80,9 @@ const AdminPage = ({ open, onClose, client, adminId }) => {
             onClick={() => setTab(t)}
             className={`px-3 py-1.5 rounded-lg text-sm font-semibold capitalize ${tab === t ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
           >
-            {t === 'players' && <Users className="w-3.5 h-3.5 inline mr-1.5" />}
-            {t === 'saves' && <Database className="w-3.5 h-3.5 inline mr-1.5" />}
-            {t === 'audit' && <ScrollText className="w-3.5 h-3.5 inline mr-1.5" />}
+            {t === 'players' && <Users className="w-3.5 h-3.5 inline me-1.5" />}
+            {t === 'saves' && <Database className="w-3.5 h-3.5 inline me-1.5" />}
+            {t === 'audit' && <ScrollText className="w-3.5 h-3.5 inline me-1.5" />}
             {t}
           </button>
         ))}
@@ -92,7 +92,7 @@ const AdminPage = ({ open, onClose, client, adminId }) => {
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') load(); }}
             placeholder="Search email / display name..."
-            className="ml-auto bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500"
+            className="ms-auto bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500"
           />
         )}
       </div>
@@ -101,7 +101,7 @@ const AdminPage = ({ open, onClose, client, adminId }) => {
 
       <div className="flex-1 overflow-auto p-4">
         {tab === 'players' && (
-          <table className="w-full text-sm text-left">
+          <table className="w-full text-sm text-start">
             <thead className="text-slate-500 text-xs uppercase">
               <tr><th className="p-2">Display Name</th><th className="p-2">Email</th><th className="p-2">Role</th><th className="p-2">Joined</th><th className="p-2">Last seen</th></tr>
             </thead>
@@ -120,7 +120,7 @@ const AdminPage = ({ open, onClose, client, adminId }) => {
         )}
 
         {tab === 'saves' && (
-          <table className="w-full text-sm text-left">
+          <table className="w-full text-sm text-start">
             <thead className="text-slate-500 text-xs uppercase">
               <tr>
                 <th className="p-2">Owner</th><th className="p-2">Slot</th><th className="p-2">Nation</th>
@@ -150,7 +150,7 @@ const AdminPage = ({ open, onClose, client, adminId }) => {
         )}
 
         {tab === 'audit' && (
-          <table className="w-full text-sm text-left">
+          <table className="w-full text-sm text-start">
             <thead className="text-slate-500 text-xs uppercase">
               <tr><th className="p-2">When</th><th className="p-2">Action</th><th className="p-2">Target Save</th><th className="p-2">Target User</th></tr>
             </thead>

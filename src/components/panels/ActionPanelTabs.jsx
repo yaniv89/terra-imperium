@@ -63,7 +63,7 @@ const ActionPanelTabs = ({ activeTab, onTabChange }) => {
             className="fa-tab flex-1 flex-col !gap-0.5 !px-1 !text-[10px] min-w-[3.5rem]">
             <Icon className="w-[18px] h-[18px]" aria-hidden="true" />
             {tab.label}
-            {badge > 0 && <span className="absolute top-1.5 right-[calc(50%-16px)] w-2 h-2 rounded-full bg-fa-danger" aria-label={`${badge} waiting`} />}
+            {badge > 0 && <span className="absolute top-1.5 end-[calc(50%-16px)] w-2 h-2 rounded-full bg-fa-danger" aria-label={`${badge} waiting`} />}
           </button>
         );
       })}

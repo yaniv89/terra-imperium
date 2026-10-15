@@ -31,7 +31,7 @@ const TabButton = ({
       
       {/* Badge for notifications */}
       {badge !== null && badge > 0 && (
-        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-fa-text text-[10px] rounded-full flex items-center justify-center">
+        <span className="absolute -top-1 -end-1 w-4 h-4 bg-red-500 text-fa-text text-[10px] rounded-full flex items-center justify-center">
           {badge > 9 ? '9+' : badge}
         </span>
       )}

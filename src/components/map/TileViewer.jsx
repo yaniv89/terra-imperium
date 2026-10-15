@@ -147,7 +147,7 @@ const TileViewer = () => {
         )}
         {!tiles && <div className="absolute inset-0 flex items-center justify-center text-slate-400">Loading the world…</div>}
         {sel && (
-          <div data-testid="tile-card" className="absolute right-2 top-2 w-64 bg-slate-900/95 border border-slate-700 rounded-lg p-3 text-xs space-y-1">
+          <div data-testid="tile-card" className="absolute end-2 top-2 w-64 bg-slate-900/95 border border-slate-700 rounded-lg p-3 text-xs space-y-1">
             <div className="font-semibold text-sm">{sel.name || (sel.river ? `On the ${sel.river}` : `Tile ${sel.id}`)}</div>
             <div className="text-slate-400">{sel.lat.toFixed(2)}, {sel.lon.toFixed(2)}{sel.coastal ? ' · coastal' : ''}</div>
             <div>{sel.terrain}{sel.relief !== 'flat' ? `, ${sel.relief}` : ''}{sel.feature !== 'none' ? `, ${sel.feature}` : ''}</div>

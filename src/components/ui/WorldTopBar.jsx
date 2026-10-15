@@ -40,7 +40,7 @@ const BarItem = ({ label, onClick, expanded, children, testId }) => (
 const Reasons = ({ title, rows, total, unit, footer, onClose }) => (
   <>
     <div className="fixed inset-0 z-30" onClick={onClose} aria-hidden="true" />
-    <div role="dialog" aria-label={title} className="absolute left-2 top-full mt-1 z-40 w-[min(320px,calc(100vw-1rem))] fa-panel !bg-fa-panel shadow-2xl p-3 max-h-[70dvh] overflow-y-auto" data-testid="top-bar-reasons">
+    <div role="dialog" aria-label={title} className="absolute start-2 top-full mt-1 z-40 w-[min(320px,calc(100vw-1rem))] fa-panel !bg-fa-panel shadow-2xl p-3 max-h-[70dvh] overflow-y-auto" data-testid="top-bar-reasons">
       <div className="flex items-baseline justify-between gap-2 mb-1.5">
         <span className="fa-heading text-[15px]">{title}</span>
         {total != null && <span className="fa-num text-[13px]">{signed(total)}{unit}</span>}
@@ -86,9 +86,9 @@ const WorldTopBar = () => {
   return (
     <header ref={ref} data-testid="world-top-bar" data-map-hud=""
       className="fixed top-0 inset-x-0 z-20 bg-fa-panel/95 border-b border-fa-line text-fa-text
-                 pt-[env(safe-area-inset-top)] pl-[max(env(safe-area-inset-left),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)]">
+                 pt-[env(safe-area-inset-top)] ps-[max(var(--safe-start),0.75rem)] pe-[max(var(--safe-end),0.75rem)]">
       <div className="h-9 flex items-center gap-3 sm:gap-3.5">
-        <button type="button" onClick={() => openNationOverview()} className="shrink-0 min-w-0 flex items-center gap-1.5 h-8 px-1 -ml-1 rounded-md hover:bg-fa-raised" aria-label={`${m.nation.title}: the nation overview`} title={`${m.nation.title}: the nation overview`} data-testid="top-bar-nation">
+        <button type="button" onClick={() => openNationOverview()} className="shrink-0 min-w-0 flex items-center gap-1.5 h-8 px-1 -ms-1 rounded-md hover:bg-fa-raised" aria-label={`${m.nation.title}: the nation overview`} title={`${m.nation.title}: the nation overview`} data-testid="top-bar-nation">
           <Shield color={m.nation.color} size={16} />
           <span className={`fa-heading text-[14px] truncate ${portrait ? 'max-w-[5.5rem]' : 'max-w-[9rem]'}`}>{m.nation.name}</span>
         </button>
@@ -114,7 +114,7 @@ const WorldTopBar = () => {
         )}
         <span className="fa-num text-[12px] shrink-0" title="The year">{m.year}</span>
         {!portrait && (
-          <button type="button" onClick={() => openTurnReport()} className="fa-label shrink-0 !text-[11px] h-8 px-1 -mr-1 rounded-md hover:bg-fa-raised" title="The last turn's report" aria-label={`Turn ${m.turn}: the last turn's report`} data-testid="top-bar-turn">
+          <button type="button" onClick={() => openTurnReport()} className="fa-label shrink-0 !text-[11px] h-8 px-1 -me-1 rounded-md hover:bg-fa-raised" title="The last turn's report" aria-label={`Turn ${m.turn}: the last turn's report`} data-testid="top-bar-turn">
             Turn <span className="fa-num text-[12px] text-fa-text tracking-normal">{m.turn}</span>
           </button>
         )}

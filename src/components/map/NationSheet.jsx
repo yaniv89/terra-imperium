@@ -54,7 +54,7 @@ const NationSheet = ({ nationId, onClose, onSelectRegion }) => {
   if (isMobile) {
     return <div className="fixed inset-x-0 bottom-0 z-30 max-h-[60vh] overflow-y-auto bg-fa-panel border-t border-fa-line rounded-t-2xl p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs shadow-2xl sheet-panel" data-testid="nation-sheet">{body}</div>;
   }
-  return <div className="absolute top-[calc(var(--header-height,4.5rem)+0.5rem)] left-2 z-20 bg-fa-panel p-3 rounded-lg text-xs w-[340px] max-w-[calc(100vw-1rem)] border border-fa-line shadow-xl max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto" data-testid="nation-sheet">{body}</div>;
+  return <div className="absolute top-[calc(var(--header-height,4.5rem)+0.5rem)] start-2 z-20 bg-fa-panel p-3 rounded-lg text-xs w-[340px] max-w-[calc(100vw-1rem)] border border-fa-line shadow-xl max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto" data-testid="nation-sheet">{body}</div>;
 };
 
 export default NationSheet;

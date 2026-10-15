@@ -73,7 +73,7 @@ const ResearchChoiceSheet = ({ hidden }) => {
         <div className="space-y-2">
           {options.map((o) => (
             <button key={o.tech.id} onClick={() => choose(o.tech.id)} data-testid={`research-option-${o.tech.id}`}
-              className="w-full text-left rounded-xl border border-fa-line bg-fa-raised/60 hover:border-purple-400 hover:bg-fa-raised p-3 min-h-[56px]">
+              className="w-full text-start rounded-xl border border-fa-line bg-fa-raised/60 hover:border-purple-400 hover:bg-fa-raised p-3 min-h-[56px]">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-semibold text-fa-text">{o.tech.name}</span>
                 <span className="text-[11px] text-purple-300 shrink-0">{formatTurns(o.turns)}</span>

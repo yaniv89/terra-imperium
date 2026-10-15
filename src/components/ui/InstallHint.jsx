@@ -48,7 +48,7 @@ const InstallHint = () => {
   if (!open) return null;
   return (
     <div role="status" data-testid="install-hint"
-      className="fixed z-[25] left-1/2 -translate-x-1/2 top-[calc(var(--header-height,2.25rem)+0.5rem)] w-[min(24rem,calc(100vw-2rem))] fa-panel !bg-fa-panel shadow-2xl flex items-center gap-3 pl-3 pr-1 py-1 text-xs text-fa-text">
+      className="fixed z-[25] left-1/2 -translate-x-1/2 top-[calc(var(--header-height,2.25rem)+0.5rem)] w-[min(24rem,calc(100vw-2rem))] fa-panel !bg-fa-panel shadow-2xl flex items-center gap-3 ps-3 pe-1 py-1 text-xs text-fa-text">
       <Share className="w-5 h-5 text-fa-you shrink-0" aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <span className="font-semibold">Play full screen:</span> tap Share, then <span className="font-semibold">Add to Home Screen</span>. No Safari bars over the game.

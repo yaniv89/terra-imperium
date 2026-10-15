@@ -50,7 +50,7 @@ const CityBuildings = ({ cityId }) => {
                 Next, {r.next.name}: <span className="text-fa-text/80">{r.next.effect}</span>
                 <span className="fa-num"> · {r.next.cost}</span> production{r.next.turns != null ? `, ${r.next.turns} turn${r.next.turns === 1 ? '' : 's'}` : ''}
                 {r.next.needs ? ` · needs ${r.next.needs}` : ''}
-                {r.next.needsTech && mine && <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: r.next.needsTech } })} className="ml-1 underline text-fa-you min-h-[24px]" data-testid="research-for-building">Research it</button>}
+                {r.next.needsTech && mine && <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: r.next.needsTech } })} className="ms-1 underline text-fa-you min-h-[24px]" data-testid="research-for-building">Research it</button>}
               </div>
             )}
           </div>

@@ -47,7 +47,7 @@ const ItemIcon = ({ item, ageId, size = 28 }) => {
 
 // A tile's resource and improvement as small icons ahead of its description.
 const TileMarks = ({ facts }) => (facts.resource || facts.improvement ? (
-  <span className="inline-flex items-center gap-0.5 mr-1 align-middle">
+  <span className="inline-flex items-center gap-0.5 me-1 align-middle">
     {facts.resource && <ResourceIcon resourceId={facts.resource} size={16} />}
     {facts.improvement && <ImprovementIcon improvementId={facts.improvement} size={16} />}
   </span>
@@ -278,7 +278,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13px] font-semibold">{current ? current.label : 'Nothing in production'}</div>
             <div className={`truncate text-[12px] h-[18px] ${flash ? (flash.ok ? 'text-fa-good' : 'text-fa-danger-text') : 'text-fa-muted'}`} aria-live="polite" data-testid="city-queue-status">
-              {flash ? <>{flash.ok && <Check className="inline w-3.5 h-3.5 mr-0.5 -mt-0.5" aria-hidden="true" />}{flash.text}</>
+              {flash ? <>{flash.ok && <Check className="inline w-3.5 h-3.5 me-0.5 -mt-0.5" aria-hidden="true" />}{flash.text}</>
                 : current ? <><span className="fa-num">{Math.round(current.progress)}/{current.cost}</span> · {turnsText(currentTurns)}{queue.length > 1 ? ` · ${queue.length - 1} more queued` : ''}</>
                   : 'Pick something below.'}
             </div>
@@ -286,12 +286,12 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           {mine && current?.rush?.gold > 0 && (
             <button type="button" onClick={() => setBuyAt((v) => (v === 0 ? null : 0))} aria-expanded={buyAt === 0} data-testid="city-rush-open"
               className={`fa-btn fa-btn-secondary min-h-[44px] px-2 shrink-0 ${current.rush.ok ? '' : 'opacity-60'}`} title={rushText(current)?.title}>
-              <Coins className="w-4 h-4 mr-0.5" aria-hidden="true" /><span className="fa-num">{current.rush.gold}</span>
+              <Coins className="w-4 h-4 me-0.5" aria-hidden="true" /><span className="fa-num">{current.rush.gold}</span>
             </button>
           )}
           <button type="button" onClick={() => setQueueOpen((v) => !v)} disabled={!queue.length} aria-expanded={queueOpen} data-testid="city-queue-toggle"
             className="fa-btn fa-btn-secondary min-h-[44px] px-2.5 disabled:opacity-40 shrink-0" aria-label={queueOpen ? 'Hide the queue' : `Show the queue (${queue.length})`}>
-            <span className="fa-num mr-1">{queue.length}</span>{queueOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <span className="fa-num me-1">{queue.length}</span>{queueOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
         {/* Always there, so the bar is the same height with and without something in production. */}
@@ -314,7 +314,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         <div className="mt-1.5 max-h-[42vh] overflow-y-auto">
           <ol className="space-y-1" data-testid="city-queue">
             {queue.map((q) => (
-              <li key={`${q.key}-${q.index}`} className="flex items-center gap-1 rounded-lg pl-2 min-h-[44px] text-[13px] fa-card">
+              <li key={`${q.key}-${q.index}`} className="flex items-center gap-1 rounded-lg ps-2 min-h-[44px] text-[13px] fa-card">
                 <ItemIcon item={q.item} ageId={ageId} size={24} />
                 <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => openTile(q.tile)} onKeyDown={(e) => { if (e.key === 'Enter') openTile(q.tile); }}>
                   <div className="truncate">{q.index === 0 ? '' : `${q.index + 1}. `}{q.label}</div>
@@ -380,15 +380,15 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                 const open = openRow === o.id;
                 const clip = open ? '' : 'truncate';
                 return (
-                  <li key={o.id} className={`flex items-center gap-2 rounded-lg pl-2 pr-1 py-1 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-fa-line/60'}`} data-testid="build-row">
+                  <li key={o.id} className={`flex items-center gap-2 rounded-lg ps-2 pe-1 py-1 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-fa-line/60'}`} data-testid="build-row">
                     <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} aria-expanded={open} onClick={() => toggleRow(o)} onKeyDown={(e) => { if (e.key === 'Enter') toggleRow(o); }} title={o.tile != null ? 'Show the tile on the map and the details' : 'Show the details'}>
                       <ItemIcon item={o.item} ageId={ageId} />
                       <div className="min-w-0 flex-1">
-                        <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 mr-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.label}</div>
+                        <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 me-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.label}</div>
                         {o.detail && <div className={`text-[12px] leading-snug text-fa-text/80 ${clip}`} data-testid="build-effect">{o.detail}</div>}
                         {open && o.note && <div className="text-[12px] leading-snug text-fa-muted">{o.note}.</div>}
                         <div className="text-fa-muted text-[12px]">
-                          {o.queued > 0 && <span className="text-fa-good mr-1">{o.queued > 1 ? `${o.queued} in the queue` : 'In the queue'}{o.ok ? ' ·' : ''}</span>}
+                          {o.queued > 0 && <span className="text-fa-good me-1">{o.queued > 1 ? `${o.queued} in the queue` : 'In the queue'}{o.ok ? ' ·' : ''}</span>}
                           {o.ok ? <><span className="fa-num">{o.cost}</span> production · {turnsText(o.turns)}{o.stored > 0 ? ` · ${Math.round(o.stored)} already done` : ''}{o.long && <span className="text-fa-brass"> · slow here</span>}</>
                             : o.queued ? null
                               : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">Research it</button></>

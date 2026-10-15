@@ -88,7 +88,7 @@ const RadioCards = ({ label, items, value, onChange, testIdPrefix, className = '
           <button key={item.id} type="button" role="radio" aria-checked={on} tabIndex={on ? 0 : -1}
             ref={(el) => { refs.current[i] = el; }}
             onClick={() => onChange(item.id)} onKeyDown={(e) => move(e, i)} data-testid={`${testIdPrefix}-${item.id}`}
-            className="fa-option relative overflow-hidden min-h-[52px] px-3 py-2 text-left flex items-center gap-2.5">
+            className="fa-option relative overflow-hidden min-h-[52px] px-3 py-2 text-start flex items-center gap-2.5">
             {item.art && <img src={item.art} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none" />}
             <span className={`relative w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${on ? 'border-fa-text' : 'border-fa-muted'}`} aria-hidden="true">
               {on && <span className="w-2 h-2 rounded-full bg-fa-text" />}
@@ -148,7 +148,7 @@ const ScrollRow = ({ label, className = '', children }) => {
 
 // The step indicator: numbered buttons, the current one raised, done ones checked.
 const StepIndicator = ({ step, onGo, compact }) => (
-  <nav aria-label="New game steps" className="ml-auto min-w-0">
+  <nav aria-label="New game steps" className="ms-auto min-w-0">
     <ol className="flex items-center gap-0.5 sm:gap-1">
       {START_STEPS.map((s, i) => {
         const current = i === step;
@@ -299,7 +299,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
         <div className={`flex-1 ${scrollBox} -mx-1 px-1 grid content-start gap-1 ${wide ? 'grid-cols-2' : 'grid-cols-1'} ${twoCols ? '' : 'max-h-[55dvh]'}`} data-testid="people-list">
           {peoples.map((p) => (
             <button key={p.id} type="button" onClick={() => setSelectedId(p.id)} data-people={p.id} data-people-name={p.name} aria-pressed={selectedId === p.id}
-              className="fa-option w-full flex items-center gap-2.5 px-2.5 min-h-[44px] text-left border-transparent bg-transparent">
+              className="fa-option w-full flex items-center gap-2.5 px-2.5 min-h-[44px] text-start border-transparent bg-transparent">
               <PeopleEmblem slug={p.id} color={p.color} size={16} />
               <span className="min-w-0 flex-1 text-[14px] font-semibold truncate">{p.name}</span>
               <span className="text-[12px] text-fa-muted truncate max-w-[45%]">{p.landName}</span>
@@ -313,7 +313,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
         <p className="text-[12px] text-fa-muted leading-snug px-1" data-testid="start-defaults">
           {choicesLine} Go on to change the world and the rules, then begin on Ready.
         </p>
-        <button type="button" onClick={guided} data-testid="guided-start" className="fa-btn fa-btn-ghost w-full mt-auto !justify-start !px-2 !h-auto !py-2 !whitespace-normal text-left leading-snug shrink-0"
+        <button type="button" onClick={guided} data-testid="guided-start" className="fa-btn fa-btn-ghost w-full mt-auto !justify-start !px-2 !h-auto !py-2 !whitespace-normal text-start leading-snug shrink-0"
           title="Ten turns of prompts on the Nile: settle, farm, build, research, meet a neighbour, fight.">
           <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" /> <span className="min-w-0">New here? Play the guided start as Kemet</span>
         </button>
@@ -421,11 +421,11 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   );
 
   const next = START_STEPS[step + 1];
-  const frame = `pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] ${wide ? 'max-w-[1240px] w-full mx-auto' : ''}`;
+  const frame = `ps-[max(0.75rem,var(--safe-start))] pe-[max(0.75rem,var(--safe-end))] ${wide ? 'max-w-[1240px] w-full mx-auto' : ''}`;
   return (
     <div className="h-[100dvh] w-full bg-fa-ink text-fa-text flex flex-col overflow-hidden" style={backdrop} data-testid="start-screen" data-step={START_STEPS[step].id}>
       <header className={`flex items-center gap-3 pt-[max(0.25rem,env(safe-area-inset-top))] pb-1 shrink-0 ${frame}`}>
-        {onBackToTitle && <button type="button" onClick={onBackToTitle} className="fa-btn fa-btn-ghost shrink-0 !min-h-[44px] !px-2" data-testid="start-back-to-title"><ArrowLeft className="w-4 h-4" aria-hidden="true" />Title</button>}
+        {onBackToTitle && <button type="button" onClick={onBackToTitle} className="fa-btn fa-btn-ghost shrink-0 !min-h-[44px] !px-2" data-testid="start-back-to-title"><ArrowLeft className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />Title</button>}
         <h1 className="fa-heading text-[19px] shrink-0">New game</h1>
         {!phone && <span className="text-[13px] text-fa-muted truncate">Dawn, 2000 BCE. One city each.</span>}
         <StepIndicator step={step} onGo={go} compact={phone} />
@@ -440,18 +440,18 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
       <footer className={`flex items-center gap-2 pt-2 [@media(max-height:320px)]:pt-1 shrink-0 ${wide ? 'pb-6' : 'pb-[max(0.5rem,env(safe-area-inset-bottom))] [@media(max-height:320px)]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'} ${frame}`}>
         {step > 0 && (
           <button type="button" onClick={() => go(step - 1)} className="fa-btn fa-btn-ghost shrink-0" data-testid="start-back">
-            <ArrowLeft className="w-4 h-4" aria-hidden="true" />Back
+            <ArrowLeft className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />Back
           </button>
         )}
         <span className="flex-1" />
         {next && (
           <button type="button" onClick={() => go(step + 1)} className="fa-btn fa-btn-secondary shrink-0 !min-h-[48px] [@media(max-height:320px)]:!min-h-[44px]" data-testid="start-next">
-            Next: {next.name}<ArrowRight className="w-4 h-4" aria-hidden="true" />
+            Next: {next.name}<ArrowRight className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />
           </button>
         )}
         {step === last && (
           <button type="button" onClick={begin} data-testid="begin-game" className={`fa-btn fa-btn-primary fa-btn-hero min-w-0 !min-h-[48px] ${twoCols ? 'max-w-[55%]' : 'flex-1'}`}>
-            <span className="truncate">Begin as {selected?.name}</span><ArrowRight className="w-5 h-5 shrink-0" aria-hidden="true" />
+            <span className="truncate">Begin as {selected?.name}</span><ArrowRight className="rtl:-scale-x-100 w-5 h-5 shrink-0" aria-hidden="true" />
           </button>
         )}
       </footer>

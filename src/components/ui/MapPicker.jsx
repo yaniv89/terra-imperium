@@ -110,7 +110,7 @@ const MapPicker = ({ value, onChange }) => {
           return (
             <button key={m.id} type="button" role="radio" aria-checked={on} data-testid={`map-${m.id}`}
               onClick={() => onChange(m.id === 'earth' ? { kind: 'earth' } : (generated ? value : newGeneratedSpec()))}
-              className="fa-option min-h-[48px] px-2.5 py-1.5 text-left">
+              className="fa-option min-h-[48px] px-2.5 py-1.5 text-start">
               <span className="block font-semibold text-[14px] leading-tight">{m.name}</span>
               <span className="block text-[11px] text-fa-muted leading-tight">{m.blurb}</span>
             </button>

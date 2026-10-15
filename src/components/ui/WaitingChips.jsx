@@ -18,10 +18,10 @@ const WaitingChips = () => {
     <div className="flex flex-col items-start gap-1.5 pointer-events-none" data-testid="waiting-chips" aria-label="Decisions that wait">
       {shown.map((c) => (
         <button key={c.id} type="button" onClick={() => interactions.promote(c.id)} data-testid={c.testId || `waiting-${c.id}`} title={`${c.label}. Tap to bring it back`}
-          className={`pointer-events-auto flex items-center gap-1.5 min-h-[32px] max-w-[min(20rem,44vw)] pl-2 pr-2.5 rounded-full bg-fa-panel/95 text-fa-text text-[12px] font-semibold border shadow-lg hover:bg-fa-raised ${c.tone === 'danger' ? 'border-fa-danger' : 'border-fa-brass'}`}>
+          className={`pointer-events-auto flex items-center gap-1.5 min-h-[32px] max-w-[min(20rem,44vw)] ps-2 pe-2.5 rounded-full bg-fa-panel/95 text-fa-text text-[12px] font-semibold border shadow-lg hover:bg-fa-raised ${c.tone === 'danger' ? 'border-fa-danger' : 'border-fa-brass'}`}>
           <Hourglass className={`w-3.5 h-3.5 shrink-0 ${c.tone === 'danger' ? 'text-fa-danger-text' : 'text-fa-brass'}`} aria-hidden="true" />
           <span className="truncate">{c.label}</span>
-          <ChevronRight className="w-3.5 h-3.5 shrink-0 text-fa-muted" aria-hidden="true" />
+          <ChevronRight className="rtl:-scale-x-100 w-3.5 h-3.5 shrink-0 text-fa-muted" aria-hidden="true" />
         </button>
       ))}
       {more > 0 && (

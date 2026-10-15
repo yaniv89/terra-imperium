@@ -18,7 +18,7 @@ const CityList = ({ onSelect, compact = false }) => {
       {rows.map((r) => (
         <li key={r.id}>
           <button type="button" onClick={() => onSelect?.(r.id)} data-testid="city-rail-row" data-city-id={r.id}
-            className={`w-full text-left ${compact ? 'px-3' : 'px-2'} py-1.5 min-h-[48px] hover:bg-fa-raised flex items-center gap-2.5`}>
+            className={`w-full text-start ${compact ? 'px-3' : 'px-2'} py-1.5 min-h-[48px] hover:bg-fa-raised flex items-center gap-2.5`}>
             <span className="w-7 h-7 rounded-full fa-num text-[12px] font-semibold text-fa-ink flex items-center justify-center shrink-0" style={{ background: colour }}>{r.size}</span>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 min-w-0">

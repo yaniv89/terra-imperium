@@ -11,14 +11,18 @@
 // update the insets without any per-component bookkeeping. Several overlays on the same edge don't
 // add up: they stack over the same strip of screen, so the edge's inset is the LARGEST one.
 import React, { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
+import { useLanguage } from '../i18n/useT';
+import { isRtl } from '../i18n';
 
 const EDGES = ['top', 'bottom', 'left', 'right'];
-const ZERO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 };
+const ZERO_INSETS = { top: 0, bottom: 0, left: 0, right: 0, start: 0, end: 0 };
+const flip = (edge) => (edge === 'left' ? 'right' : edge === 'right' ? 'left' : edge);
 
 const MapInsetsContext = createContext({ insets: ZERO_INSETS, setInset: () => {} });
 
 export const MapInsetsProvider = ({ children }) => {
   const [byKey, setByKey] = useState({});
+  const rtl = isRtl(useLanguage());
   const setInset = useCallback((key, edge, px) => {
     setByKey((prev) => {
       if (px <= 0) {
@@ -34,8 +38,11 @@ export const MapInsetsProvider = ({ children }) => {
   const insets = useMemo(() => {
     const acc = { ...ZERO_INSETS };
     Object.values(byKey).forEach(({ edge, px }) => { if (EDGES.includes(edge)) acc[edge] = Math.max(acc[edge], px); });
+    // Physical edges (left/right) follow the screen; start/end follow the reading direction.
+    acc.start = rtl ? acc.right : acc.left;
+    acc.end = rtl ? acc.left : acc.right;
     return acc;
-  }, [byKey]);
+  }, [byKey, rtl]);
   const value = useMemo(() => ({ insets, setInset }), [insets, setInset]);
   return <MapInsetsContext.Provider value={value}>{children}</MapInsetsContext.Provider>;
 };
@@ -45,8 +52,12 @@ export const useMapInsets = () => useContext(MapInsetsContext).insets;
 // `edge` is which side of the screen the element hugs; the reported size is its height for
 // top/bottom and its width for left/right. `active: false` (e.g. a closed sheet, or a desktop-only
 // layout on a phone) withdraws the report.
-export const useReportInset = (key, edge, ref, active = true) => {
+// Callers name the edge as in left-to-right; in a right-to-left language the layout mirrors, so a
+// 'right' rail is on the screen's left (plans/hebrew-support-plan.md, H1).
+export const useReportInset = (key, declaredEdge, ref, active = true) => {
   const { setInset } = useContext(MapInsetsContext);
+  const rtl = isRtl(useLanguage());
+  const edge = rtl ? flip(declaredEdge) : declaredEdge;
   useLayoutEffect(() => {
     const el = ref.current;
     if (!active || !el || typeof ResizeObserver === 'undefined') {

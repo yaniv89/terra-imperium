@@ -37,16 +37,16 @@ const CityRail = ({ onSelectRegion }) => {
   if (collapsed) {
     return (
       <button type="button" onClick={() => setCollapsed(false)} data-testid="city-rail-open" title="Cities (C)" aria-label="Show the city list"
-        className="fixed left-0 top-[calc(var(--header-height,2.25rem)+0.5rem)] z-20 min-w-[44px] min-h-[44px] rounded-r-lg bg-fa-panel/95 border border-l-0 border-fa-line text-fa-muted hover:text-fa-text flex items-center justify-center gap-1 px-1">
-        <Building2 className="w-4 h-4" /><ChevronRight className="w-3 h-3" />
+        className="fixed start-0 top-[calc(var(--header-height,2.25rem)+0.5rem)] z-20 min-w-[44px] min-h-[44px] rounded-r-lg bg-fa-panel/95 border border-s-0 border-fa-line text-fa-muted hover:text-fa-text flex items-center justify-center gap-1 px-1">
+        <Building2 className="w-4 h-4" /><ChevronRight className="rtl:-scale-x-100 w-3 h-3" />
       </button>
     );
   }
   return (
-    <div ref={ref} data-testid="city-rail" className="fixed left-0 top-[var(--header-height,2.25rem)] bottom-0 z-20 w-64 bg-fa-panel/95 border-r border-fa-line flex flex-col text-fa-text">
-      <div className="flex items-center justify-between pl-3 pr-1 py-1 border-b border-fa-line shrink-0">
+    <div ref={ref} data-testid="city-rail" className="fixed start-0 top-[var(--header-height,2.25rem)] bottom-0 z-20 w-64 bg-fa-panel/95 border-e border-fa-line flex flex-col text-fa-text">
+      <div className="flex items-center justify-between ps-3 pe-1 py-1 border-b border-fa-line shrink-0">
         <div className="fa-label flex items-center gap-1.5"><Building2 className="w-4 h-4" />Cities <span className="fa-num tracking-normal">{count}</span></div>
-        <button type="button" onClick={() => setCollapsed(true)} aria-label="Hide the city list" title="Hide (C)" className="min-w-[40px] min-h-[40px] rounded text-fa-muted hover:text-fa-text hover:bg-fa-raised flex items-center justify-center"><ChevronLeft className="w-4 h-4" /></button>
+        <button type="button" onClick={() => setCollapsed(true)} aria-label="Hide the city list" title="Hide (C)" className="min-w-[40px] min-h-[40px] rounded text-fa-muted hover:text-fa-text hover:bg-fa-raised flex items-center justify-center"><ChevronLeft className="rtl:-scale-x-100 w-4 h-4" /></button>
       </div>
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         <CityList onSelect={onSelectRegion} compact />

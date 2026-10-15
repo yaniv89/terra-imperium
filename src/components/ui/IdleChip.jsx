@@ -29,7 +29,7 @@ const IdleChip = ({ className = '' }) => {
     <button type="button" onClick={go} title={hint} aria-label={hint} data-testid="idle-chip" data-count={stack.count}
       className={`fa-btn fa-btn-secondary !bg-fa-panel shadow-xl gap-1.5 !px-3 !min-h-[50px] pl:!min-h-[44px] whitespace-nowrap shrink-0 ${className}`}>
       <span>{stackLabel(stack, single)}</span>
-      <ChevronRight className="w-4 h-4 shrink-0 text-fa-muted" aria-hidden="true" />
+      <ChevronRight className="rtl:-scale-x-100 w-4 h-4 shrink-0 text-fa-muted" aria-hidden="true" />
     </button>
   );
 };

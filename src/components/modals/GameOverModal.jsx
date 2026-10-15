@@ -75,7 +75,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
         </p>
         <p className="text-amber-400 font-mono text-sm mb-6">Score: {formatNumber(playerScore.total)}</p>
 
-        <div className="grid grid-cols-2 gap-3 text-left mb-6">
+        <div className="grid grid-cols-2 gap-3 text-start mb-6">
           <Stat label="Final Year" value={state.year} />
           <Stat label="Turns Played" value={formatNumber(state.turnNumber)} />
           <Stat label="Regions Held" value={regionsHeld} />

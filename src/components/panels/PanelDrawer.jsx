@@ -43,7 +43,7 @@ const RailButton = ({ icon: Icon, label, active, badge, onClick, ariaLabel }) =>
   >
     <Icon className="w-5 h-5" aria-hidden="true" />
     <span className="text-[10px] leading-none font-semibold">{label}</span>
-    {badge > 0 && <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-fa-danger" aria-hidden="true" />}
+    {badge > 0 && <span className="absolute top-1.5 end-2 w-2 h-2 rounded-full bg-fa-danger" aria-hidden="true" />}
   </button>
 );
 
@@ -99,7 +99,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
       const box = el.getBoundingClientRect();
       root.style.setProperty('--rail-inset', `${Math.round(box.width)}px`);
       const nav = navRef.current;
-      root.style.setProperty('--rail-w', `${Math.round(nav ? box.right - nav.getBoundingClientRect().left : box.width)}px`);
+      root.style.setProperty('--rail-w', `${Math.round(nav ? (document.documentElement.dir === 'rtl' ? nav.getBoundingClientRect().right - box.left : box.right - nav.getBoundingClientRect().left) : box.width)}px`);
     };
     const observer = new ResizeObserver(measure);
     observer.observe(el);
@@ -143,10 +143,10 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
         ref={railRef}
         data-testid="landscape-rail"
         data-map-hud=""
-        className="fixed right-0 bottom-0 top-[var(--header-height,2.25rem)] z-20 flex pr-[env(safe-area-inset-right)] bg-fa-panel/95 border-l border-fa-line text-fa-text"
+        className="fixed end-0 bottom-0 top-[var(--header-height,2.25rem)] z-20 flex pe-[var(--safe-end)] bg-fa-panel/95 border-s border-fa-line text-fa-text"
       >
         {dockShown && (
-          <div data-testid="landscape-dock" data-tab={activeTab} className={`${WIDE_TABS.has(activeTab) ? 'w-[min(600px,calc(100vw-52px-12rem))] lg:w-[640px]' : 'w-[clamp(300px,40vw,380px)] tb:w-[420px] lg:w-[420px]'} flex flex-col border-r border-fa-line shadow-2xl bg-fa-panel pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+58px)] pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+50px)]`}>
+          <div data-testid="landscape-dock" data-tab={activeTab} className={`${WIDE_TABS.has(activeTab) ? 'w-[min(600px,calc(100vw-52px-12rem))] lg:w-[640px]' : 'w-[clamp(300px,40vw,380px)] tb:w-[420px] lg:w-[420px]'} flex flex-col border-e border-fa-line shadow-2xl bg-fa-panel pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+58px)] pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+50px)]`}>
             <ActionPanel activeTab={activeTab} />
           </div>
         )}
@@ -180,7 +180,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
             <button
               type="button"
               onClick={() => setMobileSheetOpen(false)}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded text-fa-muted hover:text-fa-text"
+              className="absolute end-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded text-fa-muted hover:text-fa-text"
               aria-label="Close panel"
             >
               <X className="w-4 h-4" />
@@ -194,7 +194,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
         className="fixed bottom-0 inset-x-0 z-20 bg-fa-panel/95 border-t border-fa-line pb-[env(safe-area-inset-bottom)] flex"
       >
         <div className="flex-1 min-w-0"><ActionPanelTabs activeTab={mobileSheetOpen ? activeTab : null} onTabChange={handleMobileTabChange} /></div>
-        <button type="button" onClick={openSettings} aria-label="Open the menu: settings and saves" className="fa-tab flex-col !gap-0.5 !px-2 !text-[10px] shrink-0 border-l border-fa-line">
+        <button type="button" onClick={openSettings} aria-label="Open the menu: settings and saves" className="fa-tab flex-col !gap-0.5 !px-2 !text-[10px] shrink-0 border-s border-fa-line">
           <Menu className="w-[18px] h-[18px]" aria-hidden="true" />Menu
         </button>
       </div>

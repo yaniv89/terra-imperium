@@ -96,7 +96,7 @@ const LegacyPanel = () => {
             <button
               key={d.id}
               onClick={() => selectDifficulty(d.id)}
-              className={`w-full p-2 rounded text-left text-xs border transition-all ${
+              className={`w-full p-2 rounded text-start text-xs border transition-all ${
                 selected ? 'bg-blue-500/20 border-blue-500/50' : 'bg-fa-hover hover:bg-fa-line border-fa-line cursor-pointer'
               }`}
             >
@@ -121,7 +121,7 @@ const LegacyPanel = () => {
               key={d.id}
               disabled={!unlocked}
               onClick={() => selectDoctrine(d.id)}
-              className={`w-full p-2 rounded text-left text-xs border transition-all ${
+              className={`w-full p-2 rounded text-start text-xs border transition-all ${
                 selected
                   ? 'bg-amber-500/20 border-amber-500/50'
                   : unlocked

@@ -230,7 +230,7 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
             </div>
 
             <button onClick={handleSignOut} disabled={busy} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs bg-fa-raised text-fa-text hover:bg-fa-hover disabled:opacity-50">
-              <LogOut className="w-3.5 h-3.5" /> Sign Out
+              <LogOut className="rtl:-scale-x-100 w-3.5 h-3.5" /> Sign Out
             </button>
 
             <div className="pt-2 border-t border-fa-line space-y-2">
@@ -278,7 +278,7 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
               type="submit" disabled={busy}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-fa-text shadow-lg transition-all active:scale-95 disabled:opacity-50"
             >
-              <LogIn className="w-4 h-4" />
+              <LogIn className="rtl:-scale-x-100 w-4 h-4" />
               {authView === 'signUp' ? 'Create Account' : 'Sign In'}
             </button>
             <button type="button" onClick={() => setAuthView(authView === 'signUp' ? 'signIn' : 'signUp')} className="w-full text-xs text-fa-muted hover:text-fa-text underline">

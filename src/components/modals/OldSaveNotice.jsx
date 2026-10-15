@@ -30,7 +30,7 @@ const OldSaveNotice = () => {
             <div className="text-base font-bold">Your old save was set aside</div>
             <p className="text-sm text-fa-text mt-1">{SAVE_PROBLEM_TEXT[problem.reason] || SAVE_PROBLEM_TEXT.corrupt} A new game has started on the new world. The old save is kept on this device; download it if you want to keep a copy.</p>
           </div>
-          <button type="button" onClick={close} aria-label="Dismiss" className="p-2 -mr-2 -mt-2 rounded-lg text-fa-muted hover:text-fa-text hover:bg-fa-raised min-w-[44px] min-h-[44px]"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={close} aria-label="Dismiss" className="p-2 -me-2 -mt-2 rounded-lg text-fa-muted hover:text-fa-text hover:bg-fa-raised min-w-[44px] min-h-[44px]"><X className="w-5 h-5" /></button>
         </div>
         <div className="flex gap-2 mt-4">
           <button type="button" onClick={download} className="flex-1 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 text-fa-text text-sm font-semibold flex items-center justify-center gap-2" data-testid="old-save-download"><Download className="w-4 h-4" /> Download the old save</button>

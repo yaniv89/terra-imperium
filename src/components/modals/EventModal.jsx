@@ -51,7 +51,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
   return (
     // Upright phones (the bottom-bar layout) get a bottom sheet; everywhere else a card centred on the
     // map, clear of the tab rail.
-    <div className={`fixed inset-x-0 bottom-0 top-[var(--header-height,4.5rem)] z-50 ${isMobile ? 'pointer-events-none' : 'bg-black/40 flex items-center justify-center p-2 pr-[calc(var(--rail-inset,0px)+0.5rem)]'}`} data-testid="event-sheet">
+    <div className={`fixed inset-x-0 bottom-0 top-[var(--header-height,4.5rem)] z-50 ${isMobile ? 'pointer-events-none' : 'bg-black/40 flex items-center justify-center p-2 pe-[calc(var(--rail-inset,0px)+0.5rem)]'}`} data-testid="event-sheet">
       <div
         className={isMobile
           ? 'pointer-events-auto absolute inset-x-0 bottom-0 max-h-[60vh] rounded-t-2xl bg-fa-panel border-t-2 border-amber-500 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)] sheet-panel'
@@ -73,10 +73,10 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
               </>
             )}
             {placeName && (
-              <span className="ml-2 flex items-center gap-1 text-amber-200" data-testid="event-place"><MapPin className="w-3 h-3" />{placeName}</span>
+              <span className="ms-2 flex items-center gap-1 text-amber-200" data-testid="event-place"><MapPin className="w-3 h-3" />{placeName}</span>
             )}
             {event.mandatory && (
-              <span className="ml-2 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]">
+              <span className="ms-2 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]">
                 Mandatory
               </span>
             )}
@@ -103,7 +103,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
                   onClick={() => { if (!blocked) onResolve(index); }}
                   aria-disabled={blocked}
                   data-testid={`event-option-${index}`}
-                  className={`w-full p-4 pl:p-2.5 rounded-lg text-left border transition-all group ${blocked ? 'bg-fa-panel border-fa-line opacity-60 cursor-not-allowed' : 'bg-fa-raised hover:bg-fa-hover border-fa-line hover:border-amber-500/50'}`}
+                  className={`w-full p-4 pl:p-2.5 rounded-lg text-start border transition-all group ${blocked ? 'bg-fa-panel border-fa-line opacity-60 cursor-not-allowed' : 'bg-fa-raised hover:bg-fa-hover border-fa-line hover:border-amber-500/50'}`}
                 >
                   {blocked && (
                     <div className="text-[11px] text-fa-danger-text mb-1">Can&apos;t afford: {shortfalls[index].map((id) => `${-option.effects[id]} ${id}`).join(', ')}</div>

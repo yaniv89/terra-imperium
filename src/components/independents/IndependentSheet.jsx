@@ -27,7 +27,7 @@ const ActionGlyph = ({ id }) => {
 };
 
 const actionClass = (a) => {
-  const base = 'min-h-[44px] w-full rounded-lg px-2 py-1.5 text-left flex items-center gap-2 border transition-colors';
+  const base = 'min-h-[44px] w-full rounded-lg px-2 py-1.5 text-start flex items-center gap-2 border transition-colors';
   if (!a.ok) return `${base} bg-fa-ink/30 border-dashed border-fa-line text-fa-muted`;
   if (a.tone === 'primary') return `${base} bg-fa-brass hover:bg-fa-brass-hi border-fa-brass text-fa-ink`;
   if (a.tone === 'danger') return `${base} bg-fa-raised hover:bg-fa-hover border-fa-danger text-fa-text`;
@@ -46,7 +46,7 @@ export const IndependentSheetBody = ({ model: m, onRun, note, onClose }) => (
         <div className="text-[12px] text-fa-muted truncate">{m.facts.join(' · ')}{m.people ? ` · ${m.people}` : ''}</div>
         {m.cityState && <CityStateBadge view={m.cityState} />}
       </div>
-      {onClose && <button type="button" onClick={onClose} aria-label="Close" className="fa-icon-btn -mr-1 -mt-1"><X className="w-4 h-4" /></button>}
+      {onClose && <button type="button" onClick={onClose} aria-label="Close" className="fa-icon-btn -me-1 -mt-1"><X className="w-4 h-4" /></button>}
     </div>
     <div className="flex-1 overflow-y-auto p-3 grid gap-3 sm:grid-cols-2 pl:grid-cols-1 text-[12px] text-fa-text">
       <div className="space-y-3 min-w-0">

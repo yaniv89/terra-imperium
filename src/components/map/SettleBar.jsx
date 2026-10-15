@@ -6,6 +6,7 @@
 import React from 'react';
 import { Tent, Compass, X } from 'lucide-react';
 import { useMapInsets } from '../../context/MapInsetsContext';
+import { useT } from '../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useMapToolFlag } from './mapTool';
 
@@ -14,9 +15,10 @@ const SettleBar = ({ model, onNext, onCancel }) => {
   // bar takes the room between them (it used to lie over the sheet's close button).
   const insets = useMapInsets();
   const phone = useLayoutMode() === 'phone-landscape';
+  const { rtl } = useT();
   useMapToolFlag('settle', !!model);
   if (!model) return null;
-  const between = phone ? { left: insets.left + 16, right: insets.right + 56, transform: 'none', width: 'auto' } : undefined;
+  const between = phone ? { left: insets.left + (rtl ? 56 : 16), right: insets.right + (rtl ? 16 : 56), transform: 'none', width: 'auto' } : undefined;
   return (
     <div data-testid="settle-bar" data-map-hud="" role="status" style={between}
       className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-amber-400/60 bg-fa-panel/95 shadow-2xl px-3 py-2 pl:py-1 text-[12px] pl:text-[11px] text-fa-text flex items-center gap-2">

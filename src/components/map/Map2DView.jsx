@@ -127,7 +127,7 @@ const Map2DView = ({
   // Only the main full-bleed map (hudOffset) sits under the game's floating panels; MapModal's and
   // the minimap's own Map2DView instances are in their own boxes and ignore the insets.
   const rawInsets = useMapInsets();
-  const insets = hudOffset ? rawInsets : { top: 0, bottom: 0, left: 0, right: 0 };
+  const insets = hudOffset ? rawInsets : { top: 0, bottom: 0, left: 0, right: 0, start: 0, end: 0 };
   const svgRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
   const appliedInitialFocusRef = useRef(false);
@@ -809,7 +809,7 @@ const Map2DView = ({
       <RaidMarkersOverlay projection={projection} transform={transform} width={width} height={height} />
       <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
       <MapZoomControls
-        style={{ right: insets.right + 8 }}
+        style={{ insetInlineEnd: insets.end + 8 }}
         className={hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}
         onZoomIn={() => zoomBy(ZOOM_STEP_SCALE)} canZoomIn={transform.k < (isTouchDevice() ? TOUCH_ZOOM_EXTENT : ZOOM_EXTENT)[1]}
         onZoomOut={() => zoomBy(1 / ZOOM_STEP_SCALE)} canZoomOut={transform.k > ZOOM_EXTENT[0]}

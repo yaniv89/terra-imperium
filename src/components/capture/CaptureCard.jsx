@@ -43,7 +43,7 @@ const CaptureCard = () => {
   };
 
   const card = (
-    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center pr-[var(--rail-w,0px)]" data-testid="capture-card-backdrop">
+    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center pe-[var(--rail-w,0px)]" data-testid="capture-card-backdrop">
       <div role="dialog" aria-modal="true" aria-labelledby="capture-title" data-testid="capture-card"
         className="fa-panel !bg-fa-panel shadow-2xl w-full sm:w-[min(40rem,calc(100vw-1rem-var(--rail-w,0px)))] max-h-[94dvh] sm:max-h-[calc(100dvh-1rem)] flex flex-col rounded-b-none sm:rounded-[10px]">
         <div className="relative flex items-center gap-2 px-3 pt-2 pb-1.5 pl:py-1 border-b border-fa-line overflow-hidden">

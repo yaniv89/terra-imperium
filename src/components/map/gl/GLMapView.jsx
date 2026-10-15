@@ -118,7 +118,7 @@ const GLMapView = ({
   const tintOn = lens === 'settle' ? 2 : lens === 'supply' ? 1 : 0;
   const { effects } = useEffects();
   const rawInsets = useMapInsets();
-  const insets = hudOffset ? rawInsets : { top: 0, bottom: 0, left: 0, right: 0 };
+  const insets = hudOffset ? rawInsets : { top: 0, bottom: 0, left: 0, right: 0, start: 0, end: 0 };
   const layoutMode = useLayoutMode();
   const marchCtx = useMarch();
   const marchLines = marchCtx?.lines;
@@ -935,7 +935,7 @@ const GLMapView = ({
       </div>
       {!prefersReducedMotion() && <EffectsLayer effects={effects} getProjector={getProjector} width={width} height={height} ageId={state.age} testId="map2d-effects" />}
       <MapZoomControls
-        style={{ right: insets.right + 8 }}
+        style={{ insetInlineEnd: insets.end + 8 }}
         className={hudOffset ? 'top-[calc(var(--header-height,2.25rem)+0.625rem)]' : 'top-12'}
         onZoomIn={() => zoomBy(ZOOM_STEP_SCALE)} canZoomIn={kNow < ZOOM_MAX}
         onZoomOut={() => zoomBy(1 / ZOOM_STEP_SCALE)} canZoomOut={kNow > minK}

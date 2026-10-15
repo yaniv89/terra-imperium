@@ -136,7 +136,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
         </div>
       )}
       {ownerCity ? (
-        <button type="button" onClick={() => onSelectRegion?.(ownerCity.id)} className="w-full text-left text-[13px] fa-card hover:bg-fa-hover px-3 py-2 min-h-[44px]">
+        <button type="button" onClick={() => onSelectRegion?.(ownerCity.id)} className="w-full text-start text-[13px] fa-card hover:bg-fa-hover px-3 py-2 min-h-[44px]">
           Land of <span className="font-semibold">{ownerCity.name}</span> <span className="text-fa-muted">({ownerNation?.name || ownerCity.owner})</span>
           {settlers.length > 0 && ownerCity.owner !== me && <span className="block text-[12px] text-fa-danger-text" data-testid="settle-reason">No city here: it belongs to {ownerNation?.name || ownerCity.owner}.</span>}
         </button>
@@ -216,7 +216,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
     );
   }
   return (
-    <div className="absolute corner-card corner-card-second top-[calc(var(--header-height,2.25rem)+0.5rem)] left-[calc(var(--city-rail-w,0px)+0.5rem)] pl:left-[max(env(safe-area-inset-left),0.5rem)] z-20 fa-sheet border rounded-[10px] p-3 w-[300px] max-w-[calc(100vw-1rem)] shadow-2xl max-h-[calc(100dvh-var(--header-height,2.25rem)-1.5rem)] overflow-y-auto" data-testid="tile-sheet" ref={sheetRef}>
+    <div className="absolute corner-card corner-card-second top-[calc(var(--header-height,2.25rem)+0.5rem)] start-[calc(var(--city-rail-w,0px)+0.5rem)] pl:start-[max(var(--safe-start),0.5rem)] z-20 fa-sheet border rounded-[10px] p-3 w-[300px] max-w-[calc(100vw-1rem)] shadow-2xl max-h-[calc(100dvh-var(--header-height,2.25rem)-1.5rem)] overflow-y-auto" data-testid="tile-sheet" ref={sheetRef}>
       {body}
       {main && <div className="sticky -bottom-3 -mx-3 -mb-3 px-3 pt-2 pb-3 fa-sheet z-10" data-testid="tile-main-action">{main}</div>}
     </div>

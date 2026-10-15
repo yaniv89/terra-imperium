@@ -83,7 +83,7 @@ const MiniMap = ({ onOpen, viewportBounds, onNavigate }) => {
       <button
         onClick={(e) => { e.stopPropagation(); onOpen(); }}
         onPointerDown={(e) => e.stopPropagation()}
-        className="absolute top-0.5 right-0.5 p-0.5 rounded bg-fa-panel/70 opacity-0 group-hover:opacity-100 transition-opacity text-fa-text hover:bg-fa-raised"
+        className="absolute top-0.5 end-0.5 p-0.5 rounded bg-fa-panel/70 opacity-0 group-hover:opacity-100 transition-opacity text-fa-text hover:bg-fa-raised"
         title="Open full map"
         aria-label="Open full map"
       >

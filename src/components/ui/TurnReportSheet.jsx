@@ -96,7 +96,7 @@ const TurnReportSheet = () => {
   const groups = report.groups.filter((g) => filter === 'all' || g.id === filter);
 
   return (
-    <div className="fixed inset-0 z-[45] bg-black/40 flex items-center justify-center p-3 pr-[calc(var(--rail-inset,0px)+0.75rem)] pt-[calc(var(--header-height,2.25rem)+0.5rem)] sheet-backdrop" onClick={close} data-testid="turn-report">
+    <div className="fixed inset-0 z-[45] bg-black/40 flex items-center justify-center p-3 pe-[calc(var(--rail-inset,0px)+0.75rem)] pt-[calc(var(--header-height,2.25rem)+0.5rem)] sheet-backdrop" onClick={close} data-testid="turn-report">
       <div role="dialog" aria-modal="true" aria-labelledby="turn-report-title" onClick={(e) => e.stopPropagation()}
         className="sheet-panel fa-sheet w-full max-w-[560px] max-h-full flex flex-col rounded-[10px] border border-fa-line shadow-2xl">
         <SheetHeader title={report.title} subtitle={`${report.year}, ${report.items.length} ${report.items.length === 1 ? 'event' : 'events'}`} onClose={close} titleId="turn-report-title" className="!pb-1.5" />

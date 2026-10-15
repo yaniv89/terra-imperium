@@ -38,7 +38,7 @@ const FirstContactCard = () => {
 
   return (
     <div role="dialog" aria-labelledby="first-contact-title" data-testid="first-contact"
-      className="fixed z-30 left-[calc(max(env(safe-area-inset-left),0.75rem)+var(--city-rail-w,0px))] top-[calc(var(--header-height,2.25rem)+0.625rem)] w-[min(280px,calc(100vw-1.5rem-var(--rail-inset,0px)))] fa-panel !bg-fa-panel shadow-2xl p-3"
+      className="fixed z-30 start-[calc(max(var(--safe-start),0.75rem)+var(--city-rail-w,0px))] top-[calc(var(--header-height,2.25rem)+0.625rem)] w-[min(280px,calc(100vw-1.5rem-var(--rail-inset,0px)))] fa-panel !bg-fa-panel shadow-2xl p-3"
       style={{ borderColor: card.color }}>
       <div className="flex gap-2.5">
         <Shield color={card.color} size={32} />
