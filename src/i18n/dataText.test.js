@@ -154,3 +154,37 @@ describe('every proper name is Hebrew in Hebrew mode (H4b)', () => {
   });
 });
 
+
+describe('well-known country and people names are the atlas spelling, not a transliteration', () => {
+  const EXPECTED = {
+    Russia: 'רוסיה', China: 'סין', Israel: 'ישראל', 'South Africa': 'דרום אפריקה', 'United States of America': 'ארצות הברית',
+    'United Kingdom': 'בריטניה', France: 'צרפת', Germany: 'גרמניה', Egypt: 'מצרים', Greece: 'יוון', Italy: 'איטליה', Spain: 'ספרד',
+    Japan: 'יפן', India: 'הודו', 'New Zealand': 'ניו זילנד', "Côte d'Ivoire": 'חוף השנהב', Turkey: 'טורקיה', Iran: 'איראן',
+    Iraq: 'עיראק', Syria: 'סוריה', Jordan: 'ירדן', Lebanon: 'לבנון', 'Saudi Arabia': 'ערב הסעודית', Yemen: 'תימן', Ethiopia: 'אתיופיה',
+    Nigeria: 'ניגריה', Kenya: 'קניה', Morocco: 'מרוקו', Algeria: "אלג'יריה", Libya: 'לוב', Tunisia: 'תוניסיה', Sudan: 'סודאן',
+    Canada: 'קנדה', Mexico: 'מקסיקו', Brazil: 'ברזיל', Argentina: 'ארגנטינה', Chile: "צ'ילה", Peru: 'פרו', Colombia: 'קולומביה',
+    Cuba: 'קובה', Australia: 'אוסטרליה', Indonesia: 'אינדונזיה', Philippines: 'הפיליפינים', Vietnam: 'וייטנאם', Thailand: 'תאילנד',
+    'South Korea': 'דרום קוריאה', 'North Korea': 'צפון קוריאה', Mongolia: 'מונגוליה', Pakistan: 'פקיסטן', Afghanistan: 'אפגניסטן',
+    Poland: 'פולין', Ukraine: 'אוקראינה', Sweden: 'שוודיה', Norway: 'נורווגיה', Finland: 'פינלנד', Denmark: 'דנמרק', Netherlands: 'הולנד',
+    Belgium: 'בלגיה', Switzerland: 'שווייץ', Austria: 'אוסטריה', Portugal: 'פורטוגל', Ireland: 'אירלנד', Iceland: 'איסלנד',
+    Czechia: "צ'כיה", Hungary: 'הונגריה', Romania: 'רומניה', Bulgaria: 'בולגריה', Serbia: 'סרביה', Croatia: 'קרואטיה', Cyprus: 'קפריסין',
+    Ghana: 'גאנה', Senegal: 'סנגל', Tanzania: 'טנזניה', Uganda: 'אוגנדה', Madagascar: 'מדגסקר', 'Sri Lanka': 'סרי לנקה', Nepal: 'נפאל'
+  };
+  it('the expected spellings, in the land and nation kinds', () => {
+    expect(Object.keys(EXPECTED).length).toBeGreaterThanOrEqual(60);
+    for (const [en, he1] of Object.entries(EXPECTED)) {
+      expect(nameOf('land', null, en, 'he'), en).toBe(he1);
+      expect(nameOf('people', null, en, 'he'), en).toBe(he1);
+    }
+  });
+  it('every country name of the geo data has a table entry', async () => {
+    const meta = (await import('../data/geo/countries-meta.json')).default;
+    const { HE_COUNTRIES } = await import('./locales/data/he.countries');
+    for (const c of Object.values(meta)) expect(HE_COUNTRIES[c.name], c.name).toBeDefined();
+    for (const v of Object.values(HE_COUNTRIES)) expect(v).not.toMatch(LATIN);
+  });
+  it('the start screen lines of every people: land and capital never come from the fallback for known places', () => {
+    expect(nameOf('land', null, 'Israel', 'he')).toBe('ישראל');
+    expect(nameOf('people', 'israel', 'Kingdom of Israel', 'he')).toBe('ממלכת ישראל');
+  });
+});

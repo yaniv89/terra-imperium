@@ -5,6 +5,7 @@
 // Hebrew. Never random; the same name always gives the same spelling.
 import { HE_PEOPLES, HE_CITIES, HE_TITLE_WORDS } from './hebrewNames';
 import { HE_TITLE_FIXED, HE_GOVERNMENT_TITLES, HE_WATERS, HE_PERSONS } from './locales/data/he.names';
+import { HE_COUNTRIES } from './locales/data/he.countries';
 import { PEOPLES, PEOPLES_LIST } from '../data/peoples';
 import { titleFor, EMPIRE_CITY_COUNT } from '../data/nationTitles';
 import { INDEPENDENT_TITLE_FORMS, FREE_CITY_FORMS } from '../data/independents';
@@ -145,7 +146,9 @@ const hebrewName = (kind, id, english) => {
     if (gen) return `מפקד ${gen[1]}`;
   }
   if (kind === 'place' || kind === 'water') { if (HE_WATERS[english]) return HE_WATERS[english]; }
+  if (kind === 'land' && HE_COUNTRIES[english]) return HE_COUNTRIES[english];
   if (HE_CITIES[english]) return HE_CITIES[english];
+  if (HE_COUNTRIES[english]) return HE_COUNTRIES[english];
   if (HE_WATERS[english]) return HE_WATERS[english];
   if (HE_PERSONS[english]) return HE_PERSONS[english];
   const m = /^(kingdom of|empire of|republic of|league of|the)\s+(.*)$/i.exec(english);
