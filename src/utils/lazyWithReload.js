@@ -7,6 +7,7 @@
 // resumes right where it was (a started battle included). Guarded so a genuinely missing file can't
 // reload-loop: at most one automatic reload per 30 seconds.
 import { lazy } from 'react';
+import { noteCrashEvent } from './crashLog';
 
 const KEY = 'terra-imperium-chunk-reload-at';
 
@@ -20,6 +21,7 @@ export const reloadForNewVersion = () => {
     if (Date.now() - last < 30000) return false;
     window.sessionStorage.setItem(KEY, String(Date.now()));
   } catch { /* storage blocked: still reload once */ }
+  noteCrashEvent('reload: a new version of the game');
   window.location.reload();
   return true;
 };

@@ -52,6 +52,48 @@ export const bestDeal = (state, war, candidates = peaceCandidates(state, war)) =
   return { keys: picked.map((p) => p.key), worth: spent, budget };
 };
 
+const signedN = (n) => (n > 0 ? `+${n}` : `${n}`);
+
+/**
+ * Why a white peace is refused (PEACE-01): the willingness against the price, then the two biggest
+ * things pulling it down, in the ledger's own words. The war score is a separate number.
+ */
+export const refusalReason = (acc) => {
+  const worst = (acc.breakdown || []).filter((l) => l.value < 0).sort((a, b) => a.value - b.value).slice(0, 2);
+  const why = worst.length ? ` Weighing most against it: ${worst.map((l) => `${l.label.toLowerCase()} ${signedN(l.value)}`).join(', ')}.` : '';
+  return `They will not accept it yet: their willingness is ${acc.total} and the price is ${acc.cost}.${why}`;
+};
+
+const placeName = (state, id) => regionName(state, id);
+
+/**
+ * What an AI peace offer (state.pendingPeaceOffer) would do, said plainly (PEACE-02): who keeps
+ * which city, what is paid, and the turn the truce ends. Same rules as peace.js applyPeace: an
+ * occupation between the two sides ends and the city goes back to its owner; land conquered in this
+ * war stays with its conqueror unless a term cedes it.
+ */
+export const peaceOfferModel = (state, offer) => {
+  const war = (state.wars || []).find((w) => w.id === offer?.warId);
+  const me = state.playerNationId;
+  const them = offer?.from;
+  const terms = offer?.terms || [];
+  const sign = war ? (war.aggressor === me ? 1 : -1) : 1;
+  const score = war ? Math.round(sign * computeWarScore(war, state)) : null;
+  const ceded = new Set(terms.filter((t) => t.type === 'cede').map((t) => t.regionId));
+  const keeps = []; const changes = [];
+  Object.values(state.regions || {}).forEach((r) => {
+    const nm = placeName(state, r.id);
+    if (ceded.has(r.id)) { changes.push(`${nm} passes from ${r.owner === me ? 'you' : state.nations?.[r.owner]?.name || r.owner} to ${r.owner === me ? state.nations?.[them]?.name || 'them' : 'you'}.`); return; }
+    if (r.occupiedBy === them && r.owner === me) changes.push(`${nm} is yours again: their occupation ends.`);
+    else if (r.occupiedBy === me && r.owner === them) changes.push(`${nm} goes back to ${state.nations?.[them]?.name || 'them'}: your occupation ends.`);
+    else if (war && r.conquest?.warId === war.id) keeps.push(`${nm} stays ${r.owner === me ? 'yours' : `${state.nations?.[r.owner]?.name || r.owner}'s`}.`);
+  });
+  const money = terms.flatMap((t) => (t.type === 'gold' ? [`You pay ${state.nations?.[them]?.name || 'them'} ${Math.round(Math.abs(t.amount || 0))} gold`]
+    : t.type === 'reparations' ? ['You pay reparations: a tenth of your gold income for 10 turns'] : []));
+  const truceEndsTurn = (state.turnNumber || 0) + TRUCE_DURATION_TURNS;
+  return { score, themWinning: score != null && score < 0, ownership: [...changes, ...keeps], money, truceEndsTurn };
+};
+
 /** The whole table for `selected` (a Set of candidate keys). */
 export const peaceDealModel = (state, warId, selected = new Set()) => {
   const war = (state.wars || []).find((w) => w.id === warId && w.active);
@@ -98,7 +140,7 @@ export const peaceDealModel = (state, warId, selected = new Set()) => {
     counter: best.keys.length
       ? { keys: best.keys, worth: best.worth, budget: best.budget, text: candidates.filter((c) => best.keys.includes(c.key)).map((c) => c.label).join(', ') }
       : null,
-    whitePeace: { accepted: white.accepted, text: white.accepted ? 'Back to how things stand: no land or gold changes hands.' : 'They are winning: they would refuse a white peace.' },
+    whitePeace: { accepted: white.accepted, text: white.accepted ? 'Back to how things stand: no land or gold changes hands.' : refusalReason(white) },
     truceTurns: TRUCE_DURATION_TURNS,
     terms
   };

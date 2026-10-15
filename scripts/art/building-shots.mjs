@@ -6,14 +6,14 @@
 //   node scripts/art/building-shots.mjs <outDir> <theme>[,<theme>...] [age]
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const [outDir = 'plans/art/shots/wave1', themes = 'europe', age = 'bronze'] = process.argv.slice(2);
 const BASE = process.env.URL || 'http://localhost:5199/terra-imperium/';
 const W = 844; const H = 390;
 mkdirSync(outDir, { recursive: true });
 const chrome = process.env.CHROME || ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/opt/pw-browsers/chromium'].find((p) => existsSync(p));
-const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await launchBrowser({ executablePath: chrome });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });

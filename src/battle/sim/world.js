@@ -67,6 +67,7 @@ export const makeSquad = (w, unit, side, ageId, index) => {
     cooldown: 0,
     lastHitTick: -10000,
     lastStrikeTick: -10000,                // last tick it swung or fired (drives the strike animation)
+    lastDepositTick: -10000,               // a worker's last drop-off (drawing only: never read by the sim, never hashed)
     movedSinceAttack: 0,
     order: { type: 'idle' },
     targetKind: null,                      // 'squad' | 'structure'

@@ -11,7 +11,7 @@
 //   worker      a laborer selected (the build menu lives here)
 //   place-ok / place-bad   the placement ghost on good ground and on blocked ground, with the reason
 // Uses the DEV-only hooks window.__battleRenderer, __battleView and __battleOrders (TacticalBattleScreen.jsx).
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -25,7 +25,7 @@ const base = process.env.URL || 'http://localhost:5199/terra-imperium/';
 const exe = process.env.CHROMIUM || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=d3d11'] });
+const browser = await launchBrowser({ executablePath: exe, headless: true });
 const errors = [];
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1, hasTouch: touch });
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });

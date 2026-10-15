@@ -4,7 +4,9 @@
 // rasterised onto an equirectangular FIELD_W x FIELD_H grid (each texel takes the state of the tile
 // under its centre: the lookup grid of tileGpuData.js) and blurred with a gaussian about half a hex
 // wide (wider in longitude towards the poles, so the blur is round on the ground). Two channels:
-//   r  explored (1) or not (0), blurred: the dark mask fades over the band where r crosses ~0.4;
+//   r  explored (1) or not (0), blurred: where it is all but 0 the shader draws the deep dark at
+//      once, and inside its band the noise warp is read (the mask itself lies on unexplored tiles
+//      only: territoryShader.js fogEdgeMask);
 //   g  in sight (1) or not (0), blurred: the grey "last seen" wash fades the same way.
 // The shader samples it bilinearly, warps it with world-space noise and keeps every tile's centre
 // on its own side (a lone explored tile stays open, a lone unexplored one stays dark).

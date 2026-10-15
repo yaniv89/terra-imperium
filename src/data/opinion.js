@@ -29,6 +29,7 @@ export const SAME_IDENTITY_AXIS = 5;
 export const BROKEN_TRUCE = -20;             // the hostility floor a broken truce leaves
 export const AE_FREE = 20;
 export const AE_PER_POINT = -1;
+export const DIPLOMAT_AT_COURT = 6;         // your diplomat works at their court (DIP-02): a standing warmth on top of the grudge it wears down
 export const RIVAL = -30;
 export const VASSAL_OF_YOU = -10;            // a vassal resents its overlord a little
 export const WAR_ROLL_OPINION_CEILING = 20;  // no AI war roll at this opinion or above

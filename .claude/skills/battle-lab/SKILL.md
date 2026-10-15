@@ -82,7 +82,7 @@ and kills it.) The script opens `?battleSandbox`, starts the battle, attack-move
 army on the keep at 3x, prints blood and fx counts every 5 s, centres on the fight (or on the army before any blood), saves the
 screenshot and lists console errors. Look at the image with the Read tool. "GPU stall due to
 ReadPixels" warnings come from SwiftShader, not the game. It relies on the DEV-only hooks
-`window.__battleRenderer` and `window.__battleOrders`.
+`window.__battleRenderer` and `window.__battleOrders`. Every real-browser script launches Chromium through scripts/lib/browserLaunch.mjs on the real GPU (SwiftShader only with `--swgl` or `SWGL=1`).
 
 ### Soldiers at every zoom (phone, iPad, desktop)
 ```bash

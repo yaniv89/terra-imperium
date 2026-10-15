@@ -68,6 +68,8 @@ describe('opening a commanded battle', () => {
     const settled = gameReducer(s, { type: ActionTypes.ABANDON_TACTICAL_BATTLE, payload: { reason: 'no_defenders' } });
     expect(settled.pendingBattle).toBe(null);
     expect(settled.logs[settled.logs.length - 1].message).toMatch(/was settled on Auto: no defenders were left to fight/);
+    // DEF-01: the result says it too (the replay and the report sheet read it), not only the Log.
+    expect(settled.battleReports[0].autoBecause).toBe('You chose Command, but it was fought on Auto: no defenders were left to fight.');
     const plain = gameReducer(s, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
     expect(settled.regions[CITY_A].owner).toBe(plain.regions[CITY_A].owner); // the same Auto result
     expect(JSON.stringify(settled.units)).toBe(JSON.stringify(plain.units));

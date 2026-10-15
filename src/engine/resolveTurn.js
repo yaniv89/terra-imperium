@@ -812,7 +812,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // `units` (this turn's draft), not state.units: a unit lost to attrition, a revolt or a civil war
     // earlier this same turn must not still be charged upkeep.
     const playerUnits = Object.values(units).filter((u) => u.ownerId === playerId);
-    const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
+    // Laws and reforms move the army's upkeep (lawRules.js unitUpkeepMult), as the forecast in economy.js does.
+    const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100 * Math.max(0, 1 + (lawRulesOf(nation).unitUpkeepMult || 0));
     const navyMaintenanceMult = clampMaintenance(nation.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
     const armyUpkeep = Math.round(playerUnits.filter((u) => u.domain !== 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
     const navyUpkeep = Math.round(playerUnits.filter((u) => u.domain === 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * navyMaintenanceMult);

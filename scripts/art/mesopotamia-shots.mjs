@@ -13,7 +13,7 @@
 //   node scripts/art/mesopotamia-shots.mjs <out_dir> [bronze|classical] [small|medium|big] [map|battle|both]
 // Env: URL (default http://localhost:5214/terra-imperium/), CHROME (default Chrome's Windows path),
 // WAIT (ms per map shot, default 20000), DIST (default dist, for the Levant stand-ins).
-import { chromium } from 'playwright';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import { readdirSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -36,7 +36,7 @@ const standIn = (file) => {
   return pick ? readFileSync(join(DIST, pick)) : null;
 };
 
-const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=d3d11'] });
+const browser = await launchBrowser({ executablePath: CHROME, headless: true });
 const newPage = async (levant) => {
   const page = await browser.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
   const logs = [];

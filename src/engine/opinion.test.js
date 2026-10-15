@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { createInitialState } from './gameReducer';
 import { getNationCapital } from '../data/regions';
 import { opinionOf, opinionReasons, warRollOpinionMult, opinionGivesCasusBelli } from './opinion';
-import { OPINION_BASELINE, GRUDGE_PER_HOSTILITY, ALLIANCE, RIVAL, SETTLED_NEAR, HOLDS_MY_CULTURE } from '../data/opinion';
+import { OPINION_BASELINE, GRUDGE_PER_HOSTILITY, ALLIANCE, RIVAL, SETTLED_NEAR, HOLDS_MY_CULTURE, DIPLOMAT_AT_COURT } from '../data/opinion';
 import { hasCasusBelli } from './diplomacy';
 import { addCity } from './testWorld';
 
@@ -20,6 +20,16 @@ describe('opinion', () => {
     expect(opinionGivesCasusBelli(opinionOf(hot, 'de'))).toBe(true);
     expect(hasCasusBelli(hot, 'fr', 'de')).toBe(true);
     expect(opinionOf(plain, 'de')).toBe(opinionOf(plain, 'de')); // cached
+  });
+
+  it('a diplomat at their court warms them and says so in the reasons (DIP-02)', () => {
+    const task = { targetId: 'be', task: 'improve_relations', startedTurn: 25 };
+    const posted = { ...S, nations: { ...S.nations, fr: { ...S.nations.fr, diplomatTasks: [task] } } };
+    const r = reason(opinionReasons(posted, 'be'), 'diplomat');
+    expect(r.value).toBe(DIPLOMAT_AT_COURT);
+    expect(r.detail).toBe('since turn 25');
+    expect(opinionOf(posted, 'be')).toBe(opinionOf(S, 'be') + DIPLOMAT_AT_COURT);
+    expect(reason(opinionReasons(posted, 'de'), 'diplomat')).toBeUndefined();
   });
 
   it('a friend never rolls for war; a rival and a claim rub', () => {

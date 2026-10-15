@@ -12,27 +12,28 @@ import { Button } from './atlas';
 import ConfirmDialog from './ConfirmDialog';
 import { startArt } from './peopleArt';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
-import { playedAgo } from '../../utils/launchDecision';
 import { SAVE_PROBLEM_TEXT } from '../../engine/saveMigrations';
-
-const dateText = (savedAt) => {
-  if (!Number.isFinite(savedAt)) return '';
-  try { return new Date(savedAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
-};
+import { useT } from '../../i18n/useT';
+import { agoText } from '../../i18n';
+import LanguageSwitch from './LanguageSwitch';
 
 /** The facts of a save: "Akkad, turn 12, 1850 BCE" and "Last played 3 days ago (date)". */
 export const SaveFacts = ({ info, now, className = '' }) => {
+  const { t, lang, date, year, name } = useT();
   if (!info || info.status === 'none') return null;
-  if (info.status === 'old') return <div className={`text-[13px] text-fa-muted ${className}`}>From an older version of the game. It is kept, not deleted.</div>;
+  if (info.status === 'old') return <div className={`text-[13px] text-fa-muted ${className}`}>{t('title.oldSave')}</div>;
+  const when = info.yearValue != null ? year(info.yearValue) : info.year;
+  const facts = when ? t('title.turnYear', { turn: info.turn, year: when }) : t('title.turn', { turn: info.turn });
   return (
     <div className={className}>
-      <div className="text-[15px] font-semibold leading-tight">{info.nation}<span className="font-normal text-fa-muted">, turn {info.turn}{info.year ? `, ${info.year}` : ''}{info.gameOver ? ', game over' : ''}</span></div>
-      {info.savedAt != null && <div className="text-[12px] text-fa-muted leading-snug mt-0.5" data-testid="save-played">Last played {playedAgo(info.savedAt, now)} <bdi className="whitespace-nowrap">({dateText(info.savedAt)})</bdi></div>}
+      <div className="text-[15px] font-semibold leading-tight">{name('people', info.nationId, info.nation)}<span className="font-normal text-fa-muted">{facts}{info.gameOver ? t('title.gameOver') : ''}</span></div>
+      {info.savedAt != null && <div className="text-[12px] text-fa-muted leading-snug mt-0.5" data-testid="save-played">{t('title.lastPlayed', { ago: agoText(info.savedAt, now, lang) })} <bdi className="whitespace-nowrap">({date(info.savedAt)})</bdi></div>}
     </div>
   );
 };
 
 const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportText, onSettings, now = Date.now() }) => {
+  const { t, name } = useT();
   const layout = useLayoutMode();
   const wide = layout === 'desktop';
   const [view, setView] = useState('main'); // 'main' | 'load'
@@ -50,13 +51,13 @@ const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportT
     if (!file) return;
     let result;
     try { result = onImportText(await file.text()); } catch (err) { result = 'corrupt'; }
-    if (result !== true) setMessage(SAVE_PROBLEM_TEXT?.[result] || 'That file is not a save this version can open.');
+    if (result !== true) setMessage(SAVE_PROBLEM_TEXT?.[result] || t('title.fileBad'));
   };
 
   const brand = (
     <div className="min-w-0">
-      <h1 className="fa-heading text-[34px] pl:text-[28px] leading-none" data-testid="title-name">Terra Imperium</h1>
-      <p className="text-[13px] text-fa-muted mt-1">A grand strategy game on the real Earth, 2000 BCE to 2300 CE.</p>
+      <h1 className="fa-heading text-[34px] pl:text-[28px] leading-none" data-testid="title-name">{t('title.name')}</h1>
+      <p className="text-[13px] text-fa-muted mt-1">{t('title.tagline')}</p>
     </div>
   );
 
@@ -66,17 +67,17 @@ const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportT
         {brand}
         {autosave && autosave.info.status === 'ok' && (
           <div className="fa-panel p-3" data-testid="title-continue-card">
-            <div className="fa-label mb-1">Your last game</div>
+            <div className="fa-label mb-1">{t('title.lastGame')}</div>
             <SaveFacts info={autosave.info} now={now} />
           </div>
         )}
       </div>
       <div className="grid gap-2">
-        <Button variant="primary" hero className="!min-h-[56px] pl:!min-h-[48px]" onClick={onContinue} data-testid="title-continue" autoFocus><Play className="w-5 h-5" aria-hidden="true" />Continue</Button>
-        <Button onClick={onNewGame} className="!min-h-[48px] pl:!min-h-[44px]" data-testid="title-new"><Plus className="w-4 h-4" aria-hidden="true" />New game</Button>
+        <Button variant="primary" hero className="!min-h-[56px] pl:!min-h-[48px]" onClick={onContinue} data-testid="title-continue" autoFocus><Play className="w-5 h-5" aria-hidden="true" />{t('title.continue')}</Button>
+        <Button onClick={onNewGame} className="!min-h-[48px] pl:!min-h-[44px]" data-testid="title-new"><Plus className="w-4 h-4" aria-hidden="true" />{t('title.newGame')}</Button>
         <div className="grid grid-cols-2 gap-2">
-          <Button onClick={() => { setMessage(''); setView('load'); }} className="!min-h-[44px]" data-testid="title-load"><FolderOpen className="w-4 h-4" aria-hidden="true" />Load</Button>
-          <Button onClick={onSettings} className="!min-h-[44px]" data-testid="title-settings"><Settings2 className="w-4 h-4" aria-hidden="true" />Settings</Button>
+          <Button onClick={() => { setMessage(''); setView('load'); }} className="!min-h-[44px]" data-testid="title-load"><FolderOpen className="w-4 h-4" aria-hidden="true" />{t('title.load')}</Button>
+          <Button onClick={onSettings} className="!min-h-[44px]" data-testid="title-settings"><Settings2 className="w-4 h-4" aria-hidden="true" />{t('title.settings')}</Button>
         </div>
       </div>
     </div>
@@ -85,23 +86,23 @@ const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportT
   const load = (
     <div className="w-full max-w-[40rem] min-h-0 flex flex-col gap-2" data-testid="title-load-view">
       <div className="flex items-center gap-2 shrink-0">
-        <Button variant="ghost" onClick={() => setView('main')} className="shrink-0" data-testid="title-load-back"><ArrowLeft className="w-4 h-4" aria-hidden="true" />Back</Button>
-        <h2 className="fa-heading text-[20px] flex-1">Load a game</h2>
+        <Button variant="ghost" onClick={() => setView('main')} className="shrink-0" data-testid="title-load-back"><ArrowLeft className="w-4 h-4" aria-hidden="true" />{t('title.back')}</Button>
+        <h2 className="fa-heading text-[20px] flex-1">{t('title.loadHeading')}</h2>
       </div>
       <div className="min-h-0 overflow-y-auto overscroll-contain scrollbar-thin grid gap-2 content-start" style={{ maxHeight: 'calc(100dvh - 4.5rem)' }}>
-        {slots.length === 0 && <div className="fa-panel p-3 text-[13px] text-fa-muted">No saved games on this device yet.</div>}
+        {slots.length === 0 && <div className="fa-panel p-3 text-[13px] text-fa-muted">{t('title.noSaves')}</div>}
         {slots.map((s) => (
           <div key={s.id} className="fa-panel p-2.5 flex items-center gap-2" data-slot={s.id}>
             <div className="min-w-0 flex-1">
-              <div className="fa-label mb-0.5">{s.label}</div>
+              <div className="fa-label mb-0.5">{t(`title.slot.${s.id}`)}</div>
               <SaveFacts info={s.info} now={now} />
             </div>
-            {s.info.status === 'ok' && <Button variant="primary" onClick={() => onLoad(s.key)} className="!min-h-[44px] shrink-0" data-testid={`load-${s.id}`}>{s.id === 'autosave' ? 'Continue' : 'Load'}</Button>}
-            <Button variant="ghost" onClick={() => setToDelete(s)} className="!min-h-[44px] !min-w-[44px] !px-2 shrink-0" aria-label={`Delete ${s.label}`} data-testid={`delete-${s.id}`}><Trash2 className="w-4 h-4" aria-hidden="true" /></Button>
+            {s.info.status === 'ok' && <Button variant="primary" onClick={() => onLoad(s.key)} className="!min-h-[44px] shrink-0" data-testid={`load-${s.id}`}>{s.id === 'autosave' ? t('title.continue') : t('title.load')}</Button>}
+            <Button variant="ghost" onClick={() => setToDelete(s)} className="!min-h-[44px] !min-w-[44px] !px-2 shrink-0" aria-label={t('title.deleteAria', { label: t(`title.slot.${s.id}`) })} data-testid={`delete-${s.id}`}><Trash2 className="w-4 h-4" aria-hidden="true" /></Button>
           </div>
         ))}
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => fileRef.current?.click()} className="!min-h-[44px]" data-testid="title-open-file"><FileUp className="w-4 h-4" aria-hidden="true" />Open a save file</Button>
+          <Button onClick={() => fileRef.current?.click()} className="!min-h-[44px]" data-testid="title-open-file"><FileUp className="w-4 h-4" aria-hidden="true" />{t('title.openFile')}</Button>
           <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={pickFile} data-testid="title-file-input" />
           {message && <span className="text-[13px]" style={{ color: 'var(--fa-danger-text)' }} role="status">{message}</span>}
         </div>
@@ -110,11 +111,12 @@ const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportT
   );
 
   return (
-    <div className="h-[100dvh] w-full bg-fa-ink text-fa-text flex flex-col items-center justify-center overflow-y-auto py-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]" style={backdrop} data-testid="title-screen" data-view={view}>
+    <div className="relative h-[100dvh] w-full bg-fa-ink text-fa-text flex flex-col items-center justify-center overflow-y-auto py-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]" style={backdrop} data-testid="title-screen" data-view={view}>
       <div className={`w-full flex justify-center ${frame}`}>{view === 'main' ? main : load}</div>
-      <ConfirmDialog open={!!toDelete} title="Delete this saved game?" confirmLabel="Delete" cancelLabel="Keep it" danger testId="delete-save-confirm"
+      {view === 'main' && <LanguageSwitch compact className="absolute top-[max(0.25rem,env(safe-area-inset-top))] end-[max(0.5rem,env(safe-area-inset-right))]" />}
+      <ConfirmDialog open={!!toDelete} title={t('title.deleteHeading')} confirmLabel={t('title.delete')} cancelLabel={t('title.keep')} danger testId="delete-save-confirm"
         onConfirm={() => { const s = toDelete; setToDelete(null); if (s) onDelete(s.key); }} onCancel={() => setToDelete(null)}>
-        {toDelete && <p>{toDelete.info.status === 'ok' ? `${toDelete.info.nation}, turn ${toDelete.info.turn}. ` : ''}This cannot be undone.</p>}
+        {toDelete && <p>{toDelete.info.status === 'ok' ? `${t('title.deleteWhich', { nation: name('people', toDelete.info.nationId, toDelete.info.nation), turn: toDelete.info.turn })} ` : ''}{t('title.cannotUndo')}</p>}
       </ConfirmDialog>
     </div>
   );

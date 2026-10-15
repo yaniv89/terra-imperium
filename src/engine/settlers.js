@@ -330,6 +330,22 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
   Object.values(units).forEach((u) => {
     if (!isSettler(u) || u.tile == null) return;
     let settler = { ...u, movesLeft: SETTLER_MOVES };
+    // Their home city changed hands (T87): settlers standing in the new owner's land go to the old
+    // owner's nearest city, with a log line; if that nation has no city left they are lost. Settlers
+    // elsewhere keep walking but take the nearest city as their home.
+    const home = nextRegions[settler.homeRegionId];
+    if (home && home.owner !== settler.ownerId) {
+      const cityHere = nextWorld?.tileOwner?.[settler.tile];
+      const inTheirLand = cityHere != null && nextRegions[cityHere]?.owner && nextRegions[cityHere].owner !== settler.ownerId;
+      const refuge = settlersHomeCity(view(), settler);
+      if (!refuge) { delete nextUnits[u.id]; logs.push({ nationId: u.ownerId, message: `The settlers of ${home.name} have no city left to go to and are lost.` }); return; }
+      if (inTheirLand) {
+        nextUnits[u.id] = { ...settler, tile: refuge.tile, regionId: refuge.id, homeRegionId: refuge.id, target: null, path: null, idleSince: null };
+        logs.push({ nationId: u.ownerId, message: `${home.name} fell: its settlers went back to ${refuge.name}.` });
+        return;
+      }
+      settler = { ...settler, homeRegionId: refuge.id };
+    }
     // An AI settler without a destination looks again now and then, further each time it must; one
     // idle too long is disbanded.
     if (settler.target == null && settler.ownerId !== state.playerNationId) {

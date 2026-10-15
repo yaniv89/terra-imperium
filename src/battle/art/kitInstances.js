@@ -9,18 +9,18 @@ import { InstancedMesh, Color, ShaderChunk } from 'three';
 const WHITE = new Color('#ffffff');
 /** The kit LOD for the battle camera's zoom (1 = the default view). */
 export const kitLodForZoom = (zoom) => (zoom >= 0.9 ? 0 : zoom >= 0.5 ? 1 : 2);
-const patched = new Map(); // material uuid -> clone that ignores the instance colour
+const patched = new WeakMap(); // material -> clone that ignores the instance colour (weak: a file dropped from memory takes it along)
 // The colour chunk without the instance colour, for the materials that keep their own colours.
 const NO_INSTANCE_COLOR = ShaderChunk.color_vertex.replace(/#ifdef USE_INSTANCING_COLOR[\s\S]*?#endif/, '');
 /** A copy of `m` that ignores instanceColor (the Town and Ground parts of a piece). */
 export const ignoreInstanceColor = (m) => {
-  if (!patched.has(m.uuid)) {
+  if (!patched.has(m)) {
     const c = m.clone();
     c.onBeforeCompile = (shader) => { shader.vertexShader = shader.vertexShader.replace('#include <color_vertex>', NO_INSTANCE_COLOR); };
     c.customProgramCacheKey = () => 'kit-no-instance-color';
-    patched.set(m.uuid, c);
+    patched.set(m, c);
   }
-  return patched.get(m.uuid);
+  return patched.get(m);
 };
 
 export class KitInstances {

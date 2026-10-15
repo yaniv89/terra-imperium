@@ -7,14 +7,14 @@
 // the close shot (default 2.2; the wide shot is the battle's opening view). Prints console errors.
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const [outDir = 'plans/art/shots/wave1', prefix = 'city', styles = 'europe', query = 'city=medium&age=bronze&fort=2', zoomArg = '2.2'] = process.argv.slice(2);
 const BASE = process.env.URL || 'http://localhost:5199/terra-imperium/';
 const W = Number(process.env.W || 844); const H = Number(process.env.H || 390);
 mkdirSync(outDir, { recursive: true });
 const chrome = process.env.CHROME || ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/opt/pw-browsers/chromium'].find((p) => existsSync(p));
-const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await launchBrowser({ executablePath: chrome });
 const errors = [];
 const HIDE_TOWN = !!process.env.HIDE_TOWN; // debug: the town model hidden, the hall and the region's buildings stay
 for (const style of styles.split(',')) {

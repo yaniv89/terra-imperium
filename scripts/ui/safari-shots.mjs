@@ -7,7 +7,7 @@
 //   npx vite --port 5201   (in another shell)
 //   node scripts/ui/safari-shots.mjs --url http://localhost:5201/ --out plans/ui/safari/after
 import { mkdirSync } from 'node:fs';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
 const URL = arg('url', 'http://localhost:5201/');
@@ -19,7 +19,7 @@ const SIZES = [{ name: '844x390', width: 844, height: 390 }, { name: '844x340', 
 const INSETS = { top: 0, left: 59, bottom: 21, right: 0 }; // landscape, Dynamic Island on the left
 
 const exe = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : { channel: 'chrome' }), headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await launchBrowser({ ...(exe ? { executablePath: exe } : { channel: 'chrome' }), headless: true });
 mkdirSync(OUT, { recursive: true });
 
 const startGame = async (page) => {

@@ -7,7 +7,7 @@
 // selected). Prints each state and console errors.
 // Start the dev server first:  npx vite --port 5199 --strictPort &
 //   node .claude/skills/battle-lab/build-shot.mjs <outDir> [--w 844 --h 390] [--browser <exe>]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -20,7 +20,7 @@ const url = `${process.env.URL || 'http://localhost:5199/terra-imperium/'}?battl
 fs.mkdirSync(outDir, { recursive: true });
 const tag = `${W}x${H}`;
 
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=d3d11'] });
+const browser = await launchBrowser({ executablePath: exe, headless: true });
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, hasTouch: true });
 const page = await ctx.newPage();
 const errors = [];

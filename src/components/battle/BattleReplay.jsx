@@ -116,6 +116,7 @@ const SingleReplay = ({ entry, onOpen, onClose }) => {
       {done ? (
         <div className="space-y-2 pt-1" data-testid="battle-replay-result">
           <div className={`text-base font-bold ${TONE[result.tone]}`}>{result.text}</div>
+          {entry.autoBecause && <div role="status" className="text-xs text-fa-danger-text" data-testid="battle-auto-because">{entry.autoBecause}</div>}
           <div className="text-xs text-fa-text">
             Fallen: <span className="font-semibold text-fa-text">{formatMen(entry.fallen[mine])}</span> of yours ·{' '}
             <span className="font-semibold text-fa-text">{formatMen(entry.fallen[theirs])}</span> of theirs

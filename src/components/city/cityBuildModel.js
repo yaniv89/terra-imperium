@@ -197,5 +197,7 @@ export const focusHint = (state, cityId, options, live = cityLive(state, cityId)
   const text = better
     ? `${slow === 1 ? 'One build takes' : `${slow} builds take`} over ${limit} turns at ${production} production a turn. Production focus would make ${better.production}${better.food < 0 ? ' (but the city would starve)' : ''}.${buyText}`
     : `${slow === 1 ? 'One build takes' : `${slow} builds take`} over ${limit} turns at ${production} production a turn. Focus cannot help here: ${preview.allSame ? 'every focus works the same land' : 'it already favours production'}. Mines, lumber camps or more citizens will.${buyText}`;
-  return { production, limit, slow, better, buy, text };
+  // One line for the Build tab (BUILD-01); the full text opens on a tap.
+  const short = `${slow === 1 ? 'One build is' : `${slow} builds are`} slow here: over ${limit} turns at ${production} production.`;
+  return { production, limit, slow, better, buy, text, short };
 };

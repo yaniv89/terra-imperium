@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { addCity } from '../../engine/testWorld';
 import { getPeaceAcceptance } from '../../engine/peace';
-import { peaceDealModel, peaceCandidates } from './peaceDealModel';
+import { peaceDealModel, peaceCandidates, peaceOfferModel, refusalReason } from './peaceDealModel';
 
 const WORLD = (() => {
   const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 2 }), 'fr');
@@ -23,6 +23,32 @@ const atWar = (battleScore = 30) => {
     nations: { ...s.nations, de: { ...s.nations.de, warExhaustion: 40 } }
   };
 };
+
+describe('PEACE-01/02 the offer says what it does', () => {
+  it('a refused white peace gives willingness, price and reasons, not "they are winning"', () => {
+    const s = atWar(0);
+    const m = peaceDealModel(s, 'w13', new Set());
+    if (!m.whitePeace.accepted) {
+      expect(m.whitePeace.text).toMatch(/willingness is -?[0-9]+ and the price is [0-9]+/);
+      expect(m.whitePeace.text).not.toMatch(/winning/);
+    }
+    expect(refusalReason({ total: -4, cost: 5, breakdown: [{ label: 'Capital secure', value: -10 }, { label: 'War situation', value: 0 }] })).toMatch(/capital secure -10/);
+  });
+
+  it('a reparations offer lists the city that stays theirs, the payment and the truce end turn', () => {
+    const s0 = atWar(0);
+    const war = s0.wars.at(-1);
+    // They hold a city they took from us in this war.
+    const mine = Object.values(s0.regions).find((r) => r.owner === 'fr');
+    const s = { ...s0, regions: { ...s0.regions, [mine.id]: { ...mine, owner: 'de', conquest: { warId: war.id, from: 'fr' } } } };
+    const offer = { from: 'de', warId: war.id, terms: [{ type: 'reparations' }] };
+    const m = peaceOfferModel(s, offer);
+    expect(m.ownership.some((t) => /stays/.test(t))).toBe(true);
+    expect(m.money[0]).toMatch(/reparations/);
+    expect(m.truceEndsTurn).toBeGreaterThan(s.turnNumber);
+    expect(m.themWinning).toBe(m.score < 0);
+  });
+});
 
 describe('W13 peaceDealModel', () => {
   it('lists the occupied city, gold and the other terms with their costs', () => {

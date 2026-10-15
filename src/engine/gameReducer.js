@@ -98,14 +98,14 @@ import { resolveTurn } from './resolveTurn';
 import { resolveAutoBattle } from './autoBattle';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
 import { cityMilitia, reinforcementSources } from './battleInputs';
-import { battleQueueBlocked, queuedKind, queuedArmies, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
+import { battleQueueBlocked, queuedKind, queuedArmies, queuedCommandBlock, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
 import { replayBattle } from '../battle/sim/replay';
 import { verifyCommandedBattle, fieldedUnitIds } from './battleVerify';
 
 // Re-exported so the edge-function bundle (scripts/build-edge-engine.mjs) can verify a battle log
 // on its own, too.
 export { replayBattle };
-import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, applyDefenseWithdrawal } from './defense';
+import { applyDefenseResult, getDefenseArmies, applyDefenseWithdrawal } from './defense';
 import { applyEventEffects } from './applyEventEffects';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
 import { pillageTile } from './threat';
@@ -514,6 +514,14 @@ export const ABANDON_REASONS = {
   no_defenders: 'no defenders were left to fight',
   setup_error: 'the battle could not be set up',
   screen_error: 'the battle screen failed'
+};
+/**
+ * DEF-01: a battle the player chose to Command but that was fought on Auto says so on its result
+ * (`autoBecause` on the newest report: BattleReplay and the report sheet show it), never silently.
+ */
+const stampAutoBecause = (before, after, text) => {
+  if ((after.battleReportSeq || 0) === (before.battleReportSeq || 0) || !after.battleReports?.[0]) return after;
+  return { ...after, battleReports: [{ ...after.battleReports[0], autoBecause: text }, ...after.battleReports.slice(1)] };
 };
 /** How the Log line of a finished battle that changed nothing begins (battleReceipt.js reads it). */
 export const BATTLE_VOID_PREFIX = 'The battle at';
@@ -1604,7 +1612,10 @@ const reduceAction = (state, action) => {
       // Command takes a city it wins, garrison or not (the user's rule of 14 October): an empty city
       // is fought against its militia and walls. With not even a militia there is nobody to command
       // against: the attack is fought on Auto (cityAssault.js, against its defences).
-      if (v.defenderUnits.length === 0 && !cityMilitia(state, targetRegionId).length) return gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } });
+      // The result says so (DEF-01): the card could not tell a city it has no intel on was empty.
+      if (v.defenderUnits.length === 0 && !cityMilitia(state, targetRegionId).length) {
+        return stampAutoBecause(state, gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } }), `You chose Command, but nobody defends ${REGIONS_DATA[targetRegionId]?.name || 'the city'} (no garrison, no militia): it was fought on Auto against its defences.`);
+      }
       const rng = createRng(state.rngSeed);
       const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;
       const counter = (state.battleCounter || 0) + 1;
@@ -1729,7 +1740,9 @@ const reduceAction = (state, action) => {
         const settled = gameReducer(state, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
         const place = state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name || 'the field';
         const why = ABANDON_REASONS[reason] || 'the battle screen could not open';
-        return { ...settled, logs: [...settled.logs, { year: state.year, message: `The battle at ${place} was settled on Auto: ${why}.`, type: LogTypes.COMBAT }] };
+        // DEF-01: the result itself says the player's Command became Auto, and why, not only the Log.
+        const told = stampAutoBecause(state, settled, `You chose Command, but it was fought on Auto: ${why}.`);
+        return { ...told, logs: [...settled.logs, { year: state.year, message: `The battle at ${place} was settled on Auto: ${why}.`, type: LogTypes.COMBAT }] };
       }
       const cleared = { ...state, pendingBattle: null };
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'auto' };
@@ -1781,7 +1794,9 @@ const reduceAction = (state, action) => {
       if (!v.ok) return refuseAttack(state, v.reason, targetRegionId);
       // An enemy fleet has to be fought at sea first, and an empty beach needs no battle: both go
       // through the auto-resolved assault exactly as before.
-      if (v.defenderNavalUnits.length || !v.defenderLandUnits.length) return gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId } });
+      if (v.defenderNavalUnits.length || !v.defenderLandUnits.length) {
+        return stampAutoBecause(state, gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId } }), v.defenderNavalUnits.length ? 'You chose Command, but an enemy fleet guards the coast: the landing was fought on Auto.' : 'You chose Command, but nobody holds the beach: the landing was fought on Auto.');
+      }
       const rng = createRng(state.rngSeed);
       const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;
       const counter = (state.battleCounter || 0) + 1;
@@ -1840,6 +1855,10 @@ const reduceAction = (state, action) => {
       if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
       const def = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
       if (!def) return state;
+      // DEF-01: Command that cannot open is refused with the reason the card already shows
+      // (queuedCommandBlock), never fought on Auto behind the player's back.
+      const block = queuedCommandBlock(state, def);
+      if (block) return reject(state, block.text);
       const counter = (state.battleCounter || 0) + 1;
       const kind = queuedKind(def);
       if (kind === 'intercept' || kind === 'landing') {
@@ -1897,8 +1916,10 @@ const reduceAction = (state, action) => {
         };
       }
       const armies = getDefenseArmies(state, def);
-      // Nothing left to command (the garrison or the attackers are gone): settle it as auto does.
-      if (!armies.defenderUnits.length || !armies.attackerUnits.length) return resolveDefenseAuto(state, def.id);
+      // A city with no regiment in it is fought by its militia (the user's rule of 14 October, as
+      // for the player's own attacks): win and it holds, lose and it falls. queuedCommandBlock has
+      // already refused a battle with nobody on a side.
+      const militia = cityMilitia(state, def.regionId);
       return {
         ...state,
         battleCounter: counter,
@@ -1919,7 +1940,7 @@ const reduceAction = (state, action) => {
           defenderUnitIds: armies.defenderUnits.map((u) => u.id),
           attackerReinforcements: [],
           defenderReinforcements: reinforcementSources(state, def.regionId, state.playerNationId, def.aggressorId),
-          militia: cityMilitia(state, def.regionId)
+          militia
         },
         logs: [...state.logs, { year: state.year, message: `You take command of the defense of ${REGIONS_DATA[def.regionId]?.name}.`, type: LogTypes.COMBAT }]
       };

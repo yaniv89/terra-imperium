@@ -6,7 +6,7 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 
-const BattleFailure = ({ title = 'The battle could not start', message, detail = null, onAuto, onRetry = null }) => (
+const BattleFailure = ({ title = 'The battle could not start', message, detail = null, onAuto, onRetry = null, retryLabel = 'Try again' }) => (
   <div className="fixed inset-0 z-[95] bg-black/80 flex items-center justify-center p-3" role="alertdialog" aria-labelledby="battle-failure-title" data-testid="battle-failure">
     <div className="fa-panel !bg-fa-panel shadow-2xl w-full max-w-[30rem] max-h-[94dvh] overflow-y-auto rounded-[10px] p-4 text-fa-text">
       <div className="flex items-center gap-2">
@@ -18,7 +18,7 @@ const BattleFailure = ({ title = 'The battle could not start', message, detail =
       {detail && <p className="mt-2 text-[11px] text-fa-muted font-mono break-words" data-testid="battle-failure-detail">{detail}</p>}
       <div className="mt-3 flex flex-wrap gap-2 justify-end">
         {onRetry && (
-          <button type="button" onClick={onRetry} data-testid="battle-failure-retry" className="min-h-[44px] px-4 rounded-lg bg-fa-raised hover:bg-fa-hover border border-fa-line font-semibold text-[13px]">Try again</button>
+          <button type="button" onClick={onRetry} data-testid="battle-failure-retry" className="min-h-[44px] px-4 rounded-lg bg-fa-raised hover:bg-fa-hover border border-fa-line font-semibold text-[13px]">{retryLabel}</button>
         )}
         <button type="button" onClick={onAuto} data-testid="battle-failure-auto" className="min-h-[44px] px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold text-[13px]">Fight it on Auto</button>
       </div>

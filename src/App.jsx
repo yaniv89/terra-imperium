@@ -50,6 +50,7 @@ import TurnDebugLog, { turnDebugOn } from './components/ui/TurnDebugLog';
 import CityRail from './components/city/CityRail';
 import IndependentsHost from './components/independents/IndependentsHost';
 import CaptureCard from './components/capture/CaptureCard';
+import { noteScreen } from './utils/crashLog';
 
 const AGE_ADVANCE_BANNER_MS = 5000;
 
@@ -129,6 +130,11 @@ const GameLayout = () => {
   const [cameFromTitle, setCameFromTitle] = useState(launch === 'title');
   const [showStartScreen, setShowStartScreen] = useState(launch === 'start');
   const [titleSlots, setTitleSlots] = useState(() => (launch === 'title' ? readTitleSlots() : []));
+  // Where the player is, for the crash log (src/utils/crashLog.js; never shown to the player).
+  const onBattle = !!state.pendingBattle;
+  useEffect(() => {
+    noteScreen(showTitle ? 'title' : showStartScreen ? 'start' : onBattle ? 'battle' : 'map', state.turnNumber);
+  }, [showTitle, showStartScreen, onBattle, state.turnNumber]);
 
   // Age Advance banner + globe pulse (plan §10.5's "showpiece", previously never built — the
   // calendar age used to change with zero on-screen feedback). prevAgeRef starts at the CURRENT

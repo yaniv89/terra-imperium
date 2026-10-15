@@ -7,7 +7,7 @@
 // URL=<dev server base> picks another server; CHROME=<path> the browser.
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (name, def) => { const i = argv.indexOf(`--${name}`); return i >= 0 ? argv[i + 1] : def; };
@@ -18,7 +18,7 @@ const base = process.env.URL || 'http://localhost:5199/terra-imperium/';
 const chrome = process.env.CHROME || ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', '/opt/pw-browsers/chromium'].find((p) => existsSync(p));
 
 mkdirSync(outDir, { recursive: true });
-const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await launchBrowser({ executablePath: chrome });
 const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') console.log(`[page] ${m.text()}`); });
 await page.goto(`${base}scripts/art/build-icons.html?size=${size}&age=${age}`, { waitUntil: 'domcontentloaded', timeout: 180000 });

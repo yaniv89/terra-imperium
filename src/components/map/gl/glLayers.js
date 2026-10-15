@@ -443,6 +443,24 @@ void main() {
 }
 `;
 
+// One GPU copy of an atlas for every sprite layer that draws from it (each layer used to make its
+// own: five 2048 x 2048 copies, 16 MB each, all uploaded again whenever the atlas changed).
+export const atlasTexture = (atlas) => {
+  if (!atlas.texture) {
+    const t = new CanvasTexture(atlas.canvas);
+    t.flipY = false; t.generateMipmaps = false; t.minFilter = LinearFilter; t.magFilter = LinearFilter;
+    t.userData.uploaded = -1;
+    atlas.texture = t; atlas.textureUsers = 0;
+  }
+  atlas.textureUsers += 1;
+  return atlas.texture;
+};
+export const releaseAtlasTexture = (atlas) => {
+  if (!atlas.texture) return;
+  atlas.textureUsers -= 1;
+  if (atlas.textureUsers <= 0) { atlas.texture.dispose(); atlas.texture = null; }
+};
+
 /**
  * Instanced sprites from an atlas. `set(list)`: [{ anchor: [x, y], offset: [x, y, sx, sy],
  * size: [w, h], exp: [size, offset], uv: entry, color: [r, g, b, a] }].
@@ -453,14 +471,12 @@ export const createSpriteLayer = (scene, atlas, renderOrder) => {
   geometry.index = base.index; geometry.setAttribute('position', base.getAttribute('position'));
   const spec = { aAnchor: 2, aOffset: 4, aSize: 2, aExp: 2, aUv: 4, aColor: 4 };
   const g = growable(geometry, spec, 256);
-  const texture = new CanvasTexture(atlas.canvas);
-  texture.flipY = false; texture.generateMipmaps = false; texture.minFilter = LinearFilter; texture.magFilter = LinearFilter;
+  const texture = atlasTexture(atlas);
   const uniforms = { ...viewUniforms(), uAtlas: { value: texture } };
   const material = new ShaderMaterial({ glslVersion: GLSL3, vertexShader: SPRITE_VERTEX, fragmentShader: SPRITE_FRAGMENT, uniforms, transparent: true, depthTest: false, depthWrite: false });
   const mesh = new Mesh(geometry, material);
   mesh.frustumCulled = false; mesh.renderOrder = renderOrder;
   scene.add(mesh);
-  let uploaded = -1;
   return {
     mesh,
     set: (list) => {
@@ -480,9 +496,9 @@ export const createSpriteLayer = (scene, atlas, renderOrder) => {
     },
     update: (v) => {
       setView(uniforms, v);
-      if (uploaded !== atlas.version) { texture.needsUpdate = true; uploaded = atlas.version; }
+      if (texture.userData.uploaded !== atlas.version) { texture.needsUpdate = true; texture.userData.uploaded = atlas.version; }
     },
-    dispose: () => { scene.remove(mesh); geometry.dispose(); base.dispose(); material.dispose(); texture.dispose(); }
+    dispose: () => { scene.remove(mesh); geometry.dispose(); base.dispose(); material.dispose(); releaseAtlasTexture(atlas); }
   };
 };
 

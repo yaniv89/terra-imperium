@@ -51,6 +51,8 @@ export const describeSave = (raw) => {
   return {
     status: 'ok',
     nation,
+    nationId: s.playerNationId || null,
+    yearValue: Number.isFinite(s.year) ? s.year : null,
     turn: s.turnNumber ?? 1,
     year: Number.isFinite(s.year) ? yearLabel(s.year) : '',
     savedAt: Number.isFinite(parsed.savedAt) ? parsed.savedAt : null,

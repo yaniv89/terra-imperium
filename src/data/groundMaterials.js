@@ -14,6 +14,7 @@
 //     rock, wetland, snow), one repeat every CLOSE_TILE_KM, fading in as it grows on screen.
 // No files: neither shader compiles the detail in (the same programs as before).
 import { DataTexture, RGBAFormat, RepeatWrapping, SRGBColorSpace, LinearMipmapLinearFilter, TextureLoader } from 'three';
+import { textureCap, capTexture } from '../battle/render/assetMemory';
 
 export const GROUND_MATERIAL_IDS = ['grass', 'dry-soil', 'desert-sand', 'rock', 'snow', 'wet-soil', 'paving', 'steppe-grass', 'tundra'];
 // A set and the sets standing in for it while it is missing.
@@ -71,6 +72,9 @@ export const groundTextureUniform = (url) => {
       new TextureLoader().loadAsync(url).then((t) => {
         t.wrapS = RepeatWrapping; t.wrapT = RepeatWrapping; t.colorSpace = SRGBColorSpace;
         t.minFilter = LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = 4; t.needsUpdate = true;
+        // a phone or tablet: a 512 px set and no CPU copy once uploaded (assetMemory.js; the grain
+        // repeats every few metres, a quarter of the pixels does not show at a phone's size)
+        if (textureCap() <= 1024) capTexture(t, 512, undefined, { release: true });
         u.value = t;
       }).catch((e) => console.warn(`[art] ground material ${url}: ${e.message}`));
     }

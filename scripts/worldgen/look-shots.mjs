@@ -7,7 +7,7 @@
 //        [--earth] (also the real Earth)  [--version 2]  [--people akkad]  [--profiles phone,desktop]
 import path from 'node:path';
 import { mkdirSync } from 'node:fs';
-import { chromium } from 'playwright';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const arg = (name, dflt) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : dflt; };
 const flag = (name) => process.argv.includes(`--${name}`);
@@ -24,7 +24,7 @@ const PROFILE = {
 };
 
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ channel: arg('browser', 'msedge'), args: ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--enable-webgl'] });
+const browser = await launchBrowser({ channel: arg('browser', 'msedge') });
 const times = [];
 try {
   for (const w of worlds) {

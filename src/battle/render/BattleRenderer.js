@@ -18,7 +18,11 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/battleStats';
 import { soldierSlots, squadSlots, figureScale, scaledSoldiers } from './capacity';
-import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
+import { trimGltfCache, forgetReleasedGltf } from './gltfUnitLoader';
+import { textureCap } from './assetMemory';
+import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE, clipUniforms } from './soldierFactory';
+import { clipSetOf, newFigureState, playClip, busyUntil, setBusy, currentClip, writeAnim, baseMotion, strikeTiming } from './clipPlayer';
+import { WORK_JOB, workJobOf } from '../sim/economy';
 import { writeSoldierVariant, skinToneFor } from './unitVariants';
 import { soldierLodGeometries, pickSoldierTier, triangleCount } from './soldierLod';
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox, dryGrassBlend, DRY_GRASS } from './terrainSurface';
@@ -27,6 +31,7 @@ import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
+import { FogMask } from './fogMask';
 import { VegetationProps } from '../art/vegetationProps';
 import { dressStructure, fortRef, CivicStructures } from '../art/structureArt';
 import { BattleTerrainArt } from '../art/battleTerrain';
@@ -187,6 +192,8 @@ export class BattleRenderer {
     this.playerSide = playerSide;
     this.frameTimes = [];
     this.renderer = new WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: 'high-performance' });
+    // a model file whose maps live only in the map's renderer (a phone keeps no CPU copy) loads again
+    forgetReleasedGltf();
     // Dynamic resolution (plan §15): start at the screen's DPR (max 2); 3 slow frames in a row
     // (> 20 ms) drop it a step (1.25, then 1), and a long run of fast frames earns it back.
     this.baseDpr = Math.min(window.devicePixelRatio || 1, BATTLE_GRAPHICS.maxDpr);
@@ -306,6 +313,9 @@ export class BattleRenderer {
 
   setFog(grid) {
     const { w, h } = this.map;
+    this.fogNow = grid; this.fogVersion = (this.fogVersion || 0) + 1;
+    this.fogMask?.update(grid);
+    this.structureHolders?.forEach((e) => { e.holder.visible = this.seenAt(e.x, e.z); });
     let veiled = false;
     // The veil's alpha per tile, then softened by a small separable blur (1 2 3 2 1) across rows
     // and columns: the sight discs' tile steps read as soft edges, not dark stair-stepped squares.
@@ -335,6 +345,20 @@ export class BattleRenderer {
     // Nothing hidden (everything in sight, or no fog of war): the two veils would draw about
     // 66,000 fully clear triangles a frame.
     this.fogMesh.visible = veiled; this.skirtFogMesh.visible = veiled;
+  }
+
+  /** Has the player's side ever seen the ground at (x, z) tiles? (Always, without fog of war.) */
+  seenAt(x, z) {
+    const g = this.fogNow;
+    if (!g) return true;
+    const { w, h } = this.map;
+    return g[Math.max(0, Math.min(h - 1, Math.floor(z))) * w + Math.max(0, Math.min(w - 1, Math.floor(x)))] > 0;
+  }
+
+  /** The same for a structure of the setup, by its index. */
+  structureSeen(i) {
+    const s = this.setup.structures[i];
+    return !s || this.seenAt(s.x / Q, s.y / Q);
   }
 
   track(obj) { this.disposables.push(obj); return obj; }
@@ -495,6 +519,7 @@ export class BattleRenderer {
     // Instanced by spatial chunk (PROP_CHUNK tiles square): each chunk has its own bounds, so
     // three.js leaves out the chunks off screen (and outside the sun's shadow box). One mesh for
     // the whole field had bounds covering everything and drew every tree every frame.
+    this.fogMask = new FogMask(w, h); // props on ground never seen stay hidden (fogMask.js)
     const propMeshes = {}; // kind -> its chunk meshes (the vegetation kit swaps their geometry in)
     const place = (list, geo, { color = '#ffffff', shadow = true, scaleFn = (s0) => [s0, s0, s0], tint = 0.25, kind = null } = {}) => {
       if (!list.length) return;
@@ -525,6 +550,7 @@ export class BattleRenderer {
         mesh.computeBoundingSphere(); mesh.computeBoundingBox();
         mesh.castShadow = shadow && !beyond; mesh.receiveShadow = true;
         this.scene.add(mesh);
+        this.fogMask.add(mesh);
         if (kind) (propMeshes[kind] ||= []).push(mesh);
       });
     };
@@ -577,6 +603,7 @@ export class BattleRenderer {
 
   buildStructures() {
     this.structureMeshes = new Map();
+    this.structureHolders = [];
     this.civicStructures = new CivicStructures(this);
     const modern = this.setup.sides[1].ageId === 'modern';
     const merlons = (g, mat, radius, y, count, size = 0.22) => {
@@ -641,7 +668,9 @@ export class BattleRenderer {
       }
       g.position.set(x, this.heightAt(x, z), z);
       this.mergeByMaterial(g);
-      this.scene.add(g);
+      // A holder per structure, so the fog of war can hide it whole whatever is added to it later.
+      const holder = new Group(); holder.add(g); this.scene.add(holder);
+      this.structureHolders.push({ holder, x, z });
       this.structureMeshes.set(s.id, g);
       // A fortified place without a real city: its keep is the age's fort once the file is in
       // (src/assets/battle/city/fort-<age>.glb or the map's fort improvement; structureArt.js).
@@ -854,22 +883,34 @@ export class BattleRenderer {
     // every soldier of this age and class (capacity.js); a signature unit's layer ('infantry~people')
     // as many as its base class, a general layer one a squad (the minimum pool)
     const MAX = soldierSlots(this.setup, ageId, LOOK_CLASS[classId] || baseClassOf(classId));
-    const buf = (size) => new InstancedBufferAttribute(new Float32Array(MAX * size), size).setUsage(DynamicDrawUsage);
-    const matrix = buf(16); const color = buf(3); const anim = buf(3); const variant = buf(4);
+    // A unit with clips (I219: gltfUnitLoader.js baked them) plays them through its own materials (the
+    // USE_CLIPS program, shared, with this unit's bone texture) and has room for its fallen.
+    const base = getSoldierGeometry(ageId, classId);
+    const bake = base.userData?.clips && base.attributes.aBone && base.attributes.aClipPos ? base.userData.clips : null;
+    const SIZE = MAX + (bake ? Math.min(MAX, BATTLE_GRAPHICS.corpses.desktop) : 0);
+    const buf = (size) => new InstancedBufferAttribute(new Float32Array(SIZE * size), size).setUsage(DynamicDrawUsage);
+    const matrix = buf(16); const color = buf(3); const anim = buf(bake ? 4 : 3); const variant = buf(4);
+    const animPrev = bake ? buf(4) : null;
+    let mats = { near: this.soldierMaterial, far: this.farSoldierMaterial, depth: this.soldierDepth };
+    if (bake) {
+      const u = clipUniforms(bake); this.track(u.texture);
+      mats = { near: this.track(createSoldierMaterial({ standard: true, teamTint: 0, clips: u })), far: this.track(createSoldierMaterial({ standard: true, teamTint: 0.06, clips: u })), depth: this.track(createSoldierDepthMaterial({ clips: u })) };
+    }
     const make = (source, shadow, far) => {
       const geo = this.track(packForGPU(source.clone()));
       geo.setAttribute('aAnim', anim);
+      if (animPrev) geo.setAttribute('aAnimPrev', animPrev);
       geo.setAttribute('aVariant', variant);
-      const mesh = new InstancedMesh(geo, far ? this.farSoldierMaterial : this.soldierMaterial, MAX);
+      const mesh = new InstancedMesh(geo, far ? mats.far : mats.near, SIZE);
       mesh.instanceMatrix = matrix; mesh.instanceColor = color;
-      if (shadow) mesh.customDepthMaterial = this.soldierDepth;
+      if (shadow) mesh.customDepthMaterial = mats.depth;
       mesh.castShadow = shadow; mesh.receiveShadow = true;
       mesh.count = 0; mesh.frustumCulled = false; mesh.visible = false;
       this.scene.add(mesh);
       return mesh;
     };
-    const levels = soldierLodGeometries(getSoldierGeometry(ageId, classId)).map((g, k) => make(g, k === 0 && BATTLE_GRAPHICS.shadows, k === 2));
-    layer = { levels, tris: levels.map((m) => triangleCount(m.geometry)), matrix, color, anim, variant, count: 0, capacity: MAX };
+    const levels = soldierLodGeometries(base).map((g, k) => make(g, k === 0 && BATTLE_GRAPHICS.shadows, k === 2));
+    layer = { levels, tris: levels.map((m) => triangleCount(m.geometry)), matrix, color, anim, animPrev, variant, count: 0, capacity: MAX, size: SIZE, clipSet: bake ? clipSetOf(bake) : null };
     this.soldierLayers.set(key, layer);
     return layer;
   }
@@ -991,7 +1032,7 @@ export class BattleRenderer {
     if (eco) return { ...eco, ground: g };
     // A structure counts where it stands: a wall or a house by its own tiles (input/orderFeedback.js).
     best = pickStructureAt(g, view?.structures, this.setup.structures, this.map.w, Math.max(FOOTPRINT_PICK_TILES, FOOTPRINT_PICK_PX * this.worldPerPixel()));
-    return best ? { ...best, ground: g } : { kind: 'ground', ground: g };
+    return best && this.structureSeen(best.index ?? -1) ? { ...best, ground: g } : { kind: 'ground', ground: g };
   }
 
   addMarker(x, z, color = '#a3e635') { this.markers.push({ x, z, t: 0, color }); }
@@ -1150,6 +1191,14 @@ export class BattleRenderer {
     this.time += dt;
     this.adaptDetail(dt);
     RIG_TIME.value = this.time;
+    // sim ticks per render second (the clip player's clock: game speed and pauses)
+    if (cur && cur.tick !== this.seenTick) {
+      if (this.seenTick != null && cur.tick > this.seenTick && this.time > this.seenTickAt) {
+        const inst = (cur.tick - this.seenTick) / (this.time - this.seenTickAt);
+        this.tickRate = Math.max(5, Math.min(200, lerp(this.tickRate || 20, inst, 0.2)));
+      }
+      this.seenTick = cur.tick; this.seenTickAt = this.time;
+    }
     this.adaptResolution(dt);
     this.fitShadows();
     if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.copy(this.skyColor).lerp(new Color('#ffffff'), this.flash); }
@@ -1274,7 +1323,7 @@ export class BattleRenderer {
     cur.squads.forEach((s) => {
       const memo = this.soldierMemo.get(s.idx);
       // Wiped out on the field: every soldier still standing last frame falls at once.
-      if (!s.alive && memo && !s.fled) this.spillBlood(memo, 0);
+      if (!s.alive && memo && !s.fled) { this.spillBlood(memo, 0); this.dropCorpses(memo, 0, memo.fig); }
       if (!s.alive || !s.onField || s.inside >= 0 || s.fled) { this.soldierMemo.delete(s.idx); return; } // garrisoned squads are inside their building
       if (s.side !== cur.playerSide && s.visible === false) { this.soldierMemo.delete(s.idx); return; } // in the fog of war
       const p = prev?.squads?.[s.idx];
@@ -1311,8 +1360,11 @@ export class BattleRenderer {
       const walking = moving || s.routed ? 1 : 0; const striking = fighting ? 1 : 0;
       const turn = heading + (s.routed ? Math.PI : 0); // routed troops turn and run
       const ct = Math.cos(turn) * scale; const st = Math.sin(turn) * scale;
+      const figBefore = info.fig?.data; // the layout the fallen stood in (squadFigures redoes it for fewer)
       const fig = this.squadFigures(info, s, n, cols, spacing, rowGap);
       const varArr = layer.variant.array;
+      const clipState = layer.clipSet ? this.clipFigures(info, s, cur, prev, alpha, n, cols, moving, fighting, step) : null;
+      const prevArr = clipState ? layer.animPrev.array : null;
       for (let i = 0; i < n; i++) {
         const k = layer.count;
         if (k >= layer.capacity) break;
@@ -1336,14 +1388,18 @@ export class BattleRenderer {
           mat[o + 12] = px; mat[o + 13] = this.heightAt(px, pz); mat[o + 14] = pz; mat[o + 15] = 1;
         }
         colArr[k * 3] = cr; colArr[k * 3 + 1] = cg; colArr[k * 3 + 2] = cb;
-        animArr[k * 3] = fig[d + 4]; animArr[k * 3 + 1] = walking; animArr[k * 3 + 2] = striking;
+        if (clipState) writeAnim(clipState, i, animArr, prevArr, k, (fig[d + 4] / 6.283) * 2);
+        else { animArr[k * 3] = fig[d + 4]; animArr[k * 3 + 1] = walking; animArr[k * 3 + 2] = striking; }
         varArr[k * 4] = fig[d + 5]; varArr[k * 4 + 1] = fig[d + 6]; varArr[k * 4 + 2] = fig[d + 7]; varArr[k * 4 + 3] = fig[d + 8];
         layer.count += 1;
       }
       // Soldiers lost since last frame go down in a spray of blood where they stood.
-      if (memo && n < memo.n) this.spillBlood({ n: memo.n, x, z, fx, fz, cols, spacing, rowGap, big, organic: info.organic, idx: s.idx }, n);
+      if (memo && n < memo.n) {
+        this.spillBlood({ n: memo.n, x, z, fx, fz, cols, spacing, rowGap, big, organic: info.organic, idx: s.idx }, n);
+        if (figBefore && figBefore.length >= memo.n * FIG) this.dropCorpses({ ...memo, x, z, fx, fz, ct, st }, n, figBefore);
+      }
       const m = memo || {};
-      Object.assign(m, { n, x, z, fx, fz, cols, spacing, rowGap, big, organic: info.organic, idx: s.idx });
+      Object.assign(m, { n, x, z, fx, fz, cols, spacing, rowGap, big, organic: info.organic, idx: s.idx, ct, st, fig, info });
       if (!memo) this.soldierMemo.set(s.idx, m);
       // Ground ring, selection ring, standard-bearer banner, strength bar (written straight into
       // their instance buffers: three.js's Object3D compose and colour parsing cost more than
@@ -1383,7 +1439,14 @@ export class BattleRenderer {
           const gk = gl.count; const gx = bx - fx * 0.6; const gz = bz - fz * 0.6; const gs = MODEL_SCALE.general;
           writeYaw(gl.matrix.array, gk, gx, this.heightAt(gx, gz), gz, turn, gs, gs, gs);
           gl.color.array[gk * 3] = cr; gl.color.array[gk * 3 + 1] = cg; gl.color.array[gk * 3 + 2] = cb;
-          gl.anim.array[gk * 3] = fig[4]; gl.anim.array[gk * 3 + 1] = walking; gl.anim.array[gk * 3 + 2] = striking;
+          if (gl.clipSet) {
+            // the general rides with his squad: its gait at its speed (clipPlayer.js), else he stands
+            const gst = info.genClips || (info.genClips = newFigureState(1));
+            const gb = baseMotion(gl.clipSet, { moving: !!walking, routed: s.routed, speed: step * (this.tickRate || 20), simRate: 1 });
+            playClip(gst, 0, gl.clipSet.roles[gb.role], this.time, gb.rate, this.time);
+            writeAnim(gst, 0, gl.anim.array, gl.animPrev.array, gk, (fig[4] / 6.283) * 2);
+          }
+          else { gl.anim.array[gk * 3] = fig[4]; gl.anim.array[gk * 3 + 1] = walking; gl.anim.array[gk * 3 + 2] = striking; }
           gl.variant.array.set(fig.subarray(5, 9), gk * 4);
           gl.count += 1;
         }
@@ -1398,6 +1461,7 @@ export class BattleRenderer {
       barFillCol[barN * 3] = bar.r; barFillCol[barN * 3 + 1] = bar.g; barFillCol[barN * 3 + 2] = bar.b;
       barN += 1;
     });
+    this.drawCorpses(cull);
     // One detail level for every soldier this frame (soldierLod.js): what their size on screen
     // calls for, coarser while the figures in view would pass the triangle budget.
     const layers = [...this.soldierLayers.values()];
@@ -1406,13 +1470,118 @@ export class BattleRenderer {
     layers.forEach((l) => {
       l.levels.forEach((m, k) => { m.count = l.count; m.visible = k === this.soldierTier && l.count > 0; });
       if (!l.count) return;
-      [l.matrix, l.color, l.anim, l.variant].forEach((a) => {
+      [l.matrix, l.color, l.anim, l.variant, ...(l.animPrev ? [l.animPrev] : [])].forEach((a) => {
         a.clearUpdateRanges(); a.addUpdateRange(0, l.count * a.itemSize); a.needsUpdate = true;
       });
     });
     [[this.discs, discN], [this.rings, ringN], [this.barBg, barN], [this.barFill, barN], [this.bannerPoles, bannerN], [this.bannerFlags, bannerN]].forEach(([m, n]) => {
       m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
     });
+  }
+
+  // The clip each figure of a clip unit plays this frame (I219, clipPlayer.js): gaits scaled to the
+  // squad's real speed, a strike timed so its contact (or release) frame lands on the sim's next
+  // strike, Hit on a couple of front figures when the squad is hit, the worker's job and his drop-off.
+  // Returns the squad's per-figure state (clipPlayer FIGURE_STATE floats a figure).
+  clipFigures(info, s, cur, prev, alpha, n, cols, moving, fighting, step) {
+    const set = info.layer.clipSet; const now = this.time;
+    const full = Math.max(n, info.drawn?.soldiers || n);
+    let sc = info.clips;
+    if (!sc || sc.st.length < full * 8) {
+      sc = info.clips = { st: newFigureState(full), strike: s.lastStrikeTick ?? -10000, hit: s.lastHitTick ?? -10000, dep: s.lastDepositTick ?? -10000, swings: 0 };
+    }
+    const tickRate = this.tickRate || 20;
+    const simNow = prev && prev.tick < cur.tick ? lerp(prev.tick, cur.tick, alpha) : cur.tick;
+    const renderAt = (tick) => now - (simNow - tick) / tickRate;
+    const worker = s.classId === 'worker';
+    const working = worker && workJobOf(s.work || 0) !== WORK_JOB.none;
+    const ticks = prev && cur.tick > prev.tick ? cur.tick - prev.tick : 1;
+    const won = !!cur.ended && ((cur.ended.outcome === 'attacker') === (s.side === 0));
+    const base = baseMotion(set, { moving: moving || s.routed, routed: s.routed, worker, work: s.work || 0, won, speed: (step / ticks) * tickRate, simRate: tickRate / 20 });
+    const newStrike = (s.lastStrikeTick ?? -10000) > sc.strike; sc.strike = Math.max(sc.strike, s.lastStrikeTick ?? -10000);
+    const newHit = (s.lastHitTick ?? -10000) > sc.hit; sc.hit = Math.max(sc.hit, s.lastHitTick ?? -10000);
+    const newDeposit = (s.lastDepositTick ?? -10000) > sc.dep; sc.dep = Math.max(sc.dep, s.lastDepositTick ?? -10000);
+    if (newStrike) sc.swings += 1;
+    const { attack, attack2, hit, deposit, charge } = set.roles;
+    const periodS = (info.stats.attackTicks || 20) / tickRate;
+    const front = Math.max(1, Math.min(cols, n));
+    const st = sc.st;
+    for (let i = 0; i < n; i++) {
+      const busy = busyUntil(st, i) > now;
+      const was = currentClip(st, i);
+      const swinging = was === attack || was === attack2;
+      if (moving && !s.routed && newStrike && charge >= 0) {
+        // a charge (section 7.3): its lead-in runs so the contact lands on the next strike
+        const t = strikeTiming(set, charge, renderAt(s.lastStrikeTick), periodS);
+        playClip(st, i, charge, Math.max(now, t.start), t.rate, now, { keepLoop: false });
+        setBusy(st, i, Math.max(now, t.start) + set.dur[charge] / t.rate);
+      } else if ((moving || s.routed) && !(busy && was === charge)) {
+        playClip(st, i, set.roles[base.role], now, base.rate, now); setBusy(st, i, 0);
+      } else if (fighting && !working && attack >= 0) {
+        if (newStrike) {
+          const clip = (sc.swings + i) % 2 && attack2 >= 0 ? attack2 : attack;
+          const lag = i < front ? 0 : hash01(s.idx * 31 + i) * 0.35 * periodS; // the front rank on the beat, the rest a little behind
+          const t = strikeTiming(set, clip, renderAt(s.lastStrikeTick) + lag, periodS);
+          playClip(st, i, clip, t.start, t.rate, now, { fade: !swinging, keepLoop: false });
+          setBusy(st, i, t.start + set.dur[clip] / t.rate);
+        } else if (!swinging) playClip(st, i, attack, now + 1e4, 1, now); // on guard: the strike's first frame until the next strike
+      } else if (newHit && hit >= 0 && !busy && i < front && hash01(s.idx * 13 + i + sc.hit) < 2 / front) {
+        playClip(st, i, hit, now, 1, now, { keepLoop: false }); setBusy(st, i, now + set.dur[hit]);
+      } else if (worker && newDeposit && deposit >= 0 && !busy) {
+        playClip(st, i, deposit, now, 1, now, { keepLoop: false }); setBusy(st, i, now + set.dur[deposit]);
+      } else if (!busy) {
+        const role = base.role === 'idle' && hash01(s.idx * 71 + i) < 0.3 ? 'idleAlt' : base.role;
+        playClip(st, i, set.roles[role], now, base.rate, now);
+      }
+    }
+    return st;
+  }
+
+  // Figures from..memo.n-1 of a clip unit fell: each lies where it stood, playing Death (or
+  // DeathAlt) and holding its last frame, for BATTLE_GRAPHICS.corpseSeconds, then sinks away. The
+  // pool keeps the newest (the corpses cap, smaller on a phone).
+  dropCorpses(memo, from, figData) {
+    const info = memo.info; const set = info?.layer?.clipSet;
+    if (!set || set.roles.death < 0 || !figData || memo.ct === undefined) return;
+    const { x, z, fx, fz, ct, st } = memo; const scale = info.scale; const side = info.sideColor;
+    this.corpses = this.corpses || [];
+    for (let i = from; i < memo.n; i++) {
+      const d = i * FIG;
+      if (d + FIG > figData.length) break;
+      const lat = figData[d]; const back = figData[d + 1];
+      const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
+      const c = ct * figData[d + 2] - st * figData[d + 3]; const sn = st * figData[d + 2] + ct * figData[d + 3];
+      const clip = hash01(memo.idx * 7 + i) < 0.5 || set.roles.deathAlt < 0 ? set.roles.death : set.roles.deathAlt;
+      this.corpses.push({ layer: info.layer, x: px, z: pz, c, sn, scale, r: side.r, g: side.g, b: side.b, v: figData.slice(d + 5, d + 9), clip, born: this.time });
+    }
+    const cap = this.figureBudget === BATTLE_GRAPHICS.figureTriangles.phone ? BATTLE_GRAPHICS.corpses.phone : BATTLE_GRAPHICS.corpses.desktop;
+    if (this.corpses.length > cap) this.corpses.splice(0, this.corpses.length - cap);
+  }
+
+  drawCorpses(cull) {
+    const list = this.corpses;
+    if (!list?.length) return;
+    const now = this.time; const life = BATTLE_GRAPHICS.corpseSeconds; const sink = BATTLE_GRAPHICS.corpseSinkSeconds;
+    let keep = 0;
+    for (let j = 0; j < list.length; j++) {
+      const cp = list[j]; const age = now - cp.born;
+      if (age > life + sink) continue;
+      list[keep++] = cp;
+      const L = cp.layer;
+      if (L.count >= L.size || !cull(cp.x, cp.z, 1)) continue;
+      const k = L.count; L.count += 1;
+      const y = this.heightAt(cp.x, cp.z) - Math.max(0, (age - life) / sink) * 0.5 * cp.scale;
+      const mat = L.matrix.array; const o = k * 16;
+      mat[o] = cp.c; mat[o + 1] = 0; mat[o + 2] = -cp.sn; mat[o + 3] = 0;
+      mat[o + 4] = 0; mat[o + 5] = cp.scale; mat[o + 6] = 0; mat[o + 7] = 0;
+      mat[o + 8] = cp.sn; mat[o + 9] = 0; mat[o + 10] = cp.c; mat[o + 11] = 0;
+      mat[o + 12] = cp.x; mat[o + 13] = y; mat[o + 14] = cp.z; mat[o + 15] = 1;
+      L.color.array[k * 3] = cp.r; L.color.array[k * 3 + 1] = cp.g; L.color.array[k * 3 + 2] = cp.b;
+      L.variant.array.set(cp.v, k * 4);
+      L.anim.array[k * 4] = cp.clip; L.anim.array[k * 4 + 1] = cp.born; L.anim.array[k * 4 + 2] = 1; L.anim.array[k * 4 + 3] = 0;
+      L.animPrev.array[k * 4] = 0; L.animPrev.array[k * 4 + 1] = 0; L.animPrev.array[k * 4 + 2] = 1; L.animPrev.array[k * 4 + 3] = -1;
+    }
+    list.length = keep;
   }
 
   // Soldiers `from`..memo.n-1 of a squad (laid out as in drawSquads) have just fallen: each one
@@ -1459,6 +1628,7 @@ export class BattleRenderer {
     const picked = this.inspected?.kind === 'structure' ? this.inspected.index : -1;
     cur.structures.forEach((s, i) => {
       const g = this.structureMeshes.get(s.id);
+      if (!this.structureSeen(i)) return; // never seen: no bar
       if (!g && i !== picked) return; // the real city's pieces (cityLayer.js) show a bar only when inspected
       const frac = s.hp / Math.max(1, s.maxHp);
       if (g) {
@@ -1602,11 +1772,18 @@ export class BattleRenderer {
     this.raidLandingProps?.dispose();
     this.ecoLayer?.dispose();
     this.vegetation?.dispose();
+    this.fogMask?.dispose();
     this.terrainArt?.dispose();
     this.projectileArt?.dispose();
     this.fxSprites?.dispose();
     this.disposables.forEach((d) => d.dispose?.());
     disposeSoldierCache();
     this.renderer.dispose();
+    // (the context itself is let go when the canvas leaves the page: glContext.js, used by
+    // TacticalBattleScreen; the same canvas may get a new renderer)
+    // The battle's files whose maps lived only in this renderer go with it; on a phone the rest of
+    // its kits too (the map's files load again when it needs them).
+    forgetReleasedGltf();
+    if (textureCap() <= 1024) trimGltfCache(48);
   }
 }

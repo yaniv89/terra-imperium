@@ -6,7 +6,7 @@
 //   node scripts/preview.mjs --mobile --port 4173   (after npm run build:mobile)
 //   node scripts/ui/stuck-turn-check.mjs --url http://localhost:4173/ --out plans/ui/safari/after
 import { mkdirSync } from 'node:fs';
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import { answerBlockers } from '../../e2e/endTurnHelpers.js';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
@@ -14,7 +14,7 @@ const URL = arg('url', 'http://localhost:4173/');
 const OUT = arg('out', 'plans/ui/safari/after');
 mkdirSync(OUT, { recursive: true });
 const exe = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : { channel: 'chrome' }), headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await launchBrowser({ ...(exe ? { executablePath: exe } : { channel: 'chrome' }), headless: true });
 const page = await browser.newPage({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 await page.addInitScript(() => {
   window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true;

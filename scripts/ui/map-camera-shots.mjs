@@ -6,7 +6,7 @@
 // plans/ui/map-camera/, and where the battle's city sits on screen after each step (it should stay
 // at the centre). Needs a running dev server (`npx vite --port 5191`) and a Chrome; headless.
 //   node scripts/ui/map-camera-shots.mjs [--url http://localhost:5191/terra-imperium/] [--tag before|after]
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -95,7 +95,7 @@ const shot = async (page, name) => {
   console.log('wrote', path.relative(process.cwd(), file), JSON.stringify(await where(page)));
 };
 
-const browser = await chromium.launch({ headless: true, executablePath: CHROME, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-dev-shm-usage'] });
+const browser = await launchBrowser({ headless: true, executablePath: CHROME, args: ['--disable-dev-shm-usage'] });
 try {
   const context = await browser.newContext({ viewport: { width: W, height: H }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
   await context.addInitScript(() => { window.__E2E_MAP_TEST__ = true; localStorage.setItem('terra-imperium-map-mode', 'flat'); });

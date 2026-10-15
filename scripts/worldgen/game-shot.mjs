@@ -4,7 +4,7 @@
 //   node scripts/worldgen/game-shot.mjs --url http://localhost:5199/terra-imperium --seed 3 --out plans/map-variations/generated
 import path from 'node:path';
 import { mkdirSync } from 'node:fs';
-import { chromium } from 'playwright';
+import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const arg = (name, dflt) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : dflt; };
 const url = arg('url', 'http://localhost:5199/terra-imperium');
@@ -14,7 +14,7 @@ const spec = { kind: 'generated', generatorVersion: 1, seed, params: { land: 30,
 const start = { playerNationId: 'akkad', gameSpeed: 'normal', difficultyId: 'prince', scenario: { mode: 'peoples', size: 'standard', seed: 7, map: spec }, exploredWorld: true };
 
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ channel: arg('browser', 'msedge') });
+const browser = await launchBrowser({ channel: arg('browser', 'msedge') });
 try {
   for (const [name, viewport, dpr] of [['844x390', { width: 844, height: 390 }, 2], ['desktop', { width: 1440, height: 860 }, 1]]) {
     const ctx = await browser.newContext({ viewport, deviceScaleFactor: dpr });

@@ -50,6 +50,81 @@ export const prepareBuildingModel = (root) => {
   return Array.from(lods, (p) => p || []);
 };
 
+// ---- the far levels' guard ---------------------------------------------------------------------
+// A level that draws black where LOD0 does not: every base-set improvement file of the art session
+// (mine-bronze, farm-bronze, quarry-bronze ... src/assets/map/improvements/*-bronze.glb and
+// *-modern.glb) has a LOD1 and LOD2 Ground that is one square whose UVs fall on an empty, black
+// corner of the atlas, so a mine showed as a black square from zoom 13 to 40 (lodForZoom). Such a
+// part takes LOD0's part of the same material instead (the Ground disc is a few hundred vertices).
+export const DARK_LUMINANCE = 0.06;
+export const LIT_LUMINANCE = 0.15;
+/**
+ * Swap each part of LOD1 and up whose texture is black at its UVs (`lumOf(part)`: mean luminance
+ * 0..1, or null when it cannot tell) for LOD0's parts of the same material, where those are lit.
+ * Changes `lods` in place; returns what it swapped: [{ lod, material }].
+ */
+export const repairDarkLods = (lods, lumOf) => {
+  const fixed = [];
+  const lit = new Map(); // material name -> LOD0's parts, when they are lit
+  const lum = (p) => { try { return lumOf(p); } catch { return null; } };
+  (lods[0] || []).forEach((p) => {
+    const name = p.material?.name || '';
+    if (!lit.has(name)) lit.set(name, []);
+    lit.get(name).push(p);
+  });
+  lit.forEach((parts, name) => { const l = parts.map(lum); if (l.some((x) => x == null || x < LIT_LUMINANCE)) lit.delete(name); });
+  for (let l = 1; l < lods.length; l++) {
+    const parts = lods[l] || [];
+    const dark = new Set(parts.filter((p) => lit.has(p.material?.name || '') && (lum(p) ?? 1) < DARK_LUMINANCE).map((p) => p.material?.name || ''));
+    if (!dark.size) continue;
+    lods[l] = [...parts.filter((p) => !dark.has(p.material?.name || '')), ...[...dark].flatMap((name) => lit.get(name))];
+    dark.forEach((material) => fixed.push({ lod: l, material }));
+  }
+  return fixed;
+};
+
+// The mean luminance of a part's base colour texture at its vertices' UVs (texture transform and
+// flip applied), read once per image from a small copy on a 2D canvas. Null without a texture or
+// a canvas (tests, a worker).
+const SAMPLE = 128;
+const pixelsOf = new WeakMap();
+const imagePixels = (image) => {
+  if (pixelsOf.has(image)) return pixelsOf.get(image);
+  let data = null;
+  try {
+    const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(SAMPLE, SAMPLE)
+      : typeof document !== 'undefined' ? Object.assign(document.createElement('canvas'), { width: SAMPLE, height: SAMPLE }) : null;
+    const g = canvas?.getContext('2d', { willReadFrequently: true });
+    if (g) { g.drawImage(image, 0, 0, SAMPLE, SAMPLE); data = g.getImageData(0, 0, SAMPLE, SAMPLE).data; }
+  } catch { data = null; }
+  pixelsOf.set(image, data);
+  return data;
+};
+export const partLuminance = (part) => {
+  const map = part.material?.map; const uv = part.geometry?.attributes?.uv;
+  if (!map?.image || !uv) return null;
+  const px = imagePixels(map.image);
+  if (!px) return null;
+  map.updateMatrix();
+  const e = map.matrix.elements;
+  const index = part.geometry.index;
+  const total = index ? index.count : uv.count;
+  const start = part.geometry.drawRange.start;
+  const end = Math.min(total, start + part.geometry.drawRange.count);
+  const step = Math.max(1, Math.floor((end - start) / 400));
+  let sum = 0; let n = 0;
+  const wrap = (x) => x - Math.floor(x);
+  for (let i = start; i < end; i += step) {
+    const vi = index ? index.getX(i) : i;
+    const u0 = uv.getX(vi); const v0 = uv.getY(vi);
+    const u = wrap(e[0] * u0 + e[3] * v0 + e[6]); let v = wrap(e[1] * u0 + e[4] * v0 + e[7]);
+    if (map.flipY) v = 1 - v;
+    const o = (Math.min(SAMPLE - 1, Math.floor(v * SAMPLE)) * SAMPLE + Math.min(SAMPLE - 1, Math.floor(u * SAMPLE))) * 4;
+    sum += (0.2126 * px[o] + 0.7152 * px[o + 1] + 0.0722 * px[o + 2]) / 255; n += 1;
+  }
+  return n ? sum / n : null;
+};
+
 const START = 16;
 
 /**
@@ -108,7 +183,13 @@ export const createBuildingLayer = (scene) => {
 
   return {
     /** Register a loaded model file (its root object). */
-    setModel: (url, root) => { if (!models.has(url)) models.set(url, { lods: prepareBuildingModel(root), meshes: [] }); },
+    setModel: (url, root, lumOf = partLuminance) => {
+      if (models.has(url)) return;
+      const lods = prepareBuildingModel(root);
+      const fixed = repairDarkLods(lods, lumOf);
+      if (fixed.length) console.warn(`${url}: black ${fixed.map((f) => `LOD${f.lod} ${f.material}`).join(', ')} drawn with LOD0's (rebuild the file)`);
+      models.set(url, { lods, meshes: [] });
+    },
     hasModel: (url) => models.has(url),
     /** The model's radius and Ground centre (modelInfo), measured once. */
     info: (url) => {

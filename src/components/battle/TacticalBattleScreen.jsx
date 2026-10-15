@@ -39,6 +39,8 @@ import { buildFlowNext, BUILD_FLOW_CLOSED, closePrecedence } from './buildFlow';
 import { preloadBattleIcons } from './battleIcons';
 import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 import { arrivalNote, NO_GROUND_TEXT } from '../../battle/input/orderFeedback';
+import { releaseWhenDetached } from '../../utils/glContext';
+import { noteCrashEvent } from '../../utils/crashLog';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
@@ -49,6 +51,8 @@ const HUD_INTERVAL_MS = 150;
 export const FIRST_FRAME_TIMEOUT_MS = 25000;
 // A frame that throws is skipped; this many in a row means the battlefield cannot be drawn.
 const RENDER_ERRORS_TO_FAIL = 3;
+// How long a lost WebGL context may take to come back before the failure screen shows.
+const CONTEXT_RESTORE_MS = 4000;
 // `&perf` in the page URL, or the Performance overlay setting (W12, mapPrefs.js), shows the
 // performance readout (works in a production build too). Read when the battle opens.
 const PERF_URL = typeof location !== 'undefined' && new URLSearchParams(location.search).has('perf');
@@ -349,7 +353,24 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     // Backgrounding the app (phone call, app switch) pauses the battle immediately.
     const onVis = () => { if (document.hidden) { client.pause(); setPaused(true); } };
     document.addEventListener('visibilitychange', onVis);
+    // A phone can take the graphics away (memory pressure, the app in the background): the battle
+    // pauses, three.js rebuilds everything when the context comes back, and if it does not come
+    // back the failure screen offers Auto or Try again instead of a black field.
+    let lostTimer = 0;
+    const onLost = (e) => {
+      e.preventDefault();
+      client.pause(); setPaused(true);
+      noteCrashEvent('battle-context-lost');
+      clearTimeout(lostTimer);
+      lostTimer = setTimeout(() => setFailure({ message: 'The battlefield could not be drawn.', detail: 'The graphics were lost (webglcontextlost).' }), CONTEXT_RESTORE_MS);
+    };
+    const onRestored = () => { clearTimeout(lostTimer); noteCrashEvent('battle-context-restored'); };
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
     return () => {
+      clearTimeout(lostTimer);
+      canvas.removeEventListener('webglcontextlost', onLost);
+      canvas.removeEventListener('webglcontextrestored', onRestored);
       cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', onVis);
       ro.disconnect();
@@ -365,6 +386,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     // setup/resume are fixed for the life of a battle screen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // The screen closed: its WebGL context (and GPU memory) goes now, not when collected (glContext.js).
+  useEffect(() => { const canvas = canvasRef.current; return () => releaseWhenDetached(canvas); }, []);
 
   // The result screen covers the battlefield: its sounds stop (the victory or defeat sting has played).
   useEffect(() => { audioRef.current?.setVisible(!ended); }, [ended]);

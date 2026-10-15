@@ -132,6 +132,7 @@ export class VegetationProps {
           mesh.computeBoundingSphere(); mesh.computeBoundingBox();
           mesh.castShadow = chunk.shadow; mesh.receiveShadow = true; mesh.visible = visible;
           chunk.parent?.add(mesh);
+          this.r.fogMask?.add(mesh); // never-seen ground keeps its trees hidden (render/fogMask.js)
           out.push({ mesh, species: sp, levels: levels[sp], ranks: items.map((it) => it.rank), total: items.length, sizes: items.map((it) => it.size), tris: levels[sp].map((l) => trianglesOf(l.geometry)), kept: items.length, lod: -1 });
         });
       });
@@ -214,7 +215,7 @@ export class VegetationProps {
   dispose() {
     this.disposed = true;
     if (!this.trees) return;
-    [...this.trees.meshes, ...this.trees.near].forEach(({ mesh }) => { mesh.parent?.remove(mesh); mesh.dispose(); });
+    [...this.trees.meshes, ...this.trees.near].forEach(({ mesh }) => { this.r.fogMask?.remove(mesh); mesh.parent?.remove(mesh); mesh.dispose(); });
     this.trees = null;
   }
 }

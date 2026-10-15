@@ -86,6 +86,23 @@ const townGapSearch = (projection, tiles, tile, isTown) => {
   return best;
 };
 
+// Army figures and settler parties (closeViewScene.js placeArmies). A figure is drawn at
+// `figureScale` pixels per model unit: its true size (unitPx times its class's factor) but never
+// below its floor (a pixel height over the model's height), so it never shrinks as the map zooms in.
+export const figureScale = (k, trueFactor, floorScale) => Math.max(unitPx(k) * trueFactor, floorScale);
+/**
+ * The close view is laid out once a zoom settles (at `layoutK`) and the GPU scales that layout with
+ * the live zoom `k` until the next one (GLMapView: the root's scale k / layoutK). A figure scaled
+ * that way grew past its size during a zoom in and then snapped back to its floor when the zoom
+ * settled: the soldiers shrank on every zoom in. This is the factor a figure laid out at layoutK
+ * is scaled by in place (about its feet, its offset from the army's spot with it) so that at every
+ * live zoom it shows at figureScale(k), the size the next layout gives it.
+ */
+export const figureLiveFactor = (k, layoutK, trueFactor, floorScale) => {
+  if (!(k > 0) || !(layoutK > 0)) return 1;
+  return figureScale(k, trueFactor, floorScale) / (figureScale(layoutK, trueFactor, floorScale) * (k / layoutK));
+};
+
 // Where an army's soldiers stand, in model units from the province centre (screen x, screen y).
 export const ARMY_SPOT = { x: 2.4, y: 1.6 };
 // How far the models lean toward the viewer (radians about the screen x axis, 0 = seen from the

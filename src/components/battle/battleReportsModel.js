@@ -78,6 +78,25 @@ export const fateRows = (e, side) => (e?.sides?.[side] || []).map((u) => {
   };
 });
 
+/**
+ * The battle whose detail shows (REPORT-01): the picked one if the filter still lists it, else the
+ * first the filter lists, else null (the empty state; never a battle the filter hides).
+ */
+export const detailFor = (all, shown, pickedId) => {
+  const picked = all.find((r) => r.id === pickedId) || null;
+  return picked && shown.includes(picked) ? picked : shown[0] || null;
+};
+
+/**
+ * The line under a report about its replay, from the mode the battle was RECORDED in (REPORT-02):
+ * an Auto battle never says "commanded battles keep no replay".
+ */
+export const replayFooter = (e, canReplay, oneRound) => {
+  if (oneRound) return 'Decided in one round: these numbers are the whole battle.';
+  if (e.commanded) return canReplay ? 'Commanded battle: the timeline above is kept.' : 'Commanded battles keep no replay yet.';
+  return canReplay ? 'Auto battles keep their rounds.' : 'This Auto battle was decided without rounds to replay.';
+};
+
 /** The detail of one battle. */
 export const reportDetail = (state, e) => {
   if (!e) return null;
@@ -99,6 +118,7 @@ export const reportDetail = (state, e) => {
     summary: `${outcome.text}. ${destroyed ? `${destroyed} of their regiments destroyed` : 'None of their regiments destroyed'}; ${lostUnits ? `${lostUnits} of yours lost` : 'none of yours lost'}.${fled}`,
     timeline: timelineFor(e),
     canReplay: timelineFor(e).length > 1,
+    footer: replayFooter(e, timelineFor(e).length > 1, !e.commanded && rounds === 1),
     oneRound: !e.commanded && rounds === 1,
     // The receipt: what the campaign logged, the temporary troops, and how a commanded battle was checked.
     line: e.line || null,

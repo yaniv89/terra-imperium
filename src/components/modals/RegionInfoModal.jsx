@@ -34,6 +34,7 @@ import { attackReach, planMarchAttack } from '../../engine/marchAttack';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
@@ -41,7 +42,7 @@ import TopLayer from '../ui/TopLayer';
 import PreBattleModal from '../battle/PreBattleModal';
 import { startMarch, selectNation, selectArmy, selectTile } from '../map/marchEvents';
 import { settlerStatus } from '../map/settleRoutes';
-import { placeName } from '../../engine/routes';
+import { placeName, marchOrigin } from '../../engine/routes';
 import { unitsStationedIn, fieldUnitsOf, whereLabel } from '../../engine/unitLocation';
 import { unitTile } from '../../engine/armies';
 import { supplyOf } from '../../engine/supplyMeter';
@@ -93,6 +94,13 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const [landingChoice, setLandingChoice] = useState(null);
   const [peaceOpen, setPeaceOpen] = useState(false); // naval unit id of a landing awaiting "auto or command?"
   useEffect(() => { setExpanded(false); }, [regionId]);
+  // The corner card on a phone held sideways or a tablet is one of the left-edge panels: opening the
+  // tab dock beside it (or a decision card) closes it, so two panels never squeeze the map to a
+  // sliver (the interaction registry, useExclusivePanel.js; same rule as ProvinceModal).
+  const cardWanted = !!regionId && isCornerCard && !isMobile;
+  const card = useInteraction('region-card', cardWanted, { kind: 'panel', priority: PRIORITY.panel, user: true });
+  const cardTucked = cardWanted && !card.shown;
+  useEffect(() => { if (cardTucked) onClose?.(); }, [cardTucked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
   // would just be more of the same clutter this change is trying to reduce. Desktop keeps it,
@@ -111,8 +119,15 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
   // Foreign-region attack/settle options (plan feedback: "Manage Region" now only opens for your
   // own provinces, Civ-style — a foreign region's available actions surface here directly instead).
+  // ACT-01: an army based far away but standing beside this city (a march that halted here) is a
+  // source too; before, only the neighbouring cities' armies were, and its card had no attack.
+  const besideBases = !isPlayerOwned
+    ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.domain === 'land' && !u.embarkedOn).map((u) => u.regionId))]
+      .filter((id) => !getNeighborIds(regionId).includes(id) && attackReach(state, id, regionId) === 'adjacent')
+      .sort()
+    : [];
   const invasionSources = !isPlayerOwned
-    ? getNeighborIds(regionId)
+    ? [...getNeighborIds(regionId), ...besideBases]
       .filter((nId) => state.regions[nId]?.owner === state.playerNationId)
       .map((nId) => {
         // Only an army that borders the city invades at once; a far one marches there to attack
@@ -120,6 +135,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         const far = attackReach(state, nId, regionId) === 'far';
         return {
           regionId: nId,
+          // Where the army really stands (its tile), not the city it is based at.
+          where: whereLabel(state, marchOrigin(state, nId))?.text || null,
           unitCount: Object.values(state.units).filter((u) => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length,
           blockedReason: far ? null : describeAttackBlock(validateInvasion(state, nId, regionId)),
           march: far ? planMarchAttack(state, nId, regionId) : null
@@ -387,12 +404,14 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {!isPlayerOwned && (ownerNation || isNeutralFrontier || canSettle) && (
         <div className="mb-2 pt-2 border-t border-fa-line space-y-1.5">
           {!hasMilitaryOption && !isNeutralFrontier && !canSettle && (
-            <div className="text-fa-muted text-[10px]">No actions available against this region right now.</div>
+            <div className="text-fa-muted text-[10px]" data-testid="no-attack-reason">{atWarWithOwner ? 'No army of yours is beside this city or based next to it. Select an army, tap March, then tap this city to march on it.' : 'No actions available against this region right now.'}</div>
           )}
           {regionState.tile != null && (() => {
             const kind = claimOn(state, state.playerNationId, regionState);
             const pending = (state.nations[state.playerNationId]?.claimsInProgress || []).find((c) => c.cityId === regionId);
             const can = canFabricateClaim(state, state.playerNationId, regionId);
+            // At war a new claim is pointless (it only justifies a war): show it only when one is held or in the works.
+            if (atWarWithOwner && !kind && !pending) return null;
             return (
               <div className="rounded-lg border border-fa-line bg-fa-raised/60 p-2 space-y-1" data-testid="claim-card">
                 <div className="text-[11px] text-fa-text">
@@ -429,11 +448,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">Integration continues until turn {regionState.integratingUntil}: control rises and unrest falls each turn.</p>}
           {ownerNation?.hasTradeAgreement && (() => { const t = tradeRouteStatus(state, ownerNation.id); return t ? <p className={`text-xs ${t.pays ? 'text-fa-text' : 'text-fa-danger-text'}`} data-testid="trade-route-status">Trade route: {t.text}{t.pays ? ' Bigger and nearer partners pay more.' : ''}{t.advice ? ` ${t.advice}` : ''}</p> : null; })()}
           {isNeutralFrontier && <ColonyBlock regionId={regionId} />}
-          {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason, march }) => (march ? (
+          {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason, march, where }) => (march ? (
             <ActionButton
               key={srcId}
               icon={Swords}
-              label={`March on ${regionState.name} from ${REGIONS_DATA[srcId]?.name}`}
+              label={`March on ${regionState.name}${where ? ` (army ${where})` : ''}`}
               description={march.ok ? `${march.turns} turn${march.turns === 1 ? '' : 's'} to arrive${march.stopsAt ? `, stops at ${state.regions[march.stopsAt]?.name || 'an enemy city'} first` : ''}, then the assault` : march.reason}
               onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: srcId, toRegionId: regionId, attack: true } })}
               disabled={!march.ok}
@@ -444,7 +463,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             <ActionButton
               key={srcId}
               icon={Flag}
-              label={`Invade from ${REGIONS_DATA[srcId]?.name}`}
+              label={`Invade ${regionState.name}${where ? ` (army ${where})` : ''}`}
               description={blockedReason || `${unitCount} land unit${unitCount === 1 ? '' : 's'} available`}
               costs={ACTION_COSTS.launchInvasion}
               onClick={() => handleInvade(srcId)}

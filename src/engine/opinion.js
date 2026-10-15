@@ -23,7 +23,7 @@ import { ringsAround } from './world/cities';
 import { ringsForKm, kmPerRing } from '../data/geo/gridScale';
 import {
   OPINION_MIN, OPINION_MAX, OPINION_BASELINE, GRUDGE_PER_HOSTILITY, BORDER_FREE_TILES, BORDER_PER_TILE, BORDER_MAX, BORDER_TILE_KM, SETTLED_NEAR_KM, SETTLED_NEAR,
-  HOLDS_MY_CULTURE, CLAIM_ON_MY_CITY, TRADE_ROUTE, TRADE_MAX, ALLIANCE, OPEN_BORDERS, DEFENSIVE_PACT, ROYAL_MARRIAGE, SAME_IDENTITY_AXIS, BROKEN_TRUCE, AE_FREE, AE_PER_POINT, RIVAL, VASSAL_OF_YOU,
+  HOLDS_MY_CULTURE, CLAIM_ON_MY_CITY, TRADE_ROUTE, TRADE_MAX, ALLIANCE, OPEN_BORDERS, DEFENSIVE_PACT, ROYAL_MARRIAGE, SAME_IDENTITY_AXIS, BROKEN_TRUCE, AE_FREE, AE_PER_POINT, DIPLOMAT_AT_COURT, RIVAL, VASSAL_OF_YOU,
   WAR_ROLL_OPINION_CEILING, WAR_ROLL_OPINION_SPAN, CASUS_BELLI_OPINION, RAIDED_US, PAYS_US_TRIBUTE, MET_OUR_DEMAND,
   INDEP_FAVOUR_PER_POINT, INDEP_KIN, INDEP_CULTURE_SCALE, INDEP_GRUDGE_PER_POINT, TRADES_WITH_US, TRIBUTARY, RAZED_OUR_KIN
 } from '../data/opinion';
@@ -168,6 +168,10 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   if (axes.length) out.push({ id: 'identity', label: 'Alike in outlook', value: SAME_IDENTITY_AXIS * axes.length, detail: axes.join(', ') });
   const ae = B.ae?.[a] || 0;
   if (ae > AE_FREE) out.push({ id: 'ae', label: 'Aggressive expansion', value: AE_PER_POINT * Math.round(ae - AE_FREE), detail: `${Math.round(ae)} AE` });
+  // A diplomat the player sent to improve relations (ASSIGN_DIPLOMAT): the grudge wears down each turn
+  // (resolveTurn.js) and, from the first turn, the court thinks better of the player.
+  const posted = b === state.playerNationId ? (B.diplomatTasks || []).find((t) => t.targetId === a && t.task === 'improve_relations') : null;
+  if (posted) out.push({ id: 'diplomat', label: 'Your diplomat at our court', value: DIPLOMAT_AT_COURT, detail: `since turn ${posted.startedTurn}` });
   if ((B.rivals || []).includes(a)) out.push({ id: 'rival', label: 'Rival', value: RIVAL });
   if (b === state.playerNationId && (A.hostilityFloor || 0) >= 40) out.push({ id: 'truce', label: 'Broke a truce', value: BROKEN_TRUCE });
   if (A.vassalOf === b) out.push({ id: 'vassal', label: 'My overlord', value: VASSAL_OF_YOU });

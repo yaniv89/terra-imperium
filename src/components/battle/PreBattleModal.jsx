@@ -51,8 +51,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);
   const [prefer, setPrefer] = useState(false);
-  const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand } = m;
-  const autoOnly = blockedAtSea || !!noMansLand;
+  const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand, commandBlocked } = m;
+  const autoOnly = blockedAtSea || !!noMansLand || !!commandBlocked;
   const chosen = autoOnly ? 'auto' : mode;
 
   const remember = (choice) => { if (prefer) dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: choice } }); };
@@ -74,7 +74,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     return onClose();
   };
   const command = () => {
-    if (blockedReason || autoOnly) return addLog(blockedReason || noMansLand || 'Defeat the defending fleet first.', 'action');
+    if (blockedReason || autoOnly) return addLog(blockedReason || noMansLand || commandBlocked || 'Defeat the defending fleet first.', 'action');
     if (!affordable) return addLog('Not enough resources', 'action');
     remember('command');
     dispatch(landing
@@ -84,7 +84,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   };
   const disabled = !!blockedReason || !affordable;
   const options = [
-    { id: 'command', sub: noMansLand ? 'Not here: no man\'s land' : 'Play the battle in real time', disabled: disabled || autoOnly, testId: 'battle-choice-command', title: blockedAtSea ? 'An enemy fleet guards the coast: fight it at sea first' : noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : undefined },
+    { id: 'command', sub: noMansLand ? 'Not here: no man\'s land' : commandBlocked ? 'Not possible: nobody to fight' : 'Play the battle in real time', disabled: disabled || autoOnly, testId: 'battle-choice-command', title: blockedAtSea ? 'An enemy fleet guards the coast: fight it at sea first' : noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : commandBlocked || undefined },
     { id: 'auto', sub: 'Instant result, same rules', disabled, testId: 'battle-choice-auto' }
   ];
   const c = m.chance;
@@ -159,7 +159,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
               </div>
             )}
             {knownEmpty && (
-              <div className="fa-card px-2.5 py-1.5 text-[12.5px] text-fa-good" data-testid="pre-battle-undefended">No garrison: Auto attacks its defences. Command fights its militia: win and it is yours.</div>
+              <div className="fa-card px-2.5 py-1.5 text-[12.5px] text-fa-good" data-testid="pre-battle-undefended">{commandBlocked || 'No garrison: Auto attacks its defences. Command fights its militia: win and it is yours.'}</div>
             )}
             {m.cityRule && (
               <div className="text-[11.5px] leading-snug text-fa-muted px-0.5" data-testid="pre-battle-city-rule">
@@ -198,11 +198,11 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
           </div>
         )}
 
-        <div className="px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] border-t border-fa-line grid gap-2 grid-cols-1 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_auto] items-stretch">
+        <div className="px-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] border-t border-fa-line grid gap-2 grid-cols-1 sm:grid-cols-[minmax(14.5rem,1.2fr)_minmax(0,1.6fr)_auto] items-stretch" data-testid="pre-battle-footer">
           {options.length > 0 ? <ModeCards options={options} value={chosen} onChange={setMode} compact /> : <div />}
-          <ModeExplain title={chosen === 'command' ? 'Command' : 'Auto'} compact>{chosen === 'command' ? m.command : m.auto}</ModeExplain>
+          <ModeExplain title={chosen === 'command' ? 'Command' : 'Auto'} compact className="min-w-0 pl:max-h-[4.75rem] pl:overflow-y-auto">{chosen === 'command' ? m.command : m.auto}</ModeExplain>
           <div className="flex flex-col gap-1 justify-center">
-            <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 w-full">
+            <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 pl:!px-3 w-full">
               {chosen === 'command' ? 'Begin battle' : 'Fight on Auto'}
             </Button>
             {!arrival && <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">Call off the attack</button>}

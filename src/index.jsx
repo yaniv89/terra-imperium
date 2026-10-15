@@ -14,7 +14,13 @@ import './index.css';
 import { lazyWithReload, installStaleChunkReload } from './utils/lazyWithReload';
 import { installAppViewport } from './utils/appViewport';
 import { loadWorld, bootWorldSpec, rememberWorldSpec } from './worldgen/worldLoader';
+import { installCrashLog } from './utils/crashLog';
+import { initI18n } from './i18n';
 
+// First: a session record for the crash log (src/utils/crashLog.js), before anything heavy loads.
+installCrashLog();
+// <html lang dir> and the Hebrew fonts for the saved or detected language (src/i18n/index.js).
+initI18n();
 installStaleChunkReload();
 // The visible area as --app-height before anything draws (iOS Safari bars; index.css).
 installAppViewport();

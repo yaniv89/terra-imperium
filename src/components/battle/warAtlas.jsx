@@ -6,23 +6,24 @@
 import React from 'react';
 import { Swords, Zap, Undo2, Crown } from 'lucide-react';
 import { lineLabel } from './warModel';
+import { menText } from '../../engine/battleLedger';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
 
 /** One side: "YOURS Host of Sargon 340", its lines and a footer (general, scouts' note). */
 export const ForceCard = ({ tone = 'you', tag, name, total, lines = [], unknownLines = false, footer, children, testId, className }) => (
   <div data-testid={testId} className={cx('rounded-[10px] border p-2.5 min-w-0 flex flex-col bg-fa-ink/50', tone === 'you' ? 'border-fa-you' : 'border-fa-enemy', className)}>
-    <div className="flex items-baseline gap-1.5 min-w-0">
+    <div className="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
       <span className={cx('text-[11px] font-bold tracking-[0.08em] shrink-0', tone === 'you' ? 'text-fa-you' : 'text-fa-enemy')}>{tag}</span>
       <span className="text-[13px] font-semibold truncate flex-1">{name}</span>
-      {total != null && <span className="fa-num text-[13px] font-semibold shrink-0">{total}</span>}
+      {total != null && <span className="fa-num text-[13px] font-semibold ml-auto text-right">{typeof total === 'number' ? menText(total) : total}</span>}
     </div>
     {lines.length > 0 && (
       <ul className="mt-1 space-y-0.5">
         {lines.map((l) => (
           <li key={l.id} className="flex justify-between gap-2 text-[12px] leading-tight">
             <span className="truncate">{lineLabel(l)}</span>
-            <span className="fa-num text-fa-muted">{unknownLines ? '?' : l.men}</span>
+            <span className="fa-num text-fa-muted">{unknownLines ? '?' : menText(l.men)}</span>
           </li>
         ))}
       </ul>
@@ -54,8 +55,8 @@ export const ModeCards = ({ options, value, onChange, className, compact = false
       return (
         <button key={o.id} type="button" role="radio" aria-checked={value === o.id} disabled={o.disabled} title={o.title}
           onClick={() => onChange(o.id)} data-testid={o.testId}
-          className={cx('fa-option text-left px-2.5 py-1.5 min-h-[52px] disabled:opacity-40', compact && 'pl:min-h-[44px] pl:py-1', value === o.id && 'fa-selected')}>
-          <span className="flex items-center gap-1.5 fa-heading text-[15px] leading-tight"><M.icon className="w-4 h-4 shrink-0" aria-hidden="true" />{M.label}</span>
+          className={cx('fa-option text-left px-2.5 py-1.5 min-h-[52px] disabled:opacity-40', compact && 'pl:min-h-[44px] pl:py-1 pl:px-2', value === o.id && 'fa-selected')}>
+          <span className={cx('flex items-center gap-1.5 fa-heading text-[15px] leading-tight', compact && 'pl:text-[14px] pl:gap-1')}><M.icon className="w-4 h-4 shrink-0" aria-hidden="true" />{M.label}</span>
           {o.sub && <span className={cx('block text-[11px] text-fa-muted leading-tight mt-0.5', compact && 'pl:hidden')}>{o.sub}</span>}
         </button>
       );

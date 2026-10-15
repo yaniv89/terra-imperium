@@ -5,13 +5,13 @@
 // Start the dev server first:  npx vite --port 5199 --strictPort &
 //   node .claude/skills/battle-lab/screenshot.mjs [out.png] [seconds]
 // Uses DEV-only hooks from TacticalBattleScreen.jsx: window.__battleRenderer, window.__battleOrders.
-import { chromium } from '@playwright/test';
+import { launchBrowser } from '../../../scripts/lib/browserLaunch.mjs';
 
 const out = process.argv[2] || 'battle.png';
 const seconds = Number(process.argv[3] || 60);
 // main serves under /terra-imperium/ (vite base); override with URL=... if that changes.
 const url = process.env.URL || 'http://localhost:5199/terra-imperium/?battleSandbox';
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+const browser = await launchBrowser({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium' });
 const page = await browser.newPage({ viewport: { width: Number(process.env.W || 900), height: Number(process.env.H || 600) } });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });

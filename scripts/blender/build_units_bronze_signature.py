@@ -543,9 +543,12 @@ def fit_budget(limit):
     return u.scene_triangles()
 
 
-def finish(model, parts, colors, notes, budget, mounted):
+def finish(model, parts, colors, notes, budget, mounted, clips=None):
+    """... `clips`: an author returning (table, order) (ti_vehicle_clips), run once the meshes are final;
+    the GLB then carries one animation per clip over every rig. Returns the table (or None)."""
     u.set_colors({'Team': 'BFBFBF', 'Emblem': 'E6D6AF', **colors})
     tris = fit_budget(budget)
+    table = clips() if clips else None
     root = u.assemble(model, parts)
     out = u.out_dir(model)
     meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']
@@ -554,7 +557,10 @@ def finish(model, parts, colors, notes, budget, mounted):
             p.use_smooth = False
     bpy.context.preferences.filepaths.save_version = 0
     bpy.ops.wm.save_as_mainfile(filepath=str(out / f'{model}.blend'))
-    u.export_unit(out / f'{model}.glb', animations=False)
+    if table:
+        u.export_unit(out / f'{model}.glb', animations=True, mode='NLA_TRACKS')
+    else:
+        u.export_unit(out / f'{model}.glb', animations=False)
     mats = sorted({s.material.name for o in meshes for s in o.material_slots if s.material})
     report = {'id': model, 'triangles': tris, 'materials': mats, 'colors': colors, 'textures': 0, 'mounted': mounted,
               'pose': 'rest pose only; clips and VAT with Wave 0b (ART-MODELS-PLAN D5)', 'front': 'Blender -Y, glTF +Z', **notes}
@@ -563,6 +569,7 @@ def finish(model, parts, colors, notes, budget, mounted):
             'tags': {'team': '(^|\\s)Team(\\s|$)', 'skin': '(^|\\s)Skin(\\s|$)', 'emblem': '(^|\\s)Emblem(\\s|$)'}}
     (out / f'{model}.json').write_text(json.dumps(opts, indent=2) + '\n')
     print(f'BUILT {model} triangles={tris} root={root.name}', flush=True)
+    return table
 
 
 def build(model):

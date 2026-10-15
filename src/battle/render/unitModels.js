@@ -180,6 +180,10 @@ export const bakeOptionsFor = (ageId, regKey, classId, model) => {
 };
 
 const inflight = new Map(); // `${url}@${height or scale}` → Promise<geometry>
+// The page's `&noclips`: units keep the procedural rig even when their file has clips (I219 perf A/B).
+// (read when a battle loads its models: the app may have tidied the address bar by then, so a test
+// can also set window.__noClips)
+const noClips = () => typeof window !== 'undefined' && (!!window.__noClips || /[?&]noclips(&|$|=)/.test(window.location?.search || ''));
 const withTimeout = (p, ms) => new Promise((resolve, reject) => {
   const t = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms);
   p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
@@ -205,6 +209,7 @@ export const preloadUnitModels = async (setup, { timeoutMs = 8000, load = loadUn
       // People, mounts and land machines at the art set's own scale; aircraft and ships as tall as
       // the procedural model.
       const opts = bakeOptionsFor(ageId, regKey, classId, model);
+      if (noClips()) opts.clips = null; // `&noclips`: the procedural rig for every unit (before / after checks)
       model.key = `${model.url}@${opts.scale ? `x${opts.scale}` : opts.height}`;
       if (!inflight.has(model.key)) inflight.set(model.key, load(model.url, opts).then((r) => r.geometry));
     }

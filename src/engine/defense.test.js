@@ -3,7 +3,10 @@
 // garrisoned player regions queue as defense battles instead of a bare dice roll; the turn can't
 // end while one is pending; auto and commanded defenses apply the right consequences; and the
 // calibration harness keeps expected territory loss under auto-resolve within ±10% of the old roll.
-import { drainAutoBattles } from './battleQueue';
+import { drainAutoBattles, queuedCommandBlock } from './battleQueue';
+import { setupHasBothSides } from '../battle/setup/buildBattleSetup';
+import { battleOpenProblem } from '../components/battle/battleOpenGuard';
+import { cityManifestOf } from './cityManifest';
 import { describe, it, expect } from 'vitest';
 import { gameReducer, createInitialState } from './gameReducer';
 import { ActionTypes } from '../data/types';
@@ -181,6 +184,48 @@ describe('commanded defense', () => {
     expect(next.lastBattleReport.outcome).toBe(result.outcome);
     // synthetic troops never enter state.units
     expect(Object.keys(next.units).some((id) => id.startsWith('syn_'))).toBe(false);
+  });
+
+  // DEF-01 (GPT audit, Agade at turn 54): Command on a city held only by its militia went straight
+  // back to the campaign, was recorded as Auto and the city fell.
+  it('a city with no regiment is commanded with its militia: the battle opens, and losing it loses the city', () => {
+    const s0 = withDefense();
+    const s = { ...s0, units: {} };
+    const def = s.pendingDefenses[0];
+    expect(queuedCommandBlock(s, def)).toBeNull();
+    const started = gameReducer(s, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
+    expect(started.pendingBattle).toMatchObject({ kind: 'defense', defenseId: def.id, defenderUnitIds: [] });
+    expect(started.pendingBattle.militia.length).toBeGreaterThan(0);
+    expect(started.battleReports || []).toEqual(s.battleReports || []); // nothing settled on Auto
+    const setup = buildInvasionSetup(started, started.pendingBattle);
+    expect(setupHasBothSides(setup)).toBe(true);
+    expect(battleOpenProblem({ setup })).toBeNull();
+    const lost = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result: { outcome: 'attacker', attackerUnits: def.synthetic.map((u) => ({ id: u.id, strength: u.strength })), defenderUnits: [], report: { decisive: true } } } });
+    expect(lost.battleReports[0].commanded).toBe(true);
+    expect(lost.regions[FR_BORDER].owner).toBe(AGG);
+  });
+
+  it('a city with no regiment and no militia (every house ruined): Command is refused with the reason, nothing is fought', () => {
+    const s0 = withDefense();
+    const manifest = cityManifestOf(s0, FR_BORDER);
+    const ruined = Object.fromEntries(manifest.structures.map((x) => [x.id, true]));
+    const s = { ...s0, units: {}, regions: { ...s0.regions, [FR_BORDER]: { ...s0.regions[FR_BORDER], cityDamage: { ruined, damaged: {} } } } };
+    const def = s.pendingDefenses[0];
+    const block = queuedCommandBlock(s, def);
+    expect(block?.code).toBe('no_defenders');
+    const next = gameReducer(s, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
+    expect(next.pendingBattle || null).toBeNull();
+    expect(next.pendingDefenses).toHaveLength(1); // still waiting for Auto or Withdraw
+    expect(next.battleReports || []).toEqual(s.battleReports || []);
+    expect(next.logs.at(-1).message).toBe(block.text);
+  });
+
+  it('attackers gone: Command is refused with the reason, Auto closes it', () => {
+    const s = withDefense();
+    const def = { ...s.pendingDefenses[0], attackerUnitIds: [], synthetic: [] };
+    const st = { ...s, pendingDefenses: [def] };
+    expect(queuedCommandBlock(st, def)?.code).toBe('no_attackers');
+    expect(gameReducer(st, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } }).pendingDefenses).toHaveLength(1);
   });
 
   it('never trusts the client with synthetic troops either, and ABANDON auto-resolves the same defense', () => {

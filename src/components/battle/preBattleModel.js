@@ -18,6 +18,7 @@ import { validateFleetAttack } from '../../engine/navalBattle';
 import { legacyTerrainOf } from '../../engine/world/registry';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { canSeeRegionDetails } from '../../engine/intel';
+import { cityMilitia } from '../../engine/battleInputs';
 import { isNoMansLand, NO_MANS_LAND_TEXT } from '../../engine/hostility';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { canAfford } from '../../utils/helpers';
@@ -69,6 +70,11 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   const me = state.nations?.[state.playerNationId]?.name || 'You';
   const place = fleet ? 'the open sea' : field ? (getTiles().names?.[tile] || REGIONS_DATA[origin]?.name || 'the field') : (REGIONS_DATA[targetRegionId]?.name || region?.name || targetRegionId);
   const knownEmpty = !field && hasIntel && v?.ok && theirUnits.length === 0;
+  // DEF-01 / siege offer: a city seen to hold nobody (no garrison and no militia) has no battle to
+  // command; the card says so before the tap (BEGIN_TACTICAL_BATTLE would fight it on Auto).
+  const commandBlocked = knownEmpty && !landing && !cityMilitia(state, targetRegionId).length
+    ? 'Nobody defends it, not even a militia (no houses): there is no battle to command. Auto attacks its defences.'
+    : null;
   const size = battleSize({ regiments: yours.regiments, terrain, kind: field ? 'field' : 'assault' });
   const walls = !field && !fleet ? cityWallsView(state, targetRegionId) : null;
 
@@ -99,7 +105,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
       return `${who} ${landing ? verb(who, 'lands on', 'land on') : verb(who, 'attacks', 'attack')} ${place} · ${them} ${verb(them, 'holds', 'hold')} it`;
     })(),
     turn: state.turnNumber,
-    v, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand,
+    v, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand, commandBlocked,
     hasIntel,
     terrain, fortTier,
     yours: { ...yours, title: landing ? 'Landing party' : fleet ? 'Your fleet' : 'Your army' },

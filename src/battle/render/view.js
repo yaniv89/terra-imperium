@@ -9,13 +9,24 @@ import { canSeeSquad } from '../sim/fog';
 import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
 import { baseCount, hasBase } from '../sim/base';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
-import { ecoView } from '../sim/economy';
+import { ecoView, workCodes } from '../sim/economy';
 
 /** A squad's irregular look for the renderer (unitModels.js): 'mercenary' (a hired band, engine
  * unit.mercenary), 'raider' (an independent's raid party, unit.raidOf), or null. */
 export const squadLookOf = (q) => (q.original?.mercenary ? 'mercenary' : q.original?.raidOf || q.original?.raider ? 'raider' : null);
 
-export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog = true) => ({
+// Drawing-only ticks and the worker's job (I219, the clip player): the last tick a squad struck,
+// was hit and (a worker) dropped a load, and its `work` code (economy.js workCodes). An enemy squad
+// out of sight sends none of them.
+export const clipFieldsOf = (q, visible, work) => (visible
+  ? { lastStrikeTick: q.lastStrikeTick ?? -10000, lastHitTick: q.lastHitTick ?? -10000, lastDepositTick: q.lastDepositTick ?? -10000, work: work[q.idx] || 0 }
+  : { lastStrikeTick: -10000, lastHitTick: -10000, lastDepositTick: -10000, work: 0 });
+
+export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog = true) => {
+  const work = workCodes(w);
+  return makeView(w, pendingOrders, playerSide, includeFog, work);
+};
+const makeView = (w, pendingOrders, playerSide, includeFog, work) => ({
   tick: w.tick,
   playerSide,
   supply: [...w.supply],
@@ -32,6 +43,7 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
     return { id: p.id, label: POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: !!POWERS[p.id]?.impacts };
   }),
   squads: w.squads.map((q) => ({
+    ...clipFieldsOf(q, q.side === playerSide || canSeeSquad(w, playerSide, q), work),
     idx: q.idx, side: q.side, unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null, look: squadLookOf(q),
     x: q.x, y: q.y, facing: q.facing,
     strength: q.strength, maxStrength: q.maxStrength, startStrength: q.startStrength, morale: q.morale,

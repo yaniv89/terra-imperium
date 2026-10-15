@@ -136,12 +136,17 @@ export class CityLayer {
     let changed = false;
     const lod = kitLodForZoom(this.r.camera?.zoom ?? 1);
     if (lod !== this.lod) { this.lod = lod; changed = true; }
+    // The city is drawn only where the player's side has seen it (BattleRenderer.structureSeen).
+    let anySeen = false;
     this.items.forEach(({ index }) => {
       const v = view.structures[index];
-      const key = structureState(v);
+      const seen = this.r.structureSeen ? this.r.structureSeen(index) : true;
+      if (seen) anySeen = true;
+      const key = structureState(v) + (seen ? 0 : 100);
       if (this.last.get(index) !== key) { this.last.set(index, key); changed = true; }
     });
     if (!changed) return;
+    if (this.root) this.root.visible = anySeen;
     let nw = 0; let nb = 0; let nr = 0;
     // the town model's houses under the town hall are always cut out (cityBattle.js underHall)
     const ruined = this.items.filter(({ s }) => s.underHall && s.model).map(({ s }) => s.model); const damaged = [];
@@ -168,13 +173,14 @@ export class CityLayer {
     const centralArt = central && this.palaceKits.some((kit) => kitObject(kit, palaceName(central.s, this.city)));
     this.items.forEach(({ index, s }) => {
       let state = this.last.get(index);
+      if (state >= 100) return; // never seen: not drawn
       if (s.underHall) return; // drawn by the hall itself
       if (centralArt && index === keep.index) {
         const group = this.r.structureMeshes?.get(s.id);
         if (group) group.visible = false; // its objective HP bar is drawn independently
         return;
       }
-      if (centralArt && index === central.index) state = Math.max(state, this.last.get(keep.index));
+      if (centralArt && index === central.index) state = Math.max(state, this.last.get(keep.index) % 100);
       const [x, y, z] = at(s);
       if (s.kind === 'keep' || s.kind === 'palace') {
         const name = s.kind === 'keep' ? 'keep' : palaceName(s, this.city);
