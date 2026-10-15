@@ -10,11 +10,13 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { cityRailModel, RAIL_STORAGE_KEY } from './cityRailModel';
 import CityList from './CityList';
+import { useT } from '../../i18n/useT';
 
 const readCollapsed = () => { try { return localStorage.getItem(RAIL_STORAGE_KEY) === '1'; } catch { return false; } };
 
 const CityRail = ({ onSelectRegion }) => {
   const { state } = useGame();
+  const { t } = useT();
   const desktop = useLayoutMode() === 'desktop';
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const ref = useRef(null);
@@ -36,7 +38,7 @@ const CityRail = ({ onSelectRegion }) => {
   if (!desktop || !count) return null;
   if (collapsed) {
     return (
-      <button type="button" onClick={() => setCollapsed(false)} data-testid="city-rail-open" title="Cities (C)" aria-label="Show the city list"
+      <button type="button" onClick={() => setCollapsed(false)} data-testid="city-rail-open" title={t('cy.railTitle')} aria-label={t('cy.railShow')}
         className="fixed start-0 top-[calc(var(--header-height,2.25rem)+0.5rem)] z-20 min-w-[44px] min-h-[44px] rounded-r-lg bg-fa-panel/95 border border-s-0 border-fa-line text-fa-muted hover:text-fa-text flex items-center justify-center gap-1 px-1">
         <Building2 className="w-4 h-4" /><ChevronRight className="rtl:-scale-x-100 w-3 h-3" />
       </button>
@@ -45,8 +47,8 @@ const CityRail = ({ onSelectRegion }) => {
   return (
     <div ref={ref} data-testid="city-rail" className="fixed start-0 top-[var(--header-height,2.25rem)] bottom-0 z-20 w-64 bg-fa-panel/95 border-e border-fa-line flex flex-col text-fa-text">
       <div className="flex items-center justify-between ps-3 pe-1 py-1 border-b border-fa-line shrink-0">
-        <div className="fa-label flex items-center gap-1.5"><Building2 className="w-4 h-4" />Cities <span className="fa-num tracking-normal">{count}</span></div>
-        <button type="button" onClick={() => setCollapsed(true)} aria-label="Hide the city list" title="Hide (C)" className="min-w-[40px] min-h-[40px] rounded text-fa-muted hover:text-fa-text hover:bg-fa-raised flex items-center justify-center"><ChevronLeft className="rtl:-scale-x-100 w-4 h-4" /></button>
+        <div className="fa-label flex items-center gap-1.5"><Building2 className="w-4 h-4" />{t('cy.railCities')} <span className="fa-num tracking-normal">{count}</span></div>
+        <button type="button" onClick={() => setCollapsed(true)} aria-label={t('cy.railHide')} title={t('cy.railHideTitle')} className="min-w-[40px] min-h-[40px] rounded text-fa-muted hover:text-fa-text hover:bg-fa-raised flex items-center justify-center"><ChevronLeft className="rtl:-scale-x-100 w-4 h-4" /></button>
       </div>
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         <CityList onSelect={onSelectRegion} compact />

@@ -20,6 +20,7 @@ import { calcNationBalance } from './economy';
 import { devFromYields } from './development';
 import { wallsOf, siegeMaxHp } from './sieges';
 import { cityLive, worldOf, cityCtx } from './cityEconomy';
+import { t as tNow, dataText, isolateLtr } from '../i18n/core';
 
 const r1 = (v) => Math.round(v * 10) / 10;
 const KEYS = ['food', 'production', 'gold', 'upkeep', 'manpower', 'science', 'culture', 'housing', 'amenities', 'unrest', 'walls', 'siegeHp', 'fort'];
@@ -54,26 +55,27 @@ const measure = (state, cityId, over = null) => {
 
 const diff = (a, b) => Object.fromEntries(KEYS.map((k) => [k, r1((b[k] || 0) - (a[k] || 0))]));
 
-const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
+const signed = (v) => isolateLtr(`${v > 0 ? '+' : ''}${v}`);
 const WORDS = {
-  food: (v) => `${signed(v)} food`,
-  production: (v) => `${signed(v)} production`,
-  gold: (v) => `${signed(v)} gold`,
-  manpower: (v) => `${signed(v)} manpower`,
-  science: (v) => `${signed(v)} science`,
-  culture: (v) => `${signed(v)} culture`,
-  housing: (v) => `${signed(v)} housing`,
-  amenities: (v) => `${signed(v)} amenit${Math.abs(v) === 1 ? 'y' : 'ies'}`,
-  unrest: (v) => `${signed(v)} unrest a turn`,
-  walls: (v, d) => `walls ${signed(v)} (siege HP ${signed(d.siegeHp)})`,
-  fort: (v) => `fort level ${signed(v)} in battle`,
-  upkeep: (v) => `${v} gold upkeep`
+  food: (v) => tNow('cy.fx.food', { v: signed(v) }),
+  production: (v) => tNow('cy.fx.production', { v: signed(v) }),
+  gold: (v) => tNow('cy.fx.gold', { v: signed(v) }),
+  manpower: (v) => tNow('cy.fx.manpower', { v: signed(v) }),
+  science: (v) => tNow('cy.fx.science', { v: signed(v) }),
+  culture: (v) => tNow('cy.fx.culture', { v: signed(v) }),
+  housing: (v) => tNow('cy.fx.housing', { v: signed(v) }),
+  amenities: (v) => tNow('cy.fx.amenities', { v: signed(v), count: Math.abs(v) }),
+  unrest: (v) => tNow('cy.fx.unrest', { v: signed(v) }),
+  walls: (v, d) => tNow('cy.fx.walls', { v: signed(v), hp: signed(d.siegeHp) }),
+  fort: (v) => tNow('cy.fx.fort', { v: signed(v) }),
+  upkeep: (v) => tNow('cy.fx.upkeep', { v: isolateLtr(String(v)) })
 };
 const ORDER = ['food', 'production', 'gold', 'science', 'culture', 'manpower', 'housing', 'amenities', 'unrest', 'walls', 'fort', 'upkeep'];
 /** The words for a set of deltas: [{ key, value, text }] in a fixed order, zeros left out. */
 export const effectParts = (deltas) => ORDER.filter((k) => deltas[k]).map((k) => ({ key: k, value: deltas[k], text: WORDS[k](deltas[k], deltas) }));
 export const NO_EFFECT_TEXT = 'No effect on this city in the current rules';
-export const effectText = (deltas) => { const parts = effectParts(deltas); return parts.length ? parts.map((p) => p.text).join(', ') : NO_EFFECT_TEXT; };
+const noEffect = () => tNow('cy.fx.none');
+export const effectText = (deltas) => { const parts = effectParts(deltas); return parts.length ? parts.map((p) => p.text).join(', ') : noEffect(); };
 
 const withTier = (city, category, tier) => ({ buildings: { ...(city.buildings || {}), categories: { ...(city.buildings?.categories || {}), [category]: tier } } });
 
@@ -102,8 +104,8 @@ export const buildingEffect = (state, cityId, category, toTier, fromTier = undef
 
 // What a road and a fort do is movement and battle, not yields (armies.js tile costs; forts.js).
 const IMPROVEMENT_NOTES = {
-  road: 'armies cross this tile faster',
-  fort: 'an enemy army must stop beside it; garrison it and they must fight'
+  road: 'cy.fx.noteRoad',
+  fort: 'cy.fx.noteFort'
 };
 
 /** What building `item` (an improvement on a tile of the city) changes: the tile's yields with
@@ -126,12 +128,12 @@ export const improvementEffect = (state, cityId, item, live = null) => {
   const res = RESOURCES_ON_TILES[after.resource];
   const luxury = res?.kind === 'luxury' && res.improvement === item.improvement && !(before.improvement === item.improvement && !before.pillaged) ? after.resource : null;
   const repair = before.improvement === item.improvement && before.pillaged;
-  const replaces = before.improvement && before.improvement !== item.improvement ? IMPROVEMENTS[before.improvement]?.name || before.improvement : null;
+  const replaces = before.improvement && before.improvement !== item.improvement ? dataText(`impr.${before.improvement}`, IMPROVEMENTS[before.improvement]?.name || before.improvement) : null;
   const worked = (live || cityLive(state, cityId)).worked.includes(item.tile);
   const parts = effectParts(deltas);
-  if (supply) parts.push({ key: 'supply', value: supply.amount, text: `supplies ${supply.amount} ${supply.resource} a turn` });
-  if (luxury) parts.push({ key: 'luxury', value: 1, text: `${luxury} becomes a luxury (amenities)` });
-  if (IMPROVEMENT_NOTES[item.improvement]) parts.push({ key: 'note', value: 0, text: IMPROVEMENT_NOTES[item.improvement] });
-  const text = parts.length ? parts.map((p) => p.text).join(', ') : NO_EFFECT_TEXT;
+  if (supply) parts.push({ key: 'supply', value: supply.amount, text: tNow('cy.fx.supplies', { amount: supply.amount, resource: dataText(`tres.${supply.resource}`, supply.resource) }) });
+  if (luxury) parts.push({ key: 'luxury', value: 1, text: tNow('cy.fx.luxury', { resource: dataText(`tres.${luxury}`, luxury) }) });
+  if (IMPROVEMENT_NOTES[item.improvement]) parts.push({ key: 'note', value: 0, text: tNow(IMPROVEMENT_NOTES[item.improvement]) });
+  const text = parts.length ? parts.map((p) => p.text).join(', ') : noEffect();
   return { deltas, parts, text, supply, luxury, repair, replaces, worked, yieldsBefore: yb, yieldsAfter: ya };
 };

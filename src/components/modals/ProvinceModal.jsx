@@ -30,37 +30,40 @@ import CityPolitics from '../city/CityPolitics';
 import { cityRailModel } from '../city/cityRailModel';
 import { cityDefenseModel } from '../city/cityDefenseModel';
 import { Button, CloseButton, Label, Meter, Tabs, signed } from '../ui/atlas';
+import { useT } from '../../i18n/useT';
 
-const CityDefense = ({ model, onOpenTab }) => (
+const CityDefense = ({ model, onOpenTab }) => {
+  const { t } = useT();
+  return (
   <div className="space-y-3" data-testid="city-defense">
     <div className="fa-card p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <Label>Battle housing</Label>
+        <Label>{t('cy.def.battleHousing')}</Label>
         <span className="fa-num text-[17px] font-semibold">{model.housing}</span>
       </div>
-      <p className="text-[12px] text-fa-muted mt-0.5">How many soldiers and workers the city can hold when it is attacked: its houses and the town hall. Ruined houses hold no one until they are rebuilt.</p>
+      <p className="text-[12px] text-fa-muted mt-0.5">{t('cy.def.housingNote')}</p>
       <ul className="mt-2 space-y-0.5 text-[13px]" data-testid="battle-housing-lines">
         {model.lines.map((l) => (
           <li key={l.id} className="flex justify-between gap-3"><span>{l.label}</span><span className={`fa-num ${l.value < 0 ? 'text-fa-danger-text' : ''}`}>{signed(l.value)}</span></li>
         ))}
-        <li className="flex justify-between gap-3 border-t border-fa-line pt-1 mt-1 font-semibold"><span>In battle</span><span className="fa-num">{model.housing}</span></li>
+        <li className="flex justify-between gap-3 border-t border-fa-line pt-1 mt-1 font-semibold"><span>{t('cy.def.inBattle')}</span><span className="fa-num">{model.housing}</span></li>
       </ul>
     </div>
     {model.alert && (
       <div className="rounded-lg border border-fa-danger bg-[rgba(229,96,77,0.12)] p-3 text-[13px]" data-testid="city-damage">
         <div className="flex items-center gap-2 font-semibold"><AlertTriangle className="w-4 h-4 text-fa-danger-text" aria-hidden="true" />{model.alert.text}</div>
-        <p className="text-[12px] text-fa-muted mt-1">Repairs are free. A damaged building is whole after a few turns; ruined houses are rebuilt one by one. Nothing is repaired while the city is under siege.</p>
+        <p className="text-[12px] text-fa-muted mt-1">{t('cy.def.repairsNote')}</p>
       </div>
     )}
     <div className="grid grid-cols-2 gap-1.5 text-[13px]">
-      <div className="fa-card px-3 py-2"><div className="text-fa-muted text-[12px]">Walls</div><div className="fa-num font-semibold">{model.walls}</div></div>
-      <div className="fa-card px-3 py-2"><div className="text-fa-muted text-[12px]">Siege</div><div className="font-semibold">{model.siege ? (model.siege.by ? `By ${model.siege.by}${model.siege.encircled ? ', encircled' : ''}` : 'Recovering') : 'None'}</div></div>
+      <div className="fa-card px-3 py-2"><div className="text-fa-muted text-[12px]">{t('cy.def.walls')}</div><div className="fa-num font-semibold">{model.walls}</div></div>
+      <div className="fa-card px-3 py-2"><div className="text-fa-muted text-[12px]">{t('cy.def.siege')}</div><div className="font-semibold">{model.siege ? (model.siege.by ? t('cy.def.siegeBy', { name: model.siege.by, encircled: model.siege.encircled ? `, ${t('cy.def.encircled')}` : '' }) : t('cy.def.recovering')) : t('cy.def.none')}</div></div>
     </div>
-    {model.siege && <Meter value={model.siege.hp} max={Math.max(1, model.siege.maxHp)} color="var(--fa-enemy)" label={`Holds out ${model.siege.hp} of ${model.siege.maxHp}`} />}
+    {model.siege && <Meter value={model.siege.hp} max={Math.max(1, model.siege.maxHp)} color="var(--fa-enemy)" label={t('cy.def.holdsOut', { hp: model.siege.hp, max: model.siege.maxHp })} />}
     {/* What can be done about it, each with the tab that does it (playtest audits I053). */}
     {model.paths?.length > 0 && (
       <div className="fa-card p-3" data-testid="city-defense-paths">
-        <Label>What you can do</Label>
+        <Label>{t('cy.def.whatYouCanDo')}</Label>
         <ul className="mt-1 space-y-1.5 text-[13px]">
           {model.paths.map((p) => (
             <li key={p.id} className="flex items-center gap-2">
@@ -72,10 +75,12 @@ const CityDefense = ({ model, onOpenTab }) => (
       </div>
     )}
   </div>
-);
+  );
+};
 
 const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
   const { state } = useGame();
+  const { t } = useT();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState('overview');
   const sheetRef = useRef(null);
@@ -109,14 +114,14 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
   const colour = state.nations[state.playerNationId]?.color || 'var(--fa-you)';
   const loyalty = loyaltyOf(regionState);
   const target = regionState.tile != null ? loyaltyTarget(state, regionState).total : loyalty;
-  const sub = [row?.capital ? 'Capital' : null, row?.outpost ? 'Outpost' : null, row?.growthTurns ? `grows in ${row.growthTurns} turn${row.growthTurns === 1 ? '' : 's'}` : row?.starving ? 'starving' : null].filter(Boolean).join(', ');
+  const sub = [row?.capital ? t('cy.capital') : null, row?.outpost ? t('cy.outpostSub') : null, row?.growthTurns ? t('cy.growsIn', { count: row.growthTurns }) : row?.starving ? t('cy.starving') : null].filter(Boolean).join(', ');
   const tabs = [
-    { id: 'overview', label: 'Overview', testId: 'city-tab-overview' },
-    { id: 'build', label: 'Build', testId: 'city-tab-build', dot: row?.idle, dotLabel: 'nothing queued' },
-    { id: 'tiles', label: 'Citizens', testId: 'city-tab-tiles' },
-    { id: 'buildings', label: 'Buildings', testId: 'city-tab-buildings' },
-    { id: 'politics', label: 'Politics', testId: 'city-tab-politics' },
-    { id: 'defense', label: 'Defense', testId: 'city-tab-defense', dot: !!defense?.alert || !!regionState.siege, dotLabel: 'damage or siege' }
+    { id: 'overview', label: t('cy.tab.overview'), testId: 'city-tab-overview' },
+    { id: 'build', label: t('cy.tab.build'), testId: 'city-tab-build', dot: row?.idle, dotLabel: t('cy.tab.nothingQueued') },
+    { id: 'tiles', label: t('cy.tab.citizens'), testId: 'city-tab-tiles' },
+    { id: 'buildings', label: t('cy.tab.buildings'), testId: 'city-tab-buildings' },
+    { id: 'politics', label: t('cy.tab.politics'), testId: 'city-tab-politics' },
+    { id: 'defense', label: t('cy.tab.defense'), testId: 'city-tab-defense', dot: !!defense?.alert || !!regionState.siege, dotLabel: t('cy.tab.damageOrSiege') }
   ];
 
   return (
@@ -134,15 +139,15 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
       >
         {/* Header — tapping it while the sheet is peeking brings the full sheet straight back. */}
         <div onClick={peeking ? cancelPeek : undefined} className="px-3 pt-2.5 pb-2 shrink-0 flex items-start gap-3">
-          <span className="w-9 h-9 rounded-full fa-num text-[15px] font-semibold text-fa-ink flex items-center justify-center shrink-0 mt-0.5" style={{ background: colour }} aria-label={`Size ${regionState.size || 1}`}>{regionState.size || 1}</span>
+          <span className="w-9 h-9 rounded-full fa-num text-[15px] font-semibold text-fa-ink flex items-center justify-center shrink-0 mt-0.5" style={{ background: colour }} aria-label={t('cy.sizeAria', { n: regionState.size || 1 })}>{regionState.size || 1}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2 min-w-0">
               <h2 id="city-sheet-title" className="fa-heading text-[19px] leading-tight truncate">{nameNow('city', null, regionData.name)}</h2>
               {sub && <span className="text-[12px] text-fa-muted truncate">{sub}</span>}
             </div>
-            <div className="flex items-center gap-2 mt-1" title={`Loyalty ${loyalty}, heading to ${target}. Politics explains why.`}>
-              <span className="fa-label">Loyalty</span>
-              <Meter value={loyalty} max={100} color={loyalty <= 25 ? 'var(--fa-danger)' : loyalty < 50 ? 'var(--fa-enemy)' : 'var(--fa-good)'} className="flex-1 max-w-[9rem]" label={`Loyalty ${loyalty} of 100`} />
+            <div className="flex items-center gap-2 mt-1" title={t('cy.loyaltyTitle', { n: loyalty, target })}>
+              <span className="fa-label">{t('cy.loyalty')}</span>
+              <Meter value={loyalty} max={100} color={loyalty <= 25 ? 'var(--fa-danger)' : loyalty < 50 ? 'var(--fa-enemy)' : 'var(--fa-good)'} className="flex-1 max-w-[9rem]" label={t('cy.loyaltyMeter', { n: loyalty })} />
               <span className="fa-num text-[13px]">{loyalty}</span>
               {target !== loyalty && <span className={`fa-num text-[12px] ${target > loyalty ? 'text-fa-good' : 'text-fa-danger-text'}`}>{signed(target - loyalty)}</span>}
             </div>
@@ -150,7 +155,7 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
           <CloseButton onClick={onClose} />
         </div>
 
-        <Tabs tabs={tabs} value={tab} onChange={setTab} label="City sections" className="shrink-0" />
+        <Tabs tabs={tabs} value={tab} onChange={setTab} label={t('cy.sections')} className="shrink-0" />
 
         {/* Content */}
         <div className="p-3 overflow-y-auto flex-1 space-y-3">
@@ -158,7 +163,7 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
             <div className="flex items-center gap-2 rounded-lg border border-fa-danger bg-[rgba(229,96,77,0.12)] ps-3 pe-1.5 py-1.5 text-[13px]" data-testid="city-damage-alert">
               <AlertTriangle className="w-4 h-4 text-fa-danger-text shrink-0" aria-hidden="true" />
               <span className="flex-1 min-w-0">{defense.alert.text}</span>
-              <Button size="sm" onClick={() => setTab('defense')}>Details</Button>
+              <Button size="sm" onClick={() => setTab('defense')}>{t('cy.details')}</Button>
             </div>
           )}
           {tab === 'overview' && <CityPanel cityId={regionId} view="overview" />}
