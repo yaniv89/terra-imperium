@@ -14,18 +14,23 @@ import { citySpacingRings } from '../../data/geo/citySpacing';
 import { spacingRule } from './settleSiteModel';
 import { getTiles } from '../../data/geo/tiles';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useT } from '../../i18n/useT';
+import { rich } from '../../i18n/rich';
 
 export const ICONS = { political: Landmark, yields: Wheat, loyalty: Heart, threat: Crosshair, supply: Package, trade: Coins, settle: Tent };
 
-const SettleLegend = () => (
+const SettleLegend = () => {
+  const { t } = useT();
+  return (
   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 min-h-[32px] rounded-full bg-fa-panel/95 border border-fa-line text-[12px] text-fa-text pointer-events-auto shadow-lg" data-testid="settle-legend">
-    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fa-good/80" aria-hidden="true" />Can found</span>
+    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fa-good/80" aria-hidden="true" />{t('lens.canFound')}</span>
     {/* blocked land is hatched on the map too (territoryShader.js): told apart without colour */}
-    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fa-danger/80" style={{ backgroundImage: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.45) 0 2px, transparent 2px 5px)' }} aria-hidden="true" />Blocked (striped), tap for why</span>
+    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fa-danger/80" style={{ backgroundImage: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.45) 0 2px, transparent 2px 5px)' }} aria-hidden="true" />{t('lens.blocked')}</span>
     {/* the rule in tiles, one less across water: its km depend on the direction (settleSiteModel.spacingRule, I094) */}
-    <span className="font-semibold" title={spacingRule(getTiles()).text}>Cities <span className="fa-num">{citySpacingRings(getTiles())}</span> tiles apart, <span className="fa-num">{citySpacingRings(getTiles()) - 1}</span> across water</span>
+    <span className="font-semibold" title={spacingRule(getTiles()).text}>{rich(t('lens.spacing'), { a: <span className="fa-num">{citySpacingRings(getTiles())}</span>, b: <span className="fa-num">{citySpacingRings(getTiles()) - 1}</span> })}</span>
   </div>
-);
+  );
+};
 
 /**
  * How tall the open list may be: from its bottom edge up to just under the top bar. The list grows
@@ -41,6 +46,7 @@ const headerHeightPx = () => {
 };
 
 const LensStrip = ({ lens, onChange, onOpenChange }) => {
+  const { t } = useT();
   const [open, setOpenState] = useState(false);
   const [maxH, setMaxH] = useState(null);
   const panelRef = useRef(null);
@@ -70,12 +76,12 @@ const LensStrip = ({ lens, onChange, onOpenChange }) => {
       <div className="flex flex-col items-start gap-2">
         {lens === 'settle' && <SettleLegend />}
         <div className="flex items-center gap-1.5">
-          <button type="button" onClick={() => setOpen(true)} data-testid="lens-pill" title="Map lens: what the map colours show" aria-label={`Map lens: ${current.label}`}
+          <button type="button" onClick={() => setOpen(true)} data-testid="lens-pill" title={t('lens.title')} aria-label={t('lens.pillAria', { name: t(`lens.${current.id}`) })}
             className="flex items-center gap-1.5 min-h-[44px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">
-            <Layers className="w-4 h-4 text-fa-muted" aria-hidden="true" /><Icon className="w-4 h-4" aria-hidden="true" /> {current.label}
+            <Layers className="w-4 h-4 text-fa-muted" aria-hidden="true" /><Icon className="w-4 h-4" aria-hidden="true" /> {t(`lens.${current.id}`)}
           </button>
           {lens !== 'political' && (
-            <button type="button" onClick={() => onChange('political')} data-testid="lens-political" aria-label="Back to the Political map" title="Back to the Political map"
+            <button type="button" onClick={() => onChange('political')} data-testid="lens-political" aria-label={t('lens.backPolitical')} title={t('lens.backPolitical')}
               className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-fa-text pointer-events-auto hover:bg-fa-raised">
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -87,22 +93,22 @@ const LensStrip = ({ lens, onChange, onOpenChange }) => {
   return (
     <div ref={panelRef} style={maxH ? { maxHeight: maxH } : undefined}
       className={`fa-panel shadow-2xl pointer-events-auto flex flex-col overflow-hidden ${compact ? 'w-[min(340px,calc(100vw-6rem))]' : 'w-[240px]'}`}
-      data-testid="lens-strip" role="radiogroup" aria-label="Map lens">
+      data-testid="lens-strip" role="radiogroup" aria-label={t('lens.group')}>
       <div className="flex items-center justify-between ps-3 pe-1 pt-1 shrink-0">
-        <span className="fa-label">Map lens</span>
-        <button type="button" onClick={() => setOpen(false)} aria-label="Close lenses" className="w-11 h-11 flex items-center justify-center text-fa-muted hover:text-fa-text"><X className="w-4 h-4" /></button>
+        <span className="fa-label">{t('lens.group')}</span>
+        <button type="button" onClick={() => setOpen(false)} aria-label={t('lens.close')} className="w-11 h-11 flex items-center justify-center text-fa-muted hover:text-fa-text"><X className="w-4 h-4" /></button>
       </div>
       <div className={`p-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y scrollbar-thin ${compact ? 'grid grid-cols-2 gap-0.5' : 'space-y-0.5'}`} data-testid="lens-list">
         {LENSES.map((l) => {
           const LIcon = ICONS[l.id] || Layers;
           const on = lens === l.id;
           return (
-            <button key={l.id} type="button" role="radio" aria-checked={on} onClick={() => pick(l.id)} data-lens={l.id} title={l.hint}
+            <button key={l.id} type="button" role="radio" aria-checked={on} onClick={() => pick(l.id)} data-lens={l.id} title={t(`lens.${l.id}.hint`)}
               className={`w-full flex items-center gap-2.5 px-2.5 min-h-[44px] rounded-lg text-start ${on ? 'fa-selected' : 'text-fa-text hover:bg-fa-raised'}`}>
               <LIcon className="w-4 h-4 shrink-0" aria-hidden="true" />
               <span className="min-w-0">
-                <span className="block text-[13px] font-semibold leading-tight">{l.label} <span className="fa-num text-fa-muted font-normal text-[11px]">{l.key}</span></span>
-                {!compact && <span className="block text-[11px] text-fa-muted truncate">{l.hint}</span>}
+                <span className="block text-[13px] font-semibold leading-tight">{t(`lens.${l.id}`)} <span className="fa-num text-fa-muted font-normal text-[11px]">{l.key}</span></span>
+                {!compact && <span className="block text-[11px] text-fa-muted truncate">{t(`lens.${l.id}.hint`)}</span>}
               </span>
             </button>
           );

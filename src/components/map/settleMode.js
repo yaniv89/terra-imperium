@@ -18,6 +18,7 @@ import { getEffectiveAgeId } from '../../data/ages';
 import { bestSites, isSettler, settlersOf, siteOutlook, MAX_SETTLE_RINGS, SETTLER_MOVES } from '../../engine/settlers';
 import { ringDistance } from '../../engine/world/cities';
 import { citySpacingRings } from '../../data/geo/citySpacing';
+import { t as tNow } from '../../i18n';
 
 /** How many ranked sites the mode lists and marks on the map. */
 export const SETTLE_SITE_LIMIT = 8;
@@ -92,10 +93,10 @@ export const settleBarModel = (state, mode, sites, selectedTile = null) => {
   const from = state.regions?.[u.homeRegionId || u.regionId]?.name || null;
   const index = sites.findIndex((s) => s.tile === selectedTile);
   return {
-    title: from ? `Settlers of ${from}` : 'Settlers',
-    hint: sites.length ? 'Tap green land for a site. Red, hatched land is blocked: tap it for the reason.' : 'No good site is known in reach. Explore, or tap any green land.',
+    title: from ? tNow('settle.titleOf', { city: from }) : tNow('settle.title'),
+    hint: sites.length ? tNow('settle.hint') : tNow('settle.hintNone'),
     count: sites.length,
     index,
-    nextLabel: !sites.length ? null : index < 0 ? 'Best site' : `Next good site (${((index + 1) % sites.length) + 1} of ${sites.length})`
+    nextLabel: !sites.length ? null : index < 0 ? tNow('settle.best') : tNow('settle.next', { i: ((index + 1) % sites.length) + 1, n: sites.length })
   };
 };

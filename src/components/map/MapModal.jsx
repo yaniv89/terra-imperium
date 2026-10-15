@@ -6,18 +6,20 @@ import React from 'react';
 import { X } from 'lucide-react';
 import Map2DContainer from './Map2DContainer';
 import { RegionInfoModal } from '../modals';
+import { useT } from '../../i18n/useT';
 
 const MapModal = ({ open, onClose, selectedRegion, onSelectRegion }) => {
+  const { t } = useT();
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[80] flex flex-col p-3 sm:p-6 bg-black/90 backdrop-blur-sm">
       <div className="flex items-center justify-between mb-2 shrink-0">
-        <h2 className="text-fa-text font-bold text-sm sm:text-base">World Map</h2>
+        <h2 className="text-fa-text font-bold text-sm sm:text-base">{t('minimap.worldMap')}</h2>
         <button
           onClick={onClose}
           className="p-1.5 hover:bg-fa-hover rounded-lg text-fa-text hover:text-fa-text transition-colors"
-          aria-label="Close map"
+          aria-label={t('minimap.close')}
         >
           <X className="w-5 h-5" />
         </button>
