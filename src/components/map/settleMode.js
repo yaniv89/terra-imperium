@@ -19,6 +19,7 @@ import { bestSites, isSettler, settlersOf, siteOutlook, MAX_SETTLE_RINGS, SETTLE
 import { ringDistance } from '../../engine/world/cities';
 import { citySpacingRings } from '../../data/geo/citySpacing';
 import { t as tNow } from '../../i18n';
+import { nameNow } from '../../i18n/names';
 
 /** How many ranked sites the mode lists and marks on the map. */
 export const SETTLE_SITE_LIMIT = 8;
@@ -93,7 +94,7 @@ export const settleBarModel = (state, mode, sites, selectedTile = null) => {
   const from = state.regions?.[u.homeRegionId || u.regionId]?.name || null;
   const index = sites.findIndex((s) => s.tile === selectedTile);
   return {
-    title: from ? tNow('settle.titleOf', { city: from }) : tNow('settle.title'),
+    title: from ? tNow('settle.titleOf', { city: nameNow('city', null, from) }) : tNow('settle.title'),
     hint: sites.length ? tNow('settle.hint') : tNow('settle.hintNone'),
     count: sites.length,
     index,

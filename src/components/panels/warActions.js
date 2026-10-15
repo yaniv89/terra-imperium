@@ -5,6 +5,8 @@
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { hasCasusBelli, isInTruce, isAtWarWithPlayer } from '../../engine/diplomacy';
 import { canAfford } from '../../utils/helpers';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
 
 export const declareWarModel = (state, nationId) => {
   const me = state.playerNationId;
@@ -13,13 +15,15 @@ export const declareWarModel = (state, nationId) => {
   const atWar = isAtWarWithPlayer(state, nationId);
   const justified = hasCasusBelli(state, me, nationId);
   const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
-  const blocked = atWar ? 'already at war' : state.nations[me]?.vassalOf ? "you can't declare war while you're a vassal" : nation.vassalOf === me ? 'your own vassal' : null;
+  const blocked = atWar ? t('mx.war.alreadyAtWar') : state.nations[me]?.vassalOf ? t('mx.war.vassal') : nation.vassalOf === me ? t('mx.war.yourVassal') : null;
+  const shown = nameNow('people', nationId, nation.name);
   const breaksTruce = !atWar && isInTruce(state, me, nationId);
   const affordable = canAfford(state.resources, costs);
   return {
     nationId, name: nation.name, atWar, justified, costs, blocked, breaksTruce, affordable,
-    label: `Declare war on ${nation.name}${justified ? '' : ' (unjustified)'}`,
-    note: blocked || (justified ? 'You have a cause for war.' : 'No cause for war: costs more and angers the world.') + (breaksTruce ? ' Breaks your truce.' : ''),
+    shown,
+    label: `${t('mx.war.label', { name: shown })}${justified ? '' : t('mx.war.unjustified')}`,
+    note: blocked || (justified ? t('mx.war.cause') : t('mx.war.noCause')) + (breaksTruce ? t('mx.war.breaksTruce') : ''),
     enabled: !blocked && affordable
   };
 };

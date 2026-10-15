@@ -8,6 +8,8 @@
 import { settlersOf, settlerPath, SETTLER_MOVES } from '../../engine/settlers';
 import { turnMarks } from '../../utils/marchLines';
 import { getTiles } from '../../data/geo/tiles';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
 
 /** The tiles a settler still has to walk (its own tile excluded), or null. */
 export const settlerRoad = (state, unit) => {
@@ -30,12 +32,13 @@ export const settlerEta = (state, unit) => {
 export const settlerStatus = (state, unit) => {
   if (unit.target != null && unit.target !== unit.tile) {
     const turns = settlerEta(state, unit);
-    const to = getTiles().names[unit.target] || 'the chosen site';
-    return { state: 'travelling', turns, text: turns == null ? `Heading for ${to}: no way there` : `Heading for ${to}: ${turns} turn${turns === 1 ? '' : 's'}, then they found a city` };
+    const named = getTiles().names[unit.target];
+    const to = named ? nameNow('place', null, named) : t('mx.set.chosenSite');
+    return { state: 'travelling', turns, text: turns == null ? t('mx.set.noWay', { to }) : t('mx.set.heading', { to, turns: t('march.turns', { count: turns }) }) };
   }
-  if (unit.target != null) return { state: 'travelling', turns: 0, text: 'On the chosen site: they found a city at End Turn' };
-  if (unit.hold) return { state: 'waiting', turns: null, text: 'Waiting here on your order' };
-  return { state: 'idle', turns: null, text: 'Waiting for a site to found a city' };
+  if (unit.target != null) return { state: 'travelling', turns: 0, text: t('mx.set.onSite') };
+  if (unit.hold) return { state: 'waiting', turns: null, text: t('mx.set.holding') };
+  return { state: 'idle', turns: null, text: t('mx.set.idle') };
 };
 
 /** [{ key, kind: 'settlers', points, marks, unitId }] for the player's settlers under way. */
