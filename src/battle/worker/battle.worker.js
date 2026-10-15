@@ -7,13 +7,20 @@
 // Any failure (the grid or the sim failing to load, an exception building or stepping the world)
 // is posted as { type: 'error', message }: the battle screen shows it with a way back to the map
 // instead of freezing on an empty field (battleClient.js may first retry on the main thread).
+// Each step of the start is reported as { type: 'stage', stage } (startWatch.js): 'script' once this
+// module runs (the page waits for it before posting the world and the battle: warmWorker.js),
+// 'world' with the grid installed, 'sim' with the sim loaded, 'setup' with the battle built.
 import { loadWorldFromMessage, WORLD_MESSAGE } from '../../worldgen/worldLoader';
+
+const stage = (name) => self.postMessage({ type: 'stage', stage: name });
 
 // The world this worker runs comes in the first message (worldLoader.js worldMessage): the page's
 // grid itself, installed as it is (no second fetch and unzip).
 let setWorld;
 const world = new Promise((resolve) => { setWorld = resolve; });
-const ready = world.then(loadWorldFromMessage).then(() => import('./battleLoop'));
+const ready = world.then(loadWorldFromMessage)
+  .then(() => { stage('world'); return import('./battleLoop'); })
+  .then((m) => { stage('sim'); return m; });
 
 let loop = null;
 let timer = null;
@@ -37,6 +44,7 @@ const handle = (data, createBattleLoop) => {
       try {
         loop = createBattleLoop({ setup: data.setup, resume: data.resume || null, post: (m, transfer) => self.postMessage(m, transfer || []) });
       } catch (err) { fail('start', err); return; }
+      stage('setup');
       if (data.paused) loop.setPaused(true);
       pump();
       break;
@@ -55,3 +63,5 @@ self.onmessage = ({ data }) => {
   if (data?.type === WORLD_MESSAGE) { setWorld(data); return; }
   queue = queue.then(() => ready).then(({ createBattleLoop }) => handle(data, createBattleLoop), (err) => { if (data.type === 'start') fail('load', err); });
 };
+// Last, once the handler above is in place: the page may now send the world and the battle.
+stage('script');
