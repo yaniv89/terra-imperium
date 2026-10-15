@@ -5,12 +5,15 @@
 // enemy buildings only once explored (render/view.js already leaves the rest out), and the camera's
 // view as a frame. A tap or a drag on it moves the camera there.
 import React, { useEffect, useMemo, useRef } from 'react';
+import { t as tNow } from '../../i18n/core';
+import { useT } from '../../i18n/useT';
 import { Q } from '../../battle/sim/constants';
 import { minimapFrame, TILE_RGB } from './minimapModel';
 
 const YOU = '#60a5fa'; const ENEMY = '#f87171';
 
 const BattleMinimap = ({ setup, hud, playerSide, getRenderer, onMoved, maxW = 168, maxH = 104 }) => {
+  useT();
   const canvasRef = useRef(null);
   const map = setup.map;
   const frame = useMemo(() => minimapFrame(map.w, map.h, maxW, maxH), [map.w, map.h, maxW, maxH]);
@@ -92,7 +95,7 @@ const BattleMinimap = ({ setup, hud, playerSide, getRenderer, onMoved, maxW = 16
   return (
     <div className="pointer-events-auto rounded-[10px] bg-fa-ink/85 border border-fa-line shadow-xl p-1" data-testid="battle-minimap">
       <canvas ref={canvasRef} style={{ width: frame.width, height: frame.height, touchAction: 'none', display: 'block' }}
-        aria-label="Minimap: tap to move the camera" role="img"
+        aria-label={tNow('bt.screen.minimapAria')} role="img"
         onPointerDown={(e) => { e.stopPropagation(); dragRef.current = true; e.currentTarget.setPointerCapture?.(e.pointerId); goTo(e); }}
         onPointerMove={(e) => { if (dragRef.current) goTo(e); }}
         onPointerUp={() => { dragRef.current = false; }}

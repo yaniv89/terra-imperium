@@ -12,6 +12,9 @@
 // committed. A battle that has ended is kept with its end record (the checkpoint store): closing
 // the app on the result screen and coming back hands that same result over, never a second fight.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { nameNow } from '../../i18n/names';
+import { t as tNow } from '../../i18n/core';
+import { useT } from '../../i18n/useT';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { battleName } from '../../engine/battleNames';
@@ -35,6 +38,7 @@ export const reopenedAfterCrash = (log = crashLog()) => {
 };
 
 const TacticalBattleHost = () => {
+  useT();
   const { state, dispatch } = useGame();
   const pb = state.pendingBattle;
   const [resume, setResume] = useState(undefined); // undefined = still looking for a checkpoint
@@ -83,11 +87,11 @@ const TacticalBattleHost = () => {
   const abandon = (reason = null) => { clearBattleCheckpoint(pb.id); dispatch({ type: ActionTypes.ABANDON_TACTICAL_BATTLE, payload: typeof reason === 'string' ? { reason } : undefined }); };
   const retry = () => { clearBattleCheckpoint(pb.id); setAttempt((a) => a + 1); };
   if (built.error) {
-    return <BattleFailure title="The battle could not be set up" message="Something went wrong while preparing this battle." detail={built.error} onAuto={() => abandon('setup_error')} onRetry={retry} />;
+    return <BattleFailure title={tNow('bt.host.setupTitle')} message={tNow('bt.host.setupMessage')} detail={built.error} onAuto={() => abandon('setup_error')} onRetry={retry} />;
   }
   if (!setup || problem || resume === undefined) return null;
   if (afterCrash) {
-    return <BattleFailure title="The game closed during this battle" message="The phone closed the game while this battle was open. Resume it where it was last saved, or let Auto fight it." retryLabel="Resume" onAuto={() => abandon()} onRetry={() => setAfterCrash(false)} />;
+    return <BattleFailure title={tNow('bt.host.crashTitle')} message={tNow('bt.host.crashMessage')} retryLabel={tNow('bt.host.resume')} onAuto={() => abandon()} onRetry={() => setAfterCrash(false)} />;
   }
   const setupKey = setupKeyOf(setup);
   // The live battle's own end record goes with the log (battleVerify.js): the rules it ran under,
@@ -109,7 +113,7 @@ const TacticalBattleHost = () => {
         key={`${pb.id}:${attempt}`}
         setup={setup}
         playerSide={pb.playerSide === 'defender' ? 1 : 0}
-        title={battleName(state, pb)}
+        title={nameNow('battle', null, battleName(state, pb))}
         resume={resume}
         onCheckpoint={(cp) => saveBattleCheckpoint(pb.id, { ...cp, setupVersion: SETUP_VERSION, setupKey, savedAt: Date.now() })}
         onFinish={finish}
