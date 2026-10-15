@@ -5,7 +5,7 @@
 // place. No number is typed here: every figure comes from the same constants the engine reads.
 import { BASE_POWER_PER_TURN } from '../utils/helpers';
 import { CULTURE_BASE, CULTURE_PER_SIZE, CULTURE_PER_TIER } from '../engine/world/cities';
-import { t as tNow } from '../i18n';
+import { t as tNow } from '../i18n/core';
 
 // The texts are getters: they read the current language each time they are used.
 const pool = (id) => ({

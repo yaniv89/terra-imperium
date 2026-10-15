@@ -11,14 +11,15 @@ import { formatTurns } from './researchView';
 import { gateText } from '../../engine/researchStatus';
 import { useT } from '../../i18n/useT';
 import { ageName } from '../../i18n';
-import { AGES } from '../../data/ages';
 
 const TONE = { red: 'text-fa-danger-text', amber: 'text-amber-300', green: 'text-fa-good' };
 const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 
 const EmpireOverview = () => {
   const { state } = useGame();
-  const { t, n, lang } = useT();
+  const { t, lang } = useT();
+  // The model reads the current language through t(): recompute when it changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const m = useMemo(() => empireOverviewModel(state), [state, lang]);
   if (!m) return null;
   return (

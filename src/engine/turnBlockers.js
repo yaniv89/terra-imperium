@@ -21,7 +21,7 @@ import { GameStatus } from '../data/types';
 import { demandWaiting } from './aiAccords';
 import { researchNeedsChoice } from './researchStatus';
 import { pendingCapturesOf } from './capture';
-import { t as tNow } from '../i18n';
+import { t as tNow } from '../i18n/core';
 import { nameNow } from '../i18n/names';
 
 const nameOf = (state, id) => nameNow('people', id, state.nations?.[id]?.name || tNow('prompt.aPeople'));

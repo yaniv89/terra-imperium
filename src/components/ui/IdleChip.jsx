@@ -16,6 +16,8 @@ import { useT } from '../../i18n/useT';
 const IdleChip = ({ className = '' }) => {
   const { state } = useGame();
   const { t, lang } = useT();
+  // The model reads the current language through t(): recompute when it changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stack = useMemo(() => (state.gameStatus === GameStatus.ACTIVE ? stackPrompts(nextPrompts(state)).find((s) => s.key === 'idle') || null : null), [state, lang]);
   const last = useRef(null);
   if (!stack) return null;

@@ -12,6 +12,8 @@ import { useT } from '../../i18n/useT';
 const CityList = ({ onSelect, compact = false }) => {
   const { state } = useGame();
   const { t, n, name: nm, lang } = useT();
+  // The model reads the current language through t(): recompute when it changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = useMemo(() => cityRailModel(state), [state, lang]);
   const colour = state.nations?.[state.playerNationId]?.color || 'var(--fa-you)';
   if (!rows.length) return <p className="text-[12px] text-fa-muted p-3">{t('cities.none')}</p>;

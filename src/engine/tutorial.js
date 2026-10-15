@@ -8,7 +8,7 @@
 import { tileFacts } from '../data/tileYields';
 import { getTiles } from '../data/geo/tiles';
 import { isSettler } from './settlers';
-import { t as tNow, hasKey } from '../i18n';
+import { t as tNow, hasKey } from '../i18n/core';
 
 const guideText = (id, field, fallback) => (hasKey('prompt.guide.' + id + '.' + field, 'en') ? tNow('prompt.guide.' + id + '.' + field) : fallback);
 

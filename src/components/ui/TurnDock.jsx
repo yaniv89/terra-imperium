@@ -38,6 +38,8 @@ const TurnDock = () => {
   // (seconds on a phone; turnClient.js).
   useEffect(() => { const t = setTimeout(prewarmTurnWorker, 1500); return () => clearTimeout(t); }, []);
   useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), WARN_ARM_MS); return () => clearTimeout(t); }, [armed]);
+  // The model reads the current language through t(): recompute when it changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const btn = useMemo(() => endTurnButton(state, { turnPending, armed }), [state, turnPending, armed, lang]);
   const [slow, setSlow] = useState(false);
   useEffect(() => {

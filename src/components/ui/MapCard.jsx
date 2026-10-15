@@ -30,6 +30,8 @@ const kb = (bytes) => (bytes >= 1048576 ? tNow('mapcard.mb', { n: formatNumber(b
 // `label`: the heading (Settings already has a "Map display" section above it: playtest audit I164).
 const MapCard = ({ map, withCache = false, className = '', label = null }) => {
   const { t, lang } = useT();
+  // The model reads the current language through t(): recompute when it changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const m = useMemo(() => mapCardModel(map), [map, lang]);
   const [copied, setCopied] = useState(false);
   const [cache, setCache] = useState(null); // { count, bytes } | 'cleared'

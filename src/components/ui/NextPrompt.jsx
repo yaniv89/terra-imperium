@@ -22,6 +22,8 @@ const NextPrompt = () => {
   const { t, lang } = useT();
   // The idle stack is its own chip beside End Turn (IdleChip.jsx), where the card it opens does
   // not cover it.
+  // The model reads the current language through t(): recompute when it changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stacks = useMemo(() => stackPrompts(nextPrompts(state)).filter((s) => s.key !== 'idle'), [state, lang]);
   const [offset, setOffset] = useState(0);
   // Where each stack's cycle stands: the id of the prompt its last tap went to.

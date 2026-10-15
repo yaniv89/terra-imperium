@@ -4,7 +4,7 @@
 // fixed rule that turns any Latin name into Hebrew letters, so a generated or rare name is still
 // Hebrew. Never random; the same name always gives the same spelling.
 import { HE_PEOPLES, HE_CITIES, HE_TITLE_WORDS } from './hebrewNames';
-import { getLanguage } from './index';
+import { getLanguage } from './core';
 
 // Two-letter groups first, then single letters. Vowels in the middle of a word are mostly left
 // out (as in unpointed Hebrew); o and u become vav, i becomes yod; a vowel that opens a word is an alef.

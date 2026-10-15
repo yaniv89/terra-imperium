@@ -111,7 +111,6 @@ const LogEntry = ({ log, showYear = true }) => {
 
 // Filter button component
 const FilterButton = ({ type, label, isActive, onClick, count }) => {
-  const { t } = useT();
   const style = LOG_STYLES[type] || {};
   
   return (

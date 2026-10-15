@@ -15,7 +15,7 @@
 //   age), the same stepping resolveTurn uses, so BCE to CE and age changes count.
 // Pure. Reads state only.
 import { TECH_TREE } from '../data/techTree';
-import { t as tNow, formatYear } from '../i18n';
+import { t as tNow, formatYear } from '../i18n/core';
 import { getYearsPerTurn, getCalendarAgeId } from '../data/ages';
 import { calcIncome } from '../utils/helpers';
 import { getResearchCost, suggestTechs, FOCUS_SCIENCE_BONUS } from './research';

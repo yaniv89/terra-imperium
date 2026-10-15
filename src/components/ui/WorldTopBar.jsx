@@ -69,6 +69,8 @@ const WorldTopBar = () => {
   const layoutMode = useLayoutMode();
   const ref = useRef(null);
   const [open, setOpen] = useState(null);
+  // The model reads the current language through t(): recompute when it changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const m = useMemo(() => topBarModel(state), [state, lang]);
 
   useEffect(() => {
