@@ -15,6 +15,7 @@ import { MAP_HINT } from '../ui/uiEvents';
 import { openPanelTab } from '../panels/panelEvents';
 import { Meter } from '../ui/atlas';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { t as tNow } from '../../i18n';
 
 const MapGoals = () => {
   const { state } = useGame();
@@ -28,7 +29,7 @@ const MapGoals = () => {
   const era = useMemo(() => eraGoalProgress(state), [state]);
   // The hint is a notice (useExclusivePanel.js): on a phone it waits as a chip while a card or a
   // panel has the screen.
-  const { shown: hintShown } = useInteraction('map-hint', !!hint, { priority: PRIORITY.notice, kind: 'notice', label: hint ? `Map: ${hint.title}` : null, testId: 'map-hint-chip' });
+  const { shown: hintShown } = useInteraction('map-hint', !!hint, { priority: PRIORITY.notice, kind: 'notice', label: hint ? tNow('wait.mapHint', { title: hint.title }) : null, testId: 'map-hint-chip' });
   const wide = 'w-[min(19rem,calc(100vw-1.5rem-var(--rail-inset,0px)))]';
   // Under the "needs you" chips (App.jsx), so never under them. While a march or a site is being
   // chosen on a phone held sideways the bar has the top of the screen: the goals step aside

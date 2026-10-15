@@ -20,6 +20,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Castle, Home, Users, Mountain, ChevronDown } from 'lucide-react';
+import { t as tNow } from '../../i18n';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
@@ -46,7 +47,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const { triggerEffect } = useEffects();
   const m = useMemo(() => preBattleModel(state, { fromRegionId, targetRegionId, navalUnitId, tile, fromTile }),
     [state, fromRegionId, targetRegionId, navalUnitId, tile, fromTile]);
-  const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: `${m.name}: Command or Auto`, testId: 'pre-battle-chip', tone: 'danger', user: !arrival });
+  const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: tNow('wait.commandOrAuto', { name: m.name }), testId: 'pre-battle-chip', tone: 'danger', user: !arrival });
   useEffect(() => { prewarmBattleWorker(); }, []); // the battle's worker loads while the player decides
   const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);

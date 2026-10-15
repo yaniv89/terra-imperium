@@ -6,18 +6,20 @@
 import React from 'react';
 import { ChevronRight, Hourglass } from 'lucide-react';
 import { useWaitingChips, interactions } from '../../hooks/useExclusivePanel';
+import { useT } from '../../i18n/useT';
 
 const SHOWN = 2;
 
 const WaitingChips = () => {
   const chips = useWaitingChips();
+  const { t } = useT();
   if (!chips.length) return null;
   const shown = chips.slice(0, SHOWN);
   const more = chips.length - shown.length;
   return (
-    <div className="flex flex-col items-start gap-1.5 pointer-events-none" data-testid="waiting-chips" aria-label="Decisions that wait">
+    <div className="flex flex-col items-start gap-1.5 pointer-events-none" data-testid="waiting-chips" aria-label={t('chip.waitingAria')}>
       {shown.map((c) => (
-        <button key={c.id} type="button" onClick={() => interactions.promote(c.id)} data-testid={c.testId || `waiting-${c.id}`} title={`${c.label}. Tap to bring it back`}
+        <button key={c.id} type="button" onClick={() => interactions.promote(c.id)} data-testid={c.testId || `waiting-${c.id}`} title={t('chip.bringBack', { label: c.label })}
           className={`pointer-events-auto flex items-center gap-1.5 min-h-[32px] max-w-[min(20rem,44vw)] ps-2 pe-2.5 rounded-full bg-fa-panel/95 text-fa-text text-[12px] font-semibold border shadow-lg hover:bg-fa-raised ${c.tone === 'danger' ? 'border-fa-danger' : 'border-fa-brass'}`}>
           <Hourglass className={`w-3.5 h-3.5 shrink-0 ${c.tone === 'danger' ? 'text-fa-danger-text' : 'text-fa-brass'}`} aria-hidden="true" />
           <span className="truncate">{c.label}</span>
@@ -25,9 +27,9 @@ const WaitingChips = () => {
         </button>
       ))}
       {more > 0 && (
-        <button type="button" onClick={() => interactions.promote(chips[SHOWN].id)} aria-label={`${more} more wait: show the next`}
+        <button type="button" onClick={() => interactions.promote(chips[SHOWN].id)} aria-label={t('chip.moreWait', { n: more })}
           className="pointer-events-auto min-h-[32px] px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-muted text-[12px] font-semibold hover:text-fa-text">
-          +{more} more
+          {t('chip.plusN', { n: more })}
         </button>
       )}
     </div>

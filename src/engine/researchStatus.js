@@ -15,6 +15,7 @@
 //   age), the same stepping resolveTurn uses, so BCE to CE and age changes count.
 // Pure. Reads state only.
 import { TECH_TREE } from '../data/techTree';
+import { t as tNow, formatYear } from '../i18n';
 import { getYearsPerTurn, getCalendarAgeId } from '../data/ages';
 import { calcIncome } from '../utils/helpers';
 import { getResearchCost, suggestTechs, FOCUS_SCIENCE_BONUS } from './research';
@@ -22,7 +23,7 @@ import { getResearchCost, suggestTechs, FOCUS_SCIENCE_BONUS } from './research';
 const MAX_LOOKAHEAD_TURNS = 4000;
 
 /** "500 CE" / "800 BCE". */
-export const yearText = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
+export const yearText = (year) => formatYear(year);
 
 /** Turns until the calendar reaches `targetYear` (0 if it already has), stepping the speed table
  * the way resolveTurn does (the years of the age you start the turn in). Infinity past the end. */
@@ -95,7 +96,7 @@ export const nextGatedTech = (state, researched = researchedOf(state)) => {
   return best ? { techId: best.id, name: best.name, year: best.yearAvailable, label: yearText(best.yearAvailable), turns: turnsUntilYear(state, best.yearAvailable) } : null;
 };
 
-const aboutTurns = (n) => (n === Infinity ? 'a long time' : `about ${n} turn${n === 1 ? '' : 's'}`);
+const aboutTurns = (n) => (n === Infinity ? tNow('research.longTime') : tNow('research.aboutTurns', { count: n }));
 
 /** The single truth for "the player should choose research now": nothing under way or queued, no
  * advisor, and something can actually start. Cheap (no science math): the prompt chip, End Turn's
@@ -136,27 +137,27 @@ export const researchStatus = (state, { science = null } = {}) => {
     const first = schedule[0];
     const gate = first.gate;
     const name = TECH_TREE[r.current]?.name || r.current;
-    const bankText = bank > 0 ? `, ${bank} science banked` : '';
+    const bankText = bank > 0 ? tNow('research.banked', { n: bank }) : '';
     const note = gate
-      ? `${name} waits for ${gate.label}, ${aboutTurns(gate.turns)}${bankText}.`
-      : `${name} finishes in ${first.finishesIn === Infinity ? 'no known time (no science)' : `${first.finishesIn} turn${first.finishesIn === 1 ? '' : 's'}`}.`;
-    return { ...base, kind: gate ? 'waiting' : 'researching', gate, finishesIn: first.finishesIn, needsChoice: false, note, shortLabel: gate ? `${name} waits for ${gate.label}` : `${name} ${first.finishesIn === Infinity ? '?' : first.finishesIn}t` };
+      ? tNow('research.noteWaits', { name, gate: gate.label, about: aboutTurns(gate.turns), bank: bankText })
+      : tNow('research.noteFinishes', { name, time: first.finishesIn === Infinity ? tNow('research.noTime') : tNow('research.turnsCount', { count: first.finishesIn }) });
+    return { ...base, kind: gate ? 'waiting' : 'researching', gate, finishesIn: first.finishesIn, needsChoice: false, note, shortLabel: gate ? tNow('research.shortWaits', { name, gate: gate.label }) : tNow('research.shortTurns', { name, n: first.finishesIn === Infinity ? '?' : first.finishesIn }) };
   }
   if (startable) {
-    if (!needsChoice && !r.auto) return { ...base, kind: 'researching', gate: null, finishesIn: null, needsChoice: false, note: 'A queued technology starts at the next turn.', shortLabel: 'Queued' };
-    if (r.auto) return { ...base, kind: 'advisor', gate: null, finishesIn: null, needsChoice: false, note: 'Your advisor picks the next technology when science is ready.', shortLabel: 'Advisor picks' };
-    return { ...base, kind: 'choose', gate: null, finishesIn: null, needsChoice: true, note: 'Choose what to research.', shortLabel: 'Choose research' };
+    if (!needsChoice && !r.auto) return { ...base, kind: 'researching', gate: null, finishesIn: null, needsChoice: false, note: tNow('research.noteQueued'), shortLabel: tNow('research.queued') };
+    if (r.auto) return { ...base, kind: 'advisor', gate: null, finishesIn: null, needsChoice: false, note: tNow('research.noteAdvisor'), shortLabel: tNow('research.advisorPicks') };
+    return { ...base, kind: 'choose', gate: null, finishesIn: null, needsChoice: true, note: tNow('prompt.research'), shortLabel: tNow('chip.research') };
   }
   if (next) {
-    const why = `Nothing can be researched yet: the next technology, ${next.name}, opens in ${next.label}, ${aboutTurns(next.turns)}.`;
-    if (r.auto) return { ...base, kind: 'advisor-waiting', gate: null, finishesIn: null, needsChoice: false, note: `${why} Your advisor will pick it then; science banks until then${bank > 0 ? ` (${bank} so far)` : ''}.`, shortLabel: `Waiting for ${next.label}` };
-    return { ...base, kind: 'idle-waiting', gate: null, finishesIn: null, needsChoice: false, note: `${why} Science banks until then${bank > 0 ? ` (${bank} so far)` : ''}.`, shortLabel: `Waiting for ${next.label}` };
+    const why = tNow('research.nothingYet', { name: next.name, label: next.label, about: aboutTurns(next.turns) });
+    if (r.auto) return { ...base, kind: 'advisor-waiting', gate: null, finishesIn: null, needsChoice: false, note: tNow('research.noteAdvisorWaits', { why, bank: bank > 0 ? tNow('research.soFar', { n: bank }) : '' }), shortLabel: tNow('research.waitingFor', { label: next.label }) };
+    return { ...base, kind: 'idle-waiting', gate: null, finishesIn: null, needsChoice: false, note: tNow('research.noteIdleWaits', { why, bank: bank > 0 ? tNow('research.soFar', { n: bank }) : '' }), shortLabel: tNow('research.waitingFor', { label: next.label }) };
   }
-  return { ...base, kind: 'done', gate: null, finishesIn: null, needsChoice: false, note: 'There is nothing left to research.', shortLabel: 'Nothing to research' };
+  return { ...base, kind: 'done', gate: null, finishesIn: null, needsChoice: false, note: tNow('research.noteDone'), shortLabel: tNow('research.nothingLeft') };
 };
 
 /** "waits for 500 CE, about 12 turns" for an item with a gate, else null. */
-export const gateText = (gate) => (gate && gate.kind === 'wait' ? `waits for ${gate.label}, ${aboutTurns(gate.turns)}` : null);
+export const gateText = (gate) => (gate && gate.kind === 'wait' ? tNow('research.gateText', { label: gate.label, about: aboutTurns(gate.turns) }) : null);
 
 /**
  * What "Let my advisor pick" does right now: `{ techId }` when something can start (the caller

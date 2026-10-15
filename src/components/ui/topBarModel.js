@@ -6,19 +6,23 @@ import { calcNationBalance } from '../../engine/economy';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { getResearchView } from '../panels/researchView';
 import { PEOPLES } from '../../data/peoples';
+import { t as tNow, formatYear } from '../../i18n';
+import { nameNow } from '../../i18n/names';
 
-const EXPENSE_LABELS = { armyUpkeep: 'Army upkeep', marchingUpkeep: 'Armies on the march', navyUpkeep: 'Navy upkeep', fortUpkeep: 'Fort upkeep', advisorSalaries: 'Advisors', loanInterest: 'Loan interest' };
+export const EXPENSE_IDS = ['armyUpkeep', 'marchingUpkeep', 'navyUpkeep', 'fortUpkeep', 'advisorSalaries', 'loanInterest'];
+/** The expense line's name in the current language (an unknown id is spelled out from its camel case). */
+export const expenseLabel = (id) => (EXPENSE_IDS.includes(id) ? tNow(`expense.${id}`) : titleCase(id));
 const round1 = (v) => Math.round((v || 0) * 10) / 10;
 const titleCase = (s) => s.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
 
-export const yearLabel = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
+export const yearLabel = (year) => formatYear(year);
 
 /** "Bronze Working 3t" style, short enough for the bar. */
 export const scienceLabel = (current, status = null) => {
-  if (!current) return status && !status.needsChoice ? status.shortLabel : 'Choose research';
-  if (current.gate) return `${current.tech.name} waits for ${current.gate.label}`;
+  if (!current) return status && !status.needsChoice ? status.shortLabel : tNow('chip.research');
+  if (current.gate) return tNow('research.shortWaits', { name: current.tech.name, gate: current.gate.label });
   const t = current.finishesIn === Infinity ? '?' : current.finishesIn;
-  return `${current.tech.name} ${t}t`;
+  return tNow('research.shortTurns', { name: current.tech.name, n: t });
 };
 
 export const topBarModel = (state) => {
@@ -29,23 +33,23 @@ export const topBarModel = (state) => {
   const { income, expenses, net } = calcNationBalance(state, me);
   const research = getResearchView(state);
   const foodPerTurn = round1(cities.reduce((s, c) => s + (c.lastYields?.food || 0), 0));
-  const cultureRows = cities.map((c) => ({ id: c.id, label: c.name, value: round1(c.lastYields?.culture || 0) })).filter((r) => r.value !== 0);
-  const wars = Object.values(state.nations || {}).filter((n) => !n.isPlayer && n.id !== me && isAtWarWithPlayer(state, n.id)).map((n) => ({ id: n.id, name: PEOPLES[n.id]?.name || n.name }));
+  const cultureRows = cities.map((c) => ({ id: c.id, label: nameNow('city', null, c.name), value: round1(c.lastYields?.culture || 0) })).filter((r) => r.value !== 0);
+  const wars = Object.values(state.nations || {}).filter((n) => !n.isPlayer && n.id !== me && isAtWarWithPlayer(state, n.id)).map((n) => ({ id: n.id, name: nameNow('people', n.id, PEOPLES[n.id]?.name || n.name) }));
   return {
     // the short people name in the bar ("Akkad"), the title ("The Akkadian tribes") in its label
-    nation: { id: me, name: PEOPLES[me]?.name || nation.name || me, title: nation.name || me, color: nation.color || '#5B9BF0' },
+    nation: { id: me, name: nameNow('people', me, PEOPLES[me]?.name || nation.name || me), title: nameNow('people', me, nation.name || me), color: nation.color || '#5B9BF0' },
     gold: {
       value: Math.round(state.resources?.gold || 0),
       perTurn: Math.round(net),
       reasons: [
-        { id: 'income', label: 'Income', value: Math.round(income.gold || 0) },
-        ...Object.entries(expenses).filter(([, v]) => v > 0).map(([k, v]) => ({ id: k, label: EXPENSE_LABELS[k] || titleCase(k), value: -Math.round(v) }))
+        { id: 'income', label: tNow('topbar.income'), value: Math.round(income.gold || 0) },
+        ...Object.entries(expenses).filter(([, v]) => v > 0).map(([k, v]) => ({ id: k, label: expenseLabel(k), value: -Math.round(v) }))
       ]
     },
     food: {
       value: Math.round(cities.reduce((s, c) => s + (c.food || 0), 0)),
       perTurn: foodPerTurn,
-      reasons: cities.map((c) => ({ id: c.id, label: c.name, value: round1(c.lastYields?.food || 0) }))
+      reasons: cities.map((c) => ({ id: c.id, label: nameNow('city', null, c.name), value: round1(c.lastYields?.food || 0) }))
     },
     science: {
       perTurn: research.science,
@@ -61,6 +65,6 @@ export const topBarModel = (state) => {
     year: yearLabel(state.year),
     turn: state.turnNumber || 0,
     wars,
-    warLabel: wars.length === 0 ? null : wars.length === 1 ? `At war: ${wars[0].name}` : `At war: ${wars.length}`
+    warLabel: wars.length === 0 ? null : wars.length === 1 ? tNow('topbar.atWar', { name: wars[0].name }) : tNow('topbar.atWar', { name: wars.length })
   };
 };

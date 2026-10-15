@@ -7,6 +7,7 @@
 import { turnBlockers } from '../../engine/turnBlockers';
 import { GameStatus } from '../../data/types';
 import { endTurnWarnings } from './nextPromptModel';
+import { t as tNow } from '../../i18n';
 
 /**
  * { mode, label, badge, blocker, count }:
@@ -18,12 +19,12 @@ import { endTurnWarnings } from './nextPromptModel';
  */
 export const endTurnButton = (state, { turnPending = false, armed = false } = {}) => {
   if (state.gameStatus !== GameStatus.ACTIVE) return { mode: 'hidden', label: '', badge: null, blocker: null, count: 0 };
-  if (turnPending) return { mode: 'moving', label: 'The world moves…', badge: null, blocker: null, count: 0 };
+  if (turnPending) return { mode: 'moving', label: tNow('turn.moves'), badge: null, blocker: null, count: 0 };
   const blockers = turnBlockers(state);
   if (blockers.length) return { mode: 'blocker', label: blockers[0].label, badge: blockers.length > 1 ? `+${blockers.length - 1}` : null, blocker: blockers[0], count: blockers.length };
   const warnings = endTurnWarnings(state);
-  if (armed && warnings > 0) return { mode: 'armed', label: `End anyway? ${warnings} waiting`, badge: null, blocker: null, count: 0 };
-  return { mode: 'ready', label: 'End Turn', badge: null, blocker: null, count: 0 };
+  if (armed && warnings > 0) return { mode: 'armed', label: tNow('turn.endAnyway', { n: warnings }), badge: null, blocker: null, count: 0 };
+  return { mode: 'ready', label: tNow('turn.end'), badge: null, blocker: null, count: 0 };
 };
 
 /**

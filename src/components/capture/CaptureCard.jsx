@@ -19,6 +19,7 @@ import { Button, IconButton } from '../ui/atlas';
 import GameIcon from '../ui/GameIcon';
 import { captureCardModel } from './captureCardModel';
 import { SHOW_CAPTURE } from './captureEvents';
+import { t as tNow } from '../../i18n';
 
 // The old glyphs, used only when the delivered icon is missing.
 const FALLBACK = { conquer: Crown, raze: Flame, tributary: Coins, free: Bird };
@@ -34,7 +35,7 @@ const CaptureCard = () => {
     window.addEventListener(SHOW_CAPTURE, onShow);
     return () => window.removeEventListener(SHOW_CAPTURE, onShow);
   }, []);
-  const turn = useInteraction('capture', !!m, { priority: PRIORITY.capture, label: m ? `Decide: ${m.name}` : null, testId: 'capture-chip', tone: 'danger' });
+  const turn = useInteraction('capture', !!m, { priority: PRIORITY.capture, label: m ? tNow('wait.capture', { name: m.name }) : null, testId: 'capture-chip', tone: 'danger' });
   if (!m || !turn.shown) return null;
   const chosen = m.choices.find((c) => c.id === pick) || m.choices[0];
   const go = () => {

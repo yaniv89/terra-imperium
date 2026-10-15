@@ -11,6 +11,7 @@ import { openPanelTab } from '../panels/panelEvents';
 import { Button, Chip, Label, Shield } from '../ui/atlas';
 import { contactCard, newContacts } from './firstContactModel';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { t as tNow } from '../../i18n';
 
 const FirstContactCard = () => {
   const { state } = useGame();
@@ -32,7 +33,7 @@ const FirstContactCard = () => {
   const card = id ? contactCard(state, id) : null;
   // News, not a decision (useExclusivePanel.js): it shows when no card is up (and, on a narrow
   // screen, no panel), and waits as a chip otherwise instead of covering what the player is doing.
-  const turn = useInteraction('first-contact', !!card, { kind: 'notice', priority: PRIORITY.notice, label: card ? `You met ${card.title.replace(/^The /, 'the ')}${queue.length > 1 ? ` +${queue.length - 1}` : ''}` : null, testId: 'first-contact-chip' });
+  const turn = useInteraction('first-contact', !!card, { kind: 'notice', priority: PRIORITY.notice, label: card ? `${tNow('wait.met', { title: card.title.replace(/^The /, 'the ') })}${queue.length > 1 ? ` +${queue.length - 1}` : ''}` : null, testId: 'first-contact-chip' });
   if (!card || !turn.shown) return null;
   const close = () => setQueue((q) => q.slice(1));
 

@@ -9,6 +9,8 @@
 // What N counts: one per prompt, so an army stack on one tile is one (as nextPromptModel lists
 // it) and every settler unit is one.
 
+import { t as tNow } from '../../i18n';
+
 const IDLE_KINDS = new Set(['army', 'settler']);
 const STACKED_KINDS = new Set(['city', 'unrest', 'supply']);
 
@@ -44,11 +46,11 @@ export const nextInStack = (stack, lastId = null) => {
 /** The chip's words: `single(prompt)` names one; several read as a count. */
 export const stackLabel = (stack, single) => {
   if (stack.count === 1) return single(stack.items[0]);
-  if (stack.kind === 'idle') return `Idle ${stack.count}`;
-  if (stack.kind === 'city') return `${stack.count} cities can build`;
-  if (stack.kind === 'unrest') return `${stack.count} cities restless`;
-  if (stack.kind === 'supply') return `${stack.count} armies low on supply`;
-  return `${single(stack.items[0])} +${stack.count - 1} more`;
+  if (stack.kind === 'idle') return tNow('chip.idle', { n: stack.count });
+  if (stack.kind === 'city') return tNow('chip.citiesBuild', { count: stack.count });
+  if (stack.kind === 'unrest') return tNow('chip.citiesRestless', { count: stack.count });
+  if (stack.kind === 'supply') return tNow('chip.armiesLow', { count: stack.count });
+  return tNow('chip.plusMore', { label: single(stack.items[0]), n: stack.count - 1 });
 };
 
 /** What the chip says to a screen reader or on hover: what it holds and what a tap does. */
@@ -57,7 +59,7 @@ export const stackHint = (stack, single) => {
   const armies = stack.items.filter((p) => p.kind === 'army').length;
   const settlers = stack.items.filter((p) => p.kind === 'settler').length;
   const what = stack.kind === 'idle'
-    ? [armies ? `${armies} ${armies === 1 ? 'army' : 'armies'} can still move` : null, settlers ? `${settlers} ${settlers === 1 ? 'settler waits' : 'settlers wait'} for a destination` : null].filter(Boolean).join(', ')
+    ? [armies ? tNow('chip.armiesMove', { count: armies }) : null, settlers ? tNow('chip.settlersWait', { count: settlers }) : null].filter(Boolean).join(tNow('chip.listSep'))
     : stackLabel(stack, single);
-  return `${what}. Each tap goes to the next one`;
+  return tNow('chip.eachTap', { what });
 };

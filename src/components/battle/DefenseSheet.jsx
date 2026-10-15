@@ -11,6 +11,7 @@
 // leaving a pill to bring it back. A panel on the left over the map, phone and desktop alike.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Shield as ShieldIcon, ChevronDown } from 'lucide-react';
+import { t as tNow } from '../../i18n';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { queuedBattleView, battleQueueBlocked, queuedKind } from '../../engine/battleQueue';
@@ -42,7 +43,7 @@ const DefenseSheet = () => {
   // first") or behind a card the player opened, it waits as the "N under attack" chip.
   const up = !blocked && !!m;
   useEffect(() => { if (up) prewarmBattleWorker(); }, [up]); // the battle's worker loads while the player decides
-  const turn = useInteraction('defense', !blocked && !!m, { priority: PRIORITY.defense, label: `${defenses.length} under attack: back to the battle`, testId: 'defense-pill', tone: 'danger' });
+  const turn = useInteraction('defense', !blocked && !!m, { priority: PRIORITY.defense, label: tNow('wait.defense', { n: defenses.length }), testId: 'defense-pill', tone: 'danger' });
   // The queue waits while a battle is under way or an event or a peace offer is open (the engine's
   // own rule, battleQueue.js battleQueueBlocked).
   if (blocked || !m || !turn.shown) return null;

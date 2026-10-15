@@ -21,17 +21,19 @@ import { GameStatus } from '../data/types';
 import { demandWaiting } from './aiAccords';
 import { researchNeedsChoice } from './researchStatus';
 import { pendingCapturesOf } from './capture';
+import { t as tNow } from '../i18n';
+import { nameNow } from '../i18n/names';
 
-const nameOf = (state, id) => state.nations?.[id]?.name || 'A people';
+const nameOf = (state, id) => nameNow('people', id, state.nations?.[id]?.name || tNow('prompt.aPeople'));
+const cityNameOf = (state, id, fallback) => { const c = state.regions?.[id]; return c?.name ? nameNow('city', null, c.name) : fallback; };
 const alive = (state, id) => !!state.nations?.[id] && !state.nations[id].isEliminated;
 
-const demandText = (d) => (d.kind === 'city' ? `demands ${d.cityName || 'a city'}` : d.kind === 'stopSettling' ? 'demands you stop settling' : 'demands tribute');
 
 const defenseLabel = (state, def) => {
   const city = def.regionId ? state.regions?.[def.regionId]?.name : null;
-  if (city) return `Defend ${city}: Command or Auto`;
-  if (def.kind === 'naval' || def.kind === 'intercept') return 'Defend your fleet: Command or Auto';
-  return 'Defend your army: Command or Auto';
+  if (city) return tNow('prompt.block.defendCity', { city: nameNow('city', null, city) });
+  if (def.kind === 'naval' || def.kind === 'intercept') return tNow('prompt.block.defendFleet');
+  return tNow('prompt.block.defendArmy');
 };
 
 /** Is research idle while something could be researched (and no advisor picks)? One truth: researchStatus.js. */
@@ -48,15 +50,15 @@ export const idleCities = (state) => {
 export const turnBlockers = (state) => {
   if (!state || state.gameStatus !== GameStatus.ACTIVE) return [];
   const out = [];
-  if (state.pendingBattle) out.push({ id: 'battle', kind: 'battle', label: 'Finish the battle', target: null, action: 'battle' });
-  if (state.activeEventId || state.activeProceduralEvent) out.push({ id: 'event', kind: 'event', label: 'Answer the event', target: { cityId: state.activeProceduralEvent?.cityId || null }, action: 'event' });
-  if (state.pendingPeaceOffer) out.push({ id: 'peace', kind: 'peace', label: `Answer: ${nameOf(state, state.pendingPeaceOffer.from)} offers peace`, target: { nationId: state.pendingPeaceOffer.from || null }, action: 'peace' });
+  if (state.pendingBattle) out.push({ id: 'battle', kind: 'battle', label: tNow('prompt.block.battle'), target: null, action: 'battle' });
+  if (state.activeEventId || state.activeProceduralEvent) out.push({ id: 'event', kind: 'event', label: tNow('prompt.block.event'), target: { cityId: state.activeProceduralEvent?.cityId || null }, action: 'event' });
+  if (state.pendingPeaceOffer) out.push({ id: 'peace', kind: 'peace', label: tNow('prompt.block.peace', { name: nameOf(state, state.pendingPeaceOffer.from) }), target: { nationId: state.pendingPeaceOffer.from || null }, action: 'peace' });
   (state.pendingDefenses || []).forEach((def, i) => out.push({ id: `defense:${def.id ?? i}`, kind: 'defense', label: defenseLabel(state, def), target: { defenseId: def.id ?? null, regionId: def.regionId || null, tile: def.tile ?? null }, action: 'defense' }));
-  pendingCapturesOf(state).forEach((c) => out.push({ id: `capture:${c.id}`, kind: 'capture', label: `Decide the fate of ${state.regions[c.cityId]?.name || 'the city'}`, target: { captureId: c.id, regionId: c.cityId }, action: 'capture' }));
-  if (demandWaiting(state)) { const d = state.pendingDemand; out.push({ id: 'demand', kind: 'demand', label: `Answer: ${nameOf(state, d.from)} ${demandText(d)}`, target: { nationId: d.from }, action: 'diplomacy' }); }
-  (state.tributeDemands || []).filter((d) => alive(state, d.indepId)).forEach((d) => out.push({ id: `tribute:${d.id}`, kind: 'tribute', label: `Answer: ${nameOf(state, d.indepId)} demands tribute`, target: { demandId: d.id, nationId: d.indepId }, action: 'tribute' }));
-  (state.joinOffers || []).filter((o) => alive(state, o.indepId)).forEach((o) => out.push({ id: `join:${o.id}`, kind: 'join', label: `Answer: ${nameOf(state, o.indepId)} offers to join`, target: { offerId: o.id, nationId: o.indepId }, action: 'join' }));
-  if (researchIdle(state)) out.push({ id: 'research', kind: 'research', label: 'Choose research', target: null, action: 'research' });
-  idleCities(state).forEach((c) => out.push({ id: `city:${c.id}`, kind: 'city', label: `Choose production: ${c.name || 'a city'}`, target: { regionId: c.id }, action: 'city' }));
+  pendingCapturesOf(state).forEach((c) => out.push({ id: `capture:${c.id}`, kind: 'capture', label: tNow('prompt.block.capture', { city: cityNameOf(state, c.cityId, tNow('prompt.theCity')) }), target: { captureId: c.id, regionId: c.cityId }, action: 'capture' }));
+  if (demandWaiting(state)) { const d = state.pendingDemand; out.push({ id: 'demand', kind: 'demand', label: tNow(d.kind === 'city' ? 'prompt.block.demandCity' : d.kind === 'stopSettling' ? 'prompt.block.demandStop' : 'prompt.block.demandTribute', { name: nameOf(state, d.from), city: d.cityName ? nameNow('city', null, d.cityName) : tNow('prompt.aCity') }), target: { nationId: d.from }, action: 'diplomacy' }); }
+  (state.tributeDemands || []).filter((d) => alive(state, d.indepId)).forEach((d) => out.push({ id: `tribute:${d.id}`, kind: 'tribute', label: tNow('prompt.block.tribute', { name: nameOf(state, d.indepId) }), target: { demandId: d.id, nationId: d.indepId }, action: 'tribute' }));
+  (state.joinOffers || []).filter((o) => alive(state, o.indepId)).forEach((o) => out.push({ id: `join:${o.id}`, kind: 'join', label: tNow('prompt.block.join', { name: nameOf(state, o.indepId) }), target: { offerId: o.id, nationId: o.indepId }, action: 'join' }));
+  if (researchIdle(state)) out.push({ id: 'research', kind: 'research', label: tNow('prompt.block.research'), target: null, action: 'research' });
+  idleCities(state).forEach((c) => out.push({ id: `city:${c.id}`, kind: 'city', label: tNow('prompt.block.city', { city: c.name ? nameNow('city', null, c.name) : tNow('prompt.aCity') }), target: { regionId: c.id }, action: 'city' }));
   return out;
 };

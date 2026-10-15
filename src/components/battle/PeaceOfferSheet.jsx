@@ -8,6 +8,8 @@
 import React, { useEffect } from 'react';
 import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 import { Feather, ChevronDown } from 'lucide-react';
+import { t as tNow } from '../../i18n';
+import { nameNow } from '../../i18n/names';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
@@ -39,10 +41,10 @@ const PeaceOfferSheet = () => {
   // A battle under way comes first. Queued assaults do not: the battle queue itself waits for the
   // answer (battleQueue.js battleQueueBlocked), so hiding behind it left neither sheet on screen.
   const waiting = !!offer && !state.pendingBattle;
-  const fromName = offer ? state.nations[offer.from]?.name || offer.from : '';
+  const fromName = offer ? nameNow('people', offer.from, state.nations[offer.from]?.name || offer.from) : '';
   // One entry of the interaction registry (useExclusivePanel.js): set aside or behind another
   // card, it waits as the "Peace offer from X" chip.
-  const turn = useInteraction('peace-offer', waiting, { priority: PRIORITY.peace, label: `Peace offer from ${fromName}`, testId: 'peace-offer-pill' });
+  const turn = useInteraction('peace-offer', waiting, { priority: PRIORITY.peace, label: tNow('wait.peaceOffer', { name: fromName }), testId: 'peace-offer-pill' });
   if (!waiting || !turn.shown) return null;
   const from = fromName;
   const war = (state.wars || []).find((w) => w.id === offer.warId);
