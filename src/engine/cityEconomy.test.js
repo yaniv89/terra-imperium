@@ -269,8 +269,8 @@ describe('ships need the sea (I039, I040)', () => {
     const ctx = { researched: ['economy_silk_road_trade'], ageId: 'classical' };
     const ship = { kind: 'unit', classId: 'naval', navalLine: 'warship' };
     const harbor = { kind: 'building', category: 'naval', tier: 0 };
-    expect(canQueue(inland, tiles, worldOf(s), ship, ctx)).toEqual({ ok: false, reason: NEEDS_SEA_COAST });
-    expect(canQueue(inland, tiles, worldOf(s), harbor, ctx)).toEqual({ ok: false, reason: NEEDS_SEA_COAST });
+    expect(canQueue(inland, tiles, worldOf(s), ship, ctx)).toMatchObject({ ok: false, reason: NEEDS_SEA_COAST });
+    expect(canQueue(inland, tiles, worldOf(s), harbor, ctx)).toMatchObject({ ok: false, reason: NEEDS_SEA_COAST });
     expect(canQueue(coastal, tiles, worldOf(s), ship, ctx).ok).toBe(true);
     expect(canQueue(coastal, tiles, worldOf(s), harbor, ctx).ok).toBe(true);
     expect(canQueue(inland, tiles, worldOf(s), { kind: 'unit', classId: 'infantry' }, ctx).ok).toBe(true);

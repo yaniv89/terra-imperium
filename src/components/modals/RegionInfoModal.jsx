@@ -60,7 +60,7 @@ import { cityHousingCap, cityDamageOf } from '../../engine/cityManifest';
 // player-owned-side reachability checks.
 import { nameNow } from '../../i18n/names';
 import { useT } from '../../i18n/useT';
-import { reasonText, messageOf } from '../../i18n/messageText';
+import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { t as tNow, hasKey } from '../../i18n/core';
 // a nation's name in the current language (a people's title, or an independent's form)
