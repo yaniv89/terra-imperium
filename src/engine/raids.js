@@ -57,6 +57,7 @@ import { landmassOf } from '../data/geo/citySpacing';
 import { kmPerRing, ringsForKm } from '../data/geo/gridScale';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { LogTypes } from '../data/types';
+import { msg, carry, sub, people, cityRef, place as placeRef, thing } from './messages';
 import {
   isIndependentNation, garrisonTarget, THINK_PERIOD, RAID_KM, RAID_COOLDOWN, RAID_CHANCE, FORTRESS_REVENGE_GRUDGE, RAID_THRESHOLD,
   RAID_RING_PENALTY, RAID_RING_PENALTY_KM, RAID_MAX_TURNS, RAID_RECOVER_TURNS, RAID_FIGHT_RATIO, RAID_ERA_FACTOR, ROUTE_LOOT, SETTLER_LOOT,
@@ -76,7 +77,7 @@ import { cityManifestOf } from './cityManifest';
 import { withGrudge, grudgeOf, decayGrudges } from './grudges';
 import { isUnitInBattle } from './invasion';
 import { hireMercenary, mercOffer, processMercenaries, goldIn, addGoldIn } from './mercenaries';
-import { agree, subjectVerb } from './grammar';
+import { subjectVerb } from './grammar';
 
 const KIND_STAT = { pillage: 'pillages', route: 'routesCut', settler: 'settlersKilled', outpost: 'outpostsBurned' };
 
@@ -135,8 +136,15 @@ export const homeThreatened = (w, id, city) => {
   return hit;
 };
 
-const log = (w, message, type = LogTypes.COMBAT) => w.logs.push({ year: w.year, message, type });
-const placeOf = (w, tile) => getTiles().names?.[tile] || w.regions[w.view.world?.tileOwner?.[tile]]?.name || 'the frontier';
+// `line`: a msg() result (messages.js), or a plain string.
+const log = (w, line, type = LogTypes.COMBAT) => w.logs.push({ year: w.year, ...carry(line), type });
+// A tile in a message: its own name, else its city's, else "the frontier".
+const placeOf = (w, tile) => {
+  const name = getTiles().names?.[tile];
+  if (name) return placeRef(name);
+  const cityId = w.view.world?.tileOwner?.[tile];
+  return w.regions[cityId]?.name ? cityRef(cityId, w.regions[cityId].name) : sub('m.battle.theFrontier');
+};
 const rngFor = (w, id, what) => createRng(Math.floor(hashRoll(`${w.seed}|${id}|${w.turn}|${what}`) * 4294967296) >>> 0);
 
 // ---------------------------------------------------------------------------------------------
@@ -302,12 +310,13 @@ const fight = (w, id, { kind, raidKind = kind, tile, victim, city = null, party,
   // No grudge for defending (CB08): the raiders started this fight, the victim is not blamed for killing them.
   return r;
 };
-const raiderName = (w, id) => w.nations[id]?.name || 'Raiders';
+const raiderName = (w, id) => people(id, w.nations[id]?.name || 'Raiders');
 /** The outcome of a raid on the player, kept on the raider for the UI (phase W4: the sheet's "last
- * raid on you"): { turn, kind, won, loot, text }. A record only: no rule reads it. */
-const noteOutcome = (w, id, victim, outcome) => {
+ * raid on you"): { turn, kind, won, loot, text, textMsg }. A record only: no rule reads it. `line` is a
+ * msg() result: `text` keeps its English, `textMsg` (a sub() ref, messages.js) its key and vars. */
+const noteOutcome = (w, id, victim, outcome, line) => {
   if (victim !== w.playerId || !w.nations[id]) return;
-  setIndep(w, id, { lastRaidOnPlayer: { turn: w.turn, ...outcome } });
+  setIndep(w, id, { lastRaidOnPlayer: { turn: w.turn, ...outcome, text: line.message, ...(line.msgKey ? { textMsg: sub(line.msgKey, line.msgVars) } : {}) } });
 };
 const markRaided = (w, victim, id) => {
   const v = w.nations[victim];
@@ -367,7 +376,12 @@ const afterTargetBattle = (w, id, raid, raidersWon) => {
   const survivors = partyOf(w, id);
   const out = { ...raid, phase: 'out', battleId: undefined };
   if (!raidersWon) {
-    if (victim === w.playerId) { const text = `Your ${kind === 'sack' ? 'garrison of' : 'army at'} ${kind === 'sack' ? city?.name || 'the town' : placeOf(w, t)} drove off ${raiderName(w, id)}.`; log(w, text); noteOutcome(w, id, victim, { kind: raid.kind, won: false, loot: 0, text }); }
+    if (victim === w.playerId) {
+      const line = kind === 'sack'
+        ? msg('m.battle.raidBeatenAtCity', { place: city?.name ? cityRef(raid.targetCityId, city.name) : sub('m.battle.theTown'), raiders: raiderName(w, id) })
+        : msg('m.battle.raidBeatenInField', { place: placeOf(w, t), raiders: raiderName(w, id) });
+      log(w, line); noteOutcome(w, id, victim, { kind: raid.kind, won: false, loot: 0 }, line);
+    }
     if (!survivors.length) { setIndep(w, id, { raid: { ...out, lost: true } }); endRaid(w, id, []); return false; }
     sendHome(w, id, survivors, { ...out, lost: true }, 'beaten');
     return false;
@@ -386,24 +400,24 @@ const takeLoot = (w, id, raid) => {
   const toPlayer = victim === w.playerId;
   const city = raid.targetCityId != null ? w.regions[raid.targetCityId] : null;
   let loot = 0;
-  let what = '';
+  let what = null; // [key suffix, vars]: the loot line (m.battle.loot<Kind> and m.battle.loot<Kind>They)
   if (raid.kind === 'pillage') {
     const p = pillageTile(w.view, id, t, new Set([victim]));
-    if (p) { w.view.world = { ...w.view.world, tileState: p.tileState }; loot = p.gold; what = `pillage the land of ${w.regions[p.cityId]?.name || 'a city'} (${placeOf(w, t)})`; }
+    if (p) { w.view.world = { ...w.view.world, tileState: p.tileState }; loot = p.gold; what = ['Pillage', { city: w.regions[p.cityId]?.name ? cityRef(p.cityId, w.regions[p.cityId].name) : sub('m.battle.aCity'), place: placeOf(w, t) }]; }
     moveParty(w, party, t);
   } else if (raid.kind === 'route') {
     loot = takeGold(w, victim, ROUTE_LOOT);
-    what = `cut your trade route at ${placeOf(w, t)}`;
+    what = ['Route', { place: placeOf(w, t) }];
     moveParty(w, party, t);
   } else if (raid.kind === 'settler') {
     if (w.units[raid.targetUnitId]) { delete w.units[raid.targetUnitId]; touchUnits(w); }
     loot = SETTLER_LOOT;
-    what = `kill a settler party at ${placeOf(w, t)}`;
+    what = ['Settler', { place: placeOf(w, t) }];
     moveParty(w, party, t);
   } else if (raid.kind === 'outpost') {
     w.regions[city.id] = { ...city, outpost: { ...city.outpost, progress: Math.round(city.outpost.progress * (1 - OUTPOST_BURN_LOSS) * 10) / 10 }, burnedTurn: w.turn }; w.regionsChanged = true;
     loot = OUTPOST_LOOT;
-    what = `burn the outpost of ${city.name}`;
+    what = ['Outpost', { city: cityRef(city.id, city.name) }];
   } else if (raid.kind === 'sack') {
     const gold = Math.max(SACK_MIN_GOLD, Math.round(SACK_INCOME_TURNS * (city.lastYields?.gold || 0)));
     takeGold(w, victim, gold);
@@ -415,14 +429,24 @@ const takeLoot = (w, id, raid) => {
       : sackedCity(city, w.turn);
     w.regions[city.id] = s.city; w.regionsChanged = true;
     w.stats.sacks += 1;
-    what = `sack ${city.name}: ${gold} gold taken${s.lostSize > 0 ? `, the city loses ${s.lostSize > 1 ? `${s.lostSize} sizes` : 'a size'}` : ''}${s.lostBuilding ? `, a ${s.lostBuilding} building damaged` : ', the town burns'}`;
+    what = ['Sack', {
+      city: cityRef(city.id, city.name), gold,
+      size: s.lostSize > 0 ? (s.lostSize > 1 ? sub('m.battle.sackSizes', { n: s.lostSize }) : sub('m.battle.sackSize')) : '',
+      building: s.lostBuilding ? sub('m.battle.sackBuilding', { building: thing('building', s.lostBuilding, s.lostBuilding) }) : sub('m.battle.sackBurns')
+    }];
   }
   addGold(w, id, loot);
   w.stats.raidsHit += 1;
   if (KIND_STAT[raid.kind]) w.stats[KIND_STAT[raid.kind]] = (w.stats[KIND_STAT[raid.kind]] || 0) + 1;
   w.stats.loot += loot;
   markRaided(w, victim, id);
-  if (toPlayer) { w.stats.raidsOnPlayer += 1; { const [verb, ...rest] = what.split(" "); log(w, `${subjectVerb(name, verb, rest.join(" "))}.`); } noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot, text: `They ${what}.` }); }
+  if (toPlayer) {
+    w.stats.raidsOnPlayer += 1;
+    // A pillage that found nothing to take has no line of its own (the old text was "<name> s."): it stays a plain string.
+    if (what) log(w, msg(`m.battle.loot${what[0]}`, { raiders: name, ...what[1] }));
+    else log(w, `${subjectVerb(name.en, '', '')}.`);
+    noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot }, what ? msg(`m.battle.loot${what[0]}They`, what[1]) : { message: 'They .' });
+  }
   const out = { ...raid, phase: 'out', battleId: undefined, sizeBefore: undefined };
   if (raid.kind === 'route') { setIndep(w, id, { raid: { ...out, phase: 'hold', holdUntil: w.turn + 1 } }); return; }
   sendHome(w, id, party, out);
@@ -431,9 +455,9 @@ const takeLoot = (w, id, raid) => {
 /** After a battle with an army on the road: through it (it falls back to its city) or beaten home. */
 const afterIntercept = (w, id, raid, tile, owner, raidersWon) => {
   if (owner === w.playerId) {
-    const text = raidersWon ? `${subjectVerb(raiderName(w, id), 'cut')} through your army near ${placeOf(w, tile)}.` : `Your army near ${placeOf(w, tile)} stopped ${raiderName(w, id)}.`;
-    log(w, text);
-    if (!raidersWon) noteOutcome(w, id, owner, { kind: 'intercept', won: false, loot: 0, text });
+    const line = msg(raidersWon ? 'm.battle.raidCutThrough' : 'm.battle.raidStopped', { raiders: raiderName(w, id), place: placeOf(w, tile) });
+    log(w, line);
+    if (!raidersWon) noteOutcome(w, id, owner, { kind: 'intercept', won: false, loot: 0 }, line);
   }
   if (raidersWon) fallBack(w, hostileArmiesAt(w, id, tile).filter((u) => u.ownerId === owner));
   const left = partyOf(w, id);
@@ -534,8 +558,9 @@ const runRaid = (w, id, city) => {
   let warned = raid.warned;
   if (!warned && raid.targetNationId === w.playerId && step.route.length <= 3) {
     warned = true;
-    const near = raid.targetCityId != null ? w.regions[raid.targetCityId]?.name : w.regions[w.view.world?.tileOwner?.[raid.targetTile]]?.name;
-    log(w, `${raiderName(w, id)} are ${step.route.length} tile${step.route.length === 1 ? '' : 's'} from ${near || placeOf(w, raid.targetTile)}.`, LogTypes.CRISIS);
+    const nearId = raid.targetCityId != null ? raid.targetCityId : w.view.world?.tileOwner?.[raid.targetTile];
+    const near = w.regions[nearId]?.name;
+    log(w, msg('m.battle.raidersNear', { raiders: raiderName(w, id), count: step.route.length, place: near ? cityRef(nearId, near) : placeOf(w, raid.targetTile) }), LogTypes.CRISIS);
   }
   setIndep(w, id, { raid: { ...raid, route: step.route, warned } });
 };
@@ -636,7 +661,7 @@ const payTribute = (w, id) => {
     const truceWith = { ...(n.indep.truceWith || {}) }; delete truceWith[payer];
     w.nations[id] = { ...n, indep: { ...n.indep, tributeFrom: nextFrom, truceWith } };
     Object.assign(w.nations, refuseTribute(w.nations, id, payer, w.turn, 'missed'));
-    if (payer === w.playerId) log(w, `You could not pay your tribute to ${raiderName(w, id)}: the deal is off and they will raid again.`, LogTypes.DIPLOMACY);
+    if (payer === w.playerId) log(w, msg('m.battle.tributeMissed', { raiders: raiderName(w, id) }), LogTypes.DIPLOMACY);
   });
 };
 
@@ -664,7 +689,7 @@ const demandTribute = (w, id, city, myStrength, nearArmies, nearOwners) => {
   w.stats.tributeDemands += 1;
   if (target === w.playerId) {
     w.tributeDemands.push({ id: `trib_${id}_${w.turn}`, indepId: id, gold, turns: TRIBUTE_TURNS, turn: w.turn, expires: w.turn + TRIBUTE_ANSWER_TURNS });
-    log(w, `${subjectVerb(raiderName(w, id), 'demand')} ${gold} gold a turn for ${TRIBUTE_TURNS} turns, or they will raid you (${placeOf(w, threat.tile)} is within their reach). Answer under Relations on the Empire tab within ${TRIBUTE_ANSWER_TURNS} turns.`, LogTypes.DIPLOMACY);
+    log(w, msg('m.battle.tributeDemand', { raiders: raiderName(w, id), gold, turns: TRIBUTE_TURNS, place: placeOf(w, threat.tile), answer: TRIBUTE_ANSWER_TURNS }), LogTypes.DIPLOMACY);
     return true;
   }
   // An AI major pays when the independent outweighs its army there and it can afford the deal.
@@ -783,7 +808,7 @@ export const processIndependents = (input, { inPlace = false } = {}) => {
     if (d.expires > w.turn && w.nations[d.indepId] && !w.nations[d.indepId].isEliminated) return true;
     if (w.nations[d.indepId] && !w.nations[d.indepId].isEliminated) {
       Object.assign(w.nations, refuseTribute(w.nations, d.indepId, w.playerId, w.turn));
-      log(w, `You ignored the tribute demand of ${raiderName(w, d.indepId)}: they take it as a refusal.`, LogTypes.DIPLOMACY);
+      log(w, msg('m.battle.tributeIgnored', { raiders: raiderName(w, d.indepId) }), LogTypes.DIPLOMACY);
     }
     return false;
   });
@@ -815,17 +840,17 @@ export const answerTributeDemand = (state, demandId, pay) => {
   if (pay) {
     return {
       ...state, tributeDemands: rest, nations: startTribute(state.nations, d.indepId, state.playerNationId, d.gold, state.turnNumber),
-      logs: [...state.logs, { year: state.year, message: `You pay ${indep.name} ${d.gold} gold a turn for ${d.turns} turns: no raids from them meanwhile.`, type: LogTypes.DIPLOMACY }]
+      logs: [...state.logs, { year: state.year, ...msg('m.battle.payTribute', { nation: people(d.indepId, indep.name), gold: d.gold, turns: d.turns }), type: LogTypes.DIPLOMACY }]
     };
   }
   // The threat as it really stands (I106): what they could raid today, or that nothing is in reach.
   const f = raidForecast(state, d.indepId, state.playerNationId);
-  const where = f ? getTiles().names?.[f.tile] || state.regions?.[f.cityId]?.name || 'your frontier' : null;
-  const risk = !f ? `Nothing of yours is within their reach now, so no raid follows; they hold it against you (grudge +${GRUDGE_REFUSED}) and may come when something is.`
-    : f.likely ? `Expect raiders at ${where}. Their grudge against you rises (+${GRUDGE_REFUSED}).`
-      : `They may raid ${where}, though it is hardly worth their walk today. Their grudge against you rises (+${GRUDGE_REFUSED}).`;
+  const tileName = f ? getTiles().names?.[f.tile] : null;
+  const where = !f ? null : tileName ? placeRef(tileName) : state.regions?.[f.cityId]?.name ? cityRef(f.cityId, state.regions[f.cityId].name) : sub('m.battle.yourFrontier');
+  const risk = !f ? sub('m.battle.refuseRiskNone', { grudge: GRUDGE_REFUSED })
+    : sub(f.likely ? 'm.battle.refuseRiskLikely' : 'm.battle.refuseRiskMaybe', { place: where, grudge: GRUDGE_REFUSED });
   return {
     ...state, tributeDemands: rest, nations: refuseTribute(state.nations, d.indepId, state.playerNationId, state.turnNumber),
-    logs: [...state.logs, { year: state.year, message: `You refuse the tribute that ${indep.name} ${agree(indep.name, 'demand')}. ${risk}`, type: LogTypes.DIPLOMACY }]
+    logs: [...state.logs, { year: state.year, ...msg('m.battle.tributeRefused', { nation: people(d.indepId, indep.name), risk }), type: LogTypes.DIPLOMACY }]
   };
 };

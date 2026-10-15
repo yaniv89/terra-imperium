@@ -12,12 +12,16 @@
 // replay is not run twice (battleVerify.js keeps the last check).
 // A battle that changes nothing (peace was made meanwhile, the target can no longer be fought)
 // has no entry: `applied` is false and `voidLine` says why.
+// Text: `line`, `lines`, `cityLine` and `voidLine` are the English the campaign logged; `lineMsg`
+// (a sub() ref), `lineMsgs` and `cityLineMsg` (carry() records: { message, msgKey, msgVars }) are the
+// same lines as message keys and vars (messages.js), for the UI to write in the reader's language.
 // Pure; no state is changed here.
 import { ActionTypes } from '../data/types';
 import { SETUP_VERSION } from '../battle/setup/buildBattleSetup';
 import { getRankForXp } from '../data/promotions';
 import { gameReducer, BATTLE_VOID_PREFIX } from './gameReducer';
 import { ledgerOf } from './battleLedger';
+import { carry } from './messages';
 import { syncWorldRegistry } from './world/registry';
 
 /** The action Continue dispatches for a battle that ended (`ended`: the battle loop's end record). */
@@ -30,8 +34,8 @@ const CITY_LINE = /^The fighting left /;
 
 /**
  * The receipt of `action` (resolveActionOf) on `state`, or null when the action is not this
- * state's pending battle. { applied, entry, ledger, line, lines, cityLine, xp, generals, goldGained,
- * city } or { applied: false, voidLine, lines }.
+ * state's pending battle. { applied, entry, ledger, line, lineMsg, lines, lineMsgs, cityLine, cityLineMsg,
+ * xp, generals, goldGained, city } or { applied: false, voidLine, lines, lineMsgs }.
  */
 export const battleReceipt = (state, action, { reduce = gameReducer } = {}) => {
   const pb = state?.pendingBattle;
@@ -46,8 +50,10 @@ export const battleReceipt = (state, action, { reduce = gameReducer } = {}) => {
   // Battles queued behind this one may be fought on Auto in the same step: ours is the one under
   // the operation's id.
   const entry = fresh.find((e) => ids.includes(e.opId)) || fresh.filter((e) => e.commanded).pop() || null;
-  const lines = (next.logs || []).slice((state.logs || []).length).map((l) => l.message);
-  if (!entry) return { applied: false, entry: null, voidLine: lines.find((m) => m.startsWith(BATTLE_VOID_PREFIX)) || null, lines };
+  const newLogs = (next.logs || []).slice((state.logs || []).length);
+  const lines = newLogs.map((l) => l.message);
+  const lineMsgs = newLogs.map((l) => carry(l));
+  if (!entry) return { applied: false, entry: null, voidLine: lines.find((m) => m.startsWith(BATTLE_VOID_PREFIX)) || null, lines, lineMsgs };
   const ledger = ledgerOf(entry);
   const rows = (entry.sides?.[ledger.mineKey] || []).filter((u) => !u.temp);
   const xp = rows.map((u) => {
@@ -72,8 +78,11 @@ export const battleReceipt = (state, action, { reduce = gameReducer } = {}) => {
     entry,
     ledger,
     line: entry.line || null,
+    lineMsg: entry.lineMsg || null,
     lines,
+    lineMsgs,
     cityLine: lines.find((m) => CITY_LINE.test(m)) || null,
+    cityLineMsg: lineMsgs.find((l) => CITY_LINE.test(l.message)) || null,
     xp,
     generals,
     goldGained: Math.round((next.resources?.gold || 0) - (state.resources?.gold || 0)),

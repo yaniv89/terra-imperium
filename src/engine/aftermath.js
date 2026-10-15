@@ -23,6 +23,7 @@
 import { REGIONS_DATA } from '../data/regions';
 import { POPULATION_FLOOR_RATIO } from './population';
 import { drawPeople } from './world/cities';
+import { msg, person } from './messages';
 
 // Men per point of unit strength: a full 1000-strength unit is ~10,000 soldiers. Against real
 // provincial populations (hundreds of thousands to millions) a single levy is a few per cent at
@@ -182,6 +183,6 @@ export const applyBattleAftermath = (state, { regionId, beforeA, afterA, beforeD
   const nations = applyBattleWarExhaustion(state.nations, winnerId, loserId, loserShare);
   const destroyed = allAfter.filter((u) => !u.synthetic && (u.strength || 0) <= 0).map((u) => ({ ...u, commanderId: u.commanderId ?? all.find((b) => b.id === u.id)?.commanderId }));
   const { hiredCommanders, fallen } = resolveCommanderCasualties(state.hiredCommanders, destroyed, state.turnNumber, generalsStruck);
-  const logs = fallen.map((name) => ({ year: state.year, message: `${name} fell in battle with their troops.`, type: 'combat' }));
+  const logs = fallen.map((name) => ({ year: state.year, ...msg('m.battle.generalFell', { general: person(name) }), type: 'combat' }));
   return { regions, nations, hiredCommanders, logs };
 };

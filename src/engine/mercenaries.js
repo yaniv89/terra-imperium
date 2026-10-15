@@ -20,6 +20,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
 import { LogTypes } from '../data/types';
+import { msg, sub, people, cityRef } from './messages';
 import { getAvailableClasses } from '../data/unitClasses';
 import {
   isIndependentNation, INDEPENDENT_GOLD_CAP, MERC_SELLERS, MERC_STOCK, MERC_RESTOCK_TURNS, MERC_CONTRACT_TURNS, MERC_KM, MERC_MAX_GRUDGE,
@@ -134,7 +135,7 @@ export const hireMercenaryForPlayer = (state, sellerId) => {
   const stats = { ...(state.indepStats || {}), mercsHired: (state.indepStats?.mercsHired || 0) + 1 };
   return {
     ...state, resources: w.resources, nations: w.nations, units: { ...state.units, [hired.unit.id]: hired.unit }, indepStats: stats,
-    logs: [...state.logs, { year: state.year, message: `You hire a band of mercenaries from ${seller.name} for ${offer.price} gold: ${offer.upkeep} gold a turn for ${MERC_CONTRACT_TURNS} turns. They wait in ${state.regions[offer.cityId].name}.`, type: LogTypes.ACTION }]
+    logs: [...state.logs, { year: state.year, ...msg('m.battle.mercHired', { nation: people(sellerId, seller.name), price: offer.price, upkeep: offer.upkeep, turns: MERC_CONTRACT_TURNS, city: cityRef(offer.cityId, state.regions[offer.cityId].name) }), type: LogTypes.ACTION }]
   };
 };
 
@@ -159,7 +160,10 @@ export const processMercenaries = (w) => {
     if (leave) {
       delete w.units[u.id];
       w.unitsChanged = true;
-      if (u.ownerId === w.playerId) w.logs.push({ year: w.year, message: leave === 'unpaid' ? `Your mercenaries from ${w.nations[m.from]?.name || 'abroad'} leave: you could not pay them.` : `Your mercenaries' contract with ${w.nations[m.from]?.name || 'their city'} ends: they go home.`, type: LogTypes.ACTION });
+      if (u.ownerId === w.playerId) {
+        const from = w.nations[m.from]?.name ? people(m.from, w.nations[m.from].name) : null;
+        w.logs.push({ year: w.year, ...(leave === 'unpaid' ? msg('m.battle.mercUnpaid', { nation: from || sub('m.battle.abroad') }) : msg('m.battle.mercEnded', { nation: from || sub('m.battle.theirCity') })), type: LogTypes.ACTION });
+      }
       return;
     }
     countBy.set(u.ownerId, (countBy.get(u.ownerId) || 0) + 1);

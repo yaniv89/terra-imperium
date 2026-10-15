@@ -15,6 +15,10 @@
 // sheet and the Log read the same numbers. An entry also keeps the operation id (`opId`), the line
 // the campaign logged (`line`), the troops trained for the battle (`aux`, temporary), why a
 // commanded battle ended (`reason`), how it was checked (`verification`) and any ledger breach.
+// Text (phase H3): an English sentence an entry stores keeps its field and has its message beside it
+// as a sub() ref (messages.js: { k: 'm', key, vars }), named <field>Msg: `line` and `lineMsg`. The
+// UI writes the ref in the reader's language (msgText(ref.key, ref.vars, lang)); old saves have
+// only the English field. `reason` is a code (src/battle/sim/result.js), not a sentence.
 // Display only: no game rule reads it back.
 import { battleName } from './battleNames';
 import { auxiliariesOf, menOf, sideTotals } from './battleLedger';
@@ -124,6 +128,7 @@ export const recordBattleReport = (state, report, { attackers, defenders, before
   const found = typeof breaches === 'function' ? breaches({ attacker, defender }) : breaches;
   if (report.opId) entry.opId = report.opId;
   if (report.line) entry.line = report.line;
+  if (report.line && report.lineMsg) entry.lineMsg = report.lineMsg;
   if (aux) entry.aux = aux;
   if (tactical?.reason) entry.reason = tactical.reason;
   if (tactical?.durationSec) entry.durationSec = tactical.durationSec;

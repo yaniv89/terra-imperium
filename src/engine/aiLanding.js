@@ -17,6 +17,7 @@ import { getRegionTerrain } from '../data/terrain';
 import { REGIONS_DATA } from '../data/regions';
 import { getEffectiveAgeId } from '../data/ages';
 import { LogTypes } from '../data/types';
+import { msg, sub, people, cityRef } from './messages';
 import { createRng } from '../utils/rng';
 import { getTechAgeId } from './nationState';
 import { resolveAutoBattle } from './autoBattle';
@@ -82,7 +83,9 @@ export const resolveInterceptQueued = (state, def, battle = null, { mode = 'auto
   delete units[def.navalUnitId];
   Object.values(units).forEach((u) => { if (u.embarkedOn === def.navalUnitId) delete units[u.id]; });
   next = { ...next, units, pendingDefenses: (next.pendingDefenses || []).filter((d) => !(d.kind === 'landing' && d.navalUnitId === def.navalUnitId)) };
-  return { ...next, logs: [...next.logs, { year: next.year, message: `Your fleet sank ${state.nations[def.aggressorId]?.name || 'the enemy'}'s invasion fleet off ${state.regions[def.regionId]?.name || 'the coast'}.`, type: LogTypes.COMBAT }] };
+  const enemy = state.nations[def.aggressorId]?.name ? people(def.aggressorId, state.nations[def.aggressorId].name) : sub('m.battle.theEnemy');
+  const coast = state.regions[def.regionId]?.name ? cityRef(def.regionId, state.regions[def.regionId].name) : sub('m.battle.theCoast');
+  return { ...next, logs: [...next.logs, { year: next.year, ...msg('m.battle.invasionFleetSunk', { nation: enemy, city: coast }), type: LogTypes.COMBAT }] };
 };
 
 /** The landing's armies as they stand, through the aggressor's gate: { v, attackerUnits, defenderUnits } or null. */

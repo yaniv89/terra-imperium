@@ -49,6 +49,7 @@ import { ringsForKm } from '../data/geo/gridScale';
 import { ringsAround } from './world/cities';
 import { speedTurns } from '../data/ages';
 import { DEMAND_MAX_OPINION, MET_OUR_DEMAND, GRUDGE_PER_HOSTILITY } from '../data/opinion';
+import { msg, msgText, sub, carry, people, cityRef } from './messages';
 
 export const AI_ACCORD_PERIOD = 10;
 export const AI_OPEN_BORDERS_OPINION = 8;
@@ -100,11 +101,13 @@ export const forceNear = (state, a, b) => {
   return sum;
 };
 
-const DEMAND_BLOCK_TEXT = {
-  war: 'You are at war.', vassal: 'Overlord and vassal make no demands of each other.', truce: 'A truce holds between you.',
-  agreement: 'You have an agreement with them (trade, alliance, marriage, pact or open borders).', friendly: `They think well of you (opinion ${DEMAND_MAX_OPINION} or better).`,
-  cooldown: 'They pressed you lately.', recent: 'Another people pressed you lately.', weak: `They are not ${AI_DEMAND_RATIO} times as strong as you.`, far: 'They hold no army near your cities.'
+// Each gate's reason as a message (`textMsg`); `text` is its English sentence.
+const DEMAND_BLOCK_MSG = {
+  war: sub('m.diplo.blockWar'), vassal: sub('m.diplo.blockVassal'), truce: sub('m.diplo.blockTruce'),
+  agreement: sub('m.diplo.blockAgreement'), friendly: sub('m.diplo.blockFriendly', { n: DEMAND_MAX_OPINION }),
+  cooldown: sub('m.diplo.blockCooldown'), recent: sub('m.diplo.blockRecent'), weak: sub('m.diplo.blockWeak', { n: AI_DEMAND_RATIO }), far: sub('m.diplo.blockFar')
 };
+const DEMAND_BLOCK_TEXT = Object.fromEntries(Object.entries(DEMAND_BLOCK_MSG).map(([id, m]) => [id, msgText(m.key, m.vars)]));
 
 /**
  * Why major `a` may NOT demand anything of `b` now: { id, text } or null when it may (the header's
@@ -112,7 +115,7 @@ const DEMAND_BLOCK_TEXT = {
  */
 export const demandBlock = (state, a, b, turn = state.turnNumber || 1) => {
   const A = state.nations?.[a]; const B = state.nations?.[b];
-  const no = (id) => ({ id, text: DEMAND_BLOCK_TEXT[id] });
+  const no = (id) => ({ id, text: DEMAND_BLOCK_TEXT[id], textMsg: DEMAND_BLOCK_MSG[id] });
   if (!A || !B) return no('war');
   if (atWar(state, a, b)) return no('war');
   if (related(state.nations, a, b)) return no('vassal');
@@ -132,6 +135,8 @@ export const demandBlock = (state, a, b, turn = state.turnNumber || 1) => {
   return null;
 };
 
+const textOf = (m) => msgText(m.key, m.vars);
+
 const slotOf = (ids, id) => ids.indexOf(id) % AI_ACCORD_PERIOD;
 
 /** The AI accords of this turn. `nations` is the turn's working copy (read, not mutated). */
@@ -143,7 +148,7 @@ export const processAIAccords = (state, nations, { turn, sortedByMilitary }) => 
   const view = () => ({ ...state, nations: next });
   // A demand whose two sides went to war is void: nothing is owed and nothing is held against the player.
   if (pendingDemand && next[pendingDemand.from] && atWar(state, pendingDemand.from, me)) {
-    logs.push({ year: state.year, message: `The demand of ${next[pendingDemand.from].name} is void: you are at war with them.`, type: 'diplomacy' });
+    logs.push({ year: state.year, ...msg('m.diplo.demandVoid', { nation: people(pendingDemand.from, next[pendingDemand.from].name) }), type: 'diplomacy' });
     pendingDemand = null;
   }
   // A demand on the player left unanswered counts as refused.
@@ -152,7 +157,7 @@ export const processAIAccords = (state, nations, { turn, sortedByMilitary }) => 
     if (from && !from.isEliminated) {
       const cb = demandCbTurns(state);
       next = { ...next, [pendingDemand.from]: { ...from, demandCasusBelli: { ...(from.demandCasusBelli || {}), [me]: turn + cb }, hostility: Math.min(100, (from.hostility || 0) + DEMANDS[pendingDemand.kind].hostility) } };
-      logs.push({ year: state.year, message: `${from.name} takes your silence as a refusal: for ${cb} turns they hold a cause for war against you (they may declare war without preparing a claim), and they think worse of you.`, type: 'diplomacy' });
+      logs.push({ year: state.year, ...msg('m.diplo.silenceRefusal', { nation: people(pendingDemand.from, from.name), turns: cb }), type: 'diplomacy' });
     }
     pendingDemand = null;
   }
@@ -183,14 +188,14 @@ export const processAIAccords = (state, nations, { turn, sortedByMilitary }) => 
       // `amount` is null for a demand that asks no gold (a city, a stop to settling).
       pendingDemand = { from: a, kind, cityId, cityName, amount: quote ? quote.amount : null, ratio: Math.round(demandRatio(v, a, me) * 100) / 100, turn, until: turn + DEMAND_ANSWER_TURNS };
       next = { ...next, [a]: { ...next[a], demandCooldowns: { ...cooldowns, [me]: turn + demandCooldownTurns(state) } }, [me]: { ...next[me], lastDemandedTurn: turn } };
-      const ask = kind === 'city' ? `demands ${cityName}` : kind === 'stopSettling' ? 'demands that you found no city near theirs' : `demands ${pendingDemand.amount} gold in tribute`;
-      logs.push({ year: state.year, message: `${next[a].name} ${ask}. Meeting it buys a truce of ${demandTruceTurns(state)} turns; refusing gives them a cause for war for ${demandCbTurns(state)} turns. Answer under Relations on the Empire tab within ${DEMAND_ANSWER_TURNS} turns, or they take it as a refusal.`, type: 'diplomacy' });
+      const ask = kind === 'city' ? sub('m.diplo.askCity', { city: cityRef(cityId, cityName) }) : kind === 'stopSettling' ? sub('m.diplo.askStop') : sub('m.diplo.askTribute', { gold: pendingDemand.amount });
+      logs.push({ year: state.year, ...msg('m.diplo.demandMade', { nation: people(a, next[a].name), ask, truce: demandTruceTurns(state), cb: demandCbTurns(state), answer: DEMAND_ANSWER_TURNS }), type: 'diplomacy' });
       return;
     }
     const r = applyDemand(v, prey, kind, cityId, a);
     if (r.state === v) return;
     next = { ...r.state.nations, [prey]: { ...r.state.nations[prey], lastDemandedTurn: turn } };
-    if (r.accepted) logs.push({ nationId: a, year: state.year, message: r.message, type: 'diplomacy' });
+    if (r.accepted) logs.push({ nationId: a, year: state.year, ...carry(r), type: 'diplomacy' });
   });
   return { nations: next, logs, pendingDemand };
 };
@@ -224,24 +229,31 @@ export const demandTerms = (state) => {
   const cbTurns = demandCbTurns(state);
   const hostility = DEMANDS[d.kind].hostility;
   const opinionGain = MET_OUR_DEMAND + Math.round(GRUDGE_PER_HOSTILITY * Math.min(DEMAND_MET_HOSTILITY, from.hostility || 0));
-  const payReason = war ? 'You are at war: the demand is void.'
-    : d.kind === 'city' && state.regions?.[d.cityId]?.owner !== me ? `${d.cityName || 'The city'} is no longer yours to give.`
-      : amount != null && gold < amount ? `You hold ${gold} gold, they ask ${amount}.` : null;
-  const ask = d.kind === 'city' ? `${d.cityName || 'a city'}` : d.kind === 'stopSettling' ? `no new city of yours near theirs for ${DEMAND_STOP_SETTLING_TURNS} turns` : `${amount} gold, once`;
+  // Every English line has its message beside it (`<field>Msg`, a sub: { key, vars }) for the card in other languages.
+  const payReasonMsg = war ? sub('m.diplo.payVoid')
+    : d.kind === 'city' && state.regions?.[d.cityId]?.owner !== me ? sub('m.diplo.cityGone', { city: d.cityName ? cityRef(d.cityId, d.cityName) : sub('m.diplo.theCity') })
+      : amount != null && gold < amount ? sub('m.diplo.goldShort', { gold, amount }) : null;
+  const payReason = payReasonMsg ? textOf(payReasonMsg) : null;
+  const askMsg = d.kind === 'city' ? (d.cityName ? sub('m.diplo.termCity', { city: cityRef(d.cityId, d.cityName) }) : sub('m.diplo.aCity')) : d.kind === 'stopSettling' ? sub('m.diplo.termStop', { turns: DEMAND_STOP_SETTLING_TURNS }) : sub('m.diplo.termGold', { gold: amount });
+  const ask = textOf(askMsg);
+  const labelMsg = sub(d.kind === 'tribute' ? 'm.diplo.labelPay' : d.kind === 'city' ? 'm.diplo.labelYield' : 'm.diplo.labelPromise');
+  const payTextMsg = sub('m.diplo.payText', { turns: truceTurns, until: turn + truceTurns, opinion: opinionGain });
+  const refuseTextMsg = sub('m.diplo.refuseText', { turns: cbTurns, opinion: -Math.round(GRUDGE_PER_HOSTILITY * hostility), ratio: d.ratio ?? '2' });
+  const silenceMsg = sub('m.diplo.silence', { turn: d.until });
   return {
-    from: d.from, name: from.name, kind: d.kind, amount, ask, void: war,
+    from: d.from, name: from.name, kind: d.kind, amount, ask, askMsg, void: war,
     deadline: d.until, turnsLeft: Math.max(0, d.until - turn),
     ratio: d.ratio ?? Math.round(demandRatio(state, d.from, me) * 100) / 100,
     pay: {
-      ok: !payReason, reason: payReason, label: d.kind === 'tribute' ? 'Pay' : d.kind === 'city' ? 'Yield' : 'Promise',
+      ok: !payReason, reason: payReason, reasonMsg: payReasonMsg, label: textOf(labelMsg), labelMsg,
       truceTurns, truceUntil: turn + truceTurns, opinion: opinionGain, nextDemandTurn: Math.max(turn + truceTurns, from.demandCooldowns?.[me] || 0),
-      text: `A truce for ${truceTurns} turns (until turn ${turn + truceTurns}): they will not declare war on you or ask again meanwhile. Their opinion of you +${opinionGain} while it lasts.`
+      text: textOf(payTextMsg), textMsg: payTextMsg
     },
     refuse: {
       cbTurns, cbUntil: turn + cbTurns, hostility, opinion: -Math.round(GRUDGE_PER_HOSTILITY * hostility),
-      text: `For ${cbTurns} turns they hold a cause for war: they may declare war on you without preparing a claim. Their opinion of you ${-Math.round(GRUDGE_PER_HOSTILITY * hostility)}. It is a risk, not a promise of war; their army is about ${d.ratio ?? '2'} times yours.`
+      text: textOf(refuseTextMsg), textMsg: refuseTextMsg
     },
-    silence: `No answer by turn ${d.until} counts as a refusal.`
+    silence: textOf(silenceMsg), silenceMsg
   };
 };
 
@@ -256,18 +268,18 @@ export const answerDemand = (state, accept) => {
   const turn = state.turnNumber || 1;
   if (!from || from.isEliminated) return { state: { ...state, pendingDemand: null }, message: null };
   // At war with them (the war roll never starts one over an open demand; the player may have): void, nothing is paid.
-  if (atWar(state, d.from, me)) return { state: { ...state, pendingDemand: null }, message: `The demand of ${from.name} is void: you are at war with them. Nothing was paid.` };
+  if (atWar(state, d.from, me)) return { state: { ...state, pendingDemand: null }, ...msg('m.diplo.answerVoid', { nation: people(d.from, from.name) }) };
   if (accept) {
-    if (d.kind === 'city' && state.regions[d.cityId]?.owner !== me) return { state: { ...state, pendingDemand: null }, message: `${d.cityName || 'The city'} is no longer yours to give.` };
-    if (d.kind === 'tribute' && Math.floor(state.resources?.gold || 0) < (d.amount || 0)) return { state, message: null, rejected: true, reason: `You hold ${Math.floor(state.resources?.gold || 0)} gold, they ask ${d.amount}.` };
+    if (d.kind === 'city' && state.regions[d.cityId]?.owner !== me) return { state: { ...state, pendingDemand: null }, ...msg('m.diplo.cityGone', { city: d.cityName ? cityRef(d.cityId, d.cityName) : sub('m.diplo.theCity') }) };
+    if (d.kind === 'tribute' && Math.floor(state.resources?.gold || 0) < (d.amount || 0)) { const why = sub('m.diplo.goldShort', { gold: Math.floor(state.resources?.gold || 0), amount: d.amount }); return { state, message: null, rejected: true, reason: textOf(why), reasonMsg: why }; }
     const g = grantDemand(state, state.nations, d.from, me, d.kind, d.cityId, state.resources, { amount: d.kind === 'tribute' ? d.amount : null });
     const nations = { ...g.nations, [d.from]: { ...g.nations[d.from], hostility: Math.max(g.nations[d.from].hostilityFloor || 0, (g.nations[d.from].hostility || 0) - DEMAND_MET_HOSTILITY) } };
-    return { state: { ...state, nations, regions: g.regions, resources: g.resources, pendingDemand: null }, message: `${g.message} They will not declare war on you or press you again meanwhile, and think better of you (+${MET_OUR_DEMAND}).` };
+    return { state: { ...state, nations, regions: g.regions, resources: g.resources, pendingDemand: null }, ...msg('m.diplo.answerMet', { text: g.msgKey ? sub(g.msgKey, g.msgVars) : g.message, n: MET_OUR_DEMAND }) };
   }
   const cb = demandCbTurns(state);
   const hostility = DEMANDS[d.kind].hostility;
   const nations = { ...state.nations, [d.from]: { ...from, demandCasusBelli: { ...(from.demandCasusBelli || {}), [me]: turn + cb }, hostility: Math.min(100, (from.hostility || 0) + hostility) } };
-  return { state: { ...state, nations, pendingDemand: null }, message: `You refuse ${from.name}. For ${cb} turns they hold a cause for war against you (they may declare war without preparing a claim), and they think worse of you (${-Math.round(GRUDGE_PER_HOSTILITY * hostility)}).` };
+  return { state: { ...state, nations, pendingDemand: null }, ...msg('m.diplo.answerRefused', { nation: people(d.from, from.name), turns: cb, opinion: -Math.round(GRUDGE_PER_HOSTILITY * hostility) }) };
 };
 
 // For the unit tests and the prompt: is a demand waiting for the player?

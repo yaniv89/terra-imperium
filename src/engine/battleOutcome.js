@@ -39,6 +39,7 @@
 // The inputs rows (4, 7, 8, 9, 10, 11, 12, 16, 18, 19) live in battleInputs.js, and row 22 (the
 // odds and the scouts' guess for the pre-battle screen) in battleOdds.js and intel.js. Pure.
 import { LogTypes } from '../data/types';
+import { msg, sub, people, cityRef, place as placeRef, thing } from './messages';
 import { awardXp } from '../data/promotions';
 import { getGeneralXpMultiplier } from '../data/generals';
 import { BUILDING_CATEGORIES } from '../data/buildings';
@@ -49,7 +50,7 @@ import { recordBattle } from './diplomacy';
 import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
 import { recordBattleReport } from './battleReports';
-import { checkLedger, ledgerOf, menText } from './battleLedger';
+import { checkLedger, ledgerOf, menOf } from './battleLedger';
 import { addNationModifier } from './modifiers/timed';
 import { clampPrestige } from './nationalPower';
 import { cityManifestOf, applyCityBattleDamage } from './cityManifest';
@@ -147,7 +148,7 @@ export const applyPowers = (state, o) => {
         { sourceType: 'nuclear', sourceId: 'nuclear_pariah', label: 'Nuclear Pariah', mods: { 'national.goldMult': -NUCLEAR_PARIAH_GOLD_MULT_PENALTY }, duration: NUCLEAR_PARIAH_DURATION_TURNS, turnNumber: state.turnNumber }
       );
       if (o.regionId && regions[o.regionId]) regions = { ...regions, [o.regionId]: { ...regions[o.regionId], nuclearScarred: true } };
-      logs.push({ year: state.year, message: `A nuclear strike devastates the battlefield at ${state.regions[o.regionId]?.name || 'the front'}. The world condemns the attack.`, type: LogTypes.COMBAT });
+      logs.push({ year: state.year, ...msg('m.battle.nuclearStrike', { place: cityOr(state.regions, o.regionId, 'm.battle.theFront') }), type: LogTypes.COMBAT });
     }
   });
   if (nations === state.nations && regions === state.regions) return state;
@@ -220,15 +221,15 @@ const attackedCity = (s, o, region) => {
 };
 const cityAttackLine = (s, o, place, mine) => {
   const a = o.report.cityAttack;
-  const who = mine ? 'Your army' : nameOf(s, o.attackerNationId);
+  const who = mine ? sub('m.battle.yourArmy') : nameRef(s, o.attackerNationId);
   return a.hpAfter <= 0
-    ? `${who} broke the defences of ${place} (0 of ${a.maxHp} HP) but has no foot or horse to take it.`
-    : `${who} attacks ${place}: its defences fall from ${a.hpBefore} to ${a.hpAfter} of ${a.maxHp} HP. Attack again to take it.`;
+    ? msg('m.battle.cityDefencesBroken', { who, city: place, maxHp: a.maxHp })
+    : msg('m.battle.cityDefencesFall', { who, city: place, hpBefore: a.hpBefore, hpAfter: a.hpAfter, maxHp: a.maxHp });
 };
 // Only say "driven out" when somebody survived to be driven (LOGIC-02): a garrison cut down to the
 // last man is destroyed, not driven.
 const garrisonLine = (s, o, place, mine, def = []) => (o.outcome === 'attacker'
-  ? `${mine ? 'Your army' : nameOf(s, o.attackerNationId)} ${def.some((u) => u.strength > 0) ? `beat the garrison of ${place}: its survivors are driven out.` : `destroyed the garrison of ${place}: none of it escaped.`} The city is not taken yet: attack its defences next.`
+  ? msg(def.some((u) => u.strength > 0) ? 'm.battle.garrisonDrivenOut' : 'm.battle.garrisonDestroyed', { who: mine ? sub('m.battle.yourArmy') : nameRef(s, o.attackerNationId), city: place })
   : null);
 // A garrison beaten on Auto is driven out of its city (it breaks, as a Civilization unit dies or
 // falls back): the survivors fall back to the owner's nearest held city, or are lost with nowhere to
@@ -248,7 +249,12 @@ const conquer = (s, regionId, conquerorId, war) => {
   return { regions, nations: r.nations, capitalTaken: r.capitalTaken };
 };
 
-const nameOf = (s, id) => (id === REBEL_OWNER_ID ? 'the rebels' : s.nations[id]?.name || id);
+// A nation in a message (messages.js): the rebels are words, not a people.
+const nameRef = (s, id) => (id === REBEL_OWNER_ID ? sub('m.battle.theRebels') : people(id, s.nations[id]?.name || id));
+// A city in a message: its name, else the fallback words (`fallbackKey`), else its id.
+const cityOr = (regions, id, fallbackKey = null) => (regions?.[id]?.name ? cityRef(id, regions[id].name) : fallbackKey ? sub(fallbackKey) : cityRef(id, id));
+// A list of names in a message: "a, b, c".
+const listOf = (refs) => refs.reduce((acc, r) => (acc == null ? r : sub('m.battle.listComma', { a: acc, b: r })), null) ?? '';
 
 // An assault on a city from the land (the player's or an AI's invasion).
 const invasionAdapter = (s, o, war, att, def) => {
@@ -274,17 +280,18 @@ const invasionAdapter = (s, o, war, att, def) => {
   if (captured) ({ regions, nations, capitalTaken } = conquer({ ...s, units }, o.regionId, o.attackerNationId, war));
   else if (rule === 'attack') regions = { ...regions, [o.regionId]: attackedCity(s, o, target) };
   else if (o.isDefended) regions = { ...regions, [o.regionId]: { ...target, control: siege.nextControl, lastAttackedTurn: s.turnNumber, underInvasion: true } };
-  const place = target.name || o.regionId;
+  const place = cityRef(o.regionId, target.name || o.regionId);
   const me = o.attackerNationId === o.viewerId;
-  const message = captured
-    ? `${place} is conquered: taken from ${nameOf(s, target.owner)}${me ? ', it is now yours' : ` by ${nameOf(s, o.attackerNationId)}`}${capitalTaken ? ' (their capital has fallen!)' : ''}.${me ? ' Decide what becomes of it.' : ''}`
+  const capital = capitalTaken ? sub('m.battle.capitalFallen') : '';
+  const line = captured
+    ? (me ? msg('m.battle.conqueredMine', { city: place, from: nameRef(s, target.owner), capital }) : msg('m.battle.conquered', { city: place, from: nameRef(s, target.owner), by: nameRef(s, o.attackerNationId), capital }))
     : rule === 'attack' ? cityAttackLine(s, o, place, me)
     : rule === 'garrison' && garrisonLine(s, o, place, me, def) ? garrisonLine(s, o, place, me, def)
-    : o.outcome === 'attacker' ? `${me ? 'Your forces' : nameOf(s, o.attackerNationId)} broke through at ${place} (control now ${siege.nextControl}%), but could not yet secure it.`
-      : o.outcome === 'defender' ? `${me ? 'Your invasion' : `${nameOf(s, o.attackerNationId)}'s attack`} on ${place} was repelled.`
-        : `The attack on ${place} ended in a mutual withdrawal.`;
+    : o.outcome === 'attacker' ? msg('m.battle.brokeThrough', { who: me ? sub('m.battle.yourForces') : nameRef(s, o.attackerNationId), city: place, control: siege.nextControl })
+      : o.outcome === 'defender' ? (me ? msg('m.battle.invasionRepelledMine', { city: place }) : msg('m.battle.invasionRepelled', { nation: nameRef(s, o.attackerNationId), city: place }))
+        : msg('m.battle.invasionWithdrawal', { city: place });
   const winnerId = o.outcome === 'attacker' ? o.attackerNationId : o.outcome === 'defender' ? o.defenderNationId : null;
-  return { units, regions, nations, captured, capitalTaken, message, score: winnerId ? { winnerId, share: captured ? 0.4 : 0.2 } : null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: target.tile };
+  return { units, regions, nations, captured, capitalTaken, ...line, score: winnerId ? { winnerId, share: captured ? 0.4 : 0.2 } : null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: target.tile };
 };
 
 // A landing from the sea: survivors go ashore only once the city is taken; else back aboard.
@@ -313,17 +320,19 @@ const landingAdapter = (s, o, war, att, def) => {
   if (captured) ({ regions, nations, capitalTaken } = conquer({ ...s, units }, o.regionId, o.attackerNationId, war));
   else if (rule === 'attack') regions = { ...regions, [o.regionId]: attackedCity(s, o, target) };
   else if (o.isDefended) regions = { ...regions, [o.regionId]: { ...target, control: siege.nextControl, lastAttackedTurn: s.turnNumber, underInvasion: true } };
-  const place = target.name || o.regionId;
+  const place = cityRef(o.regionId, target.name || o.regionId);
   const me = o.attackerNationId === o.viewerId;
-  const message = captured
-    ? `${me ? 'Your amphibious assault' : `${nameOf(s, o.attackerNationId)}'s landing`} conquers ${place} from ${nameOf(s, target.owner)}${me ? ': it is now yours' : ''}${capitalTaken ? ' (their capital has fallen!)' : ''}.`
+  const capital = capitalTaken ? sub('m.battle.capitalFallen') : '';
+  const enemy = nameRef(s, o.attackerNationId);
+  const line = captured
+    ? (me ? msg('m.battle.landingConqueredMine', { city: place, from: nameRef(s, target.owner), capital }) : msg('m.battle.landingConquered', { nation: enemy, city: place, from: nameRef(s, target.owner), capital }))
     : rule === 'attack' ? cityAttackLine(s, o, place, me)
     : rule === 'garrison' && garrisonLine(s, o, place, me, def) ? garrisonLine(s, o, place, me, def)
-    : o.outcome === 'attacker' ? `${me ? 'Your landing' : `${nameOf(s, o.attackerNationId)}'s landing`} broke through at ${place} (control now ${siege.nextControl}%), but could not yet secure it.`
-      : o.outcome === 'defender' ? `${me ? 'Your amphibious assault' : `${nameOf(s, o.attackerNationId)}'s landing`} on ${place} was repelled.`
-        : `The landing at ${place} ended in a mutual withdrawal.`;
+    : o.outcome === 'attacker' ? (me ? msg('m.battle.landingBrokeThroughMine', { city: place, control: siege.nextControl }) : msg('m.battle.landingBrokeThrough', { nation: enemy, city: place, control: siege.nextControl }))
+      : o.outcome === 'defender' ? (me ? msg('m.battle.landingRepelledMine', { city: place }) : msg('m.battle.landingRepelled', { nation: enemy, city: place }))
+        : msg('m.battle.landingWithdrawal', { city: place });
   const winnerId = o.outcome === 'attacker' ? o.attackerNationId : o.outcome === 'defender' ? o.defenderNationId : null;
-  return { units, regions, nations, captured, capitalTaken, message, score: winnerId ? { winnerId, share: captured ? 0.4 : 0.2 } : null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: target.tile, reportKind: 'amphibious' };
+  return { units, regions, nations, captured, capitalTaken, ...line, score: winnerId ? { winnerId, share: captured ? 0.4 : 0.2 } : null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: target.tile, reportKind: 'amphibious' };
 };
 
 // An assault on a city whose defender was asked first (defense.js): the queued defence record.
@@ -368,19 +377,22 @@ const defenseAdapter = (s, o, war, att, def, record) => {
   if (captured) ({ regions, nations, capitalTaken } = conquer({ ...s, nations, units }, o.regionId, o.attackerNationId, war));
   else if (rule === 'attack') regions = { ...regions, [o.regionId]: attackedCity(s, o, region) };
   else regions = { ...regions, [o.regionId]: { ...region, control: siege.nextControl, lastAttackedTurn: s.turnNumber, underInvasion: damaged } };
-  const name = region.name || o.regionId;
+  const name = cityRef(o.regionId, region.name || o.regionId);
   const survivors = def.some((u) => u.strength > 0 && !isAir(u));
-  const enemy = nameOf(s, o.attackerNationId);
+  const enemy = nameRef(s, o.attackerNationId);
   const mine = o.defenderNationId === o.viewerId;
-  const message = captured
-    ? `${enemy} storms ${name} and conquers it!${fallback ? ` ${mine ? 'Your' : 'The'} survivors fall back to ${s.regions[fallback]?.name || fallback}.` : ''}`
+  const back = fallback ? cityRef(fallback, s.regions[fallback]?.name || fallback) : null;
+  const line = captured
+    ? msg('m.battle.stormsCity', { enemy, city: name, fallback: back ? sub(mine ? 'm.battle.survivorsFallBackMine' : 'm.battle.survivorsFallBack', { city: back }) : '' })
     : rule === 'attack' ? cityAttackLine(s, o, name, false)
-    : drivenOut ? `${enemy} ${survivors ? `beats ${mine ? 'your' : 'the'} garrison of ${name}${fallback ? ` and drives it back to ${s.regions[fallback]?.name || fallback}` : ''}` : `destroys ${mine ? 'your' : 'the'} garrison of ${name}: none of it escaped`}. The city still stands, but empty its defences must hold the next attack.`
-    : damaged ?`${enemy} presses the siege of ${name} (control now ${siege.nextControl}%). ${mine ? 'Your' : 'The'} garrison holds on.`
-      : `${mine ? 'Your' : 'The'} garrison repels ${enemy}'s assault on ${name}!`;
+    : drivenOut ? (survivors
+      ? msg(mine ? 'm.battle.beatsGarrisonMine' : 'm.battle.beatsGarrison', { enemy, city: name, back: back ? sub('m.battle.drivesBack', { city: back }) : '' })
+      : msg(mine ? 'm.battle.destroysGarrisonMine' : 'm.battle.destroysGarrison', { enemy, city: name }))
+    : damaged ? msg(mine ? 'm.battle.pressesSiegeMine' : 'm.battle.pressesSiege', { enemy, city: name, control: siege.nextControl })
+      : msg(mine ? 'm.battle.garrisonRepelsMine' : 'm.battle.garrisonRepels', { enemy, city: name });
   const winnerId = aggressorWon ? o.attackerNationId : defenderWon ? o.defenderNationId : null;
   return {
-    units, regions, nations, captured, capitalTaken, message,
+    units, regions, nations, captured, capitalTaken, ...line,
     score: winnerId ? { winnerId, share: aggressorWon ? (captured ? 0.3 : 0.15) : 0.2 } : null,
     aftermathOutcome: pressure == null ? o.outcome : aggressorWon ? 'attacker' : defenderWon ? 'defender' : 'draw',
     aftermathRegionId: o.regionId, markTile: region.tile, reportExtra: { defense: true }
@@ -422,14 +434,15 @@ const fieldAdapter = (s, o, war, att, def) => {
   const attStart = sum(o.attackerStart); const defStart = sum(o.defenderStart);
   const attLoss = attStart - sum(o.attackerUnits); const defLoss = defStart - sum(o.defenderUnits);
   const winnerId = o.outcome === 'attacker' ? o.attackerNationId : o.outcome === 'defender' ? o.defenderNationId : null;
-  const where = getTiles().names?.[o.tile] || s.regions[s.world?.tileOwner?.[o.tile]]?.name || 'the field';
+  const tileName = getTiles().names?.[o.tile];
+  const where = tileName ? placeRef(tileName) : cityOr(s.regions, s.world?.tileOwner?.[o.tile], 'm.battle.theField');
   const mine = o.attackerNationId === o.viewerId;
-  const enemy = nameOf(s, o.defenderNationId);
-  const message = o.outcome === 'attacker' ? `${mine ? 'Your army' : nameOf(s, o.attackerNationId)} beat ${mine || o.defenderNationId !== o.viewerId ? enemy : 'your army'} in the field near ${where}${destroyed ? `, destroying ${destroyed} unit${destroyed > 1 ? 's' : ''} left on the field` : ''}.`
-    : o.outcome === 'defender' ? `${mine ? 'Your attack' : `${nameOf(s, o.attackerNationId)}'s attack`} near ${where} was thrown back${o.defenderNationId === o.viewerId ? ' by your army' : ''}${destroyed ? `, ${destroyed} unit${destroyed > 1 ? 's' : ''} lost on the field` : ''}.`
-      : `The battle near ${where} ended with both sides spent.`;
+  const enemy = nameRef(s, o.defenderNationId);
+  const line = o.outcome === 'attacker' ? msg('m.battle.fieldWon', { who: mine ? sub('m.battle.yourArmy') : nameRef(s, o.attackerNationId), enemy: mine || o.defenderNationId !== o.viewerId ? enemy : sub('m.battle.yourArmyLower'), place: where, destroyed: destroyed ? sub(destroyed > 1 ? 'm.battle.fieldDestroyingMany' : 'm.battle.fieldDestroyingOne', { n: destroyed }) : '' })
+    : o.outcome === 'defender' ? msg('m.battle.fieldThrownBack', { who: mine ? sub('m.battle.yourAttack') : sub('m.battle.theirAttack', { nation: nameRef(s, o.attackerNationId) }), place: where, byYou: o.defenderNationId === o.viewerId ? sub('m.battle.byYourArmy') : '', lost: destroyed ? sub(destroyed > 1 ? 'm.battle.fieldLostMany' : 'm.battle.fieldLostOne', { n: destroyed }) : '' })
+      : msg('m.battle.fieldSpent', { place: where });
   return {
-    units, regions: s.regions, nations: s.nations, captured: false, message, destroyed, fledBack,
+    units, regions: s.regions, nations: s.nations, captured: false, ...line, destroyed, fledBack,
     score: winnerId && (war || o.warId) ? { winnerId, share: o.outcome === 'attacker' ? (defStart ? defLoss / defStart : 0) : (attStart ? attLoss / attStart : 0) } : null,
     aftermathOutcome: o.outcome, aftermathRegionId: s.world?.tileOwner?.[o.tile] ?? o.regionId, markTile: o.tile
   };
@@ -472,14 +485,14 @@ const navalAdapter = (s, o, war, att, def) => {
   const attLoss = attStart - sum(o.attackerUnits); const defLoss = defStart - sum(o.defenderUnits);
   const winnerId = o.outcome === 'attacker' ? o.attackerNationId : o.outcome === 'defender' ? o.defenderNationId : null;
   const anchor = o.regionId;
-  const where = s.regions[anchor]?.name ? `off ${s.regions[anchor].name}` : 'at sea';
+  const where = s.regions[anchor]?.name ? sub('m.battle.offCity', { city: cityRef(anchor, s.regions[anchor].name) }) : sub('m.battle.atSea');
   const mine = o.attackerNationId === o.viewerId;
-  const who = mine ? 'Your fleet' : `${nameOf(s, o.attackerNationId)}'s fleet`;
-  const message = o.outcome === 'attacker' ? `${who} beat ${mine || o.defenderNationId !== o.viewerId ? nameOf(s, o.defenderNationId) : 'your fleet'} ${where}${sunk ? `, sinking ${sunk} ship${sunk > 1 ? 's' : ''}` : ''}.`
-    : o.outcome === 'defender' ? `${mine ? 'Your attack' : `${nameOf(s, o.attackerNationId)}'s attack`} ${where} was beaten off${o.defenderNationId === o.viewerId ? ' by your fleet' : ''}.`
-      : `The sea battle ${where} ended with both fleets spent.`;
+  const who = mine ? sub('m.battle.yourFleet') : sub('m.battle.theirFleet', { nation: nameRef(s, o.attackerNationId) });
+  const line = o.outcome === 'attacker' ? msg('m.battle.seaWon', { who, enemy: mine || o.defenderNationId !== o.viewerId ? nameRef(s, o.defenderNationId) : sub('m.battle.yourFleetLower'), where, sunk: sunk ? sub(sunk > 1 ? 'm.battle.sinkingMany' : 'm.battle.sinkingOne', { n: sunk }) : '' })
+    : o.outcome === 'defender' ? msg('m.battle.seaBeatenOff', { who: mine ? sub('m.battle.yourAttack') : sub('m.battle.theirAttack', { nation: nameRef(s, o.attackerNationId) }), where, byYou: o.defenderNationId === o.viewerId ? sub('m.battle.byYourFleet') : '' })
+      : msg('m.battle.seaSpent', { where });
   return {
-    units, regions: s.regions, nations: s.nations, captured: false, message, sunk,
+    units, regions: s.regions, nations: s.nations, captured: false, ...line, sunk,
     score: winnerId && (war || o.warId) ? { winnerId, share: o.outcome === 'attacker' ? (defStart ? defLoss / defStart : 0) : (attStart ? attLoss / attStart : 0) } : null,
     aftermathOutcome: o.outcome, aftermathRegionId: anchor, devastationScale: NAVAL_DEVASTATION_SCALE, markTile: o.tile
   };
@@ -495,10 +508,9 @@ const suppressAdapter = (s, o, war, att, def) => {
   const regions = o.outcome === 'attacker' && region
     ? { ...s.regions, [o.regionId]: { ...region, unrest: Math.min(region.unrest, REBELLION_UNREST_THRESHOLD - 10), control: Math.min(100, (region.control || 0) + 20) } }
     : s.regions;
-  const name = region?.name || o.regionId;
-  const message = o.outcome === 'attacker' ? `The rebellion in ${name} has been crushed.`
-    : o.outcome === 'defender' ? `The garrison failed to suppress the rebellion in ${name}.` : `The fighting in ${name} ended without a clear result.`;
-  return { units, regions, nations: s.nations, captured: false, message, score: null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: region?.tile ?? null, reportKind: 'rebellion' };
+  const name = cityRef(o.regionId, region?.name || o.regionId);
+  const line = msg(o.outcome === 'attacker' ? 'm.battle.rebellionCrushed' : o.outcome === 'defender' ? 'm.battle.rebellionNotSuppressed' : 'm.battle.rebellionUnclear', { city: name });
+  return { units, regions, nations: s.nations, captured: false, ...line, score: null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: region?.tile ?? null, reportKind: 'rebellion' };
 };
 
 // Fleets contest the waters by a city (NAVAL_ENGAGEMENT, the region-level sea action): survivors
@@ -509,11 +521,10 @@ const laneAdapter = (s, o, war, att, def) => {
   def.forEach((u) => { if (!units[u.id]) return; if (u.strength <= 0) delete units[u.id]; else units[u.id] = { ...u }; });
   const attStart = sum(o.attackerStart); const defStart = sum(o.defenderStart);
   const winnerId = o.outcome === 'attacker' ? o.attackerNationId : o.outcome === 'defender' ? o.defenderNationId : null;
-  const name = s.regions[o.regionId]?.name || o.regionId;
-  const message = o.outcome === 'attacker' ? `The fleet cleared the enemy from the waters near ${name}.`
-    : o.outcome === 'defender' ? `The fleet was driven off near ${name}.` : `The engagement near ${name} ended inconclusively.`;
+  const name = cityRef(o.regionId, s.regions[o.regionId]?.name || o.regionId);
+  const line = msg(o.outcome === 'attacker' ? 'm.battle.laneCleared' : o.outcome === 'defender' ? 'm.battle.laneDrivenOff' : 'm.battle.laneInconclusive', { city: name });
   return {
-    units, regions: s.regions, nations: s.nations, captured: false, message,
+    units, regions: s.regions, nations: s.nations, captured: false, ...line,
     score: winnerId ? { winnerId, share: o.outcome === 'attacker' ? (defStart ? (defStart - sum(o.defenderUnits)) / defStart : 0) : (attStart ? (attStart - sum(o.attackerUnits)) / attStart : 0) } : null,
     aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, devastationScale: NAVAL_DEVASTATION_SCALE, markTile: null, reportKind: 'naval'
   };
@@ -539,13 +550,14 @@ const raidAdapter = (s, o, war, att, def) => {
     if (u.strength <= 0) { delete units[u.id]; return; }
     units[u.id] = keep(u);
   });
-  const raiders = nameOf(s, o.attackerNationId);
-  const place = o.kind === 'sack' ? s.regions[o.regionId]?.name || 'the town' : getTiles().names?.[o.tile] || s.regions[o.regionId]?.name || 'the frontier';
+  const raiders = nameRef(s, o.attackerNationId);
+  const tileName = o.kind === 'sack' ? null : getTiles().names?.[o.tile];
+  const place = o.kind === 'sack' ? cityOr(s.regions, o.regionId, 'm.battle.theTown') : tileName ? placeRef(tileName) : cityOr(s.regions, o.regionId, 'm.battle.theFrontier');
   const mine = o.defenderNationId === o.viewerId;
-  const message = o.outcome === 'attacker'
-    ? `${raiders} ${o.kind === 'sack' ? 'broke into' : 'got through at'} ${place} and got away with the loot.`
-    : `${mine ? 'Your troops' : nameOf(s, o.defenderNationId)} drove ${raiders} off at ${place}${cutDown ? `, cutting down ${cutDown} unit${cutDown > 1 ? 's' : ''} that could not get away` : ''}.`;
-  return { units, regions: s.regions, nations: s.nations, captured: false, message, cutDown, score: null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: o.kind === 'sack' ? s.regions[o.regionId]?.tile ?? o.tile : o.tile, reportKind: o.kind };
+  const line = o.outcome === 'attacker'
+    ? msg(o.kind === 'sack' ? 'm.battle.sackGotAway' : 'm.battle.raidGotAway', { raiders, place })
+    : msg('m.battle.raidDrivenOff', { who: mine ? sub('m.battle.yourTroops') : nameRef(s, o.defenderNationId), raiders, place, cut: cutDown ? sub(cutDown > 1 ? 'm.battle.cutDownMany' : 'm.battle.cutDownOne', { n: cutDown }) : '' });
+  return { units, regions: s.regions, nations: s.nations, captured: false, ...line, cutDown, score: null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: o.kind === 'sack' ? s.regions[o.regionId]?.tile ?? o.tile : o.tile, reportKind: o.kind };
 };
 
 const ADAPTERS = { raid: raidAdapter, sack: raidAdapter, invasion: invasionAdapter, landing: landingAdapter, defense: defenseAdapter, field: fieldAdapter, naval: navalAdapter, suppress: suppressAdapter, lane: laneAdapter };
@@ -558,11 +570,11 @@ const applyRazedBuildings = (state, regionId, razed) => {
   if (!lost.length) return state;
   const categories = { ...region.buildings.categories };
   lost.forEach((c) => { categories[c] -= 1; });
-  const names = lost.map((c) => BUILDING_CATEGORIES[c]?.label || c).join(', ');
+  const names = listOf(lost.map((c) => thing('building', c, BUILDING_CATEGORIES[c]?.label || c)));
   return {
     ...state,
     regions: { ...state.regions, [regionId]: { ...region, buildings: { ...region.buildings, categories } } },
-    logs: [...state.logs, { year: state.year, message: `The fighting left buildings in ${region.name || regionId} in ruins (${names}: one tier lost).`, type: LogTypes.COMBAT }]
+    logs: [...state.logs, { year: state.year, ...msg('m.battle.buildingsRuined', { city: cityRef(regionId, region.name || regionId), names }), type: LogTypes.COMBAT }]
   };
 };
 
@@ -575,7 +587,8 @@ export const applyCityDamage = (before, after, regionId, { cityDamage = null, ra
   const burned = (razed || []).map((c) => `bld-${c}`);
   const { state: next, log } = applyCityBattleDamage(after, regionId, { destroyed: [...new Set([...(cityDamage.destroyed || []), ...burned])], damaged: cityDamage.damaged || [] }, { manifest, occupation });
   if (!log) return next;
-  return { ...next, logs: [...next.logs, { year: next.year, message: `The fighting left its mark on ${after.regions[regionId]?.name || regionId}: ${log}.`, type: LogTypes.COMBAT }] };
+  // `log` is cityManifest.js's English list of what burned (not converted there yet).
+  return { ...next, logs: [...next.logs, { year: next.year, ...msg('m.battle.cityMarked', { city: cityRef(regionId, after.regions[regionId]?.name || regionId), damage: log }), type: LogTypes.COMBAT }] };
 };
 
 // ---- the service ------------------------------------------------------------------------------
@@ -716,7 +729,7 @@ export const applyBattleOutcome = (state, o) => {
       fromRegionId: out.fromRegionId ?? null, targetRegionId: placed.aftermathRegionId ?? out.regionId ?? null,
       attackerNationId: out.attackerNationId, defenderNationId: out.defenderNationId, mode: out.mode,
       // The receipt (battleLedger.js): the operation, and the line the campaign logs for it.
-      opId: id, line: placed.message
+      opId: id, line: placed.message, lineMsg: placed.msgKey ? sub(placed.msgKey, placed.msgVars) : null
     }, {
       attackers: out.attackerUnits, defenders: out.defenderUnits, beforeOf: (u) => startStrength(state, out, u), goneIds: goneAfter(state, out, placed.units),
       // The ledger against the map this outcome was committed to: a regiment the battle destroyed
@@ -725,12 +738,12 @@ export const applyBattleOutcome = (state, o) => {
     });
     // The Log reads the same ledger as the report and the result screen (X05: one count of men).
     const ledger = ledgerOf(reportFields.battleReports[0]);
-    if (ledger.mine.fallen + ledger.theirs.fallen > 0) lossLine = ` Fallen: ${menText(ledger.mine.fallen)} of yours, ${menText(ledger.theirs.fallen)} of theirs.`;
+    if (ledger.mine.fallen + ledger.theirs.fallen > 0) lossLine = sub('m.battle.fallenLine', { mine: menOf(ledger.mine.fallen), theirs: menOf(ledger.theirs.fallen) });
   }
   return {
     ...s,
     ...reportFields,
     rngSeed: out.rngSeed ?? s.rngSeed,
-    logs: [...s.logs, { year: state.year, message: `${name}: ${placed.message}${lossLine}`, type: LogTypes.COMBAT }, ...aftermath.logs]
+    logs: [...s.logs, { year: state.year, ...msg('m.battle.logLine', { battle: thing('battle', null, name), line: sub(placed.msgKey, placed.msgVars), loss: lossLine }), type: LogTypes.COMBAT }, ...aftermath.logs]
   };
 };

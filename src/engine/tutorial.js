@@ -8,6 +8,7 @@
 import { tileFacts } from '../data/tileYields';
 import { getTiles } from '../data/geo/tiles';
 import { isSettler } from './settlers';
+import { msg } from './messages';
 import { t as tNow, hasKey } from '../i18n/core';
 
 const guideText = (id, field, fallback) => (hasKey('prompt.guide.' + id + '.' + field, 'en') ? tNow('prompt.guide.' + id + '.' + field) : fallback);
@@ -80,6 +81,6 @@ export const advanceTutorial = (state) => {
   const all = TUTORIAL_STEPS.every((s) => done[s.id]);
   const turn = (state.turnNumber || 1) - (t.startTurn || 1) + 1;
   const ended = all || turn > TUTORIAL_TURNS;
-  const log = ended ? { year: state.year, message: all ? 'The guide ends: every step done. Egypt is yours.' : `The guide ends after ${TUTORIAL_TURNS} turns with ${Object.keys(done).length} of ${TUTORIAL_STEPS.length} steps done. The next prompt keeps pointing at what wants a decision.`, type: 'info' } : null;
+  const log = ended ? { year: state.year, ...(all ? msg('m.world.tutorialDone') : msg('m.world.tutorialEnds', { turns: TUTORIAL_TURNS, done: Object.keys(done).length, total: TUTORIAL_STEPS.length })), type: 'info' } : null;
   return { ...state, tutorial: { ...t, done, ended }, logs: log ? [...(state.logs || []), log] : state.logs };
 };

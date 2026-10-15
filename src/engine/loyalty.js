@@ -45,6 +45,7 @@ import { lawRulesOf } from './lawRules';
 import { cityWonderTotal } from '../data/greatProjects';
 import { isIndependentNation } from '../data/independents';
 import { breakAwayAsIndependent } from './independents';
+import { msg, cityRef, people } from './messages';
 
 // Culture reaches PRESSURE_KM (13 rings at frequency 75) and falls off by the ring distance on
 // the loaded grid (gridScale.js): one ring is the measured neighbour spacing, not a fixed km.
@@ -211,7 +212,7 @@ const bordering = (state, tiles, city) => {
 
 /**
  * The loyalty phase of a turn on the turn's working `regions` and `nations` (mutated in place).
- * Returns { flips: [{ cityId, from, to }], logs: [{ nationId, message }] }.
+ * Returns { flips: [{ cityId, from, to }], logs: [{ nationId, message, msgKey, msgVars }] }.
  */
 // `periodOf(nationId)` (optional, world/lod.js): a far nation at peace has its cities' loyalty
 // settled every `period` turns, moving `period` steps at once; culture keeps its own schedule.
@@ -259,7 +260,7 @@ export const applyLoyalty = (state, regions, units, nations, turn, periodOf = nu
       const press = pressure || pressureOn(tiles, cities, index, city, neighbours);
       const best = [...near].filter((id) => nations[id] && !nations[id].isEliminated && !isIndependentNation(nations[id])).sort((a, b) => (press[b] || 0) - (press[a] || 0) || (a < b ? -1 : 1))[0];
       flips.push({ cityId: city.id, from: city.owner, to: best || null });
-    } else if (loyalty <= 25 && current > 25) logs.push({ nationId: city.owner, message: `${city.name} is losing its loyalty (${loyalty}): garrison it or raise its amenities.` });
+    } else if (loyalty <= 25 && current > 25) logs.push({ nationId: city.owner, ...msg('m.city.loyaltyLow', { city: cityRef(city.id, city.name), loyalty }) });
   });
   flips.forEach((f) => {
     const city = regions[f.cityId];
@@ -268,16 +269,16 @@ export const applyLoyalty = (state, regions, units, nations, turn, periodOf = nu
       const { region, revivedNation } = transferRegion(city, f.to, nations, { loyalty: LOYALTY_ON_FLIP, control: 100, unrest: 0, freeCity: undefined, siege: null, culture: shifted, lastFlipTurn: turn });
       regions[f.cityId] = region;
       if (revivedNation) nations[f.to] = revivedNation;
-      logs.push({ nationId: f.from, message: `${city.name} has gone over to ${nations[f.to]?.name || f.to}: its people no longer feel yours.` }, { nationId: f.to, message: `${city.name} joins you: its people chose your rule.` });
+      logs.push({ nationId: f.from, ...msg('m.city.flipLost', { city: cityRef(city.id, city.name), nation: people(f.to, nations[f.to]?.name || f.to) }) }, { nationId: f.to, ...msg('m.city.flipGained', { city: cityRef(city.id, city.name) }) });
     } else if (breakAwayAsIndependent(state, nations, regions, f.cityId, turn)) {
       // A world with independents: the city stands as a new independent (independents 14.4).
       const id = `free_${f.cityId}`;
       regions[f.cityId] = { ...city, owner: id, occupiedBy: undefined, conquest: undefined, siege: null, control: 100, unrest: 0, loyalty: LOYALTY_ON_FLIP, culture: city.culture, freeCity: undefined, lastFlipTurn: turn };
       nations[id] = { ...nations[id], capitalRegionId: f.cityId };
-      logs.push({ nationId: f.from, message: `${city.name} has thrown off your rule and stands as ${nations[id].name}, an independent city.` });
+      logs.push({ nationId: f.from, ...msg('m.city.flipIndependent', { city: cityRef(city.id, city.name), nation: people(id, nations[id].name) }) });
     } else {
       regions[f.cityId] = { ...city, owner: null, occupiedBy: undefined, conquest: undefined, siege: null, control: 0, loyalty: LOYALTY_ON_FLIP, freeCity: { since: turn, formerOwner: f.from }, lastFlipTurn: turn };
-      logs.push({ nationId: f.from, message: `${city.name} has thrown off your rule and stands as a free city.` });
+      logs.push({ nationId: f.from, ...msg('m.city.flipFree', { city: cityRef(city.id, city.name) }) });
     }
     if (f.from) {
       const moved = relocateLostCapital(nations, regions, f.from);

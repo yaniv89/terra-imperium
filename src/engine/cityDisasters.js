@@ -12,6 +12,7 @@
 // a mark until it heals, and rolls again only DISASTER_COOLDOWN turns after the last one. The
 // nation-wide meters (disasters.js) are a different thing: politics, not weather. Pure.
 import { getTiles } from '../data/geo/tiles';
+import { msg, cityRef } from './messages';
 
 export const FLOOD_CHANCE = 0.004;
 export const FIRE_CHANCE = 0.003;
@@ -55,7 +56,7 @@ export const disasterMults = (city, turn) => {
 
 /**
  * The disasters step of a turn on the working `regions` (mutated in place): expired marks clear,
- * new disasters strike. Returns logs [{ nationId, message }].
+ * new disasters strike. Returns logs [{ nationId, message, msgKey, msgVars }].
  */
 export const rollCityDisasters = (regions, turn) => {
   const tiles = getTiles();
@@ -66,9 +67,8 @@ export const rollCityDisasters = (regions, turn) => {
     const kind = rollFor(city, turn, tiles);
     if (!kind) return;
     regions[id] = strike(city, kind, turn);
-    logs.push({ nationId: city.owner, message: kind === 'flood' ? `The river floods ${city.name}: half its stores are lost and the fields yield less for ${DISASTER_TURNS} turns.`
-      : kind === 'fire' ? `Fire sweeps through ${city.name}: half its work in progress is lost and the workshops yield less for ${DISASTER_TURNS} turns.`
-        : `Plague strikes ${city.name}: ${PLAGUE_SIZE_LOSS} citizen${PLAGUE_SIZE_LOSS > 1 ? 's' : ''} lost and no growth for ${DISASTER_TURNS} turns.` });
+    const vars = { city: cityRef(city.id ?? id, city.name), turns: DISASTER_TURNS, n: PLAGUE_SIZE_LOSS };
+    logs.push({ nationId: city.owner, ...msg(kind === 'flood' ? 'm.city.flood' : kind === 'fire' ? 'm.city.fire' : PLAGUE_SIZE_LOSS > 1 ? 'm.city.plagueStrikesMany' : 'm.city.plagueStrikesOne', vars) });
   });
   return logs;
 };

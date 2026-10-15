@@ -23,6 +23,7 @@ import { getResearched } from './nationState';
 import { isUnitInBattle } from './invasion';
 import { scoutPath, AI_SCOUT_RINGS } from './aiScouting';
 import { isExplorer } from './settlers';
+import { msg } from './messages';
 
 export const EXPLORER_STRENGTH = 300;
 export { EXPLORER_MOVE_KM };
@@ -93,7 +94,7 @@ export const continueExplorers = (state) => {
     if (found.path) { units[id] = routed(u, found.path, movePoints(u, researched), true); continue; }
     units[id] = { ...u, explore: null };
     logs = logs || [];
-    logs.push({ year: state.year, message: 'Your scouts have found all the land they can reach. Send them to a tile of your choice, or disband them.', type: 'action' });
+    logs.push({ year: state.year, ...msg('m.world.scoutsDone'), type: 'action' });
   }
   if (!units) return state;
   return { ...state, units, logs: logs ? [...state.logs, ...logs] : state.logs };

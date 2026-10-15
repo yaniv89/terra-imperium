@@ -12,6 +12,7 @@ import {
   DISASTER_PROGRESS_STEP, DISASTER_MAX_PROGRESS, ECONOMIC_COLLAPSE_MIN_LOANS, REVOLUTION_LEGITIMACY_THRESHOLD
 } from '../data/actionCosts';
 import { getAvailableGovernmentTypes, resetReformsForType } from '../data/government';
+import { msg, people } from './messages';
 
 const nextProgress = (current, triggered) =>
   Math.max(0, Math.min(DISASTER_MAX_PROGRESS, (current || 0) + (triggered ? DISASTER_PROGRESS_STEP : -DISASTER_PROGRESS_STEP)));
@@ -48,7 +49,7 @@ export const processDisastersTurn = (nation, ageId) => {
   if (revolution >= DISASTER_MAX_PROGRESS && (disasters.revolution || 0) < DISASTER_MAX_PROGRESS) {
     nextNation = resolveRevolution(nextNation, ageId);
     triggersCivilWar = true;
-    logs.push({ message: `${nextNation.name}: revolution overturns the old order.`, type: 'crisis' });
+    logs.push({ ...msg('m.world.revolution', { nation: people(nextNation.id, nextNation.name) }), type: 'crisis' });
   }
 
   nextNation = { ...nextNation, disasters: { economicCollapse: disasters.economicCollapse || 0, revolution: revolution >= DISASTER_MAX_PROGRESS ? 0 : revolution } };

@@ -23,6 +23,12 @@ import { createDefenseRecord, getGarrison, PLAYER_DEFENDED_CAPTURE_MULT } from '
 import { conquerRegion } from './conquest';
 import { pactAllies } from './pacts';
 import { canSeeTile } from './sight';
+import { msg, sub, people, cityRef } from './messages';
+
+const nationRef = (nations, id) => people(id, nations?.[id]?.name || id);
+const regionRef = (id) => cityRef(id, REGIONS_DATA[id]?.name || id);
+/** "A, B, C" as nested list pieces (each name stays a ref). */
+const listOfRefs = (refs) => refs.reduce((acc, r) => (acc == null ? r : sub('m.diplo.list', { a: acc, b: r })), null);
 
 // Trade Pact capacity (plan §M8.3/§M12): Globalism > 40 grants +1, Isolationism > 40 costs -1,
 // floored at 0 so a committed isolationist can be locked out of trade pacts entirely.
@@ -185,8 +191,8 @@ export const declareWar = (state, nationId, opts = {}) => {
     joined.push(allyId);
   });
   if (joined.length && Array.isArray(out.logs)) {
-    const names = joined.map((id) => out.nations[id]?.name || id).join(', ');
-    out = { ...out, logs: [...out.logs, { year: state.year, message: `Called to arms by their pact with ${out.nations[nationId]?.name || nationId}, ${names} declare${joined.length === 1 ? 's' : ''} war on ${out.nations[aggressor]?.name || aggressor}!`, type: 'diplomacy' }] };
+    const names = listOfRefs(joined.map((id) => nationRef(out.nations, id)));
+    out = { ...out, logs: [...out.logs, { year: state.year, ...msg(joined.length === 1 ? 'm.diplo.callToArmsOne' : 'm.diplo.callToArmsMany', { nation: nationRef(out.nations, nationId), names, enemy: nationRef(out.nations, aggressor) }), type: 'diplomacy' }] };
   }
   return out;
 };
@@ -451,9 +457,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     };
     nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
     logs.push({
-      message: terms.length === 0
-        ? `${winner?.name || offererId} and ${loser?.name || recipientId} agree to a white peace.`
-        : `${winner?.name || offererId}'s war against ${loser?.name || recipientId} ends in a negotiated peace.`,
+      ...msg(terms.length === 0 ? 'm.diplo.whitePeace' : 'm.diplo.negotiatedPeace', { a: nationRef(nextNations, offererId), b: nationRef(nextNations, recipientId) }),
       type: 'diplomacy'
     });
     return { ...war, active: false, goalAchieved: true };
@@ -505,7 +509,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
             pendingDefenses.push(createDefenseRecord({ ...state, regions: nextRegions, nations: nextNations }, {
               war: currentWar, regionId: currentWar.goal.regionId, aggressorShare, seed, index: pendingDefenses.length + 1, committed: committedAssaultUnits
             }));
-            logs.push({ message: `${updatedAggressor.name} marches on ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId}! Your garrison must defend it.`, type: 'combat' });
+            logs.push({ ...msg('m.diplo.marchesOn', { nation: people(currentWar.aggressor, updatedAggressor.name), city: regionRef(currentWar.goal.regionId) }), type: 'combat' });
           } else if (!playerGarrisoned && rng.next() < chance) {
             // Same control-as-defense-HP grind as the player's own LAUNCH_INVASION (src/engine/
             // siege.js) — a successful roll damages the region's control instead of instantly
@@ -527,8 +531,8 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
             nextRegions = devastateRegion(nextRegions, currentWar.goal.regionId, captured ? 0.3 : 0.15);
             nextNations = applyBattleWarExhaustion(nextNations, currentWar.aggressor, currentWar.enemy, captured ? 0.3 : 0.15);
             logs.push(captured
-              ? { message: `${updatedAggressor.name} conquers ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId}, taken from ${updatedDefender.name}!`, type: 'combat' }
-              : { message: `${updatedAggressor.name} breaks through at ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId} (control now ${nextControl}%).`, type: 'combat' });
+              ? { ...msg('m.diplo.conquers', { nation: people(currentWar.aggressor, updatedAggressor.name), city: regionRef(currentWar.goal.regionId), from: people(currentWar.enemy, updatedDefender.name) }), type: 'combat' }
+              : { ...msg('m.diplo.breaksThrough', { nation: people(currentWar.aggressor, updatedAggressor.name), city: regionRef(currentWar.goal.regionId), control: nextControl }), type: 'combat' });
           }
         }
       }
@@ -565,7 +569,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
         ...(overlord ? { [currentWar.enemy]: { ...overlord, vassals: (overlord.vassals || []).filter((id) => id !== currentWar.aggressor), isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE } } : {})
       };
       nextNations = setTruce(nextNations, currentWar.aggressor, currentWar.enemy, state.turnNumber);
-      logs.push({ message: `${vassal?.name || currentWar.aggressor} wins its independence from ${overlord?.name || currentWar.enemy}!`, type: 'diplomacy' });
+      logs.push({ ...msg('m.diplo.independenceWon', { nation: people(currentWar.aggressor, vassal?.name || currentWar.aggressor), overlord: people(currentWar.enemy, overlord?.name || currentWar.enemy) }), type: 'diplomacy' });
       return { ...currentWar, active: false, goalAchieved: true };
     }
 
@@ -584,7 +588,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
       if (nextPendingPeaceOffer || state.turnNumber < (currentWar.peaceOfferCooldownTurn || 0)) return currentWar;
       const aiSide = currentWar.aggressor === state.playerNationId ? currentWar.enemy : currentWar.aggressor;
       nextPendingPeaceOffer = { warId: currentWar.id, from: aiSide, terms: [], reason: 'exhaustion' };
-      logs.push({ message: `${nextNations[aiSide]?.name || aiSide}, as worn out by the war as you are, offers a white peace.`, type: 'diplomacy' });
+      logs.push({ ...msg('m.diplo.offerExhausted', { nation: nationRef(nextNations, aiSide) }), type: 'diplomacy' });
       return { ...currentWar, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS };
     }
 
@@ -617,18 +621,18 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     if (aiScore < PEACE_SCORE_OFFER_THRESHOLD && isStalemate(currentWar, state.turnNumber)) {
       const idle = state.turnNumber - (currentWar.lastActiveTurn ?? currentWar.startTurn ?? state.turnNumber);
       nextPendingPeaceOffer = { warId: currentWar.id, from: aiSide, terms: [], reason: 'stalemate' };
-      logs.push({ message: `${nextNations[aiSide]?.name || aiSide} sees nothing to gain from a war with no fighting for ${idle} turns, and offers a white peace.`, type: 'diplomacy' });
+      logs.push({ ...msg('m.diplo.offerStalemate', { nation: nationRef(nextNations, aiSide), turns: idle }), type: 'diplomacy' });
       return { ...currentWar, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS };
     }
     if (aiScore < PEACE_SCORE_OFFER_THRESHOLD) return currentWar;
 
     const terms = buildAITerms(snapshotState, currentWar, aiSide);
     if (aiScore >= PEACE_SCORE_ENFORCE_THRESHOLD) {
-      logs.push({ message: `${nextNations[aiSide]?.name || aiSide} forces a peace on you — the war is lost.`, type: 'diplomacy' });
+      logs.push({ ...msg('m.diplo.forcesPeace', { nation: nationRef(nextNations, aiSide) }), type: 'diplomacy' });
       return concludeWar(currentWar, aiSide, terms, snapshotState);
     }
     nextPendingPeaceOffer = { warId: currentWar.id, from: aiSide, terms };
-    logs.push({ message: `${nextNations[aiSide]?.name || aiSide} offers to end the war.`, type: 'diplomacy' });
+    logs.push({ ...msg('m.diplo.offersEnd', { nation: nationRef(nextNations, aiSide) }), type: 'diplomacy' });
     return { ...currentWar, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS };
   });
 

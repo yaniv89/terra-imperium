@@ -10,6 +10,9 @@ import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusive
 import { Feather, ChevronDown } from 'lucide-react';
 import { t as tNow } from '../../i18n';
 import { nameNow } from '../../i18n/names';
+import { useT } from '../../i18n/useT';
+import { messageOf } from '../../i18n/messageText';
+import { sub, people, cityRef } from '../../engine/messages';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
@@ -18,19 +21,27 @@ import { peaceOfferModel } from './peaceDealModel';
 import { Button, IconButton, Label } from '../ui/atlas';
 import { SHOW_PEACE_OFFER } from '../ui/uiEvents';
 
-export const describeTerm = (term, state) => {
+/** A term of their offer as a message ({ key, vars }), or null for a term type it does not know. */
+export const describeTermMsg = (term, state) => {
   switch (term.type) {
-    case 'cede': return `Cede ${REGIONS_DATA[term.regionId]?.name || state.regions[term.regionId]?.name || term.regionId}`;
-    case 'gold': return `Pay ${Math.round(term.amount || 0)} gold`;
-    case 'reparations': return 'Pay war reparations (a tenth of your gold income for 10 turns)';
-    case 'humiliate': return 'Accept humiliation (you lose prestige)';
-    case 'vassalize': return 'Become their vassal';
-    default: return term.type;
+    case 'cede': return sub('m.diplo.termCede', { city: cityRef(term.regionId, REGIONS_DATA[term.regionId]?.name || state.regions[term.regionId]?.name || term.regionId) });
+    case 'gold': return sub('m.diplo.termPay', { gold: Math.round(term.amount || 0) });
+    case 'reparations': return sub('m.diplo.termReparations');
+    case 'humiliate': return sub('m.diplo.termHumiliate');
+    case 'vassalize': return sub('m.diplo.termVassal');
+    default: return null;
   }
+};
+
+export const describeTerm = (term, state, lang = 'en') => {
+  const m = describeTermMsg(term, state);
+  return m ? messageOf(m.key, m.vars, lang) : term.type;
 };
 
 const PeaceOfferSheet = () => {
   const { state, dispatch } = useGame();
+  const { lang } = useT();
+  const say = (key, vars) => messageOf(key, vars, lang);
   const offer = state.pendingPeaceOffer;
   // End Turn's "Answer: X offers peace" (turnBlockers.js) brings it back up.
   useEffect(() => {
@@ -46,11 +57,11 @@ const PeaceOfferSheet = () => {
   // card, it waits as the "Peace offer from X" chip.
   const turn = useInteraction('peace-offer', waiting, { priority: PRIORITY.peace, label: tNow('wait.peaceOffer', { name: fromName }), testId: 'peace-offer-pill' });
   if (!waiting || !turn.shown) return null;
-  const from = fromName;
   const war = (state.wars || []).find((w) => w.id === offer.warId);
   const terms = offer.terms || [];
   const pm = peaceOfferModel(state, offer);
   const score = war ? pm.score : null;
+  const fromEn = state.nations[offer.from]?.name || offer.from;
 
   return (
     <div role="dialog" aria-labelledby="peace-offer-title" data-testid="peace-offer-sheet"
@@ -58,40 +69,40 @@ const PeaceOfferSheet = () => {
       <div className="flex items-start gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
         <Feather className="w-5 h-5 mt-1 text-fa-muted shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <Label>Peace offer · end of turn paused</Label>
-          <h2 id="peace-offer-title" className="fa-heading text-[18px] leading-tight">{from} {/[^s]s$/.test(from) ? 'offer' : 'offers'} peace</h2>
+          <Label>{say('m.diplo.sheetLabel')}</Label>
+          <h2 id="peace-offer-title" className="fa-heading text-[18px] leading-tight">{say(/[^s]s$/.test(fromEn) ? 'm.diplo.sheetOfferPeace' : 'm.diplo.sheetOffersPeace', { nation: people(offer.from, fromEn) })}</h2>
         </div>
-        <IconButton label="Look at the map first" icon={ChevronDown} onClick={turn.tuck} className="!w-9 !h-9" data-testid="peace-offer-later" />
+        <IconButton label={say('m.diplo.sheetLater')} icon={ChevronDown} onClick={turn.tuck} className="!w-9 !h-9" data-testid="peace-offer-later" />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2">
         <p className="text-[12.5px] leading-snug">
-          {offer.reason === 'exhaustion'
-            ? 'Both sides are worn out by the war. They propose ending it where it stands.'
+          {say(offer.reason === 'exhaustion'
+            ? 'm.diplo.sheetWhyExhaustion'
             : offer.reason === 'stalemate'
-              ? 'Nothing has happened in this war for many turns: no battle, siege or captured city. They see nothing to gain and propose ending it where it stands.'
-              : terms.length === 0 ? 'They propose a white peace: the war ends and nobody gives anything up.' : pm.themWinning ? 'They are ahead in this war and name their price for ending it.' : 'They name their price for ending the war.'}
+              ? 'm.diplo.sheetWhyStalemate'
+              : terms.length === 0 ? 'm.diplo.sheetWhyWhite' : pm.themWinning ? 'm.diplo.sheetWhyAhead' : 'm.diplo.sheetWhyPrice')}
         </p>
         {score !== null && (
-          <div className="flex justify-between text-[12.5px] fa-card px-2.5 py-1.5"><span>War score, from your side</span><span className={`fa-num font-semibold ${score >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{score > 0 ? '+' : ''}{score}</span></div>
+          <div className="flex justify-between text-[12.5px] fa-card px-2.5 py-1.5"><span>{say('m.diplo.sheetScore')}</span><span className={`fa-num font-semibold ${score >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{score > 0 ? '+' : ''}{score}</span></div>
         )}
         {terms.length === 0
-          ? <div className="fa-card px-2.5 py-1.5 text-[12.5px]">White peace: no land, gold or concessions change hands.</div>
+          ? <div className="fa-card px-2.5 py-1.5 text-[12.5px]">{say('m.diplo.sheetWhiteCard')}</div>
           : (
             <ul className="fa-card px-2.5 py-1.5 text-[12.5px] space-y-1" data-testid="peace-offer-terms">
-              {terms.map((t, i) => <li key={i} className="flex gap-2"><span className="text-fa-enemy">•</span>{describeTerm(t, state)}</li>)}
+              {terms.map((t, i) => <li key={i} className="flex gap-2"><span className="text-fa-enemy">•</span>{describeTerm(t, state, lang)}</li>)}
             </ul>
           )}
         {(pm.ownership.length > 0 || pm.money.length > 0) && (
           <ul className="fa-card px-2.5 py-1.5 text-[12px] space-y-0.5" data-testid="peace-offer-effects">
-            {pm.ownership.map((t) => <li key={t}>{t}</li>)}
-            {pm.money.map((t) => <li key={t}>{t}</li>)}
+            {pm.ownershipMsg.map((m, i) => <li key={pm.ownership[i]}>{say(m.key, m.vars)}</li>)}
+            {pm.moneyMsg.map((m, i) => <li key={pm.money[i]}>{say(m.key, m.vars)}</li>)}
           </ul>
         )}
-        <div className="text-[11px] text-fa-muted">Accepting starts a {TRUCE_DURATION_TURNS} turn truce, ending on turn {pm.truceEndsTurn}. If you refuse, the war goes on and they may ask again in a few turns.</div>
+        <div className="text-[11px] text-fa-muted">{say('m.diplo.sheetTruce', { turns: TRUCE_DURATION_TURNS, turn: pm.truceEndsTurn })}</div>
       </div>
       <div className="px-3 pt-1.5 pb-2 border-t border-fa-line grid grid-cols-2 gap-2">
-        <Button onClick={() => dispatch({ type: ActionTypes.REJECT_PENDING_PEACE })} data-testid="peace-offer-reject">Keep fighting</Button>
-        <Button variant="primary" hero onClick={() => dispatch({ type: ActionTypes.ACCEPT_PENDING_PEACE })} data-testid="peace-offer-accept">Accept</Button>
+        <Button onClick={() => dispatch({ type: ActionTypes.REJECT_PENDING_PEACE })} data-testid="peace-offer-reject">{say('m.diplo.sheetKeepFighting')}</Button>
+        <Button variant="primary" hero onClick={() => dispatch({ type: ActionTypes.ACCEPT_PENDING_PEACE })} data-testid="peace-offer-accept">{say('m.diplo.sheetAccept')}</Button>
       </div>
     </div>
   );

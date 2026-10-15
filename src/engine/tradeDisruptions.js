@@ -30,6 +30,7 @@ import { speedTurns } from '../data/ages';
 import { plunderedRoutes, plunderGoldFor, blockerStands } from './plunder';
 import { getTradeRoute } from './tradeRoutes';
 import { tradeRoutesValue } from './tradeValue';
+import { msg, msgText, sub, people, cityRef, place } from './messages';
 
 // PROVISIONAL numbers (the rule is fixed; the values wait for the tuning pass, conflicts trap T1).
 export const PLUNDER_CUT_REF_TURNS = 3;    // a cut lasts at most this long: 5 turns at Normal
@@ -37,23 +38,35 @@ export const PLUNDER_GUARD_REF_TURNS = 12; // then the route cannot be cut for t
 export const plunderCutTurns = (state) => speedTurns(PLUNDER_CUT_REF_TURNS, state?.gameSpeed, state?.age);
 export const plunderGuardTurns = (state) => speedTurns(PLUNDER_GUARD_REF_TURNS, state?.gameSpeed, state?.age);
 
-const nameOf = (state, id) => (id === REBEL_OWNER_ID ? 'Rebels' : state.nations?.[id]?.name || 'Raiders');
+// Who holds the road, as a message var: "Rebels", the nation, else "Raiders"; `the` gives "the rebels" mid-sentence.
+const whoRef = (state, id, the = false) => {
+  if (id === REBEL_OWNER_ID) return sub(the ? 'm.diplo.theRebels' : 'm.diplo.rebels');
+  const name = state.nations?.[id]?.name;
+  if (!name) return sub('m.diplo.raiders');
+  return the && name.toLowerCase() === 'rebels' ? sub('m.diplo.theRebels') : people(id, name);
+};
+const turnsSub = (n) => sub('m.diplo.turns', { count: n });
+const kindSub = (kind) => ({ land: sub('m.diplo.kindLand'), sea: sub('m.diplo.kindSea'), direct: sub('m.diplo.kindDirect') }[kind] ?? kind);
+const textOf = (m) => msgText(m.key, m.vars);
 
 /** Where a tile is, in words the player can find on the map: "Sinai, in the land of Avaris (Kemet)". */
-export const placeText = (state, tile) => {
+export const placeMsg = (state, tile) => {
   const name = getTiles().names?.[tile] || null;
   const city = state.regions?.[state.world?.tileOwner?.[tile]];
-  const owner = city?.owner ? (city.owner === state.playerNationId ? 'your land' : state.nations?.[city.owner]?.name) : null;
-  const land = city ? `the land of ${city.name}${owner ? ` (${owner})` : ''}` : 'unclaimed land';
-  return name && name !== city?.name ? `${name}, in ${land}` : `${land}`;
+  const ownerName = city?.owner && city.owner !== state.playerNationId ? state.nations?.[city.owner]?.name : null;
+  const owner = city?.owner ? (city.owner === state.playerNationId ? sub('m.diplo.yourLand') : (ownerName ? people(city.owner, ownerName) : null)) : null;
+  const land = city ? sub(owner ? 'm.diplo.landOfOwned' : 'm.diplo.landOf', { city: cityRef(city.id, city.name), ...(owner ? { owner } : {}) }) : sub('m.diplo.landUnclaimed');
+  return name && name !== city?.name ? sub('m.diplo.placeIn', { name: place(name), land }) : land;
 };
+export const placeText = (state, tile) => textOf(placeMsg(state, tile));
 
 /** Why a blocker cuts the road: rebels, an enemy at war, or an independent's raid party. */
-export const causeText = (state, by) => {
-  if (by === REBEL_OWNER_ID) return 'rebels hold the road';
-  if (isIndependentNation(state.nations?.[by])) return `a raid party of ${nameOf(state, by)} holds the road`;
-  return `an army of ${nameOf(state, by)}, at war with you, holds the road`;
+export const causeMsg = (state, by) => {
+  if (by === REBEL_OWNER_ID) return sub('m.diplo.causeRebels');
+  if (isIndependentNation(state.nations?.[by])) return sub('m.diplo.causeRaidParty', { nation: whoRef(state, by) });
+  return sub('m.diplo.causeArmy', { nation: whoRef(state, by) });
 };
+export const causeText = (state, by) => textOf(causeMsg(state, by));
 
 /**
  * One turn of the trade route events. `state` is the turn's view (regions, units, nations, wars,
@@ -71,7 +84,7 @@ export const advanceTradeDisruptions = (state, turn = state.turnNumber || 1) => 
   const logs = [];
   const loot = [];
   let changed = false;
-  const partnerName = (id) => state.nations?.[id]?.name || id;
+  const partnerRef = (id) => people(id, state.nations?.[id]?.name || id);
   [...new Set([...Object.keys(prev), ...hits.map((h) => h.partnerId)])].sort().forEach((pid) => {
     const p = prev[pid];
     const hit = hits.find((h) => h.partnerId === pid) || null;
@@ -89,9 +102,9 @@ export const advanceTradeDisruptions = (state, turn = state.turnNumber || 1) => 
       changed = true;
       const raider = state.nations?.[hit.by];
       if (raider && !isIndependentNation(raider)) loot.push({ by: hit.by, gold: plunderGoldFor(state, hit.by) });
-      const where = hit.kind === 'sea' ? `off ${placeText(state, hit.tile)}` : `at ${placeText(state, hit.tile)}`;
-      const why = hit.kind === 'sea' ? `raider ships of ${nameOf(state, hit.by)} lie off the port` : causeText(state, hit.by);
-      logs.push({ message: `${nameOf(state, hit.by)} plunder your ${hit.kind} trade route to ${partnerName(pid)} ${where}: ${why}. No trade with ${partnerName(pid)} until they are driven off or the caravans find a way past (${plunderCutTurns(state)} turns at most).` });
+      const where = sub(hit.kind === 'sea' ? 'm.diplo.offPlace' : 'm.diplo.atPlace', { place: placeMsg(state, hit.tile) });
+      const why = hit.kind === 'sea' ? sub('m.diplo.causeShips', { nation: whoRef(state, hit.by) }) : causeMsg(state, hit.by);
+      logs.push({ ...msg(hit.kind === 'sea' ? 'm.diplo.plunderSea' : 'm.diplo.plunderLand', { nation: whoRef(state, hit.by), partner: partnerRef(pid), where, why, turns: plunderCutTurns(state) }) });
       return;
     }
     if (hit && p) {
@@ -100,7 +113,7 @@ export const advanceTradeDisruptions = (state, turn = state.turnNumber || 1) => 
         const guardedUntil = turn + plunderGuardTurns(state);
         next[pid] = { ...p, phase: 'guarded', by: hit.by, tile: hit.tile, guardedUntil };
         changed = true;
-        logs.push({ message: `Your caravans to ${partnerName(pid)} now travel under guard past ${nameOf(state, hit.by).toLowerCase() === 'rebels' ? 'the rebels' : nameOf(state, hit.by)} at ${placeText(state, hit.tile)}: the trade route is open again after ${p.lost} ${p.lost === 1 ? 'turn' : 'turns'}, and cannot be cut before turn ${guardedUntil}.` });
+        logs.push({ ...msg('m.diplo.guarded', { partner: partnerRef(pid), who: whoRef(state, hit.by, true), place: placeMsg(state, hit.tile), count: p.lost, turn: guardedUntil }) });
         return;
       }
       next[pid] = { ...p, by: hit.by, tile: hit.tile, lost: (p.lost || 0) + 1 };
@@ -111,10 +124,10 @@ export const advanceTradeDisruptions = (state, turn = state.turnNumber || 1) => 
       // The blocker is gone, or another road opened.
       changed = true;
       const route = getTradeRoute(state, pid);
-      const how = blockerStands(state, me, p.by, p.tile) ? 'the caravans found another road' : `${nameOf(state, p.by).toLowerCase() === 'rebels' ? 'the rebels' : nameOf(state, p.by)} at ${placeText(state, p.tile)} are gone`;
-      logs.push({ message: route.ok
-        ? `Your trade route to ${partnerName(pid)} is open again: ${how} (${p.lost} ${p.lost === 1 ? 'turn' : 'turns'} of trade lost).`
-        : `The raiders on your trade route to ${partnerName(pid)} are gone, but no route is open: ${route.reason}` });
+      const how = blockerStands(state, me, p.by, p.tile) ? sub('m.diplo.howOtherRoad') : sub('m.diplo.howGone', { who: whoRef(state, p.by, true), place: placeMsg(state, p.tile) });
+      logs.push(route.ok
+        ? msg('m.diplo.routeOpen', { partner: partnerRef(pid), how, count: p.lost })
+        : msg('m.diplo.raidersGone', { partner: partnerRef(pid), reason: route.reasonMsg || route.reason }));
     }
   });
   if (!changed) return { disruptions: prev, logs, loot };
@@ -141,16 +154,20 @@ export const tradeRouteStatus = (state, partnerId) => {
   const base = { partnerId, kind: route.ok ? route.kind : d?.kind || null, km: value?.km ?? null, percent, tile: d?.tile ?? null, by: d?.by ?? null };
   if (d?.phase === 'cut') {
     const turnsLeft = Math.max(0, d.until - turn);
-    const where = placeText(state, d.tile);
-    const cause = d.kind === 'sea' ? `raider ships of ${nameOf(state, d.by)} lie off the port` : causeText(state, d.by);
+    const whereMsg = placeMsg(state, d.tile);
+    const causeM = d.kind === 'sea' ? sub('m.diplo.causeShips', { nation: whoRef(state, d.by) }) : causeMsg(state, d.by);
+    const adviceMsg = sub(d.kind === 'sea' ? 'm.diplo.adviceSea' : 'm.diplo.adviceLand');
+    const textMsg = sub('m.diplo.statusCut', { where: whereMsg, cause: causeM, lost: turnsSub(d.lost), left: turnsSub(turnsLeft) });
     return {
-      ...base, phase: 'cut', pays: false, percent: 0, cause, where, turnsLeft,
-      advice: d.kind === 'sea' ? 'Sink or drive off the raiders with a fleet, or wait: the ships sail in convoy soon.' : 'Drive them off with an army, or wait: the caravans hire guards soon.',
-      text: `Pays nothing now: cut at ${where} (${cause}), ${d.lost} ${d.lost === 1 ? 'turn' : 'turns'} so far. Open again in ${turnsLeft} ${turnsLeft === 1 ? 'turn' : 'turns'} at most, at once if they are driven off.`
+      ...base, phase: 'cut', pays: false, percent: 0, cause: textOf(causeM), where: textOf(whereMsg), turnsLeft,
+      advice: textOf(adviceMsg), text: textOf(textMsg),
+      causeMsg: causeM, whereMsg, adviceMsg, textMsg
     };
   }
-  if (!route.ok) return { ...base, phase: 'closed', pays: false, percent: 0, cause: route.reason, where: null, turnsLeft: null, advice: 'Open borders with the lands between you, or build a harbour on each side.', text: `Pays nothing: ${route.reason}` };
-  const guard = d?.phase === 'guarded' ? ` Caravans travel under guard until turn ${d.guardedUntil}: it cannot be cut meanwhile.` : '';
-  if (!(percent > 0)) return { ...base, phase: d?.phase === 'guarded' ? 'guarded' : 'open', pays: false, cause: 'too small or too far to be worth a caravan', where: null, turnsLeft: null, advice: null, text: `Open (${route.kind}), but pays nothing: the partner is too small or too far.${guard}` };
-  return { ...base, phase: d?.phase === 'guarded' ? 'guarded' : 'open', pays: true, cause: null, where: null, turnsLeft: null, advice: null, text: `Open by ${route.kind}${value?.km ? `, ${value.km} km` : ''}: +${percent}% gold.${guard}` };
+  // `text` stays the English sentence; `textMsg` (and `adviceMsg`, `causeMsg`) carry the key and vars for other languages.
+  const said = (m) => ({ text: textOf(m), textMsg: m });
+  if (!route.ok) return { ...base, phase: 'closed', pays: false, percent: 0, cause: route.reason, causeMsg: route.reasonMsg || null, where: null, turnsLeft: null, advice: textOf(sub('m.diplo.adviceClosed')), adviceMsg: sub('m.diplo.adviceClosed'), ...said(sub('m.diplo.statusClosed', { reason: route.reasonMsg || route.reason })) };
+  const guard = d?.phase === 'guarded' ? sub('m.diplo.statusGuard', { turn: d.guardedUntil }) : '';
+  if (!(percent > 0)) return { ...base, phase: d?.phase === 'guarded' ? 'guarded' : 'open', pays: false, cause: 'too small or too far to be worth a caravan', where: null, turnsLeft: null, advice: null, ...said(sub('m.diplo.statusNoPay', { kind: kindSub(route.kind), guard })) };
+  return { ...base, phase: d?.phase === 'guarded' ? 'guarded' : 'open', pays: true, cause: null, where: null, turnsLeft: null, advice: null, ...said(sub(value?.km ? 'm.diplo.statusPaysKm' : 'm.diplo.statusPays', { kind: kindSub(route.kind), ...(value?.km ? { km: value.km } : {}), percent, guard })) };
 };

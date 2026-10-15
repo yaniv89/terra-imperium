@@ -30,7 +30,7 @@ describe('districts as tiles (plan C3.4)', () => {
     world = r.world; city = r.city;
     expect(city.buildings.categories.science).toBe(0);
     expect(world.tileState[site]?.district).toBe('science');
-    expect(r.logs.some((l) => /Campus/.test(l))).toBe(true);
+    expect(r.logs.some((l) => /Campus/.test(l.message))).toBe(true);
     const ds = districtsOf(tiles, world, city);
     expect(ds).toEqual([expect.objectContaining({ kind: 'science', tile: site, pillaged: false, yield: 'science' })]);
     expect(ds[0].amount).toBe(DISTRICT_BASE + adjacencyOf(tiles, world, site, 'science', city));

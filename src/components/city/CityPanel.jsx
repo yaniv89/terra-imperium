@@ -30,6 +30,8 @@ import { GROUPS, describeTile, tileBearing, buildOptions, buildQueue, focusHint,
 import { focusPlace, pointAtTile } from '../map/marchEvents';
 import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } from '../ui/icons';
 import { Meter, Stat } from '../ui/atlas';
+import { useT } from '../../i18n/useT';
+import { logText } from '../../i18n/messageText';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
 const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
@@ -97,6 +99,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const [tap, setTap] = useState(null);
   // The order whose rush offer is open (I019): a tap on Buy shows the quote, a second pays.
   const [buyAt, setBuyAt] = useState(null);
+  const { lang } = useT();
   const timer = useRef(null);
   useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -116,7 +119,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const flash = tap && tap.cityId === cityId
     ? (queue.length > tap.before
       ? { ok: true, text: `Added: ${tap.label}. ${queue.length} in the queue.` }
-      : state.logs.length > tap.logs ? { ok: false, text: `Not added: ${state.logs[state.logs.length - 1].message}` } : null)
+      : state.logs.length > tap.logs ? { ok: false, text: `Not added: ${logText(state.logs[state.logs.length - 1], lang)}` } : null)
     : null;
   // The map flies to the row's tile and outlines it (I042).
   const openTile = (tile) => { if (tile != null) { focusPlace([{ tile }, { regionId: cityId }]); pointAtTile(tile); } };

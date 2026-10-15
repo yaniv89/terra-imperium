@@ -7,8 +7,11 @@
 
 import React from 'react';
 import { Swords, X } from 'lucide-react';
+import { useT } from '../../i18n/useT';
+import { logText } from '../../i18n/messageText';
 
 const BattleSummaryToast = ({ entries, onDismiss }) => {
+  const { t, lang } = useT();
   if (!entries || entries.length === 0) return null;
 
   return (
@@ -16,7 +19,7 @@ const BattleSummaryToast = ({ entries, onDismiss }) => {
       <div className="flex items-center justify-between px-3 py-2 border-b border-fa-line">
         <div className="flex items-center gap-1.5 text-fa-enemy text-xs font-semibold">
           <Swords className="w-3.5 h-3.5" />
-          Battle Report
+          {t('report.battleToast')}
         </div>
         <button onClick={onDismiss} className="text-fa-muted hover:text-fa-text">
           <X className="w-3.5 h-3.5" />
@@ -30,7 +33,7 @@ const BattleSummaryToast = ({ entries, onDismiss }) => {
               entry.type === 'crisis' ? 'bg-red-500/10 text-fa-danger-text' : 'bg-fa-raised/60 text-fa-text'
             }`}
           >
-            {entry.message}
+            {logText(entry, lang)}
           </div>
         ))}
       </div>

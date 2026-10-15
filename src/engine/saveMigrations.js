@@ -17,6 +17,7 @@ import { createInitialState } from './gameReducer';
 import { getNationCapital, REGIONS_DATA } from '../data/regions';
 import { conquerRegion } from './conquest';
 import { initFog, reviveFog } from './fog';
+import { msg, sub } from './messages';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
@@ -234,7 +235,7 @@ const migrate5to6 = (state) => {
     const ratio = before > 0 ? (newCount[id] || 0) / before : 1;
     nations[id] = typeof n.startRegionCount === 'number' && ratio < 1 ? { ...n, startRegionCount: Math.max(1, Math.round(n.startRegionCount * ratio)) } : n;
   });
-  const note = { year: state.year, type: 'event', message: `The map was simplified: small provinces were merged into larger regions (${Object.keys(state.regions || {}).length} provinces became ${Object.keys(regions).length} regions).${splitOwners ? ` ${splitOwners} merged regions had more than one owner and went to the one holding most of their people.` : ''}` };
+  const note = { year: state.year, type: 'event', ...msg('m.world.mapSimplified', { from: Object.keys(state.regions || {}).length, to: Object.keys(regions).length, split: splitOwners ? sub('m.world.mapSplitOwners', { n: splitOwners }) : '' }) };
   return { ...renamed, nations, regions, logs: [...logs, note] };
 };
 

@@ -18,6 +18,7 @@
 //                    its own battles).
 // Pure: processFortBattles(state, startUnits) -> state.
 import { getTiles } from '../data/geo/tiles';
+import { msg, sub, people, cityRef } from './messages';
 import { createRng } from '../utils/rng';
 import { canAttack } from './hostility';
 import { unitTile } from './armies';
@@ -110,13 +111,16 @@ export const processFortBattles = (state, startUnits) => {
     const seed = Math.floor(hashRoll(`fort|${c.fortTile}|${next.turnNumber}|${c.moverId}`) * 4294967296) >>> 0;
     const units = { ...next.units };
     v.attackerUnits.forEach((u) => { if (units[u.id]) units[u.id] = { ...units[u.id], movesLeft: 0, route: undefined, routeHalt: null }; });
-    const name = next.regions[next.world?.tileOwner?.[c.fortTile]]?.name;
+    const ownerCity = next.world?.tileOwner?.[c.fortTile];
+    const name = next.regions[ownerCity]?.name;
     if (c.moverId === next.playerNationId || c.owner === next.playerNationId) {
       const record = { ...fieldDefenseRecord(next, v, { aggressorId: c.moverId, seed, kind: 'field' }), id: `ft_${next.turnNumber}_${c.moverId}_${c.fortTile}`, fort: true };
       const mine = c.moverId === next.playerNationId;
       next = {
         ...next, units, pendingDefenses: [...(next.pendingDefenses || []), record],
-        logs: [...next.logs, { year: next.year, message: mine ? `The fort near ${name || 'the border'} stops your army: it must fight its way past.` : `Your fort near ${name || 'the border'} stops ${next.nations[c.moverId]?.name || 'the enemy'}'s army.`, type: 'combat' }]
+        logs: [...next.logs, { year: next.year, ...(mine
+          ? msg('m.battle.fortStopsYou', { place: name ? cityRef(ownerCity, name) : sub('m.battle.theBorder') })
+          : msg('m.battle.fortStopsThem', { place: name ? cityRef(ownerCity, name) : sub('m.battle.theBorder'), nation: next.nations[c.moverId]?.name ? people(c.moverId, next.nations[c.moverId].name) : sub('m.battle.theEnemy') })), type: 'combat' }]
       };
       return;
     }

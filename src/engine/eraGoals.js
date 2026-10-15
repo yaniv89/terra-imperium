@@ -8,6 +8,7 @@
 import { AGES } from '../data/ages';
 import { ERA_GOALS_FOR_LEGACY, ERA_LEGACY_TURNS, PLAYSTYLES, goalsForAge } from '../data/eraGoals';
 import { addNationModifier } from './modifiers/timed';
+import { msg, sub, thing } from './messages';
 
 /** The player's numbers for every playstyle today. */
 export const playstyleValues = (state) => {
@@ -39,10 +40,11 @@ export const awardEraLegacy = (state, nation, endingAgeId, turnNumber) => {
   const met = progress.goals.filter((g) => g.done).map((g) => g.id);
   const earned = met.length >= ERA_GOALS_FOR_LEGACY;
   const record = { ...(nation.eraGoals || {}), [endingAgeId]: { met, legacy: earned } };
-  if (!earned) return { nation: { ...nation, eraGoals: record }, log: `The ${AGES[endingAgeId]?.name || endingAgeId} ends with ${met.length} of its goals met: no legacy carries over.` };
+  if (!earned) return { nation: { ...nation, eraGoals: record }, log: msg('m.world.noLegacy', { age: thing('age', endingAgeId, AGES[endingAgeId]?.name || endingAgeId), n: met.length }) };
   const mods = {};
   met.forEach((id) => Object.entries(PLAYSTYLES[id].mods).forEach(([k, v]) => { mods[k] = (mods[k] || 0) + v; }));
   const label = `Legacy of the ${AGES[endingAgeId]?.name || endingAgeId}`;
   const next = addNationModifier({ ...nation, eraGoals: record }, { sourceType: 'eraGoal', sourceId: endingAgeId, label, mods, duration: ERA_LEGACY_TURNS, turnNumber });
-  return { nation: next, log: `${label}: ${met.map((id) => PLAYSTYLES[id].bonusLabel).join(', ')} for ${ERA_LEGACY_TURNS} turns.` };
+  const bonuses = met.map((id) => thing('playstyleBonus', id, PLAYSTYLES[id].bonusLabel)).reduce((acc, b) => (acc === '' ? b : sub('m.world.listMore', { a: acc, b })), '');
+  return { nation: next, log: msg('m.world.legacy', { age: thing('age', endingAgeId, AGES[endingAgeId]?.name || endingAgeId), bonuses, turns: ERA_LEGACY_TURNS }) };
 };

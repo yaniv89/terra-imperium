@@ -29,7 +29,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent, noteEventFired } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, formatMoney, nextUnrest, getNationBonusTotal, getPowerIncome, getFieldedStrength } from '../utils/helpers';
+import { calcIncome, nextUnrest, getNationBonusTotal, getPowerIncome, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation, peopleOf } from './population';
@@ -113,7 +113,7 @@ import { updateFog } from './fog';
 import { processAIMapOffers } from './mapTrade';
 import { continueExplorers, EXPLORER_STRENGTH } from './scouting';
 import { repairCityDamage } from './cityManifest';
-import { subjectVerb } from './grammar';
+import { msg, carry, sub, people, cityRef, thing } from './messages';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -214,15 +214,15 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     const id = `unit_${nextUnitSeq++}`;
     units[id] = { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.explorer ? { explorer: true, strength: EXPLORER_STRENGTH, maxStrength: EXPLORER_STRENGTH } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
   });
-  const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map((l) => l.message);
-  disasterLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });
+  const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map(carry);
+  disasterLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(carry(l)); });
   // Settlers walk, found outposts, and outposts grow (settlers.js).
   const afterCities = { ...state, regions, units, nextUnitSeq, world: { tileOwner: result.world.tileOwner, tileState: result.world.tileState } };
   const hasSettlers = Object.values(units).some(isSettler) || Object.values(regions).some((c) => c.outpost);
   if (!hasSettlers) return { state: afterCities, logs, wonders };
   // Outposts are founded into the turn's own maps (copied here if the cities pass wrote nothing).
   const settled = processSettlers(afterCities, regions, units, privateWorld(afterCities.world, result.world), (nid) => ctxFor({ owner: nid }).ageId, newTurnNumber);
-  settled.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });
+  settled.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(carry(l)); });
   return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: { tileOwner: settled.world.tileOwner, tileState: settled.world.tileState } }, logs, wonders };
 };
 
@@ -272,7 +272,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // (the UI layer, App.jsx's GameLayout, is what turns this into the globe-wide banner/effect,
   // since resolveTurn is pure and has no access to EffectsContext).
   if (newAge !== state.age) {
-    logs.push({ year: newYear, message: `A new era dawns: the world enters the ${AGES[newAge].name}.`, type: LogTypes.MILESTONE });
+    logs.push({ year: newYear, ...msg('m.turn.newEra', { age: thing('age', newAge, AGES[newAge].name) }), type: LogTypes.MILESTONE });
   }
 
   // Timed modifier expiry (plan §A.2) — runs right after the time step so an entry that expires
@@ -286,7 +286,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   if (newAge !== state.age && modifierExpiredNations[state.playerNationId]) {
     const legacy = awardEraLegacy(state, modifierExpiredNations[state.playerNationId], state.age, newTurnNumber);
     modifierExpiredNations[state.playerNationId] = legacy.nation;
-    if (legacy.log) logs.push({ year: newYear, message: legacy.log, type: LogTypes.MILESTONE });
+    if (legacy.log) logs.push({ year: newYear, ...carry(legacy.log), type: LogTypes.MILESTONE });
   }
   mark('time');
 
@@ -299,7 +299,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   {
     const siegeRegions = { ...state.regions };
     const { logs: siegeLogs } = processSieges(state, siegeRegions, state.units, { turn: newTurnNumber });
-    siegeLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.COMBAT }); });
+    siegeLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, ...carry(l), type: LogTypes.COMBAT }); });
     state = { ...state, regions: siegeRegions };
   }
   mark('sieges');
@@ -309,19 +309,19 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // every later phase sees the new sizes and borders. Finished units are created here.
   const cityTurn = runCitiesPhase(state, newAge, newTurnNumber);
   state = cityTurn.state;
-  cityTurn.logs.forEach((l) => logs.push({ year: newYear, message: l, type: LogTypes.ACTION }));
+  cityTurn.logs.forEach((l) => logs.push({ year: newYear, ...carry(l), type: LogTypes.ACTION }));
   mark('cities');
 
   // --- income ---
   const income = calcIncome({ ...state, nations: modifierExpiredNations });
   const resources = { ...createEmptyResourcePool(newAge), ...state.resources };
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
-  logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
+  logs.push({ year: newYear, ...msg('m.turn.income', { year: Math.round(newYear), gold: income.gold || 0 }), type: LogTypes.ACTION });
   // Army supplies (src/engine/supplies.js): foraged and manufactured from metal, eaten on campaign.
   const supplyFlow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId: state.playerNationId, ageId: getEffectiveAgeId(newAge, state.techAgeId), resources, turnNumber: state.turnNumber, tileOwner: state.world?.tileOwner });
   resources[supplyFlow.metalId] = (resources[supplyFlow.metalId] || 0) - supplyFlow.metalUsed;
   resources.supplies = supplyFlow.supplies;
-  if (supplyFlow.hungry) logs.push({ year: newYear, message: `Out of supplies: your ${supplyFlow.campaigning} unit${supplyFlow.campaigning > 1 ? 's' : ''} on campaign go hungry (-${HUNGER_MORALE} morale, no reinforcement). Build Industry, stockpile metal or bring them home.`, type: LogTypes.CRISIS });
+  if (supplyFlow.hungry) logs.push({ year: newYear, ...msg(supplyFlow.campaigning > 1 ? 'm.turn.hungryMany' : 'm.turn.hungryOne', { n: supplyFlow.campaigning, morale: HUNGER_MORALE }), type: LogTypes.CRISIS });
   mark('income');
 
   // Army/navy/fort upkeep, advisor salaries, and loan interest are all deducted together in the
@@ -459,12 +459,12 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
           regions[regionId] = transfer.region;
           logs.push({
             year: newYear,
-            message: `The uprising in ${REGIONS_DATA[regionId]?.name || regionId} succeeds — ${state.nations[reclaimedBy]?.name || reclaimedBy} reclaims it from ${state.nations[occupierId]?.name || occupierId}.`,
+            ...msg('m.turn.uprisingWon', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name || regionId), nation: people(reclaimedBy, state.nations[reclaimedBy]?.name || reclaimedBy), from: people(occupierId, state.nations[occupierId]?.name || occupierId) }),
             type: LogTypes.CRISIS
           });
           if (transfer.revivedNation) {
             revivedNations[reclaimedBy] = transfer.revivedNation;
-            logs.push({ year: newYear, message: `${transfer.revivedNation.name} rises again!`, type: LogTypes.MILESTONE });
+            logs.push({ year: newYear, ...msg('m.turn.risesAgain', { nation: people(reclaimedBy, transfer.revivedNation.name) }), type: LogTypes.MILESTONE });
           }
         } else {
           // Capped at REBEL_MAX_GROWTH_MULT x a fresh uprising's size: uncapped, 15%/turn compounding
@@ -482,11 +482,11 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
           spawnedTurn: newTurnNumber
         };
         regions[regionId] = { ...region, control: Math.max(0, (region.control || 0) - 30) };
-        logs.push({ year: newYear, message: `Rebellion breaks out in ${REGIONS_DATA[regionId]?.name || regionId}!`, type: LogTypes.CRISIS });
+        logs.push({ year: newYear, ...msg('m.turn.rebellion', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name || regionId) }), type: LogTypes.CRISIS });
       }
     } else if (existingRebelId) {
       delete units[existingRebelId];
-      logs.push({ year: newYear, message: `The unrest behind the rebellion in ${REGIONS_DATA[regionId]?.name || regionId} has eased, and it dissolves.`, type: LogTypes.CRISIS });
+      logs.push({ year: newYear, ...msg('m.turn.rebellionEnds', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name || regionId) }), type: LogTypes.CRISIS });
     }
 
     // Integration (the other end condition — the good ending): conquered land that has climbed to
@@ -514,13 +514,18 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   });
   const starvingOwn = meter.starving.get(state.playerNationId) || 0;
   const deadOwn = meter.dead.get(state.playerNationId) || 0;
-  if (starvingOwn || deadOwn) logs.push({ year: newYear, message: `Out of supply: ${starvingOwn ? `${starvingOwn} of your unit${starvingOwn > 1 ? 's' : ''} starve${starvingOwn > 1 ? '' : 's'} in the field` : ''}${starvingOwn && deadOwn ? ' and ' : ''}${deadOwn ? `${deadOwn} unit${deadOwn > 1 ? 's' : ''} melted away` : ''}. Bring them home or hold a city near them.`, type: LogTypes.CRISIS });
+  if (starvingOwn || deadOwn) {
+    const starve = starvingOwn ? sub(starvingOwn > 1 ? 'm.turn.starveMany' : 'm.turn.starveOne', { n: starvingOwn }) : null;
+    const melted = deadOwn ? sub(deadOwn > 1 ? 'm.turn.meltedMany' : 'm.turn.meltedOne', { n: deadOwn }) : null;
+    const what = starve && melted ? sub('m.both', { a: starve, b: melted }) : starve || melted;
+    logs.push({ year: newYear, ...msg('m.turn.outOfSupply', { what }), type: LogTypes.CRISIS });
+  }
   // --- loyalty and culture (plans/civ-map-rework.md C5, loyalty.js): culture pressure drifts every
   // city's shares, loyalty follows the owner's share, garrison and amenities; at 0 a city goes over
   // to the nation pressing it most, or stands free.
   {
     const loyal = applyLoyalty(state, regions, units, modifierExpiredNations, newTurnNumber, (nid) => state.lodPeriods?.[nid] || 1);
-    loyal.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.CRISIS }); });
+    loyal.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, ...carry(l), type: LogTypes.CRISIS }); });
   }
   mark('rebellionAndSupply');
 
@@ -593,7 +598,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const heldSince = u.tile != null && u.prevTile === u.tile && !foughtThisTurn ? (u.heldSince ?? newTurnNumber) : newTurnNumber;
     units[u.id] = { ...u, ...patch, movesLeft, prevTile: u.tile ?? null, heldSince };
   });
-  if (groundedCount) logs.push({ year: newYear, message: `No oil: ${groundedCount} of your mechanised unit${groundedCount > 1 ? 's are' : ' is'} out of fuel and cannot move this turn. Build Oil Wells or trade for oil.`, type: LogTypes.CRISIS });
+  if (groundedCount) logs.push({ year: newYear, ...msg(groundedCount > 1 ? 'm.turn.noOilMany' : 'm.turn.noOilOne', { n: groundedCount }), type: LogTypes.CRISIS });
   mark('reinforcementAndMorale');
 
   // --- AI nations: passive growth + hostility drift ---
@@ -715,7 +720,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const sameDynastyStreak = ruler.dynasty === nation.ruler?.dynasty ? (nation.sameDynastyStreak || 0) + 1 : 1;
     nations[nId] = { ...nation, ruler, sameDynastyStreak };
     if (nId === state.playerNationId) {
-      logs.push({ year: newYear, message: successionLine(nation.ruler, ruler), type: LogTypes.MILESTONE });
+      logs.push({ year: newYear, ...carry(successionLine(nation.ruler, ruler)), type: LogTypes.MILESTONE });
     }
   });
   mark('rulers');
@@ -777,9 +782,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       nations[nId] = result.nation;
       if (result.result === 'crushed' || result.result === 'lost') nations[nId] = { ...nations[nId], civilWarEndedTurn: newTurnNumber }; // the cooldown (civilWar.js)
       if (result.result === 'crushed') {
-        logs.push({ year: newYear, message: `${nations[nId].name} crushes the uprising. (+1 stability, +10 legitimacy)`, type: LogTypes.CRISIS });
+        logs.push({ year: newYear, ...msg('m.turn.civilWarCrushed', { nation: people(nId, nations[nId].name) }), type: LogTypes.CRISIS });
       } else if (result.result === 'lost') {
-        logs.push({ year: newYear, message: `${nations[nId].name} falls to the insurgents: a new regime takes power.`, type: LogTypes.CRISIS });
+        logs.push({ year: newYear, ...msg('m.turn.civilWarLost', { nation: people(nId, nations[nId].name) }), type: LogTypes.CRISIS });
       }
       return;
     }
@@ -792,7 +797,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
         Object.assign(regions, started.regions);
         Object.assign(units, started.units);
         nations[nId] = { ...nations[nId], civilWar: started.civilWar, lowStabilityStreak: 0 };
-        logs.push({ year: newYear, message: `${subjectVerb(nations[nId].name, 'descend', 'into civil war')}!`, type: LogTypes.CRISIS });
+        logs.push({ year: newYear, ...msg('m.turn.civilWar', { nation: people(nId, nations[nId].name) }), type: LogTypes.CRISIS });
         return;
       }
     }
@@ -835,7 +840,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     if (totalExpenses > 0) {
       logs.push({
         year: newYear,
-        message: `Upkeep: -${formatMoney(totalExpenses)} (army ${formatMoney(armyUpkeep)}${marchingUpkeep ? `, marching ${formatMoney(marchingUpkeep)}` : ''}, navy ${formatMoney(navyUpkeep)}, forts ${formatMoney(fortUpkeep)}, advisors ${formatMoney(advisorSalaryCost)}, loan interest ${formatMoney(loanInterestCost)})`,
+        ...msg('m.turn.upkeep', { total: totalExpenses, army: armyUpkeep, marching: marchingUpkeep ? sub('m.turn.upkeepMarching', { gold: marchingUpkeep }) : '', navy: navyUpkeep, forts: fortUpkeep, advisors: advisorSalaryCost, interest: loanInterestCost }),
         type: LogTypes.ACTION
       });
     }
@@ -865,12 +870,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       // Unpaid soldiers desert: every unit loses DESERTION_SHARE of its men and its spirit, and a
       // unit left too small to stand dissolves. (Deserters go home: no casualty scar.)
       const deserted = applyArmyDesertion(units, playerId);
-      if (deserted > 0) logs.push({ year: newYear, message: `Unpaid, ${Math.round(deserted * 10).toLocaleString()} soldiers desert your army (-${Math.round(DESERTION_SHARE * 100)}% strength, -${DESERTION_MORALE} morale in every unit).`, type: LogTypes.CRISIS });
+      if (deserted > 0) logs.push({ year: newYear, ...msg('m.turn.desertion', { men: Math.round(deserted * 10), pct: Math.round(DESERTION_SHARE * 100), morale: DESERTION_MORALE }), type: LogTypes.CRISIS });
       logs.push({
         year: newYear,
-        message: disasterBankruptcyReady && rawGold >= 0
-          ? 'Economic Collapse! Years of mounting debt force bankruptcy outright. (-2 stability on top of the usual bankruptcy penalties)'
-          : 'Bankruptcy! The treasury is empty and no further loans can be taken. (-3 stability, -20 prestige, a 10-turn economic crisis)',
+        ...msg(disasterBankruptcyReady && rawGold >= 0 ? 'm.turn.economicCollapse' : 'm.turn.bankruptcy'),
         type: LogTypes.CRISIS
       });
     } else if (rawGold < 0) {
@@ -883,7 +886,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       const loan = { id: `loan_${loanSeq}`, principal, interestRate: getLoanInterestRate({ ...state, nations }, playerId), takenTurn: newTurnNumber };
       nations[playerId] = { ...nations[playerId], loans: [...(nation.loans || []), loan], disasters: { ...nations[playerId].disasters, economicCollapse: economicCollapseProgress } };
       resources.gold = rawGold + principal;
-      logs.push({ year: newYear, message: `Treasury shortfall — auto-took a loan of ${formatMoney(principal)} gold.`, type: LogTypes.CRISIS });
+      logs.push({ year: newYear, ...msg('m.turn.autoLoan', { gold: principal }), type: LogTypes.CRISIS });
     } else {
       resources.gold = rawGold;
       nations[playerId] = { ...nations[playerId], disasters: { ...nations[playerId].disasters, economicCollapse: economicCollapseProgress } };
@@ -899,7 +902,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
         resources.helium3 -= FUSION_GRID_UPKEEP_HELIUM3_PER_TURN;
       } else {
         nations[playerId] = { ...nations[playerId], fusionGridActive: false };
-        logs.push({ year: newYear, message: 'The Fusion Grid has gone offline — insufficient Helium-3.', type: LogTypes.CRISIS });
+        logs.push({ year: newYear, ...msg('m.turn.fusionOffline'), type: LogTypes.CRISIS });
       }
     }
   }
@@ -909,13 +912,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // vassal tribute (player-only, matching every other player-only economic action this turn). ---
   Object.assign(nations, decayAggressiveExpansion(nations));
   // Claims on cities (claims.js): the ones being fabricated complete, the ones on cities now owned drop.
-  advanceClaims(nations, regions, newTurnNumber).forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.DIPLOMACY }); });
+  advanceClaims(nations, regions, newTurnNumber).forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, ...carry(l), type: LogTypes.DIPLOMACY }); });
   // Cuts of the player's trade routes (tradeDisruptions.js over plunder.js): a cut is an event with
   // a cause, a length and an end. The raider takes its gold once, when it starts; the player is
   // told at the start and at the end, never every turn (CB08: I113 to I115).
   const tradeTurn = advanceTradeDisruptions({ ...state, regions, units, nations, turnNumber: newTurnNumber }, newTurnNumber);
   tradeTurn.loot.forEach(({ by, gold }) => { const raider = nations[by]; if (raider) nations[by] = { ...raider, economy: { ...(raider.economy || {}), gold: ((raider.economy || {}).gold || 0) + gold } }; });
-  tradeTurn.logs.forEach((l) => logs.push({ year: newYear, message: l.message, type: LogTypes.COMBAT }));
+  tradeTurn.logs.forEach((l) => logs.push({ year: newYear, ...carry(l), type: LogTypes.COMBAT }));
   const tradeDisruptions = tradeTurn.disruptions;
   // Nations that fear the same conqueror band together in defensive pacts (src/engine/pacts.js).
   {
@@ -936,7 +939,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }, 0);
     if (vassalTribute > 0) {
       resources.gold = (resources.gold || 0) + vassalTribute;
-      logs.push({ year: newYear, message: `Vassal tribute: +${formatMoney(vassalTribute)}.`, type: LogTypes.ACTION });
+      logs.push({ year: newYear, ...msg('m.turn.vassalTribute', { gold: vassalTribute }), type: LogTypes.ACTION });
     }
   }
 
@@ -957,7 +960,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // The AI's accords (aiAccords.js): open borders between friendly neighbours, tribute demands.
   const accords = processAIAccords({ ...state, nations, regions, units, resources }, nations, { turn: state.turnNumber, sortedByMilitary: tieringSortedByMilitary });
   Object.assign(nations, accords.nations);
-  accords.logs.forEach((l) => { if (!l.nationId) logs.push({ year: newYear, message: l.message, type: LogTypes.DIPLOMACY }); });
+  accords.logs.forEach((l) => { if (!l.nationId) logs.push({ year: newYear, ...carry(l), type: LogTypes.DIPLOMACY }); });
   const pendingDemand = accords.pendingDemand;
   mark('diplomacy');
 
@@ -974,13 +977,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       // Two cities finished the same wonder this turn: the first in id order keeps it, the
       // other's tile mark is cleared and its owner told.
       if (w.tile != null && state.world?.tileState?.[w.tile]?.wonder === w.projectId) state = { ...state, world: { ...state.world, tileState: { ...state.world.tileState, [w.tile]: { ...state.world.tileState[w.tile], wonder: undefined } } } };
-      if (regions[w.city]?.owner === state.playerNationId) logs.push({ year: newYear, message: `${project?.name || w.projectId} was finished elsewhere first: ${regions[w.city]?.name} loses the race.`, type: LogTypes.EVENT });
+      if (regions[w.city]?.owner === state.playerNationId) logs.push({ year: newYear, ...msg('m.turn.wonderLost', { wonder: thing('wonder', w.projectId, project?.name || w.projectId), city: cityRef(w.city, regions[w.city]?.name) }), type: LogTypes.EVENT });
       return;
     }
     greatProjects[w.projectId] = { regionId: w.city, tier: w.tier, tile: w.tile };
     const ownerId = regions[w.city]?.owner;
     if (ownerId && nations[ownerId] && tierSpec?.completionPrestige) nations[ownerId] = { ...nations[ownerId], prestige: clampPrestige((nations[ownerId].prestige || 0) + tierSpec.completionPrestige) };
-    if (ownerId === state.playerNationId) logs.push({ year: newYear, message: `${project?.name || w.projectId} (tier ${w.tier}) stands at ${regions[w.city]?.name}!${tierSpec?.completionPrestige ? ` (+${tierSpec.completionPrestige} prestige)` : ''}`, type: LogTypes.MILESTONE });
+    if (ownerId === state.playerNationId) logs.push({ year: newYear, ...msg('m.turn.wonderBuilt', { wonder: thing('wonder', w.projectId, project?.name || w.projectId), tier: w.tier, city: cityRef(w.city, regions[w.city]?.name), prestige: tierSpec?.completionPrestige ? sub('m.prestigeGain', { n: tierSpec.completionPrestige }) : '' }), type: LogTypes.MILESTONE });
   });
   mark('greatProjects');
 
@@ -1078,14 +1081,14 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     wars = closeWarsForEliminatedNation(wars, nId);
     // An independent is one city: taking it is a conquest, not the fall of a nation (no reward, no world log).
     if (isIndependentNation(eliminated)) { independentsConquered += 1; return; }
-    logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
+    logs.push({ year: newYear, ...msg('m.turn.eliminated', { nation: people(nId, eliminated.name) }), type: LogTypes.MILESTONE });
     // Rivals (plan §M12): "+10% prestige gain/turn" has no substrate (nationalPower.js's prestige
     // is pure decay outside one-shot sources) — this is the one real payoff instead, a one-shot
     // reward when a designated rival goes down for good.
     if ((nationsAfterWars[state.playerNationId]?.rivals || []).includes(nId)) {
       const player = nationsAfterWars[state.playerNationId];
       nationsAfterWars = { ...nationsAfterWars, [state.playerNationId]: { ...player, prestige: clampPrestige((player.prestige || 0) + RIVAL_ELIMINATED_PRESTIGE_REWARD) } };
-      logs.push({ year: newYear, message: `Your rival ${eliminated.name} has fallen. (+${RIVAL_ELIMINATED_PRESTIGE_REWARD} prestige)`, type: LogTypes.DIPLOMACY });
+      logs.push({ year: newYear, ...msg('m.turn.rivalFallen', { nation: people(nId, eliminated.name), n: RIVAL_ELIMINATED_PRESTIGE_REWARD }), type: LogTypes.DIPLOMACY });
     }
     if (wasEliminatedByPlayer(regions, state.playerNationId, nId)) {
       resources.gold = (resources.gold || 0) + NATION_ELIMINATION_REWARD.gold;
@@ -1093,7 +1096,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       playerEliminatedNationId = nId;
       logs.push({
         year: newYear,
-        message: `You have conquered ${eliminated.name} entirely! +${formatMoney(NATION_ELIMINATION_REWARD.gold)}, +${NATION_ELIMINATION_REWARD.dip} DIP.`,
+        ...msg('m.turn.conqueredAll', { nation: people(nId, eliminated.name), gold: NATION_ELIMINATION_REWARD.gold, dip: NATION_ELIMINATION_REWARD.dip }),
         type: LogTypes.MILESTONE
       });
     }
@@ -1136,7 +1139,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       nationsAfterWars = mi.nations;
       wars = mi.wars;
       state = { ...state, world: mi.world, joinOffers: mi.joinOffers, indepStats: mi.indepStats };
-      mi.logs.forEach((l) => { if (!l.nationId || l.nationId === state.playerNationId) logs.push({ year: l.year, message: l.message, type: l.type }); });
+      mi.logs.forEach((l) => { if (!l.nationId || l.nationId === state.playerNationId) logs.push({ year: l.year, ...carry(l), type: l.type }); });
       invalidateRegionsCache(regions);
     } else if (independentsConquered) state = { ...state, indepStats: stats0 };
   }
@@ -1174,7 +1177,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const mission = SPACE_MISSIONS_BY_ID[missionId];
     if (mission?.oneTimeReward?.gold) resources.gold = (resources.gold || 0) + mission.oneTimeReward.gold;
     if (mission?.oneTimeReward?.dip) resources.dip = (resources.dip || 0) + mission.oneTimeReward.dip;
-    logs.push({ year: newYear, message: `${mission?.name || missionId} complete!`, type: LogTypes.MILESTONE });
+    logs.push({ year: newYear, ...msg('m.turn.missionDone', { mission: thing('mission', missionId, mission?.name || missionId) }), type: LogTypes.MILESTONE });
   });
   mark('spaceMissions');
 
@@ -1278,7 +1281,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // real player-losing condition elimination.js never had before this milestone.
   if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer && checkPlayerDefeat(next.regions, next.playerNationId)) {
     next = { ...next, gameStatus: GameStatus.DEFEAT };
-    next.logs = [...next.logs, { year: newYear, message: 'DEFEAT: your nation has fallen — no territory remains under your control.', type: LogTypes.MILESTONE }];
+    next.logs = [...next.logs, { year: newYear, ...msg('m.turn.defeat'), type: LogTypes.MILESTONE }];
   }
   mark('defeat');
 
@@ -1294,15 +1297,15 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     if (conditionId) {
       const condition = VICTORY_CONDITIONS[conditionId];
       next = applyVictory(next, conditionId);
-      next.logs = [...next.logs, { year: newYear, message: `VICTORY: ${condition.name} achieved!`, type: LogTypes.MILESTONE }];
+      next.logs = [...next.logs, { year: newYear, ...msg('m.turn.victory', { victory: thing('victory', conditionId, condition.name) }), type: LogTypes.MILESTONE }];
     } else if (next.year >= END_YEAR) {
       const rank = getPlayerRank(next);
       if (rank === 1) {
         next = applyVictory(next, 'finalScore');
-        next.logs = [...next.logs, { year: newYear, message: 'VICTORY: Score Victory achieved — your nation leads the world!', type: LogTypes.MILESTONE }];
+        next.logs = [...next.logs, { year: newYear, ...msg('m.turn.scoreVictory'), type: LogTypes.MILESTONE }];
       } else {
         next = { ...next, gameStatus: GameStatus.COMPLETE, finalRank: rank };
-        next.logs = [...next.logs, { year: newYear, message: `GAME COMPLETE: your nation finishes ranked #${rank} in the world.`, type: LogTypes.MILESTONE }];
+        next.logs = [...next.logs, { year: newYear, ...msg('m.turn.gameComplete', { rank }), type: LogTypes.MILESTONE }];
       }
     }
   }

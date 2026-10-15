@@ -2,8 +2,14 @@
 // The pure half of the translator (plans/hebrew-support-plan.md): the tables, the current language,
 // t(), plurals, numbers and years. No clock, no storage, no DOM, so src/engine may import it and stay
 // deterministic (determinismGuard.test.js, enginePurity.test.js). src/i18n/index.js adds the browser half.
-import en from './locales/en';
-import he from './locales/he';
+import enBase from './locales/en';
+import heBase from './locales/he';
+import enMsg from './locales/msg.en';
+import heMsg from './locales/msg.he';
+
+// The shell tables and the engine's message tables (log lines, news, cards: phase H3) as one.
+const en = { ...enBase, ...enMsg };
+const he = { ...heBase, ...heMsg };
 
 export const LANGUAGES = Object.freeze({
   en: Object.freeze({ id: 'en', native: 'English', dir: 'ltr', locale: 'en' }),

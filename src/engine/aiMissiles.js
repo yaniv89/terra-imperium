@@ -11,6 +11,7 @@
 // plan's own missile-related AI ask that's genuinely affordable with the AI economy that already
 // exists — this file does exactly that, nothing more.
 import { ACTION_COSTS } from '../data/actionCosts';
+import { msg, people } from './messages';
 
 // "level 1-2", not the player's own MAX_ABM_LEVEL (5) — a deliberately modest AI ceiling, not an
 // attempt to match a player who actually invested in the full defense line.
@@ -43,7 +44,7 @@ export const processAIAbmDefense = (state, nations) => {
       abmDefenseLevel: (nation.abmDefenseLevel || 0) + 1,
       economy: { ...nation.economy, gold: nation.economy.gold - costs.gold, mil: nation.economy.mil - costs.mil }
     };
-    logs.push({ message: `${nation.name} builds up its anti-ballistic-missile defenses.` });
+    logs.push({ ...msg('m.diplo.abmDefense', { nation: people(nationId, nation.name) }) });
   });
   return { nations: nextNations, logs };
 };

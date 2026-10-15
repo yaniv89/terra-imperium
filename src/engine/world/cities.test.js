@@ -60,7 +60,7 @@ describe('cities on the grid', () => {
     const big = { ...city, size: 10, food: 0, tiles: [city.tile], locked: [] };
     const r = processCity(world, tiles, big, ctx());
     expect(r.city.size).toBe(9);
-    expect(r.logs.some((l) => /starves/.test(l))).toBe(true);
+    expect(r.logs.some((l) => /starves/.test(l.message))).toBe(true);
     expect(FOOD_PER_CITIZEN).toBe(2);
   });
 

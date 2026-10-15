@@ -33,6 +33,7 @@ import { getPool, getTechAgeId } from './nationState';
 import { canAfford, applyCosts } from '../utils/helpers';
 import { isUnitInBattle } from './invasion';
 import { getNationBonusTotal } from './modifiers/sheet';
+import { msg, sub, cityRef, people } from './messages';
 
 export const FOUND_GOLD_BASE = 60;
 export const FOUND_GOLD_PER = 12;
@@ -61,6 +62,7 @@ export const COLONY_START_CONTROL = 35;
 export const INTEGRATION_TURNS = 5;
 
 const name = (id) => REGIONS_DATA[id]?.name || id;
+const regionRef = (id) => cityRef(id, name(id));
 
 // A seeded roll in [0, 1). FNV-1a plus a final avalanche mix: without the mix, keys that differ only
 // in the turn number roll alike, so raids came three turns in a row 30 times too often.
@@ -158,7 +160,7 @@ export const foundColony = (state, regionId, policy = 'coexist', nationId = stat
       [regionId]: { ...target, colony: { ownerId: nationId, policy, progress: 0, settlers: v.settlers, foundedTurn: state.turnNumber, raids: 0 } }
     },
     units: { ...state.units, [v.escort.id]: { ...v.escort, regionId, tile: state.regions[regionId]?.tile ?? null, movesLeft: 0, route: null } },
-    logs: [...state.logs, { year: state.year, type: 'action', message: `${isPlayer ? 'Your' : `${state.nations[nationId].name}'s`} settlers found a colony in ${name(regionId)}${policy === 'driveOut' ? ', driving out its people' : ''}.` }]
+    logs: [...state.logs, { year: state.year, type: 'action', ...msg(isPlayer ? 'm.world.colonyFoundedYou' : 'm.world.colonyFounded', { nation: people(nationId, state.nations[nationId]?.name), region: regionRef(regionId), driveOut: policy === 'driveOut' ? sub('m.world.colonyDriveOut') : '' }) }]
   };
 };
 
@@ -183,7 +185,7 @@ export const abandonColony = (state, regionId, nationId = state.playerNationId) 
   const r = state.regions[regionId];
   if (r?.colony?.ownerId !== nationId) return state;
   const { colony, ...rest } = r; // eslint-disable-line no-unused-vars
-  return { ...state, regions: { ...state.regions, [regionId]: rest }, units: sendEscortsHome(state.regions, state.units, regionId, nationId), logs: [...state.logs, { year: state.year, type: 'action', message: `The colony in ${name(regionId)} was abandoned.` }] };
+  return { ...state, regions: { ...state.regions, [regionId]: rest }, units: sendEscortsHome(state.regions, state.units, regionId, nationId), logs: [...state.logs, { year: state.year, type: 'action', ...msg('m.world.colonyAbandoned', { region: regionRef(regionId) }) }] };
 };
 
 // Turns left at this turn's growth (ignoring raids).
@@ -213,13 +215,13 @@ export const processColonies = (state) => {
     const c = region.colony;
     const owner = nations[c.ownerId];
     const isPlayer = c.ownerId === state.playerNationId;
-    const drop = (why) => {
+    const drop = (why) => { // why: 'Empty' or 'Overrun'
       const { colony, ...rest } = region; // eslint-disable-line no-unused-vars
       regions[id] = rest;
       Object.assign(units, sendEscortsHome(regions, units, id, c.ownerId));
-      logs.push({ year, type: isPlayer ? 'crisis' : 'action', message: `${isPlayer ? 'Your' : `${owner?.name || 'A'}`} colony in ${name(id)} ${why}.` });
+      logs.push({ year, type: isPlayer ? 'crisis' : 'action', ...msg(`m.world.colony${why}${isPlayer ? 'You' : owner ? 'Of' : 'A'}`, { nation: owner ? people(c.ownerId, owner.name) : '', region: regionRef(id) }) });
     };
-    if (!owner || owner.isEliminated) { drop('was left empty'); return; }
+    if (!owner || owner.isEliminated) { drop('Empty'); return; }
     // Upkeep, paid first: a colony nobody pays for does not grow.
     const upkeep = { gold: UPKEEP_GOLD + UPKEEP_GOLD_PER_OTHER * Math.max(0, countBy[c.ownerId] - 1), supplies: UPKEEP_SUPPLIES };
     const pool = isPlayer ? resources : (owner.economy || {});
@@ -234,8 +236,8 @@ export const processColonies = (state) => {
       progress = Math.max(0, progress - RAID_SETBACK);
       raids = (c.raids || 0) + 1;
       escort.forEach((u) => { units[u.id] = { ...u, strength: Math.max(1, Math.round(u.strength * (1 - RAID_ESCORT_LOSS))) }; });
-      if (raids >= RAIDS_TO_LOSE) { drop('was overrun by raids and lost'); return; }
-      if (isPlayer) logs.push({ year, type: 'combat', message: `Raiders struck your colony in ${name(id)} (${raids} of ${RAIDS_TO_LOSE} before it falls).` });
+      if (raids >= RAIDS_TO_LOSE) { drop('Overrun'); return; }
+      if (isPlayer) logs.push({ year, type: 'combat', ...msg('m.world.colonyRaided', { region: regionRef(id), raids, max: RAIDS_TO_LOSE }) });
     }
     if (progress >= 100) {
       const policy = POLICY[c.policy] || POLICY.coexist;
@@ -250,7 +252,7 @@ export const processColonies = (state) => {
         const neighbours = new Set(getNeighborIds(id).map((n) => regions[n]?.owner).filter((o) => o && o !== c.ownerId && nations[o]));
         [...neighbours].sort().forEach((o) => { nations = { ...nations, [o]: { ...nations[o], hostility: Math.min(100, (nations[o].hostility || 0) + policy.neighbourHostility) } }; });
       }
-      logs.push({ year, type: isPlayer ? 'milestone' : 'action', message: `${isPlayer ? 'Your' : `${owner.name}'s`} colony in ${name(id)} has grown into a province.` });
+      logs.push({ year, type: isPlayer ? 'milestone' : 'action', ...msg(isPlayer ? 'm.world.colonyGrownYou' : 'm.world.colonyGrown', { nation: people(c.ownerId, owner.name), region: regionRef(id) }) });
       return;
     }
     regions[id] = { ...region, colony: { ...c, progress: Math.round(progress * 10) / 10, raids } };

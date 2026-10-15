@@ -22,6 +22,7 @@
 // Ripples: a siege feeds war score through the capture, the supply meter (besiegers sit in enemy
 // land), the city's yields and growth, and the AI's "threatened city" objective (aiOperations).
 import { getTiles } from '../data/geo/tiles';
+import { msg, sub, people, cityRef } from './messages';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { canAttack, isIndependentId } from './hostility';
 import { getResearched } from './nationState';
@@ -193,9 +194,10 @@ export const processSieges = (state, regions, units, { turn }) => {
     const hp = Math.max(0, Math.min(maxHp, prev.hp) - damage);
     const siege = { hp, maxHp, by: leader, startedTurn: prev.startedTurn ?? turn, encircled };
     regions[id] = { ...city, siege };
-    if (!city.siege?.by) logs.push({ nationId: city.owner, message: `${city.name} is under siege by ${state.nations[leader]?.name || 'rebels'}.` }, { nationId: leader, message: `Your army lays siege to ${city.name} (walls ${wallsOf(city)}, ${hp} HP).` });
+    const cityName = cityRef(id, city.name);
+    if (!city.siege?.by) logs.push({ nationId: city.owner, ...msg('m.battle.underSiege', { city: cityName, by: state.nations[leader]?.name ? people(leader, state.nations[leader].name) : sub('m.battle.rebels') }) }, { nationId: leader, ...msg('m.battle.laySiege', { city: cityName, walls: wallsOf(city), hp }) });
     // The walls are down: the siege can do no more. Only an attack takes the city.
-    if (hp <= 0 && prev.hp > 0) logs.push({ nationId: leader, message: `The defences of ${city.name} are broken (0 HP). A siege never takes a city: attack it to take it.` }, { nationId: city.owner, message: `The defences of ${city.name} are broken by the siege. Drive the besiegers off before they attack.` });
+    if (hp <= 0 && prev.hp > 0) logs.push({ nationId: leader, ...msg('m.battle.siegeBrokeWalls', { city: cityName }) }, { nationId: city.owner, ...msg('m.battle.siegeBrokeOurWalls', { city: cityName }) });
   });
   return { logs };
 };

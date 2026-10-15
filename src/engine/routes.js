@@ -26,6 +26,7 @@
 // Player armies only. AI armies keep their city-hopping operations (aiOperations.js) until the
 // front planner of workstream 9, so AI turns stay fast.
 import { getTiles } from '../data/geo/tiles';
+import { msg, sub, cityRef, place as placeRef } from './messages';
 import { MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { getResearched } from './nationState';
 import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters } from './fleets';
@@ -55,6 +56,17 @@ export const placeName = (state, tile) => {
   if (tiles.names[tile]) return tiles.names[tile];
   if (city) return `the land of ${city.name}`;
   return tiles.rivers[tile] ? `the ${tiles.riverNames[tile] || 'river'}` : 'open country';
+};
+/** placeName as a name in a message (messages.js): the same English, a ref the UI can translate. */
+export const placeRefOf = (state, tile) => {
+  const tiles = getTiles();
+  const cityId = state.world?.tileOwner?.[tile];
+  const city = state.regions[cityId];
+  if (city?.tile === tile) return cityRef(cityId, city.name);
+  if (tiles.names[tile]) return placeRef(tiles.names[tile]);
+  if (city) return sub('m.battle.landOf', { city: cityRef(cityId, city.name) });
+  if (!tiles.rivers[tile]) return sub('m.battle.openCountry');
+  return tiles.riverNames[tile] ? sub('m.battle.theRiverNamed', { river: placeRef(tiles.riverNames[tile]) }) : sub('m.battle.theRiver');
 };
 
 /** The tile a march target means: a city id (its centre) or a tile id. */
@@ -303,17 +315,16 @@ export const advanceMarches = (state, units, { year } = {}) => {
     if (moved) marched += 1;
     // Cargo never marches on land, so nothing rides along.
   });
-  const name = (tile) => placeName(state, Number(tile));
+  const name = (tile) => placeRefOf(state, Number(tile));
   // A fleet's log names the port it reached when it put in.
 
-  const plural = (n) => (n > 1 ? `${n} units` : 'Your army');
-  reached.forEach((n, tile) => logs.push({ year, message: `${plural(n)} reached ${name(tile)}.`, type: 'action' }));
+  // One army or several: two keys, as the English had two forms.
+  const say = (n, key, tile) => msg(`m.battle.${key}${n > 1 ? 'Many' : 'One'}`, { n, place: name(tile) });
+  reached.forEach((n, tile) => logs.push({ year, ...say(n, 'marchReached', tile), type: 'action' }));
   halted.forEach((n, key) => {
     const [kind, tile] = key.split('|');
-    const msg = kind === 'attack' ? `${plural(n)} stand${n > 1 ? '' : 's'} before ${name(tile)}: lay siege, or attack it to march on.`
-      : kind === 'enemy' ? `${plural(n)} halted: an enemy army stands at ${name(tile)}.`
-      : `${plural(n)} stopped at ${name(tile)}: no access any more.`;
-    logs.push({ year, message: msg, type: kind === 'closed' ? 'action' : 'combat' });
+    const line = say(n, kind === 'attack' ? 'marchBefore' : kind === 'enemy' ? 'marchHalted' : 'marchClosed', tile);
+    logs.push({ year, ...line, type: kind === 'closed' ? 'action' : 'combat' });
   });
   return { logs, marched };
 };
