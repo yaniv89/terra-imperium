@@ -5,7 +5,7 @@
 // seed; and a real headless battle's result flows through RESOLVE end to end.
 import { REGIONS_DATA } from '../data/regions';
 import { describe, it, expect } from 'vitest';
-import { gameReducer, createInitialState, sanitizeTacticalResult } from './gameReducer';
+import { gameReducer, sanitizeTacticalResult } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { buildInvasionSetup, buildCommandedSetup, setupKeyOf, SETUP_VERSION } from '../battle/setup/buildBattleSetup';
 import { runHeadless } from '../battle/sim/headless';
@@ -28,20 +28,29 @@ import { auditGameState } from './stateAudit';
 import { battleResultModel } from '../components/battle/battleHudModel';
 import { resultOf } from '../components/battle/battleReportsModel';
 import { verificationNotice } from '../components/battle/battleReportView';
+import { neighbourWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 1 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const DE_ID = rivalOf(PEOPLES_WORLD, 0);
+const IT_ID = rivalOf(PEOPLES_WORLD, 1);
+const AI_ID = rivalOf(PEOPLES_WORLD, 2);
+const GB_ID = rivalOf(PEOPLES_WORLD, 3);
 
 // The Dawn world gives France one city with no room beside it, so the fixture founds French
 // cities on the nearest free land: FR_BORDER (bordering a foreign capital, the war's target),
 // and FR_NEAR, a second French city bordering that target. The enemy is whoever owns the target.
 const WORLD = (() => {
-  const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
+  const first = addCity(neighbourWorld({ seed: 1 }), FR_ID);
   // A land attack from inside a city needs touching lands (registry `touching`); else the army
   // stands at the target's gates (`unit` below places it there).
-  const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr') || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
-  const near = addCity(first.state, 'fr', { near: target });
+  const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID) || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID);
+  const near = addCity(first.state, FR_ID, { near: target });
   const AGG = near.state.regions[target].owner;
   // The enemy gets three more cities, so losing the target is a fraction of its nation.
   const grown = addCities(near.state, AGG, 3);
-  return { state: grown.state, FR_BORDER: first.cityId, BE_REGION: target, FR_NEAR: near.cityId, AGG, THIRD: AGG === 'de' ? 'it' : 'de' };
+  return { state: grown.state, FR_BORDER: first.cityId, BE_REGION: target, FR_NEAR: near.cityId, AGG, THIRD: AGG === DE_ID ? IT_ID : DE_ID };
 })();
 const { FR_BORDER, BE_REGION, AGG, THIRD } = WORLD;
 
@@ -50,7 +59,7 @@ const baseState = () => {
   return {
     ...s,
     resources: { ...s.resources, gold: 100000, hr: 100000, mil: 500, adm: 500, dip: 500 },
-    wars: [...s.wars, { id: 'war_t', aggressor: 'fr', enemy: AGG, active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }]
+    wars: [...s.wars, { id: 'war_t', aggressor: FR_ID, enemy: AGG, active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }]
   };
 };
 const GATE = getTouchingIds(FR_BORDER).includes(BE_REGION) ? null : getTiles().neighbors[WORLD.state.regions[BE_REGION].tile].find((n) => getTiles().land[n] === 1);
@@ -61,7 +70,7 @@ const unit = (id, regionId, ownerId, classId = 'infantry', strength = 1000) => (
 const withArmies = (state = baseState()) => ({
   ...state,
   units: {
-    a1: unit('a1', FR_BORDER, 'fr'), a2: unit('a2', FR_BORDER, 'fr', 'cavalry'), a3: unit('a3', FR_BORDER, 'fr', 'ranged'),
+    a1: unit('a1', FR_BORDER, FR_ID), a2: unit('a2', FR_BORDER, FR_ID, 'cavalry'), a3: unit('a3', FR_BORDER, FR_ID, 'ranged'),
     d1: unit('d1', BE_REGION, AGG), d2: unit('d2', BE_REGION, AGG, 'ranged', 800)
   }
 });
@@ -83,7 +92,7 @@ describe('BEGIN_TACTICAL_BATTLE', () => {
 
   it('an empty city is commanded against its militia (win it and it is yours); with no militia it is attacked on Auto', () => {
     const s = baseState();
-    const next = begin({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } });
+    const next = begin({ ...s, units: { a1: unit('a1', FR_BORDER, FR_ID) } });
     if (cityMilitia(s, BE_REGION).length) {
       expect(next.pendingBattle).toMatchObject({ kind: 'invasion', defenderUnitIds: [] });
       expect(next.pendingBattle.militia.length).toBeGreaterThan(0);
@@ -97,7 +106,7 @@ describe('BEGIN_TACTICAL_BATTLE', () => {
     const s = baseState();
     const manifest = cityManifestOf(s, BE_REGION);
     const ruined = Object.fromEntries(manifest.structures.map((x) => [x.id, true]));
-    const bare = { ...s, units: { a1: unit('a1', FR_BORDER, 'fr') }, regions: { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], cityDamage: { ruined, damaged: {} } } } };
+    const bare = { ...s, units: { a1: unit('a1', FR_BORDER, FR_ID) }, regions: { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], cityDamage: { ruined, damaged: {} } } } };
     expect(cityMilitia(bare, BE_REGION)).toEqual([]);
     const next = begin(bare);
     expect(next.pendingBattle).toBeNull();
@@ -114,7 +123,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
   it('applies a real headless battle through the invasion consequences and clears the lock', () => {
     const started = begin(withArmies());
     const setup = buildInvasionSetup(started, started.pendingBattle);
-    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
+    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result } });
     expect(next.pendingBattle).toBeNull();
     expect(next.lastBattleReport.outcome).toBe(result.outcome);
@@ -337,7 +346,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       expect(trained).toBeGreaterThan(0);
       expect(receipt.entry.aux.attacker.squads).toBe(trained);
       expect(auxiliaryLine(receipt.ledger.aux)).toMatch(/Temporary: they leave after the battle/);
-      expect(Object.values(next.units).filter((u) => u.ownerId === 'fr').map((u) => u.id).every((id) => ['a1', 'a2', 'a3'].includes(id))).toBe(true);
+      expect(Object.values(next.units).filter((u) => u.ownerId === FR_ID).map((u) => u.id).every((id) => ['a1', 'a2', 'a3'].includes(id))).toBe(true);
     }, 120000);
 
     it('while the campaign counts, the screen shows no number; a count that differs from the screen says which one stands', () => {
@@ -390,7 +399,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     const manifest = cityManifestOf(started, BE_REGION);
     expect(setup.city).toMatchObject({ cityId: BE_REGION });
     expect(setup.structures.map((st) => st.manifestId).filter(Boolean).sort()).toEqual(manifest.structures.map((st) => st.id).sort());
-    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
+    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
     const houses = manifest.structures.filter((st) => st.kind === 'house').map((st) => st.id);
     const forged = { ...result, report: { ...result.report, tactical: { ...result.report.tactical, cityDamage: { destroyed: [...houses, '<script>'], damaged: ['townhall'] } } } };
     const size = started.regions[BE_REGION].size;
@@ -411,7 +420,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     const started = begin(s);
     const setup = buildInvasionSetup(started, started.pendingBattle);
     expect(setup.structures.filter((st) => st.kind === 'building').map((st) => st.category).sort()).toEqual(['economy', 'military']);
-    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
+    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
     const forged = { ...result, report: { ...result.report, tactical: { ...result.report.tactical, razed: ['military', 'defense', 'bogus'], cityDamage: { destroyed: [], damaged: [] } } } }; // only the razed list (the AI battle's own city damage varies with the economy)
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result: forged } });
     expect(next.regions[BE_REGION].buildings.categories.military).toBe(0);
@@ -429,7 +438,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       report: { deployedAttackerIds: pb.attackerUnitIds, deployedDefenderIds: pb.defenderUnitIds, log: [], tactical: { decisive: true } }
     };
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
-    expect(next.regions[BE_REGION].owner).toBe('fr');
+    expect(next.regions[BE_REGION].owner).toBe(FR_ID);
     expect(next.units.a1.regionId).toBe(BE_REGION);
   });
 
@@ -490,7 +499,7 @@ describe('battle odds preview', () => {
     expect(odds.autoRule).toBe('garrison'); // Auto fights the garrison and never takes the city
     expect(odds.capture).toBe(0);
     // An empty city on Auto is an attack on its defences (cityAssault.js): its HP drops.
-    const empty = estimateInvasionOdds({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } }, FR_BORDER, BE_REGION);
+    const empty = estimateInvasionOdds({ ...s, units: { a1: unit('a1', FR_BORDER, FR_ID) } }, FR_BORDER, BE_REGION);
     expect(empty.undefended).toBeFalsy();
     expect(empty.autoRule).toBe('attack');
     expect(empty.city.hpAfter).toBeLessThan(empty.city.hpBefore);
@@ -502,12 +511,12 @@ describe('T7: reinforcements, missiles and powers in the campaign', () => {
     const s = withArmies();
     // Any French neighbour of the target that isn't the origin.
     const neighbour = WORLD.FR_NEAR;
-    return { s: { ...s, units: { ...s.units, r1: unit('r1', neighbour, 'fr', 'cavalry') } }, neighbour };
+    return { s: { ...s, units: { ...s.units, r1: unit('r1', neighbour, FR_ID, 'cavalry') } }, neighbour };
   };
 
   it('BEGIN records standby reinforcements from neighbouring provinces and locks them', () => {
     const s = withArmies();
-    const neighbours = REGIONS_DATA[BE_REGION].neighbors.filter((id) => s.regions[id]?.owner === 'fr');
+    const neighbours = REGIONS_DATA[BE_REGION].neighbors.filter((id) => s.regions[id]?.owner === FR_ID);
     const next = begin(s);
     expect(Array.isArray(next.pendingBattle.attackerReinforcements)).toBe(true);
     // the origin province is never a "reinforcement" source
@@ -530,32 +539,32 @@ describe('T7: reinforcements, missiles and powers in the campaign', () => {
 
   it('missiles fired in battle come out of the real stockpile, capped at what the nation had', () => {
     const s0 = withArmies();
-    const s = { ...s0, nations: { ...s0.nations, fr: { ...s0.nations.fr, missiles: { tactical: 2, theatre: 0, icbm: 0, nuclear: 0 } } } };
+    const s = { ...s0, nations: { ...s0.nations, [FR_ID]: { ...s0.nations[FR_ID], missiles: { tactical: 2, theatre: 0, icbm: 0, nuclear: 0 } } } };
     const started = begin(s);
     const pb = started.pendingBattle;
     const result = { outcome: 'defender', attackerUnits: pb.attackerUnitIds.map((id) => started.units[id]), defenderUnits: pb.defenderUnitIds.map((id) => started.units[id]), report: { tactical: { powersUsed: [{ missileTactical: 5, rallyCry: 1 }, {}] } } };
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
-    expect(next.nations.fr.missiles.tactical).toBe(0);
+    expect(next.nations[FR_ID].missiles.tactical).toBe(0);
   });
 
   it('a nuclear strike in battle brings world condemnation and a scarred region', () => {
     const s0 = withArmies();
-    const s = { ...s0, nations: { ...s0.nations, fr: { ...s0.nations.fr, missiles: { tactical: 0, theatre: 0, icbm: 0, nuclear: 1 } } } };
+    const s = { ...s0, nations: { ...s0.nations, [FR_ID]: { ...s0.nations[FR_ID], missiles: { tactical: 0, theatre: 0, icbm: 0, nuclear: 1 } } } };
     const started = begin(s);
     const pb = started.pendingBattle;
     const before = started.nations[THIRD].hostility;
     const result = { outcome: 'stalemate', attackerUnits: pb.attackerUnitIds.map((id) => ({ ...started.units[id], strength: 0 })), defenderUnits: pb.defenderUnitIds.map((id) => ({ ...started.units[id], strength: 0 })), report: { tactical: { powersUsed: [{ nuclearStrike: 1 }, {}] } } };
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
-    expect(next.nations.fr.missiles.nuclear).toBe(0);
+    expect(next.nations[FR_ID].missiles.nuclear).toBe(0);
     expect(next.nations[AGG].hostility).toBe(100);
     expect(next.nations[THIRD].hostility).toBeGreaterThan(before);
     expect(next.regions[BE_REGION].nuclearScarred).toBe(true);
-    expect(next.nations.fr.prestige).toBeLessThan(started.nations.fr.prestige || 0.0001);
+    expect(next.nations[FR_ID].prestige).toBeLessThan(started.nations[FR_ID].prestige || 0.0001);
   });
 
   it('the battle setup brings the nation\'s real powers', () => {
     const s0 = withArmies();
-    const s = { ...s0, nations: { ...s0.nations, fr: { ...s0.nations.fr, missiles: { tactical: 1, theatre: 0, icbm: 0, nuclear: 1 } } } };
+    const s = { ...s0, nations: { ...s0.nations, [FR_ID]: { ...s0.nations[FR_ID], missiles: { tactical: 1, theatre: 0, icbm: 0, nuclear: 1 } } } };
     const started = begin(s);
     const setup = buildInvasionSetup(started, started.pendingBattle);
     const ids = setup.powers[0].map((p) => p.id);
@@ -565,21 +574,21 @@ describe('T7: reinforcements, missiles and powers in the campaign', () => {
 });
 
 describe('T9: commanded amphibious landing', () => {
-  const GB_TARGET = getNationCapital('gb');
+  const GB_TARGET = getNationCapital(GB_ID);
   const landingState = () => {
-    const s = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
-    const port = getNationCapital('fr');
+    const s = neighbourWorld({ seed: 1 });
+    const port = getNationCapital(FR_ID);
     const units = {
-      fleet: { id: 'fleet', regionId: port, ownerId: 'fr', domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1, transportCapacity: 2, embarkedOn: null },
-      m1: { ...unit('m1', port, 'fr'), embarkedOn: 'fleet' },
-      m2: { ...unit('m2', port, 'fr', 'ranged'), embarkedOn: 'fleet' },
-      gb1: unit('gb1', GB_TARGET, 'gb')
+      fleet: { id: 'fleet', regionId: port, ownerId: FR_ID, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1, transportCapacity: 2, embarkedOn: null },
+      m1: { ...unit('m1', port, FR_ID), embarkedOn: 'fleet' },
+      m2: { ...unit('m2', port, FR_ID, 'ranged'), embarkedOn: 'fleet' },
+      gb1: unit('gb1', GB_TARGET, GB_ID)
     };
     return {
       ...s,
       units,
       resources: { ...s.resources, gold: 100000, hr: 100000, mil: 500, adm: 500, dip: 500 },
-      wars: [...s.wars, { id: 'war_gb', aggressor: 'fr', enemy: 'gb', active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }]
+      wars: [...s.wars, { id: 'war_gb', aggressor: FR_ID, enemy: GB_ID, active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }]
     };
   };
   const beginLanding = (s) => gameReducer(s, { type: ActionTypes.BEGIN_AMPHIBIOUS_BATTLE, payload: { navalUnitId: 'fleet', targetRegionId: GB_TARGET } });
@@ -601,7 +610,7 @@ describe('T9: commanded amphibious landing', () => {
   it('a real headless landing resolves through the amphibious consequences', () => {
     const started = beginLanding(landingState());
     const setup = buildInvasionSetup(started, started.pendingBattle);
-    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
+    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result } });
     expect(next.pendingBattle).toBeNull();
     expect(next.lastBattleReport.kind).toBe('amphibious');
@@ -621,13 +630,13 @@ describe('T9: commanded amphibious landing', () => {
     expect(abandoned.lastBattleReport.kind).toBe('amphibious');
     expect(abandoned.resources.mil).toBe(started.resources.mil);
     const s = landingState();
-    const withFleet = { ...s, units: { ...s.units, gbNavy: { id: 'gbNavy', regionId: GB_TARGET, ownerId: 'gb', domain: 'naval', classId: 'naval', strength: 50000, maxStrength: 50000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null } } };
+    const withFleet = { ...s, units: { ...s.units, gbNavy: { id: 'gbNavy', regionId: GB_TARGET, ownerId: GB_ID, domain: 'naval', classId: 'naval', strength: 50000, maxStrength: 50000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null } } };
     expect(beginLanding(withFleet).pendingBattle).toBeNull();
     const { gb1, ...rest } = s.units; // eslint-disable-line no-unused-vars
     // An empty beach: no command battle; Auto attacks the city's defences and takes it at 0 HP.
     const empty = beginLanding({ ...s, units: rest, regions: { ...s.regions, [GB_TARGET]: { ...s.regions[GB_TARGET], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } } } });
     expect(empty.pendingBattle).toBeNull();
-    expect(empty.regions[GB_TARGET].owner).toBe('fr');
+    expect(empty.regions[GB_TARGET].owner).toBe(FR_ID);
   });
 
   it('the fleet\'s guns only reach the shore half of the field', () => {
@@ -646,7 +655,7 @@ describe('conquest by battle (reported: "I won but the region didn\'t become min
     // An empty city whose defences are broken (cityAssault.js: Auto takes it at 0 HP).
     const s = { ...s0, units: { a1: s0.units.a1 }, regions: { ...s0.regions, [BE_REGION]: { ...s0.regions[BE_REGION], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } } } };
     const taken = gameReducer(s, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-    expect(taken.regions[BE_REGION]).toMatchObject({ owner: 'fr', control: 25, formerOwner: AGG });
+    expect(taken.regions[BE_REGION]).toMatchObject({ owner: FR_ID, control: 25, formerOwner: AGG });
     expect(taken.regions[BE_REGION].occupiedBy).toBeUndefined();
     expect(taken.regions[BE_REGION].conquest).toMatchObject({ warId: 'war_t', from: AGG });
     expect(taken.logs.at(-1).message).toMatch(/conquered/);
@@ -660,7 +669,7 @@ describe('conquest by battle (reported: "I won but the region didn\'t become min
   it('an occupation from an older save can\'t be invaded over and over either', async () => {
     const { validateInvasion } = await import('./invasion');
     const s = withArmies();
-    const held = { ...s, regions: { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], occupiedBy: 'fr' } } };
+    const held = { ...s, regions: { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], occupiedBy: FR_ID } } };
     expect(validateInvasion(held, FR_BORDER, BE_REGION).reason).toBe('already_held');
   });
 
@@ -669,7 +678,7 @@ describe('conquest by battle (reported: "I won but the region didn\'t become min
     const s = withArmies();
     const mixed = { ...s, units: { ...s.units, mine: { ...s.units.a1, id: 'mine', regionId: BE_REGION } } };
     const v = validateInvasion(mixed, FR_BORDER, BE_REGION);
-    expect(v.defenderUnits.every((u) => u.ownerId !== 'fr')).toBe(true);
+    expect(v.defenderUnits.every((u) => u.ownerId !== FR_ID)).toBe(true);
   });
 
   it('the enemy can demand conquered land back at the peace table', async () => {
@@ -683,9 +692,9 @@ describe('conquest by battle (reported: "I won but the region didn\'t become min
   it('the map shows occupation: an occupied region is drawn differently from its owner\'s land', async () => {
     const { getRegionFillColor, getRegionStrokeColor, OCCUPIED_BY_PLAYER_COLOR } = await import('../utils/mapRegionStyle');
     const s = withArmies();
-    const occupied = { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], occupiedBy: 'fr' } };
-    expect(getRegionFillColor(occupied, 'fr', BE_REGION)).not.toBe(getRegionFillColor(s.regions, 'fr', BE_REGION));
-    expect(getRegionStrokeColor(occupied, 'fr', BE_REGION, null, new Set())).toBe(OCCUPIED_BY_PLAYER_COLOR);
+    const occupied = { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], occupiedBy: FR_ID } };
+    expect(getRegionFillColor(occupied, FR_ID, BE_REGION)).not.toBe(getRegionFillColor(s.regions, FR_ID, BE_REGION));
+    expect(getRegionStrokeColor(occupied, FR_ID, BE_REGION, null, new Set())).toBe(OCCUPIED_BY_PLAYER_COLOR);
   });
 });
 
@@ -695,7 +704,7 @@ describe('auto-resolve is fair and explains itself (reported: "check the auto ba
     const s = withArmies();
     const garrison = Object.values(s.units).filter((u) => u.regionId === BE_REGION);
     expect(garrison.length).toBeGreaterThan(0);
-    const mine = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`x${i}`, { ...garrison[0], id: `x${i}`, ownerId: 'fr', regionId: FR_BORDER, classId: 'infantry', movesLeft: 1, strength: garrison[0].strength }]));
+    const mine = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`x${i}`, { ...garrison[0], id: `x${i}`, ownerId: FR_ID, regionId: FR_BORDER, classId: 'infantry', movesLeft: 1, strength: garrison[0].strength }]));
     const others = Object.fromEntries(Object.entries(s.units).filter(([, u]) => u.regionId !== FR_BORDER));
     const strong = estimateInvasionOdds({ ...s, units: { ...others, ...mine(garrison.length * 3) } }, FR_BORDER, BE_REGION, 120);
     const weak = estimateInvasionOdds({ ...s, units: { ...others, ...mine(1) } }, FR_BORDER, BE_REGION, 120);

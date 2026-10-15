@@ -8,7 +8,6 @@ import { createRng } from '../utils/rng';
 import { neighbourWorld } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const PEOPLES_WORLD = neighbourWorld({ seed: 11 });
 
 const rich = () => {
   const s = neighbourWorld({ seed: 11 });

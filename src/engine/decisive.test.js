@@ -3,7 +3,7 @@
 // after PURSUIT_SECONDS. The loser's units still on the field are destroyed, the ones that left by
 // an exit survive and step back one tile, the winner's units gain XP. The same rule on Auto.
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
@@ -17,12 +17,19 @@ import { toStrategicResult } from '../battle/sim/result';
 import { runHeadless } from '../battle/sim/headless';
 import { XP_WIN } from './battleOutcome';
 import { autoFromInputs, AUTO_ESCAPE_CHANCE, AUTO_ESCAPE_PURSUED } from './autoBattle';
+import { neighbourWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 3 });
+const IN_ID = PEOPLES_WORLD.playerNationId;
+const AI_ID = rivalOf(PEOPLES_WORLD, 0);
+const PK_ID = rivalOf(PEOPLES_WORLD, 1);
 
 const tiles = getTiles();
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
 
 describe('the pursuit on the battle map', () => {
-  const setup = (seed) => buildSetupFromArmies({ regionId: `d-${seed}`, terrain: 'plains', seed, attackerUnits: mk('a', ['infantry', 'infantry', 'cavalry', 'ranged', 'infantry']), defenderUnits: mk('d', ['infantry', 'ranged']), controllers: ['ai', 'ai'], deposits: [], powers: [[], []], battleType: 'field' });
+  const setup = (seed) => buildSetupFromArmies({ regionId: `d-${seed}`, terrain: 'plains', seed, attackerUnits: mk('a', ['infantry', 'infantry', 'cavalry', 'ranged', 'infantry']), defenderUnits: mk('d', ['infantry', 'ranged']), controllers: [AI_ID, AI_ID], deposits: [], powers: [[], []], battleType: 'field' });
 
   it('a broken side is pursued: the battle ends when the last loser is off the field or after the pursuit', () => {
     const w = createWorld(setup(2));
@@ -56,19 +63,19 @@ describe('the pursuit on the battle map', () => {
 });
 
 // The battle queue's fixture: the player (India) besieges Pakistan's capital; Pakistan sallies.
-const IN = getNationCapital('in'); const PK = getNationCapital('pk');
+const IN = getNationCapital(IN_ID); const PK = getNationCapital(PK_ID);
 const besieged = () => {
-  const s0 = syncWorldRegistry(createInitialState({ playerNationId: 'in', rngSeed: 3 }));
+  const s0 = syncWorldRegistry(neighbourWorld({ seed: 3 }));
   const S = { ...s0, units: {}, resources: { ...s0.resources, mil: 100, gold: 1000 } };
   const city = S.regions[PK];
   const ring = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1)[0];
-  const u = (id, regionId, extra) => ({ id, ownerId: 'in', regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
-  const units = { a0: u('a0', IN, { tile: ring, strength: 300 }), a1: u('a1', IN, { tile: ring, strength: 300, classId: 'ranged' }), g1: u('g1', PK, { ownerId: 'pk', tile: city.tile }), g2: u('g2', PK, { ownerId: 'pk', tile: city.tile }), g3: u('g3', PK, { ownerId: 'pk', tile: city.tile, classId: 'cavalry' }) };
+  const u = (id, regionId, extra) => ({ id, ownerId: IN_ID, regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
+  const units = { a0: u('a0', IN, { tile: ring, strength: 300 }), a1: u('a1', IN, { tile: ring, strength: 300, classId: 'ranged' }), g1: u('g1', PK, { ownerId: PK_ID, tile: city.tile }), g2: u('g2', PK, { ownerId: PK_ID, tile: city.tile }), g3: u('g3', PK, { ownerId: PK_ID, tile: city.tile, classId: 'cavalry' }) };
   return {
     ...S, units, ring,
-    wars: [...S.wars, { id: 'w-f', aggressor: 'in', enemy: 'pk', active: true, startYear: S.year, battleScore: 0 }],
-    nations: { ...S.nations, in: { ...S.nations.in, isAtWar: true }, pk: { ...S.nations.pk, isAtWar: true } },
-    regions: { ...S.regions, [PK]: { ...city, siege: { hp: 100, maxHp: 200, by: 'in', startedTurn: 1, encircled: false, starving: 0 } } },
+    wars: [...S.wars, { id: 'w-f', aggressor: IN_ID, enemy: PK_ID, active: true, startYear: S.year, battleScore: 0 }],
+    nations: { ...S.nations, [IN_ID]: { ...S.nations[IN_ID], isAtWar: true }, [PK_ID]: { ...S.nations[PK_ID], isAtWar: true } },
+    regions: { ...S.regions, [PK]: { ...city, siege: { hp: 100, maxHp: 200, by: IN_ID, startedTurn: 1, encircled: false, starving: 0 } } },
     pendingDefenses: []
   };
 };
@@ -88,12 +95,12 @@ const checkDecisive = (before, after, ring) => {
 describe('decisive field battles through the reducer, Command and Auto', () => {
   it('Command: the commanded result lands under decision 33', () => {
     const s = besieged();
-    const q = aiSally(s, 'pk', createRng(5));
+    const q = aiSally(s, PK_ID, createRng(5));
     const def = q.pendingDefenses[0];
     expect(def).toBeTruthy();
     const began = gameReducer(q, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
     const setup = buildInvasionSetup(began, began.pendingBattle);
-    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
+    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
     const after = gameReducer(began, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: began.pendingBattle.id, result } });
     expect(after.pendingDefenses).toHaveLength(0);
     if (result.outcome === 'attacker') checkDecisive(s, after, s.ring);
@@ -102,7 +109,7 @@ describe('decisive field battles through the reducer, Command and Auto', () => {
   it('Auto: the same rule (routed losers escape AUTO_ESCAPE_CHANCE, less with cavalry pursuing)', () => {
     expect(AUTO_ESCAPE_PURSUED).toBeLessThan(AUTO_ESCAPE_CHANCE);
     const s = besieged();
-    const q = aiSally(s, 'pk', createRng(5));
+    const q = aiSally(s, PK_ID, createRng(5));
     const after = gameReducer(q, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: q.pendingDefenses[0].id } });
     const rep = after.battleReports[0];
     expect(rep.kind).toBe('field');
