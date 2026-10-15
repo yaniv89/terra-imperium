@@ -24,7 +24,7 @@ import { distanceKm } from '../data/geo/geodesic';
 import { ringsAround } from './world/cities';
 import { mapEffectsFor } from './techMapEffects';
 import { ringsForKm } from '../data/geo/gridScale';
-import { msg, people, cityRef } from './messages';
+import { msg, people, cityRef, reasonOf } from './messages';
 
 export const CLAIM_RANGE_KM = 714; // km (7 rings at frequency 75)
 export const CLAIM_RANGE_RINGS = ringsForKm(CLAIM_RANGE_KM);
@@ -74,12 +74,12 @@ export const ringsToBorder = (state, city, nationId, max = claimRange(state, nat
 export const canFabricateClaim = (state, nationId, cityId) => {
   const city = state.regions?.[cityId];
   const nation = state.nations?.[nationId];
-  if (!city || !nation) return { ok: false, reason: 'No such city.' };
-  if (city.owner === nationId) return { ok: false, reason: 'The city is already yours.' };
-  if (!city.owner) return { ok: false, reason: 'Nobody rules it: settle it instead.' };
-  if (claimOn(state, nationId, city)) return { ok: false, reason: 'You already hold a claim on it.' };
-  if (claimsInProgressOf(nation).some((c) => c.cityId === cityId)) return { ok: false, reason: 'Your agents are already at work there.' };
-  if (ringsToBorder(state, city, nationId) > claimRange(state, nationId)) return { ok: false, reason: `Out of reach: a claim needs your border within ${claimRange(state, nationId)} tiles of the city.` };
+  if (!city || !nation) return { ok: false, ...reasonOf('m.why.claimNoCity') };
+  if (city.owner === nationId) return { ok: false, ...reasonOf('m.why.claimYours') };
+  if (!city.owner) return { ok: false, ...reasonOf('m.why.claimNobody') };
+  if (claimOn(state, nationId, city)) return { ok: false, ...reasonOf('m.why.claimHold') };
+  if (claimsInProgressOf(nation).some((c) => c.cityId === cityId)) return { ok: false, ...reasonOf('m.why.claimWorking') };
+  if (ringsToBorder(state, city, nationId) > claimRange(state, nationId)) return { ok: false, ...reasonOf('m.why.claimRange', { n: claimRange(state, nationId) }) };
   return { ok: true };
 };
 

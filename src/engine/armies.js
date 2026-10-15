@@ -35,6 +35,7 @@ import { hasPerk } from '../data/promotions';
 import { canFight, isIndependentId } from './hostility';
 import { legacyTerrainOf } from './world/registry';
 import { mapEffectsOf } from './techMapEffects';
+import { reasonOf, people, sub } from './messages';
 
 // A turn's march in km by class, turned into movement points of the loaded grid (gridScale.js), so
 // an army covers about the same ground on any grid: 3/3/6/2 points at frequency 75, 4/4/8/3 at
@@ -199,12 +200,12 @@ const heapPop = (h) => {
  */
 export const findTilePath = (state, from, to, nationId = state.playerNationId, { researched = [], maxSteps = MAX_ROUTE_STEPS } = {}) => {
   const tiles = getTiles();
-  if (from === to) return { reason: 'The army is already there.' };
-  if (!passableTile(tiles, to)) return { reason: tiles.land[to] ? 'No army can cross that.' : 'No land route: this needs a fleet to carry the army.' };
+  if (from === to) return reasonOf('m.why.armyThere');
+  if (!passableTile(tiles, to)) return reasonOf(tiles.land[to] ? 'm.why.noCross' : 'm.why.noLandRoute');
   const targetAccess = tileAccess(state, to, nationId);
   if (targetAccess === 'closed') {
     const owner = state.nations[state.regions[state.world?.tileOwner?.[to]]?.owner];
-    return { reason: `No access to ${owner?.name || 'that land'}: declare war or form an alliance.` };
+    return reasonOf('m.why.noAccess', { nation: owner?.name ? people(owner.id, owner.name) : sub('m.why.thatLand') });
   }
   // A* guess: the fewest steps the distance allows (gridScale.js, from the measured longest step)
   // times the cheapest step there is, a road with the mover's techs. Never above the true cost.
@@ -228,10 +229,10 @@ export const findTilePath = (state, from, to, nationId = state.playerNationId, {
       if (nd < (dist.get(n) ?? Infinity) - 1e-9) { dist.set(n, nd); prev.set(n, id); heapPush(heap, [nd + h(n), nd, n]); }
     }
   }
-  if (!dist.has(to)) return { reason: 'No land route: this needs a fleet to carry the army.' };
+  if (!dist.has(to)) return reasonOf('m.why.noLandRoute');
   const path = [to];
   while (path[0] !== from) path.unshift(prev.get(path[0]));
-  if (path.length - 1 > maxSteps) return { reason: 'Too far for one march: pick a closer place.' };
+  if (path.length - 1 > maxSteps) return reasonOf('m.why.tooFarMarch');
   return { path, cost: dist.get(to) };
 };
 

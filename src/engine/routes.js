@@ -26,7 +26,7 @@
 // Player armies only. AI armies keep their city-hopping operations (aiOperations.js) until the
 // front planner of workstream 9, so AI turns stay fast.
 import { getTiles } from '../data/geo/tiles';
-import { msg, sub, cityRef, place as placeRef } from './messages';
+import { msg, sub, cityRef, place as placeRef, reasonOf } from './messages';
 import { MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { getResearched } from './nationState';
 import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters } from './fleets';
@@ -75,7 +75,7 @@ export const targetTile = (state, target) => (typeof target === 'number' ? targe
 // The cheapest path for the player from tile `from` to a target (a city id or a tile).
 export const findRoute = (state, from, target) => {
   const to = targetTile(state, target);
-  if (to == null) return { reason: 'Unknown place.' };
+  if (to == null) return reasonOf('m.why.unknownPlace');
   return findTilePath(state, from, to, state.playerNationId, { researched: getResearched(state, state.playerNationId) });
 };
 
@@ -122,21 +122,21 @@ export const routeEta = (state, unit) => {
  */
 export const moveNowCheck = (state, unit, toRegionId) => {
   const city = state.regions[toRegionId];
-  if (!unit || !city || city.owner !== unit.ownerId) return { ok: false, reason: 'Move now only goes to a city of your own.' };
-  if ((unit.movesLeft ?? 1) <= 0 || marchedThisTurn(state, unit)) return { ok: false, reason: 'This army has already moved this turn.' };
+  if (!unit || !city || city.owner !== unit.ownerId) return { ok: false, ...reasonOf('m.why.moveOwnCity') };
+  if ((unit.movesLeft ?? 1) <= 0 || marchedThisTurn(state, unit)) return { ok: false, ...reasonOf('m.why.alreadyMoved') };
   const from = unitTile(state, unit);
-  if (from == null) return { ok: false, reason: 'Unknown place.' };
-  if (from === city.tile) return { ok: false, reason: 'The army is already there.' };
+  if (from == null) return { ok: false, ...reasonOf('m.why.unknownPlace') };
+  if (from === city.tile) return { ok: false, ...reasonOf('m.why.armyThere') };
   const researched = getResearched(state, unit.ownerId);
   const found = findTilePath(state, from, city.tile, unit.ownerId, { researched });
-  if (!found.path) return { ok: false, reason: found.reason };
+  if (!found.path) return { ok: false, reason: found.reason, reasonMsg: found.reasonMsg };
   const tiles = getTiles();
   const steps = found.path.slice(1);
   const turns = scheduleSteps(state, from, steps, movePoints(unit, researched));
   const eta = turns[turns.length - 1];
-  if (eta > 1) return { ok: false, turns: eta, reason: `Too far to move now: the march takes ${eta} turns.` };
+  if (eta > 1) return { ok: false, turns: eta, ...reasonOf('m.why.tooFarMove', { turns: eta }) };
   const unsafe = steps.some((t) => ['enemy', 'held', 'closed'].includes(tileAccess(state, t, unit.ownerId)) || enemyArmyAt(state, t, unit.ownerId) || inEnemyZoc(state, tiles, t, unit.ownerId));
-  if (unsafe) return { ok: false, turns: eta, reason: 'The way is not safe (an enemy is close): give a march order instead.' };
+  if (unsafe) return { ok: false, turns: eta, ...reasonOf('m.why.notSafe') };
   return { ok: true, turns: 1, path: found.path, harshSteps: steps.filter((t) => isHarsh(tiles, t)).length };
 };
 
@@ -165,11 +165,11 @@ export const marchOrigin = (state, fromId, unitIds = null, { naval = false } = {
 // turn, the supplies it will eat, and where it will halt (the first enemy tile, and its city). Pure.
 export const planMarch = (state, fromId, target, unitIds = null, { naval = false } = {}) => {
   const units = marchingUnits(state, fromId, unitIds, { naval });
-  if (!units.length) return { ok: false, reason: naval ? 'No fleet here can sail.' : 'No army here can march.' };
+  if (!units.length) return { ok: false, ...reasonOf(naval ? 'm.why.noFleetSail' : 'm.why.noArmyMarch') };
   const from = mainTile(state, units);
   const to = targetTile(state, target);
-  const found = naval ? (to == null ? { reason: 'Unknown place.' } : findSeaPath(state, from, to, state.playerNationId)) : findRoute(state, from, target);
-  if (!found.path) return { ok: false, reason: found.reason };
+  const found = naval ? (to == null ? reasonOf('m.why.unknownPlace') : findSeaPath(state, from, to, state.playerNationId)) : findRoute(state, from, target);
+  if (!found.path) return { ok: false, reason: found.reason, reasonMsg: found.reasonMsg };
   const steps = found.path.slice(1);
   const pace = naval ? units.reduce((m, u) => Math.min(m, fleetPace(state, u)), Infinity) : stackPace(units, getResearched(state, units[0]?.ownerId));
   // A stack that already moved this turn (Move now) starts walking at the next End Turn but one.
@@ -193,7 +193,7 @@ export const released = (u) => (u.hold || u.siegeOf ? { ...u, hold: false, siege
 // of their own. Returns { units, plan } or { reason }.
 export const orderMarch = (state, fromId, target, unitIds = null, { naval = false } = {}) => {
   const plan = planMarch(state, fromId, target, unitIds, { naval });
-  if (!plan.ok) return { reason: plan.reason };
+  if (!plan.ok) return { reason: plan.reason, reasonMsg: plan.reasonMsg };
   const units = { ...state.units };
   const to = plan.path[plan.path.length - 1];
   plan.units.forEach((id) => {

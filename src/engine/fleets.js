@@ -24,6 +24,7 @@ import { canAttack, canFight } from './hostility';
 import { getTechAgeId } from './nationState';
 import { regionAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
+import { reasonOf, cityRef, people, sub } from './messages';
 
 // A fleet's pace in km a turn by age, turned into water tiles of the loaded grid (gridScale.js):
 // 4, 6, 7, 8, 11 tiles at frequency 75 and 5, 8, 9, 11, 15 at frequency 100. Tech bonuses
@@ -106,19 +107,19 @@ export const findSeaPath = (state, from, to, nationId = state.playerNationId) =>
   const ageId = fleetAge(state, nationId);
   const effects = mapEffectsFor(state, nationId);
   const deepTech = effects.deepOcean > 0; const shelfTech = effects.navalMoves > 0;
-  if (from === to) return { reason: 'The fleet is already there.' };
+  if (from === to) return reasonOf('m.why.fleetThere');
   const tileOwner = state.world?.tileOwner || {};
   const fromPort = tiles.land[from] === 1 ? tileOwner[from] : null;
   const toPort = tiles.land[to] === 1 ? tileOwner[to] : null;
-  if (tiles.land[from] === 1 && !fromPort) return { reason: 'A fleet sails from a port.' };
-  if (tiles.land[to] === 1 && (!toPort || state.regions[toPort]?.tile !== to)) return { reason: 'A fleet can only put in at a city.' };
+  if (tiles.land[from] === 1 && !fromPort) return reasonOf('m.why.fleetFromPort');
+  if (tiles.land[to] === 1 && (!toPort || state.regions[toPort]?.tile !== to)) return reasonOf('m.why.fleetCityOnly');
   if (toPort && regionAccess(state, toPort, nationId) === 'closed') {
     const owner = state.nations[state.regions[toPort]?.owner];
-    return { reason: `No access to the port of ${state.regions[toPort]?.name || 'that city'}${owner ? ` (${owner.name})` : ''}.` };
+    return reasonOf('m.why.noPortAccess', { city: state.regions[toPort]?.name ? cityRef(toPort, state.regions[toPort].name) : sub('m.why.thatCity'), owner: owner ? sub('m.why.ownerParen', { nation: people(owner.id, owner.name) }) : '' });
   }
-  if (!toPort && !seaPassable(tiles, to, ageId, deepTech, shelfTech)) return { reason: tiles.land[to] ? 'A fleet can only put in at a city.' : seaDepth(tiles, to) === 'lake' ? 'No fleet sails a lake.' : seaDepth(tiles, to) === 'shelf' ? 'Waters off the coast need the Classical age or a sailing tech.' : 'The open ocean needs the Age of Gunpowder.' };
+  if (!toPort && !seaPassable(tiles, to, ageId, deepTech, shelfTech)) return reasonOf(tiles.land[to] ? 'm.why.fleetCityOnly' : seaDepth(tiles, to) === 'lake' ? 'm.why.noLake' : seaDepth(tiles, to) === 'shelf' ? 'm.why.shelfAge' : 'm.why.oceanAge');
   const starts = fromPort ? portWaters(state, tiles, fromPort).filter((t) => seaPassable(tiles, t, ageId, deepTech, shelfTech)) : [from];
-  if (!starts.length) return { reason: 'No water in reach of that port.' };
+  if (!starts.length) return reasonOf('m.why.noPortWater');
   const goal = toPort ? new Set(portWaters(state, tiles, toPort)) : null;
   const h = (t) => minStepsBetween(t, to, tiles); // every step costs 1: the fewest steps the distance allows
   const dist = new Map(); const prev = new Map(); const heap = [];
@@ -135,11 +136,11 @@ export const findSeaPath = (state, from, to, nationId = state.playerNationId) =>
       if (nd < (dist.get(n) ?? Infinity)) { dist.set(n, nd); prev.set(n, id); heapPush(heap, [nd + h(n), nd, n]); }
     }
   }
-  if (end == null) return { reason: deepOk(ageId) ? 'No sea route there.' : 'No sea route there before the Age of Gunpowder (the open ocean is closed).' };
+  if (end == null) return reasonOf(deepOk(ageId) ? 'm.why.noSeaRoute' : 'm.why.noSeaRouteAge');
   const path = [end];
   while (prev.get(path[0]) != null) path.unshift(prev.get(path[0]));
   if (toPort) path.push(to);
-  if (path.length - 1 > MAX_SEA_STEPS) return { reason: 'Too far for one voyage.' };
+  if (path.length - 1 > MAX_SEA_STEPS) return reasonOf('m.why.tooFarVoyage');
   return { path, cost: path.length - 1 };
 };
 

@@ -38,7 +38,7 @@ import { settlingBarred } from './accords';
 import { isExplored } from './fog';
 import { speedCostMult } from '../data/ages';
 import { ringsForKm, kmPerRing, F75_RING_KM, foundingDisk } from '../data/geo/gridScale';
-import { msg, sub, cityRef, people, place } from './messages';
+import { msg, sub, cityRef, people, place, reasonOf } from './messages';
 
 // canSettle's reasons that stop a settler, as messages for the log (the reason strings stay the UI's).
 const REASON_KEYS = {
@@ -138,8 +138,8 @@ export const canSettle = (state, tile, nationId, ageId) => {
   const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
   const ok = canFoundCity(world, tiles, tile, nationId);
   if (!ok.ok) return ok;
-  if (outpostsOf(state.regions, nationId).length >= outpostSlots(ageId)) return { ok: false, reason: `Every outpost slot is in use (${outpostSlots(ageId)} this age).` };
-  if (settlingBarred(state, nationId, tile)) return { ok: false, reason: 'You promised not to settle this close to their cities.' };
+  if (outpostsOf(state.regions, nationId).length >= outpostSlots(ageId)) return { ok: false, ...reasonOf('m.why.outpostSlots', { n: outpostSlots(ageId) }) };
+  if (settlingBarred(state, nationId, tile)) return { ok: false, ...reasonOf('m.world.reasonPromised') };
   return { ok: true };
 };
 
