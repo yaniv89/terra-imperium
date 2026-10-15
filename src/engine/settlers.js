@@ -160,29 +160,51 @@ export const siteDistancePenalty = (state, tile, fromTile = null, distance = nul
 // site list scan the same land, and a tile's own yields depend on its tile state alone.
 const siteQualityCache = new WeakMap(); // world -> Map tile -> quality
 const ownYieldCache = new WeakMap(); // tileState -> Map tile -> food x1.2 + production + gold
-export const siteQuality = (state, tile) => {
+/** The parts a site's quality is made of, so the number and the explanation never disagree:
+ * { here, neighbours, resource, river, coast, total }. `total` is siteQuality exactly (the same
+ * sum in the same order, rounded to a tenth); the other parts are for display (a part is 0 when
+ * the site lacks it). Pure of state except ownership; -Infinity total for water. */
+export const siteQualityParts = (state, tile) => {
   const tiles = getTiles();
+  const world = state.world || {};
+  const tileState = world.tileState || {};
+  const tileOwner = world.tileOwner || {};
+  const facts = tileFacts(tiles, tile, tileState[tile]);
+  if (!facts.land) return { here: 0, neighbours: 0, resource: 0, river: 0, coast: 0, total: -Infinity };
+  let ownMemo = ownYieldCache.get(tileState);
+  if (!ownMemo) { ownMemo = new Map(); ownYieldCache.set(tileState, ownMemo); }
+  const own = (t) => { let v = ownMemo.get(t); if (v === undefined) { const y = tileYields(tileFacts(tiles, t, tileState[t])); v = y.food * 1.2 + y.production + y.gold; ownMemo.set(t, v); } return v; };
+  const here = own(tile);
+  let score = here;
+  let neighbours = 0;
+  tiles.neighbors[tile].forEach((n) => { if (!tileOwner[n]) { const h = own(n) * 0.5; score += h; neighbours += h; } });
+  const resource = facts.resource ? 3 : 0;
+  const river = facts.river ? 2 : 0;
+  const coast = facts.coastal ? 1.5 : 0;
+  score += resource; score += river; score += coast;
+  const r1 = (v) => Math.round(v * 10) / 10;
+  return { here: r1(here), neighbours: r1(neighbours), resource, river, coast, total: r1(score) };
+};
+
+export const siteQuality = (state, tile) => {
   const world = state.world || {};
   let byTile = siteQualityCache.get(world);
   if (!byTile) { byTile = new Map(); siteQualityCache.set(world, byTile); }
   const hit = byTile.get(tile);
   if (hit !== undefined) return hit;
-  const tileState = world.tileState || {};
-  const tileOwner = world.tileOwner || {};
-  const facts = tileFacts(tiles, tile, tileState[tile]);
-  if (!facts.land) { byTile.set(tile, -Infinity); return -Infinity; }
-  let ownMemo = ownYieldCache.get(tileState);
-  if (!ownMemo) { ownMemo = new Map(); ownYieldCache.set(tileState, ownMemo); }
-  const own = (t) => { let v = ownMemo.get(t); if (v === undefined) { const y = tileYields(tileFacts(tiles, t, tileState[t])); v = y.food * 1.2 + y.production + y.gold; ownMemo.set(t, v); } return v; };
-  let score = 0;
-  score += own(tile);
-  tiles.neighbors[tile].forEach((n) => { if (!tileOwner[n]) score += own(n) * 0.5; });
-  if (facts.resource) score += 3;
-  if (facts.river) score += 2;
-  if (facts.coastal) score += 1.5;
-  const q = Math.round(score * 10) / 10;
+  const q = siteQualityParts(state, tile).total;
   byTile.set(tile, q);
   return q;
+};
+
+/** A site's quality as a word: 'poor' under SITE_SCORE_MIN (the engine's "good site" test), else
+ * fair / good / excellent by where it sits between that floor and the best quality in reach
+ * (`best`, at least SITE_SCORE_MIN + 4 so a thin map does not make every site excellent). */
+export const siteRatingOf = (quality, best = null) => {
+  if (!(quality >= SITE_SCORE_MIN)) return 'poor';
+  const top = Math.max(best ?? 0, SITE_SCORE_MIN + 4);
+  const frac = (quality - SITE_SCORE_MIN) / (top - SITE_SCORE_MIN);
+  return frac >= 0.8 ? 'excellent' : frac >= 0.45 ? 'good' : 'fair';
 };
 
 /** The best legal sites for a settler standing on `fromTile`, best first: [{ tile, score, quality, steps }]. */
