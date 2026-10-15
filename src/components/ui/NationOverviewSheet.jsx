@@ -52,6 +52,10 @@ const NationOverviewSheet = () => {
   const s = m.stability;
   const closest = m.era.goals.filter((g) => !g.done).sort((a, b) => (b.value / b.target) - (a.value / a.target))[0];
   const action = closest && GOAL_ACTION[closest.id];
+  const ageLabelNode = lang === 'he' ? null : <span className="fa-label">{tNow('p1.no.ageLabel')}</span>;
+  const ageNameNode = <span className="font-semibold">{m.ageName}</span>;
+  const turnNode = <span className="fa-num">{m.turn}</span>;
+  const ageNodes = { label: ageLabelNode, age: ageNameNode, turn: turnNode };
 
   return (
     <>
@@ -155,7 +159,7 @@ const NationOverviewSheet = () => {
         </div>
         <div className="px-4 py-2.5 border-t border-fa-line shrink-0" data-testid="nation-age-strip">
           <div className="flex items-baseline justify-between gap-2 mb-1.5">
-            <span className="text-[12px]">{rich(tNow('p1.no.ageStrip'), { label: lang === 'he' ? null : <span className="fa-label">{tNow('p1.no.ageLabel')}</span>, age: <span className="font-semibold">{m.ageName}</span>, turn: <span className="fa-num">{m.turn}</span> })}</span>
+            <span className="text-[12px]">{rich(tNow('p1.no.ageStrip'), ageNodes)}</span>
             {m.nextAge && <span className="text-[12px] text-fa-muted">{rich(tNow('p1.no.nextAge', { name: m.nextAge.name }), { turns: <span className="fa-num text-fa-text">{m.nextAge.turns}</span> })}</span>}
           </div>
           <div className="grid grid-cols-5 gap-1.5">
