@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, getResourceStrain, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getPowerIncome, getPowerBreakdown, getFieldedStrength, getDisplayPopulation } from './helpers';
 import { createInitialState } from '../context/GameContext';
-import { getNationCapital } from '../data/regions';
+import { getNationCapital, REGIONS_DATA } from '../data/regions';
+import { regionHasDeposit } from '../data/deposits';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
@@ -93,8 +94,11 @@ describe('calcIncome', () => {
   });
 
   it('yields a deposit resource once its extraction building is developed', () => {
-    // Chile has a copper deposit (src/data/deposits.js).
-    const state = createInitialState({ playerNationId: 'cl' });
+    // Deposits are scarce (one holder per land, src/engine/world/registry.js): use a nation whose
+    // capital holds copper in this world.
+    createInitialState({ playerNationId: 'cl' });
+    const id = ['cl', 'pe', 'us', 'cd', 'zm', 'au', 'ru', 'ca', 'cn', 'mx'].find((n) => regionHasDeposit(REGIONS_DATA[cap(n)], 'copper'));
+    const state = createInitialState({ playerNationId: id });
     const withoutMine = calcIncome(state);
     expect(withoutMine.copper).toBe(0);
 
@@ -102,7 +106,7 @@ describe('calcIncome', () => {
       ...state,
       regions: {
         ...state.regions,
-        [cap('cl')]: { ...state.regions[cap('cl')], buildings: { ...state.regions[cap('cl')].buildings, extraction: { ...state.regions[cap('cl')].buildings.extraction, copper: true } } }
+        [cap(id)]: { ...state.regions[cap(id)], buildings: { ...state.regions[cap(id)].buildings, extraction: { ...state.regions[cap(id)].buildings.extraction, copper: true } } }
       }
     });
     expect(withMine.copper).toBeGreaterThan(0);

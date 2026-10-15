@@ -8,6 +8,7 @@ import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
+import { regionHasDeposit } from '../data/deposits';
 import { getNationCapital, REGIONS_DATA, getBorderingNationIds, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { addCity, addCities } from '../engine/testWorld';
@@ -279,10 +280,14 @@ describe('Domestic tab actions', () => {
   });
 
   describe('DEVELOP_RESOURCE_SITE', () => {
+    // Deposits are scarce (one holder per land, src/engine/world/registry.js): use a nation whose capital
+    // holds copper in this world.
+    const copperNation = () => { richState('cl'); return ['cl', 'pe', 'us', 'cd', 'zm', 'au', 'ru', 'ca', 'cn', 'mx'].find((id) => regionHasDeposit(REGIONS_DATA[cap(id)], 'copper')); };
     it('develops a deposit the region actually has', () => {
-      const state = richState('cl'); // Chile has copper
-      const next = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap('cl'), resourceId: 'copper' } });
-      expect(next.regions[cap('cl')].buildings.extraction.copper).toBe(true);
+      const id = copperNation();
+      const state = richState(id);
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap(id), resourceId: 'copper' } });
+      expect(next.regions[cap(id)].buildings.extraction.copper).toBe(true);
     });
 
     it('rejects a resource the region has no deposit for', () => {
@@ -291,9 +296,10 @@ describe('Domestic tab actions', () => {
     });
 
     it('rejects developing the same site twice', () => {
-      const state = richState('cl');
-      const once = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap('cl'), resourceId: 'copper' } });
-      expect(gameReducer(once, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap('cl'), resourceId: 'copper' } })).toBe(once);
+      const id = copperNation();
+      const state = richState(id);
+      const once = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap(id), resourceId: 'copper' } });
+      expect(gameReducer(once, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap(id), resourceId: 'copper' } })).toBe(once);
     });
 
     it('rejects a resource not yet unlocked by age', () => {
