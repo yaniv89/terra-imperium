@@ -139,3 +139,8 @@ export const agoText = (savedAt, now = Date.now(), lang = current) => {
   if (ms < 60 * DAY) return translate('time.daysAgo', { count: Math.floor(ms / DAY) }, lang);
   return translate('time.monthsAgo', { count: Math.floor(ms / (30 * DAY)) }, lang);
 };
+
+/** The text for `key` when the table has it, else `fallback` (game data that is not translated yet). */
+export const tOr = (key, fallback, vars) => (hasKey(key, 'en') ? translate(key, vars, current) : fallback);
+/** An age's name ("Bronze Age") in the current language. */
+export const ageName = (id, fallback) => tOr(`age.${id}`, fallback || id);

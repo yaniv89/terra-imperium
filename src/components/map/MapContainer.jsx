@@ -57,6 +57,7 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 import { useMapPrefs } from './mapPrefs';
+import { useT } from '../../i18n/useT';
 
 export const MINIMAP_STORAGE_KEY = 'terra-imperium-minimap-open';
 const MODE_STORAGE_KEY = 'terra-imperium-map-mode';
@@ -79,6 +80,7 @@ const MapContainer = (props) => (
 
 const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => {
   const { state } = useGame();
+  const { t } = useT();
   const marchCtx = useMarch();
   const marching = !!marchCtx?.march && !marchCtx.march.dragging;
   const [selectedTile, setSelectedTile] = useState(null);
@@ -257,10 +259,10 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
       <div className={`absolute start-[calc(var(--city-rail-w,0px)+0.75rem)] ${lensOpen ? 'z-20' : 'z-10'} flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)] lg:bottom-3 pl:bottom-3 pl:start-[max(var(--safe-start),0.75rem)]`} data-map-hud="group">
         {miniOpen && <MapLegend />}
-        {miniOpen && <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label="Hide the mini map" data-testid="minimap-hide" className="absolute -top-2 -end-2 w-8 h-8 rounded-full bg-fa-panel border border-fa-line text-fa-text text-sm pointer-events-auto">×</button></div>}
+        {miniOpen && <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label={t('minimap.hide')} data-testid="minimap-hide" className="absolute -top-2 -end-2 w-8 h-8 rounded-full bg-fa-panel border border-fa-line text-fa-text text-sm pointer-events-auto">×</button></div>}
         <div className="flex items-end gap-2">
           <LensStrip lens={shownLens} onChange={pickLens} onOpenChange={setLensOpen} />
-          {!miniOpen && <button type="button" onClick={() => setMini(true)} aria-label="Show the mini map" data-testid="minimap-show" className="min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">World</button>}
+          {!miniOpen && <button type="button" onClick={() => setMini(true)} aria-label={t('minimap.show')} data-testid="minimap-show" className="min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">{t('minimap.world')}</button>}
         </div>
       </div>
       {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}

@@ -15,6 +15,7 @@ import { previewGovernmentChange } from '../../engine/governmentPreview';
 import { AUTHORITY_NO_LAWS } from '../../engine/authority';
 import { Button } from '../ui/atlas';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { t as tNow } from '../../i18n';
 
 const costText = (cost) => Object.entries(cost || {}).map(([k, v]) => `${v} ${k.toUpperCase()}`).join(', ');
 const Row = ({ label, children, tone = '' }) => (
@@ -27,7 +28,7 @@ const GovernmentChangeDialog = ({ typeId, onClose }) => {
   const [picks, setPicks] = useState({}); // { [ageId]: reformId }; a tier left out takes its first choice
   const base = useMemo(() => (typeId ? previewGovernmentChange(state, typeId, picks) : null), [state, typeId, picks]);
   const open = !!typeId && !!base?.ok;
-  const turn = useInteraction('government-change', open, { priority: PRIORITY.event + 5, user: true, label: base?.typeName ? `Change to ${base.typeName}` : null });
+  const turn = useInteraction('government-change', open, { priority: PRIORITY.event + 5, user: true, label: base?.typeName ? tNow('wait.changeGov', { type: base.typeName }) : null });
   const cancelRef = useRef(null);
   const shown = open && turn.shown;
   useEffect(() => { setPicks({}); }, [typeId]);

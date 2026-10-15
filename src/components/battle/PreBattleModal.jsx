@@ -20,6 +20,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Castle, Home, Users, Mountain, ChevronDown } from 'lucide-react';
+import { t as tNow } from '../../i18n';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
@@ -46,7 +47,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const { triggerEffect } = useEffects();
   const m = useMemo(() => preBattleModel(state, { fromRegionId, targetRegionId, navalUnitId, tile, fromTile }),
     [state, fromRegionId, targetRegionId, navalUnitId, tile, fromTile]);
-  const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: `${m.name}: Command or Auto`, testId: 'pre-battle-chip', tone: 'danger', user: !arrival });
+  const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: tNow('wait.commandOrAuto', { name: m.name }), testId: 'pre-battle-chip', tone: 'danger', user: !arrival });
   useEffect(() => { prewarmBattleWorker(); }, []); // the battle's worker loads while the player decides
   const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);
@@ -97,7 +98,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   // The backdrop only dims: it has no click handler, so a tap aimed at something under it cannot
   // close the card and lose the attack.
   const card = (
-    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center pr-[var(--rail-inset,0px)]" data-testid="battle-choice">
+    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center pe-[var(--rail-inset,0px)]" data-testid="battle-choice">
       <div role="dialog" aria-modal="true" aria-labelledby="pre-battle-title" data-testid="pre-battle"
         className="fa-panel !bg-fa-panel shadow-2xl w-full sm:w-[min(56rem,calc(100vw-1rem-var(--rail-inset,0px)))] max-h-[94dvh] sm:max-h-[calc(100dvh-1rem)] flex flex-col rounded-b-none sm:rounded-[10px]">
         <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">

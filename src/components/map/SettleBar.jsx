@@ -15,7 +15,7 @@ const SettleBar = ({ model, onNext, onCancel }) => {
   // bar takes the room between them (it used to lie over the sheet's close button).
   const insets = useMapInsets();
   const phone = useLayoutMode() === 'phone-landscape';
-  const { rtl } = useT();
+  const { rtl, t } = useT();
   useMapToolFlag('settle', !!model);
   if (!model) return null;
   const between = phone ? { left: insets.left + (rtl ? 56 : 16), right: insets.right + (rtl ? 16 : 56), transform: 'none', width: 'auto' } : undefined;
@@ -32,7 +32,7 @@ const SettleBar = ({ model, onNext, onCancel }) => {
           <Compass className="w-3.5 h-3.5" aria-hidden="true" />{model.nextLabel}
         </button>
       )}
-      <button type="button" onClick={onCancel} aria-label="Stop choosing a site" title="Stop choosing a site" data-testid="settle-cancel"
+      <button type="button" onClick={onCancel} aria-label={t('settle.stop')} title={t('settle.stop')} data-testid="settle-cancel"
         className="shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
     </div>
   );

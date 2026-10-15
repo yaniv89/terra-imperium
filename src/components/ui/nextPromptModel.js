@@ -25,6 +25,11 @@ import { supplyOf, supplyZone, SUPPLY_LOW } from '../../engine/supplyMeter';
 import { getTiles } from '../../data/geo/tiles';
 import { idleArmyTiles } from '../../engine/standingOrders';
 import { loyaltyForecast, loyaltyOf } from '../../engine/loyalty';
+import { t as tNow, formatNumber } from '../../i18n';
+import { nameNow } from '../../i18n/names';
+
+const pName = (state, id) => nameNow('people', id, state.nations?.[id]?.name || '');
+const cName = (c) => nameNow('city', null, c.name);
 
 export const UNREST_PROMPT = 50;
 export const LOYALTY_PROMPT_TURNS = 12; // a city that could break away within this many turns is a hint (I127)
@@ -44,27 +49,27 @@ export const nextPrompts = (state) => {
   const out = [];
   const guide = tutorialPrompt(state);
   if (guide) out.push(guide);
-  if (state.pendingPeaceOffer) out.push({ id: 'peace', kind: 'peace', label: 'A peace offer awaits your answer', tab: 'diplomacy' });
-  if (demandWaiting(state)) { const d = state.pendingDemand; out.push({ id: 'demand', kind: 'demand', label: `${state.nations[d.from].name} demands ${d.kind === 'city' ? d.cityName || 'a city' : d.kind === 'stopSettling' ? 'a stop to your settling' : `${d.amount} gold`}`, tab: 'diplomacy' }); }
+  if (state.pendingPeaceOffer) out.push({ id: 'peace', kind: 'peace', label: tNow('prompt.peaceWaits'), tab: 'diplomacy' });
+  if (demandWaiting(state)) { const d = state.pendingDemand; out.push({ id: 'demand', kind: 'demand', label: d.kind === 'city' ? tNow('prompt.demand.city', { name: pName(state, d.from), city: d.cityName ? nameNow('city', null, d.cityName) : tNow('prompt.aCity') }) : d.kind === 'stopSettling' ? tNow('prompt.demand.stop', { name: pName(state, d.from) }) : tNow('prompt.demand.gold', { name: pName(state, d.from), amount: d.amount }), tab: 'diplomacy' }); }
   // A war declared on the player lately: the log line alone was easy to miss (I117).
-  (state.wars || []).forEach((w) => { if (w.active && w.enemy === me && w.aggressor && state.nations?.[w.aggressor] && (state.turnNumber || 0) - (w.startTurn ?? -Infinity) < WAR_NOTICE_TURNS) out.push({ id: 'war:' + w.id, kind: 'war', label: state.nations[w.aggressor].name + ' declared war on you', tab: 'diplomacy', nationId: w.aggressor }); });
+  (state.wars || []).forEach((w) => { if (w.active && w.enemy === me && w.aggressor && state.nations?.[w.aggressor] && (state.turnNumber || 0) - (w.startTurn ?? -Infinity) < WAR_NOTICE_TURNS) out.push({ id: 'war:' + w.id, kind: 'war', label: tNow('prompt.warOnYou', { name: pName(state, w.aggressor) }), tab: 'diplomacy', nationId: w.aggressor }); });
   // A major's offer to swap maps (mapTrade.js, I116): a notice like the war one, never a blocker.
-  if (state.pendingMapOffer && state.nations?.[state.pendingMapOffer.from] && !state.nations[state.pendingMapOffer.from].isEliminated) out.push({ id: 'maps', kind: 'maps', label: `${state.nations[state.pendingMapOffer.from].name} offer to swap maps`, tab: 'diplomacy', nationId: state.pendingMapOffer.from });
-  if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: 'Choose what to research', tab: 'tech' });
+  if (state.pendingMapOffer && state.nations?.[state.pendingMapOffer.from] && !state.nations[state.pendingMapOffer.from].isEliminated) out.push({ id: 'maps', kind: 'maps', label: tNow('prompt.mapOffer', { name: pName(state, state.pendingMapOffer.from) }), tab: 'diplomacy', nationId: state.pendingMapOffer.from });
+  if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: tNow('prompt.research'), tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
-  cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: `${c.name} has nothing to build`, regionId: c.id }); });
+  cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: tNow('prompt.cityIdle', { city: cName(c) }), regionId: c.id }); });
   const units = Object.values(state.units || {}).filter((u) => u.ownerId === me && u.strength > 0).sort((a, b) => (a.id < b.id ? -1 : 1));
   // (settlers told to wait, settlers.js setSettlerHold, are not asked about again: I093)
-  units.forEach((u) => { if (isSettler(u) && u.target == null && u.tile != null && !u.hold) out.push({ id: `settler:${u.id}`, kind: 'settler', label: 'Settlers wait for a destination', tile: u.tile }); });
+  units.forEach((u) => { if (isSettler(u) && u.target == null && u.tile != null && !u.hold) out.push({ id: `settler:${u.id}`, kind: 'settler', label: tNow('prompt.settlers'), tile: u.tile }); });
   // Idle armies (src/engine/standingOrders.js idleArmyTiles): a stack that marches, holds (the
   // Hold order), besieges a city or garrisons one is busy, not idle.
-  idleArmyTiles(state, me).forEach((t) => out.push({ id: `army:${t}`, kind: 'army', label: 'An army in the field can still move', tile: t }));
-  cities.forEach((c) => { if ((c.unrest || 0) >= UNREST_PROMPT) out.push({ id: `unrest:${c.id}`, kind: 'unrest', label: `${c.name} is restless (unrest ${Math.round(c.unrest)})`, regionId: c.id }); });
+  idleArmyTiles(state, me).forEach((t) => out.push({ id: `army:${t}`, kind: 'army', label: tNow('prompt.army'), tile: t }));
+  cities.forEach((c) => { if ((c.unrest || 0) >= UNREST_PROMPT) out.push({ id: `unrest:${c.id}`, kind: 'unrest', label: tNow('prompt.restless', { city: cName(c), n: formatNumber(Math.round(c.unrest)) }), regionId: c.id }); });
   // A city heading to break away (loyalty.js loyaltyForecast, I127): a hint while there is time to garrison it.
   cities.forEach((c) => {
     if ((c.unrest || 0) >= UNREST_PROMPT || (!c.conquest && loyaltyOf(c) >= 50)) return;
     const f = loyaltyForecast(state, c);
-    if (f.breaksIn != null && f.breaksIn <= LOYALTY_PROMPT_TURNS) out.push({ id: `unrest:${c.id}`, kind: 'unrest', label: `${c.name} could break away in ${f.breaksIn} turn${f.breaksIn === 1 ? '' : 's'}: garrison it`, regionId: c.id });
+    if (f.breaksIn != null && f.breaksIn <= LOYALTY_PROMPT_TURNS) out.push({ id: `unrest:${c.id}`, kind: 'unrest', label: tNow('prompt.breaks', { city: cName(c), count: f.breaksIn }), regionId: c.id });
   });
   // An army running out of supply (supplyMeter.js): under SUPPLY_LOW and falling.
   const lowSeen = new Set();
@@ -73,7 +78,7 @@ export const nextPrompts = (state) => {
     const t = unitTile(state, u); if (lowSeen.has(t)) return;
     const zone = supplyZone(state, getTiles(), u);
     // At an empty meter outside home land the stack starves even where the meter only holds.
-    if (supplyOf(u) <= 0 && zone.zone !== 'home') { lowSeen.add(t); out.push({ id: `supply:${t}`, kind: 'supply', label: 'An army is starving (supply 0)', tile: t }); } else if (supplyOf(u) < SUPPLY_LOW && zone.delta < 0) { lowSeen.add(t); out.push({ id: `supply:${t}`, kind: 'supply', label: `An army is running out of supply (${Math.round(supplyOf(u))})`, tile: t }); }
+    if (supplyOf(u) <= 0 && zone.zone !== 'home') { lowSeen.add(t); out.push({ id: `supply:${t}`, kind: 'supply', label: tNow('prompt.starving'), tile: t }); } else if (supplyOf(u) < SUPPLY_LOW && zone.delta < 0) { lowSeen.add(t); out.push({ id: `supply:${t}`, kind: 'supply', label: tNow('prompt.lowSupply', { n: formatNumber(Math.round(supplyOf(u))) }), tile: t }); }
   });
   return out;
 };

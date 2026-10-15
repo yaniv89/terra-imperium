@@ -5,6 +5,7 @@
 // squad menu, pinch to zoom ג€” plus a tactical pause that keeps accepting orders. It starts paused
 // (deployment): give opening orders, then press Start.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { isRtl } from '../../i18n';
 import { deployZone } from '../../battle/sim/world';
 import { BattleRenderer } from '../../battle/render/BattleRenderer';
 import { createBattleClient } from '../../battle/worker/battleClient';
@@ -74,7 +75,7 @@ const SAFE_URL = typeof location !== 'undefined' ? new URLSearchParams(location.
 const safeVars = () => {
   const n = SAFE_URL ? SAFE_URL.split(',').map((v) => Math.max(0, Number(v) || 0)) : null;
   const side = (k, i) => (n ? `${n[i] ?? 0}px` : `env(safe-area-inset-${k}, 0px)`);
-  return { '--sa-t': side('top', 0), '--sa-r': side('right', 1), '--sa-b': side('bottom', 2), '--sa-l': side('left', 3) };
+  return { '--sa-t': side('top', 0), '--sa-r': side('right', 1), '--sa-b': side('bottom', 2), '--sa-l': side('left', 3), '--sa-s': side(isRtl() ? 'right' : 'left', isRtl() ? 1 : 3), '--sa-e': side(isRtl() ? 'left' : 'right', isRtl() ? 3 : 1) };
 };
 // I196: the minimap's on/off is a per-device convenience, never game state.
 const MINIMAP_KEY = 'ti.battle.minimap';
@@ -1012,7 +1013,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       {/* B10: "Building 43%" over your sites and the reason over a red placement ghost, moved by the render loop */}
       <div ref={siteLabelsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
       <div ref={pendingPinsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
-      <div ref={ghostLabelRef} className="absolute left-0 top-0 hidden px-2 py-0.5 rounded-md bg-fa-ink/90 border border-fa-danger text-fa-danger-text text-[11px] font-bold whitespace-nowrap pointer-events-none" data-testid="battle-ghost-reason" />
+      <div ref={ghostLabelRef} className="absolute start-0 top-0 hidden px-2 py-0.5 rounded-md bg-fa-ink/90 border border-fa-danger text-fa-danger-text text-[11px] font-bold whitespace-nowrap pointer-events-none" data-testid="battle-ghost-reason" />
       {dragLine && (
         <svg className="absolute inset-0 pointer-events-none w-full h-full">
           <line x1={dragLine.x0} y1={dragLine.y0} x2={dragLine.x1} y2={dragLine.y1} stroke="#a3e635" strokeWidth="4" strokeDasharray="10 6" strokeLinecap="round" />

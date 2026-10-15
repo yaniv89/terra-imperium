@@ -11,9 +11,8 @@ import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
 import { getTiles } from '../../data/geo/tiles';
-import { accessOf, marchingUnits, marchOrigin, moveNowCheck, placeName } from '../../engine/routes';
+import { accessOf, marchingUnits, marchOrigin, moveNowCheck } from '../../engine/routes';
 import { attackReach } from '../../engine/marchAttack';
-import { whereLabel } from '../../engine/unitLocation';
 import { canSeeTile } from '../../engine/sight';
 import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
 import { validateInvasion } from '../../engine/invasion';
@@ -22,8 +21,13 @@ import { describeAttackBlock } from '../../utils/attackAvailability';
 import PreBattleModal from '../battle/PreBattleModal';
 import { useMarch } from './MarchContext';
 import { useMapToolFlag } from './mapTool';
+import { placeLabel, whereText } from './placeText';
+import { useT } from '../../i18n/useT';
+import { t as tNow } from '../../i18n';
+import { nameNow } from '../../i18n/names';
+import { rich } from '../../i18n/rich';
 
-const name = (id) => REGIONS_DATA[id]?.name || id;
+const name = (id) => nameNow('city', null, REGIONS_DATA[id]?.name || id);
 
 /** What the bar offers for a target: pure, for tests. `plan` is MarchContext's planMarch. */
 export const marchBarModel = (state, march, plan) => {
@@ -41,7 +45,7 @@ export const marchBarModel = (state, march, plan) => {
   const foes = !naval && isTile && target != null && canSeeTile(state, target) ? enemyStackAt(state, target) : [];
   const beside = foes.length > 0 && origin != null && getTiles().neighbors[origin].includes(target);
   const fieldCheck = beside ? validateFieldAttack(state, march.from, target) : null;
-  const enemyArmy = foes.length ? { strength: foes.reduce((s, u) => s + u.strength, 0), owner: state.nations[foes[0].ownerId]?.name || 'Rebel', adjacent: beside, blocked: fieldCheck && !fieldCheck.ok ? describeAttackBlock(fieldCheck) : null } : null;
+  const enemyArmy = foes.length ? { strength: foes.reduce((s, u) => s + u.strength, 0), owner: state.nations[foes[0].ownerId] ? nameNow('people', foes[0].ownerId, state.nations[foes[0].ownerId].name) : tNow('march.rebel'), adjacent: beside, blocked: fieldCheck && !fieldCheck.ok ? describeAttackBlock(fieldCheck) : null } : null;
   // ACT-01: an attack the engine would refuse says why on the bar, before the tap (the same
   // validation the attack card and the reducer run), never a card with nothing in it.
   const owner = !naval && !isTile && target != null ? state.regions[target]?.owner : null;
@@ -49,11 +53,11 @@ export const marchBarModel = (state, march, plan) => {
   const attackBlocked = enemyCity && reach === 'adjacent' ? describeAttackBlock(validateInvasion(state, march.from, target)) : null;
   // A foreign city the player may not attack (at peace with a major): the march stops at its
   // border, and the bar says why there is no Attack.
-  const peaceName = foreign && access !== 'friend' && !canAttack(state, state.playerNationId, owner) ? state.nations[owner].name : null;
-  const marchAttackBlocked = peaceName ? `At peace with ${peaceName}: declare war before attacking (its province card).` : null;
+  const peaceName = foreign && access !== 'friend' && !canAttack(state, state.playerNationId, owner) ? nameNow('people', owner, state.nations[owner].name) : null;
+  const marchAttackBlocked = peaceName ? tNow('march.atPeace', { name: peaceName }) : null;
   return {
     target, isTile, naval, units, origin, enemyArmy,
-    fromText: origin != null ? whereLabel(state, origin).text : null,
+    fromText: origin != null ? whereText(state, origin) : null,
     // Move now only where the march itself would arrive this turn (routes.js moveNowCheck, the
     // same route and schedule as the preview: I065), for every unit of the stack.
     canMoveNow: !naval && target != null && !isTile && access === 'own' && units.length > 0 && units.every((u) => moveNowCheck(state, u, target).ok),
@@ -69,6 +73,7 @@ export const marchBarModel = (state, march, plan) => {
 
 const MarchBar = () => {
   const { state, dispatch } = useGame();
+  const { t, n } = useT();
   const ctx = useMarch();
   const [fieldAttack, setFieldAttack] = useState(null); // the tile of an enemy army beside the stack
   const [cityAttack, setCityAttack] = useState(null); // the enemy city the stack borders (ACT-01: its attack card, not the province card)
@@ -77,7 +82,7 @@ const MarchBar = () => {
   const { march, plan, cancel } = ctx;
   const m = marchBarModel(state, march, plan);
   const { target, isTile, naval } = m;
-  const targetName = isTile ? placeName(state, target) : name(target);
+  const targetName = isTile ? placeLabel(state, target) : name(target);
 
   const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { ...(isTile ? { fromRegionId: march.from, toTile: target } : { fromRegionId: march.from, toRegionId: target }), naval, unitIds: march.unitIds || null } }); cancel(); };
   const marchAttack = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: march.from, toRegionId: target, attack: true, unitIds: march.unitIds || null } }); cancel(); };
@@ -85,29 +90,32 @@ const MarchBar = () => {
   const attack = () => { if (!m.attackBlocked) setCityAttack(target); };
 
   // The army's own place, never its base ("march to from Men-nefer" while it stood at Jerusalem).
-  const who = <b data-testid="march-origin">{naval ? 'The fleet' : 'The army'} {m.fromText || `at ${name(march.from)}`}</b>;
-  const turnsText = (n) => `${n} turn${n > 1 ? 's' : ''}`;
+  const who = <b data-testid="march-origin">{naval ? t('march.fleet') : t('march.army')} {m.fromText || t('where.at', { name: name(march.from) })}</b>;
+  const turnsText = (count) => t('march.turns', { count });
+  const R = (key, nodes, vars) => rich(t(key, vars), nodes);
+  const danger = (text) => <span className="text-fa-danger-text">{text}</span>;
   // When it sets out (I066): a march walks at End Turn; a stack that already moved now waits a turn.
-  const leaves = plan?.ok ? (plan.spent ? ', it already moved this turn' : ', it sets out at End Turn') : '';
+  const leaves = plan?.ok ? (plan.spent ? t('march.movedAlready') : t('march.setsOut')) : '';
   let line;
-  if (target == null) line = naval ? <>{who}: tap a port or a sea tile to sail to.</> : <>{who}: tap a city or a tile to march to.</>;
-  else if (m.canAttackNow) line = m.attackBlocked ? <span data-testid="march-attack-blocked">Your army borders <b>{targetName}</b>, but cannot attack: <span className="text-fa-danger-text">{m.attackBlocked}</span></span> : <>Your army borders <b>{targetName}</b>: attack it now.</>;
-  else if (m.enemyArmy?.adjacent) line = m.enemyArmy.blocked ? <span data-testid="march-attack-blocked">An army of {m.enemyArmy.owner} ({m.enemyArmy.strength.toLocaleString()}) stands beside yours, but you cannot attack: <span className="text-fa-danger-text">{m.enemyArmy.blocked}</span></span> : <span data-testid="march-enemy-army">An army of {m.enemyArmy.owner} ({m.enemyArmy.strength.toLocaleString()}) stands beside yours: attack it now.</span>;
-  else if (m.marchAttackBlocked) line = <span data-testid="march-attack-blocked">{plan?.ok ? <>To <b>{targetName}</b>: {turnsText(plan.turns)}. </> : null}<span className="text-fa-danger-text">{m.marchAttackBlocked}</span></span>;
-  else if (!plan?.ok) line = <span className="text-fa-danger-text">{plan?.reason || 'No route.'}</span>;
+  if (target == null) line = R(naval ? 'march.tapPort' : 'march.tapCity', { who });
+  else if (m.canAttackNow) line = m.attackBlocked ? <span data-testid="march-attack-blocked">{R('march.bordersBlocked', { target: <b>{targetName}</b>, reason: danger(m.attackBlocked) })}</span>
+    : R('march.bordersNow', { target: <b>{targetName}</b> });
+  else if (m.enemyArmy?.adjacent) line = m.enemyArmy.blocked ? <span data-testid="march-attack-blocked">{R('march.foeBlocked', { reason: danger(m.enemyArmy.blocked) }, { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span> : <span data-testid="march-enemy-army">{t('march.foeBeside', { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span>;
+  else if (m.marchAttackBlocked) line = <span data-testid="march-attack-blocked">{plan?.ok ? <>{R('march.toTurns', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns) })} </> : null}{danger(m.marchAttackBlocked)}</span>;
+  else if (!plan?.ok) line = <span className="text-fa-danger-text">{plan?.reason || t('march.noRoute')}</span>;
   else if (m.canMarchAttack) {
     line = (
       <span data-testid="march-attack-plan">
-        Attack <b>{targetName}</b>: march {turnsText(plan.turns)}, then the assault, about {plan.supplies} supplies{m.stopsAt && <span className="text-fa-danger-text">. Stops at {name(m.stopsAt)} first</span>}
+        {R('march.attackPlan', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns), supplies: n(plan.supplies) })}{m.stopsAt && danger(t('march.stopsFirst', { place: name(m.stopsAt) }))}
       </span>
     );
   } else if (m.enemyArmy) {
-    line = <span data-testid="march-enemy-army">An army of {m.enemyArmy.owner} ({m.enemyArmy.strength.toLocaleString()}) stands there, {turnsText(plan.turns)} away: march beside it, then attack it from the army sheet. About {plan.supplies} supplies.</span>;
+    line = <span data-testid="march-enemy-army">{t('march.foeThere', { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength), turns: turnsText(plan.turns), supplies: n(plan.supplies) })}</span>;
   } else {
     line = (
       <span data-testid="march-plan">
-        To <b>{targetName}</b>: {turnsText(plan.turns)}{leaves}{naval ? '' : `, about ${plan.supplies} supplies`}{m.canMoveNow ? '. Move now arrives this turn' : ''}
-        {plan.haltAt && <span className="text-fa-danger-text">. Halts at {name(plan.haltAt)} to attack</span>}
+        {R('march.toTurns', { target: <b>{targetName}</b> }, { turns: `${turnsText(plan.turns)}${leaves}` })}{naval ? '' : t('march.supplies', { n: n(plan.supplies) })}{m.canMoveNow ? t('march.moveNowNote') : ''}
+        {plan.haltAt && danger(t('march.halts', { place: name(plan.haltAt) }))}
       </span>
     );
   }
@@ -119,16 +127,16 @@ const MarchBar = () => {
       <Flag className="w-4 h-4 text-fa-good shrink-0" />
       {/* A phone held sideways: two lines at most, so the bar stays a strip and the route under it shows (I083); the title holds the rest. */}
       <div className="flex-1 min-w-0 leading-snug pl:line-clamp-2" data-testid="march-line">{line}</div>
-      {m.canAttackNow && <button onClick={attack} disabled={!!m.attackBlocked} title={m.attackBlocked || undefined} data-testid="march-attack-now" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 font-semibold text-fa-text">Attack</button>}
+      {m.canAttackNow && <button onClick={attack} disabled={!!m.attackBlocked} title={m.attackBlocked || undefined} data-testid="march-attack-now" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 font-semibold text-fa-text">{t('march.attack')}</button>}
       {m.canMarchAttack && (
         <button onClick={marchAttack} data-testid="march-attack" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text flex items-center gap-1.5">
-          <Swords className="w-3.5 h-3.5" aria-hidden="true" />March to attack
+          <Swords className="w-3.5 h-3.5" aria-hidden="true" />{t('march.marchAttack')}
         </button>
       )}
-      {m.enemyArmy?.adjacent && <button onClick={() => { if (!m.enemyArmy.blocked) setFieldAttack(target); }} disabled={!!m.enemyArmy.blocked} title={m.enemyArmy.blocked || undefined} data-testid="march-attack-army" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text">Attack</button>}
-      {m.canMoveNow && <button onClick={moveNow} data-testid="march-move-now" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line font-semibold">Move now</button>}
-      {plan?.ok && !m.canAttackNow && !m.canMarchAttack && !m.enemyArmy?.adjacent &&<button onClick={marchNow} data-testid="march-confirm" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-fa-text">{naval ? 'Sail' : 'March'}</button>}
-      <button onClick={cancel} aria-label="Cancel march" className="shrink-0 p-2 rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
+      {m.enemyArmy?.adjacent && <button onClick={() => { if (!m.enemyArmy.blocked) setFieldAttack(target); }} disabled={!!m.enemyArmy.blocked} title={m.enemyArmy.blocked || undefined} data-testid="march-attack-army" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text">{t('march.attack')}</button>}
+      {m.canMoveNow && <button onClick={moveNow} data-testid="march-move-now" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line font-semibold">{t('march.moveNow')}</button>}
+      {plan?.ok && !m.canAttackNow && !m.canMarchAttack && !m.enemyArmy?.adjacent &&<button onClick={marchNow} data-testid="march-confirm" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-fa-text">{naval ? t('march.sail') : t('march.march')}</button>}
+      <button onClick={cancel} aria-label={t('march.cancel')} className="shrink-0 p-2 rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
     </div>
   );
 };

@@ -21,6 +21,7 @@ import { endTurnButton, endTurnPress } from './endTurnModel';
 import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
 import { prewarmTurnWorker, abandonTurnInWorker } from '../../services/turnClient';
 import IdleChip from './IdleChip';
+import { useT } from '../../i18n/useT';
 
 // "The world moves" longer than this offers to run the turn on this thread instead (an iPhone has
 // been seen waiting on the turn worker for good; turnClient.js keeps a log of why).
@@ -30,13 +31,14 @@ const KIND_ICON = { city: Hammer, research: FlaskConical, demand: Scroll, tribut
 
 const TurnDock = () => {
   const { state, advanceTurn, turnPending } = useGame();
+  const { t, lang } = useT();
   const isMobile = useIsMobile();
   const [armed, setArmed] = useState(false);
   // The turn worker loads its engine while the player looks at the map, not on the first End Turn
   // (seconds on a phone; turnClient.js).
   useEffect(() => { const t = setTimeout(prewarmTurnWorker, 1500); return () => clearTimeout(t); }, []);
   useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), WARN_ARM_MS); return () => clearTimeout(t); }, [armed]);
-  const btn = endTurnButton(state, { turnPending, armed });
+  const btn = useMemo(() => endTurnButton(state, { turnPending, armed }), [state, turnPending, armed, lang]);
   const [slow, setSlow] = useState(false);
   useEffect(() => {
     if (!turnPending) { setSlow(false); return undefined; }
@@ -75,7 +77,7 @@ const TurnDock = () => {
         ${isMobile ? 'end-3 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)]' : 'end-[calc(var(--rail-w,0px)+0.75rem)] bottom-[max(env(safe-area-inset-bottom),0.75rem)]'}`}>
       {armed && hints.length > 0 && (
         <div className="pointer-events-auto fa-panel p-2 w-[min(17rem,60vw)] shadow-2xl" role="status" data-testid="end-turn-warnings">
-          <div className="fa-label mb-1.5">{hints.length} still waiting</div>
+          <div className="fa-label mb-1.5">{t('turn.stillWaiting', { n: hints.length })}</div>
           <div className="flex flex-wrap gap-1.5">
             {hints.slice(0, 4).map((p) => (
               <button key={p.id} type="button" onClick={() => { setArmed(false); goToPrompt(state, p); }} className="fa-chip max-w-full truncate">{chipLabel(state, p)}</button>
@@ -88,13 +90,13 @@ const TurnDock = () => {
         {btn.mode !== 'moving' && <IdleChip />}
         {btn.mode === 'moving' ? (
           <div className="fa-panel h-[50px] pl:h-11 min-w-[11rem] px-4 flex flex-col justify-center shadow-xl" role="status" aria-live="polite" data-testid="world-moves">
-            <span className="text-[13px] font-semibold">{slow ? 'Still working…' : 'The world moves…'}</span>
+            <span className="text-[13px] font-semibold">{slow ? t('turn.stillWorking') : t('turn.moves')}</span>
             <span className="fa-bar mt-1.5 relative" style={{ height: 4 }}><span className="absolute inset-y-0 w-1/3 bg-fa-text animate-[worldMoves_1.1s_ease-in-out_infinite]" /></span>
           </div>
         ) : null}
         {btn.mode === 'moving' && slow ? (
           <button type="button" onClick={() => abandonTurnInWorker()} className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl" data-testid="run-turn-here"
-            title="Stop waiting for the background worker and run the turn on this screen">Run it here</button>
+            title={t('turn.runHereTip')}>{t('turn.runHere')}</button>
         ) : null}
         {btn.mode === 'moving' ? null : (
           <button
@@ -105,8 +107,8 @@ const TurnDock = () => {
             data-blocker={blocking ? btn.blocker.kind : undefined}
             data-armed={armed ? '1' : '0'}
             data-turn-pending="0"
-            aria-label={blocking ? `${btn.label}${btn.count > 1 ? `, ${btn.count - 1} more before the turn can end` : ', then the turn can end'}` : btn.label}
-            title={blocking ? `${btn.label}${btn.count > 1 ? ` (${btn.count - 1} more)` : ''}` : undefined}
+            aria-label={blocking ? (btn.count >= 2 ? t('turn.blockedMore', { label: btn.label, n: btn.count - 1 }) : t('turn.blockedThen', { label: btn.label })) : btn.label}
+            title={blocking ? (btn.count >= 2 ? t('turn.blockedTip', { label: btn.label, n: btn.count - 1 }) : btn.label) : undefined}
             className={`fa-btn fa-btn-primary fa-btn-hero !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-2 min-w-0
               ${blocking ? '!px-3.5 !text-[15px] pl:!text-[14px] max-w-[min(22rem,52vw)] pl:max-w-[min(17rem,40vw)]' : '!px-5'}`}
           >

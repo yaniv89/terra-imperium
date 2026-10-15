@@ -12,6 +12,7 @@
 // Choosing a tech costs nothing: science pays for it at the end of each turn, the rest carries on.
 // "Research" makes a tech the target (queuing its missing earlier techs first); "Queue" adds it
 // after what's already planned. Pure numbers come from researchView.js and researchSheetModel.js.
+import { t as tNow } from '../../i18n';
 import React, { useMemo, useState } from 'react';
 import { FlaskConical, Check, Lock, X, ListPlus, Sparkles, BookOpen, GraduationCap, MapPin } from 'lucide-react';
 import { ageIconUrl } from '../../data/icons';
@@ -59,8 +60,8 @@ const TechRow = ({ info, onResearch, onQueue }) => {
         </div>
         {!researched && !current && (
           <div className="flex gap-1 shrink-0">
-            <Button size="sm" onClick={() => onResearch(tech.id)}>Research</Button>
-            {queuedAt < 0 && <button type="button" onClick={() => onQueue(tech.id)} aria-label={`Queue ${tech.name}`} title="Add to the queue" className="fa-icon-btn !w-8 !h-8"><ListPlus className="w-4 h-4" aria-hidden="true" /></button>}
+            <Button size="sm" onClick={() => onResearch(tech.id)}>{tNow('tech.research')}</Button>
+            {queuedAt < 0 && <button type="button" onClick={() => onQueue(tech.id)} aria-label={tNow('tech.queueAria', { name: tech.name })} title={tNow('tech.addQueue')} className="fa-icon-btn !w-8 !h-8"><ListPlus className="w-4 h-4" aria-hidden="true" /></button>}
           </div>
         )}
       </div>
@@ -78,7 +79,7 @@ const CurrentCard = ({ m }) => {
   if (!c) {
     return (
       <div className="fa-card p-3 text-[13px]" data-testid="research-current">
-        <div className="fa-heading text-[16px] mb-0.5">Nothing under way</div>
+        <div className="fa-heading text-[16px] mb-0.5">{tNow('tech.nothing')}</div>
         <div className="text-fa-muted">{m.status.kind === 'choose' || m.status.kind === 'advisor' ? `${m.bank > 0 ? `${m.bank} science waits. ` : ''}Pick a tech below, or let your advisor choose.` : m.status.note}</div>
       </div>
     );
@@ -204,7 +205,7 @@ const TechPanel = () => {
   return (
     <div className="px-3 sm:px-4 pt-3" data-testid="research-tab">
       <div className="flex items-baseline gap-2 flex-wrap mb-2.5">
-        <h2 className="fa-heading text-[19px]">Research</h2>
+        <h2 className="fa-heading text-[19px]">{tNow('rail.tech')}</h2>
         <span className="fa-label" data-testid="research-header">{m.header.ageName}: {m.header.known} of {m.header.total} {m.header.techAgeName} techs known{m.header.aheadOfCalendar ? " (ahead of the calendar)" : ""}</span>
         <span className="ms-auto fa-num text-[12px]" style={{ color: SCIENCE }}>+{science} science a turn{m.bank > 0 ? <span className="text-fa-muted">, {m.bank} banked</span> : null}</span>
       </div>
@@ -215,7 +216,7 @@ const TechPanel = () => {
 
           {m.boosts.length > 0 && (
             <section className="space-y-1.5" aria-labelledby="research-boosts">
-              <Label id="research-boosts">Boosts from the map</Label>
+              <Label id="research-boosts">{tNow('tech.boosts')}</Label>
               {m.boosts.slice(0, 4).map((b) => <BoostRow key={b.techId} b={b} />)}
               {m.boosts.length > 4 && <div className="text-[11px] text-fa-muted">{m.boosts.length - 4} more in the lines below.</div>}
             </section>
@@ -223,8 +224,8 @@ const TechPanel = () => {
 
           <section className="space-y-1.5" aria-labelledby="research-next">
             <div className="flex items-center gap-2 flex-wrap" data-testid="research-queue">
-              <Label id="research-next">Next</Label>
-              {m.queue.length === 0 && <span className="text-[12px] text-fa-muted">Nothing queued. Tap the queue button on a tech.</span>}
+              <Label id="research-next">{tNow('tech.next')}</Label>
+              {m.queue.length === 0 && <span className="text-[12px] text-fa-muted">{tNow('tech.noQueue')}</span>}
               {m.queue.map((q, i) => (
                 <span key={q.tech.id} className="fa-chip !pe-1 gap-1">
                   <span className="fa-num text-fa-muted">{i + 1}</span> {q.tech.name} <span className="fa-num text-fa-muted">{q.gate ? `waits ${q.gate.label}` : `${q.finishesIn}t`}</span>
@@ -232,7 +233,7 @@ const TechPanel = () => {
                 </span>
               ))}
             </div>
-            <Switch label="Let my advisor pick" hint={m.auto && !m.current ? m.status.note : 'When the queue runs out'} checked={m.auto} onChange={(v) => { const plan = v ? advisorPlan(state) : null; dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: v } }); if (plan?.techId) dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId: plan.techId } }); }} testId="research-auto" />
+            <Switch label={tNow('tech.advisor')} hint={m.auto && !m.current ? m.status.note : tNow('tech.advisorHint')} checked={m.auto} onChange={(v) => { const plan = v ? advisorPlan(state) : null; dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: v } }); if (plan?.techId) dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId: plan.techId } }); }} testId="research-auto" />
           </section>
         </div>
 
@@ -248,7 +249,7 @@ const TechPanel = () => {
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <ActionButton
           icon={GraduationCap}
-          label="Fund Scholars"
+          label={tNow('tech.scholars')}
           description="Turn gold into science, paid into your research at the end of the turn"
           costs={ACTION_COSTS.fundScholars}
           effects={{ custom: scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note }}
@@ -270,8 +271,8 @@ const TechPanel = () => {
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">
-        <h3 className="fa-heading text-[16px]">All techs</h3>
-        <Segmented label="Show the techs as" className="w-[11rem]" value={web ? 'web' : 'lines'} onChange={(v) => setWeb(v === 'web')}
+        <h3 className="fa-heading text-[16px]">{tNow('tech.all')}</h3>
+        <Segmented label={tNow('tech.showAs')} className="w-[11rem]" value={web ? 'web' : 'lines'} onChange={(v) => setWeb(v === 'web')}
           options={[{ id: 'lines', label: 'Lines' }, { id: 'web', label: 'Web', testId: 'research-web-toggle' }]} />
       </div>
 
@@ -280,7 +281,7 @@ const TechPanel = () => {
         const act = (n) => { if (n.status === 'available') research(n.id); else if (n.status === 'locked') queue(n.id); else if (n.status === 'queued') unqueue(n.id); };
         return (
           <div className="mt-2 overflow-x-auto rounded-lg border border-fa-line bg-fa-ink/60" data-testid="research-web">
-            <svg width={g.width + 16} height={g.height + 36} viewBox={`-8 -28 ${g.width + 16} ${g.height + 36}`} role="img" aria-label="The research web">
+            <svg width={g.width + 16} height={g.height + 36} viewBox={`-8 -28 ${g.width + 16} ${g.height + 36}`} role="img" aria-label={tNow('tech.web')}>
               {g.ages.map((a) => <text key={a.ageId} x={a.x + a.width / 2} y={-12} textAnchor="middle" fontSize="11" fill="#B9B19F" fontFamily="var(--fa-font-display)">{a.name}</text>)}
               {g.ages.map((a) => ageIconUrl(a.ageId) && <image key={`i${a.ageId}`} href={ageIconUrl(a.ageId)} x={a.x} y={-27} width={20} height={20} data-testid={`web-age-${a.ageId}`} />)}
               {g.ages.map((a, i) => i > 0 && <line key={`v${a.ageId}`} x1={a.x - 9} y1={-24} x2={a.x - 9} y2={g.height} stroke="#33404F" strokeDasharray="3 3" />)}
@@ -293,7 +294,7 @@ const TechPanel = () => {
                 </g>
               ))}
             </svg>
-            <div className="px-2 py-1 text-[11px] text-fa-muted">Tap a tech you can start to research it, a locked one to queue it. Brass lines cross between lines.</div>
+            <div className="px-2 py-1 text-[11px] text-fa-muted">{tNow('tech.webHint')}</div>
           </div>
         );
       })()}

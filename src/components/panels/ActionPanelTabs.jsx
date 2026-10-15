@@ -9,6 +9,7 @@ import { useGame } from '../../context/GameContext';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { TECH_TREE } from '../../data/techTree';
 import { nextPrompts } from '../ui/nextPromptModel';
+import { useT } from '../../i18n/useT';
 
 // The War section stays in the Empire sheet (plans/civ-map-rework.md E4); Diplomacy is its own tab
 // again as "Peoples" (W07), so the Empire sheet no longer repeats it.
@@ -52,18 +53,19 @@ export const getTabBadge = (state, tabId) => {
 
 const ActionPanelTabs = ({ activeTab, onTabChange }) => {
   const { state } = useGame();
+  const { t } = useT();
 
   return (
-    <div className="flex border-b border-fa-line bg-fa-panel overflow-x-auto scrollbar-none" role="tablist" aria-label="Panels">
+    <div className="flex border-b border-fa-line bg-fa-panel overflow-x-auto scrollbar-none" role="tablist" aria-label={t('rail.panels')}>
       {visibleTabs(state).map(tab => {
         const Icon = tab.icon;
         const badge = getTabBadge(state, tab.id);
         return (
-          <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} aria-label={tab.label} onClick={() => onTabChange(tab.id)}
+          <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} aria-label={t(`rail.${tab.id}`)} onClick={() => onTabChange(tab.id)}
             className="fa-tab flex-1 flex-col !gap-0.5 !px-1 !text-[10px] min-w-[3.5rem]">
             <Icon className="w-[18px] h-[18px]" aria-hidden="true" />
-            {tab.label}
-            {badge > 0 && <span className="absolute top-1.5 end-[calc(50%-16px)] w-2 h-2 rounded-full bg-fa-danger" aria-label={`${badge} waiting`} />}
+            {t(`rail.${tab.id}`)}
+            {badge > 0 && <span className="absolute top-1.5 end-[calc(50%-16px)] w-2 h-2 rounded-full bg-fa-danger" aria-label={t('rail.waiting', { n: badge })} />}
           </button>
         );
       })}

@@ -15,9 +15,12 @@ import { MAP_HINT } from '../ui/uiEvents';
 import { openPanelTab } from '../panels/panelEvents';
 import { Meter } from '../ui/atlas';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { t as tNow, ageName } from '../../i18n';
+import { useT } from '../../i18n/useT';
 
 const MapGoals = () => {
   const { state } = useGame();
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [hint, setHint] = useState(null);
   useEffect(() => {
@@ -28,7 +31,7 @@ const MapGoals = () => {
   const era = useMemo(() => eraGoalProgress(state), [state]);
   // The hint is a notice (useExclusivePanel.js): on a phone it waits as a chip while a card or a
   // panel has the screen.
-  const { shown: hintShown } = useInteraction('map-hint', !!hint, { priority: PRIORITY.notice, kind: 'notice', label: hint ? `Map: ${hint.title}` : null, testId: 'map-hint-chip' });
+  const { shown: hintShown } = useInteraction('map-hint', !!hint, { priority: PRIORITY.notice, kind: 'notice', label: hint ? tNow('wait.mapHint', { title: hint.title }) : null, testId: 'map-hint-chip' });
   const wide = 'w-[min(19rem,calc(100vw-1.5rem-var(--rail-inset,0px)))]';
   // Under the "needs you" chips (App.jsx), so never under them. While a march or a site is being
   // chosen on a phone held sideways the bar has the top of the screen: the goals step aside
@@ -40,20 +43,20 @@ const MapGoals = () => {
           <div className="font-semibold leading-tight">{hint.title}</div>
           <div className="text-fa-muted leading-snug">{hint.text}</div>
           <div className="flex gap-2">
-            {hint.back && <button type="button" onClick={() => { setHint(null); openPanelTab(hint.back); }} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-back">Back to Research</button>}
-            <button type="button" onClick={() => setHint(null)} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-done">Done</button>
+            {hint.back && <button type="button" onClick={() => { setHint(null); openPanelTab(hint.back); }} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-back">{t('goals.backResearch')}</button>}
+            <button type="button" onClick={() => setHint(null)} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-done">{t('goals.done')}</button>
           </div>
         </div>
       )}
       <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} data-testid="goal-tracker-chip"
         className="pointer-events-auto min-h-[36px] inline-flex items-center gap-1.5 px-2.5 rounded-full bg-fa-panel/90 border border-fa-line text-[12px] text-fa-text">
-        <Target size={14} aria-hidden="true" />Goals <span className="fa-num">{era.met}/{era.needed}</span>
+        <Target size={14} aria-hidden="true" />{t('goals.title')} <span className="fa-num">{era.met}/{era.needed}</span>
       </button>
       {open && (
         <div className={`pointer-events-auto fa-panel !bg-fa-panel shadow-xl p-2 ${wide} max-h-[calc(100dvh-8rem)] overflow-y-auto space-y-1.5`} data-testid="goal-tracker">
           <div className="flex items-start justify-between gap-2">
-            <div className="text-[12px] text-fa-muted leading-snug">{AGES[era.ageId]?.name || era.ageId} goals: meet {era.needed} for a legacy that lasts {ERA_LEGACY_TURNS} turns.</div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close the goals" className="w-8 h-8 shrink-0 flex items-center justify-center rounded hover:bg-fa-raised"><X size={14} aria-hidden="true" /></button>
+            <div className="text-[12px] text-fa-muted leading-snug">{t('goals.intro', { age: ageName(era.ageId, AGES[era.ageId]?.name), needed: era.needed, turns: ERA_LEGACY_TURNS })}</div>
+            <button type="button" onClick={() => setOpen(false)} aria-label={t('goals.close')} className="w-8 h-8 shrink-0 flex items-center justify-center rounded hover:bg-fa-raised"><X size={14} aria-hidden="true" /></button>
           </div>
           {era.goals.map((g) => (
             <div key={g.id} data-testid={`goal-${g.id}`}>
@@ -62,7 +65,7 @@ const MapGoals = () => {
                 <span className={`fa-num ${g.done ? 'text-fa-good' : 'text-fa-muted'}`}>{Math.min(g.value, g.target)} / {g.target}</span>
               </div>
               <Meter value={g.value} max={g.target} color={g.done ? 'var(--fa-good)' : 'var(--fa-you)'} height={4} />
-              <div className="text-[11px] text-fa-muted leading-snug">{g.done ? 'Done.' : GOAL_NEXT_ACTION[g.id]} Legacy: {PLAYSTYLES[g.id].bonusLabel}.</div>
+              <div className="text-[11px] text-fa-muted leading-snug">{g.done ? t('goals.doneDot') : GOAL_NEXT_ACTION[g.id]} {t('goals.legacy', { bonus: PLAYSTYLES[g.id].bonusLabel })}</div>
             </div>
           ))}
         </div>

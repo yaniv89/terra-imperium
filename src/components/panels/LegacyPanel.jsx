@@ -3,6 +3,8 @@
 // doctrine bonus they unlock for the NEXT game. This is the only panel that reads/writes
 // cross-game state (via useGame()'s `meta`/`selectDoctrine`) rather than the current save.
 
+import { t as tNow } from '../../i18n';
+import { ageName } from '../../i18n';
 import React from 'react';
 import { Trophy, Lock, Check, Gauge } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -26,8 +28,8 @@ const LegacyPanel = () => {
       {/* This era's goals (plans/civ-map-rework.md C9.3): meet two before the age ends for a legacy. */}
       <div className="p-3 rounded-lg border border-sky-500/30 bg-sky-500/5" data-testid="era-goals">
         <div className="flex items-center justify-between text-sm font-semibold text-fa-you">
-          <span>Goals of the {AGES[era.ageId]?.name || era.ageId}</span>
-          <span className="text-[11px] font-mono">{era.met}/{era.needed} for a legacy</span>
+          <span>{tNow('legacy.goalsOf', { age: ageName(era.ageId, AGES[era.ageId]?.name) })}</span>
+          <span className="text-[11px] font-mono">{tNow('empire.forLegacy', { met: era.met, needed: era.needed })}</span>
         </div>
         <div className="mt-1.5 grid grid-cols-5 gap-1">
           {era.goals.map((g) => (
@@ -37,22 +39,21 @@ const LegacyPanel = () => {
             </div>
           ))}
         </div>
-        {pastEras.length > 0 && <div className="text-[10px] text-fa-muted mt-1.5">{pastEras.map(([age, r]) => `${AGES[age]?.name || age}: ${r.legacy ? 'legacy earned' : 'no legacy'}`).join(' · ')}</div>}
+        {pastEras.length > 0 && <div className="text-[10px] text-fa-muted mt-1.5">{pastEras.map(([age, r]) => tNow(r.legacy ? 'legacy.earned' : 'legacy.none', { age: ageName(age, AGES[age]?.name) })).join(' · ')}</div>}
       </div>
       <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
         <div className="flex items-center gap-2 text-sm font-semibold text-amber-400">
           <Trophy className="w-4 h-4" />
-          <span>Legacy</span>
+          <span>{tNow('rail.legacy')}</span>
         </div>
         <p className="text-[11px] text-fa-muted mt-1">
-          Achievements persist across every game on this device. Unlocking one permanently adds a
-          starting doctrine you can pick for your next run.
+          {tNow('legacy.intro')}
         </p>
       </div>
 
       {/* Achievements */}
       <div className="space-y-2">
-        <div className="text-xs font-semibold text-fa-text">Achievements</div>
+        <div className="text-xs font-semibold text-fa-text">{tNow('legacy.achievements')}</div>
         {Object.values(ACHIEVEMENTS).map(a => {
           const unlocked = meta.unlockedAchievements.includes(a.id);
           const inProgress = !unlocked && satisfiedNow.includes(a.id);
@@ -66,12 +67,12 @@ const LegacyPanel = () => {
               <div className="flex items-center gap-1.5 font-semibold text-fa-text">
                 {unlocked ? <Check className="w-3 h-3 text-fa-good" /> : <Lock className="w-3 h-3 text-fa-muted" />}
                 {a.name}
-                {inProgress && <span className="text-[9px] text-amber-400 font-normal">(earned this run — unlocks on save)</span>}
+                {inProgress && <span className="text-[9px] text-amber-400 font-normal">{tNow('legacy.earnedRun')}</span>}
               </div>
               <div className="text-fa-muted text-[10px] mt-0.5">{a.description}</div>
               {(() => {
                 const p = unlocked ? null : achievementProgress(state, a.id);
-                if (!p) return <div className="text-[10px] mt-0.5 text-fa-muted" data-testid={`ach-status-${a.id}`}>{unlocked ? 'Earned' : 'Not yet'}</div>;
+                if (!p) return <div className="text-[10px] mt-0.5 text-fa-muted" data-testid={`ach-status-${a.id}`}>{unlocked ? tNow('legacy.earnedShort') : tNow('legacy.notYet')}</div>;
                 return (
                   <div className="mt-1" data-testid={`ach-progress-${a.id}`}>
                     <div className="flex justify-between text-[10px] text-fa-muted"><span>{p.unit}</span><span className="font-mono">{p.value} / {p.target}</span></div>
@@ -88,7 +89,7 @@ const LegacyPanel = () => {
       <div className="space-y-2">
         <div className="text-xs font-semibold text-fa-text flex items-center gap-1.5">
           <Gauge className="w-3.5 h-3.5" />
-          Difficulty (takes effect on your next game)
+          {tNow('legacy.difficulty')}
         </div>
         {Object.values(DIFFICULTIES).map(d => {
           const selected = (meta.difficulty || 'prince') === d.id;
@@ -102,7 +103,7 @@ const LegacyPanel = () => {
             >
               <div className="flex items-center gap-1.5 font-semibold text-fa-text">
                 {d.name}
-                {selected && <span className="text-[9px] text-fa-you font-normal">(active)</span>}
+                {selected && <span className="text-[9px] text-fa-you font-normal">{tNow('legacy.active')}</span>}
               </div>
               <div className="text-fa-muted text-[10px] mt-0.5">{d.description}</div>
             </button>
@@ -112,7 +113,7 @@ const LegacyPanel = () => {
 
       {/* Starting doctrine picker */}
       <div className="space-y-2">
-        <div className="text-xs font-semibold text-fa-text">Starting Doctrine (takes effect on your next game)</div>
+        <div className="text-xs font-semibold text-fa-text">{tNow('legacy.doctrine')}</div>
         {Object.values(STARTING_DOCTRINES).map(d => {
           const unlocked = !d.requiresAchievement || meta.unlockedAchievements.includes(d.requiresAchievement);
           const selected = meta.selectedDoctrine === d.id;
@@ -132,12 +133,12 @@ const LegacyPanel = () => {
               <div className="flex items-center gap-1.5 font-semibold text-fa-text">
                 {!unlocked && <Lock className="w-3 h-3 text-fa-muted" />}
                 {d.name}
-                {selected && <span className="text-[9px] text-amber-400 font-normal">(active)</span>}
+                {selected && <span className="text-[9px] text-amber-400 font-normal">{tNow('legacy.active')}</span>}
               </div>
               <div className="text-fa-muted text-[10px] mt-0.5">{d.description}</div>
               {!unlocked && (
                 <div className="text-[9px] text-fa-danger-text mt-1">
-                  Requires: {ACHIEVEMENTS[d.requiresAchievement]?.name}
+                  {tNow('legacy.requires', { name: ACHIEVEMENTS[d.requiresAchievement]?.name })}
                 </div>
               )}
             </button>

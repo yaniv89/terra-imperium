@@ -12,6 +12,7 @@ import { focusRegion } from '../map/marchEvents';
 import { describeEffects } from '../../engine/describeEffects';
 import { getOptionShortfall } from '../../engine/applyEventEffects';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { t as tNow } from '../../i18n';
 
 // Plan §M17: describeEffects is the ONE shared effect-description function (src/engine/
 // describeEffects.js) — this replaces the local formatEffectItem/parseEffects pair that used to
@@ -41,7 +42,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
   // The most pressing entry of the interaction registry (useExclusivePanel.js): it tucks the dock
   // on a narrow screen instead of squeezing beside it, and waits as a chip behind a sheet the
   // player opened.
-  const turn = useInteraction('event', !!event, { priority: PRIORITY.event, label: event ? `Event: ${event.title}` : null, testId: 'event-chip' });
+  const turn = useInteraction('event', !!event, { priority: PRIORITY.event, label: event ? tNow('wait.event', { title: event.title }) : null, testId: 'event-chip' });
   if (!event || !turn.shown) return null;
   // An option the treasury can't cover is shown but not clickable — unless NO option is affordable,
   // in which case every option stays open and the engine charges what it can (-1 stability).

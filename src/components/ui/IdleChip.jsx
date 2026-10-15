@@ -11,10 +11,12 @@ import { GameStatus } from '../../data/types';
 import { nextPrompts } from './nextPromptModel';
 import { goToPrompt, chipLabel } from './promptActions';
 import { stackPrompts, nextInStack, stackLabel, stackHint } from './promptStack';
+import { useT } from '../../i18n/useT';
 
 const IdleChip = ({ className = '' }) => {
   const { state } = useGame();
-  const stack = useMemo(() => (state.gameStatus === GameStatus.ACTIVE ? stackPrompts(nextPrompts(state)).find((s) => s.key === 'idle') || null : null), [state]);
+  const { t, lang } = useT();
+  const stack = useMemo(() => (state.gameStatus === GameStatus.ACTIVE ? stackPrompts(nextPrompts(state)).find((s) => s.key === 'idle') || null : null), [state, lang]);
   const last = useRef(null);
   if (!stack) return null;
   const single = (p) => chipLabel(state, p);
@@ -24,7 +26,7 @@ const IdleChip = ({ className = '' }) => {
     last.current = p.id;
     goToPrompt(state, p);
   };
-  const hint = stackHint(stack, single) || `${stack.items[0].label}. Tap to go there`;
+  const hint = stackHint(stack, single) || t('chip.tapToGo', { label: stack.items[0].label });
   return (
     <button type="button" onClick={go} title={hint} aria-label={hint} data-testid="idle-chip" data-count={stack.count}
       className={`fa-btn fa-btn-secondary !bg-fa-panel shadow-xl gap-1.5 !px-3 !min-h-[50px] pl:!min-h-[44px] whitespace-nowrap shrink-0 ${className}`}>

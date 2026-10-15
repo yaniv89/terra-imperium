@@ -16,7 +16,7 @@ export const ForceCard = ({ tone = 'you', tag, name, total, lines = [], unknownL
     <div className="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
       <span className={cx('text-[11px] font-bold tracking-[0.08em] shrink-0', tone === 'you' ? 'text-fa-you' : 'text-fa-enemy')}>{tag}</span>
       <span className="text-[13px] font-semibold truncate flex-1">{name}</span>
-      {total != null && <span className="fa-num text-[13px] font-semibold ml-auto text-right">{typeof total === 'number' ? menText(total) : total}</span>}
+      {total != null && <span className="fa-num text-[13px] font-semibold ms-auto text-end">{typeof total === 'number' ? menText(total) : total}</span>}
     </div>
     {lines.length > 0 && (
       <ul className="mt-1 space-y-0.5">
@@ -55,7 +55,7 @@ export const ModeCards = ({ options, value, onChange, className, compact = false
       return (
         <button key={o.id} type="button" role="radio" aria-checked={value === o.id} disabled={o.disabled} title={o.title}
           onClick={() => onChange(o.id)} data-testid={o.testId}
-          className={cx('fa-option text-left px-2.5 py-1.5 min-h-[52px] disabled:opacity-40', compact && 'pl:min-h-[44px] pl:py-1 pl:px-2', value === o.id && 'fa-selected')}>
+          className={cx('fa-option text-start px-2.5 py-1.5 min-h-[52px] disabled:opacity-40', compact && 'pl:min-h-[44px] pl:py-1 pl:px-2', value === o.id && 'fa-selected')}>
           <span className={cx('flex items-center gap-1.5 fa-heading text-[15px] leading-tight', compact && 'pl:text-[14px] pl:gap-1')}><M.icon className="w-4 h-4 shrink-0" aria-hidden="true" />{M.label}</span>
           {o.sub && <span className={cx('block text-[11px] text-fa-muted leading-tight mt-0.5', compact && 'pl:hidden')}>{o.sub}</span>}
         </button>
@@ -77,9 +77,9 @@ export const OddsBar = ({ mine, labelLeft = 'they win', labelMid = 'even', label
   <div aria-label={`${labelLeft} to ${labelRight}`}>
     <div className="relative h-2 rounded-full bg-fa-ink border border-fa-line overflow-hidden">
       {band
-        ? <span className="absolute inset-y-0 rounded-full" style={{ background: bandColor, left: `${band[0] * 100}%`, width: `${Math.max(4, (band[1] - band[0]) * 100)}%` }} />
-        : <span className="absolute inset-y-0 left-0 bg-fa-you" style={{ width: `${Math.round(mine * 100)}%` }} />}
-      <span className="absolute inset-y-[-2px] left-1/2 w-px bg-fa-text/70" />
+        ? <span className="absolute inset-y-0 rounded-full" style={{ background: bandColor, insetInlineStart: `${band[0] * 100}%`, width: `${Math.max(4, (band[1] - band[0]) * 100)}%` }} />
+        : <span className="absolute inset-y-0 start-0 bg-fa-you" style={{ width: `${Math.round(mine * 100)}%` }} />}
+      <span className="absolute inset-y-[-2px] start-1/2 w-px bg-fa-text/70" />
     </div>
     <div className={cx('flex justify-between text-[10px] text-fa-muted mt-0.5', compact && 'pl:hidden')}><span>{labelLeft}</span><span>{labelMid}</span><span>{labelRight}</span></div>
   </div>

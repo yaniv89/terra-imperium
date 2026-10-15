@@ -8,6 +8,9 @@
 import { tileFacts } from '../data/tileYields';
 import { getTiles } from '../data/geo/tiles';
 import { isSettler } from './settlers';
+import { t as tNow, hasKey } from '../i18n';
+
+const guideText = (id, field, fallback) => (hasKey('prompt.guide.' + id + '.' + field, 'en') ? tNow('prompt.guide.' + id + '.' + field) : fallback);
 
 // The guided start plays Kemet (the people of the Nile, phase W0) in a Standard peoples world; the
 // guide reads only the player's own state, so it works in a legacy world too (as Egypt).
@@ -59,7 +62,7 @@ export const tutorialPrompt = (state) => {
   const s = tutorialStatus(state);
   if (!s?.active) return null;
   const n = s.steps.indexOf(s.current) + 1;
-  return { id: `guide:${s.current.id}`, kind: 'guide', label: `Guide ${n}/${s.steps.length}: ${s.current.label}`, hint: s.current.hint, target: s.current.target, step: s.current.id };
+  return { id: `guide:${s.current.id}`, kind: 'guide', label: tNow('prompt.guide', { n, total: s.steps.length, label: guideText(s.current.id, 'label', s.current.label) }), hint: guideText(s.current.id, 'hint', s.current.hint), target: s.current.target, step: s.current.id };
 };
 
 /** Marks a step the UI witnessed; the same state when there is no guide or the step is known. */

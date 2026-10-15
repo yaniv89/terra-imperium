@@ -19,6 +19,7 @@ import { topBarModel } from './topBarModel';
 import { Shield, signed } from './atlas';
 import ResourceBar from './ResourceBar';
 import { CULTURE_HELP } from '../../data/powerPools';
+import { useT } from '../../i18n/useT';
 
 const GoldIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-brass)" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v8M9.5 10.5h5" /></svg>;
 const FoodIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-food)" strokeWidth="1.8" aria-hidden="true"><path d="M12 21V8M12 8c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-3-2-5-5-5 0 3 2 5 5 5zM12 16c0-3 2-5 5-5 0 3-2 5-5 5z" /></svg>;
@@ -37,7 +38,9 @@ const BarItem = ({ label, onClick, expanded, children, testId }) => (
 );
 
 // The reasons behind a number (rule 4), anchored under the bar.
-const Reasons = ({ title, rows, total, unit, footer, onClose }) => (
+const Reasons = ({ title, rows, total, unit, footer, onClose }) => {
+  const { t } = useT();
+  return (
   <>
     <div className="fixed inset-0 z-30" onClick={onClose} aria-hidden="true" />
     <div role="dialog" aria-label={title} className="absolute start-2 top-full mt-1 z-40 w-[min(320px,calc(100vw-1rem))] fa-panel !bg-fa-panel shadow-2xl p-3 max-h-[70dvh] overflow-y-auto" data-testid="top-bar-reasons">
@@ -45,7 +48,7 @@ const Reasons = ({ title, rows, total, unit, footer, onClose }) => (
         <span className="fa-heading text-[15px]">{title}</span>
         {total != null && <span className="fa-num text-[13px]">{signed(total)}{unit}</span>}
       </div>
-      {rows.length === 0 && <div className="text-[12px] text-fa-muted">Nothing yet.</div>}
+      {rows.length === 0 && <div className="text-[12px] text-fa-muted">{t('topbar.nothingYet')}</div>}
       <ul className="space-y-0.5">
         {rows.map((r) => (
           <li key={r.id} className="flex justify-between gap-3 text-[12px]">
@@ -57,14 +60,16 @@ const Reasons = ({ title, rows, total, unit, footer, onClose }) => (
       {footer}
     </div>
   </>
-);
+  );
+};
 
 const WorldTopBar = () => {
   const { state } = useGame();
+  const { t, lang } = useT();
   const layoutMode = useLayoutMode();
   const ref = useRef(null);
   const [open, setOpen] = useState(null);
-  const m = useMemo(() => topBarModel(state), [state]);
+  const m = useMemo(() => topBarModel(state), [state, lang]);
 
   useEffect(() => {
     const el = ref.current;
@@ -88,49 +93,49 @@ const WorldTopBar = () => {
       className="fixed top-0 inset-x-0 z-20 bg-fa-panel/95 border-b border-fa-line text-fa-text
                  pt-[env(safe-area-inset-top)] ps-[max(var(--safe-start),0.75rem)] pe-[max(var(--safe-end),0.75rem)]">
       <div className="h-9 flex items-center gap-3 sm:gap-3.5">
-        <button type="button" onClick={() => openNationOverview()} className="shrink-0 min-w-0 flex items-center gap-1.5 h-8 px-1 -ms-1 rounded-md hover:bg-fa-raised" aria-label={`${m.nation.title}: the nation overview`} title={`${m.nation.title}: the nation overview`} data-testid="top-bar-nation">
+        <button type="button" onClick={() => openNationOverview()} className="shrink-0 min-w-0 flex items-center gap-1.5 h-8 px-1 -ms-1 rounded-md hover:bg-fa-raised" aria-label={t('topbar.nationAria', { title: m.nation.title })} title={t('topbar.nationAria', { title: m.nation.title })} data-testid="top-bar-nation">
           <Shield color={m.nation.color} size={16} />
           <span className={`fa-heading text-[14px] truncate ${portrait ? 'max-w-[5.5rem]' : 'max-w-[9rem]'}`}>{m.nation.name}</span>
         </button>
         <div className="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 overflow-x-auto scrollbar-none">
-          <BarItem label={`Gold ${m.gold.value}, ${signed(m.gold.perTurn)} a turn. Tap for the reasons`} onClick={() => toggle('gold')} expanded={open === 'gold'} testId="top-bar-gold">
+          <BarItem label={t('topbar.goldAria', { value: m.gold.value, delta: signed(m.gold.perTurn) })} onClick={() => toggle('gold')} expanded={open === 'gold'} testId="top-bar-gold">
             <GoldIcon /><span className="fa-num text-[12px]">{m.gold.value}</span>{delta(m.gold.perTurn)}
           </BarItem>
-          <BarItem label={`Food ${m.food.value} banked, ${signed(m.food.perTurn)} a turn. Tap for each city`} onClick={() => toggle('food')} expanded={open === 'food'} testId="top-bar-food">
+          <BarItem label={t('topbar.foodAria', { value: m.food.value, delta: signed(m.food.perTurn) })} onClick={() => toggle('food')} expanded={open === 'food'} testId="top-bar-food">
             <FoodIcon /><span className="fa-num text-[12px]">{m.food.value}</span>{delta(m.food.perTurn)}
           </BarItem>
-          <BarItem label={m.science.current ? `Science ${m.science.perTurn} a turn: ${m.science.current.name} in ${m.science.current.turns} turns. Open Research` : `Science ${m.science.perTurn} a turn: nothing researched. Open Research`} onClick={() => openPanelTab('tech')} testId="research-pill">
+          <BarItem label={m.science.current ? t('topbar.scienceAria', { n: m.science.perTurn, name: m.science.current.name, turns: m.science.current.turns }) : t('topbar.scienceNone', { n: m.science.perTurn })} onClick={() => openPanelTab('tech')} testId="research-pill">
             <ScienceIcon /><span className="fa-num text-[12px]">{m.science.perTurn}</span>
             <span className={`text-[11px] truncate max-w-[10rem] ${m.science.current ? 'text-fa-muted' : 'text-fa-brass font-semibold'}`}>{m.science.label}</span>
           </BarItem>
-          <BarItem label={`Culture ${m.culture.perTurn} a turn. Tap for each city`} onClick={() => toggle('culture')} expanded={open === 'culture'} testId="top-bar-culture">
+          <BarItem label={t('topbar.cultureAria', { n: m.culture.perTurn })} onClick={() => toggle('culture')} expanded={open === 'culture'} testId="top-bar-culture">
             <CultureIcon /><span className="fa-num text-[12px]">{m.culture.perTurn}</span>
           </BarItem>
         </div>
         {m.warLabel && (
-          <button type="button" onClick={() => openPanelTab('diplomacy')} className="fa-war-pill shrink-0 max-w-[11rem] truncate" title={`At war with ${m.wars.map((w) => w.name).join(', ')}`} data-testid="war-pill">
+          <button type="button" onClick={() => openPanelTab('diplomacy')} className="fa-war-pill shrink-0 max-w-[11rem] truncate" title={t('topbar.warTip', { names: m.wars.map((w) => w.name).join(t('chip.listSep')) })} data-testid="war-pill">
             {m.warLabel}
           </button>
         )}
-        <span className="fa-num text-[12px] shrink-0" title="The year">{m.year}</span>
+        <span className="fa-num text-[12px] shrink-0" title={t('topbar.year')}>{m.year}</span>
         {!portrait && (
-          <button type="button" onClick={() => openTurnReport()} className="fa-label shrink-0 !text-[11px] h-8 px-1 -me-1 rounded-md hover:bg-fa-raised" title="The last turn's report" aria-label={`Turn ${m.turn}: the last turn's report`} data-testid="top-bar-turn">
-            Turn <span className="fa-num text-[12px] text-fa-text tracking-normal">{m.turn}</span>
+          <button type="button" onClick={() => openTurnReport()} className="fa-label shrink-0 !text-[11px] h-8 px-1 -me-1 rounded-md hover:bg-fa-raised" title={t('topbar.reportTip')} aria-label={t('topbar.turnAria', { turn: m.turn })} data-testid="top-bar-turn">
+            {t('topbar.turn')} <span className="fa-num text-[12px] text-fa-text tracking-normal">{m.turn}</span>
           </button>
         )}
       </div>
       {open === 'gold' && (
-        <Reasons title="Gold a turn" rows={m.gold.reasons} total={m.gold.perTurn} unit="" onClose={close}
+        <Reasons title={t('topbar.goldTitle')} rows={m.gold.reasons} total={m.gold.perTurn} unit="" onClose={close}
           footer={(
             <div className="mt-2 pt-2 border-t border-fa-line">
-              <div className="fa-label mb-1.5">All your stores</div>
+              <div className="fa-label mb-1.5">{t('topbar.stores')}</div>
               <div className="flex flex-wrap gap-1.5"><ResourceBar wrap /></div>
             </div>
           )} />
       )}
-      {open === 'food' && <Reasons title="Food a turn, by city" rows={m.food.reasons} total={m.food.perTurn} unit="" onClose={close}
-        footer={<p className="mt-2 text-[11px] text-fa-muted">The surplus after the people eat. It fills each city&apos;s bank ({m.food.value} in all) until the city grows.</p>} />}
-      {open === 'culture' && <Reasons title="Culture a turn, by city" rows={m.culture.reasons} total={m.culture.perTurn} unit="" onClose={close}
+      {open === 'food' && <Reasons title={t('topbar.foodTitle')} rows={m.food.reasons} total={m.food.perTurn} unit="" onClose={close}
+        footer={<p className="mt-2 text-[11px] text-fa-muted">{t('topbar.foodNote', { value: m.food.value })}</p>} />}
+      {open === 'culture' && <Reasons title={t('topbar.cultureTitle')} rows={m.culture.reasons} total={m.culture.perTurn} unit="" onClose={close}
         footer={<p className="mt-2 text-[11px] text-fa-muted">{CULTURE_HELP.earns} {CULTURE_HELP.spends}</p>} />}
     </header>
   );

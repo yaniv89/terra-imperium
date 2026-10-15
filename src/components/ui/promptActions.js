@@ -8,6 +8,11 @@ import { openTributeDemand, openJoinOffer } from '../independents/independentEve
 import { showCapture } from '../capture/captureEvents';
 import { openResearchChoice, showPeaceOffer, showDefense } from './uiEvents';
 import { interactions } from '../../hooks/useExclusivePanel';
+import { t as tNow } from '../../i18n';
+import { nameNow } from '../../i18n/names';
+
+const cityName = (state, id) => { const n = state.regions[id]?.name; return n ? nameNow('city', null, n) : tNow('prompt.aCityCap'); };
+const peopleName = (state, id) => { const n = state.nations[id]?.name; return n ? nameNow('people', id, n) : tNow('prompt.aPeopleCap'); };
 
 export const goToPrompt = (state, p) => {
   if (!p) return;
@@ -29,16 +34,16 @@ export const goToPrompt = (state, p) => {
 
 /** A short chip label for a prompt (the chips are 32 px tall and narrow on a phone). */
 export const chipLabel = (state, p) => {
-  if (p.kind === 'city') return `${state.regions[p.regionId]?.name || 'A city'} can build`;
-  if (p.kind === 'army') return 'Army idle';
-  if (p.kind === 'settler') return 'Settlers wait';
-  if (p.kind === 'research') return 'Choose research';
-  if (p.kind === 'peace') return 'Peace offer';
-  if (p.kind === 'unrest') return `${state.regions[p.regionId]?.name || 'A city'} is restless`;
-  if (p.kind === 'supply') return 'Army low on supply';
-  if (p.kind === 'war') return (state.nations[p.nationId]?.name || 'A people') + ' declared war';
-  if (p.kind === 'maps') return 'Map offer';
-  if (p.kind === 'demand') return `${state.nations[state.pendingDemand?.from]?.name || 'A people'} demands`;
+  if (p.kind === 'city') return tNow('chip.canBuild', { city: cityName(state, p.regionId) });
+  if (p.kind === 'army') return tNow('chip.armyIdle');
+  if (p.kind === 'settler') return tNow('chip.settlers');
+  if (p.kind === 'research') return tNow('chip.research');
+  if (p.kind === 'peace') return tNow('chip.peace');
+  if (p.kind === 'unrest') return tNow('chip.restless', { city: cityName(state, p.regionId) });
+  if (p.kind === 'supply') return tNow('chip.lowSupply');
+  if (p.kind === 'war') return tNow('chip.war', { name: peopleName(state, p.nationId) });
+  if (p.kind === 'maps') return tNow('chip.mapOffer');
+  if (p.kind === 'demand') return tNow('chip.demands', { name: peopleName(state, state.pendingDemand?.from) });
   return p.label;
 };
 

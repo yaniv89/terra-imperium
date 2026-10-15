@@ -10,6 +10,7 @@ import { calcIncome } from '../../utils/helpers';
 import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS } from '../../engine/research';
 import { getTechDiffusion } from '../../engine/techDiffusion';
 import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
+import { t as tNow } from '../../i18n';
 import { mapEffectLabel } from '../../engine/techMapEffects';
 
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`;
@@ -86,7 +87,7 @@ export const getResearchView = (state) => {
   return { science, bank: Math.round(state.resources?.techPoints || 0), current: items[0] || null, queue: items.slice(1), auto: !!research.auto, status: researchStatus(state, { science }) };
 };
 
-export const formatTurns = (n) => (n === Infinity ? 'no science' : `${n} turn${n === 1 ? '' : 's'}`);
+export const formatTurns = (n) => (n === Infinity ? tNow('research.noScience') : tNow('research.turnsCount', { count: n }));
 /** The honest time for one research item: "waits for 500 CE, about 12 turns" when a date holds it back. */
 export const formatEta = (item) => (item?.gate ? gateText(item.gate) : formatTurns(item?.finishesIn ?? item?.turns));
 

@@ -25,6 +25,7 @@ import ActionPanelTabs, { visibleTabs, getTabBadge } from './ActionPanelTabs';
 import { OPEN_TAB, CLOSE_PANELS } from './panelEvents';
 import ActionPanel from './ActionPanel';
 import { openSettings } from '../ui/uiEvents';
+import { useT } from '../../i18n/useT';
 
 // Research and Peoples need two columns, so their dock is wider (plans/UI-DESIGN.md section 5:
 // wider sheets for Research); the map keeps at least 12rem on a phone held sideways.
@@ -49,6 +50,7 @@ const RailButton = ({ icon: Icon, label, active, badge, onClick, ariaLabel }) =>
 
 const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
   const { state } = useGame();
+  const { t } = useT();
   const isMobile = useIsMobile();
   const layout = useLayoutMode();
   const railLayout = isLandscapeShell(layout) || layout === 'desktop';
@@ -150,19 +152,19 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
             <ActionPanel activeTab={activeTab} />
           </div>
         )}
-        <nav ref={navRef} aria-label="Panels" className="w-[52px] shrink-0 flex flex-col overflow-y-auto scrollbar-none pb-[env(safe-area-inset-bottom)]">
+        <nav ref={navRef} aria-label={t('rail.panels')} className="w-[52px] shrink-0 flex flex-col overflow-y-auto scrollbar-none pb-[env(safe-area-inset-bottom)]">
           {visibleTabs(state).map((tab) => (
             <RailButton
               key={tab.id}
               icon={tab.icon}
-              label={tab.label}
+              label={t(`rail.${tab.id}`)}
               active={dockShown && activeTab === tab.id}
               badge={getTabBadge(state, tab.id)}
               onClick={() => handleRailTab(tab.id)}
             />
           ))}
-          <RailButton icon={ScrollText} label="Log" ariaLabel="Open event log" badge={unreadLogs > 0 ? 1 : 0} onClick={onOpenLog} />
-          <RailButton icon={Menu} label="Menu" ariaLabel="Open the menu: settings and saves" onClick={openSettings} />
+          <RailButton icon={ScrollText} label={t('rail.log')} ariaLabel={t('rail.openLog')} badge={unreadLogs > 0 ? 1 : 0} onClick={onOpenLog} />
+          <RailButton icon={Menu} label={t('rail.menu')} ariaLabel={t('rail.openMenu')} onClick={openSettings} />
         </nav>
       </div>
     );
@@ -181,7 +183,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
               type="button"
               onClick={() => setMobileSheetOpen(false)}
               className="absolute end-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded text-fa-muted hover:text-fa-text"
-              aria-label="Close panel"
+              aria-label={t('rail.closePanel')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -194,8 +196,8 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
         className="fixed bottom-0 inset-x-0 z-20 bg-fa-panel/95 border-t border-fa-line pb-[env(safe-area-inset-bottom)] flex"
       >
         <div className="flex-1 min-w-0"><ActionPanelTabs activeTab={mobileSheetOpen ? activeTab : null} onTabChange={handleMobileTabChange} /></div>
-        <button type="button" onClick={openSettings} aria-label="Open the menu: settings and saves" className="fa-tab flex-col !gap-0.5 !px-2 !text-[10px] shrink-0 border-s border-fa-line">
-          <Menu className="w-[18px] h-[18px]" aria-hidden="true" />Menu
+        <button type="button" onClick={openSettings} aria-label={t('rail.openMenu')} className="fa-tab flex-col !gap-0.5 !px-2 !text-[10px] shrink-0 border-s border-fa-line">
+          <Menu className="w-[18px] h-[18px]" aria-hidden="true" />{t('rail.menu')}
         </button>
       </div>
     </>

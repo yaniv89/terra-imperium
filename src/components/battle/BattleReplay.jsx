@@ -58,7 +58,7 @@ const Bar = ({ label, value, abs, color, hit, stamp }) => (
     <div className="relative h-4 rounded bg-fa-raised overflow-visible">
       <div key={hit} className={`h-full rounded ${hit ? 'animate-hit-flash' : ''}`} style={{ width: `${Math.max(0, value) * 100}%`, background: color, transition: 'width 60ms linear' }} />
       {stamp && (
-        <span className="absolute right-1 -top-1.5 px-1.5 rounded border-2 border-fa-danger text-fa-danger-text text-[11px] font-black uppercase tracking-wider bg-fa-panel/80 animate-stamp-in">
+        <span className="absolute end-1 -top-1.5 px-1.5 rounded border-2 border-fa-danger text-fa-danger-text text-[11px] font-black uppercase tracking-wider bg-fa-panel/80 animate-stamp-in">
           Routed!
         </span>
       )}

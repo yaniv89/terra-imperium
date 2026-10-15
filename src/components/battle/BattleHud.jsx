@@ -51,8 +51,8 @@ const STRUCTURE_WORD = { keep: 'keep', tower: 'tower', gate: 'gate', wall: 'wall
 const ABILITY_LABEL = (id) => ABILITIES[id]?.label || id;
 
 // The usable rectangle (U03): the safe-area insets, never less than a small gutter.
-const SAFE_L = 'max(0.5rem, var(--sa-l, 0px))';
-const SAFE_R = 'max(0.5rem, var(--sa-r, 0px))';
+const SAFE_L = 'max(0.5rem, var(--sa-s, 0px))'; // the start side (left, right in Hebrew)
+const SAFE_R = 'max(0.5rem, var(--sa-e, 0px))'; // the end side
 const SAFE_B = 'max(0.375rem, var(--sa-b, 0px))';
 const TOP_BAR = 'calc(2.875rem + var(--sa-t, 0px))';
 const UNDER_BAR = 'calc(3.25rem + var(--sa-t, 0px))';
@@ -109,7 +109,7 @@ const WandButton = ({ open, ready, onClick }) => (
   <button type="button" onClick={onClick} aria-label={`Abilities and powers${ready ? `, ${ready} ready` : ''}`} title="Abilities and powers" aria-expanded={open} data-testid="battle-wand"
     className={cx('relative shrink-0 w-11 h-11 rounded-full shadow-lg flex items-center justify-center border', open ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'bg-fa-panel/95 border-fa-indep text-fa-text')}>
     <Wand2 className="w-6 h-6" aria-hidden="true" />
-    {ready > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-fa-good text-fa-ink text-[10px] font-bold leading-[18px] text-center fa-num" aria-hidden="true">{ready}</span>}
+    {ready > 0 && <span className="absolute -top-0.5 -end-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-fa-good text-fa-ink text-[10px] font-bold leading-[18px] text-center fa-num" aria-hidden="true">{ready}</span>}
   </button>
 );
 
@@ -263,7 +263,7 @@ const BattleHud = ({
           <button type="button" onClick={() => setHistoryOpen((v) => !v)} aria-label={`Alerts: ${history.length}`} aria-expanded={historyOpen} data-testid="battle-alert-history"
             className={cx('fa-icon-btn !w-11 !h-11 shrink-0 relative', historyOpen && '!bg-fa-raised')}>
             <Bell className="w-4 h-4" aria-hidden="true" />
-            <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-fa-raised border border-fa-line text-[9.5px] leading-[14px] fa-num" aria-hidden="true">{history.length}</span>
+            <span className="absolute top-0.5 end-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-fa-raised border border-fa-line text-[9.5px] leading-[14px] fa-num" aria-hidden="true">{history.length}</span>
           </button>
         )}
         <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} aria-label={`Speed ${speed}, tap for faster`} data-testid="battle-speed" className="fa-icon-btn !w-11 !h-11 shrink-0 fa-num text-[13px] font-semibold">{speed}×</button>
@@ -294,7 +294,7 @@ const BattleHud = ({
       )}
 
       {supplyOpen && !ended && (
-        <div className="absolute z-20 w-[min(19rem,calc(100vw-2rem))] fa-panel !bg-fa-panel/95 shadow-2xl p-2.5 pr-1 text-[12px] leading-snug pointer-events-auto" style={{ top: UNDER_BAR, right: SAFE_R }} role="dialog" aria-label="Battle supply" data-testid="battle-supply-card">
+        <div className="absolute z-20 w-[min(19rem,calc(100vw-2rem))] fa-panel !bg-fa-panel/95 shadow-2xl p-2.5 pe-1 text-[12px] leading-snug pointer-events-auto" style={{ top: UNDER_BAR, insetInlineEnd: SAFE_R }} role="dialog" aria-label="Battle supply" data-testid="battle-supply-card">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
               <div className="font-semibold"><span className="fa-num">{sup.now}</span>{sup.cap ? <> of <span className="fa-num">{sup.cap}</span></> : null} Battle supply{sup.rate ? <span className="text-fa-good">, +<span className="fa-num">{sup.rate}</span> a second</span> : null}</div>
@@ -310,15 +310,15 @@ const BattleHud = ({
       {!ended && <>
       {/* B09 top row: alerts and the info card (left), the objective and the selection (centre), the
           city and the minimap (right), side by side in one row so they never cover each other */}
-      <div className="absolute flex items-start gap-2 pointer-events-none" style={{ top: UNDER_BAR, left: SAFE_L, right: SAFE_R }} data-testid="battle-top-row">
+      <div className="absolute flex items-start gap-2 pointer-events-none" style={{ top: UNDER_BAR, insetInlineStart: SAFE_L, insetInlineEnd: SAFE_R }} data-testid="battle-top-row">
         <div className="w-[min(15rem,32vw)] lg:w-[17rem] shrink-0 flex flex-col gap-1.5">
           {perf}
           {historyOpen && (
             <div className="pointer-events-auto fa-panel !bg-fa-panel/95 shadow-2xl p-1.5 max-h-[50vh] overflow-y-auto" data-testid="battle-alert-list" role="log" aria-label="Alerts this battle">
-              <div className="flex items-center justify-between pl-1"><span className="fa-label">Alerts</span>
+              <div className="flex items-center justify-between ps-1"><span className="fa-label">Alerts</span>
                 <button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close the alerts" className="w-11 h-11 -my-1.5 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button></div>
               {history.map((a) => (
-                <div key={a.id} className="flex items-center gap-1.5 pl-1 border-t border-fa-line/50">
+                <div key={a.id} className="flex items-center gap-1.5 ps-1 border-t border-fa-line/50">
                   <span className="min-w-0 flex-1 text-[11.5px] leading-tight py-1"><span className={cx('font-semibold', a.tone === 'good' ? 'text-fa-good' : 'text-fa-danger-text')}>{a.title}</span> <span className="text-fa-muted">{fmtTime(Math.max(0, Math.round((hud.tick - a.tick) / TICK_HZ)))} ago</span></span>
                   {(onAlertGo || onFocus) && <button type="button" onClick={() => (onAlertGo ? onAlertGo(a) : onFocus(a.x, a.y))} className="fa-btn fa-btn-ghost !min-h-[44px] !px-2.5 shrink-0">Go</button>}
                 </div>
@@ -328,7 +328,7 @@ const BattleHud = ({
           {shownAlerts.length > 0 && !pauseOpen && !historyOpen && (
             <div className="space-y-1" data-testid="battle-alerts">
               {shownAlerts.map((a) => (
-                <div key={a.id} className={cx('pointer-events-auto flex items-center gap-1.5 pl-2 rounded-[10px] bg-fa-panel/95 border shadow-xl', a.tone === 'good' ? 'border-fa-good/70' : 'border-fa-danger/80')} role="status">
+                <div key={a.id} className={cx('pointer-events-auto flex items-center gap-1.5 ps-2 rounded-[10px] bg-fa-panel/95 border shadow-xl', a.tone === 'good' ? 'border-fa-good/70' : 'border-fa-danger/80')} role="status">
                   {a.tone === 'good' ? <Flag className="w-4 h-4 shrink-0 text-fa-good" aria-hidden="true" /> : <AlertTriangle className="w-4 h-4 shrink-0 text-fa-danger-text" aria-hidden="true" />}
                   <span className="min-w-0 flex-1 text-[12px] font-semibold leading-tight truncate" title={a.detail}>{a.title}</span>
                   {a.kind === 'shaken' && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2 shrink-0 text-[11px]" data-testid="battle-alert-rally">Rally</button>}
@@ -368,7 +368,7 @@ const BattleHud = ({
               <div className="flex items-center gap-2">
                 <div className="fa-heading text-[15px] flex-1">Deploy your army</div>
                 <button type="button" onClick={() => setDeployMore((v) => !v)} aria-expanded={deployMore} aria-label={deployMore ? 'Less about this battle' : 'More about this battle'} data-testid="battle-deploy-more"
-                  className="w-11 h-11 -my-2 -mr-2 shrink-0 flex items-center justify-center text-fa-muted">{deployMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</button>
+                  className="w-11 h-11 -my-2 -me-2 shrink-0 flex items-center justify-center text-fa-muted">{deployMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</button>
               </div>
               <div data-testid="battle-deploy-controls">{deployHelp(mouse)}</div>
               <div className="mt-1 text-fa-brass"><span className="fa-num">{fmtTime(timeLeft)}</span>: {goal}</div>
@@ -389,7 +389,7 @@ const BattleHud = ({
           )}
           {/* The selection and its target (B01); Shaken with Rally Cry (B09) */}
           {sel && !pauseOpen && started && (
-            <div className={cx('max-w-full pl-3 py-1 rounded-full bg-fa-panel/95 border border-fa-line text-[12px] shadow-xl pointer-events-auto flex items-center gap-2', onClearSelection ? 'pr-0' : 'pr-3')} data-testid="battle-selection">
+            <div className={cx('max-w-full ps-3 py-1 rounded-full bg-fa-panel/95 border border-fa-line text-[12px] shadow-xl pointer-events-auto flex items-center gap-2', onClearSelection ? 'pe-0' : 'pe-3')} data-testid="battle-selection">
               <span className="font-semibold truncate min-w-[3rem] max-w-[9rem] lg:max-w-none">{sel.name}</span>
               <span className="text-fa-muted whitespace-nowrap hidden lg:inline">{sel.squads} squad{sel.squads === 1 ? '' : 's'}, <span className="fa-num">{menText(sel.men)}</span> men</span>
               <span className={cx('fa-num', sel.share < 0.35 ? 'text-fa-danger-text' : 'text-fa-good')}>{Math.round(sel.share * 100)}%</span>
@@ -416,7 +416,7 @@ const BattleHud = ({
                   <div className="fa-panel !bg-fa-panel/95 px-2.5 py-1.5 shadow-xl">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="fa-label">{playerSide === 1 ? 'Your city' : 'Defender'} housing</span>
-                      <button type="button" onClick={() => setCityOpen(false)} aria-label="Fold the city card" className="-mr-2 -my-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-fa-muted" data-testid="battle-city-fold"><ChevronUp className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => setCityOpen(false)} aria-label="Fold the city card" className="-me-2 -my-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-fa-muted" data-testid="battle-city-fold"><ChevronUp className="w-4 h-4" /></button>
                     </div>
                     <div className="flex items-baseline gap-2">
                       {city.housingNow < city.housingStart && <span className="fa-num text-[13px] text-fa-muted line-through">{city.housingStart}</span>}
@@ -425,7 +425,7 @@ const BattleHud = ({
                     </div>
                     <div className="text-[11.5px] leading-snug mt-1" data-testid="battle-city-houses">Ruined {city.ruined} of {city.total} houses. Repairs are free after the battle.</div>
                     <div className="relative h-1.5 mt-1 rounded-full bg-fa-ink overflow-hidden" role="meter" aria-label="Houses ruined" aria-valuenow={city.ruined} aria-valuemin={0} aria-valuemax={city.total}>
-                      <span className="absolute inset-y-0 left-0 bg-fa-danger" style={{ width: `${(city.ruined / Math.max(1, city.total)) * 100}%` }} />
+                      <span className="absolute inset-y-0 start-0 bg-fa-danger" style={{ width: `${(city.ruined / Math.max(1, city.total)) * 100}%` }} />
                     </div>
                     <div className="flex gap-3 mt-1 text-[10.5px] text-fa-muted">
                       {city.gate && <span>Gate {city.gate.alive ? `${Math.round((city.gate.hp / city.gate.maxHp) * 100)}%` : 'open'}</span>}
@@ -434,7 +434,7 @@ const BattleHud = ({
                     </div>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => setCityOpen(true)} className="ml-auto flex fa-chip !bg-fa-panel/95 !min-h-[44px] gap-1.5" aria-expanded="false" data-testid="battle-city-open"><Home className="w-3.5 h-3.5" aria-hidden="true" />Housing <span className="fa-num">{city.housingNow}</span> · ruined <span className="fa-num">{city.ruined}/{city.total}</span></button>
+                  <button type="button" onClick={() => setCityOpen(true)} className="ms-auto flex fa-chip !bg-fa-panel/95 !min-h-[44px] gap-1.5" aria-expanded="false" data-testid="battle-city-open"><Home className="w-3.5 h-3.5" aria-hidden="true" />Housing <span className="fa-num">{city.housingNow}</span> · ruined <span className="fa-num">{city.ruined}/{city.total}</span></button>
                 )}
               </div>
             )}
@@ -452,7 +452,7 @@ const BattleHud = ({
       )}
       {armed?.type === 'power' && (
         <div className="absolute inset-x-0 flex justify-center pointer-events-none" style={{ bottom: ABOVE_BOTTOM }}>
-          <div className="pointer-events-auto flex items-center gap-1 pl-3 rounded-full bg-fa-panel/95 border border-fa-enemy text-xs font-semibold shadow-xl" data-testid="battle-power-armed">
+          <div className="pointer-events-auto flex items-center gap-1 ps-3 rounded-full bg-fa-panel/95 border border-fa-enemy text-xs font-semibold shadow-xl" data-testid="battle-power-armed">
             {mouse ? 'Click' : 'Tap'} the battlefield to strike: {armed.label}
             {onCancelArmed && <button type="button" onClick={onCancelArmed} aria-label="Cancel the strike" className="w-11 h-11 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>}
           </div>
@@ -462,7 +462,7 @@ const BattleHud = ({
       {/* Bottom (B10): small buttons (left), the context panel (right); the column under the top row
           lets a tall sheet scroll instead of running under the top bar (U03) */}
       {!pauseOpen && (
-        <div className="absolute flex items-end justify-between gap-2 pointer-events-none" style={{ top: UNDER_BAR, bottom: SAFE_B, left: SAFE_L, right: SAFE_R }}>
+        <div className="absolute flex items-end justify-between gap-2 pointer-events-none" style={{ top: UNDER_BAR, bottom: SAFE_B, insetInlineStart: SAFE_L, insetInlineEnd: SAFE_R }}>
           <div className="pointer-events-auto flex gap-1 shrink-0" data-testid="battle-quick">
             <Cmd glyph={<GameIcon group="battle" id="select-all" size={18} halo={false} fallback={<Users className="w-4 h-4" aria-hidden="true" />} />} label={`All ${allCount}`} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" ariaLabel={`Select all ${allCount} regiments`} />
             {narrow ? (
@@ -482,11 +482,11 @@ const BattleHud = ({
             <div className="flex-1" aria-hidden="true" />
             {wandOpen && showWand && (
               <div className="shrink-0 fa-panel !bg-fa-panel/95 shadow-2xl p-1.5 overflow-y-auto overscroll-contain" style={{ width: 'min(19rem, 100%)', maxHeight: 'calc(var(--app-height, 100vh) - var(--sa-t, 0px) - max(0.375rem, var(--sa-b, 0px)) - 7.5rem)' }} role="dialog" aria-label="Abilities and powers" data-testid="battle-wand-sheet">
-                <div className="flex items-center justify-between pl-1"><span className="fa-label">Abilities and powers</span>
+                <div className="flex items-center justify-between ps-1"><span className="fa-label">Abilities and powers</span>
                   <button type="button" onClick={() => setWandOpen(false)} aria-label="Close" data-testid="battle-wand-close" className="w-11 h-11 -my-1 flex items-center justify-center text-fa-muted"><GameIcon group="battle" id="close" size={20} halo={false} fallback={<X className="w-4 h-4" aria-hidden="true" />} /></button></div>
                 {armyCtx && abilities.map((a) => (
                   <button key={a.id} type="button" disabled={a.readyIn > 0} onClick={() => { setWandOpen(false); onAbility?.(a.id); }} data-testid={`battle-ability-${a.id}`}
-                    className="w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-left hover:bg-fa-raised disabled:opacity-50">
+                    className="w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-start hover:bg-fa-raised disabled:opacity-50">
                     <Wand2 className="w-4 h-4 shrink-0 text-fa-indep" aria-hidden="true" />
                     <span className="flex-1 min-w-0 text-[12px] font-semibold truncate">{ABILITY_LABEL(a.id)}</span>
                     <span className={cx('text-[11px] fa-num shrink-0', a.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{a.readyIn > 0 ? `Ready in ${Math.ceil(a.readyIn / TICK_HZ)} s` : 'Ready'}</span>
@@ -496,11 +496,11 @@ const BattleHud = ({
                   const block = powerBlock(pw, supply);
                   return (
                     <button key={pw.id} type="button" disabled={!!block} onClick={() => firePower(pw)} aria-pressed={(armed?.type === 'power' && armed.id === pw.id) || undefined} data-testid={`battle-power-${pw.id}`}
-                      className={cx('w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-left hover:bg-fa-raised disabled:opacity-60', pw.id === 'nuclearStrike' && 'text-fa-danger-text')}>
+                      className={cx('w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-start hover:bg-fa-raised disabled:opacity-60', pw.id === 'nuclearStrike' && 'text-fa-danger-text')}>
                       <Zap className="w-4 h-4 shrink-0 text-fa-brass" aria-hidden="true" />
                       <span className="flex-1 min-w-0"><span className="block text-[12px] font-semibold truncate">{pw.label}</span>
                         <span className="block text-[10.5px] text-fa-muted fa-num">{pw.cost ? `${pw.cost} supply` : 'Free'}{Number.isFinite(pw.usesLeft) ? `, ${pw.usesLeft} left` : ''}{pw.targeted ? ', aim it' : ''}</span></span>
-                      <span className={cx('text-[11px] shrink-0 text-right max-w-[8rem]', block ? 'text-fa-danger-text' : 'text-fa-good')}>{block || 'Ready'}</span>
+                      <span className={cx('text-[11px] shrink-0 text-end max-w-[8rem]', block ? 'text-fa-danger-text' : 'text-fa-good')}>{block || 'Ready'}</span>
                     </button>
                   );
                 })}
@@ -531,7 +531,7 @@ const BattleHud = ({
       )}
 
       {selectMode && !pauseOpen && (
-        <div className="absolute max-w-[250px] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-good text-xs font-semibold shadow-xl pointer-events-none" style={{ left: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-select-mode-banner">
+        <div className="absolute max-w-[250px] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-good text-xs font-semibold shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-select-mode-banner">
           Drag a box. Two fingers move the map.
         </div>
       )}
@@ -552,7 +552,7 @@ const BattleHud = ({
 
       {/* B06 pause sheet: narrow, on the right (I207); Retreat set apart from Switch to Auto */}
       {pauseOpen && (
-        <div className="absolute right-0 bottom-0 w-[min(18rem,46vw)] lg:w-[21rem] p-2.5 bg-fa-panel border-l border-fa-line shadow-2xl overflow-y-auto pointer-events-auto flex flex-col gap-2" style={{ top: TOP_BAR, paddingRight: 'max(0.625rem, var(--sa-r, 0px))', paddingBottom: 'max(0.625rem, var(--sa-b, 0px))' }} data-testid="battle-pause-sheet" role="dialog" aria-label="Paused">
+        <div className="absolute end-0 bottom-0 w-[min(18rem,46vw)] lg:w-[21rem] p-2.5 bg-fa-panel border-s border-fa-line shadow-2xl overflow-y-auto pointer-events-auto flex flex-col gap-2" style={{ top: TOP_BAR, paddingRight: 'max(0.625rem, var(--sa-r, 0px))', paddingBottom: 'max(0.625rem, var(--sa-b, 0px))' }} data-testid="battle-pause-sheet" role="dialog" aria-label="Paused">
           <div className="flex items-center justify-between"><h2 className="fa-heading text-[16px]">Paused</h2><button type="button" onClick={() => setSheetHidden(true)} className="fa-btn fa-btn-ghost !min-h-[44px] !px-2 text-[12px]" data-testid="battle-pause-orders">Give orders</button></div>
           <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary !min-h-[44px] w-full shrink-0" data-testid="battle-resume">Resume</button>
           <div>
@@ -582,7 +582,7 @@ const BattleHud = ({
       )}
 
       {started && paused && sheetHidden && (
-        <button type="button" onClick={() => setSheetHidden(false)} className="absolute fa-chip !bg-fa-panel/95 !min-h-[44px] pointer-events-auto" style={{ left: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-paused-pill">Paused: menu</button>
+        <button type="button" onClick={() => setSheetHidden(false)} className="absolute fa-chip !bg-fa-panel/95 !min-h-[44px] pointer-events-auto" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-paused-pill">Paused: menu</button>
       )}
 
       {confirmNuke && (

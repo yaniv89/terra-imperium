@@ -5,17 +5,21 @@
 // is room (the desktop). The fog legend chip (Visible / Explored / Unexplored) was removed in the
 // map HUD cleanup: the three fog looks read on their own.
 import React from 'react';
+import { useT } from '../../i18n/useT';
 
 const Swatch = ({ style, className = '' }) => <span className={`inline-block w-3 h-3 rounded-sm shrink-0 ${className}`} style={style} aria-hidden="true" />;
 
-const MapLegend = () => (
+const MapLegend = () => {
+  const { t } = useT();
+  return (
   <div className="hidden lg:block fa-panel p-2.5 text-[12px] space-y-1.5" data-testid="map-legend">
-    <div className="fa-label mb-1">Legend</div>
-    <div className="flex items-center gap-2"><Swatch style={{ background: 'rgba(91,155,240,0.25)', border: '2px solid var(--fa-you)' }} /><span>Your land</span></div>
-    <div className="flex items-center gap-2"><Swatch style={{ background: 'rgba(238,138,58,0.2)', border: '2px solid var(--fa-enemy)' }} /><span>Another people (each its own colour)</span></div>
-    <div className="flex items-center gap-2"><Swatch style={{ background: 'rgba(229,96,77,0.15)', border: '2px solid var(--fa-danger)' }} /><span>At war with you</span></div>
-    <div className="flex items-center gap-2"><Swatch style={{ background: 'rgba(156,143,208,0.18)', border: '2px dashed var(--fa-indep)' }} /><span>Independent city</span></div>
+    <div className="fa-label mb-1">{t('legend.title')}</div>
+    <div className="flex items-center gap-2"><Swatch style={{ background: 'rgba(91,155,240,0.25)', border: '2px solid var(--fa-you)' }} /><span>{t('legend.yours')}</span></div>
+    <div className="flex items-center gap-2"><Swatch style={{ background: 'rgba(238,138,58,0.2)', border: '2px solid var(--fa-enemy)' }} /><span>{t('legend.other')}</span></div>
+    <div className="flex items-center gap-2"><Swatch style={{ background: 'rgba(229,96,77,0.15)', border: '2px solid var(--fa-danger)' }} /><span>{t('legend.war')}</span></div>
+    <div className="flex items-center gap-2"><Swatch style={{ background: 'rgba(156,143,208,0.18)', border: '2px dashed var(--fa-indep)' }} /><span>{t('legend.indep')}</span></div>
   </div>
-);
+  );
+};
 
 export default MapLegend;

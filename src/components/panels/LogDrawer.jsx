@@ -8,11 +8,14 @@ import React from 'react';
 import { X } from 'lucide-react';
 import LogConsole from './LogConsole';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { t as tNow } from '../../i18n';
+import { useT } from '../../i18n/useT';
 
 const LogDrawer = ({ open, onClose }) => {
+  const { t } = useT();
   // A sheet the player opened: it takes the screen, and a decision card it covers waits as a chip
   // (useExclusivePanel.js).
-  const turn = useInteraction('log', open, { priority: PRIORITY.sheet, user: true, label: 'Event log' });
+  const turn = useInteraction('log', open, { priority: PRIORITY.sheet, user: true, label: tNow('wait.log') });
   if (!open || !turn.shown) return null;
 
   return (
@@ -28,8 +31,8 @@ const LogDrawer = ({ open, onClose }) => {
             so this second title row goes and the close button hangs off the edge as on a desktop
             (playtest audit I169: the log showed about four lines). */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-fa-line shrink-0 lg:hidden pl:hidden">
-          <span className="text-xs font-semibold text-fa-muted">Event Log</span>
-          <button onClick={onClose} className="p-1 hover:bg-fa-raised rounded text-fa-muted hover:text-fa-text" aria-label="Close log">
+          <span className="text-xs font-semibold text-fa-muted">{t('log.title')}</span>
+          <button onClick={onClose} className="p-1 hover:bg-fa-raised rounded text-fa-muted hover:text-fa-text" aria-label={t('log.close')}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -37,7 +40,7 @@ const LogDrawer = ({ open, onClose }) => {
           onClick={onClose}
           className="hidden lg:flex pl:flex pl:-start-12 pl:w-11 pl:h-11 items-center justify-center absolute -start-9 top-2 p-1.5 bg-fa-ink border border-fa-line rounded-lg
                      text-fa-muted hover:text-fa-text hover:bg-fa-raised"
-          aria-label="Close log"
+          aria-label={t('log.close')}
         >
           <X className="w-4 h-4" />
         </button>

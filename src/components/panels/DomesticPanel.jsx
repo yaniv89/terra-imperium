@@ -7,6 +7,7 @@
 // opened via RegionInfoModal's "Manage Region" button. Government/Laws/Identity default
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
+import { t as tNow } from '../../i18n';
 import React, { useState } from 'react';
 import { WonderIcon } from '../ui/icons';
 import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Globe2, Swords } from 'lucide-react';
@@ -42,7 +43,7 @@ import { lawRulesOf, describeRules } from '../../engine/lawRules';
 import { previewGovernmentChange } from '../../engine/governmentPreview';
 import { lawEffectLines, lawLockReason } from '../../engine/lawEffects';
 import GovernmentChangeDialog from './GovernmentChangeDialog';
-import { POWER_POOLS_SHORT, POWER_POOL_HELP } from '../../data/powerPools';
+import { powerPoolsShort, POWER_POOL_HELP } from '../../data/powerPools';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -65,10 +66,10 @@ const DomesticPanel = () => {
 
   const empireSection = (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-fa-text">Security</div>
+      <div className="text-xs font-semibold text-fa-text">{tNow('dom.security')}</div>
       <ActionButton
         icon={ShieldAlert}
-        label="Counter-Intelligence"
+        label={tNow('dom.counter')}
         description={`Uncover a plot by whoever's most hostile toward you: -${COUNTER_INTEL_HOSTILITY_REDUCTION} their hostility, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} Diplomacy Points`}
         costs={ACTION_COSTS.counterIntelligence}
         onClick={handleCounterIntelligence}
@@ -76,7 +77,7 @@ const DomesticPanel = () => {
         size="small"
       />
 
-      <div className="text-xs font-semibold text-fa-text pt-1">Taxes</div>
+      <div className="text-xs font-semibold text-fa-text pt-1">{tNow('dom.taxes')}</div>
       {(() => {
         const taxCooldownTurn = playerNation?.taxRateCooldownUntil || 0;
         const onTaxCooldown = state.turnNumber < taxCooldownTurn;
@@ -104,7 +105,7 @@ const DomesticPanel = () => {
         );
       })()}
 
-      <div className="text-xs font-semibold text-fa-text pt-1">Economy</div>
+      <div className="text-xs font-semibold text-fa-text pt-1">{tNow('dom.economy')}</div>
       {(() => {
         const { income, expenses, net } = calcNationBalance(state, state.playerNationId);
         const loans = playerNation?.loans || [];
@@ -113,17 +114,17 @@ const DomesticPanel = () => {
         return (
           <div className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
             <div className="flex justify-between text-fa-text">
-              <span>Income</span><span>+{formatNumber(Math.round(income.gold || 0))}g</span>
+              <span>{tNow('topbar.income')}</span><span>+{formatNumber(Math.round(income.gold || 0))}{tNow('empire.g')}</span>
             </div>
             <div className="flex justify-between text-fa-muted">
-              <span>Upkeep &amp; interest</span>
+              <span>{tNow('dom.upkeep')}</span>
               <span>-{formatNumber(Object.values(expenses).reduce((s, v) => s + v, 0))}g</span>
             </div>
             <div className={`flex justify-between font-semibold ${net >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>
-              <span>Net</span><span>{net >= 0 ? '+' : ''}{formatNumber(Math.round(net))}g</span>
+              <span>{tNow('dom.net')}</span><span>{net >= 0 ? '+' : ''}{formatNumber(Math.round(net))}{tNow('empire.g')}</span>
             </div>
             {!canBorrow ? (
-              <div className="text-fa-muted pt-1">Loans require Banking Houses (Economy tech).</div>
+              <div className="text-fa-muted pt-1">{tNow('dom.loans')}</div>
             ) : (
               <>
                 <div className="text-fa-muted pt-1">Loans: {loans.length}/{loanCapacity}</div>
@@ -162,7 +163,7 @@ const DomesticPanel = () => {
         );
       })()}
 
-      <div className="text-xs font-semibold text-fa-text pt-1">Great Projects</div>
+      <div className="text-xs font-semibold text-fa-text pt-1">{tNow('dom.projects')}</div>
       {GREAT_PROJECT_IDS.map((projectId) => {
         const project = GREAT_PROJECTS[projectId];
         const entry = state.greatProjects?.[projectId];
@@ -215,7 +216,7 @@ const DomesticPanel = () => {
     if (!groups.length) return null;
     return (
       <div className="bg-fa-raised/60 rounded-lg p-3 text-sm space-y-2" data-testid="governors">
-        <div className="flex items-center gap-2"><Users size={14} className="text-fa-good shrink-0" /><div className="text-fa-text font-semibold">Governors</div></div>
+        <div className="flex items-center gap-2"><Users size={14} className="text-fa-good shrink-0" /><div className="text-fa-text font-semibold">{tNow('dom.governors')}</div></div>
         <div className="text-[10px] text-fa-muted">A governed group: +{GOVERNOR_FOOD} food, +{Math.round(GOVERNOR_PRODUCTION_MULT * 100)}% production, +{GOVERNOR_CULTURE} culture, +{GOVERNOR_LOYALTY} loyalty and skill, less unrest. Ungoverned: {UNGOVERNED_LOYALTY} loyalty. Taking office takes {GOVERNOR_ASSIGN_TURNS} turns.</div>
         {groups.map((g) => {
           const gov = nation.governors?.[g.seat];
@@ -227,7 +228,7 @@ const DomesticPanel = () => {
                 <span className={gov ? 'text-fa-good' : 'text-amber-300'}>{gov ? `${gov.name} (skill ${gov.skill}${arriving ? `, arrives in ${gov.ready - state.turnNumber}` : ''})` : `ungoverned (${UNGOVERNED_LOYALTY} loyalty)`}</span>
               </div>
               {gov ? (
-                <button type="button" onClick={() => dispatch({ type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: g.seat } })} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-xs text-fa-text">Recall</button>
+                <button type="button" onClick={() => dispatch({ type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: g.seat } })} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-xs text-fa-text">{tNow('dom.recall')}</button>
               ) : (
                 <div className="flex flex-wrap gap-1">
                   {choices.map((c) => (
@@ -259,7 +260,7 @@ const DomesticPanel = () => {
             {ruler.traits?.length > 0 && ` · ${ruler.traits.map((id) => TRAITS[id]?.name || id).join(', ')}`}
           </div>
           <div className="text-[10px] text-fa-muted" data-testid="ruler-skill-help">
-            Each skill adds to the power pool of its name every turn. {POWER_POOLS_SHORT}
+            Each skill adds to the power pool of its name every turn. {powerPoolsShort()}
           </div>
           <div className="text-[10px] text-fa-muted">
             Reign ends turn {ruler.reignEndsTurn}
@@ -272,22 +273,22 @@ const DomesticPanel = () => {
 
       <div className="bg-fa-raised/60 rounded-lg p-3 text-xs space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-fa-muted">Stability</span>
+          <span className="text-fa-muted">{tNow('dom.stability')}</span>
           <span className={`font-mono font-semibold ${nationStability > 0 ? 'text-fa-good' : nationStability < 0 ? 'text-fa-danger-text' : 'text-fa-text'}`}>
             {nationStability > 0 ? `+${nationStability}` : nationStability}
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-fa-muted">Legitimacy</span>
+          <span className="text-fa-muted">{tNow('dom.legitimacy')}</span>
           <span className={`font-mono font-semibold ${nationLegitimacy < 50 ? 'text-fa-danger-text' : 'text-fa-text'}`}>{Math.round(nationLegitimacy)}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-fa-muted">Prestige</span>
+          <span className="text-fa-muted">{tNow('dom.prestige')}</span>
           <span className="font-mono font-semibold text-fa-text">{nationPrestige > 0 ? `+${nationPrestige}` : nationPrestige}</span>
         </div>
         <ActionButton
           icon={TrendingUp}
-          label="Increase Stability"
+          label={tNow('dom.increaseStability')}
           description={nationStability >= STABILITY_MAX ? 'Already at maximum stability' : '+1 stability'}
           costs={{ adm: increaseStabilityCost }}
           onClick={handleIncreaseStability}
@@ -297,7 +298,7 @@ const DomesticPanel = () => {
         />
       </div>
 
-      <div className="text-xs font-semibold text-fa-text pt-1">Advisors</div>
+      <div className="text-xs font-semibold text-fa-text pt-1">{tNow('dom.advisors')}</div>
       {['adm', 'dip', 'mil'].map((pool) => {
         const current = advisors[pool];
         const candidates = advisorCandidates[pool] || [];
@@ -311,7 +312,7 @@ const DomesticPanel = () => {
             {current ? (
               <div className="text-fa-text">{current.name} (level {current.level})</div>
             ) : (
-              <div className="text-fa-muted">None hired</div>
+              <div className="text-fa-muted">{tNow('dom.noneHired')}</div>
             )}
             {candidates.map((candidate, index) => {
               const cost = getAdvisorHireCost(candidate.level);
@@ -363,7 +364,7 @@ const DomesticPanel = () => {
   const governmentSection = (
     <div className="space-y-2">
       <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
-        <div className="text-fa-muted">Current</div>
+        <div className="text-fa-muted">{tNow('dom.current')}</div>
         <div className="text-fa-text font-semibold">{currentGovernmentType ? currentGovernmentType.name : 'None adopted'}</div>
         {activeReforms.length > 0 && (
           <div className="text-[10px] text-fa-muted mt-0.5">{activeReforms.map((r) => r.name).join(' · ')}</div>
@@ -507,32 +508,32 @@ const DomesticPanel = () => {
   return (
     <div className="space-y-3">
       <GovernmentChangeDialog typeId={confirmGov} onClose={() => setConfirmGov(null)} />
-      <CollapsibleSection title="Overview" icon={Globe2} defaultOpen>
+      <CollapsibleSection title={tNow('dom.overview')} icon={Globe2} defaultOpen>
         <EmpireOverview />
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
-      <CollapsibleSection id="war" title="War" icon={Swords} summary={warsNow.length ? `at war with ${warsNow.length}` : 'at peace'}>
+      <CollapsibleSection id="war" title={tNow('dom.war')} icon={Swords} summary={warsNow.length ? tNow('dom.atWarWith', { n: warsNow.length }) : tNow('dom.atPeace')}>
         <MilitaryPanel />
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
-      <CollapsibleSection id="court" title="Court" icon={Crown} defaultOpen>
+      <CollapsibleSection id="court" title={tNow('dom.court')} icon={Crown} defaultOpen>
         {courtSection}
         {governorsSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
-      <CollapsibleSection title="Treasury" icon={ShieldAlert}>
+      <CollapsibleSection title={tNow('dom.treasury')} icon={ShieldAlert}>
         {empireSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
-      <CollapsibleSection title="Government" icon={Landmark} summary={currentGovernmentType?.name}>
+      <CollapsibleSection title={tNow('dom.government')} icon={Landmark} summary={currentGovernmentType?.name}>
         {governmentSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
-      <CollapsibleSection title="Laws" icon={ScrollText}>
+      <CollapsibleSection title={tNow('dom.laws')} icon={ScrollText}>
         {lawsSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
-      <CollapsibleSection title="National Identity" icon={Users}>
+      <CollapsibleSection title={tNow('dom.identity')} icon={Users}>
         {identitySection}
       </CollapsibleSection>
     </div>

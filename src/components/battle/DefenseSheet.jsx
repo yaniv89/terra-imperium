@@ -11,6 +11,7 @@
 // leaving a pill to bring it back. A panel on the left over the map, phone and desktop alike.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Shield as ShieldIcon, ChevronDown } from 'lucide-react';
+import { t as tNow } from '../../i18n';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { queuedBattleView, battleQueueBlocked, queuedKind } from '../../engine/battleQueue';
@@ -42,7 +43,7 @@ const DefenseSheet = () => {
   // first") or behind a card the player opened, it waits as the "N under attack" chip.
   const up = !blocked && !!m;
   useEffect(() => { if (up) prewarmBattleWorker(); }, [up]); // the battle's worker loads while the player decides
-  const turn = useInteraction('defense', !blocked && !!m, { priority: PRIORITY.defense, label: `${defenses.length} under attack: back to the battle`, testId: 'defense-pill', tone: 'danger' });
+  const turn = useInteraction('defense', !blocked && !!m, { priority: PRIORITY.defense, label: tNow('wait.defense', { n: defenses.length }), testId: 'defense-pill', tone: 'danger' });
   // The queue waits while a battle is under way or an event or a peace offer is open (the engine's
   // own rule, battleQueue.js battleQueueBlocked).
   if (blocked || !m || !turn.shown) return null;
@@ -67,18 +68,18 @@ const DefenseSheet = () => {
 
   return (
     <div role="dialog" aria-labelledby="defense-title" data-testid="defense-sheet"
-      className="fixed z-[60] left-[max(env(safe-area-inset-left),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(30rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(22rem,calc(100vw-1rem))] lg:w-[32rem] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
+      className="fixed z-[60] start-[max(var(--safe-start),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(30rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(22rem,calc(100vw-1rem))] lg:w-[32rem] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
       <div className="flex items-start gap-2 px-3 pt-2 pb-1 border-b border-fa-line">
         <ShieldIcon className="w-5 h-5 mt-1 text-fa-danger-text shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-fa-danger-text truncate">{m.eyebrow}</div>
           <h2 id="defense-title" className="fa-heading text-[19px] pl:text-[17px] leading-tight truncate">{m.name}</h2>
         </div>
-        <div className="text-right text-[11px] leading-tight shrink-0 pt-0.5">
+        <div className="text-end text-[11px] leading-tight shrink-0 pt-0.5">
           <div className="font-semibold">End of turn paused</div>
           <div className="text-fa-muted fa-num">{defenses.length > 1 ? `1 of ${defenses.length}` : 'one battle'}</div>
         </div>
-        <IconButton label="Look at the map first" icon={ChevronDown} onClick={turn.tuck} className="!w-9 !h-9 -mr-1" data-testid="defense-later" />
+        <IconButton label="Look at the map first" icon={ChevronDown} onClick={turn.tuck} className="!w-9 !h-9 -me-1" data-testid="defense-later" />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2 pl:space-y-1.5" data-testid="defense-row">

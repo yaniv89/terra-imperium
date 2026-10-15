@@ -8,6 +8,8 @@
 import React, { useEffect } from 'react';
 import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 import { Feather, ChevronDown } from 'lucide-react';
+import { t as tNow } from '../../i18n';
+import { nameNow } from '../../i18n/names';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
@@ -39,10 +41,10 @@ const PeaceOfferSheet = () => {
   // A battle under way comes first. Queued assaults do not: the battle queue itself waits for the
   // answer (battleQueue.js battleQueueBlocked), so hiding behind it left neither sheet on screen.
   const waiting = !!offer && !state.pendingBattle;
-  const fromName = offer ? state.nations[offer.from]?.name || offer.from : '';
+  const fromName = offer ? nameNow('people', offer.from, state.nations[offer.from]?.name || offer.from) : '';
   // One entry of the interaction registry (useExclusivePanel.js): set aside or behind another
   // card, it waits as the "Peace offer from X" chip.
-  const turn = useInteraction('peace-offer', waiting, { priority: PRIORITY.peace, label: `Peace offer from ${fromName}`, testId: 'peace-offer-pill' });
+  const turn = useInteraction('peace-offer', waiting, { priority: PRIORITY.peace, label: tNow('wait.peaceOffer', { name: fromName }), testId: 'peace-offer-pill' });
   if (!waiting || !turn.shown) return null;
   const from = fromName;
   const war = (state.wars || []).find((w) => w.id === offer.warId);
@@ -52,7 +54,7 @@ const PeaceOfferSheet = () => {
 
   return (
     <div role="dialog" aria-labelledby="peace-offer-title" data-testid="peace-offer-sheet"
-      className="fixed z-[60] left-[max(env(safe-area-inset-left),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(26rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(20rem,calc(100vw-1rem))] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
+      className="fixed z-[60] start-[max(var(--safe-start),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(26rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(20rem,calc(100vw-1rem))] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
       <div className="flex items-start gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
         <Feather className="w-5 h-5 mt-1 text-fa-muted shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex-1">

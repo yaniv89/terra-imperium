@@ -13,6 +13,7 @@ import { nationOverviewModel } from './nationOverviewModel';
 import { Button, Label, Meter, SheetHeader, Shield, signed } from './atlas';
 import MapCard from './MapCard';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { t as tNow } from '../../i18n';
 
 const Card = ({ children, className = '', testId }) => <section className={`fa-card p-3 space-y-2 ${className}`} data-testid={testId}>{children}</section>;
 
@@ -39,7 +40,7 @@ const NationOverviewSheet = () => {
   }, [open]);
   const m = useMemo(() => (open ? nationOverviewModel(state) : null), [open, state]);
   // A sheet the player opened: it takes the screen, and a decision card it covers waits as a chip.
-  const turn = useInteraction('nation-overview', open && !!m, { priority: PRIORITY.sheet, user: true, label: 'Nation overview' });
+  const turn = useInteraction('nation-overview', open && !!m, { priority: PRIORITY.sheet, user: true, label: tNow('wait.nation') });
   if (!open || !m || !turn.shown) return null;
   const close = () => setOpen(false);
   const s = m.stability;

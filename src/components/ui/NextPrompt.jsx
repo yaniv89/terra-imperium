@@ -13,14 +13,16 @@ import { useGame } from '../../context/GameContext';
 import { nextPrompts } from './nextPromptModel';
 import { goToPrompt, chipLabel } from './promptActions';
 import { stackPrompts, nextInStack, stackLabel, stackHint } from './promptStack';
+import { useT } from '../../i18n/useT';
 
 const SHOWN = 3;
 
 const NextPrompt = () => {
   const { state } = useGame();
+  const { t, lang } = useT();
   // The idle stack is its own chip beside End Turn (IdleChip.jsx), where the card it opens does
   // not cover it.
-  const stacks = useMemo(() => stackPrompts(nextPrompts(state)).filter((s) => s.key !== 'idle'), [state]);
+  const stacks = useMemo(() => stackPrompts(nextPrompts(state)).filter((s) => s.key !== 'idle'), [state, lang]);
   const [offset, setOffset] = useState(0);
   // Where each stack's cycle stands: the id of the prompt its last tap went to.
   const cursor = useRef({});
@@ -53,9 +55,9 @@ const NextPrompt = () => {
         );
       })}
       {(more > 0 || start > 0) && (
-        <button type="button" onClick={() => setOffset(more > 0 ? start + SHOWN : 0)} aria-label={more > 0 ? `Show ${more} more` : 'Back to the first'}
+        <button type="button" onClick={() => setOffset(more > 0 ? start + SHOWN : 0)} aria-label={more >= 1 ? t('chip.showMore', { n: more }) : t('chip.backFirst')}
           className="pointer-events-auto min-h-[32px] px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-muted text-[12px] font-semibold hover:text-fa-text">
-          {more > 0 ? `+${more} more` : 'Back to the first'}
+          {more >= 1 ? t('chip.plusN', { n: more }) : t('chip.backFirst')}
         </button>
       )}
     </div>

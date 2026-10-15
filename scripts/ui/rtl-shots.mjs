@@ -34,7 +34,7 @@ const run = async ([label, W, H, mobile], lang) => {
   await page.fill('input[aria-label], input[type="text"]', lang === 'he' ? 'Akkad' : 'Akkad').catch(() => {});
   await click(page.locator('[data-people]').first());
   await page.getByTestId('start-step-ready').dispatchEvent('click');
-  await click(page.locator('button', { hasText: /^Begin as/ }).last());
+  await click(page.getByTestId('begin-game'));
   const skip = page.getByRole('button', { name: /Skip|דלג/ });
   await skip.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
   if (await skip.isVisible().catch(() => false)) await click(skip);

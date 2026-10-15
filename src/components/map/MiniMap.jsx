@@ -17,11 +17,13 @@ import React, { useMemo, useRef, useCallback } from 'react';
 import { Maximize2 } from 'lucide-react';
 import { geoEquirectangular } from 'd3-geo';
 import Map2DView from './Map2DView';
+import { useT } from '../../i18n/useT';
 
 const WIDTH = 132;
 const HEIGHT = 74;
 
 const MiniMap = ({ onOpen, viewportBounds, onNavigate }) => {
+  const { t } = useT();
   const containerRef = useRef(null);
   const draggingRef = useRef(false);
 
@@ -69,9 +71,9 @@ const MiniMap = ({ onOpen, viewportBounds, onNavigate }) => {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      title="Click or drag to navigate"
+      title={t('minimap.tip')}
       role="button"
-      aria-label="Minimap — click or drag to navigate the map"
+      aria-label={t('minimap.aria')}
     >
       <Map2DView width={WIDTH} height={HEIGHT} interactive={false} selectedRegion={null} onSelectRegion={() => {}} />
       {rect && (
@@ -84,8 +86,8 @@ const MiniMap = ({ onOpen, viewportBounds, onNavigate }) => {
         onClick={(e) => { e.stopPropagation(); onOpen(); }}
         onPointerDown={(e) => e.stopPropagation()}
         className="absolute top-0.5 end-0.5 p-0.5 rounded bg-fa-panel/70 opacity-0 group-hover:opacity-100 transition-opacity text-fa-text hover:bg-fa-raised"
-        title="Open full map"
-        aria-label="Open full map"
+        title={t('minimap.open')}
+        aria-label={t('minimap.open')}
       >
         <Maximize2 className="w-3 h-3" />
       </button>

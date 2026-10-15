@@ -9,7 +9,31 @@ import { resolve } from 'node:path';
 const CONVERTED = [
   'src/components/ui/TitleScreen.jsx',
   'src/components/ui/SettingsSheet.jsx',
-  'src/components/ui/LanguageSwitch.jsx'
+  'src/components/ui/LanguageSwitch.jsx',
+  'src/components/ui/StartScreen.jsx',
+  'src/components/ui/MapPicker.jsx',
+  'src/components/ui/TurnDock.jsx',
+  'src/components/ui/WaitingChips.jsx',
+  'src/components/ui/IdleChip.jsx',
+  'src/components/ui/NextPrompt.jsx',
+  'src/components/ui/WorldTopBar.jsx',
+  'src/components/ui/ResourceBar.jsx',
+  'src/components/ui/MapCard.jsx',
+  'src/components/map/MarchBar.jsx',
+  'src/components/map/SettleBar.jsx',
+  'src/components/map/LensStrip.jsx',
+  'src/components/map/MapModeToggle.jsx',
+  'src/components/map/MapZoomControls.jsx',
+  'src/components/map/MiniMap.jsx',
+  'src/components/map/MapModal.jsx',
+  'src/components/map/MapGoals.jsx',
+  'src/components/globe/MapLegend.jsx',
+  'src/components/panels/PanelDrawer.jsx',
+  'src/components/panels/ActionPanelTabs.jsx',
+  'src/components/panels/ActionPanel.jsx',
+  'src/components/panels/LogDrawer.jsx',
+  'src/components/panels/EmpireOverview.jsx',
+  'src/components/city/CityList.jsx'
 ];
 
 const TEXT_ATTRS = 'label|hint|title|subtitle|aria-label|placeholder|confirmLabel|cancelLabel|alt|text';

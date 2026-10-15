@@ -15,6 +15,7 @@ import { tributeDemandModel, joinOfferModel } from './tributeSheetModel';
 import { subjectVerb } from '../../engine/grammar';
 import { openIndependent } from './independentEvents';
 import { ShieldMark, GrudgeMeter, CardLabel } from './IndependentBits';
+import { t as tNow } from '../../i18n';
 
 // The independents' panel: dashed violet border (UI-DESIGN 2: independent = dashed), right side.
 // A decision card: nothing behind it catches taps, so a tap on the map (or on another card's
@@ -46,7 +47,7 @@ export const TributeDemandSheet = ({ demandId, onClose, asked = false }) => {
   const { state, dispatch } = useGame();
   const m = useMemo(() => tributeDemandModel(state, demandId), [state, demandId]);
   const [pick, setPick] = useState(null);
-  const turn = useInteraction('tribute', !!m, { priority: PRIORITY.tribute, label: m ? `${m.name} demand tribute` : null, testId: 'tribute-chip', user: asked });
+  const turn = useInteraction('tribute', !!m, { priority: PRIORITY.tribute, label: m ? tNow('wait.tribute', { name: m.name }) : null, testId: 'tribute-chip', user: asked });
   if (!m || !turn.shown) return null;
   const chosen = m.choices.find((c) => c.id === (pick || m.preferred)) || m.choices[0];
   const go = () => {
@@ -95,7 +96,7 @@ export const TributeDemandSheet = ({ demandId, onClose, asked = false }) => {
 export const JoinOfferSheet = ({ offerId, onClose, asked = false }) => {
   const { state, dispatch } = useGame();
   const m = useMemo(() => joinOfferModel(state, offerId), [state, offerId]);
-  const turn = useInteraction('join-offer', !!m, { priority: PRIORITY.join, label: m ? `${m.name} offer to join you` : null, testId: 'join-chip', user: asked });
+  const turn = useInteraction('join-offer', !!m, { priority: PRIORITY.join, label: m ? tNow('wait.join', { name: m.name }) : null, testId: 'join-chip', user: asked });
   if (!m || !turn.shown) return null;
   return (
     <Frame testId="join-offer-sheet" label={`${m.name} offer to join you`} onClose={onClose}>
