@@ -1,25 +1,38 @@
 // src/engine/fleets.test.js
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
+import { distanceKm } from '../data/geo/geodesic';
+import { REGIONS_DATA } from '../data/regions';
 import { findSeaPath, portWaters, seaPassable, isBlockaded, atSea, NAVAL_MOVES_BY_AGE } from './fleets';
 import { planMarch, advanceMarches } from './routes';
 import { validateAmphibious } from './invasion';
 import { normalizeUnitTiles } from './armies';
 import { assertGameState } from './stateAudit';
+import { neighbourWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ player: 'ahhiyawa', seed: 3 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+// The farthest rival with a coastal capital: the far shore across an ocean (Washington in the old fixture).
+const coastalRivals = Object.keys(PEOPLES_WORLD.nations).filter((id) => id !== PEOPLES_WORLD.playerNationId && PEOPLES_WORLD.nations[id].kind !== 'independent' && REGIONS_DATA[PEOPLES_WORLD.nations[id].capitalRegionId]?.isCoastal);
+const km = (id) => distanceKm(getTiles().centres[PEOPLES_WORLD.regions[PEOPLES_WORLD.nations[id].capitalRegionId].tile], getTiles().centres[PEOPLES_WORLD.regions[PEOPLES_WORLD.nations[PEOPLES_WORLD.playerNationId].capitalRegionId].tile]);
+const US_ID = coastalRivals.sort((a, b) => km(b) - km(a))[0];
+const CH_ID = rivalOf(PEOPLES_WORLD, 1);
+const GB_ID = rivalOf(PEOPLES_WORLD, 2);
 
 const tiles = getTiles();
 const quiet = (s) => ({ ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((a, k) => ({ ...a, [k]: true }), {}), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
-const S = (() => { const s = quiet(createInitialState({ playerNationId: 'fr', rngSeed: 3 })); return { ...s, units: {} }; })();
-const FR = getNationCapital('fr');
-const fleet = (id, regionId, extra = {}) => ({ id, ownerId: 'fr', regionId, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, transportCapacity: 2, embarkedOn: null, promotions: [], ...extra });
-const army = (id, regionId, extra = {}) => ({ id, ownerId: 'fr', regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], ...extra });
+const S = (() => { const s = quiet(neighbourWorld({ player: 'ahhiyawa', seed: 3 })); return { ...s, units: {} }; })();
+const FR = getNationCapital(FR_ID);
+const fleet = (id, regionId, extra = {}) => ({ id, ownerId: FR_ID, regionId, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, transportCapacity: 2, embarkedOn: null, promotions: [], ...extra });
+const army = (id, regionId, extra = {}) => ({ id, ownerId: FR_ID, regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], ...extra });
 const withUnits = (s, list) => ({ ...s, units: { ...s.units, ...Object.fromEntries(list.map((u) => [u.id, u])) } });
-const atWar = (s, enemy) => ({ ...s, wars: [...s.wars, { id: 'w-sea', aggressor: 'fr', enemy, active: true, startYear: s.year }] });
+const atWar = (s, enemy) => ({ ...s, wars: [...s.wars, { id: 'w-sea', aggressor: FR_ID, enemy, active: true, startYear: s.year }] });
 // A coastal French port: the capital if it has water beside it, else a coastal city founded near it.
 const port = (() => { if (portWaters(S, tiles, FR).length) return { s: S, id: FR }; throw new Error('Paris is not a port on this grid: pick another nation'); })();
 
@@ -32,18 +45,18 @@ describe('sea paths', () => {
     let frontier = waters; const seen = new Set(waters); let target = null;
     for (let d = 1; d <= 3 && !target; d++) { const next = []; frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n) && seaPassable(tiles, n, 'bronze')) { seen.add(n); next.push(n); } })); frontier = next.sort((a, b) => a - b); if (d === 3) target = frontier[0]; }
     expect(target).toBeDefined();
-    const r = findSeaPath(port.s, port.s.regions[port.id].tile, target, 'fr');
+    const r = findSeaPath(port.s, port.s.regions[port.id].tile, target, FR_ID);
     expect(r.path[0]).toBe(port.s.regions[port.id].tile);
     expect(r.path[r.path.length - 1]).toBe(target);
     r.path.slice(1).forEach((t, i) => { expect(tiles.land[t]).not.toBe(1); if (i) expect(tiles.neighbors[r.path[i]]).toContain(t); });
     // The Atlantic to Washington is closed before the Age of Gunpowder, open after.
-    const US = getNationCapital('us');
-    const usWar = atWar(port.s, 'us');
-    expect(findSeaPath(usWar, port.s.regions[port.id].tile, port.s.regions[US].tile, 'fr').reason).toMatch(/ocean|No sea route|Too far/);
+    const US = getNationCapital(US_ID);
+    const usWar = atWar(port.s, US_ID);
+    expect(findSeaPath(usWar, port.s.regions[port.id].tile, port.s.regions[US].tile, FR_ID).reason).toMatch(/ocean|No sea route|Too far/);
     const modern = { ...usWar, age: 'modern', techAgeId: 'modern' };
-    const far = findSeaPath(modern, port.s.regions[port.id].tile, port.s.regions[US].tile, 'fr');
+    const far = findSeaPath(modern, port.s.regions[port.id].tile, port.s.regions[US].tile, FR_ID);
     expect(far.path?.[far.path.length - 1]).toBe(port.s.regions[US].tile);
-    expect(findSeaPath(port.s, port.s.regions[port.id].tile, port.s.regions[getNationCapital('ch')].tile, 'fr').reason).toMatch(/city|route|access/);
+    expect(findSeaPath(port.s, port.s.regions[port.id].tile, port.s.regions[getNationCapital(CH_ID)].tile, FR_ID).reason).toMatch(/city|route|access/);
   });
 });
 
@@ -80,11 +93,11 @@ describe('a voyage', () => {
   });
 
   it('halts outside an enemy port and lands by assault from beside its coast', () => {
-    const s0 = atWar(withUnits(S, [fleet('f', port.id), army('a', port.id, { embarkedOn: 'f' })]), 'gb');
+    const s0 = atWar(withUnits(S, [fleet('f', port.id), army('a', port.id, { embarkedOn: 'f' })]), GB_ID);
     const s = normalizeUnitTiles(s0);
     // The nearest British coastal city a Dawn fleet can reach, if any; else the test only checks the gate.
-    const british = Object.values(s.regions).filter((c) => c.owner === 'gb' && portWaters(s, tiles, c.id).length);
-    const reach = british.map((c) => ({ c, r: findSeaPath(s, s.regions[port.id].tile, c.tile, 'fr') })).find((x) => x.r.path);
+    const british = Object.values(s.regions).filter((c) => c.owner === GB_ID && portWaters(s, tiles, c.id).length);
+    const reach = british.map((c) => ({ c, r: findSeaPath(s, s.regions[port.id].tile, c.tile, FR_ID) })).find((x) => x.r.path);
     if (!reach) return;
     const units = { ...s.units, f: { ...s.units.f, route: reach.r.path.slice(1), routePace: 50 } };
     advanceMarches(s, units, {});
