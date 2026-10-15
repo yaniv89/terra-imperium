@@ -26,6 +26,7 @@ import MapCard from './MapCard';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useT } from '../../i18n/useT';
 import LanguageSwitch from './LanguageSwitch';
+import FullscreenButton from './FullscreenButton';
 
 // The turn worker's recent events (turnClient.js) for a bug report: copied, or shown to copy by hand.
 const TurnLogButton = () => {
@@ -104,6 +105,7 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
         <SheetHeader title={t('menu.title')} subtitle={t('menu.subtitle')} icon={Settings2} onClose={onClose} titleId="settings-title" />
         <div className="flex-1 overflow-y-auto px-4 pb-4 grid gap-x-6 gap-y-4 md:grid-cols-2">
           <section className="md:col-span-2" data-testid="settings-language"><LanguageSwitch /></section>
+          <FullscreenButton className="md:col-span-2 justify-self-start" testId="settings-fullscreen" />
           <section className="space-y-1" aria-labelledby="settings-map">
             <Label id="settings-map">{t('menu.map')}</Label>
             {/* The globe is hidden (user answer Q8, playtest audit I079): its code stays (mapPrefs.js
