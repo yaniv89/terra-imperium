@@ -18,6 +18,9 @@ import { newContacts, contactCard } from '../modals/firstContactModel';
 import { isExplored, fogOn, hasMet } from '../../engine/fog';
 import { summarizeLogs } from '../../engine/logSummary';
 import { isIndependentNation } from '../../data/independents';
+import { translate, getLanguage, formatYear, ageName, hasKey } from '../../i18n/core';
+import { nameOf } from '../../i18n/names';
+import { logText } from '../../i18n/messageText';
 
 export const REPORT_GROUPS = [
   { id: 'battles', label: 'Battles' },
@@ -27,10 +30,10 @@ export const REPORT_GROUPS = [
   { id: 'research', label: 'Research' },
   { id: 'news', label: 'News' }
 ];
+const groupsIn = (lang) => REPORT_GROUPS.map((g) => ({ ...g, label: translate(`report.group.${g.id}`, null, lang) }));
 
 const RAID_WORDS = /pillag|plunder|raider|raid\b|raids\b|sack/i;
 const NEWS_TYPES = new Set([LogTypes.COMBAT, LogTypes.CRISIS, LogTypes.DIPLOMACY, LogTypes.MILESTONE, LogTypes.EVENT]);
-const fmtYear = (y) => (y < 0 ? `${Math.abs(Math.round(y))} BCE` : `${Math.round(y)} CE`);
 const men = (n) => `${Math.round(n || 0).toLocaleString('en-US')}`;
 
 // The first of the player's (or any seen) cities named in a line, for the place button.
@@ -69,11 +72,17 @@ const unmetFilter = (state) => {
 const shrinkNote = (lines, city) => {
   const hit = lines.find((l) => String(l.message).includes(city.name) && /shrinks? to (?:size )?(\d+)/i.test(l.message));
   const n = hit && /shrinks? to (?:size )?(\d+)/i.exec(hit.message)[1];
-  return n ? `It shrank to ${n} earlier in this report, then grew back.` : null;
+  return n ? Number(n) : null;
 };
 
-export const turnReportModel = (before, after) => {
+/** The report in `lang` (default: the current language). Text is written here, from keys; the
+ * engine's log lines through logText (old saves: their English as it is). */
+export const turnReportModel = (before, after, lang = getLanguage()) => {
   if (!before || !after || after.turnNumber <= before.turnNumber) return null;
+  const tr = (key, vars) => translate(key, vars, lang);
+  const cityName = (c) => nameOf('city', null, c.name, lang);
+  const nationName = (id, fallback) => (after.nations?.[id]?.name ? nameOf('people', id, after.nations[id].name, lang) : fallback);
+  const cityPlace = (c) => ({ kind: 'city', id: c.id, name: cityName(c) });
   const me = after.playerNationId;
   const items = [];
   const add = (group, item) => items.push({ group, id: `${group}-${items.length}`, ...item });
@@ -87,9 +96,9 @@ export const turnReportModel = (before, after) => {
     const city = b.targetRegionId != null ? after.regions?.[b.targetRegionId] : null;
     add('battles', {
       tone: stalemate ? 'muted' : won ? 'good' : 'danger',
-      title: `${b.name || 'A battle'}: ${stalemate ? 'no winner' : won ? (b.defense ? 'held' : 'won') : (b.defense ? 'lost' : 'repelled')}`,
-      sub: `Your fallen: ${men(b.fallen?.[mine])}. Theirs: ${men(b.fallen?.[theirs])}.${b.captured ? ' The city changed hands.' : ''}`,
-      place: city ? { kind: 'city', id: city.id, name: city.name } : null
+      title: tr('report.battleTitle', { name: b.name ? nameOf('battle', null, b.name, lang) : tr('report.aBattle'), result: tr(`report.battle.${stalemate ? 'none' : won ? (b.defense ? 'held' : 'won') : (b.defense ? 'lost' : 'repelled')}`) }),
+      sub: `${tr('report.fallen', { mine: men(b.fallen?.[mine]), theirs: men(b.fallen?.[theirs]) })}${b.captured ? tr('report.changedHands') : ''}`,
+      place: city ? cityPlace(city) : null
     });
   });
 
@@ -102,19 +111,22 @@ export const turnReportModel = (before, after) => {
     const msg = String(l.message || '');
     if (!msg) return;
     // News about peoples and cities the player has not met or seen is not a task: one line.
-    if (l.type !== LogTypes.ACTION && l.type !== LogTypes.TECH && isUnmet(msg)) { unmetNews.push(msg); return; }
+    // (matched on the English line; shown in the reader's language)
+    const shown = logText(l, lang);
+    const placeOf = (m) => { const p = placeIn(after, m); return p ? { ...p, name: nameOf('city', null, p.name, lang) } : null; };
+    if (l.type !== LogTypes.ACTION && l.type !== LogTypes.TECH && isUnmet(msg)) { unmetNews.push(shown); return; }
     if (RAID_WORDS.test(msg) && (l.type === LogTypes.COMBAT || l.type === LogTypes.CRISIS)) {
-      add('raids', { tone: 'danger', title: msg, sub: null, place: placeIn(after, msg) });
+      add('raids', { tone: 'danger', title: shown, sub: null, place: placeOf(msg) });
     } else if (NEWS_TYPES.has(l.type) && !/^A new era dawns/.test(msg)) {
-      add('news', { tone: l.type === LogTypes.CRISIS ? 'danger' : l.type === LogTypes.COMBAT ? 'enemy' : 'muted', title: msg, sub: null, place: placeIn(after, msg) });
+      add('news', { tone: l.type === LogTypes.CRISIS ? 'danger' : l.type === LogTypes.COMBAT ? 'enemy' : 'muted', title: shown, sub: null, place: placeOf(msg) });
     }
   });
 
   if (unmetNews.length) {
     add('news', {
       tone: 'muted', unmet: true,
-      title: unmetNews.length === 1 ? '1 report from lands you have not seen' : `${unmetNews.length} reports from lands you have not seen`,
-      sub: 'Rumours of peoples you have not met. They are in the Event Log.',
+      title: tr('report.unmet', { count: unmetNews.length }),
+      sub: tr('report.unmetSub'),
       lines: unmetNews, place: null
     });
   }
@@ -125,9 +137,9 @@ export const turnReportModel = (before, after) => {
     if (!card) return;
     add('contacts', {
       tone: 'you',
-      title: `Met the ${card.title}`,
-      sub: `${card.mood} toward you${card.citiesSeen ? `, ${card.citiesSeen} of their cities seen` : ''}. Diplomacy is open.`,
-      place: { kind: 'nation', id, name: card.capitalSeen && card.capital ? card.capital : 'Peoples' }
+      title: lang === 'en' ? `Met the ${card.title}` : tr('report.met', { name: nameOf('people', id, after.nations?.[id]?.name || card.title, lang) }),
+      sub: tr(card.citiesSeen ? 'report.metSubSeen' : 'report.metSub', { mood: tr(`report.mood.${card.mood}`), n: card.citiesSeen }),
+      place: { kind: 'nation', id, name: card.capitalSeen && card.capital ? nameOf('city', null, card.capital, lang) : tr('report.peoples') }
     });
   });
 
@@ -136,39 +148,41 @@ export const turnReportModel = (before, after) => {
   const grown = [];
   Object.values(now).forEach((c) => {
     const old = was[c.id];
-    if (c.owner === me && !old) add('cities', { tone: 'good', title: `${c.name} founded`, sub: 'A new city of yours.', place: { kind: 'city', id: c.id, name: c.name } });
-    else if (c.owner === me && old && old.owner !== me) add('cities', { tone: 'good', title: `${c.name} is yours`, sub: `Taken from the ${after.nations?.[old.owner]?.name || 'enemy'}.`, place: { kind: 'city', id: c.id, name: c.name } });
-    else if (old && old.owner === me && c.owner !== me) add('cities', { tone: 'danger', title: `${c.name} lost`, sub: `Now held by the ${after.nations?.[c.owner]?.name || 'enemy'}.`, place: { kind: 'city', id: c.id, name: c.name } });
+    if (c.owner === me && !old) add('cities', { tone: 'good', title: tr('report.founded', { city: cityName(c) }), sub: tr('report.foundedSub'), place: cityPlace(c) });
+    else if (c.owner === me && old && old.owner !== me) add('cities', { tone: 'good', title: tr('report.taken', { city: cityName(c) }), sub: tr('report.takenFrom', { nation: nationName(old.owner, tr('report.enemy')) }), place: cityPlace(c) });
+    else if (old && old.owner === me && c.owner !== me) add('cities', { tone: 'danger', title: tr('report.lost', { city: cityName(c) }), sub: tr('report.heldBy', { nation: nationName(c.owner, tr('report.enemy')) }), place: cityPlace(c) });
     else if (c.owner === me && old && (c.size || 1) > (old.size || 1)) grown.push(c);
   });
-  Object.values(was).forEach((old) => { if (old.owner === me && !now[old.id]) add('cities', { tone: 'danger', title: `${old.name} is gone`, sub: 'Razed or abandoned.', place: null }); });
+  Object.values(was).forEach((old) => { if (old.owner === me && !now[old.id]) add('cities', { tone: 'danger', title: tr('report.gone', { city: cityName(old) }), sub: tr('report.goneSub'), place: null }); });
   if (grown.length) {
     add('cities', {
       tone: 'good', growth: true,
-      title: grown.length === 1 ? `${grown[0].name} grew to size ${grown[0].size}` : `${grown.length} cities grew`,
-      sub: grown.length === 1 ? shrinkNote(fresh, grown[0]) : grown.slice(0, 4).map((c) => `${c.name} ${c.size}${shrinkNote(fresh, c) ? ' (after a loss)' : ''}`).join(', '),
-      place: { kind: 'city', id: grown[0].id, name: grown[0].name }
+      title: grown.length === 1 ? tr('report.grewOne', { city: cityName(grown[0]), size: grown[0].size }) : tr('report.grewMany', { n: grown.length }),
+      sub: grown.length === 1 ? (shrinkNote(fresh, grown[0]) ? tr('report.shrankNote', { n: shrinkNote(fresh, grown[0]) }) : null) : grown.slice(0, 4).map((c) => `${cityName(c)} ${c.size}${shrinkNote(fresh, c) ? tr('report.afterLoss') : ''}`).join(', '),
+      place: cityPlace(grown[0])
     });
   }
 
   // Research.
   const knew = before.techTree || {};
   Object.keys(after.techTree || {}).filter((id) => after.techTree[id]?.researched && !knew[id]?.researched).forEach((id) => {
-    add('research', { tone: 'science', title: `${TECH_TREE[id]?.name || id} learned`, sub: null, place: { kind: 'tab', id: 'tech', name: 'Research' } });
+    const techKey = `tech.${id}.name`;
+    const tech = hasKey(techKey, 'en') ? tr(techKey) : (TECH_TREE[id]?.name || id);
+    add('research', { tone: 'science', title: tr('report.learned', { tech }), sub: null, place: { kind: 'tab', id: 'tech', name: tr('report.group.research') } });
   });
-  if (after.age !== before.age) add('news', { tone: 'you', title: `The world enters the ${AGES[after.age]?.name || after.age}`, sub: null, place: null });
+  if (after.age !== before.age) add('news', { tone: 'you', title: tr('report.newAge', { age: lang === 'en' ? (AGES[after.age]?.name || after.age) : ageName(after.age, AGES[after.age]?.name || after.age) }), sub: null, place: null });
 
   const counts = Object.fromEntries(REPORT_GROUPS.map((g) => [g.id, items.filter((i) => i.group === g.id).length]));
   const quiet = items.every((i) => i.group === 'research' || i.growth || i.unmet);
   const turns = after.turnNumber - before.turnNumber;
   return {
-    title: turns > 1 ? `Turns ${before.turnNumber} to ${after.turnNumber - 1}` : `Turn ${before.turnNumber} report`,
-    year: fmtYear(after.year),
+    title: turns > 1 ? tr('report.titleMany', { from: before.turnNumber, to: after.turnNumber - 1 }) : tr('report.titleOne', { n: before.turnNumber }),
+    year: formatYear(Math.round(after.year), lang),
     turns,
     nextTurn: after.turnNumber,
     items,
     counts,
-    groups: REPORT_GROUPS.filter((g) => counts[g.id] > 0),
+    groups: groupsIn(lang).filter((g) => counts[g.id] > 0),
     quiet
   };
 };

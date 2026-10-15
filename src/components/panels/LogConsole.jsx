@@ -9,6 +9,7 @@ import { LogTypes } from '../../data/types';
 import { AGES } from '../../data/ages';
 import { useT } from '../../i18n/useT';
 import { ageName } from '../../i18n';
+import { logText } from '../../i18n/messageText';
 
 // Log type styling configuration
 const LOG_STYLES = {
@@ -64,7 +65,7 @@ const LOG_STYLES = {
 
 // Individual log entry component
 const LogEntry = ({ log, showYear = true }) => {
-  const { t } = useT();
+  const { t, lang } = useT();
   const style = LOG_STYLES[log.type] || LOG_STYLES[LogTypes.ACTION];
   // A recurring line the summarizer folded (src/engine/logSummary.js): one line with a count; the
   // original lines open under it.
@@ -87,7 +88,7 @@ const LogEntry = ({ log, showYear = true }) => {
         </span>
       )}
       {/* FIX: added break-words to prevent horizontal scrolling breaking layout */}
-      <span className="text-[11px] break-words">{log.message}</span>
+      <span className="text-[11px] break-words">{logText(log, lang)}</span>
       {folded && (
         <button
           type="button"
@@ -101,7 +102,7 @@ const LogEntry = ({ log, showYear = true }) => {
       {folded && open && (
         <div className="mt-1 ms-3 space-y-0.5 text-fa-muted">
           {log.details.map((d, i) => (
-            <div key={i} className="text-[10px] break-words"><span className="font-mono me-1">[{d.year}]</span>{d.message}</div>
+            <div key={i} className="text-[10px] break-words"><span className="font-mono me-1">[{d.year}]</span>{logText(d, lang)}</div>
           ))}
         </div>
       )}

@@ -18,10 +18,11 @@ import { OPEN_TURN_REPORT, setTurnReportShown } from './uiEvents';
 import { turnReportModel } from './turnReportModel';
 import { Button, Chip, Label, SheetHeader } from './atlas';
 import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
+import { useT } from '../../i18n/useT';
 
 const DOT = { good: 'bg-fa-good', danger: 'bg-fa-danger', enemy: 'bg-fa-enemy', you: 'bg-fa-you', science: 'bg-[var(--fa-science)]', muted: 'bg-fa-muted' };
 
-const ReportRow = ({ item, onGo }) => (
+const ReportRow = ({ item, onGo, t }) => (
   <li className="flex items-center gap-2.5 py-1.5 min-h-[48px]" data-testid="turn-report-item" data-group={item.group}>
     <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${DOT[item.tone] || DOT.muted}`} aria-hidden="true" />
     <div className="min-w-0 flex-1">
@@ -29,7 +30,7 @@ const ReportRow = ({ item, onGo }) => (
       {item.sub && <div className="text-[12px] text-fa-muted leading-tight">{item.sub}</div>}
     </div>
     {item.place && (
-      <Button size="sm" className="shrink-0 max-w-[9rem]" onClick={() => onGo(item.place)} aria-label={`Go to ${item.place.name}`}>
+      <Button size="sm" className="shrink-0 max-w-[9rem]" onClick={() => onGo(item.place)} aria-label={t('report.goTo', { name: item.place.name })}>
         <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /><span className="truncate">{item.place.name}</span>
       </Button>
     )}
@@ -38,8 +39,12 @@ const ReportRow = ({ item, onGo }) => (
 
 const TurnReportSheet = () => {
   const { state, turnPending } = useGame();
+  const { t, lang } = useT();
   const baseRef = useRef(state);
-  const [report, setReport] = useState(null);
+  // The two states the report compares; the report itself is written in the current language, so
+  // a language switch while it is open writes it again.
+  const [pair, setPair] = useState(null);
+  const report = useMemo(() => (pair ? turnReportModel(pair.before, pair.after, lang) : null), [pair, lang]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('all');
 
@@ -47,18 +52,18 @@ const TurnReportSheet = () => {
     if (turnPending) return;
     const base = baseRef.current;
     if (state.playerNationId !== base.playerNationId || state.turnNumber < base.turnNumber || (state.logs?.length || 0) < (base.logs?.length || 0)) {
-      baseRef.current = state; setReport(null); setOpen(false); return;
+      baseRef.current = state; setPair(null); setOpen(false); return;
     }
     if (state.turnNumber === base.turnNumber) { baseRef.current = state; return; }
-    const next = turnReportModel(base, state);
+    const next = turnReportModel(base, state, lang);
     baseRef.current = state;
-    setReport(next);
+    setPair(next ? { before: base, after: state } : null);
     setFilter('all');
     const willOpen = !!next && !next.quiet && state.gameStatus === GameStatus.ACTIVE;
     setOpen(willOpen);
     // (said now, not a render later: the army banners' glide waits on it, marchGlide.js afterTurnReport)
     setTurnReportShown(willOpen);
-  }, [state, turnPending]);
+  }, [state, turnPending]); // eslint-disable-line react-hooks/exhaustive-deps -- lang only words the report; it does not start one
 
   // One entry of the interaction registry (useExclusivePanel.js): an attack to answer, a peace
   // offer or an event comes first and the report waits as a chip; an army's arrival waits for it.
@@ -99,29 +104,29 @@ const TurnReportSheet = () => {
     <div className="fixed inset-0 z-[45] bg-black/40 flex items-center justify-center p-3 pe-[calc(var(--rail-inset,0px)+0.75rem)] pt-[calc(var(--header-height,2.25rem)+0.5rem)] sheet-backdrop" onClick={close} data-testid="turn-report">
       <div role="dialog" aria-modal="true" aria-labelledby="turn-report-title" onClick={(e) => e.stopPropagation()}
         className="sheet-panel fa-sheet w-full max-w-[560px] max-h-full flex flex-col rounded-[10px] border border-fa-line shadow-2xl">
-        <SheetHeader title={report.title} subtitle={`${report.year}, ${report.items.length} ${report.items.length === 1 ? 'event' : 'events'}`} onClose={close} titleId="turn-report-title" className="!pb-1.5" />
+        <SheetHeader title={report.title} subtitle={t('report.subtitle', { year: report.year, count: report.items.length })} onClose={close} titleId="turn-report-title" className="!pb-1.5" />
         {report.groups.length > 1 && (
-          <div className="flex gap-1.5 px-4 pb-2 overflow-x-auto scrollbar-none border-b border-fa-line shrink-0" role="toolbar" aria-label="Show">
-            <Chip pressed={filter === 'all'} onClick={() => setFilter('all')}>All <span className="fa-num">{report.items.length}</span></Chip>
+          <div className="flex gap-1.5 px-4 pb-2 overflow-x-auto scrollbar-none border-b border-fa-line shrink-0" role="toolbar" aria-label={t('report.show')}>
+            <Chip pressed={filter === 'all'} onClick={() => setFilter('all')}>{t('report.all')} <span className="fa-num">{report.items.length}</span></Chip>
             {report.groups.map((g) => (
               <Chip key={g.id} pressed={filter === g.id} onClick={() => setFilter(g.id)}>{g.label} <span className="fa-num">{report.counts[g.id]}</span></Chip>
             ))}
           </div>
         )}
         <div className="flex-1 min-h-0 overflow-y-auto px-4 py-1">
-          {report.items.length === 0 && <p className="py-3 text-[13px] text-fa-muted">A quiet turn: nothing to report.</p>}
+          {report.items.length === 0 && <p className="py-3 text-[13px] text-fa-muted">{t('report.quiet')}</p>}
           {groups.map((g) => (
             <section key={g.id} aria-label={g.label} className="pt-1.5">
               <Label>{g.label}</Label>
               <ul className="divide-y divide-fa-line/60">
-                {shown.filter((i) => i.group === g.id).map((i) => <ReportRow key={i.id} item={i} onGo={go} />)}
+                {shown.filter((i) => i.group === g.id).map((i) => <ReportRow key={i.id} item={i} onGo={go} t={t} />)}
               </ul>
             </section>
           ))}
         </div>
         <div className="flex items-center gap-3 px-4 py-2.5 border-t border-fa-line shrink-0">
-          <span className="text-[12px] text-fa-muted flex-1 min-w-0 flex items-center gap-1.5"><ScrollText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />Every line stays in the Log. Quiet turns skip this sheet.</span>
-          <Button variant="primary" hero onClick={close} className="shrink-0 !min-h-[46px]" data-testid="turn-report-play">Play turn {report.nextTurn}</Button>
+          <span className="text-[12px] text-fa-muted flex-1 min-w-0 flex items-center gap-1.5"><ScrollText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />{t('report.footer')}</span>
+          <Button variant="primary" hero onClick={close} className="shrink-0 !min-h-[46px]" data-testid="turn-report-play">{t('report.play', { n: report.nextTurn })}</Button>
         </div>
       </div>
     </div>
