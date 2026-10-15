@@ -6,11 +6,13 @@ import enBase from './locales/en';
 import heBase from './locales/he';
 import enMsg from './locales/msg.en';
 import heMsg from './locales/msg.he';
+import enUi from './locales/ui.en';
+import heUi from './locales/ui.he';
 import dataHe from './locales/data.he';
 
 // The shell tables and the engine's message tables (log lines, news, cards: phase H3) as one.
-const en = { ...enBase, ...enMsg };
-const he = { ...heBase, ...heMsg };
+const en = { ...enBase, ...enMsg, ...enUi };
+const he = { ...heBase, ...heMsg, ...heUi };
 
 export const LANGUAGES = Object.freeze({
   en: Object.freeze({ id: 'en', native: 'English', dir: 'ltr', locale: 'en' }),

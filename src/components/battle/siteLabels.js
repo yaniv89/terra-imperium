@@ -4,11 +4,12 @@
 // render loop (TacticalBattleScreen.jsx) so they stay on their site while the camera pans. The brass
 // bar under each chip is the renderer's (economyLayer.js bars, BattleRenderer drawStructures).
 import { Q } from '../../battle/sim/constants';
+import { t } from '../../i18n/core';
 
 /** The sites to label: the player's unfinished, standing buildings. Pure. */
 export const sitesToLabel = (view, playerSide) => (view?.eco?.buildings || [])
   .filter((b) => b.side === playerSide && b.alive && !b.built && !b.proxy)
-  .map((b) => ({ idx: b.idx, x: b.x / Q, z: b.y / Q, lift: 2.6 + b.size * 0.35, text: `Building ${b.progress}%` }));
+  .map((b) => ({ idx: b.idx, x: b.x / Q, z: b.y / Q, lift: 2.6 + b.size * 0.35, text: t('bt.eco.building', { progress: b.progress }) }));
 
 /** Place (and add or drop) the chips in `box` for this frame. */
 export const updateSiteLabels = (box, renderer, view, playerSide) => {

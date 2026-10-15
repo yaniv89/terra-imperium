@@ -32,23 +32,23 @@
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Bell, Users, LocateFixed, Package, Compass } from 'lucide-react';
-import { ResIcon, RES_NAME, HammerButton } from './EconomyHud';
+import { ResIcon, resName, HammerButton } from './EconomyHud';
 import GameIcon from '../ui/GameIcon';
 import { RESOURCES } from '../../battle/data/economy';
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
-import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { TICK_HZ } from '../../battle/sim/constants';
-import { ABILITIES } from '../../battle/sim/effects';
 import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, armyTally, armyTallyText, supplyView } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
 import { deployHelp, cameraHelp } from './battleCoach';
+import { useT } from '../../i18n/useT';
+import { abilityLabel, powerLabel, structureLabel, battleTypeText, battleGoal, buildingEffect } from './battleText';
+import { structureName } from './inspectModel';
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 const cx = (...p) => p.filter(Boolean).join(' ');
 const SPEEDS = [1, 2, 3];
 const STRUCTURE_WORD = { keep: 'keep', tower: 'tower', gate: 'gate', wall: 'wall', house: 'house', building: 'building', palace: 'palace', wonder: 'wonder', landmark: 'landmark', townhall: 'town hall' };
-const ABILITY_LABEL = (id) => ABILITIES[id]?.label || id;
 
 // The usable rectangle (U03): the safe-area insets, never less than a small gutter.
 const SAFE_L = 'max(0.5rem, var(--sa-s, 0px))'; // the start side (left, right in Hebrew)
@@ -85,33 +85,37 @@ const Cmd = ({ icon: Icon, glyph, label, onClick, active, danger, disabled, test
 );
 
 /** Why a power cannot be used now, or null. */
-const powerBlock = (pw, supply) => (pw.usesLeft <= 0 ? 'None left'
-  : pw.readyIn > 0 ? `Ready in ${Math.ceil(pw.readyIn / TICK_HZ)} s`
-    : supply < pw.cost ? `Needs ${pw.cost} supply, you have ${Math.floor(supply)}` : null);
+const powerBlock = (pw, supply, t) => (pw.usesLeft <= 0 ? t('bt.hud.noneLeft')
+  : pw.readyIn > 0 ? t('bt.hud.readyIn', { s: Math.ceil(pw.readyIn / TICK_HZ) })
+    : supply < pw.cost ? t('bt.hud.needsSupply', { cost: pw.cost, have: Math.floor(supply) }) : null);
 
 /** A power card (the pause sheet): a label and its state. */
 const PowerCard = ({ pw, armed, supply, onClick }) => {
-  const block = powerBlock(pw, supply);
-  const state = pw.readyIn > 0 ? `${Math.ceil(pw.readyIn / TICK_HZ)}s` : pw.cost ? `${pw.cost} supply` : 'ready';
+  const { t } = useT();
+  const block = powerBlock(pw, supply, t);
+  const state = pw.readyIn > 0 ? t('bt.hud.secShort', { s: Math.ceil(pw.readyIn / TICK_HZ) }) : pw.cost ? t('bt.hud.costSupply', { cost: pw.cost }) : t('bt.hud.ready');
   return (
     <button type="button" disabled={!!block} onClick={onClick} aria-pressed={armed || undefined} title={block || undefined}
       className={cx('min-w-0 min-h-[48px] px-2 rounded-[10px] border shadow-lg flex flex-col items-center justify-center text-center disabled:opacity-45',
         armed ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : pw.id === 'nuclearStrike' ? 'bg-fa-panel/95 border-fa-danger' : 'bg-fa-panel/95 border-fa-line')}>
-      <span className="text-[11px] font-semibold leading-tight flex items-center gap-1"><Zap className="w-3 h-3" aria-hidden="true" />{pw.label}</span>
-      <span className={cx('fa-num text-[10px] leading-tight', pw.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{state}{Number.isFinite(pw.usesLeft) ? `, ${pw.usesLeft} left` : ''}</span>
+      <span className="text-[11px] font-semibold leading-tight flex items-center gap-1"><Zap className="w-3 h-3" aria-hidden="true" />{powerLabel(pw.id, pw.label)}</span>
+      <span className={cx('fa-num text-[10px] leading-tight', pw.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{state}{Number.isFinite(pw.usesLeft) ? t('bt.hud.usesLeft', { n: pw.usesLeft }) : ''}</span>
     </button>
   );
 };
 
 /** U09: the round wand (no visible text) for the selection's abilities and the commander's powers;
  * a dot says something is ready. */
-const WandButton = ({ open, ready, onClick }) => (
-  <button type="button" onClick={onClick} aria-label={`Abilities and powers${ready ? `, ${ready} ready` : ''}`} title="Abilities and powers" aria-expanded={open} data-testid="battle-wand"
+const WandButton = ({ open, ready, onClick }) => {
+  const { t } = useT();
+  return (
+  <button type="button" onClick={onClick} aria-label={ready ? t('bt.hud.wandReady', { n: ready }) : t('bt.hud.wand')} title={t('bt.hud.wand')} aria-expanded={open} data-testid="battle-wand"
     className={cx('relative shrink-0 w-11 h-11 rounded-full shadow-lg flex items-center justify-center border', open ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'bg-fa-panel/95 border-fa-indep text-fa-text')}>
     <Wand2 className="w-6 h-6" aria-hidden="true" />
     {ready > 0 && <span className="absolute -top-0.5 -end-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-fa-good text-fa-ink text-[10px] font-bold leading-[18px] text-center fa-num" aria-hidden="true">{ready}</span>}
   </button>
-);
+  );
+};
 
 /** A top-bar number with its picture (B09: icons, not words, on a phone). */
 const Res = ({ icon, label, value, warn, testId }) => (
@@ -142,6 +146,7 @@ const BattleHud = ({
   narrow: narrowProp, // tests: force the narrow phone layout (else the screen's width decides)
   ended = false // the battle is over: only the top bar stays (the result screen, B08, owns the rest)
 }) => {
+  const { t } = useT();
   const [confirmNuke, setConfirmNuke] = useState(null);
   const [confirmRetreat, setConfirmRetreat] = useState(false);
   // I202: the city's housing card starts folded (a chip); the player opens it when it matters.
@@ -209,37 +214,40 @@ const BattleHud = ({
   const idleCtx = context === 'none' || context === 'inspect';
   const wandItems = (armyCtx ? abilities.length : 0) + ((armyCtx || idleCtx) ? powerCards.length : 0);
   const showWand = (armyCtx || idleCtx) && wandItems > 0;
-  const wandReady = (armyCtx ? abilities.filter((a) => a.readyIn <= 0).length : 0) + powerCards.filter((pw) => !powerBlock(pw, supply)).length;
+  const wandReady = (armyCtx ? abilities.filter((a) => a.readyIn <= 0).length : 0) + powerCards.filter((pw) => !powerBlock(pw, supply, t)).length;
   const firePower = (pw) => { setWandOpen(false); if (pw.id === 'nuclearStrike' && !(armed?.type === 'power' && armed.id === pw.id)) setConfirmNuke(pw); else onPower(pw); };
   // The minimap gives way to a tall sheet on a short screen.
   const bigSheet = buildOpen || ['building', 'site', 'place'].includes(context) || wandOpen;
   const showMinimap = minimapOn && minimap && !pauseOpen && !(short && bigSheet);
   // Find, Enemy, Base and Map (the camera and the minimap): in a row, or behind View on a narrow phone.
   const viewButtons = [
-    onFindArmy && { glyph: <GameIcon group="battle" id="find-army" size={18} halo={false} fallback={<LocateFixed className="w-4 h-4" aria-hidden="true" />} />, label: 'Find', onClick: onFindArmy, disabled: !allCount && !selectedSquads.length, testId: 'battle-find-army', ariaLabel: 'Find your army' },
-    onObjective && { icon: Target, label: 'Enemy', onClick: onObjective, testId: 'battle-objective', ariaLabel: "Show the enemy's objective" },
-    eco && { icon: Tent, label: 'Base', onClick: onSelectHq, testId: 'battle-hq', ariaLabel: 'Your camp' },
-    onToggleMinimap && { icon: MapIcon, label: 'Map', onClick: onToggleMinimap, active: minimapOn, testId: 'battle-minimap-toggle', ariaLabel: 'Minimap' }
+    onFindArmy && { glyph: <GameIcon group="battle" id="find-army" size={18} halo={false} fallback={<LocateFixed className="w-4 h-4" aria-hidden="true" />} />, label: t('bt.hud.find'), onClick: onFindArmy, disabled: !allCount && !selectedSquads.length, testId: 'battle-find-army', ariaLabel: t('bt.hud.findAria') },
+    onObjective && { icon: Target, label: t('bt.hud.enemy'), onClick: onObjective, testId: 'battle-objective', ariaLabel: t('bt.hud.enemyAria') },
+    eco && { icon: Tent, label: t('bt.hud.baseBtn'), onClick: onSelectHq, testId: 'battle-hq', ariaLabel: t('bt.hud.yourCamp') },
+    onToggleMinimap && { icon: MapIcon, label: t('bt.hud.map'), onClick: onToggleMinimap, active: minimapOn, testId: 'battle-minimap-toggle', ariaLabel: t('bt.hud.minimap') }
   ].filter(Boolean);
   const goal = setup.battleType === 'raid' || setup.battleType === 'sack'
-    ? `${BATTLE_TYPES[setup.battleType][playerSide === 1 ? 'defender' : 'attacker']}.`
+    ? `${battleGoal(setup.battleType, playerSide)}.`
     : setup.economy
-      ? (playerSide === 1 ? 'Keep one base building standing until the clock runs out.' : 'Burn every enemy base building before the clock runs out. Keep your camp standing.')
-      : playerSide === 1 ? 'Hold out until the clock runs out.' : 'Take the keep or break the defenders before the clock runs out.';
+      ? (playerSide === 1 ? t('bt.hud.goalEcoDef') : t('bt.hud.goalEcoAtk'))
+      : playerSide === 1 ? t('bt.hud.goalDef') : t('bt.hud.goalAtk');
+  const supplyText = sup.cap ? t('bt.hud.supplyLine', { now: sup.now, cap: sup.cap }) : t('bt.hud.supplyLineNoCap', { now: sup.now });
+  const supplyPays = `${sup.costs.length ? t('bt.hud.paysFor', { list: sup.costs.map((c) => `${powerLabel(c.id, c.label)} ${c.cost}`).join(', ') }) : t('bt.hud.noPowers')} ${t('bt.hud.risesOn')}`;
+  const supplyOf = sup.cap ? t('bt.hud.supplyOf', { now: sup.now, cap: sup.cap }) : String(sup.now);
 
   return (
     <>
       {/* Top bar (B01): name and clock, resources, speed and pause (I206: fixed slots on the right) */}
       <div className="absolute top-0 inset-x-0 flex items-center gap-2 bg-fa-ink/90 border-b border-fa-line text-fa-text pointer-events-auto" style={{ height: TOP_BAR, paddingTop: 'var(--sa-t, 0px)', paddingLeft: SAFE_L, paddingRight: SAFE_R }} data-testid="battle-top-bar">
-        <span className="fa-heading text-[15px] truncate min-w-0 hidden min-[600px]:inline" style={{ flex: '0 1000 auto' }} data-testid="battle-title">{title || 'Battle'}</span>
-        <span data-testid="battle-clock" title={`${bt.label}: ${bt[playerSide === 1 ? 'defender' : 'attacker']}`}
+        <span className="fa-heading text-[15px] truncate min-w-0 hidden min-[600px]:inline" style={{ flex: '0 1000 auto' }} data-testid="battle-title">{title || t('bt.hud.battle')}</span>
+        <span data-testid="battle-clock" title={`${battleTypeText(hud.battleType || 'field', 'label')}: ${battleGoal(hud.battleType || 'field', playerSide)}`}
           className={cx('fa-num text-[15px] font-semibold shrink-0', timeLeft <= 30 ? 'text-fa-danger-text animate-pulse' : timeLeft <= 60 ? 'text-fa-brass' : '')}>{fmtTime(timeLeft)}</span>
         <span className="w-px h-5 bg-fa-line shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex items-center gap-2.5 lg:gap-3 overflow-x-auto scrollbar-none" style={{ flex: '1 1 auto' }} data-testid="battle-resources">
           {narrow ? (
             // RTS-02: on a narrow phone the stocks, supply and housing are one button and a card.
             <button type="button" onClick={() => { setStocksOpen((v) => !v); setSupplyOpen(false); }} aria-expanded={stocksOpen} data-testid="battle-logistics"
-              aria-label={`Stocks and supply: supply ${sup.now}${sup.cap ? ` of ${sup.cap}` : ''}${sup.low ? ', low' : ''}${eco && eco.pop >= eco.cap ? ', housing full' : ''}`}
+              aria-label={`${t('bt.hud.stocksAria', { supply: supplyOf })}${sup.low ? `, ${t('bt.hud.lowTag')}` : ''}${eco && eco.pop >= eco.cap ? `, ${t('bt.hud.housingFullTag')}` : ''}`}
               className={cx('relative shrink-0 h-11 -my-1 min-w-[44px] flex items-center gap-1 px-1.5 rounded-md', stocksOpen && 'bg-fa-raised', sup.low && 'text-fa-danger-text')}>
               <Package className="w-4 h-4" aria-hidden="true" />
               <ResIcon res="supply" size={16} />
@@ -247,62 +255,62 @@ const BattleHud = ({
               {((eco && eco.pop >= eco.cap) || sup.low) && <span className="absolute top-1 end-0.5 w-2 h-2 rounded-full bg-fa-danger" aria-hidden="true" />}
             </button>
           ) : <>
-          {eco && RESOURCES.map((r, i) => <Res key={r} icon={<ResIcon res={r} size={18} />} label={RES_NAME[r]} value={eco.stock[i]} testId={`battle-stock-${r}`} />)}
+          {eco && RESOURCES.map((r, i) => <Res key={r} icon={<ResIcon res={r} size={18} />} label={resName(r)} value={eco.stock[i]} testId={`battle-stock-${r}`} />)}
           {/* U12: Battle Supply in every battle, now and the cap; a tap explains it */}
           <button type="button" onClick={() => setSupplyOpen((v) => !v)} aria-expanded={supplyOpen} data-testid="battle-supply"
-            aria-label={`Battle supply ${sup.now}${sup.cap ? ` of ${sup.cap}` : ''}${sup.low ? ', low' : ''}`} title="Battle supply"
+            aria-label={`${t('bt.hud.supplyAria', { supply: supplyOf })}${sup.low ? `, ${t('bt.hud.lowTag')}` : ''}`} title={t('bt.hud.battleSupply')}
             className={cx('shrink-0 h-11 -my-1 flex items-center gap-1 px-1 rounded-md', sup.low && 'text-fa-danger-text', supplyOpen && 'bg-fa-raised')}>
             <ResIcon res="supply" size={18} />
             <span className="fa-num text-[13px] font-semibold">{sup.now}{sup.cap ? <span className="text-fa-muted font-normal">/{sup.cap}</span> : null}</span>
           </button>
-          {eco && <Res icon={<ResIcon res="population" size={18} />} label="Population / housing" value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />}
+          {eco && <Res icon={<ResIcon res="population" size={18} />} label={t('bt.hud.popHousing')} value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />}
           </>}
-          <Res icon={<Swords className="w-4 h-4 text-fa-enemy" aria-hidden="true" />} label={`Enemy squads left: ${armyTallyText(armyTally(hud, 1 - playerSide))}`} value={enemyLeft} />
+          <Res icon={<Swords className="w-4 h-4 text-fa-enemy" aria-hidden="true" />} label={t('bt.hud.enemyLeft', { tally: armyTallyText(armyTally(hud, 1 - playerSide)) })} value={enemyLeft} />
         </div>
         {history.length > 0 && !ended && (
-          <button type="button" onClick={() => setHistoryOpen((v) => !v)} aria-label={`Alerts: ${history.length}`} aria-expanded={historyOpen} data-testid="battle-alert-history"
+          <button type="button" onClick={() => setHistoryOpen((v) => !v)} aria-label={t('bt.hud.alertsCount', { n: history.length })} aria-expanded={historyOpen} data-testid="battle-alert-history"
             className={cx('fa-icon-btn !w-11 !h-11 shrink-0 relative', historyOpen && '!bg-fa-raised')}>
             <Bell className="w-4 h-4" aria-hidden="true" />
             <span className="absolute top-0.5 end-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-fa-raised border border-fa-line text-[9.5px] leading-[14px] fa-num" aria-hidden="true">{history.length}</span>
           </button>
         )}
-        <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} aria-label={`Speed ${speed}, tap for faster`} data-testid="battle-speed" className="fa-icon-btn !w-11 !h-11 shrink-0 fa-num text-[13px] font-semibold">{speed}×</button>
-        <button type="button" onClick={onTogglePause} aria-label={!started ? 'Start the battle' : paused ? 'Resume' : 'Pause'} data-testid="battle-pause"
+        <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} aria-label={t('bt.hud.speedFaster', { n: speed })} data-testid="battle-speed" className="fa-icon-btn !w-11 !h-11 shrink-0 fa-num text-[13px] font-semibold">{speed}×</button>
+        <button type="button" onClick={onTogglePause} aria-label={!started ? t('bt.hud.start') : paused ? t('bt.hud.resume') : t('bt.hud.pause')} data-testid="battle-pause"
           className={cx('fa-icon-btn !w-11 !h-11 shrink-0', !started && '!bg-fa-brass !text-fa-ink !border-transparent')}>
           {!started || paused ? <Play className="w-4 h-4" aria-hidden="true" /> : <Pause className="w-4 h-4" aria-hidden="true" />}
         </button>
       </div>
 
       {stocksOpen && narrow && !ended && (
-        <div className="absolute z-20 w-[min(19rem,calc(100vw-2rem))] max-h-[calc(var(--app-height,100vh)-4rem)] overflow-y-auto fa-panel !bg-fa-panel/95 shadow-2xl p-2.5 pe-1 text-[12px] leading-snug pointer-events-auto" style={{ top: UNDER_BAR, insetInlineEnd: SAFE_R }} role="dialog" aria-label="Stocks and supply" data-testid="battle-logistics-card">
+        <div className="absolute z-20 w-[min(19rem,calc(100vw-2rem))] max-h-[calc(var(--app-height,100vh)-4rem)] overflow-y-auto fa-panel !bg-fa-panel/95 shadow-2xl p-2.5 pe-1 text-[12px] leading-snug pointer-events-auto" style={{ top: UNDER_BAR, insetInlineEnd: SAFE_R }} role="dialog" aria-label={t('bt.hud.stocksCard')} data-testid="battle-logistics-card">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
               {eco && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1.5">
-                  {RESOURCES.map((r, i) => <Res key={r} icon={<ResIcon res={r} size={18} />} label={RES_NAME[r]} value={eco.stock[i]} testId={`battle-stock-${r}`} />)}
-                  <Res icon={<ResIcon res="population" size={18} />} label="Population / housing" value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />
+                  {RESOURCES.map((r, i) => <Res key={r} icon={<ResIcon res={r} size={18} />} label={resName(r)} value={eco.stock[i]} testId={`battle-stock-${r}`} />)}
+                  <Res icon={<ResIcon res="population" size={18} />} label={t('bt.hud.popHousing')} value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />
                 </div>
               )}
-              {eco && eco.pop >= eco.cap && <div className="text-fa-danger-text font-semibold mb-1">Housing is full: build a house to train more.</div>}
-              <div className="font-semibold flex items-center gap-1" data-testid="battle-supply"><ResIcon res="supply" size={16} /><span className="fa-num">{sup.now}</span>{sup.cap ? <> of <span className="fa-num">{sup.cap}</span></> : null} Battle supply{sup.rate ? <span className="text-fa-good">, +<span className="fa-num">{sup.rate}</span> a second</span> : null}</div>
-              {sup.low && <div className="text-fa-danger-text font-semibold">Low: not enough for a power yet.</div>}
-              <div className="mt-1">{sup.costs.length ? `Pays for your powers: ${sup.costs.map((c) => `${c.label} ${c.cost}`).join(', ')}.` : 'Your side brought no powers to spend it on.'} It rises on its own, faster with points and buildings held.</div>
+              {eco && eco.pop >= eco.cap && <div className="text-fa-danger-text font-semibold mb-1">{t('bt.hud.housingFull')}</div>}
+              <div className="font-semibold flex items-center gap-1 fa-num" data-testid="battle-supply"><ResIcon res="supply" size={16} /><span>{supplyText}{sup.rate ? <span className="text-fa-good">{t('bt.hud.perSecond', { n: sup.rate })}</span> : null}</span></div>
+              {sup.low && <div className="text-fa-danger-text font-semibold">{t('bt.hud.lowSupply')}</div>}
+              <div className="mt-1">{supplyPays}</div>
             </div>
-            <button type="button" onClick={() => setStocksOpen(false)} aria-label="Close" className="w-11 h-11 -my-2 shrink-0 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>
+            <button type="button" onClick={() => setStocksOpen(false)} aria-label={t('bt.close')} className="w-11 h-11 -my-2 shrink-0 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>
           </div>
         </div>
       )}
 
       {supplyOpen && !ended && (
-        <div className="absolute z-20 w-[min(19rem,calc(100vw-2rem))] fa-panel !bg-fa-panel/95 shadow-2xl p-2.5 pe-1 text-[12px] leading-snug pointer-events-auto" style={{ top: UNDER_BAR, insetInlineEnd: SAFE_R }} role="dialog" aria-label="Battle supply" data-testid="battle-supply-card">
+        <div className="absolute z-20 w-[min(19rem,calc(100vw-2rem))] fa-panel !bg-fa-panel/95 shadow-2xl p-2.5 pe-1 text-[12px] leading-snug pointer-events-auto" style={{ top: UNDER_BAR, insetInlineEnd: SAFE_R }} role="dialog" aria-label={t('bt.hud.battleSupply')} data-testid="battle-supply-card">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <div className="font-semibold"><span className="fa-num">{sup.now}</span>{sup.cap ? <> of <span className="fa-num">{sup.cap}</span></> : null} Battle supply{sup.rate ? <span className="text-fa-good">, +<span className="fa-num">{sup.rate}</span> a second</span> : null}</div>
-              {sup.low && <div className="text-fa-danger-text font-semibold">Low: not enough for a power yet.</div>}
-              <div className="mt-1">{sup.costs.length ? `Pays for your powers: ${sup.costs.map((c) => `${c.label} ${c.cost}`).join(', ')}.` : 'Your side brought no powers to spend it on.'} It rises on its own, faster with points and buildings held.</div>
-              <div className="mt-1 text-fa-muted">Not the same as your army&apos;s supply on the campaign map.</div>
+              <div className="font-semibold fa-num">{supplyText}{sup.rate ? <span className="text-fa-good">{t('bt.hud.perSecond', { n: sup.rate })}</span> : null}</div>
+              {sup.low && <div className="text-fa-danger-text font-semibold">{t('bt.hud.lowSupply')}</div>}
+              <div className="mt-1">{supplyPays}</div>
+              <div className="mt-1 text-fa-muted">{t('bt.hud.notCampaignSupply')}</div>
             </div>
-            <button type="button" onClick={() => setSupplyOpen(false)} aria-label="Close" className="w-11 h-11 -my-2 shrink-0 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>
+            <button type="button" onClick={() => setSupplyOpen(false)} aria-label={t('bt.close')} className="w-11 h-11 -my-2 shrink-0 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>
           </div>
         </div>
       )}
@@ -314,13 +322,13 @@ const BattleHud = ({
         <div className="w-[min(15rem,32vw)] lg:w-[17rem] shrink-0 flex flex-col gap-1.5">
           {perf}
           {historyOpen && (
-            <div className="pointer-events-auto fa-panel !bg-fa-panel/95 shadow-2xl p-1.5 max-h-[50vh] overflow-y-auto" data-testid="battle-alert-list" role="log" aria-label="Alerts this battle">
-              <div className="flex items-center justify-between ps-1"><span className="fa-label">Alerts</span>
-                <button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close the alerts" className="w-11 h-11 -my-1.5 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button></div>
+            <div className="pointer-events-auto fa-panel !bg-fa-panel/95 shadow-2xl p-1.5 max-h-[50vh] overflow-y-auto" data-testid="battle-alert-list" role="log" aria-label={t('bt.hud.alertsThisBattle')}>
+              <div className="flex items-center justify-between ps-1"><span className="fa-label">{t('bt.hud.alerts')}</span>
+                <button type="button" onClick={() => setHistoryOpen(false)} aria-label={t('bt.hud.closeAlerts')} className="w-11 h-11 -my-1.5 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button></div>
               {history.map((a) => (
                 <div key={a.id} className="flex items-center gap-1.5 ps-1 border-t border-fa-line/50">
-                  <span className="min-w-0 flex-1 text-[11.5px] leading-tight py-1"><span className={cx('font-semibold', a.tone === 'good' ? 'text-fa-good' : 'text-fa-danger-text')}>{a.title}</span> <span className="text-fa-muted">{fmtTime(Math.max(0, Math.round((hud.tick - a.tick) / TICK_HZ)))} ago</span></span>
-                  {(onAlertGo || onFocus) && <button type="button" onClick={() => (onAlertGo ? onAlertGo(a) : onFocus(a.x, a.y))} className="fa-btn fa-btn-ghost !min-h-[44px] !px-2.5 shrink-0">Go</button>}
+                  <span className="min-w-0 flex-1 text-[11.5px] leading-tight py-1"><span className={cx('font-semibold', a.tone === 'good' ? 'text-fa-good' : 'text-fa-danger-text')}>{a.title}</span> <span className="text-fa-muted">{t('bt.ago', { time: fmtTime(Math.max(0, Math.round((hud.tick - a.tick) / TICK_HZ))) })}</span></span>
+                  {(onAlertGo || onFocus) && <button type="button" onClick={() => (onAlertGo ? onAlertGo(a) : onFocus(a.x, a.y))} className="fa-btn fa-btn-ghost !min-h-[44px] !px-2.5 shrink-0">{t('bt.go')}</button>}
                 </div>
               ))}
             </div>
@@ -331,8 +339,8 @@ const BattleHud = ({
                 <div key={a.id} className={cx('pointer-events-auto flex items-center gap-1.5 ps-2 rounded-[10px] bg-fa-panel/95 border shadow-xl', a.tone === 'good' ? 'border-fa-good/70' : 'border-fa-danger/80')} role="status">
                   {a.tone === 'good' ? <Flag className="w-4 h-4 shrink-0 text-fa-good" aria-hidden="true" /> : <AlertTriangle className="w-4 h-4 shrink-0 text-fa-danger-text" aria-hidden="true" />}
                   <span className="min-w-0 flex-1 text-[12px] font-semibold leading-tight truncate" title={a.detail}>{a.title}</span>
-                  {a.kind === 'shaken' && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2 shrink-0 text-[11px]" data-testid="battle-alert-rally">Rally</button>}
-                  {(onAlertGo || onFocus) && <button type="button" onClick={() => (onAlertGo ? onAlertGo(a) : onFocus(a.x, a.y))} className="shrink-0 min-w-[44px] h-11 px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-alert-go">Go</button>}
+                  {a.kind === 'shaken' && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2 shrink-0 text-[11px]" data-testid="battle-alert-rally">{t('bt.hud.rally')}</button>}
+                  {(onAlertGo || onFocus) && <button type="button" onClick={() => (onAlertGo ? onAlertGo(a) : onFocus(a.x, a.y))} className="shrink-0 min-w-[44px] h-11 px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-alert-go">{t('bt.go')}</button>}
                 </div>
               ))}
             </div>
@@ -344,30 +352,30 @@ const BattleHud = ({
           <div className="flex items-center justify-center gap-1.5 flex-wrap max-w-full">
           {/* Objective: the keep (any battle with one); a 44 px target round a slim chip */}
           {keep && !city && (
-            <button type="button" onClick={onFocusKeep} className="pointer-events-auto -my-2 min-h-[44px] max-w-full flex items-center" data-testid="battle-keep" aria-label={`Keep ${keep.alive ? `${Math.round((keep.hp / keep.maxHp) * 100)}%` : 'down'}: show it`}>
+            <button type="button" onClick={onFocusKeep} className="pointer-events-auto -my-2 min-h-[44px] max-w-full flex items-center" data-testid="battle-keep" aria-label={t('bt.hud.keepAria', { state: keep.alive ? `${Math.round((keep.hp / keep.maxHp) * 100)}%` : t('bt.hud.down') })}>
               <span className="fa-chip !bg-fa-panel/95 !min-h-[28px] !py-0.5 gap-1.5 max-w-full">
                 <Castle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                 {keep.alive
                   ? <><span className="w-10 lg:w-16 h-1.5 bg-fa-ink rounded-full overflow-hidden shrink-0"><span className="block h-full bg-fa-enemy" style={{ width: `${(keep.hp / keep.maxHp) * 100}%` }} /></span><span className="fa-num text-[10.5px] lg:hidden">{Math.round((keep.hp / keep.maxHp) * 100)}%</span><span className="fa-num text-[10.5px] hidden lg:inline">{Math.round(keep.hp)}/{keep.maxHp}</span></>
-                  : <span className="text-fa-good">{base ? 'Keep down' : `Breached${hud.assimilation > 0 ? `, taking ${Math.round((hud.assimilation / ASSIMILATION_TICKS) * 100)}%` : ''}`}</span>}
-                {keep.alive && keep.garrisonSlots > 0 && <span className="text-fa-you truncate hidden lg:inline" title="Garrison: tap the keep with infantry or ranged selected">garrison {keep.garrison}/{keep.garrisonSlots}</span>}
+                  : <span className="text-fa-good">{base ? t('bt.hud.keepDown') : hud.assimilation > 0 ? t('bt.hud.breachedTaking', { pct: Math.round((hud.assimilation / ASSIMILATION_TICKS) * 100) }) : t('bt.hud.breached')}</span>}
+                {keep.alive && keep.garrisonSlots > 0 && <span className="text-fa-you truncate hidden lg:inline" title={t('bt.hud.garrisonTitle')}>{t('bt.hud.garrison', { a: keep.garrison, b: keep.garrisonSlots })}</span>}
               </span>
             </button>
           )}
           {/* The base rule (sim/base.js, UI16): what is left to burn on each side. */}
           {base && (
-            <div className="pointer-events-auto fa-chip !bg-fa-panel/95 !min-h-[24px] !py-0.5 gap-1 text-[10.5px] max-w-full" title="Base buildings standing: the camp or keep, economy and military buildings (a tower your laborers build counts). Houses and the city's walls, gates and wall towers do not. A side loses when its last one falls." data-testid="battle-base">
+            <div className="pointer-events-auto fa-chip !bg-fa-panel/95 !min-h-[24px] !py-0.5 gap-1 text-[10.5px] max-w-full" title={t('bt.hud.baseTitle')} data-testid="battle-base">
               <GameIcon group="battle" id="base-status" size={14} halo={false} fallback={<Flag className="w-3 h-3 shrink-0" aria-hidden="true" />} />
-              <span className="whitespace-nowrap">Base <span className="fa-num text-fa-you">{base[0]}</span> vs <span className="fa-num text-fa-enemy">{base[1]}</span></span>
-              {marching.length > 0 && <span className="whitespace-nowrap text-fa-you">, {marching.length} arriving</span>}
+              <span className="whitespace-nowrap">{t('bt.hud.base')} <span className="fa-num text-fa-you">{base[0]}</span> {t('bt.hud.vs')} <span className="fa-num text-fa-enemy">{base[1]}</span></span>
+              {marching.length > 0 && <span className="whitespace-nowrap text-fa-you">{t('bt.hud.arriving', { n: marching.length })}</span>}
             </div>
           )}
           </div>
           {!started && (
             <div className="pointer-events-auto w-[min(22rem,100%)] px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] leading-snug shadow-xl overflow-y-auto" style={{ maxHeight: `calc(var(--app-height, 100vh) - ${short ? '9.5rem' : '11rem'} - var(--sa-t, 0px) - var(--sa-b, 0px))` }} data-testid="battle-deploy-help">
               <div className="flex items-center gap-2">
-                <div className="fa-heading text-[15px] flex-1">Deploy your army</div>
-                <button type="button" onClick={() => setDeployMore((v) => !v)} aria-expanded={deployMore} aria-label={deployMore ? 'Less about this battle' : 'More about this battle'} data-testid="battle-deploy-more"
+                <div className="fa-heading text-[15px] flex-1">{t('bt.hud.deploy')}</div>
+                <button type="button" onClick={() => setDeployMore((v) => !v)} aria-expanded={deployMore} aria-label={deployMore ? t('bt.hud.lessAbout') : t('bt.hud.moreAbout')} data-testid="battle-deploy-more"
                   className="w-11 h-11 -my-2 -me-2 shrink-0 flex items-center justify-center text-fa-muted">{deployMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</button>
               </div>
               <div data-testid="battle-deploy-controls">{deployHelp(mouse)}</div>
@@ -376,29 +384,29 @@ const BattleHud = ({
                 <div className="mt-1 space-y-1" data-testid="battle-deploy-details">
                   {setup.structures.some((st) => st.kind === 'building') && (
                     <div className="text-fa-you" data-testid="battle-buildings">
-                      {playerSide === 1 ? 'Your buildings here help you while they stand: ' : "The enemy's buildings help them; raze them for plunder: "}
-                      {setup.structures.filter((st) => st.kind === 'building').map((st) => `${st.name} (${BUILDING_EFFECTS[st.category] || 'landmark'})`).join(', ')}
+                      {playerSide === 1 ? t('bt.hud.yourBuildings') : t('bt.hud.theirBuildings')}
+                      {setup.structures.filter((st) => st.kind === 'building').map((st) => `${structureName(st)} (${buildingEffect(st.category, t('bt.hud.landmark'))})`).join(', ')}
                     </div>
                   )}
-                  {setup.economy && <div className="text-fa-muted">Base buildings are the {playerSide === 1 ? 'keep' : 'camp'}, economy and military buildings. Houses and walls do not count.</div>}
-                  <div className="text-fa-muted">{cameraHelp(mouse)} Every regiment starts on the field.</div>
+                  {setup.economy && <div className="text-fa-muted">{t('bt.hud.baseNote', { what: playerSide === 1 ? t('bt.hud.keepWord') : t('bt.hud.campWord') })}</div>}
+                  <div className="text-fa-muted">{cameraHelp(mouse)} {t('bt.hud.everyRegiment')}</div>
                 </div>
               )}
-              <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary w-full !min-h-[44px] mt-1.5" data-testid="battle-start">Start the battle</button>
+              <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary w-full !min-h-[44px] mt-1.5" data-testid="battle-start">{t('bt.hud.start')}</button>
             </div>
           )}
           {/* The selection and its target (B01); Shaken with Rally Cry (B09) */}
           {sel && !pauseOpen && started && (
             <div className={cx('max-w-full ps-3 py-1 rounded-full bg-fa-panel/95 border border-fa-line text-[12px] shadow-xl pointer-events-auto flex items-center gap-2', onClearSelection ? 'pe-0' : 'pe-3')} data-testid="battle-selection">
               <span className="font-semibold truncate min-w-[3rem] max-w-[9rem] lg:max-w-none">{sel.name}</span>
-              <span className="text-fa-muted whitespace-nowrap hidden lg:inline">{sel.squads} squad{sel.squads === 1 ? '' : 's'}, <span className="fa-num">{menText(sel.men)}</span> men</span>
+              <span className="text-fa-muted whitespace-nowrap hidden lg:inline fa-num">{t('bt.hud.squadsMen', { count: sel.squads, men: menText(sel.men) })}</span>
               <span className={cx('fa-num', sel.share < 0.35 ? 'text-fa-danger-text' : 'text-fa-good')}>{Math.round(sel.share * 100)}%</span>
-              {sel.shaken > 0 && <span className="px-1.5 rounded-md bg-fa-brass/20 text-fa-brass text-[11px] font-bold whitespace-nowrap" title="Beaten down: weaker blows, more hurt taken, until morale returns. Your squads never run." data-testid="battle-selection-shaken">Shaken{sel.squads > 1 ? ` ${sel.shaken}` : ''}</span>}
-              {sel.routed && <span className="text-fa-danger-text font-semibold">routed</span>}
-              {targetSt && <span className="text-fa-enemy whitespace-nowrap hidden lg:inline">Target: {STRUCTURE_WORD[targetSt.kind] || targetSt.kind} <span className="fa-num">{Math.round(targetSt.hp)}/{targetSt.maxHp}</span></span>}
-              {sel.shaken > 0 && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2.5 -my-2 shrink-0 text-[11px]" data-testid="battle-selection-rally" title={rallyReady ? 'Rally Cry: +30 morale for your whole army' : 'Rally Cry is not ready'}>Rally Cry</button>}
+              {sel.shaken > 0 && <span className="px-1.5 rounded-md bg-fa-brass/20 text-fa-brass text-[11px] font-bold whitespace-nowrap" title={t('bt.hud.shakenTitle')} data-testid="battle-selection-shaken">{sel.squads > 1 ? t('bt.hud.shakenN', { n: sel.shaken }) : t('bt.hud.shaken')}</span>}
+              {sel.routed && <span className="text-fa-danger-text font-semibold">{t('bt.hud.routed')}</span>}
+              {targetSt && <span className="text-fa-enemy whitespace-nowrap hidden lg:inline">{t('bt.hud.target', { word: structureLabel(targetSt.kind, STRUCTURE_WORD[targetSt.kind] || targetSt.kind), hp: `${Math.round(targetSt.hp)}/${targetSt.maxHp}` })}</span>}
+              {sel.shaken > 0 && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2.5 -my-2 shrink-0 text-[11px]" data-testid="battle-selection-rally" title={rallyReady ? t('bt.hud.rallyReadyTitle') : t('bt.hud.rallyNotReady')}>{t('bt.hud.rallyCry')}</button>}
               {onClearSelection && (
-                <button type="button" onClick={onClearSelection} aria-label="Clear selection" title="Clear selection (Esc)" data-testid="battle-clear-selection"
+                <button type="button" onClick={onClearSelection} aria-label={t('bt.hud.clearSelection')} title={t('bt.hud.clearSelectionEsc')} data-testid="battle-clear-selection"
                   className="shrink-0 w-11 h-11 -my-2.5 flex items-center justify-center rounded-full text-fa-muted hover:text-fa-text">
                   <span className="w-7 h-7 rounded-full bg-fa-raised border border-fa-line flex items-center justify-center"><GameIcon group="battle" id="close" size={16} halo={false} fallback={<X className="w-4 h-4" aria-hidden="true" />} /></span>
                 </button>
@@ -415,26 +423,26 @@ const BattleHud = ({
                 {cityOpen ? (
                   <div className="fa-panel !bg-fa-panel/95 px-2.5 py-1.5 shadow-xl">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="fa-label">{playerSide === 1 ? 'Your city' : 'Defender'} housing</span>
-                      <button type="button" onClick={() => setCityOpen(false)} aria-label="Fold the city card" className="-me-2 -my-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-fa-muted" data-testid="battle-city-fold"><ChevronUp className="w-4 h-4" /></button>
+                      <span className="fa-label">{playerSide === 1 ? t('bt.hud.cityHousingYours') : t('bt.hud.cityHousingTheirs')}</span>
+                      <button type="button" onClick={() => setCityOpen(false)} aria-label={t('bt.hud.foldCity')} className="-me-2 -my-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-fa-muted" data-testid="battle-city-fold"><ChevronUp className="w-4 h-4" /></button>
                     </div>
                     <div className="flex items-baseline gap-2">
                       {city.housingNow < city.housingStart && <span className="fa-num text-[13px] text-fa-muted line-through">{city.housingStart}</span>}
                       <span className={cx('fa-num text-[17px] font-semibold', city.housingNow < city.housingStart ? 'text-fa-danger-text' : '')}>{city.housingNow}</span>
-                      <span className="text-[11px] text-fa-muted">{city.ruined ? `${city.ruined} house${city.ruined === 1 ? '' : 's'} burned` : 'no house burned yet'}</span>
+                      <span className="text-[11px] text-fa-muted">{city.ruined ? t('bt.hud.housesBurned', { count: city.ruined }) : t('bt.hud.noHouseBurned')}</span>
                     </div>
-                    <div className="text-[11.5px] leading-snug mt-1" data-testid="battle-city-houses">Ruined {city.ruined} of {city.total} houses. Repairs are free after the battle.</div>
-                    <div className="relative h-1.5 mt-1 rounded-full bg-fa-ink overflow-hidden" role="meter" aria-label="Houses ruined" aria-valuenow={city.ruined} aria-valuemin={0} aria-valuemax={city.total}>
+                    <div className="text-[11.5px] leading-snug mt-1" data-testid="battle-city-houses">{t('bt.hud.ruinedOf', { a: city.ruined, b: city.total })}</div>
+                    <div className="relative h-1.5 mt-1 rounded-full bg-fa-ink overflow-hidden" role="meter" aria-label={t('bt.hud.housesRuined')} aria-valuenow={city.ruined} aria-valuemin={0} aria-valuemax={city.total}>
                       <span className="absolute inset-y-0 start-0 bg-fa-danger" style={{ width: `${(city.ruined / Math.max(1, city.total)) * 100}%` }} />
                     </div>
                     <div className="flex gap-3 mt-1 text-[10.5px] text-fa-muted">
-                      {city.gate && <span>Gate {city.gate.alive ? `${Math.round((city.gate.hp / city.gate.maxHp) * 100)}%` : 'open'}</span>}
-                      {city.towers.total > 0 && <span>Towers {city.towers.standing}/{city.towers.total}</span>}
-                      {city.keep && <button type="button" onClick={onFocusKeep} className="underline min-h-[44px] -my-3">Keep {city.keep.alive ? `${Math.round((city.keep.hp / city.keep.maxHp) * 100)}%` : base ? 'down' : 'taken'}</button>}
+                      {city.gate && <span>{t('bt.hud.gate')} {city.gate.alive ? `${Math.round((city.gate.hp / city.gate.maxHp) * 100)}%` : t('bt.hud.gateOpen')}</span>}
+                      {city.towers.total > 0 && <span>{t('bt.hud.towers')} {city.towers.standing}/{city.towers.total}</span>}
+                      {city.keep && <button type="button" onClick={onFocusKeep} className="underline min-h-[44px] -my-3">{t('bt.hud.keep')} {city.keep.alive ? `${Math.round((city.keep.hp / city.keep.maxHp) * 100)}%` : base ? t('bt.hud.down') : t('bt.hud.keepTaken')}</button>}
                     </div>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => setCityOpen(true)} className="ms-auto flex fa-chip !bg-fa-panel/95 !min-h-[44px] gap-1.5" aria-expanded="false" data-testid="battle-city-open"><Home className="w-3.5 h-3.5" aria-hidden="true" />Housing <span className="fa-num">{city.housingNow}</span> · ruined <span className="fa-num">{city.ruined}/{city.total}</span></button>
+                  <button type="button" onClick={() => setCityOpen(true)} className="ms-auto flex fa-chip !bg-fa-panel/95 !min-h-[44px] gap-1.5" aria-expanded="false" data-testid="battle-city-open"><Home className="w-3.5 h-3.5" aria-hidden="true" />{t('bt.hud.housingChip')} <span className="fa-num">{city.housingNow}</span> · {t('bt.hud.ruinedChip')} <span className="fa-num">{city.ruined}/{city.total}</span></button>
                 )}
               </div>
             )}
@@ -446,15 +454,15 @@ const BattleHud = ({
       {started && timeLeft > 0 && timeLeft <= 60 && timeLeft > 55 && (
         <div className="absolute inset-x-0 flex justify-center pointer-events-none px-4" style={{ bottom: ABOVE_BOTTOM }}>
           <div className="px-3 py-1.5 rounded-full bg-fa-brass text-fa-ink text-xs font-bold shadow-xl">
-            One minute left{playerSide === 1 ? ': hold on!' : ': take the keep now!'}
+            {playerSide === 1 ? t('bt.hud.oneMinuteDef') : t('bt.hud.oneMinuteAtk')}
           </div>
         </div>
       )}
       {armed?.type === 'power' && (
         <div className="absolute inset-x-0 flex justify-center pointer-events-none" style={{ bottom: ABOVE_BOTTOM }}>
           <div className="pointer-events-auto flex items-center gap-1 ps-3 rounded-full bg-fa-panel/95 border border-fa-enemy text-xs font-semibold shadow-xl" data-testid="battle-power-armed">
-            {mouse ? 'Click' : 'Tap'} the battlefield to strike: {armed.label}
-            {onCancelArmed && <button type="button" onClick={onCancelArmed} aria-label="Cancel the strike" className="w-11 h-11 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>}
+            {t(mouse ? 'bt.hud.clickStrike' : 'bt.hud.tapStrike', { label: powerLabel(armed.id, armed.label) })}
+            {onCancelArmed && <button type="button" onClick={onCancelArmed} aria-label={t('bt.hud.cancelStrike')} className="w-11 h-11 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>}
           </div>
         </div>
       )}
@@ -464,7 +472,7 @@ const BattleHud = ({
       {!pauseOpen && (
         <div className="absolute flex items-end justify-between gap-2 pointer-events-none" style={{ top: UNDER_BAR, bottom: SAFE_B, insetInlineStart: SAFE_L, insetInlineEnd: SAFE_R }}>
           <div className="pointer-events-auto flex gap-1 shrink-0" data-testid="battle-quick">
-            <Cmd glyph={<GameIcon group="battle" id="select-all" size={18} halo={false} fallback={<Users className="w-4 h-4" aria-hidden="true" />} />} label={`All ${allCount}`} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" ariaLabel={`Select all ${allCount} regiments`} />
+            <Cmd glyph={<GameIcon group="battle" id="select-all" size={18} halo={false} fallback={<Users className="w-4 h-4" aria-hidden="true" />} />} label={t('bt.hud.all', { n: allCount })} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" ariaLabel={t('bt.hud.selectAll', { n: allCount })} />
             {narrow ? (
               // RTS-02: a narrow phone folds the camera buttons behind View (they open upwards).
               <div className="relative shrink-0">
@@ -473,34 +481,34 @@ const BattleHud = ({
                     {viewButtons.map((b) => <Cmd key={b.testId} {...b} onClick={() => { setViewOpen(false); b.onClick(); }} />)}
                   </div>
                 )}
-                <Cmd icon={Compass} label="View" onClick={() => setViewOpen((v) => !v)} active={viewOpen} testId="battle-view-more" ariaLabel="Camera and map buttons" />
+                <Cmd icon={Compass} label={t('bt.hud.view')} onClick={() => setViewOpen((v) => !v)} active={viewOpen} testId="battle-view-more" ariaLabel={t('bt.hud.viewAria')} />
               </div>
             ) : viewButtons.map((b) => <Cmd key={b.testId} {...b} />)}
-            {eco && eco.idleWorkers.length > 0 && <Cmd icon={Hammer} label={`Idle ${eco.idleWorkers.length}`} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
+            {eco && eco.idleWorkers.length > 0 && <Cmd icon={Hammer} label={t('bt.hud.idle', { n: eco.idleWorkers.length })} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
           </div>
           <div className="flex-1 min-w-0 max-h-full overflow-y-auto [&>*]:pointer-events-auto overscroll-contain scrollbar-none flex flex-col items-end gap-1" data-testid="battle-context" data-context={context}>
             <div className="flex-1" aria-hidden="true" />
             {wandOpen && showWand && (
-              <div className="shrink-0 fa-panel !bg-fa-panel/95 shadow-2xl p-1.5 overflow-y-auto overscroll-contain" style={{ width: 'min(19rem, 100%)', maxHeight: 'calc(var(--app-height, 100vh) - var(--sa-t, 0px) - max(0.375rem, var(--sa-b, 0px)) - 7.5rem)' }} role="dialog" aria-label="Abilities and powers" data-testid="battle-wand-sheet">
-                <div className="flex items-center justify-between ps-1"><span className="fa-label">Abilities and powers</span>
-                  <button type="button" onClick={() => setWandOpen(false)} aria-label="Close" data-testid="battle-wand-close" className="w-11 h-11 -my-1 flex items-center justify-center text-fa-muted"><GameIcon group="battle" id="close" size={20} halo={false} fallback={<X className="w-4 h-4" aria-hidden="true" />} /></button></div>
+              <div className="shrink-0 fa-panel !bg-fa-panel/95 shadow-2xl p-1.5 overflow-y-auto overscroll-contain" style={{ width: 'min(19rem, 100%)', maxHeight: 'calc(var(--app-height, 100vh) - var(--sa-t, 0px) - max(0.375rem, var(--sa-b, 0px)) - 7.5rem)' }} role="dialog" aria-label={t('bt.hud.wand')} data-testid="battle-wand-sheet">
+                <div className="flex items-center justify-between ps-1"><span className="fa-label">{t('bt.hud.wand')}</span>
+                  <button type="button" onClick={() => setWandOpen(false)} aria-label={t('bt.close')} data-testid="battle-wand-close" className="w-11 h-11 -my-1 flex items-center justify-center text-fa-muted"><GameIcon group="battle" id="close" size={20} halo={false} fallback={<X className="w-4 h-4" aria-hidden="true" />} /></button></div>
                 {armyCtx && abilities.map((a) => (
                   <button key={a.id} type="button" disabled={a.readyIn > 0} onClick={() => { setWandOpen(false); onAbility?.(a.id); }} data-testid={`battle-ability-${a.id}`}
                     className="w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-start hover:bg-fa-raised disabled:opacity-50">
                     <Wand2 className="w-4 h-4 shrink-0 text-fa-indep" aria-hidden="true" />
-                    <span className="flex-1 min-w-0 text-[12px] font-semibold truncate">{ABILITY_LABEL(a.id)}</span>
-                    <span className={cx('text-[11px] fa-num shrink-0', a.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{a.readyIn > 0 ? `Ready in ${Math.ceil(a.readyIn / TICK_HZ)} s` : 'Ready'}</span>
+                    <span className="flex-1 min-w-0 text-[12px] font-semibold truncate">{abilityLabel(a.id)}</span>
+                    <span className={cx('text-[11px] fa-num shrink-0', a.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{a.readyIn > 0 ? t('bt.hud.readyIn', { s: Math.ceil(a.readyIn / TICK_HZ) }) : t('bt.hud.readyCap')}</span>
                   </button>
                 ))}
                 {powerCards.map((pw) => {
-                  const block = powerBlock(pw, supply);
+                  const block = powerBlock(pw, supply, t);
                   return (
                     <button key={pw.id} type="button" disabled={!!block} onClick={() => firePower(pw)} aria-pressed={(armed?.type === 'power' && armed.id === pw.id) || undefined} data-testid={`battle-power-${pw.id}`}
                       className={cx('w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-start hover:bg-fa-raised disabled:opacity-60', pw.id === 'nuclearStrike' && 'text-fa-danger-text')}>
                       <Zap className="w-4 h-4 shrink-0 text-fa-brass" aria-hidden="true" />
-                      <span className="flex-1 min-w-0"><span className="block text-[12px] font-semibold truncate">{pw.label}</span>
-                        <span className="block text-[10.5px] text-fa-muted fa-num">{pw.cost ? `${pw.cost} supply` : 'Free'}{Number.isFinite(pw.usesLeft) ? `, ${pw.usesLeft} left` : ''}{pw.targeted ? ', aim it' : ''}</span></span>
-                      <span className={cx('text-[11px] shrink-0 text-end max-w-[8rem]', block ? 'text-fa-danger-text' : 'text-fa-good')}>{block || 'Ready'}</span>
+                      <span className="flex-1 min-w-0"><span className="block text-[12px] font-semibold truncate">{powerLabel(pw.id, pw.label)}</span>
+                        <span className="block text-[10.5px] text-fa-muted fa-num">{pw.cost ? t('bt.hud.costSupply', { cost: pw.cost }) : t('bt.hud.free')}{Number.isFinite(pw.usesLeft) ? t('bt.hud.usesLeft', { n: pw.usesLeft }) : ''}{pw.targeted ? t('bt.hud.aimIt') : ''}</span></span>
+                      <span className={cx('text-[11px] shrink-0 text-end max-w-[8rem]', block ? 'text-fa-danger-text' : 'text-fa-good')}>{block || t('bt.hud.readyCap')}</span>
                     </button>
                   );
                 })}
@@ -513,15 +521,15 @@ const BattleHud = ({
                 {armyCtx ? (
                   <>
                     {context === 'mixed' && eco && <HammerButton onClick={onOpenBuild} active={buildOpen} />}
-                    {onToggleFollow && <Cmd icon={Navigation} label="Follow" onClick={onToggleFollow} active={follow} testId="battle-follow" ariaLabel="Camera follows the selection" />}
-                    <Cmd icon={Crosshair} label="Attack" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} testId="battle-attack-move" />
-                    <Cmd icon={Hand} label="Hold" onClick={() => onCommand('hold')} testId="battle-hold" />
-                    <Cmd icon={formation === 'line' ? Rows : Columns} label={formation === 'line' ? 'Line' : 'Column'} onClick={onFormation} testId="battle-formation" />
-                    <Cmd icon={Undo2} label="Retreat" onClick={() => onCommand('retreat')} danger testId="battle-retreat-selected" />
+                    {onToggleFollow && <Cmd icon={Navigation} label={t('bt.hud.follow')} onClick={onToggleFollow} active={follow} testId="battle-follow" ariaLabel={t('bt.hud.followAria')} />}
+                    <Cmd icon={Crosshair} label={t('bt.hud.attack')} onClick={() => onArm('attackMove')} active={armed === 'attackMove'} testId="battle-attack-move" />
+                    <Cmd icon={Hand} label={t('bt.hud.hold')} onClick={() => onCommand('hold')} testId="battle-hold" />
+                    <Cmd icon={formation === 'line' ? Rows : Columns} label={formation === 'line' ? t('bt.hud.line') : t('bt.hud.column')} onClick={onFormation} testId="battle-formation" />
+                    <Cmd icon={Undo2} label={t('bt.hud.retreat')} onClick={() => onCommand('retreat')} danger testId="battle-retreat-selected" />
                   </>
                 ) : (
                   <>
-                    {onToggleSelectMode && !mouse && <Cmd icon={BoxSelect} label="Select" onClick={onToggleSelectMode} active={selectMode} testId="battle-select-mode" />}
+                    {onToggleSelectMode && !mouse && <Cmd icon={BoxSelect} label={t('bt.hud.select')} onClick={onToggleSelectMode} active={selectMode} testId="battle-select-mode" />}
                   </>
                 )}
               </div>
@@ -532,7 +540,7 @@ const BattleHud = ({
 
       {selectMode && !pauseOpen && (
         <div className="absolute max-w-[250px] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-good text-xs font-semibold shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-select-mode-banner">
-          Drag a box. Two fingers move the map.
+          {t('bt.hud.selectBanner')}
         </div>
       )}
       {coach && !selectMode && !pauseOpen && !viewOpen && !(started && paused && sheetHidden) && coach.steps[coach.step] && (
@@ -540,59 +548,59 @@ const BattleHud = ({
         <div className="absolute w-[min(16rem,calc(50vw-1rem))] px-3 pt-2 pb-1 rounded-[10px] bg-fa-panel/95 border border-fa-brass/70 text-[12px] leading-snug shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-coach">
           <div className="flex items-baseline gap-2">
             <span className="fa-label text-fa-brass flex-1 min-w-0 truncate">{coach.steps[coach.step].title}</span>
-            <span className="fa-num text-[10.5px] text-fa-muted shrink-0">{coach.step + 1} of {coach.steps.length}</span>
+            <span className="fa-num text-[10.5px] text-fa-muted shrink-0">{t('bt.hud.stepOf', { a: coach.step + 1, b: coach.steps.length })}</span>
           </div>
           <div className="mt-0.5" data-testid="battle-coach-text">{coach.steps[coach.step].text}</div>
           <div className="flex justify-end gap-1 -me-2">
-            <button type="button" onClick={coach.onSkip} className="pointer-events-auto min-h-[44px] min-w-[44px] px-2 text-[12px] text-fa-muted" data-testid="battle-coach-skip">Skip</button>
-            <button type="button" onClick={coach.onNext} className="pointer-events-auto min-h-[44px] min-w-[44px] px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-coach-next">{coach.step + 1 < coach.steps.length ? 'Next' : 'Got it'}</button>
+            <button type="button" onClick={coach.onSkip} className="pointer-events-auto min-h-[44px] min-w-[44px] px-2 text-[12px] text-fa-muted" data-testid="battle-coach-skip">{t('bt.skip')}</button>
+            <button type="button" onClick={coach.onNext} className="pointer-events-auto min-h-[44px] min-w-[44px] px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-coach-next">{coach.step + 1 < coach.steps.length ? t('bt.hud.next') : t('bt.hud.gotIt')}</button>
           </div>
         </div>
       )}
 
       {/* B06 pause sheet: narrow, on the right (I207); Retreat set apart from Switch to Auto */}
       {pauseOpen && (
-        <div className="absolute end-0 bottom-0 w-[min(18rem,46vw)] lg:w-[21rem] p-2.5 bg-fa-panel border-s border-fa-line shadow-2xl overflow-y-auto pointer-events-auto flex flex-col gap-2" style={{ top: TOP_BAR, paddingRight: 'max(0.625rem, var(--sa-r, 0px))', paddingBottom: 'max(0.625rem, var(--sa-b, 0px))' }} data-testid="battle-pause-sheet" role="dialog" aria-label="Paused">
-          <div className="flex items-center justify-between"><h2 className="fa-heading text-[16px]">Paused</h2><button type="button" onClick={() => setSheetHidden(true)} className="fa-btn fa-btn-ghost !min-h-[44px] !px-2 text-[12px]" data-testid="battle-pause-orders">Give orders</button></div>
-          <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary !min-h-[44px] w-full shrink-0" data-testid="battle-resume">Resume</button>
+        <div className="absolute end-0 bottom-0 w-[min(18rem,46vw)] lg:w-[21rem] p-2.5 bg-fa-panel border-s border-fa-line shadow-2xl overflow-y-auto pointer-events-auto flex flex-col gap-2" style={{ top: TOP_BAR, paddingRight: 'max(0.625rem, var(--sa-r, 0px))', paddingBottom: 'max(0.625rem, var(--sa-b, 0px))' }} data-testid="battle-pause-sheet" role="dialog" aria-label={t('bt.hud.paused')}>
+          <div className="flex items-center justify-between"><h2 className="fa-heading text-[16px]">{t('bt.hud.paused')}</h2><button type="button" onClick={() => setSheetHidden(true)} className="fa-btn fa-btn-ghost !min-h-[44px] !px-2 text-[12px]" data-testid="battle-pause-orders">{t('bt.hud.giveOrders')}</button></div>
+          <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary !min-h-[44px] w-full shrink-0" data-testid="battle-resume">{t('bt.hud.resume')}</button>
           <div>
-            <div role="radiogroup" aria-label="Speed" className="flex gap-1 p-0.5 rounded-[10px] border border-fa-line bg-fa-ink/40">
-              {SPEEDS.map((s) => <button key={s} type="button" role="radio" aria-checked={speed === s} aria-label={`Speed ${s}`} onClick={() => onSpeed(s)} className={cx('fa-option flex-1 min-h-[44px] fa-num text-[14px] font-semibold border-transparent bg-transparent', speed === s && 'fa-selected')}>{s}×</button>)}
+            <div role="radiogroup" aria-label={t('bt.hud.speed')} className="flex gap-1 p-0.5 rounded-[10px] border border-fa-line bg-fa-ink/40">
+              {SPEEDS.map((s) => <button key={s} type="button" role="radio" aria-checked={speed === s} aria-label={t('bt.hud.speedN', { n: s })} onClick={() => onSpeed(s)} className={cx('fa-option flex-1 min-h-[44px] fa-num text-[14px] font-semibold border-transparent bg-transparent', speed === s && 'fa-selected')}>{s}×</button>)}
             </div>
-            <div className="text-[11px] text-fa-muted mt-0.5">About {minutesLeft(timeLeft, 1)} min left at 1×{speed > 1 ? `, ${minutesLeft(timeLeft, speed)} at ${speed}×` : ''}.</div>
+            <div className="text-[11px] text-fa-muted mt-0.5">{speed > 1 ? t('bt.hud.minLeftFast', { a: minutesLeft(timeLeft, 1), b: minutesLeft(timeLeft, speed), speed }) : t('bt.hud.minLeft', { a: minutesLeft(timeLeft, 1) })}</div>
           </div>
           <div className="flex gap-1.5">
-            {onAbandon && <button type="button" onClick={() => onAbandon()} className="fa-btn fa-btn-secondary flex-1 !min-h-[44px] !px-1.5 text-[12px]" data-testid="battle-switch-auto">Switch to Auto</button>}
-            <button type="button" onClick={() => setConfirmRetreat(true)} className="fa-btn fa-btn-danger flex-1 !min-h-[44px] !px-1.5 text-[12px]" data-testid="battle-leave">Retreat</button>
-            {onToggleSound && <button type="button" onClick={onToggleSound} aria-label={soundOn ? 'Mute the sound' : 'Turn the sound on'} className="fa-icon-btn !w-11 !h-11 shrink-0" data-testid="battle-sound">{soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}</button>}
+            {onAbandon && <button type="button" onClick={() => onAbandon()} className="fa-btn fa-btn-secondary flex-1 !min-h-[44px] !px-1.5 text-[12px]" data-testid="battle-switch-auto">{t('bt.hud.switchAuto')}</button>}
+            <button type="button" onClick={() => setConfirmRetreat(true)} className="fa-btn fa-btn-danger flex-1 !min-h-[44px] !px-1.5 text-[12px]" data-testid="battle-leave">{t('bt.hud.retreat')}</button>
+            {onToggleSound && <button type="button" onClick={onToggleSound} aria-label={soundOn ? t('bt.hud.muteSound') : t('bt.hud.soundOn')} className="fa-icon-btn !w-11 !h-11 shrink-0" data-testid="battle-sound">{soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}</button>}
           </div>
           {powerCards.length > 0 && (
             <div>
-              <div className="fa-label mb-1">Powers, usable while paused</div>
+              <div className="fa-label mb-1">{t('bt.hud.powersPaused')}</div>
               <div className="grid grid-cols-2 gap-1.5">{powerCards.map((pw) => <PowerCard key={pw.id} pw={pw} supply={supply} armed={armed?.type === 'power' && armed.id === pw.id} onClick={() => firePower(pw)} />)}</div>
             </div>
           )}
           {/* I195: where each side's squads went, so a falling count is explained. */}
           <div className="text-[11px] leading-snug" data-testid="battle-tally">
-            <div><span className="text-fa-you font-semibold">Yours:</span> {armyTallyText(armyTally(hud, playerSide))}.</div>
-            <div><span className="text-fa-enemy font-semibold">Theirs:</span> {armyTallyText(armyTally(hud, 1 - playerSide))}.</div>
+            <div><span className="text-fa-you font-semibold">{t('bt.hud.yours')}</span> {armyTallyText(armyTally(hud, playerSide))}.</div>
+            <div><span className="text-fa-enemy font-semibold">{t('bt.hud.theirs')}</span> {armyTallyText(armyTally(hud, 1 - playerSide))}.</div>
           </div>
-          <div className="text-[10.5px] text-fa-muted leading-snug">Retreat asks once more. Your regiments leave by the nearest exit{bt === BATTLE_TYPES.assault ? '; the siege is lifted' : ''}. Switch to Auto finishes this battle by the same rules, at once.</div>
+          <div className="text-[10.5px] text-fa-muted leading-snug">{t('bt.hud.retreatHelp', { siege: bt === BATTLE_TYPES.assault ? t('bt.hud.siegeLifted') : '' })}</div>
         </div>
       )}
 
       {started && paused && sheetHidden && (
-        <button type="button" onClick={() => setSheetHidden(false)} className="absolute fa-chip !bg-fa-panel/95 !min-h-[44px] pointer-events-auto" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-paused-pill">Paused: menu</button>
+        <button type="button" onClick={() => setSheetHidden(false)} className="absolute fa-chip !bg-fa-panel/95 !min-h-[44px] pointer-events-auto" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-paused-pill">{t('bt.hud.pausedMenu')}</button>
       )}
 
       {confirmNuke && (
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4 pointer-events-auto">
           <div className="w-full max-w-sm fa-panel !bg-fa-panel !border-fa-danger p-4 text-sm space-y-3">
-            <div className="fa-heading text-[17px] text-fa-danger-text">Launch a nuclear strike?</div>
-            <p className="text-xs text-fa-muted">Everything within the blast, your own troops included, is destroyed. It uses one of your real nuclear missiles, and the whole world will condemn you: hostility from every nation, lost prestige, and pariah status.</p>
+            <div className="fa-heading text-[17px] text-fa-danger-text">{t('bt.hud.nukeTitle')}</div>
+            <p className="text-xs text-fa-muted">{t('bt.hud.nukeBody')}</p>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setConfirmNuke(null)} className="fa-btn fa-btn-secondary !min-h-[44px]">Cancel</button>
-              <button type="button" onClick={() => { onPower(confirmNuke); setConfirmNuke(null); }} className="fa-btn fa-btn-danger !min-h-[44px]">Choose target</button>
+              <button type="button" onClick={() => setConfirmNuke(null)} className="fa-btn fa-btn-secondary !min-h-[44px]">{t('bt.cancel')}</button>
+              <button type="button" onClick={() => { onPower(confirmNuke); setConfirmNuke(null); }} className="fa-btn fa-btn-danger !min-h-[44px]">{t('bt.hud.chooseTarget')}</button>
             </div>
           </div>
         </div>
@@ -601,12 +609,12 @@ const BattleHud = ({
       {confirmRetreat && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4 pointer-events-auto">
           <div className="w-full max-w-sm fa-panel !bg-fa-panel p-4 text-sm space-y-3 max-h-full overflow-y-auto" data-testid="battle-retreat-confirm">
-            <div className="fa-heading text-[17px]">Retreat from the battle?</div>
-            <p className="text-xs text-fa-muted" data-testid="battle-retreat-consequences">Sound the retreat: your {allCount} regiment{allCount === 1 ? '' : 's'} on the field march for the nearest exit. Those that get off the field live with the strength they have left; any the enemy catches first are lost. The battle counts as lost{bt === BATTLE_TYPES.assault ? ' and the siege is lifted' : ''}.</p>
+            <div className="fa-heading text-[17px]">{t('bt.hud.retreatTitle')}</div>
+            <p className="text-xs text-fa-muted" data-testid="battle-retreat-consequences">{t('bt.hud.retreatBody', { count: allCount, siege: bt === BATTLE_TYPES.assault ? t('bt.hud.andSiegeLifted') : '' })}</p>
             <div className="grid grid-cols-1 gap-2">
-              <button type="button" onClick={() => { setConfirmRetreat(false); onRetreatAll(); }} className="fa-btn fa-btn-danger !min-h-[44px]" data-testid="battle-retreat-all">Sound the retreat</button>
-              {onAbandon && <button type="button" onClick={() => { setConfirmRetreat(false); onAbandon(); }} className="fa-btn fa-btn-secondary !min-h-[44px]">Switch to Auto instead</button>}
-              <button type="button" onClick={() => setConfirmRetreat(false)} className="fa-btn fa-btn-ghost !min-h-[44px]">Keep fighting</button>
+              <button type="button" onClick={() => { setConfirmRetreat(false); onRetreatAll(); }} className="fa-btn fa-btn-danger !min-h-[44px]" data-testid="battle-retreat-all">{t('bt.hud.soundRetreat')}</button>
+              {onAbandon && <button type="button" onClick={() => { setConfirmRetreat(false); onAbandon(); }} className="fa-btn fa-btn-secondary !min-h-[44px]">{t('bt.hud.autoInstead')}</button>}
+              <button type="button" onClick={() => setConfirmRetreat(false)} className="fa-btn fa-btn-ghost !min-h-[44px]">{t('bt.hud.keepFighting')}</button>
             </div>
           </div>
         </div>
