@@ -335,7 +335,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         clearInterval(startTimer);
         const secs = Math.round(stalled.waitedMs / 1000);
         console.error(`[battle] the start stalled at ${stalled.stage} for ${secs} s`);
-        startFailed(tNow('bt.screen.stalled', { stage: tNow(`bt.load.${workingOn(stalled.stage)}`), n: secs }), `no progress for ${secs}s (${client.kind()}${client.warm() ? ', warm' : ''})`);
+        // The card names the step in words, plus a short code (stage and how the sim ran) for a bug report.
+        const code = `${stalled.stage}/${client.kind()}${client.warm() ? '/warm' : ''}`;
+        startFailed(`${tNow('bt.screen.stalled', { stage: tNow(`bt.load.${workingOn(stalled.stage)}`), n: secs })} \u2066[${code}]\u2069`, `no progress for ${secs}s (${code})`);
         return;
       }
       if (!document.hidden) showStart(); // the seconds on the loading screen

@@ -31,7 +31,7 @@ const BattleLoading = ({ stage = 'models', fraction = 0, seconds = null, retry =
         <h2 className="fa-heading text-[18px] pl:text-[16px] leading-tight text-center">{t('bt.load.title')}</h2>
         <p className="mt-2 text-[14px] pl:text-[13px] leading-snug text-center" data-testid="battle-loading-stage">{t(`bt.load.${doing}`)}…</p>
         <div className="mt-3 h-2 rounded-full bg-slate-800 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
-          <div className="h-full bg-amber-500 rounded-full transition-[width] duration-300 rtl:ms-auto" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-amber-500 rounded-full transition-[width] duration-300" style={{ width: `${pct}%` }} />
         </div>
         <div className="mt-1.5 flex justify-between text-[11.5px] text-slate-400">
           <span><NumText text={t('bt.load.step', { i: step, n: START_STAGES.length })} /></span>
