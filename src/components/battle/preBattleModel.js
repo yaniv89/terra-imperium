@@ -19,13 +19,16 @@ import { legacyTerrainOf } from '../../engine/world/registry';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { canSeeRegionDetails } from '../../engine/intel';
 import { cityMilitia } from '../../engine/battleInputs';
-import { isNoMansLand, NO_MANS_LAND_TEXT } from '../../engine/hostility';
+import { isNoMansLand } from '../../engine/hostility';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
+import { agreed } from './battleText';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { canAfford } from '../../utils/helpers';
 import { scoutsEstimate } from './battleReportView';
 import { armyView, battleSize, cityWallsView, oddsSource, scoutsRange, siegeAdvice } from './warModel';
 
-const nationLabel = (state, id) => (id === 'rebels' ? 'the rebels' : state.nations?.[id]?.name || 'the enemy');
+const nationLabel = (state, id) => (id === 'rebels' ? t('bt.pre.rebels') : state.nations?.[id]?.name ? nameNow('people', id, state.nations[id].name) : t('bt.pre.theEnemy'));
 const verb = (name, one, many) => (/[^s]s$/.test(name) ? many : one);
 const possessive = (name) => (name.endsWith('s') ? `${name}'` : `${name}'s`);
 const shortName = (name) => (name || '').replace(/^The /, '').replace(/^(Kingdom|Empire|Republic|Tribes?|Chiefdom|City-state|Confederation) of /i, '');
@@ -46,7 +49,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   // An enemy fleet off the beach must be fought at sea first, which is always auto-resolved.
   const blockedAtSea = landing && Object.values(state.units || {}).some((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
   // Decision 41: a clash outside both sides' borders is fought on Auto only (sea battles are not covered).
-  const noMansLand = field && !fleet && !!v?.ok && isNoMansLand(state, tile, state.playerNationId, v.defenderNationId) ? NO_MANS_LAND_TEXT : null;
+  const noMansLand = field && !fleet && !!v?.ok && isNoMansLand(state, tile, state.playerNationId, v.defenderNationId) ? t('bt.pre.noMansText') : null;
   const source = oddsSource(state, { targetRegionId, field });
   const hasIntel = field || canSeeRegionDetails(state, targetRegionId);
   const odds = v.ok ? (landing ? estimateLandingOdds(state, navalUnitId, targetRegionId, samples)
@@ -67,13 +70,14 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   // The militia stand with the garrison: the odds' defender strength counts them.
   const theirMen = odds?.defenderStrength ?? theirs.men;
   const enemy = nationLabel(state, enemyId);
-  const me = state.nations?.[state.playerNationId]?.name || 'You';
-  const place = fleet ? 'the open sea' : field ? (getTiles().names?.[tile] || REGIONS_DATA[origin]?.name || 'the field') : (REGIONS_DATA[targetRegionId]?.name || region?.name || targetRegionId);
+  const me = state.nations?.[state.playerNationId]?.name ? nameNow('people', state.playerNationId, state.nations[state.playerNationId].name) : t('bt.pre.you');
+  const placeEn = fleet ? null : field ? (getTiles().names?.[tile] || REGIONS_DATA[origin]?.name) : (REGIONS_DATA[targetRegionId]?.name || region?.name || targetRegionId);
+  const place = fleet ? t('bt.pre.openSea') : placeEn ? nameNow('city', null, placeEn) : t('bt.pre.theField');
   const knownEmpty = !field && hasIntel && v?.ok && theirUnits.length === 0;
   // DEF-01 / siege offer: a city seen to hold nobody (no garrison and no militia) has no battle to
   // command; the card says so before the tap (BEGIN_TACTICAL_BATTLE would fight it on Auto).
   const commandBlocked = knownEmpty && !landing && !cityMilitia(state, targetRegionId).length
-    ? 'Nobody defends it, not even a militia (no houses): there is no battle to command. Auto attacks its defences.'
+    ? t('bt.pre.noDefenders')
     : null;
   const size = battleSize({ regiments: yours.regiments, terrain, kind: field ? 'field' : 'assault' });
   const walls = !field && !fleet ? cityWallsView(state, targetRegionId) : null;
@@ -83,8 +87,8 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
     if (source.exact) {
       chance = {
         exact: true, source: source.label, win: odds.attacker, take: odds.capture, lose: odds.defender, draw: odds.stalemate,
-        verdict: odds.attacker >= 0.65 ? 'Likely win' : odds.attacker >= 0.35 ? 'Even fight' : 'Likely loss',
-        losses: `Expected losses: yours ${Math.round(odds.attackerLossShare * 100)}%, theirs ${Math.round(odds.defenderLossShare * 100)}%.`,
+        verdict: odds.attacker >= 0.65 ? t('bt.pre.likelyWin') : odds.attacker >= 0.35 ? t('bt.pre.evenFight') : t('bt.pre.likelyLoss'),
+        losses: t('bt.pre.expectedLosses', { a: Math.round(odds.attackerLossShare * 100), b: Math.round(odds.defenderLossShare * 100) }),
         factors: (odds.factors || []).filter((f) => Math.abs(f.value - 1) >= 0.02)
       };
     } else {
@@ -97,31 +101,32 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
 
   return {
     kind, field, fleet, landing, origin,
-    name: battleName(state, { kind, targetRegionId, tile }),
+    name: nameNow('battle', null, battleName(state, { kind, targetRegionId, tile })),
     subtitle: (() => {
       const who = shortName(me); const them = shortName(enemy);
-      if (fleet) return `${who} ${verb(who, 'attacks', 'attack')} ${possessive(them)} fleet`;
-      if (field) return `${who} ${verb(who, 'attacks', 'attack')} ${possessive(them)} army near ${place}`;
-      return `${who} ${landing ? verb(who, 'lands on', 'land on') : verb(who, 'attacks', 'attack')} ${place} · ${them} ${verb(them, 'holds', 'hold')} it`;
+      const vars = { who, them, place };
+      if (fleet) return agreed('bt.pre.subFleet', vars, () => `${who} ${verb(who, 'attacks', 'attack')} ${possessive(them)} fleet`);
+      if (field) return agreed('bt.pre.subField', vars, () => `${who} ${verb(who, 'attacks', 'attack')} ${possessive(them)} army near ${place}`);
+      return agreed(landing ? 'bt.pre.subLanding' : 'bt.pre.subAttack', vars, () => `${who} ${landing ? verb(who, 'lands on', 'land on') : verb(who, 'attacks', 'attack')} ${place} · ${them} ${verb(them, 'holds', 'hold')} it`);
     })(),
     turn: state.turnNumber,
     v, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand, commandBlocked,
     hasIntel,
     terrain, fortTier,
-    yours: { ...yours, title: landing ? 'Landing party' : fleet ? 'Your fleet' : 'Your army' },
+    yours: { ...yours, title: landing ? t('bt.pre.landingParty') : fleet ? t('bt.pre.yourFleet') : t('bt.pre.yourArmy') },
     theirs: {
       ...theirs,
       men: theirMen,
-      title: fleet ? 'Their fleet' : field ? 'Their army' : 'Garrison',
+      title: fleet ? t('bt.pre.theirFleet') : field ? t('bt.pre.theirArmy') : t('bt.pre.garrison'),
       total: hasIntel ? theirMen : scoutsRange(theirMen).text,
-      note: hasIntel ? (source.exact ? `${source.label}: these numbers are exact.` : '') : 'Your scouts only: a spy report gives the real numbers.'
+      note: hasIntel ? (source.exact ? t('bt.pre.exactNote', { src: source.label }) : '') : t('bt.pre.scoutsOnly')
     },
     size,
     walls,
     chance,
     // I213: a walled city and no siege engine in the army.
     siegeAdvice: walls ? siegeAdvice({ wallLevel: walls.level, units: mineUnits, ageId: myAge }) : null,
-    command: `${field || fleet ? '' : 'Win the battle and the city is yours, garrison or not. '}You lead ${size.cap} a side at most in real time. ${size.text} About ${size.minutes} minutes. Pause any time.`,
+    command: t('bt.pre.command', { prefix: field || fleet ? '' : t('bt.pre.winTake'), cap: size.cap, text: size.text, min: size.minutes }),
     // The two ways differ against a city (the user's rule of 14 October, cityAssault.js).
     cityRule: field || fleet ? null : odds?.autoRule || (theirUnits.length ? 'garrison' : 'attack'),
     auto: autoText({ field, fleet, knownEmpty, odds, exact: !!chance?.exact })
@@ -130,12 +135,12 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
 
 /** What Auto does here, in one or two sentences (the pre-battle card's Auto line). */
 export const autoText = ({ field = false, fleet = false, knownEmpty = false, odds = null, exact = false }) => {
-  const how = `Instant, by the same rules${exact ? ' and the odds above' : ", your scouts' guess above"}.`;
-  if (field || fleet) return `${how} Break them and the field is yours.`;
-  const rule = 'Auto fights the garrison first; the city is taken only when empty and its defences are broken.';
+  const how = t(exact ? 'bt.pre.autoHowExact' : 'bt.pre.autoHowGuess');
+  if (field || fleet) return t('bt.pre.autoBreak', { how });
+  const rule = t('bt.pre.autoRule');
   const c = odds?.city;
   if (knownEmpty && c) {
-    return `No garrison: Auto attacks its defences, ${c.hpBefore} of ${c.maxHp} HP down to about ${c.hpAfter}.${(odds.capture || 0) >= 0.5 ? ' This attack should take it.' : ' It needs more attacks (or a siege first) before it falls.'} ${rule}`;
+    return t('bt.pre.autoEmpty', { a: c.hpBefore, b: c.maxHp, c: c.hpAfter, take: (odds.capture || 0) >= 0.5 ? t('bt.pre.autoTakes') : t('bt.pre.autoNeedsMore'), rule });
   }
-  return `${rule} ${how}`;
+  return t('bt.pre.autoCity', { rule, how });
 };

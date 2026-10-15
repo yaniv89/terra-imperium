@@ -7,6 +7,7 @@ import React from 'react';
 import { Swords, Zap, Undo2, Crown } from 'lucide-react';
 import { lineLabel } from './warModel';
 import { menText } from '../../engine/battleLedger';
+import { useT } from '../../i18n/useT';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
 
@@ -34,35 +35,42 @@ export const ForceCard = ({ tone = 'you', tag, name, total, lines = [], unknownL
 );
 
 /** "General Sargon, skill 3" for a force card footer. */
-export const GeneralsLine = ({ generals }) => (generals?.length ? (
-  <span className="inline-flex items-center gap-1"><Crown className="w-3 h-3" aria-hidden="true" />{generals.map((g) => `General ${g.name}${g.skill != null ? `, skill ${g.skill}` : ''}`).join('; ')}. A general can fall in battle.</span>
-) : null);
+export const GeneralsLine = ({ generals }) => {
+  const { t, name: nm } = useT();
+  if (!generals?.length) return null;
+  return (
+    <span className="inline-flex items-center gap-1"><Crown className="w-3 h-3" aria-hidden="true" />{generals.map((g) => (g.skill != null ? t('bt.atlas.generalSkill', { name: nm('person', null, g.name), n: g.skill }) : t('bt.atlas.general', { name: nm('person', null, g.name) }))).join('; ')}{t('bt.atlas.generalCanFall')}</span>
+  );
+};
 
 const MODES = {
-  command: { icon: Swords, label: 'Command' },
-  auto: { icon: Zap, label: 'Auto' },
-  withdraw: { icon: Undo2, label: 'Withdraw' }
+  command: { icon: Swords },
+  auto: { icon: Zap },
+  withdraw: { icon: Undo2 }
 };
 
 /**
  * The way to fight, as two or three cards. `options` = [{ id: 'command'|'auto'|'withdraw', sub,
  * disabled, title }]; picking a card only selects it, the screen's brass button acts.
  */
-export const ModeCards = ({ options, value, onChange, className, compact = false }) => (
-  <div role="radiogroup" aria-label="How to fight" className={cx('grid gap-2', options.length === 3 ? 'grid-cols-3' : 'grid-cols-2', className)}>
+export const ModeCards = ({ options, value, onChange, className, compact = false }) => {
+  const { t } = useT();
+  return (
+  <div role="radiogroup" aria-label={t('bt.atlas.howToFight')} className={cx('grid gap-2', options.length === 3 ? 'grid-cols-3' : 'grid-cols-2', className)}>
     {options.map((o) => {
       const M = MODES[o.id];
       return (
         <button key={o.id} type="button" role="radio" aria-checked={value === o.id} disabled={o.disabled} title={o.title}
           onClick={() => onChange(o.id)} data-testid={o.testId}
           className={cx('fa-option text-start px-2.5 py-1.5 min-h-[52px] disabled:opacity-40', compact && 'pl:min-h-[44px] pl:py-1 pl:px-2', value === o.id && 'fa-selected')}>
-          <span className={cx('flex items-center gap-1.5 fa-heading text-[15px] leading-tight', compact && 'pl:text-[14px] pl:gap-1')}><M.icon className="w-4 h-4 shrink-0" aria-hidden="true" />{M.label}</span>
+          <span className={cx('flex items-center gap-1.5 fa-heading text-[15px] leading-tight', compact && 'pl:text-[14px] pl:gap-1')}><M.icon className="w-4 h-4 shrink-0" aria-hidden="true" />{t(`bt.atlas.${o.id}`)}</span>
           {o.sub && <span className={cx('block text-[11px] text-fa-muted leading-tight mt-0.5', compact && 'pl:hidden')}>{o.sub}</span>}
         </button>
       );
     })}
   </div>
-);
+  );
+};
 
 /** What the chosen way means, in one or two plain sentences. */
 export const ModeExplain = ({ title, right, children, className, compact = false }) => (
@@ -73,14 +81,18 @@ export const ModeExplain = ({ title, right, children, className, compact = false
 );
 
 /** A win / lose bar: your share in blue from the left, theirs in orange. */
-export const OddsBar = ({ mine, labelLeft = 'they win', labelMid = 'even', labelRight = 'you win', band = null, bandColor = 'var(--fa-good)', compact = false }) => (
-  <div aria-label={`${labelLeft} to ${labelRight}`}>
+export const OddsBar = ({ mine, labelLeft, labelMid, labelRight, band = null, bandColor = 'var(--fa-good)', compact = false }) => {
+  const { t } = useT();
+  const left = labelLeft ?? t('bt.atlas.theyWin'); const mid = labelMid ?? t('bt.atlas.even'); const right = labelRight ?? t('bt.atlas.youWin');
+  return (
+  <div aria-label={t('bt.atlas.fromTo', { a: left, b: right })}>
     <div className="relative h-2 rounded-full bg-fa-ink border border-fa-line overflow-hidden">
       {band
         ? <span className="absolute inset-y-0 rounded-full" style={{ background: bandColor, insetInlineStart: `${band[0] * 100}%`, width: `${Math.max(4, (band[1] - band[0]) * 100)}%` }} />
         : <span className="absolute inset-y-0 start-0 bg-fa-you" style={{ width: `${Math.round(mine * 100)}%` }} />}
       <span className="absolute inset-y-[-2px] start-1/2 w-px bg-fa-text/70" />
     </div>
-    <div className={cx('flex justify-between text-[10px] text-fa-muted mt-0.5', compact && 'pl:hidden')}><span>{labelLeft}</span><span>{labelMid}</span><span>{labelRight}</span></div>
+    <div className={cx('flex justify-between text-[10px] text-fa-muted mt-0.5', compact && 'pl:hidden')}><span>{left}</span><span>{mid}</span><span>{right}</span></div>
   </div>
-);
+  );
+};

@@ -3229,7 +3229,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.RESOLVE_CAPTURE: {
       // The capture card (decision 40, capture.js): Conquer, Raze, Make tributary or Free, once.
       const r = resolveCapture(state, action.payload?.captureId, action.payload?.choice);
-      return r.reason ? reject(state, r.reason) : r;
+      return r.reason ? reject(state, r.reasonMsg ? msg(r.reasonMsg.key, r.reasonMsg.vars) : r.reason) : r;
     }
 
     case ActionTypes.RUSH_PRODUCTION: {

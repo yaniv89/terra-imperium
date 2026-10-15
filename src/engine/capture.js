@@ -29,7 +29,7 @@
 // same nation within CAPTURE_REPEAT_TURNS pay no second grace, no second favour for freeing it and
 // no second tribute purse. Pure.
 import { LogTypes } from '../data/types';
-import { msg, people, cityRef } from './messages';
+import { msg, people, cityRef, sub, reasonOf } from './messages';
 import { getTiles } from '../data/geo/tiles';
 import { isIndependentNation, FAVOUR_MAX, tributeGold } from '../data/independents';
 import { canRaze, startRazing, aiWantsRaze } from './razing';
@@ -102,7 +102,10 @@ const troopsIn = (state, cityId, nationId) => {
   return Object.values(state.units || {}).filter((u) => u.ownerId === nationId && (u.regionId === cityId || u.homeRegionId === cityId || (u.domain !== 'naval' && !u.embarkedOn && unitTile(state, u) === city.tile)));
 };
 
-/** The four options for a capture record: [{ id, label, effect, disabled, reason }]. */
+// An option's effect sentence: the English `effect` and its message `effectMsg` for other languages.
+const effectOf = (key, vars) => { const m = msg(key, vars); return { effect: m.message, effectMsg: sub(key, vars) }; };
+
+/** The four options for a capture record: [{ id, label, effect, effectMsg, disabled, reason, reasonMsg }]. */
 export const captureOptions = (state, cap) => {
   const city = state.regions?.[cap.cityId];
   if (!city) return [];
@@ -112,34 +115,34 @@ export const captureOptions = (state, cap) => {
   const graceUntil = city.conquest?.graceUntil;
   const troops = troopsIn(state, cap.cityId, me);
   const fallback = nearestHeldCity(state, cap.cityId, me);
-  const leaveBlock = troops.length && !fallback ? 'Your troops in it have no city of yours to fall back to.' : null;
+  const leaveBlock = troops.length && !fallback ? reasonOf('m.why.capLeave') : null;
   const out = [];
   out.push({
     id: 'conquer', label: 'Conquer',
-    effect: `Keep ${city.name}. It starts restless (control ${city.control ?? 25}%, loyalty ${city.loyalty ?? 50}).${graceUntil != null ? ` It cannot break away for ${Math.max(0, graceUntil - turn)} turns;` : ' You took it again so soon: no grace this time;'} each unit standing in it holds it better.`,
+    ...effectOf('m.cap.conquer', { city: cityRef(cap.cityId, city.name), control: city.control ?? 25, loyalty: city.loyalty ?? 50, grace: graceUntil != null ? sub('m.cap.grace', { turns: Math.max(0, graceUntil - turn) }) : sub('m.cap.noGrace') }),
     disabled: false, reason: null
   });
   const raze = canRaze(state, me, cap.cityId);
   out.push({
     id: 'raze', label: 'Raze',
-    effect: `Burn it: one size a turn, gone in ${city.size || 1} turn${(city.size || 1) === 1 ? '' : 's'}. It yields nothing meanwhile, and its kin will hold it against you.`,
-    disabled: !raze.ok, reason: raze.ok ? null : raze.reason
+    ...effectOf('m.cap.raze', { count: city.size || 1 }),
+    disabled: !raze.ok, reason: raze.ok ? null : raze.reason, reasonMsg: raze.ok ? null : raze.reasonMsg || null
   });
   const gold = Math.max(tributeGold(state.age), Math.round((Math.max(0, city.dev?.tax || 0) + Math.max(0, city.dev?.production || 0)) * TRIBUTE_INCOME_SHARE));
-  const tribReason = !hasIndependents(state) ? 'This world has no independent cities, so it cannot stand on its own.' : leaveBlock;
+  const tribReason = !hasIndependents(state) ? reasonOf('m.why.capNoIndep') : leaveBlock;
   out.push({
     id: 'tributary', label: 'Make tributary',
-    effect: `It stands as an independent city that pays you about ${gold} gold a turn for ${CAPTURE_TRIBUTE_TURNS} turns, with a truce both ways meanwhile. Your troops step out of it.`,
-    disabled: !!tribReason, reason: tribReason
+    ...effectOf('m.cap.tributary', { gold, turns: CAPTURE_TRIBUTE_TURNS }),
+    disabled: !!tribReason, reason: tribReason?.reason ?? null, reasonMsg: tribReason?.reasonMsg ?? null
   });
   const recipient = liberationRecipient(state, cap);
-  const freeReason = !recipient && !hasIndependents(state) ? 'Its founders are gone and this world has no free cities: there is no one to hand it to.' : leaveBlock;
+  const freeReason = !recipient && !hasIndependents(state) ? reasonOf('m.why.capNoOne') : leaveBlock;
   out.push({
     id: 'free', label: 'Free',
-    effect: recipient
-      ? `Hand it back to ${nameOf(state, recipient)}, who founded it.${repeat ? '' : ' They will remember it kindly.'} Your troops step out of it.`
-      : `It stands as a free city, friendly to you${repeat ? '' : ' and grateful'}. No tribute. Your troops step out of it.`,
-    disabled: !!freeReason, reason: freeReason
+    ...(recipient
+      ? effectOf('m.cap.freeBack', { nation: people(recipient, nameOf(state, recipient)), kindly: repeat ? '' : sub('m.cap.kindly') })
+      : effectOf('m.cap.freeCity', { grateful: repeat ? '' : sub('m.cap.grateful') })),
+    disabled: !!freeReason, reason: freeReason?.reason ?? null, reasonMsg: freeReason?.reasonMsg ?? null
   });
   return out;
 };
@@ -197,8 +200,8 @@ export const resolveCapture = (state, captureId, choice) => {
   const city = state.regions?.[cap.cityId];
   if (!city || city.owner !== cap.by || cap.by !== state.playerNationId) return { ...state, pendingCaptures: rest };
   const opt = captureOptions(state, cap).find((o) => o.id === choice);
-  if (!opt) return { reason: 'That is not a choice for a captured city.' };
-  if (opt.disabled) return { reason: opt.reason };
+  if (!opt) return reasonOf('m.why.capNotChoice');
+  if (opt.disabled) return { reason: opt.reason, reasonMsg: opt.reasonMsg };
   const turn = state.turnNumber || 0;
   const log = (line) => ({ year: state.year, ...line, type: LogTypes.ACTION });
   const cityName = cityRef(cap.cityId, city.name);
@@ -206,7 +209,7 @@ export const resolveCapture = (state, captureId, choice) => {
   if (choice === 'conquer') return { ...base, logs: [...state.logs, log(msg('m.battle.captureKeep', { city: cityName }))] };
   if (choice === 'raze') {
     const r = startRazing(state, cap.by, cap.cityId);
-    if (!r) return { reason: 'This city cannot be razed.' };
+    if (!r) return reasonOf('m.why.capNoRaze');
     const stats = { ...(state.indepStats || {}), razeStarted: (state.indepStats?.razeStarted || 0) + 1 };
     return { ...base, regions: r.regions, nations: r.nations, indepStats: stats, logs: [...state.logs, ...r.logs.map(({ nationId, ...l }) => l)] }; // eslint-disable-line no-unused-vars
   }
@@ -226,7 +229,7 @@ export const resolveCapture = (state, captureId, choice) => {
     line = msg('m.battle.captureHandBack', { city: cityName, nation: people(recipient, nameOf({ nations }, recipient)) });
   } else {
     const id = standIndependent(state, nations, regions, cap, turn);
-    if (!id) return { reason: 'It cannot stand on its own here.' };
+    if (!id) return reasonOf('m.why.capNoStand');
     if (choice === 'tributary') {
       const gold = tributePerTurn({ ...state, regions }, id);
       const until = turn + CAPTURE_TRIBUTE_TURNS;

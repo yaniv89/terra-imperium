@@ -117,9 +117,6 @@ export const fateText = (entry, side, u) => {
 // Without intelligence on the target, the odds are a scouts' guess, not numbers (plan §6a): three
 // broad bands from the real auto-resolve chance, so the decision is never blind but intel still
 // matters.
-export const SCOUT_BANDS = [
-  { id: 'likely', min: 0.65, label: 'Likely win', tone: 'text-emerald-300', hint: 'Your scouts think the garrison is weaker than your army.' },
-  { id: 'uncertain', min: 0.35, label: 'Uncertain', tone: 'text-amber-300', hint: 'Your scouts can\'t tell who has the edge.' },
-  { id: 'unlikely', min: -1, label: 'Unlikely', tone: 'text-red-300', hint: 'Your scouts think the garrison is stronger than your army.' }
-];
+const scoutBand = (id, min, tone) => ({ id, min, tone, get label() { return t(`bt.scout.${id}`); }, get hint() { return t(`bt.scout.${id}Hint`); } });
+export const SCOUT_BANDS = [scoutBand('likely', 0.65, 'text-emerald-300'), scoutBand('uncertain', 0.35, 'text-amber-300'), scoutBand('unlikely', -1, 'text-red-300')];
 export const scoutsEstimate = (winChance) => SCOUT_BANDS.find((b) => winChance >= b.min);

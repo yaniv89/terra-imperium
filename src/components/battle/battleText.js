@@ -3,7 +3,7 @@
 // economy, abilities, powers, battle types, structures, resources. The English text stays in
 // src/battle (the source); Hebrew comes from locales/data/he.battle.js. Pure: reads the language of
 // src/i18n/core.js, so the view models may call it.
-import { dataText, translate, t } from '../../i18n/core';
+import { dataText, translate, t, getLanguage } from '../../i18n/core';
 import { unitRosterName } from '../../i18n/gameText';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 import { ecoName, NODE_KINDS } from '../../battle/data/economy';
@@ -53,6 +53,10 @@ export const auxiliaryText = (aux, { yours = true } = {}) => {
 export const msgRefText = (ref, english = null) => (ref && ref.key ? messageOf(ref.key, ref.vars) : english);
 /** A carry() record ({ message, msgKey, msgVars }) in the current language; else its English or `english`. */
 export const carryText = (rec, english = null) => (rec?.msgKey ? logText(rec) : rec?.message ?? english);
+
+/** A sentence whose English verbs agree with a name keeps its grammar in code (`english()`); other
+ * languages read `key`. The English table holds the plain form of the same sentence. */
+export const agreed = (key, vars, english) => (getLanguage() === 'en' ? english() : t(key, vars));
 
 /** A stock resource's name (food, wood, stone, gold). */
 export const resourceWord = (res) => translate(`bt.res.${res}`);

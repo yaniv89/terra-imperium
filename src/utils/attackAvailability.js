@@ -1,5 +1,8 @@
+import { t } from '../i18n/core';
+
 // UI explanations for the engine's authoritative attack validation. No separate eligibility rules.
-const REASONS = {
+const REASON_CODES = new Set(['no_moves', 'no_units', 'cost', 'no_war', 'not_your_region', 'bad_target', 'already_held', 'not_adjacent', 'bad_fleet', 'not_coastal', 'out_of_reach']);
+const REASONS_EN = {
   no_moves: 'This army has already moved or attacked. End the turn before attacking again.',
   no_units: 'No available land units here. Units committed to another battle cannot attack.',
   cost: 'Not enough resources to launch this attack.',
@@ -13,5 +16,7 @@ const REASONS = {
   out_of_reach: 'This coast is outside the fleet’s current reach.'
 };
 
+// The English map stays as the source of the wording (tests read it); the text shown comes from the tables.
 export const describeAttackBlock = validation => validation.ok ? null
-  : REASONS[validation.reason] || 'This attack is currently unavailable.';
+  : REASON_CODES.has(validation.reason) ? t(`bt.block.${validation.reason}`) : t('bt.block.other');
+export const ATTACK_BLOCK_ENGLISH = REASONS_EN;

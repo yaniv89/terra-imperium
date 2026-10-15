@@ -34,3 +34,10 @@ export const logText = (entry, lang = getLanguage()) => {
   if (entry.count > 1 && entry.firstYear != null) return `${text} ${msgText('log.foldNote', { count: entry.count, year: entry.firstYear }, lang, refName)}`;
   return text;
 };
+
+/** The reason of a refusal ({ reason, reasonMsg }, engine/messages.js reasonOf) in `lang`; an old or unconverted one shows its English. */
+export const reasonText = (r, lang = getLanguage()) => {
+  if (!r) return '';
+  if (typeof r === 'string') return r;
+  return r.reasonMsg && lang !== 'en' ? msgText(r.reasonMsg.key, r.reasonMsg.vars, lang, refName) : String(r.reason ?? '');
+};

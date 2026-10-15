@@ -25,7 +25,7 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
 import { kinThemeOf } from '../data/peoples';
 import { LogTypes } from '../data/types';
-import { msg, people, cityRef } from './messages';
+import { msg, people, cityRef, reasonOf } from './messages';
 import { isIndependentNation, RAZE_SIZE_PER_TURN, GRUDGE_RAZE_KIN, RAZE_AI_MAX_SIZE, RAZE_AI_CROWD_KM } from '../data/independents';
 import { getCapital } from '../data/regions';
 import { addGrudge, kinOf } from './grudges';
@@ -38,13 +38,13 @@ const cityTheme = (state, city) => themeOfPeople(state.nations?.[city.founderId]
 /** May `nationId` raze `cityId` now? { ok } or { ok: false, reason } (a sentence for the player). */
 export const canRaze = (state, nationId, cityId) => {
   const city = state.regions?.[cityId];
-  if (!city || city.owner !== nationId) return { ok: false, reason: 'Not your city.' };
-  if (city.razing) return { ok: false, reason: 'It is already burning.' };
-  if (city.outpost) return { ok: false, reason: 'An outpost cannot be razed.' };
-  if (!city.conquest) return { ok: false, reason: 'Only a city taken by force can be razed.' };
-  if (getCapital(state, nationId) === cityId || state.nations?.[nationId]?.capitalRegionId === cityId) return { ok: false, reason: 'Your capital cannot be razed.' };
-  if (!Object.values(state.regions).some((c) => c.owner === nationId && c.id !== cityId && !c.razing)) return { ok: false, reason: 'It is your last city.' };
-  if (Object.values(state.greatProjects || {}).some((p) => p?.regionId === cityId)) return { ok: false, reason: 'A wonder stands in it.' };
+  if (!city || city.owner !== nationId) return { ok: false, ...reasonOf('m.why.razeNotYours') };
+  if (city.razing) return { ok: false, ...reasonOf('m.why.razeBurning') };
+  if (city.outpost) return { ok: false, ...reasonOf('m.why.razeOutpost') };
+  if (!city.conquest) return { ok: false, ...reasonOf('m.why.razeForce') };
+  if (getCapital(state, nationId) === cityId || state.nations?.[nationId]?.capitalRegionId === cityId) return { ok: false, ...reasonOf('m.why.razeCapital') };
+  if (!Object.values(state.regions).some((c) => c.owner === nationId && c.id !== cityId && !c.razing)) return { ok: false, ...reasonOf('m.why.razeLast') };
+  if (Object.values(state.greatProjects || {}).some((p) => p?.regionId === cityId)) return { ok: false, ...reasonOf('m.why.razeWonder') };
   return { ok: true };
 };
 
