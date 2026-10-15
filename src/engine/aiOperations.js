@@ -1,6 +1,7 @@
 import { gameReducer } from './gameReducer';
 import { getResearched } from './nationState';
 import { ActionTypes } from '../data/types';
+import { msg, people, cityRef, place as placeRef, sub } from './messages';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { coloniesOf, colonySlots, foundColony, foundingCost, validateColony } from './colonies';
 // Persistent front objectives and real, one-hop army orders. All combat uses invasion aftermath.
@@ -133,6 +134,9 @@ export const aiSally = (state, nationId, rng, byTile = null) => {
   }
   return next;
 };
+
+// The log line when an AI stack pillages the land of a player's city (`tileName`: the tile's own name, if any).
+const pillageLine = (state, nationId, cityId, tileName) => msg('m.battle.aiPillages', { nation: people(nationId, state.nations[nationId].name), city: cityRef(cityId, state.regions[cityId].name), place: tileName ? placeRef(tileName) : sub('m.battle.aTile') });
 
 /** The nearest tile of the player's land trade routes within `rings` of `tile`, or null. */
 export const nearestRouteTile = (state, tile, rings) => {
@@ -488,7 +492,7 @@ export const processAIOperations = (state, rng) => {
           const result = applyInvasionResult(actor, { ...v, fromRegionId: from, targetRegionId: target, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), viewerId: state.playerNationId, militia: battle.inputs.militia });
           next = { ...next, regions: result.regions, units: result.units, wars: result.wars, hiredCommanders: result.hiredCommanders, appliedBattleIds: result.appliedBattleIds, world: result.world || next.world,
             nations: { ...result.nations, [nationId]: { ...result.nations[nationId], economy: chargedPool } },
-            logs: [...next.logs, { year: next.year, type: 'combat', message: `${next.nations[nationId].name} attacks from ${from} toward ${target}.` }] };
+            logs: [...next.logs, { year: next.year, type: 'combat', ...msg('m.battle.aiAttacksFrom', { nation: people(nationId, next.nations[nationId].name), from: cityRef(from, from), to: cityRef(target, target) }) }] };
         }
       } else {
         // A war plan (warPlans.js, lane W5): regiments gather at the muster point and march on the
@@ -521,7 +525,7 @@ export const processAIOperations = (state, rng) => {
             if (raid) {
               stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, movesLeft: 0 }; });
               next = { ...next, world: { ...next.world, tileState: raid.tileState }, nations: { ...next.nations, [nationId]: { ...next.nations[nationId], economy: { ...pool, gold: (pool.gold || 0) + raid.gold } } },
-                logs: next.regions[raid.cityId]?.owner === state.playerNationId ? [...next.logs, { year: next.year, type: 'combat', message: `${next.nations[nationId].name} pillages the land of ${next.regions[raid.cityId].name} (${tiles.names[at] || 'a tile'}).` }] : next.logs };
+                logs: next.regions[raid.cityId]?.owner === state.playerNationId ? [...next.logs, { year: next.year, type: 'combat', ...pillageLine(next, nationId, raid.cityId, tiles.names[at]) }] : next.logs };
               continue;
             }
             if (enemies.has(state.playerNationId)) {
@@ -560,7 +564,7 @@ export const processAIOperations = (state, rng) => {
         if (raid) {
           stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, movesLeft: 0 }; });
           next = { ...next, world: { ...next.world, tileState: raid.tileState }, nations: { ...next.nations, [nationId]: { ...next.nations[nationId], economy: { ...pool, gold: (pool.gold || 0) + raid.gold } } },
-            logs: next.regions[raid.cityId]?.owner === state.playerNationId ? [...next.logs, { year: next.year, type: 'combat', message: `${next.nations[nationId].name} pillages the land of ${next.regions[raid.cityId].name} (${tiles.names[at] || 'a tile'}).` }] : next.logs };
+            logs: next.regions[raid.cityId]?.owner === state.playerNationId ? [...next.logs, { year: next.year, type: 'combat', ...pillageLine(next, nationId, raid.cityId, tiles.names[at]) }] : next.logs };
           continue;
         }
         const actor = { ...next, playerNationId: nationId };

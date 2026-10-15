@@ -25,6 +25,7 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
 import { kinThemeOf } from '../data/peoples';
 import { LogTypes } from '../data/types';
+import { msg, people, cityRef } from './messages';
 import { isIndependentNation, RAZE_SIZE_PER_TURN, GRUDGE_RAZE_KIN, RAZE_AI_MAX_SIZE, RAZE_AI_CROWD_KM } from '../data/independents';
 import { getCapital } from '../data/regions';
 import { addGrudge, kinOf } from './grudges';
@@ -66,8 +67,8 @@ export const startRazing = (state, nationId, cityId) => {
       if (themeOfPeople(n.people) === theme) nations = { ...nations, [id]: { ...n, razedBy: { ...(n.razedBy || {}), [nationId]: turn } } };
     });
   }
-  const who = state.nations[nationId]?.name || nationId;
-  return { regions, nations, logs: [{ year: state.year, type: LogTypes.COMBAT, message: `${who} put${nationId === state.playerNationId ? '' : 's'} ${city.name} to the torch: it burns one size a turn (${city.size} turn${city.size === 1 ? '' : 's'}).`, nationId }] };
+  const who = people(nationId, state.nations[nationId]?.name || nationId);
+  return { regions, nations, logs: [{ year: state.year, type: LogTypes.COMBAT, ...msg(nationId === state.playerNationId ? 'm.battle.razeStartPlayer' : 'm.battle.razeStart', { who, city: cityRef(cityId, city.name), count: city.size }), nationId }] };
 };
 
 /** Stops the fire (the razer changed its mind). Returns new regions or null. */
@@ -122,13 +123,13 @@ export const burnCities = ({ regions, nations, units, world, wars, playerNationI
     if (city.owner !== city.razing.by) {
       const rest = { ...city }; delete rest.razing;
       regions[id] = rest; stopped += 1;
-      if (city.owner === playerNationId || city.razing.by === playerNationId) logs.push({ year, type: LogTypes.COMBAT, message: `The fire in ${city.name} is put out: it was retaken.` });
+      if (city.owner === playerNationId || city.razing.by === playerNationId) logs.push({ year, type: LogTypes.COMBAT, ...msg('m.battle.razeStopped', { city: cityRef(id, city.name) }) });
       return;
     }
     if ((city.size || 1) <= 1) {
       removeCity(id, { regions, nations, units, world, wars });
       razed.push(city.name);
-      if (city.owner === playerNationId) logs.push({ year, type: LogTypes.COMBAT, message: `${city.name} is razed: nothing is left but its fields.` });
+      if (city.owner === playerNationId) logs.push({ year, type: LogTypes.COMBAT, ...msg('m.battle.razed', { city: cityRef(id, city.name) }) });
       return;
     }
     const size = Math.max(1, city.size - RAZE_SIZE_PER_TURN);

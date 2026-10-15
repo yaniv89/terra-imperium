@@ -29,6 +29,7 @@
 // same nation within CAPTURE_REPEAT_TURNS pay no second grace, no second favour for freeing it and
 // no second tribute purse. Pure.
 import { LogTypes } from '../data/types';
+import { msg, people, cityRef } from './messages';
 import { getTiles } from '../data/geo/tiles';
 import { isIndependentNation, FAVOUR_MAX, tributeGold } from '../data/independents';
 import { canRaze, startRazing, aiWantsRaze } from './razing';
@@ -199,9 +200,10 @@ export const resolveCapture = (state, captureId, choice) => {
   if (!opt) return { reason: 'That is not a choice for a captured city.' };
   if (opt.disabled) return { reason: opt.reason };
   const turn = state.turnNumber || 0;
-  const log = (message) => ({ year: state.year, message, type: LogTypes.ACTION });
+  const log = (line) => ({ year: state.year, ...line, type: LogTypes.ACTION });
+  const cityName = cityRef(cap.cityId, city.name);
   const base = { ...state, pendingCaptures: rest };
-  if (choice === 'conquer') return { ...base, logs: [...state.logs, log(`You keep ${city.name}. Garrison it: it cannot break away for now, but it is restless.`)] };
+  if (choice === 'conquer') return { ...base, logs: [...state.logs, log(msg('m.battle.captureKeep', { city: cityName }))] };
   if (choice === 'raze') {
     const r = startRazing(state, cap.by, cap.cityId);
     if (!r) return { reason: 'This city cannot be razed.' };
@@ -213,7 +215,7 @@ export const resolveCapture = (state, captureId, choice) => {
   let nations = { ...state.nations };
   const units = { ...state.units };
   stepOut(state, units, cap.cityId, cap.by);
-  let message;
+  let line;
   const recipient = choice === 'free' ? liberationRecipient(state, cap) : null;
   if (recipient) {
     const { region, revivedNation } = transferRegion(city, recipient, nations, { formerOwner: undefined, conquest: undefined, siege: null, control: 100, unrest: 0, loyalty: CAPTURE_LIBERATE_LOYALTY, lastFlipTurn: turn });
@@ -221,7 +223,7 @@ export const resolveCapture = (state, captureId, choice) => {
     regions[cap.cityId] = region;
     if (revivedNation) nations[recipient] = revivedNation;
     if (!repeat) nations[recipient] = { ...nations[recipient], hostility: Math.max(nations[recipient].hostilityFloor || 0, (nations[recipient].hostility || 0) - CAPTURE_LIBERATE_HOSTILITY) };
-    message = `You hand ${city.name} back to ${nameOf({ nations }, recipient)}, who founded it.`;
+    line = msg('m.battle.captureHandBack', { city: cityName, nation: people(recipient, nameOf({ nations }, recipient)) });
   } else {
     const id = standIndependent(state, nations, regions, cap, turn);
     if (!id) return { reason: 'It cannot stand on its own here.' };
@@ -234,18 +236,18 @@ export const resolveCapture = (state, captureId, choice) => {
         truceWith: { ...(n.indep?.truceWith || {}), [cap.by]: until },
         gold: Math.max(n.indep?.gold || 0, repeat ? 0 : gold * CAPTURE_TRIBUTE_PURSE_TURNS)
       });
-      message = `${city.name} stands as ${nations[id].name}, paying you ${gold} gold a turn for ${CAPTURE_TRIBUTE_TURNS} turns.`;
+      line = msg('m.battle.captureTributary', { city: cityName, nation: people(id, nations[id].name), gold, turns: CAPTURE_TRIBUTE_TURNS });
     } else {
       const n = nations[id];
       setIndep(nations, id, {
         truceWith: { ...(n.indep?.truceWith || {}), [cap.by]: turn + CAPTURE_FREE_TRUCE_TURNS },
         ...(repeat ? {} : { favour: { ...(n.indep?.favour || {}), [cap.by]: Math.min(FAVOUR_MAX, (n.indep?.favour?.[cap.by] || 0) + CAPTURE_FREE_FAVOUR) } })
       });
-      message = `You free ${city.name}: it stands as ${nations[id].name}.`;
+      line = msg('m.battle.captureFree', { city: cityName, nation: people(id, nations[id].name) });
     }
   }
   nations = relocateLostCapital(nations, regions, cap.by);
-  return { ...base, regions, nations, units, logs: [...state.logs, log(message)] };
+  return { ...base, regions, nations, units, logs: [...state.logs, log(line)] };
 };
 
 /** resolveTurn: a capture still open when the turn ends (a headless loop) keeps the city. */

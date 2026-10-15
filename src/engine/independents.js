@@ -32,6 +32,7 @@ import { distanceKm } from '../data/geo/geodesic';
 import { PEOPLES, CITY_STATE_PEOPLES_LIST } from '../data/peoples';
 import { DEFAULT_WORLD_SIZE, EQUAL_START_SIZE, START_MIN_GAP_KM, CITY_STATE_SHIFT_KM, DEFAULT_CITY_STATES, CITY_STATES_PACKED, cityStateCount } from '../data/worldSizes';
 import { createRng } from '../utils/rng';
+import { msg, people, cityRef } from './messages';
 import {
   INDEPENDENT_KIND, INDEPENDENT_BORDER_KM, isIndependentNation, independentSizeCap, garrisonTarget,
   personalityFor, independentTitle, RAID_RESERVE
@@ -223,7 +224,7 @@ export const processLateArrivals = (state) => {
       world: { ...next.world, tileOwner: built.tileOwner },
       units: { ...next.units, [unitId]: { id: unitId, ownerId: id, regionId: city.id, homeRegionId: city.id, tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, rank: 'recruit', commanderId: null, promotions: [], xp: 0 } },
       scenario: { ...next.scenario, independentIds: [...(next.scenario.independentIds || []), id].sort() },
-      logs: [...(next.logs || []), { year: next.year, type: 'milestone', message: `${named.name} arrive in the region and found ${city.name}: a new independent people, not a colony of any nation.` }]
+      logs: [...(next.logs || []), { year: next.year, type: 'milestone', ...msg('m.battle.indepArrive', { nation: people(id, named.name), city: cityRef(city.id, city.name) }) }]
     };
   });
   return next;

@@ -13,6 +13,7 @@
 import { withAirSupport } from './airPower';
 import { conquerRegion } from './conquest';
 import { LogTypes } from '../data/types';
+import { msg, people, cityRef } from './messages';
 import { REGIONS_DATA, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
 import { getEffectiveAgeId } from '../data/ages';
@@ -279,8 +280,8 @@ export const applyDefenseWithdrawal = (state, defId) => {
   });
   const { regions, nations } = conquerRegion({ regions: state.regions, nations: state.nations, turnNumber: state.turnNumber }, def.regionId, def.aggressorId, war);
   const wars = state.wars.map((w) => (w.id === war.id ? { ...w, battleScore: recordBattle(w, def.aggressorId, 0.1) } : w));
-  const name = REGIONS_DATA[def.regionId]?.name || def.regionId;
-  const enemy = state.nations[def.aggressorId]?.name || def.aggressorId;
+  const name = cityRef(def.regionId, REGIONS_DATA[def.regionId]?.name || def.regionId);
+  const enemy = people(def.aggressorId, state.nations[def.aggressorId]?.name || def.aggressorId);
   return {
     ok: true,
     state: {
@@ -289,7 +290,7 @@ export const applyDefenseWithdrawal = (state, defId) => {
       regions,
       nations,
       wars,
-      logs: [...state.logs, { year: state.year, message: `Your garrison abandons ${name} to ${enemy} and falls back to ${REGIONS_DATA[fallback]?.name || fallback}.`, type: LogTypes.COMBAT }]
+      logs: [...state.logs, { year: state.year, ...msg('m.battle.garrisonAbandons', { city: name, enemy, to: cityRef(fallback, REGIONS_DATA[fallback]?.name || fallback) }), type: LogTypes.COMBAT }]
     }
   };
 };
