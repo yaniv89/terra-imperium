@@ -1,17 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from '../../engine/gameReducer';
+import { gameReducer } from '../../engine/gameReducer';
 import { ActionTypes } from '../../data/types';
 import { getNationCapital } from '../../data/regions';
 import { addCity } from '../../engine/testWorld';
 import { cityRailModel, shortItemLabel, perTurnStrip } from './cityRailModel';
 import { calcNationBalance } from '../../engine/economy';
 import { calcIncome } from '../../utils/helpers';
+import { peoplesWorld } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 7 });
+const FR = WORLD.playerNationId;
 
 describe('city rail model', () => {
   it('lists the player\'s cities biggest first with growth, the build and the flags', () => {
-    const s0 = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    const paris = getNationCapital('fr');
-    const added = addCity(s0, 'fr', { near: paris, size: 1 });
+    const s0 = peoplesWorld({ seed: 7 });
+    const paris = getNationCapital(FR);
+    const added = addCity(s0, FR, { near: paris, size: 1 });
     let s = added.state;
     s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: paris, item: { kind: 'building', category: 'food', tier: 0 } } });
     // The list reads the live city (cityEconomy.js), not last turn's mirror: the second city really
@@ -33,8 +38,8 @@ describe('city rail model', () => {
     expect(shortItemLabel({ kind: 'unit', classId: 'infantry' })).toMatch(/\w/);
     expect(shortItemLabel({ kind: 'unit', classId: 'naval', navalLine: 'raider' })).toBe('Raider');
     expect(shortItemLabel(null)).toBeNull();
-    const s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    const rows = perTurnStrip(s, calcNationBalance(s, 'fr'), calcIncome(s));
+    const s = peoplesWorld({ seed: 7 });
+    const rows = perTurnStrip(s, calcNationBalance(s, FR), calcIncome(s));
     expect(rows[0]).toMatchObject({ id: 'gold' });
     expect(rows.find((r) => r.id === 'science')).toBeTruthy();
   });

@@ -5,7 +5,7 @@ import { getMarchLines, turnMarks } from './marchLines';
 import { peoplesWorld } from '../engine/testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const WORLD = peoplesWorld();
+const WORLD = peoplesWorld({ seed: 3 });
 const FR = WORLD.playerNationId;
 
 describe('march lines', () => {

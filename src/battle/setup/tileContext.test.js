@@ -1,6 +1,5 @@
 // src/battle/setup/tileContext.test.js
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../../data/regions';
 import { getTiles } from '../../data/geo/tiles';
 import { tileContextOf, sectorAt } from './tileContext';
@@ -8,9 +7,15 @@ import { generateMap, TILE, SECTOR_INNER, isPassable } from './mapgen';
 import { buildSetupFromArmies } from './buildBattleSetup';
 import { buildInvasionSetup } from './buildBattleSetup';
 import { siegeMaxHp } from '../../engine/sieges';
+import { peoplesWorld, rivalOf, withBorder, borderPair } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 3 });
+const FR = WORLD.playerNationId;
+const BE = rivalOf(WORLD, 0);
 
 const tiles = getTiles();
-const S = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
+const S = withBorder(WORLD, FR, BE);
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
 // A city with a wide sea beside it (three or more water neighbours) and some land: the sea
 // sector's water share is then clear-cut whichever bearing the sea takes.
@@ -33,7 +38,7 @@ const sectorCells = (map, bearing, inner = SECTOR_INNER + 0.05) => {
 
 describe('the battlefield from a tile', () => {
   it('describes the six neighbours around the tile with the attacker due west', () => {
-    const city = S.regions[getNationCapital('fr')];
+    const city = S.regions[getNationCapital(FR)];
     const from = tiles.neighbors[city.tile].find((n) => tiles.land[n] === 1);
     const ctx = tileContextOf(S, city.tile, { fromTile: from, city });
     expect(ctx.sectors).toHaveLength(tiles.neighbors[city.tile].length);
@@ -88,8 +93,8 @@ describe('the battlefield from a tile', () => {
   });
 
   it('a battered city starts the assault with its keep at the siege HP', () => {
-    const city = S.regions[getNationCapital('be')];
-    const half = { ...city, siege: { hp: Math.round(siegeMaxHp(city) / 2), maxHp: siegeMaxHp(city), by: 'fr' } };
+    const city = S.regions[getNationCapital(BE)];
+    const half = { ...city, siege: { hp: Math.round(siegeMaxHp(city) / 2), maxHp: siegeMaxHp(city), by: FR } };
     const ctx = tileContextOf(S, city.tile, { city: half });
     expect(ctx.hpRatio).toBeCloseTo(0.5, 1);
     const setup = buildSetupFromArmies({ regionId: city.id, terrain: 'plains', seed: 1, attackerUnits: mk('a', ['infantry']), defenderUnits: mk('d', ['infantry']), fortLevel: 2, tileContext: ctx });
@@ -99,10 +104,10 @@ describe('the battlefield from a tile', () => {
   });
 
   it('an invasion builds its battle from the target city\'s tile', () => {
-    const fr = getNationCapital('fr'); const be = getNationCapital('be');
-    const s = { ...S, wars: [...S.wars, { id: 'w', aggressor: 'fr', enemy: 'be', active: true, startYear: S.year }], units: {
-      a: { id: 'a', ownerId: 'fr', regionId: fr, tile: S.regions[fr].tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [] },
-      d: { id: 'd', ownerId: 'be', regionId: be, tile: S.regions[be].tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [] }
+    const [fr, be] = borderPair(S, FR, BE); // two cities that border
+    const s = { ...S, wars: [...S.wars, { id: 'w', aggressor: FR, enemy: BE, active: true, startYear: S.year }], units: {
+      a: { id: 'a', ownerId: FR, regionId: fr, tile: S.regions[fr].tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [] },
+      d: { id: 'd', ownerId: BE, regionId: be, tile: S.regions[be].tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [] }
     } };
     const setup = buildInvasionSetup(s, { kind: 'invasion', fromRegionId: fr, targetRegionId: be, seed: 5, attackerUnitIds: ['a'], defenderUnitIds: ['d'] });
     expect(setup.tile).toBe(S.regions[be].tile);

@@ -7,7 +7,7 @@ import { getTiles } from './geo/tiles';
 import { peoplesWorld } from '../engine/testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const WORLD = peoplesWorld();
+const WORLD = peoplesWorld({ seed: 5 });
 const EG = WORLD.playerNationId;
 
 // Playtest audit I221 (cooldowns), I222 (context prerequisites), I223 (Bronze Age Collapse).

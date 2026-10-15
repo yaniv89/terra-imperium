@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { researchSheetModel, boostTarget } from './researchSheetModel';
 import { AGE_ORDER } from '../../data/ages';
 import { TECH_TREE } from '../../data/techTree';
 import { BOOSTS, BOOST_SHARE } from '../../data/boosts';
 import { getResearchCost } from '../../engine/research';
+import { peoplesWorld } from '../../engine/testWorld';
 
 describe('research sheet model (W09)', () => {
-  const s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+  const s = peoplesWorld({ seed: 7 });
 
   it('has an age strip with every age, its techs known of its total, and the current one', () => {
     const m = researchSheetModel(s);

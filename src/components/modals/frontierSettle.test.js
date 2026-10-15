@@ -8,6 +8,11 @@ import { ActionTypes } from '../../data/types';
 import { createInitialState, gameReducer } from '../../engine/gameReducer';
 import { getNeighborIds } from '../../data/regions';
 import RegionInfoModal from './RegionInfoModal';
+import { peoplesWorld } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld();
+const FR = WORLD.playerNationId;
 
 const game = vi.hoisted(() => ({ state: null, dispatch: vi.fn(), addLog: vi.fn() }));
 vi.mock('../../context/GameContext', () => ({ useGame: () => game }));
@@ -24,12 +29,12 @@ const render = (regionId) => renderToStaticMarkup(React.createElement(RegionInfo
 describe.skip('founding a colony on the region card (plan §4h)', () => {
   let home; let frontier;
   beforeEach(() => {
-    game.state = createInitialState({ playerNationId: 'fr', rngSeed: 7, scenario: { mode: 'emergent', nationCount: 15, seed: 7 } });
-    home = Object.keys(game.state.regions).find((id) => game.state.regions[id].owner === 'fr'
+    game.state = createInitialState({ playerNationId: FR, rngSeed: 7, scenario: { mode: 'emergent', nationCount: 15, seed: 7 } });
+    home = Object.keys(game.state.regions).find((id) => game.state.regions[id].owner === FR
       && getNeighborIds(id).some((n) => game.state.regions[n]?.owner === null && game.state.regions[n]?.neutral));
     frontier = getNeighborIds(home).find((n) => game.state.regions[n]?.owner === null && game.state.regions[n]?.neutral);
     game.state.resources = { ...game.state.resources, gold: 10000, adm: 50, supplies: 50 };
-    game.state.units = { army: { id: 'army', ownerId: 'fr', regionId: home, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, movesLeft: 1 } };
+    game.state.units = { army: { id: 'army', ownerId: FR, regionId: home, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, movesLeft: 1 } };
   });
 
   it('shows enabled colony options when an army with a move stands next to it', () => {
@@ -48,7 +53,7 @@ describe.skip('founding a colony on the region card (plan §4h)', () => {
 
   it('founding starts a colony on the land, which becomes yours over the next turns', () => {
     const next = gameReducer(game.state, { type: ActionTypes.FOUND_COLONY, payload: { regionId: frontier, policy: 'coexist' } });
-    expect(next.regions[frontier].colony.ownerId).toBe('fr');
+    expect(next.regions[frontier].colony.ownerId).toBe(FR);
     expect(next.regions[frontier].owner).toBe(null);
   });
 });

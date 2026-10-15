@@ -13,7 +13,7 @@ import { NAVAL_LINES, NAVAL_LINE_IDS, navalLinesFor, navalCargo, navalName, nava
 import { peoplesWorld, rivalOf } from '../engine/testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const WORLD = peoplesWorld();
+const WORLD = peoplesWorld({ seed: 7 });
 const FR = WORLD.playerNationId;
 const DE = rivalOf(WORLD, 0);
 

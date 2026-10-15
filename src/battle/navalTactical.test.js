@@ -2,7 +2,7 @@
 // Sea battles in the tactical sim (plans/civ-map-rework.md D5b): an open-water field, ships as
 // squads, the command path through the reducer and the quick battle as its fallback.
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from '../engine/gameReducer';
+import { gameReducer } from '../engine/gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
@@ -14,14 +14,20 @@ import { buildSetupFromArmies, buildInvasionSetup } from './setup/buildBattleSet
 import { runHeadless } from './sim/headless';
 import { getNavalStats, getUnitBattleStats, NAVAL_LINE_STATS } from './data/battleStats';
 import { assertGameState } from '../engine/stateAudit';
+import { peoplesWorld, rivalOf } from '../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ player: 'ahhiyawa', seed: 3 }); // a sea people: its capital has a port
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const GB_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const tiles = getTiles();
 const quiet = (s) => ({ ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((a, k) => ({ ...a, [k]: true }), {}), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
-const S = (() => { const s = quiet(createInitialState({ playerNationId: 'fr', rngSeed: 3 })); return { ...s, units: {}, resources: { ...s.resources, mil: 100, gold: 1000 } }; })();
-const FR = getNationCapital('fr'); const GB = getNationCapital('gb');
-const fleet = (id, regionId, extra = {}) => ({ id, ownerId: 'fr', regionId, domain: 'naval', classId: 'naval', navalLine: 'warship', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, transportCapacity: 2, embarkedOn: null, promotions: [], xp: 0, ...extra });
+const S = (() => { const s = quiet(peoplesWorld({ player: 'ahhiyawa', seed: 3 })); return { ...s, units: {}, resources: { ...s.resources, mil: 100, gold: 1000 } }; })();
+const FR = getNationCapital(FR_ID); const GB = getNationCapital(GB_ID);
+const fleet = (id, regionId, extra = {}) => ({ id, ownerId: FR_ID, regionId, domain: 'naval', classId: 'naval', navalLine: 'warship', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, transportCapacity: 2, embarkedOn: null, promotions: [], xp: 0, ...extra });
 const withUnits = (s, list) => ({ ...s, units: { ...s.units, ...Object.fromEntries(list.map((u) => [u.id, u])) } });
-const atWar = (s) => ({ ...s, wars: [...s.wars, { id: 'w-sea', aggressor: 'fr', enemy: 'gb', active: true, startYear: s.year, battleScore: 0 }], nations: { ...s.nations, fr: { ...s.nations.fr, isAtWar: true }, gb: { ...s.nations.gb, isAtWar: true } } });
+const atWar = (s) => ({ ...s, wars: [...s.wars, { id: 'w-sea', aggressor: FR_ID, enemy: GB_ID, active: true, startYear: s.year, battleScore: 0 }], nations: { ...s.nations, [FR_ID]: { ...s.nations[FR_ID], isAtWar: true }, [GB_ID]: { ...s.nations[GB_ID], isAtWar: true } } });
 const [ours, theirs] = (() => {
   const waters = portWaters(S, tiles, FR);
   for (const w of waters) { const o = tiles.neighbors[w].find((n) => tiles.land[n] !== 1 && seaPassable(tiles, n, 'bronze')); if (o != null) return [w, o]; }
@@ -67,7 +73,7 @@ describe('the sea battlefield', () => {
 });
 
 describe('a commanded sea battle through the reducer', () => {
-  const war = atWar(withUnits(S, [fleet('f1', FR, { tile: ours }), fleet('f2', FR, { tile: ours }), fleet('f3', FR, { tile: ours }), fleet('e', GB, { ownerId: 'gb', tile: theirs, strength: 300, maxStrength: 1000 })]));
+  const war = atWar(withUnits(S, [fleet('f1', FR, { tile: ours }), fleet('f2', FR, { tile: ours }), fleet('f3', FR, { tile: ours }), fleet('e', GB, { ownerId: GB_ID, tile: theirs, strength: 300, maxStrength: 1000 })]));
 
   it('begins with the fleets of both tiles, builds a sea setup, resolves into the fleet aftermath', () => {
     const begun = gameReducer(war, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromTile: ours, tile: theirs, naval: true } });

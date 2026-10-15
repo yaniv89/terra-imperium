@@ -146,3 +146,13 @@ export const cloneWorld = (state) => ({
   wars: structuredClone(state.wars || []),
   world: structuredClone(state.world)
 });
+
+// The world with a city of `b` founded beside a city of `a`, so the two borders touch (the peoples
+// start has every people far from the rest). Returns the same state when they already border.
+export const withBorder = (state, a, b) => {
+  if (borderPair(state, a, b)) return state;
+  let s = addCity(state, b, { near: state.nations[a].capitalRegionId }).state;
+  if (!borderPair(s, a, b)) s = addCity(s, a, { near: getOwnedRegionIds(s.regions, b).slice(-1)[0] }).state;
+  if (!borderPair(s, a, b)) throw new Error('testWorld.withBorder: the two peoples still do not border');
+  return s;
+};

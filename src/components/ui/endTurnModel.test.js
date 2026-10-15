@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../../data/regions';
 import { turnBlockers } from '../../engine/turnBlockers';
 import { endTurnButton, endTurnPress } from './endTurnModel';
@@ -8,12 +7,17 @@ import { MANAGE_CITY, FOCUS_REGION } from '../map/marchEvents';
 import { OPEN_RESEARCH_CHOICE, SHOW_PEACE_OFFER, SHOW_DEFENSE } from './uiEvents';
 import { OPEN_TAB } from '../panels/panelEvents';
 import { OPEN_TRIBUTE_DEMAND, OPEN_JOIN_OFFER } from '../independents/independentEvents';
+import { peoplesWorld } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 7 });
+const FR = WORLD.playerNationId;
 
 const BUILD = { current: { kind: 'unit', classId: 'infantry' }, queue: [], progress: 0 };
 const EMPTY = { current: null, queue: [], progress: 0 };
 const settledGame = () => {
-  const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-  const regions = Object.fromEntries(Object.entries(S.regions).map(([id, c]) => [id, c.owner === 'fr' ? { ...c, production: BUILD } : c]));
+  const S = peoplesWorld({ seed: 7 });
+  const regions = Object.fromEntries(Object.entries(S.regions).map(([id, c]) => [id, c.owner === FR ? { ...c, production: BUILD } : c]));
   return { ...S, regions, research: { ...S.research, current: 'science_cuneiform_records', queue: [], auto: false }, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null, pendingDefenses: [], pendingDemand: null, tributeDemands: [], joinOffers: [], pendingBattle: null };
 };
 
@@ -32,8 +36,8 @@ const tap = (state, b) => { fired.length = 0; goToBlocker(state, b); return fire
 describe('the End Turn call to action', () => {
   it('reads End Turn and ends the turn when nothing blocks; no confirmation for units that can move', () => {
     const S = settledGame();
-    const cap = getNationCapital('fr');
-    const army = Object.values(S.units).find((u) => u.ownerId === 'fr' && u.domain === 'land');
+    const cap = getNationCapital(FR);
+    const army = Object.values(S.units).find((u) => u.ownerId === FR && u.domain === 'land');
     const field = { ...S, units: { ...S.units, [army.id]: { ...army, tile: S.regions[cap].tiles.find((t) => t !== S.regions[cap].tile), movesLeft: 2, route: null } } };
     expect(endTurnButton(field)).toMatchObject({ mode: 'ready', label: 'End Turn', badge: null });
     expect(endTurnPress(field)).toEqual({ end: true });
@@ -41,7 +45,7 @@ describe('the End Turn call to action', () => {
 
   it('names the first blocker with a +N badge for the rest, and a tap goes there', () => {
     const S = settledGame();
-    const cities = Object.values(S.regions).filter((c) => c.owner === 'fr' && c.tile != null && !c.outpost).map((c) => c.id).sort();
+    const cities = Object.values(S.regions).filter((c) => c.owner === FR && c.tile != null && !c.outpost).map((c) => c.id).sort();
     const first = cities[0];
     const idle = { ...S, regions: { ...S.regions, [first]: { ...S.regions[first], production: EMPTY } } };
     const one = endTurnButton(idle);
@@ -56,8 +60,8 @@ describe('the End Turn call to action', () => {
 
   it('each blocker opens exactly its own thing', () => {
     const S = settledGame();
-    const cap = getNationCapital('fr');
-    const other = Object.keys(S.nations).find((id) => id !== 'fr');
+    const cap = getNationCapital(FR);
+    const other = Object.keys(S.nations).find((id) => id !== FR);
     const all = {
       ...S,
       research: { ...S.research, current: null },
@@ -87,8 +91,8 @@ describe('the End Turn call to action', () => {
 
   it('the "warn me" setting arms one soft confirmation for units that can move, then ends', () => {
     const S = settledGame();
-    const cap = getNationCapital('fr');
-    const army = Object.values(S.units).find((u) => u.ownerId === 'fr' && u.domain === 'land');
+    const cap = getNationCapital(FR);
+    const army = Object.values(S.units).find((u) => u.ownerId === FR && u.domain === 'land');
     const warn = { ...S, battleSettings: { ...S.battleSettings, warnEndTurn: true }, units: { ...S.units, [army.id]: { ...army, tile: S.regions[cap].tiles.find((t) => t !== S.regions[cap].tile), movesLeft: 2, route: null } } };
     expect(endTurnPress(warn)).toEqual({ arm: true });
     expect(endTurnButton(warn, { armed: true })).toMatchObject({ mode: 'armed', label: 'End anyway? 1 waiting' });

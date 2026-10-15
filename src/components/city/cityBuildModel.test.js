@@ -1,7 +1,7 @@
 // The Build tab's rows (playtest audits CB05): named tiles, measured effects, a list that does not
 // reflow when something is queued, no ships inland, the long-build line.
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from '../../engine/gameReducer';
+import { gameReducer } from '../../engine/gameReducer';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
 import { getNationCapital } from '../../data/regions';
@@ -10,9 +10,15 @@ import { buildingEffect } from '../../engine/cityEffects';
 import { buildOptions, buildQueue, focusHint, tileBearing, itemLabel, rushText } from './cityBuildModel';
 import { cityBuildingsModel, crownActions, cityDevelopmentModel, populationPolicyPreview } from './cityPoliticsModel';
 import { cityDefenseModel } from './cityDefenseModel';
+import { peoplesWorld, rivalOf } from '../../engine/testWorld';
 
-const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-const paris = getNationCapital('fr');
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 7 });
+const FR = WORLD.playerNationId;
+const DE = rivalOf(WORLD, 0);
+
+const S = peoplesWorld({ seed: 7 });
+const paris = getNationCapital(FR);
 const withTech = (s, ids) => ({ ...s, techTree: { ...s.techTree, ...Object.fromEntries(ids.map((t) => [t, { ...(s.techTree[t] || {}), researched: true }])) } });
 const queue = (s, item, cityId = paris) => gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item } });
 
@@ -158,7 +164,7 @@ describe('the other city tabs', () => {
     const m = cityDefenseModel(S, paris);
     expect(m.paths.map((p) => p.id)).toEqual(['walls', 'garrison', 'works']);
     expect(m.paths[0]).toMatchObject({ tab: 'build', action: 'Build Palisade' });
-    expect(cityDefenseModel(S, getNationCapital('de')).paths).toEqual([]);
+    expect(cityDefenseModel(S, getNationCapital(DE)).paths).toEqual([]);
   });
 });
 

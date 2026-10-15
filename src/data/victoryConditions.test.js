@@ -7,7 +7,7 @@ import { getNationCapital } from './regions';
 import { peoplesWorld, rivalOf } from '../engine/testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const WORLD = peoplesWorld();
+const WORLD = peoplesWorld({ seed: 3 });
 const FR = WORLD.playerNationId;
 const DE = rivalOf(WORLD, 0);
 

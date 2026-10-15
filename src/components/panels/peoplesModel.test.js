@@ -1,15 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { peoplesModel, relationOf } from './peoplesModel';
 import { metNations } from '../../engine/fog';
 import { isIndependentNation } from '../../data/independents';
+import { peoplesWorld } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 3 });
+const FR = WORLD.playerNationId;
 
 describe('peoples model (W07)', () => {
-  const s = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
+  const s = peoplesWorld({ seed: 3 });
 
   it('lists only the majors you met, with the unmet count, and filters by search', () => {
     const m = peoplesModel(s);
-    const met = metNations(s).filter((id) => id !== 'fr' && !isIndependentNation(s.nations[id]));
+    const met = metNations(s).filter((id) => id !== FR && !isIndependentNation(s.nations[id]));
     expect(m.rows.map((r) => r.id).sort()).toEqual(met.sort());
     expect(m.counts.met).toBe(met.filter((id) => !s.nations[id].isEliminated).length);
     expect(m.counts.unmet).toBeGreaterThan(0);
@@ -21,11 +25,11 @@ describe('peoples model (W07)', () => {
   });
 
   it('puts a war first and names the relation', () => {
-    const other = Object.values(s.nations).find((n) => n.id !== 'fr' && !isIndependentNation(n));
+    const other = Object.values(s.nations).find((n) => n.id !== FR && !isIndependentNation(n));
     const st = {
       ...s,
-      fog: { ...s.fog, met: { ...s.fog.met, fr: { ...(s.fog.met.fr || {}), [other.id]: 1 } } },
-      wars: [...(s.wars || []), { id: 'w-test', active: true, aggressor: 'fr', enemy: other.id, score: 0 }]
+      fog: { ...s.fog, met: { ...s.fog.met, [FR]: { ...(s.fog.met[FR] || {}), [other.id]: 1 } } },
+      wars: [...(s.wars || []), { id: 'w-test', active: true, aggressor: FR, enemy: other.id, score: 0 }]
     };
     expect(relationOf(st, st.nations[other.id])).toBe('war');
     const m = peoplesModel(st);
