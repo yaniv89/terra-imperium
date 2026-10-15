@@ -96,5 +96,6 @@ export default {
   'report.quiet': 'A quiet turn: nothing to report.',
   'report.footer': 'Every line stays in the Log. Quiet turns skip this sheet.',
   'report.play': 'Play turn {n}',
-  'report.goTo': 'Go to {name}'
+  'report.goTo': 'Go to {name}',
+  'report.battleToast': 'Battle Report'
 };

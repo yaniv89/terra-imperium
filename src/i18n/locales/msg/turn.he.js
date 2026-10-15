@@ -95,5 +95,6 @@ export default {
   'report.quiet': 'תור שקט: אין מה לדווח.',
   'report.footer': 'כל שורה נשמרת ביומן. תורות שקטים מדלגים על הדף הזה.',
   'report.play': 'שחק תור {n}',
-  'report.goTo': 'עבור אל {name}'
+  'report.goTo': 'עבור אל {name}',
+  'report.battleToast': 'דוח קרב'
 };
