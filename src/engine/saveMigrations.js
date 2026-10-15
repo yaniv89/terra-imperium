@@ -341,7 +341,7 @@ const NATION_IDENTITY_KEYS = ['id', 'name', 'color', 'isPlayer'];
 // The final step on every load, run after any numbered migrations. Idempotent — migrating an
 // already-current save changes nothing, since every key it would fill is already present.
 export const backfillDefaults = (state) => {
-  const fresh = createInitialState({ playerNationId: state.playerNationId, gameSpeed: state.gameSpeed, scenario: state.scenario, rngSeed: state.scenario?.seed });
+  const fresh = createInitialState({ playerNationId: state.playerNationId, gameSpeed: state.gameSpeed, scenario: state.scenario?.worldSize && !state.scenario.size ? { ...state.scenario, size: state.scenario.worldSize } : state.scenario, rngSeed: state.scenario?.seed }); // a save keeps the size as worldSize
   // The fog is never backfilled from a fresh game (another world's homelands): it is revived or
   // migrated on its own (migrateSave).
   // eslint-disable-next-line no-unused-vars
@@ -397,6 +397,9 @@ export const backfillDefaults = (state) => {
  * or null when it loads. Read-only; the save v7 screen (OldSaveNotice.jsx) and the import alert
  * name the reason.
  */
+// The legacy 240-country world is retired (plans/legacy-world-retirement.md): a save whose scenario
+// is not a peoples world is kept but not loaded.
+export const isLegacyWorldSave = (state) => state?.scenario?.mode !== 'peoples';
 export const saveProblem = (payload) => {
   if (!payload || typeof payload !== 'object') return 'corrupt';
   const hasEnvelope = isPlainObject(payload.state);
@@ -406,12 +409,14 @@ export const saveProblem = (payload) => {
   if (version > CURRENT_SAVE_VERSION) return 'tooNew';
   if (version < FIRST_TILE_SAVE_VERSION) return 'tooOld';
   if (version < OLDEST_LOADABLE_SAVE_VERSION) return 'oldGrid';
+  if (isLegacyWorldSave(state)) return 'legacyWorld';
   for (let v = version; v < CURRENT_SAVE_VERSION; v++) if (!MIGRATIONS[v]) return 'corrupt';
   return null;
 };
 export const SAVE_PROBLEM_TEXT = {
   tooOld: 'This save is from the old province map. The tile world is a clean break, so it cannot be loaded here.',
   oldGrid: 'This save is from the earlier map with fewer, larger hexes. The map now has about 100,000 smaller hexes and every tile changed, so the save cannot be converted.',
+  legacyWorld: 'This save is from the old world of 240 modern countries, which the game no longer plays. It cannot be loaded here.',
   tooNew: 'This save is from a newer build than this one. Update the game to load it.',
   corrupt: 'This file is not a Terra Imperium save, or it is damaged.',
   worldMismatch: 'This save is on a generated world that this build makes differently (its map hash does not match), so it cannot be loaded here.'
@@ -429,6 +434,7 @@ export const migrateSave = (payload) => {
   }
   if (version > CURRENT_SAVE_VERSION) return null;
   if (version < OLDEST_LOADABLE_SAVE_VERSION) return null; // the province map or an older grid: a clean break
+  if (isLegacyWorldSave(state)) return null; // the retired 240-country world
 
   // The fog's run-length encoded arrays back to typed arrays before anything reads them.
   if (state.fog) state = { ...state, fog: reviveFog(state.fog) };

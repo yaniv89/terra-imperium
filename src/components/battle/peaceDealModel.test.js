@@ -2,25 +2,30 @@
 // W13 Peace deal: the demands come with their cost and, live, accept or "N short" from the
 // engine's own ledger; the counter-offer fits what they give; the war score is from your side.
 import { describe, expect, it } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { addCity } from '../../engine/testWorld';
 import { getPeaceAcceptance } from '../../engine/peace';
 import { peaceDealModel, peaceCandidates, peaceOfferModel, refusalReason } from './peaceDealModel';
+import { peoplesWorld, rivalOf } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 2 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const DE_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const WORLD = (() => {
-  const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 2 }), 'fr');
-  const foe = addCity(first.state, 'de', { near: first.cityId });
+  const first = addCity(peoplesWorld({ seed: 2 }), FR_ID);
+  const foe = addCity(first.state, DE_ID, { near: first.cityId });
   return { state: foe.state, foeCity: foe.cityId };
 })();
 
 const atWar = (battleScore = 30) => {
   const s = WORLD.state;
-  const war = { id: 'w13', aggressor: 'fr', enemy: 'de', active: true, startTurn: Math.max(0, s.turnNumber - 9), battleScore, tickScore: 0, score: battleScore, cb: 'none', goal: null };
+  const war = { id: 'w13', aggressor: FR_ID, enemy: DE_ID, active: true, startTurn: Math.max(0, s.turnNumber - 9), battleScore, tickScore: 0, score: battleScore, cb: 'none', goal: null };
   return {
     ...s,
     wars: [...s.wars, war],
-    regions: { ...s.regions, [WORLD.foeCity]: { ...s.regions[WORLD.foeCity], occupiedBy: 'fr' } },
-    nations: { ...s.nations, de: { ...s.nations.de, warExhaustion: 40 } }
+    regions: { ...s.regions, [WORLD.foeCity]: { ...s.regions[WORLD.foeCity], occupiedBy: FR_ID } },
+    nations: { ...s.nations, [DE_ID]: { ...s.nations[DE_ID], warExhaustion: 40 } }
   };
 };
 
@@ -39,9 +44,9 @@ describe('PEACE-01/02 the offer says what it does', () => {
     const s0 = atWar(0);
     const war = s0.wars.at(-1);
     // They hold a city they took from us in this war.
-    const mine = Object.values(s0.regions).find((r) => r.owner === 'fr');
-    const s = { ...s0, regions: { ...s0.regions, [mine.id]: { ...mine, owner: 'de', conquest: { warId: war.id, from: 'fr' } } } };
-    const offer = { from: 'de', warId: war.id, terms: [{ type: 'reparations' }] };
+    const mine = Object.values(s0.regions).find((r) => r.owner === FR_ID);
+    const s = { ...s0, regions: { ...s0.regions, [mine.id]: { ...mine, owner: DE_ID, conquest: { warId: war.id, from: FR_ID } } } };
+    const offer = { from: DE_ID, warId: war.id, terms: [{ type: 'reparations' }] };
     const m = peaceOfferModel(s, offer);
     expect(m.ownership.some((t) => /stays/.test(t))).toBe(true);
     expect(m.money[0]).toMatch(/reparations/);
@@ -67,7 +72,7 @@ describe('W13 peaceDealModel', () => {
     expect(m0.exhaustion.theirs).toBe(40);
     const all = new Set(m0.rows.map((r) => r.key).filter((k) => !k.startsWith('gold:') || k === 'gold:500'));
     const m = peaceDealModel(s, 'w13', all);
-    const engine = getPeaceAcceptance(s, s.wars.at(-1), 'fr', m.terms);
+    const engine = getPeaceAcceptance(s, s.wars.at(-1), FR_ID, m.terms);
     expect(m.accepted).toBe(engine.accepted);
     expect(m.willingness).toBe(engine.total);
     if (!m.accepted) {

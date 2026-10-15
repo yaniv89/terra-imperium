@@ -1,16 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { turnReportModel } from './turnReportModel';
 import { cap } from '../../engine/testWorld';
 import { LogTypes } from '../../data/types';
+import { peoplesWorld } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 11 });
+const FR = WORLD.playerNationId;
 
 describe('turn report model (W10)', () => {
-  const before = createInitialState({ playerNationId: 'fr', rngSeed: 11 });
+  const before = peoplesWorld({ seed: 11 });
   const next = (patch) => ({ ...before, turnNumber: before.turnNumber + 1, ...patch });
 
   it('is null when no turn passed, quiet when nothing but growth or research happened', () => {
     expect(turnReportModel(before, before)).toBeNull();
-    const capId = cap('fr');
+    const capId = cap(FR);
     const grown = next({ regions: { ...before.regions, [capId]: { ...before.regions[capId], size: (before.regions[capId].size || 1) + 1 } } });
     const m = turnReportModel(before, grown);
     expect(m.title).toBe(`Turn ${before.turnNumber} report`);
@@ -20,10 +24,10 @@ describe('turn report model (W10)', () => {
   });
 
   it('groups a battle, a raid line and a city lost, and is not quiet then', () => {
-    const capId = cap('fr');
+    const capId = cap(FR);
     const city = before.regions[capId];
     const battle = { id: 'battle-99', name: `Siege of ${city.name}`, playerSide: 'defender', outcome: 'defender', defense: true, targetRegionId: capId, fallen: { attacker: 400, defender: 40 } };
-    const other = Object.values(before.regions).find((c) => c.owner !== 'fr');
+    const other = Object.values(before.regions).find((c) => c.owner !== FR);
     const after = next({
       battleReports: [battle, ...(before.battleReports || [])],
       logs: [...before.logs, { year: before.year, type: LogTypes.COMBAT, message: `Gutians pillage the land of ${city.name} (a pasture).` }, { year: before.year, type: LogTypes.ACTION, message: 'income line' }],

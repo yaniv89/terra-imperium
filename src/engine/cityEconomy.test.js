@@ -1,11 +1,11 @@
 // Lane L3 (playtest audits CB05 plus I031, I032): what the city sheet says is what the engine does.
 import { describe, it, expect, vi } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
+import { peoplesWorld, rivalOf } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { getTiles } from '../data/geo/tiles';
-import { getNationCapital } from '../data/regions';
 import { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
 import { conquerRegion } from './conquest';
 import { calcIncome } from '../utils/helpers';
@@ -20,9 +20,12 @@ import { cityRailModel } from '../components/city/cityRailModel';
 vi.setConfig({ testTimeout: 180000 }); // whole-world turns
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
-const fresh = (seed = 5) => quiet(createInitialState({ playerNationId: 'fr', rngSeed: seed }));
+const fresh = (seed = 5) => quiet(peoplesWorld({ seed, independents: true }));
 const turn = (s) => { let n = resolveTurn(s); if (n.pendingPeaceOffer) n = gameReducer(n, { type: ActionTypes.REJECT_PENDING_PEACE }); return n; };
-const paris = () => getNationCapital('fr');
+const W = fresh();
+const ME = W.playerNationId; // the player's people (France in the old fixture)
+const RIVAL = rivalOf(W); // a neighbour in the old fixture (Germany)
+const paris = () => W.nations[ME].capitalRegionId;
 const patch = (s, id, over) => ({ ...s, regions: { ...s.regions, [id]: { ...s.regions[id], ...over } } });
 
 const SPEAR = { kind: 'unit', classId: 'infantry' };
@@ -110,7 +113,7 @@ describe('per-item production progress (I046, I047)', () => {
     const moved = gameReducer(s, { type: ActionTypes.MOVE_PRODUCTION, payload: { cityId: id, index: 1, to: 0 } });
     expect(moved.regions[id].production.current).toEqual(SPEAR);
     expect(itemProgress(moved.regions[id], 1)).toBe(11);
-    const berlin = getNationCapital('de');
+    const berlin = W.nations[RIVAL].capitalRegionId;
     expect(gameReducer(s, { type: ActionTypes.MOVE_PRODUCTION, payload: { cityId: berlin, index: 1, to: 0 } }).regions[berlin]).toBe(s.regions[berlin]);
   });
 });
@@ -152,8 +155,8 @@ describe('bought development lasts (I031)', () => {
     const withProduction = cityLive(loaded, id).yields.production;
     const without = cityLive(patch(loaded, id, { investment: undefined }), id).yields.production;
     expect(withProduction).toBeCloseTo(without + 1, 5);
-    const taken = conquerRegion({ regions: s.regions, nations: s.nations, turnNumber: s.turnNumber }, id, 'de');
-    expect(taken.regions[id].owner).toBe('de');
+    const taken = conquerRegion({ regions: s.regions, nations: s.nations, turnNumber: s.turnNumber }, id, RIVAL);
+    expect(taken.regions[id].owner).toBe(RIVAL);
     expect(investmentOf(taken.regions[id])).toEqual({ tax: 1, production: 1, manpower: 0 });
   });
 
@@ -287,7 +290,7 @@ describe('ships need the sea (I039, I040)', () => {
   it('an inland AI city never picks the Naval line, whatever its doctrine order', () => {
     const s = fresh();
     const tiles = getTiles();
-    const inland = find(s, (c) => c.owner && c.owner !== 'fr' && tiles.coastal[c.tile] !== 1);
+    const inland = find(s, (c) => c.owner && c.owner !== ME && tiles.coastal[c.tile] !== 1);
     // Every other line already stands, every technology is known: only Naval is left to build.
     const categories = Object.fromEntries(Object.keys(inland.buildings.categories).map((c) => [c, c === 'naval' ? -1 : 9]));
     const city = { ...inland, buildings: { ...inland.buildings, categories }, lastYields: { production: 500, food: 2 }, production: { current: null, queue: [], progress: 0 } };

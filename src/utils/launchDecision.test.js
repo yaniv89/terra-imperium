@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { launchScreen, playedAgo, describeSave } from './launchDecision';
-import { createInitialState } from '../engine/gameReducer';
 import { CURRENT_SAVE_VERSION } from '../engine/saveMigrations';
+import { peoplesWorld } from '../engine/testWorld';
 
 describe('launchScreen (X26: the title screen on every launch)', () => {
   it('shows the title screen whenever a readable save exists, never the game', () => {
@@ -31,7 +31,7 @@ describe('playedAgo', () => {
 
 describe('describeSave', () => {
   it('reads the people, turn, year and time of a save', () => {
-    const state = createInitialState({ rngSeed: 7 });
+    const state = peoplesWorld({ seed: 7 });
     const raw = JSON.stringify({ version: CURRENT_SAVE_VERSION, state, savedAt: 1234 });
     const info = describeSave(raw);
     expect(info.status).toBe('ok');

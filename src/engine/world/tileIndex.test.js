@@ -2,8 +2,10 @@
 import { describe, it, expect } from 'vitest';
 import { ownerSlots, noteOwnerCopy, noteOwnerWrite } from './tileIndex';
 import { resolveTurn } from '../resolveTurn';
-import { createInitialState } from '../../context/GameContext';
 import { getTiles } from '../../data/geo/tiles';
+import { peoplesWorld } from '../testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 
 const ownerAt = (idx, t) => (idx.slot[t] < 0 ? null : idx.ids[idx.slot[t]]);
 const sameAsWalk = (map, count) => {
@@ -32,7 +34,7 @@ describe('tile owner index', () => {
   });
 
   it('matches a fresh walk on every turn of a real game', () => {
-    let s = { ...createInitialState({ playerNationId: 'au', rngSeed: 7 }), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    let s = { ...peoplesWorld({ seed: 7 }), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     const count = getTiles().count;
     for (let t = 0; t < 8; t++) {
       s = resolveTurn(s);

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { computeMilestones } from './milestones';
-import { createInitialState } from '../context/GameContext';
+import { peoplesWorld } from '../engine/testWorld';
 
 describe('computeMilestones', () => {
   it('returns no milestones yet (content pending Phase D)', () => {
-    expect(computeMilestones(createInitialState())).toEqual([]);
+    expect(computeMilestones(peoplesWorld())).toEqual([]);
   });
 });

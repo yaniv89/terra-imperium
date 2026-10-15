@@ -3,10 +3,15 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { getNeighborIds } from '../../data/regions';
 import PreBattleModal from './PreBattleModal';
 import { atGates } from '../../engine/testWorld';
+import { peoplesWorld, rivalOf, withBorder } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 7 });
+const FR = WORLD.playerNationId;
+const DE = rivalOf(WORLD, 0);
 
 const game = vi.hoisted(() => ({ state: null, dispatch: vi.fn(), addLog: vi.fn() }));
 vi.mock('../../context/GameContext', () => ({ useGame: () => game }));
@@ -14,16 +19,16 @@ vi.mock('../../context/EffectsContext', () => ({ useEffects: () => ({ triggerEff
 
 describe('pre-battle odds without intel', () => {
   it("shows the scouts' estimate and hides the exact odds", { timeout: 20000 }, () => {
-    const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    const from = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && getNeighborIds(id).some((n) => state.regions[n]?.owner === 'de'));
-    const target = getNeighborIds(from).find((n) => state.regions[n]?.owner === 'de');
+    const state = withBorder(WORLD, FR, DE);
+    const from = Object.keys(state.regions).find((id) => state.regions[id].owner === FR && getNeighborIds(id).some((n) => state.regions[n]?.owner === DE));
+    const target = getNeighborIds(from).find((n) => state.regions[n]?.owner === DE);
     game.state = {
       ...state,
-      wars: [{ id: 'w', aggressor: 'fr', enemy: 'de', active: true, score: 0 }],
+      wars: [{ id: 'w', aggressor: FR, enemy: DE, active: true, score: 0 }],
       resources: { ...state.resources, gold: 10000, mil: 1000 },
       units: {
-        a: { id: 'a', ownerId: 'fr', regionId: from, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1 },
-        d: { id: 'd', ownerId: 'de', regionId: target, domain: 'land', classId: 'infantry', strength: 300, maxStrength: 300, morale: 100, movesLeft: 1 }
+        a: { id: 'a', ownerId: FR, regionId: from, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1 },
+        d: { id: 'd', ownerId: DE, regionId: target, domain: 'land', classId: 'infantry', strength: 300, maxStrength: 300, morale: 100, movesLeft: 1 }
       }
     };
     game.state = atGates(game.state, from, target);

@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActionTypes } from '../../data/types';
-import { createInitialState, gameReducer } from '../../engine/gameReducer';
+import { gameReducer } from '../../engine/gameReducer';
 import { getNeighborIds, REGIONS_DATA } from '../../data/regions';
 import { validateInvasion } from '../../engine/invasion';
 import { addCity } from '../../engine/testWorld';
@@ -10,6 +10,12 @@ import PreBattleModal from './PreBattleModal';
 import RegionInfoModal from '../modals/RegionInfoModal';
 import { atGates } from '../../engine/testWorld';
 import { getTouchingIds } from '../../data/regions';
+import { peoplesWorld, rivalOf } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 7 });
+const FR = WORLD.playerNationId;
+const DE = rivalOf(WORLD, 0);
 
 const game = vi.hoisted(() => ({ state: null, dispatch: vi.fn(), addLog: vi.fn() }));
 vi.mock('../../context/GameContext', () => ({ useGame: () => game }));
@@ -26,15 +32,16 @@ describe('attack buttons follow the engine validation', () => {
   beforeEach(() => {
     // Two German cities beside the capital, so a conquered one still has a German neighbour.
     // packed tighter than the settling rule so the two German lands touch (testWorld loose)
-    const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 7 }), 'de', { loose: true });
-    game.state = addCity(first.state, 'de', { near: first.cityId, loose: true }).state;
-    from = Object.keys(game.state.regions).find(id => game.state.regions[id].owner === 'de' && getNeighborIds(id).some(n => game.state.regions[n]?.owner === 'de'));
-    target = getNeighborIds(from).find(id => game.state.regions[id]?.owner === 'de');
-    game.state.regions[from].owner = 'fr';
-    game.state.wars = [{ id: 'w', aggressor: 'fr', enemy: 'de', active: true, score: 0 }];
+    const first = addCity(peoplesWorld({ seed: 7 }), DE, { loose: true });
+    const second = addCity(first.state, DE, { near: first.cityId, loose: true });
+    game.state = addCity(second.state, DE, { near: second.cityId, loose: true }).state; // a third, so a conquered city still has a neighbour to attack
+    from = Object.keys(game.state.regions).find(id => game.state.regions[id].owner === DE && getNeighborIds(id).some(n => game.state.regions[n]?.owner === DE));
+    target = getNeighborIds(from).find(id => game.state.regions[id]?.owner === DE);
+    game.state.regions[from].owner = FR;
+    game.state.wars = [{ id: 'w', aggressor: FR, enemy: DE, active: true, score: 0 }];
     game.state.resources.gold = 10000;
     game.state.resources.mil = 10000;
-    game.state.units = { army: { id: 'army', ownerId: 'fr', regionId: from, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, movesLeft: 0 } };
+    game.state.units = { army: { id: 'army', ownerId: FR, regionId: from, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, movesLeft: 0 } };
     game.state = atGates(game.state, from, target); // the attack needs touching lands or an army beside the city
   });
   it('disables both battle modes and explains the exhausted army after conquest', { timeout: 20000 }, () => {
@@ -72,11 +79,11 @@ describe('attack buttons follow the engine validation', () => {
     // Its defences already broken: Auto takes an empty city only when an attack brings its HP to 0 (cityAssault.js).
     game.state.regions[target] = { ...game.state.regions[target], siege: { hp: 1, maxHp: 400, by: null, startedTurn: 0 } };
     game.state = gameReducer(game.state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: from, targetRegionId: target } });
-    expect(game.state.regions[target].owner).toBe('fr');
+    expect(game.state.regions[target].owner).toBe(FR);
     expect(game.state.units.army.regionId).toBe(target);
     expect(game.state.units.army.movesLeft).toBe(0);
     from = target;
-    target = getTouchingIds(from).find(id => game.state.regions[id]?.owner === 'de') || getNeighborIds(from).find(id => game.state.regions[id]?.owner === 'de');
+    target = getTouchingIds(from).find(id => game.state.regions[id]?.owner === DE) || getNeighborIds(from).find(id => game.state.regions[id]?.owner === DE);
     expect(target).toBeDefined();
     game.state = atGates(game.state, from, target);
     expect(button(renderBattle(), 'battle-choice-auto')).toContain('disabled=""');

@@ -1,26 +1,30 @@
 // src/components/map/fogView.test.js
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../../data/regions';
 import { updateFog, hasMet, isExplored } from '../../engine/fog';
 import { visibleTiles } from '../../engine/sight';
 import { fogView, exploredFeatures, visibleFeatures } from './fogView';
+import { peoplesWorld } from '../../engine/testWorld';
 
-const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 7 });
+const FR = WORLD.playerNationId;
+
+const S = peoplesWorld({ seed: 7 });
 const capTile = (s, id) => s.regions[getNationCapital(id)]?.tile;
-const unit = (id, tile) => ({ id, ownerId: 'fr', tile, regionId: getNationCapital('fr'), domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [] });
-const farAway = (s) => Object.keys(s.nations).filter((id) => id !== 'fr' && capTile(s, id) != null && !hasMet(s, 'fr', id) && !isExplored(s, capTile(s, id), 'fr')).sort()[0];
+const unit = (id, tile) => ({ id, ownerId: FR, tile, regionId: getNationCapital(FR), domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [] });
+const farAway = (s) => Object.keys(s.nations).filter((id) => id !== FR && capTile(s, id) != null && !hasMet(s, FR, id) && !isExplored(s, capTile(s, id), FR)).sort()[0];
 
 describe('the map as the player knows it', () => {
   it('shows what is in sight as it is and nothing unexplored', () => {
     const v = fogView(S);
     expect(v.on).toBe(true);
-    const vis = visibleTiles(S, 'fr');
+    const vis = visibleTiles(S, FR);
     Object.keys(S.world.tileOwner).forEach((k) => { if (vis.has(+k)) expect(v.state.world.tileOwner[k]).toBe(S.world.tileOwner[k]); });
     const far = farAway(S);
     expect(v.state.regions[getNationCapital(far)]).toBeUndefined();
     expect(v.state.world.tileOwner[capTile(S, far)]).toBeUndefined();
-    expect(v.state.regions[getNationCapital('fr')]).toBe(S.regions[getNationCapital('fr')]);
+    expect(v.state.regions[getNationCapital(FR)]).toBe(S.regions[getNationCapital(FR)]);
     expect(fogView(S)).toBe(v); // cached per state
   });
 
@@ -44,7 +48,7 @@ describe('the map as the player knows it', () => {
   });
 
   it('is the state itself with the explored world option', () => {
-    const open = createInitialState({ playerNationId: 'fr', rngSeed: 7, fog: false });
+    const open = peoplesWorld({ seed: 7, fog: false });
     const v = fogView(open);
     expect(v.state).toBe(open);
     expect(v.isExplored(0)).toBe(true);

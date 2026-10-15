@@ -1,15 +1,19 @@
 import { it, expect } from 'vitest';
-import { createInitialState } from '../gameReducer';
 import { resolveTurn } from '../resolveTurn';
 import { auditGameState } from '../stateAudit';
 import { REGIONS_DATA, getNationCapital, getNeighborIds } from '../../data/regions';
+import { peoplesWorld } from '../testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 7 });
+const FR = WORLD.playerNationId;
 
 it('smoke: a new game on the tile world runs 5 turns', () => {
-  let s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-  const cap = getNationCapital('fr');
+  let s = peoplesWorld({ seed: 7 });
+  const cap = getNationCapital(FR);
   expect(cap).toBeTruthy();
-  expect(s.regions[cap].owner).toBe('fr');
-  expect(Object.keys(s.regions).length).toBe(240 - s.scenario.dormantNationIds.length); // less the nations with no room (settle-rules R4)
+  expect(s.regions[cap].owner).toBe(FR);
+  expect(Object.keys(s.regions).length).toBe(Object.keys(s.nations).length); // one city each at the start
   expect(REGIONS_DATA[cap].name).toBeTruthy();
   console.log('fr capital', cap, REGIONS_DATA[cap].name, 'neighbours', getNeighborIds(cap), 'tiles', s.regions[cap].tiles.length, 'units', Object.keys(s.units).length);
   expect(auditGameState(s)).toEqual([]);

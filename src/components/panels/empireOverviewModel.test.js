@@ -1,15 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { empireOverviewModel } from './empireOverviewModel';
 import { authorityOf } from '../../engine/authority';
 import { ERA_GOALS_FOR_LEGACY } from '../../data/eraGoals';
+import { peoplesWorld } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 7 });
+const FR = WORLD.playerNationId;
 
 describe('empire overview model', () => {
   it('reads authority, the era goals, the treasury lines, cities, people and research for the player', () => {
-    const s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const s = peoplesWorld({ seed: 7 });
     const m = empireOverviewModel(s);
-    expect(m.name).toBe(s.nations.fr.name);
-    expect(m.authority.total).toBe(authorityOf(s, 'fr').total);
+    expect(m.name).toBe(s.nations[FR].name);
+    expect(m.authority.total).toBe(authorityOf(s, FR).total);
     expect(['red', 'amber', 'green']).toContain(m.authority.tone);
     expect(m.era.goals).toHaveLength(5);
     expect(m.era.needed).toBe(ERA_GOALS_FOR_LEGACY);

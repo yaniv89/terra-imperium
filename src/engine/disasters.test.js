@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseDisasterReady } from './disasters';
-import { createInitialState } from './gameReducer';
+import { peoplesWorld } from './testWorld';
 
-const baseNation = () => createInitialState({ playerNationId: 'us', rngSeed: 1 }).nations.us;
+const baseNation = () => peoplesWorld().nations.akkad;
 
 describe('processDisastersTurn — Revolution (plan §M15)', () => {
   it('overturns the government and triggers civil war once stability collapses under a discredited regime, Modern age only', () => {

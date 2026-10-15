@@ -1,6 +1,6 @@
 // src/data/navalLines.test.js
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from '../engine/gameReducer';
+import { gameReducer } from '../engine/gameReducer';
 import { ActionTypes } from './types';
 import { getNationCapital } from './regions';
 import { getTiles } from './geo/tiles';
@@ -10,6 +10,12 @@ import { portWaters } from '../engine/fleets';
 import { visibleTiles } from '../engine/sight';
 import { canQueue } from '../engine/world/cities';
 import { NAVAL_LINES, NAVAL_LINE_IDS, navalLinesFor, navalCargo, navalName, navalLineOf, navalCombatMult, NAVAL_BOMBARD } from './navalLines';
+import { peoplesWorld, rivalOf } from '../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 7 });
+const FR = WORLD.playerNationId;
+const DE = rivalOf(WORLD, 0);
 
 describe('naval lines', () => {
   it('four lines, by age, with cargo and names per age', () => {
@@ -32,22 +38,22 @@ describe('naval lines', () => {
     const base = computeHitMultiplier(warship, target, ctx);
     expect(computeHitMultiplier({ ...warship, navalLine: 'transport' }, target, ctx)).toBeCloseTo(base * navalCombatMult('transport'));
     expect(computeHitMultiplier({ ...warship, navalLine: 'raider' }, target, ctx)).toBeCloseTo(base * 0.8);
-    const s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    const coastal = Object.values(s.regions).find((c) => c.owner && c.owner !== 'fr' && portWaters(s, getTiles(), c.id).length > 0);
+    const s = peoplesWorld({ seed: 7 });
+    const coastal = Object.values(s.regions).find((c) => c.owner && c.owner !== FR && portWaters(s, getTiles(), c.id).length > 0);
     const water = portWaters(s, getTiles(), coastal.id)[0];
-    const fleet = (id, navalLine) => ({ id, ownerId: 'fr', domain: 'naval', classId: 'naval', navalLine, strength: 1000, tile: water, regionId: getNationCapital('fr') });
+    const fleet = (id, navalLine) => ({ id, ownerId: FR, domain: 'naval', classId: 'naval', navalLine, strength: 1000, tile: water, regionId: getNationCapital(FR) });
     const units = { f1: fleet('f1', 'warship'), f2: fleet('f2', 'transport'), f3: fleet('f3', 'warship') };
-    expect(bombardStrength(s, coastal, units, ['fr'])).toBe(2 * NAVAL_BOMBARD);
-    expect(bombardStrength(s, coastal, units, ['de'])).toBe(0);
-    const seeW = visibleTiles({ ...s, units: { f1: fleet('f1', 'warship') } }, 'fr').size;
-    const seeR = visibleTiles({ ...s, units: { f1: fleet('f1', 'raider') } }, 'fr').size;
+    expect(bombardStrength(s, coastal, units, [FR])).toBe(2 * NAVAL_BOMBARD);
+    expect(bombardStrength(s, coastal, units, [DE])).toBe(0);
+    const seeW = visibleTiles({ ...s, units: { f1: fleet('f1', 'warship') } }, FR).size;
+    const seeR = visibleTiles({ ...s, units: { f1: fleet('f1', 'raider') } }, FR).size;
     expect(seeR).toBeGreaterThan(seeW);
   });
 
   it('recruiting and building carry the line and its cargo; a line not of the age cannot be queued', () => {
-    let s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    let s = peoplesWorld({ seed: 7 });
     s = { ...s, resources: { ...s.resources, gold: 100000, hr: 100000, mil: 1000, copper: 1000 } };
-    const port = Object.values(s.regions).find((c) => c.owner === 'fr' && portWaters(s, getTiles(), c.id).length > 0) || s.regions[getNationCapital('fr')];
+    const port = Object.values(s.regions).find((c) => c.owner === FR && portWaters(s, getTiles(), c.id).length > 0) || s.regions[getNationCapital(FR)];
     const r = gameReducer(s, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: port.id, classId: 'naval', navalLine: 'transport' } });
     const built = Object.values(r.units).find((u) => u.domain === 'naval' && !s.units[u.id]);
     if (built) { expect(built.navalLine).toBe('transport'); expect(built.transportCapacity).toBe(navalCargo('transport', 'bronze')); }

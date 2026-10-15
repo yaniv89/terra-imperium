@@ -1,11 +1,11 @@
 // src/engine/cityDisasters.test.js
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from './gameReducer';
+import { peoplesWorld } from './testWorld';
 import { getTiles } from '../data/geo/tiles';
 import { cityYields, processCity } from './world/cities';
 import { rollFor, strike, disasterMults, rollCityDisasters, FLOOD_CHANCE, DISASTER_TURNS, DISASTER_COOLDOWN, FLOOD_FOOD_MULT, PLAGUE_SIZE_LOSS } from './cityDisasters';
 
-const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+const S = peoplesWorld({ seed: 7 });
 const tiles = getTiles();
 
 describe('city disasters', () => {

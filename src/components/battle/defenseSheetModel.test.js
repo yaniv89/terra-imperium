@@ -3,7 +3,6 @@
 // militia and battle housing, offers Withdraw only for a city with somewhere to fall back to, and
 // the 300-a-side line splits the regiments into those that fight at once and the waves.
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { addCity } from '../../engine/testWorld';
 import { createDefenseRecord } from '../../engine/defense';
 import { getNeighborIds } from '../../data/regions';
@@ -12,20 +11,26 @@ import { queuedBattleView } from '../../engine/battleQueue';
 import { armyView, battleSize, oddsSource, scoutsRange, battleMinutes, wallsLabel, siegeAdvice } from './warModel';
 import { getCategoryTierName } from '../../data/buildings';
 import { cityManifestOf } from '../../engine/cityManifest';
+import { peoplesWorld, rivalOf } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 1 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const DE_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const WORLD = (() => {
-  const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
-  const foe = addCity(first.state, 'de', { near: first.cityId });
-  const second = addCity(foe.state, 'fr', { near: first.cityId });
-  const border = getNeighborIds(first.cityId).includes(foe.cityId) ? foe.cityId : getNeighborIds(first.cityId).find((id) => second.state.regions[id].owner !== 'fr');
+  const first = addCity(peoplesWorld({ seed: 1 }), FR_ID);
+  const foe = addCity(first.state, DE_ID, { near: first.cityId });
+  const second = addCity(foe.state, FR_ID, { near: first.cityId });
+  const border = getNeighborIds(first.cityId).includes(foe.cityId) ? foe.cityId : getNeighborIds(first.cityId).find((id) => second.state.regions[id].owner !== FR_ID);
   return { state: second.state, city: first.cityId, foe: border, agg: second.state.regions[border].owner };
 })();
 const unit = (id, regionId, ownerId, classId = 'infantry', strength = 100) => ({ id, regionId, ownerId, domain: 'land', classId, strength, maxStrength: 100, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1 });
 
 const withAttack = () => {
   const s = WORLD.state;
-  const war = { id: 'war_w14', aggressor: WORLD.agg, enemy: 'fr', active: true, startYear: s.year, startTurn: s.turnNumber, battleScore: 0 };
-  const units = { g1: unit('g1', WORLD.city, 'fr'), g2: unit('g2', WORLD.city, 'fr', 'ranged', 60), r1: unit('r1', WORLD.foe, WORLD.agg, 'cavalry', 80) };
+  const war = { id: 'war_w14', aggressor: WORLD.agg, enemy: FR_ID, active: true, startYear: s.year, startTurn: s.turnNumber, battleScore: 0 };
+  const units = { g1: unit('g1', WORLD.city, FR_ID), g2: unit('g2', WORLD.city, FR_ID, 'ranged', 60), r1: unit('r1', WORLD.foe, WORLD.agg, 'cavalry', 80) };
   const st = { ...s, units, wars: [...s.wars, war] };
   const def = createDefenseRecord(st, { war, regionId: WORLD.city, aggressorShare: 0.5, seed: 7, index: 1 });
   return { st: { ...st, pendingDefenses: [def] }, def };
@@ -92,7 +97,7 @@ describe('W14 defenseSheetModel', () => {
 
 describe('warModel', () => {
   it('groups a side by kind with men and generals', () => {
-    const v = armyView([unit('a', 'x', 'fr'), unit('b', 'x', 'fr'), { ...unit('c', 'x', 'fr', 'ranged', 50), commanderId: 'g1' }, { ...unit('m', 'x', 'fr', 'infantry', 30), militia: true }], { hiredCommanders: { g1: { name: 'Sargon', skill: 3 } } });
+    const v = armyView([unit('a', 'x', FR_ID), unit('b', 'x', FR_ID), { ...unit('c', 'x', FR_ID, 'ranged', 50), commanderId: 'g1' }, { ...unit('m', 'x', FR_ID, 'infantry', 30), militia: true }], { hiredCommanders: { g1: { name: 'Sargon', skill: 3 } } });
     expect(v.men).toBe(280);
     expect(v.regiments).toBe(4);
     expect(v.lines[0]).toMatchObject({ regiments: 2, men: 200 });

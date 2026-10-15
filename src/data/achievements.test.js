@@ -1,66 +1,71 @@
 import { describe, it, expect } from 'vitest';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
-import { createInitialState } from '../context/GameContext';
 import { GameStatus } from './types';
 import { getNationCapital } from './regions';
+import { peoplesWorld, rivalOf } from '../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld();
+const FR = WORLD.playerNationId;
+const DE = rivalOf(WORLD, 0);
 
 describe('checkAchievements', () => {
   it('reports nothing for a brand-new game', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     expect(checkAchievements(state)).toEqual([]);
   });
 
   // Plan §M18: the old free calendar achievements (enter_classical_age/enter_modern_age) are gone —
   // every achievement now needs the player to have actually done something, not just waited.
   it('detects iron_grip once +3 stability has held for 20 straight turns', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const short = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability3Streak: 19 } } };
+    const state = peoplesWorld();
+    const short = { ...state, nations: { ...state.nations, [FR]: { ...state.nations[FR], stability3Streak: 19 } } };
     expect(checkAchievements(short)).not.toContain('iron_grip');
-    const long = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability3Streak: 20 } } };
+    const long = { ...state, nations: { ...state.nations, [FR]: { ...state.nations[FR], stability3Streak: 20 } } };
     expect(checkAchievements(long)).toContain('iron_grip');
   });
 
   it('detects phoenix only once a nation that was bankrupt recovers to 5,000g', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = peoplesWorld();
     const richButNeverBankrupt = { ...state, resources: { ...state.resources, gold: 10000 } };
     expect(checkAchievements(richButNeverBankrupt)).not.toContain('phoenix');
-    const bankruptAndPoor = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, hasBeenBankrupt: true } }, resources: { ...state.resources, gold: 100 } };
+    const bankruptAndPoor = { ...state, nations: { ...state.nations, [FR]: { ...state.nations[FR], hasBeenBankrupt: true } }, resources: { ...state.resources, gold: 100 } };
     expect(checkAchievements(bankruptAndPoor)).not.toContain('phoenix');
-    const recovered = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, hasBeenBankrupt: true } }, resources: { ...state.resources, gold: 5000 } };
+    const recovered = { ...state, nations: { ...state.nations, [FR]: { ...state.nations[FR], hasBeenBankrupt: true } }, resources: { ...state.resources, gold: 5000 } };
     expect(checkAchievements(recovered)).toContain('phoenix');
   });
 
   it('detects great_game only for a CLOSED war won against a currently-larger nation', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const frCapital = getNationCapital('fr');
-    // Hand EVERY region to 'de' except the player's own capital, so the size comparison is fully
+    const state = peoplesWorld();
+    const frCapital = getNationCapital(FR);
+    // Hand EVERY region to DE except the player's own capital, so the size comparison is fully
     // controlled rather than relying on how many real admin-1 provinces either nation happens to
     // start with (France alone starts with ~100).
     const regions = {};
-    Object.keys(state.regions).forEach((id) => { regions[id] = { ...state.regions[id], owner: id === frCapital ? 'fr' : 'de' }; });
+    Object.keys(state.regions).forEach((id) => { regions[id] = { ...state.regions[id], owner: id === frCapital ? FR : DE }; });
     const base = { ...state, regions };
 
-    const stillActive = { ...base, wars: [{ id: 'w1', aggressor: 'fr', enemy: 'de', active: true, score: 50 }] };
+    const stillActive = { ...base, wars: [{ id: 'w1', aggressor: FR, enemy: DE, active: true, score: 50 }] };
     expect(checkAchievements(stillActive)).not.toContain('great_game');
 
-    const lost = { ...base, wars: [{ id: 'w1', aggressor: 'fr', enemy: 'de', active: false, score: -50 }] };
+    const lost = { ...base, wars: [{ id: 'w1', aggressor: FR, enemy: DE, active: false, score: -50 }] };
     expect(checkAchievements(lost)).not.toContain('great_game');
 
-    const wonAgainstLarger = { ...base, wars: [{ id: 'w1', aggressor: 'fr', enemy: 'de', active: false, score: 50 }] };
+    const wonAgainstLarger = { ...base, wars: [{ id: 'w1', aggressor: FR, enemy: DE, active: false, score: 50 }] };
     expect(checkAchievements(wonAgainstLarger)).toContain('great_game');
   });
 
   it('detects dynasty once the same royal house has held for 10 consecutive rulers', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const short = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, sameDynastyStreak: 9 } } };
+    const state = peoplesWorld();
+    const short = { ...state, nations: { ...state.nations, [FR]: { ...state.nations[FR], sameDynastyStreak: 9 } } };
     expect(checkAchievements(short)).not.toContain('dynasty');
-    const long = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, sameDynastyStreak: 10 } } };
+    const long = { ...state, nations: { ...state.nations, [FR]: { ...state.nations[FR], sameDynastyStreak: 10 } } };
     expect(checkAchievements(long)).toContain('dynasty');
   });
 
   it('detects builder_of_wonders only once 3 owned Great Projects reach tier 3', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const frCapital = getNationCapital('fr');
+    const state = peoplesWorld();
+    const frCapital = getNationCapital(FR);
     const twoAtTierThree = { ...state, greatProjects: { great_pyramids: { regionId: frCapital, tier: 3 }, hanging_gardens: { regionId: frCapital, tier: 3 } } };
     expect(checkAchievements(twoAtTierThree)).not.toContain('builder_of_wonders');
     const threeAtTierThree = {
@@ -71,25 +76,25 @@ describe('checkAchievements', () => {
   });
 
   it('detects unbroken only in/past the Modern Age with no region ever ceded in peace', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = peoplesWorld();
     const kingdomsClean = { ...state, age: 'kingdoms' };
     expect(checkAchievements(kingdomsClean)).not.toContain('unbroken'); // age too early
-    const modernButBroken = { ...state, age: 'modern', nations: { ...state.nations, fr: { ...state.nations.fr, hasCededRegionInPeace: true } } };
+    const modernButBroken = { ...state, age: 'modern', nations: { ...state.nations, [FR]: { ...state.nations[FR], hasCededRegionInPeace: true } } };
     expect(checkAchievements(modernButBroken)).not.toContain('unbroken');
     const modernClean = { ...state, age: 'modern' };
     expect(checkAchievements(modernClean)).toContain('unbroken');
   });
 
   it('detects survive_to_victory only on GameStatus.VICTORY', () => {
-    const active = createInitialState();
+    const active = peoplesWorld();
     expect(checkAchievements(active)).not.toContain('survive_to_victory');
 
-    const won = { ...createInitialState(), gameStatus: GameStatus.VICTORY };
+    const won = { ...peoplesWorld(), gameStatus: GameStatus.VICTORY };
     expect(checkAchievements(won)).toContain('survive_to_victory');
   });
 
   it('detects master_diplomat at exactly the 3-nation threshold, not below it', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     const nationIds = Object.keys(state.nations).filter(id => !state.nations[id].isPlayer);
 
     // A peace treaty counts only when it's WITH the player — a truce on the player's own record.
@@ -112,7 +117,7 @@ describe('checkAchievements', () => {
   });
 
   it('detects tech_titan once 12+ techs are researched', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     const fakeTechTree = {};
     for (let i = 0; i < 12; i++) fakeTechTree[`tech_${i}`] = { researched: true };
     const researched = { ...state, techTree: fakeTechTree };
@@ -121,7 +126,7 @@ describe('checkAchievements', () => {
   });
 
   it('detects three_front_war at 3 simultaneous wars', () => {
-    const state = createInitialState();
+    const state = peoplesWorld();
     const nationIds = Object.keys(state.nations).filter(id => !state.nations[id].isPlayer).slice(0, 3);
     // Wars the player is actually in (state.wars), not merely nations flagged isAtWar.
     const atWar = { ...state, wars: nationIds.map((id, i) => ({ id: `war_${i}`, active: true, aggressor: state.playerNationId, enemy: id })) };

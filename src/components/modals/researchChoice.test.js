@@ -1,16 +1,17 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { createInitialState, gameReducer } from '../../engine/gameReducer';
+import { gameReducer } from '../../engine/gameReducer';
 import { ActionTypes } from '../../data/types';
 import ResearchChoiceSheet, { needsResearchChoice } from './ResearchChoiceSheet';
 import TechPanel from '../panels/TechPanel';
+import { peoplesWorld } from '../../engine/testWorld';
 
 const game = vi.hoisted(() => ({ state: null, dispatch: vi.fn(), addLog: vi.fn() }));
 vi.mock('../../context/GameContext', () => ({ useGame: () => game }));
 vi.mock('../../context/EffectsContext', () => ({ useEffects: () => ({ triggerEffect: vi.fn(), effects: [] }) }));
 
-const fresh = () => createInitialState({ playerNationId: 'fr', rngSeed: 4 });
+const fresh = () => peoplesWorld({ seed: 4 });
 
 describe('research choice sheet', () => {
   it('asks at the start of a game, and not once something is chosen or the advisor picks', () => {

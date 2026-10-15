@@ -8,6 +8,7 @@ import { foundCity, sizeToPeople, canFoundCity, ringDistance } from './world/cit
 import { syncWorldRegistry } from './world/registry';
 import { getNationCapital, getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getTouchingIds } from '../data/regions';
+import { createInitialState } from './gameReducer';
 
 export const cap = (nationId) => getNationCapital(nationId);
 
@@ -112,4 +113,46 @@ export const growCities = (state, nationId, { size = 8, categories = { science: 
     regions[c.id] = { ...c, tiles: [...new Set([...(c.tiles || [c.tile]), ...extra])], size, buildings: { ...(c.buildings || {}), categories: { ...(c.buildings?.categories || {}), ...categories } } };
   });
   return syncWorldRegistry({ ...state, regions, world: { ...state.world, tileOwner } });
+};
+
+// ---- A small fixed-seed peoples world (the only kind of world a new game starts) ----
+// The replacement for `createInitialState({ playerNationId: 'fr' })`, which builds the retired
+// 240-country world (plans/legacy-world-retirement.md). Same arguments give the same world, and a
+// state is built once per argument set and shared: tests spread over it and never mutate it.
+// `independents: false` leaves the independent cities out (majors only), the cheap default.
+const peoplesCache = new Map();
+export const peoplesWorld = ({ player = 'akkad', seed = 11, size = 'small', independents = false, fog = true } = {}) => {
+  const key = `${player}|${seed}|${size}|${independents}|${fog}`;
+  if (!peoplesCache.has(key)) peoplesCache.set(key, createInitialState({ playerNationId: player, rngSeed: seed, fog, scenario: { mode: 'peoples', size, seed, independents } }));
+  return peoplesCache.get(key);
+};
+
+// The major nations of a world, the player first, then by id (never the independent cities).
+export const majorIds = (state) => Object.values(state.nations)
+  .filter((n) => n.kind !== 'independent')
+  .map((n) => n.id)
+  .sort((a, b) => (a === state.playerNationId ? -1 : b === state.playerNationId ? 1 : a < b ? -1 : 1));
+
+// The first major that is not the player (a stand-in for "the rival", "Germany" in old tests).
+export const rivalOf = (state, n = 0) => majorIds(state).filter((id) => id !== state.playerNationId)[n];
+
+// A copy of a world a test may change in place (regions, nations, units, wars deep-copied). The fog
+// stays shared: its arrays are classes (a structured clone would strip their JSON form).
+export const cloneWorld = (state) => ({
+  ...state,
+  regions: structuredClone(state.regions),
+  nations: structuredClone(state.nations),
+  units: structuredClone(state.units || {}),
+  wars: structuredClone(state.wars || []),
+  world: structuredClone(state.world)
+});
+
+// The world with a city of `b` founded beside a city of `a`, so the two borders touch (the peoples
+// start has every people far from the rest). Returns the same state when they already border.
+export const withBorder = (state, a, b) => {
+  if (borderPair(state, a, b)) return state;
+  let s = addCity(state, b, { near: state.nations[a].capitalRegionId }).state;
+  if (!borderPair(s, a, b)) s = addCity(s, a, { near: getOwnedRegionIds(s.regions, b).slice(-1)[0] }).state;
+  if (!borderPair(s, a, b)) throw new Error('testWorld.withBorder: the two peoples still do not border');
+  return s;
 };

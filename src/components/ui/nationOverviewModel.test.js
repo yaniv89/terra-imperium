@@ -1,16 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
 import { nationOverviewModel } from './nationOverviewModel';
 import { authorityOf } from '../../engine/authority';
 import { AGE_ORDER } from '../../data/ages';
 import { EMPIRE_CITY_COUNT } from '../../data/nationTitles';
+import { peoplesWorld } from '../../engine/testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const WORLD = peoplesWorld({ seed: 5 });
+const FR = WORLD.playerNationId;
 
 describe('nation overview model (W17)', () => {
-  const s = createInitialState({ playerNationId: 'fr', rngSeed: 5 });
+  const s = peoplesWorld({ seed: 5 });
 
   it('reads the ruler, government, stability, victory, era goals and the age for the player', () => {
     const m = nationOverviewModel(s);
-    const n = s.nations.fr;
+    const n = s.nations[FR];
     expect(m.name).toBe(n.name);
     expect(m.cities).toBeGreaterThan(0);
     expect(m.ruler.name).toBe(n.ruler.name);
@@ -18,7 +22,7 @@ describe('nation overview model (W17)', () => {
     expect(m.ruler.reignTurns).toBe(0);
     expect(m.government.title).toBe(n.name);
     if (m.government.nextTitle) expect(m.government.nextTitle.needed).toBe(EMPIRE_CITY_COUNT);
-    expect(m.stability.authority).toBe(authorityOf(s, 'fr').total);
+    expect(m.stability.authority).toBe(authorityOf(s, FR).total);
     expect(m.stability.parts.some((p) => p.id === 'base')).toBe(false);
     expect(m.victory.map((v) => v.id)).toEqual(['domination', 'conqueror', 'economic']);
     expect(m.victory[0].value).toBe(0);
