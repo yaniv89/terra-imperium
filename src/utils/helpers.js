@@ -7,7 +7,7 @@
 import { RelationStatus } from '../data/types';
 import { REGIONS_DATA, getCapital } from '../data/regions';
 import { RESOURCE_IDS } from '../data/resources';
-import { hasDeposit, depositLandOf } from '../data/deposits';
+import { regionHasDeposit } from '../data/deposits';
 import { getSatelliteEffectTotal } from '../data/satellites';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { getHistoricalPopulationShare } from '../data/historicalPopulation';
@@ -239,7 +239,7 @@ export const calcIncome = (state) => {
 
     Object.entries(region.buildings?.extraction || {}).forEach(([resId, built]) => {
       if (!built || income[resId] === undefined) return;
-      if (!hasDeposit(depositLandOf(regData), resId)) return; // building without a deposit produces nothing — deposits are geological, keyed by the province's home country
+      if (!regionHasDeposit(regData, resId)) return; // building without a deposit produces nothing — deposits are geological, keyed by the province's home country
       income[resId] += EXTRACTION_BASE_YIELD * controlMult * infraMult;
     });
 

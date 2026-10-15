@@ -20,6 +20,7 @@ import COUNTRY_ADJACENCY from '../../data/geo/countries-adjacency.json';
 import { distanceKm, EARTH_RADIUS_KM } from '../../data/geo/geodesic';
 import { sinCosDeg } from '../../utils/exactMath';
 import { ringsForKm } from '../../data/geo/gridScale';
+import { getDepositsFor } from '../../data/deposits';
 import { countryOfNation } from '../../data/peoples';
 
 // A radius index over city centres (unit vectors): a 3-D grid of cubes CELL_KM wide on the chord,
@@ -243,7 +244,40 @@ export const buildRegistry = (regions) => {
   const forward = neighbourLists.map((l) => l.slice());
   forward.forEach((list, i) => list.forEach((o) => { if (!neighbourLists[o].includes(i)) neighbourLists[o].push(i); }));
   cities.forEach((city, i) => { out.regions[city.id].neighbors = neighbourLists[i].map((o) => cities[o].id).sort(); });
+  assignDeposits(cities, out.regions);
   return out;
+};
+
+// Each deposit a land holds (src/data/deposits.js) lies at one real spot of that land: a tile picked
+// by a fixed hash of (land, resource). It belongs to exactly ONE city standing on that land: the one
+// whose ground covers the spot, else the nearest city of that land within DEPOSIT_REACH_KM (ties by
+// tile id). No city near enough, and the deposit is not worked yet. Nothing is stored: when the city
+// is razed or gone the next rebuild hands the deposit to the next nearest city by the same rule. A
+// city taken in war keeps its deposit.
+export const DEPOSIT_REACH_KM = 460;
+const spotHash = (text) => { let h = 2166136261; for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619) >>> 0; return h; };
+export const depositSpot = (tiles, land, resourceId) => {
+  const own = tiles.countryTiles?.[land];
+  return own && own.length ? own[spotHash(land + ':' + resourceId) % own.length] : null;
+};
+const assignDeposits = (cities, regions) => {
+  const tiles = getTiles();
+  const byLand = {};
+  cities.forEach((c) => { (byLand[regions[c.id].landCode] ||= []).push(c); });
+  Object.keys(byLand).forEach((land) => {
+    getDepositsFor(land).forEach((res) => {
+      const spot = depositSpot(tiles, land, res);
+      if (spot == null) return;
+      let best = null; let bestD = Infinity;
+      byLand[land].forEach((c) => {
+        const covers = (c.tiles || [c.tile]).includes(spot);
+        const d = covers ? -1 : distanceKm(tiles.centres[spot], tiles.centres[c.tile]) + (c.razing ? 1e6 : 0);
+        if (d < bestD || (d === bestD && c.tile < best.tile)) { bestD = d; best = c; }
+      });
+      if (best && bestD <= DEPOSIT_REACH_KM) (regions[best.id].deposits ||= []).push(res);
+    });
+  });
+  Object.values(regions).forEach((r) => { r.deposits ||= []; });
 };
 
 // Rebuilds the registry in place when `state.regions` is a different object than last time.
