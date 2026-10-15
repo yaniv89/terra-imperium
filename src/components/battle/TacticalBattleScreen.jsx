@@ -16,6 +16,8 @@ import BattleHud from './BattleHud';
 import { BattleRotateGate } from '../ui/RotateOverlay';
 import BattleResultScreen from './BattleResultScreen';
 import BattleFailure from './BattleFailure';
+import BattleLoading, { workingOn } from './BattleLoading';
+import { createStartWatch } from '../../battle/worker/startWatch';
 import { ABILITIES } from '../../battle/sim/effects';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
@@ -52,9 +54,10 @@ const cx = (...p) => p.filter(Boolean).join(' ');
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
 const HUD_INTERVAL_MS = 150;
-// The sim answers within a second or two; a resumed battle replays its log first (well under a
-// second for 6 minutes on a laptop, a few on a slow phone). Past this, the battle failed to start.
-export const FIRST_FRAME_TIMEOUT_MS = 25000;
+// The start is watched stage by stage (startWatch.js): it fails only when no new stage arrives for
+// START_STALL_MS with the page in front, or on an error with nothing left to try (battleClient.js
+// first replaces a worker that died or went silent). Checked this often (ms):
+const START_CHECK_MS = 1000;
 // A frame that throws is skipped; this many in a row means the battlefield cannot be drawn.
 const RENDER_ERRORS_TO_FAIL = 3;
 // How long a lost WebGL context may take to come back before the failure screen shows.
@@ -121,6 +124,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [radial, setRadial] = useState(null);
   const [ended, setEnded] = useState(null);
   const [failure, setFailure] = useState(null); // { message, detail }: BattleFailure
+  // The start for the loading screen (BattleLoading): the stage reached, the bar, the seconds so far
+  // and the last replacement of the worker; null once the first frame is on screen.
+  const [start, setStart] = useState({ stage: 'field', fraction: 0, seconds: 0, retry: null });
   const [refused, setRefused] = useState(null); // the last `ordersRefused` message, shown a few seconds
   // The campaign's answer for the ended battle (battleReceipt.js): undefined outside a campaign,
   // { pending } while it is counted (the replay takes a moment), then the receipt or { failed }.
@@ -227,10 +233,29 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       renderer = new BattleRenderer(canvas, setup, { playerSide });
     } catch (err) {
       console.error('[battle] the battlefield could not be drawn', err);
+      noteCrashEvent(`battle-start failed at field: ${err?.message || err}`);
       setFailure({ message: tNow('bt.screen.drawFail'), detail: err?.message || String(err) });
       return undefined;
     }
     rendererRef.current = renderer;
+    // The start, stage by stage (startWatch.js): the battlefield is built, the worker comes next.
+    const watch = createStartWatch({ now: () => performance.now(), first: 'field' });
+    if (document.hidden) watch.hidden(true);
+    let retryKind = null;
+    const showStart = () => {
+      if (watch.done()) { setStart(null); return; }
+      setStart({ stage: watch.stage(), fraction: watch.fraction(), seconds: Math.floor(watch.elapsed() / 1000), retry: retryKind });
+    };
+    const startFailed = (detail, why) => {
+      noteCrashEvent(`battle-start failed at ${watch.stage()}: ${why}`);
+      noteCrashEvent(`battle-start stages: ${watch.summary()}`);
+      setFailure({ message: tNow('bt.screen.couldNotStart'), detail });
+    };
+    const startStage = (stage) => {
+      if (!watch.note(stage)) return;
+      if (stage === 'drawn') noteCrashEvent(`battle-start ${(watch.elapsed() / 1000).toFixed(1)}s: ${watch.summary()}`.slice(0, 160));
+      showStart();
+    };
     if (!resume) renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide); // the zone shows until Start (plan E7)
     if(window.__E2E_BATTLE_TEST__)window.__battleTest={diagnostics:()=>renderer.diagnostics(),tick:()=>frames.current.cur?.tick};
     // For debugging in the console, and for scripts/battle-phone-bench.mjs (which moves the camera) in a perf run.
@@ -247,10 +272,22 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
 
+    startStage('worker'); // before the client: a warm worker hands over its stages at once
     const client = createBattleClient({
       setup, resume, paused: true,
       onMessage: (m) => {
+        if (m.type === 'stage') {
+          if (m.stage === 'retry') {
+            // The worker failed or went silent: battleClient.js starts the next way to run it.
+            retryKind = m.kind;
+            noteCrashEvent(`battle-start retry ${m.kind} at ${watch.stage()}: ${m.reason}${m.detail ? ` (${m.detail})` : ''}`);
+            watch.bump(`${m.kind}:${m.reason}`, 'worker');
+            showStart();
+          } else startStage(m.stage);
+          return;
+        }
         if (m.type === 'frame') {
+          startStage('frame');
           const f = frames.current;
           if (m.sim) f.sim = m.sim;
           if (!f.cur || m.view.tick !== f.cur.tick) { f.prev = f.cur; f.cur = m.view; f.arrival = performance.now(); } else f.cur = m.view;
@@ -275,7 +312,13 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide);
         } else if (m.type === 'error') {
           console.error(`[battle] the battle stopped (${m.stage || 'sim'}): ${m.message}`, m.stack || '');
-          setFailure({ message: frames.current.cur ? tNow('bt.screen.stopped') : tNow('bt.screen.couldNotStart'), detail: m.message });
+          if (frames.current.cur) {
+            noteCrashEvent(`battle stopped (${m.stage || 'sim'}): ${m.message}`);
+            setFailure({ message: tNow('bt.screen.stopped'), detail: m.message });
+          } else {
+            watch.fail('error');
+            startFailed(m.message, `error in ${m.stage || 'sim'} after ${m.attempts || 1} tries: ${m.message}`);
+          }
         }
       }
     });
@@ -284,7 +327,21 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
 
     let raf; let lastT = performance.now(); let lastHud = 0; let lastPerf = 0;
     let renderErrors = 0;
-    const openedAt = performance.now();
+    // The start's watch: a stall (no new stage for a long time, the page in front) fails the start.
+    const startTimer = setInterval(() => {
+      if (watch.done()) { clearInterval(startTimer); return; }
+      const stalled = watch.check();
+      if (stalled) {
+        clearInterval(startTimer);
+        const secs = Math.round(stalled.waitedMs / 1000);
+        console.error(`[battle] the start stalled at ${stalled.stage} for ${secs} s`);
+        // The card names the step in words, plus a short code (stage and how the sim ran) for a bug report.
+        const code = `${stalled.stage}/${client.kind()}${client.warm() ? '/warm' : ''}`;
+        startFailed(`${tNow('bt.screen.stalled', { stage: tNow(`bt.load.${workingOn(stalled.stage)}`), n: secs })} \u2066[${code}]\u2069`, `no progress for ${secs}s (${code})`);
+        return;
+      }
+      if (!document.hidden) showStart(); // the seconds on the loading screen
+    }, START_CHECK_MS);
     // `&perf` in the URL: an on-screen readout (perfMeter.js), also left in window.__battlePerf.
     const meter = perfOn() ? createPerfMeter() : null;
     const loop = (t) => {
@@ -292,12 +349,6 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       const rawMs = t - lastT;
       const dt = Math.min(0.1, rawMs / 1000); lastT = t;
       const f = frames.current;
-      // No first frame from the sim in time: say so rather than show an empty field forever.
-      if (!f.cur && t - openedAt > FIRST_FRAME_TIMEOUT_MS && !f.timedOut) {
-        f.timedOut = true;
-        console.error('[battle] no frame from the battle sim');
-        setFailure({ message: tNow('bt.screen.couldNotStart'), detail: tNow('bt.screen.noAnswer', { n: Math.round(FIRST_FRAME_TIMEOUT_MS / 1000) }) });
-      }
       const alpha = f.prev ? Math.min(1, ((t - f.arrival) * speedRef.current) / (1000 / TICK_HZ)) : 1;
       // I198: arrow keys and the screen's edge pan (a hand on the camera ends a follow, I199).
       let px = 0; let py = 0;
@@ -327,6 +378,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       try {
         renderer.render(f.prev, f.cur, alpha, { selected: selectedRef.current }, dt);
         renderErrors = 0;
+        if (f.cur && !watch.done()) startStage('drawn'); // the first frame is on screen: the start is over
       } catch (err) {
         renderErrors += 1;
         if (renderErrors === 1) console.error('[battle] drawing the battlefield failed', err);
@@ -360,7 +412,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     raf = requestAnimationFrame(loop);
 
     // Backgrounding the app (phone call, app switch) pauses the battle immediately.
-    const onVis = () => { if (document.hidden) { client.pause(); setPaused(true); } };
+    const onVis = () => {
+      watch.hidden(document.hidden); // time in the background never counts against the start
+      if (document.hidden) { client.pause(); setPaused(true); }
+    };
     document.addEventListener('visibilitychange', onVis);
     // A phone can take the graphics away (memory pressure, the app in the background): the battle
     // pauses, three.js rebuilds everything when the context comes back, and if it does not come
@@ -378,6 +433,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     canvas.addEventListener('webglcontextrestored', onRestored);
     return () => {
       clearTimeout(lostTimer);
+      clearInterval(startTimer);
       canvas.removeEventListener('webglcontextlost', onLost);
       canvas.removeEventListener('webglcontextrestored', onRestored);
       cancelAnimationFrame(raf);
@@ -1069,6 +1125,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">{orderNote}</div>
       )}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} receipt={receipt} onContinue={() => onFinish?.(ended)} />}
+      {start && !failure && !ended && <BattleLoading stage={start.stage} fraction={start.fraction} seconds={start.seconds} retry={start.retry} onAuto={() => onAbandon?.()} />}
       {failure && !ended && <BattleFailure title={failure.message} detail={failure.detail} onAuto={() => onAbandon?.('screen_error')} onRetry={onRetry} />}
     </div>
   );
@@ -1088,13 +1145,9 @@ const TacticalBattleScreen = (props) => {
     preloadUnitModels(props.setup).then(() => { if (live) setReady(true); });
     return () => { live = false; };
   }, [ready, props.setup]);
-  if (!ready) {
-    return (
-      <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center text-slate-300 text-sm" data-testid="battle-loading">
-        {tNow('bt.screen.mustering')}
-      </div>
-    );
-  }
+  // The soldiers' models first (each has its own time limit in preloadUnitModels), on the same
+  // loading screen as the battlefield's start that follows.
+  if (!ready) return <><BattleLoading stage="models" /><BattleRotateGate /></>;
   return <><TacticalBattleView {...props} setup={setup} /><BattleRotateGate /></>;
 };
 

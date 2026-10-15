@@ -7,6 +7,7 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useT } from '../../i18n/useT';
 import { t as tNow } from '../../i18n/core';
+import NumText from './NumText';
 
 const BattleFailure = ({ title, message, detail = null, onAuto, onRetry = null, retryLabel }) => {
   const { t } = useT();
@@ -19,7 +20,7 @@ const BattleFailure = ({ title, message, detail = null, onAuto, onRetry = null, 
       </div>
       {message && <p className="mt-2 text-[13px] leading-snug">{message}</p>}
       <p className="mt-1 text-[12px] text-fa-muted leading-snug">{t('bt.fail.nothingLost')}</p>
-      {detail && <p className="mt-2 text-[11px] text-fa-muted font-mono break-words" data-testid="battle-failure-detail">{detail}</p>}
+      {detail && <p className="mt-2 text-[12px] text-fa-muted leading-snug break-words" data-testid="battle-failure-detail"><NumText text={detail} /></p>}
       <div className="mt-3 flex flex-wrap gap-2 justify-end">
         {onRetry && (
           <button type="button" onClick={onRetry} data-testid="battle-failure-retry" className="min-h-[44px] px-4 rounded-lg bg-fa-raised hover:bg-fa-hover border border-fa-line font-semibold text-[13px]">{retryLabel || t('bt.fail.retry')}</button>
