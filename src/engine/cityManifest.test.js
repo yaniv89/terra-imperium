@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from './gameReducer';
 import { cap } from './testWorld';
 import { cityManifestOf, cityManifestInput, carryBattleDamage, applyCityBattleDamage, repairCityDamage, cityHousingCap, manifestStates, REPAIR_TURNS, RUIN_TURNS } from './cityManifest';
 import { buildTownManifest, TOWNHALL_HOUSING } from '../data/townLayout';
 import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { peoplesWorld } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 11 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
 
 const manifest = buildTownManifest({ cityId: 'c', ageId: 'bronze', tierId: 'medium', seed: 3, defenseTier: 1, buildings: { culture: 1, economy: 0, food: 0, science: 0 } });
 const houses = manifest.structures.filter((s) => s.kind === 'house').map((s) => s.id);
@@ -66,8 +70,8 @@ describe('repairCityDamage', () => {
 });
 
 describe('a city in the game', () => {
-  const base = createInitialState({ playerNationId: 'fr', rngSeed: 11 });
-  const id = cap('fr');
+  const base = peoplesWorld({ seed: 11 });
+  const id = cap(FR_ID);
 
   it('derives the same manifest from the same city (saves store only damage)', () => {
     const a = cityManifestOf(base, id);

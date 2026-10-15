@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { staticSources, contextSources, regionSources } from './sources';
-import { createInitialState } from '../../context/GameContext';
 import { createEmptyRegionBuildings } from '../../data/buildings';
+import { neighbourWorld, rivalOf } from '../testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 11 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const DE_ID = rivalOf(PEOPLES_WORLD, 0);
+const GB_ID = rivalOf(PEOPLES_WORLD, 1);
 
 describe('staticSources', () => {
   it('emits one line per non-zero hook across every active government reform tier', () => {
@@ -63,8 +69,8 @@ describe('staticSources', () => {
 
 describe('contextSources', () => {
   it('includes a tax-rate goldMult line when the nation has a non-default tax rate', () => {
-    const state = { nations: { fr: { taxRate: 'high' } } };
-    const lines = contextSources(state, 'fr');
+    const state = { nations: { [FR_ID]: { taxRate: 'high' } } };
+    const lines = contextSources(state, FR_ID);
     expect(lines.some((l) => l.sourceType === 'tax' && l.key === 'national.goldMult')).toBe(true);
   });
 
@@ -73,89 +79,89 @@ describe('contextSources', () => {
   it('includes one gravity Trade Pact goldMult line per partner for the player', () => {
     const city = (id, owner, tile, size) => ({ id, owner, tile, size });
     const state = {
-      playerNationId: 'fr',
-      regions: { a: city('a', 'fr', 100, 3), b: city('b', 'de', 104, 3), c: city('c', 'gb', 900, 6) },
-      nations: { fr: { capitalRegionId: 'a' }, de: { name: 'Germany', capitalRegionId: 'b', hasTradeAgreement: true }, gb: { name: 'Britain', capitalRegionId: 'c', hasTradeAgreement: true } }
+      playerNationId: FR_ID,
+      regions: { a: city('a', FR_ID, 100, 3), b: city('b', DE_ID, 104, 3), c: city('c', GB_ID, 900, 6) },
+      nations: { [FR_ID]: { capitalRegionId: 'a' }, [DE_ID]: { name: 'Germany', capitalRegionId: 'b', hasTradeAgreement: true }, [GB_ID]: { name: 'Britain', capitalRegionId: 'c', hasTradeAgreement: true } }
     };
-    const lines = contextSources(state, 'fr').filter((l) => l.sourceType === 'tradePact');
-    expect(lines.map((l) => l.sourceId).sort()).toEqual(['trade_de', 'trade_gb']);
+    const lines = contextSources(state, FR_ID).filter((l) => l.sourceType === 'tradePact');
+    expect(lines.map((l) => l.sourceId).sort()).toEqual([`trade_${DE_ID}`, `trade_${GB_ID}`].sort());
     lines.forEach((l) => { expect(l.key).toBe('national.goldMult'); expect(l.value).toBeGreaterThan(0); expect(l.label).toMatch(/^Trade with .* km\)$/); });
   });
 
   it('emits no Trade Pact line with zero active pacts', () => {
-    const state = { playerNationId: 'fr', nations: { fr: {}, de: {} } };
-    expect(contextSources(state, 'fr').some((l) => l.sourceType === 'tradePact')).toBe(false);
+    const state = { playerNationId: FR_ID, nations: { [FR_ID]: {}, [DE_ID]: {} } };
+    expect(contextSources(state, FR_ID).some((l) => l.sourceType === 'tradePact')).toBe(false);
   });
 
   it('never emits a Trade Pact line for a non-player nation', () => {
-    const state = { playerNationId: 'fr', nations: { fr: {}, de: { hasTradeAgreement: true }, gb: {} } };
-    expect(contextSources(state, 'gb').some((l) => l.sourceType === 'tradePact')).toBe(false);
+    const state = { playerNationId: FR_ID, nations: { [FR_ID]: {}, [DE_ID]: { hasTradeAgreement: true }, [GB_ID]: {} } };
+    expect(contextSources(state, GB_ID).some((l) => l.sourceType === 'tradePact')).toBe(false);
   });
 
   it('includes satellite lines only for the satellite\'s own owner', () => {
     const state = {
-      nations: { fr: {}, de: {} },
-      satellites: { s1: { id: 's1', ownerId: 'de', typeId: 'navigation' } }
+      nations: { [FR_ID]: {}, [DE_ID]: {} },
+      satellites: { s1: { id: 's1', ownerId: DE_ID, typeId: 'navigation' } }
     };
-    expect(contextSources(state, 'de').some((l) => l.sourceType === 'satellite')).toBe(true);
-    expect(contextSources(state, 'fr').some((l) => l.sourceType === 'satellite')).toBe(false);
+    expect(contextSources(state, DE_ID).some((l) => l.sourceType === 'satellite')).toBe(true);
+    expect(contextSources(state, FR_ID).some((l) => l.sourceType === 'satellite')).toBe(false);
   });
 
   it('includes a real per-tech effect line for the player\'s own researched techs, and only for the player (plan §M7)', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
+    const base = neighbourWorld();
     const withTech = {
       ...base,
       techTree: { ...base.techTree, governance_code_of_laws: { ...base.techTree.governance_code_of_laws, researched: true } }
     };
-    expect(contextSources(withTech, 'fr')).toContainEqual({ key: 'national.admBonus', value: 1, sourceType: 'tech', sourceId: 'governance_code_of_laws', label: 'Code of Laws' });
-    expect(contextSources(withTech, 'de').some((l) => l.sourceType === 'tech')).toBe(false);
+    expect(contextSources(withTech, FR_ID)).toContainEqual({ key: 'national.admBonus', value: 1, sourceType: 'tech', sourceId: 'governance_code_of_laws', label: 'Code of Laws' });
+    expect(contextSources(withTech, DE_ID).some((l) => l.sourceType === 'tech')).toBe(false);
   });
 
   it('emits nothing for a tech with no effects table entry (an unlock-only tech)', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
+    const base = neighbourWorld();
     const withTech = {
       ...base,
       techTree: { ...base.techTree, governance_civic_assemblies: { ...base.techTree.governance_civic_assemblies, researched: true } }
     };
-    expect(contextSources(withTech, 'fr').some((l) => l.sourceType === 'tech')).toBe(false);
+    expect(contextSources(withTech, FR_ID).some((l) => l.sourceType === 'tech')).toBe(false);
   });
 
   it('includes a great project\'s current-tier effect only for whoever currently owns its site region (plan §M10)', () => {
     const state = {
-      playerNationId: 'fr',
-      nations: { fr: {}, de: {} },
-      regions: { r1: { owner: 'fr' } },
+      playerNationId: FR_ID,
+      nations: { [FR_ID]: {}, [DE_ID]: {} },
+      regions: { r1: { owner: FR_ID } },
       greatProjects: { great_library: { regionId: 'r1', tier: 2 } } // techPointsMult 0.2
     };
-    expect(contextSources(state, 'fr')).toContainEqual({ key: 'national.techPointsMult', value: 0.2, sourceType: 'greatProject', sourceId: 'great_library', label: 'The Great Library' });
-    expect(contextSources(state, 'de').some((l) => l.sourceType === 'greatProject')).toBe(false);
+    expect(contextSources(state, FR_ID)).toContainEqual({ key: 'national.techPointsMult', value: 0.2, sourceType: 'greatProject', sourceId: 'great_library', label: 'The Great Library' });
+    expect(contextSources(state, DE_ID).some((l) => l.sourceType === 'greatProject')).toBe(false);
   });
 
   it('follows a great project to its new owner the instant the site region is captured', () => {
     const state = {
-      playerNationId: 'fr',
-      nations: { fr: {}, de: {} },
-      regions: { r1: { owner: 'de' } }, // captured
+      playerNationId: FR_ID,
+      nations: { [FR_ID]: {}, [DE_ID]: {} },
+      regions: { r1: { owner: DE_ID } }, // captured
       greatProjects: { great_library: { regionId: 'r1', tier: 1 } }
     };
-    expect(contextSources(state, 'fr').some((l) => l.sourceType === 'greatProject')).toBe(false);
-    expect(contextSources(state, 'de')).toContainEqual({ key: 'national.techPointsMult', value: 0.1, sourceType: 'greatProject', sourceId: 'great_library', label: 'The Great Library' });
+    expect(contextSources(state, FR_ID).some((l) => l.sourceType === 'greatProject')).toBe(false);
+    expect(contextSources(state, DE_ID)).toContainEqual({ key: 'national.techPointsMult', value: 0.1, sourceType: 'greatProject', sourceId: 'great_library', label: 'The Great Library' });
   });
 
   // Plan feedback ("issue with great works"): every one of the 15 projects now grants a real,
   // ongoing effect from an already-wired hook — none is a pure one-time-prestige dead end anymore.
   it('emits the Great Wall\'s real (stand-in) admBonus effect', () => {
-    const state = { playerNationId: 'fr', nations: { fr: {} }, regions: { r1: { owner: 'fr' } }, greatProjects: { great_wall: { regionId: 'r1', tier: 2 } } };
-    expect(contextSources(state, 'fr')).toContainEqual({ key: 'national.admBonus', value: 2, sourceType: 'greatProject', sourceId: 'great_wall', label: 'The Great Wall' });
+    const state = { playerNationId: FR_ID, nations: { [FR_ID]: {} }, regions: { r1: { owner: FR_ID } }, greatProjects: { great_wall: { regionId: 'r1', tier: 2 } } };
+    expect(contextSources(state, FR_ID)).toContainEqual({ key: 'national.admBonus', value: 2, sourceType: 'greatProject', sourceId: 'great_wall', label: 'The Great Wall' });
   });
 
   it('a governingCapacity reform raises the overextension threshold, delaying the overextension penalty line (plan §M8.1)', () => {
     const manyRegions = {};
-    for (let i = 0; i < 15; i++) manyRegions[`r${i}`] = { owner: 'fr' };
-    const withoutReform = { playerNationId: 'fr', nations: { fr: { startRegionCount: 1, government: { type: 'tribal', reforms: {} } } }, regions: manyRegions };
-    const withReform = { playerNationId: 'fr', nations: { fr: { startRegionCount: 1, government: { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy' } } } }, regions: manyRegions };
-    const without = contextSources(withoutReform, 'fr').find((l) => l.sourceType === 'overextension');
-    const withGov = contextSources(withReform, 'fr').find((l) => l.sourceType === 'overextension');
+    for (let i = 0; i < 15; i++) manyRegions[`r${i}`] = { owner: FR_ID };
+    const withoutReform = { playerNationId: FR_ID, nations: { [FR_ID]: { startRegionCount: 1, government: { type: 'tribal', reforms: {} } } }, regions: manyRegions };
+    const withReform = { playerNationId: FR_ID, nations: { [FR_ID]: { startRegionCount: 1, government: { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy' } } } }, regions: manyRegions };
+    const without = contextSources(withoutReform, FR_ID).find((l) => l.sourceType === 'overextension');
+    const withGov = contextSources(withReform, FR_ID).find((l) => l.sourceType === 'overextension');
     expect(without).toBeDefined();
     expect(withGov?.value ?? 0).toBeGreaterThan(without.value); // less negative (or absent) — the reform's +10 capacity eases it
   });
@@ -165,16 +171,16 @@ describe('contextSources', () => {
   // sourced, since ownership needs live region state) — so it silently never eased overextension.
   it('the Forbidden City\'s governingCapacity ALSO raises the overextension threshold, same as a reform', () => {
     const manyRegions = {};
-    for (let i = 0; i < 15; i++) manyRegions[`r${i}`] = { owner: 'fr' };
-    const withoutProject = { playerNationId: 'fr', nations: { fr: { startRegionCount: 1 } }, regions: manyRegions };
+    for (let i = 0; i < 15; i++) manyRegions[`r${i}`] = { owner: FR_ID };
+    const withoutProject = { playerNationId: FR_ID, nations: { [FR_ID]: { startRegionCount: 1 } }, regions: manyRegions };
     const withProject = {
-      playerNationId: 'fr',
-      nations: { fr: { startRegionCount: 1 } },
-      regions: { ...manyRegions, capital: { owner: 'fr' } },
+      playerNationId: FR_ID,
+      nations: { [FR_ID]: { startRegionCount: 1 } },
+      regions: { ...manyRegions, capital: { owner: FR_ID } },
       greatProjects: { forbidden_city: { regionId: 'capital', tier: 1 } } // +10 governing capacity
     };
-    const without = contextSources(withoutProject, 'fr').find((l) => l.sourceType === 'overextension');
-    const withProj = contextSources(withProject, 'fr').find((l) => l.sourceType === 'overextension');
+    const without = contextSources(withoutProject, FR_ID).find((l) => l.sourceType === 'overextension');
+    const withProj = contextSources(withProject, FR_ID).find((l) => l.sourceType === 'overextension');
     expect(without).toBeDefined();
     expect(withProj?.value ?? 0).toBeGreaterThan(without.value);
   });

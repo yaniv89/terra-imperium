@@ -1,6 +1,5 @@
 // src/engine/techMapEffects.test.js
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from './gameReducer';
 import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { TECH_TREE } from '../data/techTree';
@@ -16,8 +15,13 @@ import { tileStepCost, TILE_COST_MOUNTAINS } from './armies';
 import { claimCandidates, tileCultureCost, BORDER_KM_BY_AGE } from './world/cities';
 import { claimRange, CLAIM_RANGE_KM } from './claims';
 import { stackCap } from './supplyMeter';
+import { peoplesWorld } from './testWorld';
 
-const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 7 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+
+const S = peoplesWorld({ seed: 7 });
 const withTechs = (ids) => ({ ...S, techTree: { ...S.techTree, ...Object.fromEntries(ids.map((id) => [id, { ...S.techTree[id], researched: true }])) } });
 
 describe('tech map effects', () => {
@@ -42,12 +46,12 @@ describe('tech map effects', () => {
 
   it('sight, fleets, movement, borders, claims and stacks read the effects', () => {
     const tiles = getTiles();
-    const seen = visibleTiles(S, 'fr').size;
+    const seen = visibleTiles(S, FR_ID).size;
     const far = withTechs(['science_optics', 'military_bronze_casting']);
-    expect(visibleTiles(far, 'fr').size).toBeGreaterThan(seen);
-    expect(mapEffectsFor(far, 'fr').sight).toBe(204);
-    const fleet = { id: 'f', ownerId: 'fr', domain: 'naval', classId: 'naval', regionId: getNationCapital('fr') };
-    expect(fleetPace(withTechs(['science_early_astronomy']), fleet)).toBe(ringsForKm(NAVAL_KM_BY_AGE[fleetAge(S, 'fr')] + 102));
+    expect(visibleTiles(far, FR_ID).size).toBeGreaterThan(seen);
+    expect(mapEffectsFor(far, FR_ID).sight).toBe(204);
+    const fleet = { id: 'f', ownerId: FR_ID, domain: 'naval', classId: 'naval', regionId: getNationCapital(FR_ID) };
+    expect(fleetPace(withTechs(['science_early_astronomy']), fleet)).toBe(ringsForKm(NAVAL_KM_BY_AGE[fleetAge(S, FR_ID)] + 102));
     expect(fleetPace(withTechs(['science_early_astronomy']), fleet)).toBeGreaterThan(fleetPace(S, fleet));
     const ocean = Array.from({ length: tiles.count }, (_, i) => i).find((t) => tiles.terrainOf(t) === 'ocean');
     expect(seaPassable(tiles, ocean, 'bronze')).toBe(false);
@@ -55,12 +59,12 @@ describe('tech map effects', () => {
     const mountain = Array.from({ length: tiles.count }, (_, i) => i).find((t) => tiles.land[t] === 1 && tiles.reliefOf(t) === 'mountains');
     expect(tileStepCost(S, tiles, null, mountain, 'wild', [])).toBe(TILE_COST_MOUNTAINS);
     expect(tileStepCost(S, tiles, null, mountain, 'wild', ['science_natural_philosophy'])).toBe(TILE_COST_MOUNTAINS - 1);
-    const cap = S.regions[getNationCapital('fr')];
+    const cap = S.regions[getNationCapital(FR_ID)];
     const world = { cities: S.regions, tileOwner: S.world.tileOwner, tileState: S.world.tileState };
     const wide = claimCandidates({ ...cap, tiles: [cap.tile] }, tiles, world, { ageId: 'bronze', researched: ['governance_provincial_administration'] });
     wide.forEach((c) => expect(c.ring).toBeLessThanOrEqual(ringsForKm(BORDER_KM_BY_AGE.bronze + 102)));
     expect(tileCultureCost(cap, 2, -0.1)).toBeLessThan(tileCultureCost(cap, 2));
-    expect(claimRange(withTechs(['governance_scribal_bureaucracy']), 'fr')).toBe(ringsForKm(CLAIM_RANGE_KM + 102));
+    expect(claimRange(withTechs(['governance_scribal_bureaucracy']), FR_ID)).toBe(ringsForKm(CLAIM_RANGE_KM + 102));
     expect(stackCap(tiles, cap.tile, 2)).toBe(stackCap(tiles, cap.tile) + 2);
   });
   it('Mechanized Warfare moves land armies two tiles further a turn, not settlers or aircraft (plan D5b)', async () => {

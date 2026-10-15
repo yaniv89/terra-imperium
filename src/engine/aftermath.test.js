@@ -7,12 +7,16 @@ import {
 } from './aftermath';
 import { REGIONS_DATA } from '../data/regions';
 import { POPULATION_FLOOR_RATIO } from './population';
-import { createInitialState } from '../context/GameContext';
 import { calcIncome } from '../utils/helpers';
+import { neighbourWorld } from './testWorld';
 
-// The most populous Dawn city, with a population a 1000-strength levy cannot push below its floor.
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 7 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+
+// The most populous city, with a population a 1000-strength levy cannot push below its floor.
 const someRegionId = Object.keys(REGIONS_DATA).sort((a, b) => REGIONS_DATA[b].population - REGIONS_DATA[a].population)[0];
-const base = REGIONS_DATA[someRegionId].population;
+const base = Math.max(REGIONS_DATA[someRegionId].population, 100000); // a peoples world starts small: give the test city room above the floor
 const regions = () => ({ [someRegionId]: { id: someRegionId, currentPopulation: base } });
 
 describe('levy and casualty scars', () => {
@@ -23,7 +27,7 @@ describe('levy and casualty scars', () => {
 
   it('never drains a province below its population floor', () => {
     const next = drawPopulation(regions(), someRegionId, base * 10);
-    expect(next[someRegionId].currentPopulation).toBe(Math.round(base * POPULATION_FLOOR_RATIO));
+    expect(next[someRegionId].currentPopulation).toBe(Math.round(REGIONS_DATA[someRegionId].population * POPULATION_FLOOR_RATIO)); // the floor is the city's own registry population
   });
 
   it('only units new this turn are levied; naval ones cost no land population', () => {
@@ -60,8 +64,8 @@ describe('devastation', () => {
     expect(devastationIncomeMult({ devastation: 0 })).toBe(1);
     expect(devastationIncomeMult({ devastation: 100 })).toBeCloseTo(0.5);
     expect(devastationGrowthPenalty({ devastation: 100 })).toBeGreaterThan(0);
-    const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    const own = Object.keys(state.regions).filter((id) => state.regions[id].owner === 'fr');
+    const state = neighbourWorld({ seed: 7 });
+    const own = Object.keys(state.regions).filter((id) => state.regions[id].owner === FR_ID);
     const burned = { ...state, regions: { ...state.regions } };
     own.forEach((id) => { burned.regions[id] = { ...burned.regions[id], devastation: 100 }; });
     expect(calcIncome(burned).gold).toBeLessThan(calcIncome(state).gold * 0.75);

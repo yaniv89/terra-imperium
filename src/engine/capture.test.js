@@ -17,13 +17,18 @@ import { auditGameState } from './stateAudit';
 import { isNoMansLand } from './hostility';
 import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { neighbourWorld } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 1 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
 
 const tiles = getTiles();
 
 const WORLD = (() => {
-  const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
-  const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr') || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
-  const near = addCity(first.state, 'fr', { near: target });
+  const first = addCity(neighbourWorld({ seed: 1 }), FR_ID);
+  const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID) || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID);
+  const near = addCity(first.state, FR_ID, { near: target });
   const AGG = near.state.regions[target].owner;
   const grown = addCities(near.state, AGG, 3);
   return { state: grown.state, FR: first.cityId, T: target, AGG };
@@ -36,12 +41,12 @@ const armies = () => {
   const s = syncWorldRegistry(WORLD.state);
   return {
     ...s,
-    nations: { ...s.nations, fr: { ...s.nations.fr, isAtWar: true }, [AGG]: { ...s.nations[AGG], isAtWar: true } },
-    wars: [...s.wars, { id: 'war_t', aggressor: 'fr', enemy: AGG, active: true, startTurn: s.turnNumber, battleScore: 0 }],
-    units: { a1: unit('a1', FR, 'fr'), a2: unit('a2', FR, 'fr', 'cavalry'), d1: unit('d1', T, AGG) }
+    nations: { ...s.nations, [FR_ID]: { ...s.nations[FR_ID], isAtWar: true }, [AGG]: { ...s.nations[AGG], isAtWar: true } },
+    wars: [...s.wars, { id: 'war_t', aggressor: FR_ID, enemy: AGG, active: true, startTurn: s.turnNumber, battleScore: 0 }],
+    units: { a1: unit('a1', FR, FR_ID), a2: unit('a2', FR, FR_ID, 'cavalry'), d1: unit('d1', T, AGG) }
   };
 };
-const outcomeOf = (s, outcome, { id = 'op1', attacker = 'fr', defender = AGG, kind = 'invasion', viewerId } = {}) => makeBattleOutcome({
+const outcomeOf = (s, outcome, { id = 'op1', attacker = FR_ID, defender = AGG, kind = 'invasion', viewerId } = {}) => makeBattleOutcome({
   id, kind, mode: 'auto', warId: 'war_t', attackerNationId: attacker, defenderNationId: defender, viewerId, fromRegionId: FR, regionId: T, tile: s.regions[T].tile, isDefended: true
 }, { outcome, attackerUnits: [{ ...s.units.a1, strength: 900 }, { ...s.units.a2, strength: 900 }], defenderUnits: [{ ...s.units.d1, strength: 500 }], report: {} });
 
@@ -58,9 +63,9 @@ describe('decision 40: a won city battle opens one capture card', () => {
   it('Auto: the city changes hands at once and the card waits, once, and blocks End Turn', () => {
     const s = armies();
     const won = applyBattleOutcome(s, outcomeOf(s, 'attacker'));
-    expect(won.regions[T].owner).toBe('fr');
+    expect(won.regions[T].owner).toBe(FR_ID);
     expect(pendingCapturesOf(won)).toHaveLength(1);
-    expect(pendingCapturesOf(won)[0]).toMatchObject({ cityId: T, by: 'fr', from: AGG, source: 'battle' });
+    expect(pendingCapturesOf(won)[0]).toMatchObject({ cityId: T, by: FR_ID, from: AGG, source: 'battle' });
     expect(turnBlockers(won).some((b) => b.kind === 'capture')).toBe(true);
     // The same operation again changes nothing (applyBattleOutcome is idempotent by id).
     expect(applyBattleOutcome(won, outcomeOf(won, 'attacker'))).toBe(won);
@@ -77,9 +82,9 @@ describe('decision 40: a won city battle opens one capture card', () => {
     const s = armies();
     expect(pendingCapturesOf(applyBattleOutcome(s, outcomeOf(s, 'defender')))).toHaveLength(0);
     // An AI taking a city (the AI invasion runs as if the AI were the player, viewer = the real player).
-    // Here 'fr' plays the AI attacker and AGG the real player watching.
+    // Here FR_ID plays the AI attacker and AGG the real player watching.
     const ai = applyBattleOutcome(s, outcomeOf(s, 'attacker', { id: 'op9', viewerId: AGG }));
-    expect(ai.regions[T].owner).toBe('fr');
+    expect(ai.regions[T].owner).toBe(FR_ID);
     expect(ai.pendingCaptures || []).toHaveLength(0);
   });
 
@@ -88,10 +93,10 @@ describe('decision 40: a won city battle opens one capture card', () => {
     const id = s.pendingCaptures[0].id;
     const kept = gameReducer(s, { type: ActionTypes.RESOLVE_CAPTURE, payload: { captureId: id, choice: 'conquer' } });
     expect(kept.pendingCaptures).toHaveLength(0);
-    expect(kept.regions[T].owner).toBe('fr');
+    expect(kept.regions[T].owner).toBe(FR_ID);
     const again = gameReducer(kept, { type: ActionTypes.RESOLVE_CAPTURE, payload: { captureId: id, choice: 'raze' } });
     expect(again.regions).toBe(kept.regions);
-    expect(again.nations.fr.battleStats).toEqual(kept.nations.fr.battleStats);
+    expect(again.nations[FR_ID].battleStats).toEqual(kept.nations[FR_ID].battleStats);
   });
 
   it('raze burns the city; tributary and free are disabled with a reason in a world without independents', () => {
@@ -104,7 +109,7 @@ describe('decision 40: a won city battle opens one capture card', () => {
     expect(opts.tributary.reason).toMatch(/no independent cities/);
     expect(resolveCapture(s, cap.id, 'tributary').reason).toBe(opts.tributary.reason);
     const burnt = resolveCapture(s, cap.id, 'raze');
-    expect(burnt.regions[T].razing).toMatchObject({ by: 'fr' });
+    expect(burnt.regions[T].razing).toMatchObject({ by: FR_ID });
     expect(burnt.pendingCaptures).toHaveLength(0);
   });
 
@@ -112,7 +117,7 @@ describe('decision 40: a won city battle opens one capture card', () => {
     const s = applyBattleOutcome(armies(), outcomeOf(armies(), 'attacker'));
     const settled = settleOpenCaptures(s);
     expect(settled.pendingCaptures).toHaveLength(0);
-    expect(settled.regions[T].owner).toBe('fr');
+    expect(settled.regions[T].owner).toBe(FR_ID);
   });
 });
 
@@ -160,7 +165,7 @@ describe('the peoples world: tributary and free', () => {
 describe('occupation (I126, I127) and the anti-loop history (I132)', () => {
   const conquered = (turn = 5) => {
     const s = { ...armies(), turnNumber: turn };
-    const r = conquerRegion({ regions: s.regions, nations: s.nations, turnNumber: turn }, T, 'fr', null);
+    const r = conquerRegion({ regions: s.regions, nations: s.nations, turnNumber: turn }, T, FR_ID, null);
     const units = { ...s.units }; delete units.d1;
     return { ...s, regions: r.regions, nations: r.nations, units };
   };
@@ -168,10 +173,10 @@ describe('occupation (I126, I127) and the anti-loop history (I132)', () => {
   it('a fresh conquest has a grace; the same nation taking it again soon gets none', () => {
     const s = conquered(5);
     expect(s.regions[T].conquest.graceUntil).toBe(5 + OCCUPATION_GRACE_TURNS);
-    expect(s.regions[T].captureLog).toEqual([{ by: 'fr', from: AGG, turn: 5 }]);
+    expect(s.regions[T].captureLog).toEqual([{ by: FR_ID, from: AGG, turn: 5 }]);
     // Lost and retaken within CAPTURE_REPEAT_TURNS: no second grace, no second prize.
     const lost = { ...s.regions, [T]: { ...s.regions[T], owner: AGG, conquest: undefined } };
-    const again = conquerRegion({ regions: lost, nations: s.nations, turnNumber: 5 + CAPTURE_REPEAT_TURNS - 1 }, T, 'fr', null);
+    const again = conquerRegion({ regions: lost, nations: s.nations, turnNumber: 5 + CAPTURE_REPEAT_TURNS - 1 }, T, FR_ID, null);
     expect(again.regions[T].conquest.repeat).toBe(true);
     expect(again.regions[T].conquest.graceUntil).toBeUndefined();
     expect(again.regions[T].captureLog).toHaveLength(2);
@@ -184,14 +189,14 @@ describe('occupation (I126, I127) and the anti-loop history (I132)', () => {
       const out = applyLoyalty({ ...s, turnNumber: turn }, regions, s.units, { ...s.nations }, turn);
       expect(out.flips.find((f) => f.cityId === T)).toBeUndefined();
     }
-    expect(regions[T].owner).toBe('fr');
+    expect(regions[T].owner).toBe(FR_ID);
     expect(regions[T].loyalty).toBeGreaterThanOrEqual(OCCUPATION_GRACE_FLOOR);
   });
 
   it('a garrison holds an occupied city better, and the forecast says when it would break away', () => {
     const s = conquered(5);
     const bare = loyaltyTarget(s, s.regions[T]);
-    const held = { ...s, units: { ...s.units, g1: { ...unit('g1', T, 'fr'), tile: s.regions[T].tile }, g2: { ...unit('g2', T, 'fr'), tile: s.regions[T].tile } } };
+    const held = { ...s, units: { ...s.units, g1: { ...unit('g1', T, FR_ID), tile: s.regions[T].tile }, g2: { ...unit('g2', T, FR_ID), tile: s.regions[T].tile } } };
     expect(loyaltyTarget(held, held.regions[T]).garrison).toBe(2 * LOYALTY_OCCUPATION_PER_UNIT);
     expect(loyaltyTarget(held, held.regions[T]).total).toBeGreaterThan(bare.total);
     const f = loyaltyForecast(s, s.regions[T]);
@@ -206,8 +211,8 @@ describe('a siege never takes a city (the 14 October rule)', () => {
     const s = armies();
     const city = s.regions[T];
     const ring = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1);
-    const units = { b1: { ...unit('b1', FR, 'fr'), tile: ring[0] }, g1: { ...unit('g1', T, AGG), tile: city.tile } };
-    const regions = { ...s.regions, [T]: { ...city, siege: { hp: 0, maxHp: 500, by: 'fr', startedTurn: 1, encircled: false } } };
+    const units = { b1: { ...unit('b1', FR, FR_ID), tile: ring[0] }, g1: { ...unit('g1', T, AGG), tile: city.tile } };
+    const regions = { ...s.regions, [T]: { ...city, siege: { hp: 0, maxHp: 500, by: FR_ID, startedTurn: 1, encircled: false } } };
     for (let turn = 2; turn < 8; turn++) processSieges({ ...s, regions, units }, regions, units, { turn });
     expect(regions[T].owner).toBe(AGG);
     expect(regions[T].siege.hp).toBe(0);
@@ -219,14 +224,14 @@ describe('decision 41: no man\'s land is fought on Auto', () => {
     const s = armies();
     const own = s.regions[FR].tile;
     const theirs = s.regions[T].tile;
-    const third = Object.values(s.regions).find((r) => r.owner && r.owner !== 'fr' && r.owner !== AGG && r.tile != null && tiles.land[r.tile] === 1);
+    const third = Object.values(s.regions).find((r) => r.owner && r.owner !== FR_ID && r.owner !== AGG && r.tile != null && tiles.land[r.tile] === 1);
     const free = tiles.neighbors[own].concat(...tiles.neighbors[own].map((n) => tiles.neighbors[n])).find((t) => tiles.land[t] === 1 && s.world.tileOwner[t] == null);
     const sea = Array.from({ length: tiles.land.length }, (_, i) => i).find((t) => tiles.land[t] !== 1);
-    expect(isNoMansLand(s, own, 'fr', AGG)).toBe(false);
-    expect(isNoMansLand(s, theirs, 'fr', AGG)).toBe(false);
-    expect(isNoMansLand(s, third.tile, 'fr', AGG)).toBe(true);
-    if (free != null) expect(isNoMansLand(s, free, 'fr', AGG)).toBe(true);
-    expect(isNoMansLand(s, sea, 'fr', AGG)).toBe(false);
+    expect(isNoMansLand(s, own, FR_ID, AGG)).toBe(false);
+    expect(isNoMansLand(s, theirs, FR_ID, AGG)).toBe(false);
+    expect(isNoMansLand(s, third.tile, FR_ID, AGG)).toBe(true);
+    if (free != null) expect(isNoMansLand(s, free, FR_ID, AGG)).toBe(true);
+    expect(isNoMansLand(s, sea, FR_ID, AGG)).toBe(false);
   });
 });
 
@@ -235,10 +240,10 @@ describe('an empty city battered to 0 HP by a siege', () => {
     const s0 = armies();
     const city = s0.regions[T];
     const ring = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1);
-    const units = { b1: { ...unit('b1', FR, 'fr'), tile: ring[0] }, b2: { ...unit('b2', FR, 'fr'), tile: ring[0] } };
+    const units = { b1: { ...unit('b1', FR, FR_ID), tile: ring[0] }, b2: { ...unit('b2', FR, FR_ID), tile: ring[0] } };
     const s = {
       ...s0, units, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true },
-      regions: { ...s0.regions, [T]: { ...city, siege: { hp: 0, maxHp: 500, by: 'fr', startedTurn: 1, encircled: false } } }
+      regions: { ...s0.regions, [T]: { ...city, siege: { hp: 0, maxHp: 500, by: FR_ID, startedTurn: 1, encircled: false } } }
     };
     const next = resolveTurn(s);
     expect(next.regions[T].owner).toBe(AGG);

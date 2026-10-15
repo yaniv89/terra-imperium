@@ -2,7 +2,7 @@
 // Playtest audit lane L2 (CB03): where an army is against where it is based, recruits, the supply
 // forecast, the long-starve warning, Hold and the idle list.
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -15,16 +15,23 @@ import { auditGameState, auditWarnings } from './stateAudit';
 import { besiegedCityOf, siegeOrders } from './sieges';
 import { nextPrompts } from '../components/ui/nextPromptModel';
 import { armySheetModel } from '../components/map/armySheetModel';
+import { peoplesWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 3 });
+const IN_ID = PEOPLES_WORLD.playerNationId;
+const PK_ID = rivalOf(PEOPLES_WORLD, 0);
+const US_ID = rivalOf(PEOPLES_WORLD, 1);
 
 const tiles = getTiles();
 const quiet = (s) => ({ ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((a, k) => ({ ...a, [k]: true }), {}), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
-const S = (() => { const s = quiet(createInitialState({ playerNationId: 'in', rngSeed: 3 })); return { ...s, units: {}, research: { ...s.research, auto: true } }; })();
-const IN = getNationCapital('in');
-const PK = getNationCapital('pk');
-const US = getNationCapital('us');
-const unit = (id, regionId, extra = {}) => ({ id, ownerId: 'in', regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
+const S = (() => { const s = quiet(peoplesWorld({ seed: 3 })); return { ...s, units: {}, research: { ...s.research, auto: true } }; })();
+const IN = getNationCapital(IN_ID);
+const PK = getNationCapital(PK_ID);
+const US = getNationCapital(US_ID);
+const unit = (id, regionId, extra = {}) => ({ id, ownerId: IN_ID, regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
 const withUnits = (s, list) => ({ ...s, units: { ...s.units, ...Object.fromEntries(list.map((u) => [u.id, u])) } });
-const atWar = (s, enemy) => ({ ...s, wars: [...s.wars, { id: `w-${enemy}`, aggressor: 'in', enemy, active: true, startYear: s.year, battleScore: 0 }], nations: { ...s.nations, in: { ...s.nations.in, isAtWar: true }, [enemy]: { ...s.nations[enemy], isAtWar: true } } });
+const atWar = (s, enemy) => ({ ...s, wars: [...s.wars, { id: `w-${enemy}`, aggressor: IN_ID, enemy, active: true, startYear: s.year, battleScore: 0 }], nations: { ...s.nations, [IN_ID]: { ...s.nations[IN_ID], isAtWar: true }, [enemy]: { ...s.nations[enemy], isAtWar: true } } });
 // The nearest free land tile to `from` (no city owns it), by rings.
 const freeNear = (from, min = 1) => {
   let f = [from]; const seen = new Set(f);
@@ -56,7 +63,7 @@ describe('where an army is, and where it is based (I058, I059)', () => {
     expect(isStationedIn(s, s.units.home, IN)).toBe(true);
     expect(isStationedIn(s, s.units.field, IN)).toBe(false);
     expect(unitsStationedIn(s, IN).map((u) => u.id)).toEqual(['home']);
-    expect(fieldUnitsOf(s, IN, 'in').map((u) => u.id)).toEqual(['field']);
+    expect(fieldUnitsOf(s, IN, IN_ID).map((u) => u.id)).toEqual(['field']);
   });
 
   it('the army sheet names the place the stack stands on, and its base only when it is away', () => {
@@ -83,7 +90,7 @@ describe('where an army is, and where it is based (I058, I059)', () => {
 });
 
 describe('supply: the forecast is the turn (I004, I005)', () => {
-  const war = atWar(S, 'us');
+  const war = atWar(S, US_ID);
   const deep = S.regions[US].tile;
 
   it('the report shows the change the turn applies, perks and modifiers included', () => {
@@ -175,14 +182,14 @@ describe('Hold, sieges and the idle list (I061, I062, I130)', () => {
     expect(marching.units.a.hold).toBe(false);
     // Old saves have no flag: it reads as off. Nobody else's units can be held.
     expect(setHold(idle, ['nobody'])).toBe(null);
-    expect(setHold(withUnits(S, [unit('x', PK, { ownerId: 'pk' })]), ['x'])).toBe(null);
+    expect(setHold(withUnits(S, [unit('x', PK, { ownerId: PK_ID })]), ['x'])).toBe(null);
   });
 
   it('a besieging army is not idle: at war the army beside the city besieges it', () => {
     const gate = tiles.neighbors[S.regions[PK].tile].find((t) => tiles.land[t] === 1);
     const peace = withUnits(S, [unit('a', IN, { tile: gate })]);
     expect(besiegedCityOf(peace, peace.units.a)).toBe(null);
-    const war = atWar(peace, 'pk');
+    const war = atWar(peace, PK_ID);
     expect(besiegedCityOf(war, war.units.a)).toBe(PK);
     expect(armyStatus(war, war.units.a)).toBe('besieging');
     expect(idleArmyTiles(war)).toEqual([]);
@@ -191,7 +198,7 @@ describe('Hold, sieges and the idle list (I061, I062, I130)', () => {
 
   it('beside an independent\'s city nothing is besieged without the Lay siege order', () => {
     const gate = tiles.neighbors[S.regions[PK].tile].find((t) => tiles.land[t] === 1);
-    const indep = { ...S, nations: { ...S.nations, pk: { ...S.nations.pk, kind: 'independent', indep: {} } } };
+    const indep = { ...S, nations: { ...S.nations, [PK_ID]: { ...S.nations[PK_ID], kind: 'independent', indep: {} } } };
     const st = withUnits(indep, [unit('a', IN, { tile: gate })]);
     expect(besiegedCityOf(st, st.units.a)).toBe(null);
     expect(armyStatus(st, st.units.a)).toBe('idle');
@@ -202,7 +209,7 @@ describe('Hold, sieges and the idle list (I061, I062, I130)', () => {
     expect(laid.units.a.siegeOf).toBe(PK);
     expect(armyStatus(laid, laid.units.a)).toBe('besieging');
     expect(siegeOrders(laid, gate, [laid.units.a])[0].on).toBe(true);
-    expect(resolveTurn(laid).regions[PK].siege?.by).toBe('in');
+    expect(resolveTurn(laid).regions[PK].siege?.by).toBe(IN_ID);
     // Refused with a reason from a tile that is not beside the city.
     const far = gameReducer(withUnits(indep, [unit('a', IN)]), { type: ActionTypes.SET_SIEGE, payload: { unitIds: ['a'], cityId: PK } });
     expect(far.units.a.siegeOf ?? null).toBe(null);

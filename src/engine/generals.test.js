@@ -9,7 +9,7 @@ import { runHeadless } from '../battle/sim/headless';
 import { generalAura } from '../battle/sim/effects';
 import { generalsOf } from '../battle/sim/squadLists';
 import { resolveCommanderCasualties, hashRoll, COMMANDER_FALL_CHANCE } from './aftermath';
-import { sanitizeTacticalResult, createInitialState, gameReducer } from './gameReducer';
+import { sanitizeTacticalResult, gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
@@ -17,6 +17,12 @@ import { createRng } from '../utils/rng';
 import { aiSally } from './aiOperations';
 import { syncWorldRegistry } from './world/registry';
 import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
+import { peoplesWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 3 });
+const IN_ID = PEOPLES_WORLD.playerNationId;
+const PK_ID = rivalOf(PEOPLES_WORLD, 1);
 
 const GENERALS = { c1: { id: 'c1', name: 'Hannibal', personality: 'aggressive', skill: 2 } };
 const army = (p, cls, cmd = null) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: i === 0 ? cmd : null, domain: 'land' }));
@@ -91,21 +97,21 @@ describe('one death rule for Command and Auto', () => {
 describe('the general through the reducer (Command)', () => {
   it('the player\'s general rides on the field of a commanded battle and its fate follows the shared rule', () => {
     const tiles = getTiles();
-    const IN = getNationCapital('in'); const PK = getNationCapital('pk');
-    const s0 = syncWorldRegistry(createInitialState({ playerNationId: 'in', rngSeed: 3 }));
+    const IN = getNationCapital(IN_ID); const PK = getNationCapital(PK_ID);
+    const s0 = syncWorldRegistry(peoplesWorld({ seed: 3 }));
     const city = s0.regions[PK];
     const ring = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1)[0];
-    const u = (id, regionId, extra) => ({ id, ownerId: 'in', regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
+    const u = (id, regionId, extra) => ({ id, ownerId: IN_ID, regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
     const s = {
       ...s0, resources: { ...s0.resources, mil: 100, gold: 1000 },
-      units: { a0: u('a0', IN, { tile: ring, strength: 300, commanderId: 'c1' }), g1: u('g1', PK, { ownerId: 'pk', tile: city.tile }), g2: u('g2', PK, { ownerId: 'pk', tile: city.tile }) },
+      units: { a0: u('a0', IN, { tile: ring, strength: 300, commanderId: 'c1' }), g1: u('g1', PK, { ownerId: PK_ID, tile: city.tile }), g2: u('g2', PK, { ownerId: PK_ID, tile: city.tile }) },
       hiredCommanders: { c1: { id: 'c1', name: 'Ashoka', personality: 'aggressive', assignedUnitId: 'a0' } },
-      wars: [...s0.wars, { id: 'w-f', aggressor: 'in', enemy: 'pk', active: true, startYear: s0.year, battleScore: 0 }],
-      nations: { ...s0.nations, in: { ...s0.nations.in, isAtWar: true }, pk: { ...s0.nations.pk, isAtWar: true } },
-      regions: { ...s0.regions, [PK]: { ...city, siege: { hp: 100, maxHp: 200, by: 'in', startedTurn: 1, encircled: false, starving: 0 } } },
+      wars: [...s0.wars, { id: 'w-f', aggressor: IN_ID, enemy: PK_ID, active: true, startYear: s0.year, battleScore: 0 }],
+      nations: { ...s0.nations, [IN_ID]: { ...s0.nations[IN_ID], isAtWar: true }, [PK_ID]: { ...s0.nations[PK_ID], isAtWar: true } },
+      regions: { ...s0.regions, [PK]: { ...city, siege: { hp: 100, maxHp: 200, by: IN_ID, startedTurn: 1, encircled: false, starving: 0 } } },
       pendingDefenses: []
     };
-    const q = aiSally(s, 'pk', createRng(5));
+    const q = aiSally(s, PK_ID, createRng(5));
     const def = q.pendingDefenses[0];
     const began = gameReducer(q, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
     const setup = buildInvasionSetup(began, began.pendingBattle);

@@ -1,6 +1,6 @@
 // src/engine/governors.test.js
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -13,6 +13,12 @@ import {
   cityGroups, governorOf, governorChoices, assignGovernor, autoGovern, governorEffects, generateGovernorCandidates, pruneGovernors,
   GOVERNOR_GROUP_MAX, GOVERNOR_ASSIGN_TURNS, GOVERNOR_FOOD, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_REFRESH_TURNS
 } from './governors';
+import { peoplesWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 3 });
+const IN_ID = PEOPLES_WORLD.playerNationId;
+const PK_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
 const play = (s) => {
@@ -24,7 +30,7 @@ const play = (s) => {
 
 describe('governors', () => {
   it('groups cities around the capital, at most GOVERNOR_GROUP_MAX each, every city in one group', () => {
-    let s = quiet(createInitialState({ playerNationId: 'in', rngSeed: 3 }));
+    let s = quiet(peoplesWorld({ seed: 3 }));
     for (let i = 0; i < 40; i++) s = play(s);
     const big = Object.values(s.nations).filter((n) => !n.isEliminated).map((n) => ({ n, cities: Object.values(s.regions).filter((c) => c.owner === n.id) })).sort((a, b) => b.cities.length - a.cities.length)[0];
     const groups = cityGroups(s, big.n.id);
@@ -36,22 +42,22 @@ describe('governors', () => {
   }, 60000);
 
   it('the player seats a candidate who takes office after GOVERNOR_ASSIGN_TURNS, with the yields and loyalty of a governed city', () => {
-    let s = quiet(createInitialState({ playerNationId: 'in', rngSeed: 3 }));
+    let s = quiet(peoplesWorld({ seed: 3 }));
     s = play(s);
-    const me = s.nations.in;
+    const me = s.nations[IN_ID];
     expect(me.governorCandidates?.length).toBeGreaterThan(0);
-    const cap = getNationCapital('in');
-    expect(governorEffects(s, 'in', cap).loyalty).toBe(UNGOVERNED_LOYALTY);
+    const cap = getNationCapital(IN_ID);
+    expect(governorEffects(s, IN_ID, cap).loyalty).toBe(UNGOVERNED_LOYALTY);
     const before = loyaltyTarget(s, s.regions[cap]).governor;
     expect(before).toBe(UNGOVERNED_LOYALTY);
     const choice = governorChoices(me)[0];
     let x = gameReducer(s, { type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: cap, candidateId: choice.id } });
-    expect(x.nations.in.governors[cap].ready).toBe(s.turnNumber + GOVERNOR_ASSIGN_TURNS);
-    expect(governorOf(x, 'in', cap)).toBeNull(); // on the road
+    expect(x.nations[IN_ID].governors[cap].ready).toBe(s.turnNumber + GOVERNOR_ASSIGN_TURNS);
+    expect(governorOf(x, IN_ID, cap)).toBeNull(); // on the road
     for (let i = 0; i < GOVERNOR_ASSIGN_TURNS; i++) x = play(x);
-    const gov = governorOf(x, 'in', cap);
+    const gov = governorOf(x, IN_ID, cap);
     expect(gov?.id).toBe(choice.id);
-    const e = governorEffects(x, 'in', cap);
+    const e = governorEffects(x, IN_ID, cap);
     expect(e).toMatchObject({ food: GOVERNOR_FOOD, culture: GOVERNOR_CULTURE, loyalty: GOVERNOR_LOYALTY + choice.skill, governed: true });
     expect(loyaltyTarget(x, x.regions[cap]).governor).toBe(GOVERNOR_LOYALTY + choice.skill);
     const tiles = getTiles(); const world = { cities: x.regions, tileOwner: x.world.tileOwner, tileState: x.world.tileState };
@@ -61,23 +67,23 @@ describe('governors', () => {
     expect(governed.culture - plain.culture).toBe(GOVERNOR_CULTURE);
     expect(governed.production).toBeGreaterThan(plain.production);
     const recalled = gameReducer(x, { type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: cap } });
-    expect(recalled.nations.in.governors[cap]).toBeUndefined();
+    expect(recalled.nations[IN_ID].governors[cap]).toBeUndefined();
     assertGameState(x);
   });
 
   it('candidates refresh on the period, AI nations govern every group, lost seats are pruned', () => {
-    let s = quiet(createInitialState({ playerNationId: 'in', rngSeed: 3 }));
+    let s = quiet(peoplesWorld({ seed: 3 }));
     s = play(s);
-    const first = s.nations.in.governorCandidates;
+    const first = s.nations[IN_ID].governorCandidates;
     for (let i = 0; i < GOVERNOR_REFRESH_TURNS; i++) s = play(s);
-    expect(s.nations.in.governorCandidates).not.toEqual(first);
-    const pk = s.nations.pk;
-    expect(pk.governors && Object.keys(pk.governors).length).toBe(cityGroups(s, 'pk').length);
-    expect(governorOf(s, 'pk', getNationCapital('pk'))).not.toBeNull();
-    expect(generateGovernorCandidates('in', 'a')).toEqual(generateGovernorCandidates('in', 'a'));
-    const seated = assignGovernor(s.nations.in, getNationCapital('in'), governorChoices(s.nations.in)[0], s.turnNumber);
-    const lost = { ...s, regions: { ...s.regions, [getNationCapital('in')]: { ...s.regions[getNationCapital('in')], owner: 'pk' } }, nations: { ...s.nations, in: seated } };
-    expect(pruneGovernors(lost, seated).governors[getNationCapital('in')]).toBeUndefined();
-    expect(autoGovern(s, s.nations.pk, s.turnNumber)).toBe(s.nations.pk);
+    expect(s.nations[IN_ID].governorCandidates).not.toEqual(first);
+    const pk = s.nations[PK_ID];
+    expect(pk.governors && Object.keys(pk.governors).length).toBe(cityGroups(s, PK_ID).length);
+    expect(governorOf(s, PK_ID, getNationCapital(PK_ID))).not.toBeNull();
+    expect(generateGovernorCandidates(IN_ID, 'a')).toEqual(generateGovernorCandidates(IN_ID, 'a'));
+    const seated = assignGovernor(s.nations[IN_ID], getNationCapital(IN_ID), governorChoices(s.nations[IN_ID])[0], s.turnNumber);
+    const lost = { ...s, regions: { ...s.regions, [getNationCapital(IN_ID)]: { ...s.regions[getNationCapital(IN_ID)], owner: PK_ID } }, nations: { ...s.nations, [IN_ID]: seated } };
+    expect(pruneGovernors(lost, seated).governors[getNationCapital(IN_ID)]).toBeUndefined();
+    expect(autoGovern(s, s.nations[PK_ID], s.turnNumber)).toBe(s.nations[PK_ID]);
   });
 });

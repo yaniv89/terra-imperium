@@ -1,6 +1,5 @@
 // Laws with real effects on the tile world and the AI's doctrine table (plan C4.4 / C4.5).
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../context/GameContext';
 import { lawRulesOf, describeRules, EMPTY_RULES } from './lawRules';
 import { LAW_CATEGORIES, getLaw } from '../data/laws';
 import { GOVERNMENT_REFORMS } from '../data/government';
@@ -14,14 +13,20 @@ import { pickAILaw, AI_LAW_ADM_RESERVE } from './aiEconomy';
 import { getLawChangeCost } from '../data/laws';
 import { getCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
+import { peoplesWorld, rivalOf } from './testWorld';
 
-const base = () => createInitialState({ playerNationId: 'fr', rngSeed: 5 });
-const withLaws = (state, laws, nationId = 'fr') => ({ ...state, nations: { ...state.nations, [nationId]: { ...state.nations[nationId], laws: { ...state.nations[nationId].laws, ...laws } } } });
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 5 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const DE_ID = rivalOf(PEOPLES_WORLD, 0);
+
+const base = () => peoplesWorld({ seed: 5 });
+const withLaws = (state, laws, nationId = FR_ID) => ({ ...state, nations: { ...state.nations, [nationId]: { ...state.nations[nationId], laws: { ...state.nations[nationId].laws, ...laws } } } });
 
 describe('lawRulesOf', () => {
   it('sums numbers and ORs booleans over laws and reforms, memoised per nation', () => {
     const s = base();
-    const fr = s.nations.fr;
+    const fr = s.nations[FR_ID];
     expect(lawRulesOf(fr)).toEqual(EMPTY_RULES);
     const n = { ...fr, laws: { ...fr.laws, justice: 'codified_law', religion: 'tolerance', conscription: 'professional_army' }, government: { type: 'tribal', reforms: { bronze: 'chieftaincy' } } };
     const r = lawRulesOf(n);
@@ -39,8 +44,8 @@ describe('lawRulesOf', () => {
 
 describe('the systems read the rules', () => {
   it('loyalty: a flat bonus per city and Tolerance floors the people term', () => {
-    const s = base(); const paris = s.regions[getCapital(s, 'fr')];
-    const foreign = { ...paris, culture: { de: 0.9, fr: 0.1 } };
+    const s = base(); const paris = s.regions[getCapital(s, FR_ID)];
+    const foreign = { ...paris, culture: { [DE_ID]: 0.9, [FR_ID]: 0.1 } };
     const before = loyaltyTarget(s, foreign);
     expect(before.fromShare).toBe(0);
     const tolerant = withLaws(s, { religion: 'tolerance', justice: 'rule_of_law' });
@@ -49,37 +54,37 @@ describe('the systems read the rules', () => {
     expect(after.total).toBe(Math.min(100, before.total + LOYALTY_NEUTRAL + 4));
   });
   it('upkeep: Feudal Levy cuts the army bill by 20%', () => {
-    const s = base(); const paris = getCapital(s, 'fr');
-    const units = Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map((id) => [id, { id, ownerId: 'fr', regionId: paris, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000 }]));
-    const full = calcNationBalance({ ...s, units }, 'fr').expenses.armyUpkeep;
-    const levy = calcNationBalance(withLaws({ ...s, units }, { conscription: 'feudal_levy' }), 'fr').expenses.armyUpkeep;
+    const s = base(); const paris = getCapital(s, FR_ID);
+    const units = Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map((id) => [id, { id, ownerId: FR_ID, regionId: paris, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000 }]));
+    const full = calcNationBalance({ ...s, units }, FR_ID).expenses.armyUpkeep;
+    const levy = calcNationBalance(withLaws({ ...s, units }, { conscription: 'feudal_levy' }), FR_ID).expenses.armyUpkeep;
     expect(full).toBeGreaterThan(0); expect(levy).toBe(Math.round(full * 0.8));
   });
   it('opinion: a trade partner reads the trade law', () => {
     const s = { ...base(), nations: {} }; const b0 = base();
-    s.nations = { ...b0.nations, de: { ...b0.nations.de, hasTradeAgreement: true } };
-    expect(opinionReasons(s, 'de', 'fr').find((r) => r.id === 'tradeLaw')).toBeUndefined();
+    s.nations = { ...b0.nations, [DE_ID]: { ...b0.nations[DE_ID], hasTradeAgreement: true } };
+    expect(opinionReasons(s, DE_ID, FR_ID).find((r) => r.id === 'tradeLaw')).toBeUndefined();
     const merc = withLaws(s, { trade: 'mercantilism' });
-    expect(opinionReasons(merc, 'de', 'fr').find((r) => r.id === 'tradeLaw').value).toBe(-5);
+    expect(opinionReasons(merc, DE_ID, FR_ID).find((r) => r.id === 'tradeLaw').value).toBe(-5);
     const free = withLaws(s, { trade: 'free_trade' });
-    expect(opinionReasons(free, 'de', 'fr').find((r) => r.id === 'tradeLaw').value).toBe(15);
+    expect(opinionReasons(free, DE_ID, FR_ID).find((r) => r.id === 'tradeLaw').value).toBe(15);
   });
   it('raids: Chieftaincy doubles the gold', () => {
     const s = base(); const tiles = getTiles();
-    const berlin = s.regions[getCapital(s, 'de')];
+    const berlin = s.regions[getCapital(s, DE_ID)];
     const tile = tiles.neighbors[berlin.tile].find((t) => s.world.tileOwner[t] === berlin.id && t !== berlin.tile);
     const world = { ...s.world, tileState: { ...s.world.tileState, [tile]: { ...(s.world.tileState[tile] || {}), improvement: 'farm' } } };
-    const enemies = new Set(['de']);
-    expect(pillageTile({ ...s, world }, 'fr', tile, enemies).gold).toBe(RAID_GOLD);
-    const chief = { ...s, world, nations: { ...s.nations, fr: { ...s.nations.fr, government: { type: 'tribal', reforms: { bronze: 'chieftaincy' } } } } };
-    expect(pillageTile(chief, 'fr', tile, enemies).gold).toBe(RAID_GOLD * 2);
+    const enemies = new Set([DE_ID]);
+    expect(pillageTile({ ...s, world }, FR_ID, tile, enemies).gold).toBe(RAID_GOLD);
+    const chief = { ...s, world, nations: { ...s.nations, [FR_ID]: { ...s.nations[FR_ID], government: { type: 'tribal', reforms: { bronze: 'chieftaincy' } } } } };
+    expect(pillageTile(chief, FR_ID, tile, enemies).gold).toBe(RAID_GOLD * 2);
   });
   it('income: Mercantilism adds flat gold per trade pact', () => {
     const s0 = base();
-    const s = { ...s0, nations: { ...s0.nations, de: { ...s0.nations.de, hasTradeAgreement: true }, it: { ...s0.nations.it, hasTradeAgreement: true } } };
+    const s = { ...s0, nations: { ...s0.nations, [DE_ID]: { ...s0.nations[DE_ID], hasTradeAgreement: true }, it: { ...s0.nations.it, hasTradeAgreement: true } } };
     const plain = calcIncome(s).gold;
     const merc = withLaws(s, { trade: 'mercantilism' });
-    const mercNoMult = { ...merc, nations: { ...merc.nations, fr: { ...merc.nations.fr, laws: { ...merc.nations.fr.laws } } } };
+    const mercNoMult = { ...merc, nations: { ...merc.nations, [FR_ID]: { ...merc.nations[FR_ID], laws: { ...merc.nations[FR_ID].laws } } } };
     // Mercantilism also carries +20% goldMult; compare against the same multiplier with the flat part removed.
     const gold = calcIncome(mercNoMult).gold;
     expect(gold).toBeGreaterThan(plain * 1.2 - 1);
@@ -100,20 +105,20 @@ describe('the AI picks by doctrine', () => {
   it('a conqueror with the tech takes Mass Conscription first, a merchant waits for Free Trade and never moves backwards', () => {
     const s = base();
     const researched = ['military_feudal_levies', 'military_standing_armies', 'military_mechanized_warfare', 'economy_minted_coinage', 'economy_joint_stock_companies'];
-    const mk = (doctrine, laws = {}) => ({ ...s.nations.de, doctrine, tech: { ...s.nations.de.tech, researched }, laws: { ...s.nations.de.laws, ...laws }, lawCooldowns: {}, stability: 1, economy: { ...s.nations.de.economy, adm: 10000 } });
-    const state = (nation) => ({ ...s, nations: { ...s.nations, de: nation } });
+    const mk = (doctrine, laws = {}) => ({ ...s.nations[DE_ID], doctrine, tech: { ...s.nations[DE_ID].tech, researched }, laws: { ...s.nations[DE_ID].laws, ...laws }, lawCooldowns: {}, stability: 1, economy: { ...s.nations[DE_ID].economy, adm: 10000 } });
+    const state = (nation) => ({ ...s, nations: { ...s.nations, [DE_ID]: nation } });
     const conqueror = mk('conqueror');
-    const pick = pickAILaw(state(conqueror), 'de', conqueror, conqueror.economy);
+    const pick = pickAILaw(state(conqueror), DE_ID, conqueror, conqueror.economy);
     expect(pick).toEqual({ category: 'conscription', id: 'mass_conscription' });
     const merchant = mk('merchant');
     // Free Trade needs Global Markets, so the merchant takes Mercantilism, its second choice, before any tax law.
-    expect(pickAILaw(state(merchant), 'de', merchant, merchant.economy)).toEqual({ category: 'trade', id: 'mercantilism' });
+    expect(pickAILaw(state(merchant), DE_ID, merchant, merchant.economy)).toEqual({ category: 'trade', id: 'mercantilism' });
     const traded = mk('merchant', { trade: 'mercantilism' });
-    expect(pickAILaw(state(traded), 'de', traded, traded.economy)).toEqual({ category: 'taxation', id: 'land_tax' });
+    expect(pickAILaw(state(traded), DE_ID, traded, traded.economy)).toEqual({ category: 'taxation', id: 'land_tax' });
     const settled = mk('conqueror', { conscription: 'mass_conscription', justice: 'martial_law', taxation: 'head_tax' });
-    const again = pickAILaw(state(settled), 'de', settled, settled.economy);
+    const again = pickAILaw(state(settled), DE_ID, settled, settled.economy);
     expect(again?.category).not.toBe('conscription');
-    const poor = { ...conqueror, economy: { ...conqueror.economy, adm: getLawChangeCost(state(conqueror), 'de', 'conscription', 'mass_conscription') + AI_LAW_ADM_RESERVE - 1 } };
-    expect(pickAILaw(state(poor), 'de', poor, poor.economy)?.id).not.toBe('mass_conscription');
+    const poor = { ...conqueror, economy: { ...conqueror.economy, adm: getLawChangeCost(state(conqueror), DE_ID, 'conscription', 'mass_conscription') + AI_LAW_ADM_RESERVE - 1 } };
+    expect(pickAILaw(state(poor), DE_ID, poor, poor.economy)?.id).not.toBe('mass_conscription');
   });
 });

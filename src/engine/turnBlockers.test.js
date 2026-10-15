@@ -1,19 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { getNationCapital } from '../data/regions';
 import { ActionTypes } from '../data/types';
 import { turnBlockers, idleCities } from './turnBlockers';
 import { nextPrompts } from '../components/ui/nextPromptModel';
+import { peoplesWorld } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 7 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
 
 const BUILD = { current: { kind: 'unit', classId: 'infantry' }, queue: [], progress: 0 };
 
 // A game with nothing to answer: research chosen, every city building something.
 const settledGame = () => {
-  const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-  const regions = Object.fromEntries(Object.entries(S.regions).map(([id, c]) => [id, c.owner === 'fr' ? { ...c, production: BUILD } : c]));
+  const S = peoplesWorld({ seed: 7 });
+  const regions = Object.fromEntries(Object.entries(S.regions).map(([id, c]) => [id, c.owner === FR_ID ? { ...c, production: BUILD } : c]));
   return { ...S, regions, research: { ...S.research, current: 'science_cuneiform_records', queue: [], auto: false }, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null, pendingDefenses: [], pendingDemand: null, tributeDemands: [], joinOffers: [], pendingBattle: null };
 };
-const otherNation = (S, n = 0) => Object.keys(S.nations).filter((id) => id !== 'fr' && !S.nations[id].isEliminated)[n];
+const otherNation = (S, n = 0) => Object.keys(S.nations).filter((id) => id !== FR_ID && !S.nations[id].isEliminated)[n];
 
 describe('turn blockers', () => {
   it('nothing blocks a settled turn', () => {
@@ -22,7 +27,7 @@ describe('turn blockers', () => {
 
   it('a city with nothing to build blocks, one entry per city, and opens its build tab', () => {
     const S = settledGame();
-    const cap = getNationCapital('fr');
+    const cap = getNationCapital(FR_ID);
     const idle = { ...S, regions: { ...S.regions, [cap]: { ...S.regions[cap], production: { current: null, queue: [], progress: 0 } } } };
     const b = turnBlockers(idle);
     expect(b).toHaveLength(1);
@@ -30,7 +35,7 @@ describe('turn blockers', () => {
     expect(idleCities(idle).map((c) => c.id)).toEqual([cap]);
     // an outpost or a burning city builds nothing, so it never blocks
     expect(turnBlockers({ ...idle, regions: { ...idle.regions, [cap]: { ...idle.regions[cap], outpost: true } } })).toEqual([]);
-    expect(turnBlockers({ ...idle, regions: { ...idle.regions, [cap]: { ...idle.regions[cap], razing: { by: 'fr', startedTurn: 1 } } } })).toEqual([]);
+    expect(turnBlockers({ ...idle, regions: { ...idle.regions, [cap]: { ...idle.regions[cap], razing: { by: FR_ID, startedTurn: 1 } } } })).toEqual([]);
   });
 
   it('no research blocks only while something can be researched and no advisor picks', () => {
@@ -43,7 +48,7 @@ describe('turn blockers', () => {
 
   it('every diplomacy answer, event, peace offer and queued battle blocks, in a fixed order', () => {
     const S = settledGame();
-    const cap = getNationCapital('fr');
+    const cap = getNationCapital(FR_ID);
     const a = otherNation(S, 0); const b = otherNation(S, 1); const c = otherNation(S, 2);
     const all = {
       ...S,
@@ -75,8 +80,8 @@ describe('turn blockers', () => {
 
   it('units that can still move never block (they stay soft hints)', () => {
     const S = settledGame();
-    const cap = getNationCapital('fr');
-    const army = Object.values(S.units).find((u) => u.ownerId === 'fr' && u.domain === 'land');
+    const cap = getNationCapital(FR_ID);
+    const army = Object.values(S.units).find((u) => u.ownerId === FR_ID && u.domain === 'land');
     const field = { ...S, units: { ...S.units, [army.id]: { ...army, tile: S.regions[cap].tiles.find((t) => t !== S.regions[cap].tile), movesLeft: 2, route: null } } };
     expect(nextPrompts(field).some((p) => p.kind === 'army')).toBe(true);
     expect(turnBlockers(field)).toEqual([]);
@@ -89,7 +94,7 @@ describe('turn blockers', () => {
 
   it('the engine stays the same: ADVANCE_TURN runs over UI blockers; the player\'s fast forward stops at them', () => {
     const S = settledGame();
-    const cap = getNationCapital('fr');
+    const cap = getNationCapital(FR_ID);
     const idle = { ...S, regions: { ...S.regions, [cap]: { ...S.regions[cap], production: { current: null, queue: [], progress: 0 } } }, research: { ...S.research, current: null } };
     expect(gameReducer(idle, { type: ActionTypes.ADVANCE_TURN }).turnNumber).toBe(idle.turnNumber + 1);
     expect(gameReducer(idle, { type: ActionTypes.FAST_FORWARD })).toBe(idle);

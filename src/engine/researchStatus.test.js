@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { TECH_TREE } from '../data/techTree';
 import { researchStatus, researchNeedsChoice, turnsUntilYear, researchSchedule, advisorPlan, scholarsPreview, nextGatedTech } from './researchStatus';
@@ -11,8 +11,9 @@ import { empireOverviewModel } from '../components/panels/empireOverviewModel';
 import { previewGovernmentChange } from './governmentPreview';
 import { authorityOf, canEnactLaws } from './authority';
 import { getAvailableGovernmentTypes } from '../data/government';
+import { peoplesWorld } from './testWorld';
 
-const fresh = () => createInitialState({ playerNationId: 'fr', rngSeed: 5 });
+const fresh = () => peoplesWorld({ seed: 5 });
 const techs = Object.values(TECH_TREE);
 
 // A state in which every tech that is open by date is known, so what is left is all held back by its year.

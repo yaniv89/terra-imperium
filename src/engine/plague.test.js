@@ -131,12 +131,12 @@ describe('outbreaks differ between games', () => {
 
 describe('plague through resolveTurn', () => {
   it('a seeded outbreak runs its course in the turn, the same way every time', async () => {
-    const { createInitialState } = await import('../context/GameContext');
+    const { peoplesWorld, rivalOf } = await import('./testWorld');
     const { resolveTurn } = await import('./resolveTurn');
     const { HISTORICAL_EVENTS } = await import('../data/events');
     const firedEvents = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true]));
-    const base = { ...createInitialState({ playerNationId: 'au', rngSeed: 21 }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
-    const id = Object.keys(base.regions).find((k) => base.regions[k].owner === 'fr');
+    const base = { ...peoplesWorld({ seed: 21 }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    const id = Object.keys(base.regions).find((k) => base.regions[k].owner === rivalOf(base));
     const start = { ...base, regions: { ...base.regions, [id]: seedPlague(base.regions[id], base.turnNumber, 0.3) } };
     const run = () => { let s = start; for (let t = 0; t < 3; t++) s = resolveTurn(s); return s; };
     const a = run();

@@ -2,7 +2,7 @@
 // garrison first and never a capture; an empty city through its defences, taken when an attack
 // brings its HP to 0; Command still takes a city it wins.
 import { describe, it, expect } from 'vitest';
-import { gameReducer, createInitialState } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNeighborIds, getTouchingIds } from '../data/regions';
 import { addCity, addCities } from './testWorld';
@@ -17,11 +17,16 @@ import {
   cityAttackStrength, cityDefence, cityAttackDamage, attacksToTake, garrisonOf,
   CITY_HIT_HP, MAX_RATIO, MIN_RATIO, CITY_STRIKE_CAP
 } from './cityAssault';
+import { neighbourWorld } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 1 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
 
 const WORLD = (() => {
-  const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
-  const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr') || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
-  const near = addCity(first.state, 'fr', { near: target });
+  const first = addCity(neighbourWorld({ seed: 1 }), FR_ID);
+  const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID) || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID);
+  const near = addCity(first.state, FR_ID, { near: target });
   const AGG = near.state.regions[target].owner;
   const grown = addCities(near.state, AGG, 3);
   return { state: grown.state, FR: first.cityId, T: target, AGG };
@@ -36,12 +41,12 @@ const setup = (units, cityPatch = {}) => {
     ...s,
     resources: { ...s.resources, gold: 99999, mil: 9999, adm: 9999, dip: 9999 },
     regions: { ...s.regions, [T]: { ...s.regions[T], ...cityPatch } },
-    nations: { ...s.nations, fr: { ...s.nations.fr, isAtWar: true }, [AGG]: { ...s.nations[AGG], isAtWar: true } },
-    wars: [...s.wars, { id: 'war_t', aggressor: 'fr', enemy: AGG, active: true, startTurn: s.turnNumber, battleScore: 0 }],
+    nations: { ...s.nations, [FR_ID]: { ...s.nations[FR_ID], isAtWar: true }, [AGG]: { ...s.nations[AGG], isAtWar: true } },
+    wars: [...s.wars, { id: 'war_t', aggressor: FR_ID, enemy: AGG, active: true, startTurn: s.turnNumber, battleScore: 0 }],
     units
   };
 };
-const army = (n, cls = 'infantry') => Object.fromEntries(Array.from({ length: n }, (_, i) => [`a${i}`, unit(`a${i}`, FR, 'fr', i === 0 ? 'infantry' : cls)]));
+const army = (n, cls = 'infantry') => Object.fromEntries(Array.from({ length: n }, (_, i) => [`a${i}`, unit(`a${i}`, FR, FR_ID, i === 0 ? 'infantry' : cls)]));
 const attack = (s) => gameReducer(s, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR, targetRegionId: T } });
 const city = (size, walls) => ({ id: 'c', size, buildings: { categories: { defense: walls - 1 } } });
 
@@ -58,7 +63,7 @@ describe('the formula', () => {
     expect(cityDefence(city(6, 0))).toBeGreaterThan(cityDefence(city(3, 0)));
     expect(cityDefence(city(3, 1), { hpRatio: 0 })).toBeLessThan(cityDefence(city(3, 1)));
     expect(cityDefence(city(3, 0), { militia: [{ strength: 200 }] })).toBe(cityDefence(city(3, 0)) + 200);
-    const inf = [unit('i', FR, 'fr')]; const eng = [unit('e', FR, 'fr', 'siege')]; const cav = [unit('c', FR, 'fr', 'cavalry')];
+    const inf = [unit('i', FR, FR_ID)]; const eng = [unit('e', FR, FR_ID, 'siege')]; const cav = [unit('c', FR, FR_ID, 'cavalry')];
     expect(cityAttackStrength(eng)).toBeGreaterThan(cityAttackStrength(inf));
     expect(cityAttackStrength(cav)).toBeLessThan(cityAttackStrength(inf));
   });
@@ -100,7 +105,7 @@ describe('Auto against a city', () => {
     expect(next.logs.some((l) => /its defences fall from/.test(l.message))).toBe(true);
     // The city strikes back: the attackers lose men, never more than the cap.
     const before = Object.values(s.units).reduce((a, u) => a + u.strength, 0);
-    const after = Object.values(next.units).filter((u) => u.ownerId === 'fr').reduce((a, u) => a + u.strength, 0);
+    const after = Object.values(next.units).filter((u) => u.ownerId === FR_ID).reduce((a, u) => a + u.strength, 0);
     expect(after).toBeLessThan(before);
     expect(after).toBeGreaterThanOrEqual(Math.floor(before * (1 - CITY_STRIKE_CAP)));
     expect(auditGameState(next).filter((v) => v.kind === 'battle_ledger')).toEqual([]);
@@ -109,7 +114,7 @@ describe('Auto against a city', () => {
   it('the attack that brings an empty city to 0 HP takes it, and the player gets the capture card', () => {
     const s = setup(army(3), { siege: { hp: 3, maxHp: 400, by: null, startedTurn: 1, encircled: false } });
     const next = attack(s);
-    expect(next.regions[T].owner).toBe('fr');
+    expect(next.regions[T].owner).toBe(FR_ID);
     expect(pendingCapturesOf(next)).toHaveLength(1);
     expect(pendingCapturesOf(next)[0]).toMatchObject({ cityId: T, source: 'battle' });
   });
@@ -131,10 +136,10 @@ describe('Auto against a city', () => {
 describe('Command takes a city it wins, garrison or not', () => {
   it('a commanded win against a garrison takes the city and opens the card', () => {
     const s = setup({ ...army(3), d1: unit('d1', T, AGG) });
-    const o = makeBattleOutcome({ id: 'cmd1', kind: 'invasion', mode: 'command', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, fromRegionId: FR, regionId: T, tile: s.regions[T].tile, isDefended: true, decisive: true },
-      { outcome: 'attacker', attackerUnits: Object.values(s.units).filter((u) => u.ownerId === 'fr'), defenderUnits: [{ ...s.units.d1, strength: 0 }], report: { tactical: { mode: 'command', decisive: true } } });
+    const o = makeBattleOutcome({ id: 'cmd1', kind: 'invasion', mode: 'command', warId: 'war_t', attackerNationId: FR_ID, defenderNationId: AGG, fromRegionId: FR, regionId: T, tile: s.regions[T].tile, isDefended: true, decisive: true },
+      { outcome: 'attacker', attackerUnits: Object.values(s.units).filter((u) => u.ownerId === FR_ID), defenderUnits: [{ ...s.units.d1, strength: 0 }], report: { tactical: { mode: 'command', decisive: true } } });
     const won = applyBattleOutcome(s, o);
-    expect(won.regions[T].owner).toBe('fr');
+    expect(won.regions[T].owner).toBe(FR_ID);
     expect(pendingCapturesOf(won)).toHaveLength(1);
   });
 });
