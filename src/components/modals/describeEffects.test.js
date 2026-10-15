@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { describeEffects } from './describeEffects';
-import { getNationCapital } from '../data/regions';
+import { getNationCapital } from '../../data/regions';
 
 describe('describeEffects (plan §M17: the one shared effect-description function)', () => {
   it('returns an empty array for no effects', () => {

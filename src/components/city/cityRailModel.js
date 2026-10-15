@@ -14,20 +14,22 @@ import { IMPROVEMENTS } from '../../data/tileYields';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { NAVAL_LINES } from '../../data/navalLines';
 import { cityLive, growthView, queueView } from '../../engine/cityEconomy';
+import { templateName } from './cityBuildModel';
 import { UNREST_PROMPT } from '../ui/nextPromptModel';
+import { t as tNow } from '../../i18n/core';
 
 export const RAIL_STORAGE_KEY = 'terra-imperium-city-rail-collapsed';
 
 /** A short name for a build item. */
 export const shortItemLabel = (item, tiles = getTiles(), ageId = 'bronze') => {
   if (!item) return null;
-  if (item.kind === 'unit' && item.explorer) return 'Scouts';
-  if (item.kind === 'unit') return item.classId === 'naval' ? navalLineLabel(item.navalLine || 'warship', NAVAL_LINES[item.navalLine || 'warship']?.label || 'Ship') : unitDisplayName(ageId, item.classId);
+  if (item.kind === 'unit' && item.explorer) return tNow('cy.scouts');
+  if (item.kind === 'unit') return item.classId === 'naval' ? navalLineLabel(item.navalLine || 'warship', NAVAL_LINES[item.navalLine || 'warship']?.label || tNow('cy.ship')) : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return buildingTierName(item.category, item.tier, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name);
-  if (item.kind === 'improvement') return `${improvementName(item.improvement, IMPROVEMENTS[item.improvement]?.name)} (${tiles.names?.[item.tile] || 'tile'})`;
-  if (item.kind === 'settler') return 'Settlers';
+  if (item.kind === 'improvement') return `${improvementName(item.improvement, IMPROVEMENTS[item.improvement]?.name)} (${tiles.names?.[item.tile] || tNow('cy.tile')})`;
+  if (item.kind === 'settler') return tNow('cy.settlers');
   if (item.kind === 'wonder') return wonderName(item.projectId, GREAT_PROJECTS[item.projectId]?.name);
-  if (item.kind === 'army') return item.name || 'Army';
+  if (item.kind === 'army') return templateName(item.templateId, item.name) || tNow('cy.army');
   return item.kind;
 };
 

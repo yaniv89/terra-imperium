@@ -8,6 +8,7 @@
 //   underline through aria-pressed / aria-checked / aria-selected.
 import React from 'react';
 import { X } from 'lucide-react';
+import { t as tNow } from '../../i18n/core';
 
 const cx = (...parts) => parts.filter(Boolean).join(' ');
 
@@ -25,7 +26,7 @@ export const IconButton = ({ label, icon: Icon, className, children, ...rest }) 
   </button>
 );
 
-export const CloseButton = ({ onClick, label = 'Close', className }) => <IconButton label={label} icon={X} onClick={onClick} className={className} />;
+export const CloseButton = ({ onClick, label, className }) => <IconButton label={label || tNow('at.close')} icon={X} onClick={onClick} className={className} />;
 
 /** A pill. As a button it toggles (`pressed`); otherwise a static tag. */
 export const Chip = ({ pressed, onClick, className, children, tone, ...rest }) => {
@@ -53,12 +54,12 @@ export const SheetHeader = ({ title, subtitle, icon: Icon, onClose, children, cl
 );
 
 /** Underlined tabs (role tablist). `tabs` = [{ id, label, dot }]. */
-export const Tabs = ({ tabs, value, onChange, className, label = 'Sections' }) => (
-  <div role="tablist" aria-label={label} className={cx('flex border-b border-fa-line overflow-x-auto scrollbar-none', className)}>
+export const Tabs = ({ tabs, value, onChange, className, label }) => (
+  <div role="tablist" aria-label={label || tNow('at.sections')} className={cx('flex border-b border-fa-line overflow-x-auto scrollbar-none', className)}>
     {tabs.map((t) => (
       <button key={t.id} type="button" role="tab" aria-selected={value === t.id} onClick={() => onChange(t.id)} className="fa-tab flex-1 shrink-0" data-testid={t.testId}>
         {t.label}
-        {t.dot && <span className="w-1.5 h-1.5 rounded-full bg-fa-danger" aria-label={t.dotLabel || 'needs attention'} />}
+        {t.dot && <span className="w-1.5 h-1.5 rounded-full bg-fa-danger" aria-label={t.dotLabel || tNow('at.attention')} />}
       </button>
     ))}
   </div>

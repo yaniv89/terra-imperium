@@ -10,7 +10,7 @@ import { calcIncome } from '../../utils/helpers';
 import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS } from '../../engine/research';
 import { getTechDiffusion } from '../../engine/techDiffusion';
 import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
-import { t as tNow } from '../../i18n';
+import { t as tNow, formatYear } from '../../i18n';
 import { ageName } from '../../i18n/core';
 import { mapEffectLabel } from '../../engine/techMapEffects';
 import { techName } from '../../i18n/gameText';
@@ -45,6 +45,19 @@ export const getSciencePerTurn = (state) => Math.round((calcIncome(state).techPo
 
 export const researchedSet = (state) => new Set(Object.keys(state.techTree || {}).filter((id) => state.techTree[id]?.researched));
 
+// Why a tech cannot start, in the current language (the engine's canStartTech keeps the English text).
+export const startReasonText = (techId, researched, year) => {
+  const tech = TECH_TREE[techId];
+  if (!tech) return tNow('p2.rs.unknown');
+  if (researched.has(techId)) return tNow('p2.rs.done');
+  if (tech.yearAvailable > year) return tNow('p2.rs.from', { year: formatYear(tech.yearAvailable) });
+  const prereqs = tech.requiresAny ? tech.prerequisites.some((p) => researched.has(p)) : tech.prerequisites.every((p) => researched.has(p));
+  if (!prereqs) return tNow('p2.rs.needs', { list: tech.prerequisites.map((p) => techName(p, TECH_TREE[p]?.name || p)).join(tNow('p2.rs.and')) });
+  const rival = (tech.exclusiveWith || []).find((id) => researched.has(id));
+  if (rival) return tNow('p2.rs.exclusive', { name: techName(rival, TECH_TREE[rival]?.name || rival) });
+  return null;
+};
+
 // Everything the panel needs about one tech.
 export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
   const tech = TECH_TREE[techId];
@@ -75,6 +88,7 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
     queuedAt: (research.queue || []).indexOf(techId),
     canStart: start.ok,
     reason: start.reason,
+    reasonText: start.ok ? null : startReasonText(techId, researched, state.year),
     diffusion
   };
 };
@@ -126,6 +140,6 @@ export const techGraph = (state) => {
     edges.push(edge);
   }));
   const cols = Math.max(...nodes.map((n) => n.col)) + 1;
-  const ages = AGE_ORDER.map((ageId, i) => ({ ageId, name: AGES[ageId]?.name || ageId, x: i * 2 * GRAPH_COL_W, width: 2 * GRAPH_COL_W }));
+  const ages = AGE_ORDER.map((ageId, i) => ({ ageId, name: ageName(ageId, AGES[ageId]?.name || ageId), x: i * 2 * GRAPH_COL_W, width: 2 * GRAPH_COL_W }));
   return { nodes, edges, width: cols * GRAPH_COL_W, height: lines.length * GRAPH_ROW_H, ages, rows: lines };
 };

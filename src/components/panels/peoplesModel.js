@@ -8,8 +8,13 @@ import { isIndependentNation } from '../../data/independents';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { hasMet, isExplored, fogOn } from '../../engine/fog';
 import { opinionOf } from '../../engine/opinion';
+import { t as tNow } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
 
-export const RELATION_LABEL = { war: 'War', pact: 'Pact', trade: 'Trade', peace: 'Peace', vassal: 'Vassal', met: 'Met' };
+// The words are read when asked, so they follow the language (keys p2.rel.<relation>).
+export const RELATION_LABEL = Object.defineProperties({}, Object.fromEntries(
+  ['war', 'pact', 'trade', 'peace', 'vassal', 'met'].map((k) => [k, { enumerable: true, get: () => tNow(`p2.rel.${k}`) }])
+));
 
 export const relationOf = (state, n) => {
   if (isAtWarWithPlayer(state, n.id)) return 'war';
@@ -29,8 +34,10 @@ export const peoplesModel = (state, search = '') => {
   Object.values(state.regions || {}).forEach((c) => { if (c.owner && c.owner !== me && isExplored(state, c.tile)) cityCount[c.owner] = (cityCount[c.owner] || 0) + 1; });
   const rows = known.map((n) => ({
     id: n.id,
-    name: PEOPLES[n.id]?.name || n.name,
-    title: n.name,
+    name: nameNow('people', n.id, PEOPLES[n.id]?.name || n.name),
+    title: nameNow('people', n.id, n.name),
+    nameEn: PEOPLES[n.id]?.name || n.name,
+    titleEn: n.name,
     color: n.color || '#EE8A3A',
     relation: relationOf(state, n),
     opinion: opinionOf(state, n.id),
@@ -39,8 +46,8 @@ export const peoplesModel = (state, search = '') => {
     eliminated: !!n.isEliminated
   }));
   const shown = rows
-    .filter((r) => !q || r.name.toLowerCase().includes(q) || r.title.toLowerCase().includes(q))
-    .sort((a, b) => ((b.relation === 'war') - (a.relation === 'war')) || (a.eliminated - b.eliminated) || (a.opinion - b.opinion) || a.name.localeCompare(b.name));
+    .filter((r) => !q || [r.name, r.title, r.nameEn, r.titleEn].some((x) => x.toLowerCase().includes(q)))
+    .sort((a, b) => ((b.relation === 'war') - (a.relation === 'war')) || (a.eliminated - b.eliminated) || (a.opinion - b.opinion) || a.nameEn.localeCompare(b.nameEn));
   return {
     rows: shown,
     counts: {

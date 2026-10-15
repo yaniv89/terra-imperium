@@ -1,0 +1,137 @@
+Hebrew audit (he) 2026-10-15T05:56:29.464Z
+screens: 130, with Latin: 6, skipped: 21, unique Latin strings: 2
+
+clean   start: people list: 0
+clean   start: start-step-people: 0
+clean   start: start-step-world: 0
+clean   start: start-step-rules: 0
+clean   start: start-step-ready: 0
+clean   onboarding 1: 0
+clean   onboarding 2: 0
+clean   onboarding 3: 0
+clean   onboarding 4: 0
+clean   onboarding 5: 0
+clean   onboarding 6: 0
+clean   map: political: 0
+clean   map: lens political: 0
+clean   map: lens yields: 0
+clean   map: lens loyalty: 0
+clean   map: lens threat: 0
+clean   map: lens supply: 0
+clean   map: lens trade: 0
+clean   map: lens settle: 0
+clean   map: lens list open: 0
+clean   rail: האימפריה: 0
+SKIPPED rail: האימפריה: tabs: no tabs visible
+clean   rail: ערים: 0
+SKIPPED rail: ערים: tabs: no tabs visible
+clean   rail: מחקר: 0
+SKIPPED rail: מחקר: tabs: no tabs visible
+clean   rail: עמים: 0
+SKIPPED rail: עמים: tabs: no tabs visible
+clean   rail: מורשת: 0
+SKIPPED rail: מורשת: tabs: no tabs visible
+clean   log: 0
+clean   menu: settings: 0
+SKIPPED menu: tabs: no tabs visible
+clean   city: opened: 0
+clean   city > סקירה: 0
+clean   city > בנייה: 0
+clean   city > אזרחים: 0
+clean   city > מבנים: 0
+clean   city > פוליטיקה: 0
+clean   city > הגנה: 0
+LATIN   research choice: 1
+clean   tech: lines: 0
+clean   tech: web (tech tree): 0
+SKIPPED first contact: card did not show
+clean   peoples: list: 0
+clean   peoples: nation card: 0
+clean   nation sheet: 0
+SKIPPED nation sheet: tabs: no tabs visible
+clean   event: great_flood_myth: 0
+clean   event: bronze_trade_networks: 0
+clean   event: rise_of_writing: 0
+clean   turn report: 0
+clean   tile sheet: free: 0
+clean   tile sheet: own: 0
+clean   tile sheet: water: 0
+clean   tile sheet: foreign: 0
+clean   army sheet: 0
+clean   march bar: start: 0
+clean   march bar: target free: 0
+clean   march bar: target own: 0
+clean   march bar: target water: 0
+clean   march bar: target foreign: 0
+clean   settler sheet (tile with settlers): 0
+SKIPPED settle mode: no choose-a-site button
+clean   settle lens with settlers: 0
+clean   battle: before start (deploy): 0
+clean   battle: HUD: 0
+LATIN   battle: camp (HQ card): 1
+LATIN   battle: all selected: 1
+LATIN   battle: wand: 1
+LATIN   battle: laborers selected: 1
+LATIN   battle: build sheet (laborers selected): 1
+clean   battle: pause: 0
+clean   battle: retreat card: 0
+clean   battle: result: 0
+clean   tile sheet: enemy army (attack button): 0
+clean   pre-battle card: 0
+clean   battle replay: 0
+clean   battle report sheet: 0
+clean   battle report: replay: 0
+clean   nation overview sheet: 0
+SKIPPED government change dialog: no enabled government button found
+clean   title screen: 0
+clean   title: load view: 0
+clean   title: settings: 0
+clean   city build: after queueing: 0
+clean   city buildings: with buildings built: 0
+clean   city politics: unrest, devastation, low loyalty: 0
+clean   city defense: under siege: 0
+clean   city overview: under siege: 0
+clean   city citizens: tiles: 0
+clean   mapx: fleet army sheet: 0
+SKIPPED mapx-fleet: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
+clean   mapx: army sheet beside an independent city (siege order, assault): 0
+SKIPPED mapx: army sheet, siege laid: no siege order button
+clean   mapx: army sheet with a merge button: 0
+clean   mapx: army sheet, marching (route, halt the march): 0
+clean   mapx: tile sheet, foreign army at peace (declare war card): 0
+clean   mapx: army sheet beside a city at peace (declare war button): 0
+SKIPPED mapx-marchbar: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
+clean   mapx: settle mode, settler tile sheet: 0
+SKIPPED mapx: settle mode, next good site: no next-site button (no known site in reach)
+clean   mapx: settle lens legend: 0
+clean   mapx: settle mode, blocked site (too close): 0
+clean   mapx: settle mode, foreign land (no city here): 0
+clean   mapx: tile sheet, settlers on their way (arrive, Cancel): 0
+clean   mapx: tile sheet, settler status line (heading for): 0
+SKIPPED pnl1-empire: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
+SKIPPED pnl1-space: error: Error: no Space button on the rail
+SKIPPED pnl1-legacy: error: Error: no Legacy button on the rail
+clean   pnl1 nation overview (rich empire): 0
+clean   pnl1 game over: victory: 0
+clean   pnl1 game over: complete: 0
+clean   pnl1 game over: defeat: 0
+SKIPPED pnl2-research: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
+SKIPPED pnl2-peoples: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
+SKIPPED cards: error: TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+clean   turn 1: report: 0
+clean   turn 2: report: 0
+clean   turn 3: report: 0
+clean   turn 4: report: 0
+clean   turn 5: report: 0
+clean   turn 6: report: 0
+clean   turn 7: report: 0
+clean   turn 8: report: 0
+clean   turn 9: report: 0
+clean   turn 10: report: 0
+clean   turn 11: report: 0
+clean   turn 12: report: 0
+SKIPPED turns: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
+
+Unique Latin strings, with the first screen each appeared on:
+  Mycenae   <research choice>
+  ניקוי הבחירה (Esc)   <battle: camp (HQ card)>

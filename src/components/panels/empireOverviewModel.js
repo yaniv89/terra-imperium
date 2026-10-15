@@ -13,7 +13,8 @@ import { getResearchView } from './researchView';
 import { expenseLabel } from '../ui/topBarModel';
 import { t as tNow } from '../../i18n';
 import { nameNow } from '../../i18n/names';
-import { techName } from '../../i18n/gameText';
+import { techName, playstyleName, goalUnit } from '../../i18n/gameText';
+import { authorityPartLabel } from './empireText';
 
 const INCOME_IDS = ['gold', 'techPoints', 'hr', 'adm', 'dip', 'mil', 'supplies'];
 
@@ -31,8 +32,8 @@ export const empireOverviewModel = (state) => {
   const research = getResearchView(state);
   return {
     name: nation.name,
-    authority: { total: authority.total, parts: authority.parts, tone: authority.total < AUTHORITY_CIVIL_WAR ? 'red' : authority.total < AUTHORITY_NO_LAWS ? 'amber' : 'green', note: authority.total < AUTHORITY_CIVIL_WAR ? tNow('empire.civilWar') : authority.total < AUTHORITY_NO_LAWS ? tNow('empire.tooLow') : null },
-    era: { ageId: era.ageId, ageName: AGES[era.ageId]?.name || era.ageId, met: era.met, needed: era.needed, goals: era.goals.map((g) => ({ id: g.id, label: g.label, value: g.value, target: g.target, unit: g.unit, done: g.done })) },
+    authority: { total: authority.total, parts: authority.parts.map((p) => ({ ...p, label: authorityPartLabel(p, nation) })), tone: authority.total < AUTHORITY_CIVIL_WAR ? 'red' : authority.total < AUTHORITY_NO_LAWS ? 'amber' : 'green', note: authority.total < AUTHORITY_CIVIL_WAR ? tNow('empire.civilWar') : authority.total < AUTHORITY_NO_LAWS ? tNow('empire.tooLow') : null },
+    era: { ageId: era.ageId, ageName: AGES[era.ageId]?.name || era.ageId, met: era.met, needed: era.needed, goals: era.goals.map((g) => ({ id: g.id, label: playstyleName(g.id, g.label), value: g.value, target: g.target, unit: goalUnit(g.id, g.unit), done: g.done })) },
     treasury: {
       gold: Math.round(state.resources?.gold || 0),
       income: Math.round(income.gold || 0),

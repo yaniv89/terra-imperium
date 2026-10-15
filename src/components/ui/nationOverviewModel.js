@@ -22,8 +22,12 @@ import { authorityOf } from '../../engine/authority';
 import { eraGoalProgress } from '../../engine/eraGoals';
 import { STABILITY_MIN, STABILITY_MAX } from '../../engine/nationalPower';
 import { getPlayerRank } from '../../engine/score';
+import { t as tNow } from '../../i18n';
+import { nameNow } from '../../i18n/names';
+import { traitName, traitDescription, governmentName, reformName, reformDescription, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
+import { authorityPartLabel, poolLabel, ageShort } from '../panels/empireText';
 
-const shortAge = (ageId) => (AGES[ageId]?.name || ageId || '').replace(/^Age of (the )?/i, '').replace(/ Age$/i, '');
+const shortAge = ageShort;
 
 export const nationOverviewModel = (state) => {
   const me = state.playerNationId;
@@ -36,27 +40,27 @@ export const nationOverviewModel = (state) => {
 
   const r = n.ruler || null;
   const ruler = r ? {
-    name: r.name,
-    dynasty: r.dynasty || null,
+    name: nameNow('person', null, r.name),
+    dynasty: r.dynasty ? nameNow('person', null, r.dynasty) : null,
     reignTurns: Math.max(0, (state.turnNumber || 1) - (r.reignStartTurn || state.turnNumber || 1)),
     skills: [
-      { id: 'adm', label: 'ADM', value: r.adm || 0, hint: 'building, laws' },
-      { id: 'dip', label: 'DIP', value: r.dip || 0, hint: 'pacts, peace' },
-      { id: 'mil', label: 'MIL', value: r.mil || 0, hint: 'armies' }
+      { id: 'adm', label: poolLabel('adm'), value: r.adm || 0, hint: tNow('p1.no.hint.adm') },
+      { id: 'dip', label: poolLabel('dip'), value: r.dip || 0, hint: tNow('p1.no.hint.dip') },
+      { id: 'mil', label: poolLabel('mil'), value: r.mil || 0, hint: tNow('p1.no.hint.mil') }
     ],
-    traits: (r.traits || []).map((id) => TRAITS[id]).filter(Boolean).map((t) => ({ id: t.id, name: t.name, description: t.description, bad: Object.values(t.effects || {}).some((v) => v < 0) && !Object.values(t.effects || {}).some((v) => v > 0) }))
+    traits: (r.traits || []).map((id) => TRAITS[id]).filter(Boolean).map((t) => ({ id: t.id, name: traitName(t.id, t.name), description: traitDescription(t.id, t.description), bad: Object.values(t.effects || {}).some((v) => v < 0) && !Object.values(t.effects || {}).some((v) => v > 0) }))
   } : null;
 
   const nextTitle = people && mine.length < EMPIRE_CITY_COUNT ? titleFor(people, govType, EMPIRE_CITY_COUNT) : null;
   const government = {
-    name: getGovernmentType(govType)?.name || govType,
-    reforms: getActiveReforms(n).map((x) => ({ id: x.id, name: x.name, description: x.description })),
-    title: n.name,
-    nextTitle: nextTitle && nextTitle !== n.name ? { title: nextTitle, cities: mine.length, needed: EMPIRE_CITY_COUNT } : null
+    name: governmentName(govType, getGovernmentType(govType)?.name || govType),
+    reforms: getActiveReforms(n).map((x) => ({ id: x.id, name: reformName(x.id, x.name), description: reformDescription(x.id, x.description) })),
+    title: nameNow('people', me, n.name),
+    nextTitle: nextTitle && nextTitle !== n.name ? { title: nameNow('people', me, nextTitle), cities: mine.length, needed: EMPIRE_CITY_COUNT } : null
   };
 
   const authority = authorityOf(state, me);
-  const stability = { base: authority.parts.find((p) => p.id === 'base')?.value ?? 0, value: n.stability || 0, min: STABILITY_MIN, max: STABILITY_MAX, legitimacy: Math.round(n.legitimacy ?? 50), authority: authority.total, parts: authority.parts.filter((p) => p.id !== 'base').map((p) => ({ ...p, value: Math.round(p.value) })) };
+  const stability = { base: authority.parts.find((p) => p.id === 'base')?.value ?? 0, value: n.stability || 0, min: STABILITY_MIN, max: STABILITY_MAX, legitimacy: Math.round(n.legitimacy ?? 50), authority: authority.total, parts: authority.parts.filter((p) => p.id !== 'base').map((p) => ({ ...p, label: authorityPartLabel(p, n), value: Math.round(p.value) })) };
 
   const others = Object.values(state.nations).filter((x) => !x.isPlayer && x.id !== me);
   const held = (id) => !!id && state.regions?.[id]?.owner === me;
@@ -65,9 +69,9 @@ export const nationOverviewModel = (state) => {
   const totalCities = Object.keys(state.regions || {}).length;
   const econ = getEconomicShare(state);
   const victory = [
-    { id: 'domination', label: 'Domination', value: capitalsHeld, target: capitalsNeeded, text: `${capitalsHeld} of ${capitalsNeeded} capitals` },
-    { id: 'conqueror', label: 'Conqueror', value: mine.length, target: Math.ceil(totalCities * CONQUEROR_CITY_SHARE), text: `${mine.length} of ${Math.ceil(totalCities * CONQUEROR_CITY_SHARE)} cities` },
-    { id: 'economic', label: 'Economic hegemony', value: Math.round(econ.share * 100), target: Math.round(ECONOMIC_HEGEMONY_SHARE * 100), text: `${Math.round(econ.share * 100)}% of ${Math.round(ECONOMIC_HEGEMONY_SHARE * 100)}% of the world's gold` }
+    { id: 'domination', label: tNow('p1.no.vic.domination'), value: capitalsHeld, target: capitalsNeeded, text: tNow('p1.no.vic.capitals', { a: capitalsHeld, b: capitalsNeeded }) },
+    { id: 'conqueror', label: tNow('p1.no.vic.conqueror'), value: mine.length, target: Math.ceil(totalCities * CONQUEROR_CITY_SHARE), text: tNow('p1.no.vic.cities', { a: mine.length, b: Math.ceil(totalCities * CONQUEROR_CITY_SHARE) }) },
+    { id: 'economic', label: tNow('p1.no.vic.economic'), value: Math.round(econ.share * 100), target: Math.round(ECONOMIC_HEGEMONY_SHARE * 100), text: tNow('p1.no.vic.gold', { a: Math.round(econ.share * 100), b: Math.round(ECONOMIC_HEGEMONY_SHARE * 100) }) }
   ];
   const rank = getPlayerRank(state);
   const ranked = Object.keys(state.nations).length;
@@ -79,17 +83,17 @@ export const nationOverviewModel = (state) => {
   const nextIn = nextAge ? Math.max(1, Math.ceil(yearsLeft / getYearsPerTurn(state.age, state.gameSpeed))) : null;
 
   return {
-    name: n.name,
+    name: nameNow('people', me, n.name),
     color: n.color || '#5B9BF0',
     cities: mine.length,
-    capital: capital?.owner === me ? capital.name : null,
+    capital: capital?.owner === me ? nameNow('city', null, capital.name) : null,
     ageName: shortAge(state.age),
     ruler,
     government,
     stability,
     victory,
     score: { rank, of: ranked },
-    era: { ageName: shortAge(era.ageId), met: era.met, needed: era.needed, legacyTurns: ERA_LEGACY_TURNS, goals: era.goals.map((g) => ({ ...g, bonus: PLAYSTYLES[g.id]?.bonusLabel || '' })) },
+    era: { ageName: shortAge(era.ageId), met: era.met, needed: era.needed, legacyTurns: ERA_LEGACY_TURNS, goals: era.goals.map((g) => ({ ...g, label: playstyleName(g.id, g.label), unit: goalUnit(g.id, g.unit), bonus: PLAYSTYLES[g.id] ? goalBonus(g.id, PLAYSTYLES[g.id].bonusLabel) : '' })) },
     ages: AGE_ORDER.map((id, i) => ({ id, name: shortAge(id), past: i < ageIndex, current: i === ageIndex })),
     nextAge: nextAge ? { name: shortAge(nextAge), turns: nextIn } : null,
     turn: state.turnNumber

@@ -23,6 +23,7 @@ import { isNoMansLand } from '../../engine/hostility';
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
 import { agreed } from './battleText';
+import { terrainWord } from '../../i18n/gameText';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { canAfford } from '../../utils/helpers';
 import { scoutsEstimate } from './battleReportView';
@@ -34,6 +35,14 @@ const possessive = (name) => (name.endsWith('s') ? `${name}'` : `${name}'s`);
 const shortName = (name) => (name || '').replace(/^The /, '').replace(/^(Kingdom|Empire|Republic|Tribes?|Chiefdom|City-state|Confederation) of /i, '');
 
 /** `samples`: auto-resolve runs for the odds (200 in the game, fewer in tests). */
+// The odds factors of battleOdds.js (English labels and details) in the current language.
+const factorText = (f) => {
+  const label = t(`mx.odds.${f.id}`);
+  if (f.id === 'terrain') return { ...f, label, detail: terrainWord(f.detail) };
+  const vs = f.id === 'numbers' ? /^(d+) vs (d+)$/.exec(f.detail || '') : null;
+  return { ...f, label, detail: vs ? t('mx.odds.vs', { a: vs[1], b: vs[2] }) : f.detail };
+};
+
 export const preBattleModel = (state, { fromRegionId = null, targetRegionId = null, navalUnitId = null, tile = null, fromTile = null }, { samples = 200 } = {}) => {
   const landing = !!navalUnitId;
   const fleet = tile != null && fromTile != null;
@@ -89,7 +98,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
         exact: true, source: source.label, win: odds.attacker, take: odds.capture, lose: odds.defender, draw: odds.stalemate,
         verdict: odds.attacker >= 0.65 ? t('bt.pre.likelyWin') : odds.attacker >= 0.35 ? t('bt.pre.evenFight') : t('bt.pre.likelyLoss'),
         losses: t('bt.pre.expectedLosses', { a: Math.round(odds.attackerLossShare * 100), b: Math.round(odds.defenderLossShare * 100) }),
-        factors: (odds.factors || []).filter((f) => Math.abs(f.value - 1) >= 0.02)
+        factors: (odds.factors || []).filter((f) => Math.abs(f.value - 1) >= 0.02).map(factorText)
       };
     } else {
       const band = scoutsEstimate(odds.attacker);

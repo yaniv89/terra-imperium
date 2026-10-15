@@ -14,6 +14,9 @@ import { getAvailableClasses } from '../../data/unitClasses';
 import { makeBenchSetup } from '../../battle/bench/benchScenario';
 import { sandboxTileOptions } from './sandboxTile';
 import { VEGETATION_KITS } from '../../battle/art/artIndex';
+import { useT } from '../../i18n/useT';
+import { ageName } from '../../i18n/core';
+import { terrainWord } from '../../i18n/gameText';
 
 const PRESETS = {
   balanced: ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'siege', 'infantry'],
@@ -77,6 +80,7 @@ const sandboxCity = (config) => {
 };
 
 const BattleSandbox = () => {
+  const { t } = useT();
   const [config, setConfig] = useState({
     terrain: params.get('terrain') || 'mixed',
     ageId: params.get('age') || 'kingdoms',
@@ -156,18 +160,18 @@ const BattleSandbox = () => {
         key={runId}
         setup={shown}
         playerSide={playerSide}
-        title={`Sandbox · ${config.sea ? 'sea battle' : raiding ? `${config.raid} (you defend)` : config.terrain}`}
+        title={t('mx.sb.title', { what: config.sea ? t('mx.sb.sea') : raiding ? t('mx.sb.defend', { raid: t(config.raid === 'sack' ? 'mx.sb.sack' : 'mx.sb.raidKind') }) : terrainWord(config.terrain) })}
         onFinish={(ended) => { setLastResult(ended.result); setRunning(false); }}
         onAbandon={() => setRunning(false)}
       />
     );
   }
 
-  const field = (label, key, options) => (
+  const field = (label, key, options, show = (o) => o) => (
     <label className="flex flex-col gap-1 text-xs text-slate-300">
       {label}
       <select value={config[key]} onChange={(e) => setConfig((c) => ({ ...c, [key]: key === 'fortLevel' ? Number(e.target.value) : e.target.value }))} data-testid={`sandbox-${key}`} className="h-11 rounded-lg bg-slate-800 border border-slate-600 px-2 text-slate-100">
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        {options.map((o) => <option key={o} value={o}>{show(o)}</option>)}
       </select>
     </label>
   );
@@ -175,27 +179,27 @@ const BattleSandbox = () => {
   return (
     <div className="min-h-[100dvh] bg-slate-950 text-slate-100 p-4 flex items-start justify-center">
       <div className="w-full max-w-md space-y-4">
-        <h1 className="text-xl font-bold">Battle sandbox</h1>
+        <h1 className="text-xl font-bold">{t('mx.sb.heading')}</h1>
         <div className="grid grid-cols-2 gap-3">
-          {field('Terrain', 'terrain', Object.keys(TEMPLATES))}
-          {field('Age', 'ageId', AGE_ORDER)}
-          {field('Your army', 'attacker', Object.keys(PRESETS))}
-          {field('Enemy army', 'defender', Object.keys(PRESETS))}
-          {field('Fortifications', 'fortLevel', [0, 1, 2, 3, 4, 6])}
-          {field('Battle (raiders attack, you defend)', 'raid', RAID_KINDS)}
+          {field(t('mx.sb.terrain'), 'terrain', Object.keys(TEMPLATES), terrainWord)}
+          {field(t('mx.sb.age'), 'ageId', AGE_ORDER, (o) => ageName(o, o))}
+          {field(t('mx.sb.yours'), 'attacker', Object.keys(PRESETS), (o) => t(`mx.sb.${o}`))}
+          {field(t('mx.sb.enemy'), 'defender', Object.keys(PRESETS), (o) => t(`mx.sb.${o}`))}
+          {field(t('mx.sb.fort'), 'fortLevel', [0, 1, 2, 3, 4, 6])}
+          {field(t('mx.sb.raid'), 'raid', RAID_KINDS, (o) => t(o === 'none' ? 'mx.sb.none' : o === 'sack' ? 'mx.sb.sack' : 'mx.sb.raidKind'))}
         </div>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.fog} onChange={(e) => setConfig((c) => ({ ...c, fog: e.target.checked }))} /> No intelligence (start blind in the fog)</label>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.economy} onChange={(e) => setConfig((c) => ({ ...c, economy: e.target.checked }))} /> Battle economy (workers, buildings, training)</label>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.merc} onChange={(e) => setConfig((c) => ({ ...c, merc: e.target.checked }))} /> Your infantry are a hired band (mercenaries)</label>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.spectate} onChange={(e) => setConfig((c) => ({ ...c, spectate: e.target.checked }))} /> Spectate (AI vs AI)</label>
-        <button type="button" onClick={() => { setRunId((r) => r + 1); setRunning(true); }} className="w-full h-12 rounded-xl bg-blue-600 font-semibold">Fight</button>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.fog} onChange={(e) => setConfig((c) => ({ ...c, fog: e.target.checked }))} /> {t('mx.sb.fog')}</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.economy} onChange={(e) => setConfig((c) => ({ ...c, economy: e.target.checked }))} /> {t('mx.sb.economy')}</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.merc} onChange={(e) => setConfig((c) => ({ ...c, merc: e.target.checked }))} /> {t('mx.sb.merc')}</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.spectate} onChange={(e) => setConfig((c) => ({ ...c, spectate: e.target.checked }))} /> {t('mx.sb.spectate')}</label>
+        <button type="button" onClick={() => { setRunId((r) => r + 1); setRunning(true); }} className="w-full h-12 rounded-xl bg-blue-600 font-semibold">{t('mx.sb.fight')}</button>
         {lastResult && (
           <div className="rounded-xl bg-slate-900 border border-slate-700 p-3 text-xs space-y-1">
-            <div className="font-semibold">Last result: {lastResult.outcome} ({lastResult.report.tactical?.reason})</div>
-            <div>Your army: {lastResult.attackerUnits.reduce((s, u) => s + u.strength, 0)} left · Enemy: {lastResult.defenderUnits.reduce((s, u) => s + u.strength, 0)} left</div>
+            <div className="font-semibold">{t('mx.sb.last', { outcome: lastResult.outcome, reason: lastResult.report.tactical?.reason })}</div>
+            <div>{t('mx.sb.left', { mine: lastResult.attackerUnits.reduce((s, u) => s + u.strength, 0), theirs: lastResult.defenderUnits.reduce((s, u) => s + u.strength, 0) })}</div>
           </div>
         )}
-        <a href={window.location.pathname} className="block text-center text-xs text-slate-400 underline">Back to the game</a>
+        <a href={window.location.pathname} className="block text-center text-xs text-slate-400 underline">{t('mx.sb.back')}</a>
       </div>
     </div>
   );

@@ -5,6 +5,8 @@
 import React from 'react';
 import { Gem, Landmark } from 'lucide-react';
 import GameIcon from './GameIcon';
+import { hasDataText } from '../../i18n/core';
+import { tileResourceName, resourceName } from '../../i18n/gameText';
 import {
   buildingIconUrl, extractionIconUrl, unitIconUrl, shipIconUrl, wonderIconUrl,
   resourceIconUrl, improvementIconUrl, ageIconUrl
@@ -54,7 +56,7 @@ export const WonderIcon = ({ projectId, size = 20, className = '' }) => {
 
 /** A map resource (wheat, horses, iron ...). */
 export const ResourceIcon = ({ resourceId, size = 16, className = '' }) => (
-  <GameIcon url={resourceIconUrl(resourceId)} size={size} className={className} title={resourceId}
+  <GameIcon url={resourceIconUrl(resourceId)} size={size} className={className} title={hasDataText(`tres.${resourceId}`) ? tileResourceName(resourceId) : resourceName(resourceId, resourceId)}
     fallback={<Gem className={`shrink-0 text-fuchsia-300 ${className}`} style={{ width: size, height: size }} aria-hidden="true" />} />
 );
 

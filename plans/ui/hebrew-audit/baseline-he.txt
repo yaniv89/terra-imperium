@@ -1,0 +1,632 @@
+Hebrew audit (he) 2026-10-15T05:29:08.847Z
+screens: 85, with Latin: 70, skipped: 10, unique Latin strings: 542
+
+LATIN   start: people list: 1
+LATIN   start: start-step-people: 1
+clean   start: start-step-world: 0
+clean   start: start-step-rules: 0
+LATIN   start: start-step-ready: 1
+LATIN   onboarding 1: 19
+LATIN   onboarding 2: 18
+LATIN   onboarding 3: 18
+LATIN   onboarding 4: 18
+LATIN   onboarding 5: 18
+LATIN   onboarding 6: 18
+LATIN   map: political: 18
+LATIN   map: lens political: 18
+LATIN   map: lens yields: 18
+LATIN   map: lens loyalty: 18
+LATIN   map: lens threat: 18
+LATIN   map: lens supply: 18
+LATIN   map: lens trade: 18
+LATIN   map: lens settle: 18
+LATIN   map: lens list open: 18
+LATIN   rail: האימפריה: 68
+SKIPPED rail: האימפריה: tabs: no tabs visible
+LATIN   rail: ערים: 18
+SKIPPED rail: ערים: tabs: no tabs visible
+LATIN   rail: מחקר: 84
+SKIPPED rail: מחקר: tabs: no tabs visible
+LATIN   rail: עמים: 26
+SKIPPED rail: עמים: tabs: no tabs visible
+LATIN   rail: מורשת: 76
+SKIPPED rail: מורשת: tabs: no tabs visible
+LATIN   log: 18
+LATIN   menu: settings: 16
+SKIPPED menu: tabs: no tabs visible
+LATIN   city: opened: 46
+LATIN   city > Overview: 46
+LATIN   city > Build: 109
+LATIN   city > Citizens: 68
+LATIN   city > Buildings: 75
+LATIN   city > Politics: 49
+LATIN   city > Defense: 40
+LATIN   research choice: 13
+LATIN   tech: lines: 81
+LATIN   tech: web (tech tree): 63
+SKIPPED first contact: card did not show
+LATIN   peoples: list: 21
+LATIN   peoples: nation card: 21
+LATIN   nation sheet: 8
+SKIPPED nation sheet: tabs: no tabs visible
+LATIN   event: great_flood_myth: 13
+LATIN   event: bronze_trade_networks: 12
+LATIN   event: rise_of_writing: 10
+LATIN   turn report: 8
+LATIN   tile sheet: free: 17
+LATIN   tile sheet: own: 19
+LATIN   tile sheet: water: 20
+LATIN   tile sheet: foreign: 21
+LATIN   army sheet: 29
+clean   march bar: start: 0
+LATIN   march bar: target free: 9
+LATIN   march bar: target own: 11
+LATIN   march bar: target water: 12
+LATIN   march bar: target foreign: 13
+LATIN   settler sheet (tile with settlers): 18
+SKIPPED settle mode: no choose-a-site button
+LATIN   settle lens with settlers: 18
+LATIN   battle: before start (deploy): 1
+LATIN   battle: HUD: 1
+LATIN   battle: camp (HQ card): 2
+LATIN   battle: all selected: 2
+LATIN   battle: wand: 2
+LATIN   battle: laborers selected: 2
+LATIN   battle: build sheet (laborers selected): 2
+LATIN   battle: pause: 1
+LATIN   battle: retreat card: 1
+LATIN   battle: result: 1
+LATIN   tile sheet: enemy army (attack button): 23
+LATIN   pre-battle card: 25
+LATIN   battle replay: 20
+LATIN   battle report sheet: 20
+LATIN   battle report: replay: 20
+LATIN   nation overview sheet: 83
+SKIPPED government change dialog: no enabled government button found
+clean   title screen: 0
+clean   title: load view: 0
+LATIN   title: settings: 2
+
+Unique Latin strings, with the first screen each appeared on:
+  Mesopotamia art   <start: people list>
+  Europe art   <start: start-step-people>
+  Expand   <onboarding 1>
+  cities   <onboarding 1>
+  Found or conquer another city.   <onboarding 1>
+  מורשת: +10% population growth.   <onboarding 1>
+  Wealth   <onboarding 1>
+  trade agreements   <onboarding 1>
+  Make a trade agreement in Peoples.   <onboarding 1>
+  מורשת: +10% gold.   <onboarding 1>
+  War   <onboarding 1>
+  cities taken   <onboarding 1>
+  Take an enemy city.   <onboarding 1>
+  מורשת: +1 military power a turn.   <onboarding 1>
+  Culture   <onboarding 1>
+  wonders   <onboarding 1>
+  Raise a wonder in a city.   <onboarding 1>
+  מורשת: +1 stability.   <onboarding 1>
+  ברוכים הבאים ל־Terra Imperium   <onboarding 1>
+  Science   <onboarding 1>
+  techs   <onboarding 1>
+  Rule +50 · Ferdinand's skill -2   <rail: האימפריה>
+  7.0K תושבים   <rail: האימפריה>
+  Expand: 1 of 4 cities   <rail: האימפריה>
+  Wealth: 0 of 1 trade agreements   <rail: האימפריה>
+  War: 0 of 1 cities taken   <rail: האימפריה>
+  Culture: 0 of 1 wonders   <rail: האימפריה>
+  Science: 0 of 4 techs   <rail: האימפריה>
+  Each skill adds to the power pool of its name every turn.   <rail: האימפריה>
+  Reign ends turn   <rail: האימפריה>
+  When the reign ends a new ruler takes over   <rail: האימפריה>
+  +1 stability   <rail: האימפריה>
+  Cost:   <rail: האימפריה>
+  ⚠ Uses   <rail: האימפריה>
+  all   <rail: האימפריה>
+  of your   <rail: האימפריה>
+  Administrative   <rail: האימפריה>
+  Advisor   <rail: האימפריה>
+  Adds their level to   <rail: האימפריה>
+  each turn.   <rail: האימפריה>
+  Hire מנואל (level 2)   <rail: האימפריה>
+  +2 ADM a turn for 200 gold now and 8 gold a turn. Price and salary grow with the level squared (50 x level x level).   <rail: האימפריה>
+  200 Gold   <rail: האימפריה>
+  Hire סנצ׳ו (level 3)   <rail: האימפריה>
+  +3 ADM a turn for 450 gold now and 18 gold a turn. Price and salary grow with the level squared (50 x level x level).   <rail: האימפריה>
+  450 Gold   <rail: האימפריה>
+  Gold   <rail: האימפריה>
+  Hire בטריס (level 1)   <rail: האימפריה>
+  +1 ADM a turn for 50 gold now and 2 gold a turn. Price and salary grow with the level squared (50 x level x level).   <rail: האימפריה>
+  50 Gold   <rail: האימפריה>
+  Diplomatic   <rail: האימפריה>
+  Hire חואנה (level 2)   <rail: האימפריה>
+  +2 DIP a turn for 200 gold now and 8 gold a turn. Price and salary grow with the level squared (50 x level x level).   <rail: האימפריה>
+  Hire רודריגו (level 3)   <rail: האימפריה>
+  +3 DIP a turn for 450 gold now and 18 gold a turn. Price and salary grow with the level squared (50 x level x level).   <rail: האימפריה>
+  Hire פדרו (level 2)   <rail: האימפריה>
+  Military   <rail: האימפריה>
+  Hire אלפונסו (level 2)   <rail: האימפריה>
+  +2 MIL a turn for 200 gold now and 8 gold a turn. Price and salary grow with the level squared (50 x level x level).   <rail: האימפריה>
+  Hire קונסטנסה (level 1)   <rail: האימפריה>
+  +1 MIL a turn for 50 gold now and 2 gold a turn. Price and salary grow with the level squared (50 x level x level).   <rail: האימפריה>
+  Hire איזבל (level 2)   <rail: האימפריה>
+  A governed group: +   <rail: האימפריה>
+  food, +   <rail: האימפריה>
+  % production, +   <rail: האימפריה>
+  culture, +   <rail: האימפריה>
+  loyalty and skill, less unrest. Ungoverned:   <rail: האימפריה>
+  loyalty. Taking office takes   <rail: האימפריה>
+  turns.   <rail: האימפריה>
+  ungoverned (-5 loyalty)   <rail: האימפריה>
+  No one at court is free: candidates arrive every   <rail: האימפריה>
+  Bronze Age   <rail: מחקר>
+  of   <rail: מחקר>
+  techs known   <rail: מחקר>
+  science a turn   <rail: מחקר>
+  Pick a tech below, or let your advisor choose.   <rail: מחקר>
+  to   <rail: מחקר>
+  You can start this tech.   <rail: מחקר>
+  Map   <rail: מחקר>
+  Peoples   <rail: מחקר>
+  Bronze   <rail: מחקר>
+  era goals   <rail: מחקר>
+  Met   <rail: מחקר>
+  of the   <rail: מחקר>
+  needed. Then each met goal gives its legacy for   <rail: מחקר>
+  Expand: +10% population growth. Wealth: +10% gold   <rail: מחקר>
+  Classical   <rail: מחקר>
+  Kingdoms   <rail: מחקר>
+  Gunpowder   <rail: מחקר>
+  Modern   <rail: מחקר>
+  Map: להחזיק נחושת   <rail: מחקר>
+  Peoples: לחתום על הסכם סחר   <rail: מחקר>
+  Map: להקים עיר על נהר   <rail: מחקר>
+  Map: להגדיל עיר לגודל 3   <rail: מחקר>
+  Legacy: +10% population growth   <rail: מחקר>
+  Legacy: +10% gold   <rail: מחקר>
+  Legacy: +1 military power a turn   <rail: מחקר>
+  Legacy: +1 stability   <rail: מחקר>
+  Legacy: -10% research cost   <rail: מחקר>
+  Bronze: 0 of 10 techs known   <rail: מחקר>
+  Classical: 0 of 10 techs known   <rail: מחקר>
+  Kingdoms: 0 of 10 techs known   <rail: מחקר>
+  Gunpowder: 0 of 10 techs known   <rail: מחקר>
+  Modern: 0 of 10 techs known   <rail: מחקר>
+  Finish a tech in Research.   <rail: מחקר>
+  more in the lines below.   <rail: מחקר>
+  Turn gold into science, paid into your research at the end of the turn   <rail: מחקר>
+  100 Gold, 1 DIP   <rail: מחקר>
+  +20 science goes into the bank (20 banked) for your next choice.   <rail: מחקר>
+  Focus   <rail: מחקר>
+  % science for one line   <rail: מחקר>
+  , costs 1 administrative power   <rail: מחקר>
+  Lines   <rail: מחקר>
+  Web   <rail: מחקר>
+  0 of 10 known   <rail: מחקר>
+  46 science, 23 תורות   <rail: מחקר>
+  . First in the world: +20% cost   <rail: מחקר>
+  Map:   <rail: מחקר>
+  Armies see one tile further   <rail: מחקר>
+  Boost:   <rail: מחקר>
+  Available from 1400 BCE: ממתין ל1400 לפנה״ס, בערך 24 תורות   <rail: מחקר>
+  Hills cost no extra movement   <rail: מחקר>
+  (met, lands at the end of the turn)   <rail: מחקר>
+  Available from 800 BCE: ממתין ל800 לפנה״ס, בערך 48 תורות   <rail: מחקר>
+  Available from 150 BCE: ממתין ל150 לפנה״ס, בערך 103 תורות   <rail: מחקר>
+  Available from 500 CE: ממתין ל500 לספירה, בערך 157 תורות   <rail: מחקר>
+  Stacks hold two more units   <rail: מחקר>
+  Available from 1000 CE: ממתין ל1000 לספירה, בערך 239 תורות   <rail: מחקר>
+  Supply meter +20   <rail: מחקר>
+  Available from 1500 CE: ממתין ל1500 לספירה, בערך 323 תורות   <rail: מחקר>
+  Available from 1700 CE: ממתין ל1700 לספירה, בערך 421 תורות   <rail: מחקר>
+  Supply lines reach two tiles further   <rail: מחקר>
+  Available from 1900 CE: ממתין ל1900 לספירה, בערך 521 תורות   <rail: מחקר>
+  Roads at a third of the cost; land armies move two tiles further a turn   <rail: מחקר>
+  Available from 2100 CE: ממתין ל2100 לספירה, בערך 721 תורות   <rail: מחקר>
+  met   <rail: עמים>
+  Dacia   <rail: עמים>
+  The Dacian tribes   <rail: עמים>
+  peoples have   <rail: עמים>
+  not been met yet. Explore with armies, settlers and ships: diplomacy opens once you see their land.   <rail: עמים>
+  , attrition   <rail: עמים>
+  Iron Grip   <rail: מורשת>
+  Sustain +3 stability for 20 turns straight.   <rail: מורשת>
+  turns at +3   <rail: מורשת>
+  Expand: 1/4 cities. Legacy: +10% population growth   <rail: מורשת>
+  Wealth: 0/1 trade agreements. Legacy: +10% gold   <rail: מורשת>
+  War: 0/1 cities taken. Legacy: +1 military power a turn   <rail: מורשת>
+  Culture: 0/1 wonders. Legacy: +1 stability   <rail: מורשת>
+  Science: 0/4 techs. Legacy: -10% research cost   <rail: מורשת>
+  Phoenix   <rail: מורשת>
+  Recover from bankruptcy to a 5,000g treasury.   <rail: מורשת>
+  gold after bankruptcy   <rail: מורשת>
+  The Great Game   <rail: מורשת>
+  Win a war against a nation larger than your own.   <rail: מורשת>
+  Builder of Wonders   <rail: מורשת>
+  Own 3 Great Projects at tier 3.   <rail: מורשת>
+  tier 3 projects   <rail: מורשת>
+  Dynasty   <rail: מורשת>
+  Keep the same royal house for 10 consecutive rulers.   <rail: מורשת>
+  rulers of one house   <rail: מורשת>
+  Unbroken   <rail: מורשת>
+  Reach the Modern Age without ever ceding a region in a peace deal.   <rail: מורשת>
+  Terra Imperium   <rail: מורשת>
+  Win the game.   <rail: מורשת>
+  Master Diplomat   <rail: מורשת>
+  Hold peace treaties or trade agreements with at least 3 nations at once.   <rail: מורשת>
+  nations at peace or trading   <rail: מורשת>
+  Tech Titan   <rail: מורשת>
+  Research at least 12 technologies.   <rail: מורשת>
+  Three-Front War   <rail: מורשת>
+  Be simultaneously at war with 3 or more nations.   <rail: מורשת>
+  wars at once   <rail: מורשת>
+  Settler   <rail: מורשת>
+  AI nations are passive and rarely declare war. You start with +50% resources, AI with -25%.   <rail: מורשת>
+  Chieftain   <rail: מורשת>
+  A cautious AI. You start with +20% resources.   <rail: מורשת>
+  Prince   <rail: מורשת>
+  Fully symmetrical — the fair fight. No yield or aggression modifiers either way.   <rail: מורשת>
+  King   <rail: מורשת>
+  AI nations get +25% resources and are more aggressive.   <rail: מורשת>
+  Emperor   <rail: מורשת>
+  AI nations get +50% resources and are ruthless: optimal counter-building, coordinated wars.   <rail: מורשת>
+  Standard Start   <rail: מורשת>
+  No bonus.   <rail: מורשת>
+  Administrator's Start   <rail: מורשת>
+  +50 ADM at the start of the game.   <rail: מורשת>
+  דורש: Iron Grip   <rail: מורשת>
+  Restored Reputation   <rail: מורשת>
+  +10 prestige at the start of the game.   <rail: מורשת>
+  דורש: Phoenix   <rail: מורשת>
+  Veteran Diplomacy   <rail: מורשת>
+  +5 legitimacy at the start of the game.   <rail: מורשת>
+  דורש: The Great Game   <rail: מורשת>
+  Master Builder   <rail: מורשת>
+  Start with a free Shrine (Culture) in your capital.   <rail: מורשת>
+  דורש: Builder of Wonders   <rail: מורשת>
+  A Seasoned Court   <rail: מורשת>
+  Start with a free, experienced Administrative advisor.   <rail: מורשת>
+  דורש: Dynasty   <rail: מורשת>
+  Close   <menu: settings>
+  Capital   <city: opened>
+  Loyalty   <city: opened>
+  Overview   <city: opened>
+  Build   <city: opened>
+  Citizens   <city: opened>
+  Buildings   <city: opened>
+  Politics   <city: opened>
+  Defense   <city: opened>
+  food surplus, production, gold a turn   <city: opened>
+  Balanced   <city: opened>
+  Food   <city: opened>
+  Production   <city: opened>
+  Size   <city: opened>
+  not growing   <city: opened>
+  food   <city: opened>
+  Housing   <city: opened>
+  growth at 82%   <city: opened>
+  Amenities   <city: opened>
+  enough   <city: opened>
+  Size 2   <city: opened>
+  Loyalty 100, heading to 100. Politics explains why.   <city: opened>
+  Loyalty 100 of 100   <city: opened>
+  City sections   <city: opened>
+  nothing queued   <city: opened>
+  Food surplus after 4 eaten; 0/49 banked   <city: opened>
+  Production a turn   <city: opened>
+  Gold a turn   <city: opened>
+  Science a turn; culture +2.5   <city: opened>
+  Food banked toward the next citizen   <city: opened>
+  Building now   <city: opened>
+  Nothing in production. Open Build to choose.   <city: opened>
+  Nothing in production   <city > Build>
+  Pick something below.   <city > Build>
+  All   <city > Build>
+  Units   <city > Build>
+  Armies   <city > Build>
+  Improvements   <city > Build>
+  Settlers   <city > Build>
+  Founds a new city. Takes one citizen from this one.   <city > Build>
+  production ·   <city > Build>
+  12 turns   <city > Build>
+  Show the queue (0)   <city > Build>
+  Build lists   <city > Build>
+  Show the details   <city > Build>
+  Build Settlers   <city > Build>
+  Build חניתנים   <city > Build>
+  7 turns   <city > Build>
+  10 turns   <city > Build>
+  11 turns   <city > Build>
+  Build מרכבות קרב   <city > Build>
+  Build קשתים   <city > Build>
+  Build איל ניגוח   <city > Build>
+  9 turns   <city > Build>
+  8 turns   <city > Build>
+  Scouts   <city > Build>
+  Cheap, fast and unarmed. Explores free land and meets other peoples; eats no supplies.   <city > Build>
+  3 turns   <city > Build>
+  Build גליית מלחמה (נלחמת בציים, חוסמת ומפגיזה חוף נצור.)   <city > Build>
+  Build שיירת מטען   <city > Build>
+  Build Scouts   <city > Build>
+  Legion: חניתנים (1 of 4)   <city > Build>
+  Built one unit at a time; each joins the army as it is trained.   <city > Build>
+  Siege train: חניתנים (1 of 3)   <city > Build>
+  Build Legion: חניתנים (1 of 4)   <city > Build>
+  Build Siege train: חניתנים (1 of 3)   <city > Build>
+  +1 food, +1 housing   <city > Build>
+  +3 gold   <city > Build>
+  Needs   <city > Build>
+  Research it   <city > Build>
+  +3 manpower   <city > Build>
+  Build ממגורה   <city > Build>
+  שוק: needs טביעת מטבעות   <city > Build>
+  Build מחנה צבא   <city > Build>
+  walls +1 (siege HP +240), fort level +1 in battle, 1 gold upkeep   <city > Build>
+  14 turns   <city > Build>
+  +4 science   <city > Build>
+  +2 production, +7 gold   <city > Build>
+  Build גדר כלונסאות   <city > Build>
+  ספרייה: needs פילוסופיה של הטבע   <city > Build>
+  בית מלאכה: needs גאומטריה   <city > Build>
+  +2 culture, +1 amenity, -1 unrest a turn   <city > Build>
+  +1 gold   <city > Build>
+  13 turns   <city > Build>
+  No effect on this city in the current rules   <city > Build>
+  Build מקדש קטן   <city > Build>
+  נמל: needs סחר בדרך המשי   <city > Build>
+  Build תחנת דרך   <city > Build>
+  חווה: מישור, גבעות, 80 km NW   <city > Build>
+  +1 food   <city > Build>
+  4 turns   <city > Build>
+  דרך: מישור, גבעות, 80 km NW   <city > Build>
+  armies cross this tile faster   <city > Build>
+  2 turns   <city > Build>
+  דרך: מישור, גבעות, יער, 80 km SW   <city > Build>
+  Show the tile on the map and the details   <city > Build>
+  Build חווה: מישור, גבעות, 80 km NW   <city > Build>
+  Build דרך: מישור, גבעות, 80 km NW   <city > Build>
+  חווה: מישור, גבעות, 140 km NE   <city > Build>
+  דרך: מישור, גבעות, 140 km NE   <city > Build>
+  חווה: מישור, גבעות, 140 km N   <city > Build>
+  Build דרך: מישור, גבעות, יער, 80 km SW   <city > Build>
+  Build חווה: מישור, גבעות, 140 km NE   <city > Build>
+  Build דרך: מישור, גבעות, 140 km NE   <city > Build>
+  Build חווה: מישור, גבעות, 140 km N   <city > Build>
+  דרך: מישור, גבעות, 140 km N   <city > Build>
+  Army templates   <city > Build>
+  New   <city > Build>
+  Legion   <city > Build>
+  units:   <city > Build>
+  Edit   <city > Build>
+  Delete   <city > Build>
+  Build דרך: מישור, גבעות, 140 km N   <city > Build>
+  Delete Legion   <city > Build>
+  Siege train   <city > Build>
+  Delete Siege train   <city > Build>
+  citizens work   <city > Citizens>
+  tiles (   <city > Citizens>
+  focus). Lock a tile to always work it.   <city > Citizens>
+  מיקנה (centre)   <city > Citizens>
+  80 km SE   <city > Citizens>
+  worked   <city > Citizens>
+  80 km SW   <city > Citizens>
+  140 km NE   <city > Citizens>
+  iron   <city > Citizens>
+  whales   <city > Citizens>
+  Lock tile   <city > Citizens>
+  Lock: always work this tile   <city > Citizens>
+  140 km N   <city > Citizens>
+  80 km NE   <city > Citizens>
+  80 km E   <city > Citizens>
+  80 km NW   <city > Citizens>
+  140 km NW   <city > Citizens>
+  fish   <city > Citizens>
+  80 km W   <city > Citizens>
+  130 km S   <city > Citizens>
+  140 km SW   <city > Citizens>
+  Buy land (   <city > Citizens>
+  0 culture banked   <city > Citizens>
+  160 km NE   <city > Citizens>
+  Fish: a Fishing boats here adds its bonus again (needs Bronze Trade Routes).   <city > Citizens>
+  g   <city > Citizens>
+  210 km NW   <city > Citizens>
+  Copper: owning the tile gives no copper. It needs a Mine here and a citizen working it (the Mine needs Bronze Casting).   <city > Citizens>
+  160 km SW   <city > Citizens>
+  Show this tile on the map   <city > Citizens>
+  Buy this tile for 117 gold   <city > Citizens>
+  Buy for 117 gold   <city > Citizens>
+  copper   <city > Citizens>
+  Buy this tile for 129 gold   <city > Citizens>
+  Buy for 129 gold   <city > Citizens>
+  160 km E   <city > Citizens>
+  210 km N   <city > Citizens>
+  160 km NW   <city > Citizens>
+  Nothing built yet   <city > Buildings>
+  Next,   <city > Buildings>
+  production   <city > Buildings>
+  , 8 turns   <city > Buildings>
+  , 11 turns   <city > Buildings>
+  · needs טביעת מטבעות   <city > Buildings>
+  , 10 turns   <city > Buildings>
+  Queue ממגורה   <city > Buildings>
+  Queue שוק   <city > Buildings>
+  Queue מחנה צבא   <city > Buildings>
+  , 14 turns   <city > Buildings>
+  · needs פילוסופיה של הטבע   <city > Buildings>
+  Queue גדר כלונסאות   <city > Buildings>
+  Queue ספרייה   <city > Buildings>
+  , 12 turns   <city > Buildings>
+  · needs גאומטריה   <city > Buildings>
+  , 9 turns   <city > Buildings>
+  , 13 turns   <city > Buildings>
+  · needs סחר בדרך המשי   <city > Buildings>
+  Queue בית מלאכה   <city > Buildings>
+  Queue מקדש קטן   <city > Buildings>
+  Queue נמל   <city > Buildings>
+  Development (total   <city > Buildings>
+  Develop Tax (2)   <city > Buildings>
+  +1 base gold in this city every turn. Lasting.   <city > Buildings>
+  Queue תחנת דרך   <city > Buildings>
+  Develop Production (2)   <city > Buildings>
+  +1 base production in this city every turn (and the gold every hammer pays). Lasting.   <city > Buildings>
+  Develop Manpower (2)   <city > Buildings>
+  +1 manpower development: more manpower every turn. Lasting.   <city > Buildings>
+  Infrastructure (level 0, supply 1)   <city > Buildings>
+  Raises supply capacity and output   <city > Buildings>
+  130 Gold, 1 ADM   <city > Buildings>
+  Defenses (level 0)   <city > Buildings>
+  Strengthens the city against invasion   <city > Buildings>
+  95 Gold, 1 ADM   <city > Buildings>
+  Loyalty 100 (settling at 100)   <city > Politics>
+  The people +100 · Garrison +10 · Governor -5   <city > Politics>
+  People:   <city > Politics>
+  The Ahhiyawan tribes 100%   <city > Politics>
+  No governor:   <city > Politics>
+  loyalty.   <city > Politics>
+  Unrest 0   <city > Politics>
+  Order kept   <city > Politics>
+  -1 a turn   <city > Politics>
+  Governor of Mycenae's 1 city   <city > Politics>
+  The seat is empty   <city > Politics>
+  (2 turns to take office).   <city > Politics>
+  No candidates at court.   <city > Politics>
+  The crown   <city > Politics>
+  Gain Control (100%)   <city > Politics>
+  Raise control here by 5 (full control)   <city > Politics>
+  40 Gold, 1 ADM   <city > Politics>
+  Quell Unrest (0)   <city > Politics>
+  Suppress unrest here by 30 before it spreads (no unrest)   <city > Politics>
+  50 Gold, 1 ADM   <city > Politics>
+  Invest in growth   <city > Politics>
+  Adds 12 food to the bank toward size 3: 0 to 12 of 49 (about 3,693 people). The bank is kept from turn to turn.   <city > Politics>
+  200 Gold, 1 ADM   <city > Politics>
+  Battle housing   <city > Defense>
+  How many soldiers and workers the city can hold when it is attacked: its houses and the town hall. Ruined houses hold no one until they are    <city > Defense>
+  8 houses (3 of 5, 4 of 10, 1 of 15)   <city > Defense>
+  Town hall   <city > Defense>
+  In battle   <city > Defense>
+  Walls   <city > Defense>
+  Siege   <city > Defense>
+  None   <city > Defense>
+  What you can do   <city > Defense>
+  Walls come from the Defense building line. Next: Palisade.   <city > Defense>
+  Build Palisade   <city > Defense>
+  One of your land units stands in the city and will defend it.   <city > Defense>
+  Train units   <city > Defense>
+  Defenses level 0: raise it with gold under Buildings, Development.   <city > Defense>
+  Open Buildings   <city > Defense>
+  7.0K   <research choice>
+  כוח 1.0K   <research choice>
+  Mycenae   <research choice>
+  Age of Gunpowder   <tech: web (tech tree)>
+  Modern Age   <tech: web (tech tree)>
+  locked   <tech: web (tech tree)>
+  Bactria   <peoples: list>
+  The Bactrian tribes   <peoples: list>
+  , conqueror   <peoples: list>
+  Gold -80g   <event: great_flood_myth>
+  Control +5%   <event: great_flood_myth>
+  Manpower -30   <event: great_flood_myth>
+  Stability -1   <event: great_flood_myth>
+  Applies to every region you own   <event: great_flood_myth>
+  Gold -100g   <event: bronze_trade_networks>
+  Fort Level +1   <event: bronze_trade_networks>
+  Gold +60g   <event: bronze_trade_networks>
+  A timed modifier on every region you own   <event: bronze_trade_networks>
+  Gold -60g   <event: rise_of_writing>
+  Tech Points +25   <event: rise_of_writing>
+  Agrinio   <tile sheet: free>
+  plains, mountains, coast   <tile sheet: free>
+  · Greece lands   <tile sheet: free>
+  This tile   <tile sheet: free>
+  Athens   <tile sheet: own>
+  plains, hills, coast   <tile sheet: own>
+  Land of   <tile sheet: own>
+  The Ahhiyawan tribes   <tile sheet: own>
+  Open water   <tile sheet: water>
+  coast   <tile sheet: water>
+  Marka   <tile sheet: foreign>
+  plains, hills, river, coast   <tile sheet: foreign>
+  The Ajuran horde   <tile sheet: foreign>
+  army here:   <tile sheet: foreign>
+  unit   <tile sheet: foreign>
+  Merca   <tile sheet: foreign>
+  Army at Mycenae   <army sheet>
+  soldiers   <army sheet>
+  at Mycenae   <army sheet>
+  Supply 100/100, +50 a turn. Fully supplied in your own land.   <army sheet>
+  Unassigned units   <army sheet>
+  · morale   <army sheet>
+  · supply 100/100   <army sheet>
+  · moves   <army sheet>
+  recruit   <army sheet>
+  · 0/50 xp   <army sheet>
+  March חניתנים של אחיאווה (גדוד 2)   <army sheet>
+  Disband חניתנים של אחיאווה (גדוד 2)   <army sheet>
+  March חניתנים של אחיאווה (גדוד 3)   <army sheet>
+  Disband חניתנים של אחיאווה (גדוד 3)   <army sheet>
+  March חניתנים של אחיאווה (גדוד 1)   <army sheet>
+  Disband חניתנים של אחיאווה (גדוד 1)   <army sheet>
+  March   <army sheet>
+  Hold   <army sheet>
+  Hold: the army stays here and is not counted idle, until you lift it or order a march   <army sheet>
+  Name this army   <army sheet>
+  Tripoli   <settler sheet (tile with settlers)>
+  Waiting for a site to found a city   <settler sheet (tile with settlers)>
+  Wait here   <settler sheet (tile with settlers)>
+  Disband   <settler sheet (tile with settlers)>
+  מתיישבי Mycenae   <settler sheet (tile with settlers)>
+  They wait here and stop asking for a site   <settler sheet (tile with settlers)>
+  Sandbox · mixed   <battle: before start (deploy)>
+  ניקוי הבחירה (Esc)   <battle: camp (HQ card)>
+  Wild land   <tile sheet: enemy army (attack button)>
+  Attack with the army of   <tile sheet: enemy army (attack button)>
+  (1 unit)   <tile sheet: enemy army (attack button)>
+  Chosen site, as a city centre   <tile sheet: enemy army (attack button)>
+  Terrain   <pre-battle card>
+  hills   <pre-battle card>
+  1 city, capital Mycenae, Bronze age   <nation overview sheet>
+  Ruler   <nation overview sheet>
+  Ferdinand   <nation overview sheet>
+  Trastamara   <nation overview sheet>
+  reign begins   <nation overview sheet>
+  building, laws   <nation overview sheet>
+  pacts, peace   <nation overview sheet>
+  armies   <nation overview sheet>
+  No heirs: a new ruler takes the throne when this reign ends.   <nation overview sheet>
+  Government and title   <nation overview sheet>
+  Tribal Council   <nation overview sheet>
+  Next title:   <nation overview sheet>
+  The Ahhiyawan Confederacy   <nation overview sheet>
+  Stability   <nation overview sheet>
+  Legitimacy   <nation overview sheet>
+  Of 100: victories and wonders raise it.   <nation overview sheet>
+  Authority   <nation overview sheet>
+  (tap for why)   <nation overview sheet>
+  Rule   <nation overview sheet>
+  Ferdinand's skill   <nation overview sheet>
+  War exhaustion   <nation overview sheet>
+  Victory   <nation overview sheet>
+  Domination   <nation overview sheet>
+  0 of 20 capitals   <nation overview sheet>
+  Conqueror   <nation overview sheet>
+  1 of 33 cities   <nation overview sheet>
+  Economic hegemony   <nation overview sheet>
+  1% of 35% of the world's gold   <nation overview sheet>
+  Age   <nation overview sheet>
+  , turn   <nation overview sheet>
+  in about   <nation overview sheet>
+  turns at this pace   <nation overview sheet>
+  ADM 3 of 6: building, laws   <nation overview sheet>
+  DIP 2 of 6: pacts, peace   <nation overview sheet>
+  MIL 2 of 6: armies   <nation overview sheet>
+  Stability 0, from -3 to 3   <nation overview sheet>
+  Score   <nation overview sheet>
+  needed   <nation overview sheet>
+  Then each met goal gives its legacy for   <nation overview sheet>
+  ; legacy   <nation overview sheet>
+  +10% population growth   <nation overview sheet>
+  +10% gold   <nation overview sheet>
+  +1 military power a turn   <nation overview sheet>
+  -10% research cost   <nation overview sheet>
+  Show good sites   <nation overview sheet>

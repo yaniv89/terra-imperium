@@ -17,6 +17,7 @@ import { Meter } from '../ui/atlas';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { t as tNow, ageName } from '../../i18n';
 import { useT } from '../../i18n/useT';
+import { playstyleName, goalUnit, goalNext, goalBonus } from '../../i18n/gameText';
 
 const MapGoals = () => {
   const { state } = useGame();
@@ -61,11 +62,11 @@ const MapGoals = () => {
           {era.goals.map((g) => (
             <div key={g.id} data-testid={`goal-${g.id}`}>
               <div className="flex items-baseline justify-between gap-2 text-[12px]">
-                <span className="font-semibold">{g.label} <span className="font-normal text-fa-muted">{g.unit}</span></span>
+                <span className="font-semibold">{playstyleName(g.id, g.label)} <span className="font-normal text-fa-muted">{goalUnit(g.id, g.unit)}</span></span>
                 <span className={`fa-num ${g.done ? 'text-fa-good' : 'text-fa-muted'}`}>{Math.min(g.value, g.target)} / {g.target}</span>
               </div>
               <Meter value={g.value} max={g.target} color={g.done ? 'var(--fa-good)' : 'var(--fa-you)'} height={4} />
-              <div className="text-[11px] text-fa-muted leading-snug">{g.done ? t('goals.doneDot') : GOAL_NEXT_ACTION[g.id]} {t('goals.legacy', { bonus: PLAYSTYLES[g.id].bonusLabel })}</div>
+              <div className="text-[11px] text-fa-muted leading-snug">{g.done ? t('goals.doneDot') : goalNext(g.id, GOAL_NEXT_ACTION[g.id])} {t('goals.legacy', { bonus: goalBonus(g.id, PLAYSTYLES[g.id].bonusLabel) })}</div>
             </div>
           ))}
         </div>

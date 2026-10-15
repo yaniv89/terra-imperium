@@ -6,9 +6,15 @@
 import React from 'react';
 import { Crown } from 'lucide-react';
 import { NATION_ELIMINATION_REWARD } from '../../engine/elimination';
+import { useT } from '../../i18n/useT';
+import { useGame } from '../../context/GameContext';
 
 const NationEliminatedBanner = ({ nationName, onDismiss }) => {
+  const { t, name } = useT();
+  const { state } = useGame();
   if (!nationName) return null;
+  const eliminatedId = state.playerEliminatedNationId;
+  const id = state.nations?.[eliminatedId]?.name === nationName ? eliminatedId : null; // the people, when it is still the one named
 
   return (
     // Below the top bar, never on it, also while it slides in from 1rem higher (playtest audit I161).
@@ -16,12 +22,12 @@ const NationEliminatedBanner = ({ nationName, onDismiss }) => {
       <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 border border-emerald-300/60 rounded-full shadow-2xl shadow-emerald-900/40 ps-4 pe-2 py-2">
         <Crown className="w-4 h-4 text-emerald-50 shrink-0" />
         <div className="text-sm font-semibold text-emerald-50 tracking-wide whitespace-nowrap">
-          {nationName} conquered — +{NATION_ELIMINATION_REWARD.gold} Gold, +{NATION_ELIMINATION_REWARD.dip} DIP
+          {t('p1.elim.text', { name: name('nation', id, nationName), gold: NATION_ELIMINATION_REWARD.gold, dip: NATION_ELIMINATION_REWARD.dip })}
         </div>
         <button
           onClick={onDismiss}
           className="w-8 h-8 -my-1 flex items-center justify-center rounded-full text-emerald-100/80 hover:text-fa-text hover:bg-black/10 text-xs shrink-0"
-          aria-label="Dismiss"
+          aria-label={t('p1.dismiss')}
         >
           ✕
         </button>

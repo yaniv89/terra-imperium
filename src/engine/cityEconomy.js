@@ -19,6 +19,7 @@
 //   focusPreview  the yields under each focus, and why they are all the same when they are.
 //   LONG_BUILD_TURNS / isLongBuild   the "this will take a long time" line of the Build tab.
 import { getTiles } from '../data/geo/tiles';
+import { t as tNow, dataText } from '../i18n/core';
 import { getEffectiveAgeId, speedCostMult, speedTrainMult } from '../data/ages';
 import { cityWonderTotal } from '../data/greatProjects';
 import { IMPROVEMENTS, RESOURCES_ON_TILES, tileFacts, tileYields } from '../data/tileYields';
@@ -194,13 +195,21 @@ export const resourceNeed = (facts, researched = []) => {
   const built = facts.improvement === r.improvement && !facts.pillaged;
   const needsTech = imp?.requiresTech && !researched.includes(imp.requiresTech) ? imp.requiresTech : null;
   const needsTechName = needsTech ? TECH_TREE[needsTech]?.name || needsTech : null;
-  const name = facts.resource[0].toUpperCase() + facts.resource.slice(1);
+  // Words for the sentence: English keeps the id (capitalised first), Hebrew the data table's word.
+  const heRes = dataText(`tres.${facts.resource}`, undefined);
+  const name = heRes ?? facts.resource[0].toUpperCase() + facts.resource.slice(1);
+  const res = heRes ?? facts.resource;
+  const impW = dataText(`impr.${r.improvement}`, imp?.name);
+  const techW = needsTech ? dataText(`tech.${needsTech}`, needsTechName) : null;
   const a = /^[aeiou]/i.test(imp?.name || '') ? 'an' : 'a';
+  const impA = dataText(`impr.${r.improvement}`, `${a} ${imp?.name}`);
+  const techBit = techW ? ` ${tNow('cy.need.techThe', { imp: impW, tech: techW })}` : '';
+  const techBit2 = techW ? ` ${tNow('cy.need.tech', { tech: techW })}` : '';
   let text;
-  if (built) text = r.kind === 'strategic' ? `${name}: the ${imp.name} supplies it while a citizen works the tile.` : `${name}: the ${imp.name} is built.`;
-  else if (r.kind === 'strategic') text = `${name}: owning the tile gives no ${facts.resource}. It needs ${a} ${imp.name} here and a citizen working it${needsTechName ? ` (the ${imp.name} needs ${needsTechName})` : ''}.`;
-  else if (r.kind === 'luxury') text = `${name}: counts as a luxury only with ${a} ${imp.name} here and a citizen working it${needsTechName ? ` (the ${imp.name} needs ${needsTechName})` : ''}.`;
-  else text = `${name}: ${a} ${imp.name} here adds its bonus again${needsTechName ? ` (needs ${needsTechName})` : ''}.`;
+  if (built) text = r.kind === 'strategic' ? tNow('cy.need.builtStrategic', { name, imp: impW }) : tNow('cy.need.built', { name, imp: impW });
+  else if (r.kind === 'strategic') text = tNow('cy.need.strategic', { name, res, impA, tech: techBit });
+  else if (r.kind === 'luxury') text = tNow('cy.need.luxury', { name, impA, tech: techBit });
+  else text = tNow('cy.need.bonus', { name, impA, tech: techBit2 });
   return { resource: facts.resource, kind: r.kind, improvement: r.improvement, improvementName: imp?.name || r.improvement, built, needsTech, needsTechName, text };
 };
 
@@ -251,12 +260,12 @@ export const focusPreview = (state, cityId) => {
     const workable = city.outpost || !city.tiles ? 0 : city.tiles.filter((t) => t !== city.tile && (tiles.land[t] === 1 || ['coast', 'lake'].includes(tiles.terrainOf(t)))).length;
     const locked = (city.locked || []).length;
     const need = FOOD_PER_CITIZEN * city.size;
-    if (city.outpost) reason = 'An outpost works no land yet. Focus starts to matter once it becomes a city.';
-    else if (city.underInvasion) reason = 'The enemy holds the countryside: the city lives off its centre, whatever the focus.';
-    else if (workable <= city.size) reason = `The city has ${workable} tile${workable === 1 ? '' : 's'} to work and ${city.size} citizen${city.size === 1 ? '' : 's'}: every tile is worked, so there is nothing to choose. More land (culture, or Buy land) gives focus something to do.`;
-    else if (locked >= city.size) reason = 'Every citizen is locked to a tile (Citizens tab). Unlock one to let focus choose.';
-    else if (city.size <= 2) reason = `At size ${city.size} the city works only ${city.size} tile${city.size === 1 ? '' : 's'}, and they must feed it first (${need} food). The same land wins under every focus. Focus starts to matter as the city grows.`;
-    else reason = 'The same tiles are the best under every focus here: the city needs them for food first.';
+    if (city.outpost) reason = tNow('cy.focus.outpost');
+    else if (city.underInvasion) reason = tNow('cy.focus.invaded');
+    else if (workable <= city.size) reason = tNow('cy.focus.allWorked', { tiles: tNow('cy.tiles', { count: workable }), citizens: tNow('cy.citizens', { count: city.size }) });
+    else if (locked >= city.size) reason = tNow('cy.focus.locked');
+    else if (city.size <= 2) reason = tNow('cy.focus.small', { size: city.size, tiles: tNow('cy.tiles', { count: city.size }), need });
+    else reason = tNow('cy.focus.same');
   }
   return { rows, allSame, reason };
 };

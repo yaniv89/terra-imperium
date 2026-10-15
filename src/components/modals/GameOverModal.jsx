@@ -7,9 +7,14 @@ import { GameStatus } from '../../data/types';
 import { VICTORY_CONDITIONS } from '../../data/victoryConditions';
 import { END_YEAR } from '../../data/ages';
 import { calcNationScore, rankNations } from '../../engine/score';
-import { formatNumber, formatMoney, getPlayerControl, getPlayerRegions } from '../../utils/helpers';
+import { formatNumber, getPlayerControl, getPlayerRegions } from '../../utils/helpers';
+import { t as tNow } from '../../i18n';
+import { useT } from '../../i18n/useT';
+import { victoryName, victoryDescription } from '../../i18n/gameText';
+import { nameNow } from '../../i18n/names';
 
 const GameOverModal = ({ status, state, onReset, onContinue }) => {
+  const { lang, year: yearText } = useT();
   const [copied, setCopied] = useState(false);
   if (status !== GameStatus.VICTORY && status !== GameStatus.DEFEAT && status !== GameStatus.COMPLETE) return null;
 
@@ -20,11 +25,15 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
   // END_YEAR, and offers a real choice to keep playing rather than a forced stop.
   const canContinue = isVictory && state.year < END_YEAR;
   const playerNation = state.nations[state.playerNationId];
+  const nationText = playerNation?.name ? nameNow('people', state.playerNationId, playerNation.name) : playerNation?.name;
+  const yearValue = lang === 'he' ? yearText(state.year) : state.year;
+  const money = `${formatNumber(state.resources.gold)}${tNow('empire.g')}`;
   const regionsHeld = getPlayerRegions(state.regions, state.playerNationId).length;
   const techResearched = Object.values(state.techTree).filter(t => t.researched).length;
   const warsFought = state.wars.length;
   const peaceTreaties = Object.values(state.nations).filter(n => n.hasPeaceTreaty).length;
   const victoryCondition = isVictory ? VICTORY_CONDITIONS[state.victoryConditionId] : null;
+  const victoryTitle = victoryCondition ? victoryName(state.victoryConditionId, victoryCondition.name) : null;
   // Plan §M18: "Score = development + regions + tech + prestige + great projects + wars won. The
   // same formula applies to the AI." — a real, comparative score against the rest of the world,
   // not the old single-run "one number that goes up" tally.
@@ -34,13 +43,13 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
 
   const handleCopySummary = () => {
     const lines = [
-      `Terra Imperium (${playerNation?.name}) — ${isVictory ? `Victory (${victoryCondition?.name || 'Score Victory'})` : isComplete ? `Game Complete — Rank #${rank} of ${ranked.length}` : 'Defeat'}`,
-      `Score: ${formatNumber(playerScore.total)}`,
-      `Final Year: ${state.year} · Turns Played: ${formatNumber(state.turnNumber)}`,
-      `Regions Held: ${regionsHeld} · Home Control: ${getPlayerControl(state)}%`,
-      `Tech Researched: ${techResearched}/${Object.keys(state.techTree).length}`,
-      `Wars Fought: ${warsFought} · Peace Treaties: ${peaceTreaties}`,
-      `Treasury: ${formatMoney(state.resources.gold)}`
+      tNow('p1.go.copyHead', { game: tNow('title.name'), name: nationText, result: isVictory ? tNow('p1.go.copyVictory', { name: victoryTitle || victoryName('finalScore', 'Score Victory') }) : isComplete ? tNow('p1.go.copyComplete', { rank, total: ranked.length }) : tNow('p1.go.defeat') }),
+      tNow('p1.go.copyScore', { n: formatNumber(playerScore.total) }),
+      tNow('p1.go.copyYears', { year: yearValue, turns: formatNumber(state.turnNumber) }),
+      tNow('p1.go.copyRegions', { regions: regionsHeld, control: getPlayerControl(state) }),
+      tNow('p1.go.copyTech', { a: techResearched, b: Object.keys(state.techTree).length }),
+      tNow('p1.go.copyWars', { wars: warsFought, peace: peaceTreaties }),
+      tNow('p1.go.copyTreasury', { n: money })
     ];
     navigator.clipboard?.writeText(lines.join('\n')).then(() => {
       setCopied(true);
@@ -64,26 +73,26 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
         )}
 
         <h2 className={`text-2xl font-bold mb-1 ${isVictory ? 'text-fa-good' : isComplete ? 'text-amber-400' : 'text-fa-danger-text'}`}>
-          {isVictory ? (victoryCondition?.name || 'Victory') : isComplete ? `Game Complete — Rank #${rank}` : 'Defeat'}
+          {isVictory ? (victoryTitle || tNow('p1.go.victory')) : isComplete ? tNow('p1.go.complete', { rank }) : tNow('p1.go.defeat')}
         </h2>
         <p className="text-fa-muted text-sm mb-1">
           {isVictory
-            ? (victoryCondition?.description || `${playerNation?.name} has endured across the ages.`)
+            ? (victoryCondition ? victoryDescription(state.victoryConditionId, victoryCondition.description) : tNow('p1.go.endured', { name: nationText }))
             : isComplete
-              ? `${playerNation?.name} finished #${rank} of ${ranked.length} nations in the world by ${state.year}.`
-              : `${playerNation?.name}'s home territory has fallen. The nation could not be saved.`}
+              ? tNow('p1.go.finished', { name: nationText, rank, total: ranked.length, year: yearValue })
+              : tNow('p1.go.fallen', { name: nationText })}
         </p>
-        <p className="text-amber-400 font-mono text-sm mb-6">Score: {formatNumber(playerScore.total)}</p>
+        <p className="text-amber-400 font-mono text-sm mb-6">{tNow('p1.go.score', { n: formatNumber(playerScore.total) })}</p>
 
         <div className="grid grid-cols-2 gap-3 text-start mb-6">
-          <Stat label="Final Year" value={state.year} />
-          <Stat label="Turns Played" value={formatNumber(state.turnNumber)} />
-          <Stat label="Regions Held" value={regionsHeld} />
-          <Stat label="Home Control" value={`${getPlayerControl(state)}%`} />
-          <Stat label="Tech Researched" value={`${techResearched}/${Object.keys(state.techTree).length}`} />
-          <Stat label="Wars Fought" value={warsFought} />
-          <Stat label="Peace Treaties" value={peaceTreaties} />
-          <Stat label="Treasury" value={formatMoney(state.resources.gold)} />
+          <Stat label={tNow('p1.go.finalYear')} value={yearValue} />
+          <Stat label={tNow('p1.go.turns')} value={formatNumber(state.turnNumber)} />
+          <Stat label={tNow('p1.go.regions')} value={regionsHeld} />
+          <Stat label={tNow('p1.go.control')} value={`${getPlayerControl(state)}%`} />
+          <Stat label={tNow('p1.go.tech')} value={`${techResearched}/${Object.keys(state.techTree).length}`} />
+          <Stat label={tNow('p1.go.wars')} value={warsFought} />
+          <Stat label={tNow('p1.go.peace')} value={peaceTreaties} />
+          <Stat label={tNow('p1.go.treasury')} value={money} />
         </div>
 
         <div className="flex gap-2">
@@ -93,7 +102,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
                        bg-fa-hover hover:bg-fa-line text-fa-text transition-all active:scale-95"
           >
             {copied ? <Check className="w-4 h-4 text-fa-good" /> : <Copy className="w-4 h-4" />}
-            {copied ? 'Copied!' : 'Copy Summary'}
+            {copied ? tNow('p1.go.copied') : tNow('p1.go.copy')}
           </button>
           {canContinue ? (
             <button
@@ -103,7 +112,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
                          text-fa-text shadow-lg transition-all active:scale-95"
             >
               <PlayCircle className="w-4 h-4" />
-              Continue Playing
+              {tNow('p1.go.continue')}
             </button>
           ) : (
             <button
@@ -113,13 +122,13 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
                          text-fa-text shadow-lg transition-all active:scale-95"
             >
               <RotateCcw className="w-4 h-4" />
-              Start New Game
+              {tNow('p1.go.newGame')}
             </button>
           )}
         </div>
         {canContinue && (
           <button onClick={onReset} className="mt-3 text-xs text-fa-muted hover:text-fa-text underline transition-colors">
-            Start a New Game instead
+            {tNow('p1.go.newInstead')}
           </button>
         )}
       </div>

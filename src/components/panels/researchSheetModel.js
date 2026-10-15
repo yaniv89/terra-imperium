@@ -16,20 +16,24 @@ import { nationFacts, boostOf } from '../../engine/boosts';
 import { canStartTech } from '../../engine/research';
 import { getResearchView, researchedSet } from './researchView';
 import { techName } from '../../i18n/gameText';
+import { t as tNow, hasKey, ageName } from '../../i18n/core';
 
 // Where a boost's fact lives on the map: a lens to switch on, or a sheet to open. Settling claims
 // land (rivers, coast, resources, forest, hills); a city's size shows in the yields lens; roads in
 // the supply lens; a trade agreement is made with a people.
 export const boostTarget = (label = '') => {
-  if (/trade agreement|Trade with/i.test(label)) return { kind: 'tab', tab: 'diplomacy', label: 'Peoples' };
-  if (/Grow a city/i.test(label)) return { kind: 'lens', lens: 'yields', label: 'Map' };
-  if (/road/i.test(label)) return { kind: 'lens', lens: 'supply', label: 'Map' };
-  if (/river|coastal|Rule \d|forest|hill|Own (?!a harbour)/i.test(label)) return { kind: 'lens', lens: 'settle', label: 'Map' };
+  if (/trade agreement|Trade with/i.test(label)) return { kind: 'tab', tab: 'diplomacy', label: tNow('rail.diplomacy') };
+  if (/Grow a city/i.test(label)) return { kind: 'lens', lens: 'yields', label: tNow('p2.bt.map') };
+  if (/road/i.test(label)) return { kind: 'lens', lens: 'supply', label: tNow('p2.bt.map') };
+  if (/river|coastal|Rule \d|forest|hill|Own (?!a harbour)/i.test(label)) return { kind: 'lens', lens: 'settle', label: tNow('p2.bt.map') };
   return null;
 };
 
 // "Bronze", "Kingdoms": an age's name without "Age" for the strip and the era card.
-export const shortAge = (ageId) => (AGES[ageId]?.name || ageId || '').replace(/^Age of (the )?/i, '').replace(/ Age$/i, '');
+export const shortAge = (ageId) => {
+  const english = (AGES[ageId]?.name || ageId || '').replace(/^Age of (the )?/i, '').replace(/ Age$/i, '');
+  return hasKey(`p2.ageShort.${ageId}`, 'en') ? tNow(`p2.ageShort.${ageId}`) : english;
+};
 
 const ageOfTechs = (state, researched) => {
   // the latest age you know a tech of (the calendar age before the first tech)
@@ -80,7 +84,7 @@ export const researchSheetModel = (state) => {
     // I137: the calendar age and the age of your techs are different things; the heading names the calendar age
     // (what the date says) and the techs counted are named for their own age, so a Classical tech count under a
     // Bronze Age date is never read as the age you are in.
-    header: { ageName: AGES[calendarAge]?.name || calendarAge, techAgeName: AGES[techAge]?.name || techAge, aheadOfCalendar: AGE_ORDER.indexOf(techAge) > AGE_ORDER.indexOf(calendarAge), known: here.known, total: here.total },
+    header: { ageName: ageName(calendarAge, AGES[calendarAge]?.name || calendarAge), techAgeName: ageName(techAge, AGES[techAge]?.name || techAge), aheadOfCalendar: AGE_ORDER.indexOf(techAge) > AGE_ORDER.indexOf(calendarAge), known: here.known, total: here.total },
     boosts,
     ages,
     era: {

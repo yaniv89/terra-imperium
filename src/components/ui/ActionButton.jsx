@@ -3,6 +3,8 @@
 
 import React from 'react';
 import { getCostString, getResourceStrain } from '../../utils/helpers';
+import { t as tNow } from '../../i18n';
+import { useT } from '../../i18n/useT';
 
 const VARIANT_STYLES = {
   // Field Atlas (plans/UI-DESIGN.md): actions are raised cards with a line border; only a screen's
@@ -51,6 +53,7 @@ const ActionButton = ({
   // is unaffected.
   resources = null
 }) => {
+  useT(); // redraw when the language changes
   const costString = formatCost(costs);
   const effectString = formatEffect(effects);
   const strain = costs && resources ? getResourceStrain(costs, resources) : null;
@@ -106,7 +109,7 @@ const ActionButton = ({
             {/* Cost */}
             {costString && (
               <span className={strain ? `${strain.level === 'critical' ? 'text-fa-danger-text' : 'text-fa-enemy'} font-semibold` : 'text-fa-muted'}>
-                Cost: {costString}
+                {tNow('p1.ab.cost', { cost: costString })}
               </span>
             )}
             {/* Effect */}
@@ -121,7 +124,7 @@ const ActionButton = ({
         {/* Resource strain warning */}
         {strain && (
           <div className={`text-xs mt-1 ${strain.level === 'critical' ? 'text-fa-danger-text' : 'text-fa-enemy'}`}>
-            ⚠ Uses {strain.level === 'critical' ? 'all' : 'most'} of your {strain.label}
+            {tNow(strain.level === 'critical' ? 'p1.ab.usesAll' : 'p1.ab.usesMost', { label: strain.label })}
           </div>
         )}
       </div>

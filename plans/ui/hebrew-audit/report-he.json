@@ -1,0 +1,691 @@
+{
+ "results": [
+  {
+   "screen": "start: people list",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "start: start-step-people",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "start: start-step-world",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "start: start-step-rules",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "start: start-step-ready",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "onboarding 1",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "onboarding 2",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "onboarding 3",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "onboarding 4",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "onboarding 5",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "onboarding 6",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "map: political",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "map: lens political",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "map: lens yields",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "map: lens loyalty",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "map: lens threat",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "map: lens supply",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "map: lens trade",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "map: lens settle",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "map: lens list open",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "rail: האימפריה",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "rail: האימפריה: tabs",
+   "skipped": "no tabs visible",
+   "items": []
+  },
+  {
+   "screen": "rail: ערים",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "rail: ערים: tabs",
+   "skipped": "no tabs visible",
+   "items": []
+  },
+  {
+   "screen": "rail: מחקר",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "rail: מחקר: tabs",
+   "skipped": "no tabs visible",
+   "items": []
+  },
+  {
+   "screen": "rail: עמים",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "rail: עמים: tabs",
+   "skipped": "no tabs visible",
+   "items": []
+  },
+  {
+   "screen": "rail: מורשת",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "rail: מורשת: tabs",
+   "skipped": "no tabs visible",
+   "items": []
+  },
+  {
+   "screen": "log",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "menu: settings",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "menu: tabs",
+   "skipped": "no tabs visible",
+   "items": []
+  },
+  {
+   "screen": "city: opened",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city > סקירה",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city > בנייה",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city > אזרחים",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city > מבנים",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city > פוליטיקה",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city > הגנה",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "research choice",
+   "note": "",
+   "items": [
+    {
+     "kind": "text",
+     "text": "Mycenae",
+     "where": "div"
+    }
+   ]
+  },
+  {
+   "screen": "tech: lines",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "tech: web (tech tree)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "first contact",
+   "skipped": "card did not show",
+   "items": []
+  },
+  {
+   "screen": "peoples: list",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "peoples: nation card",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "nation sheet",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "nation sheet: tabs",
+   "skipped": "no tabs visible",
+   "items": []
+  },
+  {
+   "screen": "event: great_flood_myth",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "event: bronze_trade_networks",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "event: rise_of_writing",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "turn report",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "tile sheet: free",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "tile sheet: own",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "tile sheet: water",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "tile sheet: foreign",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "army sheet",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "march bar: start",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "march bar: target free",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "march bar: target own",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "march bar: target water",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "march bar: target foreign",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "settler sheet (tile with settlers)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "settle mode",
+   "skipped": "no choose-a-site button",
+   "items": []
+  },
+  {
+   "screen": "settle lens with settlers",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "battle: before start (deploy)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "battle: HUD",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "battle: camp (HQ card)",
+   "note": "",
+   "items": [
+    {
+     "kind": "title",
+     "text": "ניקוי הבחירה (Esc)",
+     "where": "battle-building-close"
+    }
+   ]
+  },
+  {
+   "screen": "battle: all selected",
+   "note": "",
+   "items": [
+    {
+     "kind": "title",
+     "text": "ניקוי הבחירה (Esc)",
+     "where": "battle-clear-selection"
+    }
+   ]
+  },
+  {
+   "screen": "battle: wand",
+   "note": "",
+   "items": [
+    {
+     "kind": "title",
+     "text": "ניקוי הבחירה (Esc)",
+     "where": "battle-clear-selection"
+    }
+   ]
+  },
+  {
+   "screen": "battle: laborers selected",
+   "note": "",
+   "items": [
+    {
+     "kind": "title",
+     "text": "ניקוי הבחירה (Esc)",
+     "where": "battle-clear-selection"
+    }
+   ]
+  },
+  {
+   "screen": "battle: build sheet (laborers selected)",
+   "note": "",
+   "items": [
+    {
+     "kind": "title",
+     "text": "ניקוי הבחירה (Esc)",
+     "where": "battle-clear-selection"
+    }
+   ]
+  },
+  {
+   "screen": "battle: pause",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "battle: retreat card",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "battle: result",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "tile sheet: enemy army (attack button)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "pre-battle card",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "battle replay",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "battle report sheet",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "battle report: replay",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "nation overview sheet",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "government change dialog",
+   "skipped": "no enabled government button found",
+   "items": []
+  },
+  {
+   "screen": "title screen",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "title: load view",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "title: settings",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city build: after queueing",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city buildings: with buildings built",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city politics: unrest, devastation, low loyalty",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city defense: under siege",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city overview: under siege",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "city citizens: tiles",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: fleet army sheet",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx-fleet",
+   "skipped": "error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.",
+   "items": []
+  },
+  {
+   "screen": "mapx: army sheet beside an independent city (siege order, assault)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: army sheet, siege laid",
+   "skipped": "no siege order button",
+   "items": []
+  },
+  {
+   "screen": "mapx: army sheet with a merge button",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: army sheet, marching (route, halt the march)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: tile sheet, foreign army at peace (declare war card)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: army sheet beside a city at peace (declare war button)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx-marchbar",
+   "skipped": "error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.",
+   "items": []
+  },
+  {
+   "screen": "mapx: settle mode, settler tile sheet",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: settle mode, next good site",
+   "skipped": "no next-site button (no known site in reach)",
+   "items": []
+  },
+  {
+   "screen": "mapx: settle lens legend",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: settle mode, blocked site (too close)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: settle mode, foreign land (no city here)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: tile sheet, settlers on their way (arrive, Cancel)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "mapx: tile sheet, settler status line (heading for)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "pnl1-empire",
+   "skipped": "error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.",
+   "items": []
+  },
+  {
+   "screen": "pnl1-space",
+   "skipped": "error: Error: no Space button on the rail",
+   "items": []
+  },
+  {
+   "screen": "pnl1-legacy",
+   "skipped": "error: Error: no Legacy button on the rail",
+   "items": []
+  },
+  {
+   "screen": "pnl1 nation overview (rich empire)",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "pnl1 game over: victory",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "pnl1 game over: complete",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "pnl1 game over: defeat",
+   "note": "",
+   "items": []
+  },
+  {
+   "screen": "pnl2-research",
+   "skipped": "error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.",
+   "items": []
+  },
+  {
+   "screen": "pnl2-peoples",
+   "skipped": "error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.",
+   "items": []
+  },
+  {
+   "screen": "cards",
+   "skipped": "error: TimeoutError: locator.waitFor: Timeout 15000ms exceeded.",
+   "items": []
+  },
+  {
+   "screen": "turn 1: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 2: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 3: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 4: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 5: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 6: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 7: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 8: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 9: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 10: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 11: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turn 12: report",
+   "note": "turn 2",
+   "items": []
+  },
+  {
+   "screen": "turns",
+   "skipped": "error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.",
+   "items": []
+  }
+ ],
+ "pageErrors": []
+}

@@ -6,6 +6,9 @@
 import React, { useMemo, useState } from 'react';
 import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle, Anchor, Compass } from 'lucide-react';
 import { menText } from '../../engine/battleLedger';
+import { useT } from '../../i18n/useT';
+import { tOr } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
 import PreBattleModal from '../battle/PreBattleModal';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -16,8 +19,9 @@ import { UnitIcon } from '../ui/icons';
 
 const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
   const { state, dispatch } = useGame();
+  const { t: tr, lang } = useT();
   const isMobile = useIsMobile();
-  const model = useMemo(() => armySheetModel(state, tile), [state, tile]);
+  const model = useMemo(() => armySheetModel(state, tile), [state, tile, lang]); // eslint-disable-line react-hooks/exhaustive-deps -- lang only words the sheet
   const [renaming, setRenaming] = useState(null);
   const [picked, setPicked] = useState(null); // unit ids chosen to march (null: the whole stack)
   const [attack, setAttack] = useState(null); // a target of the pre-battle modal
@@ -35,27 +39,27 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
         <div className="flex items-center gap-2 min-w-0">
           <Shield className="w-4 h-4 text-fa-good shrink-0" />
           <div className="min-w-0">
-            <div className="font-bold text-fa-text truncate text-sm">{model.groups.length === 1 && model.groups[0].key ? model.groups[0].name : `${model.naval ? 'Fleet' : 'Army'} ${where}`}</div>
-            <div className="text-fa-muted text-[10px]" data-testid="army-where">{menText(model.soldiers)} {model.naval ? 'crew' : 'soldiers'} · {where}{showBase ? ` · based at ` : ''}{showBase && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
+            <div className="font-bold text-fa-text truncate text-sm">{model.groups.length === 1 && model.groups[0].key ? model.groups[0].name : tr(model.naval ? 'mx.army.fleetAt' : 'mx.army.armyAt', { where })}</div>
+            <div className="text-fa-muted text-[10px]" data-testid="army-where">{menText(model.soldiers)} {model.naval ? tr('mx.army.crew') : tr('mx.army.soldiers')} · {where}{showBase ? tr('mx.army.basedAt') : ''}{showBase && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
           </div>
         </div>
-        <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
+        <button onClick={onClose} aria-label={tr('at.close')} className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
       </div>
-      <div className="text-[11px] text-fa-text mb-2" data-testid="army-supply">{model.zoneText}{model.airCover ? ` Air cover: ${model.airCover} aircraft within ${model.airRange} tiles join a battle here.` : ''}</div>
-      {model.fortified && <div className="text-[11px] text-emerald-200 mb-2" data-testid="army-fortified">Fortified: this stack held its ground a full turn and takes 15% less damage here until it moves.</div>}
+      <div className="text-[11px] text-fa-text mb-2" data-testid="army-supply">{model.zoneText}{model.airCover ? tr('mx.army.air', { n: model.airCover, range: model.airRange }) : ''}</div>
+      {model.fortified && <div className="text-[11px] text-emerald-200 mb-2" data-testid="army-fortified">{tr('mx.army.fortified')}</div>}
       {model.mergeFrom?.length > 0 && (
         <div className="mb-2 space-y-1" data-testid="army-merge">
           {model.mergeFrom.map((m) => (
-            <button key={m.tile} type="button" onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: m.regionId, toTile: tile, unitIds: m.unitIds } })} className="w-full min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">Merge {m.unitIds.length} unit{m.unitIds.length === 1 ? '' : 's'} from {m.name} into this stack</button>
+            <button key={m.tile} type="button" onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: m.regionId, toTile: tile, unitIds: m.unitIds } })} className="w-full min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{tr('mx.army.merge', { count: m.unitIds.length, name: m.name })}</button>
           ))}
         </div>
       )}
-      {model.route && <div className="text-[11px] text-amber-200 mb-2" data-testid="army-route">Marching to {model.route.name}: about {model.route.turns} turn{model.route.turns === 1 ? '' : 's'}.</div>}
-      {model.siege && <div className="text-[11px] text-orange-200 mb-2 flex items-center gap-1.5" data-testid="army-siege"><Castle className="w-3.5 h-3.5 shrink-0" />Besieging {model.siege.name}: {model.siege.wallsName.toLowerCase()}, holds out {model.siege.hp}/{model.siege.maxHp}, {model.siege.strength} siege strength a turn{model.siege.encircled ? ', encircled: it starves' : ''}.</div>}
-      {model.holding && <div className="text-[11px] text-sky-200 mb-2" data-testid="army-holding">Holding this position: not counted idle until you lift the order or march.</div>}
+      {model.route && <div className="text-[11px] text-amber-200 mb-2" data-testid="army-route">{tr('mx.army.route', { name: model.route.name, turns: tr('march.turns', { count: model.route.turns }) })}</div>}
+      {model.siege && <div className="text-[11px] text-orange-200 mb-2 flex items-center gap-1.5" data-testid="army-siege"><Castle className="w-3.5 h-3.5 shrink-0" />{tr('mx.army.siege', { name: model.siege.name, walls: model.siege.wallsName.toLowerCase(), hp: model.siege.hp, max: model.siege.maxHp, strength: model.siege.strength, encircled: model.siege.encircled ? tr('mx.army.encircled') : '' })}</div>}
+      {model.holding && <div className="text-[11px] text-sky-200 mb-2" data-testid="army-holding">{tr('mx.army.holding')}</div>}
       {model.siegeOrders.map((s) => (
-        <button key={s.regionId} type="button" onClick={() => dispatch({ type: ActionTypes.SET_SIEGE, payload: { unitIds: model.unitIds, cityId: s.on ? null : s.regionId } })} data-testid="army-siege-order" aria-pressed={s.on} title={s.on ? 'Stop besieging: the army stays here' : 'Besiege the city: its walls are worn down every turn while the army stands beside it'} className={`w-full mb-2 min-h-[40px] rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 ${s.on ? 'bg-fa-hover hover:bg-fa-line text-fa-text' : 'bg-orange-800/70 hover:bg-orange-700 text-fa-text'}`}>
-          <Castle className="w-3.5 h-3.5" /> {s.on ? `Lift the siege of ${s.name}` : `Lay siege to ${s.name}`}
+        <button key={s.regionId} type="button" onClick={() => dispatch({ type: ActionTypes.SET_SIEGE, payload: { unitIds: model.unitIds, cityId: s.on ? null : s.regionId } })} data-testid="army-siege-order" aria-pressed={s.on} title={s.on ? tr('mx.army.siegeStopTitle') : tr('mx.army.siegeStartTitle')} className={`w-full mb-2 min-h-[40px] rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 ${s.on ? 'bg-fa-hover hover:bg-fa-line text-fa-text' : 'bg-orange-800/70 hover:bg-orange-700 text-fa-text'}`}>
+          <Castle className="w-3.5 h-3.5" /> {s.on ? tr('mx.army.liftSiege', { name: nameNow('city', null, s.name) }) : tr('mx.army.laySiege', { name: nameNow('city', null, s.name) })}
         </button>
       ))}
       {model.groups.map((g) => (
@@ -64,29 +68,29 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
           <ul className="space-y-1">
             {g.units.map((u) => (
               <li key={u.id} className="flex items-center gap-2 rounded-lg px-2 min-h-[40px] text-xs bg-fa-raised/60 border border-fa-line/60">
-                {model.unitIds.length > 1 && !model.route && <input type="checkbox" aria-label={`March ${u.name}`} checked={!picked || picked.has(u.id)} onChange={() => togglePick(u.id)} className="w-5 h-5 shrink-0" data-testid="army-pick" />}
+                {model.unitIds.length > 1 && !model.route && <input type="checkbox" aria-label={tr('mx.army.march1', { name: u.name })} checked={!picked || picked.has(u.id)} onChange={() => togglePick(u.id)} className="w-5 h-5 shrink-0" data-testid="army-pick" />}
                 <UnitIcon classId={u.classId} navalLine={u.navalLine} ageId={state.age} size={28} />
                 <div className="min-w-0 flex-1">
-                  <div className="text-fa-text truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? ` · ${u.promotions} promotion${u.promotions === 1 ? '' : 's'}` : ''}</div>
-                  <div className="text-fa-muted">{u.strength}/{u.maxStrength} · morale {u.morale}{model.naval ? ` · aboard ${u.cargo}` : ` · supply ${u.supply}/${u.supplyMax}`} · moves {u.moves}/{u.movePoints}</div>
-                  <div className="text-fa-muted capitalize">{u.rank}{u.nextRankAt ? ` · ${u.xp}/${u.nextRankAt} xp` : ''}{u.general ? ` · ${u.general} commands` : ''}</div>
+                  <div className="text-fa-text truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? tr('mx.army.promotions', { count: u.promotions }) : ''}</div>
+                  <div className="text-fa-muted">{tr('mx.army.stats', { strength: u.strength, max: u.maxStrength, morale: u.morale, supply: model.naval ? tr('mx.army.aboard', { n: u.cargo }) : tr('mx.army.supply', { n: u.supply, max: u.supplyMax }), moves: u.moves, pace: u.movePoints })}</div>
+                  <div className="text-fa-muted capitalize">{u.rank}{u.nextRankAt ? tr('mx.army.xp', { xp: u.xp, next: u.nextRankAt }) : ''}{u.general ? tr('mx.army.commands', { general: u.general }) : ''}</div>
                   {u.general
-                    ? <button type="button" onClick={() => dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: u.generalId, unitId: null } })} className="text-fa-muted underline min-h-[32px]">Recall the general</button>
+                    ? <button type="button" onClick={() => dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: u.generalId, unitId: null } })} className="text-fa-muted underline min-h-[32px]">{tr('mx.army.recall')}</button>
                     : model.generals.length > 0 && (
-                      <select aria-label={`General for ${u.name}`} defaultValue="" onChange={(e) => { if (e.target.value) { dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: e.target.value, unitId: u.id } }); e.target.value = ''; } }} className="mt-1 bg-fa-hover text-fa-text rounded px-1.5 min-h-[32px] text-[11px]">
-                        <option value="" disabled>Assign a general…</option>
+                      <select aria-label={tr('mx.army.generalFor', { name: u.name })} defaultValue="" onChange={(e) => { if (e.target.value) { dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: e.target.value, unitId: u.id } }); e.target.value = ''; } }} className="mt-1 bg-fa-hover text-fa-text rounded px-1.5 min-h-[32px] text-[11px]">
+                        <option value="" disabled>{tr('mx.army.assign')}</option>
                         {model.generals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                       </select>
                     )}
-                  {u.air && <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_AIR_PATROL, payload: { unitIds: [u.id], patrol: !u.patrol } })} data-testid="army-patrol" className={`mt-1 px-2 min-h-[32px] rounded text-[11px] ${u.patrol ? 'bg-sky-700/70 text-fa-text' : 'bg-fa-hover text-fa-text hover:bg-fa-line'}`} title="On patrol the aircraft intercept enemy strikes within six tiles of their base">{u.patrol ? 'On patrol' : 'Patrol'}</button>}
+                  {u.air && <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_AIR_PATROL, payload: { unitIds: [u.id], patrol: !u.patrol } })} data-testid="army-patrol" className={`mt-1 px-2 min-h-[32px] rounded text-[11px] ${u.patrol ? 'bg-sky-700/70 text-fa-text' : 'bg-fa-hover text-fa-text hover:bg-fa-line'}`} title={tr('mx.army.patrolTitle')}>{u.patrol ? tr('mx.army.onPatrol') : tr('mx.army.patrol')}</button>}
                   {u.perks.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1" data-testid="army-promote">
-                      <span className="text-purple-300 flex items-center gap-1"><Award className="w-3 h-3" /> Promote:</span>
+                      <span className="text-purple-300 flex items-center gap-1"><Award className="w-3 h-3" /> {tr('mx.army.promote')}</span>
                       {u.perks.map((p) => <button key={p.id} type="button" title={p.description} onClick={() => dispatch({ type: ActionTypes.PROMOTE_UNIT, payload: { unitId: u.id, perkId: p.id } })} className="px-1.5 min-h-[32px] rounded bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/50 text-purple-200 text-[10px]">{p.name}</button>)}
                     </div>
                   )}
                 </div>
-                <button type="button" onClick={() => dispatch({ type: ActionTypes.DISBAND_UNIT, payload: { unitId: u.id } })} aria-label={`Disband ${u.name}`} className="p-2 rounded-lg min-w-[36px] min-h-[36px] text-fa-danger-text hover:bg-fa-hover"><Trash2 className="w-4 h-4" /></button>
+                <button type="button" onClick={() => dispatch({ type: ActionTypes.DISBAND_UNIT, payload: { unitId: u.id } })} aria-label={tr('mx.army.disbandOne', { name: u.name })} className="p-2 rounded-lg min-w-[36px] min-h-[36px] text-fa-danger-text hover:bg-fa-hover"><Trash2 className="w-4 h-4" /></button>
               </li>
             ))}
           </ul>
@@ -94,29 +98,29 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       ))}
       <div className="flex gap-2 mt-1">
         {model.route
-          ? <button type="button" onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: model.unitIds } })} className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">Halt the march</button>
-          : <button type="button" disabled={!model.canMarch || !marching.length} onClick={() => { if (model.naval) sail(); else { startMarch(model.regionId, { unitIds: marching }); onClose?.(); } }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> {model.naval ? 'Sail' : 'March'}{picked ? ` ${marching.length} of ${model.unitIds.length}` : ''}…</button>}
+          ? <button type="button" onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: model.unitIds } })} className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{tr('mx.army.halt')}</button>
+          : <button type="button" disabled={!model.canMarch || !marching.length} onClick={() => { if (model.naval) sail(); else { startMarch(model.regionId, { unitIds: marching }); onClose?.(); } }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> {model.naval ? tr('mx.army.sail') : tr('mx.army.march')}{picked ? tr('mx.army.marchOf', { n: marching.length, total: model.unitIds.length }) : ''}…</button>}
         {model.scouts && (
-          <button type="button" onClick={() => dispatch({ type: ActionTypes.EXPLORE_ORDER, payload: { unitIds: model.unitIds, stop: model.exploring } })} data-testid="army-explore" aria-pressed={model.exploring} title="Explore: walk to the nearest unexplored land, then on to the next, until nothing is left in reach" className={`min-h-[44px] px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${model.exploring ? 'bg-sky-700/80 text-fa-text' : 'bg-emerald-700/80 hover:bg-emerald-600 text-fa-text'}`}>
-            <Compass className="w-3.5 h-3.5" /> {model.exploring ? 'Stop exploring' : 'Explore'}
+          <button type="button" onClick={() => dispatch({ type: ActionTypes.EXPLORE_ORDER, payload: { unitIds: model.unitIds, stop: model.exploring } })} data-testid="army-explore" aria-pressed={model.exploring} title={tr('mx.army.exploreTitle')} className={`min-h-[44px] px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${model.exploring ? 'bg-sky-700/80 text-fa-text' : 'bg-emerald-700/80 hover:bg-emerald-600 text-fa-text'}`}>
+            <Compass className="w-3.5 h-3.5" /> {model.exploring ? tr('mx.army.stopExploring') : tr('mx.army.explore')}
           </button>
         )}
         {model.canHold && (
-          <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_HOLD, payload: { unitIds: model.unitIds, hold: !model.holding } })} data-testid="army-hold" aria-pressed={model.holding} title="Hold: the army stays here and is not counted idle, until you lift it or order a march" className={`min-h-[44px] px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${model.holding ? 'bg-sky-700/80 text-fa-text' : 'bg-fa-hover hover:bg-fa-line text-fa-text'}`}>
-            <Anchor className="w-3.5 h-3.5" /> {model.holding ? 'Holding' : 'Hold'}
+          <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_HOLD, payload: { unitIds: model.unitIds, hold: !model.holding } })} data-testid="army-hold" aria-pressed={model.holding} title={tr('mx.army.holdTitle')} className={`min-h-[44px] px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${model.holding ? 'bg-sky-700/80 text-fa-text' : 'bg-fa-hover hover:bg-fa-line text-fa-text'}`}>
+            <Anchor className="w-3.5 h-3.5" /> {model.holding ? tr('mx.army.holdingBtn') : tr('mx.army.hold')}
           </button>
         )}
-        <button type="button" onClick={() => setRenaming(model.groups[0].key ? model.groups[0].name : '')} aria-label="Name this army" className="min-h-[44px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text"><Pencil className="w-4 h-4" /></button>
+        <button type="button" onClick={() => setRenaming(model.groups[0].key ? model.groups[0].name : '')} aria-label={tr('mx.army.nameThis')} className="min-h-[44px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text"><Pencil className="w-4 h-4" /></button>
       </div>
       {model.targets.length > 0 && (
         <div className="mt-2 space-y-1" data-testid="army-targets">
           {model.targets.map((t) => t.war ? (
             <button key={`war:${t.tile}`} type="button" disabled={!t.war.enabled} onClick={() => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: t.war.nationId } })} data-testid="army-declare-war" title={t.war.note} className="w-full min-h-[44px] rounded-lg bg-amber-800/70 hover:bg-amber-700 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
-              <Swords className="w-3.5 h-3.5" /> {t.war.label} ({Object.entries(t.war.costs).map(([k, v]) => `${v} ${k.toUpperCase()}`).join(', ')})
+              <Swords className="w-3.5 h-3.5" /> {t.war.label} ({Object.entries(t.war.costs).map(([k, v]) => `${v} ${lang === 'he' ? tOr(`res.${k}`, k.toUpperCase()) : k.toUpperCase()}`).join(', ')})
             </button>
           ) : (
-            <button key={`${t.kind}:${t.tile}`} type="button" disabled={!t.ok} onClick={() => setAttack(t)} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? 'Assault the city' : t.kind === 'fleet' ? 'Fight the fleet beside you' : 'Attack the army') : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
-              <Swords className="w-3.5 h-3.5" /> {t.kind === 'city' ? `Assault ${t.name}` : `Attack the ${t.name}`} ({t.strength.toLocaleString()}){t.ok ? '' : ` · ${t.reason}`}
+            <button key={`${t.kind}:${t.tile}`} type="button" disabled={!t.ok} onClick={() => setAttack(t)} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? tr('mx.army.assaultTitle') : t.kind === 'fleet' ? tr('mx.army.fleetTitle') : tr('mx.army.attackTitle')) : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
+              <Swords className="w-3.5 h-3.5" /> {t.kind === 'city' ? tr('mx.army.assault', { name: t.name }) : tr('mx.army.attackThe', { name: t.name })} ({t.strength.toLocaleString()}){t.ok ? '' : ` · ${t.reason}`}
             </button>
           ))}
         </div>
@@ -127,14 +131,14 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
           ? <PreBattleModal fromRegionId={model.regionId} fromTile={tile} tile={attack.tile} onClose={() => setAttack(null)} />
           : <PreBattleModal fromRegionId={model.regionId} tile={attack.tile} onClose={() => setAttack(null)} />)}
       {model.pillage && (
-        <button type="button" onClick={() => dispatch({ type: ActionTypes.PILLAGE_TILE, payload: { unitIds: model.unitIds } })} data-testid="army-pillage" className="w-full mt-2 min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5" title="Burn the improvement here: it stops yielding until repaired; the stack spends its moves.">
-          <Flame className="w-3.5 h-3.5" /> Pillage the {model.pillage.name} (+{model.pillage.gold} gold)
+        <button type="button" onClick={() => dispatch({ type: ActionTypes.PILLAGE_TILE, payload: { unitIds: model.unitIds } })} data-testid="army-pillage" className="w-full mt-2 min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5" title={tr('mx.army.pillageTitle')}>
+          <Flame className="w-3.5 h-3.5" /> {tr('mx.army.pillage', { name: model.pillage.name, gold: model.pillage.gold })}
         </button>
       )}
       {renaming != null && (
         <div className="flex gap-2 mt-2">
-          <input value={renaming} onChange={(e) => setRenaming(e.target.value)} placeholder="Army name" aria-label="Army name" className="flex-1 bg-fa-raised rounded px-2 min-h-[40px] text-fa-text text-xs" />
-          <button type="button" onClick={rename} data-testid="army-rename" className="min-h-[40px] px-3 rounded-lg bg-emerald-700 text-fa-text text-xs">Save</button>
+          <input value={renaming} onChange={(e) => setRenaming(e.target.value)} placeholder={tr('mx.army.armyName')} aria-label={tr('mx.army.armyName')} className="flex-1 bg-fa-raised rounded px-2 min-h-[40px] text-fa-text text-xs" />
+          <button type="button" onClick={rename} data-testid="army-rename" className="min-h-[40px] px-3 rounded-lg bg-emerald-700 text-fa-text text-xs">{tr('mx.army.save')}</button>
         </div>
       )}
     </>

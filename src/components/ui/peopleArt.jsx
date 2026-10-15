@@ -13,6 +13,7 @@
 // (The art plan names public/ui/ for the S3 plates; they live under src/assets/ui/ instead so the
 // build knows which exist, no request ever 404s, and the files still ship as separate hashed
 // assets, never inside the JavaScript bundle.)
+import { useT } from '../../i18n/useT';
 import React from 'react';
 import { Castle, Landmark, Crown, Palmtree, Wheat, Trees, Tent, Flower2, Gem, Columns, Flower, Waves, Sailboat, Mountain, Sun, Layers } from 'lucide-react';
 
@@ -40,11 +41,12 @@ export const THEME_LABELS = {
 };
 
 export const ThemeIcon = ({ theme, className = 'w-3.5 h-3.5' }) => {
+  const { t } = useT();
   const url = THEME_ICONS[theme];
-  const label = THEME_LABELS[theme] || theme;
-  if (url) return <img src={url} alt="" title={`${label} art`} className={className} />;
+  const label = THEME_LABELS[theme] ? t(`theme.${theme}`) : theme;
+  if (url) return <img src={url} alt="" title={t('theme.art', { label })} className={className} />;
   const Glyph = THEME_GLYPHS[theme] || Landmark;
-  return <span title={`${label} art`} className="inline-flex shrink-0"><Glyph className={`${className} text-slate-400`} aria-hidden="true" /></span>;
+  return <span title={t('theme.art', { label })} className="inline-flex shrink-0"><Glyph className={`${className} text-slate-400`} aria-hidden="true" /></span>;
 };
 
 // Placeholder emblems: a seeded charge on the shield (art plan W0: "code draws a seeded emblem

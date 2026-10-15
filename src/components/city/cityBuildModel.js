@@ -14,8 +14,9 @@
 import { getTiles } from '../../data/geo/tiles';
 import { TECH_TREE } from '../../data/techTree';
 import { reasonText } from '../../i18n/messageText';
+import { t as tNow, dataText } from '../../i18n/core';
 import { unitName as unitDisplayName } from '../../i18n/gameText';
-import { unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord } from '../../i18n/gameText';
+import { unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord, tileResourceName } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getAvailableClasses, UNIT_CLASSES } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, canImprove } from '../../data/tileYields';
@@ -31,6 +32,10 @@ import { settlingOutlook } from '../../engine/settlers';
 import { rushQuote, rushGold, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
 
 export const GROUPS = ['Units', 'Armies', 'Buildings', 'Wonders', 'Improvements'];
+/** The words of a group id ('All' too). */
+export const groupLabel = (g) => tNow(`cy.group.${g}`);
+/** An army template's name: the two default templates have a Hebrew name; a name the player typed stays as typed. */
+export const templateName = (templateId, name) => (templateId === 'tpl_legion' || templateId === 'tpl_siege_train' ? dataText(`tpl.${templateId}`, name) : name);
 
 export const describeTile = (facts) => {
   const parts = [terrainWord(facts.terrain)];
@@ -43,32 +48,31 @@ export const describeTile = (facts) => {
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 /** Where `to` lies from `from`: { km, dir, text } ("150 km NE"). For labels only. */
 export const tileBearing = (tiles, from, to) => {
-  if (from == null || to == null || from === to) return { km: 0, dir: '', text: 'the centre' };
+  if (from == null || to == null || from === to) return { km: 0, dir: '', text: tNow('cy.theCentre') };
   const a = tiles.latLonOf(from); const b = tiles.latLonOf(to);
   let dLon = b.lon - a.lon; if (dLon > 180) dLon -= 360; if (dLon < -180) dLon += 360;
   const east = dLon * Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180);
   const angle = (Math.atan2(east, b.lat - a.lat) * 180 / Math.PI + 360) % 360;
   const dir = COMPASS[Math.round(angle / 45) % 8];
   const km = Math.round(distanceKm(tiles.centres[from], tiles.centres[to]) / 10) * 10;
-  return { km, dir, text: `${km} km ${dir}` };
+  return { km, dir, text: tNow('cy.bearing', { km, dir: tNow(`cy.dir.${dir}`) }) };
 };
 
 /** A tile of the city in words: "coast, fish, 80 km NE". */
-export const tilePlace = (tiles, cityTile, tile, facts = tileFacts(tiles, tile)) => `${describeTile(facts)}${facts.resource ? `, ${facts.resource}` : ''}, ${tileBearing(tiles, cityTile, tile).text}`;
+export const tilePlace = (tiles, cityTile, tile, facts = tileFacts(tiles, tile)) => `${describeTile(facts)}${facts.resource ? `, ${tileResourceName(facts.resource)}` : ''}, ${tileBearing(tiles, cityTile, tile).text}`;
 
 export const itemLabel = (item, tiles = getTiles(), ageId = 'bronze', cityTile = null) => {
-  if (item.kind === 'unit' && item.explorer) return 'Scouts';
+  if (item.kind === 'unit' && item.explorer) return tNow('cy.scouts');
   if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${navalLineRole(item.navalLine || 'warship', NAVAL_LINES[item.navalLine || 'warship'].role)})` : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return buildingTierName(item.category, item.tier, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name);
   if (item.kind === 'improvement') return `${improvementName(item.improvement, IMPROVEMENTS[item.improvement]?.name)}: ${cityTile != null ? tilePlace(tiles, cityTile, item.tile) : describeTile(tileFacts(tiles, item.tile))}`;
-  if (item.kind === 'settler') return 'Settlers';
-  if (item.kind === 'wonder') return `${wonderName(item.projectId, GREAT_PROJECTS[item.projectId]?.name)} (tier ${item.tier})${item.tile != null && cityTile != null ? `, ${tileBearing(tiles, cityTile, item.tile).text}` : ''}`;
-  if (item.kind === 'army') { const next = nextTemplateUnit(item); const p = templateProgress(item); return next ? `${item.name}: ${unitDisplayName(ageId, next)} (${p.done + 1} of ${p.total})` : `${item.name} (${p.total} units)`; }
+  if (item.kind === 'settler') return tNow('cy.settlers');
+  if (item.kind === 'wonder') return `${wonderName(item.projectId, GREAT_PROJECTS[item.projectId]?.name)} (${tNow('cy.tier', { n: item.tier })})${item.tile != null && cityTile != null ? `, ${tileBearing(tiles, cityTile, item.tile).text}` : ''}`;
+  if (item.kind === 'army') { const next = nextTemplateUnit(item); const p = templateProgress(item); const nm = templateName(item.templateId, item.name); return next ? tNow('cy.armyNext', { name: nm, unit: unitDisplayName(ageId, next), i: p.done + 1, total: p.total }) : tNow('cy.armyDone', { name: nm, total: p.total }); }
   return item.kind;
 };
 
-const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
-export const turnsText = (turns) => (turns == null ? 'no production' : plural(turns, 'turn'));
+export const turnsText = (turns) => (turns == null ? tNow('cy.noProduction') : tNow('cy.turns', { count: turns }));
 
 /** The queue rows: queueView plus the label and the rush quote (spending.js, I019: what the Buy
  * button shows is what RUSH_PRODUCTION charges). */
@@ -85,12 +89,12 @@ export const buildQueue = (state, cityId, live = cityLive(state, cityId)) => {
 export const rushText = (q) => {
   const r = q?.rush;
   if (!r || r.gold == null) return null;
-  const wait = r.turns == null ? 'the city makes no production now' : `instead of ${turnsText(r.turns)}`;
-  const heat = r.heat > 0 ? ` The price is up ${Math.round((r.mult - 1) * 100)}% for this city's recent purchases; it falls back as turns pass.` : '';
+  const wait = r.turns == null ? tNow('cy.rush.noProd') : tNow('cy.rush.instead', { turns: turnsText(r.turns) });
+  const heat = r.heat > 0 ? ` ${tNow('cy.rush.heat', { pct: Math.round((r.mult - 1) * 100) })}` : '';
   return {
-    button: `Buy ${r.gold}g`,
-    title: r.ok ? `Pay ${r.gold} gold for the ${r.hammers} production ${q.label} still needs` : r.reason,
-    text: `${q.label}: ${r.hammers} production for ${r.gold} gold (${RUSH_GOLD_PER_HAMMER} gold each). Done next turn, ${wait}.${heat}`
+    button: tNow('cy.rush.button', { gold: r.gold }),
+    title: r.ok ? tNow('cy.rush.title', { gold: r.gold, hammers: r.hammers, label: q.label }) : r.reason,
+    text: `${tNow('cy.rush.text', { label: q.label, hammers: r.hammers, gold: r.gold, each: RUSH_GOLD_PER_HAMMER, wait })}${heat}`
   };
 };
 
@@ -120,7 +124,7 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
 
   // No site worth a city in reach (settlers.js settlingOutlook: legal, explored): the row says so (I092).
   const noSite = !settlingOutlook(state, city.owner, city.tile, ageId).ok;
-  add({ kind: 'settler' }, 'Units', { fields: { noSite, detail: noSite ? 'No good site is known within reach: these settlers would have nowhere worth going. Explore first.' : 'Founds a new city. Takes one citizen from this one.', note: city.size < SETTLER_MIN_SIZE ? `The city must reach size ${SETTLER_MIN_SIZE} first` : null } });
+  add({ kind: 'settler' }, 'Units', { fields: { noSite, detail: noSite ? tNow('cy.settlerNoSite') : tNow('cy.settlerDetail'), note: city.size < SETTLER_MIN_SIZE ? tNow('cy.settlerMin', { n: SETTLER_MIN_SIZE }) : null } });
   const coast = hasSeaCoast(tiles, city);
   getAvailableClasses(ageId).forEach((classId) => {
     if (classId === 'naval') {
@@ -132,9 +136,9 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null } });
   });
   // Scouts (scouting.js): cheap, no supply, explore at peace, never fight.
-  add({ kind: 'unit', classId: 'support', explorer: true }, 'Units', { fields: { detail: 'Cheap, fast and unarmed. Explores free land and meets other peoples; eats no supplies.' } });
+  add({ kind: 'unit', classId: 'support', explorer: true }, 'Units', { fields: { detail: tNow('cy.scoutDetail') } });
   templatesOf(state.nations[city.owner]).forEach((t) => {
-    add({ kind: 'army', templateId: t.id, name: t.name, composition: t.composition, built: {} }, 'Armies', { id: `army:${t.id}`, fields: { detail: 'Built one unit at a time; each joins the army as it is trained.' } });
+    add({ kind: 'army', templateId: t.id, name: t.name, composition: t.composition, built: {} }, 'Armies', { id: `army:${t.id}`, fields: { detail: tNow('cy.armyDetail') } });
   });
   wonderOptions(state, city).forEach((w) => {
     const item = wonderItem(w.projectId, w.tier, w.tile);
@@ -153,8 +157,8 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     const effect = buildingEffect(state, cityId, category, tier);
     add(item, 'Buildings', {
       id: `building:${category}`,
-      ...(queuedTier ? { ok: false, reason: 'Already in the queue' } : {}),
-      fields: { detail: effect?.text || null, needsTech: need, needsName: need ? techName(need, TECH_TREE[need]?.name || 'a technology') : null, lineLabel: buildingCategoryLabel(category, BUILDING_CATEGORIES[category].label) }
+      ...(queuedTier ? { ok: false, reason: tNow('cy.alreadyQueued') } : {}),
+      fields: { detail: effect?.text || null, needsTech: need, needsName: need ? techName(need, TECH_TREE[need]?.name || tNow('cy.aTechnology')) : null, lineLabel: buildingCategoryLabel(category, BUILDING_CATEGORIES[category].label) }
     });
   });
   const seen = new Map();
@@ -166,13 +170,13 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
       const item = { kind: 'improvement', improvement, tile: t };
       const effect = improvementEffect(state, cityId, item, live);
       const queued = inQueue.get(itemKey(item)) || 0;
-      let label = `${effect.repair ? 'Repair ' : ''}${itemLabel(item, tiles, ageId, city.tile)}`;
+      let label = effect.repair ? tNow('cy.repair', { label: itemLabel(item, tiles, ageId, city.tile) }) : itemLabel(item, tiles, ageId, city.tile);
       // Two tiles can share terrain, distance and direction: number the later ones.
       const n = (seen.get(label) || 0) + 1; seen.set(label, n);
       if (n > 1) label = `${label} (${n})`;
-      const notes = [effect.replaces ? `replaces the ${effect.replaces}` : null, effect.worked ? null : 'no citizen works this tile now'].filter(Boolean);
+      const notes = [effect.replaces ? tNow('cy.replaces', { name: effect.replaces }) : null, effect.worked ? null : tNow('cy.notWorked')].filter(Boolean);
       add(item, 'Improvements', {
-        ...(queued ? { ok: false, reason: 'Already in the queue' } : { ok: true }),
+        ...(queued ? { ok: false, reason: tNow('cy.alreadyQueued') } : { ok: true }),
         fields: { label, tile: t, detail: effect.text, note: notes.length ? notes.join('; ') : null }
       });
     });
@@ -195,11 +199,11 @@ export const focusHint = (state, cityId, options, live = cityLive(state, cityId)
   // Gold is the other way out (I027): the cheapest slow build, bought outright once queued.
   const cheapest = options.filter((o) => o.long && o.group !== 'Wonders' && o.ok).sort((a, b) => (a.cost - a.stored) - (b.cost - b.stored))[0];
   const buy = cheapest ? { label: cheapest.label, gold: rushGold(Math.max(0, cheapest.cost - cheapest.stored), 0, cheapest.item.kind) } : null;
-  const buyText = buy ? ` Or queue it and buy it with gold (${buy.label}: about ${buy.gold} gold).` : '';
+  const buyText = buy ? ` ${tNow('cy.hint.buy', { label: buy.label, gold: buy.gold })}` : '';
   const text = better
-    ? `${slow === 1 ? 'One build takes' : `${slow} builds take`} over ${limit} turns at ${production} production a turn. Production focus would make ${better.production}${better.food < 0 ? ' (but the city would starve)' : ''}.${buyText}`
-    : `${slow === 1 ? 'One build takes' : `${slow} builds take`} over ${limit} turns at ${production} production a turn. Focus cannot help here: ${preview.allSame ? 'every focus works the same land' : 'it already favours production'}. Mines, lumber camps or more citizens will.${buyText}`;
+    ? `${tNow('cy.hint.better', { count: slow, limit, production, better: better.production, starve: better.food < 0 ? ` ${tNow('cy.hint.starve')}` : '' })}${buyText}`
+    : `${tNow('cy.hint.noBetter', { count: slow, limit, production, why: preview.allSame ? tNow('cy.hint.sameLand') : tNow('cy.hint.favoursProd') })}${buyText}`;
   // One line for the Build tab (BUILD-01); the full text opens on a tap.
-  const short = `${slow === 1 ? 'One build is' : `${slow} builds are`} slow here: over ${limit} turns at ${production} production.`;
+  const short = tNow('cy.hint.short', { count: slow, limit, production });
   return { production, limit, slow, better, buy, text, short };
 };
