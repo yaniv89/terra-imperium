@@ -47,6 +47,7 @@ const shot = async (name, fn) => {
 await shot('base', () => { const r = window.__battleRenderer; const v = window.__battleView(); const camp = v.eco.buildings.find((b) => b.type === 'camp'); r.zoomBy(1.8); r.centerOn(camp.x / 256 + 3, camp.y / 256); });
 await shot('town', () => { const r = window.__battleRenderer; const k = r.setup.structures[0]; r.centerOn(k.x / 256 - 4, k.y / 256); });
 // The HUD: the camp's actions (tap the Base button), then an idle laborer's build grid.
+if (await page.getByTestId('battle-view-more').count()) await page.getByTestId('battle-view-more').click(); // a narrow phone keeps Base behind View (RTS-02)
 await page.getByTestId('battle-hq').click().catch(() => {});
 await page.waitForTimeout(400);
 await page.getByTestId('battle-idle-workers').click({ force: true }).catch(() => {}); // B10: a laborer's panel is the build grid

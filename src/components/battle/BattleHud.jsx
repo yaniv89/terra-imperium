@@ -6,13 +6,15 @@
 // as --sa-t, --sa-r, --sa-b, --sa-l on the battle screen (TacticalBattleScreen.jsx), and its height
 // follows the visible area (--app-height, src/utils/appViewport.js).
 //   top bar      the battle's name (it shrinks first), the clock, food, wood, stone, gold, Battle
-//                Supply now/cap (U12, in every battle), population / housing, the enemy squads left,
+//                Supply now/cap (U12, in every battle), population / housing (on a narrow phone, under
+//                760 px, these fold into one Stocks button and its card: RTS-02), the enemy squads left,
 //                the alert history once there is one (I203), speed and pause. Speed and pause never
 //                move (I206): the same two 44 px squares before Start, while paused and in battle
 //   bottom left  small buttons only (B10, UI08): All (selects the army, the camera stays: I188),
 //                Find (the camera to the selection or the army), Enemy (the camera to the enemy's
 //                objective as far as you know it: I196, I197), Base (your camp), Idle n (a laborer),
-//                Map (the minimap on or off: I196)
+//                Map (the minimap on or off: I196); on a narrow phone Find, Enemy, Base and Map fold
+//                behind one View button (RTS-02)
 //   bottom right the context panel (B10, AoE style): the actions of the selection only. The wand
 //                (U09) is one round button for the selection's abilities and the commander's powers;
 //                army: Follow (I199), Attack, Hold, Formation, Retreat; laborers, buildings and
@@ -22,12 +24,14 @@
 //                and the selection pill or the deploy card (centre), the city card and the minimap
 //                (right)
 //   alerts (B06) at most two, each for 8 seconds, with Go; all of them in the history (I203)
+//   coach        the first battle on this device: three short steps on the controls, Next or Skip,
+//                never a modal and never holding the clock (RTS-01, battleCoach.js)
 //   pause (B06)  a narrow sheet on the right (I207): Resume, speed, Switch to Auto and Retreat set
 //                apart, sound, the powers, the tally
 //   city (B05)   in a city assault: the defender's housing as houses burn (folded at first: I202)
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Bell, Users, LocateFixed } from 'lucide-react';
+import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Bell, Users, LocateFixed, Package, Compass } from 'lucide-react';
 import { ResIcon, RES_NAME, HammerButton } from './EconomyHud';
 import GameIcon from '../ui/GameIcon';
 import { RESOURCES } from '../../battle/data/economy';
@@ -38,6 +42,7 @@ import { TICK_HZ } from '../../battle/sim/constants';
 import { ABILITIES } from '../../battle/sim/effects';
 import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, armyTally, armyTallyText, supplyView } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
+import { deployHelp, cameraHelp } from './battleCoach';
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 const cx = (...p) => p.filter(Boolean).join(' ');
@@ -53,18 +58,21 @@ const TOP_BAR = 'calc(2.875rem + var(--sa-t, 0px))';
 const UNDER_BAR = 'calc(3.25rem + var(--sa-t, 0px))';
 const ABOVE_BOTTOM = 'calc(max(0.375rem, var(--sa-b, 0px)) + 3.6rem)';
 
-/** A short screen (a phone in landscape, Safari's bars showing): sheets get the room first. */
-const useShortScreen = () => {
-  const q = '(max-height: 480px)';
-  const [short, setShort] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(q).matches);
+const useMedia = (q) => {
+  const [hit, setHit] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(q).matches);
   useEffect(() => {
     const m = window.matchMedia?.(q); if (!m) return undefined;
-    const on = () => setShort(m.matches);
+    const on = () => setHit(m.matches);
+    on();
     m.addEventListener?.('change', on);
     return () => m.removeEventListener?.('change', on);
-  }, []);
-  return short;
+  }, [q]);
+  return hit;
 };
+/** A short screen (a phone in landscape, Safari's bars showing): sheets get the room first. */
+const useShortScreen = () => useMedia('(max-height: 480px)');
+/** A narrow phone (667 px and the like, RTS-02): the stocks and the camera buttons fold away. */
+export const NARROW_QUERY = '(max-width: 760px)';
 
 /** A labelled command button (B01: always a text label), 48 px. */
 const Cmd = ({ icon: Icon, glyph, label, onClick, active, danger, disabled, testId, className, ariaLabel }) => (
@@ -118,7 +126,8 @@ const BattleHud = ({
   onPower, onAbility, abilities = [], soundOn = true, onToggleSound,
   onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
   context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
-  selectMode = false, onToggleSelectMode, selectHint = false, // touch box select (UI-DESIGN B04)
+  selectMode = false, onToggleSelectMode, // touch box select (UI-DESIGN B04)
+  coach = null, // RTS-01: { steps: [{ title, text }], step, onNext, onSkip } in the first battle on this device
   onFocus, // centre the camera on (x, y) in sim units: the alerts' Go
   onClearSelection, // the selection card's x: let go of every selected squad
   onAlertGo, // an alert's Go: centre on it, select the squad when it is yours (TacticalBattleScreen.jsx)
@@ -130,6 +139,7 @@ const BattleHud = ({
   perf = null, // I205: the performance readout, given a slot of its own
   leftCard = null, // the info card / building panel, under the alerts in the top row
   mouse = false, // a mouse is the main pointer: the hints speak of clicks
+  narrow: narrowProp, // tests: force the narrow phone layout (else the screen's width decides)
   ended = false // the battle is over: only the top bar stays (the result screen, B08, owns the rest)
 }) => {
   const [confirmNuke, setConfirmNuke] = useState(null);
@@ -143,7 +153,11 @@ const BattleHud = ({
   const [supplyOpen, setSupplyOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deployMore, setDeployMore] = useState(false);
+  const [stocksOpen, setStocksOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const short = useShortScreen();
+  const narrowMedia = useMedia(NARROW_QUERY);
+  const narrow = narrowProp ?? narrowMedia;
   const [alerts, setAlerts] = useState([]);
   const prevRef = useRef(null);
   const lastRef = useRef({});
@@ -158,10 +172,10 @@ const BattleHud = ({
   }, [hud, playerSide, setup]);
   // Esc closes the open sheet first (the wand, the supply card, the history) before the battle
   // screen's own Esc (let go of the selection) sees it.
-  const anySheet = wandOpen || supplyOpen || historyOpen;
+  const anySheet = wandOpen || supplyOpen || historyOpen || stocksOpen || viewOpen;
   useEffect(() => {
     if (!anySheet) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setWandOpen(false); setSupplyOpen(false); setHistoryOpen(false); } };
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setWandOpen(false); setSupplyOpen(false); setHistoryOpen(false); setStocksOpen(false); setViewOpen(false); } };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
   }, [anySheet]);
@@ -200,6 +214,13 @@ const BattleHud = ({
   // The minimap gives way to a tall sheet on a short screen.
   const bigSheet = buildOpen || ['building', 'site', 'place'].includes(context) || wandOpen;
   const showMinimap = minimapOn && minimap && !pauseOpen && !(short && bigSheet);
+  // Find, Enemy, Base and Map (the camera and the minimap): in a row, or behind View on a narrow phone.
+  const viewButtons = [
+    onFindArmy && { glyph: <GameIcon group="battle" id="find-army" size={18} halo={false} fallback={<LocateFixed className="w-4 h-4" aria-hidden="true" />} />, label: 'Find', onClick: onFindArmy, disabled: !allCount && !selectedSquads.length, testId: 'battle-find-army', ariaLabel: 'Find your army' },
+    onObjective && { icon: Target, label: 'Enemy', onClick: onObjective, testId: 'battle-objective', ariaLabel: "Show the enemy's objective" },
+    eco && { icon: Tent, label: 'Base', onClick: onSelectHq, testId: 'battle-hq', ariaLabel: 'Your camp' },
+    onToggleMinimap && { icon: MapIcon, label: 'Map', onClick: onToggleMinimap, active: minimapOn, testId: 'battle-minimap-toggle', ariaLabel: 'Minimap' }
+  ].filter(Boolean);
   const goal = setup.battleType === 'raid' || setup.battleType === 'sack'
     ? `${BATTLE_TYPES[setup.battleType][playerSide === 1 ? 'defender' : 'attacker']}.`
     : setup.economy
@@ -215,6 +236,17 @@ const BattleHud = ({
           className={cx('fa-num text-[15px] font-semibold shrink-0', timeLeft <= 30 ? 'text-fa-danger-text animate-pulse' : timeLeft <= 60 ? 'text-fa-brass' : '')}>{fmtTime(timeLeft)}</span>
         <span className="w-px h-5 bg-fa-line shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex items-center gap-2.5 lg:gap-3 overflow-x-auto scrollbar-none" style={{ flex: '1 1 auto' }} data-testid="battle-resources">
+          {narrow ? (
+            // RTS-02: on a narrow phone the stocks, supply and housing are one button and a card.
+            <button type="button" onClick={() => { setStocksOpen((v) => !v); setSupplyOpen(false); }} aria-expanded={stocksOpen} data-testid="battle-logistics"
+              aria-label={`Stocks and supply: supply ${sup.now}${sup.cap ? ` of ${sup.cap}` : ''}${sup.low ? ', low' : ''}${eco && eco.pop >= eco.cap ? ', housing full' : ''}`}
+              className={cx('relative shrink-0 h-11 -my-1 min-w-[44px] flex items-center gap-1 px-1.5 rounded-md', stocksOpen && 'bg-fa-raised', sup.low && 'text-fa-danger-text')}>
+              <Package className="w-4 h-4" aria-hidden="true" />
+              <ResIcon res="supply" size={16} />
+              <span className="fa-num text-[13px] font-semibold">{sup.now}</span>
+              {((eco && eco.pop >= eco.cap) || sup.low) && <span className="absolute top-1 end-0.5 w-2 h-2 rounded-full bg-fa-danger" aria-hidden="true" />}
+            </button>
+          ) : <>
           {eco && RESOURCES.map((r, i) => <Res key={r} icon={<ResIcon res={r} size={18} />} label={RES_NAME[r]} value={eco.stock[i]} testId={`battle-stock-${r}`} />)}
           {/* U12: Battle Supply in every battle, now and the cap; a tap explains it */}
           <button type="button" onClick={() => setSupplyOpen((v) => !v)} aria-expanded={supplyOpen} data-testid="battle-supply"
@@ -224,6 +256,7 @@ const BattleHud = ({
             <span className="fa-num text-[13px] font-semibold">{sup.now}{sup.cap ? <span className="text-fa-muted font-normal">/{sup.cap}</span> : null}</span>
           </button>
           {eco && <Res icon={<ResIcon res="population" size={18} />} label="Population / housing" value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />}
+          </>}
           <Res icon={<Swords className="w-4 h-4 text-fa-enemy" aria-hidden="true" />} label={`Enemy squads left: ${armyTallyText(armyTally(hud, 1 - playerSide))}`} value={enemyLeft} />
         </div>
         {history.length > 0 && !ended && (
@@ -239,6 +272,26 @@ const BattleHud = ({
           {!started || paused ? <Play className="w-4 h-4" aria-hidden="true" /> : <Pause className="w-4 h-4" aria-hidden="true" />}
         </button>
       </div>
+
+      {stocksOpen && narrow && !ended && (
+        <div className="absolute z-20 w-[min(19rem,calc(100vw-2rem))] max-h-[calc(var(--app-height,100vh)-4rem)] overflow-y-auto fa-panel !bg-fa-panel/95 shadow-2xl p-2.5 pe-1 text-[12px] leading-snug pointer-events-auto" style={{ top: UNDER_BAR, insetInlineEnd: SAFE_R }} role="dialog" aria-label="Stocks and supply" data-testid="battle-logistics-card">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              {eco && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1.5">
+                  {RESOURCES.map((r, i) => <Res key={r} icon={<ResIcon res={r} size={18} />} label={RES_NAME[r]} value={eco.stock[i]} testId={`battle-stock-${r}`} />)}
+                  <Res icon={<ResIcon res="population" size={18} />} label="Population / housing" value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />
+                </div>
+              )}
+              {eco && eco.pop >= eco.cap && <div className="text-fa-danger-text font-semibold mb-1">Housing is full: build a house to train more.</div>}
+              <div className="font-semibold flex items-center gap-1" data-testid="battle-supply"><ResIcon res="supply" size={16} /><span className="fa-num">{sup.now}</span>{sup.cap ? <> of <span className="fa-num">{sup.cap}</span></> : null} Battle supply{sup.rate ? <span className="text-fa-good">, +<span className="fa-num">{sup.rate}</span> a second</span> : null}</div>
+              {sup.low && <div className="text-fa-danger-text font-semibold">Low: not enough for a power yet.</div>}
+              <div className="mt-1">{sup.costs.length ? `Pays for your powers: ${sup.costs.map((c) => `${c.label} ${c.cost}`).join(', ')}.` : 'Your side brought no powers to spend it on.'} It rises on its own, faster with points and buildings held.</div>
+            </div>
+            <button type="button" onClick={() => setStocksOpen(false)} aria-label="Close" className="w-11 h-11 -my-2 shrink-0 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>
+          </div>
+        </div>
+      )}
 
       {supplyOpen && !ended && (
         <div className="absolute z-20 w-[min(19rem,calc(100vw-2rem))] fa-panel !bg-fa-panel/95 shadow-2xl p-2.5 pr-1 text-[12px] leading-snug pointer-events-auto" style={{ top: UNDER_BAR, right: SAFE_R }} role="dialog" aria-label="Battle supply" data-testid="battle-supply-card">
@@ -317,9 +370,7 @@ const BattleHud = ({
                 <button type="button" onClick={() => setDeployMore((v) => !v)} aria-expanded={deployMore} aria-label={deployMore ? 'Less about this battle' : 'More about this battle'} data-testid="battle-deploy-more"
                   className="w-11 h-11 -my-2 -mr-2 shrink-0 flex items-center justify-center text-fa-muted">{deployMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</button>
               </div>
-              <div>{mouse
-                ? 'Click a squad, then right click inside your zone to place it. Right drag draws a battle line.'
-                : 'Tap a squad, then tap inside your zone to place it. Drag from a selected squad to draw a line.'}</div>
+              <div data-testid="battle-deploy-controls">{deployHelp(mouse)}</div>
               <div className="mt-1 text-fa-brass"><span className="fa-num">{fmtTime(timeLeft)}</span>: {goal}</div>
               {deployMore && (
                 <div className="mt-1 space-y-1" data-testid="battle-deploy-details">
@@ -330,7 +381,7 @@ const BattleHud = ({
                     </div>
                   )}
                   {setup.economy && <div className="text-fa-muted">Base buildings are the {playerSide === 1 ? 'keep' : 'camp'}, economy and military buildings. Houses and walls do not count.</div>}
-                  <div className="text-fa-muted">{mouse ? 'Hold Space (or Alt) and drag, use the arrow keys or the screen edge to move the camera; the wheel zooms where the pointer is.' : 'Drag to move the camera, pinch to zoom.'} Every regiment starts on the field.</div>
+                  <div className="text-fa-muted">{cameraHelp(mouse)} Every regiment starts on the field.</div>
                 </div>
               )}
               <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary w-full !min-h-[44px] mt-1.5" data-testid="battle-start">Start the battle</button>
@@ -414,11 +465,18 @@ const BattleHud = ({
         <div className="absolute flex items-end justify-between gap-2 pointer-events-none" style={{ top: UNDER_BAR, bottom: SAFE_B, left: SAFE_L, right: SAFE_R }}>
           <div className="pointer-events-auto flex gap-1 shrink-0" data-testid="battle-quick">
             <Cmd glyph={<GameIcon group="battle" id="select-all" size={18} halo={false} fallback={<Users className="w-4 h-4" aria-hidden="true" />} />} label={`All ${allCount}`} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" ariaLabel={`Select all ${allCount} regiments`} />
-            {onFindArmy && <Cmd glyph={<GameIcon group="battle" id="find-army" size={18} halo={false} fallback={<LocateFixed className="w-4 h-4" aria-hidden="true" />} />} label="Find" onClick={onFindArmy} disabled={!allCount && !selectedSquads.length} testId="battle-find-army" ariaLabel="Find your army" />}
-            {onObjective && <Cmd icon={Target} label="Enemy" onClick={onObjective} testId="battle-objective" ariaLabel="Show the enemy's objective" />}
-            {eco && <Cmd icon={Tent} label="Base" onClick={onSelectHq} testId="battle-hq" ariaLabel="Your camp" />}
+            {narrow ? (
+              // RTS-02: a narrow phone folds the camera buttons behind View (they open upwards).
+              <div className="relative shrink-0">
+                {viewOpen && (
+                  <div className="absolute bottom-full mb-1 start-0 flex flex-col gap-1" data-testid="battle-view-menu">
+                    {viewButtons.map((b) => <Cmd key={b.testId} {...b} onClick={() => { setViewOpen(false); b.onClick(); }} />)}
+                  </div>
+                )}
+                <Cmd icon={Compass} label="View" onClick={() => setViewOpen((v) => !v)} active={viewOpen} testId="battle-view-more" ariaLabel="Camera and map buttons" />
+              </div>
+            ) : viewButtons.map((b) => <Cmd key={b.testId} {...b} />)}
             {eco && eco.idleWorkers.length > 0 && <Cmd icon={Hammer} label={`Idle ${eco.idleWorkers.length}`} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
-            {onToggleMinimap && <Cmd icon={MapIcon} label="Map" onClick={onToggleMinimap} active={minimapOn} testId="battle-minimap-toggle" ariaLabel="Minimap" />}
           </div>
           <div className="flex-1 min-w-0 max-h-full overflow-y-auto [&>*]:pointer-events-auto overscroll-contain scrollbar-none flex flex-col items-end gap-1" data-testid="battle-context" data-context={context}>
             <div className="flex-1" aria-hidden="true" />
@@ -477,11 +535,18 @@ const BattleHud = ({
           Drag a box. Two fingers move the map.
         </div>
       )}
-      {selectHint && !selectMode && !pauseOpen && started && (
-        <div className="absolute max-w-[250px] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-xs font-semibold shadow-xl pointer-events-none" style={{ left: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-select-hint">
-          {mouse
-            ? 'Left click selects (shift adds), drag a box. Right click orders. Space (or Alt) + drag, arrow keys or the screen edge move the camera.'
-            : 'Tap a unit or building to select, tap it again to let go. Drag a box: tap Select, or double-tap and drag.'}
+      {coach && !selectMode && !pauseOpen && !viewOpen && !(started && paused && sheetHidden) && coach.steps[coach.step] && (
+        // RTS-01: the first-battle coach. It never blocks the field or the clock: only its buttons take taps.
+        <div className="absolute w-[min(16rem,calc(50vw-1rem))] px-3 pt-2 pb-1 rounded-[10px] bg-fa-panel/95 border border-fa-brass/70 text-[12px] leading-snug shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-coach">
+          <div className="flex items-baseline gap-2">
+            <span className="fa-label text-fa-brass flex-1 min-w-0 truncate">{coach.steps[coach.step].title}</span>
+            <span className="fa-num text-[10.5px] text-fa-muted shrink-0">{coach.step + 1} of {coach.steps.length}</span>
+          </div>
+          <div className="mt-0.5" data-testid="battle-coach-text">{coach.steps[coach.step].text}</div>
+          <div className="flex justify-end gap-1 -me-2">
+            <button type="button" onClick={coach.onSkip} className="pointer-events-auto min-h-[44px] min-w-[44px] px-2 text-[12px] text-fa-muted" data-testid="battle-coach-skip">Skip</button>
+            <button type="button" onClick={coach.onNext} className="pointer-events-auto min-h-[44px] min-w-[44px] px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-coach-next">{coach.step + 1 < coach.steps.length ? 'Next' : 'Got it'}</button>
+          </div>
         </div>
       )}
 

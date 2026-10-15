@@ -6,6 +6,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import BattleHud from './BattleHud';
+import { coachSteps } from './battleCoach';
 
 const sq = (idx, o = {}) => ({ idx, side: 0, classId: 'infantry', ageId: 'bronze', strength: 50, maxStrength: 100, morale: 80, alive: true, onField: true, fled: false, routed: false, x: 0, y: 0, reserve: false, enterTick: -1, ...o });
 const hud = { tick: 100, supply: [200, 200], battleType: 'assault', assimilation: 0, powers: [{ id: 'rallyCry', label: 'Rally Cry', cost: 120, usesLeft: Infinity, readyIn: 0 }], squads: [sq(0), sq(1, { classId: 'ranged' }), sq(2, { side: 1 })], structures: [{ kind: 'keep', hp: 900, maxHp: 1000, alive: true, x: 0, y: 0, garrison: 0, garrisonSlots: 0 }], eco: null };
@@ -50,14 +51,43 @@ describe('BattleHud', () => {
     expect(b).not.toContain('data-testid="battle-commands"');
   });
 
-  it('the selection card has a labelled 44 px x that clears it; the hint speaks of taps or clicks', () => {
-    const h = html({ selectedSquads: [hud.squads[0]], onClearSelection: vi.fn(), selectHint: true });
+  it('the selection card has a labelled 44 px x that clears it', () => {
+    const h = html({ selectedSquads: [hud.squads[0]], onClearSelection: vi.fn() });
     const x = btn(h, 'battle-clear-selection');
     expect(x).toContain('aria-label="Clear selection"');
     expect(x).toContain('w-11 h-11');
-    expect(h).toContain('tap it again to let go');
-    expect(html({ selectHint: true, mouse: true })).toContain('Right click orders');
     expect(html({ selectedSquads: [] , onClearSelection: vi.fn() })).not.toContain('battle-clear-selection');
+  });
+
+  it('RTS-01: the first-battle coach, touch words on touch, Skip and Next as 44 px buttons', () => {
+    const coach = (mouse, step = 0) => ({ steps: coachSteps(mouse), step, onNext: vi.fn(), onSkip: vi.fn() });
+    const touch = html({ coach: coach(false) });
+    expect(touch).toContain('data-testid="battle-coach"');
+    expect(touch).toContain('1 of 3');
+    expect(touch).toContain('tap the ground to send it there');
+    expect(touch).not.toMatch(/right click|right drag|wheel/i);
+    expect(btn(touch, 'battle-coach-skip')).toContain('min-h-[44px]');
+    expect(btn(touch, 'battle-coach-next')).toContain('min-h-[44px]');
+    expect(html({ coach: coach(false, 2) })).toContain('Got it');
+    expect(html({ coach: coach(true) })).toContain('right click the ground');
+    // never over the pause sheet, and gone without a coach
+    expect(html({ coach: coach(false), paused: true })).not.toContain('data-testid="battle-coach"');
+    expect(html()).not.toContain('data-testid="battle-coach"');
+  });
+
+  it('RTS-02: a narrow phone folds the stocks into one button and the camera buttons behind View', () => {
+    const eco = { stock: [100, 50, 20, 5], pop: 10, cap: 10, workers: 2, idleWorkers: [], buildings: [], nodes: [] };
+    const h = html({ narrow: true, hud: { ...hud, eco }, onObjective: vi.fn(), onToggleMinimap: vi.fn(), onFindArmy: vi.fn() });
+    expect(btn(h, 'battle-logistics')).toContain('housing full');
+    expect(h).not.toContain('data-testid="battle-stock-food"');
+    expect(btn(h, 'battle-view-more')).toContain('aria-pressed="false"');
+    expect(h).not.toContain('data-testid="battle-objective"');
+    expect(h).not.toContain('data-testid="battle-minimap-toggle"');
+    expect(btn(h, 'battle-select-all')).toBeTruthy();
+    const wide = html({ narrow: false, hud: { ...hud, eco }, onObjective: vi.fn() });
+    expect(wide).toContain('data-testid="battle-stock-food"');
+    expect(btn(wide, 'battle-objective')).toBeTruthy();
+    expect(wide).not.toContain('battle-view-more');
   });
 
   it('paused: the sheet with Resume, speed, Switch to Auto and Retreat apart; no bottom bar', () => {

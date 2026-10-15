@@ -29,6 +29,12 @@ describe('order target ring', () => {
     expect(orderRingState(gather(), view(), none, ORDER_FRESH_S + ORDER_FADE_S + 0.01)).toBe(null);
   });
 
+  it('given while paused, it stays at full strength until the sim steps (RTS-03)', () => {
+    const order = { ...gather(), tick: 40 };
+    expect(orderRingState(order, view({ tick: 40 }), none, 30)).toMatchObject({ alpha: 1 });
+    expect(orderRingState(order, view({ tick: 41 }), none, 30)).toBe(null);
+  });
+
   it('comes back whenever the ordered group is selected, the line from the selected squads', () => {
     const s = orderRingState(gather(), view(), new Set([1]), 30);
     expect(s).toMatchObject({ alpha: 1, fromX: 12, fromZ: 10 });

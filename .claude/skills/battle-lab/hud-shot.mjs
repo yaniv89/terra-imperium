@@ -29,8 +29,8 @@ const tag = `${W}x${H}${safe ? '-safe' : ''}${opt('tag', '')}`;
 
 const browser = await launchBrowser({ executablePath: exe, headless: true });
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, hasTouch: touch });
-// Ordinary play: the first-battle controls hint is taken as seen (`--hint 1` shows it).
-if (opt('hint', '0') !== '1') await ctx.addInitScript(() => { try { localStorage.setItem('ti.hint.battleControls', '1'); } catch { /* blocked */ } });
+// Ordinary play: the first-battle coach (RTS-01) is taken as seen (`--hint 1` shows it).
+if (opt('hint', '0') !== '1') await ctx.addInitScript(() => { try { localStorage.setItem('ti.coach.firstBattle', '1'); } catch { /* blocked */ } });
 const page = await ctx.newPage();
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -113,10 +113,14 @@ if (wp) {
     if (await page.getByTestId('battle-build-close').count()) await page.getByTestId('battle-build-close').click();
   }
 }
+// A narrow phone keeps Map behind View (RTS-02).
+const viewMenu = async () => { if (await page.getByTestId('battle-view-more').count()) { await page.getByTestId('battle-view-more').click(); await page.waitForTimeout(200); } };
+await viewMenu();
 if (await page.getByTestId('battle-minimap-toggle').count()) {
   await page.getByTestId('battle-minimap-toggle').click();
   await page.waitForTimeout(600);
   await shot('5-minimap');
+  await viewMenu();
   await page.getByTestId('battle-minimap-toggle').click();
 }
 await page.getByTestId('battle-pause').click();

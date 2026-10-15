@@ -33,6 +33,7 @@ import { inspectInfo } from './inspectModel';
 import { contextFor, refusedText, enemyObjectives, supplyRate } from './battleHudModel';
 import BattleMinimap from './BattleMinimap';
 import { updateSiteLabels } from './siteLabels';
+import { updatePendingPins } from './pendingPins';
 import { BUILDINGS, ecoName, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN } from '../../battle/data/economy';
 import { placementCheck, footprintAt, legalArea, PLACEMENT_REASON } from '../../battle/input/placement';
 import { buildFlowNext, BUILD_FLOW_CLOSED, closePrecedence } from './buildFlow';
@@ -41,6 +42,7 @@ import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 import { arrivalNote, NO_GROUND_TEXT } from '../../battle/input/orderFeedback';
 import { releaseWhenDetached } from '../../utils/glContext';
 import { noteCrashEvent } from '../../utils/crashLog';
+import { coachSeen, markCoachSeen, coachSteps, mouseFirst } from './battleCoach';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
@@ -58,18 +60,11 @@ const CONTEXT_RESTORE_MS = 4000;
 const PERF_URL = typeof location !== 'undefined' && new URLSearchParams(location.search).has('perf');
 const perfOn = () => PERF_URL || !!getMapPrefs().perf;
 
-// One-time UI hints live in localStorage (per device, never in the save). Storage can be missing or
-// blocked (private mode): then the hint simply shows again next time.
-const SELECT_HINT_KEY = 'ti.hint.battleControls'; // was ti.hint.boxSelect: the controls changed, show it once more
-const SELECT_HINT_MS = 9000;
-const hintSeen = (key) => { try { return localStorage.getItem(key) === '1'; } catch { return false; } };
-const markHintSeen = (key) => { try { localStorage.setItem(key, '1'); } catch { /* storage blocked */ } };
-// A mouse is the main pointer (desktop): the hints speak of clicks instead of taps.
-const MOUSE_POINTER = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: fine)').matches;
 
 // An order the battle did not take is said, not swallowed (CB02): the battle loop posts
 // `ordersRefused` when the shared order schema turns an order down or the order log is full.
 const REFUSED_MS = 4000;
+const PAUSED_ORDER_TEXT = 'Order given. It starts when you resume.';
 const ORDER_NOTE_MS = 3500;
 
 // U03: the battle screen's usable rectangle. The safe-area insets (a notch or Dynamic Island on the
@@ -109,6 +104,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [hud, setHud] = useState(null);
   const [selected, setSelected] = useState([]);
   const [paused, setPaused] = useState(true); // always open paused: deployment, or a resumed battle
+  const pausedRef = useRef(true);
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
   const [started, setStarted] = useState(!!resume);
   const startedRef = useRef(!!resume);
   const [speed, setSpeed] = useState(1);
@@ -142,14 +139,18 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const ghostRef = useRef(null);
   const siteLabelsRef = useRef(null); // "Building 43%" over your sites (siteLabels.js)
   const ghostLabelRef = useRef(null); // the reason over a red ghost
+  const pendingPinsRef = useRef(null); // pins over orders given while paused (RTS-03)
   const perfRef = useRef(null);
   const [showPerf] = useState(perfOn);
   // Touch box select (UI-DESIGN B04): while on, a one-finger drag draws the selection box.
   const [selectMode, setSelectMode] = useState(false);
   const selectModeRef = useRef(false);
   const setSelectModeOn = useCallback((on) => { selectModeRef.current = on; setSelectMode(on); }, []);
-  // A one-time hint in the player's first commanded battle (a UI hint, never game state).
-  const [selectHint, setSelectHint] = useState(() => !hintSeen(SELECT_HINT_KEY));
+  // RTS-01: the words follow the pointer really in use (touch or mouse, as gestures.js maps them):
+  // a guess from the device at first, then whatever last touched the battlefield.
+  const [mouse, setMouse] = useState(mouseFirst);
+  // The first-battle coach (battleCoach.js): the step shown, or -1. A UI hint, never game state.
+  const [coachStep, setCoachStep] = useState(() => (coachSeen() ? -1 : 0));
   // I199: the camera follows the selection until the player moves it by hand.
   const [follow, setFollowState] = useState(false);
   const followRef = useRef(false);
@@ -162,14 +163,16 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const objectiveIdxRef = useRef(0);
   const safeStyle = useMemo(safeVars, []);
 
-  // The hint is remembered as soon as it shows (the HUD is up), and fades on its own.
+  // The coach is remembered as soon as it shows (the HUD is up): once per device.
   const hudUp = !!hud;
+  const coachOn = coachStep >= 0;
+  useEffect(() => { if (coachOn && hudUp) markCoachSeen(); }, [coachOn, hudUp]);
   useEffect(() => {
-    if (!selectHint || !hudUp) return undefined;
-    markHintSeen(SELECT_HINT_KEY);
-    const t = setTimeout(() => setSelectHint(false), SELECT_HINT_MS);
-    return () => clearTimeout(t);
-  }, [selectHint, hudUp]);
+    const el = wrapRef.current; if (!el) return undefined;
+    const onDown = (e) => setMouse(e.pointerType !== 'touch');
+    el.addEventListener('pointerdown', onDown, true);
+    return () => el.removeEventListener('pointerdown', onDown, true);
+  }, []);
 
   const updateSelection = useCallback((ids) => {
     // A unit answers a new selection now and then (src/audio/sfx.js rate-limits the barks).
@@ -336,6 +339,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       if (f.cur) {
         try {
           updateSiteLabels(siteLabelsRef.current, renderer, f.cur, playerSide);
+          updatePendingPins(pendingPinsRef.current, renderer);
           const gl = ghostLabelRef.current; const gh = ghostRef.current;
           if (gl) {
             if (gh && !gh.ok) {
@@ -404,6 +408,13 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const t = setTimeout(() => setOrderNote(null), ORDER_NOTE_MS);
     return () => clearTimeout(t);
   }, [orderNote]);
+  // RTS-03: an order given while paused waits in the battle loop until Resume. It shows at once
+  // anyway (a steady ring, a footprint), and a note says when it starts. Drawing only.
+  const markPending = useCallback((mark) => {
+    if (!startedRef.current || !pausedRef.current) return;
+    rendererRef.current?.addPendingMark(mark);
+    setOrderNote((n) => n || PAUSED_ORDER_TEXT);
+  }, []);
   // The battle is over: the result screen opens at once, and the campaign counts the battle right
   // after (a tick later, so "counting" is on screen while the replay runs).
   useEffect(() => {
@@ -509,9 +520,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     pendingBuildRef.current = { building: gh.building, tx: gh.tx, ty: gh.ty, tick: cur.tick, sites: (cur.eco?.buildings || []).length };
     setBuildNote(null);
     r.addMarker(cx, cz, '#a3e635');
+    markPending({ kind: 'build', x: cx, z: cz, size: gh.size, tx: gh.tx, ty: gh.ty, color: '#facc15' });
     disarm('placed');
     return true;
-  }, [setup, playerSide, send, disarm, buildersFor]);
+  }, [setup, playerSide, send, disarm, buildersFor, markPending]);
 
   const issueAt = useCallback((p, forceAttackMove = false) => {
     const r = rendererRef.current; const cur = frames.current.cur;
@@ -529,6 +541,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       if (g && a.type === 'rally') {
         send([{ type: 'rally', building: a.building, x: Math.round(g.x * Q), y: Math.round(g.z * Q) }]);
         r.addMarker(g.x, g.z, '#facc15');
+        markPending({ kind: 'rally', x: g.x, z: g.z, color: '#facc15' });
       }
       r.ecoLayer.setGhost(null);
       armedRef.current = null; setArmed(null);
@@ -540,6 +553,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       if (g) {
         send([{ type: 'power', power: armedRef.current.id, x: Math.round(g.x * Q), y: Math.round(g.z * Q) }]);
         r.addMarker(g.x, g.z, '#f97316');
+        markPending({ kind: 'power', x: g.x, z: g.z, color: '#f97316' });
       }
       armedRef.current = null; setArmed(null);
       return true;
@@ -552,32 +566,35 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const workers = sel.filter((i) => cur.squads[i]?.classId === 'worker');
     const onlyWorkers = workers.length === sel.length;
     const fighters = sel.filter((i) => !workers.includes(i));
-    const noteFor = (type) => { const n = arrivalNote(fighters.map((i) => cur.squads[i]?.classId), type); if (n) setOrderNote(n); };
+    // While paused the "starts when you resume" note stays first (RTS-03).
+    const noteFor = (type) => { const n = arrivalNote(fighters.map((i) => cur.squads[i]?.classId), type); if (n) setOrderNote((old) => (old?.startsWith(PAUSED_ORDER_TEXT) ? `${PAUSED_ORDER_TEXT} ${n}` : n)); };
     if (hit.kind === 'node') {
       // Workers to a resource: gather it (the others just go there).
       if (workers.length) send([{ type: 'gather', squads: workers, node: hit.index }]);
       if (!onlyWorkers) send([{ type: 'move', squads: sel.filter((i) => !workers.includes(i)), x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
       r.setOrderTarget(sel.filter((i) => !workers.includes(i)), null);
       if (workers.length) r.setOrderTarget(workers, { kind: 'node', index: hit.index }, 'gather'); // the target ring (orderTarget.js)
-      if (!onlyWorkers) r.addMarker(hit.ground.x, hit.ground.z, '#fde047');
+      if (!onlyWorkers) { r.addMarker(hit.ground.x, hit.ground.z, '#fde047'); markPending({ kind: 'move', x: hit.ground.x, z: hit.ground.z, squads: fighters, color: '#fde047' }); }
     } else if (hit.kind === 'eco' && hit.side === playerSide) {
       // Workers to one of your buildings: help build it, or repair it; the others walk there.
       if (workers.length) send([{ type: 'assist', squads: workers, target: { kind: 'eco', index: hit.index } }]);
       if (!onlyWorkers) send([{ type: startedRef.current ? 'move' : 'deploy', squads: sel.filter((i) => !workers.includes(i)), x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
       r.setOrderTarget(sel.filter((i) => !workers.includes(i)), null);
       if (workers.length) r.setOrderTarget(workers, { kind: 'eco', index: hit.index }, 'assist');
-      if (!onlyWorkers) r.addMarker(hit.ground.x, hit.ground.z, '#a3e635');
+      if (!onlyWorkers) { r.addMarker(hit.ground.x, hit.ground.z, '#a3e635'); markPending({ kind: 'move', x: hit.ground.x, z: hit.ground.z, squads: fighters, color: '#a3e635' }); }
     } else if (hit.kind === 'eco') {
       send([{ type: 'attack', squads: sel, target: { kind: 'eco', index: hit.index } }]);
       r.setOrderTarget(sel, { kind: 'eco', index: hit.index }, 'attack');
       r.addMarker(hit.ground.x, hit.ground.z, '#ef4444');
+      markPending({ kind: 'attack', x: hit.ground.x, z: hit.ground.z, squads: sel, color: '#ef4444' });
       noteFor('attack');
     } else if (hit.kind === 'structure' && playerSide === 1 && onlyWorkers) {
       send([{ type: 'repair', squads: workers, target: { kind: 'structure', index: hit.index } }]); // mend your city
       r.setOrderTarget(workers, { kind: 'structure', index: hit.index }, 'repair');
     } else if (hit.kind === 'squad' && hit.side !== playerSide) {
       send([{ type: 'attack', squads: sel, target: { kind: 'squad', index: hit.idx } }]);
-      r.setOrderTarget(sel, { kind: 'squad', index: hit.idx }, 'attack');
+      r.setOrderTarget(sel, { kind: 'squad', index: hit.idx }, 'attack'); // its ring holds while paused (orderTarget.js)
+      markPending({ kind: 'attack', squads: sel, x: hit.ground.x, z: hit.ground.z, color: '#ef4444', ringless: true });
       noteFor('attack');
     } else if (hit.kind === 'structure' && playerSide === 1) {
       // Defending: tap your keep or a tower to man it (infantry and ranged; fortified buildings only).
@@ -590,17 +607,19 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       send([{ type: 'attack', squads: sel, target: { kind: 'structure', index: hit.index } }]);
       r.setOrderTarget(sel, { kind: 'structure', index: hit.index }, 'attack');
       r.addMarker(hit.ground.x, hit.ground.z, '#ef4444');
+      markPending({ kind: 'attack', x: hit.ground.x, z: hit.ground.z, squads: sel, color: '#ef4444' });
       noteFor('attack');
     } else {
       const type = !startedRef.current ? 'deploy' : forceAttackMove || armedRef.current === 'attackMove' ? 'attackMove' : 'move'; // before Start the ground order places the squads (plan D5)
       send([{ type, squads: sel, x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
       r.setOrderTarget(sel, null); // a plain move: the old target ring goes, the move marker shows
       r.addMarker(hit.ground.x, hit.ground.z, type === 'attackMove' ? '#fb923c' : '#a3e635');
+      if (type !== 'deploy') markPending({ kind: type, x: hit.ground.x, z: hit.ground.z, squads: sel, color: type === 'attackMove' ? '#fb923c' : '#a3e635' });
       if (type !== 'deploy') noteFor(type);
     }
     armedRef.current = null; setArmed(null);
     return true;
-  }, [playerSide, send, setGhostAt, placeGhost]);
+  }, [playerSide, send, setGhostAt, placeGhost, markPending]);
 
   // A building's footprint follows the mouse while one is being placed (B10: green or red; a finger
   // drags it, gestures.js 'place').
@@ -648,13 +667,13 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       case 'cancelArmed': disarm(); break;
       case 'rally': {
         const r = rendererRef.current; const g = r?.screenToGround(p.x, p.y);
-        if (g) { send([{ type: 'rally', building: selectedBuildingInfo.idx, x: Math.round(g.x * Q), y: Math.round(g.z * Q) }]); r.addMarker(g.x, g.z, '#facc15'); }
+        if (g) { send([{ type: 'rally', building: selectedBuildingInfo.idx, x: Math.round(g.x * Q), y: Math.round(g.z * Q) }]); r.addMarker(g.x, g.z, '#facc15'); markPending({ kind: 'rally', x: g.x, z: g.z, color: '#facc15' }); }
         break;
       }
       case 'armed': case 'order': if (!issueAt(p) && input === 'tap') clearSelection(); break;
       default:
     }
-  }, [ownSquadAt, ownBuildingAt, inspectAt, inspectThing, updateSelection, selectBuilding, clearSelection, issueAt, send, disarm]);
+  }, [ownSquadAt, ownBuildingAt, inspectAt, inspectThing, updateSelection, selectBuilding, clearSelection, issueAt, send, disarm, markPending]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -687,6 +706,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         if (!a || !b || !selectedRef.current.size) return;
         send([{ type: 'formationLine', squads: [...selectedRef.current], x: Math.round(a.x * Q), y: Math.round(a.z * Q), x2: Math.round(b.x * Q), y2: Math.round(b.z * Q) }]);
         r.addMarker(a.x, a.z); r.addMarker(b.x, b.z);
+        markPending({ kind: 'move', x: a.x, z: a.z, x2: b.x, z2: b.z, squads: [...selectedRef.current], color: '#a3e635' });
       },
       lassoDrag: (s, p) => setLasso({ x0: Math.min(s.x, p.x), y0: Math.min(s.y, p.y), x1: Math.max(s.x, p.x), y1: Math.max(s.y, p.y) }),
       lassoEnd: (s, p, mods) => {
@@ -702,7 +722,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       },
       cancel: () => { setDragLine(null); setLasso(null); }
     });
-  }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn, setGhostAt, setFollow]);
+  }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn, setGhostAt, setFollow, markPending]);
 
   // I198: the mouse resting at the screen's edge moves the camera (a mouse only; the HUD's own
   // buttons are not the field, so pointing at them never pans).
@@ -918,7 +938,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   if (hud?.eco && context === 'place' && ghost) {
     panel = (
       <div className="w-[min(19rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl text-[11.5px]" data-testid="battle-place-panel">
-        <div className="px-1 leading-snug"><b>{ecoName(ghost.building, ageId)}</b><span className="text-fa-muted"> ֲ· {MOUSE_POINTER ? 'click the green ground to build' : 'tap or drag on the green ground, then Build here'}</span></div>
+        <div className="px-1 leading-snug"><b>{ecoName(ghost.building, ageId)}</b><span className="text-fa-muted"> ֲ· {mouse ? 'click the green ground to build' : 'tap or drag on the green ground, then Build here'}</span></div>
         <div className="flex items-center gap-1 mt-1">
           <div className={cx('flex-1 min-w-0 px-1 font-semibold leading-tight', ghost.ok ? 'text-fa-good' : 'text-fa-danger-text')} data-testid="battle-place-reason">{ghost.ok ? 'Good spot' : ghost.reason}</div>
           <button type="button" onClick={placeGhost} disabled={!ghost.ok} aria-describedby="battle-place-why" data-testid="battle-place-confirm" className="shrink-0 min-w-[64px] h-12 px-2 rounded-[10px] bg-fa-raised border border-fa-good text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 disabled:opacity-40 disabled:border-fa-line"><Check className="w-4 h-4" aria-hidden="true" /><span className="leading-none">Build here</span></button>
@@ -951,7 +971,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const damaged = ecoBuilding.hp < ecoBuilding.maxHp;
     panel = (
       <div className="flex flex-col items-end gap-1">
-        <BuildingActions building={ecoBuilding} ageId={ageId} stock={hud.eco.stock} eco={hud.eco}
+        <BuildingActions building={ecoBuilding} ageId={ageId} stock={hud.eco.stock} eco={hud.eco} paused={started && paused}
           onBuildHouse={() => pickBuilding('house', 'panel')}
           onTrain={(role) => send([{ type: 'train', building: ecoBuilding.idx, role }])}
           onCancel={(slot) => send([{ type: 'cancelTrain', building: ecoBuilding.idx, slot }])}
@@ -991,6 +1011,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ touchAction: 'none' }} />
       {/* B10: "Building 43%" over your sites and the reason over a red placement ghost, moved by the render loop */}
       <div ref={siteLabelsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
+      <div ref={pendingPinsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
       <div ref={ghostLabelRef} className="absolute left-0 top-0 hidden px-2 py-0.5 rounded-md bg-fa-ink/90 border border-fa-danger text-fa-danger-text text-[11px] font-bold whitespace-nowrap pointer-events-none" data-testid="battle-ghost-reason" />
       {dragLine && (
         <svg className="absolute inset-0 pointer-events-none w-full h-full">
@@ -1028,10 +1049,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
         onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq}
         soundOn={soundOn} onToggleSound={toggleSound}
-        selectMode={selectMode} onToggleSelectMode={() => { setSelectModeOn(!selectModeRef.current); setSelectHint(false); }}
-        selectHint={selectHint && !orderNote}
+        selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}
+        coach={coachOn && !ended ? { steps: coachSteps(mouse), step: coachStep, onNext: () => setCoachStep((s) => (s + 1 >= coachSteps(mouse).length ? -1 : s + 1)), onSkip: () => setCoachStep(-1) } : null}
         onFocus={(x, y) => rendererRef.current?.centerOn(x / Q, y / Q)}
-        onClearSelection={closeX} mouse={MOUSE_POINTER}
+        onClearSelection={closeX} mouse={mouse}
         onAlertGo={alertGo} leftCard={leftCard}
         context={context} panel={panel}
         ended={!!ended}
