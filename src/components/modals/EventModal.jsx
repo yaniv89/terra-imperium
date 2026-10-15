@@ -5,6 +5,7 @@
 // map on that city (marchEvents.js focusRegion) and marks it (mapMarkers.js events) while the
 // sheet is open. End Turn stays disabled until an option is chosen (GameHeader.jsx).
 
+import { eventTitle, eventDescription, eventOptionLabel } from '../../i18n/gameText';
 import React, { useEffect } from 'react';
 import { AlertTriangle, Calendar, TrendingUp, TrendingDown, Minus, MapPin } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -42,7 +43,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
   // The most pressing entry of the interaction registry (useExclusivePanel.js): it tucks the dock
   // on a narrow screen instead of squeezing beside it, and waits as a chip behind a sheet the
   // player opened.
-  const turn = useInteraction('event', !!event, { priority: PRIORITY.event, label: event ? tNow('wait.event', { title: event.title }) : null, testId: 'event-chip' });
+  const turn = useInteraction('event', !!event, { priority: PRIORITY.event, label: event ? tNow('wait.event', { title: eventTitle(event, { city: placeName || '' }) }) : null, testId: 'event-chip' });
   if (!event || !turn.shown) return null;
   // An option the treasury can't cover is shown but not clickable — unless NO option is affordable,
   // in which case every option stays open and the engine charges what it can (-1 stability).
@@ -57,14 +58,14 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
         className={isMobile
           ? 'pointer-events-auto absolute inset-x-0 bottom-0 max-h-[60vh] rounded-t-2xl bg-fa-panel border-t-2 border-amber-500 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)] sheet-panel'
           : 'pointer-events-auto w-[min(34rem,calc(100vw-1rem-var(--rail-inset,0px)))] pl:w-[min(44rem,calc(100vw-1rem-var(--rail-inset,0px)))] max-h-full rounded-xl bg-fa-panel border-2 border-amber-500 shadow-2xl flex flex-col'}
-        role="dialog" aria-label={event.title}
+        role="dialog" aria-label={eventTitle(event, { city: placeName || '' })}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="p-4 pl:px-3 pl:py-1.5 border-b border-fa-line shrink-0 pl:flex pl:items-center pl:justify-between pl:gap-3">
           <div className="flex items-center gap-2 text-amber-400 font-bold text-lg pl:text-[16px] min-w-0">
             <AlertTriangle className="w-5 h-5 shrink-0" />
-            <span className="line-clamp-2 pl:line-clamp-1">{event.title}</span>
+            <span className="line-clamp-2 pl:line-clamp-1">{eventTitle(event, { city: placeName || '' })}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-fa-muted mt-1 pl:mt-0 pl:shrink-0">
             {event.year != null && (
@@ -88,7 +89,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
         <div className="p-4 pl:px-3 pl:py-2 overflow-y-auto flex-1 min-h-0" data-testid="event-body">
           {/* Description */}
           <p className="text-fa-text text-sm leading-relaxed mb-4 pl:text-[13px] pl:leading-snug pl:mb-2">
-            {event.description}
+            {eventDescription(event, { city: placeName || '' })}
           </p>
 
           {/* Options: side by side on a phone held sideways, so every choice is on screen at
@@ -111,7 +112,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
                   )}
                   {/* Option Label */}
                   <div className="font-semibold text-sm text-fa-text group-hover:text-amber-300 transition-colors">
-                    {option.label}
+                    {eventOptionLabel(event, index, { city: placeName || '' })}
                   </div>
 
                   {/* Cost (if specified separately) */}

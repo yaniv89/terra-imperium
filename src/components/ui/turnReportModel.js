@@ -18,6 +18,7 @@ import { newContacts, contactCard } from '../modals/firstContactModel';
 import { isExplored, fogOn, hasMet } from '../../engine/fog';
 import { summarizeLogs } from '../../engine/logSummary';
 import { isIndependentNation } from '../../data/independents';
+import { techName } from '../../i18n/gameText';
 
 export const REPORT_GROUPS = [
   { id: 'battles', label: 'Battles' },
@@ -154,7 +155,7 @@ export const turnReportModel = (before, after) => {
   // Research.
   const knew = before.techTree || {};
   Object.keys(after.techTree || {}).filter((id) => after.techTree[id]?.researched && !knew[id]?.researched).forEach((id) => {
-    add('research', { tone: 'science', title: `${TECH_TREE[id]?.name || id} learned`, sub: null, place: { kind: 'tab', id: 'tech', name: 'Research' } });
+    add('research', { tone: 'science', title: `${techName(id, TECH_TREE[id]?.name || id)} learned`, sub: null, place: { kind: 'tab', id: 'tech', name: 'Research' } });
   });
   if (after.age !== before.age) add('news', { tone: 'you', title: `The world enters the ${AGES[after.age]?.name || after.age}`, sub: null, place: null });
 

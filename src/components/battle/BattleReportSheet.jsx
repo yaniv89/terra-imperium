@@ -7,6 +7,7 @@
 // replay (an Auto battle's rounds, BattleReplay.jsx). Opens from the Military tab's list, a battle
 // marker on the map or the replay's "Full report" (battleReportEvents.js). The list and the detail
 // side by side on a phone held sideways and on the desktop; one at a time on a phone held upright.
+import { regimentLabel } from '../../i18n/names';
 import React, { useMemo, useState } from 'react';
 import { MapPin, Play, Castle, Swords, Ship, ChevronLeft, ShieldCheck, Undo2, ArrowLeftFromLine, Footprints, Crosshair, Skull, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -87,7 +88,7 @@ const SideTable = ({ title, color, rows, nation, ageId = 'bronze' }) => (
           <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${u.fate === 'withdrew' ? 'rtl:-scale-x-100' : ''} ${FATE_TONE[u.tone]}`} aria-hidden="true" />
           <div className="min-w-0 flex-1 leading-tight">
             <div className="flex justify-between gap-2 text-[11.5px]">
-              <span className="truncate">{regimentName(nation, u, unitName(u.classId, ageId, u.navalLine))}</span>
+              <span className="truncate">{regimentLabel(regimentName(nation, u, unitName(u.classId, ageId, u.navalLine)), nation?.people, unitName(u.classId, ageId, u.navalLine), u.regiment)}</span>
               <span className="fa-num shrink-0 text-fa-muted">{`${formatMen(u.menBefore)} → ${formatMen(u.menAfter)}`}</span>
             </div>
             <div className={`text-[11px] ${FATE_TONE[u.tone]}`}>{u.text}{u.temp ? <span className="text-fa-muted">{u.temp === 'militia' ? ' · city militia, not a regiment' : ' · raised for this battle'}</span> : null}</div>

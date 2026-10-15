@@ -6,5 +6,6 @@ import systems from './data/he.systems';
 import world from './data/he.world';
 import events from './data/he.events';
 import units from './data/he.units';
+import tiles from './data/he.tiles';
 
-export default Object.freeze({ ...systems, ...world, ...events, ...units });
+export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles });

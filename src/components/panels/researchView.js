@@ -12,6 +12,7 @@ import { getTechDiffusion } from '../../engine/techDiffusion';
 import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
 import { t as tNow } from '../../i18n';
 import { mapEffectLabel } from '../../engine/techMapEffects';
+import { techName } from '../../i18n/gameText';
 
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`;
 const EFFECT_WORDS = {
@@ -105,7 +106,7 @@ export const techGraph = (state) => {
   lines.forEach((category, row) => {
     Object.values(TECH_TREE).filter((t) => t.category === category).sort((a, b) => a.yearAvailable - b.yearAvailable).forEach((tech, col) => {
       const info = techInfo(state, tech.id, science);
-      const node = { id: tech.id, name: tech.name, category, row, col, ageId: tech.ageId, x: col * GRAPH_COL_W, y: row * GRAPH_ROW_H, status: info.researched ? 'researched' : info.current ? 'current' : info.queuedAt >= 0 ? 'queued' : info.canStart ? 'available' : 'locked', turns: info.turns, cost: info.cost, reason: info.reason };
+      const node = { id: tech.id, name: techName(tech.id, tech.name), category, row, col, ageId: tech.ageId, x: col * GRAPH_COL_W, y: row * GRAPH_ROW_H, status: info.researched ? 'researched' : info.current ? 'current' : info.queuedAt >= 0 ? 'queued' : info.canStart ? 'available' : 'locked', turns: info.turns, cost: info.cost, reason: info.reason };
       nodes.push(node); byId.set(tech.id, node);
     });
   });

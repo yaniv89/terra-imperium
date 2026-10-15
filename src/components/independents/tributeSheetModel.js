@@ -5,7 +5,7 @@
 // JoinOfferSheet.jsx. Read only.
 import { getTiles } from '../../data/geo/tiles';
 import { isIndependentNation, PERSONALITIES, GRUDGE_MAX, GRUDGE_REFUSED, MERC_SELLERS, MERC_CONTRACT_TURNS, ROUTE_LOOT, JOIN_LOYALTY } from '../../data/independents';
-import { unitDisplayName } from '../../data/unitNames';
+import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { ActionTypes } from '../../data/types';
 import { grudgeOf } from '../../engine/grudges';
 import { raidForecast } from '../../engine/raids';

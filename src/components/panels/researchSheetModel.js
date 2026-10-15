@@ -15,6 +15,7 @@ import { eraGoalProgress } from '../../engine/eraGoals';
 import { nationFacts, boostOf } from '../../engine/boosts';
 import { canStartTech } from '../../engine/research';
 import { getResearchView, researchedSet } from './researchView';
+import { techName } from '../../i18n/gameText';
 
 // Where a boost's fact lives on the map: a lens to switch on, or a sheet to open. Settling claims
 // land (rivers, coast, resources, forest, hills); a city's size shows in the yields lens; roads in
@@ -55,7 +56,7 @@ export const researchSheetModel = (state) => {
   const startable = all.filter((t) => !researched.has(t.id) && !order.includes(t.id) && canStartTech(t.id, researched, state.year).ok).map((t) => t.id);
   const boosts = [...order, ...startable]
     .filter((id) => BOOSTS[id])
-    .map((id) => ({ techId: id, techName: TECH_TREE[id].name, planned: order.includes(id), ...boostOf(state, state.playerNationId, id, facts) }))
+    .map((id) => ({ techId: id, techName: techName(id, TECH_TREE[id].name), planned: order.includes(id), ...boostOf(state, state.playerNationId, id, facts) }))
     .filter((b) => !b.taken)
     .map((b) => ({ ...b, share: Math.round(BOOST_SHARE * 100), target: b.met ? null : boostTarget(b.label) }))
     .sort((a, b) => (b.met - a.met) || (b.planned - a.planned));

@@ -18,7 +18,7 @@
 import { getTiles } from '../../data/geo/tiles';
 import { tileKm } from '../../engine/tradeValue';
 import { PEOPLES } from '../../data/peoples';
-import { unitDisplayName } from '../../data/unitNames';
+import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { ActionTypes } from '../../data/types';
 import {
   isIndependentNation, PERSONALITIES, GRUDGE_MAX, GRUDGE_DECAY, GRUDGE_REFUSED, MERC_SELLERS, MERC_CONTRACT_TURNS, MERC_MAX_GRUDGE,

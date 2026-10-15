@@ -3,6 +3,7 @@
 // see the nation at a glance (its government and ruler, cities and capital, strength against
 // yours, wonders), your standing with it (opinion with reasons, war, truce, pact, trade, open
 // borders, vassalage, claims) and then the same actions the Diplomacy tab offers (NationCard).
+import { wonderName, governmentName } from '../../i18n/gameText';
 import { GOVERNMENT_TYPES } from '../../data/government';
 import { getNationCapital, getOwnedRegionIds } from '../../data/regions';
 import { opinionOf, opinionReasons } from '../../engine/opinion';
@@ -40,11 +41,11 @@ export const nationSheetModel = (state, nationId) => {
   if (heatPct >= 10) relations.push({ id: 'restless', label: `Wars nearby: +${heatPct}% war chance`, tone: 'bad' });
   const myClaims = claimsAgainst(state, me, nationId);
   const theirClaims = claimsAgainst(state, nationId, me);
-  const wonders = Object.keys(state.greatProjects || {}).filter((id) => getGreatProjectOwner(state, id) === nationId).map((id) => GREAT_PROJECTS[id]?.name || id);
+  const wonders = Object.keys(state.greatProjects || {}).filter((id) => getGreatProjectOwner(state, id) === nationId).map((id) => wonderName(id, GREAT_PROJECTS[id]?.name));
   return {
     nationId, name: nation.name, eliminated: !!nation.isEliminated,
     met: hasMet(state, me, nationId) || !!war, // contact needs sight (engine/fog.js); a war is contact enough
-    government: GOVERNMENT_TYPES[nation.government?.type]?.name || 'Tribal Council',
+    government: governmentName(nation.government?.type || 'tribal', GOVERNMENT_TYPES[nation.government?.type]?.name || 'Tribal Council'),
     ruler: nation.ruler?.name || null,
     cities: cities.length, capital: capitalId ? state.regions[capitalId]?.name || null : null, capitalId: capitalId || null,
     strength: { theirs: Math.round(theirs), mine: Math.round(mine), ratio: Math.round(ratio * 100) / 100, word: ratio >= 1.5 ? 'far stronger than you' : ratio >= 1.1 ? 'stronger than you' : ratio > 0.9 ? 'about your match' : ratio > 0.5 ? 'weaker than you' : 'far weaker than you' },

@@ -2,7 +2,7 @@
 // How a battle report entry (src/engine/battleReports.js) reads from the player's side: the
 // headline, which bar is "ours", how many of each side fell. Pure, shared by the replay, the
 // report sheet and the Military tab's list.
-import { unitDisplayName } from '../../data/unitNames';
+import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { REGIONS_DATA } from '../../data/regions';
 import { battleName } from '../../engine/battleNames';
 

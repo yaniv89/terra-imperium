@@ -10,7 +10,10 @@
 // cityEconomy.js, cityEffects.js, through cityBuildModel.js), so the price on a button is the
 // price charged and the turns are the turn's. The Build tab keeps a one-line queue bar pinned at
 // the top and never removes a row while it is open, so a second tap lands on the same row (I045).
-import { unitDisplayName, unitClassLabel } from '../../data/unitNames';
+import { unitName as unitDisplayName, unitClassName } from '../../i18n/gameText';
+import { unitClassLabel as unitClassLabelEn } from '../../data/unitNames';
+import { buildingTierName, wonderName, improvementName, districtName, tileResourceName } from '../../i18n/gameText';
+const unitClassLabel = (c) => unitClassName(c, unitClassLabelEn(c));
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp, ArrowUpToLine, ChevronDown, ChevronUp, MapPin, AlertTriangle, Check } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -132,7 +135,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           {tileRows.map(({ tile, facts, y, worked, locked, centre }) => (
             <li key={tile} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs ${worked ? 'bg-fa-raised border border-fa-good/50' : 'bg-transparent border border-fa-line'}`}>
               <div className="min-w-0 flex-1">
-                <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${DISTRICTS[facts.district]?.name || facts.district}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{centre ? '' : <span className="text-fa-muted normal-case"> · {tileBearing(tiles, city.tile, tile).text}</span>}</div>
+                <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${tileResourceName(facts.resource)}` : ''}{facts.improvement ? ` · ${improvementName(facts.improvement, IMPROVEMENTS[facts.improvement]?.name)}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${districtName(facts.district, DISTRICTS[facts.district]?.name)}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{centre ? '' : <span className="text-fa-muted normal-case"> · {tileBearing(tiles, city.tile, tile).text}</span>}</div>
                 <div className="text-fa-muted flex gap-2">
                   <Yield icon={Wheat} value={y.food} title="Food" className="text-fa-good" />
                   <Yield icon={Hammer} value={y.production} title="Production" className="text-fa-text" />
@@ -155,7 +158,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
               {land.map((q) => (
                 <li key={q.tile} className="flex items-center gap-2 rounded-lg px-2 py-1 min-h-[44px] text-xs fa-card">
                   <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => openTile(q.tile)} onKeyDown={(e) => { if (e.key === 'Enter') openTile(q.tile); }} title="Show this tile on the map">
-                    <div className="text-fa-text capitalize"><TileMarks facts={q.facts} />{describeTile(q.facts)}{q.facts.resource ? ` · ${q.facts.resource}` : ''} <span className="text-fa-muted normal-case">· {tileBearing(tiles, city.tile, q.tile).text}</span></div>
+                    <div className="text-fa-text capitalize"><TileMarks facts={q.facts} />{describeTile(q.facts)}{q.facts.resource ? ` · ${tileResourceName(q.facts.resource)}` : ''} <span className="text-fa-muted normal-case">· {tileBearing(tiles, city.tile, q.tile).text}</span></div>
                     <div className="text-fa-muted flex gap-2">
                       <Yield icon={Wheat} value={q.yields.food} title="Food" className="text-fa-good" />
                       <Yield icon={Hammer} value={q.yields.production} title="Production" className="text-fa-text" />
@@ -180,8 +183,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   // build lists. `view="city"` (older callers) shows both.
   const current = queue[0] || null;
   const built = Object.entries(city.buildings?.categories || {}).filter(([, tier]) => tier >= 0)
-    .map(([category, tier]) => ({ id: category, name: BUILDING_CATEGORIES[category]?.tiers[tier]?.name || category }));
-  const wondersHere = Object.entries(state.greatProjects || {}).filter(([, e]) => e?.regionId === cityId).map(([id]) => ({ id, name: GREAT_PROJECTS[id]?.name || id }));
+    .map(([category, tier]) => ({ id: category, name: buildingTierName(category, tier, BUILDING_CATEGORIES[category]?.tiers[tier]?.name) }));
+  const wondersHere = Object.entries(state.greatProjects || {}).filter(([, e]) => e?.regionId === cityId).map(([id]) => ({ id, name: wonderName(id, GREAT_PROJECTS[id]?.name) }));
   // An outpost says what the site card promised (I054): it holds its land now, and builds and
   // yields as a city in about N turns (settlers.js, the same progress a turn as the engine's).
   const outpostLeft = outpostTurnsLeft(state, city, ageId);

@@ -7,8 +7,8 @@
 //   battleSize    300 a side: the whole army takes the field at once (U10, no Reserve and no waves)
 //   cityWallsView the walls (name, HP), the houses and the battle housing
 import { menOf, countText } from '../../engine/battleLedger';
-import { unitDisplayName } from '../../data/unitNames';
-import { getCategoryTierName } from '../../data/buildings';
+import { unitName as unitDisplayName } from '../../i18n/gameText';
+import { categoryTierName as getCategoryTierName } from '../../i18n/gameText';
 import { POP_LIMIT, trainableRoles, ecoName } from '../../battle/data/economy';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS, TICK_HZ } from '../../battle/sim/constants';
 import { wallsOf, siegeHpOf, siegeMaxHp } from '../../engine/sieges';

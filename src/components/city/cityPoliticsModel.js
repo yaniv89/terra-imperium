@@ -4,6 +4,7 @@
 // (the same inputs resolveTurn's unrest drift reads), the governor and who could be seated, the
 // disaster in progress, and the building lines with their next tier.
 import { TECH_TREE } from '../../data/techTree';
+import { techName, extractionName, buildingCategoryLabel, buildingTierName } from '../../i18n/gameText';
 import { getTiles } from '../../data/geo/tiles';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { TAX_RATES } from '../../data/taxRates';
@@ -119,16 +120,16 @@ export const cityBuildingsModel = (state, cityId) => {
     // on this city (cityEffects.js), never read from the data table (I043).
     const quote = next ? buildQuote(state, cityId, { kind: 'building', category, tier: tier + 1 }, live) : null;
     return {
-      category, label: cat.label,
-      built: cat.tiers.slice(0, tier + 1).map((t) => t.name),
+      category, label: buildingCategoryLabel(category, cat.label),
+      built: cat.tiers.slice(0, tier + 1).map((t, i) => buildingTierName(category, i, t.name)),
       standing: tier >= 0 ? buildingEffect(state, cityId, category, tier, -1).text : null,
       next: next ? {
-        name: next.name, cost: quote ? quote.cost : getBuildingTierCost(category, tier + 1), turns: quote ? quote.turns : null,
+        name: buildingTierName(category, tier + 1, next.name), cost: quote ? quote.cost : getBuildingTierCost(category, tier + 1), turns: quote ? quote.turns : null,
         effect: buildingEffect(state, cityId, category, tier + 1).text,
         canBuild: coastal && canBuildTier(category, researched, tier + 1), queued: queued.has(`${category}:${tier + 1}`),
         // Nothing to tap where the city can never build it: the row says why instead (I040).
         blocked: !coastal,
-        needs: !coastal ? 'a sea coast' : !canBuildTier(category, researched, tier + 1) ? (TECH_TREE[next.requiresTech]?.name || 'a technology') : null,
+        needs: !coastal ? 'a sea coast' : !canBuildTier(category, researched, tier + 1) ? techName(next.requiresTech, TECH_TREE[next.requiresTech]?.name || 'a technology') : null,
         needsTech: !coastal || canBuildTier(category, researched, tier + 1) ? null : next.requiresTech
       } : null
     };
@@ -201,7 +202,7 @@ export const cityDevelopmentModel = (state, cityId) => {
   const cost = getDevelopProvinceCost(city, mult);
   const ageId = getEffectiveAgeId(state.age, state.techAgeId);
   const deposits = getDepositsFor(REGIONS_DATA[cityId]?.startOwner || city.startOwner).map((resourceId) => ({
-    resourceId, name: EXTRACTION_BUILDINGS[resourceId]?.name || resourceId, built: !!city.buildings?.extraction?.[resourceId],
+    resourceId, name: extractionName(resourceId, EXTRACTION_BUILDINGS[resourceId]?.name), built: !!city.buildings?.extraction?.[resourceId],
     enabled: !city.buildings?.extraction?.[resourceId] && canBuildExtraction(resourceId, ageId) && canAfford(state.resources, ACTION_COSTS.developResourceSite)
   }));
   // Bought development lasts (development.js, I031): the row says what a point gives and how many

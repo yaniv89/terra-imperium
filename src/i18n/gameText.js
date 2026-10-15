@@ -97,4 +97,20 @@ export const eventTitle = (event, vars) => eventText(event, 'title', event?.titl
 export const eventDescription = (event, vars) => eventText(event, 'desc', event?.description, vars);
 export const eventOptionLabel = (event, index, vars) => eventText(event, `opt${index}`, event?.options?.[index]?.label, vars);
 
+/** A ruler's line: "William of House Valois"; in Hebrew "ויליאם מבית ולואה". */
+export const rulerLine = (ruler) => (getLanguage() === 'he' ? `${nameNow('person', null, ruler.name)} מבית ${nameNow('person', null, ruler.dynasty)}` : `${ruler.name} of House ${ruler.dynasty}`);
 export const currentLanguage = getLanguage;
+
+// Wrappers over the data helpers, so a view can swap one import and keep its call.
+import { unitDisplayName } from '../data/unitNames';
+import { getCategoryTierName } from '../data/buildings';
+/** unitDisplayName (data/unitNames.js) in the current language. */
+export const unitName = (ageId, classId, navalLine = null) => unitRosterName(ageId, classId, unitDisplayName(ageId, classId, navalLine), navalLine);
+/** getCategoryTierName (data/buildings.js) in the current language. */
+export const categoryTierName = (categoryId, tierIndex) => buildingTierName(categoryId, tierIndex, getCategoryTierName(categoryId, tierIndex));
+export const improvementName = (id, english) => D(`impr.${id}`, english ?? id);
+export const terrainWord = (word) => D(`terrain.${word}`, word);
+export const tileResourceName = (id) => D(`tres.${id}`, id);
+export const districtName = (id, english) => D(`district.${id}`, english ?? id);
+/** A law's effect line: the game's own English sentence in English, the translated description in Hebrew. */
+export const lawLine = (law, englishLine) => (getLanguage() === 'he' ? lawDescription(law.id, englishLine || law.description) : (englishLine || law.description));

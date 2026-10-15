@@ -22,7 +22,8 @@ import IndependentCityCard from '../independents/IndependentCityCard';
 import RazeControl from './RazeControl';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
-import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getCategoryTierName, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
+import { categoryTierName, extractionName, wonderName } from '../../i18n/gameText';
+import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
 import { UNIT_CLASSES } from '../../data/unitClasses';
 import { getRankForXp } from '../../data/promotions';
 import { getDepositsFor } from '../../data/deposits';
@@ -666,7 +667,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               <div key={categoryId} className="flex items-center gap-2 bg-fa-raised/60 rounded px-2 py-1.5">
                 <BuildingIcon category={categoryId} tier={tier} size={24} />
                 <div className="min-w-0 flex-1">
-                  <div className="text-fa-text font-semibold truncate">{getCategoryTierName(categoryId, tier)}</div>
+                  <div className="text-fa-text font-semibold truncate">{categoryTierName(categoryId, tier)}</div>
                   <div className="text-fa-muted text-[10px]">{category.label}</div>
                 </div>
                 <TierPips filled={tier + 1} total={category.tiers.length} />
@@ -681,7 +682,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           <div className="space-y-1">
             {projectsHere.map(({ projectId, tier }) => (
               <div key={projectId} className="flex items-center justify-between bg-fa-raised/60 rounded px-2 py-1.5">
-                <span className="text-yellow-200 font-semibold truncate inline-flex items-center gap-1.5"><WonderIcon projectId={projectId} size={20} />{GREAT_PROJECTS[projectId]?.name || projectId}</span>
+                <span className="text-yellow-200 font-semibold truncate inline-flex items-center gap-1.5"><WonderIcon projectId={projectId} size={20} />{wonderName(projectId, GREAT_PROJECTS[projectId]?.name)}</span>
                 <TierPips filled={tier} total={GREAT_PROJECTS[projectId]?.tiers?.length || 3} />
               </div>
             ))}
@@ -698,7 +699,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               <div key={resId} className={`flex items-center gap-1.5 rounded px-2 py-1 border ${developed ? 'border-emerald-500/50 bg-emerald-500/10 text-fa-good' : 'border-fa-line bg-fa-raised/60 text-fa-muted'}`}>
                 {developed ? <ExtractionIcon resourceId={resId} size={18} /> : <ResourceIcon resourceId={resId} size={18} />}
                 <span className="capitalize">{resId}</span>
-                <span className="text-[10px] opacity-80">{developed ? EXTRACTION_BUILDINGS[resId]?.name : 'undeveloped'}</span>
+                <span className="text-[10px] opacity-80">{developed ? extractionName(resId, EXTRACTION_BUILDINGS[resId]?.name) : 'undeveloped'}</span>
               </div>
             );
           })}
