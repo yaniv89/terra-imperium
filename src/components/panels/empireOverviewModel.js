@@ -13,6 +13,7 @@ import { getResearchView } from './researchView';
 import { expenseLabel } from '../ui/topBarModel';
 import { t as tNow } from '../../i18n';
 import { nameNow } from '../../i18n/names';
+import { techName } from '../../i18n/gameText';
 
 const INCOME_IDS = ['gold', 'techPoints', 'hr', 'adm', 'dip', 'mil', 'supplies'];
 
@@ -43,6 +44,6 @@ export const empireOverviewModel = (state) => {
     cities: mine.length,
     people,
     wars,
-    research: research.current ? { name: research.current.tech.name, turns: research.current.finishesIn, gate: research.current.gate, science: research.science, note: research.status.note } : { name: null, turns: 0, gate: null, science: research.science, note: research.status.note }
+    research: research.current ? { name: techName(research.current.tech.id, research.current.tech.name), turns: research.current.finishesIn, gate: research.current.gate, science: research.science, note: research.status.note } : { name: null, turns: 0, gate: null, science: research.science, note: research.status.note }
   };
 };

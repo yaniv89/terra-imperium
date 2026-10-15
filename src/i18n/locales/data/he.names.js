@@ -1,0 +1,163 @@
+// src/i18n/locales/data/he.names.js
+// Reviewed Hebrew spellings of proper names (phase H4b; user ruling: in Hebrew every name is in
+// Hebrew letters, never mixed). Anything not listed here goes through transliterate() in names.js,
+// a fixed rule, so it is still Hebrew. Machine drafted, for the user to review in H6.
+
+// Peoples by id, the 100 that hebrewNames.js does not list (the 50 majors are there).
+export const HE_PEOPLES_MORE = {
+  ugarit: 'אוגרית', mari: 'מארי', media: 'מדי', kanesh: 'קאנש', lydia: 'לודיה', phrygia: 'פריגיה', urartu: 'אוררטו',
+  colchis: 'קולחיס', aghvank: 'אגוואנק', kindah: 'כינדה', magan: 'מגן', dilmun: 'דילמון', qedar: 'קדר', nabataea: 'נבט',
+  alodia: 'אלודיה', libu: 'הלבו', cyrene: 'קירנה', mauretania: 'מאוריטניה', keftiu: 'כפתור',
+  odrysia: 'אודריסיה', illyria: 'אילריה', rasenna_: 'ראסנה', nuragi: 'הנוראגים', celtiberia: 'קלטיבריה', lusitania: 'לוסיטניה',
+  belgae: 'הבלגים', noricum: 'נוריקום', marcomannia: 'מרקומניה', cherusci: "הצ'רוסקים", durotriges: 'דורוטריגס',
+  ulaid: 'אולייד', fortriu: 'פורטריו', rygir: 'ריגיר', bosporan_kingdom: 'בוספורוס', cucuteni: 'קוקוטני',
+  avaria: 'אווריה', sarmatians: 'הסרמטים', oxus: 'אוקסוס', parthava: 'פרתווה', sogdia: 'סוגדיה', khwarazm: 'חורזם',
+  andronovo: 'האנדרונובו', botai: 'בוטאי', xianbei: 'שיינביי', kroraina: 'קרוראינה', khotan: 'כוטן', zhangzhung: "ז'אנג ז'ונג",
+  gandhara: 'גנדהארה', saurashtra: 'סאוראשטרה', kuru: 'קורו', kosala: 'קוסלה', avanti: 'אוואנטי', kalinga: 'קלינגה',
+  rajarata: "ראג'רטה", kamarupa: 'קמרופה', vanga: 'ונגה', zhou: "ג'ואו", chu: "צ'ו", qi: "צ'י", yue: 'יואה',
+  dian: 'דיאן', buyeo: 'בויאו', baekje: "בקג'ה", emishi: 'אמישי', champa: "צ'מפה", dvaravati: 'דוארוואטי',
+  tarumanagara: 'טרומנגרה', medang: 'מדאנג', kutai: 'קוטאי', butuan: 'בוטואן', tondo: 'טונדו', tichitt: "טיצ'יט",
+  djenne_djeno: "ג'נה-ג'נו", kanem: 'כאנם', ife: 'איפה', bono: 'בונו', punt: 'פונט', ajuran: "אג'ורן",
+  engaruka: 'אנגרוקה', luba: 'לובה', lunda: 'לונדה', mutapa: 'מוטפה', merina: 'מרינה', khoekhoe: 'הקויקוי', san: 'הסאן',
+  moche: "מוצ'ה", wari: 'ווארי', diaguita: 'דיאגיטה', marajoara: "מרג'ואארה", jaragua: 'חרגואה', kalinago: 'קלינאגו',
+  zapotec: 'הזאפוטקים', hohokam: 'הוהוקאם', calusa: 'קלוסה', haida: 'היידה', dorset: 'דורסט', lapita: 'לפיטה',
+  wahgi: 'ואהגי', saudeleur: 'סאודלור', latte_chiefs: 'ראשי הלאטה', bau: 'באו'
+};
+delete HE_PEOPLES_MORE.rasenna_;
+
+// Titles that are fixed by a people (data/peoples.js TITLE_OVERRIDES) and the picker's own names.
+export const HE_TITLE_FIXED = {
+  'the Bosporan Kingdom': 'ממלכת בוספורוס',
+  'Bosporan Kingdom': 'ממלכת בוספורוס'
+};
+
+// How a nation's title reads (data/nationTitles.js GOVERNMENT_TITLES): {name} is the people's
+// Hebrew name. Keys are the same government ids; `realm` / `empire`, with plural twins.
+export const HE_GOVERNMENT_TITLES = {
+  tribal: { realm: 'שבטי {name}', empire: 'קונפדרציית {name}' },
+  monarchy: { realm: 'ממלכת {name}', empire: 'אימפריית {name}' },
+  theocracy: { realm: 'מדינת הקודש של {name}', empire: 'אימפריית הקודש של {name}', pluralRealm: 'ממלכת הקודש של {name}' },
+  republic: { realm: 'רפובליקת {name}', empire: 'חבר העמים של {name}' },
+  dictatorship: { realm: 'מדינת {name}', empire: '{name} רבתי', pluralEmpire: 'מדינת {name} רבתי' },
+  technocracy: { realm: 'הטכנוקרטיה של {name}', empire: 'הטכנוקרטיה הגדולה של {name}' },
+  corporate: { realm: 'התאגיד של {name}', empire: 'הקונגלומרט של {name}' }
+};
+
+// Cities by their English name. The capitals of the 150 peoples that hebrewNames.js lacks, then
+// the better known cities of the peoples' lists.
+export const HE_CITIES_MORE = {
+  // capitals
+  'Ugarit': 'אוגרית', 'Mari': 'מארי', 'Hagmatana': 'אחמתא', 'Kanesh': 'קאנש', 'Sardis': 'סרדיס', 'Gordion': 'גורדיון',
+  'Tushpa': 'טושפה', 'Phasis': 'פאסיס', 'Kabalak': 'קבלק', 'Qaryat al-Faw': 'קריאת אל-פאו', 'Bat': 'בת',
+  "Qal'at al-Bahrain": 'קלעת אל-בחרין', 'Adumattu': 'אדומטו', 'Hegra': 'חגרה', 'Soba': 'סובה', 'Siwa': 'סיווה',
+  'Cyrene': 'קירנה', 'Volubilis': 'וולוביליס', 'Knossos': 'קנוסוס', 'Seuthopolis': 'סאותופוליס', 'Scodra': 'סקודרה',
+  'Barumini': 'ברומיני', 'Numantia': 'נומנטיה', 'Conimbriga': 'קוניםבריגה', 'Durocortorum': 'דורוקורטורום', 'Noreia': 'נוריאה',
+  'Marobudum': 'מרובודום', 'Tulifurdum': 'טוליפורדום', 'Maiden Castle': 'מיידן קאסל', 'Emain Macha': 'אמין מאחה',
+  'Burghead': 'בורגהד', 'Avaldsnes': 'אבלדסנס', 'Panticapaeum': 'פנטיקפאון', 'Talianki': 'טליאנקי', 'Hring': 'הרינג',
+  'Uspe': 'אוספה', 'Gonur': 'גונור', 'Nisa': 'ניסה', 'Marakanda': 'מרקנדה', 'Kath': 'קאת', 'Arkaim': 'ארקאים',
+  'Botai': 'בוטאי', 'Xilin Gol': 'שילין גול', 'Loulan': 'לולאן', 'Yotkan': 'יוטקן', 'Khyunglung': 'קיונגלונג',
+  'Takshashila': 'טקסילה', 'Lothal': 'לותל', 'Hastinapura': 'הסטינאפורה', 'Shravasti': 'שראוואסטי', 'Ujjayini': "אוג'יין",
+  'Tosali': 'טוסלי', 'Anuradhapura': 'אנורדהפורה', 'Pragjyotishpura': "פראגג'יוטישפורה", 'Chandraketugarh': "צ'נדרקטוגר",
+  'Haojing': "האוג'ינג", 'Ying': "יינג", 'Linzi': 'לינזי', 'Kuaiji': "קואייג'י", 'Jinning': "ג'ינינג", 'Buyeo': 'בויאו',
+  'Ungjin': "אונגג'ין", 'Isawa': 'איסווה', 'Simhapura': 'סימהפורה', 'Nakhon Pathom': 'נאקון פאתום', 'Sundapura': 'סונדאפורה',
+  'Mataram': 'מטרם', 'Muara Kaman': 'מוארה קמאן', 'Butuan': 'בוטואן', 'Tondo': 'טונדו', 'Dhar Tichitt': "דהאר טיצ'יט",
+  'Djenné-Djeno': "ג'נה-ג'נו", 'Njimi': "נג'ימי", 'Ile-Ife': 'איל-איפה', 'Bono Manso': 'בונו מנסו', 'Opone': 'אופונה',
+  'Merca': 'מרקה', 'Engaruka': 'אנגרוקה', 'Kabongo': 'קבונגו', 'Musumba': 'מוסומבה', 'Zvongombe': 'זבונגומבה',
+  'Ambohimanga': 'אמבוהימנגה', 'Camissa': 'קמיסה', 'Tsodilo': 'צודילו', 'Huaca del Sol': 'הואקה דל סול', 'Huari': 'הוארי',
+  'Calchaquí': "קלצ'קי", 'Marajó': "מרג'ו", 'Jaragua': 'חרגואה', 'Waitukubuli': 'ויטוקובולי', 'Monte Albán': 'מונטה אלבאן',
+  'Snaketown': 'סנייקטאון', 'Calos': 'קלוס', 'Kiusta': 'קיוסטה', 'Igloolik': 'איגלולי', 'Talepakemalai': 'טלפקמלאי',
+  'Kuk': 'קוק', 'Pohnpei': 'פונפיי', 'Guåhan': 'גואהאן', 'Bau': 'באו',
+  // Israel
+  'Samaria': 'שומרון', 'Megiddo': 'מגידו', 'Hazor': 'חצור', 'Shechem': 'שכם', 'Dan': 'דן', 'Bethel': 'בית אל',
+  'Gezer': 'גזר', 'Lachish': 'לכיש', 'Beersheba': 'באר שבע', 'Tirzah': 'תרצה', 'Jezreel': 'יזרעאל', 'Hebron': 'חברון',
+  'Arad': 'ערד', 'Shiloh': 'שילה', 'Gibeon': 'גבעון', 'Bethlehem': 'בית לחם', 'Jericho': 'יריחו', 'Mizpah': 'מצפה', 'Ramah': 'רמה',
+  // Mesopotamia and the Near East
+  'Agade': 'אגדה', 'Sippar': 'ספרוים', 'Eshnunna': 'אשנונה', 'Nippur': 'ניפור', 'Tutub': 'טוטוב', 'Babylon': 'בבל',
+  'Borsippa': 'בורסיפה', 'Kutha': 'כותא', 'Dilbat': 'דילבט', 'Marad': 'מרד', 'Isin': 'איסין', 'Ur': 'אור', 'Uruk': 'אורוק',
+  'Lagash': 'לגש', 'Umma': 'אומה', 'Larsa': 'לרסה', 'Eridu': 'אירידו', 'Adab': 'אדב', 'Shuruppak': 'שורופק',
+  'Nineveh': 'נינוה', 'Assur': 'אשור', 'Ashur': 'אשור', 'Nimrud': 'נמרוד', 'Susa': 'שושן', 'Persepolis': 'פרספוליס',
+  'Damascus': 'דמשק', 'Aleppo': 'חלב', 'Byblos': 'גבל', 'Tyre': 'צור', 'Sidon': 'צידון', 'Hattusa': 'חתושה',
+  'Ecbatana': 'אחמתא', 'Gaza': 'עזה', 'Ashkelon': 'אשקלון', 'Ashdod': 'אשדוד', 'Ekron': 'עקרון',
+  'Memphis': 'מנפיס', 'Thebes': 'תבאי', 'Alexandria': 'אלכסנדריה', 'Carthage': 'קרתגו', 'Athens': 'אתונה', 'Sparta': 'ספרטה',
+  'Corinth': 'קורינתוס', 'Rome': 'רומא', 'Babylonia': 'בבל', 'Petra': 'פטרה', 'Palmyra': 'תדמור', 'Tadmor': 'תדמור',
+  'Troy': 'טרויה', 'Ephesus': 'אפסוס', 'Miletus': 'מילטוס', 'Delphi': 'דלפי', 'Olympia': 'אולימפיה', 'Thessalonica': 'סלוניקי',
+  // Egypt and Nubia
+  'Waset': 'וואסט', 'Iunu': 'יונו', 'Abdju': 'אבדיו', 'Nekhen': 'נחן', 'Nubt': 'נובט', 'Zau': 'זאו', 'Djedu': "ג'דו",
+  'Per-Bastet': 'פר-באסטט', 'Djanet': "ג'אנט", 'Hut-waret': 'חוט-וארט', 'Per-Ramesses': 'פר-רעמסס', 'Akhetaten': 'אחטאטן',
+  'Khemenu': 'חמנו', 'Itj-tawy': "איצ'-טאווי", 'Shedet': 'שדט', 'Djeba': "ג'בה", 'Abu': 'אבו', 'Gebtu': 'גבטו', 'Per-Wadjet': "פר-ואג'ט",
+  // China, Korea, Japan
+  'Bo': 'בו', 'Ao': 'או', 'Xiang': "שיאנג", 'Geng': 'גנג', 'Bi': 'בי', 'Yan': 'ינ', 'Zhaoge': "ג'או-גה", 'Shangqiu': 'שאנגצ\'יו',
+  'Beijing': 'בייג\'ינג', 'Shanghai': 'שנחאי', 'Xi\'an': 'שיאן', 'Luoyang': 'לואויאנג', 'Nanjing': 'נאנג\'ינג',
+  'Seoul': 'סיאול', 'Pyongyang': 'פיונגיאנג', 'Kyoto': 'קיוטו', 'Nara': 'נארה', 'Tokyo': 'טוקיו',
+  // India
+  'Delhi': 'דלהי', 'Mathura': 'מתורה', 'Varanasi': 'ורנאסי', 'Pataliputra': 'פטליפוטרה', 'Ujjain': "אוג'יין",
+  // Americas
+  'Tenochtitlan': "טנוצ'טיטלאן", 'Azcapotzalco': 'אסקפוטסלקו', 'Cholula': "צ'ולולה", 'Cuicuilco': 'קויקואילקו',
+  'Texcoco': 'טקסקוקו', 'Tollan': 'טולאן', 'Xochicalco': "סוצ'יקאלקו", 'Cusco': 'קוסקו', 'Machu Picchu': "מאצ'ו פיצ'ו",
+  'Tikal': 'טיקל', 'Palenque': 'פלנקה', 'Copan': 'קופאן', 'Chichen Itza': "צ'יצ'ן איצה", 'Cahokia': 'קהוקיה',
+  // Europe
+  'Paris': 'פריז', 'London': 'לונדון', 'Berlin': 'ברלין', 'Madrid': 'מדריד', 'Vienna': 'וינה', 'Prague': 'פראג',
+  'Moscow': 'מוסקווה', 'Kyiv': 'קייב', 'Istanbul': 'איסטנבול', 'Constantinople': 'קונסטנטינופול', 'Byzantium': 'ביזנטיון',
+  'Lisbon': 'ליסבון', 'Dublin': 'דבלין', 'Edinburgh': 'אדינבורו', 'Oslo': 'אוסלו', 'Stockholm': 'שטוקהולם',
+  // Africa
+  'Cairo': 'קהיר', 'Axum': 'אקסום', 'Aksum': 'אקסום', 'Timbuktu': 'טימבוקטו', 'Gao': 'גאו', 'Zimbabwe': 'זימבבואה',
+  'Great Zimbabwe': 'זימבבואה הגדולה', 'Mombasa': 'מומבסה', 'Zanzibar': 'זנזיבר'
+};
+
+// Rivers, seas and lakes by their English name, as the battle and map names say them ("the Nile").
+export const HE_WATERS = {
+  'Nile': 'הנילוס', 'Euphrates': 'פרת', 'Tigris': 'חידקל', 'Jordan': 'הירדן', 'Indus': 'האינדוס', 'Ganges': 'הגנגס',
+  'Yangtze': 'היאנגצה', 'Yellow': 'הנהר הצהוב', 'Danube': 'הדנובה', 'Rhine': 'הריין', 'Rhône': 'הרון', 'Rhone': 'הרון',
+  'Seine': 'הסנה', 'Loire': 'הלואר', 'Thames': 'התמזה', 'Elbe': 'האלבה', 'Oder': 'האודר', 'Vistula': 'הוויסלה',
+  'Volga': 'הוולגה', 'Dnieper': 'הדנייפר', 'Don': 'הדון', 'Ural': 'האורל', 'Ob': 'האוב', 'Lena': 'הלנה', 'Amur': 'האמור',
+  'Mekong': 'המקונג', 'Irrawaddy': 'האיראוואדי', 'Brahmaputra': 'הברהמפוטרה', 'Amu Darya': 'האמו דריה', 'Syr Darya': 'הסיר דריה',
+  'Niger': 'הניגר', 'Congo': 'הקונגו', 'Zambezi': 'הזמבזי', 'Limpopo': 'הלימפופו', 'Orange': 'האורנג׳', 'Senegal': 'הסנגל',
+  'Amazon': 'האמזונס', 'Orinoco': 'האורינוקו', 'Paraná': 'הפרנה', 'Parana': 'הפרנה', 'Mississippi': 'המיסיסיפי',
+  'Missouri': 'המיזורי', 'Ohio': 'האוהיו', 'Colorado': 'הקולורדו', 'Columbia': 'הקולומביה', 'Rio Grande': 'ריו גרנדה',
+  'St. Lawrence': 'סנט לורנס', 'Murray': 'המארי', 'Darling': 'הדרלינג', 'Ebro': 'האברו', 'Tagus': 'הטז׳ו', 'Po': 'הפו',
+  'Tiber': 'הטיבר', 'Arno': 'הארנו', 'Garonne': 'הגארון', 'Meuse': 'המז', 'Moselle': 'המוזל', 'Main': 'המיין',
+  'Mediterranean Sea': 'הים התיכון', 'Red Sea': 'ים סוף', 'Black Sea': 'הים השחור', 'Caspian Sea': 'הים הכספי',
+  'Aegean Sea': 'הים האגאי', 'Adriatic Sea': 'הים האדריאטי', 'North Sea': 'ים הצפון', 'Baltic Sea': 'הים הבלטי',
+  'Arabian Sea': 'הים הערבי', 'Persian Gulf': 'המפרץ הפרסי', 'Dead Sea': 'ים המלח', 'Sea of Galilee': 'הכנרת',
+  'Atlantic Ocean': 'האוקיינוס האטלנטי', 'Pacific Ocean': 'האוקיינוס השקט', 'Indian Ocean': 'האוקיינוס ההודי',
+  'Arctic Ocean': 'האוקיינוס הארקטי'
+};
+
+// Rulers' given names and dynasties (data/names.js pools).
+export const HE_PERSONS = {
+  // western_european
+  William: 'ויליאם', Henry: 'הנרי', Charles: "צ'ארלס", Louis: 'לואי', Frederick: 'פרדריק', Edward: 'אדוארד', Robert: 'רוברט',
+  Philip: 'פיליפ', Albert: 'אלברט', George: "ג'ורג'", Isabella: 'איזבלה', Eleanor: 'אלינור', Margaret: 'מרגרט', Catherine: 'קתרין', Anne: 'אן',
+  Valois: 'ולואה', Habsburg: 'הבסבורג', Plantagenet: 'פלנטג׳נט', Bourbon: 'בורבון', Orange: 'אורנג׳', Hohenzollern: 'הוהנצולרן',
+  Wittelsbach: 'ויטלסבאך', Savoy: 'סבויה',
+  // southern_european
+  Alfonso: 'אלפונסו', Ferdinand: 'פרדיננד', Carlos: 'קרלוס', Manuel: 'מנואל', Pedro: 'פדרו', Rodrigo: 'רודריגו', Diego: 'דייגו',
+  Sancho: 'סנצ׳ו', Isabel: 'איזבל', Juana: 'חואנה', Beatriz: 'בטריס', Constanza: 'קונסטנסה', Leonor: 'לאונור',
+  Trastamara: 'טרסטמרה', Braganza: 'בראגנסה', Farnese: 'פרנזה', Medici: 'מדיצ׳י', Aviz: 'אביס', Grimaldi: 'גרימלדי',
+  // slavic_eastern_european
+  Ivan: 'איבן', Vladimir: 'ולדימיר', Boris: 'בוריס', Mikhail: 'מיכאיל', Stefan: 'סטפן', Casimir: 'קז׳ימיר', Vaclav: 'ואצלב',
+  Bogdan: 'בוגדן', Yaroslav: 'יארוסלב', Olga: 'אולגה', Irina: 'אירינה', Sofia: 'סופיה', Elena: 'אלנה', Katarina: 'קתרינה',
+  Romanov: 'רומנוב', Piast: 'פיאסט', Jagiellon: 'יגלון', Rurikid: 'רוריקיד', Nemanjic: 'נמאניץ׳', Premyslid: 'פשמיסל',
+  // mena
+  Faisal: 'פייסל', Hassan: 'חסן', Omar: 'עומר', Tariq: 'טארק', Karim: 'כרים', Rashid: 'ראשיד', Malik: 'מאליק', Yusuf: 'יוסוף',
+  Amina: 'אמינה', Layla: 'לילה', Zahra: 'זהרה', Nadia: 'נדיה', Farida: 'פרידה',
+  'al-Rashid': 'אל-ראשיד', 'al-Nasir': 'אל-נאסר', 'al-Din': 'א-דין', Barakat: 'ברכאת', Zaydan: 'זיידאן', 'al-Sabah': 'א-סבאח',
+  // east_asian
+  Wei: 'וי', Jian: "ג'יאן", Hao: 'האו', Ming: 'מינג', Feng: 'פנג', Yong: 'יונג', Akira: 'אקירה', Hiroshi: 'הירושי', Kenji: "קנג'י",
+  Mei: 'מיי', Ling: 'לינג', Yuki: 'יוקי', Hana: 'האנה',
+  Zhao: "ג'או", Li: 'לי', Wang: 'וואנג', Fujiwara: 'פוג׳יווארה', Minamoto: 'מינאמוטו', Tokugawa: 'טוקוגאווה',
+  // south_asian
+  Arjun: "ארג'ון", Vikram: 'ויקראם', Raj: "ראג'", Ashok: 'אשוק', Rohan: 'רוהאן', Dev: 'דב', Priya: 'פריה', Anika: 'אניקה',
+  Meera: 'מירה', Kavita: 'קביטה', Divya: 'דיביה',
+  Chauhan: "צ'והאן", Rathore: 'ראתור', Gupta: 'גופטה', Chola: "צ'ולה", Maurya: 'מאוריה',
+  // sub_saharan_african
+  Kwame: 'קוואמה', Kofi: 'קופי', Sekou: 'סקו', Jelani: "ג'לאני", Obi: 'אובי', Tafari: 'טפארי', Amara: 'אמרה', Zola: 'זולה',
+  Nia: 'ניה', Ayana: 'איאנה', Folami: 'פולמי',
+  Keita: 'קייטה', Sundiata: 'סונדיאטה', Askia: 'אסקיה', Mansa: 'מנסה', Shaka: "שאקה",
+  // latin_american
+  Mateo: 'מטאו', Santiago: 'סנטיאגו', Emiliano: 'אמיליאנו', Rafael: 'רפאל', Camila: 'קמילה', Valentina: 'ולנטינה', Lucia: 'לוסיה',
+  Isabela: 'איזבלה', Bolivar: 'בוליבר', Iturbide: 'איטורבידה', Moctezuma: 'מונטסומה', Pizarro: 'פיסארו', 'de la Vega': 'דה לה וגה',
+  // generic
+  Alex: 'אלכס', Sam: 'סם', Jordan: 'ג׳ורדן', Morgan: 'מורגן', Riley: 'ריילי', Casey: "קייסי", Avery: 'איברי', Quinn: 'קווין',
+  Taylor: 'טיילור', Drew: 'דרו', Cross: 'קרוס', Vale: 'וייל', Stone: 'סטון', Rivers: 'ריברס', North: 'נורת׳'
+};

@@ -8,6 +8,7 @@ import { getResearchView } from '../panels/researchView';
 import { PEOPLES } from '../../data/peoples';
 import { t as tNow, formatYear } from '../../i18n';
 import { nameNow } from '../../i18n/names';
+import { techName } from '../../i18n/gameText';
 
 export const EXPENSE_IDS = ['armyUpkeep', 'marchingUpkeep', 'navyUpkeep', 'fortUpkeep', 'advisorSalaries', 'loanInterest'];
 /** The expense line's name in the current language (an unknown id is spelled out from its camel case). */
@@ -20,9 +21,9 @@ export const yearLabel = (year) => formatYear(year);
 /** "Bronze Working 3t" style, short enough for the bar. */
 export const scienceLabel = (current, status = null) => {
   if (!current) return status && !status.needsChoice ? status.shortLabel : tNow('chip.research');
-  if (current.gate) return tNow('research.shortWaits', { name: current.tech.name, gate: current.gate.label });
+  if (current.gate) return tNow('research.shortWaits', { name: techName(current.tech.id, current.tech.name), gate: current.gate.label });
   const t = current.finishesIn === Infinity ? '?' : current.finishesIn;
-  return tNow('research.shortTurns', { name: current.tech.name, n: t });
+  return tNow('research.shortTurns', { name: techName(current.tech.id, current.tech.name), n: t });
 };
 
 export const topBarModel = (state) => {
@@ -53,7 +54,7 @@ export const topBarModel = (state) => {
     },
     science: {
       perTurn: research.science,
-      current: research.current ? { name: research.current.tech.name, turns: research.current.finishesIn, gate: research.current.gate } : null,
+      current: research.current ? { name: techName(research.current.tech.id, research.current.tech.name), turns: research.current.finishesIn, gate: research.current.gate } : null,
       status: research.status,
       label: scienceLabel(research.current, research.status),
       bank: research.bank

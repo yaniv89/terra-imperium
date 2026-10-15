@@ -21,6 +21,7 @@ import { isIndependentNation } from '../../data/independents';
 import { translate, getLanguage, formatYear, ageName, hasKey } from '../../i18n/core';
 import { nameOf } from '../../i18n/names';
 import { logText } from '../../i18n/messageText';
+import { techName } from '../../i18n/gameText';
 
 export const REPORT_GROUPS = [
   { id: 'battles', label: 'Battles' },
@@ -167,7 +168,7 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
   const knew = before.techTree || {};
   Object.keys(after.techTree || {}).filter((id) => after.techTree[id]?.researched && !knew[id]?.researched).forEach((id) => {
     const techKey = `tech.${id}.name`;
-    const tech = hasKey(techKey, 'en') ? tr(techKey) : (TECH_TREE[id]?.name || id);
+    const tech = hasKey(techKey, 'en') ? tr(techKey) : techName(id, TECH_TREE[id]?.name || id);
     add('research', { tone: 'science', title: tr('report.learned', { tech }), sub: null, place: { kind: 'tab', id: 'tech', name: tr('report.group.research') } });
   });
   if (after.age !== before.age) add('news', { tone: 'you', title: tr('report.newAge', { age: lang === 'en' ? (AGES[after.age]?.name || after.age) : ageName(after.age, AGES[after.age]?.name || after.age) }), sub: null, place: null });

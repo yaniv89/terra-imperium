@@ -5,6 +5,8 @@
 // suppress rebellion) used to render here whenever a region was selected — they now live in the
 // Civ-style ProvinceModal.jsx (its Military tab), opened via RegionInfoModal's "Manage Region"
 // button, so this tab stays a short, always-relevant overview regardless of map selection.
+import { nameNow } from '../../i18n/names';
+import { unitClassName } from '../../i18n/gameText';
 import React, { useState } from 'react';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { Swords, UserCog } from 'lucide-react';
@@ -44,7 +46,7 @@ const MilitaryPanel = () => {
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-fa-text font-bold text-lg">
         <Swords size={20} className="text-fa-danger-text" />
-        {playerNation?.name}
+        {playerNation && nameNow('people', playerNation.id, playerNation.name)}
       </div>
       <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
         <div className="text-fa-muted">Military Strength</div>
@@ -89,7 +91,7 @@ const MilitaryPanel = () => {
         ) : (
           <ul className="space-y-1">
             {atWarWith.map(n => (
-              <li key={n.id} className="text-fa-danger-text">War with {n.name}</li>
+              <li key={n.id} className="text-fa-danger-text">War with {nameNow('people', n.id, n.name)}</li>
             ))}
           </ul>
         )}
@@ -195,7 +197,7 @@ const BattleReport = ({ report }) => {
   return (
     <div className="bg-fa-raised/60 rounded-lg p-3 text-xs space-y-2 border border-fa-line">
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-fa-text">Last Battle: {REGIONS_DATA[report.fromRegionId]?.name} <span className="inline-block rtl:-scale-x-100">→</span> {REGIONS_DATA[report.targetRegionId]?.name}</span>
+        <span className="font-semibold text-fa-text">Last Battle: {nameNow('city', null, REGIONS_DATA[report.fromRegionId]?.name)} <span className="inline-block rtl:-scale-x-100">→</span> {nameNow('city', null, REGIONS_DATA[report.targetRegionId]?.name)}</span>
         <span className={`font-bold ${outcome.className}`}>{outcome.text}</span>
       </div>
       <div className="text-fa-muted font-mono">
@@ -229,9 +231,9 @@ const OfficerCorps = ({ generals, units, canAffordHire, onHire }) => (
     {generals.length === 0 && <div className="text-fa-muted">No generals hired yet.</div>}
     {generals.map(([id, general]) => (
       <div key={id} className="flex items-center justify-between text-fa-muted">
-        <span>{general.name} <span className="text-fa-muted capitalize">({general.personality})</span></span>
+        <span>{nameNow('person', null, general.name)} <span className="text-fa-muted capitalize">({general.personality})</span></span>
         <span className="font-mono text-fa-muted">
-          {general.assignedUnitId ? `commanding ${UNIT_CLASSES[units[general.assignedUnitId]?.classId]?.name || 'a unit'}` : 'unassigned'}
+          {general.assignedUnitId ? `commanding ${unitClassName(units[general.assignedUnitId]?.classId, UNIT_CLASSES[units[general.assignedUnitId]?.classId]?.name) || 'a unit'}` : 'unassigned'}
         </span>
       </div>
     ))}

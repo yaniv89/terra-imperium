@@ -5,7 +5,8 @@
 // live yields and the turns are the queue's own (src/engine/cityEconomy.js growthView, queueView):
 // the same numbers the city sheet shows, never last turn's mirror (playtest audits I052, where a
 // new city's row said "Settlers in 2800 t"). The allocation behind them is memoised. Pure.
-import { unitDisplayName } from '../../data/unitNames';
+import { unitName as unitDisplayName } from '../../i18n/gameText';
+import { buildingTierName, wonderName, improvementName, navalLineLabel } from '../../i18n/gameText';
 import { getTiles } from '../../data/geo/tiles';
 import { getEffectiveAgeId } from '../../data/ages';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
@@ -21,11 +22,11 @@ export const RAIL_STORAGE_KEY = 'terra-imperium-city-rail-collapsed';
 export const shortItemLabel = (item, tiles = getTiles(), ageId = 'bronze') => {
   if (!item) return null;
   if (item.kind === 'unit' && item.explorer) return 'Scouts';
-  if (item.kind === 'unit') return item.classId === 'naval' ? NAVAL_LINES[item.navalLine || 'warship']?.label || 'Ship' : unitDisplayName(ageId, item.classId);
-  if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category;
-  if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement} (${tiles.names?.[item.tile] || 'tile'})`;
+  if (item.kind === 'unit') return item.classId === 'naval' ? navalLineLabel(item.navalLine || 'warship', NAVAL_LINES[item.navalLine || 'warship']?.label || 'Ship') : unitDisplayName(ageId, item.classId);
+  if (item.kind === 'building') return buildingTierName(item.category, item.tier, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name);
+  if (item.kind === 'improvement') return `${improvementName(item.improvement, IMPROVEMENTS[item.improvement]?.name)} (${tiles.names?.[item.tile] || 'tile'})`;
   if (item.kind === 'settler') return 'Settlers';
-  if (item.kind === 'wonder') return GREAT_PROJECTS[item.projectId]?.name || item.projectId;
+  if (item.kind === 'wonder') return wonderName(item.projectId, GREAT_PROJECTS[item.projectId]?.name);
   if (item.kind === 'army') return item.name || 'Army';
   return item.kind;
 };

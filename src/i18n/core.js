@@ -6,6 +6,7 @@ import enBase from './locales/en';
 import heBase from './locales/he';
 import enMsg from './locales/msg.en';
 import heMsg from './locales/msg.he';
+import dataHe from './locales/data.he';
 
 // The shell tables and the engine's message tables (log lines, news, cards: phase H3) as one.
 const en = { ...enBase, ...enMsg };
@@ -86,7 +87,18 @@ export const formatYear = (year, lang = current) => {
   return year < 0 ? translate('year.bce', { n: formatNumber(-year, { useGrouping: false }, lang) }, lang) : translate('year.ce', { n: formatNumber(year, { useGrouping: false }, lang) }, lang);
 };
 
-/** The text for `key` when the table has it, else `fallback` (game data that is not translated yet). */
-export const tOr = (key, fallback, vars) => (hasKey(key, 'en') ? translate(key, vars, current) : fallback);
+/** Game data text (names, descriptions) by id. English: the data's own `english` text, always. Hebrew:
+ * the data table (locales/data.he.js) when it has `key`, else the English text. {name} in the Hebrew
+ * text is filled from `vars`. */
+export const dataText = (key, english, vars, lang = current) => {
+  if (lang !== 'he') return english;
+  const hit = dataHe[key];
+  return hit === undefined ? english : fill(hit, vars);
+};
+export const hasDataText = (key, lang = 'he') => lang === 'he' && dataHe[key] !== undefined;
+export const dataTable = (lang = 'he') => (lang === 'he' ? dataHe : {});
+
+/** The text for `key` when a table has it, else `fallback` (game data that is not translated yet). */
+export const tOr = (key, fallback, vars) => (hasKey(key, 'en') ? translate(key, vars, current) : dataText(key, fallback, vars, current));
 /** An age's name ("Bronze Age") in the current language. */
 export const ageName = (id, fallback) => tOr(`age.${id}`, fallback || id);

@@ -7,6 +7,8 @@
 // opened via RegionInfoModal's "Manage Region" button. Government/Laws/Identity default
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
+import { nameNow } from '../../i18n/names';
+import { taxRateName, taxRateDescription, wonderName, wonderDescription, governmentName, reformName, reformDescription, lawName, lawLine, identityDescription, identityPole, rulerLine, traitName } from '../../i18n/gameText';
 import { t as tNow } from '../../i18n';
 import React, { useState } from 'react';
 import { WonderIcon } from '../ui/icons';
@@ -89,8 +91,8 @@ const DomesticPanel = () => {
                 onClick={() => handleSetTaxRate(rateId)}
                 disabled={playerNation?.taxRate === rateId || onTaxCooldown || !canAfford(state.resources, ACTION_COSTS.setTaxRate)}
                 title={onTaxCooldown && playerNation?.taxRate !== rateId
-                  ? `${TAX_RATES[rateId].description} (available turn ${taxCooldownTurn})`
-                  : TAX_RATES[rateId].description}
+                  ? `${taxRateDescription(rateId, TAX_RATES[rateId].description)} (available turn ${taxCooldownTurn})`
+                  : taxRateDescription(rateId, TAX_RATES[rateId].description)}
                 className={`text-xs rounded-lg p-2 border ${
                   playerNation?.taxRate === rateId
                     ? 'bg-amber-600/30 border-amber-500 text-amber-300'
@@ -98,7 +100,7 @@ const DomesticPanel = () => {
                 } disabled:opacity-50`}
               >
                 <Coins size={14} className="mx-auto mb-0.5" />
-                {TAX_RATES[rateId].name}
+                {taxRateName(rateId, TAX_RATES[rateId].name)}
               </button>
             ))}
           </div>
@@ -175,10 +177,10 @@ const DomesticPanel = () => {
         return (
           <div key={projectId} className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-fa-text inline-flex items-center gap-1.5"><WonderIcon projectId={projectId} size={20} />{project.name}</span>
+              <span className="text-fa-text inline-flex items-center gap-1.5"><WonderIcon projectId={projectId} size={20} />{wonderName(projectId, project.name)}</span>
               <span className="text-fa-muted">{status}</span>
             </div>
-            <div className="text-fa-muted">{project.description}</div>
+            <div className="text-fa-muted">{wonderDescription(projectId, project.description)}</div>
             {canRaise && <div className="text-[10px] text-amber-200">Raise it to tier {entry.tier + 1} from {state.regions[entry.regionId]?.name || 'its city'}&apos;s production queue (Wonders).</div>}
           </div>
         );
@@ -224,15 +226,15 @@ const DomesticPanel = () => {
           return (
             <div key={g.seat} className="rounded-lg border border-fa-line p-2 space-y-1" data-testid="governor-seat">
               <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-fa-text">{state.regions[g.seat]?.name} <span className="text-fa-muted">+{g.cities.length - 1}</span></span>
-                <span className={gov ? 'text-fa-good' : 'text-amber-300'}>{gov ? `${gov.name} (skill ${gov.skill}${arriving ? `, arrives in ${gov.ready - state.turnNumber}` : ''})` : `ungoverned (${UNGOVERNED_LOYALTY} loyalty)`}</span>
+                <span className="text-fa-text">{nameNow('city', null, state.regions[g.seat]?.name)} <span className="text-fa-muted">+{g.cities.length - 1}</span></span>
+                <span className={gov ? 'text-fa-good' : 'text-amber-300'}>{gov ? `${nameNow('person', null, gov.name)} (skill ${gov.skill}${arriving ? `, arrives in ${gov.ready - state.turnNumber}` : ''})` : `ungoverned (${UNGOVERNED_LOYALTY} loyalty)`}</span>
               </div>
               {gov ? (
                 <button type="button" onClick={() => dispatch({ type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: g.seat } })} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-xs text-fa-text">{tNow('dom.recall')}</button>
               ) : (
                 <div className="flex flex-wrap gap-1">
                   {choices.map((c) => (
-                    <button key={c.id} type="button" data-testid="assign-governor" onClick={() => dispatch({ type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: g.seat, candidateId: c.id } })} className="min-h-[36px] px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-fa-text">Seat {c.name} (skill {c.skill})</button>
+                    <button key={c.id} type="button" data-testid="assign-governor" onClick={() => dispatch({ type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: g.seat, candidateId: c.id } })} className="min-h-[36px] px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-fa-text">Seat {nameNow('person', null, c.name)} (skill {c.skill})</button>
                   ))}
                   {!choices.length && <span className="text-[10px] text-fa-muted">No one at court is free: candidates arrive every {GOVERNOR_REFRESH_TURNS} turns.</span>}
                 </div>
@@ -253,11 +255,11 @@ const DomesticPanel = () => {
         <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
           <div className="flex items-center gap-2">
             <Crown size={14} className="text-amber-400 shrink-0" />
-            <div className="text-fa-text font-semibold">{ruler.name} of House {ruler.dynasty}</div>
+            <div className="text-fa-text font-semibold">{rulerLine(ruler)}</div>
           </div>
           <div className="text-[10px] text-fa-muted mt-0.5">
             ADM {ruler.adm} · DIP {ruler.dip} · MIL {ruler.mil}
-            {ruler.traits?.length > 0 && ` · ${ruler.traits.map((id) => TRAITS[id]?.name || id).join(', ')}`}
+            {ruler.traits?.length > 0 && ` · ${ruler.traits.map((id) => traitName(id, TRAITS[id]?.name)).join(', ')}`}
           </div>
           <div className="text-[10px] text-fa-muted" data-testid="ruler-skill-help">
             Each skill adds to the power pool of its name every turn. {powerPoolsShort()}
@@ -310,7 +312,7 @@ const DomesticPanel = () => {
             </div>
             <div className="text-[10px] text-fa-muted">Adds their level to {pool.toUpperCase()} each turn. {POWER_POOL_HELP[pool].name} {POWER_POOL_HELP[pool].short}.</div>
             {current ? (
-              <div className="text-fa-text">{current.name} (level {current.level})</div>
+              <div className="text-fa-text">{nameNow('person', null, current.name)} (level {current.level})</div>
             ) : (
               <div className="text-fa-muted">{tNow('dom.noneHired')}</div>
             )}
@@ -320,7 +322,7 @@ const DomesticPanel = () => {
                 <ActionButton
                   key={candidate.id}
                   icon={Users}
-                  label={`Hire ${candidate.name} (level ${candidate.level})`}
+                  label={`Hire ${nameNow('person', null, candidate.name)} (level ${candidate.level})`}
                   description={advisorQuoteText(candidate.level, pool, current)}
                   costs={{ gold: cost }}
                   onClick={() => handleHireAdvisor(pool, index, cost)}
@@ -365,9 +367,9 @@ const DomesticPanel = () => {
     <div className="space-y-2">
       <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
         <div className="text-fa-muted">{tNow('dom.current')}</div>
-        <div className="text-fa-text font-semibold">{currentGovernmentType ? currentGovernmentType.name : 'None adopted'}</div>
+        <div className="text-fa-text font-semibold">{currentGovernmentType ? governmentName(currentGovernmentType.id, currentGovernmentType.name) : 'None adopted'}</div>
         {activeReforms.length > 0 && (
-          <div className="text-[10px] text-fa-muted mt-0.5">{activeReforms.map((r) => r.name).join(' · ')}</div>
+          <div className="text-[10px] text-fa-muted mt-0.5">{activeReforms.map((r) => reformName(r.id, r.name)).join(' · ')}</div>
         )}
       </div>
       {availableGovernmentTypes.map((gov) => {
@@ -376,7 +378,7 @@ const DomesticPanel = () => {
         <React.Fragment key={gov.id}>
         <ActionButton
           icon={Landmark}
-          label={`Become a ${gov.name}`}
+          label={`Become a ${governmentName(gov.id, gov.name)}`}
           description={preview.ok ? `${preview.lines.filter((l) => /^(Stability|Authority)/.test(l)).join(' ')} Tap for the details and to choose its reforms.` : 'Resets your reform choices; -2 stability.'}
           costs={ACTION_COSTS.changeGovernmentType}
           onClick={() => handleChangeGovernmentType(gov.id)}
@@ -399,16 +401,16 @@ const DomesticPanel = () => {
               <div key={reform.id} className="flex items-center gap-1.5 bg-fa-raised/60 rounded-lg p-2 text-xs">
                 <ScrollText size={14} className="text-amber-400 shrink-0" />
                 <div className="flex-1">
-                  <div className="text-fa-text">{reform.name}</div>
-                  <div className="text-fa-muted">{reform.description}</div>
+                  <div className="text-fa-text">{reformName(reform.id, reform.name)}</div>
+                  <div className="text-fa-muted">{reformDescription(reform.id, reform.description)}</div>
                 </div>
               </div>
             ) : (
               <ActionButton
                 key={reform.id}
                 icon={ScrollText}
-                label={reform.name}
-                description={reform.description}
+                label={reformName(reform.id, reform.name)}
+                description={reformDescription(reform.id, reform.description)}
                 costs={ACTION_COSTS.enactGovernmentReform}
                 onClick={() => handleEnactReform(state.age, reform.id)}
                 disabled={!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform) || !canEnactReform(playerNation, state.age, reform.id, state.age)}
@@ -433,9 +435,9 @@ const DomesticPanel = () => {
           <div key={category} className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-fa-muted capitalize">{category}</span>
-              <span className="text-fa-text font-semibold">{currentLaw?.name}</span>
+              <span className="text-fa-text font-semibold">{currentLaw && lawName(currentLaw.id, currentLaw.name)}</span>
             </div>
-            {currentLaw && <div className="text-fa-muted" data-testid={`law-effects-${category}`}>{lawEffectLines(currentLaw).map((l) => l.text).join('; ') || currentLaw.description}</div>}
+            {currentLaw && <div className="text-fa-muted" data-testid={`law-effects-${category}`}>{lawLine(currentLaw, lawEffectLines(currentLaw).map((l) => l.text).join('; '))}</div>}
             <div className="flex flex-col gap-1.5 pt-1">
               {alternatives.map((law) => {
                 const canEnact = canEnactLaw(state, state.playerNationId, category, law.id);
@@ -448,12 +450,12 @@ const DomesticPanel = () => {
                     <button
                       onClick={() => handleChangeLaw(category, law.id)}
                       disabled={!canEnact || !canAfford(state.resources, cost)}
-                      title={requiredTech && !canEnact ? `Requires ${requiredTech}` : effectText || law.description}
+                      title={requiredTech && !canEnact ? `Requires ${requiredTech}` : lawLine(law, effectText)}
                       className="text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text px-2 py-1"
                     >
-                      {law.name} ({cost.adm} ADM)
+                      {lawName(law.id, law.name)} ({cost.adm} ADM)
                     </button>
-                    <span className="text-[10px] text-fa-muted" data-testid={`law-alt-${law.id}`}>{effectText || law.description}{lock ? ` Locked: ${lock}.` : ''}</span>
+                    <span className="text-[10px] text-fa-muted" data-testid={`law-alt-${law.id}`}>{lawLine(law, effectText)}{lock ? ` Locked: ${lock}.` : ''}</span>
                   </div>
                 );
               })}
@@ -479,7 +481,7 @@ const DomesticPanel = () => {
         return (
           <div key={axisId} className="bg-fa-raised/60 rounded-lg p-2 text-xs">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-fa-muted" title={axis.description}>{axis.negativePole} &harr; {axis.positivePole}</span>
+              <span className="text-fa-muted" title={identityDescription(axisId, axis.description)}>{identityPole(axisId, 'neg', axis.negativePole)} &harr; {identityPole(axisId, 'pos', axis.positivePole)}</span>
               <span className="text-fa-text font-mono">{value > 0 ? `+${value}` : value}</span>
             </div>
             <div className="flex gap-1.5">
@@ -525,7 +527,7 @@ const DomesticPanel = () => {
         {empireSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
-      <CollapsibleSection title={tNow('dom.government')} icon={Landmark} summary={currentGovernmentType?.name}>
+      <CollapsibleSection title={tNow('dom.government')} icon={Landmark} summary={currentGovernmentType && governmentName(currentGovernmentType.id, currentGovernmentType.name)}>
         {governmentSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />

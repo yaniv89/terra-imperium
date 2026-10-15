@@ -17,6 +17,7 @@ import { CATEGORY_LABELS } from '../panels/TechPanel';
 import { openPanelTab } from '../panels/panelEvents';
 import { OPEN_RESEARCH_CHOICE } from '../ui/uiEvents';
 import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
+import { techName } from '../../i18n/gameText';
 
 // Whether the sheet should be up (pure, for tests): nothing being researched, nothing queued, no
 // advisor, something available, and no other decision on screen.
@@ -75,7 +76,7 @@ const ResearchChoiceSheet = ({ hidden }) => {
             <button key={o.tech.id} onClick={() => choose(o.tech.id)} data-testid={`research-option-${o.tech.id}`}
               className="w-full text-start rounded-xl border border-fa-line bg-fa-raised/60 hover:border-purple-400 hover:bg-fa-raised p-3 min-h-[56px]">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="font-semibold text-fa-text">{o.tech.name}</span>
+                <span className="font-semibold text-fa-text">{techName(o.tech.id, o.tech.name)}</span>
                 <span className="text-[11px] text-purple-300 shrink-0">{formatTurns(o.turns)}</span>
               </div>
               <div className="text-[11px] text-fa-muted">{CATEGORY_LABELS[o.tech.category]} · {o.cost} science</div>

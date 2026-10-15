@@ -33,6 +33,7 @@ import { openPanelTab, closePanels } from './panelEvents';
 import { advisorPlan, scholarsPreview } from '../../engine/researchStatus';
 import { describeTech, formatTurns, formatEta, techInfo, techGraph, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
 import { researchSheetModel } from './researchSheetModel';
+import { techName, boostLabel } from '../../i18n/gameText';
 
 export const CATEGORY_LABELS = {
   [TechCategories.MILITARY]: 'Military',
@@ -55,19 +56,19 @@ const TechRow = ({ info, onResearch, onQueue }) => {
     <div className={`fa-card px-2.5 py-2 space-y-1 ${current ? 'fa-selected' : researched ? 'opacity-70' : ''}`} data-testid={`tech-${tech.id}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 text-[13px] font-semibold text-fa-text"><Icon className={`w-3.5 h-3.5 shrink-0 ${researched ? 'text-fa-good' : 'text-fa-muted'}`} aria-hidden="true" /><span className="truncate">{tech.name}</span></div>
+          <div className="flex items-center gap-1.5 text-[13px] font-semibold text-fa-text"><Icon className={`w-3.5 h-3.5 shrink-0 ${researched ? 'text-fa-good' : 'text-fa-muted'}`} aria-hidden="true" /><span className="truncate">{techName(tech.id, tech.name)}</span></div>
           <div className="text-[11px] text-fa-muted">{status}{diffusionNote}</div>
         </div>
         {!researched && !current && (
           <div className="flex gap-1 shrink-0">
             <Button size="sm" onClick={() => onResearch(tech.id)}>{tNow('tech.research')}</Button>
-            {queuedAt < 0 && <button type="button" onClick={() => onQueue(tech.id)} aria-label={tNow('tech.queueAria', { name: tech.name })} title={tNow('tech.addQueue')} className="fa-icon-btn !w-8 !h-8"><ListPlus className="w-4 h-4" aria-hidden="true" /></button>}
+            {queuedAt < 0 && <button type="button" onClick={() => onQueue(tech.id)} aria-label={tNow('tech.queueAria', { name: techName(tech.id, tech.name) })} title={tNow('tech.addQueue')} className="fa-icon-btn !w-8 !h-8"><ListPlus className="w-4 h-4" aria-hidden="true" /></button>}
           </div>
         )}
       </div>
       <div className="text-[11px] text-fa-muted">{describeTech(tech)}</div>
       {mapEffect && <div className="text-[11px] text-fa-you" data-testid="tech-map-effect">Map: {mapEffect}</div>}
-      {boost && <div className={`text-[11px] ${boost.taken ? 'text-fa-good' : boost.met ? 'text-fa-good' : 'text-fa-muted'}`} data-testid="tech-boost">Boost: {boost.label}{boost.taken ? ' (taken)' : boost.met ? ' (met, lands at the end of the turn)' : ''}</div>}
+      {boost && <div className={`text-[11px] ${boost.taken ? 'text-fa-good' : boost.met ? 'text-fa-good' : 'text-fa-muted'}`} data-testid="tech-boost">Boost: {boostLabel(tech.id, boost.label)}{boost.taken ? ' (taken)' : boost.met ? ' (met, lands at the end of the turn)' : ''}</div>}
       {current && <Meter value={share} max={1} color={SCIENCE} />}
     </div>
   );
@@ -89,11 +90,11 @@ const CurrentCard = ({ m }) => {
       <div className="flex items-start gap-2.5">
         <FlaskConical className="w-5 h-5 mt-0.5 shrink-0" style={{ color: SCIENCE }} aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <div className="fa-heading text-[17px] leading-tight truncate">{c.tech.name}</div>
+          <div className="fa-heading text-[17px] leading-tight truncate">{techName(c.tech.id, c.tech.name)}</div>
           <div className="text-[12px] text-fa-muted leading-snug">{describeTech(c.tech)}</div>
         </div>
       </div>
-      <Meter value={c.progress} max={c.cost} extra={c.pendingBoost} color={SCIENCE} extraColor="var(--fa-good)" height={8} label={`${c.tech.name}: ${Math.floor(c.progress)} of ${c.cost}`} />
+      <Meter value={c.progress} max={c.cost} extra={c.pendingBoost} color={SCIENCE} extraColor="var(--fa-good)" height={8} label={`${techName(c.tech.id, c.tech.name)}: ${Math.floor(c.progress)} of ${c.cost}`} />
       <div className="flex items-baseline gap-x-3 gap-y-0.5 flex-wrap text-[12px]">
         <span className="fa-num">{Math.floor(c.progress)} / {c.cost}</span>
         <span className="fa-num text-fa-muted">+{m.science} a turn</span>
@@ -115,16 +116,16 @@ const BoostRow = ({ b }) => {
     closePanels();
     setMapLens(b.target.lens);
     focusPlace([]);
-    showMapHint({ title: b.label, text: `Look for it on the map (${b.target.lens} lens). It gives +${b.share}% to ${b.techName}.`, back: 'tech' });
+    showMapHint({ title: boostLabel(b.techId, b.label), text: `Look for it on the map (${b.target.lens} lens). It gives +${b.share}% to ${b.techName}.`, back: 'tech' });
   };
   return (
     <div className="fa-card flex items-center gap-2.5 ps-3 pe-1.5 py-1.5 min-h-[48px]" data-testid="research-map-boost">
       <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${b.met ? 'bg-fa-good' : 'border-2 border-fa-muted'}`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-semibold leading-tight truncate">{b.label}</div>
+        <div className="text-[13px] font-semibold leading-tight truncate">{boostLabel(b.techId, b.label)}</div>
         <div className="text-[11px] text-fa-muted leading-tight"><span className="fa-num text-fa-text">+{b.share}%</span> to {b.techName}. {b.met ? 'Met: it lands when the turn ends.' : b.planned ? 'You plan this tech.' : 'You can start this tech.'}</div>
       </div>
-      {b.target && <Button size="sm" onClick={go} aria-label={`${b.target.label}: ${b.label}`}><MapPin className="w-3.5 h-3.5" aria-hidden="true" />{b.target.label}</Button>}
+      {b.target && <Button size="sm" onClick={go} aria-label={`${b.target.label}: ${boostLabel(b.techId, b.label)}`}><MapPin className="w-3.5 h-3.5" aria-hidden="true" />{b.target.label}</Button>}
     </div>
   );
 };
@@ -228,8 +229,8 @@ const TechPanel = () => {
               {m.queue.length === 0 && <span className="text-[12px] text-fa-muted">{tNow('tech.noQueue')}</span>}
               {m.queue.map((q, i) => (
                 <span key={q.tech.id} className="fa-chip !pe-1 gap-1">
-                  <span className="fa-num text-fa-muted">{i + 1}</span> {q.tech.name} <span className="fa-num text-fa-muted">{q.gate ? `waits ${q.gate.label}` : `${q.finishesIn}t`}</span>
-                  <button type="button" onClick={() => unqueue(q.tech.id)} aria-label={`Remove ${q.tech.name} from the queue`} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-fa-hover text-fa-muted"><X className="w-3 h-3" aria-hidden="true" /></button>
+                  <span className="fa-num text-fa-muted">{i + 1}</span> {techName(q.tech.id, q.tech.name)} <span className="fa-num text-fa-muted">{q.gate ? `waits ${q.gate.label}` : `${q.finishesIn}t`}</span>
+                  <button type="button" onClick={() => unqueue(q.tech.id)} aria-label={`Remove ${techName(q.tech.id, q.tech.name)} from the queue`} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-fa-hover text-fa-muted"><X className="w-3 h-3" aria-hidden="true" /></button>
                 </span>
               ))}
             </div>

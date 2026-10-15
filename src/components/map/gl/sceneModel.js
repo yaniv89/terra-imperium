@@ -8,6 +8,7 @@
 //   hits     what a tap can pick: { kind, anchor, offset, size, exp, pad, ... } (picking.js)
 // Built once per settled zoom and game change (the GPU moves them while the map pans), the tile
 // glyphs and roads per window of the world round the view.
+import { nameNow } from '../../../i18n/names';
 import { getTiles } from '../../../data/geo/tiles';
 import { cityLatLon, landTilesWithin } from '../../../data/geo/cityFeatures';
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
@@ -103,7 +104,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
       const owner = city.owner || city.colony?.ownerId;
       const own = owner === state.playerNationId;
       const art = cityBannerArt({
-        name: city.name, size: city.size, colour: own ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8', selected: city.id === selectedRegion,
+        name: nameNow('city', null, city.name), size: city.size, colour: own ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8', selected: city.id === selectedRegion,
         capital: !!city.isCapital, disloyal: !!city.owner && loyaltyOf(city) <= 25, indep: independentPersonality(state.nations, owner),
         siege: city.siege ? Math.max(0, Math.min(1, city.siege.hp / Math.max(1, city.siege.maxHp))) : null,
         outpost: city.outpost ? Math.max(0, Math.min(1, (city.outpost.progress || 0) / OUTPOST_DONE)) : null,
@@ -135,7 +136,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
     hits.push({ kind: 'city', id: city.id, anchor, offset: [0, 0, 0, 0], size: [r0 * 2, r0 * 2], exp: [0.5, 0], round: true, pad: 2, minR: k < HEX_FROM_ZOOM ? CITY_TAP_MIN_R : 0, nearest: true });
     if (k >= CITY_DETAIL_ZOOM || (k >= NAME_EARLY_ZOOM && (city.isCapital || city.owner === state.playerNationId))) {
       // a remembered town (fog, W03) says when it was last seen
-      const label = labelArt(city.ghost && city.lastSeen ? `${city.name} · last seen T${city.lastSeen}` : city.name, { size: 11, weight: 700, fill: city.ghost ? '#B9B19F' : isIndependent(state.nations, city.owner) ? '#DCD5F7' : '#fff' }, dpr);
+      const label = labelArt(city.ghost && city.lastSeen ? `${nameNow('city', null, city.name)} · last seen T${city.lastSeen}` : nameNow('city', null, city.name), { size: 11, weight: 700, fill: city.ghost ? '#B9B19F' : isIndependent(state.nations, city.owner) ? '#DCD5F7' : '#fff' }, dpr);
       // the baseline 2 px over the disc, as the SVG's text
       names.push({ art: label, anchor, offset: [0, -2 - label.css.baseline + label.css.h / 2, 0, -r0], size: [label.css.w, label.css.h], exp: [0, 0.5], color: fade(city.ghost ? 0.6 : 1), prio: cityLabelPrio(city, { selected: city.id === selectedRegion, own: city.owner === state.playerNationId }) });
     }

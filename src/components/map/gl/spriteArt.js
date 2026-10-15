@@ -9,6 +9,7 @@
 // the image is in, onImageLoad).
 // Real art for the WebGL map (plans/ART-PRODUCTION-PLAN.md, batch 08, spec S4) comes through
 // mapSprites.js; until it is delivered these drawings are the placeholders.
+import { getLanguage } from '../../../i18n/core';
 import { moraleColor, PLAYER_BANNER_COLOR } from '../mapBanners';
 import { shortMen } from '../../../utils/mapMarkers';
 import { getNationColor } from '../../../data/nationColors';
@@ -47,7 +48,20 @@ const measure = (font, text) => {
   measureCtx.font = font;
   return measureCtx.measureText(text).width;
 };
-const fontOf = (size, weight = 700) => `${weight} ${size}px ${FONT}`;
+// Hebrew (phase H4b): the canvas draws with Heebo first, which the Hebrew stylesheet loads on the first
+// switch (i18n/index.js). A sprite drawn before the font arrives keeps the fallback, and its key says so,
+// so it is drawn again with Heebo (as the display font below).
+const HEBREW = /[\u0590-\u05FF]/;
+const hebrewOn = () => getLanguage() === 'he';
+const hebrewFontReady = () => {
+  try {
+    if (typeof document === 'undefined' || !document.fonts) return true;
+    document.fonts.load('700 12px Heebo', '\u05D0').catch(() => {});
+    return document.fonts.check('700 12px Heebo', '\u05D0');
+  } catch { return true; }
+};
+const stackOf = () => (hebrewOn() ? `Heebo, ${FONT}` : FONT);
+const fontOf = (size, weight = 700) => `${weight} ${size}px ${stackOf()}`;
 
 /**
  * A text label: the old SVG's white text with a dark outline (paint order stroke). The sprite's
@@ -59,7 +73,7 @@ export const labelArt = (text, { size = 11, weight = 700, fill = '#fff', stroke 
   const h = Math.ceil(size * 1.45 + strokeW);
   const baseline = Math.round(size * 1.05 + strokeW / 2);
   return {
-    key: `label|${s}|${size}|${weight}|${fill}|${stroke}|${strokeW}|${dpr}`,
+    key: `label|${s}|${size}|${weight}|${fill}|${stroke}|${strokeW}|${dpr}${HEBREW.test(s) ? `|he${hebrewFontReady() ? 1 : 0}` : ''}`,
     w: Math.ceil(width * dpr), h: Math.ceil(h * dpr), css: { w: Math.ceil(width * dpr) / dpr, h: Math.ceil(h * dpr) / dpr, baseline },
     draw: (ctx) => {
       ctx.scale(dpr, dpr);
@@ -447,7 +461,8 @@ export const cityBannerArt = (c, dpr, font = 12) => {
   const star = markerIconUrl('capital'); const siegeIcon = markerIconUrl('siege') || markerIconUrl('battle');
   const sizeText = c.outpost != null ? '⛺' : String(c.size || 1);
   const display = displayReady(font + 1);
-  const nameFont = display ? `700 ${font + 1}px ${DISPLAY_FONT}` : fontOf(font);
+  const heb = HEBREW.test(c.name);
+  const nameFont = heb ? `700 ${font + 1}px Heebo, ${FONT}` : display ? `700 ${font + 1}px ${DISPLAY_FONT}` : fontOf(font);
   const sizeFont = display ? `600 ${font - 1}px ${MONO_FONT}` : fontOf(font - 1, 800);
   const nameW = measure(nameFont, c.name);
   const disc = font + 6;
@@ -464,7 +479,7 @@ export const cityBannerArt = (c, dpr, font = 12) => {
   const pad = 6; const cw = w + pad * 2; const ch = h + pad * 2 + 5;
   const q = (v) => (v == null ? '' : Math.round(v * 20));
   return {
-    key: `cityBanner|${c.name}|${sizeText}|${c.colour}|${c.indep ? `i${c.indep}${framed ? 'f' : ''}` : ''}${c.selected ? 1 : 0}|${c.capital ? 1 : 0}|${c.disloyal ? 1 : 0}|${q(c.siege)}|${q(c.outpost)}|${q(c.build)}|${font}|${display ? 1 : 0}|${dpr}`,
+    key: `cityBanner|${c.name}|${heb ? `he${hebrewFontReady() ? 1 : 0}|` : ''}${sizeText}|${c.colour}|${c.indep ? `i${c.indep}${framed ? 'f' : ''}` : ''}${c.selected ? 1 : 0}|${c.capital ? 1 : 0}|${c.disloyal ? 1 : 0}|${q(c.siege)}|${q(c.outpost)}|${q(c.build)}|${font}|${display ? 1 : 0}|${dpr}`,
     w: Math.ceil(cw * dpr), h: Math.ceil(ch * dpr), pending: waiting(c.capital ? star : null) || waiting(c.siege != null ? siegeIcon : null) || waiting(shield) || waiting(frame),
     css: { w: Math.ceil(cw * dpr) / dpr, h: Math.ceil(ch * dpr) / dpr, pillW: w, pillH: h, pad },
     draw: (ctx) => {

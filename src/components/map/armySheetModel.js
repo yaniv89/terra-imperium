@@ -2,6 +2,8 @@
 // What the army sheet shows for the player's stack on a tile (plans/civ-map-rework.md E4):
 // units grouped by army, each with its strength, morale, supply and moves, the general, the
 // supply zone with its reason, the route with its ETA. Pure, so it can be tested without a DOM.
+import { regimentLabel } from '../../i18n/names';
+import { navalShipName, unitRosterName } from '../../i18n/gameText';
 import { getTiles } from '../../data/geo/tiles';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getUnitDefinition, UNIT_CLASSES } from '../../data/unitClasses';
@@ -59,7 +61,7 @@ export const armySheetModel = (state, tile) => {
   const rows = units.map((u) => ({
     id: u.id,
     // "3rd Akkadian Spearmen" in a peoples world (regimentNames.js), the plain name otherwise
-    name: u.explorer ? 'Scouts' : regimentName(state.nations[u.ownerId], u, naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId),
+    name: u.explorer ? 'Scouts' : ((en) => regimentLabel(regimentName(state.nations[u.ownerId], u, en), state.nations[u.ownerId]?.people, naval ? navalShipName(navalLineOf(u), ageId, en) : unitRosterName(ageId, u.classId, en), u.regiment))(naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId),
     cargo: naval ? Object.values(state.units).filter((c) => c.embarkedOn === u.id).length : 0,
     classId: u.classId,
     navalLine: naval ? navalLineOf(u) : null,
