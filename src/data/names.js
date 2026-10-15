@@ -84,3 +84,5 @@ const pick = (list, rng) => list[Math.floor(rng.next() * list.length)];
 // (post-civil-war, or the game's very first ruler) rolls a brand new one.
 export const generateGivenName = (nationId, rng) => pick(NAME_POOLS[getCultureGroup(nationId)].given, rng);
 export const generateDynastyName = (nationId, rng) => pick(NAME_POOLS[getCultureGroup(nationId)].dynasty, rng);
+/** The whole given-name list of a nation's culture group (for a deterministic fallback scan). */
+export const givenNamePool = (nationId) => NAME_POOLS[getCultureGroup(nationId)].given;

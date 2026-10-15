@@ -20,6 +20,7 @@ import COUNTRY_ADJACENCY from '../../data/geo/countries-adjacency.json';
 import { distanceKm, EARTH_RADIUS_KM } from '../../data/geo/geodesic';
 import { sinCosDeg } from '../../utils/exactMath';
 import { ringsForKm } from '../../data/geo/gridScale';
+import { countryOfNation } from '../../data/peoples';
 
 // A radius index over city centres (unit vectors): a 3-D grid of cubes CELL_KM wide on the chord,
 // so there is no pole or longitude problem and no trigonometry (the same on every engine, unlike
@@ -206,6 +207,7 @@ export const buildRegistry = (regions) => {
       ownerNow: city.owner,
       name: city.name,
       startOwner: city.founderId || city.owner,
+      landCode: tiles.countryOf(city.tile) || countryOfNation(city.founderId || city.owner), // country code of the land it stands on (deposits are geological)
       population: sizeToPeople(city.size || 1),
       neighbors: null,
       touching: touching.sort(),

@@ -42,3 +42,22 @@ describe('hasDeposit / getDepositsFor', () => {
     expect(getDepositsFor('not-a-real-country')).toEqual([]);
   });
 });
+
+describe('deposits in a peoples world', () => {
+  it('a city gets the deposits of the land it stands on, not of its people slug', async () => {
+    const { peoplesWorld } = await import('../engine/testWorld');
+    const { syncWorldRegistry } = await import('../engine/world/registry');
+    const { REGIONS_DATA } = await import('./regions');
+    const { depositLandOf } = await import('./deposits');
+    const s = peoplesWorld({ seed: 5, size: 'standard' });
+    syncWorldRegistry(s);
+    const ids = Object.keys(s.regions);
+    const withDeposit = ids.filter((id) => getDepositsFor(depositLandOf(REGIONS_DATA[id])).length > 0);
+    expect(withDeposit.length).toBeGreaterThan(0);
+    expect(withDeposit.length).toBeLessThan(ids.length);
+    // the bug: the slug lookup found nothing
+    expect(ids.some((id) => getDepositsFor(REGIONS_DATA[id].startOwner).length > 0)).toBe(false);
+    const kinds = new Set(withDeposit.flatMap((id) => getDepositsFor(depositLandOf(REGIONS_DATA[id]))));
+    expect(kinds.size).toBeGreaterThanOrEqual(2);
+  }, 60000);
+});

@@ -78,7 +78,7 @@ import {
   canBuildTier, canBuildExtraction, BUILDING_CATEGORIES,
   getBuildingSlots, getUsedBuildingSlots, getBuildingTierCost, getCategoryTierName
 } from '../data/buildings';
-import { hasDeposit } from '../data/deposits';
+import { hasDeposit, depositLandOf } from '../data/deposits';
 import { getAvailableClasses } from '../data/unitClasses';
 import {
   ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
@@ -917,7 +917,7 @@ const reduceAction = (state, action) => {
       const costs = ACTION_COSTS.developResourceSite;
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (region.buildings.extraction[resourceId] === undefined || region.buildings.extraction[resourceId]) return state;
-      if (!hasDeposit(REGIONS_DATA[regionId]?.startOwner, resourceId) || !canBuildExtraction(resourceId, getEffectiveAgeId(state.age, state.techAgeId))) return state;
+      if (!hasDeposit(depositLandOf(REGIONS_DATA[regionId]), resourceId) || !canBuildExtraction(resourceId, getEffectiveAgeId(state.age, state.techAgeId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,

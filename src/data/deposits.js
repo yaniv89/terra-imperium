@@ -7,6 +7,8 @@
 // Deliberately NOT exhaustive over all 240 nations — most nations have none of these three, which
 // is the point: if you lack a resource you trade for it or take it. Real major producers/
 // historically significant deposit sites only.
+import { countryOfNation } from './peoples';
+
 export const RESOURCE_DEPOSITS = {
   // Copper
   cl: ['copper'], pe: ['copper'], cd: ['copper'], zm: ['copper'], mn: ['copper'],
@@ -29,3 +31,8 @@ export const RESOURCE_DEPOSITS = {
 export const hasDeposit = (countryId, resourceId) => (RESOURCE_DEPOSITS[countryId] || []).includes(resourceId);
 
 export const getDepositsFor = (countryId) => RESOURCE_DEPOSITS[countryId] || [];
+
+// The land a region's deposits are keyed by: the country code of the ground its city stands on
+// (registry `landCode`). A peoples world's nation ids are slugs (`akkad`), so `startOwner` alone
+// would find nothing; the fallback keeps records and tests that set only `startOwner`.
+export const depositLandOf = (region) => region?.landCode || countryOfNation(region?.startOwner);

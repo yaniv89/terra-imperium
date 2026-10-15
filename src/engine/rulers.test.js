@@ -145,3 +145,29 @@ describe('processReignEnd', () => {
     expect(next).not.toHaveProperty('consort');
   });
 });
+
+describe('generateAdvisorCandidates names', () => {
+  it('never repeats a name within a court, for every seed', () => {
+    for (let seed = 1; seed <= 300; seed++) {
+      const all = Object.values(generateAdvisorCandidates('akkad', createRng(seed), ['Ruler Name'])).flat().map((a) => a.name);
+      expect(new Set(all).size).toBe(all.length);
+    }
+  });
+  it('is deterministic and survives a court that has taken most of the list', async () => {
+    const { givenNamePool } = await import('../data/names');
+    const pool = givenNamePool('akkad');
+    const avoid = pool.slice(0, pool.length - 3);
+    const a = generateAdvisorCandidates('akkad', createRng(7), avoid);
+    const b = generateAdvisorCandidates('akkad', createRng(7), avoid);
+    expect(a).toEqual(b);
+    const names = Object.values(a).flat().map((x) => x.name);
+    expect(new Set(names).size).toBe(9);
+    names.forEach((n) => expect(avoid).not.toContain(n));
+  });
+  it('keeps the rng stream when the first roll is free', () => {
+    const r1 = createRng(3); const r2 = createRng(3);
+    generateAdvisorCandidates('akkad', r1, []);
+    expect(r1.next()).not.toBeNaN();
+    expect(r2.next()).not.toBeNaN();
+  });
+});
