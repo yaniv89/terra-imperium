@@ -11,6 +11,9 @@
 // AI nations only: the player chooses their own alliances. A vassal answers to its overlord and a
 // nation already fighting the maximum number of wars sits a call out (checked at call time).
 import { isIndependentNation } from '../data/independents';
+import { msg, sub, people } from './messages';
+
+const listOfRefs = (refs) => refs.reduce((acc, r) => (acc == null ? r : sub('m.diplo.list', { a: acc, b: r })), null);
 
 export const PACT_FORM_AE = 40;
 export const PACT_KEEP_AE = 15;
@@ -49,11 +52,11 @@ export const updateDefensivePacts = (nations, { playerNationId, turnNumber } = {
     const since = existing.length ? next[existing[0]].defensivePact.since : turnNumber;
     joining.forEach((id) => set(id, { against: x, since }));
     if (!existing.length) {
-      const names = joining.map((id) => next[id]?.name || id);
+      const names = listOfRefs(joining.map((id) => people(id, next[id]?.name || id)));
       logs.push({
-        message: x === playerNationId
-          ? `Alarmed by your conquests, ${names.join(', ')} form a defensive league against you: attack one and the others will answer.`
-          : `${names.join(', ')} form a defensive league against ${next[x]?.name || x}.`,
+        ...(x === playerNationId
+          ? msg('m.diplo.leagueVsYou', { names })
+          : msg('m.diplo.league', { names, nation: people(x, next[x]?.name || x) })),
         type: 'diplomacy'
       });
     }

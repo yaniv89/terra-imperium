@@ -38,6 +38,7 @@ import { independenceChance } from '../engine/vassals';
 import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
 import { warContagionMult } from '../engine/warContagion';
 import { warValue, WAR_COST } from '../engine/warOdds';
+import { msg, people } from '../engine/messages';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -370,7 +371,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
       draggedIn.add(overlordId);
       currentNations = result.nations;
       currentWars = wars;
-      logs.push({ message: `${nation.name} rises up and declares independence from ${state.nations[overlordId]?.name || overlordId}!`, type: 'diplomacy' });
+      logs.push({ ...msg('m.diplo.independenceRising', { nation: people(nationId, nation.name), overlord: people(overlordId, state.nations[overlordId]?.name || overlordId) }), type: 'diplomacy' });
       return;
     }
     if (getNationTier({ ...state, nations: currentNations }, nationId, sortedByMilitary) !== 1) return;
@@ -441,11 +442,9 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
       currentNations = { ...currentNations, [nationId]: { ...me, spentClaims: [...new Set([...(me.spentClaims || []).filter((c) => live.has(c)), ...claimsOnTarget])] } };
     }
     currentWars = result.wars;
-    const targetName = state.nations[targetId]?.name || targetId;
+    const target = people(targetId, state.nations[targetId]?.name || targetId);
     logs.push({
-      message: targetId === runawayLeaderId
-        ? `${nation.name} joins a coalition against ${targetName}, the world's runaway power, and declares war!`
-        : `${nation.name} has declared war on ${targetName}!`,
+      ...msg(targetId === runawayLeaderId ? 'm.diplo.coalitionWar' : 'm.diplo.declaresWar', { nation: people(nationId, nation.name), target }),
       type: 'diplomacy'
     });
   });

@@ -46,6 +46,11 @@ import { getPool } from './nationState';
 import { hashRoll } from './aftermath';
 import { speedTurns } from '../data/ages';
 import { AI_ACCORD_PERIOD } from './aiAccords';
+import { msg, msgText, sub, people } from './messages';
+
+// A reason as the English `reason` and its message `reasonMsg` (a sub), spread into a result.
+const why = (key, vars) => ({ reason: msgText(key, vars), reasonMsg: sub(key, vars) });
+const textOf = (m) => msgText(m.key, m.vars);
 
 export const MAP_SEA_WEIGHT = 0.25;
 export const MAP_CITY_VALUE = 10;
@@ -108,39 +113,39 @@ const price = (v) => clamp(Math.round(v), MAP_PRICE_MIN, MAP_PRICE_MAX);
 export const mapTradeQuote = (state, nationId, me = state.playerNationId) => {
   const nation = state.nations?.[nationId];
   const base = { ok: false, reason: null, opinion: 0, theirs: null, ours: null, options: {} };
-  if (!fogOn(state)) return { ...base, reason: 'The whole world is explored in this game: there are no maps to trade.' };
-  if (!alive(nation) || nationId === me) return { ...base, reason: 'No such people.' };
-  if (isIndependentNation(nation)) return { ...base, reason: 'Independent cities trade no maps.' };
-  if (!hasMet(state, me, nationId)) return { ...base, reason: 'You have not met them yet.' };
-  if (nation.vassalOf === me || state.nations[me]?.vassalOf === nationId) return { ...base, reason: 'Overlord and vassal already share their maps.' };
-  if (atWar(state, me, nationId)) return { ...base, reason: 'At war: they trade no maps with you.' };
+  if (!fogOn(state)) return { ...base, ...why('m.diplo.mapAllExplored') };
+  if (!alive(nation) || nationId === me) return { ...base, ...why('m.diplo.mapNoPeople') };
+  if (isIndependentNation(nation)) return { ...base, ...why('m.diplo.mapIndependent') };
+  if (!hasMet(state, me, nationId)) return { ...base, ...why('m.diplo.mapNotMet') };
+  if (nation.vassalOf === me || state.nations[me]?.vassalOf === nationId) return { ...base, ...why('m.diplo.mapVassal') };
+  if (atWar(state, me, nationId)) return { ...base, ...why('m.diplo.mapWar') };
   const opinion = opinionOf(state, nationId, me);
   const theirs = mapGain(state, nationId, me);
   const ours = mapGain(state, me, nationId);
-  if (opinion < MAP_REFUSE_OPINION) return { ...base, reason: `They dislike you (opinion ${opinion}, needs ${MAP_REFUSE_OPINION} or more): no map trade.`, opinion, theirs, ours };
+  if (opinion < MAP_REFUSE_OPINION) return { ...base, ...why('m.diplo.mapDislike', { opinion, need: MAP_REFUSE_OPINION }), opinion, theirs, ours };
   const weLearn = theirs.value >= MAP_MIN_VALUE;
   const theyLearn = ours.value >= MAP_MIN_VALUE;
-  const nothingFromThem = 'Their map holds nothing new for you.';
-  const nothingFromUs = 'Your map holds nothing new for them.';
+  const nothingFromThem = why('m.diplo.mapNothingFromThem');
+  const nothingFromUs = why('m.diplo.mapNothingFromUs');
   const swapNeed = clamp(1 - opinion / 100, 0.3, 1.2);
   const options = {};
-  options.swap = !weLearn ? { accepted: false, reason: nothingFromThem }
-    : !theyLearn ? { accepted: false, reason: nothingFromUs }
+  options.swap = !weLearn ? { accepted: false, ...nothingFromThem }
+    : !theyLearn ? { accepted: false, ...nothingFromUs }
       : ours.value >= theirs.value * swapNeed ? { accepted: true, reason: null }
-        : { accepted: false, reason: `Unfair to them: yours is worth ${Math.round((100 * ours.value) / Math.max(1, theirs.value))}% of theirs, they want ${Math.round(swapNeed * 100)}%.` };
-  options.give = theyLearn ? { accepted: true, reason: null } : { accepted: false, reason: nothingFromUs };
-  options.ask = !weLearn ? { accepted: false, reason: nothingFromThem }
+        : { accepted: false, ...why('m.diplo.mapUnfair', { pct: Math.round((100 * ours.value) / Math.max(1, theirs.value)), want: Math.round(swapNeed * 100) }) };
+  options.give = theyLearn ? { accepted: true, reason: null } : { accepted: false, ...nothingFromUs };
+  options.ask = !weLearn ? { accepted: false, ...nothingFromThem }
     : opinion >= MAP_ASK_OPINION ? { accepted: true, reason: null }
-      : { accepted: false, reason: `Only for a friend: opinion ${opinion}, needs ${MAP_ASK_OPINION}.` };
+      : { accepted: false, ...why('m.diplo.mapFriendOnly', { opinion, need: MAP_ASK_OPINION }) };
   const buyGold = price(theirs.value * MAP_GOLD_PER_POINT * clamp(1.4 - opinion / 100, 0.6, 1.6));
   const gold = Math.floor(state.resources?.gold || 0);
-  options.buy = !weLearn ? { accepted: false, reason: nothingFromThem, gold: 0 }
-    : gold < buyGold ? { accepted: true, reason: `You hold ${gold} gold, they ask ${buyGold}.`, gold: buyGold }
+  options.buy = !weLearn ? { accepted: false, ...nothingFromThem, gold: 0 }
+    : gold < buyGold ? { accepted: true, ...why('m.diplo.goldShort', { gold, amount: buyGold }), gold: buyGold }
       : { accepted: true, reason: null, gold: buyGold };
   const theirGold = Math.floor(getPool(state, nationId).gold || 0);
   const offer = Math.min(Math.round(ours.value * MAP_GOLD_PER_POINT * clamp(0.6 + opinion / 200, 0.3, 0.9)), Math.floor(theirGold * MAP_SELL_BANK_SHARE), MAP_PRICE_MAX);
-  options.sell = !theyLearn ? { accepted: false, reason: nothingFromUs, gold: 0 }
-    : offer < MAP_PRICE_MIN ? { accepted: false, reason: 'They cannot spare the gold for it.', gold: 0 }
+  options.sell = !theyLearn ? { accepted: false, ...nothingFromUs, gold: 0 }
+    : offer < MAP_PRICE_MIN ? { accepted: false, ...why('m.diplo.mapNoSpare'), gold: 0 }
       : { accepted: true, reason: null, gold: offer };
   return { ok: true, reason: null, opinion, theirs, ours, options };
 };
@@ -154,7 +159,7 @@ const bumpStats = (state, key) => {
   return { ...s, [key]: (s[key] || 0) + 1 };
 };
 
-const describe = (g) => `${g.land} land and ${g.sea} sea tiles${g.cities ? `, ${g.cities} ${g.cities === 1 ? 'city' : 'cities'}` : ''}`;
+const describe = (g) => (g.cities ? sub('m.diplo.mapTilesCities', { land: g.land, sea: g.sea, count: g.cities }) : sub('m.diplo.mapTiles', { land: g.land, sea: g.sea }));
 
 /**
  * The player's map trade of `kind` with `nationId`: { state, message } on success, { reason } when
@@ -162,37 +167,37 @@ const describe = (g) => `${g.land} land and ${g.sea} sea tiles${g.cities ? `, ${
  */
 export const tradeMaps = (state, nationId, kind) => {
   const me = state.playerNationId;
-  if (!MAP_TRADE_KINDS.includes(kind)) return { reason: 'No such trade.' };
+  if (!MAP_TRADE_KINDS.includes(kind)) return why('m.diplo.mapNoTrade');
   const q = mapTradeQuote(state, nationId);
-  if (!q.ok) return { reason: q.reason };
+  if (!q.ok) return { reason: q.reason, reasonMsg: q.reasonMsg };
   const opt = q.options[kind];
-  const name = state.nations[nationId].name;
-  if (!opt.accepted) return { reason: `${name} refuse: ${opt.reason}` };
-  if (opt.reason) return { reason: opt.reason }; // accepted in principle, but you cannot pay
+  const name = people(nationId, state.nations[nationId].name);
+  if (!opt.accepted) return why('m.diplo.mapRefuse', { nation: name, reason: opt.reasonMsg || opt.reason });
+  if (opt.reason) return { reason: opt.reason, reasonMsg: opt.reasonMsg }; // accepted in principle, but you cannot pay
   const turn = state.turnNumber || 1;
   let next = state;
-  let message;
+  let line;
   if (kind === 'swap' || kind === 'ask' || kind === 'buy') next = shareExploredMap(next, nationId, me).state;
   if (kind === 'swap' || kind === 'give' || kind === 'sell') next = shareExploredMap(next, me, nationId).state;
   if (kind === 'swap') {
     next = { ...next, nations: withMemory(next.nations, nationId, me, turn, false) };
-    message = `You swap maps with ${name}: you learn ${describe(q.theirs)}; they learn ${describe(q.ours)}.`;
+    line = msg('m.diplo.mapSwap', { nation: name, theirs: describe(q.theirs), ours: describe(q.ours) });
   } else if (kind === 'give') {
     next = { ...next, nations: withMemory(next.nations, nationId, me, turn, true) };
-    message = `You give ${name} your map (${describe(q.ours)} new to them). They will remember it.`;
+    line = msg('m.diplo.mapGive', { nation: name, ours: describe(q.ours) });
   } else if (kind === 'ask') {
-    message = `${name} give you their map: you learn ${describe(q.theirs)}.`;
+    line = msg('m.diplo.mapAsk', { nation: name, theirs: describe(q.theirs) });
   } else if (kind === 'buy') {
     const pool = next.nations[nationId].economy || {};
     next = { ...next, resources: { ...next.resources, gold: (next.resources.gold || 0) - opt.gold }, nations: { ...next.nations, [nationId]: { ...next.nations[nationId], economy: { ...pool, gold: (pool.gold || 0) + opt.gold } } } };
-    message = `You buy the map of ${name} for ${opt.gold} gold: you learn ${describe(q.theirs)}.`;
+    line = msg('m.diplo.mapBuy', { nation: name, gold: opt.gold, theirs: describe(q.theirs) });
   } else {
     const pool = next.nations[nationId].economy || {};
     next = { ...next, resources: { ...next.resources, gold: (next.resources.gold || 0) + opt.gold }, nations: { ...next.nations, [nationId]: { ...next.nations[nationId], economy: { ...pool, gold: (pool.gold || 0) - opt.gold } } } };
-    message = `${name} pay ${opt.gold} gold for your map (${describe(q.ours)} new to them).`;
+    line = msg('m.diplo.mapSell', { nation: name, gold: opt.gold, ours: describe(q.ours) });
   }
   next = { ...next, mapTradeStats: bumpStats(next, 'trades') };
-  return { state: next, message };
+  return { state: next, ...line };
 };
 
 /** The AI's offer to swap maps that waits for the player, with its terms, or null. */
@@ -202,7 +207,9 @@ export const mapOfferTerms = (state) => {
   const q = mapTradeQuote(state, o.from);
   const ok = q.ok && !!q.options.swap?.accepted;
   const reason = q.ok ? q.options.swap?.reason : q.reason;
-  return { from: o.from, name: state.nations[o.from].name, until: o.until, turnsLeft: Math.max(0, o.until - (state.turnNumber || 1)), ok, reason, theirs: q.theirs, ours: q.ours, text: ok ? `You would learn ${describe(q.theirs)}; they would learn ${describe(q.ours)}.` : `It no longer stands: ${reason}` };
+  const reasonMsg = (q.ok ? q.options.swap?.reasonMsg : q.reasonMsg) || null;
+  const textMsg = ok ? sub('m.diplo.mapOfferText', { theirs: describe(q.theirs), ours: describe(q.ours) }) : sub('m.diplo.mapOfferGone', { reason: reasonMsg || String(reason) });
+  return { from: o.from, name: state.nations[o.from].name, until: o.until, turnsLeft: Math.max(0, o.until - (state.turnNumber || 1)), ok, reason, reasonMsg, theirs: q.theirs, ours: q.ours, text: textOf(textMsg), textMsg };
 };
 
 /** The player's answer to the AI's offer: { state, message }. Accepting costs nothing (they asked). */
@@ -212,13 +219,13 @@ export const answerMapOffer = (state, accept) => {
   const cleared = { ...state, pendingMapOffer: null };
   const from = state.nations?.[o.from];
   if (!alive(from)) return { state: cleared, message: null };
-  if (!accept) return { state: { ...cleared, mapTradeStats: bumpStats(state, 'declined') }, message: `You decline to swap maps with ${from.name}.` };
+  if (!accept) return { state: { ...cleared, mapTradeStats: bumpStats(state, 'declined') }, ...msg('m.diplo.mapDecline', { nation: people(o.from, from.name) }) };
   const terms = mapOfferTerms(state);
-  if (!terms?.ok) return { state: cleared, message: `The swap with ${from.name} is off: ${terms?.reason || 'it no longer stands'}` };
+  if (!terms?.ok) return { state: cleared, ...msg('m.diplo.mapSwapOff', { nation: people(o.from, from.name), reason: terms?.reasonMsg || terms?.reason || sub('m.diplo.mapNoLongerStands') }) };
   let next = shareExploredMap(cleared, o.from, state.playerNationId).state;
   next = shareExploredMap(next, state.playerNationId, o.from).state;
   next = { ...next, nations: withMemory(next.nations, o.from, state.playerNationId, state.turnNumber || 1, false), mapTradeStats: bumpStats(state, 'accepted') };
-  return { state: next, message: `You swap maps with ${from.name}: you learn ${describe(terms.theirs)}; they learn ${describe(terms.ours)}.` };
+  return { state: next, ...msg('m.diplo.mapSwap', { nation: people(o.from, from.name), theirs: describe(terms.theirs), ours: describe(terms.ours) }) };
 };
 
 /**
@@ -247,12 +254,12 @@ export const processAIMapOffers = (state) => {
     return q.ok && q.options.swap.accepted && q.theirs.value >= MAP_OFFER_MIN_VALUE && q.ours.value >= MAP_OFFER_MIN_VALUE;
   });
   if (!from) return next;
-  const name = state.nations[from].name;
+  const name = people(from, state.nations[from].name);
   return {
     ...next,
     pendingMapOffer: { from, turn, until: turn + MAP_OFFER_TURNS },
     mapOfferTurn: turn,
     mapTradeStats: bumpStats(state, 'offers'),
-    logs: [...(next.logs || []), { year: state.year, message: `${name} offer to swap maps with you. Answer on the Peoples tab by turn ${turn + MAP_OFFER_TURNS}.`, type: 'diplomacy' }]
+    logs: [...(next.logs || []), { year: state.year, ...msg('m.diplo.mapOffer', { nation: name, turn: turn + MAP_OFFER_TURNS }), type: 'diplomacy' }]
   };
 };

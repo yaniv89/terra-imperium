@@ -14,6 +14,10 @@ import { getTiles } from '../data/geo/tiles';
 import { passableTile, unitTile } from './armies';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { isWarBetween } from './diplomacy';
+import { msg, sub } from './messages';
+
+// A closed route's reason: the English `reason` and its message (`reasonMsg`, a sub for the log lines that quote it).
+const noRoute = (key) => ({ ok: false, reason: msg(key).message, reasonMsg: sub(key) });
 
 export const TRADE_ROUTE_MAX_TILES = 56;
 
@@ -66,10 +70,10 @@ const atWar = (state, a, b) => state.wars.some((w) => w.active && ((w.aggressor 
 
 const computeTradeRoute = (state, partnerId) => {
   const me = state.playerNationId; const partner = state.nations[partnerId];
-  if (!partner || partner.isEliminated) return { ok: false, reason: 'Partner is no longer active.' };
-  if (atWar(state, me, partnerId)) return { ok: false, reason: 'Trade is suspended during war.' };
+  if (!partner || partner.isEliminated) return noRoute('m.diplo.routePartnerGone');
+  if (atWar(state, me, partnerId)) return noRoute('m.diplo.routeWar');
   const start = getCapital(state, me); const target = getCapital(state, partnerId);
-  if (!start || !target) return { ok: false, reason: 'A trading capital is missing.' };
+  if (!start || !target) return noRoute('m.diplo.routeNoCapital');
   const allowed = (id) => { const c = state.regions[id]; if (!c || c.occupiedBy || !c.owner) return false; const o = c.owner; return o === me || o === partnerId || (!!state.nations[o] && !atWar(state, me, o)); };
   // A caravan goes round an enemy stack when it can; when it cannot, the route is cut (plunder.js
   // names the raider and pays them).
@@ -80,7 +84,7 @@ const computeTradeRoute = (state, partnerId) => {
   const ports=id=>getOwnedRegionIds(state.regions,id).filter(r=>isCoastal(r) && !state.regions[r].occupiedBy && (state.regions[r].buildings?.categories?.naval ?? -1)>=0);
   const blocked=r=>isBlockaded(state,r)||Object.values(state.units).some(u=>u.regionId===r && u.domain==='naval' && state.wars.some(w=>w.active && ((w.aggressor===me&&w.enemy===u.ownerId)||(w.enemy===me&&w.aggressor===u.ownerId))));
   for(const a of ports(me))for(const b of ports(partnerId))if(isReachableBySea(a,b,state.age) && !blocked(a) && !blocked(b))return {ok:true,kind:'sea',regions:[a,b]};
-  return {ok:false,reason:'No open land route or reachable, unblocked ports.'};
+  return noRoute('m.diplo.routeNone');
 };
 
 export const getTradeRoute = (state, partnerId) => {

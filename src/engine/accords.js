@@ -55,6 +55,10 @@ import { getPool } from './nationState';
 import { LOYALTY_ON_FLIP } from './loyalty';
 import { speedTurns } from '../data/ages';
 import { cityIncomeOf } from './tributePricing';
+import { msg, sub, carry, people, cityRef } from './messages';
+
+// A refusal's reason: the English `reason` and its message (`reasonMsg`, a sub) for other languages.
+const no = (key, vars) => ({ accepted: false, score: -Infinity, reason: msg(key, vars).message, reasonMsg: sub(key, vars) });
 
 export const OPEN_BORDERS_OPINION = 20;
 export const DEMAND_STRENGTH_WEIGHT = 20;
@@ -153,16 +157,16 @@ export const demandAcceptance = (state, targetId, kind, cityId = null, demanderI
   const me = demanderId;
   const d = DEMANDS[kind];
   const target = state.nations?.[targetId];
-  if (!d || !target || target.isEliminated) return { accepted: false, score: -Infinity, reason: 'No such demand.' };
-  if ((state.wars || []).some((w) => w.active && ((w.aggressor === targetId && w.enemy === me) || (w.enemy === targetId && w.aggressor === me)))) return { accepted: false, score: -Infinity, reason: 'At war: settle it at the peace table.' };
+  if (!d || !target || target.isEliminated) return no('m.diplo.accNoSuch');
+  if ((state.wars || []).some((w) => w.active && ((w.aggressor === targetId && w.enemy === me) || (w.enemy === targetId && w.aggressor === me)))) return no('m.diplo.accAtWar');
   const cooldown = state.nations[me]?.demandCooldowns?.[targetId];
-  if (cooldown != null && (state.turnNumber || 1) < cooldown) return { accepted: false, score: -Infinity, reason: `They will hear no demand before turn ${cooldown}.` };
-  if (demandTruce(state, me, targetId)) return { accepted: false, score: -Infinity, reason: `A truce holds until turn ${state.nations[me]?.truces?.[targetId]}: no demand meanwhile.` };
+  if (cooldown != null && (state.turnNumber || 1) < cooldown) return no('m.diplo.accCooldown', { turn: cooldown });
+  if (demandTruce(state, me, targetId)) return no('m.diplo.accTruce', { turn: String(state.nations[me]?.truces?.[targetId]) });
   if (kind === 'city') {
     const city = state.regions?.[cityId];
-    if (!city || city.owner !== targetId) return { accepted: false, score: -Infinity, reason: 'Not their city.' };
-    if (!claimOn(state, me, city)) return { accepted: false, score: -Infinity, reason: 'You hold no claim on it.' };
-    if (target.capitalRegionId === cityId) return { accepted: false, score: -Infinity, reason: 'No nation gives up its capital.' };
+    if (!city || city.owner !== targetId) return no('m.diplo.accNotTheirs');
+    if (!claimOn(state, me, city)) return no('m.diplo.accNoClaim');
+    if (target.capitalRegionId === cityId) return no('m.diplo.accCapital');
   }
   const ratio = demandRatio(state, me, targetId);
   const opinion = opinionOf(state, targetId, me);
@@ -178,7 +182,7 @@ export const applyDemand = (state, targetId, kind, cityId = null, demanderId = s
   const me = demanderId;
   const turn = state.turnNumber || 1;
   const answer = demandAcceptance(state, targetId, kind, cityId, me);
-  if (answer.reason) return { state, accepted: false, message: answer.reason };
+  if (answer.reason) return { state, accepted: false, ...(answer.reasonMsg ? msg(answer.reasonMsg.key, answer.reasonMsg.vars) : { message: answer.reason }) };
   const d = DEMANDS[kind];
   const target = state.nations[targetId];
   let nations = { ...state.nations, [targetId]: { ...target, hostility: Math.min(100, (target.hostility || 0) + d.hostility) } };
@@ -186,10 +190,10 @@ export const applyDemand = (state, targetId, kind, cityId = null, demanderId = s
   if (!answer.accepted) {
     const cb = demandCbTurns(state);
     nations[me] = { ...nations[me], demandCasusBelli: { ...(nations[me].demandCasusBelli || {}), [targetId]: turn + cb } };
-    return { state: { ...state, nations }, accepted: false, message: `${target.name} refuses: you have a cause for war against them for ${cb} turns.` };
+    return { state: { ...state, nations }, accepted: false, ...msg('m.diplo.demandRefused', { nation: people(targetId, target.name), turns: cb }) };
   }
   const granted = grantDemand(state, nations, me, targetId, kind, cityId, state.resources);
-  return { state: { ...state, nations: granted.nations, regions: granted.regions, resources: granted.resources }, accepted: true, message: granted.message };
+  return { state: { ...state, nations: granted.nations, regions: granted.regions, resources: granted.resources }, accepted: true, ...carry(granted) };
 };
 
 /** The effect of a demand that was accepted, whoever asked: { nations, regions, resources, message,
@@ -202,11 +206,12 @@ export const grantDemand = (state, nations, me, targetId, kind, cityId, resource
   const targetIsPlayer = targetId === state.playerNationId;
   const target = nations[targetId];
   let regions = state.regions;
-  let message;
+  let line; // [key, vars]
   let amount = null;
   nations = { ...nations };
   const truceUntil = turn + demandTruceTurns(state);
-  const truceNote = ` A truce holds between you until turn ${truceUntil}.`;
+  const demander = people(me, nations[me]?.name);
+  const targetRef = people(targetId, target?.name);
   if (kind === 'tribute') {
     const pool = targetIsPlayer ? resources : getPool({ ...state, nations }, targetId);
     const asked = quoted != null ? quoted : tributeQuote({ ...state, nations, resources }, me, targetId).amount;
@@ -215,7 +220,7 @@ export const grantDemand = (state, nations, me, targetId, kind, cityId, resource
     else nations[targetId] = { ...nations[targetId], economy: { ...(nations[targetId].economy || {}), gold: (nations[targetId].economy?.gold || 0) - amount } };
     if (isPlayer) resources = { ...resources, gold: (resources.gold || 0) + amount };
     else nations[me] = { ...nations[me], economy: { ...(nations[me].economy || {}), gold: (nations[me].economy?.gold || 0) + amount } };
-    message = targetIsPlayer ? `You pay ${nations[me].name} ${amount} gold in tribute.` : `${target.name} pays ${amount} gold in tribute${isPlayer ? '' : ` to ${nations[me].name}`}.`;
+    line = targetIsPlayer ? ['m.diplo.tributeByYou', { nation: demander, gold: amount }] : isPlayer ? ['m.diplo.tributeToYou', { target: targetRef, gold: amount }] : ['m.diplo.tributeTo', { target: targetRef, gold: amount, nation: demander }];
   } else if (kind === 'city') {
     const city = state.regions[cityId];
     const { region } = transferRegion(city, me, nations, { loyalty: LOYALTY_ON_FLIP, control: 100, unrest: 0, siege: null, lastFlipTurn: turn });
@@ -223,18 +228,19 @@ export const grantDemand = (state, nations, me, targetId, kind, cityId, resource
     nations = applyAggressiveExpansion(nations, regions, cityId, targetId, me, aeMultFor({ nations, regions: state.regions }, me, city));
     if (nations[me].claims?.includes(cityId)) nations[me] = { ...nations[me], claims: nations[me].claims.filter((id) => id !== cityId) };
     nations = relocateLostCapital(nations, regions, targetId);
-    message = targetIsPlayer ? `You yield ${city.name} to ${nations[me].name}.` : `${target.name} yields ${city.name} to ${isPlayer ? 'you' : nations[me].name}.`;
+    const cityR = cityRef(cityId, city.name);
+    line = targetIsPlayer ? ['m.diplo.yieldByYou', { city: cityR, nation: demander }] : isPlayer ? ['m.diplo.yieldToYou', { target: targetRef, city: cityR }] : ['m.diplo.yieldTo', { target: targetRef, city: cityR, nation: demander }];
   } else {
     nations[targetId] = { ...nations[targetId], noSettleNear: { ...(nations[targetId].noSettleNear || {}), [me]: turn + DEMAND_STOP_SETTLING_TURNS } };
-    message = targetIsPlayer ? `You promise ${nations[me].name} to found no city near theirs for ${DEMAND_STOP_SETTLING_TURNS} turns.` : `${target.name} agrees to found no city near ${isPlayer ? 'yours' : `${nations[me].name}'s`} for ${DEMAND_STOP_SETTLING_TURNS} turns.`;
+    line = targetIsPlayer ? ['m.diplo.promiseByYou', { nation: demander, turns: DEMAND_STOP_SETTLING_TURNS }] : isPlayer ? ['m.diplo.promiseToYou', { target: targetRef, turns: DEMAND_STOP_SETTLING_TURNS }] : ['m.diplo.promiseTo', { target: targetRef, nation: demander, turns: DEMAND_STOP_SETTLING_TURNS }];
   }
   // The demand was met: a truce between the two, and the demander remembers it while it lasts.
   if (nations[me] && nations[targetId]) {
     nations = withTruce(nations, me, targetId, truceUntil);
     nations[me] = { ...nations[me], demandMet: { ...(nations[me].demandMet || {}), [targetId]: { until: truceUntil, kind } } };
-    if (isPlayer || targetIsPlayer) message += truceNote;
+    if (isPlayer || targetIsPlayer) line = ['m.diplo.withTruce', { text: sub(line[0], line[1]), turn: truceUntil }];
   }
-  return { nations, regions, resources, message, amount, truceUntil };
+  return { nations, regions, resources, ...msg(line[0], line[1]), amount, truceUntil };
 };
 
 /** A refused demand's casus belli, while it lasts. */

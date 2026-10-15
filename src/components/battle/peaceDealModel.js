@@ -9,6 +9,7 @@ import { TRUCE_DURATION_TURNS } from '../../data/actionCosts';
 import { getPeaceAcceptance, getTermCost } from '../../engine/peace';
 import { computeWarScore, getOccupationScore } from '../../engine/diplomacy';
 import { getPool } from '../../engine/nationState';
+import { msgText, sub, people, cityRef } from '../../engine/messages';
 
 export const GOLD_OPTIONS = [500, 1500, 3000];
 
@@ -70,7 +71,8 @@ const placeName = (state, id) => regionName(state, id);
  * What an AI peace offer (state.pendingPeaceOffer) would do, said plainly (PEACE-02): who keeps
  * which city, what is paid, and the turn the truce ends. Same rules as peace.js applyPeace: an
  * occupation between the two sides ends and the city goes back to its owner; land conquered in this
- * war stays with its conqueror unless a term cedes it.
+ * war stays with its conqueror unless a term cedes it. `ownership` and `money` are the English lines;
+ * `ownershipMsg` and `moneyMsg` the same lines as messages ({ key, vars }) for other languages.
  */
 export const peaceOfferModel = (state, offer) => {
   const war = (state.wars || []).find((w) => w.id === offer?.warId);
@@ -81,17 +83,20 @@ export const peaceOfferModel = (state, offer) => {
   const score = war ? Math.round(sign * computeWarScore(war, state)) : null;
   const ceded = new Set(terms.filter((t) => t.type === 'cede').map((t) => t.regionId));
   const keeps = []; const changes = [];
+  const themRef = people(them, state.nations?.[them]?.name || 'them');
   Object.values(state.regions || {}).forEach((r) => {
-    const nm = placeName(state, r.id);
-    if (ceded.has(r.id)) { changes.push(`${nm} passes from ${r.owner === me ? 'you' : state.nations?.[r.owner]?.name || r.owner} to ${r.owner === me ? state.nations?.[them]?.name || 'them' : 'you'}.`); return; }
-    if (r.occupiedBy === them && r.owner === me) changes.push(`${nm} is yours again: their occupation ends.`);
-    else if (r.occupiedBy === me && r.owner === them) changes.push(`${nm} goes back to ${state.nations?.[them]?.name || 'them'}: your occupation ends.`);
-    else if (war && r.conquest?.warId === war.id) keeps.push(`${nm} stays ${r.owner === me ? 'yours' : `${state.nations?.[r.owner]?.name || r.owner}'s`}.`);
+    const nm = cityRef(r.id, placeName(state, r.id));
+    if (ceded.has(r.id)) { changes.push(r.owner === me ? sub('m.diplo.ownFromYou', { city: nm, to: themRef }) : sub('m.diplo.ownToYou', { city: nm, from: people(r.owner, state.nations?.[r.owner]?.name || r.owner) })); return; }
+    if (r.occupiedBy === them && r.owner === me) changes.push(sub('m.diplo.ownBack', { city: nm }));
+    else if (r.occupiedBy === me && r.owner === them) changes.push(sub('m.diplo.ownReturns', { city: nm, nation: themRef }));
+    else if (war && r.conquest?.warId === war.id) keeps.push(r.owner === me ? sub('m.diplo.ownStaysYours', { city: nm }) : sub('m.diplo.ownStaysTheirs', { city: nm, nation: people(r.owner, state.nations?.[r.owner]?.name || r.owner) }));
   });
-  const money = terms.flatMap((t) => (t.type === 'gold' ? [`You pay ${state.nations?.[them]?.name || 'them'} ${Math.round(Math.abs(t.amount || 0))} gold`]
-    : t.type === 'reparations' ? ['You pay reparations: a tenth of your gold income for 10 turns'] : []));
+  const moneyMsg = terms.flatMap((t) => (t.type === 'gold' ? [sub('m.diplo.moneyGold', { nation: themRef, gold: Math.round(Math.abs(t.amount || 0)) })]
+    : t.type === 'reparations' ? [sub('m.diplo.moneyReparations')] : []));
+  const ownershipMsg = [...changes, ...keeps];
+  const textOf = (m) => msgText(m.key, m.vars);
   const truceEndsTurn = (state.turnNumber || 0) + TRUCE_DURATION_TURNS;
-  return { score, themWinning: score != null && score < 0, ownership: [...changes, ...keeps], money, truceEndsTurn };
+  return { score, themWinning: score != null && score < 0, ownership: ownershipMsg.map(textOf), money: moneyMsg.map(textOf), ownershipMsg, moneyMsg, truceEndsTurn };
 };
 
 /** The whole table for `selected` (a Set of candidate keys). */

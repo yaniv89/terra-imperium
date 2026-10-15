@@ -24,6 +24,7 @@ import { distanceKm } from '../data/geo/geodesic';
 import { ringsAround } from './world/cities';
 import { mapEffectsFor } from './techMapEffects';
 import { ringsForKm } from '../data/geo/gridScale';
+import { msg, people, cityRef } from './messages';
 
 export const CLAIM_RANGE_KM = 714; // km (7 rings at frequency 75)
 export const CLAIM_RANGE_RINGS = ringsForKm(CLAIM_RANGE_KM);
@@ -129,8 +130,8 @@ export const advanceClaims = (nations, regions, turn) => {
     if (kept.length === claims.length && !added.length && waiting.length === progress.length) return;
     nations[id] = { ...n, claims: [...kept, ...added], claimsInProgress: waiting };
     added.forEach((cid) => logs.push(
-      { nationId: id, message: `Your claim on ${regions[cid].name} is ready: a war for it is justified.` },
-      { nationId: regions[cid].owner, message: `${n.name || id} now lays claim to ${regions[cid].name}.` }
+      { nationId: id, ...msg('m.diplo.claimReady', { city: cityRef(cid, regions[cid].name) }) },
+      { nationId: regions[cid].owner, ...msg('m.diplo.claimLaid', { nation: people(id, n.name || id), city: cityRef(cid, regions[cid].name) }) }
     ));
   });
   return logs;
