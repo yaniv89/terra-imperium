@@ -1,11 +1,11 @@
 // src/engine/routes.test.js
 // Marches on tiles (workstream 5): costs, planning, walking over End Turns, halts, zone of control.
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
-import { getNationCapital, getNeighborIds, getTouchingIds } from '../data/regions';
+import { getNeighborIds, getTouchingIds } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { computeSupplyFlow, MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { calcNationBalance } from './economy';
@@ -15,11 +15,17 @@ import { ROAD_COST, riverCrossingCost, TILE_COST_MOUNTAINS, MOVE_POINTS, findTil
 import { validateInvasion } from './invasion';
 import { addCity } from './testWorld';
 import { assertGameState } from './stateAudit';
+import { neighbourWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 3, fog: false, capitals: true });
+const IN_ID = PEOPLES_WORLD.playerNationId;
+const PK_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const quiet = (s) => ({ ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((a, k) => ({ ...a, [k]: true }), {}), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
-const unit = (id, regionId, extra = {}) => ({ id, ownerId: 'in', regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], ...extra });
+const unit = (id, regionId, extra = {}) => ({ id, ownerId: IN_ID, regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], ...extra });
 const withUnits = (s, list) => ({ ...s, units: { ...s.units, ...Object.fromEntries(list.map((u) => [u.id, u])) } });
-const atWarWith = (s, enemy) => ({ ...s, wars: [...s.wars, { id: 'w-test', aggressor: 'in', enemy, active: true, startYear: s.year }] });
+const atWarWith = (s, enemy) => ({ ...s, wars: [...s.wars, { id: 'w-test', aggressor: IN_ID, enemy, active: true, startYear: s.year }] });
 const play = (st, until) => {
   let x = st;
   for (let t = 0; t < 12 && !until(x); t++) {
@@ -32,9 +38,9 @@ const play = (st, until) => {
 
 const tiles = getTiles();
 // The Dawn start gives India one city and one army; the tests place their own units.
-const S = (() => { const s = quiet(createInitialState({ playerNationId: 'in', rngSeed: 3 })); return { ...s, units: {} }; })();
-const P = getNationCapital('in');
-const PK = getNationCapital('pk');
+const S = (() => { const s = quiet(neighbourWorld({ seed: 3, fog: false, capitals: true })); return { ...s, units: {} }; })();
+const P = PEOPLES_WORLD.nations[IN_ID].capitalRegionId;
+const PK = PEOPLES_WORLD.nations[PK_ID].capitalRegionId;
 const homeTile = S.regions[P].tile;
 // Tiles by walking distance from New Delhi over land India may cross at peace (New Delhi sits among the
 // capitals of its neighbours, so free land is not simply "ring 4").
@@ -43,7 +49,7 @@ const reachableRings = (s, from, max) => {
   const out = [[from]]; const seen = new Set([from]);
   for (let d = 1; d <= max; d++) {
     const next = [];
-    out[d - 1].forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n) && tiles.land[n] && tileAccess(s, n, 'in') !== 'closed') { seen.add(n); next.push(n); } }));
+    out[d - 1].forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n) && tiles.land[n] && tileAccess(s, n, IN_ID) !== 'closed') { seen.add(n); next.push(n); } }));
     out.push(next.sort((a, b) => a - b));
   }
   return out;
@@ -98,7 +104,7 @@ describe('planning a route', () => {
   });
 
   it('plans into enemy land at war and says where the march halts', () => {
-    const s = withUnits(atWarWith(S, 'pk'), [unit('a', P)]);
+    const s = withUnits(atWarWith(S, PK_ID), [unit('a', P)]);
     const plan = planMarch(s, P, PK);
     expect(plan.ok, plan.reason).toBe(true);
     expect(plan.haltAt).toBe(PK);
@@ -152,7 +158,7 @@ describe('marching', () => {
   });
 
   it('walks into enemy land at war, halts before the city, and marches on once it is taken', () => {
-    let s = withUnits(atWarWith(S, 'pk'), [unit('a', P)]);
+    let s = withUnits(atWarWith(S, PK_ID), [unit('a', P)]);
     s = marchTo(s, P, PK);
     const plan = planMarch(s, P, PK);
     expect(plan.haltTile).toBe(s.regions[PK].tile);
@@ -176,7 +182,7 @@ describe('marching', () => {
   });
 
   it('stops when access is lost (the war ended)', () => {
-    let s = withUnits(atWarWith(S, 'pk'), [unit('a', P)]);
+    let s = withUnits(atWarWith(S, PK_ID), [unit('a', P)]);
     s = marchTo(s, P, PK);
     const peace = { ...s, wars: s.wars.filter((w) => w.id !== 'w-test') };
     const units = { ...peace.units };
@@ -188,7 +194,7 @@ describe('marching', () => {
 
   it('ends the move next to an enemy army (zone of control) and halts before one on the road', () => {
     const to = freeAt(8);
-    let s = withUnits(atWarWith(S, 'pk'), [unit('a', P, { classId: 'cavalry' })]);
+    let s = withUnits(atWarWith(S, PK_ID), [unit('a', P, { classId: 'cavalry' })]);
     s = marchTo(s, P, to);
     const steps = s.units.a.route;
     const sched = scheduleSteps(s, homeTile, steps, s.units.a.routePace);
@@ -198,8 +204,8 @@ describe('marching', () => {
     const before = new Set([homeTile, ...steps.slice(0, k)]);
     const watch = tiles.neighbors[steps[k]].find((t) => tiles.land[t] && !steps.includes(t) && !before.has(t) && !tiles.neighbors[t].some((n) => before.has(n)));
     expect(watch).toBeDefined();
-    const guarded = withUnits(s, [unit('e', PK, { ownerId: 'pk', tile: watch })]);
-    expect(inEnemyZoc(guarded, tiles, steps[k], 'in')).toBe(true);
+    const guarded = withUnits(s, [unit('e', PK, { ownerId: PK_ID, tile: watch })]);
+    expect(inEnemyZoc(guarded, tiles, steps[k], IN_ID)).toBe(true);
     const units = { ...guarded.units };
     let st = guarded;
     for (let t = 0; t < sched[k]; t++) { advanceMarches(st, units, {}); st = { ...st, units: { ...units } }; }
@@ -207,7 +213,7 @@ describe('marching', () => {
     expect(units.a.route[0]).toBe(steps[k + 1]);
     expect(units.a.routeBank).toBe(0);
     // An enemy army standing on the next tile halts the march before it.
-    const blocked = withUnits(s, [unit('e', s.world.tileOwner[steps[0]] || PK, { ownerId: 'pk', tile: steps[0] })]);
+    const blocked = withUnits(s, [unit('e', s.world.tileOwner[steps[0]] || PK, { ownerId: PK_ID, tile: steps[0] })]);
     const u2 = { ...blocked.units };
     for (let t = 0; t < 3; t++) advanceMarches(blocked, u2, {});
     expect(u2.a.tile).toBe(homeTile);
@@ -216,15 +222,15 @@ describe('marching', () => {
 
   it('charges supplies and upkeep only for the units that marched this turn', () => {
     const s = withUnits(S, [unit('a', P, { marchedTurn: S.turnNumber }), unit('b', P)]);
-    const flow = computeSupplyFlow({ regions: s.regions, units: s.units, nationId: 'in', ageId: 'bronze', resources: s.resources, turnNumber: s.turnNumber });
+    const flow = computeSupplyFlow({ regions: s.regions, units: s.units, nationId: IN_ID, ageId: 'bronze', resources: s.resources, turnNumber: s.turnNumber });
     expect(flow.marching).toBe(MARCH_SUPPLY_PER_UNIT);
-    const idle = computeSupplyFlow({ regions: s.regions, units: s.units, nationId: 'in', ageId: 'bronze', resources: s.resources, turnNumber: s.turnNumber + 1 });
+    const idle = computeSupplyFlow({ regions: s.regions, units: s.units, nationId: IN_ID, ageId: 'bronze', resources: s.resources, turnNumber: s.turnNumber + 1 });
     expect(idle.marching).toBe(0);
-    expect(calcNationBalance(s, 'in').expenses.marchingUpkeep).toBe(Math.round(UNIT_UPKEEP_GOLD_PER_TURN * ((s.nations.in.armyMaintenance ?? 100) / 100) * 0.25));
+    expect(calcNationBalance(s, IN_ID).expenses.marchingUpkeep).toBe(Math.round(UNIT_UPKEEP_GOLD_PER_TURN * ((s.nations[IN_ID].armyMaintenance ?? 100) / 100) * 0.25));
   });
 
   it('a manual move replaces the march, puts the unit on the city centre and costs no military power', () => {
-    const { state: s0, cityId: B } = addCity(S, 'in', { near: P });
+    const { state: s0, cityId: B } = addCity(S, IN_ID, { near: P });
     expect(getNeighborIds(P)).toContain(B);
     // The unit stands one tile from the city: the march would arrive this turn, so it may move now.
     const next = tiles.neighbors[s0.regions[B].tile].find((t) => tiles.land[t] === 1);
@@ -240,7 +246,7 @@ describe('marching', () => {
   });
 
   it('Move now is refused when the march takes more than this turn, and the preview says the same turns (I065)', () => {
-    const { state: s0, cityId: B } = addCity(S, 'in', { near: P });
+    const { state: s0, cityId: B } = addCity(S, IN_ID, { near: P });
     const s = withUnits(s0, [unit('a', P)]);
     const plan = planMarch(s, P, B);
     const check = moveNowCheck(s, s.units.a, B);
@@ -255,7 +261,7 @@ describe('marching', () => {
   });
 
   it('a unit that moved now does not also march this End Turn, and its ETA counts the spent move', () => {
-    const { state: s0, cityId: B } = addCity(S, 'in', { near: P });
+    const { state: s0, cityId: B } = addCity(S, IN_ID, { near: P });
     const next = tiles.neighbors[s0.regions[B].tile].find((t) => tiles.land[t] === 1);
     let s = withUnits(s0, [unit('a', P, { classId: 'cavalry', tile: next }), unit('b', P, { classId: 'cavalry', tile: s0.regions[B].tile, regionId: B })]);
     s = gameReducer(s, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a', toRegionId: B } });
@@ -324,7 +330,7 @@ describe('units and tiles', () => {
     const abroad = normalizeUnitTiles(withUnits(S, [unit('a', P, { tile: foreign })]));
     expect(abroad.units.a.regionId).toBe(P);
     expect(abroad.units.a.tile).toBe(foreign);
-    const { state: s2, cityId: B } = addCity(S, 'in', { near: P });
+    const { state: s2, cityId: B } = addCity(S, IN_ID, { near: P });
     const ownLand = s2.regions[B].tiles.find((t) => t !== s2.regions[B].tile && tiles.land[t] === 1);
     const rebased = normalizeUnitTiles(withUnits(s2, [unit('a', P, { tile: ownLand })]));
     expect(rebased.units.a.regionId).toBe(B);
@@ -332,15 +338,15 @@ describe('units and tiles', () => {
   });
 
   it('an army at home no longer attacks across the Dawn bridge: it must stand beside the city', () => {
-    const home = withUnits(atWarWith(S, 'pk'), [unit('a', P, { tile: homeTile })]);
+    const home = withUnits(atWarWith(S, PK_ID), [unit('a', P, { tile: homeTile })]);
     const touching = getTouchingIds(P).includes(PK);
     const v = validateInvasion(home, P, PK, { ignoreCost: true });
     expect(v.ok).toBe(touching);
     if (!touching) expect(v.reason).toBe('not_adjacent');
     const gate = getTiles().neighbors[S.regions[PK].tile].find((n) => getTiles().land[n] === 1);
-    const beside = withUnits(atWarWith(S, 'pk'), [unit('a', P, { tile: gate })]);
+    const beside = withUnits(atWarWith(S, PK_ID), [unit('a', P, { tile: gate })]);
     expect(validateInvasion(beside, P, PK, { ignoreCost: true }).ok).toBe(true);
-    const far = withUnits(atWarWith(S, 'pk'), [unit('a', P, { tile: freeAt(6) })]);
+    const far = withUnits(atWarWith(S, PK_ID), [unit('a', P, { tile: freeAt(6) })]);
     expect(['no_units', 'not_adjacent']).toContain(validateInvasion(far, P, PK, { ignoreCost: true }).reason);
   });
 });

@@ -157,16 +157,31 @@ export const withBorder = (state, a, b) => {
   return s;
 };
 
+// Moves a nation's capital to another of its cities (flags, record and registry).
+export const makeCapital = (state, nationId, cityId) => {
+  const regions = { ...state.regions };
+  Object.values(regions).forEach((c) => { if (c.owner === nationId && c.isCapital && c.id !== cityId) regions[c.id] = { ...c, isCapital: false }; });
+  regions[cityId] = { ...regions[cityId], isCapital: true };
+  const next = { ...state, regions, nations: { ...state.nations, [nationId]: { ...state.nations[nationId], capitalRegionId: cityId } } };
+  syncWorldRegistry(next);
+  return next;
+};
+
 // A peoples world where the player's people border its first `rivals` rivals (a city of each is
-// founded beside the player's capital), for tests that fought over borders in the old country world.
+// founded beside the player's capital; `capitals: true` also makes it the rival's capital), for tests that fought over borders in the old country world.
 // Cached like peoplesWorld; the same arguments give the same world.
 const neighbourCache = new Map();
-export const neighbourWorld = ({ rivals = 4, ...opts } = {}) => {
+export const neighbourWorld = ({ rivals = 4, capitals = false, ...opts } = {}) => {
   const base = peoplesWorld(opts);
-  const key = `${rivals}|${JSON.stringify(opts)}`;
+  const key = `${rivals}|${capitals}|${JSON.stringify(opts)}`;
   if (!neighbourCache.has(key)) {
     let s = base;
-    for (let i = 0; i < rivals; i++) s = withBorder(s, base.playerNationId, rivalOf(base, i));
+    for (let i = 0; i < rivals; i++) {
+      const rival = rivalOf(base, i);
+      s = withBorder(s, base.playerNationId, rival);
+      // With capitals: true the city beside the player's land becomes the rival's capital, so two capitals border (Paris and Berlin in the old fixture).
+      if (capitals) s = makeCapital(s, rival, borderPair(s, base.playerNationId, rival)[1]);
+    }
     neighbourCache.set(key, s);
   }
   return neighbourCache.get(key);

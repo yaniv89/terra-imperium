@@ -22,12 +22,11 @@ import { peoplesWorld, rivalOf } from './testWorld';
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const PEOPLES_WORLD = peoplesWorld({ seed: 3 });
 const IN_ID = PEOPLES_WORLD.playerNationId;
-const AI_ID = rivalOf(PEOPLES_WORLD, 0);
 const PK_ID = rivalOf(PEOPLES_WORLD, 1);
 
 const GENERALS = { c1: { id: 'c1', name: 'Hannibal', personality: 'aggressive', skill: 2 } };
 const army = (p, cls, cmd = null) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: i === 0 ? cmd : null, domain: 'land' }));
-const setup = (seed = 1, cmd = 'c1') => buildSetupFromArmies({ regionId: `g-${seed}`, terrain: 'plains', seed, attackerUnits: army('a', ['infantry', 'infantry', 'cavalry'], cmd), defenderUnits: army('d', ['infantry', 'infantry', 'ranged']), controllers: [AI_ID, AI_ID], deposits: [], powers: [[], []], battleType: 'field', generals: GENERALS });
+const setup = (seed = 1, cmd = 'c1') => buildSetupFromArmies({ regionId: `g-${seed}`, terrain: 'plains', seed, attackerUnits: army('a', ['infantry', 'infantry', 'cavalry'], cmd), defenderUnits: army('d', ['infantry', 'infantry', 'ranged']), controllers: ['ai', 'ai'], deposits: [], powers: [[], []], battleType: 'field', generals: GENERALS });
 
 describe('the general on the battle map', () => {
   it('rides with a guard behind its army, not a campaign unit, with an aura over the troops near it', () => {
@@ -116,9 +115,9 @@ describe('the general through the reducer (Command)', () => {
     const def = q.pendingDefenses[0];
     const began = gameReducer(q, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
     const setup = buildInvasionSetup(began, began.pendingBattle);
-    const w = createWorld({ ...setup, controllers: [AI_ID, AI_ID] });
+    const w = createWorld({ ...setup, controllers: ['ai', 'ai'] });
     expect(generalsOf(w).map((g) => [g.isGeneral, g.side])).toEqual([['c1', 1]]);
-    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
+    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
     expect(result.report.tactical.generalsFielded).toEqual(['c1']);
     const after = gameReducer(began, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: began.pendingBattle.id, result } });
     const struck = result.report.tactical.generalsStruck.includes('c1');

@@ -35,7 +35,6 @@ const PEOPLES_WORLD = neighbourWorld({ player: 'ahhiyawa', seed: 1 });
 const FR_ID = PEOPLES_WORLD.playerNationId;
 const DE_ID = rivalOf(PEOPLES_WORLD, 0);
 const IT_ID = rivalOf(PEOPLES_WORLD, 1);
-const AI_ID = rivalOf(PEOPLES_WORLD, 2);
 const GB_ID = rivalOf(PEOPLES_WORLD, 3);
 
 // The Dawn world gives France one city with no room beside it, so the fixture founds French
@@ -123,7 +122,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
   it('applies a real headless battle through the invasion consequences and clears the lock', () => {
     const started = begin(withArmies());
     const setup = buildInvasionSetup(started, started.pendingBattle);
-    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
+    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result } });
     expect(next.pendingBattle).toBeNull();
     expect(next.lastBattleReport.outcome).toBe(result.outcome);
@@ -399,7 +398,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     const manifest = cityManifestOf(started, BE_REGION);
     expect(setup.city).toMatchObject({ cityId: BE_REGION });
     expect(setup.structures.map((st) => st.manifestId).filter(Boolean).sort()).toEqual(manifest.structures.map((st) => st.id).sort());
-    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
+    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
     const houses = manifest.structures.filter((st) => st.kind === 'house').map((st) => st.id);
     const forged = { ...result, report: { ...result.report, tactical: { ...result.report.tactical, cityDamage: { destroyed: [...houses, '<script>'], damaged: ['townhall'] } } } };
     const size = started.regions[BE_REGION].size;
@@ -420,7 +419,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     const started = begin(s);
     const setup = buildInvasionSetup(started, started.pendingBattle);
     expect(setup.structures.filter((st) => st.kind === 'building').map((st) => st.category).sort()).toEqual(['economy', 'military']);
-    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
+    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
     const forged = { ...result, report: { ...result.report, tactical: { ...result.report.tactical, razed: ['military', 'defense', 'bogus'], cityDamage: { destroyed: [], damaged: [] } } } }; // only the razed list (the AI battle's own city damage varies with the economy)
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result: forged } });
     expect(next.regions[BE_REGION].buildings.categories.military).toBe(0);
@@ -612,7 +611,7 @@ describe('T9: commanded amphibious landing', () => {
   it('a real headless landing resolves through the amphibious consequences', () => {
     const started = beginLanding(landingState());
     const setup = buildInvasionSetup(started, started.pendingBattle);
-    const { result } = runHeadless({ ...setup, controllers: [AI_ID, AI_ID] });
+    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result } });
     expect(next.pendingBattle).toBeNull();
     expect(next.lastBattleReport.kind).toBe('amphibious');
