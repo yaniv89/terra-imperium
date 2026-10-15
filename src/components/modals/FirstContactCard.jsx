@@ -12,9 +12,12 @@ import { Button, Chip, Label, Shield } from '../ui/atlas';
 import { contactCard, newContacts } from './firstContactModel';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { t as tNow } from '../../i18n';
+import { useT } from '../../i18n/useT';
+import { rich } from '../../i18n/rich';
 
 const FirstContactCard = () => {
   const { state } = useGame();
+  useT(); // redraw when the language changes
   const seen = useRef(new Set(metNations(state)));
   const lastTurn = useRef(state.turnNumber);
   const [queue, setQueue] = useState([]);
@@ -44,23 +47,23 @@ const FirstContactCard = () => {
       <div className="flex gap-2.5">
         <Shield color={card.color} size={32} />
         <div className="min-w-0">
-          <Label>First contact</Label>
-          <h2 id="first-contact-title" className="fa-heading text-[17px] leading-tight">You met {card.title.replace(/^The /, 'the ')}</h2>
+          <Label>{tNow('p2.fc.label')}</Label>
+          <h2 id="first-contact-title" className="fa-heading text-[17px] leading-tight">{tNow('p2.fc.met', { title: card.title.replace(/^The /, 'the ') })}</h2>
         </div>
       </div>
       <p className="text-[13px] leading-snug mt-2">
-        {card.how}{card.youSaw ? ' Their lands are now drawn in their colour, and you can talk to them.' : ' You can talk to them.'}
+        {card.how} {card.youSaw ? tNow('p2.fc.lands') : tNow('p2.fc.talk')}
       </p>
       <div className="flex flex-wrap gap-1.5 mt-2">
-        <Chip title={`Their opinion of you: ${card.opinion}`}>Mood <span style={{ color: card.opinion >= 20 ? 'var(--fa-good)' : card.opinion <= -40 ? 'var(--fa-danger-text)' : 'var(--fa-enemy)' }}>{card.mood}</span></Chip>
-        <Chip>Cities seen <span className="fa-num">{card.citiesSeen}</span></Chip>
-        {card.border > 0 && <Chip>Border <span className="fa-num">{card.border}</span> tiles</Chip>}
+        <Chip title={tNow('p2.fc.opinionTitle', { opinion: card.opinion })}>{rich(tNow('p2.fc.mood'), { mood: <span style={{ color: card.opinion >= 20 ? 'var(--fa-good)' : card.opinion <= -40 ? 'var(--fa-danger-text)' : 'var(--fa-enemy)' }}>{card.moodText}</span> })}</Chip>
+        <Chip>{rich(tNow('p2.fc.cities'), { n: <span className="fa-num">{card.citiesSeen}</span> })}</Chip>
+        {card.border > 0 && <Chip>{rich(tNow('p2.fc.border'), { n: <span className="fa-num">{card.border}</span> })}</Chip>}
       </div>
       <div className="grid grid-cols-[1fr_auto] gap-2 mt-3">
-        <Button variant="primary" onClick={() => { openPanelTab('diplomacy'); close(); }}>Open diplomacy</Button>
-        <Button onClick={close}>Later</Button>
+        <Button variant="primary" onClick={() => { openPanelTab('diplomacy'); close(); }}>{tNow('p2.fc.open')}</Button>
+        <Button onClick={close}>{tNow('p2.fc.later')}</Button>
       </div>
-      {queue.length > 1 && <div className="text-[11px] text-fa-muted mt-1.5">{queue.length - 1} more {queue.length === 2 ? 'people' : 'peoples'} met</div>}
+      {queue.length > 1 && <div className="text-[11px] text-fa-muted mt-1.5">{tNow('p2.fc.more', { count: queue.length - 1, n: queue.length - 1 })}</div>}
     </div>
   );
 };

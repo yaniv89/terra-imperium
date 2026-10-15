@@ -9,6 +9,8 @@ import { metNations, isExplored, fogOn } from '../../engine/fog';
 import { isIndependentNation } from '../../data/independents';
 import { opinionOf } from '../../engine/opinion';
 import { PEOPLES } from '../../data/peoples';
+import { t as tNow } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
 
 /** The opinion as a word, the same bands as the diplomacy screen's colours. */
 export const moodWord = (opinion) => (opinion >= 40 ? 'Friendly' : opinion >= 20 ? 'Warm' : opinion > -20 ? 'Wary' : opinion > -40 ? 'Cold' : 'Hostile');
@@ -21,11 +23,11 @@ export const newContacts = (state, before) => {
 
 /** How the meeting happened, in words that depend on who saw whom (no invented scouts). */
 export const contactHow = ({ youSaw, theySaw, capitalSeen, capital }) => {
-  const seen = capitalSeen && capital ? `You have seen ${capital}, their capital.` : capital ? `Their capital is ${capital}.` : '';
-  if (youSaw && theySaw) return `Your lands came into each other's sight. ${seen}`.trim();
-  if (theySaw && !youSaw) return 'They came across your land first; you have not seen their cities yet.';
-  if (youSaw) return capitalSeen && capital ? `You came upon ${capital}, their capital.` : `You came upon their land${capital ? `; their capital is ${capital}` : ''}.`;
-  return 'Word of them has reached you.';
+  const seen = capitalSeen && capital ? tNow('p2.fc.seenCapital', { capital }) : capital ? tNow('p2.fc.theirCapital', { capital }) : '';
+  if (youSaw && theySaw) return tNow('p2.fc.mutual', { seen }).trim();
+  if (theySaw && !youSaw) return tNow('p2.fc.theySaw');
+  if (youSaw) return capitalSeen && capital ? tNow('p2.fc.cameUponCapital', { capital }) : tNow('p2.fc.cameUponLand', { tail: capital ? tNow('p2.fc.landTail', { capital }) : '' });
+  return tNow('p2.fc.word');
 };
 
 export const contactCard =(state, nationId) => {
@@ -51,17 +53,18 @@ export const contactCard =(state, nationId) => {
   const theySaw = Object.values(state.regions || {}).some((c) => c.owner === me && c.tile != null && isExplored(state, c.tile, nationId));
   return {
     id: nationId,
-    title: n.name,
-    name: PEOPLES[nationId]?.name || n.name,
+    title: nameNow('people', nationId, n.name),
+    name: nameNow('people', nationId, PEOPLES[nationId]?.name || n.name),
     color: n.color || '#EE8A3A',
-    capital: capital?.name || null,
+    capital: capital?.name ? nameNow('city', null, capital.name) : null,
     capitalSeen,
     citiesSeen,
     border,
     youSaw,
     theySaw,
-    how: contactHow({ youSaw, theySaw, capitalSeen, capital: capital?.name || null }),
+    how: contactHow({ youSaw, theySaw, capitalSeen, capital: capital?.name ? nameNow('city', null, capital.name) : null }),
     opinion,
-    mood: moodWord(opinion)
+    mood: moodWord(opinion),
+    moodText: tNow(`p2.mood.${moodWord(opinion)}`)
   };
 };

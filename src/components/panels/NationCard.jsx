@@ -186,7 +186,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
             <span className={`fa-chip !min-h-[24px] !px-2 !text-[11px] uppercase tracking-wide ${atWarWithPlayer ? 'text-fa-danger-text border-fa-danger' : nation.hasMilitaryPact ? 'text-fa-good border-fa-good/60' : ''}`}>
               {atWarWithPlayer ? t('nc.status.war') : isVassalOfPlayer ? t('nc.status.vassal') : nation.hasMilitaryPact ? t('nc.status.pact') : nation.hasPeaceTreaty ? t('nc.status.peace') : nation.relationStatus ? (hasKey(`nc.rel.${nation.relationStatus}`, 'en') ? t(`nc.rel.${nation.relationStatus}`) : nation.relationStatus) : t('nc.status.met')}
             </span>
-            <span className="text-[12px] text-fa-muted">{metTurn != null ? t('nc.metT', { n: metTurn }) : t('nc.known')}{nation.doctrine ? `, ${nation.doctrine}` : ''}</span>
+            <span className="text-[12px] text-fa-muted">{metTurn != null ? t('nc.metT', { n: metTurn }) : t('nc.known')}{nation.doctrine ? `, ${hasKey(`p2.aidoc.${nation.doctrine}`, 'en') ? t(`p2.aidoc.${nation.doctrine}`) : nation.doctrine}` : ''}</span>
           </div>
         </div>
       </div>}

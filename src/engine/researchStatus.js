@@ -15,7 +15,7 @@
 //   age), the same stepping resolveTurn uses, so BCE to CE and age changes count.
 // Pure. Reads state only.
 import { TECH_TREE } from '../data/techTree';
-import { t as tNow, formatYear } from '../i18n/core';
+import { t as tNow, formatYear, dataText } from '../i18n/core';
 import { getYearsPerTurn, getCalendarAgeId } from '../data/ages';
 import { calcIncome } from '../utils/helpers';
 import { getResearchCost, suggestTechs, FOCUS_SCIENCE_BONUS } from './research';
@@ -180,18 +180,18 @@ export const scholarsPreview = (state, added) => {
   const bank = Math.max(0, state.resources?.techPoints || 0);
   const current = state.research?.current || null;
   const sched = (s) => researchSchedule(s, [current])[0];
-  const name = current ? TECH_TREE[current]?.name || current : null;
+  const name = current ? dataText(`tech.${current}`, TECH_TREE[current]?.name || current) : null;
   let turnsSaved = 0;
   let note;
   if (!current) {
-    note = `+${added} science goes into the bank (${Math.round(bank + added)} banked) for your next choice.`;
+    note = tNow('p2.sch.bank', { added, bank: Math.round(bank + added) });
   } else {
     const now = sched(state);
     const then = sched({ ...state, resources: { ...state.resources, techPoints: bank + added } });
-    if (now.waitsOnGate && now.gate) note = `+${added} science is banked: ${name} still waits for ${now.gate.label}.`;
+    if (now.waitsOnGate && now.gate) note = tNow('p2.sch.gated', { added, name, label: now.gate.label });
     else {
       turnsSaved = now.finishesIn === Infinity ? 0 : Math.max(0, now.finishesIn - then.finishesIn);
-      note = turnsSaved > 0 ? `+${added} science, saves ${turnsSaved} turn${turnsSaved === 1 ? '' : 's'} on ${name}.` : `+${added} science for ${name}.`;
+      note = turnsSaved > 0 ? tNow('p2.sch.saves', { added, count: turnsSaved, name }) : tNow('p2.sch.plain', { added, name });
     }
   }
   return { added, bankAfter: Math.round(bank + added), turnsSaved, note };
