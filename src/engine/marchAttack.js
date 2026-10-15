@@ -24,6 +24,7 @@ import { validateInvasion, unitsReaching } from './invasion';
 import { validateFieldAttack, enemyStackAt } from './fieldBattle';
 import { orderMarch, planMarch, marchingUnits } from './routes';
 import { unitTile } from './armies';
+import { reasonOf } from './messages';
 
 /**
  * How the stack in `fromId` (or `unitIds`) stands towards the city `cityId`:
@@ -49,7 +50,7 @@ export const attackReach = (state, fromId, cityId, unitIds = null) => {
  */
 export const planMarchAttack = (state, fromId, cityId, unitIds = null) => {
   const city = state.regions?.[cityId];
-  if (!city) return { ok: false, reason: 'Unknown place.' };
+  if (!city) return { ok: false, ...reasonOf('m.why.unknownPlace') };
   const plan = planMarch(state, fromId, cityId, unitIds);
   if (!plan.ok) return plan;
   return { ...plan, targetRegionId: cityId, stopsAt: plan.haltAt && plan.haltAt !== cityId ? plan.haltAt : null, canAttack: canAttack(state, state.playerNationId, city.owner) };
@@ -61,7 +62,7 @@ export const planMarchAttack = (state, fromId, cityId, unitIds = null) => {
  */
 export const orderMarchAttack = (state, fromId, cityId, unitIds = null) => {
   const city = state.regions?.[cityId];
-  if (!city || city.owner === state.playerNationId) return { reason: 'That city cannot be attacked.' };
+  if (!city || city.owner === state.playerNationId) return reasonOf('m.why.cityNoAttack');
   if (!canAttack(state, state.playerNationId, city.owner)) return { reason: 'no_war' };
   if (attackReach(state, fromId, cityId, unitIds) === 'adjacent') return { reason: 'adjacent' };
   const order = orderMarch(state, fromId, cityId, unitIds);

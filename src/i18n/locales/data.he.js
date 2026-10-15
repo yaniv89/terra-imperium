@@ -7,5 +7,6 @@ import world from './data/he.world';
 import events from './data/he.events';
 import units from './data/he.units';
 import tiles from './data/he.tiles';
+import battle from './data/he.battle';
 
-export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles });
+export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles, ...battle });

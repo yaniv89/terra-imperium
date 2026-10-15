@@ -35,12 +35,15 @@ import { contextFor, refusedText, enemyObjectives, supplyRate } from './battleHu
 import BattleMinimap from './BattleMinimap';
 import { updateSiteLabels } from './siteLabels';
 import { updatePendingPins } from './pendingPins';
-import { BUILDINGS, ecoName, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN } from '../../battle/data/economy';
+import { BUILDINGS, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN } from '../../battle/data/economy';
 import { placementCheck, footprintAt, legalArea, PLACEMENT_REASON } from '../../battle/input/placement';
 import { buildFlowNext, BUILD_FLOW_CLOSED, closePrecedence } from './buildFlow';
 import { preloadBattleIcons } from './battleIcons';
 import { commandedSetup } from '../../battle/setup/buildBattleSetup';
-import { arrivalNote, NO_GROUND_TEXT } from '../../battle/input/orderFeedback';
+import { arrivalNote } from '../../battle/input/orderFeedback';
+import { t as tNow } from '../../i18n/core';
+import { useT } from '../../i18n/useT';
+import { powerLabel, ecoLabel } from './battleText';
 import { releaseWhenDetached } from '../../utils/glContext';
 import { noteCrashEvent } from '../../utils/crashLog';
 import { coachSeen, markCoachSeen, coachSteps, mouseFirst } from './battleCoach';
@@ -65,7 +68,7 @@ const perfOn = () => PERF_URL || !!getMapPrefs().perf;
 // An order the battle did not take is said, not swallowed (CB02): the battle loop posts
 // `ordersRefused` when the shared order schema turns an order down or the order log is full.
 const REFUSED_MS = 4000;
-const PAUSED_ORDER_TEXT = 'Order given. It starts when you resume.';
+const pausedOrderText = () => tNow('bt.screen.pausedOrder');
 const ORDER_NOTE_MS = 3500;
 
 // U03: the battle screen's usable rectangle. The safe-area insets (a notch or Dynamic Island on the
@@ -91,6 +94,7 @@ const FOLLOW_RATE = 4;
 const NOTE_BOTTOM = 'calc(max(0.375rem, var(--sa-b, 0px)) + 3.75rem)';
 
 const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onRetry = null, getCampaign = null, getReceipt = null, onEnded = null }) => {
+  useT(); // redraw the screen's own texts when the language changes
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
@@ -223,7 +227,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       renderer = new BattleRenderer(canvas, setup, { playerSide });
     } catch (err) {
       console.error('[battle] the battlefield could not be drawn', err);
-      setFailure({ message: 'This device could not draw the battlefield.', detail: err?.message || String(err) });
+      setFailure({ message: tNow('bt.screen.drawFail'), detail: err?.message || String(err) });
       return undefined;
     }
     rendererRef.current = renderer;
@@ -271,7 +275,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide);
         } else if (m.type === 'error') {
           console.error(`[battle] the battle stopped (${m.stage || 'sim'}): ${m.message}`, m.stack || '');
-          setFailure({ message: frames.current.cur ? 'The battle stopped unexpectedly.' : 'The battle could not start.', detail: m.message });
+          setFailure({ message: frames.current.cur ? tNow('bt.screen.stopped') : tNow('bt.screen.couldNotStart'), detail: m.message });
         }
       }
     });
@@ -292,7 +296,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       if (!f.cur && t - openedAt > FIRST_FRAME_TIMEOUT_MS && !f.timedOut) {
         f.timedOut = true;
         console.error('[battle] no frame from the battle sim');
-        setFailure({ message: 'The battle could not start.', detail: `No answer from the battle after ${Math.round(FIRST_FRAME_TIMEOUT_MS / 1000)} seconds.` });
+        setFailure({ message: tNow('bt.screen.couldNotStart'), detail: tNow('bt.screen.noAnswer', { n: Math.round(FIRST_FRAME_TIMEOUT_MS / 1000) }) });
       }
       const alpha = f.prev ? Math.min(1, ((t - f.arrival) * speedRef.current) / (1000 / TICK_HZ)) : 1;
       // I198: arrow keys and the screen's edge pan (a hand on the camera ends a follow, I199).
@@ -326,7 +330,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       } catch (err) {
         renderErrors += 1;
         if (renderErrors === 1) console.error('[battle] drawing the battlefield failed', err);
-        if (renderErrors === RENDER_ERRORS_TO_FAIL) setFailure({ message: 'The battlefield could not be drawn.', detail: err?.message || String(err) });
+        if (renderErrors === RENDER_ERRORS_TO_FAIL) setFailure({ message: tNow('bt.screen.couldNotDraw'), detail: err?.message || String(err) });
       }
       if (meter) {
         meter.push(rawMs, performance.now() - r0);
@@ -367,7 +371,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       client.pause(); setPaused(true);
       noteCrashEvent('battle-context-lost');
       clearTimeout(lostTimer);
-      lostTimer = setTimeout(() => setFailure({ message: 'The battlefield could not be drawn.', detail: 'The graphics were lost (webglcontextlost).' }), CONTEXT_RESTORE_MS);
+      lostTimer = setTimeout(() => setFailure({ message: tNow('bt.screen.couldNotDraw'), detail: tNow('bt.screen.graphicsLost') }), CONTEXT_RESTORE_MS);
     };
     const onRestored = () => { clearTimeout(lostTimer); noteCrashEvent('battle-context-restored'); };
     canvas.addEventListener('webglcontextlost', onLost);
@@ -414,7 +418,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const markPending = useCallback((mark) => {
     if (!startedRef.current || !pausedRef.current) return;
     rendererRef.current?.addPendingMark(mark);
-    setOrderNote((n) => n || PAUSED_ORDER_TEXT);
+    setOrderNote((n) => n || pausedOrderText());
   }, []);
   // The battle is over: the result screen opens at once, and the campaign counts the battle right
   // after (a tick later, so "counting" is on screen while the replay runs).
@@ -563,12 +567,12 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     // An order tap looks past the player's own squads (I189, I190): at the enemy, the building or
     // the ground under them.
     const hit = r.pick(p.x, p.y, cur, 1.1, { enemyFirst: true, ignoreOwn: true });
-    if (!hit) { setOrderNote(NO_GROUND_TEXT); return true; } // said why, the selection stays
+    if (!hit) { setOrderNote(tNow('bt.order.noGround')); return true; } // said why, the selection stays
     const workers = sel.filter((i) => cur.squads[i]?.classId === 'worker');
     const onlyWorkers = workers.length === sel.length;
     const fighters = sel.filter((i) => !workers.includes(i));
     // While paused the "starts when you resume" note stays first (RTS-03).
-    const noteFor = (type) => { const n = arrivalNote(fighters.map((i) => cur.squads[i]?.classId), type); if (n) setOrderNote((old) => (old?.startsWith(PAUSED_ORDER_TEXT) ? `${PAUSED_ORDER_TEXT} ${n}` : n)); };
+    const noteFor = (type) => { const n = arrivalNote(fighters.map((i) => cur.squads[i]?.classId), type); if (n) setOrderNote((old) => (old?.startsWith(pausedOrderText()) ? `${pausedOrderText()} ${n}` : n)); };
     if (hit.kind === 'node') {
       // Workers to a resource: gather it (the others just go there).
       if (workers.length) send([{ type: 'gather', squads: workers, node: hit.index }]);
@@ -603,7 +607,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       if (eligible.length) {
         send([{ type: 'garrison', squads: eligible, structure: hit.index }]);
         r.setOrderTarget(eligible, { kind: 'structure', index: hit.index }, 'garrison');
-      } else setOrderNote('No order: only infantry and archers can man a building.');
+      } else setOrderNote(tNow('bt.screen.onlyInfantry'));
     } else if (hit.kind === 'structure' && playerSide === 0) {
       send([{ type: 'attack', squads: sel, target: { kind: 'structure', index: hit.index } }]);
       r.setOrderTarget(sel, { kind: 'structure', index: hit.index }, 'attack');
@@ -782,7 +786,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const firePower = (power) => {
     if (!power.targeted) { send([{ type: 'power', power: power.id, x: 0, y: 0 }]); return; }
     const same = armedRef.current?.type === 'power' && armedRef.current.id === power.id;
-    armedRef.current = same ? null : { type: 'power', id: power.id, label: power.label };
+    armedRef.current = same ? null : { type: 'power', id: power.id, label: powerLabel(power.id, power.label) };
     setArmed(armedRef.current);
   };
   const triggerSquadAbility = (abilityId) => {
@@ -824,7 +828,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const i = objectiveIdxRef.current % targets.length; objectiveIdxRef.current = i + 1;
     const t = targets[i];
     lookAt(t.x, t.y);
-    setOrderNote(note || (targets.length > 1 ? `${t.label}, ${i + 1} of ${targets.length}. Tap Enemy again for the next.` : `${t.label}.`));
+    setOrderNote(note || (targets.length > 1 ? tNow('bt.screen.objectiveOf', { label: t.label, i: i + 1, n: targets.length }) : tNow('bt.screen.objectiveOne', { label: t.label })));
   };
   const toggleFollow = () => {
     if (followRef.current) { setFollow(false); return; }
@@ -841,7 +845,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const pickBuilding = (id, from = 'sheet') => {
     flowTo({ type: 'pick', building: id, from });
     setBuildNote(null);
-    armedRef.current = { type: 'place', building: id, label: id }; setArmed(armedRef.current);
+    armedRef.current = { type: 'place', building: id, label: ecoLabel(id, setup.sides[playerSide].ageId) }; setArmed(armedRef.current);
     ghostRef.current = null;
     const w0 = wrapRef.current;
     setGhostAt({ x: (w0?.clientWidth || 800) / 2, y: (w0?.clientHeight || 400) * 0.55 }); // seen at once, before any hover or drag
@@ -897,11 +901,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const sendLaborers = (b) => {
     const cur = frames.current.cur; if (!cur || !b) return;
     const workers = buildersFor(cur, b.x / Q, b.y / Q);
-    if (!workers.length) { setBuildNote({ text: 'No laborers left to send', bad: true }); return; }
+    if (!workers.length) { setBuildNote({ text: tNow('bt.screen.noLaborers'), bad: true }); return; }
     const target = b.proxy ? { kind: 'structure', index: 0 } : { kind: 'eco', index: b.idx };
     send([{ type: b.built ? 'repair' : 'assist', squads: workers, target }]);
     rendererRef.current?.setOrderTarget(workers, target, b.built ? 'repair' : 'assist');
-    setBuildNote({ text: `${workers.length} laborer${workers.length === 1 ? '' : 's'} on the way`, bad: false });
+    setBuildNote({ text: tNow('bt.screen.laborersOnWay', { count: workers.length }), bad: false });
   };
   // I173 to I175 (UI06): while a building is in hand, the legal ground for it is tinted (the same
   // rule as the ghost and the sim), the tiles resources take and the field's real edge show.
@@ -931,7 +935,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const p = pendingBuildRef.current; const eco = hud?.eco;
     if (!p || !eco) return;
     if (eco.buildings.some((b) => b.side === playerSide && b.type === p.building && b.tx === p.tx && b.ty === p.ty)) { pendingBuildRef.current = null; return; }
-    if (hud.tick - p.tick > TICK_HZ) { pendingBuildRef.current = null; setBuildNote({ text: `${ecoName(p.building, setup.sides[playerSide].ageId)} not placed: ${PLACEMENT_REASON.refused.toLowerCase()}. Nothing was spent.`, bad: true }); }
+    if (hud.tick - p.tick > TICK_HZ) { pendingBuildRef.current = null; setBuildNote({ text: tNow('bt.screen.notPlaced', { unit: ecoLabel(p.building, setup.sides[playerSide].ageId), why: PLACEMENT_REASON.refused.toLowerCase() }), bad: true }); }
   }, [hud, playerSide, setup]);
   useEffect(() => { if (!buildNote) return undefined; const t = setTimeout(() => setBuildNote(null), 4000); return () => clearTimeout(t); }, [buildNote]);
   const note = buildNote ? <div className={`px-1 text-[11px] font-semibold ${buildNote.bad ? 'text-fa-danger-text' : 'text-fa-good'}`} role="status" data-testid="battle-build-note">{buildNote.text}</div> : null;
@@ -939,11 +943,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   if (hud?.eco && context === 'place' && ghost) {
     panel = (
       <div className="w-[min(19rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl text-[11.5px]" data-testid="battle-place-panel">
-        <div className="px-1 leading-snug"><b>{ecoName(ghost.building, ageId)}</b><span className="text-fa-muted"> ֲ· {mouse ? 'click the green ground to build' : 'tap or drag on the green ground, then Build here'}</span></div>
+        <div className="px-1 leading-snug"><b>{ecoLabel(ghost.building, ageId)}</b><span className="text-fa-muted"> · {mouse ? tNow('bt.screen.mouseBuild') : tNow('bt.screen.touchBuild')}</span></div>
         <div className="flex items-center gap-1 mt-1">
-          <div className={cx('flex-1 min-w-0 px-1 font-semibold leading-tight', ghost.ok ? 'text-fa-good' : 'text-fa-danger-text')} data-testid="battle-place-reason">{ghost.ok ? 'Good spot' : ghost.reason}</div>
-          <button type="button" onClick={placeGhost} disabled={!ghost.ok} aria-describedby="battle-place-why" data-testid="battle-place-confirm" className="shrink-0 min-w-[64px] h-12 px-2 rounded-[10px] bg-fa-raised border border-fa-good text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 disabled:opacity-40 disabled:border-fa-line"><Check className="w-4 h-4" aria-hidden="true" /><span className="leading-none">Build here</span></button>
-          <button type="button" onClick={() => disarm('cancel')} aria-label="Cancel placement" title="Cancel placement (Esc)" data-testid="battle-place-cancel" className="shrink-0 w-12 h-12 rounded-full bg-fa-panel border border-fa-line flex items-center justify-center"><GameIcon group="battle" id="close" size={22} fallback={<XIcon className="w-5 h-5" aria-hidden="true" />} /></button>
+          <div className={cx('flex-1 min-w-0 px-1 font-semibold leading-tight', ghost.ok ? 'text-fa-good' : 'text-fa-danger-text')} data-testid="battle-place-reason">{ghost.ok ? tNow('bt.screen.goodSpot') : ghost.reason}</div>
+          <button type="button" onClick={placeGhost} disabled={!ghost.ok} aria-describedby="battle-place-why" data-testid="battle-place-confirm" className="shrink-0 min-w-[64px] h-12 px-2 rounded-[10px] bg-fa-raised border border-fa-good text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 disabled:opacity-40 disabled:border-fa-line"><Check className="w-4 h-4" aria-hidden="true" /><span className="leading-none">{tNow('bt.screen.buildHere')}</span></button>
+          <button type="button" onClick={() => disarm('cancel')} aria-label={tNow('bt.screen.cancelPlacement')} title={tNow('bt.screen.cancelPlacementEsc')} data-testid="battle-place-cancel" className="shrink-0 w-12 h-12 rounded-full bg-fa-panel border border-fa-line flex items-center justify-center"><GameIcon group="battle" id="close" size={22} fallback={<XIcon className="w-5 h-5" aria-hidden="true" />} /></button>
         </div>
         <span id="battle-place-why" className="sr-only">{ghost.ok ? '' : ghost.reason}</span>
       </div>
@@ -962,7 +966,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       <div className="flex flex-col items-end gap-1">
         {note}
         <div className="flex items-center gap-3" data-testid="battle-worker-actions">
-          <button type="button" onClick={stopWorkers} aria-label="Stop working" title="Stop working: they drop their task and stand idle" data-testid="battle-workers-stop"
+          <button type="button" onClick={stopWorkers} aria-label={tNow('bt.screen.stopWorking')} title={tNow('bt.screen.stopWorkingTitle')} data-testid="battle-workers-stop"
             className="w-12 h-12 rounded-full bg-fa-panel/95 border border-fa-danger/70 shadow-lg flex items-center justify-center text-fa-danger-text"><GameIcon group="battle" id="stop-working" size={24} fallback={<Ban className="w-5 h-5" aria-hidden="true" />} /></button>
           <HammerButton onClick={() => flowTo({ type: 'open' })} />
         </div>
@@ -977,12 +981,12 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           onTrain={(role) => send([{ type: 'train', building: ecoBuilding.idx, role }])}
           onCancel={(slot) => send([{ type: 'cancelTrain', building: ecoBuilding.idx, slot }])}
           rallyArmed={armed?.type === 'rally'}
-          onRally={() => { armedRef.current = armedRef.current?.type === 'rally' ? null : { type: 'rally', building: ecoBuilding.idx, label: 'rally' }; setArmed(armedRef.current); }} />
+          onRally={() => { armedRef.current = armedRef.current?.type === 'rally' ? null : { type: 'rally', building: ecoBuilding.idx, label: tNow('bt.screen.rally') }; setArmed(armedRef.current); }} />
         {note}
         {damaged && (
           <button type="button" onClick={() => sendLaborers(ecoBuilding)} data-testid="battle-repair"
             className="min-w-[64px] h-12 px-2 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[11px] font-semibold shadow-lg flex flex-col items-center justify-center gap-0.5">
-            <Wrench className="w-4 h-4" aria-hidden="true" /><span className="leading-none">Repair</span>
+            <Wrench className="w-4 h-4" aria-hidden="true" /><span className="leading-none">{tNow('bt.screen.repair')}</span>
           </button>
         )}
       </div>
@@ -994,11 +998,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         <div className="flex gap-2">
           <button type="button" onClick={() => sendLaborers(ecoBuilding)} data-testid="battle-site-assist"
             className="min-w-[64px] h-12 px-2 rounded-[10px] bg-fa-panel/95 border border-fa-good text-[11px] font-semibold shadow-lg flex flex-col items-center justify-center gap-0.5">
-            <Hammer className="w-4 h-4" aria-hidden="true" /><span className="leading-none">Send laborers</span>
+            <Hammer className="w-4 h-4" aria-hidden="true" /><span className="leading-none">{tNow('bt.screen.sendLaborers')}</span>
           </button>
           <button type="button" onClick={() => { send([{ type: 'cancelBuild', building: ecoBuilding.idx }]); selectBuilding(null); }} data-testid="battle-cancel-build"
             className="min-w-[64px] h-12 px-2 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-fa-danger-text text-[11px] font-semibold shadow-lg flex flex-col items-center justify-center gap-0.5">
-            <Ban className="w-4 h-4" aria-hidden="true" /><span className="leading-none">Cancel construction</span>
+            <Ban className="w-4 h-4" aria-hidden="true" /><span className="leading-none">{tNow('bt.screen.cancelConstruction')}</span>
           </button>
         </div>
       </div>
@@ -1087,7 +1091,7 @@ const TacticalBattleScreen = (props) => {
   if (!ready) {
     return (
       <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center text-slate-300 text-sm" data-testid="battle-loading">
-        Mustering the troopsג€¦
+        {tNow('bt.screen.mustering')}
       </div>
     );
   }

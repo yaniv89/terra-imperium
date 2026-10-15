@@ -7,9 +7,11 @@
 //   battleSize    300 a side: the whole army takes the field at once (U10, no Reserve and no waves)
 //   cityWallsView the walls (name, HP), the houses and the battle housing
 import { menOf, countText } from '../../engine/battleLedger';
+import { t } from '../../i18n/core';
 import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { categoryTierName as getCategoryTierName } from '../../i18n/gameText';
-import { POP_LIMIT, trainableRoles, ecoName } from '../../battle/data/economy';
+import { POP_LIMIT, trainableRoles } from '../../battle/data/economy';
+import { ecoLabel } from './battleText';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS, TICK_HZ } from '../../battle/sim/constants';
 import { wallsOf, siegeHpOf, siegeMaxHp } from '../../engine/sieges';
 import { canSeeRegionDetails, hasIntel } from '../../engine/intel';
@@ -24,13 +26,13 @@ export const armyView = (units = [], { ageId = 'bronze', hiredCommanders = {} } 
   const by = new Map();
   units.forEach((u) => {
     const key = u.militia ? 'militia' : u.classId;
-    const row = by.get(key) || { id: key, name: u.militia ? 'Militia' : unitDisplayName(ageId, u.classId, u.navalLine) || u.classId, regiments: 0, men: 0 };
+    const row = by.get(key) || { id: key, name: u.militia ? t('bt.war.militia') : unitDisplayName(ageId, u.classId, u.navalLine) || u.classId, regiments: 0, men: 0 };
     row.regiments += 1; row.men += men(u);
     by.set(key, row);
   });
   const generals = [...new Set(units.map((u) => u.commanderId).filter(Boolean))].map((id) => {
     const g = hiredCommanders[id];
-    return { id, name: g?.name || 'A general', skill: g?.skill ?? null };
+    return { id, name: g?.name || t('bt.war.aGeneral'), skill: g?.skill ?? null };
   });
   return {
     men: units.reduce((s, u) => s + men(u), 0),
@@ -49,12 +51,12 @@ export const lineLabel = (l) => (l.regiments > 1 ? `${l.name} x${l.regiments}` :
  * sight); otherwise the scouts' guess, a band and not a number.
  */
 export const oddsSource = (state, { targetRegionId = null, field = false, defending = false } = {}) => {
-  if (defending) return { exact: true, label: 'Your own city: you know both sides' };
-  if (field) return { exact: true, label: 'Both armies in sight' };
+  if (defending) return { exact: true, label: t('bt.war.ownCity') };
+  if (field) return { exact: true, label: t('bt.war.bothInSight') };
   const owner = state.regions?.[targetRegionId]?.owner;
-  if (owner && owner !== state.playerNationId && hasIntel(state, owner)) return { exact: true, label: 'Spy report' };
-  if (canSeeRegionDetails(state, targetRegionId)) return { exact: true, label: 'In full sight' };
-  return { exact: false, label: "Scouts' guess: a range, not a number. A spy report gives exact odds." };
+  if (owner && owner !== state.playerNationId && hasIntel(state, owner)) return { exact: true, label: t('bt.war.spyReport') };
+  if (canSeeRegionDetails(state, targetRegionId)) return { exact: true, label: t('bt.war.fullSight') };
+  return { exact: false, label: t('bt.war.scoutsGuess') };
 };
 
 /** A strength the scouts guess, in men: plus or minus a fifth, rounded to tens ("about 2,600 to 3,200"). */
@@ -62,7 +64,7 @@ export const scoutsRange = (strength) => {
   const m = menOf(strength);
   const lo = Math.max(0, Math.round((m * 0.8) / 10) * 10);
   const hi = Math.round((m * 1.2) / 10) * 10;
-  return { lo, hi, text: `about ${countText(lo)} to ${countText(hi)}` };
+  return { lo, hi, text: t('bt.war.scoutsRange', { lo: countText(lo), hi: countText(hi) }) };
 };
 
 /** The battle's clock in minutes with the battle economy on (master plan 6.1, phase R1). */
@@ -85,8 +87,8 @@ export const battleSize = ({ regiments, kind = 'assault' }) => {
     heldBack,
     minutes,
     text: heldBack > 0
-      ? `The strongest ${front} regiments take the field; ${heldBack} more stay out of this battle.`
-      : `All ${regiments} regiment${regiments === 1 ? '' : 's'} on the field at once.`
+      ? t('bt.war.sizeHeld', { front, heldBack })
+      : t('bt.war.sizeAll', { count: regiments })
   };
 };
 
@@ -98,7 +100,7 @@ export const battleSize = ({ regiments, kind = 'assault' }) => {
  */
 export const wallsLabel = (city) => {
   const level = city ? wallsOf(city) : 0;
-  return level > 0 ? getCategoryTierName('defense', level - 1) || `Walls ${level}` : 'No walls';
+  return level > 0 ? getCategoryTierName('defense', level - 1) || t('bt.war.walls', { n: level }) : t('bt.war.noWalls');
 };
 
 /**
@@ -109,8 +111,8 @@ export const wallsLabel = (city) => {
  */
 export const siegeAdvice = ({ wallLevel = 0, units = [], ageId = 'bronze' }) => {
   if (!(wallLevel > 0) || units.some((u) => u.classId === 'siege' && u.strength > 0)) return null;
-  if (!trainableRoles(ageId).includes('siege')) return 'Walls and no siege engines in your age: expect a long fight at the gate.';
-  return `Walls: without siege engines your army can only batter the gate. Bring ${unitDisplayName(ageId, 'siege') || 'siege engines'}, or build a ${ecoName('siegeWorkshop', ageId).toLowerCase()} in the battle to train them.`;
+  if (!trainableRoles(ageId).includes('siege')) return t('bt.war.siegeNoAge');
+  return t('bt.war.siegeAdvice', { unit: unitDisplayName(ageId, 'siege') || t('bt.war.siegeEngines'), shop: ecoLabel('siegeWorkshop', ageId).toLowerCase() });
 };
 
 /** The city's walls and houses for the pre-battle and attack screens, or null for open ground. */
@@ -127,7 +129,7 @@ export const cityWallsView = (state, cityId) => {
     level,
     name: wallsLabel(city),
     hpShare: hp / max,
-    hpText: level > 0 ? `HP ${Math.round((hp / max) * 100)}%${city.siege ? ' after the siege so far' : ''}` : 'Open town',
+    hpText: level > 0 ? t(city.siege ? 'bt.war.hpSiege' : 'bt.war.hp', { pct: Math.round((hp / max) * 100) }) : t('bt.war.openTown'),
     houses: houseCount,
     housing: def?.housing || 0,
     housingLines: def?.lines || []

@@ -18,7 +18,7 @@ import { isIndependentNation, PERSONALITIES } from '../../data/independents';
 import { visibleTiles } from '../../engine/sight';
 import { raidEta } from '../../engine/raids';
 import { unitTile } from '../../engine/armies';
-import { raidTargetName, RAID_KIND_WORDS } from './independentSheetModel';
+import { raidTargetName, raidKindWord } from './independentSheetModel';
 
 export const raidMapModel = (state, sight = visibleTiles(state, state.playerNationId)) => {
   const me = state.playerNationId;
@@ -42,7 +42,7 @@ export const raidMapModel = (state, sight = visibleTiles(state, state.playerNati
     if (seen) {
       parties.push({
         id, name: n.name, personality: n.indep?.personality || 'tribal', colour: PERSONALITIES[n.indep?.personality]?.badge, tile,
-        route: raid.phase === 'hold' ? [] : [...(raid.route || [])], targetTile: raid.targetTile, kind: raid.kind, kindWord: RAID_KIND_WORDS[raid.kind] || raid.kind,
+        route: raid.phase === 'hold' ? [] : [...(raid.route || [])], targetTile: raid.targetTile, kind: raid.kind, kindWord: raidKindWord(raid.kind),
         target, eta: eta?.turns ?? null, againstYou, phase: raid.phase
       });
     }

@@ -114,12 +114,12 @@ export const getPeaceAcceptance = (state, war, offererId, terms) => {
   const cedesCapital = terms.some((t) => t.type === 'cede' && t.regionId === recipientCapitalId);
 
   const breakdown = [
-    { label: 'War situation', value: Math.round(offererScore) },
-    { label: 'War exhaustion', value: Math.round(0.4 * (recipient?.warExhaustion || 0)) },
-    { label: 'Odds if the war goes on', value: Math.round(outlook), detail: `${Math.round(100 * (1 - p))}% to win it` },
-    { label: 'War weariness', value: Math.round(Math.min(10, turnsAtWar / 5)) },
-    { label: 'Capital secure', value: recipientCapitalOccupied ? 0 : -10 },
-    { label: 'Demands include capital', value: cedesCapital ? -15 : 0 }
+    { id: 'situation', label: 'War situation', value: Math.round(offererScore) },
+    { id: 'exhaustion', label: 'War exhaustion', value: Math.round(0.4 * (recipient?.warExhaustion || 0)) },
+    { id: 'odds', pct: Math.round(100 * (1 - p)), label: 'Odds if the war goes on', value: Math.round(outlook), detail: `${Math.round(100 * (1 - p))}% to win it` },
+    { id: 'weariness', label: 'War weariness', value: Math.round(Math.min(10, turnsAtWar / 5)) },
+    { id: 'capital', label: 'Capital secure', value: recipientCapitalOccupied ? 0 : -10 },
+    { id: 'demandsCapital', label: 'Demands include capital', value: cedesCapital ? -15 : 0 }
   ];
   const total = Math.round(breakdown.reduce((sum, line) => sum + line.value, 0));
   const cost = getPeaceCost(state, war, offererId, terms);

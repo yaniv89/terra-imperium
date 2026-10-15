@@ -11,31 +11,33 @@ import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS } from '../../engine
 import { getTechDiffusion } from '../../engine/techDiffusion';
 import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
 import { t as tNow } from '../../i18n';
+import { ageName } from '../../i18n/core';
 import { mapEffectLabel } from '../../engine/techMapEffects';
 import { techName } from '../../i18n/gameText';
 
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`;
 const EFFECT_WORDS = {
-  goldMult: (v) => `${pct(v)} gold`,
-  hrMult: (v) => `${pct(v)} manpower`,
-  techPointsMult: (v) => `${pct(v)} science`,
-  researchCost: (v) => `${pct(v)} research cost`,
-  developmentCost: (v) => `${pct(v)} development cost`,
-  stabilityCost: (v) => `${pct(v)} stability cost`,
-  attrition: (v) => `${pct(v)} attrition`,
-  admBonus: (v) => `+${v} ADM a turn`,
-  dipBonus: (v) => `+${v} DIP a turn`,
-  milBonus: (v) => `+${v} MIL a turn`,
-  supplyRange: (v) => `+${v} supply range`,
-  popGrowthBonus: () => 'faster population growth',
-  stabilityBonus: (v) => (v > 0 ? `+${v} stability` : 'more unrest everywhere')
+  goldMult: (v) => tNow('fx.gold', { pct: pct(v) }),
+  hrMult: (v) => tNow('fx.manpower', { pct: pct(v) }),
+  techPointsMult: (v) => tNow('fx.science', { pct: pct(v) }),
+  researchCost: (v) => tNow('fx.researchCost', { pct: pct(v) }),
+  developmentCost: (v) => tNow('fx.developmentCost', { pct: pct(v) }),
+  stabilityCost: (v) => tNow('fx.stabilityCost', { pct: pct(v) }),
+  attrition: (v) => tNow('fx.attrition', { pct: pct(v) }),
+  admBonus: (v) => tNow('fx.adm', { n: v }),
+  dipBonus: (v) => tNow('fx.dip', { n: v }),
+  milBonus: (v) => tNow('fx.mil', { n: v }),
+  supplyRange: (v) => tNow('fx.supplyRange', { n: v }),
+  popGrowthBonus: () => tNow('fx.popGrowth'),
+  stabilityBonus: (v) => (v > 0 ? tNow('fx.stabilityPlus', { n: v }) : tNow('fx.unrestEverywhere'))
 };
 
 // "+25% gold" style phrases for a tech's effects; every tech also counts toward the next age.
 export const describeTech = (tech) => {
   const parts = Object.entries(tech?.effects || {}).map(([k, v]) => (EFFECT_WORDS[k] ? EFFECT_WORDS[k](v) : null)).filter(Boolean);
-  const nextAge = AGES[AGE_ORDER[AGE_ORDER.indexOf(tech?.ageId) + 1]]?.name;
-  if (nextAge) parts.push(`counts toward the ${nextAge}`);
+  const nextAgeId = AGE_ORDER[AGE_ORDER.indexOf(tech?.ageId) + 1];
+  const nextAge = AGES[nextAgeId]?.name;
+  if (nextAge) parts.push(tNow('fx.nextAge', { age: ageName(nextAgeId, nextAge) }));
   return parts.join(', ');
 };
 

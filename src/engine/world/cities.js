@@ -52,7 +52,7 @@ import { navalLinesFor } from '../../data/navalLines';
 import { logisticGrowthMult, sizeToPeople as peopleForSize, foodForPeople, peopleOf } from '../population';
 import { noteOwnerCopy, noteOwnerWrite } from './tileIndex';
 import { CITY_SPACING_KM, spacingBlocks, spacingReach } from '../../data/geo/citySpacing';
-import { msg, carry, cityRef, place, thing, sub } from '../messages';
+import { msg, carry, cityRef, place, thing, sub, reasonOf } from '../messages';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -194,12 +194,12 @@ const noteFoundedCity = (cities, tiles, city) => {
 };
 
 export const canFoundCity = (world, tiles, tile, nationId) => {
-  if (!tiles.land[tile]) return { ok: false, reason: 'A city needs land.' };
-  if (tiles.terrainOf(tile) === 'snow' || tiles.featureOf(tile) === 'ice') return { ok: false, reason: 'Nothing can live on the ice.' };
+  if (!tiles.land[tile]) return { ok: false, ...reasonOf('m.world.reasonLand') };
+  if (tiles.terrainOf(tile) === 'snow' || tiles.featureOf(tile) === 'ice') return { ok: false, ...reasonOf('m.world.reasonIce') };
   const owner = world.tileOwner[tile];
-  if (owner && world.cities[owner]?.ownerId !== nationId) return { ok: false, reason: 'This land belongs to another nation.' };
+  if (owner && world.cities[owner]?.ownerId !== nationId) return { ok: false, ...reasonOf('m.world.reasonBelongs') };
   const near = blockerOf(blockedTiles(world.cities, tiles), tile);
-  if (near) return { ok: false, reason: `Too close to ${near.name}.` };
+  if (near) return { ok: false, ...reasonOf('m.world.reasonTooClose', { city: cityRef(near.id ?? null, near.name) }) };
   return { ok: true };
 };
 
@@ -401,30 +401,30 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = 'b
   switch (item.kind) {
     case 'building': {
       const current = city.buildings?.categories?.[item.category] ?? -1;
-      if (item.tier !== current + 1) return { ok: false, reason: 'Tiers are built in order.' };
-      if (!canBuildTier(item.category, new Set(researched), item.tier)) return { ok: false, reason: 'Needs a technology.' };
-      if (BUILDING_CATEGORIES[item.category]?.coastalOnly && !hasSeaCoast(tiles, city)) return { ok: false, reason: NEEDS_SEA_COAST };
+      if (item.tier !== current + 1) return { ok: false, ...reasonOf('m.why.tierOrder') };
+      if (!canBuildTier(item.category, new Set(researched), item.tier)) return { ok: false, ...reasonOf('m.why.needsTech') };
+      if (BUILDING_CATEGORIES[item.category]?.coastalOnly && !hasSeaCoast(tiles, city)) return { ok: false, ...reasonOf('m.why.needsCoast') };
       return { ok: true };
     }
     case 'unit':
-      if (item.classId === 'naval' && !hasSeaCoast(tiles, city)) return { ok: false, reason: NEEDS_SEA_COAST };
-      if (item.classId === 'naval' && item.navalLine && !navalLinesFor(ageId).includes(item.navalLine)) return { ok: false, reason: 'Not available in this age.' };
-      return getAvailableClasses(ageId).includes(item.classId) ? { ok: true } : { ok: false, reason: 'Not available in this age.' };
+      if (item.classId === 'naval' && !hasSeaCoast(tiles, city)) return { ok: false, ...reasonOf('m.why.needsCoast') };
+      if (item.classId === 'naval' && item.navalLine && !navalLinesFor(ageId).includes(item.navalLine)) return { ok: false, ...reasonOf('m.why.notThisAge') };
+      return getAvailableClasses(ageId).includes(item.classId) ? { ok: true } : { ok: false, ...reasonOf('m.why.notThisAge') };
     case 'improvement': {
-      if (!city.tiles.includes(item.tile)) return { ok: false, reason: 'Not this city\'s land.' };
+      if (!city.tiles.includes(item.tile)) return { ok: false, ...reasonOf('m.why.notCityLand') };
       const facts = tileFacts(tiles, item.tile, world.tileState[item.tile]);
-      if (facts.improvement === item.improvement && !facts.pillaged) return { ok: false, reason: 'Already built.' };
-      return canImprove(facts, item.improvement, researched) ? { ok: true } : { ok: false, reason: 'Cannot be built here.' };
+      if (facts.improvement === item.improvement && !facts.pillaged) return { ok: false, ...reasonOf('m.why.alreadyBuilt') };
+      return canImprove(facts, item.improvement, researched) ? { ok: true } : { ok: false, ...reasonOf('m.why.cannotBuildHere') };
     }
     case 'settler':
-      return city.size >= SETTLER_MIN_SIZE ? { ok: true } : { ok: false, reason: `Needs size ${SETTLER_MIN_SIZE}.` };
+      return city.size >= SETTLER_MIN_SIZE ? { ok: true } : { ok: false, ...reasonOf('m.why.needsSize', { n: SETTLER_MIN_SIZE }) };
     case 'army':
       return validateTemplate(item, ageId);
     case 'wonder':
       // The reducer checks the project's rules with the whole state (wonders.js canQueueWonder); here the tile.
-      return item.tile != null && (item.tier > 1 || city.tiles.includes(item.tile)) ? { ok: true } : { ok: false, reason: 'No site for it in the city.' };
+      return item.tile != null && (item.tier > 1 || city.tiles.includes(item.tile)) ? { ok: true } : { ok: false, ...reasonOf('m.why.noSite') };
     default:
-      return { ok: false, reason: 'Unknown item.' };
+      return { ok: false, ...reasonOf('m.why.unknownItem') };
   }
 };
 

@@ -22,7 +22,7 @@ import IndependentCityCard from '../independents/IndependentCityCard';
 import RazeControl from './RazeControl';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
-import { categoryTierName, extractionName, wonderName } from '../../i18n/gameText';
+import { categoryTierName, extractionName, wonderName, terrainWord, buildingCategoryLabel, unitClassName, resourceName, independentKindName } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
 import { UNIT_CLASSES } from '../../data/unitClasses';
 import { getRankForXp } from '../../data/promotions';
@@ -59,6 +59,10 @@ import { cityHousingCap, cityDamageOf } from '../../engine/cityManifest';
 // within the current age's sea-lane reach. Same helper ProvinceModal defines for its own,
 // player-owned-side reachability checks.
 import { nameNow } from '../../i18n/names';
+import { useT } from '../../i18n/useT';
+import { reasonText } from '../../i18n/messageText';
+import { msgRefText } from '../battle/battleText';
+import { t as tNow, hasKey } from '../../i18n/core';
 // a nation's name in the current language (a people's title, or an independent's form)
 const pn = (n, id = n?.id) => (n ? nameNow('people', id, n.name) : undefined);
 const isReachable = (fromRegionId, toRegionId, age) =>
@@ -83,6 +87,8 @@ const isReachable = (fromRegionId, toRegionId, age) =>
 // the mode toggle) stays translucent.
 const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) => {
   const { state, dispatch, addLog } = useGame();
+  const { t } = useT();
+  const turnsOf = (n) => t('ind.turns', { count: n });
   const { triggerEffect } = useEffects();
   const isMobile = useIsMobile();
   const isCornerCard = position === 'panel' || position === 'panel-hud';
@@ -177,7 +183,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const declareWarCosts = warJustified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
   const breaksTruce = !!ownerNation && !atWarWithOwner && isInTruce(state, state.playerNationId, ownerNation.id);
   const warBlockedReason = !ownerNation || atWarWithOwner ? null
-    : state.nations[state.playerNationId]?.vassalOf ? "You can't declare war while you're a vassal."
+    : state.nations[state.playerNationId]?.vassalOf ? t('ri.vassalNoWar')
       : null;
   // Mirrors SETTLE_COLONIZE: only rebel-held land, or a wiped-out nation's remnant, can be settled.
   const regionOwner = state.nations[regionState.owner];
@@ -215,7 +221,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     .filter((id) => REGIONS_DATA[id])
     .map((id) => {
       const owner = state.regions[id]?.owner;
-      return { id, name: REGIONS_DATA[id].name, color: state.nations[owner]?.color || '#64748b', mine: owner === state.playerNationId };
+      return { id, name: nameNow('city', null, REGIONS_DATA[id].name), color: state.nations[owner]?.color || '#64748b', mine: owner === state.playerNationId };
     })
     .sort((a, b) => Number(b.mine) - Number(a.mine) || a.name.localeCompare(b.name));
 
@@ -233,23 +239,23 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     setLandingChoice(navalUnitId);
   };
   const handleNavalEngagement = (fromRegionId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog(t('ri.notEnough'), 'action');
     triggerEffect('naval_engagement', { from: fromRegionId, to: regionId });
     dispatch({ type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId, targetRegionId: regionId } });
   };
   const handleDeclareWar = () => {
     if (warBlockedReason) return addLog(warBlockedReason, 'action');
-    if (!canAfford(state.resources, declareWarCosts)) return addLog('Not enough resources to declare war', 'action');
+    if (!canAfford(state.resources, declareWarCosts)) return addLog(t('ri.notEnoughWar'), 'action');
     triggerEffect('declare_war', { from: getNationCapital(state.playerNationId), to: getNationCapital(ownerNation.id) });
     dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: ownerNation.id } });
   };
   const handleGatherIntel = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.espionage)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.espionage)) return addLog(t('ri.notEnough'), 'action');
     triggerEffect('espionage', { from: getCapital(state, state.playerNationId), to: regionId });
     dispatch({ type: ActionTypes.ESPIONAGE, payload: { nationId: regionState.owner, type: 'gather_intel' } });
   };
   const handleSettleColonize = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.settleColonize)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.settleColonize)) return addLog(t('ri.notEnough'), 'action');
     triggerEffect('settle_colonize', { region: regionId });
     dispatch({ type: ActionTypes.SETTLE_COLONIZE, payload: { regionId } });
   };
@@ -269,7 +275,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         // (and brings a peeking sheet straight back).
         <button
           type="button"
-          aria-label={expanded ? 'Collapse region details' : 'Expand region details'}
+          aria-label={expanded ? t('ri.collapse') : t('ri.expand')}
           onClick={peeking ? cancelPeek : () => setExpanded((v) => !v)}
           className="w-full flex flex-col items-center justify-center -mt-3 -mb-1 text-fa-muted"
         >
@@ -284,20 +290,20 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           <div className="min-w-0">
             <h2 className="fa-heading text-[17px] leading-tight truncate">{nameNow('city', null, regionData.name)}</h2>
             <div className="text-fa-muted text-[12px] capitalize flex flex-wrap gap-x-1.5">
-              <span>{regionData.terrain}</span>
-              {coastal && <span>· Coastal</span>}
-              {regionData.isCapital && <span>· Capital</span>}
+              <span>{terrainWord(regionData.terrain)}</span>
+              {coastal && <span>{t('ri.coastal')}</span>}
+              {regionData.isCapital && <span>{t('ri.capital')}</span>}
             </div>
             {regionState.size != null && (
               <div className="text-fa-muted text-[12px] truncate">
-                Size {regionState.size} · {regionState.tiles?.length || 1} tile{(regionState.tiles?.length || 1) === 1 ? '' : 's'}
+                {t('ri.sizeTiles', { size: regionState.size, count: regionState.tiles?.length || 1 })}
               </div>
             )}
           </div>
         </div>
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('ri.close')}
           className="fa-icon-btn"
         >
           <X className="w-4 h-4" />
@@ -306,9 +312,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
       {/* Owner */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-fa-muted">Owner:</span>
+        <span className="text-fa-muted">{t('ri.owner')}</span>
         <span className={`font-semibold ${isPlayerOwned ? 'text-fa-you' : ''}`} style={{ color: !isPlayerOwned ? ownerNation?.color : undefined }}>
-          {isPlayerOwned ? pn(state.nations[state.playerNationId], state.playerNationId) : ownerNation ? <button type="button" onClick={() => selectNation(ownerNation.id)} className="underline decoration-dotted min-h-[24px]" title="Open the nation sheet" data-testid="open-nation-sheet">{pn(ownerNation)}</button> : (isNeutralFrontier ? (regionState.colony ? `Free land, ${regionState.colony.ownerId === state.playerNationId ? 'your' : `${pn(state.nations[regionState.colony.ownerId], regionState.colony.ownerId) || 'a'}`} colony` : 'Free land') : 'Unknown')}
+          {isPlayerOwned ? pn(state.nations[state.playerNationId], state.playerNationId) : ownerNation ? <button type="button" onClick={() => selectNation(ownerNation.id)} className="underline decoration-dotted min-h-[24px]" title={t('ri.openNationSheet')} data-testid="open-nation-sheet">{pn(ownerNation)}</button> : (isNeutralFrontier ? (regionState.colony ? (regionState.colony.ownerId === state.playerNationId ? t('ri.freeLandYours') : t('ri.freeLandOf', { who: pn(state.nations[regionState.colony.ownerId], regionState.colony.ownerId) || t('ri.aNation') })) : t('ri.freeLand')) : t('ri.unknown'))}
         </span>
       </div>
 
@@ -322,7 +328,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           data-testid="open-city-sheet"
         >
           <Settings2 className="w-4 h-4" aria-hidden="true" />
-          Open the city
+          {t('ri.openCity')}
         </button>
       )}
 
@@ -330,18 +336,18 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {(regionState.underInvasion || regionState.siege || regionState.occupiedBy || regionState.disaster || (revealed && rebelsHere.length > 0) || (isPlayerOwned && regionState.formerOwner)) && (
         <div className="mb-2 space-y-1">
           {regionState.disaster && (
-            <div className="rounded-lg border border-fa-science/60 bg-fa-raised p-2 text-[12px]" data-testid="disaster-note">{DISASTER_LABELS[regionState.disaster.kind] || regionState.disaster.kind}: {regionState.disaster.kind === 'flood' ? 'the fields yield less' : regionState.disaster.kind === 'fire' ? 'the workshops yield less' : regionState.plague?.i > 0 ? `${Math.round(regionState.plague.i * 100)}% of the people sick, no growth; it spreads to nearby cities, ports, trade partners and armies` : 'no growth'}{regionState.plague?.i > 0 ? '' : ` until turn ${regionState.disaster.until}`}.</div>
+            <div className="rounded-lg border border-fa-science/60 bg-fa-raised p-2 text-[12px]" data-testid="disaster-note">{t('ri.disaster.line', { label: DISASTER_LABELS[regionState.disaster.kind] ? t(`ri.disaster.${DISASTER_LABELS[regionState.disaster.kind]}`) : regionState.disaster.kind, what: regionState.disaster.kind === 'flood' ? t('ri.disaster.flood') : regionState.disaster.kind === 'fire' ? t('ri.disaster.fire') : regionState.plague?.i > 0 ? t('ri.disaster.plague', { pct: Math.round(regionState.plague.i * 100) }) : t('ri.disaster.none'), until: regionState.plague?.i > 0 ? '' : t('ri.disaster.until', { n: regionState.disaster.until }) })}</div>
           )}
           {regionState.underInvasion && (
             <div className="flex items-center gap-1.5 text-fa-enemy font-semibold animate-pulse">
-              <AlertTriangle className="w-3 h-3" /><span>Under Invasion!</span>
+              <AlertTriangle className="w-3 h-3" /><span>{t('ri.underInvasion')}</span>
             </div>
           )}
           {regionState.siege && (
             <div className="rounded-lg border border-fa-enemy/70 bg-fa-raised p-2 text-[12px]" data-testid="siege-note">
-              <div className="font-semibold">{regionState.siege.by ? `Under siege by ${pn(state.nations[regionState.siege.by], regionState.siege.by) || 'rebels'}` : 'Recovering from a siege'}{regionState.siege.encircled ? ', encircled' : ''}</div>
+              <div className="font-semibold">{regionState.siege.by ? t('ri.siegeBy', { name: pn(state.nations[regionState.siege.by], regionState.siege.by) || t('ri.siegeRebels') }) : t('ri.siegeRecovering')}{regionState.siege.encircled ? t('ri.encircled') : ''}</div>
               <div className="h-1.5 bg-fa-line rounded-full mt-1 overflow-hidden"><div className="h-full bg-fa-enemy" style={{ width: `${Math.round(100 * regionState.siege.hp / Math.max(1, regionState.siege.maxHp))}%` }} /></div>
-              <div className="text-fa-muted mt-0.5">{wallsLabel(regionState)} · holds out {regionState.siege.hp}/{regionState.siege.maxHp} · the city works its first ring only</div>
+              <div className="text-fa-muted mt-0.5">{t('ri.siegeHolds', { walls: wallsLabel(regionState), hp: regionState.siege.hp, max: regionState.siege.maxHp })}</div>
             </div>
           )}
           {regionState.owner && (() => {
@@ -352,32 +358,32 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             const damaged = Object.keys(dmg.damaged).length;
             return (
               <div className="text-[12px] text-fa-text" data-testid="city-battle-note">
-                In battle its houses shelter {cityHousingCap(state, regionId)} people (the town hall 20).
-                {ruined > 0 && <span className="text-fa-enemy"> {ruined} house{ruined > 1 ? 's' : ''} in ruins, rebuilt over the next turns.</span>}
-                {damaged > 0 && <span className="text-fa-enemy"> {damaged} damaged, repairing.</span>}
+                {t('ri.battleHouses', { n: cityHousingCap(state, regionId) })}
+                {ruined > 0 && <span className="text-fa-enemy">{t('ri.housesRuins', { count: ruined })}</span>}
+                {damaged > 0 && <span className="text-fa-enemy">{t('ri.damagedRepairing', { n: damaged })}</span>}
               </div>
             );
           })()}
           {regionState.occupiedBy === state.playerNationId && occupationWar && (
             <div className="rounded-lg border border-fa-line bg-fa-raised p-2 text-[12px] space-y-1.5" data-testid="occupation-note">
-              <div>Your army holds {nameNow('city', null, regionData.name)}, but it stays {pn(ownerNation) || 'theirs'}&apos;s land until peace. Demand it in a peace deal to make it yours.</div>
-              <button type="button" onClick={() => setPeaceOpen(true)} className="fa-btn fa-btn-secondary w-full" data-testid="open-peace-deal">Negotiate peace…</button>
+              <div>{t('ri.occupationNote', { city: nameNow('city', null, regionData.name), owner: pn(ownerNation) || t('ri.theirs') })}</div>
+              <button type="button" onClick={() => setPeaceOpen(true)} className="fa-btn fa-btn-secondary w-full" data-testid="open-peace-deal">{t('ri.negotiate')}</button>
             </div>
           )}
           {regionState.occupiedBy && (
             <div className="flex items-center gap-1.5 text-yellow-400">
-              <Flag className="w-3 h-3" /><span>Occupied by {pn(state.nations[regionState.occupiedBy], regionState.occupiedBy) || 'Unknown'}</span>
+              <Flag className="w-3 h-3" /><span>{t('ri.occupiedBy', { name: pn(state.nations[regionState.occupiedBy], regionState.occupiedBy) || t('ri.unknown') })}</span>
             </div>
           )}
           {revealed && rebelsHere.length > 0 && (
             <div className="flex items-center gap-1.5 text-fa-danger-text">
-              <Flame className="w-3 h-3" /><span>{rebelsHere.length} rebel unit{rebelsHere.length === 1 ? '' : 's'} in revolt here</span>
+              <Flame className="w-3 h-3" /><span>{t('ri.rebelUnits', { count: rebelsHere.length })}</span>
             </div>
           )}
           {isPlayerOwned && regionState.formerOwner && (
             <div className="flex items-center gap-1.5 text-amber-400">
               <AlertTriangle className="w-3 h-3" />
-              <span>Conquered from {pn(state.nations[regionState.formerOwner], regionState.formerOwner) || regionState.formerOwner} — not yet integrated</span>
+              <span>{t('ri.conqueredFrom', { name: pn(state.nations[regionState.formerOwner], regionState.formerOwner) || regionState.formerOwner })}</span>
             </div>
           )}
         </div>
@@ -389,14 +395,14 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {/* Foreign relations */}
       {!isPlayerOwned && ownerNation && (
         <div className="mb-2 space-y-1">
-          <StatLine label="Relation" value={ownerNation.relationStatus} valueStyle={{ color: getRelationColor(ownerNation.relationStatus) }} />
-          <StatLine icon={Swords} label="Nation's army" value={revealed ? formatNumber(getFieldedStrength(state, regionState.owner)) : 'Unknown'} valueClass={revealed ? 'text-fa-danger-text' : 'text-fa-muted'} />
-          <StatLine label="Hostility" value={`${ownerNation.hostility}%`} valueClass="text-fa-enemy" />
+          <StatLine label={t('ri.relation')} value={hasKey(`nc.rel.${ownerNation.relationStatus}`, 'en') ? t(`nc.rel.${ownerNation.relationStatus}`) : ownerNation.relationStatus} valueStyle={{ color: getRelationColor(ownerNation.relationStatus) }} />
+          <StatLine icon={Swords} label={t('ri.nationArmy')} value={revealed ? formatNumber(getFieldedStrength(state, regionState.owner)) : t('ri.armyUnknown')} valueClass={revealed ? 'text-fa-danger-text' : 'text-fa-muted'} />
+          <StatLine label={t('ri.hostility')} value={`${ownerNation.hostility}%`} valueClass="text-fa-enemy" />
           <div className="flex flex-wrap gap-1 pt-1">
-            {ownerNation.hasPeaceTreaty && !isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-green-500/20 text-fa-good rounded text-[10px]">✓ Peace Treaty</span>}
-            {ownerNation.hasTradeAgreement && <span className="px-1.5 py-0.5 bg-blue-500/20 text-fa-you rounded text-[10px]">✓ Trade Agreement</span>}
-            {isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-red-500/20 text-fa-danger-text rounded text-[10px] animate-pulse">⚔ At War</span>}
-            {ownerIsIndependent && <span className="px-1.5 py-0.5 bg-slate-500/20 text-fa-text rounded text-[10px]" data-testid="independent-badge" title="Independent city: one city that never expands. You may attack it without a war.">Independent, {PERSONALITIES[ownerNation.indep?.personality]?.name || 'Tribal'}</span>}
+            {ownerNation.hasPeaceTreaty && !isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-green-500/20 text-fa-good rounded text-[10px]">{t('ri.peaceTreaty')}</span>}
+            {ownerNation.hasTradeAgreement && <span className="px-1.5 py-0.5 bg-blue-500/20 text-fa-you rounded text-[10px]">{t('ri.tradeAgreement')}</span>}
+            {isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-red-500/20 text-fa-danger-text rounded text-[10px] animate-pulse">{t('ri.atWar')}</span>}
+            {ownerIsIndependent && <span className="px-1.5 py-0.5 bg-slate-500/20 text-fa-text rounded text-[10px]" data-testid="independent-badge" title={t('ri.independentTitle')}>{t('ri.independentBadge', { kind: independentKindName(ownerNation.indep?.personality || 'tribal', PERSONALITIES[ownerNation.indep?.personality]?.name || 'Tribal') })}</span>}
           </div>
           {ownerIsIndependent && <IndependentCityCard state={state} nationId={ownerNation.id} />}
         </div>
@@ -408,7 +414,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {!isPlayerOwned && (ownerNation || isNeutralFrontier || canSettle) && (
         <div className="mb-2 pt-2 border-t border-fa-line space-y-1.5">
           {!hasMilitaryOption && !isNeutralFrontier && !canSettle && (
-            <div className="text-fa-muted text-[10px]" data-testid="no-attack-reason">{atWarWithOwner ? 'No army of yours is beside this city or based next to it. Select an army, tap March, then tap this city to march on it.' : 'No actions available against this region right now.'}</div>
+            <div className="text-fa-muted text-[10px]" data-testid="no-attack-reason">{atWarWithOwner ? t('ri.noAttackAtWar') : t('ri.noActions')}</div>
           )}
           {regionState.tile != null && (() => {
             const kind = claimOn(state, state.playerNationId, regionState);
@@ -419,13 +425,13 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             return (
               <div className="rounded-lg border border-fa-line bg-fa-raised/60 p-2 space-y-1" data-testid="claim-card">
                 <div className="text-[11px] text-fa-text">
-                  {kind === 'core' ? `A core of yours: ${pn(ownerNation)} holds a city of your people. A war for it is justified and costs no reputation.`
-                    : kind === 'claim' ? 'You hold a claim on this city: a war for it is justified.'
-                      : pending ? `Your agents are fabricating a claim here: ready in ${Math.max(0, pending.done - state.turnNumber)} turns.`
-                        : can.ok ? `No claim yet. One takes ${CLAIM_FABRICATE_TURNS} turns and justifies a war for this city.` : can.reason}
+                  {kind === 'core' ? t('ri.claimCore', { owner: pn(ownerNation) })
+                    : kind === 'claim' ? t('ri.claimHeld')
+                      : pending ? t('ri.claimPending', { turns: turnsOf(Math.max(0, pending.done - state.turnNumber)) })
+                        : can.ok ? t('ri.claimNone', { turns: turnsOf(CLAIM_FABRICATE_TURNS) }) : reasonText(can)}
                 </div>
                 {!kind && !pending && can.ok && (
-                  <ActionButton icon={Target} label={`Fabricate a claim on ${nameNow('city', null, regionState.name)}`} description={`${CLAIM_FABRICATE_TURNS} turns`} costs={ACTION_COSTS.fabricateClaim}
+                  <ActionButton icon={Target} label={t('ri.fabricate', { city: nameNow('city', null, regionState.name) })} description={turnsOf(CLAIM_FABRICATE_TURNS)} costs={ACTION_COSTS.fabricateClaim}
                     onClick={() => dispatch({ type: ActionTypes.FABRICATE_CLAIM, payload: { cityId: regionId } })} disabled={!canAfford(state.resources, ACTION_COSTS.fabricateClaim)} size="small" />
                 )}
               </div>
@@ -434,13 +440,13 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {!atWarWithOwner && !isPlayerOwned && !!ownerNation && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 space-y-1.5" data-testid="peace-gate">
               <div className="text-[11px] text-amber-200">
-                You&apos;re at peace with {pn(ownerNation)}.{hasMilitaryOption ? ' Invading means war: declare it first, then attack.' : ' To take this city, declare war and march an army to it.'}
-                {breaksTruce && <span className="block text-fa-danger-text mt-0.5">This breaks your truce: stability, prestige and your neighbours&apos; trust will suffer.</span>}
+                {t('ri.peaceGate', { owner: pn(ownerNation), how: hasMilitaryOption ? t('ri.peaceGateInvade') : t('ri.peaceGateMarch') })}
+                {breaksTruce && <span className="block text-fa-danger-text mt-0.5">{t('ri.breaksTruce')}</span>}
               </div>
               <ActionButton
                 icon={Swords}
-                label={`Declare war on ${pn(ownerNation)}${warJustified ? '' : ' (unjustified)'}`}
-                description={warBlockedReason || (warJustified ? 'You have a cause for war' : 'No cause for war: costs more and angers the world')}
+                label={t('ri.declareOn', { owner: pn(ownerNation), unjust: warJustified ? '' : t('ri.unjustified') })}
+                description={warBlockedReason || (warJustified ? t('ri.causeYes') : t('ri.causeNo'))}
                 costs={declareWarCosts}
                 onClick={handleDeclareWar}
                 disabled={!!warBlockedReason || !canAfford(state.resources, declareWarCosts)}
@@ -449,15 +455,15 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               />
             </div>
           )}
-          {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">Integration continues until turn {regionState.integratingUntil}: control rises and unrest falls each turn.</p>}
-          {ownerNation?.hasTradeAgreement && (() => { const t = tradeRouteStatus(state, ownerNation.id); return t ? <p className={`text-xs ${t.pays ? 'text-fa-text' : 'text-fa-danger-text'}`} data-testid="trade-route-status">Trade route: {t.text}{t.pays ? ' Bigger and nearer partners pay more.' : ''}{t.advice ? ` ${t.advice}` : ''}</p> : null; })()}
+          {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">{t('ri.integrating', { n: regionState.integratingUntil })}</p>}
+          {ownerNation?.hasTradeAgreement && (() => { const route = tradeRouteStatus(state, ownerNation.id); return route ? <p className={`text-xs ${route.pays ? 'text-fa-text' : 'text-fa-danger-text'}`} data-testid="trade-route-status">{t('ri.tradeRoute', { text: msgRefText(route.textMsg, route.text), bigger: route.pays ? t('ri.biggerPay') : '', advice: route.advice ? ` ${msgRefText(route.adviceMsg, route.advice)}` : '' })}</p> : null; })()}
           {isNeutralFrontier && <ColonyBlock regionId={regionId} />}
           {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason, march, where }) => (march ? (
             <ActionButton
               key={srcId}
               icon={Swords}
-              label={`March on ${nameNow('city', null, regionState.name)}${where ? ` (army ${where})` : ''}`}
-              description={march.ok ? `${march.turns} turn${march.turns === 1 ? '' : 's'} to arrive${march.stopsAt ? `, stops at ${nameNow('city', null, state.regions[march.stopsAt]?.name) || 'an enemy city'} first` : ''}, then the assault` : march.reason}
+              label={t('ri.marchOn', { city: nameNow('city', null, regionState.name), where: where ? t('ri.armyWhere', { where }) : '' })}
+              description={march.ok ? t('ri.marchDesc', { turns: turnsOf(march.turns), stops: march.stopsAt ? t('ri.stopsAt', { city: state.regions[march.stopsAt]?.name ? nameNow('city', null, state.regions[march.stopsAt].name) : t('ri.anEnemyCity') }) : '' }) : reasonText(march)}
               onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: srcId, toRegionId: regionId, attack: true } })}
               disabled={!march.ok}
               variant="danger"
@@ -467,8 +473,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             <ActionButton
               key={srcId}
               icon={Flag}
-              label={`Invade ${nameNow('city', null, regionState.name)}${where ? ` (army ${where})` : ''}`}
-              description={blockedReason || `${unitCount} land unit${unitCount === 1 ? '' : 's'} available`}
+              label={t('ri.invade', { city: nameNow('city', null, regionState.name), where: where ? t('ri.armyWhere', { where }) : '' })}
+              description={blockedReason || t('ri.landUnits', { count: unitCount })}
               costs={ACTION_COSTS.launchInvasion}
               onClick={() => handleInvade(srcId)}
               disabled={!!blockedReason}
@@ -480,8 +486,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             <ActionButton
               key={unit.id}
               icon={Anchor}
-              label={`Amphibious assault from ${nameNow('city', null, REGIONS_DATA[unit.regionId]?.name)}`}
-              description={blockedReason || `${cargoCount} embarked land unit${cargoCount === 1 ? '' : 's'}`}
+              label={t('ri.amphibious', { city: nameNow('city', null, REGIONS_DATA[unit.regionId]?.name) })}
+              description={blockedReason || t('ri.embarked', { count: cargoCount })}
               costs={ACTION_COSTS.amphibiousAssault}
               onClick={() => handleAmphibiousAssault(unit.id)}
               disabled={!!blockedReason}
@@ -493,8 +499,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             <ActionButton
               key={srcId}
               icon={Ship}
-              label={`Naval engagement from ${nameNow('city', null, REGIONS_DATA[srcId]?.name)}`}
-              description={`Contest ${defendingNavalUnits.length} enemy fleet unit${defendingNavalUnits.length === 1 ? '' : 's'}`}
+              label={t('ri.naval', { city: nameNow('city', null, REGIONS_DATA[srcId]?.name) })}
+              description={t('ri.contest', { count: defendingNavalUnits.length })}
               costs={ACTION_COSTS.navalEngagement}
               onClick={() => handleNavalEngagement(srcId)}
               disabled={!canAfford(state.resources, ACTION_COSTS.navalEngagement)}
@@ -505,8 +511,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {canSettle && (
             <ActionButton
               icon={Flag}
-              label="Settle / Colonize"
-              description={`${regionOwner && !regionOwner.isEliminated ? 'Rebels hold this land' : 'No one governs this land'} (${Math.round(regionState.control)}% control) — absorb it peacefully, no military required`}
+              label={t('ri.settle')}
+              description={t('ri.settleDesc', { who: regionOwner && !regionOwner.isEliminated ? t('ri.rebelsHold') : t('ri.noOneGoverns'), control: Math.round(regionState.control) })}
               costs={ACTION_COSTS.settleColonize}
               onClick={handleSettleColonize}
               disabled={!canAfford(state.resources, ACTION_COSTS.settleColonize)}
@@ -519,10 +525,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {/* ---- The big picture: everything about this province, scrollable. A foreign province's
           insides stay hidden until a successful espionage op against its owner (engine/intel.js). ---- */}
       {!revealed && (
-        <Section icon={EyeOff} title="No intelligence">
+        <Section icon={EyeOff} title={t('ri.noIntel')}>
           <div className="text-fa-muted mb-2">
-            {pn(ownerNation) || 'Its owner'} keeps its provinces closed to you. Population, garrisons, buildings,
-            development and resources stay unknown until your agents get inside.
+            {t('ri.noIntelBody', { owner: pn(ownerNation) || t('ri.itsOwner') })}
           </div>
           {regionState.tile != null && regionState.owner && (isPlayerOwned || revealed) && (() => {
             const t = loyaltyTarget(state, regionState);
@@ -531,7 +536,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             return (
               <div className="mb-2" data-testid="loyalty">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-fa-muted">Loyalty</span>
+                  <span className="text-fa-muted">{t('ri.loyalty')}</span>
                   <span className={`font-mono font-bold ${loyalty <= 25 ? 'text-fa-danger-text' : loyalty < t.total ? 'text-amber-300' : 'text-fa-good'}`}>{loyalty}{loyalty !== t.total ? ` → ${t.total}` : ''}</span>
                 </div>
                 <ProgressBar value={loyalty} color="dynamic" size="small" />
@@ -545,7 +550,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {regionState.lastAttackedTurn != null && (
             <div className="mb-2">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-fa-muted">Control (siege)</span>
+                <span className="text-fa-muted">{t('ri.controlSiege')}</span>
                 <span className="font-mono font-bold" style={{ color: getControlColor(regionState.control) }}>{Math.round(regionState.control)}%</span>
               </div>
               <ProgressBar value={regionState.control} color="dynamic" size="small" />
@@ -553,8 +558,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           )}
           <ActionButton
             icon={Eye}
-            label="Gather Intelligence"
-            description={`Send agents into ${pn(ownerNation) || 'this nation'} — ${Math.round(ESPIONAGE_SUCCESS_CHANCE * 100)}% chance to reveal all of its provinces for ${INTEL_DURATION_TURNS} turns; if caught, their hostility rises`}
+            label={t('ri.gatherIntel')}
+            description={t('ri.gatherDesc', { nation: pn(ownerNation) || t('ri.thisNation'), p: Math.round(ESPIONAGE_SUCCESS_CHANCE * 100), n: INTEL_DURATION_TURNS })}
             costs={ACTION_COSTS.espionage}
             onClick={handleGatherIntel}
             disabled={!canAfford(state.resources, ACTION_COSTS.espionage)}
@@ -564,41 +569,41 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </Section>
       )}
       {revealed && (<>
-      <Section icon={Target} title="Overview" aside={!isPlayerOwned && intelTurnsLeft !== null ? (intelTurnsLeft > 0 ? `Intel: ${intelTurnsLeft} turn${intelTurnsLeft === 1 ? '' : 's'} left` : 'Intel: last turn') : null}>
+      <Section icon={Target} title={t('ri.overview')} aside={!isPlayerOwned && intelTurnsLeft !== null ? (intelTurnsLeft > 0 ? t('ri.intelLeft', { count: intelTurnsLeft }) : t('ri.intelLast')) : null}>
         <div className="mb-2">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-fa-muted">Control</span>
+            <span className="text-fa-muted">{t('ri.control')}</span>
             <span className="font-mono font-bold" style={{ color: getControlColor(regionState.control) }}>{Math.round(regionState.control)}%</span>
           </div>
           <ProgressBar value={regionState.control} color="dynamic" size="small" />
         </div>
         <div className="grid grid-cols-2 gap-1.5">
-          <StatTile icon={Users} label="People" value={formatNumber(regionState.currentPopulation || getDisplayPopulation(regionState, regionData, state.year))} sub={regionState.size != null ? `size ${regionState.size}` : undefined} />
-          <StatTile icon={HeartPulse} label="Stability" value={`${Math.round(getStability(regionState))}%`} valueClass={getStability(regionState) < 50 ? 'text-fa-danger-text' : 'text-fa-text'} />
-          <StatTile icon={Building} label="Infrastructure" value={`${regionState.currentInfrastructure || 0}/10`} sub={`Supply ${getSupplyCapacity(regionState.currentInfrastructure)}`} />
-          <StatTile icon={Shield} label="Defenses" value={`Lv ${regionState.defenseLevel || 0}`} sub={`Terrain fort ${regionData.fortification}`} />
-          <StatTile icon={Target} label="Strategic value" value={`${regionData.strategicValue}/10`} />
+          <StatTile icon={Users} label={t('ri.pop')} value={formatNumber(regionState.currentPopulation || getDisplayPopulation(regionState, regionData, state.year))} sub={regionState.size != null ? t('ri.sizeSub', { n: regionState.size }) : undefined} />
+          <StatTile icon={HeartPulse} label={t('ri.stability')} value={`${Math.round(getStability(regionState))}%`} valueClass={getStability(regionState) < 50 ? 'text-fa-danger-text' : 'text-fa-text'} />
+          <StatTile icon={Building} label={t('ri.infrastructure')} value={`${regionState.currentInfrastructure || 0}/10`} sub={t('ri.supply', { n: getSupplyCapacity(regionState.currentInfrastructure) })} />
+          <StatTile icon={Shield} label={t('ri.defenses')} value={t('ri.lv', { n: regionState.defenseLevel || 0 })} sub={t('ri.terrainFort', { n: regionData.fortification })} />
+          <StatTile icon={Target} label={t('ri.strategic')} value={`${regionData.strategicValue}/10`} />
           {(regionState.climateResilience || 0) > 0
-            ? <StatTile icon={Sprout} label="Climate resilience" value={regionState.climateResilience} />
-            : <StatTile icon={Swords} label="Garrison" value={ownGarrison.length} sub={ownGarrison.length ? `${formatNumber(ownGarrison.reduce((sum, u) => sum + (u.strength || 0), 0))} strength` : 'No troops'} />}
+            ? <StatTile icon={Sprout} label={t('ri.climate')} value={regionState.climateResilience} />
+            : <StatTile icon={Swords} label={t('ri.garrison')} value={ownGarrison.length} sub={ownGarrison.length ? t('ri.strengthN', { n: formatNumber(ownGarrison.reduce((sum, u) => sum + (u.strength || 0), 0)) }) : t('ri.noTroops')} />}
         </div>
       </Section>
 
-      <Section icon={TrendingUp} title="Development" aside={`${totalDev} total`}>
+      <Section icon={TrendingUp} title={t('ri.development')} aside={t('ri.totalDev', { n: totalDev })}>
         <div className="grid grid-cols-3 gap-1.5">
-          <StatTile label="Tax" value={regionState.dev?.tax || 0} valueClass="text-amber-300" />
-          <StatTile label="Production" value={regionState.dev?.production || 0} valueClass="text-fa-you" />
-          <StatTile label="Manpower" value={regionState.dev?.manpower || 0} valueClass="text-fa-danger-text" />
+          <StatTile label={t('ri.tax')} value={regionState.dev?.tax || 0} valueClass="text-amber-300" />
+          <StatTile label={t('ri.production')} value={regionState.dev?.production || 0} valueClass="text-fa-you" />
+          <StatTile label={t('ri.manpower')} value={regionState.dev?.manpower || 0} valueClass="text-fa-danger-text" />
         </div>
       </Section>
 
-      <Section icon={Swords} title="Armies here" aside={unitsHere.length ? `${unitsHere.length} unit${unitsHere.length === 1 ? '' : 's'}` : null}>
-        {unitsHere.length === 0 && <Empty>No units stationed in this region.</Empty>}
-        {awayTiles.map((t) => {
-          const n = awayUnits.filter((u) => unitTile(state, u) === t).length;
+      <Section icon={Swords} title={t('ri.armiesHere')} aside={unitsHere.length ? t('ri.unitsAside', { count: unitsHere.length }) : null}>
+        {unitsHere.length === 0 && <Empty>{t('ri.noUnits')}</Empty>}
+        {awayTiles.map((tile) => {
+          const n = awayUnits.filter((u) => unitTile(state, u) === tile).length;
           return (
-            <button key={t} type="button" onClick={() => selectArmy(t)} data-testid="army-away" className="w-full text-start min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[11px] text-fa-text px-2 mb-1.5">
-              {n} unit{n === 1 ? '' : 's'} based here {n === 1 ? 'is' : 'are'} in the field, {whereLabel(state, t).text}: open the army
+            <button key={tile} type="button" onClick={() => selectArmy(tile)} data-testid="army-away" className="w-full text-start min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[11px] text-fa-text px-2 mb-1.5">
+              {t('ri.awayArmy', { count: n, where: whereLabel(state, tile).text })}
             </button>
           );
         })}
@@ -607,8 +612,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             <div key={ownerId}>
               <div className="flex items-center gap-1.5 text-[10px] text-fa-muted mb-1">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ownerId === REBEL_OWNER_ID ? '#ef4444' : state.nations[ownerId]?.color || '#64748b' }} />
-                <span className="truncate">{ownerId === REBEL_OWNER_ID ? 'Rebels' : ownerId === state.playerNationId ? 'Your forces' : pn(state.nations[ownerId], ownerId) || ownerId}</span>
-                <span className="ms-auto font-mono">{formatNumber(units.reduce((sum, u) => sum + (u.classId === 'settler' ? 0 : u.strength || 0), 0))} str</span>
+                <span className="truncate">{ownerId === REBEL_OWNER_ID ? t('ri.rebels') : ownerId === state.playerNationId ? t('ri.yourForces') : pn(state.nations[ownerId], ownerId) || ownerId}</span>
+                <span className="ms-auto font-mono">{t('ri.str', { n: formatNumber(units.reduce((sum, u) => sum + (u.classId === 'settler' ? 0 : u.strength || 0), 0)) })}</span>
               </div>
               <div className="space-y-1">
                 {units.map((unit) => (
@@ -625,16 +630,16 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 return (
                   <div className="flex gap-1.5 mt-1.5">
                     <button onClick={() => startMarch(regionId, { unitIds: ids })} data-testid="march-start" className="flex-1 min-h-[36px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-fa-text text-[12px] font-semibold flex items-center justify-center gap-1.5">
-                      <Flag className="w-3.5 h-3.5" /> March…
+                      <Flag className="w-3.5 h-3.5" /> {t('ri.marchBtn')}
                     </button>
                     {landHere.length > 1 && regionState.tile != null && (
-                      <button onClick={() => selectArmy(regionState.tile)} data-testid="march-choose-units" title="Pick which units march, one by one" className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] px-2">
-                        Choose units…
+                      <button onClick={() => selectArmy(regionState.tile)} data-testid="march-choose-units" title={t('ri.chooseUnitsTitle')} className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] px-2">
+                        {t('ri.chooseUnits')}
                       </button>
                     )}
                     {onRoute && (
-                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: ids } })} className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] truncate px-2" title={`Marching to ${placeName(state, dest)}`}>
-                        Stop march to {placeName(state, dest)}
+                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: ids } })} className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] truncate px-2" title={t('ri.marchingTo', { place: nameNow('place', null, placeName(state, dest)) })}>
+                        {t('ri.stopMarch', { place: nameNow('place', null, placeName(state, dest)) })}
                       </button>
                     )}
                   </div>
@@ -646,11 +651,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 return (
                   <div className="flex gap-1.5 mt-1.5">
                     <button onClick={() => startMarch(regionId, { naval: true })} data-testid="sail-start" className="flex-1 min-h-[36px] rounded-lg bg-sky-700/80 hover:bg-sky-600 text-fa-text text-[12px] font-semibold flex items-center justify-center gap-1.5">
-                      <Ship className="w-3.5 h-3.5" /> Sail…
+                      <Ship className="w-3.5 h-3.5" /> {t('ri.sailBtn')}
                     </button>
                     {sailing && (
-                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: units.filter((u) => u.domain === 'naval').map((u) => u.id) } })} className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] truncate px-2" title={`Sailing to ${placeName(state, dest)}`}>
-                        Stop sailing to {placeName(state, dest)}
+                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: units.filter((u) => u.domain === 'naval').map((u) => u.id) } })} className="flex-1 min-h-[36px] rounded-lg bg-fa-hover hover:bg-fa-line text-[12px] truncate px-2" title={t('ri.sailingTo', { place: nameNow('place', null, placeName(state, dest)) })}>
+                        {t('ri.stopSailing', { place: nameNow('place', null, placeName(state, dest)) })}
                       </button>
                     )}
                   </div>
@@ -661,8 +666,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </div>
       </Section>
 
-      <Section icon={Building2} title="Buildings" aside={`${usedBuildingSlots}/${buildingSlots} slots`}>
-        {builtCategories.length === 0 && <Empty>No buildings yet.</Empty>}
+      <Section icon={Building2} title={t('ri.buildings')} aside={t('ri.slots', { a: usedBuildingSlots, b: buildingSlots })}>
+        {builtCategories.length === 0 && <Empty>{t('ri.noBuildings')}</Empty>}
         <div className="space-y-1">
           {builtCategories.map(({ categoryId, tier }) => {
             const category = BUILDING_CATEGORIES[categoryId];
@@ -671,7 +676,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 <BuildingIcon category={categoryId} tier={tier} size={24} />
                 <div className="min-w-0 flex-1">
                   <div className="text-fa-text font-semibold truncate">{categoryTierName(categoryId, tier)}</div>
-                  <div className="text-fa-muted text-[10px]">{category.label}</div>
+                  <div className="text-fa-muted text-[10px]">{buildingCategoryLabel(categoryId, category.label)}</div>
                 </div>
                 <TierPips filled={tier + 1} total={category.tiers.length} />
               </div>
@@ -681,7 +686,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       </Section>
 
       {projectsHere.length > 0 && (
-        <Section icon={Landmark} title="Great projects">
+        <Section icon={Landmark} title={t('ri.greatProjects')}>
           <div className="space-y-1">
             {projectsHere.map(({ projectId, tier }) => (
               <div key={projectId} className="flex items-center justify-between bg-fa-raised/60 rounded px-2 py-1.5">
@@ -693,16 +698,16 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </Section>
       )}
 
-      <Section icon={Gem} title="Resources">
-        {deposits.length === 0 && <Empty>No known resource deposits.</Empty>}
+      <Section icon={Gem} title={t('ri.resources')}>
+        {deposits.length === 0 && <Empty>{t('ri.noDeposits')}</Empty>}
         <div className="flex flex-wrap gap-1.5">
           {deposits.map((resId) => {
             const developed = !!regionState.buildings?.extraction?.[resId];
             return (
               <div key={resId} className={`flex items-center gap-1.5 rounded px-2 py-1 border ${developed ? 'border-emerald-500/50 bg-emerald-500/10 text-fa-good' : 'border-fa-line bg-fa-raised/60 text-fa-muted'}`}>
                 {developed ? <ExtractionIcon resourceId={resId} size={18} /> : <ResourceIcon resourceId={resId} size={18} />}
-                <span className="capitalize">{resId}</span>
-                <span className="text-[10px] opacity-80">{developed ? extractionName(resId, EXTRACTION_BUILDINGS[resId]?.name) : 'undeveloped'}</span>
+                <span className="capitalize">{resourceName(resId, resId)}</span>
+                <span className="text-[10px] opacity-80">{developed ? extractionName(resId, EXTRACTION_BUILDINGS[resId]?.name) : t('ri.undeveloped')}</span>
               </div>
             );
           })}
@@ -710,8 +715,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       </Section>
       </>)}
 
-      <Section icon={Compass} title="Neighbours" aside={neighbors.length ? `${neighbors.length}` : null}>
-        {neighbors.length === 0 && <Empty>No land neighbours.</Empty>}
+      <Section icon={Compass} title={t('ri.neighbours')} aside={neighbors.length ? `${neighbors.length}` : null}>
+        {neighbors.length === 0 && <Empty>{t('ri.noNeighbours')}</Empty>}
         <div className="flex flex-wrap gap-1">
           {neighbors.map(({ id, name, color, mine }) => (
             <span key={id} className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${mine ? 'bg-blue-500/15 text-blue-200' : 'bg-fa-raised/70 text-fa-text'}`}>
@@ -769,7 +774,7 @@ const StatTile = ({ icon: Icon, label, value, sub, valueClass = 'text-fa-text' }
 );
 
 const TierPips = ({ filled, total }) => (
-  <div className="flex gap-0.5 shrink-0" title={`Tier ${filled} of ${total}`}>
+  <div className="flex gap-0.5 shrink-0" title={tNow('ri.tier', { a: filled, b: total })}>
     {Array.from({ length: total }, (_, i) => (
       <span key={i} className={`w-1.5 h-1.5 rounded-full ${i < filled ? 'bg-amber-400' : 'bg-fa-hover'}`} />
     ))}
@@ -787,12 +792,12 @@ const SettlerLine = ({ unit, age }) => {
     <div className="flex items-center gap-2 bg-fa-raised/60 rounded px-2 py-1.5" data-testid="settler-line">
       <UnitIcon classId="settler" ageId={age} size={24} />
       <div className="min-w-0 flex-1">
-        <div className="text-fa-text font-semibold truncate">Settlers</div>
-        <div className="text-[10px] text-fa-muted leading-tight">{status ? status.text : 'Looking for land to found a city'}</div>
+        <div className="text-fa-text font-semibold truncate">{tNow('ri.settlers')}</div>
+        <div className="text-[10px] text-fa-muted leading-tight">{status ? status.text : tNow('ri.settlersLooking')}</div>
       </div>
       {own && unit.tile != null && (
         <button type="button" onClick={() => selectTile(unit.tile)} data-testid="settler-choose-site" className="shrink-0 min-h-[36px] px-2.5 rounded-lg bg-fa-hover hover:bg-fa-line text-[11px] font-semibold">
-          {status.state === 'travelling' ? 'Show' : 'Choose a site'}
+          {status.state === 'travelling' ? tNow('ri.show') : tNow('ri.chooseSite')}
         </button>
       )}
     </div>
@@ -808,19 +813,19 @@ const UnitLine = ({ unit, age, commander }) => {
       <UnitIcon classId={unit.classId} navalLine={unit.navalLine} ageId={age} size={24} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-fa-text font-semibold truncate">{cls?.name || unit.classId}</span>
-          <span className="text-fa-muted text-[10px] capitalize">{getRankForXp(unit.xp || 0)}</span>
-          {unit.embarkedOn && <Anchor className="w-3 h-3 text-fa-you" aria-label="Embarked" />}
+          <span className="text-fa-text font-semibold truncate">{unitClassName(unit.classId, cls?.name || unit.classId)}</span>
+          <span className="text-fa-muted text-[10px] capitalize">{tNow(`bt.rank.${getRankForXp(unit.xp || 0)}`)}</span>
+          {unit.embarkedOn && <Anchor className="w-3 h-3 text-fa-you" aria-label={tNow('ri.embarkedAria')} />}
         </div>
         <div className="h-1 bg-fa-hover rounded-full mt-1 overflow-hidden">
           <div className="h-full rounded-full" style={{ width: `${strengthPct}%`, background: strengthPct > 60 ? '#22c55e' : strengthPct > 30 ? '#f59e0b' : '#ef4444' }} />
         </div>
-        {commander && <div className="text-[10px] text-purple-300 truncate mt-0.5">Led by {nameNow('person', null, commander.name)}</div>}
+        {commander && <div className="text-[10px] text-purple-300 truncate mt-0.5">{tNow('ri.ledBy', { name: nameNow('person', null, commander.name) })}</div>}
       </div>
       <div className="text-end font-mono text-[10px] text-fa-muted shrink-0">
         <div>{unit.strength}/{unit.maxStrength}</div>
-        <div>MOR {unit.morale}</div>
-        {unit.domain !== 'naval' && <div className={supplyOf(unit) < 30 ? 'text-fa-danger-text' : ''} title="Supply">SUP {supplyOf(unit)}</div>}
+        <div>{tNow('ri.mor', { n: unit.morale })}</div>
+        {unit.domain !== 'naval' && <div className={supplyOf(unit) < 30 ? 'text-fa-danger-text' : ''} title={tNow('ri.supTitle')}>{tNow('ri.sup', { n: supplyOf(unit) })}</div>}
       </div>
     </div>
   );

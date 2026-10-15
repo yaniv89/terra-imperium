@@ -45,7 +45,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { ringsForKm, ringsApart } from '../data/geo/gridScale';
 import { LogTypes } from '../data/types';
-import { msg, people, cityRef } from './messages';
+import { msg, people, cityRef, sub, reasonOf } from './messages';
 import {
   isIndependentNation, TRIBUTE_TURNS, GRUDGE_REFUSED, INDEP_POLICY_PERIOD, CONQUER_KM, CONQUER_STRENGTH_RATIO,
   CONQUER_FORCE_RATIO, CONQUER_KEEP_PER_CITY, CONQUER_CHANCE, CONQUER_MAX_TURNS, CONQUER_RETRY_TURNS, CONQUER_RUNAWAY_MULT,
@@ -139,13 +139,13 @@ const majorsNear = (state, tile, rings) => {
 export const joinCheck = (state, indepId, majorId, byTile = null) => {
   const n = state.nations?.[indepId];
   const m = state.nations?.[majorId];
-  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, reason: 'Not an independent city.' };
-  if (!m || m.isEliminated || isIndependentNation(m)) return { ok: false, reason: 'Only a nation can take them in.' };
-  if (!mayJoin(n)) return { ok: false, reason: n.indep?.personality === 'fortress' ? 'A fortress people never submits peacefully.' : 'Raiders will not give up their freedom.' };
+  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, ...reasonOf('m.why.mercNotIndep') };
+  if (!m || m.isEliminated || isIndependentNation(m)) return { ok: false, ...reasonOf('m.why.indepOnlyNation') };
+  if (!mayJoin(n)) return { ok: false, ...reasonOf(n.indep?.personality === 'fortress' ? 'm.why.indepFortressJoin' : 'm.why.indepRaidersJoin') };
   const city = state.regions?.[n.capitalRegionId];
-  if (!city || city.owner !== indepId) return { ok: false, reason: 'Their city is lost.' };
-  if (city.siege?.by) return { ok: false, reason: 'Not while their city is under siege.' };
-  if (!majorsNear(state, city.tile, ringsForKm(JOIN_KM)).has(majorId)) return { ok: false, reason: 'None of your cities is close enough.' };
+  if (!city || city.owner !== indepId) return { ok: false, ...reasonOf('m.why.mercCityLost') };
+  if (city.siege?.by) return { ok: false, ...reasonOf('m.why.indepSiege') };
+  if (!majorsNear(state, city.tile, ringsForKm(JOIN_KM)).has(majorId)) return { ok: false, ...reasonOf('m.why.mercFar') };
   const attitude = attitudeOf(state, indepId, majorId);
   const since = n.indep?.leanSince?.[majorId];
   if (attitude >= JOIN_OPINION && since != null && (state.turnNumber || 0) - since >= JOIN_TURNS) return { ok: true, how: 'opinion', attitude };
@@ -154,11 +154,11 @@ export const joinCheck = (state, indepId, majorId, byTile = null) => {
   const mine = armyStrength(state, majorId, byTile);
   if (attitude >= JOIN_STRENGTH_OPINION && mine >= JOIN_STRENGTH_RATIO * theirs) return { ok: true, how: 'strength', attitude };
   const why = attitude < JOIN_STRENGTH_OPINION
-    ? `Their attitude to you is ${attitude}: they would join at ${JOIN_OPINION} held for ${JOIN_TURNS} turns, or at ${JOIN_STRENGTH_OPINION} if your army is ${JOIN_STRENGTH_RATIO} times their own.`
+    ? reasonOf('m.why.indepJoinLow', { a: attitude, open: JOIN_OPINION, turns: JOIN_TURNS, strong: JOIN_STRENGTH_OPINION, ratio: JOIN_STRENGTH_RATIO })
     : attitude >= JOIN_OPINION
-      ? `Their attitude is ${attitude}: it must hold for ${JOIN_TURNS} turns (${since == null ? 'just started' : `${(state.turnNumber || 0) - since} so far`}), or your army must be ${JOIN_STRENGTH_RATIO} times their own.`
-      : `Their attitude is ${attitude}: your army must be ${JOIN_STRENGTH_RATIO} times their own (now ${(mine / theirs).toFixed(1)} times), or raise it to ${JOIN_OPINION}.`;
-  return { ok: false, reason: why, attitude };
+      ? reasonOf('m.why.indepJoinHold', { a: attitude, turns: JOIN_TURNS, sofar: since == null ? sub('m.why.indepJustStarted') : sub('m.why.indepSoFar', { n: (state.turnNumber || 0) - since }), ratio: JOIN_STRENGTH_RATIO })
+      : reasonOf('m.why.indepJoinArmy', { a: attitude, ratio: JOIN_STRENGTH_RATIO, now: (mine / theirs).toFixed(1), open: JOIN_OPINION });
+  return { ok: false, ...why, attitude };
 };
 
 /** Independent `indepId` joins major `majorId` in the turn's working maps `w` (mutated). */
@@ -517,8 +517,8 @@ const withLog = (state, line, type = LogTypes.DIPLOMACY) => [...(state.logs || [
 /** GIFT_INDEPENDENT: GIFT_GOLD gold for GIFT_FAVOUR favour. Returns a new state or { reason }. */
 export const giftIndependent = (state, indepId) => {
   const n = state.nations?.[indepId];
-  if (!isIndependentNation(n) || n.isEliminated) return { reason: 'Not an independent city.' };
-  if ((state.resources?.gold || 0) < GIFT_GOLD) return { reason: `You need ${GIFT_GOLD} gold.` };
+  if (!isIndependentNation(n) || n.isEliminated) return reasonOf('m.why.mercNotIndep');
+  if ((state.resources?.gold || 0) < GIFT_GOLD) return reasonOf('m.why.mercGold', { gold: GIFT_GOLD });
   const w = playerW(state);
   addGoldIn(w, w.playerId, -GIFT_GOLD); addGoldIn(w, indepId, GIFT_GOLD);
   const favour = Math.min(FAVOUR_MAX, (n.indep?.favour?.[w.playerId] || 0) + GIFT_FAVOUR);
@@ -539,7 +539,7 @@ const joinPlayer = (state, indepId) => {
 /** PROPOSE_JOINING: the player asks an independent to join. Returns a new state or { reason }. */
 export const proposeJoining = (state, indepId) => {
   const check = joinCheck(state, indepId, state.playerNationId);
-  if (!check.ok) return { reason: check.reason };
+  if (!check.ok) return { reason: check.reason, reasonMsg: check.reasonMsg };
   return joinPlayer(state, indepId);
 };
 
@@ -562,30 +562,30 @@ export const answerJoinOffer = (state, offerId, accept) => {
  */
 export const demandTributeCheck = (state, indepId, majorId = state.playerNationId) => {
   const n = state.nations?.[indepId];
-  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, reason: 'Not an independent city.' };
-  if (n.indep?.tributeTo?.[majorId]) return { ok: false, reason: `They already pay you tribute until turn ${n.indep.tributeTo[majorId].until}.` };
-  if (!canAttack(state, majorId, indepId)) return { ok: false, reason: 'You pay them tribute: you cannot threaten them meanwhile.' };
+  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, ...reasonOf('m.why.mercNotIndep') };
+  if (n.indep?.tributeTo?.[majorId]) return { ok: false, ...reasonOf('m.why.indepAlreadyPay', { n: n.indep.tributeTo[majorId].until }) };
+  if (!canAttack(state, majorId, indepId)) return { ok: false, ...reasonOf('m.why.indepYouPay') };
   const city = state.regions?.[n.capitalRegionId];
-  if (!city || city.owner !== indepId) return { ok: false, reason: 'Their city is lost.' };
+  if (!city || city.owner !== indepId) return { ok: false, ...reasonOf('m.why.mercCityLost') };
   const mine = strengthNear(unitsByTile(state), majorId, city.tile, ringsForKm(CONQUER_KM));
   const theirs = indepStrength(state, indepId);
-  if (n.indep?.personality === 'fortress') return { ok: true, would: false, mine, theirs, reason: 'A fortress people pays no one: they would refuse and remember it.' };
+  if (n.indep?.personality === 'fortress') return { ok: true, would: false, mine, theirs, ...reasonOf('m.why.indepFortressPays') };
   const need = DEMAND_TRIBUTE_RATIO * Math.max(1, theirs);
-  if (mine < need) return { ok: true, would: false, mine, theirs, reason: `They would refuse: your army within ${CONQUER_KM} km is ${(mine / Math.max(1, theirs)).toFixed(1)} times theirs, they pay at ${DEMAND_TRIBUTE_RATIO} times.` };
-  return { ok: true, would: true, mine, theirs, reason: `They would pay ${tributePerTurn(state, indepId)} gold a turn for ${TRIBUTE_TURNS} turns.` };
+  if (mine < need) return { ok: true, would: false, mine, theirs, ...reasonOf('m.why.indepWouldRefuse', { km: CONQUER_KM, x: (mine / Math.max(1, theirs)).toFixed(1), r: DEMAND_TRIBUTE_RATIO }) };
+  return { ok: true, would: true, mine, theirs, ...reasonOf('m.why.indepWouldPay', { gold: tributePerTurn(state, indepId), turns: TRIBUTE_TURNS }) };
 };
 
 /** Would mercantile independent `indepId` trade with `majorId`? { ok, reason }. */
 export const tradeCheck = (state, indepId, majorId = state.playerNationId) => {
   const n = state.nations?.[indepId];
-  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, reason: 'Not an independent city.' };
-  if (n.indep?.personality !== 'mercantile') return { ok: false, reason: 'Only a mercantile city trades.' };
-  if (n.indep.tradeWith?.[majorId] != null) return { ok: false, reason: 'You already trade with them.' };
-  if (Object.keys(n.indep.tradeWith || {}).length >= TRADE_MAX_PARTNERS) return { ok: false, reason: `They trade with ${TRADE_MAX_PARTNERS} nations already.` };
-  if (grudgeOf(n, majorId) >= TRADE_MAX_GRUDGE) return { ok: false, reason: `They hold a grudge against you (${grudgeOf(n, majorId)}; they trade under ${TRADE_MAX_GRUDGE}).` };
+  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, ...reasonOf('m.why.mercNotIndep') };
+  if (n.indep?.personality !== 'mercantile') return { ok: false, ...reasonOf('m.why.indepOnlyMerc') };
+  if (n.indep.tradeWith?.[majorId] != null) return { ok: false, ...reasonOf('m.why.indepAlreadyTrade') };
+  if (Object.keys(n.indep.tradeWith || {}).length >= TRADE_MAX_PARTNERS) return { ok: false, ...reasonOf('m.why.indepTradeFull', { n: TRADE_MAX_PARTNERS }) };
+  if (grudgeOf(n, majorId) >= TRADE_MAX_GRUDGE) return { ok: false, ...reasonOf('m.why.indepTradeGrudge', { g: grudgeOf(n, majorId), max: TRADE_MAX_GRUDGE }) };
   const city = state.regions?.[n.capitalRegionId];
-  if (!city || !majorsNear(state, city.tile, ringsForKm(TRADE_KM)).has(majorId)) return { ok: false, reason: `None of your cities is within ${TRADE_KM} km.` };
-  return { ok: true, reason: `${tradeGoldOf(state.age)} gold a turn each way.` };
+  if (!city || !majorsNear(state, city.tile, ringsForKm(TRADE_KM)).has(majorId)) return { ok: false, ...reasonOf('m.why.indepTradeFar', { km: TRADE_KM }) };
+  return { ok: true, ...reasonOf('m.why.indepTradeOk', { gold: tradeGoldOf(state.age) }) };
 };
 
 /** Who takes tribute offered freely (OFFER_INDEPENDENT_TRIBUTE): raiders, tribal and fortress peoples; a
@@ -595,12 +595,12 @@ export const TRIBUTE_TAKERS = ['raiders', 'tribal', 'fortress'];
 /** May `majorId` offer `indepId` tribute now (no demand needed)? { ok, gold, reason }. */
 export const offerTributeCheck = (state, indepId, majorId = state.playerNationId) => {
   const n = state.nations?.[indepId];
-  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, reason: 'Not an independent city.' };
-  if (!TRIBUTE_TAKERS.includes(n.indep?.personality)) return { ok: false, reason: 'A mercantile city takes no tribute: offer trade instead.' };
-  if (n.indep?.tributeFrom?.[majorId]) return { ok: false, reason: `You already pay them until turn ${n.indep.tributeFrom[majorId].until}.` };
-  if (n.indep?.tributeTo?.[majorId]) return { ok: false, reason: 'They pay you tribute.' };
+  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, ...reasonOf('m.why.mercNotIndep') };
+  if (!TRIBUTE_TAKERS.includes(n.indep?.personality)) return { ok: false, ...reasonOf('m.why.indepNoTribute') };
+  if (n.indep?.tributeFrom?.[majorId]) return { ok: false, ...reasonOf('m.why.indepYouAlreadyPay', { n: n.indep.tributeFrom[majorId].until }) };
+  if (n.indep?.tributeTo?.[majorId]) return { ok: false, ...reasonOf('m.why.indepTheyPay') };
   const gold = tributePerTurn(state, majorId);
-  return { ok: true, gold, reason: `${gold} gold a turn for ${TRIBUTE_TURNS} turns: no raids from them, and you may not attack them meanwhile.` };
+  return { ok: true, gold, ...reasonOf('m.why.indepTributeOk', { gold, turns: TRIBUTE_TURNS }) };
 };
 
 /** DEMAND_INDEPENDENT_TRIBUTE: with DEMAND_TRIBUTE_RATIO x its strength near it, it pays, else refuses (+grudge). */
@@ -608,7 +608,7 @@ export const demandIndependentTribute = (state, indepId) => {
   const n = state.nations?.[indepId];
   const me = state.playerNationId;
   const check = demandTributeCheck(state, indepId, me);
-  if (!check.ok) return { reason: check.reason };
+  if (!check.ok) return { reason: check.reason, reasonMsg: check.reasonMsg };
   const w = { turn: state.turnNumber || 0, age: state.age, playerId: me, regions: state.regions, nations: { ...state.nations }, resources: { ...state.resources }, stats: { ...(state.indepStats || {}) } };
   w.stats.tributeDemandsByMajors = w.stats.tributeDemandsByMajors || 0;
   const paid = demandTributeOf(w, me, indepId, check.mine, check.theirs);
@@ -624,7 +624,7 @@ export const proposeIndependentTrade = (state, indepId) => {
   const n = state.nations?.[indepId];
   const me = state.playerNationId;
   const check = tradeCheck(state, indepId, me);
-  if (!check.ok) return { reason: check.reason };
+  if (!check.ok) return { reason: check.reason, reasonMsg: check.reasonMsg };
   const nations = { ...state.nations, [indepId]: { ...n, indep: { ...n.indep, tradeWith: { ...(n.indep.tradeWith || {}), [me]: state.turnNumber || 0 } } } };
   const stats = { ...(state.indepStats || {}), tradeDeals: (state.indepStats?.tradeDeals || 0) + 1 };
   return { ...state, nations, indepStats: stats, logs: withLog(state, msg('m.battle.indepOpenTrade', { nation: people(indepId, n.name), gold: tradeGoldOf(state.age) })) };
@@ -634,7 +634,7 @@ export const proposeIndependentTrade = (state, indepId) => {
  * as an accepted demand). Returns a new state or { reason }. */
 export const offerIndependentTribute = (state, indepId) => {
   const check = offerTributeCheck(state, indepId);
-  if (!check.ok) return { reason: check.reason };
+  if (!check.ok) return { reason: check.reason, reasonMsg: check.reasonMsg };
   const n = state.nations[indepId];
   const nations = startTribute(state.nations, indepId, state.playerNationId, check.gold, state.turnNumber || 0);
   return {
@@ -646,7 +646,7 @@ export const offerIndependentTribute = (state, indepId) => {
 /** RAZE_CITY / STOP_RAZING for the player. Returns a new state or { reason }. */
 export const razeCityForPlayer = (state, cityId) => {
   const r = startRazing(state, state.playerNationId, cityId);
-  if (!r) return { reason: 'This city cannot be razed.' };
+  if (!r) return reasonOf('m.why.capNoRaze');
   const stats = { ...(state.indepStats || {}), razeStarted: (state.indepStats?.razeStarted || 0) + 1 };
   return { ...state, regions: r.regions, nations: r.nations, indepStats: stats, logs: [...(state.logs || []), ...r.logs.map(({ nationId, ...l }) => l)] }; // eslint-disable-line no-unused-vars
 };

@@ -20,13 +20,15 @@ import GameIcon from '../ui/GameIcon';
 import { captureCardModel } from './captureCardModel';
 import { SHOW_CAPTURE } from './captureEvents';
 import { t as tNow } from '../../i18n';
+import { useT } from '../../i18n/useT';
 
 // The old glyphs, used only when the delivered icon is missing.
 const FALLBACK = { conquer: Crown, raze: Flame, tributary: Coins, free: Bird };
-const goLabel = (id, name) => (id === 'conquer' ? `Keep ${name}` : id === 'raze' ? `Raze ${name}` : id === 'tributary' ? 'Make it a tributary' : `Free ${name}`);
+const GO_KEY = { conquer: 'bt.cap.keep', raze: 'bt.cap.raze', tributary: 'bt.cap.tributary', free: 'bt.cap.free' };
 
 const CaptureCard = () => {
   const { state, dispatch } = useGame();
+  const { t } = useT();
   const m = useMemo(() => (state.pendingBattle ? null : captureCardModel(state)), [state]);
   const [pick, setPick] = useState('conquer');
   useEffect(() => { setPick('conquer'); }, [m?.id]);
@@ -53,12 +55,12 @@ const CaptureCard = () => {
             <h2 id="capture-title" className="fa-heading text-[19px] pl:text-[16px] leading-tight truncate" data-testid="capture-title">{m.title}</h2>
             <div className="text-[12px] text-fa-muted leading-snug truncate">{m.how}{m.facts.length ? ` ${m.facts.join(' · ')}.` : ''} T{m.turn}</div>
           </div>
-          <IconButton label={`Show ${m.name} on the map`} icon={MapPin} onClick={() => { turn.tuck(); focusRegion(m.cityId); }} className="relative shrink-0 !w-9 !h-9" data-testid="capture-show" />
-          <IconButton label="Look at the map first: the choice waits as a chip" icon={ChevronDown} onClick={turn.tuck} className="relative shrink-0 !w-9 !h-9" data-testid="capture-later" />
+          <IconButton label={t('bt.cap.showOnMap', { name: m.name })} icon={MapPin} onClick={() => { turn.tuck(); focusRegion(m.cityId); }} className="relative shrink-0 !w-9 !h-9" data-testid="capture-show" />
+          <IconButton label={t('bt.cap.lookMap')} icon={ChevronDown} onClick={turn.tuck} className="relative shrink-0 !w-9 !h-9" data-testid="capture-later" />
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-2.5 py-2 pl:py-1.5 space-y-2 pl:space-y-1.5">
-          <div role="radiogroup" aria-label="What becomes of the city" className="grid grid-cols-4 gap-2 pl:gap-1.5">
+          <div role="radiogroup" aria-label={t('bt.cap.whatBecomes')} className="grid grid-cols-4 gap-2 pl:gap-1.5">
             {m.choices.map((c) => {
               const Glyph = FALLBACK[c.id];
               const on = c.id === chosen.id;
@@ -74,15 +76,15 @@ const CaptureCard = () => {
           <div className="fa-card px-2.5 py-1.5" role="status" data-testid="capture-explain">
             <div className="fa-label">{chosen.label}</div>
             <div className="text-[12.5px] pl:text-[12px] leading-snug mt-0.5">{chosen.effect}</div>
-            {chosen.disabled && <div className="text-[12px] text-fa-brass leading-snug mt-0.5" data-testid="capture-reason">Not on offer: {chosen.reason}</div>}
+            {chosen.disabled && <div className="text-[12px] text-fa-brass leading-snug mt-0.5" data-testid="capture-reason">{t('bt.cap.notOnOffer', { reason: chosen.reason })}</div>}
           </div>
-          {m.waiting > 0 && <div className="text-[11px] text-fa-muted">{m.waiting} more cit{m.waiting === 1 ? 'y waits' : 'ies wait'} for your decision after this one.</div>}
+          {m.waiting > 0 && <div className="text-[11px] text-fa-muted">{t('bt.cap.waiting', { count: m.waiting })}</div>}
         </div>
 
         <div className="px-2.5 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)] border-t border-fa-line flex items-center gap-2">
-          <div className="flex-1 min-w-0 text-[11px] text-fa-muted leading-snug">The turn waits for this choice. It cannot be undone.</div>
+          <div className="flex-1 min-w-0 text-[11px] text-fa-muted leading-snug">{t('bt.cap.turnWaits')}</div>
           <Button variant="primary" hero disabled={chosen.disabled} onClick={go} data-testid="capture-go" className="!min-h-[48px] !px-5 shrink-0">
-            {goLabel(chosen.id, m.name)}
+            {t(GO_KEY[chosen.id], { name: m.name })}
           </Button>
         </div>
       </div>

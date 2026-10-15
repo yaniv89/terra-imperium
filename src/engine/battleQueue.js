@@ -29,7 +29,8 @@ import { isRaidKind, queuedRaidArmies, raidSpecOf, fightRaidAuto } from './raidB
 import { resolveRaidBattle } from './raids';
 import { isLandingKind, resolveInterceptQueued, resolveLandingQueued, landingHoldChance, interceptArmies, landingArmies } from './aiLanding';
 import { cityMilitia } from './battleInputs';
-import { isNoMansLand, NO_MANS_LAND_REASON } from './hostility';
+import { isNoMansLand } from './hostility';
+import { msg, sub, cityRef } from './messages';
 
 export const QUEUE_KINDS = ['defense', 'field', 'naval', 'raid', 'sack', 'intercept', 'landing'];
 
@@ -71,36 +72,38 @@ export const queuedArmies = (state, def) => {
  * 'no_defenders' (nobody of yours to command: no regiment and, for a city, no militia),
  * 'no_battle' (the armies moved apart), 'no_mans_land' (decision 41).
  */
+// { code, text } where `text` is the English and `textMsg` the same sentence as a message (messages.js) for other languages.
+const block = (code, key, vars) => { const m = msg(key, vars); return { code, text: m.message, textMsg: sub(m.msgKey, m.msgVars) }; };
 export const queuedCommandBlock = (state, def) => {
   if (!def) return null;
   const kind = queuedKind(def);
-  const place = state.regions?.[def.regionId]?.name || 'the city';
-  const gone = { code: 'no_attackers', text: 'The attackers are gone: there is no one to fight. Auto closes it.' };
+  const place = state.regions?.[def.regionId]?.name ? cityRef(def.regionId, state.regions[def.regionId].name) : sub('m.battle.theTown');
+  const gone = block('no_attackers', 'm.q.gone');
   if (kind === 'defense') {
     const armies = getDefenseArmies(state, def);
     if (!armies.attackerUnits.length) return gone;
     if (!armies.defenderUnits.length && !cityMilitia(state, def.regionId).length) {
-      return { code: 'no_defenders', text: `No one in ${place} to command: no regiment, and no militia without houses. On Auto the attackers strike its defences.` };
+      return block('no_defenders', 'm.q.noDefCity', { place });
     }
     return null;
   }
   if (kind === 'intercept' || kind === 'landing') {
     const armies = kind === 'intercept' ? interceptArmies(state, def) : landingArmies(state, def);
-    if (!armies) return { code: 'no_battle', text: kind === 'intercept' ? 'None of your fleets can reach the landing fleet: Auto settles it.' : 'The landing is over before it started: Auto settles it.' };
-    if (kind === 'landing' && !armies.defenderUnits.length && !(def.militia || []).length) return { code: 'no_defenders', text: `No one in ${place} to command against the landing: no regiment and no militia. On Auto they come ashore.` };
+    if (!armies) return block('no_battle', kind === 'intercept' ? 'm.q.noIntercept' : 'm.q.landingOver');
+    if (kind === 'landing' && !armies.defenderUnits.length && !(def.militia || []).length) return block('no_defenders', 'm.q.noDefLanding', { place });
     return null;
   }
   if (isRaidKind(kind)) {
     const armies = queuedRaidArmies(state, def);
     if (!armies.attackerUnits.length) return gone;
-    if (!armies.defenderUnits.length && (kind !== 'sack' || !(def.militia || []).length)) return { code: 'no_defenders', text: kind === 'sack' ? 'No one in the town to command: no regiment and no militia. On Auto the raiders sack it.' : 'Your troops are no longer there: Auto settles the raid.' };
-    if (kind === 'raid' && isNoMansLand(state, def.tile, def.aggressorId, state.playerNationId)) return { code: 'no_mans_land', text: NO_MANS_LAND_REASON };
+    if (!armies.defenderUnits.length && (kind !== 'sack' || !(def.militia || []).length)) return block('no_defenders', kind === 'sack' ? 'm.q.noDefSack' : 'm.q.raidGone');
+    if (kind === 'raid' && isNoMansLand(state, def.tile, def.aggressorId, state.playerNationId)) return block('no_mans_land', 'm.q.noMans');
     return null;
   }
   const armies = queuedArmies(state, def);
-  if (!armies) return { code: 'no_battle', text: 'The armies are no longer in reach of each other: there is no battle to command. Auto closes it.' };
+  if (!armies) return block('no_battle', 'm.q.noBattle');
   const foe = def.aggressorId === state.playerNationId ? armies.v.defenderNationId : def.aggressorId;
-  if (kind === 'field' && isNoMansLand(state, def.tile, state.playerNationId, foe)) return { code: 'no_mans_land', text: NO_MANS_LAND_REASON };
+  if (kind === 'field' && isNoMansLand(state, def.tile, state.playerNationId, foe)) return block('no_mans_land', 'm.q.noMans');
   return null;
 };
 

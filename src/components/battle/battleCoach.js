@@ -5,6 +5,8 @@
 // shown once per device (localStorage, read defensively), never a modal and never holding the
 // battle clock.
 
+import { t } from '../../i18n/core';
+
 export const COACH_KEY = 'ti.coach.firstBattle';
 let shownThisSession = false; // storage blocked (private mode): at most once a session
 
@@ -24,27 +26,13 @@ export const markCoachSeen = (storage = typeof localStorage !== 'undefined' ? lo
 export const resetCoachSession = () => { shownThisSession = false; };
 
 /** The three steps: [{ title, text }]. */
-export const coachSteps = (mouse) => (mouse
-  ? [
-    { title: 'Select and move', text: 'Click a squad to select it (drag a box for more), then right click the ground to send it there. Right drag draws a battle line.' },
-    { title: 'Attack', text: 'Right click an enemy to attack it. Or click Attack (key A), then click the ground: they fight anything on the way.' },
-    { title: 'Camera and pause', text: 'The wheel zooms. Hold Space or Alt and drag, use the arrow keys or the screen edge to move the camera. Orders given while paused show at once and start when you resume.' }
-  ]
-  : [
-    { title: 'Select and move', text: 'Tap a squad to select it, then tap the ground to send it there. Drag from a selected squad to draw a battle line.' },
-    { title: 'Attack', text: 'Tap an enemy to attack it. Or tap Attack, then tap the ground: they fight anything on the way. A long press on the ground does the same.' },
-    { title: 'Camera and pause', text: 'Drag one finger to move the camera, pinch two fingers to zoom. Orders given while paused show at once and start when you resume.' }
-  ]);
+export const coachSteps = (mouse) => [1, 2, 3].map((i) => ({ title: t(`bt.coach.${mouse ? 'mouse' : 'touch'}.${i}.title`), text: t(`bt.coach.${mouse ? 'mouse' : 'touch'}.${i}.text`) }));
 
 /** The deployment card's words. */
-export const deployHelp = (mouse) => (mouse
-  ? 'Click a squad, then right click inside your zone to place it. Right drag draws a battle line.'
-  : 'Tap a squad, then tap inside your zone to place it. Drag from a selected squad to draw a line.');
+export const deployHelp = (mouse) => t(mouse ? 'bt.coach.deployMouse' : 'bt.coach.deployTouch');
 
 /** The camera line under "More about this battle". */
-export const cameraHelp = (mouse) => (mouse
-  ? 'Hold Space (or Alt) and drag, use the arrow keys or the screen edge to move the camera; the wheel zooms where the pointer is.'
-  : 'Drag one finger to move the camera, pinch two fingers to zoom.');
+export const cameraHelp = (mouse) => t(mouse ? 'bt.coach.cameraMouse' : 'bt.coach.cameraTouch');
 
 /** A mouse is the main pointer: a fine pointer and no touch screen. A touch laptop starts with
  *  touch words and switches at the first mouse click (TacticalBattleScreen.jsx). */

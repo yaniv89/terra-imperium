@@ -18,6 +18,7 @@ import { openPanelTab } from '../panels/panelEvents';
 import { OPEN_RESEARCH_CHOICE } from '../ui/uiEvents';
 import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 import { techName } from '../../i18n/gameText';
+import { useT } from '../../i18n/useT';
 
 // Whether the sheet should be up (pure, for tests): nothing being researched, nothing queued, no
 // advisor, something available, and no other decision on screen.
@@ -29,6 +30,7 @@ export const needsResearchChoice = (state) => {
 
 const ResearchChoiceSheet = ({ hidden }) => {
   const { state, dispatch } = useGame();
+  const { t } = useT();
   const [laterTurn, setLaterTurn] = useState(null);
   // End Turn's "Choose research" (turnBlockers.js) brings it back after "Later", and shows it even
   // while it would wait for the onboarding (the player asked for it).
@@ -60,15 +62,15 @@ const ResearchChoiceSheet = ({ hidden }) => {
           <div>
             {done ? (
               <>
-                <div className="flex items-center gap-1.5 text-fa-good font-bold"><Sparkles className="w-4 h-4" /> {done.name} researched</div>
+                <div className="flex items-center gap-1.5 text-fa-good font-bold"><Sparkles className="w-4 h-4" /> {t('rc.researched', { name: techName(done.id, done.name) })}</div>
                 <div className="text-[11px] text-fa-muted">{describeTech(done)}</div>
               </>
             ) : (
-              <div className="flex items-center gap-1.5 text-fa-text font-bold"><Beaker className="w-4 h-4 text-purple-300" /> Choose your research</div>
+              <div className="flex items-center gap-1.5 text-fa-text font-bold"><Beaker className="w-4 h-4 text-purple-300" /> {t('rc.choose')}</div>
             )}
-            <div className="text-[12px] text-fa-text mt-1">What next? Your scholars produce {science} science a turn.</div>
+            <div className="text-[12px] text-fa-text mt-1">{t('rc.whatNext', { n: science })}</div>
           </div>
-          <button onClick={() => setLaterTurn(state.turnNumber)} aria-label="Later" className="p-1 rounded hover:bg-fa-raised text-fa-muted shrink-0"><X className="w-5 h-5" /></button>
+          <button onClick={() => setLaterTurn(state.turnNumber)} aria-label={t('rc.later')} className="p-1 rounded hover:bg-fa-raised text-fa-muted shrink-0"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="space-y-2">
@@ -79,17 +81,17 @@ const ResearchChoiceSheet = ({ hidden }) => {
                 <span className="font-semibold text-fa-text">{techName(o.tech.id, o.tech.name)}</span>
                 <span className="text-[11px] text-purple-300 shrink-0">{formatTurns(o.turns)}</span>
               </div>
-              <div className="text-[11px] text-fa-muted">{CATEGORY_LABELS[o.tech.category]} · {o.cost} science</div>
+              <div className="text-[11px] text-fa-muted">{t('rc.catCost', { cat: CATEGORY_LABELS[o.tech.category], cost: o.cost })}</div>
               <div className="text-[11px] text-fa-muted">{describeTech(o.tech)}</div>
             </button>
           ))}
         </div>
 
         <div className="flex gap-2">
-          <button onClick={() => { const plan = advisorPlan(state); dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } }); if (plan.techId) choose(plan.techId); }} className="flex-1 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-sm font-semibold" data-testid="research-let-advisor">Let my advisor choose</button>
-          <button onClick={() => { setLaterTurn(state.turnNumber); openPanelTab('tech'); }} className="flex-1 min-h-[40px] rounded-lg bg-fa-raised hover:bg-fa-hover text-sm">All techs</button>
+          <button onClick={() => { const plan = advisorPlan(state); dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } }); if (plan.techId) choose(plan.techId); }} className="flex-1 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-sm font-semibold" data-testid="research-let-advisor">{t('rc.advisor')}</button>
+          <button onClick={() => { setLaterTurn(state.turnNumber); openPanelTab('tech'); }} className="flex-1 min-h-[40px] rounded-lg bg-fa-raised hover:bg-fa-hover text-sm">{t('rc.allTechs')}</button>
         </div>
-        <div className="text-[10px] text-fa-muted text-center">Close it to decide later: science banks until you pick.</div>
+        <div className="text-[10px] text-fa-muted text-center">{t('rc.hint')}</div>
       </div>
     </div>
   );

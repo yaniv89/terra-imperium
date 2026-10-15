@@ -16,6 +16,8 @@ import { subjectVerb } from '../../engine/grammar';
 import { openIndependent } from './independentEvents';
 import { ShieldMark, GrudgeMeter, CardLabel } from './IndependentBits';
 import { t as tNow } from '../../i18n';
+import { useT } from '../../i18n/useT';
+import { agreed } from '../battle/battleText';
 
 // The independents' panel: dashed violet border (UI-DESIGN 2: independent = dashed), right side.
 // A decision card: nothing behind it catches taps, so a tap on the map (or on another card's
@@ -30,21 +32,26 @@ const Frame = ({ testId, label, children }) => (
   </div>
 );
 
-const Header = ({ m, title, onClose }) => (
+const Header = ({ m, title, onClose }) => {
+  const { t } = useT();
+  return (
   <div className="flex items-start gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
-    <button type="button" onClick={() => openIndependent(m.indepId)} aria-label={`Open the sheet of ${m.name}`} className="min-w-[44px] min-h-[44px] -ms-1 flex items-center justify-center rounded-lg hover:bg-fa-raised"><ShieldMark personality={m.personality.id} size={32} /></button>
+    <button type="button" onClick={() => openIndependent(m.indepId)} aria-label={t('td.openSheet', { name: m.name })} className="min-w-[44px] min-h-[44px] -ms-1 flex items-center justify-center rounded-lg hover:bg-fa-raised"><ShieldMark personality={m.personality.id} size={32} /></button>
     <div className="min-w-0 flex-1">
-      <div className="text-[11px] uppercase tracking-[0.08em] font-semibold text-fa-indep">Independent · {m.personality.name}</div>
+      <div className="text-[11px] uppercase tracking-[0.08em] font-semibold text-fa-indep">{t('td.independent', { kind: m.personality.name })}</div>
       <h2 className="fa-heading text-[15px] leading-tight">{title}</h2>
     </div>
-    <CloseButton onClick={onClose} label="Decide later" className="-me-1" />
+    <CloseButton onClick={onClose} label={t('td.decideLater')} className="-me-1" />
   </div>
-);
+  );
+};
 
 // `asked`: the player opened it (End Turn's blocker, Peoples); otherwise it arrived and takes its
 // turn behind a more pressing card (useExclusivePanel.js), waiting as a chip.
 export const TributeDemandSheet = ({ demandId, onClose, asked = false }) => {
   const { state, dispatch } = useGame();
+  const { t } = useT();
+  const turnsOf = (n) => t('ind.turns', { count: n });
   const m = useMemo(() => tributeDemandModel(state, demandId), [state, demandId]);
   const [pick, setPick] = useState(null);
   const turn = useInteraction('tribute', !!m, { priority: PRIORITY.tribute, label: m ? tNow('wait.tribute', { name: m.name }) : null, testId: 'tribute-chip', user: asked });
@@ -55,17 +62,17 @@ export const TributeDemandSheet = ({ demandId, onClose, asked = false }) => {
     chosen.actions.forEach((a) => dispatch(a));
     onClose();
   };
-  const verb = chosen.id === 'pay' ? 'Pay' : chosen.id === 'hire' ? 'Hire and refuse' : 'Refuse';
+  const verb = chosen.id === 'pay' ? t('td.pay') : chosen.id === 'hire' ? t('td.hireRefuse') : t('td.refuse');
   return (
-    <Frame testId="tribute-demand-sheet" label={`${m.name} demand tribute`} onClose={onClose}>
-      <Header m={m} title={`${subjectVerb(m.name, 'demand')} ${m.gold} gold a turn for ${m.turns} turns, or they raid`} onClose={onClose} />
+    <Frame testId="tribute-demand-sheet" label={t('td.ariaDemand', { name: m.name })} onClose={onClose}>
+      <Header m={m} title={agreed('td.title', { name: m.name, gold: m.gold, turns: m.turns }, () => `${subjectVerb(m.nameEn, 'demand')} ${m.gold} gold a turn for ${m.turns} turns, or they raid`)} onClose={onClose} />
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2 text-[12px]">
         <section className="space-y-1" data-testid="tribute-grudge">
-          <CardLabel right={<span className="fa-num normal-case tracking-normal text-[12px] text-fa-text">{m.grudge.value} {m.grudge.word}{chosen.id !== 'pay' ? <span className="text-fa-danger-text"> +{m.grudge.after - m.grudge.value} to {m.grudge.after}</span> : null}</span>}>Grudge toward you</CardLabel>
+          <CardLabel right={<span className="fa-num normal-case tracking-normal text-[12px] text-fa-text">{m.grudge.value} {m.grudge.word}{chosen.id !== 'pay' ? <span className="text-fa-danger-text">{t('td.grudgeAfter', { a: m.grudge.after - m.grudge.value, b: m.grudge.after })}</span> : null}</span>}>{t('td.grudgeToward')}</CardLabel>
           <GrudgeMeter value={m.grudge.value} max={m.grudge.max} after={chosen.id !== 'pay' ? m.grudge.after : null} />
           <div className="flex justify-between text-[10px] text-fa-muted">{m.grudge.bands.map((b) => <span key={b.from}>{b.word}</span>)}</div>
         </section>
-        <div className="space-y-1.5" role="radiogroup" aria-label="Your answer">
+        <div className="space-y-1.5" role="radiogroup" aria-label={t('td.yourAnswer')}>
           {m.choices.map((c) => {
             const on = c.id === chosen.id;
             return (
@@ -84,8 +91,8 @@ export const TributeDemandSheet = ({ demandId, onClose, asked = false }) => {
       </div>
       <div className="flex items-center gap-2 px-3 py-2 border-t border-fa-line">
         <div className="flex-1 min-w-0 text-[11px] text-fa-muted leading-snug">
-          {m.footnote || `Answer within ${m.turnsLeft} turn${m.turnsLeft === 1 ? '' : 's'}; silence is a refusal.`}
-          {m.loss && <button type="button" onClick={() => { onClose(); focusRegion(m.loss.cityId); }} className="ms-1 underline text-fa-text min-h-[32px]" disabled={m.loss.cityId == null}>Show {m.loss.where}</button>}
+          {m.footnote || t('td.answerWithin', { turns: turnsOf(m.turnsLeft) })}
+          {m.loss && <button type="button" onClick={() => { onClose(); focusRegion(m.loss.cityId); }} className="ms-1 underline text-fa-text min-h-[32px]" disabled={m.loss.cityId == null}>{t('td.show', { where: m.loss.where })}</button>}
         </div>
         <Button variant="primary" hero onClick={go} disabled={!chosen.ok} className="!min-h-[48px] !px-5 shrink-0" data-testid="tribute-go">{verb}</Button>
       </div>
@@ -95,20 +102,21 @@ export const TributeDemandSheet = ({ demandId, onClose, asked = false }) => {
 
 export const JoinOfferSheet = ({ offerId, onClose, asked = false }) => {
   const { state, dispatch } = useGame();
+  const { t } = useT();
   const m = useMemo(() => joinOfferModel(state, offerId), [state, offerId]);
   const turn = useInteraction('join-offer', !!m, { priority: PRIORITY.join, label: m ? tNow('wait.join', { name: m.name }) : null, testId: 'join-chip', user: asked });
   if (!m || !turn.shown) return null;
   return (
-    <Frame testId="join-offer-sheet" label={`${m.name} offer to join you`} onClose={onClose}>
-      <Header m={m} title={`${m.name} offer to join you`} onClose={onClose} />
+    <Frame testId="join-offer-sheet" label={t('td.joinAria', { name: m.name })} onClose={onClose}>
+      <Header m={m} title={t('td.joinTitle', { name: m.name })} onClose={onClose} />
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2 text-[12.5px]">
-        <div>Their people chose your rule. You gain:</div>
+        <div>{t('td.chose')}</div>
         <ul className="space-y-0.5">{m.gains.map((g) => <li key={g} className="flex gap-2"><span className="text-fa-indep">•</span>{g}</li>)}</ul>
-        <div className="text-fa-muted">The offer stands {m.turnsLeft} more turn{m.turnsLeft === 1 ? '' : 's'}.</div>
+        <div className="text-fa-muted">{t('td.offerStands', { turns: t('ind.turns', { count: m.turnsLeft }) })}</div>
       </div>
       <div className="grid grid-cols-2 gap-2 px-3 py-2 border-t border-fa-line">
-        <Button onClick={() => { dispatch(m.decline); onClose(); }} data-testid="join-decline">Decline</Button>
-        <Button variant="primary" hero onClick={() => { dispatch(m.accept); onClose(); }} data-testid="join-accept">Accept {m.city.name}</Button>
+        <Button onClick={() => { dispatch(m.decline); onClose(); }} data-testid="join-decline">{t('td.decline')}</Button>
+        <Button variant="primary" hero onClick={() => { dispatch(m.accept); onClose(); }} data-testid="join-accept">{t('td.accept', { city: m.city.name })}</Button>
       </div>
     </Frame>
   );

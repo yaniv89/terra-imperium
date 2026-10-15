@@ -10,11 +10,17 @@ import { getPeaceAcceptance, getTermCost } from '../../engine/peace';
 import { computeWarScore, getOccupationScore } from '../../engine/diplomacy';
 import { getPool } from '../../engine/nationState';
 import { msgText, sub, people, cityRef } from '../../engine/messages';
+import { t, isolateLtr } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
+import { agreed } from './battleText';
 
 export const GOLD_OPTIONS = [500, 1500, 3000];
 
 const sideOf = (war, me) => (war.aggressor === me ? 1 : -1);
-const regionName = (state, id) => REGIONS_DATA[id]?.name || state.regions?.[id]?.name || id;
+const regionName = (state, id) => nameNow('city', null, REGIONS_DATA[id]?.name || state.regions?.[id]?.name || id);
+const nationNow = (state, id) => (state.nations?.[id]?.name ? nameNow('people', id, state.nations[id].name) : id);
+// A ledger line's label in the current language (peace.js breakdown rows carry an id).
+export const ledgerLabel = (l) => (l.id ? t(`bt.peace.ledger.${l.id}`) : l.label);
 
 /** Every demand you could make in this war, cheapest land first; `cost` Infinity = not possible. */
 export const peaceCandidates = (state, war) => {
@@ -25,15 +31,15 @@ export const peaceCandidates = (state, war) => {
     .filter((r) => r.owner === them && (r.occupiedBy === me || (r.conquest?.warId === war.id && r.conquest.from === me) || (war.goal?.type === 'capture_region' && war.goal.regionId === r.id)))
     .map((r) => ({
       key: `cede:${r.id}`, term: { type: 'cede', regionId: r.id }, group: 'land',
-      label: `Cede ${regionName(state, r.id)}`,
-      detail: [r.id === capital ? 'Their capital' : null, `size ${r.size || 1}`, r.occupiedBy === me ? 'you occupy it' : r.conquest?.from === me ? 'they took it from you' : 'your war goal'].filter(Boolean).join(', ')
+      label: t('bt.peace.cede', { city: regionName(state, r.id) }),
+      detail: [r.id === capital ? t('bt.peace.theirCapital') : null, t('bt.peace.size', { n: r.size || 1 }), r.occupiedBy === me ? t('bt.peace.youOccupy') : r.conquest?.from === me ? t('bt.peace.tookFromYou') : t('bt.peace.warGoal')].filter(Boolean).join(', ')
     }));
   const treasury = getPool(state, them).gold || 0;
-  const gold = GOLD_OPTIONS.filter((g) => g <= treasury).map((g) => ({ key: `gold:${g}`, term: { type: 'gold', amount: g }, group: 'gold', label: `${g} gold`, detail: `They have ${Math.floor(treasury)}` }));
+  const gold = GOLD_OPTIONS.filter((g) => g <= treasury).map((g) => ({ key: `gold:${g}`, term: { type: 'gold', amount: g }, group: 'gold', label: t('bt.peace.goldOpt', { g }), detail: t('bt.peace.theyHave', { n: Math.floor(treasury) }) }));
   const rest = [
-    { key: 'reparations', term: { type: 'reparations' }, group: 'other', label: 'War reparations', detail: 'A tenth of their gold income for 10 turns' },
-    { key: 'humiliate', term: { type: 'humiliate' }, group: 'other', label: 'Humiliate them', detail: 'Prestige for you, a loss for them' },
-    { key: 'vassalize', term: { type: 'vassalize' }, group: 'other', label: 'Make them your vassal', detail: 'They follow your wars and pay you' }
+    { key: 'reparations', term: { type: 'reparations' }, group: 'other', label: t('bt.peace.reparations'), detail: t('bt.peace.reparationsDetail') },
+    { key: 'humiliate', term: { type: 'humiliate' }, group: 'other', label: t('bt.peace.humiliate'), detail: t('bt.peace.humiliateDetail') },
+    { key: 'vassalize', term: { type: 'vassalize' }, group: 'other', label: t('bt.peace.vassalize'), detail: t('bt.peace.vassalizeDetail') }
   ];
   return [...lands, ...gold, ...rest]
     .map((c) => ({ ...c, cost: getTermCost(state, war, me, c.term) }))
@@ -53,7 +59,8 @@ export const bestDeal = (state, war, candidates = peaceCandidates(state, war)) =
   return { keys: picked.map((p) => p.key), worth: spent, budget };
 };
 
-const signedN = (n) => (n > 0 ? `+${n}` : `${n}`);
+const signedN = (n) => isolateLtr(n > 0 ? `+${n}` : `${n}`);
+const ledgerText = (l) => (l.id === 'odds' && l.pct != null ? `${ledgerLabel(l)}` : ledgerLabel(l));
 
 /**
  * Why a white peace is refused (PEACE-01): the willingness against the price, then the two biggest
@@ -61,8 +68,8 @@ const signedN = (n) => (n > 0 ? `+${n}` : `${n}`);
  */
 export const refusalReason = (acc) => {
   const worst = (acc.breakdown || []).filter((l) => l.value < 0).sort((a, b) => a.value - b.value).slice(0, 2);
-  const why = worst.length ? ` Weighing most against it: ${worst.map((l) => `${l.label.toLowerCase()} ${signedN(l.value)}`).join(', ')}.` : '';
-  return `They will not accept it yet: their willingness is ${acc.total} and the price is ${acc.cost}.${why}`;
+  const why = worst.length ? t('bt.peace.refusalWeighing', { list: worst.map((l) => `${ledgerText(l).toLowerCase()} ${signedN(l.value)}`).join(', ') }) : '';
+  return t('bt.peace.refusal', { total: acc.total, cost: acc.cost, why });
 };
 
 const placeName = (state, id) => regionName(state, id);
@@ -116,7 +123,7 @@ export const peaceDealModel = (state, warId, selected = new Set()) => {
     const on = selected.has(c.key);
     const withIt = on ? cost : cost + c.cost;
     const ok = withIt <= acc.total;
-    return { ...c, on, status: ok ? (on ? 'Accepts' : 'Would accept') : `Refuses: too much, ${withIt - acc.total} short`, ok };
+    return { ...c, on, status: ok ? (on ? t('bt.peace.accepts') : t('bt.peace.wouldAccept')) : t('bt.peace.refuses', { n: withIt - acc.total }), ok };
   });
   const turns = Math.max(0, (state.turnNumber || 0) - (war.startTurn ?? state.turnNumber ?? 0));
   const best = bestDeal(state, war, candidates);
@@ -125,27 +132,27 @@ export const peaceDealModel = (state, warId, selected = new Set()) => {
   return {
     war,
     enemyId: them,
-    enemy: state.nations?.[them]?.name || them,
-    me: state.nations?.[me]?.name || 'You',
-    since: `war since turn ${war.startTurn ?? '?'} · ${turns} turn${turns === 1 ? '' : 's'}`,
+    enemy: nationNow(state, them),
+    me: state.nations?.[me]?.name ? nationNow(state, me) : t('bt.peace.you'),
+    since: t('bt.peace.since', { turn: war.startTurn ?? '?', count: turns }),
     score: sign * computeWarScore(war, state),
     scoreParts: [
-      { id: 'battles', label: 'Battles', value: Math.round(sign * (war.battleScore || 0)) },
-      { id: 'land', label: 'Land held', value: Math.round(sign * getOccupationScore(state, war)) },
-      { id: 'goal', label: 'War goal', value: Math.round(sign * (war.tickScore || 0)) }
+      { id: 'battles', label: t('bt.peace.battles'), value: Math.round(sign * (war.battleScore || 0)) },
+      { id: 'land', label: t('bt.peace.landHeld'), value: Math.round(sign * getOccupationScore(state, war)) },
+      { id: 'goal', label: t('bt.peace.warGoalLabel'), value: Math.round(sign * (war.tickScore || 0)) }
     ],
     exhaustion: { mine: exhaustion(me), theirs: exhaustion(them), max: 100 },
     willingness: acc.total,
-    ledger: acc.breakdown.filter((l) => l.value),
+    ledger: acc.breakdown.filter((l) => l.value).map((l) => ({ ...l, label: ledgerLabel(l) })),
     rows,
     demanded: cost,
     accepted: acc.accepted,
     short,
-    verdict: acc.accepted ? `${state.nations?.[them]?.name || 'They'} accept${/[^s]s$/.test(state.nations?.[them]?.name || '') ? '' : 's'}` : `Refused: ${short} short`,
+    verdict: acc.accepted ? (state.nations?.[them]?.name ? agreed('bt.peace.theyAccept', { name: nationNow(state, them) }, () => `${state.nations[them].name} accept${/[^s]s$/.test(state.nations[them].name) ? '' : 's'}`) : t('bt.peace.theyAcceptDefault')) : t('bt.peace.refusedShort', { n: short }),
     counter: best.keys.length
       ? { keys: best.keys, worth: best.worth, budget: best.budget, text: candidates.filter((c) => best.keys.includes(c.key)).map((c) => c.label).join(', ') }
       : null,
-    whitePeace: { accepted: white.accepted, text: white.accepted ? 'Back to how things stand: no land or gold changes hands.' : refusalReason(white) },
+    whitePeace: { accepted: white.accepted, text: white.accepted ? t('bt.peace.white') : refusalReason(white) },
     truceTurns: TRUCE_DURATION_TURNS,
     terms
   };

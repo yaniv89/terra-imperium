@@ -6,6 +6,7 @@
 // (plans/UI-DESIGN.md section 2, U1 step 11).
 import React from 'react';
 import { shieldUrl, shieldColour } from './independentArt';
+import { t as tNow } from '../../i18n/core';
 
 export const INDEPENDENT_VIOLET = '#9C8FD0';
 export const BRASS = '#D8A444';
@@ -17,7 +18,7 @@ export const ShieldMark = ({ personality, size = 28, className = '' }) => {
   const url = shieldUrl(personality);
   if (url) return <img src={url} width={size} height={size} alt="" draggable={false} className={`shrink-0 ${className}`} data-shield={personality} />;
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" className={`shrink-0 ${className}`} data-shield={personality} data-placeholder="true">
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" className={`shrink-0 ${className}`} data-shield={personality} data-placeholder="true" /* i18n-ok */>
       <path d="M12 2.5 4.5 5.2v5.9c0 4.7 3.2 8.6 7.5 10.4 4.3-1.8 7.5-5.7 7.5-10.4V5.2z" fill="#232C38" stroke={INDEPENDENT_VIOLET} strokeWidth="1.4" strokeLinejoin="round" />
       <circle cx="12" cy="11.5" r="3.6" fill={shieldColour(personality)} />
     </svg>
@@ -29,7 +30,7 @@ export const AttitudeMeter = ({ value, tone }) => {
   const at = Math.max(0, Math.min(100, (value + 100) / 2));
   const fill = tone === 'good' ? 'bg-fa-good' : tone === 'bad' ? 'bg-fa-danger' : 'bg-fa-enemy';
   return (
-    <div className="relative h-2 rounded-full bg-fa-hover/80 overflow-hidden" role="meter" aria-valuemin={-100} aria-valuemax={100} aria-valuenow={value} aria-label="Attitude toward you">
+    <div className="relative h-2 rounded-full bg-fa-hover/80 overflow-hidden" role="meter" aria-valuemin={-100} aria-valuemax={100} aria-valuenow={value} aria-label={tNow('ind.sheet.attitudeAria')}>
       <div className="absolute inset-y-0 left-1/2 w-px bg-fa-muted" />
       <div className={`absolute inset-y-0 ${fill}`} style={value >= 0 ? { insetInlineStart: '50%', width: `${at - 50}%` } : { insetInlineStart: `${at}%`, width: `${50 - at}%` }} />
     </div>
@@ -37,7 +38,7 @@ export const AttitudeMeter = ({ value, tone }) => {
 };
 
 /** A 0..max meter, with an optional hatched part from `value` to `after` (what a refusal adds). */
-export const GrudgeMeter = ({ value, max = 100, after = null, label = 'Grudge' }) => {
+export const GrudgeMeter = ({ value, max = 100, after = null, label = tNow('ind.sheet.grudge') }) => {
   const v = Math.max(0, Math.min(100, (100 * value) / max));
   const a = after != null ? Math.max(v, Math.min(100, (100 * after) / max)) : v;
   return (

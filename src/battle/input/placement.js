@@ -9,33 +9,22 @@ import { BUILDINGS, RESOURCES, buildableFor, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN }
 import { MAX_ECO_BUILDINGS, NODE_PAD } from '../sim/economy';
 import { TILE } from '../setup/mapgen';
 import { Q } from '../sim/constants';
+import { t } from '../../i18n/core';
+
+// A table of reasons whose text is read when asked, so it follows the language (keys: bt.place.*).
+const reasons = (map) => Object.defineProperties({}, Object.fromEntries(Object.entries(map).map(([k, key]) => [k, { enumerable: true, get: () => t(key) }])));
 
 const VEINS = new Set(['stone', 'gold']);
-const GROUND_REASON = {
-  [TILE.FOREST]: 'Blocked by trees',
-  [TILE.WATER]: 'Cannot build on water',
-  [TILE.ROCK]: 'Blocked by rocks',
-  [TILE.ROAD]: 'Keep the road clear',
-  [TILE.FORD]: 'Cannot build in the ford',
-  [TILE.BUILDING]: 'Overlaps a building',
-  [TILE.GATE]: 'Overlaps the gate'
-};
-export const PLACEMENT_REASON = {
-  unknown: 'Cannot build that here',
-  edge: 'Too close to the edge of the field',
-  limit: 'Building limit reached',
-  ground: 'Blocked ground',
-  crowded: 'Too close to another building',
-  node: 'On top of a resource',
-  noVein: 'A mine must stand by stone or gold',
-  fog: 'Unexplored ground',
-  far: 'Outside your camp area',
-  occupied: 'Troops are standing here',
-  outside: 'Outside the battlefield',
-  workers: 'No laborers left to build it',
-  cost: 'Not enough to pay for it',
-  refused: 'The site could not be placed there'
-};
+const GROUND_REASON = reasons({
+  [TILE.FOREST]: 'bt.place.forest',
+  [TILE.WATER]: 'bt.place.water',
+  [TILE.ROCK]: 'bt.place.rock',
+  [TILE.ROAD]: 'bt.place.road',
+  [TILE.FORD]: 'bt.place.ford',
+  [TILE.BUILDING]: 'bt.place.building',
+  [TILE.GATE]: 'bt.place.gate'
+});
+export const PLACEMENT_REASON = reasons(Object.fromEntries(['unknown', 'edge', 'limit', 'ground', 'crowded', 'node', 'noVein', 'fog', 'far', 'occupied', 'outside', 'workers', 'cost', 'refused'].map((k) => [k, `bt.place.${k}`])));
 
 // The map's tiles as the sim has them now: the setup's ground, every standing building's footprint
 // claimed (economy.js claimFootprint), broken city works turned to rubble (cityStructures.js).

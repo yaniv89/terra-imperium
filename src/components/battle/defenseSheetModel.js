@@ -12,11 +12,16 @@ import { cityMilitia } from '../../engine/battleInputs';
 import { legacyTerrainOf } from '../../engine/world/registry';
 import { getTiles } from '../../data/geo/tiles';
 import { plainPlace } from '../../engine/grammar';
-import { isNoMansLand, NO_MANS_LAND_TEXT } from '../../engine/hostility';
+import { isNoMansLand } from '../../engine/hostility';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
+import { agreed, msgRefText } from './battleText';
 import { armyView, battleSize, cityWallsView } from './warModel';
 
 const OURS = { defense: 'garrison', field: 'army', naval: 'fleet', raid: 'troops', sack: 'town', intercept: 'fleet', landing: 'garrison' };
 const KIND_OBJECT = { defense: '', field: 'your army near ', naval: 'your fleet near ', raid: 'your land near ', sack: '', intercept: 'your fleet near ', landing: '' };
+const oursTitle = (kind) => t(`bt.def.ours.${OURS[kind] ? kind : 'field'}`);
+const oursLower = (kind) => t(`bt.def.oursLower.${OURS[kind] ? kind : 'field'}`);
 // What the attackers do, by kind (R3): a raid plunders, a sack hits a weak town, a landing comes ashore.
 // I011: below this chance for Auto to hold, a defence is called hopeless on the card.
 export const HOPELESS_HOLD = 0.15;
@@ -32,13 +37,13 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const attacking = def.aggressorId === state.playerNationId;
   const foeId = attacking ? v.defenderUnits?.[0]?.ownerId : def.aggressorId;
   // Decision 41: a field clash or a raid on land inside neither side's borders is fought on Auto only.
-  const noMansLand = (kind === 'field' || kind === 'raid') && isNoMansLand(state, def.tile, state.playerNationId, foeId) ? NO_MANS_LAND_TEXT : null;
+  const noMansLand = (kind === 'field' || kind === 'raid') && isNoMansLand(state, def.tile, state.playerNationId, foeId) ? t('bt.pre.noMansText') : null;
   // DEF-01: why Command cannot open, said before the tap (the reducer refuses with the same words).
   const block = queuedCommandBlock(state, def);
-  const commandBlocked = block && block.code !== 'no_mans_land' ? block.text : null;
-  const enemy = state.nations?.[foeId]?.name || foeId || 'The enemy';
+  const commandBlocked = block && block.code !== 'no_mans_land' ? msgRefText(block.textMsg, block.text) : null;
+  const enemy = state.nations?.[foeId]?.name ? nameNow('people', foeId, state.nations[foeId].name) : foeId || t('bt.def.enemy');
   const enemyShort = enemy.replace(/^The /, '').replace(/^(Kingdom|Empire|Republic|Tribes?|Chiefdom|City-state|Confederation) of /i, '');
-  const place = city ? region?.name || def.regionId : plainPlace(v.name);
+  const place = city ? nameNow('city', null, region?.name || def.regionId) : nameNow('city', null, plainPlace(v.name));
   const myAge = getEffectiveAgeId(state.age, state.techAgeId);
   const theirAge = foeId && state.nations?.[foeId] ? getEffectiveAgeId(state.age, getTechAgeId(state, foeId)) : myAge;
   const militia = city ? cityMilitia(state, def.regionId) : [];
@@ -55,17 +60,17 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   // An empty city on Auto (cityAssault.js): its defences take the attack; it falls only when its HP reaches 0.
   const c = v.odds?.city;
   const odds = v.odds?.undefended
-    ? { undefended: true, hold, text: c ? `No regiment defends it: on Auto the attack takes its defences from ${c.hpBefore} to about ${c.hpAfter} of ${c.maxHp} HP${hold < 0.5 ? ', and it likely falls' : ''}. It holds ${pct}% of the time.` : 'No regiment defends it.' }
-    : { undefended: false, hold, text: `Auto ${attacking ? 'wins' : 'holds'} ${pct}% of the time${city && v.odds?.avgDamage != null ? `, about ${v.odds.avgDamage} control lost on average` : ''}.${city && !attacking ? ' On Auto your garrison is fought first: even beaten, the city is not taken in this battle.' : ''}`, verdict: attacking ? (hold >= 0.65 ? 'Likely win' : hold >= 0.35 ? 'Close' : 'Likely loss') : (hold >= 0.65 ? 'Likely hold' : hold >= 0.35 ? 'Close' : 'Likely lost') };
+    ? { undefended: true, hold, text: c ? t('bt.def.noDefendUndefended', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp, likely: hold < 0.5 ? t('bt.def.likelyFalls') : '', pct }) : t('bt.def.noRegiment') }
+    : { undefended: false, hold, text: t(attacking ? 'bt.def.autoWins' : 'bt.def.autoHolds', { pct, avg: city && v.odds?.avgDamage != null ? t('bt.def.avgLost', { n: v.odds.avgDamage }) : '', note: city && !attacking ? t('bt.def.garrisonFirst') : '' }), verdict: attacking ? (hold >= 0.65 ? t('bt.pre.likelyWin') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.pre.likelyLoss')) : (hold >= 0.65 ? t('bt.def.vLikelyHold') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost')) };
   const plural = /[^s]s$/.test(enemyShort);
   const verb = KIND_VERB[kind] ? KIND_VERB[kind][plural ? 0 : 1] : plural ? 'attack' : 'attacks';
-  const withdrawTo = city && fallbackId ? state.regions?.[fallbackId]?.name || fallbackId : null;
+  const withdrawTo = city && fallbackId ? nameNow('city', null, state.regions?.[fallbackId]?.name || fallbackId) : null;
   // I011: a defence Auto almost never holds says so before the choice, with what losing costs, and
   // pre-selects Withdraw when there is somewhere to go. A mode the player set in Settings (Command
   // or Auto) is still the one chosen: an intentional Command stays playable.
   const hopeless = !attacking && !odds.undefended && hold < HOPELESS_HOLD;
   const warning = hopeless
-    ? `Badly outnumbered: Auto holds only ${pct}% of the time. ${city ? `Lose on Command and ${place} is taken with your defenders still in it; on Auto a beaten garrison is driven out, but the city stands until its defences are broken.` : 'If you lose, the regiments still on the field at the end are lost.'}${withdrawTo ? ` Withdraw keeps the men: they fall back to ${withdrawTo}.` : ''}`
+    ? t('bt.def.warning', { pct, body: city ? t('bt.def.warnCity', { place }) : t('bt.def.warnField'), withdraw: withdrawTo ? t('bt.def.warnWithdraw', { to: withdrawTo }) : '' })
     : null;
   const setting = state.battleSettings?.defaultMode;
   const preferred = setting === 'auto' || setting === 'command' ? setting : hopeless && withdrawTo ? 'withdraw' : 'command';
@@ -76,12 +81,14 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
     kind,
     city,
     place,
-    name: v.name,
+    name: nameNow('battle', null, v.name),
     attacking,
-    eyebrow: attacking ? `Your army is stopped by ${enemyShort}${def.fort ? "' fort" : ''} near ${place}`.replace(/([^s])' fort/, "$1's fort") : `${enemyShort} ${verb} ${KIND_OBJECT[kind] || ''}${place}`,
+    eyebrow: attacking
+      ? agreed(def.fort ? 'bt.def.eyeStoppedFort' : 'bt.def.eyeStopped', { enemy: enemyShort, place }, () => `Your army is stopped by ${enemyShort}${def.fort ? "' fort" : ''} near ${place}`.replace(/([^s])' fort/, "$1's fort"))
+      : agreed(`bt.def.eye.${KIND_VERB[kind] || kind === 'field' || kind === 'naval' ? kind : 'defense'}`, { enemy: enemyShort, place }, () => `${enemyShort} ${verb} ${KIND_OBJECT[kind] || ''}${place}`),
     enemy,
-    theirs: { ...theirs, title: attacking ? (def.fort ? 'In their fort' : 'Defenders') : kind === 'raid' || kind === 'sack' ? 'Raiders' : 'Attackers', note: 'In plain sight: these numbers are exact.' },
-    yours: { ...yours, title: attacking ? 'Your army' : militiaOnly ? 'Militia only' : (OURS[kind] || 'army')[0].toUpperCase() + (OURS[kind] || 'army').slice(1), militia: militiaMen },
+    theirs: { ...theirs, title: attacking ? (def.fort ? t('bt.def.inFort') : t('bt.def.defenders')) : kind === 'raid' || kind === 'sack' ? t('bt.def.raiders') : t('bt.def.attackers'), note: t('bt.def.plainSight') },
+    yours: { ...yours, title: attacking ? t('bt.def.yourArmy') : militiaOnly ? t('bt.def.militiaOnly') : oursTitle(kind), militia: militiaMen },
     walls,
     size,
     odds,
@@ -90,12 +97,12 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
     suggested,
     withdraw: city
       ? (fallbackId
-        ? { ok: true, to: state.regions?.[fallbackId]?.name || fallbackId, text: `Give up ${place}: your ${OURS[kind]} falls back to ${state.regions?.[fallbackId]?.name || fallbackId} (-${WITHDRAW_MORALE_LOSS} morale, -${Math.round(WITHDRAW_STRENGTH_LOSS * 100)}% men) and ${enemyShort} takes the city without a fight.` }
-        : { ok: false, text: 'Nowhere to fall back to.' })
+        ? { ok: true, to: withdrawTo, text: t('bt.def.giveUp', { place, ours: oursLower(kind), to: withdrawTo, morale: WITHDRAW_MORALE_LOSS, men: Math.round(WITHDRAW_STRENGTH_LOSS * 100), enemy: enemyShort }) }
+        : { ok: false, text: t('bt.def.nowhere') })
       : null,
     noMansLand,
     commandBlocked,
-    command: `${militiaOnly ? `No regiment stands in ${place}: you command its militia alone. Win and it holds; lose and it falls. ` : ''}Real time, ${size.cap} a side at most. ${city ? `${walls?.level ? 'Walls and towers fight for you. ' : ''}${walls?.houses ?? 0} houses and the town hall: battle housing ${walls?.housing ?? 0}; burned houses stop your training.` : 'The ground as it is on the map.'} About ${size.minutes} minutes; pause any time.`,
-    auto: `Instant result by the same rules and the same armies. ${odds.text}`
+    command: `${militiaOnly ? t('bt.def.commandMilitia', { place }) : ''}${city ? t('bt.def.commandCity', { cap: size.cap, walls: walls?.level ? t('bt.def.wallsFight') : '', houses: walls?.houses ?? 0, housing: walls?.housing ?? 0, min: size.minutes }) : t('bt.def.commandField', { cap: size.cap, min: size.minutes })}`,
+    auto: t('bt.def.autoText', { odds: odds.text })
   };
 };

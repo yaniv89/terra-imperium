@@ -6,11 +6,13 @@ import enBase from './locales/en';
 import heBase from './locales/he';
 import enMsg from './locales/msg.en';
 import heMsg from './locales/msg.he';
+import enUi from './locales/ui.en';
+import heUi from './locales/ui.he';
 import dataHe from './locales/data.he';
 
 // The shell tables and the engine's message tables (log lines, news, cards: phase H3) as one.
-const en = { ...enBase, ...enMsg };
-const he = { ...heBase, ...heMsg };
+const en = { ...enBase, ...enMsg, ...enUi };
+const he = { ...heBase, ...heMsg, ...heUi };
 
 export const LANGUAGES = Object.freeze({
   en: Object.freeze({ id: 'en', native: 'English', dir: 'ltr', locale: 'en' }),
@@ -102,3 +104,6 @@ export const dataTable = (lang = 'he') => (lang === 'he' ? dataHe : {});
 export const tOr = (key, fallback, vars) => (hasKey(key, 'en') ? translate(key, vars, current) : dataText(key, fallback, vars, current));
 /** An age's name ("Bronze Age") in the current language. */
 export const ageName = (id, fallback) => tOr(`age.${id}`, fallback || id);
+
+/** A number with a sign ("+10", "-3") inside running text, kept left to right in Hebrew (the sign would flip to the wrong side). */
+export const isolateLtr = (text) => (isRtl() ? `\u2066${text}\u2069` : String(text));

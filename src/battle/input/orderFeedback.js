@@ -9,6 +9,8 @@
 // I192 (closed against the user's ruling Q6): every squad walks at its own speed, so an attack or
 // a march with fast and slow squads together says that the fast ones will get there first.
 
+import { t } from '../../i18n/core';
+
 export const Q_UNITS = 256;
 // Extra ground around a building's own tiles that still counts as a tap on it (tiles), at least
 // FOOTPRINT_PICK_PX on screen.
@@ -51,7 +53,7 @@ export const pickStructureAt = (g, structures, setupStructures, mapW, margin = F
 
 /** Squad classes that outpace a marching column (their own speed, Q6). */
 const FAST = new Set(['cavalry', 'air']);
-const SLOW_NAMES = { infantry: 'infantry', ranged: 'archers', siege: 'siege engines', support: 'wagons' };
+const SLOW_NAMES = { infantry: 'infantry', ranged: 'archers', siege: 'siege engines', support: 'wagons' }; // English; the text comes from bt.order.slow.*
 
 /**
  * The note an order to a mixed group earns (X13), or null: `classes` are the selected squads'
@@ -63,10 +65,10 @@ export const arrivalNote = (classes, orderType) => {
   const fast = [...set].filter((c) => FAST.has(c));
   const slow = [...set].filter((c) => SLOW_NAMES[c]);
   if (!fast.length || !slow.length) return null;
-  const who = fast.includes('cavalry') ? 'Cavalry' : 'Aircraft';
+  const who = t(fast.includes('cavalry') ? 'bt.order.whoCavalry' : 'bt.order.whoAircraft');
   return orderType === 'move'
-    ? `${who} will arrive first: each unit marches at its own speed.`
-    : `${who} will arrive first and fight alone until the ${SLOW_NAMES[slow.includes('infantry') ? 'infantry' : slow[0]]} catch up.`;
+    ? t('bt.order.moveFirst', { who })
+    : t('bt.order.attackFirst', { who, slow: t(`bt.order.slow.${slow.includes('infantry') ? 'infantry' : slow[0]}`) });
 };
 
 /** Why an order tap gave no order (the tap did not reach the battlefield). */

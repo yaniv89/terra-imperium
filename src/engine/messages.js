@@ -94,3 +94,8 @@ export const carry = (l) => {
   if (typeof l === 'string') return { message: l };
   return l.msgKey ? { message: l.message, msgKey: l.msgKey, ...(l.msgVars ? { msgVars: l.msgVars } : {}) } : { message: l.message };
 };
+
+/** A reason (why something cannot be done): the English `reason` and its message `reasonMsg` (a sub),
+ * spread into a result as `{ ok: false, ...reasonOf('m.why.x') }`. The UI writes it with reasonText
+ * (src/i18n/messageText.js). */
+export const reasonOf = (key, vars) => ({ reason: msgText(key, vars, 'en'), reasonMsg: sub(key, vars) });

@@ -12,6 +12,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Shield as ShieldIcon, ChevronDown } from 'lucide-react';
 import { t as tNow } from '../../i18n';
+import { useT } from '../../i18n/useT';
+import { nameNow } from '../../i18n/names';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { queuedBattleView, battleQueueBlocked, queuedKind } from '../../engine/battleQueue';
@@ -26,6 +28,7 @@ import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusive
 
 const DefenseSheet = () => {
   const { state, dispatch } = useGame();
+  const { t } = useT();
   // End Turn's "Defend <city>: Command or Auto" (turnBlockers.js) brings it back up.
   useEffect(() => {
     const onShow = () => interactions.promote('defense');
@@ -57,12 +60,12 @@ const DefenseSheet = () => {
     else dispatch({ type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
   };
   const options = [
-    { id: 'command', sub: m.noMansLand ? 'Not here: no man\'s land' : m.commandBlocked ? 'Not possible: see why below' : m.city ? 'Play the defence from the walls' : 'Play it in real time', disabled: noCommand, title: m.noMansLand ? 'Outside both peoples\' borders a clash is fought on Auto' : m.commandBlocked || undefined, testId: 'defense-command' },
-    { id: 'auto', sub: 'Instant result, same rules', testId: 'defense-auto' },
-    ...(m.withdraw ? [{ id: 'withdraw', sub: m.withdraw.ok ? `Give up ${m.place}, keep the men` : 'Nowhere to go', disabled: !m.withdraw.ok, title: m.withdraw.text, testId: 'defense-withdraw' }] : [])
+    { id: 'command', sub: m.noMansLand ? t('bt.def.optNoMans') : m.commandBlocked ? t('bt.def.optSeeWhy') : m.city ? t('bt.def.optCity') : t('bt.def.optRealTime'), disabled: noCommand, title: m.noMansLand ? t('bt.def.optNoMansTitle') : m.commandBlocked || undefined, testId: 'defense-command' },
+    { id: 'auto', sub: t('bt.def.optInstant'), testId: 'defense-auto' },
+    ...(m.withdraw ? [{ id: 'withdraw', sub: m.withdraw.ok ? t('bt.def.optGiveUp', { place: m.place }) : t('bt.def.optNowhere'), disabled: !m.withdraw.ok, title: m.withdraw.text, testId: 'defense-withdraw' }] : [])
   ];
   const explain = chosen === 'auto' ? m.auto : chosen === 'withdraw' ? m.withdraw.text : m.command;
-  const action = chosen === 'auto' ? 'Fight on Auto' : chosen === 'withdraw' ? 'Withdraw' : m.attacking ? 'Begin battle' : 'Begin defence';
+  const action = chosen === 'auto' ? t('bt.def.fightAuto') : chosen === 'withdraw' ? t('bt.def.withdraw') : m.attacking ? t('bt.def.beginBattle') : t('bt.def.beginDefence');
   const w = m.walls;
   const autoDefend = state.battleSettings?.autoDefend === true;
 
@@ -76,51 +79,51 @@ const DefenseSheet = () => {
           <h2 id="defense-title" className="fa-heading text-[19px] pl:text-[17px] leading-tight truncate">{m.name}</h2>
         </div>
         <div className="text-end text-[11px] leading-tight shrink-0 pt-0.5">
-          <div className="font-semibold">End of turn paused</div>
-          <div className="text-fa-muted fa-num">{defenses.length > 1 ? `1 of ${defenses.length}` : 'one battle'}</div>
+          <div className="font-semibold">{t('bt.def.endTurnPaused')}</div>
+          <div className="text-fa-muted fa-num">{defenses.length > 1 ? t('bt.def.nOfM', { a: 1, b: defenses.length }) : t('bt.def.oneBattle')}</div>
         </div>
-        <IconButton label="Look at the map first" icon={ChevronDown} onClick={turn.tuck} className="!w-9 !h-9 -me-1" data-testid="defense-later" />
+        <IconButton label={t('bt.def.lookMap')} icon={ChevronDown} onClick={turn.tuck} className="!w-9 !h-9 -me-1" data-testid="defense-later" />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2 pl:space-y-1.5" data-testid="defense-row">
         <div className="grid grid-cols-2 gap-2">
-          <ForceCard tone="enemy" tag="THEIRS" name={m.theirs.title} total={m.theirs.men} lines={m.theirs.lines.slice(0, 3)} footer={<span className="pl:hidden">{m.theirs.note}</span>} testId="defense-theirs" />
-          <ForceCard tone="you" tag="YOURS" name={m.yours.title} total={m.yours.men} lines={m.yours.lines.slice(0, 3)} testId="defense-yours"
+          <ForceCard tone="enemy" tag={t('bt.def.tagTheirs')} name={m.theirs.title} total={m.theirs.men} lines={m.theirs.lines.slice(0, 3)} footer={<span className="pl:hidden">{m.theirs.note}</span>} testId="defense-theirs" />
+          <ForceCard tone="you" tag={t('bt.def.tagYours')} name={m.yours.title} total={m.yours.men} lines={m.yours.lines.slice(0, 3)} testId="defense-yours"
             footer={<>
-              {w && <span className="block pl:hidden">{w.houses} houses and the town hall: battle housing <b className="fa-num text-fa-text">{w.housing}</b>. {w.level ? `${w.name}, ${w.hpText}.` : 'No walls.'}</span>}
+              {w && <span className="block pl:hidden">{t('bt.def.housesHall', { houses: w.houses })}<b className="fa-num text-fa-text">{w.housing}</b>. {w.level ? t('bt.def.wallsHp', { name: w.name, hp: w.hpText }) : t('bt.def.noWallsDot')}</span>}
               <span className="pl:hidden"><GeneralsLine generals={m.yours.generals} /></span>
             </>} />
         </div>
         {!m.odds.undefended && (
           <div className="flex items-center gap-3 px-0.5" data-testid="defense-odds" title={m.auto}>
-            <div className="shrink-0 text-[12px] leading-tight"><span className="text-fa-muted">Auto {m.attacking ? 'wins' : 'holds'} </span><span className={m.odds.hold >= 0.5 ? 'text-fa-good font-semibold' : 'text-fa-danger-text font-semibold'}><span className="fa-num">{Math.round(m.odds.hold * 100)}%</span> · {m.odds.verdict}</span></div>
-            <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft={m.attacking ? 'they hold' : 'they take it'} labelRight={m.attacking ? 'you win' : 'you hold'} /></div>
+            <div className="shrink-0 text-[12px] leading-tight"><span className="text-fa-muted">{m.attacking ? t('bt.def.autoWinsLabel') : t('bt.def.autoHoldsLabel')}</span><span className={m.odds.hold >= 0.5 ? 'text-fa-good font-semibold' : 'text-fa-danger-text font-semibold'}><span className="fa-num">{Math.round(m.odds.hold * 100)}%</span> · {m.odds.verdict}</span></div>
+            <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft={m.attacking ? t('bt.def.theyHold') : t('bt.def.theyTakeIt')} labelRight={m.attacking ? t('bt.def.youWin') : t('bt.def.youHold')} /></div>
           </div>
         )}
         {m.warning && <div role="status" className="text-[12px] leading-snug text-fa-danger-text rounded-[8px] border border-fa-danger/60 px-2 py-1" data-testid="defense-hopeless">{m.warning}</div>}
         <ModeCards options={options} value={chosen} onChange={setMode} compact />
         {m.commandBlocked && (
-          <div role="status" className="text-[12px] leading-snug text-fa-muted" data-testid="defense-no-command"><b className="text-fa-text">Command is not possible.</b> {m.commandBlocked}</div>
+          <div role="status" className="text-[12px] leading-snug text-fa-muted" data-testid="defense-no-command"><b className="text-fa-text">{t('bt.def.cmdNotPossible')}</b> {m.commandBlocked}</div>
         )}
         {m.noMansLand && (
           <div role="status" className="flex items-center gap-2 text-[12px] text-fa-muted" data-testid="defense-no-mans-land">
             <GameIcon group="ui" id="no-mans-land" size={22} halo={false} />
-            <span><b className="text-fa-text">{m.noMansLand}.</b> This ground is inside neither people&apos;s borders.</span>
+            <span><b className="text-fa-text">{m.noMansLand}.</b>{t('bt.def.noMansBorders')}</span>
           </div>
         )}
-        <ModeExplain title={chosen === 'command' ? 'Command' : chosen === 'auto' ? 'Auto' : 'Withdraw'} right={chosen === 'command' ? 'Your call' : null} compact>{explain}</ModeExplain>
+        <ModeExplain title={t(`bt.atlas.${chosen}`)} right={chosen === 'command' ? t('bt.def.yourCall') : null} compact>{explain}</ModeExplain>
         {defenses.length > 1 && (
-          <div className="text-[11px] text-fa-muted">Next: {defenses.slice(1, 3).map((d) => battleNameOf(state, { kind: queuedKind(d), regionId: d.regionId, tile: d.tile })).join(', ')}{defenses.length > 3 ? ` and ${defenses.length - 3} more` : ''}.</div>
+          <div className="text-[11px] text-fa-muted">{t('bt.def.next', { list: defenses.slice(1, 3).map((d) => nameNow('battle', null, battleNameOf(state, { kind: queuedKind(d), regionId: d.regionId, tile: d.tile }))).join(', '), more: defenses.length > 3 ? t('bt.def.andMore', { n: defenses.length - 3 }) : '' })}</div>
         )}
       </div>
 
       <div className="px-3 pt-1.5 pb-2 border-t border-fa-line flex items-center gap-2">
         <label className="flex-1 min-w-0 flex items-center gap-2 min-h-[44px] cursor-pointer">
-          <button type="button" role="switch" aria-checked={autoDefend} aria-label="Always Auto for defences" data-testid="defense-always-auto" className="fa-switch shrink-0"
+          <button type="button" role="switch" aria-checked={autoDefend} aria-label={t('bt.def.alwaysAuto')} data-testid="defense-always-auto" className="fa-switch shrink-0"
             onClick={() => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { autoDefend: !autoDefend } })} />
-          <span className="text-[12.5px] leading-tight">Always Auto for defences</span>
+          <span className="text-[12.5px] leading-tight">{t('bt.def.alwaysAuto')}</span>
         </label>
-        {defenses.length > 1 && <Button size="sm" className="!min-h-[44px]" onClick={() => dispatch({ type: ActionTypes.RESOLVE_ALL_DEFENSES_AUTO })} data-testid="defense-auto-all">Auto all {defenses.length}</Button>}
+        {defenses.length > 1 && <Button size="sm" className="!min-h-[44px]" onClick={() => dispatch({ type: ActionTypes.RESOLVE_ALL_DEFENSES_AUTO })} data-testid="defense-auto-all">{t('bt.def.autoAll', { n: defenses.length })}</Button>}
         <Button variant="primary" hero onClick={act} data-testid="defense-go" className="!min-h-[48px] !px-4">{action}</Button>
       </div>
     </div>

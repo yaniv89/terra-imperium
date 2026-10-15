@@ -15,6 +15,7 @@ import { openTributeDemand } from './independentEvents';
 import { actionIconUrl } from './independentArt';
 import CityStateBadge from './CityStateBadge';
 import { ShieldMark, AttitudeMeter, GrudgeMeter, CardLabel, TONE_TEXT } from './IndependentBits';
+import { useT } from '../../i18n/useT';
 
 const ACTION_GLYPH = { attack: Swords, payTribute: Coins, join: HeartHandshake, gift: Gift, demandTribute: Crown, trade: ArrowLeftRight, hire: Users };
 const ACTION_ART = { attack: 'raid', payTribute: 'tribute', join: 'join', demandTribute: 'tribute', trade: 'trade', hire: 'hire' };
@@ -36,33 +37,36 @@ const actionClass = (a) => {
 
 const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 
-export const IndependentSheetBody = ({ model: m, onRun, note, onClose }) => (
+export const IndependentSheetBody = ({ model: m, onRun, note, onClose }) => {
+  const { t } = useT();
+  const turns = (n) => t('ind.turns', { count: n });
+  return (
   <>
     <div className="flex items-start gap-2.5 px-3 pt-3 pb-2 border-b border-fa-line">
       <ShieldMark personality={m.personality.id} size={40} />
       <div className="min-w-0 flex-1">
         <h2 className="fa-heading text-[19px] leading-tight truncate" data-testid="indep-name">{m.name}</h2>
-        <div className="fa-label !text-fa-indep">Independent · {m.personality.name}{m.freeCity ? ' · free city' : ''}</div>
+        <div className="fa-label !text-fa-indep">{t('ind.sheet.independent')} · {m.personality.name}{m.freeCity ? t('ind.sheet.freeCity') : ''}</div>
         <div className="text-[12px] text-fa-muted truncate">{m.facts.join(' · ')}{m.people ? ` · ${m.people}` : ''}</div>
         {m.cityState && <CityStateBadge view={m.cityState} />}
       </div>
-      {onClose && <button type="button" onClick={onClose} aria-label="Close" className="fa-icon-btn -me-1 -mt-1"><X className="w-4 h-4" /></button>}
+      {onClose && <button type="button" onClick={onClose} aria-label={t('ind.sheet.close')} className="fa-icon-btn -me-1 -mt-1"><X className="w-4 h-4" /></button>}
     </div>
     <div className="flex-1 overflow-y-auto p-3 grid gap-3 sm:grid-cols-2 pl:grid-cols-1 text-[12px] text-fa-text">
       <div className="space-y-3 min-w-0">
         {m.deals.raid && (
           <div className="rounded-lg border border-fa-danger bg-fa-danger/10 p-2 flex gap-2 items-start text-fa-text" data-testid="indep-raid">
             <Flame className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
-            <div>Their raid party is heading for {m.deals.raid.target}{m.deals.raid.eta != null ? `: about ${m.deals.raid.eta} turn${m.deals.raid.eta === 1 ? '' : 's'} away` : ''}. Meet it with an army, or keep your soldiers in the city.</div>
+            <div>{t('ind.sheet.raidHeading', { target: m.deals.raid.target, eta: m.deals.raid.eta != null ? t('ind.sheet.raidEta', { turns: turns(m.deals.raid.eta) }) : '' })}</div>
           </div>
         )}
         {m.deals.lastRaid && (
           <div className={`rounded-lg border p-2 text-[12px] ${m.deals.lastRaid.won ? 'border-fa-danger/70 bg-fa-danger/10 text-fa-text' : 'border-fa-good/60 bg-fa-good/10 text-fa-text'}`} data-testid="indep-last-raid">
-            <span className="font-semibold">Last raid on you, turn {m.deals.lastRaid.turn}:</span> {m.deals.lastRaid.text}{m.deals.lastRaid.won && m.deals.lastRaid.loot && !m.deals.lastRaid.text.includes('gold') ? ` They took ${m.deals.lastRaid.loot} gold.` : ''}
+            <span className="font-semibold">{t('ind.sheet.lastRaid', { n: m.deals.lastRaid.turn })}</span> {m.deals.lastRaid.text}{m.deals.lastRaid.won && m.deals.lastRaid.loot && !String(m.deals.lastRaid.englishText || '').includes('gold') ? t('ind.sheet.tookGold', { n: m.deals.lastRaid.loot }) : ''}
           </div>
         )}
         <section className="rounded-lg border border-fa-line bg-fa-raised/50 p-2.5 space-y-1.5" data-testid="indep-attitude">
-          <CardLabel right={<span className={`normal-case tracking-normal text-[12px] font-semibold ${TONE_TEXT[m.attitude.tone]}`}>{m.attitude.word} {signed(m.attitude.value)}</span>}>Toward you</CardLabel>
+          <CardLabel right={<span className={`normal-case tracking-normal text-[12px] font-semibold ${TONE_TEXT[m.attitude.tone]}`}>{m.attitude.word} {signed(m.attitude.value)}</span>}>{t('ind.sheet.towardYou')}</CardLabel>
           <AttitudeMeter value={m.attitude.value} tone={m.attitude.tone} />
           {m.attitude.reasons.length > 0 && (
             <ul className="space-y-0.5">
@@ -72,51 +76,51 @@ export const IndependentSheetBody = ({ model: m, onRun, note, onClose }) => (
           <div className="text-[11px] text-fa-muted">{m.attitude.joinRule}</div>
         </section>
         <section className="rounded-lg border border-fa-line bg-fa-raised/50 p-2.5 space-y-1.5" data-testid="indep-grudge">
-          <CardLabel right={<span className={`fa-num normal-case tracking-normal text-[12px] ${TONE_TEXT[m.grudge.tone]}`}>{m.grudge.value} / {m.grudge.max}</span>}>Grudge</CardLabel>
+          <CardLabel right={<span className={`fa-num normal-case tracking-normal text-[12px] ${TONE_TEXT[m.grudge.tone]}`}>{m.grudge.value} / {m.grudge.max}</span>}>{t('ind.sheet.grudge')}</CardLabel>
           <GrudgeMeter value={m.grudge.value} max={m.grudge.max} />
           {m.grudge.causes.length > 0
             ? <ul className="space-y-0.5">{m.grudge.causes.map((c, i) => <li key={i} className="flex justify-between gap-2"><span className="text-fa-text">{c.label}{c.turn != null ? `, T${c.turn}` : ''}</span><span className="fa-num text-fa-danger-text">+{c.amount}</span></li>)}</ul>
-            : m.grudge.value > 0 ? null : <div className="text-fa-muted">They hold nothing against you.</div>}
-          {m.grudge.value > 0 && <div className="text-[11px] text-fa-muted">Fades {m.grudge.decay} a turn: gone in {m.grudge.fadesIn} turns.{m.grudge.effects.length ? ` Now: ${m.grudge.effects.join('; ')}.` : ''}</div>}
+            : m.grudge.value > 0 ? null : <div className="text-fa-muted">{t('ind.sheet.holdNothing')}</div>}
+          {m.grudge.value > 0 && <div className="text-[11px] text-fa-muted">{t('ind.sheet.fades', { decay: m.grudge.decay, turns: m.grudge.fadesIn, now: m.grudge.effects.length ? t('ind.sheet.fadesNow', { list: m.grudge.effects.join('; ') }) : '' })}</div>}
         </section>
         {m.deals.demand && (
           <section className="rounded-lg border border-fa-enemy/70 bg-fa-ink/60 p-2.5 space-y-2" data-testid="indep-demand">
-            <CardLabel>They demand tribute</CardLabel>
-            <div><span className="fa-num font-semibold text-fa-brass">{m.deals.demand.gold} gold</span> a turn for {m.deals.demand.turns} turns. Pay: no raids on you. Refuse: grudge {m.grudge.value} to {m.deals.demand.afterRefuse}, and expect raiders. Answer within {m.deals.demand.turnsLeft} turn{m.deals.demand.turnsLeft === 1 ? '' : 's'}.</div>
-            <button type="button" onClick={() => openTributeDemand(m.deals.demand.id)} className="fa-btn fa-btn-secondary w-full" data-testid="indep-demand-open">Answer: pay, refuse or hire</button>
+            <CardLabel>{t('ind.sheet.theyDemand')}</CardLabel>
+            <div className="fa-num">{t('ind.sheet.demandBody', { gold: t('ind.sheet.goldWord', { n: m.deals.demand.gold }), turns: m.deals.demand.turns, a: m.grudge.value, b: m.deals.demand.afterRefuse, left: turns(m.deals.demand.turnsLeft) })}</div>
+            <button type="button" onClick={() => openTributeDemand(m.deals.demand.id)} className="fa-btn fa-btn-secondary w-full" data-testid="indep-demand-open">{t('ind.sheet.answer')}</button>
           </section>
         )}
         {(m.deals.youPay || m.deals.theyPay || m.deals.trade || m.deals.joinOffer) && (
           <section className="rounded-lg border border-fa-line bg-fa-raised/50 p-2.5 space-y-1" data-testid="indep-deals">
-            <CardLabel>Deals</CardLabel>
-            {m.deals.youPay && <div>You pay them {m.deals.youPay.gold} gold a turn until turn {m.deals.youPay.until}: no raids, no attacks.</div>}
-            {m.deals.theyPay && <div className="text-fa-good">They pay you {m.deals.theyPay.gold} gold a turn until turn {m.deals.theyPay.until}.</div>}
-            {m.deals.trade && <div className="text-fa-good">Trade: {m.deals.trade.gold} gold a turn each way.</div>}
-            {m.deals.joinOffer && <div className="text-fa-good">They offer to join you (answer by turn {m.deals.joinOffer.expires}).</div>}
+            <CardLabel>{t('ind.sheet.deals')}</CardLabel>
+            {m.deals.youPay && <div>{t('ind.sheet.youPay', { gold: m.deals.youPay.gold, n: m.deals.youPay.until })}</div>}
+            {m.deals.theyPay && <div className="text-fa-good">{t('ind.sheet.theyPay', { gold: m.deals.theyPay.gold, n: m.deals.theyPay.until })}</div>}
+            {m.deals.trade && <div className="text-fa-good">{t('ind.sheet.trade', { gold: m.deals.trade.gold })}</div>}
+            {m.deals.joinOffer && <div className="text-fa-good">{t('ind.sheet.joinOffer', { n: m.deals.joinOffer.expires })}</div>}
           </section>
         )}
       </div>
       <div className="space-y-3 min-w-0">
         {m.mercs && (
           <section className="space-y-1.5" data-testid="indep-mercs">
-            <CardLabel right={<span className="normal-case tracking-normal text-[11px]">{m.mercs.stock} band{m.mercs.stock === 1 ? '' : 's'} free</span>}>Mercenaries for hire</CardLabel>
+            <CardLabel right={<span className="normal-case tracking-normal text-[11px]">{t('ind.sheet.bandsFree', { bands: t('ind.bands', { count: m.mercs.stock }) })}</span>}>{t('ind.sheet.mercs')}</CardLabel>
             {m.mercs.offer ? (
               <div className="rounded-lg border border-fa-line bg-fa-raised/50 p-2 flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-fa-text truncate">{m.mercs.offer.unit}</div>
-                  <div className="fa-num text-[11px] text-fa-text">{m.mercs.offer.price}g · {m.mercs.offer.upkeep}/turn · {m.mercs.offer.turns} turns</div>
-                  <div className="text-[11px] text-fa-muted">Waits in {m.mercs.offer.waitIn}</div>
+                  <div className="fa-num text-[11px] text-fa-text">{m.mercs.offer.price}g · {m.mercs.offer.upkeep}/{t('ind.sheet.turnWord')} · {t('ind.sheet.turnsShort', { n: m.mercs.offer.turns })}</div>
+                  <div className="text-[11px] text-fa-muted">{t('ind.sheet.waitsIn', { place: m.mercs.offer.waitIn })}</div>
                 </div>
-                <button type="button" onClick={() => onRun(m.actions.find((a) => a.id === 'hire'))} className={`min-h-[44px] min-w-[64px] px-3 rounded-lg border font-semibold ${m.mercs.offer.affordable ? 'border-fa-line bg-fa-panel hover:bg-fa-hover text-fa-text' : 'border-dashed border-fa-line text-fa-muted'}`} data-testid="hire-mercenary">Hire</button>
+                <button type="button" onClick={() => onRun(m.actions.find((a) => a.id === 'hire'))} className={`min-h-[44px] min-w-[64px] px-3 rounded-lg border font-semibold ${m.mercs.offer.affordable ? 'border-fa-line bg-fa-panel hover:bg-fa-hover text-fa-text' : 'border-dashed border-fa-line text-fa-muted'}`} data-testid="hire-mercenary">{t('ind.sheet.hire')}</button>
               </div>
             ) : <div className="text-fa-muted">{m.mercs.reason}</div>}
-            {m.mercs.hired.length > 0 && <div className="text-[11px] text-fa-text">Your bands from them: {m.mercs.hired.map((h) => `until turn ${h.until}`).join(', ')}.</div>}
+            {m.mercs.hired.length > 0 && <div className="text-[11px] text-fa-text">{t('ind.sheet.bandsFrom', { list: m.mercs.hired.map((h) => t('ind.sheet.untilTurn', { n: h.until })).join(', ') })}</div>}
             <div className="text-[11px] text-fa-muted">{m.mercs.note}</div>
           </section>
         )}
         {m.alive ? (
           <section className="space-y-1.5" data-testid="indep-actions">
-            <CardLabel>Actions</CardLabel>
+            <CardLabel>{t('ind.sheet.actions')}</CardLabel>
             <div className="grid grid-cols-2 gap-2">
               {m.actions.filter((a) => a.id !== 'hire' || !m.mercs).map((a) => (
                 <button key={a.id} type="button" onClick={() => onRun(a)} className={`${actionClass(a)}${note?.id === a.id ? ' outline outline-2 outline-fa-text' : ''}`} data-testid={`indep-action-${a.id}`} data-ok={a.ok ? 'true' : 'false'} aria-describedby={note?.id === a.id ? 'indep-note' : undefined}>
@@ -135,14 +139,16 @@ export const IndependentSheetBody = ({ model: m, onRun, note, onClose }) => (
               </div>
             )}
           </section>
-        ) : <div className="text-fa-muted">{m.name} are no more: {m.facts[0]}.</div>}
+        ) : <div className="text-fa-muted">{t('ind.sheet.noMore', { name: m.name, why: m.facts[0] })}</div>}
       </div>
     </div>
   </>
-);
+  );
+};
 
 const IndependentSheet = ({ indepId, onClose }) => {
   const { state, dispatch } = useGame();
+  const { t } = useT();
   const m = useMemo(() => independentSheetModel(state, indepId), [state, indepId]);
   const [note, setNote] = useState(null);
   if (!m) return null;
@@ -154,16 +160,16 @@ const IndependentSheet = ({ indepId, onClose }) => {
   // Reasons on tap: a blocked action explains itself; one that would backfire asks first.
   const onRun = (a) => {
     if (!a) return;
-    if (!a.ok) { setNote({ id: a.id, ok: false, text: a.reason || 'Not possible now.' }); return; }
+    if (!a.ok) { setNote({ id: a.id, ok: false, text: a.reason || t('ind.sheet.notPossible') }); return; }
     if ((a.warn || a.id === 'attack') && note?.id !== a.id) {
-      setNote({ id: a.id, ok: true, text: a.reason, confirm: () => go(a), confirmLabel: a.id === 'attack' ? 'Go to the city to attack' : `${a.label} anyway` });
+      setNote({ id: a.id, ok: true, text: a.reason, confirm: () => go(a), confirmLabel: a.id === 'attack' ? t('ind.sheet.goAttack') : t('ind.sheet.anyway', { label: a.label }) });
       return;
     }
     go(a);
   };
   return (
     <div className="fixed inset-0 z-[66] bg-black/50 flex items-end sm:items-center justify-center sheet-backdrop" onClick={onClose} data-testid="independent-sheet">
-      <div onClick={(e) => e.stopPropagation()} className="sheet-panel fa-sheet w-full sm:max-w-3xl max-h-[88dvh] flex flex-col border border-dashed border-fa-indep/70 rounded-t-2xl sm:rounded-[10px] shadow-2xl text-fa-text" role="dialog" aria-label={`${m.name}, independent city`}>
+      <div onClick={(e) => e.stopPropagation()} className="sheet-panel fa-sheet w-full sm:max-w-3xl max-h-[88dvh] flex flex-col border border-dashed border-fa-indep/70 rounded-t-2xl sm:rounded-[10px] shadow-2xl text-fa-text" role="dialog" aria-label={t('ind.sheet.ariaCity', { name: m.name })}>
         <IndependentSheetBody model={m} onRun={onRun} note={note} onClose={onClose} />
       </div>
     </div>

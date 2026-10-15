@@ -20,7 +20,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
 import { LogTypes } from '../data/types';
-import { msg, sub, people, cityRef } from './messages';
+import { msg, sub, people, cityRef, reasonOf } from './messages';
 import { getAvailableClasses } from '../data/unitClasses';
 import {
   isIndependentNation, INDEPENDENT_GOLD_CAP, MERC_SELLERS, MERC_STOCK, MERC_RESTOCK_TURNS, MERC_CONTRACT_TURNS, MERC_KM, MERC_MAX_GRUDGE,
@@ -69,20 +69,20 @@ const classFor = (personality, ageId) => {
  */
 export const mercOffer = (state, sellerId, buyerId, { buyerCities = null } = {}) => {
   const seller = state.nations?.[sellerId];
-  if (!isIndependentNation(seller) || seller.isEliminated) return { ok: false, reason: 'Not an independent city.' };
+  if (!isIndependentNation(seller) || seller.isEliminated) return { ok: false, ...reasonOf('m.why.mercNotIndep') };
   const personality = seller.indep?.personality;
-  if (!MERC_SELLERS.includes(personality)) return { ok: false, reason: 'They do not sell mercenaries.' };
+  if (!MERC_SELLERS.includes(personality)) return { ok: false, ...reasonOf('m.why.mercNoSell') };
   const turn = state.turnNumber || 0;
-  if (mercStockOf(seller, turn) <= 0) return { ok: false, reason: 'No band is free: come back later.' };
+  if (mercStockOf(seller, turn) <= 0) return { ok: false, ...reasonOf('m.why.mercNoBand') };
   const home = state.regions?.[seller.capitalRegionId];
-  if (!home || home.tile == null || home.owner !== sellerId) return { ok: false, reason: 'Their city is lost.' };
+  if (!home || home.tile == null || home.owner !== sellerId) return { ok: false, ...reasonOf('m.why.mercCityLost') };
   const ageId = state.age || 'bronze';
   const base = { price: mercPrice(ageId), upkeep: mercUpkeep(ageId), classId: classFor(personality, ageId) };
   if (buyerId === sellerId) return { ok: true, ...base, cityId: home.id, rings: 0 };
   const buyer = state.nations?.[buyerId];
-  if (!buyer || buyer.isEliminated || isIndependentNation(buyer)) return { ok: false, reason: 'Only a nation can hire them.' };
-  if (grudgeOf(seller, buyerId) >= MERC_MAX_GRUDGE) return { ok: false, reason: 'They hold a grudge against you and will not sell.' };
-  if (seller.indep?.raid?.targetNationId === buyerId) return { ok: false, reason: 'They are raiding you.' };
+  if (!buyer || buyer.isEliminated || isIndependentNation(buyer)) return { ok: false, ...reasonOf('m.why.mercOnlyNation') };
+  if (grudgeOf(seller, buyerId) >= MERC_MAX_GRUDGE) return { ok: false, ...reasonOf('m.why.mercGrudge') };
+  if (seller.indep?.raid?.targetNationId === buyerId) return { ok: false, ...reasonOf('m.why.mercRaiding') };
   const near = ringsAround(getTiles(), home.tile, ringsForKm(MERC_KM));
   let best = null;
   (buyerCities || Object.values(state.regions || {})).forEach((c) => {
@@ -91,7 +91,7 @@ export const mercOffer = (state, sellerId, buyerId, { buyerCities = null } = {})
     if (d == null) return;
     if (!best || d < best.rings || (d === best.rings && c.id < best.cityId)) best = { cityId: c.id, rings: d };
   });
-  if (!best) return { ok: false, reason: 'None of your cities is close enough.' };
+  if (!best) return { ok: false, ...reasonOf('m.why.mercFar') };
   return { ok: true, ...base, ...best };
 };
 
@@ -124,8 +124,8 @@ export const hireMercenary = (state, sellerId, buyerId, { offer = mercOffer(stat
 export const hireMercenaryForPlayer = (state, sellerId) => {
   const me = state.playerNationId;
   const offer = mercOffer(state, sellerId, me);
-  if (!offer.ok) return { reason: offer.reason };
-  if ((state.resources?.gold || 0) < offer.price) return { reason: `You need ${offer.price} gold.` };
+  if (!offer.ok) return { reason: offer.reason, reasonMsg: offer.reasonMsg };
+  if ((state.resources?.gold || 0) < offer.price) return reasonOf('m.why.mercGold', { gold: offer.price });
   const hired = hireMercenary(state, sellerId, me, { offer });
   const seller = state.nations[sellerId];
   const w = { playerId: me, resources: { ...state.resources }, nations: { ...state.nations } };

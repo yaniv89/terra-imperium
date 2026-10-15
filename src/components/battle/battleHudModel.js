@@ -11,16 +11,16 @@
 //                     it shows what is committed: the verdict, the participant ledger's losses, the
 //                     XP really gained, each general's real fate, the city as it then stands, the
 //                     gold that reaches the treasury. Without one (the sandbox) it reads the battle.
-import { getSquadDisplayName } from '../../battle/data/battleStats';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
+import { squadName, ecoLabel, auxiliaryText, msgRefText, carryText } from './battleText';
 import { getRankForXp } from '../../data/promotions';
 import { getGeneralXpMultiplier } from '../../data/generals';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN, XP_LOSE } from '../../engine/battleOutcome';
 import { playerWon } from '../../engine/battleReports';
-import { auxiliaryLine } from '../../engine/battleLedger';
 import { TICK_HZ, Q } from '../../battle/sim/constants';
 import { isBaseType } from '../../battle/sim/base';
-import { ecoName } from '../../battle/data/economy';
 import { describeOutcome, verificationNotice } from './battleReportView';
 import { resultOf } from './battleReportsModel';
 import { SHAKEN_MORALE } from '../../battle/sim/morale';
@@ -48,13 +48,13 @@ export const armyTally = (hud, side) => {
   return t;
 };
 /** The tally in words: "8 on the field, 2 killed, 1 routed, 1 withdrew, 2 arriving". */
-export const armyTallyText = (t) => [
-  `${t.field} on the field`,
-  t.killed ? `${t.killed} killed` : null,
-  t.routed ? `${t.routed} routed` : null,
-  t.withdrew ? `${t.withdrew} withdrew` : null,
-  t.arriving ? `${t.arriving} arriving` : null,
-  t.out ? `${t.out} kept out (over 300)` : null
+export const armyTallyText = (tally) => [
+  t('bt.tally.field', { n: tally.field }),
+  tally.killed ? t('bt.tally.killed', { n: tally.killed }) : null,
+  tally.routed ? t('bt.tally.routed', { n: tally.routed }) : null,
+  tally.withdrew ? t('bt.tally.withdrew', { n: tally.withdrew }) : null,
+  tally.arriving ? t('bt.tally.arriving', { n: tally.arriving }) : null,
+  tally.out ? t('bt.tally.out', { n: tally.out }) : null
 ].filter(Boolean).join(', ');
 
 /**
@@ -77,7 +77,7 @@ export const contextFor = ({ selectedSquads = [], building = null, inspect = nul
 export const selectionSummary = (selected = []) => {
   if (!selected.length) return null;
   const kinds = [...new Set(selected.map((q) => q.classId))];
-  const name = kinds.length === 1 ? (kinds[0] === 'worker' ? 'Laborers' : getSquadDisplayName(kinds[0], selected[0].ageId)) : `${kinds.length} kinds`;
+  const name = kinds.length === 1 ? (kinds[0] === 'worker' ? t('bt.sel.laborers') : squadName(kinds[0], selected[0].ageId)) : t('bt.sel.kinds', { n: kinds.length });
   const men = sum(selected, (q) => Math.max(0, q.strength));
   const max = sum(selected, (q) => Math.max(1, q.maxStrength));
   const morale = Math.round(sum(selected, (q) => q.morale) / selected.length);
@@ -127,11 +127,11 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
     const p = prev.structures[i];
     if (!p) return;
     if (p.alive && !s.alive && (s.kind === 'gate' || s.kind === 'tower' || s.kind === 'keep')) {
-      const what = s.kind === 'gate' ? 'Gate breached' : s.kind === 'tower' ? 'A tower falls' : 'The keep falls';
-      out.push({ id: `s${i}`, kind: s.kind, title: what, detail: attacking ? 'Your way in is open.' : 'Your defences are giving way.', x: s.x, y: s.y, tick: cur.tick, tone: attacking ? 'good' : 'danger' });
+      const what = s.kind === 'gate' ? t('bt.alert.gate') : s.kind === 'tower' ? t('bt.alert.tower') : t('bt.alert.keepFalls');
+      out.push({ id: `s${i}`, kind: s.kind, title: what, detail: attacking ? t('bt.alert.wayIn') : t('bt.alert.defGiving'), x: s.x, y: s.y, tick: cur.tick, tone: attacking ? 'good' : 'danger' });
     }
     if (i === 0 && s.alive && p.hp > p.maxHp / 2 && s.hp <= s.maxHp / 2) {
-      out.push({ id: 'keep-half', kind: 'keep', title: attacking ? 'The keep is at half' : 'Your keep is at half', detail: `${Math.round(s.hp)} of ${s.maxHp} HP`, x: s.x, y: s.y, tick: cur.tick, tone: attacking ? 'good' : 'danger' });
+      out.push({ id: 'keep-half', kind: 'keep', title: attacking ? t('bt.alert.keepHalfAtk') : t('bt.alert.keepHalfDef'), detail: t('bt.alert.hpOf', { hp: Math.round(s.hp), max: s.maxHp }), x: s.x, y: s.y, tick: cur.tick, tone: attacking ? 'good' : 'danger' });
     }
   });
   // Your squads never rout in a commanded battle: one beaten down is Shaken (Go selects it, Rally Cry
@@ -141,16 +141,16 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
     const p = prev.squads[i];
     if (!p) return;
     if (q.side === playerSide) {
-      if (!isShakenView(p) && isShakenView(q) && q.onField) out.push({ id: `sh${q.idx}`, kind: 'shaken', squad: q.idx, title: `${getSquadDisplayName(q.classId, q.ageId)} shaken`, detail: 'Weaker until morale returns; Rally Cry helps.', x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
+      if (!isShakenView(p) && isShakenView(q) && q.onField) out.push({ id: `sh${q.idx}`, kind: 'shaken', squad: q.idx, title: t('bt.alert.squadShaken', { name: squadName(q.classId, q.ageId) }), detail: t('bt.alert.shakenDetail'), x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
     } else if (!p.routed && q.routed && q.alive && q.visible !== false) broke.push(q);
   });
-  if (broke.length) out.push({ id: `b${cur.tick}`, kind: 'broke', title: broke.length === 1 ? `Enemy ${getSquadDisplayName(broke[0].classId, broke[0].ageId).toLowerCase()} broke` : `${broke.length} enemy squads broke`, detail: 'Running for their edge.', x: broke[0].x, y: broke[0].y, tick: cur.tick, tone: 'good' });
+  if (broke.length) out.push({ id: `b${cur.tick}`, kind: 'broke', title: broke.length === 1 ? t('bt.alert.enemyBroke', { name: squadName(broke[0].classId, broke[0].ageId).toLowerCase() }) : t('bt.alert.enemiesBroke', { n: broke.length }), detail: t('bt.alert.running'), x: broke[0].x, y: broke[0].y, tick: cur.tick, tone: 'good' });
   const hitWorkers = cur.squads.filter((q, i) => q.side === playerSide && q.classId === 'worker' && q.alive && prev.squads[i] && q.strength < prev.squads[i].strength);
   if (hitWorkers.length && cur.tick - (last.workers ?? -Infinity) >= WORKER_ALERT_GAP) {
-    out.push({ id: `w${cur.tick}`, kind: 'workers', title: 'Workers under attack', detail: `${hitWorkers.length} squad${hitWorkers.length === 1 ? '' : 's'} hit.`, x: hitWorkers[0].x, y: hitWorkers[0].y, tick: cur.tick, tone: 'danger' });
+    out.push({ id: `w${cur.tick}`, kind: 'workers', title: t('bt.alert.workersHit'), detail: t('bt.alert.squadsHit', { count: hitWorkers.length }), x: hitWorkers[0].x, y: hitWorkers[0].y, tick: cur.tick, tone: 'danger' });
   }
   const arriving = cur.squads.filter((q, i) => q.side !== playerSide && q.reinforcement && q.onField && prev.squads[i] && !prev.squads[i].onField && q.visible);
-  if (arriving.length) out.push({ id: `e${cur.tick}`, kind: 'reinforcements', title: 'Enemy reinforcements', detail: `${arriving.length} squad${arriving.length === 1 ? '' : 's'} from ${arriving[0].reinforcement.name || 'the edge'}.`, x: arriving[0].x, y: arriving[0].y, tick: cur.tick, tone: 'danger' });
+  if (arriving.length) out.push({ id: `e${cur.tick}`, kind: 'reinforcements', title: t('bt.alert.reinforcements'), detail: t('bt.alert.reinfFrom', { count: arriving.length, from: arriving[0].reinforcement.name ? nameNow('place', null, arriving[0].reinforcement.name) : t('bt.alert.theEdge') }), x: arriving[0].x, y: arriving[0].y, tick: cur.tick, tone: 'danger' });
   return out;
 };
 
@@ -176,11 +176,11 @@ export const enemyObjectives = (hud, setup, playerSide, from = null) => {
   const targets = [];
   const keep = hud?.structures?.[0];
   // The keep (or the town hall standing for it) is the defender's.
-  if (enemy === 1 && keep?.alive && keep.kind === 'keep') targets.push({ x: keep.x / Q, y: keep.y / Q, label: 'Their keep' });
+  if (enemy === 1 && keep?.alive && keep.kind === 'keep') targets.push({ x: keep.x / Q, y: keep.y / Q, label: t('bt.obj.theirKeep') });
   const ageId = setup?.sides?.[enemy]?.ageId;
   (hud?.eco?.buildings || []).forEach((b) => {
     if (b.side !== enemy || !b.alive || b.proxy || !b.built || !isBaseType(b.type)) return;
-    targets.push({ x: b.x / Q, y: b.y / Q, label: `Their ${ecoName(b.type, ageId).toLowerCase()}` });
+    targets.push({ x: b.x / Q, y: b.y / Q, label: t('bt.obj.theirs', { what: ecoLabel(b.type, ageId).toLowerCase() }) });
   });
   if (from) targets.sort((a, b) => ((a.x - from.x) ** 2 + (a.y - from.y) ** 2) - ((b.x - from.x) ** 2 + (b.y - from.y) ** 2));
   const map = setup?.map || {};
@@ -191,9 +191,9 @@ export const enemyObjectives = (hud, setup, playerSide, from = null) => {
   const seen = (hud?.squads || []).filter((q) => q.side === enemy && q.alive && q.onField && !q.fled && q.visible !== false);
   if (seen.length) {
     const x = seen.reduce((s, q) => s + q.x, 0) / seen.length / Q; const y = seen.reduce((s, q) => s + q.y, 0) / seen.length / Q;
-    return { targets: [{ x, y, label: 'Enemy troops in sight' }], note: `Their base is not seen yet; ${seen.length} enemy squad${seen.length === 1 ? '' : 's'} in sight.`, fallback };
+    return { targets: [{ x, y, label: t('bt.obj.troopsSight') }], note: t('bt.obj.noteSeen', { count: seen.length }), fallback };
   }
-  return { targets: [], note: `Their base is not seen yet. They are to the ${enemy === 0 ? 'west' : 'east'}: send troops to look.`, fallback };
+  return { targets: [], note: t(enemy === 0 ? 'bt.obj.noteWest' : 'bt.obj.noteEast'), fallback };
 };
 
 /**
@@ -203,7 +203,7 @@ export const enemyObjectives = (hud, setup, playerSide, from = null) => {
 export const supplyView = (hud, setup, playerSide, rate = null) => {
   const now = Math.floor(hud?.supply?.[playerSide] || 0);
   const cap = setup?.supplyCap || null;
-  const costs = (hud?.powers || []).filter((p) => p.cost > 0 && p.usesLeft > 0).map((p) => ({ label: p.label, cost: p.cost }));
+  const costs = (hud?.powers || []).filter((p) => p.cost > 0 && p.usesLeft > 0).map((p) => ({ id: p.id, label: p.label, cost: p.cost }));
   const cheapest = costs.length ? Math.min(...costs.map((c) => c.cost)) : null;
   return { now, cap, rate, costs, low: cheapest !== null && now < cheapest };
 };
@@ -219,8 +219,8 @@ export const supplyRate = (samples) => {
 
 /** What the player is told when the battle loop refused orders (its `ordersRefused` message). */
 export const refusedText = (m) => (m?.full
-  ? 'The battle cannot take more orders: its order log is full. Your troops fight on by themselves.'
-  : `${m?.count > 1 ? `${m.count} orders were` : 'That order was'} not taken by the battle. Please try again.`);
+  ? t('bt.refused.full')
+  : m?.count > 1 ? t('bt.refused.many', { count: m.count }) : t('bt.refused.one'));
 
 /** How long the battle has left at each speed, in minutes. */
 export const minutesLeft = (seconds, speed = 1) => Math.max(0, Math.round(seconds / 60 / speed));
@@ -234,11 +234,11 @@ const lossOf = (units, before) => {
 const fromLedger = (t) => ({ start: t.before, end: t.after + t.fled, lost: t.fallen, destroyed: t.destroyed, fled: t.fled, runDown: t.runDown });
 
 const GENERAL_TEXT = {
-  survived: (name) => `${name} survived.`,
-  fell: (name) => `${name} fell with the regiment.`,
-  escaped: (name) => `${name} escaped the rout, without a regiment now.`
+  survived: (name) => t('bt.result.generalSurvived', { name }),
+  fell: (name) => t('bt.result.generalFell', { name }),
+  escaped: (name) => t('bt.result.generalEscaped', { name })
 };
-const xpRuleOf = (base, won, draw) => `${base} for a ${won ? 'win' : draw ? 'draw' : 'loss'}, x1.25 with a logistician general, plus up to 20 for the fighting you did`;
+const xpRuleOf = (base, won, draw) => t(won ? 'bt.result.xpWin' : draw ? 'bt.result.xpDraw' : 'bt.result.xpLoss', { base });
 // Gold looted inside a battle is spent inside it: only gold the campaign pays in is "yours".
 const lootOf = (eco, goldGained = 0) => (goldGained > 0 ? { gold: goldGained, banked: true } : eco?.looted > 0 ? { gold: eco.looted, banked: false } : null);
 
@@ -260,16 +260,17 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
     duration: tac.durationSec || 0,
     workersLost: eco?.workersLost ?? null,
     auto: Number.isFinite(autoWin)
-      ? `Auto wins this battle ${Math.round(autoWin * 100)}% of the time; it counts the same either way.`
-      : 'Auto is tuned to score about the same as playing: it counts the same either way.'
+      ? t('bt.result.autoWins', { pct: Math.round(autoWin * 100) })
+      : t('bt.result.autoTuned')
   };
   const empty = { mine: null, theirs: null, xp: [], xpRule: null, generals: [], city: null, loot: null, aux: null, notice: null, headline: null };
 
   // The campaign is still counting the battle: no number is shown before it is the final one.
-  if (receipt?.pending) return { ...common, ...empty, state: 'pending', won: false, draw: true, verdict: 'The battle is over', line: 'Counting the result with the campaign.' };
+  if (receipt?.pending) return { ...common, ...empty, state: 'pending', won: false, draw: true, verdict: t('bt.result.over'), line: t('bt.result.counting') };
   // The battle changed nothing on the map (peace was made, the target can no longer be fought).
   if (receipt && receipt.applied === false && !receipt.failed) {
-    return { ...common, ...empty, state: 'void', won: false, draw: true, verdict: 'No effect', line: receipt.voidLine || 'This battle changed nothing on the map.' };
+    const voidAt = (receipt.lines || []).indexOf(receipt.voidLine);
+    return { ...common, ...empty, state: 'void', won: false, draw: true, verdict: t('bt.result.noEffect'), line: (receipt.voidLine ? carryText(receipt.lineMsgs?.[voidAt], receipt.voidLine) : null) || t('bt.result.voidLine') };
   }
 
   // What the campaign commits: the report entry and its ledger, read off the same reducer Continue runs.
@@ -282,16 +283,16 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
       state: 'committed', won, draw,
       verdict: resultOf(e).label,
       headline: describeOutcome(e).text,
-      line: receipt.line,
+      line: msgRefText(receipt.lineMsg, receipt.line),
       reason: e.reason || common.reason,
       duration: e.durationSec || common.duration,
       mine: fromLedger(receipt.ledger.mine), theirs: fromLedger(receipt.ledger.theirs),
-      xp: receipt.xp.map((x) => ({ id: x.id, name: getSquadDisplayName(x.classId, ageId), gained: x.gained, rankUp: x.rankUp })),
+      xp: receipt.xp.map((x) => ({ id: x.id, name: squadName(x.classId, ageId), gained: x.gained, rankUp: x.rankUp })),
       xpRule: xpRuleOf(base, won, draw),
       generals: receipt.generals.map((g) => ({ name: g.name, fate: g.fate, text: GENERAL_TEXT[g.fate](g.name) })),
-      city: setup.city ? { committed: true, line: receipt.cityLine, taken: !!receipt.city?.taken, control: receipt.city?.control ?? null } : null,
+      city: setup.city ? { committed: true, line: carryText(receipt.cityLineMsg, receipt.cityLine), taken: !!receipt.city?.taken, control: receipt.city?.control ?? null } : null,
       loot: lootOf(eco, receipt.goldGained),
-      aux: auxiliaryLine(receipt.ledger.aux),
+      aux: auxiliaryText(receipt.ledger.aux),
       notice: verificationNotice(e)
     };
   }
@@ -311,14 +312,14 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
     const gained = Math.round(base * mult) + bonus;
     const before = u.xp || 0;
     const rankUp = getRankForXp(before + gained) !== getRankForXp(before) ? getRankForXp(before + gained) : null;
-    return { id: u.id, name: getSquadDisplayName(u.classId, ageId), gained, bonus, mult, rankUp };
+    return { id: u.id, name: squadName(u.classId, ageId), gained, bonus, mult, rankUp };
   }).sort((a, b) => b.gained - a.gained);
   const generals = myUnits.filter((u) => u.commanderId).map((u) => {
     const g = commanders[u.commanderId];
-    const name = g?.name || 'Your general';
+    const name = g?.name || t('bt.result.yourGeneral');
     if (u.strength > 0) return { name, fate: 'survived', text: GENERAL_TEXT.survived(name) };
     const falls = campaign.turnNumber != null ? hashRoll(`${u.id}|${campaign.turnNumber}`) < COMMANDER_FALL_CHANCE : null;
-    return { name, fate: falls === null ? 'unknown' : falls ? 'fell' : 'escaped', text: falls === null ? `${name}'s regiment was destroyed: a ${Math.round(COMMANDER_FALL_CHANCE * 100)}% chance to fall.` : GENERAL_TEXT[falls ? 'fell' : 'escaped'](name) };
+    return { name, fate: falls === null ? 'unknown' : falls ? 'fell' : 'escaped', text: falls === null ? t('bt.result.generalDestroyed', { name, pct: Math.round(COMMANDER_FALL_CHANCE * 100) }) : GENERAL_TEXT[falls ? 'fell' : 'escaped'](name) };
   });
   let city = null;
   if (setup.city && tac.cityDamage) {
@@ -332,14 +333,14 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
   return {
     ...common,
     state: 'preview', won, draw,
-    verdict: draw ? 'Stalemate' : won ? (playerSide === 1 ? 'Held' : 'Victory') : 'Defeat',
+    verdict: draw ? t('bt.result.stalemate') : won ? (playerSide === 1 ? t('bt.result.held') : t('bt.result.victory')) : t('bt.result.defeat'),
     headline: null, line: null,
     mine: lossOf(myUnits, setup.sides[playerSide].units), theirs: lossOf(theirUnits, setup.sides[1 - playerSide].units),
     xp, xpRule: xpRuleOf(base, won, draw),
     generals,
     city,
     loot: lootOf(eco),
-    aux: auxTrained > 0 ? auxiliaryLine({ squads: auxTrained, standing: Object.values(eco.auxiliariesStanding || {}).reduce((s, n) => s + n, 0) }) : null,
-    notice: receipt?.failed ? 'The campaign could not show its count of this battle here. Continue hands the battle over; Battle reports will have the final numbers.' : null
+    aux: auxTrained > 0 ? auxiliaryText({ squads: auxTrained, standing: Object.values(eco.auxiliariesStanding || {}).reduce((s, n) => s + n, 0) }) : null,
+    notice: receipt?.failed ? t('bt.result.campaignFailed') : null
   };
 };
