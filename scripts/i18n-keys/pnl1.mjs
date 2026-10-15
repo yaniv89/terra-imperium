@@ -78,14 +78,14 @@ export default [
 
   // government change card and dialog
   ['p1.gov.stabilityLine', 'Stability {a} (to {to}).', 'יציבות {a} (ל־{to}).'],
-  ['p1.gov.authorityLine', 'Authority {from} to {to}.', 'סמכות {from} ל־{to}.'],
+  ['p1.gov.authorityLine', 'Authority {from} to {to}.', 'סמכות {from} ← {to}.'],
   ['p1.gov.locksLine', 'Authority falls under {n}: you cannot enact laws until it recovers.', 'הסמכות יורדת מתחת ל־{n}: אי אפשר לחוקק חוקים עד שתתאושש.'],
   ['p1.gov.staysLine', 'Authority stays under {n}: laws stay locked.', 'הסמכות נשארת מתחת ל־{n}: החוקים נשארים נעולים.'],
   ['p1.gcd.title', 'Become a {name}?', 'לעבור ל{name}?'],
   ['p1.gcd.nothing', 'Nothing changes until you confirm.', 'שום דבר לא ישתנה עד שתאשרו.'],
   ['p1.gcd.cost', 'Cost', 'עלות'],
   ['p1.gcd.cannotAfford', ' (you cannot afford it yet)', ' (אין לכם מספיק עדיין)'],
-  ['p1.gcd.fromTo', '{from} to {to}', 'מ־{from} ל־{to}'],
+  ['p1.gcd.fromTo', '{from} to {to}', '{from} ← {to}'],
   ['p1.gcd.locks', 'Authority falls under {n}: you cannot enact any law until it recovers.', 'הסמכות יורדת מתחת ל־{n}: אי אפשר לחוקק שום חוק עד שתתאושש.'],
   ['p1.gcd.stays', 'Authority stays under {n}: laws stay locked.', 'הסמכות נשארת מתחת ל־{n}: החוקים נשארים נעולים.'],
   ['p1.gcd.youLose', 'You lose', 'תאבדו'],

@@ -2,7 +2,7 @@
 // Extra Hebrew audit screens for the Empire tab (lane B1): a rich empire with every section open, the
 // government change dialog, a law change, hiring an advisor, the Space tab, the Legacy tab, the game over
 // modal and the age / elimination banners. Run: --only start,pnl1
-export default async ({ step, record, click, tid, has, wait, esc, patch, gs, railTab, closeAllCards, getPage }) => {
+export default async ({ step, record, tid, has, wait, esc, patch, railTab, closeAllCards, getPage }) => {
   const page = () => getPage();
   const richPatch = `
     const me = s.playerNationId;
@@ -22,8 +22,6 @@ export default async ({ step, record, click, tid, has, wait, esc, patch, gs, rai
   };
 
   await step('pnl1-empire', async () => {
-    page().on('pageerror', (e) => console.log('  PAGEERROR', String(e).slice(0, 300)));
-    page().on('console', (m) => { if (m.type() === 'error') console.log('  CONSOLE', m.text().slice(0, 300)); });
     await closeAllCards();
     await patch(richPatch);
     await wait(600);
@@ -36,14 +34,10 @@ export default async ({ step, record, click, tid, has, wait, esc, patch, gs, rai
     if (hired) await record('pnl1 empire: after hiring an advisor');
     const law = await clickText(/\(\d+ (ADM|ניהול)\)/);
     if (law) await record('pnl1 empire: after a law change');
-    console.log('  dock buttons:', JSON.stringify(await page().evaluate(() => [...document.querySelectorAll('[data-testid="landscape-dock"] button')].map((b) => `${b.disabled ? '!' : ''}${b.innerText.replace(/\s+/g, ' ').slice(0, 24)}`))));
     await page().evaluate(() => document.querySelector('[data-testid="goal-tracker-chip"][aria-expanded="true"]')?.click());
     await wait(300);
     const gov = await clickText(/^\s*(Become|מעבר ל)/);
     await wait(600);
-    console.log('  preview:', JSON.stringify(await page().evaluate(async () => { const m = await import('/terra-imperium/src/engine/governmentPreview.js'); const s = window.__game.state; const a = m.previewGovernmentChange(s, 'monarchy', {}); const b = m.previewGovernmentChange(s, 'monarchy'); const x = await import('/terra-imperium/src/hooks/useExclusivePanel.js'); return [a.ok, b.ok, x.interactions.isShown('government-change'), x.interactions.chips().map((c) => c.id + ':' + c.label)]; })));
-    await page().screenshot({ path: 'plans/ui/hebrew-audit/he-pnl1_debug_gov.png' });
-    console.log('  gov click:', gov, 'dialogs:', await page().locator('[role="alertdialog"]').count(), 'testid:', await page().locator('[data-testid="government-change-dialog"]').count());
     if (gov && await page().locator('[data-testid="government-change-dialog"]').count()) {
       await record('pnl1 government change dialog');
       const reform = page().locator('[data-testid^="gov-reform-"]');
