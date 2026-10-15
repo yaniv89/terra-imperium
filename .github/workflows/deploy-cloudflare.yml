@@ -35,6 +35,27 @@ jobs:
           VITE_BASE: /
           NODE_OPTIONS: --max-old-space-size=12288
 
+      # A test APK for Android, published next to the site at /terra-imperium.apk. It is a thin
+      # Capacitor shell (android/) that opens the live site full screen in landscape, so it never
+      # needs rebuilding for game changes. Debug-signed: install by allowing unknown sources.
+      # Every APK step may fail without stopping the site deploy.
+      - uses: actions/setup-java@v4
+        continue-on-error: true
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build the Android test APK (opens the live site)
+        continue-on-error: true
+        run: |
+          mkdir -p www
+          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=https://terra-imperium.pages.dev/">' > www/index.html
+          node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('capacitor.config.json','utf8'));c.server={url:'https://terra-imperium.pages.dev',cleartext:false,androidScheme:'https'};fs.writeFileSync('capacitor.config.json',JSON.stringify(c,null,2));"
+          npx cap sync android
+          cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../dist/terra-imperium.apk
+          ls -la ../dist/terra-imperium.apk
+
       - name: Create the Pages project (first run only)
         run: npx wrangler@3 pages project create terra-imperium --production-branch main || true
         env:
