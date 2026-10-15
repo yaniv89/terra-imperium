@@ -5,7 +5,9 @@
 // starting set: phase H4b adds every people, city, ruler, general, battle and river.
 
 // By people id (src/data/peoples.js).
-export const HE_PEOPLES = Object.freeze({
+import { HE_PEOPLES_MORE, HE_CITIES_MORE } from './locales/data/he.names';
+
+const MAJOR_PEOPLES = Object.freeze({
   israel: 'ישראל', akkad: 'אכד', elam: 'עילם', pontus: 'פונטוס', saba: 'שבא',
   kemet: 'כמת', kerma: 'כרמה', numidia: 'נומידיה', garamantes: 'גרמנטס',
   ahhiyawa: 'אחיאווה', rasenna: 'ראסנה', tartessos: 'טרטסוס', arverni: 'ארברני', brigantes: 'בריגנטס',
@@ -19,8 +21,10 @@ export const HE_PEOPLES = Object.freeze({
   caral: 'קראל', tiwanaku: 'טיוואנאקו', tupinamba: 'טופינמבה', gunditjmara: "גונדיצ'מרה"
 });
 
-// By the English city name (the capitals of the 50 majors).
-export const HE_CITIES = Object.freeze({
+export const HE_PEOPLES = Object.freeze({ ...HE_PEOPLES_MORE, ...MAJOR_PEOPLES });
+
+// By the English city name (the capitals of the 50 majors, and the rest in locales/data/he.names.js).
+const MAJOR_CITIES = Object.freeze({
   'Jerusalem': 'ירושלים', 'Kish': 'כיש', 'Anshan': 'אנשאן', 'Sinope': 'סינופה', 'Maryab': 'מריאב',
   'Men-nefer': 'מן-נפר', 'Kerma': 'כרמה', 'Cirta': 'קירטה', 'Garama': 'גראמה',
   'Mycenae': 'מיקנה', 'Velzna': 'וולזנה', 'Tartessos': 'טרטסוס', 'Gergovia': 'גרגוביה', 'Stanwick': 'סטנוויק',
@@ -34,6 +38,8 @@ export const HE_CITIES = Object.freeze({
   'Teotihuacan': 'טאוטיוואקאן', 'Mutal': 'מוטל', 'Chillicothe': "צ'יליקות'י", 'Pueblo Bonito': 'פואבלו בוניטו',
   'Bacatá': 'בקטה', 'Yeha': 'ייהא', 'Caral': 'קראל', 'Tiwanaku': 'טיוואנאקו', 'Guanabara': 'גואנבארה', 'Budj Bim': "בודג' בים"
 });
+
+export const HE_CITIES = Object.freeze({ ...HE_CITIES_MORE, ...MAJOR_CITIES });
 
 // Words that come before a name in English titles: "Kingdom of Israel" -> "ממלכת ישראל".
 export const HE_TITLE_WORDS = Object.freeze({
