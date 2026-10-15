@@ -21,13 +21,6 @@ import { conquerRegion } from './conquest';
 import { getNationTier, getSortedByMilitary } from '../utils/aiLogic';
 import { chooseProduction } from './aiProduction';
 import { assertGameState } from './stateAudit';
-import { neighbourWorld, rivalOf } from './testWorld';
-
-// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const PEOPLES_WORLD = neighbourWorld({ seed: 7 });
-const IN_ID = PEOPLES_WORLD.playerNationId;
-const PK_ID = rivalOf(PEOPLES_WORLD, 0);
-const CN_ID = rivalOf(PEOPLES_WORLD, 1);
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 const quiet = (s) => ({ ...s, firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
@@ -41,11 +34,11 @@ const advance = (state) => {
 
 // A legacy world where Pakistan is an independent beside the player's India (a small fixture for the rules).
 const legacy = () => {
-  const s = neighbourWorld({ seed: 7 });
-  return finalizeIndependents({ ...s, nations: { ...s.nations, [PK_ID]: { ...s.nations[PK_ID], kind: INDEPENDENT_KIND } } });
+  const s = createInitialState({ playerNationId: 'in', rngSeed: 7 });
+  return finalizeIndependents({ ...s, nations: { ...s.nations, pk: { ...s.nations.pk, kind: INDEPENDENT_KIND } } });
 };
-const P = getNationCapital(IN_ID);
-const PK = getNationCapital(PK_ID);
+const P = getNationCapital('in');
+const PK = getNationCapital('pk');
 const unit = (id, owner, regionId, tile) => ({ id, ownerId: owner, regionId, homeRegionId: regionId, tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null });
 
 describe('independents data', () => {
@@ -151,57 +144,57 @@ describe('canFight: attacking an independent needs no war', () => {
   const s = legacy();
 
   it('anyone may fight an independent; a passive independent attacks no one', () => {
-    expect(canFight(s, IN_ID, PK_ID)).toBe(true);
-    expect(canFight(s, PK_ID, IN_ID)).toBe(true);
-    expect(canAttack(s, IN_ID, PK_ID)).toBe(true);
-    expect(canAttack(s, PK_ID, IN_ID)).toBe(false);
-    expect(canFight(s, IN_ID, CN_ID)).toBe(false);
-    expect(canFight(s, IN_ID, IN_ID)).toBe(false);
-    const truce = { ...s, nations: { ...s.nations, [PK_ID]: { ...s.nations[PK_ID], indep: { ...s.nations[PK_ID].indep, truceWith: { [IN_ID]: 999 } } } } };
-    expect(canFight(truce, IN_ID, PK_ID)).toBe(false);
-    expect(regionAccess(s, PK, IN_ID)).toBe('enemy');
+    expect(canFight(s, 'in', 'pk')).toBe(true);
+    expect(canFight(s, 'pk', 'in')).toBe(true);
+    expect(canAttack(s, 'in', 'pk')).toBe(true);
+    expect(canAttack(s, 'pk', 'in')).toBe(false);
+    expect(canFight(s, 'in', 'cn')).toBe(false);
+    expect(canFight(s, 'in', 'in')).toBe(false);
+    const truce = { ...s, nations: { ...s.nations, pk: { ...s.nations.pk, indep: { ...s.nations.pk.indep, truceWith: { in: 999 } } } } };
+    expect(canFight(truce, 'in', 'pk')).toBe(false);
+    expect(regionAccess(s, PK, 'in')).toBe('enemy');
   });
 
   it('no war can be declared on or by an independent, and diplomacy with one is refused', () => {
-    expect(declareWar(s, PK_ID, { aggressor: IN_ID })).toBe(s);
-    expect(declareWar(s, IN_ID, { aggressor: PK_ID })).toBe(s);
-    const r = gameReducer(s, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: PK_ID } });
+    expect(declareWar(s, 'pk', { aggressor: 'in' })).toBe(s);
+    expect(declareWar(s, 'in', { aggressor: 'pk' })).toBe(s);
+    const r = gameReducer(s, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'pk' } });
     expect(r.nations).toBe(s.nations);
   });
 
   it('an army beside the city may attack it without a war; taking it costs half the AE', () => {
     const gate = getTiles().neighbors[s.regions[PK].tile].find((n) => getTiles().land[n] === 1);
-    const st = { ...s, units: { ...s.units, a: unit('a', IN_ID, P, gate) } };
+    const st = { ...s, units: { ...s.units, a: unit('a', 'in', P, gate) } };
     const v = validateInvasion(st, P, PK, { ignoreCost: true });
     expect(v.ok).toBe(true);
     expect(v.war).toBeNull();
-    const asMajor = { ...st, nations: { ...st.nations, [PK_ID]: { ...st.nations[PK_ID], kind: undefined } } };
+    const asMajor = { ...st, nations: { ...st.nations, pk: { ...st.nations.pk, kind: undefined } } };
     expect(validateInvasion(asMajor, P, PK, { ignoreCost: true }).reason).toBe('no_war');
-    const taken = conquerRegion({ regions: s.regions, nations: s.nations, turnNumber: 2 }, PK, IN_ID, null);
-    const full = conquerRegion({ regions: asMajor.regions, nations: asMajor.nations, turnNumber: 2 }, PK, IN_ID, null);
-    const aeOf = (r) => Object.values(r.nations).reduce((sum, n) => sum + (n.ae?.[IN_ID] || 0), 0);
+    const taken = conquerRegion({ regions: s.regions, nations: s.nations, turnNumber: 2 }, PK, 'in', null);
+    const full = conquerRegion({ regions: asMajor.regions, nations: asMajor.nations, turnNumber: 2 }, PK, 'in', null);
+    const aeOf = (r) => Object.values(r.nations).reduce((sum, n) => sum + (n.ae?.in || 0), 0);
     expect(aeOf(taken)).toBeLessThan(aeOf(full));
-    expect(taken.regions[PK].owner).toBe(IN_ID);
+    expect(taken.regions[PK].owner).toBe('in');
   });
 
   it('the player besieges an independent under a siege order; an independent besieges nobody', () => {
     const tiles = getTiles();
     const gate = tiles.neighbors[s.regions[PK].tile].find((n) => tiles.land[n] === 1);
-    const mine = { ...s, units: { ...s.units, a: unit('a', IN_ID, P, gate) } };
+    const mine = { ...s, units: { ...s.units, a: unit('a', 'in', P, gate) } };
     // Standing beside an independent's city is no siege: it takes the Lay siege order (I130).
     expect(besiegersOf(mine, mine.regions[PK]).size).toBe(0);
     const laid = { ...mine, units: { ...mine.units, a: { ...mine.units.a, siegeOf: PK } } };
-    expect([...besiegersOf(laid, laid.regions[PK]).keys()]).toEqual([IN_ID]);
+    expect([...besiegersOf(laid, laid.regions[PK]).keys()]).toEqual(['in']);
     // An AI campaign's siege force counts the same way (indepPolicy.js `indepOp`).
     const campaign = { ...mine, units: { ...mine.units, a: { ...mine.units.a, indepOp: PK } } };
-    expect([...besiegersOf(campaign, campaign.regions[PK]).keys()]).toEqual([IN_ID]);
+    expect([...besiegersOf(campaign, campaign.regions[PK]).keys()]).toEqual(['in']);
     const gateP = tiles.neighbors[s.regions[P].tile].find((n) => tiles.land[n] === 1);
-    const theirs = { ...s, units: { ...s.units, b: unit('b', PK_ID, PK, gateP) } };
+    const theirs = { ...s, units: { ...s.units, b: unit('b', 'pk', PK, gateP) } };
     expect(besiegersOf(theirs, theirs.regions[P]).size).toBe(0);
   });
 
   it('an independent city trains its garrison and never settlers or wonders', () => {
-    const ctx = { ...independentCityCtx(s, PK_ID, 'bronze'), ageId: 'bronze', turnNumber: 3, citiesOwned: 1, units: {}, counts: { settlers: 0, outposts: 0, landUnits: 0 } };
+    const ctx = { ...independentCityCtx(s, 'pk', 'bronze'), ageId: 'bronze', turnNumber: 3, citiesOwned: 1, units: {}, counts: { settlers: 0, outposts: 0, landUnits: 0 } };
     const city = { ...s.regions[PK], size: 4, production: { current: null, queue: [], progress: 0 } };
     expect(chooseProduction(s, city, ctx)).toEqual({ kind: 'unit', classId: 'infantry' });
     const full = chooseProduction(s, city, { ...ctx, counts: { settlers: 0, outposts: 0, landUnits: 9 } });
@@ -215,15 +208,15 @@ describe('canFight: attacking an independent needs no war', () => {
     expect(id).toBe(`free_${P}`);
     expect(nations[id].kind).toBe(INDEPENDENT_KIND);
     expect(nations[id].indep.freeCity).toBe(true);
-    const noIndeps = neighbourWorld({ seed: 7 });
+    const noIndeps = createInitialState({ playerNationId: 'in', rngSeed: 7 });
     expect(breakAwayAsIndependent(noIndeps, { ...noIndeps.nations }, noIndeps.regions, P, 5)).toBeNull();
   });
 
   it('fog hook: independents are met only by sight; no fog means everyone is known', () => {
-    expect(metOnlyBySight(s, PK_ID)).toBe(true);
-    expect(metOnlyBySight(s, CN_ID)).toBe(false);
-    expect(hasMet(s, IN_ID, PK_ID)).toBe(true);
-    expect(hasMet({ ...s, fog: { on: true, met: { [IN_ID]: {} } } }, IN_ID, PK_ID)).toBe(false);
-    expect(hasMet({ ...s, fog: { on: true, met: { [IN_ID]: { [PK_ID]: 3 } } } }, IN_ID, PK_ID)).toBe(true);
+    expect(metOnlyBySight(s, 'pk')).toBe(true);
+    expect(metOnlyBySight(s, 'cn')).toBe(false);
+    expect(hasMet(s, 'in', 'pk')).toBe(true);
+    expect(hasMet({ ...s, fog: { on: true, met: { in: {} } } }, 'in', 'pk')).toBe(false);
+    expect(hasMet({ ...s, fog: { on: true, met: { in: { pk: 3 } } } }, 'in', 'pk')).toBe(true);
   });
 });
