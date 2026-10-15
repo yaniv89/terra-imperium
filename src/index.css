@@ -14,6 +14,9 @@
 
 /* ============ BASE STYLES ============ */
 
+/* Notch insets on the start and end sides; they swap in right-to-left (phase H1). */
+:root { --safe-start: env(safe-area-inset-left); --safe-end: env(safe-area-inset-right); }
+:root[dir="rtl"] { --safe-start: env(safe-area-inset-right); --safe-end: env(safe-area-inset-left); }
 :root {
   --color-slate-950: #020617;
   --color-slate-900: #0f172a;
@@ -141,7 +144,13 @@ body {
   .fa-num {
     font-family: var(--fa-font-mono);
     font-variant-numeric: tabular-nums;
+    /* Numbers, years and signs read left to right inside Hebrew text (phase H1). */
+    direction: ltr;
+    unicode-bidi: isolate;
   }
+  /* A block number keeps its place at the line's end or start although its own direction is left to right. */
+  :root[dir="rtl"] .fa-num.text-end { text-align: left; }
+  :root[dir="rtl"] .fa-num.text-start { text-align: right; }
   .fa-btn {
     display: inline-flex;
     align-items: center;
@@ -264,7 +273,7 @@ body {
     content: '';
     position: absolute;
     top: 3px;
-    left: 3px;
+    inset-inline-start: 3px;
     width: 18px;
     height: 18px;
     border-radius: 999px;
@@ -273,6 +282,7 @@ body {
   }
   .fa-switch[aria-checked="true"] { background: #3A4A5C; box-shadow: inset 0 0 0 2px var(--fa-text); }
   .fa-switch[aria-checked="true"]::after { transform: translateX(18px); background: var(--fa-text); }
+  :root[dir="rtl"] .fa-switch[aria-checked="true"]::after { transform: translateX(-18px); }
   .fa-input {
     width: 100%;
     min-height: 40px;
@@ -590,14 +600,14 @@ svg path {
   max-height: 100dvh;
   border-radius: 0;
   border-top: 0;
-  border-right: 0;
+  border-inline-end: 0;
   /* Clear of a notch on the right; the strip under it shows the backdrop. */
-  margin-right: env(safe-area-inset-right);
+  margin-inline-end: var(--safe-end);
 }
 /* Two-column sheets (Settings, the nation overview): wide enough for both columns, over the rail
    (plans/UI-DESIGN.md section 5: Settings hides the tab rail). */
 [data-layout="phone-landscape"] .sheet-panel.sheet-wide {
-  width: min(720px, calc(100vw - env(safe-area-inset-left) - 4rem));
+  width: min(720px, calc(100vw - var(--safe-start) - 4rem));
 }
 
 /* A tablet held sideways (E2): the same shell with a wider dock; side sheets 420 px wide. */
@@ -613,8 +623,8 @@ svg path {
   max-height: 100dvh;
   border-radius: 0;
   border-top: 0;
-  border-right: 0;
-  margin-right: env(safe-area-inset-right);
+  border-inline-end: 0;
+  margin-inline-end: var(--safe-end);
 }
 /* Two sheets stacked on a tablet: the city card keeps the top half of the left edge and the tile
    or army sheet opened from it takes the bottom half (MapContainer sets data-stacked). */
@@ -681,9 +691,9 @@ svg path {
 }
 .city-banner-name { display: flex; align-items: center; gap: 3px; padding: 4px 9px 4px 6px; letter-spacing: 0.01em; }
 .city-banner-star { color: var(--fa-text); font-size: 11px; }
-.city-banner-warn { margin-left: 2px; padding: 0 4px; border-radius: 6px; background: #ef4444; color: #fff; font-size: 10px; line-height: 13px; }
-.city-banner-indep { display: inline-block; width: 8px; height: 8px; margin-right: 3px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.85); vertical-align: middle; flex: none; }
-.city-banner-siege { margin-left: 2px; color: #fb923c; }
+.city-banner-warn { margin-inline-start: 2px; padding: 0 4px; border-radius: 6px; background: #ef4444; color: #fff; font-size: 10px; line-height: 13px; }
+.city-banner-indep { display: inline-block; width: 8px; height: 8px; margin-inline-end: 3px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.85); vertical-align: middle; flex: none; }
+.city-banner-siege { margin-inline-start: 2px; color: #fb923c; }
 .city-banner-icon { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; object-fit: contain; }
 .city-banner-bar {
   position: absolute;
