@@ -36,3 +36,8 @@ export const getDepositsFor = (countryId) => RESOURCE_DEPOSITS[countryId] || [];
 // (registry `landCode`). A peoples world's nation ids are slugs (`akkad`), so `startOwner` alone
 // would find nothing; the fallback keeps records and tests that set only `startOwner`.
 export const depositLandOf = (region) => region?.landCode || countryOfNation(region?.startOwner);
+
+// What a region (one city record) holds: its own list when the world registry assigned one (each
+// deposit of a land sits in exactly one city, registry.js), else everything its land holds.
+export const regionDeposits = (region) => region?.deposits || getDepositsFor(depositLandOf(region));
+export const regionHasDeposit = (region, resourceId) => regionDeposits(region).includes(resourceId);

@@ -5,7 +5,7 @@ import { generateAdvisorCandidates, getAdvisorHireCost, getAdvisorSalary } from 
 import { getNeighborIds } from '../data/regions';
 import { getRecruitUnitCost, calcNationBalance, getLoanCapacity, getLoanInterestRate, applyBankruptcy } from './economy';
 import { canAfford, applyCosts, EXTRACTION_BASE_YIELD } from '../utils/helpers';
-import { hasDeposit, depositLandOf } from '../data/deposits';
+import { regionHasDeposit } from '../data/deposits';
 // src/engine/aiEconomy.js
 // Plan §M16: AI parity. Gives AI nations a real, spendable economy — gold/hr/techPoints/adm/dip/mil
 // on their own `nation.economy` (src/engine/nationState.js's own long-scaffolded accessor layer,
@@ -115,7 +115,7 @@ export const calcAllNationIncomes = (state, only = null) => {
     if (localTechPoints) entry.techPoints += localTechPoints * controlMult * infraMult;
     entry.techPoints += SCIENCE_PER_DEV * getTotalDev({ dev }) * controlMult; // as the player's calcIncome
     Object.entries(region.buildings?.extraction || {}).forEach(([key, built]) => {
-      if (built && hasDeposit(depositLandOf(regData), key)) entry[key] = (entry[key] || 0) + EXTRACTION_BASE_YIELD * controlMult * infraMult;
+      if (built && regionHasDeposit(regData, key)) entry[key] = (entry[key] || 0) + EXTRACTION_BASE_YIELD * controlMult * infraMult;
     });
     entry.gold += m['local.tradeIncome'] * controlMult;
     entry.techPoints += districtYields(tiles, state.world, region).science * controlMult; // the Campus (districts.js); the player's rides lastYields.science
