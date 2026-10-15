@@ -64,8 +64,8 @@ const PeaceDealSheet = ({ warId, onClose }) => {
             <div className="fa-card px-2.5 py-1.5" data-testid="peace-score">
               <div className="flex items-baseline justify-between"><Label>War score</Label><span className={`fa-num text-[17px] font-semibold ${m.score >= 0 ? 'text-fa-brass' : 'text-fa-danger-text'}`}>{signed(m.score)}</span></div>
               <div className="relative h-2 mt-1 rounded-full bg-fa-ink border border-fa-line overflow-hidden">
-                <span className="absolute inset-y-0" style={{ left: m.score >= 0 ? '50%' : `${scoreShare * 100}%`, width: `${Math.abs(scoreShare - 0.5) * 100}%`, background: m.score >= 0 ? 'var(--fa-you)' : 'var(--fa-enemy)' }} />
-                <span className="absolute inset-y-[-2px] left-1/2 w-px bg-fa-text/70" />
+                <span className="absolute inset-y-0" style={{ insetInlineStart: m.score >= 0 ? '50%' : `${scoreShare * 100}%`, width: `${Math.abs(scoreShare - 0.5) * 100}%`, background: m.score >= 0 ? 'var(--fa-you)' : 'var(--fa-enemy)' }} />
+                <span className="absolute inset-y-[-2px] start-1/2 w-px bg-fa-text/70" />
               </div>
               <div className="flex justify-between text-[10px] text-fa-muted"><span className="truncate">{m.enemy.replace(/^The /, '')}</span><span className="truncate">{m.me.replace(/^The /, '')}</span></div>
               {m.scoreParts.map((p) => <div key={p.id} className="flex justify-between text-[12px]"><span>{p.label}</span><span className={`fa-num ${toneOf(p.value)}`}>{signed(p.value)}</span></div>)}
@@ -87,7 +87,7 @@ const PeaceDealSheet = ({ warId, onClose }) => {
               {m.rows.length === 0 && <div className="text-[12px] text-fa-muted">Nothing to demand: they hold none of your land, and what you win in battle is yours already.</div>}
               {m.rows.map((r) => (
                 <button key={r.key} type="button" aria-pressed={r.on} onClick={() => toggle(r)} data-testid={r.group === 'land' ? 'peace-cede' : `peace-term-${r.group}`}
-                  className={`w-full text-left fa-option px-2 py-1 min-h-[44px] flex items-center gap-2 ${r.on ? 'fa-selected' : ''}`}>
+                  className={`w-full text-start fa-option px-2 py-1 min-h-[44px] flex items-center gap-2 ${r.on ? 'fa-selected' : ''}`}>
                   <span className={`w-5 h-5 rounded border shrink-0 grid place-items-center ${r.on ? 'bg-fa-text border-fa-text' : 'border-fa-line'}`}>{r.on && <Check className="w-3.5 h-3.5 text-fa-ink" aria-hidden="true" />}</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex justify-between gap-2"><span className="text-[13px] font-semibold truncate">{r.label}</span><span className="fa-num text-[12px] shrink-0">{r.cost} score</span></span>

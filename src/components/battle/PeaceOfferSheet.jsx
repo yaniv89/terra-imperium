@@ -52,7 +52,7 @@ const PeaceOfferSheet = () => {
 
   return (
     <div role="dialog" aria-labelledby="peace-offer-title" data-testid="peace-offer-sheet"
-      className="fixed z-[60] left-[max(env(safe-area-inset-left),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(26rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(20rem,calc(100vw-1rem))] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
+      className="fixed z-[60] start-[max(var(--safe-start),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(26rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(20rem,calc(100vw-1rem))] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
       <div className="flex items-start gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
         <Feather className="w-5 h-5 mt-1 text-fa-muted shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex-1">

@@ -106,7 +106,7 @@ export const BuildMenu = ({ ageId, stock, workers = 1, onPick, onClose = null, e
             {dBlock && <span className="block text-fa-danger-text font-semibold">{dBlock.text}</span>}
           </div>
         ) : <span className="fa-label pt-1">Build <span className="normal-case tracking-normal text-fa-muted">· {info ? 'tap a tile to read it' : 'Details shows what each does'}</span></span>}
-        <span className="flex items-center gap-1 shrink-0 -mt-1 -mr-1">
+        <span className="flex items-center gap-1 shrink-0 -mt-1 -me-1">
           {extra}
           <button type="button" onClick={() => { setInfo((v) => !v); if (info) setDetail(null); }} aria-pressed={info} data-testid="battle-build-info"
             className={cx('h-11 px-2 rounded-[10px] text-[11px] font-semibold flex items-center gap-1 border', info ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'border-fa-line text-fa-muted hover:text-fa-text')}>
@@ -129,8 +129,8 @@ export const BuildMenu = ({ ageId, stock, workers = 1, onPick, onClose = null, e
               className={cx('relative h-[64px] lg:h-[72px] px-0.5 pt-0.5 pb-1 rounded-[10px] border flex flex-col items-center justify-end gap-0.5 select-none touch-none',
                 detail === id ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'bg-fa-raised/70 border-fa-line hover:bg-fa-raised',
                 block && 'opacity-60')}>
-              {block && short && <span className="absolute top-0.5 right-0.5 px-1 rounded bg-fa-ink/90 text-[9px] font-bold fa-num text-fa-danger-text leading-tight">+{(shortGold || short)[1]}</span>}
-              {block?.kind === 'workers' && <span className="absolute top-0.5 right-0.5 px-1 rounded bg-fa-ink/90 text-[9px] font-bold text-fa-danger-text leading-tight">no laborer</span>}
+              {block && short && <span className="absolute top-0.5 end-0.5 px-1 rounded bg-fa-ink/90 text-[9px] font-bold fa-num text-fa-danger-text leading-tight">+{(shortGold || short)[1]}</span>}
+              {block?.kind === 'workers' && <span className="absolute top-0.5 end-0.5 px-1 rounded bg-fa-ink/90 text-[9px] font-bold text-fa-danger-text leading-tight">no laborer</span>}
               <GameIcon group="battle" id={def.icon} size={34} halo={false} eager className="lg:!w-10 lg:!h-10 pointer-events-none" fallback={<Hammer className="w-6 h-6 text-fa-muted" />} />
               <span className="max-w-full truncate text-[10px] font-semibold leading-none pointer-events-none">{ecoName(id, ageId)}</span>
               <Cost cost={def.cost} stock={stock} size={10} className="text-[10px] !flex-nowrap !gap-x-1 pointer-events-none whitespace-nowrap" />
@@ -155,7 +155,7 @@ export const InfoCard = ({ info, onClose, children, testId = 'battle-info-card' 
           <div className="font-semibold text-[13px] leading-tight truncate" data-testid="battle-info-title">{info.title}</div>
           <span className={cx('inline-block mt-0.5 px-1.5 rounded-full text-[10px] font-bold leading-[16px]', tone)} data-testid="battle-info-owner">{info.ownerLabel}</span>
         </div>
-        <button type="button" onClick={onClose} aria-label="Clear selection" title="Clear selection (Esc)" data-testid="battle-building-close" className="-my-2 -mr-1.5 w-11 h-11 shrink-0 flex items-center justify-center text-fa-muted hover:text-fa-text"><X className="w-4 h-4" /></button>
+        <button type="button" onClick={onClose} aria-label="Clear selection" title="Clear selection (Esc)" data-testid="battle-building-close" className="-my-2 -me-1.5 w-11 h-11 shrink-0 flex items-center justify-center text-fa-muted hover:text-fa-text"><X className="w-4 h-4" /></button>
       </div>
       {info.maxHp != null && (
         <>
@@ -238,7 +238,7 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
               className={cx('relative w-11 h-11 rounded-md border text-[9px] leading-none flex flex-col items-center justify-center overflow-hidden', it.blocked ? 'border-fa-danger bg-fa-danger/20' : 'border-fa-line bg-fa-raised')}>
               {it.role === 'worker' ? <Hammer className="w-4 h-4 text-fa-muted" /> : <GameIcon group="units" id={it.role} url={unitIconUrl(it.role)} size={20} fallback={<Hourglass className="w-3 h-3" />} />}
               <span className="fa-num">{k === 0 ? (it.blocked ? <Home className="w-3 h-3 text-fa-danger-text" /> : `${it.pct}%`) : ''}</span>
-              <span className="absolute left-0 bottom-0 h-0.5 bg-fa-good" style={{ width: `${k === 0 ? it.pct : 0}%` }} />
+              <span className="absolute start-0 bottom-0 h-0.5 bg-fa-good" style={{ width: `${k === 0 ? it.pct : 0}%` }} />
             </button>
           ))}
           {waiting.map((role, k) => (

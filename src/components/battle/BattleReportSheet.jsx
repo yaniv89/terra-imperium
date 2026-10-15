@@ -84,7 +84,7 @@ const SideTable = ({ title, color, rows, nation, ageId = 'bronze' }) => (
       const Icon = FATE_ICON[u.fate] || Flag;
       return (
         <div key={u.id} className="flex items-start gap-1.5 min-w-0" data-fate={u.fate}>
-          <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${FATE_TONE[u.tone]}`} aria-hidden="true" />
+          <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${u.fate === 'withdrew' ? 'rtl:-scale-x-100' : ''} ${FATE_TONE[u.tone]}`} aria-hidden="true" />
           <div className="min-w-0 flex-1 leading-tight">
             <div className="flex justify-between gap-2 text-[11.5px]">
               <span className="truncate">{regimentName(nation, u, unitName(u.classId, ageId, u.navalLine))}</span>
@@ -109,12 +109,12 @@ const Row = ({ row, selected, onClick }) => {
   const Icon = GROUP_ICON[row.group] || Swords;
   return (
     <button type="button" onClick={onClick} aria-pressed={selected} data-testid="battle-report-row"
-      className={`w-full text-left fa-option px-2 py-1.5 min-h-[52px] flex items-center gap-2 ${selected ? 'fa-selected' : ''}`}>
+      className={`w-full text-start fa-option px-2 py-1.5 min-h-[52px] flex items-center gap-2 ${selected ? 'fa-selected' : ''}`}>
       <span className="w-8 h-8 rounded-md border border-fa-line grid place-items-center shrink-0"><Icon className="w-4 h-4 text-fa-muted" aria-hidden="true" /></span>
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2"><span className="text-[13px] font-semibold truncate">{row.name}</span><span className={`text-[12px] font-semibold shrink-0 ${TONE[row.result.tone]}`}>{row.result.label}</span></span>
         <span className="flex items-center justify-between gap-2 text-[11px] text-fa-muted">
-          <span className="truncate"><span className="fa-num">{row.when}</span> <span className="fa-chip !min-h-[18px] !px-1.5 !text-[10px] ml-1">{row.mode}</span></span>
+          <span className="truncate"><span className="fa-num">{row.when}</span> <span className="fa-chip !min-h-[18px] !px-1.5 !text-[10px] ms-1">{row.mode}</span></span>
           <span className="fa-num shrink-0">{row.losses}</span>
         </span>
       </span>
@@ -145,7 +145,7 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
   return (
     <div className="fixed inset-0 z-[72] bg-black/50" onClick={onClose} data-testid="battle-report">
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="battle-report-title"
-        className="absolute left-[max(env(safe-area-inset-left),0.5rem)] right-[calc(var(--rail-inset,0px)+0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] bottom-[max(env(safe-area-inset-bottom),0.5rem)] lg:left-1/2 lg:-translate-x-1/2 lg:right-auto lg:w-[min(60rem,calc(100vw-2rem-var(--rail-inset,0px)))] lg:bottom-auto lg:max-h-[min(40rem,calc(100dvh-var(--header-height,2.5rem)-1.5rem))] fa-panel !bg-fa-panel shadow-2xl flex flex-col">
+        className="absolute start-[max(var(--safe-start),0.5rem)] end-[calc(var(--rail-inset,0px)+0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] bottom-[max(env(safe-area-inset-bottom),0.5rem)] lg:start-1/2 lg:-translate-x-1/2 rtl:lg:translate-x-1/2 lg:end-auto lg:w-[min(60rem,calc(100vw-2rem-var(--rail-inset,0px)))] lg:bottom-auto lg:max-h-[min(40rem,calc(100dvh-var(--header-height,2.5rem)-1.5rem))] fa-panel !bg-fa-panel shadow-2xl flex flex-col">
         <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
           <h2 id="battle-report-title" className="fa-heading text-[19px] pl:text-[17px] leading-tight shrink-0">Battle reports</h2>
           <span className="text-[12px] text-fa-muted hidden lg:inline shrink-0">your last 30 battles are kept</span>
@@ -160,7 +160,7 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
 
         <div className={`flex-1 min-h-0 grid ${many ? 'sm:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]' : ''}`}>
           {many && (
-            <div className={`min-h-0 overflow-y-auto p-2 space-y-1.5 sm:border-r border-fa-line ${phoneDetail ? 'hidden sm:block' : ''}`} data-testid="battle-report-list">
+            <div className={`min-h-0 overflow-y-auto p-2 space-y-1.5 sm:border-e border-fa-line ${phoneDetail ? 'hidden sm:block' : ''}`} data-testid="battle-report-list">
               {shown.length === 0 && <div className="text-[12px] text-fa-muted p-2">No battles of this kind yet.</div>}
               {shown.map((e) => {
                 const row = reportRow(state, e);
@@ -175,10 +175,10 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
           <div className={`min-h-0 flex flex-col ${many && !phoneDetail ? 'hidden sm:flex' : ''}`}>
             <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2">
               <div className="flex items-baseline gap-2 flex-wrap">
-                {many && <button type="button" onClick={() => setPhoneDetail(false)} className="sm:hidden fa-icon-btn !w-8 !h-8" aria-label="Back to the list"><ChevronLeft className="w-4 h-4" /></button>}
+                {many && <button type="button" onClick={() => setPhoneDetail(false)} className="sm:hidden fa-icon-btn !w-8 !h-8" aria-label="Back to the list"><ChevronLeft className="w-4 h-4 rtl:-scale-x-100" /></button>}
                 <h3 className="fa-heading text-[18px] leading-tight" data-testid="battle-name">{d.name}</h3>
                 <span className={`text-[14px] font-semibold ${TONE[d.result.tone]}`}>{d.result.label}</span>
-                <span className="text-[11.5px] text-fa-muted ml-auto">{d.who} · <span className="fa-num">{d.when}</span></span>
+                <span className="text-[11.5px] text-fa-muted ms-auto">{d.who} · <span className="fa-num">{d.when}</span></span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Side tone="you" tag="YOURS" name={d.yours.name} sideIn={d.yours.in} lost={d.yours.lost} />
