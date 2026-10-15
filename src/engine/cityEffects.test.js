@@ -1,6 +1,6 @@
 // The effect text of a building tier or an improvement is what the engine then applies (I043).
 import { describe, it, expect, vi } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -14,19 +14,24 @@ import { housingOf, amenitiesOf, processCity, productionCost } from './world/cit
 import { wallsOf } from './sieges';
 import { cityCtx, worldOf } from './cityEconomy';
 import { buildingEffect, improvementEffect, effectText, NO_EFFECT_TEXT } from './cityEffects';
+import { peoplesWorld } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 5 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
 
 vi.setConfig({ testTimeout: 240000 });
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
 const turn = (s) => { let n = resolveTurn(s); if (n.pendingPeaceOffer) n = gameReducer(n, { type: ActionTypes.REJECT_PENDING_PEACE }); return n; };
-const paris = () => getNationCapital('fr');
+const paris = () => getNationCapital(FR_ID);
 const withTier = (s, id, category, tier) => ({ ...s, regions: { ...s.regions, [id]: { ...s.regions[id], buildings: { ...s.regions[id].buildings, categories: { ...s.regions[id].buildings.categories, [category]: tier } } } } });
 
 describe('building effect text is the effect the turn applies', () => {
   // One settled start (a first turn puts the market's numbers on the record), a low food bank so
   // no tier makes the city grow inside the measured turn.
   const start = () => {
-    const s = turn(quiet(createInitialState({ playerNationId: 'fr', rngSeed: 5 })));
+    const s = turn(quiet(peoplesWorld({ seed: 5 })));
     const id = paris();
     return { ...s, regions: { ...s.regions, [id]: { ...s.regions[id], food: 0, size: 4 } } };
   };
@@ -36,7 +41,7 @@ describe('building effect text is the effect the turn applies', () => {
     const id = paris();
     const plain = turn(s);
     const base = plain.regions[id];
-    const baseBalance = calcNationBalance(plain, 'fr');
+    const baseBalance = calcNationBalance(plain, FR_ID);
     const seen = {};
     Object.entries(BUILDING_CATEGORIES).forEach(([category, cat]) => {
       [0, cat.tiers.length - 1].forEach((tier) => {
@@ -53,7 +58,7 @@ describe('building effect text is the effect the turn applies', () => {
         expect(predicted.deltas.amenities, label).toBe(amenitiesOf(city, cityCtx(built, city)).supply - amenitiesOf(base, cityCtx(plain, base)).supply);
         expect(predicted.deltas.walls, label).toBe(wallsOf(city) - wallsOf(base));
         // The realm's income after the turn (rounded to whole numbers by calcIncome: one off at most).
-        const balance = calcNationBalance(built, 'fr');
+        const balance = calcNationBalance(built, FR_ID);
         expect(Math.abs(predicted.deltas.gold - (balance.income.gold - baseBalance.income.gold)), `${label}: gold`).toBeLessThanOrEqual(1);
         expect(Math.abs(predicted.deltas.manpower - (balance.income.hr - baseBalance.income.hr)), `${label}: manpower`).toBeLessThanOrEqual(1);
         expect(Math.abs(predicted.deltas.science - ((balance.income.techPoints || 0) - (baseBalance.income.techPoints || 0))), `${label}: science`).toBeLessThanOrEqual(1);
@@ -92,7 +97,7 @@ describe('building effect text is the effect the turn applies', () => {
 
 describe('improvement effect text is the tile after the build', () => {
   it('every improvement the capital can build: the predicted yields are the tile\'s yields once the city builds it', () => {
-    const s = quiet(createInitialState({ playerNationId: 'fr', rngSeed: 5 }));
+    const s = quiet(peoplesWorld({ seed: 5 }));
     const id = paris();
     const tiles = getTiles();
     const city = s.regions[id];
@@ -124,7 +129,7 @@ describe('improvement effect text is the tile after the build', () => {
   });
 
   it('a mine on iron says it supplies iron; a road says what a road is for; a replaced farm is named', () => {
-    const s = quiet(createInitialState({ playerNationId: 'fr', rngSeed: 5 }));
+    const s = quiet(peoplesWorld({ seed: 5 }));
     const id = paris();
     const tiles = getTiles();
     const city = s.regions[id];

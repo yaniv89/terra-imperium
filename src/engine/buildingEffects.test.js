@@ -5,7 +5,6 @@
 // income lines must pay at least their flat yield even in a development-1 province, where a
 // percentage alone used to round to nothing.
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { calcIncome } from '../utils/helpers';
 import { getRegionModifier } from './modifiers/sheet';
@@ -13,10 +12,16 @@ import { getDefenseBattleContext } from './defense';
 import { getNationCapital, REGIONS_DATA } from '../data/regions';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { peoplesWorld, rivalOf } from './testWorld';
 
-const CAPITAL = getNationCapital('fr');
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 42 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const DE_ID = rivalOf(PEOPLES_WORLD, 0);
+
+const CAPITAL = getNationCapital(FR_ID);
 const base = () => {
-  const s = createInitialState({ playerNationId: 'fr', rngSeed: 42 });
+  const s = peoplesWorld({ seed: 42 });
   return {
     ...s,
     firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {}),
@@ -54,13 +59,13 @@ describe('region buildings have real effects', () => {
 
   it('Naval (Harbor…) adds trade income in a coastal province', () => {
     const s = base();
-    const port = Object.keys(s.regions).find((id) => s.regions[id].owner === 'fr' && REGIONS_DATA[id]?.coastal !== false && getRegionModifier(withBuilding(s, 'naval', firstTierWithEffects('naval'), id), id, 'local.tradeIncome').total > 0);
+    const port = Object.keys(s.regions).find((id) => s.regions[id].owner === FR_ID && REGIONS_DATA[id]?.coastal !== false && getRegionModifier(withBuilding(s, 'naval', firstTierWithEffects('naval'), id), id, 'local.tradeIncome').total > 0);
     expect(calcIncome(withBuilding(s, 'naval', firstTierWithEffects('naval'), port)).gold).toBeGreaterThan(calcIncome(s).gold);
   });
 
   it('Defense (Palisade…) makes the province harder to take in battle', () => {
     const s = base();
-    const def = { id: 'd', regionId: CAPITAL, aggressorId: 'de', warId: 'w', synthetic: [], attackerUnitIds: [], defenderUnitIds: [] };
+    const def = { id: 'd', regionId: CAPITAL, aggressorId: DE_ID, warId: 'w', synthetic: [], attackerUnitIds: [], defenderUnitIds: [] };
     const open = getDefenseBattleContext(s, def);
     const walled = getDefenseBattleContext(withBuilding(s, 'defense'), def);
     expect(walled.fortLevel).toBeGreaterThan(open.fortLevel);

@@ -1,12 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { TECH_TREE } from '../data/techTree';
 import { applyResearchTurn, getResearchCost, getResearchPath, stepResearch, suggestTechs, canStartTech } from './research';
+import { peoplesWorld, rivalOf } from './testWorld';
 
-const fresh = () => createInitialState({ playerNationId: 'fr', rngSeed: 5 });
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 5 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const DE_ID = rivalOf(PEOPLES_WORLD, 0);
+
+const fresh = () => peoplesWorld({ seed: 5 });
 const firstOf = (category) => Object.values(TECH_TREE).find((t) => t.category === category && t.prerequisites.length === 0).id;
 const secondOf = (category) => Object.values(TECH_TREE).find((t) => t.prerequisites[0] === firstOf(category)).id;
 const withStock = (s, techPoints) => ({ ...s, resources: { ...s.resources, techPoints } });
@@ -32,8 +38,8 @@ describe('science pays into research', () => {
   it('completes a tech when its cost is reached and carries the rest into the next', () => {
     let s = gameReducer(fresh(), { type: ActionTypes.QUEUE_RESEARCH, payload: { techId: firstOf('military') } });
     s = gameReducer(s, { type: ActionTypes.QUEUE_RESEARCH, payload: { techId: firstOf('economy') } });
-    const cost = getResearchCost(s, 'fr', firstOf('military'));
-    const out = stepResearch(withStock(s, cost + 5), 'fr');
+    const cost = getResearchCost(s, FR_ID, firstOf('military'));
+    const out = stepResearch(withStock(s, cost + 5), FR_ID);
     expect(out.completed).toEqual([firstOf('military')]);
     expect(out.research.current).toBe(firstOf('economy'));
     expect(out.research.progress[firstOf('economy')]).toBe(5);
@@ -56,12 +62,12 @@ describe('science pays into research', () => {
     expect(banked.research.current).toBe(null);
     const auto = applyResearchTurn(gameReducer(s, { type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } }));
     expect(auto.resources.techPoints).toBeLessThan(40);
-    expect(suggestTechs(s, 'fr')).toHaveLength(3);
+    expect(suggestTechs(s, FR_ID)).toHaveLength(3);
   });
 
   it('AI nations research with the same rules', () => {
     const s = fresh();
-    const id = 'de';
+    const id = DE_ID;
     const withAi = { ...s, nations: { ...s.nations, [id]: { ...s.nations[id], economy: { ...s.nations[id].economy, techPoints: 200 } } } };
     // AI nations pay into research on a staggered cycle (AI_RESEARCH_PERIOD): one of these turns is Germany's.
     const outs = [0, 1, 2].map((k) => applyResearchTurn({ ...withAi, turnNumber: withAi.turnNumber + k }));

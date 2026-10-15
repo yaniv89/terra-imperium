@@ -1,25 +1,31 @@
 import { describe, it, expect } from 'vitest';
 import { calcNationScore, getWarsWonCount, rankNations, getPlayerRank } from './score';
-import { createInitialState } from '../context/GameContext';
 import { getNationCapital, getOwnedRegionIds } from '../data/regions';
 import { getTotalDev } from './development';
+import { peoplesWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 11 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
+const DE_ID = rivalOf(PEOPLES_WORLD, 0);
+const JP_ID = rivalOf(PEOPLES_WORLD, 1);
 
 describe('getWarsWonCount (plan §M18)', () => {
   it('counts a closed war as won for the aggressor when the final score favored them', () => {
-    const state = { wars: [{ aggressor: 'fr', enemy: 'de', active: false, score: 40 }] };
-    expect(getWarsWonCount(state, 'fr')).toBe(1);
-    expect(getWarsWonCount(state, 'de')).toBe(0);
+    const state = { wars: [{ aggressor: FR_ID, enemy: DE_ID, active: false, score: 40 }] };
+    expect(getWarsWonCount(state, FR_ID)).toBe(1);
+    expect(getWarsWonCount(state, DE_ID)).toBe(0);
   });
 
   it('counts a closed war as won for the enemy when the final score favored them', () => {
-    const state = { wars: [{ aggressor: 'fr', enemy: 'de', active: false, score: -40 }] };
-    expect(getWarsWonCount(state, 'de')).toBe(1);
-    expect(getWarsWonCount(state, 'fr')).toBe(0);
+    const state = { wars: [{ aggressor: FR_ID, enemy: DE_ID, active: false, score: -40 }] };
+    expect(getWarsWonCount(state, DE_ID)).toBe(1);
+    expect(getWarsWonCount(state, FR_ID)).toBe(0);
   });
 
   it('never counts a still-active war or a white peace (score 0)', () => {
-    const state = { wars: [{ aggressor: 'fr', enemy: 'de', active: true, score: 40 }, { aggressor: 'fr', enemy: 'jp', active: false, score: 0 }] };
-    expect(getWarsWonCount(state, 'fr')).toBe(0);
+    const state = { wars: [{ aggressor: FR_ID, enemy: DE_ID, active: true, score: 40 }, { aggressor: FR_ID, enemy: JP_ID, active: false, score: 0 }] };
+    expect(getWarsWonCount(state, FR_ID)).toBe(0);
   });
 });
 
@@ -30,33 +36,33 @@ describe('calcNationScore (plan §M18: "development + regions + tech + prestige 
   });
 
   it('counts owned regions, their development, researched techs, and prestige', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const ownedIds = getOwnedRegionIds(state.regions, 'fr');
-    const score = calcNationScore(state, 'fr');
+    const state = peoplesWorld();
+    const ownedIds = getOwnedRegionIds(state.regions, FR_ID);
+    const score = calcNationScore(state, FR_ID);
     expect(score.regions).toBe(ownedIds.length);
     expect(score.regions).toBeGreaterThan(0);
     expect(score.development).toBe(ownedIds.reduce((sum, id) => sum + getTotalDev(state.regions[id]), 0));
-    expect(score.prestige).toBe(state.nations.fr.prestige || 0);
+    expect(score.prestige).toBe(state.nations[FR_ID].prestige || 0);
     expect(score.total).toBeGreaterThan(0);
   });
 
   it('credits great projects only for the nation that currently owns the SITE region', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const frCapital = getNationCapital('fr');
+    const state = peoplesWorld();
+    const frCapital = getNationCapital(FR_ID);
     const withProject = { ...state, greatProjects: { great_pyramids: { regionId: frCapital, tier: 2 } } };
-    expect(calcNationScore(withProject, 'fr').greatProjects).toBe(1);
-    expect(calcNationScore(withProject, 'de').greatProjects).toBe(0);
+    expect(calcNationScore(withProject, FR_ID).greatProjects).toBe(1);
+    expect(calcNationScore(withProject, DE_ID).greatProjects).toBe(0);
   });
 
   it('credits wars won at +100 each', () => {
-    const state = { regions: {}, nations: { fr: {} }, greatProjects: {}, wars: [{ aggressor: 'fr', enemy: 'de', active: false, score: 50 }] };
-    expect(calcNationScore(state, 'fr').total).toBe(100);
+    const state = { regions: {}, nations: { [FR_ID]: {} }, greatProjects: {}, wars: [{ aggressor: FR_ID, enemy: DE_ID, active: false, score: 50 }] };
+    expect(calcNationScore(state, FR_ID).total).toBe(100);
   });
 });
 
 describe('rankNations / getPlayerRank', () => {
   it('ranks the player #1 in a fresh game only if no other nation somehow scores higher (ties broken by id)', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = peoplesWorld();
     const ranked = rankNations(state);
     expect(ranked.length).toBe(Object.keys(state.nations).length);
     // Every entry sorted strictly non-increasing by total score.
@@ -64,16 +70,16 @@ describe('rankNations / getPlayerRank', () => {
   });
 
   it('getPlayerRank finds the player at the correct 1-indexed position', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = peoplesWorld();
     const rank = getPlayerRank(state);
     const ranked = rankNations(state);
-    expect(ranked[rank - 1].nationId).toBe('fr');
+    expect(ranked[rank - 1].nationId).toBe(FR_ID);
   });
 
   it('a nation with a dramatically higher score outranks the player', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const boosted = { ...state, nations: { ...state.nations, de: { ...state.nations.de, prestige: 100000 } } };
+    const state = peoplesWorld();
+    const boosted = { ...state, nations: { ...state.nations, [DE_ID]: { ...state.nations[DE_ID], prestige: 100000 } } };
     expect(getPlayerRank(boosted)).toBeGreaterThan(1);
-    expect(rankNations(boosted)[0].nationId).toBe('de');
+    expect(rankNations(boosted)[0].nationId).toBe(DE_ID);
   });
 });

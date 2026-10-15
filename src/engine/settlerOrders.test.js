@@ -1,7 +1,7 @@
 // What the player is told before founding, and the Wait and Disband orders of settlers
 // (playtest audit I054, I091, I092, I093): src/engine/settlers.js.
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNationCapital } from '../data/regions';
 import { assertGameState } from './stateAudit';
@@ -13,12 +13,18 @@ import {
 } from './settlers';
 import { nextPrompts } from '../components/ui/nextPromptModel';
 import { speedCostMult } from '../data/ages';
+import { peoplesWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 7 });
+const EG_ID = PEOPLES_WORLD.playerNationId;
+const FR_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const game = () => {
-  const s = createInitialState({ playerNationId: 'eg', rngSeed: 7 });
-  const cap = s.regions[getNationCapital('eg')];
-  const site = bestSites(s, 'eg', cap.tile, 'bronze', { rings: 12, limit: 1 })[0];
-  const settler = { ...makeSettler('u_set', cap, 'eg'), tile: site.tile };
+  const s = peoplesWorld({ seed: 7 });
+  const cap = s.regions[getNationCapital(EG_ID)];
+  const site = bestSites(s, EG_ID, cap.tile, 'bronze', { rings: 12, limit: 1 })[0];
+  const settler = { ...makeSettler('u_set', cap, EG_ID), tile: site.tile };
   return { s: { ...s, units: { ...s.units, u_set: settler } }, cap, site };
 };
 
@@ -43,7 +49,7 @@ describe('what a site would be', () => {
 
   it('the centre never yields less than the city rules give it, and the surplus is the centre plus the best tile minus one citizen', () => {
     const { s, site } = game();
-    const o = siteOutlook(s, site.tile, 'eg');
+    const o = siteOutlook(s, site.tile, EG_ID);
     expect(o.centre.food).toBeGreaterThanOrEqual(CENTRE_MIN_YIELDS.food);
     expect(o.centre.production).toBeGreaterThanOrEqual(CENTRE_MIN_YIELDS.production);
     expect(o.foodSurplus).toBe(o.centre.food + o.best.food - FOOD_PER_CITIZEN);
@@ -58,7 +64,7 @@ describe('what a site would be', () => {
     let poor = null; let good = null;
     for (let t = 0; t < tiles.count && !(poor && good); t++) {
       if (tiles.land[t] !== 1 || owner[t] != null) continue;
-      const o = siteOutlook(s, t, 'eg');
+      const o = siteOutlook(s, t, EG_ID);
       if (!poor && o.warnings.includes('food')) poor = o;
       if (!good && o.warnings.length === 0) good = o;
     }
@@ -70,13 +76,13 @@ describe('what a site would be', () => {
 
   it('says whether settlers from a city would find a site at all', () => {
     const { s, cap } = game();
-    const out = settlingOutlook(s, 'eg', cap.tile, 'bronze');
+    const out = settlingOutlook(s, EG_ID, cap.tile, 'bronze');
     expect(out.ok).toBe(true);
-    expect(out.best.tile).toBe(bestSites(s, 'eg', cap.tile, 'bronze', { rings: MAX_SETTLE_RINGS, limit: 1 })[0].tile);
+    expect(out.best.tile).toBe(bestSites(s, EG_ID, cap.tile, 'bronze', { rings: MAX_SETTLE_RINGS, limit: 1 })[0].tile);
     // nothing explored but the capital's own land: no site is known, so none is promised
     const blind = { ...s, fog: { ...(s.fog || {}), on: true }, scenario: { ...(s.scenario || {}), fog: true }, explored: undefined };
-    expect(settlingOutlook(s, 'eg', null, 'bronze')).toEqual({ ok: false, best: null });
-    expect(typeof settlingOutlook(blind, 'eg', cap.tile, 'bronze').ok).toBe('boolean');
+    expect(settlingOutlook(s, EG_ID, null, 'bronze')).toEqual({ ok: false, best: null });
+    expect(typeof settlingOutlook(blind, EG_ID, cap.tile, 'bronze').ok).toBe('boolean');
   }, 60000);
 });
 
@@ -92,12 +98,12 @@ describe('settlers wait or go home', () => {
     const released = gameReducer(held, { type: ActionTypes.SET_SETTLER_HOLD, payload: { unitId: 'u_set', hold: false } });
     expect(idle(released)).toBe(1);
     // sent somewhere while waiting: the wait is over
-    const other = bestSites(s, 'eg', site.tile, 'bronze', { rings: 12, limit: 5 }).find((x) => x.tile !== site.tile);
+    const other = bestSites(s, EG_ID, site.tile, 'bronze', { rings: 12, limit: 5 }).find((x) => x.tile !== site.tile);
     const sent = gameReducer(held, { type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: 'u_set', tile: other.tile } });
     expect(sent.units.u_set.target).toBe(other.tile);
     expect(sent.units.u_set.hold).toBe(false);
     // not an army's order, and not for another nation's settlers
-    expect(setSettlerHold({ ...s, playerNationId: 'fr' }, 'u_set', true)).toBeNull();
+    expect(setSettlerHold({ ...s, playerNationId: FR_ID }, 'u_set', true)).toBeNull();
   }, 60000);
 
   it('disbanded settlers are gone and their citizen joins the nearest own city', () => {
@@ -118,8 +124,8 @@ describe('settlers wait or go home', () => {
     expect(out.city).toBeNull();
     expect(out.units.u_set).toBeUndefined();
     expect(out.regions).toBe(full.regions);
-    expect(disbandSettlers({ ...s, playerNationId: 'fr' }, 'u_set')).toBeNull();
-    const refused = gameReducer({ ...s, playerNationId: 'fr' }, { type: ActionTypes.DISBAND_SETTLERS, payload: { unitId: 'u_set' } });
+    expect(disbandSettlers({ ...s, playerNationId: FR_ID }, 'u_set')).toBeNull();
+    const refused = gameReducer({ ...s, playerNationId: FR_ID }, { type: ActionTypes.DISBAND_SETTLERS, payload: { unitId: 'u_set' } });
     expect(refused.units.u_set).toBeDefined();
   }, 60000);
 });

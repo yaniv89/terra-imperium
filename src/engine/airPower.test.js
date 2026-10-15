@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
@@ -7,13 +7,19 @@ import { AIR_RANGE, airBaseTile, airUnitsInRange, withAirSupport, airRanges } fr
 import { validateFieldAttack } from './fieldBattle';
 import { getDefenseArmies } from './defense';
 import { ringsAround } from './world/cities';
+import { peoplesWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 3 });
+const IN_ID = PEOPLES_WORLD.playerNationId;
+const PK_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const tiles = getTiles();
-const S = (() => { const s = createInitialState({ playerNationId: 'in', rngSeed: 3 }); return { ...s, units: {}, resources: { ...s.resources, mil: 100, gold: 1000 } }; })();
-const IN = getNationCapital('in'); const PK = getNationCapital('pk');
-const unit = (id, regionId, extra = {}) => ({ id, ownerId: 'in', regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
+const S = (() => { const s = peoplesWorld({ seed: 3 }); return { ...s, units: {}, resources: { ...s.resources, mil: 100, gold: 1000 } }; })();
+const IN = getNationCapital(IN_ID); const PK = getNationCapital(PK_ID);
+const unit = (id, regionId, extra = {}) => ({ id, ownerId: IN_ID, regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
 const withUnits = (s, list) => ({ ...s, units: { ...s.units, ...Object.fromEntries(list.map((u) => [u.id, u])) } });
-const atWar = (s) => ({ ...s, wars: [...s.wars, { id: 'w-f', aggressor: 'in', enemy: 'pk', active: true, startYear: s.year, battleScore: 0 }], nations: { ...s.nations, in: { ...s.nations.in, isAtWar: true }, pk: { ...s.nations.pk, isAtWar: true } } });
+const atWar = (s) => ({ ...s, wars: [...s.wars, { id: 'w-f', aggressor: IN_ID, enemy: PK_ID, active: true, startYear: s.year, battleScore: 0 }], nations: { ...s.nations, [IN_ID]: { ...s.nations[IN_ID], isAtWar: true }, [PK_ID]: { ...s.nations[PK_ID], isAtWar: true } } });
 const pair = (() => {
   const seen = new Set([S.regions[IN].tile]); let f = [S.regions[IN].tile];
   for (let d = 0; d < 8; d++) {
@@ -47,22 +53,22 @@ describe('air power (plan D5b)', () => {
     const rings = ringsAround(tiles, delhi, AIR_RANGE);
     const edge = [...rings].find(([, d]) => d === AIR_RANGE)[0];
     const beyond = tiles.neighbors[edge].find((n) => !rings.has(n));
-    expect(airUnitsInRange(s, 'in', edge).map((u) => u.id)).toEqual(['j']);
-    expect(airUnitsInRange(s, 'in', beyond)).toEqual([]);
-    expect(airUnitsInRange(s, 'pk', edge)).toEqual([]);
-    expect(withAirSupport(s, 'in', edge, [s.units.j])).toEqual([s.units.j]);
+    expect(airUnitsInRange(s, IN_ID, edge).map((u) => u.id)).toEqual(['j']);
+    expect(airUnitsInRange(s, IN_ID, beyond)).toEqual([]);
+    expect(airUnitsInRange(s, PK_ID, edge)).toEqual([]);
+    expect(withAirSupport(s, IN_ID, edge, [s.units.j])).toEqual([s.units.j]);
     expect(ringsAround(tiles, delhi + 1, 0).size).toBe(1);
-    expect(airRanges(s)).toEqual([{ tile: delhi, nationId: 'in', own: true, count: 1, edgeTile: edge }]);
+    expect(airRanges(s)).toEqual([{ tile: delhi, nationId: IN_ID, own: true, count: 1, edgeTile: edge }]);
   });
 
   it('joins a field battle and a defence on its nation\'s side, and boards only a carrier, two at most', () => {
-    const war = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('e', PK, { ownerId: 'pk', tile: theirs }), unit('j', IN, { classId: 'air', tile: delhi }), unit('k', PK, { ownerId: 'pk', classId: 'air', tile: S.regions[PK].tile })]));
+    const war = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('e', PK, { ownerId: PK_ID, tile: theirs }), unit('j', IN, { classId: 'air', tile: delhi }), unit('k', PK, { ownerId: PK_ID, classId: 'air', tile: S.regions[PK].tile })]));
     const v = validateFieldAttack(war, IN, theirs);
     expect(v.ok, v.reason).toBe(true);
     expect(v.attackerUnits.map((u) => u.id)).toEqual(['a', 'j']);
     const pkReach = ringsAround(tiles, S.regions[PK].tile, AIR_RANGE).has(theirs);
     expect(v.defenderUnits.map((u) => u.id)).toEqual(pkReach ? ['e', 'k'] : ['e']);
-    const def = { id: 'd1', regionId: IN, aggressorId: 'pk', attackerUnitIds: ['e'], defenderUnitIds: ['a'], synthetic: [] };
+    const def = { id: 'd1', regionId: IN, aggressorId: PK_ID, attackerUnitIds: ['e'], defenderUnitIds: ['a'], synthetic: [] };
     const home = { ...war, units: { ...war.units, a: { ...war.units.a, tile: delhi } } };
     const armies = getDefenseArmies(home, def);
     expect(armies.defenderUnits.map((u) => u.id)).toEqual(['a', 'j']);
@@ -85,19 +91,19 @@ describe('air defence (plan D5b)', () => {
   it('anti-air on the tile and patrols near it turn back a share of the joining aircraft', async () => {
     const { turnedBackShare, interceptorsAt, ANTI_AIR_SHARE, PATROL_SHARE, MAX_TURNED_BACK, AIR_PATROL_RINGS } = await import('./airPower');
     const jets = [1, 2, 3, 4, 5].map((i) => unit(`j${i}`, IN, { classId: 'air', tile: delhi }));
-    const base = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('e', PK, { ownerId: 'pk', tile: theirs }), ...jets]));
+    const base = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('e', PK, { ownerId: PK_ID, tile: theirs }), ...jets]));
     expect(validateFieldAttack(base, IN, theirs).attackerUnits.map((u) => u.id)).toEqual(['a', 'j1', 'j2', 'j3', 'j4', 'j5']);
-    const flak = withUnits(base, [unit('f1', PK, { ownerId: 'pk', classId: 'support', tile: theirs }), unit('f2', PK, { ownerId: 'pk', classId: 'support', tile: theirs })]);
-    expect(turnedBackShare(flak, 'pk', theirs, [flak.units.e, flak.units.f1, flak.units.f2])).toBeCloseTo(2 * ANTI_AIR_SHARE);
+    const flak = withUnits(base, [unit('f1', PK, { ownerId: PK_ID, classId: 'support', tile: theirs }), unit('f2', PK, { ownerId: PK_ID, classId: 'support', tile: theirs })]);
+    expect(turnedBackShare(flak, PK_ID, theirs, [flak.units.e, flak.units.f1, flak.units.f2])).toBeCloseTo(2 * ANTI_AIR_SHARE);
     expect(validateFieldAttack(flak, IN, theirs).attackerUnits.map((u) => u.id)).toEqual(['a', 'j1', 'j2', 'j3']); // 5 x 0.4 = 2 turned back
     // A Pakistani patrol within reach of the tile turns back more; off patrol it does nothing.
     const pkBase = S.regions[PK].tile;
     const near = ringsAround(tiles, theirs, AIR_PATROL_RINGS).has(pkBase);
-    const patrol = withUnits(flak, [unit('p1', PK, { ownerId: 'pk', classId: 'air', tile: pkBase, patrol: true })]);
-    expect(interceptorsAt(patrol, 'pk', theirs).length).toBe(near ? 1 : 0);
-    expect(turnedBackShare(patrol, 'pk', theirs, [patrol.units.e, patrol.units.f1, patrol.units.f2])).toBeCloseTo(Math.min(MAX_TURNED_BACK, 2 * ANTI_AIR_SHARE + (near ? PATROL_SHARE : 0)));
+    const patrol = withUnits(flak, [unit('p1', PK, { ownerId: PK_ID, classId: 'air', tile: pkBase, patrol: true })]);
+    expect(interceptorsAt(patrol, PK_ID, theirs).length).toBe(near ? 1 : 0);
+    expect(turnedBackShare(patrol, PK_ID, theirs, [patrol.units.e, patrol.units.f1, patrol.units.f2])).toBeCloseTo(Math.min(MAX_TURNED_BACK, 2 * ANTI_AIR_SHARE + (near ? PATROL_SHARE : 0)));
     const idle = { ...patrol, units: { ...patrol.units, p1: { ...patrol.units.p1, patrol: false } } };
-    expect(interceptorsAt(idle, 'pk', theirs)).toEqual([]);
+    expect(interceptorsAt(idle, PK_ID, theirs)).toEqual([]);
     // The patrol order is the player's, for aircraft only.
     const ordered = gameReducer(base, { type: ActionTypes.SET_AIR_PATROL, payload: { unitIds: ['j1', 'a'] } });
     expect(ordered.units.j1.patrol).toBe(true); expect(ordered.units.a.patrol).toBeUndefined();

@@ -1,6 +1,6 @@
 // src/engine/armyTemplates.test.js
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -9,6 +9,11 @@ import { assertGameState } from './stateAudit';
 import { getTiles } from '../data/geo/tiles';
 import { processCity, productionCost, canQueue } from './world/cities';
 import { DEFAULT_TEMPLATES, templatesOf, templateUnits, nextTemplateUnit, templateProgress, validateTemplate, armyOrder, saveTemplate, deleteTemplate } from './armyTemplates';
+import { peoplesWorld } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 7 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
 const play = (s) => {
@@ -36,9 +41,9 @@ describe('army templates', () => {
   });
 
   it('a city builds the order piece by piece, each unit tagged with the army, and the order leaves the queue when complete', () => {
-    const s = quiet(createInitialState({ playerNationId: 'fr', rngSeed: 7 }));
+    const s = quiet(peoplesWorld({ seed: 7 }));
     const tiles = getTiles();
-    const cap = s.regions[getNationCapital('fr')];
+    const cap = s.regions[getNationCapital(FR_ID)];
     const world = { cities: s.regions, tileOwner: s.world.tileOwner, tileState: s.world.tileState };
     const item = armyOrder({ id: 't', name: 'Guard', composition: { infantry: 2 } }, cap, 1);
     expect(canQueue(cap, tiles, world, item, { researched: [], ageId: 'bronze' }).ok).toBe(true);
@@ -56,24 +61,24 @@ describe('army templates', () => {
   });
 
   it('the player saves, queues and deletes templates; the built units carry the army on the map', () => {
-    let s = quiet(createInitialState({ playerNationId: 'fr', rngSeed: 7 }));
-    expect(templatesOf(s.nations.fr)).toBe(DEFAULT_TEMPLATES);
+    let s = quiet(peoplesWorld({ seed: 7 }));
+    expect(templatesOf(s.nations[FR_ID])).toBe(DEFAULT_TEMPLATES);
     s = gameReducer(s, { type: ActionTypes.SAVE_ARMY_TEMPLATE, payload: { template: { name: 'Border guard', composition: { infantry: 1, ranged: 1 } } } });
-    const mine = templatesOf(s.nations.fr);
+    const mine = templatesOf(s.nations[FR_ID]);
     expect(mine).toHaveLength(DEFAULT_TEMPLATES.length + 1);
     const guard = mine[mine.length - 1];
-    expect(templatesOf(gameReducer(s, { type: ActionTypes.SAVE_ARMY_TEMPLATE, payload: { template: { name: '', composition: { infantry: 1 } } } }).nations.fr)).toEqual(mine);
-    const cap = getNationCapital('fr');
+    expect(templatesOf(gameReducer(s, { type: ActionTypes.SAVE_ARMY_TEMPLATE, payload: { template: { name: '', composition: { infantry: 1 } } } }).nations[FR_ID])).toEqual(mine);
+    const cap = getNationCapital(FR_ID);
     s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: cap, item: { kind: 'army', templateId: guard.id } } });
     expect(s.regions[cap].production.current).toMatchObject({ kind: 'army', templateId: guard.id, name: 'Border guard', composition: { infantry: 1, ranged: 1 } });
     s = { ...s, regions: { ...s.regions, [cap]: { ...s.regions[cap], production: { ...s.regions[cap].production, progress: 5000 } } } };
     s = play(s);
-    const tagged = Object.values(s.units).filter((u) => u.ownerId === 'fr' && u.army?.name === 'Border guard');
+    const tagged = Object.values(s.units).filter((u) => u.ownerId === FR_ID && u.army?.name === 'Border guard');
     expect(tagged.map((u) => u.classId).sort()).toEqual(['infantry', 'ranged']);
     expect(s.regions[cap].production.current?.kind).not.toBe('army');
     assertGameState(s);
     const gone = gameReducer(s, { type: ActionTypes.DELETE_ARMY_TEMPLATE, payload: { id: guard.id } });
-    expect(templatesOf(gone.nations.fr).some((t) => t.id === guard.id)).toBe(false);
-    expect(saveTemplate(deleteTemplate(s.nations.fr, 'tpl_legion'), { id: 'tpl_siege_train', name: 'Siege', composition: { siege: 2 } }, 5).armyTemplates.find((t) => t.id === 'tpl_siege_train').name).toBe('Siege');
+    expect(templatesOf(gone.nations[FR_ID]).some((t) => t.id === guard.id)).toBe(false);
+    expect(saveTemplate(deleteTemplate(s.nations[FR_ID], 'tpl_legion'), { id: 'tpl_siege_train', name: 'Siege', composition: { siege: 2 } }, 5).armyTemplates.find((t) => t.id === 'tpl_siege_train').name).toBe('Siege');
   });
 });

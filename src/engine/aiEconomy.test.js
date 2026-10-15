@@ -5,22 +5,28 @@ import {
 } from './aiEconomy';
 import { REGIONS_DATA } from '../data/regions';
 import { getNationCapital } from '../data/regions';
-import { createInitialState } from './gameReducer';
 import { addCities } from './testWorld';
 import { seedDevelopment } from './development';
 import { getIncreaseStabilityCost } from './nationalPower';
+import { peoplesWorld, rivalOf } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 1 });
+const US_ID = PEOPLES_WORLD.playerNationId;
+const ID_ID = rivalOf(PEOPLES_WORLD, 0);
+const BR_ID = rivalOf(PEOPLES_WORLD, 1);
 
 // Real city ids (Indonesia's capital and two cities founded beside it on the tile world) rather
 // than hand-faked region data: calcAllNationIncomes/tryConstructBuilding read isCoastal/isCapital/
 // population straight off REGIONS_DATA, so a fake id would silently no-op every one of those checks.
 // The registry stays synced to this world for the whole file (nothing else builds a state here).
-const WORLD = addCities(createInitialState({ playerNationId: 'us', rngSeed: 1 }), 'id', 2);
-const REGION_A = getNationCapital('id');
+const WORLD = addCities(peoplesWorld({ seed: 1 }), ID_ID, 2);
+const REGION_A = getNationCapital(ID_ID);
 const [REGION_B, REGION_C] = WORLD.cityIds;
 
 const makeRegion = (id, overrides = {}) => ({
   id,
-  owner: 'id',
+  owner: ID_ID,
   control: 100,
   currentInfrastructure: 0,
   currentPopulation: REGIONS_DATA[id].population,
@@ -40,12 +46,12 @@ const makeAiNation = (overrides = {}) => ({
 });
 
 const makeState = ({ age = 'bronze', regions = {}, nations = {}, units = {} } = {}) => ({
-  playerNationId: 'us',
+  playerNationId: US_ID,
   age,
   year: 3000, // clear of every tech's yearAvailable gate — these tests are about resource affordability, not the calendar
   units,
   regions,
-  nations: { us: {}, ...nations },
+  nations: { [US_ID]: {}, ...nations },
   greatProjects: {},
   satellites: {},
   regionModifiers: {}
@@ -54,15 +60,15 @@ const makeState = ({ age = 'bronze', regions = {}, nations = {}, units = {} } = 
 describe('AI think cadence (plan §C)', () => {
   it('Tier 1 nations think every turn', () => {
     expect(AI_THINK_PERIOD[1]).toBe(1);
-    for (let t = 0; t < 5; t++) expect(thinksThisTurn('id', 1, t)).toBe(true);
+    for (let t = 0; t < 5; t++) expect(thinksThisTurn(ID_ID, 1, t)).toBe(true);
   });
 
   it('Tier 2 thinks exactly 1 turn in 3, Tier 3 exactly 1 in 10', () => {
     let tier2Count = 0;
     let tier3Count = 0;
     for (let t = 0; t < 30; t++) {
-      if (thinksThisTurn('id', 2, t)) tier2Count++;
-      if (thinksThisTurn('id', 3, t)) tier3Count++;
+      if (thinksThisTurn(ID_ID, 2, t)) tier2Count++;
+      if (thinksThisTurn(ID_ID, 3, t)) tier3Count++;
     }
     expect(tier2Count).toBe(10);
     expect(tier3Count).toBe(3);
@@ -77,44 +83,44 @@ describe('AI think cadence (plan §C)', () => {
     // Not every nation id can land on a different turn (only 3 slots exist), but at least these two
     // real, differently-spelled ids don't collide by construction (a bug that hardcoding period=1
     // for every tier, or hashing nothing at all, would both produce).
-    expect(turnsThatThink('id')).not.toEqual(turnsThatThink('br'));
+    expect(turnsThatThink(ID_ID)).not.toEqual(turnsThatThink(BR_ID));
   });
 });
 
 describe('getEffectiveMilitaryPower (plan §M16)', () => {
   it('sums real fielded strength with a damped militaryStrength garrison', () => {
-    const state = { nations: { id: { militaryStrength: 1000 } }, units: { u1: { ownerId: 'id', strength: 50 } } };
-    expect(getEffectiveMilitaryPower(state, 'id')).toBe(50 + 1000 * 0.1);
+    const state = { nations: { [ID_ID]: { militaryStrength: 1000 } }, units: { u1: { ownerId: ID_ID, strength: 50 } } };
+    expect(getEffectiveMilitaryPower(state, ID_ID)).toBe(50 + 1000 * 0.1);
   });
 
   it('is 0 for a nation with no units and no garrison', () => {
-    const state = { nations: { id: {} }, units: {} };
-    expect(getEffectiveMilitaryPower(state, 'id')).toBe(0);
+    const state = { nations: { [ID_ID]: {} }, units: {} };
+    expect(getEffectiveMilitaryPower(state, ID_ID)).toBe(0);
   });
 });
 
 describe('calcAllNationIncomes', () => {
   it('computes real gold/hr income for a non-player nation from its owned, unoccupied regions', () => {
     const regions = { [REGION_A]: makeRegion(REGION_A), [REGION_B]: makeRegion(REGION_B) };
-    const state = makeState({ regions, nations: { id: makeAiNation() } });
+    const state = makeState({ regions, nations: { [ID_ID]: makeAiNation() } });
     const incomes = calcAllNationIncomes(state);
-    expect(incomes.id.gold).toBeGreaterThan(0);
-    expect(incomes.id.hr).toBeGreaterThan(0);
+    expect(incomes[ID_ID].gold).toBeGreaterThan(0);
+    expect(incomes[ID_ID].hr).toBeGreaterThan(0);
   });
 
   it('excludes a region while it is occupied by someone else (plan §M13: occupation gives the owner nothing)', () => {
-    const ownedOnly = calcAllNationIncomes(makeState({ regions: { [REGION_A]: makeRegion(REGION_A) }, nations: { id: makeAiNation() } }));
+    const ownedOnly = calcAllNationIncomes(makeState({ regions: { [REGION_A]: makeRegion(REGION_A) }, nations: { [ID_ID]: makeAiNation() } }));
     const withOccupied = calcAllNationIncomes(makeState({
-      regions: { [REGION_A]: makeRegion(REGION_A), [REGION_B]: makeRegion(REGION_B, { occupiedBy: 'br' }) },
-      nations: { id: makeAiNation() }
+      regions: { [REGION_A]: makeRegion(REGION_A), [REGION_B]: makeRegion(REGION_B, { occupiedBy: BR_ID }) },
+      nations: { [ID_ID]: makeAiNation() }
     }));
-    expect(withOccupied.id.gold).toBe(ownedOnly.id.gold);
+    expect(withOccupied[ID_ID].gold).toBe(ownedOnly[ID_ID].gold);
   });
 
   it('never produces an income entry for the player nation (the player keeps calcIncome instead)', () => {
-    const regions = { [REGION_C]: makeRegion(REGION_C, { owner: 'us' }) };
+    const regions = { [REGION_C]: makeRegion(REGION_C, { owner: US_ID }) };
     const incomes = calcAllNationIncomes(makeState({ regions }));
-    expect(incomes.us).toBeUndefined();
+    expect(incomes[US_ID]).toBeUndefined();
   });
 });
 
@@ -122,10 +128,10 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
   it('does not charge upkeep again during a spending decision', () => {
     const state = makeState({
       regions: { [REGION_A]: makeRegion(REGION_A) },
-      nations: { id: makeAiNation({ economy: { gold: 1, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, government: { type: 'dictatorship', reforms: {} } }) },
-      units: { u1: { ownerId: 'id', strength: 10 }, u2: { ownerId: 'id', strength: 10 } }
+      nations: { [ID_ID]: makeAiNation({ economy: { gold: 1, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, government: { type: 'dictatorship', reforms: {} } }) },
+      units: { u1: { ownerId: ID_ID, strength: 10 }, u2: { ownerId: ID_ID, strength: 10 } }
     });
-    const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+    const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     expect(nation.economy.gold).toBe(1);
   });
 
@@ -133,9 +139,9 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     const state = makeState({
       age: 'classical',
       regions: { [REGION_A]: makeRegion(REGION_A) },
-      nations: { id: makeAiNation({ government: null }) }
+      nations: { [ID_ID]: makeAiNation({ government: null }) }
     });
-    const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+    const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     expect(nation.government).toBeTruthy();
     expect(nation.government.type).not.toBe('tribal');
   });
@@ -144,9 +150,9 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     const state = makeState({
       age: 'bronze',
       regions: { [REGION_A]: makeRegion(REGION_A) },
-      nations: { id: makeAiNation({ government: null, economy: { gold: 1000, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 } }) }
+      nations: { [ID_ID]: makeAiNation({ government: null, economy: { gold: 1000, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 } }) }
     });
-    const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+    const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     // No government decision fires, so the very next priority (construct a building) should have run.
     expect(nation.government).toBeFalsy();
   });
@@ -155,9 +161,9 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     const state = makeState({
       age: 'bronze',
       regions: { [REGION_A]: makeRegion(REGION_A) },
-      nations: { id: makeAiNation({ government: { type: 'monarchy', reforms: {} } }) }
+      nations: { [ID_ID]: makeAiNation({ government: { type: 'monarchy', reforms: {} } }) }
     });
-    const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+    const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     expect(nation.government.reforms.bronze).toBeTruthy();
   });
 
@@ -169,13 +175,13 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
         [REGION_B]: makeRegion(REGION_B, { dev: { tax: 30, production: 30, manpower: 30 } }) // clearly higher dev
       },
       nations: {
-        id: makeAiNation({
+        [ID_ID]: makeAiNation({
           government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } }, // already reformed -> falls through to building
           economy: { gold: 1000, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }
         })
       }
     });
-    const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+    const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     expect(nation.economy.gold).toBeLessThan(1000); // spent on the building
     expect(state.regions[REGION_B].buildings.categories.military).toBe(0); // 'attrition' doctrine prioritizes military first
     expect(state.regions[REGION_A].buildings.categories.military).toBeUndefined(); // the OTHER owned region is untouched
@@ -184,15 +190,15 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
   it('never touches a region it does not own, even one adjacent/cheaper to build in', () => {
     const state = makeState({
       age: 'bronze',
-      regions: { [REGION_A]: makeRegion(REGION_A), [REGION_C]: makeRegion(REGION_C, { owner: 'br' }) },
+      regions: { [REGION_A]: makeRegion(REGION_A), [REGION_C]: makeRegion(REGION_C, { owner: BR_ID }) },
       nations: {
-        id: makeAiNation({
+        [ID_ID]: makeAiNation({
           government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
           economy: { gold: 1000, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }
         })
       }
     });
-    processAIEconomyTurn(state, state.regions, 'id');
+    processAIEconomyTurn(state, state.regions, ID_ID);
     expect(state.regions[REGION_C].buildings.categories.military).toBeUndefined();
   });
 
@@ -203,13 +209,13 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
       age: 'bronze',
       regions: { [REGION_A]: makeRegion(REGION_A, { buildings: { categories: { food: 0, economy: 0, military: 0, defense: 0, science: 0, industry: 0, culture: 0, naval: 0, logistics: 0 } } }) },
       nations: {
-        id: makeAiNation({
+        [ID_ID]: makeAiNation({
           government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
           economy: { gold: 1000, hr: 0, techPoints: 1000, adm: 0, dip: 0, mil: 1000 }
         })
       }
     });
-    const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+    const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     expect(nation.tech?.researched || []).toHaveLength(0);
     expect(nation.economy.techPoints).toBe(1000);
   });
@@ -228,13 +234,13 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
           [REGION_B]: makeRegion(REGION_B, { dev: { tax: 30, production: 30, manpower: 30 }, buildings: blockedBuildings }) // clearly higher dev
         },
         nations: {
-          id: makeAiNation({
+          [ID_ID]: makeAiNation({
             government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } }, // already reformed -> falls through
             economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 1000 } // only MIL is funded
           })
         }
       });
-      const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+      const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
       expect(nation.economy.mil).toBeLessThan(1000); // spent on development
       expect(state.regions[REGION_B].dev.manpower).toBe(31); // the higher-dev region, +1 manpower (the only affordable pool)
       expect(state.regions[REGION_A].dev.manpower).toBe(seedDevelopment(REGION_A).manpower); // the OTHER owned region is untouched
@@ -243,15 +249,15 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     it('never touches a region it does not own', () => {
       const state = makeState({
         age: 'bronze',
-        regions: { [REGION_A]: makeRegion(REGION_A, { buildings: blockedBuildings }), [REGION_C]: makeRegion(REGION_C, { owner: 'br', dev: { tax: 99, production: 99, manpower: 99 } }) },
+        regions: { [REGION_A]: makeRegion(REGION_A, { buildings: blockedBuildings }), [REGION_C]: makeRegion(REGION_C, { owner: BR_ID, dev: { tax: 99, production: 99, manpower: 99 } }) },
         nations: {
-          id: makeAiNation({
+          [ID_ID]: makeAiNation({
             government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
             economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 1000 }
           })
         }
       });
-      processAIEconomyTurn(state, state.regions, 'id');
+      processAIEconomyTurn(state, state.regions, ID_ID);
       expect(state.regions[REGION_C].dev.manpower).toBe(99);
     });
 
@@ -260,21 +266,21 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
         age: 'bronze',
         regions: { [REGION_A]: makeRegion(REGION_A, { buildings: blockedBuildings }) },
         nations: {
-          id: makeAiNation({
+          [ID_ID]: makeAiNation({
             government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
             economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }
           })
         }
       });
       const before = seedDevelopment(REGION_A);
-      processAIEconomyTurn(state, state.regions, 'id');
+      processAIEconomyTurn(state, state.regions, ID_ID);
       expect(state.regions[REGION_A].dev).toEqual(before);
     });
   });
 
   it('does nothing (no crash, no change) for a nation with no seeded economy — a legacy/test fixture', () => {
-    const state = makeState({ regions: { [REGION_A]: makeRegion(REGION_A) }, nations: { id: { doctrine: 'attrition' } } });
-    expect(() => processAIEconomyTurn(state, state.regions, 'id')).not.toThrow();
+    const state = makeState({ regions: { [REGION_A]: makeRegion(REGION_A) }, nations: { [ID_ID]: { doctrine: 'attrition' } } });
+    expect(() => processAIEconomyTurn(state, state.regions, ID_ID)).not.toThrow();
   });
 
   // Plan §M21: scripts/simulate.mjs's 150-turn AI-vs-AI runs found roughly one civil war per three
@@ -287,15 +293,15 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
         age: 'classical', // old enough that a government decision would otherwise win priority
         regions: { [REGION_A]: makeRegion(REGION_A) },
         nations: {
-          id: makeAiNation({
+          [ID_ID]: makeAiNation({
             government: null,
             stability: -1,
             economy: { gold: 1000, hr: 0, techPoints: 0, adm: 1000, dip: 0, mil: 0 }
           })
         }
       });
-      const cost = getIncreaseStabilityCost(state, 'id', 0);
-      const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+      const cost = getIncreaseStabilityCost(state, ID_ID, 0);
+      const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
       expect(nation.stability).toBe(0);
       expect(nation.economy.adm).toBe(1000 - cost);
       expect(nation.government).toBeFalsy(); // the government decision never got a turn
@@ -306,14 +312,14 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
         age: 'bronze',
         regions: { [REGION_A]: makeRegion(REGION_A) },
         nations: {
-          id: makeAiNation({
+          [ID_ID]: makeAiNation({
             stability: 0,
             government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
             economy: { gold: 1000, hr: 0, techPoints: 0, adm: 1000, dip: 0, mil: 0 }
           })
         }
       });
-      const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+      const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
       expect(nation.stability).toBe(0);
       expect(nation.economy.gold).toBeLessThan(1000); // spent on a building instead
     });
@@ -322,9 +328,9 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
       const state = makeState({
         age: 'classical',
         regions: { [REGION_A]: makeRegion(REGION_A) },
-        nations: { id: makeAiNation({ government: null, stability: -1, economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 } }) }
+        nations: { [ID_ID]: makeAiNation({ government: null, stability: -1, economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 } }) }
       });
-      const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+      const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
       expect(nation.stability).toBe(-1);
       expect(nation.economy.adm).toBe(0);
     });

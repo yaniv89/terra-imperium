@@ -2,8 +2,12 @@
 import { describe, it, expect } from 'vitest';
 import { computeSupplyFlow, industryMetalFor, isCampaigning, SUPPLY_FORAGE_PER_REGION, SUPPLIES_PER_INDUSTRY_TIER, METAL_PER_INDUSTRY_TIER, HUNGER_MORALE } from './supplies';
 import { resolveTurn } from './resolveTurn';
-import { createInitialState } from '../context/GameContext';
 import { getNeighborIds } from '../data/regions';
+import { peoplesWorld } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = peoplesWorld({ seed: 4 });
+const FR_ID = PEOPLES_WORLD.playerNationId;
 
 const regions = {
   a: { id: 'a', owner: 'me', control: 100, buildings: { categories: { industry: 1 } } }, // Manufactory: 2 tiers
@@ -34,10 +38,10 @@ describe('army supplies', () => {
     expect(flow.supplies).toBe(0);
   });
   it('a hungry army abroad loses morale and does not recover in resolveTurn', () => {
-    const s = createInitialState({ playerNationId: 'fr', rngSeed: 4 });
-    const foreign = Object.keys(s.regions).find((id) => s.regions[id].owner !== 'fr' && getNeighborIds(id).some((n) => s.regions[n]?.owner === 'fr'));
+    const s = peoplesWorld({ seed: 4 });
+    const foreign = Object.keys(s.regions).find((id) => s.regions[id].owner !== FR_ID && getNeighborIds(id).some((n) => s.regions[n]?.owner === FR_ID));
     const army = {};
-    for (let i = 0; i < 40; i++) army[`u${i}`] = { id: `u${i}`, regionId: foreign, ownerId: 'fr', domain: 'land', classId: 'infantry', strength: 800, maxStrength: 1000, morale: 60, movesLeft: 1, promotions: [] };
+    for (let i = 0; i < 40; i++) army[`u${i}`] = { id: `u${i}`, regionId: foreign, ownerId: FR_ID, domain: 'land', classId: 'infantry', strength: 800, maxStrength: 1000, morale: 60, movesLeft: 1, promotions: [] };
     const next = resolveTurn({ ...s, units: army, resources: { ...s.resources, supplies: 0 } });
     expect(next.units.u0.morale).toBe(60 - HUNGER_MORALE);
     expect(next.logs.some((l) => /Out of supplies/.test(l.message))).toBe(true);
