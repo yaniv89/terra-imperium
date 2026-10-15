@@ -1,5 +1,5 @@
 import { describe,it,expect } from 'vitest';
-import { createInitialState,gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getTermCost } from './peace';
 import { transferRegion } from './regionTransfer';
@@ -49,7 +49,6 @@ describe('territory and subject lifecycle',()=>{
 
 describe('a vassal that loses its last city', () => {
   it('is eliminated with its vassal link cleared, and drops off its overlord\'s list', async () => {
-    const { createInitialState } = await import('./gameReducer');
     const { auditGameState } = await import('./stateAudit');
     const s = neighbourWorld({ seed: 7 });
     const it0 = s.nations[IT_ID]; const va = s.nations[VA_ID];
