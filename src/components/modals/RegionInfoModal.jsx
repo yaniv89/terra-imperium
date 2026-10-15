@@ -536,7 +536,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             return (
               <div className="mb-2" data-testid="loyalty">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-fa-muted">Loyalty</span>
+                  <span className="text-fa-muted">{t('ri.loyalty')}</span>
                   <span className={`font-mono font-bold ${loyalty <= 25 ? 'text-fa-danger-text' : loyalty < t.total ? 'text-amber-300' : 'text-fa-good'}`}>{loyalty}{loyalty !== t.total ? ` → ${t.total}` : ''}</span>
                 </div>
                 <ProgressBar value={loyalty} color="dynamic" size="small" />

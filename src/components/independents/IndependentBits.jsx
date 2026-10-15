@@ -18,7 +18,7 @@ export const ShieldMark = ({ personality, size = 28, className = '' }) => {
   const url = shieldUrl(personality);
   if (url) return <img src={url} width={size} height={size} alt="" draggable={false} className={`shrink-0 ${className}`} data-shield={personality} />;
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" className={`shrink-0 ${className}`} data-shield={personality} data-placeholder="true">
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" className={`shrink-0 ${className}`} data-shield={personality} data-placeholder="true" /* i18n-ok */>
       <path d="M12 2.5 4.5 5.2v5.9c0 4.7 3.2 8.6 7.5 10.4 4.3-1.8 7.5-5.7 7.5-10.4V5.2z" fill="#232C38" stroke={INDEPENDENT_VIOLET} strokeWidth="1.4" strokeLinejoin="round" />
       <circle cx="12" cy="11.5" r="3.6" fill={shieldColour(personality)} />
     </svg>

@@ -51,9 +51,12 @@ const GLYPH = { wall: Shield, gate: DoorOpen, keep: Castle, palace: Landmark, wo
 export const Picture = ({ icon, glyph, size = 40 }) => {
   const Glyph = GLYPH[glyph] || Shield;
   const fallback = <Glyph className="text-fa-muted" style={{ width: size * 0.6, height: size * 0.6 }} aria-hidden="true" />;
+  let art = fallback;
+  if (icon?.url) art = <GameIcon url={icon.url} size={size - 4} halo={false} />;
+  else if (icon) art = <GameIcon group={icon.group} id={icon.id} size={size - 4} halo={false} fallback={fallback} />;
   return (
     <span className="shrink-0 flex items-center justify-center rounded-[8px] bg-fa-ink/70 border border-fa-line" style={{ width: size, height: size }}>
-      {icon?.url ? <GameIcon url={icon.url} size={size - 4} halo={false} /> : icon ? <GameIcon group={icon.group} id={icon.id} size={size - 4} halo={false} fallback={fallback} /> : fallback}
+      {art}
     </span>
   );
 };

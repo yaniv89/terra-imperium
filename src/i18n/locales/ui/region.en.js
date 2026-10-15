@@ -94,6 +94,7 @@ export default {
   'ri.settleDesc': '{who} ({control}% control) — absorb it peacefully, no military required',
   'ri.rebelsHold': 'Rebels hold this land',
   'ri.noOneGoverns': 'No one governs this land',
+  'ri.loyalty': 'Loyalty',
   'ri.noIntel': 'No intelligence',
   'ri.noIntelBody': '{owner} keeps its provinces closed to you. Population, garrisons, buildings, development and resources stay unknown until your agents get inside.',
   'ri.itsOwner': 'Its owner',

@@ -94,6 +94,7 @@ export default [
   ['ri.settleDesc', '{who} ({control}% control) — absorb it peacefully, no military required', '{who} (שליטה {control}%) — לספח אותה בשלום, בלי צבא'],
   ['ri.rebelsHold', 'Rebels hold this land', 'מורדים מחזיקים באדמה הזו'],
   ['ri.noOneGoverns', 'No one governs this land', 'אף אחד לא שולט באדמה הזו'],
+  ['ri.loyalty', 'Loyalty', 'נאמנות'],
   ['ri.noIntel', 'No intelligence', 'אין מודיעין'],
   ['ri.noIntelBody', '{owner} keeps its provinces closed to you. Population, garrisons, buildings, development and resources stay unknown until your agents get inside.', '{owner} שומרת על מחוזותיה סגורים בפניכם. אוכלוסייה, חיל מצב, מבנים, פיתוח ומשאבים נשארים לא ידועים עד שהסוכנים שלכם נכנסים פנימה.'],
   ['ri.itsOwner', 'Its owner', 'הבעלים שלה'],

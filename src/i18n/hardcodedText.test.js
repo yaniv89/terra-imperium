@@ -36,7 +36,32 @@ const CONVERTED = [
   'src/components/panels/ActionPanel.jsx',
   'src/components/panels/LogDrawer.jsx',
   'src/components/panels/EmpireOverview.jsx',
-  'src/components/city/CityList.jsx'
+  'src/components/city/CityList.jsx',
+  'src/components/battle/BattleHud.jsx',
+  'src/components/battle/EconomyHud.jsx',
+  'src/components/battle/BattleResultScreen.jsx',
+  'src/components/battle/BattleReportSheet.jsx',
+  'src/components/battle/BattleReplay.jsx',
+  'src/components/battle/PreBattleModal.jsx',
+  'src/components/battle/DefenseSheet.jsx',
+  'src/components/battle/PeaceDealSheet.jsx',
+  'src/components/battle/PeaceOfferSheet.jsx',
+  'src/components/battle/BattleFailure.jsx',
+  'src/components/battle/TacticalBattleScreen.jsx',
+  'src/components/battle/TacticalBattleHost.jsx',
+  'src/components/battle/warAtlas.jsx',
+  'src/components/battle/BattleMinimap.jsx',
+  'src/components/capture/CaptureCard.jsx',
+  'src/components/independents/IndependentSheet.jsx',
+  'src/components/independents/TributeDemandSheet.jsx',
+  'src/components/independents/IndependentBits.jsx',
+  'src/components/independents/CityStateBadge.jsx',
+  'src/components/modals/OnboardingOverlay.jsx',
+  'src/components/modals/ResearchChoiceSheet.jsx',
+  'src/components/modals/RazeControl.jsx',
+  'src/components/modals/RegionInfoModal.jsx',
+  'src/components/map/NationSheet.jsx',
+  'src/components/panels/NationCard.jsx'
 ];
 
 const TEXT_ATTRS = 'label|hint|title|subtitle|aria-label|placeholder|confirmLabel|cancelLabel|alt|text';
@@ -55,7 +80,8 @@ const findHardcoded = (source) => {
     if (line.includes('/*')) { inBlockComment = true; line = line.slice(0, line.indexOf('/*')); }
     line = line.replace(/(^|\s)\/\/.*$/, '');
     // text between a tag and the next tag or brace: >Some words<
-    const jsx = /(?<![=-])>([^<>{}=]*[A-Za-z]{2,}[^<>{}=]*)(?=<|\{)/g;
+    // a ">" after a space is a comparison (x > 0), never the end of a tag
+    const jsx = /(?<![=\s-])>([^<>{}=]*[A-Za-z]{2,}[^<>{}=]*)(?=<|\{)/g;
     let m;
     while ((m = jsx.exec(line))) {
       if (/^\s*$/.test(m[1])) continue;
