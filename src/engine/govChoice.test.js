@@ -1,13 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { GOVERNMENT_TYPES, canChangeGovernmentType } from '../data/government';
 import { previewGovernmentChange } from './governmentPreview';
 import { generateAdvisorCandidates, successionLine, courtNames } from './rulers';
 import { createRng } from '../utils/rng';
+import { neighbourWorld } from './testWorld';
+
+// The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
+const PEOPLES_WORLD = neighbourWorld({ seed: 11 });
 
 const rich = () => {
-  const s = createInitialState({ playerNationId: 'fr', rngSeed: 11 });
+  const s = neighbourWorld({ seed: 11 });
   return { ...s, resources: { ...s.resources, adm: 5000, gold: 5000 } };
 };
 
@@ -33,7 +37,7 @@ describe('government change with chosen reforms (I140)', () => {
 describe('court names and successions (I145, I147)', () => {
   it('advisor candidates never share a name with each other or the ruler', () => {
     for (let seed = 1; seed <= 30; seed++) {
-      const c = generateAdvisorCandidates('fr', createRng(seed), ['Zed']);
+      const c = generateAdvisorCandidates('fr', createRng(seed), ['Zed']) // NOTE: engine finding, see plans/legacy-world-retirement.md: a peoples id (akkad) can repeat a name;
       const names = Object.values(c).flat().map((a) => a.name);
       expect(new Set(names).size).toBe(names.length);
       expect(names).not.toContain('Zed');
