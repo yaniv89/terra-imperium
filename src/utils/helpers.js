@@ -5,6 +5,7 @@
 // adapted from this one.
 
 import { RelationStatus } from '../data/types';
+import { t as tNow, getLanguage } from '../i18n/core';
 import { REGIONS_DATA, getCapital } from '../data/regions';
 import { RESOURCE_IDS } from '../data/resources';
 import { regionHasDeposit } from '../data/deposits';
@@ -25,8 +26,8 @@ export { getNationBonusTotal, explainNationBonus } from '../engine/modifiers/she
 
 export const formatNumber = (num) => {
   if (num === undefined || num === null) return '0';
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}${getLanguage() === 'he' ? tNow('p1.num.m') : 'M'}`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}${getLanguage() === 'he' ? tNow('p1.num.k') : 'K'}`;
   return num.toString();
 };
 
@@ -439,7 +440,8 @@ export const getResourceStrain = (costs, resources) => {
     if (fraction > worst.fraction) worst = { fraction, key };
   });
   if (!worst.key || worst.fraction < 0.5) return null;
-  const label = POWER_POOL_LABELS[worst.key] || RESOURCE_LABELS[worst.key] || worst.key;
+  const english = POWER_POOL_LABELS[worst.key] || RESOURCE_LABELS[worst.key] || worst.key;
+  const label = getLanguage() === 'he' && (POWER_POOL_LABELS[worst.key] || RESOURCE_LABELS[worst.key]) ? tNow(`res.${worst.key}`) : english;
   return { level: worst.fraction >= 0.9 ? 'critical' : 'high', label };
 };
 
@@ -447,9 +449,9 @@ export const getCostString = (costs) => {
   const parts = [];
   Object.entries(costs).forEach(([key, value]) => {
     if (!value) return;
-    if (RESOURCE_LABELS[key]) parts.push(`${formatNumber(value)} ${RESOURCE_LABELS[key]}`);
-    else if (key === 'techPoints') parts.push(`${value} TP`);
-    else if (POWER_POOL_LABELS[key]) parts.push(`${value} ${POWER_POOL_LABELS[key]}`);
+    if (RESOURCE_LABELS[key]) parts.push(`${formatNumber(value)} ${getLanguage() === 'he' ? tNow(`res.${key}`) : RESOURCE_LABELS[key]}`);
+    else if (key === 'techPoints') parts.push(`${value} ${getLanguage() === 'he' ? tNow('res.techPoints') : 'TP'}`);
+    else if (POWER_POOL_LABELS[key]) parts.push(`${value} ${getLanguage() === 'he' ? tNow(`res.${key}`) : POWER_POOL_LABELS[key]}`);
   });
   return parts.join(', ');
 };

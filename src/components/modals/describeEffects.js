@@ -13,69 +13,78 @@
 // would mean either forking this function into two incompatible key sets or renaming every
 // ActionButton call site's effect-hint keys across ~10 panel files for a purely cosmetic change —
 // not an M17-sized edit, so it's deferred rather than force-fit here.
-import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
-import { PEOPLES } from '../data/peoples';
-import { REGIONS_DATA } from '../data/regions';
-import { BUILDING_CATEGORIES } from '../data/buildings';
-import { getLaw } from '../data/laws';
-import { TRAITS } from '../data/traits';
-import { formatMoney, formatNumber } from '../utils/helpers';
+import { WORLD_NATIONS as NATIONS_DATA } from '../../data/worldNations';
+import { PEOPLES } from '../../data/peoples';
+import { REGIONS_DATA } from '../../data/regions';
+import { BUILDING_CATEGORIES } from '../../data/buildings';
+import { getLaw } from '../../data/laws';
+import { TRAITS } from '../../data/traits';
+import { formatMoney, formatNumber } from '../../utils/helpers';
+import { t as tNow, getLanguage, isolateLtr, formatNumber as localNumber } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
+import { buildingCategoryLabel, lawName, traitName } from '../../i18n/gameText';
 
-const nationName = (id) => NATIONS_DATA[id]?.name || PEOPLES[id]?.name || id;
-const regionName = (id) => REGIONS_DATA[id]?.name || id;
+// Display only (EventModal): it is rebuilt on a language change and never saved, so it lives with the
+// components and may use the names helpers (src/engine may import only i18n/core.js).
+const nationName = (id) => nameNow('nation', id, NATIONS_DATA[id]?.name || PEOPLES[id]?.name || id);
+const regionName = (id) => nameNow('city', null, REGIONS_DATA[id]?.name || id);
 const joinNations = (value) => (Array.isArray(value) ? value : [value]).map(nationName).join(', ');
-const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
+const signed = (n) => isolateLtr(`${n >= 0 ? '+' : ''}${n}`);
+// English keeps the game's compact numbers ("7.0K", "80g"); Hebrew writes plain grouped numbers.
+const num = (v) => (getLanguage() === 'he' ? localNumber(v) : formatNumber(v));
+const money = (v) => (getLanguage() === 'he' ? localNumber(v) : formatMoney(v));
+const pm = (v, shown) => isolateLtr(`${v >= 0 ? '+' : '-'}${shown}`);
+const t = (key, vars) => tNow(`de.${key}`, vars);
+const sg = (v) => (v >= 0 ? 'positive' : 'negative');
 
-const DEV_TYPE_LABELS = { tax: 'Tax', production: 'Production', manpower: 'Manpower' };
-
-// One entry describer per effect key. Each returns `{ text, sign, tooltip }` or null to skip
+// One entry describer per effect key. Each returns { text, sign, tooltip } or null to skip
 // (used by the falsy-value guard in describeEffects below, and by keys with no player-facing
-// meaning at all, like spawnFollowUp — an internal scheduling detail, not a consequence to preview).
+// meaning at all, like spawnFollowUp, an internal scheduling detail, not a consequence to preview).
 const DESCRIBERS = {
-  gold: (v) => ({ text: `Gold ${v >= 0 ? '+' : '-'}${formatMoney(Math.abs(v))}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  hr: (v) => ({ text: `Manpower ${v >= 0 ? '+' : '-'}${formatNumber(Math.abs(v))}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  copper: (v) => ({ text: `Copper ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  iron: (v) => ({ text: `Iron ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  oil: (v) => ({ text: `Oil ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  rareMetals: (v) => ({ text: `Rare Metals ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  helium3: (v) => ({ text: `Helium-3 ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  dip: (v) => ({ text: `DIP ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  techPoints: (v) => ({ text: `Tech Points ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  militaryStrengthBonus: (v) => ({ text: `Military ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  controlBonus: (v) => ({ text: `Control ${signed(v)}%`, sign: 'positive', tooltip: 'Applies to every region you own' }),
-  cityUnrest: (v) => ({ text: `Unrest ${signed(v)} in the city`, sign: v > 0 ? 'negative' : 'positive' }),
-  cityFood: (v) => ({ text: `Food stores ${signed(v)} in the city`, sign: v >= 0 ? 'positive' : 'negative' }),
-  citySize: (v) => ({ text: `City size ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  cityLoyalty: (v) => ({ text: `Loyalty ${signed(v)} in the city`, sign: v >= 0 ? 'positive' : 'negative' }),
-  controlPenalty: (v) => ({ text: `Control -${v}%`, sign: 'negative', tooltip: 'Applies only to regions currently occupied by someone else' }),
-  defenseBonus: (v) => ({ text: `Fort Level +${Math.max(1, Math.round(v * 20))}`, sign: 'positive', tooltip: 'A timed modifier on every region you own' }),
-  captureRegions: (v) => ({ text: `Capture: ${v.map(regionName).join(', ')}`, sign: 'positive' }),
-  returnRegion: (v) => ({ text: `Return: ${regionName(v)}`, sign: 'negative' }),
-  peaceWith: (v) => ({ text: `Peace: ${joinNations(v)}`, sign: 'positive' }),
-  tradeWith: (v) => ({ text: `Trade Pact: ${joinNations(v)}`, sign: 'positive' }),
-  warWith: (v) => ({ text: `War: ${joinNations(v)}`, sign: 'negative' }),
+  gold: (v) => ({ text: t('gold', { v: pm(v, money(Math.abs(v))) }), sign: sg(v) }),
+  hr: (v) => ({ text: t('hr', { v: pm(v, num(Math.abs(v))) }), sign: sg(v) }),
+  copper: (v) => ({ text: t('copper', { v: signed(v) }), sign: sg(v) }),
+  iron: (v) => ({ text: t('iron', { v: signed(v) }), sign: sg(v) }),
+  oil: (v) => ({ text: t('oil', { v: signed(v) }), sign: sg(v) }),
+  rareMetals: (v) => ({ text: t('rareMetals', { v: signed(v) }), sign: sg(v) }),
+  helium3: (v) => ({ text: t('helium3', { v: signed(v) }), sign: sg(v) }),
+  dip: (v) => ({ text: t('dip', { v: signed(v) }), sign: sg(v) }),
+  techPoints: (v) => ({ text: t('techPoints', { v: signed(v) }), sign: sg(v) }),
+  militaryStrengthBonus: (v) => ({ text: t('military', { v: signed(v) }), sign: sg(v) }),
+  controlBonus: (v) => ({ text: t('control', { v: signed(v) }), sign: 'positive', tooltip: t('controlTip') }),
+  cityUnrest: (v) => ({ text: t('cityUnrest', { v: signed(v) }), sign: v > 0 ? 'negative' : 'positive' }),
+  cityFood: (v) => ({ text: t('cityFood', { v: signed(v) }), sign: sg(v) }),
+  citySize: (v) => ({ text: t('citySize', { v: signed(v) }), sign: sg(v) }),
+  cityLoyalty: (v) => ({ text: t('cityLoyalty', { v: signed(v) }), sign: sg(v) }),
+  controlPenalty: (v) => ({ text: t('controlMinus', { v: isolateLtr(`-${v}`) }), sign: 'negative', tooltip: t('controlMinusTip') }),
+  defenseBonus: (v) => ({ text: t('fort', { v: isolateLtr(`+${Math.max(1, Math.round(v * 20))}`) }), sign: 'positive', tooltip: t('fortTip') }),
+  captureRegions: (v) => ({ text: t('capture', { places: v.map(regionName).join(', ') }), sign: 'positive' }),
+  returnRegion: (v) => ({ text: t('return', { place: regionName(v) }), sign: 'negative' }),
+  peaceWith: (v) => ({ text: t('peace', { who: joinNations(v) }), sign: 'positive' }),
+  tradeWith: (v) => ({ text: t('trade', { who: joinNations(v) }), sign: 'positive' }),
+  warWith: (v) => ({ text: t('war', { who: joinNations(v) }), sign: 'negative' }),
   nationHostility: (v) => {
     // Hostility itself is bad-when-high, so a POSITIVE delta (more hostile) is the negative outcome.
     const [nId, delta] = Object.entries(v)[0] || [];
-    return { text: `Relations (${nationName(nId)}) ${signed(delta)}`, sign: delta <= 0 ? 'positive' : 'negative' };
+    return { text: t('relations', { who: nationName(nId), v: signed(delta) }), sign: delta <= 0 ? 'positive' : 'negative' };
   },
-  stability: (v) => ({ text: `Stability ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  legitimacy: (v) => ({ text: `Legitimacy ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  prestige: (v) => ({ text: `Prestige ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
-  victory: () => ({ text: 'VICTORY', sign: 'positive' }),
-  addModifier: (v) => ({ text: `${v.label || 'Modifier'} (${v.duration} turns)`, sign: 'neutral' }),
-  addClaim: (v) => ({ text: `Claim: ${nationName(v)}`, sign: 'neutral' }),
-  spawnRebels: (v) => ({ text: `Unrest in ${regionName(v.regionId)}`, sign: 'negative' }),
+  stability: (v) => ({ text: t('stability', { v: signed(v) }), sign: sg(v) }),
+  legitimacy: (v) => ({ text: t('legitimacy', { v: signed(v) }), sign: sg(v) }),
+  prestige: (v) => ({ text: t('prestige', { v: signed(v) }), sign: sg(v) }),
+  victory: () => ({ text: t('victory'), sign: 'positive' }),
+  addModifier: (v) => ({ text: t('modifier', { label: v.label || t('modifierDefault'), turns: v.duration }), sign: 'neutral' }),
+  addClaim: (v) => ({ text: t('claim', { who: nationName(v) }), sign: 'neutral' }),
+  spawnRebels: (v) => ({ text: t('unrestIn', { place: regionName(v.regionId) }), sign: 'negative' }),
   ruler: (v) => {
-    if (v.addTrait) return { text: `Ruler gains ${TRAITS[v.addTrait]?.name || v.addTrait}`, sign: 'positive' };
-    if (v.removeTrait) return { text: `Ruler loses ${TRAITS[v.removeTrait]?.name || v.removeTrait}`, sign: 'negative' };
+    if (v.addTrait) return { text: t('rulerGains', { trait: traitName(v.addTrait, TRAITS[v.addTrait]?.name || v.addTrait) }), sign: 'positive' };
+    if (v.removeTrait) return { text: t('rulerLoses', { trait: traitName(v.removeTrait, TRAITS[v.removeTrait]?.name || v.removeTrait) }), sign: 'negative' };
     return null;
   },
-  dev: (v) => ({ text: `${regionName(v.regionId)} ${DEV_TYPE_LABELS[v.type] || v.type} ${signed(v.delta)}`, sign: v.delta >= 0 ? 'positive' : 'negative' }),
-  construct: (v) => ({ text: `Free ${BUILDING_CATEGORIES[v.category]?.label || v.category} building`, sign: 'positive', tooltip: regionName(v.regionId) }),
+  dev: (v) => ({ text: t('dev', { place: regionName(v.regionId), type: t(`dev.${v.type}`), v: signed(v.delta) }), sign: sg(v.delta) }),
+  construct: (v) => ({ text: t('construct', { category: buildingCategoryLabel(v.category, BUILDING_CATEGORIES[v.category]?.label || v.category) }), sign: 'positive', tooltip: regionName(v.regionId) }),
   law: (v) => {
     const law = getLaw(v.category, v.lawId);
-    return law ? { text: `Law: ${law.name}`, sign: 'neutral' } : null;
+    return law ? { text: t('law', { law: lawName(law.id, law.name) }), sign: 'neutral' } : null;
   }
 };
 

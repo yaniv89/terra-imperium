@@ -10,7 +10,7 @@ import React, { useEffect } from 'react';
 import { AlertTriangle, Calendar, TrendingUp, TrendingDown, Minus, MapPin } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { focusRegion } from '../map/marchEvents';
-import { describeEffects } from '../../engine/describeEffects';
+import { describeEffects } from './describeEffects';
 import { getOptionShortfall } from '../../engine/applyEventEffects';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { t as tNow } from '../../i18n';

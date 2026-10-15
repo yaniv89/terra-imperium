@@ -33,7 +33,7 @@ const EmpireOverview = () => {
       <div className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1" data-testid="empire-era">
         <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-fa-text font-semibold"><Target className="w-3.5 h-3.5" />{t('empire.ageGoals', { age: ageName(m.era.ageId, m.era.ageName) })}</span><span className="text-fa-muted">{t('empire.forLegacy', { met: m.era.met, needed: m.era.needed })}</span></div>
         <div className="flex flex-wrap gap-1">
-          {m.era.goals.map((g) => <span key={g.id} className={`rounded px-1.5 py-0.5 ${g.done ? 'bg-emerald-800/50 text-emerald-200' : 'bg-fa-hover/60 text-fa-text'}`} title={`${g.label}: ${g.value} of ${g.target} ${g.unit}`}>{g.label} {g.value}/{g.target}</span>)}
+          {m.era.goals.map((g) => <span key={g.id} className={`rounded px-1.5 py-0.5 ${g.done ? 'bg-emerald-800/50 text-emerald-200' : 'bg-fa-hover/60 text-fa-text'}`} title={t('p1.eo.goalTip', { label: g.label, value: g.value, target: g.target, unit: g.unit })}>{g.label} {g.value}/{g.target}</span>)}
         </div>
       </div>
       <div className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1" data-testid="empire-treasury">

@@ -88,7 +88,6 @@ const scan = (opts = {}) => page.evaluate(async (opts) => {
 
 const latin = (items) => items.filter((it) => {
   if (it.where === 'lang-en' || it.where === 'lang-he') return false; // the language names stay in their own language
-  if (it.kind === 'title' && /art$/.test(it.text)) return true;
   const toks = it.text.match(/[A-Za-z]+/g) || [];
   return toks.some((tk) => !ALLOW.has(tk));
 });
@@ -106,7 +105,6 @@ const click = async (loc) => { await loc.first().dispatchEvent('click'); await w
 const tid = (id) => page.getByTestId(id);
 const has = async (loc) => (await loc.count()) > 0 && (await loc.first().isVisible().catch(() => false));
 const esc = async () => { await page.keyboard.press('Escape'); await wait(300); };
-const setLang = (l) => page.evaluate(async (x) => (await import('/terra-imperium/src/i18n/index.js')).setLanguage(x), l);
 const patch = (body, mods = []) => page.evaluate(async ({ body, mods }) => {
   const m = {};
   for (const p of mods) Object.assign(m, await import(`/terra-imperium/src/${p}`));
@@ -144,7 +142,6 @@ await step('start', async () => {
   if (!(await page.locator('[data-people]').count())) await fresh();
   await page.locator('[data-people]').first().waitFor({ timeout: 120000 });
   await record('start: people list');
-  for (const id of ['start-step-ready']) { /* visited below */ }
   const steps = await page.locator('[data-testid^="start-step-"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
   await click(page.locator('[data-people]'));
   for (const s of steps) { await click(tid(s)); await record(`start: ${s}`); }
@@ -253,7 +250,6 @@ await step('tech', async () => {
   await record('tech: lines');
   await click(tid('research-web-toggle'));
   await record('tech: web (tech tree)');
-  const node = page.locator('[data-testid^="web-"][data-status="available"]').first();
   await railTab(2);
 });
 

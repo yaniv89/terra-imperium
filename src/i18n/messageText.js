@@ -4,7 +4,7 @@
 // nameOf (all names in Hebrew letters in Hebrew). A line without one (an old save, a line not
 // converted yet) shows its English `message` as it is.
 import { msgText } from '../engine/messages';
-import { getLanguage, hasKey, translate } from './core';
+import { getLanguage, hasKey, translate, hasDataText, dataText } from './core';
 import { nameOf } from './names';
 
 // Proper names go through nameOf (the reviewed table, else transliteration). Every other kind is
@@ -13,11 +13,21 @@ import { nameOf } from './names';
 const NAME_KINDS = new Set(['people', 'city', 'person', 'place', 'battle']);
 const dataKey = (r) => (r.k === 'age' ? `age.${r.id}` : `${r.k}.${r.id}.name`);
 
+// Events: evt.<id>.title and evt.<id>.opt<N> (data/he.events.js); an option's id is "<eventId>.<index>".
+const eventKey = (r) => {
+  if (r.k === 'event') return `evt.${r.id}.title`;
+  if (r.k === 'eventOption') { const i = String(r.id).lastIndexOf('.'); return i > 0 ? `evt.${String(r.id).slice(0, i)}.opt${String(r.id).slice(i + 1)}` : null; }
+  return null;
+};
+
 export const refName = (r, lang) => {
   if (!r) return '';
   if (lang === 'en') return r.en;
   if (NAME_KINDS.has(r.k)) return nameOf(r.k, r.k === 'people' ? r.id : null, r.en, lang);
   if (r.id != null && hasKey(dataKey(r), 'en')) return translate(dataKey(r), null, lang);
+  const ek = eventKey(r);
+  if (ek && hasDataText(ek)) return dataText(ek, r.en, null, lang);
+  if (r.id != null && hasDataText(`${r.k}.${r.id}`)) return dataText(`${r.k}.${r.id}`, r.en, null, lang);
   return r.en;
 };
 

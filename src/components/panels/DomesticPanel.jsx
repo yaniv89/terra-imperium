@@ -8,9 +8,12 @@
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
 import { nameNow } from '../../i18n/names';
-import { taxRateName, taxRateDescription, wonderName, wonderDescription, governmentName, reformName, reformDescription, lawName, lawLine, identityDescription, identityPole, rulerLine, traitName } from '../../i18n/gameText';
+import { useT } from '../../i18n/useT';
+import { isolateLtr } from '../../i18n';
+import { advisorQuote, lawEffectText, lawLockText, describeRulesText, governmentCardLines, poolLabel } from './empireText';
+import { techName, taxRateName, taxRateDescription, wonderName, wonderDescription, governmentName, reformName, reformDescription, lawName, lawLine, identityDescription, identityPole, rulerLine, traitName } from '../../i18n/gameText';
 import { t as tNow } from '../../i18n';
-import React, { useState } from 'react';
+import React from 'react';
 import { WonderIcon } from '../ui/icons';
 import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Globe2, Swords } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -34,34 +37,31 @@ import {
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { calcNationBalance, getLoanCapacity, getLoanSize, hasBankingHouses } from '../../engine/economy';
 import { canAfford, formatNumber } from '../../utils/helpers';
-import { getAdvisorHireCost, advisorQuoteText } from '../../engine/rulers';
+import { getAdvisorHireCost } from '../../engine/rulers';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { TRAITS } from '../../data/traits';
 import { ActionButton, CollapsibleSection } from '../ui';
 import { cityGroups, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_ASSIGN_TURNS, GOVERNOR_REFRESH_TURNS } from '../../engine/governors';
 import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engine/authority';
-import { lawRulesOf, describeRules } from '../../engine/lawRules';
+import { lawRulesOf } from '../../engine/lawRules';
 import { previewGovernmentChange } from '../../engine/governmentPreview';
-import { lawEffectLines, lawLockReason } from '../../engine/lawEffects';
-import GovernmentChangeDialog from './GovernmentChangeDialog';
+import { openGovernmentChange } from './GovernmentChangeDialog';
 import { powerPoolsShort, POWER_POOL_HELP } from '../../data/powerPools';
 
-const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
-
 const DomesticPanel = () => {
+  useT(); // redraw when the language changes
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const playerNation = state.nations[state.playerNationId];
-  const [confirmGov, setConfirmGov] = useState(null); // the government type waiting for its confirm dialog
 
   const handleSetTaxRate = (rate) => {
-    if (!canAfford(state.resources, ACTION_COSTS.setTaxRate)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.setTaxRate)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('set_tax_rate', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SET_TAX_RATE, payload: { rate } });
   };
   const handleCounterIntelligence = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.counterIntelligence)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.counterIntelligence)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('counter_intelligence', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.COUNTER_INTELLIGENCE });
   };
@@ -72,7 +72,7 @@ const DomesticPanel = () => {
       <ActionButton
         icon={ShieldAlert}
         label={tNow('dom.counter')}
-        description={`Uncover a plot by whoever's most hostile toward you: -${COUNTER_INTEL_HOSTILITY_REDUCTION} their hostility, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} Diplomacy Points`}
+        description={tNow('p1.dom.counterDesc', { hostility: COUNTER_INTEL_HOSTILITY_REDUCTION, dip: COUNTER_INTEL_DIPLOMACY_POINTS_REWARD })}
         costs={ACTION_COSTS.counterIntelligence}
         onClick={handleCounterIntelligence}
         disabled={!canAfford(state.resources, ACTION_COSTS.counterIntelligence)}
@@ -91,7 +91,7 @@ const DomesticPanel = () => {
                 onClick={() => handleSetTaxRate(rateId)}
                 disabled={playerNation?.taxRate === rateId || onTaxCooldown || !canAfford(state.resources, ACTION_COSTS.setTaxRate)}
                 title={onTaxCooldown && playerNation?.taxRate !== rateId
-                  ? `${taxRateDescription(rateId, TAX_RATES[rateId].description)} (available turn ${taxCooldownTurn})`
+                  ? tNow('p1.dom.taxAvail', { desc: taxRateDescription(rateId, TAX_RATES[rateId].description), turn: taxCooldownTurn })
                   : taxRateDescription(rateId, TAX_RATES[rateId].description)}
                 className={`text-xs rounded-lg p-2 border ${
                   playerNation?.taxRate === rateId
@@ -120,7 +120,7 @@ const DomesticPanel = () => {
             </div>
             <div className="flex justify-between text-fa-muted">
               <span>{tNow('dom.upkeep')}</span>
-              <span>-{formatNumber(Object.values(expenses).reduce((s, v) => s + v, 0))}g</span>
+              <span>-{formatNumber(Object.values(expenses).reduce((s, v) => s + v, 0))}{tNow('empire.g')}</span>
             </div>
             <div className={`flex justify-between font-semibold ${net >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>
               <span>{tNow('dom.net')}</span><span>{net >= 0 ? '+' : ''}{formatNumber(Math.round(net))}{tNow('empire.g')}</span>
@@ -129,16 +129,16 @@ const DomesticPanel = () => {
               <div className="text-fa-muted pt-1">{tNow('dom.loans')}</div>
             ) : (
               <>
-                <div className="text-fa-muted pt-1">Loans: {loans.length}/{loanCapacity}</div>
+                <div className="text-fa-muted pt-1">{tNow('p1.dom.loansCount', { n: loans.length, cap: loanCapacity })}</div>
                 {loans.map((loan) => (
                   <div key={loan.id} className="flex justify-between items-center text-fa-text">
-                    <span>{formatNumber(loan.principal)}g @ {Math.round(loan.interestRate * 100)}%</span>
+                    <span>{tNow('p1.dom.loanRow', { amount: formatNumber(loan.principal), rate: Math.round(loan.interestRate * 100) })}</span>
                     <button
                       onClick={() => dispatch({ type: ActionTypes.REPAY_LOAN, payload: { loanId: loan.id } })}
                       disabled={(state.resources.gold || 0) < loan.principal}
                       className="text-[10px] bg-fa-hover hover:bg-fa-line disabled:opacity-50 rounded px-1.5 py-0.5"
                     >
-                      Repay
+                      {tNow('p1.dom.repay')}
                     </button>
                   </div>
                 ))}
@@ -147,7 +147,7 @@ const DomesticPanel = () => {
                   disabled={loans.length >= loanCapacity}
                   className="w-full text-[10px] bg-fa-hover hover:bg-fa-line disabled:opacity-50 rounded px-1.5 py-1 mt-1"
                 >
-                  Request Loan (~{formatNumber(getLoanSize(state, state.playerNationId))}g)
+                  {tNow('p1.dom.requestLoan', { n: formatNumber(getLoanSize(state, state.playerNationId)) })}
                 </button>
               </>
             )}
@@ -155,10 +155,10 @@ const DomesticPanel = () => {
               <button
                 onClick={() => dispatch({ type: ActionTypes.ACTIVATE_FUSION_GRID })}
                 disabled={playerNation?.fusionGridActive || (state.resources.helium3 || 0) < FUSION_GRID_ACTIVATION_HELIUM3}
-                title={`50 Helium-3 once, then ${FUSION_GRID_UPKEEP_HELIUM3_PER_TURN}/turn, for +${Math.round(FUSION_GRID_GOLD_MULT_BONUS * 100)}% Gold income while supplied.`}
+                title={tNow('p1.dom.fusionTip', { upkeep: FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, pct: Math.round(FUSION_GRID_GOLD_MULT_BONUS * 100) })}
                 className="w-full text-[10px] bg-fa-hover hover:bg-fa-line disabled:opacity-50 rounded px-1.5 py-1 mt-1"
               >
-                {playerNation?.fusionGridActive ? 'Fusion Grid Online' : `Activate Fusion Grid (${FUSION_GRID_ACTIVATION_HELIUM3} He-3)`}
+                {playerNation?.fusionGridActive ? tNow('p1.dom.fusionOn') : tNow('p1.dom.fusionActivate', { n: FUSION_GRID_ACTIVATION_HELIUM3 })}
               </button>
             )}
           </div>
@@ -171,8 +171,10 @@ const DomesticPanel = () => {
         const entry = state.greatProjects?.[projectId];
         const ownerId = entry ? getGreatProjectOwner(state, projectId) : null;
         const ownedByPlayer = ownerId === state.playerNationId;
-        const status = !entry ? 'Not yet built'
-          : `Tier ${entry.tier}${ownerId ? ` — ${ownedByPlayer ? 'yours' : state.nations[ownerId]?.name || ownerId}` : ' — contested'}`;
+        const status = !entry ? tNow('p1.dom.notBuilt')
+          : !ownerId ? tNow('p1.dom.tierContested', { tier: entry.tier })
+            : ownedByPlayer ? tNow('p1.dom.tierYours', { tier: entry.tier })
+              : tNow('p1.dom.tierOther', { tier: entry.tier, name: state.nations[ownerId]?.name ? nameNow('people', ownerId, state.nations[ownerId].name) : ownerId });
         const canRaise = ownedByPlayer && entry.tier < (project.tiers?.length || 3);
         return (
           <div key={projectId} className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
@@ -181,7 +183,7 @@ const DomesticPanel = () => {
               <span className="text-fa-muted">{status}</span>
             </div>
             <div className="text-fa-muted">{wonderDescription(projectId, project.description)}</div>
-            {canRaise && <div className="text-[10px] text-amber-200">Raise it to tier {entry.tier + 1} from {state.regions[entry.regionId]?.name || 'its city'}&apos;s production queue (Wonders).</div>}
+            {canRaise && <div className="text-[10px] text-amber-200">{tNow('p1.dom.raiseIt', { tier: entry.tier + 1, city: state.regions[entry.regionId]?.name ? nameNow('city', null, state.regions[entry.regionId].name) : tNow('p1.dom.itsCity') })}</div>}
           </div>
         );
       })}
@@ -189,7 +191,7 @@ const DomesticPanel = () => {
   );
 
   const handleHireAdvisor = (pool, candidateIndex, cost) => {
-    if ((state.resources.gold || 0) < cost) return addLog('Not enough gold', 'action');
+    if ((state.resources.gold || 0) < cost) return addLog(tNow('p1.dom.notGold'), 'action');
     triggerEffect('hire_advisor', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.HIRE_ADVISOR, payload: { pool, candidateIndex } });
   };
@@ -197,7 +199,7 @@ const DomesticPanel = () => {
   const stabilityCostMult = getModifier(state, state.playerNationId, 'national.stabilityCost').total;
   const increaseStabilityCost = getIncreaseStabilityCost(state, state.playerNationId, stabilityCostMult);
   const handleIncreaseStability = () => {
-    if ((state.resources.adm || 0) < increaseStabilityCost) return addLog('Not enough ADM', 'action');
+    if ((state.resources.adm || 0) < increaseStabilityCost) return addLog(tNow('p1.dom.notAdm'), 'action');
     triggerEffect('increase_stability', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.INCREASE_STABILITY });
   };
@@ -219,7 +221,7 @@ const DomesticPanel = () => {
     return (
       <div className="bg-fa-raised/60 rounded-lg p-3 text-sm space-y-2" data-testid="governors">
         <div className="flex items-center gap-2"><Users size={14} className="text-fa-good shrink-0" /><div className="text-fa-text font-semibold">{tNow('dom.governors')}</div></div>
-        <div className="text-[10px] text-fa-muted">A governed group: +{GOVERNOR_FOOD} food, +{Math.round(GOVERNOR_PRODUCTION_MULT * 100)}% production, +{GOVERNOR_CULTURE} culture, +{GOVERNOR_LOYALTY} loyalty and skill, less unrest. Ungoverned: {UNGOVERNED_LOYALTY} loyalty. Taking office takes {GOVERNOR_ASSIGN_TURNS} turns.</div>
+        <div className="text-[10px] text-fa-muted">{tNow('p1.dom.govHelp', { food: GOVERNOR_FOOD, prod: Math.round(GOVERNOR_PRODUCTION_MULT * 100), culture: GOVERNOR_CULTURE, loyalty: GOVERNOR_LOYALTY, ung: isolateLtr(UNGOVERNED_LOYALTY), turns: GOVERNOR_ASSIGN_TURNS })}</div>
         {groups.map((g) => {
           const gov = nation.governors?.[g.seat];
           const arriving = gov && state.turnNumber < gov.ready;
@@ -227,16 +229,16 @@ const DomesticPanel = () => {
             <div key={g.seat} className="rounded-lg border border-fa-line p-2 space-y-1" data-testid="governor-seat">
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-fa-text">{nameNow('city', null, state.regions[g.seat]?.name)} <span className="text-fa-muted">+{g.cities.length - 1}</span></span>
-                <span className={gov ? 'text-fa-good' : 'text-amber-300'}>{gov ? `${nameNow('person', null, gov.name)} (skill ${gov.skill}${arriving ? `, arrives in ${gov.ready - state.turnNumber}` : ''})` : `ungoverned (${UNGOVERNED_LOYALTY} loyalty)`}</span>
+                <span className={gov ? 'text-fa-good' : 'text-amber-300'}>{gov ? tNow(arriving ? 'p1.dom.govArriving' : 'p1.dom.govSkill', { name: nameNow('person', null, gov.name), skill: gov.skill, turns: gov.ready - state.turnNumber }) : tNow('p1.dom.ungoverned', { n: isolateLtr(UNGOVERNED_LOYALTY) })}</span>
               </div>
               {gov ? (
                 <button type="button" onClick={() => dispatch({ type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: g.seat } })} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-xs text-fa-text">{tNow('dom.recall')}</button>
               ) : (
                 <div className="flex flex-wrap gap-1">
                   {choices.map((c) => (
-                    <button key={c.id} type="button" data-testid="assign-governor" onClick={() => dispatch({ type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: g.seat, candidateId: c.id } })} className="min-h-[36px] px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-fa-text">Seat {nameNow('person', null, c.name)} (skill {c.skill})</button>
+                    <button key={c.id} type="button" data-testid="assign-governor" onClick={() => dispatch({ type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: g.seat, candidateId: c.id } })} className="min-h-[36px] px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-fa-text">{tNow('p1.dom.seat', { name: nameNow('person', null, c.name), skill: c.skill })}</button>
                   ))}
-                  {!choices.length && <span className="text-[10px] text-fa-muted">No one at court is free: candidates arrive every {GOVERNOR_REFRESH_TURNS} turns.</span>}
+                  {!choices.length && <span className="text-[10px] text-fa-muted">{tNow('p1.dom.noOneFree', { n: GOVERNOR_REFRESH_TURNS })}</span>}
                 </div>
               )}
             </div>
@@ -250,7 +252,7 @@ const DomesticPanel = () => {
   const courtSection = (
     <div className="space-y-2">
       {/* Authority is drawn once, with its parts, at the top of the Overview (I144); the Court only links to it. */}
-      {authority.total < AUTHORITY_NO_LAWS && <div className="text-[11px] text-amber-300 bg-fa-raised/60 rounded-lg px-2 py-1" data-testid="authority">Authority {authority.total}: under {AUTHORITY_NO_LAWS} no new laws{authority.total < AUTHORITY_CIVIL_WAR ? `; under ${AUTHORITY_CIVIL_WAR} a civil war brews` : ''}. Its parts are in the Overview.</div>}
+      {authority.total < AUTHORITY_NO_LAWS && <div className="text-[11px] text-amber-300 bg-fa-raised/60 rounded-lg px-2 py-1" data-testid="authority">{tNow('p1.dom.authorityLine', { total: authority.total, noLaws: AUTHORITY_NO_LAWS, civil: authority.total < AUTHORITY_CIVIL_WAR ? tNow('p1.dom.authorityCivil', { n: AUTHORITY_CIVIL_WAR }) : '' })}</div>}
       {ruler && (
         <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
           <div className="flex items-center gap-2">
@@ -258,17 +260,17 @@ const DomesticPanel = () => {
             <div className="text-fa-text font-semibold">{rulerLine(ruler)}</div>
           </div>
           <div className="text-[10px] text-fa-muted mt-0.5">
-            ADM {ruler.adm} · DIP {ruler.dip} · MIL {ruler.mil}
+            {poolLabel('adm')} {ruler.adm} · {poolLabel('dip')} {ruler.dip} · {poolLabel('mil')} {ruler.mil}
             {ruler.traits?.length > 0 && ` · ${ruler.traits.map((id) => traitName(id, TRAITS[id]?.name)).join(', ')}`}
           </div>
           <div className="text-[10px] text-fa-muted" data-testid="ruler-skill-help">
-            Each skill adds to the power pool of its name every turn. {powerPoolsShort()}
+            {tNow('p1.dom.skillHelp')} {powerPoolsShort()}
           </div>
           <div className="text-[10px] text-fa-muted">
-            Reign ends turn {ruler.reignEndsTurn}
+            {tNow('p1.dom.reignEnds', { turn: ruler.reignEndsTurn })}
           </div>
           <div className="text-[10px] text-fa-muted mt-1 border-t border-fa-line pt-1">
-            When the reign ends a new ruler takes over{playerNation?.government?.type === 'monarchy' ? ' from the same royal house' : ''}.
+            {tNow(playerNation?.government?.type === 'monarchy' ? 'p1.dom.reignNextHouse' : 'p1.dom.reignNext')}
           </div>
         </div>
       )}
@@ -291,7 +293,7 @@ const DomesticPanel = () => {
         <ActionButton
           icon={TrendingUp}
           label={tNow('dom.increaseStability')}
-          description={nationStability >= STABILITY_MAX ? 'Already at maximum stability' : '+1 stability'}
+          description={nationStability >= STABILITY_MAX ? tNow('p1.dom.maxStability') : tNow('p1.dom.plusStability')}
           costs={{ adm: increaseStabilityCost }}
           onClick={handleIncreaseStability}
           disabled={nationStability >= STABILITY_MAX || (state.resources.adm || 0) < increaseStabilityCost}
@@ -308,11 +310,11 @@ const DomesticPanel = () => {
           <div key={pool} className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
             <div className="flex items-center gap-1.5 text-fa-muted">
               <Users size={12} />
-              {POWER_POOL_NAMES[pool]} Advisor
+              {tNow('p1.dom.advisorTitle', { pool: tNow(`p1.pool.${pool}`) })}
             </div>
-            <div className="text-[10px] text-fa-muted">Adds their level to {pool.toUpperCase()} each turn. {POWER_POOL_HELP[pool].name} {POWER_POOL_HELP[pool].short}.</div>
+            <div className="text-[10px] text-fa-muted">{tNow('p1.dom.advisorAdds', { pool: poolLabel(pool), name: POWER_POOL_HELP[pool].name, short: POWER_POOL_HELP[pool].short })}</div>
             {current ? (
-              <div className="text-fa-text">{nameNow('person', null, current.name)} (level {current.level})</div>
+              <div className="text-fa-text">{nameNow('person', null, current.name)} {tNow('p1.dom.level', { level: current.level })}</div>
             ) : (
               <div className="text-fa-muted">{tNow('dom.noneHired')}</div>
             )}
@@ -322,8 +324,8 @@ const DomesticPanel = () => {
                 <ActionButton
                   key={candidate.id}
                   icon={Users}
-                  label={`Hire ${nameNow('person', null, candidate.name)} (level ${candidate.level})`}
-                  description={advisorQuoteText(candidate.level, pool, current)}
+                  label={tNow('p1.dom.hire', { name: nameNow('person', null, candidate.name), level: candidate.level })}
+                  description={advisorQuote(candidate.level, pool, current)}
                   costs={{ gold: cost }}
                   onClick={() => handleHireAdvisor(pool, index, cost)}
                   disabled={current?.id === candidate.id || (state.resources.gold || 0) < cost}
@@ -341,17 +343,17 @@ const DomesticPanel = () => {
   // Nothing applies here: the confirm dialog (GovernmentChangeDialog.jsx) shows the preview, lets
   // the player choose the reforms and dispatches only on its own button (I140).
   const handleChangeGovernmentType = (typeId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.changeGovernmentType)) return addLog('Not enough resources', 'action');
-    setConfirmGov(typeId);
+    if (!canAfford(state.resources, ACTION_COSTS.changeGovernmentType)) return addLog(tNow('ri.notEnough'), 'action');
+    openGovernmentChange(typeId); // the card is drawn by GovernmentChangeDialog inside NationOverviewSheet
   };
   const handleEnactReform = (ageId, reformId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('enact_government_reform', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId, reformId } });
   };
   const handleChangeLaw = (category, lawId) => {
     const costs = { adm: getLawChangeCost(state, state.playerNationId, category, lawId) };
-    if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, costs)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('change_law', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.CHANGE_LAW, payload: { category, lawId } });
   };
@@ -367,7 +369,7 @@ const DomesticPanel = () => {
     <div className="space-y-2">
       <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
         <div className="text-fa-muted">{tNow('dom.current')}</div>
-        <div className="text-fa-text font-semibold">{currentGovernmentType ? governmentName(currentGovernmentType.id, currentGovernmentType.name) : 'None adopted'}</div>
+        <div className="text-fa-text font-semibold">{currentGovernmentType ? governmentName(currentGovernmentType.id, currentGovernmentType.name) : tNow('p1.dom.noneAdopted')}</div>
         {activeReforms.length > 0 && (
           <div className="text-[10px] text-fa-muted mt-0.5">{activeReforms.map((r) => reformName(r.id, r.name)).join(' · ')}</div>
         )}
@@ -378,15 +380,15 @@ const DomesticPanel = () => {
         <React.Fragment key={gov.id}>
         <ActionButton
           icon={Landmark}
-          label={`Become a ${governmentName(gov.id, gov.name)}`}
-          description={preview.ok ? `${preview.lines.filter((l) => /^(Stability|Authority)/.test(l)).join(' ')} Tap for the details and to choose its reforms.` : 'Resets your reform choices; -2 stability.'}
+          label={tNow('p1.dom.become', { name: governmentName(gov.id, gov.name) })}
+          description={preview.ok ? tNow('p1.dom.becomeTap', { lines: governmentCardLines(preview) }) : tNow('p1.dom.becomeReset')}
           costs={ACTION_COSTS.changeGovernmentType}
           onClick={() => handleChangeGovernmentType(gov.id)}
           disabled={!canAfford(state.resources, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, state.age)}
           resources={state.resources}
           size="small"
         />
-        {preview.locksLaws && <div className="text-[11px] text-fa-danger-text px-1" data-testid="gov-locks-laws">This drops Authority under {AUTHORITY_NO_LAWS}: no laws until it recovers.</div>}
+        {preview.locksLaws && <div className="text-[11px] text-fa-danger-text px-1" data-testid="gov-locks-laws">{tNow('p1.dom.dropsAuthority', { n: AUTHORITY_NO_LAWS })}</div>}
         </React.Fragment>
         );
       })}
@@ -394,7 +396,7 @@ const DomesticPanel = () => {
       {currentGovernmentType && currentAgeReformChoices.length > 0 && (
         <>
           <div className="text-xs font-semibold text-fa-text pt-1">
-            {currentAgeReformChosen ? 'Current Reform' : 'Choose a Reform'}
+            {currentAgeReformChosen ? tNow('p1.dom.currentReform') : tNow('p1.dom.chooseReform')}
           </div>
           {currentAgeReformChoices.map((reform) => (
             currentAgeReformChosen === reform.id ? (
@@ -423,10 +425,10 @@ const DomesticPanel = () => {
     </div>
   );
 
-  const rulesInForce = describeRules(lawRulesOf(playerNation));
+  const rulesInForce = describeRulesText(lawRulesOf(playerNation));
   const lawsSection = (
     <div className="space-y-2">
-      {rulesInForce.length > 0 && <div className="text-[11px] text-emerald-200/90 bg-fa-raised/40 rounded-lg px-2 py-1" data-testid="law-rules">In force: {rulesInForce.join('; ')}.</div>}
+      {rulesInForce.length > 0 && <div className="text-[11px] text-emerald-200/90 bg-fa-raised/40 rounded-lg px-2 py-1" data-testid="law-rules">{tNow('p1.dom.inForce', { rules: rulesInForce.join('; ') })}</div>}
       {LAW_CATEGORY_IDS.map((category) => {
         const currentLawId = playerNation?.laws?.[category];
         const currentLaw = getLaw(category, currentLawId);
@@ -434,28 +436,28 @@ const DomesticPanel = () => {
         return (
           <div key={category} className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-fa-muted capitalize">{category}</span>
+              <span className="text-fa-muted capitalize">{tNow(`p1.lawcat.${category}`)}</span>
               <span className="text-fa-text font-semibold">{currentLaw && lawName(currentLaw.id, currentLaw.name)}</span>
             </div>
-            {currentLaw && <div className="text-fa-muted" data-testid={`law-effects-${category}`}>{lawLine(currentLaw, lawEffectLines(currentLaw).map((l) => l.text).join('; '))}</div>}
+            {currentLaw && <div className="text-fa-muted" data-testid={`law-effects-${category}`}>{lawLine(currentLaw, lawEffectText(currentLaw))}</div>}
             <div className="flex flex-col gap-1.5 pt-1">
               {alternatives.map((law) => {
                 const canEnact = canEnactLaw(state, state.playerNationId, category, law.id);
                 const cost = { adm: getLawChangeCost(state, state.playerNationId, category, law.id) };
                 const requiredTech = getRequiredTechName(law);
-                const effectText = lawEffectLines(law).map((l) => l.text).join('; ');
-                const lock = lawLockReason(state, state.playerNationId, category, law);
+                const effectText = lawEffectText(law);
+                const lock = lawLockText(state, state.playerNationId, category, law);
                 return (
                   <div key={law.id} className="flex flex-col items-start gap-0.5">
                     <button
                       onClick={() => handleChangeLaw(category, law.id)}
                       disabled={!canEnact || !canAfford(state.resources, cost)}
-                      title={requiredTech && !canEnact ? `Requires ${requiredTech}` : lawLine(law, effectText)}
+                      title={requiredTech && !canEnact ? tNow('p1.dom.requires', { tech: techName(law.requiresTech, requiredTech) }) : lawLine(law, effectText)}
                       className="text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text px-2 py-1"
                     >
-                      {lawName(law.id, law.name)} ({cost.adm} ADM)
+                      {lawName(law.id, law.name)} ({cost.adm} {poolLabel('adm')})
                     </button>
-                    <span className="text-[10px] text-fa-muted" data-testid={`law-alt-${law.id}`}>{lawLine(law, effectText)}{lock ? ` Locked: ${lock}.` : ''}</span>
+                    <span className="text-[10px] text-fa-muted" data-testid={`law-alt-${law.id}`}>{lawLine(law, effectText)}{lock ? ` ${tNow('p1.dom.locked', { why: lock })}` : ''}</span>
                   </div>
                 );
               })}
@@ -468,7 +470,7 @@ const DomesticPanel = () => {
 
   const identityOnCooldown = (state.turnNumber || 0) < (playerNation?.identityShiftCooldownTurn || 0);
   const handleShiftIdentity = (axis, direction) => {
-    if (!canAfford(state.resources, ACTION_COSTS.shiftIdentity)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.shiftIdentity)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('shift_identity', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SHIFT_IDENTITY, payload: { axis, direction } });
   };
@@ -490,14 +492,14 @@ const DomesticPanel = () => {
                 disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value <= IDENTITY_MIN}
                 className="flex-1 text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text py-1"
               >
-                &larr; {axis.negativePole}
+                &larr; {identityPole(axisId, 'neg', axis.negativePole)}
               </button>
               <button
                 onClick={() => handleShiftIdentity(axisId, 1)}
                 disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value >= IDENTITY_MAX}
                 className="flex-1 text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text py-1"
               >
-                {axis.positivePole} &rarr;
+                {identityPole(axisId, 'pos', axis.positivePole)} &rarr;
               </button>
             </div>
           </div>
@@ -509,7 +511,6 @@ const DomesticPanel = () => {
   const warsNow = Object.values(state.nations).filter((n) => !n.isPlayer && isAtWarWithPlayer(state, n.id));
   return (
     <div className="space-y-3">
-      <GovernmentChangeDialog typeId={confirmGov} onClose={() => setConfirmGov(null)} />
       <CollapsibleSection title={tNow('dom.overview')} icon={Globe2} defaultOpen>
         <EmpireOverview />
       </CollapsibleSection>

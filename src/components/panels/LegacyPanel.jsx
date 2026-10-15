@@ -5,6 +5,8 @@
 
 import { t as tNow } from '../../i18n';
 import { ageName } from '../../i18n';
+import { useT } from '../../i18n/useT';
+import { playstyleName, goalUnit, goalBonus, achievementName, achievementDescription, difficultyName, difficultyDescription, doctrineName, doctrineDescription } from '../../i18n/gameText';
 import React from 'react';
 import { Trophy, Lock, Check, Gauge } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -18,6 +20,7 @@ import { Meter } from '../ui/atlas';
 import { PLAYSTYLES } from '../../data/eraGoals';
 
 const LegacyPanel = () => {
+  useT(); // redraw when the language changes
   const { state, meta, selectDoctrine, selectDifficulty } = useGame();
   const satisfiedNow = checkAchievements(state);
   const era = eraGoalProgress(state);
@@ -33,8 +36,8 @@ const LegacyPanel = () => {
         </div>
         <div className="mt-1.5 grid grid-cols-5 gap-1">
           {era.goals.map((g) => (
-            <div key={g.id} className={`rounded-md px-1 py-1 text-center border ${g.done ? 'border-emerald-500/60 bg-emerald-900/30 text-emerald-200' : 'border-fa-line bg-fa-raised/50 text-fa-text'}`} title={`${g.label}: ${g.value}/${g.target} ${g.unit}. Legacy: ${PLAYSTYLES[g.id].bonusLabel}`}>
-              <div className="text-[10px] font-semibold">{g.label}</div>
+            <div key={g.id} className={`rounded-md px-1 py-1 text-center border ${g.done ? 'border-emerald-500/60 bg-emerald-900/30 text-emerald-200' : 'border-fa-line bg-fa-raised/50 text-fa-text'}`} title={tNow('p1.leg.goalTip', { label: playstyleName(g.id, g.label), value: g.value, target: g.target, unit: goalUnit(g.id, g.unit), bonus: goalBonus(g.id, PLAYSTYLES[g.id].bonusLabel) })}>
+              <div className="text-[10px] font-semibold">{playstyleName(g.id, g.label)}</div>
               <div className="text-[10px] font-mono">{Math.min(g.value, g.target)}/{g.target}</div>
             </div>
           ))}
@@ -66,16 +69,16 @@ const LegacyPanel = () => {
             >
               <div className="flex items-center gap-1.5 font-semibold text-fa-text">
                 {unlocked ? <Check className="w-3 h-3 text-fa-good" /> : <Lock className="w-3 h-3 text-fa-muted" />}
-                {a.name}
+                {achievementName(a.id, a.name)}
                 {inProgress && <span className="text-[9px] text-amber-400 font-normal">{tNow('legacy.earnedRun')}</span>}
               </div>
-              <div className="text-fa-muted text-[10px] mt-0.5">{a.description}</div>
+              <div className="text-fa-muted text-[10px] mt-0.5">{achievementDescription(a.id, a.description)}</div>
               {(() => {
                 const p = unlocked ? null : achievementProgress(state, a.id);
                 if (!p) return <div className="text-[10px] mt-0.5 text-fa-muted" data-testid={`ach-status-${a.id}`}>{unlocked ? tNow('legacy.earnedShort') : tNow('legacy.notYet')}</div>;
                 return (
                   <div className="mt-1" data-testid={`ach-progress-${a.id}`}>
-                    <div className="flex justify-between text-[10px] text-fa-muted"><span>{p.unit}</span><span className="font-mono">{p.value} / {p.target}</span></div>
+                    <div className="flex justify-between text-[10px] text-fa-muted"><span>{tNow(`p1.achunit.${a.id}`)}</span><span className="font-mono">{p.value} / {p.target}</span></div>
                     <Meter value={p.value} max={p.target} height={4} />
                   </div>
                 );
@@ -102,10 +105,10 @@ const LegacyPanel = () => {
               }`}
             >
               <div className="flex items-center gap-1.5 font-semibold text-fa-text">
-                {d.name}
+                {difficultyName(d.id, d.name)}
                 {selected && <span className="text-[9px] text-fa-you font-normal">{tNow('legacy.active')}</span>}
               </div>
-              <div className="text-fa-muted text-[10px] mt-0.5">{d.description}</div>
+              <div className="text-fa-muted text-[10px] mt-0.5">{difficultyDescription(d.id, d.description)}</div>
             </button>
           );
         })}
@@ -132,13 +135,13 @@ const LegacyPanel = () => {
             >
               <div className="flex items-center gap-1.5 font-semibold text-fa-text">
                 {!unlocked && <Lock className="w-3 h-3 text-fa-muted" />}
-                {d.name}
+                {doctrineName(d.id, d.name)}
                 {selected && <span className="text-[9px] text-amber-400 font-normal">{tNow('legacy.active')}</span>}
               </div>
-              <div className="text-fa-muted text-[10px] mt-0.5">{d.description}</div>
+              <div className="text-fa-muted text-[10px] mt-0.5">{doctrineDescription(d.id, d.description)}</div>
               {!unlocked && (
                 <div className="text-[9px] text-fa-danger-text mt-1">
-                  {tNow('legacy.requires', { name: ACHIEVEMENTS[d.requiresAchievement]?.name })}
+                  {tNow('legacy.requires', { name: achievementName(d.requiresAchievement, ACHIEVEMENTS[d.requiresAchievement]?.name) })}
                 </div>
               )}
             </button>

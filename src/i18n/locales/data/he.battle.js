@@ -5,7 +5,7 @@ export default {
   // commander abilities (battle/sim/effects.js ABILITIES)
   'babil.forcedMarch': 'צעדת כפייה',
   'babil.entrench': 'התבצרות',
-  'babil.ambush': 'ארב',
+  'babil.ambush': 'מארב',
   'babil.charge': 'הסתערות',
   'babil.bombard': 'הפגזה',
   'babil.fieldHospital': 'בית חולים שדה',
