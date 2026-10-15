@@ -25,11 +25,7 @@ Capacitor (loads the same App, no start code of its own), pending start after a 
      `{ mode: 'peoples', map: EARTH_SPEC }`.
 - The reducer action `RESET_GAME` itself is unchanged (the GameContext tests still use it on the legacy
   world; that moves in phase 2).
-- **Loading an old legacy-world save (version 10 to 13):** it still loads and plays. `migrateSave` accepts
-  versions 10 and up, and the migration at src/engine/saveMigrations.js (`createInitialState` with the
-  save's own `scenario`) rebuilds the legacy world for it. Saves older than 10 get the existing
-  "older version, kept, not deleted" notice (OldSaveNotice, `OLD_SAVE_KEY`). Nothing here was changed.
-  Phase 3 has to decide what to do with version 10 to 13 legacy saves (see decisions).
+- **Loading an old legacy-world save (done in phase 2):** `saveProblem` returns `legacyWorld` for any save whose scenario is not a peoples world (`isLegacyWorldSave`), `migrateSave` returns null, and the existing OldSaveNotice shows the reason; the save is kept, not deleted. The emergent country world is refused the same way. Also fixed: `backfillDefaults` rebuilt a peoples world at the default size because a save stores `worldSize`, not `size`.
 
 ## 2. Inventory
 

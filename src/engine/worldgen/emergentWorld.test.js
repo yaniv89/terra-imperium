@@ -65,9 +65,8 @@ describe('world scenarios on the tile grid', () => {
     expect(Object.keys(generateStarts('fr', nationCount, 7).starts).sort()).toEqual(state.scenario.activeNationIds);
     expect(state.scenario.dormantNationIds).toHaveLength(240 - nationCount);
     assertGameState(state);
-    const loaded = migrateSave({ version: CURRENT_SAVE_VERSION, state }).state;
-    expect(Object.keys(loaded.nations)).toHaveLength(nationCount);
-    expect(loaded.scenario).toEqual(state.scenario);
+    // The emergent world is a country world: a save of it is refused like any legacy-world save.
+    expect(migrateSave({ version: CURRENT_SAVE_VERSION, state })).toBeNull();
   });
 
   it('spreads the chosen peoples across the globe', () => {

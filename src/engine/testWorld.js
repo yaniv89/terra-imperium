@@ -121,9 +121,9 @@ export const growCities = (state, nationId, { size = 8, categories = { science: 
 // state is built once per argument set and shared: tests spread over it and never mutate it.
 // `independents: false` leaves the independent cities out (majors only), the cheap default.
 const peoplesCache = new Map();
-export const peoplesWorld = ({ player = 'akkad', seed = 11, size = 'small', independents = false } = {}) => {
-  const key = `${player}|${seed}|${size}|${independents}`;
-  if (!peoplesCache.has(key)) peoplesCache.set(key, createInitialState({ playerNationId: player, rngSeed: seed, scenario: { mode: 'peoples', size, seed, independents } }));
+export const peoplesWorld = ({ player = 'akkad', seed = 11, size = 'small', independents = false, fog = true } = {}) => {
+  const key = `${player}|${seed}|${size}|${independents}|${fog}`;
+  if (!peoplesCache.has(key)) peoplesCache.set(key, createInitialState({ playerNationId: player, rngSeed: seed, fog, scenario: { mode: 'peoples', size, seed, independents } }));
   return peoplesCache.get(key);
 };
 
@@ -135,3 +135,14 @@ export const majorIds = (state) => Object.values(state.nations)
 
 // The first major that is not the player (a stand-in for "the rival", "Germany" in old tests).
 export const rivalOf = (state, n = 0) => majorIds(state).filter((id) => id !== state.playerNationId)[n];
+
+// A copy of a world a test may change in place (regions, nations, units, wars deep-copied). The fog
+// stays shared: its arrays are classes (a structured clone would strip their JSON form).
+export const cloneWorld = (state) => ({
+  ...state,
+  regions: structuredClone(state.regions),
+  nations: structuredClone(state.nations),
+  units: structuredClone(state.units || {}),
+  wars: structuredClone(state.wars || []),
+  world: structuredClone(state.world)
+});
