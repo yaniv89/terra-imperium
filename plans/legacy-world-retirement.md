@@ -132,3 +132,33 @@ goes is small; the effort is the tests.
 2. Country-specific tests (France, Germany, India geography) are rewritten as rules about a peoples world.
 3. scripts/simulate.mjs moves to a peoples world once, at the end of phase 2. That resets every balance
    baseline: every lane's before/after comparison must be rerun once against the new base.
+
+## 5. Progress log (phase 2)
+
+Moved to a peoples world so far: about 120 test files (all of src/data, src/utils, src/components, src/battle,
+src/engine/world and about 60 of src/engine). Helpers in src/engine/testWorld.js: `peoplesWorld`,
+`neighbourWorld` (player borders its first rivals; `capitals: true` also makes the border city the rival's
+capital), `withBorder`, `makeCapital`, `cloneWorld`, `majorIds`, `rivalOf`. Cached worlds are shared: a test that
+changes a state in place must `cloneWorld` it first.
+
+Still on the legacy world (phase 2 continues):
+- Hand work needed, started and backed out: aiAccords (1 test), aiProduction (1), bridgeReaders (1: needs two
+  cities of one people whose lands do not touch but are neighbours by the near rule), stabilization (2: the AI
+  recruits nothing in the small world).
+- Skipped by the script because of several player ids or extra options: resolveTurn, battleOutcome,
+  secondReviewFixes, spending, mapTrade, settlers, aiOperations, forts, israeliteWonders, aiLanding, tutorial,
+  wonders, sallyLanding, aiQualityBenchmark, pathOptimality, longRun, stateAudit, endgameReachability,
+  data/proceduralEvents, data/geo/cityFeatures, utils/helpers, components/map/armySheetModel,
+  engine/world/landChanges.
+- Not started: src/context/GameContext.test.js (about 296 tests), scripts/simulate.mjs and
+  scripts/build-edge-engine.test.mjs, worldgen/emergentWorld.test.js (the emergent country world goes with the
+  builder in phase 3).
+
+Engine findings from the migration (not changed here):
+1. `generateAdvisorCandidates('akkad', ...)` can return a repeated name; the same call with a legacy id such as
+   'fr' does not. govChoice.test.js keeps 'fr' for that reason.
+2. Strategic deposits are keyed by modern country code (`data/deposits.js`, read as
+   `hasDeposit(regData.startOwner, ...)` in helpers.js and aiEconomy.js), so a peoples city never has a deposit.
+3. `getNationCapital` and friends read the registry of the last synced state. A test file that builds more than
+   one world can read the wrong capital; read it from the state (`state.nations[id].capitalRegionId`).
+4. `backfillDefaults` rebuilt a saved peoples world at the default size (fixed, saveMigrations.js).
