@@ -14,6 +14,7 @@
 //
 // Paired with MapContainer.jsx's `focusRegionId`, the map re-centres on the city being managed
 // the moment this opens, and reports its inset so animations land in the visible part.
+import { nameNow } from '../../i18n/names';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -136,7 +137,7 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
           <span className="w-9 h-9 rounded-full fa-num text-[15px] font-semibold text-fa-ink flex items-center justify-center shrink-0 mt-0.5" style={{ background: colour }} aria-label={`Size ${regionState.size || 1}`}>{regionState.size || 1}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2 min-w-0">
-              <h2 id="city-sheet-title" className="fa-heading text-[19px] leading-tight truncate">{regionData.name}</h2>
+              <h2 id="city-sheet-title" className="fa-heading text-[19px] leading-tight truncate">{nameNow('city', null, regionData.name)}</h2>
               {sub && <span className="text-[12px] text-fa-muted truncate">{sub}</span>}
             </div>
             <div className="flex items-center gap-2 mt-1" title={`Loyalty ${loyalty}, heading to ${target}. Politics explains why.`}>

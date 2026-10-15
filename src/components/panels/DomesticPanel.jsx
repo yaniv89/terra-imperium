@@ -7,6 +7,7 @@
 // opened via RegionInfoModal's "Manage Region" button. Government/Laws/Identity default
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
+import { nameNow } from '../../i18n/names';
 import { taxRateName, taxRateDescription, wonderName, wonderDescription, governmentName, reformName, reformDescription, lawName, lawLine, identityDescription, identityPole, rulerLine, traitName } from '../../i18n/gameText';
 import { t as tNow } from '../../i18n';
 import React, { useState } from 'react';
@@ -225,15 +226,15 @@ const DomesticPanel = () => {
           return (
             <div key={g.seat} className="rounded-lg border border-fa-line p-2 space-y-1" data-testid="governor-seat">
               <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-fa-text">{state.regions[g.seat]?.name} <span className="text-fa-muted">+{g.cities.length - 1}</span></span>
-                <span className={gov ? 'text-fa-good' : 'text-amber-300'}>{gov ? `${gov.name} (skill ${gov.skill}${arriving ? `, arrives in ${gov.ready - state.turnNumber}` : ''})` : `ungoverned (${UNGOVERNED_LOYALTY} loyalty)`}</span>
+                <span className="text-fa-text">{nameNow('city', null, state.regions[g.seat]?.name)} <span className="text-fa-muted">+{g.cities.length - 1}</span></span>
+                <span className={gov ? 'text-fa-good' : 'text-amber-300'}>{gov ? `${nameNow('person', null, gov.name)} (skill ${gov.skill}${arriving ? `, arrives in ${gov.ready - state.turnNumber}` : ''})` : `ungoverned (${UNGOVERNED_LOYALTY} loyalty)`}</span>
               </div>
               {gov ? (
                 <button type="button" onClick={() => dispatch({ type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: g.seat } })} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-xs text-fa-text">{tNow('dom.recall')}</button>
               ) : (
                 <div className="flex flex-wrap gap-1">
                   {choices.map((c) => (
-                    <button key={c.id} type="button" data-testid="assign-governor" onClick={() => dispatch({ type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: g.seat, candidateId: c.id } })} className="min-h-[36px] px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-fa-text">Seat {c.name} (skill {c.skill})</button>
+                    <button key={c.id} type="button" data-testid="assign-governor" onClick={() => dispatch({ type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: g.seat, candidateId: c.id } })} className="min-h-[36px] px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-fa-text">Seat {nameNow('person', null, c.name)} (skill {c.skill})</button>
                   ))}
                   {!choices.length && <span className="text-[10px] text-fa-muted">No one at court is free: candidates arrive every {GOVERNOR_REFRESH_TURNS} turns.</span>}
                 </div>
@@ -311,7 +312,7 @@ const DomesticPanel = () => {
             </div>
             <div className="text-[10px] text-fa-muted">Adds their level to {pool.toUpperCase()} each turn. {POWER_POOL_HELP[pool].name} {POWER_POOL_HELP[pool].short}.</div>
             {current ? (
-              <div className="text-fa-text">{current.name} (level {current.level})</div>
+              <div className="text-fa-text">{nameNow('person', null, current.name)} (level {current.level})</div>
             ) : (
               <div className="text-fa-muted">{tNow('dom.noneHired')}</div>
             )}
@@ -321,7 +322,7 @@ const DomesticPanel = () => {
                 <ActionButton
                   key={candidate.id}
                   icon={Users}
-                  label={`Hire ${candidate.name} (level ${candidate.level})`}
+                  label={`Hire ${nameNow('person', null, candidate.name)} (level ${candidate.level})`}
                   description={advisorQuoteText(candidate.level, pool, current)}
                   costs={{ gold: cost }}
                   onClick={() => handleHireAdvisor(pool, index, cost)}

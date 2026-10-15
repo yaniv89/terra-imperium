@@ -10,6 +10,7 @@
 // cityEconomy.js, cityEffects.js, through cityBuildModel.js), so the price on a button is the
 // price charged and the turns are the turn's. The Build tab keeps a one-line queue bar pinned at
 // the top and never removes a row while it is open, so a second tap lands on the same row (I045).
+import { nameNow } from '../../i18n/names';
 import { unitName as unitDisplayName, unitClassName } from '../../i18n/gameText';
 import { unitClassLabel as unitClassLabelEn } from '../../data/unitNames';
 import { buildingTierName, wonderName, improvementName, districtName, tileResourceName } from '../../i18n/gameText';
@@ -135,7 +136,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           {tileRows.map(({ tile, facts, y, worked, locked, centre }) => (
             <li key={tile} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs ${worked ? 'bg-fa-raised border border-fa-good/50' : 'bg-transparent border border-fa-line'}`}>
               <div className="min-w-0 flex-1">
-                <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${tileResourceName(facts.resource)}` : ''}{facts.improvement ? ` · ${improvementName(facts.improvement, IMPROVEMENTS[facts.improvement]?.name)}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${districtName(facts.district, DISTRICTS[facts.district]?.name)}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{centre ? '' : <span className="text-fa-muted normal-case"> · {tileBearing(tiles, city.tile, tile).text}</span>}</div>
+                <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{centre ? `${nameNow('city', null, city.name)} (centre)` : describeTile(facts)}{facts.resource ? ` · ${tileResourceName(facts.resource)}` : ''}{facts.improvement ? ` · ${improvementName(facts.improvement, IMPROVEMENTS[facts.improvement]?.name)}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${districtName(facts.district, DISTRICTS[facts.district]?.name)}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{centre ? '' : <span className="text-fa-muted normal-case"> · {tileBearing(tiles, city.tile, tile).text}</span>}</div>
                 <div className="text-fa-muted flex gap-2">
                   <Yield icon={Wheat} value={y.food} title="Food" className="text-fa-good" />
                   <Yield icon={Hammer} value={y.production} title="Production" className="text-fa-text" />

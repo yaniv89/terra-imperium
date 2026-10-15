@@ -14,7 +14,7 @@
 import { getTiles } from '../../data/geo/tiles';
 import { TECH_TREE } from '../../data/techTree';
 import { unitName as unitDisplayName } from '../../i18n/gameText';
-import { buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord } from '../../i18n/gameText';
+import { unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getAvailableClasses, UNIT_CLASSES } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, canImprove } from '../../data/tileYields';
@@ -57,7 +57,7 @@ export const tilePlace = (tiles, cityTile, tile, facts = tileFacts(tiles, tile))
 
 export const itemLabel = (item, tiles = getTiles(), ageId = 'bronze', cityTile = null) => {
   if (item.kind === 'unit' && item.explorer) return 'Scouts';
-  if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${NAVAL_LINES[item.navalLine || 'warship'].role})` : unitDisplayName(ageId, item.classId);
+  if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${navalLineRole(item.navalLine || 'warship', NAVAL_LINES[item.navalLine || 'warship'].role)})` : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return buildingTierName(item.category, item.tier, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name);
   if (item.kind === 'improvement') return `${improvementName(item.improvement, IMPROVEMENTS[item.improvement]?.name)}: ${cityTile != null ? tilePlace(tiles, cityTile, item.tile) : describeTile(tileFacts(tiles, item.tile))}`;
   if (item.kind === 'settler') return 'Settlers';
@@ -125,10 +125,10 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     if (classId === 'naval') {
       // Ships are listed only where they can be built: an inland city (river, oasis or lake) has
       // no ship rows at all (I039), instead of rows that look available.
-      if (coast) navalLinesFor(ageId).forEach((navalLine) => add({ kind: 'unit', classId, navalLine }, 'Units', { fields: { detail: UNIT_CLASSES.naval?.role || null } }));
+      if (coast) navalLinesFor(ageId).forEach((navalLine) => add({ kind: 'unit', classId, navalLine }, 'Units', { fields: { detail: unitClassRole('naval', UNIT_CLASSES.naval?.role) || null } }));
       return;
     }
-    add({ kind: 'unit', classId }, 'Units', { fields: { detail: UNIT_CLASSES[classId]?.role || null } });
+    add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null } });
   });
   // Scouts (scouting.js): cheap, no supply, explore at peace, never fight.
   add({ kind: 'unit', classId: 'support', explorer: true }, 'Units', { fields: { detail: 'Cheap, fast and unarmed. Explores free land and meets other peoples; eats no supplies.' } });
