@@ -16,12 +16,15 @@ import { installAppViewport } from './utils/appViewport';
 import { loadWorld, bootWorldSpec, rememberWorldSpec } from './worldgen/worldLoader';
 import { installCrashLog } from './utils/crashLog';
 import { initI18n } from './i18n';
+import { registerServiceWorker } from './utils/fullscreen';
 
 // First: a session record for the crash log (src/utils/crashLog.js), before anything heavy loads.
 installCrashLog();
 // <html lang dir> and the Hebrew fonts for the saved or detected language (src/i18n/index.js).
 initI18n();
 installStaleChunkReload();
+// Makes the site installable as a real app on Android (public/sw.js caches nothing).
+registerServiceWorker();
 // The visible area as --app-height before anything draws (iOS Safari bars; index.css).
 installAppViewport();
 const BattleSandbox = lazyWithReload(() => import('./components/battle/BattleSandbox'));

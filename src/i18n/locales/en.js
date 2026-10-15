@@ -93,6 +93,7 @@ export default {
   'menu.warnEndHint': 'Armies and settlers that can still move: the first tap shows them, the second ends the turn',
   'menu.copyLog': 'Copy turn log',
   'menu.logCopied': 'Turn log copied',
+  'menu.fullscreen': 'Full screen',
   'menu.logHint': 'For a bug report when End Turn hangs: what the turn worker did in the last turns.',
   'menu.logAria': 'Turn log',
   'menu.saves': 'Saves',

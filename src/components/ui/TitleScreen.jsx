@@ -16,6 +16,7 @@ import { SAVE_PROBLEM_TEXT } from '../../engine/saveMigrations';
 import { useT } from '../../i18n/useT';
 import { agoText } from '../../i18n';
 import LanguageSwitch from './LanguageSwitch';
+import FullscreenButton from './FullscreenButton';
 
 /** The facts of a save: "Akkad, turn 12, 1850 BCE" and "Last played 3 days ago (date)". */
 export const SaveFacts = ({ info, now, className = '' }) => {
@@ -114,6 +115,7 @@ const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportT
     <div className="relative h-[100dvh] w-full bg-fa-ink text-fa-text flex flex-col items-center justify-center overflow-y-auto py-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]" style={backdrop} data-testid="title-screen" data-view={view}>
       <div className={`w-full flex justify-center ${frame}`}>{view === 'main' ? main : load}</div>
       {view === 'main' && <LanguageSwitch compact className="absolute top-[max(0.25rem,env(safe-area-inset-top))] end-[max(0.5rem,var(--safe-end))]" />}
+      {view === 'main' && <FullscreenButton className="absolute bottom-[max(0.5rem,env(safe-area-inset-bottom))] end-[max(0.5rem,var(--safe-end))] !min-h-[36px] text-[12px]" testId="title-fullscreen" />}
       <ConfirmDialog open={!!toDelete} title={t('title.deleteHeading')} confirmLabel={t('title.delete')} cancelLabel={t('title.keep')} danger testId="delete-save-confirm"
         onConfirm={() => { const s = toDelete; setToDelete(null); if (s) onDelete(s.key); }} onCancel={() => setToDelete(null)}>
         {toDelete && <p>{toDelete.info.status === 'ok' ? `${t('title.deleteWhich', { nation: name('people', toDelete.info.nationId, toDelete.info.nation), turn: toDelete.info.turn })} ` : ''}{t('title.cannotUndo')}</p>}
