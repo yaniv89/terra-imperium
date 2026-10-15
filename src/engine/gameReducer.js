@@ -16,6 +16,7 @@ import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
 import { getTiles, loadedWorldSpec } from '../data/geo/tiles';
 import { canSubjugate, reconcileTerritory } from './worldLifecycle';
+import { msg, carry, sub, people, cityRef, person, place, thing } from './messages';
 // src/engine/gameReducer.js
 // The pure reducer + initial-state factory, extracted from src/context/GameContext.jsx (Phase F,
 // plan §10): "the same module runs client-side for instant local feedback and fully offline
@@ -121,7 +122,7 @@ import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, courtName
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
 import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
-import { canAfford, applyCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
+import { canAfford, applyCosts, BASE_POWER_PER_TURN } from '../utils/helpers';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import {
   MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, canBuildMissile, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY,
@@ -146,8 +147,6 @@ import { tradeMaps, answerMapOffer } from './mapTrade';
 // Any of the 240 nations works as a fallback default — only used when no explicit choice (from
 // the country-select start screen) or saved game is present yet.
 const DEFAULT_PLAYER_NATION_ID = 'us';
-
-const formatYear = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
 
 // ============ INITIAL STATE FACTORY ============
 // Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
@@ -495,7 +494,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
 
     // Logs
     logs: [
-      { year, message: `${formatYear(year)}: Your nation's story begins.`, type: LogTypes.MILESTONE }
+      { year, ...msg('m.act.storyBegins', { when: yearRef(year) }), type: LogTypes.MILESTONE }
     ]
   };
   // Fog of war (fog.js): each people knows its homeland; `fog: false` is the "explored world" option.
@@ -526,10 +525,21 @@ const stampAutoBecause = (before, after, text) => {
 /** How the Log line of a finished battle that changed nothing begins (battleReceipt.js reads it). */
 export const BATTLE_VOID_PREFIX = 'The battle at';
 
+// `message` is an English string (a sub-system's reason) or a msg() result: the key travels.
 const reject = (state, message) => ({
   ...state,
-  logs: [...state.logs, { year: state.year, message, type: LogTypes.ACTION }]
+  logs: [...state.logs, { year: state.year, ...carry(message), type: LogTypes.ACTION }]
 });
+
+// Log line pieces (phase H3, src/engine/messages.js).
+const yearRef = (y) => sub(y < 0 ? 'm.act.yearBce' : 'm.act.yearCe', { y: Math.abs(y) });
+const aboutTurns = (n) => sub(n > 1 ? 'm.act.aboutTurnsMany' : 'm.act.aboutTurnsOne', { n });
+/** A nation by id, else the fallback words (a sub-message key). */
+const nationOr = (state, id, fallbackKey) => (state.nations[id]?.name ? people(id, state.nations[id].name) : sub(fallbackKey));
+/** A city by id with the name the line used, else the fallback words. */
+const cityOr = (id, name, fallbackKey) => (name ? cityRef(id, name) : sub(fallbackKey));
+/** "a, b, c" of tech names. */
+const techList = (ids) => ids.map((id) => thing('tech', id, TECH_TREE[id]?.name)).reduceRight((acc, r) => (acc === null ? r : sub('m.act.listNext', { a: r, b: acc })), null);
 
 // Why an attack was refused, in the player's words, so a click never silently does nothing.
 const ATTACK_REFUSALS = {
@@ -549,9 +559,9 @@ const ATTACK_REFUSALS = {
 const refuseAttack = (state, reason, targetRegionId) => {
   if (reason === 'no_war') {
     const owner = state.nations[state.regions[targetRegionId]?.owner];
-    return reject(state, `You're at peace with ${owner?.name || 'them'} — declare war before attacking ${REGIONS_DATA[targetRegionId]?.name || 'that region'}.`);
+    return reject(state, msg('m.act.no.atPeaceAttack', { nation: owner?.name ? people(owner.id, owner.name) : sub('m.act.them'), city: cityOr(targetRegionId, REGIONS_DATA[targetRegionId]?.name, 'm.act.thatRegion') }));
   }
-  return reject(state, ATTACK_REFUSALS[reason] || "That attack isn't possible right now.");
+  return reject(state, ATTACK_REFUSALS[reason] ? msg(`m.act.refuse.${reason}`) : msg('m.act.refuse.default'));
 };
 
 // ============ REDUCER ============
@@ -573,10 +583,10 @@ const guardPendingBattle = (state, action) => {
   const defenses = state.pendingDefenses?.length > 0;
   if (!state.pendingBattle && !defenses) return null;
   if (TURN_ACTIONS.has(action.type)) {
-    return reject(state, state.pendingBattle ? 'Finish your battle (or auto-resolve it) before ending the turn.' : 'Your regions are under attack — fight (or auto-resolve) the assaults before ending the turn.');
+    return reject(state, msg(state.pendingBattle ? 'm.act.no.finishBattleTurn' : 'm.act.no.underAttackTurn'));
   }
   const ids = UNIT_ACTION_IDS[action.type]?.(action.payload || {}) || [];
-  if (ids.some((id) => id && isUnitInBattle(state, id))) return reject(state, 'That unit is fighting a battle right now.');
+  if (ids.some((id) => id && isUnitInBattle(state, id))) return reject(state, msg('m.act.no.unitInBattle'));
   return null;
 };
 
@@ -667,7 +677,7 @@ const independentDiplomacyRefused = (state, action) => {
   if (!DIPLOMACY_ACTIONS.has(action.type)) return null;
   const p = action.payload || {};
   const target = p.nationId ?? p.targetId ?? p.targetNationId;
-  return isIndependent(state.nations, target) ? reject(state, `${state.nations[target].name} is an independent city: it makes no treaties, and you may attack it without a war.`) : null;
+  return isIndependent(state.nations, target) ? reject(state, msg('m.act.no.independentTreaty', { nation: people(target, state.nations[target].name) })) : null;
 };
 
 const reduceAction = (state, action) => {
@@ -725,7 +735,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: { ...state.regions, [regionId]: { ...region, control: Math.min(100, region.control + 5) } },
-        logs: [...state.logs, { year: state.year, message: `Gained control in ${REGIONS_DATA[regionId]?.name}. Control +5%`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.gainedControl', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -739,7 +749,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: { ...state.regions, [regionId]: { ...region, currentInfrastructure: region.currentInfrastructure + 1 } },
-        logs: [...state.logs, { year: state.year, message: `Built infrastructure in ${REGIONS_DATA[regionId]?.name}. Level ${region.currentInfrastructure + 1}`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.builtInfrastructure', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name), level: region.currentInfrastructure + 1 }), type: LogTypes.ACTION }]
       };
     }
 
@@ -753,7 +763,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: { ...state.regions, [regionId]: { ...region, defenseLevel: region.defenseLevel + 1 } },
-        logs: [...state.logs, { year: state.year, message: `Built defenses in ${REGIONS_DATA[regionId]?.name}. Level ${region.defenseLevel + 1}`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.builtDefenses', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name), level: region.defenseLevel + 1 }), type: LogTypes.ACTION }]
       };
     }
 
@@ -769,7 +779,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: { ...state.regions, [regionId]: { ...region, climateResilience: nextLevel } },
-        logs: [...state.logs, { year: state.year, message: `Built climate resilience infrastructure in ${REGIONS_DATA[regionId]?.name}. Level ${nextLevel}`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.builtResilience', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name), level: nextLevel }), type: LogTypes.ACTION }]
       };
     }
 
@@ -795,7 +805,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: nextNations,
-        logs: [...state.logs, { year: state.year, message: `Your culture spreads abroad, easing tensions worldwide. Cultural Influence: ${nextInfluence}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.cultureSpreads', { n: nextInfluence }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -807,7 +817,7 @@ const reduceAction = (state, action) => {
       const candidate = governorChoices(nation).find((c) => c.id === candidateId);
       if (!group || !candidate) return state;
       const next = assignGovernor(nation, seatId, candidate, state.turnNumber);
-      return { ...state, nations: { ...state.nations, [state.playerNationId]: next }, logs: [...state.logs, { year: state.year, message: `${candidate.name} sets out to govern ${state.regions[seatId]?.name} and ${group.cities.length - 1} more cit${group.cities.length === 2 ? 'y' : 'ies'}: in office in ${GOVERNOR_ASSIGN_TURNS} turns.`, type: LogTypes.ACTION }] };
+      return { ...state, nations: { ...state.nations, [state.playerNationId]: next }, logs: [...state.logs, { year: state.year, ...msg('m.act.governorSets', { governor: person(candidate.name), city: cityRef(seatId, state.regions[seatId]?.name), count: group.cities.length - 1, turns: GOVERNOR_ASSIGN_TURNS }), type: LogTypes.ACTION }] };
     }
 
     case ActionTypes.DISMISS_GOVERNOR: {
@@ -815,7 +825,7 @@ const reduceAction = (state, action) => {
       const nation = state.nations[state.playerNationId];
       const next = dismissGovernor(nation, seatId);
       if (next === nation) return state;
-      return { ...state, nations: { ...state.nations, [state.playerNationId]: next }, logs: [...state.logs, { year: state.year, message: `The governor of ${state.regions[seatId]?.name} is recalled.`, type: LogTypes.ACTION }] };
+      return { ...state, nations: { ...state.nations, [state.playerNationId]: next }, logs: [...state.logs, { year: state.year, ...msg('m.act.governorRecalled', { city: cityRef(seatId, state.regions[seatId]?.name) }), type: LogTypes.ACTION }] };
     }
 
     case ActionTypes.HIRE_ADVISOR: {
@@ -842,7 +852,7 @@ const reduceAction = (state, action) => {
         nations: { ...state.nations, [state.playerNationId]: { ...nation, advisors: { ...nation.advisors, [pool]: candidate } } },
         advisorPool: { ...state.advisorPool, [state.playerNationId]: refreshedCandidates },
         rngSeed: rng.getSeed(),
-        logs: [...state.logs, { year: state.year, message: `${candidate.name} (level ${candidate.level}) hired as your ${pool.toUpperCase()} advisor.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.advisorHired', { advisor: person(candidate.name), level: candidate.level, pool: sub(`m.act.pool.${pool}`) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -859,7 +869,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: { ...state.resources, adm: state.resources.adm - cost },
         nations: { ...state.nations, [state.playerNationId]: { ...nation, stability: clampStability((nation.stability || 0) + 1) } },
-        logs: [...state.logs, { year: state.year, message: `Stability increased to ${clampStability((nation.stability || 0) + 1)}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.stabilityUp', { n: clampStability((nation.stability || 0) + 1) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -897,7 +907,7 @@ const reduceAction = (state, action) => {
             buildings: { ...region.buildings, categories: { ...region.buildings.categories, [categoryId]: nextTier } }
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Constructed ${getCategoryTierName(categoryId, nextTier)} in ${REGIONS_DATA[regionId]?.name} (-${formatMoney(cost)}).`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.constructed', { building: thing('building', null, getCategoryTierName(categoryId, nextTier)), city: cityRef(regionId, REGIONS_DATA[regionId]?.name), cost }), type: LogTypes.ACTION }]
       };
     }
 
@@ -919,7 +929,7 @@ const reduceAction = (state, action) => {
             buildings: { ...region.buildings, extraction: { ...region.buildings.extraction, [resourceId]: true } }
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Developed a ${resourceId} extraction site in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.extractionSite', { resource: thing('resource', resourceId, resourceId), city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -948,7 +958,7 @@ const reduceAction = (state, action) => {
             ...applyDevelopment(region.size != null ? addPeople(region, sizeToPeople(region.size) * DEVELOP_PROVINCE_POP_GAIN_RATIO) : { ...region, currentPopulation: (region.currentPopulation || modernBaseline) + popGain }, devType)
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Developed ${devType} in ${REGIONS_DATA[regionId]?.name} (+1).`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.developed', { dev: thing('devType', devType, devType), city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -957,13 +967,13 @@ const reduceAction = (state, action) => {
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.quellUnrest;
       if (!region || region.owner !== state.playerNationId || region.unrest <= 0) return state;
-      if (region.occupiedBy) return reject(state, `${REGIONS_DATA[regionId]?.name} is occupied — liberate it first.`);
+      if (region.occupiedBy) return reject(state, msg('m.act.no.occupied', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }));
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: { ...state.regions, [regionId]: { ...region, unrest: Math.max(0, region.unrest - 30) } },
-        logs: [...state.logs, { year: state.year, message: `Quelled unrest in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.quelled', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -979,11 +989,11 @@ const reduceAction = (state, action) => {
       const regionName = REGIONS_DATA[regionId]?.name || regionId;
       const owner = state.nations[region.owner];
       const rebelUnitIds = Object.values(state.units).filter((u) => u.regionId === regionId && u.ownerId === REBEL_OWNER_ID).map((u) => u.id);
-      if (owner && !owner.isEliminated && rebelUnitIds.length === 0) return reject(state, `${owner.name} still governs ${regionName} — only rebel-held or abandoned land can be settled peacefully.`);
-      if (owner && !owner.isEliminated && (owner.hasMilitaryPact || owner.vassalOf === state.playerNationId)) return reject(state, `${regionName} belongs to your ally or vassal ${owner.name}.`);
-      if (region.control >= SETTLE_COLONIZE_CONTROL_THRESHOLD) return reject(state, `Control in ${regionName} is still ${Math.round(region.control)} — it must fall below ${SETTLE_COLONIZE_CONTROL_THRESHOLD}.`);
-      if (!isAdjacentToOwner(regionId, state.regions, state.playerNationId)) return reject(state, `${regionName} must border your territory.`);
-      if (!canAfford(state.resources, costs)) return reject(state, `Not enough resources to settle ${regionName}.`);
+      if (owner && !owner.isEliminated && rebelUnitIds.length === 0) return reject(state, msg('m.act.no.stillGoverns', { nation: people(owner.id, owner.name), city: cityRef(regionId, regionName) }));
+      if (owner && !owner.isEliminated && (owner.hasMilitaryPact || owner.vassalOf === state.playerNationId)) return reject(state, msg('m.act.no.allyLand', { nation: people(owner.id, owner.name), city: cityRef(regionId, regionName) }));
+      if (region.control >= SETTLE_COLONIZE_CONTROL_THRESHOLD) return reject(state, msg('m.act.no.controlHigh', { city: cityRef(regionId, regionName), control: Math.round(region.control), max: SETTLE_COLONIZE_CONTROL_THRESHOLD }));
+      if (!isAdjacentToOwner(regionId, state.regions, state.playerNationId)) return reject(state, msg('m.act.no.mustBorder', { city: cityRef(regionId, regionName) }));
+      if (!canAfford(state.resources, costs)) return reject(state, msg('m.act.no.settleCost', { city: cityRef(regionId, regionName) }));
       const { region: settled } = transferRegion(region, state.playerNationId, state.nations, {
         control: SETTLE_COLONIZE_START_CONTROL,
         unrest: Math.max(region.unrest || 0, SETTLE_COLONIZE_START_UNREST)
@@ -1000,7 +1010,7 @@ const reduceAction = (state, action) => {
         regions: { ...state.regions, [regionId]: settled },
         units: nextUnits,
         nations: nextNations,
-        logs: [...state.logs, { year: state.year, message: `Settlers absorbed ${regionName}, which ${owner && !owner.isEliminated ? `${owner.name} had lost to rebels` : 'no one governed any more'}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.settlersAbsorbed', { city: cityRef(regionId, regionName), which: owner && !owner.isEliminated ? sub('m.act.lostToRebels', { nation: people(owner.id, owner.name) }) : sub('m.act.noOneGoverned') }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1009,20 +1019,20 @@ const reduceAction = (state, action) => {
       const region = state.regions[regionId];
       const costs = region?.size != null ? growthCosts(state, region) : ACTION_COSTS.populationPolicy; // by age, speed and size (spending.js)
       if (!region || region.owner !== state.playerNationId) return state;
-      if (region.occupiedBy) return reject(state, `${REGIONS_DATA[regionId]?.name} is occupied — liberate it first.`);
+      if (region.occupiedBy) return reject(state, msg('m.act.no.occupied', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }));
       if (!canAfford(state.resources, costs)) return state;
       // A city banks the new people as food toward its next size (population.js, one model).
       const nextRegion = region.size != null
         ? investInGrowth(state, regionId) // a quarter of the next citizen's food (cityEconomy.js)
         : { ...region, currentPopulation: Math.round((region.currentPopulation || 1) * (1 + POPULATION_POLICY_GROWTH_RATE)) };
       // Nothing to buy: the food bank is already full (I032). No charge for no effect.
-      if (nextRegion === region) return reject(state, `${REGIONS_DATA[regionId]?.name}'s food bank is full: it grows as soon as it has housing and a food surplus.`);
+      if (nextRegion === region) return reject(state, msg('m.act.no.foodFull', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }));
       const nextPopulation = nextRegion.currentPopulation ?? sizeToPeople(nextRegion.size);
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: { ...state.regions, [regionId]: nextRegion },
-        logs: [...state.logs, { year: state.year, message: `Population growth invested in ${REGIONS_DATA[regionId]?.name} — now ${nextPopulation.toLocaleString()}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.growthInvested', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name), n: nextPopulation }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1045,7 +1055,7 @@ const reduceAction = (state, action) => {
             extortionateTaxProgress: 0
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Tax rate set to ${rate}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.taxRate', { rate: thing('taxRate', rate, rate) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1090,7 +1100,7 @@ const reduceAction = (state, action) => {
         nextLoanSeq: loanSeq + 1,
         resources: { ...state.resources, gold: (state.resources.gold || 0) + principal },
         nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: [...(nation.loans || []), loan] } },
-        logs: [...state.logs, { year: state.year, message: `Took out a loan of ${formatMoney(principal)} gold.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.loanTaken', { gold: principal }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1101,13 +1111,13 @@ const reduceAction = (state, action) => {
       // same id, and repaying one must never clear the other for free.
       const loanIndex = (nation.loans || []).findIndex((l) => l.id === loanId);
       const loan = nation.loans?.[loanIndex];
-      if (!loan) return reject(state, 'No such loan.');
-      if ((state.resources.gold || 0) < loan.principal) return reject(state, `Not enough gold to repay this loan (need ${formatMoney(loan.principal)}).`);
+      if (!loan) return reject(state, msg('m.act.no.loan'));
+      if ((state.resources.gold || 0) < loan.principal) return reject(state, msg('m.act.no.repayGold', { gold: loan.principal }));
       return {
         ...state,
         resources: { ...state.resources, gold: state.resources.gold - loan.principal },
         nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: nation.loans.filter((_, i) => i !== loanIndex) } },
-        logs: [...state.logs, { year: state.year, message: `Repaid a loan of ${formatMoney(loan.principal)} gold.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.loanRepaid', { gold: loan.principal }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1127,7 +1137,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: { ...state.resources, helium3: state.resources.helium3 - FUSION_GRID_ACTIVATION_HELIUM3 },
         nations: { ...state.nations, [state.playerNationId]: { ...nation, fusionGridActive: true } },
-        logs: [...state.logs, { year: state.year, message: 'The Fusion Grid is online.', type: LogTypes.MILESTONE }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.fusionOnline'), type: LogTypes.MILESTONE }]
       };
     }
 
@@ -1143,7 +1153,7 @@ const reduceAction = (state, action) => {
         resources: applyCosts(state.resources, costs),
         satellites: { ...state.satellites, [satelliteId]: { id: satelliteId, ownerId: state.playerNationId, typeId, launchedYear: state.year } },
         nextSatelliteSeq: state.nextSatelliteSeq + 1,
-        logs: [...state.logs, { year: state.year, message: `${SATELLITE_TYPES[typeId].name} launched into orbit.`, type: LogTypes.MILESTONE }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.satelliteLaunched', { sat: thing('satellite', typeId, SATELLITE_TYPES[typeId].name) }), type: LogTypes.MILESTONE }]
       };
     }
 
@@ -1161,22 +1171,22 @@ const reduceAction = (state, action) => {
         resources: applyCosts(state.resources, costs),
         satellites: nextSatellites,
         orbitalDebrisLevel: Math.min(MAX_ORBITAL_DEBRIS, (state.orbitalDebrisLevel || 0) + ASAT_DEBRIS_RISE),
-        logs: [...state.logs, { year: state.year, message: `An ASAT strike destroyed ${targetNationName}'s ${SATELLITE_TYPES[target.typeId]?.name}. Orbital debris rises.`, type: LogTypes.COMBAT }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.asatStrike', { nation: people(target.ownerId, targetNationName), sat: thing('satellite', target.typeId, SATELLITE_TYPES[target.typeId]?.name) }), type: LogTypes.COMBAT }]
       };
     }
 
     case ActionTypes.BUILD_MISSILE: {
       const { tierId } = action.payload;
       if (!MISSILE_TIERS[tierId]) return state;
-      if (!canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId))) return reject(state, 'Missiles unlock in the Modern age.');
+      if (!canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId))) return reject(state, msg('m.act.no.missilesAge'));
       const costs = ACTION_COSTS.buildMissile[tierId];
-      if (!canAfford(state.resources, costs)) return reject(state, `Not enough resources to build a ${MISSILE_TIERS[tierId].name}.`);
+      if (!canAfford(state.resources, costs)) return reject(state, msg('m.act.no.missileCost', { missile: thing('missile', tierId, MISSILE_TIERS[tierId].name) }));
       const nation = state.nations[state.playerNationId];
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: { ...state.nations, [state.playerNationId]: { ...nation, missiles: { ...nation.missiles, [tierId]: (nation.missiles[tierId] || 0) + 1 } } },
-        logs: [...state.logs, { year: state.year, message: `${MISSILE_TIERS[tierId].name} added to your stockpile.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.missileBuilt', { missile: thing('missile', tierId, MISSILE_TIERS[tierId].name) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1188,7 +1198,7 @@ const reduceAction = (state, action) => {
       const tier = MISSILE_TIERS[tierId];
       const nation = state.nations[state.playerNationId];
       const targetRegion = state.regions[targetRegionId];
-      if (!tier || !nation.missiles[tierId]) return reject(state, 'No missile of that type in stock.');
+      if (!tier || !nation.missiles[tierId]) return reject(state, msg('m.act.no.missileStock'));
       if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
       // A strike is an act of war, not a free action: before this, a nation at peace could be
       // missiled with no war, no hostility and no AE — and SETTLE_COLONIZE could then annex the
@@ -1196,7 +1206,7 @@ const reduceAction = (state, action) => {
       const strikeTargetOwner = targetRegion.occupiedBy ?? targetRegion.owner;
       const atWarWithTarget = state.wars.some((w) => w.active && isWarBetween(w, state.playerNationId, strikeTargetOwner));
       if (!atWarWithTarget && !canAttack(state, state.playerNationId, strikeTargetOwner)) { // rebels and independents need no war (hostility.js)
-        return reject(state, `You must be at war with ${state.nations[strikeTargetOwner]?.name || strikeTargetOwner} to strike ${REGIONS_DATA[targetRegionId]?.name}.`);
+        return reject(state, msg('m.act.no.strikeWar', { nation: people(strikeTargetOwner, state.nations[strikeTargetOwner]?.name || strikeTargetOwner), city: cityRef(targetRegionId, REGIONS_DATA[targetRegionId]?.name) }));
       }
       const costs = ACTION_COSTS.missileStrike;
       if (!canAfford(state.resources, costs)) return state;
@@ -1258,30 +1268,31 @@ const reduceAction = (state, action) => {
       }
 
       const targetNationName = targetNation?.name || targetRegion.owner;
-      const message = tierId === 'nuclear'
-        ? `A nuclear strike devastates ${REGIONS_DATA[targetRegionId]?.name} (${targetNationName}). The world condemns the attack.`
-        : `${tier.name} strikes ${REGIONS_DATA[targetRegionId]?.name} (${targetNationName}).`;
+      const strikeVars = { city: cityRef(targetRegionId, REGIONS_DATA[targetRegionId]?.name), nation: people(targetRegion.owner, targetNationName) };
+      const strikeLine = tierId === 'nuclear'
+        ? msg('m.act.nuclearStrike', strikeVars)
+        : msg('m.act.missileStrike', { ...strikeVars, missile: thing('missile', tierId, tier.name) });
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
         nations: nextNations,
         wars: nextWars,
-        logs: [...state.logs, { year: state.year, message, type: LogTypes.COMBAT }]
+        logs: [...state.logs, { year: state.year, ...strikeLine, type: LogTypes.COMBAT }]
       };
     }
 
     case ActionTypes.BUILD_ABM_DEFENSE: {
       const costs = ACTION_COSTS.buildAbmDefense;
       const nation = state.nations[state.playerNationId];
-      if (!canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId))) return reject(state, 'ABM defense unlocks in the Modern age.');
+      if (!canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId))) return reject(state, msg('m.act.no.abmAge'));
       if ((nation.abmDefenseLevel || 0) >= MAX_ABM_LEVEL) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: { ...state.nations, [state.playerNationId]: { ...nation, abmDefenseLevel: (nation.abmDefenseLevel || 0) + 1 } },
-        logs: [...state.logs, { year: state.year, message: `ABM defense upgraded to level ${(nation.abmDefenseLevel || 0) + 1}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.abmUpgraded', { level: (nation.abmDefenseLevel || 0) + 1 }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1297,7 +1308,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         spaceMissionProgress: { ...state.spaceMissionProgress, [missionId]: mission.turns },
-        logs: [...state.logs, { year: state.year, message: `${mission.name} launched — ${mission.turns} turns to completion.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.missionLaunched', { mission: thing('mission', mission.id, mission.name), turns: mission.turns }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1362,7 +1373,7 @@ const reduceAction = (state, action) => {
           [state.playerNationId]: { ...recruitingNation, militaryStrength: (recruitingNation.militaryStrength || 0) + newUnit.strength }
         },
         nextUnitSeq: state.nextUnitSeq + 1,
-        logs: [...state.logs, { year: state.year, message: `Recruited a new ${classId} unit in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.recruited', { unit: thing('unitClass', classId, classId), city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1388,7 +1399,7 @@ const reduceAction = (state, action) => {
           [state.playerNationId]: { ...disbandingNation, militaryStrength: Math.max(0, (disbandingNation.militaryStrength || 0) - unit.strength) }
         },
         units: remainingUnits,
-        logs: [...state.logs, { year: state.year, message: `Disbanded a ${unit.classId} unit. +${refundHr} HR`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.disbanded', { unit: thing('unitClass', unit.classId, unit.classId), hr: refundHr }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1429,7 +1440,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         units: nextUnits,
-        logs: [...state.logs, { year: state.year, message: `Moved a ${unit.classId} unit to ${REGIONS_DATA[toRegionId]?.name}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.moved', { unit: thing('unitClass', unit.classId, unit.classId), city: cityRef(toRegionId, REGIONS_DATA[toRegionId]?.name) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1442,23 +1453,24 @@ const reduceAction = (state, action) => {
       // with the intent to assault it on arrival.
       if (attack && !naval && toRegionId != null && toTile == null) {
         const order = orderMarchAttack(state, fromRegionId, toRegionId, unitIds);
-        if (!order.units) return reject(state, order.reason === 'no_war' ? 'Declare war on its owner before you march on this city.' : order.reason === 'adjacent' ? 'Your army already borders this city: attack it now.' : order.reason || 'That march is not possible.');
+        if (!order.units) return reject(state, order.reason === 'no_war' ? msg('m.act.no.marchWar') : order.reason === 'adjacent' ? msg('m.act.no.marchAdjacent') : order.reason || msg('m.act.no.march'));
         const p = order.plan;
-        const who = p.units.length > 1 ? `${p.units.length} units march` : 'An army marches';
+        const who = p.units.length > 1 ? sub('m.act.unitsMarch', { n: p.units.length }) : sub('m.act.anArmyMarches');
+        const dest = state.regions[toRegionId]?.name ? cityRef(toRegionId, state.regions[toRegionId].name) : place(placeName(state, p.path[p.path.length - 1]));
         return {
           ...state,
           units: order.units,
-          logs: [...state.logs, { year: state.year, message: `${who} on ${state.regions[toRegionId]?.name || placeName(state, p.path[p.path.length - 1])} to attack it: about ${p.turns} turn${p.turns > 1 ? 's' : ''}${p.stopsAt ? `, stopping first at ${state.regions[p.stopsAt]?.name || 'an enemy city'}` : ''}.`, type: LogTypes.ACTION }]
+          logs: [...state.logs, { year: state.year, ...msg('m.act.marchAttack', { who, dest, turns: aboutTurns(p.turns), stops: p.stopsAt ? sub('m.act.stoppingAt', { city: cityOr(p.stopsAt, state.regions[p.stopsAt]?.name, 'm.act.anEnemyCity') }) : '' }), type: LogTypes.ACTION }]
         };
       }
       const target = toTile != null ? toTile : toRegionId;
       const order = orderMarch(state, fromRegionId, target, unitIds, { naval });
-      if (!order.units) return reject(state, order.reason || 'That march is not possible.');
+      if (!order.units) return reject(state, order.reason || msg('m.act.no.march'));
       const p = order.plan;
       return {
         ...state,
         units: order.units,
-        logs: [...state.logs, { year: state.year, message: `${p.naval ? (p.units.length > 1 ? `${p.units.length} ships` : 'A fleet') : (p.units.length > 1 ? `${p.units.length} units` : 'An army')} set out for ${placeName(state, p.path[p.path.length - 1])}: about ${p.turns} turn${p.turns > 1 ? 's' : ''}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.march', { who: p.naval ? (p.units.length > 1 ? sub('m.act.whoShips', { n: p.units.length }) : sub('m.act.whoFleet')) : (p.units.length > 1 ? sub('m.act.whoUnits', { n: p.units.length }) : sub('m.act.whoArmy')), dest: place(placeName(state, p.path[p.path.length - 1])), turns: aboutTurns(p.turns) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1489,7 +1501,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [landUnitId]: { ...landUnit, embarkedOn: navalUnitId } },
-        logs: [...state.logs, { year: state.year, message: `A ${landUnit.classId} unit embarked for transport.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.embarked', { unit: thing('unitClass', landUnit.classId, landUnit.classId) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1505,16 +1517,16 @@ const reduceAction = (state, action) => {
       let landed;
       if (ship && atSea(state, ship)) {
         const tiles = getTiles();
-        if (tile == null || !passableTile(tiles, tile) || !tiles.neighbors[ship.tile].includes(tile)) return reject(state, 'Pick a shore next to the fleet to land on.');
+        if (tile == null || !passableTile(tiles, tile) || !tiles.neighbors[ship.tile].includes(tile)) return reject(state, msg('m.act.no.pickShore'));
         const access = tileAccess(state, tile, state.playerNationId);
-        if (access === 'enemy' || access === 'held' || access === 'closed') return reject(state, access === 'closed' ? 'No access to that shore.' : 'Enemy shore: use an amphibious assault.');
+        if (access === 'enemy' || access === 'held' || access === 'closed') return reject(state, msg(access === 'closed' ? 'm.act.no.shoreClosed' : 'm.act.no.enemyShore'));
         landed = { ...landUnit, embarkedOn: null, tile, regionId: regionForTile(state, tile, state.playerNationId, landUnit.regionId), movesLeft: 0 };
       } else landed = { ...landUnit, embarkedOn: null, tile: state.regions[landUnit.regionId]?.tile ?? landUnit.tile };
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [landUnitId]: landed },
-        logs: [...state.logs, { year: state.year, message: `A ${landUnit.classId} unit disembarked at ${placeName(state, landed.tile)}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.disembarked', { unit: thing('unitClass', landUnit.classId, landUnit.classId), place: place(placeName(state, landed.tile)) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -1561,7 +1573,7 @@ const reduceAction = (state, action) => {
     // ---- Tactical Battles (design/rts-battles-implementation-plan.md §10.1) ----
 
     case ActionTypes.BEGIN_TACTICAL_BATTLE: {
-      if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
+      if (state.pendingBattle) return reject(state, msg('m.act.no.battleInProgress'));
       const { fromRegionId, targetRegionId, tile = null, fromTile = null, naval = false } = action.payload;
       if (naval) {
         // A commanded sea battle (navalBattle.js): the fleets on `fromTile` against the enemy fleets on `tile`.
@@ -1581,7 +1593,7 @@ const reduceAction = (state, action) => {
             attackerNationId: state.playerNationId, defenderNationId: nv.defenderNationId, seed: nseed, startedTurn: state.turnNumber, playerSide: 'attacker',
             attackerUnitIds: nv.attackerUnits.map((u) => u.id), defenderUnitIds: nv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
           },
-          logs: [...state.logs, { year: state.year, message: 'Your fleet gives battle at sea; you take command.', type: LogTypes.COMBAT }]
+          logs: [...state.logs, { year: state.year, ...msg('m.act.commandSea'), type: LogTypes.COMBAT }]
         };
       }
       if (tile != null) {
@@ -1604,7 +1616,7 @@ const reduceAction = (state, action) => {
             attackerNationId: state.playerNationId, defenderNationId: fv.defenderNationId, seed: fseed, startedTurn: state.turnNumber, playerSide: 'attacker',
             attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
           },
-          logs: [...state.logs, { year: state.year, message: 'Your army gives battle in the field; you take command.', type: LogTypes.COMBAT }]
+          logs: [...state.logs, { year: state.year, ...msg('m.act.commandField'), type: LogTypes.COMBAT }]
         };
       }
       const v = validateInvasion(state, fromRegionId, targetRegionId);
@@ -1643,7 +1655,7 @@ const reduceAction = (state, action) => {
           defenderReinforcements: reinforcementSources(state, targetRegionId, v.targetRegion.owner, state.playerNationId),
           militia: cityMilitia(state, targetRegionId)
         },
-        logs: [...state.logs, { year: state.year, message: `Your army marches on ${REGIONS_DATA[targetRegionId]?.name} — you take command of the battle.`, type: LogTypes.COMBAT }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.commandInvasion', { city: cityRef(targetRegionId, REGIONS_DATA[targetRegionId]?.name) }), type: LogTypes.COMBAT }]
       };
     }
 
@@ -1657,9 +1669,10 @@ const reduceAction = (state, action) => {
       if (!action.settling) {
         const done = reduceAction(state, { ...action, settling: true });
         if ((done.battleReportSeq || 0) !== (state.battleReportSeq || 0)) return done;
-        const place = state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name || 'the field';
-        const why = pb.warId && !state.wars.some((w) => w.id === pb.warId && w.active) ? 'peace was made before it ended' : 'it could no longer be fought when it ended';
-        return { ...done, logs: [...done.logs, { year: state.year, message: `${BATTLE_VOID_PREFIX} ${place} changed nothing: ${why}.`, type: LogTypes.COMBAT }] };
+        const where = cityOr(pb.targetRegionId, state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name, 'm.act.theField');
+        const why = sub(pb.warId && !state.wars.some((w) => w.id === pb.warId && w.active) ? 'm.act.voidPeace' : 'm.act.voidGone');
+        // English: `${BATTLE_VOID_PREFIX} <place> changed nothing: <why>.` (battleReceipt.js reads the prefix).
+        return { ...done, logs: [...done.logs, { year: state.year, ...msg('m.act.battleVoid', { place: where, why }), type: LogTypes.COMBAT }] };
       }
       // With the command log, the battle is re-simulated here from the authoritative game state
       // (battleVerify.js: THE commanded setup the screen fought, the log through the live battle's
@@ -1738,11 +1751,11 @@ const reduceAction = (state, action) => {
       const reason = action.payload?.reason;
       if (reason) {
         const settled = gameReducer(state, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
-        const place = state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name || 'the field';
         const why = ABANDON_REASONS[reason] || 'the battle screen could not open';
         // DEF-01: the result itself says the player's Command became Auto, and why, not only the Log.
         const told = stampAutoBecause(state, settled, `You chose Command, but it was fought on Auto: ${why}.`);
-        return { ...told, logs: [...settled.logs, { year: state.year, message: `The battle at ${place} was settled on Auto: ${why}.`, type: LogTypes.COMBAT }] };
+        const where = cityOr(pb.targetRegionId, state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name, 'm.act.theField');
+        return { ...told, logs: [...settled.logs, { year: state.year, ...msg('m.act.settledOnAuto', { place: where, why: sub(ABANDON_REASONS[reason] ? `m.act.abandon.${reason}` : 'm.act.abandon.default') }), type: LogTypes.COMBAT }] };
       }
       const cleared = { ...state, pendingBattle: null };
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'auto' };
@@ -1788,7 +1801,7 @@ const reduceAction = (state, action) => {
     // ---- Commanded amphibious landing (Tactical Battles T9) ----
 
     case ActionTypes.BEGIN_AMPHIBIOUS_BATTLE: {
-      if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
+      if (state.pendingBattle) return reject(state, msg('m.act.no.battleInProgress'));
       const { navalUnitId, targetRegionId } = action.payload || {};
       const v = validateAmphibious(state, navalUnitId, targetRegionId);
       if (!v.ok) return refuseAttack(state, v.reason, targetRegionId);
@@ -1824,7 +1837,7 @@ const reduceAction = (state, action) => {
           defenderReinforcements: reinforcementSources(state, targetRegionId, v.targetRegion.owner, state.playerNationId),
           militia: cityMilitia(state, targetRegionId)
         },
-        logs: [...state.logs, { year: state.year, message: `Your fleet closes on ${REGIONS_DATA[targetRegionId]?.name} — you take command of the landing.`, type: LogTypes.COMBAT }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.commandLanding', { city: cityRef(targetRegionId, REGIONS_DATA[targetRegionId]?.name) }), type: LogTypes.COMBAT }]
       };
     }
 
@@ -1834,25 +1847,25 @@ const reduceAction = (state, action) => {
 
     case ActionTypes.RESOLVE_DEFENSE_AUTO:
       if (state.pendingBattle?.defenseId === action.payload?.defenseId) return state;
-      if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
+      if (battleQueueBlocked(state)) return reject(state, msg('m.act.no.answerFirst'));
       return resolveQueuedAuto(state, action.payload?.defenseId);
 
     case ActionTypes.RESOLVE_ALL_DEFENSES_AUTO:
       // A battle already being commanded is left alone; everything else is fought now, in order.
-      if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
+      if (battleQueueBlocked(state)) return reject(state, msg('m.act.no.answerFirst'));
       return resolveAllQueuedAuto(state);
 
     case ActionTypes.WITHDRAW_FROM_DEFENSE: {
       if (state.pendingBattle?.defenseId === action.payload?.defenseId) return state;
       const queued = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
-      if (queued && queuedKind(queued) !== 'defense') return reject(state, 'An army in the field cannot give up a city: fight, or let the battle be fought on Auto.');
+      if (queued && queuedKind(queued) !== 'defense') return reject(state, msg('m.act.no.fieldNoWithdraw'));
       const w = applyDefenseWithdrawal(state, action.payload?.defenseId);
-      return w.ok ? w.state : reject(state, w.reason === 'nowhere' ? 'Your garrison has nowhere to fall back to — it has to fight.' : 'That assault is already over.');
+      return w.ok ? w.state : reject(state, msg(w.reason === 'nowhere' ? 'm.act.no.nowhereToFall' : 'm.act.no.assaultOver'));
     }
 
     case ActionTypes.BEGIN_DEFENSE_BATTLE: {
-      if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
-      if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
+      if (state.pendingBattle) return reject(state, msg('m.act.no.battleInProgress'));
+      if (battleQueueBlocked(state)) return reject(state, msg('m.act.no.answerFirst'));
       const def = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
       if (!def) return state;
       // DEF-01: Command that cannot open is refused with the reason the card already shows
@@ -1875,7 +1888,7 @@ const reduceAction = (state, action) => {
             attackerUnitIds: armies.attackerUnits.map((u) => u.id), defenderUnitIds: armies.defenderUnits.map((u) => u.id), attackerReinforcements: [],
             defenderReinforcements: kind === 'landing' ? reinforcementSources(state, def.regionId, state.playerNationId, def.aggressorId) : [], militia: kind === 'landing' ? def.militia || [] : []
           },
-          logs: [...state.logs, { year: state.year, message: kind === 'intercept' ? `Your fleet sails out against ${state.nations[def.aggressorId]?.name || 'the enemy'}'s invasion fleet.` : `You take command of the defense of ${REGIONS_DATA[def.regionId]?.name} against the landing.`, type: LogTypes.COMBAT }]
+          logs: [...state.logs, { year: state.year, ...(kind === 'intercept' ? msg('m.act.commandIntercept', { nation: nationOr(state, def.aggressorId, 'm.act.theEnemy') }) : msg('m.act.commandBeach', { city: cityRef(def.regionId, REGIONS_DATA[def.regionId]?.name) })), type: LogTypes.COMBAT }]
         };
       }
       if (isRaidKind(kind)) {
@@ -1892,7 +1905,7 @@ const reduceAction = (state, action) => {
             attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: 'defender',
             attackerUnitIds: armies.attackerUnits.map((u) => u.id), defenderUnitIds: armies.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: [], militia: def.militia || []
           },
-          logs: [...state.logs, { year: state.year, message: `You take command against ${state.nations[def.aggressorId]?.name || 'the raiders'}.`, type: LogTypes.COMBAT }]
+          logs: [...state.logs, { year: state.year, ...msg('m.act.commandRaid', { nation: nationOr(state, def.aggressorId, 'm.act.theRaiders') }), type: LogTypes.COMBAT }]
         };
       }
       if (kind !== 'defense') {
@@ -1912,7 +1925,7 @@ const reduceAction = (state, action) => {
             attackerNationId: def.aggressorId, defenderNationId: attacking ? foe : state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: attacking ? 'attacker' : 'defender',
             attackerUnitIds: armies.v.attackerUnits.map((u) => u.id), defenderUnitIds: armies.v.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
           },
-          logs: [...state.logs, { year: state.year, message: attacking ? `You take command of the attack on the fort of ${state.nations[foe]?.name || foe}.` : `You take command of your ${kind === 'naval' ? 'fleet' : 'army'} against ${state.nations[def.aggressorId]?.name || def.aggressorId}.`, type: LogTypes.COMBAT }]
+          logs: [...state.logs, { year: state.year, ...(attacking ? msg('m.act.commandFort', { nation: people(foe, state.nations[foe]?.name || foe) }) : msg(kind === 'naval' ? 'm.act.commandFleetVs' : 'm.act.commandArmyVs', { nation: people(def.aggressorId, state.nations[def.aggressorId]?.name || def.aggressorId) })), type: LogTypes.COMBAT }]
         };
       }
       const armies = getDefenseArmies(state, def);
@@ -1942,7 +1955,7 @@ const reduceAction = (state, action) => {
           defenderReinforcements: reinforcementSources(state, def.regionId, state.playerNationId, def.aggressorId),
           militia
         },
-        logs: [...state.logs, { year: state.year, message: `You take command of the defense of ${REGIONS_DATA[def.regionId]?.name}.`, type: LogTypes.COMBAT }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.commandDefense', { city: cityRef(def.regionId, REGIONS_DATA[def.regionId]?.name) }), type: LogTypes.COMBAT }]
       };
     }
 
@@ -1994,7 +2007,7 @@ const reduceAction = (state, action) => {
           const units = { ...paid.units };
           delete units[navalUnitId];
           embarkedLandUnits.forEach(u => delete units[u.id]);
-          return { ...paid, units, logs: [...paid.logs, { year: state.year, message: `Your invasion fleet was intercepted and sunk approaching ${REGIONS_DATA[targetRegionId]?.name}.`, type: LogTypes.COMBAT }] };
+          return { ...paid, units, logs: [...paid.logs, { year: state.year, ...msg('m.act.fleetSunk', { city: cityRef(targetRegionId, REGIONS_DATA[targetRegionId]?.name) }), type: LogTypes.COMBAT }] };
         }
         nextUnits = paid.units;
       }
@@ -2042,7 +2055,7 @@ const reduceAction = (state, action) => {
       const presentNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
       const defenderNavalUnits = presentNavalUnits.filter(u => canAttack(state, state.playerNationId, u.ownerId));
       if (presentNavalUnits.length === 0) return state;
-      if (defenderNavalUnits.length === 0) return reject(state, `You're at peace with ${state.nations[presentNavalUnits[0].ownerId]?.name || 'that fleet\'s nation'} — declare war before engaging their fleet.`);
+      if (defenderNavalUnits.length === 0) return reject(state, msg('m.act.no.atPeaceFleet', { nation: nationOr(state, presentNavalUnits[0].ownerId, 'm.act.thatFleetsNation') }));
       if (!canAfford(state.resources, costs)) return state;
 
       const rng = createRng(state.rngSeed);
@@ -2099,7 +2112,7 @@ const reduceAction = (state, action) => {
       const researched = new Set(Object.keys(state.techTree).filter((id) => state.techTree[id]?.researched));
       const research = chooseResearch(state.research || emptyResearch(), techId, researched);
       if (research === state.research) return state;
-      return { ...state, research, logs: [...state.logs, { year: state.year, message: `Now researching ${TECH_TREE[research.current]?.name}${research.queue.length ? `, then ${research.queue.map((id) => TECH_TREE[id]?.name).join(', ')}` : ''}.`, type: LogTypes.TECH }] };
+      return { ...state, research, logs: [...state.logs, { year: state.year, ...msg('m.act.nowResearching', { tech: thing('tech', research.current, TECH_TREE[research.current]?.name), then: research.queue.length ? sub('m.act.researchThen', { list: techList(research.queue) }) : '' }), type: LogTypes.TECH }] };
     }
 
     case ActionTypes.QUEUE_RESEARCH: {
@@ -2132,7 +2145,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         researchFocus: categoryId,
-        logs: [...state.logs, { year: state.year, message: `Research focus set to ${categoryId}.`, type: LogTypes.TECH }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.researchFocus', { focus: thing('techCategory', categoryId, categoryId) }), type: LogTypes.TECH }]
       };
     }
 
@@ -2142,7 +2155,7 @@ const reduceAction = (state, action) => {
       return {
         ...state,
         resources: { ...applyCosts(state.resources, costs), techPoints: (state.resources.techPoints || 0) + FUND_SCHOLARS_TECHPOINTS },
-        logs: [...state.logs, { year: state.year, message: `Funded scholars for +${FUND_SCHOLARS_TECHPOINTS} tech points.`, type: LogTypes.TECH }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.fundedScholars', { n: FUND_SCHOLARS_TECHPOINTS }), type: LogTypes.TECH }]
       };
     }
 
@@ -2164,7 +2177,7 @@ const reduceAction = (state, action) => {
             stability: clampStability((nation.stability || 0) - 2)
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Your empire has become a ${type.name}. (-2 stability)`, type: LogTypes.MILESTONE }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.governmentChanged', { gov: thing('government', typeId, type.name) }), type: LogTypes.MILESTONE }]
       };
     }
 
@@ -2182,7 +2195,7 @@ const reduceAction = (state, action) => {
           ...state.nations,
           [state.playerNationId]: { ...nation, government: { ...nation.government, reforms: { ...nation.government.reforms, [ageId]: reformId } } }
         },
-        logs: [...state.logs, { year: state.year, message: `Enacted the ${reform.name} reform.`, type: LogTypes.MILESTONE }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.reformEnacted', { reform: thing('reform', reformId, reform.name) }), type: LogTypes.MILESTONE }]
       };
     }
 
@@ -2225,7 +2238,7 @@ const reduceAction = (state, action) => {
             stability
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Enacted the ${law.name} law.`, type: LogTypes.MILESTONE }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.lawEnacted', { law: thing('law', lawId, law.name) }), type: LogTypes.MILESTONE }]
       };
     }
 
@@ -2252,7 +2265,7 @@ const reduceAction = (state, action) => {
             identityShiftCooldownTurn: state.turnNumber + IDENTITY_SHIFT_COOLDOWN_TURNS
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Your nation leans further ${poleName}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.identityShift', { pole: thing('identityPole', poleName, poleName) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -2318,9 +2331,7 @@ const reduceAction = (state, action) => {
         regions: nextRegions,
         logs: [...afterWar.logs, {
           year: state.year,
-          message: breakingTruce
-            ? `You broke your truce with ${target.name} to declare war! (-${TRUCE_BREAK_STABILITY_PENALTY} stability, -${TRUCE_BREAK_PRESTIGE_PENALTY} prestige, neighbors take note)`
-            : justified ? `You declared a justified war on ${target.name}.` : `You declared an unjustified war on ${target.name} — the world takes note.`,
+          ...msg(breakingTruce ? 'm.act.warBreakTruce' : justified ? 'm.act.warJustified' : 'm.act.warUnjustified', { nation: people(nationId, target.name), stability: TRUCE_BREAK_STABILITY_PENALTY, prestige: TRUCE_BREAK_PRESTIGE_PENALTY }),
           type: LogTypes.DIPLOMACY
         }]
       };
@@ -2338,7 +2349,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: { ...state.nations, [state.playerNationId]: startClaim(player, city.id, state.turnNumber) },
-        logs: [...state.logs, { year: state.year, message: `Your agents start fabricating a claim on ${city.name} (${state.nations[city.owner]?.name || city.owner}): ready in ${CLAIM_FABRICATE_TURNS} turns.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.claimStarted', { city: cityRef(city.id, city.name), nation: people(city.owner, state.nations[city.owner]?.name || city.owner), turns: CLAIM_FABRICATE_TURNS }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2374,7 +2385,7 @@ const reduceAction = (state, action) => {
         // The two sides may still be fighting other wars — isAtWar follows the live wars list.
         nations: refreshWarFlags(nextNations, endWar(state.wars, war.id), [war.aggressor, war.enemy]),
         wars: endWar(state.wars, war.id),
-        logs: [...state.logs, { year: state.year, message: `Signed a peace treaty with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.peaceTreaty', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2389,7 +2400,7 @@ const reduceAction = (state, action) => {
       if (!recipient) return state;
       const acceptance = getPeaceAcceptance(state, war, state.playerNationId, terms);
       if (!acceptance.accepted) {
-        return { ...state, logs: [...state.logs, { year: state.year, message: `${recipient.name} rejects your peace terms.`, type: LogTypes.DIPLOMACY }] };
+        return { ...state, logs: [...state.logs, { year: state.year, ...msg('m.act.peaceRejected', { nation: people(recipient.id, recipient.name) }), type: LogTypes.DIPLOMACY }] };
       }
       const applied = applyPeace(state, war, state.playerNationId, terms);
       const winner = applied.nations[state.playerNationId];
@@ -2407,7 +2418,7 @@ const reduceAction = (state, action) => {
         // The two sides may still be fighting other wars — isAtWar follows the live wars list.
         nations: refreshWarFlags(nextNations, endWar(state.wars, war.id), [war.aggressor, war.enemy]),
         wars: endWar(state.wars, war.id),
-        logs: [...state.logs, { year: state.year, message: `Peace signed with ${recipient.name}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.peaceSigned', { nation: people(recipient.id, recipient.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2436,7 +2447,7 @@ const reduceAction = (state, action) => {
         nations: refreshWarFlags(nextNations, endWar(state.wars, war.id), [war.aggressor, war.enemy]),
         wars: endWar(state.wars, war.id),
         pendingPeaceOffer: null,
-        logs: [...state.logs, { year: state.year, message: `You accept peace with ${nextNations[offer.from]?.name || offer.from}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.peaceAccepted', { nation: people(offer.from, nextNations[offer.from]?.name || offer.from) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2447,7 +2458,7 @@ const reduceAction = (state, action) => {
         ...state,
         pendingPeaceOffer: null,
         wars: state.wars.map(w => (w.id === offer.warId ? { ...w, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS } : w)),
-        logs: [...state.logs, { year: state.year, message: `You reject ${state.nations[offer.from]?.name || offer.from}'s peace offer — they may ask again later.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.peaceOfferRejected', { nation: people(offer.from, state.nations[offer.from]?.name || offer.from) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2466,7 +2477,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: { ...state.nations, [nationId]: { ...target, hasTradeAgreement: true, relationStatus: RelationStatus.FRIENDLY } },
-        logs: [...state.logs, { year: state.year, message: `Signed a trade agreement with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.tradeAgreement', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2479,20 +2490,20 @@ const reduceAction = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
       const answer = openBordersAcceptance(state, nationId);
       if (!answer.accepted) {
-        return { ...state, resources: applyCosts(state.resources, costs), logs: [...state.logs, { year: state.year, message: `${target.name} keeps its borders closed to you (opinion ${answer.opinion}, needs ${answer.needed}${answer.atWar ? ', and you are at war' : ''}).`, type: LogTypes.DIPLOMACY }] };
+        return { ...state, resources: applyCosts(state.resources, costs), logs: [...state.logs, { year: state.year, ...msg('m.act.bordersRefused', { nation: people(nationId, target.name), opinion: answer.opinion, needed: answer.needed, war: answer.atWar ? sub('m.act.andAtWar') : '' }), type: LogTypes.DIPLOMACY }] };
       }
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: setOpenBorders(state.nations, state.playerNationId, nationId, true),
-        logs: [...state.logs, { year: state.year, message: `${target.name} opens its borders: your armies, settlers and traders may cross its land, and theirs yours.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.bordersOpened', { nation: people(nationId, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
     case ActionTypes.CLOSE_BORDERS: {
       const { nationId } = action.payload;
       if (!state.nations[nationId] || !hasOpenBorders(state, state.playerNationId, nationId)) return state;
-      return { ...state, nations: setOpenBorders(state.nations, state.playerNationId, nationId, false), logs: [...state.logs, { year: state.year, message: `You close your borders with ${state.nations[nationId].name}.`, type: LogTypes.DIPLOMACY }] };
+      return { ...state, nations: setOpenBorders(state.nations, state.playerNationId, nationId, false), logs: [...state.logs, { year: state.year, ...msg('m.act.bordersClosed', { nation: people(nationId, state.nations[nationId].name) }), type: LogTypes.DIPLOMACY }] };
     }
 
     case ActionTypes.DEMAND: {
@@ -2503,7 +2514,7 @@ const reduceAction = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
       const r = applyDemand(state, nationId, kind, cityId);
       if (r.state === state) return state;
-      return { ...r.state, resources: applyCosts(r.state.resources, costs), logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] };
+      return { ...r.state, resources: applyCosts(r.state.resources, costs), logs: [...r.state.logs, { year: state.year, ...carry(r), type: LogTypes.DIPLOMACY }] };
     }
 
     case ActionTypes.MILITARY_ALLIANCE: {
@@ -2524,7 +2535,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: { ...state.nations, [nationId]: { ...target, hasMilitaryPact: true, relationStatus: RelationStatus.ALLIED } },
-        logs: [...state.logs, { year: state.year, message: `Formed a military alliance with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.allianceFormed', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2538,7 +2549,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: { ...state.nations, [nationId]: { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - GIFT_HOSTILITY_REDUCTION) } },
-        logs: [...state.logs, { year: state.year, message: `Sent a gift to ${target.name}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.giftSent', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2570,7 +2581,7 @@ const reduceAction = (state, action) => {
             resources: resourcesAfterCost,
             intel,
             rngSeed: rng.getSeed(),
-            logs: [...state.logs, { year: state.year, message: `Your agents mapped ${target.name}'s provinces — their armies, buildings and resources are visible for ${INTEL_DURATION_TURNS} turns.`, type: LogTypes.DIPLOMACY }]
+            logs: [...state.logs, { year: state.year, ...msg('m.act.spyMapped', { nation: people(target.id, target.name), turns: INTEL_DURATION_TURNS }), type: LogTypes.DIPLOMACY }]
           };
         }
         if (type === 'support_rebels') {
@@ -2583,7 +2594,7 @@ const reduceAction = (state, action) => {
             regions: { ...state.regions, [targetRegionId]: { ...targetRegion, unrest: Math.min(100, (targetRegion.unrest || 0) + ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE) } },
             intel,
             rngSeed: rng.getSeed(),
-            logs: [...state.logs, { year: state.year, message: `Your agents stirred unrest in ${REGIONS_DATA[targetRegionId]?.name || targetRegionId}.`, type: LogTypes.DIPLOMACY }]
+            logs: [...state.logs, { year: state.year, ...msg('m.act.spyUnrest', { city: cityRef(targetRegionId, REGIONS_DATA[targetRegionId]?.name || targetRegionId) }), type: LogTypes.DIPLOMACY }]
           };
         }
         return {
@@ -2591,7 +2602,7 @@ const reduceAction = (state, action) => {
           resources: { ...resourcesAfterCost, techPoints: (resourcesAfterCost.techPoints || 0) + ESPIONAGE_TECH_POINTS_STOLEN },
           intel,
           rngSeed: rng.getSeed(),
-          logs: [...state.logs, { year: state.year, message: `Your agents stole technological secrets from ${target.name}. +${ESPIONAGE_TECH_POINTS_STOLEN} Tech Points.`, type: LogTypes.DIPLOMACY }]
+          logs: [...state.logs, { year: state.year, ...msg('m.act.spyTech', { nation: people(target.id, target.name), n: ESPIONAGE_TECH_POINTS_STOLEN }), type: LogTypes.DIPLOMACY }]
         };
       }
       return {
@@ -2599,7 +2610,7 @@ const reduceAction = (state, action) => {
         resources: resourcesAfterCost,
         nations: { ...state.nations, [nationId]: { ...target, hostility: Math.min(100, target.hostility + ESPIONAGE_FAILURE_HOSTILITY_INCREASE) } },
         rngSeed: rng.getSeed(),
-        logs: [...state.logs, { year: state.year, message: `Your spies were caught in ${target.name}! Relations have soured.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.spyCaught', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2614,7 +2625,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: { ...resourcesAfterCost, dip: (resourcesAfterCost.dip || 0) + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD },
         nations: { ...state.nations, [target.id]: { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - COUNTER_INTEL_HOSTILITY_REDUCTION) } },
-        logs: [...state.logs, { year: state.year, message: `Your counter-intelligence service uncovered a plot by ${target.name}. Hostility reduced, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} DIP.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.counterIntel', { nation: people(target.id, target.name), n: COUNTER_INTEL_DIPLOMACY_POINTS_REWARD }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2631,7 +2642,7 @@ const reduceAction = (state, action) => {
       return {
         ...state,
         nations: { ...state.nations, [state.playerNationId]: { ...player, rivals: [...(player.rivals || []), nationId] } },
-        logs: [...state.logs, { year: state.year, message: `${target.name} is now considered a rival.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.rival', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2660,7 +2671,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: { ...state.nations, [state.playerNationId]: { ...player, marriageWith: [...(player.marriageWith || []), nationId] }, [nationId]: nextTarget },
-        logs: [...state.logs, { year: state.year, message: `A royal marriage binds your house to ${target.name}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.royalMarriage', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2671,7 +2682,7 @@ const reduceAction = (state, action) => {
       return {
         ...state,
         nations: { ...state.nations, [nationId]: { ...target, hasMilitaryPact: false, hostility: Math.min(100, (target.hostility || 0) + BREAK_ALLIANCE_HOSTILITY_INCREASE) } },
-        logs: [...state.logs, { year: state.year, message: `You broke the military alliance with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.allianceBroken', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2682,7 +2693,7 @@ const reduceAction = (state, action) => {
       return {
         ...state,
         nations: { ...state.nations, [nationId]: { ...target, hostility: Math.min(100, (target.hostility || 0) + INSULT_HOSTILITY_INCREASE) } },
-        logs: [...state.logs, { year: state.year, message: `You publicly insulted ${target.name}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.insulted', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2703,7 +2714,7 @@ const reduceAction = (state, action) => {
           ...state.nations,
           [state.playerNationId]: { ...player, diplomatTasks: [...tasks, { targetId: nationId, task: 'improve_relations', startedTurn: state.turnNumber }] }
         },
-        logs: [...state.logs, { year: state.year, message: `A diplomat was sent to improve relations with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.diplomatSent', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2737,7 +2748,7 @@ const reduceAction = (state, action) => {
           [state.playerNationId]: { ...player, vassals: [...(player.vassals || []), nationId] },
           [nationId]: { ...target, vassalOf: state.playerNationId, vassalizedTurn: state.turnNumber }
         },
-        logs: [...state.logs, { year: state.year, message: `${target.name} has become your vassal.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.vassalized', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2764,7 +2775,7 @@ const reduceAction = (state, action) => {
           [state.playerNationId]: { ...player, vassals: player.vassals.filter((id) => id !== nationId) },
           [nationId]: { ...target, vassalOf: null, vassals: [], isEliminated: true, isAtWar: false, capitalRegionId: null }
         },
-        logs: [...state.logs, { year: state.year, message: `${target.name} has been annexed into your realm.`, type: LogTypes.MILESTONE }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.annexed', { nation: people(target.id, target.name) }), type: LogTypes.MILESTONE }]
       };
     }
 
@@ -2780,7 +2791,7 @@ const reduceAction = (state, action) => {
           [state.playerNationId]: { ...player, vassals: player.vassals.filter((id) => id !== nationId) },
           [nationId]: { ...target, vassalOf: null }
         },
-        logs: [...state.logs, { year: state.year, message: `${target.name} has been released from vassalage.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.released', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2810,7 +2821,7 @@ const reduceAction = (state, action) => {
         },
         logs: [...state.logs, {
           year: state.year,
-          message: `The capital has moved to ${REGIONS_DATA[regionId]?.name || regionId}.${isForeignSoil ? ' (-1 stability)' : ''}`,
+          ...msg('m.act.capitalMoved', { city: cityRef(regionId, REGIONS_DATA[regionId]?.name || regionId), penalty: isForeignSoil ? sub('m.act.capitalForeign') : '' }),
           type: LogTypes.MILESTONE
         }]
       };
@@ -2831,7 +2842,7 @@ const reduceAction = (state, action) => {
       return {
         ...afterWar,
         wars,
-        logs: [...afterWar.logs, { year: state.year, message: `${player.name} declares independence from ${overlord.name}!`, type: LogTypes.DIPLOMACY }]
+        logs: [...afterWar.logs, { year: state.year, ...msg('m.act.independence', { nation: people(player.id, player.name), overlord: people(overlord.id, overlord.name) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2849,7 +2860,7 @@ const reduceAction = (state, action) => {
         gameStatus: GameStatus.ACTIVE,
         victoryConditionId: null,
         victoriesAchieved: [...(state.victoriesAchieved || []), conditionId],
-        logs: [...state.logs, { year: state.year, message: 'You choose to continue your reign.', type: LogTypes.MILESTONE }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.continueReign'), type: LogTypes.MILESTONE }]
       };
     }
 
@@ -2866,7 +2877,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [unitId]: { ...unit, promotions: [...(unit.promotions || []), perkId] } },
-        logs: [...state.logs, { year: state.year, message: `Your ${unit.classId} unit earned the ${perk.name} promotion.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.promoted', { unit: thing('unitClass', unit.classId, unit.classId), perk: thing('perk', perk.id, perk.name) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -2882,7 +2893,7 @@ const reduceAction = (state, action) => {
         hiredCommanders: { ...state.hiredCommanders, [generalId]: general },
         nextCommanderSeq: state.nextCommanderSeq + 1,
         rngSeed: rng.getSeed(),
-        logs: [...state.logs, { year: state.year, message: `${general.name} has joined your officer corps.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.generalJoined', { general: person(general.name) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -2913,7 +2924,7 @@ const reduceAction = (state, action) => {
         hiredCommanders: { ...state.hiredCommanders, [generalId]: { ...general, assignedUnitId: unitId || null } },
         logs: [...state.logs, {
           year: state.year,
-          message: unitId ? `${general.name} took command of a unit.` : `${general.name} was recalled from the field.`,
+          ...msg(unitId ? 'm.act.generalAssigned' : 'm.act.generalRecalled', { general: person(general.name) }),
           type: LogTypes.ACTION
         }]
       };
@@ -2922,7 +2933,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.ADD_LOG:
       return {
         ...state,
-        logs: [...state.logs, { year: state.year, message: action.payload.message, type: action.payload.type || LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...carry(action.payload), type: action.payload.type || LogTypes.ACTION }]
       };
 
     case ActionTypes.LOAD_GAME: {
@@ -3000,7 +3011,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.STOP_RAZING: {
       const regions = stopRazing(state, state.playerNationId, action.payload?.regionId);
       if (!regions) return state;
-      return { ...state, regions, logs: [...state.logs, { year: state.year, message: `You stop the burning of ${regions[action.payload.regionId].name}.`, type: LogTypes.ACTION }] };
+      return { ...state, regions, logs: [...state.logs, { year: state.year, ...msg('m.act.razingStopped', { city: cityRef(action.payload.regionId, regions[action.payload.regionId].name) }), type: LogTypes.ACTION }] };
     }
     case ActionTypes.PILLAGE_TILE: {
       // The army sheet's pillage order (plan D6): a stack halted on an enemy tile with an
@@ -3025,7 +3036,7 @@ const reduceAction = (state, action) => {
         nations: independentLand ? addGrudge(state.nations, landOwner, state.playerNationId, GRUDGE_ATTACKED, { id: 'pillaged', turn: state.turnNumber }) : state.nations,
         world: { ...state.world, tileState: raid.tileState },
         resources: { ...state.resources, gold: (state.resources.gold || 0) + raid.gold },
-        logs: [...state.logs, { year: state.year, message: `Your army pillages ${getTiles().names[tile] || 'the land'} of ${state.regions[raid.cityId]?.name || 'the enemy'}: +${raid.gold} gold.`, type: LogTypes.COMBAT }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.pillage', { land: getTiles().names[tile] ? place(getTiles().names[tile]) : sub('m.act.theLand'), city: cityOr(raid.cityId, state.regions[raid.cityId]?.name, 'm.act.theEnemy'), gold: raid.gold }), type: LogTypes.COMBAT }]
       };
     }
     case ActionTypes.RENAME_ARMY: {
@@ -3046,10 +3057,10 @@ const reduceAction = (state, action) => {
     case ActionTypes.QUEUE_PRODUCTION: {
       const { cityId: id, item: raw } = action.payload || {};
       const city = state.regions[id];
-      if (!city || city.owner !== state.playerNationId || !raw) return reject(state, 'Not your city.');
+      if (!city || city.owner !== state.playerNationId || !raw) return reject(state, msg('m.act.no.notYourCity'));
       // An army order is expanded from its template here, so later edits never change a queued order.
       const template = raw.kind === 'army' ? templatesOf(state.nations[state.playerNationId]).find((t) => t.id === raw.templateId) : null;
-      if (raw.kind === 'army' && !template) return reject(state, 'No such army template.');
+      if (raw.kind === 'army' && !template) return reject(state, msg('m.act.no.template'));
       let item = template ? armyOrder(template, city, state.turnNumber) : raw;
       if (raw.kind === 'wonder') {
         // Wonders (wonders.js): the project's rules with the whole state, and the tile it takes.
@@ -3062,55 +3073,55 @@ const reduceAction = (state, action) => {
       if (!ok.ok) return reject(state, ok.reason);
       // One order per building tier and per tile improvement: a second tap says so instead of
       // paying for the same thing twice (playtest audits I045).
-      if ((item.kind === 'building' || item.kind === 'improvement') && [city.production.current, ...city.production.queue].some((q) => q && itemKey(q) === itemKey(item))) return reject(state, 'Already in the queue.');
+      if ((item.kind === 'building' || item.kind === 'improvement') && [city.production.current, ...city.production.queue].some((q) => q && itemKey(q) === itemKey(item))) return reject(state, msg('m.act.no.inQueue'));
       return { ...state, regions: { ...state.regions, [id]: queueItem(city, item) } };
     }
     case ActionTypes.SET_SETTLER_TARGET: {
       const { unitId, tile } = action.payload || {};
       const unit = state.units[unitId];
-      if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, 'Not your settlers.');
+      if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, msg('m.act.no.notYourSettlers'));
       if (tile == null) return { ...state, units: { ...state.units, [unitId]: { ...unit, target: null } } };
       const can = canFoundCity({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, getTiles(), tile, state.playerNationId);
       if (!can.ok) return reject(state, can.reason);
       const path = settlerPath(state, unit.tile, tile, state.playerNationId);
-      if (!path) return reject(state, 'No way there over land.');
+      if (!path) return reject(state, msg('m.act.no.noLandPath'));
       const turns = Math.ceil(path.length / SETTLER_MOVES);
-      return { ...state, units: { ...state.units, [unitId]: { ...unit, target: tile, ...(unit.hold ? { hold: false } : {}) } }, logs: [...state.logs, { year: state.year, message: `Settlers set out for ${getTiles().names[tile] || 'new land'}: ${turns} turn${turns === 1 ? '' : 's'}.`, type: 'action' }] };
+      return { ...state, units: { ...state.units, [unitId]: { ...unit, target: tile, ...(unit.hold ? { hold: false } : {}) } }, logs: [...state.logs, { year: state.year, ...msg(turns === 1 ? 'm.act.settlersSetOutOne' : 'm.act.settlersSetOutMany', { place: getTiles().names[tile] ? place(getTiles().names[tile]) : sub('m.act.newLand'), n: turns }), type: 'action' }] };
     }
     case ActionTypes.FOUND_CITY: {
       const { unitId } = action.payload || {};
       const unit = state.units[unitId];
-      if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, 'Not your settlers.');
+      if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, msg('m.act.no.notYourSettlers'));
       const can = canSettle(state, unit.tile, state.playerNationId, getEffectiveAgeId(state.age, state.techAgeId));
       if (!can.ok) return reject(state, can.reason);
       const founded = foundOutpost(state, state.regions, { tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, unit, state.turnNumber);
-      if (!founded) return reject(state, 'This is no place for a city.');
+      if (!founded) return reject(state, msg('m.act.no.noCityHere'));
       const units = { ...state.units }; delete units[unitId];
-      return normalizeUnitTiles(syncWorldRegistry({ ...state, regions: founded.regions, world: { ...(state.world || {}), tileOwner: founded.world.tileOwner, tileState: founded.world.tileState }, units, logs: [...state.logs, { year: state.year, message: `${founded.city.name} is founded as an outpost.`, type: 'action' }] }));
+      return normalizeUnitTiles(syncWorldRegistry({ ...state, regions: founded.regions, world: { ...(state.world || {}), tileOwner: founded.world.tileOwner, tileState: founded.world.tileState }, units, logs: [...state.logs, { year: state.year, ...msg('m.act.outpostFounded', { city: cityRef(founded.city.id, founded.city.name) }), type: 'action' }] }));
     }
     case ActionTypes.DEQUEUE_PRODUCTION: {
       const { cityId: id, index } = action.payload || {};
       const city = state.regions[id];
-      if (!city || city.owner !== state.playerNationId) return reject(state, 'Not your city.');
+      if (!city || city.owner !== state.playerNationId) return reject(state, msg('m.act.no.notYourCity'));
       return { ...state, regions: { ...state.regions, [id]: dequeueItem(city, index || 0) } };
     }
     case ActionTypes.SET_CITY_FOCUS: {
       const { cityId: id, focus } = action.payload || {};
       const city = state.regions[id];
-      if (!city || city.owner !== state.playerNationId) return reject(state, 'Not your city.');
+      if (!city || city.owner !== state.playerNationId) return reject(state, msg('m.act.no.notYourCity'));
       const next = setFocus(city, focus);
       return next === city ? state : { ...state, regions: { ...state.regions, [id]: next } };
     }
     case ActionTypes.TOGGLE_TILE_LOCK: {
       const { cityId: id, tile } = action.payload || {};
       const city = state.regions[id];
-      if (!city || city.owner !== state.playerNationId || !city.tiles.includes(tile)) return reject(state, 'Not your land.');
+      if (!city || city.owner !== state.playerNationId || !city.tiles.includes(tile)) return reject(state, msg('m.act.no.notYourLand'));
       return { ...state, regions: { ...state.regions, [id]: toggleLock(city, tile) } };
     }
     case ActionTypes.BUY_TILE: {
       const { cityId: id, tile } = action.payload || {};
       const city = state.regions[id];
-      if (!city || city.owner !== state.playerNationId) return reject(state, 'Not your city.');
+      if (!city || city.owner !== state.playerNationId) return reject(state, msg('m.act.no.notYourCity'));
       // The price and the eligibility are the city sheet's own quote (cityEconomy.js quoteBuyTile,
       // I036): the research that cheapens land and pushes the border counts here as it does there.
       const quote = quoteBuyTile(state, id, tile);
@@ -3121,7 +3132,7 @@ const reduceAction = (state, action) => {
         resources: { ...state.resources, gold: state.resources.gold - cost },
         regions: { ...state.regions, [id]: { ...city, tiles: [...city.tiles, tile] } },
         world: { ...state.world, tileOwner: { ...(state.world?.tileOwner || {}), [tile]: id } },
-        logs: [...state.logs, { year: state.year, message: `${city.name} buys ${getTiles().names?.[tile] || 'new land'} for ${cost} gold.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.tileBought', { city: cityRef(city.id, city.name), place: getTiles().names?.[tile] ? place(getTiles().names[tile]) : sub('m.act.newLand'), gold: cost }), type: LogTypes.ACTION }]
       };
     }
     case ActionTypes.MOVE_PRODUCTION: {
@@ -3129,7 +3140,7 @@ const reduceAction = (state, action) => {
       // progress is lost either way (cities.js moveQueueItem).
       const { cityId: id, index, to } = action.payload || {};
       const city = state.regions[id];
-      if (!city || city.owner !== state.playerNationId) return reject(state, 'Not your city.');
+      if (!city || city.owner !== state.playerNationId) return reject(state, msg('m.act.no.notYourCity'));
       const next = moveQueueItem(city, index, to);
       return next === city ? state : { ...state, regions: { ...state.regions, [id]: next } };
     }
@@ -3160,7 +3171,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.ANSWER_DEMAND: {
       // An AI's tribute demand (aiAccords.js): pay it or refuse and hand them a casus belli.
       const r = answerDemand(state, !!action.payload?.accept);
-      return r.message ? { ...r.state, logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] } : r.state;
+      return r.message ? { ...r.state, logs: [...r.state.logs, { year: state.year, ...carry(r), type: LogTypes.DIPLOMACY }] } : r.state;
     }
 
     case ActionTypes.EXPLORE_ORDER: {
@@ -3168,8 +3179,8 @@ const reduceAction = (state, action) => {
       const { unitIds = [], toTile = null, stop = false } = action.payload || {};
       if (stop) { const stopped = stopExplore(state, unitIds); return stopped ? { ...state, units: stopped } : state; }
       const order = orderExplore(state, unitIds, toTile);
-      if (!order.units) return reject(state, order.reason || 'The scouts cannot explore.');
-      return { ...state, units: order.units, logs: [...state.logs, { year: state.year, message: order.count > 1 ? `${order.count} scouts set out to explore.` : 'Scouts set out to explore.', type: LogTypes.ACTION }] };
+      if (!order.units) return reject(state, order.reason || msg('m.act.no.scouts'));
+      return { ...state, units: order.units, logs: [...state.logs, { year: state.year, ...(order.count > 1 ? msg('m.act.scoutsMany', { n: order.count }) : msg('m.act.scoutsOne')), type: LogTypes.ACTION }] };
     }
 
     case ActionTypes.SET_HOLD: {
@@ -3185,17 +3196,17 @@ const reduceAction = (state, action) => {
       const { unitIds = [], cityId = null } = action.payload || {};
       if (cityId != null) {
         const city = state.regions[cityId];
-        if (!city || city.owner === state.playerNationId) return reject(state, 'That city cannot be besieged.');
-        if (!canAttack(state, state.playerNationId, city.owner)) return reject(state, `You are at peace with ${state.nations[city.owner]?.name || 'its owner'}: no siege without a war.`);
+        if (!city || city.owner === state.playerNationId) return reject(state, msg('m.act.no.cannotBesiege'));
+        if (!canAttack(state, state.playerNationId, city.owner)) return reject(state, msg('m.act.no.siegePeace', { nation: nationOr(state, city.owner, 'm.act.itsOwner') }));
         const tiles = getTiles();
         const beside = unitIds.filter((id) => { const u = state.units[id]; const t = u ? unitTile(state, u) : null; return t != null && tiles.neighbors[city.tile].includes(t); });
-        if (!beside.length) return reject(state, `A siege needs an army on a tile beside ${city.name}.`);
+        if (!beside.length) return reject(state, msg('m.act.no.siegeBeside', { city: cityRef(city.id, city.name) }));
         const units = setSiege(state, beside, cityId);
         if (!units) return state;
-        return { ...state, units, logs: [...state.logs, { year: state.year, message: `Your army lays siege to ${city.name}.`, type: LogTypes.COMBAT }] };
+        return { ...state, units, logs: [...state.logs, { year: state.year, ...msg('m.act.siegeLaid', { city: cityRef(city.id, city.name) }), type: LogTypes.COMBAT }] };
       }
       const units = setSiege(state, unitIds, null);
-      return units ? { ...state, units, logs: [...state.logs, { year: state.year, message: 'Your army lifts its siege.', type: LogTypes.COMBAT }] } : state;
+      return units ? { ...state, units, logs: [...state.logs, { year: state.year, ...msg('m.act.siegeLifted'), type: LogTypes.COMBAT }] } : state;
     }
 
     case ActionTypes.SET_SETTLER_HOLD: {
@@ -3209,9 +3220,9 @@ const reduceAction = (state, action) => {
       // The settlers go home (settlers.js disbandSettlers, I093): the unit is gone, its one
       // citizen joins the nearest own city. No HR, no military strength: they were never soldiers.
       const out = disbandSettlers(state, (action.payload || {}).unitId);
-      if (!out) return reject(state, 'Not your settlers.');
-      const message = out.city ? `The settlers go home: ${out.city.name} grows by one citizen.` : 'The settlers disband.';
-      return syncWorldRegistry({ ...state, units: out.units, regions: out.regions, logs: [...state.logs, { year: state.year, message, type: LogTypes.ACTION }] });
+      if (!out) return reject(state, msg('m.act.no.notYourSettlers'));
+      const line = out.city ? msg('m.act.settlersHome', { city: cityRef(out.city.id, out.city.name) }) : msg('m.act.settlersDisband');
+      return syncWorldRegistry({ ...state, units: out.units, regions: out.regions, logs: [...state.logs, { year: state.year, ...line, type: LogTypes.ACTION }] });
     }
 
     case ActionTypes.RESOLVE_CAPTURE: {
@@ -3231,7 +3242,7 @@ const reduceAction = (state, action) => {
         ...state,
         resources: { ...state.resources, gold: state.resources.gold - quote.gold },
         regions: { ...state.regions, [id]: applyRush(city, index, quote, state.turnNumber) },
-        logs: [...state.logs, { year: state.year, message: `${city.name} pays ${quote.gold} gold to finish its ${rushItemName(quote.item, quote.ageId)}: ready next turn.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.rushed', { city: cityRef(city.id, city.name), gold: quote.gold, item: thing('rush', null, rushItemName(quote.item, quote.ageId)) }), type: LogTypes.ACTION }]
       };
     }
 
@@ -3241,13 +3252,13 @@ const reduceAction = (state, action) => {
       const { nationId, kind } = action.payload || {};
       const r = tradeMaps(state, nationId, kind);
       if (r.reason) return reject(state, r.reason);
-      return { ...r.state, logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] };
+      return { ...r.state, logs: [...r.state.logs, { year: state.year, ...carry(r), type: LogTypes.DIPLOMACY }] };
     }
 
     case ActionTypes.ANSWER_MAP_OFFER: {
       // An AI's offer to swap maps (mapTrade.js processAIMapOffers): accept or decline, never blocking.
       const r = answerMapOffer(state, !!action.payload?.accept);
-      return r.message ? { ...r.state, logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] } : r.state;
+      return r.message ? { ...r.state, logs: [...r.state.logs, { year: state.year, ...carry(r), type: LogTypes.DIPLOMACY }] } : r.state;
     }
 
     default:
@@ -3280,7 +3291,7 @@ export const gameReducer = (state, action) => {
   syncWorldRegistry(state);
   const target = action?.payload?.nationId;
   if (CONTACT_ACTIONS.has(action?.type) && target && state.nations?.[target] && !hasMet(state, state.playerNationId, target)) {
-    return reject(state, 'You have not met that people yet: send scouts, armies or ships until you see their land.');
+    return reject(state, msg('m.act.no.notMet'));
   }
   let next = reduceAction(state, action);
   // The battle queue fights itself on Auto (battleSettings.autoDefend) once no event, peace offer

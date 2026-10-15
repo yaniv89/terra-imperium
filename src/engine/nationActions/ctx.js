@@ -6,6 +6,7 @@
 // A handler never touches `state` directly; it only ever calls these methods. That's what makes
 // the same handler safe to run from either context without knowing which one it's in.
 import { getPool, getResearched, getTechAgeId } from '../nationState';
+import { carry } from '../messages';
 
 // Used by the reducer. Copy-on-FIRST-write per bucket (regions, nations, the player's own resource
 // pool): a handler that reads a lot but writes nothing leaves `state` completely untouched, so
@@ -37,7 +38,8 @@ export const immutableCtx = (state) => {
     },
     getResearched: (nationId) => getResearched(next, nationId),
     getTechAgeId: (nationId) => getTechAgeId(next, nationId),
-    log: (message, type) => { logs.push({ year: next.year, message, type }); },
+    // `m` is an English string or a msg() result (src/engine/messages.js): the key travels.
+    log: (m, type) => { logs.push({ year: next.year, ...carry(m), type }); },
     // Returns the SAME reference passed to immutableCtx if nothing was ever written and nothing
     // was logged; otherwise the accumulated next state with any logged messages appended once.
     commit: () => (next === state && logs.length === 0 ? state : { ...next, logs: [...next.logs, ...logs] })
