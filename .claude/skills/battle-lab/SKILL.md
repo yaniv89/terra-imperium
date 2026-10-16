@@ -166,6 +166,16 @@ pure speed change should leave every world hash unchanged (compare `runHeadless(
   frees it; instanced meshes reset `count` every frame; short effects live in `this.fx` with a life.
 - Run `npx vitest run src/battle` and the full suite before committing.
 
+## Resources on the field (W12: every tree is wood)
+```bash
+SEEDS=8 TERRAINS=plains,forest,mixed TYPES=field,assault \n  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/nodeCount
+node .claude/skills/battle-lab/wood-shot.mjs <outDir> [--seconds 150 --zoom 3.5] [--query "&terrain=mixed&age=bronze"] [--perf-only]
+```
+nodeCount prints the nodes per battle by kind, the trees, and each resource by half (west, east): run it on
+two checkouts to compare a node change. wood-shot (dev server first) times the frame over the woods
+(frame and main-thread p50/p95, sim ms per tick, draw calls, triangles), sends the laborers to a wood by
+the camp and screenshots them chopping among the stumps, then the whole field.
+
 ## Building in battle (CB15, CB16)
 ```bash
 SEEDS=8 TERRAINS=plains,forest,mixed TYPES=field,assault \
