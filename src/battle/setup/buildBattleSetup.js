@@ -61,7 +61,10 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 // repair slower (all repairers together at most REPAIR_UNDER_ATTACK_MAX_PER_SEC, the Workshop's
 // field repairs wait until the attack stops).
 // A log or a checkpoint of another version is never replayed as if it were this one.
-export const SETUP_VERSION = 12;
+// v13: W12, every tree is wood (each forest square one wood node, felled tree by tree), berry bushes,
+// mirrored stone, gold, herds, berries and fish scattered over the field, and the AI economy's
+// node choice and drop-offs by far nodes (economySetup.js, sim/economy.js, sim/economyAI.js).
+export const SETUP_VERSION = 13;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 

@@ -50,7 +50,9 @@ export const AUX_EFFECT = 1.6;
 export const AUX_TRAINED = { field: [8, 8], assault: [8, 12], town: [2, 4] };
 export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (the time to fight them)
 export const WALLS_FORT_LEVEL = 2;
-export const WALLS_NO_SIEGE_MULT = 0.7;
+// 0.8 since SETUP_VERSION 13 (W12): with wood everywhere the real-time attacker trains more
+// companies against the walls (autoCalib over parityEco mixed and forest, N=16: 36 of 36 in).
+export const WALLS_NO_SIEGE_MULT = 0.8;
 export const AUX_CLOSENESS = 1.5; // the auxiliaries x min(1, this x weaker / stronger army); 0 = off
 // Raids and sacks (measured with parityEco TYPES=raid,sack): raiders do not fight for the field,
 // they burn and run. In a raid their blows count RAID_MULT x min(1, defenders / raiders) (the more
