@@ -25,7 +25,7 @@ export const LOAD_OBJECTS = {
 export const BARROW_EMPTY = 'barrow-empty';
 
 // The node kind's resource, for a load the view gives without one (`ore` maps to stone: old notes).
-const KIND_RESOURCE = { tree: 'wood', stone: 'stone', ore: 'stone', gold: 'gold', herd: 'food', cattle: 'food', fish: 'food', farm: 'food' };
+const KIND_RESOURCE = { tree: 'wood', stone: 'stone', ore: 'stone', gold: 'gold', herd: 'food', cattle: 'food', fish: 'food', farm: 'food', berries: 'food' };
 
 /**
  * X32, the barrow rule (a drawing rule: the sim's load is the same for every resource): food and

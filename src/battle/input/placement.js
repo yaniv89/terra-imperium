@@ -104,7 +104,7 @@ const groundCheck = ({ view, setup, side, type, tx, ty, fog = null, tileFn = nul
   const cx = tx * Q + ((size * Q) >> 1); const cy = ty * Q + ((size * Q) >> 1); // economy.js footprintCentre
   const nodes = view.eco.nodes;
   const near = (n, r) => Math.abs(n.x - cx) <= r && Math.abs(n.y - cy) <= r;
-  if (nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && near(n, NODE_PAD(size)))) return fail('node');
+  if (nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && n.kind !== 'tree' && near(n, NODE_PAD(size)))) return fail('node'); // a wood stands on forest (W12)
   if (def.mine) {
     // The vein a standing mine works is the one nearest to it (economy.js 'build').
     const taken = new Set();

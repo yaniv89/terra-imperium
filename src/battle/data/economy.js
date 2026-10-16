@@ -5,7 +5,7 @@
 // (src/battle/setup/economySetup.js) read it.
 //
 // Four resources (the user's Q1 of 13 October 2026, replacing decision 35's three; U01): food
-// (farms, fishing, herds), wood (groves), stone (stone outcrops) and gold (veins, trade, loot).
+// (farms, fishing, herds, berries), wood (every tree on the field, W12), stone (stone outcrops) and gold (veins, trade, loot).
 // "Materials" and metal ore are retired: every ore spot is a stone node, in every age (X29). Stone
 // is its own stock with its own prices: towers, the trade post and the siege workshop, and the
 // repair of the city's walls, gates, towers and keep. Amounts in the sim are integer milli-units
@@ -99,8 +99,17 @@ const clamp01 = (v) => Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0));
 // ---- resource nodes (S9) ------------------------------------------------------------------------
 // amount in whole units; slots = how many workers can work it at once; rate = gather multiplier.
 // No `ore`: metal ore is not a resource (Q1, X29); the setup places stone where ore stood.
+// Every tree is wood (W12, the user's ruling of 16 October 2026): the forest tiles of a WOOD_CELL
+// square are one `tree` node (economySetup.js woodNodes) holding TREE_WOOD a tree, its `trees` (the
+// forest tiles, in the order they are felled) and `cut` (how many are down: drawn as stumps). The
+// `amount` below is one tree's.
+export const TREE_WOOD = 80;
+export const WOOD_CELL = 5;
+/** How many laborers a wood of `trees` trees takes at once. */
+export const woodSlots = (trees) => Math.min(6, Math.max(2, Math.ceil(trees / 3)));
 export const NODE_KINDS = {
-  tree: { res: 'wood', amount: 250, slots: 3, rate: 1, label: 'Grove', art: 'vegetation' },
+  tree: { res: 'wood', amount: TREE_WOOD, slots: 2, rate: 1, label: 'Woods', art: 'vegetation' },
+  berries: { res: 'food', amount: 200, slots: 3, rate: 0.9, label: 'Berry bushes', art: 'berry-bushes' },
   stone: { res: 'stone', amount: 500, slots: 4, rate: 1, label: 'Stone', art: 'stone-outcrop' },
   gold: { res: 'gold', amount: 400, slots: 4, rate: 1, label: 'Gold vein', art: 'gold-vein' },
   herd: { res: 'food', amount: 300, slots: 3, rate: 1, label: 'Herd', art: 'herd-sheep-goat' },

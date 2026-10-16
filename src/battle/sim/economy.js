@@ -229,7 +229,8 @@ export const placementBlock = (w, side, type, tx, ty) => {
   // Nodes: never built over (X10: the node's own tile only, no extra ring); a mine must stand by a
   // stone or gold node that has none yet.
   const near = (n, r) => Math.abs(n.x - c.x) <= r && Math.abs(n.y - c.y) <= r;
-  if (w.eco.nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && near(n, NODE_PAD(size)))) return 'node';
+  // (a wood's trees stand on forest, which is never built on anyway: W12)
+  if (w.eco.nodes.some((n) => n.amount !== 0 && n.kind !== 'farm' && n.kind !== 'tree' && near(n, NODE_PAD(size)))) return 'node';
   if (def.mine) {
     const vein = w.eco.nodes.findIndex((n) => VEIN_KINDS.has(n.kind) && n.amount !== 0 && near(n, ((size * Q) >> 1) + 2 * Q)
       && !w.eco.buildings.some((b) => b.alive && b.type === 'mine' && b.node === w.eco.nodes.indexOf(n)));
@@ -420,6 +421,19 @@ export const repairPerHp = (s) => {
   return per;
 };
 
+/**
+ * W12: a wood node's trees fall one by one as its wood is taken (a tree is down once its TREE_WOOD
+ * is gone): `cut` counts them (the renderer draws them as stumps) and the node moves to the next
+ * standing tree, where its laborers walk on to. The tiles stay forest (no path is rebuilt).
+ */
+export const fellTrees = (w, n) => {
+  const cut = Math.min(n.trees.length, Math.floor((n.max - n.amount) / n.perTree));
+  if (cut === n.cut) return;
+  n.cut = cut;
+  const t = n.trees[Math.min(cut, n.trees.length - 1)];
+  n.tile = t; n.x = centre(t % w.map.w); n.y = centre(Math.floor(t / w.map.w));
+};
+
 const inReach = (q, x, y, r) => distSq(q.x, q.y, x, y) <= (r + WORK_REACH) * (r + WORK_REACH);
 const gatherPerTick = (res, mult) => Math.max(1, Math.round((GATHER_PER_SEC[res] * MILLI * mult) / TICK_HZ));
 
@@ -462,7 +476,7 @@ const workerTick = (w, q, assigned, builders) => {
     let take = Math.min(gatherPerTick(n.res, mult), CARRY - q.carry);
     if (n.amount > 0) take = Math.min(take, n.amount);
     if (take <= 0) return;
-    if (n.amount > 0) n.amount -= take;
+    if (n.amount > 0) { n.amount -= take; if (n.trees) fellTrees(w, n); }
     q.carryRes = ri;
     q.carry += take;
     return;
@@ -669,7 +683,7 @@ export const ecoView = (w, playerSide) => {
     // A spent grove stays, `spent` (X31: its stumps are drawn; it is no longer a target or an
     // obstacle to gathering); other spent nodes leave the view.
     nodes: eco.nodes.map((n, i) => ((n.amount !== 0 || n.kind === 'tree') && seen(n.x, n.y) && (n.side < 0 || n.side === playerSide)
-      ? { i, kind: n.kind, res: n.res, x: n.x, y: n.y, amount: n.amount < 0 ? -1 : Math.ceil(n.amount / MILLI), max: n.max < 0 ? -1 : Math.ceil(n.max / MILLI), ...(n.amount === 0 ? { spent: true } : null) }
+      ? { i, kind: n.kind, res: n.res, x: n.x, y: n.y, amount: n.amount < 0 ? -1 : Math.ceil(n.amount / MILLI), max: n.max < 0 ? -1 : Math.ceil(n.max / MILLI), ...(n.trees ? { cut: n.cut, trees: n.trees.length } : null), ...(n.amount === 0 ? { spent: true } : null) }
       : null)).filter(Boolean),
     // X28: every laborer of yours at a gather job, what it carries and from what: { idx, res, kind,
     // load } (load in whole units, 0 = walking out empty). The renderer draws the load
@@ -686,7 +700,7 @@ export const ecoView = (w, playerSide) => {
 // Read-only: it mirrors workerTick's own decisions (the slot queue is the same lowest-index-first
 // count over the same workers), so it never changes the world or its hash.
 export const WORK_JOB = Object.freeze({ none: 0, toNode: 1, gathering: 2, waiting: 3, hauling: 4, build: 5, repair: 6 });
-export const WORK_NODE = Object.freeze(['', 'tree', 'stone', 'gold', 'herd', 'cattle', 'fish', 'farm']);
+export const WORK_NODE = Object.freeze(['', 'tree', 'stone', 'gold', 'herd', 'cattle', 'fish', 'farm', 'berries']);
 export const workJobOf = (code) => code & 7;
 export const workNodeOf = (code) => WORK_NODE[code >> 3] || '';
 

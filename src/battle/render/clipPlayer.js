@@ -31,7 +31,7 @@ export const RUN_MPS = 2.6;
 // Mounted gaits (section 7.3): the hooves' natural ground speed at rate 1, tiles a second; Walk
 // under about 0.9, Trot under about 2.0, Gallop above. The chariot's Move is its gallop.
 export const MOUNTED_TPS = { walk: 0.52, trot: 1.29, gallop: 2.74, charge: 3.29, chariotMove: 2.69, chariotCharge: 3.22 };
-const NODE_ROLE = { tree: 'chop', stone: 'mine', gold: 'mine', herd: 'harvest', cattle: 'harvest', fish: 'harvest', farm: 'harvest' };
+const NODE_ROLE = { tree: 'chop', stone: 'mine', gold: 'mine', herd: 'harvest', cattle: 'harvest', fish: 'harvest', farm: 'harvest', berries: 'harvest' };
 
 /** A unit's clips by motion: { role: clip index or -1 }, with each clip's duration, loop and strike frame. */
 export const clipSetOf = (bake) => {

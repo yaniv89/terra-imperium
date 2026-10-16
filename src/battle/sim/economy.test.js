@@ -9,7 +9,9 @@ import { step } from './step';
 import { worldHash } from './hash';
 import { toStrategicResult } from './result';
 import { housingCap, placementBlock, START_WORKERS, repairPerHp, ecoView, workCodes, workJobOf, workNodeOf, WORK_JOB } from './economy';
-import { BUILDINGS, MILLI, RES_INDEX, POP_LIMIT, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, START_STOCK, stockMult } from '../data/economy';
+import { BUILDINGS, MILLI, RES_INDEX, POP_LIMIT, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, START_STOCK, stockMult, TREE_WOOD, woodSlots } from '../data/economy';
+import { TILE } from '../setup/mapgen';
+import { SCATTER_SLIP, SCATTER_HQ_GAP } from '../setup/economySetup';
 import { buildTownManifest, manifestHousing } from '../../data/townLayout';
 import { Q, ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from './constants';
 
@@ -176,6 +178,59 @@ describe('battle economy', () => {
     w.eco.nodes[grove].amount = 0;
     const v = ecoView(w, 0);
     expect(v.nodes.find((n) => n.i === grove)).toMatchObject({ spent: true, amount: 0 });
+  });
+
+  it('W12: every forest tile of the field is a tree of one wood node, TREE_WOOD each', () => {
+    ['forest', 'plains', 'mixed'].forEach((terrain) => {
+      const setup = ecoSetup({ terrain, regionId: `w12-${terrain}` });
+      const { map } = setup;
+      const owner = new Int32Array(map.w * map.h).fill(-1);
+      setup.economy.nodes.forEach((n, i) => (n.trees || []).forEach((t) => { expect(owner[t]).toBe(-1); owner[t] = i; }));
+      const city = new Set([...(setup.structures || []).flatMap((s) => s.footprint || []), ...setup.economy.camp.footprint]);
+      for (let y = 1; y < map.h - 1; y++) for (let x = 1; x < map.w - 1; x++) {
+        const i = y * map.w + x;
+        if (map.tiles[i] === TILE.FOREST && !city.has(i)) expect(owner[i], `${terrain} ${x},${y}`).toBeGreaterThanOrEqual(0);
+      }
+      setup.economy.nodes.filter((n) => n.trees).forEach((n) => {
+        expect(n.amount).toBe(n.trees.length * TREE_WOOD * MILLI);
+        expect(n.tile).toBe(n.trees[0]);
+        expect(n.slots).toBe(woodSlots(n.trees.length));
+      });
+    });
+  });
+
+  it('W12: laborers fell a wood tree by tree; the node walks on to the next tree and the view says how many are down', () => {
+    const w = createWorld(ecoSetup({ terrain: 'forest', regionId: 'w12-fell' }));
+    const camp = w.eco.buildings.find((b) => b.type === 'camp');
+    let best = -1; let bestD = Infinity;
+    w.eco.nodes.forEach((n, i) => { if (n.trees?.length >= 3) { const d = (n.x - camp.x) ** 2 + (n.y - camp.y) ** 2; if (d < bestD) { bestD = d; best = i; } } });
+    const n = w.eco.nodes[best];
+    const first = n.trees[0];
+    run(w, 20 * 200, [{ side: 0, type: 'gather', squads: workersOf(w, 0).map((q) => q.idx), node: best }]);
+    expect(n.cut).toBeGreaterThan(0);
+    expect(n.cut).toBe(Math.floor((n.max - n.amount) / (TREE_WOOD * MILLI)));
+    expect(n.tile).toBe(n.trees[Math.min(n.cut, n.trees.length - 1)]);
+    expect(n.tile).not.toBe(first);
+    expect(w.eco.stats[0].gathered[RES_INDEX.wood]).toBeGreaterThan(0);
+    const v = ecoView(w, 0).nodes.find((x) => x.i === best);
+    expect(v).toMatchObject({ cut: n.cut, trees: n.trees.length });
+  });
+
+  it('W12: scattered nodes come in mirrored pairs, kept away from both headquarters', () => {
+    ['mixed', 'hills', 'desert', 'forest'].forEach((terrain) => {
+      const setup = ecoSetup({ terrain, regionId: `w12-scatter-${terrain}` });
+      const { w: mw } = setup.map;
+      const sc = setup.economy.nodes.filter((n) => n.scattered && n.kind !== 'fish');
+      expect(sc.length, terrain).toBeGreaterThanOrEqual(8);
+      const west = sc.filter((n) => n.x / Q < mw / 2); const east = sc.filter((n) => n.x / Q >= mw / 2);
+      expect(west.length).toBe(east.length);
+      west.forEach((n) => {
+        const mx = mw - 1 - Math.floor(n.x / Q); const my = Math.floor(n.y / Q);
+        expect(east.some((e) => e.kind === n.kind && Math.abs(Math.floor(e.x / Q) - mx) <= SCATTER_SLIP && Math.abs(Math.floor(e.y / Q) - my) <= SCATTER_SLIP), `${terrain} ${n.kind}`).toBe(true);
+      });
+      const hqs = [{ x: setup.economy.camp.x, y: setup.economy.camp.y }, { x: setup.map.keep.x * Q, y: setup.map.keep.y * Q }];
+      setup.economy.nodes.filter((n) => n.scattered).forEach((n) => hqs.forEach((h) => expect(Math.hypot(n.x - h.x, n.y - h.y) / Q).toBeGreaterThan(SCATTER_HQ_GAP - 3)));
+    });
   });
 
   it('I219: work codes say what each laborer does, from both sides; deposits are dated; the hash never sees either', () => {
