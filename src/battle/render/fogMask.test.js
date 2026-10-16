@@ -33,4 +33,17 @@ describe('FogMask', () => {
     mask.update(null);
     expect(scaleOf(late, 0)).toBe(2); expect(scaleOf(late, 1)).toBe(2);
   });
+  it('W12: a felled tile hides its trees for good, through any fog grid, and for meshes added later', () => {
+    const mask = new FogMask(4, 4);
+    const m = meshAt([[0.5, 0.5], [1.5, 0.5]]);
+    mask.add(m);
+    mask.fell([1]);
+    expect(scaleOf(m, 0)).toBe(2); expect(scaleOf(m, 1)).toBe(0);
+    const grid = new Uint8Array(16).fill(2); mask.update(grid);
+    expect(scaleOf(m, 1)).toBe(0); // seen ground does not bring a felled tree back
+    mask.update(null);
+    expect(scaleOf(m, 1)).toBe(0);
+    const late = meshAt([[1.5, 0.5]]); mask.add(late);
+    expect(scaleOf(late, 0)).toBe(0);
+  });
 });

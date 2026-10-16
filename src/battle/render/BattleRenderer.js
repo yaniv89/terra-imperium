@@ -31,6 +31,7 @@ import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
+import { TreeFelling } from './treeFelling';
 import { FogMask } from './fogMask';
 import { VegetationProps } from '../art/vegetationProps';
 import { dressStructure, fortRef, CivicStructures } from '../art/structureArt';
@@ -278,6 +279,7 @@ export class BattleRenderer {
     this.cityLayer.build();
     this.ecoLayer = new EconomyLayer(this); // the battle economy's nodes and buildings (economyLayer.js)
     this.ecoLayer.build();
+    this.treeFelling = new TreeFelling(this); // W12: the woods thin to stumps as they are cut (treeFelling.js)
     this.battleProps = new BattleProps(this); // wells, carts, stalls, standards (battle/art/battleProps.js)
     this.raidLandingProps = new RaidLandingProps(this);
     // Art files for the river banks, fords and bridges, and for projectiles (battle/art/).
@@ -552,7 +554,8 @@ export class BattleRenderer {
         mesh.computeBoundingSphere(); mesh.computeBoundingBox();
         mesh.castShadow = shadow && !beyond; mesh.receiveShadow = true;
         this.scene.add(mesh);
-        this.fogMask.add(mesh);
+        const rec = this.fogMask.add(mesh);
+        if (kind === 'pine' || kind === 'oak') rec.tree = true; // treeFelling.js puts stumps where these stood
         if (kind) (propMeshes[kind] ||= []).push(mesh);
       });
     };
@@ -1217,7 +1220,7 @@ export class BattleRenderer {
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
     if (cur) this.cityLayer.update(cur);
-    if (cur) this.ecoLayer.update(cur, this.viewCuller());
+    if (cur) { this.ecoLayer.update(cur, this.viewCuller()); this.treeFelling?.update(cur); }
     if (cur) this.drawPoints(cur);
     if (cur) this.drawOrderTargets(cur, ui?.selected);
     this.drawFx(dt);

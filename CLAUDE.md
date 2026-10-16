@@ -119,6 +119,9 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   training, housing cap, `tactical.economy` in the result) and economyAI.js, drawing
   render/economyLayer.js, HUD EconomyHud.jsx. Workers are squads with `q.worker` (excluded from the
   end rules and the army AI). `node scripts/battle-bench.mjs --eco`; `.claude/skills/battle-lab/eco-shot.mjs`.
+  Every tree is wood (W12): each 5-tile forest square is one wood node felled tree by tree (economySetup.js
+  woodNodes, sim/economy.js fellTrees; stumps in render/treeFelling.js through fogMask.js), plus mirrored
+  nodes scattered over the field (scatterPairs). Check with battle-lab nodeCount.sim.js and wood-shot.mjs.
 - `src/components/`: React UI (panels, modals, globe, map, battle screens).
 - The flat map is one WebGL canvas (phase A2): `src/components/map/gl/GLMapView.jsx`. Territories,
   borders, hexes, fog and lens tints are one full-screen shader that finds each pixel's tile
