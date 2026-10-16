@@ -26,7 +26,7 @@
 import { InstancedMesh, Matrix4, Vector3, Quaternion, Color, Frustum } from 'three';
 import { ART } from './artFiles';
 import { loadKit, kitObject } from './kitLoader';
-import { vegetationKitFor } from './vegetation';
+import { vegetationKitFor, STUMP_NAMES } from './vegetation';
 import { treeSpecies, treeAt, nearestSize, keptCount, windYaw, leanOf, hash2, FAR_CROWN_SCALE, treeLodForPx, pickTreeLod, REFERENCE_TREE_UNITS } from './treeMix';
 import { CITY_TILES_PER_UNIT } from '../setup/cityBattle';
 
@@ -66,6 +66,8 @@ export class VegetationProps {
   setKit(kit) {
     this.kinds = {};
     this.stumpObj = kitObject(kit, ['stump']); // W12: a felled tree's stump (render/treeFelling.js)
+    // and its variants (stump, stump-2, stump-3: each felled tree picks one by its tile)
+    this.stumpObjs = this.stumpObj ? STUMP_NAMES.map((n) => kitObject(kit, n)).filter(Boolean) : [];
     const species = treeSpecies(kit);
     const treeMeshes = species.length ? TREE_KINDS.flatMap((k) => this.meshes[k] || []) : [];
     Object.entries(this.meshes).forEach(([kind, list]) => {

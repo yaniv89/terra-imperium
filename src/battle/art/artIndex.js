@@ -21,7 +21,7 @@ export const VEGETATION_FALLBACK = { conifer: 'temperate', cold: 'conifer', medi
 export const BRIDGE_BY_AGE = { bronze: 'wood', classical: 'stone', kingdoms: 'stone', gunpowder: 'stone', modern: 'steel' };
 const BRIDGE_FALLBACK = { steel: 'stone', stone: 'wood' };
 /** Resource node files (S9). */
-export const NATURE_NODES = ['stone-outcrop', 'ore-outcrop', 'gold-vein', 'fish-shoal', 'herd-sheep-goat', 'herd-cattle'];
+export const NATURE_NODES = ['stone-outcrop', 'ore-outcrop', 'gold-vein', 'fish-shoal', 'herd-sheep-goat', 'herd-cattle', 'berry-bushes'];
 /** Map terrain kits (S11) the close view can read. */
 export const MAP_TERRAIN_KITS = ['mountain-ridges', 'hills', 'cliffs', 'dunes', 'coasts', 'lakes', 'wetlands', 'field-edges'];
 
