@@ -26,6 +26,9 @@
 //     times), groves -> the battle's vegetation kit (tree-l, tree-m, felled, stump by what is
 //     left, and the kit's log-pile beside it: the mark of a wood node). True scale:
 //     CITY_TILES_PER_UNIT tiles per model unit.
+//   woods (W12: every tree is wood) -> the forest's own trees are the node (render/treeFelling.js
+//     thins them to stumps); this layer adds only a log pile by the tree being cut once a wood is
+//     being worked, and a tap anywhere on a wood's trees picks it.
 import { InstancedMesh, MeshLambertMaterial, MeshBasicMaterial, BoxGeometry, ConeGeometry, CylinderGeometry, DodecahedronGeometry, CircleGeometry, Object3D, Color, Matrix4, Vector3 } from 'three';
 import { Q, TICK_HZ } from '../sim/constants';
 import { BUILDINGS, NODE_KINDS, buildingArt } from '../data/economy';
@@ -81,8 +84,13 @@ const NODE_PARTS = {
   herd: [['box', -0.3, 0.12, 0, 0.32, 0.22, 0.18, '#f5f5f4'], ['box', 0.25, 0.12, 0.25, 0.32, 0.22, 0.18, '#e7e5e4'], ['box', 0.2, 0.12, -0.3, 0.32, 0.22, 0.18, '#d6d3d1']],
   cattle: [['box', -0.3, 0.18, 0, 0.5, 0.32, 0.24, '#78350f'], ['box', 0.35, 0.18, 0.3, 0.5, 0.32, 0.24, '#a16207']],
   fish: [['flat', 0, 0.06, 0, 1.0, 1, 1.0, '#93c5fd'], ['flat', 0.25, 0.07, 0.2, 0.45, 1, 0.45, '#dbeafe']],
+  // W12: berry bushes (no art file yet: berry-bushes.glb), green mounds with red berries
+  berries: [['rock', -0.25, 0.15, 0, 0.55, 0.45, 0.55, '#3f6d2f'], ['rock', 0.3, 0.12, 0.2, 0.45, 0.38, 0.45, '#4b7a36'], ['rock', 0.05, 0.12, -0.32, 0.4, 0.34, 0.4, '#355f29'],
+    ['rock', -0.2, 0.36, 0.15, 0.09, 0.09, 0.09, '#c2253a'], ['rock', 0.32, 0.3, 0.1, 0.08, 0.08, 0.08, '#d03045'], ['rock', 0.0, 0.3, -0.3, 0.08, 0.08, 0.08, '#b31d33']],
   farm: []
 };
+// A worked wood's log pile without art (W12).
+const LOG_PARTS = [['box', 0, 0, 0, 0.55, 0.13, 0.26, '#8a6a43'], ['box', 0.02, 0.13, 0.01, 0.48, 0.12, 0.22, '#7a5a35'], ['box', -0.02, 0.25, 0, 0.4, 0.1, 0.18, '#94744b']];
 // A spent grove without art: two stumps (X31).
 const STUMP_PARTS = [['cyl', -0.15, 0, 0.1, 0.22, 0.18, 0.22, '#6b4a2e'], ['cyl', 0.25, 0, -0.15, 0.18, 0.14, 0.18, '#5a3d24']];
 // A load without the loads kit: a small block of the resource's colour on the back.
@@ -149,6 +157,13 @@ export class EconomyLayer {
     this.r = r;
     this.art = art; this.loadKit = load;
     this.on = !!r.setup.economy;
+    // W12: which wood node each forest tile belongs to (a tap on any of its trees picks it)
+    const map = r.setup.map; const nodes = r.setup.economy?.nodes || [];
+    this.woodTile = null;
+    if (map && nodes.some((n) => n.trees)) {
+      this.woodTile = new Int32Array(map.w * map.h).fill(-1);
+      nodes.forEach((n, i) => (n.trees || []).forEach((t) => { this.woodTile[t] = i; }));
+    }
     this.ghost = null;
     this.deadSince = new Map(); // building idx -> sim tick it was first seen destroyed (drawing only)
     this.wreckFx = []; // this frame's wreck fire and smoke points (X27), refilled by update()
@@ -288,6 +303,17 @@ export class EconomyLayer {
     return true;
   }
 
+  /** W12: a wood is its own trees; once it is being worked a pile of cut logs lies by the tree being cut. */
+  writeWood(n, x, z, lod, counts, cull) {
+    if (n.spent || (!(n.cut > 0) && n.amount >= n.max)) return;
+    const yaw = ((n.i ?? 0) * 2.39996) % 6.283;
+    const px = x + Math.cos(yaw) * LOG_PILE_OFFSET; const pz = z + Math.sin(yaw) * LOG_PILE_OFFSET;
+    const kit = this.kit(this.nodeRef.tree);
+    const pile = kit ? kitObject(kit, 'log-pile') || this.sharedPile() : null;
+    if (pile) { this.kits.add(pile, lod, M.makeRotationY(yaw + 0.9).scale(V.setScalar(CITY_TILES_PER_UNIT)).setPosition(px, this.r.heightAt(px, pz), pz)); return; }
+    this.writeParts(LOG_PARTS, px, pz, 1, 1, '#ffffff', counts, cull);
+  }
+
   // A building from its age's file, or false (the greybox draws it).
   writeBuildingArt(b, x, z, side, lod) {
     const ageId = this.r.setup.sides[b.side]?.ageId;
@@ -400,7 +426,7 @@ export class EconomyLayer {
     // The tiles a resource takes (never built over), from this frame's nodes.
     let b = 0;
     (r.lastView?.eco?.nodes || []).forEach((n) => {
-      if (n.spent || n.kind === 'farm' || b >= 256) return;
+      if (n.spent || n.kind === 'farm' || n.trees != null || b >= 256) return; // a wood's trees are forest, refused as ground already
       put(this.blockedMesh, b++, Math.floor(n.x / Q) + 0.5, Math.floor(n.y / Q) + 0.5, 0.9, 0.9, 0.08);
     });
     this.blockedMesh.count = b; this.blockedMesh.instanceMatrix.needsUpdate = true;
@@ -443,6 +469,7 @@ export class EconomyLayer {
     cur.eco.nodes.forEach((n) => {
       const x = n.x / Q; const z = n.y / Q;
       if (!cull(x, z, 3)) return;
+      if (n.trees != null) { this.writeWood(n, x, z, lod, counts, cull); return; }
       const frac = n.spent ? 0 : n.amount < 0 || n.max <= 0 ? 1 : n.amount / n.max;
       if (this.writeNodeArt(n, x, z, frac, lod)) return;
       if (n.spent) { this.writeParts(STUMP_PARTS, x, z, 1, 1, '#ffffff', counts, cull); return; } // X31
@@ -524,6 +551,14 @@ export class EconomyLayer {
       const s = ((n.x / Q - g.x) ** 2 + (n.y / Q - g.z) ** 2) / (r * r);
       if (s < bestS) { bestS = s; best = { kind: 'node', index: n.i, res: n.res }; }
     });
-    return best;
+    if (best || !this.woodTile) return best;
+    // W12: any tree of a wood picks it (while it has wood left and is in sight)
+    const { w, h } = this.r.setup.map;
+    const tx = Math.floor(g.x); const tz = Math.floor(g.z);
+    if (tx < 0 || tz < 0 || tx >= w || tz >= h) return null;
+    const wi = this.woodTile[tz * w + tx];
+    if (wi < 0) return null;
+    const n = view.eco.nodes.find((e) => e.i === wi);
+    return n && !n.spent ? { kind: 'node', index: n.i, res: n.res } : null;
   }
 }

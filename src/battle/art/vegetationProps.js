@@ -65,6 +65,7 @@ export class VegetationProps {
 
   setKit(kit) {
     this.kinds = {};
+    this.stumpObj = kitObject(kit, ['stump']); // W12: a felled tree's stump (render/treeFelling.js)
     const species = treeSpecies(kit);
     const treeMeshes = species.length ? TREE_KINDS.flatMap((k) => this.meshes[k] || []) : [];
     Object.entries(this.meshes).forEach(([kind, list]) => {

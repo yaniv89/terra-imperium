@@ -7,11 +7,13 @@
 // unseen), so a mesh with nothing left hidden costs nothing on later grids. The grid is the player's
 // fog grid (0 never seen, 1 explored, 2 visible), the same one the veil texture is made from, so
 // there is no per-frame cost: the work happens when a new grid arrives (a few times a second).
+// W12: a felled tree's tile (fell(), from render/treeFelling.js) hides its trees for good the same
+// way; the stumps are drawn in their place.
 
 const SCALE_ELEMENTS = [0, 1, 2, 4, 5, 6, 8, 9, 10];
 
 export class FogMask {
-  constructor(w, h) { this.w = w; this.h = h; this.records = []; this.grid = null; }
+  constructor(w, h) { this.w = w; this.h = h; this.records = []; this.grid = null; this.felled = new Uint8Array(w * h); }
 
   /** Watch an InstancedMesh whose matrices are final (positions are tile units, y up). */
   add(mesh) {
@@ -24,8 +26,16 @@ export class FogMask {
     }
     const rec = { mesh, orig: arr.slice(), tile, hidden: new Uint8Array(n), hiddenCount: 0 };
     this.records.push(rec);
-    if (this.grid) this.apply(rec);
+    this.apply(rec); // the fog grid and any trees already felled
     return rec;
+  }
+
+  /** W12: these tiles' trees were felled: their instances stay hidden from now on. */
+  fell(tiles) {
+    let any = false;
+    tiles.forEach((t) => { if (t >= 0 && t < this.felled.length && !this.felled[t]) { this.felled[t] = 1; any = true; } });
+    if (!any) return;
+    this.records.forEach((rec) => this.apply(rec));
   }
 
   remove(mesh) { this.records = this.records.filter((r) => r.mesh !== mesh); }
@@ -37,11 +47,12 @@ export class FogMask {
   }
 
   apply(rec) {
-    const { mesh, orig, tile, hidden } = rec; const arr = mesh.instanceMatrix.array; const grid = this.grid;
+    const { mesh, orig, tile, hidden } = rec; const arr = mesh.instanceMatrix.array; const grid = this.grid; const felled = this.felled;
     let changed = false; let count = 0;
     for (let j = 0, n = tile.length; j < n; j++) {
-      const want = grid && grid[tile[j]] === 0 ? 1 : 0;
-      if (want) count++;
+      const fogged = grid && grid[tile[j]] === 0;
+      const want = fogged || felled[tile[j]] ? 1 : 0;
+      if (fogged) count++; // only the fog's hiding is undone by a later grid
       if (want === hidden[j]) continue;
       hidden[j] = want; changed = true;
       const o = j * 16;
@@ -52,5 +63,5 @@ export class FogMask {
     if (changed) mesh.instanceMatrix.needsUpdate = true;
   }
 
-  dispose() { this.records = []; this.grid = null; }
+  dispose() { this.records = []; this.grid = null; this.felled.fill(0); }
 }
