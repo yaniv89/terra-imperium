@@ -5,6 +5,10 @@
 // cap is reached, trains laborers up to its difficulty's target, raises production buildings (and
 // towers, defending, at king and up) and keeps them training. Trained squads then join the army AI's
 // plans by themselves (they are ordinary squads to it).
+// W12 (every tree is wood, more nodes over the field): a laborer goes to the nearest node of its
+// resource with a free place (a crowded one counts as four times as far), keeps to its own half
+// unless nothing is left there, and once three or more laborers walk far (DROP_FAR tiles) from a
+// node to the nearest drop-off, a wood and stone yard (or a food depot) goes up beside that node.
 import { distSq } from './fixed';
 import { Q, SIDE_ATTACKER } from './constants';
 import { placementBlock, population, housingCap, ecoAlive } from './economy';
@@ -20,14 +24,27 @@ export const AI_ECONOMY = {
   emperor: { every: 24, workers: 26, prod: 4, towers: 2, queue: 3 }
 };
 const MIX = WORKER_MIX;
+/** How far (tiles) laborers may walk a load before the AI raises a drop-off by their node (W12). */
+export const DROP_FAR = 12;
+/** At most this many drop-offs of its own (yards and depots) a side raises. */
+export const DROP_MAX = 3;
 const PRODUCTION = ['barracks', 'range', 'stable', 'siegeWorkshop'];
 
 const afford = (stock, cost, reserve = 0) => { const c = costMilli(cost); return RESOURCES.every((r, i) => stock[i] - reserve * MILLI >= c[r]); };
 const spend = (stock, cost) => { const c = costMilli(cost); RESOURCES.forEach((r, i) => { stock[i] -= c[r]; }); };
 
-const nearestNode = (w, side, res, x, y) => {
+// The node of `res` for a laborer at (x, y) from a base at `hq`: near both, a crowded one (its
+// places taken) as if four times as far, one in the enemy's half only when its own has none.
+const pickFor = (w, side, res, x, y, hq, load) => {
+  const half = w.map.w * (Q >> 1);
   let best = -1; let bestD = Infinity;
-  w.eco.nodes.forEach((n, i) => { if (n.res === res && n.amount !== 0 && (n.side < 0 || n.side === side)) { const d = distSq(n.x, n.y, x, y); if (d < bestD) { bestD = d; best = i; } } });
+  w.eco.nodes.forEach((n, i) => {
+    if (n.res !== res || n.amount === 0 || (n.side >= 0 && n.side !== side)) return;
+    let d = distSq(n.x, n.y, x, y) + (hq ? distSq(n.x, n.y, hq.x, hq.y) : 0);
+    if ((load.get(i) || 0) >= n.slots) d *= 4;
+    if (n.side < 0 && (side === SIDE_ATTACKER ? n.x > half : n.x < half)) d *= 9;
+    if (d < bestD) { bestD = d; best = i; }
+  });
   return best;
 };
 
@@ -71,15 +88,15 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
 
   // 1. Idle laborers to whatever resource is furthest under its share.
   const onRes = Object.fromEntries(RESOURCES.map((r) => [r, 0]));
-  workers.forEach((q) => { if (q.job?.t === 'gather') onRes[w.eco.nodes[q.job.node].res] += 1; });
+  const load = new Map(); // node -> laborers on it
+  workers.forEach((q) => { if (q.job?.t === 'gather') { onRes[w.eco.nodes[q.job.node].res] += 1; load.set(q.job.node, (load.get(q.job.node) || 0) + 1); } });
   const idle = workers.filter((q) => !q.job || q.order.type !== 'work');
   idle.forEach((q) => {
     const total = workers.length || 1;
     const res = RESOURCES.slice().sort((a, b) => (onRes[a] / total - MIX[a]) - (onRes[b] / total - MIX[b]))[0];
-    let best = -1; let bestD = Infinity;
-    w.eco.nodes.forEach((n, i) => { if (n.res === res && n.amount !== 0 && (n.side < 0 || n.side === side)) { const d = distSq(n.x, n.y, hq.x, hq.y) + distSq(n.x, n.y, q.x, q.y); if (d < bestD) { bestD = d; best = i; } } });
+    const best = pickFor(w, side, res, q.x, q.y, hq, load);
     if (best < 0) return;
-    onRes[res] += 1;
+    onRes[res] += 1; load.set(best, (load.get(best) || 0) + 1);
     orders.push({ side, type: 'gather', squads: [q.idx], node: best });
   });
 
@@ -89,7 +106,7 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
   const under = RESOURCES.find((r) => onRes[r] < MIX[r] * total - 1);
   if (over && under) {
     const mover = workers.find((q) => q.job?.t === 'gather' && w.eco.nodes[q.job.node].res === over && !idle.includes(q));
-    const node = mover ? nearestNode(w, side, under, mover.x, mover.y) : -1;
+    const node = mover ? pickFor(w, side, under, mover.x, mover.y, hq, load) : -1;
     if (node >= 0) orders.push({ side, type: 'gather', squads: [mover.idx], node });
   }
 
@@ -101,9 +118,9 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
     if (near.length) orders.push({ side, type: 'assist', squads: near.map((q) => q.idx), target: { kind: 'eco', index: b.idx } });
   });
   const builder = () => workers.filter((q) => q.job?.t !== 'build').sort((a, c) => distSq(a.x, a.y, hq.x, hq.y) - distSq(c.x, c.y, hq.x, hq.y) || a.idx - c.idx).slice(0, 2).map((q) => q.idx);
-  const build = (type, near = hq) => {
+  const build = (type, near = hq, rMin = 4, rMax = 16) => {
     if (!afford(stock, BUILDINGS[type].cost)) return false;
-    const spot = findSpot(w, side, type, near.x, near.y);
+    const spot = findSpot(w, side, type, near.x, near.y, rMin, rMax);
     const squads = builder();
     if (!spot || !squads.length) return false;
     spend(stock, BUILDINGS[type].cost);
@@ -124,11 +141,30 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
   }
 
   // 5. Production, then (defending) towers: one new site a think.
+  let raised = false;
   if (!sites.some((b) => b.type !== 'house') && workers.length >= Math.min(6, cfg.workers)) {
     const want = PRODUCTION.filter((t) => buildableFor(ageId).includes(t) && roles.includes(BUILDINGS[t].trains[0])).slice(0, cfg.prod);
     const next = want.find((t) => !prod.some((b) => b.type === t));
-    if (next) build(next);
-    else if (side !== SIDE_ATTACKER && cfg.towers && mine.filter((b) => b.type === 'tower').length < cfg.towers) build('tower');
+    if (next) raised = build(next);
+    else if (side !== SIDE_ATTACKER && cfg.towers && mine.filter((b) => b.type === 'tower').length < cfg.towers) raised = build('tower');
+  }
+
+  // 5b. W12: a drop-off by a node its laborers walk far from (wood, stone or food; gold goes home).
+  if (!raised && !sites.some((b) => b.type !== 'house')) {
+    const drops = mine.filter((b) => b.built && BUILDINGS[b.type].dropoff);
+    const own = mine.filter((b) => b.type === 'materialsYard' || b.type === 'foodDepot').length;
+    let far = null;
+    load.forEach((count, ni) => {
+      const n = w.eco.nodes[ni];
+      if (count < 3 || n.kind === 'farm' || n.res === 'gold') return;
+      let d = Infinity;
+      drops.forEach((b) => { if (BUILDINGS[b.type].dropoff.includes(n.res)) d = Math.min(d, distSq(b.x, b.y, n.x, n.y)); });
+      if (d > (DROP_FAR * Q) ** 2 && (!far || d > far.d)) far = { n, d };
+    });
+    if (far && own < DROP_MAX) {
+      const type = far.n.res === 'food' ? 'foodDepot' : 'materialsYard';
+      if (buildableFor(ageId).includes(type)) build(type, far.n, 2, 7);
+    }
   }
 
   // 6. Keep the production buildings training.
