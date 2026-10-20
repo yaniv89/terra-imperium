@@ -38,7 +38,7 @@ export default {
   'de.citySize': 'City size {v}',
   'de.cityLoyalty': 'Loyalty {v} in the city',
   'de.controlMinus': 'Control {v}%',
-  'de.controlMinusTip': 'Applies only to regions currently occupied by someone else',
+  'de.controlMinusTip': 'Lowers control in all your cities',
   'de.fort': 'Fort Level {v}',
   'de.fortTip': 'A timed modifier on every region you own',
   'de.capture': 'Capture: {places}',
