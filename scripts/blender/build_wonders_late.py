@@ -34,6 +34,7 @@ import ti_modern as tmd  # noqa: E402,F401 (md_ materials)
 import ti_future_kit as fk  # noqa: E402 (fu_ materials)
 import build_town_stone as bs  # noqa: E402,F401 (st_ materials)
 import ti_wonder as tw  # noqa: E402
+import ti_nature as tn  # noqa: E402 (rock and foliage materials, blob)
 from ti_town import G  # noqa: E402
 
 
@@ -298,13 +299,16 @@ def vault_1(ms, rng):
 
 def vault_2(ms, rng):
     """The mountain round the vault: bare grey rock with a snow cap and scree, the portal in its north face."""
-    for k, s in enumerate((24, 14, 10)):
-        ms.sphere('stone', 1.0, at=(0, 2.0, G - .3), scale=(4.6, 3.4, 2.2), u=s, v=max(5, s // 2), lod=k, only=(k,), cut_below=0.12)
-        ms.sphere('md_marking', 1.0, at=(0, 2.0, G - .3), scale=(2.4, 1.8, 2.24), u=s, v=max(5, s // 2), lod=k, only=(k,), cut_below=0.7)
+    for k, (sub, jit) in enumerate(((3, .12), (2, .10), (1, .08))):  # a jagged rock massif, one per level
+        tn.blob(ms, 'md_bunker', (0, 2.8, G - .4), 1.0, (4.4, 3.0, 2.4), rng, jit, sub, lod=k, only=(k,), cut=.05)
+        tn.blob(ms, 'md_marking', (.3, 3.0, G - .4), 1.0, (2.0, 1.5, 2.55), rng, jit, sub, lod=k, only=(k,), cut=.72)
+    for k in range(5):  # side spurs
+        a = math.radians(200 + 35 * k)
+        tn.blob(ms, 'md_bunker', (3.4 * math.cos(a), 2.8 + 2.2 * math.sin(a), G - .2), .9, (1.2, 1.0, .9), rng, .2, 1, lod=1, cut=.1)
     for k in range(12):  # scree and boulders at the foot
         a = math.radians(200 + 12 * k)
         tn_r = rng.uniform(.12, .25)
-        ms.sphere('stone', tn_r, at=(4.0 * math.cos(a), 2.0 + 3.0 * math.sin(a), G), scale=(1, 1, .6), u=6, v=3, lod=0, cut_below=0.0)
+        ms.sphere('md_bunker', tn_r, at=(4.2 * math.cos(a), 2.6 + 3.2 * math.sin(a), G), scale=(1, 1, .6), u=6, v=3, lod=0, cut_below=0.0)
 
 
 def vault_3(ms, rng):

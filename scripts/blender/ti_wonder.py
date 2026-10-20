@@ -30,7 +30,15 @@ def fast_uv(obj, margin):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-def build(name, tiers, out, atlas=1024, seed=4200):
+def ground(ms):
+    """Nothing below the ground (validate_model.py): mounds and rocks cut flat at z = 0."""
+    for p in ms.parts:
+        for v in p[0].verts:
+            if v.co.z < 0:
+                v.co.z = 0.0
+
+
+def build(name, tiers, out, atlas=1024, seed=4200, budgets=(14800, 2900, 480)):
     """`tiers`: three layouts fn(ms, rng); tier n draws tiers[0..n-1]. Writes <out>/<name>.glb and .blend."""
     import random
     os.makedirs(out, exist_ok=True)
@@ -38,10 +46,15 @@ def build(name, tiers, out, atlas=1024, seed=4200):
     tt.make_materials()
     PROC = tt.PROC
     meshers = {}
+    import build_town_stone as bs  # (its trim: decimate one level's parts to a budget)
     for t in (1, 2, 3):
         ms = tm.Mesher()
         for k in range(t):
             tiers[k](ms, random.Random(seed + k))
+        ground(ms)
+        for lod, b in zip((0, 1, 2), budgets):  # validate_model.py reads map/wonders as landmarks: 15,000 / 3,000 / 500
+            bs.trim(ms, lod, b)
+        ground(ms)
         meshers[t] = ms
     src = meshers[3].build('_bake', 0, PROC)
     fast_uv(src, 0.002)
