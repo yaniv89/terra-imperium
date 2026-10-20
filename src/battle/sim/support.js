@@ -7,6 +7,7 @@
 import { hasPerk } from '../../data/promotions';
 import { distSq } from './fixed';
 import { isFighting } from './combat';
+import { loseStrength } from './losses';
 import { Q, SIDE_ATTACKER, secondsToTicks } from './constants';
 
 export const SUPPORT_EVERY = 20; // once a second
@@ -37,8 +38,14 @@ export const applySupplyAndAttrition = (w) => {
     const supplied = nearSupply(suppliers, q);
     // Attrition: only the invader, only on enemy soil, only without supply.
     if (q.side === SIDE_ATTACKER && !q.stats.flying && perSecond > 0 && !supplied && !hasPerk(q, 'forager') && inDefenderTerritory(w, q)) {
-      const loss = Math.max(1, Math.round(q.strength * perSecond));
-      q.strength = Math.max(0, q.strength - loss);
+      // The rate is a share of the squad a minute (0.6%): it is owed in thousandths and paid in whole
+      // strength, so a squad of 600 loses about 4 a minute. (It used to round up to at least 1 a
+      // second, 60 a minute whatever the squad's size: 15 times the rate, the H-03 drain.)
+      q.attritionOwed = (q.attritionOwed || 0) + Math.round(q.strength * perSecond * 1000);
+      const loss = Math.floor(q.attritionOwed / 1000);
+      q.attritionOwed -= loss * 1000;
+      if (!loss) return;
+      loseStrength(q, loss, 'attrition');
       q.attritionTaken = (q.attritionTaken || 0) + loss;
       if (q.strength === 0) { q.alive = false; w.events.push({ t: w.tick, type: 'destroyed', id: q.idx }); }
       return;

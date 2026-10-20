@@ -11,6 +11,7 @@ import { HASH_CHAIN_SEED } from './hash';
 import { tileOf, walkableGoal } from './pathing';
 import { initEconomy } from './economy';
 import { reserveEntryMult } from './buildings';
+import { emptyLosses } from './losses';
 
 const tileCenter = (t) => t * Q + (Q >> 1);
 
@@ -64,10 +65,13 @@ export const makeSquad = (w, unit, side, ageId, index) => {
     routImmunityUsed: false,
     engaged: false,                        // dealt or took damage at least once (earns battle XP)
     damageDealt: 0,
+    attritionOwed: 0,                      // attrition owed, in thousandths of a strength point (support.js)
+    lossBy: emptyLosses(),                 // strength lost by cause (losses.js): bookkeeping, never hashed
     cooldown: 0,
     lastHitTick: -10000,
     lastStrikeTick: -10000,                // last tick it swung or fired (drives the strike animation)
     lastDepositTick: -10000,               // a worker's last drop-off (drawing only: never read by the sim, never hashed)
+    noPathTick: -10000,                    // last tick its way to an order's goal was cut off (movement.js; drawing only, never hashed)
     movedSinceAttack: 0,
     order: { type: 'idle' },
     targetKind: null,                      // 'squad' | 'structure'

@@ -65,7 +65,12 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // v13: W12, every tree is wood (each forest square one wood node, felled tree by tree), berry bushes,
 // mirrored stone, gold, herds, berries and fish scattered over the field, and the AI economy's
 // node choice and drop-offs by far nodes (economySetup.js, sim/economy.js, sim/economyAI.js).
-export const SETUP_VERSION = 13;
+// v14: the mobile campaign audit (H-02, H-03, H-04, H-26): attrition at its real rate (owed in
+// thousandths, no longer at least 1 a second), works shoot as hard as their side can man them
+// (siegeRules.js crewShares), squads go on to the next base building and turn on a tower that
+// shoots them, a town's sealed pockets are closed (cityBattle.js sealPockets), a deployed squad
+// stands on open ground.
+export const SETUP_VERSION = 14;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
