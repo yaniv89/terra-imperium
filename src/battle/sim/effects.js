@@ -123,16 +123,12 @@ export const POWERS = {
   arrowStorm: { label: 'Arrow Storm', cost: 150, cooldown: S(60), impacts: 6, spread: 3 * Q, every: 10, radius: Math.round(1.5 * Q), damage: 45, structureMult: 0.5, delay: 10 },
   artilleryBarrage: { label: 'Artillery Barrage', cost: 250, cooldown: S(75), impacts: 8, spread: 4 * Q, every: 10, radius: Math.round(1.8 * Q), damage: 90, structureMult: 3, delay: 20 },
   airStrike: { label: 'Air Strike', cost: 300, cooldown: S(90), impacts: 8, line: true, every: 4, radius: Math.round(1.4 * Q), damage: 120, structureMult: 2, delay: 40 },
-  satelliteSweep: { label: 'Satellite Sweep', cost: 0, cooldown: S(60) },
-  missileTactical: { label: 'Tactical Missile', cost: 0, cooldown: S(5), tier: 'tactical', impacts: 1, radius: 3 * Q, damage: 380, structureMult: 4, delay: S(3), friendly: true },
-  missileTheatre: { label: 'Theatre Missile', cost: 0, cooldown: S(5), tier: 'theatre', impacts: 1, radius: 4 * Q, damage: 650, structureMult: 4, delay: S(3), friendly: true },
   // The invasion fleet's guns (amphibious landings): they only reach the shore half of the field.
-  navalBombardment: { label: 'Naval Bombardment', cost: 0, cooldown: S(40), impacts: 6, spread: 3 * Q, every: 8, radius: Math.round(1.6 * Q), damage: 100, structureMult: 2.5, delay: 30, reachFrac: 0.5 },
-  nuclearStrike: { label: 'Nuclear Strike', cost: 0, cooldown: S(5), tier: 'nuclear', impacts: 1, radius: 14 * Q, damage: 1000000, structureMult: 1000, delay: S(4), friendly: true }
+  navalBombardment: { label: 'Naval Bombardment', cost: 0, cooldown: S(40), impacts: 6, spread: 3 * Q, every: 8, radius: Math.round(1.6 * Q), damage: 100, structureMult: 2.5, delay: 30, reachFrac: 0.5 }
 };
 
 // setup.powers[side] = [{ id, uses? }] — which powers each side brought (fed by real strategic
-// assets: satellites, missiles, air units, siege). Uses default to unlimited (cooldown-gated).
+// assets: air units, siege, the fleet). Uses default to unlimited (cooldown-gated).
 export const powerState = (w, side, id) => {
   const entry = (w.setup.powers?.[side] || []).find((p) => p.id === id);
   if (!entry) return { available: false };
@@ -159,7 +155,6 @@ export const firePower = (w, side, id, x, y) => {
     });
     return true;
   }
-  if (id === 'satelliteSweep') { w.revealUntil[side] = w.tick + S(10); return true; }
   const maxX = p.reachFrac ? Math.floor(w.map.w * p.reachFrac) * Q : w.map.w * Q - 1;
   const cx = Math.max(0, Math.min(maxX, Math.round(x))); const cy = Math.max(0, Math.min(w.map.h * Q - 1, Math.round(y)));
   for (let i = 0; i < p.impacts; i++) {
@@ -169,7 +164,7 @@ export const firePower = (w, side, id, x, y) => {
       const a = Math.floor(nextRandom(w) * 256); const r = Math.floor(nextRandom(w) * p.spread);
       ix = cx + polarX(a, r); iy = cy + polarY(a, r);
     }
-    w.impacts.push({ tick: w.tick + p.delay + i * (p.every || 0), x: ix, y: iy, radius: p.radius, damage: p.damage, structureMult: p.structureMult, side, friendly: !!p.friendly, power: id });
+    w.impacts.push({ tick: w.tick + p.delay + i * (p.every || 0), x: ix, y: iy, radius: p.radius, damage: p.damage, structureMult: p.structureMult, side, power: id });
   }
   return true;
 };
@@ -183,7 +178,7 @@ export const processImpacts = (w) => {
   due.forEach((imp) => {
     w.events.push({ t: w.tick, type: 'impact', x: imp.x, y: imp.y, radius: imp.radius, power: imp.power });
     w.squads.forEach((q) => {
-      if (!isFighting(q) || q.inside >= 0 || (!imp.friendly && q.side === imp.side)) return; // walls shelter a garrison
+      if (!isFighting(q) || q.inside >= 0 || q.side === imp.side) return; // walls shelter a garrison
       if (distSq(q.x, q.y, imp.x, imp.y) > imp.radius * imp.radius) return;
       const damage = Math.min(q.strength, Math.round(imp.damage * (0.9 + nextRandom(w) * 0.2)));
       loseStrength(q, damage, 'impact');

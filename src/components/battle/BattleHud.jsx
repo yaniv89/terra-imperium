@@ -97,7 +97,7 @@ const PowerCard = ({ pw, armed, supply, onClick }) => {
   return (
     <button type="button" disabled={!!block} onClick={onClick} aria-pressed={armed || undefined} title={block || undefined}
       className={cx('min-w-0 min-h-[48px] px-2 rounded-[10px] border shadow-lg flex flex-col items-center justify-center text-center disabled:opacity-45',
-        armed ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : pw.id === 'nuclearStrike' ? 'bg-fa-panel/95 border-fa-danger' : 'bg-fa-panel/95 border-fa-line')}>
+        armed ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'bg-fa-panel/95 border-fa-line')}>
       <span className="text-[11px] font-semibold leading-tight flex items-center gap-1"><Zap className="w-3 h-3" aria-hidden="true" />{powerLabel(pw.id, pw.label)}</span>
       <span className={cx('fa-num text-[10px] leading-tight', pw.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{state}{Number.isFinite(pw.usesLeft) ? t('bt.hud.usesLeft', { n: pw.usesLeft }) : ''}</span>
     </button>
@@ -147,7 +147,6 @@ const BattleHud = ({
   ended = false // the battle is over: only the top bar stays (the result screen, B08, owns the rest)
 }) => {
   const { t } = useT();
-  const [confirmNuke, setConfirmNuke] = useState(null);
   const [confirmRetreat, setConfirmRetreat] = useState(false);
   // I202: the city's housing card starts folded (a chip); the player opens it when it matters.
   const [cityOpen, setCityOpen] = useState(false);
@@ -215,7 +214,7 @@ const BattleHud = ({
   const wandItems = (armyCtx ? abilities.length : 0) + ((armyCtx || idleCtx) ? powerCards.length : 0);
   const showWand = (armyCtx || idleCtx) && wandItems > 0;
   const wandReady = (armyCtx ? abilities.filter((a) => a.readyIn <= 0).length : 0) + powerCards.filter((pw) => !powerBlock(pw, supply, t)).length;
-  const firePower = (pw) => { setWandOpen(false); if (pw.id === 'nuclearStrike' && !(armed?.type === 'power' && armed.id === pw.id)) setConfirmNuke(pw); else onPower(pw); };
+  const firePower = (pw) => { setWandOpen(false); onPower(pw); };
   // The minimap gives way to a tall sheet on a short screen.
   const bigSheet = buildOpen || ['building', 'site', 'place'].includes(context) || wandOpen;
   const showMinimap = minimapOn && minimap && !pauseOpen && !(short && bigSheet);
@@ -506,7 +505,7 @@ const BattleHud = ({
                   const block = powerBlock(pw, supply, t);
                   return (
                     <button key={pw.id} type="button" disabled={!!block} onClick={() => firePower(pw)} aria-pressed={(armed?.type === 'power' && armed.id === pw.id) || undefined} data-testid={`battle-power-${pw.id}`}
-                      className={cx('w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-start hover:bg-fa-raised disabled:opacity-60', pw.id === 'nuclearStrike' && 'text-fa-danger-text')}>
+                      className={cx('w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-start hover:bg-fa-raised disabled:opacity-60')}>
                       <Zap className="w-4 h-4 shrink-0 text-fa-brass" aria-hidden="true" />
                       <span className="flex-1 min-w-0"><span className="block text-[12px] font-semibold truncate">{powerLabel(pw.id, pw.label)}</span>
                         <span className="block text-[10.5px] text-fa-muted fa-num">{pw.cost ? t('bt.hud.costSupply', { cost: pw.cost }) : t('bt.hud.free')}{Number.isFinite(pw.usesLeft) ? t('bt.hud.usesLeft', { n: pw.usesLeft }) : ''}{pw.targeted ? t('bt.hud.aimIt') : ''}</span></span>
@@ -593,19 +592,6 @@ const BattleHud = ({
 
       {started && paused && sheetHidden && (
         <button type="button" onClick={() => setSheetHidden(false)} className="absolute fa-chip !bg-fa-panel/95 !min-h-[44px] pointer-events-auto" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-paused-pill">{t('bt.hud.pausedMenu')}</button>
-      )}
-
-      {confirmNuke && (
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4 pointer-events-auto">
-          <div className="w-full max-w-sm fa-panel !bg-fa-panel !border-fa-danger p-4 text-sm space-y-3">
-            <div className="fa-heading text-[17px] text-fa-danger-text">{t('bt.hud.nukeTitle')}</div>
-            <p className="text-xs text-fa-muted">{t('bt.hud.nukeBody')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setConfirmNuke(null)} className="fa-btn fa-btn-secondary !min-h-[44px]">{t('bt.cancel')}</button>
-              <button type="button" onClick={() => { onPower(confirmNuke); setConfirmNuke(null); }} className="fa-btn fa-btn-danger !min-h-[44px]">{t('bt.hud.chooseTarget')}</button>
-            </div>
-          </div>
-        </div>
       )}
 
       {confirmRetreat && (

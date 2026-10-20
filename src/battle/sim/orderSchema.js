@@ -20,6 +20,7 @@
 // Adding an order to the sim: add its row here in the same change (orderSchema.test.js fails when
 // applyOrder or applyEcoOrder handles a type this file does not know).
 import { BUILDINGS, UNITS } from '../data/economy';
+import { POWERS } from './effects';
 
 export const MAX_LOG_ORDERS = 20000;
 // One order may move a whole army: the largest preset is 1,000 squads a side (MASTER-PLAN 6.2).
@@ -33,7 +34,7 @@ const WORK_TARGETS = ['eco', 'structure']; // what a worker may build on or mend
 
 // Field kinds: 'squads' (list of squad indexes), 'num' (finite number, kept exactly as recorded:
 // the live battle used it as-is), 'int' (integer), 'index' (integer >= 0), 'id' (short string),
-// 'formation', 'building' / 'unit' (a key of the economy catalog), 'count' (1 to 5).
+// 'formation', 'building' / 'unit' (a key of the economy catalog), 'power' (a key of POWERS), 'count' (1 to 5).
 // `req` fields must be there; `opt` fields may be absent (or null) but must be valid when present.
 const group = { req: { squads: 'squads', x: 'num', y: 'num' }, opt: { formation: 'formation' } };
 const squadsOnly = { req: { squads: 'squads' } };
@@ -51,7 +52,7 @@ export const ORDER_SCHEMA = {
   retreatAll: {},
   callReserve: squadsOnly,
   ability: { req: { squads: 'squads', ability: 'id' } },
-  power: { req: { power: 'id' }, opt: { x: 'num', y: 'num' } },
+  power: { req: { power: 'power' }, opt: { x: 'num', y: 'num' } },
   garrison: { req: { squads: 'squads', structure: 'index' } },
   // the battle economy (economy.js applyEcoOrder)
   gather: { req: { squads: 'squads', node: 'index' } },
@@ -75,6 +76,7 @@ const READ = {
   formation: (v) => (typeof v === 'string' && v.length <= MAX_FORMATION_LENGTH ? v : REFUSED),
   building: (v) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(BUILDINGS, v) ? v : REFUSED),
   unit: (v) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(UNITS, v) ? v : REFUSED),
+  power: (v) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(POWERS, v) ? v : REFUSED),
   count: (v) => (Number.isInteger(v) ? Math.max(1, Math.min(5, v)) : REFUSED)
 };
 

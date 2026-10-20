@@ -66,7 +66,7 @@ describe('battle order schema', () => {
       { type: 'formationLine', squads: [0], x: 1, y: 1, x2: Infinity, y2: 2 },
       { type: 'attack', squads: [0] }, { type: 'attack', squads: [0], target: { kind: 'node', index: 1 } }, { type: 'attack', squads: [0], target: { kind: 'squad', index: -1 } },
       { type: 'assist', squads: [0], target: { kind: 'squad', index: 1 } },
-      { type: 'ability', squads: [0], ability: '' }, { type: 'power', power: 'x'.repeat(40) }, { type: 'power', power: 'rallyCry', x: 'left' },
+      { type: 'ability', squads: [0], ability: '' }, { type: 'power', power: 'x'.repeat(40) }, { type: 'power', power: 'nuclearStrike' }, { type: 'power', power: 'rallyCry', x: 'left' },
       { type: 'garrison', squads: [0], structure: 1.5 },
       { type: 'gather', squads: [0], node: -1 },
       { type: 'build', squads: [0], building: 'deathStar', tx: 1, ty: 1 }, { type: 'build', squads: [0], building: 'toString', tx: 1, ty: 1 }, { type: 'build', squads: [0], building: 'house', tx: 1.5, ty: 1 },
