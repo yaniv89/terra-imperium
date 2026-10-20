@@ -15,6 +15,7 @@ import { updateEffects, processImpacts } from './effects';
 import { applySupplyAndAttrition } from './support';
 import { updateBuildings } from './buildings';
 import { updateEconomy, fireEcoTowers, countEcoLosses } from './economy';
+import { autoRebuild } from './economyAI';
 import { baseGone, hasBase } from './base';
 import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER, Q, secondsToTicks } from './constants';
 import { LOSS_DECISIVE, RIVER_HOLD_SHARE, AMBUSH_SECONDS, AMBUSH_LOSS, LANDING_HOLD_SECONDS, SALLY_ENGINES } from '../setup/battleType';
@@ -155,6 +156,7 @@ export const step = (w, orders = []) => {
   processImpacts(w);
   updateSupply(w);
   enterReserves(w);
+  autoRebuild(w); // a fallen drop-off goes back up when its side asked (economyAI.js)
   updateEconomy(w); // workers, construction, training (economy.js; nothing without an economy)
   acquireTargets(w); // builds its own enemy-only grid (pathing.js buildTargetGrid)
   moveSquads(w);

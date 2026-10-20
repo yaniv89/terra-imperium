@@ -31,7 +31,8 @@ import { createPerfMeter, formatPerf } from '../../battle/render/perfMeter';
 import { getMapPrefs } from '../map/mapPrefs';
 import { Check, X as XIcon, Ban, Hammer, Wrench } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
-import { BuildMenu, BuildingActions, InfoCard, HammerButton } from './EconomyHud';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { BuildMenu, BuildingActions, InfoCard, HammerButton, WorkerAutoButtons } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
 import { contextFor, refusedText, enemyObjectives, supplyRate } from './battleHudModel';
 import BattleMinimap from './BattleMinimap';
@@ -226,6 +227,14 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     if (bark) playVoice(bark.classId, bark.kind);
     clientRef.current?.sendOrders(orders.map((o) => ({ side: playerSide, ...o })));
   }, [playerSide]);
+  // U24: on a phone or tablet the laborers rebuild a fallen depot by themselves (a button turns it off).
+  const rebuildDefault = useRef(false);
+  const layout = useLayoutMode();
+  useEffect(() => {
+    if (started && !resume && layout !== 'desktop' && hud?.eco && !hud.eco.autoRebuild && !rebuildDefault.current) send([{ type: 'autoRebuild', on: true }]);
+    if (started && hud?.eco) rebuildDefault.current = true;
+  }, [started, hud?.eco, layout, resume, send]);
+
 
   // --- mount: renderer + sim client + render loop ------------------------------------------
   // Anything that goes wrong here (no WebGL, the sim failing to start or crashing, the drawing
@@ -1060,6 +1069,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         <div className="flex items-center gap-3" data-testid="battle-worker-actions">
           <button type="button" onClick={stopWorkers} aria-label={tNow('bt.screen.stopWorking')} title={tNow('bt.screen.stopWorkingTitle')} data-testid="battle-workers-stop"
             className="w-12 h-12 rounded-full bg-fa-panel/95 border border-fa-danger/70 shadow-lg flex items-center justify-center text-fa-danger-text"><GameIcon group="battle" id="stop-working" size={24} fallback={<Ban className="w-5 h-5" aria-hidden="true" />} /></button>
+          <WorkerAutoButtons preset={hud.eco.preset} autoRebuild={hud.eco.autoRebuild}
+            onPreset={(preset) => send([{ type: 'workerPreset', preset }])} onRebuild={(on) => send([{ type: 'autoRebuild', on }])} />
           <HammerButton onClick={() => flowTo({ type: 'open' })} />
         </div>
       </div>

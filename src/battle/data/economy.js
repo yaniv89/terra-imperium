@@ -52,6 +52,14 @@ export const POP_PER_SQUAD = 1;
 export const CARRY = toMilli(10);
 // How a side spreads its laborers when it puts one to work by itself (a new laborer, an emptied node).
 export const WORKER_MIX = { food: 0.4, wood: 0.3, stone: 0.15, gold: 0.15 };
+// U24: the shares a side can choose by one tap (balanced is the default mix above).
+export const WORKER_PRESETS = {
+  balanced: WORKER_MIX,
+  food: { food: 0.6, wood: 0.2, stone: 0.1, gold: 0.1 },
+  wood: { food: 0.2, wood: 0.6, stone: 0.1, gold: 0.1 },
+  stone: { food: 0.2, wood: 0.2, stone: 0.5, gold: 0.1 },
+  gold: { food: 0.2, wood: 0.2, stone: 0.1, gold: 0.5 }
+};
 export const GATHER_PER_SEC = { food: 0.65, wood: 0.6, stone: 0.5, gold: 0.4 };
 export const FARM_RATE_MULT = 0.7;   // a farm is renewable but slower (RTS plan 6.1)
 export const MINE_RATE_MULT = 1.25;  // a mine on its vein: faster, and no walk
