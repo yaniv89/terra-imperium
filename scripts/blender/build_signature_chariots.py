@@ -376,7 +376,7 @@ def build(model, R):
             tube('NockedArrow', [(tuple(r), .004, 'Prop_R'), (tuple(g + d * .10), .004, 'Prop_R')], 'Wood', 4, attachment=True)
             tube('NockedArrowHead', [(tuple(g + d * .095), (.010, .004), 'Prop_R'), (tuple(g + d * .14), .001, 'Prop_R')], 'Metal', 4, attachment=True)
         else:  # a spear, a javelin or a halberd upright in the right fist
-            nm = {'spear': 'Spearman', 'javelin': 'Javelineer', 'halberd': 'Halberdier'}[role]
+            nm = {'spear': 'Warrior', 'javelin': 'Javelineer', 'halberd': 'Lord'}[role]  # (not 'Spearman': the battle's polearm test matches part names)
             rig = man(nm, look, lite)
             parts.append(rig)
             F.place(at)
