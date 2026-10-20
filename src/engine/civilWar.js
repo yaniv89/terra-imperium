@@ -28,6 +28,7 @@
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { getNeighborIds } from '../data/regions';
 import { ageOf } from './nationState';
+import { stonePhaseOf } from './stonePhase';
 import { getAvailableGovernmentTypes, resetReformsForType } from '../data/government';
 import { DEFAULT_LAWS } from '../data/laws';
 import { clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
@@ -190,7 +191,7 @@ export const processCivilWarTurn = (state, regionsIn, unitsIn, nation, nationId,
     });
     Object.values(units).forEach((u) => { if (u.isInsurgent && insurgentRegionIds.has(u.regionId)) delete clearedUnits[u.id]; });
 
-    const availableTypes = getAvailableGovernmentTypes(ageOf(state, nationId), nation.identity).filter((t) => t.id !== nation.government?.type);
+    const availableTypes = getAvailableGovernmentTypes(ageOf(state, nationId), nation.identity, stonePhaseOf(state, nationId)).filter((t) => t.id !== nation.government?.type);
     const newType = availableTypes.length > 0 ? availableTypes[Math.floor(rng.next() * availableTypes.length)].id : nation.government?.type;
 
     return {

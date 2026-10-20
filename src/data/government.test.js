@@ -47,6 +47,17 @@ describe('GOVERNMENT_TYPES / GOVERNMENT_REFORMS data integrity', () => {
   });
 });
 
+describe('Stone Age governments', () => {
+  it('a village is offered Tribal only; the first cities add Monarchy and Theocracy', () => {
+    expect(getAvailableGovernmentTypes('stone', { secularism: 50 }, 'village').map((t) => t.id)).toEqual(['tribal']);
+    expect(getAvailableGovernmentTypes('stone', { secularism: 50 }, 'cities').map((t) => t.id).sort()).toEqual(['monarchy', 'theocracy', 'tribal']);
+  });
+
+  it('each open type has a Stone reform tier', () => {
+    ['tribal', 'monarchy', 'theocracy'].forEach((t) => expect(GOVERNMENT_REFORMS[t].stone.length, t).toBeGreaterThan(0));
+  });
+});
+
 describe('getGovernmentType', () => {
   it('returns the type by id', () => expect(getGovernmentType('monarchy')?.name).toBe('Monarchy'));
   it('returns null for an unknown id', () => expect(getGovernmentType('not_real')).toBeNull());
@@ -147,6 +158,7 @@ describe('canEnactReform', () => {
 describe('resetReformsForType', () => {
   it('fills every reachable age tier the new type actually offers with its first choice', () => {
     expect(resetReformsForType('monarchy', 'kingdoms')).toEqual({
+      stone: 'city_king',
       bronze: 'despotic_rule',
       classical: 'feudal_nobility',
       kingdoms: 'hereditary_primogeniture'
@@ -155,7 +167,7 @@ describe('resetReformsForType', () => {
 
   it('leaves ages beyond the calendar age unset', () => {
     const reforms = resetReformsForType('monarchy', 'bronze');
-    expect(reforms).toEqual({ bronze: 'despotic_rule' });
+    expect(reforms).toEqual({ stone: 'city_king', bronze: 'despotic_rule' });
     expect(reforms.classical).toBeUndefined();
   });
 

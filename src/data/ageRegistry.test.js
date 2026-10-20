@@ -74,7 +74,6 @@ const KEYED = [
 // Opt-outs: table name -> { age: reason }.
 const OPT_OUT = {
   'building tiers': { stone: 'Stone building tiers come in U28' },
-  'government reform tiers': { stone: 'Stone reforms come in U30' },
   'age icons': { stone: 'the Stone icon is art (U93)' }
 };
 
@@ -125,7 +124,7 @@ describe('registry completeness: every per-age table has every age', () => {
     const reformAges = new Set(Object.values(GOVERNMENT_REFORMS).flatMap((t) => Object.keys(t)));
     const wonderAges = new Set(Object.values(GREAT_PROJECTS).map((p) => p.ageId));
     expect(tableProblems('building tiers', tierAges, OPT_OUT['building tiers'])).toEqual([]);
-    expect(tableProblems('government reform tiers', reformAges, OPT_OUT['government reform tiers'])).toEqual([]);
+    expect(tableProblems('government reform tiers', reformAges)).toEqual([]);
     expect(tableProblems('wonders', wonderAges)).toEqual([]);
   });
 
