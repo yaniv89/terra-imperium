@@ -147,7 +147,7 @@ export default {
   'start.choices.explored': ', explored world',
   'start.defaultsHint': 'Go on to change the world and the rules, then begin on Ready.',
   'start.guided': 'New here? Play the guided start as {people}',
-  'start.guidedTip': 'Ten turns of prompts on the Nile: settle, farm, build, research, meet a neighbour, fight.',
+  'start.guidedTip': 'Twenty-five turns of prompts on the Nile: settle, farm, build, research, meet a neighbour, fight.',
   'start.peopleCount': '{n} peoples',
   'start.cityStates': 'City-states',
   'start.csLine': 'Up to {n} one-city peoples, each {km} km or more from every start. Trade, military, science and culture cities reward the people they favour; a third at most are raiders.',

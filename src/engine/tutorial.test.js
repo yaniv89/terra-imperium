@@ -23,6 +23,13 @@ describe('the guided start as Egypt (plan E9)', () => {
     expect(Object.values(s.units).some((u) => u.ownerId === 'fr' && isSettler(u))).toBe(false);
   });
 
+  it('is still guiding after turn 11, when the first Settlers walk out (H-22)', () => {
+    const s = { ...guided(), turnNumber: 12 };
+    expect(tutorialStatus(s)).toMatchObject({ active: true, turn: 12 });
+    expect(tutorialStatus({ ...s, turnNumber: TUTORIAL_TURNS + 1 }).active).toBe(false);
+    expect(TUTORIAL_TURNS).toBeGreaterThanOrEqual(20);
+  });
+
   it('the first step is the first prompt and each step is read from the state', () => {
     let s = guided();
     const cap = s.regions[s.nations.eg.capitalRegionId];
@@ -60,7 +67,7 @@ describe('the guided start as Egypt (plan E9)', () => {
     expect(nextPrompts(ended).some((p) => p.kind === 'guide')).toBe(false);
   });
 
-  it('the guide ends after its ten turns, records the steps met and the world keeps turning', () => {
+  it('the guide ends after its 25 turns, records the steps met and the world keeps turning', () => {
     let s = guided();
     for (let i = 0; i < TUTORIAL_TURNS + 1; i++) { s = resolveTurn(s); if (s.pendingPeaceOffer) s = gameReducer(s, { type: ActionTypes.REJECT_PENDING_PEACE }); }
     expect(s.turnNumber).toBe(TUTORIAL_TURNS + 2);
