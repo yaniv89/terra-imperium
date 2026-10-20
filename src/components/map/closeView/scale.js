@@ -100,9 +100,9 @@ export const GROUP_WIDTH_HEX = 0.65;
 export const SETTLER_FIGURE_SHARE = 0.6;
 // ONE unit model is drawn per tile (tileStack.js), standing on its hex: at the centre of a plain hex
 // (a small step toward the viewer so the feet are on the ground), and on a city's hex a little
-// further forward, in front of the town's models and still inside the hex.
+// further forward, at the front edge of the town (not behind its houses) and still inside the hex.
 export const ARMY_SPOT_HEX = { x: 0, y: 0.1 };
-export const CITY_SPOT_HEX = { x: 0, y: 0.22 };
+export const CITY_SPOT_HEX = { x: 0, y: 0.42 };
 /** Where the tile's unit stands, in pixels from the tile's centre (screen x, y down). */
 export const armySpotPx = (hexPx, inCity = false) => { const s = inCity ? CITY_SPOT_HEX : ARMY_SPOT_HEX; return [s.x * hexPx, s.y * hexPx]; };
 /** One hex spacing (neighbour to neighbour) in screen pixels at zoom k, measured north-south. */
