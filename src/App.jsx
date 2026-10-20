@@ -21,6 +21,7 @@ import WaitingChips from './components/ui/WaitingChips';
 import ConfirmDialog from './components/ui/ConfirmDialog';
 import { useAutoDismiss } from './hooks/useAutoDismiss';
 import FirstContactCard from './components/modals/FirstContactCard';
+import CampCard from './components/modals/CampCard';
 import ConfirmActionDialog from './components/ui/ConfirmActionDialog';
 import { MapContainer } from './components/map';
 import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
@@ -312,6 +313,7 @@ const GameLayout = () => {
 
       {/* First contact with a people (W03). */}
       <FirstContactCard />
+      <CampCard />
 
       {/* The second tap for declaring war and changing a law (H-08). */}
       <ConfirmActionDialog />

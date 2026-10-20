@@ -102,6 +102,7 @@ export const ACTION_SOUNDS = {
   [T.SET_SETTLER_HOLD]: null,
   [T.DISBAND_SETTLERS]: 'ui-close',
   [T.RESOLVE_CAPTURE]: (a) => (a.payload?.choice === 'raze' ? 'city-razed' : 'ui-confirm'),
+  [T.RESOLVE_CAMP]: (a) => (a.payload?.choice === 'leave' ? null : 'ui-confirm'),
   [T.RUSH_PRODUCTION]: 'tribute-paid', // gold paid, like Buy land (CB04 I019)
   // Map trading (mapTrade.js, I116): gold paid or received, else the trade sound.
   [T.TRADE_MAPS]: (a) => (a.payload?.kind === 'buy' ? 'tribute-paid' : a.payload?.kind === 'sell' ? 'gold-received' : 'trade-route'),

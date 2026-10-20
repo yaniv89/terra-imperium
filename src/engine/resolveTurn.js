@@ -5,6 +5,7 @@ export { DESERTION_SHARE, DESERTION_MORALE, DESERTION_DISBAND_BELOW } from './ar
 import { processEmergence } from './emergence';
 import { processLateArrivals, independentCityCtx } from './independents';
 import { forageCtx } from '../data/hearths';
+import { updateCamps } from './tribalCamps';
 import { stonePhaseCtx } from './stonePhase';
 import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
@@ -247,6 +248,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   state = normalizeUnitTiles(state);
   // The Stone Age opening (settlers.js, U23): AI bands found their first village.
   state = foundAiVillages(state);
+  state = updateCamps(state); // tribal camps (tribalCamps.js, U26)
 
   let regionDraft = null;
   let phaseStart = turnStart;

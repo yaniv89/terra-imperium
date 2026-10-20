@@ -198,6 +198,9 @@ export default {
   // cities and settlers
   'm.act.settlersSetOutOne': 'Settlers set out for {place}: {n} turn.',
   'm.act.settlersSetOutMany': 'Settlers set out for {place}: {n} turns.',
+  'm.act.campAbsorbed': 'A tribal camp joins your people.',
+  'm.act.campTraded': 'A tribal camp trades what it knows.',
+  'm.act.no.campChoice': 'The camp cannot do that: you need a city for it to join.',
   'm.act.outpostFounded': '{city} is founded as an outpost.',
   'm.act.tileBought': '{city} buys {place} for {gold} gold.',
   'm.act.settlersHome': 'The settlers go home: {city} grows by one citizen.',

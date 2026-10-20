@@ -116,6 +116,15 @@ export const reviveFog = (fog) => {
 /** True when fog is in play for this game. */
 export const fogOn = (state) => !!state?.fog && state.fog.on !== false;
 /** Has `nationId` explored `tile`? Always true with fog off. */
+/** The state with `tileIds` explored by `nationId` (a tribal camp's map, tribalCamps.js). */
+export const withExplored = (state, nationId, tileIds) => {
+  if (!fogOn(state)) return state;
+  const old = state.fog.explored?.[nationId];
+  const bytes = old ? old.bytes.slice() : emptyBits().bytes;
+  tileIds.forEach((t) => setBit(bytes, t));
+  return { ...state, fog: { ...state.fog, explored: { ...state.fog.explored, [nationId]: new TileBits(bytes) } } };
+};
+
 export const isExplored = (state, tile, nationId = state.playerNationId) => !fogOn(state) || (tile != null && bitsHas(state.fog.explored[nationId], tile));
 /** Has `a` met `b`? A people always knows itself; with fog off everyone has met. */
 export const hasMet = (state, a, b) => a === b || !fogOn(state) || !!state.fog.met?.[a]?.[b];

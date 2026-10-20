@@ -12,6 +12,7 @@ import { syncWorldRegistry } from './world/registry';
 import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
 import { quoteBuyTile, investInGrowth } from './cityEconomy';
 import { stonePhaseOf } from './stonePhase';
+import { placeCamps, resolveCamp } from './tribalCamps';
 import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES, setSettlerHold, disbandSettlers, isBand, canFoundVillage, foundVillage, withVillageLog } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
@@ -474,7 +475,10 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     ]
   };
   // Fog of war (fog.js): each people knows its homeland; `fog: false` is the "explored world" option.
-  const started = initFog(refreshPeopleNames(syncWorldRegistry(finalizeIndependents(withCityStates(applyScenario(initial, { ...scenario, seed: worldSeed, map: mapRecord, ...(startSites ? { sites: startSites } : {}) }), peoplesMode ? cityStates : null), { late: independentPick.late }))), { on: fog });
+  const built = refreshPeopleNames(syncWorldRegistry(finalizeIndependents(withCityStates(applyScenario(initial, { ...scenario, seed: worldSeed, map: mapRecord, ...(startSites ? { sites: startSites } : {}) }), peoplesMode ? cityStates : null), { late: independentPick.late })));
+  // A Stone Age start (U26): the tribal camps, away from every band's home and every city.
+  const homes = [...Object.values(built.units).filter(isBand).map((u) => u.band.home), ...Object.values(built.regions).map((c) => c.tile)];
+  const started = initFog(built.scenario?.band ? { ...built, tribalCamps: placeCamps(worldSeed, homes), pendingCamp: null } : built, { on: fog });
   // The guided start (src/engine/tutorial.js): twenty-five turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
@@ -2874,6 +2878,15 @@ const reduceAction = (state, action) => {
       if (!path) return reject(state, msg('m.act.no.noLandPath'));
       const turns = Math.ceil(path.length / SETTLER_MOVES);
       return { ...state, units: { ...state.units, [unitId]: { ...unit, target: tile, ...(unit.hold ? { hold: false } : {}) } }, logs: [...state.logs, { year: state.year, ...msg(turns === 1 ? 'm.act.settlersSetOutOne' : 'm.act.settlersSetOutMany', { place: getTiles().names[tile] ? place(getTiles().names[tile]) : sub('m.act.newLand'), n: turns }), type: 'action' }] };
+    }
+    case ActionTypes.RESOLVE_CAMP: {
+      const camp = state.pendingCamp;
+      const choice = action.payload?.choice;
+      if (!camp) return state;
+      if (choice === 'leave') return { ...state, pendingCamp: null };
+      const next = resolveCamp(state, state.playerNationId, camp.tile, choice);
+      if (next === state) return reject(state, msg('m.act.no.campChoice'));
+      return { ...next, pendingCamp: null, logs: [...state.logs, { year: state.year, ...msg(choice === 'absorb' ? 'm.act.campAbsorbed' : 'm.act.campTraded'), type: 'action' }] };
     }
     case ActionTypes.FOUND_CITY: {
       const { unitId } = action.payload || {};
