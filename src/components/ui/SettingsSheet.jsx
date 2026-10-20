@@ -121,6 +121,8 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
             <Segmented label={t('menu.battles')} options={modeOptions} value={mode} onChange={(v) => setBattle({ defaultMode: v })} />
             <p className="text-[12px] text-fa-muted">{t(`menu.modeHint.${mode}`)}</p>
             <Switch label={t('menu.autoDefend')} hint={t('menu.autoDefendHint')} checked={bs.autoDefend === true} onChange={(v) => setBattle({ autoDefend: v })} testId="settings-auto-defend" />
+            <Switch label={t('menu.smallTowns')} hint={t('menu.smallTownsHint')} checked={bs.smallTowns === 'ask'} onChange={(v) => setBattle({ smallTowns: v ? 'ask' : 'auto' })} testId="settings-small-towns" />
+            <Switch label={t('menu.smallTownDefense')} hint={t('menu.smallTownDefenseHint')} checked={bs.smallTownDefense === 'auto'} onChange={(v) => setBattle({ smallTownDefense: v ? 'auto' : 'ask' })} testId="settings-small-town-defense" />
             <Switch label={t('menu.instant')} hint={t('menu.instantHint')} checked={bs.instantBattles === true} onChange={(v) => setBattle({ instantBattles: v })} testId="settings-instant" />
             <div className="flex items-center justify-between gap-3 min-h-[44px]" data-testid="settings-battle-size">
               <div className="min-w-0">

@@ -32,6 +32,7 @@ import GameIcon from '../ui/GameIcon';
 import { openSettings } from '../ui/uiEvents';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { preBattleModel } from './preBattleModel';
+import { battleRequired } from '../../engine/battleThreshold';
 import { prewarmBattleWorker } from '../../battle/worker/warmWorker';
 
 const pct = (v) => `${Math.round(v * 100)}%`;
@@ -87,6 +88,14 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     return onClose();
   };
   const disabled = !!blockedReason || !affordable;
+  // U18: a small open town falls on Auto without this card; its report opens and says why.
+  const skip = !landing && !fleet && !field && !blockedReason && affordable && !battleRequired(state, targetRegionId);
+  useEffect(() => {
+    if (!skip) return;
+    dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId, smallTown: true } });
+    onClose();
+  }, [skip]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (skip) return null;
   const options = [
     { id: 'command', sub: noMansLand ? t('bt.pre.optNoMans') : commandBlocked ? t('bt.pre.optNobody') : t('bt.pre.optRealTime'), disabled: disabled || autoOnly, testId: 'battle-choice-command', title: blockedAtSea ? t('bt.pre.optFleetGuards') : noMansLand ? t('bt.pre.optNoMansTitle') : commandBlocked || undefined },
     { id: 'auto', sub: t('bt.pre.optInstant'), disabled, testId: 'battle-choice-auto' }

@@ -43,6 +43,7 @@ describe('attack buttons follow the engine validation', () => {
     game.state.resources.mil = 10000;
     game.state.units = { army: { id: 'army', ownerId: FR, regionId: from, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, movesLeft: 0 } };
     game.state = atGates(game.state, from, target); // the attack needs touching lands or an army beside the city
+    game.state = { ...game.state, battleSettings: { ...game.state.battleSettings, smallTowns: 'ask' } }; // these tests are about the card (U18 skips it for small towns)
   });
   it('disables both battle modes and explains the exhausted army after conquest', { timeout: 20000 }, () => {
     expect(validateInvasion(game.state, from, target)).toMatchObject({ ok: false, reason: 'no_moves' });

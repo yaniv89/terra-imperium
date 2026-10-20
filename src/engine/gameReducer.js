@@ -104,6 +104,7 @@ import { resolveAutoBattle } from './autoBattle';
 import { switchedBattleState } from './battleSwitch';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
 import { cityMilitia, reinforcementSources } from './battleInputs';
+import { battleRequired } from './battleThreshold';
 import { battleQueueBlocked, queuedKind, queuedArmies, queuedCommandBlock, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
 import { replayBattle } from '../battle/sim/replay';
 import { verifyCommandedBattle, fieldedUnitIds } from './battleVerify';
@@ -1346,14 +1347,16 @@ const reduceAction = (state, action) => {
       // Auto-resolve. The gate, the battle inputs and every consequence live in
       // src/engine/invasion.js so a commanded (real-time) battle shares them exactly — see
       // BEGIN_TACTICAL_BATTLE/RESOLVE_TACTICAL_BATTLE.
-      const { fromRegionId, targetRegionId } = action.payload;
+      const { fromRegionId, targetRegionId, smallTown = false } = action.payload;
       const v = validateInvasion(state, fromRegionId, targetRegionId);
       if (!v.ok) return refuseAttack(state, v.reason, targetRegionId);
       const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits: v.defenderUnits });
       const rng = createRng(state.rngSeed);
       const battle = resolveAutoBattle(state, getResolveBattleArgs(v, ctx), { kind: 'invasion', cityId: targetRegionId, fromRegionId }, rng);
       const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion) };
-      return applyInvasionResult(paid, { fromRegionId, targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), militia: battle.inputs.militia });
+      const done = applyInvasionResult(paid, { fromRegionId, targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), militia: battle.inputs.militia });
+      // U18: the game, not the player, chose Auto; the report opens at once and says why.
+      return smallTown && !battleRequired(state, targetRegionId) ? stampAutoBecause(state, done, msg('m.act.autoSmallTown', { place: cityOr(targetRegionId, REGIONS_DATA[targetRegionId]?.name, 'm.battle.theTown') })) : done;
     }
 
     // ---- Tactical Battles (design/rts-battles-implementation-plan.md §10.1) ----
@@ -1755,6 +1758,8 @@ const reduceAction = (state, action) => {
       const next = { ...(state.battleSettings || {}), ...(action.payload || {}) };
       if (!['ask', 'auto', 'command'].includes(next.defaultMode)) next.defaultMode = 'ask';
       next.autoDefend = next.autoDefend === true;
+      next.smallTowns = next.smallTowns === 'ask' ? 'ask' : 'auto';
+      next.smallTownDefense = next.smallTownDefense === 'auto' ? 'auto' : 'ask';
       next.instantBattles = next.instantBattles === true; // skip the auto-resolve replay
       return { ...state, battleSettings: next };
     }

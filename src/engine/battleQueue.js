@@ -29,6 +29,7 @@ import { isRaidKind, queuedRaidArmies, raidSpecOf, fightRaidAuto } from './raidB
 import { resolveRaidBattle } from './raids';
 import { isLandingKind, resolveInterceptQueued, resolveLandingQueued, landingHoldChance, interceptArmies, landingArmies } from './aiLanding';
 import { cityMilitia } from './battleInputs';
+import { battleRequired } from './battleThreshold';
 import { isNoMansLand } from './hostility';
 import { msg, sub, cityRef } from './messages';
 
@@ -134,10 +135,13 @@ export const resolveAllQueuedAuto = (state) => queuedBattles(state)
   .filter((d) => d.id !== state.pendingBattle?.defenseId)
   .reduce((s, d) => resolveQueuedAuto(s, d.id), state);
 
-/** With autoDefend on, fight the queue on Auto as soon as nothing blocks it. */
+/** With autoDefend on, fight the queue on Auto as soon as nothing blocks it; smallTownDefense 'auto' does so for assaults on small open towns only. */
 export const drainAutoBattles = (state) => {
-  if (state.battleSettings?.autoDefend !== true || !queuedBattles(state).length || battleQueueBlocked(state) || state.pendingBattle) return state;
-  return resolveAllQueuedAuto(state);
+  if (!queuedBattles(state).length || battleQueueBlocked(state) || state.pendingBattle) return state;
+  if (state.battleSettings?.autoDefend === true) return resolveAllQueuedAuto(state);
+  return queuedBattles(state)
+    .filter((d) => queuedKind(d) === 'defense' && !battleRequired(state, d.regionId, { byPlayer: false }))
+    .reduce((s, d) => resolveQueuedAuto(s, d.id), state);
 };
 
 /**
