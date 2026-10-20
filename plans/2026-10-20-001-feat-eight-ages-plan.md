@@ -1399,6 +1399,7 @@ Every art unit follows `plans/art/clip-animation-pipeline.md`, the shared rig in
 - **Requirements:** R17, R24.
 - **Depends on:** U85.
 - **Files:** `scripts/blender/build_signature_information.py`, `build_signature_future.py`, `src/assets/units/signature/<model>.glb` and `.json`.
+- **Model keys (fixed 2026-10-20 with the art session; the Phase D and E data use them):** `signature/<people>-information` and `signature/<people>-future` (for example `signature/yamatai-information`, `signature/kemet-future`), files `src/assets/units/signature/<people>-<age>.glb` and `.json`. Early signatures keep `signature/<people>`.
 - **Approach:** As the 150 existing signatures (median 1,206 triangles); vehicles under the machine cap.
 - **Test Scenarios:** pipeline tests.
 - **Verification:** unit-shots contact sheet.
