@@ -15,7 +15,7 @@ import { CITY_TILES_PER_UNIT } from '../setup/cityBattle';
 export const PROJECTILES = ['arrow', 'javelin', 'sling-stone', 'bolt', 'stone', 'cannonball', 'shell', 'missile'];
 export const PROJECTILE_SCALE = CITY_TILES_PER_UNIT * 2;
 // [classId][ageId] -> projectile (null: the tracer). 'tower' is a tower's or keep's shot.
-const TABLE = {
+export const PROJECTILE_TABLE = {
   ranged: { bronze: 'arrow', classical: 'arrow', kingdoms: 'arrow', gunpowder: null, modern: 'missile' },
   infantry: { bronze: 'javelin', classical: 'javelin' },
   cavalry: { bronze: 'arrow', classical: 'javelin' },
@@ -24,7 +24,7 @@ const TABLE = {
   tower: { bronze: 'arrow', classical: 'arrow', kingdoms: 'arrow', gunpowder: 'cannonball', modern: null }
 };
 /** The projectile a shooter of this class and age throws, or null (the tracer). */
-export const projectileFor = (classId, ageId) => TABLE[classId]?.[ageId] ?? null;
+export const projectileFor = (classId, ageId) => PROJECTILE_TABLE[classId]?.[ageId] ?? null;
 
 const M = new Matrix4(); const V = new Vector3(); const E = new Euler(0, 0, 0, 'YXZ');
 

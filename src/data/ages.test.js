@@ -160,7 +160,7 @@ describe('age registry helpers', () => {
   });
 
   it('lists the ages from one onward and steps to the next', () => {
-    expect(agesFrom('kingdoms')).toEqual(['kingdoms', 'gunpowder', 'modern']);
+    expect(agesFrom('kingdoms')).toEqual(AGE_ORDER.slice(getAgeIndex('kingdoms')));
     expect(agesFrom(FIRST_AGE_ID)).toEqual(AGE_ORDER);
     expect(nextAgeId('bronze')).toBe('classical');
     expect(nextAgeId(LAST_AGE_ID)).toBe(null);

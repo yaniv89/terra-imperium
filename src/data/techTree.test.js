@@ -71,8 +71,8 @@ describe('canStartTech (generic gating, against a fixture table)', () => {
 });
 
 describe('real TECH_TREE content integrity', () => {
-  it('has exactly 50 techs', () => {
-    expect(Object.keys(TECH_TREE).length).toBe(50);
+  it('has exactly 10 techs per age', () => {
+    expect(Object.keys(TECH_TREE).length).toBe(AGE_ORDER.length * 10);
   });
 
   it('has exactly 10 techs per category, 2 per age', () => {
@@ -173,19 +173,20 @@ describe('getTechsByCategory', () => {
 });
 
 describe('techGraph (the research web view)', () => {
-  it('lays out 5 rows of 10 columns with one edge per prerequisite and the cross edges marked', () => {
+  it('lays out one row of 10 columns per age with one edge per prerequisite and the cross edges marked', () => {
     const state = peoplesWorld({ seed: 11 });
     const graph = techGraph(state);
-    expect(graph.nodes.length).toBe(50);
-    expect(graph.rows.length).toBe(5);
+    expect(graph.nodes.length).toBe(AGE_ORDER.length * 10);
+    expect(graph.rows.length).toBe(AGE_ORDER.length);
     expect(new Set(graph.nodes.map((n) => n.col)).size).toBe(10);
     const prereqCount = Object.values(TECH_TREE).reduce((n, t) => n + t.prerequisites.length, 0);
     expect(graph.edges.length).toBe(prereqCount);
     const crossCount = Object.values(CROSS_PREREQUISITES).reduce((n, list) => n + list.length, 0);
     expect(graph.edges.filter((e) => e.cross).length).toBe(crossCount);
     graph.edges.forEach((e) => expect(e.x2 > e.x1 || (e.x1 === e.x2 && e.y1 !== e.y2), `${e.from} -> ${e.to} runs forward or vertically`).toBe(true));
-    expect(graph.ages.length).toBe(5);
-    expect(graph.width).toBe(graph.ages[4].x + graph.ages[4].width);
+    expect(graph.ages.length).toBe(AGE_ORDER.length);
+    const lastAge = graph.ages[AGE_ORDER.length - 1];
+    expect(graph.width).toBe(lastAge.x + lastAge.width);
     const statuses = new Set(graph.nodes.map((n) => n.status));
     expect(statuses.has('locked')).toBe(true);
     expect(graph.nodes.filter((n) => n.status === 'available' || n.status === 'current').length).toBeGreaterThan(0);
