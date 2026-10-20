@@ -54,7 +54,7 @@ import {
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
 import { processCities, growthThreshold, privateWorld } from './world/cities';
-import { makeSettler, processSettlers, bestSites, isSettler } from './settlers';
+import { makeSettler, processSettlers, bestSites, isSettler, foundAiVillages } from './settlers';
 import { chooseProduction, nationCounts, SETTLER_THINK_PERIOD } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
 import { lodPeriod, settlesThisTurn, turnsToSettle } from './world/lod';
@@ -241,6 +241,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   if (state.pendingDefenses?.length) return state;
   // Armies on tiles (armies.js): every unit's tile and city agree before the turn reads them.
   state = normalizeUnitTiles(state);
+  // The Stone Age opening (settlers.js, U23): AI bands found their first village.
+  state = foundAiVillages(state);
 
   let regionDraft = null;
   let phaseStart = turnStart;
@@ -1051,7 +1053,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   let independentsConquered = 0; // phase W3: counted into state.indepStats.conquered below
   const eliminationWarParticipants = new Set();
   Object.keys(nationsAfterWars).forEach((nId) => {
-    const eliminated = checkNationElimination(nationsAfterWars, regions, nId);
+    const eliminated = checkNationElimination(nationsAfterWars, regions, nId, units);
     if (!eliminated) return;
     nationsAfterWars = unlinkEliminatedVassalage({ ...nationsAfterWars, [nId]: eliminated }, nId, nationsAfterWars[nId].vassalOf);
     wars.forEach(w => {
@@ -1234,7 +1236,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // elimination.js's checkNationElimination stays player-exempt (it flags an AI nation's RECORD dead;
   // the player's own record keeps playing out its defeat/game-over screen instead) — this is the
   // real player-losing condition elimination.js never had before this milestone.
-  if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer && checkPlayerDefeat(next.regions, next.playerNationId)) {
+  if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer && checkPlayerDefeat(next.regions, next.playerNationId, next.units)) {
     next = { ...next, gameStatus: GameStatus.DEFEAT };
     next.logs = [...next.logs, { year: newYear, ...msg('m.turn.defeat'), type: LogTypes.MILESTONE }];
   }

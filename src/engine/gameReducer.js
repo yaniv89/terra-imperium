@@ -11,7 +11,7 @@ import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
 import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
 import { quoteBuyTile, investInGrowth } from './cityEconomy';
-import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES, setSettlerHold, disbandSettlers } from './settlers';
+import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES, setSettlerHold, disbandSettlers, isBand, canFoundVillage, foundVillage, withVillageLog } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
 import { getTiles, loadedWorldSpec } from '../data/geo/tiles';
@@ -2868,6 +2868,7 @@ const reduceAction = (state, action) => {
       if (tile == null) return { ...state, units: { ...state.units, [unitId]: { ...unit, target: null } } };
       const can = canFoundCity({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, getTiles(), tile, state.playerNationId);
       if (!can.ok) return reject(state, whyOf(can));
+      if (isBand(unit) && !canFoundVillage(state, unit, tile).ok) return reject(state, whyOf(canFoundVillage(state, unit, tile)));
       const path = settlerPath(state, unit.tile, tile, state.playerNationId);
       if (!path) return reject(state, msg('m.act.no.noLandPath'));
       const turns = Math.ceil(path.length / SETTLER_MOVES);
@@ -2877,6 +2878,11 @@ const reduceAction = (state, action) => {
       const { unitId } = action.payload || {};
       const unit = state.units[unitId];
       if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, msg('m.act.no.notYourSettlers'));
+      if (isBand(unit)) {
+        const can = canFoundVillage(state, unit);
+        if (!can.ok) return reject(state, whyOf(can));
+        return normalizeUnitTiles(syncWorldRegistry(withVillageLog(foundVillage(state, unitId), state.playerNationId)));
+      }
       const can = canSettle(state, unit.tile, state.playerNationId, ageOf(state, state.playerNationId));
       if (!can.ok) return reject(state, whyOf(can));
       const founded = foundOutpost(state, state.regions, { tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, unit, state.turnNumber);

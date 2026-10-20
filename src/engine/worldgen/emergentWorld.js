@@ -9,7 +9,7 @@
 import { getTiles } from '../../data/geo/tiles';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID, SCENARIOS } from '../../data/scenarios';
 import { foundCity, emptyWorld, sizeToPeople } from '../world/cities';
-import { makeSettler } from '../settlers';
+import { makeSettler, makeBand } from '../settlers';
 import { createRng } from '../../utils/rng';
 import { distanceKm } from '../../data/geo/geodesic';
 import { buildPeoplesStarts } from './peoplesWorld';
@@ -113,10 +113,25 @@ const buildCityWorld = (initial, starts) => {
 };
 
 // The peoples world (peoplesWorld.js): `initial.nations` already holds the drawn majors only.
-const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, start = DEFAULT_SCENARIO_ID, map = { kind: 'earth' }, sites = null }) => {
+// `band` (a new game, eight-ages plan U23): no city yet; each major is a band and a party of Hunters
+// at its home (settlers.js makeBand), and founds its first village in the first turns.
+const bandWorld = (initial, starts) => {
+  const nations = { ...initial.nations };
+  const units = {};
+  Object.keys(starts).sort().forEach((id) => {
+    const home = starts[id].cities[0];
+    nations[id] = { ...nations[id], capitalRegionId: null, startRegionCount: 0, frontierClaims: 0 };
+    if (id !== initial.playerNationId) nations[id].economy = { ...initial.resources, supplies: 20 };
+    units[`band_${id}`] = makeBand(`band_${id}`, id, home);
+    units[`start_${id}`] = { id: `start_${id}`, ownerId: id, regionId: null, homeRegionId: null, tile: home.tile, domain: 'land', classId: 'ranged', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null };
+  });
+  return { regions: {}, nations, units, world: { tileOwner: {}, tileState: {} }, activeNationIds: Object.keys(starts).sort() };
+};
+
+const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, start = DEFAULT_SCENARIO_ID, map = { kind: 'earth' }, sites = null, band = false }) => {
   if (start !== 'dawn') throw new Error('The peoples world starts at Dawn only');
   const ids = Object.keys(initial.nations).sort();
-  const built = buildCityWorld(initial, buildPeoplesStarts(ids, sites));
+  const built = (band ? bandWorld : buildCityWorld)(initial, buildPeoplesStarts(ids, sites));
   const starts = {};
   built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
   return {
@@ -126,13 +141,13 @@ const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, st
     units: built.units,
     world: built.world,
     resources: { ...initial.resources, supplies: 20 },
-    scenario: { mode: 'peoples', start, generationVersion: GENERATION_VERSION, seed, worldSize: size, nationCount: ids.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds: [], map, ...(sites ? { sites } : {}) }
+    scenario: { mode: 'peoples', start, ...(band ? { band: true } : {}), generationVersion: GENERATION_VERSION, seed, worldSize: size, nationCount: ids.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds: [], map, ...(sites ? { sites } : {}) }
   };
 };
 
-export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed = 1, start = DEFAULT_SCENARIO_ID, size, map = { kind: 'earth' }, sites = null } = {}) => {
+export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed = 1, start = DEFAULT_SCENARIO_ID, size, map = { kind: 'earth' }, sites = null, band = false } = {}) => {
   if (!SCENARIOS[start]) throw new Error(`Unsupported start ${start}`);
-  if (mode === 'peoples') return applyPeoplesScenario(initial, { size, seed, start, map, sites });
+  if (mode === 'peoples') return applyPeoplesScenario(initial, { size, seed, start, map, sites, band });
   if (mode !== 'full' && mode !== 'emergent') throw new Error('Unsupported world mode');
   const allIds = Object.keys(initial.nations);
   const nationIds = mode === 'emergent' ? Object.keys(generateStarts(initial.playerNationId, nationCount, seed).starts) : allIds;

@@ -67,7 +67,11 @@ export const cameraTarget = (state, places = [], { selectedArmyTile = null, ...o
   if (army) return { ...army, from: 'army' };
   const capId = state?.nations?.[state?.playerNationId]?.capitalRegionId;
   const cap = latLngOfCity(state, capId, opts);
-  return cap ? { ...cap, from: 'capital' } : null;
+  if (cap) return { ...cap, from: 'capital' };
+  // A Stone Age band before its first village (settlers.js makeBand): its home.
+  const band = Object.values(state?.units || {}).find((u) => u.band && u.ownerId === state.playerNationId);
+  const home = band ? latLngOfTile(band.tile, opts.tiles) : null;
+  return home ? { ...home, from: 'army' } : null;
 };
 
 /** The places of a battle report, best first: the battlefield's tile, the city fought for, where the attack came from. */

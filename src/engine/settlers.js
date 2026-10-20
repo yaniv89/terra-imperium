@@ -29,7 +29,7 @@
 //               pressure on far outposts arrive with C5 and C7.3.
 import { pickCityName } from './cityNames';
 import { getTiles } from '../data/geo/tiles';
-import { canFoundCity, foundCity, ringDistance, cityId, SETTLER_MIN_SIZE, CENTRE_MIN_YIELDS, FOOD_PER_CITIZEN, MAX_SIZE } from './world/cities';
+import { canFoundCity, foundCity, ringDistance, cityId, sizeToPeople, SETTLER_MIN_SIZE, CENTRE_MIN_YIELDS, FOOD_PER_CITIZEN, MAX_SIZE } from './world/cities';
 import { getResearched } from './nationState';
 import { tileFacts, tileYields } from '../data/tileYields';
 import { legacyTerrainOf } from './world/registry';
@@ -79,6 +79,69 @@ export const makeSettler = (id, city, nationId) => ({
   strength: SETTLER_STRENGTH, maxStrength: SETTLER_STRENGTH, morale: 100, movesLeft: SETTLER_MOVES, xp: 0, rank: 'recruit',
   promotions: [], commanderId: null, embarkedOn: null, tile: city.tile, target: null
 });
+
+// The Stone Age opening (eight-ages plan U23, R10): a new game's majors start with no city, as a
+// band (a settler record with `band`) and a party of Hunters at their home. The band founds the first
+// village, the people's capital at its start size: in place on the home tile, or on any free site
+// within BAND_RANGE_KM of it. A nation with no city has no economy yet; its living band keeps it in
+// the game (elimination.js). AI bands found on their home tile at the start of the first turn.
+export const BAND_RANGE_KM = 230;
+export const isBand = (unit) => !!unit?.band;
+export const makeBand = (id, nationId, { tile, size, name }) => ({ ...makeSettler(id, { id: null, tile }, nationId), band: { home: tile, size, name } });
+export const bandsOf = (units, nationId) => Object.values(units || {}).filter((u) => isBand(u) && u.ownerId === nationId);
+
+/** Can this band found its village on `tile` (default: where it stands)? */
+export const canFoundVillage = (state, unit, tile = unit.tile) => {
+  const tiles = getTiles();
+  if (ringDistance(tiles, unit.band.home, tile, ringsForKm(BAND_RANGE_KM)) === Infinity) return { ok: false, ...reasonOf('m.world.reasonBandRange') };
+  return canFoundCity({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, tiles, tile, unit.ownerId);
+};
+
+/** The band `unitId` founds its nation's first village where it stands: the capital, at the band's
+ * start size. Returns the new state, or null when the site is not legal. The band is gone; the
+ * nation's other units take the village as their home. */
+export const foundVillage = (state, unitId, turn = state.turnNumber) => {
+  const unit = state.units?.[unitId];
+  if (!isBand(unit) || !canFoundVillage(state, unit).ok) return null;
+  const tiles = getTiles();
+  const nationId = unit.ownerId;
+  const { size, name, home } = unit.band;
+  const r = foundCity({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, tiles, { nationId, tile: unit.tile, name: unit.tile === home ? name : pickCityName(state.regions, tiles, unit.tile, nationId), size, turn, isCapital: true });
+  const city = { ...r.city, owner: nationId, control: 100, currentPopulation: sizeToPeople(r.city.size), currentInfrastructure: 0, underInvasion: false, defenseLevel: 0, climateResilience: 0, dev: { tax: r.city.size, production: r.city.size, manpower: r.city.size } };
+  const units = {};
+  Object.values(state.units).forEach((u) => {
+    if (u.id === unitId) return;
+    units[u.id] = u.ownerId === nationId && !state.regions[u.regionId] ? { ...u, regionId: city.id, homeRegionId: city.id } : u;
+  });
+  const nation = state.nations[nationId];
+  return {
+    ...state,
+    regions: { ...r.world.cities, [city.id]: city },
+    world: { ...(state.world || {}), tileOwner: r.world.tileOwner, tileState: r.world.tileState },
+    units,
+    nations: { ...state.nations, [nationId]: { ...nation, capitalRegionId: city.id, startRegionCount: 1 } }
+  };
+};
+
+/** Every AI band founds its village: on its home tile, else on the best free site in range. A band
+ * with no legal site in range waits (and tries again next turn). Returns the state, with a log
+ * line per founding. */
+export const foundAiVillages = (state) => Object.values(state.units || {})
+  .filter((u) => isBand(u) && u.ownerId !== state.playerNationId)
+  .sort((a, b) => (a.id < b.id ? -1 : 1))
+  .reduce((s, u) => {
+    const at = canFoundVillage(s, u).ok ? u.tile
+      : bestSites(s, u.ownerId, u.band.home, null, { rings: ringsForKm(BAND_RANGE_KM), limit: 3 }).map((x) => x.tile).find((t) => canFoundVillage(s, u, t).ok);
+    if (at == null) return s;
+    const next = foundVillage({ ...s, units: { ...s.units, [u.id]: { ...u, tile: at } } }, u.id);
+    return next ? withVillageLog(next, u.ownerId) : s;
+  }, state);
+
+/** The log line of a founded first village (its city is the nation's capital now). */
+export const withVillageLog = (state, nationId) => {
+  const city = state.regions[state.nations[nationId].capitalRegionId];
+  return { ...state, logs: [...(state.logs || []), { year: state.year, nationId, ...msg('m.world.villageFounded', { city: cityRef(city.id, city.name), nation: people(nationId, state.nations[nationId].name) }), type: 'action' }] };
+};
 
 export const outpostsOf = (regions, nationId) => Object.values(regions).filter((c) => c.owner === nationId && c.outpost);
 export const outpostSlots = (ageId) => OUTPOST_SLOTS_BY_AGE[ageId] || 1;
@@ -400,7 +463,7 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
       if (!path) { settler = { ...settler, target: null, path: null }; logs.push({ nationId: u.ownerId, ...msg('m.world.settlersBlocked', { place: tiles.names[u.target] ? place(tiles.names[u.target]) : sub('m.world.theirDestination') }) }); }
       else { const steps = Math.min(path.length, SETTLER_MOVES); settler = { ...settler, tile: path[steps - 1], path: path.slice(steps) }; }
     }
-    if (settler.target != null && settler.target === settler.tile) {
+    if (settler.target != null && settler.target === settler.tile && !isBand(settler)) {
       const ageId = ageById(settler.ownerId);
       const can = canSettle(view(), settler.tile, settler.ownerId, ageId);
       if (can.ok) {

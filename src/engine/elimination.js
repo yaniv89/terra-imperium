@@ -16,10 +16,13 @@ export const NATION_ELIMINATION_REWARD = { gold: 200, dip: 15 };
 // below, is the real player-losing condition, and it doesn't retire the nation record the way this
 // does for an AI one). Before plan §M15 the player had NO losing condition at all; checkPlayerDefeat
 // is that condition now.
-export const checkNationElimination = (nations, regions, nationId) => {
+// A Stone Age band that has not founded its village yet (settlers.js makeBand) is a holding too.
+const hasBand = (units, nationId) => Object.values(units || {}).some((u) => u.band && u.ownerId === nationId);
+
+export const checkNationElimination = (nations, regions, nationId, units = {}) => {
   const nation = nations[nationId];
   if (!nation || nation.isPlayer || nation.isEliminated) return null;
-  if (getOwnedRegionIds(regions, nationId).length > 0) return null;
+  if (getOwnedRegionIds(regions, nationId).length > 0 || hasBand(units, nationId)) return null;
   // A dead nation is nobody's vassal and nobody's overlord any more (the other side of each link
   // is cleared by unlinkEliminatedVassalage below).
   return { ...nation, isEliminated: true, isAtWar: false, vassalOf: null, vassals: [] };
@@ -42,7 +45,7 @@ export const unlinkEliminatedVassalage = (nations, nationId, formerOverlordId) =
 // player got to 0 regions (a cede-everything peace term, every region reverting to rebels, or an AI
 // conquest via resolveWarProgress), the check is the same one checkNationElimination already uses
 // for every other nation, just without flagging the record isEliminated.
-export const checkPlayerDefeat = (regions, playerNationId) => getOwnedRegionIds(regions, playerNationId).length === 0;
+export const checkPlayerDefeat = (regions, playerNationId, units = {}) => getOwnedRegionIds(regions, playerNationId).length === 0 && !hasBand(units, playerNationId);
 
 // Ends every war naming a newly eliminated nation — it has nothing left to fight with or for.
 export const closeWarsForEliminatedNation = (wars, nationId) =>
