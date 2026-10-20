@@ -70,7 +70,10 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // (siegeRules.js crewShares), squads go on to the next base building and turn on a tower that
 // shoots them, a town's sealed pockets are closed (cityBattle.js sealPockets), a deployed squad
 // stands on open ground.
-export const SETUP_VERSION = 14;
+// v15: playtest 4 P4-H4: two squads walking into each other slide past instead of locking, an
+// attack-moving squad turns on a tower that shoots it, and an assault goes on to base buildings
+// near the attack-move's goal or the building that fell (CONTINUE_NEAR 18 tiles).
+export const SETUP_VERSION = 15;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 

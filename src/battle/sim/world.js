@@ -73,6 +73,7 @@ export const makeSquad = (w, unit, side, ageId, index) => {
     lastDepositTick: -10000,               // a worker's last drop-off (drawing only: never read by the sim, never hashed)
     noPathTick: -10000,                    // last tick its way to an order's goal was cut off (movement.js; drawing only, never hashed)
     movedSinceAttack: 0,
+    stepTick: -1, stepHeading: 0,          // tick and heading of its last step (movement.js; read that tick only, never hashed)
     order: { type: 'idle' },
     targetKind: null,                      // 'squad' | 'structure'
     target: -1,                            // squad idx or structure index

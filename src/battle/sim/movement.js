@@ -77,6 +77,7 @@ export const stepToward = (w, q, gx, gy, cacheKey = null) => {
     }
   }
   const heading = angleBetween(q.x, q.y, wx, wy);
+  q.stepTick = w.tick; q.stepHeading = heading; // separateSquads lets two squads walking into each other pass
   const len = Math.min(speed, remaining);
   const nx = q.x + polarX(heading, len); const ny = q.y + polarY(heading, len);
   if (passableAt(w, q, nx, ny)) { q.x = nx; q.y = ny; }
@@ -127,11 +128,14 @@ const hasValidTarget = (w, q) => q.target >= 0 && (q.targetKind === 'squad'
 // Auto-continue (audit H-26): in a battle with bases a squad whose building fell, or whose
 // attack-move ended in the enemy's base, goes on to the next one instead of standing idle beside
 // live towers: first a tower (the city's, the keep's, or one the enemy's workers raised) that has it
-// in range, else the nearest standing enemy base building (base.js), within `near` of the squad when
-// given (an idle squad that took a building on its own, or an attack-move's end). Hold is never
-// touched (only attack and attack-move call this); a player's Stop or Move ends it.
-export const CONTINUE_NEAR = 14 * Q; // an attack-move "ended in the enemy's base": a base building this close
-export const nextBaseTarget = (w, q, near = Infinity) => {
+// in range, else the nearest standing enemy base building (base.js), within `near` of (ox, oy) when
+// given (an idle squad that took a building on its own: that building; an attack-move's end: the
+// point the player chose, as a squad blocked short of it still "ended in their base", P4-H4). Hold is
+// never touched (only attack and attack-move call this); a player's Stop or Move ends it.
+// An attack-move "ended in the enemy's base": a base building this close. The town's territory is
+// 14 tiles and each squad's goal is its formation slot, a few tiles off the tapped point (P4-H4).
+export const CONTINUE_NEAR = 18 * Q;
+export const nextBaseTarget = (w, q, near = Infinity, ox = q.x, oy = q.y) => {
   if (!hasBase(w) || !canAttack(q) || q.stats.airOnly || q.worker) return null;
   const enemy = q.side === SIDE_DEFENDER ? 0 : 1;
   let best = null; let bestD = Infinity;
@@ -140,11 +144,11 @@ export const nextBaseTarget = (w, q, near = Infinity) => {
   if (enemy === SIDE_DEFENDER) w.structures.forEach((s, i) => { if (s.alive && s.damage > 0 && s.range > 0) { const d2 = distSq(q.x, q.y, s.x, s.y); if (d2 <= reach(s.range)) consider('structure', i, d2); } });
   if (w.eco) w.eco.buildings.forEach((b, i) => { const t = BUILDINGS[b.type]?.tower; if (t && b.side === enemy && b.alive && b.built) { const d2 = distSq(q.x, q.y, b.x, b.y); if (d2 <= reach(t.range)) consider('eco', i, d2); } });
   if (best) return best;
-  baseBuildings(w, enemy).forEach((b) => { const d2 = distSq(q.x, q.y, b.x, b.y); if (near === Infinity || d2 <= near * near) consider(b.kind, b.index, d2); });
+  baseBuildings(w, enemy).forEach((b) => { if (near === Infinity || distSq(ox, oy, b.x, b.y) <= near * near) consider(b.kind, b.index, distSq(q.x, q.y, b.x, b.y)); });
   return best;
 };
-const continueAssault = (w, q, near) => {
-  const next = nextBaseTarget(w, q, near);
+const continueAssault = (w, q, near, ox, oy) => {
+  const next = nextBaseTarget(w, q, near, ox, oy);
   if (!next) return false;
   q.order = { type: 'attack' }; q.targetKind = next.kind; q.target = next.index;
   return true;
@@ -204,11 +208,11 @@ export const acquireTargets = (w) => {
         return;
       }
     }
-    const fell = q.targetKind === 'structure' || q.targetKind === 'eco'; // the building it took on its own fell
+    const fell = q.targetKind === 'structure' || q.targetKind === 'eco' ? structureTarget(w, q) : null; // the building it took on its own fell
     const found = acquireTarget(w, q, radius);
     q.target = found ? found.index : -1;
     q.targetKind = found ? found.kind : null;
-    if (!found && fell && q.order.type === 'idle') continueAssault(w, q, CONTINUE_NEAR);
+    if (!found && fell && q.order.type === 'idle') continueAssault(w, q, CONTINUE_NEAR, fell.x, fell.y);
   });
 };
 
@@ -237,9 +241,9 @@ export const moveSquads = (w) => {
       if (stepToward(w, q, q.order.x, q.order.y)) {
         if (q.order.facing !== undefined) q.facing = q.order.facing;
         q.anchorX = q.x; q.anchorY = q.y;
-        const attackMove = q.order.type === 'attackMove';
+        const { type, x: gx, y: gy } = q.order;
         q.order = { type: 'idle' };
-        if (attackMove && q.target < 0) continueAssault(w, q, CONTINUE_NEAR); // ended in their base: raze on (H-26)
+        if (type === 'attackMove' && q.target < 0) continueAssault(w, q, CONTINUE_NEAR, gx, gy); // ended in their base: raze on (H-26)
       }
       return;
     }
@@ -254,6 +258,8 @@ export const moveSquads = (w) => {
 // cells around the query hold them; a squad once pushed leaves the grid's lists and is tracked in
 // a second set of per-cell lists by where it stands now, updated on every push.
 const clampTo = (v, n) => (v < 0 ? 0 : v >= n ? n - 1 : v);
+const SIDESTEP = 32; // 45 degrees (256 to the turn)
+const angleDiff = (a, b) => ((((a - b) & 255) + 128) & 255) - 128;
 let movedCell = new Int32Array(64); // fine cell a pushed squad is listed under, -1 = never pushed
 let movedNext = new Int32Array(64);
 let movedHead = new Int32Array(64);
@@ -325,7 +331,10 @@ export const separateSquads = (w) => {
       const d = isqrt(distSq(q.x, q.y, o.x, o.y));
       if (d >= minD) continue;
       const push = Math.ceil((minD - d) / 2);
-      const a = d === 0 ? (q.idx * 37 + j * 11) & 255 : angleBetween(o.x, o.y, q.x, q.y);
+      let a = d === 0 ? (q.idx * 37 + j * 11) & 255 : angleBetween(o.x, o.y, q.x, q.y);
+      // Two squads walking into each other: a straight push undoes both steps every tick and they
+      // stand locked forever (P4-H4). Pushed a little sideways, they slide past each other instead.
+      if (d > 0 && q.stepTick === w.tick && o.stepTick === w.tick && Math.abs(angleDiff(q.stepHeading, a + 128)) < 64 && Math.abs(angleDiff(o.stepHeading, a)) < 64) a = (a + SIDESTEP) & 255;
       const qx = q.x + polarX(a, push); const qy = q.y + polarY(a, push);
       const ox = o.x - polarX(a, push); const oy = o.y - polarY(a, push);
       if (passableAt(w, q, qx, qy)) shift(q, qx, qy);
