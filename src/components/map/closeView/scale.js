@@ -3,16 +3,17 @@
 // does not pull the 3D engine into the main bundle).
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
 
-// Pixels per model unit at zoom k.
-// Linear up to the super zoom, then slower (power SUPER_GROWTH), so in the super zoom a town
-// stays inside its hex and the land around it shows (plans/playtest-1.md P1.1).
+// Pixels per model unit at zoom k. Every 3D model on the map has ONE world size (user rule
+// 2026-10-20): pixels per unit are exactly proportional to the zoom, at every zoom, so a model only
+// looks bigger because the camera is closer. The constant is the size at the zoom where the close
+// view opens (CLOSE_K): 5.5 px per unit there. No floor, no slower growth in the super zoom.
 // Model sizes follow the hex: HEX (0.75 at frequency 100, hexSizeVsF75) shrinks every model so a
 // hex stays HEX_UNITS model units across on any grid; the close view opens HEX times later
 // (CLOSE_ZOOM_K in Map2DView), so at its first zoom a town looks as it did on the 106 km grid.
 export const HEX = hexSizeVsF75();
-export const SUPER_FROM_K = 40;
-export const SUPER_GROWTH = 0.7;
-export const unitPx = (k) => HEX * (k <= SUPER_FROM_K ? Math.max(2, k * 0.55) : SUPER_FROM_K * 0.55 * (k / SUPER_FROM_K) ** SUPER_GROWTH);
+export const CLOSE_K = 10 / HEX;
+export const SUPER_FROM_K = 40; // only the tilt and the tree density change from here, never a size
+export const unitPx = (k) => HEX * 0.55 * k;
 // A town fills its own hex (cityHex.js, decision D10): the tier's art shows the city's size. The
 // rules below are the fallback where a hex cannot be projected whole (the map's wrap), and the cap
 // for wonders and improvements: there a medium town is drawn 12% and a big one 25% above its size.
@@ -86,22 +87,10 @@ const townGapSearch = (projection, tiles, tile, isTown) => {
   return best;
 };
 
-// Army figures and settler parties (closeViewScene.js placeArmies). A figure is drawn at
-// `figureScale` pixels per model unit: its true size (unitPx times its class's factor) but never
-// below its floor (a pixel height over the model's height), so it never shrinks as the map zooms in.
-export const figureScale = (k, trueFactor, floorScale) => Math.max(unitPx(k) * trueFactor, floorScale);
-/**
- * The close view is laid out once a zoom settles (at `layoutK`) and the GPU scales that layout with
- * the live zoom `k` until the next one (GLMapView: the root's scale k / layoutK). A figure scaled
- * that way grew past its size during a zoom in and then snapped back to its floor when the zoom
- * settled: the soldiers shrank on every zoom in. This is the factor a figure laid out at layoutK
- * is scaled by in place (about its feet, its offset from the army's spot with it) so that at every
- * live zoom it shows at figureScale(k), the size the next layout gives it.
- */
-export const figureLiveFactor = (k, layoutK, trueFactor, floorScale) => {
-  if (!(k > 0) || !(layoutK > 0)) return 1;
-  return figureScale(k, trueFactor, floorScale) / (figureScale(layoutK, trueFactor, floorScale) * (k / layoutK));
-};
+// Army figures and settler parties (closeViewScene.js placeArmies). A figure has one world size:
+// the size it has where the close view opens (its true size, unitPx times its class's factor, but
+// not below its floor, a pixel height over the model's height), in proportion to the zoom after that.
+export const figureScale = (k, trueFactor, floorScale) => Math.max(unitPx(CLOSE_K) * trueFactor, floorScale) * (k / CLOSE_K);
 
 // Where an army's soldiers stand, in model units from the province centre (screen x, screen y).
 export const ARMY_SPOT = { x: 2.4, y: 1.6 };

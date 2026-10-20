@@ -304,8 +304,6 @@ const GLMapView = ({
       const shift = wrapNear(lay.camX, v.camX, v.worldW) - lay.camX;
       g.closeRoot.position.set(-lay.tx / lay.k + shift, lay.ty / lay.k, 0);
       g.closeRoot.scale.setScalar(1 / lay.k);
-      // the figures at the live zoom's size, not the layout's scaled up (no snap back on settle)
-      g.closeScene.zoomFigures(v.k);
       RIG_TIME.value = (now ?? performance.now()) / 1000;
       renderer.clearDepth();
       renderer.render(g.close, camera);

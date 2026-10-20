@@ -19,9 +19,9 @@ export const TREES_PER_HEX = 22;
 export const MAX_TREES = 4000;
 export const CONIFER_LAT = 48;
 export const HEX_UNITS = 4;
-// In the super zoom (k 40 to 200) the woods get denser and each tree smaller, up to these factors.
+// In the super zoom (k 40 to 200) the woods get denser, up to this factor. A tree never changes size
+// with the zoom (user rule 2026-10-20: every map model has one world size).
 export const SUPER_TREE_COUNT = 3;
-export const SUPER_TREE_SIZE = 0.75;
 export const superShare = (k) => Math.max(0, Math.min(1, Math.log(Math.max(1, k) / 40) / Math.log(5)));
 // The radius trees are spread over, in degrees of latitude: 0.42 on the frequency-75 grid (a hex
 // about 102 km, 0.92 deg), scaled with the hex.
@@ -130,7 +130,6 @@ export const landscapeOnScreen = ({ toScreen, width, height, k, world, cityTiles
   if (k < TREES_FROM_K) return { trees, works };
   const sup = superShare(k);
   const perHex = Math.round(TREES_PER_HEX * (1 + (SUPER_TREE_COUNT - 1) * sup));
-  const sizeMul = 1 - (1 - SUPER_TREE_SIZE) * sup;
   landTilesOnScreen(toScreen, width, height, 60, area).forEach((t) => {
     if (trees.length >= maxTrees) return;
     const kind = treeKindOf(tiles, t.tile);
@@ -138,7 +137,7 @@ export const landscapeOnScreen = ({ toScreen, width, height, k, world, cityTiles
     treeSpots(t.tile, t.lat, perHex).forEach((s) => {
       if (trees.length >= maxTrees) return;
       const p = toScreen(t.lat + s.dLat, t.lon + s.dLon);
-      if (p && p.x > -40 && p.y > -40 && p.x < width + 40 && p.y < height + 40) trees.push({ kind, x: p.x, y: p.y, size: s.size * sizeMul, turn: s.turn });
+      if (p && p.x > -40 && p.y > -40 && p.x < width + 40 && p.y < height + 40) trees.push({ kind, x: p.x, y: p.y, size: s.size, turn: s.turn });
     });
   });
   return { trees, works };

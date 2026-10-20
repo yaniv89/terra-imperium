@@ -51,6 +51,13 @@ describe('close view landscape', () => {
     expect(far.works.map((w) => w.kind)).toEqual(['farm']);
     const near = landscapeOnScreen({ toScreen: screen(lat0, lon0, 60), width: 800, height: 400, k: 40, world: { tileState: {} }, cityTiles: new Set() });
     expect(near.trees.length).toBeGreaterThanOrEqual(TREES_PER_HEX);
+    // a tree has one size: the same tree spot is the same size at k 40 and k 200 (no shrinking in the super zoom)
+    const sizesAt = (k) => landscapeOnScreen({ toScreen: screen(lat0, lon0, 60), width: 800, height: 400, k, world: { tileState: {} }, cityTiles: new Set() }).trees.map((t) => t.size);
+    const lo = sizesAt(40); const hi = sizesAt(200);
+    expect(lo.length).toBeGreaterThan(0); expect(hi.length).toBeGreaterThan(0);
+    // treeSpots draws sizes in 0.75 to 1.25; nothing scales them by the zoom
+    [...lo, ...hi].forEach((z) => { expect(z).toBeGreaterThanOrEqual(0.75); expect(z).toBeLessThanOrEqual(1.25); });
+    expect(Math.min(...hi)).toBeLessThan(0.76 + 0.2);
     const capped = landscapeOnScreen({ toScreen: screen(lat0, lon0), width: 800, height: 400, k: 40, world: { tileState: {} }, cityTiles: new Set(), maxTrees: 30 });
     expect(capped.trees.length).toBeLessThanOrEqual(30);
   });
@@ -59,10 +66,10 @@ describe('close view landscape', () => {
     expect(tiltFor(200)).toBeCloseTo(TILT_SUPER);
     expect(tiltFor(90)).toBeLessThan(Math.max(TILT_CLOSE, TILT_SUPER)); expect(tiltFor(90)).toBeGreaterThan(Math.min(TILT_CLOSE, TILT_SUPER));
   });
-  it('grows the models with the zoom, more slowly in the super zoom so towns stay inside their hex', () => {
+  it('grows the models in proportion to the zoom: one world size, also in the super zoom', () => {
     expect(unitPx(20)).toBeCloseTo(11 * HEX); expect(unitPx(SUPER_FROM_K)).toBeCloseTo(22 * HEX); // HEX: the hex's size vs frequency 75
-    expect(unitPx(200)).toBeGreaterThan(unitPx(100));
-    expect(unitPx(200) / 200).toBeLessThan(unitPx(SUPER_FROM_K) / SUPER_FROM_K * 0.7);
+    expect(unitPx(200) / 200).toBeCloseTo(unitPx(20) / 20, 12);
+    expect(unitPx(200) / unitPx(100)).toBeCloseTo(2, 12);
     // the fallback where a town's hex is behind the map's wrap (cityHex.test.js has the hex fill):
     // bigger towns drawn bigger; the room to the coast caps the scale
     expect(townUnitPx(20, 2, 400, TIER_SCALE.big)).toBeCloseTo(unitPx(20) * 1.25);
