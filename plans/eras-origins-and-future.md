@@ -1,5 +1,7 @@
 # Plan: Origins (5000 BCE) and the Future (to 2500 CE), a nine-age Terra Imperium
 
+Superseded on 2026-10-20 by plans/2026-10-20-001-feat-eight-ages-plan.md (eight ages, ages by tech); kept for its content design.
+
 Date: 2026-10-03. Status: approved with the decisions in section 17; Phase 0 in progress.
 Builds on `plans/civ-map-rework.md` (map, cities, research web C3, era goals C9.3, pacing I2) and
 `plans/playtest-1.md` P3 (the speed table).
