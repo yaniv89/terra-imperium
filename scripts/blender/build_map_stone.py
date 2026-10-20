@@ -10,6 +10,11 @@
 #                                     coast) with fish racks, a net on poles, a hide shelter and a
 #                                     canoe pulled up; two dugout canoes with paddlers and a stake
 #                                     weir out on the water
+#   improvements/pasture-stone        early herders (H-25 follow-up, C1's deferred art): a corral of
+#                                     piled thorn brush with goats, sheep and small early cattle, more
+#                                     grazing outside, a herder's lean-to by a fire, a hollow-log trough
+#   improvements/mine-stone           a flint mine: chalk spoil rings round open shafts, notched log
+#                                     ladders, a knapping floor with nodules, flakes and antler picks
 #   improvements/fort-stone           a palisade of pointed stakes on an earth bank with its ditch,
 #                                     a gate of two tall posts, round huts, a watch platform, a totem
 #   outposts/outpost-stone            hide tents and a lean-to round a fire pit, a loaded travois,
@@ -74,6 +79,94 @@ def farm(ms, rng):
     ts.tree(ms, rng, 1.35, -1.45, h=0.46, crown=0.15, leaf='foliage_dark')
     # a wattle fence round the gardens keeps the deer out, open by the hut
     ts.wattle_fence(ms, rng, 2.02, 105, 345, step=6.0, h=0.11, gaps=((168, 178),))
+    return smoke
+
+
+def beast(ms, rng, x, y, yaw, kind='goat'):
+    """A small grazing animal of boxes: goat, sheep (white fleece) or early cattle (bigger, horned)."""
+    s = {'goat': 1.0, 'sheep': 1.0, 'cattle': 1.45}[kind]
+    body = {'goat': 'hide', 'sheep': 'linen', 'cattle': 'op_hide_dark' if rng.random() < 0.6 else 'hide'}[kind]
+    f = tm.house_frame(x, y, yaw)
+    ms.box(body, (0.1 * s, 0.045 * s, 0.045 * s), at=(0, 0, G + 0.04 * s), lod=1, frame=f)
+    head_down = rng.random() < 0.5  # grazing
+    hz = G + (0.03 if head_down else 0.065) * s
+    ms.box(body if kind != 'sheep' else 'dark', (0.04 * s, 0.03 * s, 0.03 * s), at=(0.065 * s, 0, hz), lod=1, frame=f)
+    if kind == 'cattle':
+        for sy in (-1, 1):
+            ms.box('horn', (0.006, 0.03, 0.006), at=(0.07 * s, sy * 0.022, hz + 0.028 * s), rot_z=sy * 20, lod=0, frame=f)
+    for lx in (-0.035 * s, 0.035 * s):
+        for ly in (-0.014 * s, 0.014 * s):
+            ms.box('dark', (0.01 * s, 0.01 * s, 0.04 * s), at=(lx, ly, G), lod=0, frame=f)
+
+
+def brush_ring(ms, rng, cx, cy, r, gate_a=270.0, gate_w=24.0, h=0.09):
+    """A corral of piled thorn brush: low heaps of branches round a circle, open at the gate."""
+    n = max(10, int(2 * math.pi * r / 0.11))
+    for k in range(n):
+        a = 360.0 * k / n
+        if abs(((a - gate_a + 180) % 360) - 180) < gate_w:
+            continue
+        x, y = cx + r * math.cos(math.radians(a)), cy + r * math.sin(math.radians(a))
+        tn.blob(ms, 'foliage_dark' if k % 3 else 'bark', (x, y, G), 0.06, (1.2, 0.8, h / 0.06 * 0.8), rng, 0.3, 1, lod=1 if k % 2 else 2, cut=0.0)
+        if k % 2 == 0:
+            ms.cyl('bark', 0.006, 0.004, 0.12, at=(x, y, G + 0.02), rot=(rng.uniform(-60, 60), rng.uniform(-60, 60), 0), segs=4, lod=0)
+
+
+def pasture(ms, rng):
+    # trodden ground in the corral, the brush ring round it, the gate to the south-east
+    ms.cyl('mud', 0.78, 0.78, 0.003, at=(-0.25, 0.25, G), segs=24, lod=2)
+    brush_ring(ms, rng, -0.25, 0.25, 0.82, gate_a=300.0)
+    kinds = ['goat', 'goat', 'sheep', 'sheep', 'sheep', 'cattle', 'cattle', 'goat']
+    for k, kind in enumerate(kinds):
+        a, r = rng.uniform(0, 2 * math.pi), 0.6 * math.sqrt(rng.random())
+        beast(ms, rng, -0.25 + r * math.cos(a), 0.25 + r * math.sin(a), rng.uniform(0, 360), kind)
+    # the herd outside on the grass, the herder's lean-to by a fire, a hollow-log trough, a salt stone
+    for k in range(7):
+        a = math.radians(rng.uniform(-80, 20))
+        r = rng.uniform(1.25, 1.9)
+        beast(ms, rng, r * math.cos(a), r * math.sin(a), rng.uniform(0, 360), ('goat', 'sheep', 'cattle')[k % 3])
+    ts.lean_to(ms, 1.15, 0.95, 200)
+    smoke = bo_fire(ms, rng, 0.95, 0.6)
+    f = tm.house_frame(0.55, -0.55, 35)
+    ms.box('log', (0.32, 0.07, 0.05), at=(0, 0, G), lod=1, frame=f)
+    ms.box('water', (0.27, 0.045, 0.004), at=(0, 0, G + 0.048), lod=0, frame=f)
+    ts.cairn(ms, rng, 0.2, -0.85, r=0.05, h=0.06)
+    ts.basket(ms, 1.3, 0.62, 1.1)
+    ts.hide_frame(ms, 1.45, 1.1, 210)
+    for x, y in ((-1.6, -0.6), (1.75, -0.9), (-0.9, -1.6), (1.6, 1.45)):
+        ts.tree(ms, rng, x, y, h=rng.uniform(0.45, 0.55), crown=0.16, leaf='foliage' if x < 0 else 'foliage_dark')
+    return smoke
+
+
+def mine(ms, rng):
+    # three open shafts in the chalk, each in a ring of white spoil, one with its notched log ladder
+    for k, (x, y, r) in enumerate(((-0.55, 0.45, 0.2), (0.45, 0.6, 0.17), (0.05, -0.15, 0.22))):
+        ms.sphere('limewash', r * 1.9, at=(x, y, G - 0.02), scale=(1.0, 1.0, 0.18), u=12, v=4, cut_below=0.0, lod=2)
+        ms.cyl('dark', r * 0.62, r * 0.62, 0.006, at=(x, y, G + r * 1.9 * 0.18 - 0.004), segs=12, lod=2)
+        for j in range(5):  # flint nodules in the spoil
+            a = rng.uniform(0, 2 * math.pi)
+            tn.blob(ms, 'st_flint', (x + r * 1.3 * math.cos(a), y + r * 1.3 * math.sin(a), G + 0.02), 0.022, (1.2, 1.0, 0.8), rng, 0.25, 1, lod=0)
+        if k != 1:
+            f = tm.house_frame(x, y, rng.uniform(0, 360))
+            ms.cyl('timber', 0.014, 0.012, 0.34, at=(0, 0, G - 0.04), rot=(24, 0, 0), segs=6, lod=1, frame=f)
+            for j in range(4):
+                ms.box('dark', (0.02, 0.008, 0.006), at=(0, -0.02 - 0.03 * j, G + 0.06 + 0.07 * j), lod=0, frame=f)
+    # the knapping floor: a hide spread with nodules, flakes and cores, the anvil stone, antler picks
+    f = tm.house_frame(-0.85, -0.65, 12)
+    ms.box('hide', (0.36, 0.28, 0.006), at=(0, 0, G), lod=1, frame=f)
+    for j in range(12):
+        ms.box('st_flint', (0.022, 0.014, 0.006), at=(rng.uniform(-0.15, 0.15), rng.uniform(-0.11, 0.11), G + 0.006), rot_z=rng.uniform(0, 180), lod=0, frame=f)
+    tn.blob(ms, 'stone', (-0.75, -0.55, G), 0.04, (1.2, 1.0, 0.7), rng, 0.2, 1, lod=0)
+    for j in range(3):
+        ms.cyl('horn', 0.008, 0.005, 0.12, at=(-0.45 + 0.05 * j, -0.85, G + 0.008), rot=(0, 80, 20 * j), segs=4, lod=0)
+    ts.lean_to(ms, -1.25, -0.25, 70, w=0.36, d=0.22, h=0.22)
+    smoke = bo_fire(ms, rng, -1.0, 0.1)
+    for j in range(4):
+        ts.basket(ms, 0.55 + 0.08 * j, -0.6 + 0.03 * (j % 2), 1.2)
+    for x, y in ((1.5, -0.8), (-1.6, 1.0), (1.4, 1.35), (-0.2, 1.7)):
+        ts.tree(ms, rng, x, y, h=rng.uniform(0.45, 0.55), crown=0.16, leaf='foliage_dark' if y > 0 else 'foliage')
+    for x, y in ((0.9, 0.0), (-0.3, 1.1), (1.0, -1.3)):
+        ts.stump(ms, x, y)
     return smoke
 
 
@@ -271,8 +364,8 @@ def landing(ms, rng):
 
 # ---- build -----------------------------------------------------------------------------------------
 
-IMPROVEMENTS = {'farm': farm, 'camp': camp, 'fishing_boats': fishing_boats, 'fort': fort}
-SEEDS = {'farm': 9101, 'camp': 9102, 'fishing_boats': 9103, 'fort': 9104, 'outpost': 9105, 'warship': 9106, 'landing': 9107}
+IMPROVEMENTS = {'farm': farm, 'camp': camp, 'fishing_boats': fishing_boats, 'fort': fort, 'pasture': pasture, 'mine': mine}
+SEEDS = {'farm': 9101, 'camp': 9102, 'fishing_boats': 9103, 'fort': 9104, 'outpost': 9105, 'warship': 9106, 'landing': 9107, 'pasture': 9108, 'mine': 9109}
 
 
 def with_socket(name, layout, ground, out_dir, seed, socket_name, socket_at=None, budgets=None):
