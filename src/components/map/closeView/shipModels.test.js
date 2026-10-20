@@ -32,7 +32,7 @@ describe('ship models', () => {
 
   it('ships the bronze, classical and kingdoms warships, each a root with LOD0..LOD2', () => {
     const files = fs.readdirSync('src/assets/map/ships').filter((f) => f.endsWith('.glb')).sort();
-    expect(files).toEqual(['warship-bronze.glb', 'warship-classical.glb', 'warship-kingdoms.glb']);
+    expect(files).toEqual(['warship-bronze.glb', 'warship-classical.glb', 'warship-kingdoms.glb', 'warship-stone.glb']);
     files.forEach((f) => {
       const name = f.replace('.glb', '');
       const { nodes } = readGlbJson(`src/assets/map/ships/${f}`);
