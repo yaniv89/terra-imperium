@@ -189,14 +189,13 @@ describe('tech tree listed by age', () => {
       'science_cuneiform_records', 'science_early_astronomy', 'science_geometry', 'science_natural_philosophy', 'science_scholastic_method', 'science_optics', 'science_scientific_method', 'science_calculus', 'science_computing', 'science_genomics'
     ]);
   });
-  it('ten techs an age, two per line, the second staggered to mid-age after the first', () => {
+  it('ten techs an age, two per line, the second after the first', () => {
     AGE_ORDER.forEach((age) => {
       const techs = getTechsForAge(age);
       expect(techs.length, age).toBe(10);
       const perLine = techs.reduce((acc, t) => ({ ...acc, [t.category]: [...(acc[t.category] || []), t] }), {});
       Object.values(perLine).forEach(([first, second]) => {
-        expect(first.yearAvailable).toBe(AGES[age].startYear);
-        expect(second.yearAvailable).toBe(Math.round((AGES[age].startYear + AGES[age].endYear) / 2));
+        expect(second.lineIndex).toBe(first.lineIndex + 1);
         expect(second.prerequisites[0]).toBe(first.id);
       });
     });

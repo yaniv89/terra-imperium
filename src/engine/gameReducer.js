@@ -358,8 +358,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
 
   // Initialize tech tree (currently empty content — see src/data/techTree.js).
   const techTree = {};
-  Object.entries(TECH_TREE).forEach(([id, data]) => {
-    techTree[id] = { id, researched: false, available: data.yearAvailable <= year };
+  Object.keys(TECH_TREE).forEach((id) => {
+    techTree[id] = { id, researched: false };
   });
 
   const initial = {

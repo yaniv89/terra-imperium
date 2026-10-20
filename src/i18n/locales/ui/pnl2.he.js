@@ -18,7 +18,7 @@ export default {
   'p2.lens.settle': 'ההתיישבות',
   'p2.rs.unknown': 'טכנולוגיה לא מוכרת',
   'p2.rs.done': 'כבר נחקרה',
-  'p2.rs.from': 'זמינה מ־{year}',
+  'p2.rs.reachAge': 'הגיעו קודם ל{age}',
   'p2.rs.needs': 'דורשת {list}',
   'p2.rs.and': ' ו־',
   'p2.rs.exclusive': 'סותרת את {name}',

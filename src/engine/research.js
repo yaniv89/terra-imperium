@@ -19,7 +19,7 @@
 import { applyBoosts } from './boosts';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
-import { AGES, AGE_ORDER, getAgesBehind, getAgesBehindResearchCostMultiplier, speedCostMult, formatYear } from '../data/ages';
+import { AGES, AGE_ORDER, getAgeIndex, getAgesBehind, getAgesBehindResearchCostMultiplier, speedCostMult } from '../data/ages';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
 import { msg, thing } from './messages';
@@ -64,13 +64,17 @@ export const getResearchCost = (state, nationId, techId) => {
   return Math.max(1, Math.round(base * speed * (1 + mult) * behind));
 };
 
-// Can this tech be researched now? (Its year has come, its line's earlier tech is known, and no
-// exclusive rival is.) `researched` is a Set of tech ids.
-export const canStartTech = (techId, researched, year, techDefs = TECH_TREE) => {
+/** The research window (eight-ages plan KTD4): a nation may start techs of its own age and the next. */
+export const inResearchWindow = (ageId, tech) => !!tech && getAgeIndex(tech.ageId) <= getAgeIndex(ageId) + 1;
+
+// Can this tech be researched now? (It is in the research window of the nation's age `ageId`, its
+// line's earlier tech is known, and no exclusive rival is.) `researched` is a Set of tech ids. No
+// rule reads the year.
+export const canStartTech = (techId, researched, ageId, techDefs = TECH_TREE) => {
   const tech = techDefs[techId];
   if (!tech) return { ok: false, reason: 'Unknown tech' };
   if (researched.has(techId)) return { ok: false, reason: 'Already researched' };
-  if (tech.yearAvailable > year) return { ok: false, reason: `Available from ${formatYear(tech.yearAvailable)}` };
+  if (!inResearchWindow(ageId, tech)) return { ok: false, reason: `Reach the ${AGES[AGE_ORDER[Math.max(0, getAgeIndex(tech.ageId) - 1)]]?.name || tech.ageId} first`, window: true };
   const prereqs = tech.requiresAny ? tech.prerequisites.some((p) => researched.has(p)) : tech.prerequisites.every((p) => researched.has(p));
   if (!prereqs) return { ok: false, reason: `Needs ${tech.prerequisites.map((p) => techDefs[p]?.name || p).join(' and ')}` };
   const rival = (tech.exclusiveWith || []).find((id) => researched.has(id));
@@ -92,15 +96,16 @@ export const getResearchPath = (techId, researched) => {
   return path;
 };
 
-// The techs an advisor (or the AI) would pick, best first: available now, by the doctrine's
-// line priority, then the earliest.
-export const suggestTechs = (state, nationId, count = 3, researched = researchedSetOf(state, nationId)) => {
+// The techs an advisor (or the AI) would pick, best first: startable now, the earliest age first (a
+// nation finishes its own age before reaching ahead), then the doctrine's line priority, then the
+// line's order, then the id, so the pick is deterministic.
+export const suggestTechs = (state, nationId, count = 3, researched = researchedSetOf(state, nationId), ageId = techAgeOf(state, nationId)) => {
   const doctrine = state.nations[nationId]?.doctrine;
   const priority = DOCTRINE_TECH_CATEGORY_PRIORITY[doctrine] || [];
   const rank = (cat) => { const i = priority.indexOf(cat); return i === -1 ? 99 : i; };
   return Object.values(TECH_TREE)
-    .filter((t) => canStartTech(t.id, researched, state.year).ok)
-    .sort((a, b) => rank(a.category) - rank(b.category) || a.yearAvailable - b.yearAvailable || (a.id < b.id ? -1 : 1))
+    .filter((t) => canStartTech(t.id, researched, ageId).ok)
+    .sort((a, b) => getAgeIndex(a.ageId) - getAgeIndex(b.ageId) || rank(a.category) - rank(b.category) || a.lineIndex - b.lineIndex || (a.id < b.id ? -1 : 1))
     .slice(0, count)
     .map((t) => t.id);
 };
@@ -171,13 +176,13 @@ export const stepResearch = (state, nationId) => {
     while (research.queue.length) {
       const id = research.queue[0];
       if (researched.has(id) || !TECH_TREE[id]) { research.queue.shift(); continue; }
-      return canStartTech(id, researched, state.year).ok ? research.queue.shift() : null; // the next one isn't ready yet: wait
+      return canStartTech(id, researched, techAgeId).ok ? research.queue.shift() : null; // the next one isn't ready yet: wait
     }
-    return auto ? suggestTechs(state, nationId, 1, researched)[0] || null : null;
+    return auto ? suggestTechs(state, nationId, 1, researched, techAgeId)[0] || null : null;
   };
   while (stock > 0 && completed.length < MAX_COMPLETIONS_PER_TURN) {
-    if (!research.current || researched.has(research.current) || !canStartTech(research.current, researched, state.year).ok) {
-      if (research.current && !researched.has(research.current) && TECH_TREE[research.current] && !canStartTech(research.current, researched, state.year).ok) break; // chosen but not yet available: bank
+    if (!research.current || researched.has(research.current) || !canStartTech(research.current, researched, techAgeId).ok) {
+      if (research.current && !researched.has(research.current) && TECH_TREE[research.current] && !canStartTech(research.current, researched, techAgeId).ok) break; // chosen but not yet available: bank
       research.current = nextStartable();
       if (!research.current) break;
     }

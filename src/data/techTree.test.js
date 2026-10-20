@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { TECH_TREE, CROSS_PREREQUISITES, getTechsByCategory, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from './techTree';
 import { techGraph } from '../components/panels/researchView';
 import { canStartTech, RESEARCH_AGE_BASE } from '../engine/research';
-import { AGE_ORDER } from './ages';
+import { AGE_ORDER, getAgeIndex, LAST_AGE_ID } from './ages';
 import { TechCategories } from './types';
 import { peoplesWorld } from '../engine/testWorld';
 
@@ -11,30 +11,30 @@ import { peoplesWorld } from '../engine/testWorld';
 // exclusive/requiresAny scenarios the real linear-chain content doesn't use. Research costs only
 // science now (no power, no purchase), so there is no affordability to gate here.
 const FIXTURE_TECH = {
-  a: { id: 'a', category: 'military', ageId: 'bronze', cost: { techPoints: 5 }, prerequisites: [], effects: {}, yearAvailable: 1000 },
-  b: { id: 'b', category: 'military', ageId: 'bronze', cost: { techPoints: 10 }, prerequisites: ['a'], effects: {}, yearAvailable: 1100 },
-  c1: { id: 'c1', category: 'economy', ageId: 'bronze', cost: { techPoints: 15 }, prerequisites: ['a'], exclusiveWith: ['c2'], effects: {}, yearAvailable: 1200 },
-  c2: { id: 'c2', category: 'economy', ageId: 'bronze', cost: { techPoints: 15 }, prerequisites: ['a'], exclusiveWith: ['c1'], effects: {}, yearAvailable: 1200 },
-  d: { id: 'd', category: 'economy', ageId: 'bronze', cost: { techPoints: 20 }, prerequisites: ['c1', 'c2'], requiresAny: true, effects: {}, yearAvailable: 1300 }
+  a: { id: 'a', category: 'military', ageId: 'bronze', cost: { techPoints: 5 }, prerequisites: [], effects: {}, lineIndex: 0 },
+  b: { id: 'b', category: 'military', ageId: 'bronze', cost: { techPoints: 10 }, prerequisites: ['a'], effects: {}, lineIndex: 1 },
+  c1: { id: 'c1', category: 'economy', ageId: 'bronze', cost: { techPoints: 15 }, prerequisites: ['a'], exclusiveWith: ['c2'], effects: {}, lineIndex: 2 },
+  c2: { id: 'c2', category: 'economy', ageId: 'bronze', cost: { techPoints: 15 }, prerequisites: ['a'], exclusiveWith: ['c1'], effects: {}, lineIndex: 2 },
+  d: { id: 'd', category: 'economy', ageId: 'bronze', cost: { techPoints: 20 }, prerequisites: ['c1', 'c2'], requiresAny: true, effects: {}, lineIndex: 3 }
 };
 
 const freshTree = (fixture = FIXTURE_TECH) => {
   const tree = {};
-  Object.entries(fixture).forEach(([id, data]) => {
-    tree[id] = { id, researched: false, available: data.yearAvailable <= 1000 };
+  Object.keys(fixture).forEach((id) => {
+    tree[id] = { id, researched: false };
   });
   return tree;
 };
 
 const researchedOf = (tree) => new Set(Object.keys(tree).filter((id) => tree[id].researched));
-const can = (id, tree, year) => canStartTech(id, researchedOf(tree), year, FIXTURE_TECH);
+const can = (id, tree, ageId = 'bronze') => canStartTech(id, researchedOf(tree), ageId, FIXTURE_TECH);
 
 describe('canStartTech (generic gating, against a fixture table)', () => {
   it('rejects a tech whose exclusive counterpart is already researched', () => {
     const tree = freshTree();
     tree.a.researched = true;
     tree.c1.researched = true;
-    const check = can('c2', tree, 2000);
+    const check = can('c2', tree);
     expect(check.ok).toBe(false);
     expect(check.reason).toContain('Exclusive with');
   });
@@ -42,31 +42,39 @@ describe('canStartTech (generic gating, against a fixture table)', () => {
   it('allows either side of an exclusive pair when neither is researched yet', () => {
     const tree = freshTree();
     tree.a.researched = true;
-    expect(can('c1', tree, 2000).ok).toBe(true);
-    expect(can('c2', tree, 2000).ok).toBe(true);
+    expect(can('c1', tree).ok).toBe(true);
+    expect(can('c2', tree).ok).toBe(true);
   });
 
   it('is startable with only ONE of two requiresAny prerequisites satisfied', () => {
     const tree = freshTree();
     tree.a.researched = true;
     tree.c1.researched = true;
-    expect(can('d', tree, 2000).ok).toBe(true);
+    expect(can('d', tree).ok).toBe(true);
   });
 
   it('is not startable with neither requiresAny prerequisite satisfied', () => {
     const tree = freshTree();
     tree.a.researched = true;
-    expect(can('d', tree, 2000).ok).toBe(false);
+    expect(can('d', tree).ok).toBe(false);
   });
 
-  it('rejects a tech before its yearAvailable', () => {
-    expect(can('a', freshTree(), 500).ok).toBe(false);
+  it('allows the nation\'s own age and the next only (the research window, KTD4)', () => {
+    const kingdoms = { ...FIXTURE_TECH.a, id: 'k', ageId: 'kingdoms' };
+    const classical = { ...FIXTURE_TECH.a, id: 'c', ageId: 'classical' };
+    const defs = { ...FIXTURE_TECH, k: kingdoms, c: classical };
+    expect(canStartTech('c', new Set(), 'bronze', defs).ok).toBe(true);
+    const late = canStartTech('k', new Set(), 'bronze', defs);
+    expect(late.ok).toBe(false);
+    expect(late.reason).toBe('Reach the Classical Age first');
+    expect(canStartTech('k', new Set(), 'classical', defs).ok).toBe(true);
+    expect(canStartTech('k', new Set(), 'kingdoms', defs).ok).toBe(true);
   });
 
   it('gates a real tech on its real prerequisite (default techDefs)', () => {
     const second = TECH_TREE.military_composite_bow;
-    expect(canStartTech(second.id, new Set(), 3000).ok).toBe(false);
-    expect(canStartTech(second.id, new Set(second.prerequisites), 3000).ok).toBe(true);
+    expect(canStartTech(second.id, new Set(), 'bronze').ok).toBe(false);
+    expect(canStartTech(second.id, new Set(second.prerequisites), 'bronze').ok).toBe(true);
   });
 });
 
@@ -93,7 +101,7 @@ describe('real TECH_TREE content integrity', () => {
     });
   });
 
-  it('the tech web (plan C3): every cross prerequisite is a tech of another line and an earlier or same year', () => {
+  it('the tech web (plan C3): every cross prerequisite is a tech of another line and an earlier or the same step', () => {
     const byName = Object.fromEntries(Object.values(TECH_TREE).map((t) => [t.name, t]));
     const crossCount = Object.values(CROSS_PREREQUISITES).reduce((n, list) => n + list.length, 0);
     expect(crossCount).toBeGreaterThanOrEqual(15);
@@ -104,7 +112,8 @@ describe('real TECH_TREE content integrity', () => {
         const need = byName[needName];
         expect(need, `${name} needs unknown ${needName}`).toBeDefined();
         expect(need.category, `${name} -> ${needName} must cross lines`).not.toBe(tech.category);
-        expect(need.yearAvailable, `${name} -> ${needName} must not point forward`).toBeLessThanOrEqual(tech.yearAvailable);
+        const step = (t) => getAgeIndex(t.ageId) * 2 + (t.lineIndex % 2);
+        expect(step(need), `${name} -> ${needName} must not point forward`).toBeLessThanOrEqual(step(tech));
         expect(tech.prerequisites).toContain(need.id);
       });
     });
@@ -117,18 +126,16 @@ describe('real TECH_TREE content integrity', () => {
   it('a tech with a cross prerequisite needs the other line too (Siege Engineering needs Geometry)', () => {
     const siege = TECH_TREE.military_siege_engineering;
     const own = siege.prerequisites.filter((p) => TECH_TREE[p].category === 'military');
-    expect(canStartTech(siege.id, new Set(own), 3000).ok).toBe(false);
-    expect(canStartTech(siege.id, new Set(siege.prerequisites), 3000).ok).toBe(true);
+    expect(canStartTech(siege.id, new Set(own), LAST_AGE_ID).ok).toBe(false);
+    expect(canStartTech(siege.id, new Set(siege.prerequisites), LAST_AGE_ID).ok).toBe(true);
   });
 
-  it('yearAvailable strictly increases along each category\'s chain', () => {
+  it('lineIndex counts up along each category\'s chain, two per age in age order', () => {
     Object.values(TechCategories).forEach(category => {
       const chain = Object.values(TECH_TREE)
         .filter(t => t.category === category)
-        .sort((a, b) => a.yearAvailable - b.yearAvailable);
-      for (let i = 1; i < chain.length; i++) {
-        expect(chain[i].yearAvailable).toBeGreaterThan(chain[i - 1].yearAvailable);
-      }
+        .sort((a, b) => a.lineIndex - b.lineIndex);
+      chain.forEach((t, i) => { expect(t.lineIndex).toBe(i); expect(t.ageId).toBe(AGE_ORDER[Math.floor(i / 2)]); });
     });
   });
 
@@ -162,12 +169,11 @@ describe('real TECH_TREE content integrity', () => {
 });
 
 describe('getTechsByCategory', () => {
-  it('groups every real tech under its category, sorted by yearAvailable', () => {
+  it('groups every real tech under its category, in line order', () => {
     const categories = getTechsByCategory();
     Object.values(TechCategories).forEach(category => {
       expect(categories[category].techs.length).toBe(10);
-      const years = categories[category].techs.map(t => t.yearAvailable);
-      expect(years).toEqual([...years].sort((a, b) => a - b));
+      expect(categories[category].techs.map(t => t.lineIndex)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     });
   });
 });
