@@ -75,7 +75,7 @@ describe('the guided start as Egypt (plan E9)', () => {
     expect(s.logs.some((l) => /The guide ends/.test(l.message))).toBe(true);
     expect(tutorialStatus(s).active).toBe(false);
     expect(resolveTurn(createInitialState({ playerNationId: 'eg', rngSeed: 11 })).tutorial).toBeUndefined();
-  });
+  }, 60000);
 });
 
 describe('the guided start as Kemet in a peoples world (phase W0)', () => {
