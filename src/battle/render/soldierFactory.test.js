@@ -1,7 +1,7 @@
 // Every unit of every age gets a real, rigged 3D model: it builds, it's reasonably light for a
 // phone, it wears its side's colour somewhere, and walking figures actually have legs to move.
 import { describe, it, expect } from 'vitest';
-import { getSoldierGeometry, getImposterGeometry, LIMB } from './soldierFactory';
+import { getSoldierGeometry, getImposterGeometry, createSoldierMaterial, LIMB } from './soldierFactory';
 import { UNIT_ROSTER } from '../../data/unitClasses';
 
 describe('soldier models', () => {
@@ -37,5 +37,11 @@ describe('soldier models', () => {
         expect(Number.isFinite(geo.boundingSphere.radius)).toBe(true);
       });
     });
+  });
+  it('the clip material lights vertex normals instead of screen-derivative flat shading', () => {
+    const clipped = createSoldierMaterial({ clips: {} });
+    expect(clipped.defines.USE_CLIPS).toBeDefined();
+    expect(clipped.flatShading).toBe(false);
+    expect(createSoldierMaterial({}).flatShading).toBe(false);
   });
 });
