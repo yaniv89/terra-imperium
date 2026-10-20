@@ -19,7 +19,7 @@ describe('art index', () => {
   });
 
   it('falls back to the nearest earlier age, never a later one', () => {
-    expect(ageChain('kingdoms')).toEqual(['kingdoms', 'classical', 'bronze']);
+    expect(ageChain('kingdoms')).toEqual(['kingdoms', 'classical', 'bronze', 'stone']);
     const a = idx('battle/rts/rts-bronze.glb', 'battle/rts/rts-gunpowder.glb');
     expect(a.rts('bronze').ageId).toBe('bronze');
     expect(a.rts('kingdoms').ageId).toBe('bronze');

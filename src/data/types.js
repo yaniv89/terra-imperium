@@ -205,6 +205,9 @@ export const ActionTypes = {
   // The capture card (decision 40, src/engine/capture.js): payload { captureId, choice } where
   // choice is 'conquer' | 'raze' | 'tributary' | 'free'.
   RESOLVE_CAPTURE: 'RESOLVE_CAPTURE',
+  // A tribal camp's card (src/engine/tribalCamps.js, U26): payload { choice } with choice
+  // 'absorb' | 'trade' | 'leave' (the camp stays) for state.pendingCamp.
+  RESOLVE_CAMP: 'RESOLVE_CAMP',
   // Pay gold for the production an order still lacks (src/engine/spending.js rushQuote, playtest
   // audits I019): payload { cityId, index } over [current, ...queue]; it completes on the next turn.
   RUSH_PRODUCTION: 'RUSH_PRODUCTION',

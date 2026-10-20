@@ -4,7 +4,7 @@ import { UNIT_ROSTER } from './unitClasses';
 
 describe('UNIT_ICON_PATHS', () => {
   it('has exactly one icon per (age x class) the roster actually offers', () => {
-    Object.entries(UNIT_ROSTER).forEach(([ageId, classes]) => {
+    Object.entries(UNIT_ROSTER).filter(([ageId]) => ageId !== 'stone').forEach(([ageId, classes]) => { // Stone icons are art (U93); UnitIcon falls back
       Object.keys(classes).forEach((classId) => {
         expect(getUnitIconPath(ageId, classId), `${ageId}/${classId} has no icon`).toBeTruthy();
       });

@@ -12,6 +12,8 @@ export default {
   'm.world.theirDestination': 'their destination',
   'm.world.outpostFounded': '{city} is founded as an outpost.',
   'm.world.settlersNoRoom': 'Your settlers find no room at their destination: {reason}',
+  'm.world.reasonBandRange': 'The first village must stand within 230 km of the band home.',
+  'm.world.villageFounded': '{city} is founded: the first village of {nation}.',
   'm.world.reasonLand': 'A city needs land.',
   'm.world.reasonIce': 'Nothing can live on the ice.',
   'm.world.reasonBelongs': 'This land belongs to another nation.',

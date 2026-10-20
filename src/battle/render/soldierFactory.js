@@ -95,14 +95,15 @@ const ARM_L = { limb: LIMB.ARM_L, pivot: [SHOULDER, 0] };
 const ARM_R = { limb: LIMB.ARM_R, pivot: [SHOULDER, 0] };
 
 export const HELMETS = {
+  stone: () => [], // bare heads
   bronze: (y) => [part(dome(0.102), C.bronze, { at: [0, y, 0], scale: [1, 1.1, 1.1] })],
   classical: (y) => [part(dome(0.106), C.bronze, { at: [0, y, 0], scale: [1, 1, 1.1] }), part(oval(0.03, 0.11, 0.23), '#b3261e', { at: [0, y + 0.11, -0.01] }), ...[-1, 1].map(s => part(oval(0.025, 0.09, 0.07), C.bronze, { at: [s * 0.09, y - 0.04, 0.02] }))],
   kingdoms: (y) => [part(dome(0.106), C.steel, { at: [0, y, 0], scale: [1, 1.2, 1.1] }), part(box(0.018, 0.1, 0.015), C.steel, { at: [0, y - 0.04, 0.108] })],
   gunpowder: (y) => [part(cyl(0.1, 0.11, 0.2), C.black, { at: [0, y + 0.1, 0] }), part(cyl(0.13, 0.13, 0.02, 8), C.black, { at: [0, y + 0.0, 0.02] }), part(ball(0.025, 4, 3), C.gold, { at: [0, y + 0.13, 0.1] })],
   modern: (y) => [part(dome(0.114), C.darkOlive, { at: [0, y - 0.005, 0], scale: [1, 0.8, 1.1] })]
 };
-export const BODY_CLOTH = { bronze: C.cloth, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
-export const LEG_CLOTH = { bronze: C.leather, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
+export const BODY_CLOTH = { stone: C.leather, bronze: C.cloth, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
+export const LEG_CLOTH = { stone: C.leather, bronze: C.leather, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
 
 // A standing person: legs (two bones), torso in team colour, belt, head, age helmet, two arm bones.
 // `skin` picks one of four skin tones; `seat` lifts the whole figure (riders) and drops the legs.
@@ -239,6 +240,7 @@ const mast = (height, z = 0, sail = true) => [
 ];
 const oars = (length) => [-1, 1].flatMap((s) => [-0.3, -0.1, 0.1, 0.3].map((f) => part(box(0.5, 0.02, 0.03), C.wood, { at: [s * 0.55, 0.22, f * length], rot: [0, 0, s * 0.35] })));
 const SHIPS = {
+  stone: () => [...hull(1.4, 0.4), ...oars(1.4)], // a dugout canoe
   bronze: () => [...hull(2.0, 0.55), ...oars(2.0), ...mast(1.0)],
   classical: () => [...hull(2.4, 0.55), ...oars(2.4), ...mast(1.1), part(box(0.25, 0.12, 0.3), C.bronze, { at: [0, 0.18, 1.32] })], // the ram
   kingdoms: () => [...hull(2.2, 0.8), part(box(0.7, 0.4, 0.5), C.wood, { at: [0, 0.5, -0.8] }), ...mast(1.4, 0.1)], // a stern castle
@@ -249,6 +251,7 @@ const SHIPS = {
 export const MODELS = {
   naval: SHIPS,
   infantry: {
+    stone: () => [...person('stone'), ...spear(1.35)],
     bronze: () => [...person('bronze'), ...spear(1.35), ...roundShield()],
     classical: () => [...person('classical', { skin: 1 }), ...sword(), ...towerShield()],
     kingdoms: () => [...person('kingdoms', { skin: 3 }), ...spear(2.2, 0, C.steel)],
@@ -256,6 +259,7 @@ export const MODELS = {
     modern: () => [...person('modern', { skin: 2 }), ...rifle(), ...pack(C.darkOlive)]
   },
   ranged: {
+    stone: () => [...person('stone', { skin: 2 }), ...bow()],
     bronze: () => [...person('bronze', { skin: 2 }), ...bow()],
     classical: () => [...person('classical'), ...bow()],
     kingdoms: () => [...person('kingdoms', { skin: 3 }), ...bow()],
@@ -263,6 +267,7 @@ export const MODELS = {
     modern: () => [...person('modern'), ...launcher(), ...pack(C.darkOlive)]
   },
   cavalry: {
+    stone: () => [...person('stone', { skin: 1 }), ...spear(1.2)], // runners on foot (U37 drops the class)
     bronze: () => [ // a chariot: two horses, a wheeled car, a driver with a spear
       ...shift(horse(), -0.24, 0, 0.55), ...shift(horse(C.horseDark), 0.24, 0, 0.55),
       part(box(0.7, 0.34, 0.55), C.wood, { at: [0, 0.62, -0.35] }), part(box(0.72, 0.1, 0.02), '#ffffff', { at: [0, 0.75, -0.07], team: 1 }),
@@ -275,6 +280,7 @@ export const MODELS = {
     modern: tankModel
   },
   siege: {
+    stone: () => [...person('stone'), part(box(0.4, 1.6, 0.06), C.wood, { at: [0.3, 0.8, 0.2] })], // a ladder crew
     bronze: () => [ // battering ram under a roofed frame
       part(box(0.9, 0.08, 1.6), C.darkWood, { at: [0, 0.3, 0] }), wheel(0.2, -0.48, 0.2, 0.5), wheel(0.2, 0.48, 0.2, 0.5), wheel(0.2, -0.48, 0.2, -0.5), wheel(0.2, 0.48, 0.2, -0.5),
       part(cyl(0.11, 0.11, 1.9, 7), C.wood, { at: [0, 0.55, 0.2], rot: [Math.PI / 2, 0, 0] }), part(cone(0.13, 0.2, 7), C.bronze, { at: [0, 0.55, 1.2], rot: [Math.PI / 2, 0, 0] }),
@@ -309,6 +315,7 @@ export const MODELS = {
     ]
   },
   support: {
+    stone: () => [...person('stone', { skin: 3 }), ...pack(C.leather)], // a shaman
     bronze: () => [...shift(horse(C.horseDark), 0, 0, 0.7), part(box(0.7, 0.3, 0.9), C.wood, { at: [0, 0.55, -0.35] }), part(box(0.72, 0.3, 0.9), C.cloth, { at: [0, 0.85, -0.35] }), wheel(0.25, -0.4, 0.25, -0.35), wheel(0.25, 0.4, 0.25, -0.35), part(box(0.2, 0.2, 0.02), '#ffffff', { at: [0, 0.8, -0.81], team: 1 })],
     classical: () => [...person('classical'), ...shovel(), ...pack()],
     kingdoms: () => [...person('kingdoms', { skin: 3 }), ...shovel(), ...pack()],

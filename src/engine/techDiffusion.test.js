@@ -8,7 +8,7 @@ import { TECH_TREE } from '../data/techTree';
 // contacts in later ages hold, and a contact reach that follows the research leader.
 const world = peoplesWorld({ seed: 5 });
 const me = world.playerNationId;
-const tech = Object.values(TECH_TREE).find((t) => t.ageId === 'bronze' && t.prerequisites.length === 0).id;
+const tech = Object.values(TECH_TREE).find((t) => t.ageId === 'stone' && t.prerequisites.length === 0).id;
 const known = [...contactsOf(world, me).keys()];
 
 // Every nation in `holders` holds `tech` at age `ageId`; the player holds nothing and is Bronze.

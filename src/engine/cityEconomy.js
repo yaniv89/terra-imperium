@@ -28,6 +28,8 @@ import { getResearched, ageOf } from './nationState';
 import { governorEffects } from './governors';
 import { isIndependent } from '../data/independents';
 import { independentCityCtx } from './independents';
+import { forageCtx } from '../data/hearths';
+import { stonePhaseCtx } from './stonePhase';
 import { logisticGrowthMult } from './population';
 import { nextTemplateUnit, templateProgress } from './armyTemplates';
 import {
@@ -67,6 +69,8 @@ export const cityCtx = (state, city) => {
     trainMult: speedTrainMult(state.gameSpeed, ageId),
     luxuries: facts.luxuries[nid] ? facts.luxuries[nid].size : 0,
     greatProjects: state.greatProjects || {},
+    ...forageCtx(nid ? getResearched(state, nid) : []), // no Agriculture: a size cap (hearths.js)
+    ...stonePhaseCtx(state, nid), // the first cities: river food (stonePhase.js)
     ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
   };
   const wonderCulture = cityWonderTotal(state.greatProjects, city.id, 'local.culture');

@@ -11,6 +11,8 @@ import { ringsForKm, foundingDisk } from './geo/gridScale';
 import { CITY_SPACING_KM, citySpacingRings, spacingBlocks, spacingReach } from './geo/citySpacing';
 import { distanceKm } from './geo/geodesic';
 
+// `age`: the age an era start puts every nation in. The peoples world (new games) ignores it and
+// starts in the first age; the legacy 240-country world (tests, old saves) starts Dawn in Bronze.
 export const SCENARIOS = {
   dawn: { id: 'dawn', name: 'Dawn of Civilization', year: -2000, age: 'bronze', ringKm: 102, extraCities: 0, capitalBonus: 0, description: 'Every people starts with one city. Settle the empty world.' },
   classical: { id: 'classical', name: 'Classical Age', year: -800, age: 'classical', ringKm: 204, extraCities: 1, capitalBonus: 1, description: 'Cities and their hinterlands; most of the world is still open.' },

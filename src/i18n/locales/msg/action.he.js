@@ -197,6 +197,9 @@ export default {
   // cities and settlers
   'm.act.settlersSetOutOne': 'מתיישבים יוצאים אל {place}: {n} תור.',
   'm.act.settlersSetOutMany': 'מתיישבים יוצאים אל {place}: {n} תורות.',
+  'm.act.campAbsorbed': 'מחנה שבטי מצטרף לעמכם.',
+  'm.act.campTraded': 'מחנה שבטי סוחר במה שהוא יודע.',
+  'm.act.no.campChoice': 'המחנה לא יכול לעשות זאת: צריך עיר שיצטרף אליה.',
   'm.act.outpostFounded': '{city} נוסדה כמאחז.',
   'm.act.tileBought': '{city} קונה את {place} תמורת {gold} זהב.',
   'm.act.settlersHome': 'המתיישבים חוזרים הביתה: {city} גדלה בתושב אחד.',

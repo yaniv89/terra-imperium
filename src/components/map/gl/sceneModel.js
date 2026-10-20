@@ -215,6 +215,8 @@ export const landSprites = ({ state, projection, k, window, isExplored, lens, cl
   const sized = (art) => [art.w / dpr, art.h / dpr];
   const ageId = ageOf(state, state.playerNationId);
   within.forEach((t) => {
+    // A tribal camp (tribalCamps.js, U26): the camp improvement's glyph on free land.
+    if (state.tribalCamps?.[t]) { const ca = glyphArt({ kind: 'improvement', iconUrl: improvementIconUrl('camp'), letter: 'C' }, gdpr); sprites.push({ art: ca, anchor: pointOf(projection, t), size: sized(ca), color: WHITE }); }
     const e = ts[t];
     // A resource nobody knows of yet is not drawn (oil in the Bronze Age: tileYields.resourceKnown, I096).
     const resId = resources && tiles.resourceOf ? tiles.resourceOf(t) : null;

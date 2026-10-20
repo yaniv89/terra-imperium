@@ -62,6 +62,7 @@ describe('canEnactLaw', () => {
   const state = (overrides = {}) => ({
     playerNationId: 'fr',
     turnNumber: 10,
+    techAgeId: 'bronze', // past the Stone Age's village laws (stonePhase.js)
     techTree: {},
     nations: { fr: { ...baseNation, ...overrides } }
   });

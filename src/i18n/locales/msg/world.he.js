@@ -10,6 +10,8 @@ export default {
   'm.world.theirDestination': 'היעד שלהם',
   'm.world.outpostFounded': '{city} נוסדה כמאחז.',
   'm.world.settlersNoRoom': 'המתיישבים שלך לא מוצאים מקום ביעד: {reason}',
+  'm.world.reasonBandRange': 'הכפר הראשון חייב לקום עד 230 ק"מ מבית השבט.',
+  'm.world.villageFounded': '{city} נוסדה: הכפר הראשון של {nation}.',
   'm.world.reasonLand': 'עיר צריכה יבשה.',
   'm.world.reasonIce': 'שום דבר לא יכול לחיות על הקרח.',
   'm.world.reasonBelongs': 'האדמה הזאת שייכת לאומה אחרת.',

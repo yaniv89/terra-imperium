@@ -9,6 +9,17 @@
 export const BOOST_SHARE = 0.4;
 
 export const BOOSTS = {
+  // Stone Age (U27): quick facts a first village meets, so the opening pays a boost every few turns.
+  military_hunting_bands: { label: 'Own a forest or hills', check: (f) => f.forest || f.hills },
+  military_copper_working: { label: 'Own copper or stone', check: (f) => f.resources.has('copper') || f.resources.has('stone') },
+  economy_agriculture: { label: 'Found a city on a river', check: (f) => f.river },
+  economy_animal_husbandry: { label: 'Own cattle, sheep or horses', check: (f) => f.resources.has('cattle') || f.resources.has('sheep') || f.resources.has('horses') },
+  infrastructure_pottery: { label: 'Grow a city to size 2', check: (f) => f.maxSize >= 2 },
+  infrastructure_the_wheel: { label: 'Own 2 river tiles', check: (f) => f.riverTiles >= 2 },
+  governance_chiefdoms: { label: 'Rule 2 cities', check: (f) => f.cities >= 2 },
+  governance_sacred_kingship: { label: 'Win a battle', check: (f) => (f.battlesWon || 0) >= 1 },
+  science_star_lore: { label: 'Own a coastal city', check: (f) => f.coastal },
+  science_proto_writing: { label: 'Grow a city to size 4', check: (f) => f.maxSize >= 4 },
   military_bronze_casting: { label: 'Own copper', check: (f) => f.resources.has('copper') },
   military_composite_bow: { label: 'Own a forest', check: (f) => f.forest },
   military_iron_weapons: { label: 'Own iron', check: (f) => f.resources.has('iron') },

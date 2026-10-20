@@ -52,7 +52,7 @@ export default [
 
   // OnboardingOverlay
   ['onb.1.title', 'Welcome to Terra Imperium', 'ברוכים הבאים לטרה אימפריום'],
-  ['onb.1.body', 'You lead one nation, on one real Earth, from 2000 BCE to 2300 CE. Every other country plays the same game you do — its own economy, government, army, and diplomacy — build, conquer, or outlast them all.', 'אתם מובילים אומה אחת, על כדור ארץ אמיתי אחד, מ־2000 לפנה״ס עד 2300 לספירה. כל מדינה אחרת משחקת באותו משחק: כלכלה, ממשל, צבא ודיפלומטיה משלה. בנו, כבשו או שרדו יותר מכולן.'],
+  ['onb.1.body', 'You lead one nation, on one real Earth, from the Stone Age to the Modern Age. Every other country plays the same game you do — its own economy, government, army, and diplomacy — build, conquer, or outlast them all.', 'אתם מובילים אומה אחת, על כדור ארץ אמיתי אחד, מתקופת האבן ועד העת החדשה. כל מדינה אחרת משחקת באותו משחק: כלכלה, ממשל, צבא ודיפלומטיה משלה. בנו, כבשו או שרדו יותר מכולן.'],
   ['onb.2.title', 'ADM / DIP / MIL Power', 'כוח ניהול / דיפלומטיה / צבא'],
   ['onb.2.body', 'Gold and Manpower fund your economy and army; three power pools — Administrative, Diplomatic, and Military — fund everything else: development, laws, research, and diplomacy. Every pool refills slowly each turn, so spend it deliberately.', 'זהב וכוח אדם מממנים את הכלכלה והצבא; שלושה מאגרי כוח, מנהלי, דיפלומטי וצבאי, מממנים את כל השאר: פיתוח, חוקים, מחקר ודיפלומטיה. כל מאגר מתמלא לאט בכל תור, אז הוציאו אותו בכוונה.'],
   ['onb.3.title', 'Stability & Authority', 'יציבות וסמכות'],

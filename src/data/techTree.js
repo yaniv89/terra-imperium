@@ -27,6 +27,7 @@ import { TechCategories } from './types';
 // not its position, so a tech can move to another age (or an age be added) keeping its id and saves.
 const CATEGORY_LINES = {
   [TechCategories.MILITARY]: [
+    { name: 'Hunting Bands', age: 'stone' }, { name: 'Copper Working', age: 'stone' },
     { name: 'Bronze Casting', age: 'bronze' }, { name: 'Composite Bow', age: 'bronze' },
     { name: 'Iron Weapons', age: 'classical' }, { name: 'Siege Engineering', age: 'classical' },
     { name: 'Feudal Levies', age: 'kingdoms' }, { name: 'Plate Armor', age: 'kingdoms' },
@@ -34,6 +35,7 @@ const CATEGORY_LINES = {
     { name: 'Mechanized Warfare', age: 'modern' }, { name: 'Precision Guidance', age: 'modern' }
   ],
   [TechCategories.ECONOMY]: [
+    { name: 'Agriculture', age: 'stone' }, { name: 'Animal Husbandry', age: 'stone' },
     { name: 'Bronze Trade Routes', age: 'bronze' }, { name: 'Granary Storage', age: 'bronze' },
     { name: 'Minted Coinage', age: 'classical' }, { name: 'Silk Road Trade', age: 'classical' },
     { name: 'Guild Charters', age: 'kingdoms' }, { name: 'Banking Houses', age: 'kingdoms' },
@@ -41,6 +43,7 @@ const CATEGORY_LINES = {
     { name: 'Industrial Capital', age: 'modern' }, { name: 'Global Markets', age: 'modern' }
   ],
   [TechCategories.INFRASTRUCTURE]: [
+    { name: 'Pottery', age: 'stone' }, { name: 'The Wheel', age: 'stone' },
     { name: 'Irrigation Canals', age: 'bronze' }, { name: 'Mudbrick Roads', age: 'bronze' },
     { name: 'Paved Roads', age: 'classical' }, { name: 'Aqueducts', age: 'classical' },
     { name: 'Stone Bridges', age: 'kingdoms' }, { name: 'Postal Relay', age: 'kingdoms' },
@@ -48,6 +51,7 @@ const CATEGORY_LINES = {
     { name: 'Rail Networks', age: 'modern' }, { name: 'Highway Systems', age: 'modern' }
   ],
   [TechCategories.GOVERNANCE]: [
+    { name: 'Chiefdoms', age: 'stone' }, { name: 'Sacred Kingship', age: 'stone' },
     { name: 'Code of Laws', age: 'bronze' }, { name: 'Scribal Bureaucracy', age: 'bronze' },
     { name: 'Civic Assemblies', age: 'classical' }, { name: 'Provincial Administration', age: 'classical' },
     { name: 'Feudal Charters', age: 'kingdoms' }, { name: 'Royal Chancery', age: 'kingdoms' },
@@ -55,6 +59,7 @@ const CATEGORY_LINES = {
     { name: 'Civil Service', age: 'modern' }, { name: 'Digital Administration', age: 'modern' }
   ],
   [TechCategories.SCIENCE]: [
+    { name: 'Star Lore', age: 'stone' }, { name: 'Proto-Writing', age: 'stone' },
     { name: 'Cuneiform Records', age: 'bronze' }, { name: 'Early Astronomy', age: 'bronze' },
     { name: 'Geometry', age: 'classical' }, { name: 'Natural Philosophy', age: 'classical' },
     { name: 'Scholastic Method', age: 'kingdoms' }, { name: 'Optics', age: 'kingdoms' },
@@ -69,6 +74,19 @@ const CATEGORY_LINES = {
 // doesn't yet split tax/production/trade into separate national multipliers (M11's job), so they
 // share the one hook exactly like Set Tax Rate already does.
 const TECH_EFFECTS = {
+  // Stone Age (eight-ages plan U27, effects from plans/eras-origins-and-future.md 5.4). No power-pool
+  // hooks (KTD20): Chiefdoms' +1 ADM, Sacred Kingship's +1 MIL and Star Lore's +1 DIP take a stability,
+  // manpower or gold effect of equal size. TODO(differentiation plan KTD5): map them to its levers.
+  'Hunting Bands': { hrMult: 0.10 },
+  'Copper Working': { goldMult: 0.05 }, // mines and copper armies come with U31
+  'Agriculture': { popGrowthBonus: 0.002 },
+  'Animal Husbandry': { popGrowthBonus: 0.001 }, // pastures come with U31
+  'Pottery': { popGrowthBonus: 0.001 },
+  'The Wheel': { supplyRange: 1 },
+  'Chiefdoms': { stabilityBonus: 0.5 },
+  'Sacred Kingship': { hrMult: 0.10 },
+  'Star Lore': { goldMult: 0.05 },
+  'Proto-Writing': { techPointsMult: 0.10 },
   // Military
   'Feudal Levies': { hrMult: 0.15 },
   'Standing Armies': { milBonus: 1 },
@@ -109,6 +127,8 @@ const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^
 // same age or an earlier one, so the lines cross (Siege Engineering needs Iron Weapons and
 // Geometry). Name -> [name]. Resolved to ids in buildLine; research.js reads every prerequisite.
 export const CROSS_PREREQUISITES = {
+  'The Wheel': ['Animal Husbandry'],
+  'Code of Laws': ['Proto-Writing'],
   'Siege Engineering': ['Geometry'],
   'Plate Armor': ['Guild Charters'],
   'Gunpowder Weapons': ['Natural Philosophy'],
@@ -131,7 +151,7 @@ const idOfName = (name) => { for (const [category, entries] of Object.entries(CA
 const crossPrerequisites = (name) => (CROSS_PREREQUISITES[name] || []).map(idOfName);
 
 // The old techPoints cost kept on each tech as data (research.js prices techs by age instead).
-const LEGACY_TECH_POINTS_BY_AGE = { bronze: 10, classical: 25, kingdoms: 40, gunpowder: 55, modern: 70 };
+const LEGACY_TECH_POINTS_BY_AGE = { stone: 5, bronze: 10, classical: 25, kingdoms: 40, gunpowder: 55, modern: 70 };
 
 const buildLine = (category, entries) => {
   const techs = {};

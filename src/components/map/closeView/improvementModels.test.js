@@ -73,7 +73,7 @@ describe('improvement models: files and lookup', () => {
       expect(name.split('-')[1], f).toBe(p.age);
     });
     const base = files.filter((f) => !waiting(f.replace('.glb', ''))).filter((f) => parseImprovementFile(f.replace('.glb', '')).style === 'base').map((f) => f.replace('.glb', '')).sort();
-    expect(base).toEqual(['camp-bronze', 'farm-bronze', 'farm-modern', 'fishing_boats-bronze', 'fishing_boats-modern', 'fort-classical', 'fort-gunpowder', 'fort-kingdoms', 'fort-modern', 'lumber_camp-bronze', 'mine-bronze', 'mine-modern',
+    expect(base).toEqual(['camp-bronze', 'camp-stone', 'farm-bronze', 'farm-modern', 'farm-stone', 'fishing_boats-bronze', 'fishing_boats-modern', 'fishing_boats-stone', 'fort-classical', 'fort-gunpowder', 'fort-kingdoms', 'fort-modern', 'fort-stone', 'lumber_camp-bronze', 'mine-bronze', 'mine-modern',
       'pasture-bronze', 'plantation-bronze', 'quarry-bronze', 'road-bronze', 'road-modern']);
     const israelite = files.filter((f) => f.endsWith('-israelite.glb')).sort();
     expect(israelite).toEqual(['farm-bronze-israelite.glb', 'fishing_boats-bronze-israelite.glb', 'fort-bronze-israelite.glb', 'fort-modern-israelite.glb', 'pasture-bronze-israelite.glb', 'plantation-bronze-israelite.glb']);
@@ -100,7 +100,7 @@ describe('improvement models: files and lookup', () => {
     expect(improvementModel('fort', 'modern', 'israelite').name).toBe('fort-modern-israelite');
     expect(improvementModel('fort', 'modern', 'europe').name).toBe('fort-modern'); // the bunker line in the Modern Age
     expect(improvementModel('fort', 'gunpowder', 'europe').name).toBe('fort-gunpowder');
-    expect(improvementModelUrl('fort', 'bronze', 'europe')).toBeNull();
+    expect(improvementModelUrl('fort', 'bronze', 'europe')).toMatch(/fort-stone/); // the Stone fort until a later one
     expect(improvementModelUrl('oil_well', 'modern', 'europe')).toBeNull();
     expect(improvementRoot({ 'farm-bronze-israelite': 1, x: 2 }, 'farm-bronze-israelite')).toBe(1);
     expect(improvementRoot({ x: 2 }, 'farm-bronze-israelite')).toBe(2);

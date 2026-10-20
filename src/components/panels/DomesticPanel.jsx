@@ -49,6 +49,7 @@ import { askConfirm } from '../ui/ConfirmActionDialog';
 import { changeLawConfirm } from '../ui/confirmSpecs';
 import { powerPoolsShort, POWER_POOL_HELP } from '../../data/powerPools';
 import { ageOf } from '../../engine/nationState';
+import { stonePhaseOf } from '../../engine/stonePhase';
 
 const DomesticPanel = () => {
   useT(); // redraw when the language changes
@@ -349,7 +350,7 @@ const DomesticPanel = () => {
   };
 
   const currentGovernmentType = GOVERNMENT_TYPES[playerNation?.government?.type];
-  const availableGovernmentTypes = getAvailableGovernmentTypes(ageOf(state, state.playerNationId), playerNation?.identity)
+  const availableGovernmentTypes = getAvailableGovernmentTypes(ageOf(state, state.playerNationId), playerNation?.identity, stonePhaseOf(state, state.playerNationId))
     .filter((t) => t.id !== playerNation?.government?.type);
   const activeReforms = getActiveReforms(playerNation);
   const currentAgeReformChoices = playerNation?.government ? getReformChoices(playerNation.government.type, ageOf(state, state.playerNationId)) : [];
@@ -374,7 +375,7 @@ const DomesticPanel = () => {
           description={preview.ok ? tNow('p1.dom.becomeTap', { lines: governmentCardLines(preview) }) : tNow('p1.dom.becomeReset')}
           costs={ACTION_COSTS.changeGovernmentType}
           onClick={() => handleChangeGovernmentType(gov.id)}
-          disabled={!canAfford(state.resources, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, ageOf(state, state.playerNationId))}
+          disabled={!canAfford(state.resources, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId))}
           resources={state.resources}
           size="small"
         />

@@ -17,7 +17,7 @@ import { CITY_SPACING_KM, citySpacingRings, sameLandmass } from '../../data/geo/
 import { ringsAround } from '../../engine/world/cities';
 import { tileFacts, tileYields, resourceKnown } from '../../data/tileYields';
 import { getResearched } from '../../engine/nationState';
-import { canSettle, siteQualityParts, siteRatingOf, bestSites, siteOutlook, outpostTurns, MAX_SETTLE_RINGS } from '../../engine/settlers';
+import { canSettle, bandsOf, canFoundVillage, siteQualityParts, siteRatingOf, bestSites, siteOutlook, outpostTurns, MAX_SETTLE_RINGS } from '../../engine/settlers';
 import { pickCityName } from '../../engine/cityNames';
 import { isExplored } from '../../engine/fog';
 import { t } from '../../i18n/core';
@@ -78,7 +78,9 @@ export const settleSiteModel = (state, tile, ageId) => {
   const me = state.playerNationId;
   const facts = tileFacts(tiles, tile, state.world?.tileState?.[tile]);
   const yields = tileYields(facts, getResearched(state, me));
-  const can = canSettle(state, tile, me, ageId);
+  // A Stone Age band founds its first village at once, within its range (settlers.js, U23).
+  const band = bandsOf(state.units, me)[0];
+  const can = band ? canFoundVillage(state, band, tile) : canSettle(state, tile, me, ageId);
   const tileOwner = state.world?.tileOwner || {};
   const need = citySpacingRings(tiles);
   const near = ringsAround(tiles, tile, need + 3);
@@ -115,8 +117,8 @@ export const settleSiteModel = (state, tile, ageId) => {
     reason = ring == null ? reason.replace(/\.$/, '') : t('st.tooClose', { who, rings: ring, km, need });
   } else if (reason) reason = reason.replace(/\.$/, '');
   // What founding here would start (only for land nobody owns: a site).
-  const stage = free ? outpostTurns(state, tile, ageId) : null;
-  const cityName = free ? pickCityName(state.regions, tiles, tile, me) : null;
+  const stage = free && !band ? outpostTurns(state, tile, ageId) : null;
+  const cityName = band?.band.home === tile ? band.band.name : free ? pickCityName(state.regions, tiles, tile, me) : null;
   if (can.ok && cityName) lines.push({ id: 'name', text: t('st.named', { name: nameNow('city', null, cityName) }) });
   if (can.ok && stage) lines.push({ id: 'outpost', text: t('st.outpost', { count: stage }) });
   return {

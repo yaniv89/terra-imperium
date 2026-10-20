@@ -41,7 +41,7 @@ import { PEOPLES } from '../data/peoples';
 // migrate10to11). Version 12 adds fog of war (src/engine/fog.js: explored maps, contacts, the
 // last-seen picture, arrays saved run-length encoded); a save from before it loads and starts its
 // fog from where its cities stand now (migrate11to12). A version 10 save runs both steps.
-export const CURRENT_SAVE_VERSION = 16;
+export const CURRENT_SAVE_VERSION = 17;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -382,9 +382,14 @@ export const migrate15to16 = (state) => ({
     : omit(n, ['sameDynastyStreak'])]))
 });
 
+// v17: the Stone Age is the first age (eight-ages plan U22, U27, KTD10). Every nation of an older
+// save already stood in a later age, so it gets the Stone techs it never had to research; its age
+// stays what it was (withAgesResearched never lowers an age).
+export const migrate16to17 = (state) => Object.keys(state.nations || {}).sort().reduce((s, id) => (id === s.playerNationId || s.nations[id]?.tech ? withAgesResearched(s, id, ageOf(s, id)) : s), state);
+
 // Versions 6 to 9 are never migrated (an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16 };
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16, 16: migrate16to17 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.

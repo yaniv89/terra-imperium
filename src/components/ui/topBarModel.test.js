@@ -19,7 +19,7 @@ describe('the world top bar (U1, plans/UI-DESIGN.md section 2)', () => {
     expect(m.food.reasons.find((r) => r.id === cap)).toMatchObject({ value: 3 });
     expect(m.culture.perTurn).toBe(2);
     expect(m.culture.reasons).toEqual([{ id: cap, label: base.regions[cap].name, value: 2 }]);
-    expect(m.year).toBe('2000 BCE');
+    expect(m.year).toBe('c. 5000 BCE'); // a new game starts in the Stone Age
     expect(m.turn).toBe(base.turnNumber);
     expect(m.warLabel).toBeNull();
   });

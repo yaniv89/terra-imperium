@@ -25,7 +25,8 @@ import { LogTypes } from '../data/types';
 import { msg, thing, carry, people } from './messages';
 import { getModifier } from './modifiers/sheet';
 import { withDiffusion } from './techDiffusion';
-import { ageOf } from './nationState';
+import { ageOf, getResearched } from './nationState';
+import { WRITING_TECH, NO_WRITING_COST_MULT } from './stonePhase';
 import { awardEraLegacy } from './eraGoals';
 import { isIndependentNation } from '../data/independents';
 
@@ -34,7 +35,7 @@ import { isIndependentNation } from '../data/independents';
 // peoples world, Normal, seeds 11 to 13, 300 turns) to KTD9's target turns: about half the majors
 // past Bronze at turn 48 and past Classical at turn 157, Kingdoms ending near 324. Gunpowder and
 // Modern are first guesses past the 300 turns measured (eight-age calibration, U96).
-export const RESEARCH_AGE_BASE = { bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 6000 };
+export const RESEARCH_AGE_BASE = { stone: 12, bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 6000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
 // A safety cap on techs completed in one turn (a big bank paid into cheap techs).
@@ -62,7 +63,8 @@ export const getResearchCost = (state, nationId, techId) => {
   const base = RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern;
   const speed = speedCostMult(state.gameSpeed, techAgeOf(state, nationId)); // the speed table (ages.js, KTD9): keyed by the paying nation's own age
   const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
-  return Math.max(1, Math.round(base * speed * (1 + mult)));
+  const writing = getResearched(state, nationId).includes(WRITING_TECH) ? 1 : NO_WRITING_COST_MULT; // stonePhase.js: no writing, half the science
+  return Math.max(1, Math.round(base * speed * (1 + mult) * writing));
 };
 
 /** The research window (eight-ages plan KTD4): a nation may start techs of its own age and the next. */
@@ -143,22 +145,24 @@ export const deriveTechAge = (researched) => {
  * (never lowered). Era fixtures (later-era starts, kept for tests and the sandbox) use it so their
  * nations are in the fixture's age by research, the only way a nation has an age (KTD1).
  */
-export const withAgesResearched = (state, nationId, ageId) => {
-  const below = AGE_ORDER.slice(0, Math.max(0, AGE_ORDER.indexOf(ageId))).flatMap((a) => getTechsForAge(a).map((t) => t.id));
+export const withAgesResearched = (state, nationId, ageId) => withTechsResearched(state, nationId, AGE_ORDER.slice(0, Math.max(0, AGE_ORDER.indexOf(ageId))).flatMap((a) => getTechsForAge(a).map((t) => t.id)));
+
+/** The state with `ids` (tech ids) researched by a nation, its age re-derived (never lowered). */
+export const withTechsResearched = (state, nationId, ids) => {
   const researched = researchedSetOf(state, nationId);
-  below.forEach((id) => researched.add(id));
+  ids.forEach((id) => researched.add(id));
   const derived = deriveTechAge(researched);
   const current = techAgeOf(state, nationId);
   const techAgeId = AGE_ORDER.indexOf(current) > AGE_ORDER.indexOf(derived) ? current : derived;
   if (isPlayer(state, nationId)) {
     const techTree = { ...state.techTree };
-    below.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    ids.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
     return { ...state, techTree, techAgeId };
   }
   const nation = state.nations[nationId];
   if (!nation) return state;
   const list = [...(nation.tech?.researched || [])];
-  below.forEach((id) => { if (!list.includes(id)) list.push(id); });
+  ids.forEach((id) => { if (!list.includes(id)) list.push(id); });
   return { ...state, nations: { ...state.nations, [nationId]: { ...nation, tech: { ...nation.tech, researched: list, ageId: techAgeId } } } };
 };
 

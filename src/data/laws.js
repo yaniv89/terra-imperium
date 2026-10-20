@@ -15,6 +15,7 @@ import { TECH_TREE } from './techTree';
 import { leansPositive, leansNegative } from './identity';
 import { getGovernmentReformEffectSum } from './government';
 import { canEnactLaws } from '../engine/authority';
+import { stonePhaseOf, VILLAGE_LAW_CATEGORIES } from '../engine/stonePhase';
 
 export const LAW_CATEGORIES = {
   taxation: [
@@ -89,6 +90,7 @@ export const canEnactLaw = (state, nationId, category, lawId) => {
     if (!researched) return false;
   }
   if (!checkIdentityGate(nation.identity, law.requiresIdentity)) return false;
+  if (!VILLAGE_LAW_CATEGORIES.includes(category) && stonePhaseOf(state, nationId) === 'village') return false; // a village has land and justice laws only
   if (!canEnactLaws(state, nationId)) return false; // authority under AUTHORITY_NO_LAWS (authority.js)
   const cooldownUntil = nation.lawCooldowns?.[category] || 0;
   return (state.turnNumber || 0) >= cooldownUntil;

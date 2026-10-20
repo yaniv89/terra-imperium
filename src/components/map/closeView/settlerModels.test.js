@@ -40,7 +40,7 @@ describe('settler models', () => {
   });
 
   it('the close view hides the disc of a modelled settler but keeps its tap target; the far map keeps the disc', () => {
-    const state = { playerNationId: 'me', age: 'bronze', nations: {}, units: { a: { id: 'a', classId: 'settler', ownerId: 'me', tile: 5 } } };
+    const state = { playerNationId: 'me', techAgeId: 'bronze', nations: {}, units: { a: { id: 'a', classId: 'settler', ownerId: 'me', tile: 5 } } };
     const projection = () => [100, 100];
     const at = (k, modelled) => settlerSprites({ state, projection, k, isVisible: () => true, dpr: 1, modelled });
     const modelled = settlerModelled(state, { find, has: () => true });

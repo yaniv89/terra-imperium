@@ -39,9 +39,9 @@ describe('GOVERNMENT_TYPES / GOVERNMENT_REFORMS data integrity', () => {
     });
   });
 
-  it('Tribal and Theocracy are available from Bronze; Republic only from Classical; Dictatorship only from Modern', () => {
-    expect(getGovernmentType('tribal').minAgeId).toBe('bronze');
-    expect(getGovernmentType('theocracy').minAgeId).toBe('bronze');
+  it('Tribal from the Stone Age, Theocracy from its first cities; Republic only from Classical; Dictatorship only from Modern', () => {
+    expect(getGovernmentType('tribal').minAgeId).toBe('stone');
+    expect(getGovernmentType('theocracy')).toMatchObject({ minAgeId: 'stone', minPhase: 'cities' });
     expect(getGovernmentType('republic').minAgeId).toBe('classical');
     expect(getGovernmentType('dictatorship').minAgeId).toBe('modern');
   });

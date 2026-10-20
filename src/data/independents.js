@@ -10,7 +10,7 @@
 //
 // Pure data and small pure functions: no engine imports, so diplomacy.js, aiLogic.js and the map
 // can all read `isIndependent` without an import cycle.
-import { AGE_ORDER, FIRST_AGE_ID } from './ages';
+import { FIRST_AGE_ID, ageStep } from './ages';
 
 export const INDEPENDENT_KIND = 'independent';
 
@@ -31,7 +31,7 @@ export const everyMajorThinks = (state) => state?.scenario?.mode === 'peoples' |
 /** An independent's city grows to 4 + the age's rank (Bronze 4 ... Modern 8), never past 9. */
 export const INDEPENDENT_SIZE_BASE = 4;
 export const INDEPENDENT_SIZE_MAX = 9;
-export const independentSizeCap = (ageId = FIRST_AGE_ID) => Math.min(INDEPENDENT_SIZE_MAX, INDEPENDENT_SIZE_BASE + Math.max(0, AGE_ORDER.indexOf(ageId)));
+export const independentSizeCap = (ageId = FIRST_AGE_ID) => Math.min(INDEPENDENT_SIZE_MAX, INDEPENDENT_SIZE_BASE + ageStep(ageId));
 
 /** Its border reaches this far from the city (the plan's 2 rings at frequency 75, in km: master plan
  * section 3, "Distances"); about 3 rings at frequency 100. */
@@ -106,7 +106,7 @@ export const personalityFor = (tiles, tile, key = '') => {
 // Names (independents 14.2): the people's name plus a form by personality and age band.
 // "{people}" is the adjective ("the Colchian tribes"), "{city}" the city's name.
 
-export const AGE_BAND = { bronze: 'early', classical: 'early', kingdoms: 'early', gunpowder: 'middle', modern: 'modern' };
+export const AGE_BAND = { stone: 'early', bronze: 'early', classical: 'early', kingdoms: 'early', gunpowder: 'middle', modern: 'modern' };
 export const INDEPENDENT_TITLE_FORMS = {
   tribal: { early: 'the {people} tribes', middle: 'the {people} confederacy', modern: 'the {people} autonomous region' },
   raiders: { early: 'the {people} horde', middle: 'the {people} horde', modern: '{people} militias' },
@@ -182,7 +182,7 @@ export const RAID_RECOVER_TURNS = 5;
 /** A party that meets an enemy army on its way fights it only when this much stronger, else goes home. */
 export const RAID_FIGHT_RATIO = 1.2;
 /** Late ages raid less (independents 3.4): insurgents and militias. */
-export const RAID_ERA_FACTOR = { bronze: 1, classical: 1, kingdoms: 1, gunpowder: 0.8, modern: 0.5 };
+export const RAID_ERA_FACTOR = { stone: 1.2, bronze: 1, classical: 1, kingdoms: 1, gunpowder: 0.8, modern: 0.5 };
 
 /** Loot, in gold (independents 4.3). An improvement: the threat.js RAID_GOLD of a pillage. A trade
  * route tile: PLUNDER_GOLD x 2 (plunder.js), taken from the victim, and the route is cut while the
@@ -228,7 +228,7 @@ export const TRIBUTE_STRENGTH_RATIO = 1.5;
 export const TRIBUTE_DEMAND_CHANCE = 0.15;
 export const TRIBUTE_DEMAND_COOLDOWN_REF_TURNS = 12; // reference turns between two demands to the same nation (ages.js speedTurns: 20 at Normal, as before)
 export const TRIBUTE_ANSWER_TURNS = 3;      // the player's answer; silence is a refusal
-export const tributeGold = (ageId = FIRST_AGE_ID) => 2 + Math.max(0, AGE_ORDER.indexOf(ageId));
+export const tributeGold = (ageId = FIRST_AGE_ID) => 2 + ageStep(ageId);
 
 /** Mercenaries (independents 5, master plan 6.7): mercantile and raiders independents sell bands
  * of one unit, MERC_STOCK at most, one more every MERC_RESTOCK_TURNS. A band costs mercPrice at
@@ -241,8 +241,8 @@ export const MERC_RESTOCK_TURNS = 10;
 export const MERC_CONTRACT_TURNS = 20;
 export const MERC_KM = 1224;
 export const MERC_MAX_GRUDGE = 50;
-export const mercPrice = (ageId = FIRST_AGE_ID) => 60 + 25 * Math.max(0, AGE_ORDER.indexOf(ageId));
-export const mercUpkeep = (ageId = FIRST_AGE_ID) => 3 + Math.max(0, AGE_ORDER.indexOf(ageId));
+export const mercPrice = (ageId = FIRST_AGE_ID) => 60 + 25 * ageStep(ageId);
+export const mercUpkeep = (ageId = FIRST_AGE_ID) => 3 + ageStep(ageId);
 /** The AI: a major at war with MERC_AI_GOLD_MULT x the price in gold hires a band, at most
  * MERC_AI_MAX at once, thinking every MERC_AI_PERIOD turns. Never at peace: bands bought by majors
  * that were raided tipped AI wars on weak neighbours in the balance-sim (3 of 8 seeds). */
@@ -331,7 +331,7 @@ export const TRADE_KM = 1224;
 export const TRADE_MAX_PARTNERS = 3;
 export const TRADE_MAX_GRUDGE = 30;
 export const TRADE_AI_CHANCE = 0.3;
-export const tradeGoldOf = (ageId = FIRST_AGE_ID) => 2 + Math.max(0, AGE_ORDER.indexOf(ageId));
+export const tradeGoldOf = (ageId = FIRST_AGE_ID) => 2 + ageStep(ageId);
 
 /** Razing (independents 5, decision 3): a captured city of any size loses RAZE_SIZE_PER_TURN size a
  * turn and is gone after size 1; while it burns it yields nothing and anyone who retakes it stops

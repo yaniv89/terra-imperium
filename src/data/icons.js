@@ -5,7 +5,7 @@
 // Assets come from scripts/icons/import-ui-icons.mjs. The colour file doubles as the mask: its
 // alpha is the delivered mask's, so CSS mask-image on it gives the tintable silhouette.
 import { BUILDING_CATEGORIES, EXTRACTION_BUILDINGS } from './buildings';
-import { AGE_ORDER } from './ages';
+import { AGE_ORDER, artAgeFor } from './ages';
 
 const files = import.meta.glob('../assets/icons/*/*.{svg,webp}', { eager: true, query: '?url', import: 'default' });
 
@@ -102,7 +102,7 @@ export const shipIconUrl = (lineId) => iconUrl('ships', lineId || 'warship');
 // City badges: size is the town tier (small / medium / big from the province's building count,
 // src/components/map/closeView/townTiers.js, the same tiers as the 3D towns), age the owner's.
 export const CITY_SIZES = ['small', 'medium', 'big'];
-export const cityIconUrl = (size, ageId) => iconUrl('cities', `city-${CITY_SIZES.includes(size) ? size : 'small'}-${AGE_ORDER.includes(ageId) ? ageId : 'bronze'}`);
+export const cityIconUrl = (size, ageId) => iconUrl('cities', `city-${CITY_SIZES.includes(size) ? size : 'small'}-${artAgeFor((a) => URLS.cities?.[`city-small-${a}`], ageId) || 'bronze'}`);
 
 export const ageIconUrl = (ageId) => iconUrl('ages', ageId);
 export const markerIconUrl = (kind) => iconUrl('markers', kind);

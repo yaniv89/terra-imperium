@@ -19,6 +19,7 @@ import { FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../../../data/ages';
 export { TOWN_TIERS, countBuildings, townTier } from './townTiers';
 
 export const AGE_STYLE = {
+  stone: { wall: '#a08a68', roof: '#8a7448', flatRoofs: false, stone: '#8f8574', accent: '#5e4a30' }, // mud, thatch
   bronze: { wall: '#c9a46c', roof: '#a8834a', flatRoofs: true, stone: '#a88a5c', accent: '#7c5a32' },
   classical: { wall: '#ece6d6', roof: '#b5532f', flatRoofs: false, stone: '#d8d2c0', accent: '#8a3b22' },
   kingdoms: { wall: '#d9cfb6', roof: '#5b4636', flatRoofs: false, stone: '#8f8f8a', accent: '#3f4b5c' },

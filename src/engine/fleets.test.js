@@ -27,7 +27,7 @@ const GB_ID = rivalOf(PEOPLES_WORLD, 2);
 
 const tiles = getTiles();
 const quiet = (s) => ({ ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((a, k) => ({ ...a, [k]: true }), {}), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
-const S = (() => { const s = quiet(neighbourWorld({ player: 'ahhiyawa', seed: 3 })); return { ...s, units: {} }; })();
+const S = (() => { const s = quiet(neighbourWorld({ player: 'ahhiyawa', seed: 3, age: 'bronze' })); return { ...s, units: {} }; })();
 const FR = getNationCapital(FR_ID);
 const fleet = (id, regionId, extra = {}) => ({ id, ownerId: FR_ID, regionId, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, transportCapacity: 2, embarkedOn: null, promotions: [], ...extra });
 const army = (id, regionId, extra = {}) => ({ id, ownerId: FR_ID, regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], ...extra });

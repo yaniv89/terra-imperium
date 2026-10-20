@@ -15,7 +15,8 @@
 // nothing pre-modern-census era can be). Values are SHARE of the ~2024 baseline (see the 2024
 // anchor = 1.0), not raw counts, since that's the ratio getDisplayPopulation actually needs.
 const POPULATION_ANCHORS = [
-  { year: -2000, share: 0.0027 }, // ~27M world population
+  { year: -5000, share: 0.0006 }, // ~5M world population
+  { year: -2000, share: 0.0027 }, // ~27M
   { year: -1000, share: 0.006 },  // ~50M
   { year: -500, share: 0.0123 },  // ~100M
   { year: 1, share: 0.0247 },     // ~200M

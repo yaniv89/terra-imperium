@@ -227,7 +227,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const peopleName = (p) => nm('people', p.id, p.name);
   const last = START_STEPS.length - 1;
 
-  const begin = useCallback(() => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, cityStates, seed: newWorldSeed(), map: mapSpec }, exploredWorld }),
+  const begin = useCallback(() => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, cityStates, seed: newWorldSeed(), map: mapSpec, band: true }, exploredWorld }),
     [onStart, selectedId, gameSpeed, difficultyId, worldSize, cityStates, mapSpec, exploredWorld]);
   // The guided start teaches on the Nile: always the real Earth.
   const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed(), map: { kind: 'earth' } }, guided: true, exploredWorld });

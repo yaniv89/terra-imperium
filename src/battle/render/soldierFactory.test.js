@@ -33,7 +33,7 @@ describe('soldier models', () => {
         const limbs = new Set(geo.attributes.aLimb.array);
         const walker = ['infantry', 'ranged'].includes(classId) || (classId === 'support' && ageId !== 'bronze' && ageId !== 'modern');
         if (walker) { expect(limbs.has(LIMB.LEG_L)).toBe(true); expect(limbs.has(LIMB.ARM_R)).toBe(true); }
-        if (classId === 'cavalry' && ageId !== 'modern') expect(limbs.has(LIMB.HORSE_FRONT)).toBe(true);
+        if (classId === 'cavalry' && ageId !== 'modern' && ageId !== 'stone') expect(limbs.has(LIMB.HORSE_FRONT)).toBe(true); // Stone runners go on foot
         expect(Number.isFinite(geo.boundingSphere.radius)).toBe(true);
       });
     });

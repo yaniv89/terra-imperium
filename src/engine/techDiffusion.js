@@ -32,7 +32,7 @@ export const CATCHUP_MAX = 0.45;
 export const TRADE_CONTACT_WEIGHT = 2;
 export const PIONEER_MULT = 1.2;
 // How far a capital "knows" other capitals, by the reach age (km): see reachAgeOf.
-export const CONTACT_KM = { bronze: 1500, classical: 2500, kingdoms: 4000, gunpowder: 10000, modern: 40000 };
+export const CONTACT_KM = { stone: 900, bronze: 1500, classical: 2500, kingdoms: 4000, gunpowder: 10000, modern: 40000 };
 
 // techId -> Set of nations that have it. Cached per (nations, techTree) object pair: the index is
 // rebuilt only when either changes identity, so a turn's many lookups share one pass.

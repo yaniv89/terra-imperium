@@ -8,12 +8,13 @@ import { AGES, FIRST_AGE_ID } from './ages';
 export const ERA_GOALS_FOR_LEGACY = 2;
 export const ERA_LEGACY_TURNS = 50;
 
+// Science counts every tech known, the ten Stone techs too: Bronze on add 10 to the old targets.
 export const PLAYSTYLES = {
-  expand: { label: 'Expand', targets: { bronze: 4, classical: 6, kingdoms: 9, gunpowder: 12, modern: 16 }, unit: 'cities', mods: { 'national.popGrowthBonus': 0.1 }, bonusLabel: '+10% population growth' },
-  wealth: { label: 'Wealth', targets: { bronze: 1, classical: 2, kingdoms: 3, gunpowder: 4, modern: 5 }, unit: 'trade agreements', mods: { 'national.goldMult': 0.1 }, bonusLabel: '+10% gold' },
-  war: { label: 'War', targets: { bronze: 1, classical: 2, kingdoms: 3, gunpowder: 4, modern: 5 }, unit: 'cities taken', mods: { 'national.milBonus': 1 }, bonusLabel: '+1 military power a turn' },
-  culture: { label: 'Culture', targets: { bronze: 1, classical: 2, kingdoms: 3, gunpowder: 4, modern: 5 }, unit: 'wonders', mods: { 'national.stabilityBonus': 1 }, bonusLabel: '+1 stability' },
-  science: { label: 'Science', targets: { bronze: 4, classical: 8, kingdoms: 14, gunpowder: 20, modern: 28 }, unit: 'techs', mods: { 'national.researchCost': -0.1 }, bonusLabel: '-10% research cost' }
+  expand: { label: 'Expand', targets: { stone: 2, bronze: 4, classical: 6, kingdoms: 9, gunpowder: 12, modern: 16 }, unit: 'cities', mods: { 'national.popGrowthBonus': 0.1 }, bonusLabel: '+10% population growth' },
+  wealth: { label: 'Wealth', targets: { stone: 1, bronze: 1, classical: 2, kingdoms: 3, gunpowder: 4, modern: 5 }, unit: 'trade agreements', mods: { 'national.goldMult': 0.1 }, bonusLabel: '+10% gold' },
+  war: { label: 'War', targets: { stone: 1, bronze: 1, classical: 2, kingdoms: 3, gunpowder: 4, modern: 5 }, unit: 'cities taken', mods: { 'national.milBonus': 1 }, bonusLabel: '+1 military power a turn' },
+  culture: { label: 'Culture', targets: { stone: 1, bronze: 1, classical: 2, kingdoms: 3, gunpowder: 4, modern: 5 }, unit: 'wonders', mods: { 'national.stabilityBonus': 1 }, bonusLabel: '+1 stability' },
+  science: { label: 'Science', targets: { stone: 4, bronze: 14, classical: 18, kingdoms: 24, gunpowder: 30, modern: 38 }, unit: 'techs', mods: { 'national.researchCost': -0.1 }, bonusLabel: '-10% research cost' }
 };
 
 // What to do next for each goal, in one plain line (the map goal tracker, I149).

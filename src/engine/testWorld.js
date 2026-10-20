@@ -9,6 +9,7 @@ import { syncWorldRegistry } from './world/registry';
 import { getNationCapital, getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getTouchingIds } from '../data/regions';
 import { createInitialState } from './gameReducer';
+import { withAgesResearched } from './research';
 
 export const cap = (nationId) => getNationCapital(nationId);
 
@@ -121,9 +122,14 @@ export const growCities = (state, nationId, { size = 8, categories = { science: 
 // state is built once per argument set and shared: tests spread over it and never mutate it.
 // `independents: false` leaves the independent cities out (majors only), the cheap default.
 const peoplesCache = new Map();
-export const peoplesWorld = ({ player = 'akkad', seed = 11, size = 'small', independents = false, fog = true } = {}) => {
-  const key = `${player}|${seed}|${size}|${independents}|${fog}`;
-  if (!peoplesCache.has(key)) peoplesCache.set(key, createInitialState({ playerNationId: player, rngSeed: seed, fog, scenario: { mode: 'peoples', size, seed, independents } }));
+// `age`: an era start for tests written for a later age: every nation knows the earlier ages' techs
+// (a new game starts in the first age).
+export const peoplesWorld = ({ player = 'akkad', seed = 11, size = 'small', independents = false, fog = true, age = null } = {}) => {
+  const key = `${player}|${seed}|${size}|${independents}|${fog}|${age}`;
+  if (!peoplesCache.has(key)) {
+    const s = createInitialState({ playerNationId: player, rngSeed: seed, fog, scenario: { mode: 'peoples', size, seed, independents } });
+    peoplesCache.set(key, age ? Object.keys(s.nations).sort().reduce((x, id) => (id === x.playerNationId || x.nations[id].tech ? withAgesResearched(x, id, age) : x), s) : s);
+  }
   return peoplesCache.get(key);
 };
 

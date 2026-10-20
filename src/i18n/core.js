@@ -86,6 +86,8 @@ export const formatNumber = (n, opts, lang = current) => {
 };
 export const formatYear = (year, lang = current) => {
   if (!Number.isFinite(year)) return '';
+  // Before 2000 BCE a date is an estimate: "c. 4200 BCE" (eight-ages plan U22).
+  if (year < -2000) return translate('year.bceCirca', { n: formatNumber(-year, { useGrouping: false }, lang) }, lang);
   return year < 0 ? translate('year.bce', { n: formatNumber(-year, { useGrouping: false }, lang) }, lang) : translate('year.ce', { n: formatNumber(year, { useGrouping: false }, lang) }, lang);
 };
 
