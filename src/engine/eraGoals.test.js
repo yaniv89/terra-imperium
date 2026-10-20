@@ -27,6 +27,12 @@ describe('era goals', () => {
     expect(playstyleValues({ ...s2, regions: old }).war).toBe(1);
   });
 
+  it('raids won count for the War goal in the Stone Age only', () => {
+    const won = { ...S, nations: { ...S.nations, [FR_ID]: { ...S.nations[FR_ID], battleStats: { won: 2, lost: 0, taken: 0, raidsWon: 2 } } } };
+    expect(playstyleValues(won, FR_ID, 'stone').war).toBe(2);
+    expect(playstyleValues(won, FR_ID, 'bronze').war).toBe(0);
+  });
+
   it('reads the player\'s numbers and the age\'s targets', () => {
     const v = playstyleValues(S);
     expect(v.expand).toBe(1);

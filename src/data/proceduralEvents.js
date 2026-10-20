@@ -20,12 +20,15 @@
 import { getTiles } from './geo/tiles';
 import { CLIMATE_RESILIENCE_THRESHOLD } from './actionCosts';
 import { speedCostMult, AGES, FIRST_AGE_ID } from './ages';
+import { ageOf } from '../engine/nationState';
 
 const mine = (state) => Object.values(state.regions || {}).filter((c) => c.owner === state.playerNationId && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
 const facts = (c) => { const t = getTiles(); return { river: !!t.rivers[c.tile], coastal: t.coastal[c.tile] === 1, lat: t.latLonOf(c.tile).lat }; };
 // A city whose land touches land nobody or someone else owns.
 const frontier = (state, c) => { const t = getTiles(); const owner = state.world?.tileOwner || {}; return (c.tiles || [c.tile]).some((x) => t.neighbors[x].some((n) => t.land[n] === 1 && (owner[n] == null || state.regions[owner[n]]?.owner !== c.owner))); };
 const foreignMajority = (c) => { const cu = c.culture || {}; const own = cu[c.owner] || 0; return Object.entries(cu).some(([id, v]) => id !== c.owner && v > own); };
+// Stone Age flavour: the first age's own small troubles and omens (U33).
+const firstAge = (state) => ageOf(state, state.playerNationId) === FIRST_AGE_ID;
 const starving = (c) => (c.lastYields?.food ?? 0) < 0;
 const unprepared = (c) => (c.climateResilience || 0) < CLIMATE_RESILIENCE_THRESHOLD;
 // A granary is the food line's first tier (buildings.js): text that talks about granaries only
@@ -53,6 +56,76 @@ const onCooldown = (state, key, kind) => {
 };
 
 const PROCEDURAL_TEMPLATES = [
+  {
+    id: 'good_harvest',
+    family: 'food',
+    weight: 8,
+    candidates: (state) => (firstAge(state) ? mine(state) : []),
+    build: (state, rng, city) => ({
+      title: 'A Good Harvest',
+      description: `The fields and gathering grounds around ${city.name} give more than anyone remembers, and there is food to spare.`,
+      options: [
+        { label: 'Hold a feast and store the rest', effects: { cityFood: 10, cityLoyalty: 5 } },
+        { label: 'Trade the surplus to travellers', effects: { gold: 50 } }
+      ]
+    })
+  },
+  {
+    id: 'sick_herds',
+    family: 'food',
+    weight: 7,
+    candidates: (state) => (firstAge(state) ? mine(state) : []),
+    build: (state, rng, city) => ({
+      title: 'Sick Herds',
+      description: `A sickness runs through the herds around ${city.name}, and the herders fear for their flocks.`,
+      options: [
+        { label: 'Cull the sick animals', effects: { cityFood: -5, gold: -20 } },
+        { label: 'Drive the herds to clean pasture', effects: { cityFood: -10, controlBonus: 3 } }
+      ]
+    })
+  },
+  {
+    id: 'comet',
+    family: 'omen',
+    weight: 5,
+    candidates: (state) => (firstAge(state) ? mine(state) : []),
+    build: (state, rng, city) => ({
+      title: 'A Comet in the Sky',
+      description: `A bright star with a tail crosses the sky above ${city.name}, and the people ask what it foretells.`,
+      options: [
+        { label: 'Let the watchers of the sky read it', effects: { techPoints: 15, cityUnrest: 5 } },
+        { label: 'Call it a sign of favour', effects: { cityLoyalty: 10 } }
+      ]
+    })
+  },
+  {
+    id: 'river_shifts',
+    family: 'food',
+    weight: 6,
+    candidates: (state) => (firstAge(state) ? mine(state).filter((c) => facts(c).river) : []),
+    build: (state, rng, city) => ({
+      title: 'The River Shifts',
+      description: `The river near ${city.name} cuts a new bed, leaving old fields dry and watering land that was never farmed.`,
+      options: [
+        { label: 'Follow the water with new fields', effects: { gold: -30, cityFood: 5 } },
+        { label: 'Stay on the old fields', effects: { cityFood: -10 } }
+      ]
+    })
+  },
+  {
+    id: 'shamans_prophecy',
+    family: 'omen',
+    weight: 5,
+    candidates: (state) => (firstAge(state) ? mine(state) : []),
+    build: (state, rng, city) => ({
+      title: "The Shaman's Prophecy",
+      description: `A shaman of ${city.name} wakes from a trance and speaks of what is coming, and the people gather to listen.`,
+      options: [
+        { label: 'Honour the shaman and heed the words', effects: { cityLoyalty: 10, gold: -20 } },
+        { label: 'Let the elders judge the words', effects: { legitimacy: 3, cityUnrest: 3 } }
+      ]
+    })
+  },
   {
     id: 'coastal_trade_boom',
     family: 'trade',
