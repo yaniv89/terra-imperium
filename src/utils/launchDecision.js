@@ -12,6 +12,7 @@
 //            new game steps, as before
 import { migrateSave, saveProblem } from '../engine/saveMigrations';
 import { yearLabel } from '../components/ui/topBarModel';
+import { keepWorldRegistry } from '../engine/world/registry';
 
 export const launchScreen = ({ pendingStart = false, hasSave = false } = {}) => {
   if (pendingStart) return 'game';
@@ -44,7 +45,9 @@ export const describeSave = (raw) => {
   let parsed;
   try { parsed = JSON.parse(raw); } catch (e) { return { status: 'old', reason: 'corrupt' }; }
   let migrated = null;
-  try { migrated = migrateSave(parsed); } catch (e) { migrated = null; }
+  // Reading a save for its card must not move the game on screen: migrateSave builds a fresh game
+  // to backfill from, which syncs the city registry to that fresh world (playtest 4 H1, C2).
+  try { migrated = keepWorldRegistry(() => migrateSave(parsed)); } catch (e) { migrated = null; }
   if (!migrated) return { status: 'old', reason: saveProblem(parsed) || 'corrupt' };
   const s = migrated.state;
   const nation = s.nations?.[s.playerNationId]?.name || s.playerNationId || 'Unknown people';

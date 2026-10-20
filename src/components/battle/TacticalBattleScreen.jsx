@@ -72,6 +72,8 @@ const perfOn = () => PERF_URL || !!getMapPrefs().perf;
 // `ordersRefused` when the shared order schema turns an order down or the order log is full.
 const REFUSED_MS = 4000;
 const pausedOrderText = () => tNow('bt.screen.pausedOrder');
+// "2:35": a battle tick as minutes and seconds of battle time.
+const battleClock = (tick) => { const sec = Math.max(0, Math.floor((tick || 0) / TICK_HZ)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
 const ORDER_NOTE_MS = 3500;
 
 // U03: the battle screen's usable rectangle. The safe-area insets (a notch or Dynamic Island on the
@@ -277,6 +279,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     ro.observe(wrap);
 
     startStage('worker'); // before the client: a warm worker hands over its stages at once
+    let endedSeen = false; // the end record is kept by onEnded: no checkpoint may replace it
+    let resumeRejected = false;
     const client = createBattleClient({
       setup, resume, paused: true,
       onMessage: (m) => {
@@ -300,6 +304,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
             const own = m.view.squads.filter((q) => q.side === playerSide && q.alive && q.onField);
             if (own.length) renderer.centerOn(own.reduce((a, q) => a + q.x, 0) / own.length / Q, own.reduce((a, q) => a + q.y, 0) / own.length / Q);
             f.centered = true;
+            // Resumed: say where it picks up (playtest 4 H2); a rejected checkpoint says so instead.
+            if (!resumeRejected && resume?.log && m.view.tick > 0) setOrderNote(tNow('bt.screen.resumedAt', { time: battleClock(m.view.tick) }));
           }
           try {
             if (m.events?.length) renderer.pushEvents(m.events, m.view);
@@ -313,11 +319,17 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         } else if (m.type === 'snapshot') {
           const sw = switchRef.current;
           if (sw.asked && sw.to) { clearTimeout(sw.timer); sw.to(m); }
-        } else if (m.type === 'ended') setEnded(m);
+          // Asked when the page was hidden (below): kept as the battle's latest checkpoint, so a
+          // phone that drops the tab picks up here, not up to 10 s earlier (playtest 4 H2).
+          else if (!endedSeen && m.tick > 0) { sw.checkpoint = m; onCheckpoint?.(m); }
+        } else if (m.type === 'ended') { endedSeen = true; setEnded(m); }
         else if (m.type === 'ordersRefused') setRefused({ count: m.count, full: !!m.full });
         else if (m.type === 'resumeRejected') {
-          // The saved checkpoint was not this battle's: it starts fresh, at deployment.
+          // The saved checkpoint was not this battle's: it starts fresh, at deployment, and says so
+          // until Start (never a silent restart: playtest 4 H2).
           switchRef.current.checkpoint = null;
+          resumeRejected = true;
+          setRestartNote(tNow('bt.screen.resumeRejected', { time: battleClock(m.tick) }));
           startedRef.current = false; setStarted(false); setPaused(true);
           renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide);
         } else if (m.type === 'error') {
@@ -424,7 +436,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     // Backgrounding the app (phone call, app switch) pauses the battle immediately.
     const onVis = () => {
       watch.hidden(document.hidden); // time in the background never counts against the start
-      if (document.hidden) { client.pause(); setPaused(true); }
+      // The battle as it stands is saved at once (a snapshot kept as a checkpoint): the page may
+      // never come back (a phone drops the tab, the site updates and reloads).
+      if (document.hidden) { client.pause(); setPaused(true); if (startedRef.current && !endedSeen) client.snapshot?.(); }
     };
     document.addEventListener('visibilitychange', onVis);
     // A phone can take the graphics away (memory pressure, the app in the background): the battle
@@ -474,6 +488,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // A short note about the order just given (CB17): why a tap gave no order (I189), or that fast
   // squads will arrive first (I192, X13).
   const [orderNote, setOrderNote] = useState(null);
+  const [restartNote, setRestartNote] = useState(null); // a checkpoint that could not be resumed: shown until Start
   useEffect(() => {
     if (!orderNote) return undefined;
     const t = setTimeout(() => setOrderNote(null), ORDER_NOTE_MS);
@@ -1141,6 +1156,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       />
       {refused && !ended && (
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-orders-refused">{refusedText(refused)}</div>
+      )}
+      {restartNote && !started && !ended && (
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ top: 56 }} role="status" aria-live="polite" data-testid="battle-resume-rejected">{restartNote}</div>
       )}
       {orderNote && !refused && !ended && (
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">{orderNote}</div>

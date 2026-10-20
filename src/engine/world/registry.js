@@ -13,7 +13,7 @@
 // that was not the last one synced; callers that build states by hand in tests call
 // syncWorldRegistry themselves.
 import { getTiles, onWorldChange } from '../../data/geo/tiles';
-import { noteZoneSites } from './cultureZones';
+import { noteZoneSites, notedZoneSites } from './cultureZones';
 import { sizeToPeople, foundCity, emptyWorld } from './cities';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID } from '../../data/scenarios';
 import COUNTRY_ADJACENCY from '../../data/geo/countries-adjacency.json';
@@ -302,6 +302,32 @@ export const syncWorldRegistry = (state) => {
   });
   WORLD_REGISTRY.source = state.regions;
   return state;
+};
+
+/**
+ * Runs `fn` and puts the registry back as it was before, whatever `fn` synced it to. For code that
+ * builds a state of ANOTHER game on the side, such as the title screen reading a save
+ * (launchDecision.js describeSave: migrateSave backfills from a fresh createInitialState, which
+ * syncs the registry to that fresh world). Without it the game on screen reads the other game's
+ * cities until the next action (playtest 4 H1), and a commanded battle resumed after a reload was
+ * set up on them: another battle than the one saved, so it restarted from zero and the campaign's
+ * replay reached another end (playtest 4 C2, H2).
+ */
+export const keepWorldRegistry = (fn) => {
+  const saved = {
+    regions: { ...WORLD_REGISTRY.regions }, coordinates: { ...WORLD_REGISTRY.coordinates }, capitals: { ...WORLD_REGISTRY.capitals },
+    source: WORLD_REGISTRY.source, sites: notedZoneSites()
+  };
+  try { return fn(); } finally {
+    if (WORLD_REGISTRY.source !== saved.source) {
+      ['regions', 'coordinates', 'capitals'].forEach((k) => {
+        Object.keys(WORLD_REGISTRY[k]).forEach((id) => { delete WORLD_REGISTRY[k][id]; });
+        Object.assign(WORLD_REGISTRY[k], saved[k]);
+      });
+      WORLD_REGISTRY.source = saved.source;
+    }
+    noteZoneSites(saved.sites);
+  }
 };
 
 // The default world: before any game exists (module-level code such as src/data/events.js's

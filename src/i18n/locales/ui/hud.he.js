@@ -226,6 +226,8 @@ export default {
   'bt.coach.cameraTouch': 'גררו אצבע אחת כדי להזיז את המצלמה, צבטו בשתי אצבעות כדי להתקרב.',
   'bt.screen.drawFail': 'המכשיר הזה לא הצליח לצייר את שדה הקרב.',
   'bt.screen.stopped': 'הקרב נעצר בלי הודעה מראש.',
+  'bt.screen.resumedAt': 'ממשיכים מהנקודה שבה עצרתם: {time} מתחילת הקרב.',
+  'bt.screen.resumeRejected': 'לא ניתן היה להמשיך את הקרב מהנקודה שבה עצרתם ({time}): הרישום השמור אינו תואם. הקרב מתחיל מחדש מהפריסה, והקרב החדש הוא זה שנספר.',
   'bt.screen.couldNotStart': 'הקרב לא הצליח להתחיל.',
   'bt.screen.couldNotDraw': 'שדה הקרב לא הצליח להיצייר.',
   'bt.screen.graphicsLost': 'הגרפיקה אבדה (webglcontextlost).',
