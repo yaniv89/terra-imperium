@@ -4,10 +4,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   Bone, Skeleton, SkinnedMesh, Mesh, Group, BoxGeometry, MeshStandardMaterial, Uint16BufferAttribute,
-  Float32BufferAttribute, DataTexture, RGBAFormat, BufferGeometry
+  Float32BufferAttribute, DataTexture, RGBAFormat, BufferGeometry, SphereGeometry, Vector3
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { extractUnitGeometry, limbFromName, sideOf, parseUnitModel } from './gltfUnitLoader';
+import { extractUnitGeometry, isSmoothMaterial, SMOOTH_MATERIALS, limbFromName, sideOf, parseUnitModel } from './gltfUnitLoader';
 import { LIMB, PART, RIG_ATTRIBUTES } from './soldierFactory';
 
 // three's FileLoader reports progress with the browser's ProgressEvent, which Node lacks.
@@ -223,5 +223,88 @@ describe('an emblem face without UVs', () => {
     expect(us.length).toBeGreaterThan(0);
     expect(Math.min(...us)).toBeCloseTo(0, 5); expect(Math.max(...us)).toBeCloseTo(1, 5);
     expect(Math.min(...vs)).toBeCloseTo(0, 5); expect(Math.max(...vs)).toBeCloseTo(1, 5);
+  });
+});
+
+describe('smooth shading of organic parts', () => {
+  // a round "Horse_Coat" body beside a round "Saddle" (gear): same shape, different shading
+  const buildHorse = (coatName = 'Horse_Coat') => {
+    const root = new Group();
+    const coat = new Mesh(new SphereGeometry(0.4, 12, 8).translate(0, 0.6, 0), mat(coatName, '#7b5a3c'));
+    const saddle = new Mesh(new SphereGeometry(0.2, 12, 8).translate(0, 1.2, 0), mat('Saddle', '#552211'));
+    root.add(coat, saddle);
+    root.updateMatrixWorld(true);
+    return root;
+  };
+  // [min, max] of how far each vertex normal leans from the radial direction of its sphere
+  const lean = (geo, from, to, cy) => {
+    const p = geo.attributes.position; const nm = geo.attributes.normal; const v = new Vector3(); const n = new Vector3();
+    let worst = 0;
+    for (let i = from; i < to; i++) {
+      v.set(p.getX(i), p.getY(i) - cy, p.getZ(i)).normalize(); n.fromBufferAttribute(nm, i);
+      worst = Math.max(worst, 1 - v.dot(n));
+    }
+    return worst;
+  };
+  const build = (name, opts) => {
+    const { geometry, stats } = extractUnitGeometry(buildHorse(name), { height: 1, segment: false, ...opts });
+    const per = geometry.attributes.position.count / 2; // both spheres have the same triangle count
+    return { geometry, stats, per };
+  };
+
+  it('knows the smooth material names, whole words, any case', () => {
+    expect(SMOOTH_MATERIALS).toEqual(expect.arrayContaining(['coat', 'skin', 'mane', 'hair']));
+    ['Coat', 'coat.001', 'Horse_Coat', 'HorseCoat', 'SKIN', 'Mane', 'Hair_Dark'].forEach((n) => expect(isSmoothMaterial(n), n).toBe(true));
+    ['Saddle', 'Coating', 'Hairband', 'Leather', '', undefined].forEach((n) => expect(isSmoothMaterial(n), String(n)).toBe(false));
+  });
+
+  it('keeps the source normals of a Coat and gives gear face normals', () => {
+    const { geometry, stats, per } = build('Horse_Coat');
+    expect(stats.smoothVertices).toBe(per);
+    // the sphere's own normals point away from its centre; the saddle's face normals lean off it
+    const centreY = (geometry.boundingBox.min.y + geometry.boundingBox.max.y) / 2;
+    let coatY = 0; let n = 0;
+    for (let i = 0; i < per; i++) { coatY += geometry.attributes.position.getY(i); n += 1; }
+    expect(lean(geometry, 0, per, coatY / n)).toBeLessThan(0.02);
+    // face normals: all three corners of every saddle triangle share one normal
+    const nm = geometry.attributes.normal;
+    for (let t = per; t < per * 2; t += 3) {
+      expect(nm.getX(t)).toBeCloseTo(nm.getX(t + 1), 5); expect(nm.getY(t)).toBeCloseTo(nm.getY(t + 2), 5);
+    }
+    expect(centreY).toBeGreaterThan(0);
+  });
+
+  it('keeps flat shading when no material is smooth', () => {
+    const { geometry, stats, per } = build('Leather');
+    expect(stats.smoothVertices).toBeUndefined();
+    const nm = geometry.attributes.normal;
+    for (let t = 0; t < per; t += 3) expect(nm.getX(t)).toBeCloseTo(nm.getX(t + 1), 5);
+  });
+
+  it('turns the smooth normals with the model (rotateY) and keeps them unit length', () => {
+    const plain = build('Coat').geometry; const turned = build('Coat', { rotateY: Math.PI }).geometry;
+    for (let i = 0; i < 24; i++) {
+      expect(turned.attributes.normal.getX(i)).toBeCloseTo(-plain.attributes.normal.getX(i), 4);
+      expect(turned.attributes.normal.getZ(i)).toBeCloseTo(-plain.attributes.normal.getZ(i), 4);
+    }
+    const nm = plain.attributes.normal;
+    for (let i = 0; i < nm.count; i++) expect(Math.hypot(nm.getX(i), nm.getY(i), nm.getZ(i))).toBeCloseTo(1, 4);
+  });
+
+  it('builds smooth normals itself when the glTF has none', () => {
+    const root = buildHorse('Coat');
+    root.children[0].geometry.deleteAttribute('normal');
+    const { geometry, per } = { ...extractUnitGeometry(root, { height: 1, segment: false }), per: 0 };
+    const half = geometry.attributes.position.count / 2;
+    let cy = 0;
+    for (let i = 0; i < half; i++) cy += geometry.attributes.position.getY(i);
+    expect(lean(geometry, 0, half, cy / half)).toBeLessThan(0.05);
+    expect(per).toBe(0);
+  });
+
+  it('a skinned Skin part keeps unit normals through the bone blend', () => {
+    const { geometry } = extractUnitGeometry(buildHumanoid(), { height: 1 });
+    const nm = geometry.attributes.normal;
+    for (let i = 0; i < nm.count; i++) expect(Math.hypot(nm.getX(i), nm.getY(i), nm.getZ(i))).toBeCloseTo(1, 4);
   });
 });

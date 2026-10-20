@@ -7,7 +7,9 @@
 // mixer update per soldier. Instead this bakes the model, once, at load time:
 //   1. pose it (the file's rest pose, or the first frame of an idle clip — arms down, not a T-pose)
 //   2. bake every mesh's vertices (skinning + morphs + node transforms) into one world-space soup,
-//      non-indexed, so each triangle has its own flat normal — the low-poly look
+//      non-indexed, so each triangle has its own flat normal — the low-poly look. Organic parts
+//      (a material named Coat, Skin, Mane, Hair: SMOOTH_MATERIALS) keep their smooth vertex normals
+//      instead, at no triangle cost
 //   3. turn materials into per-vertex colour (material colour × vertex colour × the texel under
 //      the triangle, so palette-textured packs like Kenney's still come out right)
 //   4. map the skeleton onto the shader's rigid rig: each vertex follows its dominant bone's limb
@@ -19,7 +21,7 @@
 //   7. a model with clips also gets aBone (each vertex's driver: its dominant bone, or its node) and
 //      geometry.userData.clips, every clip sampled at 20 fps into a bone texture (clipBake.js), which
 //      the USE_CLIPS shader plays instead of the procedural rig (I219).
-import { Vector3, Vector4, Matrix4, Color, Box3, BufferGeometry, Float32BufferAttribute, AnimationMixer } from 'three';
+import { Vector3, Vector4, Matrix3, Matrix4, Color, Box3, BufferGeometry, Float32BufferAttribute, AnimationMixer } from 'three';
 import { LIMB, PART } from './soldierFactory';
 import { textureCap, assetBudget, capSceneTextures, disposeGltf, createAssetLru, hasReleasedTextures } from './assetMemory';
 import { bakeClips, sceneNodes, toBindPose, isHidden } from './clipBake';
@@ -43,6 +45,33 @@ export const NATURAL_CLOTH = new Color('#c2ae88');
 export const MOUNT_CLOTH = new Color('#7b5a3c');
 // The art set's scale: a man (about 1.8 m to the top of his head) stands about 1 unit tall.
 export const ART_METRES_PER_UNIT = 1.8;
+// Materials (whole-word, case-insensitive: "Coat", "Coat.001", "Horse_Coat", "HorseCoat") whose
+// glTF vertex normals survive the bake, so a horse's flank or a face reads rounded, not faceted.
+// Everything else (gear, cloth, metal) keeps the flat low-poly look. The art side may extend this.
+export const SMOOTH_MATERIALS = ['coat', 'skin', 'mane', 'hair'];
+export const isSmoothMaterial = (name) => {
+  if (!name) return false;
+  const words = String(name).replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z]+/);
+  return words.some((w) => SMOOTH_MATERIALS.includes(w));
+};
+// Area-weighted smooth normals by position, for a smooth part whose glTF has none: faces sharing a
+// position share a normal, so it works on indexed and non-indexed meshes alike.
+const smoothNormalsByPosition = (geo) => {
+  const p = geo.attributes.position; const idx = geo.index;
+  const count = idx ? idx.count : p.count;
+  const key = (i) => `${Math.round(p.getX(i) * 1e4)},${Math.round(p.getY(i) * 1e4)},${Math.round(p.getZ(i) * 1e4)}`;
+  const sums = new Map(); const a = new Vector3(); const b = new Vector3(); const cc = new Vector3();
+  for (let k = 0; k + 2 < count; k += 3) {
+    const i0 = idx ? idx.getX(k) : k; const i1 = idx ? idx.getX(k + 1) : k + 1; const i2 = idx ? idx.getX(k + 2) : k + 2;
+    a.fromBufferAttribute(p, i0); b.fromBufferAttribute(p, i1).sub(a); cc.fromBufferAttribute(p, i2).sub(a);
+    b.cross(cc); // length = twice the face area
+    [i0, i1, i2].forEach((i) => {
+      const kk = key(i); const sum = sums.get(kk) || new Vector3();
+      sums.set(kk, sum.add(b));
+    });
+  }
+  return (i) => sums.get(key(i));
+};
 const POLEARM = /spear|pike|lance|halberd/i;
 const NOT_POLEARM = /slung|javelin|throw/i;
 const POLE_HEAD = /head|socket|tip|point|blade/i;
@@ -272,8 +301,10 @@ export const extractUnitGeometry = (root, opts = {}) => {
   const measured = []; // per vertex: counts toward the model's size (attachments like a long spear don't)
   const isAttachment = (o) => { for (let a = o; a && a !== root.parent; a = a.parent) if (a.userData?.attachment) return true; return false; };
   const stats = { meshes: 0, skinned: 0, triangles: 0, limbs: {}, namedLimbs: false, warnings: [] };
-  const v = new Vector3(); const skinIdx = new Vector4(); const skinW = new Vector4();
+  const v = new Vector3(); const nrm = new Vector3(); const skinIdx = new Vector4(); const skinW = new Vector4();
   const c = new Color(); const texel = new Color(); const uvA = [0, 0]; const cornerUv = [[0, 0], [0, 0], [0, 0]];
+  const smooth = []; // per vertex: 1 = keep the source's vertex normal (SMOOTH_MATERIALS)
+  const smoothN = []; // per vertex: that normal in world space (0,0,0 for a flat vertex)
   const flatEmblems = []; // [first, end) vertex runs of emblem surfaces that came without UVs
 
   root.traverse((mesh) => {
@@ -295,6 +326,29 @@ export const extractUnitGeometry = (root, opts = {}) => {
     const polePart = attached && POLEARM.test(mesh.name || '') && !NOT_POLEARM.test(mesh.name || '') ? (POLE_HEAD.test(mesh.name || '') ? 1 : 2) : 0;
     const boneLimb = skinned ? mesh.skeleton.bones.map((b) => withHinge(classify(b, limbOpts, root.parent))) : null;
     if (nodeLimb?.node || boneLimb?.some((bl) => bl.node)) stats.namedLimbs = true;
+    // vertex normals of smooth parts: the file's own, else built by position; skinned like positions
+    const normAttr = geo.attributes.normal;
+    let fallbackNormal = null;
+    const normalMat = new Matrix3().getNormalMatrix(mesh.matrixWorld);
+    const smoothNormalOf = (vi, out) => {
+      if (normAttr) out.fromBufferAttribute(normAttr, vi);
+      else { fallbackNormal = fallbackNormal || smoothNormalsByPosition(geo); out.copy(fallbackNormal(vi) || out.set(0, 1, 0)); }
+      if (skinned) {
+        // the SkinnedMesh.applySkinning blend, for a direction
+        const sk = mesh.skeleton; const acc = new Vector3(); const t = new Vector3();
+        const bindN = out.clone().transformDirection(mesh.bindMatrix);
+        skinIdx.fromBufferAttribute(geo.attributes.skinIndex, vi); skinW.fromBufferAttribute(geo.attributes.skinWeight, vi);
+        for (let q = 0; q < 4; q++) {
+          const w = skinW.getComponent(q);
+          if (!w) continue;
+          const bi = skinIdx.getComponent(q);
+          t.copy(bindN).transformDirection(sk.boneInverses[bi]).transformDirection(sk.bones[bi].matrixWorld);
+          acc.addScaledVector(t, w);
+        }
+        out.copy(acc).transformDirection(mesh.bindMatrixInverse);
+      }
+      return out.applyMatrix3(normalMat).normalize();
+    };
 
     groups.forEach((grp) => {
       const mat = materials[grp.materialIndex ?? 0] || materials[0];
@@ -302,6 +356,7 @@ export const extractUnitGeometry = (root, opts = {}) => {
       const isEmblem = tags.emblem.test(label);
       const isTeam = isEmblem || tags.team.test(label);
       const isSkin = !isTeam && tags.skin.test(label);
+      const isSmooth = !isTeam && isSmoothMaterial(mat?.name);
       const base = mat?.color ? mat.color : new Color(1, 1, 1);
       // PBR surface straight from the artist's material (glTF metallic-roughness).
       const metal = Math.max(0, Math.min(1, mat?.metalness ?? 0)); const rough = Math.max(0.05, Math.min(1, mat?.roughness ?? 0.85));
@@ -322,6 +377,8 @@ export const extractUnitGeometry = (root, opts = {}) => {
           mesh.getVertexPosition(vi, v); // skinning + morph targets, in the mesh's local space
           v.applyMatrix4(mesh.matrixWorld);
           pos.push(v.x, v.y, v.z);
+          smooth.push(isSmooth ? 1 : 0);
+          if (isSmooth) { smoothNormalOf(vi, nrm); smoothN.push(nrm.x, nrm.y, nrm.z); } else smoothN.push(0, 0, 0);
           c.copy(base);
           if (colorAttr) c.multiply(texel.setRGB(colorAttr.getX(vi), colorAttr.getY(vi), colorAttr.getZ(vi)));
           if (tex) c.multiply(tex);
@@ -526,6 +583,17 @@ export const extractUnitGeometry = (root, opts = {}) => {
     }
   }
   geometry.computeVertexNormals(); // non-indexed → one flat normal per face
+  // Smooth parts take their source normals back (rest pose, turned with the model's yaw; the scale
+  // is uniform): the shader lights them as a rounded surface and the clips' bones turn them.
+  if (smooth.some(Boolean)) {
+    const normals = geometry.attributes.normal; const yaw = new Matrix3().setFromMatrix4(new Matrix4().makeRotationY(rotateY));
+    for (let i = 0; i < n; i++) {
+      if (!smooth[i]) continue;
+      nrm.set(smoothN[i * 3], smoothN[i * 3 + 1], smoothN[i * 3 + 2]).applyMatrix3(yaw).normalize();
+      if (nrm.lengthSq() > 0.5) normals.setXYZ(i, nrm.x, nrm.y, nrm.z);
+    }
+    stats.smoothVertices = smooth.reduce((a, b) => a + b, 0);
+  }
   geometry.computeBoundingBox(); geometry.computeBoundingSphere();
   stats.triangles = n / 3;
   if (stats.triangles > triangleBudget) stats.warnings.push(`${stats.triangles} triangles is over the ${triangleBudget} budget — decimate it for phones`);
