@@ -13,7 +13,8 @@ import ti_town as tt  # noqa: E402
 import ti_modern as tmd  # noqa: E402
 from ti_town import G  # noqa: E402
 
-NEW = ['fu_panel', 'fu_panel_win', 'fu_graphite', 'fu_glass', 'fu_glow', 'fu_pad', 'fu_solar', 'fu_green', 'fu_plinth', 'fu_mark']
+NEW = ['fu_panel', 'fu_panel_win', 'fu_graphite', 'fu_glass', 'fu_glow', 'fu_pad', 'fu_solar', 'fu_green', 'fu_plinth', 'fu_mark',
+       'fu_sand', 'fu_sand_win', 'fu_lacquer']
 for _n in NEW:
     if _n not in tt.PROC:
         tt.PROC.append(_n)
@@ -32,6 +33,10 @@ def make_materials():
     s('fu_green', ['#4f8a3a', '#64a044', '#3c7030'], scale=60.0, bump=0.6)
     s('fu_plinth', ['#8a9096', '#9aa0a6', '#7c8288'], scale=16.0, rough=0.6, bump=0.2)
     s('fu_mark', ['#e8e2c8', '#f0ead2'], scale=30.0, bump=0.0)
+    s('fu_sand', ['#d8c4a0', '#e2d0ae', '#ccb690'], scale=12.0, rough=0.6, bump=0.15)
+    tmd.mat_facade('fu_sand_win', tmd._wall_render(('#d8c4a0', '#e2d0ae')), cell_u=0.3, cell_z=tt.STOREY, win_w=0.22, z0=0.12, z1=0.26,
+                   glass=('#18242e', '#22323f', '#3c5566'), frame='#a8977a', frame_w=0.004, dirt=False, rough=0.5)
+    s('fu_lacquer', ['#7a2a24', '#8c3229', '#6a2420'], scale=12.0, rough=0.4, bump=0.1)
 
 
 if not any(n == 'future' for n, _ in tt.EXTRA_MATERIALS):
