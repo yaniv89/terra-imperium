@@ -369,7 +369,7 @@ def node_items(states, suffix=''):
 
 # ---- berry bushes (16 October, W12: the battle's food node of the field, scattered in pairs) ------
 # One file, berry-bushes.glb, four climate bands: the plain `full`, `half`, `depleted` are the
-# temperate bramble with red berries, and `<state>-dry` (a low grey-green shrub with near-black
+# temperate bramble with red berries, and `<state>-dry` (a low olive shrub with plum-violet
 # berries: myrtle, juniper), `<state>-cold` (ground-hugging bilberry with blue berries) and
 # `<state>-tropical` (a glossy broadleaf bush with orange fruit) the others. The game picks the band
 # from the battle's vegetation kit (src/battle/art/vegetation.js berryBand). What must read at battle
@@ -382,7 +382,7 @@ BERRY_MATS = {
     'berry_leaf': (['#2c5520', '#386626', '#23461a', '#2f5a22'], 14.0),      # bramble: dark, so the red sings
     'berry_red': (['#e8182c', '#ff3043', '#c40f22'], 24.0),
     'berry_leaf_dry': (['#56683f', '#637548', '#4a5c36'], 16.0),           # myrtle / juniper olive-green
-    'berry_black': (['#4a1868', '#65288a', '#371150'], 24.0),
+    'berry_black': (['#9a34c8', '#b552e0', '#7a26a6'], 24.0),           # plum-violet (named black: lightened 16 Oct to read at LOD2)
     'berry_leaf_cold': (['#35522c', '#416336', '#2b4524'], 14.0),          # bilberry
     'berry_blue': (['#3f66d8', '#5b82f0', '#2f50b4'], 24.0),
     'berry_leaf_trop': (['#2f7a2a', '#3f9234', '#256a22'], 12.0),          # glossy broadleaf
@@ -611,7 +611,7 @@ def stump_variants(kit_name, bark, cut, bark2=None):
         # the broken-off top lying beside it, its splintered end toward the stump
         a = o.uniform(0.6, 1.2)
         p0 = Vector((math.cos(a) * r * 2.2, math.sin(a) * r * 2.2, r * 0.85))
-        p1 = p0 + Vector((math.cos(a), math.sin(a), -0.02)) * 0.3
+        p1 = p0 + Vector((math.cos(a), math.sin(a), -0.02)) * 0.17  # 1.7 m: neighbours' logs do not cross in a dense wood
         tn.limb(ms, bark, p0, p1, r * 0.9, r * 0.55, segs=7, lod=0, caps=False)
         tn.disc(ms, cut, p0 - (p1 - p0).normalized() * 0.0004, (p1 - p0).normalized(), r * 0.9, 7, lod=0, flip=True)
         tn.limb(ms, bark, p0, p1, r * 0.95, r * 0.6, segs=4, lod=2, only=(1, 2))
@@ -637,7 +637,7 @@ def stump_variants(kit_name, bark, cut, bark2=None):
         c = Vector((r * 0.6, -r * 2.6, 0))
         d = Vector((math.cos(a), math.sin(a), 0))
         lr = r * 0.85
-        p0, p1 = c - d * 0.16 + Vector((0, 0, lr)), c + d * 0.16 + Vector((0, 0, lr * 0.92))
+        p0, p1 = c - d * 0.085 + Vector((0, 0, lr)), c + d * 0.085 + Vector((0, 0, lr * 0.92))
         tn.log(ms, p0, p1, lr, bark=bark2, ends=cut, segs=7, lod=0, only=(0,), taper=0.92)
         tn.log(ms, p0, p1, lr, bark=bark2, ends=cut, segs=5, lod=2, only=(1, 2), taper=0.92)
         for k in range(9):  # fresh chips round the stump

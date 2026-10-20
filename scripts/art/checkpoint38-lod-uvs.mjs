@@ -27,10 +27,11 @@ const EXPECTED = {
   // far palm fronds.
   // 2026-10-16, W12 stump pass: two stumps added to each kit (stump-2, stump-3; build_nature.py
   // stump_variants), every other object the same triangles (the shared atlas re-packed around them).
-  // Was edd33023..., ccbed63a..., d7a8eecc....
-  "src/assets/battle/nature/vegetation-conifer.glb": "4816cbe41bf8d1db6ad08ea6b01a231d409154e8251ed62b9ac7d68681a6776b",
-  "src/assets/battle/nature/vegetation-tropical.glb": "8ea80e73866c813d6292b7ddb7bfae19da14240e52ac96a1bfd2ac7ae48fc5ca",
-  "src/assets/battle/nature/vegetation-cold.glb": "bdbe56942589c74b82d7263c2d001746b319a538f51ed5b0e35f19674e491e49",
+  // Was edd33023..., ccbed63a..., d7a8eecc.... 2026-10-20: moved again, stump-2 and stump-3 logs shortened
+  // (about 1.7 m) so neighbouring stumps' logs do not cross in a dense wood.
+  "src/assets/battle/nature/vegetation-conifer.glb": "1da2c668191164b710c77e3c1bcd761c8693d124e92f7f27fc416399479f5b92",
+  "src/assets/battle/nature/vegetation-tropical.glb": "38a5bfffafd302d9d8ab4ae4500de08380db38420c78da60fb8b89c251c9615b",
+  "src/assets/battle/nature/vegetation-cold.glb": "9c679ccfc807b1995da154c8a3dbfd3a153127ca4feacc2d54f4698e15f46c70",
   "src/assets/battle/props/loot-sack.glb": "2847ea345fe421458c7e4161635086fd64202bc75503970fd8565a8840ebf187",
   "src/assets/battle/props/exit-marker.glb": "24dd3703cdd0de7e304cfd105013058a9d2cc486d1e77dad4207c56cdf08c00d",
   "src/assets/battle/props/burnt-field-overlay.glb": "5d07899b742664b1b2b08b9e0b0ad324a1fe392700e626fc57f6f5c73d15f921",
