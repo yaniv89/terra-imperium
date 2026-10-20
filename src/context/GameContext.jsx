@@ -167,6 +167,9 @@ export const useGame = () => {
 // ============ PROVIDER ============
 export const GameProvider = ({ children }) => {
   const [state, reducerDispatch] = useReducer(gameReducer, null, loadOrCreateState);
+  // The registry always matches the game on screen (a no-op unless something synced another
+  // state since: P4-H1, the title screen reading save slots left it on another world).
+  syncWorldRegistry(state);
   const stateRef = useRef(state); // the latest state, for the autosave and the turn worker
   stateRef.current = state;
   // Sound (src/audio/ACTIONS.md): every dispatch goes through here so the change it makes can be

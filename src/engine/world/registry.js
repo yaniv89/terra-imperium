@@ -13,7 +13,7 @@
 // that was not the last one synced; callers that build states by hand in tests call
 // syncWorldRegistry themselves.
 import { getTiles, onWorldChange } from '../../data/geo/tiles';
-import { noteZoneSites } from './cultureZones';
+import { noteZoneSites, notedZoneSites } from './cultureZones';
 import { sizeToPeople, foundCity, emptyWorld } from './cities';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID } from '../../data/scenarios';
 import COUNTRY_ADJACENCY from '../../data/geo/countries-adjacency.json';
@@ -302,6 +302,33 @@ export const syncWorldRegistry = (state) => {
   });
   WORLD_REGISTRY.source = state.regions;
   return state;
+};
+
+/**
+ * Runs `fn` and leaves the registry (and the noted culture zone sites) as it found them. Reading
+ * a save builds a fresh game to backfill from (saveMigrations.js backfillDefaults), and that
+ * fresh game syncs the registry to its own cities: the title screen describing its save slots
+ * then left the running game's readers on another world, so after Continue no city could be
+ * opened until some action synced it again (playtest 4 P4-H1).
+ */
+export const keepWorldRegistry = (fn) => {
+  const source = WORLD_REGISTRY.source;
+  const regions = { ...WORLD_REGISTRY.regions };
+  const coordinates = { ...WORLD_REGISTRY.coordinates };
+  const capitals = { ...WORLD_REGISTRY.capitals };
+  const sites = notedZoneSites();
+  try {
+    return fn();
+  } finally {
+    if (WORLD_REGISTRY.source !== source) {
+      [[WORLD_REGISTRY.regions, regions], [WORLD_REGISTRY.coordinates, coordinates], [WORLD_REGISTRY.capitals, capitals]].forEach(([live, kept]) => {
+        Object.keys(live).forEach((k) => { delete live[k]; });
+        Object.assign(live, kept);
+      });
+      WORLD_REGISTRY.source = source;
+    }
+    noteZoneSites(sites);
+  }
 };
 
 // The default world: before any game exists (module-level code such as src/data/events.js's

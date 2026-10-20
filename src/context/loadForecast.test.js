@@ -7,6 +7,8 @@ import { WORLD_REGISTRY } from '../engine/world/registry';
 import { topBarModel } from '../components/ui/topBarModel';
 import { loadOrCreateState, AUTOSAVE_KEY } from './GameContext';
 import { CURRENT_SAVE_VERSION } from '../engine/saveMigrations';
+import { describeSave } from '../utils/launchDecision';
+import { REGIONS_DATA } from '../data/regions';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -22,5 +24,19 @@ describe('loading a save', () => {
     expect(loaded.playerNationId).toBe(world.playerNationId);
     expect(WORLD_REGISTRY.source).toBe(loaded.regions);
     expect(topBarModel(loaded).gold.perTurn).toBe(real);
+  });
+
+  // Playtest 4 P4-H1: the title screen reads every save slot (describeSave runs migrateSave, which
+  // builds a fresh game to backfill from); that left the registry on the fresh game, so after
+  // Continue no city could be opened until some action synced it again.
+  it('stays synced after the title screen describes the save slots (Continue)', () => {
+    const world = peoplesWorld({ seed: 7 });
+    const saved = JSON.stringify({ version: CURRENT_SAVE_VERSION, state: world, savedAt: 1 });
+    vi.stubGlobal('localStorage', { getItem: (k) => (k === AUTOSAVE_KEY ? saved : null), setItem: () => {}, removeItem: () => {} });
+    const loaded = loadOrCreateState();
+    expect(describeSave(saved).status).toBe('ok');
+    expect(WORLD_REGISTRY.source).toBe(loaded.regions);
+    Object.keys(loaded.regions).forEach((id) => expect(REGIONS_DATA[id]).toBeTruthy());
+    expect(Object.keys(REGIONS_DATA).length).toBe(Object.keys(loaded.regions).length);
   });
 });

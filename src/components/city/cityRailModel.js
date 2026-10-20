@@ -37,7 +37,7 @@ export const cityRailModel = (state) => {
   const me = state.playerNationId;
   const tiles = getTiles();
   const ageId = getEffectiveAgeId(state.age, state.techAgeId);
-  const mine = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null);
+  const mine = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.ghost); // a remembered city (fogView) is never one of mine
   const capital = state.nations?.[me]?.capitalRegionId;
   return mine.map((c) => {
     const live = cityLive(state, c.id);

@@ -16,7 +16,8 @@
 import { createInitialState } from './gameReducer';
 import { getNationCapital, REGIONS_DATA } from '../data/regions';
 import { conquerRegion } from './conquest';
-import { initFog, reviveFog } from './fog';
+import { initFog, reviveFog, repairOwnMemory } from './fog';
+import { keepWorldRegistry } from './world/registry';
 import { msg, sub } from './messages';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
@@ -423,7 +424,10 @@ export const SAVE_PROBLEM_TEXT = {
   worldMismatch: 'This save is on a generated world that this build makes differently (its map hash does not match), so it cannot be loaded here.'
 };
 
-export const migrateSave = (payload) => {
+// Reading a save never repoints the running game's city registry (the fresh game backfillDefaults
+// builds would sync it to another world): every caller that loads the result syncs it itself.
+export const migrateSave = (payload) => keepWorldRegistry(() => migrateSavePayload(payload));
+const migrateSavePayload = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
 
   const hasEnvelope = isPlainObject(payload.state);
@@ -446,5 +450,6 @@ export const migrateSave = (payload) => {
     version += 1;
   }
   const filled = backfillDefaults(state);
-  return { version: CURRENT_SAVE_VERSION, state: filled.fog ? filled : initFog(filled) };
+  // A city the player lost out of sight in a save from before fog.js refreshOwnMemory (P4-C1).
+  return { version: CURRENT_SAVE_VERSION, state: filled.fog ? repairOwnMemory(filled) : initFog(filled) };
 };

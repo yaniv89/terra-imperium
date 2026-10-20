@@ -15,6 +15,8 @@ import { PEOPLES } from '../../data/peoples';
 let currentSites = null;
 /** The site table of the game being played (null on the real Earth). */
 export const noteZoneSites = (sites) => { currentSites = sites || null; };
+/** The site table noted last (registry.js keepWorldRegistry puts it back after reading a save). */
+export const notedZoneSites = () => currentSites;
 
 const zoneCache = new WeakMap(); // sites -> { owner: Int16Array, ids }
 onWorldChange(() => { currentSites = null; });
