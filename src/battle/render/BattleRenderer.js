@@ -18,7 +18,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/battleStats';
 import { soldierSlots, squadSlots, figureScale, scaledSoldiers } from './capacity';
-import { trimGltfCache, forgetReleasedGltf } from './gltfUnitLoader';
+import { trimGltfCache, forgetReleasedGltf, createGltfHold } from './gltfUnitLoader';
 import { textureCap } from './assetMemory';
 import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE, clipUniforms } from './soldierFactory';
 import { clipSetOf, newFigureState, playClip, busyUntil, setBusy, currentClip, writeAnim, baseMotion, strikeTiming } from './clipPlayer';
@@ -196,6 +196,10 @@ export class BattleRenderer {
     this.renderer = new WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: 'high-performance' });
     // a model file whose maps live only in the map's renderer (a phone keeps no CPU copy) loads again
     forgetReleasedGltf();
+    // Every model file the battle loads or uses is held while it runs (H-06): the memory list never
+    // drops it, so the map loading towns behind the battle (a resize, a turn) or the battle's own
+    // later loads cannot dispose the kits' textures under the field (grey trees, a black keep).
+    this.gltfHold = createGltfHold({ capture: true });
     // Dynamic resolution (plan §15): start at the screen's DPR (max 2); 3 slow frames in a row
     // (> 20 ms) drop it a step (1.25, then 1), and a long run of fast frames earns it back.
     this.baseDpr = Math.min(window.devicePixelRatio || 1, BATTLE_GRAPHICS.maxDpr);
@@ -920,8 +924,20 @@ export class BattleRenderer {
     return layer;
   }
 
-  resize(width, height) {
+  // The screen's pixel ratio now (a browser zoom or another screen changes it; H-06): the top of
+  // the dynamic resolution follows it, and a step the adaptive loop took down stays below it.
+  syncPixelRatio(win = typeof window !== 'undefined' ? window : null) {
+    const base = Math.min(win?.devicePixelRatio || 1, BATTLE_GRAPHICS.maxDpr);
+    if (base === this.baseDpr) return false;
+    this.dpr = this.dpr >= this.baseDpr ? base : Math.min(this.dpr, base);
+    this.baseDpr = base;
+    this.renderer.setPixelRatio(this.dpr);
+    return true;
+  }
+
+  resize(width, height, win) {
     this.width = width; this.height = height;
+    this.syncPixelRatio(win);
     this.renderer.setSize(width, height, false);
     const aspect = width / Math.max(1, height);
     // Phones in landscape start closer (PHONE_VIEW_TILES): the default view shows soldiers, not a map.
@@ -1164,6 +1180,8 @@ export class BattleRenderer {
   }
 
   adaptResolution(dt) {
+    // the screen's pixel ratio changed with no resize (a zoom, another screen): the buffer follows (H-06)
+    if (this.syncPixelRatio?.() && this.width) this.renderer.setSize(this.width, this.height, false);
     // A stable 60 Hz display delivers ~16.7 ms frames even with GPU headroom. Requiring
     // <12 ms permanently trapped those displays at reduced resolution after a slowdown.
     if (dt > 0.02) { this.slowFrames += 1; this.fastFrames = 0; } else if (dt < 0.018) { this.fastFrames += 1; this.slowFrames = 0; } else { this.slowFrames = 0; this.fastFrames = 0; }
@@ -1812,6 +1830,7 @@ export class BattleRenderer {
     // The battle's files whose maps lived only in this renderer go with it; on a phone the rest of
     // its kits too (the map's files load again when it needs them).
     forgetReleasedGltf();
+    this.gltfHold?.release(); // the battle's files may go now (the map holds the ones it draws)
     if (textureCap() <= 1024) trimGltfCache(48);
   }
 }
