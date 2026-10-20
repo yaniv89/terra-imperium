@@ -27,7 +27,7 @@ import { makeSquad } from './world';
 import { stepToward } from './movement';
 import { moraleFromLosses } from './moraleMath';
 import { loseStrength } from './losses';
-import { capShotOn, crewShares, fireShare, recentlyHit, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
+import { capShotOn, crewShares, turnOnShooter, fireShare, recentlyHit, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
 import {
   RESOURCES, MILLI, POP_LIMIT, POP_PER_SQUAD, CARRY, GATHER_PER_SEC, FARM_RATE_MULT, MINE_RATE_MULT, WORK_REACH,
   buildRateHalves, CANCEL_REFUND, REPAIR_HP_PER_SEC, REPAIR_RECENT_TICKS, REPAIR_RECENT_MULT_QUARTERS,
@@ -612,6 +612,7 @@ export const fireEcoTowers = (w) => {
     loseStrength(target, damage, 'tower');
     target.morale = Math.max(0, target.morale - Math.round(moraleFromLosses(target, damage)));
     target.lastHitTick = w.tick; target.engaged = true;
+    turnOnShooter(target, 'eco', b.idx);
     if (target.strength === 0) { target.alive = false; w.events.push({ t: w.tick, type: 'destroyed', id: target.idx }); }
     w.events.push({ t: w.tick, type: 'towerShot', structure: b.id, eco: b.idx, to: target.idx, damage });
     b.cooldown = t.attackTicks;

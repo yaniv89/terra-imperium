@@ -10,7 +10,7 @@ import { nextRandom } from './rng';
 import { distSq, polarX, polarY } from './fixed';
 import { queryRadius } from './pathing';
 import { isFighting, perHitFraction } from './combat';
-import { fireShare, capShotOn, crewShares } from './siegeRules';
+import { fireShare, capShotOn, crewShares, turnOnShooter } from './siegeRules';
 import { buildingSupplyPerSec } from './buildings';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks } from './constants';
 import { moraleFromLosses } from './moraleMath';
@@ -106,6 +106,7 @@ export const resolveStructureFire = (w) => {
     target.morale = Math.max(0, target.morale - Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier({ promotions: target.promotions })));
     target.lastHitTick = w.tick;
     target.engaged = true;
+    turnOnShooter(target, 'structure', si);
     if (target.strength === 0) { target.alive = false; w.events.push({ t: w.tick, type: 'destroyed', id: target.idx }); }
     w.events.push({ t: w.tick, type: 'towerShot', structure: s.id, to: target.idx, damage });
     s.cooldown = s.attackTicks;

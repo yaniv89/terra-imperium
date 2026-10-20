@@ -26,6 +26,8 @@ import { canSeeSquad } from './fog';
 import { sideEdgeX } from './world';
 import { speedMult } from './effects';
 import { Q, SQUAD_RADIUS, SIDE_DEFENDER } from './constants';
+import { baseBuildings, hasBase } from './base';
+import { BUILDINGS } from '../data/economy';
 
 const ARRIVE = Math.round(0.3 * Q);
 const TURN_RATE = 24;
@@ -115,6 +117,32 @@ const hasValidTarget = (w, q) => q.target >= 0 && (q.targetKind === 'squad'
   ? isFighting(w.squads[q.target]) && w.squads[q.target].side !== q.side && w.squads[q.target].inside < 0
   : !!structureTarget(w, q)?.alive);
 
+// Auto-continue (audit H-26): in a battle with bases a squad whose building fell, or whose
+// attack-move ended in the enemy's base, goes on to the next one instead of standing idle beside
+// live towers: first a tower (the city's, the keep's, or one the enemy's workers raised) that has it
+// in range, else the nearest standing enemy base building (base.js), within `near` of the squad when
+// given (an idle squad that took a building on its own, or an attack-move's end). Hold is never
+// touched (only attack and attack-move call this); a player's Stop or Move ends it.
+export const CONTINUE_NEAR = 14 * Q; // an attack-move "ended in the enemy's base": a base building this close
+export const nextBaseTarget = (w, q, near = Infinity) => {
+  if (!hasBase(w) || !canAttack(q) || q.stats.airOnly || q.worker) return null;
+  const enemy = q.side === SIDE_DEFENDER ? 0 : 1;
+  let best = null; let bestD = Infinity;
+  const consider = (kind, index, d2) => { if (d2 < bestD) { bestD = d2; best = { kind, index }; } };
+  const reach = (r) => (r + SQUAD_RADIUS) * (r + SQUAD_RADIUS);
+  if (enemy === SIDE_DEFENDER) w.structures.forEach((s, i) => { if (s.alive && s.damage > 0 && s.range > 0) { const d2 = distSq(q.x, q.y, s.x, s.y); if (d2 <= reach(s.range)) consider('structure', i, d2); } });
+  if (w.eco) w.eco.buildings.forEach((b, i) => { const t = BUILDINGS[b.type]?.tower; if (t && b.side === enemy && b.alive && b.built) { const d2 = distSq(q.x, q.y, b.x, b.y); if (d2 <= reach(t.range)) consider('eco', i, d2); } });
+  if (best) return best;
+  baseBuildings(w, enemy).forEach((b) => { const d2 = distSq(q.x, q.y, b.x, b.y); if (near === Infinity || d2 <= near * near) consider(b.kind, b.index, d2); });
+  return best;
+};
+const continueAssault = (w, q, near) => {
+  const next = nextBaseTarget(w, q, near);
+  if (!next) return false;
+  q.order = { type: 'attack' }; q.targetKind = next.kind; q.target = next.index;
+  return true;
+};
+
 // A fight is over: the squad stands where it is (its new post) instead of walking back to where
 // it was when the order was given.
 const settle = (q) => { q.order = { type: 'idle' }; q.anchorX = q.x; q.anchorY = q.y; q.target = -1; q.targetKind = null; };
@@ -145,6 +173,8 @@ export const acquireTargets = (w) => {
     }
     if (q.order.type === 'attack') {
       if (valid) return;
+      // its building fell: on to the next one (H-26); a squad it was sent after is simply dead
+      if ((q.targetKind === 'structure' || q.targetKind === 'eco') && continueAssault(w, q)) return;
       settle(q);
     }
     const radius = q.order.type === 'hold' ? q.stats.range + SQUAD_RADIUS * 2 : q.stats.sight * Q;
@@ -167,9 +197,11 @@ export const acquireTargets = (w) => {
         return;
       }
     }
+    const fell = q.targetKind === 'structure' || q.targetKind === 'eco'; // the building it took on its own fell
     const found = acquireTarget(w, q, radius);
     q.target = found ? found.index : -1;
     q.targetKind = found ? found.kind : null;
+    if (!found && fell && q.order.type === 'idle') continueAssault(w, q, CONTINUE_NEAR);
   });
 };
 
@@ -198,7 +230,9 @@ export const moveSquads = (w) => {
       if (stepToward(w, q, q.order.x, q.order.y)) {
         if (q.order.facing !== undefined) q.facing = q.order.facing;
         q.anchorX = q.x; q.anchorY = q.y;
+        const attackMove = q.order.type === 'attackMove';
         q.order = { type: 'idle' };
+        if (attackMove && q.target < 0) continueAssault(w, q, CONTINUE_NEAR); // ended in their base: raze on (H-26)
       }
       return;
     }

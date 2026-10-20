@@ -50,3 +50,11 @@ export const crewShares = (w) => {
   }
   return [Math.min(1, men[0] / CREW_FULL), Math.min(1, men[1] / CREW_FULL)];
 };
+
+// A free squad a building shoots turns on it (audit H-26), as a squad does on whoever hits it
+// (combat.js applyDamage): an idle squad with nothing to fight never stands under a tower's fire.
+// Hold, Move, Retreat and a target of its own are left alone.
+export const turnOnShooter = (q, kind, index) => {
+  if (q.order.type !== 'idle' || q.target >= 0 || q.worker || q.routed || q.retreating || q.inside >= 0 || q.stats.airOnly || !(q.stats.attackTicks > 0)) return;
+  q.targetKind = kind; q.target = index;
+};
