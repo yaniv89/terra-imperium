@@ -19,6 +19,7 @@ import { thinksOn } from './raids';
 import { aiHuntRaiders, raidPartyTiles } from './aiOperations';
 import { createRng } from '../utils/rng';
 import { auditGameState } from './stateAudit';
+import { updateFog } from './fog';
 import { PEOPLES } from '../data/peoples';
 import { opinionReasons } from './opinion';
 
@@ -54,12 +55,13 @@ const armPlayer = (s, n) => {
   for (let i = 0; i < n; i++) units[`p${i}`] = unit(`p${i}`, me, cap.id, cap.tile);
   return { ...s, units };
 };
-// One turn of the W3 phase alone, applied like resolveTurn applies it.
+// One turn of the W3 phase alone, applied like resolveTurn applies it (with its end-of-turn fog pass:
+// the player's memory of a city it razed is dropped there, stateAudit fog_ghost_owner).
 const step = (s) => {
   const turnNumber = s.turnNumber + 1;
   const out = processMajorsAndIndependents({ ...s, turnNumber });
   if (!out) return { ...s, turnNumber };
-  return { ...s, turnNumber, regions: out.regions, units: out.units, nations: out.nations, resources: out.resources, world: out.world, wars: out.wars, joinOffers: out.joinOffers, indepStats: out.indepStats, logs: [...s.logs, ...out.logs] };
+  return updateFog({ ...s, turnNumber, regions: out.regions, units: out.units, nations: out.nations, resources: out.resources, world: out.world, wars: out.wars, joinOffers: out.joinOffers, indepStats: out.indepStats, logs: [...s.logs, ...out.logs] });
 };
 // Hand an independent's city to `taker` by force (a conquest marker, the independent gone).
 const takeCity = (s, indId, taker) => {

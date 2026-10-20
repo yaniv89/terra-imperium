@@ -104,6 +104,13 @@ export const auditGameState = (state) => {
   if (state.pendingPeaceOffer && !(state.wars || []).some(w => w.active && w.id === state.pendingPeaceOffer.warId)) {
     report('stale_peace', 'pendingPeaceOffer', 'Offer references an inactive war');
   }
+  // The player's remembered map (fog.js `fog.seen`): a remembered city never claims the player
+  // unless the player holds it now (a city lost out of sight stayed "mine" and crashed the map,
+  // playtest 4 P4-C1; fog.js refreshOwnMemory keeps this true).
+  const remembered = state.fog && state.fog.on !== false ? state.fog.seen?.cities : null;
+  Object.entries(remembered || {}).forEach(([id, snap]) => {
+    if (snap?.owner === state.playerNationId && regions[id]?.owner !== state.playerNationId) report('fog_ghost_owner', `fog.seen.cities.${id}.owner`, `Remembered as the player's, held by ${regions[id]?.owner || 'nobody'}`);
+  });
   // The newest battle's participant ledger against the map it was committed to (battleLedger.js):
   // a destroyed regiment left standing, a survivor made whole, a unit missing from the result.
   ((state.battleReports || [])[0]?.breaches || []).forEach((b) => {

@@ -12,6 +12,7 @@ import { distSq, polarX, polarY } from './fixed';
 import { isFighting } from './combat';
 import { Q, SIDE_DEFENDER, secondsToTicks as S } from './constants';
 import { moraleFromLosses } from './moraleMath';
+import { loseStrength } from './losses';
 import { generalsOf } from './squadLists';
 import { collapseFootprint } from './cityStructures';
 
@@ -185,7 +186,7 @@ export const processImpacts = (w) => {
       if (!isFighting(q) || q.inside >= 0 || (!imp.friendly && q.side === imp.side)) return; // walls shelter a garrison
       if (distSq(q.x, q.y, imp.x, imp.y) > imp.radius * imp.radius) return;
       const damage = Math.min(q.strength, Math.round(imp.damage * (0.9 + nextRandom(w) * 0.2)));
-      q.strength -= damage;
+      loseStrength(q, damage, 'impact');
       q.morale = Math.max(0, q.morale - Math.round(moraleFromLosses(q, damage) * 1.25)); // bombardment terrifies
       q.lastHitTick = w.tick; q.engaged = true;
       if (q.strength <= 0) { q.strength = 0; q.alive = false; w.events.push({ t: w.tick, type: 'destroyed', id: q.idx }); }

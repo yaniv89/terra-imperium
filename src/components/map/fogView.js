@@ -79,8 +79,17 @@ export const fogView = (state) => {
   Object.values(live).forEach((c) => { if (c.tile != null && (visible.has(c.tile) || inSight.has(c.id))) regions[c.id] = c; });
   Object.values(seen?.cities || {}).forEach((snap) => {
     if (regions[snap.id] || !isExplored(snap.tile)) return;
-    // `lastSeen`: the turn the player last saw its centre (the "last seen T12" of the fog look, W03)
-    regions[snap.id] = { ...snap, ghost: true, lastSeen: seen?.turn?.ints?.[snap.tile] || null, tiles: [], control: 100, unrest: 0 };
+    // The player knows what became of its own cities (fog.js refreshOwnMemory): a memory that still
+    // names the player (a save from before that) shows the live owner, or nothing once the city is
+    // gone. A ghost is never one of the player's cities (playtest 4 P4-C1).
+    let owner = snap.owner;
+    if (owner === p && live[snap.id]?.owner !== p) {
+      if (!live[snap.id]) return;
+      owner = live[snap.id].owner || null;
+    }
+    // `lastSeen`: the turn the player last saw its centre (the "last seen T12" of the fog look, W03).
+    // No land, worked or locked tiles: a remembered city is drawn, never worked.
+    regions[snap.id] = { ...snap, owner, ghost: true, lastSeen: seen?.turn?.ints?.[snap.tile] || null, tiles: [], worked: [], locked: [], control: 100, unrest: 0 };
   });
   // Territories of remembered cities without a remembered record (never named) are dropped.
   Object.keys(tileOwner).forEach((k) => { if (!regions[tileOwner[k]]) delete tileOwner[k]; });

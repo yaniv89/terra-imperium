@@ -218,7 +218,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
         </div>
         <div className="flex flex-wrap gap-x-3 text-[12px] text-fa-muted mt-1.5">
           <span>{t('nc.army')} {hasIntel(state, nation.id) ? <span className="fa-num text-fa-text">{formatNumber(getFieldedStrength(state, nation.id))}</span> : <span className="fa-num" title={t('nc.armyUnknown')}>?</span>}</span>
-          {atWarWithPlayer && <span>{t('nc.warExhaustion')} <span className="fa-num text-fa-text">{nation.warExhaustion || 0}</span></span>}
+          {atWarWithPlayer && <span>{t('nc.warExhaustion')} <span className="fa-num text-fa-text">{Math.round(nation.warExhaustion || 0)}</span></span>}
           {atWarWithPlayer && activeWar && <span>{t('nc.warScore')} <span className={`fa-num ${playerWarScore >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{playerWarScore >= 0 ? '+' : ''}{playerWarScore}</span></span>}
         </div>
       </div>

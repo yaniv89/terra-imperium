@@ -492,7 +492,7 @@ export const processAIOperations = (state, rng) => {
           const result = applyInvasionResult(actor, { ...v, fromRegionId: from, targetRegionId: target, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), viewerId: state.playerNationId, militia: battle.inputs.militia });
           next = { ...next, regions: result.regions, units: result.units, wars: result.wars, hiredCommanders: result.hiredCommanders, appliedBattleIds: result.appliedBattleIds, world: result.world || next.world,
             nations: { ...result.nations, [nationId]: { ...result.nations[nationId], economy: chargedPool } },
-            logs: [...next.logs, { year: next.year, type: 'combat', ...msg('m.battle.aiAttacksFrom', { nation: people(nationId, next.nations[nationId].name), from: cityRef(from, from), to: cityRef(target, target) }) }] };
+            logs: [...next.logs, { year: next.year, type: 'combat', ...msg('m.battle.aiAttacksFrom', { nation: people(nationId, next.nations[nationId].name), from: cityRef(from, next.regions[from]?.name || state.regions[from]?.name || from), to: cityRef(target, state.regions[target]?.name || next.regions[target]?.name || target) }) }] };
         }
       } else {
         // A war plan (warPlans.js, lane W5): regiments gather at the muster point and march on the
@@ -719,7 +719,9 @@ export const processAINavalOperations = state => {
     const actor=()=>({...next,playerNationId:id,resources:getPool(next,id),techAgeId:getTechAgeId(next,id)});
     const apply=action=>{
       const before=actor(),after=gameReducer(before,action);
-      if(after===before)return false;
+      // A refused order (the reducer only logged why) is no order: its "That army has already moved" line
+      // was written as if to the player, four a turn in the player's log (playtest 4 P4-M4).
+      if(after===before||(after.units===before.units&&after.regions===before.regions&&after.wars===before.wars))return false;
       // The reducer ran as this nation: a battle report it wrote names the AI as "the player". Keep
       // only the battles the real player fought, seen from their side (battleReports.js).
       const me=state.playerNationId;
