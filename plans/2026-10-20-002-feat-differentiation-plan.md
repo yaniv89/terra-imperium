@@ -109,14 +109,16 @@ Playtest 3 (2026-10-08, `plans/playtest-3-audit.md` section 3) scored economy 3,
 
 ### Outstanding Questions
 
-| ID | Question | Default used in the plan | Blocks |
+The user answered Q1, Q2, Q4, Q5, Q6 and Q7 on 2026-10-20; only U42 still waits on a final pick.
+
+| ID | Question | User answer (2026-10-20) | Blocks |
 |---|---|---|---|
-| Q1 | 6.1: may small unwalled towns and outposts fall without the battle screen? | Yes, with "always ask" on by default for the player's own towns (KD3) | U18 only |
-| Q2 | 6.2: remove the ADM/DIP/MIL pools and pay with gold, authority and decrees? | Yes (KD2) | U6, U7, U8, U9, U10 |
-| Q4 | 6.4: replace the five victory types with a legacy score plus domination? | Yes (KD4) | U16, U17 |
-| Q5 | 6.5: which new ideas first? | Playtest and crash fix, ruler with ambitions, Chronicle, battle card, crises, challenges, touch (KD1) | the start order of P3 to P5 only, no unit's content |
-| Q6 | 6.6: premium, or free with a capped unlock plus cosmetics? | Premium or capped unlock, cosmetics only (KD7) | U42 only (U41, the spec, is not blocked) |
-| Q7 | Which measured economy features to cut (from U33's list)? | None cut until the user picks | U34 only |
+| Q1 | 6.1: may small unwalled towns and outposts fall without the battle screen? | Yes, with "always ask" on by default for the player's own towns (KD3) | nothing |
+| Q2 | 6.2: remove the ADM/DIP/MIL pools and pay with gold, authority and decrees? | Yes, on the condition that the system stays stable and players earn enough decrees: U6 and U8 show in balance-sim that player and AI decree income covers today's acts-of-state rate (within a quarter) at every speed and age, and the full suite stays green | nothing |
+| Q4 | 6.4: replace the five victory types with a legacy score plus domination? | Yes (KD4) | nothing |
+| Q5 | 6.5: which new ideas first? | The plan's order (KD1) | nothing |
+| Q6 | 6.6: premium, or free with a capped unlock plus cosmetics? | Accepted the plan's approach: U41 writes the spec, never sell power (KD7); the final pick is made on that spec before U42 | U42 only |
+| Q7 | Which measured economy features to cut (from U33's list)? | Accepted: decided after the playtest measures use | U34 only |
 
 Question 6.3 was answered yes in the sibling plan. The decree shape (KD8), later-start scenarios (KD6) and verifier hosting (KTD16) were settled by the user. Deferred, not blocking: whether a drawn path in battle replaces today's drag-from-squad formation line (U38 prototypes both and asks with screenshots); whether a device tier may ever lower the battle size (decision 25 says never silently).
 
