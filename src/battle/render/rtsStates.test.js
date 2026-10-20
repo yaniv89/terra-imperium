@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { readGlbJson } from '../../../scripts/art/glbInfo.mjs';
 import { BUILDINGS } from '../data/economy';
 
-const AGES = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+const AGES = ['stone', 'bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
 const ROLES = ['expedition-camp', 'town-hall', 'food-depot', 'materials-yard', 'trade-post', 'farm-plot', 'mine', 'barracks', 'range',
   'stable', 'siege-workshop', 'aid-post', 'tower'];
 const MODERN_EXTRAS = ['generator', 'airfield', 'radar-aa'];
