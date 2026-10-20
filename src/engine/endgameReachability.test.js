@@ -72,7 +72,9 @@ describe('endgame reachability: the game always resolves to a definite outcome b
     expect(state.gameStatus, 'the game never reached a definite outcome within the turn budget').not.toBe(GameStatus.ACTIVE);
     expect(state.gameStatus, `won by ${state.victoryConditionId} in ${state.year} (rank ${state.finalRank})`).not.toBe(GameStatus.VICTORY);
     expect([GameStatus.DEFEAT, GameStatus.COMPLETE]).toContain(state.gameStatus);
-    expect(state.turnNumber).toBeLessThanOrEqual(speedTurnLimit(state.gameSpeed));
+    // The ending fires on the first turn it can be checked: an open event or peace offer that turn holds it one more.
+    expect(state.turnNumber).toBeLessThanOrEqual(speedTurnLimit(state.gameSpeed) + 3);
+    if (state.gameStatus === GameStatus.COMPLETE) expect(state.ending).toEqual({ reason: 'turnLimit' });
     if (state.gameStatus === GameStatus.COMPLETE) {
       expect(state.finalRank, 'a nation that never acted should not rank #1 against 239 real AI economies').toBeGreaterThan(1);
     }
