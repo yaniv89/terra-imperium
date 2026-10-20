@@ -61,6 +61,10 @@ export const townVariant = (ageId, style, seed = 0) => {
   return (rule && (rule[style] || rule.others)) || (seed % 2 ? 'b' : 'a');
 };
 
+// Where a style with no kit in an age borrows one before the age's base (H-25: the base is Roman or
+// European, wrong for the Nile in the Stone Age or the Levant in a big Classical town).
+const KIT_BORROW = { nile: ['levant'], maghreb: ['levant'], levant: ['mesopotamia'], indic: ['monsoon'], westafrica: ['monsoon'], eastafrica: ['monsoon'] };
+
 /** Index town file names ('bronze-town-small-a-europe') as { 'bronze:small': { europe: { a: name } } }. */
 export const indexTownFiles = (names) => {
   const out = {};
@@ -83,7 +87,7 @@ export const townFileKey = (ageId, tierId, seed = 0, style = null, index = LAYOU
   // them; the age's tradition rule only steers the base towns.
   const pick = (k, v) => k && (k[v] || k.a || k.b);
   const own = seed % 2 ? 'b' : 'a';
-  for (const st of styleChain(style)) { const key = pick(kits[st], own); if (key) return key; }
+  for (const st of [...styleChain(style), ...styleChain(style).flatMap((c) => KIT_BORROW[c] || [])]) { const key = pick(kits[st], own); if (key) return key; }
   return pick(kits.base, townVariant(ageId, style, seed)) || null;
 };
 

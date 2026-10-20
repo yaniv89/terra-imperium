@@ -113,4 +113,14 @@ describe('the battlefield from a tile', () => {
     expect(setup.tile).toBe(S.regions[be].tile);
     expect(setup.map.tiles.length).toBe(setup.map.w * setup.map.h);
   });
+
+  it('an oasis tile is drawn as desert ground (H-25) and keeps its combat terrain', () => {
+    const oasis = [...Array(tiles.count).keys()].find((t) => tiles.land[t] === 1 && tiles.featureOf(t) === 'oasis');
+    expect(oasis).toBeDefined();
+    const ctx = tileContextOf(S, oasis);
+    expect(ctx.oasis).toBe(true);
+    const setup = buildSetupFromArmies({ regionId: 'oasis', terrain: 'mixed', seed: 1, attackerUnits: mk('a', ['infantry']), defenderUnits: mk('d', ['infantry']), tileContext: ctx });
+    expect(setup.terrain).toBe('desert');
+    expect(buildSetupFromArmies({ regionId: 'oasis', terrain: 'plains', seed: 1, attackerUnits: mk('a', ['infantry']), defenderUnits: mk('d', ['infantry']), tileContext: ctx }).terrain).toBe('plains');
+  });
 });

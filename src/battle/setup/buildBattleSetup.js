@@ -74,7 +74,7 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // v16: playtest 4 P4-H4: two squads walking into each other slide past instead of locking, an
 // attack-moving squad turns on a tower that shoots it, and an assault goes on to base buildings
 // near the attack-move's goal or the building that fell (CONTINUE_NEAR 18 tiles).
-export const SETUP_VERSION = 16;
+export const SETUP_VERSION = 17; // v17: H-25, an oasis field is drawn as desert ground (the combat terrain stays)
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
@@ -185,7 +185,8 @@ export const buildSetupFromArmies = ({
   const type = battleType || battleTypeOf({ raid, landing, sally, city, fortLevel, tileContext, fromTile });
   const raiding = RAID_TYPES.has(type);
   const realCity = !naval && type !== 'sally' && type !== 'raid' && cityManifest?.structures?.length ? cityManifest : null;
-  const map = generateMap({ regionId, terrain, combatWidth, pointCount: naval ? 0 : deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext, naval, ...(realCity ? { keepInset: cityKeepInset(realCity) } : {}) });
+  const ground = tileContext?.oasis && terrain === 'mixed' ? 'desert' : terrain; // what the field looks like
+  const map = generateMap({ regionId, terrain: ground, combatWidth, pointCount: naval ? 0 : deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext, naval, ...(realCity ? { keepInset: cityKeepInset(realCity) } : {}) });
   // A siege in progress (sieges.js) has already battered the walls: the keep starts at that HP.
   // A sea battle has one structure: the defender's anchorage, an unwalled keep the AI steers for and the renderer leaves out.
   let cityInfo = null;
@@ -213,7 +214,7 @@ export const buildSetupFromArmies = ({
     version: SETUP_VERSION,
     seed: seed >>> 0,
     regionId,
-    terrain,
+    terrain: ground,
     combatWidth,
     // The clock by battle type (battleType.js): a field battle is fast, a siege gives the engines time.
     battleType: type,

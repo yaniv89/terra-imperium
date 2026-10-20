@@ -41,14 +41,15 @@ describe('art index', () => {
     expect(a.housesDamage('kingdoms', 'levant')).toBeNull();
   });
 
-  it('resolves civic halls and palace damage by style without borrowing another age', () => {
+  it('resolves civic halls and palace damage by style; only a civic hall borrows its culture from an earlier age', () => {
     for (const kind of ['civic', 'palaceDamage']) {
       const stem = kind === 'civic' ? 'civic' : 'palace-damage';
       const a = idx(`battle/city/${stem}-bronze.glb`, `battle/city/${stem}-bronze-sinic.glb`, `battle/city/${stem}-classical-levant.glb`);
       expect(a[kind]('bronze', 'korea').style).toBe('sinic');
       expect(a[kind]('bronze', 'europe').style).toBe('base');
       expect(a[kind]('classical', 'andalus').style).toBe('levant');
-      expect(a[kind]('kingdoms', 'sinic')).toBeNull();
+      // a civic hall of the land's culture from an earlier age beats the age's European base hall
+      if (kind === 'civic') { expect(a.civic('kingdoms', 'sinic').style).toBe('sinic'); expect(a.civic('kingdoms', 'europe')).toBeNull(); } else expect(a[kind]('kingdoms', 'sinic')).toBeNull();
       expect(idx()[kind]('bronze', 'levant')).toBeNull();
     }
   });
