@@ -7,7 +7,8 @@
 // Switching keeps the progress made on each tech. Picking a tech further down a line queues the
 // missing earlier ones first.
 //
-//   cost = RESEARCH_AGE_BASE[age] x the speed's cost multiplier x (1 + research cost modifiers and diffusion)
+//   cost = RESEARCH_AGE_BASE[tech's age] x the speed's cost multiplier at the PAYING nation's own age
+//          x (1 + research cost modifiers and diffusion)
 //
 // Diffusion (techDiffusion.js) is Civ V's catch-up: cheaper when neighbours already know it,
 // dearer as a pioneer. The ADM/DIP/MIL power pools no longer pay for research; Research Focus
@@ -59,7 +60,7 @@ export const getResearchCost = (state, nationId, techId) => {
   const tech = TECH_TREE[techId];
   if (!tech) return Infinity;
   const base = RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern;
-  const speed = speedCostMult(state.gameSpeed, tech.ageId); // the speed table (ages.js): the same span of history per tech at every speed
+  const speed = speedCostMult(state.gameSpeed, techAgeOf(state, nationId)); // the speed table (ages.js, KTD9): keyed by the paying nation's own age
   const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
   return Math.max(1, Math.round(base * speed * (1 + mult)));
 };

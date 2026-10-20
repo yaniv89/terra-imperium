@@ -119,3 +119,13 @@ describe('through resolveTurn', () => {
     expect(a.logs.some((l) => l.message === `Researched ${TECH_TREE[firstOf('economy')].name}.`)).toBe(true);
   });
 });
+
+describe('speed is keyed by the paying nation (KTD9)', () => {
+  it('a tech costs the payer\'s own age multiplier, not the tech\'s', () => {
+    const s = fresh();
+    const tech = Object.values(TECH_TREE).find((t) => t.ageId === 'classical').id;
+    const asBronze = getResearchCost({ ...s, techAgeId: 'bronze' }, FR_ID, tech);
+    const asClassical = getResearchCost({ ...s, techAgeId: 'classical' }, FR_ID, tech);
+    expect(asClassical / asBronze).toBeCloseTo((20 / 12) / 1.6, 1);
+  });
+});
