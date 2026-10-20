@@ -17,6 +17,7 @@ const ALLOWED = [
   ['src/engine/saveMigrations.js', 'const year = state.year ?? AGES[FIRST_AGE_ID].startYear;', 'the v13 save step reads the old calendar once, so no nation loses its old age'],
   ['src/engine/resolveTurn.js', 'state.year ?? displayYear(state)', 'the label the turn started with, for its logs'],
   ['src/engine/colonies.js', 'const year = state.year;', 'used only in log lines'],
+  ['src/engine/routes.js', '{ year = state.year } = {}', 'the label on the march log lines of a move made on order'],
   ['src/engine/diplomacy.js', 'war_${nationId}_${state.year}', 'part of an id, made unique by a counter'],
   ['src/engine/diplomacy.js', 'startYear: state.year', 'a record shown to the player'],
   ['src/data/satellites.js', '', 'the space race, removed with it (plan U18)'],
