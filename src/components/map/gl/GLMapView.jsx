@@ -850,10 +850,10 @@ const GLMapView = ({
       else if (!c.own && c.kind === 'army' && c.tile != null && onSelectTile) onSelectTile(c.tile);
       else if (c.own && (c.kind === 'army' || c.kind === 'fleet') && c.tile != null && onSelectArmy) {
         // Your army's banner is your army, also when it stands on a city (the city has its own
-        // badge, banner and town to tap: playtest audit I076). A fleet in port is reached through
-        // its city, and a march aimed at a banner on a city aims at the city.
+        // badge, banner and town to tap: playtest audit I076). So is a fleet in port (its sheet
+        // boards troops); a march aimed at a banner on a city aims at the city.
         const onCity = gameState.regions[gameState.world?.tileOwner?.[c.tile]]?.tile === c.tile;
-        if (onCity && (c.kind === 'fleet' || marchingRef.current)) onSelectRegion?.(c.regionId);
+        if (onCity && marchingRef.current) onSelectRegion?.(c.regionId);
         else onSelectArmy(c.tile);
       } else onSelectRegion?.(c.regionId);
       return;

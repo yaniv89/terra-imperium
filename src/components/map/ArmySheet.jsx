@@ -26,7 +26,8 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
   const { t: tr, lang } = useT();
   const isMobile = useIsMobile();
   const sheet = useCornerSheet('army-sheet', true, onClose); // one sheet at a time on a phone (H-18)
-  const model = useMemo(() => armySheetModel(state, tile), [state, tile, lang]); // eslint-disable-line react-hooks/exhaustive-deps -- lang only words the sheet
+  const [fleetView, setFleetView] = useState(false); // on a city tile with troops and ships: which stack
+  const model = useMemo(() => armySheetModel(state, tile, fleetView), [state, tile, fleetView, lang]); // eslint-disable-line react-hooks/exhaustive-deps -- lang only words the sheet
   const [renaming, setRenaming] = useState(null);
   const [picked, setPicked] = useState(null); // unit ids chosen to march (null: the whole stack)
   const [attack, setAttack] = useState(null); // a target of the pre-battle modal
@@ -50,6 +51,13 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
         </div>
         <button onClick={onClose} aria-label={tr('at.close')} className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
       </div>
+      {model.other && <button type="button" onClick={() => setFleetView(!model.naval)} data-testid="army-switch" className="w-full mb-2 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{model.naval ? tr('mx.army.showTroops') : tr('mx.army.showFleet')}</button>}
+      {model.inPort && (model.board.length > 0 || model.cargo.length > 0) && (
+        <div className="mb-2 space-y-1" data-testid="fleet-cargo">
+          {model.board.map((c) => <button key={c.id} type="button" onClick={() => dispatch({ type: ActionTypes.EMBARK_UNIT, payload: { landUnitId: c.id, navalUnitId: c.shipId } })} data-testid="board-ship" className="w-full min-h-[40px] rounded-lg bg-sky-800/70 hover:bg-sky-700 text-fa-text text-xs font-semibold">{tr('mx.army.board', { name: c.name })}</button>)}
+          {model.cargo.map((c) => <button key={c.id} type="button" onClick={() => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: c.id } })} data-testid="unload-ship" className="w-full min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{tr('mx.army.unload', { name: c.name })}</button>)}
+        </div>
+      )}
       <div className="text-[11px] text-fa-text mb-2" data-testid="army-supply">{model.zoneText}{model.airCover ? tr('mx.army.air', { n: model.airCover, range: model.airRange }) : ''}</div>
       {model.fortified && <div className="text-[11px] text-emerald-200 mb-2" data-testid="army-fortified">{tr('mx.army.fortified')}</div>}
       {model.mergeFrom?.length > 0 && (

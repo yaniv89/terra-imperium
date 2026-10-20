@@ -81,6 +81,22 @@ describe('fleet against fleet (plan D5b)', () => {
     expect(m.pillage).toBeNull(); expect(m.siege).toBeNull();
   });
 
+  it('a fleet in port opens its own stack, takes troops aboard and puts them ashore', () => {
+    const city = S.regions[FR].tile;
+    const base = withUnits(S, [fleet('f', FR, { tile: city }), army('a', FR, { tile: city })]);
+    expect(stackOn(base, city).map((u) => u.id)).toEqual(['a']); // troops first
+    expect(stackOn(base, city, true).map((u) => u.id)).toEqual(['f']);
+    expect(stackOn(withUnits(S, [fleet('f', FR, { tile: city })]), city).map((u) => u.id)).toEqual(['f']); // a lone fleet opens
+    const m = armySheetModel(base, city, true);
+    expect(m).toMatchObject({ naval: true, inPort: true, other: true, cargo: [] });
+    expect(m.board.map((c) => c.id)).toEqual(['a']);
+    const aboard = gameReducer(base, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId: 'a', navalUnitId: m.board[0].shipId } });
+    expect(aboard.units.a.embarkedOn).toBe('f');
+    const m2 = armySheetModel(aboard, city, true);
+    expect(m2.board).toEqual([]); expect(m2.cargo.map((c) => c.id)).toEqual(['a']);
+    expect(gameReducer(aboard, { type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: 'a' } }).units.a.embarkedOn).toBeNull();
+  });
+
   it('an AI fleet attacks a weaker enemy fleet beside it', () => {
     const war = atWar(withUnits(S, [fleet('f', FR, { tile: ours, strength: 200, maxStrength: 1000 }), fleet('e1', GB, { ownerId: GB_ID, tile: theirs }), fleet('e2', GB, { ownerId: GB_ID, tile: theirs })]));
     expect(AI_FLEET_ATTACK_RATIO).toBeGreaterThan(1);
