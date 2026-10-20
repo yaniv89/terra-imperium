@@ -47,6 +47,8 @@ const makeView = (w, pendingOrders, playerSide, includeFog, work) => ({
     idx: q.idx, side: q.side, unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null, look: squadLookOf(q),
     x: q.x, y: q.y, facing: q.facing,
     strength: q.strength, maxStrength: q.maxStrength, startStrength: q.startStrength, morale: q.morale,
+    // what your own squad lost to attrition (out of supply on enemy ground, sim/support.js): H-03
+    attritionLost: q.side === playerSide ? q.lossBy?.attrition || 0 : 0,
     alive: q.alive, onField: q.onField, fled: q.fled, routed: q.routed, retreating: q.retreating,
     reserve: q.reserve, enterTick: q.enterTick, inside: q.inside ?? -1,
     visible: canSeeSquad(w, playerSide, q),

@@ -18,6 +18,7 @@ import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from
 import { moraleFromLosses } from './moraleMath';
 import { isShaken, SHAKEN_DAMAGE_DEALT, SHAKEN_DAMAGE_TAKEN } from './morale';
 import { destroyEcoBuilding, ecoTargetIndex } from './economy';
+import { loseStrength } from './losses';
 import { strikingStrength, ringBroken, KEEP_STORM_MULT } from './siegeRules';
 
 // The structure a squad is going for: a fixed one (the keep, a tower, a city building) or one the
@@ -98,7 +99,7 @@ export const elevationMult = (w, a, t) => {
 };
 
 const applyDamage = (w, attacker, target, damage, arc = 0) => {
-  target.strength = Math.max(0, target.strength - damage);
+  loseStrength(target, damage, attacker.stats.melee ? 'melee' : 'ranged');
   const moraleLoss = Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier(view(target)) * moraleLossMult(w, target) * ARC_MORALE_MULT[arc]);
   target.morale = Math.max(0, target.morale - moraleLoss);
   target.lastHitTick = w.tick;

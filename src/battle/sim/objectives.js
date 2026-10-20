@@ -14,6 +14,7 @@ import { fireShare, capShotOn } from './siegeRules';
 import { buildingSupplyPerSec } from './buildings';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks } from './constants';
 import { moraleFromLosses } from './moraleMath';
+import { loseStrength } from './losses';
 
 export const ASSIMILATION_TICKS = secondsToTicks(30);
 export const ASSIMILATION_RADIUS = 6 * Q;
@@ -99,7 +100,7 @@ export const resolveStructureFire = (w) => {
     const damage = capShotOn(target, Math.max(1, Math.round((s.damage + bonus) * variance * fireShare(s))));
     // The garrison shares the credit (battle XP goes to squads that fought).
     if (bonus) garrison.forEach((q) => { q.engaged = true; q.damageDealt += Math.round((damage * (q.strength * perHitFraction({ attackTicks: s.attackTicks }) * GARRISON_FIRE_MULT)) / (s.damage + bonus)); });
-    target.strength = Math.max(0, target.strength - damage);
+    loseStrength(target, damage, 'tower');
     target.morale = Math.max(0, target.morale - Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier({ promotions: target.promotions })));
     target.lastHitTick = w.tick;
     target.engaged = true;

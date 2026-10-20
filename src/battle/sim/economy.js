@@ -26,6 +26,7 @@ import { tileOf, walkableGoal, invalidatePaths, queryRadius } from './pathing';
 import { makeSquad } from './world';
 import { stepToward } from './movement';
 import { moraleFromLosses } from './moraleMath';
+import { loseStrength } from './losses';
 import { capShotOn, fireShare, recentlyHit, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
 import {
   RESOURCES, MILLI, POP_LIMIT, POP_PER_SQUAD, CARRY, GATHER_PER_SEC, FARM_RATE_MULT, MINE_RATE_MULT, WORK_REACH,
@@ -605,7 +606,7 @@ export const fireEcoTowers = (w) => {
     });
     if (!target) return;
     const damage = capShotOn(target, Math.max(1, Math.round(t.damage * (0.85 + nextRandom(w) * 0.3) * fireShare(b))));
-    target.strength = Math.max(0, target.strength - damage);
+    loseStrength(target, damage, 'tower');
     target.morale = Math.max(0, target.morale - Math.round(moraleFromLosses(target, damage)));
     target.lastHitTick = w.tick; target.engaged = true;
     if (target.strength === 0) { target.alive = false; w.events.push({ t: w.tick, type: 'destroyed', id: target.idx }); }

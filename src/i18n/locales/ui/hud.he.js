@@ -91,6 +91,8 @@ export default {
   'bt.hud.shakenN': 'מזועזעים {n}',
   'bt.hud.shakenTitle': 'מוכים: מכות חלשות יותר, יותר נזק, עד שהמורל חוזר. החוליות שלכם לא בורחות.',
   'bt.hud.routed': 'נמלטו',
+  'bt.hud.attrition': '-{men} בשחיקה',
+  'bt.hud.attritionTitle': 'אבדו בשחיקה: בלי אספקה בשטח האויב. עגלת אספקה או המצביא שלכם בקרבת מקום עוצרים את זה.',
   'bt.hud.target': 'מטרה: {word} {hp}',
   'bt.hud.rallyCry': 'קריאת התעוררות',
   'bt.hud.rallyReadyTitle': 'קריאת התעוררות: ⁦+30⁩ מורל לכל הצבא',

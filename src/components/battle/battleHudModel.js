@@ -81,7 +81,9 @@ export const selectionSummary = (selected = []) => {
   const men = sum(selected, (q) => Math.max(0, q.strength));
   const max = sum(selected, (q) => Math.max(1, q.maxStrength));
   const morale = Math.round(sum(selected, (q) => q.morale) / selected.length);
-  return { name, squads: selected.length, men, share: max ? men / max : 0, morale, routed: selected.some((q) => q.routed), shaken: selected.filter(isShakenView).length };
+  // strength lost to attrition (out of supply on enemy ground): every loss has a cause on screen (H-03)
+  const attrition = sum(selected, (q) => Math.max(0, q.attritionLost || 0));
+  return { name, squads: selected.length, men, share: max ? men / max : 0, morale, routed: selected.some((q) => q.routed), shaken: selected.filter(isShakenView).length, attrition };
 };
 
 /**

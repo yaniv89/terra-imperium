@@ -91,6 +91,8 @@ export default {
   'bt.hud.shakenN': 'Shaken {n}',
   'bt.hud.shakenTitle': 'Beaten down: weaker blows, more hurt taken, until morale returns. Your squads never run.',
   'bt.hud.routed': 'routed',
+  'bt.hud.attrition': '-{men} attrition',
+  'bt.hud.attritionTitle': 'Lost to attrition: out of supply on enemy ground. A supply wagon or your general nearby stops it.',
   'bt.hud.target': 'Target: {word} {hp}',
   'bt.hud.rallyCry': 'Rally Cry',
   'bt.hud.rallyReadyTitle': 'Rally Cry: +30 morale for your whole army',

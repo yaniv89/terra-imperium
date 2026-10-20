@@ -17,7 +17,7 @@ import { squadLookOf, clipFieldsOf } from './view';
 
 // One squad's per-tick record. Nullable numbers travel as NaN.
 // lastStrikeTick .. work: drawing only (the clip player, I219; view.js clipFieldsOf).
-const FIELDS = ['x', 'y', 'facing', 'strength', 'morale', 'flags', 'enterTick', 'inside', 'order', 'orderX', 'orderY', 'target', 'targetKind', 'lastStrikeTick', 'lastHitTick', 'lastDepositTick', 'work'];
+const FIELDS = ['x', 'y', 'facing', 'strength', 'morale', 'flags', 'enterTick', 'inside', 'order', 'orderX', 'orderY', 'target', 'targetKind', 'lastStrikeTick', 'lastHitTick', 'lastDepositTick', 'work', 'attritionLost'];
 export const SQUAD_STRIDE = FIELDS.length;
 const F = Object.fromEntries(FIELDS.map((k, i) => [k, i]));
 const FLAGS = ['alive', 'onField', 'fled', 'routed', 'retreating', 'reserve', 'visible', 'hidden', 'striking'];
@@ -57,6 +57,7 @@ export const createViewPacker = () => {
       f[o + F.target] = num(q.target); f[o + F.targetKind] = intern(q.targetKind);
       const clip = clipFieldsOf(q, q.side === playerSide || seen, work);
       f[o + F.lastStrikeTick] = clip.lastStrikeTick; f[o + F.lastHitTick] = clip.lastHitTick; f[o + F.lastDepositTick] = clip.lastDepositTick; f[o + F.work] = clip.work;
+      f[o + F.attritionLost] = q.side === playerSide ? q.lossBy?.attrition || 0 : 0;
     }
     const packed = {
       tick: w.tick, playerSide, n,

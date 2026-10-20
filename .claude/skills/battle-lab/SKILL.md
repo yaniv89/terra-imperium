@@ -208,3 +208,14 @@ gives towers and gates) and prints the tick it falls, what each attacker does th
 `STRUCTURE ... attackersWithoutTarget=N` line: the repro for "idle after the target falls".
 `ECO=1` builds the setup with the battle economy as campaign battles do (`ECO_SUPPLY`, `ECO_DEV`
 0..1); workers are left out of the orders and an `ECO workers=.. buildings=..` line is printed.
+
+## Commanded assaults (mobile campaign audit H-02, H-03, H-26)
+```bash
+SEEDS=1-8 POLICY=once|keep|ai [ATT=.. STR_A=588 DEF=.. STR_D=190 TERRAIN=desert FORT=1 TIER=small CAPITAL=1 AGE=kingdoms] [TRACE=<seed>] \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/assaultTrace
+```
+assaultTrace fights a commanded assault the way a phone player does (one attack-move on the town,
+or every squad at the keep, or the AI for the baseline) and prints per seed the outcome, the
+attacker's losses BY CAUSE (sim/losses.js: melee, ranged, tower, impact, attrition; `unbooked` must
+be 0), what each building shot, when the garrison was gone, idle squad-seconds (and those under a
+building's fire) and Auto's verdict on the same armies.
