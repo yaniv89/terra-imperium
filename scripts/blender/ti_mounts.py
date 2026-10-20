@@ -142,7 +142,22 @@ def _swap(arm, meshes, names):
         bpy.data.objects.remove(ob, do_unlink=True)
 
 
-def fine_horse(prefix='Mount', at=(0, 0, 0), coat='Coat', dark='Mane', pale='Cloth', tack='Leather', blaze=True, socks=True, bridle=True):
+def _densify(rows, k):
+    """Catmull-Rom between the rows of a tube profile (each row a tuple of numbers: a centre and its
+    radii), k-1 new rows between two old ones, so a tube bends and swells smoothly."""
+    if k <= 1:
+        return list(rows)
+    out = []
+    for i in range(len(rows) - 1):
+        p0, p1, p2, p3 = rows[max(0, i - 1)], rows[i], rows[i + 1], rows[min(len(rows) - 1, i + 2)]
+        for j in range(k):
+            t = j / k
+            out.append(tuple(.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t ** 3)
+                             for a, b, c, d in zip(p0, p1, p2, p3)))
+    return out + [tuple(rows[-1])]
+
+
+def fine_horse(prefix='Mount', at=(0, 0, 0), coat='Coat', dark='Mane', pale='Cloth', tack='Leather', blaze=True, socks=True, bridle=True, detail=1):
     """The horse rig (same bones, same size) with the quality pass of 2026-10-14: a deeper chest and
     a rounder croup, an arched neck, a long head with a jaw, a dark muzzle, eyes, pricked ears, a
     standing mane with a forelock, a full tail, and (options) a white blaze, white socks and a
@@ -152,13 +167,19 @@ def fine_horse(prefix='Mount', at=(0, 0, 0), coat='Coat', dark='Mane', pale='Clo
     _swap(arm, meshes, {f'{prefix}{n}' for n in ('Barrel', 'Neck', 'Head', 'Tail', 'Mane', 'Ear-1', 'Ear1')})
     add = meshes.append
     S, N, H = 'Mount_Spine', 'Mount_Neck', 'Mount_Head'
-    add(u.tube(f'{prefix}Barrel', [(0, y, z) for y, z, _, _ in HORSE_BARREL], [(h, w) for _, _, h, w in HORSE_BARREL], coat, [S] * 7, 8, arm))
+    # detail=2 (the close version, 2026-10-20): the barrel, neck and head as rounder tubes (more sides,
+    # Catmull-Rom rows between the authored ones); the shape and the bones are the same
+    rs, ks = (8, 1) if detail < 2 else (14, 3)
+    barrel = _densify(HORSE_BARREL, ks)
+    add(u.tube(f'{prefix}Barrel', [(0, y, z) for y, z, _, _ in barrel], [(h, w) for _, _, h, w in barrel], coat, [S] * len(barrel), rs, arm))
     neck = [(0, -.36, .69), (0, -.455, .815), (0, -.535, .925), (0, -.57, .985)]
-    add(u.tube(f'{prefix}Neck', neck, [(.078, .135), (.062, .100), (.052, .078), (.046, .062)], coat, [N] * 4, 8, arm))
+    nk = _densify([(*c, *r) for c, r in zip(neck, [(.078, .135), (.062, .100), (.052, .078), (.046, .062)])], ks - 1 if ks > 1 else 1)
+    add(u.tube(f'{prefix}Neck', [q[:3] for q in nk], [q[3:] for q in nk], coat, [N] * len(nk), rs - 2 if detail >= 2 else 8, arm))
     head = [(0, -.545, 1.000), (0, -.605, .968), (0, -.695, .908), (0, -.770, .858)]
     hr = [(.048, .052), (.056, .072), (.043, .054), (.036, .041)]
-    add(u.tube(f'{prefix}Head', head, hr, coat, [H] * 4, 8, arm))
-    add(u.tube(f'{prefix}Muzzle', [(0, -.765, .861), (0, -.800, .838), (0, -.815, .828)], [(.0365, .0415), (.034, .036), (.022, .022)], dark, [H] * 3, 6, arm))
+    hd = _densify([(*c, *r) for c, r in zip(head, hr)], ks - 1 if ks > 1 else 1)
+    add(u.tube(f'{prefix}Head', [q[:3] for q in hd], [q[3:] for q in hd], coat, [H] * len(hd), 10 if detail >= 2 else 8, arm))
+    add(u.tube(f'{prefix}Muzzle', [(0, -.765, .861), (0, -.800, .838), (0, -.815, .828)], [(.0365, .0415), (.034, .036), (.022, .022)], dark, [H] * 3, 10 if detail >= 2 else 6, arm))
     for sx in (-1, 1):
         add(u.tube(f'{prefix}Ear{sx}', [(sx * .030, -.540, 1.030), (sx * .036, -.548, 1.075), (sx * .040, -.552, 1.110)], [.017, .014, .002], coat, [H] * 3, 4, arm))
         add(u.box(f'{prefix}Eye{sx}', (sx * .0545, -.622, .978), (.012, .024, .018), dark, H, arm))
@@ -187,14 +208,50 @@ def fine_horse(prefix='Mount', at=(0, 0, 0), coat='Coat', dark='Mane', pale='Clo
     return arm, meshes
 
 
-def tack(horse, saddle='Team', span=(-.30, .16), reach=108, fringe=.028, girth='Leather', band='Leather', discs=3, disc='Metal'):
+def fine_legs(arm, prefix='Mount', coat='Coat', hoof='Mane', sides=6):
+    """Shaped horse legs (2026-10-20, opt-in): a muscled forearm and haunch, a knee and a hock that
+    stand out, a slim cannon, a fetlock bump, a sloped pastern and a flared hoof, in place of the
+    quadruped's straight thigh, cannon and box hoof. Same bones, same footing (hoof soles at z 0)."""
+    socks = {o.name[len(prefix) + 4:]: o.active_material.name for o in bpy.data.objects if o.parent == arm and o.name.startswith(f'{prefix}Sock') and o.active_material}
+    for ob in [o for o in bpy.data.objects if o.parent == arm and o.type == 'MESH'
+               and any(o.name.startswith(f'{prefix}{k}') for k in ('Thigh', 'Cannon', 'Hoof', 'Sock'))]:
+        bpy.data.objects.remove(ob, do_unlink=True)
+    made = []
+    for side, sx in (('L', 1), ('R', -1)):
+        x = sx * .085
+        for end, y0 in (('Front', -.32), ('Hind', .32)):
+            leg, shin = f'{prefix}_Leg{end}_{side}', f'{prefix}_Shin{end}_{side}'
+            if end == 'Front':  # elbow, forearm, knee, cannon, fetlock, pastern
+                ring = [(0, .60, .050, .075, leg), (-.006, .47, .044, .062, leg), (0, .34, .030, .036, leg), (-.004, .295, .034, .042, shin),
+                        (0, .20, .022, .028, shin), (.004, .088, .028, .034, shin), (-.010, .056, .022, .026, shin)]
+            else:  # haunch, stifle, gaskin, point of hock, cannon, fetlock, pastern
+                ring = [(-.020, .63, .058, .100, leg), (-.030, .50, .052, .082, leg), (.020, .40, .036, .052, leg), (.048, .305, .030, .044, shin),
+                        (.022, .19, .022, .028, shin), (.006, .088, .028, .034, shin), (-.008, .056, .022, .026, shin)]
+            made.append(u.tube(f'{prefix}Leg{end}_{side}', [(x, y0 + dy, z) for dy, z, _, _, _ in ring], [(rx, ry) for _, _, rx, ry, _ in ring],
+                               coat, [b for *_, b in ring], sides, arm))
+            made.append(u.tube(f'{prefix}Hoof{end}_{side}', [(x, y0 - .016, .052), (x, y0 - .020, .026), (x, y0 - .024, .002)],
+                               [(.024, .028), (.030, .036), (.034, .041)], hoof, [shin] * 3, sides, arm))
+            if f'{end}_{side}' in socks:  # a white sock round the new fetlock and pastern
+                made.append(u.tube(f'{prefix}Sock{end}_{side}', [(x, y0 + ring[-1][0], .050), (x, y0 + ring[-2][0], .090), (x, y0 + ring[-3][0] * .5, .140)],
+                                   [(.025, .029), (.031, .037), (.025, .031)], socks[f'{end}_{side}'], [shin] * 3, sides, arm))
+    return made
+
+def full_tail(arm, prefix='Mount', dark='Mane', sides=7):
+    """A fuller tail (2026-10-20, opt-in): it lifts from the dock, swells and falls to the hocks, in
+    place of the quadruped's thin tail."""
+    for ob in [o for o in bpy.data.objects if o.parent == arm and o.name == f'{prefix}Tail']:
+        bpy.data.objects.remove(ob, do_unlink=True)
+    return u.tube(f'{prefix}Tail', [(0, .462, .672), (0, .520, .640), (0, .572, .545), (0, .598, .410), (0, .600, .290), (0, .592, .195), (0, .585, .150)],
+                  [(.026, .030), (.038, .046), (.050, .058), (.056, .060), (.052, .054), (.036, .040), (.008, .010)], dark, [f'{prefix}_Tail'] * 7, sides, arm)
+
+def tack(horse, saddle='Team', span=(-.30, .16), reach=108, fringe=.028, girth='Leather', band='Leather', discs=3, disc='Metal', steps=6, rows=3):
     """The riding tack of the quality pass on a fine horse (the Bronze general's, shared): a saddle
     cloth draped over the back (`saddle`: its material, None for none; on a mount the battle draws a
     Team cloth as plain wool), a girth, a breast band round the chest with `discs` metal discs
     (phalerae). No stirrups. Parts on ti_figure (shaded and normal-fixed with the rest)."""
     import ti_figure as F
     if saddle:
-        F.meshes.append(drape('SaddleCloth', horse, saddle, span[0], span[1], reach=reach, fringe=fringe))
+        F.meshes.append(drape('SaddleCloth', horse, saddle, span[0], span[1], reach=reach, fringe=fringe, steps=steps, rows=rows))
     if girth:
         F.meshes.append(drape('Girth', horse, girth, -.22, -.175, reach=180, grow=.031, rows=2, steps=12))
     F.use(horse)
@@ -483,7 +540,7 @@ def torsion_engine(info, stone=False, mat='Wood', rope='Cloth', metal='Metal', s
         u.tube('BoltHead', [(0, -.45 * s, z + .17 * s), (0, -.52 * s, z + .17 * s)], [.018 * s, .002], metal, ['Hull'] * 2, 4, rig)
 
 
-def trebuchet(info, mat='Wood', rope='Cloth', metal='Metal'):
+def trebuchet(info, mat='Wood', rope='Cloth', metal='Metal', swing=False):
     """A counterweight trebuchet on a frame's deck (moved here from build_units_kingdoms.py, the same
     parts): two A-frame uprights, the axle, the long beam cocked with its sling end down at the back,
     the counterweight box hanging at the front, a sling and a stone on the trough, a winch drum."""
@@ -495,17 +552,27 @@ def trebuchet(info, mat='Wood', rope='Cloth', metal='Metal'):
         u.tube(f'Upright{sx}b', [(x, .22, z), (x, 0, top)], [.03, .026], mat, ['Hull'] * 2, 5, rig)
         u.box(f'UprightBrace{sx}', (x, 0, z + .4), (.05, .40, .04), mat, 'Hull', rig)
     u.tube('Axle', [(-.26, 0, top), (.26, 0, top)], [.03, .03], metal, ['Hull'] * 2, 6, rig)
+    # swing (2026-10-20): the beam, its counterweight and the sling on a bone of their own (Beam, about the
+    # axle) and the stone on another under it (Tool_Stone: hidden by scale once it is loosed, keyed like a worker's tools), for the Fire clip
+    B, St = ('Beam', 'Tool_Stone') if swing else ('Hull', 'Hull')
+    if swing:
+        bpy.context.view_layer.objects.active = rig
+        bpy.ops.object.mode_set(mode='EDIT')
+        eb = rig.data.edit_bones
+        b = eb.new('Beam'); b.head, b.tail, b.parent = (0, 0, top), (0, .2, top), eb['Hull']
+        s_ = eb.new('Tool_Stone'); s_.head, s_.tail, s_.parent = (0, .55, z + .13), (0, .55, z + .25), b
+        bpy.ops.object.mode_set(mode='OBJECT')
     long_end = (0, .95, z + .2)
     short_end = (0, -.32, top + .4)
-    u.tube('Beam', [long_end, (0, 0, top), short_end], [.022, .04, .035], mat, ['Hull'] * 3, 5, rig)
+    u.tube('Beam', [long_end, (0, 0, top), short_end], [.022, .04, .035], mat, [B] * 3, 5, rig)
     cw = (0, -.32, top - .05)
-    u.tube('CwHanger', [short_end, (0, -.32, cw[2] + .17)], [.01, .01], metal, ['Hull'] * 2, 4, rig)
-    u.box('Counterweight', (0, -.32, cw[2] - .17), (.32, .30, .34), mat, 'Hull', rig)
-    u.box('CounterweightBand', (0, -.32, cw[2]), (.34, .32, .04), metal, 'Hull', rig)
+    u.tube('CwHanger', [short_end, (0, -.32, cw[2] + .17)], [.01, .01], metal, [B] * 2, 4, rig)
+    u.box('Counterweight', (0, -.32, cw[2] - .17), (.32, .30, .34), mat, B, rig)
+    u.box('CounterweightBand', (0, -.32, cw[2]), (.34, .32, .04), metal, B, rig)
     u.box('Trough', (0, .62, z + .02), (.16, .55, .04), mat, 'Hull', rig)
-    u.tube('Sling', [long_end, (0, .78, z + .1), (0, .58, z + .07)], [.006, .006, .006], rope, ['Hull'] * 3, 3, rig)
-    u.box('SlingPouch', (0, .55, z + .08), (.09, .08, .03), 'Leather', 'Hull', rig)
-    u.tube('Stone', [(0, .55, z + .09), (0, .55, z + .17)], [.05, .04], 'Cloth', ['Hull'] * 2, 6, rig)
+    u.tube('Sling', [long_end, (0, .78, z + .1), (0, .58, z + .07)], [.006, .006, .006], rope, [B] * 3, 3, rig)
+    u.box('SlingPouch', (0, .55, z + .08), (.09, .08, .03), 'Leather', B, rig)
+    u.tube('Stone', [(0, .55, z + .09), (0, .55, z + .17)], [.05, .04], 'Cloth', [St] * 2, 6, rig)
     u.tube('WinchDrum', [(-.24, .3, z + .1), (.24, .3, z + .1)], [.05, .05], mat, ['Hull'] * 2, 6, rig)
 
 

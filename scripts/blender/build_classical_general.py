@@ -33,8 +33,10 @@ F.start({'Coat': 'D6D0C4', 'Mane': '6B635A', 'Leather': '5A3624', 'Wood': '4A362
          'Metal': ('D2A24C', .36, .65), 'Iron': ('C9CCD0', .32, .75), 'Hair': '2B201A', 'Skin': 'C99472', 'Emblem': 'E6D6AF'}, rig=False)
 parts = []
 horse, _ = tm.fine_horse('Mount', (0, 0, 0), blaze=False, socks=False)
+tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+tm.full_tail(horse, sides=10)
 parts.append(horse)
-tm.tack(horse, 'Team', discs=3)
+tm.tack(horse, 'Team', discs=3, steps=12, rows=5)
 
 
 def crest_transverse(name, mat='Team'):
@@ -109,4 +111,4 @@ tris = F.finish_unit(UID, parts, {
     centre=(.2, -.1, .8), scale=2.6, mode='NLA_TRACKS',
     clips=MC.hook(UID, lambda: MC.mounted(horse, cmd, 'hand', 'general', bearer=bearer, bearer_kit=FC.Kit('spear')), 'general'))
 print('TRIS', tris)
-assert tris <= 4000, tris  # two people and a horse (the Bronze general is 4,486): over the 3,500 target, under its JSON budget
+assert tris <= 5000, tris  # (5,000 since the legs and tail of 2026-10-20) two people and a horse (the Bronze general is 4,486): over the 3,500 target, under its JSON budget

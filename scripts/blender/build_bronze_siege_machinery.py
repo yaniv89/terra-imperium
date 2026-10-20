@@ -90,7 +90,7 @@ for o in parts:
 for side in (-1,1):
  for y in (-.52*K,.52*K):box('Crew push handle',(side*(.36*K+.25),y,.605),(.5,.055,.055),'DarkWood')
 # All moving parts are separate rigidly weighted meshes. Crew is appended after shared-body authoring.
-clips={'Idle':40,'Move':20,'Deploy':20,'Aim':20,'Fire':20,'Reload':24,'Destroyed':30}
+clips={'Idle':40,'Move':20,'Deploy':20,'Aim':20,'Fire':20,'Reload':24,'Hit':10,'Destroyed':30}  # Hit since 2026-10-20
 rig.animation_data_create()
 for clip,frames in clips.items():
  action=bpy.data.actions.new(clip);rig.animation_data.action=action
@@ -107,6 +107,7 @@ for clip,frames in clips.items():
    rig.pose.bones['Beam'].location=arm.bones['Beam'].matrix_local.to_3x3().inverted()@Vector((0,-displacement,0))
   if clip=='Deploy':rig.pose.bones['Hull'].location.z=.018*(1-t)
   if clip=='Aim':rig.pose.bones['Beam'].rotation_euler.x=.025*math.sin(t*math.pi)
+  if clip=='Hit':rig.pose.bones['Hull'].rotation_euler.y=.03*math.sin(t*math.pi)*(1-t);rig.pose.bones['Hull'].location.z=.006*math.sin(t*math.pi)
   if clip=='Destroyed':
    rig.pose.bones['Hull'].rotation_euler.x=.18*t;rig.pose.bones['Beam'].rotation_euler.x=.35*t
   for pb in rig.pose.bones:

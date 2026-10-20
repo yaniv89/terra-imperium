@@ -13,7 +13,11 @@ const UNITS = {
   'modern-support': { crew: 1, wheels: /^Wheel_/, footprint: [1.44, 2.56] },
   'modern-general': { crew: 2, wheels: /^Wheel_/, footprint: [0.89, 1.39], gun: false },
   'modern-raider': { crew: 1, wheels: /^Wheel_/, footprint: [0.86, 1.97] },
-  'modern-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.69, 2.92] }
+  'modern-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.69, 2.92] },
+  // the older machines (2026-10-20, ti_vehicle_clips.old_machine and trebuchet): a frame or a carriage on two wheels
+  'classical-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.34, 1.56], gun: false },
+  'kingdoms-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.9, 3.2], gun: false },
+  'gunpowder-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.26, 1.67], gun: false }
 };
 const LOOPS = ['Idle', 'Move'];
 const FPS = 20;
@@ -65,7 +69,7 @@ describe.each(Object.entries(UNITS))('%s clips', (name, spec) => {
     expect(rigs.length).toBe(1 + spec.crew);
     expect(bones.has('Hull')).toBe(true);
     const wheels = [...bones.keys()].filter((n) => spec.wheels.test(n));
-    expect(wheels.length).toBeGreaterThanOrEqual(name === 'modern-siege' ? 2 : 4); // (the howitzer has one axle)
+    expect(wheels.length).toBeGreaterThanOrEqual(['modern-siege', 'classical-siege', 'kingdoms-siege', 'gunpowder-siege'].includes(name) ? 2 : 4); // (the howitzer and the older machines have one axle)
     want.forEach((c) => {
       const clip = clips[c]; const info = opts.clips[c];
       const times = clip.tracks.reduce((m, t) => (t.times.length > m.length ? t.times : m), []);

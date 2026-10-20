@@ -14,12 +14,22 @@
       "fps": 20,
       "loop": true
     },
+    "IdleAlt": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true
+    },
     "Walk": {
       "frames": 21,
       "fps": 20,
       "loop": true
     },
     "Run": {
+      "frames": 15,
+      "fps": 20,
+      "loop": true
+    },
+    "Retreat-run": {
       "frames": 15,
       "fps": 20,
       "loop": true
@@ -61,6 +71,11 @@
       "events": {
         "settle": 30
       }
+    },
+    "Cheer": {
+      "frames": 33,
+      "fps": 20,
+      "loop": true
     }
   }
 }

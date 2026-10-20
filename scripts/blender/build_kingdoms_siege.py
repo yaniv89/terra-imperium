@@ -18,12 +18,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_units as u  # noqa: E402
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
+import ti_vehicle_clips as VC  # noqa: E402
 
 UID = 'kingdoms-siege'
 F.start({'Skin': 'C99472', 'Cloth': 'C9BB98', 'Leather': '6B4630', 'Metal': ('8E8A84', .45, .7), 'Wood': '8A6646', 'Hair': '3A2A1E',
          'Hose': '4C4034', 'Boot': '4A3022'}, rig=False)
 parts, info = tm.frame('Frame', wheels=False, deck_z=.22, length=1.3, width=.56)
-tm.trebuchet(info)
+tm.trebuchet(info, swing=True)
 tm.enlarge(info['rig'], 1.97)  # two thirds of real size (MD09), as before
 
 
@@ -57,13 +59,16 @@ for i, (x, y, yaw, l, r, lean) in enumerate([(-.815, .75, 90, (.120, -.300, .560
                                              (-.46, 1.5, 90, (.110, -.300, .440), (-.110, -.300, .440), 26)]):
     parts.append(crewman(f'Crew{i}', (x, y, 0), yaw, l, r, lean))
 
+# the clips (2026-10-20, ti_vehicle_clips.trebuchet): Idle, Move, Fire (the beam whips over), Hit, Death, Wreck
+CLIPS = {}
 tris = F.finish_unit(UID, parts, {
     'role': 'Trebuchet: a counterweight engine on a skid frame (A-frame uprights, axle, the beam cocked with its sling down, the counterweight box, a stone in the sling, a winch drum), three crew in Team tabards over gambesons with iron kettle hats',
     'notes': 'The machine is the one of build_units_kingdoms.py k_siege (the same calls, unchanged); the crew are ti_figure.py figures (LITE) from the quality pass of 2026-10-14.'},
-    centre=(0, .5, .9), scale=4.2)
+    centre=(0, .5, .9), scale=4.2, mode='NLA_TRACKS', clips=MC.hook(UID, lambda: CLIPS.setdefault('r', VC.trebuchet(parts)), 'vehicle'))
 out = u.out_dir(UID)
 (out / f'{UID}.json').write_text(json.dumps({'enabled': True, 'quadruped': False, 'triangleBudget': 6000,
                                              'tags': {'team': '(^|\\s)Team(\\s|$)', 'skin': '(^|\\s)Skin(\\s|$)', 'emblem': '(^|\\s)Emblem(\\s|$)'}}, indent=2) + '\n')
 tm.mark_machine(UID)
+VC.write_options(UID, *CLIPS['r'])
 print('TRIS', tris)
 assert tris <= 4000, tris  # a machine: 4,000 target (unitScale.test.js checks it)

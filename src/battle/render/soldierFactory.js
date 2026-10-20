@@ -617,9 +617,10 @@ export const createSoldierMaterial = ({ standard = false, emblems = getEmblemAtl
     : new MeshLambertMaterial({ vertexColors: true });
   mat.onBeforeCompile = (shader) => patchRig(shader, { emblems, standard, teamTint }, clips);
   mat.customProgramCacheKey = () => `${standard ? 'soldier-rig-std' : 'soldier-rig'}-${teamTint}${clips ? '-clips' : ''}`;
-  // flat shading from the screen derivatives: the faces' own normals in every pose, as the baked
-  // soup's face normals are at rest
-  if (clips) { mat.defines = { ...(mat.defines || {}), USE_CLIPS: '' }; mat.flatShading = true; }
+  // the vertex normals are lit (no flatShading from screen derivatives): the baked soup carries face
+  // normals for gear and cloth and the glTF's own smooth normals for coat, skin, mane and hair
+  // (gltfUnitLoader.js SMOOTH_MATERIALS); the clip shader turns them with the bones (clipDir)
+  if (clips) mat.defines = { ...(mat.defines || {}), USE_CLIPS: '' };
   return mat;
 };
 // Shadow pass: the same bones, so shadows walk with their soldiers.

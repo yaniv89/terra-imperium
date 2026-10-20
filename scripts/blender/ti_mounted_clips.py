@@ -37,10 +37,10 @@ from ti_clips import Clip, nrm, upd, FPS, spec_at
 
 V = Vector
 SETS = {
-    'mounted': ('Idle', 'Walk', 'Trot', 'Gallop', 'Charge', 'Attack', 'Hit', 'Death', 'DeathAlt'),
+    'mounted': ('Idle', 'Walk', 'Trot', 'Gallop', 'Charge', 'Attack', 'Hit', 'Death', 'DeathAlt', 'Cheer'),
     'general': ('Idle', 'Walk', 'Trot', 'Gallop', 'Charge', 'Attack', 'Hit', 'Death', 'DeathAlt', 'Cheer'),
     'chariot': ('Idle', 'Move', 'Charge', 'Archer-shoot', 'Hit', 'Wreck'),
-    'atgm': ('Idle', 'Aim-fire-reload', 'Hit', 'Death', 'DeathAlt'),
+    'atgm': ('Idle', 'Walk', 'Aim-fire-reload', 'Hit', 'Death', 'DeathAlt'),
 }
 # name: (frames, loop, events)
 ACTS = {
@@ -50,7 +50,7 @@ ACTS = {
     'Cheer': (33, True, {}), 'Archer-shoot': (33, False, {'release': 22}), 'Aim-fire-reload': (50, False, {'fire': 12, 'reloaded': 38}),
 }
 SHEETS = {
-    'mounted': {'moving': ['Idle', 'Walk', 'Trot', 'Gallop'], 'combat': ['Charge', 'Attack', 'Hit', 'Death', 'DeathAlt']},
+    'mounted': {'moving': ['Idle', 'Walk', 'Trot', 'Gallop', 'Cheer'], 'combat': ['Charge', 'Attack', 'Hit', 'Death', 'DeathAlt']},
     'general': {'moving': ['Idle', 'Walk', 'Trot', 'Gallop', 'Cheer'], 'combat': ['Charge', 'Attack', 'Hit', 'Death', 'DeathAlt']},
     'chariot': {'moving': ['Idle', 'Move', 'Charge'], 'combat': ['Archer-shoot', 'Hit', 'Wreck']},
     'atgm': {'combat': ['Idle', 'Aim-fire-reload', 'Hit', 'Death', 'DeathAlt']},
@@ -1230,6 +1230,15 @@ def atgm(launcher, gunner, loader, spare=('SpareTube', 'SpareCap', 'SpareCapLow'
         if act == 'Idle':
             gclips[act] = Clip(act, frames, loop, None, keys=[(1, r0g), (21, gk({'Spine': (.8, 0, 0), 'Head': (-2, 0, 4)})), (41, r0g)])
             lclips[act] = Clip(act, frames, loop, None, keys=[(1, r0l), (21, lk({'Chest': (0, 0, -2), 'Head': (-2, 0, 8), 'Spine': (.6, 0, 0)})), (41, r0l)])
+        elif act == 'Walk':
+            # moving (2026-10-20; before it the team glided in Idle): the loader walks with the spare tube,
+            # the kneeling gunner shuffles forward on his knee with the launcher (a bob and a lean on each
+            # push); the run falls back to this clip (clipPlayer.js)
+            lw = L.gait('Walk', 20, 19, 42, 2)
+            lclips[act] = Clip(act, frames, loop, None, fn=lambda f, c=lw: dict(c.fn(f), show={'Spare': 1}))  # (no foot planting: in place)
+            push = gk({'Spine': (10, 0, 0), 'Chest': (4, 0, 0), 'Head': (-8, 0, 0)}, (0, 0, .025))
+            settle = gk({'Spine': (4, 0, 0), 'Chest': (2, 0, 0), 'Head': (-4, 0, 0)}, (0, 0, -.004))
+            gclips[act] = Clip(act, frames, loop, None, keys=[(1, r0g), (6, push), (11, settle), (16, push), (21, r0g)])
         elif act == 'Aim-fire-reload':
             lay = gk({'Spine': (6, 0, 0), 'Chest': (3, 0, 0), 'Head': (-6, 0, 0)}, (0, 0, -.005))
             kick = gk({'Spine': (2, 0, 0), 'Chest': (-2, 0, 0), 'Head': (-2, 0, 0)}, (0, 0, .004), ease='out')
@@ -1274,6 +1283,8 @@ def atgm(launcher, gunner, loader, spare=('SpareTube', 'SpareCap', 'SpareCapLow'
 
     def pose_launcher(act, f):
         reset(launcher)
+        if act == 'Walk':  # the launcher rocks as it is pushed along
+            u.rotate_world(launcher, 'Hull', (1.5 * math.sin(2 * TAU * (f - 1) / 20), 0, 0))
         if act == 'Aim-fire-reload':
             k = spec_at([(1, {'p': 0.}), (11, {'p': 0.}), (12, {'p': -4.}), (13, {'p': -3.}), (19, {'p': 0., 'ease': 'io'}), (50, {'p': 0.})], f)
             u.rotate_world(launcher, 'Hull', (k['p'], 0, 0))
@@ -1285,7 +1296,7 @@ def atgm(launcher, gunner, loader, spare=('SpareTube', 'SpareCap', 'SpareCapLow'
 
     def pose_loader(act, f):
         clip = lclips[act]
-        lp.A.pose(clip, spec_at(clip.keys, f), f)
+        lp.A.pose(clip, clip.fn(f) if clip.fn else spec_at(clip.keys, f), f)
     unit.add(launcher, pose_launcher)
     unit.add(gunner, pose_gunner, lambda act: gp.begin(gclips[act]))
     unit.add(loader, pose_loader, lambda act: lp.begin(lclips[act]))

@@ -33,9 +33,11 @@ tube, box, vertical = F.tube, F.box, F.vertical
 F.start({'Coat': '6E3F24', 'Mane': '1F1712', 'Leather': '5A3624', 'Boot': '4A2F20', 'Wood': '3A2A1E', 'Cloth': 'F0E8D4', 'Trim': '9C3328',
          'Metal': ('D2A24C', .36, .65), 'Iron': ('C9CCD0', .32, .75), 'Hair': '2B201A', 'Skin': 'C99472', 'Emblem': 'E6D6AF'}, rig=False)
 parts = []
-horse, _ = tm.fine_horse('Mount', (0, 0, 0))
+horse, _ = tm.fine_horse('Mount', (0, 0, 0), detail=2)
+tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+tm.full_tail(horse, sides=10)
 parts.append(horse)
-tm.tack(horse, 'Team', discs=3)
+tm.tack(horse, 'Team', discs=3, steps=12, rows=5)
 
 # ---- the rider ----
 rider = F.figure('Rider')
@@ -81,4 +83,4 @@ tris = F.finish_unit(UID, parts, {
     open_facing=facing, centre=(0, -.1, .8), scale=2.6, mode='NLA_TRACKS',
     clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'lance'), 'mounted'))
 print('TRIS', tris)
-assert tris <= 3500, tris
+assert tris <= 5000, tris  # the close version (2026-10-20); the mid and far levels stay at 550 and 220 (soldierLod.js)

@@ -39,6 +39,8 @@ F.start({'Coat': 'B9B6AE', 'Mane': '5E5A54', 'Leather': '2E241E', 'Saddle': '4A2
          'Metal': ('B4B8BD', .32, .82), 'Gilt': ('D8AE4A', .35, .8), 'Brass': ('C9A04E', .4, .7), 'Hair': 'D6D0C4', 'Skin': 'C99472', 'Emblem': 'E6D6AF'}, rig=False)
 parts = []
 horse, _ = tm.fine_horse('Mount', (0, 0, 0), blaze=False, socks=False)
+tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+tm.full_tail(horse, sides=10)
 parts.append(horse)
 tm.shabraque(horse, 'Shabraque', 'Gilt', depth=.028)
 tm.war_saddle(horse, 'Saddle', cantle=.805, pommel=.805)
@@ -105,4 +107,4 @@ tris = F.finish_unit(UID, parts, {
     clips=MC.hook(UID, lambda: MC.mounted(horse, cmd, 'hand', 'general', stirrups=True, bearer=bearer, bearer_kit=FC.Kit('spear', two_hands=True),
                                          bearer_axes={'L': (0, 0, 1)}), 'general'))
 print('TRIS', tris)
-assert tris <= 4600, tris  # two people and a horse: over the 3,500 target like the Kingdoms general (4,320)
+assert tris <= 5000, tris  # (5,000 since the legs and tail of 2026-10-20) two people and a horse: over the 3,500 target like the Kingdoms general (4,320)

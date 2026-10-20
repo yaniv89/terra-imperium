@@ -16,6 +16,19 @@ from pathlib import Path
 from mathutils import Vector,Quaternion
 
 REPO=Path(__file__).resolve().parents[2]
+SMOOTH_MATERIALS = ('coat', 'skin', 'mane', 'hair')  # gltfUnitLoader.js SMOOTH_MATERIALS keeps these normals
+
+def smooth_organic(objs=None, angle=50):
+ """Smooth faces on the organic materials (a horse's coat, skin, mane, hair), hard edges past `angle`
+ degrees; every other face stays flat (the low-poly gear). The battle keeps these normals (2026-10-20)."""
+ import re
+ rx=re.compile('|'.join(SMOOTH_MATERIALS),re.I)
+ for o in objs if objs is not None else [o for o in bpy.context.scene.objects if o.type=='MESH']:
+  me=o.data;names=[m.name if m else '' for m in me.materials];hit=False
+  for f in me.polygons:
+   if f.material_index<len(names) and rx.search(names[f.material_index]):f.use_smooth=True;hit=True
+  if hit:me.set_sharp_from_angle(angle=math.radians(angle))
+
 def out_dir(uid):
  """Where a unit's build writes: $TI_UNITS_OUT/<id> or art-build/units/<id> in the repository."""
  base=Path(os.environ['TI_UNITS_OUT']) if os.environ.get('TI_UNITS_OUT') else REPO/'art-build'/'units'
@@ -169,7 +182,7 @@ def export_file(path,arm,meshes):
  bpy.ops.object.select_all(action='DESELECT');arm.select_set(True)
  for o in meshes:o.select_set(True)
  bpy.context.view_layer.objects.active=arm
- bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_yup=True,export_skins=True,export_animations=True,export_animation_mode='ACTIONS',export_force_sampling=True,export_frame_range=False,export_cameras=False,export_lights=False,export_extras=True,export_materials='EXPORT',export_image_format='NONE',export_optimize_animation_size=False)
+ smooth_organic();bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_yup=True,export_skins=True,export_animations=True,export_animation_mode='ACTIONS',export_force_sampling=True,export_frame_range=False,export_cameras=False,export_lights=False,export_extras=True,export_materials='EXPORT',export_image_format='NONE',export_optimize_animation_size=False)
 
 def ground_actions(arm,meshes,floor=.001):
  """Finite per-frame vertical root correction, retaining authored actions and clear floor."""
@@ -328,7 +341,7 @@ def export_unit(path,animations=False,mode=None):
  for o in bpy.context.scene.objects:
   if o.type in ('MESH','ARMATURE','EMPTY'):o.select_set(True)
  extra=dict(export_animation_mode=mode,export_force_sampling=True,export_frame_range=False) if mode else {}
- bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_yup=True,export_skins=True,export_animations=animations,export_cameras=False,export_lights=False,export_extras=True,export_materials='EXPORT',export_image_format='NONE',**extra)
+ smooth_organic();bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_yup=True,export_skins=True,export_animations=animations,export_cameras=False,export_lights=False,export_extras=True,export_materials='EXPORT',export_image_format='NONE',**extra)
 
 def scene_triangles():
  return triangles([o for o in bpy.context.scene.objects if o.type=='MESH'])

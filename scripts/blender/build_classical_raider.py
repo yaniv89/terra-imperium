@@ -12,6 +12,9 @@
 #   - a lit torch raised in the right fist (the orange Flame material, no baked shade), the reins in
 #     the left fist, two javelins slung across the back
 #   - baked ambient occlusion and a ground-to-head gradient in COLOR_0
+# Live rebuild of 2026-10-20 (in the running Blender over the MCP add-on): shaped horse legs
+# (ti_mounts.fine_legs: knees, hocks, fetlocks, flared hooves), a fuller tail (full_tail) and a round
+# torch fire with a second tongue in place of the leaf-shaped flame that read as a spear head.
 # Drawn for raider squads of the cavalry class (unitModels.js `raider`). Clips (ti_mounted_clips.py,
 # 2026-10-14): the mounted set, the torch raised in the gaits and thrust down in Charge and Attack. Rigs:
 # MountRig, RaiderRig.
@@ -31,9 +34,11 @@ F.start({'Coat': '8A5A34', 'Mane': '2A1F17', 'Leather': '5E3A24', 'Boot': '3E2A1
          'Fleece': 'E9E1CF', 'Rug': '9C3F2C', 'Sack': 'CDBB94', 'Metal': ('C09A54', .45, .6), 'Iron': ('B9BCC0', .35, .7),
          'Hair': '2B201A', 'Skin': 'C48A62', 'Flame': 'F6A22E'}, rig=False)
 parts = []
-horse, _ = tm.fine_horse('Mount', (0, 0, 0), socks=False)
+horse, _ = tm.fine_horse('Mount', (0, 0, 0), socks=False, detail=2)
+tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+tm.full_tail(horse, sides=10)
 parts.append(horse)
-tm.tack(horse, 'Fleece', span=(-.28, .15), reach=100, fringe=.040, discs=0)
+tm.tack(horse, 'Fleece', span=(-.28, .15), reach=100, fringe=.040, discs=0, steps=12, rows=5)
 S = 'Mount_Spine'
 # ---- the loot: a tied sack on each flank behind the rider's legs, a rolled rug and a bronze cauldron on the croup ----
 for sx in (-1, 1):
@@ -73,8 +78,13 @@ gl = F.fist('L', None, (0, 1, 0), half=.020)
 P = 'Prop_R'
 tube('TorchHaft', [((g.x, g.y, g.z - .130), .0115, P), ((g.x, g.y, g.z + .250), .0105, P)], 'Wood', 5, attachment=True)
 tube('TorchWrap', [((g.x, g.y, g.z + .225), .020, P), ((g.x, g.y, g.z + .262), .030, P), ((g.x, g.y, g.z + .310), .028, P)], 'Leather', 6, attachment=True)
-flame = tube('TorchFlame', [((g.x, g.y, g.z + .300), .030, P), ((g.x, g.y - .006, g.z + .350), .046, P), ((g.x + .008, g.y - .004, g.z + .410), .030, P),
-                            ((g.x - .004, g.y + .006, g.z + .480), .003, P)], 'Flame', 6, attachment=True)
+# a round fire with a flicked tip and a second tongue, so the torch never reads as a spear head
+flame = tube('TorchFlame', [((g.x, g.y, g.z + .285), .026, P), ((g.x, g.y - .004, g.z + .325), .050, P), ((g.x + .006, g.y - .004, g.z + .375), .056, P),
+                            ((g.x + .002, g.y + .004, g.z + .425), .040, P), ((g.x - .010, g.y + .010, g.z + .470), .020, P),
+                            ((g.x - .016, g.y + .016, g.z + .520), .002, P)], 'Flame', 7, attachment=True)
+tongue = tube('TorchTongue', [((g.x + .020, g.y - .012, g.z + .380), .020, P), ((g.x + .032, g.y - .018, g.z + .430), .016, P),
+                              ((g.x + .036, g.y - .020, g.z + .475), .002, P)], 'Flame', 5, attachment=True)
+F.bright.add(tongue.name)
 F.bright.add(flame.name)
 tm.reins(horse, F.SEAT + gl)
 
@@ -84,4 +94,4 @@ tris = F.finish_unit(UID, parts, {
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, cloak, phrygian_cap) and ti_mounts.py (fine_horse, tack, reins). The flame is a flat orange material named Flame with no baked shade; fire and smoke come from the battle effects.'},
     centre=(0, -.05, .75), scale=2.3, mode='NLA_TRACKS', clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'torch'), 'mounted'))
 print('TRIS', tris)
-assert tris <= 3500, tris
+assert tris <= 5000, tris  # the close version (2026-10-20); the mid and far levels stay at 550 and 220 (soldierLod.js)

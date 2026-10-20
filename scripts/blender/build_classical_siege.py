@@ -19,6 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_units as u  # noqa: E402
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
+import ti_vehicle_clips as VC  # noqa: E402
 
 UID = 'classical-siege'
 F.start({'Skin': 'C99472', 'Cloth': 'E2D6BC', 'Leather': '6B4630', 'Metal': ('8E8A84', .45, .7), 'Wood': '8A6646', 'Hair': '2B201A'}, rig=False)
@@ -57,13 +59,16 @@ for i, (x, y, yaw, l, r, lean) in enumerate([(-.58, .25, 90, (.140, -.290, .470)
                                              (0, .86, 0, (.132, -.320, .594), (-.132, -.320, .594), 10)]):
     parts.append(crewman(f'Crew{i}', (x, y, 0), yaw, l, r, lean))
 
+# the clips (2026-10-20, ti_vehicle_clips.ballista): Idle, Move, Fire, Hit, Death (the crew), Wreck
+CLIPS = {}
 tris = F.finish_unit(UID, parts, {
     'role': 'Ballista: a torsion bolt thrower (two sinew spring bundles, arms, string, a bolt laid, winch) on the wheeled siege frame, three crew in white tunics with a Team sash and headband',
     'notes': 'The machine is the one of build_units_classical.py b_siege (unchanged); the crew are ti_figure.py figures (LITE) from the quality pass of 2026-10-14.'},
-    centre=(0, .1, .5), scale=2.2)
+    centre=(0, .1, .5), scale=2.2, mode='NLA_TRACKS', clips=MC.hook(UID, lambda: CLIPS.setdefault('r', VC.ballista(parts)), 'vehicle'))
 out = u.out_dir(UID)
 (out / f'{UID}.json').write_text(json.dumps({'enabled': True, 'quadruped': False, 'triangleBudget': 6000,
                                              'tags': {'team': '(^|\\s)Team(\\s|$)', 'skin': '(^|\\s)Skin(\\s|$)', 'emblem': '(^|\\s)Emblem(\\s|$)'}}, indent=2) + '\n')
 tm.mark_machine(UID)
+VC.write_options(UID, *CLIPS['r'])
 print('TRIS', tris)
 assert tris <= 4000, tris  # a machine: 4,000 target (unitScale.test.js checks it)

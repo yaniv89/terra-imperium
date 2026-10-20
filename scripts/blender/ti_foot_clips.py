@@ -29,14 +29,14 @@ from ti_clips import Clip, nrm, frame3, upd, tool_frame, FPS
 V = Vector
 SETS = {
     'melee': ('Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Attack', 'Attack2', 'Block', 'Hit', 'Death', 'DeathAlt', 'Cheer'),
-    'bow': ('Idle', 'Walk', 'Run', 'Draw-aim-release', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt'),
-    'gun': ('Idle', 'Walk', 'Run', 'Aim-fire-reload', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt'),
+    'bow': ('Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Draw-aim-release', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt', 'Cheer'),
+    'gun': ('Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Aim-fire-reload', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt', 'Cheer'),
     'support': ('Idle', 'Walk', 'Run', 'Mine', 'Build', 'Repair', 'Hit', 'Death'),
 }
 SHEETS = {
     'melee': {'moving': ['Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Cheer'], 'combat': ['Attack', 'Attack2', 'Block', 'Hit', 'Death', 'DeathAlt']},
-    'bow': {'moving': ['Idle', 'Walk', 'Run', 'Hit'], 'combat': ['Draw-aim-release', 'Melee-fallback', 'Death', 'DeathAlt']},
-    'gun': {'moving': ['Idle', 'Walk', 'Run', 'Hit'], 'combat': ['Aim-fire-reload', 'Melee-fallback', 'Death', 'DeathAlt']},
+    'bow': {'moving': ['Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Cheer'], 'combat': ['Draw-aim-release', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt']},
+    'gun': {'moving': ['Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Cheer'], 'combat': ['Aim-fire-reload', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt']},
     'support': {'moving': ['Idle', 'Walk', 'Run', 'Hit', 'Death'], 'work': ['Mine', 'Build', 'Repair']},
 }
 LOOPS = {'Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Cheer', 'Mine', 'Build', 'Repair'}
@@ -374,13 +374,14 @@ class Lib:
                self.death('Death', 1)]
         if k.archetype != 'support':
             out.append(self.death('DeathAlt', -1))
-        if k.archetype == 'melee':
+        if k.archetype in ('melee', 'bow', 'gun'):  # bow and gun since 2026-10-20 (with ranged_cheer)
             out += [self.idle(alt=True), self.gait('Retreat-run', 14, 28, 70, 4, arms=1.4, run=True)]
+        if k.archetype == 'melee':
             out += MELEE[k.kind](self)
         elif k.archetype == 'bow':
-            out += [bow_draw(self), bow_melee(self)]
+            out += [bow_draw(self), bow_melee(self), ranged_cheer(self)]
         elif k.archetype == 'gun':
-            out += [gun_fire(self), gun_melee(self)]
+            out += [gun_fire(self), gun_melee(self), ranged_cheer(self)]
         else:
             out += support(self)
         order = SETS[k.archetype]
@@ -523,6 +524,26 @@ def cheer(L):
     lo = L.key({'Spine': (-1, 0, 0), 'Chest': (-1, 0, 0), 'Head': (-4, 0, 0)}, (0, 0, .001), W=L.W((-.21, -.09, top - .15), d, f),
                hands={R: L.on(R, pole=(-1, .3, -.3)), L.other: L.free(L.other) if not k.shield else shield_hand(L, (.18, -.16, .66), -6)})
     return Clip('Cheer', 33, True, None, keys=[(1, lo), (9, hi), (17, lo), (25, hi), (33, lo)])
+
+
+def ranged_cheer(L):
+    """Cheer for bows and guns (2026-10-20): the weapon lifted a hand's breadth in front of the chest and
+    shaken twice, the head up; a free hand (the bowman's) punches the air. A loop from the rest pose."""
+    P, k = L.P, L.kit
+    sg = 1 if L.other == 'L' else -1
+
+    def at(dz, dy, fist):
+        hands = {L.side: L.on(L.side, P.h0)}
+        hands[L.other] = L.on(L.other, P.s_other) if k.two_hands else L.free(L.other, p=(sg * .19, -.07, fist), pole=(sg, .3, -.3))
+        return hands, L.W(tuple(V(P.G0) + V((0, dy, dz))), P.a0, P.f0)
+    hh, hw = at(.16, -.05, 1.00)
+    lh, lw = at(.06, -.03, .86)
+    hi = L.key({'Spine': (-3, 0, 0), 'Chest': (-6, 0, 0), 'Head': (-12, 0, 0)}, (0, 0, .008), W=hw, hands=hh)
+    lo = L.key({'Spine': (-1, 0, 0), 'Chest': (-2, 0, 0), 'Head': (-5, 0, 0)}, (0, 0, .002), W=lw, hands=lh)
+    r0 = L.rest()
+    if k.arrow:  # the nocked arrow is put away for the cheer (the fist is empty)
+        hi['show'] = lo['show'] = r0['show'] = {'Arrow': 0}
+    return Clip('Cheer', 33, True, 'Arrow' if k.arrow else None, keys=[(1, r0), (9, hi), (17, lo), (25, hi), (33, r0)])
 
 
 MELEE = {'spear': melee_spear, 'sword': melee_sword, 'pike': melee_pike}
