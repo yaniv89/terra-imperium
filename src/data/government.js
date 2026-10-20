@@ -57,7 +57,7 @@ export const GOVERNMENT_REFORMS = {
     ],
     modern: [
       { id: 'constitutional_monarchy', name: 'Constitutional Monarchy', description: '+10% tax; a steady throne keeps the realm calm.', effects: { goldMult: 0.1 } },
-      { id: 'autocratic_monarchy', name: 'Autocratic Monarchy', description: '+2 MIL/turn, +2 unrest; -20 opinion with democracies (M12).', effects: { milBonus: 2, stabilityBonus: -2 } }
+      { id: 'autocratic_monarchy', name: 'Autocratic Monarchy', description: '+2 MIL/turn, +2 unrest; -20 opinion with democracies.', effects: { milBonus: 2, stabilityBonus: -2 } }
     ]
   },
   theocracy: {
@@ -89,8 +89,8 @@ export const GOVERNMENT_REFORMS = {
       { id: 'maritime_republic', name: 'Maritime Republic', description: '+20% naval morale (combat, M14); -25% ship cost (per-unit-type recruit cost, M14).', effects: {} }
     ],
     gunpowder: [
-      { id: 'federal_republic', name: 'Dutch-style Federal Republic', description: '+20 governing capacity; vassals -50% liberty desire (M12).', effects: { governingCapacity: 20 } },
-      { id: 'revolutionary_republic', name: 'Revolutionary Republic', description: '+20% manpower, +1 MIL; -10 opinion with monarchies (M12).', effects: { hrMult: 0.2, milBonus: 1 } }
+      { id: 'federal_republic', name: 'Dutch-style Federal Republic', description: '+20 governing capacity; vassals -50% liberty desire.', effects: { governingCapacity: 20 } },
+      { id: 'revolutionary_republic', name: 'Revolutionary Republic', description: '+20% manpower, +1 MIL; -10 opinion with monarchies.', effects: { hrMult: 0.2, milBonus: 1 } }
     ],
     modern: [
       { id: 'parliamentary_democracy', name: 'Parliamentary Democracy', description: '+2 DIP; law changes cost 25% less ADM; a stable, orderly state.', effects: { dipBonus: 2, lawCostMult: -0.25 } },
