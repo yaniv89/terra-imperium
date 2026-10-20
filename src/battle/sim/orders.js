@@ -95,9 +95,9 @@ const setMoveOrder = (q, type, slot) => {
 };
 
 // Orders that send a squad somewhere bring it out of its building first.
-const LEAVES_GARRISON = new Set(['move', 'attackMove', 'formationLine', 'attack', 'retreat']);
+const LEAVES_GARRISON = new Set(['move', 'attackMove', 'movePath', 'formationLine', 'attack', 'retreat']);
 // Orders that take a worker off its job (economy.js).
-const TAKES_OFF_WORK = new Set(['move', 'attackMove', 'formationLine', 'stop', 'hold', 'retreat']);
+const TAKES_OFF_WORK = new Set(['move', 'attackMove', 'movePath', 'formationLine', 'stop', 'hold', 'retreat']);
 // Orders that leave what a squad is doing alone (an ability, a commander power).
 const KEEPS_RESUME = new Set(['ability', 'power']);
 
@@ -108,7 +108,7 @@ export const applyOrder = (w, o) => {
   if (applyEcoOrder(w, o)) return;
   const ids = (o.squads || []).filter((i) => commandable(w, side, i));
   // A new order replaces the job a squad would have gone back to after a fight (U11).
-  if (!KEEPS_RESUME.has(o.type)) ids.forEach((i) => { w.squads[i].resumeKind = null; w.squads[i].resumeTarget = -1; });
+  if (!KEEPS_RESUME.has(o.type)) ids.forEach((i) => { w.squads[i].resumeKind = null; w.squads[i].resumeTarget = -1; w.squads[i].path = null; }); // a new order drops a drawn path (U38)
   if (LEAVES_GARRISON.has(o.type))ids.forEach((i) => leaveGarrison(w, w.squads[i]));
   if (TAKES_OFF_WORK.has(o.type)) clearWorkerJobs(w, side, ids);
   switch (o.type) {
@@ -133,6 +133,20 @@ export const applyOrder = (w, o) => {
       if (!squads.length) return;
       const slots = squads.length === 1 ? new Map([[squads[0].idx, { x: o.x, y: o.y, facing: squads[0].facing }]]) : formationSlots(squads, o.x, o.y, o.formation);
       squads.forEach((q) => setMoveOrder(q, o.type, slots.get(q.idx)));
+      return;
+    }
+    case 'movePath': {
+      // U38 { path: [{x, y}] }: walk the drawn waypoints in turn (movement.js takes the next on arrival).
+      // The group keeps its shape: each squad's slot offset at the first point rides along.
+      const squads = ids.map((i) => w.squads[i]);
+      const [first, ...rest] = o.path || [];
+      if (!squads.length || !first) return;
+      const slots = squads.length === 1 ? new Map([[squads[0].idx, { x: first.x, y: first.y, facing: squads[0].facing }]]) : formationSlots(squads, first.x, first.y, o.formation);
+      squads.forEach((q) => {
+        const slot = slots.get(q.idx);
+        setMoveOrder(q, 'move', slot);
+        q.path = rest.map((pt) => ({ x: pt.x + slot.x - first.x, y: pt.y + slot.y - first.y }));
+      });
       return;
     }
     case 'formationLine': {

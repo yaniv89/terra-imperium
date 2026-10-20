@@ -10,6 +10,8 @@
 //         Select mode (the HUD's Select button, `h.isSelectMode()`): a one-finger drag draws the
 //         lasso instead of panning; a completed lasso calls `h.selectModeDone()` (the HUD turns
 //         the mode off). Two fingers still pinch and pan.
+//         Path mode (the HUD's Path button, `h.isPathMode()`, U38): a one-finger drag draws a path for the
+//         selected squads (`h.pathDrag(points)`, then `h.pathEnd(points)` and `h.pathModeDone()`). Two fingers pan.
 //         Placing a building (`h.isPlacing()`, B10): one finger drags the ghost (`h.placeDrag`), the
 //         lift ends it (`h.placeEnd(p, { moved, onGhost, quick })`: a still tap on the ghost builds).
 // Mouse:  left click = select (`h.click`, shift adds; empty ground deselects) · left drag = box
@@ -33,6 +35,7 @@ export const createGestureRecognizer = (el, h) => {
   let lastTapPos = null;
   let pinch = null;
   let fromSelectMode = false; // this lasso was drawn in select mode (not a double-tap)
+  let trail = []; // the points of a path being drawn (U38)
   let spaceHeld = false; // Space held: a left drag pans (mouse only)
 
   const pos = (e) => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
@@ -49,7 +52,7 @@ export const createGestureRecognizer = (el, h) => {
     pointers.set(e.pointerId, p);
     if (pointers.size === 2) {
       clearLong();
-      if (mode === 'formation' || mode === 'lasso') h.cancel?.();
+      if (mode === 'formation' || mode === 'lasso' || mode === 'path') h.cancel?.();
       mode = 'pinch'; pinch = pinchState();
       return;
     }
@@ -67,6 +70,7 @@ export const createGestureRecognizer = (el, h) => {
       if (!start.onGhost) h.placeDrag?.(p);
       return;
     }
+    if (h.isPathMode?.()) { mode = 'path-armed'; trail = [p]; return; }
     const onSelected = h.isOnSelectedSquad?.(p);
     fromSelectMode = !!h.isSelectMode?.();
     mode = fromSelectMode || (e.timeStamp - lastTapAt < DOUBLE_TAP_MS && lastTapPos && Math.hypot(p.x - lastTapPos.x, p.y - lastTapPos.y) < DOUBLE_TAP_PX) ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
@@ -91,15 +95,17 @@ export const createGestureRecognizer = (el, h) => {
     if (!start) return;
     const moved = Math.hypot(p.x - start.x, p.y - start.y) >= MOVE_PX;
     if (mode === 'place') { if (moved) start.moved = true; if (start.moved) h.placeDrag?.(p); last = p; return; }
-    if (!moved && ['press', 'press-selected', 'lasso-armed', 'mouse-left', 'mouse-right', 'mouse-pan'].includes(mode)) return;
+    if (!moved && ['press', 'press-selected', 'lasso-armed', 'path-armed', 'mouse-left', 'mouse-right', 'mouse-pan'].includes(mode)) return;
     clearLong();
     if (mode === 'press' || mode === 'mouse-pan') mode = 'pan';
     else if (mode === 'press-selected') mode = 'formation';
     else if (mode === 'lasso-armed' || mode === 'mouse-left') mode = 'lasso';
+    else if (mode === 'path-armed') mode = 'path';
     else if (mode === 'mouse-right') mode = h.hasSelection?.() ? 'formation' : 'pan';
     if (mode === 'pan') h.pan?.(p.x - last.x, p.y - last.y);
     else if (mode === 'formation') h.formationDrag?.(start, p);
     else if (mode === 'lasso') h.lassoDrag?.(start, p);
+    else if (mode === 'path') { if (Math.hypot(p.x - trail[trail.length - 1].x, p.y - trail[trail.length - 1].y) >= MOVE_PX) trail.push(p); h.pathDrag?.(trail); }
     else if (mode === 'radial') h.radialHover?.(p);
     last = p;
   };
@@ -113,16 +119,17 @@ export const createGestureRecognizer = (el, h) => {
     if (!start) return;
     const quick = e.timeStamp - start.t < TAP_MS;
     if (mode === 'place') h.placeEnd?.(p, { moved: !!start.moved, onGhost: !!start.onGhost, quick });
-    else if ((mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed') && quick) { h.tap?.(p); lastTapAt = e.timeStamp; lastTapPos = p; }
+    else if ((mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed' || mode === 'path-armed') && quick) { h.tap?.(p); lastTapAt = e.timeStamp; lastTapPos = p; }
     else if (mode === 'mouse-left') (h.click || h.tap)?.(p, { shift: start.shift });
     else if (mode === 'mouse-right') h.order?.(p);
     else if (mode === 'formation') h.formationEnd?.(start, p);
     else if (mode === 'lasso') { h.lassoEnd?.(start, p, { shift: start.shift }); if (fromSelectMode && start.touch) h.selectModeDone?.(); }
+    else if (mode === 'path') { h.pathEnd?.([...trail, p]); h.pathModeDone?.(); }
     else if (mode === 'radial') h.radialSelect?.(p);
     mode = 'idle'; start = null;
   };
 
-  const cancel = (e) => { pointers.delete(e.pointerId); clearLong(); if (mode === 'formation' || mode === 'lasso') h.cancel?.(); mode = 'idle'; start = null; };
+  const cancel = (e) => { pointers.delete(e.pointerId); clearLong(); if (mode === 'formation' || mode === 'lasso' || mode === 'path') h.cancel?.(); mode = 'idle'; start = null; };
   const wheel = (e) => { e.preventDefault(); const p = pos(e); h.zoom?.(e.deltaY < 0 ? 1.12 : 1 / 1.12, p.x, p.y); };
   const context = (e) => e.preventDefault();
   // Space is a held modifier for panning; a typing field keeps its own Space.

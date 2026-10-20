@@ -144,6 +144,8 @@ export default {
   'bt.hud.column': 'Column',
   'bt.hud.retreat': 'Retreat',
   'bt.hud.select': 'Select',
+  'bt.hud.path': 'Path',
+  'bt.hud.pathBanner': 'Draw a path with one finger. Two fingers move the map.',
   'bt.hud.stepOf': '{a} of {b}',
   'bt.hud.next': 'Next',
   'bt.hud.gotIt': 'Got it',

@@ -144,6 +144,8 @@ export default {
   'bt.hud.column': 'טור',
   'bt.hud.retreat': 'נסיגה',
   'bt.hud.select': 'בחירה',
+  'bt.hud.path': 'מסלול',
+  'bt.hud.pathBanner': 'שרטטו מסלול באצבע אחת. שתי אצבעות מזיזות את המפה.',
   'bt.hud.stepOf': '{a} מתוך {b}',
   'bt.hud.next': 'הבא',
   'bt.hud.gotIt': 'הבנתי',

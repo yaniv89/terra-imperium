@@ -47,6 +47,19 @@ describe('battle gestures', () => {
     expect(h.placeEnd).toHaveBeenLastCalledWith(expect.anything(), { moved: false, onGhost: true, quick: true });
   });
 
+  it('path mode: a one-finger drag draws a path, then leaves the mode; a still tap is a tap (U38)', () => {
+    Object.assign(h, { isPathMode: () => true, pathDrag: vi.fn(), pathEnd: vi.fn(), pathModeDone: vi.fn(), cancel: vi.fn() });
+    down(1, 100, 100); clock += 50; move(1, 104, 100); move(1, 130, 100); move(1, 160, 140); clock += 400; up(1, 160, 140);
+    expect(h.pan).not.toHaveBeenCalled();
+    expect(h.longPress).not.toHaveBeenCalled();
+    expect(h.pathEnd).toHaveBeenCalledWith([{ x: 100, y: 100 }, { x: 130, y: 100 }, { x: 160, y: 140 }, { x: 160, y: 140 }]);
+    expect(h.pathModeDone).toHaveBeenCalledTimes(1);
+    down(1, 50, 50); clock += 80; up(1, 51, 50);
+    expect(h.tap).toHaveBeenCalledTimes(1);
+    down(1, 50, 50); down(2, 90, 50); // a second finger turns it into a pinch and drops the path
+    expect(h.cancel).not.toHaveBeenCalled(); // nothing was drawn yet
+  });
+
   it('a quick touch is a tap', () => {
     down(1, 100, 100); clock += 100; up(1, 102, 101);
     expect(h.tap).toHaveBeenCalledTimes(1);

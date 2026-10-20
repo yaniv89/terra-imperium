@@ -28,6 +28,7 @@ export const MAX_LOG_ORDERS = 20000;
 export const MAX_SQUADS_PER_ORDER = 1024;
 const MAX_ID_LENGTH = 32;
 const MAX_FORMATION_LENGTH = 16;
+export const MAX_PATH_POINTS = 12; // U38: a drawn path is thinned to this many waypoints; more is refused
 
 const SQUAD_TARGETS = ['squad', 'structure', 'eco']; // what an army may attack
 const WORK_TARGETS = ['eco', 'structure']; // what a worker may build on or mend
@@ -43,6 +44,7 @@ export const ORDER_SCHEMA = {
   // the army (orders.js applyOrder)
   move: group,
   attackMove: group,
+  movePath: { req: { squads: 'squads', path: 'path' }, opt: { formation: 'formation' } }, // U38: walk drawn waypoints in turn
   deploy: group, // before the first tick only (the deployment phase)
   formationLine: { req: { squads: 'squads', x: 'num', y: 'num', x2: 'num', y2: 'num' } },
   attack: { req: { squads: 'squads' }, target: SQUAD_TARGETS },
@@ -71,6 +73,7 @@ export const ORDER_TYPES = Object.keys(ORDER_SCHEMA);
 const REFUSED = Symbol('refused');
 const READ = {
   squads: (v) => (Array.isArray(v) ? v.filter((i) => Number.isInteger(i) && i >= 0).slice(0, MAX_SQUADS_PER_ORDER) : REFUSED),
+  path: (v) => (Array.isArray(v) && v.length > 0 && v.length <= MAX_PATH_POINTS && v.every((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y)) ? v.map((p) => ({ x: p.x, y: p.y })) : REFUSED),
   num: (v) => (Number.isFinite(v) ? v : REFUSED),
   int: (v) => (Number.isInteger(v) ? v : REFUSED),
   index: (v) => (Number.isInteger(v) && v >= 0 ? v : REFUSED),
