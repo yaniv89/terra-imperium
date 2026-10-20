@@ -28,7 +28,17 @@ const UNITS = {
   'classical-cavalry': 'mounted', 'classical-general': 'general', 'classical-raider': 'mounted',
   'kingdoms-cavalry': 'mounted', 'kingdoms-general': 'general', 'kingdoms-raider': 'mounted',
   'gunpowder-cavalry': 'mounted', 'gunpowder-general': 'general', 'gunpowder-raider': 'mounted',
-  'modern-ranged': 'atgm'
+  'modern-ranged': 'atgm',
+  // the signature chariots (scripts/blender/build_signature_chariots.py)
+  'signature/ugarit': 'chariot',
+  'signature/kemet': 'chariot',
+  'signature/garamantes': 'chariot',
+  'signature/oxus': 'chariot',
+  'signature/andronovo': 'chariot',
+  'signature/kuru': 'chariot',
+  'signature/zhou': 'chariot',
+  'signature/pontus': 'chariot',
+  'signature/brigantes': 'chariot'
 };
 const POLEARMS = /spear|pike|lance|halberd/i;
 const FPS = 20;
