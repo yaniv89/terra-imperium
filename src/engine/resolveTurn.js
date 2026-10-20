@@ -81,7 +81,7 @@ import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX, getOverextension } from './nationalPower';
 import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
-import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy } from './economy';
+import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy, buildingUpkeepOf } from './economy';
 import {
   nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn, inCivilWarCooldown
 } from './civilWar';
@@ -839,17 +839,18 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       return sum + (fortLevel || 0);
     }, 0);
     const fortUpkeep = fortLevels * FORT_UPKEEP_GOLD_PER_FORT_LEVEL;
+    const buildingUpkeep = buildingUpkeepOf(state, regions, playerId);
     const advisors = Object.values(nation.advisors || {}).filter(Boolean);
     const advisorSalaryCost = advisors.reduce((sum, a) => sum + getAdvisorSalary(a.level), 0);
     const loanInterestCost = (nation.loans || []).reduce((sum, loan) => sum + Math.round(loan.principal * loan.interestRate), 0);
     // Marching armies (routes.js) cost a quarter more upkeep the turn they march.
     const marchingUpkeep = marchUpkeep(units, playerId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
-    const totalExpenses = armyUpkeep + marchingUpkeep + navyUpkeep + fortUpkeep + advisorSalaryCost + loanInterestCost;
+    const totalExpenses = armyUpkeep + marchingUpkeep + navyUpkeep + fortUpkeep + buildingUpkeep + advisorSalaryCost + loanInterestCost;
 
     if (totalExpenses > 0) {
       logs.push({
         year: newYear,
-        ...msg('m.turn.upkeep', { total: totalExpenses, army: armyUpkeep, marching: marchingUpkeep ? sub('m.turn.upkeepMarching', { gold: marchingUpkeep }) : '', navy: navyUpkeep, forts: fortUpkeep, advisors: advisorSalaryCost, interest: loanInterestCost }),
+        ...msg('m.turn.upkeep', { total: totalExpenses, army: armyUpkeep, marching: marchingUpkeep ? sub('m.turn.upkeepMarching', { gold: marchingUpkeep }) : '', navy: navyUpkeep, forts: fortUpkeep, buildings: buildingUpkeep, advisors: advisorSalaryCost, interest: loanInterestCost }),
         type: LogTypes.ACTION
       });
     }

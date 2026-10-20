@@ -28,7 +28,7 @@ export default {
   'm.turn.civilWarCrushed': '{nation} crushes the uprising. (+1 stability, +10 legitimacy)',
   'm.turn.civilWarLost': '{nation} falls to the insurgents: a new regime takes power.',
   'm.turn.civilWar': '{nation} {nation:agree=descend} into civil war!',
-  'm.turn.upkeep': 'Upkeep: -{total:money} (army {army:money}{marching}, navy {navy:money}, forts {forts:money}, advisors {advisors:money}, loan interest {interest:money})',
+  'm.turn.upkeep': 'Upkeep: -{total:money} (army {army:money}{marching}, navy {navy:money}, forts {forts:money}, buildings {buildings:money}, advisors {advisors:money}, loan interest {interest:money})',
   'm.turn.upkeepMarching': ', marching {gold:money}',
   'm.turn.desertion': 'Unpaid, {men:num} soldiers desert your army (-{pct}% strength, -{morale} morale in every unit).',
   'm.turn.economicCollapse': 'Economic Collapse! Years of mounting debt force bankruptcy outright. (-2 stability on top of the usual bankruptcy penalties)',
