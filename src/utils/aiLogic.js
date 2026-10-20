@@ -404,8 +404,10 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
       ? COALITION_WAR_ROLL_MULT * getCulturalCoalitionDiscount(leader.culturalInfluence) * aeScale * doctrine.bandwagonMult
       : 1;
 
-    // Opinion (opinion.js, C6.3): the roll follows what this nation thinks of the player, and a
-    // nation that thinks well of the player never picks the player as its target.
+    // Opinion (opinion.js, C6.3): the roll follows what this nation thinks of its target (H-14:
+    // it read its opinion of the player for every target, so a nation friendly to the player
+    // never declared on anyone), and a nation that thinks well of the player never picks the
+    // player as its target.
     const opinion = opinionOf({ ...state, nations: currentNations }, nationId);
     const view = { ...state, nations: currentNations, wars: currentWars };
     // A claim this nation fabricated (claims.js) and that is ready: the war it was made for
@@ -416,10 +418,10 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     const spent = new Set(activeNation.spentClaims || []);
     const freshClaims = claimsOf(activeNation).filter((cid) => !spent.has(cid));
     const readyTarget = freshClaims.map((cid) => state.regions[cid]?.owner).find((t) => t && t !== nationId && !(warRollOpinionMult(opinion) <= 0 && t === state.playerNationId) && pickWarTarget(view, nationId, t, null) === t) || null;
-    // Recent wars nearby raise the roll (warContagion.js, a Hawkes process).
-    if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * warContagionMult(activeNation) * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinion))) return;
     const targetId = readyTarget || pickWarTarget(view, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null, canStrikeLeader ? runawayLeaderId : null);
     if (!targetId) return;
+    // Recent wars nearby raise the roll (warContagion.js, a Hawkes process).
+    if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * warContagionMult(activeNation) * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinionOf(view, nationId, targetId)))) return;
     if (!hasCasusBelli(view, nationId, targetId)) {
       // No justification yet: fabricate a claim on the nearest city of the target when the DIP is
       // there, and come back for the war when it is ready; a nation that cannot (no city within

@@ -8,6 +8,7 @@ import {
 import { createRng } from './rng';
 import { RelationStatus } from '../data/types';
 import { getNationCapital } from '../data/regions';
+import { opinionOf } from '../engine/opinion';
 
 const cap = getNationCapital;
 
@@ -246,6 +247,14 @@ describe('processAIWarDecisions', () => {
     expect(result.wars.filter((w) => w.aggressor === 'be')).toHaveLength(0);
   });
 
+  it('rolls on its opinion of the target: a nation friendly to the player still declares on a rival (H-14)', () => {
+    // de is allied with the player (opinion 8 + 25 = 33, no roll against the player) and be calls de its rival.
+    const state = warState({ de: { hostility: 0, hasMilitaryPact: true }, be: { rivals: ['de'] } });
+    expect(opinionOf(state, 'de')).toBeGreaterThanOrEqual(20);
+    const result = processAIWarDecisions(state, state.nations, state.wars, ['de'], hawkishRng);
+    expect(result.wars[0]).toMatchObject({ aggressor: 'de', enemy: 'be' });
+  });
+
   it('declares no wars when every roll fails', () => {
     const state = warState();
     const result = processAIWarDecisions(state, state.nations, state.wars, ['de'], dovishRng);
@@ -303,10 +312,10 @@ describe('processAIWarDecisions', () => {
   });
 
   it('scales the war-roll chance by state.difficultyMultiplier (Task 24)', () => {
-    // attrition, hostility 10 -> chance = 0.02 * 1 * aggressionMult * 0.3. At mult 1 that's 0.006,
-    // at mult 1.5 (Emperor) it's 0.009 — a fixed roll of 0.007 sits exactly between the two.
+    // attrition, a stranger target (opinion 8 -> 0.2): chance = 0.02 * 1 * aggressionMult * 0.2. At mult 1 that's 0.004,
+    // at mult 1.5 (Emperor) it's 0.006 — a fixed roll of 0.005 sits exactly between the two.
     const state = warState({ de: { doctrine: 'attrition', hostility: 10 } });
-    const rngAtThreshold = { next: () => 0.007 };
+    const rngAtThreshold = { next: () => 0.005 };
     const normal = processAIWarDecisions({ ...state, difficultyMultiplier: 1 }, state.nations, state.wars, ['de'], rngAtThreshold);
     expect(normal.wars).toHaveLength(0);
     const emperor = processAIWarDecisions({ ...state, difficultyMultiplier: 1.5 }, state.nations, state.wars, ['de'], rngAtThreshold);
@@ -315,8 +324,8 @@ describe('processAIWarDecisions', () => {
 
   it('discounts the coalition roll chance against a runaway leader with real Cultural Export influence', () => {
     // be (attrition, hostility 10) vs. runaway leader de: chance = 0.02 * 1 * 1 * coalitionMult *
-    // 0.3. Undiscounted coalitionMult (4) -> chance 0.024; at culturalInfluence 1000, the discount
-    // floors coalitionMult at 4*0.5=2 -> chance 0.012. A fixed roll of 0.015 sits exactly between.
+    // 0.2. Undiscounted coalitionMult (4) -> chance 0.016; at culturalInfluence 1000, the discount
+    // floors coalitionMult at 4*0.5=2 -> chance 0.008. A fixed roll of 0.015 sits exactly between.
     const rngAtThreshold = { next: () => 0.015 };
     const noInfluence = warState({ de: { militaryStrength: 100000, culturalInfluence: 0 } });
     const withoutDiscount = processAIWarDecisions(noInfluence, noInfluence.nations, noInfluence.wars, ['be'], rngAtThreshold);
@@ -328,9 +337,9 @@ describe('processAIWarDecisions', () => {
   });
 
   it('never discounts the coalition roll below its floor, however much cultural influence has accumulated', () => {
-    // At the floor (0.5x), coalitionMult bottoms out at 4*0.5=2 -> chance 0.012, whether
+    // At the floor (0.5x), coalitionMult bottoms out at 4*0.5=2 -> chance 0.008 (opinion factor 0.2), whether
     // culturalInfluence is 1000 (exactly at the floor) or 1000000 (way past it) — same outcome either way.
-    const rngJustUnderFloorChance = { next: () => 0.011 };
+    const rngJustUnderFloorChance = { next: () => 0.007 };
     const atFloor = warState({ de: { militaryStrength: 100000, culturalInfluence: 1000 } });
     const farPastFloor = warState({ de: { militaryStrength: 100000, culturalInfluence: 1000000 } });
     const atFloorResult = processAIWarDecisions(atFloor, atFloor.nations, atFloor.wars, ['be'], rngJustUnderFloorChance);
@@ -404,10 +413,10 @@ describe('processAIWarDecisions', () => {
   // multiplied into anything before this — an opportunist's 1.8 now genuinely raises the
   // coalition roll above an equal-hostility attrition nation's own (bandwagonMult 1.0).
   it('scales the coalition roll by the member\'s own doctrine.bandwagonMult', () => {
-    // attrition (warRollMult 1, bandwagonMult 1): chance = 0.02*1*1*(4*1*1)*0.3 = 0.024.
-    // opportunist (warRollMult 0.8, bandwagonMult 1.8): chance = 0.02*0.8*1*(4*1*1.8)*0.3 = 0.03456.
-    // A fixed roll of 0.03 sits strictly between the two.
-    const rngAtThreshold = { next: () => 0.03 };
+    // attrition (warRollMult 1, bandwagonMult 1): chance = 0.02*1*1*(4*1*1)*0.2 = 0.016.
+    // opportunist (warRollMult 0.8, bandwagonMult 1.8): chance = 0.02*0.8*1*(4*1*1.8)*0.2 = 0.02304.
+    // A fixed roll of 0.02 sits strictly between the two.
+    const rngAtThreshold = { next: () => 0.02 };
     const attrition = warState({ de: { militaryStrength: 100000 }, be: { doctrine: 'attrition' } });
     const attritionResult = processAIWarDecisions(attrition, attrition.nations, attrition.wars, ['be'], rngAtThreshold);
     expect(attritionResult.wars).toHaveLength(0);
@@ -420,8 +429,8 @@ describe('processAIWarDecisions', () => {
   // Plan §M12: real Aggressive Expansion (expansion.js) against the leader sharpens a member's
   // own coalition roll further, on top of the flat COALITION_WAR_ROLL_MULT.
   it('scales the coalition roll by the member\'s own real AE against the leader', () => {
-    // attrition, no AE: chance = 0.02*1*1*(4*1*1)*0.3 = 0.024. With ae.de=100 (AE_COALITION_ROLL_SCALE):
-    // aeScale = 1 + min(1, 100/100) = 2 -> chance = 0.02*1*1*(4*1*2*1)*0.3 = 0.048. Roll 0.03 sits between.
+    // attrition, no AE: chance = 0.02*1*1*(4*1*1)*0.2 = 0.016. With ae.de=100 (AE_COALITION_ROLL_SCALE):
+    // aeScale = 1 + min(1, 100/100) = 2 -> chance = 0.02*1*1*(4*1*2*1)*0.2 = 0.032. Roll 0.03 sits between.
     const rngAtThreshold = { next: () => 0.03 };
     const noAe = warState({ de: { militaryStrength: 100000 } });
     const noAeResult = processAIWarDecisions(noAe, noAe.nations, noAe.wars, ['be'], rngAtThreshold);
