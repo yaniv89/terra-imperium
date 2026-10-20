@@ -17,6 +17,16 @@
 #   monsoon    stilt houses with saddle roofs, raised granaries, dugouts (also the Pacific)
 #   americas   a: bark and mat wigwams, fish racks; b: earth pit houses, a bark longhouse
 #   steppe     a: hide tents; b: mammoth bone huts; horse pens (Botai)
+#   (H-25, the lands that borrowed the base kit:)
+#   nile       Merimde and the Faiyum: oval mud and reed huts, many grain pits, cattle, reed boats;
+#              a granary block and a shrine
+#   maghreb    Capsian camps: hide tents and clay huts, sheep and goats; round stone huts
+#   sinic      Banpo (Yangshao): sunken round houses under conical thatch inside a ditch and bank,
+#              millet, pigs; the great square hall
+#   korea      Jeulmun: sunken thatched pit houses by the shore, fish racks and dugouts
+#   japan      Jomon (Sannai-Maruyama): sunken thatched pit houses, a long house, the six-pillar tower
+#   westafrica round huts of red daub under thatch, raised granaries, cattle pens
+#   eastafrica pastoral camps: low domed huts in a thorn ring round the cattle pens
 # Built with ti_town.build_file: one 1024 atlas per file (KTD16: Stone huts take 1024), LOD0, LOD1
 # and LOD2 children, materials Town, Ground and Team. Scale: 1 unit = 10 m, heights raised 1.3x,
 # the front (south) facing Blender -Y. Deterministic: the layout comes from the file name's seed.
@@ -35,7 +45,8 @@ import ti_map as tm  # noqa: E402
 import ti_town as tt  # noqa: E402
 from ti_town import G  # noqa: E402
 
-STYLES = ('base', 'europe', 'levant', 'indic', 'monsoon', 'americas', 'steppe')
+STYLES = ('base', 'europe', 'levant', 'indic', 'monsoon', 'americas', 'steppe',
+          'nile', 'maghreb', 'sinic', 'korea', 'japan', 'westafrica', 'eastafrica')
 
 # ---- materials ----------------------------------------------------------------------------------
 
@@ -88,6 +99,13 @@ GROUNDS = {
     'monsoon': ('grass', ('#4e6a28', '#647c30', '#7c7a48', '#58702a')),
     'americas': ('grass', ('#5c6c2c', '#717e36', '#8a7a4a', '#62702e')),
     'steppe': ('grass', ('#76783e', '#8a8646', '#a08c5a', '#7e7c40')),
+    'nile': ('earth', ('#6e5a3c', '#836a46', '#957a52', '#64523a')),        # dark Nile silt
+    'maghreb': ('earth', ('#a8805a', '#b98f64', '#c69e70', '#9c7652')),
+    'sinic': ('earth', ('#b0915e', '#c3a26c', '#cdb07a', '#a68856')),       # loess
+    'korea': ('grass', ('#5a6a30', '#6c7a38', '#867a50', '#606e32')),
+    'japan': ('grass', ('#4a6428', '#5e7630', '#78744a', '#52682a')),
+    'westafrica': ('earth', ('#9a5a36', '#ad6a40', '#b97a4c', '#8e5232')),  # laterite
+    'eastafrica': ('grass', ('#9a8a52', '#ad9a5e', '#b9a76a', '#8e7e48')),  # dry savanna
 }
 
 # ---- small helpers ------------------------------------------------------------------------------
@@ -290,6 +308,29 @@ def bone_hut(ms, rng, x, y, yaw, r=0.28, h=0.27):
     for sx in (-1, 1):  # the tusk arch over the door
         ms.cyl('st_bone', 0.013, 0.007, 0.2, at=(sx * 0.05, -r - 0.02, G), rot=(0, -sx * 18, 0), segs=5, lod=0, frame=f)
     door(ms, f, -r + 0.02, w=0.07, h=0.12)
+    return f
+
+
+def dome_hut(ms, rng, x, y, yaw, rx=0.27, ry=0.24, h=0.2, mat='st_daub'):
+    """A low dome of daub over bent poles (the pastoral camps) or an oval hut of mud and reed (the Nile)."""
+    f = frame_at(x, y, yaw)
+    ldome(ms, mat, rx, ry, h, (0, 0, G), f)
+    ms.box(mat, (0.11, 0.1, h * 0.62), at=(0, -ry - 0.02, G), lod=1, frame=f)
+    door(ms, f, -ry - 0.07, w=0.06, h=h * 0.5)
+    if rng.random() < 0.5:  # a hide drying on the roof
+        ms.box('st_hide', (0.13, 0.1, 0.008), at=(rx * 0.25, ry * 0.2, G + h * 0.93), rot_z=rng.uniform(0, 90), lod=0, frame=f)
+    return f
+
+
+def thatch_pit(ms, rng, x, y, yaw, r=0.3, h=0.36, roof='thatch'):
+    """A sunken house under a conical thatch roof that reaches the ground (Banpo, Jeulmun, Jomon), its
+    entrance under a little gable, the smoke hole at the top."""
+    f = frame_at(x, y, yaw)
+    lcyl(ms, 'st_turf', r * 1.06, r * 1.02, 0.025, (0, 0, G), f, segs=(14, 8, 6), caps=False)
+    lcyl(ms, roof, r, 0.03, h, (0, 0, G + 0.02), f, segs=(14, 8, 6))
+    ms.box(roof, (0.15, 0.17, 0.13), at=(0, -r - 0.02, G), lod=1, frame=f, taper=0.5)
+    door(ms, f, -r - 0.11, w=0.06, h=0.08)
+    ms.cyl('dark', 0.03, 0.03, 0.01, at=(0, 0, G + 0.02 + h - 0.004), segs=6, lod=0, frame=f)
     return f
 
 
@@ -574,6 +615,23 @@ def lm_bone_lodge(ms, rng, x, y, yaw, top=1.2):
     pole_with_pennant(ms, f, 0.0, 0.0, G + 0.44, top)
 
 
+def lm_six_pillar(ms, rng, x, y, yaw, top=1.45):
+    """The six-pillar tower of Sannai-Maruyama: six chestnut posts in two rows on a clay floor, two decks
+    and a ladder."""
+    f = frame_at(x, y, yaw)
+    ms.box('st_clay', (1.1, 0.86, 0.04), at=(0, 0, G), lod=2, frame=f)
+    for px in (-0.42, 0.0, 0.42):
+        for py in (-0.3, 0.3):
+            ms.cyl('st_stake', 0.05, 0.045, 1.08, at=(px, py, G + 0.04), segs=8, lod=2, frame=f)
+    for z in (0.46, 0.84):
+        ms.box('st_stake', (1.0, 0.72, 0.035), at=(0, 0, G + z), lod=2, frame=f)
+        for sy in (-1, 1):  # the deck's rail
+            ms.box('st_stake', (1.0, 0.02, 0.06), at=(0, sy * 0.35, G + z + 0.035), lod=0, frame=f)
+    for sx in (-1, 1):  # the ladder up the front
+        ms.cyl('st_stake', 0.01, 0.01, 0.5, at=(sx * 0.06, -0.42, G + 0.02), rot=(-14, 0, 0), segs=4, lod=0, frame=f)
+    pole_with_pennant(ms, f, 0.0, 0.0, G + 0.88, top)
+
+
 # ---- the styles ---------------------------------------------------------------------------------
 # houses: [(weight, kind)]; foot(kind, params) gives a house's half sizes (local x, local y) with
 # its roof; landmarks per variant; enclosure per variant; props: weights of each prop kind.
@@ -582,7 +640,8 @@ def _house_params(style, variant, kind, rng, size):
     big = size == 'big'
     if kind == 'hut':
         r = rng.uniform(0.24, 0.31) + (0.02 if big and rng.random() < 0.3 else 0)
-        wall = {'base': 'st_daub', 'europe': 'st_daub', 'indic': 'st_daub_red', 'monsoon': 'st_bamboo', 'americas': 'st_bark'}.get(style, 'st_daub')
+        wall = {'base': 'st_daub', 'europe': 'st_daub', 'indic': 'st_daub_red', 'monsoon': 'st_bamboo', 'americas': 'st_bark',
+                'nile': 'st_clay', 'maghreb': 'st_clay', 'westafrica': 'st_daub_red'}.get(style, 'st_daub')
         if style == 'base' and rng.random() < 0.35:
             wall = 'st_daub_red'
         roof = 'st_straw' if rng.random() < 0.35 else 'thatch'
@@ -606,6 +665,12 @@ def _house_params(style, variant, kind, rng, size):
         return dict(r=rng.uniform(0.22, 0.27), h=rng.uniform(0.38, 0.45), mat='st_hide' if rng.random() < 0.65 else 'st_hide_dark')
     if kind == 'bone':
         return dict(r=rng.uniform(0.25, 0.3), h=rng.uniform(0.24, 0.28))
+    if kind == 'dome':
+        rx = rng.uniform(0.23, 0.29)
+        mat = ('st_clay' if rng.random() < 0.6 else 'reed') if style == 'nile' else ('st_daub' if rng.random() < 0.7 else 'st_clay')
+        return dict(rx=rx, ry=rx * rng.uniform(0.72, 0.9), h=rng.uniform(0.17, 0.22), mat=mat)
+    if kind == 'tpit':
+        return dict(r=rng.uniform(0.26, 0.32), h=rng.uniform(0.34, 0.4), roof='thatch' if rng.random() < 0.7 else 'st_straw')
     raise ValueError(kind)
 
 
@@ -628,6 +693,10 @@ def foot(kind, p):
         return (p['r'], p['r'] + 0.02)
     if kind == 'bone':
         return (p['r'] + 0.04, p['r'] + 0.06)
+    if kind == 'dome':
+        return (p['rx'] + 0.01, p['ry'] + 0.08)
+    if kind == 'tpit':
+        return (p['r'] * 1.06, p['r'] + 0.12)
 
 
 def draw_house(ms, rng, kind, x, y, yaw, p):
@@ -651,6 +720,10 @@ def draw_house(ms, rng, kind, x, y, yaw, p):
         hide_tent(ms, rng, x, y, yaw, **p)
     elif kind == 'bone':
         bone_hut(ms, rng, x, y, yaw, **p)
+    elif kind == 'dome':
+        dome_hut(ms, rng, x, y, yaw, **p)
+    elif kind == 'tpit':
+        thatch_pit(ms, rng, x, y, yaw, **p)
 
 
 # landmark id -> (draw, half sizes)
@@ -668,6 +741,7 @@ LANDMARKS = {
     'council': (lm_council_longhouse, (0.82, 0.4)),
     'great-tent': (lm_great_tent, (0.52, 0.58)),
     'bone-lodge': (lm_bone_lodge, (0.66, 0.66)),
+    'six-pillar': (lm_six_pillar, (0.58, 0.46)),
 }
 
 # small villages take the long landmarks shorter (still 0.9 square units of base)
@@ -698,9 +772,32 @@ STYLE = {
     'steppe': dict(houses={'a': [(1, 'tent')], 'b': [(2, 'bone'), (1, 'tent')]}, lm={'a': ['great-tent', 'bone-lodge'], 'b': ['bone-lodge', 'great-tent']},
                    fence={'a': 'palisade', 'b': 'bank'}, props=dict(hearth=3, granary=0, pits=2, platform=1, rack=2, pen=3, field=0, clutter=2, wood=1),
                    beast='st_hide'),
+    'nile': dict(houses={'a': [(2, 'dome'), (2, 'hut')], 'b': [(2, 'hut'), (1, 'dome'), (1, 'flat')]}, lm={'a': ['granary-block', 'shrine'], 'b': ['shrine', 'granary-block']},
+                 fence={'a': 'bank', 'b': 'palisade'}, props=dict(hearth=2, granary=2, pits=4, platform=0, rack=1, pen=1, field=3, clutter=2, wood=1, canoe=2),
+                 beast='st_hide_dark'),
+    'maghreb': dict(houses={'a': [(2, 'tent'), (1, 'hut')], 'b': [(2, 'hut'), (1, 'stone')]}, lm={'a': ['great-hut', 'shrine'], 'b': ['shrine', 'great-hut']},
+                    fence={'a': 'palisade', 'b': 'bank'}, props=dict(hearth=3, granary=1, pits=2, platform=1, rack=2, pen=2, field=1, clutter=2, wood=1),
+                    beast='st_fleece'),
+    'sinic': dict(houses={'a': [(3, 'tpit'), (1, 'hut')], 'b': [(2, 'hut'), (2, 'tpit')]}, lm={'a': ['council', 'great-hut'], 'b': ['great-hut', 'council']},
+                  fence={'a': 'bank', 'b': 'bank'}, props=dict(hearth=2, granary=2, pits=3, platform=1, rack=1, pen=2, field=3, clutter=2, wood=1),
+                  beast='st_hide_dark'),
+    'korea': dict(houses={'a': [(1, 'tpit')], 'b': [(3, 'tpit'), (1, 'hut')]}, lm={'a': ['great-hut', 'shrine'], 'b': ['shrine', 'great-hut']},
+                  fence={'a': 'palisade', 'b': 'bank'}, props=dict(hearth=3, granary=1, pits=3, platform=1, fishrack=2, pen=0, field=1, clutter=2, wood=1, canoe=2),
+                  beast='st_hide'),
+    'japan': dict(houses={'a': [(1, 'tpit')], 'b': [(6, 'tpit'), (1, 'long')]}, lm={'a': ['six-pillar', 'council'], 'b': ['six-pillar', 'council']},
+                  fence={'a': 'bank', 'b': 'palisade'}, props=dict(hearth=3, granary=2, pits=3, platform=1, fishrack=1, pen=0, field=0, clutter=2, wood=2, canoe=1),
+                  beast='st_hide'),
+    'westafrica': dict(houses={'a': [(1, 'hut')], 'b': [(3, 'hut'), (1, 'thatched')]}, lm={'a': ['great-hut', 'granary-block'], 'b': ['granary-block', 'great-hut']},
+                       fence={'a': 'palisade', 'b': 'bank'}, props=dict(hearth=2, granary=4, pits=1, platform=1, rack=1, pen=2, field=3, clutter=2, wood=1),
+                       beast='st_hide_dark'),
+    'eastafrica': dict(houses={'a': [(2, 'dome'), (1, 'hut')], 'b': [(1, 'dome')]}, lm={'a': ['great-hut', 'shrine'], 'b': ['shrine', 'great-hut']},
+                       fence={'a': 'palisade', 'b': 'palisade'}, props=dict(hearth=2, granary=1, pits=1, platform=0, rack=1, pen=4, field=1, clutter=2, wood=1),
+                       beast='st_hide'),
 }
 # the monsoon and base styles' landmark huts in their own materials
-LM_MATS = {'monsoon': dict(wall='st_bamboo', roof='thatch'), 'americas': dict(wall='st_bark', roof='reed')}
+LM_MATS = {'monsoon': dict(wall='st_bamboo', roof='thatch'), 'americas': dict(wall='st_bark', roof='reed'),
+           'nile': dict(wall='st_clay', roof='reed'), 'maghreb': dict(wall='st_clay', roof='st_straw'),
+           'westafrica': dict(wall='st_daub_red', roof='thatch')}
 
 # size: ground radius R, the free centre's radius, houses wanted, landmark plots (angle, radius)
 SIZES = {
@@ -980,7 +1077,9 @@ def town_layout(style, size, variant):
             draw_house(ms, rng, kind, x, y, yaw, p)
         st = STYLE[style]
         hut_mats = {'base': ('st_daub', 'thatch'), 'monsoon': ('st_bamboo', 'thatch'), 'americas': ('st_bark', 'reed'),
-                    'levant': ('st_clay', 'reed'), 'indic': ('st_daub_red', 'thatch'), 'europe': ('st_daub', 'thatch'), 'steppe': ('st_hide', 'st_hide')}[style]
+                    'levant': ('st_clay', 'reed'), 'indic': ('st_daub_red', 'thatch'), 'europe': ('st_daub', 'thatch'), 'steppe': ('st_hide', 'st_hide'),
+                    'nile': ('st_clay', 'reed'), 'maghreb': ('st_clay', 'st_straw'), 'sinic': ('st_daub', 'thatch'), 'korea': ('st_daub', 'thatch'),
+                    'japan': ('st_stake', 'thatch'), 'westafrica': ('st_daub_red', 'thatch'), 'eastafrica': ('st_daub', 'st_straw')}[style]
         for kind, x, y, yaw in props:
             if kind == 'pen':
                 pen(ms, rng, x, y, yaw, beast=st['beast'], n=rng.randint(3, 5))

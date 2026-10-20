@@ -23,13 +23,14 @@ describe('town layouts (the city manifest source)', () => {
       expect(townAssetUrl(age, tier, seed, style)).toContain(key);
     });
     expect(townFileKey('future', 'small')).toBeNull();
-    // no Nile kit in this age: the Levant's, not the European base (H-25)
-    expect(townFileKey('stone', 'small', 0, 'nile')).toMatch(/levant$/);
-    // no Roman big town of its own: the classical base big town, and the manifest lists its houses
-    expect(townFileKey('classical', 'big', 0, 'europe')).toMatch(/^classical-town-big-[ab]$/);
+    // the Nile has its own Stone kit (H-25); Mesopotamia has none in this age: the Levant's, not the European base
+    expect(townFileKey('stone', 'small', 0, 'nile')).toMatch(/nile$/);
+    expect(townFileKey('stone', 'small', 0, 'mesopotamia')).toMatch(/levant$/);
+    // the Roman big town is its own (H-25), and the manifest lists its houses
+    expect(townFileKey('classical', 'big', 0, 'europe')).toMatch(/^classical-town-big-[ab]-europe$/);
     expect(townAssetUrl('classical', 'big', 0, 'europe')).toContain(townFileKey('classical', 'big', 0, 'europe'));
     const roman = buildTownManifest({ cityId: 'x', ageId: 'classical', tierId: 'big', style: 'europe' });
-    expect(roman.townKey).toMatch(/^classical-town-big-[ab]$/);
+    expect(roman.townKey).toMatch(/^classical-town-big-[ab]-europe$/);
     expect(roman.structures.filter((s) => s.kind === 'house').length).toBe(townLayout(roman.townKey).houses.length);
     expect(roman.structures.filter((s) => s.kind === 'house').length).toBeGreaterThan(10);
   });
