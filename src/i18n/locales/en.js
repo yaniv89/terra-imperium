@@ -472,6 +472,8 @@ export default {
   'march.setsOut': ', it sets out now',
   'march.thisTurn': 'this turn',
   'march.tapPort': '{who}: tap a port or a sea tile to sail to.',
+  'march.path': 'Path',
+  'march.pathHint': 'Draw the route with one finger. Tap Path again to move the map.',
   'march.tapCity': '{who}: tap a city or a tile to march to.',
   'march.bordersBlocked': 'Your army borders {target}, but cannot attack: {reason}',
   'march.bordersNow': 'Your army borders {target}: attack it now.',

@@ -24,7 +24,7 @@ export const MarchProvider = ({ children }) => {
     return () => window.removeEventListener(START_MARCH, onStart);
   }, []);
 
-  const plan = useMemo(() => (march?.from && march.target != null ? planMarch(state, march.from, march.target, march.unitIds || null, { naval: !!march.naval }) : null), [state, march]);
+  const plan = useMemo(() => (march?.from && march.target != null ? planMarch(state, march.from, march.target, march.unitIds || null, { naval: !!march.naval, via: march.via || null }) : null), [state, march]);
   // The march mode ends by itself when its army is gone (moved, disbanded, beaten).
   // The same units the order would move (routes.js marchingUnits: the picked ids, else the units that stand in the city).
   const hasArmy = useMemo(() => !march || marchingUnits(state, march.from, march.unitIds || null, { naval: !!march.naval }).length > 0, [state, march]);
@@ -32,11 +32,14 @@ export const MarchProvider = ({ children }) => {
 
   const lines = useMemo(() => getMarchLines(state, plan), [state, plan]);
   const begin = useCallback((from, dragging = false, naval = false) => setMarch({ from, target: null, dragging, naval }), []);
-  const aimAt = useCallback((target) => setMarch((m) => (m ? { ...m, target } : m)), []);
-  const drop = useCallback((target) => setMarch((m) => (m ? { ...m, target, dragging: false } : m)), []);
+  const aimAt = useCallback((target) => setMarch((m) => (m ? { ...m, target, via: null } : m)), []);
+  const drop = useCallback((target) => setMarch((m) => (m ? { ...m, target, via: null, dragging: false } : m)), []);
+  // U38: Path mode (the bar's Path button) lets a finger draw the route; the stroke sets the way points and the end.
+  const setPathMode = useCallback((on) => setMarch((m) => (m ? { ...m, pathMode: !!on } : m)), []);
+  const setPath = useCallback((via, target) => setMarch((m) => (m ? { ...m, via, target, pathMode: false } : m)), []);
   const cancel = useCallback(() => setMarch(null), []);
   useDismissOverlays(cancel, !!march); // End Turn ends march mode too
 
-  const value = useMemo(() => ({ march, plan, lines, begin, aimAt, drop, cancel }), [march, plan, lines, begin, aimAt, drop, cancel]);
+  const value = useMemo(() => ({ march, plan, lines, begin, aimAt, drop, cancel, setPathMode, setPath }), [march, plan, lines, begin, aimAt, drop, cancel, setPathMode, setPath]);
   return <MarchContext.Provider value={value}>{children}</MarchContext.Provider>;
 };

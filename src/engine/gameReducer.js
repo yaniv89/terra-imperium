@@ -1242,7 +1242,7 @@ const reduceAction = (state, action) => {
     // points go (stepMarchesNow) and walks the rest at the start of each later turn. Giving the order is free.
     case ActionTypes.SET_ROUTE: {
       // The target is a city id or a tile id (free land).
-      const { fromRegionId, toRegionId, toTile, unitIds = null, naval = false, attack = false } = action.payload || {};
+      const { fromRegionId, toRegionId, toTile, unitIds = null, naval = false, attack = false, via = null } = action.payload || {}; // via: the tiles of a drawn path (U38)
       // March to attack (marchAttack.js): the route to an enemy city the army does not border,
       // with the intent to assault it on arrival.
       if (attack && !naval && toRegionId != null && toTile == null) {
@@ -1255,7 +1255,7 @@ const reduceAction = (state, action) => {
         return stepOrdered(state, order.units, p.units, { year: state.year, ...msg('m.act.marchAttack', { who, dest, turns: aboutTurns(p.turns), stops: p.stopsAt ? sub('m.act.stoppingAt', { city: cityOr(p.stopsAt, state.regions[p.stopsAt]?.name, 'm.act.anEnemyCity') }) : '' }), type: LogTypes.ACTION });
       }
       const target = toTile != null ? toTile : toRegionId;
-      const order = orderMarch(state, fromRegionId, target, unitIds, { naval });
+      const order = orderMarch(state, fromRegionId, target, unitIds, { naval, via: Array.isArray(via) ? via.filter(Number.isInteger).slice(0, 12) : null });
       if (!order.units) return reject(state, order.reasonMsg ? whyOf(order) : order.reason || msg('m.act.no.march'));
       const p = order.plan;
       return stepOrdered(state, order.units, p.units, { year: state.year, ...msg('m.act.march', { who: p.naval ? (p.units.length > 1 ? sub('m.act.whoShips', { n: p.units.length }) : sub('m.act.whoFleet')) : (p.units.length > 1 ? sub('m.act.whoUnits', { n: p.units.length }) : sub('m.act.whoArmy')), dest: place(placeName(state, p.path[p.path.length - 1])), turns: aboutTurns(p.turns) }), type: LogTypes.ACTION });

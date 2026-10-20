@@ -475,6 +475,8 @@ export default {
   'march.setsOut': ', הוא יוצא לדרך עכשיו',
   'march.thisTurn': 'בתור הזה',
   'march.tapPort': '{who}: לחצו על נמל או על משבצת ים כדי להפליג אליה.',
+  'march.path': 'מסלול',
+  'march.pathHint': 'שרטטו את המסלול באצבע אחת. לחצו שוב על מסלול כדי להזיז את המפה.',
   'march.tapCity': '{who}: לחצו על עיר או על משבצת כדי לצעוד אליה.',
   'march.bordersBlocked': 'הצבא שלכם גובל ב{target}, אבל לא יכול לתקוף: {reason}',
   'march.bordersNow': 'הצבא שלכם גובל ב{target}: תקפו עכשיו.',

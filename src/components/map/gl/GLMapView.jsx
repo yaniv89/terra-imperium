@@ -78,6 +78,7 @@ const ZOOM_CAP = 200; // the closest zoom is also limited to a few hexes across 
 const ZOOM_STEP_SCALE = 1.6;
 const ZOOM_SETTLE_MS = 150;
 const ZOOM_JUMP = 1.8;
+const MAX_VIA = 6; // way points kept from a drawn march path (U38)
 const INITIAL_FOCUS_ZOOM = 5;
 // The first view of a game: this much ground (km) over the screen's height, centred on the capital
 // (its land fills about half the screen, the town model shows: plans/ui/start-zoom).
@@ -128,6 +129,13 @@ const GLMapView = ({
   // a march's target is being picked (the taps below read it)
   const marchingRef = useRef(false);
   marchingRef.current = !!marchCtx?.march && !marchCtx.march.dragging;
+  // U38: Path mode: a one-finger drag draws the army's route instead of panning the map.
+  const pathModeRef = useRef(false);
+  pathModeRef.current = !!marchCtx?.march?.pathMode;
+  const setPathRef = useRef(null);
+  setPathRef.current = marchCtx?.setPath;
+  const [trail, setTrail] = useState(null);
+  const trailRef = useRef(null);
   const settleRef = useRef(false);
   settleRef.current = !!settle;
 
@@ -357,6 +365,7 @@ const GLMapView = ({
     const behavior = d3zoom()
       .interpolate(linearViewInterpolate)
       .scaleExtent([minK, ZOOM_MAX])
+      .filter((e) => (!e.ctrlKey || e.type === 'wheel') && !e.button && !(pathModeRef.current && e.type !== 'wheel'))
       // one wheel event is one small step (mapView.wheelZoomDelta, playtest audit I075)
       .wheelDelta(wheelZoomDelta)
       // east and west are free (the world wraps), north and south stop at the poles
@@ -823,6 +832,12 @@ const GLMapView = ({
   // The city's name as the mouse rests on its land (the SVG map's <title> on every territory).
   const hoverRef = useRef(0);
   const onPointerMove = (e) => {
+    if (trailRef.current && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const p = { x: e.clientX - rect.left, y: e.clientY - rect.top }; const last = trailRef.current[trailRef.current.length - 1];
+      if (Math.hypot(p.x - last.x, p.y - last.y) >= 10) { trailRef.current.push(p); setTrail([...trailRef.current]); }
+      return;
+    }
     if (e.pointerType !== 'mouse' || e.buttons || !containerRef.current) return;
     const now = performance.now();
     if (now - hoverRef.current < 120) return;
@@ -833,8 +848,31 @@ const GLMapView = ({
     if (containerRef.current.title !== name) containerRef.current.title = name;
   };
   const tapRef = useRef(null);
-  const onPointerDown = useCallback((e) => { tapRef.current = { x: e.clientX, y: e.clientY }; }, []);
+  const onPointerDown = useCallback((e) => {
+    tapRef.current = { x: e.clientX, y: e.clientY };
+    if (pathModeRef.current && e.target === canvasRef.current && containerRef.current) { const rect = containerRef.current.getBoundingClientRect(); trailRef.current = [{ x: e.clientX - rect.left, y: e.clientY - rect.top }]; }
+  }, []);
+  // U38: the stroke's land tiles, thinned to a few way points; the last one is the march's target.
+  const endStroke = (e) => {
+    const pts = trailRef.current; trailRef.current = null; setTrail(null);
+    const v = view();
+    if (!pts || !v || !projection || !setPathRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const all = [...pts, { x: e.clientX - rect.left, y: e.clientY - rect.top }];
+    const tiles = [];
+    for (const p of all) {
+      const ll = projection.invert(screenToWorld(v, p.x, p.y));
+      const t = ll ? tileAtLatLon(ll[1], ll[0]) : null;
+      if (t != null && t >= 0 && getTiles().land[t] === 1 && t !== tiles[tiles.length - 1]) tiles.push(t);
+    }
+    if (tiles.length < 2) return;
+    const target = tiles.pop();
+    const stops = tiles.slice(1); // the first tile is where the finger came down
+    const via = stops.length > MAX_VIA ? Array.from({ length: MAX_VIA }, (_, i) => stops[Math.round((i * (stops.length - 1)) / (MAX_VIA - 1))]) : stops;
+    setPathRef.current(via, target);
+  };
   const onPointerUp = (e) => {
+    if (trailRef.current) { const moved = trailRef.current.length > 1; if (moved) { tapRef.current = null; endStroke(e); return; } trailRef.current = null; setTrail(null); }
     const start = tapRef.current; tapRef.current = null;
     const g = gl.current;
     if (!start || !g || !projection || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) return;
@@ -939,6 +977,11 @@ const GLMapView = ({
       >
         <canvas key={canvasGen} ref={canvasRef} data-testid="gl-map" style={{ width, height, display: 'block' }} />
       </div>
+      {trail && (
+        <svg className="absolute inset-0 pointer-events-none w-full h-full" data-testid="map-draw-path">
+          <polyline points={trail.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#a3e635" strokeWidth="4" strokeDasharray="10 6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
       {!prefersReducedMotion() && <EffectsLayer effects={effects} getProjector={getProjector} width={width} height={height} ageId={ageOf(state, state.playerNationId)} testId="map2d-effects" />}
       <MapZoomControls
         style={{ insetInlineEnd: insets.end + 8 }}
