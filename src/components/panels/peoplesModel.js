@@ -10,6 +10,9 @@ import { hasMet, isExplored, fogOn } from '../../engine/fog';
 import { opinionOf } from '../../engine/opinion';
 import { t as tNow } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
+import { ageOf } from '../../engine/nationState';
+import { ageVersusPlayer } from '../ui/ageProgress';
+import { shortAge } from './researchSheetModel';
 
 // The words are read when asked, so they follow the language (keys p2.rel.<relation>).
 export const RELATION_LABEL = Object.defineProperties({}, Object.fromEntries(
@@ -40,6 +43,10 @@ export const peoplesModel = (state, search = '') => {
     titleEn: n.name,
     color: n.color || '#EE8A3A',
     relation: relationOf(state, n),
+    // the people's own age (never a world age) and how it stands against yours
+    ageId: ageOf(state, n.id),
+    ageName: shortAge(ageOf(state, n.id)),
+    ageVsYou: ageVersusPlayer(state, n.id),
     opinion: opinionOf(state, n.id),
     metTurn: fogOn(state) ? state.fog?.met?.[me]?.[n.id] ?? null : null,
     citiesSeen: cityCount[n.id] || 0,

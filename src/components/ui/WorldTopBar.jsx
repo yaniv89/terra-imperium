@@ -119,6 +119,7 @@ const WorldTopBar = () => {
             {m.warLabel}
           </button>
         )}
+        <span className="text-[11px] text-fa-muted shrink-0 max-w-[5.5rem] truncate" title={m.age.nextName ? t('topbar.ageTip', { age: m.age.name, next: m.age.nextName, n: m.age.techsLeft }) : t('topbar.ageLast', { age: m.age.name })} data-testid="top-bar-age">{m.age.name}</span>
         <span className="fa-num text-[12px] shrink-0" title={t('topbar.year')}>{m.year}</span>
         {!portrait && (
           <button type="button" onClick={() => openTurnReport()} className="fa-label shrink-0 !text-[11px] h-8 px-1 -me-1 rounded-md hover:bg-fa-raised" title={t('topbar.reportTip')} aria-label={t('topbar.turnAria', { turn: m.turn })} data-testid="top-bar-turn">

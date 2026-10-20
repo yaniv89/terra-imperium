@@ -8,7 +8,7 @@
 //   stability    -3 to +3, legitimacy of 100, and authority with its parts as the reasons
 //   victory      how far each victory is: capitals held, cities held, share of the world's gold,
 //                the score rank
-//   era goals    the calendar age's goals (met of needed, each with its legacy)
+//   era goals    your age's goals (met of needed, each with its legacy)
 //   age          the age strip and when the next age begins at this pace
 import { AGE_ORDER } from '../../data/ages';
 import { getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../../data/techTree';

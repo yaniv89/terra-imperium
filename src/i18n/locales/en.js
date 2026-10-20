@@ -392,6 +392,8 @@ export default {
   'topbar.cultureAria': 'Culture {n} a turn. Tap for each city',
   'topbar.warTip': 'At war with {names}',
   'topbar.year': 'The year',
+  'topbar.ageTip': 'Your age: {age}. {next} comes after {n} more techs of this age',
+  'topbar.ageLast': 'Your age: {age}. There is no later age',
   'topbar.reportTip': 'The last turn\'s report',
   'topbar.turnAria': 'Turn {turn}: the last turn\'s report',
   'topbar.turn': 'Turn',
