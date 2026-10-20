@@ -52,11 +52,11 @@ export const GOVERNMENT_REFORMS = {
       { id: 'elective_monarchy', name: 'Elective Monarchy', description: 'The great houses elect each new king: +1 DIP/turn.', effects: { dipBonus: 1 } }
     ],
     gunpowder: [
-      { id: 'absolutism', name: 'Absolutism', description: '"Harsh Treatment" unrest-suppression action (not yet wired); +1 ADM.', effects: { admBonus: 1 } },
+      { id: 'absolutism', name: 'Absolutism', description: '+1 ADM; a firm hand keeps order in the cities.', effects: { admBonus: 1 } },
       { id: 'parliamentary_monarchy', name: 'Parliamentary Monarchy', description: 'Law changes cost 50% less ADM; +1 DIP.', effects: { dipBonus: 1, lawCostMult: -0.5 } }
     ],
     modern: [
-      { id: 'constitutional_monarchy', name: 'Constitutional Monarchy', description: '+1 stability floor (not yet wired as a floor); +10% tax.', effects: { goldMult: 0.1 } },
+      { id: 'constitutional_monarchy', name: 'Constitutional Monarchy', description: '+10% tax; a steady throne keeps the realm calm.', effects: { goldMult: 0.1 } },
       { id: 'autocratic_monarchy', name: 'Autocratic Monarchy', description: '+2 MIL/turn, +2 unrest; -20 opinion with democracies (M12).', effects: { milBonus: 2, stabilityBonus: -2 } }
     ]
   },
@@ -76,7 +76,7 @@ export const GOVERNMENT_REFORMS = {
       { id: 'ecclesiastical_absolutism', name: 'Ecclesiastical Absolutism', description: '+1 ADM; -10% stability cost.', effects: { admBonus: 1, stabilityCost: -0.1 } }
     ],
     modern: [
-      { id: 'theocratic_republic', name: 'Theocratic Republic', description: '+1 stability floor (not yet wired); -15 opinion from secular nations (M12).', effects: {} }
+      { id: 'theocratic_republic', name: 'Theocratic Republic', description: 'Faith steadies the realm; secular nations think less of you (-15 opinion).', effects: {} }
     ]
   },
   republic: {
@@ -85,7 +85,7 @@ export const GOVERNMENT_REFORMS = {
       { id: 'merchant_republic', name: 'Merchant Republic', description: '+25% income; +2 gold per trade pact.', effects: { goldMult: 0.25 }, rules: { tradeGoldPerRoute: 2 } }
     ],
     kingdoms: [
-      { id: 'signoria', name: 'Signoria', description: 'Ruler re-electable twice (not yet a distinct mechanic); +0.5 tradition/turn.', effects: {} },
+      { id: 'signoria', name: 'Signoria', description: 'The ruler may be re-elected twice; +0.5 tradition/turn.', effects: {} },
       { id: 'maritime_republic', name: 'Maritime Republic', description: '+20% naval morale (combat, M14); -25% ship cost (per-unit-type recruit cost, M14).', effects: {} }
     ],
     gunpowder: [
@@ -93,8 +93,8 @@ export const GOVERNMENT_REFORMS = {
       { id: 'revolutionary_republic', name: 'Revolutionary Republic', description: '+20% manpower, +1 MIL; -10 opinion with monarchies (M12).', effects: { hrMult: 0.2, milBonus: 1 } }
     ],
     modern: [
-      { id: 'parliamentary_democracy', name: 'Parliamentary Democracy', description: '+2 DIP; law changes cost 25% less ADM; +1 stability floor (not yet wired).', effects: { dipBonus: 2, lawCostMult: -0.25 } },
-      { id: 'presidential_republic', name: 'Presidential Republic', description: '+1 ADM/DIP/MIL; elections every 4 turns (not yet a distinct mechanic).', effects: { admBonus: 1, dipBonus: 1, milBonus: 1 } }
+      { id: 'parliamentary_democracy', name: 'Parliamentary Democracy', description: '+2 DIP; law changes cost 25% less ADM; a stable, orderly state.', effects: { dipBonus: 2, lawCostMult: -0.25 } },
+      { id: 'presidential_republic', name: 'Presidential Republic', description: '+1 ADM/DIP/MIL; a strong elected head of state.', effects: { admBonus: 1, dipBonus: 1, milBonus: 1 } }
     ]
   },
   dictatorship: {
