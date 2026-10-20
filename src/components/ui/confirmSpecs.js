@@ -15,7 +15,9 @@ import { t } from '../../i18n/core';
 /** Their opinion of you before and after the war, from the real reducer on a funded copy. */
 export const warOpinionHit = (state, nationId, costs) => {
   const before = opinionOf(state, nationId);
-  const funded = { ...state, resources: { ...state.resources, ...Object.fromEntries(Object.entries(costs).map(([k, v]) => [k, Math.max(state.resources?.[k] || 0, v)])) } };
+  const me = state.playerNationId;
+  const met = state.fog ? { fog: { ...state.fog, met: { ...state.fog.met, [me]: { ...(state.fog.met?.[me] || {}), [nationId]: true } } } } : {}; // the card only exists for a people you know
+  const funded = { ...state, ...met, resources: { ...state.resources, ...Object.fromEntries(Object.entries(costs).map(([k, v]) => [k, Math.max(state.resources?.[k] || 0, v)])) } };
   const next = gameReducer(funded, { type: ActionTypes.DECLARE_WAR, payload: { nationId } });
   const after = next === funded ? before : opinionOf(next, nationId);
   return { before, after };

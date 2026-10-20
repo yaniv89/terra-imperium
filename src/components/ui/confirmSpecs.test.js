@@ -13,7 +13,8 @@ const foe = rivalOf(world, 0);
 
 describe('two-step confirms (H-08)', () => {
   it('the war card shows the cost and the opinion hit the reducer really causes', () => {
-    const s = { ...world, resources: { ...world.resources, gold: 5000, dip: 50, adm: 50, mil: 50 } };
+    const metFoe = world.fog ? { fog: { ...world.fog, met: { ...world.fog.met, [me]: { ...world.fog.met?.[me], [foe]: true } } } } : {};
+    const s = { ...world, ...metFoe, resources: { ...world.resources, gold: 5000, dip: 50, adm: 50, mil: 50 } };
     const card = declareWarConfirm(s, foe);
     expect(card.title).toMatch(/^Declare war on /);
     expect(card.confirmLabel).toBe('Declare war');
@@ -21,7 +22,8 @@ describe('two-step confirms (H-08)', () => {
     expect(cost.value).toMatch(/\d/);
     const after = gameReducer(s, { type: ActionTypes.DECLARE_WAR, payload: { nationId: foe } });
     expect(opinion.value).toBe(`${opinionOf(s, foe)} to ${opinionOf(after, foe)}`);
-    expect(opinionOf(after, foe)).toBeLessThanOrEqual(opinionOf(s, foe));
+    expect(opinionOf(after, foe)).toBeLessThan(opinionOf(s, foe));
+    expect(card.rows[1].tone).toBe('bad');
     expect(card.notes.length).toBeGreaterThan(0);
   });
   it('builds no card for a nation already at war, the player or an unknown people', () => {
