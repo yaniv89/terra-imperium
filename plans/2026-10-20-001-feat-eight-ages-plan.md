@@ -1652,9 +1652,9 @@ Plus **Autonomous Warfare** and **Machine Consciousness** (outside the threshold
 
 ### D. Late signature unit candidates (for user approval in U85)
 
-Names are generic unit types, never weapon product names. Every entry still goes through the U85 filter.
+Names are generic unit types, never weapon product names. Every entry still goes through the U85 filter. Six swaps approved by the user on 2026-10-20 are applied below (zhou, arverni, gunditjmara, diaguita, muisca, teotihuacan).
 
-Information (24): yamatai Japanese armoured regiment (cavalry); gojoseon Korean self-propelled artillery (siege); kuru Indian armoured regiment (cavalry); zhou Chinese armoured brigade (cavalry); arverni French armoured cavalry (cavalry); cherusci German panzer battalion (cavalry); brigantes British armoured regiment (cavalry); rasenna Italian wheeled tank destroyers (cavalry); tartessos Spanish mountain infantry (infantry); geats Swedish multirole fighters (air); ulaid Irish ranger company (infantry); kemet Egyptian paratroopers (infantry); lusitania Portuguese commandos (infantry); wahgi Papua New Guinea light infantry (infantry); tondo Philippine scout rangers (infantry); muisca Colombian jungle infantry (infantry); tupinamba Brazilian rocket artillery (siege); teotihuacan Mexican marines (infantry); hopewell American armoured cavalry (cavalry); gunditjmara Australian armoured cavalry (cavalry); bau Fijian infantry (infantry); khoekhoe Southern African armoured cars (cavalry); dvaravati Royal Thai marines (infantry); diaguita Andean mountain troops (infantry).
+Information (24): yamatai Japanese armoured regiment (cavalry); gojoseon Korean self-propelled artillery (siege); kuru Indian armoured regiment (cavalry); zhou air-defence missile battery (cavalry); arverni attack helicopter squadron (cavalry); cherusci German panzer battalion (cavalry); brigantes British armoured regiment (cavalry); rasenna Italian wheeled tank destroyers (cavalry); tartessos Spanish mountain infantry (infantry); geats Swedish multirole fighters (air); ulaid Irish ranger company (infantry); kemet Egyptian paratroopers (infantry); lusitania Portuguese commandos (infantry); wahgi Papua New Guinea light infantry (infantry); tondo Philippine scout rangers (infantry); muisca demining engineers (infantry); tupinamba Brazilian rocket artillery (siege); teotihuacan disaster-relief engineers (infantry); hopewell American armoured cavalry (cavalry); gunditjmara surveillance patrol (cavalry); bau Fijian infantry (infantry); khoekhoe Southern African armoured cars (cavalry); dvaravati Royal Thai marines (infantry); diaguita mule-borne mountain artillery (infantry).
 
 Future (16): akkad Lugal exo-guard (infantry); kemet Horus hover chariots (cavalry); shang bronze-dragon drone swarm (air); yamatai ashigaru exo-infantry (infantry); kuru Agni railgun teams (ranged); arverni oak-shield projectors (support); saba sun-lance artillery (siege); caral condor hunter drones (air); nok terracotta exo-guard (infantry); punt incense-coast hover raiders (cavalry); lapita wave-skimmer hover craft (cavalry); cucuteni Trypillian sentinel teams (ranged); mapungubwe golden-rhino walkers (cavalry); chaco skywatch railgunners (ranged); botai steppe hover cavalry (cavalry); saudeleur Nan Madol shield wall (support).
 
@@ -1663,8 +1663,8 @@ Dropped from the first draft, for the user:
 | Dropped | Reason | Replaced by |
 |---|---|---|
 | srivijaya Kopassus commandos | documented atrocity record (East Timor, Papua) | wahgi Papua New Guinea light infantry |
-| mutal Kaibil commandos | documented atrocity record (Dos Erres massacre, 1982) | diaguita Andean mountain troops |
-| gunditjmara SASR troopers | war crimes findings of the Brereton report (2020) | gunditjmara Australian armoured cavalry |
+| mutal Kaibil commandos | documented atrocity record (Dos Erres massacre, 1982) | diaguita mule-borne mountain artillery |
+| gunditjmara SASR troopers | war crimes findings of the Brereton report (2020) | gunditjmara surveillance patrol |
 | tartessos Spanish Legion infantry | documented atrocities in the Rif War and the Civil War | tartessos Spanish mountain infantry |
 | Type 10, K9 Thunder, Arjun, Type 99, Leclerc, Leopard 2, Challenger 2, Centauro, Gripen, Astros, Abrams, Rooikat | trademarked weapon product names | generic unit types above |
 
