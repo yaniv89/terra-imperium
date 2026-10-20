@@ -38,7 +38,7 @@ import { loadKit, kitObject, objectSize } from '../art/kitLoader';
 import { KitInstances, kitLodForZoom } from '../art/kitInstances';
 
 export { kitLodForZoom };
-import { vegetationKitFor } from '../art/vegetation';
+import { vegetationKitFor, berryBand, berryNames } from '../art/vegetation';
 import { loadObjectName, usesBarrow, BARROW_EMPTY, workerLoadPlacement } from '../art/workerLoads';
 import { themeOfNation, styleOfLand } from '../../data/architecture';
 import { OwnerMarks } from './ownerMarks';
@@ -84,7 +84,7 @@ const NODE_PARTS = {
   herd: [['box', -0.3, 0.12, 0, 0.32, 0.22, 0.18, '#f5f5f4'], ['box', 0.25, 0.12, 0.25, 0.32, 0.22, 0.18, '#e7e5e4'], ['box', 0.2, 0.12, -0.3, 0.32, 0.22, 0.18, '#d6d3d1']],
   cattle: [['box', -0.3, 0.18, 0, 0.5, 0.32, 0.24, '#78350f'], ['box', 0.35, 0.18, 0.3, 0.5, 0.32, 0.24, '#a16207']],
   fish: [['flat', 0, 0.06, 0, 1.0, 1, 1.0, '#93c5fd'], ['flat', 0.25, 0.07, 0.2, 0.45, 1, 0.45, '#dbeafe']],
-  // W12: berry bushes (no art file yet: berry-bushes.glb), green mounds with red berries
+  // W12: berry bushes without their art file (berry-bushes.glb): green mounds with red berries
   berries: [['rock', -0.25, 0.15, 0, 0.55, 0.45, 0.55, '#3f6d2f'], ['rock', 0.3, 0.12, 0.2, 0.45, 0.38, 0.45, '#4b7a36'], ['rock', 0.05, 0.12, -0.32, 0.4, 0.34, 0.4, '#355f29'],
     ['rock', -0.2, 0.36, 0.15, 0.09, 0.09, 0.09, '#c2253a'], ['rock', 0.32, 0.3, 0.1, 0.08, 0.08, 0.08, '#d03045'], ['rock', 0.0, 0.3, -0.3, 0.08, 0.08, 0.08, '#b31d33']],
   farm: []
@@ -113,6 +113,9 @@ const V = new Vector3();
 export const nodeStateNames = (frac) => (frac > 0.5 ? ['full', 'half'] : frac > 0.12 ? ['half', 'full'] : ['depleted', 'half', 'full']);
 /** A grove's tree by what is left of it. */
 export const groveNames = (frac) => (frac > 0.6 ? ['tree-l', 'tree-m'] : frac > 0.25 ? ['tree-m', 'tree-l'] : frac > 0 ? ['felled', 'stump', 'tree-m'] : ['stump', 'felled', 'tree-m']);
+/** A node's object names in its art file: a grove's tree, berry bushes of the battle's climate band
+ *  (`band` from art/vegetation.js berryBand: `full-cold` ..., the plain names are temperate), else the state. */
+export const nodeObjectNames = (kind, frac, band = '') => (kind === 'tree' ? groveNames(frac) : kind === 'berries' ? berryNames(nodeStateNames(frac), band) : nodeStateNames(frac));
 /** The construction stage object for a build progress (0..100). */
 export const constructionStage = (progress) => `construction-stage-${Math.min(3, Math.floor(Math.max(0, progress) / 25))}`;
 /** How far from a grove's centre its log pile stands (tiles). */
@@ -231,7 +234,9 @@ export class EconomyLayer {
     this.skinRef = r.setup.sides.map((sd) => { const base = art.rts(sd.ageId); return base && art.rtsSkin ? art.rtsSkin(base.ageId, sideTheme(sd)) : null; });
     r.setup.sides.forEach((sd, i) => { want(art.rts(sd.ageId)); want(this.skinRef[i]); });
     this.nodeRef = {};
-    Object.entries(NODE_KINDS).forEach(([kind, k]) => { this.nodeRef[kind] = k.art === 'vegetation' ? art.vegetation(vegetationKitFor(r.setup)) : art.nature(k.art); });
+    const vegKit = vegetationKitFor(r.setup);
+    this.berryBand = berryBand(vegKit); // W12: berry bushes take the battle's climate band (art/vegetation.js)
+    Object.entries(NODE_KINDS).forEach(([kind, k]) => { this.nodeRef[kind] = k.art === 'vegetation' ? art.vegetation(vegKit) : art.nature(k.art); });
     const kinds = new Set((r.setup.economy?.nodes || []).map((n) => n.kind));
     Object.entries(this.nodeRef).forEach(([kind, ref]) => { if (!kinds.size || kinds.has(kind)) want(ref); });
     // A kit without a log pile of its own (conifer, tropical, cold: built by another pipeline) takes its
@@ -289,7 +294,7 @@ export class EconomyLayer {
       }
       return true;
     }
-    const obj = kitObject(kit, n.kind === 'tree' ? groveNames(frac) : nodeStateNames(frac));
+    const obj = kitObject(kit, nodeObjectNames(n.kind, frac, this.berryBand));
     if (!obj) return false;
     const yaw = ((n.i ?? 0) * 2.39996) % 6.283;
     this.kits.add(obj, lod, M.makeRotationY(yaw).scale(V.setScalar(S)).setPosition(x, y, z));

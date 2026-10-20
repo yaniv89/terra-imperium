@@ -22,6 +22,18 @@ const BY_TERRAIN = { arctic: 'cold', desert: 'desert', island: 'tropical', mount
 /** The kit for a battle terrain ('plains', 'desert' ...). */
 export const kitForTerrain = (terrain) => BY_TERRAIN[terrain] || 'temperate';
 
+/** A vegetation kit's stump objects in variant order (build_nature.py stump_variants; a felled tree
+ *  picks one by its tile: render/treeFelling.js stumpVariant). A kit without the later ones uses `stump`. */
+export const STUMP_NAMES = ['stump', 'stump-2', 'stump-3'];
+
+// W12 berry bushes (berry-bushes.glb): the temperate bramble is the plain `full`, `half`, `depleted`;
+// the other bands are `<state>-<band>`.
+const BERRY_BANDS = { mediterranean: 'dry', desert: 'dry', steppe: 'dry', cold: 'cold', conifer: 'cold', tropical: 'tropical' };
+/** The berry bush band for a vegetation kit: 'dry', 'cold', 'tropical', or '' (temperate). */
+export const berryBand = (kit) => BERRY_BANDS[kit] || '';
+/** A berry node's object names by its state names (economyLayer.js nodeStateNames), its band's first. */
+export const berryNames = (states, band) => (band ? states.flatMap((s) => [`${s}-${band}`, s]) : states);
+
 /** The battle's vegetation kit id. */
 export const vegetationKitFor = (setup, tiles = tilesLoaded() ? getTiles() : null) => {
   if (setup?.vegetation) return setup.vegetation;

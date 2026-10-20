@@ -9,8 +9,9 @@ Read by `src/battle/render/economyLayer.js` (nodes, herds, groves) and
 |---|---|---|
 | `stone-outcrop.glb`, `ore-outcrop.glb`, `gold-vein.glb`, `fish-shoal.glb` | `full` (more than half left), `half`, `depleted` (a low stump or pit that does not block) | 1,500 / 300 / 80 |
 | `herd-sheep-goat.glb`, `herd-cattle.glb` | `animal` (one animal at real size; the game places 2 or 3 round the node, fewer as it is used up) | 400 / 150 / 60 |
+| `berry-bushes.glb` | `full`, `half`, `depleted` (temperate bramble, red berries), `full-dry` ... `depleted-dry` (myrtle, dark violet berries), `-cold` (bilberry, blue), `-tropical` (broadleaf, orange fruit); the band comes from the vegetation kit (`art/vegetation.js` berryBand); one 1024 atlas | 1,500 / 300 / 80 (they use 1,462 / 196 / 76 at most) |
 | `log-piles.glb` | `log-pile-conifer`, `log-pile-tropical`, `log-pile-cold` (the grove's log pile for the kits without one; `build_nature.py`, one 512 atlas) | 1,500 / 300 / 80 (they use 212 / 176 / 72 at most) |
-| `vegetation-<kit>.glb` (kits: temperate, conifer, mediterranean, tropical, steppe, desert, cold) | `tree-s`, `tree-m`, `tree-l` (the first species), `tree-s-2` ... `tree-l-3` (more species, MD05), `stump`, `felled`, `bush`, `rock-s`, `rock-m`, `grass-tuft`, `log-pile` | 600 / 150 / 150 (LOD2 may be a 2-triangle impostor) |
+| `vegetation-<kit>.glb` (kits: temperate, conifer, mediterranean, tropical, steppe, desert, cold) | `tree-s`, `tree-m`, `tree-l` (the first species), `tree-s-2` ... `tree-l-3` (more species, MD05), `stump`, `stump-2`, `stump-3` (W12: a felled tree picks one by its tile), `felled`, `bush`, `rock-s`, `rock-m`, `grass-tuft`, `log-pile` | 600 / 150 / 150 (LOD2 may be a 2-triangle impostor) |
 
 ## The four resources (2026-10-13, manifest row MD06)
 The battle has food, wood, stone and gold. Each node is told from the others by colour and shape,
@@ -63,6 +64,10 @@ the code's trees, rocks and greybox nodes stay.
 `stone-outcrop`, `ore-outcrop`, `gold-vein`, `fish-shoal`, `herd-sheep-goat`, `herd-cattle`,
 `vegetation-temperate`, `vegetation-mediterranean`, `vegetation-desert`. The conifer, tropical, steppe
 and cold kits are still missing (cold and conifer fall back to temperate, steppe to temperate).
+
+2026-10-16 (W12, `plans/art-pilot/berries-stumps/LOG.md`): `berry-bushes.glb` added (four climate
+bands), and `stump-2` (a snapped trunk, its top beside it) and `stump-3` (a low sawn stump, its log
+and chips) in every vegetation kit; every other object keeps its triangles.
 
 2026-10-13 (MD06, `plans/art-pilot/md06-nodes-loads/LOG.md`): `stone-outcrop`, `gold-vein` and `fish-shoal`
 rebuilt for the four resources; `stump` and `felled` redrawn and `log-pile` added in the three kits.

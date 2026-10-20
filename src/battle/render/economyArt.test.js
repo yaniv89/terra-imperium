@@ -3,8 +3,9 @@
 // and construction objects, the node states by what is left; no file keeps the greyboxes.
 import { describe, it, expect } from 'vitest';
 import { Group, Matrix4 } from 'three';
-import { EconomyLayer, nodeStateNames, groveNames, constructionStage, buildingStateName, ruinCovered, wreckFxKind, wreckFireStrength, wreckSmokeStrength, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET, LOG_PILES_FILE, LOG_PILE_FILE_KITS } from './economyLayer';
+import { EconomyLayer, nodeStateNames, groveNames, nodeObjectNames, constructionStage, buildingStateName, ruinCovered, wreckFxKind, wreckFireStrength, wreckSmokeStrength, kitLodForZoom, sideTheme, SKIN_ROLES, LOG_PILE_OFFSET, LOG_PILES_FILE, LOG_PILE_FILE_KITS } from './economyLayer';
 import { createArtIndex } from '../art/artIndex';
+import { berryBand } from '../art/vegetation';
 import { parseKit, objectSize } from '../art/kitLoader';
 import { kitGlb, parseGlbBytes } from '../../components/map/closeView/glbFixture';
 import { Q } from '../sim/constants';
@@ -42,6 +43,20 @@ describe('battle economy art', () => {
     expect(groveNames(0)[0]).toBe('stump');
     expect([0, 24, 25, 60, 99, 100].map(constructionStage)).toEqual(['construction-stage-0', 'construction-stage-0', 'construction-stage-1', 'construction-stage-2', 'construction-stage-3', 'construction-stage-3']);
     expect([2, 1, 0.6, 0.3].map(kitLodForZoom)).toEqual([0, 0, 1, 2]);
+  });
+
+  it('picks berry bushes of the battle climate band, the temperate ones standing in', () => {
+    expect(['temperate', 'mediterranean', 'desert', 'steppe', 'conifer', 'cold', 'tropical', 'unknown'].map(berryBand))
+      .toEqual(['', 'dry', 'dry', 'dry', 'cold', 'cold', 'tropical', '']);
+    expect(nodeObjectNames('berries', 0.9, 'cold')).toEqual(['full-cold', 'full', 'half-cold', 'half']);
+    expect(nodeObjectNames('berries', 0, 'dry')[0]).toBe('depleted-dry');
+    expect(nodeObjectNames('berries', 0.3, '')).toEqual(nodeStateNames(0.3));
+    expect(nodeObjectNames('stone', 0.9, 'cold')).toEqual(nodeStateNames(0.9));
+    expect(nodeObjectNames('tree', 1, 'cold')).toEqual(groveNames(1));
+    // the file's own object names (build_nature.py berry_items)
+    const objects = Object.fromEntries(['full', 'half', 'depleted', 'full-dry', 'half-dry', 'depleted-dry', 'full-cold', 'half-cold', 'depleted-cold', 'full-tropical', 'half-tropical', 'depleted-tropical'].map((n) => [n, n]));
+    const pick = (frac, band) => nodeObjectNames('berries', frac, band).find((n) => objects[n]);
+    expect([pick(1, 'tropical'), pick(0.3, 'cold'), pick(0, 'dry'), pick(0, '')]).toEqual(['full-tropical', 'half-cold', 'depleted-dry', 'depleted']);
   });
 
   it('draws a dropped-in file in place of the greyboxes, the Bronze file standing in for later ages', async () => {
