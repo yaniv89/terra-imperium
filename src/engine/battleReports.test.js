@@ -75,6 +75,16 @@ describe('battle report history', () => {
     expect(e.name).toMatch(/^Siege of /);
   });
 
+  it('an empty small town falls on Auto when the game chose it, and the report says why (U18)', () => {
+    const { state, from, target } = invade();
+    const open = { ...state, units: { a1: state.units.a1, a2: state.units.a2 }, regions: { ...state.regions, [target]: { ...state.regions[target], outpost: true } } };
+    const next = gameReducer(open, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: from, targetRegionId: target, smallTown: true } });
+    expect(next.battleReports).toHaveLength(1);
+    expect(next.battleReports[0].autoBecause).toMatch(/small town/);
+    const walled = gameReducer({ ...open, regions: { ...open.regions, [target]: { ...open.regions[target], outpost: false, buildings: { categories: { defense: 0 } } } } }, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: from, targetRegionId: target, smallTown: true } });
+    expect(walled.battleReports[0].autoBecause).toBeUndefined();
+  });
+
   it('keeps only the newest entries', () => {
     let state = neighbourWorld({ seed: 7 });
     const report = { outcome: 'attacker', attackerNationId: FR_ID, defenderNationId: DE_ID };

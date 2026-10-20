@@ -204,6 +204,7 @@ export default {
   'm.act.settlersDisband': 'The settlers disband.',
   'm.act.rushed': '{city} pays {gold} gold to finish its {item}: ready next turn.',
   'm.act.autoBecause': 'You chose Command, but it was fought on Auto: {why}.',
+  'm.act.autoSmallTown': '{place} is a small town with no walls and no garrison, so it was fought on Auto. You can change this in Settings.',
   'm.act.autoNoDefenders': 'You chose Command, but nobody defends {place} (no garrison, no militia): it was fought on Auto against its defences.',
   'm.act.autoFleet': 'You chose Command, but an enemy fleet guards the coast: the landing was fought on Auto.',
   'm.act.autoBeach': 'You chose Command, but nobody holds the beach: the landing was fought on Auto.',

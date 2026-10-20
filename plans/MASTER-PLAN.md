@@ -36,6 +36,9 @@ Roadmap decisions 1 to 22 (`ROADMAP.md` section 2) stand. New, 2026-10-06:
 
 23. **Every assault is a full RTS battle**: city assaults and attacks on armies in the field (and
     raids, sacks, sallies, landings), with workers, buildings and training.
+    Amended (differentiation U18): an outpost, or a small town with no Defense-line tier and nobody
+    inside, falls on Auto and its report opens at once (src/engine/battleThreshold.js); Settings
+    brings the card back, and the player's own small towns still offer Command by default.
 24. **Every battle offers Command or Auto**, always, for attacker and defender, player or AI.
 25. **300 combat units a side** is the default battle size; 500 and 1,000 are optional presets
     only where measured.
