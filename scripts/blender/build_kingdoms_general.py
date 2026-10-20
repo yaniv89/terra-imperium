@@ -38,6 +38,8 @@ F.start({'Coat': '8A4A26', 'Mane': '2A1C14', 'Leather': '4E3122', 'Saddle': '5E2
          'Hair': '5A3A24', 'Skin': 'C99472', 'Emblem': 'E6D6AF'}, rig=False)
 parts = []
 horse, _ = tm.fine_horse('Mount', (0, 0, 0), socks=False)
+tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+tm.full_tail(horse, sides=10)
 parts.append(horse)
 tm.caparison(horse, 'Team', trim='Trim', hem=.40, dag=.022, ys=(-.50, -.42, -.28, -.14, 0, .14, .28, .42, .50))
 tm.war_saddle(horse, 'Saddle')
@@ -123,4 +125,4 @@ tris = F.finish_unit(UID, parts, {
     centre=(.2, -.1, .85), scale=2.8, mode='NLA_TRACKS',
     clips=MC.hook(UID, lambda: MC.mounted(horse, cmd, 'hand', 'general', stirrups=True, bearer=bearer, bearer_kit=FC.Kit('spear')), 'general'))
 print('TRIS', tris)
-assert tris <= 4500, tris  # two people and a horse: over the 3,500 target (the Classical general is 3,864, the Bronze 4,486)
+assert tris <= 5000, tris  # (5,000 since the legs and tail of 2026-10-20) two people and a horse: over the 3,500 target (the Classical general is 3,864, the Bronze 4,486)

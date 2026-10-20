@@ -14,6 +14,11 @@
       "fps": 20,
       "loop": true
     },
+    "Walk": {
+      "frames": 21,
+      "fps": 20,
+      "loop": true
+    },
     "Aim-fire-reload": {
       "frames": 50,
       "fps": 20,

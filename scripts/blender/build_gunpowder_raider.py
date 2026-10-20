@@ -33,9 +33,11 @@ F.start({'Coat': 'A68458', 'Mane': '2A1F17', 'Leather': '5E3A24', 'Boot': '2A211
          'Rug': '8A3A28', 'Fringe': 'D9C9A0', 'Sack': 'CDBB94', 'Kerchief': 'A8342A', 'Cloth': 'E2D8C0', 'Metal': ('A9ADB2', .35, .8), 'Iron': ('5E6064', .45, .7),
          'Brass': ('C9A04E', .4, .7), 'Hair': '3A2A1E', 'Skin': 'C48A62', 'Flame': 'F6A22E'}, rig=False)
 parts = []
-horse, _ = tm.fine_horse('Mount', (0, 0, 0), socks=False)
+horse, _ = tm.fine_horse('Mount', (0, 0, 0), socks=False, detail=2)
+tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+tm.full_tail(horse, sides=10)
 parts.append(horse)
-tm.tack(horse, 'Rug', span=(-.28, .16), reach=100, fringe=.040, discs=0)
+tm.tack(horse, 'Rug', span=(-.28, .16), reach=100, fringe=.040, discs=0, steps=12, rows=5)
 tm.loot_sacks(horse)
 tm.roll(horse, 'Fringe', y=.330, z=.745, half=.160, r=.046, name='LootRoll')
 S = 'Mount_Spine'
@@ -90,4 +92,4 @@ tris = F.finish_unit(UID, parts, {
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, round_hat droop, seated_coat_tails, jackboots) and ti_mounts.py (fine_horse, tack, loot_sacks, roll, stirrups, reins). The flame is a flat orange material named Flame with no baked shade; fire and smoke come from the battle effects.'},
     centre=(0, -.05, .75), scale=2.3, mode='NLA_TRACKS', clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'torch', stirrups=True), 'mounted'))
 print('TRIS', tris)
-assert tris <= 3500, tris
+assert tris <= 5000, tris  # the close version (2026-10-20); the mid and far levels stay at 550 and 220 (soldierLod.js)

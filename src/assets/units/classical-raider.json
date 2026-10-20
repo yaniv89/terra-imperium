@@ -65,6 +65,11 @@
       "events": {
         "settle": 40
       }
+    },
+    "Cheer": {
+      "frames": 33,
+      "fps": 20,
+      "loop": true
     }
   }
 }

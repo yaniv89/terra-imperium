@@ -104,10 +104,12 @@ def build_raider():
     F.start({'Coat': '7C4B2B', 'Mane': '241A15', 'Leather': '6A4028', 'Hide': 'B9A078', 'Wood': '5E4430', 'Cloth': 'E4D8BC', 'Rug': '9C3F2C', 'Sack': 'CDBB94', 'Clay': 'B4683F',
              'Metal': ('C09A54', .45, .6), 'Hair': '2B201A', 'Skin': 'C98E66', 'Flame': 'F6A22E'}, rig=False)
     parts = []
-    horse, _ = tm.fine_horse('Mount', (0, 0, 0))
+    horse, _ = tm.fine_horse('Mount', (0, 0, 0), detail=2)
+    tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+    tm.full_tail(horse, sides=10)
     parts.append(horse)
     S = 'Mount_Spine'
-    F.meshes.extend([tm.drape('HideCloth', horse, 'Hide', -.27, .14, reach=100, fringe=.02),
+    F.meshes.extend([tm.drape('HideCloth', horse, 'Hide', -.27, .14, reach=100, fringe=.02, steps=12, rows=5),
              tm.drape('Girth', horse, 'Leather', -.215, -.165, reach=180, grow=.024, rows=2, steps=12)])
     F.use(horse)
     # loot: a tied sack on each flank behind the rider's legs, a rolled rug across the croup, a jar on it
@@ -164,7 +166,7 @@ def build_raider():
         'pose': 'rest pose = Idle frame 1 (the rider seated, the torch arm raised); the mounted clips (ti_mounted_clips.py, 2026-10-14)',
         'notes': 'Quality pass of 2026-10-14 on ti_figure.py and ti_mounts.fine_horse. Mounted rather than in a chariot: a raid party rides light. The flame is a flat orange material named Flame with no baked shade; fire and smoke come from the battle effects.'},
         centre=(0, -.1, .7), scale=2.1, mode='NLA_TRACKS', clips=MC.hook('bronze-raider', lambda: MC.mounted(horse, rider, 'torch'), 'mounted'))
-    assert tris <= 3500, tris
+    assert tris <= 5000, tris  # the close version (2026-10-20)
 
 
 BUILDERS = {'bronze-raider': build_raider, 'bronze-mercenary': build_mercenary}
