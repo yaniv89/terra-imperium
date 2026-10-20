@@ -4,7 +4,7 @@
 //   offer      a seller with a band in stock (MERC_STOCK, one more every MERC_RESTOCK_TURNS), a
 //              buyer city within MERC_KM of its city and a grudge against the buyer under
 //              MERC_MAX_GRUDGE. Raiders sell horsemen (the age's cavalry), mercantile cities
-//              spearmen (its infantry): the calendar age's roster, as every independent's.
+//              spearmen (its infantry): the roster of the strongest major it knows, as every independent's.
 //   hire       mercPrice(age) gold at once to the seller; a full unit appears in the buyer's
 //              nearest city with `mercenary: { from, until, upkeep }` and is then a unit like any
 //              other (moves, fights, garrisons, joins battles).
@@ -29,7 +29,7 @@ import {
 import { ringsAround } from './world/cities';
 import { hashRoll } from './aftermath';
 import { grudgeOf } from './grudges';
-import { FIRST_AGE_ID } from '../data/ages';
+import { independentAgeOf } from './ageRefs';
 
 // ---------------------------------------------------------------------------------------------
 // Treasuries in a turn's working set `w` ({ playerId, resources, nations }): the player's
@@ -77,7 +77,7 @@ export const mercOffer = (state, sellerId, buyerId, { buyerCities = null } = {})
   if (mercStockOf(seller, turn) <= 0) return { ok: false, ...reasonOf('m.why.mercNoBand') };
   const home = state.regions?.[seller.capitalRegionId];
   if (!home || home.tile == null || home.owner !== sellerId) return { ok: false, ...reasonOf('m.why.mercCityLost') };
-  const ageId = state.age || FIRST_AGE_ID;
+  const ageId = independentAgeOf(state, sellerId);
   const base = { price: mercPrice(ageId), upkeep: mercUpkeep(ageId), classId: classFor(personality, ageId) };
   if (buyerId === sellerId) return { ok: true, ...base, cityId: home.id, rings: 0 };
   const buyer = state.nations?.[buyerId];
@@ -174,12 +174,14 @@ export const processMercenaries = (w) => {
   if (!sellers.length) return;
   const atWar = new Set();
   (w.view.wars || []).forEach((war) => { if (war.active) { atWar.add(war.aggressor); atWar.add(war.enemy); } });
-  const price = mercPrice(w.view.age || FIRST_AGE_ID);
   [...atWar].sort().forEach((id) => {
     const n = w.nations[id];
     if (!n || id === w.playerId || n.isEliminated || isIndependentNation(n)) return;
     if ((Math.floor(hashRoll(`${id}|merc`) * MERC_AI_PERIOD) + w.turn) % MERC_AI_PERIOD !== 0) return;
-    if ((countBy.get(id) || 0) >= MERC_AI_MAX || goldIn(w, id) < price * MERC_AI_GOLD_MULT) return;
+    if ((countBy.get(id) || 0) >= MERC_AI_MAX) return;
+    // The cheapest band on offer sets the treasury bar: each seller prices at its own age (KTD8).
+    const price = Math.min(...sellers.map((s) => mercPrice(independentAgeOf(w.view, s))));
+    if (goldIn(w, id) < price * MERC_AI_GOLD_MULT) return;
     let best = null;
     const buyerCities = Object.values(w.view.regions).filter((c) => c.owner === id);
     sellers.forEach((s) => { const o = mercOffer(w.view, s, id, { buyerCities }); if (o.ok && (!best || o.rings < best.offer.rings)) best = { seller: s, offer: o }; });

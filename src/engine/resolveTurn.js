@@ -151,7 +151,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
         greatProjects: state.greatProjects || {},
         // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
-        ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid, newAge) : {})
+        ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
       });
     }
     return ctxCache.get(nid);

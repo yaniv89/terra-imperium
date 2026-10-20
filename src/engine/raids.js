@@ -51,6 +51,7 @@
 // Deterministic: every roll is hashRoll(`${id}|${turn}|<what>`) or an rng seeded from one.
 // Cheap: a ring scan per thinker, one A* per raid start or return; measured in the balance-sim.
 import { speedTurns } from '../data/ages';
+import { independentAgeOf } from './ageRefs';
 import { tributePerTurn } from './tributePricing';
 import { getTiles } from '../data/geo/tiles';
 import { landmassOf } from '../data/geo/citySpacing';
@@ -168,7 +169,7 @@ export const scanTargets = (w, id, city, partyStrength, { onlyVictim = null } = 
   const tileOwner = w.view.world?.tileOwner || {};
   const tileState = w.view.world?.tileState || {};
   const kmRing = kmPerRing(tiles);
-  const era = RAID_ERA_FACTOR[w.age] ?? 1;
+  const era = RAID_ERA_FACTOR[independentAgeOf(w.view, id)] ?? 1;
   const routes = w.routeTiles();
   let best = null;
   const okCache = new Map(); // one victim check per nation per scan, not per tile
@@ -571,7 +572,7 @@ const runRaid = (w, id, city) => {
 /** A read-only working set over `state` for scanTargets (nothing is written). */
 const viewOf = (state) => {
   const w = {
-    turn: state.turnNumber || 0, age: state.age, seed: state.rngSeed || 0, playerId: state.playerNationId, difficulty: state.difficultyMultiplier || 1,
+    turn: state.turnNumber || 0, seed: state.rngSeed || 0, playerId: state.playerNationId, difficulty: state.difficultyMultiplier || 1,
     regions: state.regions, units: state.units, nations: state.nations, unitsVersion: 0, index: null, view: state
   };
   let routeCache;
@@ -673,7 +674,7 @@ const demandTribute = (w, id, city, myStrength, nearArmies, nearOwners) => {
   if (!['raiders', 'tribal'].includes(n.indep?.personality)) return false;
   if (hashRoll(`${id}|${w.turn}|tribute`) >= TRIBUTE_DEMAND_CHANCE) return false;
   const asked = n.indep.demandedTurn || {};
-  const cooldown = speedTurns(TRIBUTE_DEMAND_COOLDOWN_REF_TURNS, w.view.gameSpeed, w.age);
+  const cooldown = speedTurns(TRIBUTE_DEMAND_COOLDOWN_REF_TURNS, w.view.gameSpeed, independentAgeOf(w.view, id));
   const cands = [...nearOwners].filter((o) => victimOk(w, id, o) && !n.indep.tributeFrom?.[o] && !(asked[o] != null && w.turn - asked[o] < cooldown)
     && !(o === w.playerId && w.tributeDemands.some((d) => d.indepId === id))
     && (grudgeOf(n, o) >= TRIBUTE_DEMAND_GRUDGE || myStrength >= TRIBUTE_STRENGTH_RATIO * (nearArmies.get(o) || 0)))
@@ -684,7 +685,7 @@ const demandTribute = (w, id, city, myStrength, nearArmies, nearOwners) => {
   const target = cands.find((o) => { const t = scanTargets(w, id, city, Math.max(1, myStrength), { onlyVictim: o }).best; if (t && t.score >= RAID_THRESHOLD) { threat = t; return true; } return false; });
   if (!target) return false;
   // The price follows the payer's city income (tributePricing.js), fixed for the deal's length.
-  const gold = tributePerTurn(w.view, target, w.age);
+  const gold = tributePerTurn(w.view, target, id);
   setIndep(w, id, { demandedTurn: { ...asked, [target]: w.turn } });
   w.stats.tributeDemands += 1;
   if (target === w.playerId) {
@@ -769,7 +770,7 @@ const think = (w, id, city) => {
 
 /**
  * The independents' phase of resolveTurn. `input`: the turn's state ({ regions, units, nations,
- * resources, world, turnNumber (the new turn), year, age, playerNationId, rngSeed, difficultyMultiplier,
+ * resources, world, turnNumber (the new turn), year, playerNationId, rngSeed, difficultyMultiplier,
  * tributeDemands, indepStats }). Returns { regions, units, nations, resources, world, tributeDemands,
  * indepStats, logs }: new maps (the input's are never written), or with `inPlace` (resolveTurn) the
  * turn's own working regions, units and resources written in place (no copy of every unit a turn).
@@ -778,7 +779,7 @@ const think = (w, id, city) => {
 // the turn's own working regions, units and resources).
 const workOn = (input, inPlace = false) => {
   const w = {
-    turn: input.turnNumber, year: input.year, age: input.age, seed: input.rngSeed || 0, playerId: input.playerNationId, difficulty: input.difficultyMultiplier || 1,
+    turn: input.turnNumber, year: input.year, seed: input.rngSeed || 0, playerId: input.playerNationId, difficulty: input.difficultyMultiplier || 1,
     regions: inPlace ? input.regions : { ...input.regions }, units: inPlace ? input.units : { ...input.units }, nations: { ...input.nations }, resources: inPlace ? input.resources : { ...input.resources },
     tributeDemands: [...(input.tributeDemands || [])], logs: [], unitsVersion: 0, index: null, queued: [],
     stats: { raidsStarted: 0, raidsAtPlayer: 0, raidsHit: 0, raidsOnPlayer: 0, raidBattles: 0, sacks: 0, loot: 0, tributeDemands: 0, tributeDeals: 0, tributeGold: 0, mercsHired: 0, ...(input.indepStats || {}) }

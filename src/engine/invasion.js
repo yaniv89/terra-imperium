@@ -25,6 +25,7 @@ import { touchesCity, unitTile, unitsWithinRings, REINFORCE_RINGS } from './armi
 import { atSea, touchesCoastOf } from './fleets';
 import { LANDING_ATTACK_MULT } from '../battle/setup/battleType';
 import { ageOf } from './nationState';
+import { sideAgeOf } from './ageRefs';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -129,7 +130,7 @@ export const getInvasionBattleContext = (state, { targetRegionId, targetRegion, 
     // Plan §M14: each side's roster stats are looked up live from its OWNER's current effective
     // age. The defender has no independent tech age here, so it fights at the calendar age.
     attackerAgeId: ageOf(state, state.playerNationId),
-    defenderAgeId: state.age,
+    defenderAgeId: sideAgeOf(state, targetRegion.owner),
     // defenseLevel's own damage reduction ("Walls", src/engine/siege.js); plan §M6: the Defense
     // building's local.fortLevel stacks on top of the manual defenseLevel. Plan §M14 folds Zone
     // of Control into the same slot — a fortified neighbor makes a siege harder too.
@@ -203,7 +204,7 @@ export const getAmphibiousBattleContext = (state, v, defenderLandUnits) => {
     isAttackingFortification: (v.targetRegion.defenseLevel || 0) > 0,
     generals: state.hiredCommanders,
     attackerAgeId: ageOf(state, state.playerNationId),
-    defenderAgeId: state.age,
+    defenderAgeId: sideAgeOf(state, v.targetRegion.owner),
     battleType: v.hasBeachhead ? ((v.targetRegion.defenseLevel || 0) > 0 ? 'assault' : 'field') : 'landing',
     attackerPenaltyMultiplier: 1,
     defenderDamageReductionMultiplier: isDefended

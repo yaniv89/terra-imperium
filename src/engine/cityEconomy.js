@@ -67,7 +67,7 @@ export const cityCtx = (state, city) => {
     trainMult: speedTrainMult(state.gameSpeed, ageId),
     luxuries: facts.luxuries[nid] ? facts.luxuries[nid].size : 0,
     greatProjects: state.greatProjects || {},
-    ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid, state.age) : {})
+    ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
   };
   const wonderCulture = cityWonderTotal(state.greatProjects, city.id, 'local.culture');
   if (wonderCulture) ctx = { ...ctx, cultureBonus: (ctx.cultureBonus || 0) + wonderCulture };
