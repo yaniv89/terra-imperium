@@ -1,8 +1,9 @@
 """Original Bronze civic compounds, reusing delivered cultural house kits.
 Run Blender --background --threads 8 --python this.py -- OUT THEME [AGE] [--probe].
 Design sheets precede each build. Fixed footprint/origin across damage states.
-AGE (default bronze) may be `classical` for a procedural Classical kit (ti_<theme>_classical's
-<theme>_house through build_houses_damage_classical.procedural_house): civic-classical-<theme>.glb.
+AGE (default bronze) may be `classical`, `kingdoms`, `gunpowder` or `modern` for that age's procedural kit
+(ti_<theme>_<age>'s <theme>_house through build_houses_damage_<age>.procedural_house): civic-<age>-<theme>.glb
+(H-25: the culture halls of the later ages; the mud watch tower stands only up to Kingdoms).
 The Mesopotamian Classical hall (I215) adds baked-brick court walls with stepped merlons and two
 gate towers faced in blue glazed brick at the entrance in place of the mud tower.
 """
@@ -25,9 +26,9 @@ AGE = _rest[0] if _rest and not _rest[0].startswith('--') else 'bronze'
 GLAZED = THEME == 'mesopotamia' and AGE == 'classical'
 STATE = {}
 AK = None
-if AGE == 'classical':
-    import build_houses_damage_classical as hc
-    __import__('ti_%s_classical' % THEME)
+if AGE in ('classical', 'kingdoms', 'gunpowder', 'modern'):
+    hc = __import__('build_houses_damage_%s' % AGE)
+    __import__('ti_%s_%s' % (THEME, AGE))
     HOUSE = {k: hc.procedural_house(THEME,k) for k in ('rich','common')}
     LIGHT = HOUSE
 elif THEME in hd.KIT_THEMES:
@@ -139,7 +140,7 @@ def layout(state):
                 ms.cyl('timber',.007,.006,.22,at=(gx,-.85,.5),segs=6,lod=1)
                 tt.pennant(ms,f,gx,-.85,.715,yaw=-120 if sx<0 else -60,w=.16,h=.1)
             ms.box('msc_glaze',(.7,.05,.1),at=(0,-.85,.36),lod=1)  # the lintel band over the entrance
-        elif THEME in ('base','levant','nile','maghreb','israelite','mesopotamia'):
+        elif THEME in ('base','levant','nile','maghreb','israelite','mesopotamia') and AGE in ('bronze','classical','kingdoms'):
             ms.box('mudwall_bare',(.27,.28,.6),at=(.71,-.49,0),lod=1,taper=.82)
             ms.box('reed',(.34,.34,.025),at=(.71,-.49,.71),lod=1)
             for x in (.6,.82):ms.box('timber',(.02,.02,.11),at=(x,-.49,.6),lod=1)
