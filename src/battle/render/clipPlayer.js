@@ -19,6 +19,7 @@ const ROLES = {
   attack2: ['Attack2', 'Attack', 'Draw-aim-release', 'Aim-fire-reload', 'Archer-shoot', 'Fire', 'Melee-fallback'],
   hit: ['Hit'], death: ['Death', 'Destroyed', 'Wreck'], deathAlt: ['DeathAlt', 'Death', 'Destroyed', 'Wreck'], cheer: ['Cheer'],
   carry: ['Carry', 'Walk'], chop: ['Chop', 'Build'], mine: ['Mine', 'Build'], harvest: ['Harvest', 'Build'],
+  pick: ['Pick', 'Harvest', 'Build'], fish: ['Fish', 'Harvest', 'Build'], herd: ['Herd', 'Harvest', 'Build'],
   build: ['Build', 'Repair'], repair: ['Repair', 'Build'], deposit: ['Deposit']
 };
 // The event a strike's sim tick lines up with, per clip.
@@ -31,7 +32,8 @@ export const RUN_MPS = 2.6;
 // Mounted gaits (section 7.3): the hooves' natural ground speed at rate 1, tiles a second; Walk
 // under about 0.9, Trot under about 2.0, Gallop above. The chariot's Move is its gallop.
 export const MOUNTED_TPS = { walk: 0.52, trot: 1.29, gallop: 2.74, charge: 3.29, chariotMove: 2.69, chariotCharge: 3.22 };
-const NODE_ROLE = { tree: 'chop', stone: 'mine', gold: 'mine', herd: 'harvest', cattle: 'harvest', fish: 'harvest', farm: 'harvest', berries: 'harvest' };
+// Each food node its own work (2026-10-20: Pick, Fish and Herd authored on every worker; files without them fall back to Harvest).
+const NODE_ROLE = { tree: 'chop', stone: 'mine', gold: 'mine', herd: 'herd', cattle: 'herd', fish: 'fish', farm: 'harvest', berries: 'pick' };
 
 /** A unit's clips by motion: { role: clip index or -1 }, with each clip's duration, loop and strike frame. */
 export const clipSetOf = (bake) => {
@@ -45,7 +47,7 @@ export const clipSetOf = (bake) => {
   const or = (role, other) => { if (roles[role] < 0) roles[role] = roles[other]; };
   if (roles.idle < 0) roles.idle = 0;
   or('idleAlt', 'idle'); or('walk', 'idle'); or('run', 'walk'); or('retreat', 'run'); or('carry', 'walk'); or('cheer', 'idle');
-  ['chop', 'mine', 'harvest', 'build', 'repair'].forEach((r) => or(r, 'idle'));
+  ['chop', 'mine', 'harvest', 'pick', 'fish', 'herd', 'build', 'repair'].forEach((r) => or(r, 'idle'));
   or('attack', 'chop'); or('attack2', 'attack');
   const chariot = bake.byName.Move !== undefined && bake.byName.Gallop === undefined && bake.byName.Charge !== undefined;
   const mounted = bake.byName.Gallop !== undefined || chariot;

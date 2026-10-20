@@ -8,9 +8,9 @@ import { readFileSync } from 'node:fs';
 import { Quaternion } from 'three';
 
 const AGES = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
-const CLIPS = ['Idle', 'Walk', 'Run', 'Carry', 'Chop', 'Mine', 'Harvest', 'Build', 'Repair', 'Deposit', 'Hit', 'Death'];
-const LOOPS = ['Idle', 'Walk', 'Run', 'Carry', 'Chop', 'Mine', 'Harvest', 'Build', 'Repair'];
-const EVENTS = { Chop: 'contact', Mine: 'contact', Build: 'contact', Repair: 'contact', Harvest: 'cut', Deposit: 'pour', Death: 'settle' };
+const CLIPS = ['Idle', 'Walk', 'Run', 'Carry', 'Chop', 'Mine', 'Harvest', 'Pick', 'Fish', 'Herd', 'Build', 'Repair', 'Deposit', 'Hit', 'Death', 'DeathAlt', 'Cheer'];
+const LOOPS = ['Idle', 'Walk', 'Run', 'Carry', 'Chop', 'Mine', 'Harvest', 'Pick', 'Fish', 'Herd', 'Build', 'Repair', 'Cheer'];
+const EVENTS = { Chop: 'contact', Mine: 'contact', Build: 'contact', Repair: 'contact', Harvest: 'cut', Pick: 'cut', Fish: 'cast', Deposit: 'pour', Death: 'settle', DeathAlt: 'settle' };
 const TOOLS = { Chop: 'Axe', Mine: 'Pick', Harvest: 'Sickle' };
 const FPS = 20;
 
@@ -64,8 +64,9 @@ describe.each(AGES)('%s worker clips', (age) => {
       expect(times.length, c).toBe(info.frames);
       expect(times[0], c).toBeCloseTo(1 / FPS, 4);
       expect(times[times.length - 1], c).toBeCloseTo(info.frames / FPS, 4);
-      const want = info.tool === 'Held' ? 'Tool_Held' : `Tool_${info.tool}`;
-      expect(bones.has(want), c).toBe(true);
+      // 'None': an empty-handed clip (Fish; Pick and Herd for the barrow and sledge men): every tool hidden
+      const want = info.tool === 'None' ? null : info.tool === 'Held' ? 'Tool_Held' : `Tool_${info.tool}`;
+      if (want) expect(bones.has(want), c).toBe(true);
       tools.forEach((t) => expect(scaleAt(clip, t, 0), `${c} ${t}`).toBe(t === want ? 1 : 0));
       if (info.loop) {
         clip.tracks.forEach((t) => {

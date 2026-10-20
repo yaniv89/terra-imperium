@@ -60,6 +60,30 @@
         "cut": 13
       }
     },
+    "Pick": {
+      "frames": 33,
+      "fps": 20,
+      "loop": true,
+      "tool": "None",
+      "events": {
+        "cut": 7
+      }
+    },
+    "Fish": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true,
+      "tool": "None",
+      "events": {
+        "cast": 9
+      }
+    },
+    "Herd": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true,
+      "tool": "None"
+    },
     "Build": {
       "frames": 25,
       "fps": 20,
@@ -101,6 +125,21 @@
       "events": {
         "settle": 30
       }
+    },
+    "DeathAlt": {
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "tool": "Held",
+      "events": {
+        "settle": 30
+      }
+    },
+    "Cheer": {
+      "frames": 33,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
     }
   }
 }

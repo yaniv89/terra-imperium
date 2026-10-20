@@ -24,7 +24,7 @@ describe('clip player', () => {
     expect(s.strike[SPEAR.byName.Attack]).toBeCloseTo(10 / 20);
   });
 
-  it('workers play their job: chop at a grove, mine at stone and gold, harvest at herds and farms, carry home', () => {
+  it('workers play their job: chop at a grove, mine at stone and gold, harvest at farms, pick, fish and herd, carry home', () => {
     const set = clipSetOf(WORKER);
     const m = (work, moving = false) => baseMotion(set, { worker: true, work, moving, speed: 1, simRate: 1 }).role;
     expect(m(code(WORK_JOB.gathering, 'tree'))).toBe('chop');
@@ -35,6 +35,13 @@ describe('clip player', () => {
     expect(m(code(WORK_JOB.toNode, 'stone'), true)).toBe('walk');
     expect(m(WORK_JOB.build)).toBe('build');
     expect(m(WORK_JOB.repair)).toBe('repair');
+    // each food node its own work; a worker file without Pick, Fish or Herd plays its Harvest for them
+    expect(m(code(WORK_JOB.gathering, 'berries'))).toBe('pick');
+    expect(m(code(WORK_JOB.gathering, 'fish'))).toBe('fish');
+    expect(m(code(WORK_JOB.gathering, 'herd'))).toBe('herd');
+    expect(m(code(WORK_JOB.gathering, 'cattle'))).toBe('herd');
+    expect(set.roles.pick).toBe(WORKER.byName.Harvest);
+    expect(set.roles.fish).toBe(WORKER.byName.Harvest);
   });
 
   it('gaits follow the real speed: walk, run, and the rate scales the stride', () => {
