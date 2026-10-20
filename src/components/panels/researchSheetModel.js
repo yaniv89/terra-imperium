@@ -1,12 +1,12 @@
 // src/components/panels/researchSheetModel.js
 // What the Research sheet (W09, plans/UI-DESIGN.md) shows beyond researchView.js, as a pure model:
-//   header   the age of your techs and how many of its techs you know
+//   header   your age, how many of its techs you know and how many more bring the next age
 //   current  the tech under way, its bar, and a boost that is met but not yet paid (it lands at
 //            the end of the turn) drawn as a striped part of the same bar
 //   boosts   the map facts that would speed up the techs you research or could start now: met
 //            ones first ("waits in X"), then the rest, each with where on the map to look
 //   ages     the age strip: techs known of each age's total, the age you are in
-//   era      the era goals of the calendar age (met of needed) for the side card
+//   era      the era goals of your age (met of needed) for the side card
 import { TECH_TREE } from '../../data/techTree';
 import { AGES, AGE_ORDER } from '../../data/ages';
 import { BOOSTS, BOOST_SHARE } from '../../data/boosts';
@@ -18,6 +18,7 @@ import { getResearchView, researchedSet } from './researchView';
 import { techName } from '../../i18n/gameText';
 import { t as tNow, hasKey, ageName } from '../../i18n/core';
 import { ageOf } from '../../engine/nationState';
+import { ageProgress } from '../ui/ageProgress';
 
 // Where a boost's fact lives on the map: a lens to switch on, or a sheet to open. Settling claims
 // land (rivers, coast, resources, forest, hills); a city's size shows in the yields lens; roads in
@@ -36,24 +37,16 @@ export const shortAge = (ageId) => {
   return hasKey(`p2.ageShort.${ageId}`, 'en') ? tNow(`p2.ageShort.${ageId}`) : english;
 };
 
-const ageOfTechs = (state, researched) => {
-  // the latest age you know a tech of (the calendar age before the first tech)
-  let i = -1;
-  researched.forEach((id) => { const a = AGE_ORDER.indexOf(TECH_TREE[id]?.ageId); if (a > i) i = a; });
-  return AGE_ORDER[Math.max(0, i)] || state.techAgeId || state.age || AGE_ORDER[0];
-};
-
 export const researchSheetModel = (state) => {
   const view = getResearchView(state);
   const researched = researchedSet(state);
-  const techAge = state.techAgeId && AGES[state.techAgeId] ? state.techAgeId : ageOfTechs(state, researched);
+  const progress = ageProgress(state);
+  const techAge = progress.ageId;
   const all = Object.values(TECH_TREE);
   const ages = AGE_ORDER.map((ageId) => {
     const techs = all.filter((t) => t.ageId === ageId);
     return { ageId, name: shortAge(ageId), total: techs.length, known: techs.filter((t) => researched.has(t.id)).length, current: ageId === techAge };
   });
-  const calendarAge = state.age && AGES[state.age] ? state.age : techAge;
-  const here = ages.find((a) => a.current) || ages[0];
 
   // The boosts worth showing: the current tech, the queue, and every tech you could start now.
   const facts = nationFacts(state, state.playerNationId);
@@ -82,10 +75,8 @@ export const researchSheetModel = (state) => {
     status: view.status,
     current,
     queue: view.queue,
-    // I137: the calendar age and the age of your techs are different things; the heading names the calendar age
-    // (what the date says) and the techs counted are named for their own age, so a Classical tech count under a
-    // Bronze Age date is never read as the age you are in.
-    header: { ageName: ageName(calendarAge, AGES[calendarAge]?.name || calendarAge), techAgeName: ageName(techAge, AGES[techAge]?.name || techAge), aheadOfCalendar: AGE_ORDER.indexOf(techAge) > AGE_ORDER.indexOf(calendarAge), known: here.known, total: here.total },
+    // Your age only: it rises with your research, and the next one comes with a share of its techs (KTD1).
+    header: { ageName: ageName(techAge, AGES[techAge]?.name || techAge), known: progress.known, total: progress.total, nextAgeName: progress.nextAgeId ? shortAge(progress.nextAgeId) : null, techsLeft: progress.techsLeft },
     boosts,
     ages,
     era: {

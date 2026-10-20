@@ -6,7 +6,7 @@
 //   map boosts      the map facts that speed up the techs you research or could start, met ones
 //                   first, with a Map button that switches on the lens where the fact lives
 //   next            the queue as chips (remove with x), the advisor switch
-//   era goals       the calendar age's goals, met of needed, each with its legacy
+//   era goals       your age's goals, met of needed, each with its legacy
 //   all techs       Fund Scholars, the research focus, the five lines or the research web
 //   the age strip   techs known of each age, the age you are in (sticky at the foot)
 // Choosing a tech costs nothing: science pays for it at the end of each turn, the rest carries on.
@@ -142,7 +142,7 @@ const BoostRow = ({ b }) => {
   );
 };
 
-// The era goals of the calendar age (src/engine/eraGoals.js).
+// The era goals of your age (src/engine/eraGoals.js).
 const EraCard = ({ era }) => {
   useT();
   return (
@@ -223,7 +223,7 @@ const TechPanel = () => {
     <div className="px-3 sm:px-4 pt-3" data-testid="research-tab">
       <div className="flex items-baseline gap-2 flex-wrap mb-2.5">
         <h2 className="fa-heading text-[19px]">{tNow('rail.tech')}</h2>
-        <span className="fa-label" data-testid="research-header">{tNow('p2.th.header', { age: m.header.ageName, known: m.header.known, total: m.header.total, techAge: m.header.techAgeName, ahead: m.header.aheadOfCalendar ? tNow('p2.th.ahead') : '' })}</span>
+        <span className="fa-label" data-testid="research-header">{tNow('p2.th.header', { age: m.header.ageName, known: m.header.known, total: m.header.total, next: m.header.nextAgeName ? tNow('p2.th.next', { name: m.header.nextAgeName, n: m.header.techsLeft }) : '' })}</span>
         <span className="ms-auto fa-num text-[12px]" style={{ color: SCIENCE }}>{tNow('p2.th.science', { n: science })}{m.bank > 0 ? <span className="text-fa-muted">{tNow('p2.th.banked', { n: m.bank })}</span> : null}</span>
       </div>
 

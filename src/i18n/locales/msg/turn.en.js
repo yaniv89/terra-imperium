@@ -91,7 +91,7 @@ export default {
   'report.shrankNote': 'It shrank to {n} earlier in this report, then grew back.',
   'report.afterLoss': ' (after a loss)',
   'report.learned': '{tech} learned',
-  'report.newAge': 'The world enters the {age}',
+  'report.newAge': 'Your people enter the {age}',
   'report.subtitle.one': '{year}, {count} event',
   'report.subtitle.other': '{year}, {count} events',
   'report.show': 'Show',

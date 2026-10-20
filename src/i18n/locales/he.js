@@ -395,6 +395,8 @@ export default {
   'topbar.cultureAria': 'תרבות {n} לתור. לחצו לפירוט לפי עיר',
   'topbar.warTip': 'במלחמה עם {names}',
   'topbar.year': 'השנה',
+  'topbar.ageTip': 'התקופה שלכם: {age}. {next} תגיע אחרי עוד {n} טכנולוגיות מהתקופה הזו',
+  'topbar.ageLast': 'התקופה שלכם: {age}. אין תקופה מאוחרת יותר',
   'topbar.reportTip': 'דו״ח התור האחרון',
   'topbar.turnAria': 'תור {turn}: דו״ח התור האחרון',
   'topbar.turn': 'תור',

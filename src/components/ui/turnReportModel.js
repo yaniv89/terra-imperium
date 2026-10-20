@@ -13,6 +13,7 @@
 import { LogTypes } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES } from '../../data/ages';
+import { ageOf } from '../../engine/nationState';
 import { playerWon } from '../../engine/battleReports';
 import { newContacts, contactCard } from '../modals/firstContactModel';
 import { isExplored, fogOn, hasMet } from '../../engine/fog';
@@ -171,7 +172,10 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
     const tech = hasKey(techKey, 'en') ? tr(techKey) : techName(id, TECH_TREE[id]?.name || id);
     add('research', { tone: 'science', title: tr('report.learned', { tech }), sub: null, place: { kind: 'tab', id: 'tech', name: tr('report.group.research') } });
   });
-  if (after.age !== before.age) add('news', { tone: 'you', title: tr('report.newAge', { age: lang === 'en' ? (AGES[after.age]?.name || after.age) : ageName(after.age, AGES[after.age]?.name || after.age) }), sub: null, place: null });
+  // Your own age: it rises with your research (ageOf), so the report names it when it changed.
+  const ageBefore = ageOf(before, before.playerNationId);
+  const ageAfter = ageOf(after, after.playerNationId);
+  if (ageAfter !== ageBefore) add('news', { tone: 'you', title: tr('report.newAge', { age: lang === 'en' ? (AGES[ageAfter]?.name || ageAfter) : ageName(ageAfter, AGES[ageAfter]?.name || ageAfter) }), sub: null, place: null });
 
   const counts = Object.fromEntries(REPORT_GROUPS.map((g) => [g.id, items.filter((i) => i.group === g.id).length]));
   const quiet = items.every((i) => i.group === 'research' || i.growth || i.unmet);

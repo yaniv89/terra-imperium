@@ -89,7 +89,7 @@ export default {
   'report.shrankNote': 'היא הצטמקה ל-{n} קודם בדוח הזה, ואז גדלה שוב.',
   'report.afterLoss': ' (אחרי אבדה)',
   'report.learned': '{tech} נלמדה',
-  'report.newAge': 'העולם נכנס ל{age}',
+  'report.newAge': 'העם שלכם נכנס ל{age}',
   'report.subtitle.one': '{year}, אירוע אחד',
   'report.subtitle.two': '{year}, שני אירועים',
   'report.subtitle.other': '{year}, {count} אירועים',
