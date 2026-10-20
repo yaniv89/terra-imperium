@@ -19,6 +19,7 @@
 import { getCounterMultiplier, getSiegeMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
 import { autoAttackerMult } from '../battle/setup/battleType';
+import { FIRST_AGE_ID } from '../data/ages';
 
 // Fitted by lanchester.calibration.test.js (CALIBRATE=1); see plans/math/ai.md for the error table.
 export const SHARPNESS = 4.5; // battle fortune (±30%) and the morale snowball make battles far more decisive than a coin
@@ -64,7 +65,7 @@ export const matchupMult = (from, to, attackingFortification = false) => {
 /** The two sides' effectiveness (per point of strength) from resolveBattle's own arguments. */
 export const battleEffectiveness = ({
   attackerUnits, defenderUnits, terrain = 'plains', isAttackingFortification = false,
-  attackerAgeId = 'bronze', defenderAgeId = 'bronze', defenderDamageReductionMultiplier = 1,
+  attackerAgeId = FIRST_AGE_ID, defenderAgeId = FIRST_AGE_ID, defenderDamageReductionMultiplier = 1,
   attackerPenaltyMultiplier = 1, battleType = 'field'
 }) => ({
   att: matchupMult(attackerUnits, defenderUnits, isAttackingFortification)

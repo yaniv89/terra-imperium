@@ -22,11 +22,11 @@
 //
 // Art (plans/ART-MODELS-PLAN.md 5 and 7, D8): a building's `art` is its role, the object in the
 // age's src/assets/battle/rts/rts-<age>.glb (S5); buildingArt() resolves it per age, falling back
-// to the nearest earlier age with a file, then to the greybox. A node's `art` is its file
+// to the nearest earlier age with a file, then a later one, then the greybox (ages.js artAgeFor). A node's `art` is its file
 // src/assets/battle/nature/<id>.glb (S9); a grove's 'vegetation' is the battle's vegetation kit.
 // Until those files exist the renderer draws greybox placeholders with the right footprint.
 import { secondsToTicks, Q } from '../sim/constants';
-import { AGE_ORDER } from '../../data/ages';
+import { artAgeFor } from '../../data/ages';
 import { getAvailableClasses } from '../../data/unitClasses';
 
 export const RESOURCES = ['food', 'wood', 'stone', 'gold'];
@@ -144,13 +144,8 @@ export const BUILDINGS = {
  */
 export const buildingArt = (id, ageId, hasFile = () => false) => {
   const role = BUILDINGS[id]?.art;
-  const i = AGE_ORDER.indexOf(ageId);
-  if (!role || i < 0) return null;
-  for (let k = i; k >= 0; k--) {
-    const a = AGE_ORDER[k];
-    if (hasFile(a)) return { ageId: a, file: `rts-${a}`, object: role, id: `rts/${a}/${role}` };
-  }
-  return null;
+  const a = role ? artAgeFor(hasFile, ageId) : null;
+  return a ? { ageId: a, file: `rts-${a}`, object: role, id: `rts/${a}/${role}` } : null;
 };
 // The build menu's order (what a worker may raise).
 export const BUILDABLE = ['house', 'foodDepot', 'materialsYard', 'farm', 'mine', 'tradePost', 'barracks', 'range', 'stable', 'siegeWorkshop', 'aidPost', 'tower'];

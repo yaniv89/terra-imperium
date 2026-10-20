@@ -17,11 +17,12 @@ import { loadKit, kitObject } from './kitLoader';
 import { KitInstances, kitLodForZoom } from './kitInstances';
 import { TILE } from '../setup/mapgen';
 import { Q } from '../sim/constants';
+import { agesFrom, FIRST_AGE_ID } from '../../data/ages';
 
 /** Battle tiles per prop model unit (the city's own scale, setup/cityBattle.js CITY_TILES_PER_UNIT). */
 export const PROP_SCALE = 2.75;
 // Ages whose props file may stand in for a later age's (a Bronze cart in a Modern battle would not).
-const NO_FALLBACK = new Set(['modern']);
+const NO_FALLBACK = new Set(agesFrom('modern'));
 
 const hash01 = (n) => { let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
@@ -131,7 +132,7 @@ export class BattleProps {
   constructor(r, { art = ART, load = loadKit } = {}) {
     this.r = r; this.kit = null; this.covered = -1;
     this.list = [];
-    const ref = propsRef(r.setup.sides?.[1]?.ageId || 'bronze', art);
+    const ref = propsRef(r.setup.sides?.[1]?.ageId || FIRST_AGE_ID, art);
     this.instances = new KitInstances(r.scene, { track: (x) => r.track(x) });
     this.ready = !ref ? Promise.resolve() : load(ref.url).then((kit) => {
       if (this.disposed) return;

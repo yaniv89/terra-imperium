@@ -27,7 +27,7 @@ import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } f
 import { REGIONS_DATA } from '../../data/regions';
 import { regionDeposits } from '../../data/deposits';
 import { EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, isAgeAtLeast } from '../../data/ages';
 import { DEVASTATION_DECAY } from '../../engine/aftermath';
 import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
 import { canAfford, getSupplyCapacity } from '../../utils/helpers';
@@ -216,6 +216,6 @@ export const cityDevelopmentModel = (state, cityId) => {
   const infra = infrastructureCosts(state, city); const walls = defensesCosts(state, city);
   rows.push({ id: 'infrastructure', label: tNow('cy.dev.infra', { level: city.currentInfrastructure || 0, supply: getSupplyCapacity(city.currentInfrastructure) }), description: tNow('cy.dev.infraDesc'), costs: infra, enabled: (city.currentInfrastructure || 0) < 10 && canAfford(state.resources, infra), actionType: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cityId } });
   rows.push({ id: 'defenses', label: tNow('cy.dev.defenses', { level: city.defenseLevel || 0 }), description: tNow('cy.dev.defensesDesc'), costs: walls, enabled: (city.defenseLevel || 0) < 10 && canAfford(state.resources, walls), actionType: ActionTypes.BUILD_DEFENSES, payload: { regionId: cityId } });
-  if (ageId === 'modern') rows.push({ id: 'resilience', label: tNow('cy.dev.resilience', { n: city.climateResilience || 0, max: CLIMATE_RESILIENCE_MAX }), description: tNow('cy.dev.resilienceDesc'), costs: ACTION_COSTS.buildClimateResilience, enabled: (city.climateResilience || 0) < CLIMATE_RESILIENCE_MAX && canAfford(state.resources, ACTION_COSTS.buildClimateResilience), actionType: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cityId } });
+  if (isAgeAtLeast(ageId, 'modern')) rows.push({ id: 'resilience', label: tNow('cy.dev.resilience', { n: city.climateResilience || 0, max: CLIMATE_RESILIENCE_MAX }), description: tNow('cy.dev.resilienceDesc'), costs: ACTION_COSTS.buildClimateResilience, enabled: (city.climateResilience || 0) < CLIMATE_RESILIENCE_MAX && canAfford(state.resources, ACTION_COSTS.buildClimateResilience), actionType: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cityId } });
   return { rows, deposits, totalDev: getTotalDev(city) };
 };

@@ -5,9 +5,10 @@
 // them, and GameIcon shows its glyph for any that still fails.
 import { iconUrl, BATTLE_STOCK_ICON_IDS, BATTLE_GLYPH_IDS } from '../../data/icons';
 import { BUILDINGS, buildableFor } from '../../battle/data/economy';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 /** The icon URLs a battle of `ageId` may show at once (tests read it). */
-export const battleIconUrls = (ageId = 'bronze') => [
+export const battleIconUrls = (ageId = FIRST_AGE_ID) => [
   ...buildableFor(ageId).map((id) => iconUrl('battle', BUILDINGS[id].icon)),
   ...Object.values(BATTLE_STOCK_ICON_IDS).map((id) => iconUrl('battle', id)),
   ...BATTLE_GLYPH_IDS.map((id) => iconUrl('battle', id))

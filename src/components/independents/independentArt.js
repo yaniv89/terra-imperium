@@ -19,6 +19,7 @@
 //                         flame badge of the raid layer
 import { iconUrl } from '../../data/icons';
 import { AGE_BAND, PERSONALITIES } from '../../data/independents';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 /** The personality shield's URL, or null (placeholder: ShieldMark draws a dot in `shieldColour`). */
 export const shieldUrl = (personality) => iconUrl('independents', personality);
@@ -37,7 +38,7 @@ const MODELS = import.meta.glob('../../assets/map/independents/**/*.glb', { quer
 const modelUrl = (rel) => MODELS[`../../assets/map/independents/${rel}`] || null;
 
 /** The town dressing of an independent of `personality` in age `ageId`, or null (no dressing yet). */
-export const dressingUrl = (personality, ageId = 'bronze') => modelUrl(`${AGE_BAND[ageId] || 'early'}/${personality}-dressing.glb`);
+export const dressingUrl = (personality, ageId = FIRST_AGE_ID) => modelUrl(`${AGE_BAND[ageId] || 'early'}/${personality}-dressing.glb`);
 /** A tribal camp by biome (steppe, desert, forest, jungle, tundra...), or null (the colony camp stands in). */
 export const tribalCampUrl = (biome) => modelUrl(`tribal-camp-${biome}.glb`);
 

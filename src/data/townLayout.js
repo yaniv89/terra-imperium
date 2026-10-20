@@ -32,6 +32,7 @@ import { styleChain } from './architecture';
 import { BUILDING_CATEGORIES, getCategoryTierName } from './buildings';
 import { TOWN_TIERS } from './townTiers';
 import { sinCosDeg } from '../utils/exactMath';
+import { FIRST_AGE_ID, isAgeAtLeast } from './ages';
 
 // A point at `deg` degrees (0 east, 90 north) and radius r in model space (z south). Exact on
 // every engine (the engine reads these layouts: src/engine/determinismGuard.test.js).
@@ -113,9 +114,9 @@ export const seededRandom = (key) => {
 };
 /** The procedural town's houses: a seeded scatter off the plaza and apart from each other,
  * [{ x, z, w, d, h, rot, shade }] (rot: radians about y; w and d are the unturned sizes). */
-export const proceduralHouses = (cityId, tierId, ageId = 'bronze') => {
+export const proceduralHouses = (cityId, tierId, ageId = FIRST_AGE_ID) => {
   const tier = TOWN_TIERS.find((t) => t.id === tierId) || TOWN_TIERS[0];
-  const modern = ageId === 'modern';
+  const modern = isAgeAtLeast(ageId, 'modern');
   const rand = seededRandom(`${cityId}|${tier.id}|houses`);
   const plaza = tier.id === 'small' ? 0.5 : 0.95;
   const placed = [];
@@ -182,7 +183,7 @@ export const BUILDING_ORDER = ['culture', 'science', 'economy', 'military', 'foo
  * `kind`: townhall, house, landmark, palace, building, wall, gate, tower, wonder. `passive`: a
  * civilian structure (no fire, no effect in battle beyond housing; world plan section 8).
  */
-export const buildTownManifest = ({ cityId, ageId = 'bronze', tierId = 'small', style = null, seed = 0, capital = false, defenseTier = -1, buildings = {}, wonders = [], camp = false }) => {
+export const buildTownManifest = ({ cityId, ageId = FIRST_AGE_ID, tierId = 'small', style = null, seed = 0, capital = false, defenseTier = -1, buildings = {}, wonders = [], camp = false }) => {
   const townKey = camp ? null : townFileKey(ageId, tierId, seed, style);
   // no town file for this age and size: the procedural town's houses (an outpost has none)
   const layout = townLayout(townKey) || { houses: camp ? [] : proceduralHouses(cityId, tierId, ageId).map(({ x, z, w, d, h }) => ({ x, z, w, d, h })), landmarks: [] };

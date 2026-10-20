@@ -27,7 +27,7 @@
 //    (it used to add about 2 food of 49), priced like a standing work with the city's size as the
 //    level, so it stays a real choice for a big city.
 import { getTiles } from '../data/geo/tiles';
-import { AGE_ORDER, getEffectiveAgeId, speedCostMult, speedTurns } from '../data/ages';
+import { AGE_ORDER, getEffectiveAgeId, speedCostMult, speedTurns, FIRST_AGE_ID } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { unitDisplayName } from '../data/unitNames';
@@ -54,7 +54,7 @@ const RUSH_BLOCKED_KINDS = { wonder: 'A wonder cannot be bought: it is built.' }
 const ageOf = (state, nationId) => getEffectiveAgeId(state.age, nationId ? getTechAgeId(state, nationId) : state.age);
 
 /** How many recent rushes still weigh on this city's price (0 to RUSH_HEAT_MAX). */
-export const rushHeat = (city, turnNumber, gameSpeed, ageId = 'bronze') => {
+export const rushHeat = (city, turnNumber, gameSpeed, ageId = FIRST_AGE_ID) => {
   const r = city?.rush;
   if (!r || !(r.heat > 0)) return 0;
   const cooled = Math.floor(Math.max(0, (turnNumber || 0) - (r.turn || 0)) / speedTurns(RUSH_COOL_REF_TURNS, gameSpeed, ageId));
@@ -111,7 +111,7 @@ export const rushQuote = (state, cityId, index = 0, nationId = state.playerNatio
 };
 
 /** A short name of an order for the log ("Granary", "Spearmen", "settlers"). */
-export const rushItemName = (item, ageId = 'bronze') => {
+export const rushItemName = (item, ageId = FIRST_AGE_ID) => {
   if (!item) return 'order';
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category;
   if (item.kind === 'unit' && item.explorer) return 'scouts';

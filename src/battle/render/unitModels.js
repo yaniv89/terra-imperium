@@ -28,6 +28,7 @@ import { UNIT_ROSTER } from '../../data/unitClasses';
 import { ART } from '../art/artFiles';
 import { signatureUnitFor, signatureKey, SIGNATURE_UNITS, QUADRUPED_RIGS } from '../../data/signatureUnits';
 import { peopleForNationId } from '../../data/peoples';
+import { AGE_ORDER } from '../../data/ages';
 
 // { '../../assets/units/bronze-infantry.glb': '/terra-imperium/assets/bronze-infantry-abc123.glb' }
 const FILES = import.meta.glob('../../assets/units/*.{glb,gltf}', { query: '?url', import: 'default', eager: true });
@@ -250,12 +251,11 @@ export const preloadSoldierModel = async (ageId, classId, deps = {}) => {
 // train's scale (class support: the same rigs and the same people). One file per age band: an age
 // takes the latest band at or below it.
 export const SETTLER_KEY = 'settler';
-const AGES = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
 /** The settler model for an owner in this age: { name, url, options, ageId (the band's age) } or null. */
 export const findSettlerModel = (ageId, find = findUnitModel) => {
-  for (let i = AGES.indexOf(ageId); i >= 0; i--) {
-    const m = find(AGES[i], SETTLER_KEY);
-    if (m) return { ...m, ageId: AGES[i] };
+  for (let i = AGE_ORDER.indexOf(ageId); i >= 0; i--) {
+    const m = find(AGE_ORDER[i], SETTLER_KEY);
+    if (m) return { ...m, ageId: AGE_ORDER[i] };
   }
   return null;
 };

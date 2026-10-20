@@ -29,6 +29,7 @@ import {
 import { ringsAround } from './world/cities';
 import { hashRoll } from './aftermath';
 import { grudgeOf } from './grudges';
+import { FIRST_AGE_ID } from '../data/ages';
 
 // ---------------------------------------------------------------------------------------------
 // Treasuries in a turn's working set `w` ({ playerId, resources, nations }): the player's
@@ -76,7 +77,7 @@ export const mercOffer = (state, sellerId, buyerId, { buyerCities = null } = {})
   if (mercStockOf(seller, turn) <= 0) return { ok: false, ...reasonOf('m.why.mercNoBand') };
   const home = state.regions?.[seller.capitalRegionId];
   if (!home || home.tile == null || home.owner !== sellerId) return { ok: false, ...reasonOf('m.why.mercCityLost') };
-  const ageId = state.age || 'bronze';
+  const ageId = state.age || FIRST_AGE_ID;
   const base = { price: mercPrice(ageId), upkeep: mercUpkeep(ageId), classId: classFor(personality, ageId) };
   if (buyerId === sellerId) return { ok: true, ...base, cityId: home.id, rings: 0 };
   const buyer = state.nations?.[buyerId];
@@ -173,7 +174,7 @@ export const processMercenaries = (w) => {
   if (!sellers.length) return;
   const atWar = new Set();
   (w.view.wars || []).forEach((war) => { if (war.active) { atWar.add(war.aggressor); atWar.add(war.enemy); } });
-  const price = mercPrice(w.view.age || 'bronze');
+  const price = mercPrice(w.view.age || FIRST_AGE_ID);
   [...atWar].sort().forEach((id) => {
     const n = w.nations[id];
     if (!n || id === w.playerId || n.isEliminated || isIndependentNation(n)) return;

@@ -15,6 +15,7 @@ import { raidForecast } from '../../engine/raids';
 import { mercOffer } from '../../engine/mercenaries';
 import { grudgeWord, grudgeBands, garrisonOf } from './independentSheetModel';
 import { shieldUrl, shieldColour } from './independentArt';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 const placeName = (state, tile) => { const n = getTiles().names?.[tile] || state.regions?.[state.world?.tileOwner?.[tile]]?.name; return n ? nameNow('place', null, n) : t('ind.frontier'); };
 const cityNow = (c) => (c?.name ? nameNow('city', null, c.name) : null);
@@ -84,7 +85,7 @@ export const tributeDemandModel = (state, demandId) => {
     const o = merc.offer;
     choices.push({
       id: 'hire', title: t('td.c.hire'), figure: t('td.c.hireFigure', { price: o.price, upkeep: o.upkeep }),
-      text: t('td.c.hireText', { unit: unitDisplayName(state.age || 'bronze', o.classId), seller: nameNow('people', merc.sellerId, seller.name), kind: independentKindName(seller.indep?.personality, PERSONALITIES[seller.indep?.personality]?.name || ''), turns: MERC_CONTRACT_TURNS, city: cityNow(state.regions[o.cityId]) || t('td.c.yourCity'), n: GRUDGE_REFUSED }),
+      text: t('td.c.hireText', { unit: unitDisplayName(state.age || FIRST_AGE_ID, o.classId), seller: nameNow('people', merc.sellerId, seller.name), kind: independentKindName(seller.indep?.personality, PERSONALITIES[seller.indep?.personality]?.name || ''), turns: MERC_CONTRACT_TURNS, city: cityNow(state.regions[o.cityId]) || t('td.c.yourCity'), n: GRUDGE_REFUSED }),
       ok: gold >= o.price, warn: gold >= o.price ? null : t('td.c.hireWarn', { price: o.price, have: gold }),
       actions: [{ type: ActionTypes.HIRE_MERCENARY, payload: { independentId: merc.sellerId } }, { type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: d.id, pay: false } }]
     });

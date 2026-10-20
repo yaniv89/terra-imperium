@@ -11,7 +11,7 @@
 import { withAirSupport } from './airPower';
 import { REGIONS_DATA, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
-import { getEffectiveAgeId } from '../data/ages';
+import { getEffectiveAgeId, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
@@ -58,9 +58,9 @@ export const getReinforcementSources = (state, targetRegionId, nationId, exclude
 // come out of the real stockpile (one use per missile); only the player may use a nuclear strike.
 export const getBattlePowers = (state, nationId, ageId, units = [], { allowNuclear = false } = {}) => {
   const out = [{ id: 'rallyCry' }];
-  if (['bronze', 'classical', 'kingdoms'].includes(ageId)) out.push({ id: 'arrowStorm' });
-  if (['gunpowder', 'modern'].includes(ageId) && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
-  if (ageId === 'modern' && units.some((u) => u.classId === 'air')) out.push({ id: 'airStrike' });
+  if (isAgeBefore(ageId, 'gunpowder')) out.push({ id: 'arrowStorm' });
+  if (isAgeAtLeast(ageId, 'gunpowder') && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
+  if (isAgeAtLeast(ageId, 'modern') && units.some((u) => u.classId === 'air')) out.push({ id: 'airStrike' });
   if (Object.values(state.satellites || {}).some((sat) => sat.ownerId === nationId && sat.typeId === 'recon')) out.push({ id: 'satelliteSweep' });
   const missiles = state.nations?.[nationId]?.missiles || {};
   if (missiles.tactical > 0) out.push({ id: 'missileTactical', uses: missiles.tactical });

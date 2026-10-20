@@ -34,6 +34,7 @@ import { siegeHpOf, siegeMaxHp, wallsOf, SIEGE_ENGINEERING_TECH, SIEGE_ENGINEERI
 import { getRosterCombatMultiplier } from '../data/unitClasses';
 import { getResearched } from './nationState';
 import { powExact } from '../utils/exactMath';
+import { FIRST_AGE_ID } from '../data/ages';
 
 export const CITY_DEF_BASE = 500;
 export const CITY_DEF_PER_SIZE = 150;
@@ -56,13 +57,13 @@ const alive = (list) => (list || []).filter((u) => u && u.strength > 0);
 export const garrisonOf = (defenderUnits) => alive(defenderUnits).filter((u) => !u.militia && !u.auxiliary && u.domain !== 'naval' && u.classId !== 'air' && u.classId !== 'settler');
 
 /** The attackers' strength against a city (see the header). */
-export const cityAttackStrength = (attackerUnits, { siegeEngineering = false, attackerAgeId = 'bronze', defenderAgeId = 'bronze' } = {}) => {
+export const cityAttackStrength = (attackerUnits, { siegeEngineering = false, attackerAgeId = FIRST_AGE_ID, defenderAgeId = FIRST_AGE_ID } = {}) => {
   const raw = alive(attackerUnits).reduce((s, u) => {
     const f = u.classId === 'siege' ? SIEGE_VS_CITY * (siegeEngineering ? SIEGE_ENGINEERING_MULT : 1)
       : u.classId === 'cavalry' ? CAVALRY_VS_CITY : u.classId === 'air' ? AIR_VS_CITY : 1;
     return s + u.strength * f;
   }, 0);
-  return raw * getRosterCombatMultiplier(attackerAgeId || 'bronze', defenderAgeId || 'bronze');
+  return raw * getRosterCombatMultiplier(attackerAgeId || FIRST_AGE_ID, defenderAgeId || FIRST_AGE_ID);
 };
 
 /** The city's own defence (see the header). `hpRatio`: the walls' HP share left, 0..1. */

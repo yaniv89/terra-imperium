@@ -15,6 +15,7 @@ import { getBuildingIconPath, getExtractionIconPath } from '../../data/buildingI
 import { getUnitIconPath } from '../../data/unitIcons';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { WONDER_ICONS } from '../city/wonderIcons';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 /** A game-icons.net silhouette (0..512 viewBox), recoloured through currentColor. */
 export const PathIcon = ({ path, size = 20, className = '' }) => (path
@@ -37,7 +38,7 @@ export const ExtractionIcon = ({ resourceId, size = 20, className = '' }) => (
 );
 
 /** A unit: land units by class, naval units by their line (warship, transport, raider, carrier). */
-export const UnitIcon = ({ classId, navalLine = null, ageId = 'bronze', size = 20, className = '' }) => {
+export const UnitIcon = ({ classId, navalLine = null, ageId = FIRST_AGE_ID, size = 20, className = '' }) => {
   const url = classId === 'naval' ? shipIconUrl(navalLine) : unitIconUrl(classId);
   return (
     <GameIcon url={url} size={size} className={className}

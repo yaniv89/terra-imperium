@@ -25,6 +25,7 @@ import { createRng } from '../../utils/rng';
 import { TILE, isPassable, hashString } from './mapgen';
 import { NODE_KINDS, BUILDINGS, RESOURCES, START_STOCK, TREE_WOOD, WOOD_CELL, woodSlots, stockMult, toMilli, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, HALL_HOUSING, MILLI } from '../data/economy';
 import { Q } from '../sim/constants';
+import { FIRST_AGE_ID } from '../../data/ages';
 const SUPPLY_MAX = 100; // src/engine/supplyMeter.js SUPPLY_MAX (not imported: it pulls the tile world into the battle bundle)
 
 const centre = (t) => t * Q + (Q >> 1);
@@ -166,7 +167,7 @@ const nodeGround = (t, kind) => (kind === 'fish' ? t === TILE.WATER : t === TILE
  * Place the economy on a generated map. Writes map.tiles (the camp's footprint becomes BUILDING;
  * a grove on open ground becomes forest). Returns the setup's `economy` object.
  */
-export const buildEconomySetup = ({ map, terrain, tileContext = null, regionKey = 'battle', sides, structures, city = null, inputs = null, ageIds = ['bronze', 'bronze'] }) => {
+export const buildEconomySetup = ({ map, terrain, tileContext = null, regionKey = 'battle', sides, structures, city = null, inputs = null, ageIds = [FIRST_AGE_ID, FIRST_AGE_ID] }) => {
   const { w, h, tiles, keep } = map;
   const rng = createRng(hashString(`eco:${tileContext ? `tile:${tileContext.tile}` : regionKey}`));
   const mix = terrainMix(terrain, tileContext);
