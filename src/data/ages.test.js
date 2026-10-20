@@ -6,8 +6,6 @@ import {
   END_YEAR,
   getAgeIndex,
   getCalendarAgeId,
-  getAgesBehind,
-  getAgesBehindResearchCostMultiplier,
   GAME_SPEEDS,
   getYearsPerTurn,
   speedCostMult,
@@ -54,29 +52,6 @@ describe('getCalendarAgeId', () => {
   it('clamps years outside the timeline instead of throwing', () => {
     expect(getCalendarAgeId(-99999)).toBe('bronze');
     expect(getCalendarAgeId(99999)).toBe('modern');
-  });
-});
-
-
-describe('getAgesBehind', () => {
-  it('is zero when tech age is at or ahead of calendar', () => {
-    expect(getAgesBehind('kingdoms', 'kingdoms')).toBe(0);
-    expect(getAgesBehind('kingdoms', 'gunpowder')).toBe(0);
-  });
-
-  it('counts how many ages a nation has fallen behind the calendar', () => {
-    expect(getAgesBehind('modern', 'classical')).toBe(3);
-  });
-});
-
-describe('getAgesBehindResearchCostMultiplier', () => {
-  it('is 1 (no penalty) when not behind', () => {
-    expect(getAgesBehindResearchCostMultiplier(0)).toBe(1);
-  });
-
-  it('rises 30% per age behind, uncapped', () => {
-    expect(getAgesBehindResearchCostMultiplier(1)).toBeCloseTo(1.3);
-    expect(getAgesBehindResearchCostMultiplier(4)).toBeCloseTo(2.2);
   });
 });
 

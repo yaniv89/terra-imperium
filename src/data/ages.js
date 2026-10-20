@@ -118,30 +118,8 @@ export const getCalendarAgeId = (year) => {
 // A nation's age is its research age only (ageOf in src/engine/nationState.js, eight-ages plan
 // KTD1): the old calendar floor and one-age cap (getEffectiveAgeId) are gone.
 
-// How many ages behind the calendar a nation's own tech-earned age has fallen. 0 means at or
-// ahead of calendar. Feeds the "backward" penalty described in plan §2 (higher tech costs) via
-// getAgesBehindResearchCostMultiplier below — a nation that never researches falls further behind
-// every turn the calendar advances without it, and previously paid nothing for that at all.
-//
-// Plan §M14 removes this file's own former combat-side penalty (getAgesBehindCombatMultiplier,
-// -15%/age behind, floored at 40%) — it only ever penalized ONE side and double-counted against
-// src/data/unitClasses.js's roster stats once those got wired into combat. A real two-sided
-// comparison (getRosterCombatMultiplier there) replaces it: two nations at the SAME age always net
-// to a neutral 1.0, whichever age that is, and an age GAP swings the multiplier in both directions
-// at once rather than only ever punishing whoever fell behind.
-export const getAgesBehind = (calendarAgeId, techAgeId) => {
-  const calendarIdx = getAgeIndex(calendarAgeId);
-  const techIdx = getAgeIndex(techAgeId);
-  if (calendarIdx === -1 || techIdx === -1) return 0;
-  return Math.max(0, calendarIdx - techIdx);
-};
-
-// Research cost multiplier for a nation trying to catch up from behind — the further behind, the
-// more it costs to research the SAME tech, so falling behind compounds instead of being a free
-// pause button. +30% per age behind, uncapped (unlike the combat floor, there's no reason to cap
-// how expensive catching up from a long neglect should get).
-const AGES_BEHIND_RESEARCH_COST_PER_AGE = 0.3;
-export const getAgesBehindResearchCostMultiplier = (agesBehind) => 1 + agesBehind * AGES_BEHIND_RESEARCH_COST_PER_AGE;
+// Falling behind costs nothing extra (KTD5): the old ages-behind research penalty is gone; a
+// laggard catches up through the diffusion discount instead (src/engine/techDiffusion.js CATCHUP_MAX).
 
 // ============ GAME SPEED ============
 

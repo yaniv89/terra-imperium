@@ -92,8 +92,8 @@ describe('technology diffusion', () => {
     // and the partner knows the player back
     expect(contactsOf(s, far).has(FR_ID)).toBe(true);
   });
-  it('the known world widens with the age (km, not rings)', () => {
-    expect(contactsOf({ ...state, age: 'gunpowder' }, FR_ID).size).toBeGreaterThan(contactsOf(state, FR_ID).size);
+  it('the known world widens with the age of the nation (km, not rings)', () => {
+    expect(contactsOf({ ...state, techAgeId: 'gunpowder' }, FR_ID).size).toBeGreaterThan(contactsOf(state, FR_ID).size);
   });
 });
 

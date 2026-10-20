@@ -8,7 +8,6 @@
 // missing earlier ones first.
 //
 //   cost = RESEARCH_AGE_BASE[age] x the speed's cost multiplier x (1 + research cost modifiers and diffusion)
-//          x the ages-behind multiplier
 //
 // Diffusion (techDiffusion.js) is Civ V's catch-up: cheaper when neighbours already know it,
 // dearer as a pioneer. The ADM/DIP/MIL power pools no longer pay for research; Research Focus
@@ -19,7 +18,7 @@
 import { applyBoosts } from './boosts';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
-import { AGES, AGE_ORDER, getAgeIndex, getAgesBehind, getAgesBehindResearchCostMultiplier, speedCostMult } from '../data/ages';
+import { AGES, AGE_ORDER, getAgeIndex, speedCostMult } from '../data/ages';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
 import { msg, thing } from './messages';
@@ -60,8 +59,7 @@ export const getResearchCost = (state, nationId, techId) => {
   const base = RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern;
   const speed = speedCostMult(state.gameSpeed, tech.ageId); // the speed table (ages.js): the same span of history per tech at every speed
   const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
-  const behind = getAgesBehindResearchCostMultiplier(getAgesBehind(state.age, techAgeOf(state, nationId)));
-  return Math.max(1, Math.round(base * speed * (1 + mult) * behind));
+  return Math.max(1, Math.round(base * speed * (1 + mult)));
 };
 
 /** The research window (eight-ages plan KTD4): a nation may start techs of its own age and the next. */

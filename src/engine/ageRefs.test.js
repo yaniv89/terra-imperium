@@ -59,9 +59,10 @@ describe('independentAgeOf and sideAgeOf', () => {
   const indep = Object.keys(world.nations).sort().find((id) => world.nations[id].kind === 'independent' && contactsOf(world, id).size > 0);
 
   it('an independent reads the age of its strongest known major', () => {
-    const major = strongestKnownMajor(world, indep);
-    const s = { ...world, nations: { ...world.nations, [major]: { ...world.nations[major], tech: { ...world.nations[major].tech, ageId: 'kingdoms' } } } };
-    if (major === world.playerNationId) s.techAgeId = 'kingdoms';
+    // Every major to Kingdoms (a lone advance would widen the contact reach and change who is known).
+    const nations = Object.fromEntries(Object.entries(world.nations).map(([id, n]) => [id, n.kind === 'independent' ? n : { ...n, tech: { ...n.tech, ageId: 'kingdoms' } }]));
+    const s = { ...world, nations, techAgeId: 'kingdoms' };
+    const major = strongestKnownMajor(s, indep);
     expect(independentAgeOf(s, indep)).toBe('kingdoms');
     expect(sideAgeOf(s, indep)).toBe('kingdoms');
     expect(sideAgeOf(s, major)).toBe('kingdoms');

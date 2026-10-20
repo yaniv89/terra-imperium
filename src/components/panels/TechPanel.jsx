@@ -24,7 +24,9 @@ import { ActionTypes, TechCategories } from '../../data/types';
 import { getTechsByCategory } from '../../data/techTree';
 import { ACTION_COSTS, FUND_SCHOLARS_TECHPOINTS } from '../../data/actionCosts';
 import { getNationCapital } from '../../data/regions';
-import { getAgesBehind, getAgesBehindResearchCostMultiplier } from '../../data/ages';
+import { isAgeBefore } from '../../data/ages';
+import { CATCHUP_MAX } from '../../engine/techDiffusion';
+import { researchLeaderAge } from '../../engine/ageRefs';
 import { canAfford } from '../../utils/helpers';
 import { FOCUS_SCIENCE_BONUS } from '../../engine/research';
 import { CollapsibleSection } from '../ui';
@@ -191,8 +193,8 @@ const TechPanel = () => {
   const m = useMemo(() => researchSheetModel(state), [state]);
   const science = m.science;
   const [web, setWeb] = useState(false); // the research web (plan C3.1) or the lines as lists
-  const agesBehind = getAgesBehind(state.age, state.techAgeId);
-  const agesBehindMult = getAgesBehindResearchCostMultiplier(agesBehind);
+  // Behind the research leader: known peoples in later ages make their techs cheaper (KTD5).
+  const catchingUp = isAgeBefore(state.techAgeId, researchLeaderAge(state));
 
   const research = (techId) => {
     triggerEffect('research_tech', { region: getNationCapital(state.playerNationId) });
@@ -255,9 +257,9 @@ const TechPanel = () => {
         <EraCard era={m.era} />
       </div>
 
-      {agesBehind > 0 && (
-        <div className="mt-3 text-[12px] text-fa-danger-text rounded-lg border border-fa-danger p-2">
-          {tNow('p2.behind', { count: agesBehind, pct: Math.round((agesBehindMult - 1) * 100) })}
+      {catchingUp && (
+        <div className="mt-3 text-[12px] text-fa-muted rounded-lg border border-fa-line p-2" data-testid="research-catchup">
+          {tNow('p2.catchup', { pct: Math.round(CATCHUP_MAX * 100) })}
         </div>
       )}
 
