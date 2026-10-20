@@ -7,7 +7,7 @@ import saveV1Fixture from './__fixtures__/save-v1.json';
 import { TECH_TREE, getTechsForAge } from '../data/techTree';
 import { AGE_ORDER, getAgeIndex } from '../data/ages';
 import { ageOf } from './nationState';
-import { auditGameState } from './stateAudit';
+import { auditGameState, assertGameState } from './stateAudit';
 
 const P = peoplesWorld({ independents: true }).playerNationId; // the player's people in the shared test world
 const capOf = (state, id = P) => state.nations[id].capitalRegionId;
@@ -206,7 +206,7 @@ describe('migrateSave v13 to v14: ages by tech without demotion', () => {
   it('a calendar-Gunpowder player with 4 Kingdoms techs loads as Gunpowder, the Kingdoms techs granted', () => {
     const { me, state } = v13();
     const loaded = migrateSave({ version: 13, state });
-    expect(loaded.version).toBe(14);
+    expect(loaded.version).toBe(CURRENT_SAVE_VERSION);
     expect(ageOf(loaded.state, me)).toBe('gunpowder');
     ids('kingdoms').forEach((id) => expect(loaded.state.techTree[id].researched, id).toBe(true));
     expect(loaded.state).not.toHaveProperty('age');
@@ -242,5 +242,29 @@ describe('migrateSave v13 to v14: ages by tech without demotion', () => {
     expect(loaded.state.techAgeId).toBe(fresh.techAgeId);
     expect(AGE_ORDER).toContain(loaded.state.techAgeId);
     expect(Object.keys(TECH_TREE).filter((id) => loaded.state.techTree[id]?.researched)).toEqual(Object.keys(TECH_TREE).filter((id) => fresh.techTree[id]?.researched));
+  });
+});
+
+// Eight-ages plan U21: a version 13 or 14 save loses the retired space and nuclear state, refunded nothing.
+describe('migrateSave v14 to v15: space and nukes retired', () => {
+  it('a save with satellites, missiles and a scarred city loads with none of those keys', () => {
+    const base = JSON.parse(JSON.stringify(peoplesWorld({ independents: true, seed: 5 })));
+    const me = base.playerNationId;
+    const city = Object.keys(base.regions)[0];
+    const state = {
+      ...base,
+      satellites: { satellite_0: { id: 'satellite_0', ownerId: me, typeId: 'recon' } }, nextSatelliteSeq: 1, orbitalDebrisLevel: 30,
+      spaceMissionProgress: { first_satellite: 2 }, completedMissions: ['sounding_rocket'],
+      resources: { ...base.resources, helium3: 40 },
+      regions: { ...base.regions, [city]: { ...base.regions[city], nuclearScarred: true } },
+      nations: { ...base.nations, [me]: { ...base.nations[me], missiles: { tactical: 2, nuclear: 1 }, abmDefenseLevel: 1, fusionGridActive: true, modifiers: [{ sourceType: 'nuclear', sourceId: 'nuclear_pariah', mods: {}, expiresTurn: 99 }] } }
+    };
+    const loaded = migrateSave({ version: 14, state }).state;
+    ['satellites', 'nextSatelliteSeq', 'orbitalDebrisLevel', 'spaceMissionProgress', 'completedMissions'].forEach((k) => expect(loaded, k).not.toHaveProperty(k));
+    ['missiles', 'abmDefenseLevel', 'fusionGridActive'].forEach((k) => expect(loaded.nations[me], k).not.toHaveProperty(k));
+    expect(loaded.nations[me].modifiers).toEqual([]);
+    expect(loaded.resources).not.toHaveProperty('helium3');
+    expect(loaded.regions[city]).not.toHaveProperty('nuclearScarred');
+    expect(() => assertGameState(loaded)).not.toThrow();
   });
 });
