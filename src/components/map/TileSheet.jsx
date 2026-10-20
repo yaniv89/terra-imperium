@@ -29,6 +29,8 @@ import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
 import PreBattleModal from '../battle/PreBattleModal';
 import { Button, CloseButton, Label, Stat } from '../ui/atlas';
 import { settleSiteModel } from './settleSiteModel';
+import { askConfirm } from '../ui/ConfirmActionDialog';
+import { declareWarConfirm } from '../ui/confirmSpecs';
 import { settlerStatus } from './settleRoutes';
 import { useReportInset } from '../../context/MapInsetsContext';
 
@@ -118,7 +120,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
       {foreignWar && (
         <div className="mb-2 space-y-1.5" data-testid="foreign-army-here">
           <div className="text-[13px] text-fa-enemy font-semibold">{t('mx.tile.foreignArmy', { name: foreignWar.shown, count: foreignHere.length })}</div>
-          <Button variant="danger" className="w-full" disabled={!foreignWar.enabled} onClick={() => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } })} title={foreignWar.note} data-testid="tile-declare-war"><Swords className="w-4 h-4" /> {foreignWar.label}</Button>
+          <Button variant="danger" className="w-full" disabled={!foreignWar.enabled} onClick={() => askConfirm(declareWarConfirm(state, foreignWar.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } }))} title={foreignWar.note} data-testid="tile-declare-war"><Swords className="w-4 h-4" /> {foreignWar.label}</Button>
         </div>
       )}
       {attackFrom && <PreBattleModal fromRegionId={attackFrom} tile={tile} onClose={() => setAttackFrom(null)} />}

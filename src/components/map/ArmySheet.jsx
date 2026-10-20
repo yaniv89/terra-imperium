@@ -14,6 +14,8 @@ import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { ActionTypes } from '../../data/types';
 import { startMarch } from './marchEvents';
+import { askConfirm } from '../ui/ConfirmActionDialog';
+import { declareWarConfirm } from '../ui/confirmSpecs';
 import { armySheetModel } from './armySheetModel';
 import { UnitIcon } from '../ui/icons';
 
@@ -115,7 +117,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       {model.targets.length > 0 && (
         <div className="mt-2 space-y-1" data-testid="army-targets">
           {model.targets.map((t) => t.war ? (
-            <button key={`war:${t.tile}`} type="button" disabled={!t.war.enabled} onClick={() => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: t.war.nationId } })} data-testid="army-declare-war" title={t.war.note} className="w-full min-h-[44px] rounded-lg bg-amber-800/70 hover:bg-amber-700 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
+            <button key={`war:${t.tile}`} type="button" disabled={!t.war.enabled} onClick={() => askConfirm(declareWarConfirm(state, t.war.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: t.war.nationId } }))} data-testid="army-declare-war" title={t.war.note} className="w-full min-h-[44px] rounded-lg bg-amber-800/70 hover:bg-amber-700 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
               <Swords className="w-3.5 h-3.5" /> {t.war.label} ({Object.entries(t.war.costs).map(([k, v]) => `${v} ${lang === 'he' ? tOr(`res.${k}`, k.toUpperCase()) : k.toUpperCase()}`).join(', ')})
             </button>
           ) : (
