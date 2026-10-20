@@ -68,7 +68,7 @@ export const ACHIEVEMENTS = {
     id: 'unbroken',
     name: 'Unbroken',
     description: 'Reach the Modern Age without ever ceding a region in a peace deal.',
-    check: (state) => isAgeAtLeast(state.age, 'modern') && !state.nations[state.playerNationId]?.hasCededRegionInPeace
+    check: (state) => isAgeAtLeast(state.techAgeId, 'modern') && !state.nations[state.playerNationId]?.hasCededRegionInPeace
   },
   survive_to_victory: {
     id: 'survive_to_victory',

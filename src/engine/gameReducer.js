@@ -73,6 +73,7 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, END_YEAR, getCalendarAgeId, isAgeAtLeast } from '../data/ages';
 import { ageOf } from './nationState';
+import { sideAgeOf } from './ageRefs';
 import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
 import {
@@ -1324,7 +1325,7 @@ const reduceAction = (state, action) => {
       // Plan §M11 resource sink: costs the age's strategic resource when available, else a gold
       // penalty (getRecruitUnitCost's own header) — computed fresh per recruit, not a flat table
       // entry, the same "dynamically-priced action" shape RESEARCH_TECH/CHANGE_LAW already use.
-      const costs = getRecruitUnitCost(state, state.age);
+      const costs = getRecruitUnitCost(state, ageOf(state, state.playerNationId));
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (!getAvailableClasses(ageOf(state, state.playerNationId)).includes(classId)) return state;
       if (!canAfford(state.resources, costs)) return state;
@@ -1415,7 +1416,7 @@ const reduceAction = (state, action) => {
       // Plan §M14: a stack moves at most once per turn — forcedMarch grants a unit a second move.
       if ((unit.movesLeft ?? 1) <= 0) return state;
       const isLandAdjacent = getNeighborIds(unit.regionId).includes(toRegionId);
-      const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, state.age);
+      const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, ageOf(state, unit.ownerId));
       // A land unit moves now only where its march would arrive this turn (routes.js moveNowCheck,
       // the same route and schedule as the preview): never a jump over a march of several turns
       // (playtest audit I065). Fleets keep the sea-lane rule.
@@ -2003,7 +2004,7 @@ const reduceAction = (state, action) => {
           isAttackingFortification: false,
           generals: state.hiredCommanders,
           attackerAgeId,
-          defenderAgeId: state.age
+          defenderAgeId: sideAgeOf(state, defenderNavalUnits[0].ownerId)
         }, { kind: 'lane' }, rng);
         const sunk = navalBattle.outcome !== 'attacker';
         const fought = sunk ? { ...navalBattle, attackerUnits: navalBattle.attackerUnits.map((u) => ({ ...u, strength: 0 })) } : navalBattle;
@@ -2033,7 +2034,7 @@ const reduceAction = (state, action) => {
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
         generals: state.hiredCommanders,
         attackerAgeId,
-        defenderAgeId: state.age,
+        defenderAgeId: sideAgeOf(state, targetRegion.owner),
         attackerPenaltyMultiplier: 1,
         battleType: hasBeachhead ? 'field' : 'landing', // the landing's odds live in battleType.js
         defenderDamageReductionMultiplier: isDefended
@@ -2051,7 +2052,7 @@ const reduceAction = (state, action) => {
       if (!fromRegion || fromRegion.owner !== state.playerNationId) return state;
       const attackerNavalUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'naval');
       const isLandAdjacent = getNeighborIds(fromRegionId).includes(targetRegionId);
-      const isSeaLaneReachable = isReachableBySea(fromRegionId, targetRegionId, state.age);
+      const isSeaLaneReachable = isReachableBySea(fromRegionId, targetRegionId, ageOf(state, state.playerNationId));
       // A fleet at sea beside the target's coast (fleets.js) engages too.
       const besideCoast = attackerNavalUnits.some(u => atSea(state, u) && touchesCoastOf(state, getTiles(), u.tile, targetRegionId));
       if (!isLandAdjacent && !isSeaLaneReachable && !besideCoast) return state;
@@ -2073,7 +2074,7 @@ const reduceAction = (state, action) => {
         isAttackingFortification: false,
         generals: state.hiredCommanders,
         attackerAgeId: ageOf(state, state.playerNationId),
-        defenderAgeId: state.age
+        defenderAgeId: sideAgeOf(state, defenderNavalUnits[0].ownerId)
       }, { kind: 'lane' }, rng);
       // A naval engagement only contests the lane: survivors hold their own positions, win or
       // lose (battleOutcome.js, kind 'lane').
@@ -2104,7 +2105,7 @@ const reduceAction = (state, action) => {
         isAttackingFortification: false,
         generals: state.hiredCommanders,
         attackerAgeId: ageOf(state, state.playerNationId),
-        defenderAgeId: state.age
+        defenderAgeId: ageOf(state, region.owner) // rebels fight at their host's age
       }, { kind: 'suppress' }, rng);
       // The rebels are fought like any battle (master plan 6.7 row 17), through the outcome service.
       const meta = { kind: 'suppress', warId: null, attackerNationId: state.playerNationId, defenderNationId: REBEL_OWNER_ID, fromRegionId: regionId, regionId, tile: region.tile ?? null, rngSeed: rng.getSeed() };
@@ -2171,7 +2172,7 @@ const reduceAction = (state, action) => {
       const type = GOVERNMENT_TYPES[typeId];
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.changeGovernmentType;
-      if (!type || !canChangeGovernmentType(nation, typeId, state.age)) return state;
+      if (!type || !canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -2180,7 +2181,7 @@ const reduceAction = (state, action) => {
           ...state.nations,
           [state.playerNationId]: {
             ...nation,
-            government: { type: typeId, reforms: resetReformsForType(typeId, state.age, pickedReforms) },
+            government: { type: typeId, reforms: resetReformsForType(typeId, ageOf(state, state.playerNationId), pickedReforms) },
             stability: clampStability((nation.stability || 0) - 2)
           }
         },
@@ -2192,7 +2193,7 @@ const reduceAction = (state, action) => {
       const { ageId, reformId } = action.payload;
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.enactGovernmentReform;
-      if (!canEnactReform(nation, ageId, reformId, state.age)) return state;
+      if (!canEnactReform(nation, ageId, reformId, ageOf(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       const reform = getReformChoices(nation.government.type, ageId).find((r) => r.id === reformId);
       return {

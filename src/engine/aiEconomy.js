@@ -138,7 +138,7 @@ export const calcAllNationIncomes = (state, only = null) => {
 // doctrine's preferred type first (DOCTRINE_GOVERNMENT, plan C4.5), or fills in the current age's
 // reform tier with the doctrine's preferred reform (DOCTRINE_REFORMS), else the first choice.
 const tryAdoptOrReformGovernment = (state, nation) => {
-  const ageId = state.age;
+  const ageId = ageOf(state, nation.id);
   if (!nation.government || nation.government.type === 'tribal') {
     if (!isAgeAtLeast(ageId, 'classical')) return null;
     const available = getAvailableGovernmentTypes(ageId, nation.identity).filter((t) => t.id !== 'tribal');

@@ -10,6 +10,7 @@ import ResourceBadge from './ResourceBadge';
 import Breakdown from './Breakdown';
 import { POWER_POOL_HELP } from '../../data/powerPools';
 import { useT } from '../../i18n/useT';
+import { ageOf } from '../../engine/nationState';
 
 // `wrap`: the top bar's "All your stores" list. There every badge carries its name: a phone has no
 // hover, so the bare icons and numbers could not be told apart (playtest audit I163).
@@ -22,7 +23,7 @@ const ResourceBar = ({ wrap = false }) => {
     setExpandedResource(prev => prev === type ? null : type);
   };
 
-  const unlockedResourceIds = getUnlockedResourceIds(state.age);
+  const unlockedResourceIds = getUnlockedResourceIds(ageOf(state, state.playerNationId));
   // The live per-turn income (ruler, advisors, government, tech...), the same number the tooltip
   // breaks down. resources.maxAdm/maxDip/maxMil only refresh when a turn resolves, so reading them
   // showed a flat +3 on turn one (and +0 on some migrated saves) instead of what you'll really get.

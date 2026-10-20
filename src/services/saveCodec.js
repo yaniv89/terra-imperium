@@ -59,6 +59,6 @@ export const saveMetadata = (state) => ({
   nation_name: state.nations?.[state.playerNationId]?.name ?? null,
   turn_number: state.turnNumber,
   game_year: Math.round(state.year),
-  age_id: state.age,
+  age_id: state.techAgeId, // the player's age (its research age)
   game_status: state.gameStatus
 });

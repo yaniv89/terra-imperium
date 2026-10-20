@@ -132,31 +132,31 @@ export const getActiveReforms = (nation) => {
 export const getGovernmentReformEffectSum = (nation, key) =>
   getActiveReforms(nation).reduce((sum, reform) => sum + (reform.effects?.[key] || 0), 0);
 
-export const canChangeGovernmentType = (nation, newTypeId, calendarAgeId) => {
+export const canChangeGovernmentType = (nation, newTypeId, nationAgeId) => {
   const type = GOVERNMENT_TYPES[newTypeId];
   if (!type || nation?.government?.type === newTypeId) return false;
-  if (getAgeIndex(type.minAgeId) > getAgeIndex(calendarAgeId)) return false;
+  if (getAgeIndex(type.minAgeId) > getAgeIndex(nationAgeId)) return false;
   return meetsIdentityGate(newTypeId, nation?.identity);
 };
 
-export const canEnactReform = (nation, ageId, reformId, calendarAgeId) => {
+export const canEnactReform = (nation, ageId, reformId, nationAgeId) => {
   const type = nation?.government?.type;
   if (!type) return false;
-  if (getAgeIndex(ageId) > getAgeIndex(calendarAgeId)) return false;
+  if (getAgeIndex(ageId) > getAgeIndex(nationAgeId)) return false;
   if (nation.government.reforms?.[ageId]) return false; // once per tier — it locks in
   return getReformChoices(type, ageId).some((r) => r.id === reformId);
 };
 
-// On a type change, every age tier up to (and including) the calendar age that the NEW type
+// On a type change, every age tier up to (and including) the nation's own age that the NEW type
 // actually offers reforms for is filled with that type's first choice (plan: "Earlier-tier slots
-// are filled with the first choice") — ages beyond the calendar stay unset, to be picked later via
+// are filled with the first choice") — ages beyond the nation's age stay unset, to be picked later via
 // ENACT_GOVERNMENT_REFORM as the nation actually reaches them.
 // `picks` ({ [ageId]: reformId }, optional, I140): the player's own choice for a tier, used when it
 // names a real reform of that tier; anything else falls back to the first choice.
-export const resetReformsForType = (newTypeId, calendarAgeId, picks = null) => {
+export const resetReformsForType = (newTypeId, nationAgeId, picks = null) => {
   const reforms = {};
   Object.entries(GOVERNMENT_REFORMS[newTypeId] || {}).forEach(([ageId, choices]) => {
-    if (getAgeIndex(ageId) <= getAgeIndex(calendarAgeId) && choices.length) {
+    if (getAgeIndex(ageId) <= getAgeIndex(nationAgeId) && choices.length) {
       reforms[ageId] = choices.some((c) => c.id === picks?.[ageId]) ? picks[ageId] : choices[0].id;
     }
   });
@@ -164,6 +164,6 @@ export const resetReformsForType = (newTypeId, calendarAgeId, picks = null) => {
 };
 
 /** The reform tiers a switch to `newTypeId` fills now: [{ ageId, options }] (I140: the player picks). */
-export const reformSlotsForType = (newTypeId, calendarAgeId) => Object.entries(GOVERNMENT_REFORMS[newTypeId] || {})
-  .filter(([ageId, choices]) => getAgeIndex(ageId) <= getAgeIndex(calendarAgeId) && choices.length)
+export const reformSlotsForType = (newTypeId, nationAgeId) => Object.entries(GOVERNMENT_REFORMS[newTypeId] || {})
+  .filter(([ageId, choices]) => getAgeIndex(ageId) <= getAgeIndex(nationAgeId) && choices.length)
   .map(([ageId, options]) => ({ ageId, options }));

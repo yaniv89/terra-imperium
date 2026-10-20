@@ -727,7 +727,7 @@ const Map2DView = ({
     });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interactive, projection, state.regions, state.age, state.nations, zoomK, selectedRegion, handleClick]);
+  }, [interactive, projection, state.regions, state.techAgeId, state.nations, zoomK, selectedRegion, handleClick]);
 
   useEffect(()=>{
     if(!interactive || !hudOffset || !polygons || !projection || window.__E2E_MAP_TEST__!==true)return undefined;
@@ -806,7 +806,7 @@ const Map2DView = ({
       )}
       <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} onSelectTile={onSelectTile} onSelectArmy={onSelectArmy} close={transform.k >= CLOSE_ZOOM_K} />
       <RaidMarkersOverlay projection={projection} transform={transform} width={width} height={height} />
-      <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
+      <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={ageOf(state, state.playerNationId)} />
       <MapZoomControls
         style={{ insetInlineEnd: insets.end + 8 }}
         className={hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}

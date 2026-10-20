@@ -9,6 +9,7 @@ import { ActionTypes } from '../data/types';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { GOVERNMENT_TYPES, canChangeGovernmentType, getActiveReforms, reformSlotsForType } from '../data/government';
 import { AGES } from '../data/ages';
+import { ageOf } from './nationState';
 import { authorityOf, canEnactLaws, AUTHORITY_NO_LAWS } from './authority';
 
 const snapshot = (state, me) => {
@@ -30,7 +31,7 @@ export const previewGovernmentChange = (state, typeId, picks = null) => {
   const type = GOVERNMENT_TYPES[typeId];
   const cost = ACTION_COSTS.changeGovernmentType;
   if (!nation || !type) return { ok: false, reason: 'Unknown government', cost, lines: [] };
-  if (!canChangeGovernmentType(nation, typeId, state.age)) return { ok: false, reason: 'Not available to you yet', typeName: type.name, cost, lines: [] };
+  if (!canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId))) return { ok: false, reason: 'Not available to you yet', typeName: type.name, cost, lines: [] };
 
   const affordable = Object.entries(cost).every(([k, v]) => (state.resources?.[k] || 0) >= v);
   // Run the real action with the cost covered, so the preview works even when it is not affordable yet.
@@ -52,6 +53,6 @@ export const previewGovernmentChange = (state, typeId, picks = null) => {
   if (after.reforms.length) lines.push(`Reforms for the new government (you choose): ${after.reforms.join(', ')}.`);
   if (before.reforms.length) lines.push(`You lose: ${before.reforms.join(', ')}.`);
   const chosenIds = next.nations[me].government?.reforms || {};
-  const reformSlots = reformSlotsForType(typeId, state.age).map((slot) => ({ ageId: slot.ageId, ageName: AGES[slot.ageId]?.name || slot.ageId, options: slot.options, chosen: chosenIds[slot.ageId] || slot.options[0].id }));
+  const reformSlots = reformSlotsForType(typeId, ageOf(state, state.playerNationId)).map((slot) => ({ ageId: slot.ageId, ageName: AGES[slot.ageId]?.name || slot.ageId, options: slot.options, chosen: chosenIds[slot.ageId] || slot.options[0].id }));
   return { ok: true, affordable, reason: null, typeName: type.name, cost, before, after, stabilityChange, authorityChange, locksLaws, lawsAlreadyLocked: !before.canEnactLaws, reformsLost: before.reforms, reformsChosen: after.reforms, reformSlots, lines };
 };

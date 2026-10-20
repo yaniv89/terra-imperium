@@ -42,7 +42,7 @@ export const inspectSave = async (client, adminId, saveId) => {
     nationName: state.nations?.[state.playerNationId]?.name,
     turnNumber: state.turnNumber,
     year: state.year,
-    age: state.age,
+    age: state.techAgeId, // the player's age (its research age)
     gameStatus: state.gameStatus,
     regionsOwned: regions.filter((r) => r.owner === state.playerNationId).length,
     treasury: state.resources?.gold ?? null,

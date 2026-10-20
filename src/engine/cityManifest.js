@@ -41,7 +41,6 @@ export const MAX_CARRIED_SHARE = 0.5; // of houses, of buildings; the size floor
 
 /** The age a nation's cities are built in (the close view's rule). */
 export const cityAgeOf = (state, nationId) => {
-  if (!nationId) return state.age;
   if (nationId === state.playerNationId) return ageOf(state, state.playerNationId);
   return ageOf(state, nationId);
 };

@@ -10,6 +10,7 @@ import { AGES } from '../../data/ages';
 import { useT } from '../../i18n/useT';
 import { ageName } from '../../i18n';
 import { logText } from '../../i18n/messageText';
+import { ageOf } from '../../engine/nationState';
 
 // Log type styling configuration
 const LOG_STYLES = {
@@ -289,7 +290,7 @@ const LogConsole = () => {
                       flex justify-between items-center shrink-0 bg-fa-panel/50 pl:hidden">
         <span>{t('log.footer', { turn: state.turnNumber, year: state.year })}</span>
         <span className="flex items-center gap-2">
-          {ageName(state.age, AGES[state.age]?.name)}
+          {ageName(ageOf(state, state.playerNationId), AGES[ageOf(state, state.playerNationId)]?.name)}
         </span>
       </div>
     </div>

@@ -137,9 +137,8 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
 
   it('adopts a real government once old enough to leave Tribal behind', () => {
     const state = makeState({
-      age: 'classical',
       regions: { [REGION_A]: makeRegion(REGION_A) },
-      nations: { [ID_ID]: makeAiNation({ government: null }) }
+      nations: { [ID_ID]: makeAiNation({ government: null, tech: { researched: [], ageId: 'classical' } }) }
     });
     const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     expect(nation.government).toBeTruthy();
@@ -290,10 +289,10 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
   describe('stability management (plan §M21 balance fix)', () => {
     it('spends ADM to raise stability instead of any other decision when at the AI threshold and affordable', () => {
       const state = makeState({
-        age: 'classical', // old enough that a government decision would otherwise win priority
         regions: { [REGION_A]: makeRegion(REGION_A) },
         nations: {
           [ID_ID]: makeAiNation({
+            tech: { researched: [], ageId: 'classical' }, // old enough that a government decision would otherwise win priority
             government: null,
             stability: -1,
             economy: { gold: 1000, hr: 0, techPoints: 0, adm: 1000, dip: 0, mil: 0 }
@@ -326,9 +325,8 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
 
     it('never goes into debt — no-op when it cannot afford the cost, even at the threshold', () => {
       const state = makeState({
-        age: 'classical',
         regions: { [REGION_A]: makeRegion(REGION_A) },
-        nations: { [ID_ID]: makeAiNation({ government: null, stability: -1, economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 } }) }
+        nations: { [ID_ID]: makeAiNation({ tech: { researched: [], ageId: 'classical' }, government: null, stability: -1, economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 } }) }
       });
       const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
       expect(nation.stability).toBe(-1);

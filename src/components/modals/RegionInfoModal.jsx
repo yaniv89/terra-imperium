@@ -65,6 +65,7 @@ import { useT } from '../../i18n/useT';
 import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { t as tNow, hasKey } from '../../i18n/core';
+import { ageOf } from '../../engine/nationState';
 // a nation's name in the current language (a people's title, or an independent's form)
 const pn = (n, id = n?.id) => (n ? nameNow('people', id, n.name) : undefined);
 const isReachable = (fromRegionId, toRegionId, age) =>
@@ -159,7 +160,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     : [];
   const amphibiousSources = (!isPlayerOwned && isCoastal(regionId))
     ? Object.values(state.units)
-      .filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age))
+      .filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, ageOf(state, state.playerNationId)))
       .map((u) => ({ unit: u, cargoCount: Object.values(state.units).filter((c) => c.embarkedOn === u.id).length,
         blockedReason: describeAttackBlock(validateAmphibious(state, u.id, regionId)) }))
       .filter(({ cargoCount }) => cargoCount > 0)
@@ -168,7 +169,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     ? Object.values(state.units).filter((u) => u.regionId === regionId && u.domain === 'naval' && u.ownerId !== state.playerNationId)
     : [];
   const navalEngagementSources = (!isPlayerOwned && defendingNavalUnits.length > 0)
-    ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age)).map((u) => u.regionId))]
+    ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, ageOf(state, state.playerNationId))).map((u) => u.regionId))]
     : [];
   // The war to settle when this region is held by your army (its owner is the enemy).
   const occupationWar = regionState.occupiedBy === state.playerNationId
@@ -624,7 +625,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               </div>
               <div className="space-y-1">
                 {units.map((unit) => (
-                  <UnitLine key={unit.id} unit={unit} age={state.age} commander={unit.commanderId ? state.hiredCommanders?.[unit.commanderId] : null} />
+                  <UnitLine key={unit.id} unit={unit} age={ageOf(state, state.playerNationId)} commander={unit.commanderId ? state.hiredCommanders?.[unit.commanderId] : null} />
                 ))}
               </div>
               {ownerId === state.playerNationId && units.some((u) => u.domain !== 'naval' && !u.embarkedOn) && (() => {

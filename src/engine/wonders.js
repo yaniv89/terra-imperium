@@ -13,6 +13,7 @@ import { getTiles } from '../data/geo/tiles';
 import { onHomeland } from './world/cultureZones';
 import { tileFacts } from '../data/tileYields';
 import { getAgeIndex } from '../data/ages';
+import { ageOf } from './nationState';
 import { GREAT_PROJECTS, GREAT_PROJECT_TIER_COST, meetsSiteRule } from '../data/greatProjects';
 
 export const WONDER_PRODUCTION_PER_TURN = 25;
@@ -48,7 +49,7 @@ export const canQueueWonder = (state, city, projectId, tier = 1, nationId = stat
   const project = GREAT_PROJECTS[projectId];
   if (!project || !city) return { ok: false, reason: 'No such wonder.' };
   if (!city.owner || city.owner !== nationId) return { ok: false, reason: 'Not your city.' };
-  if (getAgeIndex(project.ageId) > getAgeIndex(state.age)) return { ok: false, reason: `Needs the ${project.ageId} age.` };
+  if (getAgeIndex(project.ageId) > getAgeIndex(ageOf(state, nationId))) return { ok: false, reason: `Needs the ${project.ageId} age.` };
   const queued = [city.production?.current, ...(city.production?.queue || [])].some((i) => i?.kind === 'wonder' && i.projectId === projectId);
   if (queued) return { ok: false, reason: 'Already in the queue.' };
   const entry = state.greatProjects?.[projectId];
