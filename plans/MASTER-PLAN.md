@@ -15,7 +15,7 @@ says what to build, in what order, and what must not be forgotten.
 | `plans/peoples-and-world-setup.md` | the 150 peoples, world sizes, start screen, titles, city names, art themes, map quality | current |
 | `plans/data/cities/*.json` | 3,000 city names (150 peoples x 20) | draft, web check pending |
 | `plans/independent-cities.md` | independents: raids, sack, razing, tribute, joining, AI | current, battle parts replaced by section 6 here |
-| `plans/eras-origins-and-future.md` | nine ages, units, robots, powers, governments | **later** (decision 32): five ages now |
+| `plans/eras-origins-and-future.md` | nine ages, units, robots, powers, governments | **later**; decision 32 (five ages) superseded 2026-10-20 by `plans/2026-10-20-001-feat-eight-ages-plan.md` (eight ages by tech) |
 | `plans/settle-rules.md` | one Civ-style spacing rule (R1, R2, R5 to R7) | current; R3 and R4 only for the legacy 240-nation world |
 | `plans/terra-imperium-rts-plan.md` | the RTS battle design (economy, ledgers, outcome, saves, tests) | current, amended by section 6 here |
 | `plans/SIGNATURE-UNITS-PLAN.md` | signature units' rules (phase SU): kits over the base unit, a points budget, macro rules, sim and Auto, parity per unit, AI, UI | current, not started |
@@ -53,6 +53,8 @@ Decisions of 2026-10-06, second round:
     (section 6.8).
 32. **Five ages** (Bronze to Modern) for now. The nine-age plan (`eras-origins-and-future.md`) is
     the future, after its art exists; nothing in phases 1 to 13 below depends on it.
+    **Superseded on 2026-10-20** by `plans/2026-10-20-001-feat-eight-ages-plan.md`: eight ages by
+    tech, and every game starts in the Stone Age.
 33. **Field battles are decisive**: the side that loses a battle away from a city loses the units
     still on the field; the winner's units gain XP (section 6.9).
 34. **Forts start battles** against enemies that come near, and **armies cross rivers** (section 6.9).
@@ -81,13 +83,13 @@ Decision of 2026-10-07:
 | Emergence | eras 3.2 and 12 use emergence by year | **no emergence** of majors (roadmap 5); late peoples arrive as independents |
 | AI tiers | eras 11 keeps Tier 1 only | **every major is Tier 1** (independents 5); independents have their own cheap AI |
 | Distances | gaps measured on the frequency-75 grid ("6 hexes") | **write them in km** (`ringsForKm`): the 6-hex gap is 612 km (8 rings at frequency 100); spacing 306 km (4 rings) |
-| Eras in the RTS plan | 5 eras vs the roadmap's 9 ages | **5 ages now** (decision 32); catalogs keyed by the age registry (`src/data/ages.js`) so the 9 ages plug in later |
+| Eras in the RTS plan | 5 eras vs the roadmap's 9 ages | **5 ages** (decision 32, superseded 2026-10-20 by `plans/2026-10-20-001-feat-eight-ages-plan.md`: eight ages by tech); catalogs keyed by the age registry (`src/data/ages.js`) |
 | Base-building | review section 4.1 said "great sieges only" | **every assault** (decision 23) |
 | The globe | roadmap 22 "sharper globe" | **hidden, then removed** (decision 28) |
 | Battle size | RTS plan 500 standard | **300 standard** (decision 25) |
 | Population | review: the brought army needs no houses | **every unit takes population** (decision 30) |
 | Field-battle camps | review: a light camp | **full base-building** (decision 36) |
-| Default start | roadmap 18 to 19: nine ages, Origins start in 5000 BCE, game ends 2500 | **five ages for now** (decision 32): the Dawn start (2000 BCE) stays the default until the nine ages land |
+| Default start | roadmap 18 to 19: nine ages, Origins start in 5000 BCE, game ends 2500 | **superseded 2026-10-20** (decision 32, now `plans/2026-10-20-001-feat-eight-ages-plan.md`): every game starts in the Stone Age; the Dawn start (2000 BCE) is no longer the default |
 | Estates and succession | eras 10 adds a Synthetics estate; succession drives pretenders | **both removed** (decision 37); civil wars keep other causes |
 
 The Jerusalem and Ramallah clash of the legacy world does not arise in new games: the pool has
