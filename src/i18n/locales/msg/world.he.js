@@ -48,9 +48,6 @@ export default {
   'm.world.emerges': '{nation} מופיעה ב{city}.',
   'm.world.revolution': '{nation}: מהפכה מפילה את הסדר הישן.',
 
-  'm.world.succession': '{ended}{ruler} מבית {house} מולך כעת (מנהל {adm}, דיפלומטיה {dip}, צבא {mil}{traits}).',
-  'm.world.reignEnded': '{ruler} מבית {house} מלך {turns} תורות. ',
-  'm.world.successionTraits': '; {traits}',
   'm.world.noLegacy': '{age} מסתיים עם {n} מטרות שהושגו: שום מורשת לא עוברת הלאה.',
   'm.world.legacy': 'מורשת {age}: {bonuses} למשך {turns} תורות.',
 

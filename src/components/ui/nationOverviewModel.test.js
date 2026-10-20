@@ -19,7 +19,6 @@ describe('nation overview model (W17)', () => {
     expect(m.cities).toBeGreaterThan(0);
     expect(m.ruler.name).toBe(n.ruler.name);
     expect(m.ruler.skills.map((k) => k.value)).toEqual([n.ruler.adm, n.ruler.dip, n.ruler.mil]);
-    expect(m.ruler.reignTurns).toBe(0);
     expect(m.government.title).toBe(n.name);
     if (m.government.nextTitle) expect(m.government.nextTitle.needed).toBe(EMPIRE_CITY_COUNT);
     expect(m.stability.authority).toBe(authorityOf(s, FR).total);

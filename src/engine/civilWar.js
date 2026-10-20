@@ -27,7 +27,6 @@
 // insurgents down in proportion to its real fielded strength (AI_SUPPRESS_CHANCE_SCALE).
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { getNeighborIds } from '../data/regions';
-import { generateRuler } from './rulers';
 import { ageOf } from './nationState';
 import { getAvailableGovernmentTypes, resetReformsForType } from '../data/government';
 import { DEFAULT_LAWS } from '../data/laws';
@@ -177,7 +176,8 @@ export const processCivilWarTurn = (state, regionsIn, unitsIn, nation, nationId,
   const holdStreak = holdShare >= CIVIL_WAR_HOLD_SHARE_TO_LOSE ? (nation.civilWar.holdStreak || 0) + 1 : 0;
 
   if (holdStreak >= CIVIL_WAR_HOLD_STREAK_TO_LOSE_TURNS) {
-    // Plan: "new ruler and dynasty, government type reroll, laws reset to base, -20 prestige" — the
+    // Plan: "government type reroll, laws reset to base, -20 prestige"; the ruler stays (one ruler a
+    // game, differentiation plan U5) — the
     // insurgents win, but the NATION survives (this is explicitly not a defeat condition). Its own
     // insurgent units/region markers are cleared as part of the regime change, not left to dissolve
     // on their own the following turn.
@@ -192,7 +192,6 @@ export const processCivilWarTurn = (state, regionsIn, unitsIn, nation, nationId,
 
     const availableTypes = getAvailableGovernmentTypes(ageOf(state, nationId), nation.identity).filter((t) => t.id !== nation.government?.type);
     const newType = availableTypes.length > 0 ? availableTypes[Math.floor(rng.next() * availableTypes.length)].id : nation.government?.type;
-    const newRuler = generateRuler(nationId, rng, { turnNumber, age: ageOf(state, nationId), gameSpeed: state.gameSpeed });
 
     return {
       regions: clearedRegions,
@@ -200,7 +199,6 @@ export const processCivilWarTurn = (state, regionsIn, unitsIn, nation, nationId,
       nation: {
         ...nation,
         civilWar: null,
-        ruler: newRuler,
         government: { type: newType, reforms: resetReformsForType(newType, ageOf(state, nationId)) },
         laws: { ...DEFAULT_LAWS },
         prestige: clampPrestige((nation.prestige || 0) - CIVIL_WAR_LOSE_PRESTIGE_PENALTY)

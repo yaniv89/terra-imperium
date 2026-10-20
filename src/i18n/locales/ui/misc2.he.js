@@ -54,8 +54,6 @@ export default {
   'de.modifierDefault': 'שינוי',
   'de.claim': 'תביעה: {who}',
   'de.unrestIn': 'אי־שקט ב{place}',
-  'de.rulerGains': 'השליט מקבל: {trait}',
-  'de.rulerLoses': 'השליט מאבד: {trait}',
   'de.dev': '{place}: {type} {v}',
   'de.dev.tax': 'מסים',
   'de.dev.production': 'ייצור',

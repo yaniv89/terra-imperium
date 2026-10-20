@@ -3,7 +3,7 @@ import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { GOVERNMENT_TYPES, canChangeGovernmentType } from '../data/government';
 import { previewGovernmentChange } from './governmentPreview';
-import { generateAdvisorCandidates, successionLine, courtNames } from './rulers';
+import { generateAdvisorCandidates, courtNames } from './rulers';
 import { createRng } from '../utils/rng';
 import { neighbourWorld } from './testWorld';
 
@@ -42,11 +42,5 @@ describe('court names and successions (I145, I147)', () => {
       expect(names).not.toContain('Zed');
     }
     expect(courtNames({ ruler: { name: 'A' }, advisors: { adm: { name: 'B' } } }, { adm: [{ name: 'C' }] })).toEqual(['A', 'B', 'C']);
-  });
-
-  it('one succession line names the old and the new ruler', () => {
-    const line = successionLine({ name: 'Old', dynasty: 'X', reignStartTurn: 1 }, { name: 'New', dynasty: 'X', adm: 3, dip: 2, mil: 1, traits: [], reignStartTurn: 9 }).message;
-    expect(line).toContain('Old of House X reigned 8 turns');
-    expect(line).toContain('New of House X now rules');
   });
 });

@@ -62,6 +62,7 @@ describe('whole-world long runs', () => {
     let a = world(4242); let b = world(4242);
     const prints = [];
     let warsDeclared = 0;
+    const rulers = Object.fromEntries(Object.entries(a.nations).map(([id, n]) => [id, n.ruler]));
     for (let t = 0; t < TURNS && a.gameStatus === GameStatus.ACTIVE; t++) {
       a = advance(a); b = advance(b);
       warsDeclared += a.logs.filter((l) => l.year === a.year && /declared war/.test(l.message)).length;
@@ -86,5 +87,7 @@ describe('whole-world long runs', () => {
     // Wars happen over 150 turns (on the Dawn world a one-city war ends within a few turns and
     // leaves the war list, so the declarations seen along the way are what counts).
     expect(warsDeclared).toBeGreaterThan(0);
+    // One ruler a game (differentiation plan U5): no reign ever ends.
+    Object.entries(a.nations).forEach(([id, n]) => { if (rulers[id]) expect(n.ruler, id).toEqual(rulers[id]); });
   }, 600000);
 });

@@ -295,15 +295,6 @@ export const applyEventEffects = (state, event, optionIndex) => {
     }
   }
 
-  // ruler: { addTrait, removeTrait } — src/data/traits.js's existing 20-trait table.
-  if (effects.ruler && next.nations[playerNationId]?.ruler) {
-    const player = next.nations[playerNationId];
-    let traits = player.ruler.traits || [];
-    if (effects.ruler.removeTrait) traits = traits.filter((t) => t !== effects.ruler.removeTrait);
-    if (effects.ruler.addTrait && !traits.includes(effects.ruler.addTrait)) traits = [...traits, effects.ruler.addTrait];
-    next.nations = { ...next.nations, [playerNationId]: { ...player, ruler: { ...player.ruler, traits } } };
-  }
-
   // dev: { regionId, type, delta } — a direct, permanent development bump (distinct from the
   // Develop Province ACTION's ADM/DIP/MIL cost — the event itself IS the cost here).
   if (effects.dev && next.regions[effects.dev.regionId]) {

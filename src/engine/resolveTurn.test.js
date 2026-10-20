@@ -1177,18 +1177,11 @@ describe('resolveTurn national power (plan §M4)', () => {
     expect(next.nations.de.prestige).toBeLessThan(100);
   });
 
-  it('crowns a new ruler when a reign ends, with no heir and no stability cost', () => {
+  it('keeps the one ruler: no reign ends, no heir and no stability cost (differentiation plan U5)', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr', rngSeed: 1 }));
-    const state = {
-      ...base,
-      nations: {
-        ...base.nations,
-        fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, stability: 0, ruler: { ...base.nations.fr.ruler, reignEndsTurn: base.turnNumber + 1 } }
-      }
-    };
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, stability: 0 } } };
     const next = resolveTurn(state);
-    expect(next.nations.fr.ruler.id).toBe(`ruler_fr_${base.turnNumber + 1}`);
-    expect(next.nations.fr.ruler.dynasty).toBe(base.nations.fr.ruler.dynasty);
+    expect(next.nations.fr.ruler).toEqual(base.nations.fr.ruler);
     expect(next.nations.fr.stability).toBe(0);
     expect(next.nations.fr).not.toHaveProperty('heir');
     expect(next.nations.fr).not.toHaveProperty('estates');

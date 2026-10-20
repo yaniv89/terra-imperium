@@ -18,11 +18,10 @@ import { PEOPLES } from '../../data/peoples';
 import { REGIONS_DATA } from '../../data/regions';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getLaw } from '../../data/laws';
-import { TRAITS } from '../../data/traits';
 import { formatMoney, formatNumber } from '../../utils/helpers';
 import { t as tNow, getLanguage, isolateLtr, formatNumber as localNumber } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
-import { buildingCategoryLabel, lawName, traitName } from '../../i18n/gameText';
+import { buildingCategoryLabel, lawName } from '../../i18n/gameText';
 
 // Display only (EventModal): it is rebuilt on a language change and never saved, so it lives with the
 // components and may use the names helpers (src/engine may import only i18n/core.js).
@@ -74,11 +73,6 @@ const DESCRIBERS = {
   addModifier: (v) => ({ text: t('modifier', { label: v.label || t('modifierDefault'), turns: v.duration }), sign: 'neutral' }),
   addClaim: (v) => ({ text: t('claim', { who: nationName(v) }), sign: 'neutral' }),
   spawnRebels: (v) => ({ text: t('unrestIn', { place: regionName(v.regionId) }), sign: 'negative' }),
-  ruler: (v) => {
-    if (v.addTrait) return { text: t('rulerGains', { trait: traitName(v.addTrait, TRAITS[v.addTrait]?.name || v.addTrait) }), sign: 'positive' };
-    if (v.removeTrait) return { text: t('rulerLoses', { trait: traitName(v.removeTrait, TRAITS[v.removeTrait]?.name || v.removeTrait) }), sign: 'negative' };
-    return null;
-  },
   dev: (v) => ({ text: t('dev', { place: regionName(v.regionId), type: t(`dev.${v.type}`), v: signed(v.delta) }), sign: sg(v.delta) }),
   construct: (v) => ({ text: t('construct', { category: buildingCategoryLabel(v.category, BUILDING_CATEGORIES[v.category]?.label || v.category) }), sign: 'positive', tooltip: regionName(v.regionId) }),
   law: (v) => {

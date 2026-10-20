@@ -121,7 +121,7 @@ import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { initFog, updateFog, fogOn, hasMet } from './fog';
-import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, courtNames } from './rulers';
+import { createRuler, generateAdvisorCandidates, getAdvisorHireCost, courtNames } from './rulers';
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
 import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
@@ -212,7 +212,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   // Every nation of the world gets a record — any of them can be the player's.
   const nations = {};
   Object.entries(nationSource).forEach(([id, data]) => {
-    const ruler = generateRuler(id, rulerRng, { turnNumber: 1, age, gameSpeed });
+    const ruler = createRuler(id);
     nations[id] = {
       id,
       name: data.name,

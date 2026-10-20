@@ -54,8 +54,6 @@ export default [
   ['de.modifierDefault', 'Modifier', 'שינוי'],
   ['de.claim', 'Claim: {who}', 'תביעה: {who}'],
   ['de.unrestIn', 'Unrest in {place}', 'אי־שקט ב{place}'],
-  ['de.rulerGains', 'Ruler gains {trait}', 'השליט מקבל: {trait}'],
-  ['de.rulerLoses', 'Ruler loses {trait}', 'השליט מאבד: {trait}'],
   ['de.dev', '{place} {type} {v}', '{place}: {type} {v}'],
   ['de.dev.tax', 'Tax', 'מסים'],
   ['de.dev.production', 'Production', 'ייצור'],

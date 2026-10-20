@@ -54,8 +54,6 @@ export const difficultyDescription = (id, english) => D(`diff.${id}.desc`, engli
 export const identityPole = (axisId, sign, english) => D(`ident.${axisId}.${sign}`, english);
 export const identityDescription = (axisId, english) => D(`ident.${axisId}.desc`, english);
 
-export const traitName = (id, english) => D(`trait.${id}`, english ?? id);
-export const traitDescription = (id, english) => D(`trait.${id}.desc`, english);
 export const branchName = (id, english) => D(`branch.${id}`, english ?? id);
 export const perkName = (id, english) => D(`perk.${id}`, english ?? id);
 export const perkDescription = (id, english) => D(`perk.${id}.desc`, english);
@@ -91,8 +89,8 @@ export const eventTitle = (event, vars) => eventText(event, 'title', event?.titl
 export const eventDescription = (event, vars) => eventText(event, 'desc', event?.description, vars);
 export const eventOptionLabel = (event, index, vars) => eventText(event, `opt${index}`, event?.options?.[index]?.label, vars);
 
-/** A ruler's line: "William of House Valois"; in Hebrew "ויליאם מבית ולואה". */
-export const rulerLine = (ruler) => (getLanguage() === 'he' ? `${nameNow('person', null, ruler.name)} מבית ${nameNow('person', null, ruler.dynasty)}` : `${ruler.name} of House ${ruler.dynasty}`);
+/** A ruler's line: the name (one ruler a game, no house). */
+export const rulerLine = (ruler) => nameNow('person', null, ruler.name);
 export const currentLanguage = getLanguage;
 
 // Wrappers over the data helpers, so a view can swap one import and keep its call.

@@ -54,10 +54,7 @@ export default {
   'm.world.emerges': '{nation} emerges at {city}.',
   'm.world.revolution': '{nation}: revolution overturns the old order.',
 
-  // rulers (rulers.js successionLine) and era goals (eraGoals.js)
-  'm.world.succession': '{ended}{ruler} of House {house} now rules (ADM {adm}, DIP {dip}, MIL {mil}{traits}).',
-  'm.world.reignEnded': '{ruler} of House {house} reigned {turns} turns. ',
-  'm.world.successionTraits': '; {traits}',
+  // era goals (eraGoals.js)
   'm.world.noLegacy': 'The {age} ends with {n} of its goals met: no legacy carries over.',
   'm.world.legacy': 'Legacy of the {age}: {bonuses} for {turns} turns.',
 

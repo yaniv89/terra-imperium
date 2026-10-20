@@ -11,7 +11,7 @@ import { nameNow } from '../../i18n/names';
 import { useT } from '../../i18n/useT';
 import { isolateLtr } from '../../i18n';
 import { advisorQuote, lawEffectText, lawLockText, describeRulesText, governmentCardLines, poolLabel } from './empireText';
-import { techName, taxRateName, taxRateDescription, wonderName, wonderDescription, governmentName, reformName, reformDescription, lawName, lawLine, identityDescription, identityPole, rulerLine, traitName } from '../../i18n/gameText';
+import { techName, taxRateName, taxRateDescription, wonderName, wonderDescription, governmentName, reformName, reformDescription, lawName, lawLine, identityDescription, identityPole, rulerLine } from '../../i18n/gameText';
 import { t as tNow } from '../../i18n';
 import React from 'react';
 import { WonderIcon } from '../ui/icons';
@@ -39,7 +39,6 @@ import { canAfford, formatNumber } from '../../utils/helpers';
 import { getAdvisorHireCost } from '../../engine/rulers';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
 import { getModifier } from '../../engine/modifiers/sheet';
-import { TRAITS } from '../../data/traits';
 import { ActionButton, CollapsibleSection } from '../ui';
 import { cityGroups, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_ASSIGN_TURNS, GOVERNOR_REFRESH_TURNS } from '../../engine/governors';
 import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engine/authority';
@@ -253,16 +252,12 @@ const DomesticPanel = () => {
           </div>
           <div className="text-[10px] text-fa-muted mt-0.5">
             {poolLabel('adm')} {ruler.adm} · {poolLabel('dip')} {ruler.dip} · {poolLabel('mil')} {ruler.mil}
-            {ruler.traits?.length > 0 && ` · ${ruler.traits.map((id) => traitName(id, TRAITS[id]?.name)).join(', ')}`}
           </div>
           <div className="text-[10px] text-fa-muted" data-testid="ruler-skill-help">
             {tNow('p1.dom.skillHelp')} {powerPoolsShort()}
           </div>
-          <div className="text-[10px] text-fa-muted">
-            {tNow('p1.dom.reignEnds', { turn: ruler.reignEndsTurn })}
-          </div>
           <div className="text-[10px] text-fa-muted mt-1 border-t border-fa-line pt-1">
-            {tNow(playerNation?.government?.type === 'monarchy' ? 'p1.dom.reignNextHouse' : 'p1.dom.reignNext')}
+            {tNow('p1.no.noHeirs')}
           </div>
         </div>
       )}

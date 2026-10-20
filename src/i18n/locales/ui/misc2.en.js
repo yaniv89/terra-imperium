@@ -54,8 +54,6 @@ export default {
   'de.modifierDefault': 'Modifier',
   'de.claim': 'Claim: {who}',
   'de.unrestIn': 'Unrest in {place}',
-  'de.rulerGains': 'Ruler gains {trait}',
-  'de.rulerLoses': 'Ruler loses {trait}',
   'de.dev': '{place} {type} {v}',
   'de.dev.tax': 'Tax',
   'de.dev.production': 'Production',

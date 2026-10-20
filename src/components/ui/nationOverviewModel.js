@@ -1,8 +1,7 @@
 // src/components/ui/nationOverviewModel.js
 // The nation overview (W17, plans/UI-DESIGN.md): the player's nation at a glance, opened from the
 // name on the top bar. Pure; reads only what the engine keeps:
-//   ruler        name and dynasty, turns on the throne, ADM / DIP / MIL, traits (no heirs:
-//                succession went with decision 37)
+//   ruler        name and ADM / DIP / MIL (one ruler for the whole game, differentiation plan U5)
 //   government   the type and its reforms, the title, the next title (the realm form at
 //                EMPIRE_CITY_COUNT cities, nationTitles.js)
 //   stability    -3 to +3, legitimacy of 100, and authority with its parts as the reasons
@@ -16,7 +15,6 @@ import { ageOf, getResearched } from '../../engine/nationState';
 import { PEOPLES } from '../../data/peoples';
 import { titleFor, EMPIRE_CITY_COUNT } from '../../data/nationTitles';
 import { getGovernmentType, getActiveReforms } from '../../data/government';
-import { TRAITS } from '../../data/traits';
 import { getCapital, getNationCapital } from '../../data/regions';
 import { DOMINATION_CAPITAL_SHARE, CONQUEROR_CITY_SHARE, ECONOMIC_HEGEMONY_SHARE, getEconomicShare } from '../../data/victoryConditions';
 import { PLAYSTYLES, ERA_LEGACY_TURNS } from '../../data/eraGoals';
@@ -26,7 +24,7 @@ import { STABILITY_MIN, STABILITY_MAX } from '../../engine/nationalPower';
 import { getPlayerRank } from '../../engine/score';
 import { t as tNow } from '../../i18n';
 import { nameNow } from '../../i18n/names';
-import { traitName, traitDescription, governmentName, reformName, reformDescription, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
+import { governmentName, reformName, reformDescription, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
 import { authorityPartLabel, poolLabel, ageShort } from '../panels/empireText';
 
 const shortAge = ageShort;
@@ -43,14 +41,11 @@ export const nationOverviewModel = (state) => {
   const r = n.ruler || null;
   const ruler = r ? {
     name: nameNow('person', null, r.name),
-    dynasty: r.dynasty ? nameNow('person', null, r.dynasty) : null,
-    reignTurns: Math.max(0, (state.turnNumber || 1) - (r.reignStartTurn || state.turnNumber || 1)),
     skills: [
       { id: 'adm', label: poolLabel('adm'), value: r.adm || 0, hint: tNow('p1.no.hint.adm') },
       { id: 'dip', label: poolLabel('dip'), value: r.dip || 0, hint: tNow('p1.no.hint.dip') },
       { id: 'mil', label: poolLabel('mil'), value: r.mil || 0, hint: tNow('p1.no.hint.mil') }
-    ],
-    traits: (r.traits || []).map((id) => TRAITS[id]).filter(Boolean).map((t) => ({ id: t.id, name: traitName(t.id, t.name), description: traitDescription(t.id, t.description), bad: Object.values(t.effects || {}).some((v) => v < 0) && !Object.values(t.effects || {}).some((v) => v > 0) }))
+    ]
   } : null;
 
   const nextTitle = people && mine.length < EMPIRE_CITY_COUNT ? titleFor(people, govType, EMPIRE_CITY_COUNT) : null;

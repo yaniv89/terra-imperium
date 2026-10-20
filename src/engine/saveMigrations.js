@@ -24,6 +24,8 @@ import { TECH_TREE } from '../data/techTree';
 import { withAgesResearched, inResearchWindow } from './research';
 import { ageOf } from './nationState';
 import { displayYear } from './displayYear';
+import { createRuler } from './rulers';
+import { PEOPLES } from '../data/peoples';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
@@ -39,7 +41,7 @@ import { displayYear } from './displayYear';
 // migrate10to11). Version 12 adds fog of war (src/engine/fog.js: explored maps, contacts, the
 // last-seen picture, arrays saved run-length encoded); a save from before it loads and starts its
 // fog from where its cities stand now (migrate11to12). A version 10 save runs both steps.
-export const CURRENT_SAVE_VERSION = 15;
+export const CURRENT_SAVE_VERSION = 16;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -370,9 +372,19 @@ export const migrate14to15 = (state) => {
   return { ...omit(state, SPACE_STATE_KEYS), nations, regions, resources: omit(state.resources || {}, ['helium3']) };
 };
 
+// v16: one ruler a game (differentiation plan U5, RULER-PLAN 7.3). Every ruler takes the fixed shape:
+// the people's ruler (a legacy nation keeps its name), attributes 3/3/3/0/0/0; the house, the reign
+// and the rolled traits go, with the dynasty streak.
+export const migrate15to16 = (state) => ({
+  ...state,
+  nations: Object.fromEntries(Object.entries(state.nations || {}).map(([id, n]) => [id, n.ruler
+    ? { ...omit(n, ['sameDynastyStreak']), ruler: { ...createRuler(id), name: PEOPLES[id]?.ruler?.name || n.ruler.name } }
+    : omit(n, ['sameDynastyStreak'])]))
+});
+
 // Versions 6 to 9 are never migrated (an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15 };
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.

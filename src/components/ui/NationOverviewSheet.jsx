@@ -76,8 +76,6 @@ const NationOverviewSheet = () => {
                 <Label>{tNow('p1.no.ruler')}</Label>
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <span className="fa-heading text-[17px] leading-tight">{m.ruler.name}</span>
-                  {m.ruler.dynasty && <span className="text-[12px] text-fa-muted">{tNow('p1.no.ofHouse', { dynasty: m.ruler.dynasty })}</span>}
-                  <span className="text-[12px] text-fa-muted">{m.ruler.reignTurns ? tNow('p1.no.reign', { count: m.ruler.reignTurns }) : tNow('p1.no.reignBegins')}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {m.ruler.skills.map((k) => (
@@ -87,11 +85,6 @@ const NationOverviewSheet = () => {
                     </div>
                   ))}
                 </div>
-                {m.ruler.traits.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {m.ruler.traits.map((t) => <span key={t.id} className={`fa-chip !min-h-[28px] ${t.bad ? 'text-fa-danger-text border-fa-danger' : ''}`} title={t.description}>{t.name}</span>)}
-                  </div>
-                )}
                 <div className="text-[11px] text-fa-muted">{tNow('p1.no.noHeirs')}</div>
               </Card>
             )}
