@@ -18,6 +18,11 @@ import { getNationCapital, REGIONS_DATA } from '../data/regions';
 import { conquerRegion } from './conquest';
 import { initFog, reviveFog } from './fog';
 import { msg, sub } from './messages';
+import { AGES, AGE_ORDER, FIRST_AGE_ID, LAST_AGE_ID, getAgeIndex } from '../data/ages';
+import { TECH_TREE } from '../data/techTree';
+import { withAgesResearched, inResearchWindow } from './research';
+import { ageOf } from './nationState';
+import { displayYear } from './displayYear';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
@@ -33,7 +38,7 @@ import { msg, sub } from './messages';
 // migrate10to11). Version 12 adds fog of war (src/engine/fog.js: explored maps, contacts, the
 // last-seen picture, arrays saved run-length encoded); a save from before it loads and starts its
 // fog from where its cities stand now (migrate11to12). A version 10 save runs both steps.
-export const CURRENT_SAVE_VERSION = 13;
+export const CURRENT_SAVE_VERSION = 14;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -304,9 +309,52 @@ const migrate11to12 = (state) => (state.fog ? state : initFog(state));
 // save carries its seed, parameters, generator version and hash there instead of any map data.
 const migrate12to13 = (state) => (state.scenario?.map ? state : { ...state, scenario: { ...(state.scenario || {}), map: { kind: 'earth' } } });
 
+// v14: ages by tech (eight-ages plan U16, KTD1, KTD10). A nation's age used to be
+// max(calendar, min(tech age, calendar + 1)); now it is only its research. So no nation is demoted
+// on load, each first gets every tech of the ages below its old effective age, then its age is
+// derived from research by the 6-of-10 rule (never below the old effective age); the calendar age
+// (state.age) is dropped, the year becomes the label, and a queued or current tech outside the new
+// research window leaves the queue. Era goal records and reforms are kept as they are.
+const oldCalendarAge = (state) => {
+  if (AGES[state.age]) return state.age;
+  const year = state.year ?? AGES[FIRST_AGE_ID].startYear;
+  return AGE_ORDER.find((id) => year >= AGES[id].startYear && year < AGES[id].endYear) || LAST_AGE_ID;
+};
+const oldEffectiveAge = (calendarId, techId) => {
+  const c = getAgeIndex(calendarId);
+  const t = getAgeIndex(techId);
+  return AGE_ORDER[t === -1 ? c : Math.max(c, Math.min(t, c + 1))];
+};
+const inWindow = (ageId) => (id) => !!TECH_TREE[id] && inResearchWindow(ageId, TECH_TREE[id]);
+const keepInWindow = (research, ageId) => {
+  if (!research) return research;
+  const ok = inWindow(ageId);
+  return { ...research, current: research.current && ok(research.current) ? research.current : null, queue: (research.queue || []).filter(ok) };
+};
+export const migrate13to14 = (state) => {
+  const calendar = oldCalendarAge(state);
+  const me = state.playerNationId;
+  let next = state;
+  Object.keys(state.nations || {}).sort().forEach((id) => {
+    const n = next.nations[id];
+    if (!n || (id !== me && !n.tech)) return;
+    const raw = id === me ? state.techAgeId : n.tech?.ageId;
+    const before = oldEffectiveAge(calendar, AGES[raw] ? raw : calendar);
+    next = withAgesResearched(next, id, before);
+    // Never below the old effective age, whatever the techs of that age say.
+    const derived = ageOf(next, id);
+    const ageId = getAgeIndex(derived) >= getAgeIndex(before) ? derived : before;
+    if (id === me) next = { ...next, techAgeId: ageId, research: keepInWindow(next.research, ageId) };
+    else next = { ...next, nations: { ...next.nations, [id]: { ...next.nations[id], tech: { ...next.nations[id].tech, ageId }, research: keepInWindow(next.nations[id].research, ageId) } } };
+  });
+  // eslint-disable-next-line no-unused-vars -- destructured only to drop the calendar age
+  const { age, ...rest } = next;
+  return { ...rest, year: displayYear(rest) };
+};
+
 // Versions 6 to 9 are never migrated (an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13 };
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.

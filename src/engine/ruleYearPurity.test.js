@@ -14,6 +14,7 @@ const COPY = /\byear: (state|next|s|input|w|st|prev|view)\.year\b/g;
 // Reads that are labels by name, each with its reason.
 const ALLOWED = [
   ['src/engine/displayYear.js', '', 'the label writer'],
+  ['src/engine/saveMigrations.js', 'const year = state.year ?? AGES[FIRST_AGE_ID].startYear;', 'the v13 save step reads the old calendar once, so no nation loses its old age'],
   ['src/engine/resolveTurn.js', 'state.year ?? displayYear(state)', 'the label the turn started with, for its logs'],
   ['src/engine/colonies.js', 'const year = state.year;', 'used only in log lines'],
   ['src/engine/diplomacy.js', 'war_${nationId}_${state.year}', 'part of an id, made unique by a counter'],

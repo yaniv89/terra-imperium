@@ -4,6 +4,10 @@ import { createInitialState, gameReducer } from './gameReducer';
 import { peoplesWorld } from './testWorld';
 import { ActionTypes } from '../data/types';
 import saveV1Fixture from './__fixtures__/save-v1.json';
+import { TECH_TREE, getTechsForAge } from '../data/techTree';
+import { AGE_ORDER, getAgeIndex } from '../data/ages';
+import { ageOf } from './nationState';
+import { auditGameState } from './stateAudit';
 
 const P = peoplesWorld({ independents: true }).playerNationId; // the player's people in the shared test world
 const capOf = (state, id = P) => state.nations[id].capitalRegionId;
@@ -175,5 +179,68 @@ describe('saveProblem (the save v7 screen)', () => {
     expect(saveProblem(null)).toBe('corrupt');
     expect(saveProblem('text')).toBe('corrupt');
     ['tooOld', 'oldGrid', 'tooNew', 'corrupt'].forEach((k) => expect(SAVE_PROBLEM_TEXT[k]).toBeTruthy());
+  });
+});
+
+// Eight-ages plan U16 (KTD1, KTD10): a version 13 save re-derives every age from research, with
+// nobody demoted below the old effective age max(calendar, min(tech, calendar + 1)).
+describe('migrateSave v13 to v14: ages by tech without demotion', () => {
+  const ids = (ageId) => getTechsForAge(ageId).map((t) => t.id);
+  // A v13 save: the calendar age and year on the state, research of its own.
+  const v13 = () => {
+    const base = JSON.parse(JSON.stringify(peoplesWorld({ independents: true, seed: 5 })));
+    const me = base.playerNationId;
+    const techTree = { ...base.techTree };
+    [...ids('bronze'), ...ids('classical').slice(0, 6), ...ids('kingdoms').slice(0, 4)].forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    const ai = Object.keys(base.nations).sort().find((id) => id !== me && base.nations[id].tech && base.nations[id].kind !== 'independent');
+    const ahead = Object.keys(base.nations).sort().find((id) => id !== me && id !== ai && base.nations[id].tech && base.nations[id].kind !== 'independent');
+    const nations = {
+      ...base.nations,
+      [ai]: { ...base.nations[ai], tech: { researched: ids('bronze').slice(0, 3), ageId: 'bronze' } },
+      [ahead]: { ...base.nations[ahead], tech: { researched: [...ids('bronze'), ...ids('classical'), ...ids('kingdoms'), ...ids('gunpowder').slice(0, 6)], ageId: 'modern' } }
+    };
+    const outOfWindow = ids('modern')[0];
+    return { me, ai, ahead, outOfWindow, state: { ...base, age: 'gunpowder', year: 1700, techAgeId: 'kingdoms', techTree, nations, research: { ...base.research, current: outOfWindow, queue: [ids('gunpowder')[0], outOfWindow] } } };
+  };
+
+  it('a calendar-Gunpowder player with 4 Kingdoms techs loads as Gunpowder, the Kingdoms techs granted', () => {
+    const { me, state } = v13();
+    const loaded = migrateSave({ version: 13, state });
+    expect(loaded.version).toBe(14);
+    expect(ageOf(loaded.state, me)).toBe('gunpowder');
+    ids('kingdoms').forEach((id) => expect(loaded.state.techTree[id].researched, id).toBe(true));
+    expect(loaded.state).not.toHaveProperty('age');
+    expect(auditGameState(loaded.state).filter((i) => i.code === 'calendar_age')).toEqual([]);
+  });
+
+  it('no nation is younger after load than its old effective age', () => {
+    const { ai, ahead, state } = v13();
+    const loaded = migrateSave({ version: 13, state });
+    const gunpowder = getAgeIndex('gunpowder');
+    Object.keys(state.nations).forEach((id) => {
+      if (!state.nations[id].tech) return;
+      expect(getAgeIndex(ageOf(loaded.state, id)), id).toBeGreaterThanOrEqual(gunpowder);
+    });
+    expect(ageOf(loaded.state, ai)).toBe('gunpowder'); // a laggard is lifted to the calendar it had
+    expect(ageOf(loaded.state, ahead)).toBe('modern'); // a leader keeps its lead (calendar + 1)
+  });
+
+  it('drops a current or queued tech outside the new window, keeps the rest; the year becomes the label', () => {
+    const { me, outOfWindow, state } = v13();
+    // A calendar-Bronze save whose research reached Kingdoms: the window is Kingdoms and Gunpowder.
+    const loaded = migrateSave({ version: 13, state: { ...state, age: 'bronze', year: -1500 } });
+    expect(ageOf(loaded.state, me)).toBe('kingdoms');
+    expect(loaded.state.research.current).toBeNull();
+    expect(loaded.state.research.queue).not.toContain(outOfWindow);
+    expect(loaded.state.research.queue).toContain(ids('gunpowder')[0]);
+    expect(loaded.state.year).toBe(900); // Kingdoms, 4 of its 10 techs: 500 + 1000 x 0.4
+  });
+
+  it('a current save loads with its ages unchanged', () => {
+    const fresh = peoplesWorld({ independents: true, seed: 5 });
+    const loaded = migrateSave({ version: CURRENT_SAVE_VERSION, state: JSON.parse(JSON.stringify(fresh)) });
+    expect(loaded.state.techAgeId).toBe(fresh.techAgeId);
+    expect(AGE_ORDER).toContain(loaded.state.techAgeId);
+    expect(Object.keys(TECH_TREE).filter((id) => loaded.state.techTree[id]?.researched)).toEqual(Object.keys(TECH_TREE).filter((id) => fresh.techTree[id]?.researched));
   });
 });
