@@ -28,6 +28,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   aiLanding.js (AI landings on the player's coast, queued), forts.js (manned forts start battles), stateAudit.js (invariant checks), plus src/utils/aiLogic.js (AI recruitment and
   war decisions). Balance harness: scripts/simulate.mjs.
 - Modifiers: src/engine/modifiers/ (`getModifier` = full sheet; `getNationBonusTotal` = static only).
+- Ages: `src/data/ages.js` is the one age registry (`AGE_ORDER`, `FIRST_AGE_ID`, `LAST_AGE_ID`, `isAgeAtLeast`, `isAgeBefore`, `agesFrom`, `nextAgeId`, `formatYear`, `artAgeFor`, per-age `power` and `unitCostMult`); never write a literal age check. Eight ages are planned (plans/2026-10-20-001-feat-eight-ages-plan.md): a nation's age is its research age only, no rule reads the calendar year, and speed is a cost multiplier by the paying nation's age.
 - `src/data/`: static game data (2,028 balanced regions, nations, techTree, buildings, resources).
 - New map (plans/civ-map-rework.md, in progress on the features branch): `src/data/geo/tiles.json`
   is a frequency-100 geodesic hex grid (100,002 cells, 29,250 land, about 77 km between neighbours; plans/math/grid-f100.md) built by `npm run build:tiles`
