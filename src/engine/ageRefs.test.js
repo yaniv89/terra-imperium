@@ -85,7 +85,6 @@ describe('independents price and raid at independentAgeOf', () => {
   const world = peoplesWorld({ seed: 11, independents: true });
   // Every major moves to the age together: one major alone ahead would widen everyone's contact
   // reach (it is the research leader, KTD5) and could change who the strongest known major is.
-  // eslint-disable-next-line no-unused-vars -- the major is named for the reader
   const withMajorAge = (state, major, ageId) => ({
     ...state,
     techAgeId: ageId,
