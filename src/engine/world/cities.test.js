@@ -71,7 +71,7 @@ describe('cities on the grid', () => {
     expect(canQueue(city, tiles, world, { kind: 'building', category: 'food', tier: 1 }).ok).toBe(false);
     expect(canQueue(city, tiles, world, { kind: 'unit', classId: 'air' }).ok).toBe(false);
     expect(canQueue(city, tiles, world, { kind: 'unit', classId: 'infantry' }).ok).toBe(true);
-    const farmTile = city.tiles.find((t) => t !== tile && canQueue(city, tiles, world, { kind: 'improvement', improvement: 'farm', tile: t }).ok);
+    const farmTile = city.tiles.find((t) => t !== tile && canQueue(city, tiles, world, { kind: 'improvement', improvement: 'farm', tile: t }, { researched: ['economy_agriculture'] }).ok);
     expect(farmTile).toBeDefined();
     city = queueItem(city, { kind: 'building', category: 'food', tier: 0 });
     city = queueItem(city, { kind: 'improvement', improvement: 'farm', tile: farmTile });
