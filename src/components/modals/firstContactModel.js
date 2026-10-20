@@ -21,6 +21,16 @@ export const newContacts = (state, before) => {
   return metNations(state).filter((id) => !before.has(id) && id !== state.playerNationId && state.nations[id] && !state.nations[id].isEliminated && !isIndependentNation(state.nations[id]));
 };
 
+/**
+ * The queue of cards waiting, as [{ id, turn }] (the turn the contact was seen). A card is for the
+ * turn of contact: one still waiting on a later turn is dropped, not shown 4 to 27 turns late and
+ * stacked behind others (mobile audit H-21). `fresh` are the ids met just now.
+ */
+export const contactQueue = (queue, fresh, turn) => {
+  const kept = queue.filter((c) => c.turn >= turn);
+  return [...kept, ...fresh.filter((id) => !kept.some((c) => c.id === id)).map((id) => ({ id, turn }))];
+};
+
 /** How the meeting happened, in words that depend on who saw whom (no invented scouts). */
 export const contactHow = ({ youSaw, theySaw, capitalSeen, capital }) => {
   const seen = capitalSeen && capital ? tNow('p2.fc.seenCapital', { capital }) : capital ? tNow('p2.fc.theirCapital', { capital }) : '';

@@ -93,6 +93,7 @@ const MarchBar = () => {
   // The army's own place, never its base ("march to from Men-nefer" while it stood at Jerusalem).
   const who = <b data-testid="march-origin">{naval ? t('march.fleet') : t('march.army')} {m.fromText || t('where.at', { name: name(march.from) })}</b>;
   const turnsText = (count) => t('march.turns', { count });
+  const suppliesText = (count) => t('march.suppliesCount', { count });
   const R = (key, nodes, vars) => rich(t(key, vars), nodes);
   const danger = (text) => <span className="text-fa-danger-text">{text}</span>;
   // When it sets out (I066): a march walks at End Turn; a stack that already moved now waits a turn.
@@ -102,20 +103,20 @@ const MarchBar = () => {
   else if (m.canAttackNow) line = m.attackBlocked ? <span data-testid="march-attack-blocked">{R('march.bordersBlocked', { target: <b>{targetName}</b>, reason: danger(m.attackBlocked) })}</span>
     : R('march.bordersNow', { target: <b>{targetName}</b> });
   else if (m.enemyArmy?.adjacent) line = m.enemyArmy.blocked ? <span data-testid="march-attack-blocked">{R('march.foeBlocked', { reason: danger(m.enemyArmy.blocked) }, { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span> : <span data-testid="march-enemy-army">{t('march.foeBeside', { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span>;
-  else if (m.marchAttackBlocked) line = <span data-testid="march-attack-blocked">{plan?.ok ? <>{R('march.toTurns', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns) })} </> : null}{danger(m.marchAttackBlocked)}</span>;
+  else if (m.marchAttackBlocked) line = <span data-testid="march-attack-blocked">{plan?.ok ? <>{R('march.toTurns', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns) })}. </> : null}{danger(m.marchAttackBlocked)}</span>;
   else if (!plan?.ok) line = <span className="text-fa-danger-text">{plan?.reason ? reasonText(plan) : t('march.noRoute')}</span>;
   else if (m.canMarchAttack) {
     line = (
       <span data-testid="march-attack-plan">
-        {R('march.attackPlan', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns), supplies: n(plan.supplies) })}{m.stopsAt && danger(t('march.stopsFirst', { place: name(m.stopsAt) }))}
+        {R('march.attackPlan', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns), supplies: suppliesText(plan.supplies) })}{m.stopsAt && danger(t('march.stopsFirst', { place: name(m.stopsAt) }))}
       </span>
     );
   } else if (m.enemyArmy) {
-    line = <span data-testid="march-enemy-army">{t('march.foeThere', { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength), turns: turnsText(plan.turns), supplies: n(plan.supplies) })}</span>;
+    line = <span data-testid="march-enemy-army">{t('march.foeThere', { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength), turns: turnsText(plan.turns), supplies: suppliesText(plan.supplies) })}</span>;
   } else {
     line = (
       <span data-testid="march-plan">
-        {R('march.toTurns', { target: <b>{targetName}</b> }, { turns: `${turnsText(plan.turns)}${leaves}` })}{naval ? '' : t('march.supplies', { n: n(plan.supplies) })}{m.canMoveNow ? t('march.moveNowNote') : ''}
+        {R('march.toTurns', { target: <b>{targetName}</b> }, { turns: `${turnsText(plan.turns)}${leaves}` })}{naval ? '.' : t('march.supplies', { supplies: suppliesText(plan.supplies) })}{m.canMoveNow ? t('march.moveNowNote') : ''}
         {plan.haltAt && danger(t('march.halts', { place: name(plan.haltAt) }))}
       </span>
     );

@@ -28,6 +28,8 @@ import { UNIT_CLASSES } from '../../data/unitClasses';
 import { getRankForXp } from '../../data/promotions';
 import { regionDeposits } from '../../data/deposits';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
+import { askConfirm } from '../ui/ConfirmActionDialog';
+import { declareWarConfirm } from '../ui/confirmSpecs';
 import { BuildingIcon, ExtractionIcon, ResourceIcon, UnitIcon, WonderIcon } from '../ui/icons';
 import { getTotalDev } from '../../engine/development';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
@@ -35,7 +37,7 @@ import { attackReach, planMarchAttack } from '../../engine/marchAttack';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
-import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
@@ -109,6 +111,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // sliver (the interaction registry, useExclusivePanel.js; same rule as ProvinceModal).
   const cardWanted = !!regionId && isCornerCard && !isMobile;
   const card = useInteraction('region-card', cardWanted, { kind: 'panel', priority: PRIORITY.panel, user: true });
+  useDismissOverlays(() => onClose?.(), cardWanted);
   const cardTucked = cardWanted && !card.shown;
   useEffect(() => { if (cardTucked) onClose?.(); }, [cardTucked]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -246,8 +249,12 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const handleDeclareWar = () => {
     if (warBlockedReason) return addLog(warBlockedReason, 'action');
     if (!canAfford(state.resources, declareWarCosts)) return addLog(t('ri.notEnoughWar'), 'action');
-    triggerEffect('declare_war', { from: getNationCapital(state.playerNationId), to: getNationCapital(ownerNation.id) });
-    dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: ownerNation.id } });
+    // Two taps: the card shows the cost and the opinion hit first (H-08).
+    const nationId = ownerNation.id;
+    askConfirm(declareWarConfirm(state, nationId), () => {
+      triggerEffect('declare_war', { from: getNationCapital(state.playerNationId), to: getNationCapital(nationId) });
+      dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId } });
+    });
   };
   const handleGatherIntel = () => {
     if (!canAfford(state.resources, ACTION_COSTS.espionage)) return addLog(t('ri.notEnough'), 'action');

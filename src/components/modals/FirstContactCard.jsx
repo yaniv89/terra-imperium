@@ -9,7 +9,7 @@ import { useGame } from '../../context/GameContext';
 import { metNations } from '../../engine/fog';
 import { openPanelTab } from '../panels/panelEvents';
 import { Button, Chip, Label, Shield } from '../ui/atlas';
-import { contactCard, newContacts } from './firstContactModel';
+import { contactCard, newContacts, contactQueue } from './firstContactModel';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { t as tNow } from '../../i18n';
 import { useT } from '../../i18n/useT';
@@ -27,17 +27,17 @@ const FirstContactCard = () => {
     if (state.turnNumber < lastTurn.current || state.turnNumber - lastTurn.current > 1) { seen.current = new Set(metNations(state)); setQueue([]); }
     lastTurn.current = state.turnNumber;
     const fresh = newContacts(state, seen.current);
-    if (!fresh.length) return;
     fresh.forEach((id) => seen.current.add(id));
-    setQueue((q) => [...q, ...fresh.filter((id) => !q.includes(id))]);
+    // A card is for the turn of contact: older ones still waiting are dropped (H-21).
+    setQueue((q) => { const next = contactQueue(q, fresh, state.turnNumber); return next.length === q.length && next.every((c, i) => c === q[i]) ? q : next; });
   }, [state]);
 
-  const id = queue[0];
+  const id = queue[0]?.id;
   const card = id ? contactCard(state, id) : null;
   // News, not a decision (useExclusivePanel.js): it shows when no card is up (and, on a narrow
   // screen, no panel), and waits as a chip otherwise instead of covering what the player is doing.
-  const turn = useInteraction('first-contact', !!card, { kind: 'notice', priority: PRIORITY.notice, label: card ? `${tNow('wait.met', { title: card.title.replace(/^The /, 'the ') })}${queue.length > 1 ? ` +${queue.length - 1}` : ''}` : null, testId: 'first-contact-chip' });
-  if (!card || !turn.shown) return null;
+  const interaction = useInteraction('first-contact', !!card, { kind: 'notice', priority: PRIORITY.notice, label: card ? `${tNow('wait.met', { title: card.title.replace(/^The /, 'the ') })}${queue.length > 1 ? ` +${queue.length - 1}` : ''}` : null, testId: 'first-contact-chip' });
+  if (!card || !interaction.shown) return null;
   const close = () => setQueue((q) => q.slice(1));
 
   return (

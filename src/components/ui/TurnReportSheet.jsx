@@ -17,7 +17,7 @@ import { openPanelTab } from '../panels/panelEvents';
 import { OPEN_TURN_REPORT, setTurnReportShown } from './uiEvents';
 import { turnReportModel } from './turnReportModel';
 import { Button, Chip, Label, SheetHeader } from './atlas';
-import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
+import { useInteraction, useDismissOverlays, interactions, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useT } from '../../i18n/useT';
 
 const DOT = { good: 'bg-fa-good', danger: 'bg-fa-danger', enemy: 'bg-fa-enemy', you: 'bg-fa-you', science: 'bg-[var(--fa-science)]', muted: 'bg-fa-muted' };
@@ -67,6 +67,7 @@ const TurnReportSheet = () => {
 
   // One entry of the interaction registry (useExclusivePanel.js): an attack to answer, a peace
   // offer or an event comes first and the report waits as a chip; an army's arrival waits for it.
+  useDismissOverlays(() => setOpen(false), open);
   const turn = useInteraction('turn-report', open && !!report, { priority: PRIORITY.report, label: report ? report.title : null, testId: 'turn-report-chip' });
   const showing = turn.shown;
 

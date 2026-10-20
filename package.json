@@ -34,7 +34,10 @@
     "build:mobile": "node --max-old-space-size=8192 scripts/build.mjs --mobile",
     "cap:sync": "npm run build:mobile && npx cap sync",
     "build:edge": "node scripts/build-edge-engine.mjs",
-    "audit:scenarios": "node scripts/audit-scenarios.mjs"
+    "audit:scenarios": "node scripts/audit-scenarios.mjs",
+    "test:quick": "vitest run --mode quick",
+    "test:related": "vitest related --run",
+    "test:changed": "vitest run --changed claude/integration"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

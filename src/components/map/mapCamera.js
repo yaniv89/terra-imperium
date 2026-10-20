@@ -6,6 +6,7 @@
 // No React, no three.js: MapContainer.jsx and gl/GLMapView.jsx read it, tests cover it.
 import { getTiles } from '../../data/geo/tiles';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
+import { isExplored } from '../../engine/fog';
 
 /** `lng` brought into [-180, 180). */
 export const normalLng = (lng) => (lng >= -180 && lng < 180 ? lng : ((((lng + 180) % 360) + 360) % 360) - 180);
@@ -43,16 +44,24 @@ export const latLngOfPlace = (state, place, opts = {}) => {
   return (place.tile != null ? latLngOfTile(place.tile, opts.tiles) : null) || latLngOfCity(state, place.regionId, opts);
 };
 
+/** False for a place whose tile the player has not explored (a place with no tile is not judged). */
+const placeKnown = (state, place) => {
+  const tile = place?.tile ?? state?.regions?.[place?.regionId]?.tile;
+  return tile == null || !state || isExplored(state, tile);
+};
+
 /**
  * Where the camera goes for a list of places, first found wins, then the player's selected army's
  * tile (`selectedArmyTile`), then the player's capital. { lat, lng, from } or null (stay put).
  * `from` says which one: 'place' (with `index`), 'army' or 'capital'.
+ * A place on a tile the player has not explored is skipped (the camera would land in black fog,
+ * mobile audit H-19); with fog off every tile counts as explored.
  */
 export const cameraTarget = (state, places = [], { selectedArmyTile = null, ...opts } = {}) => {
   const list = Array.isArray(places) ? places : [places];
   for (let i = 0; i < list.length; i++) {
     const ll = latLngOfPlace(state, list[i], opts);
-    if (ll) return { ...ll, from: 'place', index: i };
+    if (ll && placeKnown(state, list[i])) return { ...ll, from: 'place', index: i };
   }
   const army = selectedArmyTile != null ? latLngOfTile(selectedArmyTile, opts.tiles) : null;
   if (army) return { ...army, from: 'army' };
