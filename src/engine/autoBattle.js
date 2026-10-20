@@ -50,12 +50,20 @@ export const AUX_EFFECT = 1.6;
 // unwalled city: over in two to four minutes, so few are trained, and with the company frontage of
 // SETUP_VERSION 12 (src/battle/sim/siegeRules.js) the real-time attacker of a town lost about half
 // what the old count made Auto's lose (I211, I212; calibrated with autoCalib TA/TD, N=32).
-export const AUX_TRAINED = { field: [8, 8], assault: [8, 12], town: [2, 4] };
+// assault [8, 8] and town [2, 2] since SETUP_VERSION 14 (H-02, H-03: attrition at its real rate and
+// works only as strong as their crew, so the real-time attacker of a city bleeds far less; autoCalib
+// over parityEco assault and town, bronze, classical against kingdoms and bronze against classical,
+// N=16: 13 of 14 in, the bronze 3-against-3 against classical walls reads 0.41).
+export const AUX_TRAINED = { field: [8, 8], assault: [8, 8], town: [2, 2] };
 export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (the time to fight them)
 export const WALLS_FORT_LEVEL = 2;
 // 0.8 since SETUP_VERSION 13 (W12): with wood everywhere the real-time attacker trains more
 // companies against the walls (autoCalib over parityEco mixed and forest, N=16: 36 of 36 in).
-export const WALLS_NO_SIEGE_MULT = 0.8;
+// 1 since SETUP_VERSION 14 (H-02): the city's works shoot only as hard as it can man them and the
+// attacker no longer bleeds a strength point a second, so the real-time army without engines takes
+// a walled city about as an army with them does (autoCalib, parityEco N=16; at 0.9 the classical
+// 3-against-3 assault reads 0.46, out). Kept as the knob for the next calibration.
+export const WALLS_NO_SIEGE_MULT = 1;
 export const AUX_CLOSENESS = 1.5; // the auxiliaries x min(1, this x weaker / stronger army); 0 = off
 // Raids and sacks (measured with parityEco TYPES=raid,sack): raiders do not fight for the field,
 // they burn and run. In a raid their blows count RAID_MULT x min(1, defenders / raiders) (the more

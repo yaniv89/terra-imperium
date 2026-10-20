@@ -27,7 +27,7 @@ import { makeSquad } from './world';
 import { stepToward } from './movement';
 import { moraleFromLosses } from './moraleMath';
 import { loseStrength } from './losses';
-import { capShotOn, fireShare, recentlyHit, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
+import { capShotOn, crewShares, fireShare, recentlyHit, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
 import {
   RESOURCES, MILLI, POP_LIMIT, POP_PER_SQUAD, CARRY, GATHER_PER_SEC, FARM_RATE_MULT, MINE_RATE_MULT, WORK_REACH,
   buildRateHalves, CANCEL_REFUND, REPAIR_HP_PER_SEC, REPAIR_RECENT_TICKS, REPAIR_RECENT_MULT_QUARTERS,
@@ -593,6 +593,7 @@ export const updateEconomy = (w) => {
 // Towers raised by workers shoot the nearest enemy squad in range (after the armies' own attacks).
 export const fireEcoTowers = (w) => {
   if (!w.eco) return;
+  let crew = null; // the works shoot as hard as their side can man them (siegeRules.js), counted once
   w.eco.buildings.forEach((b) => {
     const t = BUILDINGS[b.type].tower;
     if (!t || !ready(w, b)) return;
@@ -605,7 +606,9 @@ export const fireEcoTowers = (w) => {
       if (d < bestD) { bestD = d; target = q; }
     });
     if (!target) return;
-    const damage = capShotOn(target, Math.max(1, Math.round(t.damage * (0.85 + nextRandom(w) * 0.3) * fireShare(b))));
+    crew = crew || crewShares(w);
+    if (crew[b.side] <= 0) return;
+    const damage = capShotOn(target, Math.max(1, Math.round(t.damage * (0.85 + nextRandom(w) * 0.3) * fireShare(b) * crew[b.side])));
     loseStrength(target, damage, 'tower');
     target.morale = Math.max(0, target.morale - Math.round(moraleFromLosses(target, damage)));
     target.lastHitTick = w.tick; target.engaged = true;
