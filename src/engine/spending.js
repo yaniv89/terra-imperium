@@ -132,7 +132,7 @@ export const applyRush = (city, index, quote, turnNumber) => {
 };
 
 // --- Standing works and growth --------------------------------------------------------------------
-/** Gold prices follow the age on the curve unit costs use (cities.js UNIT_COST_PER_AGE). */
+/** Gold prices follow the age on the curve unit costs use (src/data/ages.js unitCostMult: 1 + 0.6 an age so far). */
 export const ERA_GOLD_STEP = 0.6;
 export const eraGoldFactor = (ageId) => 1 + ERA_GOLD_STEP * Math.max(0, AGE_ORDER.indexOf(ageId));
 export const LEVEL_COST_STEP = 0.25;

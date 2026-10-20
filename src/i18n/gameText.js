@@ -69,17 +69,16 @@ export const personaDescription = (id, english) => D(`persona.${id}.desc`, engli
 
 export const unitClassName = (classId, english) => D(`uclass.${classId}`, english ?? classId);
 export const unitClassRole = (classId, english) => D(`uclass.${classId}.role`, english);
-export const AGE_INDEX = { bronze: 0, classical: 1, kingdoms: 2, gunpowder: 3, modern: 4 };
 /** A ship's name by naval line and age (navalLines.js names, in the current language). */
-export const navalShipName = (line, ageId, english) => D(`navalship.${line}.${AGE_INDEX[ageId] ?? 0}`, english);
+export const navalShipName = (line, ageId, english) => D(`navalship.${line}.${AGES[ageId] ? ageId : FIRST_AGE_ID}`, english);
 export const navalLineLabel = (line, english) => D(`naval.${line}`, english);
 export const navalLineRole = (line, english) => D(`naval.${line}.role`, english);
 /** The roster's unit for an age and class ("Spearmen"), as unitDisplayName but in the current language.
  * `english` is what data/unitNames.js unitDisplayName gave. */
 export const unitRosterName = (ageId, classId, english, navalLine = null) => {
-  if (classId === 'naval') return navalShipName(navalLine || 'warship', ageId || 'bronze', english);
+  if (classId === 'naval') return navalShipName(navalLine || 'warship', ageId || FIRST_AGE_ID, english);
   if (classId === 'settler') return D('unit.settler', english);
-  return D(`unit.${ageId || 'bronze'}.${classId}`, D(`unit.bronze.${classId}`, english));
+  return D(`unit.${ageId || FIRST_AGE_ID}.${classId}`, D(`unit.${FIRST_AGE_ID}.${classId}`, english));
 };
 export const signatureUnitName = (peopleId, english) => D(`sig.${peopleId}`, english);
 
@@ -104,6 +103,7 @@ export const currentLanguage = getLanguage;
 // Wrappers over the data helpers, so a view can swap one import and keep its call.
 import { unitDisplayName } from '../data/unitNames';
 import { getCategoryTierName } from '../data/buildings';
+import { AGES, FIRST_AGE_ID } from '../data/ages';
 /** unitDisplayName (data/unitNames.js) in the current language. */
 export const unitName = (ageId, classId, navalLine = null) => unitRosterName(ageId, classId, unitDisplayName(ageId, classId, navalLine), navalLine);
 /** getCategoryTierName (data/buildings.js) in the current language. */
