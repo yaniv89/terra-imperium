@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "quadruped": false,
+  "triangleBudget": 3000,
+  "tags": {
+    "team": "(^|\\s)Team(\\s|$)",
+    "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "height": 0.3,
+  "segment": false,
+  "robot": true
+}

@@ -32,7 +32,8 @@ const UNITS = {
   'future-siege': { crew: 0, wheels: null, footprint: [1.11, 1.7] },
   'future-support': { crew: 0, wheels: null, footprint: [1.11, 1.7], gun: false },
   'future-general': { crew: 1, wheels: null, footprint: [0.99, 1.46], gun: false },
-  'future-raider': { crew: 1, wheels: null, footprint: [0.99, 1.4] }
+  'future-raider': { crew: 1, wheels: null, footprint: [0.99, 1.4] },
+  'future-robot-support': { crew: 0, wheels: null, footprint: [1.07, 1.6], gun: false }
 };
 const LOOPS = ['Idle', 'Move'];
 const FPS = 20;
