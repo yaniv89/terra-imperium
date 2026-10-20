@@ -86,7 +86,7 @@ export const GOVERNMENT_REFORMS = {
     ],
     kingdoms: [
       { id: 'signoria', name: 'Signoria', description: 'The ruler may be re-elected twice; +0.5 tradition/turn.', effects: {} },
-      { id: 'maritime_republic', name: 'Maritime Republic', description: '+20% naval morale (combat, M14); -25% ship cost (per-unit-type recruit cost, M14).', effects: {} }
+      { id: 'maritime_republic', name: 'Maritime Republic', description: '+20% naval morale; -25% ship cost.', effects: {} }
     ],
     gunpowder: [
       { id: 'federal_republic', name: 'Dutch-style Federal Republic', description: '+20 governing capacity; vassals -50% liberty desire.', effects: { governingCapacity: 20 } },
@@ -100,7 +100,7 @@ export const GOVERNMENT_REFORMS = {
   dictatorship: {
     modern: [
       { id: 'military_junta', name: 'Military Junta', description: '+2 MIL; morale recovers 20% faster; war exhaustion rises 20% slower.', effects: { milBonus: 2, moraleRecovery: 0.2 }, rules: { warExhaustionMult: -0.2 } },
-      { id: 'one_party_state', name: 'One-Party State', description: '+2 ADM; +3 unrest; secret police (+50% espionage defense, M12).', effects: { admBonus: 2, stabilityBonus: -3 } }
+      { id: 'one_party_state', name: 'One-Party State', description: '+2 ADM; +3 unrest; secret police (+50% espionage defense).', effects: { admBonus: 2, stabilityBonus: -3 } }
     ]
   }
 };
