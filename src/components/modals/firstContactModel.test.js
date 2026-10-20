@@ -35,9 +35,13 @@ describe('first contact (W03)', () => {
     expect(q).toEqual([{ id: 'a', turn: 13 }, { id: 'b', turn: 13 }]);
     q = contactQueue(q, ['c'], 13);
     expect(q.map((c) => c.id)).toEqual(['a', 'b', 'c']);
+    // one turn of grace: a card from turn 13 is still there on turn 14
     q = contactQueue(q, ['d'], 14);
+    expect(q.map((c) => c.id)).toEqual(['a', 'b', 'c', 'd']);
+    // gone once the turn after its contact turn has passed
+    q = contactQueue(q, [], 15);
     expect(q).toEqual([{ id: 'd', turn: 14 }]);
-    expect(contactQueue(q, ['d'], 14)).toEqual([{ id: 'd', turn: 14 }]);
+    expect(contactQueue(q, ['d'], 15)).toEqual([{ id: 'd', turn: 14 }]);
   });
 
   it('names the mood in bands', () => {

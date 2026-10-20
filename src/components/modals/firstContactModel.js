@@ -23,11 +23,11 @@ export const newContacts = (state, before) => {
 
 /**
  * The queue of cards waiting, as [{ id, turn }] (the turn the contact was seen). A card is for the
- * turn of contact: one still waiting on a later turn is dropped, not shown 4 to 27 turns late and
+ * turn of contact plus one turn of grace: one still waiting after that is dropped, not shown 4 to 27 turns late and
  * stacked behind others (mobile audit H-21). `fresh` are the ids met just now.
  */
 export const contactQueue = (queue, fresh, turn) => {
-  const kept = queue.filter((c) => c.turn >= turn);
+  const kept = queue.filter((c) => c.turn + 1 >= turn);
   return [...kept, ...fresh.filter((id) => !kept.some((c) => c.id === id)).map((id) => ({ id, turn }))];
 };
 

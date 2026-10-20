@@ -5,12 +5,20 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { translate, tableOf } from './index';
 import { GREAT_PROJECTS } from '../data/greatProjects';
+import { GOVERNMENT_TYPES, GOVERNMENT_REFORMS } from '../data/government';
 
 describe('copy pass (H-20)', () => {
   it('great project text has no milestone notes', () => {
     for (const p of Object.values(GREAT_PROJECTS)) {
       expect(p.description, p.id).not.toMatch(/\bM\d+\b|wired/);
     }
+  });
+  it('government text has no dev notes', () => {
+    const texts = [];
+    for (const g of Object.values(GOVERNMENT_TYPES)) texts.push([g.id, g.description]);
+    for (const byAge of Object.values(GOVERNMENT_REFORMS)) for (const list of Object.values(byAge)) for (const r of list) texts.push([r.id, r.description]);
+    expect(texts.length).toBeGreaterThan(10);
+    for (const [id, d] of texts) expect(d || '', id).not.toMatch(/wired|not yet|\bM\d+\b/i);
   });
   it('the pre-battle card uses a key that exists', () => {
     const src = readFileSync('src/components/battle/PreBattleModal.jsx', 'utf8');
