@@ -19,7 +19,7 @@
 // Pure; ties in the path search break on tile id.
 import { getTiles, onWorldChange } from '../data/geo/tiles';
 import { ringsForKm, cellsForAreaKm2, minStepsBetween } from '../data/geo/gridScale';
-import { getEffectiveAgeId } from '../data/ages';
+import { getEffectiveAgeId, agesFrom } from '../data/ages';
 import { canAttack, canFight } from './hostility';
 import { getTechAgeId } from './nationState';
 import { regionAccess, unitTile } from './armies';
@@ -31,11 +31,11 @@ import { reasonOf, cityRef, people, sub } from './messages';
 // (techMapEffects navalMoves) are km too and are added before the conversion.
 export const NAVAL_KM_BY_AGE = { bronze: 409, classical: 613, kingdoms: 715, gunpowder: 818, modern: 1124 };
 export const NAVAL_MOVES_BY_AGE = Object.fromEntries(Object.entries(NAVAL_KM_BY_AGE).map(([age, km]) => [age, ringsForKm(km)]));
-export const DEEP_OK_FROM = ['gunpowder', 'modern'];
+export const DEEP_OK_FROM = agesFrom('gunpowder');
 // The shelf (ocean tiles beside the coast) opens from the Classical age, or earlier with a tech
 // that sails further (techMapEffects navalMoves); the deep ocean from the Age of Gunpowder or a
 // tech that opens the ocean (deepOcean).
-export const SHELF_OK_FROM = ['classical', 'kingdoms', 'gunpowder', 'modern'];
+export const SHELF_OK_FROM = agesFrom('classical');
 // A voyage's reach and the search budget in km and km² of the loaded grid (gridScale.js).
 export const MAX_SEA_STEPS = ringsForKm(17_400);        // 170 steps at frequency 75
 const MAX_SEARCH = cellsForAreaKm2(108_810_000);       // 12000 tiles at frequency 75

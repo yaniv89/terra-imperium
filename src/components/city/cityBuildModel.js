@@ -30,6 +30,7 @@ import { cityLive, queueView, buildQuote, worldOf, isLongBuild, longBuildTurns, 
 import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
 import { settlingOutlook } from '../../engine/settlers';
 import { rushQuote, rushGold, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 export const GROUPS = ['Units', 'Armies', 'Buildings', 'Wonders', 'Improvements'];
 /** The words of a group id ('All' too). */
@@ -61,7 +62,7 @@ export const tileBearing = (tiles, from, to) => {
 /** A tile of the city in words: "coast, fish, 80 km NE". */
 export const tilePlace = (tiles, cityTile, tile, facts = tileFacts(tiles, tile)) => `${describeTile(facts)}${facts.resource ? `, ${tileResourceName(facts.resource)}` : ''}, ${tileBearing(tiles, cityTile, tile).text}`;
 
-export const itemLabel = (item, tiles = getTiles(), ageId = 'bronze', cityTile = null) => {
+export const itemLabel = (item, tiles = getTiles(), ageId = FIRST_AGE_ID, cityTile = null) => {
   if (item.kind === 'unit' && item.explorer) return tNow('cy.scouts');
   if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${navalLineRole(item.navalLine || 'warship', NAVAL_LINES[item.navalLine || 'warship'].role)})` : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return buildingTierName(item.category, item.tier, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name);

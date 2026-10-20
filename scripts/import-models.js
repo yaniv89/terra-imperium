@@ -28,6 +28,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AGE_ORDER } from '../src/data/ages.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const RAW = path.join(ROOT, 'src/assets/raw-models');
@@ -35,7 +36,7 @@ const UNITS = path.join(ROOT, 'src/assets/units');
 
 // ---- the matrix ------------------------------------------------------------------------------
 
-export const AGES = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+export const AGES = AGE_ORDER; // the age registry (src/data/ages.js)
 const MOUNT_WANT = ['warhorse', 'war horse', 'stallion', 'horse', 'mare', 'pony'];
 const RIDER_AVOID = ['horse', 'mount', 'cart', 'wagon'];
 const PEOPLE_AVOID = ['zombie', 'skeleton', 'alien', 'robot', 'orc', 'goblin', 'elf', 'wizard', 'mage', 'witch', 'child', 'kid', 'baby', 'girl', 'woman', 'female', 'chef', 'doctor', 'business', 'casual', 'astronaut', 'space'];

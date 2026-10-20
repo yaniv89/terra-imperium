@@ -19,7 +19,7 @@
 // the kind wins; within that age the land's style chain (israelite, levant) comes first, then the
 // base file. So a later base model beats an earlier regional one, as the towns pick their age's
 // model before their style. No file: the procedural work (or the town fields) stays.
-import { AGE_ORDER, getAgeIndex } from '../../../data/ages';
+import { AGE_ORDER, FIRST_AGE_ID, getAgeIndex } from '../../../data/ages';
 import { styleChain } from '../../../data/architecture';
 
 /** Split a file name (no folder, no extension) into { kind, age, style }, or null. */
@@ -27,7 +27,7 @@ export const parseImprovementFile = (name) => {
   const m = /^([a-z_]+)((?:-[a-z]+)*)$/.exec(name || '');
   if (!m) return null;
   const rest = m[2].split('-').filter(Boolean);
-  let age = 'bronze';
+  let age = FIRST_AGE_ID;
   if (rest.length && AGE_ORDER.includes(rest[0])) age = rest.shift();
   if (rest.length > 1) return null;
   return { kind: m[1], age, style: rest[0] || 'base' };

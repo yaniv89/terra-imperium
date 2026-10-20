@@ -39,6 +39,7 @@ import { cityManifestOf } from './cityManifest';
 import { getRosterCombatMultiplier } from '../data/unitClasses';
 import { powExact } from '../utils/exactMath';
 import { garrisonOf, resolveCityAttack } from './cityAssault';
+import { FIRST_AGE_ID } from '../data/ages';
 
 export const AUX_UNIT = 1000;
 export const AUX_EFFECT = 1.6;
@@ -190,7 +191,7 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
   const noSiege = walled && !ins.attackerUnits.some((u) => u.classId === 'siege' && u.strength > 0);
   const wallsMult = noSiege ? 1 - (1 - tune.WALLS_NO_SIEGE_MULT) * Math.max(0, Math.min(1, ins.hpRatio ?? 1)) : 1;
   // The attacker's roster disadvantage is eased behind walls (WALLS_AGE_RELIEF).
-  const ageGap = walled ? getRosterCombatMultiplier(args.defenderAgeId ?? 'bronze', args.attackerAgeId ?? 'bronze') : 1;
+  const ageGap = walled ? getRosterCombatMultiplier(args.defenderAgeId ?? FIRST_AGE_ID, args.attackerAgeId ?? FIRST_AGE_ID) : 1;
   const ageRelief = ageGap > 1 ? powExact(ageGap, tune.WALLS_AGE_RELIEF ?? WALLS_AGE_RELIEF) : 1;
   let battle = resolveBattle({
     ...args,

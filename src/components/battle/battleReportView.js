@@ -7,9 +7,10 @@ import { REGIONS_DATA } from '../../data/regions';
 import { battleName } from '../../engine/battleNames';
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 export const regionName = (id) => { const n = id && REGIONS_DATA[id]?.name; return n ? nameNow('city', null, n) : id || t('bt.rep.theField'); };
-export const unitName = (classId, ageId = 'bronze', navalLine = null) => unitDisplayName(ageId, classId, navalLine) || t('bt.rep.unit');
+export const unitName = (classId, ageId = FIRST_AGE_ID, navalLine = null) => unitDisplayName(ageId, classId, navalLine) || t('bt.rep.unit');
 export const nationName = (state, id) => { if (id === 'rebels') return t('bt.rep.rebels'); const n = state.nations?.[id]; return n?.name ? nameNow('people', id, n.name) : id || t('bt.rep.unknown'); };
 // "Siege of Kish": the name the entry was given when fought, or one made now for an older entry.
 export const battleTitle = (state, entry) => nameNow('battle', null, entry?.name || battleName(state, entry || {}));

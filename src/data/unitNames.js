@@ -4,9 +4,10 @@
 // tooltip. A ship is named by its naval line and age (navalLines.js).
 import { UNIT_ROSTER, UNIT_CLASSES } from './unitClasses';
 import { navalName } from './navalLines';
+import { FIRST_AGE_ID } from './ages';
 
 export const unitDisplayName = (ageId, classId, navalLine = null) => {
-  if (classId === 'naval') return navalName(navalLine || 'warship', ageId || 'bronze');
+  if (classId === 'naval') return navalName(navalLine || 'warship', ageId || FIRST_AGE_ID);
   if (classId === 'settler') return 'Settlers';
   return UNIT_ROSTER[ageId]?.[classId]?.name || UNIT_ROSTER.bronze?.[classId]?.name || UNIT_CLASSES[classId]?.name || classId;
 };

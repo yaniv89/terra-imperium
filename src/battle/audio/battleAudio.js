@@ -23,7 +23,7 @@ import { getAudioSettings, setAudioSettings, subscribeAudioSettings } from '../.
 import { audibility, ambienceTarget, easeLevel } from '../../audio/spatial';
 import { isPageAudible, subscribePageAudio } from '../../audio/pageLifecycle';
 import { getAudioContext, resumeAudio, registerAudioConsumer } from '../../audio/audioContext';
-import { getAgeIndex } from '../../data/ages';
+import { getAgeIndex, FIRST_AGE_ID } from '../../data/ages';
 import { getSquadDisplayName } from '../data/battleStats';
 
 export const MAX_VOICES = 16;
@@ -154,7 +154,7 @@ export const frameAlerts = (prevEco, eco) => {
   return out;
 };
 
-export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 0 } = {}) => {
+export const createBattleAudio = ({ ageIds = [FIRST_AGE_ID, FIRST_AGE_ID], playerSide = 0 } = {}) => {
   let ctx = null; let master = null; let noise = null; let unregister = null;
   let settings = getAudioSettings();
   let enabled = effectsWanted(settings);

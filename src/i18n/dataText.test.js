@@ -76,7 +76,7 @@ describe('Hebrew game data covers every id', () => {
     Object.keys(PERSONAS).forEach((id) => { need(`persona.${id}`); need(`persona.${id}.desc`); });
     Object.keys(UNIT_CLASSES).forEach((id) => { need(`uclass.${id}`); need(`uclass.${id}.role`); });
     Object.entries(UNIT_ROSTER).forEach(([age, classes]) => Object.keys(classes).forEach((c) => need(`unit.${age}.${c}`)));
-    Object.keys(NAVAL_LINES).forEach((line) => { need(`naval.${line}`); need(`naval.${line}.role`); NAVAL_LINES[line].names.forEach((_, i) => need(`navalship.${line}.${i}`)); });
+    Object.keys(NAVAL_LINES).forEach((line) => { need(`naval.${line}`); need(`naval.${line}.role`); Object.keys(NAVAL_LINES[line].names).forEach((age) => need(`navalship.${line}.${age}`)); });
     Object.keys(SIGNATURE_UNITS).forEach((id) => need(`sig.${id}`));
   });
   it('events: every historical event, chain event and procedural template', () => {
