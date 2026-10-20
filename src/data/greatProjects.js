@@ -78,7 +78,7 @@ export const SITE_RULES = {
 export const GREAT_PROJECTS = {
   great_pyramids: {
     id: 'great_pyramids', name: 'The Great Pyramids', ageId: 'bronze', siteRule: 'capital',
-    description: 'Built at your capital. +1/2/3 stability, standing in for the legitimacy/turn and stability-floor effects a monumental tomb complex would ideally grant (M4/M15 aren\'t wired yet).',
+    description: 'Built at your capital. +1/2/3 stability, standing in for the legitimacy/turn and stability-floor effects a monumental tomb complex would ideally grant.',
     tiers: [
       { effects: { stabilityBonus: 1 }, completionPrestige: 10 },
       { effects: { stabilityBonus: 2 }, completionPrestige: 20 },
@@ -87,7 +87,7 @@ export const GREAT_PROJECTS = {
   },
   hanging_gardens: {
     id: 'hanging_gardens', name: 'The Hanging Gardens', ageId: 'bronze', siteRule: 'irrigation',
-    description: 'Built in a region with Irrigation. +0.3/0.6/1% national population growth (famine immunity at tier 3 not yet wired, M15).',
+    description: 'Built in a region with Irrigation. +0.3/0.6/1% national population growth.',
     tiers: [
       { effects: { popGrowthBonus: 0.003 }, completionPrestige: 10 },
       { effects: { popGrowthBonus: 0.006 }, completionPrestige: 20 },
@@ -96,7 +96,7 @@ export const GREAT_PROJECTS = {
   },
   great_wall: {
     id: 'great_wall', name: 'The Great Wall', ageId: 'bronze', siteRule: 'palisade',
-    description: 'Built in a region with a Palisade. +1/2/3 Administrative Power per turn (a secured, well-administered frontier), standing in for the "enemy stacks lose strength entering your border regions" combat mechanic (M14 isn\'t wired yet).',
+    description: 'Built in a region with a Palisade. +1/2/3 Administrative Power per turn (a secured, well-administered frontier), standing in for the "enemy stacks lose strength entering your border regions" combat mechanic.',
     tiers: [
       { effects: { admBonus: 1 }, completionPrestige: 10 },
       { effects: { admBonus: 2 }, completionPrestige: 20 },
@@ -123,7 +123,7 @@ export const GREAT_PROJECTS = {
   },
   lighthouse: {
     id: 'lighthouse', name: 'The Lighthouse', ageId: 'classical', siteRule: 'coastalHarbor',
-    description: 'Built in a coastal region with a Harbor. +10% trade income (naval reach % is M14, not yet wired).',
+    description: 'Built in a coastal region with a Harbor. +10% trade income.',
     tiers: [
       { effects: { goldMult: 0.1 }, completionPrestige: 10 },
       { effects: { goldMult: 0.1 }, completionPrestige: 20 },
@@ -186,7 +186,7 @@ export const GREAT_PROJECTS = {
   },
   arsenal: {
     id: 'arsenal', name: 'The Arsenal', ageId: 'gunpowder', siteRule: 'coastalNavalBase',
-    description: 'Built in a coastal region with a Naval Base. +1/2/3 Military Power per turn, standing in for the ship-cost/naval-morale effects (M14 isn\'t wired yet).',
+    description: 'Built in a coastal region with a Naval Base. +1/2/3 Military Power per turn, standing in for the ship-cost/naval-morale effects.',
     tiers: [
       { effects: { milBonus: 1 }, completionPrestige: 10 },
       { effects: { milBonus: 2 }, completionPrestige: 20 },
@@ -195,7 +195,7 @@ export const GREAT_PROJECTS = {
   },
   palace_of_versailles: {
     id: 'palace_of_versailles', name: 'The Palace of Versailles', ageId: 'gunpowder', siteRule: 'capital',
-    description: 'Built at your capital. +1/+1/+2 ADM per turn from the court (+1 diplomat is M12, not yet wired).',
+    description: 'Built at your capital. +1/+1/+2 ADM per turn from the court.',
     tiers: [
       { effects: { admBonus: 1 }, completionPrestige: 20 },
       { effects: { admBonus: 1 }, completionPrestige: 35 },
@@ -213,7 +213,7 @@ export const GREAT_PROJECTS = {
   },
   international_exchange: {
     id: 'international_exchange', name: 'The International Exchange', ageId: 'modern', siteRule: 'stockExchange',
-    description: 'Built in a region with a Stock Exchange. +10/20/30% trade income (trade pact capacity is M12, not yet wired).',
+    description: 'Built in a region with a Stock Exchange. +10/20/30% trade income.',
     tiers: [
       { effects: { goldMult: 0.1 }, completionPrestige: 10 },
       { effects: { goldMult: 0.2 }, completionPrestige: 20 },
