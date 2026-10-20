@@ -25,9 +25,13 @@ const EXPECTED = {
   // other object as checkpoint 38 shipped it. Was 3e8f6264..., 202f14f0..., 073be8c8....
   // Moved again the same day for the lighter far crowns (LOD1 about 56 triangles a tree) and lit
   // far palm fronds.
-  "src/assets/battle/nature/vegetation-conifer.glb": "edd33023b95b156b04c49e6d717ef269f6befbb6c50aed0334ba0b677827274a",
-  "src/assets/battle/nature/vegetation-tropical.glb": "ccbed63a55bbffbd234ed2e71e3aa82a1a032544c0aa7f6de6fe906f5acb762d",
-  "src/assets/battle/nature/vegetation-cold.glb": "d7a8eecc0aa5521800ab26110bf780e398316711184f460338fe8fb06e53c214",
+  // 2026-10-16, W12 stump pass: two stumps added to each kit (stump-2, stump-3; build_nature.py
+  // stump_variants), every other object the same triangles (the shared atlas re-packed around them).
+  // Was edd33023..., ccbed63a..., d7a8eecc.... 2026-10-20: moved again, stump-2 and stump-3 logs shortened
+  // (about 1.7 m) so neighbouring stumps' logs do not cross in a dense wood.
+  "src/assets/battle/nature/vegetation-conifer.glb": "1da2c668191164b710c77e3c1bcd761c8693d124e92f7f27fc416399479f5b92",
+  "src/assets/battle/nature/vegetation-tropical.glb": "38a5bfffafd302d9d8ab4ae4500de08380db38420c78da60fb8b89c251c9615b",
+  "src/assets/battle/nature/vegetation-cold.glb": "9c679ccfc807b1995da154c8a3dbfd3a153127ca4feacc2d54f4698e15f46c70",
   "src/assets/battle/props/loot-sack.glb": "2847ea345fe421458c7e4161635086fd64202bc75503970fd8565a8840ebf187",
   "src/assets/battle/props/exit-marker.glb": "24dd3703cdd0de7e304cfd105013058a9d2cc486d1e77dad4207c56cdf08c00d",
   "src/assets/battle/props/burnt-field-overlay.glb": "5d07899b742664b1b2b08b9e0b0ad324a1fe392700e626fc57f6f5c73d15f921",
@@ -59,11 +63,12 @@ const loaderSource = readFileSync(loaderPath, 'utf8');
 const imported = loaderSource.match(/^import .*?;\s*$/gm) || [];
 assert(imported.every(line => /from ['"](?:three|three\/examples\/jsm\/utils\/BufferGeometryUtils\.js|\.\.\/render\/gltfUnitLoader|\.\/artFiles)['"]/.test(line)), 'New loader dependency: update checker explicitly');
 const body = loaderSource.replace(/^import .*?;\s*$/gm, '').replace(/\bexport /g, '');
-const loader = new Function('Matrix4', 'Vector3', 'BufferGeometry', 'BufferAttribute', 'Box3', 'mergeGeometries', 'loadGltf', 'ART',
+const loader = new Function('Matrix4', 'Vector3', 'BufferGeometry', 'BufferAttribute', 'Box3', 'mergeGeometries', 'loadGltf', 'ART', 'onGltfEvict',
   `${body}\nreturn {parseKit,bakeBundle,lodOf,isSocket};`)(
   T.Matrix4, T.Vector3, T.BufferGeometry, T.BufferAttribute, T.Box3, mergeGeometries,
   () => { throw Error('Network loading forbidden'); },
-  { url() { throw Error('URL policy is covered separately by kitLodUv.test.js'); } }
+  { url() { throw Error('URL policy is covered separately by kitLodUv.test.js'); } },
+  () => {} // the loader's cache eviction hook (gltfUnitLoader): nothing is cached here
 );
 
 // Original pre-repair parseKit root/LOD assembly, using actual bakeBundle only.
@@ -139,8 +144,9 @@ report.summary = {
 assert.equal(report.summary.models, 14);
 // 2026-10-14, MD05 tree pass: the three vegetation kits hold three tree species each (tree-s-2 ...
 // tree-l-3), 6 more roots a kit: 56 + 18 roots, 112 + 36 lower levels.
-assert.equal(report.summary.roots, 74);
-assert.equal(report.summary.lower_lods, 148);
+// 2026-10-16, W12 stump pass: stump-2 and stump-3 in each of the three kits, 6 more roots: 80, 160.
+assert.equal(report.summary.roots, 80);
+assert.equal(report.summary.lower_lods, 160);
 report.status = report.failures.length ? 'failed' : 'passed';
 if (args.length) writeFileSync(resolve(args[1]), `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify({ status: report.status, ...report.summary, failures: report.failures }));

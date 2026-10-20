@@ -6,6 +6,8 @@
 # rock-s, rock-m, grass-tuft, log-pile). One 1024 atlas per file (512 for herds and fish), LOD0..LOD2 per object, no ground plate.
 # 13 October (MD06, four resources): stone, gold and fish rebuilt to be told apart at battle zoom, the grove's
 # stump and felled states and the log pile; ore is retired (plans/art-pilot/md06-nodes-loads/LOG.md).
+# 16 October (W12): berry-bushes.glb in four climate bands and stump-2, stump-3 in every vegetation
+# kit (plans/art-pilot/berries-stumps/LOG.md).
 #   blender -b --factory-startup -P scripts/blender/build_nature.py -- <out_dir> [file,file...]
 import math
 import os
@@ -360,9 +362,288 @@ def remaining_kit(kit_name, species):
 REMAINING_SEEDS = {'vegetation-conifer': 7210, 'vegetation-tropical': 7247, 'vegetation-cold': 7284}
 
 
-def node_items(states):
+def node_items(states, suffix=''):
     full, half, depleted = states
-    return [('full', full), ('half', half), ('depleted', depleted)]
+    return [('full' + suffix, full), ('half' + suffix, half), ('depleted' + suffix, depleted)]
+
+
+# ---- berry bushes (16 October, W12: the battle's food node of the field, scattered in pairs) ------
+# One file, berry-bushes.glb, four climate bands: the plain `full`, `half`, `depleted` are the
+# temperate bramble with red berries, and `<state>-dry` (a low olive shrub with plum-violet
+# berries: myrtle, juniper), `<state>-cold` (ground-hugging bilberry with blue berries) and
+# `<state>-tropical` (a glossy broadleaf bush with orange fruit) the others. The game picks the band
+# from the battle's vegetation kit (src/battle/art/vegetation.js berryBand). What must read at battle
+# zoom on a phone (a node about 30 px wide) is COLOUR: the berries are clusters far larger than life,
+# in hues the grass never has, on the upper faces the camera sees. Full is a mound studded with them,
+# half is thinner with a few clusters and bare twigs, depleted is a low dull bush of twigs with no
+# berry at all (and no leaf the colour of the full one).
+
+BERRY_MATS = {
+    'berry_leaf': (['#2c5520', '#386626', '#23461a', '#2f5a22'], 14.0),      # bramble: dark, so the red sings
+    'berry_red': (['#e8182c', '#ff3043', '#c40f22'], 24.0),
+    'berry_leaf_dry': (['#56683f', '#637548', '#4a5c36'], 16.0),           # myrtle / juniper olive-green
+    'berry_black': (['#9a34c8', '#b552e0', '#7a26a6'], 24.0),           # plum-violet (named black: lightened 16 Oct to read at LOD2)
+    'berry_leaf_cold': (['#35522c', '#416336', '#2b4524'], 14.0),          # bilberry
+    'berry_blue': (['#3f66d8', '#5b82f0', '#2f50b4'], 24.0),
+    'berry_leaf_trop': (['#2f7a2a', '#3f9234', '#256a22'], 12.0),          # glossy broadleaf
+    'berry_orange': (['#ff8a10', '#ffb12a', '#f06808'], 24.0),
+    'berry_spent': (['#5d6236', '#6b6f3e', '#4f5530'], 14.0),              # a picked bush gone dull
+    'berry_twig': (['#6a4a34', '#7c5a40', '#55392a'], 20.0),
+}
+for _n in BERRY_MATS:
+    if _n not in tt.PROC:
+        tt.PROC.append(_n)
+for _n in ('berry_leaf', 'berry_leaf_dry', 'berry_leaf_cold', 'berry_leaf_trop', 'berry_spent', 'berry_red', 'berry_black', 'berry_blue', 'berry_orange'):
+    tt.SMOOTH.add(_n)
+
+
+def berry_materials():
+    for name, (colors, scale) in BERRY_MATS.items():
+        tm.mat_simple(name, colors, scale=scale, rough=0.45 if name.startswith('berry_') and 'leaf' not in name and name not in ('berry_spent', 'berry_twig') else 0.85, bump=0.4)
+
+
+if not any(n == 'berries' for n, _ in tt.EXTRA_MATERIALS):
+    tt.EXTRA_MATERIALS.append(('berries', berry_materials))
+
+
+def octa(ms, mat, at, r, lod=2, only=None, squash=1.0, top=False):
+    """A berry cluster for the far levels: an octahedron, 8 triangles (`top`: its upper half only,
+    4 triangles, for a cluster pressed into the bush)."""
+    bm = bmesh.new()
+    x, y, z = at
+    p = [bm.verts.new(v) for v in ((x + r, y, z), (x - r, y, z), (x, y + r, z), (x, y - r, z), (x, y, z + r * squash), (x, y, z - r * squash))]
+    for a, b in ((0, 2), (2, 1), (1, 3), (3, 0)):
+        bm.faces.new((p[a], p[b], p[4]))
+        if not top:
+            bm.faces.new((p[b], p[a], p[5]))
+    ms.add(bm, mat, lod, only=only)
+
+
+# A band: leaf and berry materials, bush layouts per state [(x, y, radius, height share)], the berry
+# size, how many clusters a state carries, and the shape of a bush (`flat` = its height over width).
+BERRY_BANDS = {
+    'temperate': dict(leaf='berry_leaf', fruit='berry_red', flat=0.78, berry=0.0125, canes=True,
+                      full=[(-0.1, 0.06, 0.13), (0.12, 0.02, 0.115), (0.01, -0.13, 0.1)], clusters=(24, 9)),
+    'dry': dict(leaf='berry_leaf_dry', fruit='berry_black', flat=0.55, berry=0.0125, canes=False,
+                full=[(-0.11, 0.05, 0.14), (0.12, 0.04, 0.12), (0.0, -0.13, 0.11)], clusters=(24, 9)),
+    'cold': dict(leaf='berry_leaf_cold', fruit='berry_blue', flat=0.45, berry=0.012, canes=False,
+                 full=[(-0.12, 0.07, 0.11), (0.1, 0.08, 0.1), (0.13, -0.1, 0.09), (-0.07, -0.11, 0.1)], clusters=(20, 8)),
+    'tropical': dict(leaf='berry_leaf_trop', fruit='berry_orange', flat=0.85, berry=0.016, canes=False, leaves=True,
+                     full=[(-0.09, 0.05, 0.14), (0.12, 0.0, 0.12), (0.0, -0.13, 0.1)], clusters=(18, 7)),
+}
+
+
+def _bush_mass(ms, mat, x, y, r, flat, rng, far=True, lod1=True):
+    """One bush: two clumps at LOD0 (80 triangles each), one rounded mass at LOD1 and LOD2."""
+    seed = rng.randrange(1 << 30)
+    own = random.Random(seed)
+    tn.blob(ms, mat, (x, y, r * flat * 0.45), r, (1.0, 0.92, flat), own, 0.1, 2, lod=0, only=(0,), cut=-r * 0.45)
+    a = own.uniform(0, 2 * math.pi)
+    tn.blob(ms, mat, (x + math.cos(a) * r * 0.45, y + math.sin(a) * r * 0.45, r * flat * 0.35), r * 0.7, (1.0, 1.0, flat), own, 0.12, 2, lod=0, only=(0,), cut=-r * 0.35)
+    if lod1:
+        tn.blob(ms, mat, (x, y, r * flat * 0.45), r * 1.08, (1.0, 0.95, flat), random.Random(seed), 0.08, 1, lod=1, only=(1,), cut=-r * 0.45)
+    if far:
+        tn.blob(ms, mat, (x, y, r * flat * 0.45), r * 1.12, (1.0, 0.95, flat), random.Random(seed), 0.06, 1, lod=2, only=(2,), cut=-r * 0.45)
+
+
+def _surface(x, y, r, flat, a, up):
+    """A point on a bush's upper surface: `a` the bearing, `up` the elevation (radians)."""
+    rr = r * 1.0
+    return (x + math.cos(a) * math.cos(up) * rr * 0.98, y + math.sin(a) * math.cos(up) * rr * 0.9,
+            r * flat * 0.45 + math.sin(up) * rr * flat * 0.98)
+
+
+def _clusters(ms, band, bushes, n, rng, far_n):
+    """`n` berry clusters spread over the bushes' upper faces (a golden-angle spiral a bush), four
+    berries a cluster at LOD0 (octahedra, smooth-shaded: 8 triangles a berry), one larger half
+    octahedron a cluster at LOD1, and `far_n` of them on the two bushes LOD2 keeps, larger again."""
+    b = band['berry']
+    fruit = band['fruit']
+    per = max(1, math.ceil(n / len(bushes)))
+    for k in range(n):
+        i, j = k % len(bushes), k // len(bushes)
+        x, y, r = bushes[i]
+        a = j * 2.39996 + i * 1.3 + rng.uniform(-0.25, 0.25)
+        up = 0.3 + 1.05 * (j + 0.5) / per + rng.uniform(-0.1, 0.1)
+        cx, cy, cz = _surface(x, y, r, band['flat'], a, min(1.45, up))
+        for q in range(4):
+            qa = q * math.pi / 2 + rng.uniform(-0.4, 0.4)
+            d = b * (1.25 if q else 0.0)
+            octa(ms, fruit, (cx + math.cos(qa) * d, cy + math.sin(qa) * d, cz + (b * 0.9 if q == 0 else rng.uniform(0, b * 0.4))),
+                 b * rng.uniform(0.95, 1.2), lod=0, only=(0,))
+        octa(ms, fruit, (cx, cy, cz + b * 0.4), b * 2.5, lod=1, only=(1,), top=True)
+        if i < 2 and j * 2 + i < far_n:  # on the two bushes LOD2 keeps, standing out of its larger mass
+            fx, fy, fz = _surface(x, y, r * 1.14, band['flat'], a, min(1.45, up))
+            octa(ms, fruit, (fx, fy, fz + b * 0.3), b * 3.4, lod=2, only=(2,), squash=0.9, top=True)
+
+
+def _canes(ms, band, bushes, rng, n, mat=None):
+    """Arching bramble canes (or bare twigs on a picked bush), LOD0 only."""
+    mat = mat or 'berry_twig'
+    for k in range(n):
+        x, y, r = bushes[k % len(bushes)]
+        a = rng.uniform(0, 2 * math.pi)
+        base = (x + math.cos(a) * r * 0.5, y + math.sin(a) * r * 0.5, r * band['flat'] * 0.5)
+        mid = (x + math.cos(a) * r * 1.15, y + math.sin(a) * r * 1.15, r * band['flat'] * (1.15 + rng.uniform(0, 0.3)))
+        tip = (x + math.cos(a) * r * 1.55, y + math.sin(a) * r * 1.55, r * band['flat'] * rng.uniform(0.35, 0.7))
+        tn.limb(ms, mat, base, mid, 0.006, 0.004, segs=3, lod=0, caps=False)
+        tn.limb(ms, mat, mid, tip, 0.004, 0.0015, segs=3, lod=0, caps=False)
+
+
+def _twigs(ms, x, y, r, h, rng, n, far=False):
+    """Bare twigs fanning up out of a picked bush."""
+    for k in range(n):
+        a = 2 * math.pi * k / n + rng.uniform(-0.3, 0.3)
+        tip = (x + math.cos(a) * r * rng.uniform(0.7, 1.1), y + math.sin(a) * r * rng.uniform(0.7, 1.1), h * rng.uniform(0.8, 1.15))
+        tn.limb(ms, 'berry_twig', (x + math.cos(a) * r * 0.15, y + math.sin(a) * r * 0.15, 0.0), tip, 0.006, 0.002, segs=3, lod=0, caps=False)
+        if far and k < 3:
+            tn.limb(ms, 'berry_twig', (x, y, 0.0), tip, 0.009, 0.004, segs=3, lod=1, only=(1,), caps=False)
+
+
+def _leaves(ms, mat, bushes, flat, rng, n):
+    """Big glossy leaves standing out of a tropical bush (two triangles each, LOD0)."""
+    for k in range(n):
+        x, y, r = bushes[k % len(bushes)]
+        a = rng.uniform(0, 2 * math.pi)
+        up = rng.uniform(0.1, 0.8)
+        cx, cy, cz = _surface(x, y, r, flat, a, up)
+        d = Vector((math.cos(a), math.sin(a), 0.35)).normalized()
+        side = Vector((-math.sin(a), math.cos(a), 0)) * 0.022
+        tip = Vector((cx, cy, cz)) + d * 0.06
+        base = Vector((cx, cy, cz)) - d * 0.01
+        mid = (base + tip) / 2 + Vector((0, 0, 0.008))
+        bm = bmesh.new()
+        vs = [bm.verts.new(v) for v in (base, mid + side, tip, mid - side)]
+        bm.faces.new(vs)
+        ms.add(bm, mat, 0, only=(0,))
+
+
+def berry_bushes(band_name):
+    band = BERRY_BANDS[band_name]
+    leaf, flat = band['leaf'], band['flat']
+    n_full, n_half = band['clusters']
+
+    def full(ms, rng):
+        bushes = band['full']
+        for k, (x, y, r) in enumerate(bushes):
+            _bush_mass(ms, leaf, x, y, r, flat, rng, far=k < 2)
+        if band['canes']:
+            _canes(ms, band, bushes, rng, 6)
+        if band.get('leaves'):
+            _leaves(ms, leaf, bushes, flat, rng, 14)
+        _clusters(ms, band, bushes, n_full, rng, far_n=5)
+
+    def half(ms, rng):
+        # picked over: thinner bushes (one clump gone), bare twigs out of the picked side, a few clusters
+        bushes = [(x * 0.95, y * 0.95, r * 0.82) for x, y, r in band['full'][:3]]
+        for k, (x, y, r) in enumerate(bushes):
+            _bush_mass(ms, leaf, x, y, r, flat * 0.9, rng, far=k < 2)
+        for x, y, r in bushes[:2]:
+            _twigs(ms, x + r * 0.4, y - r * 0.3, r * 0.6, r * flat * 1.25, rng, 4, far=True)
+        if band['canes']:
+            _canes(ms, band, bushes, rng, 3)
+        if band.get('leaves'):
+            _leaves(ms, leaf, bushes, flat * 0.9, rng, 6)
+        _clusters(ms, dict(band, flat=flat * 0.9), bushes, n_half, rng, far_n=2)
+
+    def depleted(ms, rng):
+        # stripped: low dull mounds and bare twigs, no berry and no leaf of the full bush's colour
+        bushes = [(x * 0.9, y * 0.9, r * 0.62) for x, y, r in band['full'][:3]]
+        for k, (x, y, r) in enumerate(bushes):
+            _bush_mass(ms, 'berry_spent', x, y, r, flat * 0.7, rng, far=k < 2)
+            _twigs(ms, x, y, r * 1.1, r * 1.3, rng, 5, far=k == 0)
+        for k in range(6):  # dropped leaves on the ground
+            a, d = rng.uniform(0, 2 * math.pi), rng.uniform(0.12, 0.26)
+            ms.box('berry_spent', (0.02, 0.014, 0.003), at=(math.cos(a) * d, math.sin(a) * d, 0), rot_z=rng.uniform(0, 180), lod=0)
+    return full, half, depleted
+
+
+def berry_items():
+    out = node_items(berry_bushes('temperate'))
+    for band in ('dry', 'cold', 'tropical'):
+        out += node_items(berry_bushes(band), '-' + band)
+    return out
+
+
+# ---- stump variants (16 October, W12: every tree is wood, a felled tree leaves a stump) -----------
+# Two more stumps a kit beside its `stump`: `stump-2` a tall trunk snapped off, jagged, its broken top
+# lying beside it, and `stump-3` a low sawn stump with the cut log beside it and chips round it. The
+# battle picks one of the three for each felled tree by a hash of its tile (render/treeFelling.js).
+# Each draws from a random stream of its own (from the kit and its name), never from the file's, so
+# every other object and the file's fringe keep their shapes. Bark: the kit's own trees' bark.
+
+def _jagged_trunk(ms, bark, cut, r, h, own, segs, lod, only):
+    """A trunk snapped off: a tube whose top ring rises and falls in splinters round a pale core."""
+    bm = bmesh.new()
+    bot, top = [], []
+    for i in range(segs):
+        a = 2 * math.pi * i / segs
+        bot.append(bm.verts.new((math.cos(a) * r * 1.15, math.sin(a) * r * 1.15, -0.008)))
+        hh = h * (1.0 + (0.45 if i % 2 == 0 else -0.05) * own.uniform(0.6, 1.0) * (1.4 if i == 0 else 1.0))
+        top.append(bm.verts.new((math.cos(a) * r, math.sin(a) * r, hh)))
+    for i in range(segs):
+        j = (i + 1) % segs
+        bm.faces.new((bot[i], bot[j], top[j], top[i]))
+    ms.add(bm, bark, lod, only=only)
+    # the broken wood: a pale cone inside the ring, peaking off centre
+    bm = bmesh.new()
+    ring = [bm.verts.new((math.cos(2 * math.pi * i / segs) * r * 0.97, math.sin(2 * math.pi * i / segs) * r * 0.97, h * 0.92)) for i in range(segs)]
+    peak = bm.verts.new((r * 0.25, -r * 0.15, h * 1.35))
+    for i in range(segs):
+        bm.faces.new((ring[i], ring[(i + 1) % segs], peak))
+    ms.add(bm, cut, lod, only=only)
+
+
+def stump_variants(kit_name, bark, cut, bark2=None):
+    bark2 = bark2 or bark
+
+    def own(name):
+        return random.Random(zlib.crc32(('stump/%s/%s' % (kit_name, name)).encode()))
+
+    def stump2(ms, _rng):
+        o = own('stump-2')
+        r, h = 0.042, 0.11
+        _jagged_trunk(ms, bark, cut, r, h, o, 8, 0, (0,))
+        _jagged_trunk(ms, bark, cut, r * 1.05, h, random.Random(1), 5, 1, (1, 2))
+        for k in range(4):  # roots
+            a = 2 * math.pi * k / 4 + o.uniform(-0.3, 0.3)
+            tn.limb(ms, bark, (0, 0, h * 0.3), (math.cos(a) * r * 2.4, math.sin(a) * r * 2.4, 0.0), r * 0.42, r * 0.14, segs=4, lod=0)
+        # the broken-off top lying beside it, its splintered end toward the stump
+        a = o.uniform(0.6, 1.2)
+        p0 = Vector((math.cos(a) * r * 2.2, math.sin(a) * r * 2.2, r * 0.85))
+        p1 = p0 + Vector((math.cos(a), math.sin(a), -0.02)) * 0.17  # 1.7 m: neighbours' logs do not cross in a dense wood
+        tn.limb(ms, bark, p0, p1, r * 0.9, r * 0.55, segs=7, lod=0, caps=False)
+        tn.disc(ms, cut, p0 - (p1 - p0).normalized() * 0.0004, (p1 - p0).normalized(), r * 0.9, 7, lod=0, flip=True)
+        tn.limb(ms, bark, p0, p1, r * 0.95, r * 0.6, segs=4, lod=2, only=(1, 2))
+        for k in range(2):  # its snapped limbs
+            q = p0.lerp(p1, 0.55 + 0.3 * k)
+            s = 1 if k % 2 else -1
+            tn.limb(ms, bark, q, q + Vector((-math.sin(a) * s * 0.07, math.cos(a) * s * 0.07, 0.03)), r * 0.28, r * 0.12, segs=4, lod=0)
+        for k in range(5):  # splinters and bark on the ground
+            b, d = o.uniform(0, 2 * math.pi), o.uniform(1.6, 3.4) * r
+            ms.box(cut if k % 2 else bark, (r * 0.7, r * 0.18, r * 0.1), at=(math.cos(b) * d, math.sin(b) * d, 0), rot_z=o.uniform(0, 180), lod=0)
+
+    def stump3(ms, _rng):
+        o = own('stump-3')
+        r, h = 0.048, 0.032
+        for segs, lod, only in ((9, 0, (0,)), (6, 2, (1, 2))):
+            tn.limb(ms, bark2, (0, 0, -0.008), (0, 0, h), r * 1.12, r, segs=segs, lod=lod, only=only, caps=False)
+            tn.disc(ms, cut, (0, 0, h), (0, 0, 1), r, segs, lod=lod, only=only)
+        for k in range(3):  # roots
+            a = 2 * math.pi * k / 3 + o.uniform(-0.3, 0.3) + 0.5
+            tn.limb(ms, bark2, (0, 0, h * 0.4), (math.cos(a) * r * 2.1, math.sin(a) * r * 2.1, 0.0), r * 0.4, r * 0.14, segs=4, lod=0)
+        # the trunk, sawn into a log, lying beside it
+        a = o.uniform(-0.4, 0.2)
+        c = Vector((r * 0.6, -r * 2.6, 0))
+        d = Vector((math.cos(a), math.sin(a), 0))
+        lr = r * 0.85
+        p0, p1 = c - d * 0.085 + Vector((0, 0, lr)), c + d * 0.085 + Vector((0, 0, lr * 0.92))
+        tn.log(ms, p0, p1, lr, bark=bark2, ends=cut, segs=7, lod=0, only=(0,), taper=0.92)
+        tn.log(ms, p0, p1, lr, bark=bark2, ends=cut, segs=5, lod=2, only=(1, 2), taper=0.92)
+        for k in range(9):  # fresh chips round the stump
+            b, dd = o.uniform(0, 2 * math.pi), o.uniform(1.5, 3.6) * r
+            ms.box(cut, (r * 0.45, r * 0.26, r * 0.1), at=(math.cos(b) * dd, math.sin(b) * dd + r * 0.6, 0), rot_z=o.uniform(0, 180), lod=1 if k < 3 else 0)
+    return [('stump-2', stump2), ('stump-3', stump3)]
 
 
 FILES = {
@@ -374,9 +655,10 @@ FILES = {
     'fish-shoal': node_items(fish_shoal()),
     'herd-sheep-goat': [('animal', sheep)],
     'herd-cattle': [('animal', cattle)],
-    'vegetation-temperate': TEMPERATE,
-    'vegetation-mediterranean': MEDITERRANEAN,
-    'vegetation-desert': DESERT,
+    # (the stump variants go after every older object of a kit: see stump_variants)
+    'vegetation-temperate': TEMPERATE + stump_variants('temperate', 'bark_oak', 'cut_wood'),
+    'vegetation-mediterranean': MEDITERRANEAN + stump_variants('mediterranean', 'bark_olive', 'cut_wood', 'bark_red'),
+    'vegetation-desert': DESERT + stump_variants('desert', 'bark_oak', 'cut_wood', 'bark_dark'),
     # Log piles for the conifer, tropical and cold kits, which have no `log-pile` of their own: the
     # game stands `log-pile-<kit>` beside such a kit's grove (economyLayer.js).
     'log-piles': [
@@ -385,12 +667,14 @@ FILES = {
         ('log-pile-cold', lambda ms, rng: tn.log_pile(ms, rng, length=0.24, r=0.023, bark=('birch', 'bark_larch', 'birch'), rows=(4, 3, 2), far_rows=(0,))),  # thin birch and larch; the far level keeps the bottom row, thicker
     ],
     # New files go last: a file's seed is its place in this list.
-    'vegetation-steppe': STEPPE,
+    'vegetation-steppe': STEPPE + stump_variants('steppe', 'bark_beech', 'cut_wood', 'bark_oak'),
     # The kits first built by build_vegetation_remaining.py (MD05, 14 October: their trees are
     # replaced, everything else is theirs, built as they built it; see remaining_kit)
-    'vegetation-conifer': lambda: remaining_kit('conifer', (tr.spruce, tr.scots_pine, tr.fir)),
-    'vegetation-tropical': lambda: remaining_kit('tropical', (tr.jungle_giant, tr.coconut_palm, tr.banana)),
-    'vegetation-cold': lambda: remaining_kit('cold', (tr.larch, tr.dwarf_birch, tr.tundra_shrub)),
+    'vegetation-conifer': lambda: remaining_kit('conifer', (tr.spruce, tr.scots_pine, tr.fir)) + stump_variants('conifer', 'bark_dark', 'cut_pine', 'bark_red'),
+    'vegetation-tropical': lambda: remaining_kit('tropical', (tr.jungle_giant, tr.coconut_palm, tr.banana)) + stump_variants('tropical', 'bark_jungle', 'cut_hardwood'),
+    'vegetation-cold': lambda: remaining_kit('cold', (tr.larch, tr.dwarf_birch, tr.tundra_shrub)) + stump_variants('cold', 'bark_dark', 'cut_wood', 'bark_larch'),
+    # W12 (16 October): the berry bush food node, four climate bands (see berry_bushes)
+    'berry-bushes': berry_items(),
 }
 
 # Small objects need less than the README's 1024 atlas: one animal, a few ripples and fish.

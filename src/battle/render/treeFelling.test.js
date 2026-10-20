@@ -2,7 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import { InstancedMesh, BoxGeometry, MeshBasicMaterial, Matrix4, Scene } from 'three';
 import { FogMask } from './fogMask';
-import { TreeFelling, newlyFelled } from './treeFelling';
+import { TreeFelling, newlyFelled, stumpVariant } from './treeFelling';
+import { STUMP_NAMES } from '../art/vegetation';
 
 const W = 6; const H = 4;
 const treesAt = (tiles) => {
@@ -35,5 +36,32 @@ describe('TreeFelling', () => {
     expect(at[12]).toBeCloseTo(2 + 0.4); // the first stump stands where tile 8's tree stood
     f.update(view(2));
     expect(f.stats().stumps).toBe(2);
+  });
+
+  it('stumpVariant is a pure pick by tile, spread over the variants', () => {
+    expect(stumpVariant(42, 0, 1)).toBe(0);
+    expect(stumpVariant(42, 1, 3)).toBe(stumpVariant(42, 1, 3));
+    const seen = [0, 0, 0];
+    for (let t = 0; t < 300; t++) seen[stumpVariant(t, 0, 3)] += 1;
+    seen.forEach((n) => expect(n).toBeGreaterThan(60));
+  });
+
+  it("draws each stump with its tile's variant once the kit's stump-2 and stump-3 are in", () => {
+    const fogMask = new FogMask(W, H);
+    const tiles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    fogMask.add(treesAt(tiles)).tree = true;
+    const obj = (name) => ({ name });
+    const vegetation = { stumpObj: obj('stump'), stumpObjs: STUMP_NAMES.map(obj), level: (o) => ({ geometry: new BoxGeometry(1, 1, 1), material: new MeshBasicMaterial({ name: o.name }) }) };
+    const r = { setup: { map: { w: W, h: H }, economy: { nodes: [{ kind: 'tree', trees: tiles }] } }, fogMask, scene: new Scene(), track: (x) => x, heightAt: () => 0, vegetation };
+    const f = new TreeFelling(r);
+    f.update({ eco: { nodes: [{ i: 0, cut: tiles.length }] } });
+    expect(f.stats()).toMatchObject({ felled: 12, stumps: 12, variants: 3 });
+    expect(f.meshes.map((m) => m.material.name)).toEqual(STUMP_NAMES);
+    const want = [0, 0, 0];
+    tiles.forEach((t) => { want[stumpVariant(t, 0, 3)] += 1; });
+    expect(f.meshes.map((m) => m.count)).toEqual(want);
+    // the same felling draws the same stumps again
+    f.redraw();
+    expect(f.meshes.map((m) => m.count)).toEqual(want);
   });
 });

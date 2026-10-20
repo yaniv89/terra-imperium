@@ -1,5 +1,5 @@
 """Kit objects as the battle camera sees them, at a set size on screen (read only).
-blender -b --factory-startup -P scripts/blender/render_kit_zoom.py -- OUT.png PX_PER_UNIT LOD COLS [--person] [--turn DEG] [--ground R,G,B] [--headroom UNITS] [--mag N] FILE.glb [FILE.glb ...]
+blender -b --factory-startup -P scripts/blender/render_kit_zoom.py -- OUT.png PX_PER_UNIT LOD COLS [--person] [--turn DEG] [--ground R,G,B] [--headroom UNITS] [--mag N] [--only NAME,NAME] FILE.glb [FILE.glb ...]
 
 Every root object (an empty with LOD0..LOD2 children) of the unpacked files stands on a grass plane
 in a grid, seen along the battle's own camera direction (BattleRenderer.js ISO_DIR = (1, 1.25, 1),
@@ -39,6 +39,10 @@ mag = 4
 if '--mag' in args:
     mag = int(args[args.index('--mag') + 1])
     del args[args.index('--mag'):args.index('--mag') + 2]
+only = None  # --only a,b: just these objects (by name) of each file
+if '--only' in args:
+    only = set(args[args.index('--only') + 1].split(','))
+    del args[args.index('--only'):args.index('--only') + 2]
 args = [a for a in args if a != '--person']
 out, px_per_unit, lod, cols = os.path.abspath(args[0]), float(args[1]), args[2], int(args[3])
 files = [os.path.abspath(a) for a in args[4:]]
@@ -54,8 +58,15 @@ for f in files:
     before = set(scene.objects)
     bpy.ops.import_scene.gltf(filepath=f)
     new = [o for o in scene.objects if o not in before]
-    roots += sorted([o for o in new if o.type == 'EMPTY' and o.parent is None and any(c.type == 'MESH' for c in o.children)],
-                    key=lambda r: r.location.x)
+    found = sorted([o for o in new if o.type == 'EMPTY' and o.parent is None and any(c.type == 'MESH' for c in o.children)],
+                   key=lambda r: r.location.x)
+    if only:
+        drop = [o for o in found if o.name.split('.')[0] not in only]
+        found = [o for o in found if o.name.split('.')[0] in only]
+        for o in drop:
+            for c in list(o.children_recursive) + [o]:
+                bpy.data.objects.remove(c, do_unlink=True)
+    roots += found
 for o in scene.objects:
     if o.type == 'MESH' and o.parent is not None and o.parent.type == 'EMPTY':
         o.hide_render = not o.name.startswith('LOD' + lod)
