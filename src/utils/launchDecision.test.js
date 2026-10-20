@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { launchScreen, playedAgo, describeSave } from './launchDecision';
 import { CURRENT_SAVE_VERSION } from '../engine/saveMigrations';
 import { peoplesWorld } from '../engine/testWorld';
+import { syncWorldRegistry, WORLD_REGISTRY } from '../engine/world/registry';
 
 describe('launchScreen (X26: the title screen on every launch)', () => {
   it('shows the title screen whenever a readable save exists, never the game', () => {
@@ -44,5 +45,17 @@ describe('describeSave', () => {
     expect(describeSave(null).status).toBe('none');
     expect(describeSave('not json').status).toBe('old');
     expect(describeSave(JSON.stringify({ version: 999, state: {} })).status).toBe('old');
+  });
+
+  // Playtest 4 H1, C2: reading a save for its card (migrateSave backfills from a fresh game) left
+  // the city registry on that fresh game, so the game on screen, and a commanded battle resumed
+  // after a reload, read another game's cities until the first action.
+  it('leaves the city registry on the game on screen', () => {
+    const raw = JSON.stringify({ version: CURRENT_SAVE_VERSION, state: peoplesWorld({ seed: 11 }), savedAt: 1 });
+    const playing = syncWorldRegistry(peoplesWorld({ seed: 7 }));
+    const before = { ids: Object.keys(WORLD_REGISTRY.regions).sort().join(',') };
+    expect(describeSave(raw).status).toBe('ok');
+    expect(WORLD_REGISTRY.source).toBe(playing.regions);
+    expect(Object.keys(WORLD_REGISTRY.regions).sort().join(',')).toBe(before.ids);
   });
 });

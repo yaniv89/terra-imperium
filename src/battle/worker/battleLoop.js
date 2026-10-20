@@ -6,7 +6,7 @@
 // one transferable buffer, `post(message, transfer)`), checkpoints and the result.
 import { createWorld } from '../sim/world';
 import { step } from '../sim/step';
-import { applyOrder, applyDeployment } from '../sim/orders';
+import { applyOrder, applyDeployment, isDeployment } from '../sim/orders';
 import { admitOrder, MAX_LOG_ORDERS } from '../sim/orderSchema';
 import { toStrategicResult } from '../sim/result';
 import { worldHash } from '../sim/hash';
@@ -38,7 +38,11 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
       post({ type: 'resumeRejected', tick: resume.tick ?? null });
     }
   }
-  let pending = [];
+  // A checkpoint taken between two ticks (a snapshot when the page was hidden: the screen saves it
+  // as a checkpoint) can log orders stamped with its own tick that were not yet stepped. The replay
+  // of the whole log applies them on that tick, so the resumed battle must too, or it plays on
+  // without them and the campaign's replay reaches another end (playtest 4 C2).
+  let pending = log.filter((o) => o.tick >= world.tick && !isDeployment(o));
   let seq = log.length;
   let paused = false;
   let speed = 1;

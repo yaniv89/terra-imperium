@@ -232,6 +232,8 @@ export default {
   'bt.coach.cameraTouch': 'Drag one finger to move the camera, pinch two fingers to zoom.',
   'bt.screen.drawFail': 'This device could not draw the battlefield.',
   'bt.screen.stopped': 'The battle stopped unexpectedly.',
+  'bt.screen.resumedAt': 'Picked up where you left off: {time} into the battle.',
+  'bt.screen.resumeRejected': 'This battle could not be picked up where you left it ({time} in): its saved record does not match. It starts again from deployment, and this new fight is the one that counts.',
   'bt.screen.couldNotStart': 'The battle could not start.',
   'bt.screen.couldNotDraw': 'The battlefield could not be drawn.',
   'bt.screen.graphicsLost': 'The graphics were lost (webglcontextlost).',
