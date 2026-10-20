@@ -129,6 +129,18 @@ describe('operational AI',()=>{
     expect(next.units.a.movesLeft).toBe(0);
     expect(next.nations.de.economy.mil).toBe(98);
   });
+  it('a broken stack does not assault a garrisoned city it would route against (H-15)',()=>{
+    const {s,border,target}=setup();
+    const tiles=getTiles();
+    const beside=s.regions[target].tiles.flatMap(t=>tiles.neighbors[t]).find(t=>tiles.land[t]===1&&s.world.tileOwner[t]!==target);
+    const run=(morale)=>{
+      const units={g:{id:'g',ownerId:'fr',regionId:target,tile:s.regions[target].tile,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0}};
+      for(let i=0;i<3;i++)units[`a${i}`]={...s.units.a,id:`a${i}`,regionId:border,tile:beside,morale};
+      return processAIOperations({...s,units,pendingDefenses:[]},createRng(7)).pendingDefenses.filter(d=>d.regionId===target).length;
+    };
+    expect(run(100)).toBe(1);
+    expect(run(15)).toBe(0);
+  });
   it('can transport a real army to a reachable island front without creating free units',()=>{
     const s=createInitialState({playerNationId:'fr',rngSeed:7});s.techAgeId='modern';
     const port=Object.keys(s.regions).find(r=>s.regions[r].owner==='gb'&&isCoastal(r));
