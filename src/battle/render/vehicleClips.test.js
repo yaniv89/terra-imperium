@@ -26,7 +26,13 @@ const UNITS = {
   'kingdoms-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.9, 3.2], gun: false },
   'gunpowder-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.26, 1.67], gun: false },
   // the Stone ladder crew (eight-ages plan U80): the ladder is the Hull, no wheels
-  'stone-siege': { crew: 3, wheels: null, footprint: [0.91, 1.9], gun: false }
+  'stone-siege': { crew: 3, wheels: null, footprint: [0.91, 1.9], gun: false },
+  // the Future hover machines (eight-ages plan U83, ti_future.hover_clips): no wheels, the hull floats
+  'future-cavalry': { crew: 0, wheels: null, footprint: [1.19, 2.15] },
+  'future-siege': { crew: 0, wheels: null, footprint: [1.11, 1.7] },
+  'future-support': { crew: 0, wheels: null, footprint: [1.11, 1.7], gun: false },
+  'future-general': { crew: 1, wheels: null, footprint: [0.99, 1.46], gun: false },
+  'future-raider': { crew: 1, wheels: null, footprint: [0.99, 1.4] }
 };
 const LOOPS = ['Idle', 'Move'];
 const FPS = 20;
