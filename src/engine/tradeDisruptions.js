@@ -31,12 +31,14 @@ import { plunderedRoutes, plunderGoldFor, blockerStands } from './plunder';
 import { getTradeRoute } from './tradeRoutes';
 import { tradeRoutesValue } from './tradeValue';
 import { msg, msgText, sub, people, cityRef, place } from './messages';
+import { waitAgeOf } from './ageRefs';
 
 // PROVISIONAL numbers (the rule is fixed; the values wait for the tuning pass, conflicts trap T1).
 export const PLUNDER_CUT_REF_TURNS = 3;    // a cut lasts at most this long: 5 turns at Normal
 export const PLUNDER_GUARD_REF_TURNS = 12; // then the route cannot be cut for this long: 19 to 20 turns at Normal
-export const plunderCutTurns = (state) => speedTurns(PLUNDER_CUT_REF_TURNS, state?.gameSpeed, state?.age);
-export const plunderGuardTurns = (state) => speedTurns(PLUNDER_GUARD_REF_TURNS, state?.gameSpeed, state?.age);
+// A route is a pair's: the player and its partner, at the older age of the two (KTD7).
+export const plunderCutTurns = (state, partnerId) => speedTurns(PLUNDER_CUT_REF_TURNS, state?.gameSpeed, waitAgeOf(state, state?.playerNationId, partnerId));
+export const plunderGuardTurns = (state, partnerId) => speedTurns(PLUNDER_GUARD_REF_TURNS, state?.gameSpeed, waitAgeOf(state, state?.playerNationId, partnerId));
 
 // Who holds the road, as a message var: "Rebels", the nation, else "Raiders"; `the` gives "the rebels" mid-sentence.
 const whoRef = (state, id, the = false) => {
@@ -97,20 +99,20 @@ export const advanceTradeDisruptions = (state, turn = state.turnNumber || 1) => 
     }
     if (hit && !p) {
       // A new cut: the one line, and the one payment.
-      const until = turn + plunderCutTurns(state);
+      const until = turn + plunderCutTurns(state, pid);
       next[pid] = { phase: 'cut', kind: hit.kind, by: hit.by, tile: hit.tile, since: turn, until, lost: 1 };
       changed = true;
       const raider = state.nations?.[hit.by];
       if (raider && !isIndependentNation(raider)) loot.push({ by: hit.by, gold: plunderGoldFor(state, hit.by) });
       const where = sub(hit.kind === 'sea' ? 'm.diplo.offPlace' : 'm.diplo.atPlace', { place: placeMsg(state, hit.tile) });
       const why = hit.kind === 'sea' ? sub('m.diplo.causeShips', { nation: whoRef(state, hit.by) }) : causeMsg(state, hit.by);
-      logs.push({ ...msg(hit.kind === 'sea' ? 'm.diplo.plunderSea' : 'm.diplo.plunderLand', { nation: whoRef(state, hit.by), partner: partnerRef(pid), where, why, turns: plunderCutTurns(state) }) });
+      logs.push({ ...msg(hit.kind === 'sea' ? 'm.diplo.plunderSea' : 'm.diplo.plunderLand', { nation: whoRef(state, hit.by), partner: partnerRef(pid), where, why, turns: plunderCutTurns(state, pid) }) });
       return;
     }
     if (hit && p) {
       if (turn >= p.until) {
         // The caravans go under guard: open again whatever stands on the road.
-        const guardedUntil = turn + plunderGuardTurns(state);
+        const guardedUntil = turn + plunderGuardTurns(state, pid);
         next[pid] = { ...p, phase: 'guarded', by: hit.by, tile: hit.tile, guardedUntil };
         changed = true;
         logs.push({ ...msg('m.diplo.guarded', { partner: partnerRef(pid), who: whoRef(state, hit.by, true), place: placeMsg(state, hit.tile), count: p.lost, turn: guardedUntil }) });

@@ -51,6 +51,17 @@ export const researchLeaderYear = (state) => {
   return best ?? labelYear(FIRST_AGE_ID, []);
 };
 
+/**
+ * The age a wait runs at (KTD7, speedTurns): the waiting nation's own age; a wait shared by two
+ * nations (a truce, a demand cooldown, a pair's trade disruption) uses the older age of the two;
+ * a wait no nation owns uses the research leader's age.
+ */
+export const waitAgeOf = (state, ...nationIds) => {
+  const ids = nationIds.filter((id) => id != null);
+  if (!ids.length) return researchLeaderAge(state);
+  return AGE_ORDER[Math.min(...ids.map((id) => getAgeIndex(sideAgeOf(state, id))))] || FIRST_AGE_ID;
+};
+
 /** The index of researchLeaderAge in AGE_ORDER. */
 export const researchLeaderIndex = (state) => getAgeIndex(researchLeaderAge(state));
 

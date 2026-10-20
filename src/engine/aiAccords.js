@@ -50,6 +50,7 @@ import { ringsAround } from './world/cities';
 import { speedTurns } from '../data/ages';
 import { DEMAND_MAX_OPINION, MET_OUR_DEMAND, GRUDGE_PER_HOSTILITY } from '../data/opinion';
 import { msg, msgText, sub, carry, people, cityRef } from './messages';
+import { waitAgeOf } from './ageRefs';
 
 export const AI_ACCORD_PERIOD = 10;
 export const AI_OPEN_BORDERS_OPINION = 8;
@@ -60,7 +61,8 @@ export const DEMAND_ANSWER_TURNS = 3;          // the player's time to answer, i
 export const DEMAND_GAP_REF_TURNS = 8;         // reference turns between two demands on the same people, whoever asks (13 at Normal)
 export const DEMAND_REACH_KM = 612;            // a demander's army must stand this near one of the target's cities
 export const DEMAND_LOCAL_SHARE = 0.5;         // and be worth this share of the target's whole fielded army
-export const demandGapTurns = (state) => speedTurns(DEMAND_GAP_REF_TURNS, state?.gameSpeed, state?.age);
+// The pressed people waits: its own age (KTD7).
+export const demandGapTurns = (state, targetId) => speedTurns(DEMAND_GAP_REF_TURNS, state?.gameSpeed, waitAgeOf(state, targetId));
 
 const atWar = (state, a, b) => (state.wars || []).some((w) => w.active && isWarBetween(w, a, b));
 const related = (nations, a, b) => nations[a]?.vassalOf === b || nations[b]?.vassalOf === a;
@@ -127,7 +129,7 @@ export const demandBlock = (state, a, b, turn = state.turnNumber || 1) => {
   if (A.defensivePact && B.defensivePact && A.defensivePact.against === B.defensivePact.against) return no('agreement');
   const cooldown = A.demandCooldowns?.[b];
   if (cooldown != null && turn < cooldown) return no('cooldown');
-  if (B.lastDemandedTurn != null && turn - B.lastDemandedTurn < demandGapTurns(state)) return no('recent');
+  if (B.lastDemandedTurn != null && turn - B.lastDemandedTurn < demandGapTurns(state, b)) return no('recent');
   if (getEffectiveMilitaryPower(state, a) / Math.max(1, getEffectiveMilitaryPower(state, b)) < AI_DEMAND_RATIO) return no('weak');
   if (opinionOf(state, a, b) >= DEMAND_MAX_OPINION) return no('friendly');
   const near = forceNear(state, a, b);
@@ -155,7 +157,7 @@ export const processAIAccords = (state, nations, { turn, sortedByMilitary }) => 
   if (pendingDemand && turn > pendingDemand.until) {
     const from = next[pendingDemand.from];
     if (from && !from.isEliminated) {
-      const cb = demandCbTurns(state);
+      const cb = demandCbTurns(state, pendingDemand.from, me);
       next = { ...next, [pendingDemand.from]: { ...from, demandCasusBelli: { ...(from.demandCasusBelli || {}), [me]: turn + cb }, hostility: Math.min(100, (from.hostility || 0) + DEMANDS[pendingDemand.kind].hostility) } };
       logs.push({ year: state.year, ...msg('m.diplo.silenceRefusal', { nation: people(pendingDemand.from, from.name), turns: cb }), type: 'diplomacy' });
     }
@@ -187,9 +189,9 @@ export const processAIAccords = (state, nations, { turn, sortedByMilitary }) => 
       const cityName = cityId ? state.regions[cityId]?.name : null;
       // `amount` is null for a demand that asks no gold (a city, a stop to settling).
       pendingDemand = { from: a, kind, cityId, cityName, amount: quote ? quote.amount : null, ratio: Math.round(demandRatio(v, a, me) * 100) / 100, turn, until: turn + DEMAND_ANSWER_TURNS };
-      next = { ...next, [a]: { ...next[a], demandCooldowns: { ...cooldowns, [me]: turn + demandCooldownTurns(state) } }, [me]: { ...next[me], lastDemandedTurn: turn } };
+      next = { ...next, [a]: { ...next[a], demandCooldowns: { ...cooldowns, [me]: turn + demandCooldownTurns(state, a, me) } }, [me]: { ...next[me], lastDemandedTurn: turn } };
       const ask = kind === 'city' ? sub('m.diplo.askCity', { city: cityRef(cityId, cityName) }) : kind === 'stopSettling' ? sub('m.diplo.askStop') : sub('m.diplo.askTribute', { gold: pendingDemand.amount });
-      logs.push({ year: state.year, ...msg('m.diplo.demandMade', { nation: people(a, next[a].name), ask, truce: demandTruceTurns(state), cb: demandCbTurns(state), answer: DEMAND_ANSWER_TURNS }), type: 'diplomacy' });
+      logs.push({ year: state.year, ...msg('m.diplo.demandMade', { nation: people(a, next[a].name), ask, truce: demandTruceTurns(state, a, me), cb: demandCbTurns(state, a, me), answer: DEMAND_ANSWER_TURNS }), type: 'diplomacy' });
       return;
     }
     const r = applyDemand(v, prey, kind, cityId, a);
@@ -225,8 +227,8 @@ export const demandTerms = (state) => {
   const gold = Math.floor(state.resources?.gold || 0);
   const amount = d.kind === 'tribute' ? d.amount || 0 : null;
   const war = atWar(state, d.from, me);
-  const truceTurns = demandTruceTurns(state);
-  const cbTurns = demandCbTurns(state);
+  const truceTurns = demandTruceTurns(state, d.from, me);
+  const cbTurns = demandCbTurns(state, d.from, me);
   const hostility = DEMANDS[d.kind].hostility;
   const opinionGain = MET_OUR_DEMAND + Math.round(GRUDGE_PER_HOSTILITY * Math.min(DEMAND_MET_HOSTILITY, from.hostility || 0));
   // Every English line has its message beside it (`<field>Msg`, a sub: { key, vars }) for the card in other languages.
@@ -276,7 +278,7 @@ export const answerDemand = (state, accept) => {
     const nations = { ...g.nations, [d.from]: { ...g.nations[d.from], hostility: Math.max(g.nations[d.from].hostilityFloor || 0, (g.nations[d.from].hostility || 0) - DEMAND_MET_HOSTILITY) } };
     return { state: { ...state, nations, regions: g.regions, resources: g.resources, pendingDemand: null }, ...msg('m.diplo.answerMet', { text: g.msgKey ? sub(g.msgKey, g.msgVars) : g.message, n: MET_OUR_DEMAND }) };
   }
-  const cb = demandCbTurns(state);
+  const cb = demandCbTurns(state, d.from, me);
   const hostility = DEMANDS[d.kind].hostility;
   const nations = { ...state.nations, [d.from]: { ...from, demandCasusBelli: { ...(from.demandCasusBelli || {}), [me]: turn + cb }, hostility: Math.min(100, (from.hostility || 0) + hostility) } };
   return { state: { ...state, nations, pendingDemand: null }, ...msg('m.diplo.answerRefused', { nation: people(d.from, from.name), turns: cb, opinion: -Math.round(GRUDGE_PER_HOSTILITY * hostility) }) };
