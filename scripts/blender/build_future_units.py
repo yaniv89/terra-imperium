@@ -80,7 +80,9 @@ def light_suit(hood=False):
 
 # ---- foot ---------------------------------------------------------------------------------------------------
 
-if KIND == 'infantry':
+if __name__ != '__main__':  # imported for its helpers (build_signature_late.py): build nothing
+    pass
+elif KIND == 'infantry':
     arm = F.start(T.COLORS, ready=True)
     T.exo_suit()
     GRIP = (-.074, -.184, .596)

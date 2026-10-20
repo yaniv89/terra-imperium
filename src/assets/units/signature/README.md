@@ -43,3 +43,12 @@ loader's target height, see the builder's header) so they stand taller than a ho
 are drawn at 0.8 of their true size so a squad's eight figures still stand apart. Check in battle:
 `?battleSandbox&age=classical&people=magadha&enemy=pontus&attacker=cavalry` and
 `&people=saba&enemy=magadha&attacker=archers`.
+
+The 40 late signature units (U86, 2026-10-20, `scripts/blender/build_signature_late.py`, the U85 list from the
+eight-ages plan Appendix D with its 6 swaps): 24 Information (`<people>-information`: 11 on foot at 1,694 to 1,982
+triangles, 6 tank regiments, 2 wheeled carriers, 2 rocket and air-defence trucks, the Diaguita pack howitzer with its
+crew, a jet and a helicopter) and 16 Future (`<people>-future`: 7 on foot, 4 hover chariots, the Mapungubwe golden-rhino
+walker on the quadruped rig without a Skin tag, 2 drone swarms and 2 projector sleds). Every file is under its cap; the
+`material_names` check of `validate_model.py unit` flags the vehicle colour names, as it does for the base units. Ages
+not yet in `AGE_ORDER` (information, future) read these files from Phase D and E. Contact sheet:
+`plans/art/u86/contact.webp`.

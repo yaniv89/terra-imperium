@@ -28,7 +28,7 @@ import build_units_bronze_signature as lib  # noqa: E402
 
 os.environ['TI_UNITS_OUT'] = str(u.REPO / 'art-build' / 'units')  # (build_units_modern points it at units/modern on import)
 KIND = (sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else ['siege'])[0]
-assert KIND in ('siege', 'support', 'air'), KIND
+assert __name__ != '__main__' or KIND in ('siege', 'support', 'air'), KIND
 UID = 'information-' + KIND
 SAND = '8C8A72'
 TAGS = {'team': '(^|\\s)Team(\\s|$)', 'skin': '(^|\\s)Skin(\\s|$)', 'emblem': '(^|\\s)Emblem(\\s|$)'}
@@ -131,7 +131,9 @@ def drone(prefix='Drone', length=1.0, span=1.9):
     return [rig]
 
 
-if KIND == 'siege':
+if __name__ != '__main__':  # imported for its helpers (build_signature_late.py): build nothing
+    pass
+elif KIND == 'siege':
     F.start({'Skin': 'C99472', 'Hair': '2E241C', 'Uniform': '3C4134', 'Boot': '26231F', 'Sole': '161514', 'Pad': '2C2D29', 'Helmet': '8E8668',
              'Gear': '2A2A27', 'Pouch': '8A7650', 'Glove': '302D28', 'Cloth': SAND, 'Leather': '25262A', 'Metal': md.GUNMETAL, 'Wood': '4A4038'}, rig=False)
     parts, info = truck('Mlrs', (0, .40, .48))

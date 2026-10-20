@@ -123,7 +123,9 @@ def pilot(heavy=False):
     return rider, gl
 
 
-if KIND in ('infantry', 'ranged'):
+if __name__ != '__main__':  # imported for its helpers (build_signature_late.py): build nothing
+    pass
+elif KIND in ('infantry', 'ranged'):
     arm = F.start(COLORS, ready=True)
     android(heavy=KIND == 'ranged')
     GRIP = (-.074, -.184, .596)
