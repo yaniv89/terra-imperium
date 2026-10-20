@@ -238,7 +238,11 @@ describe('the Stone city kit (eight-ages plan U88)', () => {
     expect(ART.ruins('stone').key).toBe('battle/city/ruins-stone.glb');
     expect(ART.fort('stone').key).toBe('battle/city/fort-stone.glb');
     expect(ART.civic('stone', 'levant')).toMatchObject({ key: 'battle/city/civic-stone.glb', style: 'base' });
-    expect(ART.housesDamage('stone', 'europe')).toMatchObject({ key: 'battle/city/stone-houses-damage.glb', style: 'base' });
+    expect(ART.housesDamage('stone')).toMatchObject({ key: 'battle/city/stone-houses-damage.glb', style: 'base' });
+    // every regional Stone kit has its own damaged houses (H-25); Korea reads its own, not the Sinic's
+    for (const s of ['europe', 'levant', 'indic', 'monsoon', 'americas', 'steppe', 'nile', 'maghreb', 'sinic', 'korea', 'japan', 'westafrica', 'eastafrica']) {
+      expect(ART.housesDamage('stone', s)).toMatchObject({ key: `battle/city/stone-${s}-houses-damage.glb`, style: s });
+    }
     expect(ART.palaceDamage('stone', 'sinic')).toMatchObject({ key: 'battle/city/palace-damage-stone.glb', style: 'base' });
     // Bronze still reads its own files
     expect(ART.walls('bronze').key).toBe('battle/city/walls-bronze.glb');
