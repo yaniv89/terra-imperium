@@ -36,6 +36,8 @@ import { cityHexOf, hexTownPx, insideHex } from './cityHex';
 import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen } from './terrainPlacement';
 import { getRidgeGeometry, getHillGeometry, RIDGE_VARIANTS } from './mountainModels';
 import { dressCloseTerrain } from './terrainKits';
+import { loadKit } from '../../../battle/art/kitLoader';
+import { createGltfHold, onGltfEvict } from '../../../battle/render/gltfUnitLoader';
 import { EARTH_RADIUS_KM } from '../../../data/geo/geodesic';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
@@ -137,7 +139,37 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
   for (let v = 0; v < RIDGE_VARIANTS; v++) [false, true].forEach((snow) => t.ridges.set(`${v}|${snow}`, instanced(getRidgeGeometry(v, snow), MAX_RIDGE_MESH)));
   // an army layer built on a soldier model that has since been replaced (its GLB arrived)
   const dropLayer = (l) => { l.levels.forEach((m) => { root.remove(m); m.geometry.dispose(); }); };
-  dressCloseTerrain(t, onAssets); // the map terrain kits, where delivered (terrainKits.js)
+  // The model files on screen are held (gltfUnitLoader.createGltfHold): the memory list
+  // (assetMemory.js) never drops them, so their textures are never disposed under the drawing (a
+  // long session's towns, wonders and farms turned solid black: H-05). `hold` is the last layout's
+  // files, `kitHold` the ridge and hill kits (always drawn). A file that does go (it was off
+  // screen, or every file went: a lost context) takes the objects built on it along (dropFile),
+  // and the next layout loads it again.
+  const hold = createGltfHold();
+  const kitHold = createGltfHold();
+  let used = new Set();
+  const use = (url) => { if (url) { used.add(url); hold.add(url); } return url; };
+  const holdingLoad = (h, files = null) => (url, opts) => { h.add(url); files?.push(url); return loadKit(url, opts); };
+  const released = new Set(); // files whose maps kept no CPU copy (a touch device), forgotten
+  const dropObject = (map, key, o) => {
+    root.remove(o);
+    [...(o.userData.townDamage || []), ...(o.userData.groundClear || [])].forEach((m) => m.dispose());
+    map.delete(key);
+  };
+  const dropFile = (url) => {
+    let changed = t.assets.delete(url);
+    [t.buildings, t.improvements, t.ships].forEach((l) => { if (l.forget(url)) changed = true; });
+    [t.towns, t.wonders, t.fieldWorks].forEach((map) => map.forEach((o, key) => {
+      if (o.userData.files?.includes(url)) { dropObject(map, key, o); changed = true; }
+    }));
+    released.delete(url);
+    return changed;
+  };
+  const offEvict = onGltfEvict((url, gltf, { disposed } = {}) => {
+    if (!disposed) { released.add(url); return; } // still drawn whole by this renderer: kept
+    if (dropFile(url)) onAssets();
+  });
+  dressCloseTerrain(t, onAssets, { load: holdingLoad(kitHold) }); // the map terrain kits, where delivered (terrainKits.js)
   const plotMap = plotTexture();
   const plotMaterial = new MeshBasicMaterial({ map: plotMap, transparent: true, opacity: 0.88, depthWrite: false });
   t.plots = new InstancedMesh(new PlaneGeometry(1, 1), plotMaterial, MAX_PLOTS);
@@ -153,6 +185,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
    */
   const layout = ({ projection, proj, transform, width, height, state, fog, towns, markers, ground }) => {
     const k = transform.k;
+    used = new Set(); // the files this layout draws (held at its end)
     const s = unitPx(k);
     const TILT = tiltFor(k);
     const rig = lightRig(TILT);
@@ -181,6 +214,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     // The age's shared files (palaces, walls, the camp, fields): each loaded once, the objects by
     // name; a region's file (its own palaces and walls) over the age's base file.
     const loadShared = (url) => {
+      use(url);
       if (!t.assets.has(url)) {
         t.assets.set(url, null);
         loadAssetObjects(url).then((objs) => { t.assets.set(url, objs); onAssets(); })
@@ -203,6 +237,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     const townBuildings = []; // [{ mesh, at, s, picks, teamColor, tint }] placed once every town has claimed its ground
     // A landmark file: loaded once, its root object handed to the instanced layer.
     const buildingReady = ({ id, url }) => {
+      use(url);
       if (t.buildings.hasModel(url)) return true;
       if (!t.assets.has(url)) {
         t.assets.set(url, null);
@@ -234,7 +269,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       const landNation = region.tile != null ? landOf(region.tile, state.scenario?.sites) : null;
       const style = styleOfLand(landNation || owner, opts.ageId);
       const assetUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, seed, style);
-      const asset = assetUrl ? t.assets.get(assetUrl) : null;
+      const asset = assetUrl ? t.assets.get(use(assetUrl)) : null;
       if (assetUrl && !t.assets.has(assetUrl)) {
         t.assets.set(assetUrl, null);
         loadTownAsset(assetUrl).then((r) => { t.assets.set(assetUrl, r); onAssets(); })
@@ -245,6 +280,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       // An outpost shows its age band's camp (outpostModels.js) once that file is in; until then,
       // or without one, the shared file's colony camp.
       const outpost = camp ? outpostFor(region, opts.ageId) : null;
+      use(outpost?.url);
       if (outpost && !t.assets.has(outpost.url)) {
         t.assets.set(outpost.url, null);
         loadAssetObjects(outpost.url).then((objs) => { t.assets.set(outpost.url, objs); onAssets(); })
@@ -282,11 +318,16 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         // the old plots of landmarks the art moved off the square: their baked shade lifted
         const plots = asset ? fileGroundClear(mesh) : [];
         if (plots.length) { enableGroundClear(mesh); setGroundClear(mesh, plots); }
+        // the files this town is built from (held while it is drawn; it goes with any of them)
+        const files = model ? [asset ? assetUrl : null, outpostRoot ? outpost.url : null,
+          ...(shared ? sharedAssetUrls(opts.ageId, style) : []),
+          ...(palaceShared && palaceShared !== shared ? sharedAssetUrls(opts.ageId, palaceStyle) : [])].filter(Boolean) : [];
         if (dmg) {
           const states = manifestStates(cityManifestOf(state, id), dmg).filter((s) => s.kind === 'house' || s.kind === 'landmark' || (palaceNode && s.kind === 'palace'));
           const palace = palaceNode ? { name: palaceFor(tier.id), style: palaceShared === shared ? style : palaceStyle, node: palaceNode } : null;
-          applyTownDamage(mesh, states, { ageId: opts.ageId, style, teamColor, tint, onReady: onAssets, palace });
+          applyTownDamage(mesh, states, { ageId: opts.ageId, style, teamColor, tint, onReady: onAssets, palace, load: holdingLoad(hold, files) });
         }
+        mesh.userData.files = files;
         mesh.userData.fields = fields.map((f) => {
           const field = instanceTownAsset(shared[f.name], teamColor, tint);
           field.position.set(f.x, 0, f.z);
@@ -301,6 +342,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         root.add(mesh);
       }
       if (mesh.userData.asset) showLod(mesh, lodForZoom(k));
+      mesh.userData.files?.forEach(use);
       // the town's ground (and its wall ring) is claimed first; its fields come after the works.
       // Every tier fills its own hex (cityHex.js, decision D10): the tier's art shows the city's
       // size; never into a neighbouring hex or the sea. An outpost's camp file fills a share of its
@@ -327,7 +369,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     // in the owner's colour, on land only. Without a file the banner and the star stay alone.
     const seenWonders = new Set();
     wonders.forEach((w) => {
-      const url = wonderAssetUrl(w.projectId);
+      const url = use(wonderAssetUrl(w.projectId));
       if (!t.assets.has(url)) {
         t.assets.set(url, null);
         loadAssetObjects(url).then((objs) => { t.assets.set(url, objs); onAssets(); })
@@ -350,6 +392,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         const r = box.isEmpty() ? WONDER_RADIUS : Math.max(Math.abs(box.min.x), Math.abs(box.max.x), Math.abs(box.min.z), Math.abs(box.max.z));
         mesh.userData.radius = Math.max(1, Math.min(WONDER_RADIUS * 1.5, r || WONDER_RADIUS));
         mesh.userData.key = key;
+        mesh.userData.files = [url];
         mesh.frustumCulled = false;
         t.wonders.set(w.tile, mesh);
         root.add(mesh);
@@ -436,6 +479,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
           g.add(field);
         });
         g.userData.key = key;
+        g.userData.files = sharedAssetUrls(ageOf(state, owner));
         t.fieldWorks.set(w.tile, g);
         root.add(g);
       }
@@ -460,6 +504,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       const ageId = ageOf(state, owner);
       const model = improvementModel(w.kind, ageId, styleOfLand(landOf(w.tile, state.scenario?.sites) || owner, ageId));
       if (!model) return false;
+      use(model.url);
       if (!t.improvements.hasModel(model.url)) {
         if (!t.assets.has(model.url)) {
           t.assets.set(model.url, null);
@@ -730,6 +775,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       markers.fleets.forEach((m, mi) => {
         const model = shipModel(ageOf(state, m.ownerId));
         if (!model) return;
+        use(model.url);
         if (!t.ships.hasModel(model.url)) {
           if (!t.assets.has(model.url)) {
             t.assets.set(model.url, null);
@@ -775,6 +821,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     };
     placeArmies(markers);
     t.placeArmies = placeArmies;
+    hold.set(used); // the files off screen now may leave memory (and are dropped here if they do)
   };
 
   /**
@@ -813,7 +860,21 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     moveArmies: (markers) => { t.placeArmies?.(markers); },
     moving: () => t.moving,
     state: t,
+    /**
+     * After the map's WebGL context came back: the files whose maps kept no CPU copy (a touch
+     * device: only a 64 px stand-in, assetMemory.releaseAfterUpload) were uploaded again blurred,
+     * so they are dropped and loaded again in full. True when something is reloading.
+     */
+    reloadReleased: () => {
+      let changed = false;
+      [...released].forEach((url) => { if (dropFile(url)) changed = true; });
+      if (changed) onAssets();
+      return changed;
+    },
+    /** The files held for the last layout (tests, the crash log). */
+    heldFiles: () => [...used],
     dispose: () => {
+      offEvict(); hold.release(); kitHold.release();
       t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
       t.ridges.forEach((m) => m.dispose()); t.hills.dispose(); t.plots.dispose(); t.plots.geometry.dispose(); plotMaterial.dispose(); plotMap?.dispose();
       t.towns.forEach((m) => root.remove(m)); t.wonders.forEach((m) => root.remove(m)); t.fieldWorks.forEach((g) => root.remove(g));

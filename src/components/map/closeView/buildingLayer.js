@@ -191,6 +191,15 @@ export const createBuildingLayer = (scene) => {
       models.set(url, { lods, meshes: [] });
     },
     hasModel: (url) => models.has(url),
+    /** Drop a model file's meshes and model (its file left memory and its textures were disposed:
+     * drawn on, they come out black, H-05); the next setModel brings it back. True if it was here. */
+    forget: (url) => {
+      const entry = models.get(url);
+      if (!entry) return false;
+      entry.meshes.forEach((ms) => ms?.forEach((m) => { if (!m) return; scene.remove(m); touched.delete(m); m.dispose(); }));
+      models.delete(url);
+      return true;
+    },
     /** The model's radius and Ground centre (modelInfo), measured once. */
     info: (url) => {
       const entry = models.get(url);
