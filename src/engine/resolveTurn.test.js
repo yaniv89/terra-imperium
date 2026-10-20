@@ -6,7 +6,8 @@ import { createInitialState, gameReducer } from '../context/GameContext';
 import { GameStatus, ActionTypes, LogTypes } from '../data/types';
 import { getYearsPerTurn, getCalendarAgeId, END_YEAR } from '../data/ages';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../data/rebellion';
-import { HISTORICAL_EVENTS } from '../data/events';
+import { HISTORICAL_EVENTS, eventTechsNeeded } from '../data/events';
+import { getTechsForAge } from '../data/techTree';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { applyEventEffects } from './applyEventEffects';
 import { getNationCapital } from '../data/regions';
@@ -959,16 +960,19 @@ describe('resolveTurn event chains', () => {
 });
 
 describe('resolveTurn curated national events', () => {
-  it('fires a curated national event for the nation it names, once its year arrives', () => {
+  it('fires a curated national event for the nation it names, once the player has its age and progress', () => {
     // national_egypt_nile_flood (-1900) is chronologically the earliest of ALL real events, so
     // clearing firedEvents entirely can't let some other event preempt it.
-    const state = { ...withAllEventsFired(createInitialState({ playerNationId: 'eg' })), year: HISTORICAL_EVENTS.national_egypt_nile_flood.year - 1, firedEvents: {} };
+    const ev = HISTORICAL_EVENTS.national_egypt_nile_flood;
+    const held = getTechsForAge(ev.ageId).slice(0, eventTechsNeeded(ev.ageId, ev.year));
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'eg' }));
+    const state = { ...base, techAgeId: ev.ageId, techTree: { ...base.techTree, ...Object.fromEntries(held.map((t) => [t.id, { ...base.techTree?.[t.id], researched: true }])) }, firedEvents: {} };
     const next = resolveTurn(state);
     expect(next.activeEventId).toBe('national_egypt_nile_flood');
   });
 
   it('never fires a curated national event for a different nation', () => {
-    const state = { ...withAllEventsFired(createInitialState({ playerNationId: 'fr' })), year: HISTORICAL_EVENTS.national_egypt_nile_flood.year - 1, firedEvents: {} };
+    const state = { ...withAllEventsFired(createInitialState({ playerNationId: 'fr' })), firedEvents: {} };
     const next = resolveTurn(state);
     expect(next.activeEventId).not.toBe('national_egypt_nile_flood');
   });

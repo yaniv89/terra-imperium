@@ -3,6 +3,7 @@ import { pickProceduralEvent, noteEventFired, cooldownTurns } from './procedural
 import { shouldEventFire, HISTORICAL_EVENTS } from './events';
 import { createRng } from '../utils/rng';
 import { getNationCapital } from './regions';
+import { getTechsForAge } from './techTree';
 import { getTiles } from './geo/tiles';
 import { peoplesWorld } from '../engine/testWorld';
 
@@ -56,13 +57,18 @@ describe('procedural events: context and cooldowns', () => {
 
 describe('scripted events: prerequisites', () => {
   const city = (owner, tile) => ({ owner, tile });
+  // A Bronze Age player holding the techs the nominal year marks: round(6 x (year + 2000) / 1200).
+  const at = (year, regions) => {
+    const techs = getTechsForAge('bronze').slice(0, Math.round(6 * (year + 2000) / 1200));
+    return { playerNationId: 'p', techAgeId: 'bronze', techTree: Object.fromEntries(techs.map((x) => [x.id, { researched: true }])), nations: {}, firedEvents: {}, regions };
+  };
   it('holds the Bronze Age Collapse for a realm of three cities until the age ends', () => {
     const ev = HISTORICAL_EVENTS.bronze_age_collapse;
     const one = { a: city('p', 1) };
     const three = { a: city('p', 1), b: city('p', 2), c: city('p', 3) };
-    expect(shouldEventFire(ev, -1200, {}, {}, 'p', one)).toBe(false);
-    expect(shouldEventFire(ev, -1200, {}, {}, 'p', three)).toBe(true);
-    expect(shouldEventFire(ev, -800, {}, {}, 'p', one)).toBe(true);
+    expect(shouldEventFire(at(-1200, one), ev)).toBe(false);
+    expect(shouldEventFire(at(-1200, three), ev)).toBe(true);
+    expect(shouldEventFire(at(-900, one), ev)).toBe(true);
   });
 
   it('keeps sea raids away from a player with no coastal city', () => {
@@ -74,7 +80,7 @@ describe('scripted events: prerequisites', () => {
       if (t.coastal[i] === 1 && coast < 0) coast = i;
       if (t.coastal[i] !== 1 && inland < 0) inland = i;
     }
-    expect(shouldEventFire(ev, -1100, {}, {}, 'p', { a: city('p', inland) })).toBe(false);
-    expect(shouldEventFire(ev, -1100, {}, {}, 'p', { a: city('p', coast) })).toBe(true);
+    expect(shouldEventFire(at(-1100, { a: city('p', inland) }), ev)).toBe(false);
+    expect(shouldEventFire(at(-1100, { a: city('p', coast) }), ev)).toBe(true);
   });
 });

@@ -1199,7 +1199,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const diplomaticLeadershipStreak = alignmentShare >= DIPLOMATIC_LEADERSHIP_SHARE ? (state.diplomaticLeadershipStreak || 0) + 1 : 0;
 
   // --- events ---
-  const dueEvent = pickNextEvent(newYear, nations, state.firedEvents, state.playerNationId, regions);
+  const dueEvent = pickNextEvent({ ...state, nations, regions });
   // The scripted plagues start a real outbreak where history started them (plague.js).
   if (dueEvent && PLAGUE_EVENT_ORIGINS[dueEvent.id]) seedPlagueNear(regions, PLAGUE_EVENT_ORIGINS[dueEvent.id], newTurnNumber);
 

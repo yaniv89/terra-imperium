@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { shouldEventFire, pickNextEvent, HISTORICAL_EVENTS } from './events';
-import { START_YEAR, END_YEAR, AGE_ORDER, getCalendarAgeId } from './ages';
+import { shouldEventFire, pickNextEvent, eventEligible, eventTechsNeeded, ageIdOfYear, HISTORICAL_EVENTS } from './events';
+import { START_YEAR, END_YEAR, AGE_ORDER, AGES } from './ages';
+import { getTechsForAge } from './techTree';
 import { EVENT_CHAINS } from './eventChains';
 import { REGIONS_DATA, getNationCapital } from './regions';
 import { WORLD_NATIONS } from './worldNations';
@@ -10,14 +11,23 @@ import { WORLD_NATIONS } from './worldNations';
 const WORLD_EVENTS = Object.values(HISTORICAL_EVENTS).filter(e => !e.nationId);
 const CURATED_EVENTS = Object.values(HISTORICAL_EVENTS).filter(e => e.nationId);
 
+// A player state at an age with n of that age's techs (every earlier age's techs are held).
+const playerAt = (ageId, n = 0, extra = {}) => {
+  const owned = [...AGE_ORDER.slice(0, AGE_ORDER.indexOf(ageId)).flatMap((a) => getTechsForAge(a)), ...getTechsForAge(ageId).slice(0, n)];
+  return { playerNationId: 'p', techAgeId: ageId, techTree: Object.fromEntries(owned.map((x) => [x.id, { researched: true }])), nations: {}, firedEvents: {}, ...extra };
+};
+const endState = (extra) => playerAt(AGE_ORDER[AGE_ORDER.length - 1], 10, extra);
+const eventAtItsPoint = (event, extra) => playerAt(event.ageId, eventTechsNeeded(event.ageId, event.year), extra);
+
 // Fixture events (independent of the real HISTORICAL_EVENTS content) exercise the generic
 // scheduling mechanism in isolation.
 const FIXTURE_EVENTS = {
-  early: { id: 'early', year: 1000, title: 'Early Event', options: [{ label: 'ok', effects: {} }] },
-  late: { id: 'late', year: 2000, title: 'Late Event', options: [{ label: 'ok', effects: {} }] },
+  early: { id: 'early', year: 1000, ageId: 'kingdoms', title: 'Early Event', options: [{ label: 'ok', effects: {} }] },
+  late: { id: 'late', year: 2000, ageId: 'modern', title: 'Late Event', options: [{ label: 'ok', effects: {} }] },
   gated: {
     id: 'gated',
     year: 1500,
+    ageId: 'gunpowder',
     title: 'Peace-Gated Event',
     requiresNoWar: ['eg'],
     options: [{ label: 'ok', effects: {} }]
@@ -25,36 +35,59 @@ const FIXTURE_EVENTS = {
 };
 
 describe('shouldEventFire', () => {
-  it('is false before the event\'s year', () => {
-    expect(shouldEventFire(FIXTURE_EVENTS.early, 999, {}, {})).toBe(false);
+  it('is false before the player has the age and progress', () => {
+    expect(shouldEventFire(playerAt('bronze', 0), FIXTURE_EVENTS.early)).toBe(false);
+    expect(shouldEventFire(playerAt('kingdoms', 0), FIXTURE_EVENTS.early)).toBe(false);
   });
 
-  it('is true once the event\'s year has arrived', () => {
-    expect(shouldEventFire(FIXTURE_EVENTS.early, 1000, {}, {})).toBe(true);
-    expect(shouldEventFire(FIXTURE_EVENTS.early, 1500, {}, {})).toBe(true);
+  it("is true inside the event's age once the progress is held", () => {
+    expect(shouldEventFire(playerAt('kingdoms', 3), FIXTURE_EVENTS.early)).toBe(true);
+    expect(shouldEventFire(playerAt('kingdoms', 10), FIXTURE_EVENTS.early)).toBe(true);
   });
 
   it('is false once already fired', () => {
-    expect(shouldEventFire(FIXTURE_EVENTS.early, 1500, {}, { early: true })).toBe(false);
+    expect(shouldEventFire(playerAt('kingdoms', 10, { firedEvents: { early: true } }), FIXTURE_EVENTS.early)).toBe(false);
   });
 
   it('respects requiresNoWar gating', () => {
-    expect(shouldEventFire(FIXTURE_EVENTS.gated, 1500, { eg: { isAtWar: false } }, {})).toBe(true);
-    expect(shouldEventFire(FIXTURE_EVENTS.gated, 1500, { eg: { isAtWar: true } }, {})).toBe(false);
+    expect(shouldEventFire(playerAt('gunpowder', 6, { nations: { eg: { isAtWar: false } } }), FIXTURE_EVENTS.gated)).toBe(true);
+    expect(shouldEventFire(playerAt('gunpowder', 6, { nations: { eg: { isAtWar: true } } }), FIXTURE_EVENTS.gated)).toBe(false);
+  });
+
+  it('does not read the calendar', () => {
+    expect(shouldEventFire({ ...playerAt('bronze', 0), year: 2000 }, FIXTURE_EVENTS.early)).toBe(false);
+  });
+});
+
+describe('eventEligible (events keyed by the player age and progress)', () => {
+  const gunpowder1700 = { id: 'g', year: 1700, ageId: 'gunpowder' };
+  it('a Gunpowder event dated 1700 needs 3 of 10 Gunpowder techs', () => {
+    expect(eventTechsNeeded('gunpowder', 1700)).toBe(3);
+    expect(eventEligible(playerAt('gunpowder', 3), gunpowder1700)).toBe(true);
+    expect(eventEligible(playerAt('gunpowder', 2), gunpowder1700)).toBe(false);
+  });
+  it("a player past the event's age never sees it", () => {
+    expect(eventEligible(playerAt('modern', 10), gunpowder1700)).toBe(false);
+  });
+  it("a player short of the event's age does not see it", () => {
+    expect(eventEligible(playerAt('kingdoms', 10), gunpowder1700)).toBe(false);
+  });
+  it('the last age holds its end year', () => {
+    expect(ageIdOfYear(AGES.modern.endYear)).toBe('modern');
+    expect(ageIdOfYear(1500)).toBe('gunpowder');
+    expect(ageIdOfYear(1499)).toBe('kingdoms');
   });
 });
 
 describe('pickNextEvent', () => {
   it('picks the earliest-year eligible event among fixtures', () => {
-    const all = { ...FIXTURE_EVENTS };
-    const eligible = Object.values(all).filter(e => shouldEventFire(e, 2500, {}, {}));
-    eligible.sort((a, b) => a.year - b.year);
+    const eligible = Object.values(FIXTURE_EVENTS).filter(e => shouldEventFire(playerAt(e.ageId, 10), e));
+    eligible.sort((x, y) => x.year - y.year);
     expect(eligible[0].id).toBe('early');
   });
 
   it('returns null when nothing is eligible', () => {
-    const eligible = Object.values(FIXTURE_EVENTS).filter(e => shouldEventFire(e, 500, {}, {}));
-    expect(eligible).toEqual([]);
+    expect(Object.values(FIXTURE_EVENTS).filter(e => shouldEventFire(playerAt('bronze', 10), e))).toEqual([]);
   });
 });
 
@@ -62,30 +95,52 @@ describe('pickNextEvent against real HISTORICAL_EVENTS content', () => {
   // No playerNationId/regions passed in this describe block — exercises the generic (world-event)
   // path, where every curated national event is correctly ineligible no matter whose turn it is.
   it('returns null before any real event\'s year has arrived', () => {
-    expect(pickNextEvent(START_YEAR, {}, {})).toBeNull();
+    expect(pickNextEvent(playerAt('bronze', 0))).toBeNull();
   });
 
   it('picks the earliest-year world event once its year has arrived', () => {
     const earliestYear = Math.min(...WORLD_EVENTS.map(e => e.year));
-    const event = pickNextEvent(earliestYear, {}, {});
+    const first = WORLD_EVENTS.find(e => e.year === earliestYear);
+    const event = pickNextEvent(eventAtItsPoint(first));
     expect(event.year).toBe(earliestYear);
     expect(event.nationId).toBeUndefined();
   });
 
   it('never re-selects an already-fired real event', () => {
     const earliest = WORLD_EVENTS.reduce((a, b) => (a.year <= b.year ? a : b));
-    const next = pickNextEvent(END_YEAR, {}, { [earliest.id]: true });
+    const next = pickNextEvent(playerAt(earliest.ageId, 10, { firedEvents: { [earliest.id]: true } }));
     expect(next?.id).not.toBe(earliest.id);
   });
 
-  it('eventually fires every world event across a full playthrough\'s year range, with no nation selected', () => {
+  it('eventually fires every world event as the player researches through the ages, with no nation selected', () => {
     let firedEvents = {};
     let firedCount = 0;
-    for (let year = START_YEAR; year <= END_YEAR; year += 1) {
-      const event = pickNextEvent(year, {}, firedEvents);
-      if (event) { firedEvents = { ...firedEvents, [event.id]: true }; firedCount += 1; }
-    }
+    AGE_ORDER.forEach((ageId) => {
+      for (let n = 0; n <= 10; n += 1) {
+        for (let guard = 0; guard < 50; guard += 1) {
+          const event = pickNextEvent(playerAt(ageId, n, { firedEvents }));
+          if (!event) break;
+          firedEvents = { ...firedEvents, [event.id]: true };
+          firedCount += 1;
+        }
+      }
+    });
     expect(firedCount).toBe(WORLD_EVENTS.length);
+  });
+
+  it('picks by event year, then declaration order, and only the left-behind ages are skipped', () => {
+    const state = endState();
+    const order = [];
+    let firedEvents = {};
+    for (let i = 0; i < 100; i += 1) {
+      const event = pickNextEvent({ ...state, firedEvents });
+      if (!event) break;
+      order.push(event);
+      firedEvents = { ...firedEvents, [event.id]: true };
+    }
+    expect(order.length).toBeGreaterThan(0);
+    expect(order.every(e => e.ageId === 'modern')).toBe(true);
+    expect(order.map(e => e.year)).toEqual([...order.map(e => e.year)].sort((x, y) => x - y));
   });
 });
 
@@ -94,14 +149,14 @@ describe('pickNextEvent / shouldEventFire for curated national flavor (nationId 
     CURATED_EVENTS.forEach(event => {
       const otherNationId = event.nationId === 'fr' ? 'de' : 'fr';
       const regions = { [getNationCapital(event.nationId)]: { owner: event.nationId } };
-      expect(shouldEventFire(event, END_YEAR, {}, {}, otherNationId, regions)).toBe(false);
+      expect(shouldEventFire(eventAtItsPoint(event, { playerNationId: otherNationId, regions }), event)).toBe(false);
     });
   });
 
   it('fires for the named nation once its year arrives and it still holds its homeland', () => {
     CURATED_EVENTS.forEach(event => {
       const regions = { [getNationCapital(event.nationId)]: { owner: event.nationId } };
-      expect(shouldEventFire(event, event.year, {}, {}, event.nationId, regions)).toBe(true);
+      expect(shouldEventFire(eventAtItsPoint(event, { playerNationId: event.nationId, regions }), event)).toBe(true);
     });
   });
 
@@ -109,19 +164,28 @@ describe('pickNextEvent / shouldEventFire for curated national flavor (nationId 
     CURATED_EVENTS.forEach(event => {
       expect(event.requiresHomeland).toBe(true); // every curated event in this batch requires it
       const regions = { [getNationCapital(event.nationId)]: { owner: 'someone_else' } };
-      expect(shouldEventFire(event, event.year, {}, {}, event.nationId, regions)).toBe(false);
+      expect(shouldEventFire(eventAtItsPoint(event, { playerNationId: event.nationId, regions }), event)).toBe(false);
     });
   });
 
   it('pickNextEvent surfaces a curated event ahead of a later-year world event for the matching nation', () => {
     const egypt = HISTORICAL_EVENTS.national_egypt_nile_flood;
     const regions = { [getNationCapital('eg')]: { owner: 'eg' } };
-    const event = pickNextEvent(egypt.year, {}, {}, 'eg', regions);
+    const event = pickNextEvent(eventAtItsPoint(egypt, { playerNationId: 'eg', regions }));
     expect(event.id).toBe(egypt.id);
   });
 });
 
 describe('HISTORICAL_EVENTS data integrity', () => {
+  it("every event's derived ageId is a registry age holding its year", () => {
+    Object.values(HISTORICAL_EVENTS).forEach(event => {
+      expect(AGE_ORDER).toContain(event.ageId);
+      expect(event.ageId).toBe(ageIdOfYear(event.year));
+      expect(event.year).toBeGreaterThanOrEqual(AGES[event.ageId].startYear);
+      expect(event.year).toBeLessThanOrEqual(AGES[event.ageId].endYear);
+    });
+  });
+
   it('every event\'s own id matches its registry key', () => {
     Object.entries(HISTORICAL_EVENTS).forEach(([key, event]) => expect(event.id).toBe(key));
   });
@@ -146,7 +210,7 @@ describe('HISTORICAL_EVENTS data integrity', () => {
   it('every age has at least two world events (plan §9.5\'s "world events... every age")', () => {
     const ageCounts = {};
     AGE_ORDER.forEach(id => { ageCounts[id] = 0; });
-    WORLD_EVENTS.forEach(event => { ageCounts[getCalendarAgeId(event.year)] += 1; });
+    WORLD_EVENTS.forEach(event => { ageCounts[event.ageId] += 1; });
     AGE_ORDER.forEach(ageId => expect(ageCounts[ageId]).toBeGreaterThanOrEqual(2));
   });
 
@@ -234,5 +298,11 @@ describe('content structure ratio (plan §M17)', () => {
       .flatMap((e) => e.options);
     const structuralCount = allOptions.filter((o) => isStructural(o.effects)).length;
     expect(structuralCount / allOptions.length).toBeGreaterThanOrEqual(0.6);
+  });
+});
+
+describe('derived event ages', () => {
+  it('every event ageId is in AGE_ORDER', () => {
+    Object.values(HISTORICAL_EVENTS).forEach((e) => expect(AGE_ORDER).toContain(e.ageId));
   });
 });
