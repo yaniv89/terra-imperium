@@ -82,6 +82,7 @@ export default [
   ['p2.era.met', 'Met {met} of the {needed} needed. Then each met goal gives its legacy for {turns} turns.', 'הושגו {met} מתוך {needed} הנדרשים. אחר כך כל יעד שהושג נותן את המורשת שלו למשך {turns} תורות.'],
   ['p2.era.legacy', 'Legacy: {bonus}', 'מורשת: {bonus}'],
   ['p2.as.title', '{name}: {known} of {total} techs known', '{name}: {known} מתוך {total} טכנולוגיות ידועות'],
+  ['p2.ageShort.stone', 'Stone', 'אבן'],
   ['p2.ageShort.bronze', 'Bronze', 'ארד'],
   ['p2.ageShort.classical', 'Classical', 'קלאסי'],
   ['p2.ageShort.kingdoms', 'Kingdoms', 'ממלכות'],

@@ -13,7 +13,7 @@ import { authorityOf, canEnactLaws } from './authority';
 import { getAvailableGovernmentTypes } from '../data/government';
 import { peoplesWorld } from './testWorld';
 
-const fresh = () => peoplesWorld({ seed: 5 });
+const fresh = () => peoplesWorld({ seed: 5, age: 'bronze' });
 const techs = Object.values(TECH_TREE);
 
 // A Bronze state in which every tech of its research window (Bronze and Classical) is known, so

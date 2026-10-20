@@ -53,7 +53,7 @@ describe('liberty desire', () => {
 });
 
 describe('technology diffusion', () => {
-  const state = peoplesWorld({ seed: 5 });
+  const state = peoplesWorld({ seed: 5, age: 'bronze' });
   const techId = 'Bronze Working';
   it('nobody has it: the pioneer pays more', () => {
     const d = getTechDiffusion(state, FR_ID, techId);

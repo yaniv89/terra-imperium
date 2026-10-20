@@ -15,7 +15,7 @@ const PEOPLES_WORLD = peoplesWorld({ seed: 3 });
 const FR_ID = PEOPLES_WORLD.playerNationId;
 
 const quiet = (s) => ({ ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((a, k) => ({ ...a, [k]: true }), {}), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
-const S = quiet(peoplesWorld({ seed: 3 }));
+const S = quiet(peoplesWorld({ seed: 3, age: 'bronze' })); // these tests score the Bronze Age
 
 describe('era goals', () => {
   it('counts a kept conquest for the War goal after the conquest flag is gone (H-10)', () => {
@@ -40,7 +40,7 @@ describe('era goals', () => {
   it('awards a legacy for two goals met, once, and none otherwise', () => {
     const { state: s4 } = addCities(S, FR_ID, 4, { near: getNationCapital(FR_ID) });
     const techTree = { ...s4.techTree };
-    Object.keys(techTree).slice(0, 4).forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    Object.keys(techTree).filter((id) => !techTree[id].researched).slice(0, 4).forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
     const ready = { ...s4, techTree };
     const p = eraGoalProgress(ready, 'bronze');
     expect(p.met).toBeGreaterThanOrEqual(2);
@@ -60,8 +60,8 @@ describe('era goals', () => {
 
   // KTD7: a nation's era goals are scored when its OWN research age advances.
   const bronze = Object.values(TECH_TREE).filter((t) => t.ageId === 'bronze').sort((x, y) => x.lineIndex - y.lineIndex || (x.id < y.id ? -1 : 1));
-  const firsts = bronze.filter((t) => t.lineIndex === 0).map((t) => t.id);
-  const sixth = bronze.find((t) => t.lineIndex === 1).id;
+  const firsts = bronze.filter((t) => t.lineIndex === bronze[0].lineIndex).map((t) => t.id);
+  const sixth = bronze.find((t) => t.lineIndex === bronze[0].lineIndex + 1).id;
 
   it('scores the age the player leaves when its research reaches the next one', () => {
     const { state: s4 } = addCities(S, FR_ID, 4, { near: getNationCapital(FR_ID) });

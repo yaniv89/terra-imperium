@@ -15,7 +15,7 @@ import { getBuildingIconPath, getExtractionIconPath } from '../../data/buildingI
 import { getUnitIconPath } from '../../data/unitIcons';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { WONDER_ICONS } from '../city/wonderIcons';
-import { FIRST_AGE_ID } from '../../data/ages';
+import { FIRST_AGE_ID, artAgeFor } from '../../data/ages';
 
 /** A game-icons.net silhouette (0..512 viewBox), recoloured through currentColor. */
 export const PathIcon = ({ path, size = 20, className = '' }) => (path
@@ -42,7 +42,7 @@ export const UnitIcon = ({ classId, navalLine = null, ageId = FIRST_AGE_ID, size
   const url = classId === 'naval' ? shipIconUrl(navalLine) : unitIconUrl(classId);
   return (
     <GameIcon url={url} size={size} className={className}
-      fallback={<PathIcon path={getUnitIconPath(ageId, classId)} size={size} className={`text-slate-200 ${className}`} />} />
+      fallback={<PathIcon path={getUnitIconPath(artAgeFor((a) => getUnitIconPath(a, classId), ageId), classId)} size={size} className={`text-slate-200 ${className}`} />} />
   );
 };
 

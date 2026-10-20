@@ -37,7 +37,7 @@ const rollTraits = (rng) => {
 // is REIGN_TURNS_PER_YEAR[age] reference turns a year (the pace the balance was tuned at: later ages
 // have more turns per span of history), times the speed's cost multiplier at the ruler's nation's
 // own age, clamped to 3-25 turns: the same reigns as before at every speed and age.
-export const REIGN_TURNS_PER_YEAR = { bronze: 1 / 40, classical: 1 / 20, kingdoms: 1 / 10, gunpowder: 1 / 4, modern: 1 / 2 };
+export const REIGN_TURNS_PER_YEAR = { stone: 1 / 40, bronze: 1 / 40, classical: 1 / 20, kingdoms: 1 / 10, gunpowder: 1 / 4, modern: 1 / 2 };
 export const reignLengthTurns = (rng, age, gameSpeed) => {
   const years = 15 + Math.floor(rng.next() * 26); // 15-40 years
   const ageId = REIGN_TURNS_PER_YEAR[age] != null ? age : FIRST_AGE_ID;

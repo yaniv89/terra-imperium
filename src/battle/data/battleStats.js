@@ -48,6 +48,7 @@ export const getBattleStats = (classId, ageId) => ({ ...(CLASS_BASE[classId] || 
 const SHIP = { minRange: 0, soldiers: 1, canCapture: false, ship: true };
 export const NAVAL_LINE_STATS = {
   warship: {
+    stone: { ...SHIP, speed: T(1.8), range: MELEE_REACH, sight: 7, attackTicks: S(1.3), melee: true },
     bronze: { ...SHIP, speed: T(2.0), range: MELEE_REACH, sight: 8, attackTicks: S(1.2), melee: true, charge: true },
     classical: { ...SHIP, speed: T(2.3), range: MELEE_REACH, sight: 8, attackTicks: S(1.1), melee: true, charge: true },
     kingdoms: { ...SHIP, speed: T(2.0), range: 3 * Q, sight: 9, attackTicks: S(1.4), melee: false },
@@ -55,6 +56,7 @@ export const NAVAL_LINE_STATS = {
     modern: { ...SHIP, speed: T(4.0), range: 10 * Q, sight: 12, attackTicks: S(1.6), melee: false }
   },
   transport: {
+    stone: { ...SHIP, speed: T(1.6), range: MELEE_REACH, sight: 6, attackTicks: S(1.5), melee: true },
     bronze: { ...SHIP, speed: T(1.8), range: MELEE_REACH, sight: 7, attackTicks: S(1.4), melee: true },
     classical: { ...SHIP, speed: T(2.0), range: MELEE_REACH, sight: 7, attackTicks: S(1.4), melee: true },
     kingdoms: { ...SHIP, speed: T(1.8), range: 2 * Q, sight: 8, attackTicks: S(1.6), melee: false },
@@ -62,6 +64,7 @@ export const NAVAL_LINE_STATS = {
     modern: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 9, attackTicks: S(2.0), melee: false }
   },
   raider: {
+    stone: { ...SHIP, speed: T(2.4), range: MELEE_REACH, sight: 9, attackTicks: S(1.2), melee: true },
     bronze: { ...SHIP, speed: T(2.8), range: MELEE_REACH, sight: 10, attackTicks: S(1.1), melee: true, charge: true },
     classical: { ...SHIP, speed: T(2.8), range: MELEE_REACH, sight: 10, attackTicks: S(1.1), melee: true, charge: true },
     kingdoms: { ...SHIP, speed: T(2.6), range: 3 * Q, sight: 11, attackTicks: S(1.3), melee: false },

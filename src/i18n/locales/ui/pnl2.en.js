@@ -66,6 +66,7 @@ export default {
   'p2.era.met': 'Met {met} of the {needed} needed. Then each met goal gives its legacy for {turns} turns.',
   'p2.era.legacy': 'Legacy: {bonus}',
   'p2.as.title': '{name}: {known} of {total} techs known',
+  'p2.ageShort.stone': 'Stone',
   'p2.ageShort.bronze': 'Bronze',
   'p2.ageShort.classical': 'Classical',
   'p2.ageShort.kingdoms': 'Kingdoms',

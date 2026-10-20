@@ -119,6 +119,15 @@ const rosterEntry = (name, ageId) => ({
 });
 
 export const UNIT_ROSTER = {
+  // First names (U37 designs the roster and drops the Stone cavalry; until then runners stand in).
+  stone: {
+    infantry: rosterEntry('Warband', 'stone'),
+    cavalry: rosterEntry('Runners', 'stone'),
+    ranged: rosterEntry('Hunters', 'stone'),
+    siege: rosterEntry('Ladder Crews', 'stone'),
+    naval: rosterEntry('Dugout Canoes', 'stone'),
+    support: rosterEntry('Shaman', 'stone')
+  },
   bronze: {
     infantry: rosterEntry('Spearmen', 'bronze'),
     cavalry: rosterEntry('Chariots', 'bronze'),

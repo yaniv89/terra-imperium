@@ -65,6 +65,7 @@ const AI_RECRUIT_MILITARY_STRENGTH_COST = 300;
 // so there's nothing for a tier-based cap to scale until Tier 2/3 nations recruit too, which is a
 // separate expansion of who fields armies, not of how big the cap on an existing recruiter is.)
 export const AI_MAX_STANDING_UNITS_BY_AGE = {
+  stone: 4,
   bronze: 8,
   classical: 10,
   kingdoms: 14,

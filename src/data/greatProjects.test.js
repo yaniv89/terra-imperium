@@ -17,7 +17,7 @@ describe('GREAT_PROJECTS data integrity', () => {
   it('has exactly 15 world projects, 3 per age, plus national ones tied to a homeland', () => {
     const world = Object.values(GREAT_PROJECTS).filter((p) => !p.national);
     expect(world.length).toBe(15);
-    AGE_ORDER.forEach((ageId) => {
+    AGE_ORDER.filter((a) => a !== 'stone').forEach((ageId) => { // Stone wonders: U29
       expect(world.filter((p) => p.ageId === ageId).length, ageId).toBe(3);
     });
     const national = Object.values(GREAT_PROJECTS).filter((p) => p.national);

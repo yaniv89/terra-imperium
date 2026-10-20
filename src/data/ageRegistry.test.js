@@ -72,8 +72,13 @@ const KEYED = [
   ...['warship', 'transport', 'raider'].map((id) => [`NAVAL_LINE_STATS.${id}`, NAVAL_LINE_STATS[id]])
 ];
 
-// Opt-outs: table name -> { age: reason }. Empty today: every table above has every age.
-const OPT_OUT = {};
+// Opt-outs: table name -> { age: reason }.
+const OPT_OUT = {
+  'building tiers': { stone: 'Stone building tiers come in U28' },
+  'government reform tiers': { stone: 'Stone reforms come in U30' },
+  wonders: { stone: 'Stone wonders come in U29' },
+  'age icons': { stone: 'the Stone icon is art (U93)' }
+};
 
 // Tables that cover only some ages by design: unknown keys are still rejected. [keys, reason].
 const PARTIAL = {
@@ -121,9 +126,9 @@ describe('registry completeness: every per-age table has every age', () => {
     const tierAges = new Set(Object.values(BUILDING_CATEGORIES).flatMap((c) => c.tiers.map((t) => t.age)));
     const reformAges = new Set(Object.values(GOVERNMENT_REFORMS).flatMap((t) => Object.keys(t)));
     const wonderAges = new Set(Object.values(GREAT_PROJECTS).map((p) => p.ageId));
-    expect(tableProblems('building tiers', tierAges)).toEqual([]);
-    expect(tableProblems('government reform tiers', reformAges)).toEqual([]);
-    expect(tableProblems('wonders', wonderAges)).toEqual([]);
+    expect(tableProblems('building tiers', tierAges, OPT_OUT['building tiers'])).toEqual([]);
+    expect(tableProblems('government reform tiers', reformAges, OPT_OUT['government reform tiers'])).toEqual([]);
+    expect(tableProblems('wonders', wonderAges, OPT_OUT.wonders)).toEqual([]);
   });
 
   it('every building tier has an icon for its age', () => {
@@ -155,7 +160,7 @@ describe('registry completeness: every per-age table has every age', () => {
 
   it('every age has an icon file', () => {
     const dir = path.resolve(__dirname, '../assets/icons/ages');
-    const problems = AGE_ORDER.filter((age) => !fs.existsSync(path.join(dir, `${age}.svg`))).map((age) => `age icon ${age}.svg is missing`);
+    const problems = AGE_ORDER.filter((age) => !OPT_OUT['age icons'][age] && !fs.existsSync(path.join(dir, `${age}.svg`))).map((age) => `age icon ${age}.svg is missing`);
     expect(problems).toEqual([]);
   });
 });

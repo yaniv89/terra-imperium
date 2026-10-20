@@ -268,3 +268,24 @@ describe('migrateSave v14 to v15: space and nukes retired', () => {
     expect(() => assertGameState(loaded)).not.toThrow();
   });
 });
+
+describe('migrateSave v15 to v16: the Stone Age comes first', () => {
+  it('gives every nation the Stone techs and keeps its age', () => {
+    const base = JSON.parse(JSON.stringify(peoplesWorld({ seed: 5 })));
+    const me = base.playerNationId;
+    const ai = Object.keys(base.nations).find((id) => id !== me && base.nations[id].tech);
+    const bronze = getTechsForAge('bronze').map((t) => t.id).slice(0, 6);
+    const techTree = { ...base.techTree };
+    bronze.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    const state = {
+      ...base, techTree, techAgeId: 'classical',
+      nations: { ...base.nations, [ai]: { ...base.nations[ai], tech: { researched: [], ageId: 'bronze' } } }
+    };
+    const loaded = migrateSave({ version: 15, state }).state;
+    const stone = getTechsForAge('stone').map((t) => t.id);
+    stone.forEach((id) => expect(loaded.techTree[id].researched, id).toBe(true));
+    expect(loaded.techAgeId).toBe('classical');
+    expect(loaded.nations[ai].tech.researched).toEqual(expect.arrayContaining(stone));
+    expect(ageOf(loaded, ai)).toBe('bronze');
+  });
+});

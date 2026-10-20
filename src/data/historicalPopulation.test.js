@@ -24,7 +24,7 @@ describe('getHistoricalPopulationShare', () => {
   });
 
   it('clamps to the earliest anchor for any year before it', () => {
-    expect(getHistoricalPopulationShare(-5000)).toBe(getHistoricalPopulationShare(-2000));
+    expect(getHistoricalPopulationShare(-8000)).toBe(getHistoricalPopulationShare(-5000));
   });
 
   it('interpolates smoothly between anchors rather than jumping', () => {

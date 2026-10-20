@@ -86,7 +86,7 @@ describe('real TECH_TREE content integrity', () => {
   it('has exactly 10 techs per category, 2 per age', () => {
     Object.values(TechCategories).forEach(category => {
       const techs = Object.values(TECH_TREE).filter(t => t.category === category);
-      expect(techs.length, category).toBe(10);
+      expect(techs.length, category).toBe(AGE_ORDER.length * 2);
       AGE_ORDER.forEach(ageId => {
         expect(techs.filter(t => t.ageId === ageId).length, `${category}/${ageId}`).toBe(2);
       });
@@ -172,19 +172,19 @@ describe('getTechsByCategory', () => {
   it('groups every real tech under its category, in line order', () => {
     const categories = getTechsByCategory();
     Object.values(TechCategories).forEach(category => {
-      expect(categories[category].techs.length).toBe(10);
-      expect(categories[category].techs.map(t => t.lineIndex)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      expect(categories[category].techs.length).toBe(AGE_ORDER.length * 2);
+      expect(categories[category].techs.map(t => t.lineIndex)).toEqual(AGE_ORDER.flatMap((_, i) => [2 * i, 2 * i + 1]));
     });
   });
 });
 
 describe('techGraph (the research web view)', () => {
-  it('lays out one row of 10 columns per age with one edge per prerequisite and the cross edges marked', () => {
+  it('lays out one row per line, two columns per age, with one edge per prerequisite and the cross edges marked', () => {
     const state = peoplesWorld({ seed: 11 });
     const graph = techGraph(state);
     expect(graph.nodes.length).toBe(AGE_ORDER.length * 10);
-    expect(graph.rows.length).toBe(AGE_ORDER.length);
-    expect(new Set(graph.nodes.map((n) => n.col)).size).toBe(10);
+    expect(graph.rows.length).toBe(Object.values(TechCategories).length);
+    expect(new Set(graph.nodes.map((n) => n.col)).size).toBe(AGE_ORDER.length * 2);
     const prereqCount = Object.values(TECH_TREE).reduce((n, t) => n + t.prerequisites.length, 0);
     expect(graph.edges.length).toBe(prereqCount);
     const crossCount = Object.values(CROSS_PREREQUISITES).reduce((n, list) => n + list.length, 0);

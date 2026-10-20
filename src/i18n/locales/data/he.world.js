@@ -40,6 +40,16 @@ export default {
   'gp.atomic_research_center.desc': 'נבנה במחוז עם מפעל. +10/20/30% הכנסת נקודות טכנולוגיה.',
 
   // research boosts (boost.<techId>): how to get the boost
+  'boost.military_hunting_bands': 'להחזיק יער או גבעות',
+  'boost.military_copper_working': 'להחזיק נחושת או אבן',
+  'boost.economy_agriculture': 'לייסד עיר על נהר',
+  'boost.economy_animal_husbandry': 'להחזיק בקר, צאן או סוסים',
+  'boost.infrastructure_pottery': 'להגדיל עיר לגודל 2',
+  'boost.infrastructure_the_wheel': 'להחזיק 2 משבצות נהר',
+  'boost.governance_chiefdoms': 'לשלוט ב־2 ערים',
+  'boost.governance_sacred_kingship': 'לנצח בקרב',
+  'boost.science_star_lore': 'להחזיק עיר חוף',
+  'boost.science_proto_writing': 'להגדיל עיר לגודל 4',
   'boost.military_bronze_casting': 'להחזיק נחושת',
   'boost.military_composite_bow': 'להחזיק יער',
   'boost.military_iron_weapons': 'להחזיק ברזל',

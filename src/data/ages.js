@@ -1,20 +1,31 @@
 // src/data/ages.js
-// The age registry (plans/2026-10-20-001-feat-eight-ages-plan.md U1, KTD12): the five ages, each
+// The age registry (plans/2026-10-20-001-feat-eight-ages-plan.md U1, KTD12): the ages, each
 // age's nominal year range (a display label only: no rule reads the year, KTD3), unit power and
 // cost, and the game-speed cost table. A nation's age is its research age (ageOf in
 // src/engine/nationState.js). Code outside this file never names the first or last age or compares
 // age ids by hand: it uses FIRST_AGE_ID / LAST_AGE_ID, isAgeAtLeast, isAgeBefore, agesFrom and
 // nextAgeId, so adding an age is a data change plus the per-age tables keyed by age id.
 
-export const START_YEAR = -2000; // 2000 BCE
+export const START_YEAR = -5000; // 5000 BCE, the Stone Age's first label (U22)
 export const END_YEAR = 2300;
 
 // Ordered oldest -> newest. Index in this array IS the age's rank, used for age-ahead/behind math.
-export const AGE_ORDER = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+export const AGE_ORDER = ['stone', 'bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
 
 // Year ranges deliberately non-Euro-centric — "Age of Kingdoms" fits Mali, Khmer, Song and the
 // Abbasids equally, not just European feudalism.
 export const AGES = {
+  // Every game starts here (U22, R10). Power from KTD21; the unit cost multiplier is Bronze's until
+  // the Stone roster (U37) is designed.
+  stone: {
+    id: 'stone',
+    name: 'Stone Age',
+    startYear: -5000,
+    endYear: -2000,
+    unlocksResources: [],
+    power: { attack: 7, defense: 6 },
+    unitCostMult: 1
+  },
   bronze: {
     id: 'bronze',
     name: 'Bronze Age',
@@ -75,6 +86,9 @@ export const isAgeAtLeast = (ageId, minAgeId) => { const i = getAgeIndex(ageId);
 export const isAgeBefore = (ageId, limitAgeId) => { const i = getAgeIndex(ageId); return i !== -1 && i < getAgeIndex(limitAgeId); };
 /** Every age from `fromAgeId` to the last, in order. */
 export const agesFrom = (fromAgeId) => AGE_ORDER.slice(Math.max(0, getAgeIndex(fromAgeId)));
+/** Steps from the Bronze Age, for per-age formulas tuned on the five ages from Bronze (prices, caps):
+ * the Stone Age counts as Bronze there until its own values are designed. */
+export const ageStep = (ageId) => Math.max(0, getAgeIndex(ageId) - getAgeIndex('bronze'));
 /** The age after `ageId`, or null at the last one (and for an unknown age). */
 export const nextAgeId = (ageId) => { const i = getAgeIndex(ageId); return i === -1 ? null : AGE_ORDER[i + 1] ?? null; };
 
@@ -121,9 +135,9 @@ export const artAgeFor = (available, ageId, { kind = null } = {}) => {
 // the old calendar gave them (the reference years per turn over the speed's: Normal Bronze 40/25),
 // so their tuning holds. `turnLimit` is the speed's length of a full game (src/engine/ending.js).
 export const GAME_SPEEDS = {
-  fast: { id: 'fast', name: 'Fast', costMult: { bronze: 0.8, classical: 0.8, kingdoms: 10 / 12, gunpowder: 0.8, modern: 1 }, turnLimit: 440, blurb: 'About 440 turns.' },
-  normal: { id: 'normal', name: 'Normal', costMult: { bronze: 1.6, classical: 20 / 12, kingdoms: 10 / 6, gunpowder: 2, modern: 2 }, turnLimit: 923, blurb: 'About 920 turns.' },
-  marathon: { id: 'marathon', name: 'Marathon', costMult: { bronze: 4, classical: 4, kingdoms: 10 / 3, gunpowder: 4, modern: 2 }, turnLimit: 1514, blurb: 'About 1,500 turns.' }
+  fast: { id: 'fast', name: 'Fast', costMult: { stone: 0.8, bronze: 0.8, classical: 0.8, kingdoms: 10 / 12, gunpowder: 0.8, modern: 1 }, turnLimit: 440, blurb: 'About 440 turns.' },
+  normal: { id: 'normal', name: 'Normal', costMult: { stone: 1.6, bronze: 1.6, classical: 20 / 12, kingdoms: 10 / 6, gunpowder: 2, modern: 2 }, turnLimit: 923, blurb: 'About 920 turns.' },
+  marathon: { id: 'marathon', name: 'Marathon', costMult: { stone: 2, bronze: 4, classical: 4, kingdoms: 10 / 3, gunpowder: 4, modern: 2 }, turnLimit: 1514, blurb: 'About 1,500 turns.' }
 };
 
 const inTests = typeof process !== 'undefined' && !!process.env?.VITEST;

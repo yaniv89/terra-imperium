@@ -4,6 +4,16 @@
 // Machine drafted, for the user to review in H6.
 export default {
   // techs (tech.<id>)
+  'tech.military_hunting_bands': 'להקות ציד',
+  'tech.military_copper_working': 'עיבוד נחושת',
+  'tech.economy_agriculture': 'חקלאות',
+  'tech.economy_animal_husbandry': 'גידול בעלי חיים',
+  'tech.infrastructure_pottery': 'קדרות',
+  'tech.infrastructure_the_wheel': 'הגלגל',
+  'tech.governance_chiefdoms': 'שבטים ומנהיגים',
+  'tech.governance_sacred_kingship': 'מלכות מקודשת',
+  'tech.science_star_lore': 'תורת הכוכבים',
+  'tech.science_proto_writing': 'כתב קדום',
   'tech.military_bronze_casting': 'יציקת ארד',
   'tech.military_composite_bow': 'קשת מורכבת',
   'tech.military_iron_weapons': 'כלי נשק מברזל',

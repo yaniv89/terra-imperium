@@ -16,7 +16,7 @@
 //   Science   +patronScienceOf(age) research points
 //   Culture   +PATRON_PRESTIGE prestige (prestige fades 5% a turn, rounded down, so it settles near 40)
 // A gift (GIFT_GOLD) raises the attitude by its favour, so the player can buy a patronage.
-import { AGE_ORDER, FIRST_AGE_ID } from './ages';
+import { FIRST_AGE_ID, ageStep } from './ages';
 
 export const CITY_STATE_TYPE_IDS = ['trade', 'military', 'science', 'culture', 'raiders'];
 export const CITY_STATE_TYPES = {
@@ -35,7 +35,7 @@ export const PATRON_KM = 1224;
 export const PATRON_OPINION = 30;
 export const PATRON_PRESTIGE = 2;
 
-const rank = (ageId) => Math.max(0, AGE_ORDER.indexOf(ageId));
+const rank = ageStep;
 export const patronGoldOf = (ageId = FIRST_AGE_ID) => 2 + rank(ageId);
 export const patronManpowerOf = (ageId = FIRST_AGE_ID) => 3 + 2 * rank(ageId);
 export const patronScienceOf = (ageId = FIRST_AGE_ID) => 1 + rank(ageId);

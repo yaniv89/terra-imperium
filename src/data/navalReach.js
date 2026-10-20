@@ -9,6 +9,7 @@ import { kmPerRing, ringsForKm } from './geo/gridScale';
 import { agesFrom, LAST_AGE_ID } from './ages';
 
 export const NAVAL_REACH_KM = {
+  stone: 150,
   bronze: 200,
   classical: 500,
   kingdoms: 1000,

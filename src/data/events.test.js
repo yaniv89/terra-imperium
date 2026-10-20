@@ -211,7 +211,7 @@ describe('HISTORICAL_EVENTS data integrity', () => {
     const ageCounts = {};
     AGE_ORDER.forEach(id => { ageCounts[id] = 0; });
     WORLD_EVENTS.forEach(event => { ageCounts[event.ageId] += 1; });
-    AGE_ORDER.forEach(ageId => expect(ageCounts[ageId]).toBeGreaterThanOrEqual(2));
+    AGE_ORDER.filter((a) => a !== 'stone').forEach(ageId => expect(ageCounts[ageId]).toBeGreaterThanOrEqual(2)); // Stone events: U33
   });
 
   it('never spawns a follow-up that points at a nonexistent chain entry', () => {

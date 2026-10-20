@@ -39,21 +39,21 @@ describe('choosing research', () => {
 
   it('the picker takes an own-age tech before a next-age one at equal doctrine weight, then the id', () => {
     const s = fresh();
-    const all = new Set(Object.values(TECH_TREE).filter((t) => t.ageId === 'bronze' && t.lineIndex === 0).map((t) => t.id));
-    const picks = suggestTechs({ ...s, techAgeId: 'bronze' }, FR_ID, 20, all);
+    const all = new Set(Object.values(TECH_TREE).filter((t) => t.ageId === 'stone' && t.lineIndex === 0).map((t) => t.id));
+    const picks = suggestTechs({ ...s, techAgeId: 'stone' }, FR_ID, 20, all);
     const ages = picks.map((id) => TECH_TREE[id].ageId);
-    expect(ages.indexOf('classical') === -1 || ages.lastIndexOf('bronze') < ages.indexOf('classical')).toBe(true);
-    expect(picks.every((id) => ['bronze', 'classical'].includes(TECH_TREE[id].ageId))).toBe(true);
-    expect(suggestTechs({ ...s, techAgeId: 'bronze' }, FR_ID, 20, all)).toEqual(picks);
+    expect(ages.indexOf('bronze') === -1 || ages.lastIndexOf('stone') < ages.indexOf('bronze')).toBe(true);
+    expect(picks.every((id) => ['stone', 'bronze'].includes(TECH_TREE[id].ageId))).toBe(true);
+    expect(suggestTechs({ ...s, techAgeId: 'stone' }, FR_ID, 20, all)).toEqual(picks);
   });
 
   it('an AI nation never researches outside its window', () => {
     let s = fresh();
     const id = DE_ID;
-    s = { ...s, nations: { ...s.nations, [id]: { ...s.nations[id], tech: { researched: [], ageId: 'bronze' }, economy: { ...s.nations[id].economy, techPoints: 1e7 } } } };
+    s = { ...s, nations: { ...s.nations, [id]: { ...s.nations[id], tech: { researched: [], ageId: 'stone' }, economy: { ...s.nations[id].economy, techPoints: 1e7 } } } };
     const out = stepResearch(s, id);
     expect(out.completed.length).toBeGreaterThan(0);
-    expect(out.completed.every((t) => ['bronze', 'classical'].includes(TECH_TREE[t].ageId))).toBe(true);
+    expect(out.completed.every((t) => ['stone', 'bronze'].includes(TECH_TREE[t].ageId))).toBe(true);
   });
 });
 
@@ -72,10 +72,11 @@ describe('science pays into research', () => {
   it('keeps progress on a tech when switching away and back', () => {
     let s = gameReducer(fresh(), { type: ActionTypes.RESEARCH_TECH, payload: { techId: firstOf('military') } });
     s = applyResearchTurn(withStock(s, 3));
-    expect(s.research.progress[firstOf('military')]).toBe(3);
+    const paid = s.research.progress[firstOf('military')]; // 3, plus the tech's boost when the map already meets it
+    expect(paid).toBeGreaterThanOrEqual(3);
     s = gameReducer(s, { type: ActionTypes.RESEARCH_TECH, payload: { techId: firstOf('economy') } });
     s = gameReducer(s, { type: ActionTypes.RESEARCH_TECH, payload: { techId: firstOf('military') } });
-    expect(s.research.progress[firstOf('military')]).toBe(3);
+    expect(s.research.progress[firstOf('military')]).toBe(paid);
   });
 
   it('banks science when nothing is chosen, and the advisor picks when allowed', () => {
