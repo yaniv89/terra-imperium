@@ -130,6 +130,17 @@ def cart(prefix, two_wheels=True, cover='Team'):
     return rig
 
 
+def build_stone():
+    """The Stone Age band on foot (eight-ages plan U80, 2026-10-20): no cart and no beast of burden; a hunter
+    leading with a flint spear, a woman in a long hide dress with a Team bundle, a youth with a rolled hide on
+    his back."""
+    F.start(dict(COLORS, Cloth='A88A62', Dress='8E7250', Skin='B98258', Hair='2A1E16', Stone=('8C8780', .8, 0.)), rig=False)
+    parts = [leader('Hunter', (.20, -.55, 0), staff=True, dress='kilt', tunic='Cloth'),
+             leader('Woman', (-.22, .10, 0), staff=False, dress='gown', hat=None, bearded=False, tunic='Dress', load=True),
+             leader('Youth', (.26, .62, 0), staff=True, dress='kilt', bearded=False, tunic='Cloth', load=True)]
+    return parts, 'A Stone Age band on foot: a hunter in a hide kilt leading with a staff, a woman in a long hide dress and a youth, each with a Team bundle on the back'
+
+
 def build_bronze():
     F.start(COLORS, rig=False)
     parts = []
@@ -183,7 +194,7 @@ def build_modern():
     return parts, 'A settler household on the move: a small pickup with the household under a Team tarp and a chair on top; a man in a Team jacket and cap walking beside it'
 
 
-BUILDERS = {'bronze-settler': build_bronze, 'kingdoms-settler': build_kingdoms, 'modern-settler': build_modern}
+BUILDERS = {'stone-settler': build_stone, 'bronze-settler': build_bronze, 'kingdoms-settler': build_kingdoms, 'modern-settler': build_modern}
 
 if __name__ == '__main__':
     ids = [a for a in (sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []) if a] or list(BUILDERS)

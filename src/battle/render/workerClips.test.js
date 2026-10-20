@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Quaternion } from 'three';
 
-const AGES = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+const AGES = ['stone', 'bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
 const CLIPS = ['Idle', 'Walk', 'Run', 'Carry', 'Chop', 'Mine', 'Harvest', 'Pick', 'Fish', 'Herd', 'Build', 'Repair', 'Deposit', 'Hit', 'Death', 'DeathAlt', 'Cheer'];
 const LOOPS = ['Idle', 'Walk', 'Run', 'Carry', 'Chop', 'Mine', 'Harvest', 'Pick', 'Fish', 'Herd', 'Build', 'Repair', 'Cheer'];
 const EVENTS = { Chop: 'contact', Mine: 'contact', Build: 'contact', Repair: 'contact', Harvest: 'cut', Pick: 'cut', Fish: 'cast', Deposit: 'pour', Death: 'settle', DeathAlt: 'settle' };

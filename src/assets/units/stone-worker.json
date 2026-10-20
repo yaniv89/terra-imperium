@@ -1,0 +1,145 @@
+{
+  "enabled": true,
+  "quadruped": false,
+  "restClip": "^Idle$",
+  "triangleBudget": 3000,
+  "tags": {
+    "team": "(^|\\s)Team(\\s|$)",
+    "skin": "(^|\\s)Skin(\\s|$)",
+    "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "clips": {
+    "Idle": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    },
+    "Walk": {
+      "frames": 21,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    },
+    "Run": {
+      "frames": 15,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    },
+    "Carry": {
+      "frames": 25,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    },
+    "Chop": {
+      "frames": 33,
+      "fps": 20,
+      "loop": true,
+      "tool": "Axe",
+      "events": {
+        "contact": 17
+      }
+    },
+    "Mine": {
+      "frames": 29,
+      "fps": 20,
+      "loop": true,
+      "tool": "Pick",
+      "events": {
+        "contact": 15
+      }
+    },
+    "Harvest": {
+      "frames": 37,
+      "fps": 20,
+      "loop": true,
+      "tool": "Sickle",
+      "events": {
+        "cut": 13
+      }
+    },
+    "Pick": {
+      "frames": 33,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held",
+      "events": {
+        "cut": 7
+      }
+    },
+    "Fish": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true,
+      "tool": "None",
+      "events": {
+        "cast": 9
+      }
+    },
+    "Herd": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    },
+    "Build": {
+      "frames": 25,
+      "fps": 20,
+      "loop": true,
+      "tool": "Hammer",
+      "events": {
+        "contact": 15
+      }
+    },
+    "Repair": {
+      "frames": 21,
+      "fps": 20,
+      "loop": true,
+      "tool": "Hammer",
+      "events": {
+        "contact": 11
+      }
+    },
+    "Deposit": {
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "tool": "Held",
+      "events": {
+        "pour": 16
+      }
+    },
+    "Hit": {
+      "frames": 8,
+      "fps": 20,
+      "loop": false,
+      "tool": "Held"
+    },
+    "Death": {
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "tool": "Held",
+      "events": {
+        "settle": 30
+      }
+    },
+    "DeathAlt": {
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "tool": "Held",
+      "events": {
+        "settle": 30
+      }
+    },
+    "Cheer": {
+      "frames": 33,
+      "fps": 20,
+      "loop": true,
+      "tool": "Held"
+    }
+  }
+}

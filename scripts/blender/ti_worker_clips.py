@@ -101,6 +101,7 @@ def part(name, pts, thick, wide, mat, bone, normal, sides=4, caps=(True, True)):
 
 # Tool styles per age: haft and head materials, the axe's blade, the build tool's head.
 STYLES = {
+    'stone': {'haft': 'Wood', 'head': 'Stone', 'blade': .040, 'mallet': True, 'sickle': 'Flint'},  # (2026-10-20: knapped stone heads, a flint sickle)
     'bronze': {'haft': 'Wood', 'head': 'Metal', 'blade': .044, 'mallet': True, 'sickle': 'Metal'},
     'iron': {'haft': 'Wood', 'head': 'Metal', 'blade': .058, 'mallet': False, 'sickle': 'Metal'},
     'steel': {'haft': 'Wood', 'head': 'Metal', 'blade': .066, 'mallet': False, 'sickle': 'Metal'},
