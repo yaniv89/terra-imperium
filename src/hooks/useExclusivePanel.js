@@ -86,6 +86,20 @@ export const useInteraction = (id, open, { priority = PRIORITY.sheet, kind = 'ca
 };
 
 /**
+ * A corner sheet the player opened (an army, a tile, a nation): on a phone or tablet it is the one
+ * sheet on screen and the others close or wait (mobile audit H-18: the army card used to sit
+ * behind the Research dock); a desktop keeps its sheets beside each other. A sheet that has to
+ * give way calls `onClose`. Returns { shown }: draw nothing while false.
+ */
+export const useCornerSheet = (id, open, onClose) => {
+  const compact = useSyncExternalStore(subscribe, compactNow, () => false);
+  const panel = useInteraction(id, open && compact, { kind: 'panel', priority: PRIORITY.panel, user: true });
+  const tucked = open && compact && !panel.shown;
+  useEffect(() => { if (tucked) onClose?.(); }, [tucked]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { shown: open && (!compact || panel.shown) };
+};
+
+/**
  * While `active`, `fn` closes this overlay when End Turn (or anything else) dismisses them all
  * (interactions.dismissOverlays). Decision cards never register: they stay until answered.
  */

@@ -3,6 +3,7 @@
 // and the Diplomacy tab's own actions (NationCard). Bottom sheet on a phone, a docked card on
 // desktop, like the army sheet. Opened by selectNation (marchEvents.js).
 import React, { useMemo, useEffect } from 'react';
+import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { X, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -10,7 +11,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { nationSheetModel } from './nationSheetModel';
 import NationCard from '../panels/NationCard';
 import { UNKNOWN_PEOPLE } from '../../engine/fog';
-import { useT } from '../../i18n/useT';
+import { useT } from '../../i18n/useT';
 
 const TONE = { good: 'text-fa-good', bad: 'text-fa-danger-text', neutral: 'text-amber-200' };
 
@@ -21,8 +22,9 @@ const NationSheet = ({ nationId, onClose, onSelectRegion }) => {
   const guided = !!state.tutorial && !state.tutorial.done?.meet;
   useEffect(() => { if (guided && nationId && nationId !== state.playerNationId) dispatch({ type: ActionTypes.MARK_TUTORIAL_STEP, payload: { stepId: 'meet' } }); }, [guided, nationId, state.playerNationId, dispatch]);
   const isMobile = useIsMobile();
+  const corner = useCornerSheet('nation-sheet', true, onClose); // one sheet at a time on a phone (H-18)
   const m = useMemo(() => nationSheetModel(state, nationId), [state, nationId]);
-  if (!m) return null;
+  if (!m || !corner.shown) return null;
   // A people not yet met (engine/fog.js): no name, no numbers, no diplomacy.
   const body = !m.met ? (
     <div className="flex justify-between items-start" data-testid="nation-unknown">

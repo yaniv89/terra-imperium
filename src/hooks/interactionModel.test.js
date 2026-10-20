@@ -133,3 +133,17 @@ describe('interactionModel, bookkeeping', () => {
     expect(closeInteraction(s, 'nobody')).toBe(s);
   });
 });
+
+describe('corner sheets (H-18)', () => {
+  const army = { id: 'army-sheet', kind: 'panel', priority: PRIORITY.panel };
+  const tile = { id: 'tile-sheet', kind: 'panel', priority: PRIORITY.panel };
+  it('on a phone the army card replaces the Research dock, and the dock is back when it closes', () => {
+    const s = run(open(dock, { user: true }), open(army, { user: true }));
+    expect(phone(s)).toEqual(['army-sheet']);
+    expect(phone(close('army-sheet')(s))).toEqual(['tabs']);
+  });
+  it('a tile sheet and an army card never show together on a phone, the newest wins', () => {
+    const s = run(open(tile, { user: true }), open(army, { user: true }));
+    expect(phone(s)).toEqual(['army-sheet']);
+  });
+});

@@ -11,6 +11,7 @@ import { useT } from '../../i18n/useT';
 import { nameNow } from '../../i18n/names';
 import { terrainWord, tileResourceName, improvementName, districtName } from '../../i18n/gameText';
 import React, { useMemo, useRef } from 'react';
+import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { MapPin, Tent, Flag, Swords, Ban, AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -42,6 +43,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
   const [attackFrom, setAttackFrom] = React.useState(null);
   const [confirmDisband, setConfirmDisband] = React.useState(null); // a settler's id: "Send them home?"
   const isMobile = useIsMobile();
+  const corner = useCornerSheet('tile-sheet', tile != null, onClose); // one sheet at a time on a phone (H-18)
   // The map centres a site in the part of the screen this sheet leaves (MapInsetsContext): "Next
   // good site" never lands under it (playtest audit I088).
   const sheetRef = useRef(null);
@@ -52,7 +54,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
   const facts = useMemo(() => (tile == null ? null : tileFacts(tiles, tile, state.world?.tileState?.[tile])), [tile, tiles, state.world]);
   const settlers = useMemo(() => settlersOf(state.units, me), [state.units, me]);
   const site = useMemo(() => (facts?.land ? settleSiteModel(state, tile, ageId) : null), [state, tile, ageId, facts, lang]); // eslint-disable-line react-hooks/exhaustive-deps -- lang only words the site
-  if (tile == null || !facts) return null;
+  if (tile == null || !facts || !corner.shown) return null;
   const here = settlers.filter((u) => u.tile === tile);
   const coming = settlers.filter((u) => u.target === tile && u.tile !== tile);
   const idle = settlers.filter((u) => u.target == null && u.tile !== tile);
