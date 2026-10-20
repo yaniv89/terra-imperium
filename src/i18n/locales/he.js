@@ -382,6 +382,7 @@ export default {
   'expense.marchingUpkeep': 'צבאות בצעידה',
   'expense.navyUpkeep': 'אחזקת צי',
   'expense.fortUpkeep': 'אחזקת מבצרים',
+  'expense.buildingUpkeep': 'אחזקת מבנים',
   'expense.advisorSalaries': 'יועצים',
   'expense.loanInterest': 'ריבית הלוואות',
   'topbar.income': 'הכנסות',

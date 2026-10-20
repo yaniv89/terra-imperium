@@ -24,7 +24,7 @@ describe('engine messages', () => {
   it('writes nested messages and empty parts in place', () => {
     const both = sub('m.both', { a: sub('m.turn.starveOne', { n: 1 }), b: sub('m.turn.meltedMany', { n: 2 }) });
     expect(msg('m.turn.outOfSupply', { what: both }).message).toBe('Out of supply: 1 of your unit starves in the field and 2 units melted away. Bring them home or hold a city near them.');
-    expect(msg('m.turn.upkeep', { total: 10, army: 5, marching: '', navy: 0, forts: 0, advisors: 5, interest: 0 }).message).toBe('Upkeep: -10g (army 5g, navy 0g, forts 0g, advisors 5g, loan interest 0g)');
+    expect(msg('m.turn.upkeep', { total: 10, army: 5, marching: '', navy: 0, forts: 0, buildings: 0, advisors: 5, interest: 0 }).message).toBe('Upkeep: -10g (army 5g, navy 0g, forts 0g, buildings 0g, advisors 5g, loan interest 0g)');
   });
   it('shows a line in Hebrew with Hebrew names, and an old line as it is', () => {
     const line = { year: 1, type: 'crisis', ...msg('m.turn.rebellion', { city: cityRef('c1', 'Jerusalem') }) };

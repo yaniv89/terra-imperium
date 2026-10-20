@@ -12,7 +12,7 @@ import { techName } from '../../i18n/gameText';
 import { ageProgress } from './ageProgress';
 import { shortAge } from '../panels/researchSheetModel';
 
-export const EXPENSE_IDS = ['armyUpkeep', 'marchingUpkeep', 'navyUpkeep', 'fortUpkeep', 'advisorSalaries', 'loanInterest'];
+export const EXPENSE_IDS = ['armyUpkeep', 'marchingUpkeep', 'navyUpkeep', 'fortUpkeep', 'buildingUpkeep', 'advisorSalaries', 'loanInterest'];
 /** The expense line's name in the current language (an unknown id is spelled out from its camel case). */
 export const expenseLabel = (id) => (EXPENSE_IDS.includes(id) ? tNow(`expense.${id}`) : titleCase(id));
 const round1 = (v) => Math.round((v || 0) * 10) / 10;

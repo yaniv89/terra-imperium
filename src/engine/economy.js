@@ -10,7 +10,7 @@ import { getPool, getResearched } from './nationState';
 // "player-only real computation" trim from M7-M10.
 import {
   UNIT_UPKEEP_GOLD_PER_TURN, ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_MAX, ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
-  LOAN_BASE_INTEREST_RATE, LOAN_INTEREST_PER_EXISTING_LOAN, LOAN_INTEREST_BANKING_HOUSES_DISCOUNT, LOAN_MIN_INTEREST_RATE,
+  BUILDING_UPKEEP_GOLD, LOAN_BASE_INTEREST_RATE, LOAN_INTEREST_PER_EXISTING_LOAN, LOAN_INTEREST_BANKING_HOUSES_DISCOUNT, LOAN_MIN_INTEREST_RATE,
   LOAN_BASE_CAPACITY, LOAN_BANK_CAPACITY_CAP, LOAN_MIN_SIZE, LOAN_SIZE_INCOME_MULTIPLIER,
   RECRUIT_STRATEGIC_RESOURCE_BY_AGE, RECRUIT_MISSING_RESOURCE_GOLD_PENALTY_MULT, ACTION_COSTS,
   BANKRUPTCY_STABILITY_PENALTY, BANKRUPTCY_PRESTIGE_PENALTY,
@@ -22,6 +22,19 @@ import { BUILDING_CATEGORIES } from '../data/buildings';
 import { addNationModifier } from './modifiers/timed';
 import { clampStability, clampPrestige } from './nationalPower';
 import { lawRulesOf } from './lawRules';
+
+// Gold a turn for the standing buildings of the player's cities (actionCosts.js BUILDING_UPKEEP_GOLD).
+export const buildingUpkeepOf = (state, regions, nationId) => {
+  if (nationId !== state.playerNationId) return 0;
+  let sum = 0;
+  for (const r of Object.values(regions)) {
+    if (r.owner !== nationId) continue;
+    for (const [category, tier] of Object.entries(r.buildings?.categories || {})) {
+      if (category !== 'defense' && tier >= 0) sum += BUILDING_UPKEEP_GOLD * (tier + 1);
+    }
+  }
+  return sum;
+};
 
 export const clampMaintenance = (value) => Math.max(ARMY_MAINTENANCE_MIN, Math.min(ARMY_MAINTENANCE_MAX, value));
 
@@ -89,6 +102,7 @@ export const calcNationBalance =(state, nationId, knownIncome, ownedUnits = null
       return sum + (fortLevel || 0);
     }, 0);
   const fortUpkeep = fortLevels * FORT_UPKEEP_GOLD_PER_FORT_LEVEL;
+  const buildingUpkeep = buildingUpkeepOf(state, state.regions, nationId);
   const advisorSalaries = Object.values(nation.advisors || {}).filter(Boolean).reduce((sum, a) => sum + getAdvisorSalary(a.level), 0);
   const loanInterest = (nation.loans || []).reduce((sum, loan) => sum + Math.round(loan.principal * loan.interestRate), 0);
 
@@ -97,7 +111,7 @@ export const calcNationBalance =(state, nationId, knownIncome, ownedUnits = null
   // The forecast looks one turn ahead: armies with a route walk during the coming End Turn
   // (routes.js advanceMarches, the walk resolveTurn runs first), so they are charged too (ECON-01).
   const marchingUpkeep = marchUpkeep(null, nationId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult, unitsAfterMarch(state, nationId, units));
-  const expenses = { armyUpkeep, marchingUpkeep, navyUpkeep, fortUpkeep, advisorSalaries, loanInterest };
+  const expenses = { armyUpkeep, marchingUpkeep, navyUpkeep, fortUpkeep, buildingUpkeep, advisorSalaries, loanInterest };
   const totalExpenses = Object.values(expenses).reduce((sum, v) => sum + v, 0);
   return { income, expenses, net: (income.gold || 0) - totalExpenses };
 };

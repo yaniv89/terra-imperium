@@ -379,6 +379,7 @@ export default {
   'expense.marchingUpkeep': 'Armies on the march',
   'expense.navyUpkeep': 'Navy upkeep',
   'expense.fortUpkeep': 'Fort upkeep',
+  'expense.buildingUpkeep': 'Building upkeep',
   'expense.advisorSalaries': 'Advisors',
   'expense.loanInterest': 'Loan interest',
   'topbar.income': 'Income',

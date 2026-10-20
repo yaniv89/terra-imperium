@@ -26,7 +26,7 @@ export default {
   'm.turn.civilWarCrushed': '{nation} מדכאת את ההתקוממות. (+1 יציבות, +10 לגיטימיות)',
   'm.turn.civilWarLost': '{nation} נופלת בידי המורדים: משטר חדש עולה לשלטון.',
   'm.turn.civilWar': '{nation} שוקעת במלחמת אזרחים!',
-  'm.turn.upkeep': 'אחזקה: -{total:money} (צבא {army:money}{marching}, צי {navy:money}, מבצרים {forts:money}, יועצים {advisors:money}, ריבית הלוואות {interest:money})',
+  'm.turn.upkeep': 'אחזקה: -{total:money} (צבא {army:money}{marching}, צי {navy:money}, מבצרים {forts:money}, מבנים {buildings:money}, יועצים {advisors:money}, ריבית הלוואות {interest:money})',
   'm.turn.upkeepMarching': ', צעידה {gold:money}',
   'm.turn.desertion': 'בלי שכר, {men:num} חיילים עורקים מצבאך (-{pct}% כוח, -{morale} מורל בכל יחידה).',
   'm.turn.economicCollapse': 'קריסה כלכלית! שנים של חוב תופח כופות פשיטת רגל. (-2 יציבות מעבר לעונשי פשיטת הרגל הרגילים)',

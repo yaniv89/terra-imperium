@@ -243,6 +243,12 @@ const main = async () => {
   console.log(`Civil wars:           total ${sum('civilWars')}, avg/game ${avg('civilWars').toFixed(1)}`);
   console.log(`Region hand-changes:  total ${sum('regionOwnershipChanges')}, avg/game ${avg('regionOwnershipChanges').toFixed(1)}`);
   console.log(`Mean turn time:       ${avg('meanTurnMs').toFixed(2)}ms (plan §M0.4 budget: 80ms)`);
+  // Treasuries at the last turn (gold sinks, H-13): per game the median, 90th percentile and top of the nations with any gold.
+  results.forEach((r, i) => {
+    const g = Object.values(r.finalGoldByNation).filter((v) => v > 0).sort((a, b) => a - b);
+    const at = (q) => g[Math.floor((g.length - 1) * q)] ?? 0;
+    console.log(`Gold at end #${i + 1}:     median ${at(0.5)}, p90 ${at(0.9)}, max ${at(1)} (${g.length} nations)`);
+  });
   // Runaway and health measures (scripts/simStats.mjs) as mean and 95% t interval across games.
   // Games here are independent (different seeds and players), so the interval is unpaired; for a
   // before/after verdict use the balance-sim compare.sh, which pairs seeds.
