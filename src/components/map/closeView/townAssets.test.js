@@ -33,7 +33,7 @@ describe('artist town models', () => {
     expect(townAssetUrl('bronze', 'medium', 1, 'levant')).toMatch(/bronze-town-medium-b-levant/);
     expect(townAssetUrl('bronze', 'small', 0, 'nile')).toMatch(/bronze-town-small-a-nile/);
     expect(townAssetUrl('bronze', 'small', 1, 'westafrica')).toMatch(/bronze-town-small-b-westafrica/);
-    expect(townAssetUrl('future', 'small')).toBeNull();
+    expect(townAssetUrl('atlantis', 'small')).toBeNull();
   });
 
   it('picks the layout by the land: Han in East Asia, Roman elsewhere in the Classical Age', () => {
@@ -107,7 +107,7 @@ describe('artist town models', () => {
     expect(palaceFor('medium')).toBe('palace');
     expect(palaceFor('big')).toBe('palace');
     expect(sharedAssetUrl('bronze')).toMatch(/shared-bronze/);
-    expect(sharedAssetUrl('future')).toBeNull();
+    expect(sharedAssetUrl('atlantis')).toBeNull();
   });
 
   it('gives every age with base towns a palace in its base shared file', () => {
@@ -197,7 +197,7 @@ describe('architecture regions', () => {
     expect(townAssetUrl('bronze', 'small', 0, 'easteurope')).toMatch(/bronze-town-small-/);
     // the base shared file always comes last; an age without one has none
     expect(sharedAssetUrls('bronze', 'europe').slice(-1)[0]).toMatch(/shared-bronze\.glb|shared-bronze-/);
-    expect(sharedAssetUrls('future')).toEqual([]);
+    expect(sharedAssetUrls('atlantis')).toEqual([]);
   });
 
   it('builds Israel in its own kit in every age, the Levant and then the base filling what it lacks', () => {

@@ -64,7 +64,12 @@ def farm(ms, rng):
 
 
 def fishing_boats(ms, rng):
-    ms.box('fu_plinth', (2.4, .40, .06), at=(0, .9, 0), lod=2)  # the floating dock
+    # the shore strip: the Ground patch shifted to the back (land side), as the Stone and Bronze files'
+    first = len(ms.parts)
+    tt.ground_patch(ms, rng, rx=2.36, ry=.82, square=None, power=3.0, mat='earth', n=32)
+    for bm, *_ in ms.parts[first:]:
+        bmesh.ops.translate(bm, vec=(0, .75, 0), verts=bm.verts)
+    ms.box('fu_plinth', (2.4, .40, .06), at=(0, .9, 0), lod=2)  # the quay
     ms.box('fu_glow', (2.36, .012, .006), at=(0, .7, .06), lod=0)
     for k in range(4):
         ms.box('fu_plinth', (.18, .7, .05), at=(-.9 + .6 * k, .4, 0), lod=1)

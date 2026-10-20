@@ -22,7 +22,7 @@ describe('town layouts (the city manifest source)', () => {
       const key = townFileKey(age, tier, seed, style);
       expect(townAssetUrl(age, tier, seed, style)).toContain(key);
     });
-    expect(townFileKey('future', 'small')).toBeNull();
+    expect(townFileKey('atlantis', 'small')).toBeNull();
     // no Roman big town of its own: the classical base big town, and the manifest lists its houses
     expect(townFileKey('classical', 'big', 0, 'europe')).toMatch(/^classical-town-big-[ab]$/);
     expect(townAssetUrl('classical', 'big', 0, 'europe')).toContain(townFileKey('classical', 'big', 0, 'europe'));
