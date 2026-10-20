@@ -444,7 +444,7 @@ def block(L, guard, hold):
     else:
         d, f = pitch(-30, -70)
         up = L.key({'Hips': (4, 0, -4), 'Spine': (6, 0, -6), 'Chest': (2, 0, -8), 'Head': (-4, 0, 6)}, (0, 0, -.04), W=L.W((-.10, -.24, .84), d, f),
-                   hands={R: hold((-1, .2, -.6)), L.other: L.free(L.other)})
+                   hands={R: hold((-1, .2, -.6)) if hold.__code__.co_argcount else hold(), L.other: L.free(L.other)})  # (the spear's hold takes no pole)
         jolt = dict(up, root=(0, 0, -.045), ease='out')
     return Clip('Block', 20, False, None, keys=[(1, guard), (6, up), (10, jolt), (15, up), (20, guard)])
 

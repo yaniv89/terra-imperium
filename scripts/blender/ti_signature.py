@@ -74,6 +74,8 @@ def dress(kind='kilt', mat='Cloth', armour=None, armour_mat='Leather', team='sas
     if kind == 'kilt':
         F.skirt('Kilt', mat, low=.335, top=.548, sides=10)
         F.tufted_hem('KiltHem')
+        if not armour:  # a bare chest: the skin trunk (the figure has no torso of its own; fixed 2026-10-20)
+            F.torso('BodyTorso', 'Skin', sides=10)
     elif kind == 'tunic':
         F.skirt('Tunic', mat, low=.360, top=.470, sides=10)
         F.torso('TunicTop', 'Team' if team == 'top' else mat, sides=10)
@@ -92,7 +94,7 @@ def dress(kind='kilt', mat='Cloth', armour=None, armour_mat='Leather', team='sas
     elif armour == 'mail':
         F.torso('Mail', armour_mat, grow=.008, chest=.008)
     elif armour == 'quilt':
-        F.torso('Quilted', armour_mat, grow=.012, chest=.008, ribs=6)
+        F.torso('Quilted', armour_mat, grow=.012, chest=.008, ribs=.06)
     if team == 'sash':
         F.band('TeamSash', 'Team', .512, .566, grow=.014, bone='Spine')
     elif team == 'shawl':
