@@ -240,7 +240,7 @@ export const soundsForTransition = (prev, next, action) => {
     else if (next.gameStatus === GameStatus.DEFEAT) out.push('game-defeat');
     else if (next.gameStatus === GameStatus.COMPLETE) out.push('era-advanced');
   }
-  if (next.age && prev.age && next.age !== prev.age) out.push('era-advanced');
+  if (next.techAgeId && prev.techAgeId && next.techAgeId !== prev.techAgeId) out.push('era-advanced'); // the player's own age (KTD1)
   if ((next.activeEventId && next.activeEventId !== prev.activeEventId) || (next.activeProceduralEvent && next.activeProceduralEvent !== prev.activeProceduralEvent)) out.push('event-appeared');
   if (next.pendingPeaceOffer && next.pendingPeaceOffer !== prev.pendingPeaceOffer) out.push('event-appeared');
   if ((next.pendingDefenses?.length || 0) > (prev.pendingDefenses?.length || 0)) {

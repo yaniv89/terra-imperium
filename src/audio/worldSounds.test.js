@@ -7,7 +7,7 @@ import { UI_SOUNDS, WORLD_SOUNDS, uiFilesFor, worldFilesFor } from './soundRegis
 
 const known = (id) => !!(UI_SOUNDS[id] || WORLD_SOUNDS[id]);
 const base = () => ({
-  playerNationId: 'akkad', turnNumber: 5, age: 'bronze', gameStatus: GameStatus.ACTIVE, logs: [],
+  playerNationId: 'akkad', turnNumber: 5, techAgeId: 'bronze', gameStatus: GameStatus.ACTIVE, logs: [],
   wars: [], regions: { kish: { owner: 'akkad' }, ur: { owner: 'sumer' } }, units: { s1: { classId: 'settler' }, a1: { classId: 'infantry' } },
   fog: { met: { akkad: { sumer: true } } }, pendingDefenses: [], battleReports: [], battleReportSeq: 0
 });
@@ -93,7 +93,7 @@ describe('world sounds: a state change', () => {
   it('a turn: its news, a new era, an event, a raid, a new people met, and the new turn itself', () => {
     const prev = base();
     const next = {
-      ...prev, turnNumber: 6, age: 'iron', activeEventId: 'flood',
+      ...prev, turnNumber: 6, techAgeId: 'iron', activeEventId: 'flood',
       pendingDefenses: [{ kind: 'raid' }], fog: { met: { akkad: { sumer: true, elam: true } } },
       logs: [log('Kish grows to size 4.'), log('-1990: +12')]
     };

@@ -175,7 +175,7 @@ const main = async () => {
   await click(rail.getByRole('button', { name: 'Cities' }));
 
   // The era banner hides after five seconds even when a turn ends inside them.
-  await patch(page, `const ids = Object.keys(m.AGES); const next = ids[ids.indexOf(s.age) + 1]; return { ...s, age: next, turnNumber: s.turnNumber + 1 };`, ['data/ages.js']);
+  await patch(page, `const ids = Object.keys(m.AGES); const next = ids[ids.indexOf(s.techAgeId) + 1]; return { ...s, techAgeId: next, turnNumber: s.turnNumber + 1 };`, ['data/ages.js']);
   const banner = page.getByTestId('age-banner');
   await banner.waitFor({ timeout: 5000 });
   // Its entry animation starts 16 px higher (headless Chrome can hold that first frame): even
