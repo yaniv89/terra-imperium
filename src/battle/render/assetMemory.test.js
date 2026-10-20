@@ -91,4 +91,21 @@ describe('createAssetLru', () => {
     lru.clear();
     expect(lru.size).toBe(0); expect(lru.bytes).toBe(0);
   });
+
+  it('never drops a held file (one still drawn), even forced; clear() still drops everything', () => {
+    let t = 0;
+    const evicted = [];
+    const held = new Set(['a']);
+    const lru = createAssetLru({ budget: 50, keepMs: 10, now: () => t, isHeld: (k) => held.has(k), onEvict: (k) => evicted.push(k) });
+    lru.add('a', 'A', 60); lru.add('b', 'B', 60);
+    t = 100;
+    expect(lru.trim()).toEqual(['b']);
+    expect(lru.trim(0, { force: true })).toEqual([]);
+    expect(lru.has('a')).toBe(true);
+    held.clear();
+    expect(lru.trim()).toEqual(['a']);
+    lru.add('c', 'C', 10); held.add('c');
+    lru.clear();
+    expect(evicted).toEqual(['b', 'a', 'c']);
+  });
 });

@@ -636,16 +636,63 @@ const disposeScene = (scene) => disposeGltf({ scene });
 // (assetMemory.js): `onGltfEvict` tells the caches built on a file to forget it.
 const gltfCache = new Map(); // url -> Promise<gltf>
 const evictListeners = new Set();
-/** `fn(url, gltf)` when a file is dropped from memory (kits and town objects built on it go too). */
+/**
+ * `fn(url, gltf, { disposed })` when a file is dropped from memory (kits and town objects built on
+ * it go too). `disposed`: its geometry, materials and textures were freed and its bitmaps closed,
+ * so anything still drawing them must be rebuilt from a new load (else it draws black, H-05);
+ * false when the file was only forgotten (forgetReleasedGltf: the drawing renderer keeps its copies).
+ */
 export const onGltfEvict = (fn) => { evictListeners.add(fn); return () => evictListeners.delete(fn); };
-const forgetFile = (url, gltf) => {
+const forgetFile = (url, gltf, disposed) => {
   gltfCache.delete(url);
-  evictListeners.forEach((fn) => { try { fn(url, gltf); } catch { /* a cache that cannot forget keeps its copy */ } });
+  evictListeners.forEach((fn) => { try { fn(url, gltf, { disposed }); } catch { /* a cache that cannot forget keeps its copy */ } });
 };
+// Files being drawn (H-05, H-06): the close view holds the files of its last layout, a battle every
+// file it loads or uses while it runs. The memory list never drops a held file, so a battle's kits
+// stay whole while the map behind it loads towns (a resize), and the map's towns while a battle loads.
+const heldCount = new Map(); // url -> number of holds
+const capturing = new Set(); // holds that take every file loaded or used while they are open
 const gltfLru = createAssetLru({
   budget: assetBudget(),
-  onEvict: (url, gltf) => { forgetFile(url, gltf); disposeGltf(gltf); }
+  isHeld: (url) => (heldCount.get(url) || 0) > 0,
+  onEvict: (url, gltf) => { forgetFile(url, gltf, true); disposeGltf(gltf); }
 });
+/**
+ * A hold on model files that are being drawn: `add(url)`, `drop(url)`, `set(urls)` (exactly these
+ * now), `release()` (all; the files over the budget may then go). `capture: true` also holds every
+ * file loadGltf loads or is asked for while the hold is open (a battle: its kits, towns and units).
+ */
+export const createGltfHold = ({ capture = false } = {}) => {
+  const urls = new Set();
+  const hold = {
+    get size() { return urls.size; },
+    has: (url) => urls.has(url),
+    add(url) {
+      if (!url || urls.has(url)) return;
+      urls.add(url);
+      heldCount.set(url, (heldCount.get(url) || 0) + 1);
+    },
+    drop(url) {
+      if (!urls.delete(url)) return;
+      const n = (heldCount.get(url) || 1) - 1;
+      if (n > 0) heldCount.set(url, n); else heldCount.delete(url);
+    },
+    set(next) {
+      const want = new Set(next);
+      [...urls].forEach((u) => { if (!want.has(u)) hold.drop(u); });
+      want.forEach((u) => hold.add(u));
+    },
+    release() {
+      capturing.delete(hold);
+      [...urls].forEach((u) => hold.drop(u));
+      gltfLru.trim(); // what nobody draws now may go
+    }
+  };
+  if (capture) capturing.add(hold);
+  return hold;
+};
+/** Whether any hold keeps this file (tests, the crash log). */
+export const isGltfHeld = (url) => (heldCount.get(url) || 0) > 0;
 /**
  * Forget the files whose maps kept no CPU copy (a touch device, after their first upload): their
  * textures can only be drawn by the renderer that uploaded them, so a new renderer (a battle, the
@@ -657,7 +704,7 @@ export const forgetReleasedGltf = () => {
     const gltf = gltfLru.get(url);
     if (!hasReleasedTextures(gltf?.scene)) return;
     gltfLru.forget(url);
-    forgetFile(url, gltf);
+    forgetFile(url, gltf, false);
   });
 };
 /** The loaded files' decoded bytes and count (memory checks, the crash log). */
@@ -667,6 +714,7 @@ export const clearGltfCache = () => { gltfLru.clear(); gltfCache.clear(); };
 /** Drop the files not used for a while down to `MB` (a battle's end on a phone). */
 export const trimGltfCache = (MB = 0) => gltfLru.trim(MB * 1048576);
 export const loadGltf = (url, opts = {}) => {
+  capturing.forEach((h) => h.add(url));
   if (!gltfCache.has(url)) {
     const cap = opts.textureCap ?? textureCap();
     gltfCache.set(url, getLoader(opts).then((loader) => loader.loadAsync(url)).then((gltf) => {

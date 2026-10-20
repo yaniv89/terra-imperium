@@ -68,6 +68,7 @@ import { TURN_REPORT_SHOWN, isTurnReportShown } from '../../ui/uiEvents';
 import { POINT_TILE } from '../marchEvents';
 import { releaseWhenDetached } from '../../../utils/glContext';
 import { forgetReleasedGltf } from '../../../battle/render/gltfUnitLoader';
+import { watchPixelRatio } from '../../../utils/pixelRatio';
 import { noteCrashEvent } from '../../../utils/crashLog';
 
 const OCEAN_COLOR = '#0f172a';
@@ -141,6 +142,9 @@ const GLMapView = ({
   // A new canvas (and renderer) when a lost WebGL context does not come back (canvasGen).
   const [canvasGen, setCanvasGen] = useState(0);
   const [assetsTick, setAssetsTick] = useState(0);
+  // a browser zoom or another screen changes the pixel ratio without a resize: draw again at it
+  const [, setDprTick] = useState(0);
+  useEffect(() => watchPixelRatio(() => setDprTick((n) => n + 1)), []);
   const dpr = devicePixelRatio();
 
   const projection = useMemo(() => (width > 0 && height > 0 ? geoEquirectangular().fitSize([width, height], { type: 'Sphere' }) : null), [width, height]);
@@ -209,8 +213,9 @@ const GLMapView = ({
       clearTimeout(lostTimer);
       lostTimer = setTimeout(() => { noteCrashEvent('map-context-replaced'); forgetReleasedGltf(); setCanvasGen((n) => n + 1); }, CONTEXT_RESTORE_MS);
     };
-    // (the model files whose maps kept no CPU copy load again in full: forgetReleasedGltf)
-    const onRestored = () => { clearTimeout(lostTimer); noteCrashEvent('map-context-restored'); forgetReleasedGltf(); setAssetsTick((n) => n + 1); redraw(); };
+    // (the model files whose maps kept no CPU copy load again in full: forgetReleasedGltf, and the
+    // close view drops what it built on them, else they come back as blurred stand-ins)
+    const onRestored = () => { clearTimeout(lostTimer); noteCrashEvent('map-context-restored'); forgetReleasedGltf(); g.closeScene.reloadReleased(); setAssetsTick((n) => n + 1); redraw(); };
     canvas.addEventListener('webglcontextlost', onLost);
     canvas.addEventListener('webglcontextrestored', onRestored);
     document.addEventListener('visibilitychange', onVisible);

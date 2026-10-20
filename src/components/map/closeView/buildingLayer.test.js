@@ -1,7 +1,9 @@
 // The far levels' guard: a model level that would draw black takes LOD0's part (a base-set mine
 // showed as a black square at zoom 13 to 40: its LOD1 and LOD2 Ground sample an empty atlas corner).
 import { describe, it, expect } from 'vitest';
-import { repairDarkLods, partLuminance, DARK_LUMINANCE } from './buildingLayer';
+import { Group, Matrix4 } from 'three';
+import { repairDarkLods, partLuminance, DARK_LUMINANCE, createBuildingLayer } from './buildingLayer';
+import { buildingGlb, parseGlbBytes } from './glbFixture';
 
 const part = (name, id) => ({ id, material: { name }, kind: name === 'Ground' ? 'ground' : name === 'Team' ? 'team' : 'plain' });
 
@@ -32,5 +34,29 @@ describe('repairDarkLods', () => {
 
   it('cannot read a texture without a canvas (tests, a worker): no guess', () => {
     expect(partLuminance({ material: { name: 'Ground' }, geometry: { attributes: {} } })).toBeNull();
+  });
+});
+
+// H-05: a model file dropped from memory had its textures disposed and its bitmaps closed under the
+// layer's meshes, which then drew solid black. The layer forgets such a file so the close view
+// loads it again.
+describe('forgetting a dropped file', () => {
+  it('removes its meshes from the scene and its model, so the next load sets it again', async () => {
+    const gltf = await parseGlbBytes(buildingGlb('granary'));
+    const root = gltf.scene.getObjectByName('granary');
+    const scene = new Group();
+    const layer = createBuildingLayer(scene);
+    layer.setModel('granary.glb', root, () => null);
+    layer.begin(0);
+    expect(layer.add('granary.glb', new Matrix4(), '#ff0000')).toBe(true);
+    layer.end();
+    expect(scene.children.length).toBeGreaterThan(0);
+    expect(layer.forget('granary.glb')).toBe(true);
+    expect(layer.hasModel('granary.glb')).toBe(false);
+    expect(scene.children.length).toBe(0);
+    expect(layer.add('granary.glb', new Matrix4(), '#ff0000')).toBe(false);
+    expect(layer.forget('granary.glb')).toBe(false);
+    layer.setModel('granary.glb', root, () => null);
+    expect(layer.hasModel('granary.glb')).toBe(true);
   });
 });

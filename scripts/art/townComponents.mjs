@@ -64,7 +64,7 @@ export const SEED_FLOOR = 0.12;
 export const SEED_AREA = 0.1;
 export const SEED_HEIGHT = 0.12;
 // A town with fewer than STILT_RETRY houses is read again with bases up to STILT_FLOOR high.
-export const STILT_RETRY = 3;
+export const STILT_RETRY = 5; // the test floor (townLayout.test.js): the Stone Monsoon stilt villages have a few granaries on the ground
 export const STILT_FLOOR = 0.6;
 const centreIn = (p, b, pad = 0) => {
   const cx = (p.x0 + p.x1) / 2; const cz = (p.z0 + p.z1) / 2;
@@ -166,5 +166,7 @@ export const townComponents = (path) => {
   const town = classify(joinBoxes(all, SEED_FLOOR, hints), hints);
   // houses on stilts (the Monsoon and Pacific kits) have no base on the ground: their raised
   // floors start the buildings instead
-  return town.houses.length >= STILT_RETRY ? town : classify(joinBoxes(all, STILT_FLOOR, hints), hints);
+  if (town.houses.length >= STILT_RETRY) return town;
+  const lifted = classify(joinBoxes(all, STILT_FLOOR, hints), hints);
+  return lifted.houses.length > town.houses.length ? lifted : town;
 };

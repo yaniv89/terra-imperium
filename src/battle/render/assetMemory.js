@@ -124,10 +124,11 @@ export const disposeGltf = (gltf) => {
 /**
  * The loaded files, newest use last. `touch(key)` on every use; `add(key, value, bytes)` when a
  * file is in; `trim()` drops the least recently used files over `budget` bytes that were not used
- * in the last `keepMs` (a file a battle or the close view is drawing right now stays), calling
- * `onEvict(key, value)` for each.
+ * in the last `keepMs`, calling `onEvict(key, value)` for each. A file `isHeld(key)` (one a battle
+ * or the close view is drawing: its textures would be disposed under it and drawn black, H-05)
+ * is never trimmed; only clear() drops it.
  */
-export const createAssetLru = ({ budget, keepMs = 15000, now = () => Date.now(), onEvict = () => {} } = {}) => {
+export const createAssetLru = ({ budget, keepMs = 15000, now = () => Date.now(), onEvict = () => {}, isHeld = () => false } = {}) => {
   const entries = new Map(); // key -> { value, bytes, used }
   let total = 0;
   const lru = {
@@ -152,7 +153,7 @@ export const createAssetLru = ({ budget, keepMs = 15000, now = () => Date.now(),
       const t = now();
       for (const [key, e] of [...entries]) {
         if (total <= limit) break;
-        if (!force && t - e.used < keepMs) continue;
+        if ((!force && t - e.used < keepMs) || isHeld(key)) continue;
         lru.remove(key);
         dropped.push(key);
       }
