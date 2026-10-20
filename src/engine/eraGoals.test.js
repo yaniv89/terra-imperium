@@ -18,6 +18,15 @@ const quiet = (s) => ({ ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce
 const S = quiet(peoplesWorld({ seed: 3 }));
 
 describe('era goals', () => {
+  it('counts a kept conquest for the War goal after the conquest flag is gone (H-10)', () => {
+    const { state: s2, cityIds: ids } = addCities(S, FR_ID, 2, { near: getNationCapital(FR_ID) });
+    const regions = { ...s2.regions };
+    ids.forEach((id) => { regions[id] = { ...regions[id], conquest: undefined, captureLog: [{ by: FR_ID, from: 'x', turn: s2.turnNumber }] }; });
+    expect(playstyleValues({ ...s2, regions }).war).toBe(2);
+    const old = { ...regions, [ids[0]]: { ...regions[ids[0]], captureLog: [{ by: FR_ID, from: 'x', turn: s2.turnNumber - 5000 }] } };
+    expect(playstyleValues({ ...s2, regions: old }).war).toBe(1);
+  });
+
   it('reads the player\'s numbers and the age\'s targets', () => {
     const v = playstyleValues(S);
     expect(v.expand).toBe(1);
