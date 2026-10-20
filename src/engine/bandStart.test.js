@@ -27,6 +27,18 @@ describe('band start (U23)', () => {
     expect(auditGameState(s).filter((p) => p.severity === 'error')).toEqual([]);
   });
 
+  it('independents start as size 1 villages, not bands (U34)', () => {
+    const s = fresh();
+    const indep = Object.values(s.nations).filter((n) => n.kind === 'independent');
+    expect(indep.length).toBeGreaterThan(0);
+    indep.forEach((n) => {
+      const cities = citiesOf(s, n.id);
+      expect(cities, n.id).toHaveLength(1);
+      expect(cities[0].size, n.id).toBe(1);
+      expect(bandsOf(s.units, n.id), n.id).toHaveLength(0);
+    });
+  });
+
   it('AI bands found on turn 1; the player who waits stays in the game, then founds on the home tile', () => {
     const s = fresh();
     const me = s.playerNationId;

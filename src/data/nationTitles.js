@@ -9,13 +9,14 @@
 // Templates: {name} is the people's stem as it reads inside a sentence ("Akkad", "the Nuragi"),
 // {adj} its adjective ("Akkadian"). A people whose name is plural ("The Nuragi") never takes a
 // form that puts its name right after a word ("Holy the Nuragi"): those forms have a plural twin.
+// A tribal people with no city yet (the Stone Age band) is "the Akkadian people".
 // Pure data and functions; nothing in the engine reads a title, so titles never touch balance.
 import { peopleOf } from './peoples';
 
 export const EMPIRE_CITY_COUNT = 15;
 
 export const GOVERNMENT_TITLES = {
-  tribal: { realm: 'the {adj} tribes', empire: 'the {adj} Confederacy' },
+  tribal: { band: 'the {adj} people', realm: 'the {adj} tribes', empire: 'the {adj} Confederacy' },
   monarchy: { realm: 'Kingdom of {name}', empire: 'the {adj} Empire' },
   theocracy: { realm: 'Holy {name}', empire: 'the Holy {adj} Empire', pluralRealm: 'the Holy {adj} Realm' },
   republic: { realm: 'Republic of {name}', empire: 'the {adj} Commonwealth' },
@@ -32,9 +33,10 @@ const capitalise = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 export const titleFor = (people, governmentType = 'tribal', cityCount = 1) => {
   if (!people) return null;
   const big = cityCount >= EMPIRE_CITY_COUNT;
+  const forms = GOVERNMENT_TITLES[governmentType] || GOVERNMENT_TITLES.tribal;
+  if (cityCount < 1 && forms.band) return capitalise(fill(forms.band, people)); // a band that has not founded its first village
   const override = people.titles?.[`${governmentType}${big ? 'Empire' : ''}`] || (!big && people.titles?.[governmentType]);
   if (override) return capitalise(override);
-  const forms = GOVERNMENT_TITLES[governmentType] || GOVERNMENT_TITLES.tribal;
   const template = big
     ? (people.plural && forms.pluralEmpire) || forms.empire
     : (people.plural && forms.pluralRealm) || forms.realm;
