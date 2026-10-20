@@ -21,6 +21,7 @@ export const TAP_MS = 260;
 export const LONG_MS = 380;
 export const MOVE_PX = 10;
 export const DOUBLE_TAP_MS = 300;
+export const DOUBLE_TAP_PX = 40; // a second tap farther away is a new gesture: a drag from it pans
 
 export const createGestureRecognizer = (el, h) => {
   const pointers = new Map();
@@ -29,6 +30,7 @@ export const createGestureRecognizer = (el, h) => {
   let last = null;
   let longTimer = null;
   let lastTapAt = -1000;
+  let lastTapPos = null;
   let pinch = null;
   let fromSelectMode = false; // this lasso was drawn in select mode (not a double-tap)
   let spaceHeld = false; // Space held: a left drag pans (mouse only)
@@ -67,7 +69,7 @@ export const createGestureRecognizer = (el, h) => {
     }
     const onSelected = h.isOnSelectedSquad?.(p);
     fromSelectMode = !!h.isSelectMode?.();
-    mode = fromSelectMode || e.timeStamp - lastTapAt < DOUBLE_TAP_MS ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
+    mode = fromSelectMode || (e.timeStamp - lastTapAt < DOUBLE_TAP_MS && lastTapPos && Math.hypot(p.x - lastTapPos.x, p.y - lastTapPos.y) < DOUBLE_TAP_PX) ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
     longTimer = setTimeout(() => {
       longTimer = null;
       if (mode === 'press-selected') { mode = 'radial'; h.radial?.(start); }
@@ -111,7 +113,7 @@ export const createGestureRecognizer = (el, h) => {
     if (!start) return;
     const quick = e.timeStamp - start.t < TAP_MS;
     if (mode === 'place') h.placeEnd?.(p, { moved: !!start.moved, onGhost: !!start.onGhost, quick });
-    else if ((mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed') && quick) { h.tap?.(p); lastTapAt = e.timeStamp; }
+    else if ((mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed') && quick) { h.tap?.(p); lastTapAt = e.timeStamp; lastTapPos = p; }
     else if (mode === 'mouse-left') (h.click || h.tap)?.(p, { shift: start.shift });
     else if (mode === 'mouse-right') h.order?.(p);
     else if (mode === 'formation') h.formationEnd?.(start, p);
