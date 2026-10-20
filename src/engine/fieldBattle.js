@@ -18,12 +18,11 @@
 // `aiSally` (aiOperations.js) when they are clearly stronger.
 import { getTiles } from '../data/geo/tiles';
 import { withAirSupport } from './airPower';
-import { getEffectiveAgeId } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
-import { getTechAgeId } from './nationState';
+import { ageOf } from './nationState';
 import { canAttack, canFight } from './hostility';
 import { legacyTerrainOf } from './world/registry';
 import { passableTile, regionForTile, unitTile } from './armies';
@@ -87,8 +86,8 @@ export const getFieldBattleContext = (state, v) => {
     river,
     battleType,
     generals: state.hiredCommanders,
-    attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
-    defenderAgeId: v.defenderNationId === REBEL_OWNER_ID ? state.age : getEffectiveAgeId(state.age, getTechAgeId(state, v.defenderNationId)),
+    attackerAgeId: ageOf(state, state.playerNationId),
+    defenderAgeId: v.defenderNationId === REBEL_OWNER_ID ? state.age : ageOf(state, v.defenderNationId),
     attackerPenaltyMultiplier: battleType === 'river' ? riverAttackAdjust(tiles.riverSizeBetween(v.fromTile, v.tile)) : 1, // the river's size (battleType.js)
     defenderDamageReductionMultiplier: (fort ? FORT_REDUCTION : 1) * (v.defenderUnits.length && v.defenderUnits.every((u) => isFortified(u, state.turnNumber)) ? FORTIFY_REDUCTION : 1)
   };

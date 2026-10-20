@@ -115,19 +115,8 @@ export const getCalendarAgeId = (year) => {
   return found || LAST_AGE_ID; // END_YEAR itself is the exclusive upper bound of the last age
 };
 
-// A nation's effective age = max(calendar floor, its own tech-earned age) — see plan §2. Rushing
-// ahead of the calendar is capped at one full age (research gating is what actually enforces the
-// cap when spending tech points; this clamp is the defensive backstop so a stale/corrupt techAge
-// can never grant more than one age of unearned access).
-export const getEffectiveAgeIndex = (calendarAgeId, techAgeId) => {
-  const calendarIdx = getAgeIndex(calendarAgeId);
-  const techIdx = getAgeIndex(techAgeId);
-  if (calendarIdx === -1) return 0;
-  if (techIdx === -1) return calendarIdx;
-  return Math.max(calendarIdx, Math.min(techIdx, calendarIdx + 1));
-};
-
-export const getEffectiveAgeId = (calendarAgeId, techAgeId) => AGE_ORDER[getEffectiveAgeIndex(calendarAgeId, techAgeId)];
+// A nation's age is its research age only (ageOf in src/engine/nationState.js, eight-ages plan
+// KTD1): the old calendar floor and one-age cap (getEffectiveAgeId) are gone.
 
 // How many ages behind the calendar a nation's own tech-earned age has fallen. 0 means at or
 // ahead of calendar. Feeds the "backward" penalty described in plan §2 (higher tech costs) via

@@ -9,12 +9,11 @@
 // and the player's report lists it as a naval battle. The AI's fleets use the same gate and
 // aftermath (aiOperations.js). Naval battles in the tactical sim stay a later slice. Pure.
 import { getTiles } from '../data/geo/tiles';
-import { getEffectiveAgeId } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
 import { canAttack } from './hostility';
-import { getTechAgeId } from './nationState';
+import { ageOf } from './nationState';
 import { regionForTile, unitTile } from './armies';
 import { isUnitInBattle } from './invasion';
 import { isFleet } from './fleets';
@@ -66,8 +65,8 @@ export const getFleetBattleContext = (state, v) => ({
   isAttackingFortification: false,
   battleType: NAVAL_BATTLE_TYPE,
   generals: state.hiredCommanders,
-  attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
-  defenderAgeId: getEffectiveAgeId(state.age, getTechAgeId(state, v.defenderNationId)),
+  attackerAgeId: ageOf(state, state.playerNationId),
+  defenderAgeId: ageOf(state, v.defenderNationId),
   attackerPenaltyMultiplier: 1,
   defenderDamageReductionMultiplier: 1
 });

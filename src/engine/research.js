@@ -25,6 +25,7 @@ import { LogTypes } from '../data/types';
 import { msg, thing } from './messages';
 import { getModifier } from './modifiers/sheet';
 import { withDiffusion } from './techDiffusion';
+import { ageOf } from './nationState';
 
 // Science cost of one tech, by its age, at Normal speed. Calibrated with the balance-sim so a
 // typical nation researches about 6 to 8 of an age's 10 techs before the calendar age ends.
@@ -51,7 +52,7 @@ const researchOf = (state, nationId) => (isPlayer(state, nationId) ? state.resea
 const researchedSetOf = (state, nationId) => new Set(isPlayer(state, nationId)
   ? Object.keys(state.techTree || {}).filter((id) => state.techTree[id]?.researched)
   : state.nations[nationId]?.tech?.researched || []);
-const techAgeOf = (state, nationId) => (isPlayer(state, nationId) ? state.techAgeId : state.nations[nationId]?.tech?.ageId) || state.age;
+const techAgeOf = (state, nationId) => ageOf(state, nationId);
 
 export const getResearchCost = (state, nationId, techId) => {
   const tech = TECH_TREE[techId];
@@ -119,6 +120,40 @@ const techAgeAfter = (techAgeId, researched) => {
   const count = getTechsForAge(techAgeId).filter((t) => researched.has(t.id)).length;
   const nextIndex = AGE_ORDER.indexOf(techAgeId) + 1;
   return count >= TECH_AGE_ADVANCEMENT_THRESHOLD && nextIndex < AGE_ORDER.length ? AGE_ORDER[nextIndex] : techAgeId;
+};
+
+/** The age a researched Set reaches: from the first age, on while 6 of the age's 10 techs are known. */
+export const deriveTechAge = (researched) => {
+  let ageId = AGE_ORDER[0];
+  for (;;) {
+    const next = techAgeAfter(ageId, researched);
+    if (next === ageId) return ageId;
+    ageId = next;
+  }
+};
+
+/**
+ * `nationId` with every tech of the ages before `ageId` researched and its age derived from that
+ * (never lowered). Era fixtures (later-era starts, kept for tests and the sandbox) use it so their
+ * nations are in the fixture's age by research, the only way a nation has an age (KTD1).
+ */
+export const withAgesResearched = (state, nationId, ageId) => {
+  const below = AGE_ORDER.slice(0, Math.max(0, AGE_ORDER.indexOf(ageId))).flatMap((a) => getTechsForAge(a).map((t) => t.id));
+  const researched = researchedSetOf(state, nationId);
+  below.forEach((id) => researched.add(id));
+  const derived = deriveTechAge(researched);
+  const current = techAgeOf(state, nationId);
+  const techAgeId = AGE_ORDER.indexOf(current) > AGE_ORDER.indexOf(derived) ? current : derived;
+  if (isPlayer(state, nationId)) {
+    const techTree = { ...state.techTree };
+    below.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    return { ...state, techTree, techAgeId };
+  }
+  const nation = state.nations[nationId];
+  if (!nation) return state;
+  const list = [...(nation.tech?.researched || [])];
+  below.forEach((id) => { if (!list.includes(id)) list.push(id); });
+  return { ...state, nations: { ...state.nations, [nationId]: { ...nation, tech: { ...nation.tech, researched: list, ageId: techAgeId } } } };
 };
 
 // One nation's research for one turn: pay the science stock into the current tech (and on down

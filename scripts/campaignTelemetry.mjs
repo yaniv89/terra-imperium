@@ -52,7 +52,7 @@ export const createScriptedPlayer = ({ engine, demands = 'refuse', production = 
     if (production && engine.chooseProduction) {
       const counts = engine.nationCounts(s)[me] || { settlers: 0, outposts: 0, landUnits: 0 };
       const owned = Object.values(s.regions).filter((c) => c.owner === me).length;
-      const ageId = engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me));
+      const ageId = engine.getEffectiveAgeId ? engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me)) : engine.getTechAgeId(s, me); // the old engine (a base commit) still had the calendar floor
       const ctx = { researched: engine.getResearched(s, me), ageId, turnNumber: s.turnNumber, citiesOwned: owned || 1, speedMult: engine.speedCostMult(s.gameSpeed, ageId), trainMult: engine.speedTrainMult ? engine.speedTrainMult(s.gameSpeed, ageId) : undefined, greatProjects: s.greatProjects || {}, units: s.units, counts: { ...counts } };
       for (const city of Object.values(s.regions)) {
         if (city.owner !== me || city.outpost || city.razing || city.tile == null || city.production?.current) continue;
@@ -78,7 +78,7 @@ export const createScriptedPlayer = ({ engine, demands = 'refuse', production = 
     // Settlers without a destination walk to the best site in reach (the AI's own site search), so the
     // player's city count and the second-city ETA mean something. Founding is the engine's (processSettlers).
     if (settle && engine.bestSites) {
-      const ageId = engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me));
+      const ageId = engine.getEffectiveAgeId ? engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me)) : engine.getTechAgeId(s, me); // the old engine (a base commit) still had the calendar floor
       for (const u of Object.values(s.units)) {
         if (u.ownerId !== me || u.classId !== 'settler' || u.target != null || u.tile == null) continue;
         const site = engine.bestSites(s, me, u.tile, ageId, { rings: engine.MAX_SETTLE_RINGS, limit: 1 })[0];

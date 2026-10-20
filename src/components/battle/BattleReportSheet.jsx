@@ -17,8 +17,8 @@ import { useGame } from '../../context/GameContext';
 import { formatMen, sidesFor, unitName } from './battleReportView';
 import { regimentName } from '../../data/regimentNames';
 import { menOf } from '../../engine/battleLedger';
-import { getEffectiveAgeId, FIRST_AGE_ID } from '../../data/ages';
-import { getTechAgeId } from '../../engine/nationState';
+import { FIRST_AGE_ID } from '../../data/ages';
+import { ageOf } from '../../engine/nationState';
 import { Button, Chip, CloseButton } from '../ui/atlas';
 import { REPORT_FILTERS, fateRows, detailFor, filterReports, reportDetail, reportRow } from './battleReportsModel';
 import { focusPlace } from '../map/marchEvents';
@@ -148,7 +148,7 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
   // The detail follows the filter (REPORT-01): a picked battle the filter hides gives way to the first
   // one it shows, and to nothing when it shows none.
   const current = detailFor(all, shown, pickedId || entry?.id);
-  const ageOf = (nationId) => (nationId && nationId !== 'rebels' && state.nations?.[nationId] ? getEffectiveAgeId(state.age, getTechAgeId(state, nationId)) : state.age);
+  const ageOfSide = (nationId) => ageOf(state, nationId);
   if (!entry) return null;
   const d = current ? reportDetail(state, current) : null;
   const { mine, theirs } = current ? sidesFor(current) : {};
@@ -203,8 +203,8 @@ const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onRep
               {d.notice && <p className="text-[12px] leading-snug text-fa-brass" role="status" data-testid="battle-report-notice">{d.notice}</p>}
               <div className="fa-card px-2.5 py-1.5"><StrengthChart entry={current} /></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <SideTable title={t('bt.rep.yourUnits')} color={OURS} rows={fateRows(current, mine)} nation={state.nations?.[current[`${mine}NationId`]]} ageId={ageOf(state.playerNationId)} />
-                <SideTable title={t('bt.rep.theirUnits')} color={THEIRS} rows={fateRows(current, theirs)} nation={state.nations?.[current[`${theirs}NationId`]]} ageId={ageOf(current[`${theirs}NationId`])} />
+                <SideTable title={t('bt.rep.yourUnits')} color={OURS} rows={fateRows(current, mine)} nation={state.nations?.[current[`${mine}NationId`]]} ageId={ageOfSide(state.playerNationId)} />
+                <SideTable title={t('bt.rep.theirUnits')} color={THEIRS} rows={fateRows(current, theirs)} nation={state.nations?.[current[`${theirs}NationId`]]} ageId={ageOfSide(current[`${theirs}NationId`])} />
               </div>
             </div>
             <div className="px-3 py-2 border-t border-fa-line flex items-center gap-2">

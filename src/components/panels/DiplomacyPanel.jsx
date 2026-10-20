@@ -29,7 +29,7 @@ import {
   ACTION_COSTS, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION
 } from '../../data/actionCosts';
 import { getNationCapital } from '../../data/regions';
-import { getEffectiveAgeId, isAgeAtLeast } from '../../data/ages';
+import { isAgeAtLeast } from '../../data/ages';
 import { canAfford } from '../../utils/helpers';
 import ActionCard from './ActionCard';
 import { Button } from '../ui/atlas';
@@ -48,6 +48,7 @@ import { demandTerms } from '../../engine/aiAccords';
 import { mapOfferTerms } from '../../engine/mapTrade';
 import IndependentsList from '../independents/IndependentsList';
 import { openTributeDemand, openJoinOffer, openIndependent } from '../independents/independentEvents';
+import { ageOf } from '../../engine/nationState';
 
 
 const COST_UNITS = new Set(['gold', 'adm', 'dip', 'mil']);
@@ -78,7 +79,7 @@ const DiplomacyPanel = () => {
     triggerEffect('declare_independence', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} });
   };
-  const isModernAge = isAgeAtLeast(getEffectiveAgeId(state.age, state.techAgeId), 'modern');
+  const isModernAge = isAgeAtLeast(ageOf(state, state.playerNationId), 'modern');
   const playerNation = state.nations[state.playerNationId];
 
   // The peoples you met (engine/fog.js) and anyone at war with you, war first, then the coldest.

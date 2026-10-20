@@ -6,8 +6,6 @@ import {
   END_YEAR,
   getAgeIndex,
   getCalendarAgeId,
-  getEffectiveAgeIndex,
-  getEffectiveAgeId,
   getAgesBehind,
   getAgesBehindResearchCostMultiplier,
   GAME_SPEEDS,
@@ -59,23 +57,6 @@ describe('getCalendarAgeId', () => {
   });
 });
 
-describe('getEffectiveAgeIndex / getEffectiveAgeId', () => {
-  it('floors a nation at the calendar age even with no tech progress', () => {
-    expect(getEffectiveAgeId('kingdoms', 'bronze')).toBe('kingdoms');
-  });
-
-  it('lets a nation rush exactly one age ahead of the calendar', () => {
-    expect(getEffectiveAgeId('bronze', 'classical')).toBe('classical');
-  });
-
-  it('never grants more than one age of unearned rush, even if techAge claims more', () => {
-    expect(getEffectiveAgeId('bronze', 'modern')).toBe('classical');
-  });
-
-  it('matches calendar exactly when tech age equals it', () => {
-    expect(getEffectiveAgeIndex('gunpowder', 'gunpowder')).toBe(getAgeIndex('gunpowder'));
-  });
-});
 
 describe('getAgesBehind', () => {
   it('is zero when tech age is at or ahead of calendar', () => {

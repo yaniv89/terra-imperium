@@ -8,7 +8,7 @@
 import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { buildingTierName, wonderName, improvementName, navalLineLabel } from '../../i18n/gameText';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId, FIRST_AGE_ID } from '../../data/ages';
+import { FIRST_AGE_ID } from '../../data/ages';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { IMPROVEMENTS } from '../../data/tileYields';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
@@ -17,6 +17,7 @@ import { cityLive, growthView, queueView } from '../../engine/cityEconomy';
 import { templateName } from './cityBuildModel';
 import { UNREST_PROMPT } from '../ui/nextPromptModel';
 import { t as tNow } from '../../i18n/core';
+import { ageOf } from '../../engine/nationState';
 
 export const RAIL_STORAGE_KEY = 'terra-imperium-city-rail-collapsed';
 
@@ -36,7 +37,7 @@ export const shortItemLabel = (item, tiles = getTiles(), ageId = FIRST_AGE_ID) =
 export const cityRailModel = (state) => {
   const me = state.playerNationId;
   const tiles = getTiles();
-  const ageId = getEffectiveAgeId(state.age, state.techAgeId);
+  const ageId = ageOf(state, state.playerNationId);
   const mine = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null);
   const capital = state.nations?.[me]?.capitalRegionId;
   return mine.map((c) => {

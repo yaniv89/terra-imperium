@@ -20,11 +20,11 @@
 //   LONG_BUILD_TURNS / isLongBuild   the "this will take a long time" line of the Build tab.
 import { getTiles } from '../data/geo/tiles';
 import { t as tNow, dataText } from '../i18n/core';
-import { getEffectiveAgeId, speedCostMult, speedTrainMult } from '../data/ages';
+import { speedCostMult, speedTrainMult } from '../data/ages';
 import { cityWonderTotal } from '../data/greatProjects';
 import { IMPROVEMENTS, RESOURCES_ON_TILES, tileFacts, tileYields } from '../data/tileYields';
 import { TECH_TREE } from '../data/techTree';
-import { getResearched, getTechAgeId } from './nationState';
+import { getResearched, ageOf } from './nationState';
 import { governorEffects } from './governors';
 import { isIndependent } from '../data/independents';
 import { independentCityCtx } from './independents';
@@ -57,7 +57,7 @@ const nationFacts = (regions) => {
 export const cityCtx = (state, city) => {
   const nid = city.owner;
   const facts = nationFacts(state.regions);
-  const ageId = getEffectiveAgeId(state.age, nid ? getTechAgeId(state, nid) : state.age);
+  const ageId = ageOf(state, nid);
   let ctx = {
     researched: nid ? getResearched(state, nid) : [],
     ageId,

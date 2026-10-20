@@ -6,10 +6,9 @@
 // sight, else the scouts' guess, a band and a range of men, never a number.
 import { REGIONS_DATA } from '../../data/regions';
 import { getRegionTerrain } from '../../data/terrain';
-import { getEffectiveAgeId } from '../../data/ages';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { getTiles } from '../../data/geo/tiles';
-import { getTechAgeId } from '../../engine/nationState';
+import { ageOf } from '../../engine/nationState';
 import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
 import { battleName } from '../../engine/battleNames';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
@@ -69,9 +68,9 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   const region = field ? null : state.regions?.[targetRegionId];
   const terrain = fleet ? 'sea' : field ? legacyTerrainOf(getTiles(), tile) : getRegionTerrain(targetRegionId, REGIONS_DATA);
   const fortTier = field ? 0 : (region?.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
-  const myAge = getEffectiveAgeId(state.age, state.techAgeId);
+  const myAge = ageOf(state, state.playerNationId);
   const enemyId = field ? v?.defenderNationId : region?.owner;
-  const theirAge = enemyId && enemyId !== 'rebels' ? getEffectiveAgeId(state.age, getTechAgeId(state, enemyId)) : state.age;
+  const theirAge = enemyId && enemyId !== 'rebels' ? ageOf(state, enemyId) : state.age;
   const mineUnits = v?.ok ? (landing ? v.embarkedLandUnits : v.attackerUnits) : [];
   const theirUnits = v?.ok ? (landing ? v.defenderLandUnits : v.defenderUnits) : [];
   const yours = armyView(mineUnits, { ageId: myAge, hiredCommanders: state.hiredCommanders || {} });

@@ -30,8 +30,9 @@
 import { buildTownManifest, citySeed, manifestHousing, isCivic } from '../data/townLayout';
 import { townTier } from '../data/townTiers';
 import { styleOfLand } from '../data/architecture';
-import { getEffectiveAgeId, FIRST_AGE_ID } from '../data/ages';
+import { FIRST_AGE_ID } from '../data/ages';
 import { landOf } from './world/cultureZones';
+import { ageOf } from './nationState';
 
 export const REPAIR_TURNS = 3;
 export const RUIN_TURNS = 8;
@@ -41,8 +42,8 @@ export const MAX_CARRIED_SHARE = 0.5; // of houses, of buildings; the size floor
 /** The age a nation's cities are built in (the close view's rule). */
 export const cityAgeOf = (state, nationId) => {
   if (!nationId) return state.age;
-  if (nationId === state.playerNationId) return getEffectiveAgeId(state.age, state.techAgeId);
-  return getEffectiveAgeId(state.age, state.nations?.[nationId]?.tech?.ageId);
+  if (nationId === state.playerNationId) return ageOf(state, state.playerNationId);
+  return ageOf(state, nationId);
 };
 
 /** The plain inputs of a city's manifest (src/data/townLayout.js buildTownManifest). */

@@ -59,8 +59,7 @@ import { syncWorldRegistry } from './world/registry';
 import { lodPeriod, settlesThisTurn, turnsToSettle } from './world/lod';
 import { applyMarketHousing } from './world/market';
 import { getTiles } from '../data/geo/tiles';
-import { getResearched, getTechAgeId } from './nationState';
-import { getEffectiveAgeId } from '../data/ages';
+import { getResearched, ageOf } from './nationState';
 import { libertyDesireTarget, libertyInputs, nextLibertyDesire } from './vassals';
 import { levyUnit, decayDevastation, devastationGrowthPenalty } from './aftermath';
 import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
@@ -144,11 +143,11 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     if (!ctxCache.has(nid)) {
       ctxCache.set(nid, {
         researched: nid ? getResearched(state, nid) : [],
-        ageId: getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge),
+        ageId: ageOf(state, nid),
         turnNumber: newTurnNumber,
         citiesOwned: citiesOwned[nid] || 1,
-        speedMult: speedCostMult(state.gameSpeed, getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge)), // the speed table (ages.js)
-        trainMult: speedTrainMult(state.gameSpeed, getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge)), // units and settlers (I024)
+        speedMult: speedCostMult(state.gameSpeed, ageOf(state, nid)), // the speed table (ages.js)
+        trainMult: speedTrainMult(state.gameSpeed, ageOf(state, nid)), // units and settlers (I024)
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
         greatProjects: state.greatProjects || {},
         // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
@@ -324,7 +323,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, ...msg('m.turn.income', { year: Math.round(newYear), gold: income.gold || 0 }), type: LogTypes.ACTION });
   // Army supplies (src/engine/supplies.js): foraged and manufactured from metal, eaten on campaign.
-  const supplyFlow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId: state.playerNationId, ageId: getEffectiveAgeId(newAge, state.techAgeId), resources, turnNumber: state.turnNumber, tileOwner: state.world?.tileOwner });
+  const supplyFlow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId: state.playerNationId, ageId: ageOf(state, state.playerNationId), resources, turnNumber: state.turnNumber, tileOwner: state.world?.tileOwner });
   resources[supplyFlow.metalId] = (resources[supplyFlow.metalId] || 0) - supplyFlow.metalUsed;
   resources.supplies = supplyFlow.supplies;
   if (supplyFlow.hungry) logs.push({ year: newYear, ...msg(supplyFlow.campaigning > 1 ? 'm.turn.hungryMany' : 'm.turn.hungryOne', { n: supplyFlow.campaigning, morale: HUNGER_MORALE }), type: LogTypes.CRISIS });
@@ -549,7 +548,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const MORALE_RECOVERY_PER_TURN = 15;
   // Mechanised warfare runs on oil: modern tanks, aircraft and warships need a stock above zero.
   const FUEL_BURNING_CLASSES = new Set(['cavalry', 'air', 'naval']);
-  const playerOutOfOil = isAgeAtLeast(getEffectiveAgeId(newAge, state.techAgeId), 'modern') && (resources.oil ?? 0) <= 0;
+  const playerOutOfOil = isAgeAtLeast(ageOf(state, state.playerNationId), 'modern') && (resources.oil ?? 0) <= 0;
   let groundedCount = 0;
   const ownerSupplyFlows = new Map();
   const unitsByOwnerAtStart = unitsByOwner(state.units); // one scan for every nation's supply flow
@@ -566,7 +565,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     let patch = null;
     // Hungry armies on campaign (supplies.js) neither recover nor reinforce, and lose heart.
     const ownerPool = isPlayer ? resources : (modifierExpiredNations[u.ownerId].economy || {});
-    if (!isPlayer && !ownerSupplyFlows.has(u.ownerId)) ownerSupplyFlows.set(u.ownerId,computeSupplyFlow({regions:state.regions,units:state.units,nationId:u.ownerId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:ownerPool,tileOwner:state.world?.tileOwner,ownedUnits:unitsByOwnerAtStart.get(u.ownerId) || []}));
+    if (!isPlayer && !ownerSupplyFlows.has(u.ownerId)) ownerSupplyFlows.set(u.ownerId,computeSupplyFlow({regions:state.regions,units:state.units,nationId:u.ownerId,ageId:ageOf(state, u.ownerId),resources:ownerPool,tileOwner:state.world?.tileOwner,ownedUnits:unitsByOwnerAtStart.get(u.ownerId) || []}));
     const ownerSupply = isPlayer ? supplyFlow : ownerSupplyFlows.get(u.ownerId);
     // A starving unit (supply meter at 0, supplyMeter.js) recovers nothing either.
     const hungry = (ownerSupply.hungry && isCampaigning(u, regions, state.world?.tileOwner)) || (u.supply != null && u.supply <= 0);
@@ -596,7 +595,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
 
     // Plan §M14: forcedMarch grants a second move; every other unit gets exactly one. With the oil
     // stock empty, the player's modern machines (tanks, aircraft, warships) stay where they are.
-    const outOfOil = isPlayer ? playerOutOfOil : isAgeAtLeast(getEffectiveAgeId(newAge, nation.tech?.ageId), 'modern') && (nation.economy?.oil || 0) <= 0;
+    const outOfOil = isPlayer ? playerOutOfOil : isAgeAtLeast(ageOf(state, u.ownerId), 'modern') && (nation.economy?.oil || 0) <= 0;
     const grounded = outOfOil && FUEL_BURNING_CLASSES.has(u.classId);
     if (grounded && isPlayer) groundedCount += 1;
     const movesLeft = grounded ? 0 : 1 + (hasPerk(u, 'forcedMarch') ? 1 : 0);
@@ -680,7 +679,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     pool.techPoints += income.techPoints * turns;
     const ownedUnits = unitsByOwnerNow.get(nId) || [];
     for (let k = 0; k < turns; k++) {
-      const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:pool,tileOwner:state.world?.tileOwner,ownedUnits});
+      const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:ageOf(state, nId),resources:pool,tileOwner:state.world?.tileOwner,ownedUnits});
       pool.supplies=aiSupply.supplies;
       pool[aiSupply.metalId]=(pool[aiSupply.metalId] || 0)-aiSupply.metalUsed;
       ['copper', 'iron', 'oil', 'rareMetals', 'helium3'].forEach(key => { pool[key] = (pool[key] || 0) + (income[key] || 0); });

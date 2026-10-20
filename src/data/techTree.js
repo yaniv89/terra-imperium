@@ -5,9 +5,8 @@
 //
 // A tech's payoff is the plan's own framing: research enough of your current age's line and your
 // empire's tech-earned age (state.techAgeId, advanced by GameContext.jsx's RESEARCH_TECH) catches
-// up to the next one — which is what src/data/ages.js's already-existing getEffectiveAgeId was
-// built for. GameContext.jsx now passes that effective age to getAvailableClasses instead of the
-// raw calendar age.
+// up to the next one. That research age is the nation's age and nothing else (ageOf in
+// src/engine/nationState.js; eight-ages plan KTD1): no calendar floor and no cap.
 //
 // Research cost: science only, by age (src/engine/research.js RESEARCH_AGE_BASE); the old
 // per-tech `cost.techPoints` below is kept only as data. Building/tech unlocks named in the plan's own §M6.3/§M7

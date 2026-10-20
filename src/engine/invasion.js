@@ -11,7 +11,7 @@
 import { withAirSupport } from './airPower';
 import { REGIONS_DATA, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
-import { getEffectiveAgeId, isAgeAtLeast, isAgeBefore } from '../data/ages';
+import { isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
@@ -24,6 +24,7 @@ import { getTiles } from '../data/geo/tiles';
 import { touchesCity, unitTile, unitsWithinRings, REINFORCE_RINGS } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
 import { LANDING_ATTACK_MULT } from '../battle/setup/battleType';
+import { ageOf } from './nationState';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -127,7 +128,7 @@ export const getInvasionBattleContext = (state, { targetRegionId, targetRegion, 
     generals: state.hiredCommanders,
     // Plan §M14: each side's roster stats are looked up live from its OWNER's current effective
     // age. The defender has no independent tech age here, so it fights at the calendar age.
-    attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
+    attackerAgeId: ageOf(state, state.playerNationId),
     defenderAgeId: state.age,
     // defenseLevel's own damage reduction ("Walls", src/engine/siege.js); plan §M6: the Defense
     // building's local.fortLevel stacks on top of the manual defenseLevel. Plan §M14 folds Zone
@@ -201,7 +202,7 @@ export const getAmphibiousBattleContext = (state, v, defenderLandUnits) => {
     terrain: getRegionTerrain(v.targetRegionId, REGIONS_DATA),
     isAttackingFortification: (v.targetRegion.defenseLevel || 0) > 0,
     generals: state.hiredCommanders,
-    attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
+    attackerAgeId: ageOf(state, state.playerNationId),
     defenderAgeId: state.age,
     battleType: v.hasBeachhead ? ((v.targetRegion.defenseLevel || 0) > 0 ? 'assault' : 'field') : 'landing',
     attackerPenaltyMultiplier: 1,

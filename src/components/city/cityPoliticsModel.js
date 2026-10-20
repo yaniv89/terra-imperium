@@ -20,14 +20,14 @@ import { groupOfCity, governorOf, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODU
 import { getModifier, getRegionModifier, getNationBonusTotal } from '../../engine/modifiers/sheet';
 import { WAR_WEARINESS_FROM, WAR_WEARINESS_SCALE } from '../../engine/resolveTurn';
 import { canBuildTier, getBuildingTierCost } from '../../data/buildings';
-import { getResearched } from '../../engine/nationState';
+import { getResearched, ageOf } from '../../engine/nationState';
 import { ActionTypes } from '../../data/types';
 import { ACTION_COSTS, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
 import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
 import { REGIONS_DATA } from '../../data/regions';
 import { regionDeposits } from '../../data/deposits';
 import { EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
-import { getEffectiveAgeId, isAgeAtLeast } from '../../data/ages';
+import { isAgeAtLeast } from '../../data/ages';
 import { DEVASTATION_DECAY } from '../../engine/aftermath';
 import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
 import { canAfford, getSupplyCapacity } from '../../utils/helpers';
@@ -203,7 +203,7 @@ export const cityDevelopmentModel = (state, cityId) => {
   const me = state.playerNationId;
   const mult = getModifier(state, me, 'national.developmentCost').total;
   const cost = getDevelopProvinceCost(city, mult);
-  const ageId = getEffectiveAgeId(state.age, state.techAgeId);
+  const ageId = ageOf(state, state.playerNationId);
   const deposits = regionDeposits(REGIONS_DATA[cityId] || city).map((resourceId) => ({
     resourceId, name: extractionName(resourceId, EXTRACTION_BUILDINGS[resourceId]?.name), built: !!city.buildings?.extraction?.[resourceId],
     enabled: !city.buildings?.extraction?.[resourceId] && canBuildExtraction(resourceId, ageId) && canAfford(state.resources, ACTION_COSTS.developResourceSite)
