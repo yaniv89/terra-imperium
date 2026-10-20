@@ -30,7 +30,8 @@ import { validateFieldAttack, enemyStackAt } from '../../engine/fieldBattle';
 import { validateFleetAttack, enemyFleetsAt } from '../../engine/navalBattle';
 import { declareWarModel } from '../panels/warActions';
 import { wallsLabel } from '../battle/warModel';
-import { fleetPace } from '../../engine/fleets';
+import { fleetPace, atSea } from '../../engine/fleets';
+import { menText } from '../../engine/battleLedger';
 import { navalLineOf, navalName } from '../../data/navalLines';
 import { validateInvasion } from '../../engine/invasion';
 import { besiegersOf, siegeHpOf, siegeMaxHp, wallsOf, isEncircled, siegeStrength, siegeOrders, centreIndex } from '../../engine/sieges';
@@ -56,19 +57,23 @@ export const supplyText = (r, hungry) => {
 };
 
 /** The player's land units standing on `tile`; on a sea tile, the fleets there (navalBattle.js). */
-export const stackOn = (state, tile) => {
-  const naval = tile != null && tile >= 0 && getTiles().land[tile] !== 1;
-  return Object.values(state.units)
+export const stackOn = (state, tile, fleet = false) => {
+  const sea = tile != null && tile >= 0 && getTiles().land[tile] !== 1;
+  const pick = (naval) => Object.values(state.units)
     .filter((u) => u.ownerId === state.playerNationId && (naval ? u.domain === 'naval' : u.domain !== 'naval') && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && unitTile(state, u) === tile)
     .sort((a, b) => (a.id < b.id ? -1 : 1));
+  if (sea) return pick(true);
+  // A city tile holds both kinds: `fleet` asks for the ships in port; a side with nobody falls back to the other.
+  const first = pick(fleet);
+  return first.length ? first : pick(!fleet);
 };
 
 // An army's name: the templates' own names are game data; a name the player typed stays as typed.
 const armyLabel = (name) => (name === 'Legion' ? t('mx.army.legion') : name === 'Siege train' ? t('mx.army.siegeTrain') : name);
 
-export const armySheetModel = (state, tile) => {
+export const armySheetModel = (state, tile, fleet = false) => {
   const tiles = getTiles();
-  const units = stackOn(state, tile);
+  const units = stackOn(state, tile, fleet);
   if (!units.length) return null;
   const naval = units[0].domain === 'naval';
   const ageId = ageOf(state, state.playerNationId);
@@ -131,15 +136,27 @@ export const armySheetModel = (state, tile) => {
   // Where the stack stands (the tile) and where it is based (its home city) are two facts
   // (unitLocation.js): the header names the place, and the base only when the stack is away from it.
   const loc = locationOf(state, units[0]);
+  // A fleet in port: the troops in the city that can board it, and the cargo that can step ashore
+  // (EMBARK_UNIT / DISEMBARK_UNIT). `other`: the other kind of stack on this city tile, to switch to.
+  const inPort = naval && !atSea(state, units[0]);
+  const landName = (c) => `${unitRosterName(ageId, c.classId, getUnitDefinition(ageId, c.classId)?.name || UNIT_CLASSES[c.classId]?.name || c.classId)} (${menText(c.strength)})`;
+  const cargoOf = (u) => Object.values(state.units).filter((c) => c.embarkedOn === u.id);
+  const ship = inPort ? units.find((u) => cargoOf(u).length < (u.transportCapacity || 0)) : null;
+  const board = ship ? Object.values(state.units)
+    .filter((c) => c.ownerId === state.playerNationId && c.domain === 'land' && !c.embarkedOn && c.classId !== 'settler' && c.classId !== 'air' && c.strength > 0 && unitTile(state, c) === units[0].tile)
+    .map((c) => ({ id: c.id, shipId: ship.id, name: landName(c) })) : [];
   return {
     tile,
     naval,
+    inPort, board,
+    cargo: inPort ? units.flatMap(cargoOf).map((c) => ({ id: c.id, name: landName(c) })) : [],
+    other: !atSea(state, units[0]) && Object.values(state.units).some((u) => u.ownerId === state.playerNationId && u.strength > 0 && !u.embarkedOn && u.classId !== 'settler' && (u.domain === 'naval') !== naval && unitTile(state, u) === tile),
     regionId: units[0].regionId,
     base: state.regions[units[0].regionId]?.name ? nameNow('city', null, state.regions[units[0].regionId].name) : null,
     where: whereText(state, tile), atBase: loc.atBase,
     soldiers: units.reduce((s, u) => s + u.strength, 0),
     groups,
-    zone: zone.zone, zoneText: report ? supplyText(report, hungry) : ZONE_TEXT[zone.zone] || '',
+    zone: zone.zone, zoneText: report ? supplyText(report, hungry) : inPort ? '' : ZONE_TEXT[zone.zone] || '', // "at sea" would be wrong in port
     supplyReport: report, fortified, mergeFrom,
     // The ETA is the march's own schedule (routes.js routeEta), the number the order promised.
     route: dest != null ? { to: dest, name: placeLabel(state, dest), turns: routeEta(state, lead) ?? 1 } : null,
