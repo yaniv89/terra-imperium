@@ -137,6 +137,8 @@ def build_general():
              'Hair': '2B201A', 'Skin': 'C98E66', 'Emblem': 'E6D6AF'}, rig=False)
     parts = []
     horse, _ = tm.fine_horse('Mount', (0, 0, 0), blaze=False, socks=False)
+    tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+    tm.full_tail(horse, sides=10)
     parts.append(horse)
     F.meshes.extend([tm.drape('SaddleCloth', horse, 'Team', -.30, .16, reach=108, fringe=.028),
                      tm.drape('Girth', horse, 'Leather', -.22, -.175, reach=180, grow=.031, rows=2, steps=12)])
