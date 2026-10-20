@@ -28,6 +28,7 @@ import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
 import ti_foot_clips as FC  # noqa: E402
 import ti_mounted_clips as MC  # noqa: E402
+import ti_vehicle_clips as VC  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
 tube, box, raw, vertical, sheet = F.tube, F.box, F.raw, F.vertical, F.sheet
@@ -278,7 +279,8 @@ def build_support():
     tris = F.finish_unit('bronze-support', parts, {
         'role': 'Baggage train (bronze support): one long-horned draught ox (pale face, muzzle and back patch) in shafts with a withers yoke, a two-wheeled cart with plank wheels and rails, two jars and a sack, the rest of the load under a Team cover lashed with ropes, a seated driver with a goad and a lead rope',
         'notes': 'Quality pass of 2026-10-14 (ti_figure crew, ti_mounts.fine_ox and fine_disc_wheel). Jars are their own Clay material now.'},
-        centre=(0, -.2, .5), scale=2.6)
+        centre=(0, -.2, .5), scale=2.6, mode='NLA_TRACKS',
+        clips=MC.hook('bronze-support', lambda: VC.ox_cart(ox, cart, drv), 'vehicle'))  # clips since 2026-10-20
     assert tris <= 5000, tris
 
 

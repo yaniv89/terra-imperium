@@ -515,6 +515,45 @@ def trebuchet(parts):
     return out
 
 
+def ox_cart(ox, cart, driver, uid='bronze-support'):
+    """The baggage train (2026-10-20): the ox walks (the fine horse's walk on its quadruped rig), the cart's
+    wheels turn and its bed rocks, the seated driver sways (Move), flinches (Hit), slumps (Wreck: the ox
+    goes down, the cart lists on a splayed wheel). Idle frame 1 is the rest pose of every rig."""
+    table = {'Idle': (41, True, {}), 'Move': (41, True, {}), 'Hit': (10, False, {}), 'Wreck': (40, False, {'settle': 40})}
+    order = ['Idle', 'Move', 'Hit', 'Wreck']
+    import ti_figure as F
+    horse = MC.Horse(ox, [m for m in F.meshes if m.parent == ox])
+    hspec = {'Idle': keyed(MC.horse_keys('Idle')), 'Move': MC.horse_gait(horse, 'walk', 41), 'Hit': keyed(MC.horse_keys('Hit')),
+             'Wreck': keyed(MC.horse_keys('Collapse', 1))}
+    v = Vehicle(cart, ['Wheel_L', 'Wheel_R'])
+    vspec = {'Idle': lambda f: None if f in (1, 41) else {}, 'Move': move_spec(40, 1, bob=.004, pitch=.5), 'Hit': keyed(HIT),
+             'Wreck': keyed(wreck('Wheel_L', drop=.06, roll=6, pitch=2))}
+    unit = MC.Unit('vehicle', order, table)
+    state = {}
+
+    def pose_ox(act, f):
+        horse.pose(None if (act == 'Idle' and f in (1, 41)) else hspec[act](f))
+
+    def pose_cart(act, f):
+        v.pose(None if (act == 'Idle' and f in (1, 41)) else vspec[act](f))
+        state['D'] = cart.matrix_world @ v.D @ cart.matrix_world.inverted()
+    unit.add(ox, pose_ox)
+    unit.add(cart, pose_cart)
+    per = crew_person(driver)
+    clips = standing_crew(per, table, death='seated', carried=True)
+    M = driver.matrix_world.copy()
+
+    def pose_driver(act, f):
+        clip = clips[act]
+        spec = clip.fn(f) if clip.fn else spec_at(clip.keys, f)
+        per.pose(clip, spec, f, M.inverted() @ state['D'] @ M)
+    unit.add(driver, pose_driver, lambda act: per.begin(clips[act]))
+    bpy.context.scene.render.fps = FPS
+    out = unit.run()
+    MC.set_clip('Idle', 1)
+    return out, order
+
+
 AUTHORS = {'modern-cavalry': tank, 'modern-support': aa_truck, 'modern-general': command_car, 'modern-raider': technical, 'modern-siege': howitzer}
 
 
