@@ -698,6 +698,7 @@ OX_TROT = dict(T=7, d=.42, amp=.106, lift=(.09, .07), ph={'FL': 0, 'HR': 0, 'FR'
 def kitara_unit(model):
     TS.start({'Skin': '6A4430', 'Hair': '1A1410', 'Leather': '7E5A3A', 'Cloth': 'E6DDC5', 'Wood': '5A4130', 'Metal': IRON, 'Emblem': 'E6D6AF',
               'Coat': '8A4A2A', 'Mane': '2A1E16', 'Pale': 'EDE4D4', 'Horn': 'E2D6BC', 'Rope': 'A08A64', 'Hide': 'B89A72'})
+    F.LITE = False  # (a crew built before in this run left the lighter figure on)
     man = F.arm
     man.name = 'GuardRig'
     TS.body(legs='bare', beard=True, hair='full')
