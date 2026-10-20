@@ -14,6 +14,7 @@ import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
 import { canAttack } from './hostility';
 import { ageOf } from './nationState';
+import { sideAgeOf } from './ageRefs';
 import { regionForTile, unitTile } from './armies';
 import { isUnitInBattle } from './invasion';
 import { isFleet } from './fleets';
@@ -66,7 +67,7 @@ export const getFleetBattleContext = (state, v) => ({
   battleType: NAVAL_BATTLE_TYPE,
   generals: state.hiredCommanders,
   attackerAgeId: ageOf(state, state.playerNationId),
-  defenderAgeId: ageOf(state, v.defenderNationId),
+  defenderAgeId: sideAgeOf(state, v.defenderNationId),
   attackerPenaltyMultiplier: 1,
   defenderDamageReductionMultiplier: 1
 });

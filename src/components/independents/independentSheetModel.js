@@ -41,7 +41,7 @@ import { wallsLabel } from '../battle/warModel';
 import { unitTile } from '../../engine/armies';
 import { shieldUrl, shieldColour } from './independentArt';
 import { cityStateViewOf } from './cityStateView';
-import { FIRST_AGE_ID } from '../../data/ages';
+import { independentAgeOf } from '../../engine/ageRefs';
 
 /** Attitude words by value (the W08 meter): -100..100. */
 export const attitudeWord = (v) => t(`ind.att.${v >= JOIN_OPINION ? 'Devoted' : v >= JOIN_STRENGTH_OPINION ? 'Friendly' : v >= 10 ? 'Warm' : v > -20 ? 'Wary' : v > -50 ? 'Unfriendly' : 'Hostile'}`);
@@ -184,7 +184,7 @@ export const independentSheetModel = (state, indepId) => {
     demand: demand ? { id: demand.id, gold: demand.gold, turns: demand.turns, expires: demand.expires, turnsLeft: Math.max(0, demand.expires - turn), afterRefuse: Math.min(GRUDGE_MAX, Math.round(g) + GRUDGE_REFUSED) } : null,
     youPay: youPay ? { gold: youPay.gold, until: youPay.until } : null,
     theyPay: theyPay ? { gold: theyPay.gold, until: theyPay.until } : null,
-    trade: trades ? { gold: tradeGoldOf(state.age) } : null,
+    trade: trades ? { gold: tradeGoldOf(independentAgeOf(state, indepId)) } : null,
     joinOffer: joinOffer ? { id: joinOffer.id, expires: joinOffer.expires } : null,
     // The outcome of their last raid on you (raids.js lastRaidOnPlayer), shown LAST_RAID_TURNS turns.
     lastRaid: ind.lastRaidOnPlayer && turn - ind.lastRaidOnPlayer.turn <= LAST_RAID_TURNS ? { ...ind.lastRaidOnPlayer, englishText: ind.lastRaidOnPlayer.text, text: carryText(ind.lastRaidOnPlayer.textMsg ? { msgKey: ind.lastRaidOnPlayer.textMsg.key, msgVars: ind.lastRaidOnPlayer.textMsg.vars, message: ind.lastRaidOnPlayer.text } : null, ind.lastRaidOnPlayer.text), ago: turn - ind.lastRaidOnPlayer.turn } : null,
@@ -201,7 +201,7 @@ export const independentSheetModel = (state, indepId) => {
     mercs = {
       stock,
       offer: offer.ok ? {
-        unit: unitDisplayName(state.age || FIRST_AGE_ID, offer.classId), classId: offer.classId, price: offer.price, upkeep: offer.upkeep, turns: MERC_CONTRACT_TURNS,
+        unit: unitDisplayName(independentAgeOf(state, indepId), offer.classId), classId: offer.classId, price: offer.price, upkeep: offer.upkeep, turns: MERC_CONTRACT_TURNS,
         waitIn: state.regions[offer.cityId]?.name ? nameNow('city', null, state.regions[offer.cityId].name) : '', affordable: gold >= offer.price
       } : null,
       reason: offer.ok ? (gold < offer.price ? t('ind.merc.youNeed', { gold: offer.price, have: Math.floor(gold) }) : null) : reasonText(offer),
@@ -243,13 +243,13 @@ export const independentSheetModel = (state, indepId) => {
     });
     const dt = demandTributeCheck(state, indepId, me);
     actions.push({
-      id: 'demandTribute', label: t('ind.act.demand'), sub: !dt.ok ? t('ind.act.demandNot') : dt.would ? t('ind.act.demandWould', { gold: tributePerTurn(state, indepId) }) : t('ind.act.demandRefuse'),
+      id: 'demandTribute', label: t('ind.act.demand'), sub: !dt.ok ? t('ind.act.demandNot') : dt.would ? t('ind.act.demandWould', { gold: tributePerTurn(state, indepId, indepId) }) : t('ind.act.demandRefuse'),
       ok: dt.ok, warn: dt.ok && !dt.would, reason: dt.ok && !dt.would ? t('ind.act.demandRefusal', { reason: reasonText(dt), n: GRUDGE_REFUSED }) : reasonText(dt),
       run: { action: send(ActionTypes.DEMAND_INDEPENDENT_TRIBUTE) }
     });
     if (p === 'mercantile') {
       const tc = tradeCheck(state, indepId, me);
-      actions.push({ id: 'trade', label: trades ? t('ind.act.trading') : t('ind.act.offerTrade'), sub: trades ? t('ind.act.tradeSub', { gold: tradeGoldOf(state.age) }) : tc.ok ? t('ind.act.tradeOk') : t('ind.act.demandNot'), ok: tc.ok, reason: reasonText(tc), run: { action: send(ActionTypes.PROPOSE_INDEPENDENT_TRADE) } });
+      actions.push({ id: 'trade', label: trades ? t('ind.act.trading') : t('ind.act.offerTrade'), sub: trades ? t('ind.act.tradeSub', { gold: tradeGoldOf(independentAgeOf(state, indepId)) }) : tc.ok ? t('ind.act.tradeOk') : t('ind.act.demandNot'), ok: tc.ok, reason: reasonText(tc), run: { action: send(ActionTypes.PROPOSE_INDEPENDENT_TRADE) } });
     }
     if (sells) {
       const o = mercs?.offer;

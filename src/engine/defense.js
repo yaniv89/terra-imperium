@@ -21,6 +21,7 @@ import { createRng } from '../utils/rng';
 import { resolveAutoBattle } from './autoBattle';
 import { recordBattle } from './diplomacy';
 import { ageOf } from './nationState';
+import { sideAgeOf } from './ageRefs';
 import { getRegionModifier } from './modifiers/sheet';
 import { unitsWithinRings, nearestHeldCity, REINFORCE_RINGS } from './armies';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, SIEGE_CONTROL_DAMAGE } from './siege';
@@ -97,7 +98,7 @@ export const createDefenseRecord = (state, { war, regionId, aggressorShare, seed
   const size = getAssaultSize(garrison.length, aggressorShare);
   const real = pickRealAssaultUnits(state, war.aggressor, regionId, committed).slice(0, size);
   real.forEach((u) => committed.add(u.id));
-  const ageId = ageOf(state, war.aggressor);
+  const ageId = sideAgeOf(state, war.aggressor);
   return {
     id,
     warId: war.id,
@@ -136,7 +137,7 @@ export const getDefenseBattleContext = (state, def) => {
     terrain: getRegionTerrain(def.regionId, REGIONS_DATA),
     isAttackingFortification: (region.defenseLevel || 0) > 0,
     generals: state.hiredCommanders || {},
-    attackerAgeId: ageOf(state, def.aggressorId),
+    attackerAgeId: sideAgeOf(state, def.aggressorId),
     defenderAgeId: ageOf(state, state.playerNationId),
     fortLevel,
     defenderDamageReductionMultiplier: getDefenseLevelDamageReductionMultiplier(fortLevel) * getZoneOfControlMultiplier(state.regions, def.regionId, region.owner)

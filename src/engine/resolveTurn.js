@@ -28,7 +28,6 @@ import { speedCostMult, speedTrainMult, isAgeAtLeast } from '../data/ages';
 import { displayYear } from './displayYear';
 import { endingSignal } from './ending';
 import { awardEraLegacy } from './eraGoals';
-import { independentAgeOf } from './ageRefs';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent, noteEventFired } from '../data/proceduralEvents';
@@ -154,7 +153,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
         greatProjects: state.greatProjects || {},
         // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
-        ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid, independentAgeOf(state, nid)) : {})
+        ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
       });
     }
     return ctxCache.get(nid);

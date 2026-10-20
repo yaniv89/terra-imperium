@@ -23,6 +23,7 @@ import { REBEL_OWNER_ID } from '../data/rebellion';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
 import { ageOf } from './nationState';
+import { sideAgeOf } from './ageRefs';
 import { canAttack, canFight } from './hostility';
 import { legacyTerrainOf } from './world/registry';
 import { passableTile, regionForTile, unitTile } from './armies';
@@ -88,7 +89,7 @@ export const getFieldBattleContext = (state, v) => {
     generals: state.hiredCommanders,
     attackerAgeId: ageOf(state, state.playerNationId),
     // Rebels fight at their host's age: the nation whose city they rose in.
-    defenderAgeId: v.defenderNationId === REBEL_OWNER_ID ? ageOf(state, state.regions[v.defenderUnits[0]?.regionId]?.owner) : ageOf(state, v.defenderNationId),
+    defenderAgeId: v.defenderNationId === REBEL_OWNER_ID ? ageOf(state, state.regions[v.defenderUnits[0]?.regionId]?.owner) : sideAgeOf(state, v.defenderNationId),
     attackerPenaltyMultiplier: battleType === 'river' ? riverAttackAdjust(tiles.riverSizeBetween(v.fromTile, v.tile)) : 1, // the river's size (battleType.js)
     defenderDamageReductionMultiplier: (fort ? FORT_REDUCTION : 1) * (v.defenderUnits.length && v.defenderUnits.every((u) => isFortified(u, state.turnNumber)) ? FORTIFY_REDUCTION : 1)
   };

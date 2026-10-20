@@ -33,6 +33,7 @@ import { PEOPLES, CITY_STATE_PEOPLES_LIST } from '../data/peoples';
 import { DEFAULT_WORLD_SIZE, EQUAL_START_SIZE, START_MIN_GAP_KM, CITY_STATE_SHIFT_KM, DEFAULT_CITY_STATES, CITY_STATES_PACKED, cityStateCount } from '../data/worldSizes';
 import { createRng } from '../utils/rng';
 import { msg, people, cityRef } from './messages';
+import { independentAgeOf, researchLeaderAge } from './ageRefs';
 import {
   INDEPENDENT_KIND, INDEPENDENT_BORDER_KM, isIndependentNation, independentSizeCap, garrisonTarget,
   personalityFor, independentTitle, RAID_RESERVE
@@ -136,10 +137,11 @@ const COLD = new Set(['Dfc', 'Dfd', 'Dsc', 'Dsd', 'Dwc', 'Dwd', 'ET', 'EF']);
 const isSeaRaider = (tiles, tile, personality) => personality === 'raiders' && tile != null && COLD.has(tiles.climateNames?.[tiles.climate?.[tile]]);
 
 /** An independent's shown name today (independents 14.2): the people's form by personality and age. */
-export const independentNameOf = (state, nation) => {
+// `ageId`: a city founded this instant has no contacts yet (and its map is not in the registry), so its founders pass the research leader's age.
+export const independentNameOf = (state, nation, ageId = independentAgeOf(state, nation.id)) => {
   const city = state.regions?.[nation.capitalRegionId];
   const people = PEOPLES[nation.people];
-  return independentTitle({ adjective: people?.adjective, cityName: city?.name, personality: nation.indep?.personality, ageId: state.age, seaRaiders: !!nation.indep?.seaRaiders, freeCity: !!nation.indep?.freeCity });
+  return independentTitle({ adjective: people?.adjective, cityName: city?.name, personality: nation.indep?.personality, ageId, seaRaiders: !!nation.indep?.seaRaiders, freeCity: !!nation.indep?.freeCity });
 };
 
 /**
@@ -160,7 +162,7 @@ export const finalizeIndependents = (state, { late = [] } = {}) => {
     const tile = state.regions[n.capitalRegionId]?.tile;
     const personality = personalities[id];
     const rec = independentRecord(n, { id, name: n.name, color: n.color, people: n.people || null, personality, seaRaiders: isSeaRaider(tiles, tile, personality), since: state.turnNumber || 1, capitalRegionId: n.capitalRegionId });
-    nations[id] = { ...rec, name: independentNameOf(state, rec) };
+    nations[id] = { ...rec, name: independentNameOf(state, rec, researchLeaderAge(state)) };
   });
   const templateBase = ids.length ? nations[ids[0]] : Object.values(state.nations).find((n) => !n.isPlayer);
   const independentTemplate = templateBase ? independentRecord(templateBase, { id: null, name: null, color: null }) : null;
@@ -170,11 +172,11 @@ export const finalizeIndependents = (state, { late = [] } = {}) => {
 };
 
 /** The city context of an independent's city for the cities phase (resolveTurn.js runCitiesPhase). */
-export const independentCityCtx = (state, nationId, ageId) => {
+export const independentCityCtx = (state, nationId) => {
   const n = state.nations[nationId];
   const capital = state.regions?.[n?.capitalRegionId];
   return {
-    maxSize: independentSizeCap(ageId),
+    maxSize: independentSizeCap(independentAgeOf(state, nationId)),
     maxBorderRing: ringsForKm(INDEPENDENT_BORDER_KM),
     garrisonTarget: garrisonTarget(capital?.size || 1, n?.indep?.personality),
     raidReserve: RAID_RESERVE[n?.indep?.personality] || 0, // the raid party (phase W2, raids.js)
@@ -218,7 +220,7 @@ export const processLateArrivals = (state) => {
     const rec = fromTemplate(next, { id, name: p.name, color: p.color, people: id, personality, seaRaiders: isSeaRaider(tiles, tile, personality), since: next.turnNumber, capitalRegionId: city.id });
     if (!rec) return;
     const regions = { ...built.cities, [city.id]: region };
-    const named = { ...rec, name: independentNameOf({ ...next, regions }, rec) };
+    const named = { ...rec, name: independentNameOf({ ...next, regions }, rec, researchLeaderAge(next)) };
     const unitId = `arrived_${id}`;
     next = {
       ...next,
@@ -246,7 +248,7 @@ export const breakAwayAsIndependent = (state, nations, regions, cityId, turn) =>
   const tiles = getTiles();
   const personality = personalityFor(tiles, city.tile, id);
   const rec = fromTemplate(state, { id, name: null, color: '#8b8f99', personality, since: turn, capitalRegionId: cityId, freeCity: true });
-  nations[id] = { ...rec, name: independentTitle({ cityName: city.name, ageId: state.age, freeCity: true }) };
+  nations[id] = { ...rec, name: independentTitle({ cityName: city.name, ageId: independentAgeOf({ ...state, nations }, id), freeCity: true }) };
   return id;
 };
 

@@ -46,6 +46,7 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsForKm, ringsApart } from '../data/geo/gridScale';
 import { LogTypes } from '../data/types';
 import { msg, people, cityRef, sub, reasonOf } from './messages';
+import { independentAgeOf } from './ageRefs';
 import {
   isIndependentNation, TRIBUTE_TURNS, GRUDGE_REFUSED, INDEP_POLICY_PERIOD, CONQUER_KM, CONQUER_STRENGTH_RATIO,
   CONQUER_FORCE_RATIO, CONQUER_KEEP_PER_CITY, CONQUER_CHANCE, CONQUER_MAX_TURNS, CONQUER_RETRY_TURNS, CONQUER_RUNAWAY_MULT,
@@ -202,7 +203,7 @@ const independentTurn = (w, id, byTile) => {
   // Trade: gold both ways; a grudge at the limit, or a partner gone, ends it.
   if (n.indep.tradeWith) {
     const tradeWith = { ...n.indep.tradeWith };
-    const gold = tradeGoldOf(w.age);
+    const gold = tradeGoldOf(independentAgeOf(w.view, id));
     Object.keys(tradeWith).sort().forEach((p) => {
       if (!w.nations[p] || w.nations[p].isEliminated || grudgeOf(n, p) >= TRADE_MAX_GRUDGE) { delete tradeWith[p]; if (p === w.playerId) w.logs.push({ year: w.year, type: LogTypes.DIPLOMACY, ...msg('m.battle.indepTradeEnds', { nation: people(id, n.name) }) }); return; }
       addGoldIn(w, p, gold); addGoldIn(w, id, gold); w.stats.tradeGold += gold;
@@ -307,7 +308,7 @@ const demandTributeOf = (w, majorId, indepId, mine, theirs) => {
   const pays = n.indep?.personality !== 'fortress' && mine >= DEMAND_TRIBUTE_RATIO * Math.max(1, theirs);
   if (!pays) { w.nations[indepId] = withGrudge(n, majorId, GRUDGE_REFUSED, { id: 'demand', turn: w.turn }); return false; }
   const until = w.turn + TRIBUTE_TURNS;
-  setIndep(w, indepId, { tributeTo: { ...(n.indep.tributeTo || {}), [majorId]: { until, gold: tributePerTurn({ regions: w.regions }, indepId, w.age) } }, truceWith: { ...(n.indep.truceWith || {}), [majorId]: until } });
+  setIndep(w, indepId, { tributeTo: { ...(n.indep.tributeTo || {}), [majorId]: { until, gold: tributePerTurn({ ...w.view, regions: w.regions, nations: w.nations }, indepId, indepId) } }, truceWith: { ...(n.indep.truceWith || {}), [majorId]: until } });
   w.stats.tributeDemandsByMajors += 1;
   return true;
 };
@@ -446,7 +447,7 @@ export const processMajorsAndIndependents = (input) => {
   const burning = Object.values(input.regions || {}).some((c) => c.razing);
   if (!indeps.length && !burning) return null;
   const w = {
-    turn: input.turnNumber, year: input.year, age: input.age, playerId: input.playerNationId,
+    turn: input.turnNumber, year: input.year, playerId: input.playerNationId,
     regions: { ...input.regions }, units: { ...input.units }, nations: { ...input.nations }, resources: { ...input.resources },
     wars: [...(input.wars || [])], world: { ...(input.world || {}) }, logs: [], joinOffers: [...(input.joinOffers || [])],
     stats: { conquered: 0, joined: 0, razeStarted: 0, razed: 0, campaigns: 0, musters: 0, courtships: 0, gifts: 0, tradeDeals: 0, tradeGold: 0, tributeDemandsByMajors: 0, tributeToMajors: 0, ...(input.indepStats || {}) }
@@ -572,7 +573,7 @@ export const demandTributeCheck = (state, indepId, majorId = state.playerNationI
   if (n.indep?.personality === 'fortress') return { ok: true, would: false, mine, theirs, ...reasonOf('m.why.indepFortressPays') };
   const need = DEMAND_TRIBUTE_RATIO * Math.max(1, theirs);
   if (mine < need) return { ok: true, would: false, mine, theirs, ...reasonOf('m.why.indepWouldRefuse', { km: CONQUER_KM, x: (mine / Math.max(1, theirs)).toFixed(1), r: DEMAND_TRIBUTE_RATIO }) };
-  return { ok: true, would: true, mine, theirs, ...reasonOf('m.why.indepWouldPay', { gold: tributePerTurn(state, indepId), turns: TRIBUTE_TURNS }) };
+  return { ok: true, would: true, mine, theirs, ...reasonOf('m.why.indepWouldPay', { gold: tributePerTurn(state, indepId, indepId), turns: TRIBUTE_TURNS }) };
 };
 
 /** Would mercantile independent `indepId` trade with `majorId`? { ok, reason }. */
@@ -585,7 +586,7 @@ export const tradeCheck = (state, indepId, majorId = state.playerNationId) => {
   if (grudgeOf(n, majorId) >= TRADE_MAX_GRUDGE) return { ok: false, ...reasonOf('m.why.indepTradeGrudge', { g: grudgeOf(n, majorId), max: TRADE_MAX_GRUDGE }) };
   const city = state.regions?.[n.capitalRegionId];
   if (!city || !majorsNear(state, city.tile, ringsForKm(TRADE_KM)).has(majorId)) return { ok: false, ...reasonOf('m.why.indepTradeFar', { km: TRADE_KM }) };
-  return { ok: true, ...reasonOf('m.why.indepTradeOk', { gold: tradeGoldOf(state.age) }) };
+  return { ok: true, ...reasonOf('m.why.indepTradeOk', { gold: tradeGoldOf(independentAgeOf(state, indepId)) }) };
 };
 
 /** Who takes tribute offered freely (OFFER_INDEPENDENT_TRIBUTE): raiders, tribal and fortress peoples; a
@@ -599,7 +600,7 @@ export const offerTributeCheck = (state, indepId, majorId = state.playerNationId
   if (!TRIBUTE_TAKERS.includes(n.indep?.personality)) return { ok: false, ...reasonOf('m.why.indepNoTribute') };
   if (n.indep?.tributeFrom?.[majorId]) return { ok: false, ...reasonOf('m.why.indepYouAlreadyPay', { n: n.indep.tributeFrom[majorId].until }) };
   if (n.indep?.tributeTo?.[majorId]) return { ok: false, ...reasonOf('m.why.indepTheyPay') };
-  const gold = tributePerTurn(state, majorId);
+  const gold = tributePerTurn(state, majorId, indepId);
   return { ok: true, gold, ...reasonOf('m.why.indepTributeOk', { gold, turns: TRIBUTE_TURNS }) };
 };
 
@@ -609,12 +610,12 @@ export const demandIndependentTribute = (state, indepId) => {
   const me = state.playerNationId;
   const check = demandTributeCheck(state, indepId, me);
   if (!check.ok) return { reason: check.reason, reasonMsg: check.reasonMsg };
-  const w = { turn: state.turnNumber || 0, age: state.age, playerId: me, regions: state.regions, nations: { ...state.nations }, resources: { ...state.resources }, stats: { ...(state.indepStats || {}) } };
+  const w = { turn: state.turnNumber || 0, playerId: me, regions: state.regions, nations: { ...state.nations }, resources: { ...state.resources }, stats: { ...(state.indepStats || {}) } };
   w.stats.tributeDemandsByMajors = w.stats.tributeDemandsByMajors || 0;
   const paid = demandTributeOf(w, me, indepId, check.mine, check.theirs);
   const nation = people(indepId, n.name);
   const line = paid
-    ? msg('m.battle.indepAgreeTribute', { nation, gold: tributePerTurn(state, indepId), turns: TRIBUTE_TURNS })
+    ? msg('m.battle.indepAgreeTribute', { nation, gold: tributePerTurn(state, indepId, indepId), turns: TRIBUTE_TURNS })
     : n.indep?.personality === 'fortress' ? msg('m.battle.indepRefuseFortress', { nation }) : msg('m.battle.indepRefuseWeak', { nation, ratio: DEMAND_TRIBUTE_RATIO });
   return { ...state, nations: w.nations, indepStats: w.stats, logs: withLog(state, line) };
 };
@@ -627,7 +628,7 @@ export const proposeIndependentTrade = (state, indepId) => {
   if (!check.ok) return { reason: check.reason, reasonMsg: check.reasonMsg };
   const nations = { ...state.nations, [indepId]: { ...n, indep: { ...n.indep, tradeWith: { ...(n.indep.tradeWith || {}), [me]: state.turnNumber || 0 } } } };
   const stats = { ...(state.indepStats || {}), tradeDeals: (state.indepStats?.tradeDeals || 0) + 1 };
-  return { ...state, nations, indepStats: stats, logs: withLog(state, msg('m.battle.indepOpenTrade', { nation: people(indepId, n.name), gold: tradeGoldOf(state.age) })) };
+  return { ...state, nations, indepStats: stats, logs: withLog(state, msg('m.battle.indepOpenTrade', { nation: people(indepId, n.name), gold: tradeGoldOf(independentAgeOf(state, indepId)) })) };
 };
 
 /** OFFER_INDEPENDENT_TRIBUTE (W4): the player pays tribute unasked, for peace (a truce both ways,
