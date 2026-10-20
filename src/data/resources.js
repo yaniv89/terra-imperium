@@ -47,20 +47,12 @@ export const RESOURCES = {
     unlockAge: 'modern',
     description: 'Mechanized, air and naval units, factories — the mid-late-game chokepoint.'
   },
-  // Space Age resources (plan §10.4) — unlocked mid-to-late Modern Age by the space-race mission
-  // ladder, not by the calendar alone. isResourceUnlocked() only checks the age floor; the space
-  // race's own mission-completion gate (Phase D2) is a stricter, additional condition on top.
+  // Rare Metals has no source until the Information age gives it one (eight ages plan U56).
   rareMetals: {
     id: 'rareMetals',
     name: 'Rare Metals',
     unlockAge: 'modern',
-    description: 'From asteroid mining. Advanced electronics, satellites, late-game units.'
-  },
-  helium3: {
-    id: 'helium3',
-    name: 'Helium-3',
-    unlockAge: 'modern',
-    description: 'From the outer planets. Fusion power and endgame units.'
+    description: 'Advanced electronics and late-game units.'
   }
 };
 

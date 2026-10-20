@@ -9,8 +9,6 @@ import { t as tNow, getLanguage } from '../i18n/core';
 import { REGIONS_DATA, getCapital } from '../data/regions';
 import { RESOURCE_IDS } from '../data/resources';
 import { regionHasDeposit } from '../data/deposits';
-import { getSatelliteEffectTotal } from '../data/satellites';
-import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { getHistoricalPopulationShare } from '../data/historicalPopulation';
 import { getModifier, getRegionModifier } from '../engine/modifiers/sheet';
 import { getPopFactor, seedDevelopment, getTotalDev } from '../engine/development';
@@ -132,36 +130,24 @@ export const getUnitCount = (state, nationId) => getFieldedStrengthIndex(state.u
 // (ruler skill, advisors, pool-specific traits — src/engine/modifiers/sources.js) each touch only
 // their own pool, which is what actually makes ADM/DIP/MIL grow at different rates from each other.
 //
-// A Communications Satellite's dipPerTurn and a completed space mission's recurringReward.
-// dipPerTurn belong here, not in calcIncome's generic per-resource forEach: resolveTurn.js banks
-// each pool up to a CAP OF 2x THIS FUNCTION'S OWN RETURN VALUE, so a recurring DIP bonus has to be
-// part of that return value to actually raise the cap it lives under — added the other way (via
-// calcIncome, before the cap is applied), the very next turn's bank-up would clip it straight back
-// down to 2x the un-boosted base, silently discarding the bonus a player just earned.
 // `nationId` defaults to the player (every existing call site omits it) but plan §M16's AI economy
 // (src/engine/resolveTurn.js's own AI-economy phase) passes an AI nation id through the same
-// formula — satellite/mission dipPerTurn naturally comes back 0 for a nation that hasn't launched any,
-// since those are player-exclusive systems (no per-nation tracking exists) rather than something
-// needing a separate AI branch here.
+// formula.
 export const getPowerIncome = (state, nationId = state.playerNationId) => {
   const allPoolsBonus = getModifier(state, nationId, 'national.apBonus').total;
   const admBonus = getModifier(state, nationId, 'national.admBonus').total;
   const dipBonus = getModifier(state, nationId, 'national.dipBonus').total;
   const milBonus = getModifier(state, nationId, 'national.milBonus').total;
-  const satelliteDip = getSatelliteEffectTotal(state.satellites || {}, nationId, 'dipPerTurn', state.orbitalDebrisLevel);
-  const missionDip = (state.completedMissions || []).reduce((sum, id) => sum + (SPACE_MISSIONS_BY_ID[id]?.recurringReward?.dipPerTurn || 0), 0);
   return {
     adm: BASE_POWER_PER_TURN + allPoolsBonus + admBonus,
-    dip: BASE_POWER_PER_TURN + allPoolsBonus + dipBonus + satelliteDip + missionDip,
+    dip: BASE_POWER_PER_TURN + allPoolsBonus + dipBonus,
     mil: BASE_POWER_PER_TURN + allPoolsBonus + milBonus
   };
 };
 
 // Plan §M20: the real per-source lines behind one pool's getPowerIncome total, for the Tooltip v2 /
 // Breakdown UI ("every number explains itself"). Reuses getModifier's own breakdown arrays instead
-// of re-deriving them, so this can never drift out of sync with the total getPowerIncome returns —
-// the two satellite/mission dipPerTurn lines are the only pieces getModifier doesn't already carry,
-// added here as synthetic breakdown rows in the same {label, value} shape.
+// of re-deriving them, so this can never drift out of sync with the total getPowerIncome returns.
 const POOL_BONUS_KEY = { adm: 'national.admBonus', dip: 'national.dipBonus', mil: 'national.milBonus' };
 export const getPowerBreakdown = (state, nationId = state.playerNationId, pool) => {
   const rows = [{ label: 'Base', value: BASE_POWER_PER_TURN }];
@@ -169,12 +155,6 @@ export const getPowerBreakdown = (state, nationId = state.playerNationId, pool) 
   allPools.breakdown.forEach((l) => rows.push({ label: l.label, value: l.value }));
   const poolSpecific = getModifier(state, nationId, POOL_BONUS_KEY[pool]);
   poolSpecific.breakdown.forEach((l) => rows.push({ label: l.label, value: l.value }));
-  if (pool === 'dip') {
-    const satelliteDip = getSatelliteEffectTotal(state.satellites || {}, nationId, 'dipPerTurn', state.orbitalDebrisLevel);
-    if (satelliteDip) rows.push({ label: 'Satellites', value: satelliteDip });
-    const missionDip = (state.completedMissions || []).reduce((sum, id) => sum + (SPACE_MISSIONS_BY_ID[id]?.recurringReward?.dipPerTurn || 0), 0);
-    if (missionDip) rows.push({ label: 'Space Missions', value: missionDip });
-  }
   return rows;
 };
 
@@ -283,37 +263,14 @@ export const calcIncome = (state) => {
   const perRoute = lawRulesOf(state.nations?.[state.playerNationId]).tradeGoldPerRoute || 0;
   if (perRoute) income.gold = (income.gold || 0) + perRoute * Object.values(state.nations || {}).filter((n) => !n.isPlayer && n.hasTradeAgreement && !n.isEliminated).length;
 
-  // Government/policy/wonder/satellite bonuses (plan §9/§10.4) — summed on the same hook
+  // Government/policy/wonder bonuses (plan §9/§10.4) — summed on the same hook
   // (the modifier engine, src/engine/modifiers/), applied as one multiplier — government, policy,
-  // wonder, identity, Set Tax Rate, and every owned satellite (scaled by the shared orbital debris
-  // penalty) are all sources feeding these same two keys now, so this is one lookup each instead
+  // wonder, identity and Set Tax Rate are all sources feeding these same two keys now, so this is one lookup each instead
   // of hand-summing every source at every call site.
-  const satellites = state.satellites || {};
   const goldMult = 1 + getModifier(state, state.playerNationId, 'national.goldMult').total;
   const hrMult = 1 + getModifier(state, state.playerNationId, 'national.hrMult').total;
   income.gold = (income.gold || 0) * goldMult;
   income.hr = (income.hr || 0) * hrMult;
-  // A Spy Satellite's flat techPoints/turn — additive income, not a multiplier, so it's summed
-  // separately from the goldMult/hrMult hooks above rather than forced into that multiplicative
-  // shape. (A Communications Satellite's dipPerTurn is NOT handled here — see getPowerIncome's own
-  // header for why a DIP-pool bonus has to live there instead of in this generic income object.)
-  const satelliteTechPoints = getSatelliteEffectTotal(satellites, state.playerNationId, 'techPointsPerTurn', state.orbitalDebrisLevel);
-  if (satelliteTechPoints) income.techPoints = (income.techPoints || 0) + satelliteTechPoints;
-
-  // Space mission ladder (plan §10.4 Layer 3) — every completed mission's recurringReward is a
-  // flat per-turn addition (gold/techPoints already exist as income keys; rareMetals/helium3 have
-  // no deposit or extraction building of their own — completing asteroid_mining/outer_planets IS
-  // their only real source, per resources.js's own header). dipPerTurn is handled in
-  // getPowerIncome instead, for the same reason satellite dipPerTurn is.
-  (state.completedMissions || []).forEach(missionId => {
-    const reward = SPACE_MISSIONS_BY_ID[missionId]?.recurringReward;
-    if (!reward) return;
-    if (reward.goldPerTurn) income.gold = (income.gold || 0) + reward.goldPerTurn;
-    if (reward.techPointsPerTurn) income.techPoints = (income.techPoints || 0) + reward.techPointsPerTurn;
-    if (reward.rareMetalsPerTurn && income.rareMetals !== undefined) income.rareMetals += reward.rareMetalsPerTurn;
-    if (reward.helium3PerTurn && income.helium3 !== undefined) income.helium3 += reward.helium3PerTurn;
-  });
-
   // Research Focus doesn't change science income here: science spent on a tech of the focused line
   // counts FOCUS_SCIENCE_BONUS more (src/engine/research.js).
   // A flat base trickle for every nation that still holds territory (BASE_TECHPOINTS_PER_TURN's own
@@ -415,7 +372,7 @@ export const applyCosts = (resources, costs) => {
 export const scaleCosts = (costs, mult) =>
   Object.fromEntries(Object.entries(costs).map(([key, value]) => [key, Math.round(value * mult)]));
 
-const RESOURCE_LABELS = { gold: 'Gold', hr: 'HR', copper: 'Copper', iron: 'Iron', oil: 'Oil', rareMetals: 'Rare Metals', helium3: 'Helium-3' };
+const RESOURCE_LABELS = { gold: 'Gold', hr: 'HR', copper: 'Copper', iron: 'Iron', oil: 'Oil', rareMetals: 'Rare Metals' };
 // Plan §M2: the three power pools' display labels.
 const POWER_POOL_LABELS = { adm: 'ADM', dip: 'DIP', mil: 'MIL' };
 

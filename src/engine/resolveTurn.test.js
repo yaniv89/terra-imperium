@@ -300,22 +300,6 @@ describe('resolveTurn economy (plan §M11)', () => {
     expect(next.nations.fr.loans).toEqual([]);
     expect(next.nations.fr.modifiers.some((m) => m.sourceType === 'bankruptcy' && m.expiresTurn === next.turnNumber + 10)).toBe(true);
   });
-
-  it('Fusion Grid deducts its per-turn helium3 upkeep while active', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, fusionGridActive: true } }, resources: { ...base.resources, helium3: 10 } };
-    const next = resolveTurn(state);
-    expect(next.resources.helium3).toBe(8); // FUSION_GRID_UPKEEP_HELIUM3_PER_TURN = 2
-    expect(next.nations.fr.fusionGridActive).toBe(true);
-  });
-
-  it('Fusion Grid goes offline once helium3 can no longer cover its upkeep', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, fusionGridActive: true } }, resources: { ...base.resources, helium3: 1 } };
-    const next = resolveTurn(state);
-    expect(next.nations.fr.fusionGridActive).toBe(false);
-    expect(next.logs.some((l) => l.message.includes('Fusion Grid has gone offline'))).toBe(true);
-  });
 });
 
 describe('resolveTurn unrest drift', () => {
@@ -994,67 +978,6 @@ describe('resolveTurn curated national events', () => {
   });
 });
 
-describe('resolveTurn orbital debris (Space Race)', () => {
-  it('decays every turn, whether or not anyone struck a satellite this turn', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), orbitalDebrisLevel: 50 });
-    const next = resolveTurn(base);
-    expect(next.orbitalDebrisLevel).toBeLessThan(50);
-  });
-
-  it('never drops below 0', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), orbitalDebrisLevel: 0 });
-    const next = resolveTurn(base);
-    expect(next.orbitalDebrisLevel).toBe(0);
-  });
-
-  it('feeds a satellite\'s stabilityBonus into every owning nation\'s own regions\' unrest drift, not just the player\'s', () => {
-    // 'de' (not the player) owns a Recon Satellite (stabilityBonus 6) and starts with unrest high
-    // enough that the drift would otherwise rise this turn.
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const stateWithoutSat = { ...base, regions: { ...base.regions, [cap('de')]: { ...base.regions[cap('de')], control: 0, unrest: 10 } } };
-    const stateWithSat = { ...stateWithoutSat, satellites: { s1: { id: 's1', ownerId: 'de', typeId: 'recon' } } };
-    const withoutSat = resolveTurn(stateWithoutSat);
-    const withSat = resolveTurn(stateWithSat);
-    expect(withSat.regions[cap('de')].unrest).toBeLessThan(withoutSat.regions[cap('de')].unrest);
-  });
-});
-
-describe('resolveTurn space mission ladder', () => {
-  it('ticks a mission\'s progress down by one turn', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), spaceMissionProgress: { sounding_rocket: 3 } });
-    const next = resolveTurn(base);
-    expect(next.spaceMissionProgress.sounding_rocket).toBe(2);
-  });
-
-  it('completes a mission once its progress reaches 0, applying its one-time reward and clearing it from progress', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), spaceMissionProgress: { sounding_rocket: 1 } });
-    const next = resolveTurn(base);
-    expect(next.spaceMissionProgress.sounding_rocket).toBeUndefined();
-    expect(next.completedMissions).toContain('sounding_rocket');
-    // sounding_rocket's oneTimeReward is dip: 10, on top of that turn's own income.
-    expect(next.resources.dip).toBeGreaterThanOrEqual(base.resources.dip + 10);
-  });
-
-  it('leaves unrelated in-progress missions untouched', () => {
-    const base = withAllEventsFired({
-      ...createInitialState({ playerNationId: 'fr' }),
-      spaceMissionProgress: { sounding_rocket: 1, first_satellite: 4 }
-    });
-    const next = resolveTurn(base);
-    expect(next.completedMissions).toContain('sounding_rocket');
-    expect(next.spaceMissionProgress.first_satellite).toBe(3);
-  });
-
-  it('a completed mission\'s recurring reward flows into income starting the turn after completion', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), completedMissions: ['moon_landing'] });
-    const withoutMission = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const withMission = resolveTurn(base);
-    const without = resolveTurn(withoutMission);
-    // moon_landing's recurringReward is dipPerTurn: 10.
-    expect(withMission.resources.dip).toBeGreaterThan(without.resources.dip);
-  });
-});
-
 describe('resolveTurn diplomatic leadership streak', () => {
   it('increments the streak while aligned with a majority of the world', () => {
     const base = createInitialState({ playerNationId: 'fr' });
@@ -1076,12 +999,6 @@ describe('resolveTurn diplomatic leadership streak', () => {
 });
 
 describe('resolveTurn new victory conditions wired end-to-end', () => {
-  it('triggers Space Ascendancy once the final mission completes mid-turn', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), spaceMissionProgress: { interstellar_probe: 1 } });
-    const next = resolveTurn(base);
-    expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    expect(next.victoryConditionId).toBe('spaceAscendancy');
-  });
 
   it('triggers Domination once the player holds enough of the world\'s regions', () => {
     const base = createInitialState({ playerNationId: 'fr' });

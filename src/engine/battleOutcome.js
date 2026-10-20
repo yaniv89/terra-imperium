@@ -7,15 +7,13 @@
 //
 // `outcome` is a BattleOutcome (makeBattleOutcome below): the operation id, the kind, the nations,
 // where, the result, each side's campaign units after the battle (with how they left the field),
-// and the commanded battle's extras (powers spent, the city's damage by manifest id, XP bonus).
+// and the commanded battle's extras (the city's damage by manifest id, XP bonus).
 // It is idempotent: an outcome whose id was already applied returns the state untouched
 // (state.appliedBattleIds, the last APPLIED_MEMORY ids, an optional save field), so a result
 // sent twice never pays twice. Command and Auto of the same operation share the id, so only one
 // of them can ever land.
 //
 // Each row of master plan 6.7 is applied exactly once, in this order:
-//   6  powers spent (applyPowers): missiles come out of the stockpile once; a nuclear strike's
-//      condemnation, prestige loss and pariah mark as from the map
 //   5  XP for the units that fought (XP_WIN / XP_LOSE x the general's multiplier, plus the
 //      command bonus, capped by the sanitizer)
 //   2, 3, 6.9  the kind's adapter: who stands where. City kinds run the siege control and the melee
@@ -43,7 +41,6 @@ import { msg, sub, people, cityRef, place as placeRef, thing } from './messages'
 import { awardXp } from '../data/promotions';
 import { getGeneralXpMultiplier } from '../data/generals';
 import { BUILDING_CATEGORIES } from '../data/buildings';
-import { NUCLEAR_GLOBAL_HOSTILITY, NUCLEAR_PRESTIGE_PENALTY, NUCLEAR_PARIAH_DURATION_TURNS, NUCLEAR_PARIAH_GOLD_MULT_PENALTY } from '../data/missiles';
 import { getTiles } from '../data/geo/tiles';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { recordBattle } from './diplomacy';
@@ -51,8 +48,6 @@ import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
 import { recordBattleReport } from './battleReports';
 import { checkLedger, ledgerOf, menOf } from './battleLedger';
-import { addNationModifier } from './modifiers/timed';
-import { clampPrestige } from './nationalPower';
 import { cityManifestOf, applyCityBattleDamage } from './cityManifest';
 import { hasMeleeUnitDeployed, isGarrisonBroken, resolveSiegeControlDamage, SIEGE_CONTROL_DAMAGE, SIEGE_CAPTURE_CONTROL_THRESHOLD } from './siege';
 import { findTilePath, passableTile, placeInCity, regionForTile, unitTile, nearestHeldCity } from './armies';
@@ -73,7 +68,6 @@ export const BATTLE_MARK_TURNS = 5;
 export const PLAGUE_CONTACT_TURNS = 2;
 export const PLAGUE_CONTACT_I = 0.02;
 export const NAVAL_DEVASTATION_SCALE = 0.5;
-export const MISSILE_POWER_TIERS = { missileTactical: 'tactical', missileTheatre: 'theatre', nuclearStrike: 'nuclear' };
 export const OUTCOME_KINDS = ['invasion', 'landing', 'defense', 'field', 'naval', 'suppress', 'lane', 'raid', 'sack'];
 
 const sum = (units) => (units || []).reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
@@ -107,52 +101,11 @@ export const makeBattleOutcome = (meta, battle) => {
     deployedDefenderIds: report.deployedDefenderIds || [],
     decisive: !!(meta.decisive ?? tactical.decisive),
     xpBonusById: meta.xpBonusById ?? tactical.xpBonusById ?? null,
-    powersUsed: tactical.powersUsed || null,
     cityDamage: tactical.cityDamage || report.cityDamage || null,
     razed: tactical.razed || [],
     economy: tactical.economy || null,
     report
   };
-};
-
-// ---- row 6: powers spent once ---------------------------------------------------------------
-
-/** Missiles fired inside a battle come out of the real stockpile; a nuclear strike costs as from the map. */
-export const applyPowers = (state, o) => {
-  let nations = state.nations;
-  let regions = state.regions;
-  const logs = [];
-  [o.attackerNationId, o.defenderNationId].forEach((nationId, side) => {
-    const used = o.powersUsed?.[side] || {};
-    const nation = nations[nationId];
-    if (!nation || !Object.keys(used).length) return;
-    const missiles = { ...(nation.missiles || {}) };
-    let nukes = 0;
-    Object.entries(used).forEach(([id, n]) => {
-      const tier = MISSILE_POWER_TIERS[id];
-      if (!tier) return;
-      const fired = Math.min(n, missiles[tier] || 0);
-      missiles[tier] = (missiles[tier] || 0) - fired;
-      if (tier === 'nuclear') nukes += fired;
-    });
-    nations = { ...nations, [nationId]: { ...nation, missiles } };
-    if (nukes > 0) {
-      const victimId = side === 0 ? o.defenderNationId : o.attackerNationId;
-      Object.keys(nations).forEach((id) => {
-        if (id === nationId) return;
-        nations[id] = { ...nations[id], hostility: id === victimId ? 100 : Math.min(100, (nations[id].hostility || 0) + NUCLEAR_GLOBAL_HOSTILITY) };
-      });
-      const striker = nations[nationId];
-      nations[nationId] = addNationModifier(
-        { ...striker, prestige: clampPrestige((striker.prestige || 0) - NUCLEAR_PRESTIGE_PENALTY) },
-        { sourceType: 'nuclear', sourceId: 'nuclear_pariah', label: 'Nuclear Pariah', mods: { 'national.goldMult': -NUCLEAR_PARIAH_GOLD_MULT_PENALTY }, duration: NUCLEAR_PARIAH_DURATION_TURNS, turnNumber: state.turnNumber }
-      );
-      if (o.regionId && regions[o.regionId]) regions = { ...regions, [o.regionId]: { ...regions[o.regionId], nuclearScarred: true } };
-      logs.push({ year: state.year, ...msg('m.battle.nuclearStrike', { place: cityOr(state.regions, o.regionId, 'm.battle.theFront') }), type: LogTypes.COMBAT });
-    }
-  });
-  if (nations === state.nations && regions === state.regions) return state;
-  return { ...state, nations, regions, logs: [...state.logs, ...logs] };
 };
 
 // ---- row 5: XP ----------------------------------------------------------------------------
@@ -664,8 +617,7 @@ export const applyBattleOutcome = (state, o) => {
   }
   if (o.kind === 'defense' && !record) return base;
 
-  // row 6
-  let s = applyPowers(base, out);
+  let s = base;
   // row 5 (XP), then the kind (rows 2, 3, 6.9)
   const att = awardSideXp(s, out, out.attackerUnits, out.deployedAttackerIds, xpFor('attacker', out.outcome));
   const def = awardSideXp(s, out, out.defenderUnits, out.deployedDefenderIds, xpFor('defender', out.outcome));

@@ -103,7 +103,7 @@ export const getBorderingNationIds = (regions, nationId) => {
 // the exact distance — callers that only ask "is this within range N" (resolveTurn.js's supply
 // attrition) don't need the true distance for an out-of-range unit, and with 4,482 regions letting
 // the search run to completion for every out-of-supply unit, every turn, was a real cost. Callers
-// that need the exact distance regardless of size (missiles.js's range check) simply omit it.
+// that need the exact distance regardless of size simply omit it.
 export const distanceFromAnchor = (anchorRegionIds, targetRegionId, maxDistance = Infinity) => {
   if (anchorRegionIds.includes(targetRegionId)) return 0;
   const visited = new Set(anchorRegionIds);

@@ -19,10 +19,7 @@ const ALLOWED = [
   ['src/engine/colonies.js', 'const year = state.year;', 'used only in log lines'],
   ['src/engine/routes.js', '{ year = state.year } = {}', 'the label on the march log lines of a move made on order'],
   ['src/engine/diplomacy.js', 'war_${nationId}_${state.year}', 'part of an id, made unique by a counter'],
-  ['src/engine/diplomacy.js', 'startYear: state.year', 'a record shown to the player'],
-  ['src/data/satellites.js', '', 'the space race, removed with it (plan U18)'],
-  ['src/engine/gameReducer.js', 'canLaunchSatellite(', 'the space race, removed with it (plan U18)'],
-  ['src/engine/gameReducer.js', 'launchedYear: state.year', 'the space race, removed with it (plan U18)']
+  ['src/engine/diplomacy.js', 'startYear: state.year', 'a record shown to the player']
 ];
 
 const files = (p) => {

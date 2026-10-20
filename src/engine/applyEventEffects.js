@@ -50,7 +50,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
   const effects = option.effects || {};
   const playerNationId = next.playerNationId;
 
-  // Generic resource deltas — any of gold/hr/copper/iron/oil/rareMetals/helium3, whichever ones
+  // Generic resource deltas — any of gold/hr/copper/iron/oil/rareMetals, whichever ones
   // are currently unlocked and present on state.resources.
   const resources = { ...next.resources };
   RESOURCE_IDS.forEach(id => {

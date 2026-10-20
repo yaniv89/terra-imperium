@@ -33,8 +33,6 @@ import { neighbourWorld, rivalOf } from './testWorld';
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const PEOPLES_WORLD = neighbourWorld({ player: 'ahhiyawa', seed: 1 });
 const FR_ID = PEOPLES_WORLD.playerNationId;
-const DE_ID = rivalOf(PEOPLES_WORLD, 0);
-const IT_ID = rivalOf(PEOPLES_WORLD, 1);
 const GB_ID = rivalOf(PEOPLES_WORLD, 3);
 
 // The Dawn world gives France one city with no room beside it, so the fixture founds French
@@ -49,9 +47,9 @@ const WORLD = (() => {
   const AGG = near.state.regions[target].owner;
   // The enemy gets three more cities, so losing the target is a fraction of its nation.
   const grown = addCities(near.state, AGG, 3);
-  return { state: grown.state, FR_BORDER: first.cityId, BE_REGION: target, FR_NEAR: near.cityId, AGG, THIRD: AGG === DE_ID ? IT_ID : DE_ID };
+  return { state: grown.state, FR_BORDER: first.cityId, BE_REGION: target, FR_NEAR: near.cityId, AGG };
 })();
-const { FR_BORDER, BE_REGION, AGG, THIRD } = WORLD;
+const { FR_BORDER, BE_REGION, AGG } = WORLD;
 
 const baseState = () => {
   const s = WORLD.state;
@@ -505,7 +503,7 @@ describe('battle odds preview', () => {
   });
 });
 
-describe('T7: reinforcements, missiles and powers in the campaign', () => {
+describe('T7: reinforcements and powers in the campaign', () => {
   const withNeighbourTroops = () => {
     const s = withArmies();
     // Any French neighbour of the target that isn't the origin.
@@ -536,39 +534,10 @@ describe('T7: reinforcements, missiles and powers in the campaign', () => {
     expect(gameReducer(withPb, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'r1', toRegionId: FR_BORDER } }).units.r1.regionId).toBe(s.units.r1.regionId);
   });
 
-  it('missiles fired in battle come out of the real stockpile, capped at what the nation had', () => {
-    const s0 = withArmies();
-    const s = { ...s0, nations: { ...s0.nations, [FR_ID]: { ...s0.nations[FR_ID], missiles: { tactical: 2, theatre: 0, icbm: 0, nuclear: 0 } } } };
-    const started = begin(s);
-    const pb = started.pendingBattle;
-    const result = { outcome: 'defender', attackerUnits: pb.attackerUnitIds.map((id) => started.units[id]), defenderUnits: pb.defenderUnitIds.map((id) => started.units[id]), report: { tactical: { powersUsed: [{ missileTactical: 5, rallyCry: 1 }, {}] } } };
-    const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
-    expect(next.nations[FR_ID].missiles.tactical).toBe(0);
-  });
-
-  it('a nuclear strike in battle brings world condemnation and a scarred region', () => {
-    const s0 = withArmies();
-    const s = { ...s0, nations: { ...s0.nations, [FR_ID]: { ...s0.nations[FR_ID], missiles: { tactical: 0, theatre: 0, icbm: 0, nuclear: 1 } } } };
-    const started = begin(s);
-    const pb = started.pendingBattle;
-    const before = started.nations[THIRD].hostility;
-    const result = { outcome: 'stalemate', attackerUnits: pb.attackerUnitIds.map((id) => ({ ...started.units[id], strength: 0 })), defenderUnits: pb.defenderUnitIds.map((id) => ({ ...started.units[id], strength: 0 })), report: { tactical: { powersUsed: [{ nuclearStrike: 1 }, {}] } } };
-    const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
-    expect(next.nations[FR_ID].missiles.nuclear).toBe(0);
-    expect(next.nations[AGG].hostility).toBe(100);
-    expect(next.nations[THIRD].hostility).toBeGreaterThan(before);
-    expect(next.regions[BE_REGION].nuclearScarred).toBe(true);
-    expect(next.nations[FR_ID].prestige).toBeLessThan(started.nations[FR_ID].prestige || 0.0001);
-  });
-
   it('the battle setup brings the nation\'s real powers', () => {
-    const s0 = withArmies();
-    const s = { ...s0, nations: { ...s0.nations, [FR_ID]: { ...s0.nations[FR_ID], missiles: { tactical: 1, theatre: 0, icbm: 0, nuclear: 1 } } } };
-    const started = begin(s);
+    const started = begin(withArmies());
     const setup = buildInvasionSetup(started, started.pendingBattle);
-    const ids = setup.powers[0].map((p) => p.id);
-    expect(ids).toEqual(expect.arrayContaining(['rallyCry', 'missileTactical', 'nuclearStrike']));
-    expect(setup.powers[1].some((p) => p.id === 'nuclearStrike')).toBe(false); // the AI never gets a nuke
+    expect(setup.powers[0].map((p) => p.id)).toContain('rallyCry');
   });
 });
 

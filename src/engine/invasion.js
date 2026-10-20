@@ -19,7 +19,7 @@ import { canAttack } from './hostility';
 import { getRegionModifier } from './modifiers/sheet';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
-import { applyBattleOutcome, makeBattleOutcome, battleIdOf, XP_WIN, XP_LOSE, MISSILE_POWER_TIERS } from './battleOutcome';
+import { applyBattleOutcome, makeBattleOutcome, battleIdOf, XP_WIN, XP_LOSE } from './battleOutcome';
 import { getTiles } from '../data/geo/tiles';
 import { touchesCity, unitTile, unitsWithinRings, REINFORCE_RINGS } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
@@ -56,22 +56,14 @@ export const getReinforcementSources = (state, targetRegionId, nationId, exclude
 
 // The commander powers a nation brings into a battle, from what it really has (Tactical Battles
 // plan §8.8): everyone can rally; the arrow storm belongs to the early ages; artillery needs a
-// siege unit in the fight; an air strike needs aircraft; a recon satellite gives a sweep; missiles
-// come out of the real stockpile (one use per missile); only the player may use a nuclear strike.
-export const getBattlePowers = (state, nationId, ageId, units = [], { allowNuclear = false } = {}) => {
+// siege unit in the fight; an air strike needs aircraft.
+export const getBattlePowers = (state, nationId, ageId, units = []) => {
   const out = [{ id: 'rallyCry' }];
   if (isAgeBefore(ageId, 'gunpowder')) out.push({ id: 'arrowStorm' });
   if (isAgeAtLeast(ageId, 'gunpowder') && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
   if (isAgeAtLeast(ageId, 'modern') && units.some((u) => u.classId === 'air')) out.push({ id: 'airStrike' });
-  if (Object.values(state.satellites || {}).some((sat) => sat.ownerId === nationId && sat.typeId === 'recon')) out.push({ id: 'satelliteSweep' });
-  const missiles = state.nations?.[nationId]?.missiles || {};
-  if (missiles.tactical > 0) out.push({ id: 'missileTactical', uses: missiles.tactical });
-  if (missiles.theatre > 0) out.push({ id: 'missileTheatre', uses: missiles.theatre });
-  if (allowNuclear && missiles.nuclear > 0) out.push({ id: 'nuclearStrike', uses: missiles.nuclear });
   return out;
 };
-
-export { MISSILE_POWER_TIERS };
 
 /**
  * The player's land units based at `fromRegionId` that physically reach the city `targetRegionId`

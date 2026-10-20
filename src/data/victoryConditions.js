@@ -1,5 +1,5 @@
 // src/data/victoryConditions.js
-// Multiple win conditions (plan §10.4: Domination / Space Ascendancy / Economic Hegemony /
+// Multiple win conditions (plan §10.4: Domination / Economic Hegemony /
 // Diplomatic / Score). Each condition here is a pure predicate over a resolved state snapshot,
 // checked every turn in resolveTurn.js; the first one satisfied ends the game and its id is
 // recorded so a game-over screen can show which victory was actually achieved. Adding a condition
@@ -7,7 +7,6 @@
 
 import { GameStatus } from './types';
 import { getCapital, getNationCapital } from './regions';
-import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 
 // Retargeted to the tile world (plans/civ-map-rework.md C10): domination counts the CAPITALS held,
 // conqueror counts the CITIES held, economic hegemony counts the world's gold income and the
@@ -105,12 +104,6 @@ export const VICTORY_CONDITIONS = {
     name: 'Diplomatic Victory',
     description: `Sustain friendly standing with a majority of the world for ${DIPLOMATIC_LEADERSHIP_STREAK_TURNS} turns.`,
     check: (state) => (state.diplomaticLeadershipStreak || 0) >= DIPLOMATIC_LEADERSHIP_STREAK_TURNS
-  },
-  spaceAscendancy: {
-    id: 'spaceAscendancy',
-    name: 'Space Ascendancy Victory',
-    description: 'Complete the entire space mission ladder.',
-    check: (state) => (state.completedMissions || []).includes(FINAL_SPACE_MISSION_ID)
   },
   // Plan §M18: "Remove the free win. survival no longer grants VICTORY." — reaching the ending (src/engine/ending.js: the turn limit or the Future's goal) is no
   // longer a `check` in this table at all; it's handled as its own ranked step in resolveTurn.js

@@ -86,29 +86,6 @@ describe('S2: civil wars no longer end by themselves', () => {
   });
 });
 
-describe('S4: missiles need the Modern age and a war', () => {
-  it('cannot build a missile before the Modern age', () => {
-    const base = fresh();
-    const state = { ...base, age: 'classical', resources: { ...base.resources, iron: 1000, gold: 5000, mil: 100 } };
-    const next = gameReducer(state, A('BUILD_MISSILE', { tierId: 'tactical' }));
-    expect(next.nations.fr.missiles.tactical || 0).toBe(0);
-    expect(lastLog(next)).toMatch(/Modern age/);
-  });
-
-  it('cannot strike a nation you are at peace with', () => {
-    const base = fresh();
-    const { regionId } = borderRegion(base);
-    const state = {
-      ...base, age: 'modern', resources: { ...base.resources, mil: 100 },
-      nations: { ...base.nations, fr: { ...base.nations.fr, missiles: { ...base.nations.fr.missiles, tactical: 1 } } }
-    };
-    const next = gameReducer(state, A('MISSILE_STRIKE', { tierId: 'tactical', targetRegionId: regionId }));
-    expect(next.regions[regionId].control).toBe(state.regions[regionId].control);
-    expect(next.nations.fr.missiles.tactical).toBe(1);
-    expect(lastLog(next)).toMatch(/at war/);
-  });
-});
-
 describe('S5: Settle/Colonize only takes land nobody governs', () => {
   it("refuses a living nation's low-control province that isn't rebel-held", () => {
     const base = fresh();

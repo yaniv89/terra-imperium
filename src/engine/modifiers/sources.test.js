@@ -98,15 +98,6 @@ describe('contextSources', () => {
     expect(contextSources(state, GB_ID).some((l) => l.sourceType === 'tradePact')).toBe(false);
   });
 
-  it('includes satellite lines only for the satellite\'s own owner', () => {
-    const state = {
-      nations: { [FR_ID]: {}, [DE_ID]: {} },
-      satellites: { s1: { id: 's1', ownerId: DE_ID, typeId: 'navigation' } }
-    };
-    expect(contextSources(state, DE_ID).some((l) => l.sourceType === 'satellite')).toBe(true);
-    expect(contextSources(state, FR_ID).some((l) => l.sourceType === 'satellite')).toBe(false);
-  });
-
   it('includes a real per-tech effect line for the player\'s own researched techs, and only for the player (plan §M7)', () => {
     const base = neighbourWorld();
     const withTech = {

@@ -33,11 +33,11 @@ export default {
   'gp.palace_of_versailles': 'ארמון ורסאי',
   'gp.palace_of_versailles.desc': 'נבנה בבירה שלך. +1/+1/+2 מנהל בתור מהחצר.',
   'gp.space_program': 'תוכנית החלל',
-  'gp.space_program.desc': 'נבנה במחוז עם מעבדת מחקר. -5/10/15% עלות מחקר, כתחליף להנחה בזמן משימות.',
+  'gp.space_program.desc': 'נבנה במחוז עם מעבדת מחקר. -5/10/15% עלות מחקר.',
   'gp.international_exchange': 'הבורסה הבין-לאומית',
   'gp.international_exchange.desc': 'נבנה במחוז עם בורסה. +10/20/30% הכנסות סחר.',
   'gp.atomic_research_center': 'המרכז למחקר אטומי',
-  'gp.atomic_research_center.desc': 'נבנה במחוז עם מפעל. +10/20/30% הכנסת נקודות טכנולוגיה, כתחליף להנחה בעלות טילים.',
+  'gp.atomic_research_center.desc': 'נבנה במחוז עם מפעל. +10/20/30% הכנסת נקודות טכנולוגיה.',
 
   // research boosts (boost.<techId>): how to get the boost
   'boost.military_bronze_casting': 'להחזיק נחושת',

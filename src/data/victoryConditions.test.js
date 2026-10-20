@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { VICTORY_CONDITIONS, checkVictoryConditions, applyVictory, isDiplomaticallyAligned, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS, DOMINATION_CAPITAL_SHARE, CONQUEROR_CITY_SHARE, ECONOMIC_HEGEMONY_SHARE, ECONOMIC_ROUTE_SHARE, getEconomicShare } from './victoryConditions';
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
-import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 import { getNationCapital } from './regions';
 import { peoplesWorld, rivalOf } from '../engine/testWorld';
 
@@ -70,19 +69,6 @@ describe('economicHegemony (gold and trade)', () => {
     const deGold = Object.values(state.regions).filter((r) => r.owner === DE).reduce((sum, r) => sum + Math.max(0, r.lastYields?.gold ?? r.dev?.tax ?? 0), 0);
     expect(getEconomicShare(traded).routes).toBeCloseTo(deGold * ECONOMIC_ROUTE_SHARE, 6);
     expect(getEconomicShare(traded).mine).toBeCloseTo(getEconomicShare(state).mine + deGold * ECONOMIC_ROUTE_SHARE, 6);
-  });
-});
-
-describe('spaceAscendancy', () => {
-  it('is false without completing the mission ladder', () => {
-    const state = peoplesWorld();
-    expect(VICTORY_CONDITIONS.spaceAscendancy.check(state)).toBe(false);
-    expect(VICTORY_CONDITIONS.spaceAscendancy.check({ ...state, completedMissions: ['sounding_rocket'] })).toBe(false);
-  });
-
-  it('is true once the final mission is completed', () => {
-    const state = peoplesWorld();
-    expect(VICTORY_CONDITIONS.spaceAscendancy.check({ ...state, completedMissions: [FINAL_SPACE_MISSION_ID] })).toBe(true);
   });
 });
 

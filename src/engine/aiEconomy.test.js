@@ -53,7 +53,6 @@ const makeState = ({ age = 'bronze', regions = {}, nations = {}, units = {} } = 
   regions,
   nations: { [US_ID]: {}, ...nations },
   greatProjects: {},
-  satellites: {},
   regionModifiers: {}
 });
 

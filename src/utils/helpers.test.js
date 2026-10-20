@@ -152,49 +152,6 @@ describe('calcIncome', () => {
     expect(lowTax.gold).toBeLessThan(normal.gold);
   });
 
-  // A Dawn capital pays a few gold a turn, so these give it a real tax base first.
-  const richer = (s) => ({ ...s, regions: Object.fromEntries(Object.entries(s.regions).map(([id, r]) => [id, r.owner === 'fr' ? { ...r, dev: { ...r.dev, tax: 100, production: 100, manpower: 100 } } : r])) });
-
-  it('applies an owned Navigation Satellite\'s goldMult and a Weather Satellite\'s hrMult', () => {
-    const state = richer(createInitialState({ playerNationId: 'fr', rngSeed: 1 }));
-    const withoutSatellites = calcIncome(state);
-    const withSatellites = calcIncome({
-      ...state,
-      satellites: {
-        s1: { id: 's1', ownerId: 'fr', typeId: 'navigation' },
-        s2: { id: 's2', ownerId: 'fr', typeId: 'weather' }
-      }
-    });
-    expect(withSatellites.gold).toBeGreaterThan(withoutSatellites.gold);
-    expect(withSatellites.hr).toBeGreaterThan(withoutSatellites.hr);
-  });
-
-  it('adds a Spy Satellite\'s flat techPoints/turn', () => {
-    // A Communications Satellite's DIP/turn is asserted in getPowerIncome's own tests instead —
-    // see that describe block's header comment for why a DIP-pool bonus has to be computed there,
-    // not in calcIncome's generic per-resource income object.
-    const state = createInitialState({ playerNationId: 'fr' });
-    const withSatellites = calcIncome({
-      ...state,
-      satellites: { s2: { id: 's2', ownerId: 'fr', typeId: 'spy' } }
-    });
-    expect(withSatellites.techPoints).toBeGreaterThan(0);
-  });
-
-  it('never counts a rival nation\'s satellites toward the player\'s own income', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const withoutSatellites = calcIncome(state);
-    const withRivalSatellite = calcIncome({ ...state, satellites: { s1: { id: 's1', ownerId: 'de', typeId: 'navigation' } } });
-    expect(withRivalSatellite.gold).toBe(withoutSatellites.gold);
-  });
-
-  it('degrades a satellite\'s bonus under high orbital debris', () => {
-    const state = richer(createInitialState({ playerNationId: 'fr', rngSeed: 1 }));
-    const satellites = { s1: { id: 's1', ownerId: 'fr', typeId: 'navigation' } };
-    const noDebris = calcIncome({ ...state, satellites, orbitalDebrisLevel: 0 });
-    const highDebris = calcIncome({ ...state, satellites, orbitalDebrisLevel: 100 });
-    expect(highDebris.gold).toBeLessThan(noDebris.gold);
-  });
 });
 
 describe('getSupplyCapacity', () => {
@@ -273,7 +230,7 @@ describe('getPowerIncome', () => {
   // M3's ruler/advisor generation adds nonzero adm/dip/mil skill to createInitialState's nations —
   // real for gameplay, but it would make these exact-value assertions depend on the seeded RNG roll
   // for 'fr' specifically. Zero the ruler and clear advisors so this suite still isolates apBonus/
-  // tech/satellite/mission math the way it did before M3.
+  // tech math the way it did before M3.
   const baseState = () => {
     const state = createInitialState({ playerNationId: 'fr' });
     state.nations.fr.ruler = { ...state.nations.fr.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
@@ -315,26 +272,6 @@ describe('getPowerIncome', () => {
     });
     expect(getPowerIncome(state)).toEqual({ adm: 7, dip: 3, mil: 3 }); // 3 base + 2 reforms (adm only) + 2 admBonus (adm only)
   });
-
-  // A recurring DIP bonus (satellite or completed space mission) must be part of getPowerIncome's
-  // OWN return value, not added afterward — resolveTurn.js banks each pool up to 2x whatever this
-  // function returns, so a bonus added only after the fact gets clipped straight back down the
-  // very next turn instead of raising the effective cap along with the income (see this
-  // function's own header comment).
-  it('adds a Communications Satellite\'s DIP/turn to the dip pool only, not adm/mil', () => {
-    const state = { ...baseState(), satellites: { s1: { id: 's1', ownerId: 'fr', typeId: 'communications' } } };
-    expect(getPowerIncome(state)).toEqual({ adm: 3, dip: 8, mil: 3 }); // 3 base + 5 satellite
-  });
-
-  it('adds a completed space mission\'s recurring dipPerTurn reward to the dip pool', () => {
-    const state = { ...baseState(), completedMissions: ['moon_landing'] };
-    expect(getPowerIncome(state).dip).toBe(13); // 3 base + 10 moon_landing dipPerTurn
-  });
-
-  it('never counts a rival nation\'s satellites toward the player\'s own power income', () => {
-    const state = { ...baseState(), satellites: { s1: { id: 's1', ownerId: 'de', typeId: 'communications' } } };
-    expect(getPowerIncome(state).dip).toBe(3);
-  });
 });
 
 // Plan §M20: getPowerBreakdown exposes the real per-source lines behind one getPowerIncome pool, for
@@ -362,22 +299,6 @@ describe('getPowerBreakdown', () => {
     const rows = getPowerBreakdown(state, 'fr', 'adm');
     expect(sumRows(rows)).toBe(getPowerIncome(state).adm);
     expect(rows.length).toBeGreaterThan(1); // Base + at least one real source line, not a flat total
-  });
-
-  it('includes a Satellites row for dip only when the player owns a Communications Satellite', () => {
-    const state = { ...baseState(), satellites: { s1: { id: 's1', ownerId: 'fr', typeId: 'communications' } } };
-    const dipRows = getPowerBreakdown(state, 'fr', 'dip');
-    expect(dipRows.some((r) => r.label === 'Satellites')).toBe(true);
-    expect(sumRows(dipRows)).toBe(getPowerIncome(state).dip);
-    // The same satellite must never leak into adm/mil, which have no satellite-derived source.
-    expect(getPowerBreakdown(state, 'fr', 'adm').some((r) => r.label === 'Satellites')).toBe(false);
-  });
-
-  it('includes a Space Missions row only for dip, matching the mission\'s recurring dipPerTurn', () => {
-    const state = { ...baseState(), completedMissions: ['moon_landing'] };
-    const dipRows = getPowerBreakdown(state, 'fr', 'dip');
-    expect(dipRows.some((r) => r.label === 'Space Missions')).toBe(true);
-    expect(sumRows(dipRows)).toBe(getPowerIncome(state).dip);
   });
 });
 

@@ -42,13 +42,11 @@ import { calcAllNationIncomes, processAIEconomyTurn, settleAIUpkeep, thinksThisT
 import { aiBudgetStep } from './aiBudget';
 import { warBurdenInputs, warExhaustionRise } from './warBurden';
 import { isUnitInBattle } from './invasion';
-import { processAIAbmDefense } from './aiMissiles';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { drainAutoBattles } from './battleQueue';
 import { transferRegion } from './regionTransfer';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { getPlayerRank } from './score';
-import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { REGIONS_DATA, getCapital } from '../data/regions';
 import {
   REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, REBEL_MAX_GROWTH_MULT, getRebelSpawnStrength,
@@ -67,10 +65,8 @@ import { libertyDesireTarget, libertyInputs, nextLibertyDesire } from './vassals
 import { levyUnit, decayDevastation, devastationGrowthPenalty } from './aftermath';
 import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
 import { TAX_RATES } from '../data/taxRates';
-import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import {
-  ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN, ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
-  FUSION_GRID_UPKEEP_HELIUM3_PER_TURN,
+  UNIT_UPKEEP_GOLD_PER_TURN, ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
   DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN, VASSAL_TRIBUTE_RATE, VASSAL_TRIBUTE_GOLD_PER_DEV_POINT,
   RIVAL_ELIMINATED_PRESTIGE_REWARD, CAPITAL_OCCUPIED_STABILITY_PENALTY, CAPITAL_OCCUPIED_POOL_PENALTY,
   ECONOMIC_COLLAPSE_STABILITY_PENALTY,
@@ -339,10 +335,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const powerIncome = getPowerIncome({ ...state, nations: modifierExpiredNations });
   ['adm', 'dip', 'mil'].forEach((pool) => {
     const income = powerIncome[pool];
-    // Reads `resources[pool]` (already `state.resources[pool]` at this point, or that PLUS
-    // this turn's calcIncome addition — e.g. a Communications Satellite's dipPerTurn trickle —
-    // never `state.resources[pool]` directly, or a satellite's contribution would be silently
-    // overwritten by this bank-up step immediately after calcIncome applied it.
+    // Reads `resources[pool]` (`state.resources[pool]` plus this turn's calcIncome addition), never
+    // `state.resources[pool]` directly, or that addition would be overwritten by this bank-up step.
     resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`] = income;
     resources[pool] = Math.min((resources[pool] || 0) + income, POWER_POOL_CAP);
   });
@@ -352,7 +346,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // nation's own territory is subject to) ---
   const regions = { ...state.regions };
   regionDraft = regions;
-  const satellites = state.satellites || {};
   // A nation's whole stability picture, once per owner: its static sources (government, policies,
   // wonders, identity) plus the state-dependent ones (its stability level, low legitimacy, and for
   // the player also overextension, crown land and researched techs like Constitutional Law). The
@@ -381,7 +374,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // Plan §M6: the Culture & Order building line's local.stabilityBonus shaves this region's own
     // unrest, on top of the nation-wide sources (government/policy/traits/stability/overextension).
     const stabilityBonus = nationalStabilityOf(region.owner, owner)
-      + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel)
       + getRegionModifier(state, id, 'local.stabilityBonus').total;
     // A long, bloody war wears on the home front: war exhaustion past 40 pushes unrest up in every
     // province the nation holds, up to +1.5/turn at 100.
@@ -678,7 +670,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:ageOf(state, nId),resources:pool,tileOwner:state.world?.tileOwner,ownedUnits});
       pool.supplies=aiSupply.supplies;
       pool[aiSupply.metalId]=(pool[aiSupply.metalId] || 0)-aiSupply.metalUsed;
-      ['copper', 'iron', 'oil', 'rareMetals', 'helium3'].forEach(key => { pool[key] = (pool[key] || 0) + (income[key] || 0); });
+      ['copper', 'iron', 'oil', 'rareMetals'].forEach(key => { pool[key] = (pool[key] || 0) + (income[key] || 0); });
     }
     // Same flat POWER_POOL_CAP bank the player's own pools use (the maintenanceAndPower phase
     // above) — the old 2x-income cap here kept every AI pool below the cheapest tech's 40 power,
@@ -900,20 +892,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       resources.gold = rawGold;
       nations[playerId] = { ...nations[playerId], disasters: { ...nations[playerId].disasters, economicCollapse: economicCollapseProgress } };
     }
-
-    // Fusion Grid (plan §M11 resource sink): upkeep is deducted every turn while active; going
-    // unpaid takes it offline (sources.js's contextSources only reads this flag for the goldMult
-    // bonus) — the same "disabled when upkeep can't be paid" behavior the plan's own Future-
-    // building resource sinks describe, applied to this standalone action instead (see
-    // types.js's ACTIVATE_FUSION_GRID comment on why no Future building tier exists to hang it on).
-    if (nations[playerId].fusionGridActive) {
-      if ((resources.helium3 || 0) >= FUSION_GRID_UPKEEP_HELIUM3_PER_TURN) {
-        resources.helium3 -= FUSION_GRID_UPKEEP_HELIUM3_PER_TURN;
-      } else {
-        nations[playerId] = { ...nations[playerId], fusionGridActive: false };
-        logs.push({ year: newYear, ...msg('m.turn.fusionOffline'), type: LogTypes.CRISIS });
-      }
-    }
   }
   mark('economy');
 
@@ -1030,12 +1008,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // nations near them; the heat decays and raises their own war roll next turn.
   nationsAfterWars = updateWarHeat(nationsAfterWars, wars, state.turnNumber, { ...state, regions });
   mark('aiWarDeclarations');
-
-  // --- AI ABM defense (plan §M19: "AI builds ABM to level 1-2 when at war with a nuclear power") ---
-  const abmResult = processAIAbmDefense({ ...state, wars }, nationsAfterWars);
-  nationsAfterWars = abmResult.nations;
-  logs.push(...abmResult.logs.map(l => ({ year: newYear, ...l })));
-  mark('aiAbmDefense');
 
   // --- AI war progress (plan §8.5's war-goal resolution): territorial conquest rolls, mutual
   // attrition, and ending a war outright once its goal is met — this is what makes every one of
@@ -1170,26 +1142,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   });
   mark('warExhaustion');
 
-  // --- space mission ladder (plan §10.4 Layer 3): each in-progress mission ticks down one turn;
-  // reaching 0 moves it into completedMissions and applies its one-time reward. Recurring rewards
-  // are read generically from completedMissions every turn by calcIncome instead of being applied
-  // once here, so there's exactly one place that sums them. ---
-  const completedMissions = [...(state.completedMissions || [])];
-  const spaceMissionProgress = {};
-  Object.entries(state.spaceMissionProgress || {}).forEach(([missionId, turnsRemaining]) => {
-    const remaining = turnsRemaining - 1;
-    if (remaining > 0) {
-      spaceMissionProgress[missionId] = remaining;
-      return;
-    }
-    completedMissions.push(missionId);
-    const mission = SPACE_MISSIONS_BY_ID[missionId];
-    if (mission?.oneTimeReward?.gold) resources.gold = (resources.gold || 0) + mission.oneTimeReward.gold;
-    if (mission?.oneTimeReward?.dip) resources.dip = (resources.dip || 0) + mission.oneTimeReward.dip;
-    logs.push({ year: newYear, ...msg('m.turn.missionDone', { mission: thing('mission', missionId, mission?.name || missionId) }), type: LogTypes.MILESTONE });
-  });
-  mark('spaceMissions');
-
   // --- diplomatic leadership streak (plan §10.4's Diplomatic victory) ---
   const alignmentShare = getDiplomaticAlignmentShare({ ...state, nations: nationsAfterWars });
   const diplomaticLeadershipStreak = alignmentShare >= DIPLOMATIC_LEADERSHIP_SHARE ? (state.diplomaticLeadershipStreak || 0) + 1 : 0;
@@ -1229,10 +1181,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
   }
 
-  // --- orbital debris (plan §10.4): decays slowly every turn, whether or not anyone's fighting
-  // over orbit this turn (ASAT_STRIKE, GameContext.jsx, is what raises it) ---
-  const orbitalDebrisLevel = clamp((state.orbitalDebrisLevel || 0) - ORBITAL_DEBRIS_DECAY_PER_TURN, 0, MAX_ORBITAL_DEBRIS);
-  mark('diplomacyStreakEventsAndDebris');
+  mark('diplomacyStreakAndEvents');
 
   // --- assemble next state ---
   let next = {
@@ -1256,9 +1205,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // Raids are not wars: their battles carry no war id and stay (battleQueue.js keepQueued).
     pendingDefenses: [...operations.pendingDefenses, ...(warProgress.pendingDefenses || []), ...raidBattles].filter((d) => keepQueued(d, wars, nationsAfterWars)),
     regionModifiers,
-    orbitalDebrisLevel,
-    spaceMissionProgress,
-    completedMissions,
     diplomaticLeadershipStreak,
     playerEliminatedNationId,
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
@@ -1297,8 +1243,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // Not checked while an event is actively pending, so a victory never lands mid-event-resolution.
   // Plan §M18: "Remove the free win... at END_YEAR the game ends with a Final Score screen ranking
   // the player against the top 10 nations... 'Victory' if the player ranks #1; otherwise 'Game
-  // Complete — Rank N'." An ambition (domination/conqueror/economicHegemony/diplomatic/
-  // spaceAscendancy) can still win outright at ANY year — only reaching the calendar's own end
+  // Complete — Rank N'." An ambition (domination/conqueror/economicHegemony/diplomatic)
+  // can still win outright at ANY year — only reaching the calendar's own end
   // with no ambition met routes through this ranked step instead of an automatic win.
   if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer) {
     const conditionId = checkVictoryConditions(next);
