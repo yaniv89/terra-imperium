@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { metNations } from '../../engine/fog';
 import { isIndependentNation } from '../../data/independents';
-import { newContacts, contactCard, moodWord } from './firstContactModel';
+import { newContacts, contactCard, moodWord, contactQueue } from './firstContactModel';
 
 const base = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
 const me = base.playerNationId;
@@ -28,6 +28,16 @@ describe('first contact (W03)', () => {
     expect(card.citiesSeen).toBeGreaterThanOrEqual(0);
     expect(card.border).toBeGreaterThanOrEqual(0);
     expect(contactCard(base, 'nobody')).toBeNull();
+  });
+
+  it('queues a card for the turn of contact and drops stale ones (H-21)', () => {
+    let q = contactQueue([], ['a', 'b'], 13);
+    expect(q).toEqual([{ id: 'a', turn: 13 }, { id: 'b', turn: 13 }]);
+    q = contactQueue(q, ['c'], 13);
+    expect(q.map((c) => c.id)).toEqual(['a', 'b', 'c']);
+    q = contactQueue(q, ['d'], 14);
+    expect(q).toEqual([{ id: 'd', turn: 14 }]);
+    expect(contactQueue(q, ['d'], 14)).toEqual([{ id: 'd', turn: 14 }]);
   });
 
   it('names the mood in bands', () => {
