@@ -488,7 +488,7 @@ export const settleRaidBattle = (state, def, { raidersWon }) => {
  * battle's result (resolveBattle's shape, sanitized) or null for Auto. Through the outcome
  * service, then the raid carries on (settleRaidBattle). `opts`: { mode, xpBonusById }.
  */
-export const resolveRaidBattle = (state, def, battle = null, { mode = 'auto', xpBonusById = null } = {}) => {
+export const resolveRaidBattle = (state, def, battle = null, { mode = 'auto', xpBonusById = null, from = null } = {}) => {
   const drop = { ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => d.id !== def.id) };
   const armies = queuedRaidArmies(state, def);
   // The party is gone (or made peace): no battle; the raid gives up.
@@ -496,7 +496,7 @@ export const resolveRaidBattle = (state, def, battle = null, { mode = 'auto', xp
   // The defenders left the field (and no town to stand in): the raiders get through unopposed.
   if (!armies.defenderUnits.length && def.kind !== 'sack') return settleRaidBattle(drop, def, { raidersWon: true });
   const spec = raidSpecOf(state, def, armies);
-  const fought = battle || fightRaidAuto(state, spec, createRng(def.seed));
+  const fought = battle || fightRaidAuto(state, from ? { ...spec, from } : spec, createRng(def.seed));
   const outcome = raidOutcome(state, spec, fought, { id: def.id, defenseId: def.id, mode, viewerId: state.playerNationId, rngSeed: state.rngSeed, xpBonusById });
   const next = applyBattleOutcome(state, outcome);
   if (next === state) return drop;

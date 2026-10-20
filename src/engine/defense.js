@@ -146,7 +146,7 @@ export const getDefenseBattleContext = (state, def) => {
 
 // The honest auto-resolve (autoBattle.js) with the same inputs as the commanded defence: the
 // city's militia beside the garrison, supply, starvation, plague, the walls' remaining HP.
-export const autoResolveDefense = (state, def) => {
+export const autoResolveDefense = (state, def, from = null) => {
   const armies = getDefenseArmies(state, def);
   const ctx = getDefenseBattleContext(state, def);
   return resolveAutoBattle(state, {
@@ -158,7 +158,7 @@ export const autoResolveDefense = (state, def) => {
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     defenderDamageReductionMultiplier: ctx.defenderDamageReductionMultiplier
-  }, { kind: 'defense', cityId: def.regionId, fromRegionId: def.fromRegionId }, createRng(def.seed));
+  }, { kind: 'defense', cityId: def.regionId, fromRegionId: def.fromRegionId, from }, createRng(def.seed));
 };
 
 const sumStrength = (units) => units.reduce((s, u) => s + Math.max(0, u.strength), 0);
@@ -196,7 +196,8 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
 };
 
 // Auto-resolves one queued defense (or all of them) into the log.
-export const resolveDefenseAuto = (state, defId) => {
+// `from` (battleSwitch.js): a commanded defence switched to Auto part-way; Auto goes on from there.
+export const resolveDefenseAuto = (state, defId, { from = null } = {}) => {
   const def = (state.pendingDefenses || []).find((d) => d.id === defId);
   if (!def) return state;
   const armies = getDefenseArmies(state, def);
@@ -210,7 +211,7 @@ export const resolveDefenseAuto = (state, defId) => {
       report: { log: [], deployedAttackerIds: [], deployedDefenderIds: [] }
     });
   }
-  const battle = autoResolveDefense(state, def);
+  const battle = autoResolveDefense(state, def, from);
   const pressure = getAssaultPressure(battle, { attacker: sumStrength(armies.attackerUnits), defender: sumStrength(armies.defenderUnits) + sumStrength(battle.inputs.militia) });
   return applyDefenseResult(state, def, battle, { pressure, mode: 'auto', militia: battle.inputs.militia });
 };

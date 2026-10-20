@@ -56,6 +56,16 @@ export const replayBattle = (setup, log) => {
   return { result, hash, chain, tick: world.tick, orders: orders.length, dropped, truncated };
 };
 
+// Replays a recorded battle only up to `untilTick` (a battle switched to Auto there,
+// src/engine/battleSwitch.js): the world as it stood at that tick, its hash, and the result read
+// from it (sim/result.js on an unfinished world: every squad's strength, morale and whether it is
+// dead, fled or still fighting). Orders stamped at `untilTick` itself were not yet applied live.
+export const replayUntil = (setup, log, untilTick) => {
+  const { orders, dropped, truncated } = auditOrderLog(log, playerSideOf(setup));
+  const { result, hash, chain, world } = runHeadless(setup, { orders, maxTicks: Math.max(0, Math.trunc(untilTick)) });
+  return { result, hash, chain, world, tick: world.tick, orders: orders.length, dropped, truncated };
+};
+
 // Verify only the last segment of a long battle (plans/rts-world-review.md section 3): continue a
 // TRUSTED snapshot of the world (a structuredClone taken at a checkpoint, carrying its hash chain)
 // with the logged orders from its tick on, up to `untilTick` or the end. The returned chain must

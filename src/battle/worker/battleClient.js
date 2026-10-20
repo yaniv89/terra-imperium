@@ -37,6 +37,7 @@ const createInlineBackend = (onMessage) => {
     pause: () => loop?.setPaused(true),
     resume: () => loop?.setPaused(false),
     speed: (s) => loop?.setSpeed(s),
+    snapshot: () => guard('snapshot', () => loop?.snapshot()),
     stop: () => { cancelAnimationFrame(raf); loop = null; }
   };
 };
@@ -52,6 +53,7 @@ const createWorkerBackend = (onMessage, { fresh = false } = {}) => {
     pause: () => h.post({ type: 'pause' }),
     resume: () => h.post({ type: 'resume' }),
     speed: (speed) => h.post({ type: 'speed', speed }),
+    snapshot: () => h.post({ type: 'snapshot' }),
     stop: () => { h.post({ type: 'stop' }); h.terminate(); }
   };
 };
@@ -133,6 +135,8 @@ export const createBattleClient = ({
     pause: () => backend?.pause(),
     resume: () => backend?.resume(),
     setSpeed: (s) => backend?.speed(s),
+    /** Ask for the battle as it stands: answered by a { type: 'snapshot', tick, hash, chain, log } message. */
+    snapshot: () => backend?.snapshot?.(),
     destroy: () => { destroyed = true; disarm(); try { backend?.stop(); } catch { /* gone */ } }
   };
 };

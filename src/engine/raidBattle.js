@@ -63,7 +63,7 @@ export const raidMilitia = (state, b) => (b.kind === 'sack' ? cityMilitia(state,
 export const fightRaidAuto = (state, b, rng) => {
   const ctx = raidBattleContext(state, b);
   const cityId = b.kind === 'sack' ? (b.cityId ?? b.city?.id ?? null) : null;
-  return resolveAutoBattle(state, { attackerUnits: b.attackerUnits, defenderUnits: b.defenderUnits, ...ctx }, { kind: b.kind, cityId, militia: b.militia ?? null }, rng);
+  return resolveAutoBattle(state, { attackerUnits: b.attackerUnits, defenderUnits: b.defenderUnits, ...ctx }, { kind: b.kind, cityId, militia: b.militia ?? null, from: b.from ?? null }, rng);
 };
 
 /** Where a raid battle is anchored on the map: the sacked city, else the city whose land the tile is (or the defenders' base). */
