@@ -97,6 +97,11 @@ describe('unit model registry', () => {
     expect(battleModelPairs(setup).map((p) => p.join(':')).sort()).toEqual(['bronze:cavalry', 'bronze:infantry', 'bronze:ranged', 'kingdoms:infantry']);
   });
 
+  it('adds the age\'s cavalry for a side with a general (its guard rides cavalry)', () => {
+    const led = { sides: [{ ageId: 'gunpowder', units: [{ classId: 'infantry', commanderId: 'g1' }] }] };
+    expect(battleModelPairs(led).map((p) => p.join(':')).sort()).toEqual(['gunpowder:cavalry', 'gunpowder:infantry']);
+  });
+
   it('resolves every age\'s set (Bronze to Modern) to its delivered GLBs, the Modern jet included (the old recipes stay disabled)', () => {
     // Waves 1, 3, 4, 5 and 6 (plans/ART-MODELS-PLAN.md): src/assets/units/<age>-<class>.glb with an enabling JSON
     ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege', 'support', 'worker'].forEach((cls) => {

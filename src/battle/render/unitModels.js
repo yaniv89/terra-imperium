@@ -89,6 +89,10 @@ export const battleModelPairs = (setup) => {
   (setup?.sides || []).forEach((sd) => [...(sd.units || []), ...(sd.reinforcements || [])].forEach((u) => {
     if (u?.classId && u.classId !== 'naval') seen.add(`${u.ageId || sd.ageId}:${u.classId}`);
   }));
+  // A general's guard (sim/world.js spawnGenerals) is a cavalry squad, also in an army with no cavalry.
+  (setup?.sides || []).forEach((sd) => {
+    if ([...(sd.units || []), ...(sd.reinforcements || [])].some((u) => u?.commanderId)) seen.add(`${sd.ageId}:cavalry`);
+  });
   // With a battle economy every class the side can train (workers too) may take the field.
   if (setup?.economy) (setup.sides || []).forEach((sd) => trainableRoles(sd.ageId).forEach((c) => seen.add(`${sd.ageId}:${c}`)));
   return [...seen].map((k) => k.split(':'));
