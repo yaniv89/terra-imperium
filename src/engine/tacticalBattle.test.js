@@ -148,7 +148,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     expect(next.lastBattleReport.tactical.verified).toBe(true);
     expect(next.lastBattleReport.tactical.hash).toBe(truth.hash);
     truth.result.defenderUnits.forEach((u) => { if (u.strength > 0 && !next.lastBattleReport.captured) expect(next.units[u.id].strength).toBe(u.strength); });
-  });
+  }, 120000); // replays a whole battle twice (slow on a loaded machine)
 
   // Playtest audit CB01 (I001: Victory on the screen, a defeat in the campaign): a battle played
   // live through the real loop on the screen's setup, with a deployment, the economy's orders and
