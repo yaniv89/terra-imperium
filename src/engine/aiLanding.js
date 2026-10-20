@@ -69,10 +69,10 @@ export const interceptArgs = (state, def, armies) => ({
 });
 
 /** Fight (or apply) the interception: `battle` is the commanded result or null for Auto. */
-export const resolveInterceptQueued = (state, def, battle = null, { mode = 'auto', xpBonusById = null } = {}) => {
+export const resolveInterceptQueued = (state, def, battle = null, { mode = 'auto', xpBonusById = null, from = null } = {}) => {
   const armies = interceptArmies(state, def);
   if (!armies) return drop(state, def.id); // the transport is gone, or nothing stands in its way
-  const fought = battle || resolveAutoBattle(state, interceptArgs(state, def, armies), { kind: 'lane' }, createRng(def.seed));
+  const fought = battle || resolveAutoBattle(state, interceptArgs(state, def, armies), { kind: 'lane', from }, createRng(def.seed));
   const sunk = fought.outcome !== 'attacker';
   const result = sunk ? { ...fought, attackerUnits: fought.attackerUnits.map((u) => (u.id === def.navalUnitId ? { ...u, strength: 0 } : u)) } : fought;
   const meta = { id: def.id, defenseId: def.id, kind: 'lane', mode, warId: def.warId, attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, viewerId: state.playerNationId, fromRegionId: def.fromRegionId, regionId: def.regionId, attackerStart: armies.attackerUnits, defenderStart: armies.defenderUnits, xpBonusById, rngSeed: state.rngSeed };
@@ -101,10 +101,10 @@ export const landingArmies = (state, def) => {
 export const landingArgs = (state, def, armies) => ({ attackerUnits: armies.attackerUnits, defenderUnits: armies.defenderUnits, ...getAmphibiousBattleContext(viewOf(state, def.aggressorId), armies.v, armies.defenderUnits) });
 
 /** Fight (or apply) the landing: `battle` is the commanded result or null for Auto. */
-export const resolveLandingQueued = (state, def, battle = null, { mode = 'auto', decisive = false, xpBonusById = null } = {}) => {
+export const resolveLandingQueued = (state, def, battle = null, { mode = 'auto', decisive = false, xpBonusById = null, from = null } = {}) => {
   const armies = landingArmies(state, def);
   if (!armies) return drop(state, def.id); // the fleet sank, peace came, or the city changed hands
-  const fought = battle || resolveAutoBattle(state, landingArgs(state, def, armies), { kind: 'landing', cityId: def.regionId, fromRegionId: def.fromRegionId, militia: def.militia || null }, createRng(def.seed));
+  const fought = battle || resolveAutoBattle(state, landingArgs(state, def, armies), { kind: 'landing', cityId: def.regionId, fromRegionId: def.fromRegionId, militia: def.militia || null, from }, createRng(def.seed));
   const { v } = armies;
   const next = applyAmphibiousLanding(state, { navalUnitId: def.navalUnitId, fromRegionId: def.fromRegionId, targetRegionId: def.regionId, war: v.war, targetRegion: v.targetRegion, isDefended: armies.defenderUnits.length > 0 }, fought, {
     rngSeed: state.rngSeed, id: def.id, defenseId: def.id, attackerNationId: def.aggressorId, viewerId: state.playerNationId, mode, decisive, xpBonusById, militia: fought.inputs?.militia || def.militia || []

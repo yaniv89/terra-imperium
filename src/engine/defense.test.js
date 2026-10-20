@@ -13,7 +13,9 @@ import { ActionTypes } from '../data/types';
 import { resolveWarProgress } from './diplomacy';
 import { resolveTurn } from './resolveTurn';
 import { resolveBattle } from './battle';
-import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
+import { buildInvasionSetup, buildCommandedSetup, setupKeyOf, SETUP_VERSION } from '../battle/setup/buildBattleSetup';
+import { createBattleLoop } from '../battle/worker/battleLoop';
+import { ledgerOf, conserved } from './battleLedger';
 import { runHeadless } from '../battle/sim/headless';
 import { getDefenseLevelDamageReductionMultiplier, SIEGE_CONTROL_DAMAGE } from './siege';
 import { createRng } from '../utils/rng';
@@ -174,6 +176,36 @@ describe('consequences', () => {
 });
 
 describe('commanded defense', () => {
+  // H-01: Switch to Auto part-way through a commanded defence goes on from the battle as it stood
+  // (the queued battle's own Auto, given the replayed state: battleQueue.js resolveQueuedAuto).
+  it('Switch to Auto part-way: nobody ends stronger than at the switch, the ledger balances, the report says so', () => {
+    const s = withDefense();
+    const def = s.pendingDefenses[0];
+    const started = gameReducer(s, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
+    const setup = buildCommandedSetup(started, started.pendingBattle);
+    const messages = [];
+    const loop = createBattleLoop({ setup, post: (m) => messages.push(m) });
+    const w = loop.world;
+    const lost = (side) => w.squads.filter((q) => q.side === side && !q.eco).reduce((a, q) => a + (q.startStrength - Math.max(0, q.strength)), 0);
+    let now = 0;
+    for (let f = 0; f < 200000 && !w.ended && !(lost(0) > 0 && lost(1) > 0 && w.tick > 400); f++) { now += 50; loop.frame(now); }
+    expect(w.ended).toBeFalsy();
+    loop.snapshot();
+    const snap = messages.find((m) => m.type === 'snapshot');
+    const at = {};
+    w.squads.filter((q) => !q.eco).forEach((q) => { at[q.unitId] = q.alive ? Math.max(0, q.strength) : 0; });
+    const next = gameReducer(started, { type: ActionTypes.ABANDON_TACTICAL_BATTLE, payload: { switchAt: { log: snap.log, tick: snap.tick, hash: snap.hash, setupKey: setupKeyOf(setup), setupVersion: SETUP_VERSION } } });
+    expect(next.pendingBattle).toBeNull();
+    expect(next.pendingDefenses).toHaveLength(0);
+    ['g1', 'g2'].forEach((id) => expect(next.units[id]?.strength ?? 0, id).toBeLessThanOrEqual(at[id]));
+    const entry = next.battleReports[0];
+    expect(entry.switchedAtSec).toBe(Math.round(snap.tick / 20));
+    expect(entry.verification).toBe('verified');
+    entry.sides.attacker.forEach((u) => expect(Math.max(0, u.after), u.id).toBeLessThanOrEqual(at[u.id] ?? u.before));
+    const ledger = ledgerOf(entry);
+    [ledger.mine, ledger.theirs].forEach((t) => expect(conserved(t)).toBe(true));
+  }, 120000);
+
   it('BEGIN opens a battle with the player defending; a real headless battle resolves it end to end', () => {
     const s = withDefense();
     const def = s.pendingDefenses[0];

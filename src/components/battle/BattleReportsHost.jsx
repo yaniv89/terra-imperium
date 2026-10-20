@@ -25,7 +25,7 @@ const BattleReportsHost = ({ onShowRegion }) => {
     if (top === seenRef.current) return;
     const seenAt = reports.findIndex((r) => r.id === seenRef.current);
     const news = seenAt === -1 ? reports : reports.slice(0, seenAt);
-    const fresh = news.filter((r) => !r.commanded && timelineFor(r).length > 0);
+    const fresh = news.filter((r) => (!r.commanded || r.switchedAtSec != null) && timelineFor(r).length > 0);
     seenRef.current = top;
     if (fresh.length && !state.battleSettings?.instantBattles && !state.pendingBattle) setReplay([...fresh].reverse());
     // DEF-01: a Command the screen had to settle on Auto is never silent, even with no rounds to replay.

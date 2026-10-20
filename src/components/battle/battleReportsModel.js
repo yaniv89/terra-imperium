@@ -29,6 +29,9 @@ export const filterReports = (reports = [], filter = 'all') => reports.filter((e
   return true;
 });
 
+/** How the battle was fought: Command, Auto, or Command then Auto (a switch part-way, H-01). */
+export const modeText = (e) => (e.switchedAtSec != null ? t('bt.rep.modeSwitched') : e.commanded ? t('bt.rep.modeCommand') : t('bt.rep.modeAuto'));
+
 /** The result word from your side and its tone. */
 export const resultOf = (e) => {
   if (e.outcome === 'stalemate') return { label: t('bt.rep.res.stalemate'), tone: 'draw' };
@@ -54,7 +57,7 @@ export const reportRow = (state, e) => {
     name: battleTitle(state, e),
     group: reportGroup(e),
     when: t('bt.rep.when', { turn: e.turn, year: yearText(e.year) }),
-    mode: e.commanded ? t('bt.rep.modeCommand') : t('bt.rep.modeAuto'),
+    mode: modeText(e),
     result: resultOf(e),
     losses: `-${men(e.fallen?.[mine])} / -${men(e.fallen?.[theirs])}`
   };
@@ -88,7 +91,7 @@ export const detailFor = (all, shown, pickedId) => {
  */
 export const replayFooter = (e, canReplay, oneRound) => {
   if (oneRound) return t('bt.rep.footer.oneRound');
-  if (e.commanded) return canReplay ? t('bt.rep.footer.cmdReplay') : t('bt.rep.footer.cmdNoReplay');
+  if (e.commanded && e.switchedAtSec == null) return canReplay ? t('bt.rep.footer.cmdReplay') : t('bt.rep.footer.cmdNoReplay');
   return canReplay ? t('bt.rep.footer.autoReplay') : t('bt.rep.footer.autoNone');
 };
 
@@ -107,7 +110,7 @@ export const reportDetail = (state, e) => {
   const rounds = e.rounds ?? Math.max(0, timelineFor(e).filter((p) => !p.pursuit).length - 1);
   return {
     ...reportRow(state, e),
-    who: t(e.terrain ? 'bt.rep.whoTerrain' : 'bt.rep.who', { side: e.playerSide === 'attacker' ? t('bt.rep.youAttacked') : t('bt.rep.youDefended'), mode: e.commanded ? t('bt.rep.modeCommand') : t('bt.rep.modeAuto'), terrain: e.terrain ? terrainWord(e.terrain) : '' }),
+    who: t(e.terrain ? 'bt.rep.whoTerrain' : 'bt.rep.who', { side: e.playerSide === 'attacker' ? t('bt.rep.youAttacked') : t('bt.rep.youDefended'), mode: modeText(e), terrain: e.terrain ? terrainWord(e.terrain) : '' }),
     yours: { name: nationName(state, myNation), in: men(sideMen(e, mine)), lost: men(e.fallen?.[mine]) },
     theirs: { name: nationName(state, theirNation), in: men(sideMen(e, theirs)), lost: men(e.fallen?.[theirs]) },
     summary: t('bt.rep.summary', { outcome: outcome.text, theirs: destroyed ? t('bt.rep.destroyedTheirs.some', { n: destroyed }) : t('bt.rep.destroyedTheirs.zero'), yours: lostUnits ? t('bt.rep.lostYours.some', { n: lostUnits }) : t('bt.rep.lostYours.zero'), fled }),

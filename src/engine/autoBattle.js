@@ -31,6 +31,8 @@
 //                the winner has cavalry to pursue), else it is 'field' (still on the field: destroyed);
 //                a loser still unbroken at the end withdraws by an exit ('fled'). The same rule as a
 //                commanded battle's dispositions (src/battle/sim/result.js).
+//   a switch     a commanded battle switched to Auto part-way (H-01, battleSwitch.js) goes on from
+//                the battle as it stood: continueFrom (strengths, the dead, the walls' HP share)
 // Deterministic: every roll comes from the caller's rng, after resolveBattle's own. Pure.
 import { resolveBattle, MAX_BATTLE_ROUNDS } from './battle';
 import { battleInputs, batteredReduction } from './battleInputs';
@@ -149,17 +151,84 @@ export const autoDispositions = (battle, rng) => {
   return { ...battle, attackerUnits: mark(battle.attackerUnits, 'attacker'), defenderUnits: mark(battle.defenderUnits, 'defender') };
 };
 
+const cityOfSpec = (spec) => {
+  const kind = spec?.kind || 'invasion';
+  const naval = kind === 'naval' || !!spec?.naval;
+  return { kind, naval, cityId: naval || kind === 'field' ? null : spec?.cityId ?? null };
+};
+const inputsOf = (state, args, spec) => {
+  const { naval, cityId } = cityOfSpec(spec);
+  return battleInputs(state, { attackerUnits: args.attackerUnits, defenderUnits: args.defenderUnits, cityId, fromRegionId: spec?.fromRegionId ?? null, naval, militia: spec?.militia ?? null });
+};
+
+/**
+ * The inputs of a battle switched to Auto part-way (battleSwitch.js): each regiment at its strength
+ * and morale at the switch (never more than it came with), the dead and the ones that left by an
+ * exit set aside (they fight no more and come back in the result as they were), the walls at the
+ * HP share they still had. Returns { ins, aside: [attacker, defender] }.
+ */
+export const continueFrom = (ins, from) => {
+  const aside = [[], []];
+  const shape = (list, side) => list.flatMap((u) => {
+    const at = from.units?.[u.id];
+    if (!at) return [u];
+    if (at.disposition === 'dead' || !(at.strength > 0)) { aside[side].push({ ...u, strength: 0, morale: 0, routed: false, disposition: 'dead' }); return []; }
+    const strength = Math.min(u.strength, Math.round(at.strength));
+    if (at.disposition === 'fled') { aside[side].push({ ...u, strength, morale: at.morale, routed: true, disposition: 'fled' }); return []; }
+    return [{ ...u, strength, morale: at.morale }];
+  });
+  const defenderUnits = shape(ins.defenderUnits, 1);
+  return {
+    ins: { ...ins, attackerUnits: shape(ins.attackerUnits, 0), defenderUnits, militia: defenderUnits.filter((u) => u.militia), hpRatio: (ins.hpRatio ?? 1) * Math.max(0, Math.min(1, from.wallsShare ?? 1)) },
+    aside
+  };
+};
+
+const mergeDamage = (a, b) => {
+  if (!a && !b) return null;
+  const destroyed = [...new Set([...(a?.destroyed || []), ...(b?.destroyed || [])])];
+  const damaged = [...new Set([...(a?.damaged || []), ...(b?.damaged || [])])].filter((id) => !destroyed.includes(id));
+  return { destroyed, damaged };
+};
+
 /**
  * Fight a battle on Auto. `args`: resolveBattle's arguments from the kind's context (invasion.js,
  * fieldBattle.js, navalBattle.js, defense.js) without the rng; `spec`: { kind, cityId,
- * fromRegionId, naval, militia } for battleInputs; `inputs` (optional) when the caller already
- * computed them. Returns resolveBattle's shape plus `inputs` (the militia among them).
+ * fromRegionId, naval, militia, from } for battleInputs; `inputs` (optional) when the caller already
+ * computed them. `spec.from` (battleSwitch.js switchedBattleState): a commanded battle switched to
+ * Auto, which goes on from the battle as it stood (continueFrom); its result keeps the commanded
+ * part (`report.tactical.mode` 'switched': the time of the switch, how the replay checked, the
+ * powers spent, what was burned). Returns resolveBattle's shape plus `inputs` (the militia among them).
  */
 export const resolveAutoBattle = (state, args, spec, rng, inputs = null) => {
-  const kind = spec?.kind || 'invasion';
-  const naval = kind === 'naval' || !!spec?.naval;
-  const cityId = naval || kind === 'field' ? null : spec?.cityId ?? null;
-  const ins = inputs || battleInputs(state, { attackerUnits: args.attackerUnits, defenderUnits: args.defenderUnits, cityId, fromRegionId: spec?.fromRegionId ?? null, naval, militia: spec?.militia ?? null });
+  const from = spec?.from || null;
+  if (!from) return autoBattleOf(state, args, spec, rng, inputs);
+  // Reinforcements that had marched in are in the battle: they fight on.
+  const withJoined = (list, ids = []) => [...list, ...ids.filter((id) => !list.some((u) => u.id === id)).map((id) => state.units?.[id]).filter((u) => u && u.strength > 0)];
+  const all = { ...args, attackerUnits: withJoined(args.attackerUnits, from.joined?.[0]), defenderUnits: withJoined(args.defenderUnits, from.joined?.[1]) };
+  const start = inputs || inputsOf(state, all, spec);
+  const { ins, aside } = continueFrom(start, from);
+  const fought = autoBattleOf(state, all, spec, rng, ins);
+  const report = fought.report || {};
+  const cityDamage = mergeDamage(from.cityDamage, report.cityDamage);
+  const tactical = {
+    mode: 'switched', switchedAtSec: from.atSec, switchedAtTick: from.tick,
+    verified: from.verification?.status === 'verified', verification: from.verification || null,
+    powersUsed: from.powersUsed || null, razed: from.razed || [], ...(cityDamage ? { cityDamage } : {})
+  };
+  return {
+    ...fought,
+    attackerUnits: [...fought.attackerUnits, ...aside[0]],
+    defenderUnits: [...fought.defenderUnits, ...aside[1]],
+    report: { ...report, ...(cityDamage ? { cityDamage } : {}), tactical },
+    // The militia as it came in: its dead before the switch are the city's people too (aftermath.js).
+    inputs: { ...fought.inputs, militia: start.militia }
+  };
+};
+
+const autoBattleOf = (state, args, spec, rng, inputs) => {
+  const { kind, cityId } = cityOfSpec(spec);
+  const ins = inputs || inputsOf(state, args, spec);
   // Auto against a city works like Civilization (cityAssault.js): with units in it, Auto fights them
   // first and never takes the city (garrisonFirst); with none, the attack is against the city
   // itself, its HP, walls, size and militia, and it falls when an attack brings its HP to 0.

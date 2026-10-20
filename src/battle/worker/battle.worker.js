@@ -52,6 +52,7 @@ const handle = (data, createBattleLoop) => {
     case 'pause': loop?.setPaused(true); break;
     case 'resume': loop?.setPaused(false); break;
     case 'speed': loop?.setSpeed(data.speed); break;
+    case 'snapshot': loop?.snapshot(); break;
     case 'stop': clearTimeout(timer); loop = null; break;
     default:
   }

@@ -86,12 +86,19 @@ const TacticalBattleHost = () => {
   if (!pb) return null;
   const abandon = (reason = null) => { clearBattleCheckpoint(pb.id); dispatch({ type: ActionTypes.ABANDON_TACTICAL_BATTLE, payload: typeof reason === 'string' ? { reason } : undefined }); };
   const retry = () => { clearBattleCheckpoint(pb.id); setAttempt((a) => a + 1); };
+  // Switch to Auto part-way (H-01): the battle as it stands (the worker's snapshot, or a saved
+  // checkpoint) goes with the action, and Auto goes on from there (src/engine/battleSwitch.js).
+  const switchAuto = (snap) => {
+    clearBattleCheckpoint(pb.id);
+    const switchAt = snap?.log ? { log: snap.log, tick: snap.tick, hash: snap.hash ?? null, setupKey: setup ? setupKeyOf(setup) : null, setupVersion: SETUP_VERSION } : undefined;
+    dispatch({ type: ActionTypes.ABANDON_TACTICAL_BATTLE, payload: switchAt ? { switchAt } : undefined });
+  };
   if (built.error) {
     return <BattleFailure title={tNow('bt.host.setupTitle')} message={tNow('bt.host.setupMessage')} detail={built.error} onAuto={() => abandon('setup_error')} onRetry={retry} />;
   }
   if (!setup || problem || resume === undefined) return null;
   if (afterCrash) {
-    return <BattleFailure title={tNow('bt.host.crashTitle')} message={tNow('bt.host.crashMessage')} retryLabel={tNow('bt.host.resume')} onAuto={() => abandon()} onRetry={() => setAfterCrash(false)} />;
+    return <BattleFailure title={tNow('bt.host.crashTitle')} message={tNow('bt.host.crashMessage')} retryLabel={tNow('bt.host.resume')} onAuto={() => switchAuto(resume)} onRetry={() => setAfterCrash(false)} />;
   }
   const setupKey = setupKeyOf(setup);
   // The live battle's own end record goes with the log (battleVerify.js): the rules it ran under,
@@ -118,6 +125,7 @@ const TacticalBattleHost = () => {
         onCheckpoint={(cp) => saveBattleCheckpoint(pb.id, { ...cp, setupVersion: SETUP_VERSION, setupKey, savedAt: Date.now() })}
         onFinish={finish}
         onAbandon={abandon}
+        onSwitchAuto={switchAuto}
         onRetry={retry}
         getCampaign={getCampaign}
         getReceipt={getReceipt}
