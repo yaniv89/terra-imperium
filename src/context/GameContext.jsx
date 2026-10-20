@@ -12,6 +12,7 @@ import { loadMeta, saveMeta } from '../utils/metaProgression';
 // they're importable, unmodified, from a server-authoritative context too — re-exported here so
 // every existing `from '../context/GameContext'` import site keeps working unchanged.
 import { createInitialState, gameReducer } from '../engine/gameReducer';
+import { syncWorldRegistry } from '../engine/world/registry';
 import { migrateSave, CURRENT_SAVE_VERSION, saveProblem } from '../engine/saveMigrations';
 import { runTurnInWorker, turnWorkerAvailable } from '../services/turnClient';
 import { soundsForTransition } from '../audio/worldSounds';
@@ -103,7 +104,12 @@ const placeholderState = () => {
   return createInitialState({ playerNationId: 'akkad', rngSeed: 1, scenario: { mode: 'peoples', size: 'small', seed: 1, map: spec } });
 };
 
-const loadOrCreateState = () => {
+// The first state of the page is never dispatched through the reducer, so the city registry (the
+// old static readers: REGIONS_DATA, income, forecast) is synced here, or the HUD forecast reads a
+// stale registry until the first action (mobile audit H-23).
+export const loadOrCreateState = () => syncWorldRegistry(readOrCreateState());
+
+const readOrCreateState = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return placeholderState();
