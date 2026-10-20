@@ -242,7 +242,7 @@ export const moveSquads = (w) => {
         if (q.order.facing !== undefined) q.facing = q.order.facing;
         q.anchorX = q.x; q.anchorY = q.y;
         const { type, x: gx, y: gy } = q.order;
-        q.order = { type: 'idle' };
+        q.order = q.path?.length ? { type: 'move', ...q.path.shift() } : { type: 'idle' }; // U38: next drawn waypoint
         if (type === 'attackMove' && q.target < 0) continueAssault(w, q, CONTINUE_NEAR, gx, gy); // ended in their base: raze on (H-26)
       }
       return;

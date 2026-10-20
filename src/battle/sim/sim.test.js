@@ -8,6 +8,8 @@ import { buildSetupFromArmies } from '../setup/buildBattleSetup';
 import { runHeadless } from './headless';
 import { createWorld, deployZone } from './world';
 import { step } from './step';
+import { applyOrder } from './orders';
+import { replayBattle } from './replay';
 import { buildSpatialHash } from './pathing';
 import { updateAssimilation, ASSIMILATION_TICKS } from './objectives';
 import { Q } from './constants';
@@ -57,6 +59,25 @@ describe('tactical sim determinism', () => {
       expect(two.hash).toBe(one.hash);
       expect(two.result).toEqual(one.result);
     }
+  });
+
+  it('movePath walks the drawn waypoints in turn, and replays identically (U38)', () => {
+    const s0 = setup({ controllers: ['player', 'ai'] });
+    const q0 = createWorld(s0).squads[0];
+    const path = [{ x: q0.x + 6 * Q, y: q0.y }, { x: q0.x + 6 * Q, y: q0.y + 8 * Q }, { x: q0.x + 12 * Q, y: q0.y + 8 * Q }];
+    const orders = [{ tick: 2, side: 0, type: 'movePath', squads: [0], path, seq: 1 }];
+    const seen = [];
+    const w = createWorld(setup({ controllers: ['player', 'ai'] }));
+    orders.forEach((o) => applyOrder(w, o));
+    expect(w.squads[0].path).toHaveLength(2);
+    for (let t = 0; t < 900 && w.squads[0].order.type !== 'idle'; t++) { step(w); const o = w.squads[0].order; if (o.type === 'move' && seen[seen.length - 1] !== o.y + ':' + o.x) seen.push(o.y + ':' + o.x); }
+    expect(seen).toEqual(path.map((p) => p.y + ':' + p.x));
+    const a = runHeadless(setup({ controllers: ['player', 'ai'] }), { orders, checkpointEvery: 100 });
+    const b = runHeadless(setup({ controllers: ['player', 'ai'] }), { orders, checkpointEvery: 100 });
+    expect(b.checkpoints).toEqual(a.checkpoints);
+    const rep = replayBattle(setup({ controllers: ['player', 'ai'] }), orders);
+    expect(rep.dropped).toBe(0);
+    expect(rep.hash).toBe(a.hash);
   });
 
   it('replays player orders from a log identically', () => {

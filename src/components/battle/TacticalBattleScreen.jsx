@@ -19,6 +19,7 @@ import BattleFailure from './BattleFailure';
 import BattleLoading, { workingOn } from './BattleLoading';
 import { createStartWatch } from '../../battle/worker/startWatch';
 import { ABILITIES } from '../../battle/sim/effects';
+import { MAX_PATH_POINTS } from '../../battle/sim/orderSchema';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
 import { startBattleMusic } from '../../audio/music';
@@ -164,6 +165,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [selectMode, setSelectMode] = useState(false);
   const selectModeRef = useRef(false);
   const setSelectModeOn = useCallback((on) => { selectModeRef.current = on; setSelectMode(on); }, []);
+  // U38: Path mode (the HUD's Path button): a finger draws a route the selected squads walk in turn.
+  const [pathMode, setPathMode] = useState(false);
+  const pathModeRef = useRef(false);
+  const setPathModeOn = useCallback((on) => { pathModeRef.current = on; setPathMode(on); if (!on) setDrawPath(null); }, []);
+  const [drawPath, setDrawPath] = useState(null);
   // RTS-01: the words follow the pointer really in use (touch or mouse, as gestures.js maps them):
   // a guess from the device at first, then whatever last touched the battlefield.
   const [mouse, setMouse] = useState(mouseFirst);
@@ -774,6 +780,22 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const el = canvasRef.current;
     return createGestureRecognizer(el, {
       isSelectMode: () => selectModeRef.current,
+      isPathMode: () => pathModeRef.current && selectedRef.current.size > 0,
+      pathDrag: (pts) => setDrawPath([...pts]),
+      pathModeDone: () => setPathModeOn(false),
+      pathEnd: (pts) => {
+        const r = rendererRef.current;
+        if (!r || !selectedRef.current.size || !startedRef.current) return;
+        const keep = pts.length > MAX_PATH_POINTS ? Array.from({ length: MAX_PATH_POINTS }, (_, i) => pts[Math.round((i * (pts.length - 1)) / (MAX_PATH_POINTS - 1))]) : pts; // thin an even sample, ends kept
+        const path = keep.map((p) => r.screenToGround(p.x, p.y)).filter(Boolean).map((g) => ({ x: Math.round(g.x * Q), y: Math.round(g.z * Q) }));
+        if (!path.length) return;
+        const sel = [...selectedRef.current];
+        send([{ type: 'movePath', squads: sel, path, formation: formationRef.current }]);
+        r.setOrderTarget(sel, null);
+        path.forEach((pt) => r.addMarker(pt.x / Q, pt.y / Q, '#a3e635'));
+        const end = path[path.length - 1];
+        markPending({ kind: 'move', x: end.x / Q, z: end.y / Q, squads: sel, color: '#a3e635' });
+      },
       // Placing a building (B10, I177): a finger drags the ghost or taps it somewhere else; only the
       // Build here button builds on a touch screen (a tap is a preview, never a commitment).
       isPlacing: () => armedRef.current?.type === 'place',
@@ -815,9 +837,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         }).map((q) => q.idx);
         updateSelection(mods?.shift ? [...new Set([...selectedRef.current, ...ids])] : ids);
       },
-      cancel: () => { setDragLine(null); setLasso(null); }
+      cancel: () => { setDragLine(null); setLasso(null); setDrawPath(null); }
     });
-  }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn, setGhostAt, setFollow, markPending]);
+  }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn, setPathModeOn, setGhostAt, setFollow, markPending]);
 
   // I198: the mouse resting at the screen's edge moves the camera (a mouse only; the HUD's own
   // buttons are not the field, so pointing at them never pans).
@@ -1126,6 +1148,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           <line x1={dragLine.x0} y1={dragLine.y0} x2={dragLine.x1} y2={dragLine.y1} stroke="#a3e635" strokeWidth="4" strokeDasharray="10 6" strokeLinecap="round" />
         </svg>
       )}
+      {drawPath && (
+        <svg className="absolute inset-0 pointer-events-none w-full h-full" data-testid="battle-draw-path">
+          <polyline points={drawPath.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#a3e635" strokeWidth="4" strokeDasharray="10 6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
       {lasso && <div className="absolute pointer-events-none border-2 border-lime-400 bg-lime-400/10 rounded" style={{ left: lasso.x0, top: lasso.y0, width: lasso.x1 - lasso.x0, height: lasso.y1 - lasso.y0 }} />}
       {radial && (
         <div className="absolute z-10 flex flex-wrap justify-center gap-2 max-w-[92vw] -translate-x-1/2 -translate-y-[130%]" style={{ left: Math.min(Math.max(radial.x, 160), (wrapRef.current?.clientWidth || 400) - 160), top: radial.y }} data-testid="battle-radial">
@@ -1158,6 +1185,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq}
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}
+        pathMode={pathMode} onTogglePathMode={() => setPathModeOn(!pathModeRef.current)}
         coach={coachOn && !ended ? { steps: coachSteps(mouse), step: coachStep, onNext: () => setCoachStep((s) => (s + 1 >= coachSteps(mouse).length ? -1 : s + 1)), onSkip: () => setCoachStep(-1) } : null}
         onFocus={(x, y) => rendererRef.current?.centerOn(x / Q, y / Q)}
         onClearSelection={closeX} mouse={mouse}

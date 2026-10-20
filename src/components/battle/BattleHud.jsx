@@ -31,7 +31,7 @@
 //   city (B05)   in a city assault: the defender's housing as houses burn (folded at first: I202)
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Bell, Users, LocateFixed, Package, Compass } from 'lucide-react';
+import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Spline, Bell, Users, LocateFixed, Package, Compass } from 'lucide-react';
 import { ResIcon, resName, HammerButton } from './EconomyHud';
 import GameIcon from '../ui/GameIcon';
 import { RESOURCES } from '../../battle/data/economy';
@@ -131,6 +131,7 @@ const BattleHud = ({
   onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
   context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
   selectMode = false, onToggleSelectMode, // touch box select (UI-DESIGN B04)
+  pathMode = false, onTogglePathMode, // touch: draw a path for the selected squads (U38)
   coach = null, // RTS-01: { steps: [{ title, text }], step, onNext, onSkip } in the first battle on this device
   onFocus, // centre the camera on (x, y) in sim units: the alerts' Go
   onClearSelection, // the selection card's x: let go of every selected squad
@@ -523,6 +524,7 @@ const BattleHud = ({
                   <>
                     {context === 'mixed' && eco && <HammerButton onClick={onOpenBuild} active={buildOpen} />}
                     {onToggleFollow && <Cmd icon={Navigation} label={t('bt.hud.follow')} onClick={onToggleFollow} active={follow} testId="battle-follow" ariaLabel={t('bt.hud.followAria')} />}
+                    {onTogglePathMode && !mouse && started && <Cmd icon={Spline} label={t('bt.hud.path')} onClick={onTogglePathMode} active={pathMode} testId="battle-path-mode" />}
                     <Cmd icon={Crosshair} label={t('bt.hud.attack')} onClick={() => onArm('attackMove')} active={armed === 'attackMove'} testId="battle-attack-move" />
                     <Cmd icon={Hand} label={t('bt.hud.hold')} onClick={() => onCommand('hold')} testId="battle-hold" />
                     <Cmd icon={formation === 'line' ? Rows : Columns} label={formation === 'line' ? t('bt.hud.line') : t('bt.hud.column')} onClick={onFormation} testId="battle-formation" />
@@ -544,7 +546,12 @@ const BattleHud = ({
           {t('bt.hud.selectBanner')}
         </div>
       )}
-      {coach && !selectMode && !pauseOpen && !viewOpen && !(started && paused && sheetHidden) && coach.steps[coach.step] && (
+      {pathMode && !pauseOpen && (
+        <div className="absolute max-w-[250px] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-good text-xs font-semibold shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-path-mode-banner">
+          {t('bt.hud.pathBanner')}
+        </div>
+      )}
+      {coach && !selectMode && !pathMode && !pauseOpen && !viewOpen && !(started && paused && sheetHidden) && coach.steps[coach.step] && (
         // RTS-01: the first-battle coach. It never blocks the field or the clock: only its buttons take taps.
         <div className="absolute w-[min(16rem,calc(50vw-1rem))] px-3 pt-2 pb-1 rounded-[10px] bg-fa-panel/95 border border-fa-brass/70 text-[12px] leading-snug shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-coach">
           <div className="flex items-baseline gap-2">

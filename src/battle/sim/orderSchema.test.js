@@ -4,12 +4,13 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { admitOrder, ORDER_SCHEMA, ORDER_TYPES, MAX_SQUADS_PER_ORDER } from './orderSchema';
+import { admitOrder, ORDER_SCHEMA, ORDER_TYPES, MAX_SQUADS_PER_ORDER, MAX_PATH_POINTS } from './orderSchema';
 
 // One valid example of every order type, as the battle screen sends it.
 const EXAMPLES = {
   move: { squads: [0, 3], x: 512, y: 1024.5, formation: 'line' },
   attackMove: { squads: [1], x: 0, y: 0, formation: 'column' },
+  movePath: { squads: [0, 3], path: [{ x: 10, y: 20 }, { x: 300.5, y: 40 }], formation: 'line' },
   deploy: { squads: [0, 1, 2], x: 300, y: 4000, formation: 'line' },
   formationLine: { squads: [0, 1], x: 10, y: 20, x2: 10, y2: 900 },
   attack: { squads: [2], target: { kind: 'eco', index: 4 } },
@@ -65,6 +66,8 @@ describe('battle order schema', () => {
       null, 'move', { type: 'teleport' }, { type: 'constructor' }, { type: 'toString' },
       { type: 'move', squads: [0], x: NaN, y: 1 }, { type: 'move', squads: [0], x: 1 }, { type: 'move', squads: 'all', x: 1, y: 1 },
       { type: 'move', squads: [0], x: 1, y: 1, formation: 7 },
+      { type: 'movePath', squads: [0], path: [] }, { type: 'movePath', squads: [0] }, { type: 'movePath', squads: [0], path: [{ x: 1, y: NaN }] },
+      { type: 'movePath', squads: [0], path: Array.from({ length: MAX_PATH_POINTS + 1 }, (_, i) => ({ x: i, y: i })) }, // too many waypoints
       { type: 'formationLine', squads: [0], x: 1, y: 1, x2: Infinity, y2: 2 },
       { type: 'attack', squads: [0] }, { type: 'attack', squads: [0], target: { kind: 'node', index: 1 } }, { type: 'attack', squads: [0], target: { kind: 'squad', index: -1 } },
       { type: 'assist', squads: [0], target: { kind: 'squad', index: 1 } },
