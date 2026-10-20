@@ -83,10 +83,11 @@ const DESCRIBERS = {
 
 // Keys with no player-facing preview: internal scheduling (spawnFollowUp) or nothing meaningful
 // to show. Listed explicitly so a future key that's forgotten here falls through to the generic
-// String(value) fallback below instead of silently vanishing. estateLoyalty, crownLand and heir
+// String(value) fallback below instead of silently vanishing. ruler (the retired trait effect,
+// differentiation plan U5), estateLoyalty, crownLand and heir
 // belonged to the removed estates and succession (master plan decision 37): an event saved before
 // then may still carry them, and they now do nothing, so they show nothing.
-const SILENT_KEYS = new Set(['spawnFollowUp', 'estateLoyalty', 'crownLand', 'heir']);
+const SILENT_KEYS = new Set(['spawnFollowUp', 'estateLoyalty', 'crownLand', 'heir', 'ruler']);
 
 export const describeEffects = (effects) => {
   if (!effects) return [];
