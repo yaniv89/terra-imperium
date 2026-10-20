@@ -89,7 +89,7 @@ import { decayAggressiveExpansion } from './expansion';
 import { advanceClaims } from './claims';
 import { updateDefensivePacts } from './pacts';
 import { computeSupplyFlow, isCampaigning, unitsByOwner, HUNGER_MORALE } from './supplies';
-import { advanceMarches, marchUpkeep } from './routes';
+import { advanceMarches, marchUpkeep, unitsAtTurnStart } from './routes';
 import { normalizeUnitTiles } from './armies';
 import { canReinforce } from './unitLocation';
 import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
@@ -255,13 +255,17 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     phaseStart = now;
   };
 
-  // --- marches (routes.js): armies on a route walk this turn's steps first, so the supplies, the
-  // upkeep and every phase below see where they now stand.
+  // --- marches (routes.js): armies on a route walk first, so the supplies, the upkeep and every
+  // phase below see where they now stand. This walk is the coming turn's movement (the player finds
+  // it done when the turn begins); what this turn's points paid was walked when the order was given
+  // (routes.js stepMarchesNow), and a unit marked for the coming turn cannot step again in it.
   let marchLogs = [];
-  const startUnits = state.units; // who moved this turn (forts.js: a manned fort stops and fights them)
+  // Who moved this turn (forts.js: a manned fort stops and fights them), from where they stood when
+  // the turn began, before any step taken on an order.
+  const startUnits = unitsAtTurnStart(state);
   if (Object.values(state.units).some((u) => u.route?.length)) {
     const marchedUnits = { ...state.units };
-    marchLogs = advanceMarches(state, marchedUnits, { year: state.year }).logs;
+    marchLogs = advanceMarches(state, marchedUnits, { year: state.year, turnOf: state.turnNumber + 1 }).logs;
     state = { ...state, units: marchedUnits };
   }
   mark('marches');

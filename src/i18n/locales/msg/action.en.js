@@ -7,6 +7,7 @@ export default {
   'm.act.yearCe': '{y} CE',
   'm.act.aboutTurnsOne': 'about {n} turn',
   'm.act.aboutTurnsMany': 'about {n} turns',
+  'm.act.thisTurn': 'there this turn',
   'm.act.listNext': '{a}, {b}',
   'm.act.them': 'them',
   'm.act.thatRegion': 'that region',

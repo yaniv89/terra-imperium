@@ -1,4 +1,4 @@
-import { orderMarch, cancelRoute, placeName, moveNowCheck, released, MARCH_ATTRITION } from './routes';
+import { orderMarch, cancelRoute, placeName, moveNowCheck, released, stepMarchesNow, MARCH_ATTRITION } from './routes';
 import { orderMarchAttack } from './marchAttack';
 import { orderExplore, stopExplore } from './scouting';
 import { normalizeUnitTiles, regionForTile, tileAccess, passableTile, unitTile } from './armies';
@@ -538,7 +538,13 @@ const reject = (state, message) => ({
 
 // Log line pieces (phase H3, src/engine/messages.js).
 const yearRef = (y) => sub(y < 0 ? 'm.act.yearBce' : 'm.act.yearCe', { y: Math.abs(y) });
-const aboutTurns = (n) => sub(n > 1 ? 'm.act.aboutTurnsMany' : 'm.act.aboutTurnsOne', { n });
+const aboutTurns = (n) => (n <= 0 ? sub('m.act.thisTurn') : sub(n > 1 ? 'm.act.aboutTurnsMany' : 'm.act.aboutTurnsOne', { n }));
+/** A march order steps at once with this turn's points (routes.js stepMarchesNow): the ordered
+ * units on `units`, and the walk's own log lines (arrived, halted) after the order's line. */
+const stepOrdered = (state, units, ids, orderLog) => {
+  const step = stepMarchesNow({ ...state, units }, ids);
+  return { ...state, units: step.units, logs: [...state.logs, orderLog, ...step.logs.map((l) => ({ ...l, year: state.year }))] };
+};
 /** A nation by id, else the fallback words (a sub-message key). */
 const nationOr = (state, id, fallbackKey) => (state.nations[id]?.name ? people(id, state.nations[id].name) : sub(fallbackKey));
 /** A city by id with the name the line used, else the fallback words. */
@@ -1450,7 +1456,8 @@ const reduceAction = (state, action) => {
     }
 
     // March anywhere over several turns (plan §4g, routes.js): the stack in `fromRegionId` (or the
-    // units in `unitIds`) gets a route to `toRegionId`, walked at End Turn. Giving the order is free.
+    // units in `unitIds`) gets a route to `toRegionId`. It steps at once as far as this turn's
+    // points go (stepMarchesNow) and walks the rest at the start of each later turn. Giving the order is free.
     case ActionTypes.SET_ROUTE: {
       // The target is a city id or a tile id (free land).
       const { fromRegionId, toRegionId, toTile, unitIds = null, naval = false, attack = false } = action.payload || {};
@@ -1462,21 +1469,14 @@ const reduceAction = (state, action) => {
         const p = order.plan;
         const who = p.units.length > 1 ? sub('m.act.unitsMarch', { n: p.units.length }) : sub('m.act.anArmyMarches');
         const dest = state.regions[toRegionId]?.name ? cityRef(toRegionId, state.regions[toRegionId].name) : place(placeName(state, p.path[p.path.length - 1]));
-        return {
-          ...state,
-          units: order.units,
-          logs: [...state.logs, { year: state.year, ...msg('m.act.marchAttack', { who, dest, turns: aboutTurns(p.turns), stops: p.stopsAt ? sub('m.act.stoppingAt', { city: cityOr(p.stopsAt, state.regions[p.stopsAt]?.name, 'm.act.anEnemyCity') }) : '' }), type: LogTypes.ACTION }]
-        };
+        // Reaching the city's ring now opens the assault at once (marchAttack.js readyAttacks).
+        return stepOrdered(state, order.units, p.units, { year: state.year, ...msg('m.act.marchAttack', { who, dest, turns: aboutTurns(p.turns), stops: p.stopsAt ? sub('m.act.stoppingAt', { city: cityOr(p.stopsAt, state.regions[p.stopsAt]?.name, 'm.act.anEnemyCity') }) : '' }), type: LogTypes.ACTION });
       }
       const target = toTile != null ? toTile : toRegionId;
       const order = orderMarch(state, fromRegionId, target, unitIds, { naval });
       if (!order.units) return reject(state, order.reasonMsg ? whyOf(order) : order.reason || msg('m.act.no.march'));
       const p = order.plan;
-      return {
-        ...state,
-        units: order.units,
-        logs: [...state.logs, { year: state.year, ...msg('m.act.march', { who: p.naval ? (p.units.length > 1 ? sub('m.act.whoShips', { n: p.units.length }) : sub('m.act.whoFleet')) : (p.units.length > 1 ? sub('m.act.whoUnits', { n: p.units.length }) : sub('m.act.whoArmy')), dest: place(placeName(state, p.path[p.path.length - 1])), turns: aboutTurns(p.turns) }), type: LogTypes.ACTION }]
-      };
+      return stepOrdered(state, order.units, p.units, { year: state.year, ...msg('m.act.march', { who: p.naval ? (p.units.length > 1 ? sub('m.act.whoShips', { n: p.units.length }) : sub('m.act.whoFleet')) : (p.units.length > 1 ? sub('m.act.whoUnits', { n: p.units.length }) : sub('m.act.whoArmy')), dest: place(placeName(state, p.path[p.path.length - 1])), turns: aboutTurns(p.turns) }), type: LogTypes.ACTION });
     }
 
     case ActionTypes.CANCEL_ROUTE: {
@@ -3189,7 +3189,10 @@ const reduceAction = (state, action) => {
       if (stop) { const stopped = stopExplore(state, unitIds); return stopped ? { ...state, units: stopped } : state; }
       const order = orderExplore(state, unitIds, toTile);
       if (!order.units) return reject(state, order.reason || msg('m.act.no.scouts'));
-      return { ...state, units: order.units, logs: [...state.logs, { year: state.year, ...(order.count > 1 ? msg('m.act.scoutsMany', { n: order.count }) : msg('m.act.scoutsOne')), type: LogTypes.ACTION }] };
+      // Each scout steps at once on its own route, like a march (routes.js stepMarchesNow).
+      let scouted = order.units;
+      unitIds.forEach((id) => { scouted = stepMarchesNow({ ...state, units: scouted }, [id]).units; });
+      return { ...state, units: scouted, logs: [...state.logs, { year: state.year, ...(order.count > 1 ? msg('m.act.scoutsMany', { n: order.count }) : msg('m.act.scoutsOne')), type: LogTypes.ACTION }] };
     }
 
     case ActionTypes.SET_HOLD: {
