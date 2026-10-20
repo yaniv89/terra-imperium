@@ -83,6 +83,13 @@ describe('battle gestures', () => {
     expect(h.pan).not.toHaveBeenCalled();
   });
 
+  it('a tap then a drag from somewhere else pans (H-27)', () => {
+    down(1, 100, 100); clock += 80; up(1, 100, 100);
+    clock += 120; down(1, 400, 250); clock += 30; move(1, 300, 200); up(1, 300, 200);
+    expect(h.pan).toHaveBeenCalled();
+    expect(h.lassoEnd).not.toHaveBeenCalled();
+  });
+
   it('a second finger turns the gesture into pinch-zoom', () => {
     down(1, 100, 100); down(2, 200, 100); move(2, 260, 100); up(2, 260, 100); up(1, 100, 100);
     expect(h.zoom).toHaveBeenCalled();
