@@ -36,7 +36,7 @@ def start(colors):
 
 # ---- body --------------------------------------------------------------------------------------------------
 
-def body(legs='sandals', sleeves=None, beard=True, hair='nape', bow=False, shoulder=None):
+def body(legs='sandals', sleeves=None, beard=True, hair='nape', bow=False, shoulder=None, fists=None):
     """legs: 'sandals', 'bare', 'boots', ('hose', mat) or ('boots', mat); sleeves: a material for long sleeves."""
     if legs == 'sandals':
         F.legs(laces=True)
@@ -49,7 +49,9 @@ def body(legs='sandals', sleeves=None, beard=True, hair='nape', bow=False, shoul
     elif isinstance(legs, tuple) and legs[0] == 'boots':
         F.legs(boots=legs[1])
     F.arms(long=sleeves, shoulder=shoulder)
-    if bow:
+    if fists:  # a recipe's own hands (a musket or a rifle held in both fists): a zero-arg callable
+        fists()
+    elif bow:
         F.fist('L', BOW_GRIP, (0, 0, 1))
         F.fist('R', ARROW_HAND, (0, 1, 0), half=.020)
     else:
@@ -253,14 +255,16 @@ def foot(model, r):
     is_bow = wkind == 'bow'
     b = bow(**wk) if is_bow else None
     body(legs=r.get('legs', 'sandals'), sleeves=r.get('sleeves'), beard=r.get('beard', True), hair=r.get('hair', 'nape'), bow=is_bow,
-         shoulder=r.get('shoulder'))
+         shoulder=r.get('shoulder'), fists=r.get('fists'))
     dk = r.get('dress', 'kilt')
     dress(dk, r.get('dress_mat', 'Cloth'), r.get('armour'), r.get('armour_mat', 'Leather'), r.get('team', 'sash'))
     hk = r.get('head')
     if hk:
         name, kw = hk if isinstance(hk, tuple) else (hk, {})
         headgear(name, **kw)
-    if is_bow:
+    if wkind == 'custom':  # the recipe builds its own weapon: wk['make']() returns its ti_foot_clips.Kit
+        kit = wk['make']()
+    elif is_bow:
         kit = bow_parts(b)
         F.back_quiver()
     elif wkind in ('spear', 'javelin', 'pike'):
@@ -272,7 +276,7 @@ def foot(model, r):
     else:
         kit = axe(head=wkind if wkind in ('mace', 'club') else 'axe', **wk)
     sh = r.get('shield')
-    if sh and not is_bow:
+    if sh and not is_bow and wkind != 'custom':
         name, kw = sh if isinstance(sh, tuple) else (sh, {})
         shield(name, **kw)
         kit.shield = True
