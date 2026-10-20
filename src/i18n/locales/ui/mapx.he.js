@@ -143,6 +143,7 @@ export default {
   'mx.army.why.no_units': 'אין יחידה לידה',
   'mx.army.why.not_adjacent': 'לא צמוד אליה',
   'mx.army.pillage': 'בזזו את {name} (⁦+{gold}⁩ זהב)',
+  'mx.army.pillageSomething': 'המבנים כאן',
   'mx.army.pillageTitle': 'שרפו את השיפור כאן: הוא מפסיק להניב עד שיתוקן; הכוח מבזבז את התנועה שלו.',
   'mx.zone.sea': 'בים. הקישו על חוף כדי להוריד את הכוחות שעל הסיפון; אפשר לתקוף צי אויב שלידכם.',
   'mx.zone.home': 'בארץ ידידותית: המד מתמלא בכל תור.',

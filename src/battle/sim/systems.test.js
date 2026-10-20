@@ -72,13 +72,29 @@ describe('territory attrition & supply wagons', () => {
     const inf = w.squads.find((q) => q.side === 0 && q.classId === 'infantry');
     const wagon = w.squads.find((q) => q.side === 0 && q.classId === 'support');
     inTerritory(w, inf); place(wagon, 2, 2);
-    w.tick = 20; applySupplyAndAttrition(w);
+    for (let s = 1; s <= 30; s++) { w.tick = 20 * s; applySupplyAndAttrition(w); }
     const bled = inf.strength;
     expect(bled).toBeLessThan(1000);
     place(wagon, Math.floor(inf.x / Q) - 1, Math.floor(inf.y / Q));
-    w.tick = 40; applySupplyAndAttrition(w);
+    w.tick = 20 * 31; applySupplyAndAttrition(w);
     expect(inf.strength).toBeGreaterThanOrEqual(bled); // no more bleeding — the wagon even patches it up
     expect(inf.strength).toBeLessThanOrEqual(1000);     // but never above what it brought
+  });
+
+  // H-03: the rate is a share of the squad (0.6% a minute on open ground), owed in thousandths and paid
+  // in whole strength; it used to round up to 1 a second whatever the size (a 588 squad died in 10 min).
+  it("attrition is the setup's share a minute, booked under its cause, and never counts as a hit", () => {
+    const w = createWorld(setup({ attackerUnits: mk('a', ['cavalry'], 588) }));
+    const cav = w.squads.find((q) => q.side === 0);
+    inTerritory(w, cav);
+    for (let s = 1; s <= 600; s++) { w.tick = 20 * s; applySupplyAndAttrition(w); } // ten minutes
+    const lost = 588 - cav.strength;
+    const rate = w.setup.attritionPerMinute; // about 0.006 a minute
+    expect(lost).toBeGreaterThan(Math.floor(588 * rate * 10 * 0.8));
+    expect(lost).toBeLessThanOrEqual(Math.ceil(588 * rate * 10 * 1.05) + 1);
+    expect(lost).toBeLessThan(60); // the old floor took 600 in the same ten minutes
+    expect(cav.lossBy.attrition).toBe(lost);
+    expect(cav.lastHitTick).toBe(-10000);
   });
 
   it('forager units are immune to attrition', () => {

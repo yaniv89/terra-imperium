@@ -305,28 +305,29 @@ export const syncWorldRegistry = (state) => {
 };
 
 /**
- * Runs `fn` and puts the registry back as it was before, whatever `fn` synced it to. For code that
- * builds a state of ANOTHER game on the side, such as the title screen reading a save
- * (launchDecision.js describeSave: migrateSave backfills from a fresh createInitialState, which
- * syncs the registry to that fresh world). Without it the game on screen reads the other game's
- * cities until the next action (playtest 4 H1), and a commanded battle resumed after a reload was
- * set up on them: another battle than the one saved, so it restarted from zero and the campaign's
- * replay reached another end (playtest 4 C2, H2).
+ * Runs `fn` and leaves the registry (and the noted culture zone sites) as it found them. Reading
+ * a save builds a fresh game to backfill from (saveMigrations.js backfillDefaults), and that
+ * fresh game syncs the registry to its own cities: the title screen describing its save slots
+ * then left the running game's readers on another world, so after Continue no city could be
+ * opened until some action synced it again (playtest 4 P4-H1).
  */
 export const keepWorldRegistry = (fn) => {
-  const saved = {
-    regions: { ...WORLD_REGISTRY.regions }, coordinates: { ...WORLD_REGISTRY.coordinates }, capitals: { ...WORLD_REGISTRY.capitals },
-    source: WORLD_REGISTRY.source, sites: notedZoneSites()
-  };
-  try { return fn(); } finally {
-    if (WORLD_REGISTRY.source !== saved.source) {
-      ['regions', 'coordinates', 'capitals'].forEach((k) => {
-        Object.keys(WORLD_REGISTRY[k]).forEach((id) => { delete WORLD_REGISTRY[k][id]; });
-        Object.assign(WORLD_REGISTRY[k], saved[k]);
+  const source = WORLD_REGISTRY.source;
+  const regions = { ...WORLD_REGISTRY.regions };
+  const coordinates = { ...WORLD_REGISTRY.coordinates };
+  const capitals = { ...WORLD_REGISTRY.capitals };
+  const sites = notedZoneSites();
+  try {
+    return fn();
+  } finally {
+    if (WORLD_REGISTRY.source !== source) {
+      [[WORLD_REGISTRY.regions, regions], [WORLD_REGISTRY.coordinates, coordinates], [WORLD_REGISTRY.capitals, capitals]].forEach(([live, kept]) => {
+        Object.keys(live).forEach((k) => { delete live[k]; });
+        Object.assign(live, kept);
       });
-      WORLD_REGISTRY.source = saved.source;
+      WORLD_REGISTRY.source = source;
     }
-    noteZoneSites(saved.sites);
+    noteZoneSites(sites);
   }
 };
 

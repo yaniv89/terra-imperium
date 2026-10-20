@@ -90,7 +90,7 @@ export const cityLive = (state, cityId, over = null) => {
   if (!base) return null;
   const city = over ? { ...base, ...over } : base;
   const ctx = cityCtx(state, base);
-  if (city.outpost || city.razing || city.tile == null || !city.tiles) return { city, ctx, worked: [], yields: NO_YIELDS, housing: 0, amenities: { need: 0, supply: 0, net: 0 } };
+  if (city.outpost || city.razing || city.ghost || city.tile == null || !city.tiles) return { city, ctx, worked: [], yields: NO_YIELDS, housing: 0, amenities: { need: 0, supply: 0, net: 0 } };
   const tiles = getTiles();
   const world = worldOf(state);
   const worked = allocateTiles(city, tiles, world, ctx.researched);

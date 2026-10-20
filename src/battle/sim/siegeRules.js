@@ -33,3 +33,28 @@ export const ringBroken = (w) => w.structures.some((s) => !s.alive && (s.kind ==
 // (buildings.js) wait until it is no longer under attack. Repairs slow a breach, never stop it.
 export const REPAIR_UNDER_ATTACK_MAX_PER_SEC = 6;
 export const recentlyHit = (w, s, ticks) => w.tick - (s.lastHitTick ?? -100000) < ticks;
+
+// Manned works (audit H-02): a keep, a tower or a worker-built tower shoots only as hard as its side
+// can man it. Its volley counts min(1, the side's fighting strength / CREW_FULL): a garrison of a
+// regiment or more (workers, generals and routed men not counted) mans every work at full strength;
+// a beaten one mans them weakly, and a side with nobody left to man them has works that no longer
+// shoot. (A flat volley used to go on whatever stood behind it: the Siwa assault killed all 3,800
+// defenders and still lost 18,670 men to a keep with nobody in it.)
+export const CREW_FULL = 1000;
+/** [attacker, defender]: the share of its works each side can man this tick (see CREW_FULL). */
+export const crewShares = (w) => {
+  const men = [0, 0];
+  for (let i = 0; i < w.squads.length; i++) {
+    const q = w.squads[i];
+    if (q.alive && !q.fled && !q.routed && !q.worker && !q.isGeneral && (q.onField || q.inside >= 0)) men[q.side] += q.strength;
+  }
+  return [Math.min(1, men[0] / CREW_FULL), Math.min(1, men[1] / CREW_FULL)];
+};
+
+// A free squad a building shoots turns on it (audit H-26), as a squad does on whoever hits it
+// (combat.js applyDamage): an idle squad with nothing to fight never stands under a tower's fire.
+// Hold, Move, Retreat and a target of its own are left alone.
+export const turnOnShooter = (q, kind, index) => {
+  if (q.order.type !== 'idle' || q.target >= 0 || q.worker || q.routed || q.retreating || q.inside >= 0 || q.stats.airOnly || !(q.stats.attackTicks > 0)) return;
+  q.targetKind = kind; q.target = index;
+};

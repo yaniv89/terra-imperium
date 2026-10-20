@@ -333,7 +333,36 @@ const updateSeen = (state, seen, visible) => {
     if (cities === seen.cities) cities = { ...cities };
     delete cities[id];
   });
+  cities = refreshOwnMemory(state, cities);
   return { cityIds, cities, improvements, city: new TileInts(city), turn: new TileInts(turns) };
+};
+
+/**
+ * The player always learns what became of its own cities (a flip, a conquest or a razing out of
+ * sight is reported to it): a remembered city that names the player as owner but is no longer the
+ * player's is refreshed from the live record, or forgotten when it no longer stands. Without this
+ * a city founded by the player and lost out of sight stayed "the player's" in memory, and the map
+ * took the ghost record for one of the player's cities (playtest 4 P4-C1). Returns `cities`
+ * itself when nothing is stale. Deterministic (the memory's own key order).
+ */
+export const refreshOwnMemory = (state, cities) => {
+  const p = state.playerNationId;
+  let out = cities;
+  Object.keys(cities || {}).forEach((id) => {
+    if (cities[id].owner !== p) return;
+    const live = state.regions?.[id];
+    if (live && live.owner === p) return;
+    if (out === cities) out = { ...cities };
+    if (live && live.tile != null) out[id] = snapshotCity(live); else delete out[id];
+  });
+  return out;
+};
+
+/** A loaded save with the stale memories of the player's own cities refreshed (saves written before refreshOwnMemory). */
+export const repairOwnMemory = (state) => {
+  if (!fogOn(state) || !state.fog.seen?.cities) return state;
+  const cities = refreshOwnMemory(state, state.fog.seen.cities);
+  return cities === state.fog.seen.cities ? state : { ...state, fog: { ...state.fog, seen: { ...state.fog.seen, cities } } };
 };
 
 const emptySeen = () => ({ cityIds: [], cities: {}, improvements: {}, city: new TileInts(new Int32Array(getTiles().count)), turn: new TileInts(new Int32Array(getTiles().count)) });

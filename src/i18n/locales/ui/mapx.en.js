@@ -143,6 +143,7 @@ export default {
   'mx.army.why.no_units': 'no unit beside it',
   'mx.army.why.not_adjacent': 'not beside it',
   'mx.army.pillage': 'Pillage the {name} (+{gold} gold)',
+  'mx.army.pillageSomething': 'works here',
   'mx.army.pillageTitle': 'Burn the improvement here: it stops yielding until repaired; the stack spends its moves.',
   'mx.zone.sea': 'At sea. Tap a shore to land the troops aboard; an enemy fleet beside you can be attacked.',
   'mx.zone.home': 'In friendly land: the meter fills every turn.',
