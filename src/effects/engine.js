@@ -4,7 +4,7 @@
 // `project(lat, lng, alt)` function (EffectsLayer.jsx's `getProjector`), and everything a scene
 // draws is expressed in lat/lng + screen-pixel offsets on top of that. Flights between two places
 // are computed on the unit sphere (a lofted Bezier between direction vectors, the same math the
-// original missile arc used), so a trade caravan or an invasion column bends over the curvature
+// original strike arc used), so a trade caravan or an invasion column bends over the curvature
 // of the Earth on the globe and still reads as a gentle arc on the flat map.
 //
 // Elements are created ONCE per effect (scene.build) and only have attributes updated per frame

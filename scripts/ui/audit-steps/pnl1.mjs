@@ -1,6 +1,6 @@
 // scripts/ui/audit-steps/pnl1.mjs
 // Extra Hebrew audit screens for the Empire tab (lane B1): a rich empire with every section open, the
-// government change dialog, a law change, hiring an advisor, the Space tab, the Legacy tab, the game over
+// government change dialog, a law change, hiring an advisor, the Legacy tab, the game over
 // modal and the age / elimination banners. Run: --only start,pnl1
 export default async ({ step, record, tid, has, wait, esc, patch, railTab, closeAllCards, getPage }) => {
   const page = () => getPage();
@@ -8,7 +8,7 @@ export default async ({ step, record, tid, has, wait, esc, patch, railTab, close
     const me = s.playerNationId;
     const techTree = Object.fromEntries(Object.entries(s.techTree).map(([k, v]) => [k, { ...v, researched: true }]));
     const nations = { ...s.nations, [me]: { ...s.nations[me], stability: -2, warExhaustion: 20, hasBeenBankrupt: true, laws: { ...(s.nations[me].laws || {}) } } };
-    return { ...s, techTree, nations, resources: { ...s.resources, gold: 90000, adm: 2000, dip: 2000, mil: 2000, techPoints: 500, helium3: 500 }, completedMissions: ['sounding_rocket', 'outer_planets'] };`;
+    return { ...s, techTree, nations, resources: { ...s.resources, gold: 90000, adm: 2000, dip: 2000, mil: 2000, techPoints: 500 } };`;
 
   const clickText = async (re, scopeSel = '[data-testid="landscape-dock"]') => {
     const buttons = page().locator(`${scopeSel} button`);
@@ -45,22 +45,6 @@ export default async ({ step, record, tid, has, wait, esc, patch, railTab, close
       await esc();
     } else console.log('  no enabled government button');
     await railTab(0);
-  });
-
-  await step('pnl1-space', async () => {
-    await closeAllCards();
-    await patch(`${richPatch.replace('return {', 'const base = {').replace(/;\s*$/, ';')}
-      const other = Object.values(s.nations).find((n) => n.id !== me && !n.indep);
-      return { ...base, techAgeId: 'modern', age: 'modern', year: 2000, orbitalDebrisLevel: 12, spaceMissionProgress: { first_satellite: 3 },
-        satellites: { aud_s1: { id: 'aud_s1', ownerId: me, typeId: 'recon' }, aud_s2: { id: 'aud_s2', ownerId: other.id, typeId: 'spy' } },
-        nations: { ...base.nations, [me]: { ...base.nations[me], missiles: { tactical: 2 }, abmDefenseLevel: 1 } } };`);
-    await wait(800);
-    const labels = await tid('landscape-rail').locator('nav button').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') || e.innerText));
-    const ix = labels.findIndex((l) => /חלל|Space/.test(l));
-    if (ix < 0) { console.log('  rail labels:', labels.join(' | ')); throw new Error('no Space button on the rail'); }
-    await railTab(ix);
-    await record('pnl1 space tab');
-    await railTab(ix);
   });
 
   await step('pnl1-legacy', async () => {

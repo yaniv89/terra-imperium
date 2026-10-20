@@ -2,7 +2,7 @@
 // Individual resource badge component with expand/collapse functionality
 
 import React from 'react';
-import { Coins, Users, Beaker, Swords, Hammer, Flame, Fuel, Gem, Atom, ScrollText, Landmark, Package } from 'lucide-react';
+import { Coins, Users, Beaker, Swords, Hammer, Flame, Fuel, Gem, ScrollText, Landmark, Package } from 'lucide-react';
 import { formatNumber } from '../../utils/helpers';
 import Tooltip from './Tooltip';
 import GameIcon from './GameIcon';
@@ -53,12 +53,6 @@ const RESOURCE_CONFIG = {
     color: 'text-cyan-400',
     bgColor: 'bg-cyan-500/20',
     label: 'Rare Metals'
-  },
-  helium3: {
-    icon: Atom,
-    color: 'text-indigo-400',
-    bgColor: 'bg-indigo-500/20',
-    label: 'Helium-3'
   },
   techPoints: {
     icon: Beaker,

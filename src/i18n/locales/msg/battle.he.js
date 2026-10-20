@@ -33,7 +33,6 @@ export default {
   // battleOutcome.js: the campaign's line for every battle
   'm.battle.logLine': '{battle}: {line}{loss}',
   'm.battle.fallenLine': ' נפלו: {mine:num} משלך, {theirs:num} משלהם.',
-  'm.battle.nuclearStrike': 'מתקפה גרעינית מחריבה את שדה הקרב ב{place}. העולם מגנה את המתקפה.',
   'm.battle.cityDefencesBroken': '{who} שבר את ביצורי {city} (0 מתוך {maxHp} נק"פ) אך אין לו רגלים או פרשים לכבוש אותה.',
   'm.battle.cityDefencesFall': '{who} תוקף את {city}: ביצוריה יורדים מ-{hpBefore} ל-{hpAfter} מתוך {maxHp} נק"פ. תקפו שוב כדי לכבוש אותה.',
   'm.battle.garrisonDrivenOut': '{who} הביס את חיל המצב של {city}: שרידיו גורשו. העיר עוד לא נכבשה: תקפו את ביצוריה.',

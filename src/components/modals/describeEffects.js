@@ -47,7 +47,6 @@ const DESCRIBERS = {
   iron: (v) => ({ text: t('iron', { v: signed(v) }), sign: sg(v) }),
   oil: (v) => ({ text: t('oil', { v: signed(v) }), sign: sg(v) }),
   rareMetals: (v) => ({ text: t('rareMetals', { v: signed(v) }), sign: sg(v) }),
-  helium3: (v) => ({ text: t('helium3', { v: signed(v) }), sign: sg(v) }),
   dip: (v) => ({ text: t('dip', { v: signed(v) }), sign: sg(v) }),
   techPoints: (v) => ({ text: t('techPoints', { v: signed(v) }), sign: sg(v) }),
   militaryStrengthBonus: (v) => ({ text: t('military', { v: signed(v) }), sign: sg(v) }),

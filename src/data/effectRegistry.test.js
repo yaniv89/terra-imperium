@@ -42,8 +42,8 @@ describe('effects coverage (plan §13)', () => {
     expect(missing).toEqual([]);
   });
 
-  // getEffectSpec silently falls back to a missile strike for an unknown type — which is how
-  // develop_province, hire_advisor and increase_stability ended up playing a missile explosion.
+  // getEffectSpec silently falls back to a strike for an unknown type — which is how
+  // develop_province, hire_advisor and increase_stability ended up playing an explosion.
   // This scans every real triggerEffect('...') call in the UI so that can't happen again.
   it('every effect type the UI actually triggers has a registry entry', () => {
     const srcDir = path.resolve(__dirname, '..');
@@ -72,6 +72,6 @@ describe('getEffectSpec', () => {
 
   it('falls back to a default spec for an unknown action type rather than throwing', () => {
     expect(() => getEffectSpec('not_a_real_action')).not.toThrow();
-    expect(getEffectSpec('not_a_real_action')).toBe(EFFECT_REGISTRY.missile_strike);
+    expect(getEffectSpec('not_a_real_action')).toBe(EFFECT_REGISTRY.air_strike);
   });
 });

@@ -6,7 +6,7 @@
 // a granary, researching a tech and changing a law all looked alike. Each scene now acts out what
 // its action actually is: recruits march into ranks under a banner, a building rises out of its
 // scaffolding, roads unroll toward the real neighbouring provinces, caravans shuttle coins along a
-// trade route, a wax seal stamps a decree, a rocket puts a satellite into orbit...
+// trade route, a wax seal stamps a decree...
 //
 // The same scene code drives both the 3D globe and the flat map (src/effects/EffectsLayer.jsx).
 
@@ -14,11 +14,6 @@ const P = (base, hot) => ({ base, hot });
 
 export const EFFECT_REGISTRY = {
   // ---- strikes: ballistic munitions arcing into a detonation ----
-  missile_strike: {
-    scene: 'strike', palette: P('#f87171', '#fee2e2'), head: 'warhead', archPow: 1, ease: 'accelerate',
-    trailWidth: 3.2, fireball: 1, rings: 3, debris: 12,
-    projectiles: [{ lateral: 0, loft: 1, delay: 0, scale: 1, spread: 0 }]
-  },
   air_strike: {
     scene: 'strike', palette: P('#fb923c', '#fef3c7'), head: 'dart', archPow: 0.7, ease: 'accelerate',
     trailWidth: 2.4, fireball: 0.85, rings: 2, debris: 10,
@@ -28,12 +23,6 @@ export const EFFECT_REGISTRY = {
       { lateral: 0.66, loft: 0.58, delay: 250, scale: 0.85, spread: 1 }
     ]
   },
-  asat_strike: {
-    scene: 'strike', palette: P('#a855f7', '#f3e8ff'), head: 'dart', archPow: 1.4, ease: 'accelerate',
-    trailWidth: 2.2, fireball: 0.45, rings: 2, debris: 14,
-    projectiles: [{ lateral: 0, loft: 1.4, delay: 0, scale: 0.8, spread: 0 }]
-  },
-
   // ---- war & armies ----
   declare_war: { scene: 'declareWar', palette: P('#dc2626', '#fecaca') },
   ground_invasion: { scene: 'march', palette: P('#60a5fa', '#dbeafe'), clash: true, count: 5 },
@@ -54,7 +43,6 @@ export const EFFECT_REGISTRY = {
   construct_building: { scene: 'construct', palette: P('#f59e0b', '#fef3c7') },
   build_climate_resilience: { scene: 'construct', palette: P('#34d399', '#ecfdf5'), iconKey: 'tree', label: 'Climate defenses built' },
   build_defenses: { scene: 'fortify', palette: P('#94a3b8', '#f1f5f9'), label: 'Walls raised' },
-  build_abm_defense: { scene: 'fortify', palette: P('#38bdf8', '#e0f2fe'), dome: true, label: 'ABM shield online' },
   build_infrastructure: { scene: 'roads', palette: P('#38bdf8', '#e0f2fe') },
   develop_resource_site: { scene: 'mine', palette: P('#fb923c', '#ffedd5') },
   develop_province: { scene: 'develop', palette: P('#22c55e', '#dcfce7') },
@@ -94,16 +82,13 @@ export const EFFECT_REGISTRY = {
   assign_diplomat: { scene: 'envoy', palette: P('#0ea5e9', '#e0f2fe'), label: 'Diplomat assigned' },
   vassalize: { scene: 'vassalize', palette: P('#7c3aed', '#ede9fe') },
 
-  // ---- space & spectacle ----
-  launch_satellite: { scene: 'launch', palette: P('#22d3ee', '#ecfeff') },
-  launch_mission: { scene: 'launch', palette: P('#facc15', '#fffbeb'), mission: true },
-  build_missile: { scene: 'silo', palette: P('#f97316', '#fff7ed') },
+  // ---- spectacle ----
   cultural_export: { scene: 'culture', palette: P('#f472b6', '#fce7f3') },
   // Age Advance (plan §10.5's "showpiece") — App.jsx's GameLayout triggers this on the player's
   // capital when the player's own age (state.techAgeId) advances.
   age_advance: { scene: 'ageAdvance', palette: P('#facc15', '#fffde7') }
 };
 
-const DEFAULT_EFFECT_TYPE = 'missile_strike';
+const DEFAULT_EFFECT_TYPE = 'air_strike';
 
 export const getEffectSpec = (actionType) => EFFECT_REGISTRY[actionType] || EFFECT_REGISTRY[DEFAULT_EFFECT_TYPE];

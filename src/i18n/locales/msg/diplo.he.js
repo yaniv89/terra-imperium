@@ -23,11 +23,10 @@ export default {
   'm.diplo.forcesPeace': '{nation} כופה עליך שלום: המלחמה אבודה.',
   'm.diplo.offersEnd': '{nation} מציעה לסיים את המלחמה.',
 
-  // AI war declarations (utils/aiLogic.js) and missiles (aiMissiles.js)
+  // AI war declarations (utils/aiLogic.js)
   'm.diplo.independenceRising': '{nation} מתקוממת ומכריזה על עצמאות מ{overlord}!',
   'm.diplo.coalitionWar': '{nation} מצטרפת לקואליציה נגד {target}, המעצמה הדוהרת של העולם, ומכריזה מלחמה!',
   'm.diplo.declaresWar': '{nation} הכריזה מלחמה על {target}!',
-  'm.diplo.abmDefense': '{nation} מחזקת את ההגנה שלה מפני טילים בליסטיים.',
 
   // defensive leagues (pacts.js)
   'm.diplo.leagueVsYou': 'בבהלה מכיבושיך, {names} מקימים ברית הגנה נגדך: תקוף אחד מהם והאחרים יענו.',

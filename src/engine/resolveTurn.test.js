@@ -250,7 +250,7 @@ describe('resolveTurn army maintenance', () => {
   });
 });
 
-// Plan §M11: fort upkeep, auto-loans, bankruptcy's real effects, and the Fusion Grid sink.
+// Plan §M11: fort upkeep, auto-loans, and bankruptcy's real effects.
 describe('resolveTurn economy (plan §M11)', () => {
   const withBankingHouses = (state) => ({
     ...state,

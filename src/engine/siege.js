@@ -9,7 +9,7 @@
 // Core idea (Civilization-inspired): a region's `control` (0-100, already the stat GlobeView's map
 // legend colors by, and already what the revolt/settle-colonize systems treat as "how securely
 // held") doubles as the defense HP a siege must grind down. A single won battle round no longer
-// flips ownership outright — it damages `control` instead, the way MISSILE_STRIKE already does.
+// flips ownership outright — it damages `control` instead.
 // Ownership only flips once `control` drops to/below the capture threshold AND the attacker still
 // has a melee-capable unit standing to actually occupy the ground, same as Civ's "only melee units
 // can move into and capture a city." A completely undefended region (no garrison at all) is still

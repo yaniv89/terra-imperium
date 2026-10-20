@@ -48,12 +48,12 @@ Actions: the player's own dispatch (`ACTION_SOUNDS` in worldSounds.js names ever
 | turn-begin | The new turn arrives. Lowest priority: heard only when the turn brought less than three other news. | state (turnNumber) |
 | city-founded | FOUND_CITY, FOUND_COLONY; a new city of the player's appears; "is founded as an outpost", "has grown from an outpost". | action, state, log |
 | city-grows | "X grows to size N". | log |
-| building-queued | QUEUE_PRODUCTION (not a wonder), CONSTRUCT_BUILDING, BUILD_INFRASTRUCTURE, BUILD_DEFENSES, DEVELOP_PROVINCE, DEVELOP_RESOURCE_SITE, BUILD_MISSILE, BUILD_ABM_DEFENSE, BUILD_CLIMATE_RESILIENCE. | action |
+| building-queued | QUEUE_PRODUCTION (not a wonder), CONSTRUCT_BUILDING, BUILD_INFRASTRUCTURE, BUILD_DEFENSES, DEVELOP_PROVINCE, DEVELOP_RESOURCE_SITE, BUILD_CLIMATE_RESILIENCE. | action |
 | building-complete | "X completes a Granary", "X lays out its district". | log |
-| wonder-started | QUEUE_PRODUCTION of a wonder; LAUNCH_MISSION. | action |
+| wonder-started | QUEUE_PRODUCTION of a wonder. | action |
 | wonder-complete (big) | "Wonder (tier N) stands at X!", "X completes wonder (tier N)". | log |
 | tech-selected | RESEARCH_TECH, QUEUE_RESEARCH. | action |
-| tech-complete | "Researched X"; LAUNCH_SATELLITE, ACTIVATE_FUSION_GRID. | log, action |
+| tech-complete | "Researched X". | log, action |
 | era-advanced (big) | The world's age changes; "Your empire's expertise has reached the X"; a game COMPLETE ending. | state, log |
 | settler-moving | MOVE_ARMY or SET_ROUTE of a settler, SET_SETTLER_TARGET, FRONTIER_EXPEDITION, SETTLE_COLONIZE; "X sends out settlers". | action, log |
 | army-moved | MOVE_ARMY or SET_ROUTE of an army, EMBARK_UNIT, DISEMBARK_UNIT. | action |
@@ -68,7 +68,7 @@ Actions: the player's own dispatch (`ACTION_SOUNDS` in worldSounds.js names ever
 | city-besieged | Any other assault queued against the player (pendingDefenses); "X is under siege", "Your army lays siege to X". | state, log |
 | city-captured | A city that was someone else's becomes the player's. | state (regions) |
 | city-lost | One of the player's cities becomes someone else's; "has thrown off your rule", "has gone over to". | state, log |
-| city-razed | RAZE_CITY, MISSILE_STRIKE, ASAT_STRIKE; a player city disappears; "X is razed". | action, state, log |
+| city-razed | RAZE_CITY; a player city disappears; "X is razed". | action, state, log |
 | event-appeared | An event or a procedural event opens; a peace offer arrives; "offer to join you", "demand N gold a turn". | state, log |
 | first-contact | The player meets a new people during a turn (fog `met` grows). | state |
 | independent-joined | ANSWER_JOIN_OFFER (accept), ANNEX_VASSAL; "join you", "joins you". | action, log |

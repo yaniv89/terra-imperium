@@ -23,11 +23,10 @@ export default {
   'm.diplo.forcesPeace': '{nation} forces a peace on you — the war is lost.',
   'm.diplo.offersEnd': '{nation} offers to end the war.',
 
-  // AI war declarations (utils/aiLogic.js) and missiles (aiMissiles.js)
+  // AI war declarations (utils/aiLogic.js)
   'm.diplo.independenceRising': '{nation} rises up and declares independence from {overlord}!',
   'm.diplo.coalitionWar': "{nation} joins a coalition against {target}, the world's runaway power, and declares war!",
   'm.diplo.declaresWar': '{nation} has declared war on {target}!',
-  'm.diplo.abmDefense': '{nation} builds up its anti-ballistic-missile defenses.',
 
   // defensive leagues (pacts.js)
   'm.diplo.leagueVsYou': 'Alarmed by your conquests, {names} form a defensive league against you: attack one and the others will answer.',

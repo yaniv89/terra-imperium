@@ -1,16 +1,14 @@
 // src/components/panels/ActionPanelTabs.jsx
-// The tabs of the side panel: Empire, Cities, Research, Peoples (diplomacy), Space, Legacy. The
+// The tabs of the side panel: Empire, Cities, Research, Peoples (diplomacy), Legacy. The
 // rail (PanelDrawer.jsx) shows them on the right edge on every landscape layout and the desktop;
 // the bottom bar of a phone held upright shows this row. Field Atlas look: a light underline marks
 // the open tab, a small red dot the tabs that need you (plans/UI-DESIGN.md section 2).
 import React from 'react';
-import { Crown, Building2, FlaskConical, HeartHandshake, Trophy, Satellite } from 'lucide-react';
+import { Crown, Building2, FlaskConical, HeartHandshake, Trophy } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
-import { TECH_TREE } from '../../data/techTree';
 import { nextPrompts } from '../ui/nextPromptModel';
 import { useT } from '../../i18n/useT';
-import { isAgeAtLeast } from '../../data/ages';
 
 // The War section stays in the Empire sheet (plans/civ-map-rework.md E4); Diplomacy is its own tab
 // again as "Peoples" (W07), so the Empire sheet no longer repeats it.
@@ -19,14 +17,8 @@ export const TABS = [
   { id: 'cities', label: 'Cities', icon: Building2 },
   { id: 'tech', label: 'Research', icon: FlaskConical },
   { id: 'diplomacy', label: 'Peoples', icon: HeartHandshake },
-  { id: 'space', label: 'Space', icon: Satellite },
   { id: 'legacy', label: 'Legacy', icon: Trophy }
 ];
-
-// The tabs the player sees (plans/playtest-1.md P5.3): the Space tab only once the nation has
-// researched a Modern Age tech (the space race means nothing before that).
-export const spaceUnlocked = (state) => isAgeAtLeast(state.techAgeId, 'modern') || Object.keys(state.techTree || {}).some((id) => state.techTree[id]?.researched && isAgeAtLeast(TECH_TREE[id]?.ageId, 'modern'));
-export const visibleTabs = (state) => TABS.filter((t) => t.id !== 'space' || spaceUnlocked(state));
 
 // The count on a tab (also used by the landscape tab rail in PanelDrawer.jsx).
 export const getTabBadge = (state, tabId) => {
@@ -58,7 +50,7 @@ const ActionPanelTabs = ({ activeTab, onTabChange }) => {
 
   return (
     <div className="flex border-b border-fa-line bg-fa-panel overflow-x-auto scrollbar-none" role="tablist" aria-label={t('rail.panels')}>
-      {visibleTabs(state).map(tab => {
+      {TABS.map(tab => {
         const Icon = tab.icon;
         const badge = getTabBadge(state, tab.id);
         return (

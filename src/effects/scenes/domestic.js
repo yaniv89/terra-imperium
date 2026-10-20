@@ -2,7 +2,7 @@
 // Building up a province: construction, fortifications, roads, mines, settlements, control,
 // public order, development.
 import { clamp, ease, phase, envelope, hash, hide, setAttrs, placeIcon, lerp, DEG } from '../engine';
-import { buildLine, buildRings, buildBurst, buildParticles, buildLabel, buildFlag, buildRevealIcon } from '../fx';
+import { buildLine, buildRings, buildParticles, buildLabel, buildFlag, buildRevealIcon } from '../fx';
 import { getBuildingIconPath, getExtractionIconPath } from '../../data/buildingIcons';
 import { getEffectIconPath } from '../../data/effectIcons';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
@@ -98,8 +98,7 @@ export const construct = {
 
 // ---------------------------------------------------------------------------------------------
 // fortify — wall sections slam into place one after another around the province, each with a
-// thud of dust, until the ring closes and flashes. `dome`: an ABM shield dome forms instead,
-// with a shimmering lattice and an interceptor test-fire.
+// thud of dust, until the ring closes and flashes.
 export const fortify = {
   duration: 2600,
   impactAt: () => 400,
@@ -108,10 +107,7 @@ export const fortify = {
     const N = 8;
     return {
       segs: Array.from({ length: N }, () => ({ path: stage.el('path', { fill: 'none', stroke: hot, 'stroke-width': 5, 'stroke-linecap': 'butt', opacity: 0 }), dust: buildParticles(stage, 4, ['#a8a29e', '#d6d3d1']) })),
-      dome: p.dome ? stage.el('path', { fill: base, 'fill-opacity': 0.15, stroke: hot, 'stroke-width': 1.6, opacity: 0 }) : null,
-      lattice: p.dome ? Array.from({ length: 4 }, () => stage.el('path', { fill: 'none', stroke: hot, 'stroke-width': 0.8, 'stroke-dasharray': '3 4', opacity: 0 })) : null,
-      interceptor: p.dome ? buildBurst(stage, base, hot, { rings: 2, debris: 6, fireball: 0.35 }) : null,
-      keep: stage.icon(p.dome ? 'eyeShield' : 'castle', hot),
+      keep: stage.icon('castle', hot),
       rings: buildRings(stage, 2, base),
       label: buildLabel(stage, p.label || 'Fortified', hot),
       p
@@ -132,16 +128,6 @@ export const fortify = {
       const am = (a0 + a1) / 2;
       seg.dust.draw(x + Math.cos(am) * R, y + Math.sin(am) * R * squash, visible ? phase(f.t, 420 + i * 150, 500) : -1, { mode: 'dust', reach: 10, z, seed: i });
     });
-    if (s.dome) {
-      const g = ease.outCubic(phase(f.t, 1400, 600));
-      const h = R * 1.1 * g;
-      setAttrs(s.dome, { d: `M ${x - R} ${y} A ${R} ${h || 0.1} 0 0 1 ${x + R} ${y} Z`, opacity: (fade * g).toFixed(2) });
-      s.lattice.forEach((l, i) => {
-        const k = (i + 1) / 5;
-        setAttrs(l, { d: `M ${x - R * (1 - k * 0.2)} ${y} A ${R * (1 - k * 0.2)} ${h * (1 - k * 0.35) || 0.1} 0 0 1 ${x + R * (1 - k * 0.2)} ${y}`, opacity: (0.7 * fade * g).toFixed(2), 'stroke-dashoffset': (-f.t / 30).toFixed(1) });
-      });
-      s.interceptor.draw(x, y - h, visible ? (f.t - 2000) / 600 : -1, z, 0.5);
-    }
     placeIcon(s.keep, x, y - 4 * z, 26 * z, { opacity: fade * ease.outCubic(phase(f.t, 1500, 400)) });
     s.rings.draw(x, y, visible ? phase(f.t, 1450, 900) : -1, { r1: 50, z, squash });
     s.label.draw(x, y - R - 6 * z, visible ? phase(f.t, 1600, 950) : -1, z);

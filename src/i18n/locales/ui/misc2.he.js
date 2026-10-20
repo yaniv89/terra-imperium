@@ -27,7 +27,6 @@ export default {
   'de.iron': 'ברזל {v}',
   'de.oil': 'נפט {v}',
   'de.rareMetals': 'מתכות נדירות {v}',
-  'de.helium3': 'הליום־3 {v}',
   'de.dip': 'דיפלומטיה {v}',
   'de.techPoints': 'נקודות מחקר {v}',
   'de.military': 'צבא {v}',

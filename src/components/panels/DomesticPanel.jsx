@@ -24,8 +24,7 @@ import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { getNationCapital } from '../../data/regions';
 import {
-  ACTION_COSTS, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD,
-  FUSION_GRID_ACTIVATION_HELIUM3, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, FUSION_GRID_GOLD_MULT_BONUS } from '../../data/actionCosts';
+  ACTION_COSTS, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD } from '../../data/actionCosts';
 import {
   GOVERNMENT_TYPES, getActiveReforms, getAvailableGovernmentTypes, getReformChoices, canChangeGovernmentType, canEnactReform
 } from '../../data/government';
@@ -153,16 +152,6 @@ const DomesticPanel = () => {
                   {tNow('p1.dom.requestLoan', { n: formatNumber(getLoanSize(state, state.playerNationId)) })}
                 </button>
               </>
-            )}
-            {(state.completedMissions || []).includes('outer_planets') && (
-              <button
-                onClick={() => dispatch({ type: ActionTypes.ACTIVATE_FUSION_GRID })}
-                disabled={playerNation?.fusionGridActive || (state.resources.helium3 || 0) < FUSION_GRID_ACTIVATION_HELIUM3}
-                title={tNow('p1.dom.fusionTip', { upkeep: FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, pct: Math.round(FUSION_GRID_GOLD_MULT_BONUS * 100) })}
-                className="w-full text-[10px] bg-fa-hover hover:bg-fa-line disabled:opacity-50 rounded px-1.5 py-1 mt-1"
-              >
-                {playerNation?.fusionGridActive ? tNow('p1.dom.fusionOn') : tNow('p1.dom.fusionActivate', { n: FUSION_GRID_ACTIVATION_HELIUM3 })}
-              </button>
             )}
           </div>
         );

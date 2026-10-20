@@ -1,5 +1,5 @@
 // src/context/EffectsContext.jsx
-// Transient visual effects triggered by player/AI actions (plan §10.5) — missile arcs, air-strike
+// Transient visual effects triggered by player/AI actions (plan §10.5) — air-strike
 // bursts and ground invasions today via the `arc` primitive; every other action gets its own
 // EFFECT_REGISTRY entry (src/data/effectRegistry.js) as its mechanics land. Deliberately a
 // SEPARATE context from GameContext — these are pure animation state (auto-expiring, never

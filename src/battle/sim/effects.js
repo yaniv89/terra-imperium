@@ -3,7 +3,7 @@
 //
 // Every timed buff/debuff is an "effect" centred on a squad (it moves with it) or a point, with a
 // radius and an end tick; combat/movement ask `effectMult(w, q, kind)` what applies to a squad.
-// Area strikes (arrow storms, barrages, air strikes, missiles) are scheduled "impacts" that land on
+// Area strikes (arrow storms, barrages, air strikes) are scheduled "impacts" that land on
 // later ticks — the renderer draws them from the same events. Everything is deterministic.
 import { hasPerk } from '../../data/promotions';
 import { powerCooldownMult } from './buildings';

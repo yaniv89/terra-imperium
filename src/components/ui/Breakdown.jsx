@@ -3,7 +3,7 @@
 // helper like getPowerBreakdown) as signed, colour-coded rows plus a total line — the generic
 // building block behind "every number explains itself". Deliberately takes plain rows rather than a
 // {scope, modKey} pair (the plan's own sketch): callers like getPowerBreakdown already compose
-// several modifier keys plus non-modifier lines (satellites, missions) into one row list, so asking
+// several modifier keys plus non-modifier lines into one row list, so asking
 // this component to re-derive that from a single modKey would be less capable, not more generic.
 import React from 'react';
 

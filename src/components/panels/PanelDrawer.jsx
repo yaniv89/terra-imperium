@@ -21,7 +21,7 @@ import { useInteraction, interactions, PRIORITY } from '../../hooks/useExclusive
 import { useGame } from '../../context/GameContext';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
-import ActionPanelTabs, { visibleTabs, getTabBadge } from './ActionPanelTabs';
+import ActionPanelTabs, { TABS, getTabBadge } from './ActionPanelTabs';
 import { OPEN_TAB, CLOSE_PANELS } from './panelEvents';
 import ActionPanel from './ActionPanel';
 import { openSettings } from '../ui/uiEvents';
@@ -153,7 +153,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
           </div>
         )}
         <nav ref={navRef} aria-label={t('rail.panels')} className="w-[52px] shrink-0 flex flex-col overflow-y-auto scrollbar-none pb-[env(safe-area-inset-bottom)]">
-          {visibleTabs(state).map((tab) => (
+          {TABS.map((tab) => (
             <RailButton
               key={tab.id}
               icon={tab.icon}

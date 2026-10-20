@@ -147,7 +147,3 @@ describe('endgame reachability: defeat and bankruptcy are achievable (plan §M15
     expect(next.logs.some((l) => l.message.includes('Bankruptcy'))).toBe(true);
   });
 });
-
-// The space-race ladder's end-to-end runs lived here. They waited for the calendar to reach
-// SATELLITE_UNLOCK_YEAR, a rule on the year that ages by tech removes (eight-ages plan KTD3); the
-// space race itself is removed in phase B (U18).
