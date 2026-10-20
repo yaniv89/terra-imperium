@@ -83,7 +83,7 @@ describe('icon index', () => {
   it('has a city badge for every size and age, an icon per age and the four markers', () => {
     CITY_SIZES.forEach((s) => AGE_ORDER.forEach((a) => expect(cityIconUrl(s, a), `${s} ${a}`).toBeTruthy()));
     expect(cityIconUrl(undefined, 'nope')).toBe(cityIconUrl('small', 'bronze'));
-    AGE_ORDER.filter((a) => a !== 'stone').forEach((a) => expect(ageIconUrl(a), a).toBeTruthy()); // the Stone icon is art (U93)
+    AGE_ORDER.forEach((a) => expect(ageIconUrl(a), a).toBeTruthy());
     ['capital', 'wonder', 'event', 'battle'].forEach((m) => expect(markerIconUrl(m), m).toBeTruthy());
   });
 

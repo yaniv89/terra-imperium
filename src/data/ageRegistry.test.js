@@ -75,8 +75,7 @@ const KEYED = [
 const OPT_OUT = {
   'building tiers': { stone: 'Stone building tiers come in U28' },
   'government reform tiers': { stone: 'Stone reforms come in U30' },
-  wonders: { stone: 'Stone wonders come in U29' },
-  'age icons': { stone: 'the Stone icon is art (U93)' }
+  wonders: { stone: 'Stone wonders come in U29' }
 };
 
 // Tables that cover only some ages by design: unknown keys are still rejected. [keys, reason].
@@ -159,7 +158,7 @@ describe('registry completeness: every per-age table has every age', () => {
 
   it('every age has an icon file', () => {
     const dir = path.resolve(__dirname, '../assets/icons/ages');
-    const problems = AGE_ORDER.filter((age) => !OPT_OUT['age icons'][age] && !fs.existsSync(path.join(dir, `${age}.svg`))).map((age) => `age icon ${age}.svg is missing`);
+    const problems = AGE_ORDER.filter((age) => !fs.existsSync(path.join(dir, `${age}.svg`))).map((age) => `age icon ${age}.svg is missing`);
     expect(problems).toEqual([]);
   });
 });
