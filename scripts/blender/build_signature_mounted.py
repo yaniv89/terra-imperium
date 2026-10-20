@@ -28,6 +28,41 @@ def armlets(mat='Gold'):
         F.tube(f'Armlet_{s}', [(tuple(sh.lerp(el, .50)), .045, 'Arm_' + s), (tuple(sh.lerp(el, .58)), .044, 'Arm_' + s)], mat, 7, caps=(False, False))
 
 
+def breastplate(mat='Metal', name='Breastplate', low=.600, high=.790, half=62, grow=.034):
+    """A curved plate over the front of the chest (Chest bone), centred on the breast and standing proud of a
+    scale coat: a shell `half` degrees either side of the front, from `low` to `high`, a little fuller over
+    the breast, closed round its edges (readable from the battle camera, not a block at the shoulder)."""
+    import math
+    rows = [low + (high - low) * i / 4 for i in range(5)]
+    cols = [math.radians(-half + 2 * half * j / 8) for j in range(9)]
+    verts = []
+    for shell in (0, 1):  # outer, then inner
+        for z in rows:
+            rx, ry = F.radius_at(z, F.TORSO)
+            mid = math.sin(math.pi * (z - low) / (high - low))
+            for a in cols:
+                g = grow + .010 * mid * math.cos(a) - .008 * shell
+                verts.append(((rx + g) * math.sin(a), -(ry + g) * math.cos(a), z))
+    R, C = len(rows), len(cols)
+    n = R * C
+
+    def v(sh, i, j):
+        return sh * n + i * C + j
+    faces = []
+    for i in range(R - 1):
+        for j in range(C - 1):
+            faces += [(v(0, i, j), v(0, i, j + 1), v(0, i + 1, j + 1)), (v(0, i, j), v(0, i + 1, j + 1), v(0, i + 1, j)),
+                      (v(1, i, j), v(1, i + 1, j + 1), v(1, i, j + 1)), (v(1, i, j), v(1, i + 1, j), v(1, i + 1, j + 1))]
+    edge = [(0, j) for j in range(C)] + [(i, C - 1) for i in range(1, R)] + [(R - 1, j) for j in range(C - 2, -1, -1)] + [(i, 0) for i in range(R - 2, 0, -1)]
+    for (i0, j0), (i1, j1) in zip(edge, edge[1:] + edge[:1]):
+        faces += [(v(0, i0, j0), v(1, i0, j0), v(1, i1, j1)), (v(0, i0, j0), v(1, i1, j1), v(0, i1, j1))]
+    F.raw(name, verts, faces, mat, 'Chest')
+    # a raised rim along the neck line
+    z = high
+    rx, ry = F.radius_at(z, F.TORSO)
+    F.tube(name + 'Rim', [(((rx + grow + .004) * math.sin(a), -(ry + grow + .004) * math.cos(a), z), .007, 'Chest') for a in cols], mat, 4)
+
+
 def braid_cords(mat='Lace', zs=(.600, .640, .680, .720)):
     """The hussar's dolman: cords across the chest."""
     for k, z in enumerate(zs):
@@ -83,8 +118,8 @@ R = {
                     colors={'Coat': '7A4A2A', 'Mane': '1A1410', 'Skin': 'C99472', 'Cloth': 'D9C7A0', 'Metal': BRONZE, 'Saddle': '8A2E28'},
                     horse=dict(style='cloth', cloth='Saddle', discs=0, peytral='Metal', chanfron='Metal'),
                     legs='boots', sleeve='Cloth', shoulder='Metal', dress=dict(skirt='Cloth', top='Team', armour='scale', armour_mat='Metal', belt='Leather'),
-                    head=('crested', {'mat': 'Metal', 'crest': 'Team'}), weapon=('lance', {'top': 1.62}),
-                    look='a bay with a bronze breastplate and chamfron under a red cloth; a bronze scale coat, a crested helmet with a Team crest, a long lance'),
+                    head=('crested', {'mat': 'Metal', 'crest': 'Team'}), weapon=('lance', {'top': 1.62}), pre=[breastplate],
+                    look='a bay with a bronze breastplate and chamfron under a red cloth; a bronze scale coat under a bronze chest plate, a crested helmet with a Team crest, a long lance'),
     'wusun': dict(name='Wusun horse archers', role='Horse archers',
                   colors={'Coat': 'B89A6A', 'Mane': '3A2A1E', 'Skin': 'D2A47E', 'Cloth': 'C9A66B', 'Felt': 'E8E0CC', 'Trousers': '6A5236', 'Saddle': '7A4A30'},
                   horse=dict(style='fleece', cloth='Saddle', socks=True),

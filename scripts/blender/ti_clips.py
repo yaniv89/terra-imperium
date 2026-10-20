@@ -361,12 +361,15 @@ class Author:
 
     def barrow_pose(self, spec):
         """The Gunpowder barrow stays on the ground (tilted `tilt` degrees about its axle), the hands
-        on its handles unless `free`; its wheel turns `wheel` degrees."""
+        on its handles unless `free` (`free_left`: the left hand only let go, posed by the spec's L); its wheel
+        turns `wheel` degrees."""
         P, B = self.P, self.barrow
         th = math.radians(spec.get('tilt', 0))
         T = Matrix.Translation(B['axle']) @ Matrix.Rotation(th, 4, 'X') @ Matrix.Translation(-B['axle'])
         if not spec.get('free'):
             for s, pole in (('R', (-1, .3, -.6)), ('L', (1, .3, -.6))):
+                if s == 'L' and spec.get('free_left'):
+                    continue
                 G = P.grip[s][0]
                 W = P.wrist[s]
                 Q = T.to_3x3()
