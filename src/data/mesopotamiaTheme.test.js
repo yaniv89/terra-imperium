@@ -106,6 +106,6 @@ describe('Mesopotamian theme routing', () => {
   it('the shipped battle art: the theme\'s own civic halls for the Bronze and Classical cities', () => {
     expect(ART.civic('bronze', 'mesopotamia').style).toBe('mesopotamia');
     expect(ART.civic('classical', 'mesopotamia').style).toBe('mesopotamia');
-    expect(ART.civic('classical', 'levant').style).toBe('base'); // no other theme has a Classical hall
+    expect(ART.civic('classical', 'levant').style).toBe('levant'); // no other theme has a Classical hall: it borrows the Bronze Levant one (H-25)
   });
 });

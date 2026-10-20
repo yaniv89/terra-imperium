@@ -4,7 +4,7 @@
 // faces it, rivers run along the edges that carry them, the coast is where the sea is, the city's
 // walls set the keep, and the attacker always comes from the WEST, so the sectors are rotated
 // until the neighbour the attacker approaches from sits at bearing 180.
-//   { tile, terrain, relief, attackerBearing, sectors: [{ tile, bearing, terrain, water, river,
+//   { tile, terrain, relief, oasis, attackerBearing, sectors: [{ tile, bearing, terrain, water, river,
 //     riverSize, fords, bridge, road }], coastal, walls, hpRatio, roads }
 // A river edge (src/data/geo/terrainData.js) carries its size class (1 stream, 2 river, 3 great
 // river), its ford count (FORDS_BY_SIZE) and a bridge where a road runs on both banks; mapgen.js
@@ -54,6 +54,7 @@ export const tileContextOf = (state, tile, { fromTile = null, city = null } = {}
     tile,
     terrain: tiles.land[tile] === 1 ? legacyTerrainOf(tiles, tile) : 'island',
     relief: reliefClassOf(tile, tiles),
+    oasis: tiles.land[tile] === 1 && tiles.featureOf(tile) === 'oasis', // green on the macro map, sand and palms on the field (H-25)
     attackerBearing: 180,
     sectors,
     coastal: sectors.some((s) => s.water && !s.lake),

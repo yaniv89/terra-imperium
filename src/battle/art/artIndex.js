@@ -95,14 +95,18 @@ export const createArtIndex = (files = {}) => {
       }
       return null;
     },
-    /** Civic halls and palace damage match the city's exact age and style, then its base. */
+    /** Civic halls match the city's exact age and style, then an earlier age's hall of the land's own
+     * culture (the age's base hall is European: H-25, a Tudor town hall in Waset), then the base. */
     civic: (ageId, style = null) => {
-      for (const s of [...styleChain(style), 'base']) {
-        const key = s === 'base' ? `battle/city/civic-${ageId}.glb` : `battle/city/civic-${ageId}-${s}.glb`;
-        if (url(key)) return { url: url(key), ageId, style: s, key };
+      const chain = styleChain(style);
+      const earlier = ageChain(ageId).slice(1).flatMap((a) => chain.filter((s) => s !== 'europe').map((s) => [a, s]));
+      for (const [a, s] of [...chain.map((c) => [ageId, c]), ...earlier, [ageId, 'base']]) {
+        const key = s === 'base' ? `battle/city/civic-${a}.glb` : `battle/city/civic-${a}-${s}.glb`;
+        if (url(key)) return { url: url(key), ageId: a, style: s, key };
       }
       return null;
     },
+    /** Palace damage matches the city's exact age and style, then its base. */
     palaceDamage: (ageId, style = null) => {
       for (const s of [...styleChain(style), 'base']) {
         const key = s === 'base' ? `battle/city/palace-damage-${ageId}.glb` : `battle/city/palace-damage-${ageId}-${s}.glb`;
