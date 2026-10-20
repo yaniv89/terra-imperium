@@ -6,7 +6,7 @@ import { createRng } from '../utils/rng';
 import { addCity } from './testWorld';
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
-import { processAINavalOperations, processAIOperations } from './aiOperations';
+import { processAINavalOperations, processAIOperations, cityAttackWorthIt } from './aiOperations';
 import { resolveAllQueuedAuto } from './battleQueue';
 // The Dawn world gives Germany one city (its capital, which borders Paris), so the fixture founds
 // a German interior city beside it that borders no French city.
@@ -186,5 +186,16 @@ describe('raids on the player\'s trade routes (plan D6)', () => {
     const next = processAIOperations(war, createRng(3));
     const u = next.units.raid1;
     expect(u.tile === nearest || (u.route && u.route[u.route.length - 1] === nearest) || u.routeFailed?.goal === `raid:${nearest}`).toBe(true);
+  });
+});
+
+describe('siege that cannot take the city (playtest 4 M2)',()=>{
+  it('does not attack again a city already at 0 HP when no foot or horse is in the stack',()=>{
+    const {s,target}=setup();
+    const broken={...s.regions[target],siege:{hp:0,maxHp:500,startedTurn:1,by:'de'}};
+    const siegeOnly=[{id:'e',ownerId:'de',classId:'siege',strength:900}];
+    const withFoot=[...siegeOnly,{id:'f',ownerId:'de',classId:'infantry',strength:300}];
+    expect(cityAttackWorthIt(s,'de',siegeOnly,broken)).toBe(false);
+    expect(cityAttackWorthIt(s,'de',withFoot,broken)).toBe(true);
   });
 });

@@ -28,7 +28,7 @@ import { ringsAround } from './world/cities';
 import { enemyFleetsAt, AI_FLEET_ATTACK_RATIO, validateFleetAttack } from './navalBattle';
 import { estimateBattle } from './lanchester';
 import { getTotalDev } from './development';
-import { getDefenseLevelDamageReductionMultiplier } from './siege';
+import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed } from './siege';
 import { getCapital } from '../data/regions';
 import { ringsForKm } from '../data/geo/gridScale';
 import { isIndependentNation } from '../data/independents';
@@ -223,6 +223,8 @@ export const seekFieldBattle = (state, nationId, from, stack, at, enemies, rng) 
 /** Is an empty enemy city worth an attack by this stack now (cityAssault.js)? One attack must take
  * CITY_HIT_MIN_SHARE of its max HP, or what HP it has left. */
 export const cityAttackWorthIt = (state, nationId, stack, city) => {
+  // Walls already at 0 HP and nobody to walk in: another attack only repeats the same battle (playtest 4 M2). The siege holds.
+  if (siegeHpOf(city, state.greatProjects) <= 0 && !hasMeleeUnitDeployed(stack.filter((u) => u.strength > 0))) return false;
   const attack = cityAttackStrength(stack, { attackerAgeId: getTechAgeId(state, nationId), defenderAgeId: getTechAgeId(state, city.owner) });
   const hit = cityAttackDamage(attack, cityDefence(city, { militia: cityMilitia(state, city.id), hpRatio: wallsHpRatio(state, city) }));
   return hit >= CITY_HIT_MIN_SHARE * siegeMaxHp(city, state.greatProjects) || hit >= siegeHpOf(city, state.greatProjects);
