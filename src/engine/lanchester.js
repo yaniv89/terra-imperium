@@ -45,6 +45,16 @@ const sumStrength = (units) => {
   return s;
 };
 
+// A unit fights until its morale falls to battle.js's rout line (MORALE_ROUT_THRESHOLD 20), so a
+// shaken unit counts for the share of its morale above that line (H-15: broken remnants at 100%
+// strength attacked a walled city three times and routed at once). Full morale counts in full.
+const ROUT_MORALE = 20;
+const fightingStrength = (units) => {
+  let s = 0;
+  for (const u of units) s += Math.max(0, u.strength || 0) * Math.min(1, Math.max(0, ((u.morale ?? 100) - ROUT_MORALE) / (100 - ROUT_MORALE)));
+  return s;
+};
+
 // The strength-weighted damage multiplier `from` deals to `to` (counters, and siege engines'
 // context: x3 against walls, x0.5 in the open). 1 = an even matchup.
 export const matchupMult = (from, to, attackingFortification = false) => {
@@ -98,8 +108,8 @@ export const oddsFromPower = (power, constants = {}) => {
  * defenderLossShare, power, attackerStrength, defenderStrength, attackerEff, defenderEff }.
  */
 export const estimateBattle = (args, constants) => {
-  const attackerStrength = sumStrength(args.attackerUnits || []);
-  const defenderStrength = sumStrength(args.defenderUnits || []);
+  const attackerStrength = fightingStrength(args.attackerUnits || []);
+  const defenderStrength = fightingStrength(args.defenderUnits || []);
   const eff = battleEffectiveness({ ...args, attackerUnits: args.attackerUnits || [], defenderUnits: args.defenderUnits || [] });
   const power = lanchesterPower(attackerStrength, defenderStrength, eff.att, eff.def);
   return { ...oddsFromPower(power, constants), attackerStrength, defenderStrength, attackerEff: eff.att, defenderEff: eff.def };
