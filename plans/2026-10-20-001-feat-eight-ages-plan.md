@@ -1471,6 +1471,7 @@ Every art unit follows `plans/art/clip-animation-pipeline.md`, the shared rig in
 - **Requirements:** R24.
 - **Depends on:** U29, U51, U69.
 - **Files:** `src/assets/map/wonders/<id>.glb`, `src/components/map/closeView/wonderAssets.js`.
+- **Ids (fixed 2026-10-20 with the art session; U29, U51 and U69 use them in `greatProjects.js`):** `stonehenge`, `catalhoyuk`, `walls_of_jericho`, `white_temple_of_uruk`, `world_wide_web`, `large_hadron_collider`, `global_seed_vault`, `space_elevator`, `mars_colony`, `arcology_prime`. Each file has tier1, tier2 and tier3.
 - **Approach:** Wonder budget 15,000 to 60,000 LOD0.
 - **Test Scenarios:** every wonder id resolves.
 - **Verification:** close-view shots.
