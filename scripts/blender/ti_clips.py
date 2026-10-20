@@ -214,7 +214,7 @@ class Poser:
 
     def hold_right(self, P, D, Fd, tool):
         """The right grip at P, the tool's haft along D and its face towards Fd (armature space)."""
-        a0, f0 = self.frames[tool]
+        a0, f0 = self.frames[tool] if tool in self.frames else self.frames['Held']  # ('None': an empty fist, the held tool's grip)
         Q = frame3(D, Fd) @ frame3(a0, f0).transposed()
         G = self.grip['R'][0]
         W = self.wrist['R']

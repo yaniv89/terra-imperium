@@ -27,8 +27,10 @@ import ti_clips as C
 from ti_clips import FPS, nrm, rest_grip, tool_frame, Clip, Poser, Author  # noqa: F401  (builders reach them through this module)
 
 WORK_TOOLS = ('Axe', 'Pick', 'Sickle', 'Hammer')
-CLIP_ORDER = ('Idle', 'Walk', 'Run', 'Carry', 'Chop', 'Mine', 'Harvest', 'Build', 'Repair', 'Deposit', 'Hit', 'Death')
-SHEETS = {'moving': ['Idle', 'Walk', 'Run', 'Carry', 'Hit', 'Death'], 'work': ['Chop', 'Mine', 'Harvest', 'Build', 'Repair', 'Deposit']}
+CLIP_ORDER = ('Idle', 'Walk', 'Run', 'Carry', 'Chop', 'Mine', 'Harvest', 'Pick', 'Fish', 'Herd', 'Build', 'Repair', 'Deposit', 'Hit', 'Death',
+              'DeathAlt', 'Cheer')
+SHEETS = {'moving': ['Idle', 'Walk', 'Run', 'Carry', 'Hit', 'Death', 'DeathAlt', 'Cheer'], 'work': ['Chop', 'Mine', 'Harvest', 'Build', 'Repair', 'Deposit'],
+          'food': ['Pick', 'Fish', 'Herd']}
 
 
 # ---- tool bones and tool meshes --------------------------------------------------------------------
@@ -290,8 +292,14 @@ def hammer(name, tool, crouch, period, contact, two_hands=False, heavy=False):
               R={'p': (-.17, -.08, .66 + lift), 'd': (0, .55, .83)}, L=left())
     mid = dict(W, r={'Spine': (5 + low * 60, 0, 0), 'Chest': (6 + low * 40, 0, 0)}, root=(0, 0, -low - .01),
                R={'p': (-.14, -.21, .84), 'd': (0, -.55, .83)}, L=left(), ease='in')
+    # the blow: Build strikes the wall or frame level at waist height (2026-10-20: it struck about the knee);
+    # Repair, crouched, strikes lower and downward
+    if low:
+        R_hit = {'p': (-.10, -.26, .62 + (.05 if heavy else 0)), 'd': (.05, -.96, -.25 + (.12 if heavy else 0))}
+    else:
+        R_hit = {'p': (-.10, -.25, .76), 'd': (.05, -.93, .36 + (.08 if heavy else 0))}  # (in the leaning chest's space: level in the world)
     hit = dict(W, r={'Spine': (9 + low * 60, 0, 2), 'Chest': (12 + low * 40, 0, 5), 'Head': (-10, 0, 0)}, root=(0, 0, -low - .02),
-               R={'p': (-.10, -.26, .62 + (.05 if heavy else 0)), 'd': (.05, -.96, -.25 + (.12 if heavy else 0))}, L=left(), ease='in')
+               R=R_hit, L=left(), ease='in')
     back = dict(W, r={'Spine': (7 + low * 60, 0, 0), 'Chest': (8 + low * 40, 0, 2)}, root=(0, 0, -low - .01),
                 R={'p': (-.12, -.25, .66), 'd': (0, -.70, .70)}, L=left(), ease='out')
     q = period
@@ -305,11 +313,11 @@ def deposit_basket():
     W = {'plant': True}
     stand = dict(W)
     bend = dict(W, r={'Hips': (6, 0, 0), 'Spine': (10, 0, 4), 'Chest': (12, -6, 8), 'Head': (-8, 0, 4), 'Arm_L': (-20, 0, 0),
-                      'Hand_R': (22, 0, 0), 'Prop_Back': (14, 18, 0)}, root=(0, 0, -.03))
+                      'Hand_R': (-22, 0, 0), 'Prop_Back': (14, 18, 0)}, root=(0, 0, -.03))
     tip = dict(W, r={'Hips': (10, 0, 0), 'Spine': (16, 0, 6), 'Chest': (18, -12, 12), 'Head': (-12, 0, 6), 'Arm_L': (-34, 0, -6),
-                     'Forearm_L': (8, 0, 0), 'Hand_R': (36, 0, 0), 'Prop_Back': (40, 62, 0)}, root=(0, 0, -.05), ease='in')
+                     'Forearm_L': (8, 0, 0), 'Hand_R': (-36, 0, 0), 'Prop_Back': (40, 62, 0)}, root=(0, 0, -.05), ease='in')
     back = dict(W, r={'Hips': (4, 0, 0), 'Spine': (6, 0, 2), 'Chest': (6, -4, 4), 'Head': (-4, 0, 2), 'Arm_L': (-10, 0, 0),
-                      'Hand_R': (11, 0, 0), 'Prop_Back': (6, 8, 0)}, root=(0, 0, -.015), ease='out')
+                      'Hand_R': (-11, 0, 0), 'Prop_Back': (6, 8, 0)}, root=(0, 0, -.015), ease='out')
     keys = [(1, stand), (8, bend), (16, tip), (17, tip), (24, back), (30, stand)]
     return Clip('Deposit', 30, False, 'Held', keys=keys, events={'pour': 16})
 
@@ -346,30 +354,112 @@ def hit(kind):
     return Clip('Hit', 8, False, 'Held', keys=keys, barrow=(kind == 'barrow'))
 
 
-def death(kind):
+def death(kind, name='Death', flip=False):
     """Struck, the knees buckle, the body topples (forward; backward away from a barrow) and lies
     still from the settle frame on. The lowest point stays on the ground every frame."""
     sign = -1 if kind == 'barrow' else 1  # +X: the top falls forward (-Y)
+    roll = 34 if flip else 0  # DeathAlt (2026-10-20): the same fall, twisted down onto the right side
     W = {'plant': True}
     struck = dict(W, r={'Spine': (-6, 0, -4), 'Chest': (-14, 0, -10), 'Head': (-14, 0, 6), 'Arm_L': (-10, 0, -8), 'Arm_R': (-6, 0, 8)},
                   root=(0, 0, -.02), ease='out')
     buckle = dict(W, r={'Spine': (14 * sign, 0, 4), 'Chest': (10 * sign, 0, 6), 'Head': (12 * sign, 0, 0), 'Arm_L': (-14, 0, -12),
                         'Arm_R': (-10, 0, 12), 'Hand_R': (50 if sign > 0 else 0, 0, 0), 'Hips': (6 * sign, 0, 0)}, root=(0, 0, -.16))
     legs = {'Leg_L': (-30, 0, 0), 'Leg_R': (-24, 0, 0), 'Shin_L': (44, 0, 0), 'Shin_R': (38, 0, 0)}
-    fall = {'r': dict(legs, Root=(52 * sign, 0, 6), Spine=(6 * sign, 0, 4), Chest=(4 * sign, 0, 4), Head=(6 * sign, 0, 0),
+    fall = {'r': dict(legs, Root=(52 * sign, roll * .6, 6), Spine=(6 * sign, 0, 4), Chest=(4 * sign, 0, 4), Head=(6 * sign, 0, 0),
                       Arm_L=(-26, 0, -26), Arm_R=(-20, 0, 26), Hand_R=(60 if sign > 0 else 0, 0, 0)), 'ease': 'in'}
-    down = {'r': {'Root': (90 * sign, 0, 8), 'Leg_L': (-4, 0, 0), 'Leg_R': (-2, 0, 2), 'Shin_L': (14, 0, 0), 'Shin_R': (8, 0, 0),
+    down = {'r': {'Root': (90 * sign, roll, 8), 'Leg_L': (-4, 0, 0), 'Leg_R': (-2, 0, 2), 'Shin_L': (14, 0, 0), 'Shin_R': (8, 0, 0),
                   'Spine': (-4 * sign, 0, 2), 'Chest': (-2 * sign, 0, 0), 'Head': (-14 * sign, 0, 0), 'Arm_L': (-12, 0, -30), 'Arm_R': (-8, 0, 30)},
             'ease': 'in'}
-    bounce = {'r': dict(down['r'], Root=(86 * sign, 0, 8), Chest=(-6 * sign, 0, 0), Head=(-20 * sign, 0, 0)), 'ease': 'out'}
-    still = {'r': dict(down['r'], Root=(89 * sign, 0, 8), Head=(-12 * sign, 0, 18 * sign))}
+    bounce = {'r': dict(down['r'], Root=(86 * sign, roll, 8), Chest=(-6 * sign, 0, 0), Head=(-20 * sign, 0, 0)), 'ease': 'out'}
+    still = {'r': dict(down['r'], Root=(89 * sign, roll, 8), Head=(-12 * sign, 0, 18 * sign))}
     keys = [(1, dict(W)), (4, struck), (10, buckle), (16, fall), (21, down), (24, bounce), (28, still), (30, still)]
     if kind == 'barrow':
         keys = [(f, dict(s, free=True)) for f, s in keys]
     else:  # the held tool slips round in the fist and lies along the ground beside him
         flat = {16: .5, 21: 1, 24: 1, 28: 1, 30: 1}
         keys = [(f, dict(s, flat=flat.get(f, 0))) for f, s in keys]
-    return Clip('Death', 30, False, 'Held', keys=keys, ground='all', events={'settle': 30}, barrow=(kind == 'barrow'))
+    return Clip(name, 30, False, 'Held', keys=keys, ground='all', events={'settle': 30}, barrow=(kind == 'barrow'))
+
+
+# ---- the food jobs and the win (2026-10-20): Pick (berries), Fish, Herd, Cheer -------------------------------------
+# One Harvest swing used to stand for every food node; the game asks for these by node (clipPlayer.js
+# NODE_ROLE: berries pick, fish fish, herd and cattle herd; farm keeps Harvest).
+
+def pick(kind):
+    """Berries: leaning in to the bush, the left hand reaches in low in front, plucks, and drops the handful
+    over the left shoulder into the basket (a barrow man or a sledge man picks with both hands, the tool put
+    down)."""
+    W = {'plant': True}
+    hide = {}
+    lean = {'Hips': (6, 0, 0), 'Spine': (10, 0, 4), 'Chest': (8, 0, 6), 'Head': (-14, 0, 2)}
+    reach = dict(W, **hide, r=lean, root=(0, 0, -.04), L={'p': (.08, -.33, .52), 'pole': (1, .2, -.6)})
+    pluck = dict(W, **hide, r=dict(lean, Chest=(9, 0, 8)), root=(0, 0, -.045), L={'p': (.06, -.29, .56), 'pole': (1, .2, -.6)}, ease='out')
+    up = dict(W, **hide, r={'Hips': (3, 0, 0), 'Spine': (4, 0, 0), 'Chest': (2, 0, -8), 'Head': (-8, 0, -8)}, root=(0, 0, -.02),
+              L={'p': (.15, -.04, .98), 'pole': (1, .3, -.3)}, ease='io')
+    drop = dict(up, L={'p': (.14, .05, 1.00), 'pole': (1, .3, -.3)})
+    if kind != 'basket':  # the right hand picks too, a beat behind
+        reach['R'] = {'p': (-.06, -.32, .56), 'd': (0, 0, 1)}
+        pluck['R'] = {'p': (-.08, -.34, .50), 'd': (0, 0, 1)}
+        up['R'] = drop['R'] = {'p': (-.06, -.30, .58), 'd': (0, 0, 1)}
+    keys = [(1, reach), (7, pluck), (8, pluck), (15, up), (19, drop), (25, dict(reach, ease='io')), (33, reach)]
+    return Clip('Pick', 33, True, 'Held' if kind == 'basket' else 'None', keys=keys, events={'cut': 7})  # ('None': empty-handed)
+
+
+def fish(kind):
+    """At the water's edge: a throwing net swung back low and cast out in front (cast), then the line drawn
+    in hand over hand to the chest, and again. The held tool is laid down (hidden) for the clip."""
+    W = {'plant': True}
+    crouch = {'Hips': (8, 0, 0), 'Spine': (12, 0, 0), 'Chest': (8, 0, 0), 'Head': (-16, 0, 0)}
+
+    def both(rp, lp):
+        return {'R': {'p': rp, 'd': (0, -.3, .95)}, 'L': {'p': lp, 'pole': (1, .2, -.6)}}
+    back = dict(W, r=dict(crouch, Chest=(6, 0, -18), Spine=(10, 0, -10)), root=(0, 0, -.06), **both((-.24, .02, .52), (.02, -.02, .54)))
+    swing = dict(W, r=dict(crouch, Chest=(4, 0, 10)), root=(0, 0, -.04), ease='in', **both((-.12, -.30, .78), (.10, -.30, .80)))
+    cast = dict(W, r={'Hips': (4, 0, 0), 'Spine': (4, 0, 4), 'Chest': (-2, 0, 12), 'Head': (-8, 0, 0)}, root=(0, 0, -.02),
+                **both((-.10, -.36, .92), (.12, -.36, .94)))
+
+    def haul(f, k):
+        return (f, dict(W, r=crouch, root=(0, 0, -.06), **both((-.06, -.34 + .16 * k, .62 + .06 * k), (.08, -.18 - .16 * k, .68 - .06 * k))))
+    keys = [(1, back), (6, swing), (9, cast), (10, cast), (14, dict(cast, ease='out'))]
+    keys += [haul(f, i % 2) for i, f in enumerate(range(18, 38, 4))] + [(41, back)]
+    return Clip('Fish', 41, True, 'None', keys=keys, events={'cast': 9})  # the tool laid down: empty-handed
+
+
+def herd(kind):
+    """Driving a herd: the tool held low as a goad and swept out to the right and back, the free arm thrown
+    out to turn the beasts, the head following them; a barrow man waves both arms, the barrow set down."""
+    W = {'plant': True}
+    if kind != 'basket':  # the barrow set down, the sledge laid down: both arms wave
+        a = dict(W, r={'Chest': (0, 0, 12), 'Head': (-4, 0, 20), 'Arm_L': (-60, 0, -40), 'Arm_R': (-30, 0, 20)})
+        b = dict(W, r={'Chest': (0, 0, -12), 'Head': (-4, 0, -20), 'Arm_L': (-30, 0, -20), 'Arm_R': (-60, 0, 40)})
+        keys = [(1, dict(W)), (11, a), (21, dict(W)), (31, b), (41, dict(W))]
+        return Clip('Herd', 41, True, 'None', keys=keys)
+
+    def goad(x, y, d):
+        return {'p': (x, y, .60), 'd': d}
+    out = dict(W, r={'Spine': (4, 0, -6), 'Chest': (4, 0, -16), 'Head': (-6, 0, -24)}, R=goad(-.20, -.26, (-.55, -.65, -.52)),
+               L={'p': (.30, -.10, .80), 'pole': (1, .3, -.3)}, ease='io')
+    mid = dict(W, r={'Spine': (3, 0, 0), 'Chest': (3, 0, 0), 'Head': (-4, 0, 0)}, R=goad(-.14, -.28, (-.10, -.80, -.58)),
+               L={'p': (.18, -.14, .70), 'pole': (1, .3, -.6)})
+    tap = dict(W, r={'Spine': (6, 0, 6), 'Chest': (6, 0, 10), 'Head': (-8, 0, 14)}, R=goad(-.08, -.30, (.30, -.75, -.58)),
+               L={'p': (.20, -.06, .64), 'pole': (1, .3, -.6)}, ease='io')
+    keys = [(1, mid), (11, out), (21, mid), (31, tap), (41, mid)]
+    return Clip('Herd', 41, True, 'Held', keys=keys)
+
+
+def cheer(kind):
+    """The win: the tool raised high in the right fist and shaken twice, the head up (a barrow man punches the
+    air with his left fist, the right on the handle)."""
+    W = {'plant': True}
+    if kind == 'barrow':
+        lo = dict(W, r={'Head': (-4, 0, 0)}, L={'p': (.18, -.10, .78), 'pole': (1, .3, -.3)})
+        hi = dict(W, r={'Spine': (-3, 0, 0), 'Chest': (-5, 0, 0), 'Head': (-12, 0, 0)}, root=(0, 0, .008), L={'p': (.16, -.06, 1.08), 'pole': (1, .3, -.3)})
+        return Clip('Cheer', 33, True, 'Held', keys=[(1, lo), (9, hi), (17, lo), (25, hi), (33, lo)], barrow=True)
+    hi = dict(W, r={'Spine': (-3, 0, 0), 'Chest': (-6, 0, 0), 'Head': (-12, 0, 0)}, root=(0, 0, .008), R={'p': (-.18, -.08, 1.04), 'd': (0, -.15, .99)},
+              L={'p': (.20, -.10, .80), 'pole': (1, .3, -.3)})
+    lo = dict(W, r={'Spine': (-1, 0, 0), 'Chest': (-2, 0, 0), 'Head': (-5, 0, 0)}, root=(0, 0, .002), R={'p': (-.19, -.10, .90), 'd': (0, -.15, .99)},
+              L={'p': (.20, -.12, .72), 'pole': (1, .3, -.3)})
+    return Clip('Cheer', 33, True, 'Held', keys=[(1, lo), (9, hi), (17, lo), (25, hi), (33, lo)])  # (a closed loop from the low pose)
 
 
 def library(kind, build_tool='Hammer'):
@@ -385,7 +475,8 @@ def library(kind, build_tool='Hammer'):
              hammer('Build', build_tool, 0.0, 24, 15, two_hands=heavy, heavy=heavy),
              hammer('Repair', build_tool, .07, 20, 11, two_hands=heavy, heavy=heavy),
              deposit_barrow() if kind == 'barrow' else deposit_shoulder() if kind == 'sledge' else deposit_basket(),
-             hit(kind), death(kind)]
+             hit(kind), death(kind),
+             pick(kind), fish(kind), herd(kind), death(kind, 'DeathAlt', flip=True), cheer(kind)]
     return clips
 
 
