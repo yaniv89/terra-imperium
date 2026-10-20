@@ -168,8 +168,8 @@ describe('commander powers', () => {
     expect(firePower(w, 0, 'rallyCry', 0, 0)).toBe(false); // cooldown
   });
 
-  it('an arrow storm hits only enemies; a missile hits everyone and its uses run out', () => {
-    const s = setup({ powers: [[{ id: 'arrowStorm' }, { id: 'missileTactical', uses: 1 }], []] });
+  it('an arrow storm hits only enemies and its uses run out', () => {
+    const s = setup({ powers: [[{ id: 'arrowStorm', uses: 1 }], []] });
     const w = createWorld(s);
     w.supply[0] = 1000;
     const def = w.squads.find((q) => q.side === 1 && q.onField);
@@ -179,17 +179,15 @@ describe('commander powers', () => {
     w.tick += 200; processImpacts(w);
     expect(def.strength).toBeLessThan(1000);
     expect(att.strength).toBe(1000); // precision: friendly squads untouched
-    expect(firePower(w, 0, 'missileTactical', def.x, def.y)).toBe(true);
-    w.tick += 200; processImpacts(w);
-    expect(att.strength).toBeLessThan(1000); // a missile doesn't care whose side you're on
-    expect(firePower(w, 0, 'missileTactical', def.x, def.y)).toBe(false); // no missiles left
-    expect(w.powersUsed[0]).toMatchObject({ arrowStorm: 1, missileTactical: 1 });
+    w.powerCooldowns[0].arrowStorm = 0;
+    expect(firePower(w, 0, 'arrowStorm', def.x, def.y)).toBe(false); // no uses left
+    expect(w.powersUsed[0]).toMatchObject({ arrowStorm: 1 });
   });
 
   it('a power not brought to the battle cannot be used', () => {
     const w = createWorld(setup({ powers: [[{ id: 'rallyCry' }], []] }));
     w.supply[0] = 1000;
-    expect(firePower(w, 0, 'nuclearStrike', 0, 0)).toBe(false);
+    expect(firePower(w, 0, 'airStrike', 0, 0)).toBe(false);
   });
 });
 

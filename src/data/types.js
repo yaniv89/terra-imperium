@@ -177,28 +177,12 @@ export const ActionTypes = {
   // Stability, legitimacy, prestige, overextension (plan §M4) — see src/engine/nationalPower.js.
   INCREASE_STABILITY: 'INCREASE_STABILITY',
 
-  // Space Race, orbital layer (plan §10.4 Layer 1).
-  LAUNCH_SATELLITE: 'LAUNCH_SATELLITE',
-  ASAT_STRIKE: 'ASAT_STRIKE',
-
-  // Space Race, missiles and mission ladder (plan §10.4 Layers 2-3).
-  BUILD_MISSILE: 'BUILD_MISSILE',
-  MISSILE_STRIKE: 'MISSILE_STRIKE',
-  BUILD_ABM_DEFENSE: 'BUILD_ABM_DEFENSE',
-  LAUNCH_MISSION: 'LAUNCH_MISSION',
-
   // Economy overhaul (plan §M11) — the maintenance slider is adjustable any time, no cooldown
   // (unlike Set Tax Rate); loans require the Banking Houses tech (src/engine/economy.js).
   SET_ARMY_MAINTENANCE: 'SET_ARMY_MAINTENANCE',
   SET_NAVY_MAINTENANCE: 'SET_NAVY_MAINTENANCE',
   REQUEST_LOAN: 'REQUEST_LOAN',
   REPAY_LOAN: 'REPAY_LOAN',
-  // Fusion Grid national decision (plan §M11 resource sinks): the plan's own literal Megafactory/
-  // Fusion Research Complex building tiers were never built in M6 (no Future-age building line
-  // exists), so this ships as a standalone action against a helium3 stockpile instead of a building
-  // upkeep — see actionCosts.js's FUSION_GRID_* constants for the honest-adaptation note.
-  ACTIVATE_FUSION_GRID: 'ACTIVATE_FUSION_GRID',
-
   // Crises & defeat (plan §M15) — dynamic capital and a vassal's own path out of subjection. Civil
   // war, disasters, and defeat itself have no player-initiated action of their own: they're
   // engine-driven consequences resolved in resolveTurn.js (src/engine/civilWar.js, disasters.js).

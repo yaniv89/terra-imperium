@@ -3,8 +3,8 @@
 // only through orders (src/battle/sim/orders.js), exactly like the player — so it replays
 // identically and can never do anything a player couldn't — and it only knows what its own fog of
 // war shows it. Difficulty changes how often it thinks and how sharply it plays: settler/chieftain
-// fight straightforwardly; prince uses commander powers and abilities; king adds cavalry flanking
-// and missiles; emperor kites with its archers too. It never uses a nuclear strike.
+// fight straightforwardly; prince uses commander powers and abilities; king adds cavalry flanking;
+// emperor kites with its archers too.
 import { distSq, isqrt } from './fixed';
 import { isFighting, inRangeOfSquad } from './combat';
 import { canSeeSquad, isTileVisibleTo } from './fog';
@@ -19,11 +19,11 @@ import { baseBuildings, hasBase } from './base';
 const AI_CELL = 4 * Q;
 
 export const AI_DIFFICULTY = {
-  settler: { thinkEvery: 24, retreatAt: 0.15, powers: false, abilities: false, flank: false, missiles: false },
-  chieftain: { thinkEvery: 20, retreatAt: 0.2, powers: false, abilities: false, flank: false, missiles: false },
-  prince: { thinkEvery: 10, retreatAt: 0.25, powers: true, abilities: true, flank: false, missiles: false },
-  king: { thinkEvery: 6, retreatAt: 0.3, powers: true, abilities: true, flank: true, missiles: true },
-  emperor: { thinkEvery: 4, retreatAt: 0.3, powers: true, abilities: true, flank: true, missiles: true, kite: true }
+  settler: { thinkEvery: 24, retreatAt: 0.15, powers: false, abilities: false, flank: false },
+  chieftain: { thinkEvery: 20, retreatAt: 0.2, powers: false, abilities: false, flank: false },
+  prince: { thinkEvery: 10, retreatAt: 0.25, powers: true, abilities: true, flank: false },
+  king: { thinkEvery: 6, retreatAt: 0.3, powers: true, abilities: true, flank: true },
+  emperor: { thinkEvery: 4, retreatAt: 0.3, powers: true, abilities: true, flank: true, kite: true }
 };
 const DEFENSE_RADIUS = 24 * Q;
 const RAID_GUARD_RADIUS = 14 * Q;
@@ -99,11 +99,6 @@ const decidePowers = (w, side, cfg, mine, enemies, orders) => {
   if (ready('rallyCry') && mine.filter((q) => q.morale < 40).length >= 3) { orders.push({ side, type: 'power', power: 'rallyCry', x: 0, y: 0 }); return; }
   const cluster = densestEnemyCluster(w, side, enemies);
   if (!cluster) return;
-  const enemyTotal = enemies.reduce((s, q) => s + q.strength, 0) || 1;
-  if (cfg.missiles && cluster.s / enemyTotal >= 0.4) {
-    const missile = ['missileTheatre', 'missileTactical'].find(ready);
-    if (missile) { orders.push({ side, type: 'power', power: missile, x: cluster.x, y: cluster.y }); return; }
-  }
   const strike = ['airStrike', 'artilleryBarrage', 'arrowStorm'].find(ready);
   if (strike && cluster.s >= 1200) orders.push({ side, type: 'power', power: strike, x: cluster.x, y: cluster.y });
 };

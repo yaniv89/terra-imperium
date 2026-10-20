@@ -70,7 +70,8 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // (siegeRules.js crewShares), squads go on to the next base building and turn on a tower that
 // shoots them, a town's sealed pockets are closed (cityBattle.js sealPockets), a deployed squad
 // stands on open ground.
-export const SETUP_VERSION = 14;
+// v15: the satellite sweep, missile and nuclear powers are retired (eight ages plan U19).
+export const SETUP_VERSION = 15;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
@@ -314,8 +315,8 @@ const buildDefenseSetup = (state, pb) => {
     controllers: ['ai', 'player'],
     difficultyId: state.difficultyId || 'prince',
     powers: [
-      getBattlePowers(state, pb.attackerNationId, ctx.attackerAgeId, armies.attackerUnits, { allowNuclear: false }),
-      getBattlePowers(state, state.playerNationId, ctx.defenderAgeId, armies.defenderUnits, { allowNuclear: true })
+      getBattlePowers(state, pb.attackerNationId, ctx.attackerAgeId, armies.attackerUnits),
+      getBattlePowers(state, state.playerNationId, ctx.defenderAgeId, armies.defenderUnits)
     ],
     reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
     // The AI does no espionage; the defender sees its own land regardless.
@@ -372,8 +373,8 @@ const buildAmphibiousSetup = (state, pb) => {
     controllers: aiLands ? ['ai', 'player'] : ['player', 'ai'],
     difficultyId: state.difficultyId || 'prince',
     powers: [
-      [...getBattlePowers(state, gate.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: !aiLands }), { id: 'navalBombardment', uses: 2 }],
-      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits, { allowNuclear: aiLands })
+      [...getBattlePowers(state, gate.playerNationId, ctx.attackerAgeId, attackerUnits), { id: 'navalBombardment', uses: 2 }],
+      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits)
     ],
     reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
     intel: { attackerSeesDefender: aiLands ? false : canSeeRegionDetails(state, pb.targetRegionId) },
@@ -423,7 +424,7 @@ const buildFieldSetup = (state, pb) => {
     defenderNationId: v.defenderNationId,
     controllers: pb.playerSide === 'defender' ? ['ai', 'player'] : ['player', 'ai'],
     difficultyId: state.difficultyId || 'prince',
-    powers: [getBattlePowers(state, gate.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: gate.playerNationId === state.playerNationId }), getBattlePowers(state, v.defenderNationId, ctx.defenderAgeId, defenderUnits, { allowNuclear: v.defenderNationId === state.playerNationId })],
+    powers: [getBattlePowers(state, gate.playerNationId, ctx.attackerAgeId, attackerUnits), getBattlePowers(state, v.defenderNationId, ctx.defenderAgeId, defenderUnits)],
     reinforcements: [[], []],
     intel: { attackerSeesDefender: true },
     regionBuildings: [],
@@ -494,7 +495,7 @@ const buildRaidSetup = (state, pb) => {
     defenderNationId: state.playerNationId,
     controllers: ['ai', 'player'],
     difficultyId: state.difficultyId || 'prince',
-    powers: [[], getBattlePowers(state, state.playerNationId, ctx.defenderAgeId, spec.defenderUnits, { allowNuclear: false })],
+    powers: [[], getBattlePowers(state, state.playerNationId, ctx.defenderAgeId, spec.defenderUnits)],
     reinforcements: [[], []],
     intel: { attackerSeesDefender: false },
     regionBuildings: sack ? getRegionBattleBuildings(city) : [],
@@ -564,8 +565,8 @@ export const buildInvasionSetup = (state, pendingBattle) => {
     controllers: playerSide === 'attacker' ? ['player', 'ai'] : ['ai', 'player'],
     difficultyId: state.difficultyId || 'prince',
     powers: [
-      getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: true }),
-      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits, { allowNuclear: false })
+      getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits),
+      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits)
     ],
     reinforcements: [
       toReinforcements(state, pendingBattle, pendingBattle.attackerReinforcements, 0),

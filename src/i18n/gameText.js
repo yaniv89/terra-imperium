@@ -47,11 +47,6 @@ export const independentForm = (shape, band, english, vars) => D(`indep.form.${s
 
 export const victoryName = (id, english) => D(`victory.${id}`, english ?? id);
 export const victoryDescription = (id, english) => D(`victory.${id}.desc`, english);
-export const spaceMissionName = (id, english) => D(`space.${id}`, english ?? id);
-export const spaceMissionDescription = (id, english) => D(`space.${id}.desc`, english);
-export const satelliteName = (id, english) => D(`sat.${id}`, english ?? id);
-export const satelliteDescription = (id, english) => D(`sat.${id}.desc`, english);
-export const missileName = (id, english) => D(`missile.${id}`, english ?? id);
 export const taxRateName = (id, english) => D(`tax.${id}`, english ?? id);
 export const taxRateDescription = (id, english) => D(`tax.${id}.desc`, english);
 export const difficultyName = (id, english) => D(`diff.${id}`, english ?? id);

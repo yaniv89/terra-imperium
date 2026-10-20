@@ -63,7 +63,6 @@ const sandboxPowers = (ageId, units) => {
   const out = [{ id: 'rallyCry' }];
   if (isAgeBefore(ageId, 'gunpowder')) out.push({ id: 'arrowStorm' });
   if (isAgeAtLeast(ageId, 'gunpowder') && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
-  if (isAgeAtLeast(ageId, 'modern')) out.push({ id: 'satelliteSweep' }, { id: 'missileTactical', uses: 2 }, { id: 'nuclearStrike', uses: 1 });
   return out;
 };
 

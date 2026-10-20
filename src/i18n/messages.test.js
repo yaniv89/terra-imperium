@@ -41,7 +41,7 @@ describe('engine messages', () => {
     expect(carry(m)).toEqual({ message: m.message, msgKey: 'm.turn.defeat' });
   });
   it('data names fall back to English until their tables exist', () => {
-    expect(msgText('m.turn.missionDone', { mission: thing('mission', 'moon', 'Moon Landing') }, 'en')).toBe('Moon Landing complete!');
+    expect(msgText('m.act.reformEnacted', { reform: thing('reform', 'moon', 'Moon Landing') }, 'en')).toBe('Enacted the Moon Landing reform.');
   });
 });
 

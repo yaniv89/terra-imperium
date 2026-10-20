@@ -1,11 +1,10 @@
 // src/components/panels/ActionPanel.jsx
 // Renders the content for whichever tab is active: Empire (with its War section), Cities, Research,
-// Peoples (diplomacy), Space and Legacy. Tab SELECTION lives in ActionPanelTabs.jsx / the rail in
+// Peoples (diplomacy) and Legacy. Tab SELECTION lives in ActionPanelTabs.jsx / the rail in
 // PanelDrawer.jsx / GameLayout (App.jsx), not here.
 import React from 'react';
 import DomesticPanel from './DomesticPanel';
 import TechPanel from './TechPanel';
-import SpacePanel from './SpacePanel';
 import LegacyPanel from './LegacyPanel';
 import DiplomacyPanel from './DiplomacyPanel';
 import CityList from '../city/CityList';
@@ -30,9 +29,6 @@ const ActionPanel = ({ activeTab }) => {
       )}
       {activeTab === 'diplomacy' && (
         <DiplomacyPanel />
-      )}
-      {activeTab === 'space' && (
-        <SpacePanel />
       )}
       {activeTab === 'legacy' && (
         <LegacyPanel />

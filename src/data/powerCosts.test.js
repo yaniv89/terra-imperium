@@ -16,7 +16,7 @@ import { peoplesWorld } from '../engine/testWorld';
 
 const POOLS = ['adm', 'dip', 'mil'];
 
-// Every { adm/dip/mil } number anywhere inside ACTION_COSTS, including nested tables (missiles).
+// Every { adm/dip/mil } number anywhere inside ACTION_COSTS, including nested tables.
 const collectPowerCosts = (node, path = [], out = []) => {
   if (!node || typeof node !== 'object') return out;
   Object.entries(node).forEach(([key, value]) => {

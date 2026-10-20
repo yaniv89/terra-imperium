@@ -31,7 +31,7 @@ import { msg, carry, sub, people, cityRef, person, place, thing } from './messag
 // GameContext.jsx re-exports both `createInitialState` and `gameReducer` from here so every
 // existing import site (`from '../context/GameContext'`) keeps working unchanged.
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
 import { WORLD_NATIONS, peopleNationRecord } from '../data/worldNations';
 import { peopleForNationId } from '../data/peoples';
 import { DEFAULT_WORLD_SIZE, CITY_STATE_DENSITIES, DEFAULT_CITY_STATES, CITY_STATES_PACKED } from '../data/worldSizes';
@@ -50,8 +50,8 @@ import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, IDENTITY_SHIFT_COOLDOWN_TURNS, clam
 import { getLaw, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS, COLLECTIVIZATION_UNREST_MODIFIER, COLLECTIVIZATION_UNREST_TURNS, DEFAULT_LAWS } from '../data/laws';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
-import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
-import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
+import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { canAttack, isNoMansLand } from './hostility';
 import { setHold, setSiege } from './standingOrders';
 import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
@@ -65,7 +65,6 @@ import { canRaze, stopRazing } from './razing';
 import { resolveCapture } from './capture';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
-import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
@@ -88,11 +87,11 @@ import {
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
   UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST,
   SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST, SETTLE_COLONIZE_OWNER_HOSTILITY,
-  POPULATION_POLICY_GROWTH_RATE, ASAT_DEBRIS_RISE,
+  POPULATION_POLICY_GROWTH_RATE,
   ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE,
   COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
   CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION,
-  ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3,
+  ARMY_MAINTENANCE_DEFAULT,
   MAX_RIVALS, MARRIAGE_HOSTILITY_REDUCTION,
   BREAK_ALLIANCE_HOSTILITY_INCREASE, INSULT_HOSTILITY_INCREASE, STARTING_DIPLOMATS,
   TRUCE_BREAK_STABILITY_PENALTY, TRUCE_BREAK_PRESTIGE_PENALTY, TRUCE_BREAK_AE_AGAINST_NEIGHBORS,
@@ -127,12 +126,6 @@ import { clampStability, clampPrestige, getIncreaseStabilityCost } from './natio
 import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import { canAfford, applyCosts, BASE_POWER_PER_TURN } from '../utils/helpers';
-import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
-import {
-  MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, canBuildMissile, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY,
-  NUCLEAR_PRESTIGE_PENALTY, NUCLEAR_PARIAH_DURATION_TURNS, NUCLEAR_PARIAH_GOLD_MULT_PENALTY
-} from '../data/missiles';
-import { SPACE_MISSIONS_BY_ID, canLaunchMission } from '../data/spaceMissions';
 import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
@@ -259,12 +252,10 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       extortionateTaxProgress: 0,
 
       // Economy overhaul (plan §M11) — army/navy maintenance sliders (upkeep scaling; see
-      // economy.js's header for the morale-recovery/reinforcement scope trim), loans, and the
-      // Fusion Grid national decision's active/supplied flag.
+      // economy.js's header for the morale-recovery/reinforcement scope trim), and loans.
       armyMaintenance: ARMY_MAINTENANCE_DEFAULT,
       navyMaintenance: ARMY_MAINTENANCE_DEFAULT,
       loans: [],
-      fusionGridActive: false,
 
       // National Identity (added alongside Government/Laws, but a separate axis — see
       // src/data/identity.js): three independent sliders shifted a step at a time via SHIFT_IDENTITY.
@@ -278,11 +269,6 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // culturalInfluence (getCulturalCoalitionDiscount) — soft power genuinely buys down the world
       // ganging up on you, without defeating that anti-snowball check outright.
       culturalInfluence: 0,
-
-      // Missiles and ABM defense (plan §10.4 Layer 2) — a flat stockpile per tier, not individual
-      // unit objects, since a missile has no position/movement of its own before it's fired.
-      missiles: { tactical: 0, theatre: 0, icbm: 0, nuclear: 0 },
-      abmDefenseLevel: 0,
 
       // Diplomacy (plan §11's nation data model: "+ warExhaustion, legitimacy, claims[], vassals[]")
       // — claims make a later DECLARE_WAR against that nation justified (FABRICATE_CLAIM);
@@ -393,7 +379,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     difficultyId: 'prince',
     difficultyMultiplier: 1,
 
-    // Resources — Gold/HR always present; Copper/Iron/Oil (and later Rare Metals/Helium-3) join
+    // Resources — Gold/HR always present; Copper/Iron/Oil (and later Rare Metals) join
     // as their age unlocks (see src/data/resources.js). techPoints/adm/dip/mil are meta-currencies,
     // not age-gated resources. adm/dip/mil (plan §M2) replace the old single actionPoints pool
     // (and the separate diplomacyPoints currency, folded into dip) with three EU4-style power
@@ -429,7 +415,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // roster data a unit's classId/ageId reference.
     units: {},
     nextUnitSeq: 0,
-    // Loan ids come from a counter (like units/satellites) — the old `loan_${turn}_${loans.length}`
+    // Loan ids come from a counter (like units) — the old `loan_${turn}_${loans.length}`
     // repeated after a repay-then-borrow, and REPAY_LOAN's id filter then cleared BOTH loans.
     nextLoanSeq: 1,
 
@@ -466,25 +452,13 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // comment on why that can't drift out of sync the way a stored copy could.
     greatProjects: {},
 
-    // Space Race, orbital layer (plan §10.4) — a flat dict keyed by satellite id, mirroring
-    // state.units/state.hiredCommanders, since satellites are per-nation persistent assets, not
-    // per-region. orbitalDebrisLevel is the shared, global cost of ASAT strikes (src/data/
-    // satellites.js) — it degrades every nation's satellite effectiveness, not just the target's.
-    satellites: {},
-    nextSatelliteSeq: 0,
-    orbitalDebrisLevel: 0,
-
     // Advisor candidates (plan §M3) — only the player's own is ever generated/read today (AI
     // nations don't hire advisors until M16 gives them a real economy to hire with), keyed by
-    // nation id the same way state.satellites is, in case that changes later.
+    // nation id, in case that changes later.
     advisorPool: { [playerNationId]: generateAdvisorCandidates(playerNationId, rulerRng, [nations[playerNationId]?.ruler?.name]) },
 
-    // Space Race mission ladder (plan §10.4 Layer 3, src/data/spaceMissions.js) — a mission in
-    // progress lives in spaceMissionProgress keyed by id with turns remaining; completing it moves
-    // the id into completedMissions and applies its reward. diplomaticLeadershipStreak is the
-    // Diplomatic victory condition's sustained-majority counter (victoryConditions.js).
-    spaceMissionProgress: {},
-    completedMissions: [],
+    // diplomaticLeadershipStreak is the Diplomatic victory condition's sustained-majority counter
+    // (victoryConditions.js).
     diplomaticLeadershipStreak: 0,
 
     // Deterministic turn resolution — see src/utils/rng.js
@@ -601,17 +575,12 @@ const guardPendingBattle = (state, action) => {
   return null;
 };
 
+// The city's damage and the razed buildings are applied by the one outcome service
+// (battleOutcome.js applyCityDamage).
+
 // Rebuilds a commanded battle's result from the REAL units in state, so a tampered or buggy result
 // can never mint soldiers: only the locked units, strength can only go down, morale stays in range,
 // ids and outcome are validated, and the command-mode XP bonus stays capped.
-const sanitizePowersUsed = (used) => [0, 1].map((side) => {
-  const out = {};
-  Object.entries((Array.isArray(used) && used[side]) || {}).forEach(([id, n]) => { if (MISSILE_POWER_TIERS[id] && Number.isFinite(n) && n > 0) out[id] = Math.floor(n); });
-  return out;
-});
-
-// Missiles fired inside a battle, the city's damage and the razed buildings are applied by the one
-// outcome service (battleOutcome.js applyPowers, applyCityDamage).
 const MANIFEST_ID = /^[a-z][a-z0-9_-]{0,47}$/;
 const cleanIds = (list) => (Array.isArray(list) ? [...new Set(list.filter((id) => typeof id === 'string' && MANIFEST_ID.test(id)))].slice(0, 600) : []);
 
@@ -669,7 +638,6 @@ export const sanitizeTacticalResult = (state, pb, result, { fielded = null } = {
         decisive: !!report.tactical?.decisive,
         missingUnitIds,
         xpBonusById: bonus,
-        powersUsed: sanitizePowersUsed(report.tactical?.powersUsed),
         // Generals on the field (row 5): only commanders of the battle's own units.
         generalsFielded: onlyIds(report.tactical?.generalsFielded, [...attackerUnits, ...defenderUnits].map((u) => u.commanderId).filter(Boolean)),
         generalsStruck: onlyIds(report.tactical?.generalsStruck, [...attackerUnits, ...defenderUnits].map((u) => u.commanderId).filter(Boolean)),
@@ -991,8 +959,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.SETTLE_COLONIZE: {
       // Peaceful settlement of land NOBODY really governs any more: a province held by rebels, or
       // the remnant of a nation that's been wiped out. It used to accept ANY adjacent province under
-      // 20 control — including an ally's — with no diplomatic cost, and since a missile strike could
-      // push control that low at peace, the pair was conquest without a war.
+      // 20 control — including an ally's — with no diplomatic cost.
       const { regionId } = action.payload;
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.settleColonize;
@@ -1129,197 +1096,6 @@ const reduceAction = (state, action) => {
         resources: { ...state.resources, gold: state.resources.gold - loan.principal },
         nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: nation.loans.filter((_, i) => i !== loanIndex) } },
         logs: [...state.logs, { year: state.year, ...msg('m.act.loanRepaid', { gold: loan.principal }), type: LogTypes.ACTION }]
-      };
-    }
-
-    // Fusion Grid (plan §M11 resource sink) — a standalone national decision rather than a Future-
-    // age building upkeep, since no Future building tier exists yet in this codebase (M6's own
-    // buildings.js caps at Modern; see types.js's ACTIVATE_FUSION_GRID comment). Its ongoing
-    // helium3 upkeep and goldMult bonus while supplied are applied in resolveTurn.js.
-    case ActionTypes.ACTIVATE_FUSION_GRID: {
-      const nation = state.nations[state.playerNationId];
-      if (nation.fusionGridActive) return state;
-      // Gated on the Outer Planets mission (plan: "Computing + mission outer_planets") — that
-      // mission is helium3's own real income gate (spaceMissions.js's own header), so it's the one
-      // clear prerequisite rather than stacking an extra tech check on top of an already-real gate.
-      if (!(state.completedMissions || []).includes('outer_planets')) return state;
-      if ((state.resources.helium3 || 0) < FUSION_GRID_ACTIVATION_HELIUM3) return state;
-      return {
-        ...state,
-        resources: { ...state.resources, helium3: state.resources.helium3 - FUSION_GRID_ACTIVATION_HELIUM3 },
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, fusionGridActive: true } },
-        logs: [...state.logs, { year: state.year, ...msg('m.act.fusionOnline'), type: LogTypes.MILESTONE }]
-      };
-    }
-
-    case ActionTypes.LAUNCH_SATELLITE: {
-      const { typeId } = action.payload;
-      const costs = ACTION_COSTS.launchSatellite;
-      if (!SATELLITE_TYPES[typeId]) return state;
-      if (!canLaunchSatellite(null, ageOf(state, state.playerNationId), state.year)) return state;
-      if (!canAfford(state.resources, costs)) return state;
-      const satelliteId = `satellite_${state.nextSatelliteSeq}`;
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        satellites: { ...state.satellites, [satelliteId]: { id: satelliteId, ownerId: state.playerNationId, typeId, launchedYear: state.year } },
-        nextSatelliteSeq: state.nextSatelliteSeq + 1,
-        logs: [...state.logs, { year: state.year, ...msg('m.act.satelliteLaunched', { sat: thing('satellite', typeId, SATELLITE_TYPES[typeId].name) }), type: LogTypes.MILESTONE }]
-      };
-    }
-
-    case ActionTypes.ASAT_STRIKE: {
-      const { targetSatelliteId } = action.payload;
-      const costs = ACTION_COSTS.asatStrike;
-      const target = state.satellites[targetSatelliteId];
-      if (!target || target.ownerId === state.playerNationId) return state;
-      if (!canAfford(state.resources, costs)) return state;
-      const nextSatellites = { ...state.satellites };
-      delete nextSatellites[targetSatelliteId];
-      const targetNationName = state.nations[target.ownerId]?.name || target.ownerId;
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        satellites: nextSatellites,
-        orbitalDebrisLevel: Math.min(MAX_ORBITAL_DEBRIS, (state.orbitalDebrisLevel || 0) + ASAT_DEBRIS_RISE),
-        logs: [...state.logs, { year: state.year, ...msg('m.act.asatStrike', { nation: people(target.ownerId, targetNationName), sat: thing('satellite', target.typeId, SATELLITE_TYPES[target.typeId]?.name) }), type: LogTypes.COMBAT }]
-      };
-    }
-
-    case ActionTypes.BUILD_MISSILE: {
-      const { tierId } = action.payload;
-      if (!MISSILE_TIERS[tierId]) return state;
-      if (!canBuildMissile(ageOf(state, state.playerNationId))) return reject(state, msg('m.act.no.missilesAge'));
-      const costs = ACTION_COSTS.buildMissile[tierId];
-      if (!canAfford(state.resources, costs)) return reject(state, msg('m.act.no.missileCost', { missile: thing('missile', tierId, MISSILE_TIERS[tierId].name) }));
-      const nation = state.nations[state.playerNationId];
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, missiles: { ...nation.missiles, [tierId]: (nation.missiles[tierId] || 0) + 1 } } },
-        logs: [...state.logs, { year: state.year, ...msg('m.act.missileBuilt', { missile: thing('missile', tierId, MISSILE_TIERS[tierId].name) }), type: LogTypes.ACTION }]
-      };
-    }
-
-    case ActionTypes.MISSILE_STRIKE: {
-      // A missile strikes a region directly — no army, no supply line, no battle.js combat
-      // resolution (see src/data/missiles.js's header). Range is real land-adjacency hops for the
-      // finite tiers; icbm/nuclear have unlimited range.
-      const { tierId, targetRegionId } = action.payload;
-      const tier = MISSILE_TIERS[tierId];
-      const nation = state.nations[state.playerNationId];
-      const targetRegion = state.regions[targetRegionId];
-      if (!tier || !nation.missiles[tierId]) return reject(state, msg('m.act.no.missileStock'));
-      if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
-      // A strike is an act of war, not a free action: before this, a nation at peace could be
-      // missiled with no war, no hostility and no AE — and SETTLE_COLONIZE could then annex the
-      // province once its control collapsed. Rebel-held land is fair game without a war.
-      const strikeTargetOwner = targetRegion.occupiedBy ?? targetRegion.owner;
-      const atWarWithTarget = state.wars.some((w) => w.active && isWarBetween(w, state.playerNationId, strikeTargetOwner));
-      if (!atWarWithTarget && !canAttack(state, state.playerNationId, strikeTargetOwner)) { // rebels and independents need no war (hostility.js)
-        return reject(state, msg('m.act.no.strikeWar', { nation: people(strikeTargetOwner, state.nations[strikeTargetOwner]?.name || strikeTargetOwner), city: cityRef(targetRegionId, REGIONS_DATA[targetRegionId]?.name) }));
-      }
-      const costs = ACTION_COSTS.missileStrike;
-      if (!canAfford(state.resources, costs)) return state;
-      const ownRegionIds = Object.keys(state.regions).filter(id => state.regions[id].owner === state.playerNationId);
-      if (!isMissileInRange(tierId, ownRegionIds, targetRegionId, distanceFromAnchor)) return state;
-
-      const targetNation = state.nations[targetRegion.owner];
-      const reductionMult = getAbmReductionMult(targetNation?.abmDefenseLevel);
-      const nextRegions = {
-        ...state.regions,
-        [targetRegionId]: {
-          ...targetRegion,
-          control: Math.max(0, targetRegion.control - tier.controlDamage * reductionMult),
-          unrest: Math.min(100, targetRegion.unrest + tier.unrestDamage * reductionMult),
-          nuclearScarred: targetRegion.nuclearScarred || tierId === 'nuclear'
-        }
-      };
-      let nextNations = {
-        ...state.nations,
-        [state.playerNationId]: { ...nation, missiles: { ...nation.missiles, [tierId]: nation.missiles[tierId] - 1 } }
-      };
-      if (targetNation) {
-        nextNations[targetRegion.owner] = {
-          ...targetNation,
-          militaryStrength: Math.max(0, targetNation.militaryStrength - tier.militaryDamage * reductionMult),
-          hostility: tierId === 'nuclear' ? 100 : targetNation.hostility
-        };
-      }
-      // Nuclear "instant global condemnation" (plan §10.4): every other nation's hostility toward
-      // the striker jumps, not just the target's — reusing DECLARE_WAR's own unjustified-war
-      // global-hostility pattern.
-      if (tierId === 'nuclear') {
-        Object.keys(nextNations).forEach(id => {
-          if (id === state.playerNationId || id === targetRegion.owner) return;
-          nextNations[id] = { ...nextNations[id], hostility: Math.min(100, (nextNations[id].hostility || 0) + NUCLEAR_GLOBAL_HOSTILITY) };
-        });
-      }
-
-      // Plan §M19: "Missiles and nuclear strikes now affect war score (+2 per strike, +10 per
-      // nuclear strike)." recordBattle's own `2 + min(8, 10 x lossShare)` formula already produces
-      // exactly 2 at lossShare 0 and exactly 10 at lossShare >= 0.8 — a missile strike is expressed
-      // as that same battle-score bump rather than a bespoke war-score formula, so it rolls into
-      // war.score the same way an invasion's battleScore already does (resolveWarProgress
-      // recomputes war.score from battleScore + occupation + tick every turn).
-      let nextWars = state.wars;
-      const missileWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
-      if (missileWar) {
-        const lossShare = tierId === 'nuclear' ? 1 : 0;
-        nextWars = state.wars.map(w => (w.id === missileWar.id ? { ...w, battleScore: recordBattle(w, state.playerNationId, lossShare) } : w));
-      }
-
-      // Plan §M19: "-50 prestige and a 'Nuclear Pariah' 20-turn modifier" for the striker.
-      if (tierId === 'nuclear') {
-        const striker = nextNations[state.playerNationId];
-        nextNations[state.playerNationId] = addNationModifier(
-          { ...striker, prestige: clampPrestige((striker.prestige || 0) - NUCLEAR_PRESTIGE_PENALTY) },
-          { sourceType: 'nuclear', sourceId: 'nuclear_pariah', label: 'Nuclear Pariah', mods: { 'national.goldMult': -NUCLEAR_PARIAH_GOLD_MULT_PENALTY }, duration: NUCLEAR_PARIAH_DURATION_TURNS, turnNumber: state.turnNumber }
-        );
-      }
-
-      const targetNationName = targetNation?.name || targetRegion.owner;
-      const strikeVars = { city: cityRef(targetRegionId, REGIONS_DATA[targetRegionId]?.name), nation: people(targetRegion.owner, targetNationName) };
-      const strikeLine = tierId === 'nuclear'
-        ? msg('m.act.nuclearStrike', strikeVars)
-        : msg('m.act.missileStrike', { ...strikeVars, missile: thing('missile', tierId, tier.name) });
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        regions: nextRegions,
-        nations: nextNations,
-        wars: nextWars,
-        logs: [...state.logs, { year: state.year, ...strikeLine, type: LogTypes.COMBAT }]
-      };
-    }
-
-    case ActionTypes.BUILD_ABM_DEFENSE: {
-      const costs = ACTION_COSTS.buildAbmDefense;
-      const nation = state.nations[state.playerNationId];
-      if (!canBuildMissile(ageOf(state, state.playerNationId))) return reject(state, msg('m.act.no.abmAge'));
-      if ((nation.abmDefenseLevel || 0) >= MAX_ABM_LEVEL) return state;
-      if (!canAfford(state.resources, costs)) return state;
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, abmDefenseLevel: (nation.abmDefenseLevel || 0) + 1 } },
-        logs: [...state.logs, { year: state.year, ...msg('m.act.abmUpgraded', { level: (nation.abmDefenseLevel || 0) + 1 }), type: LogTypes.ACTION }]
-      };
-    }
-
-    case ActionTypes.LAUNCH_MISSION: {
-      const { missionId } = action.payload;
-      const mission = SPACE_MISSIONS_BY_ID[missionId];
-      if (!mission) return state;
-      if (!canLaunchSatellite(null, ageOf(state, state.playerNationId), state.year)) return state;
-      if (!canLaunchMission(missionId, state.completedMissions, state.spaceMissionProgress)) return state;
-      const costs = { ...mission.cost, dip: ACTION_COSTS.launchMission.dip };
-      if (!canAfford(state.resources, costs)) return state;
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        spaceMissionProgress: { ...state.spaceMissionProgress, [missionId]: mission.turns },
-        logs: [...state.logs, { year: state.year, ...msg('m.act.missionLaunched', { mission: thing('mission', mission.id, mission.name), turns: mission.turns }), type: LogTypes.ACTION }]
       };
     }
 

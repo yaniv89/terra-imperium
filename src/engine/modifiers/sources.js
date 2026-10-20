@@ -4,14 +4,12 @@ import { tradeRoutesValue } from '../tradeValue';
 // sheet.js can group and total them generically. `staticSources` depends only on the nation object
 // itself — same reference in, same lines out — which is what makes it safe for sheet.js to cache
 // per nation object rather than per (state, nationId) pair. `contextSources` depends on the wider
-// state (tax rate, satellites, tech) and is NOT cached, since those can change without the nation
+// state (tax rate, trade, tech) and is NOT cached, since those can change without the nation
 // object itself changing reference.
 import { getActiveReforms } from '../../data/government';
 import { LAW_CATEGORIES, getLaw } from '../../data/laws';
 import { GREAT_PROJECTS, getGreatProjectOwner } from '../../data/greatProjects';
 import { TAX_RATES } from '../../data/taxRates';
-import { FUSION_GRID_GOLD_MULT_BONUS } from '../../data/actionCosts';
-import { getSatelliteEffectTotal } from '../../data/satellites';
 import { TECH_TREE } from '../../data/techTree';
 import { TRAITS } from '../../data/traits';
 import { LEGACY_HOOK } from './registry';
@@ -85,12 +83,6 @@ export const contextSources = (state, nationId) => {
   const taxGoldMult = TAX_RATES[nation?.taxRate]?.goldMult || 0;
   if (taxGoldMult) lines.push({ key: 'national.goldMult', value: taxGoldMult, sourceType: 'tax', sourceId: nation?.taxRate, label: 'Tax Rate' });
 
-  // Fusion Grid (plan §M11 resource sink) — folds into goldMult like every other producer bonus in
-  // this codebase (see actionCosts.js's FUSION_GRID_GOLD_MULT_BONUS header on the tax/production
-  // split trim). resolveTurn.js deactivates fusionGridActive the turn helium3 upkeep can't be paid,
-  // so reading the flag here is enough — no separate "supplied" check needed.
-  if (nation?.fusionGridActive) lines.push({ key: 'national.goldMult', value: FUSION_GRID_GOLD_MULT_BONUS, sourceType: 'fusionGrid', sourceId: 'fusion_grid', label: 'Fusion Grid' });
-
   // Trade Pacts: one line per open route, worth the gravity model's share (tradeValue.js: both
   // economies' sizes over the route's km), which replaced the flat +5% per pact. Pacts are
   // player-centric (hasTradeAgreement lives on the OTHER nation's record; AI nations never form
@@ -111,12 +103,6 @@ export const contextSources = (state, nationId) => {
     if (tierEffects) lines.push(...linesFromEffect(tierEffects, 'greatProject', projectId, project.name));
   });
 
-  const satellites = state.satellites || {};
-  ['goldMult', 'hrMult'].forEach((hook) => {
-    const value = getSatelliteEffectTotal(satellites, nationId, hook, state.orbitalDebrisLevel);
-    if (value) lines.push({ key: LEGACY_HOOK[hook], value, sourceType: 'satellite', sourceId: 'satellites', label: 'Satellites' });
-  });
-
   // Plan §M7: every researched tech's own real effects (TECH_TREE[id].effects, src/data/
   // techTree.js) — this REPLACES the old flat "+1 ADM per 3 Governance techs" rule with the
   // per-tech table the plan always specified (Code of Laws/Royal Chancery/Digital Administration
@@ -133,7 +119,7 @@ export const contextSources = (state, nationId) => {
 
   // National stability (plan §M4): each level shaves/adds 1 unrest everywhere (national.stabilityBonus
   // already flips sign the same way traits do, see nextUnrest's convention) and ±5% tax/production
-  // (folded onto national.goldMult, the same key tax rate/satellites already use).
+  // (folded onto national.goldMult, the same key tax rate already uses).
   const stability = nation?.stability || 0;
   if (stability) {
     lines.push({ key: 'national.stabilityBonus', value: stability, sourceType: 'stability', sourceId: 'stability', label: 'Stability' });

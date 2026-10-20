@@ -30,15 +30,14 @@ describe('getNationSheet / getModifier', () => {
   it('a breakdown\'s lines always sum to its own total', () => {
     const state = {
       playerNationId: 'fr',
-      nations: { fr: { government: { type: 'monarchy', reforms: {} }, taxRate: 'high' } },
-      satellites: {}
+      nations: { fr: { government: { type: 'monarchy', reforms: {} }, taxRate: 'high' } }
     };
     const { total, breakdown } = getModifier(state, 'fr', 'national.goldMult');
     expect(breakdown.reduce((sum, l) => sum + l.value, 0)).toBeCloseTo(total);
   });
 
   it('caches the sheet per (state, nationId): the same state object returns the same sheet instance data without recomputation drift', () => {
-    const state = { playerNationId: 'fr', nations: { fr: { government: monarchyDespotic } }, satellites: {} };
+    const state = { playerNationId: 'fr', nations: { fr: { government: monarchyDespotic } } };
     const a = getNationSheet(state, 'fr');
     const b = getNationSheet(state, 'fr');
     expect(a).toBe(b);
@@ -46,14 +45,14 @@ describe('getNationSheet / getModifier', () => {
 
   it('a different state object (even with identical content) gets its own sheet, not a stale cached one', () => {
     const nation = { government: monarchyDespotic };
-    const stateA = { playerNationId: 'fr', nations: { fr: nation }, satellites: {} };
-    const stateB = { playerNationId: 'fr', nations: { fr: { ...nation, government: { type: 'monarchy', reforms: {} } } }, satellites: {} };
+    const stateA = { playerNationId: 'fr', nations: { fr: nation } };
+    const stateB = { playerNationId: 'fr', nations: { fr: { ...nation, government: { type: 'monarchy', reforms: {} } } } };
     expect(getModifier(stateA, 'fr', 'national.stabilityBonus').total).toBe(-1); // despotic_rule
     expect(getModifier(stateB, 'fr', 'national.stabilityBonus').total).toBe(0); // no reform chosen yet
   });
 
   it('returns a zero total with an empty breakdown for an unknown nation id', () => {
-    const state = { playerNationId: 'fr', nations: {}, satellites: {} };
+    const state = { playerNationId: 'fr', nations: {} };
     expect(getModifier(state, 'ghost', 'national.goldMult')).toEqual({ total: 0, breakdown: [] });
   });
 });

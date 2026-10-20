@@ -34,9 +34,8 @@
 // staticSources(nation), fixing it without nationalPower.js ever needing to import the modifier
 // engine.
 //
-// Five projects (Pyramids, Great Wall, Arsenal, Space Program, Atomic Research Center) name a
-// flavor effect that doesn't exist as a real mechanic yet (a stability floor, a combat malus on
-// invaders, ship cost/naval morale, a mission-time discount, a missile-cost discount) — each gets a
+// Three projects (Pyramids, Great Wall, Arsenal) name a flavor effect that doesn't exist as a real
+// mechanic yet (a stability floor, a combat malus on invaders, ship cost/naval morale) — each gets a
 // modest real bonus from an already-wired hook instead, as a stand-in, so building one is never a
 // pure dead end; every such trim/substitution is noted inline in that project's own `description`.
 //
@@ -204,7 +203,7 @@ export const GREAT_PROJECTS = {
   },
   space_program: {
     id: 'space_program', name: 'The Space Program', ageId: 'modern', siteRule: 'researchLab',
-    description: 'Built in a region with a Research Lab. -5/10/15% research cost, standing in for a mission-time discount that isn\'t a modeled mechanic yet.',
+    description: 'Built in a region with a Research Lab. -5/10/15% research cost.',
     tiers: [
       { effects: { researchCost: -0.05 }, completionPrestige: 10 },
       { effects: { researchCost: -0.1 }, completionPrestige: 20 },
@@ -222,7 +221,7 @@ export const GREAT_PROJECTS = {
   },
   atomic_research_center: {
     id: 'atomic_research_center', name: 'The Atomic Research Center', ageId: 'modern', siteRule: 'factory',
-    description: 'Built in a region with a Factory. +10/20/30% tech point income, standing in for a missile-cost discount that isn\'t a modeled hook yet (nuclear missiles already unlock via the existing tech/mission ladder).',
+    description: 'Built in a region with a Factory. +10/20/30% tech point income.',
     tiers: [
       { effects: { techPointsMult: 0.1 }, completionPrestige: 10 },
       { effects: { techPointsMult: 0.2 }, completionPrestige: 20 },

@@ -23,7 +23,7 @@ describe('describeEffects (plan §M17: the one shared effect-description functio
   });
 
   it('describes every resource key with the correct sign', () => {
-    const out = describeEffects({ gold: -80, hr: 40, copper: 5, iron: -2, oil: 3, rareMetals: 1, helium3: -1, dip: 10, techPoints: 25 });
+    const out = describeEffects({ gold: -80, hr: 40, copper: 5, iron: -2, oil: 3, rareMetals: 1, dip: 10, techPoints: 25 });
     const byPrefix = (p) => out.find((e) => e.text.startsWith(p));
     expect(byPrefix('Gold')).toMatchObject({ sign: 'negative' });
     expect(byPrefix('Manpower')).toMatchObject({ sign: 'positive' });

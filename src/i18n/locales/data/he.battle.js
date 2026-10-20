@@ -17,11 +17,7 @@ export default {
   'bpower.arrowStorm': 'סופת חיצים',
   'bpower.artilleryBarrage': 'הפגזת ארטילריה',
   'bpower.airStrike': 'תקיפה אווירית',
-  'bpower.satelliteSweep': 'סריקת לוויין',
-  'bpower.missileTactical': 'טיל טקטי',
-  'bpower.missileTheatre': 'טיל זירתי',
   'bpower.navalBombardment': 'הפגזה ימית',
-  'bpower.nuclearStrike': 'מכה גרעינית',
 
   // battle types (battle/setup/battleType.js BATTLE_TYPES)
   'btype.field.label': 'קרב שדה',

@@ -33,7 +33,6 @@ export default {
   // battleOutcome.js: the campaign's line for every battle
   'm.battle.logLine': '{battle}: {line}{loss}',
   'm.battle.fallenLine': ' Fallen: {mine:num} of yours, {theirs:num} of theirs.',
-  'm.battle.nuclearStrike': 'A nuclear strike devastates the battlefield at {place}. The world condemns the attack.',
   'm.battle.cityDefencesBroken': '{who} broke the defences of {city} (0 of {maxHp} HP) but has no foot or horse to take it.',
   'm.battle.cityDefencesFall': '{who} attacks {city}: its defences fall from {hpBefore} to {hpAfter} of {maxHp} HP. Attack again to take it.',
   'm.battle.garrisonDrivenOut': '{who} beat the garrison of {city}: its survivors are driven out. The city is not taken yet: attack its defences next.',

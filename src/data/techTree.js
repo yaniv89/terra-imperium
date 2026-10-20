@@ -67,7 +67,7 @@ const CATEGORY_LINES = {
 // already use), keyed by tech NAME so it reads next to CATEGORY_LINES above rather than by the
 // generated id. "trade income" / "production" / "tax" all fold onto goldMult — this codebase
 // doesn't yet split tax/production/trade into separate national multipliers (M11's job), so they
-// share the one hook exactly like Set Tax Rate and satellites already do.
+// share the one hook exactly like Set Tax Rate already does.
 const TECH_EFFECTS = {
   // Military
   'Feudal Levies': { hrMult: 0.15 },

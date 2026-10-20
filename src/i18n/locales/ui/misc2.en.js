@@ -27,7 +27,6 @@ export default {
   'de.iron': 'Iron {v}',
   'de.oil': 'Oil {v}',
   'de.rareMetals': 'Rare Metals {v}',
-  'de.helium3': 'Helium-3 {v}',
   'de.dip': 'DIP {v}',
   'de.techPoints': 'Tech Points {v}',
   'de.military': 'Military {v}',

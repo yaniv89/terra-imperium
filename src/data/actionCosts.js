@@ -65,33 +65,6 @@ export const ACTION_COSTS = {
   // in this codebase) — a vassal already pays 10% tribute every turn just for existing as a subject.
   declareIndependence: {},
 
-  // Space Race (plan §10.4) — a satellite is a permanent, ongoing asset, priced well above any
-  // single-turn action; an ASAT strike is cheaper than launching a satellite outright (destroying
-  // is easier than building) but still a real commitment, on top of the shared debris-level cost.
-  // Satellites/missions are DIP (the plan's Science-line pool); ASAT is a military strike on an
-  // orbital asset, so it's MIL like Missile Strike.
-  launchSatellite: { gold: 400, techPoints: 30, dip: 2 },
-  asatStrike: { gold: 250, mil: 2 },
-
-  // Missiles (plan §10.4 Layer 2) — cost scales steeply with range/power; a nuclear warhead is
-  // priced well above even an ICBM, matching how consequential building one actually is. The gold
-  // is paid up front at build time; MISSILE_STRIKE itself only spends the stockpiled missile and
-  // MIL, since the ordnance was already bought.
-  // Plan §M11 resource sink: ICBM/nuclear tiers add a rareMetals cost on top of their existing
-  // iron/oil (tactical/theatre stay as they were — rareMetals is a Modern-age strategic resource,
-  // per resources.js's own header, with no earlier-age source to draw it from).
-  buildMissile: {
-    tactical: { gold: 150, iron: 20, mil: 1 },
-    theatre: { gold: 350, iron: 40, mil: 1 },
-    icbm: { gold: 700, iron: 60, oil: 30, rareMetals: 10, mil: 2 },
-    nuclear: { gold: 2000, iron: 100, oil: 60, rareMetals: 25, mil: 2 }
-  },
-  missileStrike: { mil: 2 },
-  buildAbmDefense: { gold: 500, mil: 2 },
-  // A mission's own gold/techPoints cost (src/data/spaceMissions.js) varies per mission; this is
-  // just the flat DIP cost every launch shares, matching researchTech's own pattern.
-  launchMission: { dip: 2 },
-
   // Declaring war with a real casus belli (a fabricated claim or organic hostility) costs only
   // DIP; without one it costs a real gold premium on top — see GameContext.jsx's DECLARE_WAR for
   // the rest of an unjustified war's cost (global relations, home unrest).
@@ -241,14 +214,6 @@ export const RECRUIT_STRATEGIC_RESOURCE_BY_AGE = {
 };
 export const RECRUIT_MISSING_RESOURCE_GOLD_PENALTY_MULT = 0.5;
 
-// Fusion Grid (plan §M11 resource sink): "50 helium3 once, then 2/turn upkeep, for +20% production
-// nationwide while supplied". This game folds tax/production/trade income into one goldMult hook
-// (techTree.js's own header comment on the same trim), so the bonus applies there rather than to a
-// production-only multiplier that doesn't exist yet.
-export const FUSION_GRID_ACTIVATION_HELIUM3 = 50;
-export const FUSION_GRID_UPKEEP_HELIUM3_PER_TURN = 2;
-export const FUSION_GRID_GOLD_MULT_BONUS = 0.20;
-
 // Sue for Peace's gold cost floors here regardless of how war-weary the target is — ending a war
 // is never entirely free.
 export const SUE_FOR_PEACE_MIN_GOLD = 20;
@@ -299,12 +264,6 @@ export const SETTLE_COLONIZE_OWNER_HOSTILITY = 15;
 // Population Policy's flat per-use growth rate — compounds each time it's used, so early
 // investment pays off more over a long game (guns vs. butter, per the plan).
 export const POPULATION_POLICY_GROWTH_RATE = 0.1;
-
-// Every ASAT strike raises the shared world orbital debris level by this much; it decays this
-// much per turn at rest (resolveTurn.js) — roughly 8 peaceful turns to fully clear one strike's
-// worth of debris, so repeated ASAT use compounds if not given time to settle.
-export const ASAT_DEBRIS_RISE = 15;
-export const ORBITAL_DEBRIS_DECAY_PER_TURN = 2;
 
 // Diplomacy overhaul (plan §M12). Every nation gets these fields (rivals/diplomats/ae/truces/
 // vassals) the same "generic reader, player-only writer today" way government/laws/taxRate

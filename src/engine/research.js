@@ -1,6 +1,6 @@
 // src/engine/research.js
 // Research the Civilization way (plan §2). Every turn a nation's science (its tech points: the
-// flat base, Science buildings, a share of its development, scholars, satellites and modifiers)
+// flat base, Science buildings, a share of its development, scholars and modifiers)
 // goes into the tech it is currently researching. When the tech's cost is reached it is
 // researched; what's left over carries into the next tech in the queue, so no science is lost.
 // With nothing to research, science banks in the tech point stock until a tech is picked.

@@ -199,18 +199,6 @@ describe('master plan 6.7, row by row', () => {
     if (auto.hiredCommanders.g2) expect(auto.hiredCommanders.g2.assignedUnitId).toBeNull();
   });
 
-  it('6 powers are spent once: missiles from the stockpile, a nuclear strike costs as from the map', () => {
-    const base = armies();
-    const s = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, missiles: { tactical: 2, nuclear: 1 }, prestige: 50 } } };
-    const o = invasion(s, 'defender', { a1: 600 }, { d1: 800 }, { tactical: { powersUsed: [{ missileTactical: 1, nuclearStrike: 1 }, {}] } });
-    const after = applyBattleOutcome(s, o);
-    expect(after.nations.fr.missiles).toMatchObject({ tactical: 1, nuclear: 0 });
-    expect(after.nations.fr.prestige).toBeLessThan(50);
-    expect(after.regions[T].nuclearScarred).toBe(true);
-    expect(after.nations[AGG].hostility).toBe(100);
-    expect(applyBattleOutcome(after, o).nations.fr.missiles.tactical).toBe(1);
-  });
-
   it('7 a fort and a held tile: the same reduction in the field battle setup and the auto-resolve', () => {
     const s0 = fieldState();
     // On the player's own land (decision 41: on nobody's land a clash is fought on Auto only).

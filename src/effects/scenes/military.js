@@ -13,10 +13,8 @@ const unitPath = (ageId, classId) => getUnitIconPath(ageId || 'kingdoms', classI
 const facing = (heading) => (Math.cos((heading * Math.PI) / 180) < 0 ? -1 : 1);
 
 // ---------------------------------------------------------------------------------------------
-// strike — ballistic munitions arcing over the Earth into a detonation (missiles, air strikes,
-// ASAT). The original arc renderer, ported onto the shared engine.
+// strike — ballistic munitions arcing over the Earth into a detonation (air strikes). The original arc renderer, ported onto the shared engine.
 const HEAD_SHAPES = {
-  warhead: 'M 13 0 L 1 -4.5 L -10 -3 L -10 3 L 1 4.5 Z',
   dart: 'M 12 0 L -6 -4 L -3 0 L -6 4 Z',
   chevron: 'M 10 0 L -6 -8 L -1 0 L -6 8 Z'
 };
@@ -35,7 +33,7 @@ export const strike = {
         const g = stage.el('g', { opacity: 0 });
         stage.el('circle', { r: 15, fill: base, opacity: 0.16 }, g);
         stage.el('circle', { r: 7, fill: base, opacity: 0.5 }, g);
-        stage.el('path', { d: HEAD_SHAPES[p.head] || HEAD_SHAPES.warhead, fill: hot, stroke: '#fff', 'stroke-width': 0.8 }, g);
+        stage.el('path', { d: HEAD_SHAPES[p.head] || HEAD_SHAPES.dart, fill: hot, stroke: '#fff', 'stroke-width': 0.8 }, g);
         return g;
       })(),
       flash: stage.el('circle', { fill: hot, r: 0, opacity: 0 })

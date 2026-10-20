@@ -1143,7 +1143,6 @@ export class BattleRenderer {
           if (this.fxSprites.has('smoke')) this.fx.push({ kind: 'sprite', sheet: 'smoke', x: e.x / Q, z: e.y / Q, y: 0.3, rise: 1.2, t: 0, life: 2.4, size: Math.max(1, r) });
         } else for (let k = 0; k < n; k++) this.fx.push({ kind: 'spark', x: e.x / Q + (hash01(e.t * 11 + k) - 0.5) * r * 1.6, z: e.y / Q + (hash01(e.t * 17 + k) - 0.5) * r * 1.6, t: 0, life: 0.9, seed: k, big: true, fire: true });
         this.addMarker(e.x / Q, e.y / Q, '#f97316');
-        if (r > 6) this.flash = 1; // a nuclear flash
       } else if (e.type === 'ability') {
         const src = view.squads[e.id];
         if (src) this.addMarker(src.x / Q, src.y / Q, '#c084fc');
@@ -1230,7 +1229,6 @@ export class BattleRenderer {
     }
     this.adaptResolution(dt);
     this.fitShadows();
-    if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.copy(this.skyColor).lerp(new Color('#ffffff'), this.flash); }
     this.updateCamera();
     this.vegetation?.update(this.camera.zoom, { cssPxPerTile: 1 / this.worldPerPixel(), camera: this.camera, budget: this.treeBudget });
     this.terrainArt?.update(this.camera.zoom);

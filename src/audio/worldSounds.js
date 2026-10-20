@@ -141,17 +141,10 @@ export const ACTION_SOUNDS = {
   [T.ASSIGN_GOVERNOR]: 'ui-confirm',
   [T.DISMISS_GOVERNOR]: null,
   [T.INCREASE_STABILITY]: 'ui-confirm',
-  [T.LAUNCH_SATELLITE]: 'tech-complete',
-  [T.ASAT_STRIKE]: 'city-razed',
-  [T.BUILD_MISSILE]: 'building-queued',
-  [T.MISSILE_STRIKE]: 'city-razed',
-  [T.BUILD_ABM_DEFENSE]: 'building-queued',
-  [T.LAUNCH_MISSION]: 'wonder-started',
   [T.SET_ARMY_MAINTENANCE]: null,
   [T.SET_NAVY_MAINTENANCE]: null,
   [T.REQUEST_LOAN]: 'gold-received',
   [T.REPAY_LOAN]: 'tribute-paid',
-  [T.ACTIVATE_FUSION_GRID]: 'tech-complete',
   [T.MOVE_CAPITAL]: 'ui-confirm',
   [T.DECLARE_INDEPENDENCE]: null, // a war of independence: from the state
   [T.CONTINUE_AFTER_VICTORY]: null

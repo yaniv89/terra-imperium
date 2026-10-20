@@ -39,7 +39,7 @@ import { displayYear } from './displayYear';
 // migrate10to11). Version 12 adds fog of war (src/engine/fog.js: explored maps, contacts, the
 // last-seen picture, arrays saved run-length encoded); a save from before it loads and starts its
 // fog from where its cities stand now (migrate11to12). A version 10 save runs both steps.
-export const CURRENT_SAVE_VERSION = 14;
+export const CURRENT_SAVE_VERSION = 15;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -353,9 +353,26 @@ export const migrate13to14 = (state) => {
   return { ...rest, year: displayYear(rest) };
 };
 
+// v15: space and nukes are retired (eight-ages plan U21). The satellites, orbital debris, space
+// missions, missile stockpiles, ABM levels, the Fusion Grid, Helium-3 and nuclear scars are dropped,
+// with the Nuclear Pariah modifier; nothing is refunded.
+const SPACE_STATE_KEYS = ['satellites', 'nextSatelliteSeq', 'orbitalDebrisLevel', 'spaceMissionProgress', 'completedMissions'];
+const SPACE_NATION_KEYS = ['missiles', 'abmDefenseLevel', 'fusionGridActive'];
+const omit = (obj, keys) => Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k)));
+export const migrate14to15 = (state) => {
+  const nations = Object.fromEntries(Object.entries(state.nations || {}).map(([id, n]) => {
+    const next = omit(n, SPACE_NATION_KEYS);
+    if (n.economy && 'helium3' in n.economy) next.economy = omit(n.economy, ['helium3']);
+    if (n.modifiers) next.modifiers = n.modifiers.filter((m) => m.sourceType !== 'nuclear');
+    return [id, next];
+  }));
+  const regions = Object.fromEntries(Object.entries(state.regions || {}).map(([id, r]) => [id, 'nuclearScarred' in r ? omit(r, ['nuclearScarred']) : r]));
+  return { ...omit(state, SPACE_STATE_KEYS), nations, regions, resources: omit(state.resources || {}, ['helium3']) };
+};
+
 // Versions 6 to 9 are never migrated (an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14 };
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.

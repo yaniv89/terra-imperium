@@ -1,25 +1,17 @@
 // src/engine/endgameReachability.test.js
 // Plan §13's "endgame reachability": an automated long-run test asserting each victory condition
-// is achievable in principle, and that the space-race mission ladder can complete within the
-// Modern Age's own turn budget rather than outlasting it.
+// is achievable in principle.
 //
-// "Achievable in principle" is split into two kinds of proof here, matching how concretely each
-// claim can actually be tested:
-// - domination / economicHegemony / diplomatic / spaceAscendancy: construct a state that satisfies
-//   the condition's real threshold (a genuine share of regions/GDP, a sustained alignment streak,
-//   the ladder's final mission) and confirm resolveTurn — the same code path every real turn goes
-//   through — actually ends the game with that victory. This is a regression guard on the
-//   mechanism recognizing success, not a claim that an AI or scripted player reaches it unaided.
-// - the space-race ladder: a real end-to-end simulation — advance the calendar to the mission
-//   ladder's unlock year, then launch and wait out every mission in order through the actual
-//   LAUNCH_MISSION reducer action and resolveTurn's own per-turn mission-progress ticking — proving
-//   the full ladder both completes and fires Space Ascendancy victory within the Modern Age.
+// domination / economicHegemony / diplomatic: construct a state that satisfies the condition's real
+// threshold (a genuine share of regions/GDP, a sustained alignment streak) and confirm resolveTurn —
+// the same code path every real turn goes through — actually ends the game with that victory. This
+// is a regression guard on the mechanism recognizing success, not a claim that an AI or scripted
+// player reaches it unaided.
 import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { createInitialState, gameReducer } from '../context/GameContext';
 import { ActionTypes, GameStatus } from '../data/types';
 import { speedTurnLimit } from '../data/ages';
-import { FINAL_SPACE_MISSION_ID } from '../data/spaceMissions';
 import {
   DOMINATION_CAPITAL_SHARE, ECONOMIC_HEGEMONY_SHARE, getEconomicShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS
 } from '../data/victoryConditions';
@@ -122,13 +114,6 @@ describe('endgame reachability: each victory condition fires when its real thres
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
     expect(next.victoryConditionId).toBe('diplomatic');
   });
-
-  it('Space Ascendancy: completing the mission ladder ends the game as a Space Ascendancy Victory', () => {
-    const state = freshWorld();
-    const next = resolveTurn({ ...state, completedMissions: [FINAL_SPACE_MISSION_ID] });
-    expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    expect(next.victoryConditionId).toBe('spaceAscendancy');
-  });
 });
 
 describe('endgame reachability: defeat and bankruptcy are achievable (plan §M15)', () => {
@@ -162,7 +147,3 @@ describe('endgame reachability: defeat and bankruptcy are achievable (plan §M15
     expect(next.logs.some((l) => l.message.includes('Bankruptcy'))).toBe(true);
   });
 });
-
-// The space-race ladder's end-to-end runs lived here. They waited for the calendar to reach
-// SATELLITE_UNLOCK_YEAR, a rule on the year that ages by tech removes (eight-ages plan KTD3); the
-// space race itself is removed in phase B (U18).
