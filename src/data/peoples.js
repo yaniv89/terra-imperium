@@ -13,11 +13,14 @@
 // settled; never drawn as a major), `pinned` (the Kingdom of Israel: tried first after the player,
 // roadmap decision 13, but it keeps the start gap like everyone; no other advantage), `major` (from
 // MAJOR_TIER below: one of the 50 major peoples, else a city-state people; decision 42).
+// `ruler` ({ name, gender, epithet, titles }, from src/data/peopleRulers.json, drafted in
+// plans/data/rulers.json with sources) is the one ruler of the people for the whole game (RULER-PLAN 2.1).
 // Built facts (capital tile, colour, the legacy id table) come from src/data/geo/peopleCapitals.json
 // (npm run build:peoples). City names: src/data/peopleCities.json (20 a people, capital first).
 import CITY_NAMES from './peopleCities.json';
 import BUILT from './geo/peopleCapitals.json';
 import countriesMeta from './geo/countries-meta.json';
+import RULERS from './peopleRulers.json';
 
 const RAW = [
   { id: 'israel', name: 'Israel', adjective: 'Israelite', capital: { name: 'Jerusalem', lat: 31.78, lon: 35.23 }, land: 'il', theme: 'israelite', weight: 'A', region: 'neareast', pinned: true },
@@ -243,6 +246,7 @@ export const PEOPLES_LIST = Object.freeze(RAW.map((p) => Object.freeze({
   landName: countriesMeta[p.land]?.name || p.land,
   cities: Object.freeze([...(CITY_NAMES[p.id] || [])]),
   titles: TITLE_OVERRIDES[p.id] || null,
+  ruler: Object.freeze({ ...RULERS[p.id] }),
   tile: BUILT.capitals?.[p.id] ?? null,
   color: BUILT.colors?.[p.id] || '#64748b'
 })));
