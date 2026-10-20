@@ -100,7 +100,7 @@ import { awardEraLegacy } from './eraGoals';
 import { settleOpenCaptures } from './capture';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
-import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
+import { governorEffects, governorOf, regroupGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
 import { lawRulesOf } from './lawRules';
 import { advanceTradeDisruptions } from './tradeDisruptions';
 import { authorityRisksCivilWar } from './authority';
@@ -113,7 +113,7 @@ import { updateFog } from './fog';
 import { processAIMapOffers } from './mapTrade';
 import { continueExplorers, EXPLORER_STRENGTH } from './scouting';
 import { repairCityDamage } from './cityManifest';
-import { msg, carry, sub, people, cityRef, thing } from './messages';
+import { msg, carry, sub, people, cityRef, thing, person } from './messages';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -712,7 +712,15 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   {
     const me = state.playerNationId;
     const view = { ...state, regions, nations };
-    Object.keys(nations).forEach((nId) => { const pruned = pruneGovernors(view, nations[nId]); if (pruned !== nations[nId]) nations[nId] = pruned; });
+    Object.keys(nations).forEach((nId) => {
+      const r = regroupGovernors(view, nations[nId]);
+      if (r.nation !== nations[nId]) nations[nId] = r.nation;
+      if (nId !== me) return;
+      r.changes.forEach((c) => {
+        const city = cityRef(c.kind === 'moved' ? c.to : c.city, regions[c.kind === 'moved' ? c.to : c.city]?.name || '');
+        logs.push({ year: newYear, ...msg(c.kind === 'moved' ? 'm.turn.governorMoved' : c.kind === 'merged' ? 'm.turn.governorMerged' : 'm.turn.governorLeft', { name: person(c.name), city }), type: LogTypes.EVENT });
+      });
+    });
     if (nations[me] && (newTurnNumber % GOVERNOR_REFRESH_TURNS === 1 || !nations[me].governorCandidates)) {
       nations[me] = { ...nations[me], governorCandidates: generateGovernorCandidates(me, `${state.rngSeed}|${newTurnNumber}`) };
     }

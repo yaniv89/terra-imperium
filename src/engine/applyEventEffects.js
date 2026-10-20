@@ -118,12 +118,12 @@ export const applyEventEffects = (state, event, optionIndex) => {
     });
     next.regions = regions;
   }
-  // Plan §M17: "isOccupied-based controlPenalty now applies to regions with occupiedBy set" — M13
-  // introduced real occupation (`occupiedBy`); the stale `isOccupied` field itself was removed in M21.
+  // H-09: the card says "Control -N%" with no condition, so it lowers control in every city the player
+  // owns (it used to need occupiedBy, which made "Ride it out" free).
   if (effects.controlPenalty) {
     const regions = { ...next.regions };
     Object.values(regions).forEach(r => {
-      if (r.owner === playerNationId && r.occupiedBy) {
+      if (r.owner === playerNationId) {
         regions[r.id] = { ...r, control: Math.max(0, r.control - effects.controlPenalty) };
       }
     });

@@ -6,6 +6,9 @@ export default {
   'log.foldNote': '({count} פעמים עד כה, מאז {year})',
 
   'm.turn.newEra': 'עידן חדש מפציע: העולם נכנס ל{age}.',
+  'm.turn.governorMoved': 'המושל {name} משרת עכשיו מ{city}: הערים שלכם קובצו מחדש.',
+  'm.turn.governorMerged': 'המושל {name} עזב את תפקידו: הקבוצה של {city} אוחדה עם קבוצה שכבר יש לה מושל.',
+  'm.turn.governorLeft': 'המושל {name} עזב את תפקידו: {city} כבר לא בידיכם.',
   'm.turn.income': '{year}: +{gold:money}',
   'm.turn.hungryOne': 'נגמרה האספקה: יחידה {n} שלך במערכה רעבה (-{morale} מורל, ללא תגבורת). בנו תעשייה, אגרו מתכת או החזירו אותה הביתה.',
   'm.turn.hungryMany': 'נגמרה האספקה: {n} יחידות שלך במערכה רעבות (-{morale} מורל, ללא תגבורת). בנו תעשייה, אגרו מתכת או החזירו אותן הביתה.',
