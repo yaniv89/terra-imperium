@@ -1,10 +1,10 @@
-// Map models keep one world size (user rule 2026-10-20): the close view's figures and model units
-// are proportional to the zoom, so a model looks bigger only because the camera is closer. The army
+// Map models keep one world size (user rule 2026-10-20): the close view's model units are
+// proportional to the zoom (figures: closeView/hexFit.test.js), so a model looks bigger only because the camera is closer. The army
 // banner (a flat sprite) keeps one size on screen from the far map into the close view.
 import { describe, it, expect } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
 import { markerSprites, CLOSE_ZOOM_K, SETTLER_MAX_R, settlerRadius } from './sceneModel';
-import { figureScale, unitPx } from '../closeView/scale';
+import { unitPx } from '../closeView/scale';
 
 const projection = geoEquirectangular().fitSize([844, 390], { type: 'Sphere' });
 const ZOOMS = [1, 2, 4, 8, 12, CLOSE_ZOOM_K * 0.99, CLOSE_ZOOM_K, CLOSE_ZOOM_K * 1.01, 16, 20, 30, 40, 41, 60, 90, 140, 200];
@@ -25,29 +25,17 @@ describe('army banners on the map', () => {
   });
 });
 
-describe('close view figures (armies and settler parties)', () => {
-  // an infantry figure of the battle model: 1.5 model units tall, the true size factor of
-  // closeViewScene (SOLDIER_SIZE 2.4 x MODEL_SCALE 0.88), floors of 64 px (armies) and 38 px (settlers)
-  const height = 1.5; const trueFactor = 2.4 * 0.88;
-  const floors = [64 / height, (64 * 0.6) / height];
-  const CLOSE = ZOOMS.filter((k) => k >= CLOSE_ZOOM_K);
-
-  it('keep one world size at every zoom (the layout scale is proportional to the zoom)', () => {
-    floors.forEach((floor) => {
-      const world = CLOSE.map((k) => (figureScale(k, trueFactor, floor) * height) / k);
-      world.forEach((w) => expect(w).toBeCloseTo(world[0], 9));
+describe('army stacks at the far end of the close view', () => {
+  const at = { lat: 31.8, lng: 35.2 };
+  const mk = (id) => ({ id, own: true, ownerId: 'israel', regionId: null, at, men: 1800, mainClass: 'infantry', morale: 90, canMove: true });
+  it('each army or stack of armies has a readable banner, whatever the zoom', () => {
+    [1, 4, CLOSE_ZOOM_K, 40, 150].forEach((k) => {
+      [[mk('a1')], [mk('a1'), mk('a2')]].forEach((armies) => {
+        const { sprites } = markerSprites({ markers: { armies, fleets: [], battles: [] }, projection, k, atWar: new Set(), dpr: 2 });
+        expect(sprites).toHaveLength(1);
+        expect(sprites[0].size[0]).toBeGreaterThanOrEqual(20); expect(sprites[0].size[1]).toBeGreaterThanOrEqual(20);
+      });
     });
-  });
-
-  it('are the size they had where the close view opens, at that zoom', () => {
-    floors.forEach((floor) => {
-      expect(figureScale(CLOSE_ZOOM_K, trueFactor, floor) * height).toBeCloseTo(Math.max(unitPx(CLOSE_ZOOM_K) * trueFactor, floor) * height, 9);
-      expect(figureScale(CLOSE_ZOOM_K, trueFactor, floor) * height).toBeGreaterThanOrEqual(floor * height - 1e-9);
-    });
-  });
-
-  it('do not stop growing in the super zoom (no power law past k 40)', () => {
-    expect(figureScale(200, trueFactor, floors[0]) / figureScale(100, trueFactor, floors[0])).toBeCloseTo(2, 9);
   });
 });
 

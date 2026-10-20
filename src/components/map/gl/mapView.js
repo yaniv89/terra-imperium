@@ -126,6 +126,18 @@ export const focusZoomFor = (currentK, minFocusK, maxK = Infinity) => {
 /** Earth's mean radius in km: d3's equirectangular scale is pixels per radian at zoom 1. */
 export const EARTH_RADIUS_KM = 6371;
 
+/** The closest zoom shows this many hexes across the screen (Civilization-style: a unit never fills the screen). */
+export const HEXES_ACROSS_AT_MAX_ZOOM = 3.5;
+/**
+ * The camera's closest zoom for a screen `width` px wide whose projection has d3 `scale`
+ * (pixels per radian at zoom 1): HEXES_ACROSS_AT_MAX_ZOOM hex spacings (`hexKm`, 77 km) across the
+ * width, at most `cap`, never short of `floorK` (a usable close view).
+ */
+export const maxZoomFor = ({ width, scale, hexKm = 77, cap = 200, floorK = 30 }) => {
+  const k = (width * EARTH_RADIUS_KM) / (HEXES_ACROSS_AT_MAX_ZOOM * hexKm * scale);
+  return Math.max(floorK, Math.min(cap, Number.isFinite(k) ? k : cap));
+};
+
 /**
  * The first view of a game (a new game, a loaded one with no camera remembered, plans/ui/start-zoom):
  * close on the capital, `viewKm` of ground over the screen's height (about twice the city's land,
