@@ -212,8 +212,9 @@ def fine_legs(arm, prefix='Mount', coat='Coat', hoof='Mane', sides=6):
     """Shaped horse legs (2026-10-20, opt-in): a muscled forearm and haunch, a knee and a hock that
     stand out, a slim cannon, a fetlock bump, a sloped pastern and a flared hoof, in place of the
     quadruped's straight thigh, cannon and box hoof. Same bones, same footing (hoof soles at z 0)."""
+    socks = {o.name[len(prefix) + 4:]: o.active_material.name for o in bpy.data.objects if o.parent == arm and o.name.startswith(f'{prefix}Sock') and o.active_material}
     for ob in [o for o in bpy.data.objects if o.parent == arm and o.type == 'MESH'
-               and any(o.name.startswith(f'{prefix}{k}') for k in ('Thigh', 'Cannon', 'Hoof'))]:
+               and any(o.name.startswith(f'{prefix}{k}') for k in ('Thigh', 'Cannon', 'Hoof', 'Sock'))]:
         bpy.data.objects.remove(ob, do_unlink=True)
     made = []
     for side, sx in (('L', 1), ('R', -1)):
@@ -230,6 +231,9 @@ def fine_legs(arm, prefix='Mount', coat='Coat', hoof='Mane', sides=6):
                                coat, [b for *_, b in ring], sides, arm))
             made.append(u.tube(f'{prefix}Hoof{end}_{side}', [(x, y0 - .016, .052), (x, y0 - .020, .026), (x, y0 - .024, .002)],
                                [(.024, .028), (.030, .036), (.034, .041)], hoof, [shin] * 3, sides, arm))
+            if f'{end}_{side}' in socks:  # a white sock round the new fetlock and pastern
+                made.append(u.tube(f'{prefix}Sock{end}_{side}', [(x, y0 + ring[-1][0], .050), (x, y0 + ring[-2][0], .090), (x, y0 + ring[-3][0] * .5, .140)],
+                                   [(.025, .029), (.031, .037), (.025, .031)], socks[f'{end}_{side}'], [shin] * 3, sides, arm))
     return made
 
 def full_tail(arm, prefix='Mount', dark='Mane', sides=7):

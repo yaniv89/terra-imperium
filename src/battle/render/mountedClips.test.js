@@ -10,10 +10,10 @@ import { readFileSync } from 'node:fs';
 import { AnimationMixer, Matrix4, Quaternion } from 'three';
 
 const SETS = {
-  mounted: ['Idle', 'Walk', 'Trot', 'Gallop', 'Charge', 'Attack', 'Hit', 'Death', 'DeathAlt'],
+  mounted: ['Idle', 'Walk', 'Trot', 'Gallop', 'Charge', 'Attack', 'Hit', 'Death', 'DeathAlt', 'Cheer'],
   general: ['Idle', 'Walk', 'Trot', 'Gallop', 'Charge', 'Attack', 'Hit', 'Death', 'DeathAlt', 'Cheer'],
   chariot: ['Idle', 'Move', 'Charge', 'Archer-shoot', 'Hit', 'Wreck'],
-  atgm: ['Idle', 'Aim-fire-reload', 'Hit', 'Death', 'DeathAlt']
+  atgm: ['Idle', 'Walk', 'Aim-fire-reload', 'Hit', 'Death', 'DeathAlt']
 };
 const LOOPS = ['Idle', 'Walk', 'Trot', 'Gallop', 'Move', 'Cheer'];
 const EVENTS = {

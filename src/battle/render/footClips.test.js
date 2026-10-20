@@ -10,8 +10,8 @@ import { Quaternion } from 'three';
 
 const SETS = {
   melee: ['Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Attack', 'Attack2', 'Block', 'Hit', 'Death', 'DeathAlt', 'Cheer'],
-  bow: ['Idle', 'Walk', 'Run', 'Draw-aim-release', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt'],
-  gun: ['Idle', 'Walk', 'Run', 'Aim-fire-reload', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt'],
+  bow: ['Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Draw-aim-release', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt', 'Cheer'],
+  gun: ['Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Aim-fire-reload', 'Melee-fallback', 'Hit', 'Death', 'DeathAlt', 'Cheer'],
   support: ['Idle', 'Walk', 'Run', 'Build', 'Repair', 'Hit', 'Death']
 };
 const LOOPS = ['Idle', 'IdleAlt', 'Walk', 'Run', 'Retreat-run', 'Cheer', 'Mine', 'Build', 'Repair'];

@@ -35,7 +35,9 @@ F.start({'Coat': 'A8A39A', 'Mane': '3B3633', 'Leather': '4E3122', 'Saddle': '5E2
          'Metal': ('B4B8BD', .32, .82), 'Mail': ('7E848B', .55, .75), 'Brass': ('C9A04E', .4, .7), 'Slit': '141414',
          'Hair': '2B201A', 'Skin': 'C99472', 'Emblem': 'E6D6AF'}, rig=False)
 parts = []
-horse, _ = tm.fine_horse('Mount', (0, 0, 0), blaze=False, socks=False)
+horse, _ = tm.fine_horse('Mount', (0, 0, 0), blaze=False, socks=False, detail=2)
+tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+tm.full_tail(horse, sides=10)
 parts.append(horse)
 tm.caparison(horse, 'Team', trim='Trim')
 tm.war_saddle(horse, 'Saddle')
@@ -91,4 +93,4 @@ tris = F.finish_unit(UID, parts, {
     open_facing=facing, centre=(0, -.1, .85), scale=2.7, mode='NLA_TRACKS',
     clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'lance', stirrups=True), 'mounted'))
 print('TRIS', tris)
-assert tris <= 3500, tris
+assert tris <= 5000, tris  # the close version (2026-10-20); the mid and far levels stay at 550 and 220 (soldierLod.js)
