@@ -9,6 +9,7 @@
 // Built once per settled zoom and game change (the GPU moves them while the map pans), the tile
 // glyphs and roads per window of the world round the view.
 import { nameNow } from '../../../i18n/names';
+import { t as tNow } from '../../../i18n';
 import { getTiles } from '../../../data/geo/tiles';
 import { cityLatLon, landTilesWithin } from '../../../data/geo/cityFeatures';
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
@@ -372,7 +373,8 @@ export const marchShapes = ({ marchLines, projection, k, selectedArmy, dpr }) =>
     if (preview) l.marks.slice(0, -1).forEach((m) => { const p = pts[m.index]; if (!p) return; const d = discArt(16); sprites.push({ art: d, anchor: p, size: [5, 5], exp: [0, 0], color: [colour[0], colour[1], colour[2], 1] }); });
     if (!faint) {
       const turns = l.marks.length ? l.marks[l.marks.length - 1].turn : null;
-      const text = l.halted ? 'halted' : turns != null ? `${turns} turn${turns === 1 ? '' : 's'}` : '';
+      // End Turns to go (routes.js scheduleSteps): 0 on a preview = it gets there now.
+      const text = l.halted ? 'halted' : turns != null ? (turns <= 0 ? tNow('march.thisTurn') : tNow('march.turns', { count: turns })) : '';
       if (text) {
         const art = labelArt(text, { size: 10, weight: 700, fill: l.halted ? '#fecaca' : '#fff', stroke: 'rgba(15,23,42,0.85)', strokeW: 2.2 }, dpr);
         sprites.push({ art, anchor: end, offset: [0, -12 - art.css.baseline + art.css.h / 2, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });

@@ -70,7 +70,7 @@ export const getLoanSize = (state, nationId) => {
 const unitsAfterMarch = (state, nationId, owned) => {
   if (nationId !== state.playerNationId || !owned.some((u) => u.route?.length)) return owned;
   const after = { ...state.units };
-  advanceMarches(state, after, { year: state.year });
+  advanceMarches(state, after, { year: state.year, turnOf: state.turnNumber + 1 });
   return Object.values(after).filter((u) => u.ownerId === nationId);
 };
 

@@ -10,7 +10,7 @@ import { getTiles } from '../data/geo/tiles';
 import { computeSupplyFlow, MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { calcNationBalance } from './economy';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
-import { accessOf, advanceMarches, findRoute, planMarch, scheduleSteps, stackPace, stepCost, ENEMY_STEP_COST, moveNowCheck, routeEta, marchingUnits, marchOrigin } from './routes';
+import { accessOf, advanceMarches, findRoute, planMarch, scheduleSteps, stackPace, stepCost, ENEMY_STEP_COST, moveNowCheck, routeEta, marchingUnits, marchOrigin, orderMarch, marchedThisTurn, canStepNow, unitsAtTurnStart } from './routes';
 import { ROAD_COST, riverCrossingCost, TILE_COST_MOUNTAINS, MOVE_POINTS, findTilePath, normalizeUnitTiles, tileAccess, tileStepCost, unitTile, inEnemyZoc } from './armies';
 import { validateInvasion } from './invasion';
 import { addCity } from './testWorld';
@@ -125,6 +125,8 @@ describe('planning a route', () => {
 
 describe('marching', () => {
   const marchTo = (s, from, target) => gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: typeof target === 'number' ? { fromRegionId: from, toTile: target } : { fromRegionId: from, toRegionId: target } });
+  // The route alone, not stepped now (routes.js orderMarch): for the tests of the walk itself.
+  const routeOnly = (s, from, target) => ({ ...s, units: orderMarch(s, from, target).units });
 
   it('walks the route over several End Turns, the stack together, and logs the arrival', () => {
     const to = freeAt(4);
@@ -159,7 +161,7 @@ describe('marching', () => {
 
   it('walks into enemy land at war, halts before the city, and marches on once it is taken', () => {
     let s = withUnits(atWarWith(S, PK_ID), [unit('a', P)]);
-    s = marchTo(s, P, PK);
+    s = routeOnly(s, P, PK);
     const plan = planMarch(s, P, PK);
     expect(plan.haltTile).toBe(s.regions[PK].tile);
     const units = { ...s.units };
@@ -183,7 +185,7 @@ describe('marching', () => {
 
   it('stops when access is lost (the war ended)', () => {
     let s = withUnits(atWarWith(S, PK_ID), [unit('a', P)]);
-    s = marchTo(s, P, PK);
+    s = routeOnly(s, P, PK);
     const peace = { ...s, wars: s.wars.filter((w) => w.id !== 'w-test') };
     const units = { ...peace.units };
     let st = peace; let logs = [];
@@ -195,7 +197,7 @@ describe('marching', () => {
   it('ends the move next to an enemy army (zone of control) and halts before one on the road', () => {
     const to = freeAt(8);
     let s = withUnits(atWarWith(S, PK_ID), [unit('a', P, { classId: 'cavalry' })]);
-    s = marchTo(s, P, to);
+    s = routeOnly(s, P, to);
     const steps = s.units.a.route;
     const sched = scheduleSteps(s, homeTile, steps, s.units.a.routePace);
     // A turn in which the army would cover two steps: an enemy beside the first of them ends it there.
@@ -250,8 +252,8 @@ describe('marching', () => {
     const s = withUnits(s0, [unit('a', P)]);
     const plan = planMarch(s, P, B);
     const check = moveNowCheck(s, s.units.a, B);
-    // One selector: Move now is offered exactly when the march's own preview says one turn.
-    expect(check.ok).toBe(plan.turns === 1);
+    // One selector: Move now is offered exactly when the march's own preview says this turn.
+    expect(check.ok).toBe(plan.turns === 0);
     if (!check.ok) {
       expect(check.turns).toBe(plan.turns);
       const refused = gameReducer(s, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a', toRegionId: B } });
@@ -272,17 +274,17 @@ describe('marching', () => {
     expect(spent.ok, spent.reason).toBe(true);
     expect(spent.spent).toBe(true);
     expect(spent.turns).toBe(fresh.turns + 1);
-    s = gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: B, toTile: to, unitIds: ['a', 'b'] } });
-    expect(routeEta(s, s.units.a)).toBe(routeEta(s, s.units.b) + 1);
+    // b steps at once; a already moved this turn and waits for the next turn's start.
+    s = gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: B, toTile: to, unitIds: ['b'] } });
+    s = gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: B, toTile: to, unitIds: ['a'] } });
+    expect(s.units.a.tile).toBe(s0.regions[B].tile);
+    expect(s.units.b.tile).not.toBe(s0.regions[B].tile);
+    expect(routeEta(s, s.units.a)).toBe(spent.turns);
+    if (s.units.b.route?.length) expect(routeEta(s, s.units.b)).toBe(fresh.turns);
+    // At the turn's start it walks like any march.
     const units = { ...s.units };
-    advanceMarches(s, units, {});
-    expect(units.a.tile).toBe(s0.regions[B].tile); // already moved this turn
-    expect(units.b.tile).not.toBe(s0.regions[B].tile);
-    // Next turn it walks like any march.
-    const later = { ...s, turnNumber: s.turnNumber + 1, units };
-    const u2 = { ...units };
-    advanceMarches(later, u2, {});
-    expect(u2.a.tile).not.toBe(s0.regions[B].tile);
+    advanceMarches(s, units, { turnOf: s.turnNumber + 1 });
+    expect(units.a.tile).not.toBe(s0.regions[B].tile);
   });
 
   it('the ETA of a route is the turn the march really arrives (routeEta)', () => {
@@ -293,7 +295,7 @@ describe('marching', () => {
     expect(eta).toBe(planMarch(withUnits(S, [unit('a', P)]), P, to).turns);
     const units = { ...s.units };
     let st = s; let turns = 0;
-    while (units.a.route && turns < 20) { advanceMarches(st, units, {}); turns += 1; st = { ...st, turnNumber: st.turnNumber + 1, units: { ...units } }; if (units.a.route) expect(routeEta(st, units.a)).toBe(eta - turns); }
+    while (units.a.route && turns < 20) { advanceMarches(st, units, { turnOf: st.turnNumber + 1 }); turns += 1; st = { ...st, turnNumber: st.turnNumber + 1, units: { ...units } }; if (units.a.route) expect(routeEta(st, units.a)).toBe(eta - turns); }
     expect(units.a.tile).toBe(to);
     expect(turns).toBe(eta);
   });
@@ -312,11 +314,88 @@ describe('marching', () => {
 
   it('a route survives a save and load', () => {
     let s = withUnits(S, [unit('a', P)]);
-    s = marchTo(s, P, freeAt(4));
+    s = marchTo(s, P, freeAt(6));
     const loaded = JSON.parse(JSON.stringify(s));
     const u1 = { ...s.units }; const u2 = { ...loaded.units };
-    advanceMarches(s, u1, {}); advanceMarches(loaded, u2, {});
+    advanceMarches(s, u1, { turnOf: s.turnNumber + 1 }); advanceMarches(loaded, u2, { turnOf: loaded.turnNumber + 1 });
     expect(u2.a).toEqual(u1.a);
+  });
+});
+
+describe('a march order steps at once (the Civilization way)', () => {
+  const order = (s, target, extra = {}) => gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: P, ...(typeof target === 'number' ? { toTile: target } : { toRegionId: target }), ...extra } });
+  // A free tile three turns of walking away: two End Turns after this turn's steps (planMarch.turns).
+  const threeTurns = (() => {
+    const s = withUnits(S, [unit('a', P)]);
+    for (let ring = 3; ring < RINGS.length; ring++) for (const t of RINGS[ring]) {
+      if (!free(S, t)) continue;
+      const plan = planMarch(s, P, t);
+      if (plan.ok && plan.turns === 2) return { to: t, plan };
+    }
+    return null;
+  })();
+
+  it("walks this turn's points at once, keeps none for a second move, and goes on at each turn's start", () => {
+    expect(threeTurns).toBeTruthy();
+    const { to, plan } = threeTurns;
+    expect(plan.spent).toBe(false);
+    expect(plan.stepTurns[0]).toBe(0); // the first steps are walked now
+    let s = order(withUnits(S, [unit('a', P)]), to);
+    // No End Turn: the unit stands on the last tile this turn's points pay for.
+    const nowSteps = plan.steps.filter((_, i) => plan.stepTurns[i] === 0);
+    expect(s.units.a.tile).toBe(nowSteps[nowSteps.length - 1]);
+    expect(s.units.a.route).toEqual(plan.steps.slice(nowSteps.length));
+    expect(s.units.a.marchedTurn).toBe(s.turnNumber);
+    expect(marchedThisTurn(s, s.units.a)).toBe(true);
+    expect(canStepNow(s, s.units.a)).toBe(false); // no points left this turn
+    expect(routeEta(s, s.units.a)).toBe(2);
+    expect(s.logs.some((l) => /about 2 turns/.test(l.message))).toBe(true);
+    // A second order this turn does not move it again.
+    const again = order(s, to, { unitIds: ['a'] });
+    expect(again.units.a.tile).toBe(s.units.a.tile);
+    expect(planMarch(s, P, to, ['a']).spent).toBe(true);
+    // Next turn: it continues from there at the turn's start, and that is the new turn's move.
+    s = resolveTurn(s);
+    const firstSteps = plan.steps.filter((_, i) => plan.stepTurns[i] <= 1);
+    expect(s.units.a.tile).toBe(firstSteps[firstSteps.length - 1]);
+    expect(marchedThisTurn(s, s.units.a)).toBe(true);
+    expect(routeEta(s, s.units.a)).toBe(1);
+    s = resolveTurn(s);
+    expect(s.units.a.tile).toBe(to);
+    expect(s.units.a.route ?? null).toBe(null);
+    assertGameState(s);
+  });
+
+  it("a unit that already used this turn's move does not step until the next turn", () => {
+    const { to } = threeTurns;
+    [{ movedNowTurn: S.turnNumber }, { movesLeft: 0 }].forEach((used) => {
+      const s0 = withUnits(S, [unit('a', P, used)]);
+      const plan = planMarch(s0, P, to);
+      expect(plan.spent).toBe(true);
+      expect(plan.stepTurns[0]).toBe(1);
+      expect(plan.turns).toBe(3);
+      const s = order(s0, to);
+      expect(s.units.a.tile ?? homeTile).toBe(homeTile);
+      expect(s.units.a.route).toEqual(plan.steps);
+      expect(routeEta(s, s.units.a)).toBe(3);
+      const next = resolveTurn(s);
+      expect(next.units.a.tile).not.toBe(homeTile);
+    });
+  });
+
+  it("the move now stops in an enemy army's zone of control, and the turn's fort check sees where it set out", () => {
+    const to = freeAt(8);
+    const s0 = withUnits(atWarWith(S, PK_ID), [unit('a', P, { classId: 'cavalry' })]);
+    const plan = planMarch(s0, P, to);
+    expect(plan.stepTurns[1]).toBe(0); // two steps this turn
+    const near = new Set([homeTile, ...tiles.neighbors[homeTile]]);
+    const watch = tiles.neighbors[plan.steps[0]].find((t) => tiles.land[t] && !plan.steps.includes(t) && !near.has(t) && !tiles.neighbors[t].includes(homeTile));
+    expect(watch).toBeDefined();
+    const guarded = withUnits(s0, [unit('e', PK, { ownerId: PK_ID, tile: watch })]);
+    const s = order(guarded, to);
+    expect(s.units.a.tile).toBe(plan.steps[0]);
+    expect(s.units.a.routeBank).toBe(0);
+    expect(unitsAtTurnStart(s).a.tile).toBe(homeTile);
   });
 });
 

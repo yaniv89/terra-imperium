@@ -6,6 +6,7 @@ export default {
   'm.act.yearCe': '{y} לספירה',
   'm.act.aboutTurnsOne': 'בערך {n} תור',
   'm.act.aboutTurnsMany': 'בערך {n} תורות',
+  'm.act.thisTurn': 'מגיע בתור הזה',
   'm.act.listNext': '{a}, {b}',
   'm.act.them': 'הם',
   'm.act.thatRegion': 'האזור הזה',

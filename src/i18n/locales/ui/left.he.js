@@ -38,7 +38,7 @@ export default {
   'm.why.moveOwnCity': 'תנועה מיידית אפשרית רק לעיר שלכם.',
   'm.why.alreadyMoved': 'הצבא הזה כבר זז בתור הזה.',
   'm.why.armyThere': 'הצבא כבר שם.',
-  'm.why.tooFarMove': 'רחוק מדי לתנועה מיידית: הצעידה לוקחת {turns} תורות.',
+  'm.why.tooFarMove': 'רחוק מדי לתנועה מיידית: הצעידה צריכה עוד {turns} סיומי תור.',
   'm.why.notSafe': 'הדרך לא בטוחה (אויב קרוב): תנו פקודת צעידה במקום.',
   'm.why.noFleetSail': 'אף צי כאן לא יכול להפליג.',
   'm.why.noArmyMarch': 'אף צבא כאן לא יכול לצעוד.',

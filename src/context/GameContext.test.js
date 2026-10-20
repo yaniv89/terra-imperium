@@ -1025,7 +1025,7 @@ describe('Military tab actions', () => {
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } });
       expect(next.units).toBe(state.units);
-      expect(next.logs[next.logs.length - 1].message).toMatch(/Too far to move now: the march takes \d+ turns/);
+      expect(next.logs[next.logs.length - 1].message).toMatch(/Too far to move now: the march needs \d+ more End Turn/);
     });
 
     it('is a no-op once the unit has no moves left this turn (plan §M14)', () => {

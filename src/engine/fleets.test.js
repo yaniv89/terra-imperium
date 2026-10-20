@@ -70,9 +70,12 @@ describe('a voyage', () => {
     const plan = planMarch(s, port.id, target, null, { naval: true });
     expect(plan.ok, plan.reason).toBe(true);
     expect(plan.pace).toBe(NAVAL_MOVES_BY_AGE.bronze);
-    expect(plan.turns).toBe(Math.ceil(plan.steps.length / NAVAL_MOVES_BY_AGE.bronze));
+    // End Turns: the order sails this turn's tiles at once (routes.js stepMarchesNow).
+    expect(plan.turns).toBe(Math.ceil(plan.steps.length / NAVAL_MOVES_BY_AGE.bronze) - 1);
     s = gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: port.id, toTile: target, naval: true } });
-    expect(s.units.f.route).toEqual(plan.steps);
+    expect(s.units.f.route ?? []).toEqual(plan.steps.slice(NAVAL_MOVES_BY_AGE.bronze));
+    expect(s.units.f.tile).toBe(plan.steps[Math.min(NAVAL_MOVES_BY_AGE.bronze, plan.steps.length) - 1]);
+    expect(s.units.a.tile).toBe(s.units.f.tile); // cargo rides along
     expect(s.units.a.route).toBeUndefined();
     for (let i = 0; i < plan.turns + 1 && s.units.f.route?.length; i++) { s = resolveTurn(s); if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null }; }
     expect(s.units.f.tile).toBe(target);
