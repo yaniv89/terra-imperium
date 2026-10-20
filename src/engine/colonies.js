@@ -27,9 +27,8 @@
 // on colonyRoll(`colony|region|turn`), never Math.random.
 import { REGIONS_DATA, getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
-import { getEffectiveAgeId } from '../data/ages';
 import { powExact } from '../utils/exactMath';
-import { getPool, getTechAgeId } from './nationState';
+import { getPool, ageOf } from './nationState';
 import { canAfford, applyCosts } from '../utils/helpers';
 import { isUnitInBattle } from './invasion';
 import { getNationBonusTotal } from './modifiers/sheet';
@@ -87,7 +86,7 @@ const colonyIndex = (regions) => {
 export const coloniesOf = (state, nationId) => colonyIndex(state.regions).get(nationId) || [];
 
 export const colonySlots = (state, nationId) => {
-  const age = getEffectiveAgeId(state.age, getTechAgeId(state, nationId));
+  const age = ageOf(state, nationId);
   // Static bonuses only (government, policy, wonders): cheap enough for every AI nation every turn.
   const bonus = state.nations[nationId] ? Math.round(getNationBonusTotal(state.nations[nationId], 'national.colonySlots') || 0) : 0;
   return Math.max(1, (COLONY_SLOTS_BY_AGE[age] ?? 1) + bonus);

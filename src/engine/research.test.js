@@ -28,9 +28,32 @@ describe('choosing research', () => {
     expect(next.resources).toBe(s.resources); // choosing costs nothing
   });
 
-  it('a tech whose year has not come yet cannot start', () => {
-    const later = Object.values(TECH_TREE).find((t) => t.ageId === 'classical' && t.prerequisites.length);
-    expect(canStartTech(later.id, new Set(later.prerequisites), -2000).ok).toBe(false);
+  it('the research window: a Bronze nation may start a Classical tech whose prerequisite it has, not a Kingdoms one', () => {
+    const classical = Object.values(TECH_TREE).find((t) => t.ageId === 'classical' && t.prerequisites.length);
+    expect(canStartTech(classical.id, new Set(classical.prerequisites), 'bronze').ok).toBe(true);
+    const kingdoms = Object.values(TECH_TREE).find((t) => t.ageId === 'kingdoms');
+    const known = new Set(Object.values(TECH_TREE).filter((t) => t.ageId !== 'kingdoms').map((t) => t.id));
+    expect(canStartTech(kingdoms.id, known, 'bronze').ok).toBe(false);
+    expect(canStartTech(kingdoms.id, known, 'classical').ok).toBe(true);
+  });
+
+  it('the picker takes an own-age tech before a next-age one at equal doctrine weight, then the id', () => {
+    const s = fresh();
+    const all = new Set(Object.values(TECH_TREE).filter((t) => t.ageId === 'bronze' && t.lineIndex === 0).map((t) => t.id));
+    const picks = suggestTechs({ ...s, techAgeId: 'bronze' }, FR_ID, 20, all);
+    const ages = picks.map((id) => TECH_TREE[id].ageId);
+    expect(ages.indexOf('classical') === -1 || ages.lastIndexOf('bronze') < ages.indexOf('classical')).toBe(true);
+    expect(picks.every((id) => ['bronze', 'classical'].includes(TECH_TREE[id].ageId))).toBe(true);
+    expect(suggestTechs({ ...s, techAgeId: 'bronze' }, FR_ID, 20, all)).toEqual(picks);
+  });
+
+  it('an AI nation never researches outside its window', () => {
+    let s = fresh();
+    const id = DE_ID;
+    s = { ...s, nations: { ...s.nations, [id]: { ...s.nations[id], tech: { researched: [], ageId: 'bronze' }, economy: { ...s.nations[id].economy, techPoints: 1e7 } } } };
+    const out = stepResearch(s, id);
+    expect(out.completed.length).toBeGreaterThan(0);
+    expect(out.completed.every((t) => ['bronze', 'classical'].includes(TECH_TREE[t].ageId))).toBe(true);
   });
 });
 
@@ -94,5 +117,15 @@ describe('through resolveTurn', () => {
     expect(a.techTree[firstOf('economy')].researched).toBe(true);
     expect(a.turnNumber).toBe(b.turnNumber);
     expect(a.logs.some((l) => l.message === `Researched ${TECH_TREE[firstOf('economy')].name}.`)).toBe(true);
+  });
+});
+
+describe('speed is keyed by the paying nation (KTD9)', () => {
+  it('a tech costs the payer\'s own age multiplier, not the tech\'s', () => {
+    const s = fresh();
+    const tech = Object.values(TECH_TREE).find((t) => t.ageId === 'classical').id;
+    const asBronze = getResearchCost({ ...s, techAgeId: 'bronze' }, FR_ID, tech);
+    const asClassical = getResearchCost({ ...s, techAgeId: 'classical' }, FR_ID, tech);
+    expect(asClassical / asBronze).toBeCloseTo((20 / 12) / 1.6, 1);
   });
 });

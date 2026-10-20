@@ -15,8 +15,7 @@ import { cityLatLon, landTilesWithin } from '../../../data/geo/cityFeatures';
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
 import { getNationColor } from '../../../data/nationColors';
 import { isIndependent, independentPersonality } from '../../../data/independents';
-import { getEffectiveAgeId } from '../../../data/ages';
-import { getTechAgeId } from '../../../engine/nationState';
+import { ageOf } from '../../../engine/nationState';
 import { wallsOf } from '../../../engine/sieges';
 import { loyaltyOf } from '../../../engine/loyalty';
 import { OUTPOST_DONE, isSettler, MAX_SETTLE_KM } from '../../../engine/settlers';
@@ -78,7 +77,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
   const sprites = []; const names = []; const hits = [];
   const close = k >= CLOSE_ZOOM_K;
   const ages = {};
-  const ageOf = (owner) => (ages[owner] ||= getEffectiveAgeId(state.age, getTechAgeId(state, owner)));
+  const ownerAge = (owner) => (ages[owner] ||= ageOf(state, owner));
   const capitalUrl = markerIconUrl('capital');
   const siegeUrl = markerIconUrl('siege') || markerIconUrl('battle');
   const sk = Math.sqrt(k);
@@ -120,7 +119,7 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
     const art = badgeArt({
       r0, colour, capital: !!city.isCapital, indep: independentPersonality(state.nations, city.owner),
       fill: city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc',
-      iconUrl: city.outpost ? null : cityIconUrl(townTier(city)?.id, ageOf(city.owner)),
+      iconUrl: city.outpost ? null : cityIconUrl(townTier(city)?.id, ownerAge(city.owner)),
       capitalUrl: city.isCapital ? capitalUrl : null,
       outpost: city.outpost ? (city.outpost.progress || 0) / OUTPOST_DONE : null,
       siege: city.siege ? city.siege.hp / Math.max(1, city.siege.maxHp) : null,
@@ -215,7 +214,7 @@ export const landSprites = ({ state, projection, k, window, isExplored, lens, cl
   const gs = glyphScale(k);
   const gdpr = dpr * gs;
   const sized = (art) => [art.w / dpr, art.h / dpr];
-  const ageId = getEffectiveAgeId(state.age, getTechAgeId(state, state.playerNationId));
+  const ageId = ageOf(state, state.playerNationId);
   within.forEach((t) => {
     const e = ts[t];
     // A resource nobody knows of yet is not drawn (oil in the Bronze Age: tileYields.resourceKnown, I096).

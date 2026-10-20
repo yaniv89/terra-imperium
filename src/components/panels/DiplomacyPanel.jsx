@@ -29,7 +29,7 @@ import {
   ACTION_COSTS, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION
 } from '../../data/actionCosts';
 import { getNationCapital } from '../../data/regions';
-import { getEffectiveAgeId, isAgeAtLeast } from '../../data/ages';
+import { isAgeAtLeast } from '../../data/ages';
 import { canAfford } from '../../utils/helpers';
 import ActionCard from './ActionCard';
 import { Button } from '../ui/atlas';
@@ -48,6 +48,7 @@ import { demandTerms } from '../../engine/aiAccords';
 import { mapOfferTerms } from '../../engine/mapTrade';
 import IndependentsList from '../independents/IndependentsList';
 import { openTributeDemand, openJoinOffer, openIndependent } from '../independents/independentEvents';
+import { ageOf } from '../../engine/nationState';
 
 
 const COST_UNITS = new Set(['gold', 'adm', 'dip', 'mil']);
@@ -78,7 +79,7 @@ const DiplomacyPanel = () => {
     triggerEffect('declare_independence', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} });
   };
-  const isModernAge = isAgeAtLeast(getEffectiveAgeId(state.age, state.techAgeId), 'modern');
+  const isModernAge = isAgeAtLeast(ageOf(state, state.playerNationId), 'modern');
   const playerNation = state.nations[state.playerNationId];
 
   // The peoples you met (engine/fog.js) and anyone at war with you, war first, then the coldest.
@@ -186,6 +187,7 @@ const DiplomacyPanel = () => {
                     <span className={`fa-chip !min-h-[20px] !px-1.5 !text-[10px] uppercase tracking-wide ${RELATION_TONE[r.relation] || ''}`}>{RELATION_LABEL[r.relation]}</span>
                   </span>
                   <span className="block text-[11px] text-fa-muted truncate ps-[18px]">{r.title}</span>
+                  <span className="block text-[11px] text-fa-muted truncate ps-[18px]" data-testid="people-age" data-age-vs-you={r.ageVsYou}>{tNow(`p2.pp.age.${r.ageVsYou}`, { age: r.ageName })}</span>
                   <span className="flex items-center gap-2 ps-[18px] mt-1">
                     <span className="relative flex-1 h-1 rounded-full bg-fa-ink/60" aria-hidden="true">
                       <span className="absolute top-[-2px] bottom-[-2px] left-1/2 w-px bg-fa-muted/70" />

@@ -19,8 +19,7 @@
 // Command or Auto; the others are fought on Auto at once.
 // Units lost are gone: there are no captives (master plan decision 37). Pure.
 import { getTiles } from '../data/geo/tiles';
-import { getEffectiveAgeId, FIRST_AGE_ID } from '../data/ages';
-import { getTechAgeId } from './nationState';
+import { sideAgeOf } from './ageRefs';
 import { legacyTerrainOf } from './world/registry';
 import { getDefenseLevelDamageReductionMultiplier } from './siege';
 import { resolveAutoBattle } from './autoBattle';
@@ -38,20 +37,19 @@ const sackedCityOf = (state, b) => (b.kind === 'sack' ? state.regions[b.cityId ?
 
 /**
  * resolveBattle's arguments for a raid battle, without the armies. `b`: { kind ('raid' | 'sack'),
- * attackerId, defenderId, tile, cityId }. Independents buy the calendar age's weapons (independents 3.4).
+ * attackerId, defenderId, tile, cityId }. Independents buy the weapons of the strongest major they know (independents 3.4).
  */
 export const raidBattleContext = (state, b) => {
   const tiles = getTiles();
   const city = sackedCityOf(state, b);
   const walls = city?.defenseLevel || 0;
-  const ageOf = (id) => getEffectiveAgeId(state.age || FIRST_AGE_ID, getTechAgeId(state, id));
   return {
     terrain: legacyTerrainOf(tiles, city?.tile ?? b.tile),
     battleType: b.kind === 'sack' ? 'sack' : 'raid',
     isAttackingFortification: b.kind === 'sack' && walls > 0,
     defenderDamageReductionMultiplier: b.kind === 'sack' ? getDefenseLevelDamageReductionMultiplier(walls) : 1,
-    attackerAgeId: state.nations?.[b.attackerId]?.indep ? state.age || FIRST_AGE_ID : ageOf(b.attackerId),
-    defenderAgeId: ageOf(b.defenderId),
+    attackerAgeId: sideAgeOf(state, b.attackerId),
+    defenderAgeId: sideAgeOf(state, b.defenderId),
     generals: state.hiredCommanders
   };
 };

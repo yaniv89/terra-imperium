@@ -50,6 +50,7 @@ import { openGovernmentChange } from './GovernmentChangeDialog';
 import { askConfirm } from '../ui/ConfirmActionDialog';
 import { changeLawConfirm } from '../ui/confirmSpecs';
 import { powerPoolsShort, POWER_POOL_HELP } from '../../data/powerPools';
+import { ageOf } from '../../engine/nationState';
 
 const DomesticPanel = () => {
   useT(); // redraw when the language changes
@@ -364,11 +365,11 @@ const DomesticPanel = () => {
   };
 
   const currentGovernmentType = GOVERNMENT_TYPES[playerNation?.government?.type];
-  const availableGovernmentTypes = getAvailableGovernmentTypes(state.age, playerNation?.identity)
+  const availableGovernmentTypes = getAvailableGovernmentTypes(ageOf(state, state.playerNationId), playerNation?.identity)
     .filter((t) => t.id !== playerNation?.government?.type);
   const activeReforms = getActiveReforms(playerNation);
-  const currentAgeReformChoices = playerNation?.government ? getReformChoices(playerNation.government.type, state.age) : [];
-  const currentAgeReformChosen = playerNation?.government?.reforms?.[state.age];
+  const currentAgeReformChoices = playerNation?.government ? getReformChoices(playerNation.government.type, ageOf(state, state.playerNationId)) : [];
+  const currentAgeReformChosen = playerNation?.government?.reforms?.[ageOf(state, state.playerNationId)];
 
   const governmentSection = (
     <div className="space-y-2">
@@ -389,7 +390,7 @@ const DomesticPanel = () => {
           description={preview.ok ? tNow('p1.dom.becomeTap', { lines: governmentCardLines(preview) }) : tNow('p1.dom.becomeReset')}
           costs={ACTION_COSTS.changeGovernmentType}
           onClick={() => handleChangeGovernmentType(gov.id)}
-          disabled={!canAfford(state.resources, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, state.age)}
+          disabled={!canAfford(state.resources, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, ageOf(state, state.playerNationId))}
           resources={state.resources}
           size="small"
         />
@@ -419,8 +420,8 @@ const DomesticPanel = () => {
                 label={reformName(reform.id, reform.name)}
                 description={reformDescription(reform.id, reform.description)}
                 costs={ACTION_COSTS.enactGovernmentReform}
-                onClick={() => handleEnactReform(state.age, reform.id)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform) || !canEnactReform(playerNation, state.age, reform.id, state.age)}
+                onClick={() => handleEnactReform(ageOf(state, state.playerNationId), reform.id)}
+                disabled={!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform) || !canEnactReform(playerNation, ageOf(state, state.playerNationId), reform.id, ageOf(state, state.playerNationId))}
                 size="small"
               />
             )

@@ -20,14 +20,15 @@ describe('research sheet model (W09)', () => {
     expect(m.era.goals.every((g) => g.bonus)).toBe(true);
   });
 
-  it('names the calendar age in the heading, and says so when the techs are ahead of it (I137)', () => {
-    const m0 = researchSheetModel({ ...s, age: 'bronze', techAgeId: 'bronze' });
+  it('names your own age and the next one, never a calendar age (U15)', () => {
+    const m0 = researchSheetModel({ ...s, age: 'medieval', techAgeId: 'bronze' });
     expect(m0.header.ageName).toMatch(/Bronze/);
-    expect(m0.header.aheadOfCalendar).toBe(false);
-    const m1 = researchSheetModel({ ...s, age: 'bronze', techAgeId: 'classical' });
-    expect(m1.header.ageName).toMatch(/Bronze/);
-    expect(m1.header.techAgeName).toMatch(/Classical/);
-    expect(m1.header.aheadOfCalendar).toBe(true);
+    expect(m0.header.nextAgeName).toBeTruthy();
+    expect(m0.header.techsLeft).toBeGreaterThan(0);
+    expect(m0.header).not.toHaveProperty('aheadOfCalendar');
+    const m1 = researchSheetModel({ ...s, techAgeId: 'classical' });
+    expect(m1.header.ageName).toMatch(/Classical/);
+    expect(m1.ages.find((a) => a.current).ageId).toBe('classical');
   });
 
   it('lists the boosts of techs you can start, met ones first, none already taken', () => {

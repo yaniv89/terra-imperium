@@ -1,6 +1,6 @@
 // src/components/ui/topBarModel.js
 // The one world top bar (plans/UI-DESIGN.md section 2, SPEC-REVISION rule 2): nation, gold, food,
-// science with the current tech and its turns, culture, year, turn, and a war pill when at war.
+// science with the current tech and its turns, culture, the player's age and year label, turn, and a war pill when at war.
 // Every number carries its reasons (the popover lines a tap opens). Pure.
 import { calcNationBalance } from '../../engine/economy';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
@@ -9,6 +9,8 @@ import { PEOPLES } from '../../data/peoples';
 import { t as tNow, formatYear } from '../../i18n';
 import { nameNow } from '../../i18n/names';
 import { techName } from '../../i18n/gameText';
+import { ageProgress } from './ageProgress';
+import { shortAge } from '../panels/researchSheetModel';
 
 export const EXPENSE_IDS = ['armyUpkeep', 'marchingUpkeep', 'navyUpkeep', 'fortUpkeep', 'advisorSalaries', 'loanInterest'];
 /** The expense line's name in the current language (an unknown id is spelled out from its camel case). */
@@ -33,6 +35,7 @@ export const topBarModel = (state) => {
     .sort((a, b) => (b.size || 0) - (a.size || 0) || (a.name < b.name ? -1 : 1));
   const { income, expenses, net } = calcNationBalance(state, me);
   const research = getResearchView(state);
+  const age = ageProgress(state, me);
   const foodPerTurn = round1(cities.reduce((s, c) => s + (c.lastYields?.food || 0), 0));
   const cultureRows = cities.map((c) => ({ id: c.id, label: nameNow('city', null, c.name), value: round1(c.lastYields?.culture || 0) })).filter((r) => r.value !== 0);
   const wars = Object.values(state.nations || {}).filter((n) => !n.isPlayer && n.id !== me && isAtWarWithPlayer(state, n.id)).map((n) => ({ id: n.id, name: nameNow('people', n.id, PEOPLES[n.id]?.name || n.name) }));
@@ -63,6 +66,8 @@ export const topBarModel = (state) => {
       perTurn: round1(cities.reduce((s, c) => s + (c.lastYields?.culture || 0), 0)),
       reasons: cultureRows
     },
+    // the player's own age and how many more techs bring the next (never a world age)
+    age: { id: age.ageId, name: shortAge(age.ageId), nextName: age.nextAgeId ? shortAge(age.nextAgeId) : null, techsLeft: age.techsLeft },
     year: yearLabel(state.year),
     turn: state.turnNumber || 0,
     wars,

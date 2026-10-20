@@ -16,12 +16,12 @@ import { LogTypes } from '../data/types';
 import { msg, people, cityRef } from './messages';
 import { REGIONS_DATA, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
-import { getEffectiveAgeId } from '../data/ages';
 import { getAvailableClasses } from '../data/unitClasses';
 import { createRng } from '../utils/rng';
 import { resolveAutoBattle } from './autoBattle';
 import { recordBattle } from './diplomacy';
-import { getTechAgeId } from './nationState';
+import { ageOf } from './nationState';
+import { sideAgeOf } from './ageRefs';
 import { getRegionModifier } from './modifiers/sheet';
 import { unitsWithinRings, nearestHeldCity, REINFORCE_RINGS } from './armies';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, SIEGE_CONTROL_DAMAGE } from './siege';
@@ -98,7 +98,7 @@ export const createDefenseRecord = (state, { war, regionId, aggressorShare, seed
   const size = getAssaultSize(garrison.length, aggressorShare);
   const real = pickRealAssaultUnits(state, war.aggressor, regionId, committed).slice(0, size);
   real.forEach((u) => committed.add(u.id));
-  const ageId = getEffectiveAgeId(state.age, getTechAgeId(state, war.aggressor));
+  const ageId = sideAgeOf(state, war.aggressor);
   return {
     id,
     warId: war.id,
@@ -137,8 +137,8 @@ export const getDefenseBattleContext = (state, def) => {
     terrain: getRegionTerrain(def.regionId, REGIONS_DATA),
     isAttackingFortification: (region.defenseLevel || 0) > 0,
     generals: state.hiredCommanders || {},
-    attackerAgeId: getEffectiveAgeId(state.age, getTechAgeId(state, def.aggressorId)),
-    defenderAgeId: getEffectiveAgeId(state.age, state.techAgeId),
+    attackerAgeId: sideAgeOf(state, def.aggressorId),
+    defenderAgeId: ageOf(state, state.playerNationId),
     fortLevel,
     defenderDamageReductionMultiplier: getDefenseLevelDamageReductionMultiplier(fortLevel) * getZoneOfControlMultiplier(state.regions, def.regionId, region.owner)
   };

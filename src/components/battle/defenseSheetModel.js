@@ -4,8 +4,7 @@
 // plain sight, so their numbers are exact), your garrison with the city's militia, houses, battle
 // housing and walls, the honest Auto's odds, and the three ways: Command, Auto, Withdraw (a city
 // only, when there is somewhere to fall back to). Pure.
-import { getEffectiveAgeId } from '../../data/ages';
-import { getTechAgeId } from '../../engine/nationState';
+import { ageOf } from '../../engine/nationState';
 import { queuedBattleView, queuedKind, queuedCommandBlock } from '../../engine/battleQueue';
 import { getWithdrawalTarget, WITHDRAW_MORALE_LOSS, WITHDRAW_STRENGTH_LOSS } from '../../engine/defense';
 import { cityMilitia } from '../../engine/battleInputs';
@@ -44,8 +43,8 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const enemy = state.nations?.[foeId]?.name ? nameNow('people', foeId, state.nations[foeId].name) : foeId || t('bt.def.enemy');
   const enemyShort = enemy.replace(/^The /, '').replace(/^(Kingdom|Empire|Republic|Tribes?|Chiefdom|City-state|Confederation) of /i, '');
   const place = city ? nameNow('city', null, region?.name || def.regionId) : nameNow('city', null, plainPlace(v.name));
-  const myAge = getEffectiveAgeId(state.age, state.techAgeId);
-  const theirAge = foeId && state.nations?.[foeId] ? getEffectiveAgeId(state.age, getTechAgeId(state, foeId)) : myAge;
+  const myAge = ageOf(state, state.playerNationId);
+  const theirAge = foeId && state.nations?.[foeId] ? ageOf(state, foeId) : myAge;
   const militia = city ? cityMilitia(state, def.regionId) : [];
   const mine = attacking ? v.attackerUnits || [] : [...(v.defenderUnits || []), ...militia];
   const yours = armyView(mine, { ageId: myAge, hiredCommanders: state.hiredCommanders || {} });

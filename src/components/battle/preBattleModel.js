@@ -6,10 +6,9 @@
 // sight, else the scouts' guess, a band and a range of men, never a number.
 import { REGIONS_DATA } from '../../data/regions';
 import { getRegionTerrain } from '../../data/terrain';
-import { getEffectiveAgeId } from '../../data/ages';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { getTiles } from '../../data/geo/tiles';
-import { getTechAgeId } from '../../engine/nationState';
+import { ageOf } from '../../engine/nationState';
 import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
 import { battleName } from '../../engine/battleNames';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
@@ -28,6 +27,7 @@ import { describeAttackBlock } from '../../utils/attackAvailability';
 import { canAfford } from '../../utils/helpers';
 import { scoutsEstimate } from './battleReportView';
 import { armyView, battleSize, cityWallsView, oddsSource, scoutsRange, siegeAdvice } from './warModel';
+import { sideAgeOf } from '../../engine/ageRefs';
 
 const nationLabel = (state, id) => (id === 'rebels' ? t('bt.pre.rebels') : state.nations?.[id]?.name ? nameNow('people', id, state.nations[id].name) : t('bt.pre.theEnemy'));
 const verb = (name, one, many) => (/[^s]s$/.test(name) ? many : one);
@@ -69,9 +69,9 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   const region = field ? null : state.regions?.[targetRegionId];
   const terrain = fleet ? 'sea' : field ? legacyTerrainOf(getTiles(), tile) : getRegionTerrain(targetRegionId, REGIONS_DATA);
   const fortTier = field ? 0 : (region?.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
-  const myAge = getEffectiveAgeId(state.age, state.techAgeId);
+  const myAge = ageOf(state, state.playerNationId);
   const enemyId = field ? v?.defenderNationId : region?.owner;
-  const theirAge = enemyId && enemyId !== 'rebels' ? getEffectiveAgeId(state.age, getTechAgeId(state, enemyId)) : state.age;
+  const theirAge = enemyId && enemyId !== 'rebels' ? sideAgeOf(state, enemyId) : ageOf(state, region?.owner ?? state.playerNationId); // rebels fight at their host's age
   const mineUnits = v?.ok ? (landing ? v.embarkedLandUnits : v.attackerUnits) : [];
   const theirUnits = v?.ok ? (landing ? v.defenderLandUnits : v.defenderUnits) : [];
   const yours = armyView(mineUnits, { ageId: myAge, hiredCommanders: state.hiredCommanders || {} });

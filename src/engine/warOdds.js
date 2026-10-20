@@ -25,8 +25,7 @@ import { unitTile } from './armies';
 import { hashRoll } from './aftermath';
 import { getTotalDev } from './development';
 import { getOwnedRegionIds, getNeighborIds } from '../data/regions';
-import { getTechAgeId } from './nationState';
-import { getEffectiveAgeId } from '../data/ages';
+import { ageOf } from './nationState';
 
 export const INTEL_ERROR = 0.35;
 export const INTEL_PERIOD = 10;
@@ -56,13 +55,12 @@ export const perceivedArmy = (state, viewerId, nationId) => {
 export const armyPower = (state, a, b, viewerId = a) => {
   const armyA = perceivedArmy(state, viewerId, a);
   const armyB = perceivedArmy(state, viewerId, b);
-  const ageOf = (id) => getEffectiveAgeId(state.age, getTechAgeId(state, id));
   // Each side fights every war it is in with the same army: split it over its fronts (counting
   // this war when it has not started yet).
   const atWar = (state.wars || []).some((w) => w.active && ((w.aggressor === a && w.enemy === b) || (w.aggressor === b && w.enemy === a)));
   const splitA = 1 / Math.max(1, countWars(state.wars, a) + (atWar ? 0 : 1));
   const splitB = 1 / Math.max(1, countWars(state.wars, b) + (atWar ? 0 : 1));
-  const est = estimateBattle({ attackerUnits: armyA.map((u) => ({ ...u, strength: u.strength * splitA })), defenderUnits: armyB.map((u) => ({ ...u, strength: u.strength * splitB })), attackerAgeId: ageOf(a), defenderAgeId: ageOf(b) });
+  const est = estimateBattle({ attackerUnits: armyA.map((u) => ({ ...u, strength: u.strength * splitA })), defenderUnits: armyB.map((u) => ({ ...u, strength: u.strength * splitB })), attackerAgeId: ageOf(state, a), defenderAgeId: ageOf(state, b) });
   return est.power;
 };
 

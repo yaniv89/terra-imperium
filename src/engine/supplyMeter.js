@@ -24,8 +24,8 @@ import { tileAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 import { ringsForKm, ringsFromF75 } from '../data/geo/gridScale';
 import { getModifier } from './modifiers/sheet';
-import { getEffectiveAgeId } from '../data/ages';
 import { computeSupplyFlow } from './supplies';
+import { ageOf } from './nationState';
 
 export const SUPPLY_MAX = 100;
 export const SUPPLY_HOME_GAIN = 50; // home land refills a stack in two turns (plans/playtest-1.md P2.2)
@@ -207,7 +207,7 @@ export const applySupplyMeter = (state, units, { hungryFor = () => false, attrit
  */
 export const armySupplySummary = (state, nationId = state.playerNationId) => {
   const tiles = getTiles();
-  const flow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId, ageId: getEffectiveAgeId(state.age, state.techAgeId), resources: state.resources, turnNumber: state.turnNumber, tileOwner: state.world?.tileOwner });
+  const flow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId, ageId: ageOf(state, state.playerNationId), resources: state.resources, turnNumber: state.turnNumber, tileOwner: state.world?.tileOwner });
   const mine = Object.values(state.units).filter((u) => u.ownerId === nationId && u.domain !== 'naval' && !u.embarkedOn && !isExplorer(u) && u.strength > 0);
   const fx = mapEffectsFor(state, nationId);
   const max = SUPPLY_MAX + fx.supplyMax;

@@ -5,7 +5,7 @@
 //
 // A handler never touches `state` directly; it only ever calls these methods. That's what makes
 // the same handler safe to run from either context without knowing which one it's in.
-import { getPool, getResearched, getTechAgeId } from '../nationState';
+import { getPool, getResearched, getTechAgeId, ageOf } from '../nationState';
 import { carry } from '../messages';
 
 // Used by the reducer. Copy-on-FIRST-write per bucket (regions, nations, the player's own resource
@@ -72,6 +72,6 @@ export const draftCtx = (state, regions, nations) => ({
   getResearched: (nationId) => (nationId === state.playerNationId
     ? Object.keys(state.techTree || {}).filter((id) => state.techTree[id]?.researched)
     : (nations[nationId]?.tech?.researched || [])),
-  getTechAgeId: (nationId) => (nationId === state.playerNationId ? state.techAgeId : nations[nationId]?.tech?.ageId) || state.age,
+  getTechAgeId: (nationId) => ageOf({ playerNationId: state.playerNationId, techAgeId: state.techAgeId, nations }, nationId),
   log: () => {}
 });

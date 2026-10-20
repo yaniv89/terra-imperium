@@ -27,12 +27,12 @@
 //    (it used to add about 2 food of 49), priced like a standing work with the city's size as the
 //    level, so it stays a real choice for a big city.
 import { getTiles } from '../data/geo/tiles';
-import { AGE_ORDER, getEffectiveAgeId, speedCostMult, speedTurns, FIRST_AGE_ID } from '../data/ages';
+import { AGE_ORDER, speedCostMult, speedTurns, FIRST_AGE_ID } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { unitDisplayName } from '../data/unitNames';
 import { IMPROVEMENTS } from '../data/tileYields';
-import { getTechAgeId } from './nationState';
+import { ageOf } from './nationState';
 import { nextTemplateUnit } from './armyTemplates';
 import { canQueue, itemKey } from './world/cities';
 import { cityLive, queueView, worldOf } from './cityEconomy';
@@ -51,7 +51,6 @@ export const RUSH_COOL_REF_TURNS = 5;
 export const RUSH_KIND_MULT = { settler: 1.5 };
 const RUSH_BLOCKED_KINDS = { wonder: 'A wonder cannot be bought: it is built.' };
 
-const ageOf = (state, nationId) => getEffectiveAgeId(state.age, nationId ? getTechAgeId(state, nationId) : state.age);
 
 /** How many recent rushes still weigh on this city's price (0 to RUSH_HEAT_MAX). */
 export const rushHeat = (city, turnNumber, gameSpeed, ageId = FIRST_AGE_ID) => {

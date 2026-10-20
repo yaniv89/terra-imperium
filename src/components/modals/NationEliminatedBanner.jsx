@@ -2,7 +2,7 @@
 // Shown the turn the player's own conquests reduce a rival nation to zero regions
 // (state.playerEliminatedNationId — see src/engine/elimination.js and resolveTurn.js). Mirrors
 // AgeAdvanceBanner's non-blocking, auto-dismissing pattern, in a victory-themed emerald palette to
-// read as a distinct, celebratory moment rather than the calendar's own routine age transition.
+// read as a distinct, celebratory moment rather than a routine age change.
 import React from 'react';
 import { Crown } from 'lucide-react';
 import { NATION_ELIMINATION_REWARD } from '../../engine/elimination';

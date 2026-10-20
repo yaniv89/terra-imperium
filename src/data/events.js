@@ -1,6 +1,6 @@
 // src/data/events.js
-// Scripted historical events, keyed by id and gated by `year`. The event SYSTEM (EventModal's
-// per-option effect preview, this registry's shape, resolveTurn.js's year-based trigger check) is
+// Scripted historical events, keyed by id and placed by `year` (its age and its spot in the age; eligibility is the player age and progress, eventEligible). The event SYSTEM (EventModal's
+// per-option effect preview, this registry's shape, resolveTurn.js trigger check) is
 // unchanged from the original campaign.
 //
 // This is Phase D3 Layer 1 (plan §9.5) — "world events": anchored to the calendar, firing for
@@ -15,7 +15,10 @@
 // it still makes sense no matter how unrecognizable the map has become by the year it fires.
 import { getNationCapital } from './regions';
 import { getTiles } from './geo/tiles';
-export const HISTORICAL_EVENTS = {
+import { AGE_ORDER, AGES, LAST_AGE_ID, getAgeIndex } from './ages';
+import { getTechsForAge } from './techTree';
+import { ageOf, getResearched } from '../engine/nationState';
+const RAW_HISTORICAL_EVENTS = {
   // ---- Bronze Age (-2000 to -800) ----
   great_flood_myth: {
     id: 'great_flood_myth',
@@ -51,8 +54,8 @@ export const HISTORICAL_EVENTS = {
     id: 'bronze_age_collapse',
     year: -1200,
     // Not a one-city start's event: it waits for a realm big enough to have a palace economy to lose
-    // (3 cities), and fires on the calendar's own edge of the age (-800) for a small realm.
-    requires: { minCities: 3, orByYear: -800 },
+    // (3 cities), and fires for a small realm once it is well into the Bronze Age's techs (the age and progress of -900, never the calendar).
+    requires: { minCities: 3, orByYear: -900 },
     title: 'The Bronze Age Collapse',
     description: 'A cascade of invasions, crop failures and broken trade routes brings the great palace economies to their knees. Kingdoms that seemed eternal crumble within a generation.',
     options: [
@@ -479,42 +482,82 @@ export const HISTORICAL_EVENTS = {
   }
 };
 
-// True once a scripted event's year has arrived (and it hasn't already fired, any requiresNoWar
-// nations are actually at peace, and — for curated national flavor — the current player is
-// actually that specific nation and, if requiresHomeland is set, still controls their own
-// starting region). playerNationId/regions are only needed for nationId-gated events; every
-// existing (world/generic) call site can omit them safely since event.nationId is undefined for
-// those. pickNextEvent() below fires at most one due event per turn, in year order, so
-// simultaneous-year events queue up and fire on consecutive turns instead of colliding.
+// The nominal age of a year: the age whose [startYear, endYear) holds it; the last age holds its end year.
+export const ageIdOfYear = (year) => AGE_ORDER.find((id) => year >= AGES[id].startYear && year < AGES[id].endYear)
+  ?? (year < AGES[AGE_ORDER[0]].startYear ? AGE_ORDER[0] : LAST_AGE_ID);
+
+// Each event's age, derived once from its year (eight-ages plan KTD6). The year stays only as the
+// event's place inside its age and its sort key; no rule reads the calendar.
+export const HISTORICAL_EVENTS = Object.fromEntries(
+  Object.entries(RAW_HISTORICAL_EVENTS).map(([key, e]) => [key, { ...e, ageId: ageIdOfYear(e.year) }])
+);
+
+const TECHS_PER_AGE_SPREAD = 6;
+/** How many of an age's techs a player must hold before the event dated `year` is due:
+ * round(6 x (year - start) / (end - start)). */
+export const eventTechsNeeded = (ageId, year) => {
+  const age = AGES[ageId];
+  if (!age) return 0;
+  const share = (year - age.startYear) / (age.endYear - age.startYear);
+  return Math.round(TECHS_PER_AGE_SPREAD * Math.max(0, Math.min(1, share)));
+};
+const techsHeldInAge = (state, ageId) => {
+  const held = new Set(getResearched(state, state.playerNationId));
+  return getTechsForAge(ageId).filter((t) => held.has(t.id)).length;
+};
+/** True when the player has reached the point of `ageId` that `year` marks: in that age with enough
+ * of its techs, or already past it. */
+export const ageProgressReached = (state, ageId, year) => {
+  const mine = getAgeIndex(ageOf(state, state.playerNationId));
+  const wanted = getAgeIndex(ageId);
+  if (mine > wanted) return true;
+  return mine === wanted && techsHeldInAge(state, ageId) >= eventTechsNeeded(ageId, year);
+};
+/** Eligibility by the player's age and progress, never the calendar (KTD6): the event's age is the
+ * player's own, and the player holds enough of that age's techs. An age the player has left never
+ * shows its events. */
+export const eventEligible = (state, event) => {
+  const ageId = event.ageId ?? ageIdOfYear(event.year);
+  return ageOf(state, state.playerNationId) === ageId && techsHeldInAge(state, ageId) >= eventTechsNeeded(ageId, event.year);
+};
+
+// True once a scripted event is due for the player (eventEligible), it hasn't already fired, any
+// requiresNoWar nations are actually at peace, and, for curated national flavor, the current player
+// is actually that specific nation and, if requiresHomeland is set, still controls their own
+// starting region. state supplies nations, firedEvents, playerNationId and regions (a state
+// without regions gates nothing on the map). pickNextEvent() fires at most one due event per turn,
+// in year order, so simultaneous-year events queue up and fire on consecutive turns.
 // Context prerequisites of a scripted event (playtest audit I222, I223): `requires` is checked
 // against the player's own realm so a sea raid never hits a landlocked player and the Bronze Age
 // Collapse waits for a realm with something to lose.
 //   coastal    the player holds a coastal city
 //   minCities  the player holds at least this many cities (outposts do not count)
-//   orByYear   ...unless the calendar has reached this year (a small realm still meets the event)
-// Without regions (a caller that cannot see the map) nothing is gated.
-export const meetsRequirements = (requires, year, playerNationId, regions) => {
+//   orByYear   ...unless the player has reached the age and progress this year marks (a small realm still meets the event)
+export const meetsRequirements = (requires, state) => {
+  const { regions, playerNationId } = state;
   if (!regions || !playerNationId) return true;
   const mine = Object.values(regions).filter((c) => c.owner === playerNationId && !c.outpost);
   if (requires.coastal) {
     const coastal = getTiles().coastal;
     if (!mine.some((c) => c.tile != null && coastal[c.tile] === 1)) return false;
   }
-  if (requires.minCities && mine.length < requires.minCities && !(requires.orByYear != null && year >= requires.orByYear)) return false;
+  if (requires.minCities && mine.length < requires.minCities
+    && !(requires.orByYear != null && ageProgressReached(state, ageIdOfYear(requires.orByYear), requires.orByYear))) return false;
   return true;
 };
 
-export const shouldEventFire = (event, year, nations, firedEvents, playerNationId, regions) => {
+export const shouldEventFire = (state, event) => {
+  const { nations = {}, firedEvents = {}, playerNationId, regions } = state;
   if (firedEvents[event.id]) return false;
-  if (event.year > year) return false;
+  if (!eventEligible(state, event)) return false;
   if (event.requiresNoWar) {
     const anyAtWar = event.requiresNoWar.some(nId => nations[nId]?.isAtWar);
     if (anyAtWar) return false;
   }
-  if (event.requires && !meetsRequirements(event.requires, year, playerNationId, regions)) return false;
+  if (event.requires && !meetsRequirements(event.requires, state)) return false;
   if (event.nationId) {
     if (event.nationId !== playerNationId) return false;
-    // "Still holds its homeland" — a nation now spans many provinces, so this checks its capital
+    // "Still holds its homeland": a nation now spans many provinces, so this checks its capital
     // specifically, the same anchor distanceFromAnchor/overextension already treats as "home".
     if (event.requiresHomeland && regions?.[getNationCapital(event.nationId)]?.owner !== event.nationId) return false;
   }
@@ -522,9 +565,9 @@ export const shouldEventFire = (event, year, nations, firedEvents, playerNationI
 };
 
 // Pick the single most-overdue eligible event for this turn (earliest scripted year first, then
-// stable declaration order for same-year ties).
-export const pickNextEvent = (year, nations, firedEvents, playerNationId, regions) => {
-  const eligible = Object.values(HISTORICAL_EVENTS).filter(e => shouldEventFire(e, year, nations, firedEvents, playerNationId, regions));
+// stable declaration order for same-year ties: Array.sort is stable).
+export const pickNextEvent = (state) => {
+  const eligible = Object.values(HISTORICAL_EVENTS).filter(e => shouldEventFire(state, e));
   if (eligible.length === 0) return null;
   eligible.sort((a, b) => a.year - b.year);
   return eligible[0];

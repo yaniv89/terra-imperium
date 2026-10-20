@@ -27,8 +27,7 @@ import { DISTRICTS } from '../../engine/districts';
 import { RESOURCES_ON_TILES } from '../../data/tileYields';
 import { resourceIconUrl, improvementIconUrl, wonderIconUrl, markerIconUrl, unitIconUrl, cityIconUrl } from '../../data/icons';
 import { townTier } from './closeView/townTiers';
-import { getEffectiveAgeId } from '../../data/ages';
-import { getTechAgeId } from '../../engine/nationState';
+import { ageOf } from '../../engine/nationState';
 import { getTiles } from '../../data/geo/tiles';
 import { hexSizeVsF75 } from '../../data/geo/gridScale';
 import { isSettler } from '../../engine/settlers';
@@ -681,7 +680,7 @@ const Map2DView = ({
     const townsDrawn = zoomK >= CLOSE_ZOOM_K;
     // Each owner's age once (the city badge is a skyline of that age, sized by the town tier).
     const ages = {};
-    const ageOf = (owner) => (ages[owner] ||= getEffectiveAgeId(state.age, getTechAgeId(state, owner)));
+    const ownerAge = (owner) => (ages[owner] ||= ageOf(state, owner));
     const capitalUrl = markerIconUrl('capital');
     Object.values(state.regions).forEach((city) => {
       const ll = cityLatLon(state, city.id);
@@ -711,7 +710,7 @@ const Map2DView = ({
         <g key={city.id} transform={`translate(${x},${y})`} data-city-badge={city.id} data-ghost={city.ghost ? '1' : undefined} opacity={city.ghost ? 0.6 : undefined} style={{ cursor: 'pointer' }} onClick={(e) => handleClick(city.id, e)}>
           <circle r={r} fill={city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc'} stroke={colour} strokeWidth={2 / Math.sqrt(zoomK)} strokeDasharray={city.outpost ? `${2 / Math.sqrt(zoomK)} ${2 / Math.sqrt(zoomK)}` : undefined} />
           {/* The skyline of the owner's age and the town's size (art spec section 8), inside the disc. */}
-          {!city.outpost && <image href={cityIconUrl(townTier(city)?.id, ageOf(city.owner))} x={-r * 0.92} y={-r * 0.92} width={r * 1.84} height={r * 1.84} pointerEvents="none" data-city-icon={townTier(city)?.id} />}
+          {!city.outpost && <image href={cityIconUrl(townTier(city)?.id, ownerAge(city.owner))} x={-r * 0.92} y={-r * 0.92} width={r * 1.84} height={r * 1.84} pointerEvents="none" data-city-icon={townTier(city)?.id} />}
           {city.isCapital && (capitalUrl
             ? <image href={capitalUrl} x={-r * 1.35} y={-r * 1.35} width={r * 0.95} height={r * 0.95} pointerEvents="none" data-capital-mark={city.id} />
             : <circle r={r * 0.4} fill={colour} />)}
@@ -728,7 +727,7 @@ const Map2DView = ({
     });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interactive, projection, state.regions, state.age, state.nations, zoomK, selectedRegion, handleClick]);
+  }, [interactive, projection, state.regions, state.techAgeId, state.nations, zoomK, selectedRegion, handleClick]);
 
   useEffect(()=>{
     if(!interactive || !hudOffset || !polygons || !projection || window.__E2E_MAP_TEST__!==true)return undefined;
@@ -807,7 +806,7 @@ const Map2DView = ({
       )}
       <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} onSelectTile={onSelectTile} onSelectArmy={onSelectArmy} close={transform.k >= CLOSE_ZOOM_K} />
       <RaidMarkersOverlay projection={projection} transform={transform} width={width} height={height} />
-      <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
+      <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={ageOf(state, state.playerNationId)} />
       <MapZoomControls
         style={{ insetInlineEnd: insets.end + 8 }}
         className={hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}

@@ -56,6 +56,7 @@ import { LOYALTY_ON_FLIP } from './loyalty';
 import { speedTurns } from '../data/ages';
 import { cityIncomeOf } from './tributePricing';
 import { msg, sub, carry, people, cityRef } from './messages';
+import { waitAgeOf } from './ageRefs';
 
 // A refusal's reason: the English `reason` and its message (`reasonMsg`, a sub) for other languages.
 const no = (key, vars) => ({ accepted: false, score: -Infinity, reason: msg(key, vars).message, reasonMsg: sub(key, vars) });
@@ -72,9 +73,10 @@ export const DEMAND_TRIBUTE_INCOME_SHARE = 0.08; // of the payer's city income o
 export const DEMAND_TRIBUTE_BANK_CAP = 0.5;   // never more than this share of the gold the payer holds
 export const DEMAND_TRIBUTE_MIN = 50;
 export const DEMAND_STOP_SETTLING_TURNS = 50;
-export const demandCbTurns = (state) => speedTurns(DEMAND_CB_REF_TURNS, state?.gameSpeed, state?.age);
-export const demandCooldownTurns = (state) => speedTurns(DEMAND_COOLDOWN_REF_TURNS, state?.gameSpeed, state?.age);
-export const demandTruceTurns = (state) => speedTurns(DEMAND_TRUCE_REF_TURNS, state?.gameSpeed, state?.age);
+// Each wait is shared by the demander and the target: it runs at the older age of the two (KTD7).
+export const demandCbTurns = (state, a, b) => speedTurns(DEMAND_CB_REF_TURNS, state?.gameSpeed, waitAgeOf(state, a, b));
+export const demandCooldownTurns = (state, a, b) => speedTurns(DEMAND_COOLDOWN_REF_TURNS, state?.gameSpeed, waitAgeOf(state, a, b));
+export const demandTruceTurns = (state, a, b) => speedTurns(DEMAND_TRUCE_REF_TURNS, state?.gameSpeed, waitAgeOf(state, a, b));
 export const DEMANDS = {
   tribute: { label: 'Demand tribute', base: 10, hostility: 10 },
   city: { label: 'Demand the city', base: 40, hostility: 20 },
@@ -134,7 +136,7 @@ export const demandRatio = (state, demanderId, targetId) => Math.min(DEMAND_RATI
 export const tributeQuote = (state, demanderId, targetId) => {
   const ratio = demandRatio(state, demanderId, targetId);
   const income = cityIncomeOf(state, targetId);
-  const turns = demandCooldownTurns(state);
+  const turns = demandCooldownTurns(state, demanderId, targetId);
   const byPower = Math.max(DEMAND_TRIBUTE_MIN, Math.round(income * turns * DEMAND_TRIBUTE_INCOME_SHARE * Math.max(1, ratio)));
   const cap = Math.max(0, Math.floor((getPool(state, targetId).gold || 0) * DEMAND_TRIBUTE_BANK_CAP));
   return { amount: Math.min(byPower, cap), byPower, cap, ratio: Math.round(ratio * 100) / 100, income, turns, viable: cap >= DEMAND_TRIBUTE_MIN };
@@ -186,9 +188,9 @@ export const applyDemand = (state, targetId, kind, cityId = null, demanderId = s
   const d = DEMANDS[kind];
   const target = state.nations[targetId];
   let nations = { ...state.nations, [targetId]: { ...target, hostility: Math.min(100, (target.hostility || 0) + d.hostility) } };
-  nations[me] = { ...nations[me], demandCooldowns: { ...(nations[me].demandCooldowns || {}), [targetId]: turn + demandCooldownTurns(state) } };
+  nations[me] = { ...nations[me], demandCooldowns: { ...(nations[me].demandCooldowns || {}), [targetId]: turn + demandCooldownTurns(state, me, targetId) } };
   if (!answer.accepted) {
-    const cb = demandCbTurns(state);
+    const cb = demandCbTurns(state, me, targetId);
     nations[me] = { ...nations[me], demandCasusBelli: { ...(nations[me].demandCasusBelli || {}), [targetId]: turn + cb } };
     return { state: { ...state, nations }, accepted: false, ...msg('m.diplo.demandRefused', { nation: people(targetId, target.name), turns: cb }) };
   }
@@ -209,7 +211,7 @@ export const grantDemand = (state, nations, me, targetId, kind, cityId, resource
   let line; // [key, vars]
   let amount = null;
   nations = { ...nations };
-  const truceUntil = turn + demandTruceTurns(state);
+  const truceUntil = turn + demandTruceTurns(state, me, targetId);
   const demander = people(me, nations[me]?.name);
   const targetRef = people(targetId, target?.name);
   if (kind === 'tribute') {

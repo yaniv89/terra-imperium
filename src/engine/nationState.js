@@ -11,6 +11,8 @@
 // introduced turn-by-turn as each milestone actually needs it (M16 is where this first becomes
 // populated for real; until then these accessors are exercised only via the player branch, and
 // via tests that construct an AI nation's economy by hand).
+import { AGES, FIRST_AGE_ID, getAgeIndex } from '../data/ages';
+
 export const getPool = (state, nationId) =>
   (nationId === state.playerNationId ? state.resources : state.nations[nationId]?.economy) || {};
 
@@ -30,5 +32,17 @@ export const getResearched = (state, nationId) => {
   return state.nations[nationId]?.tech?.researched || [];
 };
 
-export const getTechAgeId = (state, nationId) =>
-  (nationId === state.playerNationId ? state.techAgeId : state.nations[nationId]?.tech?.ageId) || state.age;
+/**
+ * A nation's age (plans/2026-10-20-001-feat-eight-ages-plan.md KTD1): the age its research has
+ * reached and nothing else. No calendar floor and no cap; research is never lost, so it only rises.
+ * The player's lives on state.techAgeId, an AI nation's on nation.tech.ageId; a nation with none
+ * (an unknown id, rebels, an unowned city) is in the first age.
+ */
+export const ageOf = (state, nationId) => {
+  const id = nationId != null && nationId === state.playerNationId ? state.techAgeId : state.nations?.[nationId]?.tech?.ageId;
+  return AGES[id] ? id : FIRST_AGE_ID;
+};
+/** The rank of ageOf in AGE_ORDER. */
+export const ageIndexOf = (state, nationId) => getAgeIndex(ageOf(state, nationId));
+/** The older name of ageOf, kept for its many readers. */
+export const getTechAgeId = ageOf;

@@ -7,10 +7,11 @@ import { TechCategories } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES, AGE_ORDER } from '../../data/ages';
 import { calcIncome } from '../../utils/helpers';
-import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS } from '../../engine/research';
+import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS, inResearchWindow } from '../../engine/research';
+import { ageOf } from '../../engine/nationState';
 import { getTechDiffusion } from '../../engine/techDiffusion';
 import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
-import { t as tNow, formatYear } from '../../i18n';
+import { t as tNow } from '../../i18n';
 import { ageName } from '../../i18n/core';
 import { mapEffectLabel } from '../../engine/techMapEffects';
 import { techName } from '../../i18n/gameText';
@@ -46,11 +47,11 @@ export const getSciencePerTurn = (state) => Math.round((calcIncome(state).techPo
 export const researchedSet = (state) => new Set(Object.keys(state.techTree || {}).filter((id) => state.techTree[id]?.researched));
 
 // Why a tech cannot start, in the current language (the engine's canStartTech keeps the English text).
-export const startReasonText = (techId, researched, year) => {
+export const startReasonText = (techId, researched, ageId) => {
   const tech = TECH_TREE[techId];
   if (!tech) return tNow('p2.rs.unknown');
   if (researched.has(techId)) return tNow('p2.rs.done');
-  if (tech.yearAvailable > year) return tNow('p2.rs.from', { year: formatYear(tech.yearAvailable) });
+  if (!inResearchWindow(ageId, tech)) { const need = AGE_ORDER[Math.max(0, AGE_ORDER.indexOf(tech.ageId) - 1)]; return tNow('p2.rs.reachAge', { age: ageName(need, AGES[need]?.name) }); }
   const prereqs = tech.requiresAny ? tech.prerequisites.some((p) => researched.has(p)) : tech.prerequisites.every((p) => researched.has(p));
   if (!prereqs) return tNow('p2.rs.needs', { list: tech.prerequisites.map((p) => techName(p, TECH_TREE[p]?.name || p)).join(tNow('p2.rs.and')) });
   const rival = (tech.exclusiveWith || []).find((id) => researched.has(id));
@@ -67,7 +68,7 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
   const progress = research.progress?.[techId] || 0;
   const rate = science * (state.researchFocus === tech.category ? 1 + FOCUS_SCIENCE_BONUS : 1);
   const remaining = Math.max(0, cost - progress);
-  const start = canStartTech(techId, researched, state.year);
+  const start = canStartTech(techId, researched, ageOf(state, state.playerNationId));
   const gate = techGate(state, techId, researched);
   const diffusion = researched.has(techId) ? null : getTechDiffusion(state, state.playerNationId, techId);
   const boost = researched.has(techId) ? null : boostOf(state, state.playerNationId, techId);
@@ -88,7 +89,7 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
     queuedAt: (research.queue || []).indexOf(techId),
     canStart: start.ok,
     reason: start.reason,
-    reasonText: start.ok ? null : startReasonText(techId, researched, state.year),
+    reasonText: start.ok ? null : startReasonText(techId, researched, ageOf(state, state.playerNationId)),
     diffusion
   };
 };
@@ -120,7 +121,7 @@ export const techGraph = (state) => {
   const nodes = [];
   const byId = new Map();
   lines.forEach((category, row) => {
-    Object.values(TECH_TREE).filter((t) => t.category === category).sort((a, b) => a.yearAvailable - b.yearAvailable).forEach((tech, col) => {
+    Object.values(TECH_TREE).filter((t) => t.category === category).sort((a, b) => a.lineIndex - b.lineIndex).forEach((tech, col) => {
       const info = techInfo(state, tech.id, science);
       const node = { id: tech.id, name: techName(tech.id, tech.name), category, row, col, ageId: tech.ageId, x: col * GRAPH_COL_W, y: row * GRAPH_ROW_H, status: info.researched ? 'researched' : info.current ? 'current' : info.queuedAt >= 0 ? 'queued' : info.canStart ? 'available' : 'locked', turns: info.turns, cost: info.cost, reason: info.reason };
       nodes.push(node); byId.set(tech.id, node);

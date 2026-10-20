@@ -19,7 +19,7 @@
 // template with no `candidates` (a general at court) keeps a plain isEligible gate.
 import { getTiles } from './geo/tiles';
 import { CLIMATE_RESILIENCE_THRESHOLD } from './actionCosts';
-import { speedCostMult } from './ages';
+import { speedCostMult, AGES, FIRST_AGE_ID } from './ages';
 
 const mine = (state) => Object.values(state.regions || {}).filter((c) => c.owner === state.playerNationId && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
 const facts = (c) => { const t = getTiles(); return { river: !!t.rivers[c.tile], coastal: t.coastal[c.tile] === 1, lat: t.latLonOf(c.tile).lat }; };
@@ -45,7 +45,8 @@ const coldWinter = (c) => {
 // the speed table (speedCostMult: the same stretch of history at every speed, never a hardcoded
 // turn count): an event template, an event family and one city each rest after an event.
 export const EVENT_COOLDOWN_TURNS = { template: 14, family: 5, city: 7 };
-export const cooldownTurns = (state, kind) => Math.ceil(EVENT_COOLDOWN_TURNS[kind] * speedCostMult(state.gameSpeed, state.age));
+// The player's events: they rest at the player's own age (KTD7).
+export const cooldownTurns = (state, kind) => Math.ceil(EVENT_COOLDOWN_TURNS[kind] * speedCostMult(state.gameSpeed, AGES[state.techAgeId] ? state.techAgeId : FIRST_AGE_ID));
 const onCooldown = (state, key, kind) => {
   const last = state.eventHistory?.[key];
   return last != null && (state.turnNumber || 0) - last < cooldownTurns(state, kind);

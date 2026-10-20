@@ -16,6 +16,7 @@
 // So "3 gold a turn and no raids" stays the price for a people of one or two towns and grows with
 // the payer: an empire earning 150 a turn from its cities pays 9. Pure.
 import { tributeGold } from '../data/independents';
+import { independentAgeOf, sideAgeOf } from './ageRefs';
 
 // PROVISIONAL (the rule is fixed; the value waits for the tuning pass, conflicts trap T1).
 export const TRIBUTE_INCOME_SHARE = 0.06;
@@ -37,4 +38,6 @@ export const cityIncomeOf = (state, nationId) => {
 };
 
 /** The gold a turn of a running tribute paid by `payerId` (to or from an independent). */
-export const tributePerTurn = (state, payerId, ageId = state?.age) => Math.max(tributeGold(ageId), Math.round(cityIncomeOf(state, payerId) * TRIBUTE_INCOME_SHARE));
+// `indepId`: the independent on the other side of the deal; its age (the strongest major it knows,
+// ageRefs.js independentAgeOf) sets the flat price. Left out, the payer's own side age is used.
+export const tributePerTurn = (state, payerId, indepId = null) => Math.max(tributeGold(indepId ? independentAgeOf(state, indepId) : sideAgeOf(state, payerId)), Math.round(cityIncomeOf(state, payerId) * TRIBUTE_INCOME_SHARE));

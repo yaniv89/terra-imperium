@@ -145,7 +145,7 @@ describe('consequences', () => {
   it('on Auto a garrison is fought first: overrun at low control, the city is still not taken (the 14 October rule)', () => {
     const s0 = withDefense(baseState({ g1: unit('g1', FR_BORDER, FR_ID, 'ranged', 120) }));
     const s = { ...s0, regions: { ...s0.regions, [FR_BORDER]: { ...s0.regions[FR_BORDER], control: 20 } } };
-    const def = { ...s.pendingDefenses[0], synthetic: buildSyntheticForce({ defenseId: 'z', aggressorId: AGG, ageId: s.age, count: 8, seed: 3 }) };
+    const def = { ...s.pendingDefenses[0], synthetic: buildSyntheticForce({ defenseId: 'z', aggressorId: AGG, ageId: s.techAgeId, count: 8, seed: 3 }) };
     const next = gameReducer({ ...s, pendingDefenses: [def] }, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
     expect(next.regions[FR_BORDER].owner).toBe(FR_ID);
     expect(next.pendingCaptures || []).toEqual([]);

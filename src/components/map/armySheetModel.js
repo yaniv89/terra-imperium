@@ -8,7 +8,6 @@ import { navalShipName, unitRosterName, improvementName, districtName, perkName,
 import { DISTRICTS } from '../../engine/districts';
 import { whereText, placeLabel } from './placeText';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId } from '../../data/ages';
 import { getUnitDefinition, UNIT_CLASSES } from '../../data/unitClasses';
 import { regimentName } from '../../data/regimentNames';
 import { unitTile, movePoints } from '../../engine/armies';
@@ -19,7 +18,7 @@ import { routeDestination, routeEta } from '../../engine/routes';
 import { armyStatus, isHolding } from '../../engine/standingOrders';
 import { locationOf } from '../../engine/unitLocation';
 import { computeSupplyFlow } from '../../engine/supplies';
-import { getTechAgeId, getResearched } from '../../engine/nationState';
+import { getResearched, ageOf } from '../../engine/nationState';
 import { mapEffectsFor } from '../../engine/techMapEffects';
 
 import { pillageTile } from '../../engine/threat';
@@ -72,7 +71,7 @@ export const armySheetModel = (state, tile) => {
   const units = stackOn(state, tile);
   if (!units.length) return null;
   const naval = units[0].domain === 'naval';
-  const ageId = getEffectiveAgeId(state.age, getTechAgeId(state, state.playerNationId));
+  const ageId = ageOf(state, state.playerNationId);
   const max = SUPPLY_MAX + mapEffectsFor(state, state.playerNationId).supplyMax;
   const researched = getResearched(state, state.playerNationId);
   const rows = units.map((u) => ({

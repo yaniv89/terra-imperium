@@ -70,6 +70,7 @@ import { releaseWhenDetached } from '../../../utils/glContext';
 import { forgetReleasedGltf } from '../../../battle/render/gltfUnitLoader';
 import { watchPixelRatio } from '../../../utils/pixelRatio';
 import { noteCrashEvent } from '../../../utils/crashLog';
+import { ageOf } from '../../../engine/nationState';
 
 const OCEAN_COLOR = '#0f172a';
 const ZOOM_MAX = 200;
@@ -938,7 +939,7 @@ const GLMapView = ({
       >
         <canvas key={canvasGen} ref={canvasRef} data-testid="gl-map" style={{ width, height, display: 'block' }} />
       </div>
-      {!prefersReducedMotion() && <EffectsLayer effects={effects} getProjector={getProjector} width={width} height={height} ageId={state.age} testId="map2d-effects" />}
+      {!prefersReducedMotion() && <EffectsLayer effects={effects} getProjector={getProjector} width={width} height={height} ageId={ageOf(state, state.playerNationId)} testId="map2d-effects" />}
       <MapZoomControls
         style={{ insetInlineEnd: insets.end + 8 }}
         className={hudOffset ? 'top-[calc(var(--header-height,2.25rem)+0.625rem)]' : 'top-12'}

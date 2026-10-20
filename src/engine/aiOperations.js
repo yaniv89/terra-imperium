@@ -1,5 +1,5 @@
 import { gameReducer } from './gameReducer';
-import { getResearched } from './nationState';
+import { getResearched, ageOf } from './nationState';
 import { ActionTypes } from '../data/types';
 import { msg, people, cityRef, place as placeRef, sub } from './messages';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
@@ -757,7 +757,7 @@ export const processAINavalOperations = state => {
     if(!coast.length || !ports.length)continue;
     let fleets=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='naval'&&u.strength>0&&!isUnitInBattle(next,u.id));
     if(!fleets.length){
-      const port=ports.find(p=>coast.some(t=>isReachableBySea(p,t,next.age))&&Object.values(next.units).some(u=>u.ownerId===id&&u.domain==='land'&&u.regionId===p&&!u.embarkedOn));
+      const port=ports.find(p=>coast.some(t=>isReachableBySea(p,t,ageOf(next,id)))&&Object.values(next.units).some(u=>u.ownerId===id&&u.domain==='land'&&u.regionId===p&&!u.embarkedOn));
       if(port && (getPool(next,id).gold || 0)>300)apply({type:ActionTypes.RECRUIT_UNIT,payload:{regionId:port,classId:'naval'}});
       fleets=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='naval');
     }
@@ -765,7 +765,7 @@ export const processAINavalOperations = state => {
       if((fleet.movesLeft ?? 0)<=0 || isUnitInBattle(next,fleet.id))continue;
       // An enemy fleet on a sea tile beside this one, weaker by AI_FLEET_ATTACK_RATIO: a sea battle (navalBattle.js).
       if(aiFleetAttack(fleet))continue;
-      const target=coast.find(t=>isReachableBySea(fleet.regionId,t,next.age)||getNeighborIds(fleet.regionId).includes(t));
+      const target=coast.find(t=>isReachableBySea(fleet.regionId,t,ageOf(next,id))||getNeighborIds(fleet.regionId).includes(t));
       if(!target)continue;
       const cargo=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='land'&&u.regionId===fleet.regionId&&!u.embarkedOn&&u.movesLeft>0&&!isUnitInBattle(next,u.id));
       for(const unit of cargo.slice(0,fleet.transportCapacity || 0))apply({type:ActionTypes.EMBARK_UNIT,payload:{landUnitId:unit.id,navalUnitId:fleet.id}});

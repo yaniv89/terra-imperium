@@ -81,7 +81,7 @@ export const buildSimEngine = async () => {
         "export { chooseProduction, nationCounts } from '../src/engine/aiProduction.js';",
         "export { bestSites, MAX_SETTLE_RINGS } from '../src/engine/settlers.js';",
         "export { getResearched, getTechAgeId } from '../src/engine/nationState.js';",
-        "export { getEffectiveAgeId, speedCostMult } from '../src/data/ages.js';",
+        "export { speedCostMult } from '../src/data/ages.js';",
         "export { authorityOf } from '../src/engine/authority.js';",
         "export { getOverextension } from '../src/engine/nationalPower.js';",
         "export { metNations } from '../src/engine/fog.js';",

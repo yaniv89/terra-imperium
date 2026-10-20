@@ -240,7 +240,7 @@ export default {
   'p1.no.openResearch': 'Open Research',
   'p1.no.ageLabel': 'Age',
   'p1.no.ageStrip': '{label} {age}, turn {turn}',
-  'p1.no.nextAge': '{name} in about {turns} turns at this pace',
+  'p1.no.nextAge': '{name} after {techs} more of this age\'s techs',
   'p1.no.vic.domination': 'Domination',
   'p1.no.vic.capitals': '{a} of {b} capitals',
   'p1.no.vic.conqueror': 'Conqueror',

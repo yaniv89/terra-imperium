@@ -19,6 +19,7 @@ import { askConfirm } from '../ui/ConfirmActionDialog';
 import { declareWarConfirm } from '../ui/confirmSpecs';
 import { armySheetModel } from './armySheetModel';
 import { UnitIcon } from '../ui/icons';
+import { ageOf } from '../../engine/nationState';
 
 const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
   const { state, dispatch } = useGame();
@@ -73,7 +74,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
             {g.units.map((u) => (
               <li key={u.id} className="flex items-center gap-2 rounded-lg px-2 min-h-[40px] text-xs bg-fa-raised/60 border border-fa-line/60">
                 {model.unitIds.length > 1 && !model.route && <input type="checkbox" aria-label={tr('mx.army.march1', { name: u.name })} checked={!picked || picked.has(u.id)} onChange={() => togglePick(u.id)} className="w-5 h-5 shrink-0" data-testid="army-pick" />}
-                <UnitIcon classId={u.classId} navalLine={u.navalLine} ageId={state.age} size={28} />
+                <UnitIcon classId={u.classId} navalLine={u.navalLine} ageId={ageOf(state, state.playerNationId)} size={28} />
                 <div className="min-w-0 flex-1">
                   <div className="text-fa-text truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? tr('mx.army.promotions', { count: u.promotions }) : ''}</div>
                   <div className="text-fa-muted">{tr('mx.army.stats', { strength: u.strength, max: u.maxStrength, morale: u.morale, supply: model.naval ? tr('mx.army.aboard', { n: u.cargo }) : tr('mx.army.supply', { n: u.supply, max: u.supplyMax }), moves: u.moves, pace: u.movePoints })}</div>

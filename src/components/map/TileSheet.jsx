@@ -17,7 +17,6 @@ import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId } from '../../data/ages';
 import { tileFacts, IMPROVEMENTS, resourceKnown } from '../../data/tileYields';
 import { DISTRICTS } from '../../engine/districts';
 import { ResourceIcon, ImprovementIcon } from '../ui/icons';
@@ -34,6 +33,7 @@ import { askConfirm } from '../ui/ConfirmActionDialog';
 import { declareWarConfirm } from '../ui/confirmSpecs';
 import { settlerStatus } from './settleRoutes';
 import { useReportInset } from '../../context/MapInsetsContext';
+import { ageOf } from '../../engine/nationState';
 
 // `settleUnitId`: the settler whose site is being chosen (the settle mode, settleMode.js): it is
 // the one that goes, whatever other settlers wait. `onSettle(unit)` starts the mode for a settler.
@@ -50,7 +50,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
   useReportInset('tile-sheet', isMobile ? 'bottom' : 'left', sheetRef, tile != null);
   const tiles = getTiles();
   const me = state.playerNationId;
-  const ageId = getEffectiveAgeId(state.age, state.techAgeId);
+  const ageId = ageOf(state, state.playerNationId);
   const facts = useMemo(() => (tile == null ? null : tileFacts(tiles, tile, state.world?.tileState?.[tile])), [tile, tiles, state.world]);
   const settlers = useMemo(() => settlersOf(state.units, me), [state.units, me]);
   const site = useMemo(() => (facts?.land ? settleSiteModel(state, tile, ageId) : null), [state, tile, ageId, facts, lang]); // eslint-disable-line react-hooks/exhaustive-deps -- lang only words the site

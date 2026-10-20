@@ -10,7 +10,7 @@ import { ActionTypes } from '../../data/types';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { SATELLITE_TYPES, SATELLITE_TYPE_IDS, canLaunchSatellite, getOrbitalEffectivenessMult } from '../../data/satellites';
 import { MISSILE_TIERS, MISSILE_TIER_IDS, MAX_ABM_LEVEL, canBuildMissile } from '../../data/missiles';
-import { getEffectiveAgeId } from '../../data/ages';
+import { ageOf } from '../../engine/nationState';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { SPACE_MISSIONS, canLaunchMission } from '../../data/spaceMissions';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
@@ -29,7 +29,7 @@ const SpacePanel = () => {
   const [missileTierId, setMissileTierId] = useState('tactical');
   const [missileTargetRegionId, setMissileTargetRegionId] = useState('');
 
-  const launchable = canLaunchSatellite(state.age, state.techAgeId, state.year);
+  const launchable = canLaunchSatellite(null, ageOf(state, state.playerNationId), state.year);
   const ownSatellites = Object.values(state.satellites).filter(s => s.ownerId === state.playerNationId);
   const enemySatellites = Object.values(state.satellites).filter(s => s.ownerId !== state.playerNationId);
   const effectivenessMult = getOrbitalEffectivenessMult(state.orbitalDebrisLevel);
@@ -44,7 +44,7 @@ const SpacePanel = () => {
     const holder = r.occupiedBy ?? r.owner;
     return holder === REBEL_OWNER_ID || enemyIds.has(holder);
   }).sort();
-  const missilesUnlocked = canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId));
+  const missilesUnlocked = canBuildMissile(ageOf(state, state.playerNationId));
 
   const handleLaunch = (typeId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchSatellite)) return addLog(tNow('ri.notEnough'), 'action');

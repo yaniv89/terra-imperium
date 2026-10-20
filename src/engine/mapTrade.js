@@ -47,6 +47,7 @@ import { hashRoll } from './aftermath';
 import { speedTurns } from '../data/ages';
 import { AI_ACCORD_PERIOD } from './aiAccords';
 import { msg, msgText, sub, people } from './messages';
+import { waitAgeOf } from './ageRefs';
 
 // A reason as the English `reason` and its message `reasonMsg` (a sub), spread into a result.
 const why = (key, vars) => ({ reason: msgText(key, vars), reasonMsg: sub(key, vars) });
@@ -66,7 +67,8 @@ export const MAP_OFFER_MIN_VALUE = 40;
 export const MAP_OFFER_CHANCE = 0.2;
 export const MAP_OFFER_TURNS = 5;           // turns of play the offer stays open (a deadline on screen)
 export const MAP_OFFER_GAP_REF_TURNS = 20;  // reference turns between two offers to the player (ages.js speedTurns)
-export const mapOfferGapTurns = (state) => speedTurns(MAP_OFFER_GAP_REF_TURNS, state?.gameSpeed, state?.age);
+// The player is the one who waits between offers: its own age (KTD7).
+export const mapOfferGapTurns = (state) => speedTurns(MAP_OFFER_GAP_REF_TURNS, state?.gameSpeed, waitAgeOf(state, state?.playerNationId));
 export const MAP_TRADE_KINDS = ['swap', 'give', 'ask', 'buy', 'sell'];
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));

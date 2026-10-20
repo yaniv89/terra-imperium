@@ -5,9 +5,8 @@
 //
 // A tech's payoff is the plan's own framing: research enough of your current age's line and your
 // empire's tech-earned age (state.techAgeId, advanced by GameContext.jsx's RESEARCH_TECH) catches
-// up to the next one — which is what src/data/ages.js's already-existing getEffectiveAgeId was
-// built for. GameContext.jsx now passes that effective age to getAvailableClasses instead of the
-// raw calendar age.
+// up to the next one. That research age is the nation's age and nothing else (ageOf in
+// src/engine/nationState.js; eight-ages plan KTD1): no calendar floor and no cap.
 //
 // Research cost: science only, by age (src/engine/research.js RESEARCH_AGE_BASE); the old
 // per-tech `cost.techPoints` below is kept only as data. Building/tech unlocks named in the plan's own §M6.3/§M7
@@ -21,7 +20,7 @@
 // chances) is left with no `effects` entry — it's still real progression (its own prerequisite
 // chain, its building unlocks where those exist), just not a faked modifier line. Those systems'
 // own milestones (M8/M9/M11/M12/M14/M17) are where those techs' remaining effects get wired.
-import { AGES } from './ages';
+
 import { TechCategories } from './types';
 
 // Each line lists its techs oldest first, each with its age: a tech's age is where it is listed,
@@ -137,8 +136,6 @@ const LEGACY_TECH_POINTS_BY_AGE = { bronze: 10, classical: 25, kingdoms: 40, gun
 const buildLine = (category, entries) => {
   const techs = {};
   entries.forEach(({ name, age: ageId }, i) => {
-    const age = AGES[ageId];
-    const isSecondOfAge = i > 0 && entries[i - 1].age === ageId;
     const id = `${category}_${slug(name)}`;
     const previousId = i === 0 ? null : `${category}_${slug(entries[i - 1].name)}`;
     techs[id] = {
@@ -146,8 +143,9 @@ const buildLine = (category, entries) => {
       name,
       category,
       ageId,
-      // Staggered within the age so the second tech isn't available the instant the age begins.
-      yearAvailable: isSecondOfAge ? Math.round(age.startYear + (age.endYear - age.startYear) * 0.5) : age.startYear,
+      // Its place in the line (0 = first). No tech waits for a year: the research window is the
+      // nation's own age and the next (research.js inResearchWindow, eight-ages plan KTD4).
+      lineIndex: i,
       prerequisites: [...(previousId ? [previousId] : []), ...crossPrerequisites(name)],
       requiresAny: false,
       exclusiveWith: [],
@@ -180,7 +178,7 @@ export const getTechsByCategory = () => {
     categories[tech.category].techs.push(tech);
   });
   Object.values(categories).forEach(cat => {
-    cat.techs.sort((a, b) => a.yearAvailable - b.yearAvailable);
+    cat.techs.sort((a, b) => a.lineIndex - b.lineIndex);
   });
   return categories;
 };

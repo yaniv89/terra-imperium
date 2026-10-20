@@ -25,6 +25,7 @@ import { opinionOf } from './opinion';
 import { hasMet } from './hostility';
 import { thinksOn } from './raids';
 import { msg, sub, people, thing } from './messages';
+import { independentAgeOf } from './ageRefs';
 
 // patronBonusText (data/cityStates.js) as a message: "+3 gold a turn".
 const patronBonusMsg = (type, ageId) => {
@@ -98,7 +99,7 @@ export const processPatrons = (w, indeps) => {
         w.nations[id] = { ...n, indep };
         n = w.nations[id];
         const type = cityStateTypeOf(n);
-        if (patron === w.playerId) w.logs.push({ year: w.year, type: LogTypes.DIPLOMACY, ...msg('m.world.patronYou', { nation: people(id, n.name), type: thing('cityStateType', type, CITY_STATE_TYPES[type].name), bonus: patronBonusMsg(type, w.age) }), nationId: id });
+        if (patron === w.playerId) w.logs.push({ year: w.year, type: LogTypes.DIPLOMACY, ...msg('m.world.patronYou', { nation: people(id, n.name), type: thing('cityStateType', type, CITY_STATE_TYPES[type].name), bonus: patronBonusMsg(type, independentAgeOf(w.view, id)) }), nationId: id });
         else if (before === w.playerId) w.logs.push({ year: w.year, type: LogTypes.DIPLOMACY, ...msg('m.world.patronLost', { nation: people(id, n.name), now: patron ? sub('m.world.patronNow', { patron: people(patron, w.nations[patron]?.name || patron) }) : '' }), nationId: id });
       }
     }
@@ -106,7 +107,7 @@ export const processPatrons = (w, indeps) => {
     if (!patron) return;
     const p = w.nations[patron];
     if (!p || p.isEliminated || isIndependentNation(p)) return;
-    addBonus(w, patron, patronBonusOf(cityStateTypeOf(n), w.age));
+    addBonus(w, patron, patronBonusOf(cityStateTypeOf(n), independentAgeOf(w.view, id)));
     patrons += 1;
   });
   if (w.stats) w.stats.patrons = patrons;
@@ -117,5 +118,5 @@ export const patronInfo = (state, indepId) => {
   const n = state.nations?.[indepId];
   const type = cityStateTypeOf(n);
   if (!type) return null;
-  return { type, typeName: CITY_STATE_TYPES[type].name, patronId: n.indep?.patron || null, text: patronBonusText(type, state.age), people: PEOPLES[n.people]?.name || null };
+  return { type, typeName: CITY_STATE_TYPES[type].name, patronId: n.indep?.patron || null, text: patronBonusText(type, independentAgeOf(state, indepId)), people: PEOPLES[n.people]?.name || null };
 };

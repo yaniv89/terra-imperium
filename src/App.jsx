@@ -140,26 +140,26 @@ const GameLayout = () => {
   }, [showTitle, showStartScreen, onBattle, state.turnNumber]);
 
   // Age Advance banner + globe pulse (plan §10.5's "showpiece", previously never built — the
-  // calendar age used to change with zero on-screen feedback). prevAgeRef starts at the CURRENT
+  // player's age (its research age) used to change with no on-screen feedback). prevAgeRef starts at the CURRENT
   // age so loading a save mid-age never spuriously fires this on mount, matching
   // prevLogCountRef's pattern below. prevTurnRef additionally guards against a game RESET: a
   // fresh Bronze Age start after finishing a previous run in, say, the Modern Age would otherwise
   // look like an age change too — turnNumber only ever counts up during real play, so a turn
   // count that didn't increase means this is a new game, not a genuine advance.
-  const prevAgeRef = useRef(state.age);
+  const prevAgeRef = useRef(state.techAgeId);
   const prevTurnRef = useRef(state.turnNumber);
   const [ageBanner, setAgeBanner] = useState(null);
   useEffect(() => {
     const isReset = state.turnNumber <= prevTurnRef.current;
     prevTurnRef.current = state.turnNumber;
-    if (isReset || state.age === prevAgeRef.current) {
-      prevAgeRef.current = state.age;
+    if (isReset || state.techAgeId === prevAgeRef.current) {
+      prevAgeRef.current = state.techAgeId;
       return;
     }
-    prevAgeRef.current = state.age;
-    setAgeBanner(AGES[state.age]?.name || state.age);
+    prevAgeRef.current = state.techAgeId;
+    setAgeBanner(AGES[state.techAgeId]?.name || state.techAgeId);
     triggerEffect('age_advance', { region: getNationCapital(state.playerNationId) });
-  }, [state.age, state.turnNumber, state.playerNationId, triggerEffect]);
+  }, [state.techAgeId, state.turnNumber, state.playerNationId, triggerEffect]);
   // Its five seconds run on their own clock: ending the next turn at once no longer cancels the
   // timer and leaves the banner over the top bar (playtest audit X19, I161). The news itself
   // stays in the log.

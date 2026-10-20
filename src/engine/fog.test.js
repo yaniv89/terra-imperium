@@ -207,8 +207,8 @@ describe('fog of war: saves', () => {
     old.nations = { ...old.nations, [ME]: { ...fr, heir: { name: 'Louis', claim: 50 }, estates: { clergy: { loyalty: 50 } }, crownLand: 40, ruler: { ...fr.ruler, consort: { name: 'Anne' } } } };
     old.pendingEventChains = [{ id: 'succession_crisis_2', dueTurn: 9 }];
     const loaded = migrateSave({ version: 10, state: old });
-    expect(loaded.version).toBe(13);
-    expect(CURRENT_SAVE_VERSION).toBe(13);
+    expect(loaded.version).toBe(CURRENT_SAVE_VERSION);
+    expect(CURRENT_SAVE_VERSION).toBe(14);
     ['heir', 'estates', 'crownLand'].forEach((k) => expect(loaded.state.nations[ME], k).not.toHaveProperty(k));
     expect(loaded.state.nations[ME].ruler).not.toHaveProperty('consort');
     expect(loaded.state.pendingEventChains).toEqual([]);
@@ -217,7 +217,7 @@ describe('fog of war: saves', () => {
     expect(loaded.state.fog.explored[ME].bytes).toEqual(initFog(S).fog.explored[ME].bytes);
     // A version 11 save (phase X, no fog) takes only the fog step.
     const v11 = migrateSave({ version: 11, state: JSON.parse(JSON.stringify(old)) });
-    expect(v11.version).toBe(13);
+    expect(v11.version).toBe(CURRENT_SAVE_VERSION);
     expect(fogOn(v11.state)).toBe(true);
   }, 60000);
 

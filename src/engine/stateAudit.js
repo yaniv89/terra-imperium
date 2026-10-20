@@ -17,6 +17,8 @@ export const auditGameState = (state) => {
   });
   numbers(state.resources, 'resources');
   if (!nations[state.playerNationId]) report('missing_player', 'playerNationId', 'Player nation is missing');
+  // There is no world age (eight-ages plan KTD2): the old calendar age field is gone after U16.
+  if ('age' in state) report('calendar_age', 'age', 'state.age (the old calendar age) must not exist: a nation has only its research age');
   const fighting = new Set();
   const warIds = new Set();
   (state.wars || []).forEach((w, i) => {

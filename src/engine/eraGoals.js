@@ -1,57 +1,53 @@
 // src/engine/eraGoals.js
 // Era goals and the legacy they earn (plans/civ-map-rework.md, C9.3; workstream 11). The goals of
-// the current age (src/data/eraGoals.js) are read from the player's state each time the sheet
-// asks; when the calendar age changes (resolveTurn), the goals of the ending age are scored: at
-// least ERA_GOALS_FOR_LEGACY met gives a timed national modifier made of the met playstyles'
-// bonuses, ERA_LEGACY_TURNS long, and the result is kept on the player nation (`eraGoals`).
-// Pure.
-import { AGES, getYearsPerTurn } from '../data/ages';
+// a nation's current age (src/data/eraGoals.js) are read from the state each time the sheet asks;
+// when a nation's OWN research age advances (research.js, eight-ages plan KTD7), the goals of the
+// age it leaves are scored for that nation: at least ERA_GOALS_FOR_LEGACY met gives a timed
+// national modifier made of the met playstyles' bonuses, ERA_LEGACY_TURNS long, and the result is
+// kept on the nation (`eraGoals`). The turn a nation entered its age is `nation.ageSince`. The
+// final age is scored once when the ending signal fires (resolveTurn). Pure.
+import { AGES } from '../data/ages';
 import { ERA_GOALS_FOR_LEGACY, ERA_LEGACY_TURNS, PLAYSTYLES, goalsForAge } from '../data/eraGoals';
 import { addNationModifier } from './modifiers/timed';
 import { msg, sub, thing } from './messages';
+import { ageOf, getResearched } from './nationState';
 
-/** The turn the state's current age began (turns are a fixed number of years inside one age). */
-export const ageStartTurn = (state) => {
-  const age = AGES[state.age];
-  const ypt = getYearsPerTurn(state.age, state.gameSpeed) || 1;
-  if (!age || state.year == null) return 0;
-  return (state.turnNumber || 0) - Math.max(0, Math.round((state.year - age.startYear) / ypt));
-};
+/** The turn `nationId` entered its current age (0 for the first age). */
+export const ageStartTurn = (state, nationId = state.playerNationId) => state.nations?.[nationId]?.ageSince || 0;
 
-/** Cities the player holds that the player took by force in the current age (captureLog, so a kept conquest keeps counting). */
-export const citiesTakenThisAge = (state) => {
-  const me = state.playerNationId;
-  const from = ageStartTurn(state);
+/** Cities the nation holds that it took by force in its current age (captureLog, so a kept conquest keeps counting). */
+export const citiesTakenThisAge = (state, me = state.playerNationId) => {
+  const from = ageStartTurn(state, me);
   return Object.values(state.regions || {}).filter((c) => c.owner === me && (c.captureLog || []).some((e) => e.by === me && e.turn >= from)).length;
 };
 
-/** The player's numbers for every playstyle today. */
-export const playstyleValues = (state) => {
-  const me = state.playerNationId;
+/** A nation's numbers for every playstyle today (default: the player). Trade agreements are with
+ * the player, so an AI nation counts one when it trades with the player. */
+export const playstyleValues = (state, me = state.playerNationId) => {
   const mine = Object.values(state.regions || {}).filter((c) => c.owner === me);
   return {
     expand: mine.length,
-    wealth: Object.values(state.nations || {}).filter((n) => n.id !== me && n.hasTradeAgreement).length,
-    war: citiesTakenThisAge(state),
+    wealth: me === state.playerNationId ? Object.values(state.nations || {}).filter((n) => n.id !== me && n.hasTradeAgreement).length : (state.nations?.[me]?.hasTradeAgreement ? 1 : 0),
+    war: citiesTakenThisAge(state, me),
     culture: Object.values(state.greatProjects || {}).filter((p) => state.regions?.[p.regionId]?.owner === me).length,
-    science: Object.keys(state.techTree || {}).filter((id) => state.techTree[id]?.researched).length
+    science: getResearched(state, me).length
   };
 };
 
-/** The goals of `ageId` (default: the calendar age) with the player's progress. */
-export const eraGoalProgress = (state, ageId = state.age) => {
-  const values = playstyleValues(state);
+/** The goals of `ageId` (default: the nation's own age) with the nation's progress (default: the player). */
+export const eraGoalProgress = (state, ageId = ageOf(state, state.playerNationId), nationId = state.playerNationId) => {
+  const values = playstyleValues(state, nationId);
   const goals = goalsForAge(ageId).map((g) => ({ ...g, value: values[g.id], done: values[g.id] >= g.target }));
   return { ageId, goals, met: goals.filter((g) => g.done).length, needed: ERA_GOALS_FOR_LEGACY };
 };
 
 /**
- * Scores the ending age for the player and returns the nation with its legacy (a timed modifier)
+ * Scores the ending age for `nation` and returns the nation with its legacy (a timed modifier)
  * and the record, plus a log line; the nation unchanged when the age was already scored.
  */
 export const awardEraLegacy = (state, nation, endingAgeId, turnNumber) => {
   if (nation.eraGoals?.[endingAgeId]) return { nation, log: null };
-  const progress = eraGoalProgress(state, endingAgeId);
+  const progress = eraGoalProgress(state, endingAgeId, nation.id);
   const met = progress.goals.filter((g) => g.done).map((g) => g.id);
   const earned = met.length >= ERA_GOALS_FOR_LEGACY;
   const record = { ...(nation.eraGoals || {}), [endingAgeId]: { met, legacy: earned } };
