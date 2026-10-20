@@ -187,6 +187,38 @@ def fine_horse(prefix='Mount', at=(0, 0, 0), coat='Coat', dark='Mane', pale='Clo
     return arm, meshes
 
 
+def fine_legs(arm, prefix='Mount', coat='Coat', hoof='Mane', sides=6):
+    """Shaped horse legs (2026-10-20, opt-in): a muscled forearm and haunch, a knee and a hock that
+    stand out, a slim cannon, a fetlock bump, a sloped pastern and a flared hoof, in place of the
+    quadruped's straight thigh, cannon and box hoof. Same bones, same footing (hoof soles at z 0)."""
+    for ob in [o for o in bpy.data.objects if o.parent == arm and o.type == 'MESH'
+               and any(o.name.startswith(f'{prefix}{k}') for k in ('Thigh', 'Cannon', 'Hoof'))]:
+        bpy.data.objects.remove(ob, do_unlink=True)
+    made = []
+    for side, sx in (('L', 1), ('R', -1)):
+        x = sx * .085
+        for end, y0 in (('Front', -.32), ('Hind', .32)):
+            leg, shin = f'{prefix}_Leg{end}_{side}', f'{prefix}_Shin{end}_{side}'
+            if end == 'Front':  # elbow, forearm, knee, cannon, fetlock, pastern
+                ring = [(0, .60, .050, .075, leg), (-.006, .47, .044, .062, leg), (0, .34, .030, .036, leg), (-.004, .295, .034, .042, shin),
+                        (0, .20, .022, .028, shin), (.004, .088, .028, .034, shin), (-.010, .056, .022, .026, shin)]
+            else:  # haunch, stifle, gaskin, point of hock, cannon, fetlock, pastern
+                ring = [(-.020, .63, .058, .100, leg), (-.030, .50, .052, .082, leg), (.020, .40, .036, .052, leg), (.048, .305, .030, .044, shin),
+                        (.022, .19, .022, .028, shin), (.006, .088, .028, .034, shin), (-.008, .056, .022, .026, shin)]
+            made.append(u.tube(f'{prefix}Leg{end}_{side}', [(x, y0 + dy, z) for dy, z, _, _, _ in ring], [(rx, ry) for _, _, rx, ry, _ in ring],
+                               coat, [b for *_, b in ring], sides, arm))
+            made.append(u.tube(f'{prefix}Hoof{end}_{side}', [(x, y0 - .016, .052), (x, y0 - .020, .026), (x, y0 - .024, .002)],
+                               [(.024, .028), (.030, .036), (.034, .041)], hoof, [shin] * 3, sides, arm))
+    return made
+
+def full_tail(arm, prefix='Mount', dark='Mane'):
+    """A fuller tail (2026-10-20, opt-in): it lifts from the dock, swells and falls to the hocks, in
+    place of the quadruped's thin tail."""
+    for ob in [o for o in bpy.data.objects if o.parent == arm and o.name == f'{prefix}Tail']:
+        bpy.data.objects.remove(ob, do_unlink=True)
+    return u.tube(f'{prefix}Tail', [(0, .462, .672), (0, .520, .640), (0, .572, .545), (0, .598, .410), (0, .600, .290), (0, .592, .195), (0, .585, .150)],
+                  [(.026, .030), (.038, .046), (.050, .058), (.056, .060), (.052, .054), (.036, .040), (.008, .010)], dark, [f'{prefix}_Tail'] * 7, 7, arm)
+
 def tack(horse, saddle='Team', span=(-.30, .16), reach=108, fringe=.028, girth='Leather', band='Leather', discs=3, disc='Metal'):
     """The riding tack of the quality pass on a fine horse (the Bronze general's, shared): a saddle
     cloth draped over the back (`saddle`: its material, None for none; on a mount the battle draws a
