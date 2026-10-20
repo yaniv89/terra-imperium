@@ -1,13 +1,13 @@
 {
   "enabled": true,
   "quadruped": false,
+  "restClip": "^Idle$",
   "triangleBudget": 3000,
   "tags": {
     "team": "(^|\\s)Team(\\s|$)",
     "skin": "(^|\\s)Skin(\\s|$)",
     "emblem": "(^|\\s)Emblem(\\s|$)"
   },
-  "restClip": "^Idle$",
   "clips": {
     "Idle": {
       "frames": 41,

@@ -134,11 +134,17 @@ const MACHINES = [
   { name: 'classical-siege', key: 'siege', classId: 'siege', crew: 3, length: [1.8, 2.5], height: [1.1, 1.8] }, // ballista: real 3 m
   { name: 'kingdoms-siege', key: 'siege', classId: 'siege', crew: 3, length: [4.5, 6.5], height: [5.4, 6.8] }, // trebuchet: real 9 m high
   { name: 'gunpowder-siege', key: 'siege', classId: 'siege', crew: 3, length: [2.1, 2.9], height: [0.75, 1.1] }, // field gun: real 3.5 m, wheels 1.4 m
-  { name: 'modern-siege', key: 'siege', classId: 'siege', crew: 3, length: [4.7, 6], height: [1.5, 3.2] }, // 155 mm howitzer: real 8 m with trails
-  { name: 'modern-cavalry', key: 'cavalry', classId: 'cavalry', crew: 0, length: [5.2, 7.2], height: [1.6, 2.8] }, // tank: real hull 7 m (9.5 m with the gun), 2.4 m to the roof (aerial above)
-  { name: 'modern-support', key: 'support', classId: 'support', crew: 1, length: [4.1, 5.4], height: [2.2, 3.8] }, // AA truck: real 7 m, guns raised
+  { name: 'modern-siege', key: 'siege', classId: 'siege', crew: 3, length: [4.7, 6], height: [1.5, 3.2] }, // mid-century field howitzer: real about 7 m with its trails
+  { name: 'modern-cavalry', key: 'cavalry', classId: 'cavalry', crew: 0, length: [3.8, 5.2], height: [1.6, 2.8] }, // mid-century medium tank: real about 6 m with the gun, 2.7 m to the cupola (aerial above)
+  { name: 'modern-support', key: 'support', classId: 'support', crew: 1, length: [4.1, 5.4], height: [2.2, 3.8] }, // AA truck: a real 6 to 7 m lorry, the gun raised
   { name: 'modern-general', key: 'general', classId: 'cavalry', crew: 2, length: [2.2, 3], height: [1.5, 3.6] }, // command car: real 3.4 m, a whip mast
-  { name: 'modern-raider', key: 'raider', classId: 'cavalry', crew: 1, length: [3.1, 4.1], height: [1.3, 2.2] }, // technical: a real 5.3 m pickup
+  { name: 'modern-raider', key: 'raider', classId: 'cavalry', crew: 1, length: [2.2, 3], height: [1.3, 2.2] }, // recon car: a real 3.4 m open car with a pintle gun
+  // the present-day machines, renamed from modern-* (eight-ages plan U81)
+  { name: 'information-siege', key: 'siege', classId: 'siege', crew: 3, length: [4.7, 6], height: [1.5, 3.2] }, // 155 mm howitzer: real 8 m with trails
+  { name: 'information-cavalry', key: 'cavalry', classId: 'cavalry', crew: 0, length: [5.2, 7.2], height: [1.6, 2.8] }, // tank: real hull 7 m (9.5 m with the gun), 2.4 m to the roof (aerial above)
+  { name: 'information-support', key: 'support', classId: 'support', crew: 1, length: [4.1, 5.4], height: [2.2, 3.8] }, // AA truck: real 7 m, guns raised
+  { name: 'information-general', key: 'general', classId: 'cavalry', crew: 2, length: [2.2, 3], height: [1.5, 3.6] }, // command car: real 3.4 m, a whip mast
+  { name: 'information-raider', key: 'raider', classId: 'cavalry', crew: 1, length: [3.1, 4.1], height: [1.3, 2.2] }, // technical: a real 5.3 m pickup
   // signature machines (a people's own unit in place of the base one)
   { name: 'signature/kingdom-of-israel', people: 'israel', ageId: 'modern', key: 'cavalry', classId: 'cavalry', crew: 0, length: [5.6, 7.6], height: [1.6, 2.9] }, // Merkava: real 7.6 m hull, 9 m with the gun
   { name: 'signature/marcomannia', people: 'marcomannia', ageId: 'modern', key: 'cavalry', classId: 'cavalry', crew: 0, length: [3, 4], height: [1.6, 2.9] }, // LT vz. 38: real 4.6 m, 2.4 m high (aerial above)
