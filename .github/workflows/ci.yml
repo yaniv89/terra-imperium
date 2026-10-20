@@ -9,9 +9,14 @@ name: CI
 # Chromium, not a software-GL-constrained one.
 on:
   push:
-    branches: [phase-a-foundation, main]
+    branches: [claude/integration, main]
   pull_request: {}
   workflow_dispatch: {}
+
+# Merges land on claude/integration often: a newer push cancels the older run on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:

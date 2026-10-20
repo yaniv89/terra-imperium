@@ -139,6 +139,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 
 ## Commands
 - `npm run lint` (zero warnings allowed), `npx vitest run`, `npm run build` (writes dist/, gitignored).
+- Fast local checks: `npm run test:quick` (skips the 17 slowest files listed in vitest.config.js, about 2 minutes), `npm run test:related -- <files>` (only tests that import them). CI runs the full suite on every push to claude/integration and main.
 - e2e: `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test`.
 - Battle sandbox in the browser: `npx vite`, then open `/?battleSandbox`.
 
