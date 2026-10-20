@@ -29,12 +29,12 @@ import { ageOf } from './nationState';
 import { awardEraLegacy } from './eraGoals';
 import { isIndependentNation } from '../data/independents';
 
-// Science cost of one tech, by its age, at Normal speed. Calibrated with the balance-sim so a
-// typical nation researches about 6 to 8 of an age's 10 techs before the calendar age ends.
-// Recalibrated for the one-city Dawn start (plans/civ-map-rework.md, Part H): a size-2 capital
-// makes about 3 science a turn, so a Bronze tech takes about 8 turns. The later ages keep their
-// values until the balance-sim pass of workstream 13.
-export const RESEARCH_AGE_BASE = { bronze: 24, classical: 85, kingdoms: 135, gunpowder: 140, modern: 290 };
+// Science cost of one tech, by its age, before the speed multiplier. With no calendar and no year
+// gate (eight-ages plan KTD4) these alone pace the ages, calibrated with the balance-sim (U17,
+// peoples world, Normal, seeds 11 to 13, 300 turns) to KTD9's target turns: about half the majors
+// past Bronze at turn 48 and past Classical at turn 157, Kingdoms ending near 324. Gunpowder and
+// Modern are first guesses past the 300 turns measured (eight-age calibration, U96).
+export const RESEARCH_AGE_BASE = { bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 6000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
 // A safety cap on techs completed in one turn (a big bank paid into cheap techs).
